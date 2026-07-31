@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { GeorgianCity, VehicleType } from "@prisma/client";
+import { DriverAccountType, GeorgianCity, VehicleType } from "@prisma/client";
 
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -10,16 +10,35 @@ const GEORGIAN_CITIES = Object.values(GeorgianCity);
 /** Valid `VehicleType` values, derived from the generated Prisma enum. */
 const VEHICLE_TYPES = Object.values(VehicleType);
 
+/** Valid `DriverAccountType` values, derived from the generated Prisma enum. */
+const DRIVER_ACCOUNT_TYPES = Object.values(DriverAccountType);
+
 /** Validated shape of a driver-profile creation request body. */
 type CreateDriverProfileInput = {
+  accountType: DriverAccountType;
+  firstName: string | null;
+  lastName: string | null;
+  companyName: string | null;
+  vatId: string | null;
+  phone: string;
   city: GeorgianCity;
   vehicleType: VehicleType;
 };
+
+/** Trims a value and returns it only if it is a non-empty string, else null. */
+function nonEmptyString(value: unknown): string | null {
+  return typeof value === "string" && value.trim() !== "" ? value.trim() : null;
+}
 
 /**
  * Hand-rolled body validation (the project has no validation library, and this
  * stage does not warrant adding one). Returns the typed input or an error
  * message describing the first problem encountered.
+ *
+ * INDIVIDUAL and INDIVIDUAL_ENTREPRENEUR accounts require first name, last
+ * name, and phone; company fields are stored as null. BUSINESS accounts require
+ * company name, VAT id, and phone; the personal name fields are stored as null.
+ * City and vehicle type are required regardless of account type.
  */
 function parseCreateDriverProfileBody(
   body: unknown,
@@ -29,7 +48,16 @@ function parseCreateDriverProfileBody(
   }
 
   const record = body as Record<string, unknown>;
-  const { city, vehicleType } = record;
+  const { accountType, city, vehicleType } = record;
+
+  if (
+    typeof accountType !== "string" ||
+    !DRIVER_ACCOUNT_TYPES.includes(accountType as DriverAccountType)
+  ) {
+    return {
+      error: `accountType must be one of: ${DRIVER_ACCOUNT_TYPES.join(", ")}.`,
+    };
+  }
 
   if (
     typeof city !== "string" ||
@@ -49,8 +77,56 @@ function parseCreateDriverProfileBody(
     };
   }
 
+  const phone = nonEmptyString(record.phone);
+  if (phone === null) {
+    return { error: "phone is required and must be a non-empty string." };
+  }
+
+  if (accountType === DriverAccountType.BUSINESS) {
+    const companyName = nonEmptyString(record.companyName);
+    if (companyName === null) {
+      return {
+        error: "companyName is required and must be a non-empty string.",
+      };
+    }
+
+    const vatId = nonEmptyString(record.vatId);
+    if (vatId === null) {
+      return { error: "vatId is required and must be a non-empty string." };
+    }
+
+    return {
+      data: {
+        accountType: DriverAccountType.BUSINESS,
+        firstName: null,
+        lastName: null,
+        companyName,
+        vatId,
+        phone,
+        city: city as GeorgianCity,
+        vehicleType: vehicleType as VehicleType,
+      },
+    };
+  }
+
+  const firstName = nonEmptyString(record.firstName);
+  if (firstName === null) {
+    return { error: "firstName is required and must be a non-empty string." };
+  }
+
+  const lastName = nonEmptyString(record.lastName);
+  if (lastName === null) {
+    return { error: "lastName is required and must be a non-empty string." };
+  }
+
   return {
     data: {
+      accountType: accountType as DriverAccountType,
+      firstName,
+      lastName,
+      companyName: null,
+      vatId: null,
+      phone,
       city: city as GeorgianCity,
       vehicleType: vehicleType as VehicleType,
     },
@@ -90,12 +166,40 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
 
-  const { city, vehicleType } = parsed.data;
+  const {
+    accountType,
+    firstName,
+    lastName,
+    companyName,
+    vatId,
+    phone,
+    city,
+    vehicleType,
+  } = parsed.data;
 
   const driverProfile = await prisma.driverProfile.upsert({
     where: { userId: session.user.id },
-    create: { userId: session.user.id, city, vehicleType },
-    update: { city, vehicleType },
+    create: {
+      userId: session.user.id,
+      accountType,
+      firstName,
+      lastName,
+      companyName,
+      vatId,
+      phone,
+      city,
+      vehicleType,
+    },
+    update: {
+      accountType,
+      firstName,
+      lastName,
+      companyName,
+      vatId,
+      phone,
+      city,
+      vehicleType,
+    },
   });
 
   return NextResponse.json(driverProfile, { status: 201 });

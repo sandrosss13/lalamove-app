@@ -5,6 +5,7 @@ import Link from "next/link";
 
 import { useSession } from "@/lib/auth-client";
 import { AddressAutocomplete } from "@/components/address-autocomplete";
+import { VEHICLE_TYPE_GROUPS } from "@/lib/vehicle-types";
 
 /**
  * Selectable package types. Values mirror the `PackageType` Prisma enum; they
@@ -16,17 +17,6 @@ const PACKAGE_TYPE_OPTIONS = [
   { value: "SMALL_PARCEL", label: "Small parcel" },
   { value: "MEDIUM_PARCEL", label: "Medium parcel" },
   { value: "LARGE_PARCEL", label: "Large parcel" },
-] as const;
-
-/**
- * Selectable vehicle types. Values mirror the `VehicleType` Prisma enum; they
- * are duplicated here (rather than imported from `@prisma/client`) to keep the
- * server-only Prisma client out of the browser bundle.
- */
-const VEHICLE_TYPE_OPTIONS = [
-  { value: "BIKE", label: "Bike" },
-  { value: "CAR", label: "Car" },
-  { value: "VAN", label: "Van" },
 ] as const;
 
 /** Fields of the created order the form surfaces back to the user. */
@@ -44,7 +34,7 @@ export default function Home() {
   const [pickupAddress, setPickupAddress] = useState("");
   const [dropoffAddress, setDropoffAddress] = useState("");
   const [packageType, setPackageType] = useState<string>("SMALL_PARCEL");
-  const [vehicleType, setVehicleType] = useState<string>("CAR");
+  const [vehicleType, setVehicleType] = useState<string>("FLATBED");
   const [description, setDescription] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
@@ -186,10 +176,14 @@ export default function Home() {
             onChange={(event) => setVehicleType(event.target.value)}
             className="rounded border px-3 py-2"
           >
-            {VEHICLE_TYPE_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
+            {VEHICLE_TYPE_GROUPS.map((group) => (
+              <optgroup key={group.category} label={group.category}>
+                {group.options.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </optgroup>
             ))}
           </select>
         </label>

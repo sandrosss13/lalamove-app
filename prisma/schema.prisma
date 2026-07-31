@@ -23,6 +23,7 @@ model User {
   // Delivery-domain relations. Named relations are required because `User`
   // participates in the `Order` model twice (as client and as driver).
   driverProfile DriverProfile?
+  clientProfile ClientProfile?
   orders        Order[]        @relation("ClientOrders")
   deliveries    Order[]        @relation("DriverDeliveries")
 
@@ -86,6 +87,19 @@ enum UserRole {
   DRIVER
 }
 
+/// Whether a client account represents an individual or a business.
+enum ClientAccountType {
+  INDIVIDUAL
+  BUSINESS
+}
+
+/// Individual Entrepreneur (ინდ. მეწარმე) is a distinct Georgian business registration status, separate from both a private individual and a full company.
+enum DriverAccountType {
+  INDIVIDUAL
+  INDIVIDUAL_ENTREPRENEUR
+  BUSINESS
+}
+
 enum OrderStatus {
   PENDING
   ACCEPTED
@@ -95,9 +109,22 @@ enum OrderStatus {
 }
 
 enum VehicleType {
-  BIKE
-  CAR
-  VAN
+  // Light Truck (<3.5 tonne)
+  FLATBED
+  PICKUP
+  VENDING_TRUCK
+  REFRIGERATED_TRUCK
+  ICE_CREAM_TRUCK
+  CURTAINSIDER_TRUCK
+  BOX_TRUCK
+  CHASSIS_TRUCK
+  DUMP_TRUCK
+  // Cargo Van
+  CARGO_DERIVED_VAN
+  CLOSED_BOX_VAN
+  COMBO_VAN
+  ISOTHERMAL_VAN
+  REFRIGERATED_VAN
 }
 
 /// Cities a driver profile can be based in.
@@ -144,10 +171,32 @@ model DriverProfile {
   isOnline   Boolean     @default(false)
   city       GeorgianCity
   vehicleType VehicleType
+  accountType DriverAccountType
+  firstName   String?
+  lastName    String?
+  companyName String?
+  vatId       String?
+  phone       String
   currentLat Float?
   currentLng Float?
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
+}
+
+/// Client-specific profile data. Individual accounts use first/last name;
+/// business accounts use company name and VAT id. `phone` is required for both.
+model ClientProfile {
+  id          String            @id @default(cuid())
+  userId      String            @unique
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accountType ClientAccountType
+  firstName   String?
+  lastName    String?
+  companyName String?
+  vatId       String?
+  phone       String
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
 }
 
 /// A single delivery request placed by a client and optionally taken by a driver.
