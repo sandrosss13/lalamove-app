@@ -5,15 +5,7 @@ import { OrderStatus } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { AcceptOrderButton } from "@/components/accept-order-button";
-
-/** Tailwind classes per order status for a small colour-coded badge. */
-const STATUS_STYLES: Record<OrderStatus, string> = {
-  PENDING: "bg-yellow-100 text-yellow-800",
-  ACCEPTED: "bg-blue-100 text-blue-800",
-  IN_TRANSIT: "bg-purple-100 text-purple-800",
-  COMPLETED: "bg-green-100 text-green-800",
-  CANCELLED: "bg-red-100 text-red-800",
-};
+import { OrderCard } from "@/components/order-card";
 
 // Session + Prisma access can't be statically rendered.
 export const dynamic = "force-dynamic";
@@ -80,29 +72,7 @@ export default async function OrdersPage() {
       ) : (
         <ul className="flex flex-col gap-4">
           {orders.map((order) => (
-            <li key={order.id} className="rounded border p-4">
-              <div className="flex items-center justify-between">
-                <span
-                  className={`rounded px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[order.status]}`}
-                >
-                  {order.status}
-                </span>
-                <span className="text-sm font-semibold">
-                  ${order.price.toFixed(2)}
-                </span>
-              </div>
-
-              <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
-                <dt className="opacity-60">From</dt>
-                <dd>{order.pickupAddress}</dd>
-                <dt className="opacity-60">To</dt>
-                <dd>{order.dropoffAddress}</dd>
-                <dt className="opacity-60">Package</dt>
-                <dd>{order.packageType}</dd>
-                <dt className="opacity-60">Distance</dt>
-                <dd>{order.distanceKm.toFixed(2)} km</dd>
-              </dl>
-
+            <OrderCard key={order.id} order={order}>
               {/* Drivers can claim only orders that are still open (PENDING and
                   unassigned); their own accepted deliveries just show status. */}
               {isDriver &&
@@ -110,7 +80,7 @@ export default async function OrdersPage() {
               order.driverId === null ? (
                 <AcceptOrderButton orderId={order.id} />
               ) : null}
-            </li>
+            </OrderCard>
           ))}
         </ul>
       )}

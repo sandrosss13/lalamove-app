@@ -93,6 +93,13 @@ enum ClientAccountType {
   BUSINESS
 }
 
+/// Gender of an individual client, collected during profile verification.
+enum ClientGender {
+  MALE
+  FEMALE
+  OTHER
+}
+
 /// Individual Entrepreneur (ინდ. მეწარმე) is a distinct Georgian business registration status, separate from both a private individual and a full company.
 enum DriverAccountType {
   INDIVIDUAL
@@ -195,6 +202,10 @@ model ClientProfile {
   companyName String?
   vatId       String?
   phone       String
+  // Verification details, individual accounts only (nullable for business).
+  dateOfBirth DateTime?
+  gender      ClientGender?
+  idNumber    String?
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
 }
