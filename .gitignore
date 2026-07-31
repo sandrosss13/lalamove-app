@@ -39,6 +39,9 @@ next-env.d.ts
 # local MCP config
 .mcp.json
 
+# Claude Code runtime state
+.claude/scheduled_tasks.lock
+
 # python build artifacts (skill scripts ship as .py source)
 __pycache__/
 *.pyc
