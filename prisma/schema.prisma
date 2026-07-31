@@ -1,0 +1,154 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id            String    @id
+  name          String
+  email         String
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  role          UserRole  @default(CLIENT)
+  sessions      Session[]
+  accounts      Account[]
+
+  // Delivery-domain relations. Named relations are required because `User`
+  // participates in the `Order` model twice (as client and as driver).
+  driverProfile DriverProfile?
+  orders        Order[]        @relation("ClientOrders")
+  deliveries    Order[]        @relation("DriverDeliveries")
+
+  @@unique([email])
+  @@map("user")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([token])
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}
+
+/// Distinguishes the two kinds of Better Auth users in the app.
+/// `input: true` on the `role` additional field lets sign-up set this explicitly;
+/// the CLIENT default keeps Better Auth's internal inserts safe when it is omitted.
+enum UserRole {
+  CLIENT
+  DRIVER
+}
+
+enum OrderStatus {
+  PENDING
+  ACCEPTED
+  IN_TRANSIT
+  COMPLETED
+  CANCELLED
+}
+
+enum VehicleType {
+  BIKE
+  CAR
+  VAN
+}
+
+enum PackageType {
+  DOCUMENT
+  SMALL_PARCEL
+  MEDIUM_PARCEL
+  LARGE_PARCEL
+}
+
+/// Driver-specific profile data: online status, vehicle, and live location.
+model DriverProfile {
+  id         String      @id @default(cuid())
+  userId     String      @unique
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isOnline   Boolean     @default(false)
+  vehicleType VehicleType
+  currentLat Float?
+  currentLng Float?
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+}
+
+/// A single delivery request placed by a client and optionally taken by a driver.
+model Order {
+  id          String      @id @default(cuid())
+  packageType PackageType @default(SMALL_PARCEL)
+  description String?
+
+  pickupAddress String
+  pickupLat     Float?
+  pickupLng     Float?
+
+  dropoffAddress String
+  dropoffLat     Float?
+  dropoffLng     Float?
+
+  distanceKm  Float
+  price       Float
+  vehicleType VehicleType
+  status      OrderStatus @default(PENDING)
+
+  clientId String
+  client   User   @relation("ClientOrders", fields: [clientId], references: [id], onDelete: Cascade)
+
+  driverId String?
+  driver   User?   @relation("DriverDeliveries", fields: [driverId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId])
+  @@index([driverId])
+  @@index([status])
+}
