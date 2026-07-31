@@ -100,6 +100,35 @@ enum VehicleType {
   VAN
 }
 
+/// Cities a driver profile can be based in.
+enum GeorgianCity {
+  TBILISI
+  BATUMI
+  KUTAISI
+  RUSTAVI
+  ZUGDIDI
+  GORI
+  POTI
+  SAMTREDIA
+  KHASHURI
+  SENAKI
+  ZESTAPONI
+  MARNEULI
+  TELAVI
+  AKHALTSIKHE
+  OZURGETI
+  KOBULETI
+  CHIATURA
+  TSKALTUBO
+  SAGAREJO
+  GARDABANI
+  BOLNISI
+  AKHALKALAKI
+  BORJOMI
+  KASPI
+  MTSKHETA
+}
+
 enum PackageType {
   DOCUMENT
   SMALL_PARCEL
@@ -113,6 +142,7 @@ model DriverProfile {
   userId     String      @unique
   user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   isOnline   Boolean     @default(false)
+  city       GeorgianCity
   vehicleType VehicleType
   currentLat Float?
   currentLng Float?

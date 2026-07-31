@@ -13,8 +13,21 @@ export type LatLng = {
   lng: number;
 };
 
+/** A single address suggestion returned by the autocomplete lookup. */
+export type AddressSuggestion = {
+  displayName: string;
+  lat: number;
+  lng: number;
+};
+
 /** LocationIQ forward-geocoding endpoint (`us1` is the standard default host). */
 const LOCATIONIQ_SEARCH_URL = "https://us1.locationiq.com/v1/search";
+/** LocationIQ autocomplete endpoint — as-you-type suggestions, same host/params. */
+const LOCATIONIQ_AUTOCOMPLETE_URL = "https://us1.locationiq.com/v1/autocomplete";
+/** Minimum query length before a lookup is worthwhile (avoids noisy 1-2 char calls). */
+const AUTOCOMPLETE_MIN_QUERY_LENGTH = 3;
+/** Max suggestions requested per autocomplete lookup. */
+const AUTOCOMPLETE_RESULT_LIMIT = 5;
 /** Descriptive UA is optional for LocationIQ, but sent as good practice. */
 const GEOCODER_USER_AGENT = "lalamove-clone-app (contact: dev@example.com)";
 /** App operates only within Georgia; restrict results to avoid mismatches with international addresses that share a name. */
@@ -45,6 +58,13 @@ const EARTH_RADIUS_KM = 6371;
 type LocationIqResult = {
   lat: string;
   lon: string;
+};
+
+/** Shape of a single LocationIQ autocomplete result (only the fields we consume). */
+type LocationIqSuggestion = {
+  lat: string;
+  lon: string;
+  display_name?: string;
 };
 
 /**
@@ -83,15 +103,17 @@ function throttledFetch(url: string, init: RequestInit): Promise<Response> {
   const result = requestQueue.then(run, run);
   requestQueue = result.then(
     () => undefined,
-    () => undefined,
+    () => undefined
   );
   return result;
 }
 
 /**
- * Fetch the LocationIQ search endpoint, retrying only on rate-limit (429) with
- * exponential backoff. Returns the OK response, or `null` for any terminal
- * non-OK status (e.g. 404 no match, 401 bad/missing key) or exhausted retries.
+ * Fetch a LocationIQ endpoint, retrying only on rate-limit (429) with
+ * exponential backoff. Endpoint-agnostic — it just returns the OK `Response`
+ * (callers parse the body), or `null` for any terminal non-OK status (e.g. 404
+ * no match, 401 bad/missing key) or exhausted retries. Shared by every
+ * LocationIQ caller so they all draw on the same rate-limit queue and budget.
  */
 async function fetchGeocode(url: string): Promise<Response | null> {
   for (let attempt = 0; attempt < LOCATIONIQ_MAX_ATTEMPTS; attempt++) {
@@ -109,8 +131,7 @@ async function fetchGeocode(url: string): Promise<Response | null> {
     // Back off and retry while rate-limited and attempts remain; every other
     // non-OK status is terminal and maps to "not found".
     const canRetry =
-      LOCATIONIQ_RETRYABLE_STATUSES.has(response.status) &&
-      attempt < LOCATIONIQ_MAX_ATTEMPTS - 1;
+      LOCATIONIQ_RETRYABLE_STATUSES.has(response.status) && attempt < LOCATIONIQ_MAX_ATTEMPTS - 1;
     if (!canRetry) {
       return null;
     }
@@ -179,6 +200,66 @@ export async function geocodeAddress(address: string): Promise<LatLng | null> {
   }
 }
 
+/**
+ * Suggest Georgia addresses matching a partial, as-you-type query via
+ * LocationIQ's autocomplete endpoint.
+ *
+ * Returns `[]` for a query shorter than three characters, a missing
+ * `LOCATIONIQ_API_KEY`, no matches, or any network/parse failure — callers can
+ * treat `[]` uniformly as "no suggestions". This function never throws. It
+ * shares the same rate-limit queue and retry budget as `geocodeAddress`.
+ */
+export async function suggestAddresses(query: string): Promise<AddressSuggestion[]> {
+  const trimmed = query.trim();
+  if (trimmed.length < AUTOCOMPLETE_MIN_QUERY_LENGTH) {
+    return [];
+  }
+
+  // Without a key, every request would just 401; treat a missing/empty key as
+  // "no suggestions" (honouring the no-throw contract) rather than making the call.
+  const key = process.env.LOCATIONIQ_API_KEY;
+  if (!key) {
+    return [];
+  }
+
+  const url =
+    `${LOCATIONIQ_AUTOCOMPLETE_URL}?key=${encodeURIComponent(key)}` +
+    `&format=json&limit=${AUTOCOMPLETE_RESULT_LIMIT}` +
+    `&countrycodes=${GEOCODER_COUNTRY_CODE}` +
+    `&viewbox=${GEOCODER_VIEWBOX}&bounded=1&q=${encodeURIComponent(trimmed)}`;
+
+  try {
+    const response = await fetchGeocode(url);
+    if (!response) {
+      return [];
+    }
+
+    const results = (await response.json()) as unknown;
+    if (!Array.isArray(results)) {
+      return [];
+    }
+
+    const suggestions: AddressSuggestion[] = [];
+    for (const entry of results as LocationIqSuggestion[]) {
+      const displayName = entry.display_name;
+      const lat = Number.parseFloat(entry.lat);
+      const lng = Number.parseFloat(entry.lon);
+
+      // Skip entries missing a label or with unparseable coordinates.
+      if (!displayName || Number.isNaN(lat) || Number.isNaN(lng)) {
+        continue;
+      }
+
+      suggestions.push({ displayName, lat, lng });
+    }
+
+    return suggestions;
+  } catch {
+    // Network error, aborted request, or malformed JSON — all "no suggestions".
+    return [];
+  }
+}
+
 /** Convert degrees to radians. */
 function toRadians(degrees: number): number {
   return (degrees * Math.PI) / 180;
@@ -196,8 +277,7 @@ export function haversineDistanceKm(a: LatLng, b: LatLng): number {
   const sinLng = Math.sin(dLng / 2);
 
   const h =
-    sinLat * sinLat +
-    Math.cos(toRadians(a.lat)) * Math.cos(toRadians(b.lat)) * sinLng * sinLng;
+    sinLat * sinLat + Math.cos(toRadians(a.lat)) * Math.cos(toRadians(b.lat)) * sinLng * sinLng;
 
   const c = 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
 
@@ -210,7 +290,7 @@ export function haversineDistanceKm(a: LatLng, b: LatLng): number {
  */
 export function calculatePrice(
   distanceKm: number,
-  pricePerKm: number = DEFAULT_PRICE_PER_KM,
+  pricePerKm: number = DEFAULT_PRICE_PER_KM
 ): number {
   const raw = BASE_FARE + distanceKm * pricePerKm;
   return Math.round(raw * 100) / 100;

@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 
 import { useSession } from "@/lib/auth-client";
+import { AddressAutocomplete } from "@/components/address-autocomplete";
 
 /**
  * Selectable package types. Values mirror the `PackageType` Prisma enum; they
@@ -69,9 +70,7 @@ export default function Home() {
         }),
       });
 
-      const payload = (await response.json()) as
-        | CreatedOrder
-        | { error?: string };
+      const payload = (await response.json()) as CreatedOrder | { error?: string };
 
       if (!response.ok) {
         const message =
@@ -105,20 +104,12 @@ export default function Home() {
     return (
       <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-4 p-8 text-center">
         <h1 className="text-3xl font-bold">Book a delivery</h1>
-        <p className="opacity-70">
-          Please sign in to create a delivery order.
-        </p>
+        <p className="opacity-70">Please sign in to create a delivery order.</p>
         <div className="flex justify-center gap-3">
-          <Link
-            href="/sign-in"
-            className="rounded border px-4 py-2 font-medium hover:opacity-70"
-          >
+          <Link href="/sign-in" className="rounded border px-4 py-2 font-medium hover:opacity-70">
             Sign in
           </Link>
-          <Link
-            href="/sign-up"
-            className="rounded border px-4 py-2 font-medium hover:opacity-70"
-          >
+          <Link href="/sign-up" className="rounded border px-4 py-2 font-medium hover:opacity-70">
             Sign up
           </Link>
         </div>
@@ -133,14 +124,11 @@ export default function Home() {
       <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-4 p-8 text-center">
         <h1 className="text-3xl font-bold">You&apos;re signed in as a driver</h1>
         <p className="opacity-70">
-          Clients book deliveries here — drivers fulfil them. Head to your
-          deliveries to see what&apos;s available and accept a job.
+          Clients book deliveries here — drivers fulfil them. Head to your deliveries to see
+          what&apos;s available and accept a job.
         </p>
         <div className="flex justify-center">
-          <Link
-            href="/orders"
-            className="rounded border px-4 py-2 font-medium hover:opacity-70"
-          >
+          <Link href="/orders" className="rounded border px-4 py-2 font-medium hover:opacity-70">
             View available deliveries →
           </Link>
         </div>
@@ -158,29 +146,23 @@ export default function Home() {
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <label className="flex flex-col gap-1 text-sm">
-          Pickup address
-          <input
-            type="text"
-            required
-            value={pickupAddress}
-            onChange={(event) => setPickupAddress(event.target.value)}
-            placeholder="e.g. 10 Downing Street, London"
-            className="rounded border px-3 py-2"
-          />
-        </label>
+        <AddressAutocomplete
+          id="pickup-address"
+          label="Pickup address"
+          value={pickupAddress}
+          onChange={setPickupAddress}
+          placeholder="e.g. 10 Downing Street, London"
+          required
+        />
 
-        <label className="flex flex-col gap-1 text-sm">
-          Dropoff address
-          <input
-            type="text"
-            required
-            value={dropoffAddress}
-            onChange={(event) => setDropoffAddress(event.target.value)}
-            placeholder="e.g. Buckingham Palace, London"
-            className="rounded border px-3 py-2"
-          />
-        </label>
+        <AddressAutocomplete
+          id="dropoff-address"
+          label="Dropoff address"
+          value={dropoffAddress}
+          onChange={setDropoffAddress}
+          placeholder="e.g. Buckingham Palace, London"
+          required
+        />
 
         <label className="flex flex-col gap-1 text-sm">
           Package type
@@ -238,13 +220,9 @@ export default function Home() {
         <div className="rounded border border-green-600 bg-green-50 p-4 text-sm">
           <p className="font-semibold text-green-800">Order created!</p>
           <p className="mt-1 text-green-900">
-            Distance: {result.distanceKm.toFixed(2)} km · Total: $
-            {result.price.toFixed(2)}
+            Distance: {result.distanceKm.toFixed(2)} km · Total: ${result.price.toFixed(2)}
           </p>
-          <Link
-            href="/orders"
-            className="mt-2 inline-block font-medium underline hover:opacity-70"
-          >
+          <Link href="/orders" className="mt-2 inline-block font-medium underline hover:opacity-70">
             View your orders
           </Link>
         </div>
