@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { signUp } from "@/lib/auth-client";
-import { VEHICLE_TYPE_GROUPS } from "@/lib/vehicle-types";
 
 type Role = "CLIENT" | "DRIVER";
 // Covers every account type across both roles. Clients only ever set INDIVIDUAL
@@ -61,7 +60,6 @@ export default function SignUpPage() {
   // the form in step 3.
   const [accountType, setAccountType] = useState<AccountType | null>(null);
   const [city, setCity] = useState<string>("");
-  const [vehicleType, setVehicleType] = useState<string>("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [companyName, setCompanyName] = useState("");
@@ -102,8 +100,8 @@ export default function SignUpPage() {
     }
 
     // Better Auth has created the account and a session by this point. Drivers
-    // must additionally create a DriverProfile with their identity details,
-    // city, and vehicle. If that step fails we surface the error and stay put —
+    // must additionally create a DriverProfile with their identity details and
+    // city. If that step fails we surface the error and stay put —
     // the account exists, so we don't navigate away as if everything succeeded.
     // Only the fields relevant to the chosen account type are sent.
     if (role === "DRIVER") {
@@ -112,8 +110,8 @@ export default function SignUpPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(
           accountType === "BUSINESS"
-            ? { accountType, companyName, vatId, phone, city, vehicleType }
-            : { accountType, firstName, lastName, phone, city, vehicleType },
+            ? { accountType, companyName, vatId, phone, city }
+            : { accountType, firstName, lastName, phone, city },
         ),
       });
 
@@ -256,7 +254,7 @@ export default function SignUpPage() {
 
   // Step 3: role and account type are chosen — show the identity form. The
   // field shapes are now identical across both roles; drivers additionally get
-  // city and vehicle-type selects.
+  // a city select.
   return (
     <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 p-8">
       <button
@@ -374,29 +372,6 @@ export default function SignUpPage() {
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="flex flex-col gap-1 text-sm">
-              Vehicle type
-              <select
-                required
-                value={vehicleType}
-                onChange={(event) => setVehicleType(event.target.value)}
-                className="rounded border px-3 py-2"
-              >
-                <option value="" disabled>
-                  Select a vehicle type…
-                </option>
-                {VEHICLE_TYPE_GROUPS.map((group) => (
-                  <optgroup key={group.category} label={group.category}>
-                    {group.options.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </optgroup>
                 ))}
               </select>
             </label>

@@ -1,14 +1,11 @@
 import { NextResponse } from "next/server";
-import { DriverAccountType, GeorgianCity, VehicleType } from "@prisma/client";
+import { DriverAccountType, GeorgianCity } from "@prisma/client";
 
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 /** Valid `GeorgianCity` values, derived from the generated Prisma enum. */
 const GEORGIAN_CITIES = Object.values(GeorgianCity);
-
-/** Valid `VehicleType` values, derived from the generated Prisma enum. */
-const VEHICLE_TYPES = Object.values(VehicleType);
 
 /** Valid `DriverAccountType` values, derived from the generated Prisma enum. */
 const DRIVER_ACCOUNT_TYPES = Object.values(DriverAccountType);
@@ -22,7 +19,6 @@ type CreateDriverProfileInput = {
   vatId: string | null;
   phone: string;
   city: GeorgianCity;
-  vehicleType: VehicleType;
 };
 
 /** Trims a value and returns it only if it is a non-empty string, else null. */
@@ -38,7 +34,7 @@ function nonEmptyString(value: unknown): string | null {
  * INDIVIDUAL and INDIVIDUAL_ENTREPRENEUR accounts require first name, last
  * name, and phone; company fields are stored as null. BUSINESS accounts require
  * company name, VAT id, and phone; the personal name fields are stored as null.
- * City and vehicle type are required regardless of account type.
+ * City is required regardless of account type.
  */
 function parseCreateDriverProfileBody(
   body: unknown,
@@ -48,7 +44,7 @@ function parseCreateDriverProfileBody(
   }
 
   const record = body as Record<string, unknown>;
-  const { accountType, city, vehicleType } = record;
+  const { accountType, city } = record;
 
   if (
     typeof accountType !== "string" ||
@@ -65,15 +61,6 @@ function parseCreateDriverProfileBody(
   ) {
     return {
       error: `city must be one of: ${GEORGIAN_CITIES.join(", ")}.`,
-    };
-  }
-
-  if (
-    typeof vehicleType !== "string" ||
-    !VEHICLE_TYPES.includes(vehicleType as VehicleType)
-  ) {
-    return {
-      error: `vehicleType must be one of: ${VEHICLE_TYPES.join(", ")}.`,
     };
   }
 
@@ -104,7 +91,6 @@ function parseCreateDriverProfileBody(
         vatId,
         phone,
         city: city as GeorgianCity,
-        vehicleType: vehicleType as VehicleType,
       },
     };
   }
@@ -128,7 +114,6 @@ function parseCreateDriverProfileBody(
       vatId: null,
       phone,
       city: city as GeorgianCity,
-      vehicleType: vehicleType as VehicleType,
     },
   };
 }
@@ -166,16 +151,8 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
 
-  const {
-    accountType,
-    firstName,
-    lastName,
-    companyName,
-    vatId,
-    phone,
-    city,
-    vehicleType,
-  } = parsed.data;
+  const { accountType, firstName, lastName, companyName, vatId, phone, city } =
+    parsed.data;
 
   const driverProfile = await prisma.driverProfile.upsert({
     where: { userId: session.user.id },
@@ -188,7 +165,6 @@ export async function POST(request: Request): Promise<NextResponse> {
       vatId,
       phone,
       city,
-      vehicleType,
     },
     update: {
       accountType,
@@ -198,7 +174,6 @@ export async function POST(request: Request): Promise<NextResponse> {
       vatId,
       phone,
       city,
-      vehicleType,
     },
   });
 

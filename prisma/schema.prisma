@@ -170,7 +170,7 @@ model DriverProfile {
   user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   isOnline   Boolean     @default(false)
   city       GeorgianCity
-  vehicleType VehicleType
+  vehicleType VehicleType?
   accountType DriverAccountType
   firstName   String?
   lastName    String?
