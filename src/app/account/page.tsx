@@ -5,6 +5,10 @@ import { OrderStatus, type Order } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { OrderCard } from "@/components/order-card";
+import {
+  AccountProfileForm,
+  type AccountProfileInitialValues,
+} from "@/components/account-profile-form";
 
 // Session + Prisma access can't be statically rendered.
 export const dynamic = "force-dynamic";
@@ -98,6 +102,21 @@ export default async function AccountPage() {
           session.user.name
         : session.user.name;
 
+  // Defensive: sign-up always creates a profile, but an account without one is
+  // still editable — default to an empty individual profile.
+  const profileInitialValues: AccountProfileInitialValues = {
+    accountType: clientProfile?.accountType ?? "INDIVIDUAL",
+    firstName: clientProfile?.firstName ?? null,
+    lastName: clientProfile?.lastName ?? null,
+    companyName: clientProfile?.companyName ?? null,
+    vatId: clientProfile?.vatId ?? null,
+    phone: clientProfile?.phone ?? null,
+    // `<input type="date">` expects a bare "YYYY-MM-DD" value.
+    dateOfBirth: clientProfile?.dateOfBirth?.toISOString().slice(0, 10) ?? null,
+    gender: clientProfile?.gender ?? null,
+    idNumber: clientProfile?.idNumber ?? null,
+  };
+
   const currentOrders = orders.filter((order) =>
     CURRENT_STATUSES.includes(order.status),
   );
@@ -111,17 +130,17 @@ export default async function AccountPage() {
   return (
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-8 p-8">
       <header className="flex flex-col gap-1">
-        <div className="flex items-center justify-between gap-3">
-          <h1 className="text-3xl font-bold">{displayName}</h1>
-          <Link
-            href="/account/profile"
-            className="text-sm font-medium hover:opacity-70"
-          >
-            {clientProfile ? "My profile" : "Complete verification"} →
-          </Link>
-        </div>
+        <h1 className="text-3xl font-bold">{displayName}</h1>
         <p className="text-sm opacity-60">Account ID: {session.user.id}</p>
       </header>
+
+      <div className="flex flex-col gap-6">
+        <h2 className="text-2xl font-bold">My profile</h2>
+        <AccountProfileForm
+          email={session.user.email}
+          initialValues={profileInitialValues}
+        />
+      </div>
 
       <div className="flex flex-col gap-6">
         <h2 className="text-2xl font-bold">My orders</h2>
