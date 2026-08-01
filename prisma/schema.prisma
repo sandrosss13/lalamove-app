@@ -192,6 +192,34 @@ model DriverProfile {
   locationUpdatedAt DateTime?
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
+
+  vehicles   Vehicle[]
+}
+
+/// A vehicle a driver operates. A driver may register any number of them.
+/// `plateNumber` is unique across all vehicles for the same reason
+/// `ClientProfile.phone` is unique for clients: a plate identifies one real
+/// vehicle, so the constraint is what stops the same vehicle being claimed by
+/// two drivers at the DB level.
+/// `photoUrls` holds public Supabase Storage URLs; the DB row is the source of
+/// truth, and the objects themselves are removed best-effort on delete.
+model Vehicle {
+  id              String        @id @default(cuid())
+  driverProfileId String
+  driverProfile   DriverProfile @relation(fields: [driverProfileId], references: [id], onDelete: Cascade)
+  plateNumber     String        @unique
+  make            String
+  model           String
+  year            Int
+  vehicleType     VehicleType
+  /// Load capacity in kilograms. Optional — not every driver knows or wants to
+  /// publish it, and it is display-only for now.
+  capacityKg      Float?
+  photoUrls       String[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([driverProfileId])
 }
 
 /// Client-specific profile data. Individual accounts use first/last name;

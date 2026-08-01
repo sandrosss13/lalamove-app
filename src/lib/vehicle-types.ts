@@ -36,3 +36,19 @@ export const VEHICLE_TYPE_GROUPS: VehicleTypeGroup[] = [
     ],
   },
 ];
+
+/**
+ * Human-readable label for a stored `VehicleType` value. Falls back to the raw
+ * value so a newly added enum member renders as something rather than blank if
+ * the list above hasn't caught up yet.
+ */
+export function vehicleTypeLabel(value: string): string {
+  for (const group of VEHICLE_TYPE_GROUPS) {
+    const option = group.options.find((candidate) => candidate.value === value);
+    if (option) {
+      return option.label;
+    }
+  }
+
+  return value;
+}

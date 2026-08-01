@@ -5,6 +5,9 @@ import { OrderStatus, type Order } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { OrderCard } from "@/components/order-card";
+import { VehicleCard } from "@/components/vehicle-card";
+import { VehicleForm } from "@/components/vehicle-form";
+import { RemoveVehicleButton } from "@/components/remove-vehicle-button";
 import {
   AccountProfileForm,
   type AccountProfileInitialValues,
@@ -40,6 +43,74 @@ function OrderGroup({ title, orders }: { title: string; orders: Order[] }) {
   );
 }
 
+/**
+ * Driver dashboard: identity header plus the driver's fleet. Vehicles hang off
+ * `DriverProfile`, so a driver who somehow has no profile yet still gets the
+ * page — the add form's API call is what tells them to complete it first.
+ */
+async function DriverAccount({
+  userId,
+  userName,
+}: {
+  userId: string;
+  userName: string;
+}) {
+  const driverProfile = await prisma.driverProfile.findUnique({
+    where: { userId },
+    include: { vehicles: { orderBy: { createdAt: "desc" } } },
+  });
+
+  // Display name: use the profile's identity when present, otherwise fall back
+  // to the account name captured at sign-up. Individual entrepreneurs are
+  // named people, so they use the personal-name branch alongside individuals.
+  const displayName =
+    driverProfile?.accountType === "BUSINESS"
+      ? (driverProfile.companyName ?? userName)
+      : driverProfile
+        ? `${driverProfile.firstName ?? ""} ${driverProfile.lastName ?? ""}`.trim() ||
+          userName
+        : userName;
+
+  const vehicles = driverProfile?.vehicles ?? [];
+
+  return (
+    <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-8 p-8">
+      <header className="flex flex-col gap-1">
+        <h1 className="text-3xl font-bold">{displayName}</h1>
+        <p className="text-sm opacity-60">Driver account</p>
+      </header>
+
+      <div className="flex flex-col gap-6">
+        <h2 className="text-2xl font-bold">
+          My vehicles <span className="opacity-60">({vehicles.length})</span>
+        </h2>
+
+        {vehicles.length === 0 ? (
+          <p className="text-sm opacity-70">
+            No vehicles yet — add your first one below.
+          </p>
+        ) : (
+          <ul className="flex flex-col gap-4">
+            {vehicles.map((vehicle) => (
+              <VehicleCard key={vehicle.id} vehicle={vehicle}>
+                <RemoveVehicleButton
+                  vehicleId={vehicle.id}
+                  plateNumber={vehicle.plateNumber}
+                />
+              </VehicleCard>
+            ))}
+          </ul>
+        )}
+
+        <section className="flex flex-col gap-4">
+          <h3 className="text-lg font-semibold">Add a vehicle</h3>
+          <VehicleForm />
+        </section>
+      </div>
+    </main>
+  );
+}
+
 export default async function AccountPage() {
   const session = await auth.api.getSession({ headers: await headers() });
 
@@ -66,21 +137,11 @@ export default async function AccountPage() {
     );
   }
 
-  // Drivers have their own deliveries view; this dashboard is client-only.
-  if (session.user.role !== "CLIENT") {
+  // Drivers get a fleet-oriented dashboard on this same route. `UserRole` is
+  // CLIENT or DRIVER only, so everything past this branch is a client.
+  if (session.user.role === "DRIVER") {
     return (
-      <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-4 p-8 text-center">
-        <h1 className="text-3xl font-bold">My account</h1>
-        <p className="opacity-70">This page is for client accounts.</p>
-        <div className="flex justify-center">
-          <Link
-            href="/"
-            className="rounded border px-4 py-2 font-medium hover:opacity-70"
-          >
-            ← Back home
-          </Link>
-        </div>
-      </main>
+      <DriverAccount userId={session.user.id} userName={session.user.name} />
     );
   }
 
