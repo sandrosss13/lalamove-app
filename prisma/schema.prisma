@@ -191,7 +191,9 @@ model DriverProfile {
 }
 
 /// Client-specific profile data. Individual accounts use first/last name;
-/// business accounts use company name and VAT id. `phone` is required for both.
+/// business accounts use company name and VAT id. `phone` is required for both
+/// and is unique across all clients: a phone number identifies a real person or
+/// business, so it is what enforces "one account per client" at the DB level.
 model ClientProfile {
   id          String            @id @default(cuid())
   userId      String            @unique
@@ -201,7 +203,7 @@ model ClientProfile {
   lastName    String?
   companyName String?
   vatId       String?
-  phone       String
+  phone       String            @unique
   // Verification details, individual accounts only (nullable for business).
   dateOfBirth DateTime?
   gender      ClientGender?

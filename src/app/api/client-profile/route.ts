@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { ClientAccountType, ClientGender } from "@prisma/client";
+import { ClientAccountType, ClientGender, Prisma } from "@prisma/client";
 
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -184,6 +184,30 @@ function parseCreateClientProfileBody(
 }
 
 /**
+ * True when `error` is a unique-constraint violation (P2002) on `phone` — i.e.
+ * the caller tried to claim a number already tied to another client account.
+ * `meta.target` is checked so a P2002 on `userId` (possible if two writes for
+ * the same session race) is not mislabelled as a phone conflict. Postgres
+ * reports either the column list or the index name ("ClientProfile_phone_key"),
+ * so both shapes are handled.
+ */
+function isDuplicatePhoneError(error: unknown): boolean {
+  if (
+    !(error instanceof Prisma.PrismaClientKnownRequestError) ||
+    error.code !== "P2002"
+  ) {
+    return false;
+  }
+
+  const target = error.meta?.target;
+  if (Array.isArray(target)) {
+    return target.includes("phone");
+  }
+
+  return typeof target === "string" && target.includes("phone");
+}
+
+/**
  * GET /api/client-profile — return the signed-in client's profile, or `null`
  * if they haven't completed it yet (a valid state, not an error). Only CLIENT
  * users may call this.
@@ -253,32 +277,48 @@ export async function POST(request: Request): Promise<NextResponse> {
     idNumber,
   } = parsed.data;
 
-  const clientProfile = await prisma.clientProfile.upsert({
-    where: { userId: session.user.id },
-    create: {
-      userId: session.user.id,
-      accountType,
-      firstName,
-      lastName,
-      companyName,
-      vatId,
-      phone,
-      dateOfBirth,
-      gender,
-      idNumber,
-    },
-    update: {
-      accountType,
-      firstName,
-      lastName,
-      companyName,
-      vatId,
-      phone,
-      dateOfBirth,
-      gender,
-      idNumber,
-    },
-  });
+  let clientProfile;
+  try {
+    clientProfile = await prisma.clientProfile.upsert({
+      where: { userId: session.user.id },
+      create: {
+        userId: session.user.id,
+        accountType,
+        firstName,
+        lastName,
+        companyName,
+        vatId,
+        phone,
+        dateOfBirth,
+        gender,
+        idNumber,
+      },
+      update: {
+        accountType,
+        firstName,
+        lastName,
+        companyName,
+        vatId,
+        phone,
+        dateOfBirth,
+        gender,
+        idNumber,
+      },
+    });
+  } catch (error) {
+    // `ClientProfile.phone` is unique — one account per client. Anything else
+    // is unexpected and rethrown rather than swallowed.
+    if (isDuplicatePhoneError(error)) {
+      return NextResponse.json(
+        {
+          error: "This phone number is already registered to another account.",
+        },
+        { status: 409 },
+      );
+    }
+
+    throw error;
+  }
 
   return NextResponse.json(clientProfile, { status: 201 });
 }
