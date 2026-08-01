@@ -30,11 +30,9 @@ export function AuthStatus() {
         <span>
           Signed in as {name} ({role})
         </span>
-        {role === "CLIENT" ? (
-          <Link href="/account" className="font-medium hover:opacity-70">
-            My account
-          </Link>
-        ) : null}
+        <Link href="/account" className="font-medium hover:opacity-70">
+          My account
+        </Link>
         <button
           type="button"
           onClick={handleSignOut}
