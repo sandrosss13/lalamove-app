@@ -3,6 +3,15 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* Landing-page palette. Deliberately independent of the light/dark tokens
+     above: the marketing page is always a fixed light-on-near-black scheme. */
+  --landing-ink: #0a0a0a;
+  --landing-surface: #16150f;
+  --landing-paper: #f5f2ed;
+  --landing-muted: #b6b0a7;
+  --landing-accent: #ff5a1f;
+  --landing-line: rgba(245, 242, 237, 0.14);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -15,6 +24,77 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+
+  --color-ink: var(--landing-ink);
+  --color-surface: var(--landing-surface);
+  --color-paper: var(--landing-paper);
+  --color-muted: var(--landing-muted);
+  --color-accent: var(--landing-accent);
+  --color-line: var(--landing-line);
+
+  --font-display: var(--font-bebas-neue), sans-serif;
+  --font-body: var(--font-archivo), sans-serif;
+
+  --animate-rise: landing-rise 0.75s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-wipe: landing-wipe 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-ticker: landing-ticker 45s linear infinite;
+}
+
+@keyframes landing-rise {
+  from {
+    opacity: 0;
+    transform: translateY(1.75rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes landing-wipe {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* The ticker renders its content twice, so translating by exactly half the
+   track width loops seamlessly. */
+@keyframes landing-ticker {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* Fine dot texture that keeps large dark panels from reading as flat fills. */
+@utility landing-grain {
+  background-image: radial-gradient(
+    rgba(245, 242, 237, 0.06) 1px,
+    transparent 1px
+  );
+  background-size: 3px 3px;
+}
+
+/* Warehouse-floor grid used behind the hero. */
+@utility landing-grid {
+  background-image:
+    linear-gradient(to right, rgba(245, 242, 237, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(245, 242, 237, 0.05) 1px, transparent 1px);
+  background-size: 4.5rem 4.5rem;
+}
+
+/* Loading-dock hazard stripes, used as section rules. */
+@utility landing-hazard {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    var(--landing-accent) 0 0.6rem,
+    transparent 0.6rem 1.2rem
+  );
 }
 
 body {
@@ -28,4 +108,32 @@ body {
     Helvetica,
     Arial,
     sans-serif;
+}
+
+/* The landing page ships its own header and owns the full viewport, so the
+   global site header would stack a second, light-themed navbar on top of it. */
+body:has([data-landing-page]) > header {
+  display: none;
+}
+
+body:has([data-landing-page]) {
+  background: var(--landing-ink);
+}
+
+/* Every interactive element on the landing page is styled from scratch, so the
+   focus ring is defined once here rather than repeated across components. */
+[data-landing-page] a:focus-visible,
+[data-landing-page] button:focus-visible {
+  outline: 2px solid var(--landing-accent);
+  outline-offset: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-landing-page] *,
+  [data-landing-page] *::before,
+  [data-landing-page] *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

@@ -5,6 +5,7 @@ import Link from "next/link";
 
 import { useSession } from "@/lib/auth-client";
 import { AddressAutocomplete } from "@/components/address-autocomplete";
+import { LandingPage } from "@/components/landing/landing-page";
 import { VEHICLE_TYPE_GROUPS } from "@/lib/vehicle-types";
 
 /**
@@ -92,26 +93,7 @@ export default function Home() {
   }
 
   if (!session) {
-    return (
-      <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-4 p-8 text-center">
-        <h1 className="text-3xl font-bold">Book a delivery</h1>
-        <p className="opacity-70">Please sign in to create a delivery order.</p>
-        <div className="flex justify-center gap-3">
-          <Link
-            href="/sign-in"
-            className="rounded border px-4 py-2 font-medium hover:opacity-70"
-          >
-            Sign in
-          </Link>
-          <Link
-            href="/sign-up"
-            className="rounded border px-4 py-2 font-medium hover:opacity-70"
-          >
-            Sign up
-          </Link>
-        </div>
-      </main>
-    );
+    return <LandingPage />;
   }
 
   // Drivers don't book deliveries — they fulfil them. Point them at their
