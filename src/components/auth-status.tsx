@@ -30,6 +30,9 @@ export function AuthStatus() {
         <span>
           Signed in as {name} ({role})
         </span>
+        <Link href="/home" className="font-medium hover:opacity-70">
+          Home page
+        </Link>
         <Link href="/account" className="font-medium hover:opacity-70">
           My account
         </Link>
