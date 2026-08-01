@@ -186,6 +186,10 @@ model DriverProfile {
   phone       String
   currentLat Float?
   currentLng Float?
+  // Set only when `currentLat`/`currentLng` are pushed by the driver's location
+  // beacon — distinct from `updatedAt`, which bumps on any profile edit, so the
+  // tracking UI can tell a fresh position from a stale one.
+  locationUpdatedAt DateTime?
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
 }

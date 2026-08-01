@@ -5,6 +5,7 @@ import { OrderStatus } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { AcceptOrderButton } from "@/components/accept-order-button";
+import { DriverStatusToggle } from "@/components/driver-status-toggle";
 import { OrderCard } from "@/components/order-card";
 
 // Session + Prisma access can't be statically rendered.
@@ -52,6 +53,15 @@ export default async function OrdersPage() {
     orderBy: { createdAt: "desc" },
   });
 
+  // Drivers get an availability toggle, but only once they have a profile —
+  // there is no `isOnline` flag to drive it before then.
+  const driverProfile = isDriver
+    ? await prisma.driverProfile.findUnique({
+        where: { userId },
+        select: { isOnline: true },
+      })
+    : null;
+
   return (
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-6 p-8">
       <div className="flex items-center justify-between">
@@ -62,6 +72,10 @@ export default async function OrdersPage() {
           ← New order
         </Link>
       </div>
+
+      {driverProfile ? (
+        <DriverStatusToggle initialIsOnline={driverProfile.isOnline} />
+      ) : null}
 
       {orders.length === 0 ? (
         <p className="opacity-70">
@@ -79,6 +93,16 @@ export default async function OrdersPage() {
               order.status === OrderStatus.PENDING &&
               order.driverId === null ? (
                 <AcceptOrderButton orderId={order.id} />
+              ) : null}
+              {order.driverId !== null &&
+              (order.status === OrderStatus.ACCEPTED ||
+                order.status === OrderStatus.IN_TRANSIT) ? (
+                <Link
+                  href={`/orders/${order.id}/track`}
+                  className="mt-3 inline-block text-sm font-medium hover:opacity-70"
+                >
+                  Track delivery →
+                </Link>
               ) : null}
             </OrderCard>
           ))}
