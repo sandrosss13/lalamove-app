@@ -5,7 +5,10 @@
  * route handlers — the values must exactly match the `VehicleType` Prisma enum.
  */
 export type VehicleTypeOption = { value: string; label: string };
-export type VehicleTypeGroup = { category: string; options: VehicleTypeOption[] };
+export type VehicleTypeGroup = {
+  category: string;
+  options: VehicleTypeOption[];
+};
 
 export const VEHICLE_TYPE_GROUPS: VehicleTypeGroup[] = [
   {

@@ -83,9 +83,12 @@ export function AddressAutocomplete({
 
       void (async () => {
         try {
-          const response = await fetch(`/api/geocode/suggest?q=${encodeURIComponent(query)}`, {
-            signal: controller.signal,
-          });
+          const response = await fetch(
+            `/api/geocode/suggest?q=${encodeURIComponent(query)}`,
+            {
+              signal: controller.signal,
+            },
+          );
           if (!response.ok) {
             return;
           }
@@ -164,7 +167,11 @@ export function AddressAutocomplete({
             className="absolute left-0 right-0 top-full z-10 mt-1 overflow-hidden rounded border bg-background shadow"
           >
             {suggestions.map((suggestion) => (
-              <li key={`${suggestion.lat},${suggestion.lng}`} role="option" aria-selected={false}>
+              <li
+                key={`${suggestion.lat},${suggestion.lng}`}
+                role="option"
+                aria-selected={false}
+              >
                 <button
                   type="button"
                   // mousedown fires before the input's blur, so the selection

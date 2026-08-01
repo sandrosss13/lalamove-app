@@ -32,13 +32,13 @@ pnpm exec prisma db push   # push the Prisma schema to Supabase Postgres
 
 ## Scripts
 
-| Script                 | What it does              |
-| ---------------------- | ------------------------- |
-| `pnpm dev`             | Next.js dev server        |
-| `pnpm build`           | Prisma generate + build   |
-| `pnpm start`           | Serve the production build |
-| `pnpm lint`            | ESLint over the project   |
-| `pnpm typecheck`       | TypeScript `tsc --noEmit` |
-| `pnpm check`           | Lint + typecheck          |
-| `pnpm format`          | Prettier write            |
-| `pnpm format:check`    | Prettier check            |
+| Script              | What it does               |
+| ------------------- | -------------------------- |
+| `pnpm dev`          | Next.js dev server         |
+| `pnpm build`        | Prisma generate + build    |
+| `pnpm start`        | Serve the production build |
+| `pnpm lint`         | ESLint over the project    |
+| `pnpm typecheck`    | TypeScript `tsc --noEmit`  |
+| `pnpm check`        | Lint + typecheck           |
+| `pnpm format`       | Prettier write             |
+| `pnpm format:check` | Prettier check             |

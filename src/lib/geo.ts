@@ -23,7 +23,8 @@ export type AddressSuggestion = {
 /** LocationIQ forward-geocoding endpoint (`us1` is the standard default host). */
 const LOCATIONIQ_SEARCH_URL = "https://us1.locationiq.com/v1/search";
 /** LocationIQ autocomplete endpoint — as-you-type suggestions, same host/params. */
-const LOCATIONIQ_AUTOCOMPLETE_URL = "https://us1.locationiq.com/v1/autocomplete";
+const LOCATIONIQ_AUTOCOMPLETE_URL =
+  "https://us1.locationiq.com/v1/autocomplete";
 /** Minimum query length before a lookup is worthwhile (avoids noisy 1-2 char calls). */
 const AUTOCOMPLETE_MIN_QUERY_LENGTH = 3;
 /** Max suggestions requested per autocomplete lookup. */
@@ -103,7 +104,7 @@ function throttledFetch(url: string, init: RequestInit): Promise<Response> {
   const result = requestQueue.then(run, run);
   requestQueue = result.then(
     () => undefined,
-    () => undefined
+    () => undefined,
   );
   return result;
 }
@@ -131,7 +132,8 @@ async function fetchGeocode(url: string): Promise<Response | null> {
     // Back off and retry while rate-limited and attempts remain; every other
     // non-OK status is terminal and maps to "not found".
     const canRetry =
-      LOCATIONIQ_RETRYABLE_STATUSES.has(response.status) && attempt < LOCATIONIQ_MAX_ATTEMPTS - 1;
+      LOCATIONIQ_RETRYABLE_STATUSES.has(response.status) &&
+      attempt < LOCATIONIQ_MAX_ATTEMPTS - 1;
     if (!canRetry) {
       return null;
     }
@@ -209,7 +211,9 @@ export async function geocodeAddress(address: string): Promise<LatLng | null> {
  * treat `[]` uniformly as "no suggestions". This function never throws. It
  * shares the same rate-limit queue and retry budget as `geocodeAddress`.
  */
-export async function suggestAddresses(query: string): Promise<AddressSuggestion[]> {
+export async function suggestAddresses(
+  query: string,
+): Promise<AddressSuggestion[]> {
   const trimmed = query.trim();
   if (trimmed.length < AUTOCOMPLETE_MIN_QUERY_LENGTH) {
     return [];
@@ -277,7 +281,8 @@ export function haversineDistanceKm(a: LatLng, b: LatLng): number {
   const sinLng = Math.sin(dLng / 2);
 
   const h =
-    sinLat * sinLat + Math.cos(toRadians(a.lat)) * Math.cos(toRadians(b.lat)) * sinLng * sinLng;
+    sinLat * sinLat +
+    Math.cos(toRadians(a.lat)) * Math.cos(toRadians(b.lat)) * sinLng * sinLng;
 
   const c = 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
 
@@ -290,7 +295,7 @@ export function haversineDistanceKm(a: LatLng, b: LatLng): number {
  */
 export function calculatePrice(
   distanceKm: number,
-  pricePerKm: number = DEFAULT_PRICE_PER_KM
+  pricePerKm: number = DEFAULT_PRICE_PER_KM,
 ): number {
   const raw = BASE_FARE + distanceKm * pricePerKm;
   return Math.round(raw * 100) / 100;

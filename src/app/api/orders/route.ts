@@ -33,14 +33,22 @@ function parseCreateOrderBody(
   }
 
   const record = body as Record<string, unknown>;
-  const { pickupAddress, dropoffAddress, packageType, vehicleType, description } =
-    record;
+  const {
+    pickupAddress,
+    dropoffAddress,
+    packageType,
+    vehicleType,
+    description,
+  } = record;
 
   if (typeof pickupAddress !== "string" || pickupAddress.trim().length === 0) {
     return { error: "pickupAddress is required." };
   }
 
-  if (typeof dropoffAddress !== "string" || dropoffAddress.trim().length === 0) {
+  if (
+    typeof dropoffAddress !== "string" ||
+    dropoffAddress.trim().length === 0
+  ) {
     return { error: "dropoffAddress is required." };
   }
 
@@ -105,8 +113,13 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
 
-  const { pickupAddress, dropoffAddress, packageType, vehicleType, description } =
-    parsed.data;
+  const {
+    pickupAddress,
+    dropoffAddress,
+    packageType,
+    vehicleType,
+    description,
+  } = parsed.data;
 
   // Resolve both addresses before doing any work so a failure short-circuits.
   const [pickup, dropoff] = await Promise.all([

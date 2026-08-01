@@ -95,7 +95,9 @@ export default function SignUpPage() {
 
     if (signUpError) {
       setLoading(false);
-      setError(signUpError.message ?? "Something went wrong. Please try again.");
+      setError(
+        signUpError.message ?? "Something went wrong. Please try again.",
+      );
       return;
     }
 
@@ -116,9 +118,9 @@ export default function SignUpPage() {
       });
 
       if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as
-          | { error?: string }
-          | null;
+        const payload = (await response.json().catch(() => null)) as {
+          error?: string;
+        } | null;
         setError(
           payload?.error ??
             "Could not save your driver details. Please try again.",
@@ -144,9 +146,9 @@ export default function SignUpPage() {
       });
 
       if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as
-          | { error?: string }
-          | null;
+        const payload = (await response.json().catch(() => null)) as {
+          error?: string;
+        } | null;
         setError(
           payload?.error ??
             "Could not save your account details. Please try again.",
