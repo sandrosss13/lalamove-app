@@ -1,34 +1,29 @@
 import { NextResponse } from "next/server";
-import {
-  OrderStatus,
-  PackageType,
-  VehicleType,
-  type Prisma,
-} from "@prisma/client";
+import { OrderStatus, VehicleType, type Prisma } from "@prisma/client";
 
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { calculatePrice, geocodeAddress, haversineDistanceKm } from "@/lib/geo";
-
-/** Valid `PackageType` values, derived from the generated Prisma enum. */
-const PACKAGE_TYPES = Object.values(PackageType);
+import {
+  estimateDelivery,
+  parseQuoteFields,
+  type QuoteInput,
+} from "@/lib/pricing";
 
 /** Valid `VehicleType` values, derived from the generated Prisma enum. */
 const VEHICLE_TYPES = Object.values(VehicleType);
 
 /** Validated shape of an order-creation request body. */
-type CreateOrderInput = {
-  pickupAddress: string;
-  dropoffAddress: string;
-  packageType: PackageType;
+type CreateOrderInput = QuoteInput & {
   vehicleType: VehicleType;
   description?: string;
 };
 
 /**
  * Hand-rolled body validation (the project has no validation library, and this
- * stage does not warrant adding one). Returns the typed input or an error
- * message describing the first problem encountered.
+ * stage does not warrant adding one). The quote fields are validated by the
+ * shared parser so this route and the public estimate endpoint reject the same
+ * input with the same messages. Returns the typed input or an error message
+ * describing the first problem encountered.
  */
 function parseCreateOrderBody(
   body: unknown,
@@ -38,33 +33,13 @@ function parseCreateOrderBody(
   }
 
   const record = body as Record<string, unknown>;
-  const {
-    pickupAddress,
-    dropoffAddress,
-    packageType,
-    vehicleType,
-    description,
-  } = record;
 
-  if (typeof pickupAddress !== "string" || pickupAddress.trim().length === 0) {
-    return { error: "pickupAddress is required." };
+  const quote = parseQuoteFields(record);
+  if ("error" in quote) {
+    return quote;
   }
 
-  if (
-    typeof dropoffAddress !== "string" ||
-    dropoffAddress.trim().length === 0
-  ) {
-    return { error: "dropoffAddress is required." };
-  }
-
-  if (
-    typeof packageType !== "string" ||
-    !PACKAGE_TYPES.includes(packageType as PackageType)
-  ) {
-    return {
-      error: `packageType must be one of: ${PACKAGE_TYPES.join(", ")}.`,
-    };
-  }
+  const { vehicleType, description } = record;
 
   if (
     typeof vehicleType !== "string" ||
@@ -81,9 +56,7 @@ function parseCreateOrderBody(
 
   return {
     data: {
-      pickupAddress: pickupAddress.trim(),
-      dropoffAddress: dropoffAddress.trim(),
-      packageType: packageType as PackageType,
+      ...quote.data,
       vehicleType: vehicleType as VehicleType,
       description:
         typeof description === "string" && description.trim().length > 0
@@ -126,28 +99,20 @@ export async function POST(request: Request): Promise<NextResponse> {
     description,
   } = parsed.data;
 
-  // Resolve both addresses before doing any work so a failure short-circuits.
-  const [pickup, dropoff] = await Promise.all([
-    geocodeAddress(pickupAddress),
-    geocodeAddress(dropoffAddress),
-  ]);
+  const result = await estimateDelivery({
+    pickupAddress,
+    dropoffAddress,
+    packageType,
+  });
 
-  if (!pickup) {
+  if (!result.ok) {
     return NextResponse.json(
-      { error: `Could not locate address: ${pickupAddress}` },
+      { error: `Could not locate address: ${result.unresolvedAddress}` },
       { status: 422 },
     );
   }
 
-  if (!dropoff) {
-    return NextResponse.json(
-      { error: `Could not locate address: ${dropoffAddress}` },
-      { status: 422 },
-    );
-  }
-
-  const distanceKm = haversineDistanceKm(pickup, dropoff);
-  const price = calculatePrice(distanceKm);
+  const { pickup, dropoff, distanceKm, price } = result.estimate;
 
   const order = await prisma.order.create({
     data: {

@@ -6,7 +6,12 @@
  * free tier explicitly permits automated/cloud-hosted usage — usage is tied to
  * the `LOCATIONIQ_API_KEY` environment variable rather than a `User-Agent`
  * policy. That key is required config; without it, geocoding returns `null`.
+ *
+ * Server-only: this module reads env vars and imports the Prisma enum, so it
+ * must never be pulled into a client bundle.
  */
+
+import type { PackageType } from "@prisma/client";
 
 export type LatLng = {
   lat: number;
@@ -50,8 +55,19 @@ const LOCATIONIQ_RETRYABLE_STATUSES = new Set([429]);
 
 /** Base fare applied on top of the distance-based charge, in the app currency. */
 const BASE_FARE = 2.0;
-/** Default per-kilometre rate when a caller does not supply one. */
-const DEFAULT_PRICE_PER_KM = 1.0;
+
+/**
+ * Per-kilometre rate by package type, in the app currency. Bigger packages
+ * occupy more of a vehicle and are slower to load, so they carry a higher rate
+ * over the same distance. This is the single pricing table for the whole app —
+ * both the public estimate endpoint and real order creation read it.
+ */
+const PACKAGE_TYPE_PRICE_PER_KM: Record<PackageType, number> = {
+  DOCUMENT: 0.6,
+  SMALL_PARCEL: 1.0,
+  MEDIUM_PARCEL: 1.5,
+  LARGE_PARCEL: 2.2,
+};
 
 const EARTH_RADIUS_KM = 6371;
 
@@ -290,13 +306,14 @@ export function haversineDistanceKm(a: LatLng, b: LatLng): number {
 }
 
 /**
- * Delivery price = flat base fare + distance × per-km rate, rounded to cents.
- * The base fare covers fixed pickup overhead so very short trips aren't free.
+ * Delivery price = flat base fare + distance × the package type's per-km rate,
+ * rounded to cents. The base fare covers fixed pickup overhead so very short
+ * trips aren't free.
  */
 export function calculatePrice(
   distanceKm: number,
-  pricePerKm: number = DEFAULT_PRICE_PER_KM,
+  packageType: PackageType,
 ): number {
-  const raw = BASE_FARE + distanceKm * pricePerKm;
+  const raw = BASE_FARE + distanceKm * PACKAGE_TYPE_PRICE_PER_KM[packageType];
   return Math.round(raw * 100) / 100;
 }

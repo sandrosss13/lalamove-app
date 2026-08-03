@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { LandingQuoteCalculator } from "@/components/landing/landing-quote-calculator";
 import { VEHICLE_TYPE_GROUPS } from "@/lib/vehicle-types";
 
 const VEHICLE_TYPE_COUNT = VEHICLE_TYPE_GROUPS.reduce(
@@ -12,87 +13,6 @@ const HERO_STATS = [
   { value: String(VEHICLE_TYPE_GROUPS.length), label: "Fleet categories" },
   { value: "24/7", label: "Dispatch window" },
 ];
-
-/**
- * Illustrative quote card. Clearly labelled as a sample so it never reads as a
- * live order — the real quote comes from the booking form after sign-in.
- */
-function SampleQuoteTicket() {
-  return (
-    <div className="animate-rise [animation-delay:520ms] relative lg:rotate-2">
-      <div
-        aria-hidden="true"
-        className="absolute inset-0 translate-x-2 translate-y-2 border border-line"
-      />
-      <article className="landing-grain relative border border-line bg-surface">
-        <header className="flex items-center justify-between border-b border-line px-5 py-3">
-          <span className="font-display text-lg leading-none tracking-[0.14em] text-muted uppercase">
-            Sample quote
-          </span>
-          <span className="flex items-center gap-2 text-[0.6875rem] font-semibold tracking-[0.18em] text-accent uppercase">
-            <span
-              aria-hidden="true"
-              className="inline-block h-1.5 w-1.5 rounded-full bg-accent"
-            />
-            Dispatch
-          </span>
-        </header>
-
-        <div className="flex gap-4 px-5 py-6">
-          <div aria-hidden="true" className="flex flex-col items-center pt-1.5">
-            <span className="h-2.5 w-2.5 rounded-full border-2 border-accent" />
-            <span className="my-1 w-px flex-1 bg-line" />
-            <span className="h-2.5 w-2.5 bg-accent" />
-          </div>
-
-          <dl className="flex flex-1 flex-col gap-5 text-sm">
-            <div>
-              <dt className="text-[0.6875rem] font-semibold tracking-[0.18em] text-muted uppercase">
-                Pickup
-              </dt>
-              <dd className="mt-1 text-paper">Rustaveli Ave 12, Tbilisi</dd>
-            </div>
-            <div>
-              <dt className="text-[0.6875rem] font-semibold tracking-[0.18em] text-muted uppercase">
-                Dropoff
-              </dt>
-              <dd className="mt-1 text-paper">
-                Aghmashenebeli Ave 88, Tbilisi
-              </dd>
-            </div>
-          </dl>
-        </div>
-
-        <dl className="grid grid-cols-3 border-t border-line">
-          <div className="border-r border-line px-5 py-4">
-            <dt className="text-[0.625rem] font-semibold tracking-[0.18em] text-muted uppercase">
-              Vehicle
-            </dt>
-            <dd className="mt-1 font-display text-xl leading-none text-paper uppercase">
-              Box truck
-            </dd>
-          </div>
-          <div className="border-r border-line px-5 py-4">
-            <dt className="text-[0.625rem] font-semibold tracking-[0.18em] text-muted uppercase">
-              Distance
-            </dt>
-            <dd className="mt-1 font-display text-xl leading-none text-paper uppercase">
-              8.4 km
-            </dd>
-          </div>
-          <div className="px-5 py-4">
-            <dt className="text-[0.625rem] font-semibold tracking-[0.18em] text-muted uppercase">
-              Total
-            </dt>
-            <dd className="mt-1 font-display text-xl leading-none text-accent uppercase">
-              $24.60
-            </dd>
-          </div>
-        </dl>
-      </article>
-    </div>
-  );
-}
 
 export function LandingHero() {
   return (
@@ -170,7 +90,7 @@ export function LandingHero() {
           </dl>
         </div>
 
-        <SampleQuoteTicket />
+        <LandingQuoteCalculator />
       </div>
     </section>
   );
