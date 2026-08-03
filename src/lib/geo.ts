@@ -1,11 +1,22 @@
 /**
  * Geocoding and distance/pricing helpers for the delivery domain.
  *
- * Geocoding uses LocationIQ's forward-geocoding endpoint. It is built on the
- * same OpenStreetMap data as Nominatim (and shares its query params), but its
- * free tier explicitly permits automated/cloud-hosted usage — usage is tied to
- * the `LOCATIONIQ_API_KEY` environment variable rather than a `User-Agent`
- * policy. That key is required config; without it, geocoding returns `null`.
+ * Two geocoding providers are used, deliberately split by job:
+ *
+ * - **LocationIQ** (`geocodeAddress`) resolves a final, submitted address to
+ *   coordinates for distance and pricing. It is built on the same OpenStreetMap
+ *   data as Nominatim (and shares its query params), but its free tier
+ *   explicitly permits automated/cloud-hosted usage — usage is tied to the
+ *   `LOCATIONIQ_API_KEY` environment variable rather than a `User-Agent`
+ *   policy. That key is required config; without it, geocoding returns `null`.
+ * - **Google Places** (`suggestAddresses`) backs the as-you-type suggestions
+ *   dropdown in the booking form, via `GOOGLE_PLACES_API_KEY`. LocationIQ's
+ *   autocomplete returned poor matches for Georgian addresses, and that
+ *   complaint was specific to the typing experience — so only the suggestions
+ *   path moved to Google. Order-submission geocoding stays on LocationIQ.
+ *
+ * Both providers are scoped to Georgia via the same bounding box
+ * (`GEORGIA_BOUNDS`), so their notion of "in range" stays consistent.
  *
  * Server-only: this module reads env vars and imports the Prisma enum, so it
  * must never be pulled into a client bundle.
@@ -21,25 +32,38 @@ export type LatLng = {
 /** A single address suggestion returned by the autocomplete lookup. */
 export type AddressSuggestion = {
   displayName: string;
-  lat: number;
-  lng: number;
 };
 
 /** LocationIQ forward-geocoding endpoint (`us1` is the standard default host). */
 const LOCATIONIQ_SEARCH_URL = "https://us1.locationiq.com/v1/search";
-/** LocationIQ autocomplete endpoint — as-you-type suggestions, same host/params. */
-const LOCATIONIQ_AUTOCOMPLETE_URL =
-  "https://us1.locationiq.com/v1/autocomplete";
+/** Google Places Autocomplete (New) endpoint — as-you-type suggestions. */
+const GOOGLE_PLACES_AUTOCOMPLETE_URL =
+  "https://places.googleapis.com/v1/places:autocomplete";
 /** Minimum query length before a lookup is worthwhile (avoids noisy 1-2 char calls). */
 const AUTOCOMPLETE_MIN_QUERY_LENGTH = 3;
-/** Max suggestions requested per autocomplete lookup. */
-const AUTOCOMPLETE_RESULT_LIMIT = 5;
 /** Descriptive UA is optional for LocationIQ, but sent as good practice. */
 const GEOCODER_USER_AGENT = "lalamove-clone-app (contact: dev@example.com)";
 /** App operates only within Georgia; restrict results to avoid mismatches with international addresses that share a name. */
 const GEOCODER_COUNTRY_CODE = "ge";
-/** Bounding box roughly covering Georgia (`west,north,east,south`, Nominatim-compatible). */
-const GEOCODER_VIEWBOX = "39.8,43.7,46.8,41.0";
+/** ISO 3166-1 alpha-2 form of the above, as Google's `includedRegionCodes` expects. */
+const GEOCODER_REGION_CODE = "GE";
+
+/**
+ * Bounding box roughly covering Georgia. Single source of truth for the
+ * country scope, shared by both providers — LocationIQ takes it as a
+ * comma-joined `viewbox` string, Google as a `locationBias` rectangle.
+ */
+const GEORGIA_BOUNDS = {
+  west: 39.8,
+  north: 43.7,
+  east: 46.8,
+  south: 41.0,
+};
+
+/** Georgia bounding box in LocationIQ/Nominatim `west,north,east,south` order. */
+const GEOCODER_VIEWBOX =
+  `${GEORGIA_BOUNDS.west},${GEORGIA_BOUNDS.north},` +
+  `${GEORGIA_BOUNDS.east},${GEORGIA_BOUNDS.south}`;
 
 /**
  * Minimum spacing between outbound LocationIQ requests. The free tier allows
@@ -77,11 +101,20 @@ type LocationIqResult = {
   lon: string;
 };
 
-/** Shape of a single LocationIQ autocomplete result (only the fields we consume). */
-type LocationIqSuggestion = {
-  lat: string;
-  lon: string;
-  display_name?: string;
+/**
+ * Shape of the Google Places Autocomplete (New) response (only the fields we
+ * consume). Every field is optional because entries may instead be a
+ * `queryPrediction` (a free-text search suggestion with no associated place),
+ * which carries no `placePrediction` and is skipped.
+ */
+type GooglePlacesAutocompleteResponse = {
+  suggestions?: {
+    placePrediction?: {
+      text?: {
+        text?: string;
+      };
+    };
+  }[];
 };
 
 /**
@@ -219,13 +252,17 @@ export async function geocodeAddress(address: string): Promise<LatLng | null> {
 }
 
 /**
- * Suggest Georgia addresses matching a partial, as-you-type query via
- * LocationIQ's autocomplete endpoint.
+ * Suggest Georgia addresses matching a partial, as-you-type query via Google's
+ * Places Autocomplete (New) endpoint.
  *
  * Returns `[]` for a query shorter than three characters, a missing
- * `LOCATIONIQ_API_KEY`, no matches, or any network/parse failure — callers can
- * treat `[]` uniformly as "no suggestions". This function never throws. It
- * shares the same rate-limit queue and retry budget as `geocodeAddress`.
+ * `GOOGLE_PLACES_API_KEY`, no matches, or any network/parse failure — callers
+ * can treat `[]` uniformly as "no suggestions". This function never throws.
+ *
+ * Deliberately bypasses `fetchGeocode`: that queue exists to ration LocationIQ's
+ * 2 req/sec free tier and sends LocationIQ's headers. Google is a separate quota,
+ * and funnelling keystroke lookups through a 550ms spacer would add exactly the
+ * latency this dropdown needs to avoid.
  */
 export async function suggestAddresses(
   query: string,
@@ -235,42 +272,57 @@ export async function suggestAddresses(
     return [];
   }
 
-  // Without a key, every request would just 401; treat a missing/empty key as
+  // Without a key, every request would just 403; treat a missing/empty key as
   // "no suggestions" (honouring the no-throw contract) rather than making the call.
-  const key = process.env.LOCATIONIQ_API_KEY;
+  const key = process.env.GOOGLE_PLACES_API_KEY;
   if (!key) {
     return [];
   }
 
-  const url =
-    `${LOCATIONIQ_AUTOCOMPLETE_URL}?key=${encodeURIComponent(key)}` +
-    `&format=json&limit=${AUTOCOMPLETE_RESULT_LIMIT}` +
-    `&countrycodes=${GEOCODER_COUNTRY_CODE}` +
-    `&viewbox=${GEOCODER_VIEWBOX}&bounded=1&q=${encodeURIComponent(trimmed)}`;
-
   try {
-    const response = await fetchGeocode(url);
-    if (!response) {
+    const response = await fetch(GOOGLE_PLACES_AUTOCOMPLETE_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Goog-Api-Key": key,
+      },
+      body: JSON.stringify({
+        input: trimmed,
+        // Hard country filter, mirroring LocationIQ's `countrycodes`.
+        includedRegionCodes: [GEOCODER_REGION_CODE],
+        // Soft relevance bias toward the same box LocationIQ is scoped to. A
+        // rectangle rather than a circle: Google caps circle radius at 50km,
+        // far too small to cover Georgia, while a viewport has no size limit.
+        locationBias: {
+          rectangle: {
+            low: {
+              latitude: GEORGIA_BOUNDS.south,
+              longitude: GEORGIA_BOUNDS.west,
+            },
+            high: {
+              latitude: GEORGIA_BOUNDS.north,
+              longitude: GEORGIA_BOUNDS.east,
+            },
+          },
+        },
+      }),
+    });
+
+    if (!response.ok) {
       return [];
     }
 
-    const results = (await response.json()) as unknown;
-    if (!Array.isArray(results)) {
-      return [];
-    }
+    const payload = (await response.json()) as GooglePlacesAutocompleteResponse;
 
     const suggestions: AddressSuggestion[] = [];
-    for (const entry of results as LocationIqSuggestion[]) {
-      const displayName = entry.display_name;
-      const lat = Number.parseFloat(entry.lat);
-      const lng = Number.parseFloat(entry.lon);
-
-      // Skip entries missing a label or with unparseable coordinates.
-      if (!displayName || Number.isNaN(lat) || Number.isNaN(lng)) {
+    for (const entry of payload.suggestions ?? []) {
+      // Skip `queryPrediction` entries and anything missing a usable label.
+      const displayName = entry.placePrediction?.text?.text;
+      if (!displayName) {
         continue;
       }
 
-      suggestions.push({ displayName, lat, lng });
+      suggestions.push({ displayName });
     }
 
     return suggestions;

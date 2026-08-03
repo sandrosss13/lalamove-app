@@ -9,8 +9,6 @@ import { useEffect, useId, useRef, useState } from "react";
  */
 type AddressSuggestion = {
   displayName: string;
-  lat: number;
-  lng: number;
 };
 
 type AddressAutocompleteProps = {
@@ -166,9 +164,12 @@ export function AddressAutocomplete({
             role="listbox"
             className="absolute left-0 right-0 top-full z-10 mt-1 overflow-hidden rounded border bg-background shadow"
           >
-            {suggestions.map((suggestion) => (
+            {suggestions.map((suggestion, index) => (
               <li
-                key={`${suggestion.lat},${suggestion.lng}`}
+                // The list is replaced wholesale on each fetch and never
+                // reordered or edited in place, so an index-derived key is
+                // stable for as long as these nodes live.
+                key={`${suggestion.displayName}-${index}`}
                 role="option"
                 aria-selected={false}
               >
