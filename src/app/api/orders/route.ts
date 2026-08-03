@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
-import { OrderStatus, PackageType, VehicleType } from "@prisma/client";
+import {
+  OrderStatus,
+  PackageType,
+  VehicleType,
+  type Prisma,
+} from "@prisma/client";
 
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -166,8 +171,16 @@ export async function POST(request: Request): Promise<NextResponse> {
 
 /**
  * GET /api/orders — list orders relevant to the signed-in user.
- * Clients see their own orders; drivers see open (unassigned, PENDING) orders
- * plus deliveries already assigned to them. Newest first.
+ *
+ * Clients see their own orders. Drivers see open (unassigned, PENDING) orders
+ * they could actually take — i.e. asking for a vehicle type they have
+ * registered — plus deliveries already assigned to them, which are not
+ * type-filtered because that match was made when the order was accepted. A
+ * driver with no registered vehicle has nothing to take, so they only ever see
+ * their own deliveries. Newest first.
+ *
+ * The filter mirrors the driver-facing `/orders` page, so the API can't hand
+ * back jobs the UI deliberately hides.
  */
 export async function GET(request: Request): Promise<NextResponse> {
   const session = await auth.api.getSession({ headers: request.headers });
@@ -177,15 +190,31 @@ export async function GET(request: Request): Promise<NextResponse> {
 
   const { id: userId, role } = session.user;
 
-  const where =
-    role === "DRIVER"
-      ? {
-          OR: [
-            { status: OrderStatus.PENDING, driverId: null },
-            { driverId: userId },
-          ],
-        }
-      : { clientId: userId };
+  let where: Prisma.OrderWhereInput = { clientId: userId };
+
+  if (role === "DRIVER") {
+    const driverProfile = await prisma.driverProfile.findUnique({
+      where: { userId },
+      select: { vehicles: { select: { vehicleType: true } } },
+    });
+
+    const registeredVehicleTypes = [
+      ...new Set(
+        (driverProfile?.vehicles ?? []).map((vehicle) => vehicle.vehicleType),
+      ),
+    ];
+
+    where = {
+      OR: [
+        {
+          status: OrderStatus.PENDING,
+          driverId: null,
+          vehicleType: { in: registeredVehicleTypes },
+        },
+        { driverId: userId },
+      ],
+    };
+  }
 
   const orders = await prisma.order.findMany({
     where,

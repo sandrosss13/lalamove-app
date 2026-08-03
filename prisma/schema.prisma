@@ -219,6 +219,8 @@ model Vehicle {
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
+  orders          Order[]
+
   @@index([driverProfileId])
 }
 
@@ -269,10 +271,17 @@ model Order {
   driverId String?
   driver   User?   @relation("DriverDeliveries", fields: [driverId], references: [id], onDelete: SetNull)
 
+  // The specific vehicle the driver picked at accept time. Nulled rather than
+  // cascaded on vehicle deletion (same reasoning as `driverId`): retiring a
+  // vehicle must not erase the delivery history it took part in.
+  vehicleId String?
+  vehicle   Vehicle? @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([clientId])
   @@index([driverId])
+  @@index([vehicleId])
   @@index([status])
 }

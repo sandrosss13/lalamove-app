@@ -18,6 +18,10 @@ type OrderCardOrder = {
   dropoffAddress: string;
   packageType: string;
   distanceKm: number;
+  // Only set once a driver has accepted the order with one of their vehicles,
+  // and nulled again if that vehicle is later removed — so the row is rendered
+  // conditionally rather than assumed present.
+  vehicle?: { plateNumber: string; make: string; model: string } | null;
 };
 
 /**
@@ -53,6 +57,15 @@ export function OrderCard({
         <dd>{order.packageType}</dd>
         <dt className="opacity-60">Distance</dt>
         <dd>{order.distanceKm.toFixed(2)} km</dd>
+        {order.vehicle ? (
+          <>
+            <dt className="opacity-60">Vehicle</dt>
+            <dd>
+              {order.vehicle.plateNumber} — {order.vehicle.make}{" "}
+              {order.vehicle.model}
+            </dd>
+          </>
+        ) : null}
       </dl>
 
       {children}

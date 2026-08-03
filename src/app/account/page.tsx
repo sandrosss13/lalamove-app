@@ -23,8 +23,22 @@ const CURRENT_STATUSES: OrderStatus[] = [
   OrderStatus.IN_TRANSIT,
 ];
 
+/**
+ * An order with the vehicle assigned to it, as fetched below — clients see
+ * which vehicle is handling their delivery once a driver has accepted it.
+ */
+type OrderWithVehicle = Order & {
+  vehicle: { plateNumber: string; make: string; model: string } | null;
+};
+
 /** Renders one titled group of orders, or an empty-state line when there are none. */
-function OrderGroup({ title, orders }: { title: string; orders: Order[] }) {
+function OrderGroup({
+  title,
+  orders,
+}: {
+  title: string;
+  orders: OrderWithVehicle[];
+}) {
   return (
     <section className="flex flex-col gap-3">
       <h3 className="text-lg font-semibold">
@@ -149,6 +163,9 @@ export default async function AccountPage() {
     prisma.clientProfile.findUnique({ where: { userId: session.user.id } }),
     prisma.order.findMany({
       where: { clientId: session.user.id },
+      include: {
+        vehicle: { select: { plateNumber: true, make: true, model: true } },
+      },
       orderBy: { createdAt: "desc" },
     }),
   ]);
