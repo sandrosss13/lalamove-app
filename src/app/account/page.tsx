@@ -8,6 +8,7 @@ import { OrderCard } from "@/components/order-card";
 import { VehicleCard } from "@/components/vehicle-card";
 import { VehicleForm } from "@/components/vehicle-form";
 import { RemoveVehicleButton } from "@/components/remove-vehicle-button";
+import { EditVehicleForm } from "@/components/edit-vehicle-form";
 import {
   AccountProfileForm,
   type AccountProfileInitialValues,
@@ -107,6 +108,17 @@ async function DriverAccount({
           <ul className="flex flex-col gap-4">
             {vehicles.map((vehicle) => (
               <VehicleCard key={vehicle.id} vehicle={vehicle}>
+                <EditVehicleForm
+                  vehicle={{
+                    id: vehicle.id,
+                    plateNumber: vehicle.plateNumber,
+                    make: vehicle.make,
+                    model: vehicle.model,
+                    year: vehicle.year,
+                    vehicleType: vehicle.vehicleType,
+                    capacityKg: vehicle.capacityKg,
+                  }}
+                />
                 <RemoveVehicleButton
                   vehicleId={vehicle.id}
                   plateNumber={vehicle.plateNumber}
