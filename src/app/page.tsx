@@ -14,6 +14,34 @@ import {
 } from "@/lib/cargo";
 
 /**
+ * What a signed-in provider (driver or logistics company) sees instead of the
+ * booking form: they fulfil deliveries rather than place them, so they are sent
+ * to `/dashboard`, where both supply-side flows live.
+ */
+function ProviderPrompt({
+  title,
+  message,
+}: {
+  title: string;
+  message: string;
+}) {
+  return (
+    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-4 p-8 text-center">
+      <h1 className="text-3xl font-bold">{title}</h1>
+      <p className="opacity-70">{message}</p>
+      <div className="flex justify-center">
+        <Link
+          href="/dashboard"
+          className="rounded border px-4 py-2 font-medium hover:opacity-70"
+        >
+          Go to your dashboard →
+        </Link>
+      </div>
+    </main>
+  );
+}
+
+/**
  * Selectable cargo categories, in the order the taxonomy declares them. The
  * cast is safe because `CARGO_CATEGORY_LABELS` is keyed by `CargoCategory`,
  * which `Object.entries` widens to `string`.
@@ -82,9 +110,10 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<CreatedOrder | null>(null);
 
-  // Drivers get pointed at their deliveries instead of this form, so they never
-  // need the taxonomy — see the branch further down.
-  const showsBookingForm = Boolean(session) && session?.user.role !== "DRIVER";
+  // Only clients book: drivers and logistics companies get pointed at their
+  // dashboard instead, so they never need the taxonomy — see the branches
+  // further down.
+  const showsBookingForm = session?.user.role === "CLIENT";
 
   // The vehicle taxonomy is seeded database rows rather than a hardcoded enum,
   // so the picker is built from the public `GET /api/vehicle-types`.
@@ -215,26 +244,24 @@ export default function Home() {
   }
 
   // Drivers don't book deliveries — they fulfil them. Point them at their
-  // available-deliveries view instead of showing the client booking form.
+  // dashboard instead of showing the client booking form.
   if (session.user.role === "DRIVER") {
     return (
-      <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-4 p-8 text-center">
-        <h1 className="text-3xl font-bold">
-          You&apos;re signed in as a driver
-        </h1>
-        <p className="opacity-70">
-          Clients book deliveries here — drivers fulfil them. Head to your
-          deliveries to see what&apos;s available and accept a job.
-        </p>
-        <div className="flex justify-center">
-          <Link
-            href="/orders"
-            className="rounded border px-4 py-2 font-medium hover:opacity-70"
-          >
-            View available deliveries →
-          </Link>
-        </div>
-      </main>
+      <ProviderPrompt
+        title="You're signed in as a driver"
+        message="Clients book deliveries here — drivers fulfil them. Head to your dashboard to see what's available and take a job."
+      />
+    );
+  }
+
+  // Companies don't book either: they claim deliveries and dispatch them to
+  // their own drivers, all of which lives on the dashboard.
+  if (session.user.role === "COMPANY") {
+    return (
+      <ProviderPrompt
+        title="You're signed in as a logistics company"
+        message="Clients book deliveries here — your company fulfils them. Head to your dashboard to claim work and dispatch it to your drivers."
+      />
     );
   }
 

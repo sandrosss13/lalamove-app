@@ -67,7 +67,7 @@ graph TD
 - [x] [task-08-landing-page-rework](./tasks/task-08-landing-page-rework.md) — Landing page rework for freight positioning
 
 ### Wave 4
-- [ ] [task-07-dispatch-and-fulfillment](./tasks/task-07-dispatch-and-fulfillment.md) — Order accept, claim, dispatch, and fulfillment on `/dashboard`
+- [x] [task-07-dispatch-and-fulfillment](./tasks/task-07-dispatch-and-fulfillment.md) — Order accept, claim, dispatch, and fulfillment on `/dashboard`
 
 ### Wave 5
 - [ ] [task-09-provider-reporting](./tasks/task-09-provider-reporting.md) — Provider reporting, earnings & Excel export

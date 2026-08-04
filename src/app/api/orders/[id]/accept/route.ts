@@ -25,8 +25,12 @@ function parseAcceptOrderBody(
 }
 
 /**
- * POST /api/orders/[id]/accept — a driver claims a pending, unassigned order
- * with one of their registered vehicles, recorded on the order.
+ * POST /api/orders/[id]/accept — an *independent* driver claims a pending,
+ * unassigned order with one of their registered vehicles, recorded on the order.
+ *
+ * Drivers on a company's roster never reach the assignment here: their company
+ * claims the order and dispatches it to them, so accepting directly is rejected
+ * rather than treated as a second, parallel way in.
  *
  * The claim is done with a single conditional `updateMany` (status PENDING and
  * driverId null in the `where`) rather than a read-then-write, so two drivers
@@ -72,37 +76,47 @@ export async function POST(
   const { vehicleId } = parsed.data;
   const { id } = await params;
 
-  // Distinguish "no such order" (404) from "already taken / not pending" (409):
-  // the conditional update alone can't tell them apart, so check existence first.
-  // The order's own `vehicleType` is what the chosen vehicle has to match.
-  const existing = await prisma.order.findUnique({
-    where: { id },
-    select: { id: true, vehicleType: true },
-  });
-  if (!existing) {
-    return NextResponse.json({ error: "Order not found." }, { status: 404 });
-  }
-
   const driverProfile = await prisma.driverProfile.findUnique({
     where: { userId: session.user.id },
-    select: { id: true },
+    select: { id: true, companyId: true },
   });
 
   if (!driverProfile) {
     return NextResponse.json({ error: "Vehicle not found." }, { status: 404 });
   }
 
+  if (driverProfile.companyId !== null) {
+    return NextResponse.json(
+      {
+        error:
+          "Drivers who belong to a company receive deliveries through their company's dispatch, not by accepting directly.",
+      },
+      { status: 403 },
+    );
+  }
+
+  // Distinguish "no such order" (404) from "already taken / not pending" (409):
+  // the conditional update alone can't tell them apart, so check existence first.
+  // The order's own vehicle type is what the chosen vehicle has to match.
+  const existing = await prisma.order.findUnique({
+    where: { id },
+    select: { id: true, vehicleTypeSpecId: true },
+  });
+  if (!existing) {
+    return NextResponse.json({ error: "Order not found." }, { status: 404 });
+  }
+
   // Scoped by owner, so this returns nothing for another driver's vehicle.
   const vehicle = await prisma.vehicle.findFirst({
     where: { id: vehicleId, driverProfileId: driverProfile.id },
-    select: { id: true, vehicleType: true },
+    select: { id: true, vehicleTypeSpecId: true },
   });
 
   if (!vehicle) {
     return NextResponse.json({ error: "Vehicle not found." }, { status: 404 });
   }
 
-  if (vehicle.vehicleType !== existing.vehicleType) {
+  if (vehicle.vehicleTypeSpecId !== existing.vehicleTypeSpecId) {
     return NextResponse.json(
       {
         error: "This vehicle's type doesn't match what this delivery requires.",

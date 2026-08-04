@@ -3,6 +3,7 @@ import { VehicleCard } from "@/components/vehicle-card";
 import { VehicleForm } from "@/components/vehicle-form";
 import { RemoveVehicleButton } from "@/components/remove-vehicle-button";
 import { EditVehicleForm } from "@/components/edit-vehicle-form";
+import { DriverBookings } from "@/components/dashboard/driver-bookings";
 
 /**
  * A driver's dashboard: identity header plus the vehicles they are responsible
@@ -104,6 +105,11 @@ export async function DriverDashboard({
           </section>
         </div>
       )}
+
+      <DriverBookings
+        userId={userId}
+        companyId={driverProfile?.companyId ?? null}
+      />
     </main>
   );
 }

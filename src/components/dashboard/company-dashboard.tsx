@@ -6,6 +6,7 @@ import {
   CompanyDriverRoster,
   type CompanyRosterDriver,
 } from "@/components/company-driver-roster";
+import { CompanyBookings } from "@/components/dashboard/company-bookings";
 
 /**
  * "AKHALTSIKHE" → "Akhaltsikhe". Every `GeorgianCity` value is a single word,
@@ -115,6 +116,8 @@ export async function CompanyDashboard({ userId }: { userId: string }) {
         </h2>
         <CompanyDriverRoster drivers={drivers} />
       </div>
+
+      <CompanyBookings companyId={company.id} />
     </main>
   );
 }

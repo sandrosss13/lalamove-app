@@ -17,6 +17,7 @@ export const dynamic = "force-dynamic";
 /** Order statuses that count as "current" (active, not yet resolved). */
 const CURRENT_STATUSES: OrderStatus[] = [
   OrderStatus.PENDING,
+  OrderStatus.CLAIMED,
   OrderStatus.ACCEPTED,
   OrderStatus.IN_TRANSIT,
 ];
