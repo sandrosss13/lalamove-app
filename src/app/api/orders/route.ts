@@ -1,20 +1,17 @@
 import { NextResponse } from "next/server";
-import { OrderStatus, VehicleType, type Prisma } from "@prisma/client";
+import { OrderStatus, type Prisma } from "@prisma/client";
 
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
   estimateDelivery,
   parseQuoteFields,
+  quoteFailureMessage,
   type QuoteInput,
 } from "@/lib/pricing";
 
-/** Valid `VehicleType` values, derived from the generated Prisma enum. */
-const VEHICLE_TYPES = Object.values(VehicleType);
-
 /** Validated shape of an order-creation request body. */
 type CreateOrderInput = QuoteInput & {
-  vehicleType: VehicleType;
   description?: string;
 };
 
@@ -39,16 +36,7 @@ function parseCreateOrderBody(
     return quote;
   }
 
-  const { vehicleType, description } = record;
-
-  if (
-    typeof vehicleType !== "string" ||
-    !VEHICLE_TYPES.includes(vehicleType as VehicleType)
-  ) {
-    return {
-      error: `vehicleType must be one of: ${VEHICLE_TYPES.join(", ")}.`,
-    };
-  }
+  const { description } = record;
 
   if (description !== undefined && typeof description !== "string") {
     return { error: "description must be a string when provided." };
@@ -57,7 +45,6 @@ function parseCreateOrderBody(
   return {
     data: {
       ...quote.data,
-      vehicleType: vehicleType as VehicleType,
       description:
         typeof description === "string" && description.trim().length > 0
           ? description.trim()
@@ -67,8 +54,12 @@ function parseCreateOrderBody(
 }
 
 /**
- * POST /api/orders — create a delivery order for the signed-in client.
- * Geocodes both addresses, computes distance and price, and persists the order.
+ * POST /api/orders — create a freight order for the signed-in client.
+ *
+ * Quoting goes through the same `estimateDelivery` the public estimate endpoint
+ * uses, so the price booked here is the price that was quoted. The itemised
+ * breakdown is persisted alongside the total: the order keeps showing how its
+ * price was reached even after the underlying `PricingRule` is retuned.
  */
 export async function POST(request: Request): Promise<NextResponse> {
   const session = await auth.api.getSession({ headers: request.headers });
@@ -94,30 +85,31 @@ export async function POST(request: Request): Promise<NextResponse> {
   const {
     pickupAddress,
     dropoffAddress,
-    packageType,
-    vehicleType,
+    cargoCategory,
+    requiresHelper,
     description,
   } = parsed.data;
 
-  const result = await estimateDelivery({
-    pickupAddress,
-    dropoffAddress,
-    packageType,
-  });
+  const result = await estimateDelivery(parsed.data);
 
   if (!result.ok) {
+    // An address the geocoder cannot place is well-formed input the server
+    // could not act on (422); an unknown vehicle type or an ineligible
+    // cargo/vehicle pairing is bad input (400).
+    const status = result.reason === "unresolved_address" ? 422 : 400;
     return NextResponse.json(
-      { error: `Could not locate address: ${result.unresolvedAddress}` },
-      { status: 422 },
+      { error: quoteFailureMessage(result) },
+      { status },
     );
   }
 
-  const { pickup, dropoff, distanceKm, price } = result.estimate;
+  const { pickup, dropoff, distanceKm, vehicleTypeSpecId, breakdown } =
+    result.estimate;
 
   const order = await prisma.order.create({
     data: {
-      packageType,
-      vehicleType,
+      cargoCategory,
+      requiresHelper,
       description,
       pickupAddress,
       pickupLat: pickup.lat,
@@ -126,7 +118,12 @@ export async function POST(request: Request): Promise<NextResponse> {
       dropoffLat: dropoff.lat,
       dropoffLng: dropoff.lng,
       distanceKm,
-      price,
+      vehicleTypeSpecId,
+      baseFare: breakdown.baseFare,
+      distanceFare: breakdown.distanceFare,
+      timeFare: breakdown.timeFare,
+      helperFee: breakdown.helperFee,
+      price: breakdown.price,
       clientId: session.user.id,
     },
   });
@@ -160,12 +157,14 @@ export async function GET(request: Request): Promise<NextResponse> {
   if (role === "DRIVER") {
     const driverProfile = await prisma.driverProfile.findUnique({
       where: { userId },
-      select: { vehicles: { select: { vehicleType: true } } },
+      select: { vehicles: { select: { vehicleTypeSpecId: true } } },
     });
 
-    const registeredVehicleTypes = [
+    const registeredVehicleTypeSpecIds = [
       ...new Set(
-        (driverProfile?.vehicles ?? []).map((vehicle) => vehicle.vehicleType),
+        (driverProfile?.vehicles ?? []).map(
+          (vehicle) => vehicle.vehicleTypeSpecId,
+        ),
       ),
     ];
 
@@ -174,7 +173,7 @@ export async function GET(request: Request): Promise<NextResponse> {
         {
           status: OrderStatus.PENDING,
           driverId: null,
-          vehicleType: { in: registeredVehicleTypes },
+          vehicleTypeSpecId: { in: registeredVehicleTypeSpecIds },
         },
         { driverId: userId },
       ],

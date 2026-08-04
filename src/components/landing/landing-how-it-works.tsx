@@ -2,7 +2,7 @@ const STEPS = [
   {
     number: "01",
     title: "Set the route",
-    body: "Type the pickup and dropoff — addresses autocomplete as you go — then tell us what you're sending: a document, a parcel, or something that needs a whole truck.",
+    body: "Type the pickup and dropoff — addresses autocomplete as you go — then tell us what you're moving: furniture, appliances, retail stock, or a full relocation.",
     // Staggered top margins break the row into a descending diagonal on wide
     // screens; they collapse back to a plain stack on mobile.
     offset: "",
@@ -10,13 +10,13 @@ const STEPS = [
   {
     number: "02",
     title: "Lock the price",
-    body: "Pick a vehicle from the fleet and we quote the job on real distance before you commit. No auction, no surprise line items at the door.",
+    body: "Pick a vehicle rated for the load and we quote it on real distance, driving time and whether you need a helper. No auction, no surprise line items at the door.",
     offset: "md:mt-10",
   },
   {
     number: "03",
     title: "Track it to the door",
-    body: "A nearby driver accepts the job and it goes live on your map. Follow the vehicle from pickup to delivery, and keep every order in your account.",
+    body: "A nearby driver accepts the job and it goes live on your map. Follow the vehicle from loading to unload, and keep every order in your account.",
     offset: "md:mt-20",
   },
 ];
@@ -38,8 +38,8 @@ export function LandingHowItWorks() {
             </h2>
           </div>
           <p className="max-w-xs text-sm leading-relaxed text-muted">
-            Built for the load that won&apos;t fit in a car boot — and the
-            envelope that has to be there this afternoon.
+            Built for the load that won&apos;t fit in a car boot — an office
+            move, a pallet of stock, a machine that needs a tail lift.
           </p>
         </div>
 

@@ -1,9 +1,9 @@
 import Link from "next/link";
 
 const DRIVER_POINTS = [
-  "Pick up the jobs that suit your vehicle and your day.",
-  "Every job shows the route and the payout before you accept.",
-  "Individual, sole trader or company — all three sign up the same way.",
+  "Take the loads that suit your vehicle, your payload rating and your day.",
+  "Every job shows the route, the cargo and the payout before you accept.",
+  "Driving your own truck or running a fleet — both sign up here.",
 ];
 
 export function LandingDriverCta() {
@@ -25,13 +25,13 @@ export function LandingDriverCta() {
             Drive with us
           </p>
           <h2 className="mt-4 font-display text-[clamp(2.5rem,7vw,5rem)] leading-[0.88] text-ink uppercase">
-            Own a van?
+            Own a truck?
             <br />
             Put it to work.
           </h2>
           <p className="mt-6 max-w-md text-base leading-relaxed text-ink/80">
-            Sign up as a driver, tell us your city and vehicle, and start
-            accepting deliveries from clients near you.
+            Sign up as a driver or a logistics company, register your vehicles,
+            and start accepting freight jobs from shippers near you.
           </p>
 
           <Link

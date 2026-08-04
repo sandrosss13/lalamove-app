@@ -57,14 +57,14 @@ graph TD
 - [x] [task-01-schema-and-seed](./tasks/task-01-schema-and-seed.md) — New Prisma schema, migration, and seed data
 
 ### Wave 2
-- [ ] [task-02-pricing-engine](./tasks/task-02-pricing-engine.md) — Pricing engine and public vehicle-type reference API
-- [ ] [task-03-company-account](./tasks/task-03-company-account.md) — Logistics company role, sign-up, and profile API
-- [ ] [task-04-fleet-vehicle-management](./tasks/task-04-fleet-vehicle-management.md) — Fleet vehicle & driver-roster management
+- [x] [task-02-pricing-engine](./tasks/task-02-pricing-engine.md) — Pricing engine and public vehicle-type reference API
+- [x] [task-03-company-account](./tasks/task-03-company-account.md) — Logistics company role, sign-up, and profile API
+- [x] [task-04-fleet-vehicle-management](./tasks/task-04-fleet-vehicle-management.md) — Fleet vehicle & driver-roster management
 
 ### Wave 3
-- [ ] [task-05-client-booking](./tasks/task-05-client-booking.md) — Client booking form rework
-- [ ] [task-06-account-dashboards](./tasks/task-06-account-dashboards.md) — Provider dashboard route (`/dashboard`) for drivers and companies
-- [ ] [task-08-landing-page-rework](./tasks/task-08-landing-page-rework.md) — Landing page rework for freight positioning
+- [x] [task-05-client-booking](./tasks/task-05-client-booking.md) — Client booking form rework
+- [x] [task-06-account-dashboards](./tasks/task-06-account-dashboards.md) — Provider dashboard route (`/dashboard`) for drivers and companies
+- [x] [task-08-landing-page-rework](./tasks/task-08-landing-page-rework.md) — Landing page rework for freight positioning
 
 ### Wave 4
 - [ ] [task-07-dispatch-and-fulfillment](./tasks/task-07-dispatch-and-fulfillment.md) — Order accept, claim, dispatch, and fulfillment on `/dashboard`
