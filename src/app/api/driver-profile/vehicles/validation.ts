@@ -1,4 +1,6 @@
-import { Prisma, VehicleType } from "@prisma/client";
+import { Prisma } from "@prisma/client";
+
+import { prisma } from "@/lib/prisma";
 
 /**
  * Validation helpers shared by the vehicle collection route (`POST`, which
@@ -8,11 +10,12 @@ import { Prisma, VehicleType } from "@prisma/client";
  * rather than being duplicated per handler.
  */
 
-/** Valid `VehicleType` values, derived from the generated Prisma enum. */
-export const VEHICLE_TYPES = Object.values(VehicleType);
-
 /** Oldest manufacturing year accepted — anything older is almost certainly a typo. */
 export const MIN_VEHICLE_YEAR = 1980;
+
+/** Rejection message for a `vehicleTypeCode` with no matching `VehicleTypeSpec`. */
+export const UNKNOWN_VEHICLE_TYPE_ERROR =
+  "vehicleTypeCode does not match a known vehicle type.";
 
 /** Trims a value and returns it only if it is a non-empty string, else null. */
 export function nonEmptyString(value: unknown): string | null {
@@ -44,24 +47,20 @@ export function parseYear(
 }
 
 /**
- * Parses the optional load capacity. Returns `{ value: null }` when omitted,
- * and rejects zero/negative values — a capacity of 0 kg carries no information
- * and is better stored as "unknown".
+ * Resolves a `VehicleTypeSpec.code` to its row id, or null when no such type
+ * exists. The taxonomy is seeded data rather than an enum, so unlike the other
+ * helpers here this one has to hit the database — a static list would go stale
+ * the moment a vehicle type is added or retired.
  */
-export function parseOptionalCapacityKg(
-  value: unknown,
-): { value: number | null } | { error: string } {
-  const raw = nonEmptyString(value);
-  if (raw === null) {
-    return { value: null };
-  }
+export async function findVehicleTypeSpecIdByCode(
+  code: string,
+): Promise<string | null> {
+  const spec = await prisma.vehicleTypeSpec.findUnique({
+    where: { code },
+    select: { id: true },
+  });
 
-  const capacityKg = Number(raw);
-  if (!Number.isFinite(capacityKg) || capacityKg <= 0) {
-    return { error: "capacityKg must be a positive number when provided." };
-  }
-
-  return { value: capacityKg };
+  return spec?.id ?? null;
 }
 
 /**

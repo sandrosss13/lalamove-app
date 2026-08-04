@@ -1,15 +1,14 @@
 import { NextResponse } from "next/server";
-import type { VehicleType } from "@prisma/client";
 
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { deleteVehiclePhotos } from "@/lib/supabase-storage";
 import {
+  findVehicleTypeSpecIdByCode,
   isDuplicatePlateError,
   nonEmptyString,
-  parseOptionalCapacityKg,
   parseYear,
-  VEHICLE_TYPES,
+  UNKNOWN_VEHICLE_TYPE_ERROR,
 } from "../validation";
 
 /** Validated shape of a vehicle-edit request; photos are not editable here. */
@@ -18,8 +17,7 @@ type UpdateVehicleInput = {
   make: string;
   model: string;
   year: number;
-  vehicleType: VehicleType;
-  capacityKg: number | null;
+  vehicleTypeCode: string;
 };
 
 /**
@@ -56,9 +54,9 @@ function parseUpdateVehicleBody(
     return { error: "model is required." };
   }
 
-  // `parseYear` and `parseOptionalCapacityKg` normalise via `nonEmptyString`,
-  // so JSON numbers are stringified first to go through the same checks the
-  // form-encoded create path applies.
+  // `parseYear` normalises via `nonEmptyString`, so a JSON number is
+  // stringified first to go through the same checks the form-encoded create
+  // path applies.
   const year = parseYear(
     typeof fields.year === "number" ? String(fields.year) : fields.year,
   );
@@ -66,23 +64,9 @@ function parseUpdateVehicleBody(
     return { error: year.error };
   }
 
-  const vehicleType = fields.vehicleType;
-  if (
-    typeof vehicleType !== "string" ||
-    !VEHICLE_TYPES.includes(vehicleType as VehicleType)
-  ) {
-    return {
-      error: `vehicleType must be one of: ${VEHICLE_TYPES.join(", ")}.`,
-    };
-  }
-
-  const capacityKg = parseOptionalCapacityKg(
-    typeof fields.capacityKg === "number"
-      ? String(fields.capacityKg)
-      : fields.capacityKg,
-  );
-  if ("error" in capacityKg) {
-    return { error: capacityKg.error };
+  const vehicleTypeCode = nonEmptyString(fields.vehicleTypeCode);
+  if (vehicleTypeCode === null) {
+    return { error: "vehicleTypeCode is required." };
   }
 
   return {
@@ -94,8 +78,7 @@ function parseUpdateVehicleBody(
       make,
       model,
       year: year.value,
-      vehicleType: vehicleType as VehicleType,
-      capacityKg: capacityKg.value,
+      vehicleTypeCode,
     },
   };
 }
@@ -200,8 +183,7 @@ export async function PATCH(
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
 
-  const { plateNumber, make, model, year, vehicleType, capacityKg } =
-    parsed.data;
+  const { plateNumber, make, model, year, vehicleTypeCode } = parsed.data;
 
   const driverProfile = await prisma.driverProfile.findUnique({
     where: { userId: session.user.id },
@@ -222,11 +204,20 @@ export async function PATCH(
     return NextResponse.json({ error: "Vehicle not found." }, { status: 404 });
   }
 
+  const vehicleTypeSpecId = await findVehicleTypeSpecIdByCode(vehicleTypeCode);
+  if (vehicleTypeSpecId === null) {
+    return NextResponse.json(
+      { error: UNKNOWN_VEHICLE_TYPE_ERROR },
+      { status: 400 },
+    );
+  }
+
   let vehicle;
   try {
     vehicle = await prisma.vehicle.update({
       where: { id: existing.id },
-      data: { plateNumber, make, model, year, vehicleType, capacityKg },
+      data: { plateNumber, make, model, year, vehicleTypeSpecId },
+      include: { vehicleTypeSpec: true },
     });
   } catch (error) {
     // `Vehicle.plateNumber` is unique — editing onto a plate someone else has

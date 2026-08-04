@@ -9,17 +9,18 @@ import { VehicleTypeSelect } from "@/components/vehicle-type-select";
 const MIN_VEHICLE_YEAR = 1980;
 
 /**
- * Driver-facing form that registers a vehicle via
- * POST /api/driver-profile/vehicles.
+ * Company-facing form that registers a fleet vehicle via
+ * POST /api/logistics-company/vehicles. The vehicle is owned by the company
+ * itself, not by any driver on its roster — dispatch is what pairs a driver
+ * with a vehicle, and that happens per order.
  *
- * Unlike the other forms in the app this one is uncontrolled and submitted as
- * `FormData` built from the form element: a `<input type="file">` cannot be a
- * controlled React input, and the endpoint takes `multipart/form-data` anyway,
- * so mirroring the field names here is both simpler and less to keep in sync.
- * A successful add resets the fields and refreshes the server component so the
- * new vehicle appears in the list above.
+ * Deliberately the same shape as `VehicleForm`: uncontrolled and submitted as
+ * `FormData` built from the form element, because a `<input type="file">`
+ * cannot be a controlled React input and the endpoint takes
+ * `multipart/form-data` anyway. A successful add resets the fields and
+ * refreshes the server component so the new vehicle appears in the fleet list.
  */
-export function VehicleForm() {
+export function CompanyVehicleForm() {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,7 +44,7 @@ export function VehicleForm() {
     setSubmitting(true);
 
     try {
-      const response = await fetch("/api/driver-profile/vehicles", {
+      const response = await fetch("/api/logistics-company/vehicles", {
         method: "POST",
         // No explicit Content-Type: the browser has to set the multipart
         // boundary itself, and passing one here would break the parse.
@@ -101,7 +102,7 @@ export function VehicleForm() {
           type="text"
           name="model"
           required
-          placeholder="e.g. Sprinter"
+          placeholder="e.g. Actros"
           className="rounded border px-3 py-2"
         />
       </label>
@@ -141,7 +142,7 @@ export function VehicleForm() {
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
       {success ? (
-        <p className="text-sm text-green-700">Vehicle added.</p>
+        <p className="text-sm text-green-700">Vehicle added to your fleet.</p>
       ) : null}
 
       <button

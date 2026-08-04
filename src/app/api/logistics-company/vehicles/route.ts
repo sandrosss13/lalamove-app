@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -6,13 +7,15 @@ import {
   deleteVehiclePhotos,
   uploadVehiclePhoto,
 } from "@/lib/supabase-storage";
-import {
-  findVehicleTypeSpecIdByCode,
-  isDuplicatePlateError,
-  nonEmptyString,
-  parseYear,
-  UNKNOWN_VEHICLE_TYPE_ERROR,
-} from "./validation";
+
+/**
+ * Fleet vehicles: the company-owned half of `Vehicle`. This deliberately
+ * mirrors `src/app/api/driver-profile/vehicles/route.ts` rather than sharing an
+ * abstraction with it — the two differ in owner column, role check and error
+ * wording, and the project's route handlers stay small and direct (the
+ * `client-profile`/`driver-profile` routes duplicate their validation helpers
+ * the same way).
+ */
 
 /** Form field carrying the (one or more) photo files. */
 const PHOTO_FIELD = "photos";
@@ -20,7 +23,10 @@ const PHOTO_FIELD = "photos";
 /** Per-photo size ceiling, matching Supabase Storage's standard-upload limit. */
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 
-/** Validated shape of a vehicle-creation request. */
+/** Oldest manufacturing year accepted — anything older is almost certainly a typo. */
+const MIN_VEHICLE_YEAR = 1980;
+
+/** Validated shape of a fleet-vehicle-creation request. */
 type CreateVehicleInput = {
   plateNumber: string;
   make: string;
@@ -29,6 +35,56 @@ type CreateVehicleInput = {
   vehicleTypeCode: string;
   photos: File[];
 };
+
+/** Trims a value and returns it only if it is a non-empty string, else null. */
+function nonEmptyString(value: unknown): string | null {
+  return typeof value === "string" && value.trim() !== "" ? value.trim() : null;
+}
+
+/**
+ * Parses the manufacturing year. Bounded on both ends: next year is allowed
+ * because dealers register model years ahead of the calendar.
+ */
+function parseYear(value: unknown): { value: number } | { error: string } {
+  const raw = nonEmptyString(value);
+  if (raw === null) {
+    return { error: "year is required." };
+  }
+
+  const year = Number(raw);
+  const maxYear = new Date().getFullYear() + 1;
+
+  if (!Number.isInteger(year) || year < MIN_VEHICLE_YEAR || year > maxYear) {
+    return {
+      error: `year must be a whole number between ${MIN_VEHICLE_YEAR} and ${maxYear}.`,
+    };
+  }
+
+  return { value: year };
+}
+
+/**
+ * True when `error` is a unique-constraint violation (P2002) on `plateNumber` —
+ * i.e. the caller tried to register a vehicle someone already registered.
+ * `meta.target` is checked so an unrelated P2002 is not mislabelled. Postgres
+ * reports either the column list or the index name ("Vehicle_plateNumber_key"),
+ * so both shapes are handled.
+ */
+function isDuplicatePlateError(error: unknown): boolean {
+  if (
+    !(error instanceof Prisma.PrismaClientKnownRequestError) ||
+    error.code !== "P2002"
+  ) {
+    return false;
+  }
+
+  const target = error.meta?.target;
+  if (Array.isArray(target)) {
+    return target.includes("plateNumber");
+  }
+
+  return typeof target === "string" && target.includes("plateNumber");
+}
 
 /**
  * Collects the uploaded photo files. Browsers submit an empty `<input
@@ -122,14 +178,10 @@ function parseCreateVehicleForm(
 }
 
 /**
- * GET /api/driver-profile/vehicles — list the signed-in driver's vehicles,
- * newest first. Only DRIVER users may call this. A driver who hasn't created
- * their profile yet simply has no vehicles, which is an empty list rather than
+ * GET /api/logistics-company/vehicles — list the signed-in company's fleet,
+ * newest first. Only COMPANY users may call this. A company that hasn't created
+ * its profile yet simply owns no vehicles, which is an empty list rather than
  * an error.
- *
- * The vehicle type is included because payload and cargo dimensions live on the
- * spec now, not on the vehicle row, so a bare vehicle says nothing about what
- * it can carry.
  */
 export async function GET(request: Request): Promise<NextResponse> {
   const session = await auth.api.getSession({ headers: request.headers });
@@ -137,24 +189,24 @@ export async function GET(request: Request): Promise<NextResponse> {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
-  if (session.user.role !== "DRIVER") {
+  if (session.user.role !== "COMPANY") {
     return NextResponse.json(
-      { error: "Only drivers have vehicles." },
+      { error: "Only logistics companies have a fleet." },
       { status: 403 },
     );
   }
 
-  const driverProfile = await prisma.driverProfile.findUnique({
+  const company = await prisma.logisticsCompany.findUnique({
     where: { userId: session.user.id },
     select: { id: true },
   });
 
-  if (!driverProfile) {
+  if (!company) {
     return NextResponse.json([], { status: 200 });
   }
 
   const vehicles = await prisma.vehicle.findMany({
-    where: { driverProfileId: driverProfile.id },
+    where: { companyId: company.id },
     include: { vehicleTypeSpec: true },
     orderBy: { createdAt: "desc" },
   });
@@ -163,15 +215,15 @@ export async function GET(request: Request): Promise<NextResponse> {
 }
 
 /**
- * POST /api/driver-profile/vehicles — register a vehicle for the signed-in
- * driver. Only DRIVER users may call this, and only once their profile exists
- * (the vehicle hangs off `DriverProfile`, so there is nothing to attach it to
- * before then).
+ * POST /api/logistics-company/vehicles — register a vehicle owned by the
+ * signed-in company. Only COMPANY users may call this, and only once their
+ * company profile exists (the vehicle hangs off `LogisticsCompany`, so there is
+ * nothing to attach it to before then).
  *
  * Ownership is never taken from the request: the row is always written with the
- * caller's own profile and a null `companyId`, so an independent driver's
- * vehicle cannot be attributed to a company. Fleet vehicles go through
- * POST /api/logistics-company/vehicles instead.
+ * caller's own company and a null `driverProfileId`, which is what keeps the
+ * `vehicle_single_owner_check` constraint satisfied by construction rather than
+ * surfacing as a raw database error.
  *
  * Photos are uploaded to Storage before the row is written, because the row
  * stores their URLs. If the write then fails the uploads are removed again, so
@@ -183,9 +235,9 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   }
 
-  if (session.user.role !== "DRIVER") {
+  if (session.user.role !== "COMPANY") {
     return NextResponse.json(
-      { error: "Only drivers can add vehicles." },
+      { error: "Only logistics companies can add fleet vehicles." },
       { status: 403 },
     );
   }
@@ -208,35 +260,44 @@ export async function POST(request: Request): Promise<NextResponse> {
   const { plateNumber, make, model, year, vehicleTypeCode, photos } =
     parsed.data;
 
-  const driverProfile = await prisma.driverProfile.findUnique({
+  const company = await prisma.logisticsCompany.findUnique({
     where: { userId: session.user.id },
     select: { id: true },
   });
 
-  if (!driverProfile) {
+  if (!company) {
     return NextResponse.json(
-      { error: "Complete your driver profile before adding a vehicle." },
+      { error: "Complete your company profile before adding a vehicle." },
       { status: 400 },
     );
   }
 
-  const vehicleTypeSpecId = await findVehicleTypeSpecIdByCode(vehicleTypeCode);
-  if (vehicleTypeSpecId === null) {
+  // The taxonomy is seeded data rather than an enum, so the only way to know a
+  // code is real is to look it up.
+  const vehicleTypeSpec = await prisma.vehicleTypeSpec.findUnique({
+    where: { code: vehicleTypeCode },
+    select: { id: true },
+  });
+
+  if (!vehicleTypeSpec) {
     return NextResponse.json(
-      { error: UNKNOWN_VEHICLE_TYPE_ERROR },
+      { error: "vehicleTypeCode does not match a known vehicle type." },
       { status: 400 },
     );
   }
 
   let photoUrls: string[];
   try {
+    // The first argument is only the Storage path prefix the objects are
+    // grouped under, so a company id namespaces its fleet's photos the same way
+    // a driver profile id namespaces a driver's.
     photoUrls = await Promise.all(
-      photos.map((photo) => uploadVehiclePhoto(driverProfile.id, photo)),
+      photos.map((photo) => uploadVehiclePhoto(company.id, photo)),
     );
   } catch (error) {
     // A misconfigured bucket or a Storage outage — neither is the caller's
     // fault, and neither should surface as an unhandled crash.
-    console.error("Vehicle photo upload failed:", error);
+    console.error("Fleet vehicle photo upload failed:", error);
     return NextResponse.json(
       { error: "Could not upload the vehicle photos. Please try again." },
       { status: 502 },
@@ -247,11 +308,11 @@ export async function POST(request: Request): Promise<NextResponse> {
   try {
     vehicle = await prisma.vehicle.create({
       data: {
-        driverProfileId: driverProfile.id,
+        companyId: company.id,
         // Exactly one owner column may be set (`vehicle_single_owner_check`);
         // spelling out the null makes that explicit rather than implied.
-        companyId: null,
-        vehicleTypeSpecId,
+        driverProfileId: null,
+        vehicleTypeSpecId: vehicleTypeSpec.id,
         plateNumber,
         make,
         model,
@@ -270,8 +331,9 @@ export async function POST(request: Request): Promise<NextResponse> {
       );
     });
 
-    // `Vehicle.plateNumber` is unique — one registration per real vehicle.
-    // Anything else is unexpected and rethrown rather than swallowed.
+    // `Vehicle.plateNumber` is unique across drivers and companies alike — one
+    // registration per real vehicle. Anything else is unexpected and rethrown
+    // rather than swallowed.
     if (isDuplicatePlateError(error)) {
       return NextResponse.json(
         { error: "This plate number is already registered." },

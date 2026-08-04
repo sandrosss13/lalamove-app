@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { VEHICLE_TYPE_GROUPS } from "@/lib/vehicle-types";
+import { VehicleTypeSelect } from "@/components/vehicle-type-select";
 
 /** Oldest selectable manufacturing year; mirrors the API's lower bound. */
 const MIN_VEHICLE_YEAR = 1980;
@@ -15,8 +15,8 @@ export type EditableVehicle = {
   make: string;
   model: string;
   year: number;
-  vehicleType: string;
-  capacityKg: number | null;
+  /** `VehicleTypeSpec.code` of the vehicle's type, from its `vehicleTypeSpec` relation. */
+  vehicleTypeCode: string;
 };
 
 /**
@@ -37,10 +37,8 @@ export function EditVehicleForm({ vehicle }: { vehicle: EditableVehicle }) {
   const [make, setMake] = useState(vehicle.make);
   const [model, setModel] = useState(vehicle.model);
   const [year, setYear] = useState(String(vehicle.year));
-  const [vehicleType, setVehicleType] = useState(vehicle.vehicleType);
-  // Empty string is the "not specified" capacity, which the API stores as null.
-  const [capacityKg, setCapacityKg] = useState(
-    vehicle.capacityKg === null ? "" : String(vehicle.capacityKg),
+  const [vehicleTypeCode, setVehicleTypeCode] = useState(
+    vehicle.vehicleTypeCode,
   );
 
   const [submitting, setSubmitting] = useState(false);
@@ -60,10 +58,7 @@ export function EditVehicleForm({ vehicle }: { vehicle: EditableVehicle }) {
     setMake(vehicle.make);
     setModel(vehicle.model);
     setYear(String(vehicle.year));
-    setVehicleType(vehicle.vehicleType);
-    setCapacityKg(
-      vehicle.capacityKg === null ? "" : String(vehicle.capacityKg),
-    );
+    setVehicleTypeCode(vehicle.vehicleTypeCode);
     setError(null);
     setEditing(false);
   }
@@ -85,8 +80,7 @@ export function EditVehicleForm({ vehicle }: { vehicle: EditableVehicle }) {
             make,
             model,
             year,
-            vehicleType,
-            capacityKg,
+            vehicleTypeCode,
           }),
         },
       );
@@ -174,41 +168,10 @@ export function EditVehicleForm({ vehicle }: { vehicle: EditableVehicle }) {
         />
       </label>
 
-      <label className="flex flex-col gap-1 text-sm">
-        Vehicle type
-        <select
-          required
-          value={vehicleType}
-          onChange={(event) => setVehicleType(event.target.value)}
-          className="rounded border px-3 py-2"
-        >
-          <option value="" disabled>
-            Select a vehicle type…
-          </option>
-          {VEHICLE_TYPE_GROUPS.map((group) => (
-            <optgroup key={group.category} label={group.category}>
-              {group.options.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </optgroup>
-          ))}
-        </select>
-      </label>
-
-      <label className="flex flex-col gap-1 text-sm">
-        Load capacity in kg (optional)
-        <input
-          type="number"
-          min={1}
-          step="any"
-          placeholder="e.g. 1200"
-          value={capacityKg}
-          onChange={(event) => setCapacityKg(event.target.value)}
-          className="rounded border px-3 py-2"
-        />
-      </label>
+      <VehicleTypeSelect
+        value={vehicleTypeCode}
+        onChange={setVehicleTypeCode}
+      />
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
 

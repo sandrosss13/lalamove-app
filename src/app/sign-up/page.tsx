@@ -5,9 +5,11 @@ import { useRouter } from "next/navigation";
 
 import { signUp } from "@/lib/auth-client";
 
-type Role = "CLIENT" | "DRIVER";
-// Covers every account type across both roles. Clients only ever set INDIVIDUAL
-// or BUSINESS; drivers can additionally be an INDIVIDUAL_ENTREPRENEUR.
+type Role = "CLIENT" | "DRIVER" | "COMPANY";
+// Covers every account type across clients and drivers. Clients only ever set
+// INDIVIDUAL or BUSINESS; drivers can additionally be an
+// INDIVIDUAL_ENTREPRENEUR. A logistics company has no account-type variants and
+// so never sets one.
 type AccountType = "INDIVIDUAL" | "INDIVIDUAL_ENTREPRENEUR" | "BUSINESS";
 
 /**
@@ -50,6 +52,13 @@ const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
   BUSINESS: "Business",
 };
 
+/** Heading shown once a role has been chosen, in steps 2 and 3. */
+const ROLE_HEADINGS: Record<Role, string> = {
+  CLIENT: "Sign up as a client",
+  DRIVER: "Sign up as a driver",
+  COMPANY: "Sign up as a logistics company",
+};
+
 export default function SignUpPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -57,7 +66,8 @@ export default function SignUpPage() {
   // Null until the user picks a role in step 1; picking one reveals step 2.
   const [role, setRole] = useState<Role | null>(null);
   // Null until the user picks an account type in step 2; picking one reveals
-  // the form in step 3.
+  // the form in step 3. Stays null for COMPANY, which has no account-type
+  // variants and therefore skips step 2 entirely.
   const [accountType, setAccountType] = useState<AccountType | null>(null);
   const [city, setCity] = useState<string>("");
   const [firstName, setFirstName] = useState("");
@@ -70,19 +80,20 @@ export default function SignUpPage() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    // The form only renders in step 3, so both `role` and `accountType` are
-    // always set here; these guards narrow the nullable state and are a
-    // defensive no-op in practice.
-    if (!role || !accountType) return;
+    // The form only renders in step 3, so `role` is always set here — and so is
+    // `accountType` for every role except COMPANY, which has none. These guards
+    // narrow the nullable state and are a defensive no-op in practice.
+    if (!role) return;
+    if (role !== "COMPANY" && !accountType) return;
     setError(null);
     setLoading(true);
 
     // Better Auth requires a `name`, but the form never shows a bare name
-    // field — the identity fields are now identical across both roles, so we
-    // derive the name uniformly from the account type: the company name for a
-    // business, or the full name otherwise.
+    // field — the identity fields are now identical across roles, so we derive
+    // the name uniformly: the company name for a logistics company or a
+    // business account, the full name otherwise.
     const resolvedName =
-      accountType === "BUSINESS"
+      role === "COMPANY" || accountType === "BUSINESS"
         ? companyName
         : `${firstName} ${lastName}`.trim();
 
@@ -158,12 +169,34 @@ export default function SignUpPage() {
       }
     }
 
+    // Logistics companies get a LogisticsCompany row instead of a client or
+    // driver profile. Same failure handling as the branches above.
+    if (role === "COMPANY") {
+      const response = await fetch("/api/logistics-company", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ companyName, vatId, phone, city }),
+      });
+
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        setError(
+          payload?.error ??
+            "Could not save your company details. Please try again.",
+        );
+        setLoading(false);
+        return;
+      }
+    }
+
     setLoading(false);
     router.push("/");
     router.refresh();
   }
 
-  // Step 1: no role chosen yet — present the two portals as large cards.
+  // Step 1: no role chosen yet — present the portals as large cards.
   if (role === null) {
     return (
       <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 p-8">
@@ -191,6 +224,17 @@ export default function SignUpPage() {
               Deliver packages and earn
             </span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => setRole("COMPANY")}
+            className="rounded border p-6 text-left hover:opacity-70"
+          >
+            <span className="block font-medium">Logistics Company</span>
+            <span className="block text-sm opacity-70">
+              Run a fleet and dispatch your own drivers
+            </span>
+          </button>
         </div>
       </main>
     );
@@ -198,8 +242,9 @@ export default function SignUpPage() {
 
   // Step 2: a role is chosen but no account type yet — present the account
   // types as large cards in the same style as step 1. Clients see two options;
-  // drivers see three (adding Individual Entrepreneur).
-  if (accountType === null) {
+  // drivers see three (adding Individual Entrepreneur). Companies have no
+  // account-type variants, so they skip straight to the form in step 3.
+  if (accountType === null && role !== "COMPANY") {
     return (
       <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 p-8">
         <button
@@ -210,9 +255,7 @@ export default function SignUpPage() {
           ← Back
         </button>
 
-        <h1 className="text-2xl font-bold">
-          {role === "DRIVER" ? "Sign up as a driver" : "Sign up as a client"}
-        </h1>
+        <h1 className="text-2xl font-bold">{ROLE_HEADINGS[role]}</h1>
 
         <div className="flex flex-col gap-4">
           <button
@@ -254,26 +297,29 @@ export default function SignUpPage() {
     );
   }
 
-  // Step 3: role and account type are chosen — show the identity form. The
-  // field shapes are now identical across both roles; drivers additionally get
-  // a city select.
+  // Step 3: role (and, for clients and drivers, account type) is chosen — show
+  // the identity form. The field shapes are identical across roles; drivers and
+  // companies additionally get a city select. A company skipped step 2, so its
+  // Back button returns to the role picker rather than the account-type picker.
   return (
     <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 p-8">
       <button
         type="button"
-        onClick={() => setAccountType(null)}
+        onClick={() =>
+          role === "COMPANY" ? setRole(null) : setAccountType(null)
+        }
         className="self-start text-sm hover:opacity-70"
       >
         ← Back
       </button>
 
       <h1 className="text-2xl font-bold">
-        {role === "DRIVER" ? "Sign up as a driver" : "Sign up as a client"} —{" "}
-        {ACCOUNT_TYPE_LABELS[accountType]}
+        {ROLE_HEADINGS[role]}
+        {accountType ? ` — ${ACCOUNT_TYPE_LABELS[accountType]}` : null}
       </h1>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        {accountType === "BUSINESS" ? (
+        {role === "COMPANY" || accountType === "BUSINESS" ? (
           <>
             <label className="flex flex-col gap-1 text-sm">
               Company name
@@ -357,7 +403,7 @@ export default function SignUpPage() {
           />
         </label>
 
-        {role === "DRIVER" ? (
+        {role === "DRIVER" || role === "COMPANY" ? (
           <>
             <label className="flex flex-col gap-1 text-sm">
               City

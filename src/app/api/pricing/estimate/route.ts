@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 
-import { estimateDelivery, parseQuoteFields } from "@/lib/pricing";
+import {
+  estimateDelivery,
+  parseQuoteFields,
+  quoteFailureMessage,
+} from "@/lib/pricing";
 import { checkRateLimit } from "@/lib/rate-limit";
 
 /**
@@ -31,12 +35,12 @@ function getCallerKey(request: Request): string {
 }
 
 /**
- * POST /api/pricing/estimate — quote a delivery without creating one.
+ * POST /api/pricing/estimate — quote a freight job without creating one.
  *
  * Public by design: the marketing page's calculator lets visitors price a route
  * before signing up. It is rate-limited per caller because it spends the same
  * server-side LocationIQ key as the auth-gated endpoints, and it returns only
- * the distance and price — never the resolved coordinates.
+ * the distance and the fare breakdown — never the resolved coordinates.
  */
 export async function POST(request: Request): Promise<NextResponse> {
   // Checked before parsing or geocoding so a flood costs almost nothing.
@@ -71,13 +75,17 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   const result = await estimateDelivery(parsed.data);
   if (!result.ok) {
+    // An address the geocoder cannot place is well-formed input the server
+    // could not act on (422); an unknown vehicle type or an ineligible
+    // cargo/vehicle pairing is bad input (400).
+    const status = result.reason === "unresolved_address" ? 422 : 400;
     return NextResponse.json(
-      { error: `Could not locate address: ${result.unresolvedAddress}` },
-      { status: 422 },
+      { error: quoteFailureMessage(result) },
+      { status },
     );
   }
 
-  const { distanceKm, price } = result.estimate;
+  const { distanceKm, breakdown } = result.estimate;
 
-  return NextResponse.json({ distanceKm, price }, { status: 200 });
+  return NextResponse.json({ distanceKm, ...breakdown }, { status: 200 });
 }

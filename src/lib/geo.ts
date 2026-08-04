@@ -1,5 +1,7 @@
 /**
- * Geocoding and distance/pricing helpers for the delivery domain.
+ * Geocoding and distance helpers for the delivery domain. Pricing lives in
+ * `src/lib/pricing.ts`, which builds on `geocodeAddress` and
+ * `haversineDistanceKm` from here.
  *
  * Two geocoding providers are used, deliberately split by job:
  *
@@ -18,11 +20,9 @@
  * Both providers are scoped to Georgia via the same bounding box
  * (`GEORGIA_BOUNDS`), so their notion of "in range" stays consistent.
  *
- * Server-only: this module reads env vars and imports the Prisma enum, so it
- * must never be pulled into a client bundle.
+ * Server-only: this module reads env vars, so it must never be pulled into a
+ * client bundle.
  */
-
-import type { PackageType } from "@prisma/client";
 
 export type LatLng = {
   lat: number;
@@ -76,22 +76,6 @@ const LOCATIONIQ_MAX_ATTEMPTS = 3;
 const LOCATIONIQ_RETRY_BACKOFF_MS = [1000, 2000];
 /** HTTP statuses worth retrying: LocationIQ returns 429 when rate-limited. */
 const LOCATIONIQ_RETRYABLE_STATUSES = new Set([429]);
-
-/** Base fare applied on top of the distance-based charge, in the app currency. */
-const BASE_FARE = 2.0;
-
-/**
- * Per-kilometre rate by package type, in the app currency. Bigger packages
- * occupy more of a vehicle and are slower to load, so they carry a higher rate
- * over the same distance. This is the single pricing table for the whole app —
- * both the public estimate endpoint and real order creation read it.
- */
-const PACKAGE_TYPE_PRICE_PER_KM: Record<PackageType, number> = {
-  DOCUMENT: 0.6,
-  SMALL_PARCEL: 1.0,
-  MEDIUM_PARCEL: 1.5,
-  LARGE_PARCEL: 2.2,
-};
 
 const EARTH_RADIUS_KM = 6371;
 
@@ -355,17 +339,4 @@ export function haversineDistanceKm(a: LatLng, b: LatLng): number {
   const c = 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
 
   return EARTH_RADIUS_KM * c;
-}
-
-/**
- * Delivery price = flat base fare + distance × the package type's per-km rate,
- * rounded to cents. The base fare covers fixed pickup overhead so very short
- * trips aren't free.
- */
-export function calculatePrice(
-  distanceKm: number,
-  packageType: PackageType,
-): number {
-  const raw = BASE_FARE + distanceKm * PACKAGE_TYPE_PRICE_PER_KM[packageType];
-  return Math.round(raw * 100) / 100;
 }

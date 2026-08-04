@@ -22,9 +22,10 @@ graph TD
     task-03-company-account["03: Company role, sign-up & profile API"]
     task-04-fleet-vehicle-management["04: Fleet & roster management"]
     task-05-client-booking["05: Client booking form rework"]
-    task-06-account-dashboards["06: Account dashboards (driver/company)"]
-    task-07-dispatch-and-fulfillment["07: Order accept, dispatch & fulfillment"]
+    task-06-account-dashboards["06: Provider dashboard route (/dashboard)"]
+    task-07-dispatch-and-fulfillment["07: Booking, dispatch & fulfillment on /dashboard"]
     task-08-landing-page-rework["08: Landing page rework"]
+    task-09-provider-reporting["09: Provider reporting & Excel export"]
 
     task-01-schema-and-seed --> task-02-pricing-engine
     task-01-schema-and-seed --> task-03-company-account
@@ -35,6 +36,9 @@ graph TD
     task-03-company-account --> task-06-account-dashboards
     task-04-fleet-vehicle-management --> task-06-account-dashboards
     task-04-fleet-vehicle-management --> task-07-dispatch-and-fulfillment
+    task-06-account-dashboards --> task-07-dispatch-and-fulfillment
+    task-06-account-dashboards --> task-09-provider-reporting
+    task-07-dispatch-and-fulfillment --> task-09-provider-reporting
 ```
 
 ## Waves
@@ -43,7 +47,9 @@ graph TD
 |------|-------|-------------|
 | 1 | task-01 | Foundation: new Prisma schema, migration, seeded reference data (vehicle types + pricing rules), dev-data cleanup. Everything else depends on this. |
 | 2 | task-02, task-03, task-04 | Pricing engine + public vehicle-type API; logistics-company role/sign-up/profile; fleet vehicle & driver-roster management APIs (company + reworked independent-driver vehicles). No file overlap between these three. |
-| 3 | task-05, task-06, task-07, task-08 | Client booking form; account dashboards (driver + company); order accept/claim/dispatch/fulfillment; landing page rework. Each depends only on specific Wave 2 outputs, no file overlap between these four. |
+| 3 | task-05, task-06, task-08 | Client booking form; the new `/dashboard` route for drivers and companies (identity, fleet, roster — `/account` now redirects providers there); landing page rework. No file overlap between these three. |
+| 4 | task-07 | Booking, claim/dispatch, and delivery-lifecycle management, added to the `/dashboard` route Wave 3 built (`/orders` now redirects providers there too). Runs alone since it extends files Wave 3's task-06 created. |
+| 5 | task-09 | Provider reporting (order history, earnings, fleet/driver utilization) and Excel export, appended to `/dashboard` on top of Wave 3/4's identity, fleet, and booking data. |
 
 ## Task Status
 
@@ -57,6 +63,11 @@ graph TD
 
 ### Wave 3
 - [ ] [task-05-client-booking](./tasks/task-05-client-booking.md) — Client booking form rework
-- [ ] [task-06-account-dashboards](./tasks/task-06-account-dashboards.md) — Account dashboards for drivers and companies
-- [ ] [task-07-dispatch-and-fulfillment](./tasks/task-07-dispatch-and-fulfillment.md) — Order accept, claim, dispatch, and fulfillment
+- [ ] [task-06-account-dashboards](./tasks/task-06-account-dashboards.md) — Provider dashboard route (`/dashboard`) for drivers and companies
 - [ ] [task-08-landing-page-rework](./tasks/task-08-landing-page-rework.md) — Landing page rework for freight positioning
+
+### Wave 4
+- [ ] [task-07-dispatch-and-fulfillment](./tasks/task-07-dispatch-and-fulfillment.md) — Order accept, claim, dispatch, and fulfillment on `/dashboard`
+
+### Wave 5
+- [ ] [task-09-provider-reporting](./tasks/task-09-provider-reporting.md) — Provider reporting, earnings & Excel export

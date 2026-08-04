@@ -31,8 +31,14 @@ calculator, order matching).
 - Keep independent drivers (no company affiliation) working the way they do today: they own their
   own vehicle(s) and accept open orders directly.
 - Rework every existing flow that depended on the old model: booking form, driver/company
-  dashboards on `/account`, order accept/dispatch, the landing page's marketing copy and pricing
-  calculator.
+  dashboards, order accept/dispatch, the landing page's marketing copy and pricing calculator.
+- Give drivers and logistics companies a single dedicated `/dashboard` route — separate from the
+  client-facing `/account` and `/orders` — as the one place they manage their identity, fleet/
+  roster, bookings, and reporting. `/account` and `/orders` become client-only and redirect
+  `DRIVER`/`COMPANY` sessions to `/dashboard`.
+- Give each provider (driver or company) reporting on their own data: an order-history table, an
+  earnings/revenue summary, fleet & driver utilization (companies), and an Excel export of order
+  history.
 
 ## Non-Goals
 
@@ -53,6 +59,12 @@ calculator, order matching).
 - **Exact pricing numbers are illustrative**, not real business figures — see
   `task-01-schema-and-seed.md` for the seeded placeholder rate table. Tuning real rates later is a
   data change, not a code change.
+- **No visual charts/graphs.** Provider reporting starts as tables and summary totals
+  (`task-09-provider-reporting.md`); charting is a deliberate future iteration, not part of this
+  pivot. No charting library is added.
+- **No cross-provider or admin reporting.** Each driver or company only ever sees their own order
+  history, earnings, and (for companies) fleet/driver utilization — never another provider's data
+  or a platform-wide view.
 
 ## Acceptance Criteria
 
@@ -70,6 +82,12 @@ calculator, order matching).
       type they personally registered, exactly as today, just using the new vehicle taxonomy.
 - [ ] Completing a delivery accepts a waiting-time input and applies the overtime fee when it
       exceeds the vehicle type's free loading/unloading buffer.
+- [ ] A signed-in driver or company reaches all of their provider tooling (identity, fleet/roster,
+      bookings, reporting) at a single `/dashboard` route; hitting `/account` or `/orders` as a
+      `DRIVER` or `COMPANY` redirects there instead.
+- [ ] A driver or company can view their own order history, an earnings/revenue summary, and (for
+      companies) fleet & driver utilization, and can export their order history to a real `.xlsx`
+      Excel file.
 - [ ] `pnpm check` (lint + typecheck) and `pnpm build` pass after every task, and the full flow has
       been exercised against the live dev database (then cleaned up) before this feature is
       considered done.
@@ -94,6 +112,10 @@ calculator, order matching).
 - No validation library — continue the hand-rolled `parseXBody` pattern already used throughout
   `src/app/api/**/route.ts`.
 - No ORM other than Prisma; no new database.
+- One new dependency, `exceljs`, for the Excel export requirement in `task-09-provider-reporting.md`
+  — chosen over the `xlsx`/SheetJS npm package, whose npm-published builds have known unpatched
+  security advisories. No other new frontend libraries (no charting, no table/grid library, no
+  state-management library) are introduced by this pivot.
 - Match existing code style: sparse doc comments (only genuine non-obvious WHY), Prettier config
   already in the repo (80-width, trailing commas).
 - Every task must leave `pnpm check` and `pnpm build` passing before being considered complete.
