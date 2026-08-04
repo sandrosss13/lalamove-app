@@ -10,8 +10,8 @@ import { prisma } from "@/lib/prisma";
  * `BETTER_AUTH_SECRET` and `BETTER_AUTH_URL` environment variables.
  *
  * The `role` additional field mirrors the `UserRole` Prisma enum. It is marked
- * `input: true` so a client can set it explicitly at sign-up (CLIENT vs DRIVER);
- * the Prisma column carries a default of CLIENT as a safety net.
+ * `input: true` so a client can set it explicitly at sign-up (CLIENT, DRIVER, or
+ * COMPANY); the Prisma column carries a default of CLIENT as a safety net.
  */
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
