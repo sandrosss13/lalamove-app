@@ -1,9 +1,14 @@
 import type { ReactNode } from "react";
-import { OrderStatus } from "@prisma/client";
+import { OrderStatus, type CargoCategory } from "@prisma/client";
+
+import { CARGO_CATEGORY_LABELS } from "@/lib/cargo";
 
 /** Tailwind classes per order status for a small colour-coded badge. */
 export const STATUS_STYLES: Record<OrderStatus, string> = {
   PENDING: "bg-yellow-100 text-yellow-800",
+  // Amber rather than PENDING's yellow: a claimed order is off the open market
+  // but not yet dispatched to a driver, so it has to read as its own state.
+  CLAIMED: "bg-amber-200 text-amber-900",
   ACCEPTED: "bg-blue-100 text-blue-800",
   IN_TRANSIT: "bg-purple-100 text-purple-800",
   COMPLETED: "bg-green-100 text-green-800",
@@ -16,7 +21,7 @@ type OrderCardOrder = {
   price: number;
   pickupAddress: string;
   dropoffAddress: string;
-  packageType: string;
+  cargoCategory: CargoCategory;
   distanceKm: number;
   // Only set once a driver has accepted the order with one of their vehicles,
   // and nulled again if that vehicle is later removed — so the row is rendered
@@ -26,9 +31,10 @@ type OrderCardOrder = {
 
 /**
  * Shared presentation for a single order: a status badge, price, and the
- * address/package/distance grid. Used by both the client account dashboard and
- * the orders list. `children` renders after the grid (e.g. a driver's accept
- * button) so callers can extend the card without duplicating its layout.
+ * address/cargo/distance grid. Used by the client account dashboard, the client
+ * order list and the provider dashboards. `children` renders after the grid
+ * (e.g. a driver's accept button) so callers can extend the card without
+ * duplicating its layout.
  */
 export function OrderCard({
   order,
@@ -53,8 +59,8 @@ export function OrderCard({
         <dd>{order.pickupAddress}</dd>
         <dt className="opacity-60">To</dt>
         <dd>{order.dropoffAddress}</dd>
-        <dt className="opacity-60">Package</dt>
-        <dd>{order.packageType}</dd>
+        <dt className="opacity-60">Cargo</dt>
+        <dd>{CARGO_CATEGORY_LABELS[order.cargoCategory]}</dd>
         <dt className="opacity-60">Distance</dt>
         <dd>{order.distanceKm.toFixed(2)} km</dd>
         {order.vehicle ? (

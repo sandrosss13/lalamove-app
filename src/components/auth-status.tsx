@@ -25,6 +25,10 @@ export function AuthStatus() {
       router.refresh();
     }
 
+    // Clients live on /account; drivers and logistics companies manage their
+    // fleet, roster and bookings on /dashboard.
+    const isClient = role === "CLIENT";
+
     return (
       <div className="flex items-center gap-3 text-sm">
         <span>
@@ -33,8 +37,11 @@ export function AuthStatus() {
         <Link href="/home" className="font-medium hover:opacity-70">
           Home page
         </Link>
-        <Link href="/account" className="font-medium hover:opacity-70">
-          My account
+        <Link
+          href={isClient ? "/account" : "/dashboard"}
+          className="font-medium hover:opacity-70"
+        >
+          {isClient ? "My account" : "Dashboard"}
         </Link>
         <button
           type="button"

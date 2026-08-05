@@ -1,16 +1,21 @@
 import type { ReactNode } from "react";
 
-import { vehicleTypeLabel } from "@/lib/vehicle-types";
-
-/** The subset of `Vehicle` fields a vehicle card needs to render. */
+/**
+ * The subset of `Vehicle` fields a vehicle card needs to render.
+ *
+ * `vehicleTypeSpec` is the vehicle's `VehicleTypeSpec` relation: the type's
+ * label and payload limit are no longer columns on `Vehicle`, so the caller
+ * resolves them. A server component fetching the vehicle with
+ * `include: { vehicleTypeSpec: true }` (or `select`ing those two fields)
+ * satisfies this prop as-is — extra fields on the included spec are fine.
+ */
 type VehicleCardVehicle = {
   plateNumber: string;
   make: string;
   model: string;
   year: number;
-  vehicleType: string;
-  capacityKg: number | null;
   photoUrls: string[];
+  vehicleTypeSpec: { label: string; maxPayloadKg: number };
 };
 
 /**
@@ -59,7 +64,7 @@ export function VehicleCard({
           {vehicle.plateNumber}
         </span>
         <span className="text-sm opacity-70">
-          {vehicleTypeLabel(vehicle.vehicleType)}
+          {vehicle.vehicleTypeSpec.label}
         </span>
       </div>
 
@@ -70,12 +75,8 @@ export function VehicleCard({
         </dd>
         <dt className="opacity-60">Year</dt>
         <dd>{vehicle.year}</dd>
-        {vehicle.capacityKg === null ? null : (
-          <>
-            <dt className="opacity-60">Capacity</dt>
-            <dd>{vehicle.capacityKg} kg</dd>
-          </>
-        )}
+        <dt className="opacity-60">Max payload</dt>
+        <dd>{vehicle.vehicleTypeSpec.maxPayloadKg} kg</dd>
       </dl>
 
       {children}

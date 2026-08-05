@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { VehicleType } from "@prisma/client";
 
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -8,11 +7,11 @@ import {
   uploadVehiclePhoto,
 } from "@/lib/supabase-storage";
 import {
+  findVehicleTypeSpecIdByCode,
   isDuplicatePlateError,
   nonEmptyString,
-  parseOptionalCapacityKg,
   parseYear,
-  VEHICLE_TYPES,
+  UNKNOWN_VEHICLE_TYPE_ERROR,
 } from "./validation";
 
 /** Form field carrying the (one or more) photo files. */
@@ -27,8 +26,7 @@ type CreateVehicleInput = {
   make: string;
   model: string;
   year: number;
-  vehicleType: VehicleType;
-  capacityKg: number | null;
+  vehicleTypeCode: string;
   photos: File[];
 };
 
@@ -71,6 +69,9 @@ function parsePhotos(
  * This endpoint reads `multipart/form-data` rather than JSON because it carries
  * photo files alongside the text fields, so every scalar arrives as a string
  * and has to be coerced explicitly.
+ *
+ * `vehicleTypeCode` is only checked for presence here; matching it to a real
+ * `VehicleTypeSpec` needs a database read and so happens in the handler.
  */
 function parseCreateVehicleForm(
   formData: FormData,
@@ -95,19 +96,9 @@ function parseCreateVehicleForm(
     return { error: year.error };
   }
 
-  const vehicleType = formData.get("vehicleType");
-  if (
-    typeof vehicleType !== "string" ||
-    !VEHICLE_TYPES.includes(vehicleType as VehicleType)
-  ) {
-    return {
-      error: `vehicleType must be one of: ${VEHICLE_TYPES.join(", ")}.`,
-    };
-  }
-
-  const capacityKg = parseOptionalCapacityKg(formData.get("capacityKg"));
-  if ("error" in capacityKg) {
-    return { error: capacityKg.error };
+  const vehicleTypeCode = nonEmptyString(formData.get("vehicleTypeCode"));
+  if (vehicleTypeCode === null) {
+    return { error: "vehicleTypeCode is required." };
   }
 
   const photos = parsePhotos(formData);
@@ -124,8 +115,7 @@ function parseCreateVehicleForm(
       make,
       model,
       year: year.value,
-      vehicleType: vehicleType as VehicleType,
-      capacityKg: capacityKg.value,
+      vehicleTypeCode,
       photos: photos.value,
     },
   };
@@ -136,6 +126,10 @@ function parseCreateVehicleForm(
  * newest first. Only DRIVER users may call this. A driver who hasn't created
  * their profile yet simply has no vehicles, which is an empty list rather than
  * an error.
+ *
+ * The vehicle type is included because payload and cargo dimensions live on the
+ * spec now, not on the vehicle row, so a bare vehicle says nothing about what
+ * it can carry.
  */
 export async function GET(request: Request): Promise<NextResponse> {
   const session = await auth.api.getSession({ headers: request.headers });
@@ -161,6 +155,7 @@ export async function GET(request: Request): Promise<NextResponse> {
 
   const vehicles = await prisma.vehicle.findMany({
     where: { driverProfileId: driverProfile.id },
+    include: { vehicleTypeSpec: true },
     orderBy: { createdAt: "desc" },
   });
 
@@ -172,6 +167,11 @@ export async function GET(request: Request): Promise<NextResponse> {
  * driver. Only DRIVER users may call this, and only once their profile exists
  * (the vehicle hangs off `DriverProfile`, so there is nothing to attach it to
  * before then).
+ *
+ * Ownership is never taken from the request: the row is always written with the
+ * caller's own profile and a null `companyId`, so an independent driver's
+ * vehicle cannot be attributed to a company. Fleet vehicles go through
+ * POST /api/logistics-company/vehicles instead.
  *
  * Photos are uploaded to Storage before the row is written, because the row
  * stores their URLs. If the write then fails the uploads are removed again, so
@@ -205,7 +205,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
 
-  const { plateNumber, make, model, year, vehicleType, capacityKg, photos } =
+  const { plateNumber, make, model, year, vehicleTypeCode, photos } =
     parsed.data;
 
   const driverProfile = await prisma.driverProfile.findUnique({
@@ -216,6 +216,14 @@ export async function POST(request: Request): Promise<NextResponse> {
   if (!driverProfile) {
     return NextResponse.json(
       { error: "Complete your driver profile before adding a vehicle." },
+      { status: 400 },
+    );
+  }
+
+  const vehicleTypeSpecId = await findVehicleTypeSpecIdByCode(vehicleTypeCode);
+  if (vehicleTypeSpecId === null) {
+    return NextResponse.json(
+      { error: UNKNOWN_VEHICLE_TYPE_ERROR },
       { status: 400 },
     );
   }
@@ -240,14 +248,17 @@ export async function POST(request: Request): Promise<NextResponse> {
     vehicle = await prisma.vehicle.create({
       data: {
         driverProfileId: driverProfile.id,
+        // Exactly one owner column may be set (`vehicle_single_owner_check`);
+        // spelling out the null makes that explicit rather than implied.
+        companyId: null,
+        vehicleTypeSpecId,
         plateNumber,
         make,
         model,
         year,
-        vehicleType,
-        capacityKg,
         photoUrls,
       },
+      include: { vehicleTypeSpec: true },
     });
   } catch (error) {
     // The photos are already in Storage but nothing references them now; clean

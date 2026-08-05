@@ -22,10 +22,11 @@ model User {
 
   // Delivery-domain relations. Named relations are required because `User`
   // participates in the `Order` model twice (as client and as driver).
-  driverProfile DriverProfile?
-  clientProfile ClientProfile?
-  orders        Order[]        @relation("ClientOrders")
-  deliveries    Order[]        @relation("DriverDeliveries")
+  driverProfile    DriverProfile?
+  clientProfile    ClientProfile?
+  logisticsCompany LogisticsCompany?
+  orders           Order[]           @relation("ClientOrders")
+  deliveries       Order[]           @relation("DriverDeliveries")
 
   @@unique([email])
   @@map("user")
@@ -79,12 +80,15 @@ model Verification {
   @@map("verification")
 }
 
-/// Distinguishes the two kinds of Better Auth users in the app.
+/// Distinguishes the three kinds of Better Auth users in the app: the shipper
+/// placing orders, the driver fulfilling them, and the fleet operator that owns
+/// vehicles and dispatches orders to its own drivers.
 /// `input: true` on the `role` additional field lets sign-up set this explicitly;
 /// the CLIENT default keeps Better Auth's internal inserts safe when it is omitted.
 enum UserRole {
   CLIENT
   DRIVER
+  COMPANY
 }
 
 /// Whether a client account represents an individual or a business.
@@ -107,34 +111,46 @@ enum DriverAccountType {
   BUSINESS
 }
 
+/// `CLAIMED` is the company-only intermediate state: a `LogisticsCompany` has
+/// taken the order but has not yet dispatched it to one of its own drivers.
+/// Independent drivers skip it and go straight from PENDING to ACCEPTED.
 enum OrderStatus {
   PENDING
+  CLAIMED
   ACCEPTED
   IN_TRANSIT
   COMPLETED
   CANCELLED
 }
 
-enum VehicleType {
-  // Light Truck (<3.5 tonne)
-  FLATBED
-  PICKUP
-  VENDING_TRUCK
-  REFRIGERATED_TRUCK
-  ICE_CREAM_TRUCK
-  CURTAINSIDER_TRUCK
-  BOX_TRUCK
-  CHASSIS_TRUCK
-  DUMP_TRUCK
-  // Cargo Van
-  CARGO_DERIVED_VAN
-  CLOSED_BOX_VAN
-  COMBO_VAN
-  ISOTHERMAL_VAN
-  REFRIGERATED_VAN
+/// Broad duty class of a supported vehicle type.
+enum VehicleCategory {
+  MEDIUM_DUTY
+  HEAVY_DUTY
 }
 
-/// Cities a driver profile can be based in.
+/// How cargo physically gets in and out of the vehicle — the main practical
+/// constraint when matching bulky freight to a vehicle.
+enum LoadingAccessType {
+  REAR_DOOR
+  SIDE_DOOR
+  RAMP
+  TAIL_LIFT
+  OPEN_FLATBED
+}
+
+/// What is being shipped. Scoped to commercial freight, not small parcels.
+enum CargoCategory {
+  FURNITURE_FURNISHINGS
+  APPLIANCES
+  RETAIL_STOCK
+  EVENT_EQUIPMENT
+  FULL_RELOCATION
+  INDUSTRIAL_SUPPLIES
+  CONSTRUCTION_MATERIALS
+}
+
+/// Cities a driver or logistics company can be based in.
 enum GeorgianCity {
   TBILISI
   BATUMI
@@ -163,65 +179,129 @@ enum GeorgianCity {
   MTSKHETA
 }
 
-enum PackageType {
-  DOCUMENT
-  SMALL_PARCEL
-  MEDIUM_PARCEL
-  LARGE_PARCEL
+/// A vehicle "make/model class" the platform supports — e.g. "Box Truck". Specs and
+/// pricing are data (seeded), not hardcoded UI constants, so they can be tuned without
+/// a code change. `code` is the stable identifier other tables and UI option lists key on.
+model VehicleTypeSpec {
+  id                String            @id @default(cuid())
+  code              String            @unique
+  label             String
+  category          VehicleCategory
+  maxPayloadKg      Float
+  cargoLengthM      Float
+  cargoWidthM       Float
+  /// `0` means "open / no height limit" (an open flatbed has no cargo box), not a
+  /// literal zero-height constraint.
+  cargoHeightM      Float
+  loadingAccessType LoadingAccessType
+  pricingRule       PricingRule?
+  vehicles          Vehicle[]
+  orders            Order[]
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+}
+
+/// One pricing rule per vehicle type. `freeLoadingMinutes` is the buffer before
+/// `overtimeRatePerMinute` kicks in; `minimumFare` is a floor applied after all other
+/// components are summed.
+model PricingRule {
+  id                    String          @id @default(cuid())
+  vehicleTypeSpecId     String          @unique
+  vehicleTypeSpec       VehicleTypeSpec @relation(fields: [vehicleTypeSpecId], references: [id], onDelete: Cascade)
+  baseFare              Float
+  pricePerKm            Float
+  pricePerMinute        Float
+  freeLoadingMinutes    Int
+  overtimeRatePerMinute Float
+  helperFee             Float
+  minimumFare           Float
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+}
+
+/// A fleet operator: its own login (role COMPANY), owns vehicles directly, and manages a
+/// roster of drivers who fulfil the orders it dispatches to them. Phone is unique for the
+/// same reason ClientProfile.phone is: it identifies one real business, one account.
+model LogisticsCompany {
+  id          String          @id @default(cuid())
+  userId      String          @unique
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyName String
+  vatId       String
+  phone       String          @unique
+  city        GeorgianCity
+  drivers     DriverProfile[]
+  vehicles    Vehicle[]
+  orders      Order[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
 }
 
 /// Driver-specific profile data: online status, vehicle, and live location.
 model DriverProfile {
-  id         String      @id @default(cuid())
-  userId     String      @unique
-  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  isOnline   Boolean     @default(false)
-  city       GeorgianCity
-  vehicleType VehicleType?
+  id          String            @id @default(cuid())
+  userId      String            @unique
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isOnline    Boolean           @default(false)
+  city        GeorgianCity
   accountType DriverAccountType
   firstName   String?
   lastName    String?
   companyName String?
   vatId       String?
   phone       String
-  currentLat Float?
-  currentLng Float?
+
+  // Set when the driver joins a fleet's roster; null means an independent driver.
+  // `SetNull` (not `Cascade`) so removing a driver from a company — or deleting the
+  // company outright — leaves the driver's account intact, just independent again.
+  companyId String?
+  company   LogisticsCompany? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  currentLat        Float?
+  currentLng        Float?
   // Set only when `currentLat`/`currentLng` are pushed by the driver's location
   // beacon — distinct from `updatedAt`, which bumps on any profile edit, so the
   // tracking UI can tell a fresh position from a stale one.
   locationUpdatedAt DateTime?
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
-  vehicles   Vehicle[]
+  vehicles Vehicle[]
+
+  @@index([companyId])
 }
 
-/// A vehicle a driver operates. A driver may register any number of them.
+/// A vehicle owned either by an independent driver or by a logistics company —
+/// exactly one of `driverProfileId`/`companyId` is set, enforced by the
+/// `vehicle_single_owner_check` CHECK constraint (Prisma has no native XOR, so it
+/// lives in the migration SQL) and by the API layer for a readable error message.
 /// `plateNumber` is unique across all vehicles for the same reason
 /// `ClientProfile.phone` is unique for clients: a plate identifies one real
 /// vehicle, so the constraint is what stops the same vehicle being claimed by
-/// two drivers at the DB level.
+/// two owners at the DB level.
+/// Load capacity and cargo dimensions are not stored here — they come from
+/// `vehicleTypeSpec`, so there is a single source of truth per vehicle class.
 /// `photoUrls` holds public Supabase Storage URLs; the DB row is the source of
 /// truth, and the objects themselves are removed best-effort on delete.
 model Vehicle {
-  id              String        @id @default(cuid())
-  driverProfileId String
-  driverProfile   DriverProfile @relation(fields: [driverProfileId], references: [id], onDelete: Cascade)
-  plateNumber     String        @unique
-  make            String
-  model           String
-  year            Int
-  vehicleType     VehicleType
-  /// Load capacity in kilograms. Optional — not every driver knows or wants to
-  /// publish it, and it is display-only for now.
-  capacityKg      Float?
-  photoUrls       String[]
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-
-  orders          Order[]
+  id                String            @id @default(cuid())
+  driverProfileId   String?
+  driverProfile     DriverProfile?    @relation(fields: [driverProfileId], references: [id], onDelete: Cascade)
+  companyId         String?
+  company           LogisticsCompany? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  vehicleTypeSpecId String
+  vehicleTypeSpec   VehicleTypeSpec   @relation(fields: [vehicleTypeSpecId], references: [id])
+  plateNumber       String            @unique
+  make              String
+  model             String
+  year              Int
+  photoUrls         String[]
+  orders            Order[]
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
 
   @@index([driverProfileId])
+  @@index([companyId])
 }
 
 /// Client-specific profile data. Individual accounts use first/last name;
@@ -246,11 +326,13 @@ model ClientProfile {
   updatedAt   DateTime          @updatedAt
 }
 
-/// A single delivery request placed by a client and optionally taken by a driver.
+/// A single freight job placed by a client and fulfilled either by an independent
+/// driver or by a logistics company dispatching one of its own drivers.
 model Order {
-  id          String      @id @default(cuid())
-  packageType PackageType @default(SMALL_PARCEL)
-  description String?
+  id             String        @id @default(cuid())
+  cargoCategory  CargoCategory
+  description    String?
+  requiresHelper Boolean       @default(false)
 
   pickupAddress String
   pickupLat     Float?
@@ -260,28 +342,52 @@ model Order {
   dropoffLat     Float?
   dropoffLng     Float?
 
-  distanceKm  Float
-  price       Float
-  vehicleType VehicleType
-  status      OrderStatus @default(PENDING)
+  // Itemised quote, kept alongside the total so a completed order still shows how
+  // its price was reached even after the underlying PricingRule is retuned.
+  // `price` is the up-front quoted total (base + distance + time + helper, floored
+  // at the rule's `minimumFare`); `overtimeFee` is settled on top at completion.
+  distanceKm   Float
+  baseFare     Float
+  distanceFare Float
+  timeFare     Float
+  helperFee    Float @default(0)
+  overtimeFee  Float @default(0)
+  price        Float
+
+  vehicleTypeSpecId String
+  vehicleTypeSpec   VehicleTypeSpec @relation(fields: [vehicleTypeSpecId], references: [id])
+
+  status OrderStatus @default(PENDING)
 
   clientId String
   client   User   @relation("ClientOrders", fields: [clientId], references: [id], onDelete: Cascade)
 
+  // Set when a company claims the order; the assigned driver/vehicle follow at
+  // dispatch time. Nulled rather than cascaded for the same reason as `driverId`.
+  companyId String?
+  company   LogisticsCompany? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
   driverId String?
   driver   User?   @relation("DriverDeliveries", fields: [driverId], references: [id], onDelete: SetNull)
 
-  // The specific vehicle the driver picked at accept time. Nulled rather than
+  // The specific vehicle picked at accept/dispatch time. Nulled rather than
   // cascaded on vehicle deletion (same reasoning as `driverId`): retiring a
   // vehicle must not erase the delivery history it took part in.
   vehicleId String?
   vehicle   Vehicle? @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+
+  inTransitAt    DateTime?
+  completedAt    DateTime?
+  // Total loading/unloading minutes reported at completion; only the part beyond
+  // the rule's `freeLoadingMinutes` is charged as `overtimeFee`.
+  waitingMinutes Int?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([clientId])
   @@index([driverId])
+  @@index([companyId])
   @@index([vehicleId])
   @@index([status])
 }

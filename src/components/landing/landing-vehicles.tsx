@@ -1,6 +1,11 @@
+"use client";
+
 import type { ReactElement } from "react";
 
-import { VEHICLE_TYPE_GROUPS } from "@/lib/vehicle-types";
+import {
+  useLandingVehicleTypes,
+  type LandingVehicleType,
+} from "@/components/landing/landing-vehicle-types";
 
 function TruckGlyph() {
   return (
@@ -41,15 +46,31 @@ function VanGlyph() {
 }
 
 /**
- * Glyph per fleet category. Keyed on the category name from
- * `VEHICLE_TYPE_GROUPS` with a truck fallback, so adding a category can never
- * break the render.
+ * The duty classes as the page presents them: heading, glyph and the order they
+ * are shown in, lightest first.
  */
-const CATEGORY_GLYPHS: Record<string, () => ReactElement> = {
-  "Cargo Van": VanGlyph,
-};
+const CATEGORIES: {
+  category: LandingVehicleType["category"];
+  heading: string;
+  glyph: () => ReactElement;
+}[] = [
+  { category: "MEDIUM_DUTY", heading: "Medium-Duty", glyph: VanGlyph },
+  { category: "HEAVY_DUTY", heading: "Heavy-Duty", glyph: TruckGlyph },
+];
+
+/**
+ * Payload as a headline figure: tonnes once a type is rated in them, which is
+ * how an operator would say it (a 3500 kg box truck is a 3.5-tonner).
+ */
+function formatPayload(maxPayloadKg: number): string {
+  return maxPayloadKg >= 1000
+    ? `${maxPayloadKg / 1000} t`
+    : `${maxPayloadKg} kg`;
+}
 
 export function LandingVehicles() {
+  const { vehicleTypes } = useLandingVehicleTypes();
+
   return (
     <section
       id="vehicles"
@@ -68,27 +89,35 @@ export function LandingVehicles() {
           Pick the vehicle the load actually needs
         </h2>
 
-        {VEHICLE_TYPE_GROUPS.map((group) => {
-          const Glyph = CATEGORY_GLYPHS[group.category] ?? TruckGlyph;
+        {CATEGORIES.map(({ category, heading, glyph: Glyph }) => {
+          const grouped = vehicleTypes.filter(
+            (vehicleType) => vehicleType.category === category,
+          );
+
+          // Nothing to show until the taxonomy lands (or if it never does) —
+          // the section keeps its heading rather than framing empty rows.
+          if (grouped.length === 0) {
+            return null;
+          }
 
           return (
-            <div key={group.category} className="mt-14">
+            <div key={category} className="mt-14">
               <div className="flex items-end justify-between gap-4 border-b border-line pb-4">
                 <h3 className="flex items-center gap-4 font-display text-2xl leading-none tracking-[0.06em] text-paper uppercase sm:text-3xl">
                   <span className="text-accent">
                     <Glyph />
                   </span>
-                  {group.category}
+                  {heading}
                 </h3>
                 <span className="shrink-0 text-[0.625rem] font-semibold tracking-[0.16em] text-muted uppercase">
-                  {group.options.length} types
+                  {grouped.length} types
                 </span>
               </div>
 
               <ul className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-                {group.options.map((option, index) => (
+                {grouped.map((vehicleType, index) => (
                   <li
-                    key={option.value}
+                    key={vehicleType.code}
                     className="group relative overflow-hidden border border-line bg-ink px-4 py-5 transition-transform hover:-translate-y-1"
                   >
                     <span
@@ -102,7 +131,10 @@ export function LandingVehicles() {
                       {String(index + 1).padStart(2, "0")}
                     </span>
                     <span className="mt-3 block font-display text-xl leading-tight text-paper uppercase sm:text-2xl">
-                      {option.label}
+                      {vehicleType.label}
+                    </span>
+                    <span className="mt-3 block text-[0.625rem] font-semibold tracking-[0.16em] text-muted uppercase">
+                      Up to {formatPayload(vehicleType.maxPayloadKg)}
                     </span>
                   </li>
                 ))}

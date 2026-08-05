@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { VEHICLE_TYPE_GROUPS } from "@/lib/vehicle-types";
+import { VehicleTypeSelect } from "@/components/vehicle-type-select";
 
 /** Oldest selectable manufacturing year; mirrors the API's lower bound. */
 const MIN_VEHICLE_YEAR = 1980;
@@ -24,6 +24,9 @@ export function VehicleForm() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  // The one controlled field: the picker needs it to show the selected type's
+  // payload limit. It still submits through `FormData` like the rest.
+  const [vehicleTypeCode, setVehicleTypeCode] = useState("");
 
   // Registrations run a model year ahead of the calendar, so next year is a
   // legitimate choice.
@@ -56,6 +59,9 @@ export function VehicleForm() {
       }
 
       form.reset();
+      // `form.reset()` only restores the uncontrolled fields; React state has
+      // to be cleared alongside it.
+      setVehicleTypeCode("");
       setSuccess(true);
       router.refresh();
     } catch {
@@ -113,40 +119,10 @@ export function VehicleForm() {
         />
       </label>
 
-      <label className="flex flex-col gap-1 text-sm">
-        Vehicle type
-        <select
-          name="vehicleType"
-          required
-          defaultValue=""
-          className="rounded border px-3 py-2"
-        >
-          <option value="" disabled>
-            Select a vehicle type…
-          </option>
-          {VEHICLE_TYPE_GROUPS.map((group) => (
-            <optgroup key={group.category} label={group.category}>
-              {group.options.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </optgroup>
-          ))}
-        </select>
-      </label>
-
-      <label className="flex flex-col gap-1 text-sm">
-        Load capacity in kg (optional)
-        <input
-          type="number"
-          name="capacityKg"
-          min={1}
-          step="any"
-          placeholder="e.g. 1200"
-          className="rounded border px-3 py-2"
-        />
-      </label>
+      <VehicleTypeSelect
+        value={vehicleTypeCode}
+        onChange={setVehicleTypeCode}
+      />
 
       <label className="flex flex-col gap-1 text-sm">
         Photos

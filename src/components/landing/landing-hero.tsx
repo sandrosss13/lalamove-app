@@ -1,20 +1,35 @@
+"use client";
+
 import Link from "next/link";
 
 import { LandingQuoteCalculator } from "@/components/landing/landing-quote-calculator";
-import { VEHICLE_TYPE_GROUPS } from "@/lib/vehicle-types";
+import { useLandingVehicleTypes } from "@/components/landing/landing-vehicle-types";
 
-const VEHICLE_TYPE_COUNT = VEHICLE_TYPE_GROUPS.reduce(
-  (total, group) => total + group.options.length,
-  0,
-);
-
-const HERO_STATS = [
-  { value: String(VEHICLE_TYPE_COUNT), label: "Vehicle types" },
-  { value: String(VEHICLE_TYPE_GROUPS.length), label: "Fleet categories" },
-  { value: "24/7", label: "Dispatch window" },
-];
+/** Placeholder for a counted stat, until the taxonomy it counts arrives. */
+const EMPTY_STAT = "—";
 
 export function LandingHero() {
+  const { vehicleTypes } = useLandingVehicleTypes();
+
+  // Counted from the seeded taxonomy rather than written into the copy, so the
+  // headline numbers can't drift from the fleet section further down the page.
+  const loaded = vehicleTypes.length > 0;
+  const dutyClasses = new Set(
+    vehicleTypes.map((vehicleType) => vehicleType.category),
+  );
+
+  const heroStats = [
+    {
+      value: loaded ? String(vehicleTypes.length) : EMPTY_STAT,
+      label: "Vehicle types",
+    },
+    {
+      value: loaded ? String(dutyClasses.size) : EMPTY_STAT,
+      label: "Duty classes",
+    },
+    { value: "24/7", label: "Dispatch window" },
+  ];
+
   return (
     <section className="relative overflow-hidden border-b border-line bg-ink">
       <div
@@ -30,7 +45,7 @@ export function LandingHero() {
         <div>
           <p className="animate-rise flex items-center gap-3 text-[0.6875rem] font-semibold tracking-[0.24em] text-accent uppercase">
             <span aria-hidden="true" className="h-px w-8 bg-accent sm:w-12" />
-            On-demand freight &amp; courier
+            Commercial freight &amp; cargo
           </p>
 
           <h1 className="animate-rise [animation-delay:120ms] mt-5 font-display text-[clamp(3.25rem,11vw,7.5rem)] leading-[0.85] tracking-[0.01em] text-paper uppercase">
@@ -47,9 +62,9 @@ export function LandingHero() {
           </h1>
 
           <p className="animate-rise [animation-delay:260ms] mt-7 max-w-lg text-base leading-relaxed text-muted sm:text-lg">
-            Set a pickup and a dropoff, pick the vehicle that fits the load, and
-            get a price before you book. A nearby driver takes the job — you
-            watch it move on the map until it lands.
+            Furniture, appliances, full relocations, industrial cargo. Set the
+            route, pick the truck that carries the load, and get a price before
+            you book — then watch a nearby driver move it, door to door.
           </p>
 
           <div className="animate-rise [animation-delay:380ms] mt-9 flex flex-wrap items-center gap-3">
@@ -74,7 +89,7 @@ export function LandingHero() {
           </div>
 
           <dl className="animate-rise [animation-delay:460ms] mt-12 grid max-w-lg grid-cols-3 gap-px border border-line bg-line">
-            {HERO_STATS.map((stat) => (
+            {heroStats.map((stat) => (
               <div key={stat.label} className="bg-ink px-4 py-4 sm:px-5">
                 <dt className="sr-only">{stat.label}</dt>
                 <dd>

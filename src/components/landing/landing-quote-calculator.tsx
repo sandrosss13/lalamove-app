@@ -2,40 +2,50 @@
 
 import { useId, useState } from "react";
 import Link from "next/link";
+import type { CargoCategory } from "@prisma/client";
 
-/**
- * Selectable package types. Values mirror the `PackageType` Prisma enum; they
- * are duplicated here (rather than imported from `@prisma/client`) to keep the
- * server-only Prisma client out of the browser bundle.
- */
-const PACKAGE_TYPE_OPTIONS = [
-  { value: "DOCUMENT", label: "Document" },
-  { value: "SMALL_PARCEL", label: "Small parcel" },
-  { value: "MEDIUM_PARCEL", label: "Medium parcel" },
-  { value: "LARGE_PARCEL", label: "Large parcel" },
-] as const;
+import {
+  CARGO_CATEGORY_ALLOWED_VEHICLE_CATEGORIES,
+  CARGO_CATEGORY_LABELS,
+} from "@/lib/cargo";
+import { useLandingVehicleTypes } from "@/components/landing/landing-vehicle-types";
 
-const DEFAULT_PACKAGE_TYPE = "SMALL_PARCEL";
+/** Cargo categories in the order the taxonomy declares them. */
+const CARGO_CATEGORY_OPTIONS = Object.entries(CARGO_CATEGORY_LABELS) as [
+  CargoCategory,
+  string,
+][];
+
+const DEFAULT_CARGO_CATEGORY: CargoCategory = "FURNITURE_FURNISHINGS";
 
 /** Placeholder shown in the stat footer before the first estimate. */
 const EMPTY_STAT = "—";
 
-/** A finished estimate, with the package label captured alongside it. */
+/** A finished estimate, with the vehicle label captured alongside it. */
 type Estimate = {
   distanceKm: number;
+  baseFare: number;
+  distanceFare: number;
+  timeFare: number;
+  helperFee: number;
   price: number;
-  packageLabel: string;
+  vehicleLabel: string;
 };
 
 /** Shape of a successful `/api/pricing/estimate` response. */
 type EstimateResponse = {
   distanceKm: number;
+  baseFare: number;
+  distanceFare: number;
+  timeFare: number;
+  helperFee: number;
   price: number;
 };
 
 const FIELD_CLASSES =
   "w-full border border-line bg-ink px-3 py-2.5 text-sm text-paper " +
-  "placeholder:text-muted/60 focus:border-accent focus:outline-none";
+  "placeholder:text-muted/60 focus:border-accent focus:outline-none " +
+  "disabled:opacity-60";
 
 const FIELD_LABEL_CLASSES =
   "text-[0.6875rem] font-semibold tracking-[0.18em] text-muted uppercase";
@@ -48,7 +58,7 @@ const STAT_LABEL_CLASSES =
 const STAT_VALUE_CLASSES = "mt-1 font-display text-xl leading-none uppercase";
 
 /**
- * Live quote card on the marketing page: a visitor prices a route before they
+ * Live quote card on the marketing page: a visitor prices a load before they
  * have an account. Estimate-only — it never creates an order, and it calls the
  * public `/api/pricing/estimate` endpoint rather than the auth-gated
  * autocomplete, so the addresses are plain text fields geocoded once, on
@@ -57,23 +67,68 @@ const STAT_VALUE_CLASSES = "mt-1 font-display text-xl leading-none uppercase";
 export function LandingQuoteCalculator() {
   const pickupId = useId();
   const dropoffId = useId();
+  const cargoCategoryId = useId();
+  const vehicleTypeId = useId();
+  const helperId = useId();
+
+  const {
+    vehicleTypes,
+    loading,
+    error: vehicleTypesError,
+  } = useLandingVehicleTypes();
 
   const [pickupAddress, setPickupAddress] = useState("");
   const [dropoffAddress, setDropoffAddress] = useState("");
-  const [packageType, setPackageType] = useState<string>(DEFAULT_PACKAGE_TYPE);
+  const [cargoCategory, setCargoCategory] = useState<CargoCategory>(
+    DEFAULT_CARGO_CATEGORY,
+  );
+  const [vehicleTypeCode, setVehicleTypeCode] = useState("");
+  const [requiresHelper, setRequiresHelper] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [estimate, setEstimate] = useState<Estimate | null>(null);
 
+  // Only the vehicles this cargo may legally travel in are offered, so the
+  // server's mismatch rejection is unreachable from this form.
+  const allowedVehicleCategories =
+    CARGO_CATEGORY_ALLOWED_VEHICLE_CATEGORIES[cargoCategory];
+  const availableVehicleTypes = vehicleTypes.filter((vehicleType) =>
+    allowedVehicleCategories.includes(vehicleType.category),
+  );
+
   /**
    * Any edit invalidates the quote on screen, so clear it — otherwise a price
    * for the previous route would sit under the new inputs.
    */
-  function updateField(setter: (value: string) => void, value: string) {
-    setter(value);
+  function clearQuote() {
     setEstimate(null);
     setError(null);
+  }
+
+  function updateField(setter: (value: string) => void, value: string) {
+    setter(value);
+    clearQuote();
+  }
+
+  /**
+   * Changing the cargo re-filters the vehicle list, so a selection the new
+   * category cannot use is dropped rather than left showing under a list that
+   * no longer offers it.
+   */
+  function updateCargoCategory(value: string) {
+    const next = value as CargoCategory;
+    setCargoCategory(next);
+    clearQuote();
+
+    const allowed = CARGO_CATEGORY_ALLOWED_VEHICLE_CATEGORIES[next];
+    const selected = vehicleTypes.find(
+      (vehicleType) => vehicleType.code === vehicleTypeCode,
+    );
+
+    if (!selected || !allowed.includes(selected.category)) {
+      setVehicleTypeCode("");
+    }
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -86,7 +141,13 @@ export function LandingQuoteCalculator() {
       const response = await fetch("/api/pricing/estimate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pickupAddress, dropoffAddress, packageType }),
+        body: JSON.stringify({
+          pickupAddress,
+          dropoffAddress,
+          vehicleTypeCode,
+          cargoCategory,
+          requiresHelper,
+        }),
       });
 
       const payload = (await response.json()) as
@@ -96,22 +157,20 @@ export function LandingQuoteCalculator() {
         const message =
           "error" in payload && payload.error
             ? payload.error
-            : "Could not price this delivery. Please try again.";
+            : "Could not price this load. Please try again.";
         setError(message);
         return;
       }
 
-      const { distanceKm, price } = payload as EstimateResponse;
-      const selected = PACKAGE_TYPE_OPTIONS.find(
-        (option) => option.value === packageType,
+      const selected = availableVehicleTypes.find(
+        (vehicleType) => vehicleType.code === vehicleTypeCode,
       );
 
       setEstimate({
-        distanceKm,
-        price,
+        ...(payload as EstimateResponse),
         // Captured now so the footer keeps matching the quote even if the
         // visitor changes the selector afterwards.
-        packageLabel: selected?.label ?? "Parcel",
+        vehicleLabel: selected?.label ?? "Vehicle",
       });
     } catch {
       setError("Network error. Please check your connection and try again.");
@@ -119,6 +178,23 @@ export function LandingQuoteCalculator() {
       setSubmitting(false);
     }
   }
+
+  // A quote failure is the more urgent of the two, and a visitor can only hit
+  // one of them at a time anyway: the picker is disabled while the list is
+  // missing, so the form cannot be submitted then.
+  const message = error ?? vehicleTypesError;
+
+  // The components are floored by the vehicle's minimum fare, so on a short hop
+  // they sum to less than the total charged. Say so, rather than printing
+  // arithmetic that doesn't add up. The half-cent margin keeps floating-point
+  // dust from reading as a floor.
+  const minimumFareApplied =
+    estimate !== null &&
+    estimate.baseFare +
+      estimate.distanceFare +
+      estimate.timeFare +
+      estimate.helperFee <
+      estimate.price - 0.005;
 
   return (
     <div className="animate-rise [animation-delay:520ms] relative lg:rotate-2">
@@ -132,7 +208,7 @@ export function LandingQuoteCalculator() {
       >
         <header className="flex items-center justify-between border-b border-line px-5 py-3">
           <span className="font-display text-lg leading-none tracking-[0.14em] text-muted uppercase">
-            Price a delivery
+            Price a load
           </span>
           <span className="flex items-center gap-2 text-[0.6875rem] font-semibold tracking-[0.18em] text-accent uppercase">
             <span
@@ -187,36 +263,75 @@ export function LandingQuoteCalculator() {
               />
             </div>
 
-            <fieldset className="flex flex-col gap-1.5">
-              <legend className={FIELD_LABEL_CLASSES}>Package</legend>
-              <div className="mt-1.5 grid grid-cols-2 gap-px bg-line">
-                {PACKAGE_TYPE_OPTIONS.map((option) => {
-                  const selected = option.value === packageType;
-                  return (
-                    <button
-                      key={option.value}
-                      type="button"
-                      aria-pressed={selected}
-                      onClick={() => updateField(setPackageType, option.value)}
-                      className={`px-3 py-2.5 text-xs font-semibold tracking-[0.08em] uppercase transition-colors ${
-                        selected
-                          ? "bg-accent text-ink"
-                          : "bg-ink text-muted hover:text-paper"
-                      }`}
-                    >
-                      {option.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </fieldset>
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor={cargoCategoryId} className={FIELD_LABEL_CLASSES}>
+                Cargo
+              </label>
+              <select
+                id={cargoCategoryId}
+                value={cargoCategory}
+                onChange={(event) => updateCargoCategory(event.target.value)}
+                required
+                className={FIELD_CLASSES}
+              >
+                {CARGO_CATEGORY_OPTIONS.map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-            {error ? (
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor={vehicleTypeId} className={FIELD_LABEL_CLASSES}>
+                Vehicle
+              </label>
+              <select
+                id={vehicleTypeId}
+                value={vehicleTypeCode}
+                onChange={(event) =>
+                  updateField(setVehicleTypeCode, event.target.value)
+                }
+                required
+                // Disabled until the taxonomy is on screen, so the form can't be
+                // submitted with a type the picker hasn't offered yet.
+                disabled={loading || vehicleTypesError !== null}
+                className={FIELD_CLASSES}
+              >
+                <option value="" disabled>
+                  {loading ? "Loading vehicles…" : "Select a vehicle…"}
+                </option>
+                {availableVehicleTypes.map((vehicleType) => (
+                  <option key={vehicleType.code} value={vehicleType.code}>
+                    {vehicleType.label} · {vehicleType.maxPayloadKg} kg
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <label
+              htmlFor={helperId}
+              className="flex items-center gap-3 text-[0.8125rem] leading-snug text-muted"
+            >
+              <input
+                id={helperId}
+                type="checkbox"
+                checked={requiresHelper}
+                onChange={(event) => {
+                  setRequiresHelper(event.target.checked);
+                  clearQuote();
+                }}
+                className="h-4 w-4 shrink-0 accent-accent"
+              />
+              Request a helper for loading and unloading
+            </label>
+
+            {message ? (
               <p
                 role="alert"
                 className="border border-accent/40 bg-accent/10 px-3 py-2 text-[0.8125rem] leading-snug text-accent"
               >
-                {error}
+                {message}
               </p>
             ) : null}
 
@@ -232,9 +347,9 @@ export function LandingQuoteCalculator() {
 
         <dl className="grid grid-cols-3 border-t border-line">
           <div className="border-r border-line px-5 py-4">
-            <dt className={STAT_LABEL_CLASSES}>Package</dt>
+            <dt className={STAT_LABEL_CLASSES}>Vehicle</dt>
             <dd className={`${STAT_VALUE_CLASSES} text-paper`}>
-              {estimate ? estimate.packageLabel : EMPTY_STAT}
+              {estimate ? estimate.vehicleLabel : EMPTY_STAT}
             </dd>
           </div>
           <div className="border-r border-line px-5 py-4">
@@ -252,12 +367,25 @@ export function LandingQuoteCalculator() {
         </dl>
 
         {estimate ? (
-          <div className="border-t border-line px-5 py-4">
+          <div className="flex flex-col gap-4 border-t border-line px-5 py-4">
+            <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
+              <li>Base ${estimate.baseFare.toFixed(2)}</li>
+              <li>Distance ${estimate.distanceFare.toFixed(2)}</li>
+              <li>Time ${estimate.timeFare.toFixed(2)}</li>
+              {/* Only worth a line when one was actually requested. */}
+              {estimate.helperFee > 0 ? (
+                <li>Helper ${estimate.helperFee.toFixed(2)}</li>
+              ) : null}
+              {minimumFareApplied ? (
+                <li className="text-accent">Minimum fare applied</li>
+              ) : null}
+            </ul>
+
             <Link
               href="/sign-up"
               className="group inline-flex items-center gap-2 text-sm font-semibold text-paper transition-colors hover:text-accent"
             >
-              Sign up to book this delivery
+              Sign up to book this load
               <span
                 aria-hidden="true"
                 className="transition-transform group-hover:translate-x-1"
