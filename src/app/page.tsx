@@ -327,10 +327,19 @@ export default function Home() {
             value={vehicleTypeCode}
             onChange={(event) => setVehicleTypeCode(event.target.value)}
             required
-            // Disabled while loading so the form can't be submitted with a type
-            // the picker hasn't offered yet.
-            disabled={loadingVehicleTypes || vehicleTypesError !== null}
-            className="rounded border px-3 py-2 disabled:opacity-50"
+            // Deliberately NOT the `disabled` attribute: a disabled <select> is
+            // exempted from native `required` validation by the browser, so a
+            // submit that races ahead of this fetch would bypass validation
+            // and send an empty `vehicleTypeCode` straight to the server
+            // instead of being blocked client-side. `aria-disabled` +
+            // `pointer-events-none` give the same can't-interact-yet behavior
+            // and look without opting the field out of validation.
+            aria-disabled={loadingVehicleTypes || vehicleTypesError !== null}
+            className={`rounded border px-3 py-2 ${
+              loadingVehicleTypes || vehicleTypesError !== null
+                ? "pointer-events-none opacity-50"
+                : ""
+            }`}
           >
             <option value="" disabled>
               {loadingVehicleTypes
