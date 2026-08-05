@@ -96,6 +96,7 @@ export function VehicleTypeSelect({
   }, []);
 
   const selected = options.find((option) => option.code === value) ?? null;
+  const notReady = loading || error !== null;
 
   return (
     <label className="flex flex-col gap-1 text-sm">
@@ -103,12 +104,18 @@ export function VehicleTypeSelect({
       <select
         name={name}
         required
-        // Disabled while loading so the form can't be submitted with a type the
-        // picker hasn't offered yet.
-        disabled={loading || error !== null}
+        // Deliberately NOT the `disabled` attribute: a disabled <select> is
+        // excluded from both `FormData` and native `required` validation by
+        // the browser, so a submit that races ahead of this fetch would
+        // silently drop `vehicleTypeCode` from the request entirely instead
+        // of being blocked client-side — the server-side "vehicleTypeCode is
+        // required" error a fast user hit was exactly this. `aria-disabled` +
+        // `pointer-events-none` give the same can't-interact-yet behavior and
+        // look without opting the field out of validation.
+        aria-disabled={notReady}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="rounded border px-3 py-2 disabled:opacity-50"
+        className={`rounded border px-3 py-2 ${notReady ? "pointer-events-none opacity-50" : ""}`}
       >
         <option value="" disabled>
           {loading ? "Loading vehicle types…" : "Select a vehicle type…"}
