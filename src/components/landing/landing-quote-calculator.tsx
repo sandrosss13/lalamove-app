@@ -68,7 +68,6 @@ export function LandingQuoteCalculator() {
   const pickupId = useId();
   const dropoffId = useId();
   const cargoCategoryId = useId();
-  const vehicleTypeId = useId();
   const helperId = useId();
 
   const {
@@ -82,7 +81,6 @@ export function LandingQuoteCalculator() {
   const [cargoCategory, setCargoCategory] = useState<CargoCategory>(
     DEFAULT_CARGO_CATEGORY,
   );
-  const [vehicleTypeCode, setVehicleTypeCode] = useState("");
   const [requiresHelper, setRequiresHelper] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
@@ -96,6 +94,21 @@ export function LandingQuoteCalculator() {
   const availableVehicleTypes = vehicleTypes.filter((vehicleType) =>
     allowedVehicleCategories.includes(vehicleType.category),
   );
+
+  // A visitor prices a load, not a specific truck — asking them to pick a
+  // vehicle type before they even have an account was friction the marketing
+  // page doesn't need, and it made this form's quote depend on a required
+  // picker staying in sync with a background fetch. The cheapest type
+  // eligible for the chosen cargo is used instead, same as a shopper sees a
+  // "from $X" price before configuring anything.
+  const cheapestVehicleType =
+    availableVehicleTypes.length > 0
+      ? availableVehicleTypes.reduce((cheapest, vehicleType) =>
+          vehicleType.pricingRule.baseFare < cheapest.pricingRule.baseFare
+            ? vehicleType
+            : cheapest,
+        )
+      : null;
 
   /**
    * Any edit invalidates the quote on screen, so clear it — otherwise a price
@@ -111,30 +124,21 @@ export function LandingQuoteCalculator() {
     clearQuote();
   }
 
-  /**
-   * Changing the cargo re-filters the vehicle list, so a selection the new
-   * category cannot use is dropped rather than left showing under a list that
-   * no longer offers it.
-   */
   function updateCargoCategory(value: string) {
-    const next = value as CargoCategory;
-    setCargoCategory(next);
+    setCargoCategory(value as CargoCategory);
     clearQuote();
-
-    const allowed = CARGO_CATEGORY_ALLOWED_VEHICLE_CATEGORIES[next];
-    const selected = vehicleTypes.find(
-      (vehicleType) => vehicleType.code === vehicleTypeCode,
-    );
-
-    if (!selected || !allowed.includes(selected.category)) {
-      setVehicleTypeCode("");
-    }
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
     setEstimate(null);
+
+    if (!cheapestVehicleType) {
+      setError("Could not price this load. Please try again.");
+      return;
+    }
+
     setSubmitting(true);
 
     try {
@@ -144,7 +148,7 @@ export function LandingQuoteCalculator() {
         body: JSON.stringify({
           pickupAddress,
           dropoffAddress,
-          vehicleTypeCode,
+          vehicleTypeCode: cheapestVehicleType.code,
           cargoCategory,
           requiresHelper,
         }),
@@ -162,15 +166,11 @@ export function LandingQuoteCalculator() {
         return;
       }
 
-      const selected = availableVehicleTypes.find(
-        (vehicleType) => vehicleType.code === vehicleTypeCode,
-      );
-
       setEstimate({
         ...(payload as EstimateResponse),
         // Captured now so the footer keeps matching the quote even if the
-        // visitor changes the selector afterwards.
-        vehicleLabel: selected?.label ?? "Vehicle",
+        // visitor edits the form afterwards.
+        vehicleLabel: cheapestVehicleType.label,
       });
     } catch {
       setError("Network error. Please check your connection and try again.");
@@ -180,8 +180,8 @@ export function LandingQuoteCalculator() {
   }
 
   // A quote failure is the more urgent of the two, and a visitor can only hit
-  // one of them at a time anyway: the picker is disabled while the list is
-  // missing, so the form cannot be submitted then.
+  // one of them at a time anyway: the submit button is disabled while the
+  // list is missing, so the form cannot be submitted then.
   const message = error ?? vehicleTypesError;
 
   // The components are floored by the vehicle's minimum fare, so on a short hop
@@ -282,33 +282,6 @@ export function LandingQuoteCalculator() {
               </select>
             </div>
 
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor={vehicleTypeId} className={FIELD_LABEL_CLASSES}>
-                Vehicle
-              </label>
-              <select
-                id={vehicleTypeId}
-                value={vehicleTypeCode}
-                onChange={(event) =>
-                  updateField(setVehicleTypeCode, event.target.value)
-                }
-                required
-                // Disabled until the taxonomy is on screen, so the form can't be
-                // submitted with a type the picker hasn't offered yet.
-                disabled={loading || vehicleTypesError !== null}
-                className={FIELD_CLASSES}
-              >
-                <option value="" disabled>
-                  {loading ? "Loading vehicles…" : "Select a vehicle…"}
-                </option>
-                {availableVehicleTypes.map((vehicleType) => (
-                  <option key={vehicleType.code} value={vehicleType.code}>
-                    {vehicleType.label} · {vehicleType.maxPayloadKg} kg
-                  </option>
-                ))}
-              </select>
-            </div>
-
             <label
               htmlFor={helperId}
               className="flex items-center gap-3 text-[0.8125rem] leading-snug text-muted"
@@ -337,10 +310,18 @@ export function LandingQuoteCalculator() {
 
             <button
               type="submit"
-              disabled={submitting}
+              // Also disabled until a vehicle type is known to quote
+              // against — there is no picker to hold the form open on
+              // anymore, so this is the only gate against a premature
+              // submit racing the taxonomy fetch.
+              disabled={submitting || loading || !cheapestVehicleType}
               className="bg-accent px-5 py-3 font-display text-xl leading-none tracking-[0.06em] text-ink uppercase transition-transform hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-60"
             >
-              {submitting ? "Calculating…" : "Calculate"}
+              {submitting
+                ? "Calculating…"
+                : loading
+                  ? "Loading…"
+                  : "Calculate"}
             </button>
           </div>
         </div>
