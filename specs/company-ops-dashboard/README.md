@@ -68,7 +68,7 @@ graph TD
 - [x] [task-05-mutation-onsuccess-props](./tasks/task-05-mutation-onsuccess-props.md) — optional `onSuccess` on 4 existing mutation components
 
 ### Wave 2
-- [ ] [task-06-shell-and-scaffold](./tasks/task-06-shell-and-scaffold.md) — dashboard shell, context, sidebar, toast, drawer chrome, entry-point rewrite, placeholders
+- [x] [task-06-shell-and-scaffold](./tasks/task-06-shell-and-scaffold.md) — dashboard shell, context, sidebar, toast, drawer chrome, entry-point rewrite, placeholders
 
 ### Wave 3
 - [ ] [task-07-overview-tab](./tasks/task-07-overview-tab.md) — stat tiles + recent orders
