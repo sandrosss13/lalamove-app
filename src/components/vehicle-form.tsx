@@ -18,8 +18,11 @@ const MIN_VEHICLE_YEAR = 1980;
  * so mirroring the field names here is both simpler and less to keep in sync.
  * A successful add resets the fields and refreshes the server component so the
  * new vehicle appears in the list above.
+ *
+ * `onSuccess` is optional and fires only after a successful add, so a host that
+ * renders this inside a drawer can close it and raise a toast.
  */
-export function VehicleForm() {
+export function VehicleForm({ onSuccess }: { onSuccess?: () => void }) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -64,6 +67,13 @@ export function VehicleForm() {
       setVehicleTypeCode("");
       setSuccess(true);
       router.refresh();
+      try {
+        onSuccess?.();
+      } catch {
+        // A bug in the caller's callback must not be reported as this
+        // component's own failure: the POST succeeded and the refresh already
+        // ran, so surfacing a network error here would be a lie.
+      }
     } catch {
       setError("Network error. Please check your connection and try again.");
     } finally {
