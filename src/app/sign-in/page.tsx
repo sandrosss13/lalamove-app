@@ -5,12 +5,13 @@ import { useRouter } from "next/navigation";
 
 import { signIn, signOut, authClient } from "@/lib/auth-client";
 
-type Role = "CLIENT" | "DRIVER";
+type Role = "CLIENT" | "DRIVER" | "COMPANY";
 
-/** Human-readable label for a role, used in mismatch messaging. */
+/** Human-readable label for a role, used in headings and mismatch messaging. */
 const ROLE_LABELS: Record<Role, string> = {
   CLIENT: "client",
   DRIVER: "driver",
+  COMPANY: "logistics company",
 };
 
 export default function SignInPage() {
@@ -62,7 +63,7 @@ export default function SignInPage() {
     router.refresh();
   }
 
-  // Step 1: no portal chosen yet — present the two portals as large cards.
+  // Step 1: no portal chosen yet — present the portals as large cards.
   if (role === null) {
     return (
       <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 p-8">
@@ -90,6 +91,17 @@ export default function SignInPage() {
               Deliver packages and earn
             </span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => setRole("COMPANY")}
+            className="rounded border p-6 text-left hover:opacity-70"
+          >
+            <span className="block font-medium">Company</span>
+            <span className="block text-sm opacity-70">
+              Manage your fleet and dispatch drivers
+            </span>
+          </button>
         </div>
       </main>
     );
@@ -106,9 +118,8 @@ export default function SignInPage() {
         ← Back
       </button>
 
-      <h1 className="text-2xl font-bold">
-        {role === "DRIVER" ? "Sign in as a driver" : "Sign in as a client"}
-      </h1>
+      {/* Derived from ROLE_LABELS so adding a portal only needs a label entry. */}
+      <h1 className="text-2xl font-bold">Sign in as a {ROLE_LABELS[role]}</h1>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <label className="flex flex-col gap-1 text-sm">
