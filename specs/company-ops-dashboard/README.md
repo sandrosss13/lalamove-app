@@ -71,12 +71,12 @@ graph TD
 - [x] [task-06-shell-and-scaffold](./tasks/task-06-shell-and-scaffold.md) — dashboard shell, context, sidebar, toast, drawer chrome, entry-point rewrite, placeholders
 
 ### Wave 3
-- [ ] [task-07-overview-tab](./tasks/task-07-overview-tab.md) — stat tiles + recent orders
-- [ ] [task-08-orders-tab](./tasks/task-08-orders-tab.md) — searchable/filterable/sortable order list
-- [ ] [task-09-revenue-tab](./tasks/task-09-revenue-tab.md) — trend chart, breakdowns, computed payouts
-- [ ] [task-10-fleet-tab](./tasks/task-10-fleet-tab.md) — driver card grid
-- [ ] [task-11-drivers-tab](./tasks/task-11-drivers-tab.md) — driver roster table
-- [ ] [task-12-vehicles-tab](./tasks/task-12-vehicles-tab.md) — vehicle table with assignment control + register action
+- [x] [task-07-overview-tab](./tasks/task-07-overview-tab.md) — stat tiles + recent orders
+- [x] [task-08-orders-tab](./tasks/task-08-orders-tab.md) — searchable/filterable/sortable order list
+- [x] [task-09-revenue-tab](./tasks/task-09-revenue-tab.md) — trend chart, breakdowns, computed payouts
+- [x] [task-10-fleet-tab](./tasks/task-10-fleet-tab.md) — driver card grid
+- [x] [task-11-drivers-tab](./tasks/task-11-drivers-tab.md) — driver roster table
+- [x] [task-12-vehicles-tab](./tasks/task-12-vehicles-tab.md) — vehicle table with assignment control + register action
 
 ### Wave 4
 - [ ] [task-13-order-detail-drawer](./tasks/task-13-order-detail-drawer.md) — order drawer: timeline, claim/dispatch/cancel
