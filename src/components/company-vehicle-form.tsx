@@ -19,8 +19,11 @@ const MIN_VEHICLE_YEAR = 1980;
  * cannot be a controlled React input and the endpoint takes
  * `multipart/form-data` anyway. A successful add resets the fields and
  * refreshes the server component so the new vehicle appears in the fleet list.
+ *
+ * `onSuccess` is optional and fires only after a successful add, so a host that
+ * renders this inside a drawer can close it and raise a toast.
  */
-export function CompanyVehicleForm() {
+export function CompanyVehicleForm({ onSuccess }: { onSuccess?: () => void }) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -65,6 +68,13 @@ export function CompanyVehicleForm() {
       setVehicleTypeCode("");
       setSuccess(true);
       router.refresh();
+      try {
+        onSuccess?.();
+      } catch {
+        // A bug in the caller's callback must not be reported as this
+        // component's own failure: the POST succeeded and the refresh already
+        // ran, so surfacing a network error here would be a lie.
+      }
     } catch {
       setError("Network error. Please check your connection and try again.");
     } finally {

@@ -13,8 +13,17 @@ import { useRouter } from "next/navigation";
  * Loading and error state are surfaced inline (no `alert()`), and a successful
  * claim refreshes the server component so the order moves from the open list to
  * the company's own.
+ *
+ * `onSuccess` is optional and fires only after a successful claim, so a host
+ * that renders this inside a drawer can close it and raise a toast.
  */
-export function ClaimOrderButton({ orderId }: { orderId: string }) {
+export function ClaimOrderButton({
+  orderId,
+  onSuccess,
+}: {
+  orderId: string;
+  onSuccess?: () => void;
+}) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,6 +48,13 @@ export function ClaimOrderButton({ orderId }: { orderId: string }) {
 
       // Server component re-renders with the updated order data.
       router.refresh();
+      try {
+        onSuccess?.();
+      } catch {
+        // A bug in the caller's callback must not be reported as this
+        // component's own failure: the claim succeeded and the refresh already
+        // ran, so surfacing a network error here would be a lie.
+      }
     } catch {
       setError("Network error. Please check your connection and try again.");
     } finally {
