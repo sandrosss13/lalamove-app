@@ -68,10 +68,10 @@ graph TD
 - [x] [task-03-shell-and-scaffold](./tasks/task-03-shell-and-scaffold.md) — driver dashboard shell, sidebar, entry-point rewrite, placeholders
 
 ### Wave 3
-- [ ] [task-04-overview-tab](./tasks/task-04-overview-tab.md) — status toggle, active-delivery card, stat tiles
-- [ ] [task-05-deliveries-tab](./tasks/task-05-deliveries-tab.md) — available + my deliveries, search/filter
-- [ ] [task-06-earnings-tab](./tasks/task-06-earnings-tab.md) — trend chart, KPIs
-- [ ] [task-07-vehicle-tab](./tasks/task-07-vehicle-tab.md) — own-vehicle cards, register/edit/remove
+- [x] [task-04-overview-tab](./tasks/task-04-overview-tab.md) — status toggle, active-delivery card, stat tiles
+- [x] [task-05-deliveries-tab](./tasks/task-05-deliveries-tab.md) — available + my deliveries, search/filter
+- [x] [task-06-earnings-tab](./tasks/task-06-earnings-tab.md) — trend chart, KPIs
+- [x] [task-07-vehicle-tab](./tasks/task-07-vehicle-tab.md) — own-vehicle cards, register/edit/remove
 
 ### Wave 4
 - [ ] [task-08-order-detail-drawer](./tasks/task-08-order-detail-drawer.md) — accept/start/track/complete
