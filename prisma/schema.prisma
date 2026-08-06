@@ -9,16 +9,22 @@ datasource db {
 }
 
 model User {
-  id            String    @id
-  name          String
-  email         String
-  emailVerified Boolean   @default(false)
-  image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  role          UserRole  @default(CLIENT)
-  sessions      Session[]
-  accounts      Account[]
+  id                 String    @id
+  name               String
+  email              String
+  emailVerified      Boolean   @default(false)
+  // True only for accounts a company admin created with a temp password (see the
+  // company driver-registration flow). The app layer redirects to the forced
+  // password-change screen while this is true, and clears it once the driver
+  // successfully changes their password. Better Auth has no built-in "force
+  // password change" primitive, so this is a custom application-layer field.
+  mustChangePassword Boolean   @default(false)
+  image              String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  role               UserRole  @default(CLIENT)
+  sessions           Session[]
+  accounts           Account[]
 
   // Delivery-domain relations. Named relations are required because `User`
   // participates in the `Order` model twice (as client and as driver).
@@ -266,7 +272,8 @@ model DriverProfile {
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
-  vehicles Vehicle[]
+  vehicles    Vehicle[]
+  assignments DriverVehicleAssignment[]
 
   @@index([companyId])
 }
@@ -284,24 +291,46 @@ model DriverProfile {
 /// `photoUrls` holds public Supabase Storage URLs; the DB row is the source of
 /// truth, and the objects themselves are removed best-effort on delete.
 model Vehicle {
-  id                String            @id @default(cuid())
+  id                String                    @id @default(cuid())
   driverProfileId   String?
-  driverProfile     DriverProfile?    @relation(fields: [driverProfileId], references: [id], onDelete: Cascade)
+  driverProfile     DriverProfile?            @relation(fields: [driverProfileId], references: [id], onDelete: Cascade)
   companyId         String?
-  company           LogisticsCompany? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  company           LogisticsCompany?         @relation(fields: [companyId], references: [id], onDelete: Cascade)
   vehicleTypeSpecId String
-  vehicleTypeSpec   VehicleTypeSpec   @relation(fields: [vehicleTypeSpecId], references: [id])
-  plateNumber       String            @unique
+  vehicleTypeSpec   VehicleTypeSpec           @relation(fields: [vehicleTypeSpecId], references: [id])
+  plateNumber       String                    @unique
   make              String
   model             String
   year              Int
   photoUrls         String[]
   orders            Order[]
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
+  assignments       DriverVehicleAssignment[]
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
 
   @@index([driverProfileId])
   @@index([companyId])
+}
+
+/// Persistent driver↔vehicle pairing, distinct from `Order.driverId`/
+/// `Order.vehicleId` which only pair the two for a single delivery. Created when a
+/// company admin assigns a fleet vehicle to a driver (at registration or later).
+/// A join table rather than a bare FK on `DriverProfile` so reassignment keeps
+/// history: `unassignedAt` is set instead of the row being deleted. At most one row
+/// per vehicle should have `unassignedAt: null` at a time — enforced at the API
+/// layer, not by a DB constraint, matching how `Vehicle`'s single-owner rule is
+/// partly enforced at the API layer too.
+model DriverVehicleAssignment {
+  id              String        @id @default(cuid())
+  driverProfileId String
+  driverProfile   DriverProfile @relation(fields: [driverProfileId], references: [id], onDelete: Cascade)
+  vehicleId       String
+  vehicle         Vehicle       @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  assignedAt      DateTime      @default(now())
+  unassignedAt    DateTime?
+
+  @@index([driverProfileId])
+  @@index([vehicleId])
 }
 
 /// Client-specific profile data. Individual accounts use first/last name;
