@@ -74,5 +74,5 @@ graph TD
 - [x] [task-07-vehicle-tab](./tasks/task-07-vehicle-tab.md) — own-vehicle cards, register/edit/remove
 
 ### Wave 4
-- [ ] [task-08-order-detail-drawer](./tasks/task-08-order-detail-drawer.md) — accept/start/track/complete
-- [ ] [task-09-add-vehicle-drawer](./tasks/task-09-add-vehicle-drawer.md) — wraps `VehicleForm`
+- [x] [task-08-order-detail-drawer](./tasks/task-08-order-detail-drawer.md) — accept/start/track/complete
+- [x] [task-09-add-vehicle-drawer](./tasks/task-09-add-vehicle-drawer.md) — wraps `VehicleForm`
