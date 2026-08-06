@@ -79,6 +79,6 @@ graph TD
 - [x] [task-12-vehicles-tab](./tasks/task-12-vehicles-tab.md) — vehicle table with assignment control + register action
 
 ### Wave 4
-- [ ] [task-13-order-detail-drawer](./tasks/task-13-order-detail-drawer.md) — order drawer: timeline, claim/dispatch/cancel
-- [ ] [task-14-driver-detail-drawer](./tasks/task-14-driver-detail-drawer.md) — driver drawer: stats, read-only status, remove
-- [ ] [task-15-add-vehicle-drawer](./tasks/task-15-add-vehicle-drawer.md) — wraps `CompanyVehicleForm`
+- [x] [task-13-order-detail-drawer](./tasks/task-13-order-detail-drawer.md) — order drawer: timeline, claim/dispatch/cancel
+- [x] [task-14-driver-detail-drawer](./tasks/task-14-driver-detail-drawer.md) — driver drawer: stats, read-only status, remove
+- [x] [task-15-add-vehicle-drawer](./tasks/task-15-add-vehicle-drawer.md) — wraps `CompanyVehicleForm`
