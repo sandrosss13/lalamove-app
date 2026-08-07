@@ -71,13 +71,24 @@ export function OpsDriversTab({
 
   return (
     <div className="flex flex-col gap-4.5">
-      <input
-        value={search}
-        onChange={(event) => setSearch(event.target.value)}
-        placeholder="Search driver name…"
-        aria-label="Search drivers by name"
-        className="w-60 rounded-lg border border-ops-border bg-ops-surface px-3 py-2.5 text-sm outline-none placeholder:text-ops-text-muted focus:border-ops-accent"
-      />
+      {/* Same top row as the Vehicles tab: search on the left, the tab's one
+          create action on the right. */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <input
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="Search driver name…"
+          aria-label="Search drivers by name"
+          className="w-60 rounded-lg border border-ops-border bg-ops-surface px-3 py-2.5 text-sm outline-none placeholder:text-ops-text-muted focus:border-ops-accent"
+        />
+        <button
+          type="button"
+          onClick={() => openDrawer({ type: "add-driver" })}
+          className="rounded-lg bg-ops-accent px-4 py-2.5 text-sm font-medium text-ops-accent-fg hover:opacity-90"
+        >
+          + Register driver
+        </button>
+      </div>
 
       <div className="overflow-hidden rounded-xl border border-ops-border">
         <div

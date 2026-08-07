@@ -40,6 +40,12 @@ export default async function DashboardPage() {
     );
   }
 
+  // A driver registered by a company starts on a temporary password. Gate every
+  // role behind the reset so the flag can't be sidestepped by role branching.
+  if (session.user.mustChangePassword) {
+    redirect("/change-password");
+  }
+
   if (session.user.role === "CLIENT") {
     redirect("/account");
   }

@@ -19,6 +19,7 @@ import { OpsVehiclesTab } from "@/components/dashboard/ops/ops-vehicles-tab";
 import { OrderDetailDrawer } from "@/components/dashboard/ops/drawers/order-detail-drawer";
 import { DriverDetailDrawer } from "@/components/dashboard/ops/drawers/driver-detail-drawer";
 import { AddVehicleDrawer } from "@/components/dashboard/ops/drawers/add-vehicle-drawer";
+import { AddDriverDrawer } from "@/components/dashboard/ops/drawers/add-driver-drawer";
 
 const TABS = [
   { id: "overview", label: "Overview" },
@@ -153,6 +154,9 @@ export function OpsDashboardShell({ data }: { data: CompanyDashboardData }) {
         />
       ) : null}
       {activeDrawer?.type === "add-vehicle" ? <AddVehicleDrawer /> : null}
+      {activeDrawer?.type === "add-driver" ? (
+        <AddDriverDrawer fleet={data.fleet} />
+      ) : null}
 
       <OpsToast toast={toast} />
     </OpsDashboardContext.Provider>

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { signUp } from "@/lib/auth-client";
+import { GEORGIAN_CITY_OPTIONS } from "@/lib/georgian-cities";
 
 type Role = "CLIENT" | "DRIVER" | "COMPANY";
 // Covers every account type across clients and drivers. Clients only ever set
@@ -11,39 +12,6 @@ type Role = "CLIENT" | "DRIVER" | "COMPANY";
 // INDIVIDUAL_ENTREPRENEUR. A logistics company has no account-type variants and
 // so never sets one.
 type AccountType = "INDIVIDUAL" | "INDIVIDUAL_ENTREPRENEUR" | "BUSINESS";
-
-/**
- * Selectable driver cities. Values mirror the `GeorgianCity` Prisma enum; they
- * are duplicated here (rather than imported from `@prisma/client`) to keep the
- * server-only Prisma client out of the browser bundle.
- */
-const GEORGIAN_CITY_OPTIONS = [
-  { value: "TBILISI", label: "Tbilisi" },
-  { value: "BATUMI", label: "Batumi" },
-  { value: "KUTAISI", label: "Kutaisi" },
-  { value: "RUSTAVI", label: "Rustavi" },
-  { value: "ZUGDIDI", label: "Zugdidi" },
-  { value: "GORI", label: "Gori" },
-  { value: "POTI", label: "Poti" },
-  { value: "SAMTREDIA", label: "Samtredia" },
-  { value: "KHASHURI", label: "Khashuri" },
-  { value: "SENAKI", label: "Senaki" },
-  { value: "ZESTAPONI", label: "Zestaponi" },
-  { value: "MARNEULI", label: "Marneuli" },
-  { value: "TELAVI", label: "Telavi" },
-  { value: "AKHALTSIKHE", label: "Akhaltsikhe" },
-  { value: "OZURGETI", label: "Ozurgeti" },
-  { value: "KOBULETI", label: "Kobuleti" },
-  { value: "CHIATURA", label: "Chiatura" },
-  { value: "TSKALTUBO", label: "Tskaltubo" },
-  { value: "SAGAREJO", label: "Sagarejo" },
-  { value: "GARDABANI", label: "Gardabani" },
-  { value: "BOLNISI", label: "Bolnisi" },
-  { value: "AKHALKALAKI", label: "Akhalkalaki" },
-  { value: "BORJOMI", label: "Borjomi" },
-  { value: "KASPI", label: "Kaspi" },
-  { value: "MTSKHETA", label: "Mtskheta" },
-] as const;
 
 /** Human-readable label for an account type, used in the step 3 heading. */
 const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {

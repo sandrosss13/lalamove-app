@@ -11,6 +11,7 @@ export type OpsDrawerState =
   | { type: "order"; id: string }
   | { type: "driver"; id: string }
   | { type: "add-vehicle" }
+  | { type: "add-driver" }
   | null;
 
 export type OpsToastState = {

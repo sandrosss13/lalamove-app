@@ -2,7 +2,9 @@
 
 ## Overview
 
-Lets a logistics company admin register a brand-new driver account and assign them an existing fleet vehicle in one flow, directly from the company dashboard — replacing the current requirement to send the driver to the public sign-up page and then link them by email afterward. The admin sets a temp password shown once on screen; the driver is forced to change it on first login. The existing "link an independent driver by email" path is untouched and remains available alongside this new one.
+Lets a logistics company admin register a brand-new driver account and assign them an existing fleet vehicle in one flow, directly from the company dashboard — replacing the requirement to send the driver to the public sign-up page and then link them by email afterward. The admin sets a temp password shown once on screen; the driver is forced to change it on first login.
+
+**Updated 2026-08-07:** the old "link an independent driver by email" path (`CompanyDriverRoster`, `POST /api/logistics-company/drivers`) has been removed entirely, not kept alongside the new flow — see `requirements.md` for why. Task-05 has also been rewritten: it originally targeted `company-dashboard.tsx`'s old inline-expandable-section layout, which no longer exists — the company dashboard is now the tabbed dark `company-ops-dashboard` (see that sibling spec). Task-05 now targets a "+ Register driver" drawer on its Drivers tab instead.
 
 ## Quick Links
 
@@ -39,9 +41,9 @@ graph TD
 - [x] [task-01-schema-migration](./tasks/task-01-schema-migration.md) — Prisma schema migration for persistent assignment + forced password change
 
 ### Wave 2
-- [ ] [task-02-auth-config](./tasks/task-02-auth-config.md) — Expose `mustChangePassword` on the session and clear it on change
-- [ ] [task-03-driver-register-api](./tasks/task-03-driver-register-api.md) — `POST /api/logistics-company/drivers/register`
+- [x] [task-02-auth-config](./tasks/task-02-auth-config.md) — Expose `mustChangePassword` on the session and clear it on change
+- [x] [task-03-driver-register-api](./tasks/task-03-driver-register-api.md) — `POST /api/logistics-company/drivers/register`
 
 ### Wave 3
-- [ ] [task-04-change-password-page](./tasks/task-04-change-password-page.md) — Forced password-change page + dashboard enforcement
-- [ ] [task-05-driver-register-ui](./tasks/task-05-driver-register-ui.md) — Company dashboard registration + vehicle-assignment form
+- [x] [task-04-change-password-page](./tasks/task-04-change-password-page.md) — Forced password-change page + dashboard enforcement (built as one `src/app/change-password/page.tsx`, functionally equivalent to the task's page+form split)
+- [x] [task-05-driver-register-ui](./tasks/task-05-driver-register-ui.md) — **Rewritten** to target the new company-ops-dashboard's Drivers tab (drawer-based) instead of the old inline-expandable-section dashboard
