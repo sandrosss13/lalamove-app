@@ -11,12 +11,13 @@ function TickerRun({ labels, hidden }: { labels: string[]; hidden?: boolean }) {
       {labels.map((label) => (
         <li
           key={label}
-          className="flex items-center gap-6 pr-6 font-display text-xl leading-none tracking-[0.08em] text-paper uppercase sm:text-2xl"
+          className="flex items-center gap-7 pr-7 text-sm leading-6 font-medium text-muted"
         >
           {label}
-          <span aria-hidden="true" className="text-accent">
-            {"///"}
-          </span>
+          <span
+            aria-hidden="true"
+            className="h-1 w-1 shrink-0 rounded-full bg-accent/60"
+          />
         </li>
       ))}
     </ul>
@@ -33,9 +34,10 @@ export function LandingTicker() {
   const labels = vehicleTypes.map((vehicleType) => vehicleType.label);
 
   // The labels arrive after mount, so the strip reserves its filled height up
-  // front and the sections below it don't jump when they land.
+  // front and the sections below it don't jump when they land. The edge mask
+  // fades each run out rather than letting labels clip against the viewport.
   return (
-    <div className="min-h-[3.25rem] overflow-hidden border-b border-line bg-surface py-4 sm:min-h-[3.5rem]">
+    <div className="min-h-[3.25rem] overflow-hidden border-b border-line bg-surface py-3.5 [mask-image:linear-gradient(to_right,transparent,black_5rem,black_calc(100%-5rem),transparent)]">
       <div className="flex w-max animate-ticker">
         <TickerRun labels={labels} />
         <TickerRun labels={labels} hidden />

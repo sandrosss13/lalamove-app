@@ -85,7 +85,7 @@ export function LandingVehicles() {
         <p className="text-[0.6875rem] font-semibold tracking-[0.24em] text-accent uppercase">
           The fleet
         </p>
-        <h2 className="mt-4 max-w-2xl font-display text-[clamp(2.5rem,6vw,4.5rem)] leading-[0.9] text-paper uppercase">
+        <h2 className="mt-4 max-w-2xl font-display text-[clamp(2rem,4.5vw,3rem)] leading-[1.05] font-semibold tracking-[-0.025em] text-paper">
           Pick the vehicle the load actually needs
         </h2>
 
@@ -103,14 +103,14 @@ export function LandingVehicles() {
           return (
             <div key={category} className="mt-14">
               <div className="flex items-end justify-between gap-4 border-b border-line pb-4">
-                <h3 className="flex items-center gap-4 font-display text-2xl leading-none tracking-[0.06em] text-paper uppercase sm:text-3xl">
+                <h3 className="flex items-center gap-4 font-display text-xl leading-none font-semibold tracking-[-0.015em] text-paper sm:text-2xl">
                   <span className="text-accent">
                     <Glyph />
                   </span>
                   {heading}
                 </h3>
-                <span className="shrink-0 text-[0.625rem] font-semibold tracking-[0.16em] text-muted uppercase">
-                  {grouped.length} types
+                <span className="shrink-0 text-[0.8125rem] text-muted">
+                  <span className="font-price">{grouped.length}</span> types
                 </span>
               </div>
 
@@ -118,7 +118,7 @@ export function LandingVehicles() {
                 {grouped.map((vehicleType, index) => (
                   <li
                     key={vehicleType.code}
-                    className="group relative overflow-hidden border border-line bg-ink px-4 py-5 transition-transform hover:-translate-y-1"
+                    className="group relative overflow-hidden rounded-lg border border-line bg-ink px-4 py-5 transition-transform hover:-translate-y-1"
                   >
                     <span
                       aria-hidden="true"
@@ -126,15 +126,18 @@ export function LandingVehicles() {
                     />
                     <span
                       aria-hidden="true"
-                      className="block font-display text-sm leading-none tracking-[0.18em] text-muted transition-colors group-hover:text-accent"
+                      className="block font-price text-[0.8125rem] leading-none text-muted transition-colors group-hover:text-accent"
                     >
                       {String(index + 1).padStart(2, "0")}
                     </span>
-                    <span className="mt-3 block font-display text-xl leading-tight text-paper uppercase sm:text-2xl">
+                    <span className="mt-3 block font-display text-lg leading-tight font-semibold tracking-[-0.015em] text-paper">
                       {vehicleType.label}
                     </span>
-                    <span className="mt-3 block text-[0.625rem] font-semibold tracking-[0.16em] text-muted uppercase">
-                      Up to {formatPayload(vehicleType.maxPayloadKg)}
+                    <span className="mt-2 block text-[0.8125rem] text-muted">
+                      Up to{" "}
+                      <span className="font-price">
+                        {formatPayload(vehicleType.maxPayloadKg)}
+                      </span>
                     </span>
                   </li>
                 ))}

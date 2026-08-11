@@ -5,13 +5,22 @@
   --foreground: #171717;
 
   /* Landing-page palette. Deliberately independent of the light/dark tokens
-     above: the marketing page is always a fixed light-on-near-black scheme. */
-  --landing-ink: #0a0a0a;
-  --landing-surface: #16150f;
-  --landing-paper: #f5f2ed;
-  --landing-muted: #b6b0a7;
+     above: the marketing page is always a fixed near-white-on-dark-text
+     scheme, regardless of system theme.
+     `ink` = page background, `paper` = primary text, `surface` = elevated
+     panel background (subtly distinct from `ink`), `muted` = secondary text,
+     `line` = borders/dividers, `accent` = the one brand color, used sparingly.
+     `ink-strong` / `on-strong` are a small dark "bookend" pair — the driver
+     CTA and footer sit on a dark panel to close the page the way the hero
+     opens it, while every section between them is light. */
+  --landing-ink: #ffffff;
+  --landing-surface: #faf9f6;
+  --landing-paper: #201f1c;
+  --landing-muted: #6b675f;
   --landing-accent: #ff5a1f;
-  --landing-line: rgba(245, 242, 237, 0.14);
+  --landing-line: #e7e4de;
+  --landing-ink-strong: #15140f;
+  --landing-on-strong: #f5f2ea;
 
   /* Ops-dashboard palette (logistics company dashboard). Independent of the
      light/dark tokens above and of the landing page's own palette: this is a
@@ -45,9 +54,12 @@
   --color-muted: var(--landing-muted);
   --color-accent: var(--landing-accent);
   --color-line: var(--landing-line);
+  --color-ink-strong: var(--landing-ink-strong);
+  --color-on-strong: var(--landing-on-strong);
 
-  --font-display: var(--font-bebas-neue), sans-serif;
-  --font-body: var(--font-archivo), sans-serif;
+  --font-display: var(--font-ibm-plex-sans), sans-serif;
+  --font-body: var(--font-ibm-plex-sans), sans-serif;
+  --font-price: var(--font-ibm-plex), monospace;
 
   --animate-rise: landing-rise 0.75s cubic-bezier(0.16, 1, 0.3, 1) both;
   --animate-wipe: landing-wipe 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
@@ -125,10 +137,13 @@
   }
 }
 
-/* Fine dot texture that keeps large dark panels from reading as flat fills. */
+/* Fine dot texture that keeps large flat panels from reading as dead space.
+   Tinted with the panel's own foreground color (currentColor) so it works on
+   both the light sections and the dark ink-strong bookend without a second
+   variant. */
 @utility landing-grain {
   background-image: radial-gradient(
-    rgba(245, 242, 237, 0.06) 1px,
+    color-mix(in srgb, currentColor 6%, transparent) 1px,
     transparent 1px
   );
   background-size: 3px 3px;
@@ -137,8 +152,16 @@
 /* Warehouse-floor grid used behind the hero. */
 @utility landing-grid {
   background-image:
-    linear-gradient(to right, rgba(245, 242, 237, 0.05) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(245, 242, 237, 0.05) 1px, transparent 1px);
+    linear-gradient(
+      to right,
+      color-mix(in srgb, currentColor 5%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      to bottom,
+      color-mix(in srgb, currentColor 5%, transparent) 1px,
+      transparent 1px
+    );
   background-size: 4.5rem 4.5rem;
 }
 
