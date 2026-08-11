@@ -67,7 +67,7 @@ graph TD
 - [x] [task-01-schema-and-migration](./tasks/task-01-schema-and-migration.md) — Admin back-office schema and migration
 
 ### Wave 2
-- [ ] [task-02-admin-auth-and-shell](./tasks/task-02-admin-auth-and-shell.md) — Admin auth guard, sign-in, and back-office shell
+- [x] [task-02-admin-auth-and-shell](./tasks/task-02-admin-auth-and-shell.md) — Admin auth guard, sign-in, and back-office shell
 
 ### Wave 3
 - [ ] [task-03-sales-analytics-dashboard](./tasks/task-03-sales-analytics-dashboard.md) — Sales analytics dashboard + Excel export

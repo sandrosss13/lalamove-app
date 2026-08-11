@@ -55,6 +55,10 @@ const MERCHANT_CARD_LABELS: Partial<Record<Role, string>> = {
 const POST_SIGN_IN_PATH: Record<Audience, string> = {
   CLIENT: "/",
   MERCHANT: "/dashboard",
+  // Unreachable: the admin host serves `/admin/**` only, so middleware
+  // redirects `/sign-in` off it before this component can ever render there.
+  // The key exists purely because `Audience` includes "ADMIN".
+  ADMIN: "/admin",
   BOTH: "/",
 };
 

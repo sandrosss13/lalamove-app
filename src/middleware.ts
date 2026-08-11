@@ -1,8 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import {
+  adminOrigin,
   audienceForHost,
   clientOrigin,
+  IS_ADMIN_HOST_ENABLED,
   IS_HOST_SPLIT_ENABLED,
   merchantOrigin,
 } from "@/lib/host";
@@ -12,6 +14,13 @@ import {
  * path itself or any subpath).
  */
 const MERCHANT_ONLY_PREFIXES = ["/dashboard"];
+
+/**
+ * Paths that belong to the admin back office, matched as a prefix. `/admin`
+ * covers the whole surface including its own sign-in page, which must stay
+ * reachable on the admin host for staff to sign in there at all.
+ */
+const ADMIN_ONLY_PREFIXES = ["/admin"];
 
 /**
  * Paths that only make sense on the client host, matched *exactly*.
@@ -39,6 +48,34 @@ function isMerchantOnly(pathname: string): boolean {
   return matchesPrefix(pathname, MERCHANT_ONLY_PREFIXES);
 }
 
+function isAdminOnly(pathname: string): boolean {
+  return matchesPrefix(pathname, ADMIN_ONLY_PREFIXES);
+}
+
+/**
+ * Paths that must keep working on the admin host even though they live outside
+ * `/admin`, and so are exempt from the "admin host serves only `/admin`"
+ * redirect below:
+ *
+ * - `/api/**` — the admin sign-in page posts to Better Auth's own
+ *   `/api/auth/**` endpoints same-origin, so bouncing these to the client host
+ *   would break admin sign-in outright (and any later `/api/admin/**` route
+ *   with it).
+ * - `/_next/**`, `/__next*` — Next's own asset, RSC-payload and dev-HMR
+ *   traffic. The `config.matcher` below already excludes the static/image
+ *   subsets, but not these.
+ *
+ * Matched with `startsWith` rather than `matchesPrefix` because the dev-only
+ * endpoints (`/__nextjs_original-stack-frame`, …) are not path segments.
+ */
+const ADMIN_HOST_PASSTHROUGH_PREFIXES = ["/api/", "/_next/", "/__next"];
+
+function isAdminHostPassthrough(pathname: string): boolean {
+  return ADMIN_HOST_PASSTHROUGH_PREFIXES.some((prefix) =>
+    pathname.startsWith(prefix),
+  );
+}
+
 function isClientOnly(pathname: string): boolean {
   return (
     CLIENT_ONLY_EXACT.includes(pathname) ||
@@ -47,12 +84,16 @@ function isClientOnly(pathname: string): boolean {
 }
 
 /**
- * Host gate for the merchant/client split (see `src/lib/host.ts` for the full
- * design rationale). Pure routing: it never inspects role or session — every
- * route's real authorization stays in its own server component / API route
- * handler, untouched by this file. No-ops entirely when the split is disabled
- * (`NEXT_PUBLIC_MERCHANT_HOST` unset), which is the default and must stay a
- * zero-behavior-change state.
+ * Host gate for the merchant/client split and for the admin back office's own
+ * host (see `src/lib/host.ts` for the full design rationale). Pure routing: it
+ * never inspects role or session — every route's real authorization stays in
+ * its own server component / API route handler, untouched by this file. The
+ * back office in particular is gated by `requireSystemUser()` in
+ * `src/app/admin/layout.tsx`, not here.
+ *
+ * The two splits are layered independently, each a no-op while its own env var
+ * is unset (`NEXT_PUBLIC_MERCHANT_HOST` / `NEXT_PUBLIC_ADMIN_HOST`) — both
+ * unset, the default, is a zero-behavior-change state.
  *
  * Everything not classified below passes through on both hosts — notably all
  * of `/api/*` (Better Auth's own `/api/auth/*` endpoints must be reachable
@@ -65,17 +106,46 @@ function isClientOnly(pathname: string): boolean {
  * afterwards, so there is no loop risk from this gate.
  */
 export function middleware(request: NextRequest) {
-  if (!IS_HOST_SPLIT_ENABLED) {
-    return NextResponse.next();
-  }
-
   // `x-forwarded-host` is what a proxy (Vercel) sets to the hostname the
   // browser actually asked for; `host` is the direct-connection case (local
   // dev). Same precedence as the sign-up guard in `src/lib/auth.ts`.
+  //
+  // Read before the `IS_HOST_SPLIT_ENABLED` bail-out below (which only gates
+  // the merchant dimension) because the admin split is independent of it and
+  // has to be evaluated either way.
   const host =
     request.headers.get("x-forwarded-host") ?? request.headers.get("host");
   const audience = audienceForHost(host);
   const { pathname, search } = request.nextUrl;
+
+  // The admin host serves the back office and nothing else: anything that
+  // isn't `/admin/**` or infrastructure traffic goes back to the client host,
+  // so a stray link never renders the customer-facing app on an internal
+  // hostname. Only reachable when `NEXT_PUBLIC_ADMIN_HOST` is set —
+  // `audienceForHost` cannot return "ADMIN" otherwise.
+  if (audience === "ADMIN") {
+    if (isAdminOnly(pathname) || isAdminHostPassthrough(pathname)) {
+      return NextResponse.next();
+    }
+
+    return NextResponse.redirect(
+      new URL(`${pathname}${search}`, clientOrigin()),
+    );
+  }
+
+  // Mirror image: `/admin` asked for on the client or merchant host while the
+  // admin split is configured belongs on the admin host instead. Same shape as
+  // the merchant-only-path redirect below.
+  if (IS_ADMIN_HOST_ENABLED && isAdminOnly(pathname)) {
+    const origin = adminOrigin();
+    if (origin) {
+      return NextResponse.redirect(new URL(`${pathname}${search}`, origin));
+    }
+  }
+
+  if (!IS_HOST_SPLIT_ENABLED) {
+    return NextResponse.next();
+  }
 
   if (audience === "CLIENT" && isMerchantOnly(pathname)) {
     const origin = merchantOrigin();
