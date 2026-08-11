@@ -11,11 +11,14 @@
  *   explicitly permits automated/cloud-hosted usage — usage is tied to the
  *   `LOCATIONIQ_API_KEY` environment variable rather than a `User-Agent`
  *   policy. That key is required config; without it, geocoding returns `null`.
- * - **Google Places** (`suggestAddresses`) backs the as-you-type suggestions
- *   dropdown in the booking form, via `GOOGLE_PLACES_API_KEY`. LocationIQ's
- *   autocomplete returned poor matches for Georgian addresses, and that
- *   complaint was specific to the typing experience — so only the suggestions
- *   path moved to Google. Order-submission geocoding stays on LocationIQ.
+ * - **Google Places** (`suggestAddresses`, `getPlaceDetails`) backs the booking
+ *   form's address field, via `GOOGLE_PLACES_API_KEY`: as-you-type suggestions
+ *   first, then the structured breakdown (street/city/state/postcode/country
+ *   plus coordinates for the map preview) of whichever one the user picks.
+ *   LocationIQ's autocomplete returned poor matches for Georgian addresses, and
+ *   that complaint was specific to the typing experience — so only the
+ *   suggestions path moved to Google. Order-submission geocoding stays on
+ *   LocationIQ.
  *
  * Both providers are scoped to Georgia via the same bounding box
  * (`GEORGIA_BOUNDS`), so their notion of "in range" stays consistent.
@@ -29,9 +32,31 @@ export type LatLng = {
   lng: number;
 };
 
-/** A single address suggestion returned by the autocomplete lookup. */
+/**
+ * A single address suggestion returned by the autocomplete lookup. `placeId` is
+ * Google's stable handle for the place, and is the only way to look the full
+ * address breakdown up afterwards via `getPlaceDetails`.
+ */
 export type AddressSuggestion = {
   displayName: string;
+  placeId: string;
+};
+
+/**
+ * The structured breakdown of one place, as consumed by the booking form's
+ * address fields. Every component is a plain string rather than
+ * `string | undefined`: Google omits components it has no data for (rural
+ * addresses routinely lack `postal_code`), and the form renders each one as an
+ * editable input the user can fill in, so "" is the natural empty value.
+ */
+export type PlaceDetails = {
+  location: LatLng;
+  formattedAddress: string;
+  street: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
 };
 
 /** LocationIQ forward-geocoding endpoint (`us1` is the standard default host). */
@@ -39,6 +64,15 @@ const LOCATIONIQ_SEARCH_URL = "https://us1.locationiq.com/v1/search";
 /** Google Places Autocomplete (New) endpoint — as-you-type suggestions. */
 const GOOGLE_PLACES_AUTOCOMPLETE_URL =
   "https://places.googleapis.com/v1/places:autocomplete";
+/** Google Place Details (New) endpoint — one place, addressed by its place id. */
+const GOOGLE_PLACE_DETAILS_URL = "https://places.googleapis.com/v1/places";
+/**
+ * Field mask for Place Details. Required by the API (an unmasked request is
+ * rejected), and narrowing it to exactly what `PlaceDetails` exposes keeps the
+ * call in the cheapest billing SKU that still covers address components.
+ */
+const GOOGLE_PLACE_DETAILS_FIELD_MASK =
+  "addressComponents,location,formattedAddress";
 /** Minimum query length before a lookup is worthwhile (avoids noisy 1-2 char calls). */
 const AUTOCOMPLETE_MIN_QUERY_LENGTH = 3;
 /** Descriptive UA is optional for LocationIQ, but sent as good practice. */
@@ -47,6 +81,31 @@ const GEOCODER_USER_AGENT = "lalamove-clone-app (contact: dev@example.com)";
 const GEOCODER_COUNTRY_CODE = "ge";
 /** ISO 3166-1 alpha-2 form of the above, as Google's `includedRegionCodes` expects. */
 const GEOCODER_REGION_CODE = "GE";
+
+/**
+ * Google `addressComponents` type tags, one per field of `PlaceDetails`. Named
+ * here rather than inlined so the parsing below reads as a field mapping and a
+ * typo surfaces in one place instead of silently yielding an empty string.
+ */
+const ADDRESS_COMPONENT_TYPES = {
+  streetNumber: "street_number",
+  route: "route",
+  city: "locality",
+  state: "administrative_area_level_1",
+  postalCode: "postal_code",
+  country: "country",
+} as const;
+
+/**
+ * Components read from `shortText` instead of `longText`. Users write the
+ * abbreviated form of a region on an address label ("Kvemo Kartli" is the long
+ * name, but forms expect the short code), and postal codes have no long form at
+ * all. Everything else — street, city, country — reads better spelled out.
+ */
+const SHORT_NAME_ADDRESS_COMPONENT_TYPES = new Set<string>([
+  ADDRESS_COMPONENT_TYPES.state,
+  ADDRESS_COMPONENT_TYPES.postalCode,
+]);
 
 /**
  * Bounding box roughly covering Georgia. Single source of truth for the
@@ -94,11 +153,37 @@ type LocationIqResult = {
 type GooglePlacesAutocompleteResponse = {
   suggestions?: {
     placePrediction?: {
+      placeId?: string;
       text?: {
         text?: string;
       };
     };
   }[];
+};
+
+/**
+ * One entry of Google's `addressComponents` array. Optional throughout: the
+ * field mask guarantees the array is present but not that any given component
+ * carries every property.
+ */
+type GoogleAddressComponent = {
+  longText?: string;
+  shortText?: string;
+  types?: string[];
+};
+
+/**
+ * Shape of the Google Place Details (New) response, limited to the fields
+ * requested by `GOOGLE_PLACE_DETAILS_FIELD_MASK`. All optional — Google omits a
+ * masked field entirely when it has no value for that place.
+ */
+type GooglePlaceDetailsResponse = {
+  addressComponents?: GoogleAddressComponent[];
+  location?: {
+    latitude?: number;
+    longitude?: number;
+  };
+  formattedAddress?: string;
 };
 
 /**
@@ -306,13 +391,132 @@ export async function suggestAddresses(
         continue;
       }
 
-      suggestions.push({ displayName });
+      // A suggestion with no place id cannot be resolved to a structured
+      // address later, so it is as unusable as one with no label.
+      const placeId = entry.placePrediction?.placeId;
+      if (!placeId) {
+        continue;
+      }
+
+      suggestions.push({ displayName, placeId });
     }
 
     return suggestions;
   } catch {
     // Network error, aborted request, or malformed JSON — all "no suggestions".
     return [];
+  }
+}
+
+/**
+ * Pull one component out of Google's `addressComponents` array by type tag,
+ * picking `shortText` or `longText` per `SHORT_NAME_ADDRESS_COMPONENT_TYPES`.
+ * Returns "" when the place has no such component (or the chosen text is
+ * absent), matching `PlaceDetails`' "empty string, never undefined" contract.
+ */
+function readAddressComponent(
+  components: GoogleAddressComponent[],
+  type: string,
+): string {
+  const match = components.find((component) => component.types?.includes(type));
+  if (!match) {
+    return "";
+  }
+
+  const text = SHORT_NAME_ADDRESS_COMPONENT_TYPES.has(type)
+    ? match.shortText
+    : match.longText;
+
+  return text ?? "";
+}
+
+/**
+ * Resolve one autocomplete suggestion (by its `placeId`) to coordinates plus a
+ * structured address breakdown, via Google's Place Details (New) endpoint.
+ *
+ * Returns `null` for a blank `placeId`, a missing `GOOGLE_PLACES_API_KEY`, a
+ * non-OK status (e.g. 404 for a stale/expired place id, 403 for a bad key), a
+ * response carrying no usable coordinates, or any network/parse failure —
+ * callers can treat `null` uniformly as "no details available" and fall back to
+ * the free-text address the user already has. This function never throws.
+ *
+ * Like `suggestAddresses`, this deliberately bypasses `fetchGeocode`: that queue
+ * rations LocationIQ's 2 req/sec free tier and sends LocationIQ's headers, while
+ * this is a separate provider on a separate quota. It also fires interactively —
+ * once per suggestion the user picks — so the queue's 550ms spacer would only
+ * add latency between the click and the map preview appearing.
+ */
+export async function getPlaceDetails(
+  placeId: string,
+): Promise<PlaceDetails | null> {
+  const trimmed = placeId.trim();
+  if (trimmed.length === 0) {
+    return null;
+  }
+
+  // Without a key, every request would just 403; treat a missing/empty key as
+  // "no details" (honouring the no-throw contract) rather than making the call.
+  const key = process.env.GOOGLE_PLACES_API_KEY;
+  if (!key) {
+    return null;
+  }
+
+  try {
+    const response = await fetch(
+      `${GOOGLE_PLACE_DETAILS_URL}/${encodeURIComponent(trimmed)}`,
+      {
+        headers: {
+          "X-Goog-Api-Key": key,
+          "X-Goog-FieldMask": GOOGLE_PLACE_DETAILS_FIELD_MASK,
+        },
+      },
+    );
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const payload = (await response.json()) as GooglePlaceDetailsResponse;
+
+    // Coordinates are the one non-optional part of `PlaceDetails` (the map
+    // preview and any downstream distance work need them), so a place without
+    // them counts as no details at all rather than a half-filled result.
+    const lat = payload.location?.latitude;
+    const lng = payload.location?.longitude;
+    if (typeof lat !== "number" || typeof lng !== "number") {
+      return null;
+    }
+
+    const components = payload.addressComponents ?? [];
+
+    // Google splits a street address across two components; the house number
+    // comes first in every locale this app serves. `trim` covers the common
+    // case of a route with no street number attached.
+    const street = [
+      readAddressComponent(components, ADDRESS_COMPONENT_TYPES.streetNumber),
+      readAddressComponent(components, ADDRESS_COMPONENT_TYPES.route),
+    ]
+      .join(" ")
+      .trim();
+
+    return {
+      location: { lat, lng },
+      formattedAddress: payload.formattedAddress ?? "",
+      street,
+      city: readAddressComponent(components, ADDRESS_COMPONENT_TYPES.city),
+      state: readAddressComponent(components, ADDRESS_COMPONENT_TYPES.state),
+      postalCode: readAddressComponent(
+        components,
+        ADDRESS_COMPONENT_TYPES.postalCode,
+      ),
+      country: readAddressComponent(
+        components,
+        ADDRESS_COMPONENT_TYPES.country,
+      ),
+    };
+  } catch {
+    // Network error, aborted request, or malformed JSON — all "no details".
+    return null;
   }
 }
 
