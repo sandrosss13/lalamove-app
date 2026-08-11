@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { signUp } from "@/lib/auth-client";
 import { GEORGIAN_CITY_OPTIONS } from "@/lib/georgian-cities";
-import type { Audience } from "@/lib/host";
+import { merchantOrigin, type Audience } from "@/lib/host";
 
 type Role = "CLIENT" | "DRIVER" | "COMPANY";
 // Covers every account type across clients and drivers. Clients only ever set
@@ -29,29 +29,44 @@ const ROLE_HEADINGS: Record<Role, string> = {
 };
 
 /**
+ * Heading text for steps 2 and 3. Kept as a small override rather than
+ * changing ROLE_HEADINGS itself, so the "BOTH" (split-disabled) audience's
+ * existing "Sign up as a driver" wording is untouched — only the merchant
+ * host's "Individual Driver" card gets the fuller phrasing that matches its
+ * label.
+ */
+function roleHeading(pickedRole: Role, currentAudience: Audience): string {
+  if (currentAudience === "MERCHANT" && pickedRole === "DRIVER") {
+    return "Sign up as an individual driver";
+  }
+
+  return ROLE_HEADINGS[pickedRole];
+}
+
+/**
  * The registration wizard, scoped to the audience of the host it is served
  * from (see `src/lib/host.ts`). The wizard itself — the fields, the follow-up
- * profile writes, the markup — is identical for every audience; only the entry
- * point and the post-success destination differ:
+ * profile writes, the markup — is identical for every audience; only which
+ * roles step 1 offers and the post-success destination differ:
  *
  * - `"BOTH"` (split disabled): the full three-role wizard, exactly as it
  *   behaved before the host split existed.
- * - `"CLIENT"`: the role is fixed to CLIENT, so the role picker is skipped
- *   entirely and the account-type picker is the first screen.
- * - `"MERCHANT"`: only the DRIVER and COMPANY roles are offered, and a newly
- *   created account lands on `/dashboard` rather than `/`, which is a
- *   client-host path the merchant host would immediately bounce it off.
+ * - `"CLIENT"`: step 1 offers two cards — Client, which continues the wizard
+ *   here, and Driver, which is a cross-origin link to the merchant host's own
+ *   sign-up page rather than a role this host can create.
+ * - `"MERCHANT"`: only the DRIVER (labelled "Individual Driver" here) and
+ *   COMPANY roles are offered, and a newly created account lands on
+ *   `/dashboard` rather than `/`, which is a client-host path the merchant
+ *   host would immediately bounce it off.
  */
 export function SignUpForm({ audience }: { audience: Audience }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  // Null until the user picks a role in step 1; picking one reveals step 2. On
-  // the client host there is nothing to pick — CLIENT is the only role that
-  // host can create — so it starts resolved and step 1 never renders.
-  const [role, setRole] = useState<Role | null>(
-    audience === "CLIENT" ? "CLIENT" : null,
-  );
+  // Null until the user picks a role in step 1; picking one reveals step 2.
+  // Every audience starts here, including the client host — its step 1 offers
+  // Client (which continues here) alongside a link out to the merchant host.
+  const [role, setRole] = useState<Role | null>(null);
   // Null until the user picks an account type in step 2; picking one reveals
   // the form in step 3. Stays null for COMPANY, which has no account-type
   // variants and therefore skips step 2 entirely.
@@ -186,8 +201,10 @@ export function SignUpForm({ audience }: { audience: Audience }) {
     router.refresh();
   }
 
-  // Step 1: no role chosen yet — present the portals as large cards. Never
-  // reached on the client host, where the role is fixed to CLIENT up front.
+  // Step 1: no role chosen yet — present the portals as large cards. Which
+  // cards appear depends on the audience: `"BOTH"` sees all three (unchanged),
+  // the client host sees Client + a link out to the merchant host's driver
+  // sign-up, and the merchant host sees the two roles it can actually create.
   if (role === null) {
     return (
       <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 p-8">
@@ -208,27 +225,52 @@ export function SignUpForm({ audience }: { audience: Audience }) {
             </button>
           )}
 
-          <button
-            type="button"
-            onClick={() => setRole("DRIVER")}
-            className="rounded border p-6 text-left hover:opacity-70"
-          >
-            <span className="block font-medium">Driver</span>
-            <span className="block text-sm opacity-70">
-              Deliver packages and earn
-            </span>
-          </button>
+          {/* Drivers belong to the merchant host, so on the client host this
+              card is a real cross-origin navigation rather than a role this
+              host can create. `merchantOrigin()` is only null while the split
+              is disabled — an audience of "CLIENT" means it is on — so the
+              empty-string fallback (which degrades to a same-host "/sign-up")
+              is purely defensive. */}
+          {audience === "CLIENT" ? (
+            <a
+              href={`${merchantOrigin() ?? ""}/sign-up`}
+              className="rounded border p-6 text-left hover:opacity-70"
+            >
+              <span className="block font-medium">Driver</span>
+              <span className="block text-sm opacity-70">
+                Deliver packages and earn
+              </span>
+            </a>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setRole("DRIVER")}
+              className="rounded border p-6 text-left hover:opacity-70"
+            >
+              <span className="block font-medium">
+                {/* The merchant host distinguishes this card from the
+                    Logistics Company one sitting right below it. */}
+                {audience === "MERCHANT" ? "Individual Driver" : "Driver"}
+              </span>
+              <span className="block text-sm opacity-70">
+                Deliver packages and earn
+              </span>
+            </button>
+          )}
 
-          <button
-            type="button"
-            onClick={() => setRole("COMPANY")}
-            className="rounded border p-6 text-left hover:opacity-70"
-          >
-            <span className="block font-medium">Logistics Company</span>
-            <span className="block text-sm opacity-70">
-              Run a fleet and dispatch your own drivers
-            </span>
-          </button>
+          {/* Company registration lives on the merchant host only. */}
+          {audience === "CLIENT" ? null : (
+            <button
+              type="button"
+              onClick={() => setRole("COMPANY")}
+              className="rounded border p-6 text-left hover:opacity-70"
+            >
+              <span className="block font-medium">Logistics Company</span>
+              <span className="block text-sm opacity-70">
+                Run a fleet and dispatch your own drivers
+              </span>
+            </button>
+          )}
         </div>
       </main>
     );
@@ -241,19 +283,15 @@ export function SignUpForm({ audience }: { audience: Audience }) {
   if (accountType === null && role !== "COMPANY") {
     return (
       <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 p-8">
-        {/* On the client host this is the first screen — there is no role
-            picker behind it to go back to. */}
-        {audience === "CLIENT" ? null : (
-          <button
-            type="button"
-            onClick={() => setRole(null)}
-            className="self-start text-sm hover:opacity-70"
-          >
-            ← Back
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={() => setRole(null)}
+          className="self-start text-sm hover:opacity-70"
+        >
+          ← Back
+        </button>
 
-        <h1 className="text-2xl font-bold">{ROLE_HEADINGS[role]}</h1>
+        <h1 className="text-2xl font-bold">{roleHeading(role, audience)}</h1>
 
         <div className="flex flex-col gap-4">
           <button
@@ -312,7 +350,7 @@ export function SignUpForm({ audience }: { audience: Audience }) {
       </button>
 
       <h1 className="text-2xl font-bold">
-        {ROLE_HEADINGS[role]}
+        {roleHeading(role, audience)}
         {accountType ? ` — ${ACCOUNT_TYPE_LABELS[accountType]}` : null}
       </h1>
 
