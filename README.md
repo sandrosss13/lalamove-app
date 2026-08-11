@@ -30,6 +30,28 @@ Then sync the schema with:
 pnpm exec prisma db push   # push the Prisma schema to Supabase Postgres
 ```
 
+## Local development: merchant subdomain
+
+This app splits sign-in/sign-up/dashboard access by hostname once
+`NEXT_PUBLIC_MERCHANT_HOST` is set (see `env.example`): the main domain
+serves CLIENT accounts, and the merchant subdomain serves DRIVER/COMPANY
+accounts, with fully isolated sessions between the two. To exercise this
+locally:
+
+1. Set `NEXT_PUBLIC_MERCHANT_HOST="merchant.localhost:3000"` in your local
+   `.env` (copy it from `env.example` if you don't have one yet — it ships
+   with the var blank, i.e. the split disabled by default).
+2. Run `pnpm dev`.
+3. Open `http://localhost:3000` for the client experience and
+   `http://merchant.localhost:3000` for the merchant experience — no
+   `/etc/hosts` edit needed in Chrome, Edge, or Firefox.
+4. Safari on macOS does not reliably resolve `*.localhost` subdomains before
+   macOS Tahoe. If you need to test in Safari, add this line to
+   `/etc/hosts`: `127.0.0.1 merchant.localhost`.
+5. Unset `NEXT_PUBLIC_MERCHANT_HOST` (or delete the line from `.env`) and
+   restart `pnpm dev` to disable the split entirely and confirm the app
+   reverts to its single-host behavior.
+
 ## Scripts
 
 | Script              | What it does               |

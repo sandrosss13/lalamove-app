@@ -1,6 +1,18 @@
 import Link from "next/link";
 
 import { LandingWordmark } from "@/components/landing/landing-header";
+import { merchantOrigin } from "@/lib/host";
+
+/**
+ * Driver registration lives on the merchant host: the landing page is
+ * client-host-only, where `/sign-up` only offers CLIENT registration. Falls
+ * back to a relative `/sign-up` when the split is disabled. `merchantOrigin()`
+ * resolves to a value that's constant for the lifetime of the page in both
+ * server and browser contexts, so it is safe to resolve at module scope.
+ */
+const DRIVER_SIGN_UP_HREF = merchantOrigin()
+  ? `${merchantOrigin()}/sign-up`
+  : "/sign-up";
 
 /**
  * Footer link columns. `#` entries are placeholders for pages the app doesn't
@@ -20,7 +32,7 @@ const FOOTER_COLUMNS = [
     title: "Drivers",
     links: [
       { href: "#drive", label: "Become a driver" },
-      { href: "/sign-up", label: "Driver sign-up" },
+      { href: DRIVER_SIGN_UP_HREF, label: "Driver sign-up" },
     ],
   },
   {

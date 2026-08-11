@@ -45,10 +45,10 @@ graph TD
 - [x] [task-01-host-detection-and-auth-config](./tasks/task-01-host-detection-and-auth-config.md) — `src/lib/host.ts` + `src/lib/auth.ts` trustedOrigins/sign-up guard
 
 ### Wave 2
-- [ ] [task-02-middleware](./tasks/task-02-middleware.md) — `src/middleware.ts` host gate
-- [ ] [task-03-sign-in-split](./tasks/task-03-sign-in-split.md) — audience-aware `/sign-in`
-- [ ] [task-04-sign-up-split](./tasks/task-04-sign-up-split.md) — audience-aware `/sign-up`
-- [ ] [task-05-change-password-redirect](./tasks/task-05-change-password-redirect.md) — role-aware post-success redirect
-- [ ] [task-06-nav-link-fixes](./tasks/task-06-nav-link-fixes.md) — `auth-status.tsx` + `layout.tsx` link fixes
-- [ ] [task-07-landing-driver-links](./tasks/task-07-landing-driver-links.md) — driver-acquisition CTA links to the merchant host
-- [ ] [task-08-env-and-docs](./tasks/task-08-env-and-docs.md) — `NEXT_PUBLIC_MERCHANT_HOST` in `.env`/`env.example`/`README.md`
+- [x] [task-02-middleware](./tasks/task-02-middleware.md) — `src/middleware.ts` host gate
+- [x] [task-03-sign-in-split](./tasks/task-03-sign-in-split.md) — audience-aware `/sign-in`
+- [x] [task-04-sign-up-split](./tasks/task-04-sign-up-split.md) — audience-aware `/sign-up`
+- [x] [task-05-change-password-redirect](./tasks/task-05-change-password-redirect.md) — role-aware post-success redirect
+- [x] [task-06-nav-link-fixes](./tasks/task-06-nav-link-fixes.md) — `auth-status.tsx` + `layout.tsx` link fixes
+- [x] [task-07-landing-driver-links](./tasks/task-07-landing-driver-links.md) — driver-acquisition CTA links to the merchant host
+- [x] [task-08-env-and-docs](./tasks/task-08-env-and-docs.md) — `NEXT_PUBLIC_MERCHANT_HOST` in `.env`/`env.example`/`README.md`

@@ -65,7 +65,15 @@ export default function ChangePasswordPage() {
     }
 
     setLoading(false);
-    router.push("/dashboard");
+    // This page is shared by both hosts, so the landing spot depends on who
+    // just changed their password: clients live on `/account`, while drivers
+    // and companies land on the merchant-host `/dashboard`. Sending a client to
+    // `/dashboard` would get them bounced by the middleware and signed out
+    // immediately after fixing their password. `session` is non-null in
+    // practice (the form only renders once the session has resolved), but this
+    // closure is declared above those guards so TypeScript can't narrow it —
+    // the optional chain falls back to `/dashboard`, the pre-existing default.
+    router.push(session?.user.role === "CLIENT" ? "/account" : "/dashboard");
     router.refresh();
   }
 

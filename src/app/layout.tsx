@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { Archivo, Bebas_Neue, IBM_Plex_Mono } from "next/font/google";
-import Link from "next/link";
 import "./globals.css";
-import { AuthStatus } from "@/components/auth-status";
+import { AuthStatus, HeaderBrandLink } from "@/components/auth-status";
 
 // Exposed as CSS variables only (never applied to `body`), so these are opt-in
 // per route via the `font-display` / `font-body` / `font-ops` utilities.
@@ -46,9 +45,7 @@ export default function RootLayout({
     >
       <body>
         <header className="flex items-center justify-between border-b px-6 py-3">
-          <Link href="/" className="font-bold">
-            Lalamove Clone
-          </Link>
+          <HeaderBrandLink />
           <AuthStatus />
         </header>
         {children}

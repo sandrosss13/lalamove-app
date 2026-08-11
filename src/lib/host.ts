@@ -35,18 +35,24 @@
  * `clientOrigin()` and `merchantOrigin()` are static, deployment-level
  * values (derived from env vars fixed at build/boot time, not from any
  * per-request header) — they are safe to call from any server component or
- * middleware without opting into per-request dynamic rendering. Client
- * components must NOT call them directly: `BETTER_AUTH_URL` (which
- * `clientOrigin()` reads) is a server-only env var with no `NEXT_PUBLIC_`
- * prefix, so it is `undefined` in the browser bundle and `clientOrigin()`
- * would silently fall back to `http://localhost:3000` there. A client
- * component that needs a same-host destination for a merchant/driver user
- * should link to `/dashboard` (relative — always correct, since a merchant
- * session only ever exists on the merchant host); a client component that
- * needs to link users *toward* the merchant host (e.g. a driver-acquisition
- * CTA) should be written as a server component that calls `merchantOrigin()`
- * itself and passes the resulting string down as a prop, the same pattern
- * used elsewhere in this spec.
+ * middleware without opting into per-request dynamic rendering.
+ *
+ * `merchantOrigin()` is additionally safe to call from a client component: it
+ * resolves its own protocol correctly in both contexts (`window.location.
+ * protocol` in the browser, `CLIENT_PROTOCOL` on the server), and the host
+ * itself comes from `NEXT_PUBLIC_MERCHANT_HOST`, which is inlined into the
+ * browser bundle.
+ *
+ * `clientOrigin()` must NOT be called from a client component:
+ * `BETTER_AUTH_URL` is a server-only env var with no `NEXT_PUBLIC_` prefix, so
+ * it is `undefined` in the browser bundle and `clientOrigin()` would silently
+ * fall back to `http://localhost:3000` there — a failure that is invisible in
+ * local dev, where that fallback happens to be correct. A client component
+ * that needs a same-host destination for a merchant/driver user should link to
+ * `/dashboard` (relative — always correct, since a merchant session only ever
+ * exists on the merchant host); one that genuinely needs the client origin
+ * should receive it as a prop from a server component that called
+ * `clientOrigin()` itself.
  */
 
 /**
@@ -89,8 +95,9 @@ function computeClientOrigin(): string {
 
 const CLIENT_ORIGIN = computeClientOrigin();
 const CLIENT_HOST = new URL(CLIENT_ORIGIN).host;
-// Hoisted so `merchantOrigin()` doesn't re-parse a constant URL on every call —
-// it is invoked on every render of the landing-page server components.
+// The client host's protocol, used as the merchant host's protocol too since
+// both hosts share one deployment. Hoisted so `merchantOrigin()` doesn't
+// re-parse a constant URL on every call.
 const CLIENT_PROTOCOL = new URL(CLIENT_ORIGIN).protocol;
 
 // Fail-safe: if NEXT_PUBLIC_MERCHANT_HOST is ever misconfigured to match the
@@ -153,16 +160,28 @@ export function clientOrigin(): string {
 
 /**
  * The merchant host's origin, or `null` when the split is disabled.
- * Reuses the client origin's scheme (both hosts share the same deployment
- * and therefore the same protocol in practice). Server-side only — see the
- * module doc comment above.
+ * Reuses the current page's / client origin's scheme (both hosts share the
+ * same deployment and therefore the same protocol in practice). Safe to call
+ * from both server and client components — see the module doc comment above.
  */
 export function merchantOrigin(): string | null {
   if (!MERCHANT_HOST) {
     return null;
   }
 
-  return `${CLIENT_PROTOCOL}//${MERCHANT_HOST}`;
+  // In the browser, `window.location.protocol` is the one reliable source
+  // for the real deployment scheme — `BETTER_AUTH_URL` (which CLIENT_PROTOCOL
+  // is derived from) has no `NEXT_PUBLIC_` prefix and is `undefined` client-
+  // side, silently defaulting to "http:" there regardless of the actual
+  // deployment. This was a real bug: two landing-page components with no
+  // `"use client"` directive of their own still ended up bundled into the
+  // browser (transitively, via `src/app/page.tsx` being `"use client"`), so
+  // this function must be genuinely safe to call from either context, not
+  // just documented as server-only.
+  const protocol =
+    typeof window !== "undefined" ? window.location.protocol : CLIENT_PROTOCOL;
+
+  return `${protocol}//${MERCHANT_HOST}`;
 }
 
 /**

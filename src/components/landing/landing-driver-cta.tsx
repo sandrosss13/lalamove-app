@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { merchantOrigin } from "@/lib/host";
+
 const DRIVER_POINTS = [
   "Take the loads that suit your vehicle, your payload rating and your day.",
   "Every job shows the route, the cargo and the payout before you accept.",
@@ -7,6 +9,12 @@ const DRIVER_POINTS = [
 ];
 
 export function LandingDriverCta() {
+  // The landing page is client-host-only, and `/sign-up` there only offers
+  // CLIENT registration — so a driver has to be sent across to the merchant
+  // host. When the split is disabled, this stays a plain relative `/sign-up`.
+  const origin = merchantOrigin();
+  const driverSignUpHref = origin ? `${origin}/sign-up` : "/sign-up";
+
   return (
     <section
       id="drive"
@@ -35,7 +43,7 @@ export function LandingDriverCta() {
           </p>
 
           <Link
-            href="/sign-up"
+            href={driverSignUpHref}
             className="group mt-9 inline-flex items-center gap-3 bg-ink px-7 py-3.5 font-display text-2xl leading-none tracking-[0.06em] text-paper uppercase transition-transform hover:-translate-y-0.5"
           >
             Become a driver
