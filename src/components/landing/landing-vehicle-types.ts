@@ -12,9 +12,10 @@ export type LandingVehicleType = {
   label: string;
   category: "MEDIUM_DUTY" | "HEAVY_DUTY";
   maxPayloadKg: number;
-  // Only field the calculator needs from the pricing rule: picking the
-  // cheapest eligible type for a cargo category is a `baseFare` comparison.
-  pricingRule: { baseFare: number };
+  // The two fields the marketing page needs from the pricing rule: picking the
+  // cheapest eligible type for a cargo category is a `baseFare` comparison,
+  // and `pricePerKm` lets the category tiles show a nominal "from" price.
+  pricingRule: { baseFare: number; pricePerKm: number };
 };
 
 export const LOAD_FAILED_MESSAGE =

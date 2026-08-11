@@ -207,7 +207,36 @@ export async function GET(request: Request): Promise<NextResponse> {
 
   const vehicles = await prisma.vehicle.findMany({
     where: { companyId: company.id },
-    include: { vehicleTypeSpec: true },
+    include: {
+      vehicleTypeSpec: true,
+      // The active `DriverVehicleAssignment`, if any, so the fleet list can show
+      // who drives each vehicle without a second round-trip. At most one row per
+      // vehicle is active at a time (enforced by the assignment routes, not the
+      // database), so `take: 1` is the shape the caller can rely on.
+      assignments: {
+        where: { unassignedAt: null },
+        select: {
+          id: true,
+          assignedAt: true,
+          // Narrowed to what the fleet list renders: a driver's `phone` and
+          // last known coordinates are not needed to label a row, and a list
+          // endpoint should not hand them out by default.
+          driverProfile: {
+            select: {
+              id: true,
+              isOnline: true,
+              user: { select: { id: true, name: true } },
+            },
+          },
+        },
+        // Only one row should ever be active, but the ordering makes "the
+        // current assignment" deterministic rather than dependent on whatever
+        // order the database happens to return, should that rule ever be
+        // breached.
+        orderBy: { assignedAt: "desc" },
+        take: 1,
+      },
+    },
     orderBy: { createdAt: "desc" },
   });
 

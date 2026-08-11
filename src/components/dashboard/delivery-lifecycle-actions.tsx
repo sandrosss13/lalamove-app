@@ -17,13 +17,19 @@ type LifecycleStatus = "ACCEPTED" | "IN_TRANSIT";
  *
  * Loading and error state are surfaced inline (no `alert()`), and a successful
  * transition refreshes the server component so the card reflects the new status.
+ *
+ * `onSuccess` is optional and fires only after a successful transition — either
+ * one, since a single helper backs both — so a host that renders this inside a
+ * drawer can close it and raise a toast.
  */
 export function DeliveryLifecycleActions({
   orderId,
   status,
+  onSuccess,
 }: {
   orderId: string;
   status: LifecycleStatus;
+  onSuccess?: () => void;
 }) {
   const router = useRouter();
   const waitingMinutesId = useId();
@@ -61,6 +67,13 @@ export function DeliveryLifecycleActions({
 
       // Server component re-renders with the updated order data.
       router.refresh();
+      try {
+        onSuccess?.();
+      } catch {
+        // A bug in the caller's callback must not be reported as this
+        // component's own failure: the transition succeeded and the refresh
+        // already ran, so surfacing a network error here would be a lie.
+      }
     } catch {
       setError("Network error. Please check your connection and try again.");
     } finally {

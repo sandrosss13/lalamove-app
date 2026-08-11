@@ -23,15 +23,20 @@ export type DispatchVehicleOption = { id: string; label: string };
  *
  * Loading and error state are surfaced inline (no `alert()`), and a successful
  * dispatch refreshes the server component so the card reflects the assignment.
+ *
+ * `onSuccess` is optional and fires only after a successful dispatch, so a host
+ * that renders this inside a drawer can close it and raise a toast.
  */
 export function CompanyDispatchForm({
   orderId,
   drivers,
   vehicles,
+  onSuccess,
 }: {
   orderId: string;
   drivers: DispatchDriverOption[];
   vehicles: DispatchVehicleOption[];
+  onSuccess?: () => void;
 }) {
   const router = useRouter();
   const driverSelectId = useId();
@@ -77,6 +82,13 @@ export function CompanyDispatchForm({
 
       // Server component re-renders with the updated order data.
       router.refresh();
+      try {
+        onSuccess?.();
+      } catch {
+        // A bug in the caller's callback must not be reported as this
+        // component's own failure: the dispatch succeeded and the refresh
+        // already ran, so surfacing a network error here would be a lie.
+      }
     } catch {
       setError("Network error. Please check your connection and try again.");
     } finally {

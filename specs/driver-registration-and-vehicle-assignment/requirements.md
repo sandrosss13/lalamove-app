@@ -6,7 +6,9 @@ Today, a logistics company admin who wants to add a driver has to send that driv
 
 This feature lets a company admin register a brand-new driver account **and** assign them a vehicle from the company's fleet, entirely from within the company dashboard, in one form submission. The admin sets a temporary password for the driver (there is no email/SMS infrastructure in this codebase to send an invite link, and adding one is out of scope), which is shown once on screen for the admin to relay to the driver directly. The driver's first login forces a password change before they can use anything else.
 
-The existing "link an already-registered independent driver by email" flow is untouched — it remains the correct path for a driver who signed up on their own and now wants to join a company's roster. This feature adds a second, parallel path for company-originated drivers; it does not replace the first one.
+**Superseded 2026-08-07:** the paragraph below described the original plan — keeping the old "link an already-registered independent driver by email" flow as a parallel path. The user has since decided that flow produces exactly the wrong onboarding history (a driver self-registering, then getting linked after the fact) and must be removed outright, not kept alongside the new one. `POST /api/logistics-company/drivers` no longer has an add-by-email handler (GET, the roster list, is untouched) and `src/components/company-driver-roster.tsx` has been deleted. See the updated `task-05` for the current UI target — the new company-ops-dashboard's Drivers tab, not the old inline-expandable-section dashboard this file originally described.
+
+~~The existing "link an already-registered independent driver by email" flow is untouched — it remains the correct path for a driver who signed up on their own and now wants to join a company's roster. This feature adds a second, parallel path for company-originated drivers; it does not replace the first one.~~
 
 ## Goals
 
@@ -31,7 +33,7 @@ The existing "link an already-registered independent driver by email" flow is un
 - [ ] On success, a new `User` (role `DRIVER`) + `Account` (credential, hashed temp password) + `DriverProfile` (with `companyId` already set) are created, and — if a vehicle was picked — a `DriverVehicleAssignment` row links the two.
 - [ ] The admin sees the driver's email and the generated temp password once, with a way to copy it, and the roster/fleet views refresh to reflect the new driver.
 - [ ] The new driver can sign in with the temp password and is redirected to a forced password-change screen before reaching the dashboard; after changing their password, they land on the normal driver dashboard and the temp password no longer works.
-- [ ] The existing "link independent driver by email" form and its endpoint continue to work exactly as before, unmodified in behavior.
+- [x] ~~The existing "link independent driver by email" form and its endpoint continue to work exactly as before, unmodified in behavior.~~ Superseded: that form (`CompanyDriverRoster`) and its endpoint's `POST` handler are removed entirely per the updated decision above.
 - [ ] `pnpm lint`, `pnpm typecheck`, and `pnpm build` all pass after the change.
 
 ## Assumptions

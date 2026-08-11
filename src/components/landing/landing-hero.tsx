@@ -32,45 +32,49 @@ export function LandingHero() {
 
   return (
     <section className="relative overflow-hidden border-b border-line bg-ink">
+      {/* Two stacked backdrops rather than one: the grid is tinted from
+          `currentColor` so it has to sit on a text-colored element, while the
+          warm wash is a fixed accent tint that must not pick that tint up. */}
       <div
         aria-hidden="true"
-        className="landing-grid pointer-events-none absolute inset-0"
+        className="pointer-events-none absolute inset-0 bg-gradient-to-b from-accent/[0.07] to-ink"
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -top-40 -right-32 h-[30rem] w-[30rem] rounded-full bg-accent/25 blur-[130px]"
+        className="landing-grid pointer-events-none absolute inset-0 text-paper opacity-60"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -top-40 -right-32 h-[30rem] w-[30rem] rounded-full bg-accent/15 blur-[130px]"
       />
 
-      <div className="relative mx-auto grid max-w-6xl gap-14 px-5 pt-16 pb-20 sm:px-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:pt-24 lg:pb-28">
-        <div>
-          <p className="animate-rise flex items-center gap-3 text-[0.6875rem] font-semibold tracking-[0.24em] text-accent uppercase">
-            <span aria-hidden="true" className="h-px w-8 bg-accent sm:w-12" />
+      <div className="relative mx-auto grid max-w-6xl gap-12 px-5 pt-14 pb-20 sm:px-8 lg:grid-cols-[1fr_26rem] lg:items-start lg:pt-20 lg:pb-24">
+        <div className="lg:pt-6">
+          <p className="animate-rise inline-flex items-center gap-2 rounded-full bg-accent/10 px-3 py-1.5 text-[0.6875rem] font-semibold tracking-[0.14em] text-accent uppercase">
             Commercial freight &amp; cargo
           </p>
 
-          <h1 className="animate-rise [animation-delay:120ms] mt-5 font-display text-[clamp(3.25rem,11vw,7.5rem)] leading-[0.85] tracking-[0.01em] text-paper uppercase">
-            Move anything
-            <br />
-            across the{" "}
+          <h1 className="animate-rise [animation-delay:120ms] mt-6 max-w-[15ch] font-display text-[clamp(2.5rem,6vw,3.5rem)] leading-[1.05] font-semibold tracking-[-0.025em] text-paper">
+            Move anything across the{" "}
             <span className="relative inline-block text-accent">
               city
               <span
                 aria-hidden="true"
-                className="animate-wipe [animation-delay:900ms] absolute right-0 -bottom-1 left-0 h-1.5 origin-left bg-accent"
+                className="animate-wipe [animation-delay:900ms] absolute right-0 -bottom-0.5 left-0 h-[0.1875rem] origin-left rounded-full bg-accent/70"
               />
             </span>
           </h1>
 
-          <p className="animate-rise [animation-delay:260ms] mt-7 max-w-lg text-base leading-relaxed text-muted sm:text-lg">
+          <p className="animate-rise [animation-delay:260ms] mt-6 max-w-[46ch] text-base leading-relaxed text-muted sm:text-lg">
             Furniture, appliances, full relocations, industrial cargo. Set the
             route, pick the truck that carries the load, and get a price before
             you book — then watch a nearby driver move it, door to door.
           </p>
 
-          <div className="animate-rise [animation-delay:380ms] mt-9 flex flex-wrap items-center gap-3">
+          <div className="animate-rise [animation-delay:380ms] mt-8 flex flex-wrap items-center gap-3">
             <Link
               href="/sign-up"
-              className="group inline-flex items-center gap-3 bg-accent px-7 py-3.5 font-display text-2xl leading-none tracking-[0.06em] text-ink uppercase transition-transform hover:-translate-y-0.5"
+              className="group inline-flex items-center gap-2.5 rounded-lg bg-accent px-6 py-3.5 text-[0.9375rem] leading-none font-semibold text-ink transition-transform hover:-translate-y-0.5"
             >
               Get started
               <span
@@ -82,21 +86,21 @@ export function LandingHero() {
             </Link>
             <Link
               href="/sign-in"
-              className="inline-flex items-center border border-line px-7 py-3.5 font-display text-2xl leading-none tracking-[0.06em] text-paper uppercase transition-colors hover:border-accent hover:text-accent"
+              className="inline-flex items-center rounded-lg border border-line px-6 py-3.5 text-[0.9375rem] leading-none font-semibold text-paper transition-colors hover:border-accent hover:text-accent"
             >
               Sign in
             </Link>
           </div>
 
-          <dl className="animate-rise [animation-delay:460ms] mt-12 grid max-w-lg grid-cols-3 gap-px border border-line bg-line">
+          <dl className="animate-rise [animation-delay:460ms] mt-10 flex flex-wrap gap-x-10 gap-y-6 border-t border-line pt-7">
             {heroStats.map((stat) => (
-              <div key={stat.label} className="bg-ink px-4 py-4 sm:px-5">
+              <div key={stat.label}>
                 <dt className="sr-only">{stat.label}</dt>
                 <dd>
-                  <span className="block font-display text-3xl leading-none text-accent sm:text-4xl">
+                  <span className="block font-price text-[1.625rem] leading-none font-semibold tracking-[-0.02em] text-paper">
                     {stat.value}
                   </span>
-                  <span className="mt-2 block text-[0.625rem] font-semibold tracking-[0.16em] text-muted uppercase">
+                  <span className="mt-2 block text-[0.8125rem] text-muted">
                     {stat.label}
                   </span>
                 </dd>
@@ -105,7 +109,12 @@ export function LandingHero() {
           </dl>
         </div>
 
-        <LandingQuoteCalculator />
+        {/* The anchor lives on the wrapper, not inside the calculator, so the
+            category tiles elsewhere on the page can scroll the whole card into
+            view clear of the sticky header. */}
+        <div id="price-a-load" className="scroll-mt-24">
+          <LandingQuoteCalculator />
+        </div>
       </div>
     </section>
   );

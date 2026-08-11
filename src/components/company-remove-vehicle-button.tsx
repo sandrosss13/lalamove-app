@@ -16,13 +16,18 @@ import { useRouter } from "next/navigation";
  * The removal is irreversible — the photos go with it — so it is confirmed with
  * a second click rather than a native dialog, keeping the interaction inline
  * with the rest of the page.
+ *
+ * `onSuccess` is optional and fires only after a successful removal, so a host
+ * that renders this inside a drawer can close it and raise a toast.
  */
 export function CompanyRemoveVehicleButton({
   vehicleId,
   plateNumber,
+  onSuccess,
 }: {
   vehicleId: string;
   plateNumber: string;
+  onSuccess?: () => void;
 }) {
   const router = useRouter();
   const [confirming, setConfirming] = useState(false);
@@ -55,6 +60,13 @@ export function CompanyRemoveVehicleButton({
 
       // Server component re-renders without the deleted vehicle.
       router.refresh();
+      try {
+        onSuccess?.();
+      } catch {
+        // A bug in the caller's callback must not be reported as this
+        // component's own failure: the DELETE succeeded and the refresh already
+        // ran, so surfacing a network error here would be a lie.
+      }
     } catch {
       setError("Network error. Please check your connection and try again.");
       setConfirming(false);

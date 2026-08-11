@@ -1,22 +1,28 @@
 import type { Metadata } from "next";
-import { Archivo, Bebas_Neue } from "next/font/google";
-import Link from "next/link";
+import { IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
 import "./globals.css";
-import { AuthStatus } from "@/components/auth-status";
+import { AuthStatus, HeaderBrandLink } from "@/components/auth-status";
 
 // Exposed as CSS variables only (never applied to `body`), so these are opt-in
-// per route via the `font-display` / `font-body` utilities.
-const archivo = Archivo({
+// per route via the `font-display` / `font-body` / `font-ops` utilities. Both
+// the landing page's headings and its body copy are the same family
+// (IBM Plex Sans), differentiated by weight rather than by a separate
+// display face.
+const ibmPlexSans = IBM_Plex_Sans({
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
   display: "swap",
-  variable: "--font-archivo",
+  variable: "--font-ibm-plex-sans",
 });
 
-const bebasNeue = Bebas_Neue({
+// Used for numeric data (prices, dates, IDs) where tabular alignment matters —
+// the ops dashboard's regular text and the landing page's body/display text
+// both stay on their own sans stacks; only figures opt into this one.
+const ibmPlexMono = IBM_Plex_Mono({
   subsets: ["latin"],
-  weight: "400",
+  weight: ["400", "500", "600"],
   display: "swap",
-  variable: "--font-bebas-neue",
+  variable: "--font-ibm-plex",
 });
 
 export const metadata: Metadata = {
@@ -31,12 +37,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${archivo.variable} ${bebasNeue.variable}`}>
+    <html
+      lang="en"
+      className={`${ibmPlexSans.variable} ${ibmPlexMono.variable}`}
+    >
       <body>
         <header className="flex items-center justify-between border-b px-6 py-3">
-          <Link href="/" className="font-bold">
-            Lalamove Clone
-          </Link>
+          <HeaderBrandLink />
           <AuthStatus />
         </header>
         {children}

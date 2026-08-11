@@ -34,9 +34,16 @@ export function AuthStatus() {
         <span>
           Signed in as {name} ({role})
         </span>
-        <Link href="/home" className="font-medium hover:opacity-70">
-          Home page
-        </Link>
+        {/*
+          `/home` is client-only under the merchant/client host split, and has
+          no merchant-facing equivalent — drivers and companies get "Dashboard"
+          (rendered right below) as their landing destination instead.
+        */}
+        {isClient ? (
+          <Link href="/home" className="font-medium hover:opacity-70">
+            Home page
+          </Link>
+        ) : null}
         <Link
           href={isClient ? "/account" : "/dashboard"}
           className="font-medium hover:opacity-70"
@@ -63,5 +70,27 @@ export function AuthStatus() {
         Sign up
       </Link>
     </div>
+  );
+}
+
+/**
+ * The header wordmark. A plain `<Link href="/">` would be wrong for a
+ * signed-in driver/company on the merchant host: `/` is client-only under the
+ * merchant/client host split (see `src/middleware.ts`), so clicking it would
+ * get redirected to the client host, where their merchant-host session cookie
+ * doesn't apply — looking like an unexpected sign-out. Route a signed-in
+ * DRIVER/COMPANY to `/dashboard` instead (always same-host, since a merchant
+ * session only ever exists on the merchant host); every other case (CLIENT, or
+ * signed out) keeps the original destination.
+ */
+export function HeaderBrandLink() {
+  const { data: session } = useSession();
+  const isMerchantUser =
+    session?.user.role === "DRIVER" || session?.user.role === "COMPANY";
+
+  return (
+    <Link href={isMerchantUser ? "/dashboard" : "/"} className="font-bold">
+      Lalamove Clone
+    </Link>
   );
 }
