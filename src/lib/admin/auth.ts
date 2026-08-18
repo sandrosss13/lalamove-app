@@ -23,6 +23,18 @@ import { prisma } from "@/lib/prisma";
  */
 export const ADMIN_SIGN_IN_PATH = "/admin/sign-in";
 
+/**
+ * Where a staff member still holding the temporary password their `SUPER_ADMIN`
+ * relayed to them out-of-band is sent, until they replace it.
+ *
+ * Like the sign-in page, this route deliberately lives *outside*
+ * `src/app/admin/layout.tsx` (under the `(admin-sign-in)` route group) — the
+ * layout is what redirects here, so a page inside its subtree would loop. Kept
+ * next to `ADMIN_SIGN_IN_PATH` for the same reason that one is a constant: the
+ * guard that redirects here and the page that lives here must not drift.
+ */
+export const ADMIN_CHANGE_PASSWORD_PATH = "/admin/change-password";
+
 /** What `requireSystemUser()` hands back to an authorized caller. */
 export type SystemUserContext = {
   /**

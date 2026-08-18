@@ -70,9 +70,9 @@ graph TD
 - [x] [task-02-admin-auth-and-shell](./tasks/task-02-admin-auth-and-shell.md) — Admin auth guard, sign-in, and back-office shell
 
 ### Wave 3
-- [ ] [task-03-sales-analytics-dashboard](./tasks/task-03-sales-analytics-dashboard.md) — Sales analytics dashboard + Excel export
-- [ ] [task-04-user-management-clients-sellers](./tasks/task-04-user-management-clients-sellers.md) — User management — Clients and Sellers
-- [ ] [task-05-user-management-system-users](./tasks/task-05-user-management-system-users.md) — User management — System Users
+- [x] [task-03-sales-analytics-dashboard](./tasks/task-03-sales-analytics-dashboard.md) — Sales analytics dashboard + Excel export
+- [x] [task-04-user-management-clients-sellers](./tasks/task-04-user-management-clients-sellers.md) — User management — Clients and Sellers
+- [x] [task-05-user-management-system-users](./tasks/task-05-user-management-system-users.md) — User management — System Users
 
 ### Wave 4
 - [ ] [task-06-content-banners](./tasks/task-06-content-banners.md) — Content management — Banners
