@@ -119,6 +119,31 @@ function parseCreateDriverProfileBody(
 }
 
 /**
+ * GET /api/driver-profile — return the signed-in driver's profile, or `null`
+ * if they haven't completed it yet (a valid state, not an error). Only DRIVER
+ * users may call this.
+ */
+export async function GET(request: Request): Promise<NextResponse> {
+  const session = await auth.api.getSession({ headers: request.headers });
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+  }
+
+  if (session.user.role !== "DRIVER") {
+    return NextResponse.json(
+      { error: "Only drivers have a driver profile." },
+      { status: 403 },
+    );
+  }
+
+  const driverProfile = await prisma.driverProfile.findUnique({
+    where: { userId: session.user.id },
+  });
+
+  return NextResponse.json(driverProfile, { status: 200 });
+}
+
+/**
  * POST /api/driver-profile — create or update the signed-in driver's profile.
  * Only DRIVER users may call this. The write is an upsert keyed on the user id
  * so retries and re-submits are idempotent rather than an error.
