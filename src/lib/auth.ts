@@ -3,6 +3,7 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { APIError, createAuthMiddleware, isAPIError } from "better-auth/api";
 
 import {
+  ADMIN_TRUSTED_ORIGINS,
   audienceForHost,
   IS_HOST_SPLIT_ENABLED,
   MERCHANT_TRUSTED_ORIGINS,
@@ -19,11 +20,13 @@ import { prisma } from "@/lib/prisma";
  * sign-in/sign-up broke on aliases other than the one `BETTER_AUTH_URL`
  * happened to be set to.
  *
- * `MERCHANT_TRUSTED_ORIGINS` (from `@/lib/host`) is appended for exactly the
- * same reason: under the merchant/client host split the merchant subdomain is
- * a distinct origin, so without it every `POST /api/auth/*` issued from the
- * merchant host would be rejected with `INVALID_ORIGIN`. It is an empty array
- * while the split is disabled, making the spread a no-op.
+ * `MERCHANT_TRUSTED_ORIGINS` and `ADMIN_TRUSTED_ORIGINS` (from `@/lib/host`)
+ * are appended for exactly the same reason: under their respective host splits
+ * the merchant and admin subdomains are distinct origins, so without them
+ * every `POST /api/auth/*` issued from those hosts would be rejected with
+ * `INVALID_ORIGIN` — which for the admin host would mean staff could never
+ * sign in. Each is an empty array while its own split is disabled, making the
+ * spread a no-op.
  */
 const TRUSTED_ORIGINS = [
   "http://localhost:3000",
@@ -47,7 +50,9 @@ const SIGN_UP_EMAIL_PATH = "/sign-up/email";
  *
  * The `role` additional field mirrors the `UserRole` Prisma enum. It is marked
  * `input: true` so a client can set it explicitly at sign-up (CLIENT, DRIVER, or
- * COMPANY); the Prisma column carries a default of CLIENT as a safety net.
+ * COMPANY); the Prisma column carries a default of CLIENT as a safety net. The
+ * enum's fourth member, ADMIN, is explicitly *not* settable this way — the
+ * sign-up hook below rejects it outright.
  *
  * `mustChangePassword` backs the forced-password-reset flow for drivers whose
  * account was created for them by a company admin with a temporary password.
@@ -66,7 +71,11 @@ export const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
-  trustedOrigins: [...TRUSTED_ORIGINS, ...MERCHANT_TRUSTED_ORIGINS],
+  trustedOrigins: [
+    ...TRUSTED_ORIGINS,
+    ...MERCHANT_TRUSTED_ORIGINS,
+    ...ADMIN_TRUSTED_ORIGINS,
+  ],
   emailAndPassword: {
     enabled: true,
   },
@@ -88,14 +97,28 @@ export const auth = betterAuth({
   },
   hooks: {
     /**
-     * Server-side backstop for the merchant/client host split: reject a
-     * sign-up whose role doesn't belong on the requesting host. The
-     * client-side form already only offers the role-appropriate options per
-     * host, but `role` is `input: true` on the `User` additionalField, so a
-     * hand-rolled `POST /api/auth/sign-up/email` could otherwise still create
-     * a DRIVER account from the client host.
+     * Two guards on public sign-up, in order of how absolute they are.
      *
-     * Must no-op when `ctx.request` is absent: company-driven driver
+     * 1. No account may ever self-grant `role: "ADMIN"`. `role` is
+     *    `input: true` on the `User` additionalField, so `POST
+     *    /api/auth/sign-up/email` accepts whatever role the body carries —
+     *    which, with `UserRole.ADMIN` now in the enum, would otherwise let
+     *    anyone hand-roll themselves a back-office account. Internal staff
+     *    accounts are created only by a `SUPER_ADMIN` through a trusted
+     *    server-side call, never through this endpoint. Checked before every
+     *    other condition (including the `ctx.request` bail-out below) so it
+     *    holds for direct server-side `auth.api.signUpEmail` calls too, and
+     *    regardless of either host split's state.
+     *
+     * 2. Server-side backstop for the merchant/client host split: reject a
+     *    sign-up whose role doesn't belong on the requesting host. The
+     *    client-side form already only offers the role-appropriate options per
+     *    host, but the same `input: true` looseness means a hand-rolled
+     *    request could otherwise still create a DRIVER account from the client
+     *    host. The admin host is folded in here as "no account of any role",
+     *    since it hosts no sign-up surface at all.
+     *
+     * (2) must no-op when `ctx.request` is absent: company-driven driver
      * registration (`src/app/api/logistics-company/drivers/register/route.ts`)
      * calls `auth.api.signUpEmail` directly without forwarding the incoming
      * request's headers — deliberately, so creating a driver doesn't clobber
@@ -108,8 +131,13 @@ export const auth = betterAuth({
         return;
       }
 
-      if (!IS_HOST_SPLIT_ENABLED) {
-        return;
+      const role =
+        (ctx.body as { role?: string } | undefined)?.role ?? "CLIENT";
+
+      if (role === "ADMIN") {
+        throw new APIError("FORBIDDEN", {
+          message: "Admin accounts cannot be created through sign-up.",
+        });
       }
 
       if (!ctx.request) {
@@ -119,14 +147,26 @@ export const auth = betterAuth({
       // `x-forwarded-host` is what a proxy (Vercel) sets to the hostname the
       // browser actually asked for; `host` is the direct-connection case
       // (local dev). `audienceForHost` only ever matches this against the
-      // exact configured merchant host, so a spoofed value can at worst
+      // exact configured merchant/admin hosts, so a spoofed value can at worst
       // classify the request as CLIENT — the more restrictive side.
       const host =
         ctx.request.headers.get("x-forwarded-host") ??
         ctx.request.headers.get("host");
       const audience = audienceForHost(host);
-      const role =
-        (ctx.body as { role?: string } | undefined)?.role ?? "CLIENT";
+
+      // The admin host serves the back office only; it has no sign-up page and
+      // must never mint an account of any role. Checked outside the host-split
+      // bail-out below because the admin split is independent of the merchant
+      // one — it can be enabled while `NEXT_PUBLIC_MERCHANT_HOST` is unset.
+      if (audience === "ADMIN") {
+        throw new APIError("FORBIDDEN", {
+          message: "Accounts cannot be created from the admin host.",
+        });
+      }
+
+      if (!IS_HOST_SPLIT_ENABLED) {
+        return;
+      }
 
       if (audience === "CLIENT" && role !== "CLIENT") {
         throw new APIError("FORBIDDEN", {

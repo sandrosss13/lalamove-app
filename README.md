@@ -52,6 +52,25 @@ locally:
    restart `pnpm dev` to disable the split entirely and confirm the app
    reverts to its single-host behavior.
 
+## Local development: admin subdomain
+
+The internal back office at `/admin` has its own, completely independent
+host split, controlled by `NEXT_PUBLIC_ADMIN_HOST` (see `env.example`).
+Leave it unset and `/admin` stays reachable on whatever host serves the app,
+gated only by the `ADMIN` role guard — no setup needed. Set it to
+`admin.localhost:3000` and the back office moves to
+`http://admin.localhost:3000/admin`, with every other path on that host
+bouncing back to the main one. The same Safari `/etc/hosts` caveat as above
+applies (`127.0.0.1 admin.localhost`).
+
+Either split can be enabled without the other. The value must not equal the
+client host or `NEXT_PUBLIC_MERCHANT_HOST`; if it does, the admin split
+disables itself and logs an error rather than serving an ambiguous host.
+
+Staff accounts cannot be created through sign-up — `POST
+/api/auth/sign-up/email` rejects `role: "ADMIN"` outright — so the first
+`SystemUserProfile` has to be created server-side.
+
 ## Scripts
 
 | Script              | What it does               |

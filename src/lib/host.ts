@@ -1,5 +1,5 @@
 /**
- * Host-based merchant/client split.
+ * Host-based audience split (merchant/client, plus the admin back office).
  *
  * The app serves two audiences on two different hostnames: a "merchant" host
  * for DRIVER/COMPANY sign-in, sign-up and the ops dashboard, and every other
@@ -19,6 +19,13 @@
  *   current `*.vercel.app` deployment has no subdomain to split against, so
  *   "unset" has to be a safe, fully-functional state, not a broken one.
  * - Set to an exact hostname → the split is on for that hostname only.
+ *
+ * The internal back office adds a second, fully independent split of exactly
+ * the same shape: `NEXT_PUBLIC_ADMIN_HOST` names the `admin.` host that serves
+ * `/admin/**` and nothing else. It is read, validated and consumed the same
+ * way, but on its own axis — either split can be enabled without the other,
+ * and leaving `NEXT_PUBLIC_ADMIN_HOST` unset keeps `/admin` reachable
+ * path-based on the main host, which is the zero-config default.
  *
  * A `startsWith("merchant.")`-style prefix heuristic was deliberately
  * rejected: no subdomain exists in production today, so a heuristic would
@@ -56,11 +63,15 @@
  */
 
 /**
- * Which audience a host serves. `"BOTH"` only ever occurs while the split is
- * disabled, where every path is open to every role exactly as it was before
- * this feature existed.
+ * Which audience a host serves. `"BOTH"` only ever occurs while the merchant
+ * split is disabled, where every path is open to every role exactly as it was
+ * before that feature existed.
+ *
+ * `"ADMIN"` is an orthogonal dimension: it is decided by its own env var
+ * (`NEXT_PUBLIC_ADMIN_HOST`) and can be returned whether the merchant split is
+ * on or off, so it never displaces `"BOTH"` for the other three roles.
  */
-export type Audience = "CLIENT" | "MERCHANT" | "BOTH";
+export type Audience = "CLIENT" | "MERCHANT" | "ADMIN" | "BOTH";
 
 /**
  * Read once at module load. `NEXT_PUBLIC_` env vars are inlined at build
@@ -78,6 +89,19 @@ export type Audience = "CLIENT" | "MERCHANT" | "BOTH";
  */
 const RAW_MERCHANT_HOST =
   process.env.NEXT_PUBLIC_MERCHANT_HOST?.trim().toLowerCase() || null;
+
+/**
+ * The admin back office's own hostname, read and normalised exactly like
+ * `RAW_MERCHANT_HOST` above (same trim/lowercase reasoning — see that comment).
+ *
+ * Deliberately a *separate* tri-state var rather than a mode of the merchant
+ * one: the two splits are independent, so the back office can be moved onto
+ * its own subdomain without also committing to a merchant subdomain, and
+ * vice versa. Unset (the default) keeps `/admin` reachable path-based on
+ * whatever host serves it today, with zero configuration.
+ */
+const RAW_ADMIN_HOST =
+  process.env.NEXT_PUBLIC_ADMIN_HOST?.trim().toLowerCase() || null;
 
 /**
  * Resolves the client host's origin from `BETTER_AUTH_URL`, falling back to
@@ -127,14 +151,52 @@ export const MERCHANT_HOST = MISCONFIGURED ? null : RAW_MERCHANT_HOST;
 /** Whether the merchant/client split is active at all. */
 export const IS_HOST_SPLIT_ENABLED = MERCHANT_HOST !== null;
 
+// Same fail-safe as MISCONFIGURED above, widened to both other hosts: an admin
+// host equal to the client host would 307-redirect every non-/admin path to
+// itself forever, and one equal to the merchant host would make a single
+// hostname claim two mutually exclusive audiences (whichever check ran first
+// would win, silently). Disable the admin split instead of shipping either.
+const ADMIN_MISCONFIGURED =
+  RAW_ADMIN_HOST !== null &&
+  (RAW_ADMIN_HOST === CLIENT_HOST.toLowerCase() ||
+    (RAW_MERCHANT_HOST !== null && RAW_ADMIN_HOST === RAW_MERCHANT_HOST));
+
+if (ADMIN_MISCONFIGURED) {
+  console.error(
+    `[host] NEXT_PUBLIC_ADMIN_HOST ("${RAW_ADMIN_HOST}") collides with the ` +
+      `client host derived from BETTER_AUTH_URL ("${CLIENT_HOST}") or with ` +
+      "NEXT_PUBLIC_MERCHANT_HOST. Disabling the admin host split to avoid a " +
+      "redirect loop / ambiguous audience — fix one of these values.",
+  );
+}
+
 /**
- * Classifies an incoming request's host. `"BOTH"` when the split is
+ * The admin host's exact hostname, or `null` when the admin split is disabled
+ * or misconfigured.
+ */
+export const ADMIN_HOST = ADMIN_MISCONFIGURED ? null : RAW_ADMIN_HOST;
+
+/**
+ * Whether the admin host split is active. Independent of
+ * `IS_HOST_SPLIT_ENABLED` — either split can be on while the other is off.
+ */
+export const IS_ADMIN_HOST_ENABLED = ADMIN_HOST !== null;
+
+/**
+ * Classifies an incoming request's host. `"BOTH"` when the merchant split is
  * disabled (today's behavior — every audience is allowed). Any hostname
  * that isn't an exact match for `MERCHANT_HOST` falls back to `"CLIENT"`,
  * never `"MERCHANT"` — the least-privileged, public-facing surface is the
  * safe default for an unrecognized host.
  */
 export function audienceForHost(host: string | null | undefined): Audience {
+  // Checked first and outside the `IS_HOST_SPLIT_ENABLED` bail-out below,
+  // which only gates the merchant dimension: the admin split has its own env
+  // var and must classify correctly whether or not the merchant split is on.
+  if (host && ADMIN_HOST && host.toLowerCase() === ADMIN_HOST) {
+    return "ADMIN";
+  }
+
   if (!IS_HOST_SPLIT_ENABLED) {
     return "BOTH";
   }
@@ -193,4 +255,32 @@ export function merchantOrigin(): string | null {
  */
 export const MERCHANT_TRUSTED_ORIGINS: string[] = MERCHANT_HOST
   ? [`http://${MERCHANT_HOST}`, `https://${MERCHANT_HOST}`]
+  : [];
+
+/**
+ * The admin host's origin, or `null` when the admin split is disabled.
+ * Mirrors `merchantOrigin()` exactly, including its client-side protocol
+ * resolution — see that function's comment for why `window.location.protocol`
+ * is the only reliable source in the browser.
+ */
+export function adminOrigin(): string | null {
+  if (!ADMIN_HOST) {
+    return null;
+  }
+
+  const protocol =
+    typeof window !== "undefined" ? window.location.protocol : CLIENT_PROTOCOL;
+
+  return `${protocol}//${ADMIN_HOST}`;
+}
+
+/**
+ * `trustedOrigins` entries for the admin host, both schemes — mirrors
+ * `MERCHANT_TRUSTED_ORIGINS` for the same reason: the admin subdomain is a
+ * distinct origin, so without these every `POST /api/auth/*` from the admin
+ * sign-in page would be rejected with `INVALID_ORIGIN`. Empty (and therefore
+ * a no-op when spread) while the admin split is disabled.
+ */
+export const ADMIN_TRUSTED_ORIGINS: string[] = ADMIN_HOST
+  ? [`http://${ADMIN_HOST}`, `https://${ADMIN_HOST}`]
   : [];

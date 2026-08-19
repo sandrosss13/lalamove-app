@@ -7,11 +7,10 @@ import { signUp } from "@/lib/auth-client";
 import { GEORGIAN_CITY_OPTIONS } from "@/lib/georgian-cities";
 import { merchantOrigin, type Audience } from "@/lib/host";
 
-type Role = "CLIENT" | "DRIVER" | "COMPANY";
+type Role = "CLIENT" | "DRIVER";
 // Covers every account type across clients and drivers. Clients only ever set
 // INDIVIDUAL or BUSINESS; drivers can additionally be an
-// INDIVIDUAL_ENTREPRENEUR. A logistics company has no account-type variants and
-// so never sets one.
+// INDIVIDUAL_ENTREPRENEUR.
 type AccountType = "INDIVIDUAL" | "INDIVIDUAL_ENTREPRENEUR" | "BUSINESS";
 
 /** Human-readable label for an account type, used in the step 3 heading. */
@@ -25,7 +24,6 @@ const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
 const ROLE_HEADINGS: Record<Role, string> = {
   CLIENT: "Sign up as a client",
   DRIVER: "Sign up as a driver",
-  COMPANY: "Sign up as a logistics company",
 };
 
 /**
@@ -49,15 +47,15 @@ function roleHeading(pickedRole: Role, currentAudience: Audience): string {
  * profile writes, the markup — is identical for every audience; only which
  * roles step 1 offers and the post-success destination differ:
  *
- * - `"BOTH"` (split disabled): the full three-role wizard, exactly as it
- *   behaved before the host split existed.
+ * - `"BOTH"` (split disabled): the full two-role wizard, offering both CLIENT
+ *   and DRIVER.
  * - `"CLIENT"`: step 1 offers two cards — Client, which continues the wizard
  *   here, and Driver, which is a cross-origin link to the merchant host's own
  *   sign-up page rather than a role this host can create.
- * - `"MERCHANT"`: only the DRIVER (labelled "Individual Driver" here) and
- *   COMPANY roles are offered, and a newly created account lands on
- *   `/dashboard` rather than `/`, which is a client-host path the merchant
- *   host would immediately bounce it off.
+ * - `"MERCHANT"`: only the DRIVER role (labelled "Individual Driver" here) is
+ *   offered, and a newly created account lands on `/dashboard` rather than `/`,
+ *   which is a client-host path the merchant host would immediately bounce it
+ *   off.
  */
 export function SignUpForm({ audience }: { audience: Audience }) {
   const router = useRouter();
@@ -68,8 +66,7 @@ export function SignUpForm({ audience }: { audience: Audience }) {
   // Client (which continues here) alongside a link out to the merchant host.
   const [role, setRole] = useState<Role | null>(null);
   // Null until the user picks an account type in step 2; picking one reveals
-  // the form in step 3. Stays null for COMPANY, which has no account-type
-  // variants and therefore skips step 2 entirely.
+  // the form in step 3.
   const [accountType, setAccountType] = useState<AccountType | null>(null);
   const [city, setCity] = useState<string>("");
   const [firstName, setFirstName] = useState("");
@@ -82,20 +79,21 @@ export function SignUpForm({ audience }: { audience: Audience }) {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    // The form only renders in step 3, so `role` is always set here — and so is
-    // `accountType` for every role except COMPANY, which has none. These guards
-    // narrow the nullable state and are a defensive no-op in practice.
+    // The form only renders in step 3, which every role reaches by way of
+    // steps 1 and 2, so both `role` and `accountType` are always set here.
+    // These guards narrow the nullable state and are a defensive no-op in
+    // practice.
     if (!role) return;
-    if (role !== "COMPANY" && !accountType) return;
+    if (!accountType) return;
     setError(null);
     setLoading(true);
 
     // Better Auth requires a `name`, but the form never shows a bare name
     // field — the identity fields are now identical across roles, so we derive
-    // the name uniformly: the company name for a logistics company or a
-    // business account, the full name otherwise.
+    // the name uniformly: the company name for a business account, the full
+    // name otherwise.
     const resolvedName =
-      role === "COMPANY" || accountType === "BUSINESS"
+      accountType === "BUSINESS"
         ? companyName
         : `${firstName} ${lastName}`.trim();
 
@@ -171,47 +169,25 @@ export function SignUpForm({ audience }: { audience: Audience }) {
       }
     }
 
-    // Logistics companies get a LogisticsCompany row instead of a client or
-    // driver profile. Same failure handling as the branches above.
-    if (role === "COMPANY") {
-      const response = await fetch("/api/logistics-company", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ companyName, vatId, phone, city }),
-      });
-
-      if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as {
-          error?: string;
-        } | null;
-        setError(
-          payload?.error ??
-            "Could not save your company details. Please try again.",
-        );
-        setLoading(false);
-        return;
-      }
-    }
-
     setLoading(false);
-    // The merchant host doesn't serve `/` — sending a freshly created driver or
-    // company account there would bounce it straight back off the host it just
-    // signed up on. Every other audience owns `/`.
+    // The merchant host doesn't serve `/` — sending a freshly created driver
+    // account there would bounce it straight back off the host it just signed
+    // up on. Every other audience owns `/`.
     router.push(audience === "MERCHANT" ? "/dashboard" : "/");
     router.refresh();
   }
 
   // Step 1: no role chosen yet — present the portals as large cards. Which
-  // cards appear depends on the audience: `"BOTH"` sees all three (unchanged),
-  // the client host sees Client + a link out to the merchant host's driver
-  // sign-up, and the merchant host sees the two roles it can actually create.
+  // cards appear depends on the audience: `"BOTH"` sees both roles, the client
+  // host sees Client + a link out to the merchant host's driver sign-up, and
+  // the merchant host sees only Driver, the one role it can actually create.
   if (role === null) {
     return (
       <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 p-8">
         <h1 className="text-2xl font-bold">Create an account</h1>
 
         <div className="flex flex-col gap-4">
-          {/* The merchant host only ever creates DRIVER and COMPANY accounts. */}
+          {/* The merchant host only ever creates DRIVER accounts. */}
           {audience === "MERCHANT" ? null : (
             <button
               type="button"
@@ -248,26 +224,12 @@ export function SignUpForm({ audience }: { audience: Audience }) {
               className="rounded border p-6 text-left hover:opacity-70"
             >
               <span className="block font-medium">
-                {/* The merchant host distinguishes this card from the
-                    Logistics Company one sitting right below it. */}
+                {/* The merchant host keeps the fuller label its sign-up
+                    headings are written around (see `roleHeading`). */}
                 {audience === "MERCHANT" ? "Individual Driver" : "Driver"}
               </span>
               <span className="block text-sm opacity-70">
                 Deliver packages and earn
-              </span>
-            </button>
-          )}
-
-          {/* Company registration lives on the merchant host only. */}
-          {audience === "CLIENT" ? null : (
-            <button
-              type="button"
-              onClick={() => setRole("COMPANY")}
-              className="rounded border p-6 text-left hover:opacity-70"
-            >
-              <span className="block font-medium">Logistics Company</span>
-              <span className="block text-sm opacity-70">
-                Run a fleet and dispatch your own drivers
               </span>
             </button>
           )}
@@ -278,9 +240,8 @@ export function SignUpForm({ audience }: { audience: Audience }) {
 
   // Step 2: a role is chosen but no account type yet — present the account
   // types as large cards in the same style as step 1. Clients see two options;
-  // drivers see three (adding Individual Entrepreneur). Companies have no
-  // account-type variants, so they skip straight to the form in step 3.
-  if (accountType === null && role !== "COMPANY") {
+  // drivers see three (adding Individual Entrepreneur).
+  if (accountType === null) {
     return (
       <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 p-8">
         <button
@@ -333,17 +294,14 @@ export function SignUpForm({ audience }: { audience: Audience }) {
     );
   }
 
-  // Step 3: role (and, for clients and drivers, account type) is chosen — show
-  // the identity form. The field shapes are identical across roles; drivers and
-  // companies additionally get a city select. A company skipped step 2, so its
-  // Back button returns to the role picker rather than the account-type picker.
+  // Step 3: both role and account type are chosen — show the identity form.
+  // The field shapes are identical across roles; drivers additionally get a
+  // city select.
   return (
     <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 p-8">
       <button
         type="button"
-        onClick={() =>
-          role === "COMPANY" ? setRole(null) : setAccountType(null)
-        }
+        onClick={() => setAccountType(null)}
         className="self-start text-sm hover:opacity-70"
       >
         ← Back
@@ -355,7 +313,7 @@ export function SignUpForm({ audience }: { audience: Audience }) {
       </h1>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        {role === "COMPANY" || accountType === "BUSINESS" ? (
+        {accountType === "BUSINESS" ? (
           <>
             <label className="flex flex-col gap-1 text-sm">
               Company name
@@ -439,7 +397,7 @@ export function SignUpForm({ audience }: { audience: Audience }) {
           />
         </label>
 
-        {role === "DRIVER" || role === "COMPANY" ? (
+        {role === "DRIVER" ? (
           <>
             <label className="flex flex-col gap-1 text-sm">
               City

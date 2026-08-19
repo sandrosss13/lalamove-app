@@ -26,6 +26,12 @@ model User {
   sessions           Session[]
   accounts           Account[]
 
+  // Account moderation, set by an admin from the back office. `isSuspended`
+  // alone gates login/API access; the other two are audit context, not logic.
+  isSuspended     Boolean   @default(false)
+  suspendedAt     DateTime?
+  suspendedReason String?
+
   // Delivery-domain relations. Named relations are required because `User`
   // participates in the `Order` model twice (as client and as driver).
   driverProfile    DriverProfile?
@@ -33,6 +39,14 @@ model User {
   logisticsCompany LogisticsCompany?
   orders           Order[]           @relation("ClientOrders")
   deliveries       Order[]           @relation("DriverDeliveries")
+
+  // Admin back-office relations. `systemUserProfile` exists only for internal
+  // staff (role ADMIN); the other two exist for any user — `auditLogs` records
+  // the actions a staff member took, `crmSurveyResponses` the surveys a
+  // customer answered.
+  systemUserProfile  SystemUserProfile?
+  auditLogs          AuditLog[]
+  crmSurveyResponses CrmSurveyResponse[]
 
   @@unique([email])
   @@map("user")
@@ -86,15 +100,19 @@ model Verification {
   @@map("verification")
 }
 
-/// Distinguishes the three kinds of Better Auth users in the app: the shipper
-/// placing orders, the driver fulfilling them, and the fleet operator that owns
-/// vehicles and dispatches orders to its own drivers.
+/// Distinguishes the kinds of Better Auth users in the app: the shipper placing
+/// orders, the driver fulfilling them, the fleet operator that owns vehicles and
+/// dispatches orders to its own drivers, and internal staff working the `/admin`
+/// back office. `ADMIN` is appended last on purpose — reordering an existing
+/// Postgres enum's values is a destructive migration, and existing rows already
+/// carry the first three.
 /// `input: true` on the `role` additional field lets sign-up set this explicitly;
 /// the CLIENT default keeps Better Auth's internal inserts safe when it is omitted.
 enum UserRole {
   CLIENT
   DRIVER
   COMPANY
+  ADMIN
 }
 
 /// Whether a client account represents an individual or a business.
@@ -405,6 +423,10 @@ model Order {
   vehicleId String?
   vehicle   Vehicle? @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
 
+  // Created only once a payment attempt exists for this order; a cash-on-
+  // delivery order settled off-platform may never have one.
+  payment Payment?
+
   inTransitAt    DateTime?
   completedAt    DateTime?
   // Total loading/unloading minutes reported at completion; only the part beyond
@@ -419,4 +441,326 @@ model Order {
   @@index([companyId])
   @@index([vehicleId])
   @@index([status])
+}
+
+// ---------------------------------------------------------------------------
+// Admin back office: RBAC and audit
+// ---------------------------------------------------------------------------
+
+/// Fixed set of internal-staff roles for the admin back office. Deliberately a
+/// closed enum rather than a dynamic permissions table — see
+/// specs/admin-back-office/requirements.md's Non-Goals for why. `SUPER_ADMIN`
+/// can do everything, including managing other System Users; the rest are
+/// scoped to the section their name implies.
+enum AdminRole {
+  SUPER_ADMIN
+  ANALYTICS
+  CONTENT_MANAGER
+  FINANCE_MANAGER
+  USER_MANAGER
+  CRM_MANAGER
+  SUPPORT
+}
+
+/// One row per internal-staff `User` (role `ADMIN`). Kept separate from `User`
+/// itself for the same reason `ClientProfile`/`DriverProfile` are separate:
+/// role-specific data stays off the base auth table. `isActive` is the kill
+/// switch a `SUPER_ADMIN` flips to revoke back-office access without deleting
+/// the underlying `User`/auth rows.
+model SystemUserProfile {
+  id        String    @id @default(cuid())
+  userId    String    @unique
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  adminRole AdminRole
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+/// Append-only record of admin actions, written by every create/update/delete
+/// mutation in `/admin`. `action` is a free-form dotted string agreed by
+/// convention across tasks, e.g. `"banner.create"`, `"promo_campaign.disable"`,
+/// `"system_user.deactivate"` — there is no enum because the set of actions
+/// grows with every admin feature and a migration per new action would be
+/// impractical. `metadata` carries whatever the specific action needs (old/new
+/// values, affected ids) as a debugging/compliance trail, not as query-critical
+/// data.
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String
+  actor      User     @relation(fields: [actorId], references: [id], onDelete: Cascade)
+  action     String
+  entityType String
+  entityId   String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([actorId])
+  @@index([entityType, entityId])
+}
+
+// ---------------------------------------------------------------------------
+// Admin back office: content management
+// ---------------------------------------------------------------------------
+
+/// Locales the admin back office manages content in. Deliberately just these
+/// two (see requirements.md's Assumptions) — add a value here and re-migrate
+/// if a third locale is ever needed.
+enum ContentLocale {
+  KA
+  EN
+}
+
+/// A promotional image slot the admin places on the public site. `placement`
+/// is a free-form key (not an enum) that the admin UI and the landing-page
+/// components agree on by convention, e.g. `"home_hero"`, `"home_secondary"` —
+/// this keeps adding a new placement a content change, not a schema change.
+model Banner {
+  id        String        @id @default(cuid())
+  title     String
+  locale    ContentLocale
+  imageUrl  String
+  linkUrl   String?
+  placement String
+  sortOrder Int           @default(0)
+  isActive  Boolean       @default(true)
+  startsAt  DateTime?
+  endsAt    DateTime?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([locale, placement, isActive])
+}
+
+/// Admin-authored standalone pages (Terms, Privacy, About, etc.). `slug` is
+/// the URL segment; unique per locale so the same slug can exist in both `ka`
+/// and `en` as separate rows.
+model StaticPage {
+  id          String        @id @default(cuid())
+  slug        String
+  locale      ContentLocale
+  title       String
+  bodyHtml    String
+  isPublished Boolean       @default(false)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@unique([slug, locale])
+}
+
+/// A single translated string. `namespace` groups keys the way i18n libraries
+/// conventionally do (e.g. `"common"`, `"booking"`, `"admin"`) so the admin UI
+/// can list translations grouped by area of the app instead of one flat list.
+model TranslationEntry {
+  id        String        @id @default(cuid())
+  namespace String
+  key       String
+  locale    ContentLocale
+  value     String
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@unique([namespace, key, locale])
+}
+
+/// Channel a `MessagingTemplate` is written for. Push is explicitly out of
+/// scope for this pass (see requirements.md).
+enum MessagingChannel {
+  EMAIL
+  SMS
+}
+
+/// Editable content for a transactional message (e.g. order confirmed, driver
+/// assigned, delivered, cancelled). `key` is the event/trigger identifier the
+/// order-lifecycle code looks up by convention (documented per-key in
+/// task-14, which wires actual sending) — e.g. `"order.confirmed"`,
+/// `"driver.assigned"`. `subject` is meaningful for `EMAIL` only and is left
+/// null for `SMS` rows. This task only creates the table; a later task builds
+/// the CRUD UI for template *content*, and another later task is what
+/// actually sends anything using this content.
+model MessagingTemplate {
+  id        String           @id @default(cuid())
+  key       String
+  channel   MessagingChannel
+  locale    ContentLocale
+  subject   String?
+  body      String
+  isActive  Boolean          @default(true)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  crmCampaigns CrmCampaign[]
+
+  @@unique([key, channel, locale])
+}
+
+/// One composable block of the public landing/home page (hero, vehicle types,
+/// how-it-works, FAQ, CTA, etc.), ordered by `sortOrder`. `type` identifies
+/// which landing component renders it (free-form key by convention, matching
+/// the existing component names under `src/components/landing/`, e.g.
+/// `"hero"`, `"vehicle_types"`, `"how_it_works"`, `"faq"`); `content` is
+/// arbitrary structured data specific to that type (headline/subtext for
+/// `"hero"`, a list of items for `"faq"`, etc.) since a fixed column shape
+/// can't fit every section type.
+model HomePageSection {
+  id        String        @id @default(cuid())
+  type      String
+  locale    ContentLocale
+  sortOrder Int           @default(0)
+  isActive  Boolean       @default(true)
+  content   Json
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([locale, isActive, sortOrder])
+}
+
+// ---------------------------------------------------------------------------
+// Admin back office: finances
+// ---------------------------------------------------------------------------
+
+/// Payment methods the platform can offer at checkout. `CASH` (cash on
+/// delivery) needs no gateway and is the safe default while gateway
+/// integration is still pending a provider decision — see action-required.md.
+enum PaymentMethodType {
+  CASH
+  CARD
+  BANK_TRANSFER
+}
+
+/// Admin-controlled on/off switch (plus non-secret config) per payment
+/// method. There is exactly one row per `PaymentMethodType` value; API keys
+/// and other secrets never live in `config` — those stay in environment
+/// variables, same as every other credential in this project.
+model PaymentMethodConfig {
+  id        String            @id @default(cuid())
+  type      PaymentMethodType @unique
+  isEnabled Boolean           @default(false)
+  config    Json?
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+/// One row per `Order` once a payment attempt exists. `provider` and
+/// `providerPaymentId` are left generic (plain strings, not an enum/FK to a
+/// specific gateway's SDK types) because the concrete provider is not yet
+/// chosen (see action-required.md) — a later task is what actually
+/// populates and transitions these rows.
+model Payment {
+  id                String        @id @default(cuid())
+  orderId           String        @unique
+  order             Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  provider          String
+  providerPaymentId String?
+  amount            Float
+  status            PaymentStatus @default(PENDING)
+  paidAt            DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED_AMOUNT
+}
+
+/// A discount code an admin creates and clients redeem at checkout.
+/// `usedCount` is incremented by the checkout/order-creation path whenever a
+/// code is applied — this task only creates the table, wiring redemption into
+/// order creation is out of scope for the admin spec itself.
+model PromoCampaign {
+  id            String       @id @default(cuid())
+  code          String       @unique
+  discountType  DiscountType
+  discountValue Float
+  startsAt      DateTime
+  endsAt        DateTime
+  usageLimit    Int?
+  usedCount     Int          @default(0)
+  isActive      Boolean      @default(true)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// Admin back office: CRM (scoped down — see requirements.md Non-Goals)
+// ---------------------------------------------------------------------------
+
+/// A saved audience filter. `criteria` is a small, admin-authored JSON filter
+/// (e.g. `{"role": "CLIENT", "minOrders": 5}`) interpreted by a later task's
+/// segment-preview logic — not a rules engine or query builder.
+model CrmSegment {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  criteria    Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  campaigns CrmCampaign[]
+}
+
+enum CrmCampaignStatus {
+  DRAFT
+  SCHEDULED
+  SENT
+  CANCELLED
+}
+
+/// A marketing send: a `CrmSegment` (the audience) paired with a
+/// `MessagingTemplate` (the content) and a schedule. Actually dispatching a
+/// campaign depends on a later task's send integration; this task only
+/// creates the table.
+model CrmCampaign {
+  id          String             @id @default(cuid())
+  name        String
+  segmentId   String?
+  segment     CrmSegment?        @relation(fields: [segmentId], references: [id], onDelete: SetNull)
+  templateId  String?
+  template    MessagingTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  status      CrmCampaignStatus  @default(DRAFT)
+  scheduledAt DateTime?
+  sentAt      DateTime?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  @@index([segmentId])
+  @@index([templateId])
+}
+
+/// An admin-authored survey. `questions` is a JSON array of
+/// `{id, prompt, type, options?}` objects — free-form enough to cover simple
+/// question types (text, single-choice, multi-choice) without a table per
+/// question type.
+model CrmSurvey {
+  id        String   @id @default(cuid())
+  title     String
+  questions Json
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  responses CrmSurveyResponse[]
+}
+
+/// One respondent's answers to a `CrmSurvey`. `userId` is nullable so an
+/// anonymous/unauthenticated respondent can still submit (out of scope for
+/// this spec to expose publicly, but the schema shouldn't force a user).
+model CrmSurveyResponse {
+  id        String    @id @default(cuid())
+  surveyId  String
+  survey    CrmSurvey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  userId    String?
+  user      User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  answers   Json
+  createdAt DateTime  @default(now())
+
+  @@index([surveyId])
 }
