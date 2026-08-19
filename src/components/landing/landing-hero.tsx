@@ -4,11 +4,24 @@ import Link from "next/link";
 
 import { LandingQuoteCalculator } from "@/components/landing/landing-quote-calculator";
 import { useLandingVehicleTypes } from "@/components/landing/landing-vehicle-types";
+import {
+  DEFAULT_HOME_PAGE_CONTENT,
+  type HeroContent,
+} from "@/lib/admin/home-page-content";
 
 /** Placeholder for a counted stat, until the taxonomy it counts arrives. */
 const EMPTY_STAT = "—";
 
-export function LandingHero() {
+/**
+ * `content` comes from the matching `HomePageSection` row when one exists. It
+ * is optional so the page still renders — with the copy it has today — before
+ * any section has been authored for the locale.
+ */
+export function LandingHero({
+  content = DEFAULT_HOME_PAGE_CONTENT.hero,
+}: {
+  content?: HeroContent;
+}) {
   const { vehicleTypes } = useLandingVehicleTypes();
 
   // Counted from the seeded taxonomy rather than written into the copy, so the
@@ -51,13 +64,13 @@ export function LandingHero() {
       <div className="relative mx-auto grid max-w-6xl gap-12 px-5 pt-14 pb-20 sm:px-8 lg:grid-cols-[1fr_26rem] lg:items-start lg:pt-20 lg:pb-24">
         <div className="lg:pt-6">
           <p className="animate-rise inline-flex items-center gap-2 rounded-full bg-accent/10 px-3 py-1.5 text-[0.6875rem] font-semibold tracking-[0.14em] text-accent uppercase">
-            Commercial freight &amp; cargo
+            {content.eyebrow}
           </p>
 
           <h1 className="animate-rise [animation-delay:120ms] mt-6 max-w-[15ch] font-display text-[clamp(2.5rem,6vw,3.5rem)] leading-[1.05] font-semibold tracking-[-0.025em] text-paper">
-            Move anything across the{" "}
+            {content.headline}{" "}
             <span className="relative inline-block text-accent">
-              city
+              {content.headlineHighlight}
               <span
                 aria-hidden="true"
                 className="animate-wipe [animation-delay:900ms] absolute right-0 -bottom-0.5 left-0 h-[0.1875rem] origin-left rounded-full bg-accent/70"
@@ -66,17 +79,15 @@ export function LandingHero() {
           </h1>
 
           <p className="animate-rise [animation-delay:260ms] mt-6 max-w-[46ch] text-base leading-relaxed text-muted sm:text-lg">
-            Furniture, appliances, full relocations, industrial cargo. Set the
-            route, pick the truck that carries the load, and get a price before
-            you book — then watch a nearby driver move it, door to door.
+            {content.subtext}
           </p>
 
           <div className="animate-rise [animation-delay:380ms] mt-8 flex flex-wrap items-center gap-3">
             <Link
-              href="/sign-up"
+              href={content.primaryCtaHref}
               className="group inline-flex items-center gap-2.5 rounded-lg bg-accent px-6 py-3.5 text-[0.9375rem] leading-none font-semibold text-ink transition-transform hover:-translate-y-0.5"
             >
-              Get started
+              {content.primaryCtaLabel}
               <span
                 aria-hidden="true"
                 className="transition-transform group-hover:translate-x-1"
@@ -85,10 +96,10 @@ export function LandingHero() {
               </span>
             </Link>
             <Link
-              href="/sign-in"
+              href={content.secondaryCtaHref}
               className="inline-flex items-center rounded-lg border border-line px-6 py-3.5 text-[0.9375rem] leading-none font-semibold text-paper transition-colors hover:border-accent hover:text-accent"
             >
-              Sign in
+              {content.secondaryCtaLabel}
             </Link>
           </div>
 

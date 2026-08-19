@@ -11,6 +11,10 @@ import {
   useLandingVehicleTypes,
   type LandingVehicleType,
 } from "@/components/landing/landing-vehicle-types";
+import {
+  DEFAULT_HOME_PAGE_CONTENT,
+  type CategoryTilesContent,
+} from "@/lib/admin/home-page-content";
 
 /**
  * A short cross-town hop, used only to turn a pricing rule into a single
@@ -221,8 +225,17 @@ function fromPrice(vehicleType: LandingVehicleType): number {
  * the lightest vehicle rated for it, and what it starts at. Each tile is a
  * plain anchor back to the hero calculator — the visitor prices their own route
  * there, so the tiles stay presentational rather than driving that form.
+ *
+ * Only the framing copy is authored: `content` comes from the matching
+ * `HomePageSection` row when one exists, and falls back to the copy the page
+ * has today when the locale has no rows yet. The tiles themselves are always
+ * generated from the live cargo taxonomy.
  */
-export function LandingCategoryTiles() {
+export function LandingCategoryTiles({
+  content = DEFAULT_HOME_PAGE_CONTENT.category_tiles,
+}: {
+  content?: CategoryTilesContent;
+}) {
   const { vehicleTypes } = useLandingVehicleTypes();
 
   return (
@@ -232,15 +245,13 @@ export function LandingCategoryTiles() {
     >
       <div className="mx-auto max-w-6xl px-5 sm:px-8">
         <p className="text-[0.6875rem] font-semibold tracking-[0.14em] text-accent uppercase">
-          What we carry
+          {content.eyebrow}
         </p>
         <h2 className="mt-4 max-w-2xl font-display text-[clamp(2rem,4.5vw,2.75rem)] leading-[1.1] font-semibold tracking-[-0.025em] text-paper">
-          Ship anything, across the city
+          {content.heading}
         </h2>
         <p className="mt-4 max-w-[54ch] text-base leading-relaxed text-muted">
-          Pick the category your load falls under and the vehicle rated to carry
-          it comes with it. Figures below are a starting point for a short
-          cross-town run — your price is calculated on the route you enter.
+          {content.intro}
         </p>
 
         <ul className="mt-12 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">

@@ -6,6 +6,10 @@ import {
   useLandingVehicleTypes,
   type LandingVehicleType,
 } from "@/components/landing/landing-vehicle-types";
+import {
+  DEFAULT_HOME_PAGE_CONTENT,
+  type VehicleTypesContent,
+} from "@/lib/admin/home-page-content";
 
 function TruckGlyph() {
   return (
@@ -68,7 +72,17 @@ function formatPayload(maxPayloadKg: number): string {
     : `${maxPayloadKg} kg`;
 }
 
-export function LandingVehicles() {
+/**
+ * Only the framing copy is authored: `content` comes from the matching
+ * `HomePageSection` row when one exists, and falls back to the copy the page
+ * has today otherwise. The duty classes and their vehicles always come from the
+ * live taxonomy.
+ */
+export function LandingVehicles({
+  content = DEFAULT_HOME_PAGE_CONTENT.vehicle_types,
+}: {
+  content?: VehicleTypesContent;
+}) {
   const { vehicleTypes } = useLandingVehicleTypes();
 
   return (
@@ -83,10 +97,10 @@ export function LandingVehicles() {
 
       <div className="relative mx-auto max-w-6xl px-5 sm:px-8">
         <p className="text-[0.6875rem] font-semibold tracking-[0.24em] text-accent uppercase">
-          The fleet
+          {content.eyebrow}
         </p>
         <h2 className="mt-4 max-w-2xl font-display text-[clamp(2rem,4.5vw,3rem)] leading-[1.05] font-semibold tracking-[-0.025em] text-paper">
-          Pick the vehicle the load actually needs
+          {content.heading}
         </h2>
 
         {CATEGORIES.map(({ category, heading, glyph: Glyph }) => {

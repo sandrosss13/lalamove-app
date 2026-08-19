@@ -75,13 +75,13 @@ graph TD
 - [x] [task-05-user-management-system-users](./tasks/task-05-user-management-system-users.md) — User management — System Users
 
 ### Wave 4
-- [ ] [task-06-content-banners](./tasks/task-06-content-banners.md) — Content management — Banners
-- [ ] [task-07-content-static-pages](./tasks/task-07-content-static-pages.md) — Content management — Static pages
-- [ ] [task-08-content-translations](./tasks/task-08-content-translations.md) — Content management — Translations
-- [ ] [task-09-content-messaging-templates](./tasks/task-09-content-messaging-templates.md) — Content management — Messaging templates (content only)
-- [ ] [task-10-content-homepage](./tasks/task-10-content-homepage.md) — Content management — Home page composition
-- [ ] [task-11-finance-payment-methods-config](./tasks/task-11-finance-payment-methods-config.md) — Finances — Payment methods configuration
-- [ ] [task-12-finance-promo-campaigns](./tasks/task-12-finance-promo-campaigns.md) — Finances — Promo campaigns (discount codes)
+- [x] [task-06-content-banners](./tasks/task-06-content-banners.md) — Content management — Banners
+- [x] [task-07-content-static-pages](./tasks/task-07-content-static-pages.md) — Content management — Static pages
+- [x] [task-08-content-translations](./tasks/task-08-content-translations.md) — Content management — Translations
+- [x] [task-09-content-messaging-templates](./tasks/task-09-content-messaging-templates.md) — Content management — Messaging templates (content only)
+- [x] [task-10-content-homepage](./tasks/task-10-content-homepage.md) — Content management — Home page composition
+- [x] [task-11-finance-payment-methods-config](./tasks/task-11-finance-payment-methods-config.md) — Finances — Payment methods configuration
+- [x] [task-12-finance-promo-campaigns](./tasks/task-12-finance-promo-campaigns.md) — Finances — Promo campaigns (discount codes)
 
 ### Wave 5
 - [ ] [task-13-payment-gateway-integration](./tasks/task-13-payment-gateway-integration.md) — Payment gateway integration ⚠ blocked on provider decision

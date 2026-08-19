@@ -2,44 +2,22 @@
 
 import { useId, useState } from "react";
 
-/**
- * The questions a visitor actually has to answer before booking freight, in the
- * order they hit them: what the number means, which truck to pick, what the
- * helper adds, who turns up, and whether they can watch it happen.
- *
- * Every answer describes behaviour this app really has — the quote endpoint, the
- * cargo/vehicle rules in `@/lib/cargo`, the order lifecycle and the per-order
- * tracking page — so the page cannot promise something the product does not do.
- */
-const FAQ_ITEMS = [
-  {
-    question: "How is the price worked out?",
-    answer:
-      "We geocode both addresses and price the distance between them with the vehicle type's own rates: a base fare, a per-kilometre rate and a rate for the estimated time of the trip. A helper, if you ask for one, adds a flat fee on top. You get the total itemised, and the same calculation runs when you place the order — the estimate is not a separate marketing number.",
-  },
-  {
-    question: "Which vehicle should I book?",
-    answer:
-      "Vehicles come in two duty classes, medium-duty and heavy-duty, and each cargo category only offers the classes that can take it. Furniture, appliances, retail stock and event equipment go either way; a full relocation, industrial supplies and construction materials are heavy-duty only. Every type lists its maximum payload, so you can match the rating to the load.",
-  },
-  {
-    question: "What does adding a helper do?",
-    answer:
-      "A helper is a second pair of hands who rides along to load and unload with the driver. It is a flat fee on top of the distance and time components, so tick it before you price the job and it is already in the total and in the breakdown you see.",
-  },
-  {
-    question: "Who actually moves my cargo?",
-    answer:
-      "An order starts out pending until a transport provider takes it. That is either an independent driver, who accepts it with one of the vehicles registered to their profile, or a logistics company, which claims the job and dispatches it to a driver on its own roster.",
-  },
-  {
-    question: "Can I follow the delivery?",
-    answer:
-      "Yes. Once an order is accepted it gets its own tracking page: pickup and dropoff on a map, plus the driver's position as they report it, refreshed while you watch. The status moves from accepted to in transit to completed, and the order stays in your account afterwards.",
-  },
-];
+import {
+  DEFAULT_HOME_PAGE_CONTENT,
+  type FaqContent,
+} from "@/lib/admin/home-page-content";
 
-export function LandingFaq() {
+/**
+ * `content` comes from the matching `HomePageSection` row when one exists, and
+ * falls back to the questions the page ships with when the locale has no rows
+ * yet — the ones a visitor actually has to answer before booking freight, in
+ * the order they hit them.
+ */
+export function LandingFaq({
+  content = DEFAULT_HOME_PAGE_CONTENT.faq,
+}: {
+  content?: FaqContent;
+}) {
   // One panel at a time, and the first is open on arrival so the section reads
   // as answers rather than as a row of closed bars. `null` = all collapsed.
   const [openIndex, setOpenIndex] = useState<number | null>(0);
@@ -53,25 +31,26 @@ export function LandingFaq() {
       <div className="mx-auto grid max-w-6xl gap-10 px-5 sm:px-8 lg:grid-cols-[20rem_1fr] lg:gap-16">
         <div className="lg:sticky lg:top-24 lg:self-start">
           <p className="text-[0.6875rem] font-semibold tracking-[0.24em] text-accent uppercase">
-            Questions
+            {content.eyebrow}
           </p>
           <h2 className="mt-4 font-display text-[clamp(2rem,4.5vw,3rem)] leading-[1.05] font-semibold tracking-[-0.025em] text-paper">
-            Before you book
+            {content.heading}
           </h2>
           <p className="mt-5 max-w-xs text-sm leading-relaxed text-muted">
-            What sits behind the quote, how a vehicle is matched to the load,
-            and what happens once a driver takes the job.
+            {content.intro}
           </p>
         </div>
 
         <ul className="border-t border-line">
-          {FAQ_ITEMS.map((item, index) => {
+          {content.items.map((item, index) => {
             const isOpen = openIndex === index;
             const buttonId = `${idPrefix}-question-${index}`;
             const panelId = `${idPrefix}-answer-${index}`;
 
             return (
-              <li key={item.question} className="border-b border-line">
+              // Position, not question text: two entries are free to repeat a
+              // question, and the open panel is already tracked by index.
+              <li key={index} className="border-b border-line">
                 <h3>
                   <button
                     type="button"

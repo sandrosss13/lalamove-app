@@ -1,22 +1,21 @@
-const STEPS = [
-  {
-    number: "1",
-    title: "Set the route",
-    body: "Type the pickup and dropoff — addresses autocomplete as you go — then tell us what you're moving: furniture, appliances, retail stock, or a full relocation.",
-  },
-  {
-    number: "2",
-    title: "Lock the price",
-    body: "Pick a vehicle rated for the load and we quote it on real distance, driving time and whether you need a helper. No auction, no surprise line items at the door.",
-  },
-  {
-    number: "3",
-    title: "Track it to the door",
-    body: "A nearby driver accepts the job and it goes live on your map. Follow the vehicle from loading to unload, and keep every order in your account.",
-  },
-];
+import {
+  DEFAULT_HOME_PAGE_CONTENT,
+  type HowItWorksContent,
+} from "@/lib/admin/home-page-content";
 
-export function LandingHowItWorks() {
+/**
+ * `content` comes from the matching `HomePageSection` row when one exists, and
+ * falls back to the copy the page has today when the locale has no rows yet.
+ *
+ * A step's displayed number is its position in the list rather than a field, so
+ * reordering or removing a step in the admin form can never leave the sequence
+ * reading 1, 2, 4.
+ */
+export function LandingHowItWorks({
+  content = DEFAULT_HOME_PAGE_CONTENT.how_it_works,
+}: {
+  content?: HowItWorksContent;
+}) {
   return (
     <section
       id="how-it-works"
@@ -26,29 +25,30 @@ export function LandingHowItWorks() {
         <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="text-[0.6875rem] font-semibold tracking-[0.14em] text-accent uppercase">
-              How it works
+              {content.eyebrow}
             </p>
             <h2 className="mt-4 max-w-xl font-display text-[clamp(2rem,4.5vw,2.75rem)] leading-[1.1] font-semibold tracking-[-0.025em] text-paper">
-              Three steps from kerb to kerb
+              {content.heading}
             </h2>
           </div>
           <p className="max-w-xs text-sm leading-relaxed text-muted">
-            Built for the load that won&apos;t fit in a car boot — an office
-            move, a pallet of stock, a machine that needs a tail lift.
+            {content.aside}
           </p>
         </div>
 
         <ol className="mt-12 grid gap-4 md:grid-cols-3">
-          {STEPS.map((step) => (
+          {content.steps.map((step, index) => (
             <li
-              key={step.number}
+              // Position, not title: two steps are free to share a title, and
+              // the list is static for the lifetime of the render.
+              key={index}
               className="rounded-xl border border-line bg-ink p-6 transition-transform hover:-translate-y-1"
             >
               <span
                 aria-hidden="true"
                 className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent font-price text-sm leading-none font-semibold text-ink"
               >
-                {step.number}
+                {index + 1}
               </span>
               <h3 className="mt-5 font-display text-lg leading-snug font-semibold tracking-[-0.01em] text-paper">
                 {step.title}
