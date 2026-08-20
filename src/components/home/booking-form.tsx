@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Check } from "lucide-react";
 import type { CargoCategory } from "@prisma/client";
@@ -68,17 +68,6 @@ type CreatedOrder = Quote & { id: string };
  */
 const DEFAULT_CARGO_CATEGORY: CargoCategory =
   CARGO_OPTIONS[0]?.category ?? "FURNITURE_FURNISHINGS";
-
-/**
- * Quiet window after the last input change before a live estimate is fetched.
- *
- * `/api/pricing/estimate` is rate-limited per caller (it spends the server's
- * geocoding key), so the estimate is deliberately keyed off *resolved
- * coordinates* rather than the raw address text: a request only ever follows a
- * suggestion being picked, a structured address field being edited, or the
- * cargo/vehicle/helper choice changing — never a keystroke in the address box.
- */
-const ESTIMATE_DEBOUNCE_MS = 500;
 
 /**
  * Tolerance, in currency units, for comparing a total against the sum of its
@@ -236,9 +225,11 @@ function BreakdownRow({ label, value }: { label: string; value: string }) {
 }
 
 /**
- * The client booking form: route, goods, vehicle and extras on the left, a live
- * route preview on the right, priced continuously against
- * `/api/pricing/estimate` and booked through `POST /api/orders`.
+ * The client booking form: route, goods, vehicle and extras on the left, a
+ * route preview on the right. Priced on demand — the user presses Calculate to
+ * quote against `/api/pricing/estimate`, and any further edit to the route,
+ * goods, vehicle or helper choice invalidates that quote until it's
+ * recalculated — then booked through `POST /api/orders`.
  *
  * Prop-less by design — it owns all of its own state and is only ever rendered
  * from `HomeEntry`'s signed-in-client branch.
@@ -339,85 +330,22 @@ export function BookingForm(): React.ReactElement {
     }
   }, [eligibleVehicleTypes, vehicleTypeCode]);
 
+  // The in-flight estimate request, if any — kept in a ref (not state) since
+  // it's only ever read from event handlers and cleanup, never rendered.
+  const estimateAbortRef = useRef<AbortController | null>(null);
+
   /**
-   * Live price, refreshed whenever any input the quote depends on changes.
-   *
-   * Both endpoints of the route must be *resolved* places, not just typed text
-   * — see `ESTIMATE_DEBOUNCE_MS`. The `AbortController` is per request, so a
-   * superseded call can never land after (and clobber) a newer one, the same
-   * pattern `address-autocomplete.tsx` uses for its suggestion lookups.
+   * A quote is only ever valid for the exact inputs it was computed from.
+   * Rather than let a stale price sit under a since-changed route, goods,
+   * vehicle or helper choice, any change to one of them invalidates it —
+   * dropping any in-flight request too — so "Book delivery" disappears back
+   * into "Calculate" until the user asks for a fresh number.
    */
   useEffect(() => {
-    if (!pickupLocation || !dropoffLocation || !vehicleTypeCode) {
-      // Nothing to price yet — and nothing in flight either, since the cleanup
-      // below has already aborted whatever this run superseded. Clearing the
-      // flag here is what stops "Updating…" sticking around after the user
-      // types over an address they had selected.
-      setEstimate(null);
-      setEstimateError(null);
-      setEstimating(false);
-      return;
-    }
-
-    const controller = new AbortController();
-
-    const timer = setTimeout(() => {
-      setEstimating(true);
-
-      void (async () => {
-        try {
-          const response = await fetch("/api/pricing/estimate", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              pickupAddress,
-              dropoffAddress,
-              vehicleTypeCode,
-              cargoCategory,
-              requiresHelper,
-            }),
-            signal: controller.signal,
-          });
-
-          const payload = (await response.json()) as Quote | { error?: string };
-
-          // A superseded request can still resolve; drop its result rather than
-          // overwriting the estimate the newer one is about to produce.
-          if (controller.signal.aborted) {
-            return;
-          }
-
-          if (!response.ok) {
-            setEstimate(null);
-            setEstimateError(
-              "error" in payload && payload.error
-                ? payload.error
-                : QUOTE_FAILED_MESSAGE,
-            );
-            return;
-          }
-
-          setEstimate(payload as Quote);
-          setEstimateError(null);
-        } catch {
-          // An abort lands here too, but a superseded request has no opinion
-          // about what the user should see.
-          if (!controller.signal.aborted) {
-            setEstimate(null);
-            setEstimateError(NETWORK_ERROR_MESSAGE);
-          }
-        } finally {
-          if (!controller.signal.aborted) {
-            setEstimating(false);
-          }
-        }
-      })();
-    }, ESTIMATE_DEBOUNCE_MS);
-
-    return () => {
-      clearTimeout(timer);
-      controller.abort();
-    };
+    estimateAbortRef.current?.abort();
+    setEstimate(null);
+    setEstimateError(null);
+    setEstimating(false);
   }, [
     pickupAddress,
     dropoffAddress,
@@ -427,6 +355,75 @@ export function BookingForm(): React.ReactElement {
     cargoCategory,
     requiresHelper,
   ]);
+
+  // Both endpoints of the route must be *resolved* places, not just typed
+  // text — a request only ever follows a suggestion actually being picked.
+  const canCalculate =
+    !estimating &&
+    pickupLocation !== null &&
+    dropoffLocation !== null &&
+    vehicleTypeCode !== "";
+
+  /**
+   * Quote the current inputs on demand. The `AbortController` guards against
+   * the input changing (and so invalidating this very request, see above)
+   * while it's in flight — the same pattern `address-autocomplete.tsx` uses
+   * for its suggestion lookups.
+   */
+  async function handleCalculate() {
+    if (!canCalculate) {
+      return;
+    }
+
+    estimateAbortRef.current?.abort();
+    const controller = new AbortController();
+    estimateAbortRef.current = controller;
+
+    setEstimating(true);
+    setEstimateError(null);
+
+    try {
+      const response = await fetch("/api/pricing/estimate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pickupAddress,
+          dropoffAddress,
+          vehicleTypeCode,
+          cargoCategory,
+          requiresHelper,
+        }),
+        signal: controller.signal,
+      });
+
+      const payload = (await response.json()) as Quote | { error?: string };
+
+      // Superseded by an input change (and so already invalidated above) or
+      // by a newer calculation — either way, this result has nothing to add.
+      if (controller.signal.aborted) {
+        return;
+      }
+
+      if (!response.ok) {
+        setEstimateError(
+          "error" in payload && payload.error
+            ? payload.error
+            : QUOTE_FAILED_MESSAGE,
+        );
+        return;
+      }
+
+      setEstimate(payload as Quote);
+    } catch {
+      if (!controller.signal.aborted) {
+        setEstimateError(NETWORK_ERROR_MESSAGE);
+      }
+    } finally {
+      if (!controller.signal.aborted) {
+        setEstimating(false);
+      }
+    }
+  }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -495,12 +492,14 @@ export function BookingForm(): React.ReactElement {
     );
   }
 
-  // The taxonomy gates booking: without a vehicle type there is nothing valid
-  // to send, so the submit cannot race the fetch that supplies one. The address
-  // fields keep their own native `required` validation, which still runs
-  // because the button is only disabled for reasons the user cannot fix by
-  // filling the form in.
-  const canSubmit = !submitting && selectedVehicleType !== null;
+  // Booking requires a calculated price for the exact inputs being booked —
+  // the whole point of the Calculate step — plus a valid vehicle type, so the
+  // submit cannot race the fetch that supplies one. The address fields keep
+  // their own native `required` validation, which still runs because the
+  // button is only disabled for reasons the user cannot fix by filling the
+  // form in.
+  const canSubmit =
+    !submitting && selectedVehicleType !== null && estimate !== null;
 
   return (
     <main className="min-h-screen bg-ink text-paper">
@@ -805,7 +804,7 @@ export function BookingForm(): React.ReactElement {
               <div className="flex items-baseline justify-between gap-4">
                 <h2 className={PANEL_LABEL_CLASSES}>Price breakdown</h2>
                 <p className="text-[0.6875rem] text-muted">
-                  {estimating ? "Updating…" : null}
+                  {estimating ? "Calculating…" : null}
                 </p>
               </div>
 
@@ -845,7 +844,9 @@ export function BookingForm(): React.ReactElement {
                 </>
               ) : (
                 <p className="mt-2 text-[0.8125rem] leading-snug text-muted">
-                  Pick both addresses from the suggestions to see your price.
+                  {canCalculate
+                    ? "Press Calculate to see your price."
+                    : "Pick both addresses from the suggestions and choose a vehicle, then press Calculate to see your price."}
                 </p>
               )}
 
@@ -921,15 +922,26 @@ export function BookingForm(): React.ReactElement {
               </p>
             </div>
 
-            <Button
-              type="submit"
-              form={formId}
-              disabled={!canSubmit}
-              className="h-12 shrink-0 gap-2 rounded-full bg-accent px-6 text-[0.9375rem] font-semibold text-ink transition-transform hover:bg-accent hover:-translate-y-0.5 disabled:translate-y-0"
-            >
-              {submitting ? "Booking…" : "Book delivery"}
-              <ArrowRight aria-hidden="true" />
-            </Button>
+            {estimate ? (
+              <Button
+                type="submit"
+                form={formId}
+                disabled={!canSubmit}
+                className="h-12 shrink-0 gap-2 rounded-full bg-accent px-6 text-[0.9375rem] font-semibold text-ink transition-transform hover:bg-accent hover:-translate-y-0.5 disabled:translate-y-0"
+              >
+                {submitting ? "Booking…" : "Book delivery"}
+                <ArrowRight aria-hidden="true" />
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                onClick={() => void handleCalculate()}
+                disabled={!canCalculate}
+                className="h-12 shrink-0 gap-2 rounded-full bg-accent px-6 text-[0.9375rem] font-semibold text-ink transition-transform hover:bg-accent hover:-translate-y-0.5 disabled:translate-y-0"
+              >
+                {estimating ? "Calculating…" : "Calculate"}
+              </Button>
+            )}
           </div>
         </div>
       </div>
