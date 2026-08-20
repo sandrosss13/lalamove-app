@@ -3,16 +3,29 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { ACCOUNT_TYPE_LABELS, type AccountType } from "@/lib/account-types";
 import { signIn, signOut, authClient } from "@/lib/auth-client";
 import { merchantOrigin, type Audience } from "@/lib/host";
 
-type Role = "CLIENT" | "DRIVER" | "COMPANY";
+/**
+ * The portals this form offers. Logistics companies are deliberately absent:
+ * they no longer have a sign-in card on any host, so a company account cannot
+ * be picked here at all (see `SessionRole` for what an account may actually be).
+ */
+type Role = "CLIENT" | "DRIVER";
 
-/** Human-readable label for a role, used in headings and mismatch messaging. */
+/**
+ * Every value the schema's `UserRole` can hold — what a signed-in account's
+ * role *actually* is, as opposed to the narrower set this form can pick. The
+ * two differ (COMPANY and ADMIN have no card), so the mismatch path has to
+ * handle roles that no portal on this form corresponds to.
+ */
+type SessionRole = "CLIENT" | "DRIVER" | "COMPANY" | "ADMIN";
+
+/** Human-readable label for a pickable role, used in headings and messaging. */
 const ROLE_LABELS: Record<Role, string> = {
   CLIENT: "client",
   DRIVER: "driver",
-  COMPANY: "logistics company",
 };
 
 /**
@@ -23,31 +36,27 @@ const ROLE_LABELS: Record<Role, string> = {
 const CARD_DESCRIPTIONS: Record<Role, string> = {
   CLIENT: "Book deliveries for your packages",
   DRIVER: "Deliver packages and earn",
-  COMPANY: "Manage your fleet and dispatch drivers",
 };
 
 /** Step-1 card headlines everywhere except the merchant host. */
 const CARD_LABELS: Record<Role, string> = {
   CLIENT: "Client",
   DRIVER: "Driver",
-  COMPANY: "Company",
 };
 
 /**
- * The merchant host spells its two portals out in full, because there the
- * distinction between them *is* the choice being made. Kept separate from
+ * The merchant host spells its driver portal out in full. Kept separate from
  * `CARD_LABELS` so the split-disabled picker's original wording is untouched.
  */
 const MERCHANT_CARD_LABELS: Partial<Record<Role, string>> = {
   DRIVER: "Individual Driver",
-  COMPANY: "Logistics Company",
 };
 
 /**
  * Where to send a successfully signed-in user. The merchant host must NOT push
  * `"/"` — that path is client-only, so the middleware would immediately bounce
- * the driver or company back to the client host, where their merchant session
- * does not exist and they would land signed out.
+ * the driver back to the client host, where their merchant session does not
+ * exist and they would land signed out.
  *
  * Keyed by audience only: the destination depends on which host the user is on,
  * not on which of that host's portals they picked.
@@ -64,6 +73,43 @@ const POST_SIGN_IN_PATH: Record<Audience, string> = {
 
 const CARD_CLASS_NAME = "rounded border p-6 text-left hover:opacity-70";
 
+/** True when `value` is one of the known account types. */
+function isAccountType(value: unknown): value is AccountType {
+  return typeof value === "string" && value in ACCOUNT_TYPE_LABELS;
+}
+
+/**
+ * Reads the account type stored on the signed-in account's own profile, or
+ * `null` when it cannot be determined.
+ *
+ * `null` covers every unverifiable case — the request failed, the profile row
+ * doesn't exist yet (a registration interrupted between account creation and
+ * the profile write), or the body isn't shaped as expected — and callers must
+ * treat it as "don't block". This lookup is a secondary safety net on top of
+ * the role check, so an incomplete profile has to fail open rather than lock a
+ * legitimate account out of a portal it belongs to.
+ */
+async function fetchStoredAccountType(
+  sessionRole: Role,
+): Promise<AccountType | null> {
+  const endpoint =
+    sessionRole === "CLIENT" ? "/api/client-profile" : "/api/driver-profile";
+
+  // Both endpoints answer for the *signed-in* user only, so the session cookie
+  // (sent by default on same-origin requests) is the whole input.
+  const response = await fetch(endpoint).catch(() => null);
+  if (!response?.ok) {
+    return null;
+  }
+
+  // The route returns the profile row, or a bare `null` when there is none.
+  const profile = (await response.json().catch(() => null)) as {
+    accountType?: unknown;
+  } | null;
+
+  return isAccountType(profile?.accountType) ? profile.accountType : null;
+}
+
 type PortalCardProps = {
   /** Headline shown on the card. */
   label: string;
@@ -74,8 +120,8 @@ type PortalCardProps = {
 );
 
 /**
- * One step-1 portal card. Renders as a `<button>` when picking it just reveals
- * the form on this page, and as an `<a>` when it points at the *other* host —
+ * One step-1 portal card. Renders as a `<button>` when picking it just advances
+ * the wizard on this page, and as an `<a>` when it points at the *other* host —
  * a cross-origin destination has to be a real document navigation, since
  * Next's client router only handles same-origin URLs.
  */
@@ -108,23 +154,22 @@ type SignInFormProps = {
 };
 
 /**
- * Sign-in form. Every audience uses the same two-step flow — a card picker,
- * then the form for the picked role — and only the *card list* differs:
+ * Sign-in form. Every audience uses the same three-step flow — a portal picker,
+ * then an account-type picker, then the credentials form — mirroring the
+ * sign-up wizard step for step, so that what a user picked when registering is
+ * exactly what they pick when returning. Only the *card list* in step 1 differs:
  *
  * - `"CLIENT"` — Client (stays here) and Driver (a link across to the merchant
- *   host, which owns driver and company sign-in).
- * - `"MERCHANT"` — Individual Driver and Logistics Company. These are separate
- *   cards rather than one merged "merchant" form so each sign-in is checked
- *   against that specific role: a company credential entered under Individual
- *   Driver is rejected, not silently accepted.
- * - `"BOTH"` — the split is disabled, so this keeps the original three-portal
- *   picker (Client / Driver / Company) verbatim.
+ *   host, which owns driver sign-in).
+ * - `"MERCHANT"` — Individual Driver only. Logistics companies have no sign-in
+ *   portal here by product decision; the card was removed rather than replaced.
+ * - `"BOTH"` — the split is disabled, so this offers both roles on one host.
  *
  * In all three cases the picked role is the only role accepted, so the whole
  * component is role-driven rather than host-driven; the host only decides which
  * cards exist and where success lands.
  *
- * The role check necessarily runs *after* `signIn.email` succeeds: checking
+ * Both checks necessarily run *after* `signIn.email` succeeds: checking
  * beforehand would require an email → role lookup, which is an account
  * enumeration oracle. A rejected account is signed straight back out, and
  * `src/lib/auth.ts` enforces the same boundary server-side as a backstop.
@@ -133,18 +178,30 @@ export function SignInForm({ audience }: SignInFormProps) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  // Null until the user picks a portal in step 1, at which point picking one
-  // reveals the form. Every audience goes through this, including the split
-  // hosts — they just offer fewer cards.
+  // Null until the user picks a portal in step 1; picking one reveals step 2.
+  // Every audience goes through this, including the split hosts — they just
+  // offer fewer cards.
   const [role, setRole] = useState<Role | null>(null);
+  // Null until the user picks an account type in step 2; picking one reveals
+  // the credentials form in step 3.
+  const [accountType, setAccountType] = useState<AccountType | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // The picked portal is the only role allowed through, on every host.
-  const allowedRoles: Role[] = role ? [role] : [];
+  // The picked portal is the only role allowed through, on every host. Typed as
+  // `SessionRole[]` so it can be compared against the account's actual role,
+  // which ranges wider than the two roles this form can pick.
+  const allowedRoles: SessionRole[] = role ? [role] : [];
 
   /** Message shown when the account's real role isn't the one that was picked. */
-  function mismatchMessage(actualRole: Role): string {
+  function mismatchMessage(actualRole: SessionRole): string {
+    // COMPANY and ADMIN accounts have no card on this form at all, so there is
+    // no portal to send them to — anything more specific would point at a
+    // sign-in page that no longer exists.
+    if (actualRole !== "CLIENT" && actualRole !== "DRIVER") {
+      return "This account cannot sign in here. Please contact support.";
+    }
+
     if (audience === "CLIENT" && actualRole !== "CLIENT") {
       const actualRoleLabel = ROLE_LABELS[actualRole];
       return `This account is registered as a ${actualRoleLabel}. Please sign in at the merchant portal.`;
@@ -154,17 +211,9 @@ export function SignInForm({ audience }: SignInFormProps) {
       return "This is a customer account. Please sign in at the main site.";
     }
 
-    // On the merchant host, "driver" needs its own sentence: the card reads
-    // "Individual Driver" (a vowel-led phrase, so the article is "an"), which
-    // doesn't fit the generic "a {label}" template below without special-
-    // casing the grammar. Every other audience — including "BOTH" — falls
-    // through to that template with its original ROLE_LABELS text unchanged.
-    if (audience === "MERCHANT" && actualRole === "DRIVER") {
-      return "This account is registered as an individual driver. Please use the individual driver sign-in.";
-    }
-
-    // Same-host mismatch: picked the wrong portal (split disabled) or picked
-    // "Logistics Company" with a driver account (merchant host).
+    // Same-host mismatch: picked the wrong portal with the split disabled. The
+    // merchant host cannot reach this line — Driver is its only card, so a
+    // driver account never mismatches there.
     const actualRoleLabel = ROLE_LABELS[actualRole];
     return `This account is registered as a ${actualRoleLabel}. Please use the ${actualRoleLabel} sign-in.`;
   }
@@ -179,10 +228,11 @@ export function SignInForm({ audience }: SignInFormProps) {
   }
 
   /**
-   * Step-2 heading text. Kept as a small override rather than changing
-   * ROLE_LABELS itself, so the "BOTH" (split-disabled) audience's existing
-   * "Sign in as a driver" wording is untouched — only the merchant host's
-   * "Individual Driver" card gets the fuller phrasing that matches its label.
+   * Heading text for steps 2 and 3. Kept as a small override rather than
+   * changing ROLE_LABELS itself, so the "BOTH" (split-disabled) audience's
+   * existing "Sign in as a driver" wording is untouched — only the merchant
+   * host's "Individual Driver" card gets the fuller phrasing that matches its
+   * label.
    */
   function signInHeading(pickedRole: Role): string {
     if (audience === "MERCHANT" && pickedRole === "DRIVER") {
@@ -194,10 +244,11 @@ export function SignInForm({ audience }: SignInFormProps) {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    // The form only renders once a portal is picked, so this is never empty
-    // here; the guard narrows the nullable state and is a defensive no-op in
-    // practice.
-    if (allowedRoles.length === 0) return;
+    // The form only renders in step 3, which is reached by way of steps 1 and
+    // 2, so both `role` and `accountType` are always set here. These guards
+    // narrow the nullable state and are a defensive no-op in practice.
+    if (!role) return;
+    if (!accountType) return;
     setError(null);
     setLoading(true);
 
@@ -211,11 +262,11 @@ export function SignInForm({ audience }: SignInFormProps) {
 
     // Sign-in succeeded and a session now exists. Read the account's actual
     // role and enforce that it matches the portal the user picked — a driver
-    // can't sign in through the client portal, and a logistics company can't
-    // sign in through the individual-driver one. `getSession` returns the
-    // custom `role` field, typed via `inferAdditionalFields` in auth-client.
+    // can't sign in through the client portal, and a company or admin account
+    // can't sign in here at all. `getSession` returns the custom `role` field,
+    // typed via `inferAdditionalFields` in auth-client.
     const { data: session } = await authClient.getSession();
-    const actualRole = session?.user.role as Role | undefined;
+    const actualRole = session?.user.role as SessionRole | undefined;
 
     if (actualRole && !allowedRoles.includes(actualRole)) {
       // Wrong portal: undo the session so the user isn't left signed in, then
@@ -223,6 +274,30 @@ export function SignInForm({ audience }: SignInFormProps) {
       await signOut();
       setLoading(false);
       setError(mismatchMessage(actualRole));
+      return;
+    }
+
+    // The role check passed, so the account's role is the picked one — meaning
+    // it is CLIENT or DRIVER, and its profile endpoint is the authority on
+    // which account type was chosen at registration. Compare that against the
+    // step-2 pick so a business account can't be signed into through the
+    // Individual card.
+    //
+    // `fetchStoredAccountType` returns null whenever the stored value is
+    // unknowable, and null must not block: this is a secondary net on top of
+    // the role check above, not the primary gate, so an interrupted
+    // registration is never a reason to lock someone out of their own account.
+    const storedAccountType = await fetchStoredAccountType(role);
+
+    if (storedAccountType !== null && storedAccountType !== accountType) {
+      // Same treatment as a role mismatch: sign back out rather than leaving a
+      // half-accepted session behind, and stay on the form.
+      await signOut();
+      setLoading(false);
+      const storedLabel = ACCOUNT_TYPE_LABELS[storedAccountType];
+      setError(
+        `This account is registered as ${storedLabel}. Please use the ${storedLabel} sign-in.`,
+      );
       return;
     }
 
@@ -238,7 +313,7 @@ export function SignInForm({ audience }: SignInFormProps) {
         <h1 className="text-2xl font-bold">Sign in</h1>
 
         <div className="flex flex-col gap-4">
-          {/* The merchant host serves drivers and companies only. */}
+          {/* The merchant host serves drivers only. */}
           {audience !== "MERCHANT" ? (
             <PortalCard
               label={cardLabel("CLIENT")}
@@ -265,32 +340,85 @@ export function SignInForm({ audience }: SignInFormProps) {
               onSelect={() => setRole("DRIVER")}
             />
           )}
-
-          {audience !== "CLIENT" ? (
-            <PortalCard
-              label={cardLabel("COMPANY")}
-              description={CARD_DESCRIPTIONS.COMPANY}
-              onSelect={() => setRole("COMPANY")}
-            />
-          ) : null}
         </div>
       </main>
     );
   }
 
-  // Step 2: a portal was picked, so `role` is non-null from here on — show the
-  // sign-in form for it, with a way back to the picker.
+  // Step 2: a portal is picked but no account type yet — present the account
+  // types as large cards in the same style as step 1, and in the same split as
+  // sign-up: clients see two options, drivers see three (adding Individual
+  // Entrepreneur). Going back from here clears the portal, returning to step 1.
+  if (accountType === null) {
+    return (
+      <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 p-8">
+        <button
+          type="button"
+          onClick={() => setRole(null)}
+          className="self-start text-sm hover:opacity-70"
+        >
+          ← Back
+        </button>
+
+        <h1 className="text-2xl font-bold">{signInHeading(role)}</h1>
+
+        <div className="flex flex-col gap-4">
+          <button
+            type="button"
+            onClick={() => setAccountType("INDIVIDUAL")}
+            className={CARD_CLASS_NAME}
+          >
+            <span className="block font-medium">Individual</span>
+            <span className="block text-sm opacity-70">
+              Sign in as a private individual
+            </span>
+          </button>
+
+          {role === "DRIVER" ? (
+            <button
+              type="button"
+              onClick={() => setAccountType("INDIVIDUAL_ENTREPRENEUR")}
+              className={CARD_CLASS_NAME}
+            >
+              <span className="block font-medium">Individual Entrepreneur</span>
+              <span className="block text-sm opacity-70">
+                Registered as an individual entrepreneur (ინდ. მეწარმე)
+              </span>
+            </button>
+          ) : null}
+
+          <button
+            type="button"
+            onClick={() => setAccountType("BUSINESS")}
+            className={CARD_CLASS_NAME}
+          >
+            <span className="block font-medium">Business</span>
+            <span className="block text-sm opacity-70">
+              Sign in as a registered company
+            </span>
+          </button>
+        </div>
+      </main>
+    );
+  }
+
+  // Step 3: both portal and account type are picked — show the credentials
+  // form. Back here clears only the account type, dropping to step 2 rather
+  // than all the way out to the portal picker.
   return (
     <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 p-8">
       <button
         type="button"
-        onClick={() => setRole(null)}
+        onClick={() => setAccountType(null)}
         className="self-start text-sm hover:opacity-70"
       >
         ← Back
       </button>
 
-      <h1 className="text-2xl font-bold">{signInHeading(role)}</h1>
+      <h1 className="text-2xl font-bold">
+        {signInHeading(role)}
+        {` — ${ACCOUNT_TYPE_LABELS[accountType]}`}
+      </h1>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <label className="flex flex-col gap-1 text-sm">

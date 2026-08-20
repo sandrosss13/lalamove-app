@@ -3,22 +3,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { ACCOUNT_TYPE_LABELS, type AccountType } from "@/lib/account-types";
 import { signUp } from "@/lib/auth-client";
 import { GEORGIAN_CITY_OPTIONS } from "@/lib/georgian-cities";
 import { merchantOrigin, type Audience } from "@/lib/host";
 
 type Role = "CLIENT" | "DRIVER";
-// Covers every account type across clients and drivers. Clients only ever set
-// INDIVIDUAL or BUSINESS; drivers can additionally be an
-// INDIVIDUAL_ENTREPRENEUR.
-type AccountType = "INDIVIDUAL" | "INDIVIDUAL_ENTREPRENEUR" | "BUSINESS";
-
-/** Human-readable label for an account type, used in the step 3 heading. */
-const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
-  INDIVIDUAL: "Individual",
-  INDIVIDUAL_ENTREPRENEUR: "Individual Entrepreneur",
-  BUSINESS: "Business",
-};
 
 /** Heading shown once a role has been chosen, in steps 2 and 3. */
 const ROLE_HEADINGS: Record<Role, string> = {
