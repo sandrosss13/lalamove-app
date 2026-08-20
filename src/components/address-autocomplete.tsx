@@ -46,6 +46,17 @@ type AddressAutocompleteProps = {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  /**
+   * Notified whenever the resolved coordinates behind the field change: the
+   * place's location once a suggestion resolves, and `null` as soon as the user
+   * types over the input and abandons that place.
+   *
+   * Optional, so every existing caller that only cares about the address string
+   * keeps working untouched. Editing the structured sub-form does not fire this
+   * — those edits are never re-geocoded, so the last known coordinates remain
+   * the best available answer.
+   */
+  onLocationChange?: (location: LatLng | null) => void;
   placeholder?: string;
   required?: boolean;
 };
@@ -197,6 +208,7 @@ export function AddressAutocomplete({
   label,
   value,
   onChange,
+  onLocationChange,
   placeholder,
   required,
 }: AddressAutocompleteProps) {
@@ -315,6 +327,7 @@ export function AddressAutocomplete({
       };
       setParts(nextParts);
       setLocation(details.location);
+      onLocationChange?.(details.location);
 
       // Keep the input equal to the composition of the fields below it, so
       // editing one of them reads as editing the address shown above. If the
@@ -344,6 +357,7 @@ export function AddressAutocomplete({
     detailsAbortRef.current?.abort();
     setParts(null);
     setLocation(null);
+    onLocationChange?.(null);
     setDetailsPending(false);
   }
 
