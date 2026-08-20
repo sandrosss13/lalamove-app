@@ -356,12 +356,20 @@ export function BookingForm(): React.ReactElement {
     requiresHelper,
   ]);
 
-  // Both endpoints of the route must be *resolved* places, not just typed
-  // text — a request only ever follows a suggestion actually being picked.
+  // Deliberately keyed off the raw address *text*, not `pickupLocation`/
+  // `dropoffLocation`: those only populate once a suggestion is picked from
+  // the browser-side Google Places autocomplete, but `/api/pricing/estimate`
+  // geocodes whatever address string it's given itself, server-side, through
+  // a separate provider (LocationIQ) — it needs no client-side resolution at
+  // all. Gating on the resolved location would leave Calculate permanently
+  // disabled on any deployment where the Places key isn't configured, even
+  // though pricing works fine. (Requiring resolved coordinates made sense for
+  // the old *automatic* per-keystroke estimate, to avoid spending a request
+  // per character typed — it doesn't apply to an explicit button click.)
   const canCalculate =
     !estimating &&
-    pickupLocation !== null &&
-    dropoffLocation !== null &&
+    pickupAddress.trim().length > 0 &&
+    dropoffAddress.trim().length > 0 &&
     vehicleTypeCode !== "";
 
   /**
@@ -846,7 +854,7 @@ export function BookingForm(): React.ReactElement {
                 <p className="mt-2 text-[0.8125rem] leading-snug text-muted">
                   {canCalculate
                     ? "Press Calculate to see your price."
-                    : "Pick both addresses from the suggestions and choose a vehicle, then press Calculate to see your price."}
+                    : "Fill in both addresses and choose a vehicle, then press Calculate to see your price."}
                 </p>
               )}
 
