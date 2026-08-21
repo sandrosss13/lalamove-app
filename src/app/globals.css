@@ -299,8 +299,12 @@ body {
 }
 
 /* The landing page ships its own header and owns the full viewport, so the
-   global site header would stack a second, light-themed navbar on top of it. */
-body:has([data-landing-page]) > header {
+   global site header would stack a second, light-themed navbar on top of it —
+   for a signed-out visitor, who has no account nav to lose anyway. A signed-in
+   user deliberately viewing the marketing page keeps it instead (see
+   `LandingPage`'s `showSiteHeader` prop, which is what leaves this attribute
+   off rather than the page background's `data-landing-page`, always present). */
+body:has([data-hide-site-header]) > header {
   display: none;
 }
 
