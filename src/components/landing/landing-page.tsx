@@ -215,7 +215,7 @@ export function LandingPage({
       data-hide-site-header={showSiteHeader ? undefined : ""}
       className="min-h-screen bg-ink font-body text-paper antialiased"
     >
-      <LandingHeader />
+      <LandingHeader isSignedIn={showSiteHeader} />
       <main>
         {heroIndex === -1 ? heroTrailer : null}
 
