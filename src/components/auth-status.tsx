@@ -74,8 +74,10 @@ export function AuthStatus() {
 }
 
 /**
- * The header wordmark. A plain `<Link href="/">` would be wrong for a
- * signed-in driver/company on the merchant host: `/` is client-only under the
+ * The header wordmark, plus — for a signed-in client only — the client's
+ * primary nav (Place order / My orders / Wallet), immediately to its right.
+ * A plain `<Link href="/">` on the wordmark would be wrong for a signed-in
+ * driver/company on the merchant host: `/` is client-only under the
  * merchant/client host split (see `src/middleware.ts`), so clicking it would
  * get redirected to the client host, where their merchant-host session cookie
  * doesn't apply — looking like an unexpected sign-out. Route a signed-in
@@ -87,10 +89,27 @@ export function HeaderBrandLink() {
   const { data: session } = useSession();
   const isMerchantUser =
     session?.user.role === "DRIVER" || session?.user.role === "COMPANY";
+  const isClient = session?.user.role === "CLIENT";
 
   return (
-    <Link href={isMerchantUser ? "/dashboard" : "/"} className="font-bold">
-      Lalamove Clone
-    </Link>
+    <div className="flex items-center gap-5">
+      <Link href={isMerchantUser ? "/dashboard" : "/"} className="font-bold">
+        Lalamove Clone
+      </Link>
+
+      {isClient ? (
+        <nav className="flex items-center gap-4 text-sm">
+          <Link href="/" className="font-medium hover:opacity-70">
+            Place order
+          </Link>
+          <Link href="/orders" className="font-medium hover:opacity-70">
+            My orders
+          </Link>
+          <Link href="/wallet" className="font-medium hover:opacity-70">
+            Wallet
+          </Link>
+        </nav>
+      ) : null}
+    </div>
   );
 }

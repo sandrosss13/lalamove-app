@@ -488,6 +488,44 @@ export function BookingForm(): React.ReactElement {
   }
 
   /**
+   * Enter, pressed anywhere in the form other than the multi-line
+   * description, does the same thing clicking the visible primary action
+   * would — Calculate if there isn't a current quote yet, otherwise nothing.
+   *
+   * Without this, the browser's own implicit-submission behavior takes over:
+   * a lone text `<input>` inside a `<form>` submits that form on Enter even
+   * with no visible submit button on screen, because "Book delivery" is still
+   * form-associated (via `form={formId}`) the moment it exists at all. Before
+   * a quote exists it isn't rendered — so that implicit submit had nothing to
+   * click, and Chrome fell back to just running constraint validation, which
+   * surfaces as a confusing "Please fill in this field" bubble on whichever
+   * required field is empty, for someone who never touched a submit button.
+   * Explicitly handling Enter here — and always calling `preventDefault()` —
+   * removes that native behavior entirely rather than trying to out-guess it.
+   */
+  function handleFormKeyDown(event: React.KeyboardEvent<HTMLFormElement>) {
+    if (event.key !== "Enter") {
+      return;
+    }
+
+    // Enter inserts a newline in the description field; let it.
+    if (event.target instanceof HTMLTextAreaElement) {
+      return;
+    }
+
+    event.preventDefault();
+
+    if (estimate === null) {
+      void handleCalculate();
+    }
+
+    // A quote already exists: Enter deliberately does nothing rather than
+    // booking. Placing a real order isn't a side effect a stray Enter
+    // keypress should be able to trigger — that stays a deliberate click on
+    // "Book delivery".
+  }
+
+  /**
    * The quoted total is floored at the vehicle type's minimum fare, so it can
    * come out above the sum of the components — worth saying, or the breakdown
    * reads as bad arithmetic. The half-cent margin keeps floating-point dust
@@ -612,6 +650,7 @@ export function BookingForm(): React.ReactElement {
           <form
             id={formId}
             onSubmit={handleSubmit}
+            onKeyDown={handleFormKeyDown}
             className="flex flex-col gap-5"
           >
             <StepCard step={1} title="Route">
