@@ -32,30 +32,14 @@ export function LandingWordmark() {
 
 /**
  * Landing-only header. The global site header is hidden while this page is
- * mounted for a signed-out visitor (see the `data-hide-site-header` rule in
- * `globals.css`); a signed-in one keeps it, stacked above this one.
+ * mounted (see the `data-landing-page` rule in `globals.css`).
  *
  * Two tiers: a slim utility strip over the main nav row. The header sticks with
  * a negative offset equal to the strip's height, so the strip scrolls away and
  * only the 4rem nav row stays pinned — which is the offset every section's
  * `scroll-mt-16` already assumes.
  */
-export function LandingHeader({
-  isSignedIn = false,
-}: {
-  /**
-   * Whoever is looking at this page already has a session — true only when a
-   * signed-in user deliberately visits the marketing page at `/home` (see
-   * `LandingPage`'s `showSiteHeader`, the same fact under a name that fits
-   * this component's own job: it decides what "Sign in" should do, not
-   * whether to show the global header). "Sign in" would otherwise send an
-   * already-signed-in visitor straight back to the sign-in form; instead it
-   * takes them to their booking page. "Sign up" and "Get started" are left
-   * alone — signing up again while signed in is a real (if unusual) intent to
-   * create a second account, not a stale link like "Sign in" is here.
-   */
-  isSignedIn?: boolean;
-}) {
+export function LandingHeader() {
   return (
     <header className="sticky -top-10 z-50">
       <div className="h-10 border-b border-line bg-surface">
@@ -69,10 +53,10 @@ export function LandingHeader({
 
           <div className="flex shrink-0 items-center gap-3 text-xs">
             <Link
-              href={isSignedIn ? "/" : "/sign-in"}
+              href="/sign-in"
               className="font-medium text-muted transition-colors hover:text-paper"
             >
-              {isSignedIn ? "Place order" : "Sign in"}
+              Sign in
             </Link>
             <span aria-hidden="true" className="h-3 w-px bg-line" />
             <Link
