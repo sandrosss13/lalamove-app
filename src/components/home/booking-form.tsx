@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Check } from "lucide-react";
+import { ArrowRight, CalendarDays, Check } from "lucide-react";
 import type { CargoCategory } from "@prisma/client";
 
 import { AddressAutocomplete } from "@/components/address-autocomplete";
@@ -15,6 +15,7 @@ import {
 } from "@/components/home/order-vehicle-types";
 import { RoutePreviewMap } from "@/components/home/route-preview-map";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import {
   Card,
   CardContent,
@@ -24,6 +25,11 @@ import {
 } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
 import { CARGO_CATEGORY_ALLOWED_VEHICLE_CATEGORIES } from "@/lib/cargo";
 
@@ -101,6 +107,88 @@ const PICK_CARD_SELECTED_CLASSES = "border-accent bg-accent/[0.06]";
 
 const PICK_CARD_IDLE_CLASSES =
   "border-line hover:border-accent/40 hover:bg-surface";
+
+/** Shared geometry for a native `<select>`/date-trigger styled to match the
+ *  rest of this form's fields — the same treatment `account-profile-form.tsx`
+ *  uses for its own native Gender `<select>`, and for the same reason: a
+ *  small fixed option set isn't worth the shadcn `Select`'s portal, which
+ *  renders outside this page's palette. */
+const NATIVE_FIELD_CLASSES =
+  "h-10 w-full rounded-lg border border-line bg-ink px-2.5 text-left text-sm text-paper transition-colors outline-none focus-visible:border-accent focus-visible:ring-3 focus-visible:ring-accent/20";
+
+/** "Sat, Aug 22" — compact enough for the date trigger button. */
+const scheduledDateFormatter = new Intl.DateTimeFormat("en-US", {
+  weekday: "short",
+  month: "short",
+  day: "numeric",
+});
+
+/** Selectable pickup times, half-hour apart across a normal working day. */
+const TIME_SLOT_START_HOUR = 8;
+const TIME_SLOT_END_HOUR = 20;
+const TIME_SLOT_STEP_MINUTES = 30;
+
+type TimeSlot = { value: string; label: string };
+
+/**
+ * Every half-hour from 08:00 to 20:00, as both a sortable "HH:MM" value (what
+ * gets combined with the chosen date) and a 12-hour display label. Built once
+ * at module scope — the slot list itself never changes, only which of them are
+ * still selectable (see `availableTimeSlots` in the component, which filters
+ * this for a same-day pick).
+ */
+const TIME_SLOTS: TimeSlot[] = (() => {
+  const slots: TimeSlot[] = [];
+
+  for (
+    let minutes = TIME_SLOT_START_HOUR * 60;
+    minutes <= TIME_SLOT_END_HOUR * 60;
+    minutes += TIME_SLOT_STEP_MINUTES
+  ) {
+    const hour24 = Math.floor(minutes / 60);
+    const minute = minutes % 60;
+    const paddedMinute = String(minute).padStart(2, "0");
+
+    const period = hour24 < 12 ? "AM" : "PM";
+    const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
+
+    slots.push({
+      value: `${String(hour24).padStart(2, "0")}:${paddedMinute}`,
+      label: `${hour12}:${paddedMinute} ${period}`,
+    });
+  }
+
+  return slots;
+})();
+
+/** Local midnight for `date` — the boundary the calendar disables before. */
+function startOfDay(date: Date): Date {
+  const start = new Date(date);
+  start.setHours(0, 0, 0, 0);
+  return start;
+}
+
+/** Whether `a` and `b` fall on the same local calendar day. */
+function isSameDay(a: Date, b: Date): boolean {
+  return startOfDay(a).getTime() === startOfDay(b).getTime();
+}
+
+/**
+ * `date` at the wall-clock time named by a `TIME_SLOTS` value ("14:30"), or
+ * `null` if `time` isn't one of that shape — defensive against nothing more
+ * exotic than a stale/cleared selection, since the dropdown only ever offers
+ * valid values itself.
+ */
+function combineDateAndTime(date: Date, time: string): Date | null {
+  const match = /^(\d{2}):(\d{2})$/.exec(time);
+  if (!match) {
+    return null;
+  }
+
+  const combined = new Date(date);
+  combined.setHours(Number(match[1]), Number(match[2]), 0, 0);
+  return combined;
+}
 
 /**
  * Line-art glyphs for the two duty classes.
@@ -243,6 +331,19 @@ export function BookingForm(): React.ReactElement {
   const helperId = useId();
   const descriptionId = useId();
   const formId = useId();
+  const dateTriggerId = useId();
+  const timeSelectId = useId();
+  const weightSelectId = useId();
+
+  // Null until both a day and a time slot are chosen — see `scheduledDateTime`,
+  // the combined value everything downstream (submission, validation) reads.
+  const [scheduledDate, setScheduledDate] = useState<Date | null>(null);
+  const [scheduledTime, setScheduledTime] = useState("");
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
+
+  // Null until the taxonomy hands back at least one eligible vehicle to size
+  // this against — see `weightOptions`.
+  const [maxWeightKg, setMaxWeightKg] = useState<number | null>(null);
 
   const [pickupAddress, setPickupAddress] = useState("");
   const [dropoffAddress, setDropoffAddress] = useState("");
@@ -288,15 +389,58 @@ export function BookingForm(): React.ReactElement {
    *
    * Cheapest-first is what makes `[0]` the best fit — the same heuristic the
    * landing page's quote calculator already uses to pick a vehicle on the
-   * visitor's behalf.
+   * visitor's behalf. This is the *cargo*-eligible set; `eligibleVehicleTypes`
+   * below narrows it further by the weight step.
    */
-  const eligibleVehicleTypes = useMemo(() => {
+  const cargoEligibleVehicleTypes = useMemo(() => {
     const allowed = CARGO_CATEGORY_ALLOWED_VEHICLE_CATEGORIES[cargoCategory];
 
     return vehicleTypes
       .filter((vehicleType) => allowed.includes(vehicleType.category))
       .sort((a, b) => a.pricingRule.baseFare - b.pricingRule.baseFare);
   }, [vehicleTypes, cargoCategory]);
+
+  /**
+   * The weight dropdown's options: every payload capacity actually present
+   * among the cargo-eligible vehicles, smallest first — so each option reads
+   * as "up to what this vehicle can carry" and every option is guaranteed to
+   * leave at least one vehicle standing once picked.
+   */
+  const weightOptions = useMemo(() => {
+    const capacities = cargoEligibleVehicleTypes.map(
+      (vehicleType) => vehicleType.maxPayloadKg,
+    );
+    return [...new Set(capacities)].sort((a, b) => a - b);
+  }, [cargoEligibleVehicleTypes]);
+
+  /**
+   * Default (and re-default, on a goods change) to the smallest capacity —
+   * the least restrictive option, so an untouched weight step never hides a
+   * vehicle the goods step alone would have shown. Mirrors the vehicle
+   * auto-select effect below: replace a selection that's no longer one of the
+   * current options rather than clear it to empty.
+   */
+  useEffect(() => {
+    const smallest = weightOptions[0];
+    if (smallest === undefined) {
+      return;
+    }
+
+    if (maxWeightKg === null || !weightOptions.includes(maxWeightKg)) {
+      setMaxWeightKg(smallest);
+    }
+  }, [weightOptions, maxWeightKg]);
+
+  /** Cargo-eligible vehicles that can also carry the declared weight. */
+  const eligibleVehicleTypes = useMemo(() => {
+    if (maxWeightKg === null) {
+      return cargoEligibleVehicleTypes;
+    }
+
+    return cargoEligibleVehicleTypes.filter(
+      (vehicleType) => vehicleType.maxPayloadKg >= maxWeightKg,
+    );
+  }, [cargoEligibleVehicleTypes, maxWeightKg]);
 
   const bestFitVehicleType = eligibleVehicleTypes[0] ?? null;
 
@@ -355,6 +499,46 @@ export function BookingForm(): React.ReactElement {
     cargoCategory,
     requiresHelper,
   ]);
+
+  /** Local midnight today — the calendar's disabled-before boundary. */
+  const todayStart = useMemo(() => startOfDay(new Date()), []);
+
+  /**
+   * `TIME_SLOTS`, narrowed to the ones still in the future when the chosen day
+   * is today. A future day has no such constraint — every slot is available.
+   */
+  const availableTimeSlots = useMemo(() => {
+    if (!scheduledDate || !isSameDay(scheduledDate, new Date())) {
+      return TIME_SLOTS;
+    }
+
+    const now = new Date();
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
+    return TIME_SLOTS.filter((slot) => {
+      const [hours, minutes] = slot.value.split(":").map(Number);
+      // Both halves always exist — `slot.value` is always this module's own
+      // well-formed "HH:MM" — but `noUncheckedIndexedAccess` can't know that.
+      return (hours ?? 0) * 60 + (minutes ?? 0) >= nowMinutes;
+    });
+  }, [scheduledDate]);
+
+  // A slot picked for a future day can be stranded by switching back to today
+  // once the clock has passed it — drop it rather than let a submit combine a
+  // day and a time into a moment that's already gone.
+  useEffect(() => {
+    if (
+      scheduledTime &&
+      !availableTimeSlots.some((slot) => slot.value === scheduledTime)
+    ) {
+      setScheduledTime("");
+    }
+  }, [availableTimeSlots, scheduledTime]);
+
+  const scheduledDateTime =
+    scheduledDate && scheduledTime
+      ? combineDateAndTime(scheduledDate, scheduledTime)
+      : null;
 
   // Deliberately keyed off the raw address *text*, not `pickupLocation`/
   // `dropoffLocation`: those only populate once a suggestion is picked from
@@ -437,6 +621,16 @@ export function BookingForm(): React.ReactElement {
     event.preventDefault();
     setError(null);
     setResult(null);
+
+    // Guards the type, not the UX: "Book delivery" is disabled without a
+    // scheduled time (see `canSubmit`), so this only ever fires if that
+    // somehow raced — same defensive shape as the vehicle-type check the
+    // landing page's calculator uses before its own submit.
+    if (!scheduledDateTime) {
+      setError("Please choose a delivery date and time.");
+      return;
+    }
+
     setSubmitting(true);
 
     try {
@@ -444,6 +638,7 @@ export function BookingForm(): React.ReactElement {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          scheduledAt: scheduledDateTime.toISOString(),
           pickupAddress,
           dropoffAddress,
           cargoCategory,
@@ -471,6 +666,8 @@ export function BookingForm(): React.ReactElement {
       // goes back to empty rather than inviting an accidental re-submit of the
       // same route. The cargo and vehicle choices are kept: they describe the
       // kind of work this client does, not this one job.
+      setScheduledDate(null);
+      setScheduledTime("");
       setPickupAddress("");
       setDropoffAddress("");
       setPickupLocation(null);
@@ -539,13 +736,17 @@ export function BookingForm(): React.ReactElement {
   }
 
   // Booking requires a calculated price for the exact inputs being booked —
-  // the whole point of the Calculate step — plus a valid vehicle type, so the
-  // submit cannot race the fetch that supplies one. The address fields keep
-  // their own native `required` validation, which still runs because the
-  // button is only disabled for reasons the user cannot fix by filling the
-  // form in.
+  // the whole point of the Calculate step — plus a valid vehicle type and a
+  // chosen delivery time, so the submit cannot race the fetch that supplies
+  // the vehicle, or reach the server with nothing scheduled. The address
+  // fields keep their own native `required` validation, which still runs
+  // because the button is only disabled for reasons the user cannot fix by
+  // filling the form in.
   const canSubmit =
-    !submitting && selectedVehicleType !== null && estimate !== null;
+    !submitting &&
+    selectedVehicleType !== null &&
+    estimate !== null &&
+    scheduledDateTime !== null;
 
   return (
     <main className="min-h-screen bg-ink text-paper">
@@ -653,7 +854,109 @@ export function BookingForm(): React.ReactElement {
             onKeyDown={handleFormKeyDown}
             className="flex flex-col gap-5"
           >
-            <StepCard step={1} title="Route">
+            <StepCard
+              step={1}
+              title="Delivery date & time"
+              description="When should the driver come by?"
+            >
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="flex flex-col gap-1.5">
+                  <Label
+                    htmlFor={dateTriggerId}
+                    className="text-[0.8125rem] font-medium text-paper"
+                  >
+                    Date
+                  </Label>
+                  <Popover
+                    open={datePickerOpen}
+                    onOpenChange={setDatePickerOpen}
+                  >
+                    <PopoverTrigger asChild>
+                      <button
+                        id={dateTriggerId}
+                        type="button"
+                        className={`flex items-center gap-2 ${NATIVE_FIELD_CLASSES}`}
+                      >
+                        <CalendarDays
+                          aria-hidden="true"
+                          className="size-4 shrink-0 text-muted"
+                        />
+                        <span
+                          className={
+                            scheduledDate ? "text-paper" : "text-muted"
+                          }
+                        >
+                          {scheduledDate
+                            ? scheduledDateFormatter.format(scheduledDate)
+                            : "Select a date"}
+                        </span>
+                      </button>
+                    </PopoverTrigger>
+
+                    <PopoverContent
+                      align="start"
+                      className="w-auto border-line bg-ink p-0 text-paper ring-line"
+                    >
+                      {/* Retints the calendar's selected-day highlight from
+                          shadcn's default near-black `--primary` to this app's
+                          orange accent, scoped to just this popover rather
+                          than touching the token globally. */}
+                      <div
+                        style={
+                          {
+                            "--primary": "var(--landing-accent)",
+                            "--primary-foreground": "var(--landing-ink)",
+                          } as React.CSSProperties
+                        }
+                      >
+                        <Calendar
+                          mode="single"
+                          selected={scheduledDate ?? undefined}
+                          onSelect={(date) => {
+                            setScheduledDate(date ?? null);
+                            setDatePickerOpen(false);
+                          }}
+                          disabled={{ before: todayStart }}
+                          autoFocus
+                        />
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <Label
+                    htmlFor={timeSelectId}
+                    className="text-[0.8125rem] font-medium text-paper"
+                  >
+                    Time
+                  </Label>
+                  <select
+                    id={timeSelectId}
+                    value={scheduledTime}
+                    onChange={(event) => setScheduledTime(event.target.value)}
+                    required
+                    className={NATIVE_FIELD_CLASSES}
+                  >
+                    <option value="" disabled>
+                      {scheduledDate ? "Select a time" : "Pick a date first"}
+                    </option>
+                    {availableTimeSlots.map((slot) => (
+                      <option key={slot.value} value={slot.value}>
+                        {slot.label}
+                      </option>
+                    ))}
+                  </select>
+                  {scheduledDate && availableTimeSlots.length === 0 ? (
+                    <p className="text-xs text-muted">
+                      No slots left today — pick a later date.
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+            </StepCard>
+
+            <StepCard step={2} title="Route">
               <div className="flex flex-col gap-4">
                 <AddressAutocomplete
                   // Remounted after a booking so the structured breakdown each
@@ -682,7 +985,7 @@ export function BookingForm(): React.ReactElement {
             </StepCard>
 
             <StepCard
-              step={2}
+              step={3}
               title="What are you moving?"
               description="Pick the closest match — it decides which vehicles can take the job."
             >
@@ -721,9 +1024,45 @@ export function BookingForm(): React.ReactElement {
             </StepCard>
 
             <StepCard
-              step={3}
+              step={4}
+              title="Total weight"
+              description="Roughly how much is being moved — we'll only recommend vehicles that can carry it."
+            >
+              {weightOptions.length === 0 ? (
+                <p className="text-[0.8125rem] text-muted">
+                  Pick what you&rsquo;re moving first — weight options depend on
+                  the vehicles cleared for it.
+                </p>
+              ) : (
+                <div className="flex flex-col gap-1.5 sm:max-w-xs">
+                  <Label
+                    htmlFor={weightSelectId}
+                    className="text-[0.8125rem] font-medium text-paper"
+                  >
+                    Total weight
+                  </Label>
+                  <select
+                    id={weightSelectId}
+                    value={maxWeightKg ?? ""}
+                    onChange={(event) =>
+                      setMaxWeightKg(Number(event.target.value))
+                    }
+                    className={NATIVE_FIELD_CLASSES}
+                  >
+                    {weightOptions.map((capacity) => (
+                      <option key={capacity} value={capacity}>
+                        Up to {formatVehiclePayload(capacity)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </StepCard>
+
+            <StepCard
+              step={5}
               title="Recommended vehicle"
-              description="Only vehicles cleared for your goods are shown, cheapest first."
+              description="Only vehicles cleared for your goods and weight are shown, cheapest first."
             >
               {vehicleTypesError ? (
                 <p role="alert" className="text-[0.8125rem] text-accent">
@@ -798,7 +1137,7 @@ export function BookingForm(): React.ReactElement {
               )}
             </StepCard>
 
-            <StepCard title="Additional details">
+            <StepCard step={6} title="Additional details">
               <div className="flex flex-col gap-4">
                 <div className="flex items-start gap-3">
                   <Checkbox
@@ -915,7 +1254,6 @@ export function BookingForm(): React.ReactElement {
                 {error}
               </p>
             ) : null}
-
           </form>
 
           <div className="lg:sticky lg:top-6">

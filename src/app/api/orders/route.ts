@@ -13,7 +13,18 @@ import {
 /** Validated shape of an order-creation request body. */
 type CreateOrderInput = QuoteInput & {
   description?: string;
+  /** When the client wants this picked up/delivered. Required — see below. */
+  scheduledAt: Date;
 };
+
+/**
+ * How far into the past a submitted `scheduledAt` may fall before it's
+ * rejected as stale rather than accepted. Exists only to absorb the gap
+ * between the booking form reading "now" and this request landing — a slow
+ * connection or a client clock a couple of minutes fast shouldn't turn a
+ * pick of "today, right now" into a rejected submission.
+ */
+const SCHEDULED_AT_PAST_GRACE_MS = 5 * 60 * 1000;
 
 /**
  * Hand-rolled body validation (the project has no validation library, and this
@@ -36,10 +47,23 @@ function parseCreateOrderBody(
     return quote;
   }
 
-  const { description } = record;
+  const { description, scheduledAt } = record;
 
   if (description !== undefined && typeof description !== "string") {
     return { error: "description must be a string when provided." };
+  }
+
+  if (typeof scheduledAt !== "string" || scheduledAt.trim().length === 0) {
+    return { error: "scheduledAt is required." };
+  }
+
+  const scheduledAtDate = new Date(scheduledAt);
+  if (Number.isNaN(scheduledAtDate.getTime())) {
+    return { error: "scheduledAt must be a valid date and time." };
+  }
+
+  if (scheduledAtDate.getTime() < Date.now() - SCHEDULED_AT_PAST_GRACE_MS) {
+    return { error: "scheduledAt cannot be in the past." };
   }
 
   return {
@@ -49,6 +73,7 @@ function parseCreateOrderBody(
         typeof description === "string" && description.trim().length > 0
           ? description.trim()
           : undefined,
+      scheduledAt: scheduledAtDate,
     },
   };
 }
@@ -88,6 +113,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     cargoCategory,
     requiresHelper,
     description,
+    scheduledAt,
   } = parsed.data;
 
   const result = await estimateDelivery(parsed.data);
@@ -111,6 +137,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       cargoCategory,
       requiresHelper,
       description,
+      scheduledAt,
       pickupAddress,
       pickupLat: pickup.lat,
       pickupLng: pickup.lng,
