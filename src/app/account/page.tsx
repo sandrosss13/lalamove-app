@@ -1,11 +1,11 @@
 import { headers } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { OrderStatus, type Order } from "@prisma/client";
 
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { OrderCard } from "@/components/order-card";
+import { AccountPasswordCard } from "@/components/account-password-card";
+import { AccountSidebar } from "@/components/account-sidebar";
 import {
   AccountProfileForm,
   type AccountProfileInitialValues,
@@ -14,69 +14,44 @@ import {
 // Session + Prisma access can't be statically rendered.
 export const dynamic = "force-dynamic";
 
-/** Order statuses that count as "current" (active, not yet resolved). */
-const CURRENT_STATUSES: OrderStatus[] = [
-  OrderStatus.PENDING,
-  OrderStatus.CLAIMED,
-  OrderStatus.ACCEPTED,
-  OrderStatus.IN_TRANSIT,
-];
+const PANEL_LABEL_CLASSES =
+  "text-[0.6875rem] font-semibold tracking-[0.1em] text-muted uppercase";
 
 /**
- * An order with the vehicle assigned to it, as fetched below — clients see
- * which vehicle is handling their delivery once a driver has accepted it.
+ * The client's account settings screen: a nav rail beside the settings this
+ * client can actually change — their profile, and their password.
+ *
+ * Not an order list. Orders live on `/orders`, one click away from both the
+ * rail here and the global header's own client nav, so duplicating the whole
+ * list under these forms only buried them.
  */
-type OrderWithVehicle = Order & {
-  vehicle: { plateNumber: string; make: string; model: string } | null;
-};
-
-/** Renders one titled group of orders, or an empty-state line when there are none. */
-function OrderGroup({
-  title,
-  orders,
-}: {
-  title: string;
-  orders: OrderWithVehicle[];
-}) {
-  return (
-    <section className="flex flex-col gap-3">
-      <h3 className="text-lg font-semibold">
-        {title} <span className="opacity-60">({orders.length})</span>
-      </h3>
-      {orders.length === 0 ? (
-        <p className="text-sm opacity-70">No orders yet.</p>
-      ) : (
-        <ul className="flex flex-col gap-4">
-          {orders.map((order) => (
-            <OrderCard key={order.id} order={order} />
-          ))}
-        </ul>
-      )}
-    </section>
-  );
-}
-
 export default async function AccountPage() {
   const session = await auth.api.getSession({ headers: await headers() });
 
   if (!session) {
     return (
-      <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-4 p-8 text-center">
-        <h1 className="text-3xl font-bold">My account</h1>
-        <p className="opacity-70">Please sign in to view your account.</p>
-        <div className="flex justify-center gap-3">
-          <Link
-            href="/sign-in"
-            className="rounded border px-4 py-2 font-medium hover:opacity-70"
-          >
-            Sign in
-          </Link>
-          <Link
-            href="/sign-up"
-            className="rounded border px-4 py-2 font-medium hover:opacity-70"
-          >
-            Sign up
-          </Link>
+      <main className="min-h-screen bg-ink text-paper">
+        <div className="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center gap-4 px-5 text-center">
+          <h1 className="font-display text-3xl font-semibold tracking-[-0.025em]">
+            My account
+          </h1>
+          <p className="text-sm text-muted">
+            Please sign in to view your account.
+          </p>
+          <div className="flex justify-center gap-3">
+            <Link
+              href="/sign-in"
+              className="rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-ink transition-transform hover:-translate-y-0.5"
+            >
+              Sign in
+            </Link>
+            <Link
+              href="/sign-up"
+              className="rounded-full border border-line px-5 py-2.5 text-sm font-semibold text-paper transition-colors hover:border-accent/40 hover:text-accent"
+            >
+              Sign up
+            </Link>
+          </div>
         </div>
       </main>
     );
@@ -88,26 +63,9 @@ export default async function AccountPage() {
     redirect("/dashboard");
   }
 
-  const [clientProfile, orders] = await Promise.all([
-    prisma.clientProfile.findUnique({ where: { userId: session.user.id } }),
-    prisma.order.findMany({
-      where: { clientId: session.user.id },
-      include: {
-        vehicle: { select: { plateNumber: true, make: true, model: true } },
-      },
-      orderBy: { createdAt: "desc" },
-    }),
-  ]);
-
-  // Display name: use the profile's identity when present, otherwise fall back
-  // to the account name captured at sign-up.
-  const displayName =
-    clientProfile?.accountType === "BUSINESS"
-      ? (clientProfile.companyName ?? session.user.name)
-      : clientProfile?.accountType === "INDIVIDUAL"
-        ? `${clientProfile.firstName ?? ""} ${clientProfile.lastName ?? ""}`.trim() ||
-          session.user.name
-        : session.user.name;
+  const clientProfile = await prisma.clientProfile.findUnique({
+    where: { userId: session.user.id },
+  });
 
   // Defensive: sign-up always creates a profile, but an account without one is
   // still editable — default to an empty individual profile.
@@ -124,36 +82,37 @@ export default async function AccountPage() {
     idNumber: clientProfile?.idNumber ?? null,
   };
 
-  const currentOrders = orders.filter((order) =>
-    CURRENT_STATUSES.includes(order.status),
-  );
-  const completedOrders = orders.filter(
-    (order) => order.status === OrderStatus.COMPLETED,
-  );
-  const canceledOrders = orders.filter(
-    (order) => order.status === OrderStatus.CANCELLED,
-  );
-
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-8 p-8">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-3xl font-bold">{displayName}</h1>
-        <p className="text-sm opacity-60">Account ID: {session.user.id}</p>
-      </header>
+    <main className="min-h-screen bg-ink text-paper">
+      <div className="mx-auto flex max-w-6xl flex-col gap-8 px-5 py-8 sm:px-8 lg:flex-row lg:gap-12">
+        <AccountSidebar />
 
-      <div className="flex flex-col gap-6">
-        <h2 className="text-2xl font-bold">My profile</h2>
-        <AccountProfileForm
-          email={session.user.email}
-          initialValues={profileInitialValues}
-        />
-      </div>
+        <div className="flex min-w-0 flex-1 flex-col gap-6">
+          <header>
+            <p className={PANEL_LABEL_CLASSES}>
+              Settings
+              <span aria-hidden="true" className="px-1.5">
+                /
+              </span>
+              <span className="text-accent">Profile</span>
+            </p>
+            <h1 className="mt-2 font-display text-[clamp(1.5rem,3vw,2rem)] leading-none font-semibold tracking-[-0.025em] text-paper">
+              Profile
+            </h1>
+            <p className="mt-2.5 max-w-xl text-[0.8125rem] leading-relaxed text-muted">
+              The details a driver sees when they turn up for one of your
+              pickups, and the credentials you sign in with. Keeping your phone
+              number current is what stops a delivery stalling at the kerb.
+            </p>
+          </header>
 
-      <div className="flex flex-col gap-6">
-        <h2 className="text-2xl font-bold">My orders</h2>
-        <OrderGroup title="Current" orders={currentOrders} />
-        <OrderGroup title="Completed" orders={completedOrders} />
-        <OrderGroup title="Canceled" orders={canceledOrders} />
+          <AccountProfileForm
+            email={session.user.email}
+            initialValues={profileInitialValues}
+          />
+
+          <AccountPasswordCard />
+        </div>
       </div>
     </main>
   );
