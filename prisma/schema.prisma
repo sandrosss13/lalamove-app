@@ -381,6 +381,12 @@ model Order {
   description    String?
   requiresHelper Boolean       @default(false)
 
+  // The client's requested pickup/delivery date and time, collected as the
+  // first step of the booking form. Nullable: every order created before this
+  // field existed has none, and unlike the fields above it, nothing here
+  // feeds the price — it's informational for dispatch, not the quote.
+  scheduledAt DateTime?
+
   pickupAddress String
   pickupLat     Float?
   pickupLng     Float?
