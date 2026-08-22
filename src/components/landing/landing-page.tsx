@@ -144,10 +144,12 @@ function LandingSectionRenderer({ section }: { section: LandingSection }) {
 
 /**
  * Marketing page shown at `/` to visitors without a session, and at `/home` to
- * everyone. It brings its own header and footer; the `data-landing-page`
- * attribute is what `globals.css` hooks into to own the page background, and
- * (unless `showSiteHeader` says otherwise) to hide the global site header,
- * which would otherwise stack a second navbar on top of this page's own.
+ * everyone. It brings its own footer, and — for signed-out visitors only — its
+ * own header; the `data-landing-page` attribute is what `globals.css` hooks
+ * into to own the page background, and (unless `showSiteHeader` says otherwise)
+ * to hide the global site header, which would otherwise stack a second navbar
+ * on top of this page's own. Exactly one of the two headers renders, never both
+ * and never neither: `showSiteHeader` picks which.
  *
  * The body is composed from `HomePageSection` rows edited under
  * `/admin/content/home-page`: `sections` arrives already filtered to one
@@ -174,14 +176,20 @@ export function LandingPage({
   /** Active banners placed at `home_secondary`. */
   secondaryBanners?: LandingBanner[];
   /**
-   * Keep the global site header (account nav, sign out) above this page's own
-   * header, rather than hiding it. `/`'s signed-out visitor is the case the
-   * hidden-by-default behavior exists for — there is no account nav to show,
-   * and stacking a second navbar on top of this page's own would be pure
+   * Swap this page's own `LandingHeader` for the global site header (account
+   * nav, sign out), rather than the other way round. `/`'s signed-out visitor
+   * is the case the default behavior exists for — there is no account nav to
+   * show, and stacking a second navbar on top of this page's own would be pure
    * clutter. `/home` passes `true` when a session exists: a signed-in user who
    * deliberately visits the marketing page still needs a way back to their
-   * account and a way to sign out, and this page's own header doesn't reflect
-   * the session at all.
+   * account and a way to sign out.
+   *
+   * The swap goes both ways because `LandingHeader` is written for a visitor
+   * who has no account yet — its only calls to action are "Sign in", "Sign up"
+   * and "Get started", all dead ends once signed in. So when this is `true` the
+   * page skips rendering it entirely rather than leaving a second navbar of
+   * useless links under the global one; the page's section anchors go with it,
+   * which is the accepted cost of not showing a signed-in user a sign-up bar.
    */
   showSiteHeader?: boolean;
 }) {
@@ -215,7 +223,12 @@ export function LandingPage({
       data-hide-site-header={showSiteHeader ? undefined : ""}
       className="min-h-screen bg-ink font-body text-paper antialiased"
     >
-      <LandingHeader />
+      {/*
+        The signed-out header only. With a session, the global site header is
+        left visible above this page instead (see `showSiteHeader`), and this
+        one would add nothing but a second row of sign-in/sign-up links.
+      */}
+      {showSiteHeader ? null : <LandingHeader />}
       <main>
         {heroIndex === -1 ? heroTrailer : null}
 
