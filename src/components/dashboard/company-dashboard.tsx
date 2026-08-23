@@ -32,15 +32,10 @@ export async function CompanyDashboard({ userId }: { userId: string }) {
     );
   }
 
-  // `data-ops-dashboard` is what scopes the dark palette, the slim scrollbars
-  // and the hidden global site header to this page (see globals.css) — without
-  // it the console renders in the app's default light theme.
-  return (
-    <div
-      data-ops-dashboard=""
-      className="min-h-screen bg-ops-bg font-[family-name:var(--font-ibm-plex)] text-ops-text antialiased"
-    >
-      <OpsDashboardShell data={data} />
-    </div>
-  );
+  // The shell renders the `data-ops-dashboard` root element itself — that
+  // attribute is what scopes the console palette, the slim scrollbars and the
+  // hidden global site header to this page (see globals.css) — because it also
+  // carries the `data-ops-theme` value of the visitor's dark/light choice,
+  // which is client state.
+  return <OpsDashboardShell data={data} />;
 }

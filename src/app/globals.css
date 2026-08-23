@@ -26,9 +26,12 @@
   --landing-ink-strong: #15140f;
   --landing-on-strong: #f5f2ea;
 
-  /* Ops-dashboard palette (logistics company dashboard). Independent of the
-     light/dark tokens above and of the landing page's own palette: this is a
-     fixed dark scheme regardless of system theme, scoped to [data-ops-dashboard]. */
+  /* Ops-dashboard palette (logistics company and driver consoles). Independent
+     of the light/dark tokens above and of the landing page's own palette: these
+     are the console's dark values, used regardless of system theme and scoped
+     to [data-ops-dashboard]. Dark is the default; a visitor who flips the
+     console's own toggle gets the light overrides further down this file
+     ([data-ops-dashboard][data-ops-theme="light"]). */
   --ops-bg: oklch(0.16 0.004 260);
   --ops-surface: oklch(0.19 0.005 260);
   --ops-surface-raised: oklch(0.22 0.006 260);
@@ -372,6 +375,33 @@ body:has([data-ops-dashboard]) {
 
 [data-ops-dashboard] ::-webkit-scrollbar-track {
   background: transparent;
+}
+
+/* Light variant of the ops console, opt-in via `data-ops-theme="light"` set on
+   the same element as `data-ops-dashboard` (client-side, from the visitor's
+   toggle choice — see `useOpsTheme`). No attribute, or `data-ops-theme="dark"`,
+   keeps the dark values already declared in `:root` above; dark is the
+   default. Same hue families as the dark palette (neutral ~260, warm accent
+   ~25, success green ~145), lightness/chroma re-tuned for a light surface. */
+[data-ops-dashboard][data-ops-theme="light"] {
+  --ops-bg: oklch(0.985 0.002 260);
+  --ops-surface: oklch(0.97 0.004 260);
+  --ops-surface-raised: oklch(0.94 0.005 260);
+  --ops-border: oklch(0.87 0.006 260);
+  --ops-text: oklch(0.2 0.005 260);
+  --ops-text-muted: oklch(0.48 0.01 260);
+  --ops-accent: oklch(0.58 0.19 25);
+  --ops-accent-fg: oklch(0.99 0.01 25);
+  --ops-danger: oklch(0.55 0.19 25);
+  --ops-success: oklch(0.5 0.13 145);
+}
+
+/* `body:has([data-ops-dashboard])` above sets the dark `--ops-bg` as the body's
+   background; `--ops-bg` there is inherited from `:root`, not from the
+   dashboard div's own override, so it needs its own light-mode rule here
+   (mirroring the value above) rather than falling out of the cascade. */
+body:has([data-ops-dashboard][data-ops-theme="light"]) {
+  background: oklch(0.985 0.002 260);
 }
 
 /* Admin back office. Pinned to a light scheme regardless of system theme —

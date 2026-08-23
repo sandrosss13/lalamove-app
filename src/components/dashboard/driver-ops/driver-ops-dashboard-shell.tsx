@@ -8,6 +8,8 @@ import {
   type OpsDrawerState,
   type OpsToastState,
 } from "@/components/dashboard/ops/ops-dashboard-context";
+import { OpsThemeToggle } from "@/components/dashboard/ops/ops-theme-toggle";
+import { useOpsTheme } from "@/components/dashboard/ops/use-ops-theme";
 import { OpsToast } from "@/components/dashboard/ops/ops-toast";
 import { DriverOpsSidebar } from "@/components/dashboard/driver-ops/driver-ops-sidebar";
 import { DriverOpsOverviewTab } from "@/components/dashboard/driver-ops/driver-ops-overview-tab";
@@ -53,12 +55,17 @@ const TOAST_DURATION_MS = 2400;
  * All data arrives pre-fetched from the server component in one object, so tab
  * switching is instant — no navigation, no second round-trip. Each tab is handed
  * only the slice of `data` it needs; keep that convention as the real tabs land.
+ *
+ * It also renders the `data-ops-dashboard` root element itself (rather than
+ * receiving it from the server component), because the palette that attribute
+ * scopes is now toggleable and the chosen theme is client state.
  */
 export function DriverOpsDashboardShell({
   data,
 }: {
   data: DriverDashboardData;
 }) {
+  const { theme, toggleTheme } = useOpsTheme();
   const [activeTab, setActiveTab] = useState<TabId>("overview");
   const [activeDrawer, setActiveDrawer] = useState<OpsDrawerState>(null);
   const [toast, setToast] = useState<OpsToastState>(null);
@@ -100,69 +107,80 @@ export function DriverOpsDashboardShell({
   );
 
   return (
-    <OpsDashboardContext.Provider value={contextValue}>
-      <div className="flex h-screen w-full overflow-hidden">
-        <DriverOpsSidebar
-          driverName={data.driver.name}
-          driverCity={data.driver.city}
-          activeTab={activeTab}
-          onTabChange={(id) => setActiveTab(id as TabId)}
-          tabs={tabs}
-        />
+    <div
+      data-ops-dashboard=""
+      data-ops-theme={theme}
+      className="min-h-screen bg-ops-bg font-[family-name:var(--font-ibm-plex)] text-ops-text antialiased"
+    >
+      <OpsDashboardContext.Provider value={contextValue}>
+        <div className="flex h-screen w-full overflow-hidden">
+          <DriverOpsSidebar
+            driverName={data.driver.name}
+            driverCity={data.driver.city}
+            activeTab={activeTab}
+            onTabChange={(id) => setActiveTab(id as TabId)}
+            tabs={tabs}
+          />
 
-        <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-          <div className="flex h-[66px] flex-shrink-0 items-center justify-between border-b border-ops-border px-8">
-            <div>
-              <div className="text-[19px] font-semibold">
-                {tabs.find((tab) => tab.id === activeTab)?.label}
+          <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+            <div className="flex h-[66px] flex-shrink-0 items-center justify-between border-b border-ops-border px-8">
+              <div>
+                <div className="text-[19px] font-semibold">
+                  {tabs.find((tab) => tab.id === activeTab)?.label}
+                </div>
+                <div className="mt-0.5 text-[13px] text-ops-text-muted">
+                  {TAB_SUBTITLES[activeTab]}
+                </div>
               </div>
-              <div className="mt-0.5 text-[13px] text-ops-text-muted">
-                {TAB_SUBTITLES[activeTab]}
-              </div>
+
+              <OpsThemeToggle theme={theme} onToggle={toggleTheme} />
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-8 py-6 pb-16">
+              {activeTab === "overview" ? (
+                <DriverOpsOverviewTab
+                  driver={data.driver}
+                  overview={data.overview}
+                />
+              ) : null}
+              {activeTab === "deliveries" ? (
+                <DriverOpsDeliveriesTab
+                  orders={data.orders}
+                  isIndependent={isIndependent}
+                />
+              ) : null}
+              {activeTab === "earnings" ? (
+                <DriverOpsEarningsTab earnings={data.earnings} />
+              ) : null}
+              {/* The `isIndependent` guard is belt-and-braces: a rostered driver
+                  has no Vehicle tab to click in the first place. */}
+              {activeTab === "vehicle" && isIndependent ? (
+                <DriverOpsVehicleTab vehicles={data.vehicles} />
+              ) : null}
             </div>
           </div>
-
-          <div className="flex-1 overflow-y-auto px-8 py-6 pb-16">
-            {activeTab === "overview" ? (
-              <DriverOpsOverviewTab
-                driver={data.driver}
-                overview={data.overview}
-              />
-            ) : null}
-            {activeTab === "deliveries" ? (
-              <DriverOpsDeliveriesTab
-                orders={data.orders}
-                isIndependent={isIndependent}
-              />
-            ) : null}
-            {activeTab === "earnings" ? (
-              <DriverOpsEarningsTab earnings={data.earnings} />
-            ) : null}
-            {/* The `isIndependent` guard is belt-and-braces: a rostered driver
-                has no Vehicle tab to click in the first place. */}
-            {activeTab === "vehicle" && isIndependent ? (
-              <DriverOpsVehicleTab vehicles={data.vehicles} />
-            ) : null}
-          </div>
         </div>
-      </div>
 
-      {/* Drawers resolve their row by id at render time rather than capturing it
-          when opened, so a `router.refresh()` behind an open drawer updates it.
-          Only the "order" and "add-vehicle" variants of the shared drawer state
-          are ever produced here; "driver" belongs to the company console. */}
-      {activeDrawer?.type === "order" ? (
-        <DriverOrderDetailDrawer
-          order={
-            data.orders.find((order) => order.id === activeDrawer.id) ?? null
-          }
-          vehicles={data.vehicles}
-          isIndependent={isIndependent}
-        />
-      ) : null}
-      {activeDrawer?.type === "add-vehicle" ? <DriverAddVehicleDrawer /> : null}
+        {/* Drawers resolve their row by id at render time rather than capturing
+            it when opened, so a `router.refresh()` behind an open drawer
+            updates it. Only the "order" and "add-vehicle" variants of the
+            shared drawer state are ever produced here; "driver" belongs to the
+            company console. */}
+        {activeDrawer?.type === "order" ? (
+          <DriverOrderDetailDrawer
+            order={
+              data.orders.find((order) => order.id === activeDrawer.id) ?? null
+            }
+            vehicles={data.vehicles}
+            isIndependent={isIndependent}
+          />
+        ) : null}
+        {activeDrawer?.type === "add-vehicle" ? (
+          <DriverAddVehicleDrawer />
+        ) : null}
 
-      <OpsToast toast={toast} />
-    </OpsDashboardContext.Provider>
+        <OpsToast toast={toast} />
+      </OpsDashboardContext.Provider>
+    </div>
   );
 }
