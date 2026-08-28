@@ -1,0 +1,1483 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="ds/styles.css" />
+<style>
+  body { margin: 0; background: var(--muted, #f5f5f5); }
+  a { color: #ff5a1f; text-decoration: none; }
+  a:hover { color: #d9420c; }
+  input, button, select, textarea { font-family: inherit; }
+  input::placeholder, textarea::placeholder { color: oklch(0.72 0 0); }
+  .noscroll::-webkit-scrollbar { width: 0; height: 0; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  @keyframes pop { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: none; } }
+  @keyframes flash { 0% { opacity: 0.9; } 100% { opacity: 0; } }
+</style>
+</helmet>
+
+<div data-admin-surface style="height:100vh;overflow:hidden;background:var(--muted);color:var(--foreground);font-family:'IBM Plex Sans',ui-sans-serif,sans-serif;display:flex;flex-direction:column">
+
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:24px;padding:14px 24px;background:var(--card);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:40">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="width:22px;height:22px;border-radius:6px;background:#ff5a1f"></div>
+      <div style="font-size:14px;font-weight:600;letter-spacing:-0.01em">Driver &amp; Vehicle Onboarding</div>
+      <div style="font-size:12px;color:var(--muted-foreground);padding-left:10px;border-left:1px solid var(--border)">Prototype</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:16px">
+      <div style="font-size:12px;color:var(--muted-foreground)">{{ statusLine }}</div>
+      <div style="display:flex;gap:2px;padding:3px;background:var(--muted);border-radius:9px;border:1px solid var(--border)">
+        <button onClick="{{ goDriver }}" style="padding:6px 14px;border:0;border-radius:7px;font-size:13px;font-weight:500;cursor:pointer;background:{{ tab.driverBg }};color:{{ tab.driverFg }};box-shadow:{{ tab.driverSh }}">Driver app</button>
+        <button onClick="{{ goAdmin }}" style="padding:6px 14px;border:0;border-radius:7px;font-size:13px;font-weight:500;cursor:pointer;background:{{ tab.adminBg }};color:{{ tab.adminFg }};box-shadow:{{ tab.adminSh }}">Admin review</button>
+      </div>
+      <button onClick="{{ reset }}" style="padding:6px 12px;border:1px solid var(--border);border-radius:8px;background:var(--card);font-size:12px;color:var(--muted-foreground);cursor:pointer" style-hover="background:var(--accent);color:var(--foreground)">Reset demo</button>
+    </div>
+  </div>
+
+  <sc-if value="{{ isDriver }}" hint-placeholder-val="{{ true }}">
+  <div style="flex:1;display:flex;min-height:0">
+    <div style="width:300px;flex-shrink:0;background:var(--card);border-right:1px solid var(--border);padding:26px 22px;display:flex;flex-direction:column;gap:15px">
+      <div style="font-size:10.5px;font-weight:600;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted-foreground);font-family:'IBM Plex Mono',monospace">Application progress</div>
+      <sc-for list="{{ railSteps }}" as="r" hint-placeholder-count="4">
+        <button onClick="{{ r.onJump }}" style="border:0;background:none;padding:0;text-align:left;cursor:pointer;display:flex;gap:12px;align-items:flex-start">
+          <div style="width:22px;height:22px;border-radius:11px;background:{{ r.dotBg }};color:{{ r.dotFg }};font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;font-family:'IBM Plex Mono',monospace">{{ r.n }}</div>
+          <div>
+            <div style="font-size:13.5px;font-weight:600;color:{{ r.fg }}">{{ r.label }}</div>
+            <div style="font-size:11.5px;line-height:1.45;color:var(--muted-foreground);margin-top:2px">{{ r.sub }}</div>
+          </div>
+        </button>
+      </sc-for>
+      <div style="flex:1;min-height:20px"></div>
+      <div style="border-top:1px solid var(--border);padding-top:14px;font-size:11.5px;line-height:1.55;color:var(--muted-foreground)">Every field validates on continue. Documents flagged in the admin console come back here for re-upload.</div>
+    </div>
+    <div style="flex:1;min-width:0;overflow-y:auto;background:#fafafa">
+      <div style="max-width:900px;margin:0 auto;padding:0 48px;font-family:'IBM Plex Sans',ui-sans-serif,sans-serif;color:var(--foreground)">
+
+        <sc-if value="{{ S.welcome }}" hint-placeholder-val="{{ true }}">
+        <div style="padding:64px 0 72px;max-width:620px">
+          <div style="width:44px;height:44px;border-radius:12px;background:#ff5a1f;margin-bottom:30px"></div>
+          <div style="font-size:42px;line-height:1.08;font-weight:600;letter-spacing:-0.03em">Become a partner driver</div>
+          <div style="font-size:16px;line-height:1.55;color:var(--muted-foreground);margin-top:14px;max-width:520px">Five steps. Around 12 minutes if your licence and vehicle documents are to hand. Progress is saved as you go.</div>
+          <div style="display:flex;flex-direction:column;gap:2px;margin-top:34px;border:1px solid var(--border);border-radius:14px;overflow:hidden">
+            <sc-for list="{{ outline }}" as="o" hint-placeholder-count="4">
+              <div style="display:flex;align-items:center;gap:12px;padding:13px 14px;background:var(--card);border-bottom:1px solid var(--border)">
+                <div style="width:22px;height:22px;border-radius:11px;background:var(--muted);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--muted-foreground);font-family:'IBM Plex Mono',monospace">{{ o.n }}</div>
+                <div style="font-size:14px;font-weight:500">{{ o.label }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <sc-if value="{{ hasDraft }}">
+            <div style="border:1px solid #ff5a1f;background:rgba(255,90,31,0.06);border-radius:14px;padding:16px 18px;margin-top:24px;display:flex;align-items:center;gap:20px">
+              <div style="flex:1">
+                <div style="font-size:14px;font-weight:600">Unfinished application</div>
+                <div style="font-size:13px;color:var(--muted-foreground);margin-top:3px">{{ draftLine }}</div>
+              </div>
+              <button onClick="{{ resumeDraft }}" style="flex-shrink:0;height:44px;padding:0 20px;border:0;border-radius:10px;background:#ff5a1f;color:#fff;font-size:14.5px;font-weight:600;cursor:pointer" style-hover="background:#e04a13">Resume</button>
+            </div>
+          </sc-if>
+          <button onClick="{{ startFresh }}" style="margin-top:16px;height:50px;padding:0 26px;border:1px solid var(--border);border-radius:12px;background:var(--card);font-size:15px;font-weight:600;cursor:pointer" style-hover="background:var(--accent)">{{ freshLabel }}</button>
+        </div>
+        </sc-if>
+
+        <sc-if value="{{ S.form }}">
+        <div style="padding:40px 0 72px;max-width:680px">
+          <div style="display:flex;align-items:center;gap:14px">
+            <button onClick="{{ back }}" style="width:34px;height:34px;border:1px solid var(--border);border-radius:9px;background:var(--card);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--muted-foreground);padding:0;flex-shrink:0" style-hover="background:var(--accent)">‹</button>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:10.5px;font-weight:600;letter-spacing:0.09em;text-transform:uppercase;color:#ff5a1f;font-family:'IBM Plex Mono',monospace">{{ hdr.kicker }}</div>
+              <div style="font-size:26px;font-weight:600;letter-spacing:-0.02em;margin-top:2px">{{ hdr.title }}</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:5px;margin-top:20px">
+            <sc-for list="{{ bars }}" as="b" hint-placeholder-count="4">
+              <div style="flex:1;height:3px;border-radius:2px;background:var(--border);overflow:hidden">
+                <div style="height:100%;width:{{ b.w }};background:{{ b.c }};transition:width 0.35s ease"></div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="margin-top:28px">
+
+            <sc-if value="{{ S.phone }}">
+            <div style="display:flex;flex-direction:column;gap:18px;animation:fadeUp 0.3s ease both">
+              <div style="font-size:13.5px;line-height:1.5;color:var(--muted-foreground)">We send a six-digit code to confirm the number. This becomes your login and the number couriers and dispatch will call.</div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <div style="font-size:11.5px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:var(--muted-foreground)">Mobile number</div>
+                <input type="tel" value="{{ d.phone }}" onChange="{{ h.phone }}" placeholder="+1 415 555 0134" style="height:48px;width:100%;border-radius:10px;border:1px solid {{ bc.phone }};background:var(--card);padding:0 13px;font-size:16px;letter-spacing:0.01em;color:var(--foreground);outline:none" style-focus="border-color:#ff5a1f;box-shadow:0 0 0 3px rgba(255,90,31,0.14)" />
+                <sc-if value="{{ err.phone }}"><div style="font-size:12px;color:var(--destructive)">{{ err.phone }}</div></sc-if>
+              </div>
+            </div>
+            </sc-if>
+
+            <sc-if value="{{ S.otp }}">
+            <div style="display:flex;flex-direction:column;gap:18px;animation:fadeUp 0.3s ease both">
+              <div style="font-size:13.5px;line-height:1.5;color:var(--muted-foreground)">Enter the code sent to <span style="color:var(--foreground);font-weight:600">{{ d.phone }}</span>.</div>
+              <div style="position:relative">
+                <div style="display:flex;gap:8px">
+                  <sc-for list="{{ otpBoxes }}" as="o" hint-placeholder-count="6">
+                    <div style="flex:1;height:58px;border-radius:10px;border:1px solid {{ o.bc }};background:{{ o.bg }};display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:500">{{ o.ch }}</div>
+                  </sc-for>
+                </div>
+                <input type="tel" value="{{ d.otp }}" onChange="{{ h.otp }}" autoFocus="{{ true }}" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;border:0;background:transparent;outline:none;font-size:16px;caret-color:transparent" />
+              </div>
+              <sc-if value="{{ err.otp }}"><div style="font-size:12px;color:var(--destructive)">{{ err.otp }}</div></sc-if>
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <button onClick="{{ resend }}" disabled="{{ resendLocked }}" style="border:0;background:none;padding:0;font-size:13px;font-weight:600;cursor:pointer;color:{{ resendColor }}">{{ resendLabel }}</button>
+                <div style="font-size:12px;color:var(--muted-foreground);font-family:'IBM Plex Mono',monospace">demo code 482913</div>
+              </div>
+            </div>
+            </sc-if>
+
+            <sc-if value="{{ S.personal }}">
+            <div style="display:flex;flex-direction:column;gap:16px;animation:fadeUp 0.3s ease both">
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <div style="font-size:11.5px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:var(--muted-foreground)">Full name</div>
+                <input value="{{ d.name }}" onChange="{{ h.name }}" placeholder="Exactly as printed on your ID" style="height:46px;width:100%;border-radius:10px;border:1px solid {{ bc.name }};background:var(--card);padding:0 13px;font-size:15px;color:var(--foreground);outline:none" style-focus="border-color:#ff5a1f;box-shadow:0 0 0 3px rgba(255,90,31,0.14)" />
+                <sc-if value="{{ err.name }}"><div style="font-size:12px;color:var(--destructive)">{{ err.name }}</div></sc-if>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <div style="font-size:11.5px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:var(--muted-foreground)">ID or passport number</div>
+                <input value="{{ d.idNo }}" onChange="{{ h.idNo }}" placeholder="AB1234567" style="height:46px;width:100%;border-radius:10px;border:1px solid {{ bc.idNo }};background:var(--card);padding:0 13px;font-size:15px;font-family:'IBM Plex Mono',monospace;letter-spacing:0.06em;color:var(--foreground);outline:none" style-focus="border-color:#ff5a1f;box-shadow:0 0 0 3px rgba(255,90,31,0.14)" />
+                <sc-if value="{{ err.idNo }}"><div style="font-size:12px;color:var(--destructive)">{{ err.idNo }}</div></sc-if>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <div style="font-size:11.5px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:var(--muted-foreground)">Date of birth</div>
+                <input type="date" value="{{ d.dob }}" onChange="{{ h.dob }}" style="height:46px;width:100%;border-radius:10px;border:1px solid {{ bc.dob }};background:var(--card);padding:0 13px;font-size:15px;color:var(--foreground);outline:none" style-focus="border-color:#ff5a1f;box-shadow:0 0 0 3px rgba(255,90,31,0.14)" />
+                <sc-if value="{{ err.dob }}"><div style="font-size:12px;color:var(--destructive)">{{ err.dob }}</div></sc-if>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px;position:relative">
+                <div style="font-size:11.5px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:var(--muted-foreground)">City</div>
+                <input value="{{ d.city }}" onChange="{{ h.city }}" onFocus="{{ openCities }}" placeholder="Start typing — Tbilisi, Batumi, Kutaisi…" style="height:46px;width:100%;border-radius:10px;border:1px solid {{ bc.city }};background:var(--card);padding:0 13px;font-size:15px;color:var(--foreground);outline:none" style-focus="border-color:#ff5a1f;box-shadow:0 0 0 3px rgba(255,90,31,0.14)" />
+                <sc-if value="{{ citiesOpen }}">
+                  <div style="border:1px solid var(--border);border-radius:10px;background:var(--card);overflow-y:auto;max-height:236px;box-shadow:0 8px 24px rgba(0,0,0,0.08);animation:pop 0.16s ease both">
+                    <sc-for list="{{ cityOptions }}" as="ct" hint-placeholder-count="6">
+                      <button onClick="{{ ct.onPick }}" style="width:100%;border:0;border-bottom:1px solid var(--border);background:var(--card);padding:10px 13px;display:flex;align-items:baseline;justify-content:space-between;gap:10px;cursor:pointer;text-align:left" style-hover="background:var(--accent)">
+                        <div style="font-size:14px;font-weight:500">{{ ct.name }}</div>
+                        <div style="font-size:11.5px;color:var(--muted-foreground)">{{ ct.region }}</div>
+                      </button>
+                    </sc-for>
+                    <sc-if value="{{ noCityMatch }}">
+                      <div style="padding:11px 13px;font-size:13px;color:var(--muted-foreground)">No city by that name. Check the spelling.</div>
+                    </sc-if>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ err.city }}"><div style="font-size:12px;color:var(--destructive)">{{ err.city }}</div></sc-if>
+                <div style="font-size:12px;color:var(--muted-foreground)">Where you will mostly pick up orders. Georgia only for now.</div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px">
+                <div style="font-size:11.5px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:var(--muted-foreground)">Profile photo</div>
+                <div style="font-size:12.5px;line-height:1.5;color:var(--muted-foreground)">A recent photo of your face, matched against your ID by the review team.</div>
+                <sc-for list="{{ selfieSlot }}" as="p" hint-placeholder-count="1">
+                  <button onClick="{{ p.onTap }}" style="border:1px dashed {{ p.bc }};background:{{ p.bg }};border-radius:12px;padding:14px;display:flex;align-items:center;gap:14px;cursor:pointer;text-align:left;width:100%" style-hover="border-color:#ff5a1f">
+                    <div style="width:64px;height:64px;border-radius:32px;background:{{ p.tile }};flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--muted-foreground)">{{ p.icon }}</div>
+                    <div style="flex:1">
+                      <div style="font-size:14px;font-weight:600">{{ p.title }}</div>
+                      <div style="font-size:12px;color:var(--muted-foreground);margin-top:2px">{{ p.sub }}</div>
+                    </div>
+                  </button>
+                </sc-for>
+                <sc-if value="{{ err.selfie }}"><div style="font-size:12px;color:var(--destructive)">{{ err.selfie }}</div></sc-if>
+              </div>
+            </div>
+            </sc-if>
+
+            <sc-if value="{{ S.licPhotos }}">
+            <div style="display:flex;flex-direction:column;gap:14px;animation:fadeUp 0.3s ease both">
+              <div style="font-size:13.5px;line-height:1.5;color:var(--muted-foreground)">Scans or photos both work. All four corners must be visible and free of glare.</div>
+              <sc-for list="{{ licSlots }}" as="p" hint-placeholder-count="2">
+                <button onClick="{{ p.onTap }}" style="border:1px dashed {{ p.bc }};background:{{ p.bg }};border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px;cursor:pointer;text-align:left;width:100%" style-hover="border-color:#ff5a1f">
+                  <div style="height:104px;border-radius:9px;background:{{ p.tile }};display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--muted-foreground);font-family:'IBM Plex Mono',monospace">{{ p.tileLabel }}</div>
+                  <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+                    <div style="font-size:13.5px;font-weight:600">{{ p.title }}</div>
+                    <div style="font-size:12px;font-weight:600;color:{{ p.statusColor }}">{{ p.status }}</div>
+                  </div>
+                </button>
+              </sc-for>
+              <sc-if value="{{ err.licPhotos }}"><div style="font-size:12px;color:var(--destructive)">{{ err.licPhotos }}</div></sc-if>
+            </div>
+            </sc-if>
+
+            <sc-if value="{{ S.licMeta }}">
+            <div style="display:flex;flex-direction:column;gap:16px;animation:fadeUp 0.3s ease both">
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <div style="font-size:11.5px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:var(--muted-foreground)">Licence number</div>
+                <input value="{{ d.licNo }}" onChange="{{ h.licNo }}" placeholder="D4419-88210" style="height:46px;width:100%;border-radius:10px;border:1px solid {{ bc.licNo }};background:var(--card);padding:0 13px;font-size:15px;font-family:'IBM Plex Mono',monospace;letter-spacing:0.05em;color:var(--foreground);outline:none" style-focus="border-color:#ff5a1f;box-shadow:0 0 0 3px rgba(255,90,31,0.14)" />
+                <sc-if value="{{ err.licNo }}"><div style="font-size:12px;color:var(--destructive)">{{ err.licNo }}</div></sc-if>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <div style="font-size:11.5px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:var(--muted-foreground)">Expiry date</div>
+                <input type="date" value="{{ d.licExp }}" onChange="{{ h.licExp }}" style="height:46px;width:100%;border-radius:10px;border:1px solid {{ bc.licExp }};background:var(--card);padding:0 13px;font-size:15px;color:var(--foreground);outline:none" style-focus="border-color:#ff5a1f;box-shadow:0 0 0 3px rgba(255,90,31,0.14)" />
+                <sc-if value="{{ err.licExp }}"><div style="font-size:12px;color:var(--destructive)">{{ err.licExp }}</div></sc-if>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:9px;margin-top:4px">
+                <div style="font-size:11.5px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:var(--muted-foreground)">Categories held</div>
+                <div style="font-size:12.5px;line-height:1.5;color:var(--muted-foreground)">These decide the vehicle classes you can be dispatched for.</div>
+                <sc-for list="{{ cats }}" as="c" hint-placeholder-count="3">
+                  <button onClick="{{ c.onPick }}" style="border:1px solid {{ c.bc }};background:{{ c.bg }};border-radius:11px;padding:12px 13px;display:flex;align-items:center;gap:12px;cursor:pointer;text-align:left;width:100%" style-hover="border-color:oklch(0.75 0 0)">
+                    <div style="width:19px;height:19px;border-radius:5px;border:1.5px solid {{ c.boxBc }};background:{{ c.boxBg }};flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700">{{ c.tick }}</div>
+                    <div style="flex:1">
+                      <div style="font-size:14px;font-weight:600;font-family:'IBM Plex Mono',monospace">{{ c.code }}</div>
+                      <div style="font-size:12px;color:var(--muted-foreground);margin-top:1px">{{ c.desc }}</div>
+                    </div>
+                  </button>
+                </sc-for>
+                <sc-if value="{{ err.cats }}"><div style="font-size:12px;color:var(--destructive)">{{ err.cats }}</div></sc-if>
+              </div>
+            </div>
+            </sc-if>
+
+            <sc-if value="{{ S.chassis }}">
+            <div style="display:flex;flex-direction:column;gap:12px;animation:fadeUp 0.3s ease both">
+              <div style="font-size:13.5px;line-height:1.5;color:var(--muted-foreground)">What kind of cargo body does the vehicle have?</div>
+              <button onClick="{{ ch.dry.onPick }}" style="border:1px solid {{ ch.dry.bc }};background:{{ ch.dry.bg }};border-radius:13px;padding:14px 16px;display:flex;align-items:center;gap:16px;cursor:pointer;text-align:left;width:100%" style-hover="border-color:oklch(0.75 0 0)">
+                <div style="width:18px;height:18px;border-radius:9px;border:1.5px solid {{ ch.dry.boxBc }};background:{{ ch.dry.boxBg }};flex-shrink:0;box-shadow:{{ ch.dry.boxSh }}"></div>
+                <svg viewBox="0 0 360 150" style="width:172px;height:auto;flex-shrink:0" role="img" aria-label="Side view of a dry box truck">
+                  <g stroke="oklch(0.7 0 0)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round">
+                    <path d="M240 118 V62 Q240 53 249 51 L287 43 Q295 43 300 49 L321 76 Q331 82 331 97 V118 Z" fill="#fbfbfb" />
+                    <path d="M251 63 L285 56 V78 H251 Z" fill="#dfe4e8" />
+                    <path d="M293 57 L316 80 H293 Z" fill="#dfe4e8" />
+                    <path d="M30 30 H240 V118 H30 Z" fill="#f7f7f8" />
+                    <path d="M37 38 H63 V110 H37 Z" fill="#f1f1f2" />
+                  </g>
+                  <g stroke="oklch(0.88 0 0)" stroke-width="1.2">
+                    <path d="M30 37 H240 M120 30 V118 M180 30 V118" />
+                  </g>
+                  <path d="M26 118 H332 V128 H26 Z" fill="oklch(0.42 0 0)" />
+                  <g fill="oklch(0.26 0 0)"><circle cx="96" cy="128" r="18" /><circle cx="272" cy="128" r="19" /></g>
+                  <g fill="oklch(0.84 0 0)"><circle cx="96" cy="128" r="7.5" /><circle cx="272" cy="128" r="8" /></g>
+                  <g fill="#e0691c"><rect x="27" y="104" width="6" height="9" rx="1" /><rect x="325" y="102" width="7" height="8" rx="1" /></g>
+                  <path d="M331 68 h9" stroke="oklch(0.5 0 0)" stroke-width="1.7" />
+                </svg>
+                <div style="flex:1">
+                  <div style="font-size:15px;font-weight:600">Dry Box</div>
+                  <div style="font-size:12.5px;line-height:1.45;color:var(--muted-foreground);margin-top:3px">Enclosed rigid box. General palletised and boxed cargo.</div>
+                </div>
+              </button>
+
+              <button onClick="{{ ch.ref.onPick }}" style="border:1px solid {{ ch.ref.bc }};background:{{ ch.ref.bg }};border-radius:13px;padding:14px 16px;display:flex;align-items:center;gap:16px;cursor:pointer;text-align:left;width:100%" style-hover="border-color:oklch(0.75 0 0)">
+                <div style="width:18px;height:18px;border-radius:9px;border:1.5px solid {{ ch.ref.boxBc }};background:{{ ch.ref.boxBg }};flex-shrink:0;box-shadow:{{ ch.ref.boxSh }}"></div>
+                <svg viewBox="0 0 360 150" style="width:172px;height:auto;flex-shrink:0" role="img" aria-label="Side view of a refrigerated truck with roof-mounted cooling unit">
+                  <g stroke="oklch(0.7 0 0)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round">
+                    <path d="M240 118 V62 Q240 53 249 51 L287 43 Q295 43 300 49 L321 76 Q331 82 331 97 V118 Z" fill="#fbfbfb" />
+                    <path d="M251 63 L285 56 V78 H251 Z" fill="#dfe4e8" />
+                    <path d="M293 57 L316 80 H293 Z" fill="#dfe4e8" />
+                    <path d="M30 30 H240 V118 H30 Z" fill="#f7f7f8" />
+                    <path d="M198 8 H242 Q248 8 248 14 V30 H192 V14 Q192 8 198 8 Z" fill="#eceef0" />
+                    <path d="M37 38 H63 V110 H37 Z" fill="#f1f1f2" />
+                  </g>
+                  <g stroke="oklch(0.76 0 0)" stroke-width="1.3"><path d="M200 15 H240 M200 21 H240 M200 27 H240" /></g>
+                  <g stroke="oklch(0.88 0 0)" stroke-width="1.2">
+                    <path d="M30 37 H240 M120 30 V118 M180 30 V118" />
+                  </g>
+                  <path d="M26 118 H332 V128 H26 Z" fill="oklch(0.42 0 0)" />
+                  <g fill="oklch(0.26 0 0)"><circle cx="96" cy="128" r="18" /><circle cx="272" cy="128" r="19" /></g>
+                  <g fill="oklch(0.84 0 0)"><circle cx="96" cy="128" r="7.5" /><circle cx="272" cy="128" r="8" /></g>
+                  <g stroke="#2f5fb8" stroke-width="2.4" stroke-linecap="round" fill="none">
+                    <path d="M88 56 v26 M76 62 l24 14 M76 76 l24 -14" />
+                  </g>
+                  <g fill="#e0691c"><rect x="27" y="104" width="6" height="9" rx="1" /><rect x="325" y="102" width="7" height="8" rx="1" /></g>
+                  <path d="M331 68 h9" stroke="oklch(0.5 0 0)" stroke-width="1.7" />
+                </svg>
+                <div style="flex:1">
+                  <div style="font-size:15px;font-weight:600">Refrigerated Vehicle</div>
+                  <div style="font-size:12.5px;line-height:1.45;color:var(--muted-foreground);margin-top:3px">Temperature-controlled body, −20 °C to +8 °C. Requires a valid cooling unit service record.</div>
+                </div>
+              </button>
+
+              <button onClick="{{ ch.open.onPick }}" style="border:1px solid {{ ch.open.bc }};background:{{ ch.open.bg }};border-radius:13px;padding:14px 16px;display:flex;align-items:center;gap:16px;cursor:pointer;text-align:left;width:100%" style-hover="border-color:oklch(0.75 0 0)">
+                <div style="width:18px;height:18px;border-radius:9px;border:1.5px solid {{ ch.open.boxBc }};background:{{ ch.open.boxBg }};flex-shrink:0;box-shadow:{{ ch.open.boxSh }}"></div>
+                <svg viewBox="0 0 360 150" style="width:172px;height:auto;flex-shrink:0" role="img" aria-label="Side view of a flatbed truck with drop sides">
+                  <g stroke="oklch(0.7 0 0)" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round">
+                    <path d="M240 118 V62 Q240 53 249 51 L287 43 Q295 43 300 49 L321 76 Q331 82 331 97 V118 Z" fill="#fbfbfb" />
+                    <path d="M251 63 L285 56 V78 H251 Z" fill="#dfe4e8" />
+                    <path d="M293 57 L316 80 H293 Z" fill="#dfe4e8" />
+                    <path d="M30 74 H240 V106 H30 Z" fill="#f7f7f8" />
+                  </g>
+                  <g stroke="oklch(0.86 0 0)" stroke-width="1.2">
+                    <path d="M30 84 H240 M30 95 H240 M86 74 V106 M142 74 V106 M198 74 V106" />
+                  </g>
+                  <path d="M26 106 H332 V118 H26 Z" fill="oklch(0.42 0 0)" />
+                  <rect x="152" y="112" width="76" height="16" rx="3" fill="oklch(0.3 0 0)" />
+                  <g fill="oklch(0.26 0 0)"><circle cx="96" cy="126" r="18" /><circle cx="272" cy="126" r="19" /></g>
+                  <g fill="oklch(0.84 0 0)"><circle cx="96" cy="126" r="7.5" /><circle cx="272" cy="126" r="8" /></g>
+                  <g fill="#e0691c"><rect x="27" y="108" width="6" height="8" rx="1" /><rect x="112" y="108" width="9" height="7" rx="1" /><rect x="325" y="100" width="7" height="8" rx="1" /></g>
+                  <path d="M331 68 h9" stroke="oklch(0.5 0 0)" stroke-width="1.7" />
+                </svg>
+                <div style="flex:1">
+                  <div style="font-size:15px;font-weight:600">Open Chassis</div>
+                  <div style="font-size:12.5px;line-height:1.45;color:var(--muted-foreground);margin-top:3px">Flatbed or curtain-side with drop sides. Oversized, construction and machinery loads.</div>
+                </div>
+              </button>
+              <sc-if value="{{ err.chassis }}"><div style="font-size:12px;color:var(--destructive)">{{ err.chassis }}</div></sc-if>
+            </div>
+            </sc-if>
+
+            <sc-if value="{{ S.vtype }}">
+            <div style="display:flex;flex-direction:column;gap:12px;animation:fadeUp 0.3s ease both">
+              <div style="font-size:13.5px;line-height:1.5;color:var(--muted-foreground)">Pick the class that matches your vehicle. Classes above your licence categories are locked.</div>
+              <sc-for list="{{ vtypes }}" as="v" hint-placeholder-count="4">
+                <button onClick="{{ v.onPick }}" style="border:1px solid {{ v.bc }};background:{{ v.bg }};border-radius:13px;padding:15px;display:flex;flex-direction:column;gap:8px;cursor:pointer;text-align:left;width:100%;opacity:{{ v.op }}" style-hover="border-color:oklch(0.75 0 0)">
+                  <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%">
+                    <div style="font-size:15px;font-weight:600">{{ v.name }}</div>
+                    <div style="font-size:10.5px;font-weight:600;letter-spacing:0.06em;padding:3px 7px;border-radius:5px;background:{{ v.chipBg }};color:{{ v.chipFg }};font-family:'IBM Plex Mono',monospace;white-space:nowrap">{{ v.chip }}</div>
+                  </div>
+                  <div style="font-size:12.5px;color:var(--muted-foreground)">{{ v.cap }}</div>
+                  <div style="font-size:12px;line-height:1.5;color:var(--muted-foreground);border-top:1px solid var(--border);padding-top:8px;width:100%">{{ v.samples }}</div>
+                  <sc-if value="{{ v.lockNote }}">
+                    <div style="font-size:12px;font-weight:500;color:var(--destructive)">{{ v.lockNote }}</div>
+                  </sc-if>
+                </button>
+              </sc-for>
+              <sc-if value="{{ err.vtype }}"><div style="font-size:12px;color:var(--destructive)">{{ err.vtype }}</div></sc-if>
+            </div>
+            </sc-if>
+
+            <sc-if value="{{ S.vdetails }}">
+            <div style="display:flex;flex-direction:column;gap:16px;animation:fadeUp 0.3s ease both">
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <div style="font-size:11.5px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:var(--muted-foreground)">Make and model</div>
+                <input value="{{ d.modelQuery }}" onChange="{{ h.modelQuery }}" onFocus="{{ openModels }}" placeholder="Search {{ vtypeName }} models" style="height:46px;width:100%;border-radius:10px;border:1px solid {{ bc.model }};background:var(--card);padding:0 13px;font-size:15px;color:var(--foreground);outline:none" style-focus="border-color:#ff5a1f;box-shadow:0 0 0 3px rgba(255,90,31,0.14)" />
+                <sc-if value="{{ modelsOpen }}">
+                  <div style="border:1px solid var(--border);border-radius:10px;background:var(--card);overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.08);animation:pop 0.16s ease both">
+                    <sc-for list="{{ modelOptions }}" as="m" hint-placeholder-count="4">
+                      <button onClick="{{ m.onPick }}" style="width:100%;border:0;border-bottom:1px solid var(--border);background:var(--card);padding:11px 13px;display:flex;align-items:baseline;gap:8px;cursor:pointer;text-align:left" style-hover="background:var(--accent)">
+                        <div style="font-size:14px;font-weight:600">{{ m.make }}</div>
+                        <div style="font-size:13px;color:var(--muted-foreground)">{{ m.model }}</div>
+                      </button>
+                    </sc-for>
+                    <sc-if value="{{ noModelMatch }}">
+                      <div style="padding:11px 13px;font-size:13px;color:var(--muted-foreground)">No match. Type the make and model manually.</div>
+                    </sc-if>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ err.model }}"><div style="font-size:12px;color:var(--destructive)">{{ err.model }}</div></sc-if>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                <div style="display:flex;flex-direction:column;gap:6px">
+                  <div style="font-size:11.5px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:var(--muted-foreground)">Year</div>
+                  <input value="{{ d.year }}" onChange="{{ h.year }}" placeholder="2021" style="height:46px;width:100%;border-radius:10px;border:1px solid {{ bc.year }};background:var(--card);padding:0 13px;font-size:15px;font-family:'IBM Plex Mono',monospace;color:var(--foreground);outline:none" style-focus="border-color:#ff5a1f;box-shadow:0 0 0 3px rgba(255,90,31,0.14)" />
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px">
+                  <div style="font-size:11.5px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:var(--muted-foreground)">Licence plate</div>
+                  <input value="{{ d.plate }}" onChange="{{ h.plate }}" placeholder="34 ABC 128" style="height:46px;width:100%;border-radius:10px;border:1px solid {{ bc.plate }};background:var(--card);padding:0 13px;font-size:16px;font-weight:600;font-family:'IBM Plex Mono',monospace;letter-spacing:0.12em;text-transform:uppercase;color:var(--foreground);outline:none" style-focus="border-color:#ff5a1f;box-shadow:0 0 0 3px rgba(255,90,31,0.14)" />
+                </div>
+              </div>
+              <sc-if value="{{ err.year }}"><div style="font-size:12px;color:var(--destructive);margin-top:-8px">{{ err.year }}</div></sc-if>
+              <sc-if value="{{ err.plate }}"><div style="font-size:12px;color:var(--destructive);margin-top:-8px">{{ err.plate }}</div></sc-if>
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <div style="font-size:11.5px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:var(--muted-foreground)">Colour</div>
+                <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+                  <sc-for list="{{ colors }}" as="cl" hint-placeholder-count="10">
+                    <button onClick="{{ cl.onPick }}" style="border:1px solid {{ cl.bc }};background:{{ cl.bg }};border-radius:10px;padding:9px 11px;display:flex;align-items:center;gap:9px;cursor:pointer;text-align:left" style-hover="border-color:oklch(0.75 0 0)">
+                      <div style="width:16px;height:16px;border-radius:8px;background:{{ cl.swatch }};border:1px solid rgba(0,0,0,0.14);flex-shrink:0"></div>
+                      <div style="font-size:13px;font-weight:{{ cl.fw }}">{{ cl.name }}</div>
+                    </button>
+                  </sc-for>
+                </div>
+                <sc-if value="{{ err.color }}"><div style="font-size:12px;color:var(--destructive)">{{ err.color }}</div></sc-if>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <div style="font-size:11.5px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:var(--muted-foreground)">Maximum payload (kg)</div>
+                <input value="{{ d.payload }}" onChange="{{ h.payload }}" placeholder="1400" style="height:46px;width:100%;border-radius:10px;border:1px solid {{ bc.payload }};background:var(--card);padding:0 13px;font-size:15px;font-family:'IBM Plex Mono',monospace;color:var(--foreground);outline:none" style-focus="border-color:#ff5a1f;box-shadow:0 0 0 3px rgba(255,90,31,0.14)" />
+                <sc-if value="{{ err.payload }}"><div style="font-size:12px;color:var(--destructive)">{{ err.payload }}</div></sc-if>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <div style="font-size:11.5px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:var(--muted-foreground)">Cargo hold (metres)</div>
+                <div style="border:1px solid var(--border);border-radius:13px;background:var(--card);padding:16px 18px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+                  <sc-if value="{{ diagBox }}" hint-placeholder-val="{{ true }}">
+                  <svg viewBox="0 0 420 200" style="width:300px;height:auto;flex-shrink:0" role="img" aria-label="Side view of a box truck showing 1 body length and 3 body height">
+                    <g stroke="oklch(0.72 0 0)" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">
+                      <path d="M286 140 V82 Q286 75 293 73 L331 66 Q338 66 343 72 L366 98 Q374 103 374 113 V140 Z" fill="#fbfbfb" />
+                      <path d="M296 82 L330 76 L330 98 L296 98 Z" fill="#eceef0" />
+                      <path d="M338 78 L360 100 L338 100 Z" fill="#eceef0" />
+                      <path d="M52 60 H286 V140 H52 Z" fill="#f7f7f8" />
+                      <path d="M52 60 H286" />
+                    </g>
+                    <g stroke="oklch(0.87 0 0)" stroke-width="1.2">
+                      <path d="M52 84 H286 M52 108 H286 M100 60 V140 M148 60 V140 M196 60 V140 M244 60 V140" />
+                    </g>
+                    <path d="M44 140 H366 V150 H44 Z" fill="oklch(0.42 0 0)" />
+                    <g fill="oklch(0.26 0 0)">
+                      <circle cx="120" cy="150" r="21" /><circle cx="312" cy="150" r="23" />
+                    </g>
+                    <g fill="oklch(0.82 0 0)">
+                      <circle cx="120" cy="150" r="9" /><circle cx="312" cy="150" r="10" />
+                    </g>
+                    <g stroke="oklch(0.32 0 0)" stroke-width="1.6" fill="none">
+                      <path d="M52 180 H286" />
+                      <path d="M52 180 l7 -4 M52 180 l7 4 M286 180 l-7 -4 M286 180 l-7 4" />
+                      <path d="M30 60 V140" />
+                      <path d="M30 60 l-4 7 M30 60 l4 7 M30 140 l-4 -7 M30 140 l4 -7" />
+                    </g>
+                    <g font-family="'IBM Plex Mono',monospace" font-size="12" font-weight="600">
+                      <circle cx="169" cy="180" r="12" fill="#ff5a1f" /><text x="169" y="184.5" text-anchor="middle" fill="#fff">1</text>
+                      <circle cx="30" cy="100" r="12" fill="#ff5a1f" /><text x="30" y="104.5" text-anchor="middle" fill="#fff">3</text>
+                    </g>
+                  </svg>
+                  </sc-if>
+                  <sc-if value="{{ diagFlat }}">
+                  <svg viewBox="0 0 420 200" style="width:300px;height:auto;flex-shrink:0" role="img" aria-label="Side view of a flatbed truck showing 1 deck length and 3 side panel height">
+                    <g stroke="oklch(0.72 0 0)" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">
+                      <path d="M286 140 V82 Q286 75 293 73 L331 66 Q338 66 343 72 L366 98 Q374 103 374 113 V140 Z" fill="#fbfbfb" />
+                      <path d="M296 82 L330 76 L330 98 L296 98 Z" fill="#eceef0" />
+                      <path d="M338 78 L360 100 L338 100 Z" fill="#eceef0" />
+                      <path d="M52 96 H286 V132 H52 Z" fill="#f7f7f8" />
+                    </g>
+                    <g stroke="oklch(0.87 0 0)" stroke-width="1.2">
+                      <path d="M52 108 H286 M52 120 H286 M148 96 V132 M244 96 V132" />
+                    </g>
+                    <path d="M44 132 H366 V150 H44 Z" fill="oklch(0.42 0 0)" />
+                    <g fill="oklch(0.26 0 0)">
+                      <circle cx="120" cy="150" r="21" /><circle cx="312" cy="150" r="23" />
+                    </g>
+                    <g fill="oklch(0.82 0 0)">
+                      <circle cx="120" cy="150" r="9" /><circle cx="312" cy="150" r="10" />
+                    </g>
+                    <g stroke="oklch(0.32 0 0)" stroke-width="1.6" fill="none">
+                      <path d="M52 180 H286" />
+                      <path d="M52 180 l7 -4 M52 180 l7 4 M286 180 l-7 -4 M286 180 l-7 4" />
+                      <path d="M30 96 V132" />
+                      <path d="M30 96 l-4 7 M30 96 l4 7 M30 132 l-4 -7 M30 132 l4 -7" />
+                    </g>
+                    <g font-family="'IBM Plex Mono',monospace" font-size="12" font-weight="600">
+                      <circle cx="169" cy="180" r="12" fill="#ff5a1f" /><text x="169" y="184.5" text-anchor="middle" fill="#fff">1</text>
+                      <circle cx="30" cy="114" r="12" fill="#ff5a1f" /><text x="30" y="118.5" text-anchor="middle" fill="#fff">3</text>
+                    </g>
+                  </svg>
+                  </sc-if>
+                  <svg viewBox="0 0 130 200" style="width:82px;height:auto;flex-shrink:0" role="img" aria-label="Rear view showing 2 body width">
+                    <g stroke="oklch(0.72 0 0)" stroke-width="1.6" stroke-linejoin="round">
+                      <path d="M24 {{ diag.rearTop }} H106 V132 H24 Z" fill="#f7f7f8" />
+                    </g>
+                    <g stroke="oklch(0.87 0 0)" stroke-width="1.2"><path d="M65 {{ diag.rearTop }} V132" /></g>
+                    <path d="M18 132 H112 V144 H18 Z" fill="oklch(0.42 0 0)" />
+                    <g fill="oklch(0.26 0 0)"><circle cx="34" cy="150" r="14" /><circle cx="96" cy="150" r="14" /></g>
+                    <g stroke="oklch(0.32 0 0)" stroke-width="1.6" fill="none">
+                      <path d="M24 180 H106" />
+                      <path d="M24 180 l7 -4 M24 180 l7 4 M106 180 l-7 -4 M106 180 l-7 4" />
+                    </g>
+                    <g font-family="'IBM Plex Mono',monospace" font-size="12" font-weight="600">
+                      <circle cx="65" cy="180" r="12" fill="#ff5a1f" /><text x="65" y="184.5" text-anchor="middle" fill="#fff">2</text>
+                    </g>
+                  </svg>
+                  <div style="display:flex;flex-direction:column;gap:9px;min-width:160px;flex:1">
+                    <div style="font-size:12.5px;line-height:1.5;color:var(--muted-foreground)">{{ diag.note }}</div>
+                    <sc-for list="{{ dimLegend }}" as="g" hint-placeholder-count="3">
+                      <div style="display:flex;align-items:center;gap:9px">
+                        <div style="width:19px;height:19px;border-radius:10px;background:#ff5a1f;color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;flex-shrink:0">{{ g.n }}</div>
+                        <div style="font-size:13px;font-weight:600">{{ g.label }}</div>
+                        <div style="font-size:12px;color:var(--muted-foreground)">{{ g.note }}</div>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px">
+                  <div style="display:flex;flex-direction:column;gap:5px">
+                    <div style="font-size:11px;font-weight:600;color:var(--muted-foreground);display:flex;align-items:center;gap:6px"><span style="width:16px;height:16px;border-radius:8px;background:#ff5a1f;color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace">1</span>Length</div>
+                    <input value="{{ d.len }}" onChange="{{ h.len }}" placeholder="6.20" style="height:46px;width:100%;border-radius:10px;border:1px solid {{ bc.dims }};background:var(--card);padding:0 12px;font-size:15px;font-family:'IBM Plex Mono',monospace;color:var(--foreground);outline:none" style-focus="border-color:#ff5a1f;box-shadow:0 0 0 3px rgba(255,90,31,0.14)" />
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:5px">
+                    <div style="font-size:11px;font-weight:600;color:var(--muted-foreground);display:flex;align-items:center;gap:6px"><span style="width:16px;height:16px;border-radius:8px;background:#ff5a1f;color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace">2</span>Width</div>
+                    <input value="{{ d.wid }}" onChange="{{ h.wid }}" placeholder="2.40" style="height:46px;width:100%;border-radius:10px;border:1px solid {{ bc.dims }};background:var(--card);padding:0 12px;font-size:15px;font-family:'IBM Plex Mono',monospace;color:var(--foreground);outline:none" style-focus="border-color:#ff5a1f;box-shadow:0 0 0 3px rgba(255,90,31,0.14)" />
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:5px">
+                    <div style="font-size:11px;font-weight:600;color:var(--muted-foreground);display:flex;align-items:center;gap:6px"><span style="width:16px;height:16px;border-radius:8px;background:#ff5a1f;color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace">3</span>Height</div>
+                    <input value="{{ d.hei }}" onChange="{{ h.hei }}" placeholder="2.40" style="height:46px;width:100%;border-radius:10px;border:1px solid {{ bc.dims }};background:var(--card);padding:0 12px;font-size:15px;font-family:'IBM Plex Mono',monospace;color:var(--foreground);outline:none" style-focus="border-color:#ff5a1f;box-shadow:0 0 0 3px rgba(255,90,31,0.14)" />
+                  </div>
+                </div>
+                <sc-if value="{{ err.dims }}"><div style="font-size:12px;color:var(--destructive)">{{ err.dims }}</div></sc-if>
+                <div style="font-size:12px;color:var(--muted-foreground)">{{ volumeLine }}</div>
+              </div>
+            </div>
+            </sc-if>
+
+            <sc-if value="{{ S.review }}">
+            <div style="display:flex;flex-direction:column;gap:12px;animation:fadeUp 0.3s ease both">
+              <div style="font-size:13.5px;line-height:1.5;color:var(--muted-foreground)">Check everything before it goes to the review team. Corrections after submission cost you a day.</div>
+              <sc-for list="{{ summary }}" as="s" hint-placeholder-count="4">
+                <div style="border:1px solid var(--border);border-radius:13px;background:var(--card);overflow:hidden">
+                  <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 13px;border-bottom:1px solid var(--border);background:#fbfbfb">
+                    <div style="font-size:12.5px;font-weight:600">{{ s.title }}</div>
+                    <button onClick="{{ s.onEdit }}" style="border:0;background:none;padding:0;font-size:12px;font-weight:600;color:#ff5a1f;cursor:pointer">Edit</button>
+                  </div>
+                  <div style="padding:4px 13px 10px">
+                    <sc-for list="{{ s.rows }}" as="r" hint-placeholder-count="3">
+                      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:14px;padding:6px 0">
+                        <div style="font-size:12.5px;color:var(--muted-foreground);flex-shrink:0">{{ r.k }}</div>
+                        <div style="font-size:12.5px;font-weight:500;text-align:right">{{ r.v }}</div>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+            </sc-if>
+
+          </div>
+
+          <div style="margin-top:32px;padding-top:22px;border-top:1px solid var(--border);display:flex;align-items:center;gap:14px">
+            <button onClick="{{ next }}" style="height:48px;padding:0 30px;border:0;border-radius:11px;background:#ff5a1f;color:#fff;font-size:15px;font-weight:600;cursor:pointer;letter-spacing:-0.01em" style-hover="background:#e04a13">{{ ctaLabel }}</button>
+            <button onClick="{{ back }}" style="height:48px;padding:0 20px;border:1px solid var(--border);border-radius:11px;background:var(--card);font-size:14.5px;font-weight:500;color:var(--muted-foreground);cursor:pointer" style-hover="background:var(--accent);color:var(--foreground)">Back</button>
+          </div>
+        </div>
+        </sc-if>
+
+        <sc-if value="{{ S.status }}">
+        <div style="padding:44px 0 80px;max-width:680px">
+          <div style="padding-bottom:20px;border-bottom:1px solid var(--border)">
+            <div style="font-size:10.5px;font-weight:600;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted-foreground);font-family:'IBM Plex Mono',monospace">Application {{ appRef }}</div>
+            <div style="font-size:26px;font-weight:600;margin-top:4px;letter-spacing:-0.02em">{{ d.name }}</div>
+          </div>
+          <div style="padding-top:22px">
+            <div style="border:1px solid {{ st.bc }};background:{{ st.bg }};border-radius:16px;padding:18px;animation:fadeUp 0.3s ease both">
+              <div style="display:flex;align-items:center;gap:9px">
+                <div style="width:8px;height:8px;border-radius:4px;background:{{ st.dot }}"></div>
+                <div style="font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:{{ st.dot }};font-family:'IBM Plex Mono',monospace">{{ st.tag }}</div>
+              </div>
+              <div style="font-size:21px;font-weight:600;letter-spacing:-0.02em;margin-top:10px;line-height:1.2">{{ st.title }}</div>
+              <div style="font-size:13.5px;line-height:1.55;color:var(--muted-foreground);margin-top:7px">{{ st.body }}</div>
+            </div>
+
+            <sc-if value="{{ st.showFlags }}">
+            <div style="display:flex;flex-direction:column;gap:10px;margin-top:16px">
+              <div style="font-size:11.5px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:var(--muted-foreground)">Needs a new photo</div>
+              <sc-for list="{{ flaggedList }}" as="f" hint-placeholder-count="2">
+                <div style="border:1px solid var(--border);border-radius:12px;background:var(--card);padding:13px;display:flex;gap:12px;align-items:flex-start">
+                  <div style="width:52px;height:40px;border-radius:7px;background:{{ f.tile }};flex-shrink:0"></div>
+                  <div style="flex:1">
+                    <div style="font-size:13.5px;font-weight:600">{{ f.label }}</div>
+                    <div style="font-size:12.5px;line-height:1.45;color:{{ f.reasonColor }};margin-top:3px">{{ f.reason }}</div>
+                  </div>
+                  <button onClick="{{ f.onFix }}" style="border:1px solid {{ f.btnBc }};background:{{ f.btnBg }};color:{{ f.btnFg }};border-radius:8px;padding:7px 11px;font-size:12px;font-weight:600;cursor:pointer;flex-shrink:0">{{ f.btnLabel }}</button>
+                </div>
+              </sc-for>
+              <button onClick="{{ resubmit }}" style="margin-top:4px;width:100%;height:48px;border:0;border-radius:12px;background:{{ resubmitBg }};color:{{ resubmitFg }};font-size:15px;font-weight:600;cursor:pointer">{{ resubmitLabel }}</button>
+            </div>
+            </sc-if>
+
+            <sc-if value="{{ st.showTimeline }}">
+            <div style="margin-top:16px;border:1px solid var(--border);border-radius:14px;background:var(--card);padding:6px 14px">
+              <sc-for list="{{ timeline }}" as="t" hint-placeholder-count="3">
+                <div style="display:flex;gap:12px;padding:11px 0;border-bottom:1px solid var(--border)">
+                  <div style="width:16px;display:flex;flex-direction:column;align-items:center;padding-top:3px">
+                    <div style="width:9px;height:9px;border-radius:5px;background:{{ t.dot }};border:2px solid {{ t.ring }}"></div>
+                  </div>
+                  <div style="flex:1">
+                    <div style="font-size:13px;font-weight:600;color:{{ t.fg }}">{{ t.label }}</div>
+                    <div style="font-size:11.5px;color:var(--muted-foreground);margin-top:2px">{{ t.when }}</div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+            </sc-if>
+
+            <sc-if value="{{ st.approved }}">
+            <div style="margin-top:16px;display:flex;flex-direction:column;gap:12px">
+              <div style="border:1px solid var(--border);border-radius:14px;background:var(--card);padding:15px">
+                <div style="font-size:11.5px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:var(--muted-foreground)">Approved for dispatch</div>
+                <div style="display:flex;flex-direction:column;gap:9px;margin-top:11px">
+                  <sc-for list="{{ approvedRows }}" as="r" hint-placeholder-count="4">
+                    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:14px">
+                      <div style="font-size:12.5px;color:var(--muted-foreground)">{{ r.k }}</div>
+                      <div style="font-size:12.5px;font-weight:500;text-align:right">{{ r.v }}</div>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+              <button style="width:100%;height:50px;border:0;border-radius:12px;background:oklch(0.5 0.13 145);color:#fff;font-size:15.5px;font-weight:600;cursor:pointer">Go online and take orders</button>
+            </div>
+            </sc-if>
+
+            <div style="margin-top:18px;font-size:12px;line-height:1.5;color:var(--muted-foreground);text-align:center">{{ st.footnote }}</div>
+          </div>
+        </div>
+        </sc-if>
+
+        <sc-if value="{{ cap }}">
+        <div style="position:fixed;inset:0;background:rgba(12,12,14,0.5);z-index:80;display:flex;align-items:center;justify-content:center;padding:40px;animation:pop 0.16s ease both">
+        <div style="width:560px;max-width:100%;background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 30px 80px rgba(0,0,0,0.28)">
+          <div style="padding:20px 22px 16px;border-bottom:1px solid var(--border)">
+            <div style="font-size:10.5px;font-weight:600;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted-foreground);font-family:'IBM Plex Mono',monospace">{{ cap.badge }}</div>
+            <div style="font-size:18px;font-weight:600;letter-spacing:-0.01em;margin-top:4px">{{ cap.title }}</div>
+            <div style="font-size:13px;line-height:1.5;color:var(--muted-foreground);margin-top:5px">{{ cap.hint }}</div>
+          </div>
+          <div style="padding:22px">
+            <button onClick="{{ pickFromLibrary }}" style="width:100%;border:1.5px dashed var(--border);background:#fbfbfb;border-radius:13px;padding:34px 20px;display:flex;flex-direction:column;align-items:center;gap:10px;cursor:pointer" style-hover="border-color:#ff5a1f;background:rgba(255,90,31,0.04)">
+              <div style="width:40px;height:40px;border-radius:20px;background:var(--muted);display:flex;align-items:center;justify-content:center;font-size:17px;color:var(--muted-foreground)">↑</div>
+              <div style="font-size:14.5px;font-weight:600">Drag a file here, or click to browse</div>
+              <div style="font-size:12.5px;color:var(--muted-foreground);text-align:center;line-height:1.5">{{ cap.guide }}</div>
+              <div style="font-size:11.5px;color:var(--muted-foreground);font-family:'IBM Plex Mono',monospace;margin-top:2px">JPG or PNG · max 10 MB</div>
+            </button>
+          </div>
+          <div style="padding:14px 22px;border-top:1px solid var(--border);background:#fbfbfb;display:flex;align-items:center;justify-content:space-between;gap:14px">
+            <div style="font-size:12px;color:var(--muted-foreground)">Files are checked by the review team, not automatically.</div>
+            <button onClick="{{ cancelCapture }}" style="border:1px solid var(--border);background:var(--card);border-radius:9px;padding:9px 16px;font-size:13px;font-weight:500;cursor:pointer;color:var(--foreground);flex-shrink:0" style-hover="background:var(--accent)">Cancel</button>
+          </div>
+        </div>
+        </div>
+        </sc-if>
+
+        <sc-if value="{{ toast }}">
+        <div style="position:fixed;left:50%;transform:translateX(-50%);bottom:32px;z-index:90;background:rgba(17,17,19,0.94);color:#fff;border-radius:11px;padding:12px 18px;font-size:13.5px;font-weight:500;animation:fadeUp 0.2s ease both;box-shadow:0 12px 32px rgba(0,0,0,0.25)">{{ toast }}</div>
+        </sc-if>
+
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ isAdmin }}">
+  <div style="flex:1;display:flex;min-height:0;overflow-x:auto">
+    <div style="width:212px;flex-shrink:0;background:var(--card);border-right:1px solid var(--border);padding:20px 12px;display:flex;flex-direction:column;gap:4px">
+      <div style="font-size:10.5px;font-weight:600;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted-foreground);padding:0 10px 10px;font-family:'IBM Plex Mono',monospace">Operations</div>
+      <sc-for list="{{ nav }}" as="n" hint-placeholder-count="4">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 10px;border-radius:8px;background:{{ n.bg }};font-size:13.5px;font-weight:{{ n.fw }};color:{{ n.fg }};cursor:default">
+          <span>{{ n.label }}</span>
+          <span style="font-size:11.5px;font-family:'IBM Plex Mono',monospace;color:var(--muted-foreground)">{{ n.count }}</span>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="flex:1;min-width:640px;display:flex;flex-direction:column">
+      <div style="padding:22px 28px 0">
+        <div style="font-size:20px;font-weight:600;letter-spacing:-0.02em">Driver applications</div>
+        <div style="font-size:13px;color:var(--muted-foreground);margin-top:4px">{{ adminSub }}</div>
+        <div style="display:flex;gap:2px;margin-top:18px;padding:3px;background:var(--muted);border:1px solid var(--border);border-radius:9px;width:fit-content">
+          <sc-for list="{{ filters }}" as="f" hint-placeholder-count="4">
+            <button onClick="{{ f.onPick }}" style="border:0;border-radius:7px;padding:6px 13px;font-size:12.5px;font-weight:500;cursor:pointer;background:{{ f.bg }};color:{{ f.fg }};box-shadow:{{ f.sh }}">{{ f.label }}</button>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="flex:1;overflow-y:auto;padding:16px 28px 40px">
+        <div style="border:1px solid var(--border);border-radius:12px;background:var(--card);overflow:hidden">
+          <div style="display:grid;grid-template-columns:1.5fr 1.4fr 0.9fr 0.8fr 1fr;gap:16px;padding:10px 16px;background:#fbfbfb;border-bottom:1px solid var(--border);font-size:11px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;color:var(--muted-foreground)">
+            <div>Applicant</div>
+            <div>Vehicle</div>
+            <div>Categories</div>
+            <div>Docs</div>
+            <div>Status</div>
+          </div>
+          <sc-for list="{{ rows }}" as="r" hint-placeholder-count="4">
+            <button onClick="{{ r.onOpen }}" style="width:100%;border:0;border-bottom:1px solid var(--border);background:{{ r.bg }};display:grid;grid-template-columns:1.5fr 1.4fr 0.9fr 0.8fr 1fr;gap:16px;padding:13px 16px;text-align:left;cursor:pointer;align-items:center" style-hover="background:var(--accent)">
+              <div>
+                <div style="font-size:13.5px;font-weight:600">{{ r.name }}</div>
+                <div style="font-size:11.5px;color:var(--muted-foreground);margin-top:2px;font-family:'IBM Plex Mono',monospace">{{ r.ref }}</div>
+              </div>
+              <div>
+                <div style="font-size:13px">{{ r.vehicle }}</div>
+                <div style="font-size:11.5px;color:var(--muted-foreground);margin-top:2px;font-family:'IBM Plex Mono',monospace">{{ r.plate }}</div>
+              </div>
+              <div style="font-size:12.5px;font-family:'IBM Plex Mono',monospace">{{ r.cats }}</div>
+              <div style="font-size:12.5px;font-family:'IBM Plex Mono',monospace;color:var(--muted-foreground)">{{ r.docs }}</div>
+              <div>
+                <span style="font-size:11.5px;font-weight:600;padding:4px 9px;border-radius:6px;background:{{ r.chipBg }};color:{{ r.chipFg }}">{{ r.status }}</span>
+              </div>
+            </button>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+
+    <sc-if value="{{ detail }}">
+    <div style="width:520px;flex-shrink:0;background:var(--card);border-left:1px solid var(--border);display:flex;flex-direction:column;min-height:0">
+      <div style="padding:20px 22px 16px;border-bottom:1px solid var(--border)">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+          <div>
+            <div style="font-size:10.5px;font-weight:600;letter-spacing:0.09em;text-transform:uppercase;color:var(--muted-foreground);font-family:'IBM Plex Mono',monospace">{{ detail.ref }}</div>
+            <div style="font-size:17px;font-weight:600;margin-top:3px;letter-spacing:-0.01em">{{ detail.name }}</div>
+            <div style="font-size:12.5px;color:var(--muted-foreground);margin-top:3px">{{ detail.sub }}</div>
+          </div>
+          <button onClick="{{ closeDetail }}" style="border:1px solid var(--border);background:var(--card);border-radius:8px;width:30px;height:30px;cursor:pointer;color:var(--muted-foreground);font-size:15px" style-hover="background:var(--accent)">×</button>
+        </div>
+      </div>
+
+      <div style="flex:1;overflow-y:auto;padding:18px 22px 24px;display:flex;flex-direction:column;gap:20px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px 18px">
+          <sc-for list="{{ detail.fields }}" as="f" hint-placeholder-count="8">
+            <div>
+              <div style="font-size:11px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:var(--muted-foreground)">{{ f.k }}</div>
+              <div style="font-size:13.5px;margin-top:3px;font-weight:500">{{ f.v }}</div>
+            </div>
+          </sc-for>
+        </div>
+
+        <div>
+          <div style="font-size:11px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;color:var(--muted-foreground);margin-bottom:9px">Documents ({{ detail.docCount }})</div>
+          <div style="display:flex;flex-direction:column;gap:9px">
+            <sc-for list="{{ detail.docs }}" as="doc" hint-placeholder-count="3">
+              <div style="border:1px solid {{ doc.bc }};border-radius:11px;background:{{ doc.bg }};padding:11px">
+                <div style="display:flex;align-items:center;gap:12px">
+                  <div style="width:60px;height:44px;border-radius:7px;background:{{ doc.tile }};flex-shrink:0"></div>
+                  <div style="flex:1;min-width:0">
+                    <div style="font-size:13px;font-weight:600">{{ doc.label }}</div>
+                    <div style="font-size:11.5px;color:{{ doc.stateColor }};margin-top:2px;font-weight:500">{{ doc.state }}</div>
+                  </div>
+                  <div style="display:flex;gap:6px;flex-shrink:0">
+                    <button onClick="{{ doc.onApprove }}" style="border:1px solid {{ doc.okBc }};background:{{ doc.okBg }};color:{{ doc.okFg }};border-radius:7px;padding:6px 10px;font-size:12px;font-weight:600;cursor:pointer">Approve</button>
+                    <button onClick="{{ doc.onFlag }}" style="border:1px solid {{ doc.flagBc }};background:{{ doc.flagBg }};color:{{ doc.flagFg }};border-radius:7px;padding:6px 10px;font-size:12px;font-weight:600;cursor:pointer">Flag</button>
+                  </div>
+                </div>
+                <sc-if value="{{ doc.pickingReason }}">
+                  <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:flex;flex-wrap:wrap;gap:6px">
+                    <sc-for list="{{ doc.reasons }}" as="rs" hint-placeholder-count="5">
+                      <button onClick="{{ rs.onPick }}" style="border:1px solid var(--border);background:var(--card);border-radius:20px;padding:5px 11px;font-size:11.5px;cursor:pointer;color:var(--foreground)" style-hover="border-color:var(--destructive);color:var(--destructive)">{{ rs.label }}</button>
+                    </sc-for>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+
+      <div style="padding:14px 22px;border-top:1px solid var(--border);background:#fbfbfb">
+        <div style="font-size:12px;color:var(--muted-foreground);margin-bottom:10px">{{ detail.verdictHint }}</div>
+        <div style="display:flex;gap:9px">
+          <button onClick="{{ requestChanges }}" style="flex:1;height:42px;border:1px solid {{ detail.rcBc }};background:{{ detail.rcBg }};color:{{ detail.rcFg }};border-radius:9px;font-size:13.5px;font-weight:600;cursor:pointer">{{ detail.rcLabel }}</button>
+          <button onClick="{{ approveDriver }}" style="flex:1;height:42px;border:0;background:{{ detail.apBg }};color:{{ detail.apFg }};border-radius:9px;font-size:13.5px;font-weight:600;cursor:pointer">Approve driver</button>
+        </div>
+      </div>
+    </div>
+    </sc-if>
+  </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:1000}}">
+const ORANGE = '#ff5a1f';
+const GREEN = 'oklch(0.5 0.13 145)';
+const RED = 'oklch(0.577 0.245 27.325)';
+const AMBER = 'oklch(0.62 0.15 70)';
+const BORDER = 'oklch(0.922 0 0)';
+const HATCH = 'repeating-linear-gradient(135deg,#ebebeb 0 7px,#e0e0e0 7px 14px)';
+
+const CHASSIS = [
+  { id: 'dry', name: 'Dry Box', desc: 'Enclosed rigid box. General palletised and boxed cargo.' },
+  { id: 'ref', name: 'Refrigerated Vehicle', desc: 'Temperature-controlled body, −20 °C to +8 °C. Requires a valid cooling unit service record.' },
+  { id: 'open', name: 'Open Chassis', desc: 'Flatbed or curtain-side. Oversized, construction and machinery loads.' }
+];
+
+const VTYPES = [
+  { id: 'small_van', name: 'Small Van', chip: 'CAT B', cap: 'Up to 800 kg · 2 pallets', req: 'B',
+    samples: 'Renault Dokker · Fiat Doblò · Toyota Proace City · Ford Transit Connect',
+    payload: '800', dims: ['2.00', '1.20', '1.20'] },
+  { id: 'large_van', name: 'Large Van', chip: 'CAT B', cap: '800–1,500 kg · 4 pallets', req: 'B',
+    samples: 'Fiat Ducato · Ford Transit · Mercedes-Benz Sprinter · Renault Master',
+    payload: '1400', dims: ['3.40', '1.70', '1.90'] },
+  { id: 'medium_truck', name: 'Medium Truck', chip: 'CAT C', cap: '1.5–7 t · 8 pallets', req: 'C',
+    samples: 'Hino 916 · Mitsubishi Fuso Canter · Isuzu NPR · Iveco Eurocargo',
+    payload: '6000', dims: ['6.20', '2.40', '2.40'] },
+  { id: 'heavy_truck', name: 'Heavy Freight Truck', chip: 'CAT CE', cap: '7 t and above · 16+ pallets', req: 'CE',
+    samples: 'MAN TGM · MAN TGL · Volvo FL · Scania P-series',
+    payload: '12000', dims: ['9.60', '2.45', '2.70'] }
+];
+
+const MODELS = {
+  small_van: [['Renault', 'Dokker'], ['Fiat', 'Doblò Cargo'], ['Toyota', 'Proace City'], ['Ford', 'Transit Connect'], ['Citroën', 'Berlingo Van'], ['Peugeot', 'Partner']],
+  large_van: [['Fiat', 'Ducato'], ['Ford', 'Transit'], ['Mercedes-Benz', 'Sprinter'], ['Renault', 'Master'], ['Volkswagen', 'Crafter'], ['Iveco', 'Daily']],
+  medium_truck: [['Hino', '916'], ['Mitsubishi Fuso', 'Canter 7C15'], ['Isuzu', 'NPR 75'], ['Iveco', 'Eurocargo 120E'], ['Mercedes-Benz', 'Atego 1018'], ['Ford', 'Trucks 1026']],
+  heavy_truck: [['MAN', 'TGM 18.290'], ['MAN', 'TGL 12.220'], ['Volvo', 'FL 280'], ['Scania', 'P 280'], ['DAF', 'LF 260'], ['Mercedes-Benz', 'Actros 1845']]
+};
+
+const CATS = [
+  { code: 'B', desc: 'Cars and vans up to 3.5 t' },
+  { code: 'C', desc: 'Rigid trucks over 3.5 t' },
+  { code: 'CE', desc: 'Truck with trailer / articulated' }
+];
+
+const DOCS = [
+  { k: 'selfie', label: 'Profile photo', step: 3 },
+  { k: 'licFront', label: 'Licence — front', step: 4 },
+  { k: 'licBack', label: 'Licence — back', step: 4 },
+];
+
+const CITIES = [
+  ['Tbilisi', 'Tbilisi'], ['Batumi', 'Adjara'], ['Kutaisi', 'Imereti'], ['Rustavi', 'Kvemo Kartli'],
+  ['Gori', 'Shida Kartli'], ['Zugdidi', 'Samegrelo'], ['Poti', 'Samegrelo'], ['Kobuleti', 'Adjara'],
+  ['Khashuri', 'Shida Kartli'], ['Samtredia', 'Imereti'], ['Senaki', 'Samegrelo'], ['Zestaponi', 'Imereti'],
+  ['Marneuli', 'Kvemo Kartli'], ['Telavi', 'Kakheti'], ['Akhaltsikhe', 'Samtskhe-Javakheti'], ['Kaspi', 'Shida Kartli'],
+  ['Gardabani', 'Kvemo Kartli'], ['Borjomi', 'Samtskhe-Javakheti'], ['Tkibuli', 'Imereti'], ['Ozurgeti', 'Guria'],
+  ['Kareli', 'Shida Kartli'], ['Sagarejo', 'Kakheti'], ['Gurjaani', 'Kakheti'], ['Mtskheta', 'Mtskheta-Mtianeti'],
+  ['Kvareli', 'Kakheti'], ['Akhalkalaki', 'Samtskhe-Javakheti'], ['Lanchkhuti', 'Guria'], ['Tsqaltubo', 'Imereti'],
+  ['Bolnisi', 'Kvemo Kartli'], ['Chiatura', 'Imereti'], ['Sachkhere', 'Imereti'], ['Terjola', 'Imereti'],
+  ['Khobi', 'Samegrelo'], ['Martvili', 'Samegrelo'], ['Tsalenjikha', 'Samegrelo'], ['Abasha', 'Samegrelo'],
+  ['Ambrolauri', 'Racha-Lechkhumi'], ['Tsageri', 'Racha-Lechkhumi'], ['Oni', 'Racha-Lechkhumi'], ['Mestia', 'Svaneti'],
+  ['Sighnaghi', 'Kakheti'], ['Dedoplistsqaro', 'Kakheti'], ['Lagodekhi', 'Kakheti'], ['Akhmeta', 'Kakheti'],
+  ['Dusheti', 'Mtskheta-Mtianeti'], ['Tianeti', 'Mtskheta-Mtianeti'], ['Tsalka', 'Kvemo Kartli'], ['Dmanisi', 'Kvemo Kartli'],
+  ['Tetritsqaro', 'Kvemo Kartli'], ['Ninotsminda', 'Samtskhe-Javakheti'], ['Adigeni', 'Samtskhe-Javakheti'], ['Aspindza', 'Samtskhe-Javakheti'],
+  ['Vale', 'Samtskhe-Javakheti'], ['Baghdati', 'Imereti'], ['Vani', 'Imereti'], ['Kharagauli', 'Imereti'],
+  ['Khoni', 'Imereti'], ['Chkhorotsqu', 'Samegrelo'], ['Jvari', 'Samegrelo'], ['Keda', 'Adjara'],
+  ['Khelvachauri', 'Adjara'], ['Khulo', 'Adjara'], ['Shuakhevi', 'Adjara']
+];
+
+const COLORS = [
+  ['White', '#ffffff'], ['Silver', '#c9ccd1'], ['Grey', '#8a8f96'], ['Black', '#1a1a1c'],
+  ['Blue', '#2f5fb8'], ['Navy', '#1e2a4a'], ['Red', '#c0392b'], ['Green', '#2f7a4a'],
+  ['Yellow', '#e8c33a'], ['Orange', '#e0691c'], ['Beige', '#ded3bd'], ['Brown', '#6b4a2f']
+];
+
+const REASONS = ['Photo is blurry', 'Glare — details unreadable', 'Face not clearly visible', 'Wrong document uploaded', 'Document expired', 'Does not match the ID'];
+
+const CAPTURE_META = {
+  selfie: { title: 'Upload your profile photo', hint: 'A recent photo of your face, matched against your ID by the review team.', guide: 'Face centred, no hat or sunglasses, plain background.', badge: 'STEP 1 · PROFILE PHOTO' },
+  licFront: { title: 'Upload the front of your licence', hint: 'The photo, name and licence number must be readable.', guide: 'All four corners visible, no glare across the card.', badge: 'STEP 2 · LICENCE FRONT' },
+  licBack: { title: 'Upload the back of your licence', hint: 'The category table is what the reviewer checks.', guide: 'All four corners visible, category rows legible.', badge: 'STEP 2 · LICENCE BACK' }
+};
+
+const STEP_META = [
+  null,
+  { g: 1, kicker: 'Step 1 of 4 · Authorisation', title: 'Your mobile number' },
+  { g: 1, kicker: 'Step 1 of 4 · Authorisation', title: 'Confirm the code' },
+  { g: 1, kicker: 'Step 1 of 4 · Personal information', title: 'Who you are' },
+  { g: 2, kicker: 'Step 2 of 4 · Licence', title: 'Upload your licence' },
+  { g: 2, kicker: 'Step 2 of 4 · Licence', title: 'Licence details' },
+  { g: 3, kicker: 'Step 3 of 4 · Vehicle', title: 'Cargo body type' },
+  { g: 3, kicker: 'Step 3 of 4 · Vehicle', title: 'Vehicle class' },
+  { g: 3, kicker: 'Step 3 of 4 · Vehicle', title: 'Technical details' },
+  { g: 4, kicker: 'Step 4 of 4 · Review', title: 'Check and submit' }
+];
+
+const RAIL = [
+  { n: '1', label: 'Authorisation & personal', sub: 'Phone, OTP, ID, city, photo', step: 1, g: 1 },
+  { n: '2', label: 'Licence verification', sub: 'Photos, number, expiry, categories', step: 4, g: 2 },
+  { n: '3', label: 'Vehicle registration', sub: 'Body, class, make, plate, capacity', step: 6, g: 3 },
+  { n: '4', label: 'Review & status', sub: 'Submit, pending, approved', step: 9, g: 4 }
+];
+
+const PEERS = [
+  { id: 'p1', ref: 'APP-40219', name: 'Priya Nandakumar', vehicle: 'Large Van · Dry Box', plate: '34 KRT 902', cats: 'B', docs: '3/3', status: 'Pending' },
+  { id: 'p2', ref: 'APP-40204', name: 'Tomas Kowalczyk', vehicle: 'Heavy Freight · Open Chassis', plate: '06 BFN 771', cats: 'B, C, CE', docs: '2/3', status: 'Action required' },
+  { id: 'p3', ref: 'APP-40188', name: 'Aisha Bello', vehicle: 'Medium Truck · Refrigerated', plate: '35 ZDL 415', cats: 'B, C', docs: '3/3', status: 'Approved' }
+];
+
+const DRAFT = {
+  phone: '+1 415 555 0134', otp: '482913', name: 'Marcus Reyes', idNo: 'AB1234567', dob: '1989-03-14',
+  city: 'Tbilisi',
+  licNo: 'D4419-88210', licExp: '2031-06-30', cats: ['B', 'C'],
+  chassis: '', vtype: '', modelQuery: '', make: '', model: '', year: '', color: '', plate: '', payload: '', len: '', wid: '', hei: '',
+  photos: { selfie: 1, licFront: 1, licBack: 1 }
+};
+
+const EMPTY = {
+  phone: '', otp: '', name: '', idNo: '', dob: '', city: '',
+  licNo: '', licExp: '', cats: [],
+  chassis: '', vtype: '', modelQuery: '', make: '', model: '', year: '', color: '', plate: '', payload: '', len: '', wid: '', hei: '',
+  photos: {}
+};
+
+const clone = o => JSON.parse(JSON.stringify(o));
+
+class Component extends DCLogic {
+  state = {
+    mode: 'driver',
+    step: 0,
+    hasDraft: true,
+    d: clone(EMPTY),
+    touched: {},
+    cap: null,
+    toast: '',
+    appStatus: 'draft',
+    review: {},
+    reasonFor: '',
+    adminSel: '',
+    filter: 'All',
+    resendIn: 0,
+    submittedAt: null
+  };
+
+  componentDidMount() {
+    this.tick = setInterval(() => {
+      if (this.state.resendIn > 0) this.setState(s => ({ resendIn: s.resendIn - 1 }));
+    }, 1000);
+  }
+  componentWillUnmount() { clearInterval(this.tick); if (this.tt) clearTimeout(this.tt); }
+
+  flash(msg) {
+    this.setState({ toast: msg });
+    if (this.tt) clearTimeout(this.tt);
+    this.tt = setTimeout(() => this.setState({ toast: '' }), 2200);
+  }
+
+  setField(k, v) {
+    if (k === 'otp') v = v.replace(/\D/g, '').slice(0, 6);
+    if (k === 'plate') v = v.toUpperCase();
+    if (k === 'year') v = v.replace(/\D/g, '').slice(0, 4);
+    if (k === 'payload') v = v.replace(/[^\d]/g, '');
+    if (k === 'len' || k === 'wid' || k === 'hei') v = v.replace(/[^\d.]/g, '');
+    this.setState(s => {
+      const d = Object.assign({}, s.d);
+      d[k] = v;
+      if (k === 'modelQuery') { d.make = ''; d.model = ''; }
+      return {
+        d,
+        modelsOpen: k === 'modelQuery' ? true : s.modelsOpen,
+        citiesOpen: k === 'city' ? true : s.citiesOpen
+      };
+    });
+  }
+
+  vt() { return VTYPES.find(v => v.id === this.state.d.vtype); }
+
+  // ── validation ───────────────────────────────────────────────
+  problems(step) {
+    const d = this.state.d, p = {};
+    const digits = (d.phone || '').replace(/\D/g, '');
+    if (step === 1) {
+      if (!digits) p.phone = 'Enter your mobile number.';
+      else if (digits.length < 10 || digits.length > 15) p.phone = 'That is not a valid mobile number (10–15 digits).';
+    }
+    if (step === 2) {
+      if (d.otp.length < 6) p.otp = 'Enter all six digits.';
+      else if (d.otp !== '482913') p.otp = 'That code is not right. Check the SMS or resend.';
+    }
+    if (step === 3) {
+      if (!d.name.trim()) p.name = 'Enter your full name.';
+      else if (d.name.trim().split(/\s+/).length < 2) p.name = 'Give first and last name, exactly as on your ID.';
+      if (!d.idNo.trim()) p.idNo = 'Enter your ID or passport number.';
+      else if (!/^[A-Za-z0-9-]{6,20}$/.test(d.idNo.trim())) p.idNo = '6–20 letters or digits, no spaces.';
+      if (!d.dob) p.dob = 'Enter your date of birth.';
+      else {
+        const age = (Date.now() - new Date(d.dob).getTime()) / 31557600000;
+        if (age < 21) p.dob = 'Partner drivers must be 21 or older.';
+        else if (age > 75) p.dob = 'Check the date — that does not look right.';
+      }
+      if (!d.city.trim()) p.city = 'Select the city you will drive in.';
+      else if (!CITIES.some(c => c[0].toLowerCase() === d.city.trim().toLowerCase())) p.city = 'Pick a city from the list.';
+      if (!d.photos.selfie) p.selfie = 'A profile photo is required for identity checks.';
+    }
+    if (step === 4) {
+      if (!d.photos.licFront || !d.photos.licBack) p.licPhotos = 'Both sides of the licence are required.';
+    }
+    if (step === 5) {
+      if (!d.licNo.trim()) p.licNo = 'Enter the licence number.';
+      else if (d.licNo.trim().length < 5) p.licNo = 'That looks too short.';
+      if (!d.licExp) p.licExp = 'Enter the expiry date.';
+      else if (new Date(d.licExp).getTime() < Date.now()) p.licExp = 'This licence has expired. Renew it before applying.';
+      if (!d.cats.length) p.cats = 'Select at least one category you hold.';
+    }
+    if (step === 6 && !d.chassis) p.chassis = 'Choose a cargo body type.';
+    if (step === 7 && !d.vtype) p.vtype = 'Choose the vehicle class.';
+    if (step === 8) {
+      if (!d.make && !d.modelQuery.trim()) p.model = 'Select or type the make and model.';
+      const y = parseInt(d.year, 10);
+      if (!d.year) p.year = 'Enter the year of manufacture.';
+      else if (isNaN(y) || y < 1995 || y > 2026) p.year = 'Year must be between 1995 and 2026.';
+      if (!d.plate.trim()) p.plate = 'Enter the licence plate.';
+      else if (d.plate.trim().length < 4) p.plate = 'That plate looks incomplete.';
+      if (!d.color) p.color = 'Select the vehicle colour.';
+      const pay = parseInt(d.payload, 10);
+      if (!d.payload) p.payload = 'Enter the maximum payload in kg.';
+      else if (isNaN(pay) || pay < 100) p.payload = 'Payload must be at least 100 kg.';
+      else if (pay > 40000) p.payload = 'Payload above 40,000 kg needs a fleet account.';
+      const dims = [d.len, d.wid, d.hei].map(x => parseFloat(x));
+      if (dims.some(x => isNaN(x) || x <= 0)) p.dims = 'Give length, width and height in metres.';
+      else if (dims.some(x => x > 20)) p.dims = 'Check the dimensions — metres, not centimetres.';
+    }
+    return p;
+  }
+
+  next = () => {
+    const step = this.state.step;
+    const p = this.problems(step);
+    if (Object.keys(p).length) {
+      const t = Object.assign({}, this.state.touched);
+      Object.keys(p).forEach(k => { t[k] = true; });
+      this.setState({ touched: t, modelsOpen: false });
+      this.flash('Fix the highlighted fields to continue.');
+      return;
+    }
+    if (step === 9) {
+      this.setState({ appStatus: 'pending', step: 10, review: {}, submittedAt: Date.now(), adminSel: 'live', modelsOpen: false });
+      return;
+    }
+    this.setState({ step: step + 1, touched: {}, modelsOpen: false });
+  };
+
+  back = () => {
+    const s = this.state.step;
+    this.setState({ step: s <= 1 ? 0 : s - 1, touched: {}, modelsOpen: false });
+  };
+
+  startFresh = () => this.setState({ d: clone(EMPTY), step: 1, touched: {}, appStatus: 'draft', review: {}, resendIn: 0 });
+  resumeDraft = () => this.setState({ d: clone(DRAFT), step: 6, touched: {}, appStatus: 'draft', review: {} });
+
+  resend = () => { if (this.state.resendIn === 0) { this.setState({ resendIn: 30 }); this.flash('Code sent again to ' + this.state.d.phone); } };
+
+  openCapture(k) { this.setState({ cap: k }); }
+  cancelCapture = () => this.setState({ cap: null });
+  shoot = () => this.commitPhoto('camera');
+  pickFromLibrary = () => this.commitPhoto('upload');
+
+  commitPhoto(source) {
+    const k = this.state.cap;
+    if (!k) return;
+    this.setState(s => {
+      const d = Object.assign({}, s.d);
+      d.photos = Object.assign({}, d.photos);
+      d.photos[k] = 1;
+      const review = Object.assign({}, s.review);
+      if (review[k] && review[k].status === 'flag') delete review[k];
+      return { d, review, cap: null };
+    });
+    const doc = DOCS.find(x => x.k === k);
+    this.flash('Uploaded · ' + doc.label);
+  }
+
+  resubmit = () => {
+    const outstanding = DOCS.filter(x => this.state.review[x.k] && this.state.review[x.k].status === 'flag');
+    if (outstanding.length) { this.flash('Replace all flagged photos first.'); return; }
+    this.setState({ appStatus: 'pending', submittedAt: Date.now() });
+    this.flash('Resubmitted for review.');
+  };
+
+  // ── admin ────────────────────────────────────────────────────
+  setDoc(k, status, reason) {
+    this.setState(s => {
+      const review = Object.assign({}, s.review);
+      review[k] = { status, reason };
+      return { review, reasonFor: '' };
+    });
+  }
+  openReason(k) { this.setState(s => ({ reasonFor: s.reasonFor === k ? '' : k })); }
+
+  requestChanges = () => {
+    const flagged = DOCS.filter(x => this.state.review[x.k] && this.state.review[x.k].status === 'flag');
+    if (!flagged.length) { this.flash('Flag at least one document first.'); return; }
+    this.setState({ appStatus: 'action' });
+  };
+  approveDriver = () => {
+    const approved = DOCS.filter(x => this.state.review[x.k] && this.state.review[x.k].status === 'ok').length;
+    if (approved < DOCS.length) { this.flash('Approve all three documents first.'); return; }
+    this.setState({ appStatus: 'approved' });
+  };
+
+  reset = () => this.setState({ mode: 'driver', step: 0, d: clone(EMPTY), touched: {}, cap: null, appStatus: 'draft', review: {}, reasonFor: '', adminSel: '', filter: 'All', hasDraft: true, resendIn: 0 });
+
+  // ── derived ──────────────────────────────────────────────────
+  vehicleLabel() {
+    const v = this.vt();
+    const ch = CHASSIS.find(c => c.id === this.state.d.chassis);
+    if (!v) return '—';
+    return v.name + (ch ? ' · ' + ch.name : '');
+  }
+  modelLabel() {
+    const d = this.state.d;
+    return d.make ? d.make + ' ' + d.model : (d.modelQuery || '—');
+  }
+
+  renderVals() {
+    const s = this.state, d = s.d;
+    const mode = s.mode;
+    const step = s.step;
+    const meta = STEP_META[step] || null;
+    const isForm = step >= 1 && step <= 9;
+    const isStatus = step === 10;
+    const probs = this.problems(step);
+    const err = {};
+    Object.keys(probs).forEach(k => { if (s.touched[k]) err[k] = probs[k]; });
+    const bc = {};
+    ['phone', 'name', 'idNo', 'dob', 'city', 'licNo', 'licExp', 'plate', 'color', 'year', 'payload', 'dims', 'model'].forEach(k => {
+      bc[k] = err[k] ? RED : BORDER;
+    });
+
+    const h = {};
+    ['phone', 'otp', 'name', 'idNo', 'dob', 'city', 'licNo', 'licExp', 'plate', 'color', 'year', 'payload', 'len', 'wid', 'hei', 'modelQuery'].forEach(k => {
+      h[k] = e => this.setField(k, e.target.value);
+    });
+
+    // photo slot factory
+    const slot = (k, title, extra) => {
+      const done = !!d.photos[k];
+      const flagged = s.review[k] && s.review[k].status === 'flag';
+      return Object.assign({
+        key: k, title,
+        onTap: () => this.openCapture(k),
+        bc: flagged ? RED : (done ? GREEN : BORDER),
+        bg: flagged ? 'rgba(220,38,38,0.04)' : (done ? 'rgba(16,120,70,0.04)' : '#fff'),
+        tile: done ? HATCH : '#f4f4f5',
+        tileLabel: done ? 'IMG_' + k.toUpperCase() + '.JPG' : 'Click to upload',
+        icon: done ? '✓' : '↑',
+        status: flagged ? 'Flagged — replace it' : (done ? 'Uploaded' : 'Required'),
+        statusColor: flagged ? RED : (done ? GREEN : 'var(--muted-foreground)'),
+        sub: done ? 'Click to replace the file' : 'JPG or PNG, max 10 MB'
+      }, extra || {});
+    };
+
+    const capMeta = s.cap ? Object.assign({}, CAPTURE_META[s.cap]) : null;
+
+    // summary for review step
+    const v = this.vt();
+    const summary = [
+      { title: 'Personal information', onEdit: () => this.setState({ step: 3, touched: {} }), rows: [
+        { k: 'Name', v: d.name || '—' }, { k: 'ID number', v: d.idNo || '—' },
+        { k: 'Date of birth', v: d.dob || '—' }, { k: 'Mobile', v: d.phone || '—' },
+        { k: 'City', v: d.city || '—' },
+        { k: 'Profile photo', v: d.photos.selfie ? 'Uploaded' : 'Missing' } ] },
+      { title: "Driver's licence", onEdit: () => this.setState({ step: 5, touched: {} }), rows: [
+        { k: 'Number', v: d.licNo || '—' }, { k: 'Expires', v: d.licExp || '—' },
+        { k: 'Categories', v: d.cats.join(', ') || '—' },
+        { k: 'Photos', v: (d.photos.licFront ? 1 : 0) + (d.photos.licBack ? 1 : 0) + ' of 2' } ] },
+      { title: 'Vehicle', onEdit: () => this.setState({ step: 7, touched: {} }), rows: [
+        { k: 'Class', v: v ? v.name : '—' },
+        { k: 'Body', v: (CHASSIS.find(c => c.id === d.chassis) || {}).name || '—' },
+        { k: 'Make / model', v: this.modelLabel() },
+        { k: 'Year / colour', v: (d.year || '—') + ' · ' + (d.color || '—') },
+        { k: 'Plate', v: d.plate || '—' },
+        { k: 'Payload', v: d.payload ? Number(d.payload).toLocaleString() + ' kg' : '—' },
+        { k: 'Cargo hold', v: d.len ? d.len + ' × ' + d.wid + ' × ' + d.hei + ' m' : '—' } ] }
+    ];
+
+    // status card
+    const flaggedDocs = DOCS.filter(x => s.review[x.k] && s.review[x.k].status === 'flag');
+    const st = { approved: false, showFlags: false, showTimeline: false };
+    if (s.appStatus === 'approved') {
+      Object.assign(st, { tag: 'Approved', dot: GREEN, bc: GREEN, bg: 'rgba(16,120,70,0.05)',
+        title: 'You are cleared to drive', body: 'Your account is active. Orders matching your vehicle class will start arriving as soon as you go online.',
+        approved: true, showTimeline: false, footnote: 'Keep your licence and insurance current — we re-check 30 days before expiry.' });
+    } else if (s.appStatus === 'action') {
+      Object.assign(st, { tag: 'Action required', dot: RED, bc: RED, bg: 'rgba(220,38,38,0.04)',
+        title: flaggedDocs.length + (flaggedDocs.length === 1 ? ' document needs' : ' documents need') + ' a new photo',
+        body: 'The review team could not read the items below. Replace them and resubmit — the rest of your application is kept.',
+        showFlags: true, footnote: 'Resubmitted applications are usually reviewed within 4 hours.' });
+    } else {
+      Object.assign(st, { tag: 'Pending verification', dot: AMBER, bc: BORDER, bg: '#fff',
+        title: 'Under review', body: 'Our team is checking your licence, ID and vehicle photos. You will get an SMS the moment there is a decision.',
+        showTimeline: true, footnote: 'Typical review time is 12–24 hours on business days.' });
+    }
+
+    const timeline = [
+      { label: 'Application submitted', when: 'Just now', dot: GREEN, ring: 'rgba(16,120,70,0.2)', fg: 'var(--foreground)' },
+      { label: 'Document review', when: 'In progress', dot: AMBER, ring: 'rgba(200,140,20,0.2)', fg: 'var(--foreground)' },
+      { label: 'Account activation', when: 'Waiting', dot: BORDER, ring: 'transparent', fg: 'var(--muted-foreground)' }
+    ];
+
+    // admin
+    const reviewed = DOCS.filter(x => s.review[x.k]).length;
+    const okCount = DOCS.filter(x => s.review[x.k] && s.review[x.k].status === 'ok').length;
+    const liveStatus = s.appStatus === 'approved' ? 'Approved' : (s.appStatus === 'action' ? 'Action required' : (s.appStatus === 'pending' ? 'Pending' : 'Draft'));
+    const chipFor = st2 => {
+      if (st2 === 'Approved') return { chipBg: 'rgba(16,120,70,0.1)', chipFg: GREEN };
+      if (st2 === 'Action required') return { chipBg: 'rgba(220,38,38,0.09)', chipFg: RED };
+      if (st2 === 'Draft') return { chipBg: 'var(--muted)', chipFg: 'var(--muted-foreground)' };
+      return { chipBg: 'rgba(200,140,20,0.12)', chipFg: 'oklch(0.48 0.13 70)' };
+    };
+    const live = {
+      id: 'live', ref: 'APP-40231', name: d.name || 'Unnamed applicant',
+      vehicle: this.vehicleLabel(), plate: d.plate || '—',
+      cats: d.cats.join(', ') || '—',
+      docs: okCount + '/' + DOCS.length,
+      status: liveStatus
+    };
+    const allApps = s.appStatus === 'draft' ? PEERS.slice() : [live].concat(PEERS);
+    const filtered = s.filter === 'All' ? allApps : allApps.filter(a => a.status === s.filter);
+    const rows = filtered.map(a => Object.assign({}, a, chipFor(a.status), {
+      bg: s.adminSel === a.id ? 'var(--accent)' : '#fff',
+      onOpen: () => this.setState({ adminSel: a.id, reasonFor: '' })
+    }));
+
+    const filters = ['All', 'Pending', 'Action required', 'Approved'].map(f => ({
+      label: f, onPick: () => this.setState({ filter: f }),
+      bg: s.filter === f ? '#fff' : 'transparent',
+      fg: s.filter === f ? 'var(--foreground)' : 'var(--muted-foreground)',
+      sh: s.filter === f ? '0 1px 2px rgba(0,0,0,0.07)' : 'none'
+    }));
+
+    let detail = null;
+    if (s.adminSel === 'live' && s.appStatus !== 'draft') {
+      const docs = DOCS.map(x => {
+        const r = s.review[x.k];
+        const picking = s.reasonFor === x.k;
+        const okSel = r && r.status === 'ok';
+        const flagSel = r && r.status === 'flag';
+        return {
+          k: x.k, label: x.label,
+          tile: d.photos[x.k] ? HATCH : '#f4f4f5',
+          state: flagSel ? 'Flagged · ' + r.reason : (okSel ? 'Approved' : 'Awaiting review'),
+          stateColor: flagSel ? RED : (okSel ? GREEN : 'var(--muted-foreground)'),
+          bc: flagSel ? RED : (okSel ? 'rgba(16,120,70,0.35)' : BORDER),
+          bg: flagSel ? 'rgba(220,38,38,0.03)' : '#fff',
+          okBc: okSel ? GREEN : BORDER, okBg: okSel ? GREEN : '#fff', okFg: okSel ? '#fff' : 'var(--foreground)',
+          flagBc: flagSel ? RED : BORDER, flagBg: flagSel ? RED : '#fff', flagFg: flagSel ? '#fff' : 'var(--foreground)',
+          onApprove: () => this.setDoc(x.k, 'ok'),
+          onFlag: () => this.openReason(x.k),
+          pickingReason: picking,
+          reasons: REASONS.map(rs => ({ label: rs, onPick: () => this.setDoc(x.k, 'flag', rs) }))
+        };
+      });
+      const flagN = DOCS.filter(x => s.review[x.k] && s.review[x.k].status === 'flag').length;
+      detail = {
+        ref: live.ref, name: live.name,
+        sub: this.vehicleLabel() + ' · submitted just now',
+        docCount: okCount + ' approved, ' + flagN + ' flagged, ' + (DOCS.length - reviewed) + ' pending',
+        fields: [
+          { k: 'ID number', v: d.idNo || '—' }, { k: 'Date of birth', v: d.dob || '—' },
+          { k: 'Mobile', v: d.phone || '—' }, { k: 'City', v: d.city || '—' },
+          { k: 'Licence no.', v: d.licNo || '—' },
+          { k: 'Licence expiry', v: d.licExp || '—' }, { k: 'Categories', v: d.cats.join(', ') || '—' },
+          { k: 'Make / model', v: this.modelLabel() }, { k: 'Year / colour', v: (d.year || '—') + ' · ' + (d.color || '—') },
+          { k: 'Plate', v: d.plate || '—' }, { k: 'Payload', v: d.payload ? Number(d.payload).toLocaleString() + ' kg' : '—' },
+          { k: 'Cargo hold', v: d.len ? d.len + ' × ' + d.wid + ' × ' + d.hei + ' m' : '—' },
+          { k: 'Body type', v: (CHASSIS.find(c => c.id === d.chassis) || {}).name || '—' }
+        ],
+        docs,
+        verdictHint: okCount === DOCS.length ? 'All documents approved — the driver can be activated.'
+          : (flagN ? flagN + ' document' + (flagN === 1 ? '' : 's') + ' flagged. Requesting changes sends the driver back for re-upload.'
+            : 'Approve or flag each document before deciding.'),
+        rcLabel: flagN ? 'Request changes (' + flagN + ')' : 'Request changes',
+        rcBc: flagN ? RED : BORDER, rcBg: flagN ? 'rgba(220,38,38,0.06)' : '#fff', rcFg: flagN ? RED : 'var(--muted-foreground)',
+        apBg: okCount === DOCS.length ? 'oklch(0.205 0 0)' : 'oklch(0.88 0 0)',
+        apFg: okCount === DOCS.length ? '#fff' : 'oklch(0.6 0 0)'
+      };
+    } else if (s.adminSel && s.adminSel !== 'live') {
+      const a = PEERS.find(x => x.id === s.adminSel);
+      detail = {
+        ref: a.ref, name: a.name, sub: a.vehicle + ' · ' + a.plate,
+        docCount: a.docs,
+        fields: [{ k: 'Categories', v: a.cats }, { k: 'Plate', v: a.plate }, { k: 'Status', v: a.status }, { k: 'Vehicle', v: a.vehicle }],
+        docs: DOCS.map(x => ({
+          k: x.k, label: x.label, tile: HATCH, state: 'Read only in this demo', stateColor: 'var(--muted-foreground)',
+          bc: BORDER, bg: '#fff', okBc: BORDER, okBg: '#fff', okFg: 'oklch(0.7 0 0)', flagBc: BORDER, flagBg: '#fff', flagFg: 'oklch(0.7 0 0)',
+          onApprove: () => this.flash('Only the live application is reviewable in this prototype.'),
+          onFlag: () => this.flash('Only the live application is reviewable in this prototype.'),
+          pickingReason: false, reasons: []
+        })),
+        verdictHint: 'Open the live application (APP-40231) to review documents and drive the driver app.',
+        rcLabel: 'Request changes', rcBc: BORDER, rcBg: '#fff', rcFg: 'oklch(0.7 0 0)',
+        apBg: 'oklch(0.88 0 0)', apFg: 'oklch(0.6 0 0)'
+      };
+    }
+
+    return {
+      // shell
+      isDriver: mode === 'driver', isAdmin: mode === 'admin',
+      goDriver: () => this.setState({ mode: 'driver' }),
+      goAdmin: () => this.setState({ mode: 'admin', adminSel: s.appStatus === 'draft' ? s.adminSel : 'live' }),
+      reset: this.reset,
+      tab: {
+        driverBg: mode === 'driver' ? '#fff' : 'transparent',
+        driverFg: mode === 'driver' ? 'var(--foreground)' : 'var(--muted-foreground)',
+        driverSh: mode === 'driver' ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+        adminBg: mode === 'admin' ? '#fff' : 'transparent',
+        adminFg: mode === 'admin' ? 'var(--foreground)' : 'var(--muted-foreground)',
+        adminSh: mode === 'admin' ? '0 1px 2px rgba(0,0,0,0.08)' : 'none'
+      },
+      statusLine: 'Application ' + (s.appStatus === 'draft' ? 'not submitted' : liveStatus.toLowerCase()),
+
+      // driver screens
+      S: {
+        welcome: step === 0, form: isForm, status: isStatus,
+        phone: step === 1, otp: step === 2, personal: step === 3,
+        licPhotos: step === 4, licMeta: step === 5, chassis: step === 6,
+        vtype: step === 7, vdetails: step === 8, review: step === 9
+      },
+      d, err, bc, h,
+      hdr: meta ? { kicker: meta.kicker, title: meta.title } : { kicker: '', title: '' },
+      bars: [1, 2, 3, 4].map(g => {
+        const cur = meta ? meta.g : 4;
+        return { w: g <= cur ? '100%' : '0%', c: g <= cur ? ORANGE : BORDER };
+      }),
+      ctaLabel: step === 9 ? 'Submit application' : (step === 2 ? 'Verify' : 'Continue'),
+      next: this.next, back: this.back,
+
+      outline: RAIL.map(r => ({ n: r.n, label: r.label })),
+      hasDraft: s.hasDraft && s.appStatus === 'draft',
+      draftLine: 'Marcus Reyes · saved 2 days ago · licence verified, vehicle not yet added',
+      freshLabel: s.hasDraft ? 'Start a new application' : 'Start',
+      startFresh: this.startFresh, resumeDraft: this.resumeDraft,
+
+      otpBoxes: [0, 1, 2, 3, 4, 5].map(i => {
+        const ch = d.otp[i] || '';
+        const active = d.otp.length === i;
+        return { ch, bc: err.otp ? RED : (active ? ORANGE : BORDER), bg: ch ? '#fff' : '#fafafa' };
+      }),
+      resend: this.resend,
+      resendLocked: s.resendIn > 0,
+      resendLabel: s.resendIn > 0 ? 'Resend in ' + s.resendIn + 's' : 'Resend code',
+      resendColor: s.resendIn > 0 ? 'var(--muted-foreground)' : ORANGE,
+
+      selfieSlot: [slot('selfie', d.photos.selfie ? 'Profile photo uploaded' : 'Upload a profile photo')],
+      licSlots: [slot('licFront', 'Front of licence'), slot('licBack', 'Back of licence')],
+
+      cats: CATS.map(c => {
+        const on = d.cats.indexOf(c.code) >= 0;
+        return {
+          code: 'Category ' + c.code, desc: c.desc, tick: on ? '✓' : '',
+          bc: on ? ORANGE : BORDER, bg: on ? 'rgba(255,90,31,0.05)' : '#fff',
+          boxBc: on ? ORANGE : 'oklch(0.8 0 0)', boxBg: on ? ORANGE : '#fff',
+          onPick: () => this.setState(st2 => {
+            const cats = st2.d.cats.slice();
+            const i = cats.indexOf(c.code);
+            if (i >= 0) cats.splice(i, 1); else cats.push(c.code);
+            cats.sort((a, b) => a.length - b.length || a.localeCompare(b));
+            const nd = Object.assign({}, st2.d, { cats });
+            const stillOk = nd.vtype ? cats.indexOf((VTYPES.find(x => x.id === nd.vtype) || {}).req) >= 0 : true;
+            if (!stillOk) { nd.vtype = ''; }
+            return { d: nd };
+          })
+        };
+      }),
+
+      ch: (function (self) {
+        const mk = id => {
+          const on = d.chassis === id;
+          return {
+            bc: on ? ORANGE : BORDER, bg: on ? 'rgba(255,90,31,0.05)' : '#fff',
+            boxBc: on ? ORANGE : 'oklch(0.8 0 0)', boxBg: on ? ORANGE : '#fff',
+            boxSh: on ? 'inset 0 0 0 2.5px #fff' : 'none',
+            onPick: () => self.setState(st2 => ({ d: Object.assign({}, st2.d, { chassis: id }) }))
+          };
+        };
+        return { dry: mk('dry'), ref: mk('ref'), open: mk('open') };
+      })(this),
+
+      chassis: CHASSIS.map(c => {
+        const on = d.chassis === c.id;
+        return { name: c.name, desc: c.desc,
+          bc: on ? ORANGE : BORDER, bg: on ? 'rgba(255,90,31,0.05)' : '#fff',
+          boxBc: on ? ORANGE : 'oklch(0.8 0 0)', boxBg: on ? ORANGE : '#fff',
+          boxSh: on ? 'inset 0 0 0 2.5px #fff' : 'none',
+          onPick: () => this.setState(st2 => ({ d: Object.assign({}, st2.d, { chassis: c.id }) })) };
+      }),
+
+      vtypes: VTYPES.map(vv => {
+        const allowed = d.cats.indexOf(vv.req) >= 0;
+        const on = d.vtype === vv.id;
+        return {
+          name: vv.name, cap: vv.cap, samples: vv.samples, chip: vv.chip,
+          chipBg: allowed ? 'var(--muted)' : 'rgba(220,38,38,0.09)',
+          chipFg: allowed ? 'var(--muted-foreground)' : RED,
+          bc: on ? ORANGE : BORDER, bg: on ? 'rgba(255,90,31,0.05)' : '#fff',
+          op: allowed ? '1' : '0.65',
+          lockNote: allowed ? '' : 'Locked — your licence does not list category ' + vv.req + '.',
+          onPick: () => {
+            if (!allowed) { this.flash('Add category ' + vv.req + ' in step 2 to drive this class.'); return; }
+            this.setState(st2 => ({ d: Object.assign({}, st2.d, {
+              vtype: vv.id, modelQuery: '', make: '', model: '',
+              payload: vv.payload, len: vv.dims[0], wid: vv.dims[1], hei: vv.dims[2]
+            }) }));
+          }
+        };
+      }),
+
+      citiesOpen: !!s.citiesOpen,
+      openCities: () => this.setState({ citiesOpen: true }),
+      cityOptions: CITIES.filter(c => {
+        const q = (d.city || '').toLowerCase().trim();
+        return !q || c[0].toLowerCase().indexOf(q) === 0 || c[0].toLowerCase().indexOf(q) > 0;
+      }).slice(0, 40).map(c => ({
+        name: c[0], region: c[1],
+        onPick: () => this.setState(st2 => ({ d: Object.assign({}, st2.d, { city: c[0] }), citiesOpen: false }))
+      })),
+      noCityMatch: !!(d.city || '').trim() && !CITIES.some(c => c[0].toLowerCase().indexOf(d.city.toLowerCase().trim()) >= 0),
+
+      diagBox: d.chassis !== 'open',
+      diagFlat: d.chassis === 'open',
+      diag: d.chassis === 'open'
+        ? { rearTop: '96', note: 'Measure the usable deck, and the height of the drop sides.' }
+        : { rearTop: '60', note: 'Measure the load space inside the body, not the outside of the vehicle.' },
+      dimLegend: d.chassis === 'open'
+        ? [{ n: '1', label: 'Length', note: 'deck front to tail' },
+           { n: '2', label: 'Width', note: 'deck side to side' },
+           { n: '3', label: 'Height', note: 'deck to top of side panel' }]
+        : [{ n: '1', label: 'Length', note: 'front wall to doors' },
+           { n: '2', label: 'Width', note: 'wall to wall' },
+           { n: '3', label: 'Height', note: 'floor to ceiling' }],
+
+      colors: COLORS.map(cl => {
+        const on = d.color === cl[0];
+        return {
+          name: cl[0], swatch: cl[1], fw: on ? '600' : '500',
+          bc: on ? ORANGE : (err.color ? RED : BORDER),
+          bg: on ? 'rgba(255,90,31,0.06)' : '#fff',
+          onPick: () => this.setState(st2 => ({ d: Object.assign({}, st2.d, { color: cl[0] }) }))
+        };
+      }),
+
+      vtypeName: v ? v.name : 'vehicle',
+      modelsOpen: !!s.modelsOpen && !!d.vtype,
+      openModels: () => this.setState({ modelsOpen: true }),
+      modelOptions: (MODELS[d.vtype] || []).filter(m => {
+        const q = (d.modelQuery || '').toLowerCase().trim();
+        return !q || (m[0] + ' ' + m[1]).toLowerCase().indexOf(q) >= 0;
+      }).map(m => ({
+        make: m[0], model: m[1],
+        onPick: () => this.setState(st2 => ({ d: Object.assign({}, st2.d, { make: m[0], model: m[1], modelQuery: m[0] + ' ' + m[1] }), modelsOpen: false }))
+      })),
+      noModelMatch: !!d.modelQuery && (MODELS[d.vtype] || []).filter(m => (m[0] + ' ' + m[1]).toLowerCase().indexOf(d.modelQuery.toLowerCase().trim()) >= 0).length === 0,
+      volumeLine: (function () {
+        const a = parseFloat(d.len), b = parseFloat(d.wid), c = parseFloat(d.hei);
+        if (isNaN(a) || isNaN(b) || isNaN(c)) return 'Length × width × height of the usable load space.';
+        return 'Usable volume ' + (a * b * c).toFixed(1) + ' m³ — used to match you with orders.';
+      })(),
+
+      summary,
+
+      // status screen
+      appRef: 'APP-40231', st,
+      flaggedList: flaggedDocs.map(x => ({
+        label: x.label,
+        reason: (s.review[x.k] || {}).reason || 'Needs a new photo',
+        reasonColor: RED,
+        tile: d.photos[x.k] ? HATCH : '#f4f4f5',
+        btnLabel: 'Retake', btnBc: RED, btnBg: RED, btnFg: '#fff',
+        onFix: () => this.openCapture(x.k)
+      })),
+      resubmit: this.resubmit,
+      resubmitLabel: flaggedDocs.length ? 'Replace ' + flaggedDocs.length + ' photo' + (flaggedDocs.length === 1 ? '' : 's') + ' to resubmit' : 'Resubmit application',
+      resubmitBg: flaggedDocs.length ? 'oklch(0.88 0 0)' : ORANGE,
+      resubmitFg: flaggedDocs.length ? 'oklch(0.6 0 0)' : '#fff',
+      timeline,
+      approvedRows: [
+        { k: 'Driver', v: d.name || '—' },
+        { k: 'Vehicle', v: this.modelLabel() },
+        { k: 'Class', v: this.vehicleLabel() },
+        { k: 'Plate', v: d.plate || '—' },
+        { k: 'Payload', v: d.payload ? Number(d.payload).toLocaleString() + ' kg' : '—' },
+        { k: 'Categories', v: d.cats.join(', ') || '—' }
+      ],
+
+      // capture overlay
+      cap: capMeta,
+      shoot: this.shoot, pickFromLibrary: this.pickFromLibrary, cancelCapture: this.cancelCapture,
+      toast: s.toast,
+
+      railSteps: RAIL.map(r => {
+        const curG = isStatus ? 4 : (meta ? meta.g : 0);
+        const done = curG > Number(r.n);
+        const active = curG === Number(r.n);
+        return {
+          n: r.n, label: r.label, sub: r.sub,
+          dotBg: active ? ORANGE : (done ? 'oklch(0.205 0 0)' : 'var(--border)'),
+          dotFg: active || done ? '#fff' : 'var(--muted-foreground)',
+          fg: active ? ORANGE : 'var(--foreground)',
+          onJump: () => this.setState({ step: r.step === 9 && s.appStatus !== 'draft' ? 10 : r.step, touched: {}, modelsOpen: false })
+        };
+      }),
+
+      // admin
+      nav: [
+        { label: 'Applications', count: String(allApps.length), bg: 'var(--accent)', fw: '600', fg: 'var(--foreground)' },
+        { label: 'Active drivers', count: '1,284', bg: 'transparent', fw: '500', fg: 'var(--muted-foreground)' },
+        { label: 'Fleet', count: '1,301', bg: 'transparent', fw: '500', fg: 'var(--muted-foreground)' },
+        { label: 'Compliance', count: '12', bg: 'transparent', fw: '500', fg: 'var(--muted-foreground)' }
+      ],
+      adminSub: s.appStatus === 'draft'
+        ? 'The live application appears here once the driver submits it in the app.'
+        : 'APP-40231 is live — approve or flag its documents and the driver app updates.',
+      filters, rows, detail,
+      closeDetail: () => this.setState({ adminSel: '', reasonFor: '' }),
+      requestChanges: this.requestChanges, approveDriver: this.approveDriver
+    };
+  }
+}
+</script>
+</body>
+</html>
