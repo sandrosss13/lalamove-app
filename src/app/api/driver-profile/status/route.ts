@@ -11,6 +11,9 @@ import { prisma } from "@/lib/prisma";
  * profile is created. The missing-profile case is an explicit 404 rather than an
  * upsert, because going online must not silently create a half-filled profile
  * (city, phone and account type are all required fields).
+ *
+ * Going online additionally requires an activated account (`activatedAt` set);
+ * going offline never does.
  */
 export async function PATCH(request: Request): Promise<NextResponse> {
   const session = await auth.api.getSession({ headers: request.headers });
@@ -51,14 +54,29 @@ export async function PATCH(request: Request): Promise<NextResponse> {
 
   // Check existence first so a missing profile is a clear 404 instead of the
   // "record to update not found" error the update would otherwise throw.
+  // `activatedAt` rides along on the same read rather than a second query,
+  // since the activation gate below needs nothing else from the profile.
   const existing = await prisma.driverProfile.findUnique({
     where: { userId: session.user.id },
-    select: { id: true },
+    select: { id: true, activatedAt: true },
   });
   if (!existing) {
     return NextResponse.json(
       { error: "Complete your driver profile before going online." },
       { status: 404 },
+    );
+  }
+
+  // Only going *online* is gated. Going offline is always allowed regardless of
+  // activation state, so a driver can never get stuck unable to take themselves
+  // offline (e.g. if their account is deactivated while they are online).
+  if (isOnline && existing.activatedAt === null) {
+    return NextResponse.json(
+      {
+        error:
+          "Your account isn't approved yet. Finish onboarding to go online.",
+      },
+      { status: 403 },
     );
   }
 

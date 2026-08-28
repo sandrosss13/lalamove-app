@@ -78,7 +78,7 @@ export async function POST(
 
   const driverProfile = await prisma.driverProfile.findUnique({
     where: { userId: session.user.id },
-    select: { id: true, companyId: true },
+    select: { id: true, companyId: true, activatedAt: true },
   });
 
   if (!driverProfile) {
@@ -90,6 +90,19 @@ export async function POST(
       {
         error:
           "Drivers who belong to a company receive deliveries through their company's dispatch, not by accepting directly.",
+      },
+      { status: 403 },
+    );
+  }
+
+  // A driver whose onboarding application has not been approved cannot claim
+  // work. Kept distinct from the company-affiliation 403 above: the two are
+  // different problems with different remedies.
+  if (driverProfile.activatedAt === null) {
+    return NextResponse.json(
+      {
+        error:
+          "Your account isn't approved yet. Finish onboarding to accept deliveries.",
       },
       { status: 403 },
     );

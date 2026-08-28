@@ -40,6 +40,14 @@ const READ_SIGNED_URL_TTL_SECONDS = 300;
  */
 const ALLOWED_CONTENT_TYPES = new Set(["image/jpeg", "image/png"]);
 
+/**
+ * The single message shown for anything outside `ALLOWED_CONTENT_TYPES`, so the
+ * pre-upload rejection and the post-upload verification below word it the same
+ * way to the driver.
+ */
+export const UNSUPPORTED_CONTENT_TYPE_ERROR =
+  "Only JPG and PNG files are accepted.";
+
 /** Characters allowed in the file-name suffix of an object path. */
 const UNSAFE_FILE_NAME_CHARS = /[^a-zA-Z0-9._-]+/g;
 
@@ -85,6 +93,71 @@ function getStorageClient(): SupabaseClient {
 function toSafeFileName(fileName: string): string {
   const safe = fileName.trim().replace(UNSAFE_FILE_NAME_CHARS, "-");
   return safe.length > 0 ? safe : FALLBACK_FILE_NAME;
+}
+
+/**
+ * Whether Storage should hold an object of this content type at all. Exported
+ * so a route handler can reject a bad request with a readable 400 *before*
+ * touching Storage, and so the post-upload check below consults the same one
+ * list rather than a second copy of it that could drift.
+ */
+export function isSupportedDriverDocumentContentType(
+  contentType: string,
+): boolean {
+  return ALLOWED_CONTENT_TYPES.has(contentType);
+}
+
+/**
+ * Reads the `Content-Type` Storage actually recorded for an already-uploaded
+ * object.
+ *
+ * This is the enforcement half of `createDriverDocumentUploadUrl`'s advisory
+ * check: a signed upload URL cannot pin the content type of what is later PUT
+ * to it, so a caller can mint a token claiming `image/png` and upload anything.
+ * What matters downstream is not the claim but the type Storage recorded —
+ * that is the `Content-Type` a signed read URL will serve the object with, and
+ * documents are read by opening such a URL top-level, where an
+ * `image/svg+xml` or `text/html` object would execute as script. Callers record
+ * a document only once this returns a supported type.
+ *
+ * Throws when the object's metadata cannot be read at all (it was never
+ * uploaded, or Storage is unreachable) so the caller can fail closed rather
+ * than record an unverified document.
+ */
+export async function getDriverDocumentContentType(
+  path: string,
+): Promise<string | null> {
+  const bucket = getStorageClient().storage.from(DRIVER_DOCUMENT_BUCKET);
+
+  const { data, error } = await bucket.info(path);
+  if (!error && data) {
+    return data.contentType ?? null;
+  }
+
+  // `info()` is served by an endpoint older self-hosted Storage releases do not
+  // expose. Falling back to a prefix listing keeps verification working there
+  // instead of failing every upload closed — `list` reports the same recorded
+  // mimetype, just less directly.
+  const separatorIndex = path.lastIndexOf("/");
+  const prefix = separatorIndex === -1 ? "" : path.slice(0, separatorIndex);
+  const objectName = path.slice(separatorIndex + 1);
+
+  const { data: listed, error: listError } = await bucket.list(prefix, {
+    search: objectName,
+  });
+
+  // `search` is a substring match, so the exact name still has to be picked out
+  // of the results.
+  const match = listed?.find((entry) => entry.name === objectName);
+  if (!match) {
+    throw new Error(
+      `Failed to read document metadata for ${path}: ${
+        listError?.message ?? error?.message ?? "the object does not exist."
+      }`,
+    );
+  }
+
+  return match.metadata?.mimetype ?? null;
 }
 
 /**

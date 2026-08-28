@@ -96,10 +96,10 @@ graph TD
 - [x] [task-03-driver-document-storage](./tasks/task-03-driver-document-storage.md) — Private Supabase bucket helper for identity/licence documents
 
 ### Wave 2
-- [ ] [task-04-vehicle-classes-constant](./tasks/task-04-vehicle-classes-constant.md) — Design's 4 vehicle classes mapped onto existing `VehicleTypeSpec` codes
-- [ ] [task-05-onboarding-draft-api](./tasks/task-05-onboarding-draft-api.md) — `GET`/`PATCH` resumable draft + `POST` reset
-- [ ] [task-06-onboarding-documents-api](./tasks/task-06-onboarding-documents-api.md) — Signed upload URL + document recording
-- [ ] [task-07-activation-gate](./tasks/task-07-activation-gate.md) — `DriverProfile.activatedAt` enforcement + backfill
+- [x] [task-04-vehicle-classes-constant](./tasks/task-04-vehicle-classes-constant.md) — Design's 4 vehicle classes mapped onto existing `VehicleTypeSpec` codes
+- [x] [task-05-onboarding-draft-api](./tasks/task-05-onboarding-draft-api.md) — `GET`/`PATCH` resumable draft + `POST` reset
+- [x] [task-06-onboarding-documents-api](./tasks/task-06-onboarding-documents-api.md) — Signed upload URL + document recording
+- [x] [task-07-activation-gate](./tasks/task-07-activation-gate.md) — `DriverProfile.activatedAt` enforcement + backfill
 
 ### Wave 3
 - [ ] [task-08-onboarding-shell](./tasks/task-08-onboarding-shell.md) — Route, layout guard, step rail, progress bar, draft context, step stubs

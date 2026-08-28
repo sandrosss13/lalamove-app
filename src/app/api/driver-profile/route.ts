@@ -179,6 +179,14 @@ export async function POST(request: Request): Promise<NextResponse> {
   const { accountType, firstName, lastName, companyName, vatId, phone, city } =
     parsed.data;
 
+  // BUSINESS accounts never go through the driver onboarding wizard (only
+  // INDIVIDUAL/INDIVIDUAL_ENTREPRENEUR independent sign-ups do), so there will
+  // never be an application for an admin to approve. Activating them here is
+  // what keeps them out of a permanently non-activated state. `undefined`
+  // leaves the column untouched, which is what the other account types need.
+  const activatedAt =
+    accountType === DriverAccountType.BUSINESS ? new Date() : undefined;
+
   const driverProfile = await prisma.driverProfile.upsert({
     where: { userId: session.user.id },
     create: {
@@ -190,6 +198,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       vatId,
       phone,
       city,
+      activatedAt,
     },
     update: {
       accountType,
@@ -199,6 +208,11 @@ export async function POST(request: Request): Promise<NextResponse> {
       vatId,
       phone,
       city,
+      // Only spread `activatedAt` for BUSINESS; leaving the key out entirely on
+      // the other account types means re-submitting this form can never
+      // re-activate or un-activate an INDIVIDUAL/INDIVIDUAL_ENTREPRENEUR
+      // profile that is already mid-onboarding or already approved.
+      ...(activatedAt ? { activatedAt } : {}),
     },
   });
 

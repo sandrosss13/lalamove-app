@@ -165,8 +165,9 @@ export async function POST(request: Request): Promise<NextResponse> {
  * they could actually take — i.e. asking for a vehicle type they have
  * registered — plus deliveries already assigned to them, which are not
  * type-filtered because that match was made when the order was accepted. A
- * driver with no registered vehicle has nothing to take, so they only ever see
- * their own deliveries. Newest first.
+ * driver with no registered vehicle — or one whose account is not yet activated
+ * — has nothing to take, so they only ever see their own deliveries. Newest
+ * first.
  *
  * The filter mirrors the driver-facing `/orders` page, so the API can't hand
  * back jobs the UI deliberately hides.
@@ -184,7 +185,10 @@ export async function GET(request: Request): Promise<NextResponse> {
   if (role === "DRIVER") {
     const driverProfile = await prisma.driverProfile.findUnique({
       where: { userId },
-      select: { vehicles: { select: { vehicleTypeSpecId: true } } },
+      select: {
+        activatedAt: true,
+        vehicles: { select: { vehicleTypeSpecId: true } },
+      },
     });
 
     const registeredVehicleTypeSpecIds = [
@@ -197,11 +201,19 @@ export async function GET(request: Request): Promise<NextResponse> {
 
     where = {
       OR: [
-        {
-          status: OrderStatus.PENDING,
-          driverId: null,
-          vehicleTypeSpecId: { in: registeredVehicleTypeSpecIds },
-        },
+        // A non-activated driver has nothing open to take — same reasoning as
+        // the existing "no registered vehicle → nothing to take" case, extended
+        // to cover "not yet approved" too. Deliveries already assigned to them
+        // stay visible either way.
+        ...(driverProfile?.activatedAt
+          ? [
+              {
+                status: OrderStatus.PENDING,
+                driverId: null,
+                vehicleTypeSpecId: { in: registeredVehicleTypeSpecIds },
+              },
+            ]
+          : []),
         { driverId: userId },
       ],
     };
