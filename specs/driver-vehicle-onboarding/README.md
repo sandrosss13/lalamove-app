@@ -102,7 +102,7 @@ graph TD
 - [x] [task-07-activation-gate](./tasks/task-07-activation-gate.md) — `DriverProfile.activatedAt` enforcement + backfill
 
 ### Wave 3
-- [ ] [task-08-onboarding-shell](./tasks/task-08-onboarding-shell.md) — Route, layout guard, step rail, progress bar, draft context, step stubs
+- [x] [task-08-onboarding-shell](./tasks/task-08-onboarding-shell.md) — Route, layout guard, step rail, progress bar, draft context, step stubs
 
 ### Wave 4
 - [ ] [task-09-onboarding-step1-auth-personal](./tasks/task-09-onboarding-step1-auth-personal.md) — Mobile, name, ID number, DOB, city, profile photo
