@@ -87,11 +87,32 @@ export async function POST(
 
   const company = await prisma.logisticsCompany.findUnique({
     where: { userId: session.user.id },
-    select: { id: true },
+    select: { id: true, activatedAt: true },
   });
 
   if (!company) {
     return NextResponse.json({ error: "Order not found." }, { status: 404 });
+  }
+
+  // The activation gate. `LogisticsCompany.activatedAt` is set only by the admin
+  // activate endpoint, which refuses unless the company's details are verified
+  // and at least one vehicle is approved — so this one column is the whole
+  // "is this fleet allowed on the road" question, and the "at least one approved
+  // vehicle" half of the requirement is enforced there rather than re-derived
+  // here. Checked server-side and not only in the dashboard, because hiding a
+  // button does nothing about a direct POST.
+  //
+  // A 403 with a specific message, unlike the 404s around it: those conceal
+  // whether another company's id exists, whereas this is a fact about the
+  // caller's *own* company and there is nothing to hide.
+  if (company.activatedAt === null) {
+    return NextResponse.json(
+      {
+        error:
+          "Your fleet is still under review. Operations must activate the company before you can dispatch deliveries.",
+      },
+      { status: 403 },
+    );
   }
 
   // Scoped by ownership *and* status: an order this company hasn't claimed, or
@@ -120,11 +141,46 @@ export async function POST(
   // for one owned by an independent driver.
   const vehicle = await prisma.vehicle.findFirst({
     where: { id: vehicleId, companyId: company.id },
-    select: { id: true, vehicleTypeSpecId: true },
+    select: {
+      id: true,
+      vehicleTypeSpecId: true,
+      // The review row for this vehicle, or null for a vehicle that predates
+      // business applications (admin-created, or added through the fleet form).
+      // Singular, because `BusinessApplicationVehicle.vehicleId` is `@unique`.
+      applicationVehicle: { select: { status: true } },
+    },
   });
 
   if (!vehicle) {
     return NextResponse.json({ error: "Vehicle not found." }, { status: 404 });
+  }
+
+  // A vehicle that went through a fleet application has to have been approved:
+  // the fleet is cleared vehicle by vehicle, so an activated company can still
+  // hold a flagged or unreviewed one.
+  //
+  // A vehicle with no review row at all is grandfathered — there is no column on
+  // `Vehicle` to backfill a verdict onto, and manufacturing review rows for
+  // vehicles no reviewer ever looked at would fabricate a compliance record. The
+  // null case can never be produced by the new flow: the onboarding submit
+  // creates a `BusinessApplicationVehicle` for every vehicle in the same
+  // transaction that creates the vehicle itself.
+  //
+  // Placed before the vehicle-type check below so a vehicle that is both
+  // unapproved and of the wrong type is reported as unapproved. 400 rather than
+  // 403: this is a fact about the vehicle named in the request body, which is a
+  // bad-request condition alongside that type mismatch.
+  if (
+    vehicle.applicationVehicle !== null &&
+    vehicle.applicationVehicle.status !== "APPROVED"
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "This vehicle hasn't been approved yet. Only approved vehicles can be dispatched.",
+      },
+      { status: 400 },
+    );
   }
 
   if (vehicle.vehicleTypeSpecId !== order.vehicleTypeSpecId) {

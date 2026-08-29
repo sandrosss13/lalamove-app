@@ -19,7 +19,17 @@ export const dynamic = "force-dynamic";
  *
  * This guard is *defensive only* — it protects a direct or bookmarked visit by
  * someone the wizard isn't for. What proactively sends an eligible company here
- * from `/dashboard` is task-21, and must not be added in this task.
+ * is `shouldOnboard` in `src/app/dashboard/page.tsx`.
+ *
+ * Those two are deliberately not mirror images, and the difference is the
+ * `APPROVED` arm below. `shouldOnboard` answers "should we *send* this company
+ * into the wizard", and for an activated company the answer is no — sending them
+ * would trap them in a flow they have finished. `eligible` here answers "may a
+ * company who *arrived* under their own steam see this page", and for an
+ * activated company the answer is yes, because this page is where task-15's
+ * "Your fleet is live." confirmation lives and that screen's "Open the dispatch
+ * dashboard" CTA is the exit back to `/dashboard`. Keep the shared conditions in
+ * sync with `shouldOnboard`; keep this divergence.
  *
  * A COMPANY user with no `LogisticsCompany` row redirects to `/dashboard`: that
  * is the interrupted-sign-up case, and `CompanyDashboard` already owns the

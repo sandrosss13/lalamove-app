@@ -29,6 +29,7 @@
 
 import { OrderStatus } from "@prisma/client";
 import type {
+  BusinessApplicationVehicleStatus,
   CargoCategory,
   GeorgianCity,
   LoadingAccessType,
@@ -110,6 +111,18 @@ export type OpsVehicle = {
   category: VehicleCategory;
   /** null when no driver currently has this vehicle (no open `DriverVehicleAssignment`) */
   activeAssignment: OpsVehicleAssignment | null;
+  /**
+   * This vehicle's fleet-application verdict, or null for a vehicle that
+   * predates business applications (admin-created, or added through the
+   * company's own fleet form). Null is not "unreviewed" — see `dispatchable`.
+   */
+  applicationStatus: BusinessApplicationVehicleStatus | null;
+  /**
+   * Whether the dispatch endpoint will accept this vehicle: it has no review row
+   * at all (grandfathered), or its row is APPROVED. Computed here so the console
+   * and the API cannot disagree about it.
+   */
+  dispatchable: boolean;
 };
 
 export type OpsDriver = {
@@ -145,6 +158,12 @@ export type CompanyDashboardData = {
     vatId: string;
     phone: string;
     city: GeorgianCity;
+    /**
+     * ISO timestamp of the moment operations activated this fleet, or null while
+     * it is still under review. Null means every claim and dispatch call will be
+     * refused.
+     */
+    activatedAt: string | null;
   };
   overview: {
     /** status in CLAIMED/ACCEPTED/IN_TRANSIT, companyId = self */
@@ -245,6 +264,7 @@ export async function getCompanyDashboardData(
       vatId: true,
       phone: true,
       city: true,
+      activatedAt: true,
     },
   });
 
@@ -283,6 +303,10 @@ export async function getCompanyDashboardData(
       where: { companyId },
       include: {
         vehicleTypeSpec: true,
+        // The fleet-application review row for this vehicle, or null for one
+        // that predates business applications. Singular, because
+        // `BusinessApplicationVehicle.vehicleId` is `@unique`.
+        applicationVehicle: { select: { status: true } },
         // At most one assignment per vehicle is open at a time (enforced at the
         // API layer), so the first open row is *the* current pairing. The
         // `orderBy` is defensive: should a bad write ever leave two rows open,
@@ -528,6 +552,13 @@ export async function getCompanyDashboardData(
             isOnline: active.driverProfile.isOnline,
           }
         : null,
+      applicationStatus: vehicle.applicationVehicle?.status ?? null,
+      // Mirrors the dispatch endpoint's per-vehicle gate exactly: no review row
+      // (grandfathered) or an approved one. Kept in sync with
+      // `src/app/api/logistics-company/orders/[id]/dispatch/route.ts`.
+      dispatchable:
+        vehicle.applicationVehicle === null ||
+        vehicle.applicationVehicle.status === "APPROVED",
     };
   });
 
@@ -624,7 +655,13 @@ export async function getCompanyDashboardData(
     .sort((a, b) => b.totalEarned - a.totalEarned);
 
   return {
-    company,
+    // Spread rather than returned whole: `activatedAt` comes back from Prisma as
+    // a `Date`, and this object crosses into a `"use client"` tree, where every
+    // value has to be plain serialisable data.
+    company: {
+      ...company,
+      activatedAt: company.activatedAt?.toISOString() ?? null,
+    },
     overview: {
       activeOrdersCount,
       completedTodayCount: completedTodayAgg._count,
