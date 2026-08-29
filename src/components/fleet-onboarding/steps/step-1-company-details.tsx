@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/popover";
 import {
   FLEET_SCREENS,
+  type FleetCompanyOnRecord,
   type FleetSubmittedSummary,
   useFleetDraft,
 } from "@/components/fleet-onboarding/fleet-draft-context";
@@ -41,12 +42,11 @@ type CityOption = (typeof GEORGIAN_CITY_OPTIONS)[number];
 type CompanyFormMode = "draft" | "correction";
 
 /**
- * Every field that can carry an inline error. `city` is deliberately absent: it
- * is the registered city, displayed read-only and never editable here (§7), so
- * it can never light up red.
+ * Every field that can carry an inline error. `city` and `phone` are
+ * deliberately absent: both are set at sign-up, carried through this step
+ * read-only and never editable here (§7), so neither can light up red.
  */
 type CompanyField =
-  | "phone"
   | "companyName"
   | "vatId"
   | "registeredAddress"
@@ -60,8 +60,6 @@ type Problems = Partial<Record<CompanyField, string>>;
 
 // ── Validation rules, straight from the design's field table ────────────────
 
-const MIN_PHONE_DIGITS = 10;
-const MAX_PHONE_DIGITS = 15;
 const MIN_COMPANY_NAME_LENGTH = 3;
 /** Georgian VAT / tax identification numbers are exactly nine digits. */
 const VAT_ID_PATTERN = /^\d{9}$/;
@@ -124,15 +122,17 @@ async function readErrorMessage(
 }
 
 /**
- * The phone's own rule, kept separate from the rest because the phone
- * sub-screen's Continue gate reuses it — and because the seeding rule for which
- * sub-screen opens first is "does the saved number already pass this?".
+ * The company email's own rule, kept separate from the rest because both
+ * sub-screens gate on it: the email sub-screen's Continue reuses it, and the
+ * seeding rule for which sub-screen opens first is "does the saved address
+ * already pass this?". There is exactly one email predicate in this file, and
+ * this is it — `collectProblems` calls it rather than restating the pattern.
  */
-function phoneProblem(value: string | undefined): string | undefined {
-  const digits = (value ?? "").replace(/\D/g, "");
-  if (!digits) return "Enter the company phone number.";
-  if (digits.length < MIN_PHONE_DIGITS || digits.length > MAX_PHONE_DIGITS) {
-    return "That is not a valid number (10–15 digits).";
+function emailProblem(value: string | undefined): string | undefined {
+  const email = (value ?? "").trim();
+  if (!email) return "Enter a company email.";
+  if (!EMAIL_PATTERN.test(email)) {
+    return "That does not look like an email address.";
   }
   return undefined;
 }
@@ -142,17 +142,13 @@ function phoneProblem(value: string | undefined): string | undefined {
  * light up *all* the offending fields at once rather than walking the company
  * through them one at a time. Messages are the design's, verbatim.
  *
- * `phone` is included even though the details sub-screen has no phone field:
- * the POST carries it, so an invalid number must never reach the endpoint. In
- * practice it has already passed the sub-screen gate by the time this matters.
+ * `phone` is absent, unlike the fields below: it is never typed in this wizard
+ * (sign-up collects it) and is carried through to the POST unedited, exactly as
+ * `city` is. The endpoint re-checks both and its own 400 is surfaced by the
+ * toast in `handleContinue`.
  */
 function collectProblems(company: CompanyDraft): Problems {
   const problems: Problems = {};
-
-  const phone = phoneProblem(company.phone);
-  if (phone !== undefined) {
-    problems.phone = phone;
-  }
 
   const companyName = (company.companyName ?? "").trim();
   if (!companyName) {
@@ -190,11 +186,12 @@ function collectProblems(company: CompanyDraft): Problems {
     problems.contactRole = "Required.";
   }
 
-  const contactEmail = (company.contactEmail ?? "").trim();
-  if (!contactEmail) {
-    problems.contactEmail = "Enter a company email.";
-  } else if (!EMAIL_PATTERN.test(contactEmail)) {
-    problems.contactEmail = "That does not look like an email address.";
+  // Collected on the first sub-screen rather than in a field of its own down
+  // here, but still checked at Continue: a draft that reached the details form
+  // with an unusable address must not reach the endpoint.
+  const contactEmail = emailProblem(company.contactEmail);
+  if (contactEmail !== undefined) {
+    problems.contactEmail = contactEmail;
   }
 
   // Whitespace-free, matching how the server measures it.
@@ -236,21 +233,82 @@ function companyFromSummary(
 }
 
 /**
- * Step 1 — the company's phone number on its own sub-screen, then its legal,
- * contact and payout details.
+ * The company's own `LogisticsCompany` row behind whatever it has answered here.
  *
- * A thin wrapper by design: everything below the phone screen lives in
+ * Field-by-field rather than a spread, and `??` rather than `||`: a draft value
+ * of `""` is an answer — the company cleared the field — and must win over the
+ * record, or a cleared field would refill itself on the next render. Only a key
+ * the draft has never held falls through.
+ *
+ * This is what stops the wizard re-asking for what sign-up already persisted:
+ * `companyName`, `vatId`, `phone` and `city` are written at sign-up but live
+ * nowhere in a fresh draft, so before this the wizard opened with them blank
+ * and rendered the read-only registered city as "—".
+ *
+ * Draft mode only. A correction seeds from `submittedSummary`, whose IBAN is
+ * masked and whose values are what the reviewer saw (§8) — merging the raw row
+ * into that would change what the correction dialog claims was submitted.
+ */
+function withRecordFallback(
+  company: CompanyDraft,
+  record: FleetCompanyOnRecord | null,
+): CompanyDraft {
+  if (record === null) return company;
+
+  return {
+    companyName: company.companyName ?? record.companyName,
+    vatId: company.vatId ?? record.vatId,
+    phone: company.phone ?? record.phone,
+    city: company.city ?? record.city,
+    registeredAddress: company.registeredAddress ?? record.registeredAddress,
+    citiesOfOperation: company.citiesOfOperation ?? record.citiesOfOperation,
+    contactName: company.contactName ?? record.contactName,
+    contactRole: company.contactRole ?? record.contactRole,
+    contactEmail: company.contactEmail ?? record.contactEmail,
+    bankAccountIban: company.bankAccountIban ?? record.bankAccountIban,
+  };
+}
+
+/**
+ * Step 1 — the company's email on its own sub-screen, then its legal, contact
+ * and payout details.
+ *
+ * A thin wrapper by design: everything below the email screen lives in
  * `CompanyDetailsForm`, which task-15's ACTION_REQUIRED dialog mounts on its own
  * to run the same form against the same endpoint without the wizard around it.
  *
- * There is no SMS code screen. The design's six-box code screen is bypassed in
- * the prototype itself and dropped by `requirements.md` as an explicit non-goal:
- * this codebase has no SMS infrastructure, and a fake code that verifies nothing
- * is worse than no screen at all. The phone is a plain, unverified `tel` field.
+ * The first sub-screen used to ask for the company phone, and the wizard no
+ * longer asks for a phone number anywhere. Two reasons, both fatal to it:
+ *
+ * 1. Its copy told the company the number "becomes the account login", which was
+ *    never true. Authentication here is Better Auth email/password (see
+ *    `src/lib/auth.ts`) — the *email* is the login, and the phone authenticates
+ *    nothing.
+ * 2. It was redundant. `sign-up-form.tsx` already collects the phone *and* the
+ *    email and POSTs `{ companyName, vatId, phone, city }` to
+ *    `/api/logistics-company`, so this screen re-asked minutes later for a
+ *    number the row already held.
+ *
+ * None of that changes the data model: `LogisticsCompany.phone` is still
+ * non-null and unique, sign-up still collects it, and the POST in
+ * `CompanyDetailsForm` still carries it — read-only, like `city`, seeded from
+ * `companyOnRecord` (see `withRecordFallback`).
+ *
+ * There is no SMS code screen either. The design's six-box code screen is
+ * bypassed in the prototype itself and dropped by `requirements.md` as an
+ * explicit non-goal: this codebase has no SMS infrastructure, and with no phone
+ * field left in the wizard there is nothing here for it to verify.
  */
 export function Step1CompanyDetails() {
-  const { draft, updateDraft, goToStep, showToast, status, submittedSummary } =
-    useFleetDraft();
+  const {
+    draft,
+    updateDraft,
+    goToStep,
+    showToast,
+    status,
+    submittedSummary,
+    companyOnRecord,
+  } = useFleetDraft();
 
   /**
    * task-09's shell puts `FleetApplicationStatusScreen` ahead of every wizard
@@ -261,8 +319,13 @@ export function Step1CompanyDetails() {
    */
   const mode: CompanyFormMode = status === "DRAFT" ? "draft" : "correction";
 
-  /** What the form starts from: the draft while editing, the summary after submit. */
-  const seed = useMemo<CompanyDraft>(
+  /**
+   * What the company has answered *for this application*: the draft while
+   * editing, the submitted summary after submit. Deliberately un-merged with
+   * the company row — this is the record of what was actually filled in here,
+   * and the sub-screen gate below turns on exactly that distinction.
+   */
+  const answered = useMemo<CompanyDraft>(
     () =>
       mode === "draft"
         ? (draft.company ?? {})
@@ -270,34 +333,50 @@ export function Step1CompanyDetails() {
     [mode, draft.company, submittedSummary],
   );
 
-  /**
-   * Which of the design's two sub-screens is showing. Local, not persisted:
-   * `draftStep` is an integer 1–5 (see `fleet-wizard-shell.tsx`), so this is
-   * session-local by design. Seeded to "details" when the saved phone already
-   * passes validation, so a company resuming step 1 is not made to re-confirm a
-   * number it already gave us — and so a correction, whose seeded phone always
-   * passes, opens straight on the details with no special case.
-   */
-  const [phase, setPhase] = useState<"phone" | "details">(() =>
-    phoneProblem(seed.phone) === undefined ? "details" : "phone",
+  /** The same answers with the company's persisted row behind them (draft only). */
+  const seed = useMemo<CompanyDraft>(
+    () =>
+      mode === "draft"
+        ? withRecordFallback(answered, companyOnRecord)
+        : answered,
+    [mode, answered, companyOnRecord],
   );
 
   /**
-   * Whether the phone has been through a failed Continue. A boolean rather than
+   * Which of the two sub-screens is showing. Local, not persisted: `draftStep`
+   * is an integer 1–5 (see `fleet-wizard-shell.tsx`), so this is session-local
+   * by design. Seeded to "details" when the *saved* email already passes
+   * validation, so a company resuming step 1 is not made to re-confirm an
+   * address it already gave us — and so a correction, whose seeded email comes
+   * from a server-validated column and therefore always passes, opens straight
+   * on the details with no special case.
+   *
+   * Keyed on `answered`, never on the seeded default: the record's fallback is
+   * the account's own login address, which always passes validation, so keying
+   * on `seed` would skip this sub-screen for every company and slip a seeded
+   * answer past them unseen. A company confirms the address once, here; after
+   * that its own draft value is what opens the details form directly.
+   */
+  const [phase, setPhase] = useState<"email" | "details">(() =>
+    emailProblem(answered.contactEmail) === undefined ? "details" : "email",
+  );
+
+  /**
+   * Whether the email has been through a failed Continue. A boolean rather than
    * the details form's `touched` record because this sub-screen has exactly one
    * field: validation fires on Continue, never on blur.
    */
-  const [phoneTouched, setPhoneTouched] = useState(false);
+  const [emailTouched, setEmailTouched] = useState(false);
 
   const fieldId = useId();
-  const phoneInputId = `${fieldId}-phone`;
+  const emailInputId = `${fieldId}-contact-email`;
 
   if (phase === "details") {
     return (
       <CompanyDetailsForm
         mode={mode}
         initial={seed}
-        onBack={() => setPhase("phone")}
+        onBack={() => setPhase("email")}
         onSaved={() => {
           // Only the wizard has a next step. A correction has already been
           // toasted and refetched by the form itself.
@@ -309,48 +388,75 @@ export function Step1CompanyDetails() {
     );
   }
 
-  const phoneError = phoneTouched ? phoneProblem(seed.phone) : undefined;
+  /**
+   * What the field shows: the company's own answer if it has given one, and
+   * otherwise the record's `contactEmail` — which the API seeds from the
+   * address this account signs in with (see `buildCompanyOnRecord`). Seeded,
+   * never locked: a company whose order mail should reach a shared dispatch
+   * inbox rather than the address one person registered with types over it.
+   */
+  const email = seed.contactEmail ?? "";
+  const emailError = emailTouched ? emailProblem(email) : undefined;
 
-  function handlePhoneContinue() {
-    if (phoneProblem(seed.phone) !== undefined) {
-      setPhoneTouched(true);
+  function handleEmailContinue() {
+    if (emailProblem(email) !== undefined) {
+      setEmailTouched(true);
       showToast(VALIDATION_TOAST, "error");
       return;
     }
 
-    // Not `goToStep`: this is a sub-screen of step 1, not a new step. The typed
-    // value is already persisted by the debounced `updateDraft` on each
-    // keystroke, so there is nothing to save here either.
-    setPhoneTouched(false);
+    // A seeded address lives on the company row, not in the draft, and every
+    // later reader of this answer — the details form, the review step, the
+    // POST — reads the draft. Writing it through here is what turns the seed
+    // into the company's own answer, and it is also what makes the gate above
+    // send them straight to the details form next time. A typed value is
+    // already persisted by the debounced `updateDraft` below, so this is a
+    // no-op for it.
+    //
+    // The whole merged section goes back, because `updateDraft` merges at the
+    // section level and sending one key would drop the others. The record's
+    // values riding along is harmless — they are the values the draft would
+    // fall back to anyway, and the draft is scratch space, not the source of
+    // truth for any of them.
+    //
+    // Not `goToStep`: this is a sub-screen of step 1, not a new step.
+    if (answered.contactEmail !== email) {
+      updateDraft({ company: { ...seed, contactEmail: email } });
+    }
+
+    setEmailTouched(false);
     setPhase("details");
   }
 
   return (
     <div className="flex max-w-[520px] flex-col gap-[18px]">
       <p className="text-[13.5px] leading-[1.5] text-muted-foreground">
-        The company&apos;s main line. It becomes the account login and the
-        number dispatch calls when an order needs a decision.
+        The address this account signs in with. It is also where review
+        decisions and order correspondence go — change it if a different inbox
+        should receive them.
       </p>
 
-      <Field label="Company phone" htmlFor={phoneInputId} error={phoneError}>
+      <Field label="Company email" htmlFor={emailInputId} error={emailError}>
         <Input
-          id={phoneInputId}
-          type="tel"
-          inputMode="tel"
-          autoComplete="tel"
-          placeholder="+995 322 555 010"
-          value={seed.phone ?? ""}
-          aria-invalid={phoneError !== undefined}
+          id={emailInputId}
+          type="email"
+          inputMode="email"
+          autoComplete="email"
+          placeholder="dispatch@company.ge"
+          value={email}
+          aria-invalid={emailError !== undefined}
           aria-describedby={
-            phoneError !== undefined ? `${phoneInputId}-error` : undefined
+            emailError !== undefined ? `${emailInputId}-error` : undefined
           }
           onChange={(event) =>
-            updateDraft({ company: { ...seed, phone: event.target.value } })
+            updateDraft({
+              company: { ...seed, contactEmail: event.target.value },
+            })
           }
           // 48px and 16px rather than the shared 46/15: the design gives the
           // sole field on its own screen more presence.
           className={`h-12 rounded-[10px] bg-card px-[13px] text-base md:text-base ${
-            phoneError !== undefined
+            emailError !== undefined
               ? ""
               : "focus-visible:border-onboarding-accent focus-visible:ring-onboarding-accent/15"
           }`}
@@ -360,7 +466,7 @@ export function Step1CompanyDetails() {
       <div className="flex items-center gap-3.5">
         <button
           type="button"
-          onClick={handlePhoneContinue}
+          onClick={handleEmailContinue}
           className={PRIMARY_CTA_CLASS}
         >
           Continue
@@ -394,14 +500,20 @@ export function CompanyDetailsForm({
   /** Seed values. In correction mode these come from `submittedSummary`. */
   initial: CompanyDraft;
   /**
-   * Returns to the phone sub-screen. Omitted by task-15's dialog, which has no
+   * Returns to the email sub-screen. Omitted by task-15's dialog, which has no
    * sub-screen behind it and renders no Back button.
    */
   onBack?: () => void;
   onSaved: () => void;
 }): React.ReactElement {
-  const { draft, updateDraft, showToast, refetch, submittedSummary } =
-    useFleetDraft();
+  const {
+    draft,
+    updateDraft,
+    showToast,
+    refetch,
+    submittedSummary,
+    companyOnRecord,
+  } = useFleetDraft();
 
   /**
    * The answers in correction mode, where `updateDraft` would be a silent
@@ -414,9 +526,15 @@ export function CompanyDetailsForm({
     mode === "correction" ? { ...initial, bankAccountIban: "" } : initial,
   );
 
+  /**
+   * The draft's company section with the persisted row behind it, so a company
+   * that has typed nothing yet still opens on its registered name, VAT id,
+   * city and phone rather than on empty fields. Correction mode does not merge
+   * — see `withRecordFallback`.
+   */
   const draftCompany = useMemo<CompanyDraft>(
-    () => draft.company ?? {},
-    [draft.company],
+    () => withRecordFallback(draft.company ?? {}, companyOnRecord),
+    [draft.company, companyOnRecord],
   );
 
   const company = mode === "draft" ? draftCompany : localCompany;
@@ -589,12 +707,17 @@ export function CompanyDetailsForm({
         body: JSON.stringify({
           companyName: (company.companyName ?? "").trim(),
           vatId: (company.vatId ?? "").trim(),
+          // `phone` and `city` are both carried through unchanged: set at
+          // sign-up, never edited in this wizard, and required by the endpoint
+          // on every call. Neither is derived from anything on this screen —
+          // `city` in particular is never derived from `citiesOfOperation`
+          // (§7) — and neither is defaulted here. Both come from the draft
+          // when it has them and from the company's own row when it does not
+          // (`withRecordFallback`), which is what lets the wizard stop asking
+          // for the phone without ever posting an empty one. If one is somehow
+          // absent the endpoint 400s with its own message, which the toast
+          // below surfaces.
           phone: (company.phone ?? "").trim(),
-          // Carried through unchanged — set at sign-up, never edited here, and
-          // required by the endpoint on every call. See §7: it is never derived
-          // from `citiesOfOperation` and never defaulted. If it is somehow
-          // absent the endpoint 400s with its own `city must be one of: …`,
-          // which the toast below surfaces.
           city: company.city,
           registeredAddress: (company.registeredAddress ?? "").trim(),
           citiesOfOperation: company.citiesOfOperation ?? [],
@@ -876,6 +999,9 @@ export function CompanyDetailsForm({
         </Field>
       </div>
 
+      {/* Name and role only. The company email used to sit under this heading
+          too, which asked for it twice in one step — the first sub-screen
+          collects it now, into the same `contactEmail` key. */}
       <div className="flex flex-col gap-3.5 border-t border-border pt-5">
         <p className={GROUP_HEADING_CLASS}>Contact person</p>
 
@@ -918,26 +1044,6 @@ export function CompanyDetailsForm({
             />
           </Field>
         </div>
-
-        <Field
-          label="Company email"
-          htmlFor={idFor("contactEmail")}
-          error={errorFor("contactEmail")}
-        >
-          <Input
-            id={idFor("contactEmail")}
-            type="email"
-            autoComplete="email"
-            placeholder="dispatch@company.ge"
-            value={company.contactEmail ?? ""}
-            aria-invalid={errorFor("contactEmail") !== undefined}
-            aria-describedby={describedBy("contactEmail")}
-            onChange={(event) =>
-              setCompany({ contactEmail: event.target.value })
-            }
-            className={fieldClassName(errorFor("contactEmail") !== undefined)}
-          />
-        </Field>
       </div>
 
       <div className="flex flex-col gap-3.5 border-t border-border pt-5">

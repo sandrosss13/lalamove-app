@@ -109,6 +109,42 @@ type FleetSubmittedSummary = {
   countsByBodyType: Record<string, number>;
 };
 
+/**
+ * The company's persisted `LogisticsCompany` row, as step 1 of the wizard seeds
+ * its fields from.
+ *
+ * Distinct from `FleetSubmittedSummary` and deliberately not folded into it:
+ * that one means "what the reviewer was sent" and is null for the whole time
+ * the company is still filling the wizard in, which is exactly when the wizard
+ * needs these values. Sign-up already persisted `companyName`, `vatId`, `phone`
+ * and `city`, so without this the wizard opened blank and asked for all four a
+ * second time — and could not render the read-only registered city at all.
+ *
+ * Nullable columns collapse to `""` (see `companyDetailColumns`), because a
+ * half-filled row is the normal state here rather than an error.
+ */
+type FleetCompanyOnRecord = {
+  companyName: string;
+  vatId: string;
+  phone: string;
+  /** `GeorgianCity` enum value. */
+  city: string;
+  registeredAddress: string;
+  citiesOfOperation: string[];
+  contactName: string;
+  contactRole: string;
+  /** The saved contact email, or the account's own address as the seed for it. */
+  contactEmail: string;
+  /**
+   * The real account number, **not** masked — the one asymmetry with
+   * `FleetSubmittedSummary`, and a deliberate one. The summary is a read-only
+   * confirmation of what was submitted, so bullets are enough; this seeds an
+   * editable field the owner is filling in about their own company, and seeding
+   * it with bullets would have them save the mask over a good IBAN.
+   */
+  bankAccountIban: string;
+};
+
 type FleetOnboardingGetResponse = {
   status: BusinessApplicationStatus;
   reference: string;
@@ -130,6 +166,11 @@ type FleetOnboardingGetResponse = {
   vehicles: FleetVehicleVerdict[];
   /** Present only once `status !== "DRAFT"`; null while still a draft. */
   submittedSummary: FleetSubmittedSummary | null;
+  /**
+   * Always present, in every status: it is the company's own row, and the
+   * wizard needs it precisely while `submittedSummary` is null.
+   */
+  companyOnRecord: FleetCompanyOnRecord;
 };
 
 /**
@@ -176,6 +217,11 @@ const applicationInclude = {
  */
 const companyInclude = {
   application: { include: applicationInclude },
+  // The account's own email, for `companyOnRecord.contactEmail`'s fallback — a
+  // company that has not yet saved a contact email is seeded with the address
+  // it signs in with. One extra column on a query that already joins the
+  // application, not a second round trip.
+  user: { select: { email: true } },
 } satisfies Prisma.LogisticsCompanyInclude;
 
 type LogisticsCompanyWithApplication = Prisma.LogisticsCompanyGetPayload<{
@@ -383,20 +429,18 @@ function countByBodyType(
 }
 
 /**
- * Builds the status screen's summary from the *normalized* rows — the company's
- * own columns and its review rows — never from the draft: after submit the draft
- * is no longer the source of truth, and a summary the company shows to itself
- * must match exactly what the reviewer sees.
+ * The company's detail columns, with every nullable one collapsed to `""`.
  *
- * The company's detail columns are nullable in the schema (they are filled in by
- * this very wizard, and pre-existing companies have none), but a submitted
- * application has necessarily set them. Empty strings keep a half-written row
- * from breaking the whole status screen.
+ * Shared by both company-shaped response fields so they cannot drift apart in
+ * how they read a half-filled row: those columns are nullable in the schema
+ * because this very wizard is what fills them in, and pre-existing companies
+ * have none.
+ *
+ * `bankAccountIban` is deliberately *not* here. It is the one column the two
+ * callers legitimately disagree about — masked in the summary, raw in the seed
+ * — so each states its own choice rather than inheriting one from here.
  */
-function buildSubmittedSummary(
-  company: LogisticsCompanyWithApplication,
-  application: FleetApplication,
-): FleetSubmittedSummary {
+function companyDetailColumns(company: LogisticsCompanyWithApplication) {
   return {
     companyName: company.companyName,
     vatId: company.vatId,
@@ -407,9 +451,51 @@ function buildSubmittedSummary(
     contactRole: company.contactRole ?? "",
     contactEmail: company.contactEmail ?? "",
     phone: company.phone,
+  };
+}
+
+/**
+ * Builds the status screen's summary from the *normalized* rows — the company's
+ * own columns and its review rows — never from the draft: after submit the draft
+ * is no longer the source of truth, and a summary the company shows to itself
+ * must match exactly what the reviewer sees.
+ */
+function buildSubmittedSummary(
+  company: LogisticsCompanyWithApplication,
+  application: FleetApplication,
+): FleetSubmittedSummary {
+  return {
+    ...companyDetailColumns(company),
     bankAccountIban: maskIban(company.bankAccountIban ?? ""),
     vehicleCount: application.vehicles.length,
     countsByBodyType: countByBodyType(application.vehicles),
+  };
+}
+
+/**
+ * Builds the wizard's seed from the same columns — see `FleetCompanyOnRecord`
+ * for why it exists alongside the summary rather than inside it.
+ *
+ * Two values differ from the summary's reading of the same row, both because
+ * this feeds an editable form rather than a read-only confirmation:
+ *
+ * - `contactEmail` falls back to the address the account authenticates with.
+ *   Sign-up does not collect a contact email, so the column is null for every
+ *   company until step 1 saves one, and the account email is the address the
+ *   company has already given us. It is a *default for a field the company can
+ *   overwrite*, never an identity — the login is `User.email`, and editing the
+ *   company's contact email does not change it.
+ * - `bankAccountIban` is the real value rather than `maskIban`'s bullets, so a
+ *   company that reopens step 1 does not save the mask over its own account
+ *   number.
+ */
+function buildCompanyOnRecord(
+  company: LogisticsCompanyWithApplication,
+): FleetCompanyOnRecord {
+  return {
+    ...companyDetailColumns(company),
+    contactEmail: company.contactEmail ?? company.user.email,
+    bankAccountIban: company.bankAccountIban ?? "",
   };
 }
 
@@ -454,6 +540,9 @@ export async function GET(request: Request): Promise<NextResponse> {
     submittedSummary: isDraft
       ? null
       : buildSubmittedSummary(company, application),
+    // Unconditional, unlike the summary above: the wizard seeds step 1 from
+    // this, and it is a draft for the whole time it is being filled in.
+    companyOnRecord: buildCompanyOnRecord(company),
   };
 
   return NextResponse.json(body, { status: 200 });
