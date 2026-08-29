@@ -105,12 +105,12 @@ graph TD
 - [x] [task-08-onboarding-shell](./tasks/task-08-onboarding-shell.md) — Route, layout guard, step rail, progress bar, draft context, step stubs
 
 ### Wave 4
-- [ ] [task-09-onboarding-step1-auth-personal](./tasks/task-09-onboarding-step1-auth-personal.md) — Mobile, name, ID number, DOB, city, profile photo
-- [ ] [task-10-onboarding-step2-licence](./tasks/task-10-onboarding-step2-licence.md) — Licence front/back upload, number, expiry, categories
-- [ ] [task-11-onboarding-step3-chassis-class](./tasks/task-11-onboarding-step3-chassis-class.md) — Cargo body type + vehicle class, licence-category locking
-- [ ] [task-12-onboarding-step3c-technical-details](./tasks/task-12-onboarding-step3c-technical-details.md) — Make/model, plate, colour, payload, cargo hold diagrams
-- [ ] [task-13-onboarding-step4-review-submit](./tasks/task-13-onboarding-step4-review-submit.md) — Review summary + `POST submit` (server-authoritative validation)
-- [ ] [task-14-onboarding-status-screen](./tasks/task-14-onboarding-status-screen.md) — Pending / action-required / approved states
+- [x] [task-09-onboarding-step1-auth-personal](./tasks/task-09-onboarding-step1-auth-personal.md) — Mobile, name, ID number, DOB, city, profile photo
+- [x] [task-10-onboarding-step2-licence](./tasks/task-10-onboarding-step2-licence.md) — Licence front/back upload, number, expiry, categories
+- [x] [task-11-onboarding-step3-chassis-class](./tasks/task-11-onboarding-step3-chassis-class.md) — Cargo body type + vehicle class, licence-category locking
+- [x] [task-12-onboarding-step3c-technical-details](./tasks/task-12-onboarding-step3c-technical-details.md) — Make/model, plate, colour, payload, cargo hold diagrams
+- [x] [task-13-onboarding-step4-review-submit](./tasks/task-13-onboarding-step4-review-submit.md) — Review summary + `POST submit` (server-authoritative validation)
+- [x] [task-14-onboarding-status-screen](./tasks/task-14-onboarding-status-screen.md) — Pending / action-required / approved states
 
 ### Wave 5
 - [ ] [task-15-admin-nav-registration](./tasks/task-15-admin-nav-registration.md) — Register the new admin section
