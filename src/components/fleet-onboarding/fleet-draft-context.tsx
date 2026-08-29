@@ -26,17 +26,17 @@ import {
 /**
  * Every screen the fleet wizard can be on, as the numbers `goToStep` takes and
  * `draftStep` reports. Unlike the driver wizard there are no fractional
- * screens: step 1 has two sub-screens in the design (company phone, then
- * company details) but both live inside `step-1-company-details.tsx` as plain
- * local state, so `draftStep` is an integer everywhere and matches the API's
- * validated [1, 5] range exactly.
+ * screens: step 1 has two sub-screens (company email, then company details) but
+ * both live inside `step-1-company-details.tsx` as plain local state, so
+ * `draftStep` is an integer everywhere and matches the API's validated [1, 5]
+ * range exactly.
  *
  * Steps import these names rather than hard-coding digits, and import them from
  * here rather than from the shell — the shell imports the steps, so the other
  * direction would be a cycle.
  */
 export const FLEET_SCREENS = {
-  /** Step 1 — company phone, then company details (both inside task-10's component). */
+  /** Step 1 — company email, then company details (both inside task-10's component). */
   company: 1,
   /** Step 2 — fleet composition. */
   fleet: 2,
@@ -124,6 +124,36 @@ export type FleetSubmittedSummary = {
   countsByBodyType: Record<string, number>;
 };
 
+/**
+ * The company's persisted `LogisticsCompany` row, exactly as the GET returns it
+ * — the counterpart of `FleetCompanyOnRecord` in
+ * `src/app/api/logistics-company/onboarding/route.ts`.
+ *
+ * Unlike `FleetSubmittedSummary` this is present in every status, which is the
+ * whole point of it: sign-up persists `companyName`, `vatId`, `phone` and
+ * `city` before the wizard is ever opened, and the summary is null for the
+ * entire time the company is filling it in. Step 1 seeds its fields from here
+ * whenever the draft has no answer of its own.
+ *
+ * `bankAccountIban` is the real account number here, *not* the summary's masked
+ * one: this seeds an editable field, so bullets would be saved back over a good
+ * IBAN. `contactEmail` falls back server-side to the address the account signs
+ * in with, since sign-up never collects a contact email.
+ */
+export type FleetCompanyOnRecord = {
+  companyName: string;
+  vatId: string;
+  phone: string;
+  /** `GeorgianCity` enum value — the registered city, set at sign-up. */
+  city: string;
+  registeredAddress: string;
+  citiesOfOperation: string[];
+  contactName: string;
+  contactRole: string;
+  contactEmail: string;
+  bankAccountIban: string;
+};
+
 export type FleetDraftState = {
   /** True until the first foreground GET settles. No step renders before then. */
   loading: boolean;
@@ -152,6 +182,12 @@ export type FleetDraftState = {
    * being fetched separately — there stays exactly one loader.
    */
   submittedSummary: FleetSubmittedSummary | null;
+  /**
+   * The company's own row, in every status. Null only before the first load
+   * settles (and after one that failed), which is why every reader treats it as
+   * a fallback rather than a source of truth.
+   */
+  companyOnRecord: FleetCompanyOnRecord | null;
 
   /** The current screen — a `FLEET_SCREENS` value. */
   draftStep: number;
@@ -232,6 +268,7 @@ type FleetOnboardingGetResponse = {
   companyFlagReason: string | null;
   vehicles: FleetVehicleVerdict[];
   submittedSummary: FleetSubmittedSummary | null;
+  companyOnRecord: FleetCompanyOnRecord;
 };
 
 /**
@@ -296,6 +333,8 @@ export function FleetDraftProvider({
   );
   const [submittedSummary, setSubmittedSummary] =
     useState<FleetSubmittedSummary | null>(null);
+  const [companyOnRecord, setCompanyOnRecord] =
+    useState<FleetCompanyOnRecord | null>(null);
   const [draftStep, setDraftStep] = useState<number>(FLEET_SCREENS.company);
   const [draftUpdatedAt, setDraftUpdatedAt] = useState<string | null>(null);
   const [draft, setDraft] = useState<FleetDraftV1>(EMPTY_DRAFT);
@@ -458,6 +497,7 @@ export function FleetDraftProvider({
         setCompanyFlagReason(body.companyFlagReason);
         setVehicleVerdicts(body.vehicles);
         setSubmittedSummary(body.submittedSummary);
+        setCompanyOnRecord(body.companyOnRecord);
         setDraftStep(body.draftStep);
         setDraftUpdatedAt(body.draftUpdatedAt);
         setDraft(loadedDraft);
@@ -626,6 +666,7 @@ export function FleetDraftProvider({
       companyFlagReason,
       vehicleVerdicts,
       submittedSummary,
+      companyOnRecord,
       draftStep,
       draftUpdatedAt,
       draft,
@@ -646,6 +687,7 @@ export function FleetDraftProvider({
       companyFlagReason,
       vehicleVerdicts,
       submittedSummary,
+      companyOnRecord,
       draftStep,
       draftUpdatedAt,
       draft,

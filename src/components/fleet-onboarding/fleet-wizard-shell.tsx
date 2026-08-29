@@ -14,22 +14,21 @@
  *     4  step 4 — drivers & assignment      step-4-drivers-assignment
  *     5  step 5 — review & submit           step-5-review-submit
  *
- * Step 1 does have two sub-screens in the design (company phone, then company
- * details), but they live inside `step-1-company-details.tsx` as plain local
- * state — the same call the driver wizard's `step-3-chassis-class.tsx` makes
- * for its 3a/3b pair. Keeping them out of the screen numbering is what keeps
- * `draftStep` an integer everywhere, matching the API's validated [1, 5] range
- * with no flooring and no session-local sub-screen that a reload silently
- * loses.
+ * Step 1 does have two sub-screens (company email, then company details), but
+ * they live inside `step-1-company-details.tsx` as plain local state — the same
+ * call the driver wizard's `step-3-chassis-class.tsx` makes for its 3a/3b pair.
+ * Keeping them out of the screen numbering is what keeps `draftStep` an integer
+ * everywhere, matching the API's validated [1, 5] range with no flooring and no
+ * session-local sub-screen that a reload silently loses.
  *
  * One consequence, and it is this task's deliberate trade: `SCREEN_HEADERS`
  * below has exactly one entry for step 1, "Company details", because the header
- * lives in the shell and the sub-screen lives in the step. The design's
- * separate "Company phone" title is therefore not modelled here. Step 1 instead
- * leads its phone sub-screen with the design's intro sentence and an uppercase
- * "Company phone" field label directly beneath the shared header, which reads
- * correctly — the alternative was pushing sub-screen state up into the shell to
- * pick a title, which would have put step 1's internals in two files.
+ * lives in the shell and the sub-screen lives in the step. No separate
+ * sub-screen title is therefore modelled here. Step 1 instead leads its email
+ * sub-screen with an intro sentence and an uppercase "Company email" field
+ * label directly beneath the shared header, which reads correctly — the
+ * alternative was pushing sub-screen state up into the shell to pick a title,
+ * which would have put step 1's internals in two files.
  */
 
 import { useState } from "react";

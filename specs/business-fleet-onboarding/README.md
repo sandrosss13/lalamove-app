@@ -93,7 +93,7 @@ graph TD
 | 5 | task-16, task-17, task-18 | Admin nav registration, the read APIs (queue list + application detail), and the mutation APIs (verify/flag company, approve/flag vehicle, request changes, activate fleet) — independent of the wizard. |
 | 6 | task-19, task-20 | The admin queue page and the 560px detail drawer, built against wave 5's APIs. |
 | 7 | task-21 | The dispatch/activation gate and the `/dashboard` redirect that sends a company into the wizard, the status screen, or neither. |
-| 8 | task-22 | Follow-up found in the post-implementation walkthrough, not part of the original spec. Presentational only. |
+| 8 | task-22, task-23 | Follow-ups found after implementation, not part of the original spec. task-22 is presentational; task-23 closes a correction-loop gap where an admin flag reason has no matching editable field. |
 
 ## Task Status
 
@@ -134,3 +134,4 @@ graph TD
 
 ### Wave 8 — follow-ups
 - [ ] [task-22-status-rail-tally-fallback](./tasks/task-22-status-rail-tally-fallback.md) — Step rail reads `Declared 0` on every submitted application; derive the tally from `vehicleVerdicts` once past `DRAFT`
+- [ ] [task-23-registered-city-uncorrectable](./tasks/task-23-registered-city-uncorrectable.md) — Admin flag "Address does not match registration" is unfixable when the mismatch is the city; make it editable in correction mode
