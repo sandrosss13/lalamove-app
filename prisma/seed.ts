@@ -234,11 +234,11 @@ const VEHICLE_TYPE_SEEDS: VehicleTypeSeed[] = [
   },
   {
     // The physical spec (24 t, 13.60 x 2.48 x 2.70 m, HEAVY_DUTY) comes from the
-    // approved design handoff. The seven `pricing` figures below do NOT — they
-    // are hand-scaled from `LARGE_FREIGHT_TRUCK` (a 2.4x payload step taken at
-    // the ~1.4-1.5x money uplift the rest of this catalogue uses) and are
-    // UNSIGNED-OFF PLACEHOLDERS pending ops approval. See the first "Before
-    // Implementation" item in specs/business-fleet-onboarding/action-required.md.
+    // approved design handoff. The `pricing` figures are the rate owner's rule,
+    // recorded 2026-08-29: every money figure is exactly 1.5x
+    // `LARGE_FREIGHT_TRUCK`'s, the largest vehicle in the catalogue. Keep them
+    // derived from that row — if `LARGE_FREIGHT_TRUCK` is ever retuned, re-apply
+    // the multiplier here rather than editing these numbers independently.
     //
     // This matters more here than the file header implies: there is no draft or
     // feature-flag state for a `VehicleTypeSpec`. `GET /api/vehicle-types` is a
@@ -264,12 +264,19 @@ const VEHICLE_TYPE_SEEDS: VehicleTypeSeed[] = [
     // claiming one here would mis-sell the vehicle to clients reading the picker.
     loadingAccessType: LoadingAccessType.REAR_DOOR,
     pricing: {
-      baseFare: 65,
-      pricePerKm: 4.6,
-      pricePerMinute: 0.65,
+      // Exactly 1.5x `LARGE_FREIGHT_TRUCK` — the largest vehicle in the
+      // catalogue — on every money figure, per the rate owner's rule. Derived,
+      // not invented: 45/3.5/0.5/0.9/30/60 x 1.5.
+      baseFare: 67.5,
+      pricePerKm: 5.25,
+      pricePerMinute: 0.75,
+      // NOT scaled. This is a time allowance, not a price, so the 1.5x rule
+      // does not apply to it. Held at 40 rather than `LARGE_FREIGHT_TRUCK`'s 30
+      // because a 24 t semi-trailer genuinely takes longer to load, and this is
+      // the number the overtime rate above starts charging after.
       freeLoadingMinutes: 40,
-      overtimeRatePerMinute: 1.2,
-      helperFee: 40,
+      overtimeRatePerMinute: 1.35,
+      helperFee: 45,
       minimumFare: 90,
     },
   },
