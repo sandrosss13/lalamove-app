@@ -640,8 +640,11 @@ export function FleetApplicationStatusScreen() {
                 // Seeded from the submitted summary rather than the draft: the
                 // draft is null once an application has been submitted.
                 initial={companyFromSummary(submittedSummary)}
-                // `onBack` is deliberately omitted — there is no phone
+                // `onBack` is deliberately omitted — there is no email
                 // sub-screen behind this dialog, so no Back button renders.
+                // That is also why the form renders its own Company email field
+                // in correction mode: nothing else here asks for one, and
+                // "Contact person unreachable" is a flag reason.
                 //
                 // Closing is all this does. The form already raises "Company
                 // details updated." and awaits `refetch()` itself in correction

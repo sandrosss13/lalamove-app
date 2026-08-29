@@ -186,9 +186,10 @@ function collectProblems(company: CompanyDraft): Problems {
     problems.contactRole = "Required.";
   }
 
-  // Collected on the first sub-screen rather than in a field of its own down
-  // here, but still checked at Continue: a draft that reached the details form
-  // with an unusable address must not reach the endpoint.
+  // Checked in both modes even though only correction mode renders a field for
+  // it (see `CompanyDetailsForm`'s table): in the wizard the value arrives from
+  // step 1's first sub-screen, and an unusable one must not reach the endpoint
+  // just because the field that produced it is on the previous screen.
   const contactEmail = emailProblem(company.contactEmail);
   if (contactEmail !== undefined) {
     problems.contactEmail = contactEmail;
@@ -487,8 +488,28 @@ export function Step1CompanyDetails() {
  * submitted, and its rail raises a toast rather than navigating, so `goToStep`
  * cannot reach step 1 again. The dialog is the only route in.
  *
- * Everything below the mode switch — validation, the three groups, the city
- * picker, the request body — is identical in both modes.
+ * **Which fields render, by mode.** Validation, the city picker and the request
+ * body are identical in both; the field set differs in exactly one place:
+ *
+ * | Group          | `"draft"`                                  | `"correction"`        |
+ * | -------------- | ------------------------------------------ | --------------------- |
+ * | Legal entity   | name, VAT id, address, cities (city read-only) | same               |
+ * | Contact person | full name, role                            | full name, role, **email** |
+ * | Payouts        | IBAN                                       | same (re-entry, §8)   |
+ *
+ * The company email is asked exactly once per mode. In `"draft"` the wizard's
+ * first sub-screen owns it (`Step1CompanyDetails`), so repeating it here would
+ * reinstate the duplicate this form was just cleaned of. In `"correction"`
+ * there is no sub-screen — the dialog mounts this form alone — and one of the
+ * four flag reasons the admin can raise is "Contact person unreachable", which
+ * is precisely a wrong name, role *or* email. Without the field a company
+ * flagged for it could only resubmit the same details and be flagged again, so
+ * it renders beside the name and role that share that reason.
+ *
+ * `collectProblems` validates `contactEmail` in both modes regardless: in
+ * `"draft"` the value arrives from the sub-screen, and an unusable one must not
+ * reach the endpoint just because the field that produced it is on the previous
+ * screen.
  */
 export function CompanyDetailsForm({
   mode,
@@ -999,9 +1020,12 @@ export function CompanyDetailsForm({
         </Field>
       </div>
 
-      {/* Name and role only. The company email used to sit under this heading
-          too, which asked for it twice in one step — the first sub-screen
-          collects it now, into the same `contactEmail` key. */}
+      {/* The group the "Contact person unreachable" flag reason points at, and
+          the one place the two modes' field sets differ — see this component's
+          own doc comment for the table. In the wizard the email is collected on
+          step 1's first sub-screen and asking again here would be the duplicate
+          that screen exists to remove; in a correction there is no sub-screen
+          to have asked. */}
       <div className="flex flex-col gap-3.5 border-t border-border pt-5">
         <p className={GROUP_HEADING_CLASS}>Contact person</p>
 
@@ -1044,6 +1068,31 @@ export function CompanyDetailsForm({
             />
           </Field>
         </div>
+
+        {mode === "correction" ? (
+          <Field
+            label="Company email"
+            htmlFor={idFor("contactEmail")}
+            error={errorFor("contactEmail")}
+          >
+            <Input
+              id={idFor("contactEmail")}
+              type="email"
+              autoComplete="email"
+              placeholder="dispatch@company.ge"
+              // Seeded from `submittedSummary` like the rest of this mode's
+              // values — what the reviewer actually read — never from
+              // `companyOnRecord`.
+              value={company.contactEmail ?? ""}
+              aria-invalid={errorFor("contactEmail") !== undefined}
+              aria-describedby={describedBy("contactEmail")}
+              onChange={(event) =>
+                setCompany({ contactEmail: event.target.value })
+              }
+              className={fieldClassName(errorFor("contactEmail") !== undefined)}
+            />
+          </Field>
+        ) : null}
       </div>
 
       <div className="flex flex-col gap-3.5 border-t border-border pt-5">
