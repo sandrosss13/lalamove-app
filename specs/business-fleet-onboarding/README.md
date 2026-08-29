@@ -93,6 +93,7 @@ graph TD
 | 5 | task-16, task-17, task-18 | Admin nav registration, the read APIs (queue list + application detail), and the mutation APIs (verify/flag company, approve/flag vehicle, request changes, activate fleet) — independent of the wizard. |
 | 6 | task-19, task-20 | The admin queue page and the 560px detail drawer, built against wave 5's APIs. |
 | 7 | task-21 | The dispatch/activation gate and the `/dashboard` redirect that sends a company into the wizard, the status screen, or neither. |
+| 8 | task-22 | Follow-up found in the post-implementation walkthrough, not part of the original spec. Presentational only. |
 
 ## Task Status
 
@@ -130,3 +131,6 @@ graph TD
 
 ### Wave 7
 - [ ] [task-21-dispatch-gate-and-redirect](./tasks/task-21-dispatch-gate-and-redirect.md) — Activation gate on dispatch + `/dashboard` routing into wizard or status
+
+### Wave 8 — follow-ups
+- [ ] [task-22-status-rail-tally-fallback](./tasks/task-22-status-rail-tally-fallback.md) — Step rail reads `Declared 0` on every submitted application; derive the tally from `vehicleVerdicts` once past `DRAFT`
