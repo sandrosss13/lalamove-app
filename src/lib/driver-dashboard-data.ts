@@ -14,9 +14,9 @@
  *
  * Scoping: everything is filtered by the signed-in driver's own `userId` (their
  * `Order.driverId` / `DriverProfile.userId`), so no other driver's rows are ever
- * readable through this module. The one exception is by design: an independent
- * driver also sees unclaimed open-market orders matching a vehicle type they
- * have registered, exactly as `DriverBookings` already shows them.
+ * readable through this module. The one exception is by design: an activated
+ * independent driver also sees unclaimed open-market orders matching a vehicle
+ * type they have registered, exactly as `GET /api/orders` already scopes them.
  *
  * Time boundaries: every "today"/"this month"/window boundary in this file is
  * UTC-based, because the raw SQL trend query buckets with `date_trunc('day',
@@ -114,7 +114,10 @@ export type DriverDashboardData = {
     /** the one ACCEPTED/IN_TRANSIT order right now, or null — a driver has at most one active delivery */
     activeOrderId: string | null;
   };
-  /** Full unbounded list: open-market matches (independent only) ∪ own, newest first. */
+  /**
+   * Full unbounded list: open-market matches (activated independent drivers
+   * only) ∪ own, newest first.
+   */
   orders: DriverOpsOrder[];
   /**
    * Full unbounded list of the driver's own vehicles, newest first (empty for
@@ -171,9 +174,11 @@ export async function getDriverDashboardData(
 ): Promise<DriverDashboardData | null> {
   // The profile is fetched first because the orders query is keyed off it: the
   // open-market filter needs the driver's registered vehicle types, and whether
-  // there is an open market for them at all depends on `companyId`. Its vehicles
-  // are pulled in full here rather than by a second `vehicle.findMany`, since
-  // the Vehicle tab needs exactly the rows the type filter is derived from.
+  // there is an open market for them at all depends on `companyId` and
+  // `activatedAt` (both plain scalars, so the `include` below already returns
+  // them). Its vehicles are pulled in full here rather than by a second
+  // `vehicle.findMany`, since the Vehicle tab needs exactly the rows the type
+  // filter is derived from.
   const driverProfile = await prisma.driverProfile.findUnique({
     where: { userId },
     include: {
@@ -202,6 +207,16 @@ export async function getDriverDashboardData(
       driverProfile.vehicles.map((vehicle) => vehicle.vehicleTypeSpecId),
     ),
   ];
+
+  // A driver whose application has not been approved yet has nothing open to
+  // take: they cannot go online and `POST /api/orders/[id]/accept` would reject
+  // the claim anyway, so surfacing open-market rows here would only offer work
+  // they cannot do. This is the same gate `GET /api/orders` applies, kept in
+  // step with it because this module — not that route — is what `/dashboard`
+  // actually renders from. Deliveries already assigned to them stay visible
+  // either way (the `driverId` branch below is never gated), so a driver
+  // activated mid-delivery, or later deactivated, still sees their own work.
+  const canSeeOpenMarket = isIndependent && driverProfile.activatedAt !== null;
 
   // All period boundaries are derived from one `now`, so every figure on the
   // page refers to the same instant even if the queries straddle midnight.
@@ -235,7 +250,7 @@ export async function getDriverDashboardData(
     // Deliveries already taken by this driver are not type-filtered: that match
     // was already made when the order was accepted or dispatched.
     prisma.order.findMany({
-      where: isIndependent
+      where: canSeeOpenMarket
         ? {
             OR: [
               {

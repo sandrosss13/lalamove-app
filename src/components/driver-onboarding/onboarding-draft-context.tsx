@@ -123,6 +123,20 @@ const SAVE_DEBOUNCE_MS = 300;
 /** How long a toast stays on screen, per the design's 2.2s. */
 const TOAST_DURATION_MS = 2200;
 
+/**
+ * How often a *submitted* application re-reads its own status while the driver
+ * is watching the status screen, so an approval (or a document flag) reaches
+ * them without a manual reload — the screen is otherwise fetch-on-mount only,
+ * and a decision made while it is open would never appear.
+ *
+ * 25s rather than a few seconds: a human reviewer's decision is minutes-to-hours
+ * away (the screen's own copy says 12-24 hours), so this is a low-urgency read
+ * whose only job is to beat the driver's patience, not to be instant. The poll
+ * runs *only* in `PENDING` and `ACTION_REQUIRED` — a `DRAFT` has nothing to wait
+ * for and is the one status the wizard writes to, and `APPROVED` is terminal.
+ */
+const STATUS_POLL_INTERVAL_MS = 25_000;
+
 const LOAD_ERROR_FALLBACK =
   "We couldn't load your application. Check your connection and try again.";
 const SAVE_ERROR_FALLBACK =
@@ -225,6 +239,16 @@ export function OnboardingDraftProvider({
   // later one must not overwrite the later one's error state.
   const saveSequence = useRef(0);
 
+  // Monotonic id of the newest load, and how many of those are foreground ones.
+  // Same reasoning as `saveSequence`, one layer up: with a background poll in
+  // play, a `GET` that resolves after a newer one must not write its older
+  // answer over the newer one's — a poll fired just before a resubmit would
+  // otherwise put `ACTION_REQUIRED` back on screen over the `PENDING` the
+  // resubmit just read. The count is what keeps `loading` owned by exactly one
+  // request, so no in-flight `GET` can strand the shell's spinner.
+  const loadSequence = useRef(0);
+  const foregroundLoads = useRef(0);
+
   const toastTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined,
   );
@@ -290,46 +314,99 @@ export function OnboardingDraftProvider({
     [],
   );
 
-  const refetch = useCallback(async (): Promise<void> => {
-    setLoading(true);
-    setLoadError(null);
+  /**
+   * The one reader of `GET /api/driver-profile/onboarding`, in two modes.
+   *
+   * Foreground (the default, what `refetch` exposes) owns the shell's
+   * full-screen states: it raises `loading` while in flight and reports a
+   * failure through `loadError`, because nothing on screen can be trusted until
+   * it settles.
+   *
+   * Silent is for the background status poll, where both of those would be
+   * wrong: a `loading` flip would blank the driver's status screen every 25
+   * seconds, and one dropped poll on a flaky connection would replace a
+   * perfectly good screen with an error page. A silent failure therefore leaves
+   * the last-known-good state exactly as it is and waits for the next tick.
+   */
+  const loadApplication = useCallback(
+    async ({ silent = false }: { silent?: boolean } = {}): Promise<void> => {
+      // A poll has nothing to add while a foreground load is already fetching
+      // the very same thing.
+      if (silent && foregroundLoads.current > 0) return;
 
-    try {
-      const response = await fetch(ONBOARDING_ENDPOINT);
+      const sequence = loadSequence.current + 1;
+      loadSequence.current = sequence;
 
-      if (!response.ok) {
-        setLoadError(await readErrorMessage(response, LOAD_ERROR_FALLBACK));
-        return;
+      if (!silent) {
+        foregroundLoads.current += 1;
+        setLoading(true);
+        setLoadError(null);
       }
 
-      const body = (await response.json()) as OnboardingGetResponse;
-      // `draft` is null once the application is submitted — there is nothing
-      // left to resume — so the wizard's own state falls back to empty and the
-      // status screen takes over rendering.
-      const loadedDraft = body.draft ?? EMPTY_DRAFT;
+      try {
+        const response = await fetch(ONBOARDING_ENDPOINT);
 
-      draftRef.current = loadedDraft;
-      // The API only ever stores the four integer steps, so a resumed session
-      // lands on the *first* screen of the step it left off in.
-      stepRef.current = body.draftStep;
-      statusRef.current = body.status;
+        // A stale response has nothing useful to say about the current state.
+        if (sequence !== loadSequence.current) return;
 
-      setStatus(body.status);
-      setReference(body.reference);
-      setDraftStep(body.draftStep);
-      setDraftUpdatedAt(body.draftUpdatedAt);
-      setDraft(loadedDraft);
-      setDocuments(body.documents);
-      setSubmittedSummary(body.submittedSummary);
-      // A successful reload supersedes any earlier failed save: the state on
-      // screen is now the server's, so there is no unsaved work to warn about.
-      setSaveError(null);
-    } catch {
-      setLoadError(LOAD_ERROR_FALLBACK);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+        if (!response.ok) {
+          if (silent) return;
+          setLoadError(await readErrorMessage(response, LOAD_ERROR_FALLBACK));
+          return;
+        }
+
+        const body = (await response.json()) as OnboardingGetResponse;
+
+        // Re-checked after the body is read: parsing is another await, and the
+        // request that supersedes this one may only start during it.
+        if (sequence !== loadSequence.current) return;
+
+        // `draft` is null once the application is submitted — there is nothing
+        // left to resume — so the wizard's own state falls back to empty and the
+        // status screen takes over rendering.
+        const loadedDraft = body.draft ?? EMPTY_DRAFT;
+
+        draftRef.current = loadedDraft;
+        // The API only ever stores the four integer steps, so a resumed session
+        // lands on the *first* screen of the step it left off in.
+        stepRef.current = body.draftStep;
+        statusRef.current = body.status;
+
+        setStatus(body.status);
+        setReference(body.reference);
+        setDraftStep(body.draftStep);
+        setDraftUpdatedAt(body.draftUpdatedAt);
+        setDraft(loadedDraft);
+        setDocuments(body.documents);
+        setSubmittedSummary(body.submittedSummary);
+        // A successful reload supersedes any earlier failed save: the state on
+        // screen is now the server's, so there is no unsaved work to warn about.
+        setSaveError(null);
+        // And it supersedes an earlier failed *load*, including one a silent
+        // poll has just recovered from — leaving the retry screen up over data
+        // that has since arrived would strand the driver on it.
+        setLoadError(null);
+      } catch {
+        if (silent || sequence !== loadSequence.current) return;
+        setLoadError(LOAD_ERROR_FALLBACK);
+      } finally {
+        if (!silent) {
+          foregroundLoads.current -= 1;
+          // The last foreground load to finish is the one that hands the shell
+          // back to the driver, whether or not its own answer was the one used.
+          if (foregroundLoads.current === 0) {
+            setLoading(false);
+          }
+        }
+      }
+    },
+    [],
+  );
+
+  const refetch = useCallback(
+    (): Promise<void> => loadApplication(),
+    [loadApplication],
+  );
 
   const updateDraft = useCallback(
     (patch: Partial<OnboardingDraftV1>) => {
@@ -403,6 +480,13 @@ export function OnboardingDraftProvider({
   }, [refetch, showToast]);
 
   const recordDocument = useCallback((document: OnboardingDocument) => {
+    // Bumping the load sequence invalidates any load already in flight (in
+    // particular the silent status poll) — without this, a poll issued just
+    // before this retake landed could resolve just after, overwrite
+    // `documents` with the pre-retake list, and make a just-fixed flagged
+    // document reappear as flagged until the next poll self-heals it.
+    loadSequence.current += 1;
+
     setDocuments((current) => {
       const index = current.findIndex((entry) => entry.type === document.type);
       if (index === -1) return [...current, document];
@@ -417,6 +501,21 @@ export function OnboardingDraftProvider({
   useEffect(() => {
     void refetch();
   }, [refetch]);
+
+  // Keep a submitted application's status live. `status` is a dependency, so
+  // the interval is torn down and not recreated the moment the poll itself
+  // reads back `APPROVED` (or a reset drops the row back to `DRAFT`) — this
+  // stops polling exactly when there is nothing left to wait for, and the
+  // cleanup covers unmount for free.
+  useEffect(() => {
+    if (status !== "PENDING" && status !== "ACTION_REQUIRED") return;
+
+    const poll = setInterval(() => {
+      void loadApplication({ silent: true });
+    }, STATUS_POLL_INTERVAL_MS);
+
+    return () => clearInterval(poll);
+  }, [status, loadApplication]);
 
   useEffect(
     () => () => {

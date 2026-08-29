@@ -93,6 +93,20 @@ export async function POST(
     );
   }
 
+  // `PENDING` is the only status that can be approved. That leaves
+  // `ACTION_REQUIRED`, which is refused rather than approved because the
+  // driver's resubmit path is the *only* place age (21-75) and licence expiry
+  // are re-checked after the first submission. Retaking a flagged document is
+  // an upload, not a resubmission, so approving straight out of
+  // `ACTION_REQUIRED` would activate a driver whose licence may have expired —
+  // or who may have aged out — during a round trip that can span days.
+  if (application.status !== "PENDING") {
+    return NextResponse.json(
+      { error: "This application is still waiting on the driver to resubmit." },
+      { status: 400 },
+    );
+  }
+
   // A missing document fails this check exactly as a `PENDING` or `FLAGGED` one
   // does: approval means a reviewer looked at all three and cleared them, and a
   // document that was never uploaded was never looked at.

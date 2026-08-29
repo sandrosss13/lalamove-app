@@ -122,4 +122,4 @@ graph TD
 - [x] [task-19-admin-applications-detail-drawer](./tasks/task-19-admin-applications-detail-drawer.md) — 520px detail drawer, per-document approve/flag
 
 ### Wave 7
-- [ ] [task-20-onboarding-redirect-wiring](./tasks/task-20-onboarding-redirect-wiring.md) — Sends an eligible driver into the wizard/status screen from `/dashboard`
+- [x] [task-20-onboarding-redirect-wiring](./tasks/task-20-onboarding-redirect-wiring.md) — Sends an eligible driver into the wizard/status screen from `/dashboard`

@@ -258,7 +258,14 @@ function PendingState() {
         // step for the same reason), so the sentence points at this page —
         // which is where the decision actually appears — instead of at a
         // message that will never be sent.
-        body="Our team is checking your licence, ID and vehicle photos. This page updates as soon as there is a decision."
+        //
+        // "checks for a decision every few seconds" rather than the stronger
+        // "updates as soon as there is a decision": the draft context polls on
+        // an interval (`STATUS_POLL_INTERVAL_MS`), so the update is automatic
+        // but not instant, and the promise the driver is given has to be the
+        // one the code actually keeps. What matters to them either way is the
+        // part that is exactly true — they do not have to refresh.
+        body="Our team is checking your licence, ID and vehicle photos. This page checks for a decision every few seconds, so there's no need to refresh it."
       />
 
       <ol className="mt-4 rounded-[14px] border border-border bg-card px-3.5">

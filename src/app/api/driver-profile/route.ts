@@ -179,12 +179,53 @@ export async function POST(request: Request): Promise<NextResponse> {
   const { accountType, firstName, lastName, companyName, vatId, phone, city } =
     parsed.data;
 
+  // Read the current row before the upsert, scoped by `userId` so this only
+  // ever reads the caller's own profile.
+  const existingProfile = await prisma.driverProfile.findUnique({
+    where: { userId: session.user.id },
+    select: { accountType: true },
+  });
+
+  // `accountType` is chosen at sign-up and is not editable through this
+  // endpoint. This is what makes it safe for the `update` branch below to never
+  // touch `activatedAt` at all: an earlier version of this endpoint recomputed
+  // activation on every update (BUSINESS → activate, else → activate only if
+  // an approved `DriverApplication` exists), which was exploitable — POST once
+  // as BUSINESS (activating immediately), then POST again as INDIVIDUAL, and
+  // the recompute cleared or preserved activation based on account type alone.
+  // It also had no way to tell a self-activated profile apart from a
+  // grandfathered one (backfilled by the onboarding migration) or a
+  // company-provisioned one (activated at creation by the company
+  // registration flow, see `logistics-company/drivers/register/route.ts`) —
+  // both legitimately have `activatedAt` set with no application row, so
+  // "no approved application" is not a safe proxy for "not activated". Freezing
+  // `accountType` removes the only mechanism the exploit depended on, so this
+  // endpoint can leave `activatedAt` alone on every update instead of trying to
+  // re-derive it.
+  //
+  // The check below is a friendly, non-authoritative 400 for the common case —
+  // it is a read-then-write and two concurrent POSTs from the same session can
+  // both read "no profile" and race past it. The actual guarantee comes from
+  // the `update` branch never writing `accountType` at all (below), so even the
+  // loser of that race can only patch the identity fields, never flip the type
+  // an activation was just granted under.
+  if (
+    existingProfile !== null &&
+    existingProfile.accountType !== accountType
+  ) {
+    return NextResponse.json(
+      { error: "Your account type can't be changed here." },
+      { status: 400 },
+    );
+  }
+
   // BUSINESS accounts never go through the driver onboarding wizard (only
   // INDIVIDUAL/INDIVIDUAL_ENTREPRENEUR independent sign-ups do), so there will
   // never be an application for an admin to approve. Activating them here is
   // what keeps them out of a permanently non-activated state. `undefined`
-  // leaves the column untouched, which is what the other account types need.
-  const activatedAt =
+  // leaves the column unset, which is what the other account types need: a
+  // brand-new profile cannot have an approved application yet.
+  const createdActivatedAt =
     accountType === DriverAccountType.BUSINESS ? new Date() : undefined;
 
   const driverProfile = await prisma.driverProfile.upsert({
@@ -198,21 +239,24 @@ export async function POST(request: Request): Promise<NextResponse> {
       vatId,
       phone,
       city,
-      activatedAt,
+      activatedAt: createdActivatedAt,
     },
     update: {
-      accountType,
+      // `accountType` is deliberately absent here too — the freeze check above
+      // is racy (read-then-write), so this is the real guarantee: even the
+      // loser of a concurrent create/update race can only patch the identity
+      // fields below, never the account type an activation was just granted
+      // under.
       firstName,
       lastName,
       companyName,
       vatId,
       phone,
       city,
-      // Only spread `activatedAt` for BUSINESS; leaving the key out entirely on
-      // the other account types means re-submitting this form can never
-      // re-activate or un-activate an INDIVIDUAL/INDIVIDUAL_ENTREPRENEUR
-      // profile that is already mid-onboarding or already approved.
-      ...(activatedAt ? { activatedAt } : {}),
+      // `activatedAt` is deliberately absent here — see the comment above the
+      // accountType-freeze check. Whatever the row already has (null,
+      // BUSINESS-activated, admin-approved, grandfathered, or
+      // company-provisioned) is left exactly as it is.
     },
   });
 

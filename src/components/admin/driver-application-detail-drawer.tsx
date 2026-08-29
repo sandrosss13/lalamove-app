@@ -325,6 +325,15 @@ export function DriverApplicationDetailDrawer({
   const isReadOnly = data?.status === "APPROVED";
   const canActOnDocuments = data !== null && !isReadOnly;
 
+  // `ACTION_REQUIRED` means changes were requested and the driver has not
+  // resubmitted yet. Retaking a flagged document supersedes it but does *not*
+  // go through the submit endpoint, so an application can sit here with all
+  // three documents approved and still never have had the driver's age or
+  // licence expiry re-checked — which is why the approve endpoint refuses this
+  // status outright. Documents stay reviewable (a reviewer clearing a retaken
+  // photo is exactly what should happen here); only the final approval is off.
+  const isAwaitingDriver = data?.status === "ACTION_REQUIRED";
+
   /** Records a verdict on one document. A chip click flags; Approve approves. */
   async function reviewDocument(
     documentId: string,
@@ -439,13 +448,18 @@ export function DriverApplicationDetailDrawer({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [isBusy, onClose]);
 
+  // Ordered so the awaiting-driver case wins over "all documents approved":
+  // both are true once a reviewer clears a retaken document, and the one that
+  // matters is why the Approve button next to this line is still disabled.
   const footerHint = isReadOnly
     ? "This application is approved — the driver's account is active."
-    : allApproved
-      ? "All documents approved — ready to approve this driver."
-      : flaggedCount > 0
-        ? `${flaggedCount} document${flaggedCount === 1 ? "" : "s"} flagged. Requesting changes sends the driver back for re-upload.`
-        : `${reviewedCount} of ${documents.length} documents reviewed.`;
+    : isAwaitingDriver
+      ? "Changes were requested — waiting on the driver to resubmit before this application can be approved."
+      : allApproved
+        ? "All documents approved — ready to approve this driver."
+        : flaggedCount > 0
+          ? `${flaggedCount} document${flaggedCount === 1 ? "" : "s"} flagged. Requesting changes sends the driver back for re-upload.`
+          : `${reviewedCount} of ${documents.length} documents reviewed.`;
 
   return (
     <>
@@ -683,7 +697,16 @@ export function DriverApplicationDetailDrawer({
               type="button"
               size="lg"
               className="h-[42px] flex-1 text-[13.5px]"
-              disabled={data === null || isReadOnly || !allApproved || isBusy}
+              // `isAwaitingDriver` mirrors the approve endpoint's own refusal:
+              // an `ACTION_REQUIRED` application has not been through the
+              // resubmit path that re-checks age and licence expiry.
+              disabled={
+                data === null ||
+                isReadOnly ||
+                isAwaitingDriver ||
+                !allApproved ||
+                isBusy
+              }
               onClick={() =>
                 void submitVerdict("approve", APPROVE_ERROR_FALLBACK)
               }
