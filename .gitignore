@@ -45,3 +45,9 @@ next-env.d.ts
 # python build artifacts (skill scripts ship as .py source)
 __pycache__/
 *.pyc
+.ds-sync/
+ds-bundle/
+.design-sync/.cache/
+.design-sync/learnings/
+.design-sync/node_modules
+.ds-entry.mjs

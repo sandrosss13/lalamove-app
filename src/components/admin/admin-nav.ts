@@ -4,6 +4,7 @@ import {
   CreditCard,
   FileText,
   Megaphone,
+  Truck,
   Users,
 } from "lucide-react";
 
@@ -36,11 +37,11 @@ export type AdminNavItem = {
 };
 
 /**
- * Stable identifiers for the five sections, so a section's `layout.tsx` can
+ * Stable identifiers for the six sections, so a section's `layout.tsx` can
  * ask for its own tabs by name instead of restating them.
  */
 export type AdminNavSectionId =
-  "analytics" | "users" | "content" | "finance" | "crm";
+  "analytics" | "users" | "content" | "finance" | "crm" | "drivers";
 
 /** A top-level sidebar entry. */
 export type AdminNavSection = {
@@ -176,6 +177,24 @@ export const ADMIN_NAV: AdminNavSection[] = [
         label: "Campaigns",
         href: "/admin/crm/campaigns",
         adminRoles: ["SUPER_ADMIN", "CRM_MANAGER"],
+      },
+    ],
+  },
+  {
+    id: "drivers",
+    label: "Drivers",
+    href: "/admin/drivers/applications",
+    icon: Truck,
+    // USER_MANAGER is the reviewing role for self-serve driver onboarding.
+    // SUPPORT is deliberately absent, unlike User Management: approving a
+    // driver's compliance documents is a different responsibility from reading
+    // a customer account to answer a ticket.
+    adminRoles: ["SUPER_ADMIN", "USER_MANAGER"],
+    items: [
+      {
+        label: "Applications",
+        href: "/admin/drivers/applications",
+        adminRoles: ["SUPER_ADMIN", "USER_MANAGER"],
       },
     ],
   },

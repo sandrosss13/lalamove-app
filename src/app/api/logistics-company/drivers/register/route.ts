@@ -301,6 +301,11 @@ export async function POST(request: Request): Promise<NextResponse> {
           vatId: null,
           phone,
           city,
+          // A company-created driver never sees the self-serve onboarding
+          // wizard, so no application will ever exist for an admin to approve.
+          // Activating at creation is what stops them being permanently locked
+          // out of going online, seeing open orders, and accepting one.
+          activatedAt: new Date(),
         },
         select: { id: true },
       });

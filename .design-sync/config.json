@@ -1,0 +1,38 @@
+{
+  "projectId": "c2ab8214-d170-4eee-9314-d9d44f5fc5b9",
+  "shape": "package",
+  "pkg": "lalamove-app",
+  "globalName": "LalamoveUI",
+  "srcDir": "src/components/ui",
+  "tsconfig": "./tsconfig.json",
+  "cssEntry": ".ds-sync/.compiled/globals.css",
+  "extraFonts": [".ds-sync/fonts-src/ibm-plex-fonts.css"],
+  "entry": "./.ds-entry.mjs",
+  "extraEntries": ["./.design-sync/provider.tsx"],
+  "provider": { "component": "DsAdminSurface" },
+  "readmeHeader": ".design-sync/conventions.md",
+  "componentSrcMap": {
+    "Badge": "src/components/ui/badge.tsx",
+    "Button": "src/components/ui/button.tsx",
+    "Calendar": "src/components/ui/calendar.tsx",
+    "Card": "src/components/ui/card.tsx",
+    "Checkbox": "src/components/ui/checkbox.tsx",
+    "Dialog": "src/components/ui/dialog.tsx",
+    "DropdownMenu": "src/components/ui/dropdown-menu.tsx",
+    "Input": "src/components/ui/input.tsx",
+    "Label": "src/components/ui/label.tsx",
+    "Popover": "src/components/ui/popover.tsx",
+    "Select": "src/components/ui/select.tsx",
+    "Table": "src/components/ui/table.tsx",
+    "Tabs": "src/components/ui/tabs.tsx",
+    "Textarea": "src/components/ui/textarea.tsx"
+  },
+  "overrides": {
+    "Dialog": { "cardMode": "single", "viewport": "480x420" },
+    "Popover": { "cardMode": "single", "viewport": "420x320" },
+    "DropdownMenu": { "cardMode": "single", "viewport": "320x360" },
+    "Select": { "cardMode": "single", "viewport": "320x360" },
+    "Table": { "cardMode": "column" },
+    "Calendar": { "cardMode": "column" }
+  }
+}

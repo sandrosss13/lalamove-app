@@ -37,15 +37,9 @@ export async function DriverDashboard({
     );
   }
 
-  // `data-ops-dashboard` is what scopes the dark palette, the slim scrollbars
-  // and the hidden global site header to this page (see globals.css) — the same
-  // attribute the company console uses, so no driver-specific CSS is needed.
-  return (
-    <div
-      data-ops-dashboard=""
-      className="min-h-screen bg-ops-bg font-[family-name:var(--font-ibm-plex)] text-ops-text antialiased"
-    >
-      <DriverOpsDashboardShell data={data} />
-    </div>
-  );
+  // The shell renders the `data-ops-dashboard` root element itself — the same
+  // attribute the company console uses, so no driver-specific CSS is needed —
+  // because it also carries the `data-ops-theme` value of the visitor's
+  // dark/light choice, which is client state.
+  return <DriverOpsDashboardShell data={data} />;
 }
