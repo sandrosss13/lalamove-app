@@ -41,7 +41,8 @@ import {
 type DraftVehicle = NonNullable<OnboardingDraftV1["vehicle"]>;
 
 /**
- * Six real models per class, from the design. Only a starting point for the
+ * Real models per class, from the design — six for each class, and seven
+ * tractor units for `TRAILER_TRUCK`. Only a starting point for the
  * searchable dropdown: free text is accepted (and the submit endpoint does not
  * re-check make/model against this table either), because no fixed list can
  * cover every vehicle a Georgian owner-driver might turn up with.
@@ -79,6 +80,15 @@ const MODELS_BY_CLASS: Record<VehicleClassId, [make: string, model: string][]> =
       ["Scania", "P 280"],
       ["DAF", "LF 260"],
       ["Mercedes-Benz", "Actros 1845"],
+    ],
+    TRAILER_TRUCK: [
+      ["Mercedes-Benz", "Actros"],
+      ["Volvo", "FH"],
+      ["Scania", "R-series"],
+      ["MAN", "TGX"],
+      ["DAF", "XF"],
+      ["Renault", "T High"],
+      ["Iveco", "S-Way"],
     ],
   };
 

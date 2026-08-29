@@ -1,0 +1,226 @@
+/**
+ * The in-progress fleet onboarding wizard, held as one versioned JSON blob on
+ * `BusinessApplication.draft`.
+ *
+ * Every field the company *types* is optional: the client sends whatever it has
+ * filled in so far on every save, and the save is a whole-object replace rather
+ * than a merge — so a field the company clears really does disappear, which a
+ * deep merge would make impossible. Nothing here is authoritative. The draft is
+ * scratch space for resuming the wizard across sessions and devices; the real
+ * validation (and the writes to `LogisticsCompany`, `Vehicle`,
+ * `DriverVehicleAssignment` and `BusinessApplicationVehicle`) happens once, at
+ * submit time, against the actual business rules.
+ *
+ * Pure data and pure functions — no server-only imports — so the wizard's client
+ * components and the route handlers can share the same types.
+ */
+
+/** The current draft version. Bumping this is what a future migration branches on. */
+export const FLEET_DRAFT_VERSION = 1;
+
+/** The wizard's five steps; `draftStep` is rejected outside this range on save. */
+export const FLEET_FIRST_STEP = 1;
+export const FLEET_LAST_STEP = 5;
+
+/**
+ * Fleet size bounds, enforced on Continue in step 2 and re-checked at submit.
+ *
+ * Declared here — beside the shape they constrain — rather than in a constants
+ * file of their own, and imported by every consumer: `FLEET_MAX_VEHICLES` is a
+ * statement about `FleetDraftV1["vehicles"]`. A client and a server that
+ * disagree by one about the maximum fleet size produce a form that lets a
+ * company add a 41st vehicle and a submit that silently refuses it.
+ */
+export const FLEET_MIN_VEHICLES = 2;
+export const FLEET_MAX_VEHICLES = 40;
+
+/** The design's per-cell stepper range. */
+export const FLEET_MAX_PER_CELL = 40;
+
+/**
+ * Ceiling on the serialised size of a saved draft.
+ *
+ * `parseFleetDraft` shallow-trusts the body's shape by design, and the value it
+ * returns is written verbatim into a `Json` column and echoed back on every
+ * `GET` — so without a cap an authenticated company could park an arbitrarily
+ * large blob (unknown keys included) on its application forever. A full
+ * 40-vehicle draft, each vehicle carrying its own specification and its
+ * `driverProfileId`, serialises to roughly 15 KB, so 64k is genuine headroom
+ * rather than a tight fit. Measured in UTF-16 code units — the same convention
+ * as the `MAX_*_LENGTH` caps elsewhere in the API — which is bytes for ASCII and
+ * an under-count for Georgian text, but the point here is a bound, not an exact
+ * byte budget.
+ */
+export const MAX_DRAFT_JSON_LENGTH = 64 * 1024;
+
+/** Cargo body types the wizard offers, mirroring the `ChassisType` enum. */
+export type FleetDraftChassisType = "DRY_BOX" | "REFRIGERATED" | "OPEN_CHASSIS";
+
+/**
+ * Vehicle classes the wizard offers. Kept as a structural literal union rather
+ * than importing `VehicleClassId` from `model-specs.ts` (or the Prisma
+ * `VehicleClass` enum) so the persisted draft shape stays independent of both
+ * the schema and the presentation grouping — a draft saved today must still
+ * parse if either is retuned later. Same reasoning
+ * `OnboardingDraftVehicleClassId` records for the driver wizard.
+ */
+export type FleetDraftVehicleClassId =
+  | "SMALL_VAN"
+  | "LARGE_VAN"
+  | "MEDIUM_TRUCK"
+  | "HEAVY_FREIGHT_TRUCK"
+  | "TRAILER_TRUCK";
+
+/**
+ * Step 1's company details. The field names are the `LogisticsCompany` column
+ * names on purpose — step 1's form, `POST /api/logistics-company`'s body and the
+ * columns themselves all use these spellings, so the draft can be handed between
+ * them without a rename layer.
+ */
+export type FleetDraftCompany = {
+  phone?: string;
+  companyName?: string;
+  vatId?: string;
+  registeredAddress?: string;
+  /** GeorgianCity enum value — the registered city, set at sign-up. */
+  city?: string;
+  /**
+   * GeorgianCity enum values — the dispatch catchment. Distinct from `city`:
+   * both exist and neither derives from the other.
+   */
+  citiesOfOperation?: string[];
+  contactName?: string;
+  contactRole?: string;
+  contactEmail?: string;
+  bankAccountIban?: string;
+};
+
+/**
+ * Step 2's fleet composition. An object rather than the count map itself so a
+ * later step-2 concern (a per-body note, a saved scroll position) has somewhere
+ * to live without another shape change.
+ */
+export type FleetDraftFleet = {
+  /**
+   * Key is `${chassisType}:${classId}`, e.g. "REFRIGERATED:MEDIUM_TRUCK".
+   *
+   * Typed `Record<string, number>` rather than a template-literal union so a key
+   * written by an older client never makes a whole stored draft unparseable;
+   * absent keys mean zero. Flat rather than nested by chassis because only 8 of
+   * the 15 cells are usable — a nested record would either be sparse and lie
+   * about its own type, or dense and carry seven cells that must never be
+   * non-zero.
+   */
+  counts?: Record<string, number>;
+};
+
+/**
+ * One vehicle the company is specifying, generated by step 2 from a specific
+ * (body, class) cell and filled in through steps 3 and 4.
+ *
+ * `chassisType` and `classId` are required — a row only exists because step 2
+ * generated it from a cell, so it always knows its cell — while everything the
+ * company types is optional.
+ */
+export type FleetDraftVehicle = {
+  /**
+   * Stable client-generated id (`crypto.randomUUID()`). Survives a step-2 count
+   * change, which adds and removes only at the tail of the affected group; a
+   * positional index would silently re-point a driver at a different vehicle the
+   * moment a count changed.
+   */
+  id: string;
+  chassisType: FleetDraftChassisType;
+  classId: FleetDraftVehicleClassId;
+  make?: string;
+  model?: string;
+  year?: number;
+  plateNumber?: string;
+  colour?: string;
+  payloadKg?: number;
+  cargoLengthM?: number;
+  cargoWidthM?: number;
+  cargoHeightM?: number;
+  /** "Hino 916" — names the prefill source in the editor footer. Absent for free text. */
+  prefillSource?: string;
+  /**
+   * `DriverProfile.id` of the assigned driver — not a `User.id`.
+   *
+   * The driver lives on the vehicle rather than in a parallel `assignments`
+   * section: a side map made every consumer join two collections by hand, let a
+   * draft hold an assignment for a vehicle that no longer exists, and duplicated
+   * driver name/phone/categories into the draft where they immediately went
+   * stale against the roster. Step 4 renders by reading this id and looking the
+   * driver up in the roster response, which is fetched anyway and is the only
+   * current source for name, phone and licence categories.
+   *
+   * This records *intent*, not a live pairing: the `Vehicle` row it would be
+   * assigned to does not exist until submit. Nothing here stops the same driver
+   * appearing on two vehicles — submit is the enforcement point, not the draft.
+   */
+  driverProfileId?: string;
+};
+
+/**
+ * The whole in-progress wizard across all five steps. Exactly three sections;
+ * there is deliberately no `assignments` key (see `driverProfileId` above).
+ */
+export type FleetDraftV1 = {
+  version: 1;
+  company?: FleetDraftCompany;
+  fleet?: FleetDraftFleet;
+  vehicles?: FleetDraftVehicle[];
+};
+
+/**
+ * Parses a Prisma `JsonValue` into a `FleetDraftV1`, or `null` for anything that
+ * isn't a plausible draft of this shape (missing/wrong `version`, not an object,
+ * an array). Callers treat `null` exactly like "no draft yet" rather than
+ * crashing — a draft that somehow got corrupted costs the company its
+ * in-progress answers, not access to the wizard.
+ *
+ * Note the deliberate `unknown` parameter: Prisma types a `Json?` column as
+ * `JsonValue`, which is not assignable to a concrete object type, and casting
+ * straight through it would let a malformed row masquerade as a valid draft.
+ * This function is the single place that narrowing is allowed to happen, and the
+ * single place a future `version: 2` migration would branch.
+ *
+ * Beyond `version`, the rest is shallow-trusted: this is our own
+ * previously-saved data, every field is optional, and deep validation happens at
+ * submit time against the real business rules, not here. Callers that accept a
+ * draft straight from the browser (`PATCH`) layer their own structural checks on
+ * top before writing.
+ */
+export function parseFleetDraft(value: unknown): FleetDraftV1 | null {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return null;
+  }
+
+  const record = value as Record<string, unknown>;
+  if (record.version !== FLEET_DRAFT_VERSION) {
+    return null;
+  }
+
+  return record as FleetDraftV1;
+}
+
+/**
+ * Prefix and width of the short human-readable application code shown to the
+ * company and to the admin reviewer (e.g. "BIZ-40219") — a bare `cuid` isn't fit
+ * for reading aloud in a support call. The prefix differs from the driver
+ * wizard's "APP-" so a support call can tell the two apart at a glance.
+ */
+const REFERENCE_PREFIX = "BIZ-";
+const REFERENCE_DIGITS = 5;
+
+/**
+ * A candidate application reference. Randomness, not a counter, so a reference
+ * leaks nothing about how many companies have applied. 5 digits is only 100k
+ * values, so a collision — while astronomically unlikely at this scale — is
+ * possible: the caller must retry on the unique-constraint violation rather than
+ * assume this returns something free.
+ */
+export function generateBusinessApplicationReference(): string {
+  const value = Math.floor(Math.random() * 10 ** REFERENCE_DIGITS);
+  return `${REFERENCE_PREFIX}${value.toString().padStart(REFERENCE_DIGITS, "0")}`;
+}
