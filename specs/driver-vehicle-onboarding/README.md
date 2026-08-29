@@ -118,8 +118,8 @@ graph TD
 - [x] [task-17-admin-applications-mutation-api](./tasks/task-17-admin-applications-mutation-api.md) — Approve/flag/request-changes/approve-driver endpoints
 
 ### Wave 6
-- [ ] [task-18-admin-applications-queue-page](./tasks/task-18-admin-applications-queue-page.md) — Filterable table
-- [ ] [task-19-admin-applications-detail-drawer](./tasks/task-19-admin-applications-detail-drawer.md) — 520px detail drawer, per-document approve/flag
+- [x] [task-18-admin-applications-queue-page](./tasks/task-18-admin-applications-queue-page.md) — Filterable table
+- [x] [task-19-admin-applications-detail-drawer](./tasks/task-19-admin-applications-detail-drawer.md) — 520px detail drawer, per-document approve/flag
 
 ### Wave 7
 - [ ] [task-20-onboarding-redirect-wiring](./tasks/task-20-onboarding-redirect-wiring.md) — Sends an eligible driver into the wizard/status screen from `/dashboard`
