@@ -232,6 +232,47 @@ const VEHICLE_TYPE_SEEDS: VehicleTypeSeed[] = [
       minimumFare: 60,
     },
   },
+  {
+    // The physical spec (24 t, 13.60 x 2.48 x 2.70 m, HEAVY_DUTY) comes from the
+    // approved design handoff. The seven `pricing` figures below do NOT — they
+    // are hand-scaled from `LARGE_FREIGHT_TRUCK` (a 2.4x payload step taken at
+    // the ~1.4-1.5x money uplift the rest of this catalogue uses) and are
+    // UNSIGNED-OFF PLACEHOLDERS pending ops approval. See the first "Before
+    // Implementation" item in specs/business-fleet-onboarding/action-required.md.
+    //
+    // This matters more here than the file header implies: there is no draft or
+    // feature-flag state for a `VehicleTypeSpec`. `GET /api/vehicle-types` is a
+    // public, unauthenticated, unfiltered `findMany()`, so the moment this row is
+    // seeded it is selectable in the booking picker and the landing-page quote
+    // calculator, and `src/lib/pricing.ts` charges these numbers on the next
+    // order placed against it. Correcting them later is a one-line edit plus a
+    // re-seed — the upsert retunes the row in place and keeps its id.
+    //
+    // Every figure stays strictly above `LARGE_FREIGHT_TRUCK`'s so the catalogue
+    // remains monotonic; the "best fit" highlight compares `baseFare`, and a
+    // trailer priced under a smaller truck would make that highlight nonsense.
+    code: "TRAILER_TRUCK",
+    label: "Trailer Truck",
+    category: VehicleCategory.HEAVY_DUTY,
+    maxPayloadKg: 24000,
+    cargoLengthM: 13.6,
+    cargoWidthM: 2.48,
+    cargoHeightM: 2.7,
+    // Rear-door, dock-height loading. Not `TAIL_LIFT` (what the rigid
+    // `LARGE_FREIGHT_TRUCK` uses): tail lifts promise kerbside ground-level
+    // loading and are not a 24 t articulated semi-trailer's capability, so
+    // claiming one here would mis-sell the vehicle to clients reading the picker.
+    loadingAccessType: LoadingAccessType.REAR_DOOR,
+    pricing: {
+      baseFare: 65,
+      pricePerKm: 4.6,
+      pricePerMinute: 0.65,
+      freeLoadingMinutes: 40,
+      overtimeRatePerMinute: 1.2,
+      helperFee: 40,
+      minimumFare: 90,
+    },
+  },
 ];
 
 async function main(): Promise<void> {

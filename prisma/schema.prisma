@@ -170,6 +170,42 @@ enum DriverApplicationDocumentStatus {
   FLAGGED
 }
 
+/// Lifecycle of one company's fleet onboarding application, deliberately
+/// identical in shape to `DriverApplicationStatus`: `DRAFT` covers the whole
+/// in-progress wizard, `PENDING` and `ACTION_REQUIRED` alternate as items are
+/// flagged and corrected, and `APPROVED` is terminal (there is no "rejected,
+/// reapply from scratch" state — see requirements.md's Assumptions). A company
+/// has exactly one application for its lifetime; a flagged one is corrected and
+/// resubmitted in place, never recreated.
+enum BusinessApplicationStatus {
+  DRAFT
+  PENDING
+  ACTION_REQUIRED
+  APPROVED
+}
+
+/// The company-level verdict inside a business application, tracked separately
+/// from the application's own `status` because the design reviews the company
+/// once and each vehicle individually: the company can be VERIFIED while three
+/// vehicles are still PENDING, and one vehicle can be FLAGGED without unpicking
+/// the company's verdict. `FLAGGED` carries a reason in
+/// `BusinessApplication.companyFlagReason`.
+enum CompanyReviewStatus {
+  PENDING
+  VERIFIED
+  FLAGGED
+}
+
+/// Per-vehicle review verdict within a business application. Mirrors
+/// `DriverApplicationDocumentStatus` — same three values, same meaning: an
+/// approved vehicle keeps its verdict across a resubmission, a flagged one is
+/// the only kind the company can edit and resend.
+enum BusinessApplicationVehicleStatus {
+  PENDING
+  APPROVED
+  FLAGGED
+}
+
 /// `CLAIMED` is the company-only intermediate state: a `LogisticsCompany` has
 /// taken the order but has not yet dispatched it to one of its own drivers.
 /// Independent drivers skip it and go straight from PENDING to ACCEPTED.
@@ -197,6 +233,21 @@ enum ChassisType {
   DRY_BOX
   REFRIGERATED
   OPEN_CHASSIS
+}
+
+/// The five vehicle classes both onboarding wizards offer. A presentation-level
+/// grouping over the `VehicleTypeSpec` catalogue — pricing and order matching
+/// continue to key on `Vehicle.vehicleTypeSpecId` alone and never read this — but
+/// stored, not derived, because it is what the company *declared* and what was
+/// reviewed and approved. See `src/lib/driver-onboarding/vehicle-classes.ts` for
+/// the (class, chassis type) -> spec code map; the licence category each class
+/// requires lives there too, not here.
+enum VehicleClass {
+  SMALL_VAN
+  LARGE_VAN
+  MEDIUM_TRUCK
+  HEAVY_FREIGHT_TRUCK
+  TRAILER_TRUCK
 }
 
 /// How cargo physically gets in and out of the vehicle — the main practical
@@ -330,19 +381,146 @@ model PricingRule {
 /// A fleet operator: its own login (role COMPANY), owns vehicles directly, and manages a
 /// roster of drivers who fulfil the orders it dispatches to them. Phone is unique for the
 /// same reason ClientProfile.phone is: it identifies one real business, one account.
+/// The legal/contact/payout block below is collected by the fleet onboarding wizard
+/// (`specs/business-fleet-onboarding`); every field in it is nullable because companies
+/// created by the back office before that wizard existed have none of it.
 model LogisticsCompany {
-  id          String          @id @default(cuid())
-  userId      String          @unique
-  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id          String       @id @default(cuid())
+  userId      String       @unique
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   companyName String
   vatId       String
-  phone       String          @unique
+  phone       String       @unique
+  /// The company's primary / registered city. Retained alongside
+  /// `citiesOfOperation` — see the field's own comment.
   city        GeorgianCity
+
+  /// Registered legal address as it appears on the company's registration.
+  /// Free text: Georgian addresses are not structured consistently enough to
+  /// normalise into street/number/postcode columns, and nothing queries on it.
+  registeredAddress String?
+  /// Payout account. Order revenue is settled here weekly, so it must belong to
+  /// the registered entity — a rule an admin verifies during review, not one the
+  /// schema can enforce. Stored as entered, minus spaces (the API normalises).
+  bankAccountIban   String?
+  /// The named person operations calls when an order needs a decision, their role
+  /// in the company, and their email. Three plain columns rather than a
+  /// `CompanyContact` model: there is exactly one contact per company in v1 (see
+  /// requirements.md's "Multi-user company accounts" non-goal), and a 1:1 table
+  /// would buy nothing but a join.
+  contactName       String?
+  contactRole       String?
+  contactEmail      String?
+
+  /// Every city this fleet picks up in. Orders outside these cities are not
+  /// offered to the company's drivers. A Postgres enum array rather than a join
+  /// table, following `DriverLicence.categories` — the list is short, always read
+  /// whole, and never queried from the other side.
+  citiesOfOperation GeorgianCity[]
+
+  /// Set when an admin activates the fleet: the company is verified AND at least
+  /// one of its vehicles is approved. Null means "cannot dispatch" — enforced
+  /// server-side in task-21, not just hidden in the UI. A stored timestamp rather
+  /// than a value derived from the application row on every request, mirroring
+  /// `DriverProfile.activatedAt` and `User.suspendedAt`.
+  activatedAt DateTime?
+
   drivers     DriverProfile[]
   vehicles    Vehicle[]
   orders      Order[]
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  application BusinessApplication?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+}
+
+/// One fleet onboarding application per logistics company, 1:1 on
+/// `LogisticsCompany`. `draft` holds the in-progress wizard (company details,
+/// fleet composition counts, and one entry per vehicle carrying its
+/// specification and its assigned driver) as
+/// a versioned JSON blob — the exact shape is defined and narrowed in task-05 —
+/// so nothing normalized is written until submit succeeds.
+/// `reference` is the short human-readable code shown to the company and to the
+/// admin reviewer (e.g. "BIZ-40219"); a bare `cuid` is not fit to read aloud in a
+/// support call. It is NOT nullable: the row is only ever created by task-05's
+/// lazy `GET`, which allocates the reference in the same `create` — never at
+/// submit, and never as a nullable column filled in later.
+/// `companyReviewStatus` is the company-level verdict and is
+/// deliberately separate from `status`: the company is reviewed once, each
+/// vehicle individually (see `BusinessApplicationVehicle`).
+/// Admin review actions are recorded as `AuditLog` rows rather than a reviewer FK
+/// on this model, matching every other admin mutation in this codebase.
+model BusinessApplication {
+  id        String           @id @default(cuid())
+  companyId String           @unique
+  company   LogisticsCompany @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  reference String                    @unique
+  status    BusinessApplicationStatus @default(DRAFT)
+
+  draft          Json?
+  draftStep      Int       @default(1)
+  draftUpdatedAt DateTime?
+
+  companyReviewStatus CompanyReviewStatus @default(PENDING)
+  /// Set only when `companyReviewStatus` is `FLAGGED`; cleared when the company
+  /// resubmits. Exactly one of the four company-level flag reasons from the
+  /// design — a CLOSED list, validated against those exact strings server-side.
+  /// Free text is rejected; if operations needs an "Other" reason it is added to
+  /// the list, not typed into this column.
+  companyFlagReason   String?
+
+  firstSubmittedAt DateTime?
+  lastSubmittedAt  DateTime?
+  submissionCount  Int       @default(0)
+
+  vehicles  BusinessApplicationVehicle[]
+  createdAt DateTime                     @default(now())
+  updatedAt DateTime                     @updatedAt
+
+  @@index([status])
+}
+
+/// One reviewed vehicle inside a business fleet application. Rows are created at
+/// submit time (task-14), in the same transaction that creates the `Vehicle`
+/// rows themselves — never from a draft, since the vehicles do not exist until
+/// then. `status` is the per-vehicle verdict the design shows on the status
+/// screen and in the admin drawer: an `APPROVED` vehicle keeps its verdict
+/// across a resubmission, and only a `FLAGGED` one is editable.
+model BusinessApplicationVehicle {
+  id                    String              @id @default(cuid())
+  businessApplicationId String
+  businessApplication   BusinessApplication @relation(fields: [businessApplicationId], references: [id], onDelete: Cascade)
+  /// Nullable + SetNull: a company can remove a vehicle from its own fleet at any
+  /// time through an existing, unrelated flow, and the review row must survive so
+  /// the admin drawer can render "vehicle no longer on file" rather than vanishing
+  /// a decided verdict. Mirrors `DriverApplication.vehicleId`.
+  vehicleId             String?             @unique
+  vehicle               Vehicle?            @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+
+  /// Denormalised at submit so the admin queue, the drawer and the dispatch gate
+  /// can read the declared class and body without a join that a null `vehicleId`
+  /// would break. NOT NULL: unlike `Vehicle.vehicleClass` (which is nullable and
+  /// deliberately un-backfilled for rows that predate this feature), every row
+  /// here is created by task-14's submit from a draft that has both values.
+  vehicleClass VehicleClass
+  chassisType  ChassisType
+
+  status     BusinessApplicationVehicleStatus @default(PENDING)
+  /// Set only when `status` is `FLAGGED`; cleared when the vehicle is corrected
+  /// and resubmitted. Exactly one of the six per-vehicle flag reasons from the
+  /// design — a CLOSED list, validated against those exact strings server-side.
+  /// Free text is rejected; if operations needs an "Other" reason it is added to
+  /// the list, not typed into this column.
+  flagReason String?
+  /// When an admin last recorded a verdict on this row. Null while `PENDING`,
+  /// stamped on approve/flag, and cleared back to null when the company corrects
+  /// the vehicle through task-14's per-vehicle `PATCH`.
+  decidedAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([businessApplicationId])
 }
 
 /// Driver-specific profile data: online status, vehicle, and live location.
@@ -507,6 +685,13 @@ model Vehicle {
   // Body type as collected during onboarding — display/compliance only, see
   // the ChassisType enum's own doc comment.
   chassisType       ChassisType?
+  /// The class the owner declared at onboarding, e.g. a 24 t articulated
+  /// Trailer Truck. Nullable: every vehicle registered before this feature
+  /// (the back office's "add a vehicle" form, the individual driver wizard's
+  /// pre-existing rows) has none, and deriving one for them is exactly the
+  /// operation this column exists to avoid. Consumers must treat `null` as
+  /// "no declared class" and fall back to `vehicleTypeSpec.label`.
+  vehicleClass      VehicleClass?
   // Driver-declared overrides collected during onboarding, distinct from
   // vehicleTypeSpec's class-level values. These are attestations for
   // compliance review, never read by pricing or order matching — both
@@ -524,8 +709,16 @@ model Vehicle {
   orders             Order[]
   assignments        DriverVehicleAssignment[]
   driverApplications DriverApplication[]
-  createdAt          DateTime                  @default(now())
-  updatedAt          DateTime                  @updatedAt
+
+  /// Singular, not a list, because `BusinessApplicationVehicle.vehicleId` is
+  /// `@unique`: a vehicle appears in at most one business application review row
+  /// for its lifetime. task-21's dispatch gate is written as
+  /// `vehicle.applicationVehicle !== null && vehicle.applicationVehicle.status !== "APPROVED"`,
+  /// which does not typecheck against an array.
+  applicationVehicle BusinessApplicationVehicle?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([driverProfileId])
   @@index([companyId])
@@ -535,10 +728,14 @@ model Vehicle {
 /// `Order.vehicleId` which only pair the two for a single delivery. Created when a
 /// company admin assigns a fleet vehicle to a driver (at registration or later).
 /// A join table rather than a bare FK on `DriverProfile` so reassignment keeps
-/// history: `unassignedAt` is set instead of the row being deleted. At most one row
-/// per vehicle should have `unassignedAt: null` at a time — enforced at the API
-/// layer, not by a DB constraint, matching how `Vehicle`'s single-owner rule is
-/// partly enforced at the API layer too.
+/// history: `unassignedAt` is set instead of the row being deleted. At most one
+/// row per vehicle — and at most one per driver — has `unassignedAt: null` at a
+/// time, enforced by two partial unique indexes added by hand in the migration
+/// SQL (`driver_vehicle_assignment_live_vehicle_unique` and
+/// `driver_vehicle_assignment_live_driver_unique`), since Prisma's schema
+/// language has no partial-index syntax. The API layer still checks both rules
+/// first, so callers get a readable error rather than a P2002 — the indexes are
+/// what make the rule airtight under concurrency.
 model DriverVehicleAssignment {
   id              String        @id @default(cuid())
   driverProfileId String
