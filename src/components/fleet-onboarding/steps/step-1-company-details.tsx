@@ -42,11 +42,16 @@ type CityOption = (typeof GEORGIAN_CITY_OPTIONS)[number];
 type CompanyFormMode = "draft" | "correction";
 
 /**
- * Every field that can carry an inline error. `city` and `phone` are
- * deliberately absent: both are set at sign-up, carried through this step
- * read-only and never editable here (§7), so neither can light up red.
+ * Every field that can carry an inline error. `city` is deliberately absent: it
+ * is the registered city, displayed read-only and never editable here (§7), so
+ * it can never light up red.
+ *
+ * `phone` is here but is mode-dependent: only correction mode renders a field
+ * for it, and only correction mode validates it (see `collectProblems`). In the
+ * wizard it is carried through untouched and cannot light up at all.
  */
 type CompanyField =
+  | "phone"
   | "companyName"
   | "vatId"
   | "registeredAddress"
@@ -60,6 +65,8 @@ type Problems = Partial<Record<CompanyField, string>>;
 
 // ── Validation rules, straight from the design's field table ────────────────
 
+const MIN_PHONE_DIGITS = 10;
+const MAX_PHONE_DIGITS = 15;
 const MIN_COMPANY_NAME_LENGTH = 3;
 /** Georgian VAT / tax identification numbers are exactly nine digits. */
 const VAT_ID_PATTERN = /^\d{9}$/;
@@ -138,17 +145,51 @@ function emailProblem(value: string | undefined): string | undefined {
 }
 
 /**
+ * The phone's own rule — the design's, unchanged from when the wizard still
+ * collected a number, down to both messages.
+ *
+ * It applies in correction mode only, which is the only mode with a phone
+ * field: "Contact person unreachable" is one of the four company flag reasons,
+ * and a wrong number is one of the ways a contact is unreachable, so a company
+ * correcting that flag has to be able to retype it. The wizard still never asks
+ * — sign-up owns the number there — which is why `collectProblems` takes the
+ * mode rather than applying this unconditionally.
+ */
+function phoneProblem(value: string | undefined): string | undefined {
+  const digits = (value ?? "").replace(/\D/g, "");
+  if (!digits) return "Enter the company phone number.";
+  if (digits.length < MIN_PHONE_DIGITS || digits.length > MAX_PHONE_DIGITS) {
+    return "That is not a valid number (10–15 digits).";
+  }
+  return undefined;
+}
+
+/**
  * Every rule this step enforces, evaluated together so a failed Continue can
  * light up *all* the offending fields at once rather than walking the company
  * through them one at a time. Messages are the design's, verbatim.
  *
- * `phone` is absent, unlike the fields below: it is never typed in this wizard
- * (sign-up collects it) and is carried through to the POST unedited, exactly as
- * `city` is. The endpoint re-checks both and its own 400 is surfaced by the
- * toast in `handleContinue`.
+ * `phone` is the one mode-dependent rule, and it is gated rather than always-on
+ * for a reason. In `"draft"` the wizard never asks for a number — it is carried
+ * through to the POST unedited, exactly as `city` is — so validating it would
+ * let a value the company cannot see or reach block Continue, with a toast
+ * pointing at no field. In `"correction"` there *is* a field, so the rule
+ * applies. Either way the endpoint re-checks it, and its 400 (or its 409 on a
+ * number another company already holds) is surfaced by the toast in
+ * `handleContinue`.
  */
-function collectProblems(company: CompanyDraft): Problems {
+function collectProblems(
+  company: CompanyDraft,
+  mode: CompanyFormMode,
+): Problems {
   const problems: Problems = {};
+
+  if (mode === "correction") {
+    const phone = phoneProblem(company.phone);
+    if (phone !== undefined) {
+      problems.phone = phone;
+    }
+  }
 
   const companyName = (company.companyName ?? "").trim();
   if (!companyName) {
@@ -292,8 +333,13 @@ function withRecordFallback(
  *
  * None of that changes the data model: `LogisticsCompany.phone` is still
  * non-null and unique, sign-up still collects it, and the POST in
- * `CompanyDetailsForm` still carries it — read-only, like `city`, seeded from
- * `companyOnRecord` (see `withRecordFallback`).
+ * `CompanyDetailsForm` still carries it — read-only here, like `city`, seeded
+ * from `companyOnRecord` (see `withRecordFallback`).
+ *
+ * "Nowhere in the wizard" is exact: `CompanyDetailsForm` does render a phone
+ * field in *correction* mode, where the company is answering an admin's
+ * "Contact person unreachable" flag and the dialog is the only screen it gets.
+ * That is not this wizard, and nothing on this path can reach it.
  *
  * There is no SMS code screen either. The design's six-box code screen is
  * bypassed in the prototype itself and dropped by `requirements.md` as an
@@ -488,28 +534,31 @@ export function Step1CompanyDetails() {
  * submitted, and its rail raises a toast rather than navigating, so `goToStep`
  * cannot reach step 1 again. The dialog is the only route in.
  *
- * **Which fields render, by mode.** Validation, the city picker and the request
- * body are identical in both; the field set differs in exactly one place:
+ * **Which fields render, by mode.** The city picker and the request body are
+ * identical in both; the Contact person group is the only one that differs:
  *
- * | Group          | `"draft"`                                  | `"correction"`        |
- * | -------------- | ------------------------------------------ | --------------------- |
- * | Legal entity   | name, VAT id, address, cities (city read-only) | same               |
- * | Contact person | full name, role                            | full name, role, **email** |
- * | Payouts        | IBAN                                       | same (re-entry, §8)   |
+ * | Group          | `"draft"`                                      | `"correction"`                        |
+ * | -------------- | ---------------------------------------------- | ------------------------------------- |
+ * | Legal entity   | name, VAT id, address, cities (city read-only)  | same                                  |
+ * | Contact person | full name, role                                | full name, role, **email**, **phone** |
+ * | Payouts        | IBAN                                           | same (re-entry, §8)                   |
  *
- * The company email is asked exactly once per mode. In `"draft"` the wizard's
- * first sub-screen owns it (`Step1CompanyDetails`), so repeating it here would
- * reinstate the duplicate this form was just cleaned of. In `"correction"`
- * there is no sub-screen — the dialog mounts this form alone — and one of the
- * four flag reasons the admin can raise is "Contact person unreachable", which
- * is precisely a wrong name, role *or* email. Without the field a company
- * flagged for it could only resubmit the same details and be flagged again, so
- * it renders beside the name and role that share that reason.
+ * The reason both extra fields are correction-only is the same. "Contact person
+ * unreachable" is one of the four company flag reasons an admin can raise (see
+ * `api/admin/business-applications/[id]/company/route.ts`), and it covers a
+ * wrong name, role, email *or* number. The correction dialog mounts this form
+ * alone — no wizard, no sub-screen behind it — so a field missing here is a
+ * field the company cannot fix at all: it would resubmit identical details and
+ * be flagged again. In `"draft"` neither belongs: step 1's first sub-screen
+ * owns the email (asking twice is the duplicate that sub-screen exists to
+ * remove), and the phone is never asked in the wizard at all — sign-up collects
+ * it and this form carries it through unedited.
  *
- * `collectProblems` validates `contactEmail` in both modes regardless: in
- * `"draft"` the value arrives from the sub-screen, and an unusable one must not
- * reach the endpoint just because the field that produced it is on the previous
- * screen.
+ * Validation follows the fields: `contactEmail` is checked in both modes, since
+ * in `"draft"` the value arrives from the sub-screen and an unusable one must
+ * not reach the endpoint just because the field that produced it is on the
+ * previous screen; `phone` is checked in `"correction"` only, so a number the
+ * wizard never shows can never block its Continue. See `collectProblems`.
  */
 export function CompanyDetailsForm({
   mode,
@@ -620,7 +669,7 @@ export function CompanyDetailsForm({
       ?.scrollIntoView({ block: "nearest" });
   }, [cityOpen, activeIndex, cityMatches.length]);
 
-  const problems = collectProblems(company);
+  const problems = collectProblems(company, mode);
 
   /** The message to show under `field`, or `undefined` while it stays quiet. */
   function errorFor(field: CompanyField): string | undefined {
@@ -728,16 +777,23 @@ export function CompanyDetailsForm({
         body: JSON.stringify({
           companyName: (company.companyName ?? "").trim(),
           vatId: (company.vatId ?? "").trim(),
-          // `phone` and `city` are both carried through unchanged: set at
-          // sign-up, never edited in this wizard, and required by the endpoint
-          // on every call. Neither is derived from anything on this screen —
-          // `city` in particular is never derived from `citiesOfOperation`
-          // (§7) — and neither is defaulted here. Both come from the draft
-          // when it has them and from the company's own row when it does not
-          // (`withRecordFallback`), which is what lets the wizard stop asking
-          // for the phone without ever posting an empty one. If one is somehow
-          // absent the endpoint 400s with its own message, which the toast
-          // below surfaces.
+          // One expression for two rather different values, which is the point
+          // of reading `company` rather than a mode branch here.
+          //
+          // In the wizard both are carried through unchanged: set at sign-up,
+          // never edited there, taken from the draft when it has them and from
+          // the company's own row when it does not (`withRecordFallback`),
+          // which is what lets the wizard stop asking for the phone without
+          // ever posting an empty one. In a correction the phone is a field the
+          // company may just have retyped, and this picks that edit up with no
+          // special case because `company` is the local state that field
+          // writes to.
+          //
+          // `city` is never editable in either mode and is never derived from
+          // `citiesOfOperation` (§7). If either value is somehow absent the
+          // endpoint 400s with its own message; a phone another company already
+          // holds comes back as the 409 below. Both reach the company through
+          // the same toast.
           phone: (company.phone ?? "").trim(),
           city: company.city,
           registeredAddress: (company.registeredAddress ?? "").trim(),
@@ -1022,10 +1078,11 @@ export function CompanyDetailsForm({
 
       {/* The group the "Contact person unreachable" flag reason points at, and
           the one place the two modes' field sets differ — see this component's
-          own doc comment for the table. In the wizard the email is collected on
-          step 1's first sub-screen and asking again here would be the duplicate
-          that screen exists to remove; in a correction there is no sub-screen
-          to have asked. */}
+          own doc comment for the table. A correction adds the email and the
+          phone here because that flag covers every part of the contact and the
+          dialog is the only screen the company gets; the wizard adds neither,
+          since its first sub-screen owns the email and sign-up owns the
+          number. */}
       <div className="flex flex-col gap-3.5 border-t border-border pt-5">
         <p className={GROUP_HEADING_CLASS}>Contact person</p>
 
@@ -1069,29 +1126,52 @@ export function CompanyDetailsForm({
           </Field>
         </div>
 
+        {/* Both seeded from `submittedSummary` like the rest of this mode's
+            values — what the reviewer actually read — never from
+            `companyOnRecord`. */}
         {mode === "correction" ? (
-          <Field
-            label="Company email"
-            htmlFor={idFor("contactEmail")}
-            error={errorFor("contactEmail")}
-          >
-            <Input
-              id={idFor("contactEmail")}
-              type="email"
-              autoComplete="email"
-              placeholder="dispatch@company.ge"
-              // Seeded from `submittedSummary` like the rest of this mode's
-              // values — what the reviewer actually read — never from
-              // `companyOnRecord`.
-              value={company.contactEmail ?? ""}
-              aria-invalid={errorFor("contactEmail") !== undefined}
-              aria-describedby={describedBy("contactEmail")}
-              onChange={(event) =>
-                setCompany({ contactEmail: event.target.value })
-              }
-              className={fieldClassName(errorFor("contactEmail") !== undefined)}
-            />
-          </Field>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1.3fr_1fr]">
+            <Field
+              label="Company email"
+              htmlFor={idFor("contactEmail")}
+              error={errorFor("contactEmail")}
+            >
+              <Input
+                id={idFor("contactEmail")}
+                type="email"
+                autoComplete="email"
+                placeholder="dispatch@company.ge"
+                value={company.contactEmail ?? ""}
+                aria-invalid={errorFor("contactEmail") !== undefined}
+                aria-describedby={describedBy("contactEmail")}
+                onChange={(event) =>
+                  setCompany({ contactEmail: event.target.value })
+                }
+                className={fieldClassName(
+                  errorFor("contactEmail") !== undefined,
+                )}
+              />
+            </Field>
+
+            <Field
+              label="Company phone"
+              htmlFor={idFor("phone")}
+              error={errorFor("phone")}
+            >
+              <Input
+                id={idFor("phone")}
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                placeholder="+995 322 555 010"
+                value={company.phone ?? ""}
+                aria-invalid={errorFor("phone") !== undefined}
+                aria-describedby={describedBy("phone")}
+                onChange={(event) => setCompany({ phone: event.target.value })}
+                className={fieldClassName(errorFor("phone") !== undefined)}
+              />
+            </Field>
+          </div>
         ) : null}
       </div>
 
