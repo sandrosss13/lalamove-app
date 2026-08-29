@@ -86,16 +86,25 @@ const COMPANY_VERDICT_ERROR_FALLBACK = "Could not save that verdict.";
 const VEHICLE_VERDICT_ERROR_FALLBACK = "Could not save that verdict.";
 const REQUEST_CHANGES_ERROR_FALLBACK = "Could not request changes.";
 const ACTIVATE_ERROR_FALLBACK = "Could not activate this fleet.";
+/** Only for a failure with no response to read a message off — a dropped
+ *  connection mid-run. A refusal names the item it stopped at instead. */
+const APPROVE_ALL_ERROR_FALLBACK = "Could not finish approving this fleet.";
 
 /**
- * Which request is in flight. One value for all four kinds of mutation rather
+ * Which request is in flight. One value for all five kinds of mutation rather
  * than a boolean each: every button on the panel is disabled while any of them
  * is running, so a double-click cannot send two `activate` calls, and flagging
  * a vehicle cannot race the request-changes call that reads its verdict.
+ *
+ * `approve-all` is one value for a whole run of requests, not one per request:
+ * the run is a single action from the reviewer's point of view, and holding it
+ * for the duration is what keeps every other control — including the per-item
+ * buttons the run is writing through — disabled until it finishes.
  */
 type PendingAction =
   | { kind: "company" }
   | { kind: "vehicle"; applicationVehicleId: string }
+  | { kind: "approve-all" }
   | { kind: "request-changes" }
   | { kind: "activate" };
 
@@ -169,6 +178,73 @@ function formatCityLine(
 }
 
 /**
+ * Folds one vehicle verdict into the detail the panel is holding.
+ *
+ * Shared by the single-card approve/flag and the bulk approve rather than
+ * written out twice: `counts` is recomputed here from the updated array, and
+ * two copies of that arithmetic could disagree, which would show a different
+ * "2 approved, 1 pending" line depending on which control the reviewer used.
+ * Recomputed locally at all — rather than waited for from the server — so the
+ * fleet heading and the footer hint move on the same render as the card;
+ * `refreshDetail()` is what makes them correct if a second reviewer is working
+ * the same application.
+ */
+function withVehicleVerdict(
+  detail: AdminBusinessApplicationDetail,
+  verdict: AdminBusinessVehicleReviewResponse,
+): AdminBusinessApplicationDetail {
+  const vehicles = detail.vehicles.map((entry) =>
+    entry.applicationVehicleId === verdict.applicationVehicleId
+      ? { ...entry, status: verdict.status, flagReason: verdict.flagReason }
+      : entry,
+  );
+
+  return {
+    ...detail,
+    vehicles,
+    counts: {
+      total: vehicles.length,
+      approved: vehicles.filter((entry) => entry.status === "APPROVED").length,
+      flagged: vehicles.filter((entry) => entry.status === "FLAGGED").length,
+      pending: vehicles.filter((entry) => entry.status === "PENDING").length,
+    },
+  };
+}
+
+/**
+ * How an error message names the vehicle a bulk run stopped at. The plate is
+ * what a reviewer scans the fleet list for, so it wins; a row whose `Vehicle`
+ * was deleted after submit carries a blank plate, and the class name is then
+ * the only thing that tells one card from another.
+ */
+function describeVehicle(vehicle: AdminBusinessApplicationVehicle): string {
+  return vehicle.plateNumber !== ""
+    ? vehicle.plateNumber
+    : vehicle.vehicleClassName;
+}
+
+/**
+ * The vehicle half of the bulk button's label — "all 4 vehicles", "remaining 2
+ * vehicles", "1 vehicle", or nothing at all when the fleet is fully approved.
+ *
+ * The qualifier is chosen so it is never a lie: "all" only when the whole fleet
+ * is still to decide, "remaining" once part of it is already approved. Both are
+ * dropped for a single vehicle, where they read as noise and, in the case of
+ * "all 1 vehicle", as a bug.
+ */
+function formatVehicleWorkPhrase(
+  remainingCount: number,
+  totalCount: number,
+): string {
+  if (remainingCount === 0) return "";
+  if (remainingCount === 1) return "1 vehicle";
+
+  return remainingCount === totalCount
+    ? `all ${remainingCount} vehicles`
+    : `remaining ${remainingCount} vehicles`;
+}
+
+/**
  * The 560px review panel opened from a row of `/admin/business/applications`:
  * the whole application in one scrollable column — the company block with its
  * verify/flag control, one card per vehicle with its own approve/flag control
@@ -206,6 +282,14 @@ export function BusinessApplicationDetailDrawer({
     message: string;
   } | null>(null);
   const [verdictError, setVerdictError] = useState<string | null>(null);
+  // Its own state rather than reusing the three above, because none of them
+  // renders where a bulk failure has to be read: `companyError` and
+  // `vehicleError` sit against the control that caused them, and a run that
+  // stops on the thirtieth vehicle would put its explanation off-screen from
+  // the button that was clicked; `verdictError` belongs to the footer's two
+  // end-of-review decisions and is cleared by them. This one renders under the
+  // bulk button itself, which is the only control the run was started from.
+  const [approveAllError, setApproveAllError] = useState<string | null>(null);
 
   /** Whether the company block's reason chips are expanded. */
   const [companyReasonsOpen, setCompanyReasonsOpen] = useState(false);
@@ -226,6 +310,7 @@ export function BusinessApplicationDetailDrawer({
     setCompanyError(null);
     setVehicleError(null);
     setVerdictError(null);
+    setApproveAllError(null);
     setCompanyReasonsOpen(false);
     setReasonVehicleId(null);
 
@@ -314,6 +399,10 @@ export function BusinessApplicationDetailDrawer({
     setPending({ kind: "company" });
     setCompanyError(null);
     setVerdictError(null);
+    // A bulk run's message names the item it stopped at; recording that item's
+    // verdict by hand is the reviewer answering it, so it must not outlive the
+    // click.
+    setApproveAllError(null);
 
     try {
       const response = await fetch(
@@ -374,6 +463,8 @@ export function BusinessApplicationDetailDrawer({
     setPending({ kind: "vehicle", applicationVehicleId });
     setVehicleError(null);
     setVerdictError(null);
+    // Same reason as in `reviewCompany`.
+    setApproveAllError(null);
 
     try {
       const response = await fetch(
@@ -399,37 +490,9 @@ export function BusinessApplicationDetailDrawer({
       const verdict =
         (await response.json()) as AdminBusinessVehicleReviewResponse;
 
-      setData((previous) => {
-        if (previous === null) return previous;
-
-        const vehicles = previous.vehicles.map((entry) =>
-          entry.applicationVehicleId === verdict.applicationVehicleId
-            ? {
-                ...entry,
-                status: verdict.status,
-                flagReason: verdict.flagReason,
-              }
-            : entry,
-        );
-
-        // Recomputed locally from the updated array so the fleet header line
-        // and the footer hint move on this same render; `refreshDetail()` below
-        // is what makes them correct if a second reviewer is working the same
-        // application.
-        return {
-          ...previous,
-          vehicles,
-          counts: {
-            total: vehicles.length,
-            approved: vehicles.filter((entry) => entry.status === "APPROVED")
-              .length,
-            flagged: vehicles.filter((entry) => entry.status === "FLAGGED")
-              .length,
-            pending: vehicles.filter((entry) => entry.status === "PENDING")
-              .length,
-          },
-        };
-      });
+      setData((previous) =>
+        previous === null ? previous : withVehicleVerdict(previous, verdict),
+      );
       setReasonVehicleId(null);
 
       // The queue row's fleet counts and status chip are derived from these
@@ -442,6 +505,139 @@ export function BusinessApplicationDetailDrawer({
         message: VEHICLE_VERDICT_ERROR_FALLBACK,
       });
     } finally {
+      setPending(null);
+    }
+  }
+
+  /**
+   * Records the positive verdict on everything still outstanding: the company
+   * block if it is not already verified, then every vehicle that is not already
+   * approved, in the order the list renders them.
+   *
+   * It deliberately stops there. Activation is a separate, later click, because
+   * it is the irreversible one — it writes `LogisticsCompany.activatedAt`, lets
+   * the fleet dispatch, and makes every mutation endpoint on this application
+   * refuse — and a reviewer who wanted to speed through the verdicts has not
+   * thereby said they are done reviewing.
+   *
+   * `detail` is passed in rather than read from `data` so the run works off the
+   * list as it was at the click: nothing can change it mid-run (every control
+   * is disabled by `pending`, and `refreshDetail()` only runs at the end), and
+   * taking it as an argument is what lets the call site's own null check narrow
+   * the type instead of an assertion here.
+   */
+  async function approveAll(detail: AdminBusinessApplicationDetail) {
+    setPending({ kind: "approve-all" });
+    // Every one of these is about a single item this run is about to write
+    // over, so none of them can still be true afterwards.
+    setCompanyError(null);
+    setVehicleError(null);
+    setVerdictError(null);
+    setApproveAllError(null);
+    // An open reason list is a flag the reviewer started and is now not making.
+    setCompanyReasonsOpen(false);
+    setReasonVehicleId(null);
+
+    // Tracked so the queue is only told about a run that actually wrote
+    // something — a run that fails on its first request has changed nothing.
+    let appliedAny = false;
+
+    try {
+      // Sequential, not `Promise.all`: a failure then has one well-defined
+      // stopping point, with everything before it applied and everything after
+      // it untouched. Fired in parallel, a mid-list refusal would leave the
+      // reviewer with an arbitrary subset written and no way to say where to
+      // pick the review back up. It also keeps the company first, which is the
+      // order a reviewer doing this by hand would use.
+      if (detail.companyReviewStatus !== "VERIFIED") {
+        const response = await fetch(
+          `/api/admin/business-applications/${applicationId}/company`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ verdict: "VERIFIED" }),
+          },
+        );
+
+        if (!response.ok) {
+          // Named, because the reviewer clicked one button and cannot otherwise
+          // tell which of a dozen requests refused.
+          setApproveAllError(
+            `Stopped at the company details — ${await readErrorMessage(
+              response,
+              COMPANY_VERDICT_ERROR_FALLBACK,
+            )}`,
+          );
+          return;
+        }
+
+        const verdict =
+          (await response.json()) as AdminBusinessCompanyReviewResponse;
+
+        setData((previous) =>
+          previous === null
+            ? previous
+            : {
+                ...previous,
+                companyReviewStatus: verdict.companyReviewStatus,
+                companyFlagReason: verdict.companyFlagReason,
+              },
+        );
+        appliedAny = true;
+      }
+
+      for (const vehicle of detail.vehicles) {
+        // Already where this run would put it. Skipped rather than re-sent
+        // because a no-op write is still a round trip and an audit log entry,
+        // and on a forty-vehicle fleet that is most of the run. A *flagged*
+        // vehicle is not skipped: the reviewer asking to approve everything is
+        // overturning that flag, which is a verdict change the endpoint takes.
+        if (vehicle.status === "APPROVED") continue;
+
+        const response = await fetch(
+          `/api/admin/business-applications/${applicationId}/vehicles/${vehicle.applicationVehicleId}`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ verdict: "APPROVED" }),
+          },
+        );
+
+        if (!response.ok) {
+          setApproveAllError(
+            `Stopped at ${describeVehicle(vehicle)} — ${await readErrorMessage(
+              response,
+              VEHICLE_VERDICT_ERROR_FALLBACK,
+            )}`,
+          );
+          return;
+        }
+
+        const verdict =
+          (await response.json()) as AdminBusinessVehicleReviewResponse;
+
+        // Applied one at a time, from each endpoint's own response, so the
+        // cards and the counts walk down the list as the run does rather than
+        // all snapping at the end.
+        setData((previous) =>
+          previous === null ? previous : withVehicleVerdict(previous, verdict),
+        );
+        appliedAny = true;
+      }
+    } catch {
+      // No response to read a refusal off, so there is nothing truthful to say
+      // about which item this was; what has been applied so far is on screen.
+      setApproveAllError(APPROVE_ALL_ERROR_FALLBACK);
+    } finally {
+      // Once for the whole run, not per request: the queue row would otherwise
+      // re-fetch forty times for one click, and every intermediate reading it
+      // showed would be wrong a moment later. A partial run still counts —
+      // those verdicts are saved, and the row has to reflect them.
+      if (appliedAny) {
+        onChanged();
+        await refreshDetail();
+      }
+
       setPending(null);
     }
   }
@@ -462,6 +658,7 @@ export function BusinessApplicationDetailDrawer({
     setCompanyError(null);
     setVehicleError(null);
     setVerdictError(null);
+    setApproveAllError(null);
 
     try {
       const response = await fetch(
@@ -508,6 +705,35 @@ export function BusinessApplicationDetailDrawer({
   /** What the company will be asked to fix: each flagged vehicle, plus the
    *  company block itself when that is flagged. */
   const flaggedItemCount = counts.flagged + (companyFlagged ? 1 : 0);
+
+  // What one click of "approve everything" would actually write. Derived from
+  // the same numbers the fleet heading shows, so the button can never offer to
+  // approve a count the list above it disagrees with. Anything not already
+  // APPROVED is work — a flagged vehicle included, since approving it is a
+  // verdict change, not a no-op.
+  const vehiclesToApproveCount = counts.total - counts.approved;
+  const approveAllWorkPhrase = formatVehicleWorkPhrase(
+    vehiclesToApproveCount,
+    counts.total,
+  );
+  // Nothing left to write is the button's own exit condition: it disappears
+  // once the company is verified and the whole fleet is approved, rather than
+  // sitting there as a control that can only be a no-op.
+  const hasApproveAllWork = !isCompanyVerified || vehiclesToApproveCount > 0;
+  // Read-only is `APPROVED`, where every mutation endpoint refuses. Note that
+  // `isAwaitingCompany` is deliberately *not* a condition: verdicts stay
+  // recordable while changes are outstanding — clearing a corrected vehicle is
+  // exactly what a reviewer does there — and only activation is off.
+  const showApproveAll = !isReadOnly && hasApproveAllWork;
+  // Says the whole of the work and nothing more, so the reviewer knows before
+  // clicking how much of the panel this moves — and, once part of it is done by
+  // hand, that the button now covers only what is left.
+  const approveAllLabel =
+    approveAllWorkPhrase === ""
+      ? "Verify company details"
+      : isCompanyVerified
+        ? `Approve ${approveAllWorkPhrase}`
+        : `Approve company & ${approveAllWorkPhrase}`;
 
   // Evaluated in this order so the hint explains the *currently binding*
   // blocker rather than an earlier one. If an arm ever disagrees with a server
@@ -616,6 +842,45 @@ export function BusinessApplicationDetailDrawer({
             </div>
           ) : data !== null ? (
             <div className="flex flex-col gap-5">
+              {/* Above the company block and the fleet list, because it acts on
+                  both and nothing else on this panel does: a control that reads
+                  as scoped to everything below it has to sit above all of it.
+                  Not in the footer — that row is the two decisions that *end*
+                  the review and close the panel, and a bulk verdict is neither.
+                  It leaves the panel open on purpose, so the reviewer can still
+                  read down what they just approved. */}
+              {showApproveAll ? (
+                <div>
+                  {/* `outline`, matching the per-item Approve buttons it stands
+                      in for while their work is still outstanding, and leaving
+                      the footer's filled "Activate fleet" as the one primary
+                      action on the panel. */}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={isBusy}
+                    onClick={() => void approveAll(data)}
+                  >
+                    {pending?.kind === "approve-all"
+                      ? "Approving…"
+                      : approveAllLabel}
+                  </Button>
+                  <p className="mt-2 text-[11.5px] text-muted-foreground">
+                    Records every verdict at once. Activating the fleet stays a
+                    separate step.
+                  </p>
+                  {approveAllError !== null ? (
+                    <p
+                      role="alert"
+                      className="mt-2 text-[12.5px] text-destructive"
+                    >
+                      {approveAllError}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+
               <CompanyBlock
                 company={data.company}
                 companyFlagReason={data.companyFlagReason}

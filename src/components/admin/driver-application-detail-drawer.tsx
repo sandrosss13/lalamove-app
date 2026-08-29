@@ -98,13 +98,19 @@ const REQUEST_CHANGES_ERROR_FALLBACK = "Could not request changes.";
 const APPROVE_ERROR_FALLBACK = "Could not approve this driver.";
 
 /**
- * Which request is in flight. One value for all three kinds of mutation rather
+ * Which request is in flight. One value for all four kinds of mutation rather
  * than a boolean each: every button on the panel is disabled while any of them
  * is running, so a double-click cannot send two `approve` calls, and flagging a
  * document cannot race the request-changes call that reads its verdict.
+ *
+ * `approve-all` carries a `documentId` for the same reason `document` does —
+ * it walks the documents one request at a time, and the card whose turn it is
+ * shows the same "Saving…" a hand-clicked approve would show, so the run is
+ * visible where it is happening rather than only on the button that began it.
  */
 type PendingAction =
   | { kind: "document"; documentId: string }
+  | { kind: "approve-all"; documentId: string }
   | { kind: "request-changes" }
   | { kind: "approve" };
 
@@ -193,6 +199,25 @@ function sortDocuments(
   };
 
   return [...documents].sort((a, b) => rank(a.type) - rank(b.type));
+}
+
+/**
+ * The bulk-approve button's label, which states how many documents the click
+ * will actually act on rather than a flat "Approve all".
+ *
+ * "all" and "remaining" are distinguished because the two cases are genuinely
+ * different promises: on an untouched application the button clears the whole
+ * list, but once a reviewer has approved one by hand, "all" would read as
+ * though it were about to re-do work already done — and a reviewer who has
+ * just flagged a document needs to see that this button would overwrite that
+ * verdict, which a count that excludes it would hide.
+ */
+function describeApproveAll(remaining: number, total: number): string {
+  const noun = remaining === 1 ? "document" : "documents";
+
+  return remaining === total
+    ? `Approve all ${remaining} ${noun}`
+    : `Approve remaining ${remaining} ${noun}`;
 }
 
 /**
@@ -325,6 +350,19 @@ export function DriverApplicationDetailDrawer({
   const isReadOnly = data?.status === "APPROVED";
   const canActOnDocuments = data !== null && !isReadOnly;
 
+  // What "Approve all" would act on: everything not already approved, flagged
+  // documents included. A flag is a verdict a reviewer can change their mind
+  // about — the endpoint clears the reason on approve — so excluding them would
+  // leave the button unable to finish the list it offers to finish.
+  const unapprovedDocuments = documents.filter(
+    (document) => document.status !== "APPROVED",
+  );
+  // Note the absence of `isAwaitingDriver`: per-document verdicts stay live
+  // while the driver is resubmitting (see below), so a bulk verdict does too.
+  // Hidden rather than disabled with nothing left to do — a button offering to
+  // approve zero documents is a label with no meaning.
+  const canApproveAll = canActOnDocuments && unapprovedDocuments.length > 0;
+
   // `ACTION_REQUIRED` means changes were requested and the driver has not
   // resubmitted yet. Retaking a flagged document supersedes it but does *not*
   // go through the submit endpoint, so an application can sit here with all
@@ -333,6 +371,33 @@ export function DriverApplicationDetailDrawer({
   // status outright. Documents stay reviewable (a reviewer clearing a retaken
   // photo is exactly what should happen here); only the final approval is off.
   const isAwaitingDriver = data?.status === "ACTION_REQUIRED";
+
+  /**
+   * Folds one endpoint verdict into the loaded detail.
+   *
+   * Applied from the endpoint's own response so the state line updates on this
+   * render, whatever the follow-up re-read does — and shared with the bulk
+   * approve so a run of verdicts lands card by card as it progresses, rather
+   * than the panel sitting unchanged until the final re-read.
+   */
+  function applyVerdict(verdict: AdminDocumentReviewResponse) {
+    setData((previous) =>
+      previous === null
+        ? previous
+        : {
+            ...previous,
+            documents: previous.documents.map((document) =>
+              document.documentId === verdict.documentId
+                ? {
+                    ...document,
+                    status: verdict.status,
+                    flagReason: verdict.flagReason,
+                  }
+                : document,
+            ),
+          },
+    );
+  }
 
   /** Records a verdict on one document. A chip click flags; Approve approves. */
   async function reviewDocument(
@@ -361,26 +426,7 @@ export function DriverApplicationDetailDrawer({
         return;
       }
 
-      const verdict = (await response.json()) as AdminDocumentReviewResponse;
-
-      // Applied from the endpoint's own response so the state line updates on
-      // this render, whatever the follow-up re-read does.
-      setData((previous) =>
-        previous === null
-          ? previous
-          : {
-              ...previous,
-              documents: previous.documents.map((document) =>
-                document.documentId === verdict.documentId
-                  ? {
-                      ...document,
-                      status: verdict.status,
-                      flagReason: verdict.flagReason,
-                    }
-                  : document,
-              ),
-            },
-      );
+      applyVerdict((await response.json()) as AdminDocumentReviewResponse);
       setReasonDocumentId(null);
 
       // The queue row's Docs count and status chip are derived from these
@@ -389,6 +435,100 @@ export function DriverApplicationDetailDrawer({
       await refreshDetail();
     } catch {
       setDocumentError({ documentId, message: REVIEW_ERROR_FALLBACK });
+    } finally {
+      setPending(null);
+    }
+  }
+
+  /**
+   * Approves every document that is not already approved, so the common case —
+   * an application whose three photos are all fine — is one click instead of
+   * three.
+   *
+   * Deliberately stops at the documents. It does *not* chain into the approve
+   * endpoint: clearing the photos is clerical, approving the driver is the
+   * decision, and collapsing the two would mean a single click activating an
+   * account off the back of a button labelled as a document action.
+   *
+   * Sequential rather than `Promise.all`, for two reasons. A failure then has a
+   * defined stopping point — every document before it is approved, every one
+   * after it is untouched — instead of a scatter of successes and failures the
+   * reviewer has to reconstruct from the cards. And the server sees the
+   * verdicts in the same order, so the audit log reads exactly as it would had
+   * the reviewer clicked the three buttons themselves.
+   */
+  async function approveAllDocuments(
+    targets: readonly AdminDriverApplicationDocument[],
+  ) {
+    setDocumentError(null);
+    setVerdictError(null);
+    // Closed up front rather than per document: the open chips belong to a
+    // verdict this run is about to overwrite, so leaving them up would offer a
+    // flag click on a document that is being approved as it is read.
+    setReasonDocumentId(null);
+
+    let approvedCount = 0;
+
+    try {
+      for (const target of targets) {
+        // Re-pointed each iteration so the card being saved says so, and every
+        // other button on the panel stays disabled through the whole run —
+        // `isBusy` is already derived from `pending` being set at all.
+        setPending({ kind: "approve-all", documentId: target.documentId });
+
+        // The label is resolved here rather than at the failure site so the
+        // message names the document even for a type this build has no label
+        // for, matching how the card itself falls back.
+        const label = DOCUMENT_LABELS[target.type] ?? target.type;
+
+        try {
+          const response = await fetch(
+            `/api/admin/driver-applications/${applicationId}/documents/${target.documentId}`,
+            {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ action: "approve" }),
+            },
+          );
+
+          if (!response.ok) {
+            // Reported on the card that refused — the reviewer's next move is
+            // on that document — and prefixed so the sentence still names it
+            // when read on its own, which is what a screen reader gets from
+            // the alert. "Stopped at" is the honest word: the documents after
+            // this one were never asked.
+            setDocumentError({
+              documentId: target.documentId,
+              message: `Stopped at ${label}: ${await readErrorMessage(
+                response,
+                REVIEW_ERROR_FALLBACK,
+              )}`,
+            });
+            break;
+          }
+
+          applyVerdict((await response.json()) as AdminDocumentReviewResponse);
+          approvedCount += 1;
+        } catch {
+          setDocumentError({
+            documentId: target.documentId,
+            message: `Stopped at ${label}: ${REVIEW_ERROR_FALLBACK}`,
+          });
+          break;
+        }
+      }
+
+      // Once for the run, not once per document: the queue row derives its Docs
+      // count and status chip from these verdicts, and telling it three times
+      // would put the table through three re-fetches for one reviewer action.
+      // Only when something actually changed — but the re-read runs either way,
+      // because the usual reason a verdict is refused is that this panel is
+      // holding a stale copy of the application.
+      if (approvedCount > 0) {
+        onChanged();
+      }
+
+      await refreshDetail();
     } finally {
       setPending(null);
     }
@@ -607,7 +747,31 @@ export function DriverApplicationDetailDrawer({
               )}
 
               <section>
-                <SectionTitle>Documents ({documents.length})</SectionTitle>
+                {/* The bulk action sits on the section heading, above the
+                    cards: it acts on the list, and putting it in the footer
+                    would file it alongside the two decisions that end the
+                    review — which is exactly what it is not. */}
+                <div className="flex items-center justify-between gap-3">
+                  <SectionTitle>Documents ({documents.length})</SectionTitle>
+                  {canApproveAll ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={isBusy}
+                      onClick={() =>
+                        void approveAllDocuments(unapprovedDocuments)
+                      }
+                    >
+                      {pending?.kind === "approve-all"
+                        ? "Approving documents…"
+                        : describeApproveAll(
+                            unapprovedDocuments.length,
+                            documents.length,
+                          )}
+                    </Button>
+                  ) : null}
+                </div>
                 <div className="mt-[9px] flex flex-col gap-[9px]">
                   {documents.length === 0 ? (
                     <p className="text-[12.5px] text-muted-foreground">
@@ -620,7 +784,8 @@ export function DriverApplicationDetailDrawer({
                         document={document}
                         disabled={!canActOnDocuments || isBusy}
                         pending={
-                          pending?.kind === "document" &&
+                          (pending?.kind === "document" ||
+                            pending?.kind === "approve-all") &&
                           pending.documentId === document.documentId
                         }
                         readOnly={isReadOnly}
@@ -807,7 +972,8 @@ function DocumentRow({
   document: AdminDriverApplicationDocument;
   /** True while any request is in flight, or when the application is terminal. */
   disabled: boolean;
-  /** True while *this* document's own verdict is being saved. */
+  /** True while *this* document's own verdict is being saved — whether from its
+   *  own button or from the bulk approve reaching it. */
   pending: boolean;
   readOnly: boolean;
   error: string | null;
