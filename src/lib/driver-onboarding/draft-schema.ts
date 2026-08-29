@@ -28,7 +28,11 @@ export type OnboardingDraftChassisType =
  * today must still parse if that constant's copy is retuned later.
  */
 export type OnboardingDraftVehicleClassId =
-  "SMALL_VAN" | "LARGE_VAN" | "MEDIUM_TRUCK" | "HEAVY_FREIGHT_TRUCK";
+  | "SMALL_VAN"
+  | "LARGE_VAN"
+  | "MEDIUM_TRUCK"
+  | "HEAVY_FREIGHT_TRUCK"
+  | "TRAILER_TRUCK";
 
 export type OnboardingDraftV1 = {
   version: 1;

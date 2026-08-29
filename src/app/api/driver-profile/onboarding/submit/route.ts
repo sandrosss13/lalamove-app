@@ -96,6 +96,7 @@ const VEHICLE_CLASS_IDS: VehicleClassId[] = [
   "LARGE_VAN",
   "MEDIUM_TRUCK",
   "HEAVY_FREIGHT_TRUCK",
+  "TRAILER_TRUCK",
 ];
 
 /** Discriminated failure, carrying the status the caller should respond with. */

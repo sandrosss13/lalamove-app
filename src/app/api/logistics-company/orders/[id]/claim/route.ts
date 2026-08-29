@@ -37,13 +37,31 @@ export async function POST(
 
   const company = await prisma.logisticsCompany.findUnique({
     where: { userId: session.user.id },
-    select: { id: true },
+    select: { id: true, activatedAt: true },
   });
 
   if (!company) {
     return NextResponse.json(
       { error: "Complete your company profile before claiming deliveries." },
       { status: 400 },
+    );
+  }
+
+  // The same activation gate the dispatch endpoint applies, for the same reason:
+  // `LogisticsCompany.activatedAt` is the single "is this fleet allowed on the
+  // road" column, and hiding a button does nothing about a direct POST.
+  //
+  // Gating claim as well as dispatch is not belt-and-braces. A claim takes an
+  // order *off the open market* into CLAIMED, where only its claimant can act on
+  // it. A company that could claim but not dispatch would strand real deliveries
+  // in a status nobody can move — worse than either gate on its own.
+  if (company.activatedAt === null) {
+    return NextResponse.json(
+      {
+        error:
+          "Your fleet is still under review. Operations must activate the company before you can claim deliveries.",
+      },
+      { status: 403 },
     );
   }
 

@@ -160,7 +160,10 @@ export function OrderDetailDrawer({
 
         {/* Ours, but nobody is carrying it yet. The vehicle picker is narrowed
             to the type this delivery requires — the form itself never re-checks
-            that match, by design. */}
+            that match, by design — and to vehicles the dispatch endpoint will
+            actually accept, so the console never offers a button that can only
+            fail. A fleet whose only matching vehicle is still under review
+            degrades to `CompanyDispatchForm`'s existing empty state. */}
         {!order.isOpenMarket && order.status === "CLAIMED" ? (
           <CompanyDispatchForm
             orderId={order.id}
@@ -171,6 +174,7 @@ export function OrderDetailDrawer({
             vehicles={fleet
               .filter(
                 (vehicle) =>
+                  vehicle.dispatchable &&
                   vehicle.vehicleTypeSpecId === order.vehicleTypeSpecId,
               )
               .map((vehicle) => ({

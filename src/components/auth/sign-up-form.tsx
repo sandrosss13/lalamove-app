@@ -8,7 +8,15 @@ import { signUp } from "@/lib/auth-client";
 import { GEORGIAN_CITY_OPTIONS } from "@/lib/georgian-cities";
 import { merchantOrigin, type Audience } from "@/lib/host";
 
+/** The two cards step 1 offers. */
 type Role = "CLIENT" | "DRIVER";
+
+/**
+ * The role actually written to `User.role`. COMPANY is not a card: it is what
+ * the Driver card resolves to once the Business account type is picked, which
+ * is the path someone registering a haulage business already takes today.
+ */
+type SignUpRole = Role | "COMPANY";
 
 /** Heading shown once a role has been chosen, in steps 2 and 3. */
 const ROLE_HEADINGS: Record<Role, string> = {
@@ -22,8 +30,19 @@ const ROLE_HEADINGS: Record<Role, string> = {
  * existing "Sign up as a driver" wording is untouched — only the merchant
  * host's "Individual Driver" card gets the fuller phrasing that matches its
  * label.
+ *
+ * `pickedAccountType` is null in step 2, where no account type has been chosen
+ * yet, so that step's wording is unaffected by the company branch below.
  */
-function roleHeading(pickedRole: Role, currentAudience: Audience): string {
+function roleHeading(
+  pickedRole: Role,
+  currentAudience: Audience,
+  pickedAccountType: AccountType | null,
+): string {
+  if (pickedRole === "DRIVER" && pickedAccountType === "BUSINESS") {
+    return "Sign up as a logistics company";
+  }
+
   if (currentAudience === "MERCHANT" && pickedRole === "DRIVER") {
     return "Sign up as an individual driver";
   }
@@ -42,10 +61,14 @@ function roleHeading(pickedRole: Role, currentAudience: Audience): string {
  * - `"CLIENT"`: step 1 offers two cards — Client, which continues the wizard
  *   here, and Driver, which is a cross-origin link to the merchant host's own
  *   sign-up page rather than a role this host can create.
- * - `"MERCHANT"`: only the DRIVER role (labelled "Individual Driver" here) is
+ * - `"MERCHANT"`: only the DRIVER card (labelled "Individual Driver" here) is
  *   offered, and a newly created account lands on `/dashboard` rather than `/`,
  *   which is a client-host path the merchant host would immediately bounce it
  *   off.
+ *
+ * The Driver card is not one-to-one with the DRIVER role: picking the Business
+ * account type in step 2 resolves it to a COMPANY account with a
+ * `LogisticsCompany` row instead (see `isCompanySignUp` in `handleSubmit`).
  */
 export function SignUpForm({ audience }: { audience: Audience }) {
   const router = useRouter();
@@ -87,11 +110,20 @@ export function SignUpForm({ audience }: { audience: Audience }) {
         ? companyName
         : `${firstName} ${lastName}`.trim();
 
+    // The Driver card plus the Business account type is a logistics company,
+    // not a driver. No audience branch is needed: the client host renders its
+    // Driver card as a cross-origin link rather than a role it can create, so
+    // this combination is only reachable on the merchant host and on "BOTH",
+    // where COMPANY is legitimate. `src/lib/auth.ts`'s `before` hook is the
+    // server-side backstop either way.
+    const isCompanySignUp = role === "DRIVER" && accountType === "BUSINESS";
+    const resolvedRole: SignUpRole = isCompanySignUp ? "COMPANY" : role;
+
     const { error: signUpError } = await signUp.email({
       name: resolvedName,
       email,
       password,
-      role,
+      role: resolvedRole,
     });
 
     if (signUpError) {
@@ -102,20 +134,59 @@ export function SignUpForm({ audience }: { audience: Audience }) {
       return;
     }
 
-    // Better Auth has created the account and a session by this point. Drivers
-    // must additionally create a DriverProfile with their identity details and
-    // city. If that step fails we surface the error and stay put —
-    // the account exists, so we don't navigate away as if everything succeeded.
-    // Only the fields relevant to the chosen account type are sent.
-    if (role === "DRIVER") {
+    // Better Auth has created the account and a session by this point. A
+    // company creates a LogisticsCompany row instead of a DriverProfile — the
+    // two are mutually exclusive, hence the `else if` below.
+    //
+    // The body is exactly the four fields the route requires. The six fields
+    // step 1 of the onboarding wizard collects are optional on this endpoint
+    // and are deliberately not sent from here: a registration form that
+    // demanded an IBAN before the account existed would be a worse funnel, and
+    // the upsert is keyed on the user id, so the wizard fills them in later on
+    // the very same row.
+    //
+    // Same failure handling as the two branches below: the account exists by
+    // now, so surface the server's own message and stay put rather than
+    // navigating away as if everything succeeded. A duplicate phone arrives as
+    // a 409 whose message is the useful one, so it is rendered verbatim from
+    // `payload.error` rather than restated as a constant here.
+    if (isCompanySignUp) {
+      const response = await fetch("/api/logistics-company", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ companyName, vatId, phone, city }),
+      });
+
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        setError(
+          payload?.error ??
+            "Could not save your company details. Please try again.",
+        );
+        setLoading(false);
+        return;
+      }
+    } else if (role === "DRIVER") {
+      // Drivers must additionally create a DriverProfile with their identity
+      // details and city.
+      //
+      // Only Individual and Individual Entrepreneur reach here: `isCompanySignUp`
+      // above captures DRIVER + BUSINESS on every audience and routes it to a
+      // COMPANY account with a `LogisticsCompany` instead, so this branch never
+      // sees a BUSINESS account type. The company-shaped body this used to send
+      // (`companyName`/`vatId`) would therefore be dead code, and is gone.
       const response = await fetch("/api/driver-profile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(
-          accountType === "BUSINESS"
-            ? { accountType, companyName, vatId, phone, city }
-            : { accountType, firstName, lastName, phone, city },
-        ),
+        body: JSON.stringify({
+          accountType,
+          firstName,
+          lastName,
+          phone,
+          city,
+        }),
       });
 
       if (!response.ok) {
@@ -162,8 +233,18 @@ export function SignUpForm({ audience }: { audience: Audience }) {
     setLoading(false);
     // The merchant host doesn't serve `/` — sending a freshly created driver
     // account there would bounce it straight back off the host it just signed
-    // up on. Every other audience owns `/`.
-    router.push(audience === "MERCHANT" ? "/dashboard" : "/");
+    // up on. Every other audience owns `/`, except for a new company: `/` is
+    // the client landing page and a company has nothing there, so it lands on
+    // `/dashboard` whatever the audience.
+    //
+    // `/dashboard` is the end of this form's responsibility. Deciding where a
+    // COMPANY session goes from there — the onboarding wizard, the application
+    // status screen or the ops dashboard — needs the application row, which
+    // this form has not read, so no onboarding path is pushed here and no
+    // second redirect is chained.
+    router.push(
+      isCompanySignUp || audience === "MERCHANT" ? "/dashboard" : "/",
+    );
     router.refresh();
   }
 
@@ -242,7 +323,11 @@ export function SignUpForm({ audience }: { audience: Audience }) {
           ← Back
         </button>
 
-        <h1 className="text-2xl font-bold">{roleHeading(role, audience)}</h1>
+        {/* No account type is picked yet, so the heading cannot yet know
+            whether this is the company branch. */}
+        <h1 className="text-2xl font-bold">
+          {roleHeading(role, audience, null)}
+        </h1>
 
         <div className="flex flex-col gap-4">
           <button
@@ -275,8 +360,13 @@ export function SignUpForm({ audience }: { audience: Audience }) {
             className="rounded border p-6 text-left hover:opacity-70"
           >
             <span className="block font-medium">Business</span>
+            {/* Same card in the same place; only what it produces changed.
+                Under the Driver role it now creates a logistics company rather
+                than a business-type driver, so it says so. */}
             <span className="block text-sm opacity-70">
-              Sign up as a registered company
+              {role === "DRIVER"
+                ? "Register a logistics company running more than one vehicle"
+                : "Sign up as a registered company"}
             </span>
           </button>
         </div>
@@ -297,9 +387,13 @@ export function SignUpForm({ audience }: { audience: Audience }) {
         ← Back
       </button>
 
+      {/* The company branch's heading already names the account type, so the
+          suffix would only add "— Business" noise to it. */}
       <h1 className="text-2xl font-bold">
-        {roleHeading(role, audience)}
-        {accountType ? ` — ${ACCOUNT_TYPE_LABELS[accountType]}` : null}
+        {roleHeading(role, audience, accountType)}
+        {role === "DRIVER" && accountType === "BUSINESS"
+          ? null
+          : ` — ${ACCOUNT_TYPE_LABELS[accountType]}`}
       </h1>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">

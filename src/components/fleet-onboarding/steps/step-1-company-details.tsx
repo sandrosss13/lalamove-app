@@ -1,0 +1,1056 @@
+"use client";
+
+import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { CheckIcon } from "lucide-react";
+
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Popover,
+  PopoverAnchor,
+  PopoverContent,
+} from "@/components/ui/popover";
+import {
+  FLEET_SCREENS,
+  type FleetSubmittedSummary,
+  useFleetDraft,
+} from "@/components/fleet-onboarding/fleet-draft-context";
+import type { FleetDraftCompany } from "@/lib/fleet-onboarding/draft-schema";
+import { GEORGIAN_CITY_OPTIONS } from "@/lib/georgian-cities";
+
+/**
+ * The `company` section of the fleet draft. Imported rather than restated: these
+ * spellings — `registeredAddress`, `citiesOfOperation`, `bankAccountIban` — are
+ * the draft keys, the `LogisticsCompany` column names and this step's request
+ * body keys all at once, so there is no rename layer anywhere in the chain.
+ */
+type CompanyDraft = FleetDraftCompany;
+
+/** One entry of `GEORGIAN_CITY_OPTIONS`. */
+type CityOption = (typeof GEORGIAN_CITY_OPTIONS)[number];
+
+/**
+ * Where this form's edits go, and what happens after a successful save.
+ *
+ * `"draft"` is the wizard: edits land in the draft blob through `updateDraft`
+ * and Continue advances to step 2. `"correction"` is task-15's ACTION_REQUIRED
+ * dialog: the draft is null in that state and the context's `persist` bails on
+ * any non-DRAFT status, so edits are held locally and a save raises a toast and
+ * refetches instead of navigating — a submitted application has no next step.
+ */
+type CompanyFormMode = "draft" | "correction";
+
+/**
+ * Every field that can carry an inline error. `city` is deliberately absent: it
+ * is the registered city, displayed read-only and never editable here (§7), so
+ * it can never light up red.
+ */
+type CompanyField =
+  | "phone"
+  | "companyName"
+  | "vatId"
+  | "registeredAddress"
+  | "citiesOfOperation"
+  | "contactName"
+  | "contactRole"
+  | "contactEmail"
+  | "bankAccountIban";
+
+type Problems = Partial<Record<CompanyField, string>>;
+
+// ── Validation rules, straight from the design's field table ────────────────
+
+const MIN_PHONE_DIGITS = 10;
+const MAX_PHONE_DIGITS = 15;
+const MIN_COMPANY_NAME_LENGTH = 3;
+/** Georgian VAT / tax identification numbers are exactly nine digits. */
+const VAT_ID_PATTERN = /^\d{9}$/;
+/** Shape check only — one `@`, something either side, a dot in the domain. */
+const EMAIL_PATTERN = /^[^@\s]+@[^@\s.]+\.[^@\s]+$/;
+/**
+ * Counted after every space is stripped, because IBANs are conventionally
+ * written in groups of four. The bound is 18 while the message names 22 on
+ * purpose: 22 is the Georgian length and is what a company here should be
+ * typing, but the looser floor stops a correctly-formed foreign IBAN from being
+ * rejected outright. Mirrors the server's own bound in
+ * `src/app/api/logistics-company/route.ts`.
+ */
+const MIN_IBAN_LENGTH = 18;
+
+/** The design's max-height for the city list before it scrolls. */
+const CITY_LIST_MAX_HEIGHT_CLASS = "max-h-[236px]";
+
+/** The design's mono kicker above each group, distinct from the field labels. */
+const GROUP_HEADING_CLASS =
+  "font-price text-[11px] font-semibold tracking-[0.08em] text-muted-foreground uppercase";
+
+/** The shared uppercase field label. */
+const FIELD_LABEL_CLASS =
+  "font-price text-[11.5px] font-semibold tracking-[0.04em] text-muted-foreground uppercase";
+
+/** The wizard's shared primary CTA. */
+const PRIMARY_CTA_CLASS =
+  "h-12 cursor-pointer rounded-[11px] bg-onboarding-accent px-[30px] text-[15px] font-semibold tracking-[-0.01em] text-white transition-colors hover:bg-onboarding-accent-hover focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50";
+
+const COMPANY_ENDPOINT = "/api/logistics-company";
+const SAVE_FALLBACK =
+  "We couldn't save the company details. Check your connection and try again.";
+const VALIDATION_TOAST = "Fix the highlighted fields to continue.";
+const CORRECTION_SAVED_TOAST = "Company details updated.";
+
+const CITY_PLACEHOLDER_EMPTY = "Start typing — Tbilisi, Batumi, Kutaisi…";
+const CITY_PLACEHOLDER_MORE = "Add another city…";
+const IBAN_PLACEHOLDER = "GE29 NB00 0000 0101 9049 17";
+const PAYOUT_HINT =
+  "Order revenue is settled to this account weekly. It must belong to the registered entity.";
+/** Appended in correction mode, where the seeded value is masked (§8). */
+const PAYOUT_REENTRY_HINT = "Re-enter the full account number to confirm it.";
+
+/**
+ * Reads an `{ error }` body without letting a non-JSON response (an HTML error
+ * page from an unhandled crash, say) throw over the top of the real failure.
+ * Defined here rather than imported: the context's copy is not exported, and it
+ * is four lines.
+ */
+async function readErrorMessage(
+  response: Response,
+  fallback: string,
+): Promise<string> {
+  const payload = (await response.json().catch(() => null)) as {
+    error?: string;
+  } | null;
+
+  return payload?.error ?? fallback;
+}
+
+/**
+ * The phone's own rule, kept separate from the rest because the phone
+ * sub-screen's Continue gate reuses it — and because the seeding rule for which
+ * sub-screen opens first is "does the saved number already pass this?".
+ */
+function phoneProblem(value: string | undefined): string | undefined {
+  const digits = (value ?? "").replace(/\D/g, "");
+  if (!digits) return "Enter the company phone number.";
+  if (digits.length < MIN_PHONE_DIGITS || digits.length > MAX_PHONE_DIGITS) {
+    return "That is not a valid number (10–15 digits).";
+  }
+  return undefined;
+}
+
+/**
+ * Every rule this step enforces, evaluated together so a failed Continue can
+ * light up *all* the offending fields at once rather than walking the company
+ * through them one at a time. Messages are the design's, verbatim.
+ *
+ * `phone` is included even though the details sub-screen has no phone field:
+ * the POST carries it, so an invalid number must never reach the endpoint. In
+ * practice it has already passed the sub-screen gate by the time this matters.
+ */
+function collectProblems(company: CompanyDraft): Problems {
+  const problems: Problems = {};
+
+  const phone = phoneProblem(company.phone);
+  if (phone !== undefined) {
+    problems.phone = phone;
+  }
+
+  const companyName = (company.companyName ?? "").trim();
+  if (!companyName) {
+    problems.companyName = "Enter the registered company name.";
+  } else if (companyName.length < MIN_COMPANY_NAME_LENGTH) {
+    problems.companyName = "That looks too short.";
+  }
+
+  const vatId = (company.vatId ?? "").trim();
+  if (!vatId) {
+    problems.vatId = "Enter the VAT or tax ID.";
+  } else if (!VAT_ID_PATTERN.test(vatId)) {
+    problems.vatId = "A Georgian tax ID is 9 digits.";
+  }
+
+  if (!(company.registeredAddress ?? "").trim()) {
+    problems.registeredAddress = "Enter the registered address.";
+  }
+
+  if ((company.citiesOfOperation ?? []).length === 0) {
+    problems.citiesOfOperation = "Select at least one city of operation.";
+  }
+
+  const contactName = (company.contactName ?? "").trim();
+  const contactNameParts = contactName
+    .split(/\s+/)
+    .filter((part) => part !== "");
+  if (!contactName) {
+    problems.contactName = "Enter the contact person.";
+  } else if (contactNameParts.length < 2) {
+    problems.contactName = "First and last name.";
+  }
+
+  if (!(company.contactRole ?? "").trim()) {
+    problems.contactRole = "Required.";
+  }
+
+  const contactEmail = (company.contactEmail ?? "").trim();
+  if (!contactEmail) {
+    problems.contactEmail = "Enter a company email.";
+  } else if (!EMAIL_PATTERN.test(contactEmail)) {
+    problems.contactEmail = "That does not look like an email address.";
+  }
+
+  // Whitespace-free, matching how the server measures it.
+  const bankAccountIban = (company.bankAccountIban ?? "").replace(/\s+/g, "");
+  if (!bankAccountIban) {
+    problems.bankAccountIban = "Enter the payout account.";
+  } else if (bankAccountIban.length < MIN_IBAN_LENGTH) {
+    problems.bankAccountIban = "A Georgian IBAN is 22 characters.";
+  }
+
+  return problems;
+}
+
+/**
+ * The company fields as the submitted summary carries them — the normalised
+ * `LogisticsCompany` columns the reviewer actually looked at, which is what a
+ * correction has to start from once the draft is gone.
+ *
+ * `bankAccountIban` is deliberately not carried across: the summary masks it to
+ * its last four characters, so seeding it would post asterisks over a good
+ * account number. `CompanyDetailsForm` re-blanks it defensively as well.
+ */
+function companyFromSummary(
+  summary: FleetSubmittedSummary | null,
+): CompanyDraft {
+  if (summary === null) return {};
+
+  return {
+    phone: summary.phone,
+    companyName: summary.companyName,
+    vatId: summary.vatId,
+    registeredAddress: summary.registeredAddress,
+    city: summary.city,
+    citiesOfOperation: summary.citiesOfOperation,
+    contactName: summary.contactName,
+    contactRole: summary.contactRole,
+    contactEmail: summary.contactEmail,
+  };
+}
+
+/**
+ * Step 1 — the company's phone number on its own sub-screen, then its legal,
+ * contact and payout details.
+ *
+ * A thin wrapper by design: everything below the phone screen lives in
+ * `CompanyDetailsForm`, which task-15's ACTION_REQUIRED dialog mounts on its own
+ * to run the same form against the same endpoint without the wizard around it.
+ *
+ * There is no SMS code screen. The design's six-box code screen is bypassed in
+ * the prototype itself and dropped by `requirements.md` as an explicit non-goal:
+ * this codebase has no SMS infrastructure, and a fake code that verifies nothing
+ * is worse than no screen at all. The phone is a plain, unverified `tel` field.
+ */
+export function Step1CompanyDetails() {
+  const { draft, updateDraft, goToStep, showToast, status, submittedSummary } =
+    useFleetDraft();
+
+  /**
+   * task-09's shell puts `FleetApplicationStatusScreen` ahead of every wizard
+   * step for all non-DRAFT statuses, so this is `"draft"` in every reachable
+   * case. Derived rather than hard-coded because `updateDraft` is a silent
+   * no-op outside DRAFT (the context's `persist` bails on the status), and a
+   * form whose keystrokes vanish is worse than one that keeps them locally.
+   */
+  const mode: CompanyFormMode = status === "DRAFT" ? "draft" : "correction";
+
+  /** What the form starts from: the draft while editing, the summary after submit. */
+  const seed = useMemo<CompanyDraft>(
+    () =>
+      mode === "draft"
+        ? (draft.company ?? {})
+        : companyFromSummary(submittedSummary),
+    [mode, draft.company, submittedSummary],
+  );
+
+  /**
+   * Which of the design's two sub-screens is showing. Local, not persisted:
+   * `draftStep` is an integer 1–5 (see `fleet-wizard-shell.tsx`), so this is
+   * session-local by design. Seeded to "details" when the saved phone already
+   * passes validation, so a company resuming step 1 is not made to re-confirm a
+   * number it already gave us — and so a correction, whose seeded phone always
+   * passes, opens straight on the details with no special case.
+   */
+  const [phase, setPhase] = useState<"phone" | "details">(() =>
+    phoneProblem(seed.phone) === undefined ? "details" : "phone",
+  );
+
+  /**
+   * Whether the phone has been through a failed Continue. A boolean rather than
+   * the details form's `touched` record because this sub-screen has exactly one
+   * field: validation fires on Continue, never on blur.
+   */
+  const [phoneTouched, setPhoneTouched] = useState(false);
+
+  const fieldId = useId();
+  const phoneInputId = `${fieldId}-phone`;
+
+  if (phase === "details") {
+    return (
+      <CompanyDetailsForm
+        mode={mode}
+        initial={seed}
+        onBack={() => setPhase("phone")}
+        onSaved={() => {
+          // Only the wizard has a next step. A correction has already been
+          // toasted and refetched by the form itself.
+          if (mode === "draft") {
+            goToStep(FLEET_SCREENS.fleet);
+          }
+        }}
+      />
+    );
+  }
+
+  const phoneError = phoneTouched ? phoneProblem(seed.phone) : undefined;
+
+  function handlePhoneContinue() {
+    if (phoneProblem(seed.phone) !== undefined) {
+      setPhoneTouched(true);
+      showToast(VALIDATION_TOAST, "error");
+      return;
+    }
+
+    // Not `goToStep`: this is a sub-screen of step 1, not a new step. The typed
+    // value is already persisted by the debounced `updateDraft` on each
+    // keystroke, so there is nothing to save here either.
+    setPhoneTouched(false);
+    setPhase("details");
+  }
+
+  return (
+    <div className="flex max-w-[520px] flex-col gap-[18px]">
+      <p className="text-[13.5px] leading-[1.5] text-muted-foreground">
+        The company&apos;s main line. It becomes the account login and the
+        number dispatch calls when an order needs a decision.
+      </p>
+
+      <Field label="Company phone" htmlFor={phoneInputId} error={phoneError}>
+        <Input
+          id={phoneInputId}
+          type="tel"
+          inputMode="tel"
+          autoComplete="tel"
+          placeholder="+995 322 555 010"
+          value={seed.phone ?? ""}
+          aria-invalid={phoneError !== undefined}
+          aria-describedby={
+            phoneError !== undefined ? `${phoneInputId}-error` : undefined
+          }
+          onChange={(event) =>
+            updateDraft({ company: { ...seed, phone: event.target.value } })
+          }
+          // 48px and 16px rather than the shared 46/15: the design gives the
+          // sole field on its own screen more presence.
+          className={`h-12 rounded-[10px] bg-card px-[13px] text-base md:text-base ${
+            phoneError !== undefined
+              ? ""
+              : "focus-visible:border-onboarding-accent focus-visible:ring-onboarding-accent/15"
+          }`}
+        />
+      </Field>
+
+      <div className="flex items-center gap-3.5">
+        <button
+          type="button"
+          onClick={handlePhoneContinue}
+          className={PRIMARY_CTA_CLASS}
+        >
+          Continue
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The company's legal, contact and payout details in the design's three titled
+ * groups, plus the POST that makes them authoritative on the `LogisticsCompany`
+ * row.
+ *
+ * Exported separately from the step because task-15 mounts it in a dialog for
+ * the ACTION_REQUIRED correction path, where there is no wizard to host it: the
+ * shell renders the status screen ahead of every step once an application is
+ * submitted, and its rail raises a toast rather than navigating, so `goToStep`
+ * cannot reach step 1 again. The dialog is the only route in.
+ *
+ * Everything below the mode switch — validation, the three groups, the city
+ * picker, the request body — is identical in both modes.
+ */
+export function CompanyDetailsForm({
+  mode,
+  initial,
+  onBack,
+  onSaved,
+}: {
+  mode: CompanyFormMode;
+  /** Seed values. In correction mode these come from `submittedSummary`. */
+  initial: CompanyDraft;
+  /**
+   * Returns to the phone sub-screen. Omitted by task-15's dialog, which has no
+   * sub-screen behind it and renders no Back button.
+   */
+  onBack?: () => void;
+  onSaved: () => void;
+}): React.ReactElement {
+  const { draft, updateDraft, showToast, refetch, submittedSummary } =
+    useFleetDraft();
+
+  /**
+   * The answers in correction mode, where `updateDraft` would be a silent
+   * no-op. `bankAccountIban` is blanked on the way in whatever the caller
+   * passed: the summary masks it to its last four characters, so posting it
+   * back would overwrite a good IBAN with bullets. The ≥18-character rule then
+   * forces a genuine re-entry.
+   */
+  const [localCompany, setLocalCompany] = useState<CompanyDraft>(() =>
+    mode === "correction" ? { ...initial, bankAccountIban: "" } : initial,
+  );
+
+  const draftCompany = useMemo<CompanyDraft>(
+    () => draft.company ?? {},
+    [draft.company],
+  );
+
+  const company = mode === "draft" ? draftCompany : localCompany;
+
+  const fieldId = useId();
+  const cityListId = `${fieldId}-city-list`;
+
+  /**
+   * Fields that have been through a failed Continue. Not "has been edited" —
+   * validation fires on Continue, never on blur.
+   */
+  const [touched, setTouched] = useState<Partial<Record<CompanyField, true>>>(
+    {},
+  );
+
+  /** True while the POST is in flight, so Continue can't be double-fired. */
+  const [submitting, setSubmitting] = useState(false);
+
+  // The city box is a filter, never a display of the current answer — the chips
+  // are the answer — so unlike the driver flow's single-select this starts
+  // empty and is never seeded from the selection.
+  const [cityQuery, setCityQuery] = useState("");
+  const [cityOpen, setCityOpen] = useState(false);
+  const [cityActiveIndex, setCityActiveIndex] = useState(0);
+
+  const cityInputRef = useRef<HTMLInputElement>(null);
+  const cityListRef = useRef<HTMLDivElement>(null);
+
+  // Anything unrecognised is dropped rather than rendered: a draft written
+  // before a value existed must not crash the step.
+  const selectedCities = useMemo<CityOption[]>(() => {
+    const values = company.citiesOfOperation ?? [];
+    return values
+      .map((value) =>
+        GEORGIAN_CITY_OPTIONS.find((option) => option.value === value),
+      )
+      .filter((option): option is CityOption => option !== undefined);
+  }, [company.citiesOfOperation]);
+
+  const cityMatches = useMemo(() => {
+    const needle = cityQuery.trim().toLowerCase();
+    if (!needle) return GEORGIAN_CITY_OPTIONS;
+    return GEORGIAN_CITY_OPTIONS.filter((option) =>
+      option.label.toLowerCase().includes(needle),
+    );
+  }, [cityQuery]);
+
+  // Clamped rather than reset when the list shrinks under the cursor, so
+  // narrowing a search never leaves the highlight pointing past the last row.
+  const activeIndex = Math.min(
+    cityActiveIndex,
+    Math.max(cityMatches.length - 1, 0),
+  );
+
+  // Keeps the keyboard cursor inside the 236px scroll window. Queried by
+  // attribute rather than held in a ref array, which would have to be rebuilt
+  // on every keystroke as the filtered list changes length.
+  useEffect(() => {
+    if (!cityOpen) return;
+    cityListRef.current
+      ?.querySelector('[data-active="true"]')
+      ?.scrollIntoView({ block: "nearest" });
+  }, [cityOpen, activeIndex, cityMatches.length]);
+
+  const problems = collectProblems(company);
+
+  /** The message to show under `field`, or `undefined` while it stays quiet. */
+  function errorFor(field: CompanyField): string | undefined {
+    return touched[field] ? problems[field] : undefined;
+  }
+
+  function idFor(field: CompanyField): string {
+    return `${fieldId}-${field}`;
+  }
+
+  /** The inline error element's id, for `aria-describedby`. */
+  function describedBy(field: CompanyField): string | undefined {
+    return errorFor(field) !== undefined ? `${idFor(field)}-error` : undefined;
+  }
+
+  /**
+   * Writes one or more company fields back. The whole section is re-sent
+   * because `updateDraft` merges at the *section* level — sending only the
+   * changed key would drop every other answer.
+   */
+  function setCompany(patch: Partial<CompanyDraft>) {
+    if (mode === "draft") {
+      updateDraft({ company: { ...company, ...patch } });
+      return;
+    }
+    setLocalCompany((current) => ({ ...current, ...patch }));
+  }
+
+  /**
+   * Picking is a toggle and does not close the list — the whole point of a
+   * multi-select, and the one behaviour that differs from the driver flow's
+   * single-select. New cities are appended so the chips keep selection order.
+   */
+  function toggleCity(option: CityOption) {
+    const current = company.citiesOfOperation ?? [];
+    const next = current.includes(option.value)
+      ? current.filter((value) => value !== option.value)
+      : [...current, option.value];
+    setCompany({ citiesOfOperation: next });
+  }
+
+  function handleCityKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      if (!cityOpen) {
+        setCityOpen(true);
+        return;
+      }
+      if (cityMatches.length === 0) return;
+
+      const delta = event.key === "ArrowDown" ? 1 : -1;
+      // Wraps, so holding either arrow always reaches every row.
+      setCityActiveIndex(
+        (activeIndex + delta + cityMatches.length) % cityMatches.length,
+      );
+      return;
+    }
+
+    if (event.key === "Enter" && cityOpen) {
+      const option = cityMatches[activeIndex];
+      if (option) {
+        // Only swallowed when it actually toggles something; otherwise Enter
+        // stays available to submit the step. The list stays open and the query
+        // untouched, so a second city is one more Enter away.
+        event.preventDefault();
+        toggleCity(option);
+      }
+      return;
+    }
+
+    if (event.key === "Escape" && cityOpen) {
+      event.preventDefault();
+      setCityOpen(false);
+      return;
+    }
+
+    // Nothing else on a chip row is destructive, so this is the expected
+    // affordance in a chip multi-select.
+    if (event.key === "Backspace" && cityQuery === "") {
+      const current = company.citiesOfOperation ?? [];
+      if (current.length === 0) return;
+      setCompany({ citiesOfOperation: current.slice(0, -1) });
+    }
+  }
+
+  async function handleContinue() {
+    const failing = Object.keys(problems) as CompanyField[];
+    if (failing.length > 0) {
+      setTouched((current) => {
+        const next = { ...current };
+        for (const field of failing) next[field] = true;
+        return next;
+      });
+      // An open dropdown would cover the fields the toast is pointing at.
+      setCityOpen(false);
+      showToast(VALIDATION_TOAST, "error");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const response = await fetch(COMPANY_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          companyName: (company.companyName ?? "").trim(),
+          vatId: (company.vatId ?? "").trim(),
+          phone: (company.phone ?? "").trim(),
+          // Carried through unchanged — set at sign-up, never edited here, and
+          // required by the endpoint on every call. See §7: it is never derived
+          // from `citiesOfOperation` and never defaulted. If it is somehow
+          // absent the endpoint 400s with its own `city must be one of: …`,
+          // which the toast below surfaces.
+          city: company.city,
+          registeredAddress: (company.registeredAddress ?? "").trim(),
+          citiesOfOperation: company.citiesOfOperation ?? [],
+          contactName: (company.contactName ?? "").trim(),
+          contactRole: (company.contactRole ?? "").trim(),
+          contactEmail: (company.contactEmail ?? "").trim(),
+          bankAccountIban: (company.bankAccountIban ?? "").trim(),
+        }),
+      });
+
+      if (!response.ok) {
+        // Shown as-is, so the 409 "This phone number is already registered to
+        // another account." reaches the company rather than being swallowed.
+        showToast(await readErrorMessage(response, SAVE_FALLBACK), "error");
+        return; // Stay on the step; the details are not stored.
+      }
+    } catch {
+      showToast(SAVE_FALLBACK, "error");
+      return;
+    } finally {
+      setSubmitting(false);
+    }
+
+    // Saving is what clears a company-level flag: the route sets
+    // `companyReviewStatus: "PENDING"` and `companyFlagReason: null` in the
+    // same transaction, so the status screen has to re-read to see the
+    // resubmit gate open.
+    if (mode === "correction") {
+      showToast(CORRECTION_SAVED_TOAST);
+      await refetch();
+    }
+
+    onSaved();
+  }
+
+  const registeredCity = GEORGIAN_CITY_OPTIONS.find(
+    (option) => option.value === company.city,
+  );
+  const cityPlaceholder =
+    selectedCities.length > 0 ? CITY_PLACEHOLDER_MORE : CITY_PLACEHOLDER_EMPTY;
+  const citiesError = errorFor("citiesOfOperation");
+
+  return (
+    <div className="flex max-w-[680px] flex-col gap-[22px]">
+      <div className="flex flex-col gap-3.5">
+        <p className={GROUP_HEADING_CLASS}>Legal entity</p>
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1.4fr_1fr]">
+          <Field
+            label="Company name"
+            htmlFor={idFor("companyName")}
+            error={errorFor("companyName")}
+          >
+            <Input
+              id={idFor("companyName")}
+              autoComplete="organization"
+              placeholder="As registered"
+              value={company.companyName ?? ""}
+              aria-invalid={errorFor("companyName") !== undefined}
+              aria-describedby={describedBy("companyName")}
+              onChange={(event) =>
+                setCompany({ companyName: event.target.value })
+              }
+              className={fieldClassName(errorFor("companyName") !== undefined)}
+            />
+          </Field>
+
+          <Field
+            label="VAT / tax ID"
+            htmlFor={idFor("vatId")}
+            error={errorFor("vatId")}
+          >
+            <Input
+              id={idFor("vatId")}
+              inputMode="numeric"
+              placeholder="404123456"
+              value={company.vatId ?? ""}
+              aria-invalid={errorFor("vatId") !== undefined}
+              aria-describedby={describedBy("vatId")}
+              onChange={(event) => setCompany({ vatId: event.target.value })}
+              // `font-price` is this codebase's IBM Plex Mono stack (see the
+              // `--font-price` token) — the design's treatment for identifiers.
+              className={`${fieldClassName(errorFor("vatId") !== undefined)} font-price tracking-[0.05em]`}
+            />
+          </Field>
+        </div>
+
+        <Field
+          label="Registered address"
+          htmlFor={idFor("registeredAddress")}
+          error={errorFor("registeredAddress")}
+        >
+          <Input
+            id={idFor("registeredAddress")}
+            autoComplete="street-address"
+            placeholder="Street, number, postcode"
+            value={company.registeredAddress ?? ""}
+            aria-invalid={errorFor("registeredAddress") !== undefined}
+            aria-describedby={describedBy("registeredAddress")}
+            onChange={(event) =>
+              setCompany({ registeredAddress: event.target.value })
+            }
+            className={fieldClassName(
+              errorFor("registeredAddress") !== undefined,
+            )}
+          />
+        </Field>
+
+        {/* Read-only, and not an `Input`: a disabled field invites a click and
+            then does nothing. The value is posted back verbatim (§7) — a
+            company may be registered in one city and operate out of others, so
+            it is never derived from the selection below. */}
+        <div className="flex flex-col gap-1.5">
+          <p className={FIELD_LABEL_CLASS}>Registered city</p>
+          <p className="text-[15px]">
+            {registeredCity?.label ?? company.city ?? "—"}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Set when the account was created. Contact operations to change it.
+          </p>
+        </div>
+
+        <Field
+          label="Cities of operation"
+          htmlFor={idFor("citiesOfOperation")}
+          error={citiesError}
+          hint="Where the fleet picks up. Orders outside these cities are not offered to your drivers."
+        >
+          <div className="flex flex-col gap-2">
+            {selectedCities.length > 0 ? (
+              <div className="flex flex-wrap gap-[7px]">
+                {selectedCities.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => toggleCity(option)}
+                    aria-label={`Remove ${option.label}`}
+                    className="flex cursor-pointer items-center gap-2 rounded-[20px] border border-onboarding-accent bg-onboarding-accent/6 py-1.5 pr-2.5 pl-3 transition-colors hover:bg-onboarding-accent/12 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+                  >
+                    <span className="text-[13px] font-semibold">
+                      {option.label}
+                    </span>
+                    <span
+                      aria-hidden="true"
+                      className="text-sm leading-none text-onboarding-accent"
+                    >
+                      ×
+                    </span>
+                  </button>
+                ))}
+              </div>
+            ) : null}
+
+            {/* Hand-built combobox, extending the driver wizard's single-select
+                city picker: this codebase has no such primitive, and the design
+                needs a filtered, region-annotated checkbox list. */}
+            <Popover open={cityOpen} onOpenChange={setCityOpen}>
+              <PopoverAnchor asChild>
+                <Input
+                  id={idFor("citiesOfOperation")}
+                  ref={cityInputRef}
+                  role="combobox"
+                  autoComplete="off"
+                  aria-expanded={cityOpen}
+                  aria-controls={cityOpen ? cityListId : undefined}
+                  aria-autocomplete="list"
+                  aria-activedescendant={
+                    cityOpen && cityMatches[activeIndex]
+                      ? `${cityListId}-${activeIndex}`
+                      : undefined
+                  }
+                  placeholder={cityPlaceholder}
+                  value={cityQuery}
+                  aria-invalid={citiesError !== undefined}
+                  aria-describedby={describedBy("citiesOfOperation")}
+                  // Typing filters and nothing else: the query never clears the
+                  // selection, because the chips are the answer.
+                  onChange={(event) => {
+                    setCityQuery(event.target.value);
+                    setCityOpen(true);
+                    setCityActiveIndex(0);
+                  }}
+                  onFocus={() => setCityOpen(true)}
+                  // Both, deliberately: focusing opens the list, and clicking an
+                  // already-focused box fires no focus event, so without this
+                  // the list could not be reopened without leaving the field.
+                  onClick={() => setCityOpen(true)}
+                  onKeyDown={handleCityKeyDown}
+                  className={fieldClassName(citiesError !== undefined)}
+                />
+              </PopoverAnchor>
+              <PopoverContent
+                align="start"
+                sideOffset={6}
+                // The list is an extension of the input, not a dialog: focus has
+                // to stay in the box so typing keeps filtering, and has to stay
+                // put when the list closes.
+                onOpenAutoFocus={(event) => event.preventDefault()}
+                onCloseAutoFocus={(event) => event.preventDefault()}
+                // A click on the input itself is "outside" the portalled list,
+                // and would otherwise close the list the click is meant to keep
+                // open.
+                onInteractOutside={(event) => {
+                  if (
+                    event.target instanceof Node &&
+                    cityInputRef.current?.contains(event.target)
+                  ) {
+                    event.preventDefault();
+                  }
+                }}
+                className={`w-(--radix-popover-trigger-width) gap-0 overflow-y-auto p-0 ${CITY_LIST_MAX_HEIGHT_CLASS}`}
+              >
+                <div
+                  ref={cityListRef}
+                  id={cityListId}
+                  role="listbox"
+                  aria-multiselectable="true"
+                >
+                  {cityMatches.length === 0 ? (
+                    <p className="px-[13px] py-[11px] text-[13px] text-muted-foreground">
+                      No city by that name. Check the spelling.
+                    </p>
+                  ) : (
+                    cityMatches.map((option, index) => {
+                      const active = index === activeIndex;
+                      const selected = (
+                        company.citiesOfOperation ?? []
+                      ).includes(option.value);
+
+                      return (
+                        <button
+                          key={option.value}
+                          id={`${cityListId}-${index}`}
+                          type="button"
+                          role="option"
+                          aria-selected={selected}
+                          data-active={active}
+                          // `onMouseDown` rather than `onClick`: the input would
+                          // otherwise lose focus first and close the list out
+                          // from under the click.
+                          onMouseDown={(event) => {
+                            event.preventDefault();
+                            toggleCity(option);
+                          }}
+                          onMouseEnter={() => setCityActiveIndex(index)}
+                          className={`flex w-full items-center justify-between gap-2.5 border-b border-border px-[13px] py-2.5 text-left last:border-b-0 ${
+                            selected
+                              ? "bg-onboarding-accent/5"
+                              : active
+                                ? "bg-muted"
+                                : "bg-transparent"
+                          }`}
+                        >
+                          {/* The row's own `aria-selected` carries the state. */}
+                          <span
+                            aria-hidden="true"
+                            className={`flex size-[17px] shrink-0 items-center justify-center rounded-[5px] border-[1.5px] text-[10.5px] font-bold text-white ${
+                              selected
+                                ? "border-onboarding-accent bg-onboarding-accent"
+                                : "border-input bg-card"
+                            }`}
+                          >
+                            {selected ? <CheckIcon className="size-3" /> : null}
+                          </span>
+                          <span className="flex-1 text-sm font-medium">
+                            {option.label}
+                          </span>
+                          <span className="text-[11.5px] text-muted-foreground">
+                            {option.region}
+                          </span>
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+        </Field>
+      </div>
+
+      <div className="flex flex-col gap-3.5 border-t border-border pt-5">
+        <p className={GROUP_HEADING_CLASS}>Contact person</p>
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1.3fr_1fr]">
+          <Field
+            label="Full name"
+            htmlFor={idFor("contactName")}
+            error={errorFor("contactName")}
+          >
+            <Input
+              id={idFor("contactName")}
+              autoComplete="name"
+              placeholder="Who we speak to"
+              value={company.contactName ?? ""}
+              aria-invalid={errorFor("contactName") !== undefined}
+              aria-describedby={describedBy("contactName")}
+              onChange={(event) =>
+                setCompany({ contactName: event.target.value })
+              }
+              className={fieldClassName(errorFor("contactName") !== undefined)}
+            />
+          </Field>
+
+          <Field
+            label="Role"
+            htmlFor={idFor("contactRole")}
+            error={errorFor("contactRole")}
+          >
+            <Input
+              id={idFor("contactRole")}
+              autoComplete="organization-title"
+              placeholder="Fleet manager"
+              value={company.contactRole ?? ""}
+              aria-invalid={errorFor("contactRole") !== undefined}
+              aria-describedby={describedBy("contactRole")}
+              onChange={(event) =>
+                setCompany({ contactRole: event.target.value })
+              }
+              className={fieldClassName(errorFor("contactRole") !== undefined)}
+            />
+          </Field>
+        </div>
+
+        <Field
+          label="Company email"
+          htmlFor={idFor("contactEmail")}
+          error={errorFor("contactEmail")}
+        >
+          <Input
+            id={idFor("contactEmail")}
+            type="email"
+            autoComplete="email"
+            placeholder="dispatch@company.ge"
+            value={company.contactEmail ?? ""}
+            aria-invalid={errorFor("contactEmail") !== undefined}
+            aria-describedby={describedBy("contactEmail")}
+            onChange={(event) =>
+              setCompany({ contactEmail: event.target.value })
+            }
+            className={fieldClassName(errorFor("contactEmail") !== undefined)}
+          />
+        </Field>
+      </div>
+
+      <div className="flex flex-col gap-3.5 border-t border-border pt-5">
+        <p className={GROUP_HEADING_CLASS}>Payouts</p>
+
+        <Field
+          label="Bank account (IBAN)"
+          htmlFor={idFor("bankAccountIban")}
+          error={errorFor("bankAccountIban")}
+          hint={
+            mode === "correction"
+              ? `${PAYOUT_HINT} ${PAYOUT_REENTRY_HINT}`
+              : PAYOUT_HINT
+          }
+        >
+          <Input
+            id={idFor("bankAccountIban")}
+            // In correction mode the masked value stands in as the placeholder:
+            // it tells the company which account is on file without pretending
+            // the bullets are a value it could submit.
+            placeholder={
+              mode === "correction" && submittedSummary?.bankAccountIban
+                ? submittedSummary.bankAccountIban
+                : IBAN_PLACEHOLDER
+            }
+            value={company.bankAccountIban ?? ""}
+            aria-invalid={errorFor("bankAccountIban") !== undefined}
+            aria-describedby={describedBy("bankAccountIban")}
+            onChange={(event) =>
+              setCompany({ bankAccountIban: event.target.value })
+            }
+            className={`${fieldClassName(errorFor("bankAccountIban") !== undefined)} font-price tracking-[0.06em]`}
+          />
+        </Field>
+      </div>
+
+      <div className="mt-4 flex items-center gap-3.5 border-t border-border pt-[22px]">
+        {onBack ? (
+          <button
+            type="button"
+            onClick={() => {
+              setTouched({});
+              onBack();
+            }}
+            className="h-12 cursor-pointer rounded-[11px] border border-border bg-card px-[22px] text-[15px] font-semibold hover:bg-muted"
+          >
+            Back
+          </button>
+        ) : null}
+
+        <button
+          type="button"
+          onClick={() => void handleContinue()}
+          disabled={submitting}
+          className={PRIMARY_CTA_CLASS}
+        >
+          {submitting ? "Saving…" : "Continue"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The design's input treatment: 46px tall, 10px radius, card background, and an
+ * orange focus ring. The focus colours are dropped while the field is invalid so
+ * they cannot compete with the primitive's own `aria-invalid` red border, which
+ * carries the same specificity — no red border class is ever written by hand.
+ */
+function fieldClassName(invalid: boolean): string {
+  return `h-[46px] rounded-[10px] bg-card px-[13px] text-[15px] md:text-[15px] ${
+    invalid
+      ? ""
+      : "focus-visible:border-onboarding-accent focus-visible:ring-onboarding-accent/15"
+  }`;
+}
+
+/**
+ * Label, control, error and optional helper text in the design's stacking
+ * order. Local to this step rather than shared: the other fleet steps' controls
+ * are tables and steppers, which stack nothing like this.
+ */
+function Field({
+  label,
+  htmlFor,
+  error,
+  hint,
+  children,
+}: {
+  label: string;
+  htmlFor: string;
+  error?: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Label htmlFor={htmlFor} className={FIELD_LABEL_CLASS}>
+        {label}
+      </Label>
+      {children}
+      {error !== undefined ? (
+        <p
+          id={`${htmlFor}-error`}
+          role="alert"
+          className="text-xs text-destructive"
+        >
+          {error}
+        </p>
+      ) : null}
+      {hint !== undefined ? (
+        <p className="text-xs text-muted-foreground">{hint}</p>
+      ) : null}
+    </div>
+  );
+}

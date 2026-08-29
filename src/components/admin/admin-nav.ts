@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import {
+  Building2,
   ChartColumn,
   CreditCard,
   FileText,
@@ -37,11 +38,17 @@ export type AdminNavItem = {
 };
 
 /**
- * Stable identifiers for the six sections, so a section's `layout.tsx` can
+ * Stable identifiers for the seven sections, so a section's `layout.tsx` can
  * ask for its own tabs by name instead of restating them.
  */
 export type AdminNavSectionId =
-  "analytics" | "users" | "content" | "finance" | "crm" | "drivers";
+  | "analytics"
+  | "users"
+  | "content"
+  | "finance"
+  | "crm"
+  | "drivers"
+  | "business";
 
 /** A top-level sidebar entry. */
 export type AdminNavSection = {
@@ -194,6 +201,25 @@ export const ADMIN_NAV: AdminNavSection[] = [
       {
         label: "Applications",
         href: "/admin/drivers/applications",
+        adminRoles: ["SUPER_ADMIN", "USER_MANAGER"],
+      },
+    ],
+  },
+  {
+    id: "business",
+    label: "Business applications",
+    href: "/admin/business/applications",
+    icon: Building2,
+    // The same two roles that review individual driver applications. A fleet
+    // application carries a company's VAT id, registered address and payout
+    // IBAN, so read access is scoped to the roles that hold the review actions
+    // — SUPPORT is deliberately absent here for the same reason it is absent
+    // from Drivers.
+    adminRoles: ["SUPER_ADMIN", "USER_MANAGER"],
+    items: [
+      {
+        label: "Applications",
+        href: "/admin/business/applications",
         adminRoles: ["SUPER_ADMIN", "USER_MANAGER"],
       },
     ],

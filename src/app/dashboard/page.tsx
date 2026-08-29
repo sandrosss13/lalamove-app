@@ -14,16 +14,63 @@ export const dynamic = "force-dynamic";
  *
  * Authentication, the forced-password-change gate and the CLIENT bounce all
  * live in `layout.tsx` now, so this page is the role branch plus one routing
- * decision: an independent driver who still owes us an onboarding application
- * is sent to the wizard rather than shown a dashboard they cannot yet use. The
- * guard call below is the same cached one the layout already made, so it costs
- * no second session validation — it is here only to hand back the non-null
- * session object.
+ * decision per provider kind: an independent driver who still owes us an
+ * onboarding application is sent to the driver wizard, and a company that still
+ * owes us a fleet application is sent to the fleet wizard, rather than either
+ * being shown a dashboard they cannot yet use. The guard call below is the same
+ * cached one the layout already made, so it costs no second session validation —
+ * it is here only to hand back the non-null session object.
  */
 export default async function DashboardPage() {
   const session = await requireDashboardSession();
 
   if (session.user.role === "COMPANY") {
+    const company = await prisma.logisticsCompany.findUnique({
+      where: { userId: session.user.id },
+      select: {
+        activatedAt: true,
+        application: { select: { status: true } },
+      },
+    });
+
+    // The counterpart to `/dashboard/fleet-onboarding`'s own defensive guard,
+    // but not its exact mirror: this decides whether to *send* a company into
+    // the fleet wizard, that one decides whether a company who navigated there
+    // under their own steam may *see* it. The two agree everywhere except on an
+    // activated company, whom this must never redirect and that page
+    // deliberately still admits so the "Your fleet is live." screen stays
+    // reachable on a reload. Keep the shared conditions below in sync with it.
+    //
+    // `activatedAt === null` is what keeps grandfathered companies out. Every
+    // pre-existing `LogisticsCompany` was backfilled with an activation
+    // timestamp by the business-fleet-onboarding migration, and an
+    // admin-created company has no `BusinessApplication` row at all — so
+    // `application?.status` alone reads `undefined`, would satisfy
+    // `!== "APPROVED"`, and would drag a company that never owed us an
+    // application into a wizard with no way back out. `activatedAt` is the
+    // schema's documented source of truth for "is this company activated"; the
+    // application status stays alongside it to cover the mid-onboarding company
+    // whose row exists but is not approved yet.
+    //
+    // A COMPANY session with no `LogisticsCompany` row at all fails the first
+    // condition and falls through to `CompanyDashboard`, which already owns the
+    // "your company profile isn't set up yet" fallback for that interrupted
+    // sign-up. The wizard's step 1 assumes a company row exists, so this must
+    // never redirect ahead of that fallback.
+    //
+    // One redirect covers no-application, DRAFT, PENDING and ACTION_REQUIRED
+    // alike: `/dashboard/fleet-onboarding` is the single route, and its shell
+    // renders the wizard for a DRAFT and task-15's status screen for anything
+    // past it.
+    const shouldOnboard =
+      company !== null &&
+      company.activatedAt === null &&
+      company.application?.status !== "APPROVED";
+
+    if (shouldOnboard) {
+      redirect("/dashboard/fleet-onboarding");
+    }
+
     return <CompanyDashboard userId={session.user.id} />;
   }
 
