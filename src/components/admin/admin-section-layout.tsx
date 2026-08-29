@@ -8,7 +8,7 @@ import { AdminSectionTabs } from "@/components/admin/admin-section-tabs";
 import { hasAdminRole, requireSystemUser } from "@/lib/admin/auth";
 
 /**
- * The body of every section `layout.tsx`, so the four of them stay one line
+ * The body of every section `layout.tsx`, so the five of them stay one line
  * each and the heading/tab markup is defined once.
  *
  * It re-runs `requireSystemUser()` rather than receiving the staff member from

@@ -19,6 +19,8 @@ The 520px right-side detail panel opened from a queue row: the full application 
 
 **Context from dependencies:** `task-16`'s `GET /api/admin/driver-applications/[id]` returns `AdminDriverApplicationDetail` (`driver`, `licence`, `vehicle`, `documents[]` — full shape in that task file), each document carrying a `signedUrl`. `task-17`'s three mutation endpoints: `PATCH /api/admin/driver-applications/[id]/documents/[docId]` (`{action:"approve"}` or `{action:"flag", reason}`), `POST .../request-changes`, `POST .../approve`.
 
+**Post-wave-5-review correction: `vehicle` is `{...} | null`, not always present.** A driver can remove their vehicle from their own dashboard at any time (an existing, unrelated flow), and `DriverApplication.vehicleId` is `onDelete: SetNull`, so an application can legitimately reach this drawer with no vehicle on file — reviewed documents and all. Render an explicit "Vehicle no longer on file" state in the vehicle section of the two-column grid when `vehicle === null`, rather than blank fields. This is also why `task-17`'s `approve` endpoint now 400s with "This application no longer has a vehicle on file and can't be approved." when `vehicleId` is null — surface that error inline the same way any other failed mutation is shown, it isn't a special case.
+
 ## Files to Create
 
 - `src/components/admin/driver-application-detail-drawer.tsx`

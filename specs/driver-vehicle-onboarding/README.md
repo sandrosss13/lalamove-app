@@ -113,9 +113,9 @@ graph TD
 - [x] [task-14-onboarding-status-screen](./tasks/task-14-onboarding-status-screen.md) — Pending / action-required / approved states
 
 ### Wave 5
-- [ ] [task-15-admin-nav-registration](./tasks/task-15-admin-nav-registration.md) — Register the new admin section
-- [ ] [task-16-admin-applications-read-api](./tasks/task-16-admin-applications-read-api.md) — List + detail endpoints
-- [ ] [task-17-admin-applications-mutation-api](./tasks/task-17-admin-applications-mutation-api.md) — Approve/flag/request-changes/approve-driver endpoints
+- [x] [task-15-admin-nav-registration](./tasks/task-15-admin-nav-registration.md) — Register the new admin section
+- [x] [task-16-admin-applications-read-api](./tasks/task-16-admin-applications-read-api.md) — List + detail endpoints
+- [x] [task-17-admin-applications-mutation-api](./tasks/task-17-admin-applications-mutation-api.md) — Approve/flag/request-changes/approve-driver endpoints
 
 ### Wave 6
 - [ ] [task-18-admin-applications-queue-page](./tasks/task-18-admin-applications-queue-page.md) — Filterable table
