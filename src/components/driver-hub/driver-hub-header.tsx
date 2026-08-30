@@ -1,7 +1,11 @@
 "use client";
 
+import { LogOut } from "lucide-react";
+
+import { useSignOut } from "@/components/auth/use-sign-out";
 import { HubOnlineToggle } from "@/components/driver-hub/hub-online-toggle";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import type { HubAccount, HubAccountKind } from "@/lib/dashboard/hub/account";
 
 /**
@@ -27,7 +31,7 @@ export type DriverHubHeaderProps = {
 
 /**
  * The hub's sticky top bar: page title and subhead on the left, account chip,
- * availability pill and avatar block on the right.
+ * availability pill, avatar block and sign out on the right.
  *
  * The prototype puts a Business/Individual **segmented control** here. That is
  * a prototype affordance — it exists so one HTML file can demo both shapes of
@@ -42,6 +46,8 @@ export function DriverHubHeader({
   title,
   subtitle,
 }: DriverHubHeaderProps) {
+  const { signOut, signingOut } = useSignOut();
+
   return (
     <header className="sticky top-0 z-10 flex items-center justify-between gap-6 border-b border-border bg-background px-8 py-[22px]">
       <div className="min-w-0">
@@ -88,6 +94,31 @@ export function DriverHubHeader({
             </p>
           </div>
         </div>
+
+        {/* The hub's only way out, and the reason it has to live here: the
+            shell's root carries `data-admin-surface`, and `globals.css` hides
+            the global site header (`body:has([data-admin-surface]) > header`)
+            for the whole surface. That header is `AuthStatus`, which owns the
+            app's other sign out — so without this control a signed-in driver
+            or company user browsing the hub has no way to sign out at all.
+
+            Ghost rather than outline: the availability pill next to it is the
+            header's one real decision, and a bordered button here would read
+            as a second one. `useSignOut()` owns the Better Auth call and the
+            navigation that follows it, so nothing is routed from here. */}
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => {
+            void signOut();
+          }}
+          disabled={signingOut}
+          className="text-[13px] text-muted-foreground hover:text-foreground"
+        >
+          <LogOut aria-hidden="true" data-icon="inline-start" />
+          {signingOut ? "Signing out…" : "Sign out"}
+        </Button>
       </div>
     </header>
   );

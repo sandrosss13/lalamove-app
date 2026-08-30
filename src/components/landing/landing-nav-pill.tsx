@@ -4,11 +4,13 @@ import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 
+import { useSignOut } from "@/components/auth/use-sign-out";
 import { LandingThemeToggle } from "@/components/landing/landing-theme-toggle";
 import {
   DEFAULT_HOME_PAGE_CONTENT,
   type NavContent,
 } from "@/lib/admin/home-page-content";
+import { useSession } from "@/lib/auth-client";
 
 /**
  * Shared by the inline row and the mobile panel so both obey one rule for how a
@@ -66,15 +68,19 @@ function NavLinkElement({
 const CHIP_BASE =
   "rounded-full text-[13.5px] whitespace-nowrap transition-colors";
 
-/** Quiet chip: nav links and Sign in. */
+/** Quiet chip: nav links, Sign in, and the signed-in account link. */
 const CHIP_QUIET = `${CHIP_BASE} text-subtle hover:bg-surface-raised hover:text-paper`;
 
 /**
- * Inverted chip: Sign up. `bg-paper` on `text-ink` is the design's
- * foreground-on-background button, which means it flips with the theme for free
- * — dark-on-light in the light theme, light-on-dark in the dark one.
+ * Inverted chip: the pill's one prominent action — Sign up signed out, Sign out
+ * signed in. `bg-paper` on `text-ink` is the design's foreground-on-background
+ * button, which means it flips with the theme for free — dark-on-light in the
+ * light theme, light-on-dark in the dark one.
+ *
+ * `disabled:opacity-60` only ever applies to the `<button>` that renders the
+ * sign-out action; on the `<a>`/`Link` chips it is inert.
  */
-const CHIP_INVERTED = `${CHIP_BASE} bg-paper font-semibold text-ink hover:opacity-90`;
+const CHIP_INVERTED = `${CHIP_BASE} bg-paper font-semibold text-ink hover:opacity-90 disabled:opacity-60`;
 
 /**
  * The floating glass nav pill — the landing page's only persistent chrome, and
@@ -100,6 +106,30 @@ export function LandingNavPill({
   // consider a proper mobile menu"), so below `sm` the links collapse into this
   // disclosure instead.
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  /*
+    The pill has to know about the session because it is frequently the *only*
+    chrome on the page: `LandingPage` sets `data-hide-site-header` unless
+    `showSiteHeader` is passed, which hides the root layout's header — the one
+    place a signed-in user would otherwise find their account link and a sign
+    out. Without this branch a signed-in visitor to `/home` is offered "Sign in"
+    and "Sign up", and on every other landing render has no way out at all.
+
+    `isPending` keeps the signed-out pair rather than swapping in a skeleton:
+    that is what the server-rendered markup already shows, so the common
+    (signed-out) case never changes after hydration, and the signed-in case
+    settles in a single swap.
+  */
+  const { data: session, isPending } = useSession();
+  const { signOut, signingOut } = useSignOut();
+  const sessionUser = isPending ? undefined : session?.user;
+
+  // Same split as `AuthStatus`: clients live on /account, while drivers and
+  // logistics companies manage their work on /dashboard.
+  const isClient = sessionUser?.role === "CLIENT";
+  const accountHref = isClient ? "/account" : "/dashboard";
+  const accountLabel = isClient ? "My account" : "Dashboard";
+
   const panelId = useId();
   const containerRef = useRef<HTMLDivElement>(null);
   const toggleButtonRef = useRef<HTMLButtonElement>(null);
@@ -186,12 +216,24 @@ export function LandingNavPill({
             </NavLinkElement>
           ))}
 
-          <NavLinkElement
-            href={content.signInHref}
-            className={`${CHIP_QUIET} ml-1.5 px-3.5 py-[9px]`}
-          >
-            {content.signInLabel}
-          </NavLinkElement>
+          {/* The quiet slot: the visitor's way in signed out, their way to
+              their own surface signed in. The CMS hrefs stay on the signed-out
+              branch — an account route is app structure, not editable copy. */}
+          {sessionUser ? (
+            <NavLinkElement
+              href={accountHref}
+              className={`${CHIP_QUIET} ml-1.5 px-3.5 py-[9px]`}
+            >
+              {accountLabel}
+            </NavLinkElement>
+          ) : (
+            <NavLinkElement
+              href={content.signInHref}
+              className={`${CHIP_QUIET} ml-1.5 px-3.5 py-[9px]`}
+            >
+              {content.signInLabel}
+            </NavLinkElement>
+          )}
         </div>
 
         {/* Between the links and Sign up in the inline row; between the wordmark
@@ -199,12 +241,26 @@ export function LandingNavPill({
             both cases — the toggle owns real state, so it is never duplicated. */}
         <LandingThemeToggle />
 
-        <NavLinkElement
-          href={content.signUpHref}
-          className={`${CHIP_INVERTED} ml-0.5 hidden px-5 py-2.5 sm:inline-block`}
-        >
-          {content.signUpLabel}
-        </NavLinkElement>
+        {/* Sign out takes the inverted slot Sign up occupies, carrying the same
+            padding and `sm:inline-block` so the pill's proportions and its
+            single point of visual weight are unchanged by the session. */}
+        {sessionUser ? (
+          <button
+            type="button"
+            onClick={signOut}
+            disabled={signingOut}
+            className={`${CHIP_INVERTED} ml-0.5 hidden px-5 py-2.5 sm:inline-block`}
+          >
+            {signingOut ? "Signing out…" : "Sign out"}
+          </button>
+        ) : (
+          <NavLinkElement
+            href={content.signUpHref}
+            className={`${CHIP_INVERTED} ml-0.5 hidden px-5 py-2.5 sm:inline-block`}
+          >
+            {content.signUpLabel}
+          </NavLinkElement>
+        )}
 
         <button
           ref={toggleButtonRef}
@@ -245,21 +301,54 @@ export function LandingNavPill({
               </NavLinkElement>
             ))}
 
-            <NavLinkElement
-              href={content.signInHref}
-              onSelect={closeMenu}
-              className={`${CHIP_QUIET} flex min-h-11 items-center px-3.5`}
-            >
-              {content.signInLabel}
-            </NavLinkElement>
+            {/* The same two slots as the inline row, on the same chip
+                constants, so the signed-in state cannot appear on one breakpoint
+                and not the other. */}
+            {sessionUser ? (
+              <>
+                <NavLinkElement
+                  href={accountHref}
+                  onSelect={closeMenu}
+                  className={`${CHIP_QUIET} flex min-h-11 items-center px-3.5`}
+                >
+                  {accountLabel}
+                </NavLinkElement>
 
-            <NavLinkElement
-              href={content.signUpHref}
-              onSelect={closeMenu}
-              className={`${CHIP_INVERTED} mt-1 flex min-h-11 items-center justify-center px-5`}
-            >
-              {content.signUpLabel}
-            </NavLinkElement>
+                <button
+                  type="button"
+                  // Closes the panel exactly as a link does before the sign-out
+                  // runs: the visitor is done with the menu either way, and the
+                  // hook navigates the whole document away on success, so
+                  // leaving the panel open would only flash it during unload.
+                  onClick={() => {
+                    closeMenu();
+                    void signOut();
+                  }}
+                  disabled={signingOut}
+                  className={`${CHIP_INVERTED} mt-1 flex min-h-11 items-center justify-center px-5`}
+                >
+                  {signingOut ? "Signing out…" : "Sign out"}
+                </button>
+              </>
+            ) : (
+              <>
+                <NavLinkElement
+                  href={content.signInHref}
+                  onSelect={closeMenu}
+                  className={`${CHIP_QUIET} flex min-h-11 items-center px-3.5`}
+                >
+                  {content.signInLabel}
+                </NavLinkElement>
+
+                <NavLinkElement
+                  href={content.signUpHref}
+                  onSelect={closeMenu}
+                  className={`${CHIP_INVERTED} mt-1 flex min-h-11 items-center justify-center px-5`}
+                >
+                  {content.signUpLabel}
+                </NavLinkElement>
+              </>
+            )}
           </div>
         </div>
       ) : null}

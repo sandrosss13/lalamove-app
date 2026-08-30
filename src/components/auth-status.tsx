@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 
-import { signOut, useSession } from "@/lib/auth-client";
+import { useSignOut } from "@/components/auth/use-sign-out";
+import { useSession } from "@/lib/auth-client";
 
 /**
  * Header widget reflecting the current session. Shows the signed-in user with a
@@ -11,7 +11,10 @@ import { signOut, useSession } from "@/lib/auth-client";
  */
 export function AuthStatus() {
   const { data: session, isPending } = useSession();
-  const router = useRouter();
+  // Hoisted above the `session` branch below because hooks cannot be called
+  // conditionally — the control it drives only renders when there *is* a
+  // session, but the hook has to run on every render either way.
+  const { signOut, signingOut } = useSignOut();
 
   if (isPending) {
     return <span className="text-sm opacity-50">…</span>;
@@ -19,11 +22,6 @@ export function AuthStatus() {
 
   if (session) {
     const { name, role } = session.user;
-
-    async function handleSignOut() {
-      await signOut();
-      router.refresh();
-    }
 
     // Clients live on /account; drivers and logistics companies manage their
     // fleet, roster and bookings on /dashboard.
@@ -46,10 +44,11 @@ export function AuthStatus() {
         </Link>
         <button
           type="button"
-          onClick={handleSignOut}
-          className="rounded border px-2 py-1 font-medium hover:opacity-70"
+          onClick={() => void signOut()}
+          disabled={signingOut}
+          className="rounded border px-2 py-1 font-medium hover:opacity-70 disabled:opacity-50"
         >
-          Sign out
+          {signingOut ? "Signing out…" : "Sign out"}
         </button>
       </div>
     );
