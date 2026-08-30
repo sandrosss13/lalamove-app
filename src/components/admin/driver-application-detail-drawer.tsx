@@ -230,10 +230,11 @@ function describeApproveAll(remaining: number, total: number): string {
  * to re-read the application after every verdict anyway.
  *
  * The structure (fixed backdrop, right-anchored panel, Escape/backdrop
- * dismissal) follows `src/components/dashboard/ops/ops-drawer-shell.tsx`, but
- * the markup is this component's own: that shell is painted in the ops
- * console's dark `--ops-*` palette and is wired to the ops dashboard context,
- * neither of which exists in the back office's light shadcn surface.
+ * dismissal) was modelled on the retired ops console's `OpsDrawerShell`, but
+ * the markup is this component's own: that shell was painted in the console's
+ * dark palette and wired to the console's context, neither of which exists in
+ * the back office's light shadcn surface — which is why nothing broke when the
+ * console was deleted.
  */
 export function DriverApplicationDetailDrawer({
   applicationId,

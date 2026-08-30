@@ -26,23 +26,6 @@
   --landing-ink-strong: #15140f;
   --landing-on-strong: #f5f2ea;
 
-  /* Ops-dashboard palette (logistics company and driver consoles). Independent
-     of the light/dark tokens above and of the landing page's own palette: these
-     are the console's dark values, used regardless of system theme and scoped
-     to [data-ops-dashboard]. Dark is the default; a visitor who flips the
-     console's own toggle gets the light overrides further down this file
-     ([data-ops-dashboard][data-ops-theme="light"]). */
-  --ops-bg: oklch(0.16 0.004 260);
-  --ops-surface: oklch(0.19 0.005 260);
-  --ops-surface-raised: oklch(0.22 0.006 260);
-  --ops-border: oklch(0.26 0.006 260);
-  --ops-text: oklch(0.95 0.002 260);
-  --ops-text-muted: oklch(0.6 0.012 260);
-  --ops-accent: oklch(0.66 0.18 25);
-  --ops-accent-fg: oklch(0.14 0.02 25);
-  --ops-danger: oklch(0.6 0.18 25);
-  --ops-success: oklch(0.7 0.14 145);
-
   /* Driver-onboarding wizard palette. Only the two brand-orange values the
      approved design names directly (`design_handoff_driver_onboarding/README.md`,
      "Design tokens"); everything else that surface needs — border, card, muted
@@ -131,30 +114,14 @@
   --animate-wipe: landing-wipe 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
   --animate-ticker: landing-ticker 45s linear infinite;
 
-  --color-ops-bg: var(--ops-bg);
-  --color-ops-surface: var(--ops-surface);
-  --color-ops-surface-raised: var(--ops-surface-raised);
-  --color-ops-border: var(--ops-border);
-  --color-ops-text: var(--ops-text);
-  --color-ops-text-muted: var(--ops-text-muted);
-  --color-ops-accent: var(--ops-accent);
-  --color-ops-accent-fg: var(--ops-accent-fg);
-  --color-ops-danger: var(--ops-danger);
-  --color-ops-success: var(--ops-success);
-
-  --font-ops: var(--font-ibm-plex), monospace;
-
-  --animate-ops-drawer-in: ops-drawer-in 0.18s ease;
-  --animate-ops-toast-in: ops-toast-in 0.2s ease;
-
   --color-onboarding-accent: var(--onboarding-accent);
   --color-onboarding-accent-hover: var(--onboarding-accent-hover);
 
   /* The design's `fadeUp` — the entering-panel animation for every wizard step,
      and (at the shorter duration) the onboarding toast's own entrance. Declared
-     here alongside the two ops animations rather than in a per-component CSS
-     module: this file is already the one place the project defines keyframes,
-     and a second mechanism for the same job would be the odd one out. */
+     here rather than in a per-component CSS module: this file is already the
+     one place the project defines keyframes, and a second mechanism for the
+     same job would be the odd one out. */
   --animate-onboarding-fade-up: onboarding-fade-up 0.3s ease both;
   --animate-onboarding-toast-in: onboarding-fade-up 0.2s ease both;
 
@@ -245,30 +212,6 @@
   }
   to {
     transform: translateX(-50%);
-  }
-}
-
-/* Detail drawer slides in from the right edge it is anchored to. */
-@keyframes ops-drawer-in {
-  from {
-    transform: translateX(28px);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
-
-/* Toasts rise from below the viewport edge they stack against. */
-@keyframes ops-toast-in {
-  from {
-    transform: translateY(14px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
   }
 }
 
@@ -365,77 +308,6 @@ body:has([data-landing-page]) {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
-}
-
-/* The ops dashboard ships its own sidebar and owns the full viewport, so the
-   global site header would stack a second, light-themed navbar on top of it. */
-body:has([data-ops-dashboard]) > header {
-  display: none;
-}
-
-body:has([data-ops-dashboard]) {
-  background: var(--ops-bg);
-}
-
-/* Every interactive element on the ops dashboard is styled from scratch, so the
-   focus ring is defined once here rather than repeated across components. */
-[data-ops-dashboard] a:focus-visible,
-[data-ops-dashboard] button:focus-visible {
-  outline: 2px solid var(--ops-accent);
-  outline-offset: 2px;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  [data-ops-dashboard] *,
-  [data-ops-dashboard] *::before,
-  [data-ops-dashboard] *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
-
-/* Scoped rather than global: the dense scrolling panels in this dashboard are
-   the only place in the app that wants a slim, dark-tinted scrollbar. */
-[data-ops-dashboard] ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-[data-ops-dashboard] ::-webkit-scrollbar-thumb {
-  background: var(--ops-border);
-  border-radius: 4px;
-}
-
-[data-ops-dashboard] ::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-/* Light variant of the ops console, opt-in via `data-ops-theme="light"` set on
-   the same element as `data-ops-dashboard` (client-side, from the visitor's
-   toggle choice — see `useOpsTheme`). No attribute, or `data-ops-theme="dark"`,
-   keeps the dark values already declared in `:root` above; dark is the
-   default. Same hue families as the dark palette (neutral ~260, warm accent
-   ~25, success green ~145), lightness/chroma re-tuned for a light surface. */
-[data-ops-dashboard][data-ops-theme="light"] {
-  --ops-bg: oklch(0.985 0.002 260);
-  --ops-surface: oklch(0.97 0.004 260);
-  --ops-surface-raised: oklch(0.94 0.005 260);
-  --ops-border: oklch(0.87 0.006 260);
-  --ops-text: oklch(0.2 0.005 260);
-  --ops-text-muted: oklch(0.48 0.01 260);
-  --ops-accent: oklch(0.58 0.19 25);
-  --ops-accent-fg: oklch(0.99 0.01 25);
-  --ops-danger: oklch(0.55 0.19 25);
-  --ops-success: oklch(0.5 0.13 145);
-}
-
-/* `body:has([data-ops-dashboard])` above sets the dark `--ops-bg` as the body's
-   background; `--ops-bg` there is inherited from `:root`, not from the
-   dashboard div's own override, so it needs its own light-mode rule here
-   (mirroring the value above) rather than falling out of the cascade. */
-body:has([data-ops-dashboard][data-ops-theme="light"]) {
-  background: oklch(0.985 0.002 260);
 }
 
 /* The two surfaces built out of the `src/components/ui` shadcn primitives: the

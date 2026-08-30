@@ -4,7 +4,7 @@ import "./globals.css";
 import { AuthStatus, HeaderBrandLink } from "@/components/auth-status";
 
 // Exposed as CSS variables only (never applied to `body`), so these are opt-in
-// per route via the `font-display` / `font-body` / `font-ops` utilities. Both
+// per route via the `font-display` / `font-body` / `font-price` utilities. Both
 // the landing page's headings and its body copy are the same family
 // (IBM Plex Sans), differentiated by weight rather than by a separate
 // display face.
@@ -16,8 +16,8 @@ const ibmPlexSans = IBM_Plex_Sans({
 });
 
 // Used for numeric data (prices, dates, IDs) where tabular alignment matters —
-// the ops dashboard's regular text and the landing page's body/display text
-// both stay on their own sans stacks; only figures opt into this one.
+// the driver hub's regular text and the landing page's body/display text both
+// stay on their own sans stacks; only figures opt into this one.
 const ibmPlexMono = IBM_Plex_Mono({
   subsets: ["latin"],
   weight: ["400", "500", "600"],
