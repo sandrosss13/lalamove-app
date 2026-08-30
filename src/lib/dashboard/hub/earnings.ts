@@ -473,19 +473,41 @@ function toWeeklyBuckets(
  * the database, so the span cap and the calendar-date check belong on this side
  * of the boundary too.
  *
+ * The caller's `preset` survives that re-normalisation when the dates come back
+ * untouched, and only then. `normaliseRange` answers the narrower question "is
+ * this pair of dates usable", and every pair it approves is by definition
+ * `"custom"` to it — it has no way to recognise that 24–30 August happens to be
+ * what "This week" resolved to. Dropping the label here is what made the filter
+ * bar render Custom for a range the driver had never customised, and left the
+ * date fields at full opacity instead of dimmed. If normalisation *did* have to
+ * correct the dates, the window is no longer the one the preset names, so
+ * `"custom"` is then the honest answer and is kept.
+ *
  * One query. The tiles are summed from the same zero-filled day rows the chart
  * plots, rather than from a separate aggregate, so the headline figure can never
  * disagree with the bars underneath it.
  */
 export async function getHubEarnings(
   account: HubAccount,
-  range: { from: string; to: string },
+  range: {
+    from: string;
+    to: string;
+    preset?: ResolvedHubEarningsRange["preset"];
+  },
 ): Promise<HubEarningsData> {
-  const resolved = normaliseRange(
+  const normalised = normaliseRange(
     range.from,
     range.to,
     startOfHubDay(new Date()),
   );
+
+  const survivedIntact =
+    normalised.from === range.from && normalised.to === range.to;
+
+  const resolved: ResolvedHubEarningsRange =
+    survivedIntact && range.preset !== undefined
+      ? { ...normalised, preset: range.preset }
+      : normalised;
 
   // The query bounds are half-open — `>= from AND < to + 1 day` — so the last
   // day of an inclusive range is counted whole without anyone having to write
