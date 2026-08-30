@@ -12,6 +12,7 @@ import type {
 } from "@/components/landing/landing-page";
 import {
   HOME_HERO_BANNER_PLACEMENT,
+  HOME_PARTNER_LOGO_BANNER_PLACEMENT,
   HOME_SECONDARY_BANNER_PLACEMENT,
   parseHomePageSection,
 } from "@/lib/admin/home-page-content";
@@ -34,15 +35,25 @@ const LOCALE_BY_QUERY_VALUE: Record<string, ContentLocale> = {
   ka: "KA",
 };
 
-/** Both landing placements, so the two banner lists come out of one query. */
+/** Every landing placement, so all three banner lists come out of one query. */
 const HOME_BANNER_PLACEMENTS = [
   HOME_HERO_BANNER_PLACEMENT,
+  HOME_PARTNER_LOGO_BANNER_PLACEMENT,
   HOME_SECONDARY_BANNER_PLACEMENT,
 ];
 
-/** The two banner placements the landing page renders, split by placement. */
+/** The banner placements the landing page loads, split by placement. */
 export type HomePageBanners = {
+  /** The hero carousel's slides. */
   heroBanners: LandingBanner[];
+  /** The partner logo marquee's logos. */
+  partnerBanners: LandingBanner[];
+  /**
+   * Kept loaded, but no longer rendered: the redesign replaced the vertical
+   * banner stack that read this placement with the hero carousel. The
+   * placement, its admin form and this list all stay so existing rows are not
+   * orphaned and a future section can pick them up without a schema change.
+   */
   secondaryBanners: LandingBanner[];
 };
 
@@ -110,7 +121,7 @@ export async function loadHomePageSections(
 }
 
 /**
- * Active banners for the landing page's two placements, split by placement.
+ * Active banners for the landing page's placements, split by placement.
  *
  * "Active" is both the `isActive` switch and the optional display window: a
  * banner scheduled for next month, or one that ended last week, is off the page
@@ -144,6 +155,9 @@ export async function loadHomePageBanners(
   return {
     heroBanners: rows.filter(
       (row) => row.placement === HOME_HERO_BANNER_PLACEMENT,
+    ),
+    partnerBanners: rows.filter(
+      (row) => row.placement === HOME_PARTNER_LOGO_BANNER_PLACEMENT,
     ),
     secondaryBanners: rows.filter(
       (row) => row.placement === HOME_SECONDARY_BANNER_PLACEMENT,

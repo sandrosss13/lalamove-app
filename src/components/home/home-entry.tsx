@@ -59,13 +59,13 @@ function ProviderPrompt({
 export function HomeEntry({
   sections,
   heroBanners,
-  secondaryBanners,
+  partnerBanners,
 }: {
   sections?: LandingSection[];
-  /** Active banners placed at `home_hero`. */
+  /** Active banners placed at `home_hero` — the hero carousel's slides. */
   heroBanners?: LandingBanner[];
-  /** Active banners placed at `home_secondary`. */
-  secondaryBanners?: LandingBanner[];
+  /** Active banners placed at `home_partner_logo` — the marquee's logos. */
+  partnerBanners?: LandingBanner[];
 }) {
   const { data: session, isPending } = useSession();
 
@@ -82,7 +82,7 @@ export function HomeEntry({
       <LandingPage
         sections={sections}
         heroBanners={heroBanners}
-        secondaryBanners={secondaryBanners}
+        partnerBanners={partnerBanners}
       />
     );
   }

@@ -1,8 +1,32 @@
-@import "tailwindcss";
+/* `source("../")` pins Tailwind's class scanning to `src/` (this file lives in
+   `src/app/`). Without it v4 auto-detects sources from the project root and
+   scans everything not gitignored — including `specs/`, `UI:UX/`, `ds-bundle/`
+   and the design handoffs. That is not merely wasteful: a class-shaped string
+   inside prose becomes a real utility. A spec file quoting `bg-[url(...)]` as
+   an example generated `background-image: url(...)`, which webpack's CSS
+   loader then tried to resolve as the module `./...`, failing the whole
+   stylesheet and 500-ing every route. Documentation must not be able to break
+   the build, so the scan is scoped to the only directory that holds app code
+   (`tsconfig.json` maps `@/*` to `./src/*`). */
+@import "tailwindcss" source("../");
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@custom-variant dark (&:is(.dark *));
+/* Declared by the shadcn CLI as `&:is(.dark *)` and never used — nothing set
+   `.dark` until the landing page's theme toggle did. Narrowed to the landing
+   subtree on purpose: `.dark` now lives on `<html>` for the whole session, and
+   the `src/components/ui/*` primitives carry `dark:` classes (`dark:bg-input/30`
+   on input/textarea/select/button/checkbox, `dark:text-muted-foreground` on
+   tabs) that would otherwise start firing on the admin back office, the driver
+   hub and both onboarding wizards — all three of which are deliberately pinned
+   to a light palette with a light-only shadcn token set. This is a strict no-op
+   for existing behaviour (the variant has never matched anything) and it keeps
+   `dark:` available where it is actually wanted.
+
+   The landing root itself is listed alongside its descendants so a `dark:`
+   utility written on the page's outermost element still matches — that is what
+   makes the theme toggle's CSS-only icon swap work. */
+@custom-variant dark (&:is(.dark [data-landing-page], .dark [data-landing-page] *));
 
 :root {
   --background: #ffffff;
@@ -25,6 +49,81 @@
   --landing-line: #e7e4de;
   --landing-ink-strong: #15140f;
   --landing-on-strong: #f5f2ea;
+
+  /* --- Georgia-homepage additions, light theme -------------------------------
+     Every token below has a dark counterpart in the
+     `html.dark body:has([data-landing-page])` block further down. They exist in
+     both themes so the section components reference one name and never branch on
+     the theme in TSX. Values that read as "translucent white over a dark page" in
+     the handoff become "translucent ink over a light page" here; the two that
+     sit on top of photography (`glass-image*`) stay dark in both themes, because
+     a caption pill over a banner needs to be legible either way. */
+  --landing-accent-hover: #b4530f; /* handoff's "accent on light bg" */
+  --landing-on-accent: #ffffff;
+  --landing-frame: #f1efe9;
+  --landing-surface-raised: #ffffff;
+  --landing-surface-sunken: rgba(32, 31, 28, 0.05);
+  --landing-glass: rgba(255, 255, 255, 0.72);
+  --landing-glass-image: rgba(8, 9, 10, 0.62);
+  --landing-glass-image-strong: rgba(8, 9, 10, 0.66);
+  --landing-line-hairline: rgba(32, 31, 28, 0.07);
+  --landing-line-strong: rgba(32, 31, 28, 0.14);
+  --landing-line-stronger: rgba(32, 31, 28, 0.2);
+  --landing-line-accent: rgba(255, 90, 31, 0.22);
+  --landing-line-accent-strong: rgba(255, 90, 31, 0.3);
+  --landing-subtle: rgba(32, 31, 28, 0.66);
+  --landing-faint: rgba(32, 31, 28, 0.5);
+  --landing-faintest: rgba(32, 31, 28, 0.42);
+
+  /* The four named gradients from the handoff's Design Tokens table, restated
+     on the light accent. Declared as whole `background-image` values rather than
+     colour stops so a component applies one with
+     `bg-[image:var(--landing-gradient-accent-card)]` and gets the theme's
+     version for free. */
+  --landing-gradient-spotlight: radial-gradient(
+    closest-side,
+    rgba(255, 90, 31, 0.16),
+    rgba(255, 90, 31, 0.04) 55%,
+    transparent 72%
+  );
+  --landing-gradient-accent-card: linear-gradient(
+    160deg,
+    rgba(255, 90, 31, 0.1),
+    rgba(32, 31, 28, 0.02) 46%
+  );
+  --landing-gradient-coverage-card: linear-gradient(
+    160deg,
+    rgba(255, 90, 31, 0.09),
+    rgba(32, 31, 28, 0.02) 50%
+  );
+  --landing-gradient-cta-panel: linear-gradient(
+    150deg,
+    rgba(255, 90, 31, 0.14),
+    rgba(32, 31, 28, 0.02) 58%
+  );
+
+  /* Shadows. The handoff's three, softened for a light page — an 0.9-alpha black
+     drop shadow reads as a smudge on white. The CTA glow keeps its accent hue in
+     both themes because it is the button's own colour bleeding, not a shadow. */
+  --landing-shadow-frame: 0 40px 90px -34px rgba(32, 31, 28, 0.28);
+  --landing-shadow-pill: 0 8px 30px rgba(32, 31, 28, 0.12);
+  --landing-shadow-cta: 0 10px 30px rgba(255, 90, 31, 0.28);
+
+  /* Motion, from the handoff's Motion table. Theme-independent, so declared once
+     here and never repeated in the dark block. `--landing-ease` is the same
+     cubic-bezier the existing `--animate-rise` / `--animate-wipe` already use;
+     naming it lets the carousel and the scroll reveal share one curve. The
+     6000ms auto-advance interval is deliberately NOT a CSS variable — it is a
+     JS constant owned by the carousel component in task-06. */
+  --landing-ease: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Where the fixed nav pill sits. The design's value; overridden further down
+     for the one state that keeps the global site header above the page, since
+     a fixed pill at 14px would otherwise float across it. */
+  --landing-nav-pill-top: 14px;
+  --landing-duration-reveal: 750ms;
+  --landing-duration-carousel: 420ms;
+  --landing-duration-dot: 240ms;
 
   /* Driver-onboarding wizard palette. Only the two brand-orange values the
      approved design names directly (`design_handoff_driver_onboarding/README.md`,
@@ -85,6 +184,102 @@
   }
 }
 
+/* Landing page, dark theme — the `Home-Georgia-v3` palette from
+   `UI:UX/homepage/design_handoff_georgia_homepage/README.md`.
+   `.dark` is set on `<html>` before first paint by the inline script in
+   `src/app/layout.tsx`, and is what the (narrowed) `dark:` variant keys off.
+
+   Scoped to `body:has([data-landing-page])` rather than to `.dark` alone
+   ON PURPOSE. The `--landing-*` prefix is misleading: `bg-ink`, `bg-surface`,
+   `text-paper`, `border-line`, `text-accent` and `text-muted` are also used by
+   the account pages, the signed-in booking app (`src/components/home/
+   booking-form.tsx`, out of scope for this feature) and — via the
+   `var(--admin-muted, var(--landing-muted))` chain — by the admin back office,
+   the driver hub and both onboarding wizards. A bare `.dark { --landing-ink: ... }`
+   would repaint all of them for any visitor who once picked dark on the
+   homepage. `data-landing-page` is server-rendered on the landing root, so this
+   selector matches from the first paint with no flash.
+
+   Body is the subject rather than `[data-landing-page]` itself because
+   `body:has([data-landing-page]) { background: var(--landing-ink) }` further
+   down resolves the variable on `body`. Specificity works out: that rule is
+   (0,1,1) and this block is (0,2,2), so the dark values win on `body` and the
+   background rule keeps working untouched.
+
+   Only `--landing-*` names appear here. The shadcn token set, `--onboarding-accent`,
+   `--admin-accent`/`--admin-muted` and `--background`/`--foreground` are all
+   deliberately absent — see the Non-Goals in
+   `specs/georgia-homepage-redesign/requirements.md`: the toggle governs the
+   landing page and nothing else. In particular never set `--color-muted` or
+   `--color-accent` here; those are the resolved `@theme` names and writing them
+   would bypass the `--admin-*` fallback chain the back office depends on.
+
+   The motion tokens (`--landing-ease`, `--landing-duration-*`) are likewise
+   absent: they are theme-independent and declared once in `:root`. */
+html.dark body:has([data-landing-page]) {
+  /* Native form controls, scrollbars and the canvas behind the page follow the
+     theme too. Scoped with everything else so the admin's scrollbars stay light. */
+  color-scheme: dark;
+
+  --landing-ink: #08090a;
+  --landing-paper: #f4f4f2;
+  --landing-accent: #f58220;
+  --landing-accent-hover: #ffa45c;
+  --landing-on-accent: #0a0b0a;
+  --landing-frame: #111315;
+  --landing-surface: rgba(255, 255, 255, 0.04);
+  --landing-surface-raised: rgba(255, 255, 255, 0.06);
+  --landing-surface-sunken: rgba(8, 9, 10, 0.55);
+  --landing-glass: rgba(16, 18, 20, 0.72);
+  /* These two deliberately do NOT flip — they sit on top of photography, where
+     a caption pill has to stay legible in either theme. Restated rather than
+     omitted so the pair reads as one set; keep them equal to `:root`. */
+  --landing-glass-image: rgba(8, 9, 10, 0.62);
+  --landing-glass-image-strong: rgba(8, 9, 10, 0.66);
+  --landing-line-hairline: rgba(255, 255, 255, 0.07);
+  --landing-line: rgba(255, 255, 255, 0.08);
+  --landing-line-strong: rgba(255, 255, 255, 0.12);
+  --landing-line-stronger: rgba(255, 255, 255, 0.18);
+  --landing-line-accent: rgba(245, 130, 32, 0.22);
+  --landing-line-accent-strong: rgba(245, 130, 32, 0.28);
+  --landing-subtle: rgba(244, 244, 242, 0.62);
+  --landing-muted: rgba(244, 244, 242, 0.55);
+  --landing-faint: rgba(244, 244, 242, 0.42);
+  --landing-faintest: rgba(244, 244, 242, 0.36);
+
+  /* The dark bookend pair. In light mode these are a genuinely dark panel that
+     closes the page; in dark mode they are one step *up* from the page so the
+     footer and driver panel still separate from the background. */
+  --landing-ink-strong: #111315;
+  --landing-on-strong: #f4f4f2;
+
+  --landing-gradient-spotlight: radial-gradient(
+    closest-side,
+    rgba(245, 130, 32, 0.24),
+    rgba(245, 130, 32, 0.05) 55%,
+    transparent 72%
+  );
+  --landing-gradient-accent-card: linear-gradient(
+    160deg,
+    rgba(245, 130, 32, 0.14),
+    rgba(255, 255, 255, 0.03) 46%
+  );
+  --landing-gradient-coverage-card: linear-gradient(
+    160deg,
+    rgba(245, 130, 32, 0.12),
+    rgba(255, 255, 255, 0.03) 50%
+  );
+  --landing-gradient-cta-panel: linear-gradient(
+    150deg,
+    rgba(245, 130, 32, 0.2),
+    rgba(255, 255, 255, 0.03) 58%
+  );
+
+  --landing-shadow-frame: 0 40px 90px -30px rgba(0, 0, 0, 0.9);
+  --landing-shadow-pill: 0 8px 30px rgba(0, 0, 0, 0.45);
+  --landing-shadow-cta: 0 10px 30px rgba(245, 130, 32, 0.28);
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -106,13 +301,50 @@
   --color-ink-strong: var(--landing-ink-strong);
   --color-on-strong: var(--landing-on-strong);
 
+  /* Georgia-homepage additions. Every name here is new — none collides with the
+     shadcn token set — so unlike `accent`/`muted` above they need no fallback
+     chain. Values come from whichever `--landing-*` block is in scope, so a
+     component writes `bg-glass` once and gets the light or dark value for free. */
+  --color-accent-hover: var(--landing-accent-hover);
+  --color-on-accent: var(--landing-on-accent);
+  --color-frame: var(--landing-frame);
+  --color-surface-raised: var(--landing-surface-raised);
+  --color-surface-sunken: var(--landing-surface-sunken);
+  --color-glass: var(--landing-glass);
+  --color-glass-image: var(--landing-glass-image);
+  --color-glass-image-strong: var(--landing-glass-image-strong);
+  --color-line-hairline: var(--landing-line-hairline);
+  --color-line-strong: var(--landing-line-strong);
+  --color-line-stronger: var(--landing-line-stronger);
+  --color-line-accent: var(--landing-line-accent);
+  --color-line-accent-strong: var(--landing-line-accent-strong);
+  --color-subtle: var(--landing-subtle);
+  --color-faint: var(--landing-faint);
+  --color-faintest: var(--landing-faintest);
+
+  /* `--shadow-*` and `--blur-*` are Tailwind namespaces, so these become the
+     `shadow-frame` / `shadow-pill` / `shadow-cta` and `backdrop-blur-glass`
+     utilities. Adding new names to a namespace is inert; overriding an existing
+     one is not — that is the mistake the `--radius-*` comment at the bottom of
+     this block records, so do not extend `--radius-*` here. */
+  --shadow-frame: var(--landing-shadow-frame);
+  --shadow-pill: var(--landing-shadow-pill);
+  --shadow-cta: var(--landing-shadow-cta);
+  --blur-glass: 18px;
+  --blur-glass-chip: 12px;
+
   --font-display: var(--font-ibm-plex-sans), sans-serif;
   --font-body: var(--font-ibm-plex-sans), sans-serif;
   --font-price: var(--font-ibm-plex), monospace;
 
   --animate-rise: landing-rise 0.75s cubic-bezier(0.16, 1, 0.3, 1) both;
   --animate-wipe: landing-wipe 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
-  --animate-ticker: landing-ticker 45s linear infinite;
+  /* The partner logo band, at the handoff's 42s. This replaced a 45s
+     `--animate-ticker` over the same keyframes, which went with the pinned
+     vehicle ticker the marquee supersedes. The status-dot pulse is the hero
+     chip's live indicator (2.4s, opacity .55→1, scale 1→1.35). */
+  --animate-marquee: landing-ticker 42s linear infinite;
+  --animate-status-pulse: landing-status-pulse 2.4s ease-in-out infinite;
 
   --color-onboarding-accent: var(--onboarding-accent);
   --color-onboarding-accent-hover: var(--onboarding-accent-hover);
@@ -204,14 +436,29 @@
   }
 }
 
-/* The ticker renders its content twice, so translating by exactly half the
-   track width loops seamlessly. */
+/* The marquee renders its content twice, so translating by exactly half the
+   track width loops seamlessly. (Named for the vehicle ticker it was written
+   for; the partner logo band inherited it when that ticker was retired.) */
 @keyframes landing-ticker {
   from {
     transform: translateX(0);
   }
   to {
     transform: translateX(-50%);
+  }
+}
+
+/* The hero status chip's live dot. Scale and opacity together rather than a
+   ring element, so it costs one compositor-only animation. */
+@keyframes landing-status-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.35);
   }
 }
 
@@ -288,6 +535,16 @@ body:has([data-hide-site-header]) > header {
   display: none;
 }
 
+/* The mirror case: the landing page rendered *with* the global header — the
+   signed-in `/home` preview, and the only state in which both exist. The nav
+   pill is `position: fixed`, so it takes no space in the flow and at its design
+   offset it floats across the header rather than under it. Pushing it to the
+   header's height plus the same 14px gap stacks the two cleanly instead.
+   49px is the global header's height (`px-6 py-3` plus its bottom border). */
+body:has([data-landing-page]):not(:has([data-hide-site-header])) {
+  --landing-nav-pill-top: 63px;
+}
+
 body:has([data-landing-page]) {
   background: var(--landing-ink);
 }
@@ -300,13 +557,56 @@ body:has([data-landing-page]) {
   outline-offset: 4px;
 }
 
+/* Scroll reveal: elements marked `data-reveal` fade and rise as they enter the
+   viewport. The transition is unconditional — an element that is never hidden
+   simply never transitions — while the hidden state below is not.
+
+   `landing-scroll-reveal.tsx` owns the observer; these two rules are the whole
+   of the animation. */
+[data-landing-page] [data-reveal] {
+  transition:
+    opacity var(--landing-duration-reveal) var(--landing-ease),
+    transform var(--landing-duration-reveal) var(--landing-ease);
+}
+
+/* The hidden state is gated on `data-reveal-ready`, which only the reveal
+   script sets, and it is set *after* everything already on screen has been
+   marked shown. Without JavaScript — or before hydration — nothing is hidden
+   and the page renders complete, which matters because `/` is the site's front
+   door and its crawlable surface. Under `prefers-reduced-motion` the script
+   never sets the attribute at all, so this rule never applies. */
+[data-landing-page][data-reveal-ready] [data-reveal]:not([data-reveal-shown]) {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
 @media (prefers-reduced-motion: reduce) {
+  /* The landing root itself joins its descendants: the page's scroll-reveal
+     wrapper and the carousel track both carry the animation on the same element
+     that carries the hook, so a descendant-only selector leaves exactly those
+     running. */
+  [data-landing-page],
   [data-landing-page] *,
   [data-landing-page] *::before,
   [data-landing-page] *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    /* The carousel scrolls its track with `scrollTo({ behavior: "smooth" })`;
+       this is what makes that land instantly instead. */
+    scroll-behavior: auto !important;
+  }
+
+  /* Flattens the durations at the token level too, so a component that reads
+     `--landing-duration-carousel` for a JS-timed step gets 0 rather than 420ms
+     without having to check the media query itself. CSS cannot stop a
+     `setInterval`, though — the carousel additionally checks
+     `matchMedia("(prefers-reduced-motion: reduce)")` in JS to skip
+     auto-advance. */
+  :root {
+    --landing-duration-reveal: 0.01ms;
+    --landing-duration-carousel: 0.01ms;
+    --landing-duration-dot: 0.01ms;
   }
 }
 

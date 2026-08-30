@@ -9,6 +9,10 @@ import {
   CARGO_CATEGORY_LABELS,
 } from "@/lib/cargo";
 import { useLandingVehicleTypes } from "@/components/landing/landing-vehicle-types";
+import {
+  DEFAULT_HOME_PAGE_CONTENT,
+  type QuoteCalculatorContent,
+} from "@/lib/admin/home-page-content";
 
 /** Cargo categories in the order the taxonomy declares them. */
 const CARGO_CATEGORY_OPTIONS = Object.entries(CARGO_CATEGORY_LABELS) as [
@@ -42,18 +46,30 @@ type EstimateResponse = {
   price: number;
 };
 
+const CARD_CLASSES =
+  "rounded-3xl border border-line bg-surface p-[clamp(24px,2.6vw,32px)]";
+
 /** The focus ring is spelled out here because `globals.css` only rings links
- *  and buttons — form controls on this page style their own. */
+ *  and buttons — form controls on this page style their own. The field sits on
+ *  `surface-sunken` so it reads as recessed inside the `surface` card in both
+ *  themes; the old `bg-ink` only worked while `ink` meant "white". */
 const FIELD_CLASSES =
-  "w-full rounded-lg border border-line bg-ink px-3.5 py-2.5 text-sm text-paper " +
-  "transition-colors placeholder:text-muted/70 focus:border-accent focus:outline-none " +
-  "focus:ring-2 focus:ring-accent/20";
+  "w-full rounded-xl border border-line bg-surface-sunken px-3.5 py-2.5 text-sm text-paper " +
+  "transition-colors placeholder:text-faint focus:border-accent focus:outline-none " +
+  "focus:ring-2 focus:ring-accent/25";
+
+/** The native dropdown list is painted by the browser, not by us: `color-scheme`
+ *  (set per theme in `globals.css`) gives it the right base, and the `option`
+ *  rules pin an opaque ground on the platforms that paint each row with the
+ *  element's own colours instead — `surface-sunken` is translucent, which is
+ *  exactly the case that comes out unreadable there. */
+const SELECT_CLASSES = `${FIELD_CLASSES} appearance-none pr-10 [&>option]:bg-ink [&>option]:text-paper`;
 
 const FIELD_LABEL_CLASSES =
   "flex items-center gap-2 text-[0.8125rem] font-medium text-paper";
 
 const PANEL_LABEL_CLASSES =
-  "text-[0.6875rem] font-semibold tracking-[0.1em] text-muted uppercase";
+  "font-price text-[10.5px] tracking-[.1em] text-faint uppercase";
 
 const BREAKDOWN_TERM_CLASSES = "text-[0.8125rem] text-muted";
 
@@ -65,8 +81,15 @@ const BREAKDOWN_VALUE_CLASSES = "font-price text-[0.8125rem] text-paper";
  * public `/api/pricing/estimate` endpoint rather than the auth-gated
  * autocomplete, so the addresses are plain text fields geocoded once, on
  * submit.
+ *
+ * Only the section's framing copy is authored; every label, placeholder and
+ * message below is tied to a specific request/response shape and stays here.
  */
-export function LandingQuoteCalculator() {
+export function LandingQuoteCalculator({
+  content = DEFAULT_HOME_PAGE_CONTENT.quote_calculator,
+}: {
+  content?: QuoteCalculatorContent;
+}) {
   const pickupId = useId();
   const dropoffId = useId();
   const cargoCategoryId = useId();
@@ -199,214 +222,259 @@ export function LandingQuoteCalculator() {
       estimate.price - 0.005;
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="animate-rise [animation-delay:520ms] rounded-2xl border border-line bg-ink p-5 shadow-[0_18px_48px_-24px_rgba(32,31,28,0.35)] sm:p-6"
+    <section
+      id="price-a-load"
+      className="scroll-mt-28 px-[clamp(20px,4vw,48px)] py-[clamp(56px,7vw,104px)]"
     >
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h2 className="font-display text-base leading-none font-semibold text-paper">
-            See your price now
-          </h2>
-          <p className="mt-2 text-[0.8125rem] leading-snug text-muted">
-            Price a load before you create an account.
-          </p>
-        </div>
-        <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-accent/10 px-2.5 py-1 text-[0.625rem] font-semibold tracking-[0.1em] text-accent uppercase">
-          <span
-            aria-hidden="true"
-            className="inline-block h-1.5 w-1.5 rounded-full bg-accent"
-          />
-          Estimate
-        </span>
-      </div>
-
-      <div className="mt-5 flex flex-col gap-3.5">
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor={pickupId} className={FIELD_LABEL_CLASSES}>
-            {/* Hollow ring, then filled square below: the two ends of the
-                route, kept as marks so the pair reads as one journey. */}
-            <span
-              aria-hidden="true"
-              className="h-2 w-2 rounded-full border-[1.5px] border-accent"
-            />
-            Pickup
-          </label>
-          <input
-            id={pickupId}
-            type="text"
-            value={pickupAddress}
-            onChange={(event) =>
-              updateField(setPickupAddress, event.target.value)
-            }
-            placeholder="Rustaveli Ave 12, Tbilisi"
-            autoComplete="off"
-            required
-            className={FIELD_CLASSES}
-          />
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor={dropoffId} className={FIELD_LABEL_CLASSES}>
-            <span
-              aria-hidden="true"
-              className="h-2 w-2 rounded-[2px] bg-accent"
-            />
-            Dropoff
-          </label>
-          <input
-            id={dropoffId}
-            type="text"
-            value={dropoffAddress}
-            onChange={(event) =>
-              updateField(setDropoffAddress, event.target.value)
-            }
-            placeholder="Aghmashenebeli Ave 88, Tbilisi"
-            autoComplete="off"
-            required
-            className={FIELD_CLASSES}
-          />
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor={cargoCategoryId} className={FIELD_LABEL_CLASSES}>
-            What are you moving
-          </label>
-          <select
-            id={cargoCategoryId}
-            value={cargoCategory}
-            onChange={(event) => updateCargoCategory(event.target.value)}
-            required
-            className={FIELD_CLASSES}
-          >
-            {CARGO_CATEGORY_OPTIONS.map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <label
-          htmlFor={helperId}
-          className="flex cursor-pointer items-center gap-3 rounded-lg border border-line px-3.5 py-3 text-[0.8125rem] leading-snug text-paper transition-colors hover:border-accent/40"
-        >
-          <input
-            id={helperId}
-            type="checkbox"
-            checked={requiresHelper}
-            onChange={(event) => {
-              setRequiresHelper(event.target.checked);
-              clearQuote();
-            }}
-            className="h-4 w-4 shrink-0 accent-accent"
-          />
-          Request a helper for loading and unloading
-        </label>
-      </div>
-
-      {message ? (
-        <p
-          role="alert"
-          className="mt-3.5 rounded-lg border border-accent/30 bg-accent/10 px-3.5 py-2.5 text-[0.8125rem] leading-snug text-accent"
-        >
-          {message}
-        </p>
-      ) : null}
-
-      {/* Rendered before the first quote too, so the card doesn't grow a whole
-          new panel under the visitor's cursor when the estimate lands. */}
-      <div
-        aria-live="polite"
-        className="mt-4 rounded-xl border border-accent/20 bg-accent/[0.06] px-4 py-4"
-      >
-        <dl className="flex items-end justify-between gap-4">
-          <div className="min-w-0">
-            <dt className={PANEL_LABEL_CLASSES}>Your estimate</dt>
-            <dd className="mt-1.5 font-price text-[2.125rem] leading-none font-semibold tracking-[-0.03em] text-accent">
-              {estimate ? `$${estimate.price.toFixed(2)}` : EMPTY_STAT}
-            </dd>
+      <div data-reveal className="mx-auto w-full max-w-[1200px]">
+        {/* `auto-fit` rather than a breakpoint prefix: the framing copy and the
+            card sit side by side while both fit, and stack on their own below
+            that. The whole page is fluid — no media queries anywhere. */}
+        <div className="grid items-start gap-[clamp(28px,3.4vw,56px)] [grid-template-columns:repeat(auto-fit,minmax(320px,1fr))]">
+          <div className="flex flex-col gap-4">
+            <p className="font-price text-[11px] tracking-[.18em] text-accent uppercase">
+              {content.eyebrow}
+            </p>
+            <h2 className="max-w-[20ch] text-[clamp(30px,4.6vw,62px)] leading-none font-semibold tracking-[-.045em] text-balance text-paper">
+              {content.heading}
+            </h2>
+            <p className="max-w-[44ch] text-[16px] leading-[1.6] text-pretty text-muted">
+              {content.intro}
+            </p>
           </div>
-          <div className="flex shrink-0 flex-col items-end gap-2 text-right">
-            <div>
-              <dt className={PANEL_LABEL_CLASSES}>Distance</dt>
-              <dd className="mt-1 font-price text-[0.8125rem] font-medium text-paper">
-                {estimate ? `${estimate.distanceKm.toFixed(1)} km` : EMPTY_STAT}
-              </dd>
-            </div>
-            <div>
-              <dt className={PANEL_LABEL_CLASSES}>Vehicle</dt>
-              <dd className="mt-1 text-[0.8125rem] font-medium text-paper">
-                {estimate ? estimate.vehicleLabel : EMPTY_STAT}
-              </dd>
-            </div>
-          </div>
-        </dl>
 
-        {estimate ? (
-          <>
-            <dl className="mt-4 flex flex-col gap-1.5 border-t border-accent/15 pt-3.5">
-              <div className="flex items-baseline justify-between gap-4">
-                <dt className={BREAKDOWN_TERM_CLASSES}>Base fare</dt>
-                <dd className={BREAKDOWN_VALUE_CLASSES}>
-                  ${estimate.baseFare.toFixed(2)}
-                </dd>
+          <form onSubmit={handleSubmit} className={CARD_CLASSES}>
+            <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-accent/10 px-2.5 py-1 text-[0.625rem] font-semibold tracking-[0.1em] text-accent uppercase">
+              <span
+                aria-hidden="true"
+                className="inline-block h-1.5 w-1.5 rounded-full bg-accent"
+              />
+              Estimate
+            </span>
+
+            <div className="mt-5 flex flex-col gap-3.5">
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor={pickupId} className={FIELD_LABEL_CLASSES}>
+                  {/* Hollow ring, then filled square below: the two ends of the
+                      route, kept as marks so the pair reads as one journey. */}
+                  <span
+                    aria-hidden="true"
+                    className="h-2 w-2 rounded-full border-[1.5px] border-accent"
+                  />
+                  Pickup
+                </label>
+                <input
+                  id={pickupId}
+                  type="text"
+                  value={pickupAddress}
+                  onChange={(event) =>
+                    updateField(setPickupAddress, event.target.value)
+                  }
+                  placeholder="Rustaveli Ave 12, Tbilisi"
+                  autoComplete="off"
+                  required
+                  className={FIELD_CLASSES}
+                />
               </div>
-              <div className="flex items-baseline justify-between gap-4">
-                <dt className={BREAKDOWN_TERM_CLASSES}>Distance fare</dt>
-                <dd className={BREAKDOWN_VALUE_CLASSES}>
-                  ${estimate.distanceFare.toFixed(2)}
-                </dd>
+
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor={dropoffId} className={FIELD_LABEL_CLASSES}>
+                  <span
+                    aria-hidden="true"
+                    className="h-2 w-2 rounded-[2px] bg-accent"
+                  />
+                  Dropoff
+                </label>
+                <input
+                  id={dropoffId}
+                  type="text"
+                  value={dropoffAddress}
+                  onChange={(event) =>
+                    updateField(setDropoffAddress, event.target.value)
+                  }
+                  placeholder="Aghmashenebeli Ave 88, Tbilisi"
+                  autoComplete="off"
+                  required
+                  className={FIELD_CLASSES}
+                />
               </div>
-              <div className="flex items-baseline justify-between gap-4">
-                <dt className={BREAKDOWN_TERM_CLASSES}>Time fare</dt>
-                <dd className={BREAKDOWN_VALUE_CLASSES}>
-                  ${estimate.timeFare.toFixed(2)}
-                </dd>
+
+              <div className="flex flex-col gap-1.5">
+                <label
+                  htmlFor={cargoCategoryId}
+                  className={FIELD_LABEL_CLASSES}
+                >
+                  What are you moving
+                </label>
+                {/* `appearance-none` drops the platform arrow, so the wrapper
+                    draws the replacement as an inline SVG — a token stroke,
+                    which a `background-image` data URI could not be. */}
+                <div className="relative">
+                  <select
+                    id={cargoCategoryId}
+                    value={cargoCategory}
+                    onChange={(event) =>
+                      updateCargoCategory(event.target.value)
+                    }
+                    required
+                    className={SELECT_CLASSES}
+                  >
+                    {CARGO_CATEGORY_OPTIONS.map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                  <svg
+                    aria-hidden="true"
+                    viewBox="0 0 12 12"
+                    className="pointer-events-none absolute top-1/2 right-3.5 h-3 w-3 -translate-y-1/2 text-faint"
+                  >
+                    <path
+                      d="M2.5 4.5 6 8l3.5-3.5"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </div>
               </div>
-              {/* Only worth a line when one was actually requested. */}
-              {estimate.helperFee > 0 ? (
-                <div className="flex items-baseline justify-between gap-4">
-                  <dt className={BREAKDOWN_TERM_CLASSES}>Helper</dt>
-                  <dd className={BREAKDOWN_VALUE_CLASSES}>
-                    ${estimate.helperFee.toFixed(2)}
+
+              <label
+                htmlFor={helperId}
+                className="flex cursor-pointer items-center gap-3 rounded-xl border border-line bg-surface-sunken px-3.5 py-3 text-[0.8125rem] leading-snug text-paper transition-colors hover:border-accent/40"
+              >
+                <input
+                  id={helperId}
+                  type="checkbox"
+                  checked={requiresHelper}
+                  onChange={(event) => {
+                    setRequiresHelper(event.target.checked);
+                    clearQuote();
+                  }}
+                  className="h-4 w-4 shrink-0 accent-accent"
+                />
+                Request a helper for loading and unloading
+              </label>
+            </div>
+
+            {message ? (
+              <p
+                role="alert"
+                className="mt-3.5 rounded-xl border border-line-accent-strong bg-accent/10 px-3.5 py-2.5 text-[0.8125rem] leading-snug text-accent"
+              >
+                {message}
+              </p>
+            ) : null}
+
+            {/* Rendered before the first quote too, so the card doesn't grow a
+                whole new panel under the visitor's cursor when the estimate
+                lands. */}
+            <div
+              aria-live="polite"
+              className="mt-4 rounded-2xl border border-line-accent bg-accent/8 px-5 py-5"
+            >
+              <dl className="flex items-end justify-between gap-4">
+                <div className="min-w-0">
+                  <dt className={PANEL_LABEL_CLASSES}>Your estimate</dt>
+                  <dd className="mt-1.5 font-price text-[2.125rem] leading-none font-semibold tracking-[-0.03em] text-accent">
+                    {estimate ? `$${estimate.price.toFixed(2)}` : EMPTY_STAT}
                   </dd>
                 </div>
+                <div className="flex shrink-0 flex-col items-end gap-2 text-right">
+                  <div>
+                    <dt className={PANEL_LABEL_CLASSES}>Distance</dt>
+                    <dd className="mt-1 font-price text-[0.8125rem] font-medium text-paper">
+                      {estimate
+                        ? `${estimate.distanceKm.toFixed(1)} km`
+                        : EMPTY_STAT}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className={PANEL_LABEL_CLASSES}>Vehicle</dt>
+                    <dd className="mt-1 text-[0.8125rem] font-medium text-paper">
+                      {estimate ? estimate.vehicleLabel : EMPTY_STAT}
+                    </dd>
+                  </div>
+                </div>
+              </dl>
+
+              {estimate ? (
+                <>
+                  <dl className="mt-4 flex flex-col gap-1.5 border-t border-accent/15 pt-3.5">
+                    <div className="flex items-baseline justify-between gap-4">
+                      <dt className={BREAKDOWN_TERM_CLASSES}>Base fare</dt>
+                      <dd className={BREAKDOWN_VALUE_CLASSES}>
+                        ${estimate.baseFare.toFixed(2)}
+                      </dd>
+                    </div>
+                    <div className="flex items-baseline justify-between gap-4">
+                      <dt className={BREAKDOWN_TERM_CLASSES}>Distance fare</dt>
+                      <dd className={BREAKDOWN_VALUE_CLASSES}>
+                        ${estimate.distanceFare.toFixed(2)}
+                      </dd>
+                    </div>
+                    <div className="flex items-baseline justify-between gap-4">
+                      <dt className={BREAKDOWN_TERM_CLASSES}>Time fare</dt>
+                      <dd className={BREAKDOWN_VALUE_CLASSES}>
+                        ${estimate.timeFare.toFixed(2)}
+                      </dd>
+                    </div>
+                    {/* Only worth a line when one was actually requested. */}
+                    {estimate.helperFee > 0 ? (
+                      <div className="flex items-baseline justify-between gap-4">
+                        <dt className={BREAKDOWN_TERM_CLASSES}>Helper</dt>
+                        <dd className={BREAKDOWN_VALUE_CLASSES}>
+                          ${estimate.helperFee.toFixed(2)}
+                        </dd>
+                      </div>
+                    ) : null}
+                  </dl>
+
+                  {minimumFareApplied ? (
+                    <p className="mt-2.5 text-xs text-accent">
+                      Minimum fare applied
+                    </p>
+                  ) : null}
+                </>
               ) : null}
-            </dl>
+            </div>
 
-            {minimumFareApplied ? (
-              <p className="mt-2.5 text-xs text-accent">Minimum fare applied</p>
+            <button
+              type="submit"
+              // Also disabled until a vehicle type is known to quote against —
+              // there is no picker to hold the form open on anymore, so this is
+              // the only gate against a premature submit racing the taxonomy
+              // fetch.
+              disabled={submitting || loading || !cheapestVehicleType}
+              className="mt-5 w-full rounded-full bg-accent px-5 py-3.5 text-[15px] leading-none font-semibold text-on-accent transition-transform hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-60"
+            >
+              {submitting
+                ? "Calculating…"
+                : loading
+                  ? "Loading…"
+                  : "Calculate price"}
+            </button>
+
+            {estimate ? (
+              <Link
+                href="/sign-up"
+                className="group mt-4 inline-flex items-center gap-2 text-sm font-semibold text-paper transition-colors hover:text-accent"
+              >
+                Sign up to book this load
+                <span
+                  aria-hidden="true"
+                  className="transition-transform group-hover:translate-x-1"
+                >
+                  →
+                </span>
+              </Link>
             ) : null}
-          </>
-        ) : null}
+          </form>
+        </div>
       </div>
-
-      <button
-        type="submit"
-        // Also disabled until a vehicle type is known to quote against — there
-        // is no picker to hold the form open on anymore, so this is the only
-        // gate against a premature submit racing the taxonomy fetch.
-        disabled={submitting || loading || !cheapestVehicleType}
-        className="mt-4 w-full rounded-lg bg-accent px-5 py-3.5 text-[0.9375rem] leading-none font-semibold text-ink transition-transform hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-60"
-      >
-        {submitting ? "Calculating…" : loading ? "Loading…" : "Calculate price"}
-      </button>
-
-      {estimate ? (
-        <Link
-          href="/sign-up"
-          className="group mt-4 inline-flex items-center gap-2 text-sm font-semibold text-paper transition-colors hover:text-accent"
-        >
-          Sign up to book this load
-          <span
-            aria-hidden="true"
-            className="transition-transform group-hover:translate-x-1"
-          >
-            →
-          </span>
-        </Link>
-      ) : null}
-    </form>
+    </section>
   );
 }

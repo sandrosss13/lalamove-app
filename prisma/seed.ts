@@ -18,6 +18,10 @@ import {
 
 const prisma = new PrismaClient();
 
+// `VehicleTypeSpec.imageUrl` is intentionally not part of this type. The
+// upsert below spreads a seed entry over the existing row, so a `null` here
+// would erase the marketing photo a content manager set every time the seed
+// was re-run. Photos are content, owned by the back office, not by the seed.
 type VehicleTypeSeed = {
   code: string;
   label: string;

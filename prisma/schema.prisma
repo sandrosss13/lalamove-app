@@ -353,6 +353,22 @@ model VehicleTypeSpec {
   /// literal zero-height constraint.
   cargoHeightM      Float
   loadingAccessType LoadingAccessType
+  /// Public Supabase Storage URL of a marketing photo for this vehicle class,
+  /// set by a content manager from the back office (never by a driver, and
+  /// never by the seed). It lives in the public `site-media` bucket, so the
+  /// URL is directly renderable and no signed request is needed.
+  ///
+  /// Display-only, and deliberately so: order matching and pricing key on
+  /// `Vehicle.vehicleTypeSpecId` and `PricingRule` alone and never read this.
+  /// Nullable because no photography exists yet — the marketing page falls
+  /// back to its inline vehicle glyphs for a type with no photo, so a null
+  /// here is a normal, permanent-until-filled state rather than a gap to
+  /// backfill.
+  ///
+  /// Not to be confused with `Vehicle.photoUrls`, which holds the photos a
+  /// driver uploads of their own specific vehicle into the separate
+  /// `vehicle-photos` bucket. This one is a picture of the *class*.
+  imageUrl          String?
   pricingRule       PricingRule?
   vehicles          Vehicle[]
   orders            Order[]

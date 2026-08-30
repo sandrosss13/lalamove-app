@@ -49,14 +49,14 @@ export default async function Home({
   const query = await searchParams;
   const locale = resolveHomePageLocale(query.locale);
 
-  const { sections, heroBanners, secondaryBanners } =
+  const { sections, heroBanners, partnerBanners } =
     await loadHomePageContent(locale);
 
   return (
     <HomeEntry
       sections={sections}
       heroBanners={heroBanners}
-      secondaryBanners={secondaryBanners}
+      partnerBanners={partnerBanners}
     />
   );
 }

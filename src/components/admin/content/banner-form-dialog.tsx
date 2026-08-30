@@ -9,6 +9,7 @@ import type { ContentLocale } from "@prisma/client";
 // row shape with the endpoint that produces it is what stops the form and the
 // API drifting apart.
 import type { AdminBannerRow } from "@/app/api/admin/content/banners/route";
+import { AdminImageUpload } from "@/components/admin/content/admin-image-upload";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -28,6 +29,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  HOME_HERO_BANNER_PLACEMENT,
+  HOME_PARTNER_LOGO_BANNER_PLACEMENT,
+  HOME_SECONDARY_BANNER_PLACEMENT,
+  MAX_HERO_BANNERS,
+} from "@/lib/admin/home-page-content";
 
 /** `ContentLocale` rendered for humans, in the order the picker offers them. */
 const LOCALE_OPTIONS: { value: ContentLocale; label: string }[] = [
@@ -40,9 +47,18 @@ const LOCALE_OPTIONS: { value: ContentLocale; label: string }[] = [
  * than as a fixed list: `placement` is a free-form key by design (see the
  * `Banner` model doc), so adding a slot must stay a content change, not a code
  * change. The `datalist` suggests these without preventing anything else.
+ *
+ * Imported from the shared contract rather than restated as literals, so the
+ * suggestions here and the keys the landing components actually read cannot
+ * drift apart — the module is deliberately dependency-free and safe in a client
+ * bundle.
  */
-const DEFAULT_PLACEMENT = "home_hero";
-const PLACEMENT_SUGGESTIONS = [DEFAULT_PLACEMENT, "home_secondary"];
+const DEFAULT_PLACEMENT = HOME_HERO_BANNER_PLACEMENT;
+const PLACEMENT_SUGGESTIONS = [
+  HOME_HERO_BANNER_PLACEMENT,
+  HOME_SECONDARY_BANNER_PLACEMENT,
+  HOME_PARTNER_LOGO_BANNER_PLACEMENT,
+];
 
 /** `datalist` id, referenced by the placement input's `list` attribute. */
 const PLACEMENT_LIST_ID = "banner-placement-suggestions";
@@ -153,8 +169,18 @@ export function BannerFormDialog({
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    // Checked here as well as server-side purely for the faster feedback; the
-    // routes are what actually enforce these.
+    // Both checks below are restated from the routes purely for the faster
+    // feedback; the routes are what actually enforce them.
+
+    // The image is an upload control rather than an `<input required>`, so the
+    // browser cannot refuse an empty one on its own — without this, saving with
+    // no image posts and comes back as a 400 naming a wire field instead of the
+    // box on screen.
+    if (imageUrl.trim() === "") {
+      setError("Add an image before saving this banner.");
+      return;
+    }
+
     const parsedSortOrder = Number.parseInt(sortOrder, 10);
     if (
       !Number.isInteger(parsedSortOrder) ||
@@ -292,18 +318,31 @@ export function BannerFormDialog({
                     <option key={suggestion} value={suggestion} />
                   ))}
                 </datalist>
+                <p className="text-xs text-muted-foreground">
+                  {HOME_HERO_BANNER_PLACEMENT} feeds the homepage carousel (max{" "}
+                  {MAX_HERO_BANNERS} active per locale),{" "}
+                  {HOME_PARTNER_LOGO_BANNER_PLACEMENT} feeds the partner
+                  marquee, {HOME_SECONDARY_BANNER_PLACEMENT} is the legacy
+                  inline slot.
+                </p>
               </div>
             </div>
 
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="banner-image-url">Image URL</Label>
-              <Input
+              {/*
+                Uploads the file straight to Storage and hands back the public
+                URL, which is the only thing this form stores. It ships its own
+                always-available "paste a URL instead" toggle, so an image
+                already hosted elsewhere — and the whole field before the
+                `site-media` bucket exists — still works.
+              */}
+              <AdminImageUpload
                 id="banner-image-url"
+                purpose="banners"
                 value={imageUrl}
-                onChange={(event) => setImageUrl(event.target.value)}
-                placeholder="https://example.com/banner.jpg"
+                onChange={setImageUrl}
                 disabled={pending}
-                required
               />
             </div>
 
