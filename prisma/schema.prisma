@@ -378,7 +378,8 @@ model VehicleTypeSpec {
 
 /// One pricing rule per vehicle type. `freeLoadingMinutes` is the buffer before
 /// `overtimeRatePerMinute` kicks in; `minimumFare` is a floor applied after all other
-/// components are summed.
+/// components are summed. `helperFee` is a per-helper rate, charged once for each
+/// helper in an order's `helperCount` — not a one-off fee for the whole booking.
 model PricingRule {
   id                    String          @id @default(cuid())
   vehicleTypeSpecId     String          @unique
@@ -790,10 +791,16 @@ model ClientProfile {
 /// A single freight job placed by a client and fulfilled either by an independent
 /// driver or by a logistics company dispatching one of its own drivers.
 model Order {
-  id             String        @id @default(cuid())
-  cargoCategory  CargoCategory
-  description    String?
-  requiresHelper Boolean       @default(false)
+  id            String        @id @default(cuid())
+  cargoCategory CargoCategory
+  description   String?
+
+  // Extra helpers requested *beyond* the driver, 0-3. The booking form asks for
+  // a total crew size of 1-4 people, where 1 is the driver working alone, so the
+  // number shown to the client is always this one plus one — store the extras,
+  // because that is what gets charged: `helperFee` below is this count times the
+  // PricingRule's flat per-helper fee for the booked vehicle type.
+  helperCount Int @default(0)
 
   // The client's requested pickup/delivery date and time, collected as the
   // first step of the booking form. Nullable: every order created before this

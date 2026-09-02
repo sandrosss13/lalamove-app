@@ -13,6 +13,7 @@ import {
   DEFAULT_HOME_PAGE_CONTENT,
   type QuoteCalculatorContent,
 } from "@/lib/admin/home-page-content";
+import { cn } from "@/lib/utils";
 
 /** Cargo categories in the order the taxonomy declares them. */
 const CARGO_CATEGORY_OPTIONS = Object.entries(CARGO_CATEGORY_LABELS) as [
@@ -21,6 +22,18 @@ const CARGO_CATEGORY_OPTIONS = Object.entries(CARGO_CATEGORY_LABELS) as [
 ][];
 
 const DEFAULT_CARGO_CATEGORY: CargoCategory = "FURNITURE_FURNISHINGS";
+
+/**
+ * Crew sizes the visitor may price, counted as **total people including the
+ * driver**. The wire field is `helperCount` — the *extras* beyond the driver,
+ * which is what the vehicle's flat per-helper fee multiplies — so everything
+ * below is one more than what gets posted, and the copy has to say so or "1"
+ * reads as "one helper" rather than "nobody but the driver".
+ */
+const CREW_SIZE_OPTIONS = [1, 2, 3, 4] as const;
+
+/** A driver working the load alone: the common case, so it is the default. */
+const DEFAULT_CREW_SIZE = 1;
 
 /** Placeholder shown in the price panel before the first estimate. */
 const EMPTY_STAT = "—";
@@ -76,6 +89,21 @@ const BREAKDOWN_TERM_CLASSES = "text-[0.8125rem] text-muted";
 const BREAKDOWN_VALUE_CLASSES = "font-price text-[0.8125rem] text-paper";
 
 /**
+ * Everything the visitor is charged for moving the load, as one figure: the
+ * single line that stands in for the old base / distance / time itemisation.
+ *
+ * Derived by subtracting the helper fee from the quoted total rather than by
+ * adding the three components it replaces, and the difference is not academic:
+ * `price` is floored at the pricing rule's minimum fare, so on a short hop
+ * those components sum to *less* than the total. Adding them would print two
+ * lines that visibly fail to reach the headline figure directly above them;
+ * subtracting makes the breakdown reconcile at every distance.
+ */
+function transportationCost(estimate: Estimate): number {
+  return estimate.price - estimate.helperFee;
+}
+
+/**
  * Live quote card on the marketing page: a visitor prices a load before they
  * have an account. Estimate-only — it never creates an order, and it calls the
  * public `/api/pricing/estimate` endpoint rather than the auth-gated
@@ -93,7 +121,10 @@ export function LandingQuoteCalculator({
   const pickupId = useId();
   const dropoffId = useId();
   const cargoCategoryId = useId();
-  const helperId = useId();
+  // Radios are grouped by `name`, not by id, and the group has to be unique to
+  // this instance — two calculators on one page would otherwise share a single
+  // selection between them.
+  const crewSizeGroupName = useId();
 
   const {
     vehicleTypes,
@@ -106,7 +137,8 @@ export function LandingQuoteCalculator({
   const [cargoCategory, setCargoCategory] = useState<CargoCategory>(
     DEFAULT_CARGO_CATEGORY,
   );
-  const [requiresHelper, setRequiresHelper] = useState(false);
+  // Total people on the job, 1-4 — see `CREW_SIZE_OPTIONS`.
+  const [crewSize, setCrewSize] = useState<number>(DEFAULT_CREW_SIZE);
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -154,6 +186,11 @@ export function LandingQuoteCalculator({
     clearQuote();
   }
 
+  function updateCrewSize(value: number) {
+    setCrewSize(value);
+    clearQuote();
+  }
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
@@ -166,6 +203,10 @@ export function LandingQuoteCalculator({
 
     setSubmitting(true);
 
+    // The picker counts the driver; the wire field counts only the extras the
+    // per-helper fee is charged for.
+    const helperCount = crewSize - 1;
+
     try {
       const response = await fetch("/api/pricing/estimate", {
         method: "POST",
@@ -175,7 +216,7 @@ export function LandingQuoteCalculator({
           dropoffAddress,
           vehicleTypeCode: cheapestVehicleType.code,
           cargoCategory,
-          requiresHelper,
+          helperCount,
         }),
       });
 
@@ -209,9 +250,11 @@ export function LandingQuoteCalculator({
   // list is missing, so the form cannot be submitted then.
   const message = error ?? vehicleTypesError;
 
-  // The components are floored by the vehicle's minimum fare, so on a short hop
-  // they sum to less than the total charged. Say so, rather than printing
-  // arithmetic that doesn't add up. The half-cent margin keeps floating-point
+  // The fare components are floored by the vehicle's minimum fare, so on a
+  // short hop they sum to less than the total charged. The breakdown no longer
+  // prints them — `transportationCost` is derived from the total, so the lines
+  // always add up — but the floor is still worth naming: it is why a two-block
+  // hop costs what a longer one does. The half-cent margin keeps floating-point
   // dust from reading as a floor.
   const minimumFareApplied =
     estimate !== null &&
@@ -342,22 +385,67 @@ export function LandingQuoteCalculator({
                 </div>
               </div>
 
-              <label
-                htmlFor={helperId}
-                className="flex cursor-pointer items-center gap-3 rounded-xl border border-line bg-surface-sunken px-3.5 py-3 text-[0.8125rem] leading-snug text-paper transition-colors hover:border-accent/40"
-              >
-                <input
-                  id={helperId}
-                  type="checkbox"
-                  checked={requiresHelper}
-                  onChange={(event) => {
-                    setRequiresHelper(event.target.checked);
-                    clearQuote();
-                  }}
-                  className="h-4 w-4 shrink-0 accent-accent"
-                />
-                Request a helper for loading and unloading
-              </label>
+              {/* A `fieldset`/`legend` rather than a `label`, because the
+                  control is four inputs answering one question: the legend is
+                  what names the group to a screen reader, and native radios
+                  give the row arrow-key navigation for free. The fieldset is
+                  left as a block — a `legend` inside a flex container renders
+                  inconsistently across engines — so the rhythm below is set by
+                  margins instead of the column's `gap`. */}
+              <fieldset>
+                <legend className="text-[0.8125rem] font-medium text-paper">
+                  How many people
+                </legend>
+                <div className="mt-1.5 grid grid-cols-4 gap-1.5 rounded-xl border border-line bg-surface-sunken p-1.5">
+                  {CREW_SIZE_OPTIONS.map((option) => {
+                    const selected = option === crewSize;
+
+                    return (
+                      <label
+                        key={option}
+                        className={cn(
+                          // `relative` is load-bearing: `sr-only` positions the
+                          // input absolutely, and without a containing block
+                          // here it would be laid out against the page, which
+                          // is what makes a hidden control scroll the viewport
+                          // when it takes focus.
+                          "relative flex cursor-pointer items-center justify-center rounded-lg py-2 text-sm font-medium transition-colors",
+                          // The input is visually hidden, so its focus ring has
+                          // to be borrowed by the thing that *is* visible —
+                          // otherwise tabbing into the row shows nothing.
+                          "has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent/50",
+                          selected
+                            ? "bg-accent text-on-accent"
+                            : "text-muted hover:text-paper",
+                        )}
+                      >
+                        <input
+                          type="radio"
+                          name={crewSizeGroupName}
+                          value={option}
+                          checked={selected}
+                          onChange={() => updateCrewSize(option)}
+                          // The visible label is a bare numeral, which says
+                          // nothing on its own; this spells out what the number
+                          // counts. It still opens with that numeral, so the
+                          // accessible name contains the visible one.
+                          aria-label={
+                            option === 1
+                              ? "1 person — the driver alone"
+                              : `${option} people — the driver plus ${option - 1} helper${option > 2 ? "s" : ""}`
+                          }
+                          className="sr-only"
+                        />
+                        {option}
+                      </label>
+                    );
+                  })}
+                </div>
+                <p className="mt-1.5 text-xs leading-snug text-faint">
+                  1 is the driver alone. Each extra person helps load and
+                  unload, and adds a flat fee.
+                </p>
+              </fieldset>
             </div>
 
             {message ? (
@@ -405,32 +493,26 @@ export function LandingQuoteCalculator({
                 <>
                   <dl className="mt-4 flex flex-col gap-1.5 border-t border-accent/15 pt-3.5">
                     <div className="flex items-baseline justify-between gap-4">
-                      <dt className={BREAKDOWN_TERM_CLASSES}>Base fare</dt>
+                      <dt className={BREAKDOWN_TERM_CLASSES}>
+                        Transportation cost
+                      </dt>
                       <dd className={BREAKDOWN_VALUE_CLASSES}>
-                        ${estimate.baseFare.toFixed(2)}
+                        ${transportationCost(estimate).toFixed(2)}
                       </dd>
                     </div>
-                    <div className="flex items-baseline justify-between gap-4">
-                      <dt className={BREAKDOWN_TERM_CLASSES}>Distance fare</dt>
-                      <dd className={BREAKDOWN_VALUE_CLASSES}>
-                        ${estimate.distanceFare.toFixed(2)}
-                      </dd>
-                    </div>
-                    <div className="flex items-baseline justify-between gap-4">
-                      <dt className={BREAKDOWN_TERM_CLASSES}>Time fare</dt>
-                      <dd className={BREAKDOWN_VALUE_CLASSES}>
-                        ${estimate.timeFare.toFixed(2)}
-                      </dd>
-                    </div>
-                    {/* Only worth a line when one was actually requested. */}
+                    {/* Only worth a line when at least one was requested. */}
                     {estimate.helperFee > 0 ? (
                       <div className="flex items-baseline justify-between gap-4">
-                        <dt className={BREAKDOWN_TERM_CLASSES}>Helper</dt>
+                        <dt className={BREAKDOWN_TERM_CLASSES}>Helper Fee</dt>
                         <dd className={BREAKDOWN_VALUE_CLASSES}>
                           ${estimate.helperFee.toFixed(2)}
                         </dd>
                       </div>
                     ) : null}
+                    {/* The total these two add up to is the "Your estimate"
+                        figure at the head of this very panel, a few lines up
+                        and set four times this size. Repeating it under them
+                        would only print the same number twice. */}
                   </dl>
 
                   {minimumFareApplied ? (

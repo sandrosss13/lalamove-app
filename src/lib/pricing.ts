@@ -18,19 +18,32 @@ import {
   CARGO_CATEGORY_ALLOWED_VEHICLE_CATEGORIES,
   CARGO_CATEGORY_LABELS,
 } from "@/lib/cargo";
-import { geocodeAddress, haversineDistanceKm, type LatLng } from "@/lib/geo";
+import {
+  geocodeAddress,
+  getRoute,
+  haversineDistanceKm,
+  type LatLng,
+  type Route,
+} from "@/lib/geo";
 import { prisma } from "@/lib/prisma";
 
 /** Valid `CargoCategory` values — the label table is keyed by every one of them. */
 const CARGO_CATEGORIES = Object.keys(CARGO_CATEGORY_LABELS) as CargoCategory[];
 
 /**
- * Assumed average door-to-door speed, in km/h. The app has no traffic data, so
- * the time component of a fare is derived from distance at this flat rate.
+ * Assumed average door-to-door speed, in km/h, used *only* on the fallback path.
+ *
+ * Distance and duration normally come from LocationIQ's directions endpoint,
+ * which reports a real driving time for the real road route. This flat rate is
+ * what a fare's time component is derived from when routing is unavailable and
+ * the quote falls back to straight-line distance — see `estimateDelivery`.
  */
 const AVERAGE_SPEED_KMH = 30;
 
 const MINUTES_PER_HOUR = 60;
+
+/** The most extra helpers a single booking may request beyond the driver. */
+const MAX_HELPER_COUNT = 3;
 
 /** The fields every freight quote is computed from. */
 export type QuoteInput = {
@@ -39,7 +52,13 @@ export type QuoteInput = {
   /** `VehicleTypeSpec.code`, e.g. "BOX_TRUCK". */
   vehicleTypeCode: string;
   cargoCategory: CargoCategory;
-  requiresHelper: boolean;
+  /**
+   * Extra helpers requested *beyond* the driver, 0-3. The booking form asks for
+   * a total crew size of 1-4 people, where 1 is the driver working alone, so the
+   * number the client picks is always this one plus one — the wire carries the
+   * extras, because that is what the per-helper fee multiplies.
+   */
+  helperCount: number;
 };
 
 /**
@@ -60,7 +79,16 @@ export type PriceBreakdown = {
 export type DeliveryEstimate = {
   pickup: LatLng;
   dropoff: LatLng;
+  /** Road distance when the route resolved, straight-line distance otherwise. */
   distanceKm: number;
+  /** Expected driving time for `distanceKm`, on whichever of those two bases. */
+  durationMinutes: number;
+  /**
+   * The road geometry to draw for this route, or `null` when routing was
+   * unavailable and the quote fell back to straight-line distance — callers
+   * draw a direct line between the endpoints in that case.
+   */
+  routePath: LatLng[] | null;
   /** Resolved from `vehicleTypeCode`, so order creation need not look it up again. */
   vehicleTypeSpecId: string;
   breakdown: PriceBreakdown;
@@ -102,7 +130,7 @@ export function parseQuoteFields(
     dropoffAddress,
     vehicleTypeCode,
     cargoCategory,
-    requiresHelper,
+    helperCount,
   } = record;
 
   if (typeof pickupAddress !== "string" || pickupAddress.trim().length === 0) {
@@ -132,10 +160,19 @@ export function parseQuoteFields(
     };
   }
 
-  // Optional: an omitted helper request means "no helper", but a present value
-  // of the wrong type is a client bug worth reporting rather than coercing.
-  if (requiresHelper !== undefined && typeof requiresHelper !== "boolean") {
-    return { error: "requiresHelper must be a boolean." };
+  // Optional: an omitted helper count means "driver alone", but a present value
+  // outside the bookable range is a client bug worth reporting rather than
+  // clamping — a silently reduced crew would quote a price nobody asked for.
+  if (
+    helperCount !== undefined &&
+    (typeof helperCount !== "number" ||
+      !Number.isInteger(helperCount) ||
+      helperCount < 0 ||
+      helperCount > MAX_HELPER_COUNT)
+  ) {
+    return {
+      error: `helperCount must be a whole number between 0 and ${MAX_HELPER_COUNT}.`,
+    };
   }
 
   return {
@@ -144,27 +181,35 @@ export function parseQuoteFields(
       dropoffAddress: dropoffAddress.trim(),
       vehicleTypeCode: vehicleTypeCode.trim(),
       cargoCategory: cargoCategory as CargoCategory,
-      requiresHelper: requiresHelper ?? false,
+      helperCount: helperCount ?? 0,
     },
   };
 }
 
 /**
  * Resolve the vehicle type and its rates, check the cargo may travel in it,
- * geocode both addresses, then derive distance and the itemised price.
+ * geocode both addresses, route between them, then derive the itemised price.
  *
  * The vehicle and cargo checks come first because they are a cheap local
- * query — no point spending two LocationIQ lookups on a request that cannot be
+ * query — no point spending LocationIQ lookups on a request that cannot be
  * quoted anyway. Both geocode lookups are then issued together; pickup is
  * reported first when neither resolves, matching the order the user filled the
- * form in.
+ * form in. Routing can only follow them, since it needs both coordinates.
+ *
+ * Distance and duration come from the real driving route where possible: road
+ * distance in Tbilisi runs meaningfully longer than the straight line, so
+ * quoting on great-circle distance systematically underprices. When routing is
+ * unavailable — no key, endpoint down, rate-limited, no route found — the quote
+ * degrades to `haversineDistanceKm` at `AVERAGE_SPEED_KMH` rather than failing:
+ * an approximate price the customer can act on beats no price at all, and unlike
+ * an address that cannot be geocoded, nothing here is missing that a fare needs.
  */
 export async function estimateDelivery({
   pickupAddress,
   dropoffAddress,
   vehicleTypeCode,
   cargoCategory,
-  requiresHelper,
+  helperCount,
 }: QuoteInput): Promise<DeliveryEstimateResult> {
   const spec = await prisma.vehicleTypeSpec.findUnique({
     where: { code: vehicleTypeCode },
@@ -209,14 +254,26 @@ export async function estimateDelivery({
     };
   }
 
-  const distanceKm = haversineDistanceKm(pickup, dropoff);
-  const estimatedMinutes = (distanceKm / AVERAGE_SPEED_KMH) * MINUTES_PER_HOUR;
+  const route: Route | null = await getRoute(pickup, dropoff);
+
+  // Both branches produce the same three figures, so the pricing below is
+  // written once against them and never has to know which basis it got.
+  const distanceKm = route
+    ? route.distanceKm
+    : haversineDistanceKm(pickup, dropoff);
+  const estimatedMinutes = route
+    ? route.durationMinutes
+    : (distanceKm / AVERAGE_SPEED_KMH) * MINUTES_PER_HOUR;
+  const routePath = route?.path ?? null;
 
   const rule = spec.pricingRule;
   const baseFare = roundCurrency(rule.baseFare);
   const distanceFare = roundCurrency(distanceKm * rule.pricePerKm);
   const timeFare = roundCurrency(estimatedMinutes * rule.pricePerMinute);
-  const helperFee = requiresHelper ? roundCurrency(rule.helperFee) : 0;
+  // `rule.helperFee` is a *per-helper* rate, not a one-off flat fee: a booking
+  // that asks for three helpers pays it three times. A count of 0 (the driver
+  // working alone) therefore costs nothing, with no branch needed.
+  const helperFee = roundCurrency(rule.helperFee * helperCount);
 
   // The floor keeps very short trips worth driving; loading/unloading overtime
   // is settled separately when the order is completed.
@@ -229,6 +286,8 @@ export async function estimateDelivery({
       pickup,
       dropoff,
       distanceKm,
+      durationMinutes: estimatedMinutes,
+      routePath,
       vehicleTypeSpecId: spec.id,
       breakdown: { baseFare, distanceFare, timeFare, helperFee, price },
     },

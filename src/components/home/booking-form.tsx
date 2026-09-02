@@ -23,7 +23,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import {
   Popover,
@@ -46,9 +45,33 @@ type LatLng = {
  * The fare breakdown both `/api/pricing/estimate` and `/api/orders` return.
  * The estimate endpoint returns exactly this; the orders endpoint returns it
  * alongside the created order's id (see `CreatedOrder`).
+ *
+ * `routePath`, `durationMinutes`, `pickup` and `dropoff` are optional because
+ * only the estimate endpoint carries them: `/api/orders` answers with the
+ * persisted `Order` row, which stores the price and the distance it was booked
+ * at but has no column for the route geometry, its duration, or the resolved
+ * points themselves (those live on the row as separate `pickupLat`/`pickupLng`
+ * fields, not this shape).
  */
 type Quote = {
   distanceKm: number;
+  /**
+   * The road geometry of the quoted route, or `null` when the server could not
+   * route and priced on straight-line distance instead.
+   */
+  routePath?: LatLng[] | null;
+  /** Driving time for the quoted route, on whichever of those two bases. */
+  durationMinutes?: number | null;
+  /**
+   * The pickup/dropoff points LocationIQ resolved the addresses to — the exact
+   * coordinates the route and the price are based on, which is not always what
+   * Google's Places autocomplete pinned for the same address (a long street can
+   * resolve to a different point along it). Once an estimate exists, the map
+   * should show its markers here rather than at the Places pin, so the route
+   * line drawn between them actually touches both markers.
+   */
+  pickup?: LatLng | null;
+  dropoff?: LatLng | null;
   baseFare: number;
   distanceFare: number;
   timeFare: number;
@@ -107,6 +130,31 @@ const PICK_CARD_SELECTED_CLASSES = "border-accent bg-accent/[0.06]";
 
 const PICK_CARD_IDLE_CLASSES =
   "border-line hover:border-accent/40 hover:bg-surface";
+
+/**
+ * Geometry for one cell of the crew-size row. Narrower than a pick card — it
+ * holds a single numeral — but borrows that grid's border and fill states so
+ * the two pickers read as the same control at different sizes.
+ *
+ * The radio inside each cell is `sr-only` (see the picker itself), so the cell
+ * has to draw the focus ring on its behalf — the same `has-[:focus-visible]:`
+ * stand-in the driver hub's radio rows use, in this palette's accent.
+ */
+const CREW_OPTION_CLASSES =
+  "relative flex h-11 cursor-pointer items-center justify-center rounded-xl border font-price text-sm font-semibold transition-colors has-[:focus-visible]:border-accent has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-accent/20";
+
+/**
+ * Total people on the job, the driver included: 1 is the driver working alone
+ * and 4 is the driver plus the three helpers pricing allows. Written out as a
+ * literal tuple rather than derived from a range so `CrewSize` stays a union of
+ * exactly these four numbers.
+ */
+const CREW_SIZE_OPTIONS = [1, 2, 3, 4] as const;
+
+type CrewSize = (typeof CREW_SIZE_OPTIONS)[number];
+
+/** Every booking starts with nobody but the driver. */
+const DEFAULT_CREW_SIZE: CrewSize = 1;
 
 /** Shared geometry for a native `<select>`/date-trigger styled to match the
  *  rest of this form's fields — the same treatment `account-profile-form.tsx`
@@ -188,6 +236,35 @@ function combineDateAndTime(date: Date, time: string): Date | null {
   const combined = new Date(date);
   combined.setHours(Number(match[1]), Number(match[2]), 0, 0);
   return combined;
+}
+
+/**
+ * What a crew size means, spelled out for assistive tech: the picker shows a
+ * bare numeral, which on its own never says what is being counted — or that
+ * the first of those people is the driver rather than a helper.
+ */
+function crewSizeDescription(size: CrewSize): string {
+  if (size === 1) {
+    return "1 person — the driver alone";
+  }
+
+  const helpers = size - 1;
+  return `${size} people — the driver and ${helpers} helper${helpers === 1 ? "" : "s"}`;
+}
+
+/**
+ * Everything the customer is charged for moving the load, as one figure: the
+ * single line that stands in for the old base / distance / time itemisation.
+ *
+ * Derived by subtracting the helper fee from the quoted total rather than by
+ * adding the three components it replaces, and the difference is not academic:
+ * `price` is floored at the pricing rule's minimum fare, so on a short hop
+ * those components sum to *less* than the total. Adding them would print two
+ * lines that visibly fail to reach the total shown alongside them; subtracting
+ * makes the breakdown reconcile at every distance.
+ */
+function transportationCost(quote: Quote): number {
+  return quote.price - quote.helperFee;
 }
 
 /**
@@ -316,8 +393,8 @@ function BreakdownRow({ label, value }: { label: string; value: string }) {
  * The client booking form: route, goods, vehicle and extras on the left, a
  * route preview on the right. Priced on demand — the user presses Calculate to
  * quote against `/api/pricing/estimate`, and any further edit to the route,
- * goods, vehicle or helper choice invalidates that quote until it's
- * recalculated — then booked through `POST /api/orders`.
+ * goods, vehicle or crew size invalidates that quote until it's recalculated —
+ * then booked through `POST /api/orders`.
  *
  * Prop-less by design — it owns all of its own state and is only ever rendered
  * from `HomeEntry`'s signed-in-client branch.
@@ -328,7 +405,9 @@ function BreakdownRow({ label, value }: { label: string; value: string }) {
  * exactly one pickup and one dropoff.
  */
 export function BookingForm(): React.ReactElement {
-  const helperId = useId();
+  // Not an element id but a shared radio `name`: it is what binds the four
+  // crew-size inputs into one group for the browser's own arrow-key handling.
+  const crewSizeName = useId();
   const descriptionId = useId();
   const formId = useId();
   const dateTriggerId = useId();
@@ -356,7 +435,9 @@ export function BookingForm(): React.ReactElement {
     DEFAULT_CARGO_CATEGORY,
   );
   const [vehicleTypeCode, setVehicleTypeCode] = useState("");
-  const [requiresHelper, setRequiresHelper] = useState(false);
+  // Total people for loading and unloading, driver included — see
+  // `helperCount` below for the figure the API is actually told.
+  const [crewSize, setCrewSize] = useState<CrewSize>(DEFAULT_CREW_SIZE);
   const [description, setDescription] = useState("");
 
   const [estimate, setEstimate] = useState<Quote | null>(null);
@@ -366,6 +447,13 @@ export function BookingForm(): React.ReactElement {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<CreatedOrder | null>(null);
+
+  /**
+   * Extra helpers beyond the driver — the crew size the user picked, minus the
+   * driver who is always there. This, not the crew size, is what both the
+   * pricing and the orders endpoint take: the driver is not a line item.
+   */
+  const helperCount = crewSize - 1;
 
   // The map is a companion to the form on desktop and an opt-in panel on
   // mobile. This only drives a `hidden`/`block` swap — the map is never
@@ -481,7 +569,7 @@ export function BookingForm(): React.ReactElement {
   /**
    * A quote is only ever valid for the exact inputs it was computed from.
    * Rather than let a stale price sit under a since-changed route, goods,
-   * vehicle or helper choice, any change to one of them invalidates it —
+   * vehicle or crew size, any change to one of them invalidates it —
    * dropping any in-flight request too — so "Book delivery" disappears back
    * into "Calculate" until the user asks for a fresh number.
    */
@@ -497,7 +585,7 @@ export function BookingForm(): React.ReactElement {
     dropoffLocation,
     vehicleTypeCode,
     cargoCategory,
-    requiresHelper,
+    helperCount,
   ]);
 
   /** Local midnight today — the calendar's disabled-before boundary. */
@@ -583,7 +671,7 @@ export function BookingForm(): React.ReactElement {
           dropoffAddress,
           vehicleTypeCode,
           cargoCategory,
-          requiresHelper,
+          helperCount,
         }),
         signal: controller.signal,
       });
@@ -643,7 +731,7 @@ export function BookingForm(): React.ReactElement {
           dropoffAddress,
           cargoCategory,
           vehicleTypeCode,
-          requiresHelper,
+          helperCount,
           description: description.trim() || undefined,
         }),
       });
@@ -673,7 +761,7 @@ export function BookingForm(): React.ReactElement {
       setPickupLocation(null);
       setDropoffLocation(null);
       setDescription("");
-      setRequiresHelper(false);
+      setCrewSize(DEFAULT_CREW_SIZE);
       setEstimate(null);
       setEstimateError(null);
       setAddressFieldsKey((key) => key + 1);
@@ -723,10 +811,13 @@ export function BookingForm(): React.ReactElement {
   }
 
   /**
-   * The quoted total is floored at the vehicle type's minimum fare, so it can
-   * come out above the sum of the components — worth saying, or the breakdown
-   * reads as bad arithmetic. The half-cent margin keeps floating-point dust
-   * from reading as a floor.
+   * Whether the quoted total came out above the sum of the fare components,
+   * which only happens when the vehicle type's minimum fare floored it. The
+   * breakdown no longer prints those components — `transportationCost` is
+   * derived from the total, so the lines always add up — but the floor is
+   * still worth naming: it is why a two-block hop costs what a longer one
+   * does. The half-cent margin keeps floating-point dust from reading as a
+   * floor.
    */
   function minimumFareApplied(quote: Quote): boolean {
     return (
@@ -794,29 +885,19 @@ export function BookingForm(): React.ReactElement {
                 </dd>
               </div>
               <div className="flex items-baseline justify-between gap-4">
-                <dt className="text-[0.8125rem] text-emerald-800">Base fare</dt>
-                <dd className="font-price text-[0.8125rem] text-emerald-900">
-                  ${result.baseFare.toFixed(2)}
-                </dd>
-              </div>
-              <div className="flex items-baseline justify-between gap-4">
                 <dt className="text-[0.8125rem] text-emerald-800">
-                  Distance fare
+                  Transportation cost
                 </dt>
                 <dd className="font-price text-[0.8125rem] text-emerald-900">
-                  ${result.distanceFare.toFixed(2)}
+                  ${transportationCost(result).toFixed(2)}
                 </dd>
               </div>
-              <div className="flex items-baseline justify-between gap-4">
-                <dt className="text-[0.8125rem] text-emerald-800">Time fare</dt>
-                <dd className="font-price text-[0.8125rem] text-emerald-900">
-                  ${result.timeFare.toFixed(2)}
-                </dd>
-              </div>
-              {/* Only worth a line when one was actually requested. */}
+              {/* Only worth a line when at least one was actually requested. */}
               {result.helperFee > 0 ? (
                 <div className="flex items-baseline justify-between gap-4">
-                  <dt className="text-[0.8125rem] text-emerald-800">Helper</dt>
+                  <dt className="text-[0.8125rem] text-emerald-800">
+                    Helper Fee
+                  </dt>
                   <dd className="font-price text-[0.8125rem] text-emerald-900">
                     ${result.helperFee.toFixed(2)}
                   </dd>
@@ -1139,28 +1220,50 @@ export function BookingForm(): React.ReactElement {
 
             <StepCard step={6} title="Additional details">
               <div className="flex flex-col gap-4">
-                <div className="flex items-start gap-3">
-                  <Checkbox
-                    id={helperId}
-                    checked={requiresHelper}
-                    onCheckedChange={(checked) =>
-                      setRequiresHelper(checked === true)
-                    }
-                    className="mt-0.5 border-line data-checked:border-accent data-checked:bg-accent data-checked:text-ink"
-                  />
-                  <Label
-                    htmlFor={helperId}
-                    className="flex flex-col items-start gap-1 leading-snug"
-                  >
-                    <span className="text-[0.8125rem] font-medium text-paper">
-                      Request a helper / mover
-                    </span>
-                    <span className="text-xs leading-snug font-normal text-muted">
-                      An extra pair of hands for loading and unloading, charged
-                      as a flat fee on top of the fare.
-                    </span>
-                  </Label>
-                </div>
+                {/* Native radios, one per crew size, each visually replaced by
+                    the cell wrapping it. Keeping the real inputs — `sr-only`
+                    rather than removed — is what gives the group its arrow-key
+                    handling and its "3 of 4" announcement for free, the same
+                    trade the driver hub's radio rows make. */}
+                <fieldset className="flex flex-col gap-2">
+                  <legend className="mb-2 text-[0.8125rem] font-medium text-paper">
+                    People for loading / unloading
+                  </legend>
+
+                  <div className="grid grid-cols-4 gap-2 sm:max-w-[17rem]">
+                    {CREW_SIZE_OPTIONS.map((size) => {
+                      const selected = size === crewSize;
+
+                      return (
+                        <label
+                          key={size}
+                          className={`${CREW_OPTION_CLASSES} ${
+                            selected
+                              ? `${PICK_CARD_SELECTED_CLASSES} text-accent`
+                              : `${PICK_CARD_IDLE_CLASSES} text-paper`
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name={crewSizeName}
+                            value={size}
+                            checked={selected}
+                            onChange={() => setCrewSize(size)}
+                            aria-label={crewSizeDescription(size)}
+                            className="sr-only"
+                          />
+                          <span aria-hidden="true">{size}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+
+                  <p className="text-xs leading-snug text-muted">
+                    1 is the driver on their own. Every person after that is a
+                    helper for loading and unloading, charged as a flat fee on
+                    top of the fare.
+                  </p>
+                </fieldset>
 
                 <div className="flex flex-col gap-1.5">
                   <Label
@@ -1202,24 +1305,23 @@ export function BookingForm(): React.ReactElement {
                       value={`${estimate.distanceKm.toFixed(1)} km`}
                     />
                     <BreakdownRow
-                      label="Base fare"
-                      value={`$${estimate.baseFare.toFixed(2)}`}
+                      label="Transportation cost"
+                      value={`$${transportationCost(estimate).toFixed(2)}`}
                     />
-                    <BreakdownRow
-                      label="Distance fare"
-                      value={`$${estimate.distanceFare.toFixed(2)}`}
-                    />
-                    <BreakdownRow
-                      label="Time fare"
-                      value={`$${estimate.timeFare.toFixed(2)}`}
-                    />
-                    {/* Only worth a line when one was actually requested. */}
+                    {/* Only worth a line when at least one was actually
+                        requested. */}
                     {estimate.helperFee > 0 ? (
                       <BreakdownRow
-                        label="Helper"
+                        label="Helper Fee"
                         value={`$${estimate.helperFee.toFixed(2)}`}
                       />
                     ) : null}
+                    {/* The total these two add up to is the "Estimated total"
+                        stat in the bar pinned to the bottom of the viewport —
+                        on screen alongside this panel at every scroll
+                        position, and set in the price face at four times this
+                        size. Repeating it here would only give the same figure
+                        twice over. */}
                   </dl>
 
                   {minimumFareApplied(estimate) ? (
@@ -1275,11 +1377,19 @@ export function BookingForm(): React.ReactElement {
               className={`mt-3 lg:mt-0 lg:block ${mapVisible ? "block" : "hidden"}`}
             >
               <RoutePreviewMap
-                pickup={pickupLocation}
+                // Once an estimate has resolved, its LocationIQ-geocoded points
+                // are what the route line and the price are actually based on —
+                // preferred here over the Places autocomplete pin so the
+                // markers and the route line agree. Before that (or if pricing
+                // fell back and returned none), the Places pin is the best
+                // coordinate available.
+                pickup={estimate?.pickup ?? pickupLocation}
                 pickupLabel={pickupAddress}
-                dropoff={dropoffLocation}
+                dropoff={estimate?.dropoff ?? dropoffLocation}
                 dropoffLabel={dropoffAddress}
                 distanceKm={estimate?.distanceKm ?? null}
+                routePath={estimate?.routePath ?? null}
+                durationMinutes={estimate?.durationMinutes ?? null}
                 vehicleLabel={selectedVehicleType?.label ?? null}
               />
             </div>

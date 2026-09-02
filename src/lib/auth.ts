@@ -27,6 +27,14 @@ import { prisma } from "@/lib/prisma";
  * `INVALID_ORIGIN` — which for the admin host would mean staff could never
  * sign in. Each is an empty array while its own split is disabled, making the
  * spread a no-op.
+ *
+ * The last entry is a wildcard rather than another fixed alias: every
+ * `vercel deploy` preview gets its own unique `<name>-<hash>-<team>.vercel.app`
+ * URL, so listing them individually can never keep up. Better Auth's
+ * `trustedOrigins` matcher (`matchesOriginPattern`) supports glob patterns for
+ * exactly this — `*` here stands for the per-deployment hash, scoped to this
+ * Vercel team's own domain suffix rather than every `*.vercel.app`, so this
+ * doesn't trust other teams' deployments.
  */
 const TRUSTED_ORIGINS = [
   "http://localhost:3000",
@@ -34,6 +42,7 @@ const TRUSTED_ORIGINS = [
   "https://lalamove-app-sandrosss13s-projects.vercel.app",
   "https://lalamove-app-git-main-sandrosss13s-projects.vercel.app",
   "https://lalamove-app-sandrosss13-sandrosss13s-projects.vercel.app",
+  "https://*-sandrosss13s-projects.vercel.app",
 ];
 
 /** Better Auth's built-in "change my own password" endpoint. */

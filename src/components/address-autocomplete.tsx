@@ -405,7 +405,10 @@ export function AddressAutocomplete({
     <div className="flex flex-col gap-2 text-sm">
       <label htmlFor={id} className="flex flex-col gap-1">
         {label}
-        <div className="relative">
+        {/* Groups the input with its suggestions list. Deliberately not
+            `relative`: the list sits in normal flow (see its comment below), so
+            there is nothing here left to anchor. */}
+        <div>
           <input
             id={id}
             type="text"
@@ -424,10 +427,16 @@ export function AddressAutocomplete({
             className="w-full rounded border px-3 py-2"
           />
           {open && suggestions.length > 0 ? (
+            // In normal flow rather than an absolute overlay: two of these
+            // fields stack a short gap apart in the booking form, and an
+            // overlaid list buried the next field's label and input entirely.
+            // Opening the list now pushes what follows down the page, matching
+            // how the structured breakdown and map preview below already
+            // expand. Capped so a long result list can't take over the page.
             <ul
               id={listboxId}
               role="listbox"
-              className="absolute left-0 right-0 top-full z-10 mt-1 overflow-hidden rounded border bg-background shadow"
+              className="mt-1 max-h-60 overflow-y-auto rounded border bg-background shadow"
             >
               {suggestions.map((suggestion, index) => (
                 <li

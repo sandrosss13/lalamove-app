@@ -91,8 +91,12 @@ export type HubJob = {
   overtimeFee: number;
   /** The up-front quoted total, floored at the pricing rule's minimum fare. */
   price: number;
-  /** Why `helperFee` is non-zero. */
-  requiresHelper: boolean;
+  /**
+   * Extra helpers booked *beyond* the driver, 0-3 — why `helperFee` is
+   * non-zero, and how many people that one figure covers: the rule's flat
+   * per-helper fee is already multiplied by this before it is stored.
+   */
+  helperCount: number;
   /** Why `overtimeFee` is non-zero; null until the job is completed. */
   waitingMinutes: number | null;
 
@@ -204,7 +208,7 @@ export async function getHubJobs(account: HubAccount): Promise<HubJobsData> {
       helperFee: true,
       overtimeFee: true,
       price: true,
-      requiresHelper: true,
+      helperCount: true,
       waitingMinutes: true,
       createdAt: true,
       scheduledAt: true,
@@ -253,7 +257,7 @@ export async function getHubJobs(account: HubAccount): Promise<HubJobsData> {
       helperFee: order.helperFee,
       overtimeFee: order.overtimeFee,
       price: order.price,
-      requiresHelper: order.requiresHelper,
+      helperCount: order.helperCount,
       waitingMinutes: order.waitingMinutes,
       createdAt: order.createdAt.toISOString(),
       scheduledAt: order.scheduledAt?.toISOString() ?? null,

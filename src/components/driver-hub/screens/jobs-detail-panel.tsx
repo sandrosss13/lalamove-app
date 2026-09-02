@@ -149,10 +149,14 @@ type FareLine = { label: string; amountGel: number };
  * make this the one screen with placeholder money on it).
  *
  * The two conditional lines are conditional on different things on purpose:
- * Helper is keyed off `requiresHelper`, because a job that was booked with a
- * helper should say so even if the rule priced them at nothing, while Overtime
- * is keyed off the fee, because zero waiting minutes beyond the free allowance
- * is not a charge anybody needs to read a line about.
+ * Helpers is keyed off `helperCount`, because a job that was booked with a crew
+ * should say so even if the rule priced them at nothing, while Overtime is
+ * keyed off the fee, because zero waiting minutes beyond the free allowance is
+ * not a charge anybody needs to read a line about.
+ *
+ * `helperCount` counts the extras beyond the driver, and `helperFee` is the
+ * flat per-helper charge already multiplied by it — one line for the whole
+ * crew, which is why the label carries the count.
  */
 function buildFareLines(job: HubJob): FareLine[] {
   const lines: FareLine[] = [
@@ -164,8 +168,11 @@ function buildFareLines(job: HubJob): FareLine[] {
     { label: "Time", amountGel: job.timeFare },
   ];
 
-  if (job.requiresHelper) {
-    lines.push({ label: "Helper", amountGel: job.helperFee });
+  if (job.helperCount > 0) {
+    lines.push({
+      label: job.helperCount === 1 ? "Helper" : `Helpers × ${job.helperCount}`,
+      amountGel: job.helperFee,
+    });
   }
 
   // `price` is the quote *floored at the pricing rule's minimum fare*, so on a

@@ -104,6 +104,21 @@ function isClientOnly(pathname: string): boolean {
  * resolve the same path, and because a stale bookmark or shared cross-host
  * link should self-heal: the landed page's own `redirect()` calls still fire
  * afterwards, so there is no loop risk from this gate.
+ *
+ * LOCAL DEV: the `dev` script in package.json passes `-H ::` and that is load
+ * bearing, not decoration. Next relativises a middleware `Location` whose
+ * origin equals the dev server's own — and it builds that origin from the
+ * hostname the server was started with, NOT from the request's `Host` header
+ * (`getResolveRoutes` in next/dist/server/lib/router-utils/resolve-routes.js).
+ * Started plainly, that origin is `http://localhost:3000`, which is exactly
+ * what `clientOrigin()` returns here, so every bounce from the admin or
+ * merchant host back to the client host went out as a bare `Location: /`: the
+ * browser never left the host it was on, this gate redirected it again, and the
+ * page died with ERR_TOO_MANY_REDIRECTS. Binding to `::` makes the server's own
+ * origin `http://[::]:3000`, which matches none of the three hosts, so the
+ * origin survives and the redirect actually crosses. Nothing below can fix this
+ * on its own — writing the `Location` header by hand does not help, since the
+ * rewrite happens downstream of whatever the middleware returns.
  */
 export function middleware(request: NextRequest) {
   // `x-forwarded-host` is what a proxy (Vercel) sets to the hostname the
