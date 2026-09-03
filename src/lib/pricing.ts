@@ -115,6 +115,46 @@ function roundCurrency(value: number): number {
   return Math.round(value * 100) / 100;
 }
 
+// Service-level tiers.
+//
+// The design prototype used a flat +25 for Priority. A flat fee is wrong across this
+// catalogue: +25 is a 200% uplift on an MPV (GEL 12 minimum fare) and 28% on a trailer
+// truck (GEL 90). Percentages scale with the job, which is what the tier is actually
+// pricing.
+//
+// These two figures are starting values, not signed-off rates — unlike every other
+// money figure in the app, which is attributed to the rate owner with a date
+// (see prisma/seed.ts:254-256). Tune them here when a rate lands.
+export const PRIORITY_UPLIFT = 0.25; // +25% of the quoted fare
+export const POOLING_DISCOUNT = 0.1; // −10% of the quoted fare
+
+export type ServiceLevelKey = "PRIORITY" | "REGULAR" | "POOLING";
+
+/**
+ * The tier's effect on an already-quoted fare, as a signed amount in GEL.
+ *
+ * Applied to the final fare — i.e. after the minimum-fare floor — so a Pooling
+ * discount can take a job below the vehicle's minimum. That is intended: the client
+ * is being paid to accept a wider window, and the floor exists to protect against
+ * short-route underpricing, not against a deliberate discount.
+ */
+export function serviceLevelAdjustment(
+  level: ServiceLevelKey,
+  quotedPrice: number,
+): number {
+  if (level === "PRIORITY") return roundCurrency(quotedPrice * PRIORITY_UPLIFT);
+  if (level === "POOLING") return roundCurrency(-quotedPrice * POOLING_DISCOUNT);
+  return 0;
+}
+
+/** The fare a client pays at `level`, given the fare quoted for Regular. */
+export function priceForServiceLevel(
+  level: ServiceLevelKey,
+  quotedPrice: number,
+): number {
+  return roundCurrency(quotedPrice + serviceLevelAdjustment(level, quotedPrice));
+}
+
 /**
  * Hand-rolled validation of the quote fields (the project has no validation
  * library, and this stage does not warrant adding one). Returns the trimmed,

@@ -11,6 +11,7 @@
  * Run with: pnpm exec prisma db seed
  */
 import {
+  ChassisType,
   LoadingAccessType,
   PrismaClient,
   VehicleCategory,
@@ -44,6 +45,22 @@ type VehicleTypeSeed = {
   /// zero-height limit.
   cargoHeightM: number;
   loadingAccessType: LoadingAccessType;
+  /// The load spaces this type can serve, in the order a client would think of
+  /// them: the body the vehicle is bought for first, then any it also satisfies.
+  ///
+  /// A reefer can run its box dry, so both refrigerated types offer
+  /// `REFRIGERATED` and `DRY_BOX`. A curtainsider opens fully along both sides,
+  /// so it satisfies an open-chassis requirement as well as a dry one. A flatbed
+  /// has no enclosure at all and offers only `OPEN_CHASSIS`.
+  ///
+  /// Note this is a capability list, not a price band: there is deliberately no
+  /// body surcharge, because the catalogue already prices Refrigerated Van above
+  /// Closed Box Van and a surcharge would charge that premium twice.
+  ///
+  /// AWAITING SIGN-OFF — see specs/client-dashboard-booking-and-payment/
+  /// action-required.md. The mapping below is a judgement call from the physical
+  /// specs, not an operator's ruling.
+  bodyTypes: ChassisType[];
   pricing: {
     baseFare: number;
     pricePerKm: number;
@@ -67,6 +84,7 @@ const VEHICLE_TYPE_SEEDS: VehicleTypeSeed[] = [
     cargoWidthM: 1.4,
     cargoHeightM: 1.3,
     loadingAccessType: LoadingAccessType.REAR_DOOR,
+    bodyTypes: [ChassisType.DRY_BOX],
     pricing: {
       baseFare: 8,
       pricePerKm: 1.2,
@@ -86,6 +104,7 @@ const VEHICLE_TYPE_SEEDS: VehicleTypeSeed[] = [
     cargoWidthM: 1.3,
     cargoHeightM: 1.1,
     loadingAccessType: LoadingAccessType.REAR_DOOR,
+    bodyTypes: [ChassisType.DRY_BOX],
     pricing: {
       baseFare: 7,
       pricePerKm: 1.1,
@@ -105,6 +124,7 @@ const VEHICLE_TYPE_SEEDS: VehicleTypeSeed[] = [
     cargoWidthM: 1.6,
     cargoHeightM: 1.6,
     loadingAccessType: LoadingAccessType.REAR_DOOR,
+    bodyTypes: [ChassisType.DRY_BOX],
     pricing: {
       baseFare: 10,
       pricePerKm: 1.4,
@@ -124,6 +144,7 @@ const VEHICLE_TYPE_SEEDS: VehicleTypeSeed[] = [
     cargoWidthM: 1.7,
     cargoHeightM: 1.8,
     loadingAccessType: LoadingAccessType.SIDE_DOOR,
+    bodyTypes: [ChassisType.DRY_BOX],
     pricing: {
       baseFare: 12,
       pricePerKm: 1.6,
@@ -143,6 +164,7 @@ const VEHICLE_TYPE_SEEDS: VehicleTypeSeed[] = [
     cargoWidthM: 1.6,
     cargoHeightM: 1.6,
     loadingAccessType: LoadingAccessType.REAR_DOOR,
+    bodyTypes: [ChassisType.REFRIGERATED, ChassisType.DRY_BOX],
     pricing: {
       baseFare: 14,
       pricePerKm: 1.8,
@@ -162,6 +184,7 @@ const VEHICLE_TYPE_SEEDS: VehicleTypeSeed[] = [
     cargoWidthM: 2.1,
     cargoHeightM: 2.2,
     loadingAccessType: LoadingAccessType.TAIL_LIFT,
+    bodyTypes: [ChassisType.DRY_BOX],
     pricing: {
       baseFare: 25,
       pricePerKm: 2.4,
@@ -182,6 +205,7 @@ const VEHICLE_TYPE_SEEDS: VehicleTypeSeed[] = [
     // Open bed, no cargo box — see the `cargoHeightM` note above.
     cargoHeightM: 0,
     loadingAccessType: LoadingAccessType.OPEN_FLATBED,
+    bodyTypes: [ChassisType.OPEN_CHASSIS],
     pricing: {
       baseFare: 28,
       pricePerKm: 2.6,
@@ -201,6 +225,7 @@ const VEHICLE_TYPE_SEEDS: VehicleTypeSeed[] = [
     cargoWidthM: 2.4,
     cargoHeightM: 2.4,
     loadingAccessType: LoadingAccessType.SIDE_DOOR,
+    bodyTypes: [ChassisType.DRY_BOX, ChassisType.OPEN_CHASSIS],
     pricing: {
       baseFare: 32,
       pricePerKm: 2.9,
@@ -220,6 +245,7 @@ const VEHICLE_TYPE_SEEDS: VehicleTypeSeed[] = [
     cargoWidthM: 2.2,
     cargoHeightM: 2.2,
     loadingAccessType: LoadingAccessType.TAIL_LIFT,
+    bodyTypes: [ChassisType.REFRIGERATED, ChassisType.DRY_BOX],
     pricing: {
       baseFare: 30,
       pricePerKm: 2.8,
@@ -239,6 +265,7 @@ const VEHICLE_TYPE_SEEDS: VehicleTypeSeed[] = [
     cargoWidthM: 2.5,
     cargoHeightM: 2.6,
     loadingAccessType: LoadingAccessType.TAIL_LIFT,
+    bodyTypes: [ChassisType.DRY_BOX],
     pricing: {
       baseFare: 45,
       pricePerKm: 3.5,
@@ -285,6 +312,7 @@ const VEHICLE_TYPE_SEEDS: VehicleTypeSeed[] = [
     // loading and are not a 24 t articulated semi-trailer's capability, so
     // claiming one here would mis-sell the vehicle to clients reading the picker.
     loadingAccessType: LoadingAccessType.REAR_DOOR,
+    bodyTypes: [ChassisType.DRY_BOX],
     pricing: {
       // Exactly 1.5x `LARGE_FREIGHT_TRUCK` — the largest vehicle in the
       // catalogue — on every vehicle-specific money figure, per the rate

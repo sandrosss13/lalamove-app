@@ -2,10 +2,25 @@
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, CalendarDays, Check } from "lucide-react";
+import { ArrowRight, CalendarDays } from "lucide-react";
 import type { CargoCategory } from "@prisma/client";
 
 import { AddressAutocomplete } from "@/components/address-autocomplete";
+import {
+  formatBookedDistanceKm,
+  formatDistanceKm,
+  formatGel,
+} from "@/components/home/booking-format";
+import {
+  BreakdownRow,
+  PICK_CARD_BASE_CLASSES,
+  PICK_CARD_IDLE_CLASSES,
+  PICK_CARD_SELECTED_CLASSES,
+  SelectedTick,
+  StepCard,
+  TruckGlyph,
+  VanGlyph,
+} from "@/components/home/booking-form-primitives";
 import { CARGO_OPTIONS } from "@/components/home/order-cargo-options";
 import {
   formatVehicleDimensions,
@@ -16,13 +31,6 @@ import {
 import { RoutePreviewMap } from "@/components/home/route-preview-map";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import {
   Popover,
@@ -117,19 +125,6 @@ const NETWORK_ERROR_MESSAGE =
 
 const PANEL_LABEL_CLASSES =
   "text-[0.6875rem] font-semibold tracking-[0.1em] text-muted uppercase";
-
-const BREAKDOWN_TERM_CLASSES = "text-[0.8125rem] text-muted";
-
-const BREAKDOWN_VALUE_CLASSES = "font-price text-[0.8125rem] text-paper";
-
-/** Shared geometry for the two pickable card grids (goods and vehicles). */
-const PICK_CARD_BASE_CLASSES =
-  "relative flex flex-col rounded-xl border p-3.5 text-left transition-colors";
-
-const PICK_CARD_SELECTED_CLASSES = "border-accent bg-accent/[0.06]";
-
-const PICK_CARD_IDLE_CLASSES =
-  "border-line hover:border-accent/40 hover:bg-surface";
 
 /**
  * Geometry for one cell of the crew-size row. Narrower than a pick card — it
@@ -268,52 +263,6 @@ function transportationCost(quote: Quote): number {
 }
 
 /**
- * Line-art glyphs for the two duty classes.
- *
- * Written fresh here rather than imported from `landing-vehicles.tsx`: that
- * module is the marketing page's, and these are sized and coloured for a
- * picker card. Small duplicated SVG helpers are this codebase's existing
- * convention (`landing-vehicles.tsx` keeps its own pair for the same reason).
- */
-function VanGlyph({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 48 24"
-      aria-hidden="true"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      className={className}
-    >
-      <path d="M1 18V6h28l11 7v5" />
-      <path d="M1 18h4M14 18h13M37 18h10" />
-      <path d="M22 6v7h17" />
-      <circle cx="9" cy="18" r="3" />
-      <circle cx="32" cy="18" r="3" />
-    </svg>
-  );
-}
-
-function TruckGlyph({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 48 24"
-      aria-hidden="true"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      className={className}
-    >
-      <path d="M1 18V4h25v14" />
-      <path d="M26 9h9l6 6v3" />
-      <path d="M1 18h4M15 18h13M38 18h9" />
-      <circle cx="10" cy="18" r="3" />
-      <circle cx="33" cy="18" r="3" />
-    </svg>
-  );
-}
-
-/**
  * Which glyph stands for which duty class. A `Record` keyed by the category
  * union keeps this exhaustive: adding a duty class fails typecheck until it is
  * given a glyph here.
@@ -325,69 +274,6 @@ const VEHICLE_CATEGORY_GLYPHS: Record<
   MEDIUM_DUTY: VanGlyph,
   HEAVY_DUTY: TruckGlyph,
 };
-
-/**
- * One numbered step of the form. The number is a decoration — the title
- * carries the meaning — so the badge is hidden from assistive tech.
- */
-function StepCard({
-  step,
-  title,
-  description,
-  children,
-}: {
-  /** Omitted for the unnumbered "Additional details" card. */
-  step?: number;
-  title: string;
-  description?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <Card className="gap-4 bg-ink text-paper ring-line">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-3 font-display text-base font-semibold text-paper">
-          {step === undefined ? null : (
-            <span
-              aria-hidden="true"
-              className="flex size-6 shrink-0 items-center justify-center rounded-full bg-accent text-[0.6875rem] font-semibold text-ink"
-            >
-              {step}
-            </span>
-          )}
-          {title}
-        </CardTitle>
-        {description ? (
-          <CardDescription className="text-[0.8125rem] leading-snug text-muted">
-            {description}
-          </CardDescription>
-        ) : null}
-      </CardHeader>
-      <CardContent>{children}</CardContent>
-    </Card>
-  );
-}
-
-/** The orange tick that marks the selected card in either picker grid. */
-function SelectedTick() {
-  return (
-    <span
-      aria-hidden="true"
-      className="absolute top-2.5 right-2.5 flex size-4 items-center justify-center rounded-full bg-accent text-ink"
-    >
-      <Check className="size-2.5" strokeWidth={3} />
-    </span>
-  );
-}
-
-/** One `dt`/`dd` pair of the fare breakdown. */
-function BreakdownRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-baseline justify-between gap-4">
-      <dt className={BREAKDOWN_TERM_CLASSES}>{label}</dt>
-      <dd className={BREAKDOWN_VALUE_CLASSES}>{value}</dd>
-    </div>
-  );
-}
 
 /**
  * The client booking form: route, goods, vehicle and extras on the left, a
@@ -881,7 +767,7 @@ export function BookingForm(): React.ReactElement {
               <div className="flex items-baseline justify-between gap-4">
                 <dt className="text-[0.8125rem] text-emerald-800">Distance</dt>
                 <dd className="font-price text-[0.8125rem] text-emerald-900">
-                  {result.distanceKm.toFixed(2)} km
+                  {formatBookedDistanceKm(result.distanceKm)}
                 </dd>
               </div>
               <div className="flex items-baseline justify-between gap-4">
@@ -889,7 +775,7 @@ export function BookingForm(): React.ReactElement {
                   Transportation cost
                 </dt>
                 <dd className="font-price text-[0.8125rem] text-emerald-900">
-                  ${transportationCost(result).toFixed(2)}
+                  {formatGel(transportationCost(result))}
                 </dd>
               </div>
               {/* Only worth a line when at least one was actually requested. */}
@@ -899,7 +785,7 @@ export function BookingForm(): React.ReactElement {
                     Helper Fee
                   </dt>
                   <dd className="font-price text-[0.8125rem] text-emerald-900">
-                    ${result.helperFee.toFixed(2)}
+                    {formatGel(result.helperFee)}
                   </dd>
                 </div>
               ) : null}
@@ -908,7 +794,7 @@ export function BookingForm(): React.ReactElement {
                   Total
                 </dt>
                 <dd className="font-price text-base font-semibold text-emerald-900">
-                  ${result.price.toFixed(2)}
+                  {formatGel(result.price)}
                 </dd>
               </div>
             </dl>
@@ -1302,18 +1188,18 @@ export function BookingForm(): React.ReactElement {
                   <dl className="mt-3 flex flex-col gap-1.5">
                     <BreakdownRow
                       label="Distance"
-                      value={`${estimate.distanceKm.toFixed(1)} km`}
+                      value={formatDistanceKm(estimate.distanceKm)}
                     />
                     <BreakdownRow
                       label="Transportation cost"
-                      value={`$${transportationCost(estimate).toFixed(2)}`}
+                      value={formatGel(transportationCost(estimate))}
                     />
                     {/* Only worth a line when at least one was actually
                         requested. */}
                     {estimate.helperFee > 0 ? (
                       <BreakdownRow
                         label="Helper Fee"
-                        value={`$${estimate.helperFee.toFixed(2)}`}
+                        value={formatGel(estimate.helperFee)}
                       />
                     ) : null}
                     {/* The total these two add up to is the "Estimated total"
@@ -1413,7 +1299,7 @@ export function BookingForm(): React.ReactElement {
             <div className="min-w-0">
               <p className={PANEL_LABEL_CLASSES}>Estimated total</p>
               <p className="mt-1.5 font-price text-[2.125rem] leading-none font-semibold tracking-[-0.03em] text-accent">
-                {estimate ? `$${estimate.price.toFixed(2)}` : EMPTY_STAT}
+                {estimate ? formatGel(estimate.price) : EMPTY_STAT}
               </p>
             </div>
 

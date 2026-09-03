@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import {
   estimateDelivery,
   parseQuoteFields,
+  priceForServiceLevel,
   quoteFailureMessage,
 } from "@/lib/pricing";
 import { checkRateLimit } from "@/lib/rate-limit";
@@ -50,6 +51,9 @@ function getCallerKey(request: Request): string {
  * points the route and the price are actually based on (Google's Places
  * autocomplete, which is what places the marker beforehand, can resolve a long
  * street to a different point along it than LocationIQ does).
+ *
+ * It also returns the price at each of the three service levels, so the booking
+ * form can show the tiers side by side without re-quoting per tier.
  */
 export async function POST(request: Request): Promise<NextResponse> {
   // Checked before parsing or geocoding so a flood costs almost nothing.
@@ -97,8 +101,27 @@ export async function POST(request: Request): Promise<NextResponse> {
   const { pickup, dropoff, distanceKm, durationMinutes, routePath, breakdown } =
     result.estimate;
 
+  // The booking form shows all three service-level prices side by side, so they
+  // are derived here rather than over three more round trips: the tiers are
+  // arithmetic on `breakdown.price`, and only the quote itself costs geocoding.
+  // `REGULAR` is the quoted fare unadjusted, and is repeated here so the caller
+  // can read every tier out of one object rather than special-casing one of them.
+  const serviceLevels = {
+    PRIORITY: priceForServiceLevel("PRIORITY", breakdown.price),
+    REGULAR: breakdown.price,
+    POOLING: priceForServiceLevel("POOLING", breakdown.price),
+  };
+
   return NextResponse.json(
-    { pickup, dropoff, distanceKm, durationMinutes, routePath, ...breakdown },
+    {
+      pickup,
+      dropoff,
+      distanceKm,
+      durationMinutes,
+      routePath,
+      ...breakdown,
+      serviceLevels,
+    },
     { status: 200 },
   );
 }

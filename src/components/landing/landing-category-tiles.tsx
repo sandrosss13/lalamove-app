@@ -7,6 +7,7 @@ import {
   CARGO_CATEGORY_ALLOWED_VEHICLE_CATEGORIES,
   CARGO_CATEGORY_LABELS,
 } from "@/lib/cargo";
+import { formatGel } from "@/components/landing/landing-format";
 import {
   useLandingVehicleTypes,
   type LandingVehicleType,
@@ -281,7 +282,7 @@ export function LandingCategoryTiles({
                     from{" "}
                     <span className="font-price font-semibold text-paper">
                       {vehicleType
-                        ? `$${fromPrice(vehicleType)}`
+                        ? formatGel(fromPrice(vehicleType))
                         : EMPTY_FIGURE}
                     </span>
                     <span className="sr-only"> — price your own route</span>
