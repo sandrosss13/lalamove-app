@@ -30,6 +30,10 @@ import {
   type OrderVehicleType,
 } from "@/components/home/order-vehicle-types";
 import { RoutePreviewMap } from "@/components/home/route-preview-map";
+import {
+  StopContactDialog,
+  type StopContact,
+} from "@/components/home/stop-contact-dialog";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Label } from "@/components/ui/label";
@@ -127,6 +131,51 @@ type CreatedOrder = Quote & {
   serviceLevel: ServiceLevel;
   serviceLevelAdjustment: number;
 };
+
+/**
+ * The two ends of the route, in the order they are travelled — which is also
+ * the order the delivery-info dialog numbers its badge by (`1` for the pickup,
+ * `2` for the dropoff, from `stop`).
+ */
+const STOP_FIELDS = ["pickup", "dropoff"] as const;
+
+type StopField = (typeof STOP_FIELDS)[number];
+
+/** The delivery-info saved at each end, `null` where none was captured. */
+type StopContacts = Record<StopField, StopContact | null>;
+
+/**
+ * No contact at either end — where a booking starts, and what it is returned to
+ * once one is placed. Shared between the initial state and the reset because
+ * both mean the same thing; never mutated, only ever spread from.
+ */
+const NO_STOP_CONTACTS: StopContacts = { pickup: null, dropoff: null };
+
+/**
+ * One stop's contact block as `POST /api/orders` takes it, or `undefined` when
+ * there is nothing to record for that stop.
+ *
+ * Every field of the dialog is optional, so "saved" and "filled in" are not the
+ * same thing: a client can open the dialog on selecting an address and press
+ * Save without typing. That is a stop with no contact, and it is sent as an
+ * omitted key rather than as three empty strings — the endpoint would store the
+ * same three nulls either way, but only one of those shapes says what happened.
+ */
+function stopContactPayload(
+  contact: StopContact | null,
+): StopContact | undefined {
+  if (!contact) {
+    return undefined;
+  }
+
+  const anythingFilled = [contact.name, contact.phone, contact.details].some(
+    (field) => field.trim().length > 0,
+  );
+
+  // Trimming and length-capping are the server's, not this form's — sending the
+  // draft as typed keeps one place responsible for what is actually stored.
+  return anythingFilled ? contact : undefined;
+}
 
 /**
  * The first cargo category the taxonomy declares, used as the initial
@@ -468,6 +517,22 @@ export function BookingForm(): React.ReactElement {
   const [pickupLocation, setPickupLocation] = useState<LatLng | null>(null);
   const [dropoffLocation, setDropoffLocation] = useState<LatLng | null>(null);
 
+  /**
+   * Who the driver asks for at each end, and where in the building to find
+   * them. Only *saved* contacts live here: the dialog owns its own draft, so a
+   * cancelled edit never reaches this state and a re-opened stop shows whatever
+   * was last saved for it.
+   *
+   * Nothing in the Route step renders from this — the card looks the same
+   * before and after a contact is captured, by design.
+   */
+  const [contacts, setContacts] = useState<StopContacts>(NO_STOP_CONTACTS);
+
+  /** Which stop's delivery-info dialog is open, or `null` when none is. */
+  const [contactModalFor, setContactModalFor] = useState<StopField | null>(
+    null,
+  );
+
   const [cargoCategory, setCargoCategory] = useState<CargoCategory>(
     DEFAULT_CARGO_CATEGORY,
   );
@@ -687,7 +752,9 @@ export function BookingForm(): React.ReactElement {
     // changed, not as a side effect of how that change happens to cascade.
     bodyType,
     helperCount,
-    // `serviceLevel` is absent on purpose — see above.
+    // `serviceLevel` is absent on purpose — see above. So are the two stop
+    // contacts: a name and a floor number are operational detail carried to the
+    // driver, and no part of the fare reads them.
   ]);
 
   /** Local midnight today — the calendar's disabled-before boundary. */
@@ -831,6 +898,11 @@ export function BookingForm(): React.ReactElement {
           scheduledAt: scheduledDateTime.toISOString(),
           pickupAddress,
           dropoffAddress,
+          // The delivery-info captured at each end. `JSON.stringify` drops an
+          // `undefined` value entirely, which is exactly the "no contact for
+          // this stop" the endpoint reads as an empty block.
+          pickupContact: stopContactPayload(contacts.pickup),
+          dropoffContact: stopContactPayload(contacts.dropoff),
           cargoCategory,
           vehicleTypeCode,
           // Recorded on the order, not priced from: `/api/orders` re-checks it
@@ -871,6 +943,12 @@ export function BookingForm(): React.ReactElement {
       setDropoffAddress("");
       setPickupLocation(null);
       setDropoffLocation(null);
+      // Cleared with the addresses they describe, and for the same reason the
+      // fields are remounted below: a second booking down a different route
+      // must not inherit the first one's contacts. The dialog is closed too,
+      // in case a stray one is still open behind the confirmation.
+      setContacts(NO_STOP_CONTACTS);
+      setContactModalFor(null);
       setDescription("");
       setCrewSize(DEFAULT_CREW_SIZE);
       setServiceLevel(DEFAULT_SERVICE_LEVEL);
@@ -1233,6 +1311,11 @@ export function BookingForm(): React.ReactElement {
                   value={pickupAddress}
                   onChange={setPickupAddress}
                   onLocationChange={setPickupLocation}
+                  // Selection, not resolution: `onLocationChange` also fires on
+                  // every keystroke, and its one non-null call is behind a
+                  // details lookup that is allowed to fail quietly — either
+                  // would open this dialog at the wrong moment, or never.
+                  onPlaceSelected={() => setContactModalFor("pickup")}
                   placeholder="e.g. Rustaveli Ave 12, Tbilisi"
                   required
                 />
@@ -1244,10 +1327,53 @@ export function BookingForm(): React.ReactElement {
                   value={dropoffAddress}
                   onChange={setDropoffAddress}
                   onLocationChange={setDropoffLocation}
+                  onPlaceSelected={() => setContactModalFor("dropoff")}
                   placeholder="e.g. Aghmashenebeli Ave 88, Tbilisi"
                   required
                 />
               </div>
+
+              {/* One dialog per stop, both mounted for the life of the form
+                  rather than swapped in and out of a single slot. Each one
+                  re-seeds its draft on the closed → open transition, which only
+                  happens for a component that stays mounted, and Radix gets to
+                  run its own close sequence — exit animation, focus returned
+                  outwards, scroll unlocked — instead of being torn out
+                  mid-close. Closed, a `Dialog` portals nothing and renders
+                  nothing, so the pair costs no markup between openings.
+
+                  They sit inside the `<form>`, which is what makes the Enter
+                  guard on `DialogContent` load-bearing: Radix portals the panel
+                  to `document.body`, but React still dispatches its synthetic
+                  events up this tree, so an un-stopped Enter would reach
+                  `handleFormKeyDown` and fire a live estimate from inside an
+                  open modal. */}
+              {STOP_FIELDS.map((stop) => (
+                <StopContactDialog
+                  key={stop}
+                  open={contactModalFor === stop}
+                  // Only ever called with `false` — nothing inside the dialog
+                  // opens it, and Cancel, Escape and a backdrop click all land
+                  // here. The address the client picked stays in the field
+                  // either way: closing discards the draft, not the selection.
+                  onOpenChange={(open) => {
+                    if (!open) {
+                      setContactModalFor(null);
+                    }
+                  }}
+                  stop={stop}
+                  // The field's own value, not the label the selection carried:
+                  // it already holds that label by this render, and it is the
+                  // one that gets refined when the structured lookup lands, so
+                  // reading it keeps the dialog's address line in step with the
+                  // input behind it.
+                  address={stop === "pickup" ? pickupAddress : dropoffAddress}
+                  initialValue={contacts[stop]}
+                  onSave={(contact) =>
+                    setContacts((current) => ({ ...current, [stop]: contact }))
+                  }
+                />
+              ))}
             </StepCard>
 
             <StepCard

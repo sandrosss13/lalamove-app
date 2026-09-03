@@ -94,7 +94,7 @@ graph TD
 - [x] [task-14-wallet-page](./tasks/task-14-wallet-page.md) — `/wallet` becomes Payment methods
 
 ### Wave 5
-- [ ] [task-15-wire-stop-contacts](./tasks/task-15-wire-stop-contacts.md) — Open the popup on address selection
+- [x] [task-15-wire-stop-contacts](./tasks/task-15-wire-stop-contacts.md) — Open the popup on address selection
 
 ### Wave 6
 - [ ] [task-16-payment-step](./tasks/task-16-payment-step.md) — Step 7 payment method + Business PO reference
