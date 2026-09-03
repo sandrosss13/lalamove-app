@@ -3,7 +3,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, CalendarDays } from "lucide-react";
-import type { CargoCategory } from "@prisma/client";
+import type { CargoCategory, ChassisType } from "@prisma/client";
 
 import { AddressAutocomplete } from "@/components/address-autocomplete";
 import {
@@ -26,6 +26,7 @@ import {
   formatVehicleDimensions,
   formatVehiclePayload,
   useOrderVehicleTypes,
+  vehicleOffersBody,
   type OrderVehicleType,
 } from "@/components/home/order-vehicle-types";
 import { RoutePreviewMap } from "@/components/home/route-preview-map";
@@ -151,6 +152,48 @@ type CrewSize = (typeof CREW_SIZE_OPTIONS)[number];
 /** Every booking starts with nobody but the driver. */
 const DEFAULT_CREW_SIZE: CrewSize = 1;
 
+/**
+ * The three load spaces a client can ask for, in the order they are offered.
+ *
+ * Copy only: which vehicle serves which body is never written down here. That
+ * mapping lives on `VehicleTypeSpec.bodyTypes` and reaches this form through
+ * `vehicleOffersBody`, so a newly seeded vehicle type becomes filterable
+ * without touching this file.
+ */
+const BODY_TYPE_OPTIONS: {
+  body: ChassisType;
+  title: string;
+  description: string;
+}[] = [
+  {
+    body: "DRY_BOX",
+    title: "Dry box",
+    description: "Enclosed and weather-proof",
+  },
+  {
+    body: "REFRIGERATED",
+    title: "Refrigerated",
+    description: "Temperature-controlled load space",
+  },
+  {
+    body: "OPEN_CHASSIS",
+    title: "Open chassis",
+    description: "Flatbed, loadable from any side",
+  },
+];
+
+/** The load space most goods travel in, and so what the picker starts on. */
+const DEFAULT_BODY_TYPE: ChassisType = "DRY_BOX";
+
+/**
+ * One card of the load-space row. The pick-card geometry the goods and vehicle
+ * grids use, plus the two things a `<label>` wrapping an `sr-only` radio has to
+ * add for itself: the pointer affordance the `<button>`s get natively, and a
+ * focus ring drawn on the hidden input's behalf (the same
+ * `has-[:focus-visible]:` stand-in as the crew-size row below).
+ */
+const BODY_OPTION_CLASSES = `${PICK_CARD_BASE_CLASSES} cursor-pointer gap-1 has-[:focus-visible]:border-accent has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-accent/20`;
+
 /** Shared geometry for a native `<select>`/date-trigger styled to match the
  *  rest of this form's fields — the same treatment `account-profile-form.tsx`
  *  uses for its own native Gender `<select>`, and for the same reason: a
@@ -248,6 +291,15 @@ function crewSizeDescription(size: CrewSize): string {
 }
 
 /**
+ * How many vehicles a load space would leave the client to choose from.
+ * Pluralised rather than printed as a bare "1 vehicles", the same reflex as
+ * `crewSizeDescription` above.
+ */
+function vehicleCountLabel(count: number): string {
+  return `${count} vehicle${count === 1 ? "" : "s"}`;
+}
+
+/**
  * Everything the customer is charged for moving the load, as one figure: the
  * single line that stands in for the old base / distance / time itemisation.
  *
@@ -279,8 +331,8 @@ const VEHICLE_CATEGORY_GLYPHS: Record<
  * The client booking form: route, goods, vehicle and extras on the left, a
  * route preview on the right. Priced on demand — the user presses Calculate to
  * quote against `/api/pricing/estimate`, and any further edit to the route,
- * goods, vehicle or crew size invalidates that quote until it's recalculated —
- * then booked through `POST /api/orders`.
+ * goods, load space, vehicle or crew size invalidates that quote until it's
+ * recalculated — then booked through `POST /api/orders`.
  *
  * Prop-less by design — it owns all of its own state and is only ever rendered
  * from `HomeEntry`'s signed-in-client branch.
@@ -294,6 +346,8 @@ export function BookingForm(): React.ReactElement {
   // Not an element id but a shared radio `name`: it is what binds the four
   // crew-size inputs into one group for the browser's own arrow-key handling.
   const crewSizeName = useId();
+  // Likewise the shared `name` binding the three load-space radios together.
+  const bodyTypeName = useId();
   const descriptionId = useId();
   const formId = useId();
   const dateTriggerId = useId();
@@ -320,6 +374,11 @@ export function BookingForm(): React.ReactElement {
   const [cargoCategory, setCargoCategory] = useState<CargoCategory>(
     DEFAULT_CARGO_CATEGORY,
   );
+  // The load space the goods need. A filter on the vehicle list and nothing
+  // more: it moves no price, because the catalogue already charges for the body
+  // through each type's own pricing rule (a Refrigerated Van is priced above a
+  // Closed Box Van), so a surcharge here would bill the same premium twice.
+  const [bodyType, setBodyType] = useState<ChassisType>(DEFAULT_BODY_TYPE);
   const [vehicleTypeCode, setVehicleTypeCode] = useState("");
   // Total people for loading and unloading, driver included — see
   // `helperCount` below for the figure the API is actually told.
@@ -405,16 +464,42 @@ export function BookingForm(): React.ReactElement {
     }
   }, [weightOptions, maxWeightKg]);
 
-  /** Cargo-eligible vehicles that can also carry the declared weight. */
-  const eligibleVehicleTypes = useMemo(() => {
-    if (maxWeightKg === null) {
-      return cargoEligibleVehicleTypes;
-    }
+  /**
+   * The three load-space cards, each carrying how many vehicles would be left
+   * to choose from if it were picked.
+   *
+   * Counted against the cargo-eligible set, not the fully filtered one: a card
+   * has to say what picking it *would* give you, so the body currently selected
+   * must not be allowed to shrink the other two cards' figures. The weight step
+   * is left out of the count for the same reason it is left out of the cards
+   * themselves — it re-defaults on a body change (see `handleBodyTypeChange`),
+   * so a figure narrowed by it would be describing a weight about to be
+   * discarded.
+   */
+  const bodyTypeCards = useMemo(
+    () =>
+      BODY_TYPE_OPTIONS.map((option) => ({
+        ...option,
+        vehicleCount: cargoEligibleVehicleTypes.filter((vehicleType) =>
+          vehicleOffersBody(vehicleType, option.body),
+        ).length,
+      })),
+    [cargoEligibleVehicleTypes],
+  );
 
+  /**
+   * Cargo-eligible vehicles that also offer the chosen load space and can carry
+   * the declared weight — the three filters of the vehicle step, applied
+   * together. The body predicate is the taxonomy's own (`vehicleOffersBody`);
+   * this file holds no vehicle-to-body table.
+   */
+  const eligibleVehicleTypes = useMemo(() => {
     return cargoEligibleVehicleTypes.filter(
-      (vehicleType) => vehicleType.maxPayloadKg >= maxWeightKg,
+      (vehicleType) =>
+        vehicleOffersBody(vehicleType, bodyType) &&
+        (maxWeightKg === null || vehicleType.maxPayloadKg >= maxWeightKg),
     );
-  }, [cargoEligibleVehicleTypes, maxWeightKg]);
+  }, [cargoEligibleVehicleTypes, bodyType, maxWeightKg]);
 
   const bestFitVehicleType = eligibleVehicleTypes[0] ?? null;
 
@@ -448,6 +533,23 @@ export function BookingForm(): React.ReactElement {
     }
   }, [eligibleVehicleTypes, vehicleTypeCode]);
 
+  /**
+   * Pick a load space, and clear the two steps that hang off it.
+   *
+   * A goods change performs this same reset without being asked to: it rebuilds
+   * `weightOptions`, which re-defaults the weight, and shrinks the eligible
+   * list, which re-picks the vehicle. A body change reaches neither — the
+   * weight options are deliberately cargo-derived (see `weightOptions`), so
+   * they do not move — hence doing it here by hand. Clearing rather than
+   * choosing: both effects then settle on their first-render defaults, the
+   * smallest capacity and the cheapest eligible vehicle.
+   */
+  function handleBodyTypeChange(body: ChassisType) {
+    setBodyType(body);
+    setMaxWeightKg(null);
+    setVehicleTypeCode("");
+  }
+
   // The in-flight estimate request, if any — kept in a ref (not state) since
   // it's only ever read from event handlers and cleanup, never rendered.
   const estimateAbortRef = useRef<AbortController | null>(null);
@@ -455,7 +557,7 @@ export function BookingForm(): React.ReactElement {
   /**
    * A quote is only ever valid for the exact inputs it was computed from.
    * Rather than let a stale price sit under a since-changed route, goods,
-   * vehicle or crew size, any change to one of them invalidates it —
+   * load space, vehicle or crew size, any change to one of them invalidates it —
    * dropping any in-flight request too — so "Book delivery" disappears back
    * into "Calculate" until the user asks for a fresh number.
    */
@@ -471,6 +573,10 @@ export function BookingForm(): React.ReactElement {
     dropoffLocation,
     vehicleTypeCode,
     cargoCategory,
+    // Listed even though a body change always clears the vehicle code above
+    // it: the quote must be invalidated by the input the user actually
+    // changed, not as a side effect of how that change happens to cascade.
+    bodyType,
     helperCount,
   ]);
 
@@ -617,6 +723,11 @@ export function BookingForm(): React.ReactElement {
           dropoffAddress,
           cargoCategory,
           vehicleTypeCode,
+          // Recorded on the order, not priced from: `/api/orders` re-checks it
+          // against the chosen vehicle's own `bodyTypes` and stores it so the
+          // driver knows which body the load was booked for. The estimate
+          // endpoint is deliberately not told — body type moves no price.
+          bodyType,
           helperCount,
           description: description.trim() || undefined,
         }),
@@ -1029,7 +1140,7 @@ export function BookingForm(): React.ReactElement {
             <StepCard
               step={5}
               title="Recommended vehicle"
-              description="Only vehicles cleared for your goods and weight are shown, cheapest first."
+              description="Only vehicles cleared for your goods, load space and weight are shown, cheapest first."
             >
               {vehicleTypesError ? (
                 <p role="alert" className="text-[0.8125rem] text-accent">
@@ -1039,68 +1150,179 @@ export function BookingForm(): React.ReactElement {
                 <p aria-busy="true" className="text-[0.8125rem] text-muted">
                   Loading vehicle types…
                 </p>
-              ) : eligibleVehicleTypes.length === 0 ? (
-                <p role="alert" className="text-[0.8125rem] text-accent">
-                  No vehicle is currently available for these goods. Please pick
-                  a different category.
-                </p>
               ) : (
-                <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-                  {eligibleVehicleTypes.map((vehicleType) => {
-                    const selected = vehicleType.code === vehicleTypeCode;
-                    const isBestFit =
-                      bestFitVehicleType?.code === vehicleType.code;
-                    const Glyph = VEHICLE_CATEGORY_GLYPHS[vehicleType.category];
+                <>
+                  {/* Native radios again, one per load space, each visually
+                      replaced by the card wrapping it — the same trade the
+                      crew-size picker in step 6 makes, and for the same
+                      reasons: arrow-key navigation of the group and the "2 of
+                      3" announcement, both free. (The goods and vehicle grids
+                      above and below are older `aria-pressed` buttons; they
+                      are left alone.) */}
+                  <fieldset className="mb-[18px]">
+                    <legend className="mb-2.5 text-[0.8125rem] font-medium text-paper">
+                      What kind of load space do you need?
+                    </legend>
 
-                    return (
-                      <button
-                        key={vehicleType.code}
-                        type="button"
-                        aria-pressed={selected}
-                        onClick={() => setVehicleTypeCode(vehicleType.code)}
-                        className={`${PICK_CARD_BASE_CLASSES} ${
-                          selected
-                            ? PICK_CARD_SELECTED_CLASSES
-                            : PICK_CARD_IDLE_CLASSES
-                        }`}
-                      >
-                        <span className="flex items-start justify-between gap-2">
-                          <Glyph
-                            className={`h-6 w-12 shrink-0 ${
-                              selected ? "text-accent" : "text-muted"
+                    <div className="grid grid-cols-3 gap-2.5">
+                      {bodyTypeCards.map((option) => {
+                        const selected = option.body === bodyType;
+                        const countLabel = vehicleCountLabel(
+                          option.vehicleCount,
+                        );
+
+                        return (
+                          <label
+                            key={option.body}
+                            className={`${BODY_OPTION_CLASSES} ${
+                              selected
+                                ? PICK_CARD_SELECTED_CLASSES
+                                : PICK_CARD_IDLE_CLASSES
                             }`}
-                          />
-                          {/* Teal, never orange: "cheapest option" is a
-                              different signal from "what you picked". */}
-                          {isBestFit ? (
-                            <span className="rounded-full bg-emerald-600/10 px-2 py-0.5 text-[0.5625rem] font-semibold tracking-[0.1em] text-emerald-700 uppercase">
-                              Best
+                          >
+                            <input
+                              type="radio"
+                              name={bodyTypeName}
+                              value={option.body}
+                              checked={selected}
+                              onChange={() => handleBodyTypeChange(option.body)}
+                              // The card's own text is hidden from assistive
+                              // tech (below) and spoken from here instead, so
+                              // the three lines arrive as one name in one
+                              // reading order rather than as loose text beside
+                              // an unnamed radio.
+                              aria-label={`${option.title} — ${option.description} · ${countLabel}`}
+                              className="sr-only"
+                            />
+                            <span
+                              aria-hidden="true"
+                              className="pr-4 text-[0.8125rem] leading-snug font-semibold text-paper"
+                            >
+                              {option.title}
                             </span>
-                          ) : null}
-                        </span>
+                            <span
+                              aria-hidden="true"
+                              className="text-xs leading-snug text-muted"
+                            >
+                              {option.description}
+                            </span>
+                            <span
+                              aria-hidden="true"
+                              className="font-price text-[0.6875rem] text-muted tabular-nums"
+                            >
+                              {countLabel}
+                            </span>
+                            {selected ? <SelectedTick /> : null}
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </fieldset>
 
-                        <span className="mt-2.5 pr-4 text-[0.8125rem] leading-snug font-semibold text-paper">
-                          {vehicleType.label}
-                        </span>
-                        <span className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-0.5 font-price text-[0.6875rem] text-muted">
-                          <span>
-                            {formatVehicleDimensions(
-                              vehicleType.cargoLengthM,
-                              vehicleType.cargoWidthM,
-                              vehicleType.cargoHeightM,
-                            )}
-                          </span>
-                          <span>
-                            up to{" "}
-                            {formatVehiclePayload(vehicleType.maxPayloadKg)}
-                          </span>
-                        </span>
+                  {cargoEligibleVehicleTypes.length === 0 ? (
+                    <p role="alert" className="text-[0.8125rem] text-accent">
+                      No vehicle is currently available for these goods. Pick a
+                      different category.
+                    </p>
+                  ) : eligibleVehicleTypes.length === 0 ? (
+                    // On the catalogue as seeded, this branch is the body
+                    // filter's: every weight option is a capacity some
+                    // cargo-eligible vehicle actually has (see
+                    // `weightOptions`), so goods and weight alone do not empty
+                    // the list. Two caveats keep that an observation rather
+                    // than a guarantee.
+                    //
+                    // One: the weight re-default is an effect, so the render
+                    // immediately after a goods change still holds the previous
+                    // `maxWeightKg` against the new `weightOptions`. This alert
+                    // can therefore flash for a frame with the body filter
+                    // blameless.
+                    //
+                    // Two: the copy can misattribute. If the heaviest weight
+                    // option belongs only to a vehicle outside the selected
+                    // body, lowering the weight would work as well as changing
+                    // the load space, but only the load space is offered. That
+                    // depends on the catalogue, not on the structure — it does
+                    // not arise on the current seed for the default DRY_BOX.
+                    //
+                    // The structure itself is exhaustive: no state reaches the
+                    // grid with nothing in it and no alert.
+                    <p
+                      role="alert"
+                      className="rounded-lg border border-accent/30 bg-accent/[0.08] px-3.5 py-3 text-[0.8125rem] leading-snug text-accent"
+                    >
+                      No vehicle matches this body type for your goods and
+                      weight. Pick a different load space.
+                    </p>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                      {eligibleVehicleTypes.map((vehicleType) => {
+                        const selected = vehicleType.code === vehicleTypeCode;
+                        const isBestFit =
+                          bestFitVehicleType?.code === vehicleType.code;
+                        const Glyph =
+                          VEHICLE_CATEGORY_GLYPHS[vehicleType.category];
 
-                        {selected ? <SelectedTick /> : null}
-                      </button>
-                    );
-                  })}
-                </div>
+                        return (
+                          <button
+                            key={vehicleType.code}
+                            type="button"
+                            aria-pressed={selected}
+                            onClick={() => setVehicleTypeCode(vehicleType.code)}
+                            className={`${PICK_CARD_BASE_CLASSES} ${
+                              selected
+                                ? PICK_CARD_SELECTED_CLASSES
+                                : PICK_CARD_IDLE_CLASSES
+                            }`}
+                          >
+                            <span className="flex items-start justify-between gap-2">
+                              <Glyph
+                                className={`h-6 w-12 shrink-0 ${
+                                  selected ? "text-accent" : "text-muted"
+                                }`}
+                              />
+                              {/* Teal, never orange: "cheapest option" is a
+                              different signal from "what you picked". The
+                              badge sits in flow at the top right, where the
+                              selection tick is absolutely positioned — so on
+                              a selected card it steps aside by the tick's
+                              width plus its inset rather than sitting under
+                              it. */}
+                              {isBestFit ? (
+                                <span
+                                  className={`rounded-full bg-emerald-600/10 px-2 py-0.5 text-[0.5625rem] font-semibold tracking-[0.1em] text-emerald-700 uppercase ${
+                                    selected ? "mr-5" : ""
+                                  }`}
+                                >
+                                  Best
+                                </span>
+                              ) : null}
+                            </span>
+
+                            <span className="mt-2.5 pr-4 text-[0.8125rem] leading-snug font-semibold text-paper">
+                              {vehicleType.label}
+                            </span>
+                            <span className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-0.5 font-price text-[0.6875rem] text-muted">
+                              <span>
+                                {formatVehicleDimensions(
+                                  vehicleType.cargoLengthM,
+                                  vehicleType.cargoWidthM,
+                                  vehicleType.cargoHeightM,
+                                )}
+                              </span>
+                              <span>
+                                up to{" "}
+                                {formatVehiclePayload(vehicleType.maxPayloadKg)}
+                              </span>
+                            </span>
+
+                            {selected ? <SelectedTick /> : null}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
               )}
             </StepCard>
 

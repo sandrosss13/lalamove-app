@@ -85,9 +85,9 @@ graph TD
 - [x] [task-09-driver-ops-context](./tasks/task-09-driver-ops-context.md) — Show stop contacts, service level, body type and PO ref to drivers
 
 ### Wave 3
-- [ ] [task-10-stop-contact-dialog](./tasks/task-10-stop-contact-dialog.md) — Delivery-info dialog component
-- [ ] [task-11-add-card-dialog](./tasks/task-11-add-card-dialog.md) — Add-card dialog component (no PAN leaves the browser)
-- [ ] [task-12-body-type-picker](./tasks/task-12-body-type-picker.md) — Load-space picker and vehicle filter in step 5
+- [x] [task-10-stop-contact-dialog](./tasks/task-10-stop-contact-dialog.md) — Delivery-info dialog component
+- [x] [task-11-add-card-dialog](./tasks/task-11-add-card-dialog.md) — Add-card dialog component (no PAN leaves the browser)
+- [x] [task-12-body-type-picker](./tasks/task-12-body-type-picker.md) — Load-space picker and vehicle filter in step 5
 
 ### Wave 4
 - [ ] [task-13-service-level-card](./tasks/task-13-service-level-card.md) — Service level card, breakdown lines, bottom bar
@@ -110,3 +110,7 @@ Raised by the Wave 1 review, non-blocking, to be applied after Wave 2 lands (bot
 - [x] **Alias `ServiceLevelKey` to the generated enum** (`src/lib/pricing.ts`) — it is currently a hand-written union `"PRIORITY" | "REGULAR" | "POOLING"` sitting alongside the real `ServiceLevel` enum that task-03 created. They can drift silently: adding a fourth tier to the schema would not fail typecheck. Replace with `import type { ServiceLevel } from "@prisma/client"; export type ServiceLevelKey = ServiceLevel;`
 
 Two untracked scratch files sit in the tree and are **not** ours to remove — `hub-seed-inspect.mjs` (source of the four standing lint warnings) and `.tmp-list-users.mjs`. There is also a pre-existing `stash@{0}` ("task-09 partial start: reporting.ts + exceljs dep") that predates this feature.
+
+## Runtime checks owed
+
+Both dialogs' cross-portal event guards are defensive-in-advance: neither dialog is mounted inside `booking-form.tsx` yet, so the guards have never run. When task-15 and task-16 mount them, manually exercise in each dialog: Escape closes it, Tab loops inside it, Enter in a field does the dialog's own action, and Enter on a focused Cancel discards rather than saves.
