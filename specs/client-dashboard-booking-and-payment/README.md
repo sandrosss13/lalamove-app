@@ -90,8 +90,8 @@ graph TD
 - [x] [task-12-body-type-picker](./tasks/task-12-body-type-picker.md) — Load-space picker and vehicle filter in step 5
 
 ### Wave 4
-- [ ] [task-13-service-level-card](./tasks/task-13-service-level-card.md) — Service level card, breakdown lines, bottom bar
-- [ ] [task-14-wallet-page](./tasks/task-14-wallet-page.md) — `/wallet` becomes Payment methods
+- [x] [task-13-service-level-card](./tasks/task-13-service-level-card.md) — Service level card, breakdown lines, bottom bar
+- [x] [task-14-wallet-page](./tasks/task-14-wallet-page.md) — `/wallet` becomes Payment methods
 
 ### Wave 5
 - [ ] [task-15-wire-stop-contacts](./tasks/task-15-wire-stop-contacts.md) — Open the popup on address selection
