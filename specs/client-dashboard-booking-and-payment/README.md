@@ -79,10 +79,10 @@ graph TD
 - [x] [task-05-landing-currency](./tasks/task-05-landing-currency.md) — Replace `$` with `₾` on the landing funnel
 
 ### Wave 2
-- [ ] [task-06-vehicle-body-types](./tasks/task-06-vehicle-body-types.md) — Expose `bodyTypes` through the vehicle-types API
-- [ ] [task-07-saved-cards-api](./tasks/task-07-saved-cards-api.md) — Saved-card list/create/default/delete routes
-- [ ] [task-08-orders-api](./tasks/task-08-orders-api.md) — Accept and re-derive the new order fields
-- [ ] [task-09-driver-ops-context](./tasks/task-09-driver-ops-context.md) — Show stop contacts, service level, body type and PO ref to drivers
+- [x] [task-06-vehicle-body-types](./tasks/task-06-vehicle-body-types.md) — Expose `bodyTypes` through the vehicle-types API
+- [x] [task-07-saved-cards-api](./tasks/task-07-saved-cards-api.md) — Saved-card list/create/default/delete routes
+- [x] [task-08-orders-api](./tasks/task-08-orders-api.md) — Accept and re-derive the new order fields
+- [x] [task-09-driver-ops-context](./tasks/task-09-driver-ops-context.md) — Show stop contacts, service level, body type and PO ref to drivers
 
 ### Wave 3
 - [ ] [task-10-stop-contact-dialog](./tasks/task-10-stop-contact-dialog.md) — Delivery-info dialog component
@@ -106,7 +106,7 @@ graph TD
 
 Raised by the Wave 1 review, non-blocking, to be applied after Wave 2 lands (both touch files Wave 2 agents are reading):
 
-- [ ] **`@@index([savedCardId])` on `Order`** (`prisma/schema.prisma`) — `onDelete: SetNull` makes Postgres scan `Order` for referencing rows on every card deletion, which is exactly what task-07 builds, and task-16 queries orders by card. Needs a **new** migration; do not hand-edit `20260903051048_client_dashboard_booking/migration.sql`, which is already applied.
-- [ ] **Alias `ServiceLevelKey` to the generated enum** (`src/lib/pricing.ts`) — it is currently a hand-written union `"PRIORITY" | "REGULAR" | "POOLING"` sitting alongside the real `ServiceLevel` enum that task-03 created. They can drift silently: adding a fourth tier to the schema would not fail typecheck. Replace with `import type { ServiceLevel } from "@prisma/client"; export type ServiceLevelKey = ServiceLevel;`
+- [x] **`@@index([savedCardId])` on `Order`** (`prisma/schema.prisma`) — `onDelete: SetNull` makes Postgres scan `Order` for referencing rows on every card deletion, which is exactly what task-07 builds, and task-16 queries orders by card. Needs a **new** migration; do not hand-edit `20260903051048_client_dashboard_booking/migration.sql`, which is already applied.
+- [x] **Alias `ServiceLevelKey` to the generated enum** (`src/lib/pricing.ts`) — it is currently a hand-written union `"PRIORITY" | "REGULAR" | "POOLING"` sitting alongside the real `ServiceLevel` enum that task-03 created. They can drift silently: adding a fourth tier to the schema would not fail typecheck. Replace with `import type { ServiceLevel } from "@prisma/client"; export type ServiceLevelKey = ServiceLevel;`
 
 Two untracked scratch files sit in the tree and are **not** ours to remove — `hub-seed-inspect.mjs` (source of the four standing lint warnings) and `.tmp-list-users.mjs`. There is also a pre-existing `stash@{0}` ("task-09 partial start: reporting.ts + exceljs dep") that predates this feature.

@@ -13,8 +13,9 @@ import {
   formatJobTime,
   formatJobTimestamp,
   roundCurrency,
+  toTelHref,
 } from "@/components/driver-hub/screens/jobs-format";
-import type { HubJob } from "@/lib/dashboard/hub/jobs";
+import type { HubJob, HubStopContact } from "@/lib/dashboard/hub/jobs";
 import { cn } from "@/lib/utils";
 
 /**
@@ -43,6 +44,16 @@ import { cn } from "@/lib/utils";
  * one still ahead. Colours are literal Tailwind arbitrary values, never
  * interpolated — the compiler scans source text, so a class assembled from a
  * variable would never be generated.
+ *
+ * ## Operational context
+ *
+ * Below the fare, the panel carries what the client asked for at booking: who
+ * to ask for at each end, the tier the order was placed on, the load space it
+ * was booked for, and a business client's own PO reference. The service-level
+ * pill is a *neutral* pill, not a status one — dispatch does not read
+ * `Order.serviceLevel`, so a coloured pill would read as a promise about how
+ * the job is being handled. The panel is where the flag is honestly visible:
+ * the driver and ops can see it, and nothing here claims it changed anything.
  */
 
 /* -------------------------------------------------------------------------- */
@@ -63,6 +74,14 @@ const DOT_PENDING_CLASSES = "border-[oklch(92.8%_0.006_264.531)] bg-background";
 const NEUTRAL_PILL_CLASSES =
   "h-auto rounded-full border-transparent bg-muted px-[9px] py-[3px] " +
   "text-[11px] font-semibold tracking-[0.02em] text-muted-foreground";
+
+/**
+ * The hub's labelled detail row, shared verbatim with the Drivers and Employees
+ * panels: a hairline above, the label on the left, the value on the right.
+ */
+const DETAIL_ROW_CLASSES =
+  "flex items-center justify-between gap-3 border-t border-muted py-2.5 " +
+  "text-[13px]";
 
 /* -------------------------------------------------------------------------- */
 /* Timeline                                                                   */
@@ -208,6 +227,74 @@ function buildFareLines(job: HubJob): FareLine[] {
 }
 
 /* -------------------------------------------------------------------------- */
+/* Stop contacts                                                              */
+/* -------------------------------------------------------------------------- */
+
+type StopContactRowProps = {
+  /** Which end of the job this is — "Pickup" or "Dropoff". */
+  label: string;
+  /** Null when the client gave no contact for this stop at all. */
+  contact: HubStopContact | null;
+};
+
+/**
+ * One end of the job and whoever the driver asks for there.
+ *
+ * A non-null `contact` carries at least one non-null part by construction (see
+ * `toStopContact` in the loader), so the value side of a rendered contact is
+ * never blank — which is exactly why "no contact" is a null object printed as
+ * the em dash rather than a row of three empty lines. The individual parts are
+ * still optional, so a stop with only a phone shows only a phone.
+ *
+ * The number is a `tel:` link because the person most likely to be reading this
+ * is a driver holding a phone at the kerb, for whom "call this person" is the
+ * only thing the row is for. It falls back to plain text when the stored value
+ * has no digits in it — see `toTelHref`.
+ */
+function StopContactRow({ label, contact }: StopContactRowProps) {
+  const telHref =
+    contact === null || contact.phone === null
+      ? null
+      : toTelHref(contact.phone);
+
+  return (
+    <div className={DETAIL_ROW_CLASSES}>
+      <dt className="flex-none text-muted-foreground">{label}</dt>
+      <dd className="min-w-0 text-right">
+        {contact === null ? (
+          <span className="font-price text-muted-foreground">
+            {EMPTY_VALUE}
+          </span>
+        ) : (
+          <>
+            {contact.name === null ? null : (
+              <span className="block truncate font-medium">{contact.name}</span>
+            )}
+            {contact.phone === null ? null : telHref === null ? (
+              <span className="block truncate font-price text-muted-foreground">
+                {contact.phone}
+              </span>
+            ) : (
+              <a
+                href={telHref}
+                className="block truncate font-price text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+              >
+                {contact.phone}
+              </a>
+            )}
+            {contact.details === null ? null : (
+              <span className="block truncate text-xs text-muted-foreground">
+                {contact.details}
+              </span>
+            )}
+          </>
+        )}
+      </dd>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
 /* Panel                                                                      */
 /* -------------------------------------------------------------------------- */
 
@@ -264,11 +351,26 @@ export function JobsDetailPanel({
 
       <div className="mt-4 mb-5 flex flex-wrap gap-2">
         <HubStatusBadge status={job.status} />
+        {/* Neutral, never a status tone: `hub-status.ts` defines six tones for
+            *states*, and a booked tier is not one. It is also always present —
+            the column defaults to REGULAR — so it is never conditional, and
+            hiding "Regular" would make its absence ambiguous. */}
+        <Badge variant="outline" className={NEUTRAL_PILL_CLASSES}>
+          {job.serviceLevel}
+        </Badge>
         <Badge variant="outline" className={NEUTRAL_PILL_CLASSES}>
           {job.vehicleTypeLabel}
         </Badge>
+        {/* Null on every order placed before the body filter existed, and
+            nothing can derive one after the fact, so the pill is absent rather
+            than defaulted to "Dry box". */}
+        {job.bodyType === null ? null : (
+          <Badge variant="outline" className={NEUTRAL_PILL_CLASSES}>
+            {job.bodyType}
+          </Badge>
+        )}
         {/* A plate only exists once a vehicle was actually dispatched, so an
-            unstarted job shows two pills and a running one shows three. */}
+            unstarted job carries one pill fewer than a running one. */}
         {job.vehiclePlate === null ? null : (
           <Badge
             variant="outline"
@@ -349,6 +451,29 @@ export function JobsDetailPanel({
           {formatGel(job.fare)}
         </span>
       </div>
+
+      {/* Below the money rather than above it: the fare lines and the total
+          they add up to are one block closed by its own rule, and a row list
+          wedged between them would read as another unlabelled fare line. */}
+      <h3 className="mt-5 mb-0.5 text-[13px] font-semibold">Contacts</h3>
+      <dl>
+        <StopContactRow label="Pickup" contact={job.pickupContact} />
+        <StopContactRow label="Dropoff" contact={job.dropoffContact} />
+      </dl>
+
+      {/* Business clients only, and optional even for them, so most jobs carry
+          none. A heading over a single row that is usually absent would come
+          and go with the row, so the row wears its own label instead. */}
+      {job.purchaseOrderRef === null ? null : (
+        <dl>
+          <div className={DETAIL_ROW_CLASSES}>
+            <dt className="flex-none text-muted-foreground">PO reference</dt>
+            <dd className="min-w-0 truncate font-price font-medium">
+              {job.purchaseOrderRef}
+            </dd>
+          </div>
+        </dl>
+      )}
     </HubCard>
   );
 }

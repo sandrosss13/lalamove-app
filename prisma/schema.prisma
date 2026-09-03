@@ -951,6 +951,10 @@ model Order {
   @@index([driverId])
   @@index([companyId])
   @@index([vehicleId])
+  // Indexed because of `onDelete: SetNull`: without it Postgres sequentially
+  // scans every order to find referencing rows on each card deletion, which
+  // DELETE /api/saved-cards/[id] performs on demand.
+  @@index([savedCardId])
   @@index([status])
 }
 
@@ -1183,9 +1187,16 @@ model SavedCard {
   expMonth   Int
   expYear    Int
   holderName String?
-  /// At most one default per client, enforced by the API rather than by a
-  /// constraint — a partial unique index cannot be expressed in Prisma schema,
-  /// and the write path is a single transaction that clears the previous default.
+  /// At most one default per client, enforced by the database: a partial unique
+  /// index on `("clientId") WHERE "isDefault"`. Prisma's schema language cannot
+  /// express a partial index — `@@unique` has no WHERE clause — so it is
+  /// declared only in SQL, by the migration
+  /// `20260903060000_saved_card_default_unique`.
+  ///
+  /// The write path still demotes the previous default before promoting the new
+  /// one, in a single transaction; the index is what makes that ordering hold
+  /// under concurrency, where two transactions would otherwise each demote a
+  /// snapshot taken before the other's uncommitted write.
   isDefault  Boolean @default(false)
 
   createdAt DateTime @default(now())

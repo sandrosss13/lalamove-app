@@ -1,0 +1,23 @@
+-- Enforces "at most one default saved card per client" in the database, where
+-- it was previously only an API convention.
+--
+-- The convention was atomic but not serialisable. Under READ COMMITTED, which
+-- is Prisma's default, two concurrent writes that promote a card each demote a
+-- snapshot taken before the other's uncommitted write landed, and both commit —
+-- leaving a client with two defaults. A delete that promotes the next card,
+-- racing a delete of the card it promotes, leaves them with none. A partial
+-- unique index closes the first case in the engine, where the ordering actually
+-- happens, turning silent data corruption into a constraint error the API can
+-- fail on.
+--
+-- Written by hand because Prisma's schema language cannot express a partial
+-- index: `@@unique` has no WHERE clause. The index therefore exists only here,
+-- and `SavedCard.isDefault` in `schema.prisma` carries a doc comment pointing
+-- back at this migration. Anything that regenerates migrations from the schema
+-- alone will not know this index exists — keep it.
+--
+-- Safe to apply to existing data: every code path already demotes the previous
+-- default before promoting a new one, so no client holds two.
+
+-- CreateIndex
+CREATE UNIQUE INDEX "SavedCard_clientId_default_idx" ON "SavedCard"("clientId") WHERE "isDefault";

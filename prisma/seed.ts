@@ -1,18 +1,22 @@
 /**
- * Seeds the vehicle taxonomy (`VehicleTypeSpec`) and its pricing rules.
+ * Seeds the data a database needs before the app is usable: the vehicle
+ * taxonomy (`VehicleTypeSpec`) with its pricing rules, and the payment methods
+ * the platform accepts (`PaymentMethodConfig`).
  *
  * IMPORTANT: every rate and spec below is an ILLUSTRATIVE PLACEHOLDER, not a real
  * business figure. They exist so the pricing engine and booking UI have coherent
  * data to work against; replace them before anything goes live.
  *
- * The seed is idempotent — it upserts on `VehicleTypeSpec.code`, so re-running it
- * retunes existing rows rather than duplicating them.
+ * The seed is idempotent — it upserts on `VehicleTypeSpec.code` and on
+ * `PaymentMethodConfig.type`, so re-running it retunes existing rows rather than
+ * duplicating them.
  *
  * Run with: pnpm exec prisma db seed
  */
 import {
   ChassisType,
   LoadingAccessType,
+  PaymentMethodType,
   PrismaClient,
   VehicleCategory,
 } from "@prisma/client";
@@ -332,6 +336,63 @@ const VEHICLE_TYPE_SEEDS: VehicleTypeSeed[] = [
   },
 ];
 
+/** How one payment method is seeded. See `PAYMENT_METHOD_SEEDS`. */
+type PaymentMethodSeed = {
+  isEnabled: boolean;
+  /**
+   * Whether a re-run forces `isEnabled` back to the value above, or leaves
+   * whatever the admin finance page last set.
+   *
+   * This is the one genuinely contested decision in this file, so it is a
+   * per-method flag rather than a blanket rule. Stamping over an admin's
+   * deliberate toggle on every re-seed would be surprising; but leaving every
+   * row alone would mean the seed never fixes the database it was written for.
+   * Both halves are true of different methods, so both are expressed.
+   */
+  reassertOnReseed: boolean;
+};
+
+/**
+ * The payment methods the platform accepts out of the box, keyed by the
+ * generated Prisma enum so a new `PaymentMethodType` is a type error here until
+ * somebody decides whether it ships on or off — the same reasoning
+ * `GET /api/admin/finance/payment-methods` applies when it derives its table
+ * from `Object.values(PaymentMethodType)`.
+ *
+ * Without these rows the booking flow is unusable rather than merely limited.
+ * `POST /api/orders` treats a missing `PaymentMethodConfig` as a disabled one
+ * (fail-closed, deliberately), and the rows are otherwise created only lazily —
+ * and disabled — the first time an admin opens the finance page. So on a fresh
+ * database every `paymentMethodType` is refused and the payment step rejects
+ * every booking, including the "Pay later" choice the design makes an
+ * always-available first-class option. "Pay later" is `CASH`, which is why
+ * `CASH` is the one method seeded on.
+ */
+const PAYMENT_METHOD_SEEDS: Record<PaymentMethodType, PaymentMethodSeed> = {
+  // The platform's floor, not a preference: cash on delivery needs no
+  // integration, and the client booking flow's "Pay later" maps onto it, so a
+  // database with `CASH` off cannot take a booking at all. That is a broken
+  // database rather than a configured one, so a re-seed re-asserts it — the
+  // seed's job is to leave a database bookable, and re-seeding is a deliberate
+  // developer act on a development database, never something production does.
+  // An operator who really wants cash switched off can switch it off after; the
+  // finance page still owns the toggle.
+  [PaymentMethodType.CASH]: { isEnabled: true, reassertOnReseed: true },
+  // Off, and left off by a re-run because whether cards are offered is an
+  // operator's decision, not this file's. The switch is real but the
+  // integration behind it is not — no gateway is wired up, which is what the
+  // admin page tells staff in as many words: "Gateway integration pending —
+  // enabling this does not charge cards yet."
+  [PaymentMethodType.CARD]: { isEnabled: false, reassertOnReseed: false },
+  // Off for the same reason as `CARD`: bank transfer needs settlement details
+  // and a reconciliation process the platform has not agreed yet. Turning it on
+  // is a business decision, and a re-seed must not undo one.
+  [PaymentMethodType.BANK_TRANSFER]: {
+    isEnabled: false,
+    reassertOnReseed: false,
+  },
+};
+
 async function main(): Promise<void> {
   for (const { pricing, ...spec } of VEHICLE_TYPE_SEEDS) {
     await prisma.vehicleTypeSpec.upsert({
@@ -349,10 +410,30 @@ async function main(): Promise<void> {
     });
   }
 
+  // Iterated over the enum rather than over the record's own keys so the order
+  // is the schema's declaration order, and so the loop reads the same way as
+  // the admin endpoint that lists the same three methods.
+  for (const type of Object.values(PaymentMethodType)) {
+    const { isEnabled, reassertOnReseed } = PAYMENT_METHOD_SEEDS[type];
+
+    await prisma.paymentMethodConfig.upsert({
+      where: { type },
+      create: { type, isEnabled },
+      // An empty `update` is a no-op, which is exactly what a method the admin
+      // owns should get: the row keeps whatever the finance page last set.
+      update: reassertOnReseed ? { isEnabled } : {},
+    });
+  }
+
   const seeded = await prisma.vehicleTypeSpec.count();
+  const enabledMethods = await prisma.paymentMethodConfig.count({
+    where: { isEnabled: true },
+  });
   // `console.log` is disallowed by the project's lint rules; this is a CLI
   // script, so write to stdout directly.
-  process.stdout.write(`Seeded ${seeded} vehicle type specs.\n`);
+  process.stdout.write(
+    `Seeded ${seeded} vehicle type specs and ${Object.keys(PAYMENT_METHOD_SEEDS).length} payment methods (${enabledMethods} enabled).\n`,
+  );
 }
 
 main()

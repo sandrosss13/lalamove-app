@@ -15,6 +15,8 @@ Manual steps that must be completed by a human. These cannot be automated.
 
 ## After Implementation
 
+- [ ] **If PCI scope is ever assessed, note that free-text order fields can hold a card number** — `POST /api/orders` accepts 200 characters of free text in the six stop-contact fields and in `purchaseOrderRef`, with no card-detail tripwire (unlike `POST /api/saved-cards`, which rejects PAN-shaped input outright). A client who types a card number into "block/floor/room" persists it. These fields are user-typed by design and no task asked for a guard there, so nothing is broken — but it is the kind of thing a PCI assessment asks about.
+
 - [ ] **Choose a card gateway** (Stripe, BOG, TBC or other) — recorded as an open decision at `specs/admin-back-office/action-required.md:7`. Until then `SavedCard.providerToken` stays null, nothing is charged, and the Add-card dialog carries a banner saying so. The dialog is built so that wiring a gateway means replacing one client-side function, not rebuilding the UI.
 - [ ] **Decide whether Priority and Pooling become real dispatch behaviour** — this pass records the level on the order and shows it to drivers and ops, but automated matching ignores it. The tier copy has been written to describe only what is true. If matching is later made to honour it, the copy can be strengthened at the same time.
 - [ ] **Fix the two remaining `$` sites in admin** — `src/components/admin/analytics/metric-cards.tsx:24-25` and `src/app/admin/(sections)/finance/promo-campaigns/page.tsx:91` still print dollars. Out of scope here because they are not client-facing, but the app should not carry two currency symbols indefinitely.

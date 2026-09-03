@@ -12,6 +12,9 @@
  * module, which reads env vars.
  */
 
+// `ServiceLevel` is imported as a value, not just a type: the exhaustive switch
+// in `serviceLevelAdjustment` matches on its enum members.
+import { ServiceLevel } from "@prisma/client";
 import type { CargoCategory, VehicleCategory } from "@prisma/client";
 
 import {
@@ -128,7 +131,12 @@ function roundCurrency(value: number): number {
 export const PRIORITY_UPLIFT = 0.25; // +25% of the quoted fare
 export const POOLING_DISCOUNT = 0.1; // −10% of the quoted fare
 
-export type ServiceLevelKey = "PRIORITY" | "REGULAR" | "POOLING";
+/**
+ * The tier a fare is priced at. An alias of the generated `ServiceLevel` enum
+ * rather than a hand-written union: a fourth tier added to the schema must fail
+ * the exhaustiveness checks here rather than drift silently past them.
+ */
+export type ServiceLevelKey = ServiceLevel;
 
 /**
  * The tier's effect on an already-quoted fare, as a signed amount in GEL.
@@ -142,9 +150,24 @@ export function serviceLevelAdjustment(
   level: ServiceLevelKey,
   quotedPrice: number,
 ): number {
-  if (level === "PRIORITY") return roundCurrency(quotedPrice * PRIORITY_UPLIFT);
-  if (level === "POOLING") return roundCurrency(-quotedPrice * POOLING_DISCOUNT);
-  return 0;
+  switch (level) {
+    case ServiceLevel.PRIORITY:
+      return roundCurrency(quotedPrice * PRIORITY_UPLIFT);
+    case ServiceLevel.POOLING:
+      return roundCurrency(-quotedPrice * POOLING_DISCOUNT);
+    case ServiceLevel.REGULAR:
+      // Regular is the tier the quote is already priced at, so it adjusts by
+      // nothing. Spelled out as its own case rather than left to the default,
+      // which exists to catch tiers that do not yet have a rate.
+      return 0;
+    default: {
+      // The whole point of this branch: a fourth tier added to the schema fails
+      // to assign to `never` and breaks the build here, so nobody can ship a
+      // service level that silently prices at no adjustment at all.
+      const exhaustive: never = level;
+      throw new Error(`Unhandled service level: ${String(exhaustive)}`);
+    }
+  }
 }
 
 /** The fare a client pays at `level`, given the fare quoted for Regular. */
@@ -152,7 +175,9 @@ export function priceForServiceLevel(
   level: ServiceLevelKey,
   quotedPrice: number,
 ): number {
-  return roundCurrency(quotedPrice + serviceLevelAdjustment(level, quotedPrice));
+  return roundCurrency(
+    quotedPrice + serviceLevelAdjustment(level, quotedPrice),
+  );
 }
 
 /**

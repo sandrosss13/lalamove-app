@@ -167,6 +167,35 @@ export function formatJobTimestamp(iso: string): string {
   return fullFormatter.format(new Date(iso));
 }
 
+/**
+ * A stop contact's phone as a `tel:` URI, or `null` when it cannot be dialled.
+ *
+ * The number is free text a client typed, so it reaches here as anything from
+ * `+995 555 12 34 56` to `ask for Nino`. Everything but the digits is dropped,
+ * because the rest is punctuation a dialler would have to strip anyway and
+ * leaving it in a URI means percent-encoding it for nothing.
+ *
+ * The one exception is a `+` appearing anywhere *before the first digit*, which
+ * is kept: it is the international prefix however the client punctuated around
+ * it, so `(+995) 555 12 34 56` must dial `+995…` and not a number that reads as
+ * national. A `+` that follows digits is not a dialling prefix — it is a note
+ * the client appended, as in `555 12 34 56 (+ ask for Nino)` — and is dropped
+ * with the rest of the punctuation.
+ *
+ * `null` for anything with no digits in it at all: a `tel:` link that dials
+ * nothing is worse than plain text, because it looks tappable and is not. The
+ * panel prints the client's words instead, unlinked.
+ */
+export function toTelHref(phone: string): string | null {
+  const digits = phone.replace(/\D/g, "");
+
+  if (digits === "") {
+    return null;
+  }
+
+  return `tel:${/^[^\d]*\+/.test(phone) ? "+" : ""}${digits}`;
+}
+
 /** `1, "job"` → `"1 job"`; `3` → `"3 jobs"`. */
 export function pluralise(count: number, singular: string): string {
   return `${count} ${singular}${count === 1 ? "" : "s"}`;
