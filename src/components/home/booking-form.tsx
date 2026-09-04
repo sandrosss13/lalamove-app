@@ -399,6 +399,31 @@ const PURCHASE_ORDER_REF_MAX_LENGTH = 200;
 const SAVE_CARD_FAILED_MESSAGE = "Could not save the card. Try again.";
 
 /**
+ * Why a step is not answerable yet — one line per gate, each naming the thing to
+ * go and do rather than the thing that is missing.
+ *
+ * Each is worded for the state its card is actually in, which is not always the
+ * step directly above: the goods and weight cards share `ENTER_ADDRESSES_FIRST`
+ * because they share a gate (`weightStepEnabled` *is* `goodsStepEnabled`), so
+ * naming the goods step on the weight card would point a client at a step that
+ * is itself still shut. A disabled step that merely stopped responding would
+ * leave a client with nothing to act on, so the reason is rendered in the card
+ * and referenced by its `aria-describedby` (see `StepCard`).
+ */
+const CHOOSE_DATE_FIRST = "Choose a date and time first.";
+const ENTER_ADDRESSES_FIRST = "Enter both addresses first.";
+/**
+ * The vehicle step's line, and the one gate with no action behind it: the weight
+ * effect settles on a capacity the moment any exists, so this card is shut only
+ * while the weight step is shut too or while there is no capacity to settle on
+ * at all (the vehicle types are still loading, their fetch failed, or the chosen
+ * goods clear no vehicle). "Choose a total weight first" would name a choice
+ * that is not on offer in any of them.
+ */
+const WEIGHT_UNAVAILABLE = "Available once a total weight can be chosen above.";
+const CHOOSE_VEHICLE_FIRST = "Choose a vehicle first.";
+
+/**
  * The accent tick marking the chosen payment row.
  *
  * Not the shared `SelectedTick`: that one is absolutely positioned for the
@@ -982,6 +1007,81 @@ export function BookingForm({
       ? combineDateAndTime(scheduledDate, scheduledTime)
       : null;
 
+  /**
+   * Progressive gating: a step opens only once every step above it is answered.
+   *
+   * Each flag is built on the one before it rather than testing its own input
+   * alone, so a step can never light up over a gap in the chain — the vehicle
+   * card is not answerable just because a weight defaulted, if no address has
+   * been typed yet.
+   *
+   * Every flag reads the state the rest of the form already reads. There is no
+   * separate record of which steps have been "completed", deliberately: a second
+   * copy of that would be free to disagree with the values the order is actually
+   * built from. It follows that a step whose input carries a default (the goods
+   * category, the weight, the vehicle — all three settle themselves) opens as
+   * soon as the chain reaches it, because by then it genuinely is answered.
+   *
+   * This is presentation and nothing else. `canCalculate` and `canSubmit` below
+   * are untouched: what a quote and a booking actually require already lives
+   * there, and restating any of it here would be two predicates free to drift
+   * apart.
+   */
+  const routeStepEnabled = scheduledDateTime !== null;
+
+  /**
+   * Both addresses *typed*, not both resolved to coordinates.
+   *
+   * The same call `canCalculate` makes just below, for the same reason:
+   * `pickupLocation`/`dropoffLocation` only populate when a suggestion is picked
+   * from the browser-side Places autocomplete, and pricing does not need them —
+   * `/api/pricing/estimate` geocodes the address text itself, server-side,
+   * through a different provider. Gating on the resolved points would strand
+   * every step below this one for a client who typed a full address without
+   * taking a suggestion, and strand them permanently on a deployment where the
+   * Places key is not configured.
+   */
+  const goodsStepEnabled =
+    routeStepEnabled &&
+    pickupAddress.trim().length > 0 &&
+    dropoffAddress.trim().length > 0;
+
+  // No condition of its own: the goods grid opens on `DEFAULT_CARGO_CATEGORY`
+  // and there is no way to deselect a category, so a cargo category is chosen
+  // from the first render onwards and this step follows the one above it
+  // directly.
+  const weightStepEnabled = goodsStepEnabled;
+
+  /**
+   * A weight is answered the moment there is one to answer with: the weight
+   * effect selects the smallest capacity as soon as the options exist, and
+   * re-selects it whenever a goods or load-space change clears the old one.
+   *
+   * Reading `maxWeightKg` directly would say the same thing in the steady state
+   * and blink this step off in between — `handleBodyTypeChange` clears the
+   * weight, and the effect that puts one back runs after the browser has
+   * painted, so a client changing the load space would watch this very card grey
+   * out under their cursor for a frame.
+   */
+  const vehicleStepEnabled = weightStepEnabled && weightOptions.length > 0;
+
+  /**
+   * Step 6, step 7 and the service-level card, which all open together on the
+   * one condition: a vehicle is settled. None of the three is a successor to
+   * another — they are siblings describing the job the chosen vehicle will do —
+   * and step 7 in particular never blocks anything, since a booking with no
+   * payment method recorded is exactly what `canSubmit` still allows.
+   *
+   * The eligible list rather than `selectedVehicleType`, for the same reason and
+   * on the same guarantee as the weight above: the auto-select effect keeps a
+   * vehicle picked whenever one is on offer, so an empty list is the only state
+   * in which none is — and it is exactly the state where the vehicle card is
+   * showing its "no vehicle matches" alert. `canSubmit` still reads the resolved
+   * vehicle itself, which is the check that has to be exact.
+   */
+  const vehicleChosenStepsEnabled =
+    vehicleStepEnabled && eligibleVehicleTypes.length > 0;
+
   // Deliberately keyed off the raw address *text*, not `pickupLocation`/
   // `dropoffLocation`: those only populate once a suggestion is picked from
   // the browser-side Google Places autocomplete, but `/api/pricing/estimate`
@@ -1544,7 +1644,24 @@ export function BookingForm({
               </div>
             </StepCard>
 
-            <StepCard step={2} title="Route">
+            {/* Disabling this card mutes its two address fields, not the pair
+                of dialogs mounted below them: Radix portals a `DialogContent` to
+                `document.body`, so it is nowhere inside the `pointer-events-none`
+                content region and stays fully operable. The only route into
+                either dialog is selecting a suggestion in a field that is itself
+                inside that region, so a disabled step cannot open one; and the
+                step cannot shut under one that is already open either, since
+                everything that gates it — the date and the time — sits behind
+                the modal's overlay for as long as it is up. The portal is what
+                keeps the second half of that from mattering: even reached some
+                other way, an open dialog stays saveable and cancellable rather
+                than trapping the client. */}
+            <StepCard
+              step={2}
+              title="Route"
+              disabled={!routeStepEnabled}
+              disabledReason={CHOOSE_DATE_FIRST}
+            >
               <div className="flex flex-col gap-4">
                 <AddressAutocomplete
                   // Remounted after a booking so the structured breakdown each
@@ -1624,6 +1741,8 @@ export function BookingForm({
               step={3}
               title="What are you moving?"
               description="Pick the closest match — it decides which vehicles can take the job."
+              disabled={!goodsStepEnabled}
+              disabledReason={ENTER_ADDRESSES_FIRST}
             >
               <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
                 {CARGO_OPTIONS.map((option) => {
@@ -1663,6 +1782,11 @@ export function BookingForm({
               step={4}
               title="Total weight"
               description="Roughly how much is being moved — we'll only recommend vehicles that can carry it."
+              disabled={!weightStepEnabled}
+              // The addresses, not the goods step: this card and the goods card
+              // open on the identical predicate, so the goods step is never a
+              // thing to go and do while this line is on screen.
+              disabledReason={ENTER_ADDRESSES_FIRST}
             >
               {weightOptions.length === 0 ? (
                 <p className="text-[0.8125rem] text-muted">
@@ -1699,6 +1823,13 @@ export function BookingForm({
               step={5}
               title="Recommended vehicle"
               description="Only vehicles cleared for your goods, load space and weight are shown, cheapest first."
+              disabled={!vehicleStepEnabled}
+              // Suppressed while the fetch has failed: the card's own `alert`
+              // below says exactly why there are no vehicles, and a second,
+              // vaguer line above it would be the one read first.
+              disabledReason={
+                vehicleTypesError ? undefined : WEIGHT_UNAVAILABLE
+              }
             >
               {vehicleTypesError ? (
                 <p role="alert" className="text-[0.8125rem] text-accent">
@@ -1884,7 +2015,12 @@ export function BookingForm({
               )}
             </StepCard>
 
-            <StepCard step={6} title="Additional details">
+            <StepCard
+              step={6}
+              title="Additional details"
+              disabled={!vehicleChosenStepsEnabled}
+              disabledReason={CHOOSE_VEHICLE_FIRST}
+            >
               <div className="flex flex-col gap-4">
                 {/* Native radios, one per crew size, each visually replaced by
                     the cell wrapping it. Keeping the real inputs — `sr-only`
@@ -1953,11 +2089,20 @@ export function BookingForm({
             {/* The one step that never blocks anything. `canCalculate` and
                 `canSubmit` both ignore it by design: a client who says nothing
                 here books an order with no method recorded, which is exactly
-                what every order placed before this step existed carries. */}
+                what every order placed before this step existed carries.
+
+                It is gated on the vehicle for the same reason step 6 is — not
+                as a successor to it — so nothing below the fold opens before
+                there is a job to pay for. Its own dialog is portalled out of the
+                content region (see the Route step), so the add-card flow is
+                reachable the moment the step is, and an open dialog survives the
+                step closing under it. */}
             <StepCard
               step={7}
               title="Payment"
               description="Optional — you can book now and settle later."
+              disabled={!vehicleChosenStepsEnabled}
+              disabledReason={CHOOSE_VEHICLE_FIRST}
             >
               {cardPaymentEnabled || payLaterEnabled ? (
                 <>
@@ -2184,6 +2329,11 @@ export function BookingForm({
                   ? "Prices below are for this route"
                   : "Prices appear after you calculate"
               }
+              // The third sibling of the vehicle choice, and never a gate on the
+              // quote: the tier it opens on is the one the fare is quoted at, so
+              // a client who never reaches this card still books at Regular.
+              disabled={!vehicleChosenStepsEnabled}
+              disabledReason={CHOOSE_VEHICLE_FIRST}
             >
               {/* Native radios again, for the third time in this form and for
                   the same reasons as the load-space and crew-size pickers:

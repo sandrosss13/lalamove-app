@@ -1,5 +1,6 @@
 "use client";
 
+import { useId } from "react";
 import type * as React from "react";
 import { Check } from "lucide-react";
 
@@ -59,6 +60,19 @@ export type StepCardProps = {
    * whole card out.
    */
   disabled?: boolean;
+  /**
+   * Why this step cannot be answered yet — an imperative naming the fix wherever
+   * there is one to name. Rendered in the header while `disabled` and pointed at
+   * by the card's `aria-describedby`, so the reason travels with the step rather
+   * than living in a `title` attribute a keyboard or screen-reader user has no
+   * way to reach. Ignored while the step is enabled, where there is nothing to
+   * explain.
+   *
+   * Omitted only by a step whose own content already carries the explanation —
+   * the vehicle step while its type list failed to load renders that error in
+   * an `alert`, and a vaguer line above it would be the first thing read.
+   */
+  disabledReason?: string;
   children: React.ReactNode;
 };
 
@@ -69,22 +83,47 @@ export type StepCardProps = {
  * `aria-disabled` rather than a real `disabled`: a `Card` is a `div`, which has
  * no disabled state to set, and the controls inside it are of several kinds.
  * The content region stops taking pointer events; assistive tech is told the
- * step is not yet answerable by the attribute.
+ * step is not yet answerable by the attribute. The individual controls are
+ * deliberately left alone — a step that is shown rather than hidden is one the
+ * user is meant to be able to read ahead to, and `disabled` on each of them
+ * would take that away.
+ *
+ * `role="group"` is what makes that wiring carry: ARIA in HTML supports neither
+ * `aria-disabled` nor `aria-describedby` on a role-less generic, so a plain
+ * `div` drops both and only the visible reason line survives. The role is also
+ * the thing that gives the card a boundary to announce, so it takes its name
+ * from the step's own title via `aria-labelledby` rather than announcing as an
+ * unnamed group. Purely semantic — nothing about it renders.
+ *
+ * A step turned off this way says why (`disabledReason`) unless its content
+ * already does, because the only thing on screen would otherwise be a control
+ * that silently ignores the pointer.
  */
 export function StepCard({
   step,
   title,
   description,
   disabled = false,
+  disabledReason,
   children,
 }: StepCardProps) {
+  const titleId = useId();
+  const reasonId = useId();
+  // Only a disabled step has a reason to give: an enabled one carries neither
+  // the line nor the `aria-describedby` pointing at it.
+  const reason = disabled ? disabledReason : undefined;
+
   return (
     <Card
+      role="group"
+      aria-labelledby={titleId}
       aria-disabled={disabled ? "true" : undefined}
+      aria-describedby={reason ? reasonId : undefined}
       className="gap-4 bg-ink text-paper ring-line"
     >
       <CardHeader>
         <CardTitle
+          id={titleId}
           className={cn(
             "flex items-center gap-3 font-display text-base font-semibold",
             disabled ? "text-muted" : "text-paper",
@@ -107,6 +146,14 @@ export function StepCard({
           <CardDescription className="text-[0.8125rem] leading-snug text-muted">
             {description}
           </CardDescription>
+        ) : null}
+        {/* Visible as well as referenced: `aria-describedby` on a plain region
+            is not announced by every screen reader, and a step that cannot be
+            answered yet has to say so to everyone reading the card. */}
+        {reason ? (
+          <p id={reasonId} className="text-[0.8125rem] leading-snug text-muted">
+            {reason}
+          </p>
         ) : null}
       </CardHeader>
       <CardContent className={cn(disabled && "pointer-events-none")}>
