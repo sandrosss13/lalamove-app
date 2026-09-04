@@ -5,7 +5,7 @@ Manual steps that must be completed by a human. These cannot be automated.
 ## Before Implementation
 
 - [ ] **Confirm the body-type mapping for the eleven seeded vehicle types** — task-03 seeds a proposed `VehicleTypeSpec.bodyTypes` array per type (see task-03 §Technical Details). The mapping is a judgement call about what each vehicle can actually carry — in particular whether a Curtainsider counts as Open Chassis, and whether the two refrigerated types should also offer Dry Box. An ops or fleet owner should sign it off.
-- [ ] **Set the Priority and Pooling rates** — task-04 ships `PRIORITY_UPLIFT = 0.25` and `POOLING_DISCOUNT = 0.10` as tunable constants in `src/lib/pricing.ts`. Every other money figure in the app is attributed to the rate owner with a date (`prisma/seed.ts:254-256`); these two are not. Get a signed-off number.
+- [x] ~~Set the Priority and Pooling rates~~ — **signed off 2026-09-04 at +25% / −10%**, the values that were already in `src/lib/pricing.ts`. Recorded there with attribution, matching how `prisma/seed.ts` attributes its own figures. Percentages rather than the prototype's flat +25, which was a 200% uplift on an MPV (₾12 minimum fare) and 28% on a trailer truck (₾90). Note this does **not** settle who keeps the adjustment — that is the separate open item below, and it is the one that changes driver pay.
 
 ## During Implementation
 

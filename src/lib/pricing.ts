@@ -125,9 +125,17 @@ function roundCurrency(value: number): number {
 // truck (GEL 90). Percentages scale with the job, which is what the tier is actually
 // pricing.
 //
-// These two figures are starting values, not signed-off rates — unlike every other
-// money figure in the app, which is attributed to the rate owner with a date
-// (see prisma/seed.ts:254-256). Tune them here when a rate lands.
+// These are the rate owner's rule, recorded 2026-09-04: Priority adds a quarter
+// of the quoted fare, Pooling takes a tenth off it. Percentages rather than flat
+// amounts for the reason above, and they are deliberately asymmetric — a premium
+// has to be worth charging for, whereas the discount only has to be worth
+// accepting a wider window for.
+//
+// Still open, and tracked in specs/client-dashboard-booking-and-payment/
+// action-required.md: whether the adjustment reaches the driver, the platform,
+// or is split. Nothing here depends on that answer — the client is charged the
+// same either way — but src/lib/dashboard/hub/earnings.ts and the driver hub's
+// "Paid to you" figure do, and they must move together when it lands.
 export const PRIORITY_UPLIFT = 0.25; // +25% of the quoted fare
 export const POOLING_DISCOUNT = 0.1; // −10% of the quoted fare
 
