@@ -4,7 +4,6 @@ import Link from "next/link";
 
 import { useSession } from "@/lib/auth-client";
 import { BookingForm } from "@/components/home/booking-form";
-import type { BookingPaymentOptions } from "@/components/home/payment-methods";
 import {
   LandingPage,
   type LandingBanner,
@@ -55,27 +54,21 @@ function ProviderPrompt({
  * exactly as it looked before it was made editable.
  *
  * This component is only the branch: the client booking flow — its state, its
- * pricing calls and its layout — lives in `BookingForm`.
+ * pricing calls and its layout — lives in `BookingForm`, which needs nothing
+ * from here. Booking ends in a redirect to the order's own checkout page, so
+ * the payment options that used to be threaded down through this component are
+ * loaded by that page instead, where the money is actually taken.
  */
 export function HomeEntry({
   sections,
   heroBanners,
   partnerBanners,
-  payment,
 }: {
   sections?: LandingSection[];
   /** Active banners placed at `home_hero` — the hero carousel's slides. */
   heroBanners?: LandingBanner[];
   /** Active banners placed at `home_partner_logo` — the marquee's logos. */
   partnerBanners?: LandingBanner[];
-  /**
-   * The booking form's payment step, resolved on the server and passed straight
-   * through. Required rather than optional: the enabled-method set and the
-   * client's account type are decisions this component is in no position to
-   * make, and a caller that forgot them would silently render a payment step
-   * offering nothing.
-   */
-  payment: BookingPaymentOptions;
 }) {
   const { data: session, isPending } = useSession();
 
@@ -119,5 +112,5 @@ export function HomeEntry({
     );
   }
 
-  return <BookingForm {...payment} />;
+  return <BookingForm />;
 }

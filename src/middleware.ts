@@ -35,8 +35,13 @@ const CLIENT_ONLY_EXACT = ["/", "/home", "/orders"];
 /**
  * Paths that only make sense on the client host, matched as a prefix (the
  * path itself or any subpath, e.g. `/account/profile`).
+ *
+ * `/checkout` is a prefix rather than an exact match because the whole subtree
+ * is one client-only flow — `/checkout/[id]` and `/checkout/[id]/success` are
+ * only ever reached by the client who booked the order, so none of it has the
+ * shared-audience problem that keeps `/orders` in `CLIENT_ONLY_EXACT`.
  */
-const CLIENT_ONLY_PREFIXES = ["/account"];
+const CLIENT_ONLY_PREFIXES = ["/account", "/checkout"];
 
 function matchesPrefix(pathname: string, prefixes: string[]): boolean {
   return prefixes.some(

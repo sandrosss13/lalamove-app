@@ -53,12 +53,15 @@ const SHORT_ID_LENGTH = 6;
 /**
  * The status words the design uses, which are not `OrderStatus`.
  *
- * Four words for six statuses: the three pre-transit statuses (`PENDING`,
- * `CLAIMED`, `ACCEPTED`) all read as "Scheduled" because they are the same
- * thing to whoever is looking at the list — work that is booked and has not
- * started moving. The distinctions between them are dispatch mechanics, and the
- * design's filter tabs (All / Active / Completed / Cancelled, where Active is
- * "In transit" + "Scheduled") do not expose them.
+ * Four words for the six statuses this screen can show: the three pre-transit
+ * statuses (`PENDING`, `CLAIMED`, `ACCEPTED`) all read as "Scheduled" because
+ * they are the same thing to whoever is looking at the list — work that is
+ * booked and has not started moving. The distinctions between them are dispatch
+ * mechanics, and the design's filter tabs (All / Active / Completed /
+ * Cancelled, where Active is "In transit" + "Scheduled") do not expose them.
+ *
+ * `OrderStatus` has a seventh member, `INITIATED`, and it deliberately has no
+ * word here — see `toHubJobStatus`.
  */
 export type HubJobStatus =
   "In transit" | "Scheduled" | "Completed" | "Cancelled";
@@ -214,6 +217,17 @@ export type HubJobsData = {
  * `driver-dashboard-data.ts` unions in for an activated independent driver.
  * This is a *history* screen, and unclaimed work nobody has taken is not part
  * of anyone's history.
+ *
+ * Note also what it does not filter on: **status**. Unlike the open-market
+ * queries, which key on `status: PENDING` by equality and so cannot see a
+ * pre-market state, this one reads every status a scoped order holds. What
+ * keeps an off-market `INITIATED` order out of it is the clause above rather
+ * than a status test — `POST /api/orders` creates an order with neither a
+ * `driverId` (set at accept or dispatch) nor a `companyId` (set at claim), and
+ * both of those only ever happen from `PENDING` onwards, so an unpaid order
+ * matches neither branch. That is a real guarantee but a second-hand one: it is
+ * a property of the write paths, not of this line. `toHubJobStatus` is where
+ * this file stops depending on it.
  */
 function hubOrderScope(account: HubAccount): Prisma.OrderWhereInput {
   if (account.kind === "BUSINESS") {
@@ -237,8 +251,44 @@ function roundCurrency(value: number): number {
   return Math.round(value * 100) / 100;
 }
 
-/** `OrderStatus` in the design's vocabulary. See `HubJobStatus`. */
-function toHubJobStatus(status: OrderStatus): HubJobStatus {
+/**
+ * `OrderStatus` in the design's vocabulary, or **null for a row that is not a
+ * job at all**. See `HubJobStatus`.
+ *
+ * The null is `INITIATED`, and it is the one arm here that is not a label. An
+ * `INITIATED` order is created but unpaid, and the schema states the invariant
+ * plainly: it is off-market, and a driver or a company must never see one. So
+ * the question this arm answers is not "what word does a driver read for an
+ * unpaid order" — there must not be one — but "what does this loader do if the
+ * invariant it relies on ever fails". Null means *drop the row*, and
+ * `getHubJobs` skips it out of the list and out of every count.
+ *
+ * The three arms not taken, so the next person adding an enum member can see
+ * the shape of the choice rather than copy this one:
+ *
+ * - Returning "Scheduled", as `PENDING` does, is the naive fix and the worst
+ *   outcome. It quietly asserts a driver could legitimately see an unpaid job,
+ *   and if the invariant ever broke it would put that job in the Active tab
+ *   looking like work to go and do — the exact harm the invariant exists to
+ *   prevent.
+ * - Throwing treats arrival as the bug it would be, but this runs in a server
+ *   loader that renders the whole Job history screen: one stray row would take
+ *   the screen down for that account entirely. A loud failure is worth having;
+ *   an outage over a row that is by construction impossible is not.
+ * - A fifth `HubJobStatus` word would need a filter tab to live in and a pill
+ *   tone to be drawn with, and `hub-status.ts` is a closed set of six. Inventing
+ *   both to render a state no reader may see is the wrong end of the problem.
+ *
+ * Dropping the row upholds the invariant instead of restating it: whether or
+ * not `INITIATED` reaches here, a driver does not see it. The `console.warn`
+ * at the skip is what makes it a reported anomaly rather than a silent one, and
+ * follows `loadHomePageSections` in `src/lib/admin/home-page-data.ts`, which
+ * skips an unparseable row the same way.
+ *
+ * The switch stays exhaustive with no `default`, so the next member added to
+ * `OrderStatus` fails the build here and gets decided on deliberately.
+ */
+function toHubJobStatus(status: OrderStatus): HubJobStatus | null {
   switch (status) {
     case OrderStatus.IN_TRANSIT:
       return "In transit";
@@ -250,6 +300,8 @@ function toHubJobStatus(status: OrderStatus): HubJobStatus {
     case OrderStatus.CLAIMED:
     case OrderStatus.ACCEPTED:
       return "Scheduled";
+    case OrderStatus.INITIATED:
+      return null;
   }
 }
 
@@ -371,15 +423,34 @@ export async function getHubJobs(account: HubAccount): Promise<HubJobsData> {
     orderBy: { createdAt: "desc" },
   });
 
+  // `all` counts the rows this loader *emits*, not the rows it fetched: a row
+  // `toHubJobStatus` rejects is dropped below, and the "N of M shown" caption
+  // must describe the list the reader is actually looking at.
   const counts: HubJobCounts = {
-    all: rawOrders.length,
+    all: 0,
     active: 0,
     completed: 0,
     cancelled: 0,
   };
 
-  const jobs = rawOrders.map((order): HubJob => {
+  const jobs: HubJob[] = [];
+
+  for (const order of rawOrders) {
     const status = toHubJobStatus(order.status);
+
+    // Not a job anybody here may see — `INITIATED`, and only `INITIATED`. It
+    // cannot reach this query (an unpaid order has neither a `driverId` nor a
+    // `companyId`, so `hubOrderScope` excludes it), which is exactly why
+    // arriving here is worth a line in the server log rather than a silent
+    // skip: it means an invariant the schema states has stopped holding.
+    if (status === null) {
+      console.warn(
+        `Skipping order ${order.id} in the hub job history: status ${order.status} is off-market and must not reach a driver or a company.`,
+      );
+      continue;
+    }
+
+    counts.all += 1;
 
     switch (status) {
       case "Completed":
@@ -394,7 +465,7 @@ export async function getHubJobs(account: HubAccount): Promise<HubJobsData> {
         break;
     }
 
-    return {
+    jobs.push({
       id: order.id,
       shortId: order.id.slice(-SHORT_ID_LENGTH).toUpperCase(),
       status,
@@ -429,8 +500,8 @@ export async function getHubJobs(account: HubAccount): Promise<HubJobsData> {
         order.dropoffContactDetails,
       ),
       purchaseOrderRef: textOrNull(order.purchaseOrderRef),
-    };
-  });
+    });
+  }
 
   return { jobs, counts };
 }

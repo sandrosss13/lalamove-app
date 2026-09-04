@@ -42,10 +42,29 @@ export function formatGel(amountGel: number): string {
  * `replace(/_/g, " ")` transform, so both words of every label are written out
  * where a reviewer can read them — the same convention as `ADMIN_ROLE_LABELS`
  * in `admin-shell.tsx`.
+ *
+ * Keyed in the schema's lifecycle order, and typed `Record<OrderStatus, string>`
+ * so it stays exhaustive: `INITIATED` reached this file as a typecheck failure
+ * rather than as a blank pill in production, which is the whole point of the
+ * annotation. Do not loosen it to `Partial` or to a plain object.
+ *
+ * The client vocabulary is deliberately narrower than the enum: Initiated,
+ * Pending, Accepted, In transit, Completed, Cancelled.
  */
 export const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
+  // Pre-payment: the order exists but is not on the open market. Settlement is
+  // instantaneous while Pay later is the only method, so a client will seldom
+  // catch this state — it still has to render rather than fall through blank.
+  INITIATED: "Initiated",
   PENDING: "Pending",
-  CLAIMED: "Claimed",
+  // Intentionally *not* "Claimed", and not a mistake to be tidied back into a
+  // distinct label. `CLAIMED` means a company has taken the order but has not
+  // yet dispatched one of its own drivers — an internal dispatch step. To the
+  // client it is the same fact as `PENDING`: no driver yet, nothing to act on.
+  // Naming it would only prompt "claimed by whom?". The enum value stays; only
+  // this client-facing label collapses. Company and driver surfaces still say
+  // "Claimed" and get their vocabulary elsewhere.
+  CLAIMED: "Pending",
   ACCEPTED: "Accepted",
   IN_TRANSIT: "In transit",
   COMPLETED: "Completed",
@@ -94,10 +113,22 @@ export const ORDER_STATUS_PILL_BASE =
  * regression. Orange reads as the live state without spending the accent.
  */
 export const ORDER_STATUS_PILL: Record<OrderStatus, string> = {
+  // Slate is the one entry with no hue, because `INITIATED` is the one state
+  // where nothing has happened yet: every other tone here says something is
+  // under way, waiting, done or wrong. Neutral therefore reads as earlier and
+  // quieter than amber `PENDING` without reading as a warning, and it does not
+  // spend the brand accent, which means "selected" on these surfaces for the
+  // reason recorded above for `IN_TRANSIT`. slate-600 on slate-100 is 6.9:1,
+  // so "quieter" is a step down in colour, not below the contrast floor these
+  // 11px uppercase pills need.
+  INITIATED: "bg-slate-100 text-slate-600",
   PENDING: "bg-amber-100 text-amber-800",
-  // Violet rather than a second amber: a claimed order is off the open market
-  // but not yet dispatched to a driver, so it has to read as its own state.
-  CLAIMED: "bg-violet-100 text-violet-800",
+  // Amber, matching `PENDING`, because `ORDER_STATUS_LABEL` above renders both
+  // as "Pending" for the client: two pills reading the same word in two colours
+  // would invent a distinction the label deliberately removes. The violet this
+  // entry used to carry was justified by `CLAIMED` reading as its own state,
+  // which is exactly what no longer holds on client surfaces.
+  CLAIMED: "bg-amber-100 text-amber-800",
   ACCEPTED: "bg-blue-100 text-blue-700",
   IN_TRANSIT: "bg-orange-100 text-orange-700",
   COMPLETED: "bg-emerald-100 text-emerald-700",
