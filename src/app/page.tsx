@@ -3,7 +3,6 @@ import {
   loadHomePageContent,
   resolveHomePageLocale,
 } from "@/lib/admin/home-page-data";
-import { loadBookingPaymentOptions } from "@/lib/home/booking-payment-options";
 
 /**
  * Content edits go live within a minute rather than at the next deploy.
@@ -42,15 +41,14 @@ export const revalidate = 60;
  * `LandingPage` falls back to its built-in default composition — the same copy
  * the page rendered before it was made editable.
  *
- * The booking form's payment options are the one thing here that *is* read
- * per-session, because they have to be: the enabled payment methods are admin's
- * switchboard and the purchase-order field is BUSINESS-only, and neither may be
- * decided in the browser (see `loadBookingPaymentOptions`). Reading the session
- * server-side is a dynamic API, so it pins this route to on-demand rendering —
- * which is where the `searchParams` stopgap above already had it, and it is also
- * what keeps a per-client response out of any shared cache. A signed-out
- * visitor, a driver and a logistics company each cost one session read and no
- * query at all.
+ * Nothing here is read per-session. The booking form used to be handed the
+ * client's payment options from this component, which cost a session read on
+ * every render of the site's front door. It no longer collects payment at all —
+ * booking redirects to the order's own checkout page, and that page loads the
+ * options for itself — so this route is back to reading marketing content and
+ * nothing else. That is what leaves `revalidate` above something to do once the
+ * `searchParams` stopgap is gone, and what keeps a per-client response out of
+ * any shared cache by never producing one.
  */
 export default async function Home({
   searchParams,
@@ -60,18 +58,14 @@ export default async function Home({
   const query = await searchParams;
   const locale = resolveHomePageLocale(query.locale);
 
-  const [{ sections, heroBanners, partnerBanners }, payment] =
-    await Promise.all([
-      loadHomePageContent(locale),
-      loadBookingPaymentOptions(),
-    ]);
+  const { sections, heroBanners, partnerBanners } =
+    await loadHomePageContent(locale);
 
   return (
     <HomeEntry
       sections={sections}
       heroBanners={heroBanners}
       partnerBanners={partnerBanners}
-      payment={payment}
     />
   );
 }

@@ -43,11 +43,11 @@ export async function POST(
     return NextResponse.json({ error: "Order not found." }, { status: 404 });
   }
 
-  // Scoped by ownership only, not by a specific prior status (unlike dispatch,
-  // which requires CLAIMED): a company may cancel its own order at any point in
-  // the lifecycle. This lookup exists solely to tell "no such order" (404) apart
-  // from "already terminal / lost the race" (409) — the conditional update below
+  // Scoped by ownership only, not by status (unlike dispatch, which requires
+  // CLAIMED): this lookup exists solely to tell "no such order" (404) apart from
+  // "no longer cancellable / lost the race" (409) — the conditional update below
   // can't distinguish the two on its own, the same reason `claim` checks first.
+  // Which statuses may still be cancelled is decided there, in one place.
   const order = await prisma.order.findFirst({
     where: { id, companyId: company.id },
     select: { id: true },
@@ -57,17 +57,29 @@ export async function POST(
     return NextResponse.json({ error: "Order not found." }, { status: 404 });
   }
 
-  // Atomic cancel: the terminal-state guard lives in the `where`, not in
-  // application code, because unlike dispatch (CLAIMED orders have no driver
-  // yet) an ACCEPTED/IN_TRANSIT order has an assigned driver who can move it to
+  // Atomic cancel: the state guard lives in the `where`, not in application
+  // code, because unlike dispatch (CLAIMED orders have no driver yet) an
+  // ACCEPTED/IN_TRANSIT order has an assigned driver who can move it to
   // IN_TRANSIT or COMPLETED via `start`/`complete` at any moment. A read-then-
   // write would let a cancel silently overwrite a just-completed order; here the
   // database applies at most one update and `count` tells us whether we won.
+  //
+  // An allow-list of the three states a company may cancel from, not a `notIn`
+  // of the terminal ones. A negation admits every value the enum has not got
+  // yet: `INITIATED` was added to `OrderStatus` and joined this filter's accepted
+  // set on the spot, silently, because nothing here names the states it means.
+  // That one is harmless — an `INITIATED` order has no `companyId`, so the
+  // ownership clause above already excludes it — but that is a property of other
+  // files rather than of this line, and the next value added may not be so kind.
+  // An allow-list makes a new state unreachable here until someone adds it on
+  // purpose.
   const { count } = await prisma.order.updateMany({
     where: {
       id,
       companyId: company.id,
-      status: { notIn: [OrderStatus.COMPLETED, OrderStatus.CANCELLED] },
+      status: {
+        in: [OrderStatus.CLAIMED, OrderStatus.ACCEPTED, OrderStatus.IN_TRANSIT],
+      },
     },
     data: { status: OrderStatus.CANCELLED },
   });

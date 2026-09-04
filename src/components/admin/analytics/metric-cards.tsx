@@ -38,7 +38,11 @@ function metricsFor(summary: SalesSummary): Metric[] {
       // "Turnover" and "Revenue" are the same `sum(price)` over different sets
       // of orders, so both labels name their set — otherwise the two cards read
       // as the same number computed twice.
-      label: "Turnover (all orders)",
+      //
+      // "paid", not "all": `getSalesSummary` leaves out `INITIATED`, the
+      // pre-payment state, so "all orders" would now name a set this figure
+      // does not cover.
+      label: "Turnover (paid orders)",
       value: formatCurrency(summary.turnover),
       hint: "Gross bookings placed in range",
     },
@@ -79,6 +83,10 @@ function metricsFor(summary: SalesSummary): Metric[] {
  * *placed*, including the completed/cancelled ones: an order booked on the last
  * day of the range and delivered a week later still belongs to the range it was
  * booked in, so the counts always add up to the orders behind `turnover`.
+ *
+ * Every card is also over paid orders only — `INITIATED`, the pre-payment
+ * state, is outside the report entirely. See `toSalesCountKey` in
+ * `src/lib/admin/analytics.ts`.
  */
 export function MetricCards({ summary }: { summary: SalesSummary }) {
   return (

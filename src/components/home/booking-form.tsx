@@ -3,32 +3,11 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Banknote, CalendarDays, Check } from "lucide-react";
+import { ArrowRight, CalendarDays } from "lucide-react";
 import type { CargoCategory, ChassisType, ServiceLevel } from "@prisma/client";
 
 import { AddressAutocomplete } from "@/components/address-autocomplete";
-import {
-  AddCardDialog,
-  type NewCardInput,
-} from "@/components/home/add-card-dialog";
-import {
-  formatBookedDistanceKm,
-  formatDistanceKm,
-  formatGel,
-} from "@/components/home/booking-format";
-import {
-  CARD_BRAND_CHIP_BASE_CLASSES,
-  cardBrandChipClasses,
-  cardBrandChipLabel,
-} from "@/components/home/card-brand";
-import {
-  formatCardExpiry,
-  maskedCardNumber,
-  PAY_LATER_OPTION_VALUE,
-  readErrorMessage,
-  type BookingPaymentOptions,
-  type SavedCardSummary,
-} from "@/components/home/payment-methods";
+import { formatDistanceKm, formatGel } from "@/components/home/booking-format";
 import {
   BreakdownRow,
   PICK_CARD_BASE_CLASSES,
@@ -73,16 +52,16 @@ type LatLng = {
 };
 
 /**
- * The fare breakdown both `/api/pricing/estimate` and `/api/orders` return.
- * The estimate endpoint returns exactly this; the orders endpoint returns it
- * alongside the created order's id (see `CreatedOrder`).
+ * The fare breakdown `/api/pricing/estimate` returns, together with the route
+ * it was computed over.
  *
- * `routePath`, `durationMinutes`, `pickup` and `dropoff` are optional because
- * only the estimate endpoint carries them: `/api/orders` answers with the
- * persisted `Order` row, which stores the price and the distance it was booked
- * at but has no column for the route geometry, its duration, or the resolved
- * points themselves (those live on the row as separate `pickupLat`/`pickupLng`
- * fields, not this shape).
+ * `routePath`, `durationMinutes`, `pickup` and `dropoff` are optional even
+ * though the endpoint answers with all four, because the payload is *cast*
+ * rather than parsed (see `handleCalculate`): the type is written for what this
+ * form is prepared to do without, not for what a well-behaved server sends.
+ * Nothing about the price reads them — every one is consumed through a `??`
+ * fallback by the preview map alone, which draws the line and places the
+ * markers.
  */
 type Quote = {
   distanceKm: number;
@@ -132,23 +111,17 @@ type ServiceLevelPrices = Record<ServiceLevel, number>;
 type Estimate = Quote & { serviceLevels: ServiceLevelPrices };
 
 /**
- * Fields of the created order the form surfaces back to the user — the itemised
- * quote it was booked at, not just the total.
+ * The one field of the created order this form reads back: its id.
  *
- * The tier and its effect on the fare are read back off the row rather than
- * from this component's own state: `POST /api/orders` derives the adjustment
- * from the quote it computes server-side, and the confirmation has to itemise
- * what was actually written, not what the browser last had in hand.
- *
- * They are two columns and not one because `price` stays the unadjusted fare —
- * that is what keeps the itemisation reconcilable and the minimum-fare note
- * honest (see `minimumFareApplied`). The booked total is their sum.
+ * `POST /api/orders` answers with the whole persisted row — the itemised fare,
+ * the tier and what that tier adjusted the fare by — but none of it is rendered
+ * here. Booking ends in a navigation to `/checkout/<id>`, and that page reads
+ * the order's figures off the row itself rather than being handed a copy that
+ * would then have to be kept honest. Typing only the field that is used is what
+ * keeps this form from acquiring a dependency on a response shape it does not
+ * need.
  */
-type CreatedOrder = Quote & {
-  id: string;
-  serviceLevel: ServiceLevel;
-  serviceLevelAdjustment: number;
-};
+type CreatedOrder = { id: string };
 
 /**
  * The two ends of the route, in the order they are travelled — which is also
@@ -163,9 +136,9 @@ type StopField = (typeof STOP_FIELDS)[number];
 type StopContacts = Record<StopField, StopContact | null>;
 
 /**
- * No contact at either end — where a booking starts, and what it is returned to
- * once one is placed. Shared between the initial state and the reset because
- * both mean the same thing; never mutated, only ever spread from.
+ * No contact at either end — where a booking starts. Named rather than written
+ * inline at the `useState` call so the empty case reads as a state the form has
+ * rather than as two incidental nulls; never mutated, only ever replaced.
  */
 const NO_STOP_CONTACTS: StopContacts = { pickup: null, dropoff: null };
 
@@ -355,50 +328,6 @@ const DEFAULT_SERVICE_LEVEL: ServiceLevel = "REGULAR";
 const SERVICE_LEVEL_OPTION_CLASSES = `${PICK_CARD_BASE_CLASSES} min-h-32 cursor-pointer gap-1 has-[:focus-visible]:border-accent has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-accent/20`;
 
 /**
- * How the client said they will settle, as the payment step holds it.
- *
- * `savedCardId` is present on both arms rather than only on the card one, so
- * the submit reads one field instead of narrowing a union — and `null` on the
- * Pay later arm is exactly what `POST /api/orders` requires: it refuses a card
- * id sent alongside anything but `CARD`.
- *
- * There is no `PAY_LATER` method. Pay later *is* `CASH`, under the label the
- * client is shown — see `PaymentMethod` for why a fourth enum value would be
- * the wrong way to say it.
- */
-type PaymentChoice =
-  | { method: "CARD"; savedCardId: string }
-  | { method: "CASH"; savedCardId: null };
-
-/**
- * One row of the payment step. The pick-card border and fill states again, laid
- * out horizontally this time — chip, then title and note, then the tick — plus
- * the pointer affordance and the focus ring a `<label>` around an `sr-only`
- * radio has to draw on the hidden input's behalf.
- */
-const PAYMENT_OPTION_CLASSES =
-  "flex cursor-pointer items-center gap-3.5 rounded-xl border p-[14px_16px] transition-colors has-[:focus-visible]:border-accent has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-accent/20";
-
-/** The dashed full-width control that opens the add-card dialog. */
-const ADD_CARD_BUTTON_CLASSES =
-  "mt-3 w-full rounded-lg border border-dashed border-line px-4 py-[11px] text-sm font-medium text-paper transition-colors hover:border-accent hover:text-accent";
-
-/** The purchase-order field, taller than the form's other native inputs. */
-const PURCHASE_ORDER_FIELD_CLASSES =
-  "h-12 w-full rounded-lg border border-line bg-ink px-3.5 text-sm text-paper transition-colors outline-none placeholder:text-muted focus-visible:border-accent focus-visible:ring-3 focus-visible:ring-accent/20";
-
-/**
- * Longest purchase-order reference the field accepts, mirroring the
- * `FREE_TEXT_MAX_LENGTH` cap `POST /api/orders` applies to the same value. Held
- * here so an over-long reference is stopped at the keyboard rather than sent and
- * bounced — the server stays the authority either way.
- */
-const PURCHASE_ORDER_REF_MAX_LENGTH = 200;
-
-/** Shown when a rejected card save carries no message of its own. */
-const SAVE_CARD_FAILED_MESSAGE = "Could not save the card. Try again.";
-
-/**
  * Why a step is not answerable yet — one line per gate, each naming the thing to
  * go and do rather than the thing that is missing.
  *
@@ -422,73 +351,6 @@ const ENTER_ADDRESSES_FIRST = "Enter both addresses first.";
  */
 const WEIGHT_UNAVAILABLE = "Available once a total weight can be chosen above.";
 const CHOOSE_VEHICLE_FIRST = "Choose a vehicle first.";
-
-/**
- * The accent tick marking the chosen payment row.
- *
- * Not the shared `SelectedTick`: that one is absolutely positioned for the
- * corner of a pick card, and these rows are horizontal, so theirs sits in flow
- * and is pushed to the right edge by `ml-auto`.
- */
-function PaymentSelectedTick(): React.ReactElement {
-  return (
-    <span
-      aria-hidden="true"
-      className="ml-auto flex size-4 shrink-0 items-center justify-center rounded-full bg-accent text-ink"
-    >
-      <Check className="size-2.5" strokeWidth={3} />
-    </span>
-  );
-}
-
-/**
- * The client's default card as a payment choice, or `null` when there is
- * nothing to pre-select — no card of theirs is the default, or admin has the
- * card method switched off, in which case no card row is rendered at all.
- *
- * Never falls back to Pay later. The step is optional and books happily with
- * nothing chosen, so pre-selecting a settlement method the client did not pick
- * would put a choice on their order that they never made.
- */
-function defaultPaymentChoice(
-  cards: SavedCardSummary[],
-  cardPaymentEnabled: boolean,
-): PaymentChoice | null {
-  if (!cardPaymentEnabled) {
-    return null;
-  }
-
-  const preferred = cards.find((card) => card.isDefault);
-
-  return preferred ? { method: "CARD", savedCardId: preferred.id } : null;
-}
-
-/**
- * `cards` with a newly saved one folded in, in the order the server would have
- * returned them: the default first, then newest first.
- *
- * The demotion is not cosmetic. `POST /api/saved-cards` promotes the new card in
- * the same transaction whenever the client asked for it — or whenever it is
- * their first — so a list that kept the old default's flag would print two
- * "Default" notes for a client who has one.
- */
-function withSavedCard(
-  cards: SavedCardSummary[],
-  saved: SavedCardSummary,
-): SavedCardSummary[] {
-  const existing = saved.isDefault
-    ? cards.map((card) => ({ ...card, isDefault: false }))
-    : cards;
-
-  // `filter` preserves order, so the non-default tail keeps its newest-first
-  // sort with the new card at its head.
-  const next = [saved, ...existing];
-
-  return [
-    ...next.filter((card) => card.isDefault),
-    ...next.filter((card) => !card.isDefault),
-  ];
-}
 
 /** Shared geometry for a native `<select>`/date-trigger styled to match the
  *  rest of this form's fields — the same treatment `account-profile-form.tsx`
@@ -630,11 +492,13 @@ const VEHICLE_CATEGORY_GLYPHS: Record<
  * goods, load space, vehicle or crew size invalidates that quote until it's
  * recalculated — then booked through `POST /api/orders`.
  *
- * It owns all of its own state; the only things handed to it are the three the
- * browser is in no position to decide for itself — which payment methods admin
- * has switched on, the client's saved cards, and whether the client is a
- * business — all resolved server-side by `loadBookingPaymentOptions` and passed
- * down through `HomeEntry`.
+ * Booking is where this surface ends. It takes no props and owns every piece of
+ * state it renders from, because nothing about it is decided elsewhere: the
+ * order it creates is unpaid, and the client is sent straight to
+ * `/checkout/<id>` to settle it. Payment methods, saved cards and the business
+ * purchase-order field are that page's, not this one's — a form that both
+ * priced a job and collected payment for it made the client answer for the
+ * money before there was an order to attach it to.
  *
  * The service level is the one input that does not invalidate the quote:
  * Priority and Pooling are arithmetic on the fare already quoted, so switching
@@ -643,11 +507,7 @@ const VEHICLE_CATEGORY_GLYPHS: Record<
  * Multi-stop routes are deliberately absent, because the backend has no concept
  * of them — an `Order` has exactly one pickup and one dropoff.
  */
-export function BookingForm({
-  enabledPaymentMethods,
-  savedCards,
-  accountType,
-}: BookingPaymentOptions): React.ReactElement {
+export function BookingForm(): React.ReactElement {
   const router = useRouter();
 
   // Not an element id but a shared radio `name`: it is what binds the four
@@ -657,32 +517,11 @@ export function BookingForm({
   const bodyTypeName = useId();
   // And the one binding the three service-level radios.
   const serviceLevelName = useId();
-  // And the one binding the saved-card rows and Pay later into one group.
-  const paymentMethodName = useId();
   const descriptionId = useId();
-  const purchaseOrderRefId = useId();
-  const purchaseOrderNoteId = `${purchaseOrderRefId}-note`;
   const formId = useId();
   const dateTriggerId = useId();
   const timeSelectId = useId();
   const weightSelectId = useId();
-
-  /**
-   * Which of the three methods the payment step may offer. Read from the prop
-   * rather than from an endpoint: admin owns this switchboard, and
-   * `POST /api/orders` refuses a disabled method outright, so a row for one
-   * would be an error the client cannot act on.
-   *
-   * `BANK_TRANSFER` has no row of its own. The handoff's payment step is saved
-   * cards and Pay later, and inventing a third kind of row for a method with no
-   * design would be building past the brief — an admin who switches it on gets
-   * no client-facing option until one is designed.
-   */
-  const cardPaymentEnabled = enabledPaymentMethods.includes("CARD");
-  const payLaterEnabled = enabledPaymentMethods.includes("CASH");
-
-  /** The purchase-order field is a business client's, and nobody else's. */
-  const isBusinessClient = accountType === "BUSINESS";
 
   // Null until both a day and a time slot are chosen — see `scheduledDateTime`,
   // the combined value everything downstream (submission, validation) reads.
@@ -737,39 +576,18 @@ export function BookingForm({
   );
   const [description, setDescription] = useState("");
 
-  /**
-   * The client's saved cards, seeded from the server and then owned here.
-   *
-   * Local rather than read straight off the prop because a card added from
-   * inside this form has to appear *and be selected* in the same paint: waiting
-   * for `router.refresh()` to bring the list back would leave the group with a
-   * selected id that is not yet in it, which renders as nothing selected. The
-   * refresh still runs — it keeps the router cache's copy of this page honest
-   * for a later navigation back to it — it simply is not what this list waits
-   * on.
-   */
-  const [cards, setCards] = useState<SavedCardSummary[]>(savedCards);
-
-  // How the client says they will settle, or `null` while they have not said.
-  // Never gates anything: see `canSubmit`, which does not read it.
-  const [paymentChoice, setPaymentChoice] = useState<PaymentChoice | null>(() =>
-    defaultPaymentChoice(savedCards, cardPaymentEnabled),
-  );
-
-  const [addCardOpen, setAddCardOpen] = useState(false);
-
-  // The client's own finance reference, carried on the order for them. Held for
-  // every client but only ever rendered — and only ever sent — for a business
-  // one, so an individual's booking cannot carry a value they were never shown.
-  const [purchaseOrderRef, setPurchaseOrderRef] = useState("");
-
   const [estimate, setEstimate] = useState<Estimate | null>(null);
   const [estimating, setEstimating] = useState(false);
   const [estimateError, setEstimateError] = useState<string | null>(null);
 
+  /**
+   * Whether a booking is in flight — and it stays `true` once one succeeds,
+   * deliberately, until the navigation to checkout unmounts this form. See
+   * `handleSubmit`: the only paths that clear it are the ones that leave the
+   * client on this page.
+   */
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<CreatedOrder | null>(null);
 
   /**
    * Extra helpers beyond the driver — the crew size the user picked, minus the
@@ -783,11 +601,6 @@ export function BookingForm({
   // conditionally unmounted, or it would re-mount (and re-bill) the Google Maps
   // script every time it was toggled.
   const [mapVisible, setMapVisible] = useState(false);
-
-  // A remount key for the two address fields. Booking clears the addresses, but
-  // each field also owns a structured breakdown of the place behind it; without
-  // this the sub-form would linger under a now-empty input.
-  const [addressFieldsKey, setAddressFieldsKey] = useState(0);
 
   const {
     vehicleTypes,
@@ -1066,11 +879,15 @@ export function BookingForm({
   const vehicleStepEnabled = weightStepEnabled && weightOptions.length > 0;
 
   /**
-   * Step 6, step 7 and the service-level card, which all open together on the
-   * one condition: a vehicle is settled. None of the three is a successor to
-   * another — they are siblings describing the job the chosen vehicle will do —
-   * and step 7 in particular never blocks anything, since a booking with no
-   * payment method recorded is exactly what `canSubmit` still allows.
+   * Step 6 and the service-level card, which open together on the one
+   * condition: a vehicle is settled. Neither is a successor to the other — they
+   * are siblings describing the job the chosen vehicle will do — and neither
+   * gates the booking, since both carry an answer from the moment they open.
+   *
+   * Still its own flag rather than folded into `vehicleStepEnabled`, because
+   * the two conditions are genuinely different: the vehicle *step* opens once
+   * there is a weight to filter by, and these two open only once that filtering
+   * has left a vehicle standing.
    *
    * The eligible list rather than `selectedVehicleType`, for the same reason and
    * on the same guarantee as the weight above: the auto-select effect keeps a
@@ -1160,47 +977,19 @@ export function BookingForm({
   }
 
   /**
-   * Save a card typed into the add-card dialog, then select it.
+   * Place the order, then hand the client off to its checkout page.
    *
-   * Receives display metadata only — brand, last four, expiry, holder name and
-   * the default flag. The card number and the security code never leave the
-   * dialog, and `POST /api/saved-cards` refuses outright any body carrying
-   * either, so there is nothing here to send even by accident.
-   *
-   * Throwing is how the dialog is told: it catches, renders the message inline
-   * under its own fields and stays open. Resolving is what closes it.
+   * Nothing about money is decided here. `POST /api/orders` writes an unpaid
+   * order from the inputs above, and `/checkout/<id>` is where the method, the
+   * card and — for a business — the purchase-order reference are collected,
+   * against an order that by then exists and has a total. That is the whole
+   * reason this form has no payment step: a choice made before the order was
+   * created had nothing to be attached to, and had to be carried through the
+   * submit to acquire one.
    */
-  async function handleAddCard(card: NewCardInput) {
-    const response = await fetch("/api/saved-cards", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(card),
-    });
-
-    if (!response.ok) {
-      throw new Error(
-        await readErrorMessage(response, SAVE_CARD_FAILED_MESSAGE),
-      );
-    }
-
-    const payload = (await response.json()) as { card?: SavedCardSummary };
-    const saved = payload.card;
-
-    if (!saved) {
-      throw new Error(SAVE_CARD_FAILED_MESSAGE);
-    }
-
-    setCards((current) => withSavedCard(current, saved));
-    // Adding a card from inside the payment step is a choice of that card;
-    // making the client pick it again would be asking twice.
-    setPaymentChoice({ method: "CARD", savedCardId: saved.id });
-    router.refresh();
-  }
-
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
-    setResult(null);
 
     // Guards the type, not the UX: "Book delivery" is disabled without a
     // scheduled time (see `canSubmit`), so this only ever fires if that
@@ -1238,20 +1027,10 @@ export function BookingForm({
           // from the quote it computes itself, so a figure sent from here would
           // be ignored at best and trusted at worst.
           serviceLevel,
-          // How the client says they will settle, and — only when that is a
-          // card — which of their own cards. `undefined` where nothing was
-          // chosen: the step is optional, and `JSON.stringify` drops the key
-          // entirely, which is the "no method recorded" the endpoint reads.
-          // Sending a card id alongside anything but CARD is refused outright,
-          // which is why `PaymentChoice` carries `null` on the Pay later arm.
-          paymentMethodType: paymentChoice?.method,
-          savedCardId: paymentChoice?.savedCardId ?? undefined,
-          // Business clients only, and enforced on both sides: the field is
-          // never rendered for an individual, and `/api/orders` re-reads the
-          // account type and drops the value for one anyway.
-          purchaseOrderRef: isBusinessClient
-            ? purchaseOrderRef.trim() || undefined
-            : undefined,
+          // No `paymentMethodType`, no `savedCardId` and no `purchaseOrderRef`:
+          // all three are checkout's to send, and every one is optional on the
+          // endpoint. An order created here is simply one nobody has said how
+          // they will settle yet.
           description: description.trim() || undefined,
         }),
       });
@@ -1265,43 +1044,24 @@ export function BookingForm({
             ? payload.error
             : ORDER_FAILED_MESSAGE;
         setError(message);
+        // Cleared here rather than in a `finally`, so that the one path that
+        // does not clear it — the successful one below — keeps the button
+        // disabled and reading "Booking…" for the whole of the navigation.
+        setSubmitting(false);
         return;
       }
 
-      setResult(payload as CreatedOrder);
+      const order = payload as CreatedOrder;
 
-      // The booked order is now the record of what was requested, so the form
-      // goes back to empty rather than inviting an accidental re-submit of the
-      // same route. The cargo and vehicle choices are kept: they describe the
-      // kind of work this client does, not this one job.
-      setScheduledDate(null);
-      setScheduledTime("");
-      setPickupAddress("");
-      setDropoffAddress("");
-      setPickupLocation(null);
-      setDropoffLocation(null);
-      // Cleared with the addresses they describe, and for the same reason the
-      // fields are remounted below: a second booking down a different route
-      // must not inherit the first one's contacts. The dialog is closed too,
-      // in case a stray one is still open behind the confirmation.
-      setContacts(NO_STOP_CONTACTS);
-      setContactModalFor(null);
-      setDescription("");
-      setCrewSize(DEFAULT_CREW_SIZE);
-      setServiceLevel(DEFAULT_SERVICE_LEVEL);
-      // Back to the default card, exactly as the step opened — but against the
-      // cards the client has *now*, one of which they may have just added. The
-      // saved cards themselves are kept: they describe the client, not this job.
-      setPaymentChoice(defaultPaymentChoice(cards, cardPaymentEnabled));
-      // The reference belongs to the order just placed, not to the next one.
-      setPurchaseOrderRef("");
-      setAddCardOpen(false);
-      setEstimate(null);
-      setEstimateError(null);
-      setAddressFieldsKey((key) => key + 1);
+      // The form is not reset in place, because it does not survive this call:
+      // the client leaves for checkout and every input above is unmounted with
+      // it. `submitting` is deliberately left set — `router.push` resolves long
+      // before the new route paints, and clearing it here would flick "Book
+      // delivery" back to enabled over an order that has already been placed,
+      // which is an invitation to book the same job twice.
+      router.push(`/checkout/${order.id}`);
     } catch {
       setError(NETWORK_ERROR_MESSAGE);
-    } finally {
       setSubmitting(false);
     }
   }
@@ -1440,100 +1200,11 @@ export function BookingForm({
           </Link>
         </header>
 
-        {result ? (
-          <div
-            role="status"
-            className="mt-6 rounded-xl border border-emerald-600/30 bg-emerald-50 p-4"
-          >
-            <p className="font-display text-base font-semibold text-emerald-900">
-              Order booked
-            </p>
-            <p className="mt-1 text-[0.8125rem] leading-snug text-emerald-800">
-              We&rsquo;re matching your delivery with a driver now.
-            </p>
-
-            <dl className="mt-3.5 flex flex-col gap-1.5 border-t border-emerald-600/20 pt-3.5">
-              <div className="flex items-baseline justify-between gap-4">
-                <dt className="text-[0.8125rem] text-emerald-800">Distance</dt>
-                <dd className="font-price text-[0.8125rem] text-emerald-900">
-                  {formatBookedDistanceKm(result.distanceKm)}
-                </dd>
-              </div>
-              <div className="flex items-baseline justify-between gap-4">
-                <dt className="text-[0.8125rem] text-emerald-800">
-                  Transportation cost
-                </dt>
-                <dd className="font-price text-[0.8125rem] text-emerald-900">
-                  {formatGel(transportationCost(result))}
-                </dd>
-              </div>
-              {/* Only worth a line when at least one was actually requested. */}
-              {result.helperFee > 0 ? (
-                <div className="flex items-baseline justify-between gap-4">
-                  <dt className="text-[0.8125rem] text-emerald-800">
-                    Helper Fee
-                  </dt>
-                  <dd className="font-price text-[0.8125rem] text-emerald-900">
-                    {formatGel(result.helperFee)}
-                  </dd>
-                </div>
-              ) : null}
-              {/* The same three closing lines the price breakdown showed
-                  before the order was placed — quoted fare, what the tier did
-                  to it, then the sum — so the confirmation reconciles against
-                  the figure the client agreed to rather than restating the
-                  unadjusted fare as a total. */}
-              <div className="flex items-baseline justify-between gap-4">
-                <dt className="text-[0.8125rem] text-emerald-800">
-                  Regular fare
-                </dt>
-                <dd className="font-price text-[0.8125rem] text-emerald-900 tabular-nums">
-                  {formatGel(result.price)}
-                </dd>
-              </div>
-              {/* Only Priority and Pooling move the fare; Regular is the tier
-                  the quote is already priced at, so it books at a zero
-                  adjustment and prints no line. */}
-              {result.serviceLevelAdjustment !== 0 ? (
-                <div className="flex items-baseline justify-between gap-4">
-                  <dt className="text-[0.8125rem] text-emerald-800">
-                    {result.serviceLevel === "PRIORITY"
-                      ? "Priority fee"
-                      : "Pooling discount"}
-                  </dt>
-                  <dd className="font-price text-[0.8125rem] text-emerald-900 tabular-nums">
-                    {result.serviceLevelAdjustment > 0
-                      ? `+${formatGel(result.serviceLevelAdjustment)}`
-                      : // A real minus sign, not a hyphen: it sits where a "+"
-                        // of the same weight sits on a Priority order.
-                        `−${formatGel(Math.abs(result.serviceLevelAdjustment))}`}
-                  </dd>
-                </div>
-              ) : null}
-              <div className="mt-1 flex items-baseline justify-between gap-4 border-t border-emerald-600/20 pt-2.5">
-                <dt className="text-[0.8125rem] font-semibold text-emerald-900">
-                  Total
-                </dt>
-                <dd className="font-price text-base font-semibold text-emerald-900 tabular-nums">
-                  {formatGel(result.price + result.serviceLevelAdjustment)}
-                </dd>
-              </div>
-            </dl>
-
-            {minimumFareApplied(result) ? (
-              <p className="mt-2.5 text-xs text-emerald-800">
-                Minimum fare applied for this vehicle type.
-              </p>
-            ) : null}
-
-            <Link
-              href="/orders"
-              className="mt-3.5 inline-flex items-center gap-2 text-[0.8125rem] font-semibold text-emerald-900 underline underline-offset-4 hover:opacity-70"
-            >
-              View your orders
-            </Link>
-          </div>
-        ) : null}
+        {/* No confirmation panel, and no `result` state behind one: a booked
+            order is confirmed on its own checkout page, which is where the
+            client is sent the moment `POST /api/orders` answers. Restating the
+            fare here as well would mean two surfaces printing a total for the
+            same order, and only one of them looking at the row. */}
 
         <div className="mt-6 grid items-start gap-6 lg:grid-cols-[minmax(0,40rem)_minmax(0,1fr)]">
           <form
@@ -1663,10 +1334,15 @@ export function BookingForm({
               disabledReason={CHOOSE_DATE_FIRST}
             >
               <div className="flex flex-col gap-4">
+                {/* No remount key on either field any more. Each one owns
+                    state this form cannot reach — the suggestion list and the
+                    coordinates it resolved — and while a booking reset the form
+                    in place, a changing `key` was the only way to clear that
+                    along with the address string. Booking now navigates to
+                    checkout instead, so React unmounts the whole form and takes
+                    both fields' state with it; a counter that could no longer
+                    change would have been a remount that never happened. */}
                 <AddressAutocomplete
-                  // Remounted after a booking so the structured breakdown each
-                  // field owns is cleared along with the address string.
-                  key={`pickup-${addressFieldsKey}`}
                   id="pickup-address"
                   label="Pickup address"
                   value={pickupAddress}
@@ -1682,7 +1358,6 @@ export function BookingForm({
                 />
 
                 <AddressAutocomplete
-                  key={`dropoff-${addressFieldsKey}`}
                   id="dropoff-address"
                   label="Dropoff address"
                   value={dropoffAddress}
@@ -2089,240 +1764,12 @@ export function BookingForm({
               </div>
             </StepCard>
 
-            {/* The one step that never blocks anything. `canCalculate` and
-                `canSubmit` both ignore it by design: a client who says nothing
-                here books an order with no method recorded, which is exactly
-                what every order placed before this step existed carries.
-
-                It is gated on the vehicle for the same reason step 6 is — not
-                as a successor to it — so nothing below the fold opens before
-                there is a job to pay for. Its own dialog is portalled out of the
-                content region (see the Route step), so the add-card flow is
-                reachable the moment the step is, and an open dialog survives the
-                step closing under it. */}
-            <StepCard
-              step={7}
-              title="Payment"
-              description="Optional — you can book now and settle later."
-              disabled={!vehicleChosenStepsEnabled}
-              disabledReason={CHOOSE_VEHICLE_FIRST}
-            >
-              {cardPaymentEnabled || payLaterEnabled ? (
-                <>
-                  {/* Native radios for the fourth time in this form, and for
-                      the same reasons as the load-space, crew-size and
-                      service-level pickers: the group's arrow-key navigation
-                      and its "2 of 3" announcement both come free with the real
-                      inputs. The handoff draws `aria-pressed` buttons; the
-                      form's newer convention is radios. */}
-                  <fieldset>
-                    {/* The card's title is this group's visible name, and
-                        assistive tech has no way to associate the two — so the
-                        legend says it again rather than leaving the group
-                        unnamed. */}
-                    <legend className="sr-only">Payment method</legend>
-
-                    <div className="flex flex-col gap-2.5">
-                      {cardPaymentEnabled
-                        ? cards.map((card) => {
-                            const selected =
-                              paymentChoice?.method === "CARD" &&
-                              paymentChoice.savedCardId === card.id;
-                            const expiry = formatCardExpiry(
-                              card.expMonth,
-                              card.expYear,
-                            );
-                            // The brand chip and the row's text are hidden from
-                            // assistive tech (below) and spoken from here
-                            // instead, so a card arrives as one name in one
-                            // reading order rather than as four loose digits.
-                            const cardLabel = `${card.brand} card ending ${card.last4} — expires ${expiry}${
-                              card.isDefault ? " · Default" : ""
-                            }`;
-
-                            return (
-                              <label
-                                key={card.id}
-                                className={`${PAYMENT_OPTION_CLASSES} ${
-                                  selected
-                                    ? PICK_CARD_SELECTED_CLASSES
-                                    : PICK_CARD_IDLE_CLASSES
-                                }`}
-                              >
-                                <input
-                                  type="radio"
-                                  name={paymentMethodName}
-                                  value={card.id}
-                                  checked={selected}
-                                  onChange={() =>
-                                    setPaymentChoice({
-                                      method: "CARD",
-                                      savedCardId: card.id,
-                                    })
-                                  }
-                                  aria-label={cardLabel}
-                                  className="sr-only"
-                                />
-                                <span
-                                  aria-hidden="true"
-                                  className={cardBrandChipClasses(card.brand)}
-                                >
-                                  {cardBrandChipLabel(card.brand)}
-                                </span>
-                                <span aria-hidden="true" className="min-w-0">
-                                  <span className="block truncate text-sm font-medium text-paper">
-                                    {card.brand}{" "}
-                                    <span className="font-price tabular-nums">
-                                      {maskedCardNumber(card.last4)}
-                                    </span>
-                                  </span>
-                                  <span className="mt-0.5 block text-xs text-muted">
-                                    Expires{" "}
-                                    <span className="font-price tabular-nums">
-                                      {expiry}
-                                    </span>
-                                    {card.isDefault ? " · Default" : null}
-                                  </span>
-                                </span>
-                                {selected ? <PaymentSelectedTick /> : null}
-                              </label>
-                            );
-                          })
-                        : null}
-
-                      {payLaterEnabled ? (
-                        <label
-                          className={`${PAYMENT_OPTION_CLASSES} ${
-                            paymentChoice?.method === "CASH"
-                              ? PICK_CARD_SELECTED_CLASSES
-                              : PICK_CARD_IDLE_CLASSES
-                          }`}
-                        >
-                          <input
-                            type="radio"
-                            name={paymentMethodName}
-                            value={PAY_LATER_OPTION_VALUE}
-                            checked={paymentChoice?.method === "CASH"}
-                            onChange={() =>
-                              setPaymentChoice({
-                                method: "CASH",
-                                savedCardId: null,
-                              })
-                            }
-                            aria-label="Pay later — settle after the delivery"
-                            className="sr-only"
-                          />
-                          {/* The brand chip's own geometry, so this row's glyph
-                              lines up with the cards above it. A neutral fill
-                              rather than a brand tone: nothing was issued. */}
-                          <span
-                            aria-hidden="true"
-                            className={`${CARD_BRAND_CHIP_BASE_CLASSES} bg-surface text-muted`}
-                          >
-                            <Banknote className="size-4" />
-                          </span>
-                          <span aria-hidden="true" className="min-w-0">
-                            <span className="block text-sm font-medium text-paper">
-                              Pay later
-                            </span>
-                            <span className="mt-0.5 block text-xs text-muted">
-                              Settle after the delivery
-                            </span>
-                          </span>
-                          {paymentChoice?.method === "CASH" ? (
-                            <PaymentSelectedTick />
-                          ) : null}
-                        </label>
-                      ) : null}
-                    </div>
-                  </fieldset>
-
-                  {/* `type="button"`, and it matters more here than anywhere
-                      else on this page: this control sits inside the booking
-                      `<form>`, where an unqualified `<button>` defaults to
-                      `type="submit"` and would place a real order on the way to
-                      opening a dialog. */}
-                  {cardPaymentEnabled ? (
-                    <button
-                      type="button"
-                      onClick={() => setAddCardOpen(true)}
-                      className={ADD_CARD_BUTTON_CLASSES}
-                    >
-                      + Add card
-                    </button>
-                  ) : null}
-                </>
-              ) : (
-                <p className="text-[0.8125rem] leading-snug text-muted">
-                  No payment method is available at the moment. You can still
-                  book this delivery.
-                </p>
-              )}
-
-              {/* Business clients only, and the check is the server's answer,
-                  never a guess made here: `accountType` is read from the
-                  client's own `ClientProfile` in `loadBookingPaymentOptions`.
-                  An individual client is never sent this field at all. */}
-              {isBusinessClient ? (
-                <div className="mt-4 flex flex-col gap-1.5">
-                  <Label
-                    htmlFor={purchaseOrderRefId}
-                    className="text-[0.8125rem] font-medium text-paper"
-                  >
-                    PO or cost-centre reference
-                  </Label>
-                  <input
-                    id={purchaseOrderRefId}
-                    type="text"
-                    value={purchaseOrderRef}
-                    onChange={(event) =>
-                      setPurchaseOrderRef(event.target.value)
-                    }
-                    // Mirrors the server's own cap on the same field, so an
-                    // over-long reference is stopped at the keyboard rather
-                    // than sent and bounced.
-                    maxLength={PURCHASE_ORDER_REF_MAX_LENGTH}
-                    placeholder="e.g. PO-2026-0184"
-                    aria-describedby={purchaseOrderNoteId}
-                    className={PURCHASE_ORDER_FIELD_CLASSES}
-                  />
-                  <p
-                    id={purchaseOrderNoteId}
-                    className="text-xs leading-snug text-muted"
-                  >
-                    Optional. Appears on your order record for your own finance
-                    team.
-                  </p>
-                </div>
-              ) : null}
-
-              {/* Mounted inside the booking `<form>` — the first time this
-                  dialog has been — which is what makes its two
-                  `stopPropagation` guards load-bearing rather than defensive.
-                  Radix portals the panel to `document.body`, but React
-                  dispatches synthetic events along the *React* tree, so without
-                  them a click on "Save card" would raise a `submit` that walks
-                  into `handleSubmit` and books a delivery, and a keypress in a
-                  card field would reach `handleFormKeyDown` and fire a live
-                  quote. Escape is unaffected: Radix listens for it in the
-                  capture phase on the document, which runs before React's
-                  bubble-phase dispatch ever reaches the guard. */}
-              {cardPaymentEnabled ? (
-                <AddCardDialog
-                  open={addCardOpen}
-                  onOpenChange={setAddCardOpen}
-                  isFirstCard={cards.length === 0}
-                  onSubmit={handleAddCard}
-                />
-              ) : null}
-            </StepCard>
-
             {/* Unnumbered, but wearing the step cards' chrome: the numbered
-                steps above describe the job and how it is paid for, and this is
-                a choice about how the job is *handled* — one the form always
-                has an answer for, since it opens on Regular. Numbering it would
-                add a thing to answer that is already answered. The header note
-                the handoff puts to the right of the title sits in the card's own
+                steps above describe the job itself, and this is a choice about
+                how that job is *handled* — one the form always has an answer
+                for, since it opens on Regular. Numbering it would add a thing
+                to answer that is already answered. The header note the handoff
+                puts to the right of the title sits in the card's own
                 description slot instead, which is where a step card keeps its
                 subtitle. */}
             <StepCard

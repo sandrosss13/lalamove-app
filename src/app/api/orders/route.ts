@@ -424,8 +424,14 @@ export async function POST(request: Request): Promise<NextResponse> {
   // total and the minimum-fare floor keeps meaning what it says.
   const adjustment = serviceLevelAdjustment(serviceLevel, breakdown.price);
 
-  const order = await prisma.order.create({
+  // Created `INITIATED` — off-market and unpaid — rather than letting the column
+  // default supply a status. An order's opening state is a decision this path
+  // makes, not one it inherits: nothing between here and settlement should be
+  // able to put an unpaid job in front of a driver, and a status named at the
+  // point of creation is a status a reader of this handler can see.
+  const created = await prisma.order.create({
     data: {
+      status: OrderStatus.INITIATED,
       cargoCategory,
       bodyType,
       helperCount,
@@ -459,7 +465,24 @@ export async function POST(request: Request): Promise<NextResponse> {
     },
   });
 
-  return NextResponse.json(order, { status: 201 });
+  // Deliberately *not* settled here, and that is the whole shape of the booking
+  // flow: settlement belongs to checkout. `POST /api/orders/[id]/pay` is the one
+  // caller of `settleOrderPayment`, and that transition — `INITIATED` →
+  // `PENDING` — is what puts the job in front of drivers.
+  //
+  // So the window between booking and payment is an intended state rather than a
+  // race to be closed: the browser sends the client on to `/checkout/[id]` with
+  // the id off this response, and an order whose client never finishes there
+  // simply stays off the market. That is the failure direction worth having —
+  // nobody is dispatched to an unpaid job.
+  //
+  // Both open-market queries filter `status: PENDING` by equality (`GET` below,
+  // and `src/app/api/logistics-company/orders/route.ts`), so an `INITIATED`
+  // order is invisible to every driver and company *by construction*, not by a
+  // rule someone has to remember. Do not relax either into a `not`/`notIn`
+  // filter: that would start listing unpaid work the moment a new status is
+  // added.
+  return NextResponse.json(created, { status: 201 });
 }
 
 /**

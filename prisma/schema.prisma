@@ -207,10 +207,43 @@ enum BusinessApplicationVehicleStatus {
   FLAGGED
 }
 
+/// The order lifecycle, declared in lifecycle order.
+///
+/// ```text
+/// INITIATED ──(payment settles)──► PENDING
+///                                     │
+///           ┌─────────────────────────┤
+///     (company claims)      (independent driver accepts)
+///           ▼                         │
+///        CLAIMED ──(dispatch)──► ACCEPTED ◄──┘
+///                                     │
+///                                     ▼
+///                                IN_TRANSIT ──► COMPLETED
+///
+/// any pre-completion state ────────────────────► CANCELLED
+/// ```
+///
+/// `INITIATED` is the pre-payment state: the order exists, but it has not been
+/// paid for and is therefore **not on the open market**. Drivers and logistics
+/// companies must never see an `INITIATED` order. That property is enforced by
+/// construction rather than by a filter: every open-market query keys on
+/// `status: PENDING` by *equality* (see `api/logistics-company/orders`,
+/// `api/orders/[id]/accept`, `api/orders/[id]/claim`), so a new pre-market value
+/// is invisible to them without any query changing. Anything added here that
+/// drivers must not see has to keep that shape — a `not`/`notIn` filter on an
+/// open-market query would leak it.
+///
+/// `PENDING` is the open market: paid for, unassigned, visible to every eligible
+/// driver and company. Payment settles immediately today, since Pay later is the
+/// only method, so the `INITIATED → PENDING` hop is currently instantaneous.
+///
 /// `CLAIMED` is the company-only intermediate state: a `LogisticsCompany` has
 /// taken the order but has not yet dispatched it to one of its own drivers.
-/// Independent drivers skip it and go straight from PENDING to ACCEPTED.
+/// Independent drivers skip it and go straight from `PENDING` to `ACCEPTED`.
+///
+/// `IN_TRANSIT` keeps its name for migration cost, and displays as "In transit".
 enum OrderStatus {
+  INITIATED
   PENDING
   CLAIMED
   ACCEPTED
@@ -898,7 +931,19 @@ model Order {
   vehicleTypeSpecId String
   vehicleTypeSpec   VehicleTypeSpec @relation(fields: [vehicleTypeSpecId], references: [id])
 
-  status OrderStatus @default(PENDING)
+  // `INITIATED`, because an order should not be born on the open market: it is
+  // unpaid at the instant of insert, and `PENDING` means paid and biddable by
+  // every eligible driver and company. A default of `PENDING` would put any row
+  // written without a status straight in front of drivers, which is the failure
+  // direction that costs somebody a wasted trip; `INITIATED` fails the other way
+  // — invisible until something deliberately settles it.
+  //
+  // The live behaviour no longer rests on this default: `POST /api/orders`, the
+  // only path that creates orders, names `INITIATED` itself and then calls
+  // `settleOrderPayment` (`src/lib/orders/payment-settlement.ts`) to move the
+  // order to `PENDING`. So this is a safety net for whatever writes orders next,
+  // not the mechanism any current code depends on.
+  status OrderStatus @default(INITIATED)
 
   clientId String
   client   User   @relation("ClientOrders", fields: [clientId], references: [id], onDelete: Cascade)

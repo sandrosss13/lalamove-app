@@ -29,9 +29,10 @@ export function AuthStatus() {
 
     return (
       <div className="flex items-center gap-3 text-sm">
-        <span>
-          Signed in as {name} ({role})
-        </span>
+        {/* The name alone: that the header offers "Sign out" already says the
+            visitor is signed in, and the role is a fact about the account they
+            cannot act on from here — both were noise beside their own name. */}
+        <span>{name}</span>
         {/*
           A client's own route to the marketing page is the wordmark now (see
           `HeaderBrandLink`), not a link here — this used to duplicate that.
