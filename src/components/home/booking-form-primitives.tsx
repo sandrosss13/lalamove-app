@@ -57,7 +57,8 @@ export type StepCardProps = {
    * Whether the step before this one is still unanswered. A disabled step stays
    * fully readable — it is what the user is being asked to work towards — so it
    * drops the badge's accent fill and mutes the title rather than fading the
-   * whole card out.
+   * whole card out. Readable, but not answerable by any route: the content
+   * region goes `inert` with it (see the note on the component).
    */
   disabled?: boolean;
   /**
@@ -65,8 +66,10 @@ export type StepCardProps = {
    * there is one to name. Rendered in the header while `disabled` and pointed at
    * by the card's `aria-describedby`, so the reason travels with the step rather
    * than living in a `title` attribute a keyboard or screen-reader user has no
-   * way to reach. Ignored while the step is enabled, where there is nothing to
-   * explain.
+   * way to reach. The header sitting outside the inert region is what keeps that
+   * true: the reason is the one thing a disabled step still has to say, so it
+   * has to be the part that stays reachable. Ignored while the step is enabled,
+   * where there is nothing to explain.
    *
    * Omitted only by a step whose own content already carries the explanation —
    * the vehicle step while its type list failed to load renders that error in
@@ -80,24 +83,46 @@ export type StepCardProps = {
  * One numbered step of the form. The number is a decoration — the title
  * carries the meaning — so the badge is hidden from assistive tech.
  *
- * `aria-disabled` rather than a real `disabled`: a `Card` is a `div`, which has
- * no disabled state to set, and the controls inside it are of several kinds.
- * The content region stops taking pointer events; assistive tech is told the
- * step is not yet answerable by the attribute. The individual controls are
- * deliberately left alone — a step that is shown rather than hidden is one the
- * user is meant to be able to read ahead to, and `disabled` on each of them
- * would take that away.
+ * A disabled step is disabled for real, by `inert` on the content region: one
+ * attribute that takes every descendant out of the tab order, out of hit-testing
+ * and out of the accessibility tree together. A `Card` is a `div` with no
+ * disabled state of its own, and the controls inside a step are of several kinds
+ * — native radios, a select, buttons, a text field — so there is no single
+ * `disabled` to set and no call site that could thread one through them all.
+ *
+ * It replaces a lone `pointer-events-none`, which suppressed hit-testing and
+ * nothing else. The `sr-only` radios each picker keeps stayed focusable under
+ * it, so a keyboard user could Tab into a greyed-out step and set body type,
+ * crew size, service level or payment method that a pointer user was blocked
+ * from — while `aria-disabled` on the group announced the step as unanswerable.
+ * The class stays next to `inert` only as the pointer half of that behaviour on
+ * a browser too old for the attribute; on every current one it is redundant.
+ *
+ * What `inert` costs is reading ahead *within* a step that cannot be answered
+ * yet — hearing its individual controls. The header is deliberately outside the
+ * inert region, and pays for it: the number, title, description and
+ * `disabledReason` all stay in the accessibility tree, so a screen-reader user
+ * still learns the step is there, what it will ask for and what to go and do
+ * first. Hearing the controls of a question that ignores every answer is exactly
+ * what `aria-disabled` was already promising would not happen.
  *
  * `role="group"` is what makes that wiring carry: ARIA in HTML supports neither
  * `aria-disabled` nor `aria-describedby` on a role-less generic, so a plain
  * `div` drops both and only the visible reason line survives. The role is also
  * the thing that gives the card a boundary to announce, so it takes its name
  * from the step's own title via `aria-labelledby` rather than announcing as an
- * unnamed group. Purely semantic — nothing about it renders.
+ * unnamed group. Purely semantic — nothing about it renders. The group is the
+ * `Card`, not the content region, so it stays announced — named, disabled and
+ * described — while nothing it wraps is reachable. The two agree now.
+ *
+ * Mounted dialogs are untouched: `inert` applies down the DOM tree, and Radix
+ * portals `DialogContent` to `document.body`, so step 2's contact dialogs and
+ * step 7's add-card dialog are not descendants of the content region. One
+ * already open when its step disables underneath it stays fully operable.
  *
  * A step turned off this way says why (`disabledReason`) unless its content
  * already does, because the only thing on screen would otherwise be a control
- * that silently ignores the pointer.
+ * that nothing can reach.
  */
 export function StepCard({
   step,
@@ -156,7 +181,14 @@ export function StepCard({
           </p>
         ) : null}
       </CardHeader>
-      <CardContent className={cn(disabled && "pointer-events-none")}>
+      {/* `inert` is the disabling mechanism; the class is its pointer-only
+          fallback for a browser without the attribute. React 19 renders `inert`
+          as the boolean attribute it is, so `false` emits nothing at all and an
+          enabled step carries neither. */}
+      <CardContent
+        inert={disabled}
+        className={cn(disabled && "pointer-events-none")}
+      >
         {children}
       </CardContent>
     </Card>
