@@ -7,6 +7,10 @@
 /coverage
 /.playwright-mcp
 .playwright-cli
+/test-results
+/playwright-report
+/blob-report
+/.playwright
 
 # build outputs
 /.next/
