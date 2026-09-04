@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { OrderStatus } from "@prisma/client";
 
 import { auth } from "@/lib/auth";
+import { ORDER_PARTY_SELECT } from "@/lib/order-response-select";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -54,6 +55,7 @@ export async function POST(
   const updated = await prisma.order.update({
     where: { id },
     data: { status: OrderStatus.IN_TRANSIT, inTransitAt: new Date() },
+    select: ORDER_PARTY_SELECT,
   });
 
   return NextResponse.json(updated, { status: 200 });

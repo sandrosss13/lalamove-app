@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { OrderStatus } from "@prisma/client";
 
 import { auth } from "@/lib/auth";
+import { ORDER_PARTY_SELECT } from "@/lib/order-response-select";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -136,6 +137,7 @@ export async function POST(
       waitingMinutes,
       overtimeFee,
     },
+    select: ORDER_PARTY_SELECT,
   });
 
   return NextResponse.json(updated, { status: 200 });
