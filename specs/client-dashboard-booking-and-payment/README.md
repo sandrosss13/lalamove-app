@@ -97,7 +97,7 @@ graph TD
 - [x] [task-15-wire-stop-contacts](./tasks/task-15-wire-stop-contacts.md) — Open the popup on address selection
 
 ### Wave 6
-- [ ] [task-16-payment-step](./tasks/task-16-payment-step.md) — Step 7 payment method + Business PO reference
+- [x] [task-16-payment-step](./tasks/task-16-payment-step.md) — Step 7 payment method + Business PO reference
 
 ### Wave 7
 - [ ] [task-17-progressive-gating](./tasks/task-17-progressive-gating.md) — Disable each step until the one before is answered

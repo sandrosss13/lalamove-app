@@ -2,15 +2,33 @@
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, CalendarDays } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ArrowRight, Banknote, CalendarDays, Check } from "lucide-react";
 import type { CargoCategory, ChassisType, ServiceLevel } from "@prisma/client";
 
 import { AddressAutocomplete } from "@/components/address-autocomplete";
+import {
+  AddCardDialog,
+  type NewCardInput,
+} from "@/components/home/add-card-dialog";
 import {
   formatBookedDistanceKm,
   formatDistanceKm,
   formatGel,
 } from "@/components/home/booking-format";
+import {
+  CARD_BRAND_CHIP_BASE_CLASSES,
+  cardBrandChipClasses,
+  cardBrandChipLabel,
+} from "@/components/home/card-brand";
+import {
+  formatCardExpiry,
+  maskedCardNumber,
+  PAY_LATER_OPTION_VALUE,
+  readErrorMessage,
+  type BookingPaymentOptions,
+  type SavedCardSummary,
+} from "@/components/home/payment-methods";
 import {
   BreakdownRow,
   PICK_CARD_BASE_CLASSES,
@@ -336,6 +354,117 @@ const DEFAULT_SERVICE_LEVEL: ServiceLevel = "REGULAR";
  */
 const SERVICE_LEVEL_OPTION_CLASSES = `${PICK_CARD_BASE_CLASSES} min-h-32 cursor-pointer gap-1 has-[:focus-visible]:border-accent has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-accent/20`;
 
+/**
+ * How the client said they will settle, as the payment step holds it.
+ *
+ * `savedCardId` is present on both arms rather than only on the card one, so
+ * the submit reads one field instead of narrowing a union — and `null` on the
+ * Pay later arm is exactly what `POST /api/orders` requires: it refuses a card
+ * id sent alongside anything but `CARD`.
+ *
+ * There is no `PAY_LATER` method. Pay later *is* `CASH`, under the label the
+ * client is shown — see `PaymentMethod` for why a fourth enum value would be
+ * the wrong way to say it.
+ */
+type PaymentChoice =
+  | { method: "CARD"; savedCardId: string }
+  | { method: "CASH"; savedCardId: null };
+
+/**
+ * One row of the payment step. The pick-card border and fill states again, laid
+ * out horizontally this time — chip, then title and note, then the tick — plus
+ * the pointer affordance and the focus ring a `<label>` around an `sr-only`
+ * radio has to draw on the hidden input's behalf.
+ */
+const PAYMENT_OPTION_CLASSES =
+  "flex cursor-pointer items-center gap-3.5 rounded-xl border p-[14px_16px] transition-colors has-[:focus-visible]:border-accent has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-accent/20";
+
+/** The dashed full-width control that opens the add-card dialog. */
+const ADD_CARD_BUTTON_CLASSES =
+  "mt-3 w-full rounded-lg border border-dashed border-line px-4 py-[11px] text-sm font-medium text-paper transition-colors hover:border-accent hover:text-accent";
+
+/** The purchase-order field, taller than the form's other native inputs. */
+const PURCHASE_ORDER_FIELD_CLASSES =
+  "h-12 w-full rounded-lg border border-line bg-ink px-3.5 text-sm text-paper transition-colors outline-none placeholder:text-muted focus-visible:border-accent focus-visible:ring-3 focus-visible:ring-accent/20";
+
+/**
+ * Longest purchase-order reference the field accepts, mirroring the
+ * `FREE_TEXT_MAX_LENGTH` cap `POST /api/orders` applies to the same value. Held
+ * here so an over-long reference is stopped at the keyboard rather than sent and
+ * bounced — the server stays the authority either way.
+ */
+const PURCHASE_ORDER_REF_MAX_LENGTH = 200;
+
+/** Shown when a rejected card save carries no message of its own. */
+const SAVE_CARD_FAILED_MESSAGE = "Could not save the card. Try again.";
+
+/**
+ * The accent tick marking the chosen payment row.
+ *
+ * Not the shared `SelectedTick`: that one is absolutely positioned for the
+ * corner of a pick card, and these rows are horizontal, so theirs sits in flow
+ * and is pushed to the right edge by `ml-auto`.
+ */
+function PaymentSelectedTick(): React.ReactElement {
+  return (
+    <span
+      aria-hidden="true"
+      className="ml-auto flex size-4 shrink-0 items-center justify-center rounded-full bg-accent text-ink"
+    >
+      <Check className="size-2.5" strokeWidth={3} />
+    </span>
+  );
+}
+
+/**
+ * The client's default card as a payment choice, or `null` when there is
+ * nothing to pre-select — no card of theirs is the default, or admin has the
+ * card method switched off, in which case no card row is rendered at all.
+ *
+ * Never falls back to Pay later. The step is optional and books happily with
+ * nothing chosen, so pre-selecting a settlement method the client did not pick
+ * would put a choice on their order that they never made.
+ */
+function defaultPaymentChoice(
+  cards: SavedCardSummary[],
+  cardPaymentEnabled: boolean,
+): PaymentChoice | null {
+  if (!cardPaymentEnabled) {
+    return null;
+  }
+
+  const preferred = cards.find((card) => card.isDefault);
+
+  return preferred ? { method: "CARD", savedCardId: preferred.id } : null;
+}
+
+/**
+ * `cards` with a newly saved one folded in, in the order the server would have
+ * returned them: the default first, then newest first.
+ *
+ * The demotion is not cosmetic. `POST /api/saved-cards` promotes the new card in
+ * the same transaction whenever the client asked for it — or whenever it is
+ * their first — so a list that kept the old default's flag would print two
+ * "Default" notes for a client who has one.
+ */
+function withSavedCard(
+  cards: SavedCardSummary[],
+  saved: SavedCardSummary,
+): SavedCardSummary[] {
+  const existing = saved.isDefault
+    ? cards.map((card) => ({ ...card, isDefault: false }))
+    : cards;
+
+  // `filter` preserves order, so the non-default tail keeps its newest-first
+  // sort with the new card at its head.
+  const next = [saved, ...existing];
+
+  return [
+    ...next.filter((card) => card.isDefault),
+    ...next.filter((card) => !card.isDefault),
+  ];
+}
+
 /** Shared geometry for a native `<select>`/date-trigger styled to match the
  *  rest of this form's fields — the same treatment `account-profile-form.tsx`
  *  uses for its own native Gender `<select>`, and for the same reason: a
@@ -476,8 +605,11 @@ const VEHICLE_CATEGORY_GLYPHS: Record<
  * goods, load space, vehicle or crew size invalidates that quote until it's
  * recalculated — then booked through `POST /api/orders`.
  *
- * Prop-less by design — it owns all of its own state and is only ever rendered
- * from `HomeEntry`'s signed-in-client branch.
+ * It owns all of its own state; the only things handed to it are the three the
+ * browser is in no position to decide for itself — which payment methods admin
+ * has switched on, the client's saved cards, and whether the client is a
+ * business — all resolved server-side by `loadBookingPaymentOptions` and passed
+ * down through `HomeEntry`.
  *
  * The service level is the one input that does not invalidate the quote:
  * Priority and Pooling are arithmetic on the fare already quoted, so switching
@@ -486,7 +618,13 @@ const VEHICLE_CATEGORY_GLYPHS: Record<
  * Multi-stop routes are deliberately absent, because the backend has no concept
  * of them — an `Order` has exactly one pickup and one dropoff.
  */
-export function BookingForm(): React.ReactElement {
+export function BookingForm({
+  enabledPaymentMethods,
+  savedCards,
+  accountType,
+}: BookingPaymentOptions): React.ReactElement {
+  const router = useRouter();
+
   // Not an element id but a shared radio `name`: it is what binds the four
   // crew-size inputs into one group for the browser's own arrow-key handling.
   const crewSizeName = useId();
@@ -494,11 +632,32 @@ export function BookingForm(): React.ReactElement {
   const bodyTypeName = useId();
   // And the one binding the three service-level radios.
   const serviceLevelName = useId();
+  // And the one binding the saved-card rows and Pay later into one group.
+  const paymentMethodName = useId();
   const descriptionId = useId();
+  const purchaseOrderRefId = useId();
+  const purchaseOrderNoteId = `${purchaseOrderRefId}-note`;
   const formId = useId();
   const dateTriggerId = useId();
   const timeSelectId = useId();
   const weightSelectId = useId();
+
+  /**
+   * Which of the three methods the payment step may offer. Read from the prop
+   * rather than from an endpoint: admin owns this switchboard, and
+   * `POST /api/orders` refuses a disabled method outright, so a row for one
+   * would be an error the client cannot act on.
+   *
+   * `BANK_TRANSFER` has no row of its own. The handoff's payment step is saved
+   * cards and Pay later, and inventing a third kind of row for a method with no
+   * design would be building past the brief — an admin who switches it on gets
+   * no client-facing option until one is designed.
+   */
+  const cardPaymentEnabled = enabledPaymentMethods.includes("CARD");
+  const payLaterEnabled = enabledPaymentMethods.includes("CASH");
+
+  /** The purchase-order field is a business client's, and nobody else's. */
+  const isBusinessClient = accountType === "BUSINESS";
 
   // Null until both a day and a time slot are chosen — see `scheduledDateTime`,
   // the combined value everything downstream (submission, validation) reads.
@@ -552,6 +711,32 @@ export function BookingForm(): React.ReactElement {
     DEFAULT_SERVICE_LEVEL,
   );
   const [description, setDescription] = useState("");
+
+  /**
+   * The client's saved cards, seeded from the server and then owned here.
+   *
+   * Local rather than read straight off the prop because a card added from
+   * inside this form has to appear *and be selected* in the same paint: waiting
+   * for `router.refresh()` to bring the list back would leave the group with a
+   * selected id that is not yet in it, which renders as nothing selected. The
+   * refresh still runs — it keeps the router cache's copy of this page honest
+   * for a later navigation back to it — it simply is not what this list waits
+   * on.
+   */
+  const [cards, setCards] = useState<SavedCardSummary[]>(savedCards);
+
+  // How the client says they will settle, or `null` while they have not said.
+  // Never gates anything: see `canSubmit`, which does not read it.
+  const [paymentChoice, setPaymentChoice] = useState<PaymentChoice | null>(() =>
+    defaultPaymentChoice(savedCards, cardPaymentEnabled),
+  );
+
+  const [addCardOpen, setAddCardOpen] = useState(false);
+
+  // The client's own finance reference, carried on the order for them. Held for
+  // every client but only ever rendered — and only ever sent — for a business
+  // one, so an individual's booking cannot carry a value they were never shown.
+  const [purchaseOrderRef, setPurchaseOrderRef] = useState("");
 
   const [estimate, setEstimate] = useState<Estimate | null>(null);
   const [estimating, setEstimating] = useState(false);
@@ -874,6 +1059,44 @@ export function BookingForm(): React.ReactElement {
     }
   }
 
+  /**
+   * Save a card typed into the add-card dialog, then select it.
+   *
+   * Receives display metadata only — brand, last four, expiry, holder name and
+   * the default flag. The card number and the security code never leave the
+   * dialog, and `POST /api/saved-cards` refuses outright any body carrying
+   * either, so there is nothing here to send even by accident.
+   *
+   * Throwing is how the dialog is told: it catches, renders the message inline
+   * under its own fields and stays open. Resolving is what closes it.
+   */
+  async function handleAddCard(card: NewCardInput) {
+    const response = await fetch("/api/saved-cards", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(card),
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        await readErrorMessage(response, SAVE_CARD_FAILED_MESSAGE),
+      );
+    }
+
+    const payload = (await response.json()) as { card?: SavedCardSummary };
+    const saved = payload.card;
+
+    if (!saved) {
+      throw new Error(SAVE_CARD_FAILED_MESSAGE);
+    }
+
+    setCards((current) => withSavedCard(current, saved));
+    // Adding a card from inside the payment step is a choice of that card;
+    // making the client pick it again would be asking twice.
+    setPaymentChoice({ method: "CARD", savedCardId: saved.id });
+    router.refresh();
+  }
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
@@ -915,6 +1138,20 @@ export function BookingForm(): React.ReactElement {
           // from the quote it computes itself, so a figure sent from here would
           // be ignored at best and trusted at worst.
           serviceLevel,
+          // How the client says they will settle, and — only when that is a
+          // card — which of their own cards. `undefined` where nothing was
+          // chosen: the step is optional, and `JSON.stringify` drops the key
+          // entirely, which is the "no method recorded" the endpoint reads.
+          // Sending a card id alongside anything but CARD is refused outright,
+          // which is why `PaymentChoice` carries `null` on the Pay later arm.
+          paymentMethodType: paymentChoice?.method,
+          savedCardId: paymentChoice?.savedCardId ?? undefined,
+          // Business clients only, and enforced on both sides: the field is
+          // never rendered for an individual, and `/api/orders` re-reads the
+          // account type and drops the value for one anyway.
+          purchaseOrderRef: isBusinessClient
+            ? purchaseOrderRef.trim() || undefined
+            : undefined,
           description: description.trim() || undefined,
         }),
       });
@@ -952,6 +1189,13 @@ export function BookingForm(): React.ReactElement {
       setDescription("");
       setCrewSize(DEFAULT_CREW_SIZE);
       setServiceLevel(DEFAULT_SERVICE_LEVEL);
+      // Back to the default card, exactly as the step opened — but against the
+      // cards the client has *now*, one of which they may have just added. The
+      // saved cards themselves are kept: they describe the client, not this job.
+      setPaymentChoice(defaultPaymentChoice(cards, cardPaymentEnabled));
+      // The reference belongs to the order just placed, not to the next one.
+      setPurchaseOrderRef("");
+      setAddCardOpen(false);
       setEstimate(null);
       setEstimateError(null);
       setAddressFieldsKey((key) => key + 1);
@@ -1706,13 +1950,233 @@ export function BookingForm(): React.ReactElement {
               </div>
             </StepCard>
 
-            {/* Unnumbered, but wearing the step cards' chrome: the six numbered
-                steps describe the job, and this is a choice about how the job
-                is handled — one the form defaults for and never blocks on, so
-                numbering it would add a seventh thing to answer that nobody has
-                to answer. The header note the handoff puts to the right of the
-                title sits in the card's own description slot instead, which is
-                where a step card keeps its subtitle. */}
+            {/* The one step that never blocks anything. `canCalculate` and
+                `canSubmit` both ignore it by design: a client who says nothing
+                here books an order with no method recorded, which is exactly
+                what every order placed before this step existed carries. */}
+            <StepCard
+              step={7}
+              title="Payment"
+              description="Optional — you can book now and settle later."
+            >
+              {cardPaymentEnabled || payLaterEnabled ? (
+                <>
+                  {/* Native radios for the fourth time in this form, and for
+                      the same reasons as the load-space, crew-size and
+                      service-level pickers: the group's arrow-key navigation
+                      and its "2 of 3" announcement both come free with the real
+                      inputs. The handoff draws `aria-pressed` buttons; the
+                      form's newer convention is radios. */}
+                  <fieldset>
+                    {/* The card's title is this group's visible name, and
+                        assistive tech has no way to associate the two — so the
+                        legend says it again rather than leaving the group
+                        unnamed. */}
+                    <legend className="sr-only">Payment method</legend>
+
+                    <div className="flex flex-col gap-2.5">
+                      {cardPaymentEnabled
+                        ? cards.map((card) => {
+                            const selected =
+                              paymentChoice?.method === "CARD" &&
+                              paymentChoice.savedCardId === card.id;
+                            const expiry = formatCardExpiry(
+                              card.expMonth,
+                              card.expYear,
+                            );
+                            // The brand chip and the row's text are hidden from
+                            // assistive tech (below) and spoken from here
+                            // instead, so a card arrives as one name in one
+                            // reading order rather than as four loose digits.
+                            const cardLabel = `${card.brand} card ending ${card.last4} — expires ${expiry}${
+                              card.isDefault ? " · Default" : ""
+                            }`;
+
+                            return (
+                              <label
+                                key={card.id}
+                                className={`${PAYMENT_OPTION_CLASSES} ${
+                                  selected
+                                    ? PICK_CARD_SELECTED_CLASSES
+                                    : PICK_CARD_IDLE_CLASSES
+                                }`}
+                              >
+                                <input
+                                  type="radio"
+                                  name={paymentMethodName}
+                                  value={card.id}
+                                  checked={selected}
+                                  onChange={() =>
+                                    setPaymentChoice({
+                                      method: "CARD",
+                                      savedCardId: card.id,
+                                    })
+                                  }
+                                  aria-label={cardLabel}
+                                  className="sr-only"
+                                />
+                                <span
+                                  aria-hidden="true"
+                                  className={cardBrandChipClasses(card.brand)}
+                                >
+                                  {cardBrandChipLabel(card.brand)}
+                                </span>
+                                <span aria-hidden="true" className="min-w-0">
+                                  <span className="block truncate text-sm font-medium text-paper">
+                                    {card.brand}{" "}
+                                    <span className="font-price tabular-nums">
+                                      {maskedCardNumber(card.last4)}
+                                    </span>
+                                  </span>
+                                  <span className="mt-0.5 block text-xs text-muted">
+                                    Expires{" "}
+                                    <span className="font-price tabular-nums">
+                                      {expiry}
+                                    </span>
+                                    {card.isDefault ? " · Default" : null}
+                                  </span>
+                                </span>
+                                {selected ? <PaymentSelectedTick /> : null}
+                              </label>
+                            );
+                          })
+                        : null}
+
+                      {payLaterEnabled ? (
+                        <label
+                          className={`${PAYMENT_OPTION_CLASSES} ${
+                            paymentChoice?.method === "CASH"
+                              ? PICK_CARD_SELECTED_CLASSES
+                              : PICK_CARD_IDLE_CLASSES
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name={paymentMethodName}
+                            value={PAY_LATER_OPTION_VALUE}
+                            checked={paymentChoice?.method === "CASH"}
+                            onChange={() =>
+                              setPaymentChoice({
+                                method: "CASH",
+                                savedCardId: null,
+                              })
+                            }
+                            aria-label="Pay later — settle after the delivery"
+                            className="sr-only"
+                          />
+                          {/* The brand chip's own geometry, so this row's glyph
+                              lines up with the cards above it. A neutral fill
+                              rather than a brand tone: nothing was issued. */}
+                          <span
+                            aria-hidden="true"
+                            className={`${CARD_BRAND_CHIP_BASE_CLASSES} bg-surface text-muted`}
+                          >
+                            <Banknote className="size-4" />
+                          </span>
+                          <span aria-hidden="true" className="min-w-0">
+                            <span className="block text-sm font-medium text-paper">
+                              Pay later
+                            </span>
+                            <span className="mt-0.5 block text-xs text-muted">
+                              Settle after the delivery
+                            </span>
+                          </span>
+                          {paymentChoice?.method === "CASH" ? (
+                            <PaymentSelectedTick />
+                          ) : null}
+                        </label>
+                      ) : null}
+                    </div>
+                  </fieldset>
+
+                  {/* `type="button"`, and it matters more here than anywhere
+                      else on this page: this control sits inside the booking
+                      `<form>`, where an unqualified `<button>` defaults to
+                      `type="submit"` and would place a real order on the way to
+                      opening a dialog. */}
+                  {cardPaymentEnabled ? (
+                    <button
+                      type="button"
+                      onClick={() => setAddCardOpen(true)}
+                      className={ADD_CARD_BUTTON_CLASSES}
+                    >
+                      + Add card
+                    </button>
+                  ) : null}
+                </>
+              ) : (
+                <p className="text-[0.8125rem] leading-snug text-muted">
+                  No payment method is available at the moment. You can still
+                  book this delivery.
+                </p>
+              )}
+
+              {/* Business clients only, and the check is the server's answer,
+                  never a guess made here: `accountType` is read from the
+                  client's own `ClientProfile` in `loadBookingPaymentOptions`.
+                  An individual client is never sent this field at all. */}
+              {isBusinessClient ? (
+                <div className="mt-4 flex flex-col gap-1.5">
+                  <Label
+                    htmlFor={purchaseOrderRefId}
+                    className="text-[0.8125rem] font-medium text-paper"
+                  >
+                    PO or cost-centre reference
+                  </Label>
+                  <input
+                    id={purchaseOrderRefId}
+                    type="text"
+                    value={purchaseOrderRef}
+                    onChange={(event) =>
+                      setPurchaseOrderRef(event.target.value)
+                    }
+                    // Mirrors the server's own cap on the same field, so an
+                    // over-long reference is stopped at the keyboard rather
+                    // than sent and bounced.
+                    maxLength={PURCHASE_ORDER_REF_MAX_LENGTH}
+                    placeholder="e.g. PO-2026-0184"
+                    aria-describedby={purchaseOrderNoteId}
+                    className={PURCHASE_ORDER_FIELD_CLASSES}
+                  />
+                  <p
+                    id={purchaseOrderNoteId}
+                    className="text-xs leading-snug text-muted"
+                  >
+                    Optional. Appears on your order record for your own finance
+                    team.
+                  </p>
+                </div>
+              ) : null}
+
+              {/* Mounted inside the booking `<form>` — the first time this
+                  dialog has been — which is what makes its two
+                  `stopPropagation` guards load-bearing rather than defensive.
+                  Radix portals the panel to `document.body`, but React
+                  dispatches synthetic events along the *React* tree, so without
+                  them a click on "Save card" would raise a `submit` that walks
+                  into `handleSubmit` and books a delivery, and a keypress in a
+                  card field would reach `handleFormKeyDown` and fire a live
+                  quote. Escape is unaffected: Radix listens for it in the
+                  capture phase on the document, which runs before React's
+                  bubble-phase dispatch ever reaches the guard. */}
+              {cardPaymentEnabled ? (
+                <AddCardDialog
+                  open={addCardOpen}
+                  onOpenChange={setAddCardOpen}
+                  isFirstCard={cards.length === 0}
+                  onSubmit={handleAddCard}
+                />
+              ) : null}
+            </StepCard>
+
+            {/* Unnumbered, but wearing the step cards' chrome: the numbered
+                steps above describe the job and how it is paid for, and this is
+                a choice about how the job is *handled* — one the form always
+                has an answer for, since it opens on Regular. Numbering it would
+                add a thing to answer that is already answered. The header note
+                the handoff puts to the right of the title sits in the card's own
+                description slot instead, which is where a step card keeps its
+                subtitle. */}
             <StepCard
               title="Service level"
               description={
