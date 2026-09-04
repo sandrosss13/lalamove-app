@@ -71,9 +71,13 @@ export type StepCardProps = {
    * has to be the part that stays reachable. Ignored while the step is enabled,
    * where there is nothing to explain.
    *
-   * Omitted only by a step whose own content already carries the explanation —
-   * the vehicle step while its type list failed to load renders that error in
-   * an `alert`, and a vaguer line above it would be the first thing read.
+   * Never delegated to the content region on the grounds that a message down
+   * there already explains it: `inert` takes that message out of the
+   * accessibility tree along with the controls, so a step whose only
+   * explanation sits in its own `alert` reads as a titled card with no reason
+   * and no way forward. A step with something more accurate to say — the
+   * vehicle step while its type list failed to load — passes that text here
+   * instead of rendering it only below.
    */
   disabledReason?: string;
   children: React.ReactNode;
@@ -120,9 +124,10 @@ export type StepCardProps = {
  * step 7's add-card dialog are not descendants of the content region. One
  * already open when its step disables underneath it stays fully operable.
  *
- * A step turned off this way says why (`disabledReason`) unless its content
- * already does, because the only thing on screen would otherwise be a control
- * that nothing can reach.
+ * A step turned off this way always says why (`disabledReason`), because the
+ * only thing on screen would otherwise be a control that nothing can reach —
+ * and because the header is the one place that reason can be said, the content
+ * region being inert underneath it.
  */
 export function StepCard({
   step,

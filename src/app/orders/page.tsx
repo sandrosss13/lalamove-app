@@ -59,6 +59,20 @@ export default async function OrdersPage() {
   // step — which is how `serviceLevel` and `serviceLevelAdjustment` reach the
   // price it prints. `vehicle` is narrowed because it is a relation, and a
   // relation is not included unless it is asked for.
+  //
+  // Safe here for one reason only: `clientId` is the caller's own id, so every
+  // scalar this widens to is the reader's own data. Do not carry the
+  // convenience to any query whose rows can reach someone who is not a party to
+  // them — an unselected query handed to a response or an RSC tree is how
+  // `GET /api/orders` and `GET /api/logistics-company/orders` both leaked, the
+  // latter handing clients' contact details to companies that had not claimed
+  // the order. The pattern is written up in
+  // `.claude/agent-memory/security-scanner/security_order_select_leak_pattern.md`.
+  //
+  // Concretely, the payload already carries more than the card renders:
+  // `purchaseOrderRef` and `savedCardId` are serialised to the browser and read
+  // by nothing. Own-data, so not a leak — but state it rather than leave a
+  // future reader to work it out.
   const orders = await prisma.order.findMany({
     where: { clientId: session.user.id },
     include: {

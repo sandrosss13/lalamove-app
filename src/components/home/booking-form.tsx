@@ -1824,12 +1824,15 @@ export function BookingForm({
               title="Recommended vehicle"
               description="Only vehicles cleared for your goods, load space and weight are shown, cheapest first."
               disabled={!vehicleStepEnabled}
-              // Suppressed while the fetch has failed: the card's own `alert`
-              // below says exactly why there are no vehicles, and a second,
-              // vaguer line above it would be the one read first.
-              disabledReason={
-                vehicleTypesError ? undefined : WEIGHT_UNAVAILABLE
-              }
+              // The fetch error is the reason *and* is given in the header,
+              // because the header is the only part of a disabled step that
+              // stays reachable: the content region goes `inert`, so the
+              // `alert` below is out of the accessibility tree exactly when it
+              // has something to say. And it always coincides — `weightOptions`
+              // derives from the fetched types, so a failed fetch empties it and
+              // shuts this step every time. Nothing competes with anything: one
+              // string, in the one place a screen reader can still reach.
+              disabledReason={vehicleTypesError ?? WEIGHT_UNAVAILABLE}
             >
               {vehicleTypesError ? (
                 <p role="alert" className="text-[0.8125rem] text-accent">
