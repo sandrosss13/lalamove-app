@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="fonts/fonts.css">
+<script src="./image-slot.js"></script>
+<style>
+  body { margin:0; background:#FBF8F3; }
+  a { color: oklch(66% 0.2 45); text-decoration: none; }
+  a:hover { color: oklch(56% 0.19 43); }
+  * { box-sizing: border-box; }
+  @keyframes ledger-ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+</style>
+</helmet>
+<div style="font-family:'IBM Plex Sans',sans-serif; background:#FBF8F3; color:oklch(18% 0.02 70); -webkit-font-smoothing:antialiased;">
+
+  <header style="position:sticky; top:0; z-index:20; background:rgba(251,248,243,0.92); backdrop-filter:blur(12px); border-bottom:1px solid oklch(89% 0.008 80);">
+    <div style="max-width:1240px; margin:0 auto; padding:14px 24px; display:flex; align-items:center; flex-wrap:wrap; gap:12px 28px;">
+      <div style="display:flex; align-items:baseline; gap:8px; margin-right:auto;">
+        <span style="font-size:19px; font-weight:700; letter-spacing:-0.03em;">Lalamove</span>
+        <span style="font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:oklch(52% 0.02 70);">Georgia</span>
+      </div>
+      <nav style="display:flex; flex-wrap:wrap; gap:10px 24px; font-size:14px; color:oklch(35% 0.015 70);">
+        <a href="#how" style="color:inherit;">How it works</a>
+        <a href="#pricing" style="color:inherit;">Pricing</a>
+        <a href="#partners" style="color:inherit;">Partners</a>
+        <a href="#drive" style="color:inherit;">Drive with us</a>
+      </nav>
+      <div style="display:flex; gap:10px; align-items:center;">
+        <a href="#login" style="font-size:14px; color:oklch(35% 0.015 70); padding:9px 14px;">Log in</a>
+        <a href="#signup" style="font-size:14px; font-weight:600; background:oklch(18% 0.02 70); color:#FBF8F3; padding:10px 18px; border-radius:0.375rem;">Sign up free</a>
+      </div>
+    </div>
+  </header>
+
+  <section style="max-width:1240px; margin:0 auto; padding:clamp(20px,3vw,36px) 24px 0;">
+    <div style="position:relative; border-radius:1rem; overflow:hidden; min-height:clamp(420px,52vw,600px); display:flex; align-items:flex-end; background:oklch(20% 0.02 70);">
+      <div style="position:absolute; inset:0;">
+        <image-slot id="ge-hero-banner" shape="rect" fit="cover" placeholder="Drop the hero banner image — a Tbilisi street with a Lalamove courier"></image-slot>
+      </div>
+      <div style="position:absolute; inset:0; background:linear-gradient(78deg, rgba(16,17,15,0.92) 0%, rgba(16,17,15,0.78) 34%, rgba(16,17,15,0.28) 52%, rgba(16,17,15,0) 64%); pointer-events:none;"></div>
+      <div style="position:relative; padding:clamp(32px,5vw,64px); max-width:640px; color:#FBF8F3; pointer-events:none;">
+        <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color:oklch(78% 0.16 52); margin-bottom:20px;">On-demand delivery · Tbilisi, Batumi, Kutaisi, Rustavi</div>
+        <h1 style="font-size:clamp(40px,5.6vw,72px); line-height:0.98; letter-spacing:-0.04em; font-weight:600; margin:0 0 22px; text-wrap:balance;">Anything across Georgia, today.</h1>
+        <p style="font-size:clamp(17px,1.6vw,20px); line-height:1.5; color:rgba(251,248,243,0.8); max-width:44ch; margin:0 0 32px; text-wrap:pretty;">Book a courier in twelve seconds. Motorbike to ten-tonne truck, matched in under a minute, tracked door to door.</p>
+        <div style="display:flex; flex-wrap:wrap; gap:12px; pointer-events:auto;">
+          <a href="#signup" style="font-size:15px; font-weight:600; background:oklch(66% 0.2 45); color:#fff; padding:15px 28px; border-radius:0.375rem;">Send a delivery</a>
+          <a href="#partners" style="font-size:15px; font-weight:600; color:#FBF8F3; border:1px solid rgba(251,248,243,0.35); padding:15px 28px; border-radius:0.375rem;">For business</a>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex; flex-wrap:wrap; gap:1px; background:oklch(89% 0.008 80); border:1px solid oklch(89% 0.008 80); margin-top:clamp(20px,2.5vw,28px);">
+      <sc-for list="{{ stats }}" as="s" hint-placeholder-count="4">
+        <div style="flex:1 1 150px; background:#FBF8F3; padding:20px 22px;">
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:24px; font-weight:600; letter-spacing:-0.02em;">{{ s.v }}</div>
+          <div style="font-size:13px; color:oklch(50% 0.02 70); margin-top:5px;">{{ s.k }}</div>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <section id="partners" style="max-width:1240px; margin:0 auto; padding:clamp(56px,7vw,96px) 24px;">
+    <div style="display:flex; align-items:baseline; gap:18px; margin-bottom:14px;">
+      <span style="font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color:oklch(66% 0.2 45);">01</span>
+      <h2 style="font-size:clamp(26px,3.4vw,40px); line-height:1.06; letter-spacing:-0.035em; font-weight:600; margin:0;">Trusted by Georgian business</h2>
+      <span style="flex:1; height:1px; background:oklch(89% 0.008 80);"></span>
+    </div>
+    <p style="font-size:16px; color:oklch(46% 0.02 70); margin:0 0 36px; max-width:56ch;">Retailers, pharmacies, restaurants and construction suppliers dispatch with us every day.</p>
+    <div style="display:flex; flex-wrap:wrap; gap:1px; background:oklch(89% 0.008 80); border:1px solid oklch(89% 0.008 80);">
+      <sc-for list="{{ partners }}" as="p" hint-placeholder-count="8">
+        <div style="flex:1 1 180px; min-width:0; background:#fff; padding:26px 22px; display:flex; align-items:center; justify-content:center; min-height:104px;">
+          <image-slot id="{{ p.id }}" shape="rect" fit="contain" radius="0" style="width:100%; height:52px;" placeholder="{{ p.label }}"></image-slot>
+        </div>
+      </sc-for>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap:16px; align-items:center; justify-content:space-between; margin-top:18px;">
+      <p style="font-size:14px; color:oklch(50% 0.02 70); margin:0;">Want your logo here? Business accounts get volume rates and monthly invoicing.</p>
+      <a href="#business" style="font-size:14px; font-weight:600; background:oklch(18% 0.02 70); color:#fff; padding:12px 20px; border-radius:0.375rem;">Become a partner</a>
+    </div>
+  </section>
+
+  <div style="border-top:1px solid oklch(89% 0.008 80); border-bottom:1px solid oklch(89% 0.008 80); overflow:hidden; background:#F7F2EA;">
+    <div style="display:flex; width:max-content; animation:ledger-ticker 45s linear infinite;">
+      <div style="display:flex; gap:44px; padding:12px 22px; font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color:oklch(52% 0.02 70); white-space:nowrap;">{{ ticker }}</div>
+      <div style="display:flex; gap:44px; padding:12px 22px; font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color:oklch(52% 0.02 70); white-space:nowrap;">{{ ticker }}</div>
+    </div>
+  </div>
+
+  <section style="max-width:1240px; margin:0 auto; padding:clamp(36px,4vw,56px) 24px 0;">
+    <div style="background:oklch(18% 0.02 70); color:#FBF8F3; padding:clamp(28px,3.5vw,44px); display:flex; flex-wrap:wrap; gap:32px; align-items:center;">
+      <div style="flex:1 1 340px; min-width:0;">
+        <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color:oklch(76% 0.15 50); margin-bottom:14px;">Launch offer</div>
+        <h2 style="font-size:clamp(26px,3.2vw,38px); line-height:1.1; letter-spacing:-0.03em; font-weight:600; margin:0 0 10px;">50% off your first three deliveries</h2>
+        <p style="font-size:16px; line-height:1.55; color:oklch(78% 0.012 70); margin:0; max-width:52ch;">New accounts only. Applies to motorbike and car bookings inside Tbilisi up to 20 km. Business accounts get 60 days of invoiced billing on top.</p>
+      </div>
+      <div style="flex:1 1 240px; display:flex; flex-direction:column; gap:12px;">
+        <div style="border:1px dashed oklch(48% 0.03 60); padding:14px 18px; text-align:center;">
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:oklch(70% 0.02 70); margin-bottom:6px;">Promo code</div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:24px; font-weight:600; letter-spacing:0.06em; color:oklch(80% 0.16 55);">MOVE50</div>
+        </div>
+        <a href="#signup" style="font-size:15px; font-weight:600; background:oklch(66% 0.2 45); color:#fff; padding:14px 22px; border-radius:0.375rem; text-align:center;">Claim the offer</a>
+      </div>
+    </div>
+  </section>
+
+  <section id="how" style="max-width:1240px; margin:0 auto; padding:clamp(64px,8vw,110px) 24px;">
+    <div style="display:flex; align-items:baseline; gap:18px; margin-bottom:44px;">
+      <span style="font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color:oklch(66% 0.2 45);">02</span>
+      <h2 style="font-size:clamp(28px,3.8vw,46px); line-height:1.05; letter-spacing:-0.035em; font-weight:600; margin:0;">How it works</h2>
+      <span style="flex:1; height:1px; background:oklch(89% 0.008 80);"></span>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap:1px; background:oklch(89% 0.008 80); border:1px solid oklch(89% 0.008 80);">
+      <sc-for list="{{ steps }}" as="s" hint-placeholder-count="4">
+        <div style="flex:1 1 210px; min-width:0; background:#FBF8F3; padding:28px 24px 32px;">
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.14em; color:oklch(66% 0.2 45); margin-bottom:20px;">{{ s.n }}</div>
+          <h3 style="font-size:19px; font-weight:600; letter-spacing:-0.02em; margin:0 0 8px;">{{ s.title }}</h3>
+          <p style="font-size:14px; line-height:1.6; color:oklch(46% 0.02 70); margin:0; text-wrap:pretty;">{{ s.body }}</p>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <section id="pricing" style="background:#F7F2EA; border-top:1px solid oklch(89% 0.008 80); border-bottom:1px solid oklch(89% 0.008 80);">
+    <div style="max-width:1240px; margin:0 auto; padding:clamp(64px,8vw,110px) 24px;">
+      <div style="display:flex; align-items:baseline; gap:18px; margin-bottom:16px;">
+        <span style="font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color:oklch(66% 0.2 45);">03</span>
+        <h2 style="font-size:clamp(28px,3.8vw,46px); line-height:1.05; letter-spacing:-0.035em; font-weight:600; margin:0;">Pricing</h2>
+        <span style="flex:1; height:1px; background:oklch(85% 0.01 80);"></span>
+      </div>
+      <p style="font-size:16px; color:oklch(46% 0.02 70); margin:0 0 40px; max-width:58ch;">Base fare plus distance, in lari. No surge on scheduled bookings, and nothing charged if no courier accepts.</p>
+      <div style="border:1px solid oklch(85% 0.01 80); background:#fff; overflow-x:auto;">
+        <div style="min-width:620px; display:grid; grid-template-columns:1.4fr 1fr 1fr 1.7fr; padding:13px 22px; border-bottom:1px solid oklch(89% 0.008 80); font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:oklch(50% 0.02 70);">
+          <span>Vehicle</span><span>Base fare</span><span>Per km</span><span>Best for</span>
+        </div>
+        <sc-for list="{{ tiers }}" as="t" hint-placeholder-count="4">
+          <div style="min-width:620px; display:grid; grid-template-columns:1.4fr 1fr 1fr 1.7fr; padding:18px 22px; border-bottom:1px solid oklch(93% 0.005 80); align-items:center;">
+            <span style="font-size:16px; font-weight:600; letter-spacing:-0.01em;">{{ t.name }}</span>
+            <span style="font-family:'IBM Plex Mono',monospace; font-size:16px;">{{ t.base }}</span>
+            <span style="font-family:'IBM Plex Mono',monospace; font-size:16px; color:oklch(46% 0.02 70);">{{ t.km }}</span>
+            <span style="font-size:14px; color:oklch(46% 0.02 70);">{{ t.use }}</span>
+          </div>
+        </sc-for>
+        <div style="display:flex; flex-wrap:wrap; gap:16px; align-items:center; justify-content:space-between; padding:22px; background:#FBF8F3;">
+          <div>
+            <div style="font-size:16px; font-weight:600; margin-bottom:4px;">Business account</div>
+            <div style="font-size:14px; color:oklch(46% 0.02 70);">Volume rates, monthly invoicing, multi-user dashboard, API access.</div>
+          </div>
+          <a href="#business" style="font-size:14px; font-weight:600; background:oklch(18% 0.02 70); color:#fff; padding:12px 20px; border-radius:0.375rem;">Request rates</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="max-width:1240px; margin:0 auto; padding:clamp(64px,8vw,110px) 24px;">
+    <div style="display:flex; align-items:baseline; gap:18px; margin-bottom:44px;">
+      <span style="font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color:oklch(66% 0.2 45);">04</span>
+      <h2 style="font-size:clamp(28px,3.8vw,46px); line-height:1.05; letter-spacing:-0.035em; font-weight:600; margin:0;">From the people moving things</h2>
+      <span style="flex:1; height:1px; background:oklch(89% 0.008 80);"></span>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap:24px;">
+      <sc-for list="{{ quotes }}" as="q" hint-placeholder-count="3">
+        <figure style="flex:1 1 255px; min-width:0; margin:0; border-top:2px solid oklch(18% 0.02 70); padding-top:22px;">
+          <blockquote style="margin:0 0 20px; font-size:19px; line-height:1.45; letter-spacing:-0.015em; text-wrap:pretty;">{{ q.text }}</blockquote>
+          <figcaption style="font-size:13px; color:oklch(46% 0.02 70);">
+            <span style="display:block; font-weight:600; color:oklch(20% 0.02 70);">{{ q.who }}</span>
+            <span>{{ q.role }}</span>
+          </figcaption>
+        </figure>
+      </sc-for>
+    </div>
+  </section>
+
+  <section style="border-top:1px solid oklch(89% 0.008 80);">
+    <div style="max-width:1240px; margin:0 auto; padding:clamp(64px,8vw,110px) 24px; display:flex; flex-wrap:wrap; gap:48px; align-items:flex-start;">
+      <div style="flex:1 1 300px;">
+        <div style="display:flex; align-items:baseline; gap:18px;">
+          <span style="font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color:oklch(66% 0.2 45);">05</span>
+          <h2 style="font-size:clamp(28px,3.8vw,46px); line-height:1.05; letter-spacing:-0.035em; font-weight:600; margin:0;">Questions</h2>
+        </div>
+        <p style="font-size:15px; line-height:1.6; color:oklch(46% 0.02 70); margin:18px 0 0; max-width:34ch;">Still stuck? <a href="#support">Support is live 24/7</a> in Georgian, English and Russian.</p>
+      </div>
+      <div style="flex:1 1 420px; min-width:0; border-top:1px solid oklch(89% 0.008 80);">
+        <sc-for list="{{ faqs }}" as="f" hint-placeholder-count="5">
+          <div style="border-bottom:1px solid oklch(89% 0.008 80);">
+            <button onClick="{{ f.toggle }}" style="width:100%; display:flex; align-items:center; justify-content:space-between; gap:20px; padding:20px 0; background:none; border:0; cursor:pointer; text-align:left; font-family:inherit; color:inherit;">
+              <span style="font-size:16px; font-weight:600; letter-spacing:-0.015em;">{{ f.q }}</span>
+              <span style="font-family:'IBM Plex Mono',monospace; font-size:18px; color:oklch(66% 0.2 45); flex-shrink:0;">{{ f.sign }}</span>
+            </button>
+            <sc-if value="{{ f.open }}" hint-placeholder-val="{{ false }}">
+              <p style="font-size:15px; line-height:1.65; color:oklch(44% 0.02 70); margin:0; padding:0 40px 22px 0; text-wrap:pretty;">{{ f.a }}</p>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+
+  <section style="background:oklch(18% 0.02 70); color:#FBF8F3;">
+    <div style="max-width:1240px; margin:0 auto; padding:clamp(56px,7vw,90px) 24px; display:flex; flex-wrap:wrap; gap:36px; align-items:center; justify-content:space-between;">
+      <h2 style="flex:1 1 380px; font-size:clamp(28px,4vw,50px); line-height:1.03; letter-spacing:-0.035em; font-weight:600; margin:0; text-wrap:balance;">Your first delivery is twelve seconds away.</h2>
+      <div style="display:flex; flex-wrap:wrap; gap:12px;">
+        <a href="#signup" style="font-size:15px; font-weight:600; background:oklch(66% 0.2 45); color:#fff; padding:15px 28px; border-radius:0.375rem;">Sign up free</a>
+        <a href="#drive" style="font-size:15px; font-weight:600; color:#FBF8F3; border:1px solid oklch(40% 0.02 70); padding:15px 28px; border-radius:0.375rem;">Drive with us</a>
+      </div>
+    </div>
+  </section>
+
+  <footer style="background:oklch(14% 0.018 70); color:oklch(72% 0.012 70);">
+    <div style="max-width:1240px; margin:0 auto; padding:56px 24px 32px; display:flex; flex-wrap:wrap; gap:36px;">
+      <sc-for list="{{ footerCols }}" as="c" hint-placeholder-count="4">
+        <div style="flex:1 1 160px;">
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.14em; text-transform:uppercase; color:oklch(55% 0.015 70); margin-bottom:16px;">{{ c.title }}</div>
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            <sc-for list="{{ c.links }}" as="l" hint-placeholder-count="4">
+              <a href="#" style="font-size:14px; color:oklch(75% 0.012 70);">{{ l }}</a>
+            </sc-for>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+    <div style="max-width:1240px; margin:0 auto; padding:20px 24px 40px; border-top:1px solid oklch(24% 0.015 70); display:flex; flex-wrap:wrap; gap:16px; justify-content:space-between; font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.06em; color:oklch(52% 0.015 70);">
+      <span>© 2026 Lalamove Georgia</span>
+      <span>Privacy · Terms · Cookies</span>
+    </div>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280}}">
+class Component extends DCLogic {
+  state = { openFaq: 0 };
+
+  FAQ = [
+    { q: "How fast will a courier accept?", a: "Median match time in Tbilisi is 54 seconds. If nobody accepts within five minutes the booking is cancelled automatically and you are not charged." },
+    { q: "Which cities do you cover?", a: "Tbilisi, Batumi, Kutaisi and Rustavi for same-hour delivery, with intercity routes between all four. Gori, Telavi and Zugdidi are served on scheduled bookings." },
+    { q: "What can I not send?", a: "Live animals, hazardous goods, cash and restricted items. The full list is in the terms. Everything else, from a khachapuri order to a pallet of tiles, is fair game." },
+    { q: "Is the price I see the price I pay?", a: "Yes for the route you booked. Waiting time beyond 15 minutes, stops added mid-trip and parking fees are added afterwards and itemised on the receipt." },
+    { q: "How do I get a business account?", a: "Request rates and a specialist replies within one working day. Business accounts get volume pricing, monthly invoicing in lari, seat-based access and a REST API." }
+  ];
+
+  renderVals() {
+    return {
+      stats: [
+        { v: "54s", k: "Median match time in Tbilisi" },
+        { v: "4", k: "Cities covered same-hour" },
+        { v: "6,400", k: "Courier partners in Georgia" },
+        { v: "24/7", k: "Dispatch, every day" }
+      ],
+      partners: [
+        { id: "ge-partner-1", label: "Partner logo 1" },
+        { id: "ge-partner-2", label: "Partner logo 2" },
+        { id: "ge-partner-3", label: "Partner logo 3" },
+        { id: "ge-partner-4", label: "Partner logo 4" },
+        { id: "ge-partner-5", label: "Partner logo 5" },
+        { id: "ge-partner-6", label: "Partner logo 6" },
+        { id: "ge-partner-7", label: "Partner logo 7" },
+        { id: "ge-partner-8", label: "Partner logo 8" }
+      ],
+      ticker: "Tbilisi · Batumi · Kutaisi · Rustavi · Gori · Zugdidi · Telavi · Poti · Zestaponi · Marneuli · Akhaltsikhe ·",
+      steps: [
+        { n: "01", title: "Enter two addresses", body: "Pickup and drop-off anywhere in the city. Add up to twenty stops and reorder them by dragging." },
+        { n: "02", title: "Pick a vehicle", body: "Motorbike for documents, truck for a pallet. You see the fare before you confirm." },
+        { n: "03", title: "Get matched", body: "The nearest available courier accepts, usually inside a minute. No calling around." },
+        { n: "04", title: "Track to the door", body: "Live map, courier phone number, proof-of-delivery photo when it lands." }
+      ],
+      tiers: [
+        { name: "Motorbike", base: "₾5.00", km: "+0.70", use: "Documents, food, small parcels" },
+        { name: "Car", base: "₾8.00", km: "+1.00", use: "Boxes, groceries, luggage" },
+        { name: "Van", base: "₾15.00", km: "+1.60", use: "Furniture, event kit, bulk orders" },
+        { name: "Truck", base: "₾40.00", km: "+3.00", use: "Pallets, site materials, relocations" }
+      ],
+      quotes: [
+        { text: "We moved the whole Saturday market run onto it. Four vans across Tbilisi, one dashboard, one invoice at month end.", who: "Nino Beridze", role: "Operations lead, Mtsvane Bazari" },
+        { text: "I clear eleven jobs before lunch. The app tells me where the next one is before I finish the last.", who: "Giorgi Kapanadze", role: "Courier partner, three years" },
+        { text: "Signed up on a Tuesday, sent a forgotten passport from Vake to Didube in nineteen minutes. That was the whole onboarding.", who: "Tamar Chkheidze", role: "Individual customer" }
+      ],
+      faqs: this.FAQ.map((f, i) => ({
+        q: f.q, a: f.a,
+        open: this.state.openFaq === i,
+        sign: this.state.openFaq === i ? "–" : "+",
+        toggle: () => this.setState(s => ({ openFaq: s.openFaq === i ? -1 : i }))
+      })),
+      footerCols: [
+        { title: "Product", links: ["Instant delivery", "Scheduled", "Multi-stop", "Intercity", "API"] },
+        { title: "Business", links: ["Enterprise", "Rate card", "Case studies", "Integrations"] },
+        { title: "Couriers", links: ["Become a courier", "Requirements", "Earnings", "Support"] },
+        { title: "Company", links: ["About", "Newsroom", "Careers", "Contact"] }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

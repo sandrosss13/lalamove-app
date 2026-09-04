@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="fonts/fonts.css">
+<style>
+  body { margin: 0; background: oklch(0.985 0 0); }
+  a { color: oklch(0.205 0 0); text-decoration: underline; text-underline-offset: 2px; }
+  a:hover { color: oklch(0.145 0 0); }
+  select { font: inherit; }
+  @keyframes pulseDot { 0%,100% { opacity: 1 } 50% { opacity: 0.25 } }
+</style>
+</helmet>
+<div data-admin-surface style="min-height: 100vh; background: oklch(0.985 0 0); color: oklch(0.145 0 0); font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 14px; -webkit-font-smoothing: antialiased;">
+
+  <header style="display: flex; align-items: center; gap: 20px; padding: 14px 24px; background: #fff; border-bottom: 1px solid oklch(0.922 0 0); position: sticky; top: 0; z-index: 20;">
+    <div style="display: flex; align-items: baseline; gap: 10px;">
+      <span style="font-size: 16px; font-weight: 600; letter-spacing: -0.01em;">Load Board</span>
+      <span style="font-size: 12px; color: oklch(0.556 0 0);">Bookings open to drivers</span>
+    </div>
+    <div style="flex: 1;"></div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 5px 10px 5px 8px; border: 1px solid oklch(0.922 0 0); border-radius: 0.5rem;">
+      <span style="display: inline-block; width: 6px; height: 6px; border-radius: 999px; background: oklch(59.6% 0.145 163.225);"></span>
+      <span style="font-size: 12px; color: oklch(0.556 0 0);">Vehicle</span>
+      <span style="font-size: 12px; font-weight: 500;">{{ vehicleLabel }}</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <div style="text-align: right; line-height: 1.35;">
+        <div style="font-size: 13px; font-weight: 500;">{{ driverName }}</div>
+        <div style="font-size: 11px; color: oklch(0.556 0 0);">{{ driverType }}</div>
+      </div>
+      <div style="width: 32px; height: 32px; border-radius: 999px; background: oklch(0.97 0 0); border: 1px solid oklch(0.922 0 0); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: oklch(0.205 0 0);">{{ driverInitials }}</div>
+    </div>
+    <div style="display: flex; gap: 2px; padding: 2px; background: oklch(0.97 0 0); border-radius: 0.5rem;">
+      <button onClick="{{ setDesktop }}" style="{{ desktopBtnStyle }}">Desktop</button>
+      <button onClick="{{ setMobile }}" style="{{ mobileBtnStyle }}">Mobile</button>
+    </div>
+  </header>
+
+  <sc-if value="{{ isDesktop }}" hint-placeholder-val="{{ true }}">
+    <div style="padding: 20px 24px 32px;">
+
+      <div style="display: flex; align-items: center; gap: 24px; border-bottom: 1px solid oklch(0.922 0 0); margin-bottom: 14px;">
+        <button onClick="{{ tabAvailable }}" style="{{ tabAvailStyle }}">Available loads<span style="margin-left: 8px; font-variant-numeric: tabular-nums; color: oklch(0.556 0 0);">{{ availCount }}</span></button>
+        <button onClick="{{ tabMine }}" style="{{ tabMineStyle }}">My loads<span style="margin-left: 8px; font-variant-numeric: tabular-nums; color: oklch(0.556 0 0);">{{ mineCount }}</span></button>
+        <div style="flex: 1;"></div>
+        <button onClick="{{ toggleFilters }}" style="align-self: center; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: #fff; border: 1px solid oklch(0.922 0 0); border-radius: var(--radius-md, 0.375rem); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;" style-hover="background: oklch(0.97 0 0);">
+          Filters
+          <span style="padding: 1px 6px; border-radius: 999px; background: oklch(0.205 0 0); color: oklch(0.985 0 0); font-size: 11px; font-variant-numeric: tabular-nums;">{{ activeFilterCount }}</span>
+        </button>
+      </div>
+
+      <sc-if value="{{ filtersOpen }}" hint-placeholder-val="{{ true }}">
+        <div style="background: #fff; border: 1px solid oklch(0.922 0 0); border-radius: 0.5rem; padding: 14px 16px; margin-bottom: 14px;">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; align-items: end;">
+            <label style="display: flex; flex-direction: column; gap: 6px;">
+              <span style="font-size: 12px; font-weight: 500; color: oklch(0.145 0 0);">Pick-up city</span>
+              <select value="{{ fPickup }}" onChange="{{ onPickup }}" style="height: 34px; padding: 0 10px; border: 1px solid oklch(0.922 0 0); border-radius: var(--radius-md, 0.375rem); background: #fff; font-size: 13px; color: oklch(0.145 0 0);">
+                <sc-for list="{{ pickupCities }}" as="c" hint-placeholder-count="4"><option value="{{ c }}">{{ c }}</option></sc-for>
+              </select>
+            </label>
+            <label style="display: flex; flex-direction: column; gap: 6px;">
+              <span style="font-size: 12px; font-weight: 500; color: oklch(0.145 0 0);">Drop-off city</span>
+              <select value="{{ fDrop }}" onChange="{{ onDrop }}" style="height: 34px; padding: 0 10px; border: 1px solid oklch(0.922 0 0); border-radius: var(--radius-md, 0.375rem); background: #fff; font-size: 13px; color: oklch(0.145 0 0);">
+                <sc-for list="{{ dropCities }}" as="c" hint-placeholder-count="4"><option value="{{ c }}">{{ c }}</option></sc-for>
+              </select>
+            </label>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <span style="font-size: 12px; font-weight: 500;">Cargo weight <span style="color: oklch(0.556 0 0); font-weight: 400;">up to {{ weightMaxLabel }}</span></span>
+              <input type="range" min="100" max="1200" step="50" value="{{ fWeight }}" onChange="{{ onWeight }}" onInput="{{ onWeight }}" style="width: 100%; accent-color: oklch(0.205 0 0);">
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <span style="font-size: 12px; font-weight: 500;">Special handling</span>
+              <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                <sc-for list="{{ handlingChips }}" as="chip" hint-placeholder-count="3">
+                  <button onClick="{{ chip.onClick }}" style="{{ chip.style }}">{{ chip.label }}</button>
+                </sc-for>
+              </div>
+            </div>
+            <button onClick="{{ resetFilters }}" style="height: 34px; padding: 0 14px; background: #fff; border: 1px solid oklch(0.922 0 0); border-radius: var(--radius-md, 0.375rem); font: inherit; font-size: 13px; cursor: pointer; color: oklch(0.556 0 0);" style-hover="background: oklch(0.97 0 0); color: oklch(0.145 0 0);">Reset</button>
+          </div>
+        </div>
+      </sc-if>
+
+      <div style="display: block;">
+
+        <div style="min-width: 0; background: #fff; border: 1px solid oklch(0.922 0 0); border-radius: 0.5rem;">
+          <div style="overflow-x: auto; border-radius: 0.5rem 0.5rem 0 0;">
+          <table style="width: 100%; min-width: 760px; border-collapse: collapse; font-size: 13px;">
+            <thead>
+              <tr style="background: oklch(0.97 0 0);">
+                <sc-for list="{{ cols }}" as="col" hint-placeholder-count="7">
+                  <th onClick="{{ col.onClick }}" style="{{ col.style }}">{{ col.label }}{{ col.arrow }}</th>
+                </sc-for>
+                <th style="width: 132px; border-bottom: 1px solid oklch(0.922 0 0); background: oklch(0.97 0 0);"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <sc-for list="{{ rows }}" as="r" hint-placeholder-count="8">
+                <tr onClick="{{ r.onSelect }}" style="{{ r.rowStyle }}">
+                  <td style="padding: 12px 14px; border-bottom: 1px solid oklch(0.922 0 0); vertical-align: top;">
+                    <div style="display: flex; align-items: baseline; gap: 6px; font-weight: 500;">
+                      <span>{{ r.pickupCity }}</span>
+                      <span style="color: oklch(0.556 0 0);">→</span>
+                      <span>{{ r.dropCity }}</span>
+                      <span style="font-size: 11px; font-weight: 400; color: oklch(0.556 0 0); font-variant-numeric: tabular-nums;">{{ r.distanceText }}</span>
+                    </div>
+                    <div style="font-size: 11px; color: oklch(0.556 0 0); margin-top: 3px; max-width: 300px;">{{ r.routeSub }}</div>
+                    <div style="display: flex; gap: 8px; align-items: baseline; margin-top: 4px;">
+                      <span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: oklch(0.556 0 0);">{{ r.id }}</span>
+                      <span style="font-size: 11px; color: oklch(0.556 0 0);">{{ r.client }}</span>
+                    </div>
+                  </td>
+                  <td style="padding: 12px 14px; border-bottom: 1px solid oklch(0.922 0 0); vertical-align: top;">
+                    <div>{{ r.windowText }}</div>
+                    <div style="font-size: 11px; color: oklch(0.556 0 0); margin-top: 3px;">Deadline {{ r.deadline }}</div>
+                  </td>
+                  <td style="padding: 12px 14px; border-bottom: 1px solid oklch(0.922 0 0); vertical-align: top;">
+                    <div>{{ r.cargoType }}</div>
+                    <div style="font-size: 11px; color: oklch(0.556 0 0); margin-top: 3px;">{{ r.cargoSub }}</div>
+                  </td>
+                  <td style="padding: 12px 14px; border-bottom: 1px solid oklch(0.922 0 0); vertical-align: top; text-align: center; font-variant-numeric: tabular-nums;">
+                    <div style="{{ r.helpersStyle }}">{{ r.helpersCount }}</div>
+                  </td>
+                  <td style="padding: 12px 14px; border-bottom: 1px solid oklch(0.922 0 0); vertical-align: top; text-align: right; font-variant-numeric: tabular-nums;">
+                    <div>{{ r.weightText }}</div>
+                    <div style="font-size: 11px; color: oklch(0.556 0 0); margin-top: 3px;">{{ r.dims }}</div>
+                  </td>
+                  <td style="padding: 12px 14px; border-bottom: 1px solid oklch(0.922 0 0); vertical-align: top; text-align: right;">
+                    <div style="font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -0.01em;">{{ r.priceText }}</div>
+                    <div style="font-size: 11px; color: oklch(0.556 0 0); margin-top: 3px; font-variant-numeric: tabular-nums;">{{ r.perKm }}</div>
+                  </td>
+                  <td style="padding: 12px 14px; border-bottom: 1px solid oklch(0.922 0 0); vertical-align: top; text-align: right; width: 132px;">
+                    <sc-if value="{{ r.isAvailable }}" hint-placeholder-val="{{ true }}">
+                      <div style="display: flex; gap: 6px; justify-content: flex-end;">
+                        <sc-if value="{{ r.isRejected }}">
+                          <button onClick="{{ r.onRestore }}" style="padding: 6px 12px; background: #fff; color: oklch(0.145 0 0); border: 1px solid oklch(0.922 0 0); border-radius: var(--radius-md, 0.375rem); font: inherit; font-size: 13px; cursor: pointer;" style-hover="background: oklch(0.97 0 0);">Restore</button>
+                        </sc-if>
+                        <sc-if value="{{ r.notRejected }}" hint-placeholder-val="{{ true }}">
+                          <div style="display: flex; gap: 6px;">
+                            <button onClick="{{ r.onReject }}" style="padding: 6px 11px; background: #fff; color: oklch(0.556 0 0); border: 1px solid oklch(0.922 0 0); border-radius: var(--radius-md, 0.375rem); font: inherit; font-size: 13px; cursor: pointer;" style-hover="background: oklch(97.1% 0.013 17.38); border-color: oklch(88.5% 0.062 18.334); color: oklch(50.5% 0.213 27.518);">Reject</button>
+                            <button onClick="{{ r.onAccept }}" style="padding: 6px 14px; background: oklch(0.205 0 0); color: oklch(0.985 0 0); border: none; border-radius: var(--radius-md, 0.375rem); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;" style-hover="background: oklch(0.145 0 0);">Accept</button>
+                          </div>
+                        </sc-if>
+                      </div>
+                    </sc-if>
+                    <sc-if value="{{ r.isClaimed }}">
+                      <span style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 9px; border-radius: 999px; background: oklch(0.97 0 0); color: oklch(0.556 0 0); font-size: 11px; font-weight: 500;">Claimed</span>
+                    </sc-if>
+                    <sc-if value="{{ r.isMine }}">
+                      <span style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 9px; border-radius: 999px; background: oklch(97.9% 0.021 166.113); color: oklch(50.8% 0.118 165.612); font-size: 11px; font-weight: 500;">Yours</span>
+                    </sc-if>
+                  </td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+          </div>
+
+          <sc-if value="{{ isEmpty }}">
+            <div style="padding: 48px 24px; text-align: center;">
+              <div style="font-size: 14px; font-weight: 500;">No loads match these filters</div>
+              <div style="font-size: 13px; color: oklch(0.556 0 0); margin-top: 6px;">Widen the weight range or clear a city to see more.</div>
+            </div>
+          </sc-if>
+
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 14px; background: oklch(0.97 0 0); border-top: 1px solid oklch(0.922 0 0); font-size: 12px; color: oklch(0.556 0 0);">
+            <span>{{ resultLine }}</span>
+            <sc-if value="{{ hasRejected }}">
+              <button onClick="{{ toggleRejected }}" style="background: none; border: none; padding: 0; font: inherit; font-size: 12px; color: oklch(0.145 0 0); text-decoration: underline; text-underline-offset: 2px; cursor: pointer;">{{ rejectedToggleLabel }}</button>
+            </sc-if>
+            <sc-if value="{{ showCapacityNote }}" hint-placeholder-val="{{ true }}">
+              <span>{{ capacityNote }}</span>
+            </sc-if>
+          </div>
+        </div>
+
+        <aside style="position: fixed; top: 61px; right: 0; bottom: 0; width: 400px; max-width: 92vw; z-index: 30; background: #fff; border-left: 1px solid oklch(0.922 0 0); overflow-y: auto; box-shadow: -8px 0 24px rgba(0,0,0,0.08); display: {{ drawerDisplay }};">
+          <sc-if value="{{ hasSelection }}" hint-placeholder-val="{{ true }}">
+            <div>
+              <div style="padding: 16px; border-bottom: 1px solid oklch(0.922 0 0);">
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+                  <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 500;">{{ sel.id }}</span>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="{{ sel.statusPillStyle }}">{{ sel.statusLabel }}</span>
+                    <button onClick="{{ clearSelection }}" style="width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; background: #fff; border: 1px solid oklch(0.922 0 0); border-radius: var(--radius-md, 0.375rem); font: inherit; font-size: 13px; line-height: 1; color: oklch(0.556 0 0); cursor: pointer;" style-hover="background: oklch(0.97 0 0); color: oklch(0.145 0 0);">✕</button>
+                  </div>
+                </div>
+                <div style="margin-top: 12px; display: flex; align-items: baseline; gap: 10px;">
+                  <span style="font-size: 26px; font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums;">{{ sel.priceText }}</span>
+                  <span style="font-size: 12px; color: oklch(0.556 0 0);">{{ sel.priceSub }}</span>
+                </div>
+              </div>
+
+              <div style="padding: 16px; border-bottom: 1px solid oklch(0.922 0 0); display: grid; gap: 14px;">
+                <div style="display: flex; gap: 12px;">
+                  <span style="margin-top: 5px; width: 8px; height: 8px; border-radius: 999px; background: oklch(0.205 0 0); flex: none;"></span>
+                  <div>
+                    <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: oklch(0.556 0 0);">Pick-up</div>
+                    <div style="font-weight: 500; margin-top: 2px;">{{ sel.pickupCity }}</div>
+                    <div style="color: oklch(0.556 0 0); font-size: 12px; margin-top: 2px;">{{ sel.pickupAddr }}</div>
+                    <div style="font-size: 12px; margin-top: 4px;">{{ sel.windowText }}</div>
+                  </div>
+                </div>
+                <div style="display: flex; gap: 12px;">
+                  <span style="margin-top: 5px; width: 8px; height: 8px; border-radius: 999px; border: 2px solid oklch(0.205 0 0); flex: none; box-sizing: border-box;"></span>
+                  <div>
+                    <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: oklch(0.556 0 0);">Drop-off</div>
+                    <div style="font-weight: 500; margin-top: 2px;">{{ sel.dropCity }}</div>
+                    <div style="color: oklch(0.556 0 0); font-size: 12px; margin-top: 2px;">{{ sel.dropAddr }}</div>
+                    <div style="font-size: 12px; margin-top: 4px;">Deliver by {{ sel.deadline }}</div>
+                  </div>
+                </div>
+                <div style="display: flex; gap: 20px; padding-left: 20px; font-size: 12px; color: oklch(0.556 0 0); font-variant-numeric: tabular-nums;">
+                  <span>{{ sel.distanceText }}</span>
+                  <span>{{ sel.stopsText }}</span>
+                </div>
+              </div>
+
+              <div style="padding: 16px; border-bottom: 1px solid oklch(0.922 0 0);">
+                <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: oklch(0.556 0 0);">Cargo</div>
+                <div style="margin-top: 10px; display: grid; grid-template-columns: 96px 1fr; row-gap: 8px; column-gap: 12px; font-size: 13px;">
+                  <sc-for list="{{ sel.cargoRows }}" as="c" hint-placeholder-count="6">
+                    <div style="color: oklch(0.556 0 0);">{{ c.k }}</div>
+                    <div style="font-variant-numeric: tabular-nums;">{{ c.v }}</div>
+                  </sc-for>
+                </div>
+                <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px;">
+                  <sc-for list="{{ sel.tags }}" as="t" hint-placeholder-count="2">
+                    <span style="{{ t.style }}">{{ t.label }}</span>
+                  </sc-for>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px;">
+                  <sc-for list="{{ sel.photos }}" as="p" hint-placeholder-count="3">
+                    <div style="aspect-ratio: 4 / 3; border: 1px dashed oklch(0.922 0 0); border-radius: var(--radius-md, 0.375rem); background: oklch(0.97 0 0); display: flex; align-items: center; justify-content: center; font-size: 10px; color: oklch(0.556 0 0);">{{ p.label }}</div>
+                  </sc-for>
+                </div>
+              </div>
+
+              <div style="padding: 16px; display: flex; flex-direction: column; gap: 8px;">
+                <sc-if value="{{ sel.isAvailable }}" hint-placeholder-val="{{ true }}">
+                  <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <button onClick="{{ sel.onAccept }}" style="height: 40px; background: oklch(0.205 0 0); color: oklch(0.985 0 0); border: none; border-radius: var(--radius-md, 0.375rem); font: inherit; font-size: 14px; font-weight: 500; cursor: pointer;" style-hover="background: oklch(0.145 0 0);">Accept this load</button>
+                    <sc-if value="{{ sel.notRejected }}" hint-placeholder-val="{{ true }}">
+                      <button onClick="{{ sel.onReject }}" style="height: 40px; background: #fff; color: oklch(0.556 0 0); border: 1px solid oklch(0.922 0 0); border-radius: var(--radius-md, 0.375rem); font: inherit; font-size: 14px; cursor: pointer;" style-hover="background: oklch(97.1% 0.013 17.38); border-color: oklch(88.5% 0.062 18.334); color: oklch(50.5% 0.213 27.518);">Reject this load</button>
+                    </sc-if>
+                    <sc-if value="{{ sel.isRejected }}">
+                      <button onClick="{{ sel.onRestore }}" style="height: 40px; background: #fff; color: oklch(0.145 0 0); border: 1px solid oklch(0.922 0 0); border-radius: var(--radius-md, 0.375rem); font: inherit; font-size: 14px; cursor: pointer;" style-hover="background: oklch(0.97 0 0);">Restore to open loads</button>
+                    </sc-if>
+                    <div style="font-size: 11px; color: oklch(0.556 0 0); text-align: center;">First driver to confirm claims the order. Rejecting only hides it from your board.</div>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ sel.isClaimed }}">
+                  <div style="padding: 12px; border: 1px solid oklch(0.922 0 0); border-radius: var(--radius-md, 0.375rem); background: oklch(0.97 0 0); font-size: 12px; color: oklch(0.556 0 0);">Claimed by another driver {{ sel.claimedAgo }}. No longer available.</div>
+                </sc-if>
+                <sc-if value="{{ sel.isMine }}">
+                  <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <div style="padding: 12px; border: 1px solid oklch(90.5% 0.093 164.15); border-radius: var(--radius-md, 0.375rem); background: oklch(97.9% 0.021 166.113); font-size: 12px; color: oklch(43.2% 0.095 166.913);">You claimed this load. Contact details are in your job sheet.</div>
+                    <button style="height: 40px; background: #fff; color: oklch(0.145 0 0); border: 1px solid oklch(0.922 0 0); border-radius: var(--radius-md, 0.375rem); font: inherit; font-size: 14px; font-weight: 500; cursor: pointer;" style-hover="background: oklch(0.97 0 0);">Open job sheet</button>
+                  </div>
+                </sc-if>
+              </div>
+            </div>
+          </sc-if>
+        </aside>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isMobile }}">
+    <div style="display: flex; justify-content: center; padding: 24px 16px 40px;">
+      <div style="width: 390px; background: #fff; border: 1px solid oklch(0.922 0 0); border-radius: 1rem; overflow: hidden;">
+        <div style="display: flex; gap: 8px; padding: 12px 14px; border-bottom: 1px solid oklch(0.922 0 0); align-items: center;">
+          <select value="{{ fPickup }}" onChange="{{ onPickup }}" style="flex: 1; height: 32px; padding: 0 8px; border: 1px solid oklch(0.922 0 0); border-radius: var(--radius-md, 0.375rem); background: #fff; font-size: 12px;">
+            <sc-for list="{{ pickupCities }}" as="c" hint-placeholder-count="4"><option value="{{ c }}">{{ c }}</option></sc-for>
+          </select>
+          <span style="color: oklch(0.556 0 0); font-size: 12px;">→</span>
+          <select value="{{ fDrop }}" onChange="{{ onDrop }}" style="flex: 1; height: 32px; padding: 0 8px; border: 1px solid oklch(0.922 0 0); border-radius: var(--radius-md, 0.375rem); background: #fff; font-size: 12px;">
+            <sc-for list="{{ dropCities }}" as="c" hint-placeholder-count="4"><option value="{{ c }}">{{ c }}</option></sc-for>
+          </select>
+        </div>
+        <div style="padding: 10px 14px; border-bottom: 1px solid oklch(0.922 0 0); display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 11px; color: oklch(0.556 0 0); white-space: nowrap;">≤ {{ weightMaxLabel }}</span>
+          <input type="range" min="100" max="1200" step="50" value="{{ fWeight }}" onChange="{{ onWeight }}" onInput="{{ onWeight }}" style="flex: 1; accent-color: oklch(0.205 0 0);">
+          <span style="font-size: 11px; color: oklch(0.556 0 0); white-space: nowrap; font-variant-numeric: tabular-nums;">{{ mobileCount }}</span>
+        </div>
+        <div style="display: flex; flex-direction: column;">
+          <sc-for list="{{ rows }}" as="r" hint-placeholder-count="5">
+            <div onClick="{{ r.onSelect }}" style="padding: 14px; border-bottom: 1px solid oklch(0.922 0 0);">
+              <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 10px;">
+                <div style="font-weight: 500;">{{ r.pickupCity }} → {{ r.dropCity }}</div>
+                <div style="font-weight: 600; font-variant-numeric: tabular-nums;">{{ r.priceText }}</div>
+              </div>
+              <div style="font-size: 12px; color: oklch(0.556 0 0); margin-top: 4px;">{{ r.cargoType }} · {{ r.weightText }} · {{ r.dims }}</div>
+              <div style="font-size: 12px; color: oklch(0.556 0 0); margin-top: 2px;">{{ r.windowText }} · {{ r.distanceText }} · {{ r.helpersText }}</div>
+              <div style="display: flex; align-items: center; gap: 8px; margin-top: 10px;">
+                <sc-if value="{{ r.isAvailable }}" hint-placeholder-val="{{ true }}">
+                  <div style="display: flex; gap: 8px; flex: 1;">
+                    <button onClick="{{ r.onReject }}" style="height: 44px; width: 88px; background: #fff; color: oklch(0.556 0 0); border: 1px solid oklch(0.922 0 0); border-radius: var(--radius-md, 0.375rem); font: inherit; font-size: 14px; cursor: pointer;">Reject</button>
+                    <button onClick="{{ r.onAccept }}" style="height: 44px; flex: 1; background: oklch(0.205 0 0); color: oklch(0.985 0 0); border: none; border-radius: var(--radius-md, 0.375rem); font: inherit; font-size: 14px; font-weight: 500; cursor: pointer;">Accept · {{ r.priceText }}</button>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ r.isClaimed }}">
+                  <div style="height: 44px; flex: 1; display: flex; align-items: center; justify-content: center; background: oklch(0.97 0 0); border-radius: var(--radius-md, 0.375rem); font-size: 13px; color: oklch(0.556 0 0);">Claimed by another driver</div>
+                </sc-if>
+                <sc-if value="{{ r.isMine }}">
+                  <div style="height: 44px; flex: 1; display: flex; align-items: center; justify-content: center; background: oklch(97.9% 0.021 166.113); border-radius: var(--radius-md, 0.375rem); font-size: 13px; font-weight: 500; color: oklch(43.2% 0.095 166.913);">Yours · view job sheet</div>
+                </sc-if>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="padding: 12px 14px; background: oklch(0.97 0 0); font-size: 11px; color: oklch(0.556 0 0);">{{ capacityNote }}</div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ dialogOpen }}">
+    <div style="position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; padding: 24px;">
+      <div style="width: 440px; max-width: 100%; background: #fff; border-radius: 0.75rem; box-shadow: 0 20px 50px rgba(0,0,0,0.25); overflow: hidden; font-family: 'IBM Plex Sans', system-ui, sans-serif;">
+        <div style="padding: 20px 20px 0;">
+          <div style="font-size: 16px; font-weight: 600; letter-spacing: -0.01em;">Confirm this shipment</div>
+          <div style="font-size: 13px; color: oklch(0.556 0 0); margin-top: 4px;">First come, first served. Confirming claims the order and closes it to other drivers.</div>
+        </div>
+        <div style="margin: 16px 20px; border: 1px solid oklch(0.922 0 0); border-radius: 0.5rem; overflow: hidden;">
+          <div style="padding: 12px 14px; display: grid; grid-template-columns: 92px 1fr; row-gap: 8px; column-gap: 12px; font-size: 13px;">
+            <sc-for list="{{ dialogRows }}" as="d" hint-placeholder-count="6">
+              <div style="color: oklch(0.556 0 0);">{{ d.k }}</div>
+              <div style="font-variant-numeric: tabular-nums;">{{ d.v }}</div>
+            </sc-for>
+          </div>
+          <div style="display: flex; align-items: baseline; justify-content: space-between; padding: 12px 14px; background: oklch(0.97 0 0); border-top: 1px solid oklch(0.922 0 0);">
+            <span style="font-size: 13px; color: oklch(0.556 0 0);">You are paid</span>
+            <span style="font-size: 20px; font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums;">{{ dialogPrice }}</span>
+          </div>
+        </div>
+        <div style="display: flex; gap: 8px; padding: 0 20px 20px;">
+          <button onClick="{{ closeDialog }}" style="flex: 1; height: 40px; background: #fff; border: 1px solid oklch(0.922 0 0); border-radius: var(--radius-md, 0.375rem); font: inherit; font-size: 14px; cursor: pointer;" style-hover="background: oklch(0.97 0 0);">Cancel</button>
+          <button onClick="{{ confirmAccept }}" style="flex: 1.6; height: 40px; background: oklch(0.205 0 0); color: oklch(0.985 0 0); border: none; border-radius: var(--radius-md, 0.375rem); font: inherit; font-size: 14px; font-weight: 500; cursor: pointer;" style-hover="background: oklch(0.145 0 0);">Confirm and claim</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ lostOpen }}">
+    <div style="position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; padding: 24px;">
+      <div style="width: 380px; max-width: 100%; background: #fff; border-radius: 0.75rem; box-shadow: 0 20px 50px rgba(0,0,0,0.25); padding: 20px; font-family: 'IBM Plex Sans', system-ui, sans-serif;">
+        <div style="font-size: 16px; font-weight: 600;">Just claimed by another driver</div>
+        <div style="font-size: 13px; color: oklch(0.556 0 0); margin-top: 6px;">{{ lostId }} was confirmed a moment before you. It has been removed from your available list.</div>
+        <button onClick="{{ closeLost }}" style="width: 100%; height: 40px; margin-top: 16px; background: oklch(0.205 0 0); color: oklch(0.985 0 0); border: none; border-radius: var(--radius-md, 0.375rem); font: inherit; font-size: 14px; font-weight: 500; cursor: pointer;">Back to load board</button>
+      </div>
+    </div>
+  </sc-if>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;driverName&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Giorgi Beridze&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;driverType&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Individual driver · verified&quot;,&quot;Sole proprietor · verified&quot;,&quot;Registered company · fleet&quot;],&quot;default&quot;:&quot;Sole proprietor · verified&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;vehicleLabel&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Van 5.5t&quot;,&quot;Lorry 9t&quot;,&quot;Pickup 1.5t&quot;],&quot;default&quot;:&quot;Van 5.5t&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Vehicle&quot;},&quot;vehicleCapacityKg&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:1200,&quot;min&quot;:300,&quot;max&quot;:3000,&quot;step&quot;:50,&quot;unit&quot;:&quot;kg&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Vehicle&quot;},&quot;liveClaims&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Behaviour&quot;},&quot;showCapacityNote&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Behaviour&quot;},&quot;currency&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;₾&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+const LOADS = [
+  { id: "GE-48210", client: "Nikora Trade", pickupCity: "Tbilisi", pickupAddr: "Lilo Mall depot, 91 Kakheti Highway", dropCity: "Rustavi", dropAddr: "Industrial Park, Block 4", win: "Today 14:00–16:00", deadline: "Today 20:00", cargoType: "Palletised goods", weight: 820, dims: "2.4 × 1.1 × 1.4 m", vol: 3.7, packaging: "4 pallets", qty: "96 cartons", helpers: 2, tags: ["Fragile"], help: "Loading help needed", km: 32.4, price: 190, stops: 2, photos: 3, status: "available" },
+  { id: "GE-48214", client: "Sante GMT Products", pickupCity: "Tbilisi", pickupAddr: "Cold store B2, 15 Aleksidze Street", dropCity: "Kutaisi", dropAddr: "Fresh Market, 3 Chavchavadze Avenue", win: "Today 15:30–16:30", deadline: "Tomorrow 09:00", cargoType: "Chilled produce", weight: 640, dims: "1.8 × 1.2 × 1.5 m", vol: 3.2, packaging: "12 crates", qty: "12 crates", helpers: 1, tags: ["Cold chain", "Time critical"], help: "Driver unloads", km: 221.0, price: 640, stops: 2, photos: 2, status: "available" },
+  { id: "GE-48221", client: "Alpe Interiors", pickupCity: "Kutaisi", pickupAddr: "Workshop 8, 12 Nikea Street", dropCity: "Batumi", dropAddr: "45 Chavchavadze Street, 6th floor", win: "Today 17:00–18:00", deadline: "Tomorrow 12:00", cargoType: "Furniture", weight: 380, dims: "2.1 × 0.9 × 1.8 m", vol: 3.4, packaging: "6 wrapped items", qty: "6 items", helpers: 2, tags: ["Fragile"], help: "Loading help needed", km: 145.0, price: 470, stops: 2, photos: 3, status: "available" },
+  { id: "GE-48229", client: "Kartuli Papiri", pickupCity: "Rustavi", pickupAddr: "Dock 2, 6 Mshenebelta Street", dropCity: "Poti", dropAddr: "Poti Sea Port, Gate 3", win: "Today 18:00–19:30", deadline: "Tomorrow 08:00", cargoType: "Paper stock", weight: 1120, dims: "1.6 × 1.1 × 1.2 m", vol: 2.1, packaging: "2 pallets", qty: "2 pallets", helpers: 0, tags: [], help: "Forklift on site", km: 275.0, price: 720, stops: 2, photos: 2, status: "available" },
+  { id: "GE-48233", client: "Elit Electronics", pickupCity: "Tbilisi", pickupAddr: "Didi Dighomi warehouse, 5 Petritsi Street", dropCity: "Gori", dropAddr: "24 Stalin Avenue, loading bay", win: "Tomorrow 09:00–10:00", deadline: "Tomorrow 15:00", cargoType: "Appliances", weight: 540, dims: "1.9 × 1.0 × 1.6 m", vol: 3.0, packaging: "9 boxes", qty: "9 boxes", helpers: 1, tags: ["Fragile"], help: "Driver unloads", km: 86.0, price: 280, stops: 2, photos: 3, status: "available" },
+  { id: "GE-48240", client: "Rustavi Azoti", pickupCity: "Rustavi", pickupAddr: "Yard 6, 12 Chemists' Avenue", dropCity: "Marneuli", dropAddr: "Sadakhlo Road depot", win: "Tomorrow 07:30–08:30", deadline: "Tomorrow 12:00", cargoType: "Industrial drums", weight: 980, dims: "1.2 × 1.2 × 1.1 m", vol: 1.6, packaging: "5 drums", qty: "5 drums", helpers: 0, tags: ["Hazmat", "Upright only"], help: "Forklift on site", km: 58.0, price: 250, stops: 2, photos: 2, status: "available" },
+  { id: "GE-48244", client: "Aversi Pharma", pickupCity: "Tbilisi", pickupAddr: "Rear entrance, 26 Vazha-Pshavela Avenue", dropCity: "Telavi", dropAddr: "9 Erekle II Street", win: "Today 16:00–17:00", deadline: "Today 21:30", cargoType: "Medical supplies", weight: 210, dims: "1.0 × 0.8 × 0.9 m", vol: 0.7, packaging: "14 boxes", qty: "14 boxes", helpers: 1, tags: ["Cold chain", "Fragile"], help: "Driver unloads", km: 92.0, price: 230, stops: 3, photos: 2, status: "claimed", claimedAgo: "4 min ago" },
+  { id: "GE-48201", client: "Geosteel", pickupCity: "Rustavi", pickupAddr: "Bay 11, 3 Metalurgiuli Street", dropCity: "Tbilisi", dropAddr: "Workshop 3, 40 Moscow Avenue", win: "Today 12:30–13:30", deadline: "Today 18:00", cargoType: "Steel fittings", weight: 1050, dims: "2.0 × 0.8 × 0.6 m", vol: 1.0, packaging: "3 crates", qty: "3 crates", helpers: 0, tags: ["Heavy item"], help: "Forklift on site", km: 31.0, price: 210, stops: 2, photos: 2, status: "mine" },
+  { id: "GE-48196", client: "Mtsvane Bostani", pickupCity: "Zugdidi", pickupAddr: "Stall 22, Zugdidi central market", dropCity: "Batumi", dropAddr: "12 Gorgasali Street", win: "Tomorrow 06:00–07:00", deadline: "Tomorrow 11:00", cargoType: "Fresh produce", weight: 470, dims: "1.5 × 1.1 × 1.3 m", vol: 2.1, packaging: "20 crates", qty: "20 crates", helpers: 2, tags: ["Cold chain"], help: "Driver unloads", km: 92.0, price: 240, stops: 2, photos: 3, status: "mine" }
+];
+
+const HANDLING = ["Fragile", "Cold chain", "Hazmat"];
+
+class Component extends DCLogic {
+  state = {
+    mode: "desktop", tab: "available", filtersOpen: true,
+    fPickup: "All cities", fDrop: "All cities", fWeight: 1200, fTags: [],
+    sortKey: "price", sortDir: "desc", rejected: [], showRejected: false,
+    selectedId: null, dialogId: null, lostId: null,
+    statuses: LOADS.reduce((a, l) => (a[l.id] = l.status, a), {}),
+    claimedAgo: LOADS.reduce((a, l) => (a[l.id] = l.claimedAgo || "just now", a), {})
+  };
+
+  componentDidMount() {
+    if (this.props.liveClaims === false) return;
+    this.timer = setTimeout(() => {
+      this.setState(s => {
+        const target = "GE-48233";
+        if (s.statuses[target] !== "available") return null;
+        return { statuses: { ...s.statuses, [target]: "claimed" }, claimedAgo: { ...s.claimedAgo, [target]: "just now" } };
+      });
+    }, 6000);
+  }
+  componentWillUnmount() { clearTimeout(this.timer); }
+
+  money(n) { return (this.props.currency || "₾") + n.toLocaleString("en-US"); }
+
+  helpersText(l) { return l.helpers > 0 ? l.helpers + (l.helpers === 1 ? " helper requested" : " helpers requested") : "No helpers requested"; }
+
+  fits(l) {
+    const cap = this.props.vehicleCapacityKg ?? 1200;
+    const [L, W, H] = [3.2, 1.7, 1.9];
+    const d = l.dims.split("×").map(x => parseFloat(x));
+    return l.weight <= cap && d[0] <= L && d[1] <= W && d[2] <= H;
+  }
+
+  visible() {
+    const s = this.state;
+    return LOADS.filter(this.fits, this).filter(l => {
+      const st = s.statuses[l.id];
+      if (s.tab === "mine") return st === "mine";
+      if (s.rejected.includes(l.id) !== s.showRejected) return false;
+      if (st === "mine") return false;
+      if (s.fPickup !== "All cities" && l.pickupCity !== s.fPickup) return false;
+      if (s.fDrop !== "All cities" && l.dropCity !== s.fDrop) return false;
+      if (l.weight > s.fWeight) return false;
+      if (s.fTags.length && !s.fTags.every(t => l.tags.includes(t))) return false;
+      return true;
+    }).sort((a, b) => {
+      const k = s.sortKey, dir = s.sortDir === "asc" ? 1 : -1;
+      const va = k === "route" ? a.pickupCity : a[k], vb = k === "route" ? b.pickupCity : b[k];
+      if (typeof va === "string") return va.localeCompare(vb) * dir;
+      return (va - vb) * dir;
+    });
+  }
+
+  pill(status) {
+    const base = "display: inline-flex; align-items: center; padding: 4px 9px; border-radius: 999px; font-size: 11px; font-weight: 500;";
+    if (status === "mine") return base + "background: oklch(97.9% 0.021 166.113); color: oklch(43.2% 0.095 166.913);";
+    if (status === "claimed") return base + "background: oklch(0.97 0 0); color: oklch(0.556 0 0);";
+    return base + "background: oklch(0.145 0 0); color: oklch(0.985 0 0);";
+  }
+
+  detail(l) {
+    const st = this.state.statuses[l.id];
+    return {
+      ...l,
+      priceText: this.money(l.price),
+      priceSub: "incl. " + this.money(Math.round(l.price * 0.06)) + " waiting allowance",
+      distanceText: l.km.toFixed(1) + " km",
+      stopsText: l.stops + " stops",
+      windowText: l.win,
+      statusLabel: st === "mine" ? "Yours" : st === "claimed" ? "Claimed" : "Open · first to confirm",
+      statusPillStyle: this.pill(st),
+      isAvailable: st === "available", isClaimed: st === "claimed", isMine: st === "mine",
+      claimedAgo: this.state.claimedAgo[l.id],
+      cargoRows: [
+        { k: "Type", v: l.cargoType }, { k: "Weight", v: l.weight + " kg" },
+        { k: "Dimensions", v: l.dims }, { k: "Volume", v: l.vol.toFixed(1) + " m³" },
+        { k: "Packaging", v: l.packaging }, { k: "Quantity", v: l.qty },
+        { k: "Handling", v: l.help },
+        { k: "Helpers", v: this.helpersText(l) }
+      ],
+      tags: l.tags.map(t => ({ label: t, style: "padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 500; background: oklch(0.97 0 0); color: oklch(0.205 0 0); border: 1px solid oklch(0.922 0 0);" })),
+      photos: Array.from({ length: l.photos }, (_, i) => ({ label: "Photo " + (i + 1) })),
+      onAccept: () => this.setState({ dialogId: l.id }),
+      isRejected: this.state.rejected.includes(l.id),
+      notRejected: !this.state.rejected.includes(l.id),
+      onReject: () => this.setState(p => ({ rejected: [...p.rejected, l.id], selectedId: null })),
+      onRestore: () => this.setState(p => ({ rejected: p.rejected.filter(x => x !== l.id) }))
+    };
+  }
+
+  renderVals() {
+    const s = this.state;
+    const list = this.visible();
+    const hidden = LOADS.filter(l => !this.fits(l)).length;
+    const sel = LOADS.find(l => l.id === s.selectedId);
+    const dl = LOADS.find(l => l.id === s.dialogId);
+    const cities = k => ["All cities", ...Array.from(new Set(LOADS.map(l => l[k]))).sort()];
+
+    const tab = active => "padding: 10px 0; margin-bottom: -1px; background: none; border: none; border-bottom: 2px solid " + (active ? "oklch(0.145 0 0)" : "transparent") + "; font: inherit; font-size: 14px; font-weight: 500; color: " + (active ? "oklch(0.145 0 0)" : "oklch(0.556 0 0)") + "; cursor: pointer;";
+    const modeBtn = active => "padding: 5px 12px; border: none; border-radius: 0.375rem; font: inherit; font-size: 12px; font-weight: 500; cursor: pointer; background: " + (active ? "#fff" : "transparent") + "; color: " + (active ? "oklch(0.145 0 0)" : "oklch(0.556 0 0)") + "; box-shadow: " + (active ? "0 1px 2px rgba(0,0,0,0.08)" : "none") + ";";
+
+    const th = (key, label, align) => ({
+      label,
+      arrow: s.sortKey === key ? (s.sortDir === "asc" ? " ↑" : " ↓") : "",
+      onClick: () => this.setState(p => ({ sortKey: key, sortDir: p.sortKey === key && p.sortDir === "desc" ? "asc" : "desc" })),
+      style: "padding: 9px 14px; text-align: " + (align || "left") + "; font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; color: oklch(0.556 0 0); border-bottom: 1px solid oklch(0.922 0 0); cursor: pointer; white-space: nowrap; user-select: none;"
+    });
+
+    return {
+      driverName: this.props.driverName || "Giorgi Beridze",
+      driverType: this.props.driverType || "Sole proprietor · verified",
+      driverInitials: (this.props.driverName || "Giorgi Beridze").split(" ").map(w => w[0]).join("").slice(0, 2),
+      vehicleLabel: (this.props.vehicleLabel || "Van 5.5t") + " · " + (this.props.vehicleCapacityKg ?? 1200) + " kg · 3.2 × 1.7 × 1.9 m",
+
+      isDesktop: s.mode === "desktop", isMobile: s.mode === "mobile",
+      setDesktop: () => this.setState({ mode: "desktop" }), setMobile: () => this.setState({ mode: "mobile" }),
+      desktopBtnStyle: modeBtn(s.mode === "desktop"), mobileBtnStyle: modeBtn(s.mode === "mobile"),
+
+      tabAvailStyle: tab(s.tab === "available"), tabMineStyle: tab(s.tab === "mine"),
+      tabAvailable: () => this.setState({ tab: "available" }), tabMine: () => this.setState({ tab: "mine" }),
+      availCount: LOADS.filter(l => this.fits(l) && s.statuses[l.id] !== "mine").length,
+      mineCount: LOADS.filter(l => s.statuses[l.id] === "mine").length,
+
+      filtersOpen: s.filtersOpen, toggleFilters: () => this.setState(p => ({ filtersOpen: !p.filtersOpen })),
+      activeFilterCount: (s.fPickup !== "All cities" ? 1 : 0) + (s.fDrop !== "All cities" ? 1 : 0) + (s.fWeight < 1200 ? 1 : 0) + s.fTags.length,
+      pickupCities: cities("pickupCity"), dropCities: cities("dropCity"),
+      fPickup: s.fPickup, fDrop: s.fDrop, fWeight: s.fWeight,
+      weightMaxLabel: s.fWeight.toLocaleString("en-US") + " kg",
+      onPickup: e => this.setState({ fPickup: e.target.value }),
+      onDrop: e => this.setState({ fDrop: e.target.value }),
+      onWeight: e => this.setState({ fWeight: Number(e.target.value) }),
+      handlingChips: HANDLING.map(t => {
+        const on = s.fTags.includes(t);
+        return {
+          label: t,
+          style: "padding: 5px 10px; border-radius: 999px; font: inherit; font-size: 12px; cursor: pointer; border: 1px solid " + (on ? "oklch(0.145 0 0)" : "oklch(0.922 0 0)") + "; background: " + (on ? "oklch(0.145 0 0)" : "#fff") + "; color: " + (on ? "oklch(0.985 0 0)" : "oklch(0.145 0 0)") + ";",
+          onClick: () => this.setState(p => ({ fTags: on ? p.fTags.filter(x => x !== t) : [...p.fTags, t] }))
+        };
+      }),
+      resetFilters: () => this.setState({ fPickup: "All cities", fDrop: "All cities", fWeight: 1200, fTags: [] }),
+
+      cols: [th("route", "Route"), th("win", "Pick-up window"), th("cargoType", "Cargo"), th("helpers", "Helpers", "center"), th("weight", "Weight / dims", "right"), th("price", "Price", "right")],
+
+      rows: list.map(l => {
+        const st = s.statuses[l.id];
+        const isSel = l.id === s.selectedId;
+        return {
+          id: l.id, client: l.client, pickupCity: l.pickupCity, dropCity: l.dropCity,
+          routeSub: l.pickupAddr + " → " + l.dropAddr,
+          windowText: l.win, deadline: l.deadline,
+          cargoType: l.cargoType, cargoSub: l.packaging + " · " + l.vol.toFixed(1) + " m³",
+          helpersText: this.helpersText(l),
+          helpersCount: l.helpers > 0 ? String(l.helpers) : "—",
+          helpersStyle: "display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 24px; padding: 0 7px; border-radius: 999px; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; " + (l.helpers > 0 ? "background: oklch(0.145 0 0); color: oklch(0.985 0 0);" : "background: oklch(0.97 0 0); color: oklch(0.556 0 0);"),
+          weightText: l.weight + " kg", dims: l.dims,
+          distanceText: l.km.toFixed(1) + " km",
+          priceText: this.money(l.price), perKm: this.money(Math.round(l.price / l.km)) + "/km",
+          isAvailable: st === "available", isClaimed: st === "claimed", isMine: st === "mine",
+          rowStyle: "cursor: pointer; background: " + (isSel ? "oklch(0.97 0 0)" : "#fff") + "; opacity: " + (st === "claimed" ? "0.6" : "1") + ";",
+          onSelect: () => this.setState({ selectedId: l.id }),
+          onAccept: e => { e.stopPropagation(); this.setState({ selectedId: l.id, dialogId: l.id }); },
+          isRejected: s.rejected.includes(l.id),
+          notRejected: !s.rejected.includes(l.id),
+          onReject: e => { e.stopPropagation(); this.setState(p => ({ rejected: [...p.rejected, l.id], selectedId: p.selectedId === l.id ? null : p.selectedId })); },
+          onRestore: e => { e.stopPropagation(); this.setState(p => ({ rejected: p.rejected.filter(x => x !== l.id) })); }
+        };
+      }),
+      isEmpty: list.length === 0,
+      mobileCount: list.length + (list.length === 1 ? " load" : " loads"),
+      resultLine: list.length + (list.length === 1 ? " load" : " loads") + (s.tab === "mine" ? " you have claimed" : s.showRejected ? " you rejected" : " open to you"),
+      rejectedCount: s.rejected.length,
+      hasRejected: s.rejected.length > 0,
+      showRejected: s.showRejected,
+      rejectedToggleLabel: s.showRejected ? "Back to open loads" : s.rejected.length + " rejected · view",
+      toggleRejected: () => this.setState(p => ({ showRejected: !p.showRejected, selectedId: null })),
+      showCapacityNote: this.props.showCapacityNote !== false && hidden > 0,
+      capacityNote: hidden + " loads hidden — over your vehicle capacity or dimensions",
+
+      hasSelection: !!sel, noSelection: !sel,
+      drawerDisplay: sel ? "block" : "none",
+      clearSelection: () => this.setState({ selectedId: null }),
+      sel: sel ? this.detail(sel) : null,
+
+      dialogOpen: !!dl,
+      dialogPrice: dl ? this.money(dl.price) : "",
+      dialogRows: dl ? [
+        { k: "Load", v: dl.id }, { k: "Pick-up", v: dl.pickupCity + " · " + dl.win },
+        { k: "Drop-off", v: dl.dropCity + " · by " + dl.deadline },
+        { k: "Cargo", v: dl.cargoType + " · " + dl.packaging },
+        { k: "Helpers", v: this.helpersText(dl) },
+        { k: "Weight", v: dl.weight + " kg · " + dl.dims },
+        { k: "Distance", v: dl.km.toFixed(1) + " km · " + dl.stops + " stops" }
+      ] : [],
+      closeDialog: () => this.setState({ dialogId: null }),
+      confirmAccept: () => this.setState(p => {
+        const id = p.dialogId;
+        if (p.statuses[id] !== "available") return { dialogId: null, lostId: id };
+        return { dialogId: null, statuses: { ...p.statuses, [id]: "mine" }, tab: "mine" };
+      }),
+      lostOpen: !!s.lostId, lostId: s.lostId || "",
+      closeLost: () => this.setState({ lostId: null })
+    };
+  }
+}
+
+</script>
+</body>
+</html>

@@ -55,3 +55,7 @@ ds-bundle/
 .design-sync/learnings/
 .design-sync/node_modules
 .ds-entry.mjs
+
+# local scratch scripts (ad-hoc DB inspection, not part of the app)
+/.tmp-*.mjs
+/hub-seed-inspect.mjs

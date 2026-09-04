@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="fonts/fonts.css">
+<style>
+  body { margin:0; background:#0E1013; }
+  a { color: oklch(72% 0.19 48); text-decoration: none; }
+  a:hover { color: oklch(80% 0.16 55); }
+  * { box-sizing: border-box; }
+  @keyframes sw-in { from { opacity:0; transform:translateY(10px);} to {opacity:1; transform:none;} }
+</style>
+</helmet>
+<div style="font-family:'IBM Plex Sans',sans-serif; background:#fff; color:#0E1013; -webkit-font-smoothing:antialiased;">
+
+  <div style="background:#0E1013; color:#fff;">
+    <header style="max-width:1280px; margin:0 auto; padding:18px 24px; display:flex; align-items:center; gap:32px;">
+      <span style="font-size:20px; font-weight:700; letter-spacing:-0.035em; margin-right:auto;">Lalamove</span>
+      <nav style="display:flex; gap:26px; font-size:14px; color:rgba(255,255,255,0.7);">
+        <a href="#how" style="color:inherit;">How it works</a>
+        <a href="#pricing" style="color:inherit;">Pricing</a>
+        <a href="#faq" style="color:inherit;">Help</a>
+      </nav>
+      <div style="display:flex; gap:10px; align-items:center;">
+        <a href="#login" style="font-size:14px; color:rgba(255,255,255,0.75); padding:9px 12px;">Log in</a>
+        <a href="#signup" style="font-size:14px; font-weight:600; background:#fff; color:#0E1013; padding:10px 18px; border-radius:999px;">Get started</a>
+      </div>
+    </header>
+
+    <section style="max-width:1280px; margin:0 auto; padding:clamp(28px,4vw,52px) 24px clamp(56px,7vw,96px);">
+      <div style="display:inline-flex; padding:4px; background:rgba(255,255,255,0.07); border-radius:999px; margin-bottom:clamp(32px,4vw,48px); flex-wrap:wrap;">
+        <sc-for list="{{ modes }}" as="m" hint-placeholder-count="3">
+          <button onClick="{{ m.select }}" style="{{ m.tabStyle }}">{{ m.label }}</button>
+        </sc-for>
+      </div>
+
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:clamp(32px,5vw,72px); align-items:center;">
+        <div>
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.16em; text-transform:uppercase; color:oklch(72% 0.19 48); margin-bottom:20px;">{{ hero.eyebrow }}</div>
+          <h1 style="font-size:clamp(42px,6.4vw,80px); line-height:0.96; letter-spacing:-0.045em; font-weight:600; margin:0 0 22px; text-wrap:balance;">{{ hero.title }}</h1>
+          <p style="font-size:clamp(17px,1.7vw,21px); line-height:1.5; color:rgba(255,255,255,0.66); margin:0 0 34px; max-width:46ch; text-wrap:pretty;">{{ hero.body }}</p>
+          <div style="display:flex; flex-wrap:wrap; gap:12px; margin-bottom:34px;">
+            <a href="#signup" style="font-size:15px; font-weight:600; background:oklch(66% 0.2 45); color:#fff; padding:15px 30px; border-radius:999px;">{{ hero.cta }}</a>
+            <a href="#how" style="font-size:15px; font-weight:600; color:#fff; border:1px solid rgba(255,255,255,0.22); padding:15px 30px; border-radius:999px;">{{ hero.cta2 }}</a>
+          </div>
+          <div style="display:flex; flex-wrap:wrap; gap:28px;">
+            <sc-for list="{{ hero.stats }}" as="s" hint-placeholder-count="3">
+              <div>
+                <div style="font-size:26px; font-weight:600; letter-spacing:-0.03em;">{{ s.v }}</div>
+                <div style="font-size:13px; color:rgba(255,255,255,0.5); margin-top:2px;">{{ s.k }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:1rem; padding:clamp(20px,2.5vw,30px);">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:22px;">
+            <span style="font-size:14px; font-weight:600;">{{ hero.panelTitle }}</span>
+            <span style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:oklch(72% 0.19 48);">{{ hero.panelTag }}</span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:12px;">
+            <sc-for list="{{ hero.rows }}" as="r" hint-placeholder-count="4">
+              <div style="display:flex; align-items:center; gap:14px; background:rgba(255,255,255,0.05); border-radius:0.75rem; padding:14px 16px;">
+                <span style="width:34px; height:34px; border-radius:999px; background:oklch(66% 0.2 45); display:flex; align-items:center; justify-content:center; font-size:15px; color:#fff; flex-shrink:0;">{{ r.icon }}</span>
+                <span style="flex:1; min-width:0;">
+                  <span style="display:block; font-size:14px; font-weight:600;">{{ r.title }}</span>
+                  <span style="display:block; font-size:13px; color:rgba(255,255,255,0.55); margin-top:2px;">{{ r.sub }}</span>
+                </span>
+                <span style="font-family:'IBM Plex Mono',monospace; font-size:13px; color:rgba(255,255,255,0.8);">{{ r.meta }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <section style="background:oklch(66% 0.2 45); color:#fff;">
+    <div style="max-width:1280px; margin:0 auto; padding:clamp(28px,3.5vw,44px) 24px; display:flex; flex-wrap:wrap; gap:24px; align-items:center; justify-content:space-between;">
+      <div style="display:flex; align-items:center; gap:20px; flex-wrap:wrap;">
+        <span style="font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600; letter-spacing:0.14em; text-transform:uppercase; background:rgba(0,0,0,0.18); padding:8px 14px; border-radius:999px;">MOVE50</span>
+        <div>
+          <div style="font-size:clamp(20px,2.4vw,28px); font-weight:600; letter-spacing:-0.025em;">50% off your first three deliveries</div>
+          <div style="font-size:14px; color:rgba(255,255,255,0.82); margin-top:4px;">New accounts, bike and car bookings up to 20 km. Business gets 60 days invoiced billing.</div>
+        </div>
+      </div>
+      <a href="#signup" style="font-size:15px; font-weight:600; background:#0E1013; color:#fff; padding:14px 26px; border-radius:999px; white-space:nowrap;">Claim offer</a>
+    </div>
+  </section>
+
+  <section id="how" style="max-width:1280px; margin:0 auto; padding:clamp(64px,8vw,112px) 24px;">
+    <h2 style="font-size:clamp(30px,4.2vw,50px); line-height:1.04; letter-spacing:-0.04em; font-weight:600; margin:0 0 14px; max-width:16ch; text-wrap:balance;">Four taps between a parcel and a doorstep.</h2>
+    <p style="font-size:17px; color:#5B6067; margin:0 0 48px; max-width:52ch;">The flow is the same whether you send one thing a month or four hundred a day.</p>
+    <div style="display:flex; flex-wrap:wrap; gap:20px;">
+      <sc-for list="{{ steps }}" as="s" hint-placeholder-count="4">
+        <div style="flex:1 1 220px; min-width:0; background:#F5F5F4; border-radius:1rem; padding:28px 26px 32px; display:flex; flex-direction:column; gap:12px; min-height:200px;">
+          <span style="width:36px; height:36px; border-radius:999px; background:#0E1013; color:#fff; display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:600;">{{ s.n }}</span>
+          <h3 style="font-size:19px; font-weight:600; letter-spacing:-0.02em; margin:6px 0 0;">{{ s.title }}</h3>
+          <p style="font-size:14px; line-height:1.6; color:#5B6067; margin:0; text-wrap:pretty;">{{ s.body }}</p>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <section id="pricing" style="background:#F5F5F4;">
+    <div style="max-width:1280px; margin:0 auto; padding:clamp(64px,8vw,112px) 24px;">
+      <div style="display:flex; flex-wrap:wrap; gap:24px; align-items:flex-end; justify-content:space-between; margin-bottom:44px;">
+        <div>
+          <h2 style="font-size:clamp(30px,4.2vw,50px); line-height:1.04; letter-spacing:-0.04em; font-weight:600; margin:0 0 12px;">Pay per delivery</h2>
+          <p style="font-size:17px; color:#5B6067; margin:0; max-width:48ch;">Base fare plus distance. Nothing charged if no driver accepts.</p>
+        </div>
+        <div style="display:inline-flex; padding:4px; background:#fff; border:1px solid #E4E2DF; border-radius:999px;">
+          <sc-for list="{{ billing }}" as="b" hint-placeholder-count="2">
+            <button onClick="{{ b.select }}" style="{{ b.style }}">{{ b.label }}</button>
+          </sc-for>
+        </div>
+      </div>
+      <div style="display:flex; flex-wrap:wrap; gap:18px;">
+        <sc-for list="{{ tiers }}" as="t" hint-placeholder-count="4">
+          <div style="{{ t.cardStyle }}">
+            <div style="font-size:15px; font-weight:600; letter-spacing:-0.01em; margin-bottom:6px;">{{ t.name }}</div>
+            <div style="font-size:13px; color:{{ t.subColor }}; margin-bottom:22px;">{{ t.use }}</div>
+            <div style="display:flex; align-items:baseline; gap:6px;">
+              <span style="font-size:34px; font-weight:600; letter-spacing:-0.035em;">{{ t.base }}</span>
+              <span style="font-size:13px; color:{{ t.subColor }};">base</span>
+            </div>
+            <div style="font-family:'IBM Plex Mono',monospace; font-size:13px; color:{{ t.subColor }}; margin-top:6px;">{{ t.km }} per km</div>
+            <div style="flex:1;"></div>
+            <a href="#signup" style="{{ t.btnStyle }}">{{ t.cta }}</a>
+          </div>
+        </sc-for>
+      </div>
+      <div style="margin-top:18px; background:#0E1013; color:#fff; border-radius:1rem; padding:clamp(24px,3vw,34px); display:flex; flex-wrap:wrap; gap:22px; align-items:center; justify-content:space-between;">
+        <div>
+          <div style="font-size:20px; font-weight:600; letter-spacing:-0.025em; margin-bottom:6px;">Business account</div>
+          <div style="font-size:15px; color:rgba(255,255,255,0.62); max-width:60ch;">Volume rates, monthly invoicing, seat-based dashboard, webhooks and a REST API. Rates quoted within one working day.</div>
+        </div>
+        <a href="#business" style="font-size:15px; font-weight:600; background:oklch(66% 0.2 45); color:#fff; padding:14px 26px; border-radius:999px; white-space:nowrap;">Request rates</a>
+      </div>
+    </div>
+  </section>
+
+  <section style="max-width:1280px; margin:0 auto; padding:clamp(64px,8vw,112px) 24px;">
+    <h2 style="font-size:clamp(30px,4.2vw,50px); line-height:1.04; letter-spacing:-0.04em; font-weight:600; margin:0 0 44px;">Three people, one afternoon</h2>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:20px;">
+      <sc-for list="{{ quotes }}" as="q" hint-placeholder-count="3">
+        <figure style="margin:0; background:#F5F5F4; border-radius:1rem; padding:30px 28px; display:flex; flex-direction:column; gap:22px;">
+          <blockquote style="margin:0; font-size:18px; line-height:1.5; letter-spacing:-0.015em; text-wrap:pretty;">{{ q.text }}</blockquote>
+          <figcaption style="display:flex; align-items:center; gap:12px; margin-top:auto;">
+            <span style="width:36px; height:36px; border-radius:999px; background:#0E1013; color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:600;">{{ q.initials }}</span>
+            <span style="font-size:13px; line-height:1.35;">
+              <span style="display:block; font-weight:600;">{{ q.who }}</span>
+              <span style="display:block; color:#5B6067;">{{ q.role }}</span>
+            </span>
+          </figcaption>
+        </figure>
+      </sc-for>
+    </div>
+  </section>
+
+  <section id="faq" style="background:#F5F5F4;">
+    <div style="max-width:900px; margin:0 auto; padding:clamp(64px,8vw,112px) 24px;">
+      <h2 style="font-size:clamp(30px,4.2vw,50px); line-height:1.04; letter-spacing:-0.04em; font-weight:600; margin:0 0 40px; text-align:center;">Questions</h2>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <sc-for list="{{ faqs }}" as="f" hint-placeholder-count="5">
+          <div style="background:#fff; border-radius:0.75rem; overflow:hidden;">
+            <button onClick="{{ f.toggle }}" style="width:100%; display:flex; align-items:center; justify-content:space-between; gap:20px; padding:20px 24px; background:none; border:0; cursor:pointer; text-align:left; font-family:inherit; color:inherit;">
+              <span style="font-size:16px; font-weight:600; letter-spacing:-0.015em;">{{ f.q }}</span>
+              <span style="font-size:20px; color:oklch(66% 0.2 45); flex-shrink:0; line-height:1;">{{ f.sign }}</span>
+            </button>
+            <sc-if value="{{ f.open }}" hint-placeholder-val="{{ false }}">
+              <p style="font-size:15px; line-height:1.65; color:#5B6067; margin:0; padding:0 24px 22px; text-wrap:pretty;">{{ f.a }}</p>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+
+  <footer style="background:#0E1013; color:rgba(255,255,255,0.62);">
+    <div style="max-width:1280px; margin:0 auto; padding:clamp(48px,6vw,80px) 24px 40px;">
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:40px; padding-bottom:44px; border-bottom:1px solid rgba(255,255,255,0.1);">
+        <div>
+          <div style="font-size:20px; font-weight:700; letter-spacing:-0.035em; color:#fff; margin-bottom:12px;">Lalamove</div>
+          <p style="font-size:14px; line-height:1.6; margin:0; max-width:28ch;">On-demand delivery in 11 markets, matched in under a minute.</p>
+        </div>
+        <sc-for list="{{ footerCols }}" as="c" hint-placeholder-count="4">
+          <div>
+            <div style="font-size:13px; font-weight:600; color:#fff; margin-bottom:14px;">{{ c.title }}</div>
+            <div style="display:flex; flex-direction:column; gap:10px;">
+              <sc-for list="{{ c.links }}" as="l" hint-placeholder-count="4">
+                <a href="#" style="font-size:14px; color:rgba(255,255,255,0.62);">{{ l }}</a>
+              </sc-for>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="padding-top:24px; display:flex; flex-wrap:wrap; gap:16px; justify-content:space-between; font-size:13px; color:rgba(255,255,255,0.42);">
+        <span>© 2026 Lalamove</span>
+        <span>Privacy · Terms · Cookies</span>
+      </div>
+    </div>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+class Component extends DCLogic {
+  state = { mode: 0, plan: 0, openFaq: 0 };
+
+  MODES = [
+    {
+      label: "Send something",
+      eyebrow: "For individuals",
+      title: "Anything across town, in an hour.",
+      body: "Forgotten keys, a birthday cake, a sofa. Enter two addresses, pick a vehicle, watch it move on the map.",
+      cta: "Get a price",
+      cta2: "See how it works",
+      stats: [{ v: "54s", k: "Median match time" }, { v: "19 min", k: "Average city trip" }, { v: "4.9★", k: "Rated by senders" }],
+      panelTitle: "Today's bookings",
+      panelTag: "● live",
+      rows: [
+        { icon: "◍", title: "Documents to Central", sub: "Motorbike · 4.1 km", meta: "HK$6.45" },
+        { icon: "▭", title: "Cake to Tai Po", sub: "Car · 12.8 km", meta: "HK$19.40" },
+        { icon: "▤", title: "Two chairs to Sai Ying Pun", sub: "Van · 7.2 km", meta: "HK$23.00" },
+        { icon: "◍", title: "Keys to Kowloon Bay", sub: "Motorbike · 2.3 km", meta: "HK$5.50" }
+      ]
+    },
+    {
+      label: "Run a business",
+      eyebrow: "For business & enterprise",
+      title: "A fleet you never have to own.",
+      body: "Dispatch hundreds of jobs a day from one dashboard. Volume rates, monthly invoicing, and an API that plugs into the stack you already run.",
+      cta: "Request rates",
+      cta2: "Read the API docs",
+      stats: [{ v: "60 days", k: "Invoiced billing" }, { v: "20", k: "Stops per booking" }, { v: "99.4%", k: "Jobs fulfilled" }],
+      panelTitle: "Dispatch board",
+      panelTag: "42 active",
+      rows: [
+        { icon: "▤", title: "Morning market run", sub: "4 vans · 18 stops", meta: "In transit" },
+        { icon: "▣", title: "Tiles to Yuen Long site", sub: "Truck · 31 km", meta: "Assigned" },
+        { icon: "▭", title: "Returns sweep, Zone 3", sub: "2 cars · 9 stops", meta: "Queued" },
+        { icon: "◍", title: "Same-day ecommerce", sub: "11 bikes · 63 stops", meta: "In transit" }
+      ]
+    },
+    {
+      label: "Drive & earn",
+      eyebrow: "For driver partners",
+      title: "Your vehicle. Your hours. Paid weekly.",
+      body: "Bring a bike, car, van or truck. Accept the jobs you want, see the fare before you commit, and get paid every Wednesday.",
+      cta: "Start driving",
+      cta2: "Check requirements",
+      stats: [{ v: "Weekly", k: "Payouts" }, { v: "0", k: "Sign-up fee" }, { v: "1.1M", k: "Partners worldwide" }],
+      panelTitle: "Nearby jobs",
+      panelTag: "8 open",
+      rows: [
+        { icon: "◍", title: "Kwun Tong → Central", sub: "Motorbike · 6.4 km", meta: "HK$48" },
+        { icon: "▭", title: "Mong Kok → Sha Tin", sub: "Car · 14.1 km", meta: "HK$92" },
+        { icon: "▤", title: "Tsuen Wan → Airport", sub: "Van · 22.6 km", meta: "HK$186" },
+        { icon: "◍", title: "Wan Chai → North Point", sub: "Motorbike · 3.8 km", meta: "HK$34" }
+      ]
+    }
+  ];
+
+  TIERS = [
+    { name: "Motorbike", use: "Documents, food, small parcels", base: 4.2, km: 0.55 },
+    { name: "Car", use: "Boxes, groceries, luggage", base: 8.5, km: 0.85, feature: true },
+    { name: "Van", use: "Furniture, event kit, bulk orders", base: 14.0, km: 1.25 },
+    { name: "Truck", use: "Pallets, site materials, moves", base: 38.0, km: 2.4 }
+  ];
+
+  FAQ = [
+    { q: "How fast will a driver accept?", a: "Median match time is 54 seconds across our markets. If nobody accepts within five minutes the booking cancels automatically and you are not charged." },
+    { q: "What can I not send?", a: "Live animals, hazardous goods, cash and restricted items. Everything else, from a birthday cake to a pallet of tiles, is fair game." },
+    { q: "Is the price I see the price I pay?", a: "Yes for the route you booked. Waiting time beyond 15 minutes, stops added mid-trip and tolls are itemised on the receipt afterwards." },
+    { q: "Do you cover multi-stop routes?", a: "Up to 20 stops per booking. Reorder them before dispatch and the driver sees the optimised sequence." },
+    { q: "What do drivers need to sign up?", a: "A valid licence, vehicle registration, insurance and a smartphone. Verification usually completes within two working days." }
+  ];
+
+  renderVals() {
+    const mode = this.MODES[this.state.mode];
+    const discounted = this.state.plan === 1;
+    return {
+      hero: {
+        eyebrow: mode.eyebrow, title: mode.title, body: mode.body,
+        cta: mode.cta, cta2: mode.cta2, stats: mode.stats,
+        panelTitle: mode.panelTitle, panelTag: mode.panelTag, rows: mode.rows
+      },
+      modes: this.MODES.map((m, i) => {
+        const on = i === this.state.mode;
+        return {
+          label: m.label,
+          select: () => this.setState({ mode: i }),
+          tabStyle: {
+            fontFamily: "inherit", fontSize: "14px", fontWeight: 600, cursor: "pointer",
+            padding: "10px 22px", borderRadius: "999px", border: 0,
+            background: on ? "#fff" : "transparent",
+            color: on ? "#0E1013" : "rgba(255,255,255,0.62)",
+            transition: "background 150ms ease, color 150ms ease"
+          }
+        };
+      }),
+      billing: ["Pay as you go", "Volume (500+/mo)"].map((label, i) => {
+        const on = i === this.state.plan;
+        return {
+          label,
+          select: () => this.setState({ plan: i }),
+          style: {
+            fontFamily: "inherit", fontSize: "13px", fontWeight: 600, cursor: "pointer",
+            padding: "9px 18px", borderRadius: "999px", border: 0,
+            background: on ? "#0E1013" : "transparent",
+            color: on ? "#fff" : "#5B6067"
+          }
+        };
+      }),
+      steps: [
+        { n: "1", title: "Enter two addresses", body: "Pickup and drop-off. Add up to twenty stops and reorder by dragging." },
+        { n: "2", title: "Pick a vehicle", body: "Bike for documents, truck for a pallet. The fare updates as you choose." },
+        { n: "3", title: "Get matched", body: "The nearest available driver accepts, usually inside a minute." },
+        { n: "4", title: "Track to the door", body: "Live map, driver number, proof-of-delivery photo when it lands." }
+      ],
+      tiers: this.TIERS.map(t => {
+        const base = discounted ? t.base * 0.82 : t.base;
+        const km = discounted ? t.km * 0.82 : t.km;
+        const f = !!t.feature;
+        return {
+          name: t.name, use: t.use,
+          base: "HK$" + base.toFixed(2),
+          km: "+HK$" + km.toFixed(2),
+          subColor: f ? "rgba(255,255,255,0.6)" : "#5B6067",
+          cta: f ? "Most booked" : "Book this",
+          cardStyle: {
+            flex: "1 1 210px", minWidth: 0,
+            display: "flex", flexDirection: "column", borderRadius: "1rem", padding: "28px 26px",
+            background: f ? "#0E1013" : "#fff",
+            color: f ? "#fff" : "#0E1013",
+            border: f ? "1px solid #0E1013" : "1px solid #E4E2DF",
+            minHeight: "260px"
+          },
+          btnStyle: {
+            marginTop: "24px", fontSize: "14px", fontWeight: 600, textAlign: "center",
+            padding: "12px 18px", borderRadius: "999px",
+            background: f ? "oklch(66% 0.2 45)" : "#F5F5F4",
+            color: f ? "#fff" : "#0E1013"
+          }
+        };
+      }),
+      quotes: [
+        { text: "We moved our whole Saturday market run onto it. Four vans, one dashboard, one invoice at month end.", who: "Priya Raghunathan", role: "Operations lead, Greenhouse Grocers", initials: "PR" },
+        { text: "I clear eleven jobs before lunch. The app tells me where the next one is before I finish the last.", who: "Marcus Tan", role: "Driver partner, three years", initials: "MT" },
+        { text: "Signed up on a Tuesday, sent a forgotten passport across town in nineteen minutes. That was the onboarding.", who: "Elena Vasquez", role: "Individual customer", initials: "EV" }
+      ],
+      faqs: this.FAQ.map((f, i) => ({
+        q: f.q, a: f.a,
+        open: this.state.openFaq === i,
+        sign: this.state.openFaq === i ? "−" : "+",
+        toggle: () => this.setState(s => ({ openFaq: s.openFaq === i ? -1 : i }))
+      })),
+      footerCols: [
+        { title: "Product", links: ["Instant delivery", "Scheduled", "Multi-stop", "API"] },
+        { title: "Business", links: ["Enterprise", "Rate card", "Case studies", "Integrations"] },
+        { title: "Drivers", links: ["Become a driver", "Requirements", "Earnings", "Support"] },
+        { title: "Company", links: ["About", "Newsroom", "Careers", "Contact"] }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>
