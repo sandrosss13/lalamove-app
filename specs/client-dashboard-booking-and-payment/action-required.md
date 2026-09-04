@@ -9,7 +9,15 @@ Manual steps that must be completed by a human. These cannot be automated.
 
 ## During Implementation
 
-- [ ] **Re-run `pnpm exec prisma db seed` after applying migration `20260903051048_client_dashboard_booking` in any environment** — the migration adds `VehicleTypeSpec.bodyTypes` with no `DEFAULT` and no backfill. An environment that runs `prisma migrate deploy` without re-seeding leaves every row with an empty list, and the body-type filter (task-12) would then show an empty vehicle grid for every selection. The dev database has already been seeded; staging and production have not.
+- [x] ~~Re-run `pnpm exec prisma db seed` after applying the schema migration~~ — **resolved by migration `20260904090000_backfill_vehicle_body_types`.** Do NOT run `prisma db seed` against staging or production: the seed's update branch is `{ ...spec, pricingRule: { upsert: { create: pricing, update: pricing } } }`, which rewrites every `VehicleTypeSpec` field and every `PricingRule` — `baseFare`, `perKm`, `perMinute`, `minimumFare`, `helperFee` — back to the constants in `prisma/seed.ts`, discarding any rate tuned in place. The backfill migration writes `bodyTypes` and nothing else, and only touches rows still empty, so it is a no-op on an already-seeded database.
+
+- [ ] **Apply this feature's migrations to staging and production — nothing does it for you.** `package.json`'s build is `prisma generate && next build` (generate only), `vercel.json` sets only a region, and there are no CI workflows, so `prisma migrate deploy` is never run automatically. Four migrations from this feature are pending on any environment other than development:
+  - `20260903051048_client_dashboard_booking` — stop contacts, service level, body types, SavedCard, payment selection, PO reference
+  - `20260903052903_order_saved_card_index`
+  - `20260904060000_saved_card_default_unique` — the partial unique index enforcing one default card per client
+  - `20260904090000_backfill_vehicle_body_types`
+
+  Run `pnpm prisma migrate deploy` against each environment with its own `DATABASE_URL`. Without them the client dashboard will fail at runtime on those environments. Worth considering whether the deploy pipeline should run migrations rather than leaving this manual.
 
 - [ ] **Decide whether Refrigerated should cost more than it already does** — no surcharge is being added, because Refrigerated Van and Refrigerated Truck are already separately priced types. If the existing gap is too small to cover running a reefer, raise those two rows' `PricingRule` rates directly. This is a data change, not a code change.
 
