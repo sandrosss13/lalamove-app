@@ -1,5 +1,6 @@
 "use client";
 
+import type { ChassisType } from "@prisma/client";
 import { useEffect, useState } from "react";
 
 /**
@@ -21,10 +22,33 @@ export type OrderVehicleType = {
   cargoHeightM: number;
   loadingAccessType:
     "REAR_DOOR" | "SIDE_DOOR" | "RAMP" | "TAIL_LIFT" | "OPEN_FLATBED";
+  // The load spaces this type serves, straight from `VehicleTypeSpec.bodyTypes`
+  // — the only source of truth for the body filter. A list because several
+  // types serve more than one body (a reefer can run its box dry).
+  bodyTypes: ChassisType[];
   // The one field the picker needs from the pricing rule: highlighting the
   // best-fit (cheapest eligible) type is a `baseFare` comparison.
   pricingRule: { baseFare: number };
 };
+
+/**
+ * Does this vehicle type offer the given load space?
+ *
+ * Lives here, beside the data, rather than in the booking form: the mapping is
+ * the taxonomy's, so a new vehicle type becomes filterable the moment it is
+ * seeded and no component holds a vehicle-name-to-body table.
+ *
+ * A type with an empty `bodyTypes` offers nothing and drops out of every body's
+ * grid. That is correct, not a bug — the column defaults to empty, so a type
+ * seeded before the column existed (or seeded without it) is hidden from the
+ * filter until its bodies are recorded.
+ */
+export function vehicleOffersBody(
+  vehicle: OrderVehicleType,
+  body: ChassisType,
+): boolean {
+  return vehicle.bodyTypes.includes(body);
+}
 
 export const ORDER_VEHICLE_TYPES_ERROR_MESSAGE =
   "Could not load the vehicle types. Please refresh and try again.";
@@ -42,6 +66,11 @@ export const ORDER_VEHICLE_TYPES_ERROR_MESSAGE =
  * Deliberately its own cache rather than the landing page's: the two projections
  * differ, and the two pages never render together, so sharing would only couple
  * them.
+ *
+ * Unkeyed and process-lifetime by design: it holds the whole response of the one
+ * request this module makes, so widening the projection cannot serve a stale
+ * shape — the promise is created afresh on every page load and every field the
+ * route returns arrives with it.
  */
 let vehicleTypesRequest: Promise<OrderVehicleType[]> | null = null;
 

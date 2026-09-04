@@ -3,7 +3,11 @@ import Link from "next/link";
 
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { STATUS_STYLES } from "@/components/order-card";
+import {
+  ORDER_STATUS_LABEL,
+  ORDER_STATUS_PILL,
+  ORDER_STATUS_PILL_BASE,
+} from "@/components/orders-format";
 import { OrderTrackingMap } from "@/components/order-tracking-map";
 
 // Session + Prisma access can't be statically rendered.
@@ -108,9 +112,9 @@ export default async function TrackOrderPage({
 
       <div className="rounded border p-4">
         <span
-          className={`rounded px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[order.status]}`}
+          className={`${ORDER_STATUS_PILL_BASE} ${ORDER_STATUS_PILL[order.status]}`}
         >
-          {order.status}
+          {ORDER_STATUS_LABEL[order.status]}
         </span>
 
         <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">

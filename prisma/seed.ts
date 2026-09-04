@@ -1,17 +1,22 @@
 /**
- * Seeds the vehicle taxonomy (`VehicleTypeSpec`) and its pricing rules.
+ * Seeds the data a database needs before the app is usable: the vehicle
+ * taxonomy (`VehicleTypeSpec`) with its pricing rules, and the payment methods
+ * the platform accepts (`PaymentMethodConfig`).
  *
  * IMPORTANT: every rate and spec below is an ILLUSTRATIVE PLACEHOLDER, not a real
  * business figure. They exist so the pricing engine and booking UI have coherent
  * data to work against; replace them before anything goes live.
  *
- * The seed is idempotent — it upserts on `VehicleTypeSpec.code`, so re-running it
- * retunes existing rows rather than duplicating them.
+ * The seed is idempotent — it upserts on `VehicleTypeSpec.code` and on
+ * `PaymentMethodConfig.type`, so re-running it retunes existing rows rather than
+ * duplicating them.
  *
  * Run with: pnpm exec prisma db seed
  */
 import {
+  ChassisType,
   LoadingAccessType,
+  PaymentMethodType,
   PrismaClient,
   VehicleCategory,
 } from "@prisma/client";
@@ -44,6 +49,22 @@ type VehicleTypeSeed = {
   /// zero-height limit.
   cargoHeightM: number;
   loadingAccessType: LoadingAccessType;
+  /// The load spaces this type can serve, in the order a client would think of
+  /// them: the body the vehicle is bought for first, then any it also satisfies.
+  ///
+  /// A reefer can run its box dry, so both refrigerated types offer
+  /// `REFRIGERATED` and `DRY_BOX`. A curtainsider opens fully along both sides,
+  /// so it satisfies an open-chassis requirement as well as a dry one. A flatbed
+  /// has no enclosure at all and offers only `OPEN_CHASSIS`.
+  ///
+  /// Note this is a capability list, not a price band: there is deliberately no
+  /// body surcharge, because the catalogue already prices Refrigerated Van above
+  /// Closed Box Van and a surcharge would charge that premium twice.
+  ///
+  /// AWAITING SIGN-OFF — see specs/client-dashboard-booking-and-payment/
+  /// action-required.md. The mapping below is a judgement call from the physical
+  /// specs, not an operator's ruling.
+  bodyTypes: ChassisType[];
   pricing: {
     baseFare: number;
     pricePerKm: number;
@@ -67,6 +88,7 @@ const VEHICLE_TYPE_SEEDS: VehicleTypeSeed[] = [
     cargoWidthM: 1.4,
     cargoHeightM: 1.3,
     loadingAccessType: LoadingAccessType.REAR_DOOR,
+    bodyTypes: [ChassisType.DRY_BOX],
     pricing: {
       baseFare: 8,
       pricePerKm: 1.2,
@@ -86,6 +108,7 @@ const VEHICLE_TYPE_SEEDS: VehicleTypeSeed[] = [
     cargoWidthM: 1.3,
     cargoHeightM: 1.1,
     loadingAccessType: LoadingAccessType.REAR_DOOR,
+    bodyTypes: [ChassisType.DRY_BOX],
     pricing: {
       baseFare: 7,
       pricePerKm: 1.1,
@@ -105,6 +128,7 @@ const VEHICLE_TYPE_SEEDS: VehicleTypeSeed[] = [
     cargoWidthM: 1.6,
     cargoHeightM: 1.6,
     loadingAccessType: LoadingAccessType.REAR_DOOR,
+    bodyTypes: [ChassisType.DRY_BOX],
     pricing: {
       baseFare: 10,
       pricePerKm: 1.4,
@@ -124,6 +148,7 @@ const VEHICLE_TYPE_SEEDS: VehicleTypeSeed[] = [
     cargoWidthM: 1.7,
     cargoHeightM: 1.8,
     loadingAccessType: LoadingAccessType.SIDE_DOOR,
+    bodyTypes: [ChassisType.DRY_BOX],
     pricing: {
       baseFare: 12,
       pricePerKm: 1.6,
@@ -143,6 +168,7 @@ const VEHICLE_TYPE_SEEDS: VehicleTypeSeed[] = [
     cargoWidthM: 1.6,
     cargoHeightM: 1.6,
     loadingAccessType: LoadingAccessType.REAR_DOOR,
+    bodyTypes: [ChassisType.REFRIGERATED, ChassisType.DRY_BOX],
     pricing: {
       baseFare: 14,
       pricePerKm: 1.8,
@@ -162,6 +188,7 @@ const VEHICLE_TYPE_SEEDS: VehicleTypeSeed[] = [
     cargoWidthM: 2.1,
     cargoHeightM: 2.2,
     loadingAccessType: LoadingAccessType.TAIL_LIFT,
+    bodyTypes: [ChassisType.DRY_BOX],
     pricing: {
       baseFare: 25,
       pricePerKm: 2.4,
@@ -182,6 +209,7 @@ const VEHICLE_TYPE_SEEDS: VehicleTypeSeed[] = [
     // Open bed, no cargo box — see the `cargoHeightM` note above.
     cargoHeightM: 0,
     loadingAccessType: LoadingAccessType.OPEN_FLATBED,
+    bodyTypes: [ChassisType.OPEN_CHASSIS],
     pricing: {
       baseFare: 28,
       pricePerKm: 2.6,
@@ -201,6 +229,7 @@ const VEHICLE_TYPE_SEEDS: VehicleTypeSeed[] = [
     cargoWidthM: 2.4,
     cargoHeightM: 2.4,
     loadingAccessType: LoadingAccessType.SIDE_DOOR,
+    bodyTypes: [ChassisType.DRY_BOX, ChassisType.OPEN_CHASSIS],
     pricing: {
       baseFare: 32,
       pricePerKm: 2.9,
@@ -220,6 +249,7 @@ const VEHICLE_TYPE_SEEDS: VehicleTypeSeed[] = [
     cargoWidthM: 2.2,
     cargoHeightM: 2.2,
     loadingAccessType: LoadingAccessType.TAIL_LIFT,
+    bodyTypes: [ChassisType.REFRIGERATED, ChassisType.DRY_BOX],
     pricing: {
       baseFare: 30,
       pricePerKm: 2.8,
@@ -239,6 +269,7 @@ const VEHICLE_TYPE_SEEDS: VehicleTypeSeed[] = [
     cargoWidthM: 2.5,
     cargoHeightM: 2.6,
     loadingAccessType: LoadingAccessType.TAIL_LIFT,
+    bodyTypes: [ChassisType.DRY_BOX],
     pricing: {
       baseFare: 45,
       pricePerKm: 3.5,
@@ -285,6 +316,7 @@ const VEHICLE_TYPE_SEEDS: VehicleTypeSeed[] = [
     // loading and are not a 24 t articulated semi-trailer's capability, so
     // claiming one here would mis-sell the vehicle to clients reading the picker.
     loadingAccessType: LoadingAccessType.REAR_DOOR,
+    bodyTypes: [ChassisType.DRY_BOX],
     pricing: {
       // Exactly 1.5x `LARGE_FREIGHT_TRUCK` — the largest vehicle in the
       // catalogue — on every vehicle-specific money figure, per the rate
@@ -304,6 +336,63 @@ const VEHICLE_TYPE_SEEDS: VehicleTypeSeed[] = [
   },
 ];
 
+/** How one payment method is seeded. See `PAYMENT_METHOD_SEEDS`. */
+type PaymentMethodSeed = {
+  isEnabled: boolean;
+  /**
+   * Whether a re-run forces `isEnabled` back to the value above, or leaves
+   * whatever the admin finance page last set.
+   *
+   * This is the one genuinely contested decision in this file, so it is a
+   * per-method flag rather than a blanket rule. Stamping over an admin's
+   * deliberate toggle on every re-seed would be surprising; but leaving every
+   * row alone would mean the seed never fixes the database it was written for.
+   * Both halves are true of different methods, so both are expressed.
+   */
+  reassertOnReseed: boolean;
+};
+
+/**
+ * The payment methods the platform accepts out of the box, keyed by the
+ * generated Prisma enum so a new `PaymentMethodType` is a type error here until
+ * somebody decides whether it ships on or off — the same reasoning
+ * `GET /api/admin/finance/payment-methods` applies when it derives its table
+ * from `Object.values(PaymentMethodType)`.
+ *
+ * Without these rows the booking flow is unusable rather than merely limited.
+ * `POST /api/orders` treats a missing `PaymentMethodConfig` as a disabled one
+ * (fail-closed, deliberately), and the rows are otherwise created only lazily —
+ * and disabled — the first time an admin opens the finance page. So on a fresh
+ * database every `paymentMethodType` is refused and the payment step rejects
+ * every booking, including the "Pay later" choice the design makes an
+ * always-available first-class option. "Pay later" is `CASH`, which is why
+ * `CASH` is the one method seeded on.
+ */
+const PAYMENT_METHOD_SEEDS: Record<PaymentMethodType, PaymentMethodSeed> = {
+  // The platform's floor, not a preference: cash on delivery needs no
+  // integration, and the client booking flow's "Pay later" maps onto it, so a
+  // database with `CASH` off cannot take a booking at all. That is a broken
+  // database rather than a configured one, so a re-seed re-asserts it — the
+  // seed's job is to leave a database bookable, and re-seeding is a deliberate
+  // developer act on a development database, never something production does.
+  // An operator who really wants cash switched off can switch it off after; the
+  // finance page still owns the toggle.
+  [PaymentMethodType.CASH]: { isEnabled: true, reassertOnReseed: true },
+  // Off, and left off by a re-run because whether cards are offered is an
+  // operator's decision, not this file's. The switch is real but the
+  // integration behind it is not — no gateway is wired up, which is what the
+  // admin page tells staff in as many words: "Gateway integration pending —
+  // enabling this does not charge cards yet."
+  [PaymentMethodType.CARD]: { isEnabled: false, reassertOnReseed: false },
+  // Off for the same reason as `CARD`: bank transfer needs settlement details
+  // and a reconciliation process the platform has not agreed yet. Turning it on
+  // is a business decision, and a re-seed must not undo one.
+  [PaymentMethodType.BANK_TRANSFER]: {
+    isEnabled: false,
+    reassertOnReseed: false,
+  },
+};
+
 async function main(): Promise<void> {
   for (const { pricing, ...spec } of VEHICLE_TYPE_SEEDS) {
     await prisma.vehicleTypeSpec.upsert({
@@ -321,10 +410,30 @@ async function main(): Promise<void> {
     });
   }
 
+  // Iterated over the enum rather than over the record's own keys so the order
+  // is the schema's declaration order, and so the loop reads the same way as
+  // the admin endpoint that lists the same three methods.
+  for (const type of Object.values(PaymentMethodType)) {
+    const { isEnabled, reassertOnReseed } = PAYMENT_METHOD_SEEDS[type];
+
+    await prisma.paymentMethodConfig.upsert({
+      where: { type },
+      create: { type, isEnabled },
+      // An empty `update` is a no-op, which is exactly what a method the admin
+      // owns should get: the row keeps whatever the finance page last set.
+      update: reassertOnReseed ? { isEnabled } : {},
+    });
+  }
+
   const seeded = await prisma.vehicleTypeSpec.count();
+  const enabledMethods = await prisma.paymentMethodConfig.count({
+    where: { isEnabled: true },
+  });
   // `console.log` is disallowed by the project's lint rules; this is a CLI
   // script, so write to stdout directly.
-  process.stdout.write(`Seeded ${seeded} vehicle type specs.\n`);
+  process.stdout.write(
+    `Seeded ${seeded} vehicle type specs and ${Object.keys(PAYMENT_METHOD_SEEDS).length} payment methods (${enabledMethods} enabled).\n`,
+  );
 }
 
 main()

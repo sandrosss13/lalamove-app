@@ -37,6 +37,10 @@ export async function GET(): Promise<NextResponse> {
       cargoWidthM: true,
       cargoHeightM: true,
       loadingAccessType: true,
+      // The load spaces this type serves, the booking form's body filter. Part
+      // of the public projection because the filter is a client-side narrowing
+      // of this same list — see the `bodyTypes` doc comment in the schema.
+      bodyTypes: true,
       imageUrl: true,
       pricingRule: {
         select: {

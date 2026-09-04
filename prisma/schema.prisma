@@ -39,6 +39,7 @@ model User {
   logisticsCompany LogisticsCompany?
   orders           Order[]           @relation("ClientOrders")
   deliveries       Order[]           @relation("DriverDeliveries")
+  savedCards       SavedCard[]
 
   // Admin back-office relations. `systemUserProfile` exists only for internal
   // staff (role ADMIN); the other two exist for any user — `auditLogs` records
@@ -218,17 +219,39 @@ enum OrderStatus {
   CANCELLED
 }
 
+/// The tier a client picks at booking: `PRIORITY` pays a premium for the front of
+/// the queue, `REGULAR` is the default, `POOLING` accepts a shared, slower run for
+/// a discount. Its effect on the fare is itemised on `Order.serviceLevelAdjustment`.
+///
+/// Recorded, not yet acted on: dispatch does not read this value in its current
+/// form, so no client-facing copy may promise a faster pickup.
+enum ServiceLevel {
+  PRIORITY
+  REGULAR
+  POOLING
+}
+
 /// Broad duty class of a supported vehicle type.
 enum VehicleCategory {
   MEDIUM_DUTY
   HEAVY_DUTY
 }
 
-/// The physical body of a vehicle, collected during onboarding. Display and
-/// compliance-review only — it does not participate in order matching or
-/// pricing, both of which continue to key on `Vehicle.vehicleTypeSpecId`
-/// alone. See the `driver-vehicle-onboarding` spec's vehicle-classes mapping
-/// for how (class, chassis type) resolves to a specific `VehicleTypeSpec`.
+/// The physical body — the load space — of a vehicle. Collected during
+/// onboarding on `Vehicle.chassisType`, declared per catalogue entry on
+/// `VehicleTypeSpec.bodyTypes`, and recorded on `Order.bodyType` as the body
+/// the client asked for.
+///
+/// It takes no part in *pricing*: the catalogue already discriminates by body
+/// (Refrigerated Van is its own `VehicleTypeSpec` with its own `PricingRule`,
+/// priced above Closed Box Van), so there is deliberately no body surcharge on
+/// top. It does now take part in the client's vehicle *filter* — the booking
+/// form narrows the vehicle grid to types whose `bodyTypes` contain the chosen
+/// value. Dispatch still matches on `Vehicle.vehicleTypeSpecId` alone and never
+/// reads `Vehicle.chassisType`, which is nullable for every vehicle onboarded
+/// before it existed. See the `driver-vehicle-onboarding` spec's vehicle-classes
+/// mapping for how (class, chassis type) resolves to a specific
+/// `VehicleTypeSpec`.
 enum ChassisType {
   DRY_BOX
   REFRIGERATED
@@ -353,6 +376,16 @@ model VehicleTypeSpec {
   /// literal zero-height constraint.
   cargoHeightM      Float
   loadingAccessType LoadingAccessType
+  /// Which load spaces this vehicle type offers. Drives the client-facing body
+  /// filter on the booking form, so the taxonomy owns the mapping rather than a
+  /// literal table inside a component — a new vehicle type is filterable the
+  /// moment it is seeded, with no code change.
+  ///
+  /// A list, not a single value, because several types genuinely serve more than
+  /// one body: a reefer can run its box dry, and a curtainsider opens along both
+  /// sides. Empty by default, which reads as "offers no body the filter knows
+  /// about" and simply hides the type from every filtered grid until seeded.
+  bodyTypes         ChassisType[]
   /// Public Supabase Storage URL of a marketing photo for this vehicle class,
   /// set by a content manager from the back office (never by a driver, and
   /// never by the seed). It lives in the public `site-media` bucket, so the
@@ -795,6 +828,13 @@ model Order {
   cargoCategory CargoCategory
   description   String?
 
+  // The load space the client asked for, used to narrow the vehicle picker at
+  // booking time and shown to whoever runs the job. Nullable: every order placed
+  // before the filter existed has none, and there is nothing to derive one from.
+  // It carries no price of its own — see the `ChassisType` doc comment for why a
+  // body surcharge would double-charge the catalogue.
+  bodyType ChassisType?
+
   // Extra helpers requested *beyond* the driver, 0-3. The booking form asks for
   // a total crew size of 1-4 people, where 1 is the driver working alone, so the
   // number shown to the client is always this one plus one — store the extras,
@@ -816,6 +856,22 @@ model Order {
   dropoffLat     Float?
   dropoffLng     Float?
 
+  // Contact at each end of the job. All optional: the booking form presents them
+  // as optional and never blocks on them. Surfaced to the driver and to company
+  // ops so whoever turns up knows who to ask for. Six columns rather than a
+  // `StopContact` relation because an order carries exactly one pickup and one
+  // dropoff address today; if multi-stop arrives, the relation is the right shape
+  // and this is reversible.
+  pickupContactName     String?
+  pickupContactPhone    String?
+  /// Block, floor or room at the pickup — free text, because Georgian addresses
+  /// vary too much to structure.
+  pickupContactDetails  String?
+  dropoffContactName    String?
+  dropoffContactPhone   String?
+  /// Block, floor or room at the dropoff.
+  dropoffContactDetails String?
+
   // Itemised quote, kept alongside the total so a completed order still shows how
   // its price was reached even after the underlying PricingRule is retuned.
   // `price` is the up-front quoted total (base + distance + time + helper, floored
@@ -827,6 +883,17 @@ model Order {
   helperFee    Float @default(0)
   overtimeFee  Float @default(0)
   price        Float
+
+  // The tier the client chose. `@default(REGULAR)` backfills every order placed
+  // before the picker existed to the value it was in fact served at.
+  serviceLevel ServiceLevel @default(REGULAR)
+
+  // The tier's effect on the fare, itemised rather than folded into `price` so the
+  // breakdown above still reconciles against its own total and the minimum-fare
+  // floor keeps meaning what it says. Positive for PRIORITY, negative for POOLING,
+  // zero for REGULAR. Always derived server-side from `serviceLevel` — the figure
+  // the client's browser displays is never trusted.
+  serviceLevelAdjustment Float @default(0)
 
   vehicleTypeSpecId String
   vehicleTypeSpec   VehicleTypeSpec @relation(fields: [vehicleTypeSpecId], references: [id])
@@ -854,6 +921,23 @@ model Order {
   // delivery order settled off-platform may never have one.
   payment Payment?
 
+  // How the client said they would settle, and which saved card they picked if
+  // they chose one. Both nullable: orders placed before the payment step existed
+  // have neither, and CASH and BANK_TRANSFER never name a card. No gateway is
+  // integrated, so this records an intention rather than an authorisation — the
+  // "pay later" option the client sees is `CASH` under a different label, not a
+  // fourth `PaymentMethodType` value.
+  paymentMethodType PaymentMethodType?
+  savedCardId       String?
+  // Nulled rather than cascaded: removing a card must not erase the orders it
+  // was chosen for.
+  savedCard         SavedCard?         @relation(fields: [savedCardId], references: [id], onDelete: SetNull)
+
+  // Business clients only. A free-text purchase-order number or cost-centre code
+  // the client's own finance team needs on the record. Individual clients never
+  // see the field, so an individual's order always has null here.
+  purchaseOrderRef String?
+
   inTransitAt    DateTime?
   completedAt    DateTime?
   // Total loading/unloading minutes reported at completion; only the part beyond
@@ -867,6 +951,10 @@ model Order {
   @@index([driverId])
   @@index([companyId])
   @@index([vehicleId])
+  // Indexed because of `onDelete: SetNull`: without it Postgres sequentially
+  // scans every order to find referencing rows on each card deletion, which
+  // DELETE /api/saved-cards/[id] performs on demand.
+  @@index([savedCardId])
   @@index([status])
 }
 
@@ -1066,6 +1154,57 @@ model PaymentMethodConfig {
   config    Json?
   createdAt DateTime          @default(now())
   updatedAt DateTime          @updatedAt
+}
+
+/// A card a client has added to their payment methods, for display and for
+/// pre-selection at checkout.
+///
+/// NO PAN AND NO CVC IS EVER STORED, TRANSMITTED OR LOGGED. The card number and
+/// security code are entered in the browser, used there to derive `brand` and
+/// `last4`, and discarded; neither ever reaches this server, so neither can reach
+/// this table. `providerToken` is the column a real gateway's token would occupy
+/// once a provider is chosen (see action-required.md) — it is null for every row
+/// this app can currently create, and it is a token, never a card number.
+///
+/// Nothing here can charge anybody. Until a gateway exists, a row is a label on a
+/// payment intention, and an order chosen against one is still settled off-platform.
+model SavedCard {
+  id       String @id @default(cuid())
+  clientId String
+  client   User   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  /// The gateway's own opaque handle for this card. Null until a provider is
+  /// chosen. Never a PAN. Unique so the same card cannot be tokenised twice.
+  providerToken String? @unique
+  /// The gateway that issued `providerToken`, left a plain string for the same
+  /// reason as `Payment.provider`: no provider is chosen yet.
+  provider      String?
+
+  /// Display only, both derived in the browser from a number that is never sent
+  /// here: the scheme name (e.g. "Visa") and the last four digits.
+  brand      String
+  last4      String
+  expMonth   Int
+  expYear    Int
+  holderName String?
+  /// At most one default per client, enforced by the database: a partial unique
+  /// index on `("clientId") WHERE "isDefault"`. Prisma's schema language cannot
+  /// express a partial index — `@@unique` has no WHERE clause — so it is
+  /// declared only in SQL, by the migration
+  /// `20260903060000_saved_card_default_unique`.
+  ///
+  /// The write path still demotes the previous default before promoting the new
+  /// one, in a single transaction; the index is what makes that ordering hold
+  /// under concurrency, where two transactions would otherwise each demote a
+  /// snapshot taken before the other's uncommitted write.
+  isDefault  Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders Order[]
+
+  @@index([clientId])
 }
 
 enum PaymentStatus {

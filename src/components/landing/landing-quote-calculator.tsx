@@ -8,6 +8,7 @@ import {
   CARGO_CATEGORY_ALLOWED_VEHICLE_CATEGORIES,
   CARGO_CATEGORY_LABELS,
 } from "@/lib/cargo";
+import { formatGel } from "@/components/landing/landing-format";
 import { useLandingVehicleTypes } from "@/components/landing/landing-vehicle-types";
 import {
   DEFAULT_HOME_PAGE_CONTENT,
@@ -157,7 +158,7 @@ export function LandingQuoteCalculator({
   // page doesn't need, and it made this form's quote depend on a required
   // picker staying in sync with a background fetch. The cheapest type
   // eligible for the chosen cargo is used instead, same as a shopper sees a
-  // "from $X" price before configuring anything.
+  // "from ₾X" price before configuring anything.
   const cheapestVehicleType =
     availableVehicleTypes.length > 0
       ? availableVehicleTypes.reduce((cheapest, vehicleType) =>
@@ -468,7 +469,7 @@ export function LandingQuoteCalculator({
                 <div className="min-w-0">
                   <dt className={PANEL_LABEL_CLASSES}>Your estimate</dt>
                   <dd className="mt-1.5 font-price text-[2.125rem] leading-none font-semibold tracking-[-0.03em] text-accent">
-                    {estimate ? `$${estimate.price.toFixed(2)}` : EMPTY_STAT}
+                    {estimate ? formatGel(estimate.price) : EMPTY_STAT}
                   </dd>
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-2 text-right">
@@ -497,7 +498,7 @@ export function LandingQuoteCalculator({
                         Transportation cost
                       </dt>
                       <dd className={BREAKDOWN_VALUE_CLASSES}>
-                        ${transportationCost(estimate).toFixed(2)}
+                        {formatGel(transportationCost(estimate))}
                       </dd>
                     </div>
                     {/* Only worth a line when at least one was requested. */}
@@ -505,7 +506,7 @@ export function LandingQuoteCalculator({
                       <div className="flex items-baseline justify-between gap-4">
                         <dt className={BREAKDOWN_TERM_CLASSES}>Helper Fee</dt>
                         <dd className={BREAKDOWN_VALUE_CLASSES}>
-                          ${estimate.helperFee.toFixed(2)}
+                          {formatGel(estimate.helperFee)}
                         </dd>
                       </div>
                     ) : null}

@@ -57,6 +57,26 @@ type AddressAutocompleteProps = {
    * the best available answer.
    */
   onLocationChange?: (location: LatLng | null) => void;
+  /**
+   * Called synchronously the instant a suggestion is picked, with that
+   * suggestion's own display text.
+   *
+   * Deliberately separate from `onLocationChange`, which cannot stand in for
+   * it: that one also fires on every keystroke (with `null`), and its only
+   * non-null call sits behind `/api/geocode/details` — a request this component
+   * lets fail in silence in three places, so a place can land in the input
+   * without it ever arriving. A caller reacting to the *selection itself*
+   * rather than to resolved coordinates has to hear about it here, or it hears
+   * about it on every character typed, or not at all.
+   *
+   * The label is the suggestion as Google rendered it, which is also what the
+   * input is set to in the same tick. The structured lookup may refine that
+   * string moments later through `onChange`; a caller displaying the address
+   * should keep reading the value it already owns rather than hold on to this.
+   *
+   * Optional, so every existing caller keeps working untouched.
+   */
+  onPlaceSelected?: (label: string) => void;
   placeholder?: string;
   required?: boolean;
 };
@@ -209,6 +229,7 @@ export function AddressAutocomplete({
   value,
   onChange,
   onLocationChange,
+  onPlaceSelected,
   placeholder,
   required,
 }: AddressAutocompleteProps) {
@@ -366,6 +387,11 @@ export function AddressAutocomplete({
       clearTimeout(blurRef.current);
     }
     onChange(suggestion.displayName);
+    // Announced here, before the structured lookup is even started: this is the
+    // one moment a selection is a certainty. `loadDetails` below may resolve, be
+    // superseded, or fail quietly, and none of that should decide whether the
+    // parent learns that the user picked an address.
+    onPlaceSelected?.(suggestion.displayName);
     setSuggestions([]);
     setOpen(false);
     void loadDetails(suggestion);

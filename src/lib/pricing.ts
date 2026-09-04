@@ -12,6 +12,9 @@
  * module, which reads env vars.
  */
 
+// `ServiceLevel` is imported as a value, not just a type: the exhaustive switch
+// in `serviceLevelAdjustment` matches on its enum members.
+import { ServiceLevel } from "@prisma/client";
 import type { CargoCategory, VehicleCategory } from "@prisma/client";
 
 import {
@@ -113,6 +116,68 @@ export type DeliveryEstimateResult =
 /** Round a currency amount to whole cents. */
 function roundCurrency(value: number): number {
   return Math.round(value * 100) / 100;
+}
+
+// Service-level tiers.
+//
+// The design prototype used a flat +25 for Priority. A flat fee is wrong across this
+// catalogue: +25 is a 200% uplift on an MPV (GEL 12 minimum fare) and 28% on a trailer
+// truck (GEL 90). Percentages scale with the job, which is what the tier is actually
+// pricing.
+//
+// These two figures are starting values, not signed-off rates — unlike every other
+// money figure in the app, which is attributed to the rate owner with a date
+// (see prisma/seed.ts:254-256). Tune them here when a rate lands.
+export const PRIORITY_UPLIFT = 0.25; // +25% of the quoted fare
+export const POOLING_DISCOUNT = 0.1; // −10% of the quoted fare
+
+/**
+ * The tier a fare is priced at. An alias of the generated `ServiceLevel` enum
+ * rather than a hand-written union: a fourth tier added to the schema must fail
+ * the exhaustiveness checks here rather than drift silently past them.
+ */
+export type ServiceLevelKey = ServiceLevel;
+
+/**
+ * The tier's effect on an already-quoted fare, as a signed amount in GEL.
+ *
+ * Applied to the final fare — i.e. after the minimum-fare floor — so a Pooling
+ * discount can take a job below the vehicle's minimum. That is intended: the client
+ * is being paid to accept a wider window, and the floor exists to protect against
+ * short-route underpricing, not against a deliberate discount.
+ */
+export function serviceLevelAdjustment(
+  level: ServiceLevelKey,
+  quotedPrice: number,
+): number {
+  switch (level) {
+    case ServiceLevel.PRIORITY:
+      return roundCurrency(quotedPrice * PRIORITY_UPLIFT);
+    case ServiceLevel.POOLING:
+      return roundCurrency(-quotedPrice * POOLING_DISCOUNT);
+    case ServiceLevel.REGULAR:
+      // Regular is the tier the quote is already priced at, so it adjusts by
+      // nothing. Spelled out as its own case rather than left to the default,
+      // which exists to catch tiers that do not yet have a rate.
+      return 0;
+    default: {
+      // The whole point of this branch: a fourth tier added to the schema fails
+      // to assign to `never` and breaks the build here, so nobody can ship a
+      // service level that silently prices at no adjustment at all.
+      const exhaustive: never = level;
+      throw new Error(`Unhandled service level: ${String(exhaustive)}`);
+    }
+  }
+}
+
+/** The fare a client pays at `level`, given the fare quoted for Regular. */
+export function priceForServiceLevel(
+  level: ServiceLevelKey,
+  quotedPrice: number,
+): number {
+  return roundCurrency(
+    quotedPrice + serviceLevelAdjustment(level, quotedPrice),
+  );
 }
 
 /**
