@@ -114,9 +114,10 @@ const MAX_PHONE_DIGITS = 15;
 
 /**
  * The design's success green. Written as an arbitrary `oklch` value rather than
- * a theme token because the only green in `globals.css` — `--ops-success` —
- * belongs to the ops console's palette, which this surface does not resolve.
- * The same call `step-1-auth-personal.tsx` and the wizard shell already make.
+ * a theme token because `globals.css` defines no success colour at all: the
+ * only green it ever had belonged to the retired ops console's palette, which
+ * this surface never resolved. The same call `step-1-auth-personal.tsx` and the
+ * wizard shell already make.
  */
 const ASSIGNED_PILL_CLASS =
   "border-transparent bg-[color-mix(in_oklch,oklch(0.5_0.13_145)_12%,var(--card))] text-[oklch(0.5_0.13_145)]";

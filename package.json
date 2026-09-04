@@ -7,11 +7,12 @@
     "seed": "tsx prisma/seed.ts"
   },
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -H ::",
     "build": "prisma generate && next build",
     "start": "next start",
     "postinstall": "prisma generate",
     "seed:super-admin": "tsx scripts/seed-super-admin.ts",
+    "seed:home-page": "tsx scripts/seed-home-page-content.ts",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "check": "pnpm lint && pnpm typecheck",

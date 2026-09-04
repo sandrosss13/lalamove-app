@@ -13,12 +13,12 @@ export type OnboardingToastState = {
  * ever has to call one function ("Fix the highlighted fields to continue." is
  * the copy every step's failed validation raises).
  *
- * Deliberately *not* `src/components/dashboard/ops/ops-toast.tsx`, which is the
- * same mechanism but styled from the `--ops-*` tokens of the dark console. This
- * wizard sits on the app's default light surface, so it gets the design's own
- * fixed bottom-centre treatment instead: `rgba(17,17,19,0.94)`, 11px radius,
- * fade-up 0.2s. Both files stay small; sharing one would mean parameterising a
- * component on a whole palette to save a dozen lines.
+ * Deliberately never shared with the retired ops console's own toast, which was
+ * the same mechanism styled from that console's dark palette. This wizard sits
+ * on the app's default light surface, so it gets the design's own fixed
+ * bottom-centre treatment instead: `rgba(17,17,19,0.94)`, 11px radius, fade-up
+ * 0.2s. Keeping them separate is what let the console be deleted without
+ * touching this file.
  */
 export function OnboardingToast({ toast }: { toast: OnboardingToastState }) {
   if (!toast) return null;

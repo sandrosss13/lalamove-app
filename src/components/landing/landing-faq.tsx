@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
+import Link from "next/link";
 
 import {
   DEFAULT_HOME_PAGE_CONTENT,
@@ -23,25 +24,41 @@ export function LandingFaq({
   const [openIndex, setOpenIndex] = useState<number | null>(0);
   const idPrefix = useId();
 
+  // The support link is a matched pair in the contract: both halves are
+  // optional, and a label without a destination would be a link to nowhere.
+  // Read into locals so the render narrows both without a cast.
+  const { supportLinkLabel, supportLinkHref } = content;
+
   return (
     <section
       id="faq"
-      className="scroll-mt-16 border-b border-line bg-ink py-20 sm:py-28"
+      className="scroll-mt-28 px-[clamp(20px,4vw,48px)] py-[clamp(56px,7vw,104px)]"
     >
-      <div className="mx-auto grid max-w-6xl gap-10 px-5 sm:px-8 lg:grid-cols-[20rem_1fr] lg:gap-16">
-        <div className="lg:sticky lg:top-24 lg:self-start">
-          <p className="text-[0.6875rem] font-semibold tracking-[0.24em] text-accent uppercase">
+      <div className="mx-auto flex w-full max-w-[1200px] flex-wrap gap-[clamp(28px,4vw,64px)]">
+        <div data-reveal className="flex-[1_1_280px]">
+          <p className="font-price text-[11px] tracking-[.18em] text-accent uppercase">
             {content.eyebrow}
           </p>
-          <h2 className="mt-4 font-display text-[clamp(2rem,4.5vw,3rem)] leading-[1.05] font-semibold tracking-[-0.025em] text-paper">
+          <h2 className="mt-4 font-display text-[clamp(28px,4vw,52px)] leading-[1.02] font-semibold tracking-[-.045em] text-balance text-paper">
             {content.heading}
           </h2>
-          <p className="mt-5 max-w-xs text-sm leading-relaxed text-muted">
+          <p className="mt-5 font-display text-[15px] leading-[1.6] text-pretty text-muted">
             {content.intro}
+            {supportLinkLabel && supportLinkHref ? (
+              <>
+                {" "}
+                <Link
+                  href={supportLinkHref}
+                  className="text-accent underline underline-offset-4 transition-colors hover:text-accent-hover"
+                >
+                  {supportLinkLabel}
+                </Link>
+              </>
+            ) : null}
           </p>
         </div>
 
-        <ul className="border-t border-line">
+        <ul data-reveal className="flex flex-[1_1_460px] flex-col gap-2.5">
           {content.items.map((item, index) => {
             const isOpen = openIndex === index;
             const buttonId = `${idPrefix}-question-${index}`;
@@ -50,7 +67,10 @@ export function LandingFaq({
             return (
               // Position, not question text: two entries are free to repeat a
               // question, and the open panel is already tracked by index.
-              <li key={index} className="border-b border-line">
+              <li
+                key={index}
+                className="rounded-2xl border border-line bg-surface"
+              >
                 <h3>
                   <button
                     type="button"
@@ -58,24 +78,19 @@ export function LandingFaq({
                     aria-expanded={isOpen}
                     aria-controls={panelId}
                     onClick={() => setOpenIndex(isOpen ? null : index)}
-                    className="group flex w-full items-center justify-between gap-6 py-5 text-left"
+                    className="group flex w-full items-center justify-between gap-6 px-6 py-5 text-left"
                   >
-                    <span className="font-display text-base leading-snug font-semibold text-paper transition-colors group-hover:text-accent sm:text-lg">
+                    <span className="font-display text-[16px] leading-snug font-semibold text-paper transition-colors group-hover:text-accent">
                       {item.question}
                     </span>
-                    {/* Two bars rather than a "+"/"−" glyph: collapsing the
-                        vertical one is a transition, where swapping characters
-                        would be a jump. */}
+                    {/* The design specifies a mono +/– pair rather than the
+                        animated two-bar glyph this component used to draw — a
+                        character swap, deliberately. */}
                     <span
                       aria-hidden="true"
-                      className="relative flex h-6 w-6 shrink-0 items-center justify-center text-muted transition-colors group-hover:text-accent"
+                      className="shrink-0 font-price text-[19px] leading-none text-accent"
                     >
-                      <span className="absolute h-px w-3.5 bg-current" />
-                      <span
-                        className={`absolute h-3.5 w-px bg-current transition-transform duration-300 ${
-                          isOpen ? "scale-y-0" : "scale-y-100"
-                        }`}
-                      />
+                      {isOpen ? "–" : "+"}
                     </span>
                   </button>
                 </h3>
@@ -87,7 +102,7 @@ export function LandingFaq({
                   role="region"
                   aria-labelledby={buttonId}
                   hidden={!isOpen}
-                  className="max-w-[62ch] pb-6 text-sm leading-relaxed text-muted"
+                  className="max-w-[72ch] px-6 pb-[22px] font-display text-[15px] leading-[1.7] text-pretty text-muted"
                 >
                   {item.answer}
                 </div>

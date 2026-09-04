@@ -42,9 +42,10 @@ const MIN_LICENCE_NUMBER_LENGTH = 5;
 
 /**
  * The design's success green (`GREEN` in the prototype). Written as an
- * arbitrary value rather than a theme token because the only green in
- * `globals.css` — `--ops-success` — belongs to the ops console's palette, which
- * this surface deliberately does not resolve.
+ * arbitrary value rather than a theme token because `globals.css` defines no
+ * success colour at all: the only green it ever had belonged to the retired ops
+ * console's palette, which this surface never resolved. Adding a global token
+ * for one pair of call sites is not worth it.
  */
 const UPLOADED_TEXT_CLASS = "text-[oklch(0.5_0.13_145)]";
 const UPLOADED_TILE_CLASS =

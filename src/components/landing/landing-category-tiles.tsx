@@ -241,7 +241,7 @@ export function LandingCategoryTiles({
   return (
     <section
       id="ship"
-      className="scroll-mt-16 border-b border-line bg-ink py-20 sm:py-28"
+      className="scroll-mt-28 border-b border-line bg-ink py-20 sm:py-28"
     >
       <div className="mx-auto max-w-6xl px-5 sm:px-8">
         <p className="text-[0.6875rem] font-semibold tracking-[0.14em] text-accent uppercase">

@@ -6,6 +6,8 @@ import { authorizeAdminApi } from "@/lib/admin/api-auth";
 import { writeAuditLog } from "@/lib/admin/audit";
 import { prisma } from "@/lib/prisma";
 
+import { checkHeroBannerCapacity } from "./validation";
+
 /**
  * Staff who may read and write promotional banners. Stated per route rather
  * than imported from one shared constant so the gate on each endpoint can be
@@ -336,6 +338,18 @@ export async function POST(request: Request): Promise<NextResponse> {
   const parsed = parseCreateBannerBody(rawBody);
   if ("error" in parsed) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
+  }
+
+  // A 409 rather than a 400: the body is well-formed and every field is valid,
+  // the conflict is with the other rows already in this locale's carousel.
+  const overCapacity = await checkHeroBannerCapacity({
+    locale: parsed.data.locale,
+    placement: parsed.data.placement,
+    isActive: parsed.data.isActive,
+  });
+
+  if (overCapacity !== null) {
+    return NextResponse.json({ error: overCapacity }, { status: 409 });
   }
 
   const banner = await prisma.banner.create({ data: parsed.data });

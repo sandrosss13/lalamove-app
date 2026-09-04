@@ -10,7 +10,8 @@ import { checkRateLimit } from "@/lib/rate-limit";
 /**
  * Per-IP budget for the endpoint. A visitor pricing a few routes stays well
  * under it, while a script cannot burn through the LocationIQ key — each
- * allowed call costs two geocode lookups.
+ * allowed call costs three LocationIQ requests: two geocode lookups plus the
+ * directions call that routes between them.
  */
 const RATE_LIMIT = { limit: 6, windowMs: 60_000 };
 
@@ -39,8 +40,16 @@ function getCallerKey(request: Request): string {
  *
  * Public by design: the marketing page's calculator lets visitors price a route
  * before signing up. It is rate-limited per caller because it spends the same
- * server-side LocationIQ key as the auth-gated endpoints, and it returns only
- * the distance and the fare breakdown — never the resolved coordinates.
+ * server-side LocationIQ key as the auth-gated endpoints.
+ *
+ * It returns the distance, the expected driving time and the fare breakdown,
+ * plus the road geometry the booking form draws on its preview map, and the
+ * geocoded pickup/dropoff points themselves — the caller already knows the
+ * addresses it asked about, but not the exact coordinates LocationIQ resolved
+ * them to, and the booking form needs those to place its markers on the same
+ * points the route and the price are actually based on (Google's Places
+ * autocomplete, which is what places the marker beforehand, can resolve a long
+ * street to a different point along it than LocationIQ does).
  */
 export async function POST(request: Request): Promise<NextResponse> {
   // Checked before parsing or geocoding so a flood costs almost nothing.
@@ -85,7 +94,11 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
   }
 
-  const { distanceKm, breakdown } = result.estimate;
+  const { pickup, dropoff, distanceKm, durationMinutes, routePath, breakdown } =
+    result.estimate;
 
-  return NextResponse.json({ distanceKm, ...breakdown }, { status: 200 });
+  return NextResponse.json(
+    { pickup, dropoff, distanceKm, durationMinutes, routePath, ...breakdown },
+    { status: 200 },
+  );
 }

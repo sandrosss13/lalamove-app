@@ -18,6 +18,21 @@ import {
 
 const prisma = new PrismaClient();
 
+/**
+ * Flat fee in Georgian Lari for ONE extra helper beyond the driver, charged per
+ * helper: `src/lib/pricing.ts` multiplies it by the order's `helperCount`.
+ *
+ * Unlike every other money figure in this file it does not vary by vehicle
+ * type — a pair of hands costs the same whether they are loading a minivan or a
+ * trailer truck — so it is written once here and shared by every rule below,
+ * rather than repeated as eleven independent numbers that could drift apart.
+ */
+const HELPER_FEE_PER_HELPER = 40;
+
+// `VehicleTypeSpec.imageUrl` is intentionally not part of this type. The
+// upsert below spreads a seed entry over the existing row, so a `null` here
+// would erase the marketing photo a content manager set every time the seed
+// was re-run. Photos are content, owned by the back office, not by the seed.
 type VehicleTypeSeed = {
   code: string;
   label: string;
@@ -35,6 +50,8 @@ type VehicleTypeSeed = {
     pricePerMinute: number;
     freeLoadingMinutes: number;
     overtimeRatePerMinute: number;
+    /// Charged once per helper on the booking, not once per order — always
+    /// `HELPER_FEE_PER_HELPER`, which is the same for every vehicle type.
     helperFee: number;
     minimumFare: number;
   };
@@ -56,7 +73,7 @@ const VEHICLE_TYPE_SEEDS: VehicleTypeSeed[] = [
       pricePerMinute: 0.15,
       freeLoadingMinutes: 15,
       overtimeRatePerMinute: 0.3,
-      helperFee: 10,
+      helperFee: HELPER_FEE_PER_HELPER,
       minimumFare: 15,
     },
   },
@@ -75,7 +92,7 @@ const VEHICLE_TYPE_SEEDS: VehicleTypeSeed[] = [
       pricePerMinute: 0.13,
       freeLoadingMinutes: 15,
       overtimeRatePerMinute: 0.25,
-      helperFee: 10,
+      helperFee: HELPER_FEE_PER_HELPER,
       minimumFare: 12,
     },
   },
@@ -94,7 +111,7 @@ const VEHICLE_TYPE_SEEDS: VehicleTypeSeed[] = [
       pricePerMinute: 0.18,
       freeLoadingMinutes: 20,
       overtimeRatePerMinute: 0.35,
-      helperFee: 12,
+      helperFee: HELPER_FEE_PER_HELPER,
       minimumFare: 18,
     },
   },
@@ -113,7 +130,7 @@ const VEHICLE_TYPE_SEEDS: VehicleTypeSeed[] = [
       pricePerMinute: 0.2,
       freeLoadingMinutes: 20,
       overtimeRatePerMinute: 0.4,
-      helperFee: 14,
+      helperFee: HELPER_FEE_PER_HELPER,
       minimumFare: 20,
     },
   },
@@ -132,7 +149,7 @@ const VEHICLE_TYPE_SEEDS: VehicleTypeSeed[] = [
       pricePerMinute: 0.22,
       freeLoadingMinutes: 20,
       overtimeRatePerMinute: 0.4,
-      helperFee: 14,
+      helperFee: HELPER_FEE_PER_HELPER,
       minimumFare: 22,
     },
   },
@@ -151,7 +168,7 @@ const VEHICLE_TYPE_SEEDS: VehicleTypeSeed[] = [
       pricePerMinute: 0.35,
       freeLoadingMinutes: 25,
       overtimeRatePerMinute: 0.6,
-      helperFee: 20,
+      helperFee: HELPER_FEE_PER_HELPER,
       minimumFare: 35,
     },
   },
@@ -171,7 +188,7 @@ const VEHICLE_TYPE_SEEDS: VehicleTypeSeed[] = [
       pricePerMinute: 0.38,
       freeLoadingMinutes: 25,
       overtimeRatePerMinute: 0.65,
-      helperFee: 22,
+      helperFee: HELPER_FEE_PER_HELPER,
       minimumFare: 40,
     },
   },
@@ -190,7 +207,7 @@ const VEHICLE_TYPE_SEEDS: VehicleTypeSeed[] = [
       pricePerMinute: 0.4,
       freeLoadingMinutes: 25,
       overtimeRatePerMinute: 0.7,
-      helperFee: 24,
+      helperFee: HELPER_FEE_PER_HELPER,
       minimumFare: 45,
     },
   },
@@ -209,7 +226,7 @@ const VEHICLE_TYPE_SEEDS: VehicleTypeSeed[] = [
       pricePerMinute: 0.4,
       freeLoadingMinutes: 25,
       overtimeRatePerMinute: 0.68,
-      helperFee: 22,
+      helperFee: HELPER_FEE_PER_HELPER,
       minimumFare: 42,
     },
   },
@@ -228,17 +245,20 @@ const VEHICLE_TYPE_SEEDS: VehicleTypeSeed[] = [
       pricePerMinute: 0.5,
       freeLoadingMinutes: 30,
       overtimeRatePerMinute: 0.9,
-      helperFee: 30,
+      helperFee: HELPER_FEE_PER_HELPER,
       minimumFare: 60,
     },
   },
   {
     // The physical spec (24 t, 13.60 x 2.48 x 2.70 m, HEAVY_DUTY) comes from the
     // approved design handoff. The `pricing` figures are the rate owner's rule,
-    // recorded 2026-08-29: every money figure is exactly 1.5x
+    // recorded 2026-08-29: every vehicle-specific money figure is exactly 1.5x
     // `LARGE_FREIGHT_TRUCK`'s, the largest vehicle in the catalogue. Keep them
     // derived from that row — if `LARGE_FREIGHT_TRUCK` is ever retuned, re-apply
     // the multiplier here rather than editing these numbers independently.
+    // `helperFee` is outside that rule: it is the platform-wide flat rate every
+    // vehicle type charges (see `HELPER_FEE_PER_HELPER`), and a helper's hour is
+    // not worth more for arriving on a bigger truck.
     //
     // This matters more here than the file header implies: there is no draft or
     // feature-flag state for a `VehicleTypeSpec`. `GET /api/vehicle-types` is a
@@ -248,9 +268,11 @@ const VEHICLE_TYPE_SEEDS: VehicleTypeSeed[] = [
     // order placed against it. Correcting them later is a one-line edit plus a
     // re-seed — the upsert retunes the row in place and keeps its id.
     //
-    // Every figure stays strictly above `LARGE_FREIGHT_TRUCK`'s so the catalogue
-    // remains monotonic; the "best fit" highlight compares `baseFare`, and a
-    // trailer priced under a smaller truck would make that highlight nonsense.
+    // Every vehicle-specific figure stays strictly above `LARGE_FREIGHT_TRUCK`'s
+    // so the catalogue remains monotonic; the "best fit" highlight compares
+    // `baseFare`, and a trailer priced under a smaller truck would make that
+    // highlight nonsense. (`helperFee` is deliberately equal across the
+    // catalogue and plays no part in that ordering.)
     code: "TRAILER_TRUCK",
     label: "Trailer Truck",
     category: VehicleCategory.HEAVY_DUTY,
@@ -265,8 +287,8 @@ const VEHICLE_TYPE_SEEDS: VehicleTypeSeed[] = [
     loadingAccessType: LoadingAccessType.REAR_DOOR,
     pricing: {
       // Exactly 1.5x `LARGE_FREIGHT_TRUCK` — the largest vehicle in the
-      // catalogue — on every money figure, per the rate owner's rule. Derived,
-      // not invented: 45/3.5/0.5/0.9/30/60 x 1.5.
+      // catalogue — on every vehicle-specific money figure, per the rate
+      // owner's rule. Derived, not invented: 45/3.5/0.5/0.9/60 x 1.5.
       baseFare: 67.5,
       pricePerKm: 5.25,
       pricePerMinute: 0.75,
@@ -276,7 +298,7 @@ const VEHICLE_TYPE_SEEDS: VehicleTypeSeed[] = [
       // the number the overtime rate above starts charging after.
       freeLoadingMinutes: 40,
       overtimeRatePerMinute: 1.35,
-      helperFee: 45,
+      helperFee: HELPER_FEE_PER_HELPER,
       minimumFare: 90,
     },
   },

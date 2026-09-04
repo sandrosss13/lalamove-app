@@ -1,11 +1,10 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { LogOut } from "lucide-react";
 
-import { signOut } from "@/lib/auth-client";
+import { useSignOut } from "@/components/auth/use-sign-out";
 import { cn } from "@/lib/utils";
 
 /**
@@ -45,17 +44,10 @@ function isNavItemActive(pathname: string, href: string): boolean {
  */
 export function AccountSidebar() {
   const pathname = usePathname();
-  const router = useRouter();
-  const [signingOut, setSigningOut] = useState(false);
-
-  async function handleSignOut() {
-    setSigningOut(true);
-    await signOut();
-    // Mirrors `AuthStatus`'s own sign-out: every server component above this
-    // one rendered against a session that no longer exists, so the tree has to
-    // re-render before it stops showing signed-in content.
-    router.refresh();
-  }
+  // Shared with every other sign-out control in the app; `useSignOut` owns both
+  // the destination and the in-flight `signingOut` flag this rail's button
+  // renders from.
+  const { signOut, signingOut } = useSignOut();
 
   return (
     <aside className="lg:sticky lg:top-8 lg:h-[calc(100vh-6rem)] lg:w-56 lg:shrink-0">
@@ -88,7 +80,7 @@ export function AccountSidebar() {
             mobile it is a plain block that follows the nav. */}
         <button
           type="button"
-          onClick={() => void handleSignOut()}
+          onClick={() => void signOut()}
           disabled={signingOut}
           className="mt-8 inline-flex items-center gap-2 self-start text-sm font-medium text-muted transition-colors hover:text-accent disabled:opacity-50 lg:mt-auto"
         >

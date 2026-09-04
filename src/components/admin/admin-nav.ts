@@ -142,6 +142,14 @@ export const ADMIN_NAV: AdminNavSection[] = [
         href: "/admin/content/home-page",
         adminRoles: ["SUPER_ADMIN", "CONTENT_MANAGER"],
       },
+      {
+        // The marketing photo on each `VehicleTypeSpec`, and nothing else about
+        // one: payload, dimensions and pricing are operational data that drives
+        // order matching, so they stay out of the back office entirely.
+        label: "Vehicle Photos",
+        href: "/admin/content/vehicle-photos",
+        adminRoles: ["SUPER_ADMIN", "CONTENT_MANAGER"],
+      },
     ],
   },
   {

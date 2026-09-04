@@ -1,0 +1,596 @@
+"use client";
+
+import * as React from "react";
+
+import { useHubSubtitle } from "@/components/driver-hub/driver-hub-shell";
+import {
+  FilterStrip,
+  HubCard,
+  HubEmptyState,
+  HubStatusBadge,
+  MasterDetailSplit,
+  MetricTile,
+  SampleNote,
+  type FilterStripItem,
+} from "@/components/driver-hub/hub-primitives";
+import { VehiclesAddForm } from "@/components/driver-hub/screens/vehicles-add-form";
+import { VehiclesDetailPanel } from "@/components/driver-hub/screens/vehicles-detail-panel";
+import {
+  formatGel,
+  formatOdometer,
+  pluralise,
+} from "@/components/driver-hub/screens/vehicles-format";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import type { HubVehicle, HubVehiclesData } from "@/lib/dashboard/hub/vehicles";
+import { cn } from "@/lib/utils";
+
+/**
+ * Vehicles — the fleet a company owns, or the vehicle one driver drives.
+ *
+ * One screen for both account kinds, because `getHubVehicles()` already
+ * resolved the scope difference: the only thing that changes here is the
+ * wording of a tile label and of the empty state, since "Fleet cost per km"
+ * reads absurdly on an account with exactly one van.
+ *
+ * ## What the design asks for and what ships
+ *
+ * The handoff's tab strip has five entries (All / Active / In service / Idle /
+ * Defleeted) and its destructive action is a reversible defleet. Neither can be
+ * honest: `Vehicle` has no lifecycle column, so `HubVehicleStatus` is the two
+ * states an open `DriverVehicleAssignment` can actually distinguish, and the
+ * remove endpoint is a hard delete. Rather than render three tabs that would
+ * always be empty, this screen offers only the ones its data can fill — plus a
+ * **Needs review** tab, which is not in the design but *is* real: a PENDING or
+ * FLAGGED `BusinessApplicationVehicle` blocks dispatch, and an operator has no
+ * other place on this screen to find the vehicles it is blocking. That tab
+ * appears only when at least one vehicle is in one of those states, so it is
+ * never a dead pill either.
+ *
+ * ## Sample data
+ *
+ * Two of the six columns — Odometer and Cost/km — and the fourth tile are
+ * invented (see the `sampled` sub-object in `src/lib/dashboard/hub/vehicles.ts`).
+ * The columns are marked **once, on their headers**, with a legend in the
+ * toolbar: badging 40 identical cells would drown the table it is meant to
+ * qualify, and the marker belongs to the column rather than to any one row.
+ *
+ * ## Selection
+ *
+ * The right rail shows one thing at a time and the screen owns which: opening
+ * the add form clears the selection, selecting a row closes the add form, and
+ * either one disarms the panel's two-step remove. The armed flag lives up here
+ * for exactly that reason — a flag inside the panel would survive a re-render
+ * into a different vehicle and turn one stray click into the wrong deletion.
+ */
+
+/* -------------------------------------------------------------------------- */
+/* Filters                                                                    */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The tabs every fleet can fill. `HubVehicleStatus` is `"Active" | "Idle"`, so
+ * these three are exhaustive — there is deliberately no "In service" or
+ * "Defleeted" here.
+ */
+const BASE_TABS = [
+  { value: "All", label: "All" },
+  { value: "Active", label: "Active" },
+  { value: "Idle", label: "Idle" },
+] as const satisfies readonly FilterStripItem[];
+
+/** Appended only when some vehicle is actually in a blocking review state. */
+const REVIEW_TAB = {
+  value: "Needs review",
+  label: "Needs review",
+} as const satisfies FilterStripItem;
+
+type VehiclesTab =
+  (typeof BASE_TABS)[number]["value"] | (typeof REVIEW_TAB)["value"];
+
+/**
+ * Whether this vehicle's fleet application is holding it back. `null` (no
+ * review row at all) and `APPROVED` are both fine — that is the same gate
+ * `dispatchable` encodes.
+ */
+function needsReview(vehicle: HubVehicle): boolean {
+  return (
+    vehicle.reviewStatus === "PENDING" || vehicle.reviewStatus === "FLAGGED"
+  );
+}
+
+/** `FilterStrip` hands back a plain string; this is the narrowing back. */
+function isVehiclesTab(value: string): value is VehiclesTab {
+  return (
+    BASE_TABS.some((item) => item.value === value) || value === REVIEW_TAB.value
+  );
+}
+
+/**
+ * The review verdict as a status pill, in the design's own vocabulary — the
+ * same mapping the detail panel uses, so a row and its panel cannot disagree.
+ * Only the two blocking verdicts appear; `APPROVED` is the silent default.
+ */
+const REVIEW_BADGE: Record<
+  "PENDING" | "FLAGGED",
+  { status: string; label: string }
+> = {
+  PENDING: { status: "Pending", label: "In review" },
+  FLAGGED: { status: "Suspended", label: "Flagged" },
+};
+
+/* -------------------------------------------------------------------------- */
+/* Table geometry                                                             */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The design's data table is a CSS grid, not a `<table>` layout — fractional
+ * and fixed tracks side by side, which no table-layout algorithm reproduces.
+ * So the rows are grids, the table element is a block, and every table role is
+ * restated explicitly: a `display` other than `table` is enough for some
+ * browsers to drop the implicit roles, and this *is* tabular data.
+ *
+ * Static class strings rather than an inline `gridTemplateColumns` so Tailwind
+ * can see the tracks at build time. Widths are the handoff's, verbatim.
+ */
+const COLUMNS_FULL =
+  "grid-cols-[1.4fr_100px_110px_90px_90px_120px] min-w-[780px]";
+const COLUMNS_SPLIT = "grid-cols-[1.6fr_1fr_120px] min-w-[420px]";
+
+const HEAD_CLASSES =
+  "h-auto px-0 pb-2.5 text-[11px] font-medium tracking-[0.08em] uppercase text-muted-foreground";
+const CELL_CLASSES = "min-w-0 px-0 py-3.5";
+
+/* -------------------------------------------------------------------------- */
+/* Honesty copy                                                               */
+/* -------------------------------------------------------------------------- */
+
+const SAMPLED_COLUMNS_NOTE =
+  "Odometer and cost per km are placeholders: nothing records a reading or a " +
+  "cost against a vehicle. Retire with Vehicle.odometerKm and a VehicleExpense " +
+  "model.";
+
+const FLEET_COST_NOTE =
+  "No fuel, service, insurance or toll charge is recorded against any " +
+  "vehicle, so there is nothing to average. Retire with a VehicleExpense " +
+  "model.";
+
+/**
+ * The accent orange, spelled out rather than imported: `hub-primitives.tsx`
+ * keeps its own copy private, and Tailwind scans source text, so a class built
+ * from a shared variable would never be generated anyway.
+ */
+const ACCENT_DOT_CLASSES =
+  "size-1.5 shrink-0 rounded-full bg-[oklch(64%_0.19_48)]";
+
+/**
+ * A column header for a sampled column: the label, the accent dot that ties it
+ * to the toolbar's legend, and the explanation for assistive tech. Cheaper than
+ * a `<SampleNote />` badge, which does not fit a 90px track — and correct,
+ * because the placeholder is a property of the column, not of each cell.
+ */
+function SampledHead({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="inline-flex items-center gap-1">
+      {children}
+      <span
+        aria-hidden="true"
+        title={SAMPLED_COLUMNS_NOTE}
+        className={ACCENT_DOT_CLASSES}
+      />
+      <span className="sr-only"> — sample data. {SAMPLED_COLUMNS_NOTE}</span>
+    </span>
+  );
+}
+
+export type VehiclesScreenProps = {
+  data: HubVehiclesData;
+};
+
+export function VehiclesScreen({ data }: VehiclesScreenProps) {
+  const { kind, vehicles, tiles } = data;
+
+  const [tab, setTab] = React.useState<VehiclesTab>("All");
+  const [selectedId, setSelectedId] = React.useState<string | null>(null);
+  const [adding, setAdding] = React.useState(false);
+  // The panel's two-step remove, armed from up here — see the file header.
+  const [armed, setArmed] = React.useState(false);
+
+  useHubSubtitle(
+    tiles.vehicleCount === 0
+      ? "No vehicles yet"
+      : `${pluralise(tiles.vehicleCount, "vehicle")} · ${
+          tiles.onTheRoadCount
+        } on the road`,
+  );
+
+  const reviewPending = vehicles.some(needsReview);
+
+  // A fifth pill only when it would have rows behind it. `useMemo` keeps the
+  // array identity stable so `FilterStrip` is not handed a new list each
+  // keystroke elsewhere on the page.
+  const tabs = React.useMemo<readonly FilterStripItem[]>(
+    () => (reviewPending ? [...BASE_TABS, REVIEW_TAB] : BASE_TABS),
+    [reviewPending],
+  );
+
+  // A refresh can remove the last flagged vehicle while its tab is selected,
+  // which would otherwise leave the table filtered by a pill that no longer
+  // exists. Falling back to All keeps the strip and the rows in agreement.
+  const activeTab: VehiclesTab = tabs.some((item) => item.value === tab)
+    ? tab
+    : "All";
+
+  const visible = vehicles.filter((vehicle) => {
+    if (activeTab === "All") {
+      return true;
+    }
+
+    if (activeTab === "Needs review") {
+      return needsReview(vehicle);
+    }
+
+    return vehicle.status === activeTab;
+  });
+
+  // The add form wins the rail: `adding` is checked first so a create that has
+  // not yet landed cannot render a stale selection beside it.
+  const selectedVehicle = adding
+    ? null
+    : (vehicles.find((vehicle) => vehicle.id === selectedId) ?? null);
+
+  const selectVehicle = React.useCallback((vehicleId: string) => {
+    setSelectedId(vehicleId);
+    setAdding(false);
+    setArmed(false);
+  }, []);
+
+  const startAdding = React.useCallback(() => {
+    setAdding(true);
+    setSelectedId(null);
+    setArmed(false);
+  }, []);
+
+  const closeDetail = React.useCallback(() => {
+    setSelectedId(null);
+    setAdding(false);
+    setArmed(false);
+  }, []);
+
+  const handleCreated = React.useCallback((vehicleId: string | null) => {
+    setAdding(false);
+    setArmed(false);
+    // The new row only exists after the form's `router.refresh()` resolves, so
+    // this id points at nothing for a beat and the rail collapses, then opens
+    // on the created vehicle. Selecting it up front is what makes the design's
+    // "the new vehicle is now the selected one" behaviour survive the refresh.
+    setSelectedId(vehicleId);
+    // It joins the fleet idle; a driver sitting on the Active tab would watch
+    // their new van not appear. The design resets to All for the same reason.
+    setTab("All");
+  }, []);
+
+  const handleRemoved = React.useCallback(() => {
+    setSelectedId(null);
+    setArmed(false);
+  }, []);
+
+  const split = adding || selectedVehicle !== null;
+  const columns = split ? COLUMNS_SPLIT : COLUMNS_FULL;
+  const hasVehicles = vehicles.length > 0;
+
+  const detail = adding ? (
+    <VehiclesAddForm
+      kind={kind}
+      onCancel={closeDetail}
+      onCreated={handleCreated}
+    />
+  ) : selectedVehicle ? (
+    <VehiclesDetailPanel
+      vehicle={selectedVehicle}
+      kind={kind}
+      armed={armed}
+      onArmedChange={setArmed}
+      onRemoved={handleRemoved}
+    />
+  ) : undefined;
+
+  const detailLabel = adding
+    ? "the add vehicle form"
+    : selectedVehicle
+      ? `${selectedVehicle.make} ${selectedVehicle.model} details`
+      : "vehicle details";
+
+  // "5 Van · 1 Sedan · 2 Truck 1.5t". The count is not folded into a plural of
+  // the label: these come from a hand-maintained class catalogue and from
+  // `VehicleTypeSpec.label`, where "Truck 1.5t" would pluralise to nonsense.
+  const classNote = tiles.classBreakdown
+    .map((entry) => `${entry.count} ${entry.label}`)
+    .join(" · ");
+
+  return (
+    <>
+      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+        <MetricTile
+          label="Vehicles"
+          value={tiles.vehicleCount}
+          note={classNote === "" ? undefined : classNote}
+        />
+        <MetricTile
+          label="On the road"
+          value={tiles.onTheRoadCount}
+          note="Held by a driver right now"
+        />
+        <MetricTile
+          label="Unassigned"
+          value={tiles.unassignedCount}
+          note="Available to hand to a driver"
+        />
+        <MetricTile
+          label={kind === "BUSINESS" ? "Fleet cost per km" : "Cost per km"}
+          value={formatGel(tiles.sampled.fleetCostPerKmGel)}
+          note="Fuel, service, insurance, tolls"
+        >
+          <SampleNote note={FLEET_COST_NOTE} className="mt-2.5" />
+        </MetricTile>
+      </div>
+
+      <MasterDetailSplit
+        detailLabel={detailLabel}
+        detail={detail}
+        onCloseDetail={closeDetail}
+        master={
+          <HubCard>
+            <div
+              className={cn(
+                "mb-[18px] flex flex-wrap items-center gap-x-4 gap-y-3",
+                // With no rows there is no filter strip to sit opposite, so the
+                // toolbar collapses to its right-hand end rather than leaving a
+                // gap where a strip that could only say "0 of 0" would have been.
+                hasVehicles ? "justify-between" : "justify-end",
+              )}
+            >
+              {hasVehicles ? (
+                <FilterStrip
+                  items={tabs}
+                  value={activeTab}
+                  onChange={(next) => {
+                    // Only a value the strip is currently rendering may become
+                    // the tab — `isVehiclesTab` alone would still admit "Needs
+                    // review" after the last flagged vehicle disappeared.
+                    if (
+                      isVehiclesTab(next) &&
+                      tabs.some((item) => item.value === next)
+                    ) {
+                      setTab(next);
+                    }
+                  }}
+                  ariaLabel="Filter vehicles by status"
+                />
+              ) : null}
+
+              <div className="flex flex-wrap items-center gap-x-3.5 gap-y-2">
+                {/* The legend for the accent dots on the Odometer and Cost/km
+                    headers. Dropped in the split state along with those two
+                    columns, so it never explains a marker that is not shown. */}
+                {hasVehicles && !split ? (
+                  <SampleNote
+                    label="Odometer · Cost/km"
+                    note={SAMPLED_COLUMNS_NOTE}
+                  />
+                ) : null}
+                {hasVehicles ? (
+                  <span className="text-xs text-muted-foreground">
+                    <span className="font-price">{visible.length}</span> of{" "}
+                    <span className="font-price">{vehicles.length}</span> shown
+                  </span>
+                ) : null}
+                <Button
+                  type="button"
+                  size="lg"
+                  onClick={startAdding}
+                  className="h-auto rounded-md px-[14px] py-2 text-[13px]"
+                >
+                  Add vehicle
+                </Button>
+              </div>
+            </div>
+
+            {hasVehicles ? (
+              <>
+                {/* `Table` brings its own `overflow-x-auto` wrapper — the
+                    min-width above is what makes that wrapper scroll on a
+                    narrow pane. */}
+                <Table role="table" className={cn("block", columns)}>
+                  <TableHeader role="rowgroup" className="block">
+                    <TableRow
+                      role="row"
+                      className={cn(
+                        "grid items-center gap-3 border-b border-border hover:bg-transparent",
+                        columns,
+                      )}
+                    >
+                      <TableHead role="columnheader" className={HEAD_CLASSES}>
+                        Vehicle
+                      </TableHead>
+                      {split ? null : (
+                        <TableHead role="columnheader" className={HEAD_CLASSES}>
+                          Class
+                        </TableHead>
+                      )}
+                      <TableHead role="columnheader" className={HEAD_CLASSES}>
+                        Assigned
+                      </TableHead>
+                      {split ? null : (
+                        <>
+                          <TableHead
+                            role="columnheader"
+                            className={HEAD_CLASSES}
+                          >
+                            <SampledHead>Odometer</SampledHead>
+                          </TableHead>
+                          <TableHead
+                            role="columnheader"
+                            className={HEAD_CLASSES}
+                          >
+                            <SampledHead>Cost/km</SampledHead>
+                          </TableHead>
+                        </>
+                      )}
+                      <TableHead
+                        role="columnheader"
+                        className={cn(HEAD_CLASSES, "text-right")}
+                      >
+                        Status
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+
+                  <TableBody role="rowgroup" className="block">
+                    {visible.map((vehicle) => {
+                      const selected = vehicle.id === selectedVehicle?.id;
+                      const assigned =
+                        vehicle.assignment?.driverName ?? "Unassigned";
+                      const review =
+                        vehicle.reviewStatus === "PENDING" ||
+                        vehicle.reviewStatus === "FLAGGED"
+                          ? REVIEW_BADGE[vehicle.reviewStatus]
+                          : null;
+
+                      return (
+                        <TableRow
+                          key={vehicle.id}
+                          role="row"
+                          // Mouse convenience only — the keyboard path is the
+                          // button in the Vehicle cell, which does the same.
+                          onClick={() => selectVehicle(vehicle.id)}
+                          data-state={selected ? "selected" : undefined}
+                          className={cn(
+                            "grid cursor-pointer items-center gap-3 border-b border-muted text-sm",
+                            columns,
+                          )}
+                        >
+                          <TableCell role="cell" className={CELL_CLASSES}>
+                            <button
+                              type="button"
+                              onClick={() => selectVehicle(vehicle.id)}
+                              aria-current={selected ? "true" : undefined}
+                              className="block w-full min-w-0 rounded-sm text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                            >
+                              <span className="block truncate font-medium">
+                                {vehicle.make} {vehicle.model}
+                              </span>
+                              {/* A plate and a year are values, so mono. */}
+                              <span className="mt-0.5 block truncate font-price text-[11px] text-muted-foreground">
+                                {vehicle.plateNumber} · {vehicle.year}
+                              </span>
+                            </button>
+                          </TableCell>
+
+                          {split ? null : (
+                            <TableCell
+                              role="cell"
+                              className={cn(
+                                CELL_CLASSES,
+                                "truncate text-[13px] text-muted-foreground",
+                              )}
+                            >
+                              {vehicle.vehicleClassLabel}
+                            </TableCell>
+                          )}
+
+                          <TableCell
+                            role="cell"
+                            className={cn(
+                              CELL_CLASSES,
+                              "truncate text-[13px]",
+                              vehicle.assignment === null &&
+                                "text-muted-foreground",
+                            )}
+                          >
+                            {assigned}
+                          </TableCell>
+
+                          {split ? null : (
+                            <>
+                              <TableCell
+                                role="cell"
+                                className={cn(
+                                  CELL_CLASSES,
+                                  "truncate font-price text-[13px]",
+                                )}
+                              >
+                                {formatOdometer(vehicle.sampled.odometerKm)}
+                              </TableCell>
+                              <TableCell
+                                role="cell"
+                                className={cn(
+                                  CELL_CLASSES,
+                                  "truncate font-price text-[13px] font-semibold",
+                                )}
+                              >
+                                {formatGel(vehicle.sampled.costPerKmGel)}
+                              </TableCell>
+                            </>
+                          )}
+
+                          <TableCell
+                            role="cell"
+                            className={cn(
+                              CELL_CLASSES,
+                              "flex flex-col items-end gap-1",
+                            )}
+                          >
+                            <HubStatusBadge status={vehicle.status} />
+                            {/* A blocking verdict rides beside the status
+                                rather than replacing it: the vehicle really is
+                                idle *and* really is unreviewable for dispatch,
+                                and folding one into the other hides whichever
+                                loses. */}
+                            {review === null ? null : (
+                              <HubStatusBadge
+                                status={review.status}
+                                label={review.label}
+                              />
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+
+                {visible.length === 0 ? (
+                  <HubEmptyState
+                    message={`No ${activeTab.toLowerCase()} vehicles.`}
+                  />
+                ) : null}
+              </>
+            ) : (
+              // An empty fleet gets a sentence, not a header row over nothing.
+              <HubEmptyState
+                message={
+                  kind === "BUSINESS"
+                    ? "No vehicles in the fleet yet."
+                    : "You have no vehicle registered yet."
+                }
+              >
+                <p className="mt-1.5 text-[13px]">
+                  Add one to start taking jobs. It joins as idle until a driver
+                  is assigned to it.
+                </p>
+              </HubEmptyState>
+            )}
+          </HubCard>
+        }
+      />
+    </>
+  );
+}

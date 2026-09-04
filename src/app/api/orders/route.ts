@@ -111,7 +111,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     pickupAddress,
     dropoffAddress,
     cargoCategory,
-    requiresHelper,
+    helperCount,
     description,
     scheduledAt,
   } = parsed.data;
@@ -135,7 +135,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   const order = await prisma.order.create({
     data: {
       cargoCategory,
-      requiresHelper,
+      helperCount,
       description,
       scheduledAt,
       pickupAddress,

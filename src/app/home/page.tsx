@@ -24,8 +24,8 @@ export const dynamic = "force-dynamic";
  *
  * `showSiteHeader` is why this route checks for a session at all otherwise:
  * a signed-in visitor keeps the global header (their account nav, sign out)
- * above the marketing content, since this page's own header has no idea
- * they're signed in and would otherwise leave them with no way back.
+ * above the marketing content, since the landing page's own nav pill has no
+ * idea they're signed in and would otherwise leave them with no way back.
  */
 export default async function HomePage({
   searchParams,
@@ -35,7 +35,7 @@ export default async function HomePage({
   const query = await searchParams;
   const locale = resolveHomePageLocale(query.locale);
 
-  const [{ sections, heroBanners, secondaryBanners }, session] =
+  const [{ sections, heroBanners, partnerBanners }, session] =
     await Promise.all([
       loadHomePageContent(locale),
       auth.api.getSession({ headers: await headers() }),
@@ -45,7 +45,7 @@ export default async function HomePage({
     <LandingPage
       sections={sections}
       heroBanners={heroBanners}
-      secondaryBanners={secondaryBanners}
+      partnerBanners={partnerBanners}
       showSiteHeader={session !== null}
     />
   );

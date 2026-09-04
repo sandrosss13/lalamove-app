@@ -1,6 +1,9 @@
 import Link from "next/link";
 
-import { LandingWordmark } from "@/components/landing/landing-header";
+import {
+  DEFAULT_HOME_PAGE_CONTENT,
+  type FooterContent,
+} from "@/lib/admin/home-page-content";
 import { merchantOrigin } from "@/lib/host";
 
 /**
@@ -15,107 +18,145 @@ const DRIVER_SIGN_UP_HREF = merchantOrigin()
   : "/sign-up";
 
 /**
- * Footer link columns. `#` entries are placeholders for pages the app doesn't
- * have yet; everything else points at a real route or landing section.
+ * Sentinel href a CMS editor can put on any footer link to mean "wherever
+ * drivers register on this deployment". It exists because that destination is
+ * deployment *configuration*, not content — it depends on whether the
+ * client/merchant host split is enabled, which no content manager can know.
+ * This is the same reasoning `DriverCtaContent` already documents for why the
+ * driver CTA's button target is deliberately not editable.
+ *
+ * Deliberately not a valid URL, so it can never be mistaken for one and can
+ * never resolve to something real if the substitution is ever removed.
  */
-const FOOTER_COLUMNS = [
-  {
-    title: "Product",
-    links: [
-      { href: "#how-it-works", label: "How it works" },
-      { href: "#vehicles", label: "Vehicles" },
-      { href: "/sign-up", label: "Create an account" },
-      { href: "/sign-in", label: "Sign in" },
-    ],
-  },
-  {
-    title: "Drivers",
-    links: [
-      { href: "#drive", label: "Become a driver" },
-      { href: DRIVER_SIGN_UP_HREF, label: "Driver sign-up" },
-    ],
-  },
-  {
-    title: "Company",
-    links: [
-      { href: "#", label: "About" },
-      { href: "#", label: "Careers" },
-      { href: "#", label: "Contact" },
-    ],
-  },
-  {
-    title: "Legal",
-    links: [
-      { href: "#", label: "Terms" },
-      { href: "#", label: "Privacy" },
-    ],
-  },
-];
+const DRIVER_SIGN_UP_SENTINEL = "@driver-sign-up";
 
 /**
- * Dark bookend that closes the page. The driver CTA directly above uses the
- * same `ink-strong` background, so the two read as one continuous panel — hence
- * no rule or divider at the top edge, only a hairline seam inside the panel.
- * Text color is set once on the section so `LandingWordmark`, which inherits
- * `currentColor`, flips to the on-dark tone without a footer-specific variant.
+ * Token the `copyright` line may contain, replaced with the current year at
+ * render time. Documented on `FooterContent` in the shared contract: it keeps
+ * the whole line editable without an editor having to remember to bump the year
+ * every January.
  */
-export function LandingFooter() {
+const YEAR_TOKEN = "{year}";
+
+/**
+ * Inert for every href but the sentinel, so nothing breaks while the shipped
+ * defaults still point driver sign-up at a plain `/sign-up`.
+ */
+function resolveHref(href: string): string {
+  return href === DRIVER_SIGN_UP_SENTINEL ? DRIVER_SIGN_UP_HREF : href;
+}
+
+/**
+ * One rule for how a CMS href becomes an element, matching the nav pill:
+ * `/…` is an in-app route and gets `next/link`; anything else (a `#anchor`, an
+ * absolute URL on the merchant host, a `mailto:`) is a plain `<a>`, which is
+ * also the only correct element for a cross-origin target.
+ */
+function FooterLink({ href, label }: { href: string; label: string }) {
+  const resolved = resolveHref(href);
+  const className = "text-subtle transition-colors hover:text-paper";
+
+  if (resolved.startsWith("/")) {
+    return (
+      <Link href={resolved} className={className}>
+        {label}
+      </Link>
+    );
+  }
+
+  const isExternal =
+    resolved.startsWith("http://") || resolved.startsWith("https://");
+
   return (
-    <footer className="landing-grain border-t border-on-strong/10 bg-ink-strong text-on-strong">
-      <div className="mx-auto max-w-6xl px-5 py-16 sm:px-8">
-        <div className="grid gap-12 lg:grid-cols-[1.2fr_2fr]">
-          <div>
-            <LandingWordmark />
-            <p className="mt-5 max-w-xs text-sm leading-relaxed text-on-strong/70">
-              On-demand delivery — book a vehicle and move your goods across the
-              city.
+    <a
+      href={resolved}
+      className={className}
+      rel={isExternal ? "noreferrer" : undefined}
+    >
+      {label}
+    </a>
+  );
+}
+
+/**
+ * The page's closing grid footer.
+ *
+ * `content` is optional and falls back to the shipped defaults, matching every
+ * other landing section — the page renders correctly with zero CMS rows. Empty
+ * `columns` or `legalLinks` render an empty region rather than throwing.
+ *
+ * Stays a server component: it has no interactivity, and the year substitution
+ * is a render-time read that belongs on the server.
+ */
+export function LandingFooter({
+  content = DEFAULT_HOME_PAGE_CONTENT.footer,
+}: {
+  content?: FooterContent;
+}) {
+  const copyright = content.copyright.replaceAll(
+    YEAR_TOKEN,
+    String(new Date().getFullYear()),
+  );
+
+  return (
+    <footer className="border-t border-line px-[clamp(20px,4vw,48px)] pt-[clamp(44px,5vw,72px)] pb-9">
+      <div className="mx-auto max-w-[1200px]">
+        {/*
+          ONE grid for the brand block and the link columns, with the brand
+          block spanning every track. This is load-bearing, not cosmetic: with
+          five children in an `auto-fit` track list the brand takes a track of
+          its own and the last link column is orphaned onto the next row. Giving
+          the brand the full row (`col-span-full` compiles to
+          `grid-column: 1 / -1`) leaves the link columns to resolve into equal
+          tracks. Do not split this into nested grids or a flex row.
+        */}
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-7">
+          <div className="col-span-full">
+            <p className="text-[18px] font-bold tracking-[-0.02em] text-paper">
+              {content.brandName}
+            </p>
+            <p className="mt-3 max-w-[30ch] text-[14px] leading-relaxed text-faint">
+              {content.brandBlurb}
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-4">
-            {FOOTER_COLUMNS.map((column) => (
-              <nav key={column.title} aria-label={column.title}>
-                <h2 className="text-[0.6875rem] font-semibold tracking-[0.16em] text-on-strong/50 uppercase">
-                  {column.title}
-                </h2>
-                <ul className="mt-4 flex flex-col gap-2.5">
-                  {column.links.map((link) => (
-                    <li key={`${column.title}-${link.label}`}>
-                      {link.href.startsWith("/") ? (
-                        <Link
-                          href={link.href}
-                          className="text-sm text-on-strong/70 transition-colors hover:text-on-strong"
-                        >
-                          {link.label}
-                        </Link>
-                      ) : (
-                        <a
-                          href={link.href}
-                          className="text-sm text-on-strong/70 transition-colors hover:text-on-strong"
-                        >
-                          {link.label}
-                        </a>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </nav>
-            ))}
-          </div>
+          {content.columns.map((column) => (
+            // Position is not stable across CMS edits but the title is what the
+            // heading and the landmark label both read from, so it is the
+            // meaningful identity here.
+            <nav key={column.title} aria-label={column.title}>
+              <h2 className="font-price text-[10px] tracking-[0.18em] text-faintest uppercase">
+                {column.title}
+              </h2>
+              <ul className="mt-4 flex flex-col gap-[11px] text-[14px]">
+                {column.links.map((link) => (
+                  <li key={`${column.title}-${link.label}-${link.href}`}>
+                    <FooterLink href={link.href} label={link.label} />
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          ))}
         </div>
 
-        <div className="mt-16 flex flex-col gap-3 border-t border-on-strong/10 pt-6 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-xs text-on-strong/50">
-            © {new Date().getFullYear()} Lalamove Clone. A demo delivery
-            platform.
-          </p>
-          <p className="flex items-center gap-2 text-[0.625rem] font-semibold tracking-[0.2em] text-on-strong/60 uppercase">
-            <span
-              aria-hidden="true"
-              className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent"
-            />
-            Dispatch open 24/7
-          </p>
+        <div className="mt-[clamp(32px,4vw,56px)] flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-t border-line pt-6 font-price text-[11px] tracking-[0.08em] text-faintest">
+          {/* Printed verbatim apart from `{year}`: it is authored copy, so a
+              content manager stays able to correct every other word of it. */}
+          <p>{copyright}</p>
+
+          <ul className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            {content.legalLinks.map((link, index) => (
+              <li
+                key={`${link.label}-${link.href}`}
+                className="flex items-center gap-x-3"
+              >
+                {/* Separator between entries only, and decorative — the list
+                    semantics already say these are separate items. */}
+                {index > 0 ? <span aria-hidden="true">·</span> : null}
+                <FooterLink href={link.href} label={link.label} />
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
     </footer>

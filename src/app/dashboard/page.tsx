@@ -1,16 +1,19 @@
 import { redirect } from "next/navigation";
 
-import { CompanyDashboard } from "@/components/dashboard/company-dashboard";
-import { DriverDashboard } from "@/components/dashboard/driver-dashboard";
 import { requireDashboardSession } from "@/lib/dashboard/auth";
 import { prisma } from "@/lib/prisma";
 
 // Session + Prisma access can't be statically rendered.
 export const dynamic = "force-dynamic";
 
+/** The driver hub's home screen, and this page's destination once onboarding
+ *  is behind the visitor. */
+const HUB_HOME = "/dashboard/today";
+
 /**
- * The provider-side home: where an independent driver, a company-affiliated
- * driver, and a logistics company each manage their own account.
+ * The provider-side entry point: where an independent driver, a
+ * company-affiliated driver, and a logistics company each land after signing
+ * in, and where each is routed onward.
  *
  * Authentication, the forced-password-change gate and the CLIENT bounce all
  * live in `layout.tsx` now, so this page is the role branch plus one routing
@@ -20,6 +23,15 @@ export const dynamic = "force-dynamic";
  * being shown a dashboard they cannot yet use. The guard call below is the same
  * cached one the layout already made, so it costs no second session validation —
  * it is here only to hand back the non-null session object.
+ *
+ * Everyone past those two gates goes to `/dashboard/today`, the first screen of
+ * the driver hub. This routing deliberately stays *in this page* rather than
+ * moving into a layout: a layout wraps its children, and these two redirects
+ * target `/dashboard/onboarding` and `/dashboard/fleet-onboarding`, which are
+ * children of `src/app/dashboard/layout.tsx` — a guard that redirects to a page
+ * it also wraps is an infinite redirect. The hub's own chrome lives one level
+ * down, in the `(hub)` route group, precisely so it frames the seven hub
+ * screens without ever framing the two wizards.
  */
 export default async function DashboardPage() {
   const session = await requireDashboardSession();
@@ -53,10 +65,11 @@ export default async function DashboardPage() {
     // whose row exists but is not approved yet.
     //
     // A COMPANY session with no `LogisticsCompany` row at all fails the first
-    // condition and falls through to `CompanyDashboard`, which already owns the
-    // "your company profile isn't set up yet" fallback for that interrupted
-    // sign-up. The wizard's step 1 assumes a company row exists, so this must
-    // never redirect ahead of that fallback.
+    // condition and falls through to the hub, whose `(hub)/layout.tsx` owns the
+    // "your profile isn't set up yet" fallback for that interrupted sign-up
+    // (`resolveHubAccount()` returns `null` for exactly this user). The
+    // wizard's step 1 assumes a company row exists, so this must never redirect
+    // ahead of that fallback.
     //
     // One redirect covers no-application, DRAFT, PENDING and ACTION_REQUIRED
     // alike: `/dashboard/fleet-onboarding` is the single route, and its shell
@@ -71,7 +84,7 @@ export default async function DashboardPage() {
       redirect("/dashboard/fleet-onboarding");
     }
 
-    return <CompanyDashboard userId={session.user.id} />;
+    redirect(HUB_HOME);
   }
 
   // `UserRole` is CLIENT, DRIVER, COMPANY or ADMIN. The layout has already sent
@@ -112,10 +125,11 @@ export default async function DashboardPage() {
     // whose row exists but is not approved yet.
     //
     // A driver with no `DriverProfile` at all fails the first condition and
-    // falls through to `DriverDashboard`, which owns the "your driver profile
-    // isn't set up yet" fallback for that interrupted sign-up. The wizard's
-    // step 1 assumes a profile row exists, so this must never redirect ahead of
-    // that fallback.
+    // falls through to the hub, whose `(hub)/layout.tsx` owns the "your driver
+    // profile isn't set up yet" fallback for that interrupted sign-up
+    // (`resolveHubAccount()` returns `null` for exactly this user). The
+    // wizard's step 1 assumes a profile row exists, so this must never redirect
+    // ahead of that fallback.
     const shouldOnboard =
       driverProfile !== null &&
       driverProfile.companyId === null &&
@@ -129,7 +143,8 @@ export default async function DashboardPage() {
     }
   }
 
-  return (
-    <DriverDashboard userId={session.user.id} userName={session.user.name} />
-  );
+  // Drivers, and the ADMIN the layout does not bounce. Both are resolved by
+  // `resolveHubAccount()` inside the hub — an admin has no `DriverProfile`, so
+  // they get the layout's fallback rather than a half-empty hub.
+  redirect(HUB_HOME);
 }

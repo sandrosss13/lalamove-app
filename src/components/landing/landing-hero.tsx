@@ -1,18 +1,59 @@
-"use client";
-
 import Link from "next/link";
 
-import { LandingQuoteCalculator } from "@/components/landing/landing-quote-calculator";
-import { useLandingVehicleTypes } from "@/components/landing/landing-vehicle-types";
 import {
   DEFAULT_HOME_PAGE_CONTENT,
   type HeroContent,
 } from "@/lib/admin/home-page-content";
 
-/** Placeholder for a counted stat, until the taxonomy it counts arrives. */
-const EMPTY_STAT = "—";
+/**
+ * A hero CTA. The two buttons differ only in their skin, so the element choice
+ * lives here once.
+ *
+ * `next/link` for an in-app path, a plain `<a>` for anything else — the rule
+ * every landing component follows. `#price-a-load` and an absolute partner URL
+ * are both valid CMS values and neither is a route this app can prefetch.
+ */
+function HeroCta({
+  href,
+  label,
+  className,
+}: {
+  href: string;
+  label: string;
+  className: string;
+}) {
+  if (href.startsWith("/")) {
+    return (
+      <Link href={href} className={className}>
+        {label}
+      </Link>
+    );
+  }
+
+  return (
+    <a href={href} className={className}>
+      {label}
+    </a>
+  );
+}
+
+/** Shared metrics for both CTAs; only the colours differ. */
+const CTA_BASE =
+  "inline-flex items-center justify-center rounded-full px-8 py-4 text-[15px] leading-none font-semibold transition-colors";
 
 /**
+ * The centred hero.
+ *
+ * A server component: everything here is static markup, the status dot pulses
+ * in CSS, and the two things that used to need the browser are gone — the quote
+ * calculator now has its own section below the hero
+ * (`landing-quote-calculator.tsx`, unchanged), and the three figures that were
+ * counted from the live vehicle taxonomy moved to the authored `stats` section.
+ * The hero is above the fold, so shipping no JS for it is the point.
+ *
+ * Entrance animations are deliberately absent too: the page-wide `data-reveal`
+ * observer owns that, and running both would double-animate the same elements.
+ *
  * `content` comes from the matching `HomePageSection` row when one exists. It
  * is optional so the page still renders — with the copy it has today — before
  * any section has been authored for the locale.
@@ -22,109 +63,62 @@ export function LandingHero({
 }: {
   content?: HeroContent;
 }) {
-  const { vehicleTypes } = useLandingVehicleTypes();
-
-  // Counted from the seeded taxonomy rather than written into the copy, so the
-  // headline numbers can't drift from the fleet section further down the page.
-  const loaded = vehicleTypes.length > 0;
-  const dutyClasses = new Set(
-    vehicleTypes.map((vehicleType) => vehicleType.category),
-  );
-
-  const heroStats = [
-    {
-      value: loaded ? String(vehicleTypes.length) : EMPTY_STAT,
-      label: "Vehicle types",
-    },
-    {
-      value: loaded ? String(dutyClasses.size) : EMPTY_STAT,
-      label: "Duty classes",
-    },
-    { value: "24/7", label: "Dispatch window" },
-  ];
+  // Both chip fields post-date the original hero shape, so a row authored
+  // against the previous design has neither. The chip is skipped whole rather
+  // than rendered half-empty. (`headlineHighlight` is the mirror case: the
+  // contract keeps it so old rows round-trip through the admin form, and
+  // documents it as retired and unrendered — the centred headline has no
+  // accented closing word.)
+  const statusChipText = content.statusChipText;
+  const statusChipTag = content.statusChipTag;
 
   return (
-    <section className="relative overflow-hidden border-b border-line bg-ink">
-      {/* Two stacked backdrops rather than one: the grid is tinted from
-          `currentColor` so it has to sit on a text-colored element, while the
-          warm wash is a fixed accent tint that must not pick that tint up. */}
+    <section className="relative overflow-hidden px-[clamp(20px,4vw,48px)] pt-[clamp(120px,14vw,190px)]">
+      {/* The accent glow behind the headline. Sized and positioned exactly as
+          the design specifies — wider than the container and pulled above the
+          top edge, which is what makes it read as light falling onto the page
+          rather than a blob. The gradient itself is a theme token, so the light
+          theme gets its own softer version without a `dark:` variant here. */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-gradient-to-b from-accent/[0.07] to-ink"
-      />
-      <div
-        aria-hidden="true"
-        className="landing-grid pointer-events-none absolute inset-0 text-paper opacity-60"
-      />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -top-40 -right-32 h-[30rem] w-[30rem] rounded-full bg-accent/15 blur-[130px]"
+        className="pointer-events-none absolute top-[-360px] left-1/2 -ml-[550px] h-[900px] w-[1100px] bg-[image:var(--landing-gradient-spotlight)]"
       />
 
-      <div className="relative mx-auto grid max-w-6xl gap-12 px-5 pt-14 pb-20 sm:px-8 lg:grid-cols-[1fr_26rem] lg:items-start lg:pt-20 lg:pb-24">
-        <div className="lg:pt-6">
-          <p className="animate-rise inline-flex items-center gap-2 rounded-full bg-accent/10 px-3 py-1.5 text-[0.6875rem] font-semibold tracking-[0.14em] text-accent uppercase">
-            {content.eyebrow}
-          </p>
-
-          <h1 className="animate-rise [animation-delay:120ms] mt-6 max-w-[15ch] font-display text-[clamp(2.5rem,6vw,3.5rem)] leading-[1.05] font-semibold tracking-[-0.025em] text-paper">
-            {content.headline}{" "}
-            <span className="relative inline-block text-accent">
-              {content.headlineHighlight}
-              <span
-                aria-hidden="true"
-                className="animate-wipe [animation-delay:900ms] absolute right-0 -bottom-0.5 left-0 h-[0.1875rem] origin-left rounded-full bg-accent/70"
-              />
-            </span>
-          </h1>
-
-          <p className="animate-rise [animation-delay:260ms] mt-6 max-w-[46ch] text-base leading-relaxed text-muted sm:text-lg">
-            {content.subtext}
-          </p>
-
-          <div className="animate-rise [animation-delay:380ms] mt-8 flex flex-wrap items-center gap-3">
-            <Link
-              href={content.primaryCtaHref}
-              className="group inline-flex items-center gap-2.5 rounded-lg bg-accent px-6 py-3.5 text-[0.9375rem] leading-none font-semibold text-ink transition-transform hover:-translate-y-0.5"
-            >
-              {content.primaryCtaLabel}
-              <span
-                aria-hidden="true"
-                className="transition-transform group-hover:translate-x-1"
-              >
-                →
+      <div className="relative mx-auto max-w-[1200px] text-center">
+        {statusChipText ? (
+          <p className="mb-[clamp(26px,3vw,38px)] inline-flex items-center gap-[10px] rounded-full border border-line-strong bg-surface py-[7px] pr-[8px] pl-[14px] text-[13px] text-subtle">
+            <span
+              aria-hidden="true"
+              className="h-[7px] w-[7px] flex-none rounded-full bg-accent animate-status-pulse"
+            />
+            {statusChipText}
+            {statusChipTag ? (
+              <span className="rounded-full bg-surface-raised px-[10px] py-[5px] font-price text-[11px] tracking-[0.1em] text-paper uppercase">
+                {statusChipTag}
               </span>
-            </Link>
-            <Link
-              href={content.secondaryCtaHref}
-              className="inline-flex items-center rounded-lg border border-line px-6 py-3.5 text-[0.9375rem] leading-none font-semibold text-paper transition-colors hover:border-accent hover:text-accent"
-            >
-              {content.secondaryCtaLabel}
-            </Link>
-          </div>
+            ) : null}
+          </p>
+        ) : null}
 
-          <dl className="animate-rise [animation-delay:460ms] mt-10 flex flex-wrap gap-x-10 gap-y-6 border-t border-line pt-7">
-            {heroStats.map((stat) => (
-              <div key={stat.label}>
-                <dt className="sr-only">{stat.label}</dt>
-                <dd>
-                  <span className="block font-price text-[1.625rem] leading-none font-semibold tracking-[-0.02em] text-paper">
-                    {stat.value}
-                  </span>
-                  <span className="mt-2 block text-[0.8125rem] text-muted">
-                    {stat.label}
-                  </span>
-                </dd>
-              </div>
-            ))}
-          </dl>
-        </div>
+        <h1 className="mx-auto mb-[clamp(22px,2.6vw,30px)] max-w-[19ch] font-display text-[clamp(42px,7.4vw,104px)] leading-[0.94] font-semibold tracking-[-0.05em] text-balance text-paper">
+          {content.headline}
+        </h1>
 
-        {/* The anchor lives on the wrapper, not inside the calculator, so the
-            category tiles elsewhere on the page can scroll the whole card into
-            view clear of the sticky header. */}
-        <div id="price-a-load" className="scroll-mt-24">
-          <LandingQuoteCalculator />
+        <p className="mx-auto mb-[clamp(30px,3.4vw,42px)] max-w-[52ch] text-[clamp(16px,1.7vw,21px)] leading-[1.55] text-pretty text-subtle">
+          {content.subtext}
+        </p>
+
+        <div className="mb-[clamp(44px,5vw,68px)] flex flex-wrap justify-center gap-3">
+          <HeroCta
+            href={content.primaryCtaHref}
+            label={content.primaryCtaLabel}
+            className={`${CTA_BASE} bg-accent text-on-accent shadow-cta hover:bg-accent-hover`}
+          />
+          <HeroCta
+            href={content.secondaryCtaHref}
+            label={content.secondaryCtaLabel}
+            className={`${CTA_BASE} border border-line-strong bg-surface-raised text-paper hover:bg-surface`}
+          />
         </div>
       </div>
     </section>

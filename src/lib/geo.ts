@@ -6,11 +6,13 @@
  * Two geocoding providers are used, deliberately split by job:
  *
  * - **LocationIQ** (`geocodeAddress`) resolves a final, submitted address to
- *   coordinates for distance and pricing. It is built on the same OpenStreetMap
- *   data as Nominatim (and shares its query params), but its free tier
- *   explicitly permits automated/cloud-hosted usage — usage is tied to the
- *   `LOCATIONIQ_API_KEY` environment variable rather than a `User-Agent`
- *   policy. That key is required config; without it, geocoding returns `null`.
+ *   coordinates for distance and pricing, and (`getRoute`) turns a resolved pair
+ *   of coordinates into the actual driving route between them. It is built on
+ *   the same OpenStreetMap data as Nominatim (and shares its query params), but
+ *   its free tier explicitly permits automated/cloud-hosted usage — usage is
+ *   tied to the `LOCATIONIQ_API_KEY` environment variable rather than a
+ *   `User-Agent` policy. That key is required config; without it, geocoding and
+ *   routing return `null`.
  * - **Google Places** (`suggestAddresses`, `getPlaceDetails`) backs the booking
  *   form's address field, via `GOOGLE_PLACES_API_KEY`: as-you-type suggestions
  *   first, then the structured breakdown (street/city/state/postcode/country
@@ -30,6 +32,20 @@
 export type LatLng = {
   lat: number;
   lng: number;
+};
+
+/**
+ * The driving route between two points: how far it actually is by road, how long
+ * that is expected to take, and the line to draw for it.
+ *
+ * `path` is the full road geometry — every vertex the road bends through, not
+ * just the two endpoints — so the map preview traces real streets instead of the
+ * straight line `haversineDistanceKm` measures.
+ */
+export type Route = {
+  distanceKm: number;
+  durationMinutes: number;
+  path: LatLng[];
 };
 
 /**
@@ -61,6 +77,13 @@ export type PlaceDetails = {
 
 /** LocationIQ forward-geocoding endpoint (`us1` is the standard default host). */
 const LOCATIONIQ_SEARCH_URL = "https://us1.locationiq.com/v1/search";
+/**
+ * LocationIQ driving-directions endpoint (OSRM under the hood). Base only — the
+ * two waypoints are appended as a path segment, `lon,lat;lon,lat`, before the
+ * query string.
+ */
+const LOCATIONIQ_DIRECTIONS_URL =
+  "https://us1.locationiq.com/v1/directions/driving";
 /** Google Places Autocomplete (New) endpoint — as-you-type suggestions. */
 const GOOGLE_PLACES_AUTOCOMPLETE_URL =
   "https://places.googleapis.com/v1/places:autocomplete";
@@ -138,10 +161,35 @@ const LOCATIONIQ_RETRYABLE_STATUSES = new Set([429]);
 
 const EARTH_RADIUS_KM = 6371;
 
+/** Directions reports distance in metres and duration in seconds; both are
+ *  converted at the boundary so `Route` speaks the units the app quotes in. */
+const METRES_PER_KM = 1000;
+const SECONDS_PER_MINUTE = 60;
+
 /** Shape of a single LocationIQ search result (only the fields we consume). */
 type LocationIqResult = {
   lat: string;
   lon: string;
+};
+
+/**
+ * Shape of the LocationIQ directions response (only the fields we consume). All
+ * optional: a request that finds no route still answers 200, with a body that
+ * simply carries no `routes` — so nothing here can be assumed present.
+ *
+ * `distance` is in metres and `duration` in seconds, both on the route itself
+ * (they are also repeated per leg, but this app only ever asks for a single-leg,
+ * two-waypoint route). `geometry.coordinates` is GeoJSON, so each pair is
+ * `[lon, lat]` — the reverse of this module's `LatLng` field order.
+ */
+type LocationIqDirectionsResponse = {
+  routes?: {
+    distance?: number;
+    duration?: number;
+    geometry?: {
+      coordinates?: [number, number][];
+    };
+  }[];
 };
 
 /**
@@ -316,6 +364,86 @@ export async function geocodeAddress(address: string): Promise<LatLng | null> {
     return { lat, lng };
   } catch {
     // Network error, aborted request, or malformed JSON — all "not found".
+    return null;
+  }
+}
+
+/**
+ * Resolve the driving route between two coordinates via LocationIQ's directions
+ * endpoint (OSRM), yielding road distance, expected driving time and the road
+ * geometry to draw.
+ *
+ * This is what makes a quote reflect the drive rather than the crow's flight:
+ * Tbilisi is split by the Mtkvari and its bridges, so straight-line distance
+ * understates a real trip meaningfully. `haversineDistanceKm` remains as the
+ * fallback for when this returns `null`.
+ *
+ * Returns `null` for a missing `LOCATIONIQ_API_KEY`, no route found (the
+ * endpoint answers 200 with no `routes`), a non-OK status such as a rate limit
+ * that outlived its retries, a response missing usable distance/duration/
+ * geometry, or any network/parse failure — callers can treat `null` uniformly as
+ * "no route available" and fall back to straight-line distance. This function
+ * never throws.
+ *
+ * Goes through `fetchGeocode`, and so through the same serialising queue as
+ * `geocodeAddress`: it is the same LocationIQ account and the same 2 req/sec
+ * free-tier budget, so routing calls must be spaced against geocode calls, not
+ * just against each other.
+ */
+export async function getRoute(
+  origin: LatLng,
+  destination: LatLng,
+): Promise<Route | null> {
+  // Without a key, every request would just 401; treat a missing/empty key as
+  // "no route" (honouring the no-throw contract) rather than making the call.
+  const key = process.env.LOCATIONIQ_API_KEY;
+  if (!key) {
+    return null;
+  }
+
+  // Waypoints go in GeoJSON/OSRM order — longitude first — which is the reverse
+  // of `LatLng`'s field order, hence spelling each component out here.
+  const waypoints =
+    `${origin.lng},${origin.lat};` + `${destination.lng},${destination.lat}`;
+  const url =
+    `${LOCATIONIQ_DIRECTIONS_URL}/${waypoints}` +
+    `?key=${encodeURIComponent(key)}&overview=full&geometries=geojson`;
+
+  try {
+    const response = await fetchGeocode(url);
+    if (!response) {
+      return null;
+    }
+
+    const payload = (await response.json()) as LocationIqDirectionsResponse;
+
+    // Only ever one route is requested, and only one leg within it: this app
+    // books a single pickup-to-dropoff trip with no intermediate stops.
+    const route = payload.routes?.[0];
+    if (!route) {
+      return null;
+    }
+
+    const { distance, duration } = route;
+    if (typeof distance !== "number" || typeof duration !== "number") {
+      return null;
+    }
+
+    // A route with no geometry could still price, but the caller asks for a
+    // `Route` to draw as well as to charge for; a partial answer would silently
+    // leave the map showing a stale line, so treat it as no route at all.
+    const coordinates = route.geometry?.coordinates;
+    if (!Array.isArray(coordinates) || coordinates.length === 0) {
+      return null;
+    }
+
+    return {
+      distanceKm: distance / METRES_PER_KM,
+      durationMinutes: duration / SECONDS_PER_MINUTE,
+      path: coordinates.map(([lng, lat]) => ({ lat, lng })),
+    };
+  } catch {
+    // Network error, aborted request, or malformed JSON — all "no route".
     return null;
   }
 }

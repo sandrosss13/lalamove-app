@@ -12,6 +12,11 @@ export type LandingVehicleType = {
   label: string;
   category: "MEDIUM_DUTY" | "HEAVY_DUTY";
   maxPayloadKg: number;
+  /**
+   * The vehicle-class photo a content manager set, or `null` when none has
+   * been uploaded yet. Sections that show it fall back to a drawn glyph.
+   */
+  imageUrl: string | null;
   // The two fields the marketing page needs from the pricing rule: picking the
   // cheapest eligible type for a cargo category is a `baseFare` comparison,
   // and `pricePerKm` lets the category tiles show a nominal "from" price.

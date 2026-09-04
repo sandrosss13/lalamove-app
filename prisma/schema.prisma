@@ -353,6 +353,22 @@ model VehicleTypeSpec {
   /// literal zero-height constraint.
   cargoHeightM      Float
   loadingAccessType LoadingAccessType
+  /// Public Supabase Storage URL of a marketing photo for this vehicle class,
+  /// set by a content manager from the back office (never by a driver, and
+  /// never by the seed). It lives in the public `site-media` bucket, so the
+  /// URL is directly renderable and no signed request is needed.
+  ///
+  /// Display-only, and deliberately so: order matching and pricing key on
+  /// `Vehicle.vehicleTypeSpecId` and `PricingRule` alone and never read this.
+  /// Nullable because no photography exists yet — the marketing page falls
+  /// back to its inline vehicle glyphs for a type with no photo, so a null
+  /// here is a normal, permanent-until-filled state rather than a gap to
+  /// backfill.
+  ///
+  /// Not to be confused with `Vehicle.photoUrls`, which holds the photos a
+  /// driver uploads of their own specific vehicle into the separate
+  /// `vehicle-photos` bucket. This one is a picture of the *class*.
+  imageUrl          String?
   pricingRule       PricingRule?
   vehicles          Vehicle[]
   orders            Order[]
@@ -362,7 +378,8 @@ model VehicleTypeSpec {
 
 /// One pricing rule per vehicle type. `freeLoadingMinutes` is the buffer before
 /// `overtimeRatePerMinute` kicks in; `minimumFare` is a floor applied after all other
-/// components are summed.
+/// components are summed. `helperFee` is a per-helper rate, charged once for each
+/// helper in an order's `helperCount` — not a one-off fee for the whole booking.
 model PricingRule {
   id                    String          @id @default(cuid())
   vehicleTypeSpecId     String          @unique
@@ -774,10 +791,16 @@ model ClientProfile {
 /// A single freight job placed by a client and fulfilled either by an independent
 /// driver or by a logistics company dispatching one of its own drivers.
 model Order {
-  id             String        @id @default(cuid())
-  cargoCategory  CargoCategory
-  description    String?
-  requiresHelper Boolean       @default(false)
+  id            String        @id @default(cuid())
+  cargoCategory CargoCategory
+  description   String?
+
+  // Extra helpers requested *beyond* the driver, 0-3. The booking form asks for
+  // a total crew size of 1-4 people, where 1 is the driver working alone, so the
+  // number shown to the client is always this one plus one — store the extras,
+  // because that is what gets charged: `helperFee` below is this count times the
+  // PricingRule's flat per-helper fee for the booked vehicle type.
+  helperCount Int @default(0)
 
   // The client's requested pickup/delivery date and time, collected as the
   // first step of the booking form. Nullable: every order created before this

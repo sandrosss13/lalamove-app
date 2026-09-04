@@ -11,6 +11,8 @@ import { authorizeAdminApi } from "@/lib/admin/api-auth";
 import { writeAuditLog } from "@/lib/admin/audit";
 import { prisma } from "@/lib/prisma";
 
+import { checkHeroBannerCapacity } from "../validation";
+
 /**
  * Staff who may read and write promotional banners. Stated per route rather
  * than imported from one shared constant so the gate on each endpoint can be
@@ -110,6 +112,28 @@ function parseTimestamp(
 }
 
 /**
+ * A validated patch: the update Prisma should apply, plus the state the row
+ * will hold once it has been applied.
+ *
+ * `next` is carried alongside `data` rather than read back off it because
+ * `Prisma.BannerUpdateInput` types every field as "a value *or* an update
+ * operation" (`boolean | BoolFieldUpdateOperationsInput`), so `data.isActive`
+ * is not a `boolean` to the compiler even when this module only ever assigns
+ * one. Resolving the three fields from plain locals while they are being
+ * validated — exactly as `nextStartsAt`/`nextEndsAt` already are — keeps the
+ * hero-capacity check below honest without a cast.
+ */
+type ParsedBannerUpdate = {
+  data: Prisma.BannerUpdateInput;
+  /** Locale, placement and visibility as they will be *after* this patch. */
+  next: {
+    locale: ContentLocale;
+    placement: string;
+    isActive: boolean;
+  };
+};
+
+/**
  * Hand-rolled body validation, consistent with the rest of the API (the project
  * deliberately uses no validation library).
  *
@@ -118,13 +142,14 @@ function parseTimestamp(
  * dialog sends the whole form. Every key that *is* present is validated by the
  * same rules the create route applies.
  *
- * `existing` is only read for the window check, where the two dates constrain
- * each other and one of them may not be in the patch at all.
+ * `existing` is read to resolve the fields the patch does not carry: the window
+ * check below, where the two dates constrain each other, and the `next` trio
+ * the hero-carousel cap is evaluated against.
  */
 function parseUpdateBannerBody(
   body: unknown,
   existing: Banner,
-): { data: Prisma.BannerUpdateInput } | { error: string } {
+): ParsedBannerUpdate | { error: string } {
   if (typeof body !== "object" || body === null) {
     return { error: "Request body must be a JSON object." };
   }
@@ -146,6 +171,7 @@ function parseUpdateBannerBody(
     data.title = title.trim();
   }
 
+  let nextLocale = existing.locale;
   if ("locale" in record) {
     const { locale } = record;
     if (
@@ -156,6 +182,7 @@ function parseUpdateBannerBody(
     }
 
     data.locale = locale as ContentLocale;
+    nextLocale = locale as ContentLocale;
   }
 
   if ("imageUrl" in record) {
@@ -207,6 +234,7 @@ function parseUpdateBannerBody(
     }
   }
 
+  let nextPlacement = existing.placement;
   if ("placement" in record) {
     const { placement } = record;
     if (typeof placement !== "string" || placement.trim() === "") {
@@ -219,6 +247,7 @@ function parseUpdateBannerBody(
     }
 
     data.placement = placement.trim();
+    nextPlacement = placement.trim();
   }
 
   if ("sortOrder" in record) {
@@ -237,6 +266,7 @@ function parseUpdateBannerBody(
     data.sortOrder = sortOrder;
   }
 
+  let nextIsActive = existing.isActive;
   if ("isActive" in record) {
     const { isActive } = record;
     if (typeof isActive !== "boolean") {
@@ -244,6 +274,7 @@ function parseUpdateBannerBody(
     }
 
     data.isActive = isActive;
+    nextIsActive = isActive;
   }
 
   // Both dates are resolved before either is checked, because the window rule
@@ -280,7 +311,14 @@ function parseUpdateBannerBody(
     return { error: "endsAt must be after startsAt." };
   }
 
-  return { data };
+  return {
+    data,
+    next: {
+      locale: nextLocale,
+      placement: nextPlacement,
+      isActive: nextIsActive,
+    },
+  };
 }
 
 /**
@@ -322,6 +360,21 @@ export async function PATCH(
   const parsed = parseUpdateBannerBody(rawBody, existing);
   if ("error" in parsed) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
+  }
+
+  // Evaluated against the state the row will end up with, not the one it has:
+  // the table's active toggle patches `isActive` on its own, and that is how a
+  // seventh hero banner would otherwise get switched on. `ignoreId` keeps this
+  // banner from counting itself, so editing one of a full six still saves.
+  const overCapacity = await checkHeroBannerCapacity({
+    locale: parsed.next.locale,
+    placement: parsed.next.placement,
+    isActive: parsed.next.isActive,
+    ignoreId: id,
+  });
+
+  if (overCapacity !== null) {
+    return NextResponse.json({ error: overCapacity }, { status: 409 });
   }
 
   const banner = await prisma.banner.update({

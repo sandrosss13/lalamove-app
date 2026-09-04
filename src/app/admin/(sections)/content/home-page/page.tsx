@@ -62,6 +62,13 @@ const DEFAULT_LOCALE: ContentLocale = "EN";
  *
  * Returns null for content that does not match its type, which is what marks
  * the row as needing attention rather than hiding the problem.
+ *
+ * The switch is exhaustive over the section union and deliberately has no
+ * `default:` arm. Most types are summarised by their heading, but five carry no
+ * heading at all, so a `default:` reading one would compile only by testing for
+ * the key at runtime — and would quietly report every future headingless type
+ * as unparseable content. Without it, adding a section type is a compile error
+ * here, which is a question answered once rather than a wrong cell shipped.
  */
 function summarize(row: AdminHomePageSectionRow): string | null {
   const parsed = parseHomePageSection(row.type, row.content);
@@ -72,12 +79,47 @@ function summarize(row: AdminHomePageSectionRow): string | null {
 
   switch (parsed.data.type) {
     case "hero":
-      return `${parsed.data.content.headline} ${parsed.data.content.headlineHighlight}`;
+      // `headlineHighlight` is optional since the redesign, so a hero authored
+      // without one summarises as its headline alone rather than "… undefined".
+      return [
+        parsed.data.content.headline,
+        parsed.data.content.headlineHighlight,
+      ]
+        .filter(Boolean)
+        .join(" ");
+    case "hero_carousel":
+      // Its only field is an optional fallback caption, so the useful thing to
+      // say is where the slides actually come from.
+      return "Slides come from Banners (home_hero)";
+    case "partner_marquee":
+      // Same: the logos are Banner rows, and the eyebrow is the only copy.
+      return parsed.data.content.eyebrow;
+    case "stats":
+      // No heading and no eyebrow — the figures themselves are the summary.
+      return parsed.data.content.items.map((item) => item.value).join(" · ");
+    case "bento":
+      return parsed.data.content.heading;
+    case "quote_calculator":
+      return parsed.data.content.heading;
+    case "how_it_works":
+      return parsed.data.content.heading;
+    case "vehicle_types":
+      return parsed.data.content.heading;
     case "driver_cta":
       // Its headline is authored across two lines; flattened to one for a cell.
       return parsed.data.content.headline.split("\n").join(" ");
-    default:
+    case "coverage":
       return parsed.data.content.heading;
+    case "faq":
+      return parsed.data.content.heading;
+    case "closing_cta":
+      return parsed.data.content.heading;
+    case "category_tiles":
+      return parsed.data.content.heading;
+    case "nav":
+      return parsed.data.content.wordmark;
+    case "footer":
+      return parsed.data.content.brandName;
   }
 }
 
@@ -330,7 +372,9 @@ export default function AdminHomePageSectionsPage() {
         <p className="max-w-2xl text-sm text-muted-foreground">
           The sections of the public landing page, in the order they render.
           With no sections for a locale, the page falls back to its built-in
-          default composition.
+          default composition. The navigation bar and the footer are page
+          chrome: they render at the top and the bottom whatever their position
+          in this list, so moving them changes nothing.
         </p>
         <Button size="sm" onClick={() => setFormTarget(null)}>
           New Section

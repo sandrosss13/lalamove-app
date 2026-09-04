@@ -32,6 +32,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  HOME_HERO_BANNER_PLACEMENT,
+  MAX_HERO_BANNERS,
+} from "@/lib/admin/home-page-content";
 
 /** Columns in the table, so the full-width state rows can span all of them. */
 const COLUMN_COUNT = 7;
@@ -40,6 +44,39 @@ const LOCALE_LABELS: Record<ContentLocale, string> = {
   KA: "Georgian",
   EN: "English",
 };
+
+/** How full one locale's hero carousel is, as the summary line renders it. */
+type HeroCapacityRow = {
+  locale: ContentLocale;
+  active: number;
+};
+
+/**
+ * Active `home_hero` banners per locale, derived from the rows already loaded
+ * rather than from a second request: the list endpoint is unpaginated, so the
+ * table's own data is the whole truth about the carousel.
+ *
+ * A locale is listed as soon as it has *any* hero banner, active or not, so
+ * switching the last one off leaves the line reading "0 of 6" instead of the
+ * summary silently disappearing. The count itself follows `isActive` alone,
+ * which is exactly what the server-side cap counts — the display window is a
+ * scheduling tool, not a slot reservation, so a scheduled banner still occupies
+ * its slot here.
+ */
+function summarizeHeroCapacity(banners: AdminBannerRow[]): HeroCapacityRow[] {
+  const activeByLocale = new Map<ContentLocale, number>();
+
+  for (const banner of banners) {
+    if (banner.placement !== HOME_HERO_BANNER_PLACEMENT) {
+      continue;
+    }
+
+    const active = activeByLocale.get(banner.locale) ?? 0;
+    activeByLocale.set(banner.locale, active + (banner.isActive ? 1 : 0));
+  }
+
+  return [...activeByLocale].map(([locale, active]) => ({ locale, active }));
+}
 
 /**
  * UTC so a window reads back exactly as it was entered: the form writes each
@@ -221,14 +258,49 @@ export default function AdminBannersPage() {
   }
 
   const items = banners ?? [];
+  const heroCapacity = summarizeHeroCapacity(items);
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <p className="text-sm text-muted-foreground">
-          Promotional images on the public site. Each banner shows in one
-          placement and locale, ordered by its sort order.
-        </p>
+        <div className="flex flex-col gap-1.5">
+          <p className="text-sm text-muted-foreground">
+            Promotional images on the public site. Each banner shows in one
+            placement and locale, ordered by its sort order.
+          </p>
+
+          {/* Shown before anything is saved, so the cap is learned here rather
+              than from the 409 the routes return on a seventh hero banner. */}
+          {heroCapacity.length > 0 ? (
+            <ul className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+              {heroCapacity.map(({ locale, active }) => {
+                const full = active >= MAX_HERO_BANNERS;
+
+                return (
+                  <li
+                    key={locale}
+                    className="flex items-center gap-1.5 text-xs text-muted-foreground"
+                  >
+                    <span>
+                      Hero carousel · {LOCALE_LABELS[locale]}:{" "}
+                      <span
+                        className={
+                          full
+                            ? "font-medium text-destructive"
+                            : "font-medium text-foreground"
+                        }
+                      >
+                        {active} of {MAX_HERO_BANNERS}
+                      </span>{" "}
+                      active
+                    </span>
+                    {full ? <Badge variant="outline">Full</Badge> : null}
+                  </li>
+                );
+              })}
+            </ul>
+          ) : null}
+        </div>
         <Button size="sm" onClick={() => setFormTarget(null)}>
           New Banner
         </Button>

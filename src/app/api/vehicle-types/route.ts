@@ -37,6 +37,7 @@ export async function GET(): Promise<NextResponse> {
       cargoWidthM: true,
       cargoHeightM: true,
       loadingAccessType: true,
+      imageUrl: true,
       pricingRule: {
         select: {
           baseFare: true,
