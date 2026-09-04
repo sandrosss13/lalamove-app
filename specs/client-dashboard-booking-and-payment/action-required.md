@@ -11,13 +11,24 @@ Manual steps that must be completed by a human. These cannot be automated.
 
 - [x] ~~Re-run `pnpm exec prisma db seed` after applying the schema migration~~ — **resolved by migration `20260904090000_backfill_vehicle_body_types`.** Do NOT run `prisma db seed` against staging or production: the seed's update branch is `{ ...spec, pricingRule: { upsert: { create: pricing, update: pricing } } }`, which rewrites every `VehicleTypeSpec` field and every `PricingRule` — `baseFare`, `perKm`, `perMinute`, `minimumFare`, `helperFee` — back to the constants in `prisma/seed.ts`, discarding any rate tuned in place. The backfill migration writes `bodyTypes` and nothing else, and only touches rows still empty, so it is a no-op on an already-seeded database.
 
-- [ ] **Apply this feature's migrations to staging and production — nothing does it for you.** `package.json`'s build is `prisma generate && next build` (generate only), `vercel.json` sets only a region, and there are no CI workflows, so `prisma migrate deploy` is never run automatically. Four migrations from this feature are pending on any environment other than development:
+- [ ] **Apply this feature's migrations to staging — production is now automatic.** Commits `9a7b17f` and `bc0b105` changed the build to run migrations, but deliberately only on Vercel **production** builds (`scripts/migrate-deploy.mjs`). Preview and local builds skip, because Vercel's Preview and Production `DATABASE_URL` values are both marked Sensitive and redact to `"[SENSITIVE]"` on `vercel env pull` — so whether they point at the same database could not be established, and a preview build applying a branch's migrations to production would have been worse than the manual gap it replaced.
+
+  **Consequence: production migrates itself on the next deploy; staging does not.** For staging, run with that environment's `DATABASE_URL` and `DIRECT_URL`:
+
+  ```
+  FORCE_MIGRATE_DEPLOY=1 node scripts/migrate-deploy.mjs
+  ```
+
+  or `pnpm prisma migrate deploy` directly. The five migrations involved:
+  - `20260902120000_order_helper_count` (pre-dates this feature)
   - `20260903051048_client_dashboard_booking` — stop contacts, service level, body types, SavedCard, payment selection, PO reference
   - `20260903052903_order_saved_card_index`
-  - `20260903060000_saved_card_default_unique` — the partial unique index enforcing one default card per client
+  - `20260903060000_saved_card_default_unique` — partial unique index, one default card per client
   - `20260904090000_backfill_vehicle_body_types`
 
-  Run `pnpm prisma migrate deploy` against each environment with its own `DATABASE_URL`. Without them the client dashboard will fail at runtime on those environments. Worth considering whether the deploy pipeline should run migrations rather than leaving this manual.
+- [ ] **Confirm whether Vercel Preview and Production share a database.** Not answerable from the CLI (both values are Sensitive). If they do share one, preview deployments have been reading and writing live customer data all along — independently of anything in this feature — and that is worth knowing regardless of the migration question.
+
+- [ ] **Note that production migrations now run at *build* time, not deploy time.** A build that migrates and then fails leaves the database ahead of the running code, and a Vercel rollback reverts code but not schema. That is the normal trade for automated migrations, but it should be a known one rather than a surprise.
 
 - [ ] **Decide whether Refrigerated should cost more than it already does** — no surcharge is being added, because Refrigerated Van and Refrigerated Truck are already separately priced types. If the existing gap is too small to cover running a reefer, raise those two rows' `PricingRule` rates directly. This is a data change, not a code change.
 
