@@ -54,6 +54,11 @@ export default async function OrdersPage() {
     redirect("/dashboard");
   }
 
+  // `include` rather than `select`, so every `Order` scalar comes back and the
+  // card is free to read another column without this query being edited in
+  // step — which is how `serviceLevel` and `serviceLevelAdjustment` reach the
+  // price it prints. `vehicle` is narrowed because it is a relation, and a
+  // relation is not included unless it is asked for.
   const orders = await prisma.order.findMany({
     where: { clientId: session.user.id },
     include: {

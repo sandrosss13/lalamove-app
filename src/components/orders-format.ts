@@ -15,7 +15,7 @@
  * keys still keep both tables exhaustive: adding a status fails typecheck until
  * it is listed here.
  */
-import type { OrderStatus } from "@prisma/client";
+import type { OrderStatus, ServiceLevel } from "@prisma/client";
 
 /**
  * Two decimals, pinned to `en-GB` rather than left to the browser: a client on
@@ -50,6 +50,20 @@ export const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
   IN_TRANSIT: "In transit",
   COMPLETED: "Completed",
   CANCELLED: "Cancelled",
+};
+
+/**
+ * `ServiceLevel` in the words the client picked it by on the booking form, so
+ * the tier named beside a price on `/orders` is the same word the client chose.
+ *
+ * A lookup rather than a title-casing transform, for the reason
+ * `ORDER_STATUS_LABEL` above is one: adding a tier to the schema must fail
+ * typecheck here rather than have a label invented for it.
+ */
+export const SERVICE_LEVEL_LABEL: Record<ServiceLevel, string> = {
+  PRIORITY: "Priority",
+  REGULAR: "Regular",
+  POOLING: "Pooling",
 };
 
 /**

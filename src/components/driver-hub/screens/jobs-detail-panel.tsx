@@ -54,6 +54,17 @@ import { cn } from "@/lib/utils";
  * `Order.serviceLevel`, so a coloured pill would read as a promise about how
  * the job is being handled. The panel is where the flag is honestly visible:
  * the driver and ops can see it, and nothing here claims it changed anything.
+ *
+ * ## Why the total is not the client's total
+ *
+ * The tier does move money — `Order.serviceLevelAdjustment` holds the premium
+ * or discount, and `/orders` adds it to `price` because that is what the client
+ * agreed to pay. This panel does not, because its total is labelled "Paid to
+ * you": it is the payee's figure, and whether a Priority premium reaches the
+ * driver or is kept by the platform is an unmade commercial decision. Rather
+ * than guess it, the number is left as `price + overtimeFee` and the tier is
+ * captioned under it so the pill above cannot be mistaken for a rate already in
+ * the fare. See `HubJob.fare` for the full reasoning.
  */
 
 /* -------------------------------------------------------------------------- */
@@ -354,7 +365,9 @@ export function JobsDetailPanel({
         {/* Neutral, never a status tone: `hub-status.ts` defines six tones for
             *states*, and a booked tier is not one. It is also always present —
             the column defaults to REGULAR — so it is never conditional, and
-            hiding "Regular" would make its absence ambiguous. */}
+            hiding "Regular" would make its absence ambiguous. What this pill
+            must not be read as is a rate on the fare below it; the note under
+            "Paid to you" is what stops that. */}
         <Badge variant="outline" className={NEUTRAL_PILL_CLASSES}>
           {job.serviceLevel}
         </Badge>
@@ -446,11 +459,33 @@ export function JobsDetailPanel({
             `price` alone: the lines above include Overtime whenever there is
             any, so a total of `price` would sit under an itemisation it
             contradicts. It is also the number the row's Fare column shows, and
-            a row and its own panel must not disagree about what a job paid. */}
+            a row and its own panel must not disagree about what a job paid.
+
+            It is also not `price + serviceLevelAdjustment`, which is the larger
+            figure `/orders` shows the client on a Priority job. This line is
+            labelled "Paid to you" — it is the payee's side, not the client's —
+            and whether a Priority premium reaches the driver or is kept by the
+            platform is a commercial split nobody has decided. Folding it in
+            would settle that question in a driver's favour by accident, and a
+            Pooling discount would settle it against them. So the number is left
+            alone and the tier is captioned instead. See `HubJob.fare`. */}
         <span className="font-price text-xl font-semibold">
           {formatGel(job.fare)}
         </span>
       </div>
+
+      {/* The disclaimer the pills three lines up cannot carry on their own: a
+          "Priority" pill sitting above an unadjusted figure reads as a premium
+          rate already in it. This says plainly that it is not, without claiming
+          anything about who ends up with the difference — which is the part
+          nobody has decided. Regular moves the fare by nothing, so it earns no
+          note; a line saying the adjustment was zero would only be noise. */}
+      {job.serviceLevel === "Regular" ? null : (
+        <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+          Booked as {job.serviceLevel}. The tier adjusts what the client pays
+          and is not part of this figure.
+        </p>
+      )}
 
       {/* Below the money rather than above it: the fare lines and the total
           they add up to are one block closed by its own rule, and a row list

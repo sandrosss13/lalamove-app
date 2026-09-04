@@ -114,7 +114,23 @@ export type HubJob = {
   pickupAddress: string;
   dropoffAddress: string;
   distanceKm: number;
-  /** `price + overtimeFee` — what the job is worth in total. */
+  /**
+   * `price + overtimeFee` — what the job pays *the account reading this*, which
+   * is why the panel labels it "Paid to you".
+   *
+   * `Order.serviceLevelAdjustment` is deliberately not in it. That column is
+   * the Priority premium or Pooling discount on **what the client pays**, and
+   * whether any of it reaches the driver or is kept by the platform is a
+   * commercial split nobody has decided. Adding it here would answer that
+   * question in the driver's favour by accident, on a line that reads as a
+   * promise of payment; subtracting a Pooling discount would answer it against
+   * them just as silently. So the payee's figure stays exactly what it has
+   * always been, and the panel says out loud that the tier is not in it.
+   *
+   * This is knowingly not the same number `/orders` shows the client for the
+   * same job. The two figures answer two different questions, and the fix for
+   * the difference is a rate decision, not a display change.
+   */
   fare: number;
 
   /* Fare lines, exactly as `Order` itemises them for the detail panel. They sum
