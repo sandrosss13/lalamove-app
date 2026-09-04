@@ -9,10 +9,7 @@ import { AuthStatus, HeaderBrandLink } from "@/components/auth-status";
 // (IBM Plex Sans), differentiated by weight rather than by a separate
 // display face.
 const ibmPlexSans = IBM_Plex_Sans({
-  // latin-ext is what carries the lari sign (U+20BE). Google's `latin` subset
-  // stops at U+20AC in the currency block — euro and nothing else — so with
-  // `latin` alone every ₾ on the site falls through to the system fallback.
-  subsets: ["latin", "latin-ext"],
+  subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   display: "swap",
   variable: "--font-ibm-plex-sans",
@@ -21,13 +18,22 @@ const ibmPlexSans = IBM_Plex_Sans({
 // Used for numeric data (prices, dates, IDs) where tabular alignment matters —
 // the driver hub's regular text and the landing page's body/display text both
 // stay on their own sans stacks; only figures opt into this one.
+//
+// The lari sign (U+20BE) is NOT in IBM Plex — neither the mono nor the sans
+// face — so every ₾ on the site renders in the system fallback. Do not try to
+// fix that by adding the "latin-ext" subset: Google declares U+20AD-20C0 on
+// that subset generically across families, so it looks like the right answer,
+// but IBM Plex has no lari glyph and downloading the subset changes nothing.
+// Measured in a browser: ₾ is 25.2px wide whether IBM Plex Mono is requested or
+// a font that does not exist, while € (U+20AC, which IBM Plex does have) is
+// 20.4px — one mono cell, same as every digit.
+//
+// This is cosmetic rather than a layout bug: every money string goes through a
+// formatGel helper, so they all carry the same ₾ at the same width and price
+// columns still align with each other. Fixing it properly means loading a face
+// that actually has the glyph, which is a design decision, not a config change.
 const ibmPlexMono = IBM_Plex_Mono({
-  // latin-ext for the lari sign — see the note on the sans face above. This one
-  // matters more: measured in production on the latin-only subset, ₾ rendered
-  // 25.6px against 20.4px for every digit, so the symbol was neither in this
-  // face nor a monospace cell wide, and columns of prices did not align — which
-  // is the whole reason figures opt into this family.
-  subsets: ["latin", "latin-ext"],
+  subsets: ["latin"],
   weight: ["400", "500", "600"],
   display: "swap",
   variable: "--font-ibm-plex",
