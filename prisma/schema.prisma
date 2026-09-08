@@ -327,6 +327,26 @@ enum CargoCategory {
   CONSTRUCTION_MATERIALS
 }
 
+/// Handling requirements a client can attach to a load. Surfaced to drivers on
+/// the load board as pills, and the first three are also filter chips.
+///
+/// `COLD_CHAIN` overlaps with `ChassisType.REFRIGERATED` but is not the same
+/// thing: the chassis type is a property of the *vehicle body*, this is a
+/// requirement of the *cargo*. A client can declare cold-chain cargo without
+/// having picked a refrigerated body, and the mismatch is worth surfacing.
+///
+/// `HAZMAT` is an ADR licensing matter. Nothing in this schema gates it —
+/// `DriverLicence` has no certification field — so it is a warning, not a
+/// control. See `specs/driver-load-board/action-required.md`.
+enum CargoHandlingTag {
+  FRAGILE
+  COLD_CHAIN
+  HAZMAT
+  TIME_CRITICAL
+  UPRIGHT_ONLY
+  HEAVY_ITEM
+}
+
 /// Cities a driver or logistics company can be based in.
 enum GeorgianCity {
   TBILISI
@@ -512,8 +532,13 @@ model LogisticsCompany {
   vehicles    Vehicle[]
   orders      Order[]
   application BusinessApplication?
-  createdAt   DateTime             @default(now())
-  updatedAt   DateTime             @updatedAt
+
+  /// Loads this company's dispatcher has hidden from the company's board. The
+  /// company account rejects, never its roster drivers — see `LoadRejection`.
+  loadRejections LoadRejection[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 /// One fleet onboarding application per logistics company, 1:1 on
@@ -656,6 +681,10 @@ model DriverProfile {
   licence     DriverLicence?
   application DriverApplication?
 
+  /// Loads this driver has hidden from their own board. Never a cancellation —
+  /// see `LoadRejection`.
+  loadRejections LoadRejection[]
+
   @@index([companyId])
 }
 
@@ -776,12 +805,21 @@ model Vehicle {
   /// "no declared class" and fall back to `vehicleTypeSpec.label`.
   vehicleClass      VehicleClass?
   // Driver-declared overrides collected during onboarding, distinct from
-  // vehicleTypeSpec's class-level values. These are attestations for
-  // compliance review, never read by pricing or order matching — both
-  // continue to use only vehicleTypeSpec's payload/dimensions, the single
-  // source of truth for what a *class* of vehicle can carry. A submit-time
-  // server check requires payloadKg to be at or above the resolved spec's
-  // maxPayloadKg, so a vehicle can never be registered under a class it
+  // vehicleTypeSpec's class-level values. They began as attestations for
+  // compliance review only. That is still true of *pricing*, which continues to
+  // read vehicleTypeSpec's payload/dimensions alone — the single source of truth
+  // for what a *class* of vehicle can carry — and of dispatch matching, which
+  // keys on vehicleTypeSpecId.
+  //
+  // It is no longer true in general: `capabilityOf` in
+  // `src/lib/orders/vehicle-fit.ts` reads these columns to decide whether a
+  // specific vehicle can carry a specific load on the driver load board,
+  // preferring the declared value and falling back to the spec when it is null.
+  // The fit filter is about the truck that actually turns up, so the vehicle's
+  // own declared capacity is the more accurate figure there.
+  //
+  // A submit-time server check requires payloadKg to be at or above the resolved
+  // spec's maxPayloadKg, so a vehicle can never be registered under a class it
   // physically can't meet.
   payloadKg         Float?
   cargoLengthM      Float?
@@ -857,7 +895,36 @@ model ClientProfile {
 /// A single freight job placed by a client and fulfilled either by an independent
 /// driver or by a logistics company dispatching one of its own drivers.
 model Order {
-  id            String        @id @default(cuid())
+  id String @id @default(cuid())
+
+  /// Human-readable order reference in `GE-48210` form, shown to drivers on the
+  /// board and read aloud to support. `Order.id` is a cuid, which nobody can
+  /// dictate over a phone. Backfilled for every pre-existing order by this
+  /// column's migration, so it is non-null from the start.
+  ///
+  /// The database default is what makes this column safe to deploy. It is
+  /// `NOT NULL`, and `scripts/migrate-deploy.mjs` runs `prisma migrate deploy`
+  /// ahead of `next build`, so for the length of a production build the *old*
+  /// code — which has never heard of `reference` — is still serving traffic
+  /// against the *new* column. Without a default, every order placed in that
+  /// window would die on a not-null violation. Drawing from the sequence in the
+  /// default means an insert that ignores this column still gets a valid, unique
+  /// reference.
+  ///
+  /// The application nonetheless draws and passes the reference explicitly (see
+  /// `src/lib/orders/reference.ts` and `POST /api/orders`): a value the client
+  /// supplies is a value it already has, so the create response can carry the
+  /// reference without a second round-trip to read back what the default
+  /// generated. The default is the safety net, not the mechanism.
+  ///
+  /// The expression is spelled with its explicit casts because that is how
+  /// Postgres stores it once normalised, and `prisma migrate diff` compares
+  /// `dbgenerated` strings literally — writing the tidier
+  /// `('GE-' || nextval('order_reference_seq'))` here reads better and reports
+  /// as permanent schema drift on every run. The migration writes the tidy form;
+  /// this is the same expression after the database has had its say.
+  reference String @unique @default(dbgenerated("('GE-'::text || nextval('order_reference_seq'::regclass))"))
+
   cargoCategory CargoCategory
   description   String?
 
@@ -867,6 +934,36 @@ model Order {
   // It carries no price of its own — see the `ChassisType` doc comment for why a
   // body surcharge would double-charge the catalogue.
   bodyType ChassisType?
+
+  /// The load's physical description, declared by the client at booking on top
+  /// of the vehicle class they picked. All nullable: every order placed before
+  /// the load board existed has none, and there is nothing to derive them from.
+  ///
+  /// These do **not** feed the quote — `src/lib/pricing.ts` prices a vehicle
+  /// class, a distance and a helper count, and continues to. They exist so the
+  /// board can hide a load that physically will not fit the vehicle a driver
+  /// turns up in. A null here means "unknown", and the fit filter treats unknown
+  /// as *not fitting* rather than assuming it does: a driver sent to a load that
+  /// does not fit has wasted a trip, which is the costlier failure.
+  cargoWeightKg Float?
+  cargoLengthM  Float?
+  cargoWidthM   Float?
+  cargoHeightM  Float?
+
+  /// Free text, shown on the board's Cargo column and in the detail drawer.
+  /// `packagingDescription` is the form the load takes ("4 pallets"),
+  /// `itemQuantity` is what is inside it ("96 cartons"). Two columns rather
+  /// than one because the board shows the first under the cargo type and the
+  /// second only in the drawer.
+  packagingDescription String?
+  itemQuantity         String?
+
+  /// Handling requirements. Empty array, never null — an order with no special
+  /// requirements has `[]`, which reads the same at every call site. The
+  /// `@default([])` is what puts that guarantee in the database rather than only
+  /// in Prisma's read behaviour, and it is what keeps this field in step with the
+  /// `DEFAULT ARRAY[]::"CargoHandlingTag"[]` its migration writes.
+  handlingTags CargoHandlingTag[] @default([])
 
   // Extra helpers requested *beyond* the driver, 0-3. The booking form asks for
   // a total crew size of 1-4 people, where 1 is the driver working alone, so the
@@ -881,6 +978,14 @@ model Order {
   // feeds the price — it's informational for dispatch, not the quote.
   scheduledAt DateTime?
 
+  /// The window the client will release the load in, and the time it must
+  /// arrive by. `scheduledAt` above stays as it is: it is the single instant the
+  /// booking form collects today, and these two refine it. All nullable for the
+  /// same backfill reason as the cargo columns.
+  pickupWindowStart DateTime?
+  pickupWindowEnd   DateTime?
+  deliveryDeadline  DateTime?
+
   pickupAddress String
   pickupLat     Float?
   pickupLng     Float?
@@ -888,6 +993,19 @@ model Order {
   dropoffAddress String
   dropoffLat     Float?
   dropoffLng     Float?
+
+  /// The city at each end of the job, resolved server-side at booking from the
+  /// structured address components the geocode lookup returns. Nullable, and
+  /// deliberately so: an address outside the 63-value `GeorgianCity` enum (a
+  /// village, a roadside depot) resolves to null rather than being forced into
+  /// the nearest wrong city.
+  ///
+  /// The load board filters on these. It cannot filter on `pickupAddress` —
+  /// that is free text a client typed, and matching "Tbilisi" against it would
+  /// hit any address containing the word. Two enum columns are what make the
+  /// board's two city dropdowns a real filter rather than a substring search.
+  pickupCity  GeorgianCity?
+  dropoffCity GeorgianCity?
 
   // Contact at each end of the job. All optional: the booking form presents them
   // as optional and never blocks on them. Surfaced to the driver and to company
@@ -928,6 +1046,59 @@ model Order {
   // the client's browser displays is never trusted.
   serviceLevelAdjustment Float @default(0)
 
+  /// The platform's cut and the driver's resulting share, both resolved at
+  /// creation and stored rather than computed on read. A global rate lives in
+  /// `src/lib/orders/payout.ts`, but retuning it must not silently rewrite what
+  /// a job completed last month paid — so the rate that applied is kept with the
+  /// order. `driverPayout` is
+  /// `(price + serviceLevelAdjustment) * (1 - commissionRate)`, rounded to whole
+  /// tetri.
+  ///
+  /// Written precisely, and the precision matters — the basis is rounded
+  /// **before** it is commissioned:
+  ///
+  /// ```ts
+  /// driverPayoutFor(roundCurrency(price + serviceLevelAdjustment), commissionRate)
+  /// ```
+  ///
+  /// Both helpers live in `src/lib/orders/payout.ts`; write it that way rather
+  /// than rounding once at the end. Adding two `Float` columns leaves binary
+  /// dust on the sum, and commissioning the dusty figure lands a tetri away from
+  /// commissioning the clean one on a real share of orders — 210 of 20,000
+  /// PRIORITY amounts, when the two orderings were measured against each other.
+  ///
+  /// **The basis is `price + serviceLevelAdjustment`, not `price` alone.** The
+  /// adjustment is stored beside `price` rather than folded into it (see its own
+  /// comment above), and `POST /api/orders/[id]/pay` charges the client the sum
+  /// of the two. Commissioning `price` by itself would hand the platform the
+  /// entire Priority uplift: on a 100 GEL fare at PRIORITY the client pays 125,
+  /// and a price-only payout leaves the driver 85 against a 40 platform take —
+  /// 32%, not 15%.
+  ///
+  /// `driverPayout` is the ONLY money figure a driver may be shown. `price`,
+  /// `serviceLevelAdjustment` and the fare components are the client's total and
+  /// must never reach a driver-facing surface.
+  ///
+  /// The commission is taken from everything the client pays. `helperFee` is
+  /// already a component of `price`, so it is commissioned by construction and
+  /// needs nothing further. `overtimeFee` is not — it is settled separately at
+  /// completion — so it carries its own payout column below.
+  commissionRate Float @default(0.15)
+  driverPayout   Float @default(0)
+
+  /// The driver's share of `overtimeFee`, resolved when the order completes and
+  /// the overtime is known. Kept in its own column rather than folded into
+  /// `driverPayout` so that `driverPayout` keeps ONE stable meaning: what the
+  /// job was quoted to pay, which is the figure the load board shows a driver
+  /// while they decide whether to take it. A figure that silently grew after
+  /// completion would make the board's number and the earnings screen's number
+  /// disagree for the same job.
+  ///
+  /// Total driver earnings for an order are `driverPayout + overtimeDriverPayout`.
+  /// Commissioned at the same `commissionRate` stored above, so a rate change
+  /// between booking and completion cannot apply two different rates to one job.
+  overtimeDriverPayout Float @default(0)
+
   vehicleTypeSpecId String
   vehicleTypeSpec   VehicleTypeSpec @relation(fields: [vehicleTypeSpecId], references: [id])
 
@@ -966,6 +1137,9 @@ model Order {
   // delivery order settled off-platform may never have one.
   payment Payment?
 
+  /// Drivers and companies who have hidden this load from their own board.
+  rejections LoadRejection[]
+
   // How the client said they would settle, and which saved card they picked if
   // they chose one. Both nullable: orders placed before the payment step existed
   // have neither, and CASH and BANK_TRANSFER never name a card. No gateway is
@@ -1001,6 +1175,50 @@ model Order {
   // DELETE /api/saved-cards/[id] performs on demand.
   @@index([savedCardId])
   @@index([status])
+  // The load board's hot query: open work nobody has claimed yet. `status`
+  // alone already has an index above, but the board always pairs it with both
+  // assignment columns, and a composite spares a heap lookup per candidate row
+  // on what is the most frequently run query in the driver hub.
+  @@index([status, driverId, companyId])
+  // The board's two city dropdowns filter on these directly — see the columns'
+  // own comment for why they exist rather than a `pickupAddress` substring match.
+  @@index([pickupCity])
+  @@index([dropoffCity])
+}
+
+/// One driver's (or one company's) decision to hide an open load from their own
+/// board. Deliberately *not* a cancellation: the client's booking is untouched
+/// and every other driver still sees it.
+///
+/// Exactly one of `driverProfileId` / `companyId` is set, matching whichever
+/// kind of account did the rejecting. Two partial-looking unique constraints
+/// rather than one: Postgres treats NULLs as distinct in a unique index, so
+/// `@@unique([orderId, driverProfileId])` constrains driver rows and simply does
+/// not apply to company rows (whose `driverProfileId` is NULL), and vice versa.
+/// The pair therefore gives exactly one rejection per order per account without
+/// needing a partial index Prisma cannot express.
+///
+/// Rows are kept after the load is claimed by someone else rather than cleaned
+/// up: this is the raw signal an acceptance-rate model would be built from, and
+/// it cannot be backfilled. Nothing reads it that way yet.
+model LoadRejection {
+  id String @id @default(cuid())
+
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  driverProfileId String?
+  driverProfile   DriverProfile? @relation(fields: [driverProfileId], references: [id], onDelete: Cascade)
+
+  companyId String?
+  company   LogisticsCompany? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([orderId, driverProfileId])
+  @@unique([orderId, companyId])
+  @@index([driverProfileId])
+  @@index([companyId])
 }
 
 // ---------------------------------------------------------------------------

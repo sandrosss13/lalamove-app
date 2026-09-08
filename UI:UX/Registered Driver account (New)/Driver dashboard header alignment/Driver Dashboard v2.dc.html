@@ -1,0 +1,1741 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="fonts/fonts.css">
+<link rel="stylesheet" href="_ds/lalamove-ui-kit-c2ab8214-d170-4eee-9314-d9d44f5fc5b9/styles.css">
+<script src="_ds/lalamove-ui-kit-c2ab8214-d170-4eee-9314-d9d44f5fc5b9/_ds_bundle.js"></script>
+<style>
+  body { margin:0; background: oklch(96.7% 0.003 264.542); }
+  a { color: oklch(64% 0.19 48); text-decoration: none; }
+  a:hover { color: oklch(54% 0.17 46); }
+  * { box-sizing: border-box; }
+</style>
+</helmet>
+<div data-admin-surface="" style="display:flex; flex-direction:column; min-height:100vh; font-family:'IBM Plex Sans', sans-serif; color:oklch(13% 0.028 261.692); background:oklch(96.7% 0.003 264.542); -webkit-font-smoothing:antialiased">
+
+  
+
+  <header style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px 24px; padding:12px 24px; border-bottom:1px solid oklch(92.8% 0.006 264.531); background:#fff; position:sticky; top:0; z-index:5">
+    <div style="display:flex; align-items:center; gap:20px; min-width:0">
+      <a href="#" onClick="{{ goToday }}" style="font-size:16px; font-weight:700; letter-spacing:-0.015em; color:oklch(13% 0.028 261.692); white-space:nowrap">Lalamove Clone</a>
+      <nav aria-label="Driver" style="display:flex; align-items:center; gap:16px; font-size:14px">
+        <a href="#" onClick="{{ goJobs }}" style="font-weight:500; white-space:nowrap; color: {{ navOrdersColor }}">My orders</a>
+        <a href="#" onClick="{{ goEarnings }}" style="font-weight:500; white-space:nowrap; color: {{ navWalletColor }}">Wallet</a>
+      </nav>
+    </div>
+    <div style="display:flex; align-items:center; flex-wrap:wrap; gap:10px 12px; font-size:14px">
+      <button onClick="{{ toggleOnline }}" style="{{ onlineBtnStyle }}">
+        <span style="{{ onlineDotStyle }}"></span>{{ onlineLabel }}
+      </button>
+
+      <div style="position:relative; display:flex">
+        <button onClick="{{ toggleJobs }}" style="display:inline-flex; align-items:center; gap:7px; border:1px solid oklch(92.8% 0.006 264.531); border-radius:99px; padding:5px 12px 5px 10px; background:#fff; font-family:inherit; font-size:12px; font-weight:600; color:oklch(13% 0.028 261.692); white-space:nowrap; cursor:pointer">
+          <span aria-hidden="true" style="width:7px; height:7px; border-radius:99px; background:oklch(64% 0.19 48)"></span>{{ jobPillLabel }}
+        </button>
+        <sc-if value="{{ jobsOpen }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute; top:38px; right:0; z-index:20; width:330px; border:1px solid oklch(92.8% 0.006 264.531); border-radius:12px; background:#fff; box-shadow:0 12px 32px rgba(0,0,0,0.12); overflow:hidden">
+            <div style="padding:11px 14px; border-bottom:1px solid oklch(92.8% 0.006 264.531); font-size:12px; font-weight:600">{{ jobPillLabel }}</div>
+            <sc-for list="{{ livePillJobs }}" as="job" hint-placeholder-count="3">
+              <a href="#" onClick="{{ goJobs }}" style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:11px 14px; border-bottom:1px solid oklch(92.8% 0.006 264.531); color:oklch(13% 0.028 261.692)">
+                <span style="display:flex; flex-direction:column; gap:2px; min-width:0">
+                  <span style="font-size:13px; font-weight:500">{{ job.route }}</span>
+                  <span style="font-size:11px; color:oklch(44.6% 0.03 256.802)">{{ job.who }}</span>
+                </span>
+                <span style="font-family:'IBM Plex Mono', monospace; font-size:11px; color:oklch(44.6% 0.03 256.802); white-space:nowrap">{{ job.eta }}</span>
+              </a>
+            </sc-for>
+            <a href="#" onClick="{{ goJobs }}" style="display:block; padding:11px 14px; font-size:12px; font-weight:600">{{ jobsLinkLabel }}</a>
+          </div>
+        </sc-if>
+      </div>
+
+      <div style="position:relative; display:flex">
+        <button aria-label="Notifications" onClick="{{ toggleBell }}" style="position:relative; display:grid; place-items:center; width:32px; height:32px; border:none; background:transparent; border-radius:8px; cursor:pointer; color:oklch(44.6% 0.03 256.802)">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+            <path d="M13.7 21a2 2 0 0 1-3.4 0"></path>
+          </svg>
+          <span aria-hidden="true" style="position:absolute; top:1px; right:1px; transform:translate(35%,-35%); min-width:15px; height:15px; padding:0 3px; border-radius:99px; background:oklch(64% 0.19 48); color:#fff; font-family:'IBM Plex Mono', monospace; font-size:10px; font-weight:600; line-height:15px; text-align:center">3</span>
+        </button>
+        <sc-if value="{{ bellOpen }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute; top:38px; right:0; z-index:20; width:300px; border:1px solid oklch(92.8% 0.006 264.531); border-radius:12px; background:#fff; box-shadow:0 12px 32px rgba(0,0,0,0.12); overflow:hidden">
+            <div style="padding:11px 14px; border-bottom:1px solid oklch(92.8% 0.006 264.531); font-size:12px; font-weight:600">Notifications</div>
+            <sc-for list="{{ notifications }}" as="n" hint-placeholder-count="3">
+              <a href="#" onClick="{{ n.go }}" style="display:flex; flex-direction:column; gap:2px; padding:11px 14px; border-bottom:1px solid oklch(92.8% 0.006 264.531); color:oklch(13% 0.028 261.692)">
+                <span style="font-size:13px; font-weight:500">{{ n.title }}</span>
+                <span style="font-size:11px; color:oklch(44.6% 0.03 256.802)">{{ n.when }}</span>
+              </a>
+            </sc-for>
+          </div>
+        </sc-if>
+      </div>
+
+      <span style="width:1px; height:22px; background:oklch(92.8% 0.006 264.531)"></span>
+      <span style="font-size:14px; white-space:nowrap">{{ userName }}</span>
+      <a href="#" onClick="{{ goAccount }}" style="font-weight:500; white-space:nowrap; color: {{ navAccountColor }}">My account</a>
+      <button style="border:1px solid oklch(92.8% 0.006 264.531); border-radius:6px; padding:5px 10px; background:#fff; font-family:inherit; font-size:14px; font-weight:500; color:oklch(13% 0.028 261.692); white-space:nowrap; cursor:pointer">Sign out</button>
+    </div>
+  </header>
+
+  <div style="display:flex; flex:1; min-width:0">
+  <aside style="width:248px; flex:0 0 248px; background:#fff; border-right:1px solid oklch(92.8% 0.006 264.531); display:flex; flex-direction:column; padding:20px 16px; gap:24px; position:sticky; top:58px; height:calc(100vh - 58px); align-self:flex-start">
+
+    
+
+    <nav style="display:flex; flex-direction:column; gap:2px">
+      <sc-for list="{{ nav }}" as="item" hint-placeholder-count="7">
+        <button onClick="{{ item.go }}" style="{{ item.style }}">
+          <span>{{ item.label }}</span>
+          <sc-if value="{{ item.badge }}" hint-placeholder-val="{{ false }}">
+            <span style="{{ item.badgeStyle }}">{{ item.badge }}</span>
+          </sc-if>
+        </button>
+      </sc-for>
+    </nav><div style="margin-top:auto; display:flex; flex-direction:column; gap:8px">
+      <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.08em; color:oklch(44.6% 0.03 256.802); padding:0 2px">Preview as</div>
+      <div style="display:flex; gap:2px; background:oklch(96.7% 0.003 264.542); padding:3px; border-radius:8px">
+        <sc-for list="{{ accountTabs }}" as="a" hint-placeholder-count="2">
+          <button onClick="{{ a.go }}" style="{{ a.style }}">{{ a.label }}</button>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="border:1px solid oklch(92.8% 0.006 264.531); border-radius:12px; padding:14px">
+      <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.08em; color:oklch(44.6% 0.03 256.802); margin-bottom:8px">Weekly incentive</div>
+      <div style="font-family:'IBM Plex Mono', monospace; font-size:20px; font-weight:600">{{ incentiveDone }}<span style="color:oklch(44.6% 0.03 256.802); font-size:14px">/{{ incentiveTarget }}</span></div>
+      <div style="height:6px; border-radius:99px; background:oklch(92.8% 0.006 264.531); margin:10px 0 8px; overflow:hidden">
+        <div style="{{ incentiveBarStyle }}"></div>
+      </div>
+      <div style="font-size:12px; color:oklch(44.6% 0.03 256.802); line-height:1.4">{{ incentiveNote }}</div>
+    </div>
+  </aside><main style="flex:1; min-width:0; display:flex; flex-direction:column">
+    
+
+    <div style="{{ pagePadStyle }}">
+
+      <sc-if value="{{ showPageHead }}" hint-placeholder-val="{{ true }}">
+        <div style="max-width:1180px; margin-bottom:20px">
+          <div style="font-size:20px; font-weight:600; letter-spacing:-0.015em">{{ pageTitle }}</div>
+          <div style="font-size:13px; color:oklch(44.6% 0.03 256.802); margin-top:2px">{{ pageSub }}</div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isAccount }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex; flex-wrap:wrap; gap:40px; max-width:1180px">
+          <aside style="width:208px; flex:0 0 auto; display:flex; flex-direction:column">
+            <div style="font-size:11px; font-weight:600; letter-spacing:0.1em; text-transform:uppercase; color:oklch(44.6% 0.03 256.802); margin-bottom:12px">Account</div>
+            <nav aria-label="Account settings" style="display:flex; flex-direction:column">
+              <sc-for list="{{ accountNav }}" as="item" hint-placeholder-count="5">
+                <a href="#" onClick="{{ item.go }}" style="{{ item.style }}">{{ item.label }}</a>
+              </sc-for>
+            </nav>
+            <a href="#" style="margin-top:28px; display:inline-flex; align-items:center; gap:8px; font-size:14px; font-weight:500; color:oklch(44.6% 0.03 256.802)">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><path d="M16 17l5-5-5-5"></path><path d="M21 12H9"></path>
+              </svg>
+              Log out
+            </a>
+          </aside>
+          <div style="flex:1 1 420px; min-width:0; display:flex; flex-direction:column; gap:20px">
+            <div>
+              <div style="font-size:11px; font-weight:600; letter-spacing:0.1em; text-transform:uppercase; color:oklch(44.6% 0.03 256.802)">Settings <span aria-hidden="true" style="padding:0 6px">/</span><span style="color:oklch(64% 0.19 48)">{{ accountSection }}</span></div>
+              <div style="font-size:28px; font-weight:600; letter-spacing:-0.025em; line-height:1.1; margin-top:8px">{{ accountSection }}</div>
+              <div style="font-size:13px; line-height:1.6; color:oklch(44.6% 0.03 256.802); max-width:520px; margin-top:10px">{{ accountBlurb }}</div>
+            </div>
+            <sc-for list="{{ accountPanels }}" as="panel" hint-placeholder-count="2">
+              <div style="background:#fff; border:1px solid oklch(92.8% 0.006 264.531); border-radius:14px; padding:22px">
+                <div style="font-size:13px; font-weight:600">{{ panel.title }}</div>
+                <div style="font-size:12px; color:oklch(44.6% 0.03 256.802); margin-top:6px">{{ panel.note }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isToday }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex; flex-direction:column; gap:20px; max-width:1180px">
+          <div style="display:grid; grid-template-columns:1.15fr 1fr 1fr; gap:20px">
+            <div style="background:#fff; border:1px solid oklch(92.8% 0.006 264.531); border-radius:14px; padding:22px">
+              <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.08em; color:oklch(44.6% 0.03 256.802)">Earned today</div>
+              <div style="font-family:'IBM Plex Mono', monospace; font-size:38px; font-weight:600; letter-spacing:-0.02em; margin:8px 0 4px">{{ todayEarnings }}</div>
+              <div style="font-size:13px; color:oklch(44.6% 0.03 256.802)">{{ todaySub }}</div>
+              <div style="display:flex; gap:8px; margin-top:18px">
+                <a href="#" onClick="{{ goEarnings }}" style="font-size:13px; font-weight:500; padding:8px 14px; border-radius:6px; background:oklch(13% 0.028 261.692); color:#fff">View earnings</a>
+                <a href="#" onClick="{{ goJobs }}" style="font-size:13px; font-weight:500; padding:8px 14px; border-radius:6px; border:1px solid oklch(92.8% 0.006 264.531); color:oklch(13% 0.028 261.692)">Job history</a>
+              </div>
+            </div>
+            <div style="background:#fff; border:1px solid oklch(92.8% 0.006 264.531); border-radius:14px; padding:22px; display:flex; flex-direction:column; gap:16px">
+              <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.08em; color:oklch(44.6% 0.03 256.802)">Today at a glance</div>
+              <sc-for list="{{ todayStats }}" as="s" hint-placeholder-count="4">
+                <div style="display:flex; align-items:baseline; justify-content:space-between; gap:12px">
+                  <span style="font-size:13px; color:oklch(44.6% 0.03 256.802)">{{ s.label }}</span>
+                  <span style="font-family:'IBM Plex Mono', monospace; font-size:15px; font-weight:600">{{ s.value }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="background:#fff; border:1px solid oklch(92.8% 0.006 264.531); border-radius:14px; padding:22px; display:flex; flex-direction:column">
+              <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.08em; color:oklch(44.6% 0.03 256.802)">Current job</div>
+              <div style="font-family:'IBM Plex Mono', monospace; font-size:16px; font-weight:600; margin:10px 0 2px">{{ activeJob.id }}</div>
+              <div style="font-size:13px; color:oklch(44.6% 0.03 256.802); margin-bottom:14px">{{ activeJob.meta }}</div>
+              <div style="display:flex; flex-direction:column; gap:10px; padding-left:2px">
+                <sc-for list="{{ activeStops }}" as="stop" hint-placeholder-count="3">
+                  <div style="display:flex; gap:10px; align-items:flex-start">
+                    <span style="{{ stop.dotStyle }}"></span>
+                    <div>
+                      <div style="font-size:13px; font-weight:500">{{ stop.name }}</div>
+                      <div style="font-size:12px; color:oklch(44.6% 0.03 256.802)">{{ stop.time }}</div>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="margin-top:auto; padding-top:16px; display:flex; align-items:center; justify-content:space-between">
+                <span style="font-size:12px; color:oklch(44.6% 0.03 256.802)">Fare</span>
+                <span style="font-family:'IBM Plex Mono', monospace; font-size:18px; font-weight:600">{{ activeJob.fare }}</span>
+              </div>
+            </div>
+          </div>
+
+          <sc-if value="{{ showZones }}" hint-placeholder-val="{{ true }}">
+            <div style="display:grid; grid-template-columns:minmax(0,1fr); gap:20px">
+              <div style="background:#fff; border:1px solid oklch(92.8% 0.006 264.531); border-radius:14px; padding:22px">
+                <div style="display:flex; align-items:baseline; justify-content:space-between; margin-bottom:16px">
+                  <div style="font-size:15px; font-weight:600">Where the demand is</div>
+                  <div style="font-size:12px; color:oklch(44.6% 0.03 256.802)">Updated 2 min ago</div>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:2px">
+                  <sc-for list="{{ zones }}" as="z" hint-placeholder-count="4">
+                    <div style="display:grid; grid-template-columns:1.4fr 1fr 100px 90px; align-items:center; gap:12px; padding:11px 0; border-top:1px solid oklch(96.7% 0.003 264.542)">
+                      <div style="font-size:14px; font-weight:500">{{ z.name }}</div>
+                      <div style="font-size:12px; color:oklch(44.6% 0.03 256.802)">{{ z.drivers }} drivers online</div>
+                      <div><span style="{{ z.tagStyle }}">{{ z.demand }}</span></div>
+                      <div style="font-family:'IBM Plex Mono', monospace; font-size:13px; text-align:right; color:{{ z.bonusColor }}">{{ z.bonus }}</div>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isEarnings }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex; flex-direction:column; gap:20px; max-width:1180px">
+          <div style="background:#fff; border:1px solid oklch(92.8% 0.006 264.531); border-radius:14px; padding:16px 18px; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px 16px">
+            <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap">
+              <div style="display:flex; gap:2px; min-width:0; overflow-x:auto; background:oklch(96.7% 0.003 264.542); padding:3px; border-radius:8px">
+                <sc-for list="{{ rangeTabs }}" as="r" hint-placeholder-count="5">
+                  <button onClick="{{ r.go }}" style="{{ r.style }}">{{ r.label }}</button>
+                </sc-for>
+              </div>
+              <div style="display:flex; align-items:center; gap:8px">
+                <input type="date" value="{{ range.from }}" onChange="{{ setFrom }}" style="{{ dateInputStyle }}">
+                <span style="font-size:13px; color:oklch(44.6% 0.03 256.802)">to</span>
+                <input type="date" value="{{ range.to }}" onChange="{{ setTo }}" style="{{ dateInputStyle }}">
+              </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:14px">
+              <div style="font-size:12px; color:oklch(44.6% 0.03 256.802)">{{ rangeSummary }}</div>
+              <button onClick="{{ exportXls }}" style="cursor:pointer; font-family:inherit; font-size:13px; font-weight:500; padding:8px 14px; border-radius:6px; border:1px solid oklch(92.8% 0.006 264.531); background:#fff; color:oklch(13% 0.028 261.692); display:flex; align-items:center; gap:7px">
+                <span style="width:8px; height:8px; border-radius:2px; background:oklch(59.6% 0.145 163.225)"></span>Export to Excel
+              </button>
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:20px">
+            <sc-for list="{{ earningTiles }}" as="t" hint-placeholder-count="4">
+              <div style="background:#fff; border:1px solid oklch(92.8% 0.006 264.531); border-radius:14px; padding:20px">
+                <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.08em; color:oklch(44.6% 0.03 256.802)">{{ t.label }}</div>
+                <div style="font-family:'IBM Plex Mono', monospace; font-size:26px; font-weight:600; margin:8px 0 3px">{{ t.value }}</div>
+                <div style="font-size:12px; color:oklch(44.6% 0.03 256.802)">{{ t.note }}</div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="display:grid; grid-template-columns:1.4fr 1fr; gap:20px">
+            <div style="background:#fff; border:1px solid oklch(92.8% 0.006 264.531); border-radius:14px; padding:22px">
+              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:22px">
+                <div style="font-size:15px; font-weight:600">{{ chartTitle }}</div>
+                <div style="font-size:12px; color:oklch(44.6% 0.03 256.802)">{{ chartNote }}</div>
+              </div>
+              <div style="{{ chartGridStyle }}">
+                <sc-for list="{{ bars }}" as="b" hint-placeholder-count="7">
+                  <div style="display:flex; flex-direction:column; justify-content:flex-end; height:100%; gap:8px">
+                    <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; color:oklch(44.6% 0.03 256.802); text-align:center">{{ b.value }}</div>
+                    <div style="{{ b.barStyle }}"></div>
+                    <div style="font-size:12px; color:oklch(44.6% 0.03 256.802); text-align:center">{{ b.day }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="background:#fff; border:1px solid oklch(92.8% 0.006 264.531); border-radius:14px; padding:22px">
+              <div style="font-size:15px; font-weight:600; margin-bottom:16px">Breakdown</div>
+              <div style="display:flex; flex-direction:column">
+                <sc-for list="{{ breakdown }}" as="b" hint-placeholder-count="4">
+                  <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 0; border-top:1px solid oklch(96.7% 0.003 264.542)">
+                    <div>
+                      <div style="font-size:14px">{{ b.label }}</div>
+                      <div style="font-size:12px; color:oklch(44.6% 0.03 256.802)">{{ b.note }}</div>
+                    </div>
+                    <div style="font-family:'IBM Plex Mono', monospace; font-size:15px; font-weight:600; color:{{ b.color }}">{{ b.value }}</div>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="display:flex; align-items:center; justify-content:space-between; padding-top:14px; margin-top:6px; border-top:1px solid oklch(92.8% 0.006 264.531)">
+                <div style="font-size:14px; font-weight:600">Range total</div>
+                <div style="font-family:'IBM Plex Mono', monospace; font-size:20px; font-weight:600">{{ payoutTotal }}</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="background:#fff; border:1px solid oklch(92.8% 0.006 264.531); border-radius:14px; padding:22px">
+            <div style="font-size:15px; font-weight:600; margin-bottom:16px">Payout history</div>
+            <div style="display:grid; grid-template-columns:1.2fr 1fr 1fr 1fr 120px; gap:12px; padding-bottom:10px; font-size:11px; text-transform:uppercase; letter-spacing:0.08em; color:oklch(44.6% 0.03 256.802); border-bottom:1px solid oklch(92.8% 0.006 264.531)">
+              <div>Period</div><div>Jobs</div><div>Incentives</div><div>Amount</div><div style="text-align:right">Status</div>
+            </div>
+            <sc-for list="{{ payouts }}" as="p" hint-placeholder-count="4">
+              <div style="display:grid; grid-template-columns:1.2fr 1fr 1fr 1fr 120px; gap:12px; align-items:center; padding:13px 0; border-bottom:1px solid oklch(96.7% 0.003 264.542); font-size:14px">
+                <div style="font-weight:500">{{ p.period }}</div>
+                <div style="font-family:'IBM Plex Mono', monospace">{{ p.jobs }}</div>
+                <div style="font-family:'IBM Plex Mono', monospace">{{ p.incentives }}</div>
+                <div style="font-family:'IBM Plex Mono', monospace; font-weight:600">{{ p.amount }}</div>
+                <div style="text-align:right"><span style="{{ p.tagStyle }}">{{ p.status }}</span></div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isJobs }}" hint-placeholder-val="{{ false }}">
+        <div style="display:grid; grid-template-columns:{{ jobsGrid }}; gap:20px; max-width:1180px; align-items:start">
+          <div style="background:#fff; border:1px solid oklch(92.8% 0.006 264.531); border-radius:14px; padding:22px; min-width:0">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; gap:16px">
+              <div style="display:flex; gap:2px; background:oklch(96.7% 0.003 264.542); padding:3px; border-radius:8px">
+                <sc-for list="{{ jobTabs }}" as="t" hint-placeholder-count="4">
+                  <button onClick="{{ t.go }}" style="{{ t.style }}">{{ t.label }}</button>
+                </sc-for>
+              </div>
+              <div style="font-size:12px; color:oklch(44.6% 0.03 256.802)">{{ jobCountLabel }}</div>
+            </div>
+            <div style="overflow-x:auto">
+            <div style="display:grid; grid-template-columns:110px minmax(180px, 1fr) 90px 90px 90px 110px; gap:12px; min-width:740px; padding-bottom:10px; font-size:11px; text-transform:uppercase; letter-spacing:0.08em; color:oklch(44.6% 0.03 256.802); border-bottom:1px solid oklch(92.8% 0.006 264.531)">
+              <div>Job</div><div>Route</div><div>Distance</div><div>Time</div><div>Fare</div><div style="text-align:right">Status</div>
+            </div>
+            <sc-for list="{{ visibleJobs }}" as="j" hint-placeholder-count="6">
+              <div onClick="{{ j.go }}" style="{{ j.rowStyle }}">
+                <div style="font-family:'IBM Plex Mono', monospace; font-weight:600">{{ j.id }}</div>
+                <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ j.route }}</div>
+                <div style="font-family:'IBM Plex Mono', monospace">{{ j.distance }}</div>
+                <div style="font-family:'IBM Plex Mono', monospace; color:oklch(44.6% 0.03 256.802)">{{ j.time }}</div>
+                <div style="font-family:'IBM Plex Mono', monospace; font-weight:600">{{ j.fare }}</div>
+                <div style="text-align:right"><span style="{{ j.tagStyle }}">{{ j.status }}</span></div>
+              </div>
+            </sc-for>
+            </div>
+          </div>
+
+          <sc-if value="{{ selectedJob }}" hint-placeholder-val="{{ false }}">
+            <div style="background:#fff; border:1px solid oklch(92.8% 0.006 264.531); border-radius:14px; padding:22px; position:sticky; top:112px">
+              <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px">
+                <div>
+                  <div style="font-family:'IBM Plex Mono', monospace; font-size:18px; font-weight:600">{{ selectedJob.id }}</div>
+                  <div style="font-size:13px; color:oklch(44.6% 0.03 256.802); margin-top:3px">{{ selectedJob.dateLabel }}</div>
+                </div>
+                <button onClick="{{ closeJob }}" style="border:1px solid oklch(92.8% 0.006 264.531); background:#fff; width:28px; height:28px; border-radius:6px; cursor:pointer; font-size:14px; color:oklch(44.6% 0.03 256.802)">✕</button>
+              </div>
+              <div style="display:flex; gap:8px; margin:16px 0 20px"><span style="{{ selectedJob.tagStyle }}">{{ selectedJob.status }}</span><span style="{{ selectedJob.typeTagStyle }}">{{ selectedJob.vehicle }}</span></div>
+              <div style="display:flex; flex-direction:column; gap:14px; padding-bottom:20px; border-bottom:1px solid oklch(92.8% 0.006 264.531)">
+                <sc-for list="{{ selectedJob.timeline }}" as="t" hint-placeholder-count="4">
+                  <div style="display:flex; gap:12px; align-items:flex-start">
+                    <span style="{{ t.dotStyle }}"></span>
+                    <div style="flex:1">
+                      <div style="font-size:13px; font-weight:500">{{ t.label }}</div>
+                      <div style="font-size:12px; color:oklch(44.6% 0.03 256.802); margin-top:1px">{{ t.detail }}</div>
+                    </div>
+                    <div style="font-family:'IBM Plex Mono', monospace; font-size:12px; color:oklch(44.6% 0.03 256.802)">{{ t.time }}</div>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="display:flex; flex-direction:column; padding-top:6px">
+                <sc-for list="{{ selectedJob.lines }}" as="l" hint-placeholder-count="4">
+                  <div style="display:flex; justify-content:space-between; padding:9px 0; font-size:13px">
+                    <span style="color:oklch(44.6% 0.03 256.802)">{{ l.label }}</span>
+                    <span style="font-family:'IBM Plex Mono', monospace; font-weight:500">{{ l.value }}</span>
+                  </div>
+                </sc-for>
+                <div style="display:flex; justify-content:space-between; align-items:baseline; padding-top:12px; margin-top:6px; border-top:1px solid oklch(92.8% 0.006 264.531)">
+                  <span style="font-size:14px; font-weight:600">Paid to you</span>
+                  <span style="font-family:'IBM Plex Mono', monospace; font-size:20px; font-weight:600">{{ selectedJob.fare }}</span>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isPerf }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex; flex-direction:column; gap:20px; max-width:1180px">
+          <div style="display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); gap:20px">
+            <sc-for list="{{ perfTiles }}" as="p" hint-placeholder-count="5">
+              <div style="background:#fff; border:1px solid oklch(92.8% 0.006 264.531); border-radius:14px; padding:20px; min-width:0">
+                <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.08em; color:oklch(44.6% 0.03 256.802)">{{ p.label }}</div>
+                <div style="font-family:'IBM Plex Mono', monospace; font-size:26px; font-weight:600; margin:8px 0 4px">{{ p.value }}</div>
+                <div style="font-size:12px; color:{{ p.deltaColor }}">{{ p.delta }}</div>
+                <div style="height:4px; border-radius:99px; background:oklch(92.8% 0.006 264.531); margin-top:14px; overflow:hidden"><div style="{{ p.barStyle }}"></div></div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:grid; grid-template-columns:1.4fr 1fr; gap:20px">
+            <div style="background:#fff; border:1px solid oklch(92.8% 0.006 264.531); border-radius:14px; padding:22px">
+              <div style="font-size:15px; font-weight:600; margin-bottom:22px">Online hours vs jobs completed</div>
+              <div style="display:grid; grid-template-columns:repeat(7, 1fr); gap:14px; align-items:end; height:190px">
+                <sc-for list="{{ hourBars }}" as="h" hint-placeholder-count="7">
+                  <div style="display:flex; flex-direction:column; justify-content:flex-end; height:100%; gap:8px">
+                    <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; color:oklch(44.6% 0.03 256.802); text-align:center">{{ h.value }}</div>
+                    <div style="display:flex; gap:3px; align-items:flex-end; justify-content:center">
+                      <div style="{{ h.hourStyle }}"></div>
+                      <div style="{{ h.jobStyle }}"></div>
+                    </div>
+                    <div style="font-size:12px; color:oklch(44.6% 0.03 256.802); text-align:center">{{ h.day }}</div>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="display:flex; gap:18px; margin-top:18px; font-size:12px; color:oklch(44.6% 0.03 256.802)">
+                <span style="display:flex; align-items:center; gap:7px"><span style="width:9px; height:9px; border-radius:2px; background:oklch(13% 0.028 261.692)"></span>Online hours</span>
+                <span style="display:flex; align-items:center; gap:7px"><span style="width:9px; height:9px; border-radius:2px; background:oklch(64% 0.19 48)"></span>Jobs completed</span>
+              </div>
+            </div>
+            <div style="background:#fff; border:1px solid oklch(92.8% 0.006 264.531); border-radius:14px; padding:22px">
+              <div style="font-size:15px; font-weight:600; margin-bottom:16px">What affects your score</div>
+              <div style="display:flex; flex-direction:column">
+                <sc-for list="{{ perfNotes }}" as="n" hint-placeholder-count="4">
+                  <div style="padding:14px 0; border-top:1px solid oklch(96.7% 0.003 264.542)">
+                    <div style="display:flex; justify-content:space-between; gap:12px; align-items:baseline">
+                      <div style="font-size:14px; font-weight:500">{{ n.title }}</div>
+                      <div style="font-family:'IBM Plex Mono', monospace; font-size:13px; color:{{ n.color }}">{{ n.value }}</div>
+                    </div>
+                    <div style="font-size:12px; color:oklch(44.6% 0.03 256.802); margin-top:4px; line-height:1.5">{{ n.body }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isVehicle }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex; flex-direction:column; gap:20px; max-width:1180px">
+          <div style="display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:20px">
+            <sc-for list="{{ fleetTiles }}" as="t" hint-placeholder-count="4">
+              <div style="background:#fff; border:1px solid oklch(92.8% 0.006 264.531); border-radius:14px; padding:20px; min-width:0">
+                <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.08em; color:oklch(44.6% 0.03 256.802)">{{ t.label }}</div>
+                <div style="font-family:'IBM Plex Mono', monospace; font-size:26px; font-weight:600; margin:8px 0 3px">{{ t.value }}</div>
+                <div style="font-size:12px; color:oklch(44.6% 0.03 256.802)">{{ t.note }}</div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="display:grid; grid-template-columns:{{ fleetGrid }}; gap:20px; align-items:start">
+            <div style="background:#fff; border:1px solid oklch(92.8% 0.006 264.531); border-radius:14px; padding:22px; min-width:0">
+              <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; margin-bottom:18px; gap:12px 16px">
+                <div style="display:flex; gap:2px; min-width:0; overflow-x:auto; background:oklch(96.7% 0.003 264.542); padding:3px; border-radius:8px">
+                  <sc-for list="{{ fleetTabs }}" as="t" hint-placeholder-count="4">
+                    <button onClick="{{ t.go }}" style="{{ t.style }}">{{ t.label }}</button>
+                  </sc-for>
+                </div>
+                <div style="display:flex; align-items:center; gap:14px">
+                  <div style="font-size:12px; color:oklch(44.6% 0.03 256.802)">{{ fleetCountLabel }}</div>
+                  <button onClick="{{ startAddVehicle }}" style="cursor:pointer; font-family:inherit; font-size:13px; font-weight:500; padding:8px 14px; border-radius:6px; border:none; background:oklch(13% 0.028 261.692); color:#fff">Add vehicle</button>
+                </div>
+              </div>
+              <div style="overflow-x:auto">
+              <div style="{{ fleetHeadStyle }}">
+                <div>Vehicle</div>
+                <sc-if value="{{ fleetFull }}" hint-placeholder-val="{{ true }}"><div>Class</div></sc-if>
+                <div>Assigned</div>
+                <sc-if value="{{ fleetFull }}" hint-placeholder-val="{{ true }}"><div>Odometer</div></sc-if>
+                <sc-if value="{{ fleetFull }}" hint-placeholder-val="{{ true }}"><div>Cost/km</div></sc-if>
+                <div style="text-align:right">Status</div>
+              </div>
+              <sc-for list="{{ visibleFleet }}" as="v" hint-placeholder-count="6">
+                <div onClick="{{ v.go }}" style="{{ v.rowStyle }}">
+                  <div style="min-width:0">
+                    <div style="font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ v.model }}</div>
+                    <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; color:oklch(44.6% 0.03 256.802); margin-top:2px">{{ v.plate }} · {{ v.year }}</div>
+                  </div>
+                  <sc-if value="{{ fleetFull }}" hint-placeholder-val="{{ true }}">
+                    <div style="font-size:13px; color:oklch(44.6% 0.03 256.802)">{{ v.class }}</div>
+                  </sc-if>
+                  <div style="font-size:13px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ v.assigned }}</div>
+                  <sc-if value="{{ fleetFull }}" hint-placeholder-val="{{ true }}">
+                    <div style="font-family:'IBM Plex Mono', monospace; font-size:13px">{{ v.odo }}</div>
+                  </sc-if>
+                  <sc-if value="{{ fleetFull }}" hint-placeholder-val="{{ true }}">
+                    <div style="font-family:'IBM Plex Mono', monospace; font-weight:600">{{ v.costPerKm }}</div>
+                  </sc-if>
+                  <div style="text-align:right"><span style="{{ v.tagStyle }}">{{ v.status }}</span></div>
+                </div>
+              </sc-for>
+              </div>
+            </div>
+
+            <sc-if value="{{ addingVehicle }}" hint-placeholder-val="{{ false }}">
+              <div style="background:#fff; border:1px solid oklch(92.8% 0.006 264.531); border-radius:14px; padding:22px; position:sticky; top:112px">
+                <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:4px">
+                  <div style="font-size:16px; font-weight:600">Add a vehicle</div>
+                  <button onClick="{{ cancelAddVehicle }}" style="border:1px solid oklch(92.8% 0.006 264.531); background:#fff; width:28px; height:28px; border-radius:6px; cursor:pointer; font-size:14px; color:oklch(44.6% 0.03 256.802)">✕</button>
+                </div>
+                <div style="font-size:13px; color:oklch(44.6% 0.03 256.802); line-height:1.5">It joins the fleet as idle. Assign a driver to start taking jobs.</div>
+                <div style="display:flex; flex-direction:column; gap:14px; margin-top:20px">
+                  <label style="display:flex; flex-direction:column; gap:6px">
+                    <span style="font-size:12px; font-weight:500; color:oklch(44.6% 0.03 256.802)">Plate</span>
+                    <input value="{{ vehForm.plate }}" onChange="{{ setVehPlate }}" placeholder="AB-123-CD" style="font-family:'IBM Plex Mono', monospace; font-size:13px; padding:9px 11px; border:1px solid oklch(92.8% 0.006 264.531); border-radius:6px; outline:none; width:100%; min-width:0">
+                  </label>
+                  <label style="display:flex; flex-direction:column; gap:6px">
+                    <span style="font-size:12px; font-weight:500; color:oklch(44.6% 0.03 256.802)">Make and model</span>
+                    <input value="{{ vehForm.model }}" onChange="{{ setVehModel }}" placeholder="e.g. Ford Transit Custom" style="font-family:inherit; font-size:14px; padding:9px 11px; border:1px solid oklch(92.8% 0.006 264.531); border-radius:6px; outline:none; width:100%; min-width:0">
+                  </label>
+                  <div style="display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:12px; min-width:0">
+                    <label style="display:flex; flex-direction:column; gap:6px">
+                      <span style="font-size:12px; font-weight:500; color:oklch(44.6% 0.03 256.802)">Year</span>
+                      <input value="{{ vehForm.year }}" onChange="{{ setVehYear }}" placeholder="2021" style="font-family:'IBM Plex Mono', monospace; font-size:13px; padding:9px 11px; border:1px solid oklch(92.8% 0.006 264.531); border-radius:6px; outline:none; width:100%; min-width:0">
+                    </label>
+                    <label style="display:flex; flex-direction:column; gap:6px">
+                      <span style="font-size:12px; font-weight:500; color:oklch(44.6% 0.03 256.802)">Odometer (km)</span>
+                      <input value="{{ vehForm.odo }}" onChange="{{ setVehOdo }}" placeholder="96480" style="font-family:'IBM Plex Mono', monospace; font-size:13px; padding:9px 11px; border:1px solid oklch(92.8% 0.006 264.531); border-radius:6px; outline:none; width:100%; min-width:0">
+                    </label>
+                  </div>
+                  <div style="display:flex; flex-direction:column; gap:6px">
+                    <span style="font-size:12px; font-weight:500; color:oklch(44.6% 0.03 256.802)">Class</span>
+                    <div style="display:flex; flex-direction:column; gap:8px">
+                      <sc-for list="{{ vehClassOptions }}" as="c" hint-placeholder-count="3">
+                        <div onClick="{{ c.pick }}" style="{{ c.style }}">
+                          <div>
+                            <div style="font-size:13px; font-weight:500">{{ c.label }}</div>
+                            <div style="font-size:12px; color:oklch(44.6% 0.03 256.802); margin-top:2px">{{ c.note }}</div>
+                          </div>
+                          <span style="{{ c.dotStyle }}"></span>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </div>
+                  <div style="display:flex; flex-direction:column; gap:8px">
+                    <span style="font-size:12px; font-weight:500; color:oklch(44.6% 0.03 256.802)">Operating cities</span>
+                    <div style="display:flex; flex-wrap:wrap; gap:8px">
+                      <sc-for list="{{ cityOptions }}" as="c" hint-placeholder-count="8">
+                        <button onClick="{{ c.toggle }}" style="{{ c.style }}">{{ c.label }}</button>
+                      </sc-for>
+                    </div>
+                  </div>
+                  <label style="display:flex; flex-direction:column; gap:6px">
+                    <span style="font-size:12px; font-weight:500; color:oklch(44.6% 0.03 256.802)">Assign to driver</span>
+                    <input value="{{ vehForm.assigned }}" onChange="{{ setVehAssigned }}" placeholder="Leave empty for unassigned" style="font-family:inherit; font-size:14px; padding:9px 11px; border:1px solid oklch(92.8% 0.006 264.531); border-radius:6px; outline:none; width:100%; min-width:0">
+                  </label>
+                </div>
+                <div style="display:flex; gap:8px; margin-top:20px">
+                  <button onClick="{{ saveVehicle }}" style="{{ saveVehBtnStyle }}">Add to fleet</button>
+                  <button onClick="{{ cancelAddVehicle }}" style="cursor:pointer; font-family:inherit; font-size:13px; font-weight:500; padding:9px 15px; border-radius:6px; border:1px solid oklch(92.8% 0.006 264.531); background:#fff; color:oklch(13% 0.028 261.692)">Cancel</button>
+                </div>
+                <div style="font-size:12px; color:oklch(44.6% 0.03 256.802); margin-top:10px">{{ vehHint }}</div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ selectedVehicle }}" hint-placeholder-val="{{ false }}">
+              <div style="background:#fff; border:1px solid oklch(92.8% 0.006 264.531); border-radius:14px; padding:22px; position:sticky; top:112px">
+                <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px">
+                  <div>
+                    <div style="font-size:16px; font-weight:600; letter-spacing:-0.01em">{{ selectedVehicle.model }}</div>
+                    <div style="font-family:'IBM Plex Mono', monospace; font-size:12px; color:oklch(44.6% 0.03 256.802); margin-top:3px">{{ selectedVehicle.plate }} · {{ selectedVehicle.year }} · {{ selectedVehicle.assigned }}</div>
+                  </div>
+                  <button onClick="{{ closeVehicle }}" style="border:1px solid oklch(92.8% 0.006 264.531); background:#fff; width:28px; height:28px; border-radius:6px; cursor:pointer; font-size:14px; color:oklch(44.6% 0.03 256.802)">✕</button>
+                </div>
+                <div style="display:flex; gap:8px; margin:16px 0 20px"><span style="{{ selectedVehicle.tagStyle }}">{{ selectedVehicle.status }}</span><span style="{{ selectedVehicle.classTagStyle }}">{{ selectedVehicle.class }}</span></div>
+
+                <div style="display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:12px; min-width:0">
+                  <sc-for list="{{ selectedVehicle.specs }}" as="p" hint-placeholder-count="4">
+                    <div style="border:1px solid oklch(92.8% 0.006 264.531); border-radius:10px; padding:12px">
+                      <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.08em; color:oklch(44.6% 0.03 256.802)">{{ p.label }}</div>
+                      <div style="font-family:'IBM Plex Mono', monospace; font-size:16px; font-weight:600; margin-top:6px">{{ p.value }}</div>
+                    </div>
+                  </sc-for>
+                </div>
+
+                <div style="font-size:13px; font-weight:600; margin:20px 0 8px">Operating cities</div>
+                <div style="display:flex; flex-wrap:wrap; gap:6px">
+                  <sc-for list="{{ selectedVehicle.cityTags }}" as="c" hint-placeholder-count="2">
+                    <span style="{{ c.style }}">{{ c.label }}</span>
+                  </sc-for>
+                </div>
+
+                <div style="font-size:13px; font-weight:600; margin:20px 0 2px">Running costs · this month</div>
+                <sc-for list="{{ selectedVehicle.costs }}" as="c" hint-placeholder-count="4">
+                  <div style="display:flex; justify-content:space-between; padding:9px 0; font-size:13px; border-top:1px solid oklch(96.7% 0.003 264.542)">
+                    <span style="color:oklch(44.6% 0.03 256.802)">{{ c.label }}</span>
+                    <span style="font-family:'IBM Plex Mono', monospace; font-weight:500">{{ c.value }}</span>
+                  </div>
+                </sc-for>
+                <div style="display:flex; justify-content:space-between; align-items:baseline; padding-top:12px; margin-top:6px; border-top:1px solid oklch(92.8% 0.006 264.531)">
+                  <span style="font-size:14px; font-weight:600">Cost per km</span>
+                  <span style="font-family:'IBM Plex Mono', monospace; font-size:18px; font-weight:600">{{ selectedVehicle.costPerKm }}</span>
+                </div>
+
+                <div style="margin-top:22px; padding-top:18px; border-top:1px solid oklch(92.8% 0.006 264.531)">
+                  <button onClick="{{ selectedVehicle.defleet }}" style="{{ selectedVehicle.defleetStyle }}">{{ selectedVehicle.defleetLabel }}</button>
+                  <div style="font-size:12px; color:oklch(44.6% 0.03 256.802); margin-top:9px; line-height:1.5">{{ selectedVehicle.defleetNote }}</div>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isDrivers }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex; flex-direction:column; gap:20px; max-width:1180px">
+          <div style="display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:20px">
+            <sc-for list="{{ driverTiles }}" as="t" hint-placeholder-count="4">
+              <div style="background:#fff; border:1px solid oklch(92.8% 0.006 264.531); border-radius:14px; padding:20px; min-width:0">
+                <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.08em; color:oklch(44.6% 0.03 256.802)">{{ t.label }}</div>
+                <div style="font-family:'IBM Plex Mono', monospace; font-size:26px; font-weight:600; margin:8px 0 3px">{{ t.value }}</div>
+                <div style="font-size:12px; color:oklch(44.6% 0.03 256.802)">{{ t.note }}</div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="display:grid; grid-template-columns:{{ driversGrid }}; gap:20px; align-items:start">
+            <div style="background:#fff; border:1px solid oklch(92.8% 0.006 264.531); border-radius:14px; padding:22px; min-width:0">
+              <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; margin-bottom:18px; gap:12px 16px">
+                <div style="display:flex; gap:2px; min-width:0; overflow-x:auto; background:oklch(96.7% 0.003 264.542); padding:3px; border-radius:8px">
+                  <sc-for list="{{ driverTabs }}" as="t" hint-placeholder-count="3">
+                    <button onClick="{{ t.go }}" style="{{ t.style }}">{{ t.label }}</button>
+                  </sc-for>
+                </div>
+                <div style="display:flex; align-items:center; gap:14px">
+                  <div style="font-size:12px; color:oklch(44.6% 0.03 256.802)">{{ driverCountLabel }}</div>
+                  <button onClick="{{ startAddDriver }}" style="cursor:pointer; font-family:inherit; font-size:13px; font-weight:500; padding:8px 14px; border-radius:6px; border:none; background:oklch(13% 0.028 261.692); color:#fff">Add driver</button>
+                </div>
+              </div>
+              <div style="overflow-x:auto">
+              <div style="{{ driverHeadStyle }}">
+                <div>Driver</div>
+                <sc-if value="{{ driversFull }}" hint-placeholder-val="{{ true }}"><div>Zone</div></sc-if>
+                <sc-if value="{{ driversFull }}" hint-placeholder-val="{{ true }}"><div>Jobs · wk</div></sc-if>
+                <div>Rating</div>
+                <sc-if value="{{ driversFull }}" hint-placeholder-val="{{ true }}"><div>Earned</div></sc-if>
+                <div style="text-align:right">Status</div>
+              </div>
+              <sc-for list="{{ visibleDrivers }}" as="d" hint-placeholder-count="6">
+                <div onClick="{{ d.go }}" style="{{ d.rowStyle }}">
+                  <div style="min-width:0">
+                    <div style="font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ d.name }}</div>
+                    <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; color:oklch(44.6% 0.03 256.802); margin-top:2px">{{ d.id }} · {{ d.vehicle }}</div>
+                  </div>
+                  <sc-if value="{{ driversFull }}" hint-placeholder-val="{{ true }}">
+                    <div style="font-size:13px; color:oklch(44.6% 0.03 256.802)">{{ d.zone }}</div>
+                  </sc-if>
+                  <sc-if value="{{ driversFull }}" hint-placeholder-val="{{ true }}">
+                    <div style="font-family:'IBM Plex Mono', monospace">{{ d.jobs }}</div>
+                  </sc-if>
+                  <div style="font-family:'IBM Plex Mono', monospace">{{ d.rating }}</div>
+                  <sc-if value="{{ driversFull }}" hint-placeholder-val="{{ true }}">
+                    <div style="font-family:'IBM Plex Mono', monospace; font-weight:600">{{ d.earned }}</div>
+                  </sc-if>
+                  <div style="text-align:right"><span style="{{ d.tagStyle }}">{{ d.status }}</span></div>
+                </div>
+              </sc-for>
+              </div>
+            </div>
+
+            <sc-if value="{{ addingDriver }}" hint-placeholder-val="{{ false }}">
+              <div style="background:#fff; border:1px solid oklch(92.8% 0.006 264.531); border-radius:14px; padding:22px; position:sticky; top:112px">
+                <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:4px">
+                  <div style="font-size:16px; font-weight:600">Register a driver</div>
+                  <button onClick="{{ cancelAddDriver }}" style="border:1px solid oklch(92.8% 0.006 264.531); background:#fff; width:28px; height:28px; border-radius:6px; cursor:pointer; font-size:14px; color:oklch(44.6% 0.03 256.802)">✕</button>
+                </div>
+                <div style="font-size:13px; color:oklch(44.6% 0.03 256.802); line-height:1.5">They start as pending until their licence and criminal record extract are verified.</div>
+                <div style="display:flex; flex-direction:column; gap:14px; margin-top:20px">
+                  <label style="display:flex; flex-direction:column; gap:6px">
+                    <span style="font-size:12px; font-weight:500; color:oklch(44.6% 0.03 256.802)">Full name</span>
+                    <input value="{{ drvForm.name }}" onChange="{{ setDrvName }}" placeholder="e.g. Nika Kavtaradze" style="font-family:inherit; font-size:14px; padding:9px 11px; border:1px solid oklch(92.8% 0.006 264.531); border-radius:6px; outline:none; width:100%; min-width:0">
+                  </label>
+                  <div style="display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:12px; min-width:0">
+                    <label style="display:flex; flex-direction:column; gap:6px">
+                      <span style="font-size:12px; font-weight:500; color:oklch(44.6% 0.03 256.802)">Phone</span>
+                      <input value="{{ drvForm.phone }}" onChange="{{ setDrvPhone }}" placeholder="+995 5XX XXX XXX" style="font-family:'IBM Plex Mono', monospace; font-size:13px; padding:9px 11px; border:1px solid oklch(92.8% 0.006 264.531); border-radius:6px; outline:none; width:100%; min-width:0">
+                    </label>
+                    <label style="display:flex; flex-direction:column; gap:6px">
+                      <span style="font-size:12px; font-weight:500; color:oklch(44.6% 0.03 256.802)">Zone</span>
+                      <input value="{{ drvForm.zone }}" onChange="{{ setDrvZone }}" placeholder="e.g. Saburtalo" style="font-family:inherit; font-size:14px; padding:9px 11px; border:1px solid oklch(92.8% 0.006 264.531); border-radius:6px; outline:none; width:100%; min-width:0">
+                    </label>
+                  </div>
+                  <div style="display:flex; flex-direction:column; gap:6px">
+                    <span style="font-size:12px; font-weight:500; color:oklch(44.6% 0.03 256.802)">Assign a vehicle</span>
+                    <div style="display:flex; flex-direction:column; gap:8px">
+                      <sc-for list="{{ drvVehicleOptions }}" as="v" hint-placeholder-count="3">
+                        <div onClick="{{ v.pick }}" style="{{ v.style }}">
+                          <div>
+                            <div style="font-size:13px; font-weight:500">{{ v.label }}</div>
+                            <div style="font-size:12px; color:oklch(44.6% 0.03 256.802); margin-top:2px">{{ v.note }}</div>
+                          </div>
+                          <span style="{{ v.dotStyle }}"></span>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </div>
+                </div>
+                <div style="display:flex; gap:8px; margin-top:20px">
+                  <button onClick="{{ saveDriver }}" style="{{ saveDrvBtnStyle }}">Register driver</button>
+                  <button onClick="{{ cancelAddDriver }}" style="cursor:pointer; font-family:inherit; font-size:13px; font-weight:500; padding:9px 15px; border-radius:6px; border:1px solid oklch(92.8% 0.006 264.531); background:#fff; color:oklch(13% 0.028 261.692)">Cancel</button>
+                </div>
+                <div style="font-size:12px; color:oklch(44.6% 0.03 256.802); margin-top:10px">{{ drvHint }}</div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ selectedDriver }}" hint-placeholder-val="{{ false }}">
+              <div style="background:#fff; border:1px solid oklch(92.8% 0.006 264.531); border-radius:14px; padding:22px; position:sticky; top:112px">
+                <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px">
+                  <div style="display:flex; gap:12px; align-items:center">
+                    <div style="width:38px; height:38px; border-radius:99px; background:oklch(96.7% 0.003 264.542); display:grid; place-items:center; font-size:13px; font-weight:600">{{ selectedDriver.initials }}</div>
+                    <div>
+                      <div style="font-size:16px; font-weight:600">{{ selectedDriver.name }}</div>
+                      <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; color:oklch(44.6% 0.03 256.802); margin-top:2px">{{ selectedDriver.id }} · joined {{ selectedDriver.joined }}</div>
+                    </div>
+                  </div>
+                  <button onClick="{{ closeDriver }}" style="border:1px solid oklch(92.8% 0.006 264.531); background:#fff; width:28px; height:28px; border-radius:6px; cursor:pointer; font-size:14px; color:oklch(44.6% 0.03 256.802)">✕</button>
+                </div>
+                <div style="display:flex; gap:8px; margin:16px 0 20px"><span style="{{ selectedDriver.tagStyle }}">{{ selectedDriver.status }}</span><span style="{{ selectedDriver.zoneTagStyle }}">{{ selectedDriver.zone }}</span></div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; padding-bottom:20px; border-bottom:1px solid oklch(92.8% 0.006 264.531)">
+                  <sc-for list="{{ selectedDriver.stats }}" as="s" hint-placeholder-count="4">
+                    <div style="border:1px solid oklch(92.8% 0.006 264.531); border-radius:10px; padding:12px">
+                      <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.08em; color:oklch(44.6% 0.03 256.802)">{{ s.label }}</div>
+                      <div style="font-family:'IBM Plex Mono', monospace; font-size:17px; font-weight:600; margin-top:6px">{{ s.value }}</div>
+                    </div>
+                  </sc-for>
+                </div>
+                <div style="font-size:13px; font-weight:600; margin:18px 0 4px">Recent jobs</div>
+                <sc-for list="{{ selectedDriver.recent }}" as="r" hint-placeholder-count="3">
+                  <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; padding:10px 0; border-top:1px solid oklch(96.7% 0.003 264.542); font-size:13px">
+                    <span style="font-family:'IBM Plex Mono', monospace; font-weight:600">{{ r.id }}</span>
+                    <span style="flex:1; color:oklch(44.6% 0.03 256.802); overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ r.route }}</span>
+                    <span style="font-family:'IBM Plex Mono', monospace; font-weight:500">{{ r.fare }}</span>
+                  </div>
+                </sc-for>
+                <div style="font-size:13px; font-weight:600; margin:18px 0 2px">Verification</div>
+                <sc-for list="{{ selectedDriver.verify }}" as="v" hint-placeholder-count="3">
+                  <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; padding:9px 0; border-top:1px solid oklch(96.7% 0.003 264.542); font-size:13px">
+                    <span>{{ v.label }}</span>
+                    <span style="{{ v.tagStyle }}">{{ v.status }}</span>
+                  </div>
+                </sc-for>
+                <div style="margin-top:22px; padding-top:18px; border-top:1px solid oklch(92.8% 0.006 264.531)">
+                  <button onClick="{{ selectedDriver.offboard }}" style="{{ selectedDriver.offboardStyle }}">{{ selectedDriver.offboardLabel }}</button>
+                  <div style="font-size:12px; color:oklch(44.6% 0.03 256.802); margin-top:9px; line-height:1.5">{{ selectedDriver.offboardNote }}</div>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isEmployees }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex; flex-direction:column; gap:20px; max-width:1180px">
+          <div style="display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:20px">
+            <sc-for list="{{ empTiles }}" as="t" hint-placeholder-count="4">
+              <div style="background:#fff; border:1px solid oklch(92.8% 0.006 264.531); border-radius:14px; padding:20px; min-width:0">
+                <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.08em; color:oklch(44.6% 0.03 256.802)">{{ t.label }}</div>
+                <div style="font-family:'IBM Plex Mono', monospace; font-size:26px; font-weight:600; margin:8px 0 3px">{{ t.value }}</div>
+                <div style="font-size:12px; color:oklch(44.6% 0.03 256.802)">{{ t.note }}</div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="display:grid; grid-template-columns:{{ empGrid }}; gap:20px; align-items:start">
+            <div style="background:#fff; border:1px solid oklch(92.8% 0.006 264.531); border-radius:14px; padding:22px; min-width:0">
+              <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; margin-bottom:18px; gap:12px 16px">
+                <div style="display:flex; gap:2px; min-width:0; overflow-x:auto; background:oklch(96.7% 0.003 264.542); padding:3px; border-radius:8px">
+                  <sc-for list="{{ empTabs }}" as="t" hint-placeholder-count="4">
+                    <button onClick="{{ t.go }}" style="{{ t.style }}">{{ t.label }}</button>
+                  </sc-for>
+                </div>
+                <div style="display:flex; align-items:center; gap:14px">
+                  <div style="font-size:12px; color:oklch(44.6% 0.03 256.802)">{{ empCountLabel }}</div>
+                  <button onClick="{{ startInvite }}" style="cursor:pointer; font-family:inherit; font-size:13px; font-weight:500; padding:8px 14px; border-radius:6px; border:none; background:oklch(13% 0.028 261.692); color:#fff">Invite employee</button>
+                </div>
+              </div>
+              <div style="overflow-x:auto">
+                <div style="{{ empHeadStyle }}">
+                  <div>Person</div>
+                  <div>Role</div>
+                  <sc-if value="{{ empFull }}" hint-placeholder-val="{{ true }}"><div>Scope</div></sc-if>
+                  <sc-if value="{{ empFull }}" hint-placeholder-val="{{ true }}"><div>Last active</div></sc-if>
+                  <div style="text-align:right">Status</div>
+                </div>
+                <sc-for list="{{ visibleEmployees }}" as="e" hint-placeholder-count="6">
+                  <div onClick="{{ e.go }}" style="{{ e.rowStyle }}">
+                    <div style="min-width:0">
+                      <div style="font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ e.name }}</div>
+                      <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; color:oklch(44.6% 0.03 256.802); margin-top:2px">{{ e.email }}</div>
+                    </div>
+                    <div style="font-size:13px">{{ e.role }}</div>
+                    <sc-if value="{{ empFull }}" hint-placeholder-val="{{ true }}">
+                      <div style="font-size:13px; color:oklch(44.6% 0.03 256.802); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">{{ e.scope }}</div>
+                    </sc-if>
+                    <sc-if value="{{ empFull }}" hint-placeholder-val="{{ true }}">
+                      <div style="font-family:'IBM Plex Mono', monospace; font-size:13px; color:oklch(44.6% 0.03 256.802)">{{ e.lastActive }}</div>
+                    </sc-if>
+                    <div style="text-align:right"><span style="{{ e.tagStyle }}">{{ e.status }}</span></div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+
+            <sc-if value="{{ inviting }}" hint-placeholder-val="{{ false }}">
+              <div style="background:#fff; border:1px solid oklch(92.8% 0.006 264.531); border-radius:14px; padding:22px; position:sticky; top:112px">
+                <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:4px">
+                  <div style="font-size:16px; font-weight:600">Invite an employee</div>
+                  <button onClick="{{ cancelInvite }}" style="border:1px solid oklch(92.8% 0.006 264.531); background:#fff; width:28px; height:28px; border-radius:6px; cursor:pointer; font-size:14px; color:oklch(44.6% 0.03 256.802)">✕</button>
+                </div>
+                <div style="font-size:13px; color:oklch(44.6% 0.03 256.802); line-height:1.5">They get an email invite. Permissions come from the role and apply once they accept.</div>
+
+                <div style="display:flex; flex-direction:column; gap:14px; margin-top:20px">
+                  <label style="display:flex; flex-direction:column; gap:6px">
+                    <span style="font-size:12px; font-weight:500; color:oklch(44.6% 0.03 256.802)">Full name</span>
+                    <input value="{{ form.name }}" onChange="{{ setName }}" placeholder="e.g. Nika Kavtaradze" style="font-family:inherit; font-size:14px; padding:9px 11px; border:1px solid oklch(92.8% 0.006 264.531); border-radius:6px; outline:none; width:100%; min-width:0">
+                  </label>
+                  <label style="display:flex; flex-direction:column; gap:6px">
+                    <span style="font-size:12px; font-weight:500; color:oklch(44.6% 0.03 256.802)">Work email</span>
+                    <input value="{{ form.email }}" onChange="{{ setEmail }}" placeholder="name@gizocargo.ge" style="font-family:'IBM Plex Mono', monospace; font-size:13px; padding:9px 11px; border:1px solid oklch(92.8% 0.006 264.531); border-radius:6px; outline:none; width:100%; min-width:0">
+                  </label>
+                  <div style="display:flex; flex-direction:column; gap:6px">
+                    <span style="font-size:12px; font-weight:500; color:oklch(44.6% 0.03 256.802)">Role</span>
+                    <div style="display:flex; flex-direction:column; gap:8px">
+                      <sc-for list="{{ roleOptions }}" as="r" hint-placeholder-count="5">
+                        <div onClick="{{ r.pick }}" style="{{ r.style }}">
+                          <div>
+                            <div style="font-size:13px; font-weight:500">{{ r.label }}</div>
+                            <div style="font-size:12px; color:oklch(44.6% 0.03 256.802); margin-top:2px">{{ r.note }}</div>
+                          </div>
+                          <span style="{{ r.dotStyle }}"></span>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </div>
+                  <label style="display:flex; flex-direction:column; gap:6px">
+                    <span style="font-size:12px; font-weight:500; color:oklch(44.6% 0.03 256.802)">Scope</span>
+                    <input value="{{ form.scope }}" onChange="{{ setScope }}" placeholder="Zones or vehicles they cover" style="font-family:inherit; font-size:14px; padding:9px 11px; border:1px solid oklch(92.8% 0.006 264.531); border-radius:6px; outline:none; width:100%; min-width:0">
+                  </label>
+                </div>
+
+                <div style="display:flex; gap:8px; margin-top:20px">
+                  <button onClick="{{ sendInvite }}" style="{{ sendBtnStyle }}">Send invite</button>
+                  <button onClick="{{ cancelInvite }}" style="cursor:pointer; font-family:inherit; font-size:13px; font-weight:500; padding:9px 15px; border-radius:6px; border:1px solid oklch(92.8% 0.006 264.531); background:#fff; color:oklch(13% 0.028 261.692)">Cancel</button>
+                </div>
+                <div style="font-size:12px; color:oklch(44.6% 0.03 256.802); margin-top:10px">{{ inviteHint }}</div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ selectedEmployee }}" hint-placeholder-val="{{ false }}">
+              <div style="background:#fff; border:1px solid oklch(92.8% 0.006 264.531); border-radius:14px; padding:22px; position:sticky; top:112px">
+                <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px">
+                  <div style="display:flex; gap:12px; align-items:center">
+                    <div style="width:38px; height:38px; border-radius:99px; background:oklch(96.7% 0.003 264.542); display:grid; place-items:center; font-size:13px; font-weight:600">{{ selectedEmployee.initials }}</div>
+                    <div>
+                      <div style="font-size:16px; font-weight:600">{{ selectedEmployee.name }}</div>
+                      <div style="font-family:'IBM Plex Mono', monospace; font-size:11px; color:oklch(44.6% 0.03 256.802); margin-top:2px">{{ selectedEmployee.email }}</div>
+                    </div>
+                  </div>
+                  <button onClick="{{ closeEmployee }}" style="border:1px solid oklch(92.8% 0.006 264.531); background:#fff; width:28px; height:28px; border-radius:6px; cursor:pointer; font-size:14px; color:oklch(44.6% 0.03 256.802)">✕</button>
+                </div>
+                <div style="display:flex; gap:8px; margin:16px 0 20px"><span style="{{ selectedEmployee.tagStyle }}">{{ selectedEmployee.status }}</span><span style="{{ selectedEmployee.roleTagStyle }}">{{ selectedEmployee.role }}</span></div>
+                <div style="font-size:13px; color:oklch(44.6% 0.03 256.802); line-height:1.5">{{ selectedEmployee.roleNote }}</div>
+
+                <div style="font-size:13px; font-weight:600; margin:20px 0 2px">Permissions</div>
+                <sc-for list="{{ selectedEmployee.permissions }}" as="p" hint-placeholder-count="5">
+                  <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 0; border-top:1px solid oklch(96.7% 0.003 264.542); font-size:13px">
+                    <span>{{ p.label }}</span>
+                    <span style="{{ p.tagStyle }}">{{ p.value }}</span>
+                  </div>
+                </sc-for>
+
+                <div style="font-size:13px; font-weight:600; margin:20px 0 2px">Assigned</div>
+                <sc-for list="{{ selectedEmployee.assigned }}" as="a" hint-placeholder-count="3">
+                  <div style="display:flex; justify-content:space-between; gap:12px; padding:9px 0; border-top:1px solid oklch(96.7% 0.003 264.542); font-size:13px">
+                    <span style="color:oklch(44.6% 0.03 256.802)">{{ a.label }}</span>
+                    <span style="font-family:'IBM Plex Mono', monospace; font-weight:500; text-align:right">{{ a.value }}</span>
+                  </div>
+                </sc-for>
+                <div style="margin-top:22px; padding-top:18px; border-top:1px solid oklch(92.8% 0.006 264.531)">
+                  <button onClick="{{ selectedEmployee.remove }}" style="{{ selectedEmployee.removeStyle }}">{{ selectedEmployee.removeLabel }}</button>
+                  <div style="font-size:12px; color:oklch(44.6% 0.03 256.802); margin-top:9px; line-height:1.5">{{ selectedEmployee.removeNote }}</div>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+      </sc-if>
+
+    </div>
+  </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;accountType&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Business&quot;,&quot;Individual&quot;],&quot;default&quot;:&quot;Business&quot;,&quot;tsType&quot;:&quot;'Business' | 'Individual'&quot;,&quot;section&quot;:&quot;Account&quot;},&quot;density&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;comfortable&quot;,&quot;compact&quot;],&quot;default&quot;:&quot;comfortable&quot;,&quot;tsType&quot;:&quot;'comfortable' | 'compact'&quot;},&quot;showZoneDemand&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;currency&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;₾&quot;,&quot;$&quot;,&quot;€&quot;],&quot;default&quot;:&quot;₾&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+const INK = 'oklch(13% 0.028 261.692)';
+const MUTED = 'oklch(44.6% 0.03 256.802)';
+const LINE = 'oklch(92.8% 0.006 264.531)';
+const BG = 'oklch(96.7% 0.003 264.542)';
+const ACCENT = 'oklch(64% 0.19 48)';
+const OK = 'oklch(59.6% 0.145 163.225)';
+const OK_BG = 'oklch(96.2% 0.044 156.743)';
+const OK_FG = 'oklch(44.8% 0.119 151.328)';
+const WARN_BG = 'oklch(97.3% 0.071 103.193)';
+const WARN_FG = 'oklch(47.6% 0.114 61.907)';
+const BAD = 'oklch(57.7% 0.245 27.325)';
+const BAD_BG = 'oklch(93.6% 0.032 17.717)';
+const BAD_FG = 'oklch(44.4% 0.177 26.899)';
+const INFO_BG = 'oklch(93.2% 0.032 255.585)';
+const INFO_FG = 'oklch(42.4% 0.199 265.638)';
+
+const tag = (bg, fg) => ({
+  display: 'inline-block', padding: '3px 9px', borderRadius: 99, background: bg, color: fg,
+  fontSize: 11, fontWeight: 600, letterSpacing: '0.02em', whiteSpace: 'nowrap'
+});
+const TAGS = {
+  Completed: tag(OK_BG, OK_FG), Verified: tag(OK_BG, OK_FG), Paid: tag(OK_BG, OK_FG),
+  Valid: tag(OK_BG, OK_FG), Active: tag(OK_BG, OK_FG), Online: tag(OK_BG, OK_FG),
+  'In transit': tag(INFO_BG, INFO_FG), 'In review': tag(INFO_BG, INFO_FG), Processing: tag(INFO_BG, INFO_FG),
+  Cancelled: tag(BAD_BG, BAD_FG), Expired: tag(BAD_BG, BAD_FG), Suspended: tag(BAD_BG, BAD_FG),
+  'Expiring soon': tag(WARN_BG, WARN_FG), 'Due soon': tag(WARN_BG, WARN_FG), Pending: tag(WARN_BG, WARN_FG),
+  Scheduled: tag(BG, MUTED), Offline: tag(BG, MUTED), Idle: tag(BG, MUTED),
+  Defleeted: tag(BG, MUTED), Offboarded: tag(BG, MUTED), Invited: tag(WARN_BG, WARN_FG),
+  'In service': tag(INFO_BG, INFO_FG),
+  High: tag('oklch(96% 0.04 60)', 'oklch(48% 0.15 48)'), Medium: tag(WARN_BG, WARN_FG), Low: tag(BG, MUTED)
+};
+
+const JOBS = [
+  { id: 'TB4821', route: 'Avlabari → Rustaveli → Sololaki', distance: '14.2 km', time: '09:40', fare: 18.4, status: 'In transit', vehicle: 'Van', stops: 3 },
+  { id: 'TB4818', route: 'Didube → Gldani', distance: '8.6 km', time: '08:55', fare: 12.9, status: 'Completed', vehicle: 'Van', stops: 2 },
+  { id: 'TB4814', route: 'Vake → Vera', distance: '6.1 km', time: '08:12', fare: 10.2, status: 'Completed', vehicle: 'Van', stops: 2 },
+  { id: 'TB4809', route: 'Saburtalo → Dighomi', distance: '4.4 km', time: '07:48', fare: 8.6, status: 'Cancelled', vehicle: 'Van', stops: 2 },
+  { id: 'TB4802', route: 'Isani → Samgori → Varketili', distance: '11.8 km', time: '07:05', fare: 16.3, status: 'Completed', vehicle: 'Van', stops: 3 },
+  { id: 'TB4796', route: 'Chugureti → Mtatsminda', distance: '9.3 km', time: '06:40', fare: 13.7, status: 'Completed', vehicle: 'Van', stops: 2 },
+  { id: 'TB4835', route: 'Lilo → Rustavi road', distance: '5.2 km', time: '13:30', fare: 9.4, status: 'Scheduled', vehicle: 'Van', stops: 2 },
+  { id: 'TB4780', route: 'Ortachala → Krtsanisi', distance: '7.0 km', time: 'Yesterday 18:20', fare: 11.1, status: 'Completed', vehicle: 'Van', stops: 2 }
+];
+
+const DRIVERS = [
+  { name: 'Giorgi Beridze', id: 'GE-88214', vehicle: 'Van', zone: 'Vake', jobs: 46, rating: '4.86', earned: 658.4, status: 'Online', joined: 'Feb 2026', initials: 'GB' },
+  { name: 'Nino Kapanadze', id: 'GE-88301', vehicle: 'Sedan', zone: 'Saburtalo', jobs: 39, rating: '4.92', earned: 512.8, status: 'Online', joined: 'Mar 2026', initials: 'NK' },
+  { name: 'Levan Tsiklauri', id: 'GE-87940', vehicle: 'Van', zone: 'Gldani', jobs: 51, rating: '4.71', earned: 704.2, status: 'Online', joined: 'Nov 2025', initials: 'LT' },
+  { name: 'Tamar Gogichaishvili', id: 'GE-88422', vehicle: 'Truck 1.5t', zone: 'Isani', jobs: 28, rating: '4.88', earned: 596.0, status: 'Offline', joined: 'Apr 2026', initials: 'TG' },
+  { name: 'Davit Kvaratskhelia', id: 'GE-88510', vehicle: 'Van', zone: 'Didube', jobs: 12, rating: '—', earned: 148.6, status: 'Pending', joined: 'Aug 2026', initials: 'DK' },
+  { name: 'Ana Chkheidze', id: 'GE-87755', vehicle: 'Sedan', zone: 'Vera', jobs: 33, rating: '4.79', earned: 431.5, status: 'Online', joined: 'Sep 2025', initials: 'AC' },
+  { name: 'Zurab Maisuradze', id: 'GE-86903', vehicle: 'Van', zone: 'Samgori', jobs: 0, rating: '4.42', earned: 0, status: 'Suspended', joined: 'Jun 2025', initials: 'ZM' }
+];
+
+const FLEET = [
+  { plate: 'AB-482-QM', cities: ['Tbilisi', 'Rustavi'], model: 'Mercedes-Benz Vito 116 CDI', year: '2019', class: 'Van', assigned: 'Giorgi Beridze', odo: 184210, payload: '1200 kg', fuel: 'Diesel', costPerKm: 0.42, status: 'Active' },
+  { plate: 'CD-107-TB', cities: ['Tbilisi'], model: 'Ford Transit Custom', year: '2021', class: 'Van', assigned: 'Levan Tsiklauri', odo: 96480, payload: '1000 kg', fuel: 'Diesel', costPerKm: 0.38, status: 'Active' },
+  { plate: 'EF-556-GG', cities: ['Tbilisi', 'Mtskheta'], model: 'Toyota Prius', year: '2018', class: 'Sedan', assigned: 'Nino Kapanadze', odo: 231900, payload: '250 kg', fuel: 'Hybrid', costPerKm: 0.19, status: 'Active' },
+  { plate: 'GH-903-KA', cities: ['Kutaisi', 'Batumi'], model: 'Isuzu NPR 1.5t', year: '2017', class: 'Truck 1.5t', assigned: 'Tamar Gogichaishvili', odo: 318640, payload: '1500 kg', fuel: 'Diesel', costPerKm: 0.61, status: 'In service' },
+  { plate: 'IJ-221-QW', cities: ['Tbilisi', 'Gori'], model: 'Renault Kangoo', year: '2020', class: 'Van', assigned: 'Ana Chkheidze', odo: 142050, payload: '650 kg', fuel: 'Diesel', costPerKm: 0.31, status: 'Active' },
+  { plate: 'KL-640-BS', cities: ['Batumi'], model: 'Hyundai H-1', year: '2016', class: 'Van', assigned: 'Unassigned', odo: 276330, payload: '900 kg', fuel: 'Diesel', costPerKm: 0.47, status: 'Idle' },
+  { plate: 'MN-318-RS', cities: ['Tbilisi', 'Kutaisi', 'Batumi'], model: 'Mercedes-Benz Sprinter', year: '2022', class: 'Truck 1.5t', assigned: 'Zurab Maisuradze', odo: 61420, payload: '1500 kg', fuel: 'Diesel', costPerKm: 0.44, status: 'Idle' }
+];
+
+const EMPLOYEES = [
+  { name: 'Marika Dolidze', email: 'marika@gizocargo.ge', role: 'Fleet manager', scope: 'All vehicles · all zones', lastActive: '5 min ago', status: 'Active', initials: 'MD',
+    roleNote: 'Full access to vehicles and drivers. Cannot change payout accounts.',
+    perms: [['Vehicles', 'Manage'], ['Drivers', 'Manage'], ['Earnings & payouts', 'View'], ['Employees', 'View']],
+    assigned: [['Vehicles', '7'], ['Drivers', '7'], ['Zones', 'Tbilisi (all)']] },
+  { name: 'Irakli Beruashvili', email: 'irakli@gizocargo.ge', role: 'Dispatcher', scope: 'Vake · Saburtalo · Vera', lastActive: '2 min ago', status: 'Active', initials: 'IB',
+    roleNote: 'Assigns and reassigns jobs inside their zones. No access to money or documents.',
+    perms: [['Jobs', 'Manage'], ['Drivers', 'View'], ['Vehicles', 'View'], ['Earnings & payouts', 'None'], ['Employees', 'None']],
+    assigned: [['Zones', '3'], ['Drivers', '4'], ['Shift', '08:00–17:00']] },
+  { name: 'Sopo Kiknadze', email: 'sopo@gizocargo.ge', role: 'Accountant', scope: 'Payouts · invoices', lastActive: '1 h ago', status: 'Active', initials: 'SK',
+    roleNote: 'Reconciles weekly payouts and exports invoices. Read-only on operations.',
+    perms: [['Earnings & payouts', 'Manage'], ['Invoices & tax', 'Manage'], ['Jobs', 'View'], ['Drivers', 'View'], ['Vehicles', 'None']],
+    assigned: [['Payout accounts', '2'], ['Tax ID', '404-882-140'], ['Period', 'Weekly']] },
+  { name: 'Vano Shengelia', email: 'vano@gizocargo.ge', role: 'Mechanic', scope: 'Service log', lastActive: 'Yesterday', status: 'Active', initials: 'VS',
+    roleNote: 'Records service work against each vehicle.',
+    perms: [['Vehicles', 'Manage'], ['Service log', 'Manage'], ['Jobs', 'None'], ['Earnings & payouts', 'None']],
+    assigned: [['Vehicles', '7'], ['Open work orders', '2'], ['Garage', 'Didube']] },
+  { name: 'Elene Abashidze', email: 'elene@gizocargo.ge', role: 'Dispatcher', scope: 'Gldani · Didube · Isani', lastActive: 'Invite sent 27 Aug', status: 'Invited', initials: 'EA',
+    roleNote: 'Invitation pending. Permissions apply once they accept.',
+    perms: [['Jobs', 'Manage'], ['Drivers', 'View'], ['Vehicles', 'View'], ['Earnings & payouts', 'None'], ['Employees', 'None']],
+    assigned: [['Zones', '3'], ['Drivers', '3'], ['Shift', '12:00–21:00']] },
+  { name: 'Zurab Maisuradze', email: 'zurab@gizocargo.ge', role: 'Driver', scope: 'Own jobs only', lastActive: '3 days ago', status: 'Suspended', initials: 'ZM',
+    roleNote: 'Employed driver. Access suspended pending review.',
+    perms: [['Own jobs', 'View'], ['Own earnings', 'View'], ['Vehicles', 'None'], ['Drivers', 'None'], ['Employees', 'None']],
+    assigned: [['Vehicle', 'MN-318-RS'], ['Zone', 'Samgori'], ['Contract', 'Full time']] }
+];
+
+const DAY_MS = 86400000;
+const DAILY = (() => {
+  const out = [];
+  const start = Date.parse('2026-07-27T00:00:00Z');
+  for (let i = 0; i < 34; i++) {
+    const d = new Date(start + i * DAY_MS);
+    const dow = d.getUTCDay();
+    const seed = (i * 37 % 13) / 13;
+    const jobs = dow === 0 ? 0 : Math.round(5 + seed * 6);
+    const fares = +(jobs * (10.4 + seed * 3.1)).toFixed(2);
+    const tips = +(jobs * (0.5 + seed * 0.9)).toFixed(2);
+    const inc = dow === 5 || dow === 6 ? +(jobs * 1.4).toFixed(2) : 0;
+    const adj = i % 11 === 3 ? -13.4 : 0;
+    out.push({
+      date: d.toISOString().slice(0, 10),
+      label: d.toISOString().slice(8, 10) + ' ' + ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getUTCMonth()],
+      dow: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dow],
+      jobs, fares, tips, inc, adj,
+      hours: +(jobs * 0.92).toFixed(1),
+      total: +(fares + tips + inc + adj).toFixed(2)
+    });
+  }
+  return out;
+})();
+const CITIES = ['Tbilisi', 'Rustavi', 'Batumi', 'Kutaisi', 'Gori', 'Zugdidi', 'Telavi', 'Mtskheta'];
+const RANGES = {
+  'This week': ['2026-08-24', '2026-08-30'],
+  'Last week': ['2026-08-17', '2026-08-23'],
+  'This month': ['2026-08-01', '2026-08-31'],
+  'Last 30 days': ['2026-07-31', '2026-08-29'],
+  Custom: null
+};
+
+class Component extends DCLogic {
+  state = { screen: 'today', online: true, jobTab: 'All', jobId: 'TB4821', week: 'This week', driverTab: 'All', driverId: 'GE-88301', fleetTab: 'All', vehiclePlate: 'AB-482-QM', empTab: 'All', empEmail: 'irakli@gizocargo.ge', account: null, bellOpen: false, jobsOpen: false, acctSection: 'Profile' };
+
+  /* Header nav / popovers ---------------------------------------------- */
+  nav(screen) {
+    return (e) => {
+      if (e && e.preventDefault) e.preventDefault();
+      this.setState({ screen, bellOpen: false, jobsOpen: false, confirm: null });
+    };
+  }
+  navColor(on) { return on ? INK : MUTED; }
+
+  cur() { return this.props.currency ?? '₾'; }
+  m(v) { return (v < 0 ? '-' : '') + this.cur() + Math.abs(v).toFixed(2); }
+
+  navItem(key, label, badge) {
+    const active = this.state.screen === key;
+    return {
+      label, badge: badge || false,
+      go: () => this.setState({ screen: key, confirm: null }),
+      style: {
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+        width: '100%', padding: '9px 12px', borderRadius: 8, border: 'none', cursor: 'pointer',
+        fontFamily: 'inherit', fontSize: 14, textAlign: 'left',
+        background: active ? BG : 'transparent',
+        color: active ? INK : MUTED, fontWeight: active ? 600 : 400
+      },
+      badgeStyle: {
+        minWidth: 20, textAlign: 'center', padding: '1px 6px', borderRadius: 99,
+        background: ACCENT, color: '#fff', fontSize: 11, fontWeight: 600
+      }
+    };
+  }
+
+  pill(active) {
+    return {
+      border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 13,
+      padding: '6px 13px', borderRadius: 6, whiteSpace: 'nowrap', flex: '0 0 auto',
+      background: active ? '#fff' : 'transparent',
+      color: active ? INK : MUTED, fontWeight: active ? 600 : 400,
+      boxShadow: active ? '0 1px 2px rgba(0,0,0,0.06)' : 'none'
+    };
+  }
+
+  dot(color, filled) {
+    return {
+      width: 9, height: 9, borderRadius: 99, flex: '0 0 9px', marginTop: 5,
+      background: filled ? color : '#fff', border: '2px solid ' + color
+    };
+  }
+
+  renderVals() {
+    const s = this.state;
+    const compact = (this.props.density ?? 'comfortable') === 'compact';
+
+    const jobs = JOBS.map(j => ({
+      ...j, fare: this.m(j.fare),
+      go: () => this.setState({ jobId: j.id }),
+      tagStyle: TAGS[j.status],
+      rowStyle: {
+        display: 'grid', gridTemplateColumns: '110px minmax(180px, 1fr) 90px 90px 90px 110px', gap: 12, minWidth: 740,
+        alignItems: 'center', padding: (compact ? '9px' : '14px') + ' 0', fontSize: 14, cursor: 'pointer',
+        borderBottom: '1px solid ' + BG,
+        background: s.jobId === j.id ? BG : 'transparent'
+      }
+    }));
+    const filteredJobs = s.jobTab === 'All' ? jobs : jobs.filter(j => j.status === s.jobTab || (s.jobTab === 'Active' && (j.status === 'In transit' || j.status === 'Scheduled')));
+    const sel = jobs.find(j => j.id === s.jobId);
+    const selectedJob = !sel ? false : {
+      ...sel,
+      dateLabel: 'Today · ' + sel.time,
+      typeTagStyle: tag(BG, MUTED),
+      timeline: [
+        { label: 'Order accepted', detail: 'Matched in 12s', time: sel.time, dotStyle: this.dot(OK, true) },
+        { label: 'Pickup', detail: sel.route.split(' → ')[0], time: '09:52', dotStyle: this.dot(OK, true) },
+        { label: 'Stop 1 delivered', detail: 'Signed by recipient', time: '10:14', dotStyle: this.dot(sel.status === 'In transit' ? ACCENT : OK, sel.status !== 'In transit') },
+        { label: 'Final drop-off', detail: sel.route.split(' → ').slice(-1)[0], time: sel.status === 'In transit' ? 'ETA 10:38' : '10:31', dotStyle: this.dot(sel.status === 'In transit' ? LINE : OK, sel.status !== 'In transit') }
+      ],
+      lines: [
+        { label: 'Base fare', value: this.m(9.8) },
+        { label: 'Distance · ' + sel.distance, value: this.m(5.6) },
+        { label: 'Stops · ' + sel.stops, value: this.m(2.0) },
+        { label: 'Tip', value: this.m(1.0) }
+      ]
+    };
+
+    const preset = s.range || 'This week';
+    const rng = RANGES[preset] || [s.from || '2026-08-01', s.to || '2026-08-29'];
+    const range = { from: rng[0], to: rng[1] };
+    const rows = DAILY.filter(d => d.date >= range.from && d.date <= range.to);
+    const sum = k => +rows.reduce((a, r) => a + r[k], 0).toFixed(2);
+    const totals = { jobs: sum('jobs'), fares: sum('fares'), tips: sum('tips'), inc: sum('inc'), adj: sum('adj'), hours: sum('hours'), total: sum('total') };
+    const daily = rows.length <= 10;
+    const groups = daily
+      ? rows.map(r => ({ key: r.dow, v: r.total }))
+      : Object.values(rows.reduce((acc, r) => {
+          const wk = 'W' + Math.ceil((Date.parse(r.date) - Date.parse('2026-01-05T00:00:00Z')) / (7 * DAY_MS));
+          (acc[wk] = acc[wk] || { key: wk, v: 0 }).v += r.total;
+          return acc;
+        }, {}));
+    const peak = Math.max(1, ...groups.map(g => g.v));
+    const bars = groups.map(b => ({
+      day: b.key, value: b.v ? this.cur() + Math.round(b.v) : '—',
+      barStyle: {
+        height: (b.v / peak * 100 || 2) + '%', minHeight: 3, borderRadius: 5,
+        background: b.v === peak ? ACCENT : INK, opacity: b.v ? 1 : 0.12
+      }
+    }));
+
+    const hourBars = [
+      { day: 'Mon', h: 7.2, j: 7 }, { day: 'Tue', h: 8.6, j: 9 }, { day: 'Wed', h: 6.4, j: 6 },
+      { day: 'Thu', h: 9.1, j: 10 }, { day: 'Fri', h: 6.2, j: 8 }, { day: 'Sat', h: 5.0, j: 5 }, { day: 'Sun', h: 0, j: 0 }
+    ].map(b => ({
+      day: b.day, value: b.h ? b.h.toFixed(1) + 'h' : '—',
+      hourStyle: { width: 14, height: (b.h / 9.1 * 150 || 3) + 'px', borderRadius: 4, background: INK, opacity: b.h ? 1 : 0.12 },
+      jobStyle: { width: 14, height: (b.j / 10 * 150 || 3) + 'px', borderRadius: 4, background: ACCENT, opacity: b.j ? 1 : 0.12 }
+    }));
+
+    const perf = [
+      { label: 'Acceptance', value: '94%', delta: '+3 pts vs last week', good: true, pct: 94 },
+      { label: 'Completion', value: '98%', delta: '+1 pt vs last week', good: true, pct: 98 },
+      { label: 'Cancellations', value: '2.1%', delta: '-0.4 pts vs last week', good: true, pct: 21 },
+      { label: 'Avg rating', value: '4.86', delta: 'Top 15% in Tbilisi', good: true, pct: 97 },
+      { label: 'Jobs per day', value: '7.4', delta: '-0.6 vs last week', good: false, pct: 74 }
+    ].map(p => ({
+      ...p, deltaColor: p.good ? OK_FG : WARN_FG,
+      barStyle: { width: p.pct + '%', height: '100%', borderRadius: 99, background: p.good ? OK : ACCENT }
+    }));
+
+    const pickRow = active => ({
+      style: {
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, cursor: 'pointer',
+        padding: '11px 13px', borderRadius: 8,
+        border: '1px solid ' + (active ? INK : LINE), background: active ? BG : '#fff'
+      },
+      dotStyle: { width: 14, height: 14, borderRadius: 99, flex: '0 0 14px', border: '4px solid ' + (active ? INK : LINE), background: '#fff' }
+    });
+    const dangerBtn = armed => ({
+      cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 500, padding: '9px 15px',
+      borderRadius: 6, border: '1px solid ' + (armed ? BAD : LINE),
+      background: armed ? BAD : '#fff', color: armed ? '#fff' : BAD
+    });
+    const roster2 = DRIVERS.concat(s.addedDrivers || []).map(d =>
+      (s.offboarded || []).includes(d.id) ? { ...d, status: 'Offboarded' } : d);
+    const dSplit = roster2.some(d => d.id === s.driverId) || s.addingDriver;
+    const driverCols = dSplit ? '1.6fr 70px 110px' : '1.3fr 110px 90px 70px 90px 110px';
+    const driverMinW = dSplit ? 380 : 760;
+    const drivers = roster2.map(d => ({
+      ...d, earned: this.m(d.earned),
+      go: () => this.setState({ driverId: d.id, confirm: null, addingDriver: false }),
+      tagStyle: TAGS[d.status],
+      rowStyle: {
+        display: 'grid', gridTemplateColumns: driverCols, gap: 12, minWidth: driverMinW,
+        alignItems: 'center', padding: (compact ? '10px' : '14px') + ' 0', fontSize: 14, cursor: 'pointer',
+        borderBottom: '1px solid ' + BG,
+        background: s.driverId === d.id ? BG : 'transparent'
+      }
+    }));
+    const filteredDrivers = s.driverTab === 'All' ? drivers
+      : s.driverTab === 'Online' ? drivers.filter(d => d.status === 'Online')
+      : s.driverTab === 'Needs review' ? drivers.filter(d => d.status === 'Pending' || d.status === 'Suspended')
+      : drivers.filter(d => d.status === 'Offline');
+    const dSel = s.addingDriver ? null : drivers.find(d => d.id === s.driverId);
+    const dOff = dSel && dSel.status === 'Offboarded';
+    const dArmed = dSel && s.confirm === 'driver:' + dSel.id;
+    const selectedDriver = !dSel ? false : {
+      ...dSel,
+      offboardLabel: dOff ? 'Reinstate driver' : dArmed ? 'Confirm offboarding' : 'Offboard driver',
+      offboardStyle: dOff
+        ? { cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 500, padding: '9px 15px', borderRadius: 6, border: '1px solid ' + LINE, background: '#fff', color: INK }
+        : dangerBtn(dArmed),
+      offboardNote: dOff
+        ? 'Offboarded on ' + '29 Aug 2026' + '. Reinstating restores their jobs and payout account.'
+        : dArmed
+          ? 'This ends job matching immediately. Completed jobs and payouts stay on record.'
+          : 'Removes them from matching and releases their vehicle. Reversible for 30 days.',
+      offboard: () => {
+        if (dOff) return this.setState({ offboarded: (s.offboarded || []).filter(x => x !== dSel.id), confirm: null });
+        if (!dArmed) return this.setState({ confirm: 'driver:' + dSel.id });
+        this.setState({ offboarded: (s.offboarded || []).concat([dSel.id]), confirm: null });
+      },
+      zoneTagStyle: tag(BG, MUTED),
+      stats: [
+        { label: 'Jobs this week', value: String(dSel.jobs) },
+        { label: 'Earned', value: dSel.earned },
+        { label: 'Acceptance', value: dSel.status === 'Suspended' ? '61%' : '93%' },
+        { label: 'Rating', value: dSel.rating }
+      ],
+      recent: [
+        { id: 'TB4791', route: dSel.zone + ' → Rustaveli', fare: this.m(14.2) },
+        { id: 'TB4772', route: dSel.zone + ' → Vake', fare: this.m(9.8) },
+        { id: 'TB4760', route: 'Didube → ' + dSel.zone, fare: this.m(12.4) }
+      ],
+      verify: [
+        { label: 'Driver licence (GE)', status: 'Verified', tagStyle: TAGS.Verified },
+        { label: 'Vehicle registration', status: dSel.status === 'Pending' ? 'In review' : 'Verified', tagStyle: dSel.status === 'Pending' ? TAGS['In review'] : TAGS.Verified },
+        { label: 'Criminal record extract', status: dSel.status === 'Pending' ? 'In review' : 'Verified', tagStyle: dSel.status === 'Pending' ? TAGS['In review'] : TAGS.Verified }
+      ]
+    };
+
+    const fleetRoster = FLEET.concat(s.addedVehicles || []).map(v =>
+      (s.defleeted || []).includes(v.plate) ? { ...v, status: 'Defleeted' } : v);
+    const vSplit = fleetRoster.some(v => v.plate === s.vehiclePlate) || s.addingVehicle;
+    const fleetCols = vSplit ? '1.6fr 1fr 120px' : '1.4fr 100px 110px 90px 90px 120px';
+    const fleetMinW = vSplit ? 420 : 780;
+    const headStyle = (cols, minW) => ({
+      display: 'grid', gridTemplateColumns: cols, gap: 12, paddingBottom: 10, minWidth: minW,
+      fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em',
+      color: MUTED, borderBottom: '1px solid ' + LINE
+    });
+    const fleet = fleetRoster.map(v => ({
+      ...v,
+      odo: (v.odo / 1000).toFixed(1) + 'k km',
+      rawCostPerKm: v.costPerKm,
+      costPerKm: this.m(v.costPerKm),
+      go: () => this.setState({ vehiclePlate: v.plate, confirm: null, addingVehicle: false }),
+      tagStyle: TAGS[v.status],
+      rowStyle: {
+        display: 'grid', gridTemplateColumns: fleetCols, gap: 12, minWidth: fleetMinW,
+        alignItems: 'center', padding: (compact ? '10px' : '14px') + ' 0', fontSize: 14, cursor: 'pointer',
+        borderBottom: '1px solid ' + BG,
+        background: s.vehiclePlate === v.plate ? BG : 'transparent'
+      }
+    }));
+    const filteredFleet = s.fleetTab === 'All' ? fleet : fleet.filter(v => v.status === s.fleetTab);
+    const vSel = s.addingVehicle ? null : fleet.find(v => v.plate === s.vehiclePlate);
+    const vOff = vSel && vSel.status === 'Defleeted';
+    const vArmed = vSel && s.confirm === 'vehicle:' + vSel.plate;
+    const selectedVehicle = !vSel ? false : {
+      ...vSel,
+      defleetLabel: vOff ? 'Return to fleet' : vArmed ? 'Confirm defleet' : 'Defleet vehicle',
+      defleetStyle: vOff
+        ? { cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 500, padding: '9px 15px', borderRadius: 6, border: '1px solid ' + LINE, background: '#fff', color: INK }
+        : dangerBtn(vArmed),
+      defleetNote: vOff
+        ? 'Out of service. Returning it keeps the existing service log.'
+        : vArmed
+          ? 'The vehicle stops receiving jobs and its driver is unassigned. Service history is kept.'
+          : 'Takes it out of service and unassigns its driver. Reversible.',
+      defleet: () => {
+        if (vOff) return this.setState({ defleeted: (s.defleeted || []).filter(x => x !== vSel.plate), confirm: null });
+        if (!vArmed) return this.setState({ confirm: 'vehicle:' + vSel.plate });
+        this.setState({ defleeted: (s.defleeted || []).concat([vSel.plate]), confirm: null });
+      },
+      classTagStyle: tag(BG, MUTED),
+      cityTags: (vSel.cities || ['Tbilisi']).map(c => ({ label: c, style: tag(BG, MUTED) })),
+      specs: [
+        { label: 'Payload', value: vSel.payload },
+        { label: 'Fuel', value: vSel.fuel },
+        { label: 'Odometer', value: vSel.odo },
+        { label: 'Jobs · week', value: vSel.status === 'Active' ? '46' : '0' }
+      ],
+      costs: [
+        { label: 'Fuel', value: this.m(vSel.rawCostPerKm * 1600) },
+        { label: 'Service & parts', value: this.m(280.0) },
+        { label: 'Parking & tolls', value: this.m(64.5) }
+      ]
+    };
+
+    const account = s.account ?? this.props.accountType ?? 'Business';
+    const isBiz = account === 'Business';
+    const permTag = v => tag(v === 'Manage' ? OK_BG : v === 'View' ? INFO_BG : BG, v === 'Manage' ? OK_FG : v === 'View' ? INFO_FG : MUTED);
+    const ROLE_DEFS = {
+      'Fleet manager': { note: 'Vehicles and drivers', perms: [['Vehicles', 'Manage'], ['Drivers', 'Manage'], ['Earnings & payouts', 'View'], ['Employees', 'View']] },
+      Dispatcher: { note: 'Assigns jobs inside their zones', perms: [['Jobs', 'Manage'], ['Drivers', 'View'], ['Vehicles', 'View'], ['Earnings & payouts', 'None'], ['Employees', 'None']] },
+      Accountant: { note: 'Payouts, invoices and tax', perms: [['Earnings & payouts', 'Manage'], ['Invoices & tax', 'Manage'], ['Jobs', 'View'], ['Drivers', 'View'], ['Vehicles', 'None']] },
+      Mechanic: { note: 'Service log', perms: [['Vehicles', 'Manage'], ['Service log', 'Manage'], ['Jobs', 'None'], ['Earnings & payouts', 'None']] },
+      Driver: { note: 'Own jobs and earnings only', perms: [['Own jobs', 'View'], ['Own earnings', 'View'], ['Vehicles', 'None'], ['Drivers', 'None'], ['Employees', 'None']] }
+    };
+    const vehForm = s.vehForm || { plate: '', model: '', year: '', odo: '', class: 'Van', assigned: '', cities: ['Tbilisi'] };
+    const vehCities = vehForm.cities || [];
+    const canSaveVeh = /^[A-Z]{2}-\d{3}-[A-Z]{2}$/.test(vehForm.plate.trim()) && vehForm.model.trim().length > 2 && vehCities.length > 0;
+    const drvForm = s.drvForm || { name: '', phone: '', zone: '', vehicle: 'Unassigned' };
+    const canSaveDrv = drvForm.name.trim().length > 2 && drvForm.phone.replace(/\D/g, '').length >= 9;
+    const roster = EMPLOYEES.concat(s.added || []).filter(e => !(s.removedEmp || []).includes(e.email));
+    const eSplit = roster.some(e => e.email === s.empEmail) || s.inviting;
+    const empCols = eSplit ? '1.6fr 110px 110px' : '1.4fr 130px 1fr 130px 110px';
+    const empMinW = eSplit ? 400 : 780;
+    const employees = roster.map(e => ({
+      ...e,
+      go: () => this.setState({ empEmail: e.email, confirm: null, inviting: false }),
+      tagStyle: TAGS[e.status] || tag(BG, MUTED),
+      rowStyle: {
+        display: 'grid', gridTemplateColumns: empCols, gap: 12, minWidth: empMinW,
+        alignItems: 'center', padding: (compact ? '10px' : '14px') + ' 0', fontSize: 14, cursor: 'pointer',
+        borderBottom: '1px solid ' + BG,
+        background: s.empEmail === e.email ? BG : 'transparent'
+      }
+    }));
+    const filteredEmp = s.empTab === 'All' ? employees
+      : s.empTab === 'Invited' ? employees.filter(e => e.status === 'Invited')
+      : s.empTab === 'Suspended' ? employees.filter(e => e.status === 'Suspended')
+      : employees.filter(e => e.status === 'Active');
+    const eSel = s.inviting ? null : employees.find(e => e.email === s.empEmail);
+    const form = s.form || { name: '', email: '', role: 'Dispatcher', scope: '' };
+    const canSend = form.name.trim().length > 2 && /.+@.+\..+/.test(form.email);
+    const eArmed = eSel && s.confirm === 'emp:' + eSel.email;
+    const eInvited = eSel && eSel.status === 'Invited';
+    const selectedEmployee = !eSel ? false : {
+      ...eSel,
+      roleTagStyle: tag(BG, MUTED),
+      removeLabel: eArmed
+        ? (eInvited ? 'Confirm revoke' : 'Confirm removal')
+        : (eInvited ? 'Revoke invite' : 'Remove employee'),
+      removeStyle: dangerBtn(eArmed),
+      removeNote: eArmed
+        ? 'Access ends immediately and open sessions are signed out. Their activity log is kept.'
+        : eInvited
+          ? 'The invitation link stops working. You can invite them again later.'
+          : 'Removes their access to this account. Jobs and payouts they handled stay on record.',
+      remove: () => {
+        if (!eArmed) return this.setState({ confirm: 'emp:' + eSel.email });
+        this.setState({ removedEmp: (s.removedEmp || []).concat([eSel.email]), confirm: null, empEmail: null });
+      },
+      permissions: eSel.perms.map(p => ({ label: p[0], value: p[1], tagStyle: permTag(p[1]) })),
+      assigned: eSel.assigned.map(a => ({ label: a[0], value: a[1] }))
+    };
+
+    return {
+      accountTabs: ['Business', 'Individual'].map(a => ({
+        label: a,
+        go: () => this.setState({ account: a, screen: a === 'Individual' && (s.screen === 'employees' || s.screen === 'drivers') ? 'today' : s.screen }),
+        style: this.pill(account === a)
+      })),
+      isEmployees: isBiz && s.screen === 'employees',
+      empTiles: [
+        { label: 'Employees', value: String(roster.length), note: (1 + (s.added || []).length) + ' invite' + ((s.added || []).length ? 's' : '') + ' pending' },
+        { label: 'Roles in use', value: '4', note: 'Fleet manager, dispatcher, accountant, mechanic' },
+        { label: 'Can move money', value: '1', note: 'Accountant only' },
+        { label: 'Needs review', value: '2', note: '1 invited, 1 suspended' }
+      ],
+      empTabs: ['All', 'Active', 'Invited', 'Suspended'].map(t => ({
+        label: t, go: () => this.setState({ empTab: t }), style: this.pill(s.empTab === t)
+      })),
+      empFull: !eSplit,
+      empHeadStyle: headStyle(empCols, empMinW),
+      empCountLabel: filteredEmp.length + ' of ' + employees.length + ' shown',
+      visibleEmployees: filteredEmp,
+      selectedEmployee,
+      closeEmployee: () => this.setState({ empEmail: null }),
+      empGrid: (eSel || s.inviting) ? 'minmax(300px, 1.5fr) minmax(260px, 1fr)' : '1fr',
+
+      inviting: !!s.inviting,
+      startInvite: () => this.setState({ inviting: true, empEmail: null, form: { name: '', email: '', role: 'Dispatcher', scope: '' } }),
+      cancelInvite: () => this.setState({ inviting: false }),
+      form,
+      setName: e => this.setState({ form: { ...form, name: e.target.value } }),
+      setEmail: e => this.setState({ form: { ...form, email: e.target.value } }),
+      setScope: e => this.setState({ form: { ...form, scope: e.target.value } }),
+      roleOptions: Object.keys(ROLE_DEFS).map(r => ({
+        label: r, note: ROLE_DEFS[r].note,
+        pick: () => this.setState({ form: { ...form, role: r } }),
+        style: {
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, cursor: 'pointer',
+          padding: '11px 13px', borderRadius: 8,
+          border: '1px solid ' + (form.role === r ? INK : LINE),
+          background: form.role === r ? BG : '#fff'
+        },
+        dotStyle: {
+          width: 14, height: 14, borderRadius: 99, flex: '0 0 14px',
+          border: '4px solid ' + (form.role === r ? INK : LINE), background: '#fff'
+        }
+      })),
+      sendBtnStyle: {
+        cursor: canSend ? 'pointer' : 'not-allowed', fontFamily: 'inherit', fontSize: 13, fontWeight: 500,
+        padding: '9px 15px', borderRadius: 6, border: 'none',
+        background: canSend ? INK : LINE, color: canSend ? '#fff' : MUTED
+      },
+      inviteHint: canSend
+        ? form.role + ' permissions will apply to ' + form.email + '.'
+        : 'Add a name and a valid email to send the invite.',
+      sendInvite: () => {
+        if (!canSend) return;
+        const def = ROLE_DEFS[form.role];
+        const initials = form.name.trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
+        const rec = {
+          name: form.name.trim(), email: form.email.trim(), role: form.role,
+          scope: form.scope.trim() || 'Not set', lastActive: 'Invite sent today',
+          status: 'Invited', initials,
+          roleNote: 'Invitation pending. ' + def.note + '.',
+          perms: def.perms,
+          assigned: [['Scope', form.scope.trim() || 'Not set'], ['Invited by', 'Giorgi Beridze'], ['Expires', 'In 7 days']]
+        };
+        this.setState({ added: (s.added || []).concat([rec]), inviting: false, empEmail: rec.email, empTab: 'All' });
+      },
+      nav: [
+        this.navItem('today', 'Today'),
+        this.navItem('earnings', 'Earnings'),
+        this.navItem('jobs', 'Jobs'),
+        this.navItem('performance', 'Performance'),
+        this.navItem('vehicle', isBiz ? 'Vehicles' : 'Vehicle'),
+        isBiz ? this.navItem('drivers', 'Drivers') : null,
+        isBiz ? this.navItem('employees', 'Employees', 1) : null
+      ].filter(Boolean),
+      isToday: s.screen === 'today', isEarnings: s.screen === 'earnings', isJobs: s.screen === 'jobs',
+      isPerf: s.screen === 'performance',
+      isVehicle: s.screen === 'vehicle', isDrivers: s.screen === 'drivers',
+      pageTitle: {
+        today: 'Today', earnings: 'Earnings & payouts', jobs: 'Job history',
+        performance: 'Performance',
+        vehicle: isBiz ? 'Vehicles' : 'Vehicle', drivers: 'Drivers', employees: 'Employees & roles'
+      }[s.screen],
+      pageSub: {
+        today: 'Saturday 29 August · Tbilisi',
+        earnings: rows.length
+          ? rows[0].label + ' – ' + rows[rows.length - 1].label + ' 2026 · next payout Friday 4 September'
+          : 'No days in the selected range · next payout Friday 4 September',
+        jobs: '182 jobs in the last 30 days',
+        performance: 'Rolling 7-day window',
+        vehicle: '7 vehicles registered · 4 on the road, 1 unassigned',
+        drivers: '7 registered drivers · 4 online in Tbilisi now',
+        employees: 'Gizo Cargo LLC · 6 people, 4 roles · 1 invite pending'
+      }[s.screen],
+      pagePadStyle: { padding: compact ? '20px 32px 40px' : '28px 32px 56px' },
+
+      toggleOnline: () => this.setState({ online: !s.online }),
+      onlineLabel: s.online ? 'Online' : 'Offline',
+      onlineBtnStyle: {
+        display: 'flex', alignItems: 'center', gap: 9, cursor: 'pointer', fontFamily: 'inherit',
+        fontSize: 12, fontWeight: 600, padding: '5px 12px', borderRadius: 99,
+        border: '1px solid ' + (s.online ? OK_BG : LINE),
+        background: s.online ? OK_BG : '#fff', color: s.online ? OK_FG : MUTED
+      },
+      onlineDotStyle: { width: 7, height: 7, borderRadius: 99, background: s.online ? OK : MUTED },
+
+      incentiveDone: 12, incentiveTarget: 15,
+      incentiveBarStyle: { width: '80%', height: '100%', borderRadius: 99, background: ACCENT },
+      incentiveNote: '3 more jobs by Sunday for a ' + this.cur() + '40 bonus.',
+
+      todayEarnings: this.m(142.6),
+      todaySub: '8 jobs · 6h 12m online · ' + this.m(17.83) + ' per job',
+      goEarnings: this.nav('earnings'),
+      goJobs: this.nav('jobs'),
+      goToday: this.nav('today'),
+      goAccount: this.nav('account'),
+      navOrdersColor: this.navColor(s.screen === 'jobs'),
+      navWalletColor: this.navColor(s.screen === 'earnings'),
+      navAccountColor: this.navColor(s.screen === 'account'),
+      isAccount: s.screen === 'account',
+      showPageHead: s.screen !== 'account',
+      userName: 'Giorgi Beridze',
+      userInitials: 'GB',
+
+      /* A fleet has no single job of its own — the pill counts what is on the
+         road and lists it. One driver keeps the single-order pill. */
+      jobPillLabel: isBiz ? '6 jobs in progress' : 'Job in progress · TB4821',
+      jobsLinkLabel: isBiz ? 'View all jobs in progress' : 'Open this job',
+      livePillJobs: (isBiz
+        ? [
+            { route: 'Avlabari → Sololaki', who: 'Giorgi Beridze · TB4821', eta: '18 min' },
+            { route: 'Didube → Gldani', who: 'Levan Tsiklauri · TB4830', eta: '31 min' },
+            { route: 'Isani → Airport', who: 'Nino Kapanadze · TB4839', eta: '44 min' }
+          ]
+        : [{ route: 'Avlabari → Rustaveli → Sololaki', who: '3 stops · 14.2 km', eta: '18 min' }]),
+      jobsOpen: s.jobsOpen,
+      toggleJobs: () => this.setState({ jobsOpen: !s.jobsOpen, bellOpen: false }),
+      bellOpen: s.bellOpen,
+      toggleBell: () => this.setState({ bellOpen: !s.bellOpen, jobsOpen: false }),
+      notifications: [
+        { title: 'New job offer · Vake → Saburtalo', when: '2 minutes ago', go: this.nav('jobs') },
+        { title: 'Payout of ' + this.m(142.6) + ' sent', when: 'Yesterday', go: this.nav('earnings') },
+        { title: 'Rating updated · 4.86 this week', when: '2 days ago', go: this.nav('performance') }
+      ],
+
+      accountNav: ['Profile', 'Payout & bank details', 'Notifications', 'Language', 'Support'].map(label => {
+        const on = s.acctSection === label;
+        return {
+          label,
+          go: (e) => { if (e && e.preventDefault) e.preventDefault(); this.setState({ acctSection: label }); },
+          style: {
+            borderLeft: '2px solid ' + (on ? ACCENT : LINE),
+            padding: '8px 0 8px 14px', fontSize: 14, fontWeight: 500,
+            color: on ? ACCENT : MUTED
+          }
+        };
+      }),
+      accountSection: s.acctSection,
+      accountBlurb: {
+        Profile: 'The details a client sees when you turn up for a pickup, and the credentials you sign in with. Same rail and panels as the client account screen.',
+        'Payout & bank details': 'Where your earnings land, and the account they are paid from. Payout schedule stays on the Earnings screen.',
+        Notifications: 'Which job offers and payout alerts reach you, and on which channel.',
+        Language: 'The language this hub and your job notifications are written in.',
+        Support: 'Reach the operations team, or read what to do when a job goes wrong.'
+      }[s.acctSection],
+      accountPanels: {
+        Profile: [
+          { title: 'Profile details', note: 'Reuses the client\'s profile form — name, phone, ID number, city.' },
+          { title: 'Password', note: 'Reuses the client\'s password card, unchanged.' }
+        ],
+        'Payout & bank details': [
+          { title: 'Bank account', note: 'IBAN on file, ending 4821 · Bank of Georgia.' },
+          { title: 'Payout schedule', note: 'Weekly, every Friday. Next payout Friday 4 September.' }
+        ],
+        Notifications: [
+          { title: 'Job offers', note: 'Push and SMS while online.' },
+          { title: 'Payouts', note: 'Email on every payout, push if one fails.' }
+        ],
+        Language: [{ title: 'Hub language', note: 'English · ქართული available.' }],
+        Support: [
+          { title: 'Contact operations', note: 'Mon–Sun, 08:00–22:00 Tbilisi time.' },
+          { title: 'Driver help centre', note: 'Cancellations, damaged goods, fare disputes.' }
+        ]
+      }[s.acctSection],
+      todayStats: [
+        { label: 'Acceptance rate', value: '94%' },
+        { label: 'Completion rate', value: '98%' },
+        { label: 'Cancellations', value: '1' },
+        { label: 'Avg rating', value: '4.86' }
+      ],
+      activeJob: { id: 'TB4821', meta: '3 stops · 14.2 km · accepted 09:40', fare: this.m(18.4) },
+      activeStops: [
+        { name: 'Avlabari · pickup', time: 'Collected 09:52', dotStyle: this.dot(OK, true) },
+        { name: 'Rustaveli Ave · stop 1', time: 'Delivered 10:14', dotStyle: this.dot(OK, true) },
+        { name: 'Sololaki · final drop', time: 'ETA 10:38', dotStyle: this.dot(ACCENT, false) }
+      ],
+      showZones: this.props.showZoneDemand ?? true,
+      zones: [
+        { name: 'Vake · Vera', drivers: 14, demand: 'High', bonus: '+' + this.m(3.0), bonusColor: ACCENT },
+        { name: 'Saburtalo', drivers: 22, demand: 'High', bonus: '+' + this.m(2.0), bonusColor: ACCENT },
+        { name: 'Gldani · Didube', drivers: 31, demand: 'Medium', bonus: '—', bonusColor: MUTED },
+        { name: 'Isani · Samgori', drivers: 9, demand: 'Low', bonus: '—', bonusColor: MUTED }
+      ].map(z => ({ ...z, tagStyle: TAGS[z.demand] })),
+
+      earningTiles: [
+        { label: 'Gross earnings', value: this.m(totals.total), note: rows.length + ' days in range' },
+        { label: 'Jobs completed', value: String(totals.jobs), note: totals.hours.toFixed(0) + 'h online' },
+        { label: 'Incentives', value: this.m(totals.inc), note: 'Weekend surge + streak' },
+        { label: 'Avg per job', value: this.m(totals.jobs ? totals.total / totals.jobs : 0), note: this.m(totals.hours ? totals.total / totals.hours : 0) + ' per online hour' }
+      ],
+      rangeTabs: Object.keys(RANGES).map(r => ({
+        label: r,
+        go: () => this.setState({ range: r, from: range.from, to: range.to }),
+        style: this.pill(preset === r)
+      })),
+      range,
+      dateInputStyle: {
+        fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, padding: '7px 9px',
+        border: '1px solid ' + LINE, borderRadius: 6, outline: 'none', color: INK,
+        opacity: preset === 'Custom' ? 1 : 0.55
+      },
+      setFrom: e => this.setState({ range: 'Custom', from: e.target.value, to: rng[1] }),
+      setTo: e => this.setState({ range: 'Custom', from: rng[0], to: e.target.value }),
+      rangeSummary: range.from + ' → ' + range.to + ' · ' + rows.length + ' days',
+      chartTitle: daily ? 'Daily earnings' : 'Weekly earnings',
+      chartNote: daily ? 'One bar per day' : 'Grouped by week · ' + groups.length + ' weeks',
+      chartGridStyle: {
+        display: 'grid', gridTemplateColumns: 'repeat(' + Math.max(1, groups.length) + ', minmax(0, 1fr))',
+        gap: groups.length > 10 ? 6 : 14, alignItems: 'end', height: 190
+      },
+      exportXls: () => {
+        const c = this.cur();
+        const lines = [['Driver', 'Giorgi Beridze (GE-88214)'], ['Range', range.from + ' to ' + range.to], ['Currency', c], []];
+        lines.push(['Date', 'Day', 'Jobs', 'Online hours', 'Fares', 'Tips', 'Incentives', 'Adjustments', 'Total']);
+        rows.forEach(r => lines.push([r.date, r.dow, r.jobs, r.hours, r.fares, r.tips, r.inc, r.adj, r.total]));
+        lines.push([]);
+        lines.push(['Totals', '', totals.jobs, totals.hours, totals.fares, totals.tips, totals.inc, totals.adj, totals.total]);
+        const esc = v => String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+        const numeric = v => typeof v === 'number';
+        const body = lines.map(l => '<tr>' + (l.length ? l.map(v =>
+          '<td' + (numeric(v) ? ' style="mso-number-format:\'0.00\'"' : '') + '>' + esc(v) + '</td>').join('') : '<td></td>') + '</tr>').join('');
+        const xls = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">'
+          + '<head><meta charset="utf-8" /><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet>'
+          + '<x:Name>Earnings</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet>'
+          + '</x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head>'
+          + '<body><table border="1">' + body + '</table></body></html>';
+        const url = URL.createObjectURL(new Blob(['\ufeff' + xls], { type: 'application/vnd.ms-excel' }));
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'earnings-' + range.from + '_' + range.to + '.xls';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+      },
+      bars,
+      breakdown: [
+        { label: 'Trip fares', note: totals.jobs + ' completed jobs', value: this.m(totals.fares), color: INK },
+        { label: 'Tips', note: Math.round(totals.jobs * 0.4) + ' customers', value: this.m(totals.tips), color: INK },
+        { label: 'Incentives', note: 'Weekend surge + streak', value: this.m(totals.inc), color: OK_FG },
+        { label: 'Adjustments', note: totals.adj ? 'Cancellation fees' : 'None in range', value: this.m(totals.adj), color: totals.adj ? BAD : MUTED }
+      ],
+      payoutTotal: this.m(totals.total),
+      payouts: [
+        { period: '18–24 Aug', jobs: '51', incentives: this.m(108.0), amount: this.m(712.3), status: 'Paid' },
+        { period: '11–17 Aug', jobs: '44', incentives: this.m(64.0), amount: this.m(596.8), status: 'Paid' },
+        { period: '4–10 Aug', jobs: '48', incentives: this.m(80.0), amount: this.m(641.1), status: 'Paid' },
+        { period: '25–31 Aug', jobs: '46', incentives: this.m(92.0), amount: this.m(658.4), status: 'Processing' }
+      ].map(p => ({ ...p, tagStyle: TAGS[p.status] })),
+
+      jobTabs: ['All', 'Active', 'Completed', 'Cancelled'].map(t => ({
+        label: t, go: () => this.setState({ jobTab: t }), style: this.pill(s.jobTab === t)
+      })),
+      jobCountLabel: filteredJobs.length + ' of ' + jobs.length + ' shown',
+      visibleJobs: filteredJobs,
+      selectedJob,
+      closeJob: () => this.setState({ jobId: null }),
+      jobsGrid: sel ? 'minmax(300px, 1.5fr) minmax(260px, 1fr)' : '1fr',
+
+      perfTiles: perf,
+      hourBars,
+      perfNotes: [
+        { title: 'Acceptance rate', value: '94%', color: OK_FG, body: 'Declines counted over the last 100 offers. Staying above 90% keeps priority matching.' },
+        { title: 'Cancellations', value: '2.1%', color: OK_FG, body: 'Two cancellations this week, both before pickup. Above 5% pauses incentives.' },
+        { title: 'Rating', value: '4.86', color: OK_FG, body: 'From 61 rated jobs. Ratings below 4.5 trigger a coaching review.' },
+        { title: 'Idle time', value: '38 min/h', color: WARN_FG, body: 'Highest in Gldani. Moving to Vake between 09:00 and 11:00 cuts it by about a third.' }
+      ],
+
+      fleetTiles: [
+        { label: 'Vehicles', value: String(FLEET.length), note: '5 vans · 1 sedan · 2 trucks' },
+        { label: 'On the road', value: '4', note: '1 in service, 2 idle' },
+        { label: 'Unassigned', value: '1', note: 'Available to hand to a driver' },
+        { label: 'Fleet cost per km', value: this.m(0.40), note: 'Fuel, service, parking and tolls' }
+      ],
+      addingVehicle: !!s.addingVehicle,
+      startAddVehicle: () => this.setState({ addingVehicle: true, vehiclePlate: null, confirm: null, vehForm: { plate: '', model: '', year: '', odo: '', class: 'Van', assigned: '', cities: ['Tbilisi'] } }),
+      cancelAddVehicle: () => this.setState({ addingVehicle: false }),
+      vehForm,
+      setVehPlate: e => this.setState({ vehForm: { ...vehForm, plate: e.target.value.toUpperCase() } }),
+      setVehModel: e => this.setState({ vehForm: { ...vehForm, model: e.target.value } }),
+      setVehYear: e => this.setState({ vehForm: { ...vehForm, year: e.target.value } }),
+      setVehOdo: e => this.setState({ vehForm: { ...vehForm, odo: e.target.value } }),
+      setVehAssigned: e => this.setState({ vehForm: { ...vehForm, assigned: e.target.value } }),
+      cityOptions: CITIES.map(c => {
+        const on = vehCities.includes(c);
+        return {
+          label: c,
+          toggle: () => this.setState(prev => {
+            const cur = (prev.vehForm && prev.vehForm.cities) || [];
+            return { vehForm: { ...(prev.vehForm || vehForm), cities: cur.includes(c) ? cur.filter(x => x !== c) : cur.concat([c]) } };
+          }),
+          style: {
+            cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, padding: '7px 12px', borderRadius: 99,
+            border: '1px solid ' + (on ? INK : LINE), background: on ? INK : '#fff',
+            color: on ? '#fff' : MUTED, fontWeight: on ? 500 : 400, whiteSpace: 'nowrap'
+          }
+        };
+      }),
+      vehClassOptions: [
+        { label: 'Van', note: 'Up to 1200 kg' },
+        { label: 'Sedan', note: 'Documents and small parcels' },
+        { label: 'Truck 1.5t', note: 'Pallets and bulk loads' }
+      ].map(c => ({ ...c, pick: () => this.setState({ vehForm: { ...vehForm, class: c.label } }), ...pickRow(vehForm.class === c.label) })),
+      saveVehBtnStyle: {
+        cursor: canSaveVeh ? 'pointer' : 'not-allowed', fontFamily: 'inherit', fontSize: 13, fontWeight: 500,
+        padding: '9px 15px', borderRadius: 6, border: 'none',
+        background: canSaveVeh ? INK : LINE, color: canSaveVeh ? '#fff' : MUTED
+      },
+      vehHint: canSaveVeh
+        ? vehForm.class + ' · ' + (vehForm.assigned.trim() || 'unassigned') + ' · operating in ' + vehCities.join(', ') + '.'
+        : vehCities.length ? 'Add a plate (AB-123-CD) and a model to continue.' : 'Pick at least one operating city.',
+      saveVehicle: () => {
+        if (!canSaveVeh) return;
+        const live = this.state.vehForm || vehForm;
+        const liveCities = (live.cities && live.cities.length ? live.cities : vehCities).slice();
+        const rec = {
+          plate: (live.plate || '').trim(), model: (live.model || '').trim(), year: (live.year || '').trim() || '2020',
+          class: live.class, assigned: (live.assigned || '').trim() || 'Unassigned', cities: liveCities,
+          odo: Number(String(live.odo || '').replace(/\D/g, '')) || 0,
+          payload: live.class === 'Truck 1.5t' ? '1500 kg' : live.class === 'Sedan' ? '250 kg' : '1000 kg',
+          fuel: 'Diesel', costPerKm: 0.4, status: 'Idle',
+        };
+        this.setState({ addedVehicles: (s.addedVehicles || []).concat([rec]), addingVehicle: false, vehiclePlate: rec.plate, fleetTab: 'All' });
+      },
+      fleetTabs: ['All', 'Active', 'In service', 'Idle', 'Defleeted'].map(t => ({
+        label: t, go: () => this.setState({ fleetTab: t }), style: this.pill(s.fleetTab === t)
+      })),
+      fleetFull: !vSplit,
+      fleetHeadStyle: headStyle(fleetCols, fleetMinW),
+      fleetCountLabel: filteredFleet.length + ' of ' + fleet.length + ' shown',
+      visibleFleet: filteredFleet,
+      selectedVehicle,
+      closeVehicle: () => this.setState({ vehiclePlate: null }),
+      fleetGrid: (vSel || s.addingVehicle) ? 'minmax(300px, 1.5fr) minmax(260px, 1fr)' : '1fr',
+
+      driverTiles: [
+        { label: 'Registered drivers', value: '7', note: '2 added this month' },
+        { label: 'Online now', value: '4', note: 'Across Vake, Saburtalo, Gldani, Vera' },
+        { label: 'Fleet avg rating', value: '4.76', note: 'From 214 rated jobs' },
+        { label: 'Needs review', value: '2', note: '1 pending, 1 suspended' }
+      ],
+      addingDriver: !!s.addingDriver,
+      startAddDriver: () => this.setState({ addingDriver: true, driverId: null, confirm: null, drvForm: { name: '', phone: '', zone: '', vehicle: 'Unassigned' } }),
+      cancelAddDriver: () => this.setState({ addingDriver: false }),
+      drvForm,
+      setDrvName: e => this.setState({ drvForm: { ...drvForm, name: e.target.value } }),
+      setDrvPhone: e => this.setState({ drvForm: { ...drvForm, phone: e.target.value } }),
+      setDrvZone: e => this.setState({ drvForm: { ...drvForm, zone: e.target.value } }),
+      drvVehicleOptions: [{ plate: 'Unassigned', model: 'Assign later', class: '' }]
+        .concat(fleetRoster.filter(v => v.assigned === 'Unassigned' && v.status !== 'Defleeted'))
+        .concat(s.addedVehicles || [])
+        .filter((v, i, a) => a.findIndex(x => x.plate === v.plate) === i)
+        .slice(0, 4)
+        .map(v => ({
+          label: v.plate, note: v.model + (v.class ? ' · ' + v.class : ''),
+          pick: () => this.setState({ drvForm: { ...drvForm, vehicle: v.plate } }),
+          ...pickRow(drvForm.vehicle === v.plate)
+        })),
+      saveDrvBtnStyle: {
+        cursor: canSaveDrv ? 'pointer' : 'not-allowed', fontFamily: 'inherit', fontSize: 13, fontWeight: 500,
+        padding: '9px 15px', borderRadius: 6, border: 'none',
+        background: canSaveDrv ? INK : LINE, color: canSaveDrv ? '#fff' : MUTED
+      },
+      drvHint: canSaveDrv
+        ? 'Registers as pending · ' + (drvForm.zone.trim() || 'no zone yet') + ' · ' + drvForm.vehicle + '.'
+        : 'Add a full name and a phone number to continue.',
+      saveDriver: () => {
+        if (!canSaveDrv) return;
+        const seq = 88600 + (s.addedDrivers || []).length;
+        const rec = {
+          name: drvForm.name.trim(), id: 'GE-' + seq, vehicle: drvForm.vehicle === 'Unassigned' ? 'Unassigned' : drvForm.vehicle,
+          zone: drvForm.zone.trim() || 'Not set', jobs: 0, rating: '—', earned: 0,
+          status: 'Pending', joined: 'Aug 2026',
+          initials: drvForm.name.trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase()
+        };
+        this.setState({ addedDrivers: (s.addedDrivers || []).concat([rec]), addingDriver: false, driverId: rec.id, driverTab: 'All' });
+      },
+      driverTabs: ['All', 'Online', 'Offline', 'Needs review', 'Offboarded'].map(t => ({
+        label: t, go: () => this.setState({ driverTab: t }), style: this.pill(s.driverTab === t)
+      })),
+      driversFull: !dSplit,
+      driverHeadStyle: headStyle(driverCols, driverMinW),
+      driverCountLabel: filteredDrivers.length + ' of ' + drivers.length + ' shown',
+      visibleDrivers: filteredDrivers,
+      selectedDriver,
+      closeDriver: () => this.setState({ driverId: null }),
+      driversGrid: (dSel || s.addingDriver) ? 'minmax(300px, 1.5fr) minmax(260px, 1fr)' : '1fr'
+    };
+  }
+}
+</script>
+</body>
+</html>
