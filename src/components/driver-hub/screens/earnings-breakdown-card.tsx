@@ -65,7 +65,19 @@ type BreakdownLine = {
 };
 
 export type EarningsBreakdownCardProps = {
-  /** Real: `SUM(price + overtimeFee)` over the range. */
+  /**
+   * Real: `SUM(driverPayout + overtimeDriverPayout)` over the range — the
+   * driver's (or fulfilling company's) earned share after the platform's
+   * commission, not the client's price. No `serviceLevelAdjustment` term
+   * belongs in it: the Priority uplift and Pooling discount are already inside
+   * the basis `driverPayout` was commissioned from at booking.
+   *
+   * The name stays `grossFares` because it mirrors `HubEarningsData.grossFares`
+   * and because "gross" here has always meant *before the sampled tips,
+   * incentives and adjustments below* — the three lines this card adds under
+   * it — rather than before commission. It is not a pre-commission figure and
+   * never should be read as one.
+   */
   grossFares: number;
   /** Real: completed jobs in the range, the Trip fares line's note. */
   jobsCompleted: number;

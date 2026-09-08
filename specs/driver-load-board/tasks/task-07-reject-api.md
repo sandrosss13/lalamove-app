@@ -2,7 +2,7 @@
 
 ## Status
 
-pending
+complete
 
 ## Wave
 
@@ -90,13 +90,29 @@ should copy rather than reinvent:
   A company profile that does not exist at all is a **400** (not 404) in that
   route, message: *"Complete your company profile before claiming
   deliveries."* — an intentional asymmetry from the driver 404 that this task
-  preserves rather than "fixes", since both routes are established precedent
-  and task-06 (the board's `GET` endpoint, same wave) follows the same split.
+  preserves rather than "fixes", since both routes are established precedent for
+  the *actions* a caller takes on a load.
+
+  Note that task-06's `GET /api/loads` does **not** follow that split: it answers
+  **403** for either missing profile (*"Your driver profile isn't set up yet."* /
+  *"Your company profile isn't set up yet."*), because a listing has no resource
+  to call missing and no body to call malformed. This task follows its claim
+  counterparts, not the listing, so that claim and reject never disagree about
+  the same missing row — but say so in the code rather than claiming the three
+  endpoints agree, because they do not.
 
 This task applies exactly these gates, for both `POST` and `DELETE`: a `DRIVER`
 session goes through the roster + activation checks above; a `COMPANY` session
 goes through the activation check above; any other role, or no session, never
 reaches a `LoadRejection` row.
+
+**Plus the `mustChangePassword` gate task-06 applies**, in the same position
+(immediately after the session check, before the role branch), with the same
+`403` and the same message: *"Change your temporary password before viewing the
+load board."* An account still on a company-issued temporary password cannot see
+the board at all, so letting it *act* on the board's loads would be a way around
+that gate — and a rejection is not a read: it writes a permanent `LoadRejection`
+row that hides the load from the real account holder's board afterwards.
 
 ### Implementation Steps
 
@@ -129,6 +145,18 @@ reaches a `LoadRejection` row.
      const session = await auth.api.getSession({ headers: request.headers });
      if (!session) {
        return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+     }
+
+     // Same gate, same position, same status and same wording as task-06's
+     // `GET /api/loads`. See the note above for why acting on the board is
+     // gated as tightly as viewing it.
+     if (session.user.mustChangePassword) {
+       return NextResponse.json(
+         {
+           error: "Change your temporary password before viewing the load board.",
+         },
+         { status: 403 },
+       );
      }
 
      if (session.user.role === "DRIVER") {
@@ -207,14 +235,23 @@ reaches a `LoadRejection` row.
 
    - Call `resolveRejectionOwner`; return immediately if it returned a
      `NextResponse`.
-   - Load the order (`select: { id: true, status: true }`). Missing → 404
-     `"Load not found."`.
-   - **A load is only rejectable while it is open.** Open means
-     `status === "PENDING"` — that single check covers every other terminal or
-     in-flight state (`CLAIMED`, `ACCEPTED`, `IN_TRANSIT`, `COMPLETED`,
-     `CANCELLED`, `INITIATED`) without enumerating them, because `PENDING` is
-     the only status an unclaimed, open load ever has. Not `PENDING` → 409
-     `"This load is no longer open."`.
+   - Load the order
+     (`select: { id: true, status: true, driverId: true, companyId: true }`).
+     Missing → 404 `"Load not found."`.
+   - **A load is only rejectable while it is open, and "open" is defined exactly
+     as task-06's `GET /api/loads` defines it for its `available` bucket:**
+     `status === "PENDING"` **and** `driverId === null` **and**
+     `companyId === null`. The status alone is not the same predicate. `PENDING`
+     is *intended* to be the only status an unclaimed load ever has, but that is
+     an invariant the claim routes maintain rather than one the database
+     enforces, and here the two definitions disagreeing has a visible cost: a
+     load the board never listed could be rejected, writing a permanent
+     `LoadRejection` row against a load that was never on that board. Reading the
+     assignment columns makes the two endpoints agree by construction rather than
+     by an assumption about a status column. Still one positive check, so it
+     keeps covering every other terminal or in-flight state (`CLAIMED`,
+     `ACCEPTED`, `IN_TRANSIT`, `COMPLETED`, `CANCELLED`, `INITIATED`) without
+     enumerating them. Not open → 409 `"This load is no longer open."`.
    - Attempt to create the `LoadRejection` row, `orderId` plus exactly one of
      `driverProfileId` / `companyId` depending on `owner.kind`. See
      **Idempotency** below for what happens when the row already exists.
@@ -284,13 +321,15 @@ cost either way; the choice here is about readability, not performance.
     (activated). No request body.
   - `200 { rejected: true }` — created, or already existed (idempotent).
   - `401 { error }` — no session.
-  - `403 { error }` — wrong role, roster driver, or unactivated account.
+  - `403 { error }` — wrong role, roster driver, unactivated account, or a
+    session still carrying `mustChangePassword`.
   - `400 { error }` — `COMPANY` session with no `LogisticsCompany` row yet.
   - `404 { error: "Driver profile not found." }` — `DRIVER` session with no
-    `DriverProfile` row yet.
+    `DriverProfile` row yet. (Note: `GET /api/loads` answers **403** for the same
+    condition — see the gates section.)
   - `404 { error: "Load not found." }` — no such order.
   - `409 { error: "This load is no longer open." }` — order exists but is not
-    `PENDING`.
+    open: not `PENDING`, or already carrying a `driverId` or `companyId`.
 
 - `DELETE /api/loads/[id]/reject`
   - Auth: identical to `POST`.
@@ -316,9 +355,15 @@ cost either way; the choice here is about readability, not performance.
       `POST` with the exact activation message quoted above.
 - [ ] A `COMPANY` session with `LogisticsCompany.activatedAt === null` gets
       `403` from `POST`.
+- [ ] A session with `mustChangePassword` set gets `403` from both verbs, with
+      the exact message `GET /api/loads` uses, and no `LoadRejection` row is
+      created or removed.
 - [ ] `POST` against an order whose `status` is anything other than `PENDING`
       (e.g. `CLAIMED`, `ACCEPTED`, `COMPLETED`) returns `409`, and no
       `LoadRejection` row is created.
+- [ ] `POST` against a `PENDING` order that nonetheless already has a `driverId`
+      or a `companyId` also returns `409` — the same "open" predicate
+      `GET /api/loads` uses for its `available` bucket, not the status alone.
 - [ ] `POST`/`DELETE` against a non-existent order id return `404`.
 - [ ] A `CLIENT` or unauthenticated caller gets `401`/`403` from both verbs.
 - [ ] `pnpm check` passes.

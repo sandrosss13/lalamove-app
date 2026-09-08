@@ -2,7 +2,7 @@
 
 ## Status
 
-pending
+complete
 
 ## Wave
 
@@ -20,6 +20,25 @@ nothing correct to read. `Order.price` is what the client pays; `Order.driverPay
 (85% of it) is the only money figure a driver may ever be shown, and this route is
 where that split is created — getting it wrong here is wrong everywhere
 downstream that reads the order back.
+
+> **Correction (post-implementation review).** This task originally specified
+> `packagingDescription`, `itemQuantity`, `pickupWindowStart`, `pickupWindowEnd`
+> and `deliveryDeadline` as **required** in the request body. That directly
+> contradicted task-04's "Required vs optional" section, which specifies all five
+> as **optional** on the booking form — and because each task was implemented
+> against its own brief, the two shipped disagreeing. The result was a dead
+> submit path: the form does not gate `canSubmit` on any of the five and
+> `JSON.stringify` drops their `undefined` keys, so an ordinary booking with no
+> packaging note reached the endpoint and was answered
+> `400 packagingDescription is required and must be a string.`
+>
+> **task-04 was right and this task was wrong.** Only `cargoWeightKg` and the
+> three dimensions feed the load board's fit filter, which is the entire reason
+> the cargo fields exist; the other five are context no filter consults, and all
+> nine columns are nullable. Requiring a packaging note to place an order was
+> never the design. This document has been corrected throughout — the five are
+> optional, stored as `null` when absent, and the two ordering checks apply only
+> when both operands are present.
 
 ## Dependencies
 
@@ -120,31 +139,48 @@ task stamps rather than recomputing it. Get the rate, the rounding or the source
 
 2. Add a `CARGO_HANDLING_TAGS` constant next to the existing `SERVICE_LEVELS` /
    `BODY_TYPES` / `PAYMENT_METHOD_TYPES` constants (same
-   `Object.values(SomeEnum)` pattern), and four bounds constants for the
-   physical measurements. See Code Snippets.
+   `Object.values(SomeEnum)` pattern). The bounds on the physical measurements
+   are **not** declared in this file: they are shared with the booking form,
+   which enforces the same ceilings client-side, so they live in
+   `CARGO_MEASUREMENT_BOUNDS` (`src/lib/cargo.ts`) and are imported here. See
+   Code Snippets. Declaring them twice is what produced the second half of the
+   correction above — this route capped width at 3 m and height at 4 m while the
+   form allowed 15 m of each, so a 5 m width passed every client check and then
+   400'd.
 
 3. Extend the `CreateOrderInput` type with the ten new fields (see Code
-   Snippets) — all required (`Date`/`number`/`string`/`CargoHandlingTag[]`), not
-   optional: the design puts every one of weight, each dimension, packaging,
-   quantity, pickup window and delivery deadline on the booking form the client
-   fills before submitting, so a body missing one is a stale or broken client,
-   not a legitimate partial booking. This is deliberately different from the
-   nullability of the *column*, which stays nullable only so pre-existing rows
-   (backfilled by task-01's migration) can hold `null` — new rows created
-   through this route always carry real values. `handlingTags` is the one
-   exception: it may legitimately be empty, so it defaults to `[]` when the
-   field is omitted rather than being rejected as missing.
+   Snippets). **Weight and the three dimensions are required
+   (`number`); `packagingDescription` and `itemQuantity` are `string | null`,
+   and the three timestamps are `Date | null`.** The split is not stylistic: the
+   load board's fit filter (task-03/task-06) reads weight and L×W×H and treats an
+   unknown value as *not fitting*, so an order booked without them is invisible
+   to every driver — a silent failure worth rejecting a request over. Nothing
+   else in the block feeds a filter, and per task-04 the booking form presents
+   all five as optional, so requiring them here would refuse to book a real,
+   carryable load over a blank text box. `handlingTags` is optional too but never
+   `null`: the column is `NOT NULL` with an empty default, so an omitted field is
+   `[]`.
 
-4. Add four small parse helpers above `parseCreateOrderBody`, matching the
+   For the five optional fields the column's nullability is load-bearing —
+   `null` means "the client did not say", which is a true thing to record. For
+   the four required ones it is historical only: the columns stay nullable so
+   rows backfilled by task-01's migration can hold `null`, and nothing this route
+   writes ever does.
+
+4. Add three small parse helpers above `parseCreateOrderBody`, matching the
    existing hand-rolled style of `parseOptionalText` / `parseStopContact`
    exactly — same `{ value } | { error }` / `{ data } | { error }` return
    shape, same per-field error messages naming the field:
-   - `parsePositiveMeasurement(value, fieldName, max, unit)` — for
-     `cargoWeightKg` and the three dimensions.
-   - `parseRequiredText(value, fieldName)` — for `packagingDescription` and
-     `itemQuantity`; the same length cap as `parseOptionalText`
-     (`FREE_TEXT_MAX_LENGTH`), but errors when the value is absent or blank
-     instead of returning `null`.
+   - `parsePositiveMeasurement(value, fieldName, bounds)` — for `cargoWeightKg`
+     and the three dimensions. `bounds` is one entry of
+     `CARGO_MEASUREMENT_BOUNDS`, passed whole so a call site cannot pair one
+     field's ceiling with another's unit. Only `bounds.max` is read: this
+     route's floor is "strictly greater than zero" (a garbage check), while
+     `bounds.min` is the booking form's tighter, usability floor, so a value the
+     form accepts always clears this one.
+   - `packagingDescription` and `itemQuantity` need no new helper — they use the
+     existing `parseOptionalText`, exactly as `purchaseOrderRef` does, storing
+     `null` when absent or blank and sharing its `FREE_TEXT_MAX_LENGTH` cap.
    - `parseHandlingTags(value)` — array validation for `handlingTags`,
      de-duplicating rather than rejecting a repeat. This mirrors the established
      convention for exactly this situation: `citiesOfOperation` in
@@ -156,29 +192,43 @@ task stamps rather than recomputing it. Get the rate, the rounding or the source
      than failing the request — reasoning documented at both call sites as "a
      repeat is a UI/client slip, not something worth rejecting the whole
      request over." Reuse that reasoning verbatim in this function's comment.
-   - `parseRequiredDate(value, fieldName)` — for `pickupWindowStart`,
-     `pickupWindowEnd`, `deliveryDeadline`; same shape as the existing
-     `scheduledAt` parsing inline in `parseCreateOrderBody` (string → `new
-     Date(...)` → `Number.isNaN(date.getTime())` check), lifted out because it
-     is now needed three times.
+   - `parseOptionalDate(value, fieldName)` — for `pickupWindowStart`,
+     `pickupWindowEnd`, `deliveryDeadline`; the date counterpart to
+     `parseOptionalText`. Same parsing as the existing `scheduledAt` handling
+     inline in `parseCreateOrderBody` (string → `new Date(...)` →
+     `Number.isNaN(date.getTime())` check), but an absent, explicitly-null or
+     blank value returns `null` rather than an error — the form omits an
+     unfilled timestamp entirely, another client may send `""`, and both are the
+     same statement. An error only when something was genuinely sent and could
+     not be read as a moment in time.
 
 5. Inside `parseCreateOrderBody`, after the existing `purchaseOrderRef` block
    and before the function's final `return { data: { ... } }`, parse the six
    new inputs in this order, returning on the first error exactly like every
    check above it:
    1. `cargoWeightKg` via `parsePositiveMeasurement(record.cargoWeightKg,
-      "cargoWeightKg", MAX_CARGO_WEIGHT_KG, "kg")`.
-   2. `cargoLengthM`, `cargoWidthM`, `cargoHeightM`, same helper, their own
-      maxima and unit `"m"`.
-   3. `packagingDescription`, `itemQuantity` via `parseRequiredText`.
+      "cargoWeightKg", CARGO_MEASUREMENT_BOUNDS.cargoWeightKg)`.
+   2. `cargoLengthM`, `cargoWidthM`, `cargoHeightM`, same helper, each passed its
+      own entry of `CARGO_MEASUREMENT_BOUNDS`.
+   3. `packagingDescription`, `itemQuantity` via `parseOptionalText`.
    4. `handlingTags` via `parseHandlingTags(record.handlingTags)`.
-   5. `pickupWindowStart`, `pickupWindowEnd` via `parseRequiredDate`, then the
+   5. `pickupWindowStart`, `pickupWindowEnd` via `parseOptionalDate`, then the
       ordering check: `pickupWindowEnd` must be strictly after
       `pickupWindowStart`, or return `{ error: "pickupWindowEnd must be after
       pickupWindowStart." }`.
-   6. `deliveryDeadline` via `parseRequiredDate`, then: it must be strictly
+   6. `deliveryDeadline` via `parseOptionalDate`, then: it must be strictly
       after `pickupWindowEnd`, or return `{ error: "deliveryDeadline must be
       after pickupWindowEnd." }`.
+
+   **Both ordering checks run only when both operands are present**, and that
+   guard is the rule rather than a null-safety formality. A window with only one
+   end supplied is not a contradiction — it is an optional field the client
+   filled in halfway, and there is nothing to compare. Likewise a deadline
+   declared against no window ("get it there by Friday, collect whenever") is an
+   ordinary booking; the only other moment this route could compare it to is
+   `scheduledAt`, which is a different claim and not what this check was written
+   to make. Rejecting either case would put the endpoint straight back to failing
+   bookings over fields nobody has to fill.
 
    Add all six parsed values to the returned `data` object.
 
@@ -340,78 +390,77 @@ a 32% effective take on a 100 GEL fare instead of 15%.
 
 ### Code Snippets
 
-Bounds constants and enum list, placed beside the existing `SERVICE_LEVELS` /
-`BODY_TYPES` / `PAYMENT_METHOD_TYPES` constants:
+Enum list, placed beside the existing `SERVICE_LEVELS` / `BODY_TYPES` /
+`PAYMENT_METHOD_TYPES` constants:
 
 ```ts
 const CARGO_HANDLING_TAGS = Object.values(CargoHandlingTag);
-
-/**
- * Sane ceilings for a load's physical description. Generous relative to the
- * largest seeded `VehicleTypeSpec` today (24,000 kg / 13.6 × 2.48 × 2.7 m, a
- * semi-trailer) so a legitimately heavy or long load is never rejected by this
- * route — these exist to catch obvious garbage (a negative value, a stray
- * extra zero), not to second-guess a real fleet's capability. The vehicle-fit
- * comparison itself (task-03/task-06) is what actually decides whether a given
- * load suits a given vehicle; these bounds are this route's own sanity check,
- * independent of that.
- */
-const MAX_CARGO_WEIGHT_KG = 30_000;
-const MAX_CARGO_LENGTH_M = 20;
-const MAX_CARGO_WIDTH_M = 3;
-const MAX_CARGO_HEIGHT_M = 4;
 ```
+
+The measurement bounds are **imported, not declared here** — they are the same
+numbers the booking form (task-04) enforces client-side, and stating them twice
+is what let the two sides drift:
+
+```ts
+import {
+  CARGO_MEASUREMENT_BOUNDS,
+  type CargoMeasurementBounds,
+} from "@/lib/cargo";
+```
+
+`src/lib/cargo.ts` already imports Prisma as types only and carries no
+`server-only` marker, so a client component may import it — that is why the
+shared table belongs there and not beside either enforcement point. Its entries
+are keyed by request-body field name (`cargoWeightKg`, `cargoLengthM`,
+`cargoWidthM`, `cargoHeightM`) and each holds `{ min, max, unit }`:
+
+```ts
+export const CARGO_MEASUREMENT_BOUNDS = {
+  cargoWeightKg: { min: 1, max: 30_000, unit: "kg" },
+  cargoLengthM: { min: 0.1, max: 20, unit: "m" },
+  cargoWidthM: { min: 0.1, max: 3, unit: "m" },
+  cargoHeightM: { min: 0.1, max: 4, unit: "m" },
+} as const satisfies Record<string, CargoMeasurementBounds>;
+```
+
+These are sanity bounds, not capability checks — the vehicle-fit comparison
+(task-03/task-06) is what decides whether a load actually suits a vehicle. The
+ceilings clear the largest seeded `VehicleTypeSpec` (24,000 kg / 13.6 × 2.48 ×
+2.7 m, a semi-trailer) with room for a bigger type to be seeded, while staying
+close enough to reality to catch a typo: the widest vehicle in the catalogue is
+2.5 m, so 3 m of width is the honest ceiling and the form's former 15 m simply
+let a mis-keyed 1.5 through.
 
 Parse helpers, placed alongside `parseOptionalText` / `parseStopContact`:
 
 ```ts
 /**
  * Validate one physical measurement: a finite number, strictly greater than
- * zero, no greater than `max`. `unit` is only used in the error message.
+ * zero, no greater than the shared ceiling for that field.
+ *
+ * The bounds arrive as one object rather than a loose `max`/`unit` pair so a
+ * call site cannot pair one field's ceiling with another's unit. `bounds.min` is
+ * deliberately unread: it is the booking form's usability floor, whereas this
+ * route's floor is "greater than zero", a garbage check — and the form's is the
+ * tighter of the two, so the asymmetry can only accept a form value, never
+ * reject one.
  */
 function parsePositiveMeasurement(
   value: unknown,
   fieldName: string,
-  max: number,
-  unit: string,
+  bounds: CargoMeasurementBounds,
 ): { value: number } | { error: string } {
   if (
     typeof value !== "number" ||
     !Number.isFinite(value) ||
     value <= 0 ||
-    value > max
+    value > bounds.max
   ) {
     return {
-      error: `${fieldName} must be a number greater than 0 and no more than ${max} ${unit}.`,
+      error: `${fieldName} must be a number greater than 0 and no more than ${bounds.max} ${bounds.unit}.`,
     };
   }
   return { value };
-}
-
-/**
- * Like `parseOptionalText`, but the field is required rather than optional:
- * absent, non-string or blank input is an error rather than `null`.
- */
-function parseRequiredText(
-  value: unknown,
-  fieldName: string,
-): { value: string } | { error: string } {
-  if (typeof value !== "string") {
-    return { error: `${fieldName} is required and must be a string.` };
-  }
-
-  const trimmed = value.trim();
-  if (trimmed.length === 0) {
-    return { error: `${fieldName} is required.` };
-  }
-
-  if (trimmed.length > FREE_TEXT_MAX_LENGTH) {
-    return {
-      error: `${fieldName} must be ${FREE_TEXT_MAX_LENGTH} characters or fewer.`,
-    };
-  }
-
-  return { value: trimmed };
 }
 
 /**
@@ -448,16 +497,30 @@ function parseHandlingTags(
 }
 
 /**
- * Like the inline `scheduledAt` parsing above, lifted out because the three
- * cargo timestamps repeat the same shape: a required ISO string that must
- * parse to a valid `Date`.
+ * The date counterpart to `parseOptionalText`, used by all three cargo
+ * timestamps: `null` when the key is absent, explicitly null or blank; a `Date`
+ * when an ISO string parses; an error only when something was genuinely sent and
+ * could not be read as a moment in time.
+ *
+ * Absent and blank collapse to the same `null` because both are the client
+ * saying "not declared": the booking form omits an unfilled timestamp entirely
+ * (`JSON.stringify` drops an `undefined` value), while another client may just
+ * as reasonably send `""`.
  */
-function parseRequiredDate(
+function parseOptionalDate(
   value: unknown,
   fieldName: string,
-): { value: Date } | { error: string } {
-  if (typeof value !== "string" || value.trim().length === 0) {
-    return { error: `${fieldName} is required.` };
+): { value: Date | null } | { error: string } {
+  if (value === undefined || value === null) {
+    return { value: null };
+  }
+
+  if (typeof value !== "string") {
+    return { error: `${fieldName} must be a string when provided.` };
+  }
+
+  if (value.trim().length === 0) {
+    return { value: null };
   }
 
   const date = new Date(value);
@@ -475,18 +538,23 @@ function parseRequiredDate(
 type CreateOrderInput = QuoteInput & {
   // ...existing fields unchanged...
 
-  /** The load's physical description. Required — see Implementation Steps. */
+  /**
+   * Required: the load board's fit filter reads these four and treats an
+   * unknown value as not fitting, so a load booked without them is invisible to
+   * every driver — see Implementation Steps.
+   */
   cargoWeightKg: number;
   cargoLengthM: number;
   cargoWidthM: number;
   cargoHeightM: number;
-  packagingDescription: string;
-  itemQuantity: string;
-  /** Never undefined: an omitted body defaults this to `[]`. */
+  /** Optional context no filter consults; `null` when the client did not say. */
+  packagingDescription: string | null;
+  itemQuantity: string | null;
+  /** Optional too, but never `null`: an omitted body defaults this to `[]`. */
   handlingTags: CargoHandlingTag[];
-  pickupWindowStart: Date;
-  pickupWindowEnd: Date;
-  deliveryDeadline: Date;
+  pickupWindowStart: Date | null;
+  pickupWindowEnd: Date | null;
+  deliveryDeadline: Date | null;
 };
 ```
 
@@ -497,8 +565,7 @@ The validation block inside `parseCreateOrderBody`, inserted after the existing
   const cargoWeightKg = parsePositiveMeasurement(
     record.cargoWeightKg,
     "cargoWeightKg",
-    MAX_CARGO_WEIGHT_KG,
-    "kg",
+    CARGO_MEASUREMENT_BOUNDS.cargoWeightKg,
   );
   if ("error" in cargoWeightKg) {
     return cargoWeightKg;
@@ -507,8 +574,7 @@ The validation block inside `parseCreateOrderBody`, inserted after the existing
   const cargoLengthM = parsePositiveMeasurement(
     record.cargoLengthM,
     "cargoLengthM",
-    MAX_CARGO_LENGTH_M,
-    "m",
+    CARGO_MEASUREMENT_BOUNDS.cargoLengthM,
   );
   if ("error" in cargoLengthM) {
     return cargoLengthM;
@@ -517,8 +583,7 @@ The validation block inside `parseCreateOrderBody`, inserted after the existing
   const cargoWidthM = parsePositiveMeasurement(
     record.cargoWidthM,
     "cargoWidthM",
-    MAX_CARGO_WIDTH_M,
-    "m",
+    CARGO_MEASUREMENT_BOUNDS.cargoWidthM,
   );
   if ("error" in cargoWidthM) {
     return cargoWidthM;
@@ -527,14 +592,13 @@ The validation block inside `parseCreateOrderBody`, inserted after the existing
   const cargoHeightM = parsePositiveMeasurement(
     record.cargoHeightM,
     "cargoHeightM",
-    MAX_CARGO_HEIGHT_M,
-    "m",
+    CARGO_MEASUREMENT_BOUNDS.cargoHeightM,
   );
   if ("error" in cargoHeightM) {
     return cargoHeightM;
   }
 
-  const packagingDescription = parseRequiredText(
+  const packagingDescription = parseOptionalText(
     record.packagingDescription,
     "packagingDescription",
   );
@@ -542,7 +606,7 @@ The validation block inside `parseCreateOrderBody`, inserted after the existing
     return packagingDescription;
   }
 
-  const itemQuantity = parseRequiredText(record.itemQuantity, "itemQuantity");
+  const itemQuantity = parseOptionalText(record.itemQuantity, "itemQuantity");
   if ("error" in itemQuantity) {
     return itemQuantity;
   }
@@ -552,7 +616,7 @@ The validation block inside `parseCreateOrderBody`, inserted after the existing
     return handlingTags;
   }
 
-  const pickupWindowStart = parseRequiredDate(
+  const pickupWindowStart = parseOptionalDate(
     record.pickupWindowStart,
     "pickupWindowStart",
   );
@@ -560,7 +624,7 @@ The validation block inside `parseCreateOrderBody`, inserted after the existing
     return pickupWindowStart;
   }
 
-  const pickupWindowEnd = parseRequiredDate(
+  const pickupWindowEnd = parseOptionalDate(
     record.pickupWindowEnd,
     "pickupWindowEnd",
   );
@@ -568,11 +632,17 @@ The validation block inside `parseCreateOrderBody`, inserted after the existing
     return pickupWindowEnd;
   }
 
-  if (pickupWindowEnd.value.getTime() <= pickupWindowStart.value.getTime()) {
+  // Both ends present, or there is nothing to compare — a half-declared window
+  // is an unfinished optional field, not a contradiction.
+  if (
+    pickupWindowStart.value !== null &&
+    pickupWindowEnd.value !== null &&
+    pickupWindowEnd.value.getTime() <= pickupWindowStart.value.getTime()
+  ) {
     return { error: "pickupWindowEnd must be after pickupWindowStart." };
   }
 
-  const deliveryDeadline = parseRequiredDate(
+  const deliveryDeadline = parseOptionalDate(
     record.deliveryDeadline,
     "deliveryDeadline",
   );
@@ -580,7 +650,12 @@ The validation block inside `parseCreateOrderBody`, inserted after the existing
     return deliveryDeadline;
   }
 
-  if (deliveryDeadline.value.getTime() <= pickupWindowEnd.value.getTime()) {
+  // Same guard: a deadline declared against no window is an ordinary booking.
+  if (
+    deliveryDeadline.value !== null &&
+    pickupWindowEnd.value !== null &&
+    deliveryDeadline.value.getTime() <= pickupWindowEnd.value.getTime()
+  ) {
     return { error: "deliveryDeadline must be after pickupWindowEnd." };
   }
 
@@ -724,19 +799,29 @@ export const ORDER_PARTY_SELECT = {
 
 ### API Endpoints
 
-- `POST /api/orders` — request body gains, all required unless noted:
-  - `cargoWeightKg: number` (0 < x ≤ 30000)
-  - `cargoLengthM: number` (0 < x ≤ 20)
-  - `cargoWidthM: number` (0 < x ≤ 3)
-  - `cargoHeightM: number` (0 < x ≤ 4)
-  - `packagingDescription: string` (1–200 chars)
-  - `itemQuantity: string` (1–200 chars)
-  - `handlingTags?: string[]` (optional, defaults to `[]`; each member one of
+- `POST /api/orders` — request body gains. **Only the four measurements are
+  required**; every other field here may be omitted, and an omitted field is
+  stored as `null` (`handlingTags` excepted — it stores `[]`). Bounds are
+  `CARGO_MEASUREMENT_BOUNDS` and are shared with the booking form:
+  - `cargoWeightKg: number` — required (0 < x ≤ 30000)
+  - `cargoLengthM: number` — required (0 < x ≤ 20)
+  - `cargoWidthM: number` — required (0 < x ≤ 3)
+  - `cargoHeightM: number` — required (0 < x ≤ 4)
+  - `packagingDescription?: string` — optional, ≤ 200 chars; absent or blank
+    stores `null`
+  - `itemQuantity?: string` — optional, ≤ 200 chars; absent or blank stores
+    `null`
+  - `handlingTags?: string[]` — optional, defaults to `[]`; each member one of
     `FRAGILE | COLD_CHAIN | HAZMAT | TIME_CRITICAL | UPRIGHT_ONLY |
-    HEAVY_ITEM`, de-duplicated)
-  - `pickupWindowStart: string` (ISO datetime)
-  - `pickupWindowEnd: string` (ISO datetime, after `pickupWindowStart`)
-  - `deliveryDeadline: string` (ISO datetime, after `pickupWindowEnd`)
+    HEAVY_ITEM`, de-duplicated
+  - `pickupWindowStart?: string` — optional ISO datetime
+  - `pickupWindowEnd?: string` — optional ISO datetime; must be after
+    `pickupWindowStart` **only when both are supplied**
+  - `deliveryDeadline?: string` — optional ISO datetime; must be after
+    `pickupWindowEnd` **only when both are supplied**
+
+  A body carrying nothing but the four measurements is therefore valid, and is
+  exactly what the booking form sends when the client fills no optional field.
 
   Response (`201`) gains on the created order object: `reference` (e.g.
   `"GE-48210"`), `commissionRate`, `driverPayout`, and the same cargo/window
@@ -764,9 +849,20 @@ export const ORDER_PARTY_SELECT = {
       is still created successfully.
 
 - [ ] A `POST /api/orders` body missing any of `cargoWeightKg`, `cargoLengthM`,
-      `cargoWidthM`, `cargoHeightM`, `packagingDescription`, `itemQuantity`,
-      `pickupWindowStart`, `pickupWindowEnd` or `deliveryDeadline` is rejected
-      with `400` and an error message naming the missing field.
+      `cargoWidthM` or `cargoHeightM` is rejected with `400` and an error
+      message naming the missing field.
+- [ ] A body carrying the four measurements and **none** of
+      `packagingDescription`, `itemQuantity`, `pickupWindowStart`,
+      `pickupWindowEnd` or `deliveryDeadline` is **accepted**, and the created
+      order stores `null` in all five columns. This is the booking form's own
+      submit path when the client fills no optional field, so it must never
+      400 — it did, and that regression is what the correction at the top of
+      this document records.
+- [ ] The measurement ceilings come from `CARGO_MEASUREMENT_BOUNDS` in
+      `src/lib/cargo.ts` and are not restated in `src/app/api/orders/route.ts`.
+      The booking form reads the same table, so the client's ceiling for each
+      field equals the server's — a value the form's submit button allows is
+      never rejected by the endpoint's bounds check.
 - [ ] `cargoWeightKg` of `0`, a negative number, `NaN`/non-finite, or `30001` is
       rejected with `400`; `30000` is accepted. The same pattern holds for
       `cargoLengthM` (max `20`), `cargoWidthM` (max `3`) and `cargoHeightM`
@@ -783,6 +879,9 @@ export const ORDER_PARTY_SELECT = {
       pickupWindowStart."`. A body where `deliveryDeadline` is equal to or
       before `pickupWindowEnd` is rejected with `400` and the message
       `"deliveryDeadline must be after pickupWindowEnd."`.
+- [ ] Neither ordering check fires when only one operand is present: a body with
+      `pickupWindowStart` and no `pickupWindowEnd` (or the reverse) is accepted,
+      and so is a `deliveryDeadline` sent with no `pickupWindowEnd`.
 - [ ] A successful order's `reference` matches `/^GE-\d+$/`. Two orders created
       back-to-back have distinct references with the second numerically
       greater than the first.

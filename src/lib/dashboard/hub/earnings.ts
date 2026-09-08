@@ -14,8 +14,16 @@
  *
  * ## Real vs sample
  *
- * Everything at the top level of `HubEarningsData` is `SUM(price + overtimeFee)`
- * over real `COMPLETED` orders. Everything under `sampled` is fictional and must
+ * Everything at the top level of `HubEarningsData` is `SUM(driverPayout +
+ * overtimeDriverPayout)` over real `COMPLETED` orders — each order's stored 85%
+ * share, which is what the driver (or the fulfilling company) earned, never what
+ * the client paid for the job. `price` and `overtimeFee` are the client's money
+ * and must not reach this screen; summing them here is the bug this module used
+ * to have. No `serviceLevelAdjustment` term belongs in that sum either, and its
+ * absence is deliberate: the Priority uplift and the Pooling discount are
+ * already inside the basis `driverPayout` was computed from at booking
+ * (`roundCurrency(price + serviceLevelAdjustment)`), so adding it again would
+ * pay it out twice. Everything under `sampled` is fictional and must
  * be rendered with a `<SampleNote />` beside it — tips, incentives, adjustments,
  * the online-hours figures derived from them, and the payout-history table. The
  * split is a nesting level rather than a naming convention on purpose: a screen
@@ -159,7 +167,10 @@ export type HubEarningsDay = {
   /** Tbilisi `YYYY-MM-DD`. */
   date: string;
   jobs: number;
-  /** `SUM(price + overtimeFee)` for that day. */
+  /**
+   * `SUM(driverPayout + overtimeDriverPayout)` for that day — the driver's (or
+   * fulfilling company's) earned share, never the client's price.
+   */
   fares: number;
 };
 
@@ -184,7 +195,14 @@ export type HubEarningsData = {
   days: readonly HubEarningsDay[];
   /** What the chart plots: `days` verbatim, or weekly sums of them. */
   buckets: readonly HubEarningsBucket[];
-  /** `SUM(price + overtimeFee)` over the whole range. The honest headline. */
+  /**
+   * `SUM(driverPayout + overtimeDriverPayout)` over the whole range — what was
+   * actually earned, not what the client paid. The honest headline.
+   *
+   * "Gross" here means *before* the sampled tips, incentives and adjustments
+   * below, not before the platform's commission: the commission is already
+   * taken out, because these are the stored payout columns.
+   */
   grossFares: number;
   jobsCompleted: number;
   /** `grossFares / jobsCompleted`, or 0 when nothing completed in range. */
@@ -533,12 +551,27 @@ export async function getHubEarnings(
   // `HUB_UTC_BOUND_SQL`: Prisma binds a `Date` as `timestamptz`, and without
   // it Postgres would promote the naive column using the *session's* zone, which
   // would quietly move the window on a database not configured to UTC.
+  //
+  // The summed expression is the two **payout** columns, never `price` and
+  // `overtimeFee`. Those two are what the CLIENT pays; this screen answers "what
+  // did I earn", asked by the account that fulfilled the job. It used to sum
+  // `price + overtimeFee`, which was wrong twice over: it showed drivers client
+  // money as their own income (overstated by ~17.6% at a 15% commission), and it
+  // was not even the client's correct total, because `serviceLevelAdjustment` is
+  // a third column stored beside `price` and the client is billed
+  // `price + serviceLevelAdjustment + overtimeFee`.
+  //
+  // The absence of `serviceLevelAdjustment` from this sum is deliberate, not the
+  // same omission carried forward: `driverPayout` was computed at booking from
+  // `roundCurrency(price + serviceLevelAdjustment)`, so the Priority uplift and
+  // the Pooling discount are already inside it. Adding the adjustment here would
+  // pay it out twice, once uncommissioned.
   const rows = await prisma.$queryRaw<
     { day: Date; jobs: number; fares: number }[]
   >`
     SELECT ${Prisma.raw(hubDayTruncSql('"completedAt"'))} AS day,
            COUNT(*)::int AS jobs,
-           SUM("price" + "overtimeFee") AS fares
+           SUM("driverPayout" + "overtimeDriverPayout") AS fares
     FROM "Order"
     WHERE ${hubOrderScopeSql(account)}
       AND "status" = 'COMPLETED'

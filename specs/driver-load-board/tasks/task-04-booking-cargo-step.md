@@ -2,7 +2,7 @@
 
 ## Status
 
-pending
+complete
 
 ## Wave
 
@@ -238,12 +238,36 @@ explicit text colour, so — exactly as `Textarea` does today inside the same
 `bg-ink text-paper` `StepCard` — it inherits the card's palette with no
 additional overrides needed.
 
+**The bounds are not written in this form.** They live in
+`CARGO_MEASUREMENT_BOUNDS` (`src/lib/cargo.ts`), keyed by request-body field
+name, and `POST /api/orders` (task-05) reads the same table — because these
+numbers are one half of a contract with two enforcers, and stated twice they
+drift. They did: this form originally allowed 15 m of width and height against
+the endpoint's 3 m and 4 m, so a 5 m width passed every check on the page, lit
+the submit button, and came back a `400` with no field to blame. Point the field
+descriptors at the shared table; never copy a figure out of it.
+
+`src/lib/cargo.ts` is the right home because it is already the client-safe cargo
+module — Prisma imported as types only, no `server-only` marker — so this client
+component can import it without dragging `@prisma/client`'s runtime into the
+browser bundle.
+
 | Field | Min | Max | Precision | `step` attr | Reasoning |
 |---|---|---|---|---|---|
 | `cargoWeightKg` | 1 | 30000 | 1 decimal place | `0.1` | The heaviest vehicle in `prisma/seed.ts` (`SEMI_TRAILER`, `maxPayloadKg: 24000`) sets the ceiling; 30000 leaves headroom for a heavier type added later without another migration to this form. |
-| `cargoLengthM` | 0.1 | 15 | 2 decimal places | `0.01` | The longest seeded vehicle (`SEMI_TRAILER`) is `cargoLengthM: 13.6`; 15 leaves headroom the same way. |
-| `cargoWidthM` | 0.1 | 15 | 2 decimal places | `0.01` | Same reasoning; widest seeded vehicle is `2.5`. |
-| `cargoHeightM` | 0.1 | 15 | 2 decimal places | `0.01` | Same reasoning; tallest seeded vehicle is `2.7`. |
+| `cargoLengthM` | 0.1 | 20 | 2 decimal places | `0.01` | The longest seeded vehicle (`SEMI_TRAILER`) is `cargoLengthM: 13.6`; 20 leaves headroom the same way. |
+| `cargoWidthM` | 0.1 | 3 | 2 decimal places | `0.01` | The widest seeded vehicle is `2.5`, so nothing wider is carryable on this platform; a tight ceiling is what catches a mis-keyed `1.5` typed as `15`. |
+| `cargoHeightM` | 0.1 | 4 | 2 decimal places | `0.01` | Same reasoning; tallest seeded vehicle is `2.7`. |
+
+The `Min` column is this form's floor only. `POST /api/orders` accepts anything
+strictly greater than zero — a garbage check rather than a usability one — so the
+form's floor is the tighter of the two and a value it accepts always clears the
+endpoint. The containment runs one way on purpose; the `Max` column is the half
+that must match exactly.
+
+Each field's helper line states its own accepted range, derived from the same
+`bounds` object the parser checks, so the copy on screen cannot promise a range
+the endpoint would refuse.
 
 Values are held as strings in component state (`cargoWeightKgInput`, etc. —
 name them distinctly from the eventual parsed number so a field mid-edit,
@@ -267,7 +291,7 @@ type ParseResult<T> = { data: T } | { error: string };
  */
 function parseCargoNumber(
   raw: string,
-  { min, max, label }: { min: number; max: number; label: string },
+  { bounds, label }: { bounds: CargoMeasurementBounds; label: string },
 ): ParseResult<number> {
   const trimmed = raw.trim();
   if (trimmed === "") {
@@ -278,13 +302,19 @@ function parseCargoNumber(
   if (!Number.isFinite(value)) {
     return { error: `Enter a valid ${label}.` };
   }
-  if (value < min || value > max) {
-    return { error: `${label} must be between ${min} and ${max}.` };
+  // No unit here: `label` is the on-screen field label and already carries one
+  // ("Width (m)"). The unit appears in the field's range helper instead.
+  if (value < bounds.min || value > bounds.max) {
+    return { error: `${label} must be between ${bounds.min} and ${bounds.max}.` };
   }
 
   return { data: value };
 }
 ```
+
+`bounds` is one entry of `CARGO_MEASUREMENT_BOUNDS`, passed whole rather than as
+loose `min`/`max`/`unit` arguments so a call site cannot pair one field's ceiling
+with another's unit.
 
 Call this once per field wherever a validity boolean or an inline error
 string is needed (the field's own blur/change handler, and the `canSubmit`
@@ -459,7 +489,9 @@ const [deadlinePickerOpen, setDeadlinePickerOpen] = useState(false);
 
 Add `CargoHandlingTag` to the existing `import type { CargoCategory,
 ChassisType, ServiceLevel } from "@prisma/client"` line at the top of the
-file.
+file, and add `CARGO_MEASUREMENT_BOUNDS` plus `type CargoMeasurementBounds` to
+the existing `@/lib/cargo` import beside `CARGO_HANDLING_TAG_LABELS` — see §3
+for why the bounds are imported rather than written here.
 
 ### 8. Gating
 
@@ -481,27 +513,23 @@ Cargo weight and dimensions must be valid to book, but must **not** gate
 client must still be able to price a job before declaring the physical load.
 Only extend `canSubmit`:
 
+Each call passes its field descriptor whole, and each descriptor's `bounds`
+points at `CARGO_MEASUREMENT_BOUNDS` — no bound is spelled out at a call site:
+
 ```ts
-const cargoWeightResult = parseCargoNumber(cargoWeightKgInput, {
-  min: 1,
-  max: 30000,
-  label: "total weight",
-});
-const cargoLengthResult = parseCargoNumber(cargoLengthMInput, {
-  min: 0.1,
-  max: 15,
-  label: "length",
-});
-const cargoWidthResult = parseCargoNumber(cargoWidthMInput, {
-  min: 0.1,
-  max: 15,
-  label: "width",
-});
-const cargoHeightResult = parseCargoNumber(cargoHeightMInput, {
-  min: 0.1,
-  max: 15,
-  label: "height",
-});
+const cargoWeightResult = parseCargoNumber(
+  cargoWeightKgInput,
+  CARGO_WEIGHT_FIELD,
+);
+const cargoLengthResult = parseCargoNumber(
+  cargoLengthMInput,
+  CARGO_LENGTH_FIELD,
+);
+const cargoWidthResult = parseCargoNumber(cargoWidthMInput, CARGO_WIDTH_FIELD);
+const cargoHeightResult = parseCargoNumber(
+  cargoHeightMInput,
+  CARGO_HEIGHT_FIELD,
+);
 
 const cargoDimensionsValid =
   "data" in cargoWeightResult &&
@@ -601,7 +629,15 @@ either order or in parallel.
       min/max, and each shows an inline error naming the fix once the client
       has left it invalid.
 - [ ] Packaging description, item quantity, handling tags, pickup window and
-      delivery deadline can all be left empty and the form still submits.
+      delivery deadline can all be left empty and the form still submits — and
+      the resulting request is one `POST /api/orders` accepts. The endpoint
+      (task-05) treats all five as optional; if it ever requires one, this
+      criterion is the one that has been broken.
+- [ ] No numeric bound appears as a literal in `booking-form.tsx`: every
+      `min`/`max` reaches the field descriptors, the `<Input>` attributes, the
+      parser and the helper copy from `CARGO_MEASUREMENT_BOUNDS`, the same table
+      `POST /api/orders` reads. A width of `5` is rejected by both sides, not
+      accepted here and refused there.
 - [ ] Handling tags render as six independently toggleable chips in enum
       order, `aria-pressed` reflecting selection state, using this page's own
       landing token utilities — no `oklch(...)`, hex literal, or `dark:`

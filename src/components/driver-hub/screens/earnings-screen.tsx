@@ -42,9 +42,13 @@ import type {
  * ## Real versus sampled
  *
  * Real: the range itself, gross fares, the job count, the average per job, and
- * every bar on the chart — all `SUM(price + overtimeFee)` over completed
- * orders. Sampled: online hours (and the per-online-hour figure derived from
- * them), tips, incentives, adjustments and the whole payout table.
+ * every bar on the chart — all `SUM(driverPayout + overtimeDriverPayout)` over
+ * completed orders: each job's earned share after the platform's commission,
+ * never the client's price. (There is no `serviceLevelAdjustment` term in that
+ * sum on purpose — the Priority uplift and Pooling discount are already inside
+ * the basis `driverPayout` was commissioned from at booking.) Sampled: online
+ * hours (and the per-online-hour figure derived from them), tips, incentives,
+ * adjustments and the whole payout table.
  *
  * The marking follows the same rule as Today's hero tile: the badge names the
  * *part* that is invented, never the card around it. So the Jobs completed tile

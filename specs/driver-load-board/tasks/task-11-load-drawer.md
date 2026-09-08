@@ -462,7 +462,24 @@ function bodyTypeLabel(bodyType: ChassisType | null): string {
 mismatch note's reasoning above, and it is fine to omit this helper entirely
 if the note's copy does not need to name the booked body type.)
 
+### `handlingTags` arrives in selection order, not enum order
+
+task-04 persists `Order.handlingTags` in the order the client tapped the chips,
+not in `CargoHandlingTag` declaration order. The booking form's chips always
+*render* in enum order because they iterate a fixed options list, but the stored
+array does not inherit that.
+
+So any driver-facing surface that renders these pills must **sort them
+explicitly** rather than assume order. Two loads carrying the same three tags
+would otherwise show them in different sequences, which reads as a bug and makes
+rows harder to scan. Sort by the enum's declaration order (FRAGILE, COLD_CHAIN,
+HAZMAT, TIME_CRITICAL, UPRIGHT_ONLY, HEAVY_ITEM), not alphabetically — HAZMAT
+should not sort above FRAGILE by accident of spelling.
+
 ## Acceptance Criteria
+
+- [ ] Handling-tag pills render in `CargoHandlingTag` declaration order,
+      sorted explicitly — the stored array is in the client's selection order.
 
 - [ ] `src/components/driver-hub/screens/loads-detail-drawer.tsx` exports
       `LoadsDetailDrawer`, matching `LoadsDetailDrawerProps` above, and

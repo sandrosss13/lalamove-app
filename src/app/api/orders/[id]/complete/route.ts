@@ -3,6 +3,7 @@ import { OrderStatus } from "@prisma/client";
 
 import { auth } from "@/lib/auth";
 import { ORDER_PARTY_SELECT } from "@/lib/order-response-select";
+import { driverPayoutFor } from "@/lib/orders/payout";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -46,6 +47,14 @@ function roundCurrency(value: number): number {
  * type's `overtimeRatePerMinute`. The result is stored as `overtimeFee` and
  * settled on top of `price`, which is left exactly as it was quoted — a booked
  * fare never changes after the fact.
+ *
+ * `overtimeFee` is what the CLIENT pays for that waiting time, so the platform's
+ * commission comes off it exactly as it comes off the fare. The driver's share
+ * is resolved in the same step, at the commission rate **stored on the order** —
+ * never the current global constant — and written to `overtimeDriverPayout` in
+ * the same update, so the client-facing fee and the driver-facing payout can
+ * never diverge. `driverPayout` is deliberately not touched here; see the
+ * comment at the computation below.
  */
 export async function POST(
   request: Request,
@@ -76,12 +85,15 @@ export async function POST(
 
   // The overtime rates come from the type booked on the order, not from the
   // vehicle that happened to fulfil it, so the charge matches what was quoted.
+  // `commissionRate` is selected for the same reason: the driver's share of the
+  // overtime must be computed at the rate this order was booked under.
   const order = await prisma.order.findUnique({
     where: { id },
     select: {
       id: true,
       driverId: true,
       status: true,
+      commissionRate: true,
       vehicleTypeSpec: {
         select: {
           pricingRule: {
@@ -129,6 +141,28 @@ export async function POST(
     overtimeMinutes * pricingRule.overtimeRatePerMinute,
   );
 
+  // `order.commissionRate` — the rate stamped onto this row at booking — and
+  // never `PLATFORM_COMMISSION_RATE` or `driverPayoutFor`'s default. That is the
+  // whole reason the column exists: a job booked at 15% and completed after the
+  // global rate was retuned to 18% would otherwise end up with a `driverPayout`
+  // at one rate and an `overtimeDriverPayout` at another, with nothing on the
+  // row to explain the disagreement.
+  //
+  // `driverPayout` is NOT recomputed here, and completion must never write to
+  // it. It holds one stable meaning for the life of an order — what the job was
+  // quoted to pay, the same figure the load board showed the driver when they
+  // took it. Merging the two would make the board's historical number and the
+  // earnings screen's number for one job silently disagree, and would fold a
+  // figure only knowable at completion (overtime depends on `waitingMinutes`,
+  // reported just now) into one that was settled at booking.
+  const overtimeDriverPayout = driverPayoutFor(
+    overtimeFee,
+    order.commissionRate,
+  );
+
+  // Both figures in one update: an order can never carry a non-zero
+  // `overtimeFee` alongside a stale, default-`0` `overtimeDriverPayout`, whether
+  // from a crash between two writes or from a later refactor splitting them.
   const updated = await prisma.order.update({
     where: { id },
     data: {
@@ -136,6 +170,7 @@ export async function POST(
       completedAt: new Date(),
       waitingMinutes,
       overtimeFee,
+      overtimeDriverPayout,
     },
     select: ORDER_PARTY_SELECT,
   });

@@ -97,6 +97,18 @@ None.
 
 ## Files to Modify
 
+- `src/lib/dashboard/hub/today.ts` — **added after the Wave 2 review found it
+  ownerless.** Lines ~130 and ~168 sum `price + overtimeFee` and present it to a
+  driver as what the job pays them, including the Today screen's hero earnings
+  tile. Same bug class as the Earnings screen that task-15 fixed, in a different
+  module. Change to `driverPayout + overtimeDriverPayout` and correct the doc
+  comments, exactly as task-15 did for `earnings.ts`.
+- `src/lib/dashboard/hub/drivers.ts` — **added for the same reason.** Lines ~111
+  and ~162 do the same, including an all-time company total. Note this one is
+  company-facing: a logistics company is the job's *fulfilling* party, the
+  carrier, so the commissioned figure is the correct one for it too — the same
+  reasoning task-15 recorded.
+
 - `src/lib/order-response-select.ts` — add a new export,
   `CARRIER_ORDER_PARTY_SELECT`, alongside the existing `ORDER_PARTY_SELECT`,
   and extend that file's doc comment to explain the split. This is the
@@ -707,7 +719,38 @@ const DRIVER_ORDER_LIST_SELECT = {
   /api/orders`'s driver branch, applied to every row this endpoint returns
   (there is no client branch to preserve here).
 
+### The three hub modules that still show gross, and why they are all yours
+
+The Wave 2 review found that fixing `src/lib/dashboard/hub/earnings.ts`
+(task-15) did not fix the bug — it fixed one of four places. These three remain,
+and they present the client's money to a driver as the driver's own earnings:
+
+| File | What it says now |
+|---|---|
+| `src/lib/dashboard/hub/jobs.ts:121` | "`price + overtimeFee` — what the job pays *the account reading this*" |
+| `src/lib/dashboard/hub/today.ts:130,168` | the quote plus overtime, and today's earnings total |
+| `src/lib/dashboard/hub/drivers.ts:111,162` | per-driver and all-time company totals |
+
+`jobs.ts:121`'s comment is the one to read closely: it asserts the sum is *what
+the account is paid*, which is now exactly backwards. That is the claim to
+delete, not soften.
+
+All three become `driverPayout + overtimeDriverPayout`. As in task-15, **no
+`serviceLevelAdjustment` term belongs in the new sum** — the Priority uplift and
+Pooling discount are already inside the basis `driverPayout` was commissioned
+from at booking. Say so, so its absence reads as deliberate rather than as the
+same omission repeated a fourth time.
+
+Do NOT touch `src/lib/admin/analytics.ts`. The admin's Sales Analytics is
+correctly gross: it is the platform's own view of what clients paid, which is a
+different question with a different right answer.
+
 ## Acceptance Criteria
+
+- [ ] `jobs.ts`, `today.ts` and `drivers.ts` all sum
+      `driverPayout + overtimeDriverPayout`; no hub module outside
+      `src/lib/admin/` sums `price + overtimeFee` any more.
+- [ ] `src/lib/admin/analytics.ts` is unchanged and still gross.
 
 - [ ] A driver calling `POST /api/orders/[id]/accept` receives a response
       whose JSON body contains no `price`, `overtimeFee`, `baseFare`,

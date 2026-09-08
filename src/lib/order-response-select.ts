@@ -23,6 +23,24 @@
  * instead, because they serve non-parties too — a driver or a company browsing
  * open, unassigned work — and must be free to withhold more than this.
  *
+ * `reference` and `driverPayout` are included. `reference` is the human-readable
+ * `GE-48210` handle every party needs in order to talk about the job at all.
+ * `driverPayout` is the driver's commissioned 85% share, and it is here because
+ * a *driver-facing* response built on this select must render that figure and
+ * never `price`.
+ *
+ * That redaction is each call site's responsibility, not this constant's, and is
+ * flagged here rather than left for someone to discover: `price` stays selected
+ * because the client who booked the order genuinely needs their own total, so
+ * this list carries both figures and cannot itself tell which audience is
+ * asking. Any handler that answers a driver must pick `driverPayout` — the
+ * client's total is not the driver's earnings and must never be presented as
+ * such.
+ *
+ * `commissionRate` is deliberately absent and must stay absent: it is an
+ * internal figure, and no party to a job has business with the rate — only with
+ * the resolved payout it produced.
+ *
  * Relations are not selected because none of those handlers ever included any;
  * this list is the scalar row and nothing more.
  */
@@ -66,4 +84,6 @@ export const ORDER_PARTY_SELECT = {
   waitingMinutes: true,
   createdAt: true,
   updatedAt: true,
+  reference: true,
+  driverPayout: true,
 } as const;

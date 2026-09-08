@@ -91,12 +91,12 @@ graph TD
 - [x] [task-03-vehicle-fit](./tasks/task-03-vehicle-fit.md) — Pure weight + L/W/H fit predicate and fleet capability aggregation
 
 ### Wave 2
-- [ ] [task-04-booking-cargo-step](./tasks/task-04-booking-cargo-step.md) — Weight, dimensions, packaging, quantity, handling tags, pickup window and deadline on the booking form
-- [ ] [task-05-create-order-persistence](./tasks/task-05-create-order-persistence.md) — Validate and persist the new fields, stamp reference, commission and payout
-- [ ] [task-06-loads-api](./tasks/task-06-loads-api.md) — `GET /api/loads`: fit filter, rejection exclusion, payout figures, contact redaction
-- [ ] [task-07-reject-api](./tasks/task-07-reject-api.md) — `POST` / `DELETE /api/loads/[id]/reject`, driver-scoped and reversible
-- [ ] [task-08-claim-api](./tasks/task-08-claim-api.md) — Atomic claim for drivers and companies, online gate, lost-the-race response
-- [ ] [task-15-overtime-and-earnings-payout](./tasks/task-15-overtime-and-earnings-payout.md) — Commission the overtime settled at completion; stop the Earnings screen showing drivers the client's total
+- [x] [task-04-booking-cargo-step](./tasks/task-04-booking-cargo-step.md) — Weight, dimensions, packaging, quantity, handling tags, pickup window and deadline on the booking form
+- [x] [task-05-create-order-persistence](./tasks/task-05-create-order-persistence.md) — Validate and persist the new fields, stamp reference, commission and payout
+- [x] [task-06-loads-api](./tasks/task-06-loads-api.md) — `GET /api/loads`: fit filter, rejection exclusion, payout figures, contact redaction
+- [x] [task-07-reject-api](./tasks/task-07-reject-api.md) — `POST` / `DELETE /api/loads/[id]/reject`, driver-scoped and reversible
+- [x] [task-08-claim-api](./tasks/task-08-claim-api.md) — Atomic claim for drivers and companies, online gate, lost-the-race response
+- [x] [task-15-overtime-and-earnings-payout](./tasks/task-15-overtime-and-earnings-payout.md) — Commission the overtime settled at completion; stop the Earnings screen showing drivers the client's total
 
 ### Wave 3
 - [ ] [task-09-board-shell](./tasks/task-09-board-shell.md) — Route, hub nav entry, header, tabs, filter panel, board state, placeholders

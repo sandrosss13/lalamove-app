@@ -2,7 +2,7 @@
 
 ## Status
 
-pending
+complete
 
 ## Wave
 
@@ -14,8 +14,10 @@ Creates the load board's single data source: `GET /api/loads`. This is the
 most important endpoint in the feature — everything downstream (the board
 shell, the table, the drawer, the dialogs) renders exactly what this route
 returns and nothing else. It resolves the signed-in driver or company account,
-runs the vehicle-fit filter **server-side** so a load that will not physically
-fit is absent from the response rather than merely hidden by the client,
+runs the eligibility filter **server-side** — the vehicle class the client
+booked *and* the physical fit, both satisfied by one registered vehicle — so a
+load this account could not actually claim is absent from the response rather
+than merely hidden by the client,
 excludes loads this account has rejected (while exposing them separately so
 the UI's rejected list can restore them), and reshapes every row so that
 `Order.price` — the client's total — never appears, replacing it with
@@ -77,17 +79,33 @@ the contract; if task-03's actual exports differ in a small way (parameter
 order, an extra field), follow what task-03 actually shipped — this task's
 job is to call those functions, not to redefine them.
 
-**One correction to make before writing code:** `Vehicle` itself carries
-`payloadKg`/`cargoLengthM`/`cargoWidthM`/`cargoHeightM` columns, but the
-schema's own comment on `model Vehicle` is explicit that these are
-"driver-declared overrides collected during onboarding for compliance
-display only; nothing outside the onboarding admin review reads them" and
-that "order matching... continue[s] to use only `vehicleTypeSpec`'s
-payload/dimensions, the single source of truth for what a *class* of vehicle
-can carry." So every call to `capabilityOf` in this task must be built from
-each vehicle's **`vehicleTypeSpec`** (`maxPayloadKg`, `cargoLengthM`,
-`cargoWidthM`, `cargoHeightM`), not from the vehicle's own compliance-only
-columns.
+**One correction to make before writing code — and note that this correction
+was itself corrected once.** An earlier draft of this task said to build every
+capability from `vehicleTypeSpec` alone, on the strength of a `model Vehicle`
+comment describing `payloadKg`/`cargoLengthM`/`cargoWidthM`/`cargoHeightM` as
+compliance-display-only. **That is no longer what the schema says**, because
+Wave 1 (task-01) amended that comment as part of this very feature. Read the
+current block on `model Vehicle` in `prisma/schema.prisma` rather than any
+quotation of it: those columns remain compliance-only for *pricing* (which
+still reads `vehicleTypeSpec` alone) and for *dispatch matching* (which keys on
+`vehicleTypeSpecId`), but the comment now states plainly that `capabilityOf`
+reads them for the load board, "preferring the declared value and falling back
+to the spec when it is null", because "the fit filter is about the truck that
+actually turns up, so the vehicle's own declared capacity is the more accurate
+figure there." The same comment records the submit-time server check that makes
+those declarations trustworthy: a vehicle's `payloadKg` must be at or above its
+resolved spec's `maxPayloadKg`, so a vehicle cannot be registered under a class
+it physically cannot meet.
+
+So every call to `capabilityOf` in this task passes **both** the vehicle and
+its spec — `capabilityOf(vehicle, vehicle.vehicleTypeSpec)` — and the `select`
+must therefore include the vehicle's own four columns alongside the nested
+`vehicleTypeSpec` ones. Do not pass a stub of nulls in the vehicle position:
+that silently reverts the board to class-average matching and hides loads a
+driver's actual truck can carry, which is the precise failure the fit filter
+exists to prevent. It is also invisible in local testing — `prisma/seed.ts`
+seeds the `VehicleTypeSpec` catalogue only and creates no `Vehicle` rows, so
+overrides appear solely on vehicles registered through onboarding.
 
 ## Files to Create
 
@@ -184,6 +202,49 @@ default (no) and the alternative (a per-company opt-in toggle) as an open
 business decision, not a technical one. Cite both files in the code comment
 next to this check.
 
+**Eligibility is two tests, not one — and they must land on the same
+vehicle.** (Coordinator decision, made during review of the shipped route; it
+supersedes the "fit filter" language elsewhere in this file, which described
+only the physical half.)
+
+A load is eligible for an account only if that account has at least one
+registered vehicle that **both** (a) has `vehicleTypeSpecId ===
+order.vehicleTypeSpecId` and (b) whose resolved capability passes `loadFits`.
+The same vehicle must satisfy both. A driver with a matching-class van and a
+big-enough truck of some other class can fulfil with neither.
+
+*Why the class test belongs here at all.* The client picks a vehicle class on
+the booking form, is priced on it and pays for it; `Order.vehicleTypeSpecId` is
+that commercial promise recorded. Fulfilling in a different class delivers
+something other than what was bought, so **both** claim routes already require
+the claiming vehicle's class to equal the order's —
+`src/app/api/orders/[id]/accept/route.ts` refuses with *"This vehicle's type
+doesn't match what this delivery requires."* (400) and
+`src/app/api/logistics-company/orders/[id]/claim/route.ts` with *"Your fleet has
+no vehicle of the type this delivery requires."* (400). Those requirements are
+correct and **stay where they are** — this endpoint does not replace them.
+Filtering only on physical fit here meant the board offered loads that Accept
+then refused: the driver taps, gets a 400, and learns nothing actionable. The
+board's job is to show only work that can actually be claimed, so it applies the
+same constraint the claim will.
+
+The two tests answer different questions and neither subsumes the other: the
+class is the commercial contract, the physical fit is the reality check on the
+specific truck that would turn up (a `Vehicle`'s own declared capacity, which
+`capabilityOf` prefers over the class average, can differ within one class).
+
+*Implementation shape.* Group the account's vehicles into capabilities keyed by
+`vehicleTypeSpecId` (`Map<string, VehicleCapability[]>`), then run the fit test
+only against `get(order.vehicleTypeSpecId)`. A class with no vehicle is absent
+from the map, which reads as "nothing to claim that load with". Two independent
+passes over a flat capability list would pass the mixed-fleet driver above and
+is the specific bug to avoid. **For a COMPANY this also means `widestCapability`
+must be computed over the class-matching subset, never the whole fleet** —
+widening across the whole fleet reintroduces exactly the mismatch being fixed (a
+fleet of vans plus one heavy truck would claim van-class loads against the
+truck's payload, and the company claim route, which measures the class-matching
+vehicle, would refuse).
+
 **No query parameters.** The design's city/drop-city selects, the weight
 slider, and the handling-tag chips are client-side filters layered on top of
 the server-side vehicle-fit filter (`requirements.md`'s Technical
@@ -233,12 +294,26 @@ scope for this task and would duplicate logic the later tasks own.
    hiddenByCapacityCount: 0 }`. Do not run any of the queries below for this
    case — there is nothing to compute.
 
-5. **Load each account's fleet capability.**
+5. **Load each account's fleet capability, keyed by vehicle class.** Every
+   `select` below must also include `vehicleTypeSpecId: true` on the vehicle
+   itself, and the resulting capabilities must be grouped by it — see
+   "Eligibility is two tests" above. The snippets in this step predate that
+   decision and show the ungrouped flat list; keep their `capabilityOf` call
+   shape and add the grouping.
    - `DRIVER` (independent, already known not to be a roster driver):
      ```ts
      const vehicles = await prisma.vehicle.findMany({
        where: { driverProfileId: account.driverProfileId! },
        select: {
+         // The class this vehicle may claim work in.
+         vehicleTypeSpecId: true,
+         // The vehicle's own declared capacity — `capabilityOf` prefers these
+         // and falls back to the spec per field. See the correction above for
+         // why omitting them breaks the filter.
+         payloadKg: true,
+         cargoLengthM: true,
+         cargoWidthM: true,
+         cargoHeightM: true,
          vehicleTypeSpec: {
            select: {
              maxPayloadKg: true,
@@ -252,8 +327,9 @@ scope for this task and would duplicate logic the later tasks own.
      const capabilities = vehicles.map((v) => capabilityOf(v, v.vehicleTypeSpec));
      ```
      (Adjust the exact call to `capabilityOf`'s real signature once task-03
-     lands — the point is: one capability per registered vehicle, built from
-     each vehicle's `vehicleTypeSpec`.) A driver with **zero** registered
+     lands — the point is: one capability per registered vehicle, resolved from
+     that vehicle's own declared figures with its `vehicleTypeSpec` as the
+     per-field fallback.) A driver with **zero** registered
      vehicles has an empty `capabilities` array; treat that the same as "no
      load fits" (skip straight to an empty `available` list with
      `hiddenByCapacityCount` equal to the full open-candidate count) rather
@@ -263,6 +339,13 @@ scope for this task and would duplicate logic the later tasks own.
      const fleet = await prisma.vehicle.findMany({
        where: { companyId: account.companyId! },
        select: {
+         // Same as the driver branch: the class first, then the vehicle's own
+         // declared capacity, with the spec as the per-field fallback.
+         vehicleTypeSpecId: true,
+         payloadKg: true,
+         cargoLengthM: true,
+         cargoWidthM: true,
+         cargoHeightM: true,
          vehicleTypeSpec: {
            select: {
              maxPayloadKg: true,
@@ -276,6 +359,12 @@ scope for this task and would duplicate logic the later tasks own.
      const capabilities = fleet.map((v) => capabilityOf(v, v.vehicleTypeSpec));
      const widest = capabilities.length > 0 ? widestCapability(capabilities) : null;
      ```
+     **Superseded in one respect:** `widest` is computed **per
+     `vehicleTypeSpecId`**, over the class-matching subset of the fleet, not
+     once over the whole fleet as written above. The reasoning below for
+     *`widestCapability` rather than `fitsAnyVehicle`* is unchanged; only the
+     population it widens over is narrowed. See "Eligibility is two tests".
+
      **Why `widestCapability` and not `fitsAnyVehicle` for a company:** per
      requirements.md's Assumptions and the design handoff's "Open questions
      carried out of design" #1, a company claims a load with its *account*,
@@ -377,18 +466,48 @@ scope for this task and would duplicate logic the later tasks own.
      to someone else, or a terminal-status order belonging to someone else)
      is simply dropped — it is not part of this account's board at all.
 
-9. **Fit-filter the "available, fitting" candidates** (only that bucket —
-   see step 8):
-   - `DRIVER`: `fitsAnyVehicle(loadFrom(order), capabilities)`.
-   - `COMPANY`: `widest !== null && loadFits(loadFrom(order), widest)`.
-   Count every `PENDING`+unassigned+non-rejected candidate that fails this
-   check toward `hiddenByCapacityCount` — including every order with a null
+9. **Eligibility-filter the "available, fitting" candidates** (only that
+   bucket — see step 8). Two tests, class first, both against the same
+   vehicle — see "Eligibility is two tests" above. Resolve each candidate to
+   one of three outcomes rather than a boolean, because the two ways of
+   failing are reported differently:
+   - **wrong class** — the account has no vehicle registered under
+     `order.vehicleTypeSpecId`. Drop the load. **Do not count it.**
+   - **over capacity** — it has such a vehicle, but no class-matching vehicle
+     passes the fit test (`fitsAnyVehicle` over the class-matching
+     capabilities for a `DRIVER`; `loadFits` against that class's
+     `widestCapability` for a `COMPANY`). Drop the load and count it toward
+     `hiddenByCapacityCount`.
+   - **eligible** — into `available`.
+
+   The over-capacity count includes every order with a null
    `cargoWeightKg`/`cargoLengthM`/`cargoWidthM`/`cargoHeightM`, since
    `loadFits` already treats null as not-fitting (see task-03's contract
    above) and every order placed before this feature has all four null. This
    is intentional and self-correcting as legacy orders age out — say so in a
    comment, and see requirements.md's Assumptions for the same point made
    about the fit filter generally.
+
+   **Why wrong-class loads are dropped silently rather than counted
+   separately** (coordinator decision): `hiddenByCapacityCount` is rendered by
+   task-10's footer as *"N loads hidden — over your vehicle capacity or
+   dimensions"*, and that copy has to stay true of everything it counts. A
+   load booked as a refrigerated truck is not "over the capacity" of a van —
+   it is work the account was never eligible for, and folding it in would
+   promise that a bigger vehicle unlocks loads it would not. A second counter
+   was the alternative and was rejected for now: "17 loads exist for vehicle
+   classes you don't operate" is closer to the size of the market than to a
+   fact about this account, and it would dwarf the capacity figure on any real
+   board. If product later wants it surfaced, that is a new response field with
+   its own copy, not a redefinition of this one.
+
+   A consequence worth expecting: an account with **zero** registered vehicles
+   now returns an empty board with `hiddenByCapacityCount: 0` (every load is
+   wrong-class, since the account has no class at all), where the earlier
+   fit-only design returned the full open-candidate count. That is the honest
+   answer — nothing is hidden by *capacity* when no vehicle has been
+   registered — and it supersedes step 5's parenthetical and the two
+   acceptance criteria noted below.
 
 10. **Redact contacts per row** with the route-local `canSeeStopContacts`
     (step-8's bucket already tells you whether a row is "mine"; reuse that
@@ -514,14 +633,23 @@ const LOADS_SELECT = {
  * src/app/api/orders/route.ts and src/app/api/logistics-company/orders/
  * route.ts for the single-audience versions of this same rule this one
  * merges.
+ *
+ * Takes the NARROWED scope, not the `HubAccount`. On a `HubAccount` both ids
+ * are `string | null`, so the BUSINESS branch would compare `order.companyId`
+ * against a possibly-null `companyId` — and an open, unclaimed order has
+ * `companyId: null`, so `null === null` would report the entire open market as
+ * this account's own and hand out every client's stop contacts. The caller
+ * 403s on a null `companyId` first, so it cannot happen today, but that makes
+ * the safety incidental to the order of two distant statements. A scope whose
+ * `companyId` is `string` makes the dangerous comparison unreachable instead.
  */
 function canSeeStopContacts(
   order: { driverId: string | null; companyId: string | null },
-  account: { kind: "BUSINESS" | "INDIVIDUAL"; userId: string; companyId: string | null },
+  scope: LoadBoardScope, // { kind: "INDIVIDUAL"; userId; driverProfileId } | { kind: "BUSINESS"; companyId }
 ): boolean {
-  return account.kind === "INDIVIDUAL"
-    ? order.driverId === account.userId
-    : order.companyId === account.companyId;
+  return scope.kind === "INDIVIDUAL"
+    ? order.driverId === scope.userId
+    : order.companyId === scope.companyId;
 }
 
 /**
@@ -606,10 +734,10 @@ export type LoadBoardResponse = {
 
   | Field | Type | Notes |
   |---|---|---|
-  | `available` | `LoadBoardItem[]` | Fits this account's fleet, `PENDING` and unassigned or (transiently) just claimed by someone else, not rejected by this account. Newest first. |
+  | `available` | `LoadBoardItem[]` | Claimable by this account — a single registered vehicle both matches `order.vehicleTypeSpecId` and passes `loadFits` — `PENDING` and unassigned or (transiently) just claimed by someone else, not rejected by this account. Newest first. |
   | `mine` | `LoadBoardItem[]` | Assigned to this account, status `CLAIMED`/`ACCEPTED`/`IN_TRANSIT`. Newest first. Not fit-filtered. |
   | `rejected` | `LoadBoardItem[]` | Still `PENDING` and unassigned, and this account has a `LoadRejection` row for it. Not fit-filtered. |
-  | `hiddenByCapacityCount` | `number` | Count of `PENDING`, unassigned, non-rejected candidates that failed the vehicle-fit filter — the footer's "N loads hidden — over your vehicle capacity or dimensions." Includes every legacy order with null cargo data. |
+  | `hiddenByCapacityCount` | `number` | Count of `PENDING`, unassigned, non-rejected candidates that matched a registered vehicle's class but failed the **physical fit** test — the footer's "N loads hidden — over your vehicle capacity or dimensions." Includes every legacy order with null cargo data. **Excludes wrong-class loads, which are counted nowhere** (see step 9). |
 
   **`LoadBoardItem`** — one row, present in exactly one of the three arrays
   above (see Status Mapping): full field-by-field table in Code Snippets
@@ -658,6 +786,18 @@ The design's three row states — `available`, `claimed`, `mine` — map from
       dimensions exceed all of them) is **absent** from `available`, `mine`
       and `rejected` alike — not present with a flag, not present with a
       warning, simply not in the response.
+- [ ] An order whose `vehicleTypeSpecId` matches none of this account's
+      registered vehicles is **absent** from `available` — the same load the
+      claim route would refuse with "This vehicle's type doesn't match what
+      this delivery requires." is never offered in the first place.
+- [ ] A driver with a class-matching van (too small for the load) **and** a
+      big-enough truck of a different class does **not** see the load: the two
+      tests must be satisfied by one vehicle, not two.
+- [ ] A COMPANY whose fleet holds vans of the order's class and one heavier
+      truck of another class does **not** see a load that only the heavier
+      truck could carry — `widestCapability` is computed over the
+      class-matching subset, never the whole fleet.
+- [ ] A wrong-class load does **not** increment `hiddenByCapacityCount`.
 - [ ] The string `"price"` does not appear as a key anywhere in the JSON
       response for any row, and neither do `baseFare`, `distanceFare`,
       `timeFare`, `helperFee`, `overtimeFee` or `serviceLevelAdjustment`.
@@ -675,15 +815,19 @@ The design's three row states — `available`, `claimed`, `mine` — map from
 - [ ] An order this account has a `LoadRejection` row for is absent from
       `available` and present in `rejected`.
 - [ ] `hiddenByCapacityCount` counts a `PENDING`, unassigned order with
-      `cargoWeightKg: null` (and every other cargo field null) as hidden.
+      `cargoWeightKg: null` (and every other cargo field null) as hidden —
+      provided the account has a vehicle of that order's class, without which
+      the order is wrong-class and counted nowhere.
 - [ ] `pickupDistanceKm` is `null` when the account has no
       `currentLat`/`currentLng`, or the order has no
       `pickupLat`/`pickupLng`, or the account is a `COMPANY`; otherwise it
       equals `haversineDistanceKm` between the two points.
 - [ ] `createdAt` is present on every row.
-- [ ] A `COMPANY` account with an empty fleet gets an empty `available`
-      list and `hiddenByCapacityCount` equal to the number of open,
-      non-rejected candidates.
+- [ ] A `COMPANY` account with an empty fleet gets an empty `available` list
+      and `hiddenByCapacityCount: 0` — **amended by the class filter**: an
+      account with no vehicles has no class, so every candidate is wrong-class
+      rather than over-capacity. The earlier criterion here expected the full
+      open-candidate count; see step 9.
 - [ ] A load claimed by a *different* account inside the visibility window
       appears in `available` with `status: "claimed"`; the same load, once
       the window has passed (simulate by backdating `updatedAt` in a test
@@ -717,6 +861,14 @@ The design's three row states — `available`, `claimed`, `mine` — map from
   see step 5's code-comment requirement. Do not read this as a bug to fix;
   it is the documented cost of the claim-first-assign-later model
   requirements.md and the design handoff both resolve open question 1 with.
+  Its optimism is now bounded to one vehicle class: it widens over the fleet's
+  vehicles **of the order's class only**. Widening over the whole fleet is a
+  bug, not optimism — it would offer loads the company claim route refuses.
+- The class filter here does **not** replace the claim routes' own class
+  checks, and those must not be removed. A listing is a snapshot; the claim is
+  what commits, and a caller can reach the claim endpoints without going
+  through the board at all. Both layers are load-bearing, for the same reason
+  the physical fit is re-checked at claim time.
 - Do not add pagination. The board is not expected to carry enough live
   orders at once to need it, and neither existing listing endpoint
   (`GET /api/orders`, `GET /api/logistics-company/orders`) paginates either.

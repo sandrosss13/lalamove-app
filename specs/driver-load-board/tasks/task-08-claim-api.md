@@ -2,7 +2,7 @@
 
 ## Status
 
-pending
+complete
 
 ## Wave
 
@@ -62,6 +62,11 @@ to enforce.
 
 None. See the decision below for why this task does not add a new
 board-specific claim endpoint.
+
+The fit predicate is **imported, not written**: `capabilityOf`, `loadFits` and
+`widestCapability` from `src/lib/orders/vehicle-fit.ts` (task-06's module, which
+this task must not modify) are the only definition of "fits" either route may
+use.
 
 ## Technical Details
 
@@ -238,80 +243,69 @@ listing time (task-06). That filter runs against a snapshot: the load could be
 re-weighed, the driver could switch vehicles between opening the board and
 confirming, or a caller could hit this endpoint directly, bypassing the board
 entirely. **The claim endpoint must re-check fit server-side rather than
-trusting that the load was listed.** Add this pure check to both route files
-(small enough, and with different enough surrounding types on each route, that
-duplicating it beats introducing a shared module this task doesn't otherwise
-need):
+trusting that the load was listed.**
 
-```ts
-/**
- * Whether a vehicle *type's* payload and cargo-hold dimensions can physically
- * take this order's declared cargo. Matching always runs against
- * `VehicleTypeSpec`, never against a `Vehicle`'s own `payloadKg`/cargo columns
- * — those are driver-declared attestations captured for compliance review only
- * (see the doc comment on `Vehicle.payloadKg` in `prisma/schema.prisma`), and
- * `vehicleTypeSpec`'s figures are the single source of truth pricing and
- * matching both already use.
- *
- * Null cargo data is treated as "nothing to re-check" here, not as "does not
- * fit" — unlike the board's own `GET /api/loads` listing (task-06), which
- * hides a load with unknown fit rather than risk sending a driver on a wasted
- * trip. This route can't apply that same rule: it is also the write path for
- * `GET /api/orders`, which predates cargo capture and still returns every
- * legacy `PENDING` order with null weight/dimensions. Treating null as "does
- * not fit" here would make every one of those orders permanently unclaimable
- * by anyone, by the same endpoint that has always claimed them. The board
- * simply never shows a load in this state in the first place, so a driver
- * claiming *through the board* never exercises the null branch at all; a
- * caller hitting this endpoint outside the board (the pre-existing flow) keeps
- * working exactly as it does today.
- */
-function fitsCargo(
-  order: {
-    cargoWeightKg: number | null;
-    cargoLengthM: number | null;
-    cargoWidthM: number | null;
-    cargoHeightM: number | null;
-  },
-  spec: {
-    maxPayloadKg: number;
-    cargoLengthM: number;
-    cargoWidthM: number;
-    cargoHeightM: number;
-  },
-): boolean {
-  if (order.cargoWeightKg !== null && order.cargoWeightKg > spec.maxPayloadKg) {
-    return false;
-  }
-  if (order.cargoLengthM !== null && order.cargoLengthM > spec.cargoLengthM) {
-    return false;
-  }
-  if (order.cargoWidthM !== null && order.cargoWidthM > spec.cargoWidthM) {
-    return false;
-  }
-  // 0 on the spec means "open / no height limit" (an open flatbed has no cargo
-  // box), per `VehicleTypeSpec.cargoHeightM`'s own doc comment — not a literal
-  // zero-height ceiling.
-  if (
-    order.cargoHeightM !== null &&
-    spec.cargoHeightM !== 0 &&
-    order.cargoHeightM > spec.cargoHeightM
-  ) {
-    return false;
-  }
-  return true;
-}
-```
+**Both routes re-check with `src/lib/orders/vehicle-fit.ts` — the same module
+task-06's `GET /api/loads` filters the board with. Neither route defines its own
+fit predicate.** There must be exactly one definition of "fits" in the codebase.
+An earlier revision of this task had each route carry a local `fitsCargo` that
+measured the load against `VehicleTypeSpec` alone, and that is precisely the
+divergence to avoid: `capabilityOf` prefers a vehicle's OWN driver-declared
+`payloadKg`/`cargoLengthM`/`cargoWidthM`/`cargoHeightM` and falls back to the
+class spec per field, and `model Vehicle` in `prisma/schema.prisma` records a
+submit-time check forcing a declared `payloadKg` to be at or above its resolved
+spec's `maxPayloadKg` (read that block for the authoritative statement of what
+those columns mean — do not quote it, it is amended as their use grows). So
+declared capacity is systematically at or above the spec, a spec-only re-check
+is systematically stricter than the board, and the board would routinely list
+loads that the claim then refuses with a `400` — the driver taps Accept and it
+fails.
+
+**The one deliberate asymmetry with the listing: the null pre-check.**
+`loadFits` returns `false` when any load dimension is null, because unknown must
+mean does-not-fit for a *listing* — hiding a load of unknown size costs nobody
+anything, while sending a driver to one that turns out not to fit costs them the
+trip. That rule is wrong for these routes, which are also the **legacy claim
+path**: the driver route is the write path behind `GET /api/orders`, which
+predates cargo capture and still returns every legacy `PENDING` order with null
+weight and dimensions, and the company route has likewise always claimed them.
+Applying the listing's rule here would make every pre-cargo order permanently
+unclaimable by the same endpoint that has always claimed them. So:
+
+- Order declares **no cargo at all** (all four columns null) → skip the fit
+  check entirely; there is nothing to measure.
+- Order declares **any** cargo → measure it with `loadFits`, including its
+  all-or-nothing rule under which a partially declared load does not fit. That
+  case cannot strand a board user, because the board does not list such a load
+  either.
+
+Document that asymmetry, and why it is deliberate, in both route files.
 
 **Driver route:** add the order's four cargo columns to the existing `existing`
-`findUnique` select, and the chosen vehicle's spec figures to the existing
-`vehicle` lookup — change its `select` from `{ id: true, vehicleTypeSpecId: true
-}` to also pull `vehicleTypeSpec: { select: { maxPayloadKg: true, cargoLengthM:
-true, cargoWidthM: true, cargoHeightM: true } }`. Immediately after the
-existing type-match `400`, add:
+`findUnique` select, and **both** capacity sources to the existing `vehicle`
+lookup — its own `payloadKg`/`cargoLengthM`/`cargoWidthM`/`cargoHeightM` *and*
+`vehicleTypeSpec: { select: { maxPayloadKg: true, cargoLengthM: true,
+cargoWidthM: true, cargoHeightM: true } }`, since `capabilityOf` resolves one
+against the other. Immediately after the existing type-match `400`, add:
 
 ```ts
-if (!fitsCargo(existing, vehicle.vehicleTypeSpec)) {
+const declaredCargo: LoadDimensions = {
+  weightKg: existing.cargoWeightKg,
+  lengthM: existing.cargoLengthM,
+  widthM: existing.cargoWidthM,
+  heightM: existing.cargoHeightM,
+};
+
+const hasDeclaredCargo =
+  declaredCargo.weightKg !== null ||
+  declaredCargo.lengthM !== null ||
+  declaredCargo.widthM !== null ||
+  declaredCargo.heightM !== null;
+
+if (
+  hasDeclaredCargo &&
+  !loadFits(declaredCargo, capabilityOf(vehicle, vehicle.vehicleTypeSpec))
+) {
   return NextResponse.json(
     {
       error:
@@ -322,22 +316,31 @@ if (!fitsCargo(existing, vehicle.vehicleTypeSpec)) {
 }
 ```
 
-**Company route:** the existing `matchingVehicle` lookup only proves *a*
-vehicle of the right type exists in the fleet; it needs the type's spec
-figures too, and needs to keep searching if the first type-matching vehicle
-doesn't fit (a fleet can own several vehicles of the same
-`vehicleTypeSpecId`... though in practice a spec's dimensions are fixed per
-type, so if one fails, all do — the loop below is defensive, not load-bearing).
-Also add the order's cargo columns to the existing `findUnique`:
+**Company route:** the existing lookup only proves *a* vehicle of the right type
+exists in the fleet, and it must become a `findMany`. A single row was defensible
+only while fit was measured against the class spec, where every vehicle of a type
+resolves to identical figures; once each vehicle's own declared capacity is
+preferred, two trucks of the same class no longer necessarily agree. Take the
+per-axis maximum across the type-matching vehicles with `widestCapability` — the
+same knowingly optimistic rule task-06 applies to a company's board (a company
+names a real truck at dispatch and sees any mismatch there, at a desk, before
+anything rolls; being *stricter* than the board is the failure that matters
+here). `widestCapability` returns `null` for an empty fleet and only for an empty
+fleet, so the existing "no vehicle of the required type" `400` falls out of the
+same expression, unchanged in wording. Also add the order's cargo columns to the
+existing `findUnique`:
 
 ```ts
-const matchingVehicle = await prisma.vehicle.findFirst({
+const matchingVehicles = await prisma.vehicle.findMany({
   where: {
     companyId: company.id,
     vehicleTypeSpecId: existing.vehicleTypeSpecId,
   },
   select: {
-    id: true,
+    payloadKg: true,
+    cargoLengthM: true,
+    cargoWidthM: true,
+    cargoHeightM: true,
     vehicleTypeSpec: {
       select: {
         maxPayloadKg: true,
@@ -349,14 +352,21 @@ const matchingVehicle = await prisma.vehicle.findFirst({
   },
 });
 
-if (!matchingVehicle) {
+const fleetCapability = widestCapability(
+  matchingVehicles.map((vehicle) =>
+    capabilityOf(vehicle, vehicle.vehicleTypeSpec),
+  ),
+);
+
+if (fleetCapability === null) {
   return NextResponse.json(
     { error: "Your fleet has no vehicle of the type this delivery requires." },
     { status: 400 },
   );
 }
 
-if (!fitsCargo(existing, matchingVehicle.vehicleTypeSpec)) {
+// `declaredCargo` / `hasDeclaredCargo` exactly as on the driver route above.
+if (hasDeclaredCargo && !loadFits(declaredCargo, fleetCapability)) {
   return NextResponse.json(
     {
       error:
@@ -451,14 +461,22 @@ than hand-listing every field this task does want and silently drifting from
       whatever endpoint lists open loads for them — this task does not touch
       any listing endpoint, only claim.
 - [ ] A vehicle whose `vehicleTypeSpecId` matches the order but whose
-      `vehicleTypeSpec` payload or L/W/H is smaller than the order's declared
-      cargo gets `400` from the driver route, and the order remains `PENDING`.
-- [ ] A company whose fleet has a type-matching vehicle that doesn't fit the
-      cargo gets the equivalent `400` from the company route.
+      **resolved capability** (declared columns where present, spec as the
+      per-field fallback) is smaller than the order's declared cargo on any axis
+      gets `400` from the driver route, and the order remains `PENDING`.
+- [ ] A company whose type-matching vehicles all fall short of the cargo on some
+      axis gets the equivalent `400` from the company route.
+- [ ] A vehicle whose **declared** `payloadKg`/dimensions exceed its class spec
+      and are large enough for the load is **accepted**, not refused — the case
+      the old spec-only check got wrong, and the one the board itself lists.
+      Anything the board shows must be claimable.
 - [ ] An order with `cargoWeightKg`/dimensions all `null` (a legacy,
       pre-cargo order) is still claimable by both routes when the vehicle type
       matches — the fit re-check does not regress existing behaviour for
       orders with no cargo data.
+- [ ] An order declaring only *some* of its cargo columns is refused with the
+      same `400` — `loadFits`' all-or-nothing rule, matching the board, which
+      does not list such a load either.
 - [ ] A successful claim's response body has no `price` key (assert with
       `!("price" in body)` or equivalent, not merely `body.price === undefined`)
       and does include `driverPayout`, `reference`, and `handlingTags`.

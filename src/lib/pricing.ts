@@ -131,11 +131,17 @@ function roundCurrency(value: number): number {
 // has to be worth charging for, whereas the discount only has to be worth
 // accepting a wider window for.
 //
-// Still open, and tracked in specs/client-dashboard-booking-and-payment/
-// action-required.md: whether the adjustment reaches the driver, the platform,
-// or is split. Nothing here depends on that answer — the client is charged the
-// same either way — but src/lib/dashboard/hub/earnings.ts and the driver hub's
-// "Paid to you" figure do, and they must move together when it lands.
+// Who the adjustment reaches was once open here; it is settled. The driver
+// receives 85% of it, exactly as they do of everything else the client pays, and
+// a Pooling discount reduces their payout by the same 85%. The platform's cut is
+// taken from `price + serviceLevelAdjustment` — the whole client-facing total —
+// so the tier is not a separate pot anybody splits differently.
+//
+// Nothing in this file depends on that answer: the client is charged the same
+// either way, and the adjustment is still stored beside `price` rather than
+// folded into it. The commission itself lives in src/lib/orders/payout.ts, and
+// POST /api/orders resolves and stamps `Order.commissionRate`/`driverPayout` at
+// creation from the rounded sum of the two columns.
 export const PRIORITY_UPLIFT = 0.25; // +25% of the quoted fare
 export const POOLING_DISCOUNT = 0.1; // −10% of the quoted fare
 

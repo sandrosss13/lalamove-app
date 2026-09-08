@@ -469,7 +469,24 @@ needs beyond that (e.g. `formatKg`, `formatDims`) belongs in the same shared
 module too, not duplicated locally, so task-10/11/12 and this task never
 render the same figure two different ways.
 
+### `handlingTags` arrives in selection order, not enum order
+
+task-04 persists `Order.handlingTags` in the order the client tapped the chips,
+not in `CargoHandlingTag` declaration order. The booking form's chips always
+*render* in enum order because they iterate a fixed options list, but the stored
+array does not inherit that.
+
+So any driver-facing surface that renders these pills must **sort them
+explicitly** rather than assume order. Two loads carrying the same three tags
+would otherwise show them in different sequences, which reads as a bug and makes
+rows harder to scan. Sort by the enum's declaration order (FRAGILE, COLD_CHAIN,
+HAZMAT, TIME_CRITICAL, UPRIGHT_ONLY, HEAVY_ITEM), not alphabetically — HAZMAT
+should not sort above FRAGILE by accident of spelling.
+
 ## Acceptance Criteria
+
+- [ ] Handling-tag pills render in `CargoHandlingTag` declaration order,
+      sorted explicitly — the stored array is in the client's selection order.
 
 - [ ] The mobile board renders only below the `lg` (1024px) breakpoint; the
       desktop table + drawer render only at `lg:` and above. No client-side
