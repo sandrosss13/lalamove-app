@@ -13,15 +13,35 @@ import { defineConfig, devices } from "@playwright/test";
  */
 
 /**
- * Where the browser specs point.
+ * Where the browser specs point. Required, with no default.
  *
- * Defaults to the local dev server so `pnpm test` works with nothing set, and
- * takes a deployed origin from `E2E_BASE_URL` when there is one. Either target
- * is safe: every browser spec stops short of creating an order, and the only
- * endpoint they call, `POST /api/pricing/estimate`, computes and returns
- * without writing a row.
+ * It used to default to `http://localhost:3000` so `pnpm test` worked with
+ * nothing set, and the `webServer` block below would boot `pnpm dev` to serve
+ * it. That is the part that had to go: `pnpm dev` reads `DATABASE_URL` from
+ * `.env`, and on this project that is production. So the convenient default
+ * was a suite that silently pointed a browser at the live database.
+ *
+ * Today's specs only read — they call `GET /` and `POST /api/pricing/estimate`,
+ * which computes and returns without persisting — so that default was not
+ * actually doing damage. It was one written test away from doing so: a spec
+ * that books an order would put a real job on the live driver load board, and
+ * this app gives the client no way to cancel one.
+ *
+ * Throwing is the point. An unset variable is a developer who has not said
+ * which database they are about to write to, and the only safe answer to that
+ * question is to refuse to guess: a wrong target has to be a typo somebody
+ * wrote, never a default somebody forgot.
  */
-const baseURL = process.env.E2E_BASE_URL ?? "http://localhost:3000";
+const baseURL = process.env.E2E_BASE_URL;
+
+if (!baseURL) {
+  throw new Error(
+    "E2E_BASE_URL is required — this suite's target must be named rather " +
+      "than defaulted into, because `DATABASE_URL` on this project is " +
+      "production. Point it at a server already running against a test " +
+      "database, e.g. E2E_BASE_URL=http://localhost:3001 pnpm test",
+  );
+}
 
 export default defineConfig({
   testDir: "./tests",
@@ -62,35 +82,33 @@ export default defineConfig({
   ],
 
   /**
-   * Start the dev server only when no external target was named. Pointing the
-   * suite at a deployment with `E2E_BASE_URL` should not also boot a local
-   * server it will never visit.
+   * There is deliberately no `webServer` key.
    *
-   * `reuseExistingServer` keeps a dev server the developer already has running
-   * on port 3000, which is the common case locally and saves a cold Next.js
-   * compile per run.
+   * There used to be one: it ran `pnpm dev` whenever `E2E_BASE_URL` was unset,
+   * and its own comment said to delete it as soon as a test that writes was
+   * added, so that a target had to be named explicitly rather than defaulted
+   * into.
    *
-   * READ THIS BEFORE ADDING A TEST THAT WRITES. There is no dev or staging
-   * database on this project: `DATABASE_URL` is production. So a bare
-   * `pnpm test` boots a dev server against the live database. Today that is
-   * safe because the whole suite only reads — it calls `GET /` and
-   * `POST /api/pricing/estimate`, which computes and returns without
-   * persisting. A test that books an order would put a real job on the live
-   * driver load board, and this app has no client-side cancel, so it could be
-   * accepted by a real driver and could not be withdrawn. Anything needing a
-   * write needs a test database first; delete this block at that point so a
-   * target has to be named explicitly rather than defaulted into.
+   * It is gone ahead of that test rather than with it. `pnpm dev` reads
+   * `DATABASE_URL` from `.env`, and on this project that is production, so a
+   * booted-by-default server is a server wired to the live database — and the
+   * first spec that books a delivery would put real jobs on the live driver
+   * load board, which this app gives the client no way to cancel. Nothing in a
+   * config can make `pnpm dev` safe to start on a developer's behalf, so the
+   * config stops starting servers at all.
+   *
+   * Run the suite against a server somebody has already pointed at a test
+   * database, and say which one:
+   *
+   *   E2E_BASE_URL=http://localhost:3001 pnpm test
+   *
+   * A local test database can be set up with:
+   *
+   *   createdb lalamove_test
+   *   DATABASE_URL=postgresql://localhost:5432/lalamove_test \
+   *     npx prisma migrate deploy && npx prisma db seed
+   *
+   * Do not reintroduce this key without also giving `pnpm dev` a database URL
+   * that is not production.
    */
-  webServer: process.env.E2E_BASE_URL
-    ? undefined
-    : {
-        command: "pnpm dev",
-        url: baseURL,
-        reuseExistingServer: !process.env.CI,
-        // A cold Next.js dev boot compiles the landing route on first request,
-        // which is well beyond the 60s default on a laptop.
-        timeout: 180_000,
-        stdout: "ignore",
-        stderr: "pipe",
-      },
 });
