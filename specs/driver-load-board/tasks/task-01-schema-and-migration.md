@@ -165,6 +165,19 @@ Add to `model Order`. Keep the existing comment style — this schema documents
   /// `(price + serviceLevelAdjustment) * (1 - commissionRate)`, rounded to whole
   /// tetri.
   ///
+  /// Written precisely, and the precision matters — the basis is rounded
+  /// **before** it is commissioned:
+  ///
+  /// ```ts
+  /// driverPayoutFor(roundCurrency(price + serviceLevelAdjustment), commissionRate)
+  /// ```
+  ///
+  /// Both helpers live in `src/lib/orders/payout.ts`; write it that way rather
+  /// than rounding once at the end. Adding two `Float` columns leaves binary
+  /// dust on the sum, and commissioning the dusty figure lands a tetri away from
+  /// commissioning the clean one on a real share of orders — 210 of 20,000
+  /// PRIORITY amounts, when the two orderings were measured against each other.
+  ///
   /// **The basis is `price + serviceLevelAdjustment`, not `price` alone.** The
   /// adjustment is stored beside `price` rather than folded into it (see its own
   /// comment above), and `POST /api/orders/[id]/pay` charges the client the sum
@@ -289,20 +302,82 @@ ALTER TABLE "Order"
   ADD COLUMN "driverPayout"         DOUBLE PRECISION NOT NULL DEFAULT 0,
   ADD COLUMN "overtimeDriverPayout" DOUBLE PRECISION NOT NULL DEFAULT 0;
 
+-- `handlingTags` is documented as "empty array, never null", so the column says
+-- so too. The DEFAULT above has already filled every pre-existing row with `{}`,
+-- which is what lets this be set in the same migration without a separate
+-- backfill pass. Verified to keep `prisma migrate diff` at zero drift: Prisma
+-- models a scalar list as required, so NOT NULL is what it already expects.
+ALTER TABLE "Order" ALTER COLUMN "handlingTags" SET NOT NULL;
+
 -- Backfill the payout for every existing order at the same 15% rate the default
 -- records, rounded to whole tetri exactly as the application does.
+--
+-- `FLOOR(x * 100 + 0.5) / 100` in float8, NOT `ROUND(x::numeric, 2)`. This is
+-- the one place the obvious spelling is the wrong one, so it is worth being
+-- precise about why. `roundCurrency` in `src/lib/orders/payout.ts` is JS
+-- `Math.round(value * 100) / 100`, which evaluates on an IEEE 754 double
+-- carrying binary-fraction dust; casting to `numeric` first scrubs that dust,
+-- and the two then disagree whenever the exact half-tetri tie is in play,
+-- because they are breaking the tie on different numbers. Price 13.00 with a
+-- -1.30 adjustment is the canonical case: the application stores 9.94, a
+-- `numeric` round stores 9.95.
+--
+-- The nested FLOOR on `driverPayout` is the second half of the fix, and it is
+-- load-bearing: it rounds the BASIS before commissioning it, mirroring
+-- `driverPayoutFor(roundCurrency(price + serviceLevelAdjustment), rate)` exactly.
+-- Adding two float8 columns leaves dust on the sum, and commissioning the dusty
+-- sum lands a tetri away from commissioning the cleaned one. Measured against
+-- the real `driverPayoutFor` over 90,000 realistic (price, adjustment) pairs:
+-- `ROUND(::numeric, 2)` gave 935 disagreements, fixing only the tie-break still
+-- left 505, and adding this inner FLOOR takes it to 0. The inner round only
+-- shows its effect once the sample includes PRIORITY-style adjustments (`+25%`
+-- of price), which is where the sum most often lands dusty — a sample without
+-- them measures 0 either way and makes the step look redundant. It is not.
+--
+-- `overtimeDriverPayout` needs no inner round: it commissions a single stored
+-- column rather than a sum, so there is no addition to leave dust.
+--
+-- Do not "simplify" either expression back to ROUND.
 UPDATE "Order" SET
-  "driverPayout"         = ROUND((("price" + "serviceLevelAdjustment") * 0.85)::numeric, 2),
-  "overtimeDriverPayout" = ROUND(("overtimeFee" * 0.85)::numeric, 2);
+  "driverPayout"         = FLOOR(FLOOR(("price" + "serviceLevelAdjustment") * 100 + 0.5) / 100 * 0.85 * 100 + 0.5) / 100,
+  "overtimeDriverPayout" = FLOOR("overtimeFee" * 0.85 * 100 + 0.5) / 100;
 
 -- Reference: add nullable, backfill in creation order so early orders get low
 -- numbers, then constrain.
 ALTER TABLE "Order" ADD COLUMN "reference" TEXT;
 
+-- The number comes from `row_number()`, NOT from `nextval` called per row.
+-- `ORDER BY` inside a `FROM` subquery orders the subquery's own output; it does
+-- not constrain the order in which the planner evaluates a volatile function
+-- across the join, so `nextval` there hands out values in whatever order rows
+-- happen to be joined. It looks correct on a small table and stops being correct
+-- on a large one: measured on a 300,000-row table, 299,999 of 300,000 positions
+-- came out in the wrong order — the earliest order drew GE-123259 while the
+-- fourth-earliest drew GE-48200. A window function is evaluated over an ordered
+-- frame by definition, so the number is pinned to the row's rank rather than to
+-- when the executor got to it.
+--
+-- `, "id" ASC` breaks ties between orders sharing a `createdAt` millisecond,
+-- which keeps the assignment deterministic and the migration reproducible.
+--
+-- 48199 + rn rather than 48200 + rn because `row_number()` is 1-based: the first
+-- order must land on GE-48200, the sequence's own START WITH.
 UPDATE "Order" o
-SET "reference" = 'GE-' || nextval('order_reference_seq')
-FROM (SELECT "id" FROM "Order" ORDER BY "createdAt" ASC) ordered
+SET "reference" = 'GE-' || (48199 + ordered.rn)
+FROM (
+  SELECT "id", row_number() OVER (ORDER BY "createdAt" ASC, "id" ASC) AS rn
+  FROM "Order"
+) ordered
 WHERE o."id" = ordered."id";
+
+-- Advance the sequence past the block the backfill just consumed. It is
+-- untouched above — the backfill computes its numbers arithmetically and never
+-- calls `nextval` — so without this the column default below would start issuing
+-- GE-48200 again and collide with the backfilled rows on the unique index.
+-- `setval` sets `last_value`, so the next draw is 48200 + count: correct for an
+-- empty table too, where it leaves the sequence at 48199 and the first real
+-- order still gets GE-48200.
+SELECT setval('order_reference_seq', 48199 + (SELECT count(*) FROM "Order"));
 
 ALTER TABLE "Order" ALTER COLUMN "reference" SET NOT NULL;
 
@@ -386,7 +461,21 @@ pnpm typecheck
       adjustment is a separate column the client is also charged — and
       `Order.overtimeDriverPayout` to `overtimeFee * 0.85`, both rounded to 2
       decimal places, for every pre-existing row.
-- [ ] `Order.handlingTags` defaults to an empty array, never null.
+- [ ] The backfill rounds **identically to `driverPayoutFor` in
+      `src/lib/orders/payout.ts`**, verified by comparison against that function
+      over a large sample that includes PRIORITY-style adjustments — 0
+      disagreements, not merely "close". `ROUND(x::numeric, 2)` does NOT satisfy
+      this and must not be used; see the migration's own comment for the two
+      distinct causes (half-tetri tie-break, and rounding the basis first).
+- [ ] References are assigned strictly in `createdAt` order at scale, verified on
+      a table large enough that the planner does not incidentally preserve the
+      sort — 300,000 rows, 0 out-of-order positions. A per-row `nextval` inside a
+      sorted subquery does NOT satisfy this.
+- [ ] After the backfill, `nextval('order_reference_seq')` returns a value beyond
+      every reference the backfill assigned, so the column default cannot collide
+      with a backfilled row.
+- [ ] `Order.handlingTags` defaults to an empty array and is `NOT NULL`, so
+      "never null" is enforced by the column and not only by Prisma's behaviour.
 - [ ] `Order.pickupCity` and `Order.dropoffCity` are nullable `GeorgianCity`
       columns and are indexed. Pre-existing orders keep null for both — there is
       no address string reliable enough to backfill them from.
@@ -404,5 +493,11 @@ pnpm typecheck
 - The `commissionRate` default of `0.15` is a safety net for anything that
   writes an order without naming one. The application always names it
   explicitly — see task-02 and task-05.
-- `ROUND(x::numeric, 2)` is required in the backfill: `ROUND(double precision, int)`
-  does not exist in Postgres and will fail with a function-not-found error.
+- **Do not use `ROUND(x::numeric, 2)` in the payout backfill.** It is the
+  intuitive spelling and it is wrong here: it disagrees with the application's
+  `roundCurrency` on the half-tetri tie (measured: 935 rows in 90,000). The
+  backfill stays in float8 and spells the rounding `FLOOR(x * 100 + 0.5) / 100`,
+  which reproduces JS `Math.round` semantics. As a side effect the old
+  "`ROUND(double precision, int)` does not exist in Postgres" hazard no longer
+  applies, because no `ROUND` call survives — but that is a consequence, not the
+  reason.

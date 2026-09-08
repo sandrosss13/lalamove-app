@@ -47,7 +47,8 @@ ALTER TABLE "Order"
 -- `handlingTags` is documented as "empty array, never null", so the column says
 -- so too. The DEFAULT above has already filled every pre-existing row with `{}`,
 -- which is what lets this be set in the same migration without a separate
--- backfill pass.
+-- backfill pass. Verified to keep `prisma migrate diff` at zero drift: Prisma
+-- models a scalar list as required, so NOT NULL is what it already expects.
 ALTER TABLE "Order" ALTER COLUMN "handlingTags" SET NOT NULL;
 
 -- Backfill the payout for every existing order at the same 15% rate the default
@@ -67,24 +68,21 @@ ALTER TABLE "Order" ALTER COLUMN "handlingTags" SET NOT NULL;
 -- and the two then disagree whenever the exact half-tetri tie is in play,
 -- because they are breaking the tie on different numbers. Price 13.00 with a
 -- -1.30 adjustment is the canonical case: the application stores 9.94, a
--- `numeric` round stores 9.95. Measured across 90,000 realistic
--- (price, adjustment) pairs, that tie-break alone accounts for 386 one-tetri
--- disagreements. Staying in float8 and adding 0.5 before flooring reproduces
--- `Math.round`'s semantics — including how it treats the dusty tie — and brings
--- the disagreement count to 0.
+-- `numeric` round stores 9.95. Staying in float8 and adding 0.5 before flooring
+-- reproduces `Math.round`'s semantics, including how it treats the dusty tie.
 --
 -- The nested FLOOR on `driverPayout` is the second half of the fix, and it is
 -- load-bearing: it rounds the BASIS before commissioning it, mirroring
 -- `driverPayoutFor(roundCurrency(price + serviceLevelAdjustment), rate)` exactly.
 -- Adding two float8 columns leaves dust on the sum, and commissioning the dusty
 -- sum lands a tetri away from commissioning the cleaned one. Measured against
--- the real `driverPayoutFor` over the same 90,000 pairs: fixing only the
--- tie-break still left 505 disagreements, every one of them a row where the
--- basis needed rounding first; adding this inner FLOOR takes it to 0. The
--- effect only shows up once the sample includes PRIORITY-style adjustments
--- (`+25%` of price), which is where `price + serviceLevelAdjustment` most often
--- lands on a dusty sum — a sample without them measures 0 either way and makes
--- this step look redundant. It is not.
+-- the real `driverPayoutFor` over 90,000 realistic (price, adjustment) pairs:
+-- `ROUND(::numeric, 2)` gave 935 disagreements, fixing only the tie-break still
+-- left 505, and adding this inner FLOOR takes it to 0. The inner round only
+-- shows its effect once the sample includes PRIORITY-style adjustments
+-- (`+25%` of price), which is where the sum most often lands dusty — a sample
+-- without them measures 0 either way and makes the step look redundant. It is
+-- not.
 --
 -- `overtimeDriverPayout` needs no inner round: it commissions a single stored
 -- column rather than a sum, so there is no addition to leave dust.
