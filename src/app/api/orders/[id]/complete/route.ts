@@ -7,17 +7,44 @@ import { driverPayoutFor } from "@/lib/orders/payout";
 import { prisma } from "@/lib/prisma";
 
 /**
+ * How long a recipient's name may be.
+ *
+ * A cap rather than no cap, because this is free text a driver types on a phone
+ * and nothing downstream truncates it. Generous rather than tight: the field
+ * collects "who did you hand it to", and in Georgia that is routinely a full
+ * name plus a role or a department in mixed Georgian and Latin script, which
+ * runs long. Matched to `MAX_TITLE_LENGTH` in the admin content routes, the
+ * closest existing precedent for a short free-text column.
+ *
+ * Counted in UTF-16 code units, as every other `MAX_*_LENGTH` in this API is —
+ * so a Georgian name gets the same 200 characters a Latin one does, and only an
+ * astral-plane character (an emoji) counts double. That is fine for a cap whose
+ * job is to bound the column, not to measure the text precisely.
+ */
+const MAX_RECEIVED_BY_LENGTH = 200;
+
+/**
  * Hand-rolled body validation, consistent with the rest of the API (the project
  * deliberately uses no validation library).
+ *
+ * `waitingMinutes` is required and its rules are unchanged. `receivedBy` is
+ * optional in every sense: absent, `null`, and a string that is empty once
+ * trimmed all mean the same thing and all resolve to `null`. A driver who does
+ * not catch the recipient's name must still be able to close the delivery, so
+ * this must never be a reason to refuse a completion — the only way it produces
+ * a 400 is by being the wrong type or being unreasonably long, neither of which
+ * the job sheet's own dialog can send.
  */
 function parseCompleteOrderBody(
   body: unknown,
-): { data: { waitingMinutes: number } } | { error: string } {
+):
+  | { data: { waitingMinutes: number; receivedBy: string | null } }
+  | { error: string } {
   if (typeof body !== "object" || body === null) {
     return { error: "Request body must be a JSON object." };
   }
 
-  const { waitingMinutes } = body as Record<string, unknown>;
+  const { waitingMinutes, receivedBy } = body as Record<string, unknown>;
 
   if (
     typeof waitingMinutes !== "number" ||
@@ -30,7 +57,34 @@ function parseCompleteOrderBody(
     };
   }
 
-  return { data: { waitingMinutes } };
+  // Absent and explicitly null are the same answer — "nobody was named" — and
+  // both have to be accepted: an older client that has never heard of this
+  // field sends neither.
+  if (receivedBy === undefined || receivedBy === null) {
+    return { data: { waitingMinutes, receivedBy: null } };
+  }
+
+  if (typeof receivedBy !== "string") {
+    return { error: "receivedBy must be a string or null." };
+  }
+
+  const trimmedReceivedBy = receivedBy.trim();
+
+  if (trimmedReceivedBy.length > MAX_RECEIVED_BY_LENGTH) {
+    return {
+      error: `receivedBy must be ${MAX_RECEIVED_BY_LENGTH} characters or fewer.`,
+    };
+  }
+
+  // An empty box in the dialog means "not recorded", not an empty string in the
+  // column. Collapsing the two here is what lets every read site test the column
+  // for null alone rather than for null-or-empty — see `Order.receivedBy`.
+  return {
+    data: {
+      waitingMinutes,
+      receivedBy: trimmedReceivedBy === "" ? null : trimmedReceivedBy,
+    },
+  };
 }
 
 /** Round a currency amount to whole cents. */
@@ -55,6 +109,22 @@ function roundCurrency(value: number): number {
  * the same update, so the client-facing fee and the driver-facing payout can
  * never diverge. `driverPayout` is deliberately not touched here; see the
  * comment at the computation below.
+ *
+ * The body also accepts an optional `receivedBy`, the name of whoever took
+ * delivery, collected in the job sheet's confirmation dialog beside the waiting
+ * figure. It is optional in the API because it is optional in the dialog: a
+ * driver who did not catch a name must still be able to close the job, so a
+ * missing `receivedBy` is a valid completion and never a 400. It changes no
+ * money and no state — it is recorded exactly as given, trimmed — and it is not
+ * proof of delivery: v1 captures no photo and no signature, and the `COMPLETED`
+ * transition is what proves the delivery.
+ *
+ * It is deliberately absent from the response. `CARRIER_ORDER_PARTY_SELECT` is
+ * the shape all six lifecycle endpoints answer with, and adding a column to it
+ * for one route's benefit widens the other five as well. The only caller that
+ * wants the value back is the job sheet, which re-reads the order through
+ * `getHubJobSheet` (`src/lib/dashboard/hub/job-sheet.ts`) on the refresh that
+ * follows this call — and which already has the string, having just sent it.
  */
 export async function POST(
   request: Request,
@@ -80,7 +150,7 @@ export async function POST(
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
 
-  const { waitingMinutes } = parsed.data;
+  const { waitingMinutes, receivedBy } = parsed.data;
   const { id } = await params;
 
   // The overtime rates come from the type booked on the order, not from the
@@ -171,6 +241,11 @@ export async function POST(
       waitingMinutes,
       overtimeFee,
       overtimeDriverPayout,
+      // Written unconditionally, `null` included. This is the only write path
+      // for the column and it only ever runs once per order — the IN_TRANSIT
+      // guard above makes a second completion a 409 — so there is no earlier
+      // value a null here could erase.
+      receivedBy,
     },
     // Carrier-only response — see `CARRIER_ORDER_PARTY_SELECT`'s doc comment;
     // never `ORDER_PARTY_SELECT` here. Only the order's assigned driver reaches

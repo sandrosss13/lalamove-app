@@ -53,12 +53,20 @@ import { cn } from "@/lib/utils";
  *   61px sticky header; the sheet is a Radix bottom panel that is portalled out
  *   of the hub's subtree and carries its own non-modal focus management. They
  *   have nothing in common but the word "panel".
- * - **The action block.** Both end in Accept/Reject, Restore, or a disabled
- *   "Open job sheet", but the drawer sizes its controls at 40px and the sheet
- *   at the mobile 44px touch floor, and the two disable Reject and Restore
- *   against different things. Only the *notes* inside that block are shared;
- *   the buttons stay where their metrics are decided. `JOB_SHEET_TITLE` is
- *   exported for the one string both buttons must agree on.
+ * - **The action block.** Both end in Accept/Reject, Restore, or an "Open job
+ *   sheet" link to `/dashboard/jobs/[id]`, but the drawer sizes its controls at
+ *   40px and the sheet at the mobile 44px touch floor, and the two disable
+ *   Reject and Restore against different things. Only the *notes* inside that
+ *   block are shared; the buttons stay where their metrics are decided.
+ *
+ *   That control used to need a shared string. It shipped `disabled` behind an
+ *   exported `JOB_SHEET_TITLE` — one sentence for the `title` and its `sr-only`
+ *   twin on both surfaces — because there was no job sheet to open and
+ *   inventing one was out of scope (`specs/driver-load-board/requirements.md`,
+ *   Non-Goals; the gap was tracked in `action-required.md` under "Design the
+ *   job sheet"). The screen exists now, so both surfaces link to it and the
+ *   explanatory string is gone: the only copy left is the label "Open job
+ *   sheet", which each surface can spell correctly on its own.
  * - **`RouteStop` itself.** The two lay a stop out differently *for a reason*:
  *   the drawer puts the time on the right of the label row and truncates the
  *   address behind a `title`, while the sheet stacks the time under a wrapped
@@ -99,22 +107,6 @@ const PILL_CLASSES =
 
 /** A boxed note in the actions block — the advisory, claimed and mine notes. */
 const NOTE_CLASSES = "rounded-md border p-2.5 text-[13px] leading-relaxed";
-
-/**
- * Why "Open job sheet" ships disabled.
- *
- * One string so the visible tooltip and the `sr-only` sentence beside it can
- * never drift apart — the same pairing `hub-online-toggle.tsx` uses for its own
- * disabled control — and one string across both surfaces so a driver is not
- * told two different things about the same missing screen.
- *
- * There is no job-sheet screen to link to and inventing one is out of scope
- * (`specs/driver-load-board/requirements.md`, Non-Goals). The gap is tracked in
- * `specs/driver-load-board/action-required.md` under "Design the job sheet".
- */
-export const JOB_SHEET_TITLE =
-  "Job sheet isn't built yet. Client contact details and proof of delivery " +
-  "will live there.";
 
 /* -------------------------------------------------------------------------- */
 /* Status pill                                                                */
@@ -251,6 +243,58 @@ export function RouteStopHeading({
 /* -------------------------------------------------------------------------- */
 
 /**
+ * What the cargo section needs to know about an order — and **all** it needs to
+ * know.
+ *
+ * `HubLoad` satisfies this structurally, so the two load surfaces below are
+ * unchanged by its existence. It is spelled out as its own type because a third
+ * surface now renders the same section from a different view model: the driver's
+ * Job sheet (`src/lib/dashboard/hub/job-sheet.ts`), which unions `HubLoad`'s
+ * cargo with `HubJob`'s timeline and money and is therefore neither one.
+ *
+ * Widening the parameter was the alternative to a fourth copy of the eight-row
+ * table, and this module exists precisely because copies of it had already
+ * diverged in ways drivers could see. It is a *narrowing* of `HubLoad`, not a
+ * union with anything: nothing here is optional, so a caller cannot satisfy it
+ * by omitting a field, and any future row added to the table has to add its
+ * column here — where both call sites will be type-checked against it — rather
+ * than reading something only one of them happens to carry.
+ *
+ * `handlingTags` is `readonly string[]` for the same reason `sortedHandlingTags`
+ * takes one: these values cross the wire as JSON on one path and come off Prisma
+ * on the other, and neither caller has any business mutating them here.
+ */
+export type CargoSpec = {
+  /** Raw `CargoCategory`; rendered through `cargoCategoryLabel()`. */
+  cargoCategory: string;
+  cargoWeightKg: number | null;
+  cargoLengthM: number | null;
+  cargoWidthM: number | null;
+  cargoHeightM: number | null;
+  packagingDescription: string | null;
+  itemQuantity: string | null;
+  /** Raw `CargoHandlingTag` values, in whatever order they were appended. */
+  handlingTags: readonly string[];
+  helperCount: number;
+};
+
+/**
+ * What the compliance advisories need — the declared handling and the booked
+ * body, which are the two halves of the cold-chain question.
+ *
+ * Separate from `CargoSpec` rather than folded into it: `bodyType` is a property
+ * of the **vehicle body the client paid for**, not of the cargo, and the eight
+ * cargo rows deliberately do not print it (see `cargoRows` below). Keeping the
+ * two shapes apart is what stops a future row reading `bodyType` off the cargo
+ * table's own type as though it belonged there.
+ */
+export type CargoCompliance = {
+  handlingTags: readonly string[];
+  /** Raw `ChassisType`, or null on any order placed before the filter existed. */
+  bodyType: string | null;
+};
+
+/**
  * The eight cargo rows, in the design's order.
  *
  * Built as data rather than as eight hand-written `<dt>`/`<dd>` pairs so the
@@ -260,7 +304,7 @@ export function RouteStopHeading({
  * There is no Body type row — the booked chassis appears only in the cold-chain
  * mismatch note below, where it is the point rather than a detail.
  */
-function cargoRows(load: HubLoad): { key: string; value: string }[] {
+function cargoRows(load: CargoSpec): { key: string; value: string }[] {
   const tags = sortedHandlingTags(load.handlingTags);
   const dims = {
     lengthM: load.cargoLengthM,
@@ -289,7 +333,7 @@ function cargoRows(load: HubLoad): { key: string; value: string }[] {
 }
 
 /** The cargo specification, as a two-column definition list. */
-export function CargoSpecList({ load }: { load: HubLoad }) {
+export function CargoSpecList({ load }: { load: CargoSpec }) {
   return (
     <dl className="mt-2 grid grid-cols-[96px_1fr] gap-x-3 gap-y-2 text-[13px]">
       {cargoRows(load).map((row) => (
@@ -314,7 +358,11 @@ export function CargoSpecList({ load }: { load: HubLoad }) {
  * Absent entirely at zero tags: the Handling row above already reads "None
  * declared", and an empty pill row would be a blank line under it.
  */
-export function HandlingTagPills({ load }: { load: HubLoad }) {
+export function HandlingTagPills({
+  load,
+}: {
+  load: Pick<CargoSpec, "handlingTags">;
+}) {
   const tags = sortedHandlingTags(load.handlingTags);
 
   if (tags.length === 0) {
@@ -404,7 +452,7 @@ export function CargoPhotoTiles() {
  * a hazmat load that is already claimed still warrants the note, and a driver
  * reading it should see both.
  */
-export function LoadComplianceNotes({ load }: { load: HubLoad }) {
+export function LoadComplianceNotes({ load }: { load: CargoCompliance }) {
   const hasHazmat = load.handlingTags.includes("HAZMAT");
   const hasColdChainMismatch =
     load.handlingTags.includes("COLD_CHAIN") &&
@@ -484,11 +532,22 @@ export function ClaimedElsewhereNote({
 }
 
 /**
- * The note above the disabled "Open job sheet" button on a load the driver owns.
+ * The note above the "Open job sheet" link on a load the driver owns.
  *
  * Takes no props: it is one fixed sentence whose only job is to be the same
- * sentence on both surfaces. The button under it is not shared — its height is
- * decided per surface — but `JOB_SHEET_TITLE` is.
+ * sentence on both surfaces. The control under it is not shared — its height is
+ * decided per surface — and it no longer shares a string either, now that it is
+ * a plain link rather than a disabled button needing an explanation.
+ *
+ * The sentence was written while the job sheet did not exist and reads as a
+ * promise; it is now simply true, and it is left as it is deliberately — the
+ * link beside it repeats the destination, and a note that only said "open it"
+ * would tell the driver less than one naming what they will find there.
+ *
+ * **Contact details is the whole of the claim.** The job sheet captures no
+ * photos and no signature — an explicit product decision, the same one behind
+ * `CargoPhotoTiles`' permanent placeholders — so nothing here or on either
+ * surface may promise proof-of-delivery capture.
  */
 export function ClaimedByYouNote() {
   return (

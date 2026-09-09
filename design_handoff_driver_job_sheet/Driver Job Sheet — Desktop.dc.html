@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Driver Job Sheet — Desktop</title>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="styles.css">
+<style>
+  /* ------------------------------------------------------------------ */
+  /* Artboard chrome — not part of the design.                          */
+  /* ------------------------------------------------------------------ */
+  *, *::before, *::after { box-sizing: border-box; }
+  body { margin: 0; background: oklch(0.985 0 0); }
+  .ab {
+    font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+    color: var(--foreground);
+    font-size: 13px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    padding-bottom: 64px;
+  }
+
+  /* The whole screen is ONE column capped at 720px. This is a task list,
+     not a dashboard — it does not spread into the hub's 1180px content width. */
+  .col { max-width: 720px; margin: 0 auto; padding: 0 24px; }
+
+  .flabel { max-width: 720px; margin: 0 auto; padding: 40px 24px 10px; }
+  .flabel b {
+    display: block;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase;
+  }
+  .flabel span { display: block; margin-top: 4px; font-size: 12px; color: var(--muted-foreground); }
+
+  .ann {
+    max-width: 720px; margin: 14px auto 0;
+    padding: 12px 16px 14px 18px;
+    border-left: 3px solid oklch(64% 0.19 48);
+    font-size: 12px; line-height: 1.6;
+    color: var(--muted-foreground);
+  }
+  .ann strong {
+    display: block; margin-bottom: 3px;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 10px; font-weight: 600;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    color: oklch(48% 0.15 48);
+  }
+  .ann code {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 11px; color: var(--foreground);
+    background: var(--muted); border-radius: 3px; padding: 0 3px;
+  }
+  .ann.gap { border-left-color: oklch(0.577 0.245 27.325); }
+  .ann.gap strong { color: oklch(44.4% 0.177 26.899); }
+
+  .rule { max-width: 720px; margin: 0 auto; padding: 0 24px; }
+  .rule hr { border: 0; border-top: 1px solid var(--border); margin: 34px 0 0; }
+
+  /* ------------------------------------------------------------------ */
+  /* The design system.                                                  */
+  /* ------------------------------------------------------------------ */
+  .shell { background: var(--card); border-bottom: 1px solid var(--border); }
+  .shellbar { max-width: 720px; margin: 0 auto; padding: 0 24px; height: 60px; display: flex; align-items: center; gap: 14px; }
+  .crumb { font-size: 13px; color: var(--muted-foreground); }
+  .crumb a { color: var(--muted-foreground); text-decoration: none; }
+
+  .titleblock { padding: 24px 0 4px; display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+  .h1 { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.015em; }
+  .h1sub { margin: 4px 0 0; font-size: 13px; color: var(--muted-foreground); }
+
+  .screen { display: flex; flex-direction: column; gap: 20px; padding: 20px 0 8px; }
+
+  .card {
+    min-width: 0;
+    display: flex; flex-direction: column; gap: 16px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 22px;
+  }
+  .card.tight { gap: 12px; }
+  .cardtitle { margin: 0; font-size: 15px; font-weight: 600; }
+
+  .seclabel { font-size: 11px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted-foreground); }
+  .mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+  .muted { color: var(--muted-foreground); }
+  .t12 { font-size: 12px; }
+  .t13 { font-size: 13px; }
+  .t15 { font-size: 15px; }
+
+  .pill { display: inline-flex; align-items: center; border: 1px solid transparent; border-radius: 999px; padding: 3px 9px; font-size: 11px; font-weight: 600; letter-spacing: 0.02em; white-space: nowrap; }
+  .t-success { background: oklch(96.2% 0.044 156.743); color: oklch(44.8% 0.119 151.328); }
+  .t-info    { background: oklch(93.2% 0.032 255.585); color: oklch(42.4% 0.199 265.638); }
+  .t-danger  { background: oklch(93.6% 0.032 17.717);  color: oklch(44.4% 0.177 26.899); }
+  .t-warning { background: oklch(97.3% 0.071 103.193); color: oklch(47.6% 0.114 61.907); }
+  .t-neutral { background: oklch(96.7% 0.003 264.542); color: oklch(44.6% 0.03 256.802); }
+
+  .tag { display: inline-flex; align-items: center; border: 1px solid var(--border); border-radius: 999px; background: var(--muted); color: var(--muted-foreground); padding: 3px 9px; font-size: 11px; font-weight: 500; letter-spacing: 0.02em; }
+
+  .sample { display: inline-flex; align-items: center; gap: 6px; border: 1px dashed var(--border); border-radius: 999px; background: transparent; padding: 2px 8px; font-size: 10px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted-foreground); white-space: nowrap; }
+  .sample::before { content: ""; width: 6px; height: 6px; border-radius: 999px; background: oklch(64% 0.19 48); flex: none; }
+
+  .payout { margin: 8px 0 0; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; font-size: 26px; font-weight: 600; line-height: 1; letter-spacing: -0.02em; }
+
+  .spec { display: grid; grid-template-columns: 96px 1fr; column-gap: 12px; row-gap: 8px; font-size: 13px; margin: 0; }
+  .spec dt { color: var(--muted-foreground); }
+  .spec dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+
+  .marker { width: 8px; height: 8px; border-radius: 999px; flex: none; margin-top: 5px; }
+  .m-pickup { background: var(--primary); }
+  .m-drop { border: 2px solid var(--primary); background: transparent; }
+
+  .stop { display: flex; gap: 12px; }
+  .stophead { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+  .stopaddr { margin: 6px 0 0; font-size: 14px; font-weight: 500; line-height: 1.4; overflow-wrap: anywhere; }
+
+  .tl { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+  .tl li { display: flex; align-items: flex-start; gap: 12px; }
+  .tdot { width: 9px; height: 9px; border-radius: 999px; border: 2px solid; flex: none; margin-top: 5px; }
+  .d-done { border-color: oklch(59.6% 0.145 163.225); background: oklch(59.6% 0.145 163.225); }
+  .d-current { border-color: oklch(64% 0.19 48); background: var(--background); }
+  .d-pending { border-color: oklch(92.8% 0.006 264.531); background: var(--background); }
+
+  /* Desktop action: h-10 text-sm font-medium. */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    height: 40px; padding: 0 16px;
+    border-radius: 6px; border: 1px solid var(--border);
+    background: var(--card); color: var(--foreground);
+    font: inherit; font-size: 14px; font-weight: 500;
+    text-decoration: none; cursor: pointer; white-space: nowrap;
+  }
+  .btn:hover { background: var(--accent); }
+  .btn-primary { background: var(--primary); color: var(--primary-foreground); border-color: var(--primary); }
+  .btn-primary:hover { background: oklch(0.145 0 0); }
+  .btn-block { width: 100%; }
+
+  .telrow { justify-content: space-between; width: 100%; }
+  .telrow .num { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; font-weight: 500; font-size: 13px; }
+
+  .actions2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+  .alert { margin: 0; font-size: 13px; color: var(--destructive); }
+  .rowsplit { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .fareline { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; font-size: 13px; }
+  .fareline dt { color: var(--muted-foreground); min-width: 0; }
+  .fareline dd { margin: 0; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; font-weight: 500; }
+  .faretotal { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; border-top: 1px solid var(--border); padding-top: 12px; margin-top: 6px; }
+  .detailrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid var(--muted); padding: 10px 0; font-size: 13px; }
+
+  .note { border-radius: 6px; padding: 10px; font-size: 13px; line-height: 1.55; margin: 0; }
+  .note.n-neutral { background: oklch(96.7% 0.003 264.542); color: oklch(44.6% 0.03 256.802); }
+
+  .empty { padding: 40px 0; text-align: center; color: var(--muted-foreground); }
+  .empty p { margin: 0; font-size: 14px; }
+
+  /* Dialog at its real desktop geometry. */
+  .dialogstage {
+    position: relative;
+    background: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 40px 24px;
+    display: flex; justify-content: center;
+  }
+  .dialogstage::before {
+    content: "Portalled to document.body · scrim rgba(0,0,0,0.5) · staged here on a muted ground so the panel edges are visible";
+    position: absolute; left: 16px; right: 16px; top: 12px;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--muted-foreground);
+  }
+  .dialog {
+    width: 440px; max-width: 100%;
+    background: var(--popover); color: var(--foreground);
+    border: 1px solid var(--border); border-radius: 12px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+    overflow: hidden;
+  }
+  .dialog h2 { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
+  .dialog .desc { margin: 4px 0 0; font-size: 13px; color: var(--muted-foreground); }
+  .summary { margin: 16px 20px 0; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .summary .rows { display: grid; grid-template-columns: 92px 1fr; column-gap: 12px; row-gap: 8px; padding: 12px 14px; font-size: 13px; }
+  .summary .rows .v { font-variant-numeric: tabular-nums; min-width: 0; overflow-wrap: anywhere; }
+  .summary .foot { display: flex; align-items: baseline; justify-content: space-between; border-top: 1px solid var(--border); background: var(--muted); padding: 12px 14px; }
+  .field { display: flex; flex-direction: column; gap: 6px; margin: 16px 20px 0; }
+  .field label { font-size: 13px; font-weight: 500; }
+  .field .help { font-size: 12px; color: var(--muted-foreground); line-height: 1.5; margin: 0; }
+  .inputwrap { display: flex; }
+  .input { width: 100%; height: 36px; padding: 0 12px; border: 1px solid var(--input); border-radius: 6px; background: var(--background); color: var(--foreground); font: inherit; font-size: 14px; }
+  .input.num { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; border-radius: 6px 0 0 6px; }
+  .unit { display: inline-flex; align-items: center; padding: 0 12px; border: 1px solid var(--input); border-left: 0; border-radius: 0 6px 6px 0; background: var(--muted); color: var(--muted-foreground); font-size: 13px; }
+  .dialogfoot { display: flex; gap: 8px; padding: 16px 20px 20px; }
+  .f1 { flex: 1; }
+  .f16 { flex: 1.6; }
+</style>
+</helmet>
+
+<div class="ab" data-admin-surface>
+
+  <!-- ================= MASTHEAD ================= -->
+  <div class="shell">
+    <div class="shellbar">
+      <span class="crumb"><a href="#">My orders</a> <span style="opacity:0.5;">/</span> <span class="mono" style="color:var(--foreground);">GE-48204</span></span>
+    </div>
+  </div>
+
+  <div class="col">
+    <div style="padding:32px 0 0;">
+      <p class="seclabel" style="margin:0 0 6px;">Design handoff · high fidelity</p>
+      <h1 style="margin:0;font-size:26px;font-weight:600;letter-spacing:-0.02em;">Driver Job Sheet — Desktop</h1>
+      <p class="t13 muted" style="margin:10px 0 0;">
+        Single column, <b class="mono" style="color:var(--foreground);">max-width: 720px</b>.
+        The desktop pass, not the design: this screen is drawn phone-first at 390 × 844 and the
+        720 column is what that layout becomes when the viewport allows it.
+      </p>
+    </div>
+  </div>
+
+  <p class="ann"><strong>Why 720, not 1180</strong>
+    Every other hub screen spreads to the 1180px content column because it is a dashboard —
+    a table with a detail panel beside it. This is a task list a driver reads top to bottom, and the
+    only thing a wider column buys is longer line lengths on addresses. Above <code>lg</code> the
+    248px sidebar returns and the page-title bar becomes sticky again; below it both disappear.</p>
+
+  <p class="ann"><strong>What changes between the two artboards, and what does not</strong>
+    Changed: the persistent bottom bar becomes an inline action in the job header (a bar pinned to a
+    1440px viewport under a 720px column is a phone pattern wearing a desktop coat); controls drop from
+    the 44/56px touch floor to <code>h-10 text-sm font-medium</code>, the hub's desktop action; the page
+    title goes 17px → 20px; the two stops share one Route card instead of two.
+    Unchanged: every token, every pill, the card geometry, the copy, the three timeline points, the
+    money rule, and the dialog — which is the same component at both widths, at its real 440px here.</p>
+
+  <div class="rule"><hr></div>
+
+
+  <!-- ================================================================ -->
+  <!-- STATE 1 — ACCEPTED                                               -->
+  <!-- ================================================================ -->
+  <div class="flabel">
+    <b>State 1 · ACCEPTED — before pickup</b>
+    <span>Stop 1 prominent. Primary action <b>Start delivery</b>, inline in the job header.</span>
+  </div>
+
+  <div class="col">
+    <div class="titleblock">
+      <div>
+        <h2 class="h1">Job sheet</h2>
+        <p class="h1sub">Tbilisi → Rustavi · today</p>
+      </div>
+      <button class="btn btn-primary" type="button">Start delivery</button>
+    </div>
+
+    <div class="screen">
+
+      <section class="card tight">
+        <div class="rowsplit">
+          <span class="mono t13 muted">GE-48204</span>
+          <span class="pill t-neutral">Scheduled</span>
+        </div>
+        <div>
+          <p class="payout">₾186.40</p>
+          <p class="t12 muted" style="margin:6px 0 0;">Paid to you</p>
+        </div>
+      </section>
+
+      <section class="card tight">
+        <h3 class="cardtitle">Timing</h3>
+        <dl class="spec">
+          <dt>Scheduled</dt><dd class="mono">Tue 9 Sep 2025, 14:30</dd>
+          <dt>Pickup window</dt><dd class="mono">14:00–15:30</dd>
+          <dt>Deliver by</dt><dd class="mono">Tue 9 Sep 2025, 18:00</dd>
+        </dl>
+      </section>
+
+      <section class="card">
+        <h3 class="cardtitle">Route</h3>
+
+        <div class="stop">
+          <span class="marker m-pickup" aria-hidden="true"></span>
+          <div style="min-width:0;flex:1;">
+            <div class="stophead">
+              <span class="seclabel" style="flex:none;">Pick-up</span>
+              <span class="t12" style="font-weight:500;">Tbilisi</span>
+            </div>
+            <p class="stopaddr">12 ვაჟა-ფშაველას გამზ. / 12 Vazha-Pshavela Ave</p>
+            <p class="t12 muted" style="margin:4px 0 0;">Block B loading bay · arrive 14:00–15:30</p>
+            <p class="t13" style="margin:10px 0 0;font-weight:500;">ნინო ბერიძე · Nino Beridze</p>
+            <p class="mono t13 muted" style="margin:1px 0 0;">+995 599 41 07 62</p>
+            <p class="t12 muted" style="margin:1px 0 0;">Warehouse gate 3 — ask for the shift lead</p>
+            <div class="actions2" style="margin-top:12px;">
+              <a class="btn telrow" href="tel:+995599410762"><span>Call</span><span class="num">+995 599 41 07 62</span></a>
+              <a class="btn" href="https://www.google.com/maps/dir/?api=1&amp;destination=12%20Vazha-Pshavela%20Ave%2C%20Tbilisi">Navigate</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="stop">
+          <span class="marker m-drop" aria-hidden="true"></span>
+          <div style="min-width:0;flex:1;">
+            <div class="stophead">
+              <span class="seclabel" style="flex:none;">Drop-off</span>
+              <span class="t12" style="font-weight:500;">Rustavi</span>
+            </div>
+            <p class="stopaddr muted">7 Kostava St, apt 24 — 4th floor, no lift</p>
+            <p class="t12 muted" style="margin:4px 0 0;">Deliver by Tue 9 Sep 2025, 18:00</p>
+            <p class="t13" style="margin:10px 0 0;font-weight:500;">გიორგი კაპანაძე · Giorgi Kapanadze</p>
+            <p class="mono t13 muted" style="margin:1px 0 0;">+995 577 18 24 90</p>
+            <div class="actions2" style="margin-top:12px;">
+              <a class="btn telrow" href="tel:+995577182490"><span>Call</span><span class="num">+995 577 18 24 90</span></a>
+              <a class="btn" href="https://www.google.com/maps/dir/?api=1&amp;destination=7%20Kostava%20St%2C%20Rustavi">Navigate</a>
+            </div>
+          </div>
+        </div>
+
+        <div style="padding-left:20px;">
+          <p class="t12 muted mono" style="margin:0;">— · 2 stops</p>
+          <p class="t12 muted" style="margin:4px 0 0;">
+            Neither stop has coordinates, so there is no distance to show and Navigate opens a map
+            search on the address text. “2 stops” is a constant, not a field.
+          </p>
+        </div>
+      </section>
+
+      <section class="card tight">
+        <h3 class="cardtitle">Cargo</h3>
+        <dl class="spec">
+          <dt>Type</dt><dd>Furniture</dd>
+          <dt>Weight</dt><dd class="mono">310 kg</dd>
+          <dt>Dimensions</dt><dd class="mono">1.8 × 0.9 × 1.4 m</dd>
+          <dt>Volume</dt><dd class="mono">2.27 m³</dd>
+          <dt>Packaging</dt><dd>Shrink-wrapped on 3 pallets</dd>
+          <dt>Quantity</dt><dd class="mono">3</dd>
+          <dt>Handling</dt><dd>Fragile, Heavy lift</dd>
+          <dt>Helpers</dt><dd>1 helper requested</dd>
+        </dl>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;">
+          <span class="tag">Fragile</span>
+          <span class="tag">Heavy lift</span>
+        </div>
+      </section>
+
+      <section class="card tight">
+        <h3 class="cardtitle">Progress</h3>
+        <ol class="tl">
+          <li>
+            <span class="tdot d-done" aria-hidden="true"></span>
+            <div style="min-width:0;flex:1;">
+              <p class="t13" style="margin:0;font-weight:500;">Order placed</p>
+              <p class="t12 muted" style="margin:1px 0 0;">Requested for Tue 14:30</p>
+            </div>
+            <span class="mono t12 muted">Mon 09:14</span>
+          </li>
+          <li>
+            <span class="tdot d-current" aria-hidden="true"></span>
+            <div style="min-width:0;flex:1;">
+              <p class="t13" style="margin:0;font-weight:500;">Picked up</p>
+              <p class="t12 muted" style="margin:1px 0 0;">12 Vazha-Pshavela Ave</p>
+            </div>
+            <span class="mono t12 muted">—</span>
+          </li>
+          <li>
+            <span class="tdot d-pending" aria-hidden="true"></span>
+            <div style="min-width:0;flex:1;">
+              <p class="t13" style="margin:0;font-weight:500;">Dropped off</p>
+              <p class="t12 muted" style="margin:1px 0 0;">7 Kostava St, apt 24</p>
+            </div>
+            <span class="mono t12 muted">—</span>
+          </li>
+        </ol>
+      </section>
+
+    </div>
+  </div>
+
+  <p class="ann"><strong>The driver sees <code>driverPayout</code> and nothing else</strong>
+    <code>₾186.40</code> at 26px / 600 / <code>tracking-[-0.02em]</code> / <code>tabular-nums</code>.
+    <code>price</code>, <code>baseFare</code>, <code>distanceFare</code>, <code>timeFare</code>,
+    <code>helperFee</code>, <code>overtimeFee</code> and <code>serviceLevelAdjustment</code> are excluded
+    at the <code>select</code> level from every driver-facing query — they are not hidden, they never
+    arrive. If any of them appears on this screen, the screen is wrong.</p>
+
+  <p class="ann"><strong>Status pills — the closed set of six</strong>
+    in transit → <b>info</b> · completed → <b>success</b> · cancelled → <b>danger</b> ·
+    scheduled → <b>neutral</b>. <code>warning</code> and <code>demand</code> exist in the set but this
+    screen shows neither, and it invents no seventh. Shape, quoted:
+    <code>h-auto rounded-full border-transparent px-[9px] py-[3px] text-[11px] font-semibold tracking-[0.02em]</code>.
+    ACCEPTED reads “Scheduled” because <code>toHubJobStatus</code> collapses PENDING, CLAIMED and
+    ACCEPTED into one word — the page still needs the raw <code>OrderStatus</code> to gate the buttons.</p>
+
+  <p class="ann"><strong>Class patterns quoted, not invented</strong>
+    Card <code>min-w-0 gap-4 rounded-[14px] border border-border p-[22px] ring-0</code> ·
+    card title <code>text-[15px] font-semibold</code> ·
+    section label <code>text-[11px] font-medium tracking-[0.06em] text-muted-foreground uppercase</code> ·
+    spec list <code>grid grid-cols-[96px_1fr] gap-x-3 gap-y-2 text-[13px]</code> ·
+    desktop action <code>h-10 text-sm font-medium</code> ·
+    stop marker <code>size-2 rounded-full mt-[5px] flex-none</code> with pickup <code>bg-primary</code> and
+    dropoff <code>border-2 border-primary bg-transparent</code> ·
+    empty state <code>py-10 text-center text-muted-foreground</code> + <code>text-sm</code>.
+    Sections are siblings 20px apart and never restate page padding — the shell supplies it.</p>
+
+  <div class="rule"><hr></div>
+
+
+  <!-- ================================================================ -->
+  <!-- STATE 2 — IN_TRANSIT                                             -->
+  <!-- ================================================================ -->
+  <div class="flabel">
+    <b>State 2 · IN_TRANSIT — after pickup</b>
+    <span>Re-weighted: stop 1 collapses to one completed line keeping its Call row, stop 2 takes the
+      emphasis, pill flips to info, action becomes <b>Mark delivered</b>.</span>
+  </div>
+
+  <div class="col">
+    <div class="titleblock">
+      <div>
+        <h2 class="h1">Job sheet</h2>
+        <p class="h1sub">Tbilisi → Rustavi · today</p>
+      </div>
+      <button class="btn btn-primary" type="button">Mark delivered</button>
+    </div>
+
+    <div class="screen">
+
+      <section class="card tight">
+        <div class="rowsplit">
+          <span class="mono t13 muted">GE-48204</span>
+          <span class="pill t-info">In transit</span>
+        </div>
+        <div>
+          <p class="payout">₾186.40</p>
+          <p class="t12 muted" style="margin:6px 0 0;">Paid to you</p>
+        </div>
+      </section>
+
+      <section class="card">
+        <h3 class="cardtitle">Route</h3>
+
+        <div style="display:flex;align-items:flex-start;gap:12px;">
+          <span class="tdot d-done" aria-hidden="true" style="margin-top:4px;"></span>
+          <div style="min-width:0;flex:1;">
+            <p class="t13" style="margin:0;font-weight:500;">Picked up · Tbilisi</p>
+            <p class="t12 muted" style="margin:2px 0 0;">12 Vazha-Pshavela Ave · Nino Beridze</p>
+          </div>
+          <a class="btn" href="tel:+995599410762" style="flex:none;">Call pick-up</a>
+          <span class="mono t12 muted" style="white-space:nowrap;margin-top:10px;">14:38</span>
+        </div>
+
+        <div class="stop">
+          <span class="marker m-drop" aria-hidden="true"></span>
+          <div style="min-width:0;flex:1;">
+            <div class="stophead">
+              <span class="seclabel" style="flex:none;">Drop-off</span>
+              <span class="t12" style="font-weight:500;">Rustavi</span>
+            </div>
+            <p class="stopaddr">7 Kostava St, apt 24 — 4th floor, no lift</p>
+            <p class="t12 muted" style="margin:4px 0 0;">Deliver by Tue 9 Sep 2025, 18:00</p>
+            <p class="t13" style="margin:10px 0 0;font-weight:500;">გიორგი კაპანაძე · Giorgi Kapanadze</p>
+            <p class="mono t13 muted" style="margin:1px 0 0;">+995 577 18 24 90</p>
+            <div class="actions2" style="margin-top:12px;">
+              <a class="btn telrow" href="tel:+995577182490"><span>Call</span><span class="num">+995 577 18 24 90</span></a>
+              <a class="btn" href="https://www.google.com/maps/dir/?api=1&amp;destination=7%20Kostava%20St%2C%20Rustavi">Navigate</a>
+            </div>
+            <p class="t12 muted" style="margin:8px 0 0;">No coordinates stored — opens a map search on the address text.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="card tight">
+        <h3 class="cardtitle">Progress</h3>
+        <ol class="tl">
+          <li>
+            <span class="tdot d-done" aria-hidden="true"></span>
+            <div style="min-width:0;flex:1;">
+              <p class="t13" style="margin:0;font-weight:500;">Order placed</p>
+              <p class="t12 muted" style="margin:1px 0 0;">Requested for Tue 14:30</p>
+            </div>
+            <span class="mono t12 muted">Mon 09:14</span>
+          </li>
+          <li>
+            <span class="tdot d-done" aria-hidden="true"></span>
+            <div style="min-width:0;flex:1;">
+              <p class="t13" style="margin:0;font-weight:500;">Picked up</p>
+              <p class="t12 muted" style="margin:1px 0 0;">12 Vazha-Pshavela Ave</p>
+            </div>
+            <span class="mono t12 muted">14:38</span>
+          </li>
+          <li>
+            <span class="tdot d-current" aria-hidden="true"></span>
+            <div style="min-width:0;flex:1;">
+              <p class="t13" style="margin:0;font-weight:500;">Dropped off</p>
+              <p class="t12 muted" style="margin:1px 0 0;">7 Kostava St, apt 24</p>
+            </div>
+            <span class="mono t12 muted">—</span>
+          </li>
+        </ol>
+      </section>
+
+      <section class="card tight">
+        <h3 class="cardtitle">Cargo</h3>
+        <dl class="spec">
+          <dt>Type</dt><dd>Furniture</dd>
+          <dt>Weight</dt><dd class="mono">310 kg</dd>
+          <dt>Dimensions</dt><dd class="mono">1.8 × 0.9 × 1.4 m</dd>
+          <dt>Volume</dt><dd class="mono">2.27 m³</dd>
+          <dt>Packaging</dt><dd>Shrink-wrapped on 3 pallets</dd>
+          <dt>Quantity</dt><dd class="mono">3</dd>
+          <dt>Handling</dt><dd>Fragile, Heavy lift</dd>
+          <dt>Helpers</dt><dd>1 helper requested</dd>
+        </dl>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;">
+          <span class="tag">Fragile</span>
+          <span class="tag">Heavy lift</span>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <p class="ann"><strong>Buttons reflect server status, not the tap</strong>
+    <code>start</code> refuses anything that is not exactly <code>ACCEPTED</code> (409) and anyone who is
+    not the assigned driver (403); <code>complete</code> refuses anything that is not
+    <code>IN_TRANSIT</code> (409) and a bad waiting figure (400). Both endpoints already exist and are
+    guarded — and neither has ever had a UI caller. This screen is their first consumer.</p>
+
+  <div class="rule"><hr></div>
+
+
+  <!-- ================================================================ -->
+  <!-- STATE 3 — CONFIRMATION DIALOG                                    -->
+  <!-- ================================================================ -->
+  <div class="flabel">
+    <b>State 3 · Delivery confirmation dialog · 440px</b>
+    <span>Irreversible, no driver-side undo. Same component at both widths — on a 390 phone the
+      440 cap never binds, so this is where the real geometry is shown.</span>
+  </div>
+
+  <div class="col">
+    <div class="dialogstage">
+      <div class="dialog" data-admin-surface role="dialog" aria-modal="true" aria-labelledby="d-title">
+        <div style="padding:20px 20px 0;">
+          <h2 id="d-title">Mark delivered</h2>
+          <p class="desc">This can’t be undone — there is no driver-side way to reopen a delivery.</p>
+        </div>
+
+        <div class="summary">
+          <div class="rows">
+            <div class="muted">Drop-off</div>
+            <div class="v">7 Kostava St, apt 24, Rustavi</div>
+            <div class="muted">Contact</div>
+            <div class="v">Giorgi Kapanadze</div>
+            <div class="muted">Order</div>
+            <div class="v mono">GE-48204</div>
+          </div>
+          <div class="foot">
+            <span class="t13 muted">You are paid</span>
+            <span class="mono" style="font-size:20px;font-weight:600;letter-spacing:-0.02em;">₾186.40</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="w2">Waiting time</label>
+          <div class="inputwrap">
+            <input id="w2" class="input num" type="number" inputmode="numeric" min="0" step="1" value="45" aria-describedby="w2-help">
+            <span class="unit">min</span>
+          </div>
+          <p class="help" id="w2-help">Whole minutes spent waiting at either stop. Enter 0 if none.</p>
+        </div>
+
+        <div style="margin:10px 20px 0;">
+          <p class="note n-neutral" style="display:flex;flex-direction:column;align-items:flex-start;gap:6px;">
+            <span>30 min free · 15 min over × ₾1.20 → <b class="mono">+₾15.30</b> added to your payout.</span>
+            <span class="sample" title="Computed client-side from freeLoadingMinutes and overtimeRatePerMinute. The server recomputes on complete; no stored preview value exists.">Sample data</span>
+          </p>
+        </div>
+
+        <div class="field">
+          <label for="r2" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            Received by (optional)
+            <span class="sample" title="Order has no receivedBy column. Keeping this field needs a nullable column and an extension to POST /api/orders/[id]/complete, which today accepts only { waitingMinutes }.">Needs a column</span>
+          </label>
+          <input id="r2" class="input" type="text" value="Giorgi Kapanadze" autocomplete="off">
+        </div>
+
+        <div class="dialogfoot">
+          <button class="btn f1" type="button">Cancel</button>
+          <button class="btn btn-primary f16" type="button">Confirm delivery</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p class="ann"><strong>Geometry quoted from <code>loads-claim-dialogs.tsx</code></strong>
+    <code>sm:max-w-[440px]</code>, <code>rounded-xl</code>, <code>gap-0 p-0</code> so the summary card and
+    the footer strip reach the panel edges; summary rows <code>grid-cols-[92px_1fr]</code>;
+    footer <code>Cancel</code> at <code>flex-1</code> and the primary at <code>flex-[1.6]</code>, both
+    <code>h-10</code>. On the phone artboard those two buttons rise to 44px — the hub's stated touch floor.
+    <code>data-admin-surface</code> is repeated on the panel itself: Radix portals to
+    <code>document.body</code>, and without it the border and muted tokens fall through to the marketing
+    palette.</p>
+
+  <p class="ann gap"><strong>Waiting time — required, and it changes the driver's own pay</strong>
+    <code>POST /api/orders/[id]/complete</code> returns 400 without it. Whole minutes, default
+    <code>0</code>. <code>overtimeFee = max(0, waitingMinutes − freeLoadingMinutes) ×
+    overtimeRatePerMinute</code>, and the driver receives their commissioned share of it — so the preview
+    line answers open question 3 in the affirmative: showing the effect is the only honest way to ask for
+    the number. It is badged sample because the preview is computed client-side and the server recomputes
+    on submit. <b>Open question 1 remains open</b>: this is the field, not a timer; a timer would be more
+    accurate but needs arrival timestamps, and none exist.
+    <b><code>receivedBy</code> needs a nullable column</b> and an extension to an endpoint that today
+    accepts only <code>{ waitingMinutes }</code>.</p>
+
+  <p class="ann gap"><strong>An input with a unit affix is new component work</strong>
+    <code>src/components/ui/</code> has 15 files — badge, button, calendar, card, checkbox, dialog,
+    dropdown-menu, input, label, popover, select, sheet, table, tabs, textarea. There is
+    <b>no tooltip, toast, progress bar, separator, avatar, skeleton or accordion</b>, and no input group.
+    The <code>min</code> affix drawn above is a new composition, flagged rather than assumed.</p>
+
+  <div class="rule"><hr></div>
+
+
+  <!-- ================================================================ -->
+  <!-- STATE 4 — COMPLETED                                              -->
+  <!-- ================================================================ -->
+  <div class="flabel">
+    <b>State 4 · COMPLETED — read-only</b>
+    <span>No actions. Completion time, waiting minutes and overtime payout shown; contacts stay visible.</span>
+  </div>
+
+  <div class="col">
+    <div class="titleblock">
+      <div>
+        <h2 class="h1">Job sheet</h2>
+        <p class="h1sub">Tbilisi → Rustavi · Tue 9 Sep</p>
+      </div>
+    </div>
+
+    <div class="screen">
+
+      <section class="card tight">
+        <div class="rowsplit">
+          <span class="mono t13 muted">GE-48204</span>
+          <span class="pill t-success">Delivered</span>
+        </div>
+        <dl style="margin:0;">
+          <div class="fareline"><dt>Payout</dt><dd>₾186.40</dd></div>
+          <div class="fareline"><dt>Overtime payout · 45 min loading</dt><dd>₾15.30</dd></div>
+        </dl>
+        <div class="faretotal">
+          <span class="t15" style="font-weight:600;">Paid to you</span>
+          <span class="mono" style="font-size:20px;font-weight:600;">₾201.70</span>
+        </div>
+      </section>
+
+      <section class="card tight">
+        <h3 class="cardtitle">Delivery record</h3>
+        <dl class="spec">
+          <dt>Delivered</dt><dd class="mono">Tue 9 Sep 2025, 16:05</dd>
+          <dt>Waiting time</dt><dd class="mono">45 min</dd>
+          <dt>Received by</dt>
+          <dd style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            Giorgi Kapanadze
+            <span class="sample" title="Order has no receivedBy column. This value has nowhere to be stored today.">Needs a column</span>
+          </dd>
+        </dl>
+      </section>
+
+      <section class="card tight">
+        <h3 class="cardtitle">Progress</h3>
+        <ol class="tl">
+          <li>
+            <span class="tdot d-done" aria-hidden="true"></span>
+            <div style="min-width:0;flex:1;">
+              <p class="t13" style="margin:0;font-weight:500;">Order placed</p>
+              <p class="t12 muted" style="margin:1px 0 0;">Requested for Tue 14:30</p>
+            </div>
+            <span class="mono t12 muted">Mon 09:14</span>
+          </li>
+          <li>
+            <span class="tdot d-done" aria-hidden="true"></span>
+            <div style="min-width:0;flex:1;">
+              <p class="t13" style="margin:0;font-weight:500;">Picked up</p>
+              <p class="t12 muted" style="margin:1px 0 0;">12 Vazha-Pshavela Ave</p>
+            </div>
+            <span class="mono t12 muted">14:38</span>
+          </li>
+          <li>
+            <span class="tdot d-done" aria-hidden="true"></span>
+            <div style="min-width:0;flex:1;">
+              <p class="t13" style="margin:0;font-weight:500;">Dropped off</p>
+              <p class="t12 muted" style="margin:1px 0 0;">7 Kostava St, apt 24</p>
+            </div>
+            <span class="mono t12 muted">16:05</span>
+          </li>
+        </ol>
+      </section>
+
+      <section class="card">
+        <h3 class="cardtitle">Contacts</h3>
+        <div class="actions2" style="align-items:start;">
+          <div>
+            <span class="seclabel">Pick-up</span>
+            <p class="t13" style="margin:4px 0 8px;font-weight:500;">Nino Beridze</p>
+            <a class="btn telrow" href="tel:+995599410762"><span>Call</span><span class="num">+995 599 41 07 62</span></a>
+          </div>
+          <div>
+            <span class="seclabel">Drop-off</span>
+            <p class="t13" style="margin:4px 0 8px;font-weight:500;">Giorgi Kapanadze</p>
+            <a class="btn telrow" href="tel:+995577182490"><span>Call</span><span class="num">+995 577 18 24 90</span></a>
+          </div>
+        </div>
+      </section>
+
+      <section class="card tight">
+        <h3 class="cardtitle">Cargo</h3>
+        <dl class="spec">
+          <dt>Type</dt><dd>Furniture</dd>
+          <dt>Weight</dt><dd class="mono">310 kg</dd>
+          <dt>Dimensions</dt><dd class="mono">1.8 × 0.9 × 1.4 m</dd>
+          <dt>Volume</dt><dd class="mono">2.27 m³</dd>
+          <dt>Packaging</dt><dd>Shrink-wrapped on 3 pallets</dd>
+          <dt>Quantity</dt><dd class="mono">3</dd>
+          <dt>Handling</dt><dd>Fragile, Heavy lift</dd>
+          <dt>Helpers</dt><dd>1 helper requested</dd>
+        </dl>
+      </section>
+
+      <p class="t12 muted" style="margin:0;">
+        No actions. A driver cannot reopen, amend or cancel a delivered job — no endpoint exists.
+      </p>
+
+    </div>
+  </div>
+
+  <p class="ann"><strong>“Delivered” is a label, not a status key</strong>
+    <code>hubStatusTone("Delivered")</code> is unmapped and falls through to <b>neutral</b>. The pill must be
+    <code>&lt;HubStatusBadge status="COMPLETED" label="Delivered" /&gt;</code> so
+    <code>completed → success</code> resolves. Pass the copy string as the status and the pill silently
+    goes grey.</p>
+
+  <p class="ann"><strong>Two payout lines, never six</strong>
+    <code>buildFareLines</code> yields <b>Payout</b> and, only when the amount is non-zero,
+    <b>Overtime payout · N min loading</b>. A payout is one commissioned lump taken off the whole
+    client-paid total and stored once at booking; there is no carrier-side base, distance or time
+    component to print. The overtime line is conditional on the <em>amount</em>, not on
+    <code>waitingMinutes</code> — a job that waited inside the free allowance earns nothing extra, and a
+    zero line would send the driver hunting for money that is not there.</p>
+
+  <div class="rule"><hr></div>
+
+
+  <!-- ================================================================ -->
+  <!-- STATE 5 — EDGE STATES                                            -->
+  <!-- ================================================================ -->
+  <div class="flabel">
+    <b>State 5a · Not found (generic)</b>
+    <span>Someone else's job and a missing id are reported identically, so the URL cannot be used to
+      probe which order ids exist.</span>
+  </div>
+
+  <div class="col">
+    <div class="screen">
+      <section class="card">
+        <div class="empty">
+          <p style="font-weight:600;color:var(--foreground);font-size:15px;margin-bottom:6px;">Order not found.</p>
+          <p>It may have been removed, or the link may be wrong.</p>
+        </div>
+        <div><a class="btn" href="#">Back to load board</a></div>
+      </section>
+    </div>
+  </div>
+
+  <p class="ann gap"><strong>Departure from the copy table — deliberate</strong>
+    The copy table gives <code>This delivery isn't assigned to you.</code> for “Not yours”, but the same
+    brief requires a not-found <em>indistinguishable</em> from a missing id. The two contradict: naming
+    assignment confirms the order exists and belongs to someone else, which is exactly the id-probing the
+    <code>orders/[id]/track</code> pattern blocks — “Someone else's order is reported exactly like a
+    missing one, so this page can't be used to probe which order ids exist.” This screen therefore reuses
+    that page's own wording, <b>“Order not found.”</b>, and the assignment string moves to the load
+    board's “you no longer hold this load” path, where the reader is already known to have held it.</p>
+
+  <div class="flabel">
+    <b>State 5b · Cancelled while you held it</b>
+    <span>Terminal, with a route back to the board. The timeline cannot say <em>when</em>.</span>
+  </div>
+
+  <div class="col">
+    <div class="titleblock">
+      <div>
+        <h2 class="h1">Job sheet</h2>
+        <p class="h1sub">Tbilisi → Rustavi</p>
+      </div>
+    </div>
+    <div class="screen">
+      <section class="card tight">
+        <div class="rowsplit">
+          <span class="mono t13 muted">GE-48204</span>
+          <span class="pill t-danger">Cancelled</span>
+        </div>
+        <p class="t13" style="margin:0;">This delivery was cancelled.</p>
+        <p class="t12 muted" style="margin:0;">Cancelled before pickup. Nothing records when it was cancelled.</p>
+      </section>
+
+      <section class="card tight">
+        <h3 class="cardtitle">Progress</h3>
+        <ol class="tl">
+          <li>
+            <span class="tdot d-done" aria-hidden="true"></span>
+            <div style="min-width:0;flex:1;">
+              <p class="t13" style="margin:0;font-weight:500;">Order placed</p>
+              <p class="t12 muted" style="margin:1px 0 0;">Requested for Tue 14:30</p>
+            </div>
+            <span class="mono t12 muted">Mon 09:14</span>
+          </li>
+          <li>
+            <span class="tdot d-pending" aria-hidden="true"></span>
+            <div style="min-width:0;flex:1;">
+              <p class="t13" style="margin:0;font-weight:500;">Picked up</p>
+              <p class="t12 muted" style="margin:1px 0 0;">12 Vazha-Pshavela Ave</p>
+            </div>
+            <span class="mono t12 muted">—</span>
+          </li>
+          <li>
+            <span class="tdot d-pending" aria-hidden="true"></span>
+            <div style="min-width:0;flex:1;">
+              <p class="t13" style="margin:0;font-weight:500;">Dropped off</p>
+              <p class="t12 muted" style="margin:1px 0 0;">7 Kostava St, apt 24</p>
+            </div>
+            <span class="mono t12 muted">—</span>
+          </li>
+        </ol>
+      </section>
+
+      <div><a class="btn" href="#">Back to load board</a></div>
+    </div>
+  </div>
+
+  <p class="ann"><strong>No cancellation timestamp exists</strong>
+    <code>Order</code> has no <code>cancelledAt</code> column, so the sheet says so in words rather than
+    inventing a time. Copy is <code>jobs-detail-panel.tsx</code>'s existing pair, chosen on
+    <code>inTransitAt</code>. Unreached steps stay <em>pending</em>, never accent — painting them current
+    would promise a pickup that is never coming. <b>A driver cannot cancel:</b> no endpoint exists, so
+    there is no abort affordance anywhere on this sheet.</p>
+
+  <div class="flabel">
+    <b>State 5c · Failed action — old status intact</b>
+    <span>The driver stays on the sheet, the status is unchanged, and the action is retryable.
+      Never a half-applied state.</span>
+  </div>
+
+  <div class="col">
+    <div class="titleblock">
+      <div>
+        <h2 class="h1">Job sheet</h2>
+        <p class="h1sub">Tbilisi → Rustavi · today</p>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
+        <p class="alert" role="alert">Couldn’t start the delivery. Nothing changed — try again.</p>
+        <button class="btn btn-primary" type="button">Start delivery</button>
+      </div>
+    </div>
+    <div class="screen">
+      <section class="card tight">
+        <div class="rowsplit">
+          <span class="mono t13 muted">GE-48204</span>
+          <span class="pill t-neutral">Scheduled</span>
+        </div>
+        <div>
+          <p class="payout">₾186.40</p>
+          <p class="t12 muted" style="margin:6px 0 0;">Paid to you</p>
+        </div>
+      </section>
+      <section class="card tight">
+        <h3 class="cardtitle">Timing</h3>
+        <dl class="spec">
+          <dt>Scheduled</dt><dd class="mono">Tue 9 Sep 2025, 14:30</dd>
+          <dt>Pickup window</dt><dd class="mono">14:00–15:30</dd>
+          <dt>Deliver by</dt><dd class="mono">Tue 9 Sep 2025, 18:00</dd>
+        </dl>
+      </section>
+    </div>
+  </div>
+
+  <p class="ann"><strong>Three refusals, three sentences — and the pill never moves</strong>
+    The pill still reads <b>Scheduled</b>, because it reflects the server, not the tap.
+    <br>· <code>409</code> from <code>start</code> → “This job has already moved on. Refresh to see where it is.”
+    <br>· <code>403</code> from either → “This delivery isn’t assigned to you any more.”
+    <br>· <code>400</code> from <code>complete</code> → the waiting-time field takes the error inline and the dialog stays open.
+    <br>Network failure → the sentence drawn above. In every case the button returns to its idle label and
+    stays clickable. The message is a <code>role="alert"</code> line beside the control that produced it,
+    and the in-flight state is <code>role="status" aria-live="polite"</code> — <b>not a toast</b>, because
+    there is no toast in this codebase.</p>
+
+  <div class="rule"><hr></div>
+
+
+  <!-- ================================================================ -->
+  <!-- CLOSING                                                          -->
+  <!-- ================================================================ -->
+  <div class="flabel"><b>Notes carried out of this artboard</b></div>
+
+  <p class="ann gap"><strong>Everything drawn here that does not exist yet</strong>
+    · <b>The route.</b> <code>/dashboard/jobs/[id]</code> would be the first dynamic segment in the hub;
+    <code>hubNavItemForPath</code> prefix-matches it to “My orders” with no change.
+    <br>· <b>The two transition buttons.</b> Endpoints exist; no UI has ever called them.
+    <br>· <b>Navigate.</b> Zero matches for <code>maps.google</code>, <code>geo:</code>, <code>waze</code>
+    or <code>window.open</code> in the repo. Needs platform branching:
+    <code>maps://?daddr=…</code> · <code>comgooglemaps://?daddr=…</code> · <code>geo:0,0?q=…</code> ·
+    <code>https://www.google.com/maps/dir/?api=1&amp;destination=…</code>.
+    <br>· <b>The waiting-time field</b> and <b>the unit-affixed input</b>. No precedent anywhere.
+    <br>· <b><code>receivedBy</code>.</b> No column.
+    <br>· <b>A third view model.</b> <code>HubJob</code> has contacts, timeline and money but no cargo;
+    <code>HubLoad</code> has cargo and windows but no timeline or raw status. The job sheet unions them.
+    <br>Everything else is reuse: contacts, timeline, payout lines, route stops, cargo spec and handling
+    pills already ship at production quality in <code>jobs-detail-panel.tsx</code>,
+    <code>loads-detail-parts.tsx</code> and <code>loads-drawer.tsx</code>. Extract the shared parts —
+    do not copy them a third time.</p>
+
+  <p class="ann"><strong>Where the data comes from</strong>
+    Not <code>GET /api/loads</code> — it serialises status as only
+    <code>"available" | "claimed" | "mine"</code>, and telling ACCEPTED from IN_TRANSIT is exactly what
+    gates the two buttons. There is no <code>GET /api/orders/[id]</code> either. The page reads Prisma
+    server-side following <code>orders/[id]/track/page.tsx</code>: server component,
+    <code>dynamic = "force-dynamic"</code>, <code>auth.api.getSession</code>, ownership check, generic
+    not-found. Contacts are redacted by <b>nulling</b> the six keys rather than omitting them, so every
+    row keeps one shape; the sheet is only reachable by the assigned driver, so they are always present
+    here. Use <code>CARRIER_ORDER_PARTY_SELECT</code> — <code>ORDER_PARTY_SELECT</code>, which
+    <code>specs/driver-load-board/action-required.md</code> names, is dead code.</p>
+
+  <p class="ann"><strong>Out of scope for v1, and it must stay out of the copy</strong>
+    No map embed, no delivery photos, no signature, no captured media of any kind. Delivery is confirmed
+    by a state transition, not by evidence. <code>JOB_SHEET_TITLE</code> in
+    <code>loads-detail-parts.tsx</code> currently promises “proof of delivery” — that string is deleted
+    when this ships, along with <code>disabled</code> on the three “Open job sheet” buttons
+    (<code>loads-drawer.tsx:359</code>, <code>loads-detail-sheet.tsx:386</code>,
+    <code>loads-mobile.tsx:559</code>). <code>ClaimedByYouNote</code> stays: it becomes true.</p>
+
+  <p class="ann"><strong>Two stops, and the layout could extend</strong>
+    The schema supports exactly one pickup and one dropoff — six columns rather than a <code>Stop</code>
+    relation, documented as reversible. The Route card is a vertical list of marker + block, so a third
+    stop is a third list item, not a redesign. “2 stops” is a constant, not a field.</p>
+
+</div>
+</x-dc>
+</body>
+</html>

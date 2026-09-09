@@ -168,33 +168,17 @@ export function formatJobTimestamp(iso: string): string {
 }
 
 /**
- * A stop contact's phone as a `tel:` URI, or `null` when it cannot be dialled.
+ * `toTelHref` **moved** to `@/components/driver-hub/hub-job-parts`.
  *
- * The number is free text a client typed, so it reaches here as anything from
- * `+995 555 12 34 56` to `ask for Nino`. Everything but the digits is dropped,
- * because the rest is punctuation a dialler would have to strip anyway and
- * leaving it in a URI means percent-encoding it for nothing.
- *
- * The one exception is a `+` appearing anywhere *before the first digit*, which
- * is kept: it is the international prefix however the client punctuated around
- * it, so `(+995) 555 12 34 56` must dial `+995…` and not a number that reads as
- * national. A `+` that follows digits is not a dialling prefix — it is a note
- * the client appended, as in `555 12 34 56 (+ ask for Nino)` — and is dropped
- * with the rest of the punctuation.
- *
- * `null` for anything with no digits in it at all: a `tel:` link that dials
- * nothing is worse than plain text, because it looks tappable and is not. The
- * panel prints the client's words instead, unlinked.
+ * It was never a formatter in this module's sense — everything else here is
+ * pinned to `HUB_TIME_ZONE` or to `en-GB`, and that one was a parsing rule about
+ * a stored free-text column. The driver's Job sheet needed the same rule, and
+ * the per-screen formatter convention this file's header defends (which is why
+ * `loads-format.ts` carries its own clock rather than importing this one) is a
+ * rule about *locale-dependent display*, not a reason to write the same
+ * phone-number parse twice. `StopPhoneLink` there renders it with the plain-text
+ * fallback attached, which is the half that gets forgotten at a bare call site.
  */
-export function toTelHref(phone: string): string | null {
-  const digits = phone.replace(/\D/g, "");
-
-  if (digits === "") {
-    return null;
-  }
-
-  return `tel:${/^[^\d]*\+/.test(phone) ? "+" : ""}${digits}`;
-}
 
 /** `1, "job"` → `"1 job"`; `3` → `"3 jobs"`. */
 export function pluralise(count: number, singular: string): string {

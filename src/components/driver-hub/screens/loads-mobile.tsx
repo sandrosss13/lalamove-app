@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 
 import { HubEmptyState } from "@/components/driver-hub/hub-primitives";
 import { HUB_STATUS_TONE_CLASSES } from "@/components/driver-hub/hub-status";
@@ -487,9 +488,10 @@ function LoadCard({ load, nowIso }: { load: HubLoad; nowIso: string }) {
  * design states explicitly and which is the floor for a control a thumb has to
  * hit in a moving vehicle.
  *
- * Every button here stops propagation: the card around it opens the detail
- * sheet, and a Reject that also opened a sheet describing the load it just hid
- * would be a bug the driver then has to undo.
+ * Every control here stops propagation — the buttons and the "Yours" link
+ * alike: the card around it opens the detail sheet, and a Reject that also
+ * opened a sheet describing the load it just hid would be a bug the driver then
+ * has to undo.
  *
  * The claimed and mine treatments reuse `HUB_STATUS_TONE_CLASSES` rather than
  * introducing colours of their own — `neutral` for a load somebody else took
@@ -557,19 +559,38 @@ function LoadCardActions({ load }: { load: HubLoad }) {
   }
 
   if (load.status === "mine") {
-    // Not a link and not a button: "Open job sheet" has no destination in this
-    // feature (`requirements.md`, non-goals). Tapping the strip does what
-    // tapping the rest of the card does — opens the detail sheet, where the
-    // same unavailable action is spelled out on a disabled control.
+    // A link now. It was inert text while "Open job sheet" had no destination
+    // (`requirements.md`, Non-Goals) and tapping it merely opened the detail
+    // sheet, where the same unavailable action was spelled out on a disabled
+    // control. The job sheet exists, so the strip goes straight there and the
+    // driver is spared the sheet in between.
+    //
+    // `ghost` rather than the `outline` the sibling controls use: outline
+    // declares its own background, which would fight the `success` tone that
+    // makes this the "Yours" strip. Ghost declares none, so the tone survives
+    // in both themes and the variant contributes only the hover and focus
+    // affordances the inert paragraph could not have.
     return (
-      <p
-        className={cn(
-          "mt-2.5 flex h-11 items-center justify-center rounded-md text-xs font-medium",
-          HUB_STATUS_TONE_CLASSES.success,
-        )}
-      >
-        Yours · view job sheet
-      </p>
+      <div className="mt-2.5">
+        <Button
+          asChild
+          variant="ghost"
+          className={cn(
+            "h-11 w-full rounded-md text-xs font-medium",
+            HUB_STATUS_TONE_CLASSES.success,
+          )}
+        >
+          <Link
+            href={`/dashboard/jobs/${load.id}`}
+            // The card around it opens the detail sheet on click; without this
+            // a tap would fire that too and leave a sheet behind the page the
+            // driver just navigated to. Same rule as every other control here.
+            onClick={stop}
+          >
+            Yours · view job sheet
+          </Link>
+        </Button>
+      </div>
     );
   }
 

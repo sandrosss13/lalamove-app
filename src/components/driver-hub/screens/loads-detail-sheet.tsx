@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { useLoadsBoard } from "@/components/driver-hub/screens/loads-context";
 import {
   CargoPhotoTiles,
@@ -7,7 +9,6 @@ import {
   ClaimedByYouNote,
   ClaimedElsewhereNote,
   HandlingTagPills,
-  JOB_SHEET_TITLE,
   LoadComplianceNotes,
   LoadStatusPill,
   RouteStopHeading,
@@ -380,20 +381,20 @@ export function LoadsDetailSheet({ nowIso }: LoadsDetailSheetProps) {
               ) : load.status === "mine" ? (
                 <>
                   <ClaimedByYouNote />
+                  {/* The desktop drawer's twin, at the mobile touch floor
+                      rather than 40px. It spent a release `disabled` behind an
+                      explanatory `title` because the screen did not exist; the
+                      screen exists, so this is a plain link and there is
+                      nothing left to explain. See `loads-drawer.tsx`'s doc
+                      comment for the full history. */}
                   <Button
-                    type="button"
+                    asChild
                     variant="outline"
-                    // Ships disabled: there is no job sheet to open. See
-                    // requirements.md's Non-Goals — do not wire this to a
-                    // placeholder route.
-                    disabled
-                    title={JOB_SHEET_TITLE}
                     className={TOUCH_TARGET_CLASSES}
                   >
-                    Open job sheet
-                    {/* `title` is not reliably announced, so the reason is real
-                      text for assistive tech too. */}
-                    <span className="sr-only">. {JOB_SHEET_TITLE}</span>
+                    <Link href={`/dashboard/jobs/${load.id}`}>
+                      Open job sheet
+                    </Link>
                   </Button>
                 </>
               ) : isRejected(load.id) ? (

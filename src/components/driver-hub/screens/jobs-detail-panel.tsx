@@ -16,8 +16,18 @@ import {
   formatJobDateLabel,
   formatJobTime,
   formatJobTimestamp,
-  toTelHref,
 } from "@/components/driver-hub/screens/jobs-format";
+// The three claims this panel and the driver's Job sheet both make about one
+// order — which timeline steps exist, what the payout lines are called, and
+// when a stored number becomes a `tel:` link. See that module's header for why
+// only the *decisions* moved and both layouts stayed put.
+import {
+  StopPhoneLink,
+  buildHubPayoutLines,
+  buildHubTimeline,
+  type HubTimelineStep,
+  type HubTimelineStepState,
+} from "@/components/driver-hub/hub-job-parts";
 import type { HubJob, HubStopContact } from "@/lib/dashboard/hub/jobs";
 import { cn } from "@/lib/utils";
 
@@ -112,74 +122,48 @@ const DETAIL_ROW_CLASSES =
 /* Timeline                                                                   */
 /* -------------------------------------------------------------------------- */
 
-type StepState = "done" | "current" | "pending";
-
-const DOT_CLASSES: Record<StepState, string> = {
+const DOT_CLASSES: Record<HubTimelineStepState, string> = {
   done: DOT_DONE_CLASSES,
   current: DOT_CURRENT_CLASSES,
   pending: DOT_PENDING_CLASSES,
 };
 
-type TimelineStep = {
-  label: string;
-  detail: string;
-  /** The moment it happened, or `null` if it has not. */
-  at: string | null;
-  state: StepState;
-};
-
 /**
- * The three real steps, in order, with the state each one is in.
+ * The shared three steps, each paired with **this panel's** sub-line.
  *
- * A step is *done* when its timestamp exists — that is the only evidence there
- * is that it happened. The first step without one is *current*, but only while
- * the job is still going: a cancelled job is waiting on nothing, so painting
- * its unreached steps in accent would promise a pickup that is never coming.
+ * Which steps exist and which of them count as done is
+ * `buildHubTimeline`'s call, not this file's — the rule that a step is done
+ * only when its timestamp exists, and that nothing may pad the list out to the
+ * design's four, is the same rule on the driver's Job sheet and must not be
+ * written twice. What stays here is the `detail` line under each label, which
+ * is genuinely this panel's own: the Job sheet shows a bare timestamp under the
+ * label because it is already showing both addresses in full a card away, while
+ * this panel is the only place a reader sees them at all.
  */
-function buildTimeline(job: HubJob, nowIso: string): TimelineStep[] {
-  const steps: Omit<TimelineStep, "state">[] = [
-    {
-      label: "Order placed",
-      // `scheduledAt` is the client's requested slot and is null on every order
-      // booked before the column existed, which is why the alternative wording
-      // is a statement about this order rather than an em dash.
-      detail:
-        job.scheduledAt === null
-          ? "Booked for immediate pickup"
-          : `Requested for ${formatJobTime(job.scheduledAt, nowIso)}`,
-      at: job.createdAt,
-    },
-    {
-      label: "Picked up",
-      detail: job.pickupAddress,
-      at: job.inTransitAt,
-    },
-    {
-      label: "Dropped off",
-      detail: job.dropoffAddress,
-      at: job.completedAt,
-    },
-  ];
-
-  const running = job.status === "In transit" || job.status === "Scheduled";
-  const nextIndex = steps.findIndex((step) => step.at === null);
-
-  return steps.map((step, index) => ({
-    ...step,
-    state:
-      step.at !== null
-        ? "done"
-        : running && index === nextIndex
-          ? "current"
-          : "pending",
-  }));
+function detailFor(
+  job: HubJob,
+  nowIso: string,
+  // Keyed on `HubTimelineStep["id"]` rather than on `string`, so that a step
+  // added to the shared builder is a compile error here — a missing sub-line
+  // would otherwise be an empty second row under a label, which reads as a
+  // rendering fault rather than as unfinished work.
+): Record<HubTimelineStep["id"], string> {
+  return {
+    // `scheduledAt` is the client's requested slot and is null on every order
+    // booked before the column existed, which is why the alternative wording
+    // is a statement about this order rather than an em dash.
+    placed:
+      job.scheduledAt === null
+        ? "Booked for immediate pickup"
+        : `Requested for ${formatJobTime(job.scheduledAt, nowIso)}`,
+    "picked-up": job.pickupAddress,
+    "dropped-off": job.dropoffAddress,
+  };
 }
 
 /* -------------------------------------------------------------------------- */
 /* Fare lines                                                                 */
 /* -------------------------------------------------------------------------- */
-
-type FareLine = { label: string; amountGel: number };
 
 /**
  * What the job paid, in the at most two lines the carrier's side of it has — no
@@ -222,22 +206,17 @@ type FareLine = { label: string; amountGel: number };
  * read as "the customer left nothing") or filled from the range-level estimate
  * in `sample.ts` (which would make this the one screen with placeholder money on
  * it).
+ *
+ * **All of the above now lives in `buildHubPayoutLines`**, shared with the
+ * driver's Job sheet, which prints these same two lines on a completed job.
+ * The reasoning is kept here because this is where it was argued; the
+ * implementation is not, because two implementations of "what does this job pay
+ * its carrier" is two answers waiting to disagree. One label changed in the
+ * move — "N min loading" became "N min **waiting**", after the column
+ * (`Order.waitingMinutes`) and after the Job sheet dialog's "Waiting time"
+ * field, which is the only UI in the product that collects the number. See that
+ * function's own note.
  */
-function buildFareLines(job: HubJob): FareLine[] {
-  const lines: FareLine[] = [{ label: "Payout", amountGel: job.driverPayout }];
-
-  if (job.overtimeDriverPayout !== 0) {
-    lines.push({
-      label:
-        job.waitingMinutes === null
-          ? "Overtime payout"
-          : `Overtime payout · ${job.waitingMinutes} min loading`,
-      amountGel: job.overtimeDriverPayout,
-    });
-  }
-
-  return lines;
-}
 
 /* -------------------------------------------------------------------------- */
 /* Stop contacts                                                              */
@@ -262,14 +241,15 @@ type StopContactRowProps = {
  * The number is a `tel:` link because the person most likely to be reading this
  * is a driver holding a phone at the kerb, for whom "call this person" is the
  * only thing the row is for. It falls back to plain text when the stored value
- * has no digits in it — see `toTelHref`.
+ * has no digits in it — `StopPhoneLink` owns both halves of that, and the Job
+ * sheet's own stop cards render the same decision through the same component.
+ *
+ * The row's *layout* stays here and is deliberately not shared: this is a
+ * bordered label/value pair in a narrow column beside a table, where the Job
+ * sheet lays the same two facts out as a 96px definition grid inside a stop
+ * card with Call and Navigate under it.
  */
 function StopContactRow({ label, contact }: StopContactRowProps) {
-  const telHref =
-    contact === null || contact.phone === null
-      ? null
-      : toTelHref(contact.phone);
-
   return (
     <div className={DETAIL_ROW_CLASSES}>
       <dt className="flex-none text-muted-foreground">{label}</dt>
@@ -283,17 +263,11 @@ function StopContactRow({ label, contact }: StopContactRowProps) {
             {contact.name === null ? null : (
               <span className="block truncate font-medium">{contact.name}</span>
             )}
-            {contact.phone === null ? null : telHref === null ? (
-              <span className="block truncate font-price text-muted-foreground">
-                {contact.phone}
-              </span>
-            ) : (
-              <a
-                href={telHref}
-                className="block truncate font-price text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-              >
-                {contact.phone}
-              </a>
+            {contact.phone === null ? null : (
+              <StopPhoneLink
+                phone={contact.phone}
+                className="block truncate font-price text-muted-foreground"
+              />
             )}
             {contact.details === null ? null : (
               <span className="block truncate text-xs text-muted-foreground">
@@ -327,8 +301,20 @@ export function JobsDetailPanel({
   nowIso,
   primaryAtIso,
 }: JobsDetailPanelProps) {
-  const timeline = buildTimeline(job, nowIso);
-  const fareLines = buildFareLines(job);
+  // `HubJobStatus` has already collapsed PENDING/CLAIMED/ACCEPTED into
+  // "Scheduled", which is lossless for the only question asked here: is the job
+  // still going, so that its next unreached step should be painted as the one
+  // being waited on. The driver's Job sheet answers the same question from the
+  // raw `OrderStatus` it needs for its action buttons — which is exactly why
+  // `buildHubTimeline` takes the boolean rather than either enum.
+  const timeline = buildHubTimeline({
+    createdAt: job.createdAt,
+    inTransitAt: job.inTransitAt,
+    completedAt: job.completedAt,
+    running: job.status === "In transit" || job.status === "Scheduled",
+  });
+  const stepDetails = detailFor(job, nowIso);
+  const fareLines = buildHubPayoutLines(job);
 
   // Nothing records *when* an order was cancelled, so there is no fourth step
   // to draw for one — but `inTransitAt` does say whether it got as far as the
@@ -398,7 +384,7 @@ export function JobsDetailPanel({
 
       <ol className="flex flex-col gap-3.5 border-b border-border pb-5">
         {timeline.map((step) => (
-          <li key={step.label} className="flex items-start gap-3">
+          <li key={step.id} className="flex items-start gap-3">
             <span
               aria-hidden="true"
               className={cn(
@@ -409,7 +395,7 @@ export function JobsDetailPanel({
             <div className="min-w-0 flex-1">
               <p className="text-[13px] font-medium">{step.label}</p>
               <p className="mt-px truncate text-xs text-muted-foreground">
-                {step.detail}
+                {stepDetails[step.id]}
               </p>
             </div>
             {/* `formatJobTime`, not the panel's own "Today · HH:MM" heading

@@ -1,0 +1,92 @@
+{
+  "artboards": [
+    {
+      "file": "Main.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 1160,
+      "title": "Phone \u00b7 Accepted (before pickup)"
+    },
+    {
+      "file": "InTransit.dc.html",
+      "x": 490,
+      "y": 0,
+      "w": 390,
+      "h": 1060,
+      "title": "Phone \u00b7 In transit"
+    },
+    {
+      "file": "ConfirmDelivery.dc.html",
+      "x": 980,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Phone \u00b7 Confirm delivery"
+    },
+    {
+      "file": "Completed.dc.html",
+      "x": 1470,
+      "y": 0,
+      "w": 390,
+      "h": 940,
+      "title": "Phone \u00b7 Delivered"
+    },
+    {
+      "file": "EdgeStates.dc.html",
+      "x": 1960,
+      "y": 0,
+      "w": 390,
+      "h": 1120,
+      "title": "Phone \u00b7 Edge states"
+    },
+    {
+      "file": "Desktop.dc.html",
+      "x": 0,
+      "y": 1320,
+      "w": 1440,
+      "h": 1000,
+      "title": "Desktop \u00b7 Accepted (driver hub header + rail)"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "viewport-note",
+      "x": 0,
+      "y": -190,
+      "w": 400,
+      "text": "Phone frames are drawn at full page height so nothing clips.\nReal viewport is 390 x 844 - the primary action sits in a bar pinned to the bottom of that viewport, not at the end of the scroll."
+    },
+    {
+      "id": "money-rule",
+      "x": 980,
+      "y": -190,
+      "w": 400,
+      "text": "The client's price never appears here.\n50.55 GEL is driverPayout - the driver's own commissioned share. Showing the client price would quote a number wrong in the driver's favour."
+    },
+    {
+      "id": "waiting-note",
+      "x": 1470,
+      "y": -190,
+      "w": 400,
+      "text": "Waiting time is REQUIRED by POST /api/orders/[id]/complete - the API 400s without it. It also changes the driver's own pay via overtimeDriverPayout, which is why Delivered shows the two lines separately."
+    },
+    {
+      "id": "timeline-note",
+      "x": 1960,
+      "y": -190,
+      "w": 390,
+      "text": "Only three timeline points are truthful: placed, picked up, dropped off. There is no acceptedAt or cancelledAt column - so the cancelled state cannot say when."
+    },
+    {
+      "id": "desktop-note",
+      "x": 0,
+      "y": 1180,
+      "w": 520,
+      "text": "Rebuilt against UI:UX/Registered Driver account (New) - the new driver header in the client site's shape (wordmark, My orders / Wallet, active-job pill, bell, name, My account, Sign out) sitting ABOVE the 248px rail, on the cool grey page ground.\nCard, border and muted values are lifted from Driver Dashboard v2.dc.html, not from the older repo tokens."
+    }
+  ],
+  "launch": {
+    "view": "canvas"
+  }
+}
