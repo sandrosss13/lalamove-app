@@ -13,6 +13,7 @@
     "postinstall": "prisma generate",
     "seed:super-admin": "tsx scripts/seed-super-admin.ts",
     "seed:home-page": "tsx scripts/seed-home-page-content.ts",
+    "seed:driver-hub-personas": "tsx scripts/seed-driver-hub-personas.ts",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "playwright test",
