@@ -1,35 +1,81 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { LogOut } from "lucide-react";
 
-import { useSignOut } from "@/components/auth/use-sign-out";
+import type {
+  HubNavItem,
+  HubNavItemId,
+} from "@/components/driver-hub/driver-hub-nav";
+import {
+  ACCOUNT_PERSONA_LABELS,
+  DriverHubTopNav,
+} from "@/components/driver-hub/driver-hub-topnav";
 import { HubOnlineToggle } from "@/components/driver-hub/hub-online-toggle";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import type { HubAccount, HubPersona } from "@/lib/dashboard/hub/account";
+import type { HubAccount } from "@/lib/dashboard/hub/account";
+import type { HubHeaderData } from "@/lib/dashboard/hub/header";
 
 /**
- * The chip's copy, one label per persona.
+ * The driver hub's chrome above the page body: the site-shaped **top bar**, and
+ * under it the **page-title bar** every hub screen has always had.
  *
- * A lookup rather than something derived from the enum, so the three strings
- * are written out where a reviewer can read them — and so the two individual
- * shapes are visibly distinct. `HubAccountKind` cannot carry this: an
- * independent owner-driver and a driver on a company's roster are both
- * `kind: "INDIVIDUAL"`, and the chip that called both of them "Individual" was
- * the one place in the hub that stated the conflation out loud.
+ * ## How the two compose, and why there are two
  *
- * "Company driver" rather than "Roster": `ROSTER` is this codebase's word for
- * the shape, not the driver's word for their own job.
+ * The header-alignment handoff (`UI:UX/Registered Driver account (New)/Driver
+ * dashboard header alignment/Driver Header.dc.html`) *adds* a bar; it does not
+ * replace one. Its own frame makes the point: the wordmark/nav/bell bar sits
+ * above screen content that keeps its own `{{ screenTitle }}` and
+ * `{{ screenSub }}` — two bars, one for the product and one for the page. So
+ * the split here is by ownership rather than by design fiat:
+ *
+ * - **The top bar is the product.** Where you are in the app, what is running
+ *   right now, who you are, and how you leave. Identical on all eight screens,
+ *   so nothing in it can be overridden from below.
+ * - **The page-title bar is the screen.** Its title and subhead — including the
+ *   six subheads a screen derives from its own data through `useHubSubtitle()`
+ *   — plus the working state that belongs to the screen you are on: the Load
+ *   Board's `vehiclePill` slot, the persona chip and the availability toggle.
+ *
+ * Sign out and the driver's name moved *up* into the top bar with the rest of
+ * the identity, because that is where the design puts them and because they are
+ * facts about the session rather than about the page.
+ *
+ * ## Stickiness
+ *
+ * The top bar is sticky at every width — it holds the only navigation a phone
+ * has. The page-title bar is sticky only from `lg`, offset by the top bar's own
+ * `h-14`, which is why that height is a fixed class rather than intrinsic: a
+ * `top-` offset has to be a number, and a number that drifts from the bar above
+ * it leaves a translucent seam. Below `lg` the title bar scrolls away instead,
+ * because pinning a 60px bar, a 44px job strip and a two-line title block on a
+ * 390×844 screen would spend a fifth of the viewport on chrome before a screen
+ * draws anything.
+ *
+ * ## What is real and what is not
+ *
+ * Everything in the top bar is real except the notification bell, whose count
+ * and rows come from `HubHeaderData.sampled` and are badged with a
+ * `<SampleNote />` inside the panel — there is no `Notification` model in the
+ * schema. The active-job pill is entirely real, ETA included, and must never be
+ * badged. See `src/lib/dashboard/hub/header.ts`.
+ *
+ * The prototype also puts a Business/Individual **segmented control** in this
+ * bar. That is a prototype affordance — it exists so one HTML file can demo
+ * both shapes of the product. In the real app the account kind is derived from
+ * the session by `resolveHubAccount()` and is the same fact the
+ * Drivers/Employees pages guard on server-side, so a client-side switcher would
+ * be a control that either lies (the pages still redirect) or grants screens
+ * the session does not entitle the user to. Hence the static chip below. Do not
+ * re-add the switcher.
  */
-const ACCOUNT_PERSONA_LABELS: Record<HubPersona, string> = {
-  INDEPENDENT: "Independent",
-  ROSTER: "Company driver",
-  BUSINESS: "Business",
-};
-
 export type DriverHubHeaderProps = {
   account: HubAccount;
+  /** Resolved once per request by `getHubHeader()` in the hub layout. */
+  header: HubHeaderData;
+  /** Already persona-filtered by the shell — the same list the rail draws. */
+  navItems: readonly HubNavItem[];
+  /** The nav entry the current pathname resolves to, if any. */
+  activeId: HubNavItemId | undefined;
   /** The active nav entry's 20px page title. */
   title: string;
   /**
@@ -39,8 +85,9 @@ export type DriverHubHeaderProps = {
    */
   subtitle: string;
   /**
-   * A screen-supplied node dropped into the right-hand cluster, ahead of the
-   * account chip — today only the Load Board's vehicle-capacity pill.
+   * A screen-supplied node dropped into the page-title bar's right-hand
+   * cluster, ahead of the account chip — today only the Load Board's
+   * vehicle-capacity pill.
    *
    * Registered from below via `useHubVehiclePill()` rather than passed down
    * from a page, because the screens are client components mounted inside this
@@ -50,133 +97,76 @@ export type DriverHubHeaderProps = {
   vehiclePill?: ReactNode;
 };
 
-/**
- * The hub's sticky top bar: page title and subhead on the left, then the
- * screen's own header slot, the account chip, the availability pill, the
- * avatar block and sign out on the right.
- *
- * The prototype puts a Business/Individual **segmented control** here. That is
- * a prototype affordance — it exists so one HTML file can demo both shapes of
- * the product. In the real app the account kind is derived from the session by
- * `resolveHubAccount()` and is the same fact the Drivers/Employees pages guard
- * on server-side, so a client-side switcher would be a control that either
- * lies (the pages still redirect) or grants screens the session does not
- * entitle the user to. Hence the static chip below. Do not re-add the switcher.
- *
- * ## What the header-alignment handoff added, and what it deliberately did not
- *
- * `UI:UX/Registered Driver account (New)/Driver dashboard header alignment/`
- * reshapes this bar towards the client site header's vocabulary. Three of its
- * elements are **not** built here, each for a reason that is a fact about this
- * codebase rather than a preference:
- *
- * - **No notifications bell.** There is no notification system anywhere in this
- *   repo — no model in `prisma/schema.prisma`, nothing under `src/lib` or
- *   `src/app/api`. A bell needs a table, a read/unread model, write points at
- *   every order-lifecycle event and a delivery mechanism; it is a feature with
- *   a data layer, not a header component, and it is deferred to its own spec
- *   alongside the Phase 2 email/SMS work. A bell that never lights is worse
- *   than no bell, so none is rendered and no placeholder count either.
- * - **No "My account" link.** `/account` is client-only and
- *   `src/app/account/page.tsx` redirects any non-CLIENT role straight back to
- *   `/dashboard`, so the link would be a loop. A driver-side account settings
- *   screen does not exist yet; adding one is its own task.
- * - **No active-job indicator.** The data behind it (`getHubToday()` in
- *   `src/lib/dashboard/hub/today.ts`) is resolved per-screen, and this header
- *   is a client component whose shell's contract is that nothing in it
- *   fetches. Surfacing it globally means `(hub)/layout.tsx` resolving it and
- *   threading it through the shell — a change to files outside the task that
- *   introduced this comment.
- *
- * What the handoff *did* land: the nav relabelling in `driver-hub-nav.ts`
- * ("Wallet" → `/dashboard/earnings`, "My orders" → `/dashboard/jobs`, never the
- * client `/wallet` and `/orders` routes) and the `vehiclePill` slot below.
- */
 export function DriverHubHeader({
   account,
+  header,
+  navItems,
+  activeId,
   title,
   subtitle,
   vehiclePill,
 }: DriverHubHeaderProps) {
-  const { signOut, signingOut } = useSignOut();
-
   return (
-    <header className="sticky top-0 z-10 flex items-center justify-between gap-6 border-b border-border bg-background px-8 py-[22px]">
-      <div className="min-w-0">
-        <h1 className="text-[20px] font-semibold tracking-[-0.015em]">
-          {title}
-        </h1>
-        {subtitle ? (
-          <p className="mt-0.5 text-[13px] text-muted-foreground">{subtitle}</p>
-        ) : null}
+    <>
+      {/* One sticky box around the top bar and the phone's job strip, so the
+          two travel together and the offset below has a single number to
+          match. `bg-background` belongs here rather than only on the bar
+          inside it: the job strip is a bordered link with no fill of its own,
+          and page content would otherwise scroll through it. */}
+      <div className="sticky top-0 z-30 bg-background">
+        <DriverHubTopNav
+          account={account}
+          header={header}
+          navItems={navItems}
+          activeId={activeId}
+        />
       </div>
 
-      <div className="flex items-center gap-[18px]">
-        {/* The screen's own slot, ahead of everything the shell owns: the
-            design places the Load Board's vehicle pill between the flex spacer
-            and the identity block, not inside it. */}
-        {vehiclePill}
-
-        <Badge
-          variant="outline"
-          className="h-auto rounded-full px-[9px] py-[3px] text-[11px] font-semibold tracking-[0.02em] text-muted-foreground"
-        >
-          {ACCOUNT_PERSONA_LABELS[account.persona]}
-        </Badge>
-
-        {/* A company session has no availability to flip — `isOnline` is
-            `null` for it, and the endpoint 403s a non-DRIVER outright — so the
-            pill is absent rather than rendered in a permanently dead state. */}
-        {account.isOnline !== null ? (
-          <HubOnlineToggle
-            isOnline={account.isOnline}
-            canToggleOnline={account.canToggleOnline}
-          />
-        ) : null}
-
-        <div className="flex items-center gap-2.5 border-l border-border pl-[18px]">
-          <div
-            aria-hidden="true"
-            className="grid size-9 place-items-center rounded-full bg-border text-[13px] font-semibold"
-          >
-            {account.initials}
-          </div>
-          <div className="min-w-0">
-            <p className="truncate text-[13px] font-medium">
-              {account.displayName}
+      <header className="z-20 flex items-center justify-between gap-4 border-b border-border bg-background px-4 py-4 lg:sticky lg:top-14 lg:gap-6 lg:px-8 lg:py-[22px]">
+        <div className="min-w-0">
+          <h1 className="truncate text-[17px] font-semibold tracking-[-0.015em] lg:text-[20px]">
+            {title}
+          </h1>
+          {subtitle ? (
+            <p className="mt-0.5 text-[12px] text-muted-foreground lg:text-[13px]">
+              {subtitle}
             </p>
-            {/* Mono, like every id, plate and figure on this surface. */}
-            <p className="truncate font-price text-[11px] text-muted-foreground">
-              {account.identifier}
-            </p>
-          </div>
+          ) : null}
         </div>
 
-        {/* The hub's only way out, and the reason it has to live here: the
-            shell's root carries `data-admin-surface`, and `globals.css` hides
-            the global site header (`body:has([data-admin-surface]) > header`)
-            for the whole surface. That header is `AuthStatus`, which owns the
-            app's other sign out — so without this control a signed-in driver
-            or company user browsing the hub has no way to sign out at all.
+        {/* Wraps rather than overflows at 390px: the three controls below are a
+            screen's working state, and a driver checking whether they are
+            online should not have to scroll a bar sideways to find out. */}
+        <div className="flex flex-wrap items-center justify-end gap-2 lg:flex-nowrap lg:gap-[18px]">
+          {/* The screen's own slot, ahead of everything the shell owns: the
+              design places the Load Board's vehicle pill between the flex
+              spacer and the identity block, not inside it. */}
+          {vehiclePill}
 
-            Ghost rather than outline: the availability pill next to it is the
-            header's one real decision, and a bordered button here would read
-            as a second one. `useSignOut()` owns the Better Auth call and the
-            navigation that follows it, so nothing is routed from here. */}
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() => {
-            void signOut();
-          }}
-          disabled={signingOut}
-          className="text-[13px] text-muted-foreground hover:text-foreground"
-        >
-          <LogOut aria-hidden="true" data-icon="inline-start" />
-          {signingOut ? "Signing out…" : "Sign out"}
-        </Button>
-      </div>
-    </header>
+          <Badge
+            variant="outline"
+            className="h-auto rounded-full px-[9px] py-[3px] text-[11px] font-semibold tracking-[0.02em] text-muted-foreground"
+          >
+            {ACCOUNT_PERSONA_LABELS[account.persona]}
+          </Badge>
+
+          {/* A company session has no availability to flip — `isOnline` is
+              `null` for it, and the endpoint 403s a non-DRIVER outright — so
+              the pill is absent rather than rendered in a permanently dead
+              state.
+
+              This stays a `!== null` test and must not become a persona test:
+              it is what narrows `boolean | null` down to the `boolean`
+              `HubOnlineToggle` requires, so swapping it for `persona !==
+              "BUSINESS"` would be a type error dressed up as a refactor. */}
+          {account.isOnline !== null ? (
+            <HubOnlineToggle
+              isOnline={account.isOnline}
+              canToggleOnline={account.canToggleOnline}
+            />
+          ) : null}
+        </div>
+      </header>
+    </>
   );
 }
