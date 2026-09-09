@@ -4,6 +4,15 @@ import * as React from "react";
 
 import type { HandlingTag } from "@/components/driver-hub/screens/loads-format";
 import type { HubAccountKind } from "@/lib/dashboard/hub/account";
+import {
+  specCapability,
+  type SpecCapacitySlice,
+} from "@/lib/orders/booking-fit";
+import {
+  meetsBookedClass,
+  offersBodyType,
+} from "@/lib/orders/class-substitution";
+import { capabilityOf, type VehicleCapability } from "@/lib/orders/vehicle-fit";
 
 /**
  * The load board's one shared state container.
@@ -143,9 +152,16 @@ export type HubLoad = {
   ratePerKm: number | null;
   serviceLevel: string;
   /**
-   * The vehicle class the client booked and paid for. A driver's claim must
-   * name a vehicle of exactly this class — see `confirmClaim` below, which uses
-   * it to pick one.
+   * The vehicle class the client booked and paid for — **a floor, not an
+   * identity**.
+   *
+   * A driver's claim must name a vehicle that meets or beats this class on all
+   * four capacity axes and offers `bodyType`; it does not have to be a vehicle
+   * *of* this class, and requiring one was the bug
+   * `src/lib/orders/class-substitution.ts` exists to describe. This id is
+   * therefore never compared for equality with a vehicle's class: it is a key
+   * into the class catalogue, looked up for the four capacity figures that make
+   * up the floor. See `claimCandidatesFor` below.
    */
   vehicleTypeSpecId: string;
   driverId: string | null;
@@ -273,17 +289,223 @@ export const MIN_WEIGHT_FILTER_KG = 100;
 export const WEIGHT_FILTER_STEP_KG = 50;
 
 /**
- * The one vehicle fact `confirmClaim` needs about the signed-in driver.
+ * One of the signed-in driver's registered vehicles, in the shape the claim
+ * rule and the confirm dialog's picker both need.
  *
  * Resolved server-side in `loads/page.tsx` and handed down, rather than fetched
  * here: it is a property of the *account*, not of the board, and `GET
  * /api/loads` describes loads only. Empty for a BUSINESS account, which claims
  * with its company identity and names a vehicle later at dispatch.
+ *
+ * **This used to be `{ id, vehicleTypeSpecId }` and nothing else**, because the
+ * board picked a claim vehicle by comparing that id to the order's for equality.
+ * The class id is gone entirely; what replaced it is everything
+ * `capabilityOf(vehicle, vehicle.vehicleTypeSpec)` reads — the driver's own
+ * declared figures, nullable per field, with the class catalogue behind them —
+ * plus the class's `bodyTypes`, which no amount of capacity substitutes for.
+ *
+ * The field names deliberately mirror the Prisma selects in
+ * `POST /api/orders/[id]/accept` and `GET /api/loads`, down to the nested
+ * `vehicleTypeSpec`, so the same `capabilityOf` call reads identically on both
+ * sides of the wire.
  */
 export type LoadsClaimVehicle = {
   id: string;
-  vehicleTypeSpecId: string;
+  /** For the picker only. What a driver calls the truck; a cuid is not. */
+  plateNumber: string;
+  /**
+   * The driver's own declared capacity, nullable per field — a specific truck
+   * may be bigger or smaller than its class average, and a driver may have
+   * declared some, all or none of these. `capabilityOf` resolves each one
+   * against the spec below independently; never read them raw.
+   */
+  payloadKg: number | null;
+  cargoLengthM: number | null;
+  cargoWidthM: number | null;
+  cargoHeightM: number | null;
+  vehicleTypeSpec: {
+    /** For the picker only ("Minivan"). */
+    label: string;
+    maxPayloadKg: number;
+    cargoLengthM: number;
+    cargoWidthM: number;
+    /**
+     * **`0` is the open-bed sentinel, not a zero-height hold.** Only
+     * `capabilityOf` translates it to `Infinity`; comparing this column
+     * directly would make a flatbed the least capable vehicle on the platform
+     * rather than the most. See `src/lib/orders/vehicle-fit.ts`.
+     */
+    cargoHeightM: number;
+    /**
+     * Which load spaces this vehicle's *class* offers, as raw `ChassisType`
+     * strings. Typed `readonly string[]` rather than `ChassisType[]` because
+     * that is what `offersBodyType` takes, and taking it keeps the generated
+     * Prisma client out of this client bundle.
+     */
+    bodyTypes: readonly string[];
+  };
 };
+
+/**
+ * One row of the vehicle-class catalogue, as the board consumes it: an id and
+ * the four capacity columns a booked class's floor is built from.
+ *
+ * `SpecCapacitySlice` is imported rather than restated so this type cannot drift
+ * from what `specCapability` accepts — the same slice `POST /api/orders` and the
+ * booking form already state their own selects against.
+ *
+ * The board needs this because `GET /api/loads` returns the booked class as a
+ * bare id. Under exact-class matching the id was the whole comparison; under
+ * substitution the comparison is against numbers, so the numbers have to arrive
+ * from somewhere, and `loads/page.tsx` reads the catalogue for exactly that.
+ */
+export type LoadsVehicleClass = SpecCapacitySlice & { id: string };
+
+/**
+ * A vehicle the substitution rule has admitted for the load the confirm dialog
+ * is open on, with the capability that admitted it.
+ *
+ * The capability travels with the vehicle rather than being re-derived by the
+ * picker, for two reasons. It is the figure that actually qualified this vehicle
+ * — showing anything else beside a radio button would be describing one decision
+ * with another one's numbers — and it is the resolved capability, so an open bed
+ * reads "open" through `formatDims` instead of a catalogue `0` that means the
+ * opposite of what it says.
+ */
+export type LoadsClaimCandidate = {
+  vehicle: LoadsClaimVehicle;
+  capability: VehicleCapability;
+};
+
+/**
+ * The one array every "this account has no vehicle for that load" answer
+ * returns, so an empty candidate list keeps a stable identity across renders and
+ * the memo below cannot invalidate consumers by handing back a fresh `[]`.
+ */
+const NO_CLAIM_CANDIDATES: readonly LoadsClaimCandidate[] = [];
+
+/**
+ * What a driver is told when none of their vehicles may take the load they
+ * pressed Accept on.
+ *
+ * **It is one sentence covering both server refusals, and it borrows their
+ * words on purpose.** `POST /api/orders/[id]/accept` refuses a claim with either
+ * "This vehicle is smaller than the vehicle class this delivery was booked as.
+ * Use a vehicle that matches or beats it on payload, length, width and height."
+ * or "This vehicle doesn't offer the load space this delivery needs." Those are
+ * answers *about one named vehicle*, which is the question that route is asked;
+ * this message answers a different one — no vehicle of this account qualifies at
+ * all — and it cannot name which axis failed, because different vehicles will
+ * have failed on different ones. Phrasing it out of the two server sentences is
+ * what stops a driver reading one explanation here and a contradictory one after
+ * a retry.
+ *
+ * **What it no longer says is "type".** The old copy — "You have no registered
+ * vehicle of the type this delivery requires" — was a true statement of the old
+ * rule and is a false statement of the current one: a driver whose Minivan
+ * beats an MPV booking on every axis has no vehicle of that *type* and is
+ * nonetheless perfectly entitled to the load. Class membership is not what is
+ * being asked about any more, so it is not what the refusal talks about.
+ */
+const NO_ELIGIBLE_VEHICLE_MESSAGE =
+  "None of your vehicles can take this delivery. It needs one that matches or " +
+  "beats the vehicle class this delivery was booked as on payload, length, " +
+  "width and height, and offers the load space this delivery needs.";
+
+/**
+ * Which of this driver's vehicles may claim `load` — **the client's copy of the
+ * server's rule, running the server's own functions on the server's own
+ * inputs**.
+ *
+ * ## Why the client repeats the rule at all
+ *
+ * The obvious alternative is to send the driver's first vehicle and let
+ * `POST /api/orders/[id]/accept` decide, since that route re-checks everything
+ * and is the only authority on whether a claim stands. It was considered and
+ * rejected: the confirm dialog exists precisely so that a driver commits once
+ * and gets a load, and "Confirm and claim" answering with a refusal *after* they
+ * have committed is the failure the dialog is there to prevent. Worse, a driver
+ * with two vehicles would have their claim decided by array order — the first
+ * vehicle refused while a second one sitting in the same list would have been
+ * accepted — which is not a refusal a driver can act on or even understand.
+ * Choosing correctly here means the request that leaves the browser is one the
+ * server will accept.
+ *
+ * That is a courtesy, never a substitute. Nothing about this function weakens
+ * anything: the route re-runs both predicates against freshly read rows, and a
+ * caller that never opens this dialog is checked exactly as it always was. This
+ * is about not blocking a legitimate claim before it is sent.
+ *
+ * ## Why it imports the shared helpers instead of writing the comparison out
+ *
+ * The bug this replaces was `claimVehicles.find((candidate) => candidate
+ * .vehicleTypeSpecId === load.vehicleTypeSpecId)` — the client's private,
+ * hand-written statement of a rule the server had since replaced everywhere.
+ * Two expressions of "eligible" in two languages is how the board and the claim
+ * route drifted apart before (see `GET /api/loads`'s doc comment), and the fix
+ * both times is the same: one module, imported by both sides.
+ * `meetsBookedClass`, `offersBodyType`, `specCapability` and `capabilityOf` are
+ * all deliberately dependency-free — no `server-only`, no Prisma runtime import,
+ * plain arithmetic over plain objects — which is what makes importing them from
+ * a `"use client"` file possible, and their doc comments say to.
+ *
+ * ## Order
+ *
+ * Smallest qualifying payload first, ties broken on the plate so the list is
+ * deterministic across renders and across polls. That order *is* the picker's
+ * default (it takes the first), and it is the right default for the same reason
+ * the server's floor is a floor: every candidate here already meets what the
+ * client paid for, so the smallest one is the one that satisfies the booking
+ * while leaving the driver's larger trucks free for work that needs them. It is
+ * only a default — **which truck is actually available today is a fact only the
+ * driver has**, which is why two or more candidates produce a picker rather than
+ * a silent choice.
+ *
+ * A booked class missing from `floors` yields no candidates. That is unreachable
+ * — `loads/page.tsx` ships the whole catalogue and `Order.vehicleTypeSpecId` is
+ * a foreign key into it — and it fails closed deliberately: with no figures
+ * there is no floor, and admitting everything is the one direction this rule
+ * must never fail in. One un-claimable load, corrected by a reload, is the cost.
+ */
+function claimCandidatesFor(
+  vehicles: readonly LoadsClaimVehicle[],
+  load: HubLoad,
+  floors: ReadonlyMap<string, VehicleCapability>,
+): readonly LoadsClaimCandidate[] {
+  const floor = floors.get(load.vehicleTypeSpecId);
+
+  if (floor === undefined) {
+    return NO_CLAIM_CANDIDATES;
+  }
+
+  const candidates = vehicles
+    // Resolved once per vehicle and carried, rather than recomputed by the
+    // filter, the sort and then the picker: `capabilityOf` is cheap, but three
+    // independent calls are three chances for one of them to be given the wrong
+    // spec and disagree with the other two.
+    .map((vehicle) => ({
+      vehicle,
+      capability: capabilityOf(vehicle, vehicle.vehicleTypeSpec),
+    }))
+    .filter(
+      (candidate) =>
+        // Both tests, in the order the accept route applies them. Neither
+        // subsumes the other: a hold twice the required size is still the wrong
+        // hold if the client booked a refrigerated body and this class has none.
+        offersBodyType(
+          candidate.vehicle.vehicleTypeSpec.bodyTypes,
+          load.bodyType,
+        ) && meetsBookedClass(candidate.capability, floor),
+    );
+
+  // `filter` already returned a fresh array, so sorting it in place cannot
+  // disturb the `claimVehicles` prop this derives from.
+  return candidates.sort(
+    (a, b) =>
+      a.capability.payloadKg - b.capability.payloadKg ||
+      a.vehicle.plateNumber.localeCompare(b.vehicle.plateNumber),
+  );
+}
 
 /**
  * A claim that did not go through, in the shape the dialogs need to explain it.
@@ -437,7 +659,33 @@ export type LoadsBoardValue = {
   closeLost: () => void;
 
   /* --- mutations -------------------------------------------------------- */
-  confirmClaim: () => Promise<void>;
+  /**
+   * The driver's vehicles that may claim `dialogLoad`, smallest qualifying
+   * payload first — the confirm dialog's picker, and the set `confirmClaim`
+   * validates its argument against.
+   *
+   * Empty whenever no dialog is open, for a BUSINESS account (which names no
+   * vehicle at all), and for a driver none of whose vehicles clears the booked
+   * class. The last of those three is the only one the driver ever sees, as
+   * `NO_ELIGIBLE_VEHICLE_MESSAGE` on Confirm.
+   *
+   * Exposed here rather than derived in the dialog because `confirmClaim` needs
+   * the identical list: the picker offers a choice out of it and the mutation
+   * resolves that choice against it, and two derivations of the same set is how
+   * a driver ends up sending a vehicle the picker never offered.
+   */
+  claimCandidates: readonly LoadsClaimCandidate[];
+  /**
+   * Claim `dialogLoad`, with `vehicleId` naming which of `claimCandidates` the
+   * driver chose.
+   *
+   * Optional and ignored on the BUSINESS path, which sends no vehicle. On the
+   * driver path, omitting it (or passing an id that is no longer a candidate)
+   * falls back to the first candidate — the same vehicle the picker defaults to
+   * — so a caller with nothing to choose from behaves exactly as it did before
+   * the picker existed.
+   */
+  confirmClaim: (vehicleId?: string | null) => Promise<void>;
   /** True while a claim is in flight — disables the confirm button. */
   isClaiming: boolean;
   /** A claim that failed for a reason other than losing the race. */
@@ -603,16 +851,23 @@ export type LoadsProviderProps = {
    */
   accountKind: HubAccountKind;
   /**
-   * The signed-in driver's registered vehicles, id and class only. Empty for a
-   * BUSINESS account.
+   * The signed-in driver's registered vehicles, with the capacity and body-type
+   * facts the substitution rule reads. Empty for a BUSINESS account.
    */
   claimVehicles: readonly LoadsClaimVehicle[];
+  /**
+   * The vehicle-class catalogue, for looking a load's booked class up and
+   * building the floor it sets. Empty for a BUSINESS account, which claims no
+   * load against a floor.
+   */
+  vehicleClasses: readonly LoadsVehicleClass[];
   children: React.ReactNode;
 };
 
 export function LoadsProvider({
   accountKind,
   claimVehicles,
+  vehicleClasses,
   children,
 }: LoadsProviderProps) {
   /* --- server state ------------------------------------------------------ */
@@ -1374,6 +1629,56 @@ export function LoadsProvider({
     setClaimError(null);
   }, []);
 
+  /* --- who may claim what -------------------------------------------------- */
+
+  /**
+   * Each vehicle class's capability, keyed by id — the floor a load booked
+   * against that class sets for every vehicle offered to fulfil it.
+   *
+   * Built through `specCapability` and never from the four columns by hand, for
+   * the reason that helper's own doc gives: it routes through `capabilityOf`,
+   * the one place `cargoHeightM === 0` becomes `Infinity` for an open bed. A
+   * literal here would give every flatbed booking a height floor of zero, which
+   * every vehicle on the platform trivially clears — turning the strictest class
+   * in the catalogue into the most substitutable one, on the client only, while
+   * the server went on refusing every such claim. `GET /api/loads` builds the
+   * identical map the identical way.
+   *
+   * Memoised on the prop rather than recomputed per load: a board of two hundred
+   * rows references at most the eleven seeded classes.
+   */
+  const bookedClassFloors = React.useMemo(
+    () =>
+      new Map<string, VehicleCapability>(
+        vehicleClasses.map((spec) => [spec.id, specCapability(spec)]),
+      ),
+    [vehicleClasses],
+  );
+
+  /**
+   * The candidate vehicles for the load the confirm dialog is open on.
+   *
+   * Derived from `dialogLoad` — the frozen snapshot — rather than from a live
+   * lookup, so the set the picker offers is the set for the load whose figures
+   * the driver is reading, and a poll cannot swap a driver's vehicle options out
+   * from under a decision in progress. `dialogLoad`'s own note explains why that
+   * snapshot exists; this inherits it for free by depending on it.
+   *
+   * A BUSINESS account short-circuits to the empty list. Its `claimVehicles` is
+   * already empty so the filter would return nothing anyway, but the branch
+   * states the reason rather than relying on the coincidence: a company claim
+   * names no vehicle, so there is no candidate to compute, and if a fleet ever
+   * were shipped to this screen for some other purpose this must not start
+   * quietly offering a picker on the company path.
+   */
+  const claimCandidates = React.useMemo(() => {
+    if (accountKind === "BUSINESS" || dialogLoad === null) {
+      return NO_CLAIM_CANDIDATES;
+    }
+
+    return claimCandidatesFor(claimVehicles, dialogLoad, bookedClassFloors);
+  }, [accountKind, bookedClassFloors, claimVehicles, dialogLoad]);
+
   /* --- mutations ---------------------------------------------------------- */
 
   /**
@@ -1382,14 +1687,21 @@ export function LoadsProvider({
    * Two endpoints, because the two operations differ in what they record:
    *
    * - A **driver** calls `POST /api/orders/[id]/accept` with `{ vehicleId }`.
-   *   The vehicle is required and its class must equal the order's — that is
-   *   the commercial contract the client paid for, and the route refuses a
-   *   mismatch — so the vehicle is chosen here by matching
-   *   `HubLoad.vehicleTypeSpecId` against the driver's registered fleet. If the
-   *   driver somehow has no vehicle of that class, the load should never have
-   *   been on their board (the endpoint's own eligibility filter drops
-   *   wrong-class loads), so this is reported as a state error rather than sent
-   *   to the server to be refused.
+   *   The vehicle is required and must meet or beat the booked class on all
+   *   four capacity axes while offering the body the client asked for — that is
+   *   the commercial contract the client paid for, and the route refuses
+   *   anything less — so the vehicle is `claimCandidates`' answer to that same
+   *   question, narrowed to the driver's own choice where they made one. If no
+   *   vehicle of theirs qualifies, the load should never have been on their
+   *   board (`GET /api/loads` runs the same two predicates at listing time), so
+   *   it is reported here as a state error rather than sent to be refused.
+   *
+   *   **This is deliberately not "send the first vehicle and let the server
+   *   decide".** The server would decide correctly — it re-checks everything —
+   *   but it would decide *after* the driver committed, which is the one outcome
+   *   this dialog exists to prevent, and with two vehicles registered the
+   *   difference between a claim and a refusal would come down to array order.
+   *   See `claimCandidatesFor`.
    * - A **company** calls `POST /api/logistics-company/orders/[id]/claim` with
    *   no body at all. Which truck fulfils it is a dispatch decision made later;
    *   pinning one at claim time would only go stale while the order waits.
@@ -1406,91 +1718,113 @@ export function LoadsProvider({
    *   it is recoverable, and the remedy is the availability toggle already in
    *   the header.
    */
-  const confirmClaim = React.useCallback(async () => {
-    const load = dialogLoad;
+  const confirmClaim = React.useCallback(
+    async (vehicleId?: string | null) => {
+      const load = dialogLoad;
 
-    if (load === null || isClaiming) {
-      return;
-    }
+      if (load === null || isClaiming) {
+        return;
+      }
 
-    setIsClaiming(true);
-    setClaimError(null);
+      setIsClaiming(true);
+      setClaimError(null);
 
-    try {
-      let response: Response;
+      try {
+        let response: Response;
 
-      if (accountKind === "BUSINESS") {
-        response = await fetch(
-          `/api/logistics-company/orders/${load.id}/claim`,
-          { method: "POST" },
-        );
-      } else {
-        const vehicle = claimVehicles.find(
-          (candidate) => candidate.vehicleTypeSpecId === load.vehicleTypeSpecId,
-        );
+        if (accountKind === "BUSINESS") {
+          response = await fetch(
+            `/api/logistics-company/orders/${load.id}/claim`,
+            { method: "POST" },
+          );
+        } else {
+          /**
+           * The driver's choice where they made one, the default otherwise.
+           *
+           * Resolved against `claimCandidates` — the very list the picker was
+           * rendered from — rather than against `claimVehicles`, so a chosen id
+           * can only ever be one the rule already admitted. The fallback to the
+           * first candidate covers three cases with one expression: no argument
+           * at all (one candidate, no picker, nothing to choose), an argument
+           * naming a vehicle that is no longer a candidate, and a caller outside
+           * the dialog. Only the first is reachable today; the others resolve to
+           * the same vehicle the picker would have defaulted to, which is a
+           * claim that will stand rather than one the server has to refuse.
+           */
+          const candidate =
+            claimCandidates.find((entry) => entry.vehicle.id === vehicleId) ??
+            claimCandidates[0];
 
-        if (vehicle === undefined) {
-          setClaimError({
-            message:
-              "You have no registered vehicle of the type this delivery requires.",
-            code: null,
+          // No vehicle of this driver's may take this load. Reported here rather
+          // than sent to be refused: the answer would be the same and the driver
+          // would have committed to get it. `GET /api/loads` filters on the same
+          // two predicates, so a load reaching this branch means the board and
+          // the account's fleet have disagreed — a vehicle deregistered in
+          // another tab since the board was read, most plausibly.
+          if (candidate === undefined) {
+            setClaimError({
+              message: NO_ELIGIBLE_VEHICLE_MESSAGE,
+              code: null,
+            });
+            return;
+          }
+
+          response = await fetch(`/api/orders/${load.id}/accept`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ vehicleId: candidate.vehicle.id }),
           });
+        }
+
+        if (response.ok) {
+          setDialogLoad(null);
+          setTab("mine");
+          await refetch();
           return;
         }
 
-        response = await fetch(`/api/orders/${load.id}/accept`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ vehicleId: vehicle.id }),
+        const body = (await response.json().catch(() => null)) as {
+          error?: unknown;
+          code?: unknown;
+          reference?: unknown;
+        } | null;
+
+        if (response.status === 409 && body?.code === "ALREADY_CLAIMED") {
+          setDialogLoad(null);
+          setLostLoad({
+            id: load.id,
+            // The endpoint returns the reference for this dialog; the row's own
+            // copy is the fallback, and the two are the same immutable string.
+            reference:
+              typeof body.reference === "string"
+                ? body.reference
+                : load.reference,
+          });
+          // The row's state has changed for everyone, so the board is stale even
+          // though this request failed.
+          await refetch();
+          return;
+        }
+
+        setClaimError({
+          message:
+            typeof body?.error === "string"
+              ? body.error
+              : `Couldn't claim this load (HTTP ${response.status}).`,
+          code: typeof body?.code === "string" ? body.code : null,
         });
-      }
-
-      if (response.ok) {
-        setDialogLoad(null);
-        setTab("mine");
-        await refetch();
-        return;
-      }
-
-      const body = (await response.json().catch(() => null)) as {
-        error?: unknown;
-        code?: unknown;
-        reference?: unknown;
-      } | null;
-
-      if (response.status === 409 && body?.code === "ALREADY_CLAIMED") {
-        setDialogLoad(null);
-        setLostLoad({
-          id: load.id,
-          // The endpoint returns the reference for this dialog; the row's own
-          // copy is the fallback, and the two are the same immutable string.
-          reference:
-            typeof body.reference === "string"
-              ? body.reference
-              : load.reference,
+      } catch {
+        setClaimError({
+          message:
+            "Couldn't reach the server. Check your connection and retry.",
+          code: null,
         });
-        // The row's state has changed for everyone, so the board is stale even
-        // though this request failed.
-        await refetch();
-        return;
+      } finally {
+        setIsClaiming(false);
       }
-
-      setClaimError({
-        message:
-          typeof body?.error === "string"
-            ? body.error
-            : `Couldn't claim this load (HTTP ${response.status}).`,
-        code: typeof body?.code === "string" ? body.code : null,
-      });
-    } catch {
-      setClaimError({
-        message: "Couldn't reach the server. Check your connection and retry.",
-        code: null,
-      });
-    } finally {
-      setIsClaiming(false);
-    }
-  }, [accountKind, claimVehicles, dialogLoad, isClaiming, refetch, setTab]);
+    },
+    [accountKind, claimCandidates, dialogLoad, isClaiming, refetch, setTab],
+  );
 
   /**
    * Hide a load from this account's board, or put a hidden one back.
@@ -1611,6 +1945,7 @@ export function LoadsProvider({
       closeConfirm,
       lostLoad,
       closeLost,
+      claimCandidates,
       confirmClaim,
       isClaiming,
       claimError,
@@ -1632,6 +1967,7 @@ export function LoadsProvider({
       actionError,
       availableCount,
       canAccept,
+      claimCandidates,
       claimError,
       closeConfirm,
       closeLost,

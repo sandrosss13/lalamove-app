@@ -5,7 +5,10 @@ import {
   LoadsScreen,
   type HubVehiclePill,
 } from "@/components/driver-hub/screens/loads-screen";
-import type { LoadsClaimVehicle } from "@/components/driver-hub/screens/loads-context";
+import type {
+  LoadsClaimVehicle,
+  LoadsVehicleClass,
+} from "@/components/driver-hub/screens/loads-context";
 import {
   resolveHubAccount,
   type HubAccount,
@@ -27,13 +30,27 @@ const HUB_HOME = "/dashboard/today";
  * The capacity columns every vehicle read on this page needs, plus the class
  * spec `capabilityOf` falls back to per field.
  *
- * `id` and `vehicleTypeSpecId` are here for a second purpose the pill does not
- * care about: a driver's claim must name a vehicle, and it must be one of the
- * class the client booked. See `LoadsClaimVehicle`.
+ * **`vehicleTypeSpecId` is deliberately no longer selected.** It was here so the
+ * board could pick a claim vehicle by comparing class ids against the order's —
+ * exact-class identity matching, the rule `src/lib/orders/class-substitution.ts`
+ * replaced. Nothing on this screen compares class ids any more, and the fields
+ * that took its place are the ones the substitution rule actually reads: the
+ * class's four capacity figures (already here for the pill) and its `bodyTypes`.
+ * `POST /api/orders/[id]/accept` dropped the same column for the same reason.
+ *
+ * `plateNumber` and `vehicleTypeSpec.label` are the only two fields here that no
+ * rule reads: they name a vehicle to the driver in the confirm dialog's picker,
+ * which appears when more than one of their vehicles qualifies. A cuid is not
+ * something a driver can recognise; the plate on the truck outside is.
+ *
+ * Shared by both branches of `resolveVehicles` below. The BUSINESS branch needs
+ * neither the plate nor the body types — a company claims with its account and
+ * names no vehicle — and over-selecting two columns for it is a smaller cost
+ * than a second, near-identical select that has to be kept in step with this one.
  */
 const VEHICLE_SELECT = {
   id: true,
-  vehicleTypeSpecId: true,
+  plateNumber: true,
   payloadKg: true,
   cargoLengthM: true,
   cargoWidthM: true,
@@ -45,8 +62,36 @@ const VEHICLE_SELECT = {
       cargoLengthM: true,
       cargoWidthM: true,
       cargoHeightM: true,
+      bodyTypes: true,
     },
   },
+} as const;
+
+/**
+ * The catalogue rows the board needs to build a *booked class floor* from
+ * `HubLoad.vehicleTypeSpecId`.
+ *
+ * The board's own endpoint cannot supply these. `GET /api/loads` returns the
+ * booked class as a bare id (`LoadBoardItem.vehicleTypeSpecId`) and nothing
+ * else, because until the substitution rule landed the id was all anyone
+ * compared. A floor is a comparison against numbers, so the numbers have to be
+ * in hand on the client too — the same reason the endpoint's own eligibility
+ * pass added a `vehicleTypeSpec.findMany` beside its load query.
+ *
+ * The whole catalogue is read rather than the classes this driver's board
+ * happens to show, because this page cannot know that: the board is fetched from
+ * the browser after this component has finished rendering, and it re-fetches
+ * every ten seconds thereafter. It is eleven seeded rows of five scalar columns
+ * that change only when the catalogue is reseeded, so shipping all of them once
+ * per page load is cheaper than any arrangement that would let the client ask
+ * for them later.
+ */
+const VEHICLE_CLASS_SELECT = {
+  id: true,
+  maxPayloadKg: true,
+  cargoLengthM: true,
+  cargoWidthM: true,
+  cargoHeightM: true,
 } as const;
 
 /**
@@ -64,6 +109,15 @@ type LoadsPageVehicles = {
   vehiclePill: HubVehiclePill | null;
   /** Empty for a company, which claims with its identity and assigns later. */
   claimVehicles: LoadsClaimVehicle[];
+  /**
+   * The vehicle-class catalogue the board measures a booked class floor from.
+   *
+   * Empty for a company for the same reason `claimVehicles` is: a BUSINESS claim
+   * names no vehicle, so there is no candidate to admit or refuse and nothing
+   * for a floor to be compared against. Shipping the catalogue to an account
+   * that cannot use it would be a query and a payload spent on nothing.
+   */
+  vehicleClasses: LoadsVehicleClass[];
 };
 
 /**
@@ -95,7 +149,7 @@ async function resolveVehicles(
 ): Promise<LoadsPageVehicles> {
   if (account.kind === "BUSINESS") {
     if (account.companyId === null) {
-      return { vehiclePill: null, claimVehicles: [] };
+      return { vehiclePill: null, claimVehicles: [], vehicleClasses: [] };
     }
 
     const vehicles = await prisma.vehicle.findMany({
@@ -110,18 +164,24 @@ async function resolveVehicles(
     return {
       vehiclePill: capability === null ? null : { label: "Fleet", capability },
       claimVehicles: [],
+      vehicleClasses: [],
     };
   }
 
   if (account.driverProfileId === null) {
-    return { vehiclePill: null, claimVehicles: [] };
+    return { vehiclePill: null, claimVehicles: [], vehicleClasses: [] };
   }
 
-  const vehicles = await prisma.vehicle.findMany({
-    where: { driverProfileId: account.driverProfileId },
-    orderBy: { createdAt: "desc" },
-    select: VEHICLE_SELECT,
-  });
+  // Issued together: neither query reads the other's result, and the board
+  // cannot paint until both have landed.
+  const [vehicles, vehicleClasses] = await Promise.all([
+    prisma.vehicle.findMany({
+      where: { driverProfileId: account.driverProfileId },
+      orderBy: { createdAt: "desc" },
+      select: VEHICLE_SELECT,
+    }),
+    prisma.vehicleTypeSpec.findMany({ select: VEHICLE_CLASS_SELECT }),
+  ]);
 
   const [newest] = vehicles;
 
@@ -133,10 +193,34 @@ async function resolveVehicles(
             label: newest.vehicleTypeSpec.label,
             capability: capabilityOf(newest, newest.vehicleTypeSpec),
           },
+    // Copied field by field rather than handed over as the Prisma rows
+    // themselves. The select above and `LoadsClaimVehicle` are two statements of
+    // the same shape that have to agree, and writing the mapping out is what
+    // makes a column added to one and forgotten in the other a compile error
+    // here — at the boundary — instead of an undefined arriving in the browser.
+    //
+    // The field names are the server's, not new ones: the four vehicle columns
+    // and the nested `vehicleTypeSpec` are named exactly as
+    // `POST /api/orders/[id]/accept` selects them, so the board's
+    // `capabilityOf(vehicle, vehicle.vehicleTypeSpec)` call and the claim
+    // route's read as one line of code in two places, which is what they are.
     claimVehicles: vehicles.map((vehicle) => ({
       id: vehicle.id,
-      vehicleTypeSpecId: vehicle.vehicleTypeSpecId,
+      plateNumber: vehicle.plateNumber,
+      payloadKg: vehicle.payloadKg,
+      cargoLengthM: vehicle.cargoLengthM,
+      cargoWidthM: vehicle.cargoWidthM,
+      cargoHeightM: vehicle.cargoHeightM,
+      vehicleTypeSpec: {
+        label: vehicle.vehicleTypeSpec.label,
+        maxPayloadKg: vehicle.vehicleTypeSpec.maxPayloadKg,
+        cargoLengthM: vehicle.vehicleTypeSpec.cargoLengthM,
+        cargoWidthM: vehicle.vehicleTypeSpec.cargoWidthM,
+        cargoHeightM: vehicle.vehicleTypeSpec.cargoHeightM,
+        bodyTypes: vehicle.vehicleTypeSpec.bodyTypes,
+      },
     })),
+    vehicleClasses,
   };
 }
 
@@ -178,12 +262,14 @@ export default async function LoadsPage() {
     redirect(HUB_HOME);
   }
 
-  const { vehiclePill, claimVehicles } = await resolveVehicles(account);
+  const { vehiclePill, claimVehicles, vehicleClasses } =
+    await resolveVehicles(account);
 
   return (
     <LoadsScreen
       accountKind={account.kind}
       claimVehicles={claimVehicles}
+      vehicleClasses={vehicleClasses}
       vehiclePill={vehiclePill}
     />
   );
