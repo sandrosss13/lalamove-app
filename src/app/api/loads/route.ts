@@ -26,8 +26,8 @@ import { formatCity } from "@/lib/format-city";
 import { haversineDistanceKm, type LatLng } from "@/lib/geo";
 import {
   capabilityOf,
-  fitsAnyVehicle,
-  loadFits,
+  classifyFit,
+  classifyFitAnyVehicle,
   widestCapability,
   type LoadDimensions,
   type VehicleCapability,
@@ -290,13 +290,23 @@ export type LoadBoardResponse = {
   rejected: LoadBoardItem[];
   /**
    * How many open, non-rejected loads were withheld because **a vehicle of the
-   * right class could not physically carry them** — over the payload, over one
-   * of the three dimensions, or (for a legacy order) undeclared on any of the
-   * four, which `loadFits` resolves to "does not fit".
+   * right class could not physically carry them** — over the payload, or over
+   * one of the three dimensions.
    *
    * The board's footer prints this as *"N loads hidden — over your vehicle
    * capacity or dimensions"*, and this count is scoped precisely so that
    * sentence stays true of every load it counts.
+   *
+   * **A load whose cargo envelope was never declared is NOT counted here, and
+   * is not hidden either — it is listed like any other.** It used to be both,
+   * because `loadFits` resolves an undeclared envelope to "does not fit" and
+   * this route mapped every non-fit to `OVER_CAPACITY`. That made the footer
+   * state something untrue about the driver's own vehicle, and it contradicted
+   * `POST /api/orders/[id]/accept`, which has always let such an order be
+   * claimed — the board hiding work the claim path would have handed over. The
+   * envelope case is now split off by `classifyFit`'s `UNDECLARED` verdict; see
+   * `LoadFitVerdict` in src/lib/orders/vehicle-fit.ts for the full argument and
+   * for why this mattered on the day the feature shipped rather than later.
    *
    * **Loads excluded for being the wrong vehicle class are NOT counted here,
    * and are not counted anywhere else either.** They are simply absent. A load
@@ -406,6 +416,13 @@ function round2(value: number): number {
  * feeds `hiddenByCapacityCount` and the footer note that explains it, while
  * `WRONG_CLASS` is silent. See `eligibilityOf` in the GET handler for the
  * reasoning behind both the two-part test and that asymmetry.
+ *
+ * There is deliberately no fourth outcome for "envelope undeclared". That is a
+ * distinction `classifyFit` draws and this type does not need, because the
+ * board's answer for such a load is `ELIGIBLE` — the same offer, on the same
+ * terms, as any other listed load, exactly as the claim routes already treat
+ * it. Adding an outcome here would imply the response says something about
+ * these loads, and it says nothing: they are simply on the board.
  */
 type LoadEligibility = "ELIGIBLE" | "WRONG_CLASS" | "OVER_CAPACITY";
 
@@ -473,7 +490,10 @@ function groupCapabilitiesByClass(
 /**
  * The load's physical description in the shape `vehicle-fit` speaks, without
  * dragging the Prisma row into that deliberately dependency-free module.
- * A null here means UNKNOWN, and `loadFits` resolves unknown to "does not fit".
+ *
+ * A null here means UNKNOWN. All four null means the client declared no
+ * envelope at all, which `classifyFit` reports as `UNDECLARED` and this route
+ * treats as eligible rather than as over capacity — see `eligibilityOf`.
  */
 function loadDimensionsOf(order: LoadRow): LoadDimensions {
   return {
@@ -629,6 +649,14 @@ function toLoadBoardItem(
  * `hiddenByCapacityCount` for the footer's "N loads hidden — over your vehicle
  * capacity or dimensions" note. Loads excluded on class alone are not counted:
  * see `eligibilityOf` and `LoadBoardResponse` for why.
+ *
+ * **Both halves of eligibility measure something the client declared, so a load
+ * that declared no cargo envelope at all fails neither.** It is listed, and it
+ * is not counted as hidden by capacity. Fit is measured through `classifyFit`
+ * rather than `loadFits` precisely so this route can tell "too big" apart from
+ * "never described"; the claim routes have always drawn that line, and the
+ * board not drawing it was a defect — it hid claimable work behind a false
+ * explanation. See `eligibilityOf`.
  *
  * Two fields the approved design does not show are returned anyway, because the
  * board cannot work well without them: `pickupDistanceKm` (how far the driver
@@ -885,6 +913,21 @@ export async function GET(request: Request): Promise<NextResponse> {
    * `WRONG_CLASS` and `hiddenByCapacityCount` stays 0 — an empty board with no
    * misleading capacity note, which is the honest answer for an account that
    * has not registered a vehicle yet.
+   *
+   * **`UNDECLARED` maps to `ELIGIBLE`, and that is the point of measuring with
+   * `classifyFit` rather than `loadFits`.** A load whose cargo envelope was
+   * never declared has not been shown to exceed anything; it has only not been
+   * described. Every claim route in the codebase already lets one through — see
+   * `hasDeclaredEnvelope` — so hiding it here would advertise less work than the
+   * platform will actually hand over, which is the precise divergence this
+   * filter exists to close, running in the wrong direction. It also kept the
+   * footer's capacity sentence honest only by accident: see
+   * `LoadBoardResponse.hiddenByCapacityCount`.
+   *
+   * The class test still runs first and still applies to these loads. An
+   * undeclared envelope makes a load unmeasurable, not unbooked: the client
+   * still chose and paid for a vehicle class, and that promise is enforced
+   * exactly as it is for every other load.
    */
   const eligibilityOf = (order: LoadRow): LoadEligibility => {
     const load = loadDimensionsOf(order);
@@ -896,7 +939,9 @@ export async function GET(request: Request): Promise<NextResponse> {
         return "WRONG_CLASS";
       }
 
-      return loadFits(load, widest) ? "ELIGIBLE" : "OVER_CAPACITY";
+      return classifyFit(load, widest) === "DOES_NOT_FIT"
+        ? "OVER_CAPACITY"
+        : "ELIGIBLE";
     }
 
     const classMatches = capabilitiesByClass.get(order.vehicleTypeSpecId);
@@ -908,7 +953,9 @@ export async function GET(request: Request): Promise<NextResponse> {
     // Strict, unlike the company branch: an individual driver claims with one
     // named vehicle (`POST /api/orders/[id]/accept` takes a `vehicleId`), so
     // the load must fit one of these outright — never a per-axis composite.
-    return fitsAnyVehicle(load, classMatches) ? "ELIGIBLE" : "OVER_CAPACITY";
+    return classifyFitAnyVehicle(load, classMatches) === "DOES_NOT_FIT"
+      ? "OVER_CAPACITY"
+      : "ELIGIBLE";
   };
 
   // --- Candidates.
@@ -1018,17 +1065,17 @@ export async function GET(request: Request): Promise<NextResponse> {
       // The server-side eligibility filter — the class the client booked, then
       // the physical fit of the vehicles registered under it.
       //
-      // Only the capacity failure is counted for the footer. It includes every
-      // order whose cargo weight or dimensions are null, because `loadFits`
-      // resolves unknown to "does not fit" and every order placed before this
-      // feature has all four null. That is intended and self-correcting as
-      // legacy orders age out: a driver sent to a load that turns out not to
-      // fit has burned a trip, while a load hidden for want of a declaration
-      // costs nobody anything that was promised.
+      // Only the capacity failure is counted for the footer, and it counts only
+      // loads a right-class vehicle was actually measured against and found too
+      // small for. An order that declared no cargo envelope at all is neither
+      // counted nor hidden: it was never measured, the claim routes accept it,
+      // and the board now lists it. See `eligibilityOf`.
       //
       // A wrong-class load is dropped in silence — it is not "over your
-      // capacity", and counting it would make the footer's copy untrue. See
-      // `eligibilityOf`.
+      // capacity", and counting it would make the footer's copy untrue. Same
+      // rule, same reason: this number is a claim about the driver's vehicle,
+      // so nothing may be counted into it that the vehicle is not the reason
+      // for. See `eligibilityOf`.
       const eligibility = eligibilityOf(order);
 
       if (eligibility !== "ELIGIBLE") {

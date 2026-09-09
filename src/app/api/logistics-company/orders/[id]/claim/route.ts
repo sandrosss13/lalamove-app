@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { CARRIER_ORDER_PARTY_SELECT } from "@/lib/order-response-select";
 import {
   capabilityOf,
+  hasDeclaredEnvelope,
   loadFits,
   widestCapability,
   type LoadDimensions,
@@ -202,19 +203,22 @@ export async function POST(
   // this optimism has to go with it: swap `widestCapability` for
   // `fitsAnyVehicle`, which admits only loads a single real truck can take.
   //
-  // **The null pre-check is a deliberate asymmetry with the listing, not an
-  // oversight.** `loadFits` resolves a null load dimension to "does not fit",
-  // which is right for a *listing* — hiding a load of unknown size costs nobody
-  // anything, while committing a fleet to one that turns out not to fit strands
-  // the order in CLAIMED. It is wrong for *this* route, which is also the legacy
-  // claim path: it predates cargo capture and has always claimed orders with
-  // null weight and dimensions, and applying the listing's rule here would make
-  // every one of those orders permanently unclaimable by the same endpoint that
-  // has always claimed them. So an order with no declared cargo AT ALL skips the
-  // check (nothing to measure), and an order that declares any cargo is measured
-  // by `loadFits` exactly as the board measures it — including its all-or-
-  // nothing rule, under which a partially declared load does not fit. That case
-  // cannot strand a board user, because the board never lists such a load either.
+  // **The null pre-check is `hasDeclaredEnvelope` from that same module, and it
+  // is no longer an asymmetry with the listing.** `loadFits` resolves a null
+  // load dimension to "does not fit", which would be wrong for *this* route: it
+  // is also the legacy claim path, it predates cargo capture and has always
+  // claimed orders with null weight and dimensions, and applying that rule here
+  // would make every one of those orders permanently unclaimable by the same
+  // endpoint that has always claimed them. So an order with no declared cargo AT
+  // ALL skips the check (nothing to measure), and an order that declares any
+  // cargo is measured by `loadFits` exactly as the board measures it — including
+  // its all-or-nothing rule, under which a partially declared load does not fit.
+  //
+  // `GET /api/loads` used to hide from a fleet's board the very orders this
+  // route would have claimed for it, and count them into the footer's capacity
+  // note while doing so. It now asks the same exported predicate this line does,
+  // so the board and this route cannot drift apart again — see
+  // `hasDeclaredEnvelope` and `LoadFitVerdict`.
   const declaredCargo: LoadDimensions = {
     weightKg: existing.cargoWeightKg,
     lengthM: existing.cargoLengthM,
@@ -222,13 +226,10 @@ export async function POST(
     heightM: existing.cargoHeightM,
   };
 
-  const hasDeclaredCargo =
-    declaredCargo.weightKg !== null ||
-    declaredCargo.lengthM !== null ||
-    declaredCargo.widthM !== null ||
-    declaredCargo.heightM !== null;
-
-  if (hasDeclaredCargo && !loadFits(declaredCargo, fleetCapability)) {
+  if (
+    hasDeclaredEnvelope(declaredCargo) &&
+    !loadFits(declaredCargo, fleetCapability)
+  ) {
     return NextResponse.json(
       {
         error:

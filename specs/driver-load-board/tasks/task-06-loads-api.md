@@ -498,13 +498,24 @@ scope for this task and would duplicate logic the later tasks own.
      `hiddenByCapacityCount`.
    - **eligible** — into `available`.
 
-   The over-capacity count includes every order with a null
-   `cargoWeightKg`/`cargoLengthM`/`cargoWidthM`/`cargoHeightM`, since
-   `loadFits` already treats null as not-fitting (see task-03's contract
-   above) and every order placed before this feature has all four null. This
-   is intentional and self-correcting as legacy orders age out — say so in a
-   comment, and see requirements.md's Assumptions for the same point made
-   about the fit filter generally.
+   **Corrected after runtime verification.** This task originally said the
+   over-capacity count should include every order with a null
+   `cargoWeightKg`/`cargoLengthM`/`cargoWidthM`/`cargoHeightM`, on the grounds
+   that `loadFits` treats null as not-fitting and the problem is
+   self-correcting as legacy orders age out. Both halves were wrong. The
+   orders concerned do not age out — they are the open PENDING orders at
+   cutover, and the migration backfills no cargo envelope, so *every* one of
+   them would vanish from the board on deploy day. Worse, the three claim
+   routes all permit claiming an undeclared load, so the board was hiding
+   loads a driver could successfully claim, and the footer told them the
+   reason was their vehicle's capacity, which is false.
+
+   An undeclared envelope is therefore **eligible** and is **not** counted
+   toward `hiddenByCapacityCount`, which is a specific claim about capacity
+   and must only count loads genuinely excluded by it. The rule lives once in
+   `vehicle-fit.ts` as `classifyFit`/`classifyFitAnyVehicle` over a
+   `LoadFitVerdict`, read by the listing and all three claim routes, so the
+   two cannot diverge again. `loadFits`'s null semantics are unchanged.
 
    **Why wrong-class loads are dropped silently rather than counted
    separately** (coordinator decision): `hiddenByCapacityCount` is rendered by

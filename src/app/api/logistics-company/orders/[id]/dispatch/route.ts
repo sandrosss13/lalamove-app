@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { CARRIER_ORDER_PARTY_SELECT } from "@/lib/order-response-select";
 import {
   capabilityOf,
+  hasDeclaredEnvelope,
   loadFits,
   type LoadDimensions,
 } from "@/lib/orders/vehicle-fit";
@@ -273,19 +274,22 @@ export async function POST(
   // dispatcher one re-assignment at a desk, which is precisely the cheap failure
   // the claim endpoint traded for.
   //
-  // **The null pre-check is the same deliberate asymmetry the claim and accept
-  // routes make, for the same reason.** `loadFits` resolves a null load
-  // dimension to "does not fit", which is right for a *listing* — hiding a load
-  // of unknown size costs nobody anything — and wrong here: this is also the
-  // legacy dispatch path, and every order claimed before cargo capture existed
-  // has null weight and dimensions. Applying the listing's rule would strand all
-  // of them in CLAIMED, undispatchable by the same endpoint that has always
-  // dispatched them. So an order with no declared cargo AT ALL skips the check
-  // (there is nothing to measure), and an order declaring any cargo is measured
-  // exactly as the board measures it — including the all-or-nothing rule under
-  // which a partially declared load does not fit. That case cannot strand a
-  // dispatcher, because the claim route applies the identical rule one step
-  // earlier.
+  // **The null pre-check is `hasDeclaredEnvelope`, the same exported predicate
+  // the claim and accept routes and the board all read, for the same reason.**
+  // `loadFits` resolves a null load dimension to "does not fit", which is wrong
+  // here: this is also the legacy dispatch path, and every order claimed before
+  // cargo capture existed has null weight and dimensions. Applying that rule
+  // would strand all of them in CLAIMED, undispatchable by the same endpoint
+  // that has always dispatched them. So an order with no declared cargo AT ALL
+  // skips the check (there is nothing to measure), and an order declaring any
+  // cargo is measured exactly as the board measures it — including the
+  // all-or-nothing rule under which a partially declared load does not fit. That
+  // case cannot strand a dispatcher, because the claim route applies the
+  // identical rule one step earlier.
+  //
+  // Written out inline in all four places until `GET /api/loads` was found to
+  // have quietly disagreed with the other three — listing nothing where they
+  // claimed happily. One exported predicate is what keeps that fixed.
   const declaredCargo: LoadDimensions = {
     weightKg: order.cargoWeightKg,
     lengthM: order.cargoLengthM,
@@ -293,14 +297,8 @@ export async function POST(
     heightM: order.cargoHeightM,
   };
 
-  const hasDeclaredCargo =
-    declaredCargo.weightKg !== null ||
-    declaredCargo.lengthM !== null ||
-    declaredCargo.widthM !== null ||
-    declaredCargo.heightM !== null;
-
   if (
-    hasDeclaredCargo &&
+    hasDeclaredEnvelope(declaredCargo) &&
     !loadFits(declaredCargo, capabilityOf(vehicle, vehicle.vehicleTypeSpec))
   ) {
     return NextResponse.json(

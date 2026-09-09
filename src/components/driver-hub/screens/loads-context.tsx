@@ -1134,11 +1134,15 @@ export function LoadsProvider({
         return false;
       }
 
-      // An undeclared weight passes. Defensive rather than load-bearing: the
-      // server-side fit filter resolves unknown dimensions to "does not fit"
-      // and withholds those loads already, so in practice nothing reaches here
-      // with a null weight. Excluding them instead would mean a slider at its
-      // maximum — nominally "no filter" — silently removing rows.
+      // An undeclared weight passes, and this branch is now load-bearing rather
+      // than defensive. It was written when the server's fit filter resolved an
+      // unknown envelope to "does not fit" and withheld those loads, so nothing
+      // reached here with a null weight; `GET /api/loads` now lists them —
+      // `classifyFit` separates "never declared" from "too heavy", and the claim
+      // routes have always accepted the former — so this is the branch that
+      // decides what the weight slider does with them. Passing is the right
+      // answer: excluding them would mean a slider at its maximum, nominally
+      // "no filter", silently removing rows.
       if (load.cargoWeightKg !== null && load.cargoWeightKg > fWeight) {
         return false;
       }
