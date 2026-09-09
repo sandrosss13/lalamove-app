@@ -4,7 +4,12 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight, CalendarDays } from "lucide-react";
-import type { CargoCategory, ChassisType, ServiceLevel } from "@prisma/client";
+import type {
+  CargoCategory,
+  CargoHandlingTag,
+  ChassisType,
+  ServiceLevel,
+} from "@prisma/client";
 
 import { AddressAutocomplete } from "@/components/address-autocomplete";
 import { formatDistanceKm, formatGel } from "@/components/home/booking-format";
@@ -33,6 +38,7 @@ import {
 } from "@/components/home/stop-contact-dialog";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Popover,
@@ -40,7 +46,12 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
-import { CARGO_CATEGORY_ALLOWED_VEHICLE_CATEGORIES } from "@/lib/cargo";
+import {
+  CARGO_CATEGORY_ALLOWED_VEHICLE_CATEGORIES,
+  CARGO_HANDLING_TAG_LABELS,
+  CARGO_MEASUREMENT_BOUNDS,
+  type CargoMeasurementBounds,
+} from "@/lib/cargo";
 
 /** A single map coordinate, as `AddressAutocomplete` reports it. Mirrors
  *  `LatLng` from `@/lib/geo`, duplicated here so this client component never
@@ -327,6 +338,271 @@ const DEFAULT_SERVICE_LEVEL: ServiceLevel = "REGULAR";
  */
 const SERVICE_LEVEL_OPTION_CLASSES = `${PICK_CARD_BASE_CLASSES} min-h-32 cursor-pointer gap-1 has-[:focus-visible]:border-accent has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-accent/20`;
 
+/* -------------------------------------------------------------------------- */
+/* Cargo declaration (step 6)                                                 */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The hand-rolled result shape this codebase parses with, client-side and
+ * server-side alike: a value or a reason, never both, and never a thrown error.
+ *
+ * The same shape `parseCreateOrderBody` in `src/app/api/orders/route.ts` returns
+ * — deliberately, because no validation library is a dependency here and adding
+ * one for four number fields would be the first. Written out locally rather than
+ * imported from that route: it is a server module, and the two copies are a
+ * shared *convention* rather than a shared contract.
+ */
+type ParseResult<T> = { data: T } | { error: string };
+
+/**
+ * Parses one of the four required cargo numbers out of its raw string state.
+ *
+ * Client-side convenience only, and it matters that this is said out loud: the
+ * order endpoint re-validates every one of these bounds itself and is the
+ * authority on what is stored. A bug in here can produce a confusing inline
+ * message under a field; it cannot produce a bad row, because nothing
+ * downstream of this form trusts what it computed.
+ *
+ * Bounds arrive as an argument rather than being read from a table inside this
+ * function, so the four call sites can name their own limits once — see the
+ * `CARGO_*_FIELD` descriptors below, which are what every call actually passes.
+ * Those descriptors no longer *hold* their limits either: they point at
+ * `CARGO_MEASUREMENT_BOUNDS`, which `POST /api/orders` reads too.
+ */
+function parseCargoNumber(
+  raw: string,
+  { bounds, label }: { bounds: CargoMeasurementBounds; label: string },
+): ParseResult<number> {
+  const trimmed = raw.trim();
+  if (trimmed === "") {
+    return { error: `Enter a ${label}.` };
+  }
+
+  const value = Number(trimmed);
+  if (!Number.isFinite(value)) {
+    return { error: `Enter a valid ${label}.` };
+  }
+  // No unit in this sentence: `label` is the on-screen field label and already
+  // carries one ("Width (m)"), so appending `bounds.unit` would read "Width (m)
+  // must be between 0.1 and 3 m." The unit does appear in `cargoRangeHelper`
+  // below, where the sentence has no label to lean on.
+  if (value < bounds.min || value > bounds.max) {
+    return {
+      error: `${label} must be between ${bounds.min} and ${bounds.max}.`,
+    };
+  }
+
+  return { data: value };
+}
+
+/**
+ * One of the four required cargo numbers, as the render loop and the touched
+ * map both key by. A union rather than a bare string so a typo in either is a
+ * typecheck failure and not a silently dead lookup.
+ */
+type CargoNumberFieldKey = "weight" | "length" | "width" | "height";
+
+/**
+ * Everything about one required cargo number that does not change between
+ * renders: its bounds, the words its errors are built from, and the copy under
+ * it.
+ *
+ * `parseLabel` and `label` are deliberately two different strings. `parseLabel`
+ * is what `parseCargoNumber` interpolates into a sentence ("Enter a total
+ * weight."), so it is lowercase and article-friendly; `label` is what the client
+ * reads above the input, so it is capitalised and carries its unit. Collapsing
+ * them would force one of the two to read badly.
+ *
+ * `emptyError` overrides the parser's own terse empty-field message for the one
+ * case the client is most likely to hit, because being required is not
+ * self-explaining: an unanswered weight does not merely fail a rule, it makes
+ * the finished order invisible to the entire driver pool (the load board's fit
+ * filter treats unknown weight or dimensions as *not fitting*, by design). The
+ * error has to say that, or the requirement reads as an arbitrary blocker.
+ */
+type CargoNumberField = {
+  key: CargoNumberFieldKey;
+  label: string;
+  parseLabel: string;
+  /**
+   * The accepted range, pointed at rather than restated.
+   *
+   * These four numbers were written out here once, and they drifted: this form
+   * allowed 15 m of width and height while `POST /api/orders` capped them at 3 m
+   * and 4 m, so a 5 m width passed every check on this page, lit the submit
+   * button, and came back a 400 the client could not act on. The bounds now have
+   * one home in `src/lib/cargo.ts`, which both sides read. Do not copy a figure
+   * out of that table into this file — a copy is how the last one started.
+   */
+  bounds: CargoMeasurementBounds;
+  /** The `step` attribute, and so the precision the spinner offers. */
+  step: string;
+  placeholder: string;
+  emptyError: string;
+};
+
+/**
+ * Why the dimensions are wanted, said once per field and left on screen.
+ *
+ * A persistent description rather than a tooltip or a popup: it is announced
+ * through the field's own `aria-describedby` exactly like any other field hint,
+ * and it is as true before the client touches the field as after.
+ */
+const CARGO_FIELD_HELPER =
+  "Needed to show your load to drivers with the right vehicle.";
+
+/**
+ * The accepted range, spelled out under the field rather than left for the
+ * client to discover by being told off.
+ *
+ * Derived from the same `bounds` the parser checks and the endpoint enforces, so
+ * the sentence on screen cannot promise a range that either would refuse — the
+ * failure this whole shared table exists to prevent, in its mildest form: copy
+ * that says 15 m over a field that rejects 5.
+ */
+function cargoRangeHelper(bounds: CargoMeasurementBounds): string {
+  return `Accepted range ${bounds.min}–${bounds.max} ${bounds.unit}.`;
+}
+
+/**
+ * The ceiling comes from `CARGO_MEASUREMENT_BOUNDS`: the heaviest thing the
+ * catalogue can currently carry, rounded up (`prisma/seed.ts`'s `SEMI_TRAILER`
+ * tops out at 24 000 kg, and 30 000 leaves room for a heavier type to be seeded
+ * without editing anything). The floor is 1 kg rather than 0 because a
+ * zero-weight load is a typo, not a booking.
+ */
+const CARGO_WEIGHT_FIELD: CargoNumberField = {
+  key: "weight",
+  label: "Total weight (kg)",
+  parseLabel: "total weight",
+  bounds: CARGO_MEASUREMENT_BOUNDS.cargoWeightKg,
+  step: "0.1",
+  placeholder: "e.g. 850",
+  emptyError:
+    "Enter a total weight — drivers can't be matched to a load with unknown weight.",
+};
+
+/**
+ * The three dimensions describe the *largest single item*, not the footprint of
+ * the whole consignment — that is what the load board compares against a
+ * vehicle's cargo hold.
+ *
+ * Their ceilings are not the same as each other and deliberately so: 20 m of
+ * length clears the 13.6 m semi-trailer with room to spare, while width stops at
+ * 3 m and height at 4 m because the widest vehicle in the catalogue is 2.5 m and
+ * nothing wider is going to be carried by anything on this platform. The
+ * previous 15 m allowance on all three was not generosity, it was a hole: a
+ * mis-keyed 1.5 became 15, sailed through this form, and died at the endpoint.
+ */
+const CARGO_LENGTH_FIELD: CargoNumberField = {
+  key: "length",
+  label: "Length (m)",
+  parseLabel: "length",
+  bounds: CARGO_MEASUREMENT_BOUNDS.cargoLengthM,
+  step: "0.01",
+  placeholder: "e.g. 1.2",
+  emptyError:
+    "Enter a length — drivers can't be matched to a load with unknown dimensions.",
+};
+
+const CARGO_WIDTH_FIELD: CargoNumberField = {
+  key: "width",
+  label: "Width (m)",
+  parseLabel: "width",
+  bounds: CARGO_MEASUREMENT_BOUNDS.cargoWidthM,
+  step: "0.01",
+  placeholder: "e.g. 0.8",
+  emptyError:
+    "Enter a width — drivers can't be matched to a load with unknown dimensions.",
+};
+
+const CARGO_HEIGHT_FIELD: CargoNumberField = {
+  key: "height",
+  label: "Height (m)",
+  parseLabel: "height",
+  bounds: CARGO_MEASUREMENT_BOUNDS.cargoHeightM,
+  step: "0.01",
+  placeholder: "e.g. 1.1",
+  emptyError:
+    "Enter a height — drivers can't be matched to a load with unknown dimensions.",
+};
+
+/** Which of the four the client has already left, and so may be told off. */
+type CargoFieldsTouched = Record<CargoNumberFieldKey, boolean>;
+
+/**
+ * Nothing touched yet — where the step starts. Named rather than written inline
+ * at the `useState` call for the same reason as `NO_STOP_CONTACTS` above: the
+ * pristine state is a state the form has, not four incidental falses.
+ */
+const NO_CARGO_FIELDS_TOUCHED: CargoFieldsTouched = {
+  weight: false,
+  length: false,
+  width: false,
+  height: false,
+};
+
+/**
+ * The six handling requirements, in the order `CargoHandlingTag` declares them.
+ *
+ * A literal list rather than `Object.keys` over the label table, matching how
+ * `BODY_TYPE_OPTIONS` and `SERVICE_LEVEL_OPTIONS` write their own orders out:
+ * render order is an editorial decision and deserves to be readable as one.
+ * `satisfies` keeps every member a real enum value, and the label table's own
+ * `Record<CargoHandlingTag, string>` keying (see `src/lib/cargo.ts`) is what
+ * keeps the *copy* exhaustive — a new tag fails typecheck there.
+ */
+const HANDLING_TAG_OPTIONS = [
+  "FRAGILE",
+  "COLD_CHAIN",
+  "HAZMAT",
+  "TIME_CRITICAL",
+  "UPRIGHT_ONLY",
+  "HEAVY_ITEM",
+] as const satisfies readonly CargoHandlingTag[];
+
+/**
+ * Geometry for one handling-requirement chip, and its two fill states.
+ *
+ * The driver-side load board specifies this control too, in near-black and
+ * white oklch literals — and those are deliberately not copied here. They belong
+ * to that surface's `data-admin-surface` palette; this page is the landing
+ * theme, where the rule (stated in `booking-form-primitives.tsx`) is landing
+ * token utilities only, never a raw colour literal and never a `dark:` variant.
+ * What carries across is the *pattern*: a filled, inverted-text selected state
+ * against an outlined idle one, expressed in this page's accent exactly as
+ * `PICK_CARD_SELECTED_CLASSES`/`PICK_CARD_IDLE_CLASSES` already do for the
+ * goods and vehicle grids.
+ *
+ * Local to this file rather than lifted into `booking-form-primitives.tsx`, on
+ * the same grounds as `CREW_OPTION_CLASSES` and `BODY_OPTION_CLASSES` beside it:
+ * this is the geometry of one control on one page, not shared vocabulary.
+ */
+const HANDLING_TAG_CLASSES =
+  "inline-flex h-8 items-center rounded-full border px-3 text-xs font-medium transition-colors";
+const HANDLING_TAG_SELECTED_CLASSES = "border-accent bg-accent text-ink";
+const HANDLING_TAG_IDLE_CLASSES =
+  "border-line bg-transparent text-paper hover:border-accent/40";
+
+/**
+ * The hazmat notice, verbatim and permanent.
+ *
+ * Not dismissible, and not a gate either: `DriverLicence` carries no ADR
+ * certification field, so nothing in this feature — not this form, not the
+ * board's claim endpoint — can actually restrict a hazmat load to an
+ * appropriately licensed driver. Telling the client plainly is the whole of what
+ * this form can honestly do; the gap itself is tracked as follow-up work.
+ */
+const HAZMAT_NOTICE =
+  "Hazmat loads require a driver with the appropriate carrier certification. This isn't checked automatically yet — see the compliance note in specs/driver-load-board/action-required.md.";
+
+/** Shared treatment for an inline field error on this page. */
+const FIELD_ERROR_CLASSES = "text-xs leading-snug text-accent";
+
+/** Shared treatment for a non-blocking advisory line on this page. */
+const FIELD_NOTICE_CLASSES =
+  "rounded-lg border border-line bg-surface px-3 py-2 text-xs leading-snug text-muted";
+
 /**
  * Why a step is not answerable yet — one line per gate, each naming the thing to
  * go and do rather than the thing that is missing.
@@ -523,6 +799,20 @@ export function BookingForm(): React.ReactElement {
   const timeSelectId = useId();
   const weightSelectId = useId();
 
+  // Step 6's fields. One id per control plus one per helper line: the helper
+  // and any error are both pointed at by the input's `aria-describedby`, so
+  // each needs an id of its own rather than sharing the field's.
+  const cargoWeightFieldId = useId();
+  const cargoLengthFieldId = useId();
+  const cargoWidthFieldId = useId();
+  const cargoHeightFieldId = useId();
+  const packagingFieldId = useId();
+  const itemQuantityFieldId = useId();
+  const pickupWindowStartId = useId();
+  const pickupWindowEndId = useId();
+  const deadlineTriggerId = useId();
+  const deadlineTimeSelectId = useId();
+
   // Null until both a day and a time slot are chosen — see `scheduledDateTime`,
   // the combined value everything downstream (submission, validation) reads.
   const [scheduledDate, setScheduledDate] = useState<Date | null>(null);
@@ -575,6 +865,76 @@ export function BookingForm(): React.ReactElement {
     DEFAULT_SERVICE_LEVEL,
   );
   const [description, setDescription] = useState("");
+
+  /**
+   * The declared physical load — step 6, and the half of this form the driver
+   * load board's fit filter actually reads.
+   *
+   * None of it reaches `/api/pricing/estimate` and none of it moves the fare:
+   * the vehicle class picked in step 5 is still what the job is priced on. These
+   * are a *declaration* carried alongside that choice, so a driver can be shown
+   * only the loads their vehicle can physically take.
+   *
+   * The four numbers are held as raw strings, not numbers, and the suffix says
+   * so. A field mid-edit is a perfectly ordinary state — "12." on the way to
+   * "12.5", "0" on the way to "0.8" — and storing a parsed number would let the
+   * value snap under the client's cursor between keystrokes. They are parsed on
+   * demand instead (see `parseCargoNumber`), once per render, for both the
+   * inline errors and `canSubmit`.
+   */
+  const [cargoWeightKgInput, setCargoWeightKgInput] = useState("");
+  const [cargoLengthMInput, setCargoLengthMInput] = useState("");
+  const [cargoWidthMInput, setCargoWidthMInput] = useState("");
+  const [cargoHeightMInput, setCargoHeightMInput] = useState("");
+
+  /**
+   * Which of the four required numbers the client has already left.
+   *
+   * Errors are withheld until a field has been visited, so the step does not
+   * open pre-scolded on four empty inputs the client has not reached yet. It has
+   * no bearing on whether the form submits — that is `canSubmit`'s, and it reads
+   * the parse results directly.
+   */
+  const [cargoFieldsTouched, setCargoFieldsTouched] =
+    useState<CargoFieldsTouched>(NO_CARGO_FIELDS_TOUCHED);
+
+  // Free text, both optional, both carried to the driver rather than read by
+  // anything: "4 pallets" and "96 cartons" are context for loading, not data
+  // the fit filter or the fare has any use for.
+  const [packagingDescription, setPackagingDescription] = useState("");
+  const [itemQuantity, setItemQuantity] = useState("");
+
+  /**
+   * How the load has to be handled. Independent toggles rather than a choice —
+   * a fragile, upright-only, time-critical load is an ordinary thing to book —
+   * so the empty array is a complete answer and never a missing one.
+   */
+  const [handlingTags, setHandlingTags] = useState<CargoHandlingTag[]>([]);
+
+  /**
+   * The window the client will release the load in, as two `TIME_SLOTS` values
+   * on the *already-chosen* delivery day.
+   *
+   * No date picker of its own, deliberately: the window is when the load can be
+   * collected on the day the job is scheduled for, so a second date would only
+   * offer the client a way to contradict step 1. Both must be set or both left
+   * blank — half a window says nothing a driver can plan against.
+   */
+  const [pickupWindowStartTime, setPickupWindowStartTime] = useState("");
+  const [pickupWindowEndTime, setPickupWindowEndTime] = useState("");
+
+  /**
+   * Must arrive by — and unlike the pickup window, this one does need its own
+   * date, because a deadline is routinely the day after collection.
+   *
+   * Its calendar is disabled before the scheduled day rather than before today:
+   * a deadline that falls before the job is even collected is not a deadline.
+   */
+  const [deliveryDeadlineDate, setDeliveryDeadlineDate] = useState<Date | null>(
+    null,
+  );
+  const [deliveryDeadlineTime, setDeliveryDeadlineTime] = useState("");
+  const [deadlinePickerOpen, setDeadlinePickerOpen] = useState(false);
 
   const [estimate, setEstimate] = useState<Estimate | null>(null);
   const [estimating, setEstimating] = useState(false);
@@ -741,6 +1101,28 @@ export function BookingForm(): React.ReactElement {
     setVehicleTypeCode("");
   }
 
+  /**
+   * Add or remove one handling requirement, leaving the rest alone.
+   *
+   * Rebuilt rather than mutated, as every other setter in this form is: the
+   * array is state, and a spliced copy is what tells React the selection moved.
+   * Insertion order is not preserved on purpose — the chips render from
+   * `HANDLING_TAG_OPTIONS`, so what the client sees is always enum order however
+   * this array happens to be sorted.
+   */
+  function toggleHandlingTag(tag: CargoHandlingTag) {
+    setHandlingTags((current) =>
+      current.includes(tag)
+        ? current.filter((existing) => existing !== tag)
+        : [...current, tag],
+    );
+  }
+
+  /** Mark one required cargo number as visited, so its error may now show. */
+  function markCargoFieldTouched(key: CargoNumberFieldKey) {
+    setCargoFieldsTouched((current) => ({ ...current, [key]: true }));
+  }
+
   // The in-flight estimate request, if any — kept in a ref (not state) since
   // it's only ever read from event handlers and cleanup, never rendered.
   const estimateAbortRef = useRef<AbortController | null>(null);
@@ -879,10 +1261,15 @@ export function BookingForm(): React.ReactElement {
   const vehicleStepEnabled = weightStepEnabled && weightOptions.length > 0;
 
   /**
-   * Step 6 and the service-level card, which open together on the one
-   * condition: a vehicle is settled. Neither is a successor to the other — they
-   * are siblings describing the job the chosen vehicle will do — and neither
-   * gates the booking, since both carry an answer from the moment they open.
+   * Steps 6 and 7 and the service-level card, which open together on the one
+   * condition: a vehicle is settled. None is a successor to the others — they
+   * are siblings describing the job the chosen vehicle will do.
+   *
+   * Step 6 is the one of the three that *does* gate the booking, and it is the
+   * exception that proves the shape rather than a break from it: what it gates
+   * on is its own four required numbers, through `canSubmit`, not through this
+   * flag. Steps 7 and the service level carry an answer from the moment they
+   * open and gate nothing.
    *
    * Still its own flag rather than folded into `vehicleStepEnabled`, because
    * the two conditions are genuinely different: the vehicle *step* opens once
@@ -898,6 +1285,187 @@ export function BookingForm(): React.ReactElement {
    */
   const vehicleChosenStepsEnabled =
     vehicleStepEnabled && eligibleVehicleTypes.length > 0;
+
+  /**
+   * The cargo step's gate is exactly the vehicle-chosen gate, aliased rather
+   * than re-derived.
+   *
+   * A load's physical description is a sibling of "how the job is handled", not
+   * a successor to it, so a predicate of its own would be a second copy of one
+   * condition free to drift from the original. The alias exists only so the
+   * `StepCard` below reads in its own terms.
+   */
+  const cargoStepEnabled = vehicleChosenStepsEnabled;
+
+  /**
+   * The four required cargo numbers, parsed once each per render.
+   *
+   * Parsed here rather than inside the fields' own handlers so there is exactly
+   * one evaluation of each bound feeding both consumers — the inline error under
+   * the field and the `canSubmit` conjunct below. Two evaluations would be two
+   * chances for the message and the button to disagree about the same value.
+   */
+  const cargoWeightResult = parseCargoNumber(
+    cargoWeightKgInput,
+    CARGO_WEIGHT_FIELD,
+  );
+  const cargoLengthResult = parseCargoNumber(
+    cargoLengthMInput,
+    CARGO_LENGTH_FIELD,
+  );
+  const cargoWidthResult = parseCargoNumber(
+    cargoWidthMInput,
+    CARGO_WIDTH_FIELD,
+  );
+  const cargoHeightResult = parseCargoNumber(
+    cargoHeightMInput,
+    CARGO_HEIGHT_FIELD,
+  );
+
+  /**
+   * The four fields as the render loop takes them: static descriptor, live
+   * value, its setter, its id and its parse result, in the order they appear.
+   *
+   * Built here rather than at module scope because half of each entry is state.
+   * A literal array of four named entries rather than an indexed lookup keeps
+   * every field's wiring visible in one place and avoids the possibly-undefined
+   * reads `noUncheckedIndexedAccess` would give an index-based pairing.
+   */
+  const cargoNumberFields: {
+    field: CargoNumberField;
+    id: string;
+    value: string;
+    onChange: (value: string) => void;
+    result: ParseResult<number>;
+  }[] = [
+    {
+      field: CARGO_WEIGHT_FIELD,
+      id: cargoWeightFieldId,
+      value: cargoWeightKgInput,
+      onChange: setCargoWeightKgInput,
+      result: cargoWeightResult,
+    },
+    {
+      field: CARGO_LENGTH_FIELD,
+      id: cargoLengthFieldId,
+      value: cargoLengthMInput,
+      onChange: setCargoLengthMInput,
+      result: cargoLengthResult,
+    },
+    {
+      field: CARGO_WIDTH_FIELD,
+      id: cargoWidthFieldId,
+      value: cargoWidthMInput,
+      onChange: setCargoWidthMInput,
+      result: cargoWidthResult,
+    },
+    {
+      field: CARGO_HEIGHT_FIELD,
+      id: cargoHeightFieldId,
+      value: cargoHeightMInput,
+      onChange: setCargoHeightMInput,
+      result: cargoHeightResult,
+    },
+  ];
+
+  /** All four required numbers present and within bounds. */
+  const cargoDimensionsValid =
+    "data" in cargoWeightResult &&
+    "data" in cargoLengthResult &&
+    "data" in cargoWidthResult &&
+    "data" in cargoHeightResult;
+
+  /**
+   * The declared pickup window as two moments on the scheduled day, or `null`
+   * at either end that was left blank.
+   *
+   * `scheduledDate` is guaranteed non-null while this step is open — the gate
+   * chain runs through `routeStepEnabled`, which is `scheduledDateTime !== null`
+   * — so the guard here is for the render *before* that, not for a state the
+   * client can reach with the fields on screen.
+   */
+  const pickupWindowStartDateTime =
+    scheduledDate && pickupWindowStartTime
+      ? combineDateAndTime(scheduledDate, pickupWindowStartTime)
+      : null;
+  const pickupWindowEndDateTime =
+    scheduledDate && pickupWindowEndTime
+      ? combineDateAndTime(scheduledDate, pickupWindowEndTime)
+      : null;
+
+  /**
+   * Both ends or neither, and the end strictly after the start.
+   *
+   * Written as plain booleans rather than through `parseCargoNumber`'s
+   * result shape, matching how the rest of this form's optional inputs validate
+   * (`availableTimeSlots`, `canCalculate`): the parse shape earns its keep where
+   * a *value* has to come back out, and here nothing does — the two moments are
+   * already derived above.
+   *
+   * Strictly after, not merely different: a zero-length window is a start time
+   * wearing an end time's label, and a driver planning against it learns
+   * nothing they did not already know from the start alone.
+   */
+  const pickupWindowValid =
+    (pickupWindowStartDateTime === null && pickupWindowEndDateTime === null) ||
+    (pickupWindowStartDateTime !== null &&
+      pickupWindowEndDateTime !== null &&
+      pickupWindowEndDateTime.getTime() > pickupWindowStartDateTime.getTime());
+
+  /**
+   * Whether exactly one end of the window is filled in, which is the half of
+   * `pickupWindowValid` worth a different sentence: "finish the window" and
+   * "the window ends before it starts" are two different mistakes.
+   */
+  const pickupWindowHalfDeclared =
+    (pickupWindowStartTime === "") !== (pickupWindowEndTime === "");
+
+  const deliveryDeadlineDateTime =
+    deliveryDeadlineDate && deliveryDeadlineTime
+      ? combineDateAndTime(deliveryDeadlineDate, deliveryDeadlineTime)
+      : null;
+
+  /**
+   * What a deadline has to beat: the end of the release window if one was
+   * declared, and otherwise the scheduled delivery moment itself.
+   *
+   * The window takes precedence because it is the later and more specific of
+   * the two — a deadline before the load has even been released is impossible in
+   * a way a deadline merely close to the scheduled time is not.
+   */
+  const deadlineFloor = pickupWindowEndDateTime ?? scheduledDateTime;
+
+  /**
+   * A deadline is optional, so "unset" is valid; a set one has to be strictly
+   * after the floor above. The `deadlineFloor !== null` conjunct only bites
+   * before a date and time have been chosen in step 1, which is a state this
+   * step is gated shut in.
+   */
+  const deliveryDeadlineValid =
+    deliveryDeadlineDateTime === null ||
+    (deadlineFloor !== null &&
+      deliveryDeadlineDateTime.getTime() > deadlineFloor.getTime());
+
+  /**
+   * The load space the client actually picked, spelled the way step 5 spelled
+   * it — read out of `BODY_TYPE_OPTIONS` rather than written again here, so the
+   * cold-chain warning can never name a body by a word the picker above it does
+   * not use.
+   */
+  const selectedBodyTypeOption = BODY_TYPE_OPTIONS.find(
+    (option) => option.body === bodyType,
+  );
+
+  /**
+   * Cold-chain cargo booked into a body that is not refrigerated.
+   *
+   * Advisory and nothing more: the tag is not cleared, the body is not changed
+   * and the booking is not blocked, because a short hop in a well-packed cool
+   * box is a real thing a client may knowingly be doing. All this does is make
+   * sure they are not doing it by accident.
+   */
+  const coldChainBodyMismatch =
+    handlingTags.includes("COLD_CHAIN") && bodyType !== "REFRIGERATED";
 
   // Deliberately keyed off the raw address *text*, not `pickupLocation`/
   // `dropoffLocation`: those only populate once a suggestion is picked from
@@ -1032,6 +1600,46 @@ export function BookingForm(): React.ReactElement {
           // endpoint. An order created here is simply one nobody has said how
           // they will settle yet.
           description: description.trim() || undefined,
+          // The declared load. Re-derived from the parse results rather than
+          // trusting the render-time `cargoDimensionsValid` that disabled the
+          // button, the same defensive shape as the `scheduledDateTime` guard
+          // at the top of this function: on the normal path `canSubmit` has
+          // already established all four are `"data"`, and on any path where it
+          // somehow has not, an explicit `null` is a truthful "not declared"
+          // that the endpoint rejects rather than a number invented here.
+          //
+          // None of these were sent to `/api/pricing/estimate` and none of them
+          // may be: the fare is the vehicle class's, and this block is the
+          // physical description the load board filters on.
+          cargoWeightKg:
+            "data" in cargoWeightResult ? cargoWeightResult.data : null,
+          cargoLengthM:
+            "data" in cargoLengthResult ? cargoLengthResult.data : null,
+          cargoWidthM:
+            "data" in cargoWidthResult ? cargoWidthResult.data : null,
+          cargoHeightM:
+            "data" in cargoHeightResult ? cargoHeightResult.data : null,
+          // Optional, and omitted rather than blanked when unfilled —
+          // `JSON.stringify` drops an `undefined` value outright, the same
+          // convention `stopContactPayload` above relies on. An absent key says
+          // "not declared"; an empty string would say "declared as nothing".
+          //
+          // The endpoint reads these five with its optional parsers and stores
+          // `null` for an absent key, which is the half of this contract that
+          // used to be missing: it required all five, so a booking with no
+          // packaging note — the ordinary case, since nothing on this page asks
+          // the client to write one — was answered with a 400 naming a field
+          // they were never shown as mandatory. Both sides now agree that
+          // unfilled is a valid answer. Keep them agreeing.
+          packagingDescription: packagingDescription.trim() || undefined,
+          itemQuantity: itemQuantity.trim() || undefined,
+          // Always sent, `[]` included: the column is `NOT NULL` with an empty
+          // default, so "no special handling" is a real answer rather than a
+          // missing one.
+          handlingTags,
+          pickupWindowStart: pickupWindowStartDateTime?.toISOString(),
+          pickupWindowEnd: pickupWindowEndDateTime?.toISOString(),
+          deliveryDeadline: deliveryDeadlineDateTime?.toISOString(),
         }),
       });
 
@@ -1166,13 +1774,30 @@ export function BookingForm(): React.ReactElement {
   // chosen delivery time, so the submit cannot race the fetch that supplies
   // the vehicle, or reach the server with nothing scheduled. The address
   // fields keep their own native `required` validation, which still runs
-  // because the button is only disabled for reasons the user cannot fix by
-  // filling the form in.
+  // whenever the button is clickable at all.
+  //
+  // That last part used to be free — every conjunct was something the client
+  // could not fix by typing — and the cargo conjuncts below are the first that
+  // is. So step 6 does the explaining the disabled button no longer can: each
+  // required field carries a persistent line saying why it is wanted and, once
+  // visited and left invalid, an inline error naming the fix.
+  //
+  // The three cargo conjuncts join `canSubmit` and pointedly not `canCalculate`:
+  // weight, dimensions, handling and timing move no part of the fare, so a
+  // client must still be able to price a job before describing the load. What
+  // they gate is booking one, because an order with no declared weight or
+  // dimensions is invisible to every driver on the load board — a failure with
+  // no error and no signal, which is worth four fields of friction to avoid.
+  // Client-side only, and not the guard that matters: `POST /api/orders`
+  // re-validates all of it.
   const canSubmit =
     !submitting &&
     selectedVehicleType !== null &&
     estimate !== null &&
-    scheduledDateTime !== null;
+    scheduledDateTime !== null &&
+    cargoDimensionsValid &&
+    pickupWindowValid &&
+    deliveryDeadlineValid;
 
   return (
     <main className="min-h-screen bg-ink text-paper">
@@ -1521,7 +2146,7 @@ export function BookingForm(): React.ReactElement {
                 <>
                   {/* Native radios again, one per load space, each visually
                       replaced by the card wrapping it — the same trade the
-                      crew-size picker in step 6 makes, and for the same
+                      crew-size picker in step 7 makes, and for the same
                       reasons: arrow-key navigation of the group and the "2 of
                       3" announcement, both free. (The goods and vehicle grids
                       above and below are older `aria-pressed` buttons; they
@@ -1693,8 +2318,403 @@ export function BookingForm(): React.ReactElement {
               )}
             </StepCard>
 
+            {/* Placed here, and not folded into steps 3/4 above or step 7
+                below, for two reasons that both point at this slot. It reads
+                the load space chosen directly above it — the cold-chain warning
+                compares `handlingTags` against `bodyType` — so its two inputs
+                stay adjacent in the form's reading order. And it is a
+                *declaration* about the load rather than an input to choosing a
+                vehicle: step 4's "Total weight" is a capacity bracket that
+                filters the vehicle list and is never stored, while the weight
+                asked for here is the actual load, stored on the order and read
+                by the driver load board's fit filter. Same word, two different
+                jobs — worth four lines apart rather than four lines together. */}
             <StepCard
               step={6}
+              title="Cargo details"
+              description="What is actually being moved. Weight and size decide which drivers can see and take the job."
+              disabled={!cargoStepEnabled}
+              disabledReason={CHOOSE_VEHICLE_FIRST}
+            >
+              <div className="flex flex-col gap-5">
+                <fieldset>
+                  <legend className="mb-2.5 text-[0.8125rem] font-medium text-paper">
+                    Weight and size of the largest item
+                  </legend>
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {cargoNumberFields.map(
+                      ({ field, id, value, onChange, result }) => {
+                        // The parser's own message, or — for the empty case,
+                        // which is the one a client is most likely to hit — the
+                        // field's longer one, which says why the answer is
+                        // needed rather than only that it is missing.
+                        const parseError =
+                          "error" in result ? result.error : null;
+                        const errorMessage =
+                          cargoFieldsTouched[field.key] && parseError !== null
+                            ? value.trim() === ""
+                              ? field.emptyError
+                              : parseError
+                            : null;
+
+                        return (
+                          <div
+                            key={field.key}
+                            className="flex flex-col gap-1.5"
+                          >
+                            <Label
+                              htmlFor={id}
+                              className="text-[0.8125rem] font-medium text-paper"
+                            >
+                              {field.label}
+                            </Label>
+                            <Input
+                              id={id}
+                              type="number"
+                              inputMode="decimal"
+                              min={field.bounds.min}
+                              max={field.bounds.max}
+                              step={field.step}
+                              value={value}
+                              onChange={(event) => onChange(event.target.value)}
+                              // Errors wait for the client to leave the field:
+                              // a step that opened already telling them off on
+                              // four inputs they have not reached yet reads as
+                              // broken rather than as helpful.
+                              onBlur={() => markCargoFieldTouched(field.key)}
+                              placeholder={field.placeholder}
+                              aria-invalid={errorMessage !== null}
+                              aria-describedby={
+                                errorMessage
+                                  ? `${id}-helper ${id}-error`
+                                  : `${id}-helper`
+                              }
+                              // The `Textarea` treatment step 7 already uses,
+                              // not `NATIVE_FIELD_CLASSES`, which this file
+                              // reserves for fixed-option `<select>`s. `Input`
+                              // is `bg-transparent` and sets no text colour, so
+                              // it inherits this card's palette unaided.
+                              className="border-line text-sm focus-visible:border-accent focus-visible:ring-accent/20"
+                            />
+                            <p
+                              id={`${id}-helper`}
+                              className="text-xs leading-snug text-muted"
+                            >
+                              {CARGO_FIELD_HELPER}{" "}
+                              {cargoRangeHelper(field.bounds)}
+                            </p>
+                            {errorMessage ? (
+                              <p
+                                id={`${id}-error`}
+                                className={FIELD_ERROR_CLASSES}
+                              >
+                                {errorMessage}
+                              </p>
+                            ) : null}
+                          </div>
+                        );
+                      },
+                    )}
+                  </div>
+                </fieldset>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="flex flex-col gap-1.5">
+                    <Label
+                      htmlFor={packagingFieldId}
+                      className="text-[0.8125rem] font-medium text-paper"
+                    >
+                      Packaging (optional)
+                    </Label>
+                    <Input
+                      id={packagingFieldId}
+                      value={packagingDescription}
+                      onChange={(event) =>
+                        setPackagingDescription(event.target.value)
+                      }
+                      placeholder="e.g. 4 pallets"
+                      className="border-line text-sm focus-visible:border-accent focus-visible:ring-accent/20"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <Label
+                      htmlFor={itemQuantityFieldId}
+                      className="text-[0.8125rem] font-medium text-paper"
+                    >
+                      Quantity (optional)
+                    </Label>
+                    <Input
+                      id={itemQuantityFieldId}
+                      value={itemQuantity}
+                      onChange={(event) => setItemQuantity(event.target.value)}
+                      placeholder="e.g. 96 cartons"
+                      className="border-line text-sm focus-visible:border-accent focus-visible:ring-accent/20"
+                    />
+                  </div>
+                </div>
+
+                {/* Toggle buttons with `aria-pressed`, not an `sr-only` radio
+                    group: these six are independent switches and any
+                    combination of them is a real answer, which is precisely
+                    what a radio group cannot express. The same pattern the
+                    goods grid in step 3 uses. */}
+                <fieldset>
+                  <legend className="mb-2.5 text-[0.8125rem] font-medium text-paper">
+                    Special handling (optional)
+                  </legend>
+
+                  <div className="flex flex-wrap gap-2">
+                    {HANDLING_TAG_OPTIONS.map((tag) => {
+                      const selected = handlingTags.includes(tag);
+
+                      return (
+                        <button
+                          key={tag}
+                          type="button"
+                          aria-pressed={selected}
+                          onClick={() => toggleHandlingTag(tag)}
+                          className={`${HANDLING_TAG_CLASSES} ${
+                            selected
+                              ? HANDLING_TAG_SELECTED_CLASSES
+                              : HANDLING_TAG_IDLE_CLASSES
+                          }`}
+                        >
+                          {CARGO_HANDLING_TAG_LABELS[tag]}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* `status`, never `alert`: both lines are advice about a
+                      choice the client is allowed to make, and neither blocks
+                      the booking, changes `bodyType` or clears the tag that
+                      raised it. An `alert` would interrupt to say something the
+                      client may already have decided on purpose. */}
+                  {coldChainBodyMismatch ? (
+                    <p
+                      role="status"
+                      className={`mt-2.5 ${FIELD_NOTICE_CLASSES}`}
+                    >
+                      Cold-chain cargo travels best in a refrigerated body. You
+                      picked {selectedBodyTypeOption?.title ?? "another body"}{" "}
+                      in the vehicle step above — go back and switch it if this
+                      load needs temperature control.
+                    </p>
+                  ) : null}
+
+                  {handlingTags.includes("HAZMAT") ? (
+                    <p
+                      role="status"
+                      className={`mt-2.5 ${FIELD_NOTICE_CLASSES}`}
+                    >
+                      {HAZMAT_NOTICE}
+                    </p>
+                  ) : null}
+                </fieldset>
+
+                {/* Two `TIME_SLOTS` selects on the day already chosen in step 1,
+                    with no date of their own — the window is when the load can
+                    be collected on the scheduled day, so a second date field
+                    could only contradict the first. The full slot list rather
+                    than `availableTimeSlots`: that one narrows to slots still
+                    ahead of the clock for a same-day booking, which is step 1's
+                    concern and already settled by the time this card opens. */}
+                <fieldset>
+                  <legend className="mb-2.5 text-[0.8125rem] font-medium text-paper">
+                    Pickup window (optional)
+                  </legend>
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="flex flex-col gap-1.5">
+                      <Label
+                        htmlFor={pickupWindowStartId}
+                        className="text-[0.8125rem] font-medium text-paper"
+                      >
+                        From
+                      </Label>
+                      <select
+                        id={pickupWindowStartId}
+                        value={pickupWindowStartTime}
+                        onChange={(event) =>
+                          setPickupWindowStartTime(event.target.value)
+                        }
+                        className={NATIVE_FIELD_CLASSES}
+                      >
+                        {/* Selectable, not `disabled`: clearing the window
+                            again is how a client undoes declaring one. */}
+                        <option value="">Any time</option>
+                        {TIME_SLOTS.map((slot) => (
+                          <option key={slot.value} value={slot.value}>
+                            {slot.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                      <Label
+                        htmlFor={pickupWindowEndId}
+                        className="text-[0.8125rem] font-medium text-paper"
+                      >
+                        Until
+                      </Label>
+                      <select
+                        id={pickupWindowEndId}
+                        value={pickupWindowEndTime}
+                        onChange={(event) =>
+                          setPickupWindowEndTime(event.target.value)
+                        }
+                        className={NATIVE_FIELD_CLASSES}
+                      >
+                        <option value="">Any time</option>
+                        {TIME_SLOTS.map((slot) => (
+                          <option key={slot.value} value={slot.value}>
+                            {slot.label}
+                          </option>
+                        ))}
+                      </select>
+                      {/* Under the second of the two controls, because neither
+                          end is wrong on its own — it is the pair that is. Two
+                          separate sentences, because "finish the window" and
+                          "the window ends before it starts" are two different
+                          mistakes with two different fixes. */}
+                      {pickupWindowHalfDeclared ? (
+                        <p className={FIELD_ERROR_CLASSES}>
+                          Set both ends of the pickup window, or leave both
+                          blank.
+                        </p>
+                      ) : pickupWindowValid ? null : (
+                        <p className={FIELD_ERROR_CLASSES}>
+                          The pickup window has to end after it starts.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </fieldset>
+
+                {/* A deadline routinely falls on a later day than collection,
+                    so unlike the window above this one carries its own date —
+                    step 1's field, rebuilt with its own state and its own
+                    calendar floor. */}
+                <fieldset>
+                  <legend className="mb-2.5 text-[0.8125rem] font-medium text-paper">
+                    Delivery deadline (optional)
+                  </legend>
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="flex flex-col gap-1.5">
+                      <Label
+                        htmlFor={deadlineTriggerId}
+                        className="text-[0.8125rem] font-medium text-paper"
+                      >
+                        Date
+                      </Label>
+                      <Popover
+                        open={deadlinePickerOpen}
+                        onOpenChange={setDeadlinePickerOpen}
+                      >
+                        <PopoverTrigger asChild>
+                          <button
+                            id={deadlineTriggerId}
+                            type="button"
+                            className={`flex items-center gap-2 ${NATIVE_FIELD_CLASSES}`}
+                          >
+                            <CalendarDays
+                              aria-hidden="true"
+                              className="size-4 shrink-0 text-muted"
+                            />
+                            <span
+                              className={
+                                deliveryDeadlineDate
+                                  ? "text-paper"
+                                  : "text-muted"
+                              }
+                            >
+                              {deliveryDeadlineDate
+                                ? scheduledDateFormatter.format(
+                                    deliveryDeadlineDate,
+                                  )
+                                : "No deadline"}
+                            </span>
+                          </button>
+                        </PopoverTrigger>
+
+                        <PopoverContent
+                          align="start"
+                          className="w-auto border-line bg-ink p-0 text-paper ring-line"
+                        >
+                          {/* The same local retint step 1's calendar applies,
+                              and for the same reason: a portalled popover sits
+                              outside this page's palette, so shadcn's default
+                              near-black `--primary` would otherwise draw the
+                              selected day. */}
+                          <div
+                            style={
+                              {
+                                "--primary": "var(--landing-accent)",
+                                "--primary-foreground": "var(--landing-ink)",
+                              } as React.CSSProperties
+                            }
+                          >
+                            <Calendar
+                              mode="single"
+                              selected={deliveryDeadlineDate ?? undefined}
+                              onSelect={(date) => {
+                                setDeliveryDeadlineDate(date ?? null);
+                                setDeadlinePickerOpen(false);
+                              }}
+                              // The scheduled day, not today: a deadline before
+                              // the job is even collected is not a deadline.
+                              // `todayStart` only stands in for the render
+                              // before step 1 is answered, which this card is
+                              // gated shut for.
+                              disabled={{ before: scheduledDate ?? todayStart }}
+                              autoFocus
+                            />
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                      <Label
+                        htmlFor={deadlineTimeSelectId}
+                        className="text-[0.8125rem] font-medium text-paper"
+                      >
+                        Time
+                      </Label>
+                      <select
+                        id={deadlineTimeSelectId}
+                        value={deliveryDeadlineTime}
+                        onChange={(event) =>
+                          setDeliveryDeadlineTime(event.target.value)
+                        }
+                        className={NATIVE_FIELD_CLASSES}
+                      >
+                        <option value="">No deadline</option>
+                        {TIME_SLOTS.map((slot) => (
+                          <option key={slot.value} value={slot.value}>
+                            {slot.label}
+                          </option>
+                        ))}
+                      </select>
+                      {deliveryDeadlineValid ? null : (
+                        <p className={FIELD_ERROR_CLASSES}>
+                          {pickupWindowEndDateTime
+                            ? "The delivery deadline has to be after the pickup window ends."
+                            : "The delivery deadline has to be after the scheduled delivery time."}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </fieldset>
+              </div>
+            </StepCard>
+
+            <StepCard
+              step={7}
               title="Additional details"
               disabled={!vehicleChosenStepsEnabled}
               disabledReason={CHOOSE_VEHICLE_FIRST}

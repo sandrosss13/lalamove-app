@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { LogOut } from "lucide-react";
 
 import { useSignOut } from "@/components/auth/use-sign-out";
@@ -27,11 +28,22 @@ export type DriverHubHeaderProps = {
    * nothing rather than an empty line.
    */
   subtitle: string;
+  /**
+   * A screen-supplied node dropped into the right-hand cluster, ahead of the
+   * account chip — today only the Load Board's vehicle-capacity pill.
+   *
+   * Registered from below via `useHubVehiclePill()` rather than passed down
+   * from a page, because the screens are client components mounted inside this
+   * header's own subtree. `null`/absent (every screen but Loads) renders
+   * nothing at all — not an empty box.
+   */
+  vehiclePill?: ReactNode;
 };
 
 /**
- * The hub's sticky top bar: page title and subhead on the left, account chip,
- * availability pill, avatar block and sign out on the right.
+ * The hub's sticky top bar: page title and subhead on the left, then the
+ * screen's own header slot, the account chip, the availability pill, the
+ * avatar block and sign out on the right.
  *
  * The prototype puts a Business/Individual **segmented control** here. That is
  * a prototype affordance — it exists so one HTML file can demo both shapes of
@@ -40,11 +52,41 @@ export type DriverHubHeaderProps = {
  * on server-side, so a client-side switcher would be a control that either
  * lies (the pages still redirect) or grants screens the session does not
  * entitle the user to. Hence the static chip below. Do not re-add the switcher.
+ *
+ * ## What the header-alignment handoff added, and what it deliberately did not
+ *
+ * `UI:UX/Registered Driver account (New)/Driver dashboard header alignment/`
+ * reshapes this bar towards the client site header's vocabulary. Three of its
+ * elements are **not** built here, each for a reason that is a fact about this
+ * codebase rather than a preference:
+ *
+ * - **No notifications bell.** There is no notification system anywhere in this
+ *   repo — no model in `prisma/schema.prisma`, nothing under `src/lib` or
+ *   `src/app/api`. A bell needs a table, a read/unread model, write points at
+ *   every order-lifecycle event and a delivery mechanism; it is a feature with
+ *   a data layer, not a header component, and it is deferred to its own spec
+ *   alongside the Phase 2 email/SMS work. A bell that never lights is worse
+ *   than no bell, so none is rendered and no placeholder count either.
+ * - **No "My account" link.** `/account` is client-only and
+ *   `src/app/account/page.tsx` redirects any non-CLIENT role straight back to
+ *   `/dashboard`, so the link would be a loop. A driver-side account settings
+ *   screen does not exist yet; adding one is its own task.
+ * - **No active-job indicator.** The data behind it (`getHubToday()` in
+ *   `src/lib/dashboard/hub/today.ts`) is resolved per-screen, and this header
+ *   is a client component whose shell's contract is that nothing in it
+ *   fetches. Surfacing it globally means `(hub)/layout.tsx` resolving it and
+ *   threading it through the shell — a change to files outside the task that
+ *   introduced this comment.
+ *
+ * What the handoff *did* land: the nav relabelling in `driver-hub-nav.ts`
+ * ("Wallet" → `/dashboard/earnings`, "My orders" → `/dashboard/jobs`, never the
+ * client `/wallet` and `/orders` routes) and the `vehiclePill` slot below.
  */
 export function DriverHubHeader({
   account,
   title,
   subtitle,
+  vehiclePill,
 }: DriverHubHeaderProps) {
   const { signOut, signingOut } = useSignOut();
 
@@ -60,6 +102,11 @@ export function DriverHubHeader({
       </div>
 
       <div className="flex items-center gap-[18px]">
+        {/* The screen's own slot, ahead of everything the shell owns: the
+            design places the Load Board's vehicle pill between the flex spacer
+            and the identity block, not inside it. */}
+        {vehiclePill}
+
         <Badge
           variant="outline"
           className="h-auto rounded-full px-[9px] py-[3px] text-[11px] font-semibold tracking-[0.02em] text-muted-foreground"

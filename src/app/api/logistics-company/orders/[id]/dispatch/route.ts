@@ -2,7 +2,13 @@ import { NextResponse } from "next/server";
 import { OrderStatus } from "@prisma/client";
 
 import { auth } from "@/lib/auth";
-import { ORDER_PARTY_SELECT } from "@/lib/order-response-select";
+import { CARRIER_ORDER_PARTY_SELECT } from "@/lib/order-response-select";
+import {
+  capabilityOf,
+  hasDeclaredEnvelope,
+  loadFits,
+  type LoadDimensions,
+} from "@/lib/orders/vehicle-fit";
 import { prisma } from "@/lib/prisma";
 
 /** Validated shape of a dispatch request body. */
@@ -51,6 +57,19 @@ function parseDispatchBody(
  * The write itself is a plain `update` rather than a conditional `updateMany`:
  * the CLAIMED-by-this-company lookup above already establishes exclusive
  * ownership, so there is no second claimant to race with.
+ *
+ * **This is where the fleet's optimism is settled.** The claim endpoint admits a
+ * load against `widestCapability` — the per-axis maximum across the company's
+ * type-matching trucks, which describes a composite vehicle that may not exist
+ * (see that function's own doc comment) — on the explicit promise that the
+ * company names a real vehicle here and any mismatch is caught at a desk before
+ * anything rolls. This handler is the other half of that promise: it re-checks
+ * the declared cargo against the capability of the vehicle actually being
+ * assigned.
+ *
+ * The success response carries no client money at all — not `Order.price` and
+ * not the fare components it is built from. See the select at the bottom of this
+ * handler for why.
  */
 export async function POST(
   request: Request,
@@ -118,9 +137,20 @@ export async function POST(
 
   // Scoped by ownership *and* status: an order this company hasn't claimed, or
   // has already dispatched, is not dispatchable and is reported as missing.
+  //
+  // The cargo columns feed the physical fit re-check further down — the load has
+  // to fit the vehicle this request names, not merely the widest set of figures
+  // the fleet could muster at claim time.
   const order = await prisma.order.findFirst({
     where: { id, companyId: company.id, status: OrderStatus.CLAIMED },
-    select: { id: true, vehicleTypeSpecId: true },
+    select: {
+      id: true,
+      vehicleTypeSpecId: true,
+      cargoWeightKg: true,
+      cargoLengthM: true,
+      cargoWidthM: true,
+      cargoHeightM: true,
+    },
   });
 
   if (!order) {
@@ -140,11 +170,33 @@ export async function POST(
 
   // Scoped by owner, so this returns nothing for another company's vehicle or
   // for one owned by an independent driver.
+  //
+  // Both capacity sources are selected because `capabilityOf` needs both: this
+  // vehicle's OWN driver-declared `payloadKg`/`cargoLengthM`/`cargoWidthM`/
+  // `cargoHeightM`, preferred per field, with the class spec as the fallback
+  // wherever one is null. Selecting the spec alone would make this route
+  // systematically stricter than the claim that preceded it — `model Vehicle`
+  // records a submit-time check forcing a declared `payloadKg` to be at or above
+  // its class spec's `maxPayloadKg` — and refuse dispatches for loads the fleet
+  // can genuinely take. The accept route selects exactly this pair for exactly
+  // this reason.
   const vehicle = await prisma.vehicle.findFirst({
     where: { id: vehicleId, companyId: company.id },
     select: {
       id: true,
       vehicleTypeSpecId: true,
+      payloadKg: true,
+      cargoLengthM: true,
+      cargoWidthM: true,
+      cargoHeightM: true,
+      vehicleTypeSpec: {
+        select: {
+          maxPayloadKg: true,
+          cargoLengthM: true,
+          cargoWidthM: true,
+          cargoHeightM: true,
+        },
+      },
       // The review row for this vehicle, or null for a vehicle that predates
       // business applications (admin-created, or added through the fleet form).
       // Singular, because `BusinessApplicationVehicle.vehicleId` is `@unique`.
@@ -193,6 +245,75 @@ export async function POST(
     );
   }
 
+  // A second, independent check alongside the type match above — and the one the
+  // claim endpoint's optimism was sold against.
+  //
+  // **Matching `vehicleTypeSpecId` is not a fit check.** A type match says the
+  // company sent a vehicle of the *class* the client booked; it says nothing
+  // about whether this particular truck can carry this particular load. Those
+  // came apart the moment `capabilityOf` started resolving each vehicle's own
+  // declared `payloadKg` and hold dimensions ahead of its class figures: two
+  // trucks of one class no longer have the same capacity.
+  //
+  // That gap had a concrete victim. `POST .../claim` filters the load against
+  // `widestCapability` — the per-axis maximum across the fleet's type-matching
+  // trucks — which knowingly describes a composite vehicle that may not exist:
+  // in a two-truck fleet whose heaviest truck is not its longest, it reports the
+  // heavy truck's payload beside the long truck's length. That optimism is right
+  // for a claim, and its own doc comment justifies it by promising this handler
+  // catches the mismatch: *"the company names a real vehicle at dispatch and
+  // sees any mismatch there, at a desk, before anything rolls."* Until now no
+  // such check existed, so the composite vehicle went unchallenged all the way
+  // to the dock and the driver discovered it there — the exact failure
+  // `loadFits` was written to prevent, with the fuel and the wasted trip already
+  // spent. This block is that promise, kept.
+  //
+  // Same trio as `GET /api/loads`, the accept route and the claim route:
+  // `capabilityOf` + `loadFits` from `src/lib/orders/vehicle-fit.ts`, the one
+  // and only definition of "fits" in the codebase. Refusing here costs a
+  // dispatcher one re-assignment at a desk, which is precisely the cheap failure
+  // the claim endpoint traded for.
+  //
+  // **The null pre-check is `hasDeclaredEnvelope`, the same exported predicate
+  // the claim and accept routes and the board all read, for the same reason.**
+  // `loadFits` resolves a null load dimension to "does not fit", which is wrong
+  // here: this is also the legacy dispatch path, and every order claimed before
+  // cargo capture existed has null weight and dimensions. Applying that rule
+  // would strand all of them in CLAIMED, undispatchable by the same endpoint
+  // that has always dispatched them. So an order with no declared cargo AT ALL
+  // skips the check (there is nothing to measure), and an order declaring any
+  // cargo is measured exactly as the board measures it — including the
+  // all-or-nothing rule under which a partially declared load does not fit. That
+  // case cannot strand a dispatcher, because the claim route applies the
+  // identical rule one step earlier.
+  //
+  // Written out inline in all four places until `GET /api/loads` was found to
+  // have quietly disagreed with the other three — listing nothing where they
+  // claimed happily. One exported predicate is what keeps that fixed.
+  const declaredCargo: LoadDimensions = {
+    weightKg: order.cargoWeightKg,
+    lengthM: order.cargoLengthM,
+    widthM: order.cargoWidthM,
+    heightM: order.cargoHeightM,
+  };
+
+  if (
+    hasDeclaredEnvelope(declaredCargo) &&
+    !loadFits(declaredCargo, capabilityOf(vehicle, vehicle.vehicleTypeSpec))
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "This vehicle can't carry this load's cargo — it exceeds the weight or size limit. Assign a vehicle that can.",
+      },
+      { status: 400 },
+    );
+  }
+
+  // Carrier-only response — see `CARRIER_ORDER_PARTY_SELECT`'s doc comment;
+  // never `ORDER_PARTY_SELECT` here. The company is the carrier on the order it
+  // is dispatching, entitled to its own payout and to nothing about what the
+  // client paid to get it.
   const updated = await prisma.order.update({
     where: { id },
     data: {
@@ -200,7 +321,7 @@ export async function POST(
       vehicleId: vehicle.id,
       status: OrderStatus.ACCEPTED,
     },
-    select: ORDER_PARTY_SELECT,
+    select: CARRIER_ORDER_PARTY_SELECT,
   });
 
   return NextResponse.json(updated, { status: 200 });

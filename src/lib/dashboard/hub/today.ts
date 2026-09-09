@@ -73,6 +73,7 @@ import {
   startOfHubDayPlus,
   startOfHubWeek,
 } from "@/lib/dashboard/hub/timezone";
+import { totalDriverEarnings } from "@/lib/orders/payout";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -127,7 +128,18 @@ export type HubTodayCurrentJob = {
   /** Exactly two entries: `[0]` pickup, `[1]` drop-off. */
   stops: readonly HubTodayStop[];
   distanceKm: number;
-  /** `price + overtimeFee` — the quote plus whatever overtime is settled. */
+  /**
+   * `driverPayout + overtimeDriverPayout` — the **carrier's** commissioned
+   * earnings on the job in flight, never `price + overtimeFee`, which is what
+   * the client pays for it. Same figure, same reasoning, as `HubJob.fare` and
+   * the Earnings screen's totals; see `src/lib/orders/payout.ts`.
+   *
+   * `Order.serviceLevelAdjustment` is deliberately not a term in it: the
+   * Priority uplift and Pooling discount are already inside the basis
+   * `driverPayout` was commissioned from at booking
+   * (`roundCurrency(price + serviceLevelAdjustment)`), so adding the adjustment
+   * here would pay it twice.
+   */
   fare: number;
   /** Vehicle class the job was booked for, e.g. "Cargo Van". */
   vehicleTypeLabel: string;
@@ -165,7 +177,17 @@ export type HubTodayVehicleAlert = {
 };
 
 export type HubTodayData = {
-  /** `SUM(price + overtimeFee)` over jobs completed in today's Tbilisi day. */
+  /**
+   * `SUM(driverPayout + overtimeDriverPayout)` over jobs completed in today's
+   * Tbilisi day — the hero tile on this screen, and the account's **own
+   * earnings**, never `SUM(price + overtimeFee)`, which is what the platform
+   * billed the clients for those jobs.
+   *
+   * The distinction is the whole point of the tile: it is labelled as what the
+   * driver earned today, and the client's total is roughly 18% larger than that.
+   * See `src/lib/orders/payout.ts`, and `HubTodayCurrentJob.fare` for why no
+   * `serviceLevelAdjustment` term belongs in the sum.
+   */
   earnedToday: number;
   jobsCompletedToday: number;
   /** `earnedToday / jobsCompletedToday`, or 0 when nothing was completed. */
@@ -379,7 +401,11 @@ export async function getHubToday(account: HubAccount): Promise<HubTodayData> {
           status: OrderStatus.COMPLETED,
           completedAt: { gte: startOfToday },
         },
-        _sum: { price: true, overtimeFee: true },
+        // The two **payout** columns, never `price` and `overtimeFee`. Those
+        // are the client's money; this tile answers "what did I earn today",
+        // and asking the database for the client's figures at all is how a
+        // later edit ends up rendering one. See `HubTodayData.earnedToday`.
+        _sum: { driverPayout: true, overtimeDriverPayout: true },
         _count: true,
       }),
 
@@ -395,8 +421,10 @@ export async function getHubToday(account: HubAccount): Promise<HubTodayData> {
           pickupAddress: true,
           dropoffAddress: true,
           distanceKm: true,
-          price: true,
-          overtimeFee: true,
+          // Same rule as the aggregate above: the carrier's two payout columns,
+          // never the client's `price`/`overtimeFee`.
+          driverPayout: true,
+          overtimeDriverPayout: true,
           createdAt: true,
           inTransitAt: true,
           completedAt: true,
@@ -425,8 +453,17 @@ export async function getHubToday(account: HubAccount): Promise<HubTodayData> {
       loadComplianceSource(account),
     ]);
 
+  // Rounded rather than passed through `totalDriverEarnings`: these are aggregate
+  // sums over many orders, not one order's two columns, and that helper takes an
+  // order shape by design so a caller cannot transpose its arguments. Same
+  // arithmetic either way — `Float` sums carry binary-fraction dust and money
+  // crossing this boundary is snapped to the tetri it will be printed at.
+  //
+  // Both `?? 0`s are the empty-day case: Prisma returns `null` for a sum over no
+  // rows, which is not zero earnings but it is what the tile prints for one.
   const earnedToday = roundCurrency(
-    (earnedTodayAgg._sum.price ?? 0) + (earnedTodayAgg._sum.overtimeFee ?? 0),
+    (earnedTodayAgg._sum.driverPayout ?? 0) +
+      (earnedTodayAgg._sum.overtimeDriverPayout ?? 0),
   );
   const jobsCompletedToday = earnedTodayAgg._count;
 
@@ -466,7 +503,10 @@ export async function getHubToday(account: HubAccount): Promise<HubTodayData> {
             },
           ],
           distanceKm: currentOrder.distanceKm,
-          fare: roundCurrency(currentOrder.price + currentOrder.overtimeFee),
+          // One order's two payout columns, so this one *does* go through the
+          // shared helper — `src/lib/orders/payout.ts` is the single definition
+          // of what a job pays its carrier.
+          fare: totalDriverEarnings(currentOrder),
           vehicleTypeLabel: currentOrder.vehicleTypeSpec.label,
           createdAt: currentOrder.createdAt.toISOString(),
           inTransitAt: currentOrder.inTransitAt?.toISOString() ?? null,

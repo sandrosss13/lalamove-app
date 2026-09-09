@@ -5,14 +5,17 @@ import {
   HubCard,
   HubStatusBadge,
 } from "@/components/driver-hub/hub-primitives";
+// `formatDistanceKm` and `roundCurrency` were imported for the old gross fare
+// itemisation — the "Distance · N km" line and the minimum-fare top-up it
+// reconciled — and both went with it. The distance is not lost from the screen:
+// `jobs-screen.tsx` prints it on every table row. `roundCurrency` stays exported
+// from `jobs-format.ts` for other callers; only this file's use of it is gone.
 import {
   EMPTY_VALUE,
-  formatDistanceKm,
   formatGel,
   formatJobDateLabel,
   formatJobTime,
   formatJobTimestamp,
-  roundCurrency,
   toTelHref,
 } from "@/components/driver-hub/screens/jobs-format";
 import type { HubJob, HubStopContact } from "@/lib/dashboard/hub/jobs";
@@ -57,14 +60,25 @@ import { cn } from "@/lib/utils";
  *
  * ## Why the total is not the client's total
  *
- * The tier does move money — `Order.serviceLevelAdjustment` holds the premium
- * or discount, and `/orders` adds it to `price` because that is what the client
- * agreed to pay. This panel does not, because its total is labelled "Paid to
- * you": it is the payee's figure, and whether a Priority premium reaches the
- * driver or is kept by the platform is an unmade commercial decision. Rather
- * than guess it, the number is left as `price + overtimeFee` and the tier is
- * captioned under it so the pill above cannot be mistaken for a rate already in
- * the fare. See `HubJob.fare` for the full reasoning.
+ * Every money figure on this panel is the **carrier's**, and none of the
+ * client's reaches it. `HubJob` no longer carries `price`, `baseFare`,
+ * `distanceFare`, `timeFare`, `helperFee` or `overtimeFee` at all — its loader
+ * does not select them — so the panel could not print the client's fare if it
+ * tried; that is a compile error rather than a rule to remember. What it prints
+ * instead is `driverPayout`, plus `overtimeDriverPayout` when there is any, and
+ * `fare` (their sum) as the total. See `HubJob.fare` and
+ * `src/lib/orders/payout.ts`.
+ *
+ * The tier does move money — `Order.serviceLevelAdjustment` holds the Priority
+ * premium or Pooling discount, and `/orders` adds it to `price` because that is
+ * what the client agreed to pay. It is not a separate line here, and not because
+ * the split is unresolved: it is settled, and it is already *inside* this
+ * panel's figures. `driverPayout` was commissioned at booking from
+ * `roundCurrency(price + serviceLevelAdjustment)`, so the carrier's 85% of the
+ * tier adjustment is in the "Payout" line and adding it again would pay it
+ * twice. The tier is still captioned under the total, because a "Priority" pill
+ * above an amount smaller than the client's invoice invites exactly the question
+ * the caption answers.
  */
 
 /* -------------------------------------------------------------------------- */
@@ -168,69 +182,57 @@ function buildTimeline(job: HubJob, nowIso: string): TimelineStep[] {
 type FareLine = { label: string; amountGel: number };
 
 /**
- * The itemised quote, exactly as `Order` stores it — no line is estimated and
- * none is invented.
+ * What the job paid, in the at most two lines the carrier's side of it has — no
+ * line is estimated and none is invented.
  *
- * Two of the design's lines are deliberately absent. **Stops · N** cannot
- * exist on a single-leg booking. **Tip** has no column at all, and a per-order
- * tip is precisely the kind of number that must not be guessed, so the line is
- * omitted rather than shown as zero (which would read as "the customer left
- * nothing") or filled from the range-level estimate in `sample.ts` (which would
- * make this the one screen with placeholder money on it).
+ * **This used to itemise the client's quote** — Base fare, Distance, Time, a
+ * conditional Helpers line, a computed "Minimum fare top-up" reconciling those
+ * against `price`, and a conditional Overtime line — and that itemisation is
+ * gone rather than reworked, because none of it was this reader's money.
+ * `price`, `baseFare`, `distanceFare`, `timeFare`, `helperFee` and `overtimeFee`
+ * are what the **client** pays; the panel's own total was already labelled "Paid
+ * to you", so the lines above it were describing a different transaction than
+ * the sum below them.
  *
- * The two conditional lines are conditional on different things on purpose:
- * Helpers is keyed off `helperCount`, because a job that was booked with a crew
- * should say so even if the rule priced them at nothing, while Overtime is
- * keyed off the fee, because zero waiting minutes beyond the free allowance is
- * not a charge anybody needs to read a line about.
+ * **The collapse to two lines is a fact about the data, not a simplification.**
+ * A payout is one commissioned lump taken off the whole client-paid total — 85%
+ * of `roundCurrency(price + serviceLevelAdjustment)`, stored once at booking —
+ * so there is no per-component carrier figure to print. There is no "carrier's
+ * base fare" and no "carrier's distance fare"; splitting the payout back into
+ * pro-rata shares of the client's components would be inventing an itemisation
+ * the platform never computed, on a screen whose whole discipline is that every
+ * figure is a column on `Order`. Two real lines beat six derived ones.
  *
- * `helperCount` counts the extras beyond the driver, and `helperFee` is the
- * flat per-helper charge already multiplied by it — one line for the whole
- * crew, which is why the label carries the count.
+ * The minimum-fare top-up line goes with them for the same reason: it existed to
+ * reconcile four gross components against a floored gross total, and neither
+ * side of that reconciliation is on this screen any more. The payout is stored
+ * whole and needs no reconciling.
+ *
+ * The overtime line stays conditional on the *amount* rather than on
+ * `waitingMinutes`, exactly as the old Overtime line was: a job that waited but
+ * stayed inside the rule's free allowance earns nothing extra, and a zero line
+ * would invite the reader to look for a charge that is not there. Its label
+ * keeps carrying `waitingMinutes` when there is one, so the reason for the
+ * second line stays visible.
+ *
+ * Two of the design's lines remain deliberately absent for their original
+ * reasons. **Stops · N** cannot exist on a single-leg booking. **Tip** has no
+ * column at all, and a per-order tip is precisely the kind of number that must
+ * not be guessed, so the line is omitted rather than shown as zero (which would
+ * read as "the customer left nothing") or filled from the range-level estimate
+ * in `sample.ts` (which would make this the one screen with placeholder money on
+ * it).
  */
 function buildFareLines(job: HubJob): FareLine[] {
-  const lines: FareLine[] = [
-    { label: "Base fare", amountGel: job.baseFare },
-    {
-      label: `Distance · ${formatDistanceKm(job.distanceKm)}`,
-      amountGel: job.distanceFare,
-    },
-    { label: "Time", amountGel: job.timeFare },
-  ];
+  const lines: FareLine[] = [{ label: "Payout", amountGel: job.driverPayout }];
 
-  if (job.helperCount > 0) {
-    lines.push({
-      label: job.helperCount === 1 ? "Helper" : `Helpers × ${job.helperCount}`,
-      amountGel: job.helperFee,
-    });
-  }
-
-  // `price` is the quote *floored at the pricing rule's minimum fare*, so on a
-  // short job the four lines above sum to less than the total underneath them.
-  // Naming the difference is the only way the panel adds up; leaving it out
-  // would print an itemisation that visibly disagrees with its own total. The
-  // number is derived from real columns, not invented, so it carries no sample
-  // marker.
-  const topUp = roundCurrency(
-    job.price -
-      (job.baseFare + job.distanceFare + job.timeFare + job.helperFee),
-  );
-
-  if (topUp > 0) {
-    lines.push({ label: "Minimum fare top-up", amountGel: topUp });
-  }
-
-  // Settled at completion on top of the quote, which is why it sits below the
-  // top-up rather than inside it. `waitingMinutes` is the whole reported
-  // loading time; only the part past the rule's free allowance is charged, so
-  // the label gives it as context rather than as the thing being billed.
-  if (job.overtimeFee !== 0) {
+  if (job.overtimeDriverPayout !== 0) {
     lines.push({
       label:
         job.waitingMinutes === null
-          ? "Overtime"
-          : `Overtime · ${job.waitingMinutes} min loading`,
-      amountGel: job.overtimeFee,
+          ? "Overtime payout"
+          : `Overtime payout · ${job.waitingMinutes} min loading`,
+      amountGel: job.overtimeDriverPayout,
     });
   }
 
@@ -455,31 +457,35 @@ export function JobsDetailPanel({
 
       <div className="mt-1.5 flex items-baseline justify-between gap-3 border-t border-border pt-3">
         <span className="text-sm font-semibold">Paid to you</span>
-        {/* `fare` — `price` plus the overtime settled on top of it — and not
-            `price` alone: the lines above include Overtime whenever there is
-            any, so a total of `price` would sit under an itemisation it
-            contradicts. It is also the number the row's Fare column shows, and
-            a row and its own panel must not disagree about what a job paid.
+        {/* `fare` is `driverPayout + overtimeDriverPayout` by construction (see
+            `HubJob.fare`), so this total is the sum of the lines above it and
+            "Paid to you" is now literally true. It is also the number the row's
+            Fare column shows, and a row and its own panel must not disagree
+            about what a job paid.
 
-            It is also not `price + serviceLevelAdjustment`, which is the larger
-            figure `/orders` shows the client on a Priority job. This line is
-            labelled "Paid to you" — it is the payee's side, not the client's —
-            and whether a Priority premium reaches the driver or is kept by the
-            platform is a commercial split nobody has decided. Folding it in
-            would settle that question in a driver's favour by accident, and a
-            Pooling discount would settle it against them. So the number is left
-            alone and the tier is captioned instead. See `HubJob.fare`. */}
+            It is deliberately smaller than the figure `/orders` shows the client
+            for the same job, and that gap is the platform's commission, not a
+            rounding difference. It is also not `price + serviceLevelAdjustment`
+            — but no longer because "nobody has decided" who gets the tier
+            adjustment. That is decided: the carrier receives 85% of it along
+            with everything else the client pays, and they receive it *inside*
+            `driverPayout`, which was commissioned at booking from
+            `roundCurrency(price + serviceLevelAdjustment)`. Adding the
+            adjustment on here would pay it a second time. */}
         <span className="font-price text-xl font-semibold">
           {formatGel(job.fare)}
         </span>
       </div>
 
       {/* The disclaimer the pills three lines up cannot carry on their own: a
-          "Priority" pill sitting above an unadjusted figure reads as a premium
-          rate already in it. This says plainly that it is not, without claiming
-          anything about who ends up with the difference — which is the part
-          nobody has decided. Regular moves the fare by nothing, so it earns no
-          note; a line saying the adjustment was zero would only be noise. */}
+          "Priority" pill sitting above a figure smaller than the client's
+          invoice invites the reader to wonder where the premium went. The
+          sentence stays exactly as it was, because it is still true — the tier
+          adjusts what the client pays, and this figure is not that. What has
+          changed is why: the carrier's share of the adjustment is already inside
+          the Payout line above, not withheld pending a decision. Regular moves
+          the fare by nothing, so it earns no note; a line saying the adjustment
+          was zero would only be noise. */}
       {job.serviceLevel === "Regular" ? null : (
         <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
           Booked as {job.serviceLevel}. The tier adjusts what the client pays

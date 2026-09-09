@@ -39,6 +39,7 @@ import { ChassisType, OrderStatus, ServiceLevel } from "@prisma/client";
 import type { Prisma } from "@prisma/client";
 
 import type { HubAccount } from "@/lib/dashboard/hub/account";
+import { totalDriverEarnings } from "@/lib/orders/payout";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -118,41 +119,57 @@ export type HubJob = {
   dropoffAddress: string;
   distanceKm: number;
   /**
-   * `price + overtimeFee` — what the job pays *the account reading this*, which
-   * is why the panel labels it "Paid to you".
+   * `driverPayout + overtimeDriverPayout` — the account's **commissioned
+   * earnings** on this job, which is why the panel labels it "Paid to you".
    *
-   * `Order.serviceLevelAdjustment` is deliberately not in it. That column is
-   * the Priority premium or Pooling discount on **what the client pays**, and
-   * whether any of it reaches the driver or is kept by the platform is a
-   * commercial split nobody has decided. Adding it here would answer that
-   * question in the driver's favour by accident, on a line that reads as a
-   * promise of payment; subtracting a Pooling discount would answer it against
-   * them just as silently. So the payee's figure stays exactly what it has
-   * always been, and the panel says out loud that the tier is not in it.
+   * This used to be `price + overtimeFee`, described here as "what the job pays
+   * the account reading this". That was exactly backwards, and the claim is
+   * deleted rather than softened: `price` and `overtimeFee` are what the
+   * **client** pays. The platform takes its cut of that and pays the rest to
+   * whoever carries the load, so the client's total has never been the carrier's
+   * earnings — this screen was showing a driver roughly 18% more than they were
+   * ever going to receive, on a line labelled "Paid to you".
+   *
+   * Both columns are read as stored, never recomputed: `driverPayout` is
+   * resolved at booking and `overtimeDriverPayout` at completion, each at the
+   * `commissionRate` stamped on that order, so retuning the rate cannot rewrite
+   * what a historical job paid. See `src/lib/orders/payout.ts`.
+   *
+   * **`Order.serviceLevelAdjustment` is deliberately not a term in this sum, and
+   * its absence is not the old omission carried forward.** The Priority uplift
+   * and Pooling discount are already *inside* the basis `driverPayout` was
+   * commissioned from at booking — `roundCurrency(price +
+   * serviceLevelAdjustment)` — so adding the adjustment again here would pay it
+   * to the carrier twice, and subtracting a Pooling discount would take it off
+   * twice. The question the old comment recorded as "a commercial split nobody
+   * has decided" is decided: the carrier receives 85% of the adjustment along
+   * with everything else the client pays, at booking, in this column.
    *
    * This is knowingly not the same number `/orders` shows the client for the
-   * same job. The two figures answer two different questions, and the fix for
-   * the difference is a rate decision, not a display change.
+   * same job, and now that is by design rather than by accident: the client sees
+   * what they paid, the carrier sees what they earn, and the difference is the
+   * platform's commission.
    */
   fare: number;
 
-  /* Fare lines, exactly as `Order` itemises them for the detail panel. They sum
-     to `price` only up to the rule's `minimumFare` floor, which is why `price`
-     is stored and shown rather than re-added from the parts. */
-  baseFare: number;
-  distanceFare: number;
-  timeFare: number;
-  helperFee: number;
-  overtimeFee: number;
-  /** The up-front quoted total, floored at the pricing rule's minimum fare. */
-  price: number;
   /**
-   * Extra helpers booked *beyond* the driver, 0-3 — why `helperFee` is
-   * non-zero, and how many people that one figure covers: the rule's flat
-   * per-helper fee is already multiplied by this before it is stored.
+   * The carrier's commissioned share of the client's quoted total, as stored on
+   * the order at booking. The detail panel's "Payout" line.
+   */
+  driverPayout: number;
+  /**
+   * The carrier's commissioned share of `Order.overtimeFee`, written at
+   * completion at the order's own stored rate. Zero on every job that finished
+   * inside the free loading allowance, and on every job not yet completed.
+   */
+  overtimeDriverPayout: number;
+  /**
+   * Extra helpers booked *beyond* the driver, 0-3. Kept even though the
+   * per-helper fee itself is gone from this type: a headcount is operational
+   * context, not money, and a job booked with a crew should say so.
    */
   helperCount: number;
-  /** Why `overtimeFee` is non-zero; null until the job is completed. */
+  /** Why `overtimeDriverPayout` is non-zero; null until the job is completed. */
   waitingMinutes: number | null;
 
   /* Timeline. Three timestamps, not the design's four steps — see the module
@@ -242,14 +259,16 @@ function hubOrderScope(account: HubAccount): Prisma.OrderWhereInput {
   return { driverId: account.userId };
 }
 
-/**
- * Prices are `Float` columns, so summing them accumulates binary-fraction dust;
- * money crossing this boundary is rounded to the cent it will be printed at.
- * Repeated in the sibling hub modules for the same reason `hubOrderScope` is.
+/*
+ * This module used to carry its own `roundCurrency`, repeated verbatim in the
+ * sibling hub modules the way `hubOrderScope` is. It had exactly one caller —
+ * the `fare` line — and that line now goes through `totalDriverEarnings`, which
+ * rounds the two payout columns' sum identically and is the codebase's single
+ * definition of what a job paid its carrier. A private copy kept alive for a
+ * caller that no longer exists is a second answer waiting to drift from the
+ * first, so it is gone rather than kept "for symmetry". The siblings keep theirs
+ * because they round aggregate sums, which `totalDriverEarnings` does not take.
  */
-function roundCurrency(value: number): number {
-  return Math.round(value * 100) / 100;
-}
 
 /**
  * `OrderStatus` in the design's vocabulary, or **null for a row that is not a
@@ -396,12 +415,15 @@ export async function getHubJobs(account: HubAccount): Promise<HubJobsData> {
       pickupAddress: true,
       dropoffAddress: true,
       distanceKm: true,
-      baseFare: true,
-      distanceFare: true,
-      timeFare: true,
-      helperFee: true,
-      overtimeFee: true,
-      price: true,
+      // The two payout columns and nothing else: `price`, `baseFare`,
+      // `distanceFare`, `timeFare`, `helperFee` and `overtimeFee` are what the
+      // CLIENT pays, and this screen answers a carrier — a driver or the company
+      // fulfilling the job. Not asking the database for them is what makes the
+      // leak impossible rather than merely unrendered; `HubJob` has no key to
+      // put them in, so a future line reaching for `order.price` here fails the
+      // build. See `HubJob.fare`.
+      driverPayout: true,
+      overtimeDriverPayout: true,
       helperCount: true,
       waitingMinutes: true,
       createdAt: true,
@@ -472,13 +494,15 @@ export async function getHubJobs(account: HubAccount): Promise<HubJobsData> {
       pickupAddress: order.pickupAddress,
       dropoffAddress: order.dropoffAddress,
       distanceKm: order.distanceKm,
-      fare: roundCurrency(order.price + order.overtimeFee),
-      baseFare: order.baseFare,
-      distanceFare: order.distanceFare,
-      timeFare: order.timeFare,
-      helperFee: order.helperFee,
-      overtimeFee: order.overtimeFee,
-      price: order.price,
+      // `totalDriverEarnings`, not a local addition: `src/lib/orders/payout.ts`
+      // is the single definition of "what this job paid the carrier", and it
+      // exists precisely so no read site re-adds the two columns and forgets the
+      // second. It rounds the sum for the same reason this module's own
+      // `roundCurrency` did — adding two `Float` columns reintroduces the
+      // binary-fraction dust each was rounded free of when it was stored.
+      fare: totalDriverEarnings(order),
+      driverPayout: order.driverPayout,
+      overtimeDriverPayout: order.overtimeDriverPayout,
       helperCount: order.helperCount,
       waitingMinutes: order.waitingMinutes,
       createdAt: order.createdAt.toISOString(),

@@ -55,6 +55,7 @@ import {
 } from "@/lib/dashboard/hub/sample";
 import { startOfHubWeek } from "@/lib/dashboard/hub/timezone";
 import { formatCity } from "@/lib/format-city";
+import { totalDriverEarnings } from "@/lib/orders/payout";
 import { prisma } from "@/lib/prisma";
 
 /** How many recent jobs the driver detail panel lists. */
@@ -108,7 +109,11 @@ export type HubDriverRecentJob = {
   id: string;
   pickupAddress: string;
   dropoffAddress: string;
-  /** price + overtimeFee, in GEL major units. */
+  /**
+   * `driverPayout + overtimeDriverPayout`, in GEL major units — what the job
+   * earned the **carrier**, never `price + overtimeFee`, which is what the
+   * client paid for it. See `orderPayoutTotal` below.
+   */
   fareGel: number;
   /** ISO string, or null for a job with no completion timestamp on record. */
   completedAt: string | null;
@@ -159,7 +164,11 @@ export type HubDriver = {
   assignedVehicle: HubDriverVehicle | null;
   /** COMPLETED orders for this company since the start of the current Tbilisi week. */
   jobsThisWeek: number;
-  /** All-time sum(price + overtimeFee) of COMPLETED orders for this company. */
+  /**
+   * All-time `SUM(driverPayout + overtimeDriverPayout)` of this driver's
+   * COMPLETED orders for this company — what the fleet earned on them, not what
+   * its clients were billed. See `orderPayoutTotal` below.
+   */
   totalEarnedGel: number;
   /** Newest first, at most `RECENT_JOBS_PER_DRIVER`. */
   recentJobs: HubDriverRecentJob[];
@@ -181,12 +190,43 @@ export type HubDriversData = {
   };
 };
 
-/** What a driver earns on an order: the quoted price plus settled overtime. */
-function orderTotal(sums: {
-  price: number | null;
-  overtimeFee: number | null;
+/**
+ * What a driver actually earns across a set of orders: the commissioned payout
+ * quoted at booking plus their commissioned share of any overtime settled at
+ * completion.
+ *
+ * **Not `price + overtimeFee`, which is what this helper used to return.** Those
+ * two columns are what the CLIENT pays. The platform takes its cut of that and
+ * pays the rest to whoever carried the load, so summing them and printing the
+ * result on a roster row labelled "earned" overstated every driver's figure — and
+ * the fleet's all-time total with it — by roughly 18%. The stored payout columns
+ * are the carrier's side of the same job, resolved at the `commissionRate`
+ * stamped on each order, so a rate change never rewrites history.
+ *
+ * A company reading this screen is under the same rule as a driver, not outside
+ * it: a logistics company is the job's fulfilling party — the carrier — and its
+ * own revenue is its commissioned payout, exactly as an independent driver's is.
+ *
+ * No `serviceLevelAdjustment` term belongs in the sum, and its absence is
+ * deliberate rather than the old omission repeated: the Priority uplift and
+ * Pooling discount are already inside the basis `driverPayout` was commissioned
+ * from at booking (`roundCurrency(price + serviceLevelAdjustment)`), so adding
+ * the column again here would pay it to the carrier twice.
+ *
+ * Takes Prisma's nullable aggregate shape — a `_sum` over no rows is `null`,
+ * which is "this driver has completed nothing", printed as zero. The result is
+ * rounded because adding two `Float` columns reintroduces the binary-fraction
+ * dust each was rounded free of when it was stored; per-order sums go through
+ * `totalDriverEarnings` in `src/lib/orders/payout.ts` instead, which takes an
+ * order shape rather than an aggregate and rounds identically.
+ */
+function orderPayoutTotal(sums: {
+  driverPayout: number | null;
+  overtimeDriverPayout: number | null;
 }): number {
-  return (sums.price ?? 0) + (sums.overtimeFee ?? 0);
+  const total = (sums.driverPayout ?? 0) + (sums.overtimeDriverPayout ?? 0);
+
+  return Math.round(total * 100) / 100;
 }
 
 /**
@@ -298,7 +338,9 @@ export async function getHubDrivers(
         driverId: { in: driverUserIds },
         status: OrderStatus.COMPLETED,
       },
-      _sum: { price: true, overtimeFee: true },
+      // The carrier's two payout columns, never the client's `price` and
+      // `overtimeFee` — see `orderPayoutTotal`.
+      _sum: { driverPayout: true, overtimeDriverPayout: true },
     }),
     // Prisma cannot express "the newest three rows per driver" — there is no
     // lateral join — so the company's completed jobs are read newest-first and
@@ -316,8 +358,8 @@ export async function getHubDrivers(
         driverId: true,
         pickupAddress: true,
         dropoffAddress: true,
-        price: true,
-        overtimeFee: true,
+        driverPayout: true,
+        overtimeDriverPayout: true,
         completedAt: true,
       },
       orderBy: { completedAt: "desc" },
@@ -328,7 +370,7 @@ export async function getHubDrivers(
     jobsThisWeekRows.map((row) => [row.driverId, row._count]),
   );
   const totalEarnedByDriver = new Map(
-    totalEarnedRows.map((row) => [row.driverId, orderTotal(row._sum)]),
+    totalEarnedRows.map((row) => [row.driverId, orderPayoutTotal(row._sum)]),
   );
 
   const recentJobsByDriver = new Map<string, HubDriverRecentJob[]>();
@@ -348,7 +390,11 @@ export async function getHubDrivers(
       id: order.id,
       pickupAddress: order.pickupAddress,
       dropoffAddress: order.dropoffAddress,
-      fareGel: order.price + order.overtimeFee,
+      // One order, so this goes through the shared per-order helper rather than
+      // `orderPayoutTotal` above: `src/lib/orders/payout.ts` is the codebase's
+      // single definition of what a job paid its carrier, and it takes an order
+      // shape so the two columns cannot be transposed.
+      fareGel: totalDriverEarnings(order),
       completedAt: order.completedAt?.toISOString() ?? null,
     });
     recentJobsByDriver.set(order.driverId, jobs);

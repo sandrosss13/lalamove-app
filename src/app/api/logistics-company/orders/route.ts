@@ -24,12 +24,38 @@ import { prisma } from "@/lib/prisma";
  * row — see `canSeeStopContacts`.
  *
  * The list mirrors the fields the company-facing job surfaces actually render
- * (`getHubJobs` in `src/lib/dashboard/hub/jobs.ts`: addresses, the itemised
- * fare, crew size, the lifecycle timestamps, service level and body type),
- * widened to the identifiers the dispatch actions need (`clientId`, `companyId`,
- * `driverId`, `vehicleId`, `vehicleTypeSpecId`). Relations are not selected
- * because the handler never included any; this list is the scalar row and
- * nothing more.
+ * (`getHubJobs` in `src/lib/dashboard/hub/jobs.ts`: addresses, the payout, crew
+ * size, the lifecycle timestamps, service level and body type), widened to the
+ * identifiers the dispatch actions need (`clientId`, `companyId`, `driverId`,
+ * `vehicleId`, `vehicleTypeSpecId`). Relations are not selected because the
+ * handler never included any; this list is the scalar row and nothing more.
+ *
+ * **No client money is in this list, and none may be added.** It used to carry
+ * `baseFare`, `distanceFare`, `timeFare`, `helperFee`, `overtimeFee`, `price`
+ * and `serviceLevelAdjustment`; all seven are gone, replaced by `driverPayout`
+ * and `overtimeDriverPayout`. *"Driver should see only its net, not total
+ * paid"* — and a logistics company is under that rule, not outside it. A company
+ * is the job's **fulfilling party**, the carrier, not the client: the platform
+ * takes its cut of what the client paid and pays the rest to whoever carries the
+ * load, company or independent driver alike, so a company's own revenue is its
+ * commissioned payout. There is no separate company revenue model in this
+ * codebase to decide otherwise with — a `BUSINESS` account renders its earnings
+ * through the very same `src/lib/dashboard/hub/earnings.ts` a driver does. A
+ * company has no more claim on the client's gross quote than a subcontractor has
+ * on what the general contractor billed.
+ *
+ * The seven had to leave *together*, which is why this is a shape and not a
+ * per-field judgement: `price` is `baseFare + distanceFare + timeFare +
+ * helperFee` floored at the pricing rule's `minimumFare`, so dropping `price`
+ * while keeping its components would withhold nothing at all.
+ *
+ * Unlike the lifecycle endpoints, which share
+ * `CARRIER_ORDER_PARTY_SELECT` in `src/lib/order-response-select.ts` (read that
+ * constant's comment for the full reasoning, including why money redaction omits
+ * where contact redaction nulls), this constant is corrected in place rather
+ * than given a redacted sibling: it has exactly one consumer — this file's own
+ * `GET` — and no client branch to preserve, so there is no second audience for
+ * an unredacted version to serve.
  */
 const COMPANY_ORDER_LIST_SELECT = {
   id: true,
@@ -51,14 +77,9 @@ const COMPANY_ORDER_LIST_SELECT = {
   dropoffContactPhone: true,
   dropoffContactDetails: true,
   distanceKm: true,
-  baseFare: true,
-  distanceFare: true,
-  timeFare: true,
-  helperFee: true,
-  overtimeFee: true,
-  price: true,
+  driverPayout: true,
+  overtimeDriverPayout: true,
   serviceLevel: true,
-  serviceLevelAdjustment: true,
   vehicleTypeSpecId: true,
   status: true,
   clientId: true,

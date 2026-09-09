@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { DriverHubHeader } from "@/components/driver-hub/driver-hub-header";
 import { DriverHubSidebar } from "@/components/driver-hub/driver-hub-sidebar";
 import {
-  hubNavForKind,
+  hubNavForAccount,
   hubNavItemForPath,
 } from "@/components/driver-hub/driver-hub-nav";
 import type { HubAccount } from "@/lib/dashboard/hub/account";
@@ -37,15 +37,28 @@ import type { HubAccount } from "@/lib/dashboard/hub/account";
  */
 
 /* -------------------------------------------------------------------------- */
-/* Header subtitle override                                                   */
+/* Header overrides                                                           */
 /* -------------------------------------------------------------------------- */
 
-type HubSubtitleContextValue = {
+/**
+ * The pieces of the sticky header a screen may override from below it.
+ *
+ * One context carrying both overrides rather than two nested providers: they
+ * describe the same bar, they are set by the same kind of mount-time effect,
+ * and a second provider around the same children would buy nothing but another
+ * layer to read past. Named `HubHeaderContextValue` (it was
+ * `HubSubtitleContextValue`) now that it carries more than the subtitle —
+ * `useHubSubtitle`'s exported name and behaviour are unchanged, so no caller
+ * moved.
+ */
+type HubHeaderContextValue = {
   /** `null` restores the active nav item's static subtitle. */
   setSubtitle: (subtitle: string | null) => void;
+  /** `null` hides the vehicle pill — the default for every screen but Loads. */
+  setVehiclePill: (pill: React.ReactNode | null) => void;
 };
 
-const HubSubtitleContext = React.createContext<HubSubtitleContextValue | null>(
+const HubHeaderContext = React.createContext<HubHeaderContextValue | null>(
   null,
 );
 
@@ -75,7 +88,7 @@ const HubSubtitleContext = React.createContext<HubSubtitleContextValue | null>(
  * Only callable inside the shell; a screen outside it has no header to retitle.
  */
 export function useHubSubtitle(subtitle: string | null): void {
-  const context = React.useContext(HubSubtitleContext);
+  const context = React.useContext(HubHeaderContext);
 
   if (context === null) {
     throw new Error(
@@ -95,6 +108,43 @@ export function useHubSubtitle(subtitle: string | null): void {
   }, [setSubtitle, subtitle]);
 }
 
+/**
+ * Lets a screen render extra content in the header's right-hand row, between
+ * the title/spacer and the account chip — today only the Load Board's
+ * vehicle-capacity pill (design §1 of
+ * `specs/driver-load-board/tasks/task-09-board-shell.md`).
+ *
+ * The same registration pattern, and the same reasoning, as `useHubSubtitle`
+ * above: set in an effect rather than during render, cleared on unmount, so
+ * navigating away from Loads cannot leave a stale pill up on the next screen.
+ *
+ * **Pass a memoised node, or `null`.** The effect's dependency is the node
+ * itself, and JSX constructed inline during render is a fresh object every
+ * time — an un-memoised pill would re-register on every render of the calling
+ * screen, which is a wasted state write per keystroke in the filter panel. The
+ * one caller (`loads-screen.tsx`) wraps its pill in `React.useMemo`.
+ */
+export function useHubVehiclePill(pill: React.ReactNode | null): void {
+  const context = React.useContext(HubHeaderContext);
+
+  if (context === null) {
+    throw new Error(
+      "useHubVehiclePill must be called inside <DriverHubShell> — it fills a " +
+        "slot in the hub header, which only exists under src/app/dashboard/(hub).",
+    );
+  }
+
+  const { setVehiclePill } = context;
+
+  React.useEffect(() => {
+    setVehiclePill(pill);
+
+    return () => {
+      setVehiclePill(null);
+    };
+  }, [setVehiclePill, pill]);
+}
+
 /* -------------------------------------------------------------------------- */
 /* Shell                                                                      */
 /* -------------------------------------------------------------------------- */
@@ -108,7 +158,7 @@ export type DriverHubShellProps = {
 /**
  * What the header shows on a path that matches no nav entry. Unreachable from
  * inside the `(hub)` route group — every child of this shell is one of the
- * seven registered screens — but a title is cheaper than a crash if a future
+ * eight registered screens — but a title is cheaper than a crash if a future
  * route lands here before it registers itself in `HUB_NAV`.
  */
 const FALLBACK_TITLE = "Driver Hub";
@@ -118,19 +168,25 @@ export function DriverHubShell({ account, children }: DriverHubShellProps) {
   const [subtitleOverride, setSubtitleOverride] = React.useState<string | null>(
     null,
   );
+  const [vehiclePillOverride, setVehiclePillOverride] =
+    React.useState<React.ReactNode | null>(null);
 
-  // `useState`'s setter is referentially stable, so the context value only has
-  // to be memoised against itself — it never changes, and every screen's
-  // subtitle effect therefore runs once rather than on each shell re-render.
-  const subtitleContext = React.useMemo<HubSubtitleContextValue>(
-    () => ({ setSubtitle: setSubtitleOverride }),
+  // `useState`'s setters are referentially stable, so the context value only
+  // has to be memoised against itself — it never changes, and every screen's
+  // registration effect therefore runs once rather than on each shell
+  // re-render.
+  const headerContext = React.useMemo<HubHeaderContextValue>(
+    () => ({
+      setSubtitle: setSubtitleOverride,
+      setVehiclePill: setVehiclePillOverride,
+    }),
     [],
   );
 
   // Nav filtering is cosmetic — hiding a link does nothing about a hand-typed
-  // URL, which is why `drivers/page.tsx` and `employees/page.tsx` re-derive the
-  // same business-only rule server-side.
-  const items = hubNavForKind(account.kind);
+  // URL, which is why `drivers/page.tsx`, `employees/page.tsx` and
+  // `loads/page.tsx` each re-derive their own rule server-side.
+  const items = hubNavForAccount(account);
   const activeItem = hubNavItemForPath(pathname);
 
   return (
@@ -145,6 +201,7 @@ export function DriverHubShell({ account, children }: DriverHubShellProps) {
           account={account}
           title={activeItem?.title ?? FALLBACK_TITLE}
           subtitle={subtitleOverride ?? activeItem?.subtitle ?? ""}
+          vehiclePill={vehiclePillOverride}
         />
 
         {/* Page body: 28px 32px 56px, one 1180px content column, sections
@@ -152,9 +209,9 @@ export function DriverHubShell({ account, children }: DriverHubShellProps) {
             siblings and never restates the page's own spacing. */}
         <main className="min-w-0 flex-1 px-8 pt-7 pb-14">
           <div className="flex min-w-0 max-w-[1180px] flex-col gap-5">
-            <HubSubtitleContext.Provider value={subtitleContext}>
+            <HubHeaderContext.Provider value={headerContext}>
               {children}
-            </HubSubtitleContext.Provider>
+            </HubHeaderContext.Provider>
           </div>
         </main>
       </div>

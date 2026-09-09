@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/lalamove-ui-kit-c2ab8214-d170-4eee-9314-d9d44f5fc5b9/styles.css">
+<script src="_ds/lalamove-ui-kit-c2ab8214-d170-4eee-9314-d9d44f5fc5b9/_ds_bundle.js"></script>
+<style>
+  body { margin: 0; }
+  a { color: inherit; text-decoration: none; }
+  a:hover { color: oklch(64% 0.19 48); }
+</style>
+</helmet>
+
+<div data-admin-surface class="font-body" style="min-height:100vh;background:oklch(0.985 0.002 260);color:var(--foreground);padding:28px 24px 64px;display:flex;flex-direction:column;gap:28px;font-family:var(--font-ibm-plex-sans),sans-serif">
+
+  <div style="display:flex;flex-direction:column;gap:6px;max-width:760px">
+    <p style="margin:0;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted-foreground);font-weight:600">Driver hub · header</p>
+    <h1 style="margin:0;font-size:22px;font-weight:600;letter-spacing:-0.015em">The client header, applied to the driver</h1>
+    <p style="margin:0;font-size:13px;line-height:1.55;color:var(--muted-foreground);text-wrap:pretty">Same wordmark, same left nav, same right-hand cluster as the client's site header. My orders and Wallet sit in the nav; My account sits on the right and opens the account screen in the client's shape.</p>
+  </div>
+
+  <section style="display:flex;flex-direction:column;gap:10px">
+    <p style="margin:0;font-size:12px;font-weight:600;color:var(--muted-foreground)">Desktop · click the nav to move between screens</p>
+    <div style="border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--background);box-shadow:0 1px 2px oklch(0 0 0 / 0.05)">
+
+      <header style="display:flex;align-items:center;justify-content:space-between;gap:24px;border-bottom:1px solid var(--border);padding:12px 24px;background:var(--background)">
+        <div style="display:flex;align-items:center;gap:20px;min-width:0">
+          <span style="font-size:15px;font-weight:700;letter-spacing:-0.01em;white-space:nowrap">Lalamove Clone</span>
+          <nav aria-label="Driver" style="display:flex;align-items:center;gap:16px;font-size:14px">
+            <a href="#" onClick="{{ goOrders }}" style="font-weight:500;color: {{ ordersColor }}" style-hover="color:var(--foreground)">My orders</a>
+            <a href="#" onClick="{{ goWallet }}" style="font-weight:500;color: {{ walletColor }}" style-hover="color:var(--foreground)">Wallet</a>
+          </nav>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:12px;font-size:14px">
+          <sc-if value="{{ showActiveJob }}" hint-placeholder-val="{{ true }}">
+            <button type="button" onClick="{{ toggleJobs }}" style="display:inline-flex;align-items:center;gap:7px;border:1px solid var(--border);border-radius:999px;padding:4px 11px 4px 9px;background:transparent;color:inherit;font:inherit;font-size:12px;font-weight:600;white-space:nowrap;cursor:pointer" style-hover="border-color:oklch(64% 0.19 48)">
+              <span aria-hidden="true" style="width:7px;height:7px;border-radius:999px;background:oklch(64% 0.19 48)"></span>
+              <span>{{ jobPillLabel }}</span>
+            </button>
+          </sc-if>
+
+          <button type="button" aria-label="Notifications" onClick="{{ toggleBell }}" style="position:relative;display:grid;place-items:center;width:32px;height:32px;border:none;background:transparent;border-radius:8px;cursor:pointer;color:var(--muted-foreground)" style-hover="background:var(--muted);color:var(--foreground)">
+            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+              <path d="M13.7 21a2 2 0 0 1-3.4 0"></path>
+            </svg>
+            <span aria-hidden="true" style="position:absolute;top:1px;right:1px;transform:translate(35%,-35%);min-width:15px;height:15px;padding:0 3px;border-radius:999px;background:oklch(64% 0.19 48);color:#fff;font-family:var(--font-ibm-plex),ui-monospace,monospace;font-size:10px;font-weight:600;line-height:15px;text-align:center">{{ notificationCount }}</span>
+          </button>
+
+          <span style="white-space:nowrap">{{ driverName }}</span>
+          <a href="#" onClick="{{ goAccount }}" style="font-weight:500;white-space:nowrap;color: {{ accountColor }}" style-hover="color:var(--foreground)">My account</a>
+          <x-import component-from-global-scope="LalamoveUI.Button" variant="outline" size="sm" on-click="{{ noop }}" hint-size="88px,32px">Sign out</x-import>
+        </div>
+      </header>
+
+      <div style="position:relative">
+        <sc-if value="{{ jobsOpen }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;top:10px;right:300px;z-index:6;width:330px;border:1px solid var(--border);border-radius:12px;background:var(--popover);box-shadow:0 12px 32px oklch(0 0 0 / 0.12);overflow:hidden">
+            <p style="margin:0;padding:11px 14px;border-bottom:1px solid var(--border);font-size:12px;font-weight:600">{{ jobPillLabel }}</p>
+            <div style="display:flex;flex-direction:column">
+              <sc-for list="{{ liveJobs }}" as="job" hint-placeholder-count="3">
+                <a href="#" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 14px;border-bottom:1px solid var(--border)" style-hover="background:var(--accent)">
+                  <span style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                    <span style="font-size:13px;font-weight:500">{{ job.route }}</span>
+                    <span style="font-size:11px;color:var(--muted-foreground)">{{ job.who }}</span>
+                  </span>
+                  <span style="font-family:var(--font-ibm-plex),ui-monospace,monospace;font-size:11px;color:var(--muted-foreground);white-space:nowrap">{{ job.eta }}</span>
+                </a>
+              </sc-for>
+              <a href="#" style="padding:11px 14px;font-size:12px;font-weight:600" style-hover="background:var(--accent)">{{ jobsLinkLabel }}</a>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ bellOpen }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;top:10px;right:110px;z-index:5;width:290px;border:1px solid var(--border);border-radius:12px;background:var(--popover);box-shadow:0 12px 32px oklch(0 0 0 / 0.12);overflow:hidden">
+            <p style="margin:0;padding:11px 14px;border-bottom:1px solid var(--border);font-size:12px;font-weight:600">Notifications</p>
+            <div style="display:flex;flex-direction:column">
+              <a href="#" style="display:flex;flex-direction:column;gap:2px;padding:11px 14px;border-bottom:1px solid var(--border)" style-hover="background:var(--accent)">
+                <span style="font-size:13px;font-weight:500">New job offer · Vake → Saburtalo</span>
+                <span style="font-size:11px;color:var(--muted-foreground)">2 minutes ago</span>
+              </a>
+              <a href="#" style="display:flex;flex-direction:column;gap:2px;padding:11px 14px" style-hover="background:var(--accent)">
+                <span style="font-size:13px;font-weight:500">Payout of ₾142.60 sent</span>
+                <span style="font-size:11px;color:var(--muted-foreground)">Yesterday</span>
+              </a>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ onAccount }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-wrap:wrap;gap:40px;padding:32px 24px 44px;max-width:1180px">
+            <aside style="width:208px;flex:0 0 auto;display:flex;flex-direction:column">
+              <p style="margin:0 0 12px;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted-foreground)">Account</p>
+              <nav aria-label="Account settings" style="display:flex;flex-direction:column">
+                <a href="#" style="border-left:2px solid oklch(64% 0.19 48);padding:8px 0 8px 14px;font-size:14px;font-weight:500;color:oklch(64% 0.19 48)">Profile</a>
+                <a href="#" style="border-left:2px solid var(--border);padding:8px 0 8px 14px;font-size:14px;font-weight:500;color:var(--muted-foreground)" style-hover="color:var(--foreground)">Payout &amp; bank details</a>
+                <a href="#" style="border-left:2px solid var(--border);padding:8px 0 8px 14px;font-size:14px;font-weight:500;color:var(--muted-foreground)" style-hover="color:var(--foreground)">Notifications</a>
+                <a href="#" style="border-left:2px solid var(--border);padding:8px 0 8px 14px;font-size:14px;font-weight:500;color:var(--muted-foreground)" style-hover="color:var(--foreground)">Language</a>
+                <a href="#" style="border-left:2px solid var(--border);padding:8px 0 8px 14px;font-size:14px;font-weight:500;color:var(--muted-foreground)" style-hover="color:var(--foreground)">Support</a>
+              </nav>
+              <a href="#" style="margin-top:28px;display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:500;color:var(--muted-foreground)" style-hover="color:oklch(64% 0.19 48)">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                  <path d="M16 17l5-5-5-5"></path>
+                  <path d="M21 12H9"></path>
+                </svg>
+                Log out
+              </a>
+            </aside>
+
+            <div style="flex:1 1 420px;min-width:0;display:flex;flex-direction:column;gap:20px">
+              <div>
+                <p style="margin:0;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted-foreground)">Settings <span aria-hidden="true" style="padding:0 6px">/</span><span style="color:oklch(64% 0.19 48)">Profile</span></p>
+                <h2 style="margin:8px 0 0;font-size:28px;font-weight:600;letter-spacing:-0.025em;line-height:1.1">Profile</h2>
+                <p style="margin:10px 0 0;max-width:520px;font-size:13px;line-height:1.6;color:var(--muted-foreground);text-wrap:pretty">The details a client sees when you turn up for a pickup, and the credentials you sign in with. Same rail, same panels, same forms as the client account screen.</p>
+              </div>
+              <div style="border:1px dashed var(--border);border-radius:12px;padding:20px;background:var(--card)">
+                <p style="margin:0;font-size:13px;font-weight:600">Profile details</p>
+                <p style="margin:6px 0 0;font-size:12px;color:var(--muted-foreground)">Reuses the client's profile form — name, phone, ID, city.</p>
+              </div>
+              <div style="border:1px dashed var(--border);border-radius:12px;padding:20px;background:var(--card)">
+                <p style="margin:0;font-size:13px;font-weight:600">Password</p>
+                <p style="margin:6px 0 0;font-size:12px;color:var(--muted-foreground)">Reuses the client's password card, unchanged.</p>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ onScreen }}" hint-placeholder-val="{{ true }}">
+          <div style="padding:32px 24px 44px;max-width:1180px">
+            <h2 style="margin:0;font-size:20px;font-weight:600;letter-spacing:-0.015em">{{ screenTitle }}</h2>
+            <p style="margin:4px 0 20px;font-size:13px;color:var(--muted-foreground)">{{ screenSub }}</p>
+            <div style="border:1px dashed var(--border);border-radius:12px;padding:36px 20px;text-align:center;background:var(--card)">
+              <p style="margin:0;font-size:13px;color:var(--muted-foreground)">Existing driver screen — unchanged by this header work.</p>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:10px">
+    <p style="margin:0;font-size:12px;font-weight:600;color:var(--muted-foreground)">Mobile · 390px</p>
+    <div style="display:flex;flex-wrap:wrap;gap:20px">
+      <div style="width:390px;flex:0 0 auto;border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--background)">
+        <header style="display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid var(--border);padding:12px 16px">
+          <span style="font-size:15px;font-weight:700;letter-spacing:-0.01em">Lalamove Clone</span>
+          <div style="display:flex;align-items:center;gap:4px">
+            <button type="button" aria-label="Notifications" style="position:relative;display:grid;place-items:center;width:44px;height:44px;border:none;background:transparent;border-radius:10px;cursor:pointer;color:var(--muted-foreground)" style-hover="background:var(--muted)">
+              <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                <path d="M13.7 21a2 2 0 0 1-3.4 0"></path>
+              </svg>
+              <span aria-hidden="true" style="position:absolute;top:6px;right:7px;transform:translate(35%,-35%);min-width:15px;height:15px;padding:0 3px;border-radius:999px;background:oklch(64% 0.19 48);color:#fff;font-size:10px;font-weight:600;line-height:15px;text-align:center">{{ notificationCount }}</span>
+            </button>
+            <button type="button" aria-label="Menu" onClick="{{ toggleMenu }}" style="display:grid;place-items:center;width:44px;height:44px;border:none;background:transparent;border-radius:10px;cursor:pointer;color:var(--foreground)" style-hover="background:var(--muted)">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true">
+                <path d="M4 7h16"></path><path d="M4 12h16"></path><path d="M4 17h16"></path>
+              </svg>
+            </button>
+          </div>
+        </header>
+        <sc-if value="{{ showActiveJob }}" hint-placeholder-val="{{ true }}">
+          <a href="#" style="display:flex;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--border);font-size:13px;font-weight:600">
+            <span aria-hidden="true" style="width:7px;height:7px;border-radius:999px;background:oklch(64% 0.19 48)"></span>
+            {{ jobPillLabel }}
+          </a>
+        </sc-if>
+        <div style="padding:24px 16px 40px">
+          <p style="margin:0;font-size:13px;color:var(--muted-foreground)">Screen content</p>
+        </div>
+      </div>
+
+      <div style="width:390px;flex:0 0 auto;border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--background)">
+        <header style="display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid var(--border);padding:12px 16px">
+          <span style="font-size:15px;font-weight:700;letter-spacing:-0.01em">Lalamove Clone</span>
+          <button type="button" aria-label="Close menu" style="display:grid;place-items:center;width:44px;height:44px;border:none;background:transparent;border-radius:10px;cursor:pointer" style-hover="background:var(--muted)">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true">
+              <path d="M6 6l12 12"></path><path d="M18 6L6 18"></path>
+            </svg>
+          </button>
+        </header>
+        <nav aria-label="Driver menu" style="display:flex;flex-direction:column;padding:8px 8px 16px">
+          <a href="#" style="padding:14px 12px;border-radius:10px;font-size:16px;font-weight:600;min-height:44px" style-hover="background:var(--accent)">My orders</a>
+          <a href="#" style="padding:14px 12px;border-radius:10px;font-size:16px;font-weight:500;min-height:44px" style-hover="background:var(--accent)">Wallet</a>
+          <a href="#" style="padding:14px 12px;border-radius:10px;font-size:16px;font-weight:500;min-height:44px" style-hover="background:var(--accent)">My account</a>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;padding:14px 12px;border-top:1px solid var(--border)">
+            <div style="min-width:0">
+              <p style="margin:0;font-size:14px;font-weight:500">{{ driverName }}</p>
+              <p style="margin:2px 0 0;font-family:var(--font-ibm-plex),ui-monospace,monospace;font-size:11px;color:var(--muted-foreground)">{{ accountKind }}</p>
+            </div>
+            <x-import component-from-global-scope="LalamoveUI.Button" variant="outline" size="sm" hint-size="88px,36px">Sign out</x-import>
+          </div>
+        </nav>
+      </div>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;driverName&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Diplomat Georgia&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;accountKind&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Business&quot;,&quot;Individual&quot;],&quot;default&quot;:&quot;Business&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Account&quot;},&quot;jobsInProgress&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:6,&quot;min&quot;:0,&quot;max&quot;:99,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Account&quot;},&quot;notificationCount&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:2,&quot;min&quot;:0,&quot;max&quot;:99,&quot;tsType&quot;:&quot;number&quot;},&quot;showActiveJob&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  state = { tab: "orders", bellOpen: false, menuOpen: false, jobsOpen: false };
+
+  /* A fleet has no single job of its own, so the pill counts what is on the
+     road and opens the list; one driver keeps the single-order pill. */
+  fleetJobs() {
+    return [
+      { route: "Vake → Saburtalo", who: "Nino Abashidze · TB4821", eta: "18 min" },
+      { route: "Didube → Gldani", who: "Levan Kapanadze · TB4830", eta: "31 min" },
+      { route: "Rustavi → Tbilisi", who: "Giorgi Tsiklauri · TB4834", eta: "1 h 05" },
+      { route: "Isani → Airport", who: "Ana Beridze · TB4839", eta: "44 min" },
+    ];
+  }
+
+  go(tab) {
+    return (e) => {
+      if (e && e.preventDefault) e.preventDefault();
+      this.setState({ tab, bellOpen: false, jobsOpen: false });
+    };
+  }
+
+  renderVals() {
+    const { tab, bellOpen, jobsOpen } = this.state;
+    const isFleet = (this.props.accountKind ?? "Business") === "Business";
+    const jobs = this.fleetJobs();
+    const jobsInProgress = this.props.jobsInProgress ?? 6;
+    const titles = {
+      orders: ["My orders", "182 jobs in the last 30 days"],
+      wallet: ["Wallet", "₾142.60 available · next payout Friday 4 September"],
+    };
+    const t = titles[tab] || titles.orders;
+    return {
+      driverName: this.props.driverName ?? "Diplomat Georgia",
+      accountKind: this.props.accountKind ?? "Business",
+      notificationCount: this.props.notificationCount ?? 2,
+      showActiveJob: this.props.showActiveJob ?? true,
+      onAccount: tab === "account",
+      onScreen: tab !== "account",
+      screenTitle: t[0],
+      screenSub: t[1],
+      ordersColor: tab === "orders" ? "var(--foreground)" : "var(--muted-foreground)",
+      walletColor: tab === "wallet" ? "var(--foreground)" : "var(--muted-foreground)",
+      accountColor: tab === "account" ? "var(--foreground)" : "var(--muted-foreground)",
+      jobPillLabel: isFleet
+        ? `${jobsInProgress} jobs in progress`
+        : "Job in progress · TB4821",
+      liveJobs: isFleet ? jobs.slice(0, 3) : jobs.slice(0, 1),
+      jobsLinkLabel: isFleet ? "View all jobs in progress" : "Open this job",
+      jobsOpen,
+      toggleJobs: () => this.setState((s) => ({ jobsOpen: !s.jobsOpen, bellOpen: false })),
+      bellOpen,
+      goOrders: this.go("orders"),
+      goWallet: this.go("wallet"),
+      goAccount: this.go("account"),
+      toggleBell: () => this.setState((s) => ({ bellOpen: !s.bellOpen, jobsOpen: false })),
+      toggleMenu: () => this.setState((s) => ({ menuOpen: !s.menuOpen })),
+      noop: (e) => { if (e && e.preventDefault) e.preventDefault(); },
+    };
+  }
+}
+</script>
+</body>
+</html>
