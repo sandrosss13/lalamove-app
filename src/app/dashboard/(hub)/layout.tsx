@@ -1,5 +1,6 @@
 import { DriverHubShell } from "@/components/driver-hub/driver-hub-shell";
 import { resolveHubAccount } from "@/lib/dashboard/hub/account";
+import { getHubHeader } from "@/lib/dashboard/hub/header";
 
 // Session + Prisma access can't be statically rendered.
 export const dynamic = "force-dynamic";
@@ -49,5 +50,18 @@ export default async function DriverHubLayout({
     );
   }
 
-  return <DriverHubShell account={account}>{children}</DriverHubShell>;
+  // The header's own data — the active-job pill and the sampled notification
+  // surface — is resolved here rather than by any of the eight screens: the bar
+  // sits above all of them and shows the same thing on every one, so one pass
+  // per request in the layout is the whole point of `getHubHeader()`. It runs
+  // after the account resolves because it takes it, and the `null` branch above
+  // returns before it, so an interrupted sign-up never reaches Prisma for a
+  // header it is not going to draw.
+  const header = await getHubHeader(account);
+
+  return (
+    <DriverHubShell account={account} header={header}>
+      {children}
+    </DriverHubShell>
+  );
 }

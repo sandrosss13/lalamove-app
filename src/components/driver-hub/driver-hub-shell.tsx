@@ -10,10 +10,18 @@ import {
   hubNavItemForPath,
 } from "@/components/driver-hub/driver-hub-nav";
 import type { HubAccount } from "@/lib/dashboard/hub/account";
+import type { HubHeaderData } from "@/lib/dashboard/hub/header";
 
 /**
- * The driver hub's frame: a fixed 248px rail, a sticky header, and the page
- * body every screen renders into.
+ * The driver hub's frame: a 248px rail, the two-tier sticky header, and the
+ * page body every screen renders into.
+ *
+ * Desktop-first, but no longer desktop-only. Below `lg` the rail is dropped
+ * from the layout and its links move into the top bar's menu, and the body's
+ * gutters halve — enough that the hub does not overflow the 390px width the
+ * header handoff designs for. The screens' own tables still have their own
+ * narrow-width work to do; this is the shell, not a responsive pass over all
+ * eight of them.
  *
  * Mirrors `src/components/admin/admin-shell.tsx` — a server layout resolves the
  * signed-in account once and hands it to one client shell, which owns the
@@ -152,6 +160,17 @@ export function useHubVehiclePill(pill: React.ReactNode | null): void {
 export type DriverHubShellProps = {
   /** Resolved once by `(hub)/layout.tsx` via `resolveHubAccount()`. */
   account: HubAccount;
+  /**
+   * Everything the top bar renders — the active-job pill and the (sampled)
+   * notification surface — resolved once by `(hub)/layout.tsx` via
+   * `getHubHeader()`.
+   *
+   * Threaded through the shell rather than fetched by the header, for the same
+   * reason `account` is: `getHubHeader()` is `server-only` and this is a
+   * `"use client"` boundary. Nothing under here fetches; the object arriving
+   * from the layout is already plain serialisable data.
+   */
+  header: HubHeaderData;
   children: React.ReactNode;
 };
 
@@ -163,7 +182,11 @@ export type DriverHubShellProps = {
  */
 const FALLBACK_TITLE = "Driver Hub";
 
-export function DriverHubShell({ account, children }: DriverHubShellProps) {
+export function DriverHubShell({
+  account,
+  header,
+  children,
+}: DriverHubShellProps) {
   const pathname = usePathname();
   const [subtitleOverride, setSubtitleOverride] = React.useState<string | null>(
     null,
@@ -198,24 +221,41 @@ export function DriverHubShell({ account, children }: DriverHubShellProps) {
       data-admin-surface
       className="flex min-h-screen bg-background font-body text-foreground"
     >
-      <DriverHubSidebar
-        items={items}
-        activeId={activeItem?.id}
-        persona={account.persona}
-      />
+      {/* The rail is a hard `w-[248px] flex-none` and there is no phone design
+          for it, so below `lg` it is removed from the layout entirely and its
+          links are reached through the top bar's menu instead (see
+          `driver-hub-mobile-menu.tsx`, which renders the same
+          `hubNavForAccount()` list). `hidden lg:contents` rather than classes
+          on the rail itself: `driver-hub-sidebar.tsx` is not this task's file,
+          and `display: contents` leaves the `<aside>` a direct flex child of
+          this row at desktop, so its `sticky top-0 h-screen` is untouched.
+          Rebuilding the rail as a drawer is a separate piece of work. */}
+      <div className="hidden lg:contents">
+        <DriverHubSidebar
+          items={items}
+          activeId={activeItem?.id}
+          persona={account.persona}
+        />
+      </div>
 
       <div className="flex min-w-0 flex-1 flex-col">
         <DriverHubHeader
           account={account}
+          header={header}
+          navItems={items}
+          activeId={activeItem?.id}
           title={activeItem?.title ?? FALLBACK_TITLE}
           subtitle={subtitleOverride ?? activeItem?.subtitle ?? ""}
           vehiclePill={vehiclePillOverride}
         />
 
-        {/* Page body: 28px 32px 56px, one 1180px content column, sections
-            stacked with a 20px gap — so a screen returns its sections as
-            siblings and never restates the page's own spacing. */}
-        <main className="min-w-0 flex-1 px-8 pt-7 pb-14">
+        {/* Page body: 28px 32px 56px on desktop, one 1180px content column,
+            sections stacked with a 20px gap — so a screen returns its sections
+            as siblings and never restates the page's own spacing. The insets
+            halve below `lg`: at 390px a 32px gutter each side leaves 326px of
+            content, and the screens' own tables and cards are the first thing
+            to overflow when it does. */}
+        <main className="min-w-0 flex-1 px-4 pt-5 pb-10 lg:px-8 lg:pt-7 lg:pb-14">
           <div className="flex min-w-0 max-w-[1180px] flex-col gap-5">
             <HubHeaderContext.Provider value={headerContext}>
               {children}

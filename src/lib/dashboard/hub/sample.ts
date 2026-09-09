@@ -44,6 +44,57 @@ export type SampleMetricDelta = {
 };
 
 /* ------------------------------------------------------------------------- */
+/* Header notifications                                                      */
+/* ------------------------------------------------------------------------- */
+
+/** One row of the header bell's dropdown. */
+export type SampleHeaderNotification = {
+  /**
+   * A stable key for the row. Invented here rather than derived from the copy,
+   * because a React key taken from a title changes the moment the title is
+   * reworded, and because these ids are the shape a real `Notification.id`
+   * will arrive in — the consumer keys on it today and keeps keying on it
+   * after the model lands.
+   */
+  id: string;
+  /** The bold first line, e.g. "New job offer · Vake → Saburtalo". */
+  title: string;
+  /**
+   * The muted second line. A literal such as "Yesterday" rather than something
+   * computed from `Date.now()`, for the reason `SAMPLE_ZONE_DEMAND_CAPTION`
+   * gives: a timestamp that ticks over frozen rows is a lie with a clock on it.
+   */
+  timeLabel: string;
+};
+
+/**
+ * The two rows behind the header's bell, and the badge count over it.
+ *
+ * Retire once a `Notification` model exists. The schema records no
+ * notification of any kind today — not the offer that produced a row, not the
+ * payout that produced the other, and nowhere at all a per-user read/unread
+ * state — so this is not an unaggregated figure but an entirely absent one.
+ * With that model the rows become a `findMany` scoped to the signed-in user and
+ * the badge becomes a `count` of the unread ones, which is why the badge is
+ * allowed to exceed the previewed rows there and cannot here.
+ *
+ * The copy is the design's own (`Driver Header.dc.html`, the bell dropdown).
+ */
+export const SAMPLE_HEADER_NOTIFICATIONS: readonly SampleHeaderNotification[] =
+  [
+    {
+      id: "sample-notification-job-offer",
+      title: "New job offer · Vake → Saburtalo",
+      timeLabel: "2 minutes ago",
+    },
+    {
+      id: "sample-notification-payout",
+      title: "Payout of ₾142.60 sent",
+      timeLabel: "Yesterday",
+    },
+  ];
+
+/* ------------------------------------------------------------------------- */
 /* Online time                                                               */
 /* ------------------------------------------------------------------------- */
 
@@ -1043,3 +1094,50 @@ export const SAMPLE_EMPLOYEE_TILES = {
   canMoveMoney: { value: 1, note: "Accountant only" },
   needsReview: { value: 2, note: "1 invited, 1 suspended" },
 } as const;
+
+/* ------------------------------------------------------------------------- */
+/* Payout account                                                            */
+/* ------------------------------------------------------------------------- */
+
+/** The bank account a driver's fares are settled to, as the design prints it. */
+export type SamplePayoutAccount = {
+  /** Bank the account is held at, e.g. "Bank of Georgia". */
+  bankName: string;
+  /** Last four characters of the IBAN — the whole of it is never shown. */
+  ibanLast4: string;
+  /** How often payouts run, e.g. "Weekly · every Friday". */
+  cadenceLabel: string;
+  /**
+   * The next run. A literal date rather than something computed from
+   * `Date.now()`, for the reason `SAMPLE_ZONE_DEMAND_CAPTION` gives: a
+   * timestamp that ticks over frozen rows is a lie with a clock on it.
+   */
+  nextPayoutLabel: string;
+};
+
+/**
+ * The "Payout & bank details" panel on the driver account screen.
+ *
+ * Retire once a driver payout account exists in the schema. **A driver has no
+ * bank column of any kind today** — `DriverProfile` records identity, city,
+ * activation and location and nothing financial — so this is an absent fact
+ * rather than an unaggregated one, and no query could produce it. The one real
+ * bank field in the whole schema is `LogisticsCompany.bankAccountIban`, which
+ * belongs to a *fleet*; the account screen reads that column directly for a
+ * BUSINESS session and only falls back to this constant for an INDEPENDENT
+ * driver, so the last four digits below reach the screen for one persona only.
+ *
+ * `cadenceLabel` and `nextPayoutLabel` stay sampled for **every** persona,
+ * including the fleet whose IBAN is real: there is no payout schedule anywhere
+ * in the schema, no `Payout` model, and nothing that runs on a Friday. They are
+ * retired by the same work that retires `SAMPLE_PAYOUT_HISTORY`.
+ *
+ * Values are the design's own (`Driver Header.dc.html` and the Wallet subhead
+ * it shares a cadence with).
+ */
+export const SAMPLE_PAYOUT_ACCOUNT: SamplePayoutAccount = {
+  bankName: "Bank of Georgia",
+  ibanLast4: "4821",
+  cadenceLabel: "Weekly · every Friday",
+  nextPayoutLabel: "Friday 4 September",
+};
