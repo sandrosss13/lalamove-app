@@ -21,6 +21,10 @@ import {
   oversizeAxes,
   specCapability,
 } from "@/lib/orders/booking-fit";
+import {
+  serviceableSpecIds,
+  unserviceableClassMessage,
+} from "@/lib/orders/class-serviceability";
 import { driverPayoutFor, PLATFORM_COMMISSION_RATE } from "@/lib/orders/payout";
 import {
   formatOrderReference,
@@ -750,6 +754,10 @@ export async function POST(request: Request): Promise<NextResponse> {
   const spec = await prisma.vehicleTypeSpec.findUnique({
     where: { code: vehicleTypeCode },
     select: {
+      // Read only to look this class up in the serviceable set, which is keyed
+      // by the id `Order.vehicleTypeSpecId` carries. Nothing in this handler
+      // returns it — the order's own `vehicleTypeSpecId` comes from the quote.
+      id: true,
       label: true,
       bodyTypes: true,
       maxPayloadKg: true,
@@ -804,6 +812,49 @@ export async function POST(request: Request): Promise<NextResponse> {
     if (axes.length > 0) {
       return NextResponse.json(
         { error: cargoFitMessage(spec.label, axes, capability) },
+        { status: 400 },
+      );
+    }
+  }
+
+  // Is there anybody who could take this at all? The third instance of one
+  // failure: an order created, priced, shown to its client as live, and then
+  // invisible to every carrier on the platform. The first two were about the
+  // load (cargo too big for its class; a class matched by identity rather than
+  // by capability); this one is about supply. Four of the eleven seeded classes
+  // — Flatbed, Curtainsider, Large Freight and Trailer — have no activated
+  // carrier able to serve them even under upgrade substitution, so every
+  // booking against one of them strands however well-declared its cargo is.
+  //
+  // Answered by the same two predicates `GET /api/loads` filters the board with
+  // and the claim routes enforce at commit, applied to the whole activated
+  // fleet — so "serviceable" means precisely "this load could appear on
+  // somebody's board". See `src/lib/orders/class-serviceability.ts` for the
+  // fleet scan, the empty-platform case and the known limitations (no city
+  // scoping).
+  //
+  // Scoped to the booking's own `bodyType`, which is what makes this match the
+  // board rather than approximate it: the board offers a load only to vehicles
+  // whose class carries the load space the client asked for, so a class nobody
+  // operates *with that body* strands exactly as surely as one nobody operates
+  // at all. `GET /api/vehicle-types` flags the weaker, body-agnostic version of
+  // this for the picker, which is why this check can refuse a class the form
+  // showed as available — the server being the stricter of the two is the safe
+  // direction, the same asymmetry the cargo check already runs.
+  //
+  // Placed here, before `estimateDelivery`, deliberately: two indexed local
+  // reads that refuse an unbookable order without spending geocoding lookups on
+  // it — the convention stated at the top of this block, and the same slot the
+  // cargo-fit guard above occupies. It runs after that guard because a cargo
+  // problem is the client's own edit to make, while this one takes the class off
+  // the table entirely; naming the fixable problem first is the more useful
+  // order for whoever reads the message.
+  if (spec) {
+    const serviceable = await serviceableSpecIds(bodyType);
+
+    if (!serviceable.has(spec.id)) {
+      return NextResponse.json(
+        { error: unserviceableClassMessage(spec.label) },
         { status: 400 },
       );
     }

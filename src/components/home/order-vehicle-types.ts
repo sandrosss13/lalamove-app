@@ -26,6 +26,25 @@ export type OrderVehicleType = {
   // — the only source of truth for the body filter. A list because several
   // types serve more than one body (a reefer can run its box dry).
   bodyTypes: ChassisType[];
+  /**
+   * Whether any activated carrier on the platform could actually take a load
+   * booked against this type — resolved server-side by
+   * `src/lib/orders/class-serviceability.ts` under the same
+   * upgrade-substitution rule the load board and the claim routes apply.
+   *
+   * False for four of the eleven seeded classes today. A client who books one
+   * gets an order that is created, priced and then invisible to every carrier,
+   * which is why `POST /api/orders` refuses such a booking outright; this flag
+   * is the picker's chance to say so before the client fills in a whole form,
+   * exactly as the cargo-fit check is mirrored between the form and the route.
+   *
+   * **Advisory, and deliberately looser than the server's check**: it is
+   * body-agnostic, because this list is fetched once before a client has chosen
+   * anything. A type flagged serviceable can still be refused at booking if no
+   * carrier serves it *with the chosen load space*. The route is the authority
+   * and is never the looser of the two — see `GET /api/vehicle-types`.
+   */
+  serviceable: boolean;
   // The one field the picker needs from the pricing rule: highlighting the
   // best-fit (cheapest eligible) type is a `baseFare` comparison.
   pricingRule: { baseFare: number };

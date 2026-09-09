@@ -564,6 +564,42 @@ function cargoFitCardReason(
 }
 
 /**
+ * The step-5 badge for a class no carrier on the platform operates.
+ *
+ * Cut to the same measure as the cargo-fit badges above — "Too short for 15 m",
+ * "Can't carry 3 t" — because it shares their slot on the card: a short verdict
+ * that fits one line beside a spec line, not a sentence. The full explanation,
+ * with something to go and do about it, is the alert above the grid.
+ *
+ * "Carriers" and not "drivers" deliberately. What is missing is the *vehicle*
+ * from the fleet, and a client told "no drivers" would reasonably read it as a
+ * queue and try the same class again in an hour. "Class" rather than "vehicle"
+ * for the same reason the rest of this file says class: the card names a
+ * category in the taxonomy, not the particular truck that would turn up.
+ *
+ * A flat string where the cargo reason is a builder, because there is exactly
+ * one way to be unserviceable and nothing of the client's own to quote back at
+ * them.
+ */
+const NO_CARRIERS_CARD_REASON = "No carriers run this class";
+
+/**
+ * The same fact said once, with the fix attached, when it is true of *every*
+ * card in the grid.
+ *
+ * Needed because the badges alone leave that state unexplained where it is
+ * acted on: a grid of uniformly disabled cards says what has happened but not
+ * what to do, and the client's next move is at the bottom of the form, against
+ * a Book button whose `canSubmit` refuses a selection they cannot change from
+ * here. Both levers named because either can reach a serviceable class — the
+ * eligible set is the intersection of goods, load space and weight bracket, and
+ * only the last two are still adjustable at this point in the form (a goods
+ * change would re-default both, which is a bigger instruction than it sounds).
+ */
+const NO_SERVICEABLE_VEHICLES_MESSAGE =
+  "No carrier currently runs any of these vehicle classes. Pick a different load space or weight.";
+
+/**
  * The ceiling comes from `CARGO_MEASUREMENT_BOUNDS`: the heaviest thing the
  * catalogue can currently carry, exactly (`prisma/seed.ts`'s `TRAILER_TRUCK`
  * tops out at 24 000 kg, and there is deliberately no headroom above it — seed a
@@ -1186,7 +1222,50 @@ export function BookingForm(): React.ReactElement {
     );
   }, [cargoEligibleVehicleTypes, bodyType, maxWeightKg]);
 
-  const bestFitVehicleType = eligibleVehicleTypes[0] ?? null;
+  /**
+   * The eligible classes a carrier on this platform actually operates.
+   *
+   * Four of the eleven seeded classes have nobody running them, and an order
+   * booked against one is created, priced, charged for — and then invisible to
+   * every driver on the load board forever. That is the same signal-free
+   * failure the cargo-fit work above exists to stop, arriving through a
+   * different door, so it is stopped the same way.
+   *
+   * A *derived* list and pointedly not a narrower `eligibleVehicleTypes`: the
+   * grid keeps rendering the full eligible set and disables the unserviceable
+   * cards in place, for the reasons set out on the grid itself — a class
+   * removed from that list takes the client's selection with it and reprices
+   * the booking under their cursor. What this list is for is the two places
+   * that put a class on the client's *behalf*, the `Best` pill and the
+   * auto-select effect, neither of which is a click anyone made.
+   *
+   * Order is inherited, so `[0]` is still the cheapest.
+   */
+  const bookableVehicleTypes = useMemo(
+    () => eligibleVehicleTypes.filter((vehicleType) => vehicleType.serviceable),
+    [eligibleVehicleTypes],
+  );
+
+  /**
+   * The `Best` pill: the cheapest class this booking could actually be *placed*
+   * against, not merely the cheapest one on offer.
+   *
+   * Serviceability is allowed to move this pill where the declared cargo
+   * envelope deliberately is not (see the grid's note on `Best` landing on a
+   * cargo-disabled card), because the two are different kinds of fact. The
+   * envelope changes on every keystroke in step 6, so ranking around it would
+   * have the pill hopping between cards while a client types; serviceability is
+   * a property of the fleet, fixed for the life of the page, so ranking around
+   * it moves nothing after first paint.
+   *
+   * The stronger reason is that this is the rule the auto-select effect below
+   * picks by. Leaving the pill on the cheapest *eligible* class would put `Best`
+   * on one card while the form quietly selected another — the form
+   * contradicting its own recommendation, which is worse than no pill at all.
+   * When nothing is bookable no card wears it, which is correct: nothing here
+   * is best when nothing here can be had.
+   */
+  const bestFitVehicleType = bookableVehicleTypes[0] ?? null;
 
   const selectedVehicleType =
     eligibleVehicleTypes.find(
@@ -1202,21 +1281,40 @@ export function BookingForm(): React.ReactElement {
    * to resolve, and the cheapest eligible type is the one they would be offered
    * anyway. Setting the code makes the selection valid, so this settles after
    * one extra render rather than looping.
+   *
+   * It picks from `bookableVehicleTypes`, never from the full eligible list.
+   * Auto-selecting a class no carrier runs would be the worst kind of default —
+   * chosen by the form, not the client, on a step they may never scroll back
+   * to, and unbookable from the moment it lands. Only the *source* narrows: the
+   * grid still renders every eligible class, so nothing disappears from view.
+   *
+   * Membership is tested against the bookable list too, so a selection that is
+   * merely unserviceable is replaced on the same terms as one that has become
+   * ineligible. Nothing can put an unserviceable code in this state today — the
+   * cards are `disabled`, this effect skips them, and the initial value is `""`
+   * — so that arm is a guard rather than a path, and it is written this way so
+   * the invariant survives whatever sets the code next.
+   *
+   * When nothing at all is bookable the effect returns and leaves the selection
+   * where it is, rather than clearing it: clearing would trade a selection the
+   * client can see explained on its own card for an empty picker explaining
+   * nothing. That state is refused by `canSubmit` and named by the alert above
+   * the grid — see both before changing this.
    */
   useEffect(() => {
-    const bestFit = eligibleVehicleTypes[0];
+    const bestFit = bookableVehicleTypes[0];
     if (!bestFit) {
       return;
     }
 
-    const stillEligible = eligibleVehicleTypes.some(
+    const stillSelectable = bookableVehicleTypes.some(
       (vehicleType) => vehicleType.code === vehicleTypeCode,
     );
 
-    if (!stillEligible) {
+    if (!stillSelectable) {
       setVehicleTypeCode(bestFit.code);
     }
-  }, [eligibleVehicleTypes, vehicleTypeCode]);
+  }, [bookableVehicleTypes, vehicleTypeCode]);
 
   /**
    * Pick a load space, and clear the two steps that hang off it.
@@ -1996,6 +2094,24 @@ export function BookingForm(): React.ReactElement {
     .filter((part): part is string => Boolean(part))
     .join(" · ");
 
+  /**
+   * Is the class this booking is pointed at one a carrier actually operates?
+   *
+   * True when nothing is selected, on exactly the principle `cargoFitsVehicle`
+   * states above: `selectedVehicleType !== null` is a conjunct in its own right
+   * and this one has no business saying the same no a second time, in different
+   * words, about a different thing.
+   *
+   * Read off the selected class rather than tested as
+   * `bookableVehicleTypes.includes(...)` — the two agree, because
+   * `selectedVehicleType` is resolved against `eligibleVehicleTypes` and the
+   * bookable list is that list filtered, but only one of them keeps saying the
+   * right thing if the sets are ever rearranged. The question is about the class
+   * being booked, so it is asked of that class.
+   */
+  const selectedVehicleIsServiceable =
+    selectedVehicleType === null || selectedVehicleType.serviceable;
+
   // Booking requires a calculated price for the exact inputs being booked —
   // the whole point of the Calculate step — plus a valid vehicle type and a
   // chosen delivery time, so the submit cannot race the fetch that supplies
@@ -2037,6 +2153,23 @@ export function BookingForm(): React.ReactElement {
   // undeclared: it is priced, paid, and then hidden from every driver by
   // `GET /api/loads` and refused by all three claim routes, so it can neither be
   // carried nor found. That is the order this conjunct exists to stop existing.
+  //
+  // `selectedVehicleIsServiceable` is the last of the fixable conjuncts and it
+  // stops the same order by the other door: a class no carrier operates produces
+  // a booking that is priced, paid and then never seen by a driver — not because
+  // its load is too big for the truck, but because there is no truck. It carries
+  // the same obligation as the two above, and it is discharged in two places in
+  // step 5. Every unserviceable card is disabled with "No carriers run this
+  // class" on it, including the selected one, so the class this conjunct is
+  // refusing says so itself; and when *no* eligible class is serviceable —
+  // which is the only state a client can actually reach this conjunct in, since
+  // the cards are disabled and the auto-select effect picks only from
+  // `bookableVehicleTypes` — the alert above the grid names the two filters to
+  // move. There is deliberately no step 6 line to match `cargoFitBlockingMessage`:
+  // that one exists because the cargo conjunct is tripped by typing four numbers
+  // two steps below where the fix is, whereas serviceability is fixed for the
+  // life of the page and cannot turn true under a client who has walked past it.
+  // If this conjunct is ever changed, change what says so.
   const canSubmit =
     !submitting &&
     selectedVehicleType !== null &&
@@ -2044,6 +2177,7 @@ export function BookingForm(): React.ReactElement {
     scheduledDateTime !== null &&
     cargoDimensionsValid &&
     cargoFitsVehicle &&
+    selectedVehicleIsServiceable &&
     pickupWindowValid &&
     deliveryDeadlineValid;
 
@@ -2500,9 +2634,18 @@ export function BookingForm(): React.ReactElement {
                        cannot take the load are disabled *in place*, with the
                        reason printed on the card.
 
+                       A class no carrier operates is disabled in the same way
+                       and in the same slot, and is the one reason that is true
+                       before a single cargo digit is typed — see `cardReason`
+                       below for which of the two speaks when both apply.
+
                        Annotated, never filtered — the classes stay in
-                       `eligibleVehicleTypes` and the auto-select effect is left
-                       exactly as it was. The ordering is what forces this: step
+                       `eligibleVehicleTypes`, whichever reason disables them.
+                       (What the unserviceable ones are kept out of is
+                       `bookableVehicleTypes`, which is only what the form picks
+                       *for* the client: the `Best` pill and the auto-select
+                       effect. Nothing leaves this grid.) The ordering is what
+                       forces this for the cargo reason: step
                        5 comes *before* step 6, so by the time a cargo figure
                        exists to filter on, the client has already chosen a
                        vehicle here and, in the ordinary flow, already pressed
@@ -2518,126 +2661,190 @@ export function BookingForm(): React.ReactElement {
                        15 m load in a 4.5 m Box Truck worth fixing in the first
                        place.
 
-                       The `Best` pill is left on its own rule (cheapest eligible
-                       by class) and can therefore land on a disabled card. That
+                       The `Best` pill is left on its own rule as far as the
+                       cargo envelope is concerned (cheapest bookable by class,
+                       unranked by the declared load) and can therefore land on a
+                       cargo-disabled card. That
                        is honest rather than untidy: it still is the cheapest
                        class this body and weight bracket offer, and its badge
                        says on the same card why this particular load cannot use
                        it. Re-ranking `Best` around the declared envelope would
                        make the pill move whenever a cargo digit changes, which
                        is a different feature and a noisier one. */
-                    <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-                      {eligibleVehicleTypes.map((vehicleType) => {
-                        const selected = vehicleType.code === vehicleTypeCode;
-                        const isBestFit =
-                          bestFitVehicleType?.code === vehicleType.code;
-                        const Glyph =
-                          VEHICLE_CATEGORY_GLYPHS[vehicleType.category];
+                    <>
+                      {/* Sits above the grid rather than inside it because it is
+                          about the grid as a whole: every card is disabled and
+                          the client's next move is a *different filter*, which
+                          is a sentence no single card can carry. It appears only
+                          in that all-or-nothing case — a mixed grid needs no
+                          summary, since the badge on each dead card is beside a
+                          live card that can be clicked instead.
 
-                        // Per card, not memoised: four numeric comparisons
-                        // across a catalogue of a handful of classes, against a
-                        // `useMemo` whose dependency would have to be the
-                        // envelope object this render just rebuilt. The
-                        // arithmetic is cheaper than the cache.
-                        //
-                        // `specCapability`, never the spec's raw `cargoHeightM`
-                        // — FLATBED_TRUCK is seeded with `0` for "open bed, no
-                        // height limit", and a literal reading would disable the
-                        // flatbed card for every load with any height at all.
-                        const unfitAxes: CargoAxis[] =
-                          declaredCargoEnvelope !== null
-                            ? oversizeAxes(
-                                declaredCargoEnvelope,
-                                specCapability(vehicleType),
-                              )
-                            : [];
-                        const unfitReason =
-                          declaredCargoEnvelope !== null && unfitAxes.length > 0
-                            ? cargoFitCardReason(
-                                unfitAxes,
-                                declaredCargoEnvelope,
-                              )
-                            : null;
+                          `role="alert"` here where the card badges pointedly
+                          have none, and the two do not double up: the badges are
+                          static content of buttons that are already announced as
+                          disabled, this fires once, and it can only fire on a
+                          load-space or weight change the client just made. It is
+                          the same treatment, in the same words' spirit, as the
+                          "No vehicle matches this body type" alert directly
+                          above — the two are mutually exclusive branches of the
+                          same question, "why can I not book anything here". */}
+                      {bookableVehicleTypes.length === 0 ? (
+                        <p
+                          role="alert"
+                          className="mb-2.5 rounded-lg border border-accent/30 bg-accent/[0.08] px-3.5 py-3 text-[0.8125rem] leading-snug text-accent"
+                        >
+                          {NO_SERVICEABLE_VEHICLES_MESSAGE}
+                        </p>
+                      ) : null}
 
-                        return (
-                          <button
-                            key={vehicleType.code}
-                            type="button"
-                            aria-pressed={selected}
-                            // Really disabled, not `aria-disabled` with a no-op
-                            // handler: there is nothing here for a click to
-                            // achieve or for a keyboard user to reconsider, and
-                            // `canSubmit` refuses this pairing regardless of
-                            // which control set it. The reason is rendered as
-                            // text *inside* the button rather than hung off an
-                            // `aria-describedby`, which is what keeps it
-                            // reachable — a disabled button is out of the tab
-                            // order, so a description attached to it is one a
-                            // screen-reader user would have to focus the button
-                            // to hear. Its own content is read in browse mode
-                            // along with the disabled state, so the badge
-                            // announces with the card exactly as it renders
-                            // with it.
-                            disabled={unfitReason !== null}
-                            onClick={() => setVehicleTypeCode(vehicleType.code)}
-                            // A card that is both selected and unfit keeps the
-                            // selected fill and its tick rather than dimming:
-                            // it is still the class this booking is pointed at,
-                            // which is the first thing the client needs to see,
-                            // and the accent badge below is what says it cannot
-                            // stay that way. Dimming it would leave the client
-                            // hunting for which card was theirs at the moment
-                            // they most need to know.
-                            className={`${PICK_CARD_BASE_CLASSES} ${
-                              selected
-                                ? PICK_CARD_SELECTED_CLASSES
-                                : unfitReason !== null
-                                  ? PICK_CARD_UNAVAILABLE_CLASSES
-                                  : PICK_CARD_IDLE_CLASSES
-                            }${unfitReason !== null ? " cursor-not-allowed" : ""}`}
-                          >
-                            <span className="flex items-start justify-between gap-2">
-                              <Glyph
-                                className={`h-6 w-12 shrink-0 ${
-                                  selected ? "text-accent" : "text-muted"
-                                }`}
-                              />
-                              {/* Teal, never orange: "cheapest option" is a
+                      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                        {eligibleVehicleTypes.map((vehicleType) => {
+                          const selected = vehicleType.code === vehicleTypeCode;
+                          const isBestFit =
+                            bestFitVehicleType?.code === vehicleType.code;
+                          const Glyph =
+                            VEHICLE_CATEGORY_GLYPHS[vehicleType.category];
+
+                          // Per card, not memoised: four numeric comparisons
+                          // across a catalogue of a handful of classes, against a
+                          // `useMemo` whose dependency would have to be the
+                          // envelope object this render just rebuilt. The
+                          // arithmetic is cheaper than the cache.
+                          //
+                          // `specCapability`, never the spec's raw `cargoHeightM`
+                          // — FLATBED_TRUCK is seeded with `0` for "open bed, no
+                          // height limit", and a literal reading would disable the
+                          // flatbed card for every load with any height at all.
+                          const unfitAxes: CargoAxis[] =
+                            declaredCargoEnvelope !== null
+                              ? oversizeAxes(
+                                  declaredCargoEnvelope,
+                                  specCapability(vehicleType),
+                                )
+                              : [];
+                          const unfitReason =
+                            declaredCargoEnvelope !== null &&
+                            unfitAxes.length > 0
+                              ? cargoFitCardReason(
+                                  unfitAxes,
+                                  declaredCargoEnvelope,
+                                )
+                              : null;
+
+                          // One badge, never two, and the same one slot for both
+                          // states — this is a second reason for a card to be
+                          // unavailable, not a second kind of unavailable.
+                          //
+                          // Unserviceable wins when both are true, and the
+                          // precedence is not arbitrary. "No carriers run this
+                          // class" is a fact about the fleet that nothing the
+                          // client can type will change, while "Too short for
+                          // 15 m" names an edit they could go and make. Leading
+                          // with the cargo reason would send them back to step 6
+                          // to shave 20 cm off a declaration in order to unlock a
+                          // card that stays unbookable at the end of it — work
+                          // done, no vehicle gained, and the real answer still
+                          // unsaid. Told the other way round nothing is lost: a
+                          // client who moves to a class someone does drive is
+                          // measured against their cargo there, on that card, at
+                          // the moment it can matter.
+                          //
+                          // Stacking both was considered and rejected on the same
+                          // grounds these badges are terse for. Two lines of
+                          // accent text per card, across a grid of them, buries
+                          // the one line the client needs — and the second line
+                          // would be advice about a hypothetical truck.
+                          const cardReason = !vehicleType.serviceable
+                            ? NO_CARRIERS_CARD_REASON
+                            : unfitReason;
+
+                          return (
+                            <button
+                              key={vehicleType.code}
+                              type="button"
+                              aria-pressed={selected}
+                              // Really disabled, not `aria-disabled` with a no-op
+                              // handler: there is nothing here for a click to
+                              // achieve or for a keyboard user to reconsider, and
+                              // `canSubmit` refuses this pairing regardless of
+                              // which control set it. The reason is rendered as
+                              // text *inside* the button rather than hung off an
+                              // `aria-describedby`, which is what keeps it
+                              // reachable — a disabled button is out of the tab
+                              // order, so a description attached to it is one a
+                              // screen-reader user would have to focus the button
+                              // to hear. Its own content is read in browse mode
+                              // along with the disabled state, so the badge
+                              // announces with the card exactly as it renders
+                              // with it. Both reasons travel this one route, so
+                              // an unserviceable class is announced as disabled
+                              // and reads out why on the same terms a cargo-unfit
+                              // one does.
+                              disabled={cardReason !== null}
+                              onClick={() =>
+                                setVehicleTypeCode(vehicleType.code)
+                              }
+                              // A card that is both selected and unfit keeps the
+                              // selected fill and its tick rather than dimming:
+                              // it is still the class this booking is pointed at,
+                              // which is the first thing the client needs to see,
+                              // and the accent badge below is what says it cannot
+                              // stay that way. Dimming it would leave the client
+                              // hunting for which card was theirs at the moment
+                              // they most need to know.
+                              className={`${PICK_CARD_BASE_CLASSES} ${
+                                selected
+                                  ? PICK_CARD_SELECTED_CLASSES
+                                  : cardReason !== null
+                                    ? PICK_CARD_UNAVAILABLE_CLASSES
+                                    : PICK_CARD_IDLE_CLASSES
+                              }${cardReason !== null ? " cursor-not-allowed" : ""}`}
+                            >
+                              <span className="flex items-start justify-between gap-2">
+                                <Glyph
+                                  className={`h-6 w-12 shrink-0 ${
+                                    selected ? "text-accent" : "text-muted"
+                                  }`}
+                                />
+                                {/* Teal, never orange: "cheapest option" is a
                               different signal from "what you picked". The
                               badge sits in flow at the top right, where the
                               selection tick is absolutely positioned — so on
                               a selected card it steps aside by the tick's
                               width plus its inset rather than sitting under
                               it. */}
-                              {isBestFit ? (
-                                <span
-                                  className={`rounded-full bg-emerald-600/10 px-2 py-0.5 text-[0.5625rem] font-semibold tracking-[0.1em] text-emerald-700 uppercase ${
-                                    selected ? "mr-5" : ""
-                                  }`}
-                                >
-                                  Best
+                                {isBestFit ? (
+                                  <span
+                                    className={`rounded-full bg-emerald-600/10 px-2 py-0.5 text-[0.5625rem] font-semibold tracking-[0.1em] text-emerald-700 uppercase ${
+                                      selected ? "mr-5" : ""
+                                    }`}
+                                  >
+                                    Best
+                                  </span>
+                                ) : null}
+                              </span>
+
+                              <span className="mt-2.5 pr-4 text-[0.8125rem] leading-snug font-semibold text-paper">
+                                {vehicleType.label}
+                              </span>
+                              <span className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-0.5 font-price text-[0.6875rem] text-muted">
+                                <span>
+                                  {formatVehicleDimensions(
+                                    vehicleType.cargoLengthM,
+                                    vehicleType.cargoWidthM,
+                                    vehicleType.cargoHeightM,
+                                  )}
                                 </span>
-                              ) : null}
-                            </span>
-
-                            <span className="mt-2.5 pr-4 text-[0.8125rem] leading-snug font-semibold text-paper">
-                              {vehicleType.label}
-                            </span>
-                            <span className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-0.5 font-price text-[0.6875rem] text-muted">
-                              <span>
-                                {formatVehicleDimensions(
-                                  vehicleType.cargoLengthM,
-                                  vehicleType.cargoWidthM,
-                                  vehicleType.cargoHeightM,
-                                )}
+                                <span>
+                                  up to{" "}
+                                  {formatVehiclePayload(
+                                    vehicleType.maxPayloadKg,
+                                  )}
+                                </span>
                               </span>
-                              <span>
-                                up to{" "}
-                                {formatVehiclePayload(vehicleType.maxPayloadKg)}
-                              </span>
-                            </span>
 
-                            {/* Below the spec line, not above it: the figures
+                              {/* Below the spec line, not above it: the figures
                                 are what the badge is a verdict on, so a client
                                 reading top to bottom gets the class, its
                                 capacity, and only then why their load exceeds
@@ -2647,19 +2854,22 @@ export function BookingForm(): React.ReactElement {
                                 card the moment the last cargo digit lands. The
                                 one interruption this deserves belongs to step
                                 6's single blocking line. */}
-                            {unfitReason !== null ? (
-                              <span
-                                className={PICK_CARD_UNAVAILABLE_REASON_CLASSES}
-                              >
-                                {unfitReason}
-                              </span>
-                            ) : null}
+                              {cardReason !== null ? (
+                                <span
+                                  className={
+                                    PICK_CARD_UNAVAILABLE_REASON_CLASSES
+                                  }
+                                >
+                                  {cardReason}
+                                </span>
+                              ) : null}
 
-                            {selected ? <SelectedTick /> : null}
-                          </button>
-                        );
-                      })}
-                    </div>
+                              {selected ? <SelectedTick /> : null}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </>
                   )}
                 </>
               )}
