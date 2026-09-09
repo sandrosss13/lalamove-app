@@ -22,6 +22,7 @@
  *    day a driver would call today — see `@/lib/dashboard/hub/timezone`.
  */
 import { HUB_TIME_ZONE } from "@/lib/dashboard/hub/timezone";
+import type { HubTodayStop } from "@/lib/dashboard/hub/today";
 
 /**
  * `en-US` with two decimals, matching the handoff's `₾142.60`. Pinned rather
@@ -136,4 +137,32 @@ export function pluralise(count: number, singular: string): string {
 /** The last six characters of a cuid, uppercased — the design's `TB4821`. */
 export function shortId(id: string): string {
   return id.slice(-SHORT_ID_LENGTH).toUpperCase();
+}
+
+/**
+ * A job's two stops as one line — "Avlabari → Sololaki".
+ *
+ * The fleet's jobs-in-progress rows have one line for a route where the
+ * single-driver card has room for a full two-row stop list with its dots and
+ * timestamps, so the route has to compress to a phrase. The arrow is the
+ * design's own (`livePillJobs` renders `route: 'Didube → Gldani'`), and it is
+ * a real `→` rather than `->` because this is display text, not a code
+ * fragment.
+ *
+ * First and last rather than `[0]` and `[1]` because `HubTodayStop[]` is typed
+ * as a list even though `Order` only ever produces two — if a multi-stop model
+ * ever lands, this keeps naming the endpoints instead of silently naming the
+ * first two of five. Returns `EMPTY_VALUE` for an empty list, which cannot
+ * happen today and would otherwise print a bare arrow.
+ */
+export function formatStopRoute(stops: readonly HubTodayStop[]): string {
+  const first = stops[0];
+  const last = stops[stops.length - 1];
+
+  // `noUncheckedIndexedAccess` is on: both reads are `T | undefined`.
+  if (first === undefined || last === undefined) {
+    return EMPTY_VALUE;
+  }
+
+  return first === last ? first.address : `${first.address} → ${last.address}`;
 }

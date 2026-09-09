@@ -42,6 +42,27 @@ import { cn } from "@/lib/utils";
  * (`Vehicle.vehicleClass`, the onboarding wizards' presentation grouping, is
  * not settable through either POST route, so this form does not pretend to
  * set it.)
+ *
+ * ## Not reachable for a driver on a company's roster
+ *
+ * `vehicles-screen.tsx` renders no "Add vehicle" button when the loader's
+ * `canAddVehicle` verdict is `false` — which is exactly the ROSTER persona —
+ * and short-circuits the callback that would mount this form anyway. Behind
+ * that, `POST /api/driver-profile/vehicles` returns `403` to any caller whose
+ * `DriverProfile.companyId` is non-null, so the refusal holds whether or not
+ * the form is ever drawn. The practical consequence for this file: the
+ * `kind === "BUSINESS" ? … : …` route choice below is, on the driver side,
+ * always an independent driver registering their own vehicle.
+ *
+ * Do **not** add a `persona` or a `canAdd` prop here to express that. The only
+ * account question this form asks is which of two owner-scoped routes to post
+ * to, that question is genuinely two-valued, and a form only ever mounted when
+ * adding is permitted has no use for a permission flag — a second axis would
+ * just be a second place to get the roster rule wrong. If the form is somehow
+ * reached regardless, the error path below renders the route's own sentence
+ * verbatim (`payload?.error ?? GENERIC_ERROR`), so the driver reads the
+ * endpoint's explanation rather than "Could not add this vehicle." — which is
+ * why no client-side copy of the refusal message is needed either.
  */
 
 /** The Georgian civilian plate format the design validates against. */

@@ -13,11 +13,14 @@ export const metadata: Metadata = {
 
 /**
  * Acceptance, completion, cancellations, rating and jobs per day for the
- * current Monday–Sunday UTC week, against the online hours that produced them.
+ * current Monday–Sunday Tbilisi week, against the online hours that produced
+ * them.
  *
- * Open to both account kinds — a fleet's numbers are its orders' numbers, and
- * `getHubPerformance()` resolves that scope difference itself, so there is no
- * business-only redirect here.
+ * Open to all three personas — `INDEPENDENT`, `ROSTER` and `BUSINESS`. A fleet's
+ * numbers are its orders' numbers, and `getHubPerformance()` resolves both the
+ * tenancy scope and the persona shape itself: a business account additionally
+ * gets the per-driver breakdown, which reaches the screen inside `data.fleet`.
+ * So there is no redirect here.
  *
  * `resolveHubAccount()` is React-`cache()`d and `(hub)/layout.tsx` above already
  * called it, so this is a memo hit within the same request rather than a second

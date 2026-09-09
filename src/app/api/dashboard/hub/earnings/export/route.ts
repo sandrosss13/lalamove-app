@@ -35,6 +35,12 @@ import {
  * or company id in the query string and there must never be one: the scope
  * clause inside `getHubEarnings` is the tenancy boundary, and a caller-supplied
  * id would turn this route into a way to read another fleet's takings.
+ *
+ * A roster driver — an employed driver on somebody else's fleet — is refused
+ * with a `403` before any of that happens. The payouts this workbook sums were
+ * settled to their employer rather than to them, so `/dashboard/earnings`
+ * redirects that persona away entirely; this route is the other half of that
+ * gate, because a hidden screen does nothing about a hand-issued `fetch`.
  */
 
 /**
@@ -286,6 +292,32 @@ export async function GET(request: Request): Promise<NextResponse> {
   if (account === null) {
     return NextResponse.json<HubEarningsExportError>(
       { error: "Your driver profile isn't set up yet." },
+      { status: 403 },
+    );
+  }
+
+  // The roster-driver gate, the API half of the pair — `/dashboard/earnings`
+  // redirects the same persona to /dashboard/today, and a redirect is the wrong
+  // answer to a fetch for a file (see the note on the session check above), so
+  // it is answered as a status code here.
+  //
+  // Every figure in this workbook is scoped by `driverId = <this user>` and
+  // headed with this user's own name, but for an employed driver the payouts it
+  // sums were settled to their *employer*: the company claimed the order and was
+  // paid for it, and `Order.driverId` records only who drove. A spreadsheet
+  // outlives the screen that made it, so an employee's copy of their employer's
+  // takings, with their own name at the top, is the exact artefact this refusal
+  // exists to prevent.
+  //
+  // 403 rather than 401 — the caller is authenticated, just not entitled — and
+  // it matches both the two refusals above and the one `GET /api/loads` answers
+  // this same persona with.
+  if (account.persona === "ROSTER") {
+    return NextResponse.json<HubEarningsExportError>(
+      {
+        error:
+          "Drivers who belong to a company are paid through their employer, so there are no personal earnings to export.",
+      },
       { status: 403 },
     );
   }

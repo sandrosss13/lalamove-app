@@ -23,7 +23,11 @@
  * absence is deliberate: the Priority uplift and the Pooling discount are
  * already inside the basis `driverPayout` was computed from at booking
  * (`roundCurrency(price + serviceLevelAdjustment)`), so adding it again would
- * pay it out twice. Everything under `sampled` is fictional and must
+ * pay it out twice. The `fleet` breakdown a BUSINESS account gets is real on
+ * the same terms — the same orders, the same two payout columns, sliced by
+ * `Order.driverId` instead of by day — which is why it sits at the top level
+ * beside `grossFares` rather than under `sampled`. Everything under `sampled`
+ * is fictional and must
  * be rendered with a `<SampleNote />` beside it — tips, incentives, adjustments,
  * the online-hours figures derived from them, and the payout-history table. The
  * split is a nesting level rather than a naming convention on purpose: a screen
@@ -49,9 +53,9 @@
  */
 import "server-only";
 
-import { Prisma } from "@prisma/client";
+import { OrderStatus, Prisma } from "@prisma/client";
 
-import type { HubAccount } from "@/lib/dashboard/hub/account";
+import type { HubAccount, HubPersona } from "@/lib/dashboard/hub/account";
 import {
   SAMPLE_INCENTIVES_NOTE,
   SAMPLE_PAYOUT_HISTORY,
@@ -187,8 +191,96 @@ export type HubEarningsBucket = {
   fares: number;
 };
 
+/**
+ * One fleet driver's contribution to the range's revenue.
+ *
+ * Every field is real, read from `COMPLETED` `Order` rows scoped to the
+ * signed-in company. Nothing here is sampled, so nothing here is badged.
+ */
+export type HubEarningsDriverRow = {
+  /** `User.id` — what `Order.driverId` holds. Stable key for the table row. */
+  driverId: string;
+  /**
+   * `User.name`.
+   *
+   * Read from `User` rather than from the company's current roster on purpose:
+   * `Order.driverId` outlives a driver's membership of a fleet
+   * (`DriverProfile.companyId` is nullable and is nulled on removal), so a
+   * driver who has since left still has orders this company was paid for and
+   * must still be nameable in a range that covers them.
+   */
+  name: string;
+  /** COMPLETED orders this driver ran for the company, in range. */
+  jobsCompleted: number;
+  /**
+   * `SUM(driverPayout + overtimeDriverPayout)` for those orders — what the
+   * fleet earned on them, never what its clients were billed.
+   */
+  grossFaresGel: number;
+  /** `grossFaresGel / jobsCompleted`, or 0 when the driver completed nothing. */
+  averagePerJobGel: number;
+  /**
+   * This driver's share of the range's `grossFares`, 0–100, one decimal.
+   *
+   * Computed here rather than in the screen so the denominator is unarguably
+   * the same `grossFares` the headline tile prints. Rounding is per row, so the
+   * column need not sum to exactly 100 — see `HubEarningsFleet` on never
+   * printing a re-summed total.
+   */
+  sharePercent: number;
+};
+
+/**
+ * The BUSINESS per-driver revenue breakdown for the range.
+ *
+ * Built entirely from existing `Order` columns — no schema change, no sampled
+ * value, no new index. The company's own tenancy scope is applied in the query
+ * exactly as `drivers.ts` applies it.
+ *
+ * **Reconciliation.** `sum(drivers[].grossFaresGel) + unassigned.grossFaresGel`
+ * equals `HubEarningsData.grossFares` only up to per-row rounding: the day
+ * series rounds per Tbilisi day and this rollup rounds per driver, both off
+ * `Float` columns, so the two can drift by cents even though they are the same
+ * set of orders. A screen showing a total row must therefore print
+ * `data.grossFares` and never a re-sum of these rows.
+ */
+export type HubEarningsFleet = {
+  /** Drivers who completed at least one job in range, largest revenue first. */
+  drivers: readonly HubEarningsDriverRow[];
+  /**
+   * The company's completed orders in range that carry **no** `driverId`.
+   *
+   * Real and non-zero in ordinary operation: a company claims an order with its
+   * own identity and assigns a driver at dispatch time, and `Order.driverId` is
+   * `onDelete: SetNull`, so a deleted user's completed orders lose their driver
+   * while keeping their money. Carried as its own object rather than folded into
+   * `drivers` as a fake row so the screen labels it honestly, and so
+   * `drivers.length` remains the count of actual drivers.
+   *
+   * Its presence is what lets the table reconcile with `grossFares` at all.
+   */
+  unassigned: {
+    jobsCompleted: number;
+    grossFaresGel: number;
+    sharePercent: number;
+  };
+};
+
 export type HubEarningsData = {
   range: ResolvedHubEarningsRange;
+  /**
+   * Which account shape this data was assembled for.
+   *
+   * Carried on the payload rather than re-derived in the screen because
+   * `HubEarningsData` is what crosses into the `"use client"` tree — the screen
+   * never sees a `HubAccount`, and a client component has no business
+   * re-deriving a persona from `kind` and `companyId` anyway. `ROSTER` cannot
+   * occur here in practice: the page redirects that persona away before this
+   * loader is called and the export route refuses it. The variant is still part
+   * of the type because the persona axis is closed and a screen switching on it
+   * should be exhaustive.
+   */
+  persona: HubPersona;
   /** Which shape `buckets` is in — see `DAILY_GROUPING_MAX_DAYS`. */
   grouping: "daily" | "weekly";
   /** Every Tbilisi day in range, oldest first, zero-filled. */
@@ -207,6 +299,13 @@ export type HubEarningsData = {
   jobsCompleted: number;
   /** `grossFares / jobsCompleted`, or 0 when nothing completed in range. */
   averagePerJob: number;
+  /**
+   * Who in the fleet earned the money above. `null` for anything that is not a
+   * BUSINESS account — an individual driver's earnings have no per-driver
+   * breakdown, and `null` says that rather than an empty array, which would
+   * read as "a fleet with nobody in it".
+   */
+  fleet: HubEarningsFleet | null;
   /** Everything below this line is fictional — badge it. */
   sampled: {
     /** Tips, incentives and adjustments for the range. */
@@ -482,6 +581,156 @@ function toWeeklyBuckets(
   return [...buckets.values()];
 }
 
+/** One `groupBy` row, before names are resolved and shares are computed. */
+type FleetRevenueRow = {
+  /** `null` for the company's completed orders with no driver on them. */
+  driverId: string | null;
+  jobsCompleted: number;
+  grossFaresGel: number;
+};
+
+/**
+ * Per-driver `COMPLETED` revenue for a fleet, over the same half-open instant
+ * window the day series is built from, plus the names those driver ids resolve
+ * to.
+ *
+ * `null` for anything that is not a BUSINESS account with a company: an
+ * individual driver's earnings have no per-driver breakdown, and returning null
+ * rather than an empty array is what lets the screen tell "not a fleet" apart
+ * from "a fleet whose drivers completed nothing". An individual account pays
+ * nothing for this helper — it returns before it queries.
+ *
+ * Two round trips rather than one join: `groupBy` cannot include a relation's
+ * columns, so the names are resolved in a second query keyed on the ids the
+ * first returned. `drivers.ts` makes the same trade for the same reason.
+ */
+async function loadFleetRevenue(
+  account: HubAccount,
+  fromInstant: Date,
+  toExclusiveInstant: Date,
+): Promise<{
+  rows: FleetRevenueRow[];
+  namesByDriverId: ReadonlyMap<string, string>;
+} | null> {
+  const { companyId } = account;
+
+  // Both halves are load-bearing: `persona` is the product rule, and the null
+  // check is what narrows `companyId` to a string for the query below.
+  if (account.persona !== "BUSINESS" || companyId === null) {
+    return null;
+  }
+
+  const grouped = await prisma.order.groupBy({
+    by: ["driverId"],
+    where: {
+      // The tenancy boundary. Deliberately *not* also filtered to the current
+      // roster: `Order.driverId` outlives a driver's membership of a fleet, and
+      // dropping a departed driver's orders would make this table fail to add
+      // up to the `grossFares` figure printed above it.
+      companyId,
+      status: OrderStatus.COMPLETED,
+      // Half-open, and the same two instants the day series uses, so a driver's
+      // row and the chart's bars cover the identical window. A Prisma-built
+      // `where` needs no `AT TIME ZONE 'UTC'` treatment — that is only for the
+      // raw query below, where the bound would otherwise be promoted using the
+      // database session's own zone.
+      completedAt: { gte: fromInstant, lt: toExclusiveInstant },
+    },
+    _count: true,
+    // The carrier's two payout columns, never the client's `price` and
+    // `overtimeFee` — see this module's header and `prisma/schema.prisma`'s
+    // `driverPayout` comment. A `_sum` over no rows is `null` in Prisma, which
+    // is why both terms are `?? 0`-defaulted.
+    _sum: { driverPayout: true, overtimeDriverPayout: true },
+  });
+
+  const rows: FleetRevenueRow[] = grouped.map((row) => ({
+    driverId: row.driverId,
+    jobsCompleted: row._count,
+    grossFaresGel: roundCurrency(
+      (row._sum.driverPayout ?? 0) + (row._sum.overtimeDriverPayout ?? 0),
+    ),
+  }));
+
+  const driverIds = rows
+    .map((row) => row.driverId)
+    .filter((id): id is string => id !== null);
+
+  // Read off `User` rather than `DriverProfile`: `Order.driverId` is a `User`
+  // id (the `DriverDeliveries` relation), and a driver who has left this fleet
+  // has a `DriverProfile` whose `companyId` no longer points here — filtering by
+  // the roster would leave their row nameless while their money still counts.
+  //
+  // Skipped entirely on an empty list: `{ in: [] }` is a guaranteed-empty read
+  // that is still a round trip.
+  const users =
+    driverIds.length === 0
+      ? []
+      : await prisma.user.findMany({
+          where: { id: { in: driverIds } },
+          select: { id: true, name: true },
+        });
+
+  return {
+    rows,
+    namesByDriverId: new Map(users.map((user) => [user.id, user.name])),
+  };
+}
+
+/**
+ * Groups the raw rows into the screen's breakdown: named drivers largest first,
+ * plus whatever the company earned on orders with no driver on them.
+ *
+ * `grossFares` is passed in rather than re-summed here so the share column's
+ * denominator is provably the same number the headline tile prints.
+ */
+function toFleetBreakdown(
+  rows: readonly FleetRevenueRow[],
+  namesByDriverId: ReadonlyMap<string, string>,
+  grossFares: number,
+): HubEarningsFleet {
+  const share = (fares: number): number =>
+    grossFares === 0 ? 0 : Math.round((fares / grossFares) * 1000) / 10;
+
+  const drivers: HubEarningsDriverRow[] = rows
+    .filter(
+      (row): row is FleetRevenueRow & { driverId: string } =>
+        row.driverId !== null,
+    )
+    .map((row) => ({
+      driverId: row.driverId,
+      // A driver whose `User` row has since been deleted keeps their orders
+      // (`onDelete: SetNull` fires on the FK, not on history) but loses their
+      // name, so the fallback is a label rather than an empty cell — the money
+      // is real and must still be attributable to *something*.
+      name: namesByDriverId.get(row.driverId) ?? "Former driver",
+      jobsCompleted: row.jobsCompleted,
+      grossFaresGel: row.grossFaresGel,
+      averagePerJobGel:
+        row.jobsCompleted === 0
+          ? 0
+          : roundCurrency(row.grossFaresGel / row.jobsCompleted),
+      sharePercent: share(row.grossFaresGel),
+    }))
+    // Largest earner first, then by name so two equal rows have a stable order
+    // across renders rather than whatever the database returned.
+    .sort(
+      (a, b) => b.grossFaresGel - a.grossFaresGel || a.name.localeCompare(b.name),
+    );
+
+  const unassignedRow = rows.find((row) => row.driverId === null);
+  const unassignedFares = unassignedRow?.grossFaresGel ?? 0;
+
+  return {
+    drivers,
+    unassigned: {
+      jobsCompleted: unassignedRow?.jobsCompleted ?? 0,
+      grossFaresGel: unassignedFares,
+      sharePercent: share(unassignedFares),
+    },
+  };
+}
+
 /**
  * Fetches and shapes every figure the Earnings screen shows, for either account
  * kind, over the given range.
@@ -566,20 +815,26 @@ export async function getHubEarnings(
   // `roundCurrency(price + serviceLevelAdjustment)`, so the Priority uplift and
   // the Pooling discount are already inside it. Adding the adjustment here would
   // pay it out twice, once uncommissioned.
-  const rows = await prisma.$queryRaw<
-    { day: Date; jobs: number; fares: number }[]
-  >`
-    SELECT ${Prisma.raw(hubDayTruncSql('"completedAt"'))} AS day,
-           COUNT(*)::int AS jobs,
-           SUM("driverPayout" + "overtimeDriverPayout") AS fares
-    FROM "Order"
-    WHERE ${hubOrderScopeSql(account)}
-      AND "status" = 'COMPLETED'
-      AND "completedAt" >= (${fromInstant} ${UTC_BOUND})
-      AND "completedAt" < (${toExclusiveInstant} ${UTC_BOUND})
-    GROUP BY 1
-    ORDER BY 1
-  `;
+  //
+  // The BUSINESS per-driver rollup runs *alongside* this query rather than
+  // after it: neither depends on the other, and a fleet owner should not pay
+  // two serial round trips for one screen. For every other persona
+  // `loadFleetRevenue` returns `null` without touching the database.
+  const [rows, fleetRevenue] = await Promise.all([
+    prisma.$queryRaw<{ day: Date; jobs: number; fares: number }[]>`
+      SELECT ${Prisma.raw(hubDayTruncSql('"completedAt"'))} AS day,
+             COUNT(*)::int AS jobs,
+             SUM("driverPayout" + "overtimeDriverPayout") AS fares
+      FROM "Order"
+      WHERE ${hubOrderScopeSql(account)}
+        AND "status" = 'COMPLETED'
+        AND "completedAt" >= (${fromInstant} ${UTC_BOUND})
+        AND "completedAt" < (${toExclusiveInstant} ${UTC_BOUND})
+      GROUP BY 1
+      ORDER BY 1
+    `,
+    loadFleetRevenue(account, fromInstant, toExclusiveInstant),
+  ]);
 
   const rowsByDay = new Map(
     rows.map((row) => [
@@ -631,6 +886,7 @@ export async function getHubEarnings(
 
   return {
     range: resolved,
+    persona: account.persona,
     grouping,
     days,
     buckets:
@@ -646,6 +902,16 @@ export async function getHubEarnings(
     jobsCompleted,
     averagePerJob:
       jobsCompleted === 0 ? 0 : roundCurrency(grossFares / jobsCompleted),
+    // Shaped here rather than inside `loadFleetRevenue` because the share
+    // column's denominator is `grossFares`, which is only final one line above.
+    fleet:
+      fleetRevenue === null
+        ? null
+        : toFleetBreakdown(
+            fleetRevenue.rows,
+            fleetRevenue.namesByDriverId,
+            grossFares,
+          ),
     sampled: {
       extras,
       onlineHours,

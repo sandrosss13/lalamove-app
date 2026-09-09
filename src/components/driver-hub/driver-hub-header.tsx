@@ -7,15 +7,25 @@ import { useSignOut } from "@/components/auth/use-sign-out";
 import { HubOnlineToggle } from "@/components/driver-hub/hub-online-toggle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import type { HubAccount, HubAccountKind } from "@/lib/dashboard/hub/account";
+import type { HubAccount, HubPersona } from "@/lib/dashboard/hub/account";
 
 /**
- * The chip's copy. A lookup rather than a `toLowerCase()` so the two words are
- * written out where a reviewer can read them, not derived from an enum.
+ * The chip's copy, one label per persona.
+ *
+ * A lookup rather than something derived from the enum, so the three strings
+ * are written out where a reviewer can read them — and so the two individual
+ * shapes are visibly distinct. `HubAccountKind` cannot carry this: an
+ * independent owner-driver and a driver on a company's roster are both
+ * `kind: "INDIVIDUAL"`, and the chip that called both of them "Individual" was
+ * the one place in the hub that stated the conflation out loud.
+ *
+ * "Company driver" rather than "Roster": `ROSTER` is this codebase's word for
+ * the shape, not the driver's word for their own job.
  */
-const ACCOUNT_KIND_LABELS: Record<HubAccountKind, string> = {
+const ACCOUNT_PERSONA_LABELS: Record<HubPersona, string> = {
+  INDEPENDENT: "Independent",
+  ROSTER: "Company driver",
   BUSINESS: "Business",
-  INDIVIDUAL: "Individual",
 };
 
 export type DriverHubHeaderProps = {
@@ -111,7 +121,7 @@ export function DriverHubHeader({
           variant="outline"
           className="h-auto rounded-full px-[9px] py-[3px] text-[11px] font-semibold tracking-[0.02em] text-muted-foreground"
         >
-          {ACCOUNT_KIND_LABELS[account.kind]}
+          {ACCOUNT_PERSONA_LABELS[account.persona]}
         </Badge>
 
         {/* A company session has no availability to flip — `isOnline` is

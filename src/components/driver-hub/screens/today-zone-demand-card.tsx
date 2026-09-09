@@ -52,7 +52,13 @@ const ROW_COLUMNS = "grid-cols-[1.4fr_1fr_100px_90px]";
 const BONUS_ACCENT = "text-[oklch(64%_0.19_48)]";
 
 export type TodayZoneDemandCardProps = {
-  zoneDemand: HubTodayData["sampled"]["zoneDemand"];
+  /**
+   * Non-null by construction: `today-screen.tsx` omits the card entirely when
+   * the loader returns `null` for a ROSTER driver, rather than handing this
+   * component a null it would have to render an empty state for. A card that
+   * says "no zone data" under a heading promising some is worse than no card.
+   */
+  zoneDemand: NonNullable<HubTodayData["sampled"]["zoneDemand"]>;
   className?: string;
 };
 

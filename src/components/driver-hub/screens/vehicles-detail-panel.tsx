@@ -39,6 +39,30 @@ import { cn } from "@/lib/utils";
  * Colours are written as literal Tailwind arbitrary values, never interpolated
  * — the compiler scans source text, so a class built from a variable would
  * never be generated.
+ *
+ * ## Why this panel takes `kind` and not `persona`
+ *
+ * Both of the account questions it asks — which `DELETE` route to call, and
+ * whether the caller owns the row well enough to be offered Remove at all —
+ * are *ownership* questions, and an independent driver and a driver on a
+ * company's roster answer both identically. `removable` therefore keys off
+ * `vehicle.ownership`, never off the account shape, and stays on `kind`;
+ * re-expressing it as `persona !== "BUSINESS"` would make an ownership rule
+ * read as a persona rule while deciding exactly the same thing.
+ *
+ * That is also why the sentence shown when `removable` is `false` — "This
+ * vehicle belongs to the fleet you drive for, not to you." — needs no persona
+ * test to be accurate: **only a roster driver can reach it.** A BUSINESS
+ * account's list is scoped to its own `{ companyId }`, so every row it sees is
+ * COMPANY-owned and every row is removable; a driver sees a COMPANY-owned row
+ * only through an open `DriverVehicleAssignment`, and
+ * `POST /api/logistics-company/vehicles/[id]/assignment` requires the driver to
+ * match `{ userId, companyId: company.id }`, so a driver holding one is
+ * necessarily on that company's roster. The sentence is a roster-driver
+ * sentence by construction. It stays correct for the legacy personal vehicle
+ * such a driver may also own, which is DRIVER-owned, removable, and gets the
+ * Remove button — removing it being the corrective action for exactly the row
+ * the roster guard now stops being created.
  */
 
 const GENERIC_ERROR = "Could not remove this vehicle.";
