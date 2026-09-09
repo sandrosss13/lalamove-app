@@ -52,6 +52,21 @@ import {
   CARGO_MEASUREMENT_BOUNDS,
   type CargoMeasurementBounds,
 } from "@/lib/cargo";
+// The one fit vocabulary this form and `POST /api/orders` share. Imported, never
+// re-implemented here: a client-side copy of these comparisons is exactly how the
+// form came to light a submit button for 15 m of cargo in a 4.5 m Box Truck while
+// every server-side path went on refusing it. In particular `specCapability` is
+// the only sanctioned way to read a spec's four figures — it routes through
+// `capabilityOf`, which translates `VehicleTypeSpec.cargoHeightM: 0` ("open bed,
+// no height limit", seeded that way for FLATBED_TRUCK) into `Infinity`. Comparing
+// against `vehicleType.cargoHeightM` directly would read that sentinel literally
+// and block every flatbed booking on this page.
+import {
+  cargoFitMessage,
+  oversizeAxes,
+  specCapability,
+  type CargoAxis,
+} from "@/lib/orders/booking-fit";
 
 /** A single map coordinate, as `AddressAutocomplete` reports it. Mirrors
  *  `LatLng` from `@/lib/geo`, duplicated here so this client component never
@@ -384,7 +399,7 @@ function parseCargoNumber(
   }
   // No unit in this sentence: `label` is the on-screen field label and already
   // carries one ("Width (m)"), so appending `bounds.unit` would read "Width (m)
-  // must be between 0.1 and 3 m." The unit does appear in `cargoRangeHelper`
+  // must be between 0.1 and 2.5 m." The unit does appear in `cargoRangeHelper`
   // below, where the sentence has no label to lean on.
   if (value < bounds.min || value > bounds.max) {
     return {
@@ -465,10 +480,95 @@ function cargoRangeHelper(bounds: CargoMeasurementBounds): string {
 }
 
 /**
+ * The four cargo figures once all four have parsed — the shape the fit check
+ * needs and the four `ParseResult`s cannot supply on their own.
+ *
+ * Structurally a `LoadDimensions` with the nullability resolved away, so it
+ * passes straight to `oversizeAxes` without a cast: `number` is assignable to
+ * `number | null`, and going the other way is precisely what this type refuses.
+ * That refusal is the point. `oversizeAxes` compares axis by axis, so a partial
+ * envelope would be silently answered on the axes it happens to declare and
+ * would let a booking through on the strength of three numbers out of four —
+ * the same "clears three limits, unknown on the fourth" case
+ * `src/lib/orders/vehicle-fit.ts` refuses all-or-nothing, and for the same
+ * reason: it is the one that strands a driver at a pickup. Building this only
+ * behind `cargoDimensionsValid` makes that unrepresentable rather than
+ * remembered.
+ */
+type DeclaredCargoEnvelope = {
+  weightKg: number;
+  lengthM: number;
+  widthM: number;
+  heightM: number;
+};
+
+/**
+ * The badge on a step-5 vehicle card that cannot take the declared load: one
+ * short phrase per offending axis, written from the *vehicle's* point of view
+ * because the card is a vehicle ("Too short for 15 m", not "Your cargo is 15 m
+ * long" — the client already knows what they typed; what the card has to say is
+ * what this class does with it).
+ *
+ * Separate copy from `cargoFitMessage`, deliberately, and the two are not
+ * redundant. `cargoFitMessage` is the shared blocking sentence — it names the
+ * class, the axis and the limit, and step 6 and `POST /api/orders` both speak
+ * through it so the two can never word the same refusal differently. It is a
+ * sentence, and a sentence does not fit inside a 2-up picker card without
+ * wrapping to four lines and shoving the grid around. This is the label form of
+ * the same fact, and it names only the client's own figure — no limit, no class
+ * name (the card is already the class, and its figures are printed two lines
+ * below) — so there is nothing here for the shared sentence to contradict.
+ *
+ * **Figures go through the same formatters the card's own spec line uses.**
+ * `formatVehiclePayload` for the weight, so a badge reading "Can't carry 3 t"
+ * sits above a spec line reading "up to 1.5 t" in the same unit rather than
+ * pairing "3000 kg" with "1.5 t" on one card and making the client do the
+ * conversion. The three dimensions are written as a bare number and " m" for the
+ * same reason: that is exactly how `formatVehicleDimensions` renders each of its
+ * own three figures, so an unrounded "4.5 m" here and "4.5 x 2.1 x 2.1 m" below
+ * agree digit for digit. No `toFixed` — rounding one of the two would be the
+ * whole contradiction reintroduced.
+ *
+ * A `Record` keyed by `CargoAxis` rather than a `switch`: a fifth axis added to
+ * the shared module fails typecheck here instead of falling through to a card
+ * that says nothing about why it is disabled.
+ */
+const CARGO_AXIS_CARD_REASONS: Record<
+  CargoAxis,
+  (envelope: DeclaredCargoEnvelope) => string
+> = {
+  weight: (envelope) =>
+    `Can't carry ${formatVehiclePayload(envelope.weightKg)}`,
+  length: (envelope) => `Too short for ${envelope.lengthM} m`,
+  width: (envelope) => `Too narrow for ${envelope.widthM} m`,
+  height: (envelope) => `Too low for ${envelope.heightM} m`,
+};
+
+/**
+ * Every offending axis on one card, not just the first.
+ *
+ * A load can be over on more than one axis at once, and a card that named only
+ * the length would send a client to a longer truck that is still too narrow —
+ * one avoidable round trip through steps 5 and 6 per axis. Middot-joined in the
+ * order `oversizeAxes` reports, which is the fixed weight/length/width/height
+ * order the shared module compares in, so two cards over on the same pair of
+ * axes always read the same way round.
+ */
+function cargoFitCardReason(
+  axes: CargoAxis[],
+  envelope: DeclaredCargoEnvelope,
+): string {
+  return axes
+    .map((axis) => CARGO_AXIS_CARD_REASONS[axis](envelope))
+    .join(" · ");
+}
+
+/**
  * The ceiling comes from `CARGO_MEASUREMENT_BOUNDS`: the heaviest thing the
- * catalogue can currently carry, rounded up (`prisma/seed.ts`'s `SEMI_TRAILER`
- * tops out at 24 000 kg, and 30 000 leaves room for a heavier type to be seeded
- * without editing anything). The floor is 1 kg rather than 0 because a
+ * catalogue can currently carry, exactly (`prisma/seed.ts`'s `TRAILER_TRUCK`
+ * tops out at 24 000 kg, and there is deliberately no headroom above it — seed a
+ * heavier type and that table has to be raised with it, or the new vehicle is
+ * unbookable at its own limit). The floor is 1 kg rather than 0 because a
  * zero-weight load is a typo, not a booking.
  */
 const CARGO_WEIGHT_FIELD: CargoNumberField = {
@@ -487,10 +587,12 @@ const CARGO_WEIGHT_FIELD: CargoNumberField = {
  * the whole consignment — that is what the load board compares against a
  * vehicle's cargo hold.
  *
- * Their ceilings are not the same as each other and deliberately so: 20 m of
- * length clears the 13.6 m semi-trailer with room to spare, while width stops at
- * 3 m and height at 4 m because the widest vehicle in the catalogue is 2.5 m and
- * nothing wider is going to be carried by anything on this platform. The
+ * Their ceilings are not the same as each other and deliberately so: length and
+ * width stop exactly where the catalogue does — 13.6 m from `TRAILER_TRUCK` and
+ * 2.5 m from `LARGE_FREIGHT_TRUCK`, no room to spare — while height alone stays
+ * at 4 m, because `FLATBED_TRUCK`'s open bed genuinely has no height ceiling and
+ * a fleet-derived one would refuse loads it could carry. See
+ * `CARGO_MEASUREMENT_BOUNDS` in `src/lib/cargo.ts` for the full reasoning. The
  * previous 15 m allowance on all three was not generosity, it was a hole: a
  * mis-keyed 1.5 became 15, sailed through this form, and died at the endpoint.
  */
@@ -602,6 +704,35 @@ const FIELD_ERROR_CLASSES = "text-xs leading-snug text-accent";
 /** Shared treatment for a non-blocking advisory line on this page. */
 const FIELD_NOTICE_CLASSES =
   "rounded-lg border border-line bg-surface px-3 py-2 text-xs leading-snug text-muted";
+
+/**
+ * The third fill state of a step-5 vehicle card: on offer for these goods, this
+ * body and this weight bracket, but unable to take the *declared* load.
+ *
+ * A local constant rather than a fourth `PICK_CARD_*` export in
+ * `booking-form-primitives.tsx`, on the same grounds that file gives for keeping
+ * `BODY_OPTION_CLASSES` here: the goods grid, the body grid and the service-level
+ * grid have no such state — only the vehicle grid is ever measured against
+ * something — so this is the geometry of one control on one page and not shared
+ * vocabulary.
+ *
+ * Deliberately *not* `PICK_CARD_IDLE_CLASSES` plus an opacity. Those classes
+ * carry `hover:border-accent/40 hover:bg-surface`, and a card that lights up
+ * under the cursor and then refuses the click is worse than one that never
+ * offered: it reads as a broken button rather than an unavailable option. The
+ * border stays `border-line` so the card keeps its place in the grid — the point
+ * is to leave the class visible and explained, not to hide it (see the note on
+ * the grid itself for why annotating beats filtering).
+ */
+const PICK_CARD_UNAVAILABLE_CLASSES = "border-line opacity-60";
+
+/**
+ * The reason badge inside such a card. Accent, matching every other line on this
+ * page that says "this cannot proceed" (`FIELD_ERROR_CLASSES`), against the
+ * muted grey the spec figures use for neutral description.
+ */
+const PICK_CARD_UNAVAILABLE_REASON_CLASSES =
+  "mt-1.5 text-[0.6875rem] leading-snug font-semibold text-accent";
 
 /**
  * Why a step is not answerable yet — one line per gate, each naming the thing to
@@ -806,6 +937,9 @@ export function BookingForm(): React.ReactElement {
   const cargoLengthFieldId = useId();
   const cargoWidthFieldId = useId();
   const cargoHeightFieldId = useId();
+  // The step-6 blocking line. Needs an id of its own because the four inputs
+  // point at it through `aria-describedby` when it is showing — see the alert.
+  const cargoFitAlertId = useId();
   const packagingFieldId = useId();
   const itemQuantityFieldId = useId();
   const pickupWindowStartId = useId();
@@ -1368,12 +1502,105 @@ export function BookingForm(): React.ReactElement {
     },
   ];
 
-  /** All four required numbers present and within bounds. */
-  const cargoDimensionsValid =
+  /**
+   * The declared load as one object, or `null` while any of the four is still
+   * missing or out of bounds.
+   *
+   * This used to be the boolean `cargoDimensionsValid` alone, and the boolean is
+   * still here — but derived from this rather than beside it. The four
+   * `"data" in …` tests are written once because a `boolean` carries no type
+   * information back to the results it was computed from, so a second consumer
+   * that needs the *values* (the fit check below does) has no way to narrow
+   * through the flag and would have to repeat all four tests. Two copies of the
+   * same four-way test is two chances for a later edit to update one of them.
+   *
+   * `CARGO_MEASUREMENT_BOUNDS` has already had its say by this point and is a
+   * different question: it is the global envelope the *catalogue* could ever
+   * carry (length ≤ 13.6 m, `TRAILER_TRUCK`'s reach), and clearing it means the
+   * figures are sane, not that the vehicle on screen can take them. Believing
+   * otherwise is the whole of the incident the fit check below exists to
+   * prevent — 15 m of cargo cleared a 20 m bound, lit the submit button, priced
+   * and booked against a 4.5 m Box Truck, and produced an order
+   * `GET /api/loads` hides from every driver and all three claim routes refuse.
+   * The order is unclaimable and the client has been charged.
+   */
+  const declaredCargoEnvelope: DeclaredCargoEnvelope | null =
     "data" in cargoWeightResult &&
     "data" in cargoLengthResult &&
     "data" in cargoWidthResult &&
-    "data" in cargoHeightResult;
+    "data" in cargoHeightResult
+      ? {
+          weightKg: cargoWeightResult.data,
+          lengthM: cargoLengthResult.data,
+          widthM: cargoWidthResult.data,
+          heightM: cargoHeightResult.data,
+        }
+      : null;
+
+  /** All four required numbers present and within bounds. */
+  const cargoDimensionsValid = declaredCargoEnvelope !== null;
+
+  /**
+   * Which axes of the declared load the *chosen* vehicle class cannot take —
+   * empty when it takes all four, and empty while there is nothing to compare.
+   *
+   * Both sides are already in scope and neither costs a fetch or a piece of
+   * state: `selectedVehicleType` resolves `vehicleTypeCode` against the
+   * taxonomy well above this line and carries the class's four catalogue
+   * figures on it, and `declaredCargoEnvelope` sits directly above. The
+   * comparison is the shared module's, through `specCapability` — never against
+   * `selectedVehicleType.cargoHeightM` directly, which for FLATBED_TRUCK is the
+   * seeded `0` sentinel meaning "open bed, no height limit" and would refuse
+   * every flatbed booking on the page if read as a literal ceiling.
+   *
+   * The envelope guard comes first and is not merely defensive ordering: an
+   * envelope with three figures and a blank is not a load that is too big, and
+   * `oversizeAxes` compares axis by axis with no opinion about the blank. Only
+   * a complete envelope is ever handed to it, so this list means "measured, and
+   * over" and nothing else — which is what lets the message below state a fact
+   * about the client's own numbers rather than a guess.
+   *
+   * Empty for the two "nothing to compare" cases on purpose, because neither is
+   * this predicate's to refuse: an incomplete envelope is already blocked by
+   * `cargoDimensionsValid`, and an unresolved vehicle by
+   * `selectedVehicleType !== null`. Both conjuncts sit beside this one in
+   * `canSubmit`, so folding either failure in here would be a second voice
+   * saying the same no, and step 6 would explain a block that step 5 or the
+   * four fields had actually caused.
+   */
+  const cargoOversizeAxes: CargoAxis[] =
+    declaredCargoEnvelope !== null && selectedVehicleType !== null
+      ? oversizeAxes(declaredCargoEnvelope, specCapability(selectedVehicleType))
+      : [];
+
+  /**
+   * Does the declared load fit the vehicle the booking would actually be placed
+   * against? True whenever there is no measured overage — including the two
+   * cases above where there was nothing to measure, which other conjuncts own.
+   */
+  const cargoFitsVehicle = cargoOversizeAxes.length === 0;
+
+  /**
+   * The blocking sentence, or `null` when nothing is blocked.
+   *
+   * Built by `cargoFitMessage` rather than written here, so this form and
+   * `POST /api/orders` refuse the same booking in the same words. A client who
+   * gets past this page by any route — an older tab, a slow taxonomy fetch, a
+   * hand-made request — meets the identical sentence from the endpoint instead
+   * of a second, differently-worded refusal that reads like a different problem.
+   *
+   * The capability is passed rather than the spec so the message quotes the
+   * *resolved* limit: an open flatbed's height is `Infinity` here, and it can
+   * never appear in this sentence because an axis that fits is never in `axes`.
+   */
+  const cargoFitBlockingMessage =
+    selectedVehicleType !== null && cargoOversizeAxes.length > 0
+      ? cargoFitMessage(
+          selectedVehicleType.label,
+          cargoOversizeAxes,
+          specCapability(selectedVehicleType),
+        )
+      : null;
 
   /**
    * The declared pickup window as two moments on the scheduled day, or `null`
@@ -1790,12 +2017,33 @@ export function BookingForm(): React.ReactElement {
   // no error and no signal, which is worth four fields of friction to avoid.
   // Client-side only, and not the guard that matters: `POST /api/orders`
   // re-validates all of it.
+  //
+  // `cargoFitsVehicle` is the second conjunct a client can fix by typing, and it
+  // carries the same obligation the three before it do — it is the *only* one
+  // that can be true of four individually valid numbers, so without an
+  // explanation on screen it is the worst version of the dead button: every
+  // field green, every helper line satisfied, and nothing anywhere saying why
+  // the booking will not go. Step 6's `role="alert"` line is that explanation
+  // and is rendered on exactly this condition; step 5's card badges are the
+  // same fact said early, next to the choice that would fix it. Neither is
+  // optional garnish. If this conjunct is ever changed, change what says so.
+  //
+  // It joins `canSubmit` and pointedly not `canCalculate`, for the same reason
+  // the three above it do: the fare is the vehicle class's alone and no cargo
+  // figure moves it, so a client must still be able to price a job whose load
+  // they have described wrongly — and seeing the quote is often what tells them
+  // the class is wrong. What it gates is *booking* one, because an order whose
+  // cargo does not fit its own booked vehicle is worse than one that is merely
+  // undeclared: it is priced, paid, and then hidden from every driver by
+  // `GET /api/loads` and refused by all three claim routes, so it can neither be
+  // carried nor found. That is the order this conjunct exists to stop existing.
   const canSubmit =
     !submitting &&
     selectedVehicleType !== null &&
     estimate !== null &&
     scheduledDateTime !== null &&
     cargoDimensionsValid &&
+    cargoFitsVehicle &&
     pickupWindowValid &&
     deliveryDeadlineValid;
 
@@ -2247,6 +2495,37 @@ export function BookingForm(): React.ReactElement {
                       weight. Pick a different load space.
                     </p>
                   ) : (
+                    /* Once the four cargo numbers in step 6 are valid, every
+                       card here is measured against them and the ones that
+                       cannot take the load are disabled *in place*, with the
+                       reason printed on the card.
+
+                       Annotated, never filtered — the classes stay in
+                       `eligibleVehicleTypes` and the auto-select effect is left
+                       exactly as it was. The ordering is what forces this: step
+                       5 comes *before* step 6, so by the time a cargo figure
+                       exists to filter on, the client has already chosen a
+                       vehicle here and, in the ordinary flow, already pressed
+                       Calculate against it. Dropping the newly-unfit class from
+                       the list would fire the auto-select effect — the selection
+                       would move to `eligibleVehicleTypes[0]` on its own, under
+                       the client's cursor, in a step they are not looking at,
+                       and the booking would silently reprice against a class
+                       nobody picked. A card that stays where it was put and says
+                       "Too short for 15 m" costs one deliberate click; a card
+                       that vanishes costs a wrong booking at a wrong price, and
+                       the *selection* moving is precisely the harm that made a
+                       15 m load in a 4.5 m Box Truck worth fixing in the first
+                       place.
+
+                       The `Best` pill is left on its own rule (cheapest eligible
+                       by class) and can therefore land on a disabled card. That
+                       is honest rather than untidy: it still is the cheapest
+                       class this body and weight bracket offer, and its badge
+                       says on the same card why this particular load cannot use
+                       it. Re-ranking `Best` around the declared envelope would
+                       make the pill move whenever a cargo digit changes, which
+                       is a different feature and a noisier one. */
                     <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
                       {eligibleVehicleTypes.map((vehicleType) => {
                         const selected = vehicleType.code === vehicleTypeCode;
@@ -2255,17 +2534,67 @@ export function BookingForm(): React.ReactElement {
                         const Glyph =
                           VEHICLE_CATEGORY_GLYPHS[vehicleType.category];
 
+                        // Per card, not memoised: four numeric comparisons
+                        // across a catalogue of a handful of classes, against a
+                        // `useMemo` whose dependency would have to be the
+                        // envelope object this render just rebuilt. The
+                        // arithmetic is cheaper than the cache.
+                        //
+                        // `specCapability`, never the spec's raw `cargoHeightM`
+                        // — FLATBED_TRUCK is seeded with `0` for "open bed, no
+                        // height limit", and a literal reading would disable the
+                        // flatbed card for every load with any height at all.
+                        const unfitAxes: CargoAxis[] =
+                          declaredCargoEnvelope !== null
+                            ? oversizeAxes(
+                                declaredCargoEnvelope,
+                                specCapability(vehicleType),
+                              )
+                            : [];
+                        const unfitReason =
+                          declaredCargoEnvelope !== null && unfitAxes.length > 0
+                            ? cargoFitCardReason(
+                                unfitAxes,
+                                declaredCargoEnvelope,
+                              )
+                            : null;
+
                         return (
                           <button
                             key={vehicleType.code}
                             type="button"
                             aria-pressed={selected}
+                            // Really disabled, not `aria-disabled` with a no-op
+                            // handler: there is nothing here for a click to
+                            // achieve or for a keyboard user to reconsider, and
+                            // `canSubmit` refuses this pairing regardless of
+                            // which control set it. The reason is rendered as
+                            // text *inside* the button rather than hung off an
+                            // `aria-describedby`, which is what keeps it
+                            // reachable — a disabled button is out of the tab
+                            // order, so a description attached to it is one a
+                            // screen-reader user would have to focus the button
+                            // to hear. Its own content is read in browse mode
+                            // along with the disabled state, so the badge
+                            // announces with the card exactly as it renders
+                            // with it.
+                            disabled={unfitReason !== null}
                             onClick={() => setVehicleTypeCode(vehicleType.code)}
+                            // A card that is both selected and unfit keeps the
+                            // selected fill and its tick rather than dimming:
+                            // it is still the class this booking is pointed at,
+                            // which is the first thing the client needs to see,
+                            // and the accent badge below is what says it cannot
+                            // stay that way. Dimming it would leave the client
+                            // hunting for which card was theirs at the moment
+                            // they most need to know.
                             className={`${PICK_CARD_BASE_CLASSES} ${
                               selected
                                 ? PICK_CARD_SELECTED_CLASSES
-                                : PICK_CARD_IDLE_CLASSES
-                            }`}
+                                : unfitReason !== null
+                                  ? PICK_CARD_UNAVAILABLE_CLASSES
+                                  : PICK_CARD_IDLE_CLASSES
+                            }${unfitReason !== null ? " cursor-not-allowed" : ""}`}
                           >
                             <span className="flex items-start justify-between gap-2">
                               <Glyph
@@ -2307,6 +2636,24 @@ export function BookingForm(): React.ReactElement {
                                 {formatVehiclePayload(vehicleType.maxPayloadKg)}
                               </span>
                             </span>
+
+                            {/* Below the spec line, not above it: the figures
+                                are what the badge is a verdict on, so a client
+                                reading top to bottom gets the class, its
+                                capacity, and only then why their load exceeds
+                                it. No `role` — this is static content of a
+                                button that is already announced as disabled,
+                                and an `alert` here would fire once per unfit
+                                card the moment the last cargo digit lands. The
+                                one interruption this deserves belongs to step
+                                6's single blocking line. */}
+                            {unfitReason !== null ? (
+                              <span
+                                className={PICK_CARD_UNAVAILABLE_REASON_CLASSES}
+                              >
+                                {unfitReason}
+                              </span>
+                            ) : null}
 
                             {selected ? <SelectedTick /> : null}
                           </button>
@@ -2358,6 +2705,22 @@ export function BookingForm(): React.ReactElement {
                               : parseError
                             : null;
 
+                        // Is *this* field one of the axes the chosen vehicle
+                        // cannot take? Only the offending fields get the invalid
+                        // ring and point at the blocking line below; a load 15 m
+                        // long in a wide-enough truck must not put a red border
+                        // on a width the client got right.
+                        //
+                        // `CargoAxis` and `CargoNumberFieldKey` are separately
+                        // declared unions that happen to spell the same four
+                        // words, and this comparison is what holds them to it —
+                        // no cast, so the day the shared module renames an axis
+                        // this line stops compiling instead of quietly matching
+                        // nothing and dropping the wiring for every field.
+                        const oversizeOnThisAxis = cargoOversizeAxes.includes(
+                          field.key,
+                        );
+
                         return (
                           <div
                             key={field.key}
@@ -2384,12 +2747,33 @@ export function BookingForm(): React.ReactElement {
                               // broken rather than as helpful.
                               onBlur={() => markCargoFieldTouched(field.key)}
                               placeholder={field.placeholder}
-                              aria-invalid={errorMessage !== null}
-                              aria-describedby={
-                                errorMessage
-                                  ? `${id}-helper ${id}-error`
-                                  : `${id}-helper`
+                              // A figure inside `CARGO_MEASUREMENT_BOUNDS` but
+                              // outside the booked vehicle is invalid too — it
+                              // is the reason the submit button will not go —
+                              // so it earns the same ring the parse errors get.
+                              aria-invalid={
+                                errorMessage !== null || oversizeOnThisAxis
                               }
+                              // Three sources, appended in reading order:
+                              // always the helper, the field's own error when it
+                              // has one, and the shared fit line when this axis
+                              // is what breaks it. The fit line is one element
+                              // referenced by up to four fields, which is the
+                              // point of giving it an id at all — one sentence
+                              // naming the class and the limit reads better from
+                              // any of them than four copies would.
+                              aria-describedby={[
+                                `${id}-helper`,
+                                errorMessage ? `${id}-error` : null,
+                                cargoFitBlockingMessage !== null &&
+                                oversizeOnThisAxis
+                                  ? cargoFitAlertId
+                                  : null,
+                              ]
+                                .filter((token): token is string =>
+                                  Boolean(token),
+                                )
+                                .join(" ")}
                               // The `Textarea` treatment step 7 already uses,
                               // not `NATIVE_FIELD_CLASSES`, which this file
                               // reserves for fixed-option `<select>`s. `Input`
@@ -2417,6 +2801,85 @@ export function BookingForm(): React.ReactElement {
                       },
                     )}
                   </div>
+
+                  {/* The blocking line: this load does not fit the vehicle the
+                      booking is pointed at.
+
+                      `role="alert"`, unlike the two `role="status"` notes in the
+                      handling fieldset below. That pair is advice about choices
+                      the client is allowed to make — a cool box on a short hop
+                      is a real thing to book on purpose — so they neither clear
+                      a tag nor stop the booking, and interrupting to repeat a
+                      decision already taken would be rude. This one is not
+                      advice. It is a conjunct of `canSubmit`, the submit button
+                      is dead while it is on screen, and there is no version of
+                      the booking that proceeds past it. That is what an alert is
+                      for, and the vehicle grid's "No vehicle matches this body
+                      type" line above already sets the precedent for a blocking
+                      one on this page.
+
+                      **Not blur-gated, deliberately — and this is the one place
+                      in step 6 that departs from `cargoFieldsTouched`.** The
+                      convention exists to stop the step opening pre-scolded on
+                      four inputs the client has not reached yet, and that
+                      concern cannot arise here: this message needs all four
+                      figures present *and* in bounds before it can be computed
+                      at all, so by the time it can appear the client has already
+                      filled in every field it talks about. Withholding it until
+                      a blur would be strictly worse than useless — `canSubmit`
+                      does not consult `cargoFieldsTouched` and never has, so the
+                      button would go dead the instant the last digit landed
+                      while the only sentence explaining why waited for a blur
+                      that a client who then reaches straight for Book may never
+                      perform. That is precisely the dead unexplained button the
+                      note above `canSubmit` was written to forbid. The per-field
+                      errors keep their blur gate untouched: they can fire on a
+                      half-typed value, which is the case the gate is for.
+
+                      Placed inside the fieldset, under the grid, so it sits with
+                      the four numbers it is about and inside the group the
+                      legend names. */}
+                  {cargoFitBlockingMessage !== null ? (
+                    <div
+                      id={cargoFitAlertId}
+                      role="alert"
+                      className="mt-4 rounded-lg border border-accent/30 bg-accent/[0.08] px-3.5 py-3 text-[0.8125rem] leading-snug text-accent"
+                    >
+                      {/* The shared sentence, alone in its own paragraph and
+                          not re-punctuated, wrapped or interpolated into: it is
+                          `POST /api/orders`' refusal verbatim, and anything this
+                          file adds around it is what would let the two drift. */}
+                      <p>{cargoFitBlockingMessage}</p>
+
+                      {/* The chosen class's own spec line and the way out,
+                          second and visually subordinate. Not prose restating
+                          the sentence above — it is deliberately the *same three
+                          figures in the same two formatters* the card in step 5
+                          prints, so a client comparing the alert against the
+                          card they picked reads one set of numbers in one set of
+                          units rather than two renderings they have to reconcile.
+                          Nothing here is written out by hand, so nothing here can
+                          contradict the catalogue. */}
+                      {selectedVehicleType !== null ? (
+                        <p className="mt-1.5 text-accent/85">
+                          <span className="font-price">
+                            {selectedVehicleType.label}:{" "}
+                            {formatVehicleDimensions(
+                              selectedVehicleType.cargoLengthM,
+                              selectedVehicleType.cargoWidthM,
+                              selectedVehicleType.cargoHeightM,
+                            )}
+                            , up to{" "}
+                            {formatVehiclePayload(
+                              selectedVehicleType.maxPayloadKg,
+                            )}
+                          </span>
+                          . Pick a bigger vehicle in step 5, or correct the
+                          figures above.
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : null}
                 </fieldset>
 
                 <div className="grid gap-4 sm:grid-cols-2">

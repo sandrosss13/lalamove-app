@@ -110,23 +110,56 @@ export type CargoMeasurementBounds = {
  * and there is no `server-only` marker to break the form's import. Keep it that
  * way — plain data and types, nothing that touches a database or a request.
  *
- * **Where the figures come from.** They are sanity bounds, not capability
- * checks: what actually decides whether a load suits a vehicle is the load
- * board's fit comparison against `VehicleTypeSpec`, and these only exist to
- * catch obvious garbage (a negative number, a stray extra zero). The ceilings
- * sit above the largest seeded `VehicleTypeSpec` (`SEMI_TRAILER`: 24,000 kg,
- * 13.6 × 2.48 × 2.7 m) with room for a bigger type to be seeded later, while
- * staying close enough to reality to catch a typo. Width and height are the
- * tight pair on purpose — the widest seeded vehicle is 2.5 m, so a 15 m width
- * was never a load anyone could carry, it was a mis-keyed 1.5.
+ * **Where the figures come from.** Three of the four ceilings are *fleet-derived*
+ * rather than round numbers: weight, length and width are the largest figures
+ * anywhere in the seeded `VehicleTypeSpec` catalogue — 24,000 kg and 13.6 m from
+ * `TRAILER_TRUCK`, 2.5 m of width from `LARGE_FREIGHT_TRUCK`. Above those, no
+ * vehicle class on this platform could carry the load at all, so there is no
+ * such thing as accepting the figure: the order is created, priced, put
+ * on-market, and then hidden from every carrier by the load board's fit filter,
+ * which compares against the same catalogue. They were previously round sanity
+ * numbers with deliberate headroom (30,000 kg, 20 m, 3 m) left "in case a bigger
+ * type is seeded later", and that headroom is precisely the hole a real 15 m
+ * booking went through. Headroom for a vehicle that does not exist buys nothing
+ * and costs an unfulfillable order.
+ *
+ * **So this table is now coupled to `prisma/seed.ts`, knowingly.** Seed a larger
+ * class and these three maxima must be raised with it, or the new class is
+ * unbookable at its own limits — a client could not declare the load the new
+ * vehicle was bought to carry. Deriving them from the catalogue at runtime
+ * instead was considered and rejected: it would mean a database read in the one
+ * module that must stay plain data (see above), and would put `@prisma/client`'s
+ * runtime into the browser bundle the moment the booking form imported it.
+ *
+ * **They are still a coarse filter and still not the real check.** What decides
+ * whether a load is bookable is `src/lib/orders/booking-fit.ts`, which compares
+ * the declared load against the *class the client actually selected*; a 13.6 m
+ * load clears this table and is rightly refused for a `BOX_TRUCK`, whose
+ * catalogue length is 4.5 m. All this table does is reject figures **no** class
+ * could satisfy, early and without needing to know which class was picked — the
+ * job the booking form needs done while the client is still typing, before a
+ * vehicle has been chosen.
+ *
+ * **Height is the exception, and stays a pure sanity ceiling at 4 m.** The
+ * tallest *enclosed* hold in the catalogue is `TRAILER_TRUCK`'s 2.7 m, but
+ * tightening to it would refuse loads that are genuinely bookable:
+ * `FLATBED_TRUCK` is seeded with `cargoHeightM: 0`, the documented "open bed, no
+ * height limit" sentinel, which `capabilityOf`
+ * (`src/lib/orders/vehicle-fit.ts`) translates to `Infinity`. An open flatbed
+ * really does have no height ceiling, so a 3 m load on a flatbed is a booking
+ * the platform can serve, and a fleet-derived height bound would be the same
+ * "hidden from a carrier who could carry it" failure in reverse — refused before
+ * anyone was asked. Height therefore keeps its original job: catching a negative
+ * number or a stray extra zero, nothing more.
  *
  * Keyed by the request-body field name rather than a friendly label, so a
  * reader can line each entry up against the JSON the form posts and the parser
  * reads without a translation step.
  */
 export const CARGO_MEASUREMENT_BOUNDS = {
-  cargoWeightKg: { min: 1, max: 30_000, unit: "kg" },
-  cargoLengthM: { min: 0.1, max: 20, unit: "m" },
-  cargoWidthM: { min: 0.1, max: 3, unit: "m" },
+  cargoWeightKg: { min: 1, max: 24_000, unit: "kg" },
+  cargoLengthM: { min: 0.1, max: 13.6, unit: "m" },
+  cargoWidthM: { min: 0.1, max: 2.5, unit: "m" },
+  // Not 2.7 (the tallest enclosed hold) — the flatbed sentinel, above.
   cargoHeightM: { min: 0.1, max: 4, unit: "m" },
 } as const satisfies Record<string, CargoMeasurementBounds>;
