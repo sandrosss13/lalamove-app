@@ -220,6 +220,22 @@ const LOADS_POLL_INTERVAL_MS = 10_000;
  */
 const CLAIMED_DWELL_MS = 20_000;
 
+/**
+ * How often the board re-measures "now" for its relative-time labels.
+ *
+ * A minute because that is the finest bucket `formatRelativeAgo` resolves —
+ * "just now", then whole minutes, then hours — so a faster tick would re-render
+ * every relative label on the board to print the identical string, and a slower
+ * one would leave "4 min ago" standing while it became five.
+ *
+ * Independent of `LOADS_POLL_INTERVAL_MS` on purpose. The poll answers "has this
+ * row changed"; this answers "how long ago was that", and a load's age goes on
+ * increasing on a board the poll finds nothing new in. Tying the labels to the
+ * fetch would freeze them for as long as the tab is hidden, which is exactly
+ * when a driver comes back to a board wanting to know how stale it is.
+ */
+const CLOCK_TICK_MS = 60_000;
+
 /* -------------------------------------------------------------------------- */
 /* Client state vocabulary                                                    */
 /* -------------------------------------------------------------------------- */
@@ -347,6 +363,18 @@ export type LoadsBoardValue = {
   dropCityOptions: string[];
   /** How many of the four filter controls are off their default. 0 hides the badge. */
   activeFilterCount: number;
+  /**
+   * Whether the four filter controls affect the list currently on screen.
+   *
+   * False on the `mine` tab and in the rejected sub-view, where `visibleLoads`
+   * ignores them outright — see its own note for why. Exposed rather than left
+   * implicit because the filter panel and its active-count badge are rendered
+   * by surfaces that do not otherwise know the rule, and a panel that reports
+   * "2 filters active" over a list it is not filtering is the same lie in the
+   * other direction: **hide or disable the filter controls when this is
+   * false**, rather than re-deriving `tab === "mine" || showRejected` locally.
+   */
+  filtersApply: boolean;
 
   /* --- sorting ---------------------------------------------------------- */
   sortKey: LoadsSortKey;
@@ -419,8 +447,55 @@ export type LoadsBoardValue = {
   restore: (id: string) => Promise<void>;
   /** The load id whose reject/restore is in flight, or null. */
   pendingActionId: string | null;
+  /**
+   * Whether the Accept control on `id`'s row should be live. **The board's one
+   * answer to that question — every surface asks it here rather than deriving
+   * its own from `pendingActionId`.**
+   *
+   * The two halves of the rule pull in opposite directions, which is why they
+   * were worth stating once:
+   *
+   * - A reject or restore in flight on **another** row must not disable Accept.
+   *   `setRejection` serialises the board's rejections, so `pendingActionId`
+   *   being non-null is the ordinary state of the board for a second or two
+   *   after any row's Reject is pressed — including rows the driver never
+   *   touched. This is first-come-first-served work; a driver who cannot press
+   *   Accept because an unrelated row is mid-reject loses the load to whoever
+   *   had no request in flight, for nothing. Accept opens a dialog and touches
+   *   no rejection state, so there is no state to protect by blocking it.
+   * - A pending action on **this** row does disable it. That row is being
+   *   rejected or restored right now: which list it belongs to is unsettled,
+   *   `reject` clears the selection on success, and accepting the load a
+   *   request is currently hiding is not a coherent thing to ask for.
+   *
+   * `pendingActionId` stays exposed for the Reject and Restore controls, which
+   * genuinely are board-wide-exclusive — the container drops a second call
+   * outright, so leaving the others enabled would offer presses that do nothing.
+   */
+  canAccept: (id: string) => boolean;
   /** The last reject/restore failure, in plain words. */
   actionError: string | null;
+
+  /* --- the shared clock -------------------------------------------------- */
+  /**
+   * The instant every relative-time label on this board is measured against,
+   * re-sampled once a minute.
+   *
+   * One clock for the whole board rather than one per surface. "Posted 14 min
+   * ago" in a table row, "Claimed 4 min ago" in the drawer and the same two
+   * lines on the mobile board are the same measurement, and three surfaces that
+   * each sample their own `Date` drift apart by however far their timers happen
+   * to be out of phase — visibly, when a drawer sits open beside the row it
+   * describes. It also removes the only impure read on this screen: a component
+   * that calls `new Date()` in its render body returns a different tree for the
+   * same props, and its label never re-measures because nothing tells it to.
+   *
+   * ISO string rather than a `Date` or an epoch number because every formatter
+   * in `loads-format.ts` takes `nowIso: string` — the same shape every timestamp
+   * on `HubLoad` already arrives in — and because a string identity is stable
+   * across renders that did not re-tick.
+   */
+  nowIso: string;
 
   /* --- counts ----------------------------------------------------------- */
   /**
@@ -891,6 +966,29 @@ export function LoadsProvider({
     };
   }, [readBoard]);
 
+  /* --- the shared clock --------------------------------------------------- */
+
+  /**
+   * "Now", re-sampled every `CLOCK_TICK_MS` — see `LoadsBoardValue.nowIso` for
+   * why the board owns one instant instead of each surface sampling its own.
+   *
+   * The initial value comes from a lazy initialiser, so it is read once per
+   * mount rather than on every render of this provider. The board is fetched in
+   * the browser and shows a loading placeholder until the first read settles, so
+   * there is no server-rendered relative label for this to disagree with.
+   */
+  const [nowIso, setNowIso] = React.useState(() => new Date().toISOString());
+
+  React.useEffect(() => {
+    const timer = window.setInterval(() => {
+      setNowIso(new Date().toISOString());
+    }, CLOCK_TICK_MS);
+
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, []);
+
   /* --- client state ------------------------------------------------------ */
 
   const [tab, setTabState] = React.useState<LoadsTab>("available");
@@ -998,9 +1096,33 @@ export function LoadsProvider({
    *
    * The order is the design's and it matters for nothing but cost: filtering
    * before sorting means the comparator runs over the smaller set.
+   *
+   * **The filters apply to the open board only.** `task-10`'s `isVisible`
+   * returns on `tab === "mine"` before it reaches any of them, and the rejected
+   * sub-view is the same kind of list: both answer "what do I already have a
+   * relationship with", not "what would I take", and the filter panel is asking
+   * the second question. Applying them anyway is silent and unrecoverable from
+   * inside the list — a driver who narrowed the open board to Kutaisi, switched
+   * to "My loads" and saw two of their five loads has no reason to suspect a
+   * control they set on a different tab, because neither list shows the filter
+   * badge as the thing hiding rows. `resetFilters` would fix it, if anything on
+   * screen suggested that it needed fixing.
+   *
+   * The sort still applies to every list: a column header is visibly pressed on
+   * the list it is ordering, so it cannot go looking like data loss.
    */
+  const filtersApply = !(tab === "mine" || showRejected);
+
   const visibleLoads = React.useMemo(() => {
     const filtered = baseLoads.filter((load) => {
+      // Every row passes on the two lists the filter panel does not describe.
+      // Checked per row rather than by branching around the `filter` call so
+      // the sort below still receives a fresh array in both cases — it sorts in
+      // place, and the state arrays are not ours to reorder.
+      if (!filtersApply) {
+        return true;
+      }
+
       // Exact string equality, per the design. Both sides are already
       // `formatCity()`-humanised by the endpoint, so there is no casing or
       // enum-vs-label mismatch to guard against.
@@ -1030,7 +1152,16 @@ export function LoadsProvider({
     // `filter` already returned a fresh array, so sorting it in place cannot
     // mutate the state arrays this derives from.
     return filtered.sort((a, b) => compareLoads(a, b, sortKey, sortDir));
-  }, [baseLoads, fDrop, fPickup, fTags, fWeight, sortDir, sortKey]);
+  }, [
+    baseLoads,
+    fDrop,
+    fPickup,
+    fTags,
+    fWeight,
+    filtersApply,
+    sortDir,
+    sortKey,
+  ]);
 
   /**
    * How many of the four filter controls are off their default.
@@ -1420,6 +1551,21 @@ export function LoadsProvider({
     [setRejection],
   );
 
+  /**
+   * Accept is blocked only by this row's own pending action, never by another
+   * row's. The reasoning is on `LoadsBoardValue.canAccept`, where the surfaces
+   * that consume it will read it.
+   *
+   * Deliberately not also gated on `isClaiming`: a claim in flight means the
+   * confirm dialog is open and modal, so no Accept behind it is reachable, and
+   * naming a condition here that cannot occur would suggest to the next reader
+   * that it can.
+   */
+  const canAccept = React.useCallback(
+    (id: string) => pendingActionId !== id,
+    [pendingActionId],
+  );
+
   /* --- the value ---------------------------------------------------------- */
 
   const value = React.useMemo<LoadsBoardValue>(
@@ -1445,6 +1591,7 @@ export function LoadsProvider({
       pickupCityOptions,
       dropCityOptions,
       activeFilterCount,
+      filtersApply,
       sortKey,
       sortDir,
       setSort,
@@ -1467,7 +1614,9 @@ export function LoadsProvider({
       reject,
       restore,
       pendingActionId,
+      canAccept,
       actionError,
+      nowIso,
       availableCount,
       mineCount,
       rejectedCount,
@@ -1478,6 +1627,7 @@ export function LoadsProvider({
       activeFilterCount,
       actionError,
       availableCount,
+      canAccept,
       claimError,
       closeConfirm,
       closeLost,
@@ -1490,6 +1640,7 @@ export function LoadsProvider({
       fPickup,
       fTags,
       fWeight,
+      filtersApply,
       filtersOpen,
       hiddenByCapacityCount,
       isClaiming,
@@ -1498,6 +1649,7 @@ export function LoadsProvider({
       loadError,
       lostLoad,
       mineCount,
+      nowIso,
       openConfirm,
       pendingActionId,
       pickupCityOptions,

@@ -1,29 +1,27 @@
 "use client";
 
-import * as React from "react";
-
+import { useLoadsBoard } from "@/components/driver-hub/screens/loads-context";
 import {
-  HUB_STATUS_TONE_CLASSES,
-  type HubStatusTone,
-} from "@/components/driver-hub/hub-status";
-import {
-  useLoadsBoard,
-  type HubLoad,
-} from "@/components/driver-hub/screens/loads-context";
+  CargoPhotoTiles,
+  CargoSpecList,
+  ClaimedByYouNote,
+  ClaimedElsewhereNote,
+  HandlingTagPills,
+  JOB_SHEET_TITLE,
+  LoadComplianceNotes,
+  LoadStatusPill,
+  RouteStopHeading,
+  RouteStopMarker,
+  SECTION_LABEL_CLASSES,
+  type RouteStopMarkerKind,
+} from "@/components/driver-hub/screens/loads-detail-parts";
 import {
   EM_DASH,
-  cargoCategoryLabel,
   formatDeadlineLine,
   formatDistanceKm,
-  formatGel,
-  formatHelperRequest,
-  formatLoadDims,
+  formatGelExact,
   formatPickupWindow,
-  formatVolumeM3,
-  formatWeightKg,
-  sortedHandlingTags,
 } from "@/components/driver-hub/screens/loads-format";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
@@ -45,14 +43,23 @@ import { cn } from "@/lib/utils";
  * plus the tag pills on the card itself — is what makes that assumption true.
  * It is the one addition beyond the approved design that task-13 authorises.
  *
- * ## Why it duplicates `loads-drawer.tsx` rather than sharing with it
+ * ## What it shares with `loads-drawer.tsx`, and why that is not optional
  *
- * The two files carry the same four sections over the same `HubLoad` shape, and
- * that repetition is deliberate: they are written by two agents in the same
- * wave with no ordering between them, so neither can import from the other and
- * **this file must never modify `loads-drawer.tsx`**. Extracting the shared JSX
- * is a worthwhile follow-up once both have landed; it is explicitly out of
- * scope here.
+ * The two surfaces carry the same four sections over the same `HubLoad`, and
+ * they shipped as two independent copies because they were written by two
+ * agents in the same wave with no ordering between them. That duplication then
+ * cost users twice, both times in this file's direction: the sheet rendered
+ * neither compliance advisory — so the hazmat sentence this file exists to put
+ * in front of a driver was desktop-only — and its "Claimed by another driver."
+ * dropped the claim age the drawer prints from the same `updatedAt`.
+ *
+ * So everything a driver *reads* now comes from `loads-detail-parts.tsx` and is
+ * rendered identically on both surfaces. What stays here is this surface's own
+ * chrome: the portalled non-modal panel and its focus management, route stops
+ * that stack the time under a wrapped address (see `RouteStop` below), and an
+ * action block whose controls are sized to the mobile touch floor. Do not
+ * re-inline a sentence from the parts module here or there — a sentence that
+ * lives in only one of these files is a sentence half the drivers never read.
  *
  * ## The money rule
  *
@@ -95,80 +102,18 @@ import { cn } from "@/lib/utils";
  */
 
 /* -------------------------------------------------------------------------- */
-/* Status pill                                                                */
+/* Local class strings                                                        */
 /* -------------------------------------------------------------------------- */
-
-type LoadStatus = HubLoad["status"];
-
-/**
- * The three load states mapped onto `hub-status.ts`'s six tones — **no seventh
- * colour pair is invented here**, per task-13's own instruction and the reason
- * `hub-status.ts` exists.
- *
- * `HubStatusBadge` is not reused because it derives its tone from the status
- * *word*, and neither "Open · first to confirm" nor "Yours" is in that
- * vocabulary: both would silently fall through to `neutral`.
- */
-const SHEET_STATUS_TONE: Record<LoadStatus, HubStatusTone> = {
-  // Actionable now, and racing. `warning` is the closest of the six — "still
-  // fine, but it needs you to do something soon".
-  available: "warning",
-  // Settled and no longer actionable, the same tone the hub gives Offline/Idle.
-  claimed: "neutral",
-  // The outcome the driver wants, in the hub's Completed/Paid emerald.
-  mine: "success",
-};
-
-const SHEET_STATUS_LABEL: Record<LoadStatus, string> = {
-  available: "Open · first to confirm",
-  claimed: "Claimed",
-  mine: "Yours",
-};
-
-/* -------------------------------------------------------------------------- */
-/* Shared class strings                                                       */
-/* -------------------------------------------------------------------------- */
-
-/** The uppercase section heading above Route and Cargo. */
-const SECTION_LABEL_CLASSES =
-  "text-[11px] font-medium tracking-[0.06em] text-muted-foreground uppercase";
-
-/** A pill: the status badge and the handling tags share the design's metrics. */
-const PILL_CLASSES =
-  "h-auto rounded-full px-[9px] py-[3px] text-[11px] font-medium tracking-[0.02em]";
-
-/** A boxed note in the actions block — the claimed and mine notices. */
-const NOTE_CLASSES = "rounded-md border p-2.5 text-[13px] leading-relaxed";
 
 /**
  * The minimum touch target, applied to every control in this sheet.
  *
  * 44px is the design's own stated floor for the mobile surface, and this sheet
  * is only ever reachable from it — a 40px drawer button would be the one
- * undersized control on the screen.
+ * undersized control on the screen. This is the reason the action block is not
+ * shared with the drawer, which sizes the same controls for a pointer.
  */
 const TOUCH_TARGET_CLASSES = "h-11 text-sm font-medium";
-
-/**
- * Why "Open job sheet" ships disabled.
- *
- * One string so the visible tooltip and the screen-reader sentence beside it
- * cannot drift apart.
- */
-const JOB_SHEET_TITLE =
-  "Job sheet isn't built yet. Client contact details and proof of delivery " +
-  "will live there.";
-
-/**
- * The three cargo-photo tiles.
- *
- * **Permanent dashed placeholders.** There is no cargo-photo upload anywhere in
- * the client booking flow and `GET /api/loads` carries no photo field, so the
- * count is a constant and no field on the row is consulted. See
- * `specs/driver-load-board/requirements.md`'s Non-Goals: "No cargo photos… Do
- * not add one."
- */
-const PHOTO_TILES = ["Photo 1", "Photo 2", "Photo 3"];
 
 /**
  * The design's "incl. ₾11 waiting allowance" sub-line under the payout is
@@ -189,10 +134,14 @@ const PHOTO_TILES = ["Photo 1", "Photo 2", "Photo 3"];
 /**
  * One end of the trip: marker, label, city, address and the time line.
  *
- * Both markers are 8px; the drop-off's 2px ring reads as the same visual weight
- * as the pick-up's filled dot. `bg-primary` rather than the design's literal
- * `oklch(0.205 0 0)` — inside `[data-admin-surface]` that token *is* that
- * colour, and going through it keeps a colour literal out of this file.
+ * The mobile layout, and deliberately not shared with the drawer's: the address
+ * wraps rather than truncating and the time sits under it on its own line,
+ * because a phone has no hover and a `title` on an elided Tbilisi address would
+ * be unreachable. Vertical space is the cheaper thing to spend here. Only the
+ * pieces that carry a decision — the marker's geometry and the label/city pair,
+ * including the em-dash fallback for an unplaceable city — come from
+ * `loads-detail-parts.tsx`, so the two layouts cannot disagree about anything
+ * but where the time goes.
  */
 function RouteStop({
   label,
@@ -203,7 +152,7 @@ function RouteStop({
 }: {
   /** "Pick-up" or "Drop-off" — uppercased by CSS, not by the string. */
   label: string;
-  marker: "filled" | "ring";
+  marker: RouteStopMarkerKind;
   city: string | null;
   address: string;
   /** The window or the deadline, already formatted. */
@@ -211,29 +160,9 @@ function RouteStop({
 }) {
   return (
     <div className="flex items-start gap-3">
-      {/* Decorative: the label beside it already says which end this is, and a
-          dot announced as "circle" tells a reader nothing. */}
-      <span
-        aria-hidden="true"
-        className={cn(
-          "mt-[5px] size-2 flex-none rounded-full",
-          marker === "filled"
-            ? "bg-primary"
-            : "border-2 border-primary bg-transparent",
-        )}
-      />
+      <RouteStopMarker marker={marker} />
       <div className="min-w-0 flex-1">
-        <div className="flex items-baseline gap-2">
-          <span className={cn(SECTION_LABEL_CLASSES, "flex-none")}>
-            {label}
-          </span>
-          <span className="truncate text-xs font-medium">
-            {city ?? EM_DASH}
-          </span>
-        </div>
-        {/* Wrapped rather than truncated, unlike the desktop drawer: a phone has
-            no hover, so a `title` on an elided Tbilisi address would be
-            unreachable. Vertical space is the cheaper thing to spend here. */}
+        <RouteStopHeading label={label} city={city} />
         <p className="mt-0.5 text-xs break-words text-muted-foreground">
           {address}
         </p>
@@ -243,40 +172,6 @@ function RouteStop({
       </div>
     </div>
   );
-}
-
-/**
- * The eight cargo rows, in the design's order.
- *
- * Built as data rather than as eight hand-written `<dt>`/`<dd>` pairs so the
- * grid cannot drift row to row and the order is one list to read.
- */
-function cargoRows(load: HubLoad): { key: string; value: string }[] {
-  const dims = {
-    lengthM: load.cargoLengthM,
-    widthM: load.cargoWidthM,
-    heightM: load.cargoHeightM,
-  };
-  const tags = sortedHandlingTags(load.handlingTags);
-
-  return [
-    { key: "Type", value: cargoCategoryLabel(load.cargoCategory) },
-    { key: "Weight", value: formatWeightKg(load.cargoWeightKg) },
-    { key: "Dimensions", value: formatLoadDims(dims) },
-    { key: "Volume", value: formatVolumeM3(dims) },
-    { key: "Packaging", value: load.packagingDescription ?? EM_DASH },
-    { key: "Quantity", value: load.itemQuantity ?? EM_DASH },
-    {
-      key: "Handling",
-      // "None declared" rather than an em dash: the client was asked and said
-      // nothing applied, which is a different fact from a value being missing.
-      value:
-        tags.length === 0
-          ? "None declared"
-          : tags.map((tag) => tag.label).join(", "),
-    },
-    { key: "Helpers", value: formatHelperRequest(load.helperCount) },
-  ];
 }
 
 /* -------------------------------------------------------------------------- */
@@ -302,17 +197,13 @@ export function LoadsDetailSheet({ nowIso }: LoadsDetailSheetProps) {
     openConfirm,
     reject,
     restore,
+    canAccept,
     pendingActionId,
     actionError,
     isRejected,
   } = useLoadsBoard();
 
   const load = selectedLoad;
-
-  // Resolved once per render rather than at each of the two places the pills
-  // and their absence are decided — the sort runs over the six-entry label
-  // table, so the cost is trivial, but two calls invite the two sites to drift.
-  const tags = load === null ? [] : sortedHandlingTags(load.handlingTags);
 
   return (
     <Sheet
@@ -397,25 +288,19 @@ export function LoadsDetailSheet({ nowIso }: LoadsDetailSheetProps) {
               <span className="min-w-0 truncate font-price text-xs font-medium tabular-nums">
                 {load.reference}
               </span>
-              <Badge
-                // `outline` so no variant background survives the merge if a
-                // tone class is ever missing — as `HubStatusBadge` does.
-                variant="outline"
-                className={cn(
-                  PILL_CLASSES,
-                  "flex-none border-transparent",
-                  HUB_STATUS_TONE_CLASSES[SHEET_STATUS_TONE[load.status]],
-                )}
-              >
-                {/* A rejected load keeps the "available" pill: rejecting hides
-                    the row from this driver's board and changes nothing about
-                    the load's real status. */}
-                {SHEET_STATUS_LABEL[load.status]}
-              </Badge>
+              {/* `flex-none` because this badge is a direct flex child here,
+                  where the drawer's sits inside a `flex-none` wrapper it shares
+                  with the ✕. */}
+              <LoadStatusPill status={load.status} className="flex-none" />
             </div>
 
+            {/* `formatGelExact`, not the board's whole-lari `formatGel`: this is
+                the headline figure the driver makes the decision on, one step
+                before the confirm dialog restates it, and a figure a driver
+                commits to has to equal the amount that will land, to the tetri.
+                See the note on `formatGelExact` in `loads-format.ts`. */}
             <p className="mt-2 font-price text-[26px] leading-none font-semibold tracking-[-0.02em] tabular-nums">
-              {formatGel(load.driverPayout)}
+              {formatGelExact(load.driverPayout)}
             </p>
           </div>
 
@@ -471,70 +356,30 @@ export function LoadsDetailSheet({ nowIso }: LoadsDetailSheetProps) {
             <div className="border-b border-border p-4">
               <h3 className={SECTION_LABEL_CLASSES}>Cargo</h3>
 
-              <dl className="mt-2 grid grid-cols-[96px_1fr] gap-x-3 gap-y-2 text-[13px]">
-                {cargoRows(load).map((row) => (
-                  <React.Fragment key={row.key}>
-                    <dt className="text-muted-foreground">{row.key}</dt>
-                    <dd className="min-w-0 break-words">{row.value}</dd>
-                  </React.Fragment>
-                ))}
-              </dl>
-
-              {/* The reason this sheet exists. Sorted by `CargoHandlingTag`
-                declaration order through `sortedHandlingTags` — never by the
-                order they sit in `Order.handlingTags`, which is whatever order
-                the client tapped the chips in.
-
-                Absent entirely at zero tags: the Handling row above already
-                reads "None declared". */}
-              {tags.length === 0 ? null : (
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  {tags.map((tag) => (
-                    <span
-                      key={tag.value}
-                      className={cn(
-                        PILL_CLASSES,
-                        "border border-border bg-muted text-muted-foreground",
-                      )}
-                    >
-                      {tag.label}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              <div className="mt-3 grid grid-cols-3 gap-2">
-                {PHOTO_TILES.map((label) => (
-                  <div
-                    key={label}
-                    className="flex aspect-[4/3] items-center justify-center rounded-md border border-dashed border-border bg-muted text-[10px] text-muted-foreground"
-                  >
-                    {label}
-                  </div>
-                ))}
-              </div>
+              <CargoSpecList load={load} />
+              {/* The pills are the reason this sheet exists: on the design as
+                  drawn, a `HAZMAT` or `COLD_CHAIN` tag was never rendered
+                  anywhere a driver on a phone would see it before accepting. */}
+              <HandlingTagPills load={load} />
+              <CargoPhotoTiles />
             </div>
 
             {/* ---------------------------------------------------------------- */}
             {/* 4. Actions                                                       */}
             {/* ---------------------------------------------------------------- */}
             <div className="flex flex-col gap-2 p-4">
+              {/* Additive on top of the state block below, not a replacement
+                  for it: a hazmat load that is already claimed still warrants
+                  the note. This sheet shipped without either advisory while the
+                  drawer rendered both, which meant the ADR sentence reached
+                  only the drivers who were not on a phone. */}
+              <LoadComplianceNotes load={load} />
+
               {load.status === "claimed" ? (
-                <p className={cn(NOTE_CLASSES, "border-border bg-muted")}>
-                  Claimed by another driver. No longer available.
-                </p>
+                <ClaimedElsewhereNote load={load} nowIso={nowIso} />
               ) : load.status === "mine" ? (
                 <>
-                  <p
-                    className={cn(
-                      NOTE_CLASSES,
-                      "border-transparent",
-                      HUB_STATUS_TONE_CLASSES.success,
-                    )}
-                  >
-                    You claimed this load. Contact details are in your job
-                    sheet.
-                  </p>
+                  <ClaimedByYouNote />
                   <Button
                     type="button"
                     variant="outline"
@@ -572,11 +417,19 @@ export function LoadsDetailSheet({ nowIso }: LoadsDetailSheetProps) {
                 <>
                   {/* Opens the shared confirm dialog (task-12) by id — exactly
                     what the desktop drawer's Accept does. This sheet never
-                    calls a claim endpoint itself. */}
+                    calls a claim endpoint itself.
+
+                    Gated on this row alone, never on the board: a driver whose
+                    unrelated Reject is still in flight would otherwise lose a
+                    first-come-first-served load to whoever had no request
+                    pending. Reject and Restore stay board-wide-exclusive
+                    because the container drops a second call outright. The rule
+                    is `canAccept` in `loads-context.tsx`, so this sheet, the
+                    drawer and the table cannot each decide it differently. */}
                   <Button
                     type="button"
                     onClick={() => openConfirm(load.id)}
-                    disabled={pendingActionId !== null}
+                    disabled={!canAccept(load.id)}
                     className={TOUCH_TARGET_CLASSES}
                   >
                     Accept this load

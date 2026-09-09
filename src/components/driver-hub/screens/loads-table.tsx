@@ -1,7 +1,5 @@
 "use client";
 
-import * as React from "react";
-
 import { HUB_STATUS_TONE_CLASSES } from "@/components/driver-hub/hub-status";
 import {
   useLoadsBoard,
@@ -10,6 +8,7 @@ import {
 } from "@/components/driver-hub/screens/loads-context";
 import {
   EM_DASH,
+  cargoCategoryLabel,
   formatDeadlineLine,
   formatDistanceKm,
   formatGel,
@@ -154,9 +153,6 @@ const PILL_CLASSES =
 const REJECT_HOVER_CLASSES =
   "text-muted-foreground hover:border-[oklch(88.5%_0.062_18.334)] hover:bg-[oklch(97.1%_0.013_17.38)] hover:text-[oklch(50.5%_0.213_27.518)]";
 
-/** How often the "posted N ago" fragments are recomputed. */
-const CLOCK_TICK_MS = 60_000;
-
 /* -------------------------------------------------------------------------- */
 /* Headers                                                                    */
 /* -------------------------------------------------------------------------- */
@@ -292,6 +288,7 @@ function LoadActions({ load }: { load: HubLoad }) {
     reject,
     restore,
     pendingActionId,
+    canAccept,
   } = useLoadsBoard();
 
   // One reject/restore at a time, board-wide — `pendingActionId` is not this
@@ -300,9 +297,13 @@ function LoadActions({ load }: { load: HubLoad }) {
   // rather than only the pressed one, which would leave the rest offering a
   // press that silently does nothing.
   //
-  // Accept is deliberately *not* gated by it: it opens the confirm dialog and
-  // touches no rejection state, and blocking it because some other row's
-  // reject is in flight would be a lost race for no reason.
+  // Accept answers a narrower question and does not use `isBusy` at all: only
+  // *this* row's own pending action blocks it, because this is
+  // first-come-first-served work and a driver who cannot accept while some
+  // unrelated row is mid-reject loses the load for nothing. That rule is
+  // `canAccept` in `loads-context.tsx` — one definition for the table, the
+  // drawer and the mobile board rather than three that drift; the full
+  // reasoning is on `LoadsBoardValue.canAccept`.
   const isBusy = pendingActionId !== null;
 
   if (isRejected(load.id)) {
@@ -343,6 +344,7 @@ function LoadActions({ load }: { load: HubLoad }) {
         <Button
           type="button"
           size="sm"
+          disabled={!canAccept(load.id)}
           onClick={(event) => {
             event.stopPropagation();
             // Both, per the design's "Accept (row or drawer) → selects the load
@@ -440,6 +442,12 @@ function LoadRow({ load, nowIso }: { load: HubLoad; nowIso: string }) {
             className="cursor-pointer rounded-sm font-price outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
           >
             {load.reference}
+            {/* Without this the accessible name is the bare reference —
+                "GE-48210" — which names the load but not what pressing it
+                does, and this button is the row's only keyboard path into the
+                drawer. `aria-current` above says the row *is* selected; it
+                cannot say that activating this selects it. */}
+            <span className="sr-only"> — open load details</span>
           </button>
           <span>{formatPostedAgo(load.createdAt, nowIso)}</span>
         </div>
@@ -469,7 +477,10 @@ function LoadRow({ load, nowIso }: { load: HubLoad; nowIso: string }) {
 
       {/* 4 — Cargo. */}
       <TableCell className={CELL_CLASSES}>
-        <div>{load.cargoCategory}</div>
+        {/* `cargoCategory` is the wire enum (`INDUSTRIAL_SUPPLIES`), never
+            driver-facing copy. Same lookup as the drawer and the mobile card,
+            so a row and the drawer describing it cannot read differently. */}
+        <div>{cargoCategoryLabel(load.cargoCategory)}</div>
         <div
           // Packaging is free text a client typed and occasionally runs to a
           // sentence; capped so one verbose booking cannot widen the table.
@@ -528,32 +539,13 @@ export function LoadsTable() {
     setShowRejected,
     rejectedCount,
     actionError,
+    // The instant every relative label on this board is measured against,
+    // re-sampled once a minute by the provider. Shared rather than owned here:
+    // the drawer sits open beside the row it describes, and two surfaces each
+    // sampling their own `Date` drift apart by however far their timers are out
+    // of phase. See `LoadsBoardValue.nowIso`.
+    nowIso,
   } = useLoadsBoard();
-
-  /**
-   * The instant every relative label on this board is measured against.
-   *
-   * Read from the clock during the first render, which is safe here in a way it
-   * would not be on a server-rendered hub screen: the board fetches from the
-   * browser, so `loads-screen.tsx` returns its loading state instead of
-   * mounting this component until after hydration. No row ever renders on the
-   * server, so there is no second pass to disagree with.
-   *
-   * The interval is what keeps "posted 14 min ago" from being wrong by however
-   * long the tab has sat open. One timer for the whole table rather than one
-   * per row, and one minute rather than one second — the buckets are coarse
-   * enough that a faster tick would re-render the board to produce identical
-   * strings.
-   */
-  const [nowIso, setNowIso] = React.useState(() => new Date().toISOString());
-
-  React.useEffect(() => {
-    const timer = window.setInterval(() => {
-      setNowIso(new Date().toISOString());
-    }, CLOCK_TICK_MS);
-
-    return () => window.clearInterval(timer);
-  }, []);
 
   const count = visibleLoads.length;
 
@@ -657,8 +649,10 @@ export function LoadsTable() {
 
         <div className="flex items-center gap-3">
           {/* The capacity note describes the open board and means nothing on
-              "My loads": that list is never filtered by vehicle fit. */}
-          {tab === "available" && hiddenByCapacityCount > 0 ? (
+              "My loads" (never filtered by vehicle fit) or in the rejected
+              sub-view, where the rows on screen are the ones this account hid
+              and the count is about a list that is not being shown. */}
+          {tab === "available" && !showRejected && hiddenByCapacityCount > 0 ? (
             <span className="tabular-nums">
               {pluralise(hiddenByCapacityCount, "load")} hidden — over your
               vehicle capacity or dimensions

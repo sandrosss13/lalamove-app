@@ -13,7 +13,7 @@ import {
   formatAbsoluteDateTime,
   formatAbsoluteWindow,
   formatDistanceKm,
-  formatGel,
+  formatGelExact,
   formatHelperRequest,
   formatLoadDims,
   formatWeightKg,
@@ -433,14 +433,23 @@ export function LoadsConfirmDialog({ load }: LoadsConfirmDialogProps) {
           </div>
 
           {/* The one money figure on this dialog, and it is the driver's share.
-              `formatGel` names its parameter `driverPayout` for the same
-              reason — a call site passing anything else reads wrong on sight. */}
+              Both formatters name their parameter `driverPayout` for the same
+              reason — a call site passing anything else reads wrong on sight.
+
+              `formatGelExact` rather than the board's scannable `formatGel`:
+              this is the figure the whole dialog exists to have a driver agree
+              to, and it is not a whole number as often as it looks.
+              `driverPayoutFor` returns `roundCurrency(...)`, which rounds to
+              tetri, not to lari (`src/lib/pricing.ts`), so a stored `109.50`
+              prints as "₾110" through a zero-decimal formatter — a figure
+              inflated in the driver's favour, which the money note above calls
+              the worst direction to be wrong in. */}
           <div className="flex items-baseline justify-between border-t border-border bg-muted px-[14px] py-3">
             <span className="text-[13px] text-muted-foreground">
               You are paid
             </span>
             <span className="font-price text-[20px] font-semibold tracking-[-0.02em] tabular-nums">
-              {formatGel(load.driverPayout)}
+              {formatGelExact(load.driverPayout)}
             </span>
           </div>
         </div>

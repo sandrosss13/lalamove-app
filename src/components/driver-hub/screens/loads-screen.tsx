@@ -49,6 +49,27 @@ import type { HubAccountKind } from "@/lib/dashboard/hub/account";
  * production and use real breakpoints. `LoadsTable` (`hidden lg:block`) and
  * `LoadsMobile` (`lg:hidden`) are both always mounted and CSS picks. Nothing
  * replaces the control.
+ *
+ * ## The Filters control follows the list it actually filters
+ *
+ * `filtersApply` is false on "My loads" and in the rejected sub-view, where
+ * `visibleLoads` ignores the four filter controls outright. The toggle is then
+ * rendered **disabled with a reason** rather than removed: that is what the
+ * rest of the hub does with a control it cannot honour — the drawer's "Open job
+ * sheet", `employees-screen.tsx`, `vehicles-add-form.tsx` — it keeps the tab
+ * bar's right edge from jumping as the driver switches tabs, and it says the
+ * filters still exist rather than implying this board never had any.
+ *
+ * The active-count badge is *suppressed* instead, because it is not a control
+ * but a claim about the list on screen: "2 filters active" over a list nothing
+ * is filtering is false, and a greyed-out number is still the same number.
+ * `activeFilterCount` keeps its meaning — what is set, not what is biting.
+ *
+ * The panel closes with it, for the same reason plus one more: a disabled
+ * toggle beside an open panel of live-looking selects is a dead end, since the
+ * only control that closes the panel is the one that has just been switched
+ * off. `filtersOpen` is left untouched, so the panel returns exactly as the
+ * driver left it when the open board comes back.
  */
 
 /**
@@ -60,6 +81,18 @@ export type HubVehiclePill = {
   label: string;
   capability: VehicleCapability;
 };
+
+/**
+ * Why Filters is disabled on "My loads" and in the rejected sub-view.
+ *
+ * One string for the visible tooltip and the `sr-only` sentence beside it, so
+ * the two cannot drift — the pairing `loads-drawer.tsx` and
+ * `hub-online-toggle.tsx` both use for their own disabled controls, because a
+ * `title` alone reaches a mouse and nobody else.
+ */
+const FILTERS_INERT_TITLE =
+  "Filters apply to the open board only. My loads and the rejected list " +
+  "always show every load.";
 
 export type LoadsScreenProps = {
   /** Picks which claim endpoint `confirmClaim()` calls. */
@@ -100,6 +133,7 @@ function LoadsScreenBody({
     filtersOpen,
     setFiltersOpen,
     activeFilterCount,
+    filtersApply,
     availableCount,
     mineCount,
   } = useLoadsBoard();
@@ -184,14 +218,20 @@ function LoadsScreenBody({
           type="button"
           variant="outline"
           size="sm"
+          disabled={!filtersApply}
+          title={filtersApply ? undefined : FILTERS_INERT_TITLE}
           onClick={() => setFiltersOpen(!filtersOpen)}
-          aria-expanded={filtersOpen}
+          // Tracks the panel below, which is gated on both — on the two lists
+          // the filters do not reach, the button controls nothing that is open.
+          aria-expanded={filtersOpen && filtersApply}
           className="gap-1.5 text-[13px] font-medium"
         >
           Filters
           {/* Absent at zero rather than showing "0": a badge reading nothing is
-              a badge that costs the eye a fixation to dismiss. */}
-          {activeFilterCount > 0 ? (
+              a badge that costs the eye a fixation to dismiss. Absent again
+              wherever the filters do not reach the list — the count would then
+              be describing rows nothing has removed. */}
+          {filtersApply && activeFilterCount > 0 ? (
             <Badge
               className="h-auto rounded-full bg-foreground px-1.5 py-0 text-[11px] text-background tabular-nums"
               aria-label={pluralise(activeFilterCount, "filter") + " active"}
@@ -199,10 +239,15 @@ function LoadsScreenBody({
               {activeFilterCount}
             </Badge>
           ) : null}
+          {/* A disabled button is out of the tab order and its `title` is not
+              reliably announced, so the reason is real text too. */}
+          {filtersApply ? null : (
+            <span className="sr-only">{FILTERS_INERT_TITLE}</span>
+          )}
         </Button>
       </div>
 
-      {filtersOpen ? <LoadsFilters /> : null}
+      {filtersOpen && filtersApply ? <LoadsFilters /> : null}
 
       <LoadsTable />
       <LoadsMobile />

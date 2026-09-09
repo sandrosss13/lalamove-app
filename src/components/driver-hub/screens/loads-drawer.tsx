@@ -1,32 +1,31 @@
 "use client";
 
-import * as React from "react";
 import { X } from "lucide-react";
 
-import { HUB_STATUS_TONE_CLASSES } from "@/components/driver-hub/hub-status";
-import type { HubStatusTone } from "@/components/driver-hub/hub-status";
+import { useLoadsBoard } from "@/components/driver-hub/screens/loads-context";
 import {
-  useLoadsBoard,
-  type HubLoad,
-} from "@/components/driver-hub/screens/loads-context";
+  CargoPhotoTiles,
+  CargoSpecList,
+  ClaimedByYouNote,
+  ClaimedElsewhereNote,
+  HandlingTagPills,
+  JOB_SHEET_TITLE,
+  LoadComplianceNotes,
+  LoadStatusPill,
+  RouteStopHeading,
+  RouteStopMarker,
+  SECTION_LABEL_CLASSES,
+  type RouteStopMarkerKind,
+} from "@/components/driver-hub/screens/loads-detail-parts";
 import {
   EM_DASH,
-  cargoCategoryLabel,
   formatAbsoluteDateTime,
   formatClock,
   formatDistanceKm,
   formatFullTimestamp,
-  formatGel,
-  formatHelperRequest,
-  formatLoadDims,
-  formatRelativeAgo,
-  formatVolumeM3,
-  formatWeightKg,
-  sortedHandlingTags,
+  formatGelExact,
 } from "@/components/driver-hub/screens/loads-format";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 
 /**
  * The load board's 400px right-hand detail drawer: one load's full route, cargo
@@ -65,25 +64,22 @@ import { cn } from "@/lib/utils";
  * the colours are just quietly wrong. `top-[61px]` clears the hub's sticky
  * header, which is that tall.
  *
- * ## What the two compliance notes are, and are not
+ * ## What this file still owns, and what it no longer does
  *
- * - **Hazmat is advisory, never enforcement.** Nothing in the schema gates it:
- *   `DriverLicence` carries no certification field, so any licensed driver can
- *   claim a hazmat load whether or not they hold a valid ADR certification. The
- *   note asks them to confirm it themselves. See
- *   `specs/driver-load-board/requirements.md`'s Non-Goals ("Hazmat loads are
- *   tagged and warned about, not gated") and the real compliance exposure this
- *   leaves, tracked in `specs/driver-load-board/action-required.md` under "Gate
- *   hazmat loads on driver certification".
- * - **Cold chain and body type are two different questions.** A
- *   `COLD_CHAIN` handling tag is a property of the **cargo** — what the client
- *   says the goods need. `bodyType` (`ChassisType`) is a property of the
- *   **vehicle body** the client picked and paid for at booking. They can
- *   disagree: a client can declare cold-chain cargo without having booked a
- *   refrigerated body, and `null` (no body type declared at all) is the common
- *   case on older orders. The mismatch note says so rather than silently
- *   trusting either side. The same reasoning is recorded on the
- *   `CargoHandlingTag` enum in `prisma/schema.prisma`.
+ * Everything a driver *reads* about a load — the status pill's tone and label,
+ * the cargo table, the handling pills, the photo tiles, the two compliance
+ * advisories and the claimed/mine notes — lives in `loads-detail-parts.tsx` and
+ * is rendered identically by the mobile sheet. That module exists because these
+ * two files had already diverged twice in ways users could see, most seriously
+ * with the hazmat advisory rendering on desktop only. Do not re-inline any of
+ * it here: a sentence that exists in this file alone is, by construction, a
+ * sentence a driver on a phone never reads.
+ *
+ * What stays here is this surface's own chrome: the fixed aside, the header row
+ * with its ✕, the two route stops laid out with the time beside the label and
+ * the address truncated behind a `title` (a desktop-only affordance — the sheet
+ * wraps instead, because a phone has no hover), and the action block, whose
+ * controls are sized for a pointer rather than for the mobile touch floor.
  *
  * ## "Open job sheet" ships disabled
  *
@@ -126,68 +122,6 @@ import { cn } from "@/lib/utils";
  */
 
 /* -------------------------------------------------------------------------- */
-/* Status pill                                                                */
-/* -------------------------------------------------------------------------- */
-
-type LoadStatus = HubLoad["status"];
-
-/**
- * The three row states mapped onto `hub-status.ts`'s six tones — **no seventh
- * colour pair is invented here.**
- *
- * The design draws these three pills in literal dark/grey/emerald, which are not
- * words in `TONE_BY_STATUS`'s vocabulary, so this is a small local lookup rather
- * than a `hubStatusTone()` call. `HubStatusBadge` is deliberately not reused for
- * the same reason: its `status` prop expects a word from that vocabulary, and
- * "Open · first to confirm" is not one.
- */
-const DRAWER_STATUS_TONE: Record<LoadStatus, HubStatusTone> = {
-  // Urgent, and wants the driver to act now. `warning` is the closest of the six
-  // (Pending / Invited / Due soon): "still fine, but it needs you to do
-  // something soon" is exactly what an open, racing load is.
-  available: "warning",
-  // Settled and no longer actionable — `neutral`, the same tone as Offline and
-  // Idle: a real, deliberate state that is not an alert.
-  claimed: "neutral",
-  // The state the driver wants. `success`, the family the design's own emerald
-  // pill implies.
-  mine: "success",
-};
-
-const DRAWER_STATUS_LABEL: Record<LoadStatus, string> = {
-  available: "Open · first to confirm",
-  claimed: "Claimed",
-  mine: "Yours",
-};
-
-/* -------------------------------------------------------------------------- */
-/* Shared class strings                                                       */
-/* -------------------------------------------------------------------------- */
-
-/** The section heading above Route and Cargo. */
-const SECTION_LABEL_CLASSES =
-  "text-[11px] font-medium tracking-[0.06em] text-muted-foreground uppercase";
-
-/** A pill: handling tags and the status pill share the design's metrics. */
-const PILL_CLASSES =
-  "h-auto rounded-full px-[9px] py-[3px] text-[11px] font-medium " +
-  "tracking-[0.02em]";
-
-/** A boxed note in the actions block — the claimed, mine and advisory notes. */
-const NOTE_CLASSES = "rounded-md border p-2.5 text-[13px] leading-relaxed";
-
-/**
- * Why "Open job sheet" is disabled.
- *
- * One string so the visible tooltip and the `sr-only` sentence beside it can
- * never drift apart — the same pairing `hub-online-toggle.tsx` uses for its own
- * disabled control.
- */
-const JOB_SHEET_TITLE =
-  "Job sheet isn't built yet. Client contact details and proof of delivery " +
-  "will live there.";
-
-/* -------------------------------------------------------------------------- */
 /* Route                                                                      */
 /* -------------------------------------------------------------------------- */
 
@@ -195,7 +129,7 @@ type RouteStopProps = {
   /** "Pick-up" or "Drop-off" — rendered uppercase by CSS, not by the string. */
   label: string;
   /** Filled for the pickup, a hollow ring for the dropoff. */
-  marker: "filled" | "ring";
+  marker: RouteStopMarkerKind;
   /** Already-humanised city label, or null when the geocoder could not place it. */
   city: string | null;
   address: string;
@@ -208,12 +142,14 @@ type RouteStopProps = {
 /**
  * One end of the trip: marker, label, city, address and the time line.
  *
- * Both markers are 8px. The dropoff's 2px ring reads as the same visual weight
- * as the pickup's filled dot at that size, which is why the design uses a ring
- * rather than a smaller or lighter fill to distinguish them. `bg-primary` /
- * `border-primary` rather than the design's literal `oklch(0.205 0 0)`: inside
- * `[data-admin-surface]` that token *is* that colour, and going through it keeps
- * this file free of colour literals that no other hub file would know to change.
+ * The desktop layout, and deliberately not shared with the sheet's: the time
+ * sits on the right of the label row and the address is truncated behind a
+ * `title`, both of which assume a pointer. The sheet stacks the time under a
+ * wrapped address instead, because a phone has no hover to reveal an elided
+ * Tbilisi address. Only the pieces that carry a decision — the marker's
+ * geometry and the label/city pair, including the em-dash fallback for an
+ * unplaceable city — come from `loads-detail-parts.tsx`, so the two layouts
+ * cannot disagree about anything but where the time goes.
  */
 function RouteStop({
   label,
@@ -225,27 +161,10 @@ function RouteStop({
 }: RouteStopProps) {
   return (
     <div className="flex items-start gap-3">
-      {/* Decorative: the "PICK-UP"/"DROP-OFF" label beside it already says which
-          end this is, and a dot announced as "circle" tells a reader nothing. */}
-      <span
-        aria-hidden="true"
-        className={cn(
-          "mt-[5px] size-2 flex-none rounded-full",
-          marker === "filled"
-            ? "bg-primary"
-            : "border-2 border-primary bg-transparent",
-        )}
-      />
+      <RouteStopMarker marker={marker} />
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline justify-between gap-3">
-          <div className="flex min-w-0 items-baseline gap-2">
-            <span className={cn(SECTION_LABEL_CLASSES, "flex-none")}>
-              {label}
-            </span>
-            <span className="truncate text-xs font-medium">
-              {city ?? EM_DASH}
-            </span>
-          </div>
+          <RouteStopHeading label={label} city={city} />
           <span
             title={timeTitle}
             className="flex-none font-price text-xs text-muted-foreground tabular-nums"
@@ -264,61 +183,6 @@ function RouteStop({
 }
 
 /* -------------------------------------------------------------------------- */
-/* Cargo                                                                      */
-/* -------------------------------------------------------------------------- */
-
-/**
- * The eight cargo rows, in the design's order.
- *
- * Built as data rather than as eight hand-written `<dt>`/`<dd>` pairs so the
- * grid's alignment cannot drift row to row, and so the order is one list to read
- * rather than eighty lines of markup to scan.
- *
- * There is no Body type row — the booked chassis appears only in the cold-chain
- * mismatch note below, where it is the point rather than a detail.
- */
-function cargoRows(load: HubLoad): { key: string; value: string }[] {
-  const tags = sortedHandlingTags(load.handlingTags);
-  const dims = {
-    lengthM: load.cargoLengthM,
-    widthM: load.cargoWidthM,
-    heightM: load.cargoHeightM,
-  };
-
-  return [
-    { key: "Type", value: cargoCategoryLabel(load.cargoCategory) },
-    { key: "Weight", value: formatWeightKg(load.cargoWeightKg) },
-    { key: "Dimensions", value: formatLoadDims(dims) },
-    { key: "Volume", value: formatVolumeM3(dims) },
-    { key: "Packaging", value: load.packagingDescription ?? EM_DASH },
-    { key: "Quantity", value: load.itemQuantity ?? EM_DASH },
-    {
-      key: "Handling",
-      // "None declared" rather than an em dash: the client was asked and said
-      // nothing applied, which is a different fact from a value being missing.
-      value:
-        tags.length === 0
-          ? "None declared"
-          : tags.map((tag) => tag.label).join(", "),
-    },
-    { key: "Helpers", value: formatHelperRequest(load.helperCount) },
-  ];
-}
-
-/**
- * The three cargo-photo tiles.
- *
- * **Permanent dashed placeholders.** There is no cargo photo upload anywhere in
- * the client booking flow to feed them and `GET /api/loads` carries no photo
- * field at all, so the count is a constant and no field on the row is consulted
- * to decide it. `specs/driver-load-board/requirements.md`'s Non-Goals: "No cargo
- * photos… Do not add one." Do not build an upload control here, and do not
- * remove the tiles for a load with no photos — every load has no photos, and
- * that is the permanent state of this feature.
- */
-const PHOTO_TILES = ["Photo 1", "Photo 2", "Photo 3"];
-
-/* -------------------------------------------------------------------------- */
 /* Drawer                                                                     */
 /* -------------------------------------------------------------------------- */
 
@@ -329,9 +193,11 @@ export function LoadsDrawer() {
     openConfirm,
     reject,
     restore,
+    canAccept,
     pendingActionId,
     actionError,
     isRejected,
+    nowIso,
   } = useLoadsBoard();
 
   if (selectedLoad === null) {
@@ -351,52 +217,21 @@ export function LoadsDrawer() {
    */
   const isLoadRejected = isRejected(load.id);
 
-  /**
-   * The instant the "claimed N ago" line below is measured against.
-   *
-   * Sampled at render rather than ticking on a timer. The board re-reads
-   * `GET /api/loads` after every mutation and task-14 will poll it, so this
-   * label refreshes with the data it describes instead of drifting on a clock
-   * of its own. Safe to read during render here for the reason the table's own
-   * `nowIso` states: the board fetches from the browser, so this drawer never
-   * renders on the server and there is no first pass to disagree with.
-   */
-  const nowIso = new Date().toISOString();
-
   const isPending = pendingActionId === load.id;
-  const isBusy = pendingActionId !== null;
-
-  const hasHazmat = load.handlingTags.includes("HAZMAT");
-  /**
-   * The tag says the *cargo* needs cold chain; `bodyType` says which *body* the
-   * client booked. `null` — no body type declared at all — counts as a mismatch
-   * rather than as "probably fine": an undeclared body is exactly the case where
-   * the driver most needs to check.
-   */
-  const hasColdChainMismatch =
-    load.handlingTags.includes("COLD_CHAIN") &&
-    load.bodyType !== "REFRIGERATED";
-
-  const tags = sortedHandlingTags(load.handlingTags);
 
   /**
-   * "Claimed 4 min ago", when the claim instant can be read.
+   * Reject and Restore are board-wide-exclusive, and Accept is not.
    *
-   * The task file said this sentence could not be written because the payload
-   * carries no claim timestamp. The shipped endpoint does: `updatedAt` is the
-   * claim instant on a `"claimed"` row (it is the only thing that moves a row
-   * into that bucket — see the `CLAIMED_BY_OTHERS_STATUSES` branch in
-   * `src/app/api/loads/route.ts`), and `HubLoad` documents it as such. So the
-   * design's own wording is restored. It degrades to the unqualified sentence
-   * rather than to a wrong number if the timestamp is unusable or in the
-   * future — `formatRelativeAgo` answers `null` in both cases, which is exactly
-   * the fallback this line wants and the reason the shared helper returns the
-   * fragment unprefixed rather than the table's "posted …" phrasing.
+   * The container drops a second reject/restore call outright, so leaving those
+   * two enabled during any pending action would offer presses that do nothing.
+   * Accept opens a dialog and touches no rejection state, so it is gated on this
+   * row alone through the board's `canAccept` — a driver whose unrelated Reject
+   * is still in flight would otherwise lose a first-come-first-served load to
+   * whoever had no request pending. The reasoning is on `canAccept` in
+   * `loads-context.tsx`; the rule itself lives there so this drawer, the table
+   * and the mobile sheet cannot each decide it differently.
    */
-  const claimedAgo =
-    load.status === "claimed"
-      ? formatRelativeAgo(load.updatedAt, nowIso)
-      : null;
+  const isBusy = pendingActionId !== null;
 
   return (
     <aside
@@ -422,22 +257,7 @@ export function LoadsDrawer() {
             {load.reference}
           </span>
           <div className="flex flex-none items-center gap-2">
-            <Badge
-              // `outline` so no variant background survives the merge if a tone
-              // class is ever missing — the same reason `HubStatusBadge` uses it.
-              variant="outline"
-              className={cn(
-                PILL_CLASSES,
-                "border-transparent",
-                HUB_STATUS_TONE_CLASSES[DRAWER_STATUS_TONE[load.status]],
-              )}
-            >
-              {/* A rejected load keeps the "available" pill and label:
-                  rejecting hides the row from this driver's board and changes
-                  nothing about the load's real status, so there is nothing new
-                  for the pill to represent. */}
-              {DRAWER_STATUS_LABEL[load.status]}
-            </Badge>
+            <LoadStatusPill status={load.status} />
             <Button
               type="button"
               variant="ghost"
@@ -451,8 +271,13 @@ export function LoadsDrawer() {
           </div>
         </div>
 
+        {/* `formatGelExact`, not the table's whole-lari `formatGel`: this is
+            the headline figure the driver makes the decision on, one step
+            before the confirm dialog restates it, and a figure a driver commits
+            to has to equal the amount that will land, to the tetri. See the
+            note on `formatGelExact` in `loads-format.ts`. */}
         <p className="mt-2 font-price text-[26px] leading-none font-semibold tracking-[-0.02em] tabular-nums">
-          {formatGel(load.driverPayout)}
+          {formatGelExact(load.driverPayout)}
         </p>
       </div>
 
@@ -512,104 +337,22 @@ export function LoadsDrawer() {
       <div className="border-b border-border p-4">
         <h3 className={SECTION_LABEL_CLASSES}>Cargo</h3>
 
-        <dl className="mt-2 grid grid-cols-[96px_1fr] gap-x-3 gap-y-2 text-[13px]">
-          {cargoRows(load).map((row) => (
-            <React.Fragment key={row.key}>
-              <dt className="text-muted-foreground">{row.key}</dt>
-              <dd className="min-w-0 break-words">{row.value}</dd>
-            </React.Fragment>
-          ))}
-        </dl>
-
-        {/* Sorted by `CargoHandlingTag` declaration order, never by the order
-            they sit in `Order.handlingTags` — the booking form appends those in
-            whatever order the chips were tapped, so two loads carrying the same
-            three tags would otherwise show them in different sequences.
-            `sortedHandlingTags` is the one place that ordering is defined.
-
-            Absent entirely at zero tags: the Handling row above already reads
-            "None declared", and an empty pill row would be a blank line under
-            it. */}
-        {tags.length === 0 ? null : (
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {tags.map((tag) => (
-              <span
-                key={tag.value}
-                className={cn(
-                  PILL_CLASSES,
-                  "border border-border bg-muted text-muted-foreground",
-                )}
-              >
-                {tag.label}
-              </span>
-            ))}
-          </div>
-        )}
-
-        <div className="mt-3 grid grid-cols-3 gap-2">
-          {PHOTO_TILES.map((label) => (
-            <div
-              key={label}
-              className="flex aspect-[4/3] items-center justify-center rounded-md border border-dashed border-border bg-muted text-[10px] text-muted-foreground"
-            >
-              {label}
-            </div>
-          ))}
-        </div>
+        <CargoSpecList load={load} />
+        <HandlingTagPills load={load} />
+        <CargoPhotoTiles />
       </div>
 
       {/* ---------------------------------------------------------------- */}
       {/* 4. Actions                                                       */}
       {/* ---------------------------------------------------------------- */}
       <div className="flex flex-col gap-2 p-4">
-        {/* Additive on top of the state block below, not a replacement for it:
-            a hazmat load that is already claimed still warrants the note, and a
-            driver reading it should see both. */}
-        {hasHazmat ? (
-          <p
-            className={cn(
-              NOTE_CLASSES,
-              "border-transparent",
-              HUB_STATUS_TONE_CLASSES.warning,
-            )}
-          >
-            Hazmat cargo. Confirm you and your vehicle hold a valid ADR
-            certification before accepting — this isn&apos;t checked
-            automatically.
-          </p>
-        ) : null}
-
-        {hasColdChainMismatch ? (
-          <p
-            className={cn(
-              NOTE_CLASSES,
-              "border-transparent",
-              HUB_STATUS_TONE_CLASSES.neutral,
-            )}
-          >
-            This load needs cold-chain handling, but wasn&apos;t booked with a
-            refrigerated body. Confirm your vehicle can keep it cold before
-            accepting.
-          </p>
-        ) : null}
+        <LoadComplianceNotes load={load} />
 
         {load.status === "claimed" ? (
-          <p className={cn(NOTE_CLASSES, "border-border bg-muted")}>
-            {claimedAgo === null
-              ? "Claimed by another driver. No longer available."
-              : `Claimed by another driver ${claimedAgo}. No longer available.`}
-          </p>
+          <ClaimedElsewhereNote load={load} nowIso={nowIso} />
         ) : load.status === "mine" ? (
           <>
-            <p
-              className={cn(
-                NOTE_CLASSES,
-                "border-transparent",
-                HUB_STATUS_TONE_CLASSES.success,
-              )}
-            >
-              You claimed this load. Contact details are in your job sheet.
-            </p>
+            <ClaimedByYouNote />
             <Button
               type="button"
               variant="outline"
@@ -647,7 +390,7 @@ export function LoadsDrawer() {
             <Button
               type="button"
               onClick={() => openConfirm(load.id)}
-              disabled={isBusy}
+              disabled={!canAccept(load.id)}
               className="h-10 text-sm font-medium"
             >
               Accept this load
@@ -672,9 +415,16 @@ export function LoadsDrawer() {
         )}
 
         {/* The board-wide reject/restore failure. Shown here because this drawer
-            is where those two actions were taken from. */}
+            is where those two actions were taken from.
+
+            Deliberately *not* a live region: the table renders the same string
+            in its footer under `role="status"`, and both are mounted at `lg`
+            with neither hiding the other, so announcing here too would read one
+            failure out twice — once as an interruption and once politely. The
+            table's footer is the single announcer; `loads-detail-sheet.tsx`
+            makes the same call against the mobile board's copy. */}
         {actionError === null ? null : (
-          <p role="alert" className="text-xs leading-relaxed text-destructive">
+          <p className="text-xs leading-relaxed text-destructive">
             {actionError}
           </p>
         )}

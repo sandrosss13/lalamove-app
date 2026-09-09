@@ -57,13 +57,27 @@ import {
 import type { VehicleCapability } from "@/lib/orders/vehicle-fit";
 
 /**
- * Whole lari, no decimals.
+ * Whole lari, no decimals — the **scannable** form, for a column of figures
+ * being compared rather than a figure being agreed to.
  *
- * Payouts on this board are three-figure sums where the tetri are noise: the
- * design prints "₾190", and a driver comparing rows down a column reads the
- * magnitude, not the change. `driverPayout` is stored as a rounded currency
- * value anyway (see `roundCurrency` in `src/lib/pricing.ts`), so nothing
- * meaningful is being hidden.
+ * Payouts on this board are three-figure sums where the tetri are noise when
+ * rows are read against each other: the design prints "₾190", and a driver
+ * running an eye down a column reads the magnitude, not the change.
+ *
+ * **The tetri this drops are real, and they are not recoverable from the
+ * output.** An earlier version of this comment claimed `driverPayout` "is
+ * stored as a rounded currency value anyway, so nothing meaningful is being
+ * hidden"; that was wrong. `driverPayoutFor` (`src/lib/orders/payout.ts`)
+ * returns `roundCurrency(...)`, and `roundCurrency` (`src/lib/pricing.ts`) is
+ * `Math.round(value * 100) / 100` — it rounds to **tetri, not to lari**.
+ * Fractional payouts are therefore routine, and `Intl` rounds half away from
+ * zero, so a stored `109.50` renders here as "₾110": a figure inflated in the
+ * driver's favour, which is the worst direction to be wrong in on a number
+ * somebody is about to commit to.
+ *
+ * So: this formatter for the table column and any other place the number is one
+ * of many being scanned; `formatGelExact` below wherever the number *is* the
+ * answer.
  *
  * `en-GB` rather than a Georgian locale for the same reason the rest of this
  * codebase uses it: the hub's numerals are Western Arabic with comma grouping
@@ -84,6 +98,40 @@ const gelFormatter = new Intl.NumberFormat("en-GB", {
  */
 export function formatGel(driverPayout: number): string {
   return `₾${gelFormatter.format(driverPayout)}`;
+}
+
+/**
+ * Every tetri that is actually there: `109` → `"₾109"`, `109.5` → `"₾109.5"`,
+ * `109.23` → `"₾109.23"`.
+ *
+ * **The form for money a driver commits to or is owed**, as opposed to money
+ * being skimmed: the confirm dialog's "You are paid" line — the single figure
+ * the whole dialog exists to have a driver agree to — and the drawer's and
+ * detail sheet's headline payout, which is that same figure read one step
+ * earlier. Those must equal the amount that will land, to the tetri;
+ * `formatGel`'s rounding does not, and rounds upward half the time.
+ *
+ * `minimumFractionDigits: 0` rather than `2` so a whole payout still reads
+ * "₾190" and not "₾190.00": the overwhelming majority of these figures are
+ * whole, and forcing two zeros onto all of them to serve the minority would
+ * make the common case noisier to read while fixing nothing.
+ *
+ * The options are identical to `gelPerKmFormatter`'s and the duplication is
+ * deliberate — two different rules (a committed sum must be exact; a per-km
+ * rate must not collapse ₾6.40 and ₾5.60 into one number) that happen to land
+ * on the same precision. Sharing one formatter between them would make a future
+ * change to either silently change the other.
+ *
+ * **Never call this with `Order.price` or any fare component**, on the same
+ * terms as `formatGel`; see the module comment.
+ */
+const gelExactFormatter = new Intl.NumberFormat("en-GB", {
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 2,
+});
+
+export function formatGelExact(driverPayout: number): string {
+  return `₾${gelExactFormatter.format(driverPayout)}`;
 }
 
 /**

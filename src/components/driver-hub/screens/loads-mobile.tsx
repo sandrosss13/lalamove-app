@@ -57,7 +57,7 @@ import { cn } from "@/lib/utils";
  * Everything comes from `useLoadsBoard()`, by contract — see the note on
  * `LoadsBoardValue`. The detail sheet is mounted from here rather than from
  * `loads-screen.tsx` so that the whole mobile surface is one file's concern,
- * and because this is where its `nowIso` is owned.
+ * and so that it and the cards are handed the same `nowIso` from one place.
  *
  * ## What mobile deliberately does not have
  *
@@ -74,56 +74,63 @@ import { cn } from "@/lib/utils";
  * it under "Reconsider the rejected-list UI".
  */
 
-/**
- * How often the relative labels re-measure themselves.
- *
- * One minute, matching `loads-table.tsx`: the coarsest bucket a pick-up window
- * can change into ("Today" → "Yesterday") turns over on a calendar boundary,
- * and a faster tick would re-render every card to produce identical strings.
- */
-const CLOCK_TICK_MS = 60_000;
-
 /* -------------------------------------------------------------------------- */
 /* Board                                                                      */
 /* -------------------------------------------------------------------------- */
 
 export function LoadsMobile() {
+  /**
+   * `nowIso` is the board's, not this surface's.
+   *
+   * This file used to own a `setInterval` of its own beside the desktop
+   * table's. Both trees are mounted at once (see the breakpoint note above), so
+   * two timers meant a card and the drawer describing the same pick-up window
+   * could sit a minute out of phase on a tablet wide enough to show both. One
+   * clock for the board settles it — `LoadsBoardValue.nowIso` has the whole
+   * reasoning.
+   *
+   * It is still threaded down as a prop rather than re-read from the context
+   * inside `LoadCard` and `LoadsDetailSheet`: a card and the sheet opened from
+   * it must not label one window with two different days, and passing the
+   * instant they have to agree on makes that agreement visible at the call
+   * site.
+   */
   const {
     visibleLoads,
     hiddenByCapacityCount,
     activeFilterCount,
+    filtersApply,
     showRejected,
     actionError,
     tab,
+    nowIso,
   } = useLoadsBoard();
-
-  /**
-   * The instant every relative label on this surface is measured against.
-   *
-   * Read from the clock on first render, which is safe here in a way it would
-   * not be on a server-rendered hub screen: the board fetches from the browser,
-   * so `loads-screen.tsx` renders its loading state instead of mounting this
-   * component until after hydration. No card ever renders on the server, so
-   * there is no first pass for a second one to disagree with.
-   *
-   * One timer for the whole list, threaded into the cards and into the detail
-   * sheet, rather than one per consumer: a card and the sheet opened from it
-   * must not label the same pick-up window with two different days.
-   */
-  const [nowIso, setNowIso] = React.useState(() => new Date().toISOString());
-
-  React.useEffect(() => {
-    const timer = window.setInterval(() => {
-      setNowIso(new Date().toISOString());
-    }, CLOCK_TICK_MS);
-
-    return () => window.clearInterval(timer);
-  }, []);
 
   return (
     <div className="overflow-hidden rounded-lg border border-border bg-card lg:hidden">
-      <FilterRow />
-      <WeightRow />
+      {/* The two filter rows are the controls for the open board, and they are
+          absent on the two lists they do not filter. `visibleLoads` ignores the
+          city and weight filters on "My loads" and in the rejected sub-view —
+          see `filtersApply` — so leaving the rows up there would offer a driver
+          a select and a slider that change the count in the corner and nothing
+          else, which is a worse answer than not offering them.
+
+          Hidden rather than disabled, and that is the same call `loads-screen`
+          makes for the desktop panel it hides beside a *disabled* Filters
+          toggle: the toggle is the affordance that has to stay put and say why,
+          and the panel behind it is what goes. These two rows are that panel,
+          not that toggle — this surface has no toggle of its own, and the
+          disabled one above the board is rendered at every width, so a driver
+          on a phone still gets the explanation without a row of dead controls
+          taking the scarcest space the list has. The filters a driver set are
+          not discarded either way — they apply again the moment the open board
+          comes back. */}
+      {filtersApply ? (
+        <>
+          <FilterRow />
+          <WeightRow />
+        </>
+      ) : null}
 
       {/* The reject/restore failure. It lives above the list rather than on the
           card that failed because the row it belongs to may have moved between
@@ -139,10 +146,14 @@ export function LoadsMobile() {
 
       {visibleLoads.length === 0 ? (
         <HubEmptyState
+          // `filtersApply` gates the filter sentence for the same reason the
+          // rows above are gated on it: on "My loads" the filters can be set
+          // and are still not what emptied the list, so blaming them would send
+          // a driver looking for controls to clear that were hiding nothing.
           message={
             showRejected
               ? "You haven't hidden any loads."
-              : activeFilterCount > 0
+              : filtersApply && activeFilterCount > 0
                 ? "No loads match these filters."
                 : "No loads on the board right now."
           }
@@ -338,14 +349,37 @@ function WeightRow() {
  * One load, as five rows: route and payout, the cargo line, the timing line,
  * the handling pills, and the action row.
  *
- * ## Why this is a `div role="button"` and not a `<button>`
+ * ## Why this is a `div role="group"` and not a `<button>`
  *
  * The card contains buttons — Reject, Accept — and HTML forbids nesting
  * interactive content inside a `<button>`. The whole card is still the target
  * that opens the detail sheet, because on a phone the card *is* the row and
- * asking a thumb to find a chevron would be worse. So it carries the role, the
- * tab stop and the Enter/Space handling a real button would have given it, and
- * the nested buttons stop their events from reaching it.
+ * asking a thumb to find a chevron would be worse. So it carries the tab stop
+ * and the Enter/Space handling a real button would have given it, and the
+ * nested buttons stop their events from reaching it.
+ *
+ * **`role="button"` is not the escape hatch, and this card used to claim it.**
+ * ARIA puts the same constraint on the role as HTML puts on the element: a
+ * `button` role takes presentational children, so assistive technology
+ * flattens everything inside the card into the button's accessible name and
+ * the nested Reject and Accept stop being announced as the separate controls
+ * they are. That trades a markup validity error for one a driver actually
+ * hits — on the surface where the screen reader is most likely to be a phone's.
+ *
+ * `role="group"` instead: a container role that both accepts a name and
+ * permits focusable descendants, so the card is one labelled stop that the two
+ * real buttons sit inside rather than a control that swallows them. The
+ * `aria-label` names the load explicitly because a group named from its own
+ * contents would announce all five rows of it, and `aria-haspopup` came off
+ * with the role — it is defined for `button` and its relatives, not for a
+ * group, so leaving it would be a promise nothing reads.
+ *
+ * What that gives up is the word "button" in the announcement: activating a
+ * card is now discoverable from its label rather than from its role. The trade
+ * is worth it because the two things a driver must be able to do from here,
+ * Reject and Accept, are real buttons *inside* the card, and everything the
+ * sheet adds is detail they can reach after the card announces which load it
+ * is.
  *
  * ## Why the handling pills are on the card at all
  *
@@ -363,9 +397,13 @@ function LoadCard({ load, nowIso }: { load: HubLoad; nowIso: string }) {
 
   return (
     <div
-      role="button"
+      role="group"
       tabIndex={0}
-      aria-haspopup="dialog"
+      // The reference rather than the route: it is what the confirm dialog and
+      // the lost-the-race dialog name a load by, so a driver hears the same
+      // identifier from the card they pressed and the dialog it produced. Same
+      // shape as `step-3-vehicle-specifications.tsx`'s row label.
+      aria-label={`Load ${load.reference} details`}
       onClick={open}
       onKeyDown={(event) => {
         // The nested Reject/Accept/Restore buttons own their own keys. Without
@@ -466,12 +504,15 @@ function LoadCardActions({ load }: { load: HubLoad }) {
     reject,
     restore,
     pendingActionId,
+    canAccept,
     selectLoad,
   } = useLoadsBoard();
 
   const isPending = pendingActionId === load.id;
-  // The state container refuses a second reject/restore while one is running,
-  // so leaving the others enabled would mean taps that silently do nothing.
+  // Reject and Restore only. The state container refuses a second reject or
+  // restore while one is running, so leaving the others enabled would mean taps
+  // that silently do nothing. Accept does not belong to this rule — it asks the
+  // board, below.
   const isActionBlocked = pendingActionId !== null;
 
   /** Keeps a tap on a control from also opening the card's detail sheet. */
@@ -550,11 +591,14 @@ function LoadCardActions({ load }: { load: HubLoad }) {
       <Button
         type="button"
         className="h-11 flex-1"
-        // Disabled alongside Reject while any reject/restore is in flight:
-        // opening the confirm dialog mid-reject would race `confirmClaim`
-        // against the reject's own `refetch`. The detail sheet gates all three
-        // of its actions the same way.
-        disabled={isActionBlocked}
+        // `canAccept`, not `isActionBlocked`, and the difference is a load
+        // won or lost. Rejections are serialised board-wide, so `pendingActionId`
+        // is non-null for a second or two after *any* card's Reject — disabling
+        // Accept on that would take this card's control away because of a card
+        // the driver never touched, on a first-come-first-served list. A pending
+        // action on *this* card still blocks it. The board owns both halves of
+        // the rule; see `LoadsBoardValue.canAccept`.
+        disabled={!canAccept(load.id)}
         onClick={(event) => {
           stop(event);
           // Selecting the load as well as opening the confirm dialog means
@@ -566,6 +610,13 @@ function LoadCardActions({ load }: { load: HubLoad }) {
         }}
       >
         Accept ·{" "}
+        {/* `formatGel`, the scannable form, deliberately. This is the card's
+            own payout repeated on its control, three lines below the figure at
+            the top of the card, and the two disagreeing ("₾110" up there,
+            "₾109.5" here) would read as two different numbers rather than as
+            one number stated precisely. Nothing is committed by pressing this —
+            it opens the confirm dialog, which is where a driver agrees to a
+            figure and where `formatGelExact` prints every tetri of it. */}
         <span className="font-price tabular-nums">
           {formatGel(load.driverPayout)}
         </span>
