@@ -27,9 +27,10 @@ import type { HubAccountKind } from "@/lib/dashboard/hub/account";
  *    driver's feet — another account claiming a row — and that has to be
  *    re-read after every mutation. A server component cannot re-run itself
  *    without a full navigation.
- * 2. Live claim updates (task-14, Wave 5) poll `GET /api/loads` from the
- *    browser regardless. Fetching it the same way on first mount means one code
- *    path builds the board's data instead of two that have to agree.
+ * 2. Live claim updates poll `GET /api/loads` from the browser every
+ *    `LOADS_POLL_INTERVAL_MS` regardless. Fetching it the same way on first
+ *    mount means one code path builds the board's data instead of two that have
+ *    to agree.
  * 3. Nothing in `src/app/` has a server component fetch its own API route; every
  *    internal `fetch()` in this codebase is from a `"use client"` component.
  *
@@ -83,6 +84,14 @@ export type HubLoad = {
    * within the last two minutes; the row stays on the board, greyed, so it does
    * not vanish out from under a driver who has it open. `"mine"` — this
    * account holds it.
+   *
+   * `"claimed"` is the one value the client also writes for itself. The
+   * endpoint's two-minute window is the primary mechanism, but a row can still
+   * drop out of the response while a driver is looking at it — the window
+   * lapses, or the order is cancelled outright — and `applyBoard` below then
+   * synthesises the same greyed state for `CLAIMED_DWELL_MS` rather than
+   * letting the row blink out. Both paths land on this one value, so every
+   * surface has exactly one "somebody else has this" treatment to render.
    */
   status: "available" | "claimed" | "mine";
   cargoCategory: string;
@@ -162,6 +171,54 @@ type LoadsApiResponse = {
   rejected: HubLoad[];
   hiddenByCapacityCount: number;
 };
+
+/* -------------------------------------------------------------------------- */
+/* Live updates                                                               */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * How often the board re-reads `GET /api/loads` while the tab is visible.
+ *
+ * **Flagged for review in `specs/driver-load-board/action-required.md`** — read
+ * that file's "Watch the live-update poll interval" item before tuning this.
+ * Ten seconds is a considered default, not a settled constant: it wants
+ * checking against real driver behaviour and against Supabase connection
+ * limits, and the same item records Supabase Realtime as the documented upgrade
+ * path if polling turns out to be too coarse or too expensive.
+ *
+ * Plain polling rather than Realtime for v1, despite `@supabase/supabase-js`
+ * already being a dependency (used today only for signed uploads, in
+ * `src/lib/supabase-browser-client.ts`). Realtime would need a Postgres
+ * publication on `Order`, a channel lifecycle and a reconnect story the board
+ * does not have; this needs none of that and is retuned or backed out by
+ * changing one number. Twice as slow as `order-tracking-map.tsx`'s five-second
+ * poll on purpose: that screen has one or two viewers per order, whereas every
+ * eligible driver can have this board open at once, so the per-open-tab cost is
+ * the figure that matters here.
+ */
+const LOADS_POLL_INTERVAL_MS = 10_000;
+
+/**
+ * How long a row that has dropped out of the response entirely is still shown,
+ * greyed, as `"claimed"` before the board lets it go.
+ *
+ * This is a floor beneath the endpoint's own window, not a replacement for it.
+ * `GET /api/loads` already keeps a freshly-claimed load in `available` with
+ * `status: "claimed"` for `CLAIMED_VISIBILITY_WINDOW_MS` (two minutes — see
+ * `src/app/api/loads/route.ts`, which asks the live-update work not to guess a
+ * number incompatible with its own). That covers the ordinary case, and this
+ * constant covers the ones it cannot: a row whose two minutes lapse while the
+ * driver is still reading it, and an order that leaves the board for a reason
+ * other than a claim — cancelled by the client, say — with no transitional
+ * status to hand back at all.
+ *
+ * Twenty seconds because the point is only to turn a disappearance into a
+ * visible transition. A row held past its dwell is one the driver has already
+ * seen go grey; holding it longer would leave stale rows on a board whose whole
+ * value is being current. Holding it *while it is open* is unbounded and
+ * deliberate — see `applyBoard`.
+ */
+const CLAIMED_DWELL_MS = 20_000;
 
 /* -------------------------------------------------------------------------- */
 /* Client state vocabulary                                                    */
@@ -258,7 +315,16 @@ export type LoadsBoardValue = {
   /* --- server state --------------------------------------------------- */
   isLoading: boolean;
   loadError: string | null;
-  /** Re-reads `GET /api/loads`. Also what task-14's poll will call. */
+  /**
+   * Re-reads `GET /api/loads` in the foreground: it clears `loadError` on the
+   * way in and reports a failure through it on the way out, because a mutation
+   * that has just changed the board is a moment where nothing on screen can be
+   * trusted until the read settles.
+   *
+   * The background poll deliberately does **not** go through here — it reads
+   * silently, so a dropped tick leaves the last-known-good board alone instead
+   * of replacing it with `loads-screen.tsx`'s error state.
+   */
   refetch: () => Promise<void>;
   hiddenByCapacityCount: number;
 
@@ -308,9 +374,29 @@ export type LoadsBoardValue = {
 
   /* --- selection and dialogs ------------------------------------------- */
   selectedId: string | null;
+  /**
+   * The selected row, resolved **live** against the board on every render.
+   *
+   * Live on purpose, and the opposite of `dialogLoad` below. The drawer and the
+   * mobile sheet are where a driver watches a load; a poll that flips it to
+   * `"claimed"` has to reach them, so that an open panel shows "Claimed by
+   * another driver" in place rather than emptying itself.
+   */
   selectedLoad: HubLoad | null;
   selectLoad: (id: string | null) => void;
   dialogId: string | null;
+  /**
+   * The load the confirm dialog is open on — a **snapshot**, frozen at the
+   * moment `openConfirm` was called, not a live lookup.
+   *
+   * This is the state, and `dialogId` is derived from it, so the two cannot
+   * disagree about which load is being confirmed. A background poll updates the
+   * board's arrays underneath an open dialog; it must not change the reference,
+   * route, cargo or payout a driver is reading while deciding, nor the id
+   * `confirmClaim` is about to submit. The race is settled by the endpoint on
+   * submit — see `confirmClaim` — never by the client watching the board, so
+   * there is nothing the fresher row could usefully tell this dialog.
+   */
   dialogLoad: HubLoad | null;
   openConfirm: (id: string) => void;
   closeConfirm: () => void;
@@ -463,52 +549,347 @@ export function LoadsProvider({
   const [isLoading, setIsLoading] = React.useState(true);
   const [loadError, setLoadError] = React.useState<string | null>(null);
 
-  const refetch = React.useCallback(async () => {
-    setLoadError(null);
+  /**
+   * The three arrays exactly as `applyBoard` last wrote them.
+   *
+   * `applyBoard` is their only writer, so this mirror cannot drift — and having
+   * it lets the merge run as one plain synchronous computation instead of inside
+   * three `setState` updater callbacks. That is not tidiness: the merge keeps a
+   * side ledger of when each vanished row was first missed, React is free to
+   * invoke an updater callback more than once, and a ledger stamped from inside
+   * one would be a purity violation waiting for StrictMode or a future
+   * concurrent render to expose it.
+   */
+  const boardRef = React.useRef<{
+    available: HubLoad[];
+    mine: HubLoad[];
+    rejected: HubLoad[];
+  }>({ available: [], mine: [], rejected: [] });
 
-    try {
-      const response = await fetch("/api/loads");
+  /**
+   * When each row that has disappeared from the response was first missed.
+   *
+   * A ref rather than state: it decides what the *next* merge keeps and must
+   * never itself cause a render. Pruned on every merge down to the rows still
+   * being held, so a board left open all day cannot accumulate entries.
+   */
+  const claimedAtRef = React.useRef(new Map<string, number>());
 
-      if (!response.ok) {
-        // Every failure of this endpoint answers with `{ error }` — a 401, the
-        // temporary-password 403, the wrong-role 403, the roster-driver 403 —
-        // and each of those messages is written for a person to read, so it is
-        // shown rather than replaced with a generic string. The status code is
-        // the fallback for a body that is not the expected shape.
-        const body = (await response.json().catch(() => null)) as {
-          error?: unknown;
-        } | null;
+  /**
+   * `selectedId` and `dialogId`, mirrored where the merge can read them.
+   *
+   * The merge needs to know whether the driver currently has a row open, and it
+   * runs from a fetch owned by an effect that must never restart: an interval
+   * torn down and recreated on every selection change would restart its own
+   * phase each time, so a driver clicking down a list could starve the board of
+   * refreshes indefinitely. Reading the two ids through a ref keeps that
+   * effect's dependency list free of them.
+   *
+   * **This ref is the merge's only contact with UI-owned state, and it is
+   * read-only.** `tab`, `sortKey`/`sortDir`, the four filter fields,
+   * `showRejected` and `lostLoad` are neither read nor written by a poll; they
+   * change only through their own setters, driven by the driver.
+   */
+  const openTargetsRef = React.useRef<{
+    selectedId: string | null;
+    dialogId: string | null;
+  }>({ selectedId: null, dialogId: null });
 
-        throw new Error(
-          typeof body?.error === "string"
-            ? body.error
-            : `The load board is unavailable (HTTP ${response.status}).`,
-        );
+  /**
+   * Which read is the current one. A response that arrives after a later read
+   * has started has nothing useful to say about the board and is dropped —
+   * including the aborted first read of a StrictMode double-mount, whose
+   * rejection must not land as an error over a board that is already loading
+   * again.
+   */
+  const readSequence = React.useRef(0);
+
+  /**
+   * How many foreground reads are in flight. A background poll defers to any of
+   * them: it has nothing to add while a mutation's own re-read is already
+   * fetching the very same thing, and the counter is what lets the loading flag
+   * be cleared by the last one to finish rather than the first.
+   */
+  const foregroundReads = React.useRef(0);
+
+  /**
+   * Fold one response into the board **by load id**, never by replacing the
+   * arrays wholesale.
+   *
+   * Three things fall out of merging rather than replacing, and each is a real
+   * behaviour rather than an optimisation:
+   *
+   * 1. **A row whose fields are unchanged keeps its object identity**, and an
+   *    array whose every row kept its identity keeps *its* identity too. So a
+   *    poll that finds nothing new re-renders nothing: `baseLoads`,
+   *    `visibleLoads`, the city options and the counts all memoise on those
+   *    array identities and none of them recompute. On a quiet board — which is
+   *    most of the time — a tick costs one fetch and no render at all.
+   * 2. **A row that changes is replaced only in its own slot.** Combined with
+   *    `key={load.id}` on the table row and the mobile card, React updates that
+   *    row in place; nothing above it remounts, so the table's scroll offset and
+   *    any row-local state survive.
+   * 3. **A row that disappears is turned into a visible transition** rather than
+   *    a hole in the list — see the dwell rule below.
+   *
+   * Nothing else in the container is touched. This writes the three arrays and
+   * `hiddenByCapacityCount`, and reads `selectedId`/`dialogId` through a ref to
+   * decide what to hold. Every other piece of state here belongs to the driver.
+   */
+  const applyBoard = React.useCallback((data: LoadsApiResponse) => {
+    const now = Date.now();
+
+    /**
+     * "Vanished" means gone from the whole response, not from one array of it.
+     *
+     * A successful claim moves a row from `available` to `mine`, and a rejection
+     * moves it to `rejected`. Both look like a disappearance from the array they
+     * left, and holding either one on the open board as "claimed by another
+     * driver" would be describing the driver's own action back to them, wrongly.
+     */
+    const presentIds = new Set<string>();
+    for (const load of data.available) {
+      presentIds.add(load.id);
+    }
+    for (const load of data.mine) {
+      presentIds.add(load.id);
+    }
+    for (const load of data.rejected) {
+      presentIds.add(load.id);
+    }
+
+    /** Rows the merge is holding past their disappearance, for the prune below. */
+    const heldIds = new Set<string>();
+
+    const isOpen = (id: string): boolean =>
+      id === openTargetsRef.current.selectedId ||
+      id === openTargetsRef.current.dialogId;
+
+    /**
+     * What to do with a row that has left `available`.
+     *
+     * Held as `"claimed"` while it is inside its dwell window **or** while the
+     * driver has it open — whichever lasts longer. The open case is unbounded on
+     * purpose: the design's own scenario is a load claimed by somebody else
+     * while its drawer or sheet is up, and the required behaviour is that the
+     * panel says so in place. That works because `selectedId` is untouched here
+     * and the row is still in the array for `selectedLoad` to resolve against;
+     * closing the panel is what finally lets the next poll drop it.
+     */
+    const holdClaimed = (load: HubLoad): HubLoad | null => {
+      if (presentIds.has(load.id)) {
+        return null;
       }
 
-      const data = (await response.json()) as LoadsApiResponse;
+      const firstMissedAt = claimedAtRef.current.get(load.id) ?? now;
+      claimedAtRef.current.set(load.id, firstMissedAt);
 
-      setAvailable(data.available);
-      setMine(data.mine);
-      setRejected(data.rejected);
-      setHiddenByCapacityCount(data.hiddenByCapacityCount);
-    } catch (error) {
-      setLoadError(
-        error instanceof Error
-          ? error.message
-          : "Couldn't reach the load board.",
-      );
-    } finally {
-      // In `finally` rather than in the success branch so a failed first fetch
-      // still leaves the loading placeholder and shows the error, instead of
-      // spinning forever.
-      setIsLoading(false);
+      if (now - firstMissedAt >= CLAIMED_DWELL_MS && !isOpen(load.id)) {
+        return null;
+      }
+
+      heldIds.add(load.id);
+
+      // Reuse the row unless its status actually has to change, so a held row
+      // does not churn its identity on every tick it survives.
+      return load.status === "claimed" ? load : { ...load, status: "claimed" };
+    };
+
+    /**
+     * The same rule for `mine` and `rejected`, minus the dwell and minus the
+     * status rewrite.
+     *
+     * A row leaves `mine` when the job stops being open work — it completes, or
+     * it is cancelled — and leaves `rejected` when the rejection is lifted
+     * elsewhere. Neither is "claimed by another driver", so neither gets that
+     * treatment; but an open drawer describing one still must not blank itself
+     * mid-read, so the row is held for exactly as long as it is open.
+     */
+    const holdWhileOpen = (load: HubLoad): HubLoad | null =>
+      !presentIds.has(load.id) && isOpen(load.id) ? load : null;
+
+    const next = {
+      available: mergeLoadsById(
+        boardRef.current.available,
+        data.available,
+        holdClaimed,
+      ),
+      mine: mergeLoadsById(boardRef.current.mine, data.mine, holdWhileOpen),
+      rejected: mergeLoadsById(
+        boardRef.current.rejected,
+        data.rejected,
+        holdWhileOpen,
+      ),
+    };
+
+    // A row the board is no longer holding has no dwell left to remember, and a
+    // row the server has started returning again starts its window afresh if it
+    // ever vanishes a second time.
+    for (const id of Array.from(claimedAtRef.current.keys())) {
+      if (!heldIds.has(id)) {
+        claimedAtRef.current.delete(id);
+      }
     }
+
+    boardRef.current = next;
+    setAvailable(next.available);
+    setMine(next.mine);
+    setRejected(next.rejected);
+    setHiddenByCapacityCount(data.hiddenByCapacityCount);
   }, []);
 
+  /**
+   * The one reader of `GET /api/loads`, in two modes.
+   *
+   * **Foreground** — what `refetch` exposes, and what the first read on mount
+   * uses. It owns the screen's full-height states: `loadError` is cleared going
+   * in and set on failure, and `isLoading` is resolved on the way out, because
+   * on those two occasions nothing on screen can be trusted until the read
+   * settles.
+   *
+   * **Silent** — every poll tick. Both of those would be actively wrong here:
+   * `loads-screen.tsx` replaces the entire board with an error panel when
+   * `loadError` is non-null, so one dropped tick on a flaky connection would
+   * throw away a perfectly good board and the driver's place in it. A silent
+   * failure therefore keeps the last known snapshot and waits for the next tick
+   * — the same conclusion `order-tracking-map.tsx` reaches for its own poll, and
+   * the same two-mode reader `onboarding-draft-context.tsx` already uses.
+   */
+  const readBoard = React.useCallback(
+    async ({
+      silent = false,
+      signal,
+    }: { silent?: boolean; signal?: AbortSignal } = {}): Promise<void> => {
+      if (silent && foregroundReads.current > 0) {
+        return;
+      }
+
+      const sequence = readSequence.current + 1;
+      readSequence.current = sequence;
+
+      if (!silent) {
+        foregroundReads.current += 1;
+        setLoadError(null);
+      }
+
+      try {
+        const response = await fetch("/api/loads", { signal });
+
+        if (sequence !== readSequence.current) {
+          return;
+        }
+
+        if (!response.ok) {
+          if (silent) {
+            return;
+          }
+
+          // Every failure of this endpoint answers with `{ error }` — a 401, the
+          // temporary-password 403, the wrong-role 403, the roster-driver 403 —
+          // and each of those messages is written for a person to read, so it is
+          // shown rather than replaced with a generic string. The status code is
+          // the fallback for a body that is not the expected shape.
+          const body = (await response.json().catch(() => null)) as {
+            error?: unknown;
+          } | null;
+
+          setLoadError(
+            typeof body?.error === "string"
+              ? body.error
+              : `The load board is unavailable (HTTP ${response.status}).`,
+          );
+          return;
+        }
+
+        const data = (await response.json()) as LoadsApiResponse;
+
+        // Re-checked after the body is read: parsing is another await, and the
+        // read that supersedes this one may only start during it.
+        if (sequence !== readSequence.current) {
+          return;
+        }
+
+        applyBoard(data);
+        // A successful read supersedes an earlier failure, including one a
+        // silent tick has quietly recovered from — leaving the error panel up
+        // over data that has since arrived would strand the driver on it.
+        setLoadError(null);
+      } catch {
+        if (silent || sequence !== readSequence.current) {
+          return;
+        }
+
+        setLoadError("Couldn't reach the load board.");
+      } finally {
+        if (!silent) {
+          foregroundReads.current -= 1;
+
+          // The last foreground read to finish is the one that hands the board
+          // back, whether or not its own answer was the one used. In `finally`
+          // rather than in the success branch so a failed first read still shows
+          // the error instead of spinning forever.
+          if (foregroundReads.current === 0) {
+            setIsLoading(false);
+          }
+        }
+      }
+    },
+    [applyBoard],
+  );
+
+  const refetch = React.useCallback(
+    (): Promise<void> => readBoard(),
+    [readBoard],
+  );
+
+  /**
+   * The live-update loop: one read on mount, then one every
+   * `LOADS_POLL_INTERVAL_MS` for as long as the tab is in front.
+   *
+   * The `AbortController` + `setInterval` shape is `order-tracking-map.tsx`'s,
+   * extended with the visibility handling that component does not need. A
+   * tracking session is one person watching one delivery from open to close; the
+   * load board is what a driver leaves open between jobs, on a phone, and a
+   * backgrounded tab that keeps issuing a request every ten seconds spends the
+   * driver's battery and the platform's connections on answers nobody is
+   * looking at. Skipping the tick while hidden and reading once on the way back
+   * to visible costs nothing and means a driver who returns to the tab sees a
+   * current board immediately rather than up to ten seconds of a stale one.
+   *
+   * Its dependency list is `[readBoard]`, which never changes identity, so this
+   * interval is created once and keeps a fixed cadence for the life of the
+   * board — see `openTargetsRef` for why that matters.
+   */
   React.useEffect(() => {
-    void refetch();
-  }, [refetch]);
+    const controller = new AbortController();
+
+    // Foreground: this is the read the loading placeholder is waiting on.
+    void readBoard({ signal: controller.signal });
+
+    const timer = window.setInterval(() => {
+      // Covers a backgrounded tab, another window in front of this one, and a
+      // locked phone alike.
+      if (document.visibilityState === "hidden") {
+        return;
+      }
+
+      void readBoard({ silent: true, signal: controller.signal });
+    }, LOADS_POLL_INTERVAL_MS);
+
+    function handleVisibilityChange(): void {
+      if (document.visibilityState === "visible") {
+        void readBoard({ silent: true, signal: controller.signal });
+      }
+    }
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      controller.abort();
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [readBoard]);
 
   /* --- client state ------------------------------------------------------ */
 
@@ -533,7 +914,28 @@ export function LoadsProvider({
 
   const [showRejected, setShowRejectedState] = React.useState(false);
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
-  const [dialogId, setDialogId] = React.useState<string | null>(null);
+
+  /**
+   * The confirm dialog's target, held as the row itself rather than as an id.
+   *
+   * **The snapshot is the state, and `dialogId` below is derived from it** —
+   * not the other way round. Storing the id and looking the row up on every
+   * render is the shape this deliberately avoids: `available` gets a fresh row
+   * object whenever a poll finds a change, so a live lookup would let a
+   * background tick alter the reference, route, cargo summary or payout a driver
+   * is reading mid-decision, on a dialog that never moved. Freezing it here
+   * makes that impossible for every consumer at once, including `confirmClaim`,
+   * rather than asking each of them to remember.
+   *
+   * Nothing is lost by freezing it. The claim is settled by the endpoint's
+   * atomic conditional update when the driver submits — a `409` is what opens
+   * the lost-the-race dialog, and that is the only thing that opens it — so a
+   * fresher `status` on this row would have nothing to add and no right to act
+   * on it.
+   */
+  const [dialogLoad, setDialogLoad] = React.useState<HubLoad | null>(null);
+  const dialogId = dialogLoad?.id ?? null;
+
   const [lostLoad, setLostLoad] = React.useState<{
     id: string;
     reference: string;
@@ -687,12 +1089,15 @@ export function LoadsProvider({
   /* --- selection --------------------------------------------------------- */
 
   /**
-   * The selected and dialog rows, resolved by id against every array rather
-   * than against `visibleLoads`.
+   * Resolve a row by id against every array rather than against `visibleLoads`.
    *
    * Deliberate: a drawer open on a row that a filter change has just hidden
    * should stay open showing that row, not blank itself. The id is the state;
    * the row is a lookup.
+   *
+   * Its identity is stable across a poll that changed nothing, because the merge
+   * hands back the same three arrays when no row changed — so `openConfirm`,
+   * which depends on this, is stable too.
    */
   const findLoad = React.useCallback(
     (id: string | null): HubLoad | null => {
@@ -710,8 +1115,25 @@ export function LoadsProvider({
     [available, mine, rejected],
   );
 
+  /**
+   * Live, unlike `dialogLoad` — see the note on `LoadsBoardValue.selectedLoad`.
+   * This is how a load claimed by somebody else reaches an open drawer or sheet
+   * as the "claimed" treatment instead of as a panel that empties itself.
+   */
   const selectedLoad = findLoad(selectedId);
-  const dialogLoad = findLoad(dialogId);
+
+  /**
+   * Publish the two ids the merge is allowed to read.
+   *
+   * In an effect rather than assigned during render: a render is not a commit,
+   * and writing a ref from the render body would have this ref describing a
+   * selection that a discarded render proposed. Every caller that reads it —
+   * the poll — runs from a timer or a fetch callback, well after the commit that
+   * this effect belongs to, so it always sees the state the driver can see.
+   */
+  React.useEffect(() => {
+    openTargetsRef.current = { selectedId, dialogId };
+  }, [dialogId, selectedId]);
 
   /* --- setters that own a side effect ------------------------------------ */
 
@@ -776,16 +1198,37 @@ export function LoadsProvider({
     setSelectedId(id);
   }, []);
 
-  const openConfirm = React.useCallback((id: string) => {
-    setDialogId(id);
-    // Any error from a previous attempt belongs to that attempt. Clearing it
-    // here rather than on close means re-opening the dialog after a failure
-    // shows the confirm state, not a stale complaint.
-    setClaimError(null);
-  }, []);
+  /**
+   * Open the confirm dialog on a load, taking the snapshot it will show.
+   *
+   * The lookup happens exactly here — once, on the transition into "open" — and
+   * never again for the life of the dialog. See `dialogLoad`'s own note for why
+   * that is the whole point rather than an implementation detail.
+   *
+   * A row that cannot be found opens nothing. That is unreachable from the UI
+   * (every Accept button is rendered from a row the board is holding), and the
+   * honest alternative to a silent no-op would be a dialog with a target it
+   * cannot describe.
+   */
+  const openConfirm = React.useCallback(
+    (id: string) => {
+      const load = findLoad(id);
+
+      if (load === null) {
+        return;
+      }
+
+      setDialogLoad(load);
+      // Any error from a previous attempt belongs to that attempt. Clearing it
+      // here rather than on close means re-opening the dialog after a failure
+      // shows the confirm state, not a stale complaint.
+      setClaimError(null);
+    },
+    [findLoad],
+  );
 
   const closeConfirm = React.useCallback(() => {
-    setDialogId(null);
+    setDialogLoad(null);
   }, []);
 
   const closeLost = React.useCallback(() => {
@@ -868,7 +1311,7 @@ export function LoadsProvider({
       }
 
       if (response.ok) {
-        setDialogId(null);
+        setDialogLoad(null);
         setTab("mine");
         await refetch();
         return;
@@ -881,7 +1324,7 @@ export function LoadsProvider({
       } | null;
 
       if (response.status === 409 && body?.code === "ALREADY_CLAIMED") {
-        setDialogId(null);
+        setDialogLoad(null);
         setLostLoad({
           id: load.id,
           // The endpoint returns the reference for this dialog; the row's own
@@ -1113,6 +1556,104 @@ export function useLoadsBoard(): LoadsBoardValue {
 /* -------------------------------------------------------------------------- */
 /* Helpers                                                                    */
 /* -------------------------------------------------------------------------- */
+
+/**
+ * Reconcile one incoming array into the one already on screen, by load `id`.
+ *
+ * Three rules, in order:
+ *
+ * 1. A row present in both keeps the object the board is already rendering
+ *    whenever the two are field-for-field equal. Every consumer memoises on
+ *    array and row identity, so this is what makes an uneventful tick cost
+ *    nothing at all.
+ * 2. A row present in both but changed takes the incoming object — in its own
+ *    slot, so nothing around it is disturbed.
+ * 3. A row that has left the response is offered to `holdVanished`, which
+ *    returns either the row to keep (possibly rewritten) or `null` to let it go.
+ *
+ * Held rows are appended rather than kept in place, which costs nothing: the
+ * board sorts `visibleLoads` through `compareLoads` before anything renders it,
+ * so position in these arrays is not an ordering anybody sees.
+ *
+ * Returns `previous` unchanged — the same array object — when the merge produced
+ * an identical list, which is the whole point of rule 1.
+ */
+function mergeLoadsById(
+  previous: HubLoad[],
+  incoming: HubLoad[],
+  holdVanished: (load: HubLoad) => HubLoad | null,
+): HubLoad[] {
+  const previousById = new Map(previous.map((load) => [load.id, load]));
+  const incomingIds = new Set(incoming.map((load) => load.id));
+
+  const next: HubLoad[] = incoming.map((load) => {
+    const before = previousById.get(load.id);
+
+    return before !== undefined && isSameLoad(before, load) ? before : load;
+  });
+
+  for (const before of previous) {
+    if (incomingIds.has(before.id)) {
+      continue;
+    }
+
+    const held = holdVanished(before);
+
+    if (held !== null) {
+      next.push(held);
+    }
+  }
+
+  return isSameLoadList(previous, next) ? previous : next;
+}
+
+/**
+ * Whether two lists are the same rows, in the same order, as the same objects.
+ *
+ * Reference equality per element rather than a value comparison, because by the
+ * time this runs `mergeLoadsById` has already reduced every unchanged row to the
+ * object it was: anything left holding a new reference is a row that genuinely
+ * changed.
+ */
+function isSameLoadList(a: HubLoad[], b: HubLoad[]): boolean {
+  return a.length === b.length && a.every((load, index) => load === b[index]);
+}
+
+/**
+ * Whether a freshly parsed row carries the same values as the one on screen.
+ *
+ * Iterates the incoming object's own keys rather than naming forty fields, so a
+ * field added to `HubLoad` is compared without anyone having to remember to add
+ * it here — the failure mode of a hand-written comparison being a row that stops
+ * updating in one column, silently.
+ *
+ * `handlingTags` is the one field that cannot be compared by reference: it is an
+ * array, and `JSON.parse` builds a new one on every read, so left to `Object.is`
+ * it would report every row as changed on every tick and defeat the merge
+ * entirely.
+ */
+function isSameLoad(previous: HubLoad, incoming: HubLoad): boolean {
+  if (previous === incoming) {
+    return true;
+  }
+
+  for (const key of Object.keys(incoming) as (keyof HubLoad)[]) {
+    if (key === "handlingTags") {
+      continue;
+    }
+
+    if (!Object.is(previous[key], incoming[key])) {
+      return false;
+    }
+  }
+
+  return (
+    previous.handlingTags.length === incoming.handlingTags.length &&
+    previous.handlingTags.every(
+      (tag, index) => tag === incoming.handlingTags[index],
+    )
+  );
+}
 
 /**
  * The distinct, non-null values of one city field across a set of loads,

@@ -606,6 +606,16 @@ export function LoadsTable() {
           </TableRow>
         </TableHeader>
 
+        {/* Keyed by `load.id`, and it has to stay that way. The board re-reads
+            itself every ten seconds (`LOADS_POLL_INTERVAL_MS` in
+            `loads-context.tsx`) and the sort is live, so rows change position
+            under the driver constantly. An array index here would make every
+            row past a change point a *different* row to React, remounting the
+            tail of the table on a poll and taking the scroll offset, the hover
+            state and any in-progress press with it. Nothing above this — the
+            wrapper, `Table`, `TableBody` — carries a key at all, which is the
+            other half of the same guarantee: the list container is the same
+            DOM node across every refresh, so it keeps its scroll position. */}
         <TableBody>
           {visibleLoads.map((load) => (
             <LoadRow key={load.id} load={load} nowIso={nowIso} />

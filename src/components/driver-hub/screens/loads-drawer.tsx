@@ -23,7 +23,6 @@ import {
   formatVolumeM3,
   formatWeightKg,
   sortedHandlingTags,
-  waitingAllowanceOf,
 } from "@/components/driver-hub/screens/loads-format";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -46,12 +45,15 @@ import { cn } from "@/lib/utils";
  * not merely avoided: `GET /api/loads` does not select the fare columns at all,
  * so `HubLoad` has no `price` field and reaching for one is a compile error.
  *
- * The design's header sub-line reads "incl. ₾11 waiting allowance" and
- * describes that as "6% of price, rounded". **This component computes it as 6%
- * of `driverPayout` instead**, because `price` is not and must never be
- * available to a driver-facing component. Do not "fix" this by reaching for the
- * client's fare — the substitution is deliberate and the two figures are not
- * meant to agree.
+ * The design's header sub-line reads "incl. ₾11 waiting allowance" and defines
+ * it as "6% of price, rounded". **That line is deliberately not rendered.**
+ * `price` is not and must never be available to a driver-facing component, and
+ * taking the same percentage of `driverPayout` instead — which this drawer did
+ * until the figure was reviewed — quotes drivers a breakdown of their own pay
+ * that no stored value supports. It stays out until the order carries a real
+ * waiting-allowance field, tracked in
+ * `specs/driver-load-board/action-required.md`. Do not restore it by reaching
+ * for the client's fare.
  *
  * ## `data-admin-surface` on the outermost element
  *
@@ -361,21 +363,6 @@ export function LoadsDrawer() {
    */
   const nowIso = new Date().toISOString();
 
-  /**
-   * 6% of the driver's payout, not of the client's price. See the money rule in
-   * this file's doc comment for why the design's own definition is not the one
-   * implemented; the share and its rounding live in `loads-format.ts` so this
-   * drawer and the mobile sheet cannot quote two different allowances.
-   *
-   * Formatted with `formatGel` — the board's own whole-lari formatter — so the
-   * sub-line and the headline above it print the same way. The task file asked
-   * for two decimals here on the assumption that this feature's `formatGel`
-   * matched `jobs-format.ts`'s two-decimal one; it deliberately does not (see
-   * the note on `formatGel` in `loads-format.ts`), and a "₾11.40" under a "₾190"
-   * would be the one figure on this board rendered differently from the rest.
-   */
-  const waitingAllowance = waitingAllowanceOf(load.driverPayout);
-
   const isPending = pendingActionId === load.id;
   const isBusy = pendingActionId !== null;
 
@@ -466,9 +453,6 @@ export function LoadsDrawer() {
 
         <p className="mt-2 font-price text-[26px] leading-none font-semibold tracking-[-0.02em] tabular-nums">
           {formatGel(load.driverPayout)}
-        </p>
-        <p className="mt-1.5 text-xs text-muted-foreground">
-          incl. {formatGel(waitingAllowance)} waiting allowance
         </p>
       </div>
 

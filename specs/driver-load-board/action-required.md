@@ -79,6 +79,19 @@ flat 15% for every account type, taken from everything the client pays.
       supply figures to backfill. Query
       `SELECT count(*) FROM "Order" WHERE status = 'PENDING' AND "cargoWeightKg" IS NULL;`
       before deploying to see how many live orders this affects.
+- [ ] **Decide the waiting allowance, or drop it from the design.** The design's
+      payout sub-line — "incl. ₾11 waiting allowance", 12px muted under the
+      headline figure — is not rendered on either detail surface
+      (`src/components/driver-hub/screens/loads-drawer.tsx`,
+      `src/components/driver-hub/screens/loads-detail-sheet.tsx`). The design
+      defines it as 6% of the *client's* price, which no driver-facing surface
+      may read; `GET /api/loads` does not select the fare columns at all.
+      Computing it as 6% of `driverPayout` instead shipped briefly and was
+      rejected: it quotes a driver a breakdown of their own pay that no stored
+      value supports. It needs either a real waiting-allowance field on `Order`
+      with a signed-off rate — which the sub-line would then read directly — or a
+      decision to drop the line from the design. The headline `driverPayout`
+      renders alone until then.
 - [ ] **Watch the live-update poll interval.** task-14 polls the board. Confirm
       the interval against real driver behaviour and Supabase connection limits,
       and consider moving to Supabase Realtime — `@supabase/supabase-js` is

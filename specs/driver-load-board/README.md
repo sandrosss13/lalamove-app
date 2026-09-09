@@ -109,7 +109,7 @@ graph TD
 - [x] [task-13-mobile-board](./tasks/task-13-mobile-board.md) — Mobile card list plus the detail bottom sheet the design omits
 
 ### Wave 5
-- [ ] [task-14-live-updates](./tasks/task-14-live-updates.md) — Poll for status changes, update rows in place
+- [x] [task-14-live-updates](./tasks/task-14-live-updates.md) — Poll for status changes, update rows in place
 
 > **Numbering note.** task-15 and task-16 were added after the initial pass, when
 > the commission decision was extended to cover overtime and the review found the

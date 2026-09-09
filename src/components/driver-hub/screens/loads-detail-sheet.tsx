@@ -22,7 +22,6 @@ import {
   formatVolumeM3,
   formatWeightKg,
   sortedHandlingTags,
-  waitingAllowanceOf,
 } from "@/components/driver-hub/screens/loads-format";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -61,9 +60,9 @@ import { cn } from "@/lib/utils";
  * **`Order.price` is never read, derived from, or rendered.** `GET /api/loads`
  * does not select the fare columns at all, so `HubLoad` has no field to reach
  * for; this note exists so nobody adds one. The design's "incl. ₾11 waiting
- * allowance" sub-line is defined there as 6% of the *client's* price; it is
- * computed here as 6% of the payout instead, for the same reason
- * `loads-drawer.tsx` does. The two figures are not meant to agree.
+ * allowance" sub-line is defined there as 6% of the *client's* price and is
+ * therefore not rendered at all; the note above the Sections block below
+ * records why, and `loads-drawer.tsx` omits it on the same grounds.
  *
  * ## Why the sheet is non-modal, and why both portalled elements are `lg:hidden`
  *
@@ -172,19 +171,15 @@ const JOB_SHEET_TITLE =
 const PHOTO_TILES = ["Photo 1", "Photo 2", "Photo 3"];
 
 /**
- * The waiting allowance is **presentational, not accounting**, and it is
- * defined once in `loads-format.ts` rather than in each surface that prints it.
+ * The design's "incl. ₾11 waiting allowance" sub-line under the payout is
+ * **deliberately not rendered**, here or in `loads-drawer.tsx`.
  *
- * No column backs the figure: the design defines the sub-line as 6% of the
- * client's price, which a driver-facing surface may not read, so it is taken
- * from the payout instead. This sheet and `loads-drawer.tsx` used to make that
- * substitution independently and agreed only because both happened to pick the
- * same percentage; `waitingAllowanceOf` is now the one place it is decided.
- * Whether drivers should be shown a breakdown of their pay that no stored value
- * supports is a spec question, not a component one.
- *
- * Its rounding to the tetri is unobservable here — `formatGel` prints whole
- * lari — and is kept for the surface that may one day print a fractional one.
+ * No column backs the figure. The design defines it as 6% of the client's
+ * price, which a driver-facing surface may not read; both surfaces briefly took
+ * the same percentage of `driverPayout` instead, which quotes a driver a
+ * breakdown of their own pay that no stored value supports. The headline payout
+ * stands alone until the order carries a real waiting-allowance field with a
+ * signed-off rate — tracked in `specs/driver-load-board/action-required.md`.
  */
 
 /* -------------------------------------------------------------------------- */
@@ -421,10 +416,6 @@ export function LoadsDetailSheet({ nowIso }: LoadsDetailSheetProps) {
 
             <p className="mt-2 font-price text-[26px] leading-none font-semibold tracking-[-0.02em] tabular-nums">
               {formatGel(load.driverPayout)}
-            </p>
-            <p className="mt-1.5 text-xs text-muted-foreground">
-              incl. {formatGel(waitingAllowanceOf(load.driverPayout))} waiting
-              allowance
             </p>
           </div>
 

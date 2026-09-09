@@ -110,27 +110,6 @@ export function formatGelPerKm(driverRatePerKm: number | null): string {
 }
 
 /**
- * The share of the driver's payout the design presents as a waiting allowance,
- * and the rounding it is quoted to.
- *
- * **6% of `driverPayout`, not of the client's price.** The design defines this
- * line as a share of `Order.price`; that figure is not available to any
- * driver-facing surface and must not become available, so the same percentage
- * is taken from the payout instead. The two numbers are not meant to agree —
- * see the money rule above — and this is stated once, here, rather than in each
- * of the two surfaces that render the line.
- *
- * `roundCurrency` in `src/lib/pricing.ts` is the same rule server-side; it is
- * reproduced rather than imported because that module is a server-side pricing
- * engine and both callers here are `"use client"` components.
- */
-const WAITING_ALLOWANCE_SHARE = 0.06;
-
-export function waitingAllowanceOf(driverPayout: number): number {
-  return Math.round(driverPayout * WAITING_ALLOWANCE_SHARE * 100) / 100;
-}
-
-/**
  * The single placeholder for every absent value on this surface.
  *
  * A shared constant rather than a literal per call site: the board has a lot of

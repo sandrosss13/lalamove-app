@@ -49,6 +49,23 @@ import {
  * behaves correctly, because it never guesses — it asks. A `409` comes back as
  * `lostLoad`, and the second dialog below explains it.
  *
+ * ## The board refreshes underneath this dialog, and must not reach it
+ *
+ * `loads-context.tsx` re-reads `GET /api/loads` every ten seconds, so the row
+ * this dialog describes can be replaced by a fresher one while the driver is
+ * still reading it. None of that is allowed through: `dialogLoad` is a snapshot
+ * the context froze when `openConfirm` ran, not a lookup it repeats, so every
+ * figure below — reference, route, cargo, weight, distance, payout — is fixed
+ * for as long as the dialog stays open.
+ *
+ * **Do not "fix" this by resolving the row from the board on render.** The
+ * numbers a driver commits to have to be the numbers they were shown, and a
+ * summary that rewrites itself mid-decision is the one way this dialog can
+ * mislead. A poll may also never close this dialog, swap it for the
+ * lost-the-race one, or pre-empt a claim already in flight: the only thing that
+ * moves a driver from here to the second dialog is their own submit coming back
+ * `409`.
+ *
  * ## The money rule, restated where it is easiest to break
  *
  * The confirm dialog's headline is "You are paid", and the figure beside it is
@@ -145,6 +162,11 @@ const ONLINE_NETWORK_ERROR =
  * another without closing the dialog in between. Without it, a box ticked for
  * one load would still be ticked for the next.
  *
+ * It is keyed on the load's **id**, and `dialogLoad` is a frozen snapshot, so a
+ * background poll cannot change it and cannot therefore remount this dialog
+ * from under a driver mid-decision — which would clear exactly that hazmat tick
+ * and any go-online error alongside it.
+ *
  * The two are siblings rather than an either/or: `confirmClaim()` sets
  * `lostLoad` and clears `dialogId` in the same update, so for one commit both
  * could be non-null in principle. Rendering them independently means that never
@@ -167,9 +189,13 @@ export function LoadsClaimDialogs() {
 
 export type LoadsConfirmDialogProps = {
   /**
-   * The load being confirmed, or `null` — a `null` `dialogId` on the board
+   * The load being confirmed, or `null` — a `null` `dialogLoad` on the board
    * closes this dialog, and this component then renders nothing at all rather
    * than an empty panel.
+   *
+   * A snapshot taken when the dialog opened, not a live row. See the module
+   * comment: this component must render whatever it is handed and never re-read
+   * the board for a fresher copy.
    */
   load: HubLoad | null;
 };

@@ -148,6 +148,13 @@ export function LoadsMobile() {
           }
         />
       ) : (
+        // Keyed by `load.id`, never by index, and the `<ul>` itself carries no
+        // key — the same rule the desktop table states at its own `map`. The
+        // board re-reads itself every ten seconds and merges by id, so a card
+        // whose data is unchanged is the same React element and the same DOM
+        // node across a refresh; that is what keeps a phone's scroll position
+        // and stops a thumb landing on a card that moved between the press and
+        // the release.
         <ul>
           {visibleLoads.map((load) => (
             <li key={load.id}>
