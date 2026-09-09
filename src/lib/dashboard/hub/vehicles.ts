@@ -1,18 +1,29 @@
 /**
  * The Driver Hub's Vehicles screen, fetched and shaped in one pass.
  *
- * One loader serves both account kinds because the screen is the same screen:
+ * One loader serves all three personas because the screen is the same screen:
  * the handoff calls it "Vehicles" for a fleet and "Vehicle" for one driver, but
  * the row, the detail panel and the tiles are identical — only the scope
- * differs. A company sees the vehicles it owns; a driver sees the vehicles they
- * own *plus* the company vehicle currently assigned to them, because a rostered
- * driver owns no `Vehicle` row at all and would otherwise be shown an empty
- * screen while driving a van every day.
+ * differs. A BUSINESS sees the vehicles its company owns; an INDEPENDENT or
+ * ROSTER driver sees the vehicles they own *plus* the company vehicle currently
+ * assigned to them, because a roster driver owns no `Vehicle` row at all and
+ * would otherwise be shown an empty screen while driving a van every day.
  *
  * Server-only: it talks to Prisma directly. The object it returns is handed
  * from a server component into a `"use client"` tree, so every value in it is
  * plain serialisable data — in particular every timestamp is an ISO string,
  * never a `Date`.
+ *
+ * ## This loader also carries a permission verdict
+ *
+ * Unusually for a hub loader, `HubVehiclesData` exports more than data:
+ * `canAddVehicle` is a decided answer to "may this account register a vehicle
+ * at all", which is `false` for exactly one persona (`ROSTER`). It lives here
+ * rather than in the screen because the rule is enforced server-side — `POST
+ * /api/driver-profile/vehicles` returns `403` to a roster driver — and a client
+ * that re-derived the rule would be a second copy of it, free to drift away
+ * from the endpoint that actually decides. The button follows the verdict; the
+ * verdict follows the route.
  *
  * ## Real vs sample
  *
@@ -41,7 +52,11 @@ import type {
   VehicleClass,
 } from "@prisma/client";
 
-import type { HubAccount, HubAccountKind } from "@/lib/dashboard/hub/account";
+import type {
+  HubAccount,
+  HubAccountKind,
+  HubPersona,
+} from "@/lib/dashboard/hub/account";
 import type {
   SampleComplianceStatus,
   SampleRunningCost,
@@ -168,8 +183,49 @@ export type HubVehicleClassCount = {
 };
 
 export type HubVehiclesData = {
-  /** Echoed so the screen can pick its "Vehicles" / "Vehicle" heading. */
+  /**
+   * The **owner** axis: which owner-scoped API route pair applies to a vehicle
+   * on this screen, and whether the fourth tile is a fleet figure or a personal
+   * one. `"BUSINESS"` posts and deletes against
+   * `/api/logistics-company/vehicles`; `"INDIVIDUAL"` against
+   * `/api/driver-profile/vehicles`.
+   *
+   * Kept, and deliberately **not** replaced by `persona` below. The three
+   * places that read it — the "Fleet cost per km" / "Cost per km" tile label,
+   * the add form's route choice, and the detail panel's `removable` rule and
+   * `DELETE` endpoint — all ask a genuinely two-valued question about
+   * *ownership*, and an INDEPENDENT and a ROSTER driver answer it identically.
+   * Re-expressing them as `persona !== "BUSINESS"` would be a wider test
+   * standing in for a narrower fact, and would make the detail panel's
+   * ownership rule read as a persona rule.
+   *
+   * (The old comment here claimed this picks the screen's heading. It does
+   * not — the header title comes from the static `"Vehicles"` literal in
+   * `src/components/driver-hub/driver-hub-nav.ts`, which no screen overrides.)
+   */
   kind: HubAccountKind;
+  /**
+   * The **account-shape** axis, for copy. Three sentences are needed where
+   * `kind` can only tell two apart: an INDEPENDENT driver reads about a vehicle
+   * they own, a ROSTER driver reads about one their employer owns and assigned
+   * to them, and a BUSINESS reads about a fleet. This is the field the screen
+   * branches on for wording; `canAddVehicle` below is the field it branches on
+   * for the one affordance that is actually withheld.
+   */
+  persona: HubPersona;
+  /**
+   * Whether this account may register a vehicle at all — `false` for exactly
+   * one persona, `ROSTER`.
+   *
+   * Carried as a decided verdict rather than left to the screen to derive from
+   * `persona`, for the same reason `HubAccount.canToggleOnline` exists beside
+   * the activation columns it is computed from: the rule is enforced
+   * server-side (`POST /api/driver-profile/vehicles` 403s a roster driver, and
+   * so does the fleet route for a non-company caller), and a client that
+   * re-derives the rule is a second copy of it that can drift. When the rule
+   * changes it changes here, and the button follows.
+   */
+  canAddVehicle: boolean;
   /** Complete, unpaginated, newest first. */
   vehicles: HubVehicle[];
   tiles: {
@@ -257,6 +313,21 @@ export async function getHubVehicles(
   // a business account with no company id.
   const { companyId, driverProfileId } = account;
 
+  // Decided once for both return paths below. A roster driver's vehicle is
+  // their employer's, reached through an open `DriverVehicleAssignment` that a
+  // fleet manager creates — there is nothing for them to register, and
+  // `POST /api/driver-profile/vehicles` refuses them if they try. An
+  // INDEPENDENT driver registers their own; a BUSINESS registers the fleet's
+  // through the company route. Computing it here rather than at each `return`
+  // is what stops the empty-fleet path and the populated path from drifting
+  // into two different answers to the same question.
+  //
+  // Written as a single withholding rather than an allow-list of the two
+  // permitted personas on purpose: a fourth persona added later should default
+  // to *allowed* here and be excluded deliberately, not be silently denied by
+  // an exhaustive list nobody remembered to extend.
+  const canAddVehicle = account.persona !== "ROSTER";
+
   const scope =
     account.kind === "BUSINESS"
       ? companyId === null
@@ -283,6 +354,8 @@ export async function getHubVehicles(
   if (scope === null) {
     return {
       kind: account.kind,
+      persona: account.persona,
+      canAddVehicle,
       vehicles: [],
       tiles: {
         vehicleCount: 0,
@@ -386,6 +459,8 @@ export async function getHubVehicles(
 
   return {
     kind: account.kind,
+    persona: account.persona,
+    canAddVehicle,
     vehicles,
     tiles: {
       vehicleCount: vehicles.length,

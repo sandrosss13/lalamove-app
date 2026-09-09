@@ -51,13 +51,13 @@ graph TD
 - [x] [task-01-hub-persona-model](./tasks/task-01-hub-persona-model.md) — Add `HubPersona` to `HubAccount` and re-key nav visibility on it
 
 ### Wave 2
-- [ ] [task-02-today-persona-data](./tasks/task-02-today-persona-data.md) — Persona on `HubTodayData`; fleet jobs-in-progress count and fleet-wide attention rows
-- [ ] [task-03-earnings-persona-data](./tasks/task-03-earnings-persona-data.md) — Roster redirect for `/dashboard/earnings`; per-driver revenue breakdown for business accounts
-- [ ] [task-04-performance-persona-data](./tasks/task-04-performance-persona-data.md) — Persona on `HubPerformanceData`; per-driver acceptance/completion for business accounts
-- [ ] [task-05-vehicles-roster-guard](./tasks/task-05-vehicles-roster-guard.md) — `403` a roster driver from `POST /api/driver-profile/vehicles`; expose `canAddVehicle`
+- [x] [task-02-today-persona-data](./tasks/task-02-today-persona-data.md) — Persona on `HubTodayData`; fleet jobs-in-progress count and fleet-wide attention rows
+- [x] [task-03-earnings-persona-data](./tasks/task-03-earnings-persona-data.md) — Roster redirect for `/dashboard/earnings`; per-driver revenue breakdown for business accounts
+- [x] [task-04-performance-persona-data](./tasks/task-04-performance-persona-data.md) — Persona on `HubPerformanceData`; per-driver acceptance/completion for business accounts
+- [x] [task-05-vehicles-roster-guard](./tasks/task-05-vehicles-roster-guard.md) — `403` a roster driver from `POST /api/driver-profile/vehicles`; expose `canAddVehicle`
 
 ### Wave 3
-- [ ] [task-06-today-screen-personas](./tasks/task-06-today-screen-personas.md) — Today screen renders the fleet count, fleet attention card and roster framing
+- [x] [task-06-today-screen-personas](./tasks/task-06-today-screen-personas.md) — Today screen renders the fleet count, fleet attention card and roster framing
 - [ ] [task-07-earnings-screen-fleet](./tasks/task-07-earnings-screen-fleet.md) — Earnings screen renders the per-driver revenue table and fleet-appropriate tile copy
 - [ ] [task-08-performance-screen-personas](./tasks/task-08-performance-screen-personas.md) — Performance screen renders the per-driver table and drops "your score" copy for fleets
 - [ ] [task-09-vehicles-screen-roster](./tasks/task-09-vehicles-screen-roster.md) — Vehicles screen hides "Add vehicle" for roster drivers and labels the assigned vehicle

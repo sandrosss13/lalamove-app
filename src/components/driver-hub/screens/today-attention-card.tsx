@@ -7,6 +7,7 @@ import {
   formatShortDate,
   pluralise,
 } from "@/components/driver-hub/screens/today-format";
+import type { HubPersona } from "@/lib/dashboard/hub/account";
 import type {
   HubLicenceAlert,
   HubTodayVehicleAlert,
@@ -28,6 +29,29 @@ import { cn } from "@/lib/utils";
  * `<SampleNote />` — per row rather than per card, because a reader has to be
  * able to tell *which* of two adjacent rows is the fabricated one, which is
  * precisely what a single card-level badge would hide.
+ *
+ * ## Who is reading it
+ *
+ * The vehicle rows are no longer about one van. A `BUSINESS` account's rows
+ * cover several vehicles — two per vehicle, unique on `(vehiclePlate, kind)`
+ * rather than on `kind` alone — which changes three things about this card.
+ * The per-row badge matters *more* with more rows, not less: a reader now has
+ * to be able to tell which of many adjacent rows is fabricated, and a
+ * card-level badge over eight rows would say nothing about any of them. The
+ * rows only ever cover a slice of the fleet, so a fleet's card states how much
+ * of it they looked at and links to the Vehicles screen for the rest —
+ * otherwise three clean rows about three vans would read as a clean bill of
+ * health for twelve. And the licence row is **structurally absent** for a fleet
+ * rather than merely empty: `resolveHubAccount()` gives a COMPANY session no
+ * `driverProfileId`, a company holds no licence of its own, and its drivers'
+ * licences belong on the Drivers screen where each can be attached to a named
+ * person who can actually be called about one.
+ *
+ * The second person is therefore right for `INDEPENDENT` and `ROSTER`, who are
+ * both reading about their own licence and their own van, and wrong for
+ * `BUSINESS`, whose own attention is not what any of these rows is about. Only
+ * the `BUSINESS` copy differs; a roster driver reads this card exactly as an
+ * independent one does.
  *
  * Every row links to `/dashboard/vehicles`, where the documents behind them
  * live. That is true of the licence too: the hub has no standalone document
@@ -124,10 +148,34 @@ function vehicleAlertTitle(alert: HubTodayVehicleAlert): string {
 }
 
 /** The muted second line under a compliance headline. */
-function vehicleAlertBody(alert: HubTodayVehicleAlert): string {
-  return alert.kind === "INSURANCE"
-    ? `${alert.vehiclePlate} · renew the policy to keep taking jobs.`
-    : `Book the annual inspection for ${alert.vehiclePlate}.`;
+function vehicleAlertBody(
+  alert: HubTodayVehicleAlert,
+  persona: HubPersona,
+): string {
+  if (alert.kind !== "INSURANCE") {
+    return `Book the annual inspection for ${alert.vehiclePlate}.`;
+  }
+
+  // "Keep taking jobs" is what a driver does with their own van. A fleet owner
+  // is not the one taking the job — they are the one who loses a vehicle from
+  // the roster when its cover lapses.
+  return persona === "BUSINESS"
+    ? `${alert.vehiclePlate} · renew the policy to keep this vehicle on the road.`
+    : `${alert.vehiclePlate} · renew the policy to keep taking jobs.`;
+}
+
+/**
+ * Whose attention the card is asking for.
+ *
+ * A driver reads it about their own licence and their own van, so the second
+ * person is right for both `INDEPENDENT` and `ROSTER`. A fleet owner reads it
+ * about their vehicles — none of the rows is about a document of *theirs*, and
+ * `licenceAlert` is structurally `null` for them — so addressing them in the
+ * second person points at the wrong party. "Fleet attention" names the subject
+ * instead of the reader, which is what the rows are actually about.
+ */
+function attentionTitle(persona: HubPersona): string {
+  return persona === "BUSINESS" ? "Fleet attention" : "Needs your attention";
 }
 
 /* -------------------------------------------------------------------------- */
@@ -135,18 +183,38 @@ function vehicleAlertBody(alert: HubTodayVehicleAlert): string {
 /* -------------------------------------------------------------------------- */
 
 export type TodayAttentionCardProps = {
-  /** Real. `null` for a business account, which holds no licence of its own. */
+  /** Picks the card's voice — see `attentionTitle` above. */
+  persona: HubPersona;
+  /**
+   * Real. `null` for a BUSINESS account, which holds no licence of its own —
+   * `resolveHubAccount()` gives a COMPANY session no `driverProfileId`, and its
+   * drivers' licences belong on the Drivers screen where they can be attached
+   * to a named person who can actually be called about one.
+   */
   licenceAlert: HubLicenceAlert | null;
-  /** Sampled. Empty when the account has no vehicle to hang a row off. */
+  /**
+   * Sampled. Two rows per vehicle covered — one insurance, one inspection —
+   * and unique on `(vehiclePlate, kind)` rather than on `kind` alone, which is
+   * what it used to be when only one vehicle was ever covered.
+   */
   vehicleAlerts: readonly HubTodayVehicleAlert[];
+  /** How many distinct vehicles `vehicleAlerts` covers. Real. */
+  vehicleAlertVehicleCount: number;
+  /** The fleet's real registered vehicle count; `null` when not a fleet. */
+  fleetVehicleCount: number | null;
   className?: string;
 };
 
 export function TodayAttentionCard({
+  persona,
   licenceAlert,
   vehicleAlerts,
+  vehicleAlertVehicleCount,
+  fleetVehicleCount,
   className,
 }: TodayAttentionCardProps) {
+  const isFleet = persona === "BUSINESS";
+
   const licenceNeedsAttention =
     licenceAlert !== null &&
     (licenceAlert.isExpired ||
@@ -165,7 +233,7 @@ export function TodayAttentionCard({
   return (
     <HubCard
       className={cn("h-full", className)}
-      title="Needs your attention"
+      title={attentionTitle(persona)}
       contentClassName={hasRows ? "flex flex-col gap-2.5" : undefined}
     >
       {licenceNeedsAttention && licenceAlert !== null ? (
@@ -180,11 +248,13 @@ export function TodayAttentionCard({
 
       {openVehicleAlerts.map((alert) => (
         <AttentionRow
-          // One row per kind, and `today.ts` emits each kind at most once.
-          key={alert.kind}
+          // Rows are unique on `(vehiclePlate, kind)`, not on `kind`: a fleet's
+          // card covers several vehicles, so a key of `alert.kind` alone would
+          // repeat across plates and give React duplicate sibling keys.
+          key={`${alert.vehiclePlate}-${alert.kind}`}
           tone="plain"
           title={vehicleAlertTitle(alert)}
-          body={vehicleAlertBody(alert)}
+          body={vehicleAlertBody(alert, persona)}
           sampleNote={VEHICLE_ALERT_NOTE}
         />
       ))}
@@ -194,13 +264,38 @@ export function TodayAttentionCard({
         // is the outcome the driver wants, so it is stated as good news rather
         // than as an absence of rows.
         <div className="py-2">
-          <p className="text-sm font-medium">Nothing needs your attention</p>
+          <p className="text-sm font-medium">
+            {isFleet
+              ? "Nothing needs attention"
+              : "Nothing needs your attention"}
+          </p>
           <p className="mt-1.5 text-[13px] leading-normal text-muted-foreground">
-            Your licence and vehicle documents are in order. Anything that is
-            about to expire shows up here.
+            {/* "Every vehicle we checked" rather than "every vehicle": the rows
+                cover at most three of the fleet, and the wider claim would be
+                asserting something about vans this card never looked at. */}
+            {isFleet
+              ? "Every vehicle we checked has its documents in order. Anything that is about to expire shows up here."
+              : "Your licence and vehicle documents are in order. Anything that is about to expire shows up here."}
           </p>
         </div>
       )}
+
+      {/* Only a fleet needs this: a driver's rows cover the one vehicle they
+          have. The two numbers are real — a plate count and a `COUNT(*)` on
+          `Vehicle` — even though the rows they describe are sampled, so this
+          line carries no sample badge of its own. The rows keep theirs. */}
+      {isFleet && fleetVehicleCount !== null ? (
+        <p className="pt-1 text-xs text-muted-foreground">
+          {fleetVehicleCount === 0
+            ? "No vehicles registered yet."
+            : `Covering ${vehicleAlertVehicleCount} of ${pluralise(fleetVehicleCount, "vehicle")}. `}
+          {fleetVehicleCount > vehicleAlertVehicleCount ? (
+            <Link href={VEHICLES_HREF} className="underline underline-offset-4">
+              See the whole fleet
+            </Link>
+          ) : null}
+        </p>
+      ) : null}
     </HubCard>
   );
 }

@@ -42,6 +42,23 @@
  * aggregation on every request — `sample.ts` explains this at
  * `SAMPLE_PERFORMANCE_DELTAS` and names the model that retires it.
  *
+ * `fleet` — the BUSINESS-only per-driver breakdown — is covered by that same
+ * top-level rule, and it is worth saying out loud because it is the only surface
+ * on this screen with no fictional value anywhere in it. Every column on
+ * `HubPerformanceDriverRow` comes from `Order.status`, `Order.createdAt`,
+ * `Order.completedAt`, `Order.driverId` and `Order.companyId`, so the table
+ * carries no `<SampleNote />` at all. It has no per-driver acceptance column for
+ * that reason: acceptance is unrecorded rather than unaggregated, and
+ * `sampleDriverFacts()` falls back to a bare `0`, which would print a confident,
+ * specific and wrong `0%` against a named person on the roster their employer
+ * uses to evaluate them.
+ *
+ * One value under `sampled` is not constant across personas: the rating pair. A
+ * company is not rated, its drivers are, so a BUSINESS account reads the
+ * fleet-wide pair the Drivers screen already shows. It is flagged here because a
+ * reader of `sampled` would otherwise take the whole sub-object for a set of
+ * module constants passed straight through.
+ *
  * Server-only: it talks to Prisma directly. The object it returns crosses into a
  * `"use client"` tree, so dates leave as plain `YYYY-MM-DD` strings and numbers
  * leave unformatted for the screen to present.
@@ -50,10 +67,12 @@ import "server-only";
 
 import { OrderStatus, Prisma } from "@prisma/client";
 
-import type { HubAccount } from "@/lib/dashboard/hub/account";
+import type { HubAccount, HubPersona } from "@/lib/dashboard/hub/account";
 import {
   SAMPLE_ACCEPTANCE_RATE_PERCENT,
   SAMPLE_AVG_RATING,
+  SAMPLE_FLEET_AVG_RATING,
+  SAMPLE_FLEET_RATED_JOB_COUNT,
   SAMPLE_IDLE_MINUTES_PER_HOUR,
   SAMPLE_ONLINE_HOURS_WEEK,
   SAMPLE_PERFORMANCE_DELTAS,
@@ -132,7 +151,110 @@ export type HubPerformanceDay = {
   isFuture: boolean;
 };
 
+/**
+ * One row of the fleet breakdown: what a single driver on this company's roster
+ * did with the week.
+ *
+ * **Every field on this type is real.** There is deliberately no `sampled`
+ * sub-object here, and one must not be added — see the note on the fleet type
+ * below for the specific trap.
+ *
+ * The two windows this screen already carries are reproduced per driver rather
+ * than reconciled: `completionRatePercent` and `cancellationRatePercent` count
+ * jobs by when they were *booked* (`createdAt`), because `Order` has no
+ * `cancelledAt` and a cancellation can only be dated by its booking; while
+ * `jobsCompleted` counts by when the job *finished* (`completedAt`), so this
+ * column and the chart above it describe the same set of jobs. A row where the
+ * two disagree is not a bug — it is a driver who finished last week's work.
+ */
+export type HubPerformanceDriverRow = {
+  /**
+   * `User.id`. The same key `HubDriver.userId` carries on the Drivers screen,
+   * so an operator can line the two tables up, and the same key
+   * `Order.driverId` holds.
+   */
+  userId: string;
+  /** `User.name`, the display name the Drivers roster shows. */
+  name: string;
+  /** COMPLETED orders booked this week for this company. */
+  completedCount: number;
+  /** CANCELLED orders booked this week for this company. */
+  cancelledCount: number;
+  /** `completedCount + cancelledCount` — the denominator of both rates below. */
+  finishedJobCount: number;
+  /**
+   * Share of this driver's finished jobs that completed, as a percentage, or
+   * `null` when nothing of theirs finished this week.
+   *
+   * `null` rather than `0` for exactly the reason the fleet-level field gives:
+   * a rate with no denominator is not zero, and printing 0% would tell an
+   * operator that every job this driver took failed, when in fact they took
+   * none. The screen prints an em dash.
+   */
+  completionRatePercent: number | null;
+  /** The complement of `completionRatePercent`; `null` on the same condition. */
+  cancellationRatePercent: number | null;
+  /** COMPLETED orders this week dated by `completedAt` — the chart's basis. */
+  jobsCompleted: number;
+  /**
+   * `jobsCompleted / window.daysElapsed`, one decimal — divided by the days
+   * *elapsed*, not by seven, exactly as the fleet figure is, so the column does
+   * not sag every Monday for reasons that have nothing to do with the driver.
+   */
+  jobsPerDay: number;
+};
+
+/**
+ * The BUSINESS-only per-driver breakdown of everything the tiles above it
+ * aggregate.
+ *
+ * Non-null only for `persona === "BUSINESS"`. A driver-shaped account — either
+ * `INDEPENDENT` or `ROSTER` — gets `null`, not an empty object: there is no
+ * fleet to break down, and `null` is the answer that makes a screen branch on
+ * the fact rather than on an empty array that could equally mean "a fleet with
+ * nobody on it".
+ */
+export type HubPerformanceFleet = {
+  /**
+   * Every driver currently on this company's roster, including those who did
+   * nothing this week — a row of em dashes is the actionable signal an operator
+   * came for, and dropping it would make an idle driver indistinguishable from
+   * one who left.
+   *
+   * Ordered busiest first (`finishedJobCount` descending), ties broken by name.
+   * The order is fixed here rather than left to the screen because the table
+   * this feeds carries no sort control.
+   */
+  drivers: readonly HubPerformanceDriverRow[];
+  /**
+   * Finished jobs this week that this company holds but that **no row above
+   * accounts for**.
+   *
+   * Two things land here, and neither is an error. An order the company claimed
+   * but never dispatched has `driverId: null` and belongs to nobody. An order
+   * carried by a driver who has since left the roster keeps its `driverId`
+   * (`DriverProfile.companyId` is set null on removal, `Order.driverId` is
+   * not), and that user is no longer in the roster query above.
+   *
+   * It exists so the table can say out loud that its rows do not add up to the
+   * tiles. Without it a reader sums the rows, finds a smaller number than the
+   * fleet's own `finishedJobCount`, and concludes the screen is broken.
+   *
+   * Computed by subtraction from figures this function already has, so it costs
+   * no extra query, and it cannot go negative: the row set is a strict subset
+   * of the same window and the same company scope.
+   */
+  unattributedFinishedJobCount: number;
+};
+
 export type HubPerformanceData = {
+  /**
+   * Which account shape is reading this screen. Derived once in
+   * `resolveHubAccount()` and carried here so the screen can branch at all —
+   * before this field existed, Performance was byte-identical for an
+   * independent driver, an employed one and a fleet owner.
+   */
+  persona: HubPersona;
   window: {
     /** Tbilisi `YYYY-MM-DD` of the week's Monday. */
     from: string;
@@ -168,6 +290,11 @@ export type HubPerformanceData = {
   jobsPerDay: number;
   /** Seven entries, Monday first, zero-filled. */
   jobsByDay: readonly HubPerformanceDay[];
+  /**
+   * The per-driver breakdown behind the fleet figures above. Real data, and
+   * non-null only for `persona === "BUSINESS"`.
+   */
+  fleet: HubPerformanceFleet | null;
   /** Everything below this line is fictional — badge it. */
   sampled: {
     acceptanceRatePercent: number;
@@ -230,20 +357,149 @@ function roundRate(value: number): number {
 }
 
 /**
- * Fetches and shapes every figure the Performance screen shows, for either
- * account kind.
+ * The roster's own counts, for the BUSINESS breakdown table.
  *
- * Two independent queries in one `Promise.all`, the pattern
+ * Structured exactly as `drivers.ts` structures the Drivers screen: the roster
+ * is fetched first because every aggregate after it is keyed off the user ids it
+ * returns, and every aggregate carries `companyId` as well as those ids. The
+ * second filter is not redundant — `Order.driverId` outlives a driver's
+ * membership of a roster, because removing a driver nulls
+ * `DriverProfile.companyId` and leaves the orders they carried pointing at them.
+ * Without it, a driver who moved here from another fleet would drag that fleet's
+ * outcomes onto this company's screen, which is a cross-tenant read.
+ *
+ * The roster query is deliberately roster-first rather than an orders-first
+ * `groupBy` with the names looked up afterwards. That would be one query fewer,
+ * but it would silently omit every driver who did nothing this week — the row an
+ * operator most needs to see — and would include drivers who have left the
+ * roster, under names the company can no longer act on.
+ *
+ * Returns raw counts only. `jobsPerDay` is finished by the caller, which is
+ * where `window.daysElapsed` is known — and dividing there rather than here is
+ * what guarantees the rows and the tiles above them use the same divisor.
+ */
+async function loadFleetDriverCounts(
+  companyId: string,
+  weekStart: Date,
+  weekEndExclusive: Date,
+): Promise<
+  {
+    userId: string;
+    name: string;
+    completedCount: number;
+    cancelledCount: number;
+    jobsCompleted: number;
+  }[]
+> {
+  // `createdAt: "asc"` only so the query is deterministic; the display order is
+  // applied by the caller, which sorts busiest first.
+  const roster = await prisma.driverProfile.findMany({
+    where: { companyId },
+    select: { userId: true, user: { select: { name: true } } },
+    orderBy: { createdAt: "asc" },
+  });
+
+  // An empty roster yields `[]` here, which Prisma renders as a predicate that
+  // matches nothing, so both aggregates come back empty and this function
+  // returns `[]`. A fleet with nobody on it is a renderable state, exactly as
+  // `drivers.ts` says of its own empty roster — it is not a reason to skip the
+  // caller's `fleet` object.
+  const driverUserIds = roster.map((driver) => driver.userId);
+
+  const [terminalRows, completedRows] = await Promise.all([
+    // Both outcomes in one pass, keyed on `createdAt` — the window both rates
+    // run over, because `Order` has no `cancelledAt` and a cancellation can only
+    // be dated by when the job was booked.
+    prisma.order.groupBy({
+      by: ["driverId", "status"],
+      where: {
+        companyId,
+        driverId: { in: driverUserIds },
+        status: { in: TERMINAL_JOB_STATUSES },
+        createdAt: { gte: weekStart, lt: weekEndExclusive },
+      },
+      _count: { _all: true },
+    }),
+    // Keyed on `completedAt` instead, so this column counts the same jobs the
+    // chart above the table draws.
+    prisma.order.groupBy({
+      by: ["driverId"],
+      where: {
+        companyId,
+        driverId: { in: driverUserIds },
+        status: OrderStatus.COMPLETED,
+        completedAt: { gte: weekStart, lt: weekEndExclusive },
+      },
+      _count: { _all: true },
+    }),
+  ]);
+
+  // Grouping by two columns returns up to two rows per driver, one per outcome,
+  // so these accumulate rather than assign.
+  const completedByDriver = new Map<string, number>();
+  const cancelledByDriver = new Map<string, number>();
+  for (const row of terminalRows) {
+    // `driverId: { in: [...] }` already excludes nulls; the check is what
+    // narrows the type so it can key the map without a cast.
+    if (row.driverId === null) {
+      continue;
+    }
+
+    const target =
+      row.status === OrderStatus.COMPLETED
+        ? completedByDriver
+        : cancelledByDriver;
+    target.set(row.driverId, (target.get(row.driverId) ?? 0) + row._count._all);
+  }
+
+  const jobsCompletedByDriver = new Map<string, number>();
+  for (const row of completedRows) {
+    if (row.driverId === null) {
+      continue;
+    }
+
+    jobsCompletedByDriver.set(row.driverId, row._count._all);
+  }
+
+  // Read back with a `?? 0` fallback so a driver with no orders this week gets a
+  // real zero rather than being dropped from the list.
+  return roster.map((driver) => ({
+    userId: driver.userId,
+    name: driver.user.name,
+    completedCount: completedByDriver.get(driver.userId) ?? 0,
+    cancelledCount: cancelledByDriver.get(driver.userId) ?? 0,
+    jobsCompleted: jobsCompletedByDriver.get(driver.userId) ?? 0,
+  }));
+}
+
+/**
+ * Fetches and shapes every figure the Performance screen shows, for every
+ * persona.
+ *
+ * Independent queries in one `Promise.all`, the pattern
  * `driver-dashboard-data.ts` sets: the rate counts and the daily series read
  * different columns over different date keys and share nothing but the window.
+ * A BUSINESS account adds the per-driver breakdown as a third entry in that same
+ * `Promise.all` rather than a serial round-trip after it; the other two personas
+ * resolve that slot to `null` and issue no roster query at all.
  */
 export async function getHubPerformance(
   account: HubAccount,
 ): Promise<HubPerformanceData> {
   const scope = hubOrderScope(account);
 
+  // Both halves are load-bearing: `persona` is the product rule, and the null
+  // check is what lets `companyId` narrow to a string for the roster query. A
+  // BUSINESS account always has a `companyId`, but the type permits null and
+  // this fails closed rather than asserting it away — the same shape
+  // `getHubDrivers()` uses.
+  const { companyId } = account;
+  const fleetCompanyId =
+    account.persona === "BUSINESS" && companyId !== null ? companyId : null;
+
   // Both bounds come from one `now`, so a request that crosses Tbilisi midnight
-  // cannot count its rates against one week and its bars against another.
+  // cannot count its rates against one week and its bars against another. The
+  // fleet breakdown below is handed these same two bounds for the same reason.
   const now = new Date();
   const startOfToday = startOfHubDay(now);
   const weekStart = startOfHubWeek(now);
@@ -252,7 +508,7 @@ export async function getHubPerformance(
     HUB_PERFORMANCE_WINDOW_DAYS,
   );
 
-  const [terminalCounts, dayRows] = await Promise.all([
+  const [terminalCounts, dayRows, fleetDriverCounts] = await Promise.all([
     prisma.order.groupBy({
       by: ["status"],
       where: {
@@ -283,6 +539,12 @@ export async function getHubPerformance(
       GROUP BY 1
       ORDER BY 1
     `,
+
+    // Only a fleet owner has a roster to break down, so the two driver-shaped
+    // personas resolve this slot without touching the database.
+    fleetCompanyId === null
+      ? Promise.resolve(null)
+      : loadFleetDriverCounts(fleetCompanyId, weekStart, weekEndExclusive),
   ]);
 
   let completedCount = 0;
@@ -325,7 +587,63 @@ export async function getHubPerformance(
     }
   }
 
+  // Built after the loop because `daysElapsed` is the divisor the rows share
+  // with the tiles above them.
+  let fleet: HubPerformanceFleet | null = null;
+  if (fleetDriverCounts !== null) {
+    const fleetDrivers: HubPerformanceDriverRow[] = fleetDriverCounts
+      .map((row) => {
+        const rowFinished = row.completedCount + row.cancelledCount;
+
+        return {
+          userId: row.userId,
+          name: row.name,
+          completedCount: row.completedCount,
+          cancelledCount: row.cancelledCount,
+          finishedJobCount: rowFinished,
+          // `null`, never `0`, on an empty denominator — printing 0% would say
+          // every job this driver took failed, when they took none.
+          completionRatePercent:
+            rowFinished === 0
+              ? null
+              : roundRate((row.completedCount / rowFinished) * 100),
+          cancellationRatePercent:
+            rowFinished === 0
+              ? null
+              : roundRate((row.cancelledCount / rowFinished) * 100),
+          jobsCompleted: row.jobsCompleted,
+          // The same divisor the fleet tile uses, so a reader can add the
+          // column up and land near the tile above it.
+          jobsPerDay: roundRate(row.jobsCompleted / daysElapsed),
+        };
+      })
+      // Busiest first: an operator scans for who carried the week and who did
+      // not move. The locale is pinned for the same reason every formatter in
+      // this hub pins one — an unpinned `localeCompare` reads the host's
+      // locale, which would make the row order depend on which machine the
+      // deploy landed on.
+      .sort(
+        (a, b) =>
+          b.finishedJobCount - a.finishedJobCount ||
+          a.name.localeCompare(b.name, "en-GB"),
+      );
+
+    const attributedFinishedJobCount = fleetDrivers.reduce(
+      (total, row) => total + row.finishedJobCount,
+      0,
+    );
+
+    fleet = {
+      drivers: fleetDrivers,
+      // Cannot go negative: the rows are a strict subset of the same company,
+      // the same statuses and the same window as `finishedJobCount` above.
+      unattributedFinishedJobCount:
+        finishedJobCount - attributedFinishedJobCount,
+    };
+  }
+
   return {
+    persona: account.persona,
     window: {
       from: toHubDayKey(weekStart),
       to: toHubDayKey(
@@ -348,10 +666,23 @@ export async function getHubPerformance(
     // never divides by zero.
     jobsPerDay: roundRate(jobsCompleted / daysElapsed),
     jobsByDay: days,
+    fleet,
     sampled: {
       acceptanceRatePercent: SAMPLE_ACCEPTANCE_RATE_PERCENT,
-      averageRating: SAMPLE_AVG_RATING,
-      ratedJobCount: SAMPLE_RATED_JOB_COUNT,
+      // The only persona-keyed value in this sub-object. A fleet is not rated;
+      // its drivers are, so a BUSINESS account reads the fleet-wide pair the
+      // Drivers screen already shows rather than one driver's 4.86 over one
+      // driver's 61 jobs. Both pairs are equally fictional and both retire with
+      // the same `OrderRating` model — this picks the one that is fictional
+      // about the right subject.
+      averageRating:
+        account.persona === "BUSINESS"
+          ? SAMPLE_FLEET_AVG_RATING
+          : SAMPLE_AVG_RATING,
+      ratedJobCount:
+        account.persona === "BUSINESS"
+          ? SAMPLE_FLEET_RATED_JOB_COUNT
+          : SAMPLE_RATED_JOB_COUNT,
       idleMinutesPerHour: SAMPLE_IDLE_MINUTES_PER_HOUR,
       onlineHoursWeek: SAMPLE_ONLINE_HOURS_WEEK,
       deltas: SAMPLE_PERFORMANCE_DELTAS,

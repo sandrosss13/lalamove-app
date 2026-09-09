@@ -130,6 +130,14 @@ function parseCreateVehicleForm(
  * The vehicle type is included because payload and cargo dimensions live on the
  * spec now, not on the vehicle row, so a bare vehicle says nothing about what
  * it can carry.
+ *
+ * Deliberately **not** closed to roster drivers, unlike the `POST` below. A
+ * driver employed by a company listing the vehicles they own is reading their
+ * own rows, and for a roster driver that list is simply empty — an honest
+ * answer, not an error. The hub's Vehicles screen does not call this endpoint
+ * at all (it renders server-side from `getHubVehicles()`), so refusing here
+ * would change nothing the hub shows and would break any other consumer for no
+ * gain.
  */
 export async function GET(request: Request): Promise<NextResponse> {
   const session = await auth.api.getSession({ headers: request.headers });
@@ -173,6 +181,15 @@ export async function GET(request: Request): Promise<NextResponse> {
  * vehicle cannot be attributed to a company. Fleet vehicles go through
  * POST /api/logistics-company/vehicles instead.
  *
+ * A driver who belongs to a company is refused outright with a `403`. Because
+ * this route's owner column is always the driver, letting an employed driver
+ * through would write them a personal vehicle their employer's fleet screens
+ * cannot see and no dispatch path would ever assign — the vehicle would exist,
+ * be theirs, and be useless. They get one from their fleet manager instead,
+ * through a `DriverVehicleAssignment`. The check reads
+ * `DriverProfile.companyId` off the lookup below and runs before anything is
+ * uploaded; see the comment on it for why that column alone suffices here.
+ *
  * Photos are uploaded to Storage before the row is written, because the row
  * stores their URLs. If the write then fails the uploads are removed again, so
  * a rejected request doesn't leave orphaned objects behind.
@@ -210,13 +227,52 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   const driverProfile = await prisma.driverProfile.findUnique({
     where: { userId: session.user.id },
-    select: { id: true },
+    // `companyId` joins `id` for the roster check below. It rides on the query
+    // the handler was making anyway, which is why this endpoint reads the
+    // column directly instead of resolving the hub account: that path goes
+    // through `requireDashboardSession()`, whose `redirect()` would throw
+    // NEXT_REDIRECT out of a route handler answering a fetch.
+    select: { id: true, companyId: true },
   });
 
   if (!driverProfile) {
     return NextResponse.json(
       { error: "Complete your driver profile before adding a vehicle." },
       { status: 400 },
+    );
+  }
+
+  // A driver employed on a company's roster does not register their own
+  // vehicle: they drive one the fleet owns, reached through an open
+  // `DriverVehicleAssignment` that a fleet manager creates. Without this
+  // refusal the create below would happily write them a `Vehicle` with
+  // `companyId: null` — a personal row their employer's fleet screens cannot
+  // see, that no dispatch path will assign work to, and that the fleet's own
+  // vehicle-review pipeline never touched. It would exist, it would be theirs,
+  // and it would be inert.
+  //
+  // `companyId` alone is the whole test *here* only because the role check
+  // above has already refused every non-DRIVER session, and `resolveHubAccount`
+  // assigns `kind: "BUSINESS"` for a COMPANY session alone. Anything reaching
+  // this line is therefore an INDIVIDUAL-shaped account, so a non-null
+  // `companyId` names an *employer* and can never name the caller's own
+  // company. Elsewhere — `GET /api/loads`, `hubNavForAccount()` — the same rule
+  // has to be spelled `kind === "INDIVIDUAL" && companyId !== null`, because
+  // those surfaces serve both shapes from one code path. Fleet vehicles are
+  // added through POST /api/logistics-company/vehicles instead.
+  //
+  // Refused here, before the type-spec lookup and before the photo upload
+  // below: the cleanup path further down only runs when `vehicle.create`
+  // throws, so a refusal returned after the uploads would strand objects in
+  // the Storage bucket on every rejected attempt. Refuse before spending
+  // anything.
+  if (driverProfile.companyId !== null) {
+    return NextResponse.json(
+      {
+        error:
+          "Drivers who belong to a company drive their employer's vehicles. Ask your fleet manager to add this vehicle and assign it to you.",
+      },
+      { status: 403 },
     );
   }
 
