@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { OrderStatus } from "@prisma/client";
 
 import { auth } from "@/lib/auth";
-import { ORDER_PARTY_SELECT } from "@/lib/order-response-select";
+import { CARRIER_ORDER_PARTY_SELECT } from "@/lib/order-response-select";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -52,10 +52,15 @@ export async function POST(
     );
   }
 
+  // Carrier-only response — see `CARRIER_ORDER_PARTY_SELECT`'s doc comment;
+  // never `ORDER_PARTY_SELECT` here. This route has no explicit role check, but
+  // the `order.driverId !== session.user.id` guard a few lines above means the
+  // assigned driver is the only account that ever reaches this update, so the
+  // audience is a carrier by construction rather than by a role test.
   const updated = await prisma.order.update({
     where: { id },
     data: { status: OrderStatus.IN_TRANSIT, inTransitAt: new Date() },
-    select: ORDER_PARTY_SELECT,
+    select: CARRIER_ORDER_PARTY_SELECT,
   });
 
   return NextResponse.json(updated, { status: 200 });

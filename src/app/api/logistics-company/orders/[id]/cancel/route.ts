@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { OrderStatus } from "@prisma/client";
 
 import { auth } from "@/lib/auth";
-import { ORDER_PARTY_SELECT } from "@/lib/order-response-select";
+import { CARRIER_ORDER_PARTY_SELECT } from "@/lib/order-response-select";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -91,9 +91,13 @@ export async function POST(
     );
   }
 
+  // Carrier-only response — see `CARRIER_ORDER_PARTY_SELECT`'s doc comment;
+  // never `ORDER_PARTY_SELECT` here. The company is the carrier on its own
+  // order, entitled to its own payout and not to what the client paid; a cancel
+  // response is no more a reason to hand over the client's fare than a claim is.
   const updated = await prisma.order.findUnique({
     where: { id },
-    select: ORDER_PARTY_SELECT,
+    select: CARRIER_ORDER_PARTY_SELECT,
   });
   return NextResponse.json(updated, { status: 200 });
 }

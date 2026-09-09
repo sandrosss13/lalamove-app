@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { OrderStatus } from "@prisma/client";
 
 import { auth } from "@/lib/auth";
-import { ORDER_PARTY_SELECT } from "@/lib/order-response-select";
+import { CARRIER_ORDER_PARTY_SELECT } from "@/lib/order-response-select";
 import {
   capabilityOf,
   loadFits,
@@ -37,8 +37,9 @@ import { prisma } from "@/lib/prisma";
  * view shows; no new column or status value is needed for it, because a claimed
  * order always has `companyId` set and `driverId` still null until dispatch.
  *
- * The success response deliberately omits `Order.price`. See the select at the
- * bottom of this handler for why.
+ * The success response carries no client money at all — not `Order.price` and
+ * not the fare components it is built from. See the select at the bottom of this
+ * handler for why.
  */
 export async function POST(
   request: Request,
@@ -190,6 +191,17 @@ export async function POST(
   // rolls. Being *stricter* than the board is the failure that costs a
   // dispatcher a refusal on a load they were just offered.
   //
+  // That last sentence is a promise about another file, so: it is kept in
+  // `POST /api/logistics-company/orders/[id]/dispatch`, which re-runs
+  // `capabilityOf` + `loadFits` against the single vehicle being assigned and
+  // refuses with a 400 if the load does not fit *it*. That check did not exist
+  // when this comment was first written, which made the optimism here
+  // unbacked — a fleet whose heaviest truck is not its longest could claim a
+  // load and dispatch a truck that could not carry it, with nothing catching it
+  // until the driver reached the dock. If the dispatch re-check is ever removed,
+  // this optimism has to go with it: swap `widestCapability` for
+  // `fitsAnyVehicle`, which admits only loads a single real truck can take.
+  //
   // **The null pre-check is a deliberate asymmetry with the listing, not an
   // oversight.** `loadFits` resolves a null load dimension to "does not fit",
   // which is right for a *listing* — hiding a load of unknown size costs nobody
@@ -249,26 +261,28 @@ export async function POST(
     );
   }
 
-  // `price` is what the CLIENT pays and must never reach a board-facing surface;
-  // `driverPayout` (the 85% share stored on the order at creation) is the only
-  // money figure the board may show — the board has no role-specific UI, so a
-  // company sees exactly what a driver sees. `ORDER_PARTY_SELECT` includes
-  // `price`: correct for the lifecycle endpoints it was written for, wrong here.
+  // Carrier-only response — see `CARRIER_ORDER_PARTY_SELECT`'s doc comment;
+  // never `ORDER_PARTY_SELECT` here. The company is the carrier on the order it
+  // just claimed, entitled to its own payout and to nothing about what the
+  // client paid to get it — the board has no role-specific UI, so a company sees
+  // exactly what a driver sees, and that is the correct answer rather than a
+  // convenient one.
   //
-  // Spread-and-override rather than a hand-listed select: this stays in step
-  // with `ORDER_PARTY_SELECT` as that constant grows new fields, while
-  // guaranteeing `price` specifically can never be one of them. `handlingTags`
-  // is added so the confirm dialog can warn about a HAZMAT load — a warning
-  // only: `DriverLicence` has no certification field anywhere in the schema, so
-  // nothing here gates a hazmat claim, and nothing should until that field and
+  // This used to be `{ ...ORDER_PARTY_SELECT, price: false }`, which looked like
+  // the redaction and was not one: `price` is `baseFare + distanceFare +
+  // timeFare + helperFee` floored at the rule's `minimumFare`, and all four of
+  // those stayed in the response alongside `overtimeFee` and
+  // `serviceLevelAdjustment`. The seven money columns have to leave together.
+  //
+  // `handlingTags` is the one field added on top, and it is not money: the
+  // confirm dialog warns about a HAZMAT load with it — a warning only, since
+  // `DriverLicence` has no certification field anywhere in the schema, so
+  // nothing here gates a hazmat claim and nothing should until that field and
   // the onboarding capture behind it exist.
   const order = await prisma.order.findUnique({
     where: { id },
     select: {
-      ...ORDER_PARTY_SELECT,
-      price: false,
-      driverPayout: true,
-      reference: true,
+      ...CARRIER_ORDER_PARTY_SELECT,
       handlingTags: true,
     },
   });

@@ -721,17 +721,35 @@ export async function GET(request: Request): Promise<NextResponse> {
     );
   }
 
-  // A driver whose onboarding application has not been approved cannot claim
-  // work, so there is nothing to compute and none of the queries below run.
+  // An account whose application has not been approved cannot claim work, so
+  // there is nothing to compute and none of the queries below run.
   //
-  // `canToggleOnline` is read as a proxy for "this driver is activated":
-  // `resolveHubAccount` computes it today as `driverProfile.activatedAt !==
-  // null`, exactly the gate `POST /api/orders/[id]/accept` enforces. Reusing it
-  // saves a second `DriverProfile` round trip — but it is a proxy, not the
-  // column: if `canToggleOnline` is ever changed to mean something else, this
-  // check must become a real `activatedAt` read rather than quietly following
-  // the new meaning.
-  if (account.kind === "INDIVIDUAL" && !account.canToggleOnline) {
+  // **This applies to both account kinds, and that is the whole point of the
+  // check.** It gated only drivers at first, which left an unactivated
+  // `LogisticsCompany` looking at a full board of claimable-looking loads that
+  // `POST /api/logistics-company/orders/[id]/claim` and `POST
+  // /api/loads/[id]/reject` then both refuse with 403 — the board advertising
+  // work the claim path will not honour, which is the exact class of divergence
+  // this endpoint's eligibility filter exists to prevent. The earlier fixes
+  // were all about *fit* divergence and so could not have caught this one.
+  //
+  // `isActivated` is the real column reduced to a verdict — `activatedAt !==
+  // null` on `DriverProfile` for a driver and on `LogisticsCompany` for a
+  // fleet — resolved in the one `resolveHubAccount` round trip the handler has
+  // already made. It replaces an earlier read of `canToggleOnline`, which was
+  // only ever a *proxy* for a driver's activation and is flatly wrong for a
+  // company: a fleet has no online toggle, so `canToggleOnline` is false for an
+  // activated company too and reusing it here would empty every company's
+  // board. That comment warned this check "must become a real `activatedAt`
+  // read" if the proxy ever stopped holding; extending the gate to companies is
+  // when it stopped holding.
+  //
+  // **An unactivated account gets an empty board, not a 403.** The board is a
+  // listing, and the honest answer to "what may I act on?" for an account that
+  // may act on nothing is an empty list — the same 200 shape every other
+  // caller parses, rather than an error the UI would have to special-case. The
+  // refusals stay where the action is, on claim and reject.
+  if (!account.isActivated) {
     return NextResponse.json<LoadBoardResponse>(
       { available: [], mine: [], rejected: [], hiddenByCapacityCount: 0 },
       { status: 200 },

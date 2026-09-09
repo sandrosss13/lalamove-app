@@ -130,9 +130,10 @@ For the account itself, reuse `resolveHubAccount` from
 `src/lib/dashboard/hub/account.ts` rather than re-deriving the same
 `DriverProfile`/`LogisticsCompany` lookups a third time. It already resolves
 the signed-in user into `{ kind: "BUSINESS" | "INDIVIDUAL", userId,
-driverProfileId: string | null, companyId: string | null, canToggleOnline:
-boolean, ... }` (`kind` is `"BUSINESS"` for a `COMPANY` session and
-`"INDIVIDUAL"` for a `DRIVER` session). Three things about it matter here:
+driverProfileId: string | null, companyId: string | null, isActivated:
+boolean, canToggleOnline: boolean, ... }` (`kind` is `"BUSINESS"` for a
+`COMPANY` session and `"INDIVIDUAL"` for a `DRIVER` session). Three things
+about it matter here:
 
 1. It is built on top of `requireDashboardSession()`, which calls
    `redirect()` on a signed-out session, a forced-password-change session, or
@@ -150,14 +151,17 @@ boolean, ... }` (`kind` is `"BUSINESS"` for a `COMPANY` session and
    `null` for an independent driver/sole proprietor. This is exactly the
    field the roster-driver refusal (below) needs; do not query
    `DriverProfile` again to get it.
-3. `account.canToggleOnline` on an `INDIVIDUAL` account is computed inside
-   `resolveHubAccount` as `driverProfile.activatedAt !== null` — read that
-   function's source before relying on this, but as written today it is an
-   exact, reusable proxy for "this driver is activated." Reuse it instead of
-   a second `DriverProfile` query for `activatedAt`; if `resolveHubAccount`
-   is ever changed to compute `canToggleOnline` differently, this endpoint
-   would need a real `activatedAt` read instead, so leave a comment saying
-   so.
+3. `account.isActivated` is the account-kind-agnostic approval verdict:
+   `resolveHubAccount` computes it as `driverProfile.activatedAt !== null` on
+   an `INDIVIDUAL` and `company.activatedAt !== null` on a `BUSINESS`. Use it
+   for the activation gate below, for **both** kinds, instead of a second
+   `DriverProfile`/`LogisticsCompany` query for `activatedAt`.
+
+   Do **not** use `account.canToggleOnline` for this. It is a driver-only
+   proxy — true when a driver may operate the header's online toggle — and it
+   is `false` for an *activated* company too, because a fleet has no toggle at
+   all. An earlier draft of this task told the implementer to read it, which
+   is how the company half of the gate came to be missing.
 
 **Distance.** `src/lib/geo.ts` already exports `haversineDistanceKm(a:
 LatLng, b: LatLng): number` and `type LatLng = { lat: number; lng: number }`.
@@ -288,11 +292,25 @@ scope for this task and would duplicate logic the later tasks own.
    `account.companyId !== null`, return `403` with the adapted message
    described above.
 
-4. **Not-yet-activated driver → empty board**, `DRIVER` sessions only: if
-   `account.canToggleOnline === false` (see the reuse note above), return
-   `200` immediately with `{ available: [], mine: [], rejected: [],
-   hiddenByCapacityCount: 0 }`. Do not run any of the queries below for this
-   case — there is nothing to compute.
+4. **Not-yet-activated account → empty board**, for **both** `DRIVER` and
+   `COMPANY` sessions: if `account.isActivated === false` (see the reuse note
+   above), return `200` immediately with `{ available: [], mine: [],
+   rejected: [], hiddenByCapacityCount: 0 }`. Do not run any of the queries
+   below for this case — there is nothing to compute.
+
+   The gate is **not** driver-only, and an earlier version of this step
+   wrongly said it was. `LogisticsCompany.activatedAt` gates a fleet exactly
+   as `DriverProfile.activatedAt` gates a driver: `POST
+   /api/logistics-company/orders/[id]/claim` and `POST
+   /api/loads/[id]/reject` both refuse an unactivated company with `403`, so a
+   board that listed loads for one would be advertising work the claim path
+   will not honour — the board↔claim divergence this endpoint's eligibility
+   filter exists to prevent, in a form the fit filter cannot catch.
+
+   An unactivated account gets an empty board rather than a `403`: the board
+   is a listing, and "nothing you may act on" is honestly expressed as an
+   empty list in the ordinary response shape. The refusals belong on the
+   actions (claim, reject), which already have them.
 
 5. **Load each account's fleet capability, keyed by vehicle class.** Every
    `select` below must also include `vehicleTypeSpecId: true` on the vehicle
@@ -812,6 +830,11 @@ The design's three row states — `available`, `claimed`, `mine` — map from
       `src/app/api/orders/[id]/accept/route.ts`'s roster-driver refusal.
 - [ ] `DRIVER` session with `DriverProfile.activatedAt` null → `200` with
       `{ available: [], mine: [], rejected: [], hiddenByCapacityCount: 0 }`.
+- [ ] `COMPANY` session with `LogisticsCompany.activatedAt` null → the same
+      `200` empty board, **not** a `403` and **not** a populated board. This
+      must hold even when the fleet has vehicles that would otherwise make
+      open loads eligible: the claim and reject routes refuse an unactivated
+      company outright, so nothing may be listed for one.
 - [ ] An order this account has a `LoadRejection` row for is absent from
       `available` and present in `rejected`.
 - [ ] `hiddenByCapacityCount` counts a `PENDING`, unassigned order with

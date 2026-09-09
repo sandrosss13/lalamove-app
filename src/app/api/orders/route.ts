@@ -1055,12 +1055,101 @@ const ORDER_LIST_SELECT = {
   // the resolved payout is anyone's business — matching how `savedCardId` and
   // `purchaseOrderRef` are withheld above.
   //
-  // `driverPayout` is added rather than substituted: this endpoint still returns
-  // `price` to a driver browsing open `PENDING` work, exactly as it did before.
-  // That is pre-existing behaviour, not something introduced here — the load
-  // board's own endpoint is where "a driver only ever sees `driverPayout`" is
-  // enforced. Adding the column gives a driver-facing consumer the correct
-  // figure to prefer; removing the incorrect one is a separate change.
+  // This constant is now **client-only**. It keeps the full itemised fare
+  // because the client who booked the order is commercially party to every line
+  // of it, and `GET` below hands it to the client branch alone; a driver session
+  // is answered from `DRIVER_ORDER_LIST_SELECT` instead. `driverPayout` stays
+  // selected here rather than being pulled back out — a client's own row
+  // carrying the figure is harmless, and removing it would be a change to the
+  // client's response shape that nothing asked for.
+} as const;
+
+/**
+ * `ORDER_LIST_SELECT`'s driver-facing sibling: the same row **minus every column
+ * describing what the client pays**, plus the driver's own two payout columns.
+ *
+ * *"Driver should see only its net, not total paid."* `Order.price` and
+ * `Order.overtimeFee` are the client's money; `Order.driverPayout` and
+ * `Order.overtimeDriverPayout` are the driver's. This endpoint answers both
+ * audiences from one handler — a client listing their own bookings, and a driver
+ * browsing open `PENDING` work plus their own assignments — so the redaction is
+ * per **requester role**, not per route, and this is the half of it a driver
+ * sees.
+ *
+ * **All seven money columns leave together, and that is the whole mechanism.**
+ * `price` is `baseFare + distanceFare + timeFare + helperFee` floored at the
+ * pricing rule's `minimumFare` (`src/lib/pricing.ts`), so a response that omits
+ * `price` while keeping its four components has redacted nothing — the client's
+ * total is one addition away on all but the shortest jobs. Dropping the lot,
+ * plus `overtimeFee` and `serviceLevelAdjustment`, is the only version of this
+ * that holds.
+ *
+ * Omission rather than nulling, deliberately, and the contrast with
+ * `canSeeStopContacts` below is worth reading: contact entitlement varies **row
+ * by row** inside one response — a driver's list mixes open work they have not
+ * accepted with jobs already assigned to them — so contacts are selected and
+ * then nulled, keeping every row the same shape. Money entitlement does not vary
+ * that way. There is no row in a driver's response allowed to carry the client's
+ * price, open or assigned, so nothing needs a stable shape and the stronger
+ * mechanism is available: a column that was never selected is absent from the
+ * type Prisma infers, so a future `order.price` on this path is a compile error
+ * rather than a runtime `null` that `formatGel` would render as `₾0.00`.
+ *
+ * Kept as its own route-local constant rather than importing
+ * `CARRIER_ORDER_PARTY_SELECT` from `src/lib/order-response-select.ts` — see
+ * that constant for the full reasoning this one shares — for exactly the reason
+ * `ORDER_LIST_SELECT` above is route-local and not `ORDER_PARTY_SELECT`: a
+ * listing endpoint serves requesters who are not yet a party to most of what it
+ * lists, and must stay free to withhold more than the lifecycle endpoints do.
+ * Named `DRIVER_...` rather than `CARRIER_...` because this file's `GET` has no
+ * company branch; only a driver session ever reaches it.
+ */
+const DRIVER_ORDER_LIST_SELECT = {
+  id: true,
+  cargoCategory: true,
+  description: true,
+  bodyType: true,
+  helperCount: true,
+  scheduledAt: true,
+  pickupAddress: true,
+  pickupLat: true,
+  pickupLng: true,
+  dropoffAddress: true,
+  dropoffLat: true,
+  dropoffLng: true,
+  pickupContactName: true,
+  pickupContactPhone: true,
+  pickupContactDetails: true,
+  dropoffContactName: true,
+  dropoffContactPhone: true,
+  dropoffContactDetails: true,
+  distanceKm: true,
+  serviceLevel: true,
+  vehicleTypeSpecId: true,
+  status: true,
+  clientId: true,
+  companyId: true,
+  driverId: true,
+  vehicleId: true,
+  paymentMethodType: true,
+  inTransitAt: true,
+  completedAt: true,
+  waitingMinutes: true,
+  createdAt: true,
+  updatedAt: true,
+  reference: true,
+  cargoWeightKg: true,
+  cargoLengthM: true,
+  cargoWidthM: true,
+  cargoHeightM: true,
+  packagingDescription: true,
+  itemQuantity: true,
+  handlingTags: true,
+  pickupWindowStart: true,
+  pickupWindowEnd: true,
+  deliveryDeadline: true,
+  driverPayout: true,
+  overtimeDriverPayout: true,
 } as const;
 
 /**
@@ -1094,9 +1183,22 @@ function canSeeStopContacts(
  * The filter mirrors the driver-facing `/orders` page, so the API can't hand
  * back jobs the UI deliberately hides.
  *
- * Every row is trimmed to `ORDER_LIST_SELECT`, and the stop contacts within it
- * are returned as `null` on any row the requester is not a party to, so an open
- * job in a driver's listing never carries the client's name and phone number.
+ * Every row is trimmed to a select, and the stop contacts within it are returned
+ * as `null` on any row the requester is not a party to, so an open job in a
+ * driver's listing never carries the client's name and phone number.
+ *
+ * **The two branches differ in `select`, not only in `where`.** A client is
+ * answered from `ORDER_LIST_SELECT` with their full itemised quote, unchanged; a
+ * driver is answered from `DRIVER_ORDER_LIST_SELECT`, which carries their own
+ * payout and no column describing what the client paid. One handler, two
+ * audiences, one rule — the redaction is per requester role, because this route
+ * has no other way to tell the two apart.
+ *
+ * The tail is written as two explicit paths rather than one query with a ternary
+ * `select`: a conditional select gives Prisma two row types to union, and the
+ * resulting inferred type would carry `price` as optional on the driver's rows —
+ * exactly the "present but must not be rendered" state the redaction exists to
+ * avoid. Two queries, two clean types.
  */
 export async function GET(request: Request): Promise<NextResponse> {
   const session = await auth.api.getSession({ headers: request.headers });
@@ -1145,6 +1247,37 @@ export async function GET(request: Request): Promise<NextResponse> {
     };
   }
 
+  if (role === "DRIVER") {
+    const driverOrders = await prisma.order.findMany({
+      where,
+      select: DRIVER_ORDER_LIST_SELECT,
+      orderBy: { createdAt: "desc" },
+    });
+
+    // The same per-row contact redaction the client path below applies, and it
+    // is still needed here despite the money redaction the select already
+    // applied to every row: the two answer different questions. Money
+    // entitlement is uniform across a driver's response — no row may carry the
+    // client's price — while contact entitlement is per row, because this
+    // listing mixes open work the driver has not accepted with deliveries
+    // already assigned to them.
+    const visibleDriverOrders = driverOrders.map((order) =>
+      canSeeStopContacts(order, userId)
+        ? order
+        : {
+            ...order,
+            pickupContactName: null,
+            pickupContactPhone: null,
+            pickupContactDetails: null,
+            dropoffContactName: null,
+            dropoffContactPhone: null,
+            dropoffContactDetails: null,
+          },
+    );
+
+    return NextResponse.json(visibleDriverOrders, { status: 200 });
+  }
+
   const orders = await prisma.order.findMany({
     where,
     select: ORDER_LIST_SELECT,
@@ -1152,10 +1285,16 @@ export async function GET(request: Request): Promise<NextResponse> {
   });
 
   // Redacted here rather than in the query because the entitlement is per row,
-  // not per request: a driver's listing mixes deliveries assigned to them, whose
-  // contacts they need, with open work they have not accepted, whose contacts
-  // they must not have. Expressing that in the `where` would mean two queries
-  // and a merge to restore the ordering, for a result this mapping gives exactly.
+  // not per request. On this branch that mixing is rarer than on the driver's —
+  // a client is a party to every order in their own list — but the mapping is
+  // kept identical rather than dropped, because the branch also catches every
+  // other role that falls through to `{ clientId: userId }`.
+  //
+  // Duplicated across the two branches rather than factored into a helper: the
+  // two selects infer two different row types, and sharing the five-line block
+  // would mean fighting that inference with a generic for no behavioural gain.
+  // This file already makes the same call about `canSeeStopContacts` itself,
+  // which is duplicated in `src/app/api/logistics-company/orders/route.ts`.
   const visibleOrders = orders.map((order) =>
     canSeeStopContacts(order, userId)
       ? order

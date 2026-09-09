@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { LogOut } from "lucide-react";
 
 import { useSignOut } from "@/components/auth/use-sign-out";
@@ -36,7 +37,7 @@ export type DriverHubHeaderProps = {
    * header's own subtree. `null`/absent (every screen but Loads) renders
    * nothing at all — not an empty box.
    */
-  vehiclePill?: React.ReactNode;
+  vehiclePill?: ReactNode;
 };
 
 /**

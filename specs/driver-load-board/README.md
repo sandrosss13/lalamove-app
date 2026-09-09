@@ -99,8 +99,8 @@ graph TD
 - [x] [task-15-overtime-and-earnings-payout](./tasks/task-15-overtime-and-earnings-payout.md) — Commission the overtime settled at completion; stop the Earnings screen showing drivers the client's total
 
 ### Wave 3
-- [ ] [task-09-board-shell](./tasks/task-09-board-shell.md) — Route, hub nav entry, header, tabs, filter panel, board state, placeholders
-- [ ] [task-16-driver-payload-redaction](./tasks/task-16-driver-payload-redaction.md) — Remove `price` and the itemised fare breakdown from every driver- and company-facing order response
+- [x] [task-09-board-shell](./tasks/task-09-board-shell.md) — Route, hub nav entry, header, tabs, filter panel, board state, placeholders
+- [x] [task-16-driver-payload-redaction](./tasks/task-16-driver-payload-redaction.md) — Remove `price` and the itemised fare breakdown from every driver- and company-facing order response
 
 ### Wave 4
 - [ ] [task-10-loads-table](./tasks/task-10-loads-table.md) — Seven-column sortable table, row states, empty state, footer

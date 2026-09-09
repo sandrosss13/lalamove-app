@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { OrderStatus } from "@prisma/client";
 
 import { auth } from "@/lib/auth";
-import { ORDER_PARTY_SELECT } from "@/lib/order-response-select";
+import { CARRIER_ORDER_PARTY_SELECT } from "@/lib/order-response-select";
 import { driverPayoutFor } from "@/lib/orders/payout";
 import { prisma } from "@/lib/prisma";
 
@@ -172,7 +172,18 @@ export async function POST(
       overtimeFee,
       overtimeDriverPayout,
     },
-    select: ORDER_PARTY_SELECT,
+    // Carrier-only response — see `CARRIER_ORDER_PARTY_SELECT`'s doc comment;
+    // never `ORDER_PARTY_SELECT` here. Only the order's assigned driver reaches
+    // this update, and this route was the worst of the six: it returned bare
+    // `ORDER_PARTY_SELECT`, handing the completing driver `price` and the
+    // `overtimeFee` this very call had just computed — the client's side of both
+    // halves of the job.
+    //
+    // The `data:` object above is untouched by this select. `overtimeFee` is
+    // still written (the client is billed it) and `overtimeDriverPayout` is
+    // still commissioned from it at the order's own stored rate; the response
+    // simply reports the second and not the first.
+    select: CARRIER_ORDER_PARTY_SELECT,
   });
 
   return NextResponse.json(updated, { status: 200 });

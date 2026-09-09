@@ -44,7 +44,33 @@ export type HubAccount = {
   city: string;
   /** Current online state; null for a COMPANY session, which has none. */
   isOnline: boolean | null;
-  /** A driver may only go online once activated; false for a company. */
+  /**
+   * Whether operations have approved this account to work — a driver's
+   * `DriverProfile.activatedAt`, or a fleet's `LogisticsCompany.activatedAt`,
+   * each reduced to `!== null`.
+   *
+   * **This is the account-kind-agnostic activation fact, and it is deliberately
+   * a separate field from `canToggleOnline` rather than a generalisation of
+   * it.** The two happen to coincide for a driver and diverge for a company: a
+   * company is `canToggleOnline: false` because a fleet has no online toggle at
+   * all, not because it is unapproved, so an activated company reading
+   * `canToggleOnline` would look unapproved and a caller generalising that
+   * field would silently gate the wrong thing. Callers that ask "may this
+   * account be offered work?" — the load board's empty-board short-circuit, and
+   * the claim/reject routes' 403s that it must agree with — read this; callers
+   * that ask "may this UI control be operated?" read `canToggleOnline`.
+   *
+   * A `Date` is deliberately not exposed: `HubAccount` is handed straight to
+   * `"use client"` components, and no consumer needs the instant, only the
+   * verdict — the same reduction the INDIVIDUAL branch has always done.
+   */
+  isActivated: boolean;
+  /**
+   * Whether the header's online toggle may be operated: a driver may only go
+   * online once activated, and a company never can because it has no toggle.
+   * Driver-specific by meaning — see `isActivated` for the activation fact
+   * itself, which is what a work-eligibility gate wants.
+   */
   canToggleOnline: boolean;
   /** Set when a DRIVER belongs to a fleet. */
   companyName: string | null;
@@ -132,6 +158,13 @@ export const resolveHubAccount = cache(async (): Promise<HubAccount | null> => {
         companyName: true,
         vatId: true,
         city: true,
+        // Read for `isActivated` below. A fleet under review may sign in and
+        // look around, but may not be offered work — `POST
+        // /api/logistics-company/orders/[id]/claim` and `POST
+        // /api/loads/[id]/reject` both 403 on a null `activatedAt`, so any
+        // surface that lists claimable work has to know this too or it
+        // advertises work those routes refuse.
+        activatedAt: true,
       },
     });
 
@@ -149,10 +182,17 @@ export const resolveHubAccount = cache(async (): Promise<HubAccount | null> => {
       // is actually known by.
       identifier: company.vatId,
       city: formatCity(company.city),
+      // Same reduction as the driver branch below, off the company's own
+      // approval column — the gate `POST /api/logistics-company/orders/[id]/
+      // claim` and `POST /api/loads/[id]/reject` enforce.
+      isActivated: company.activatedAt !== null,
       // A company account is not a driver: there is nothing to take online,
       // and `PATCH /api/driver-profile/status` rejects a COMPANY session
       // outright. Both fields say so rather than defaulting to a falsy driver
       // state that would render a toggle the API would refuse.
+      //
+      // Note this is `false` for an *activated* company too, which is why
+      // `isActivated` exists beside it rather than callers reusing this one.
       isOnline: null,
       canToggleOnline: false,
       companyName: company.companyName,
@@ -221,9 +261,15 @@ export const resolveHubAccount = cache(async (): Promise<HubAccount | null> => {
     identifier: driverIdentifier(vehicleTypeLabel, cityLabel),
     city: cityLabel,
     isOnline: driverProfile.isOnline,
+    // The gate `POST /api/orders/[id]/accept` and `POST /api/loads/[id]/reject`
+    // enforce: an unapproved driver may not be offered work.
+    isActivated: driverProfile.activatedAt !== null,
     // Mirrors the gate `PATCH /api/driver-profile/status` enforces: only an
     // activated driver may go online. Surfacing it here means the toggle is
     // disabled in the UI rather than offering an action the API would 403.
+    //
+    // Identical to `isActivated` for a driver *today*, and still kept separate:
+    // they answer different questions and only one of them is about a toggle.
     canToggleOnline: driverProfile.activatedAt !== null,
     companyName: driverProfile.company?.companyName ?? null,
     driverProfileId: driverProfile.id,

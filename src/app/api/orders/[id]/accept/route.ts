@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { OrderStatus } from "@prisma/client";
 
 import { auth } from "@/lib/auth";
-import { ORDER_PARTY_SELECT } from "@/lib/order-response-select";
+import { CARRIER_ORDER_PARTY_SELECT } from "@/lib/order-response-select";
 import {
   capabilityOf,
   loadFits,
@@ -57,8 +57,9 @@ function parseAcceptOrderBody(
  * board's own `capabilityOf`/`loadFits` pair so the two can never disagree about
  * what fits.
  *
- * The success response deliberately omits `Order.price`. See the select at the
- * bottom of this handler for why.
+ * The success response carries no client money at all — not `Order.price` and
+ * not the fare components it is built from. See the select at the bottom of this
+ * handler for why.
  */
 export async function POST(
   request: Request,
@@ -301,26 +302,27 @@ export async function POST(
     );
   }
 
-  // `price` is what the CLIENT pays and must never reach a driver-facing
-  // surface; `driverPayout` (the 85% share stored on the order at creation) is
-  // the only money figure a driver may be shown. `ORDER_PARTY_SELECT` includes
-  // `price` — correct for the lifecycle endpoints it was written for, wrong for
-  // a claim response reachable from the load board.
+  // Carrier-only response — see `CARRIER_ORDER_PARTY_SELECT`'s doc comment;
+  // never `ORDER_PARTY_SELECT` here. Every caller of this route is a driver
+  // (`session.user.role === "DRIVER"`, checked at the top of the handler), and a
+  // driver sees their own `driverPayout`, never what the client paid.
   //
-  // Spread-and-override rather than a hand-listed select: this stays in step
-  // with `ORDER_PARTY_SELECT` as that constant grows new fields, while
-  // guaranteeing `price` specifically can never be one of them. `handlingTags`
-  // is added so the confirm dialog can warn about a HAZMAT load — a warning
-  // only: `DriverLicence` has no certification field anywhere in the schema, so
-  // nothing here gates a hazmat claim, and nothing should until that field and
+  // This used to be `{ ...ORDER_PARTY_SELECT, price: false }`, which looked like
+  // the redaction and was not one: it still returned `baseFare`, `distanceFare`,
+  // `timeFare` and `helperFee`, and `price` is their sum floored at the rule's
+  // `minimumFare`, so the figure it claimed to withhold was one addition away.
+  // The shared select drops all seven money columns together, which is the only
+  // way that stays true.
+  //
+  // `handlingTags` is the one field added on top, and it is not money: the
+  // confirm dialog warns about a HAZMAT load with it — a warning only, since
+  // `DriverLicence` has no certification field anywhere in the schema, so
+  // nothing here gates a hazmat claim and nothing should until that field and
   // the onboarding capture behind it exist.
   const order = await prisma.order.findUnique({
     where: { id },
     select: {
-      ...ORDER_PARTY_SELECT,
-      price: false,
-      driverPayout: true,
-      reference: true,
+      ...CARRIER_ORDER_PARTY_SELECT,
       handlingTags: true,
     },
   });
