@@ -3,6 +3,11 @@ import { OrderStatus } from "@prisma/client";
 
 import { auth } from "@/lib/auth";
 import { CARRIER_ORDER_PARTY_SELECT } from "@/lib/order-response-select";
+import { specCapability } from "@/lib/orders/booking-fit";
+import {
+  meetsBookedClass,
+  offersBodyType,
+} from "@/lib/orders/class-substitution";
 import {
   capabilityOf,
   hasDeclaredEnvelope,
@@ -151,8 +156,16 @@ export async function POST(
 
   // Distinguish "no such order" (404) from "already taken / not pending" (409):
   // the conditional update alone can't tell them apart, so check existence first.
-  // The order's own vehicle type is what the chosen vehicle has to match, and
-  // its cargo columns are what the physical fit re-check below measures.
+  // The order's cargo columns are what the physical fit re-check below measures.
+  //
+  // **`bodyType` and the booked class's four capacity columns are selected in
+  // place of the bare `vehicleTypeSpecId` this route used to compare.** The class
+  // is no longer checked for identity, so its id is no longer interesting; what
+  // matters is the *floor* it sets — the payload and the three hold dimensions
+  // the client was quoted on, and the body they asked for. See the substitution
+  // check below for why the id alone was the wrong question. The relation is
+  // joined here rather than fetched separately so the class floor and the cargo
+  // envelope still arrive in the one round trip this lookup has always been.
   //
   // `reference` is read here so the 409 below can name the load for the UI's
   // dedicated "just claimed" dialog. Reading it from this pre-claim lookup
@@ -163,7 +176,15 @@ export async function POST(
     select: {
       id: true,
       reference: true,
-      vehicleTypeSpecId: true,
+      bodyType: true,
+      vehicleTypeSpec: {
+        select: {
+          maxPayloadKg: true,
+          cargoLengthM: true,
+          cargoWidthM: true,
+          cargoHeightM: true,
+        },
+      },
       cargoWeightKg: true,
       cargoLengthM: true,
       cargoWidthM: true,
@@ -182,11 +203,16 @@ export async function POST(
   // wherever one is null. Selecting the spec alone would silently make this
   // route stricter than the board that sent the driver here — see the fit
   // re-check below.
+  //
+  // `vehicleTypeSpec.bodyTypes` is selected for the substitution check below and
+  // is the one field here that is not a capacity figure: it is which load spaces
+  // this vehicle's class actually offers, which no amount of payload can stand in
+  // for. `vehicleTypeSpecId` is deliberately no longer selected — nothing
+  // compares class ids any more.
   const vehicle = await prisma.vehicle.findFirst({
     where: { id: vehicleId, driverProfileId: driverProfile.id },
     select: {
       id: true,
-      vehicleTypeSpecId: true,
       payloadKg: true,
       cargoLengthM: true,
       cargoWidthM: true,
@@ -197,6 +223,7 @@ export async function POST(
           cargoLengthM: true,
           cargoWidthM: true,
           cargoHeightM: true,
+          bodyTypes: true,
         },
       },
     },
@@ -206,16 +233,76 @@ export async function POST(
     return NextResponse.json({ error: "Vehicle not found." }, { status: 404 });
   }
 
-  if (vehicle.vehicleTypeSpecId !== existing.vehicleTypeSpecId) {
+  // Resolved once and used by both checks below: this vehicle's own declared
+  // capacity, class spec as the per-field fallback. The substitution check asks
+  // whether it is at least the class the client booked; the fit check asks
+  // whether this specific load fits inside it. Two questions, one capability.
+  const vehicleCapability = capabilityOf(vehicle, vehicle.vehicleTypeSpec);
+
+  // **The booked class is a floor, not an identity.** This was
+  // `vehicle.vehicleTypeSpecId !== existing.vehicleTypeSpecId` — refusing every
+  // vehicle but one exact class — which read the booking form's step 5, titled
+  // *"Recommended vehicle"*, as a guarantee that one specific model turns up. It
+  // never was one. The class is what the fare was quoted on and what the client
+  // is owed at minimum, so the promise forbids turning up with *less* than they
+  // paid for, and nothing more than that.
+  //
+  // The identity test was not merely too strict in theory. A client booked an MPV
+  // (400 kg, 1.8 x 1.3 x 1.1 m, DRY_BOX). A carrier held a Minivan (500 kg,
+  // 2 x 1.4 x 1.3 m, DRY_BOX) that beats it on every axis and offers the same
+  // body, and this route refused it because two cuids differed. No MPV is
+  // registered anywhere on the platform, so that order sat on-market, priced, and
+  // claimable by nobody at all — the client's booking silently unworkable.
+  //
+  // The replacement is the upgrade rule, and it is two tests because a bigger
+  // hold is not the same promise as the right *kind* of hold:
+  //  - `meetsBookedClass` — this vehicle's resolved capability is at or above the
+  //    booked class's catalogue capability on all four axes. Never smaller than
+  //    what was paid for; bigger is always welcome.
+  //  - `offersBodyType` — the class this vehicle is registered under offers the
+  //    body the client asked for. A dry box does not fulfil a refrigerated
+  //    booking however much it out-measures it, and an order with a null
+  //    `bodyType` asked for no particular body and so imposes no requirement.
+  //
+  // Both come from `@/lib/orders/class-substitution`, which `GET /api/loads`
+  // reads too. That sharing is the whole point: a board that advertises a load
+  // this route then refuses is the exact class of bug this codebase has been
+  // fighting since the board shipped, and it recurs every time the two sides
+  // express "eligible" in their own words.
+  //
+  // The booked side goes through `specCapability` rather than reading the four
+  // spec columns into a literal, because `capabilityOf` is the one place
+  // `cargoHeightM: 0` is translated to `Infinity` for an open bed. A hand-rolled
+  // literal would give a flatbed booking a height floor of zero, which every
+  // vehicle on the platform trivially clears — silently turning the strictest
+  // class on the catalogue into the most substitutable one.
+  const bookedClass = specCapability(existing.vehicleTypeSpec);
+
+  if (!meetsBookedClass(vehicleCapability, bookedClass)) {
     return NextResponse.json(
       {
-        error: "This vehicle's type doesn't match what this delivery requires.",
+        error:
+          "This vehicle is smaller than the vehicle class this delivery was booked as. Use a vehicle that matches or beats it on payload, length, width and height.",
       },
       { status: 400 },
     );
   }
 
-  // A second, independent check alongside the type match above. The board
+  if (!offersBodyType(vehicle.vehicleTypeSpec.bodyTypes, existing.bodyType)) {
+    return NextResponse.json(
+      {
+        error: "This vehicle doesn't offer the load space this delivery needs.",
+      },
+      { status: 400 },
+    );
+  }
+
+  // A third, independent check alongside the two substitution tests above, and
+  // it does not overlap them: they ask whether this vehicle is at least the class
+  // the client bought, this one asks whether *this particular load* fits inside
+  // this particular truck. A vehicle can clear the booked class comfortably and
+  // still be too small for a load that was itself oversized for that class, so
+  // neither test subsumes the other and both must pass. The board
   // applies its own physical fit filter at listing time, but that filter runs
   // against a snapshot: the load could be re-weighed, the driver could switch
   // vehicles between opening the board and confirming, or a caller could hit
@@ -263,7 +350,7 @@ export async function POST(
 
   if (
     hasDeclaredEnvelope(declaredCargo) &&
-    !loadFits(declaredCargo, capabilityOf(vehicle, vehicle.vehicleTypeSpec))
+    !loadFits(declaredCargo, vehicleCapability)
   ) {
     return NextResponse.json(
       {

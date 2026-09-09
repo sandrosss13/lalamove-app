@@ -24,6 +24,11 @@ import {
 } from "@/lib/dashboard/hub/account";
 import { formatCity } from "@/lib/format-city";
 import { haversineDistanceKm, type LatLng } from "@/lib/geo";
+import { specCapability } from "@/lib/orders/booking-fit";
+import {
+  meetsBookedClass,
+  offersBodyType,
+} from "@/lib/orders/class-substitution";
 import {
   capabilityOf,
   classifyFit,
@@ -155,13 +160,19 @@ const CLAIMED_BY_OTHERS_STATUSES: readonly OrderStatus[] = [
 
 /**
  * Exactly what one capability is built from: the vehicle's own declared
- * capacity, plus its class spec to fall back on — and the class itself, which
- * the eligibility filter groups by before it measures anything.
+ * capacity, plus its class spec to fall back on — and the class's `bodyTypes`,
+ * which is the *commercial* half of eligibility and is read for a different
+ * purpose from the four capacity columns.
  *
- * `vehicleTypeSpecId` is the *commercial* half of eligibility and is read for a
- * different purpose from the four capacity columns below it. See
- * `groupCapabilitiesByClass` and `eligibilityOf` in the GET handler for why a
- * load is offered only to a vehicle of the class the client actually booked.
+ * **`vehicleTypeSpecId` is deliberately not selected any more.** It was, while a
+ * load was offered only to a vehicle registered under exactly the class the
+ * client booked, and the eligibility filter grouped the fleet by that id before
+ * measuring anything. Under upgrade-based substitution the id is not a fact
+ * about eligibility at all: what qualifies a vehicle is its resolved capability
+ * against the booked class's floor plus the bodies its class offers, both of
+ * which are selected here. Leaving the id in would invite a future reader to
+ * re-add an equality test that `src/lib/orders/class-substitution.ts` exists to
+ * have removed.
  *
  * **Both halves are selected deliberately, and the vehicle's own columns are
  * the more important half.** `capabilityOf` prefers the driver-declared
@@ -193,9 +204,6 @@ const CLAIMED_BY_OTHERS_STATUSES: readonly OrderStatus[] = [
  * otherwise be permanently empty.
  */
 const VEHICLE_CAPABILITY_SELECT = {
-  // The class this vehicle is registered under — matched against
-  // `Order.vehicleTypeSpecId` before any capacity figure is compared.
-  vehicleTypeSpecId: true,
   payloadKg: true,
   cargoLengthM: true,
   cargoWidthM: true,
@@ -206,6 +214,11 @@ const VEHICLE_CAPABILITY_SELECT = {
       cargoLengthM: true,
       cargoWidthM: true,
       cargoHeightM: true,
+      // The load spaces this vehicle's class offers, matched against
+      // `Order.bodyType`. Read from the class rather than from
+      // `Vehicle.chassisType`, which is null for every vehicle onboarded before
+      // that column existed — see `offersBodyType`.
+      bodyTypes: true,
     },
   },
 } as const;
@@ -289,13 +302,35 @@ export type LoadBoardResponse = {
   mine: LoadBoardItem[];
   rejected: LoadBoardItem[];
   /**
-   * How many open, non-rejected loads were withheld because **a vehicle of the
-   * right class could not physically carry them** — over the payload, or over
-   * one of the three dimensions.
+   * How many open, non-rejected loads were withheld because **none of this
+   * account's vehicles that were otherwise allowed to take them could
+   * physically carry them** — over the payload, or over one of the three
+   * dimensions.
    *
    * The board's footer prints this as *"N loads hidden — over your vehicle
    * capacity or dimensions"*, and this count is scoped precisely so that
    * sentence stays true of every load it counts.
+   *
+   * **Its denominator changed when exact-class matching became upgrade-based
+   * substitution, and the sentence survives that unchanged.** It used to count
+   * loads that a vehicle *of the booked class* was measured against and found
+   * too small for; it now counts loads that every vehicle *permitted to
+   * substitute for the booked class* — big enough on all four axes, offering
+   * the right body — was measured against and found too small for. The
+   * denominator is strictly larger (substitution only ever adds candidates), so
+   * the number can only fall: a load a driver's own class was too small for may
+   * now be picked up by a bigger vehicle of theirs and be listed instead of
+   * counted.
+   *
+   * A consequence worth knowing before reading a low number as a bug: because
+   * every candidate meets or beats the booked class on all four axes, a load
+   * whose declared envelope fits *the class the client booked* fits every
+   * candidate too, and can never be counted here. What remains countable is
+   * exactly the loads whose declared envelope exceeds their own booked class
+   * (`POST /api/orders` refuses those at booking, so they are historical rows
+   * predating that guard) and the partially declared ones `loadFits` refuses
+   * all-or-nothing. On a healthy book this figure is therefore usually zero,
+   * which is the truth and not a broken counter.
    *
    * **A load whose cargo envelope was never declared is NOT counted here, and
    * is not hidden either — it is listed like any other.** It used to be both,
@@ -308,13 +343,14 @@ export type LoadBoardResponse = {
    * `LoadFitVerdict` in src/lib/orders/vehicle-fit.ts for the full argument and
    * for why this mattered on the day the feature shipped rather than later.
    *
-   * **Loads excluded for being the wrong vehicle class are NOT counted here,
-   * and are not counted anywhere else either.** They are simply absent. A load
-   * booked as a refrigerated truck is not "over the capacity" of a driver whose
-   * only vehicle is a van — it is work that driver was never eligible for, and
-   * rolling it into this number would make the footer lie about loads that a
-   * bigger van would not unlock. Reporting it separately was the alternative;
-   * see `eligibilityOf` in the GET handler for why it was not taken.
+   * **Loads this account has no permitted vehicle for at all are NOT counted
+   * here, and are not counted anywhere else either.** They are simply absent. A
+   * load booked as a refrigerated truck is not "over the capacity" of a driver
+   * whose only vehicle is a dry van — it is work that driver was never eligible
+   * for, and rolling it into this number would make the footer lie about loads
+   * that a bigger van would not unlock. Reporting it separately was the
+   * alternative; see `eligibilityOf` in the GET handler for why it was not
+   * taken.
    */
   hiddenByCapacityCount: number;
 };
@@ -414,8 +450,14 @@ function round2(value: number): number {
  * Three outcomes rather than a boolean, because the two ways of failing are not
  * the same fact and the response reports them differently: `OVER_CAPACITY`
  * feeds `hiddenByCapacityCount` and the footer note that explains it, while
- * `WRONG_CLASS` is silent. See `eligibilityOf` in the GET handler for the
- * reasoning behind both the two-part test and that asymmetry.
+ * `NO_ELIGIBLE_VEHICLE` is silent. See `eligibilityOf` in the GET handler for
+ * the reasoning behind both the two-part test and that asymmetry.
+ *
+ * `NO_ELIGIBLE_VEHICLE` is the successor to an outcome called `WRONG_CLASS`,
+ * renamed with the rule it described. Nothing about this load is *wrong* for a
+ * class any more: the account simply owns no vehicle that both offers the body
+ * the client asked for and meets the booked class's capacity floor. The name is
+ * about the fleet, because that is what the test is now about.
  *
  * There is deliberately no fourth outcome for "envelope undeclared". That is a
  * distinction `classifyFit` draws and this type does not need, because the
@@ -424,16 +466,15 @@ function round2(value: number): number {
  * it. Adding an outcome here would imply the response says something about
  * these loads, and it says nothing: they are simply on the board.
  */
-type LoadEligibility = "ELIGIBLE" | "WRONG_CLASS" | "OVER_CAPACITY";
+type LoadEligibility = "ELIGIBLE" | "NO_ELIGIBLE_VEHICLE" | "OVER_CAPACITY";
 
 /**
- * Exactly the vehicle columns a capability is resolved from, plus the class the
- * vehicle is registered under. Written out rather than derived from Prisma's
- * generated payload type so this helper states its own contract, matching the
- * plain-slice convention `capabilityOf` itself follows.
+ * Exactly the vehicle columns a capability is resolved from, plus the bodies its
+ * class offers. Written out rather than derived from Prisma's generated payload
+ * type so this helper states its own contract, matching the plain-slice
+ * convention `capabilityOf` itself follows.
  */
 type CapabilitySource = {
-  vehicleTypeSpecId: string;
   payloadKg: number | null;
   cargoLengthM: number | null;
   cargoWidthM: number | null;
@@ -443,48 +484,53 @@ type CapabilitySource = {
     cargoLengthM: number;
     cargoWidthM: number;
     cargoHeightM: number;
+    bodyTypes: readonly string[];
   };
 };
 
 /**
- * Resolve every vehicle to its capability and bucket those capabilities by the
- * class the vehicle is registered under.
+ * One of this account's vehicles, reduced to the two facts eligibility asks
+ * about: what it can carry, and which load spaces its class offers.
  *
- * **Grouping first is what makes the two eligibility tests apply to the same
- * vehicle rather than to two different ones.** A driver with a matching-class
- * van and an unrelated big truck can fulfil a load with neither: the van is the
- * right class but too small, the truck is big enough but the wrong class. Two
- * independent passes over a flat capability list — "some vehicle matches the
- * class" AND "some vehicle fits the cargo" — would pass that driver and put a
- * load on their board that the claim route then refuses. Every fit test below
- * therefore runs against `get(order.vehicleTypeSpecId)` and never against the
- * whole fleet.
+ * The two travel together on one object because they are only meaningful
+ * together — they are the two halves of "may *this* vehicle take that load", and
+ * the bug the old code structure invited was answering them from two different
+ * vehicles. Keeping them on the same record makes that mistake unrepresentable
+ * rather than merely avoided: there is no list of capabilities to filter
+ * independently of a list of body types.
+ */
+type FleetVehicle = {
+  capability: VehicleCapability;
+  bodyTypes: readonly string[];
+};
+
+/**
+ * Resolve every vehicle to the pair eligibility measures.
  *
- * A class with no vehicle is absent from the map rather than present with an
- * empty array, so `get() === undefined` is the single "this account has nothing
- * of that class" signal, and no caller has to distinguish it from an empty one.
+ * **This replaced a `Map` keyed by `vehicleTypeSpecId`.** Under exact-class
+ * matching the fleet had to be bucketed by class before anything was measured,
+ * because the class test was a lookup and only the vehicles it returned could be
+ * measured against the cargo. Upgrade-based substitution has no lookup: which
+ * vehicles qualify depends on the *order* (its booked class's four figures and
+ * its body type), not on any key the fleet can be filed under in advance, so the
+ * fleet is a flat list and the per-order filtering happens in `candidatesFor`.
+ *
+ * The safety property that made the map worth having is preserved by
+ * `FleetVehicle`, not by the flat shape: both tests still apply to one vehicle
+ * at a time, so an account whose big truck is the wrong body and whose
+ * right-body van is too small still qualifies for nothing.
  *
  * Each capability comes from `capabilityOf(vehicle, vehicle.vehicleTypeSpec)` —
  * the real vehicle with its declared overrides, spec as the per-field fallback.
- * See `VEHICLE_CAPABILITY_SELECT` for why that pairing is not optional.
+ * See `VEHICLE_CAPABILITY_SELECT` for why that pairing is not optional. The body
+ * list comes from the class alone: it describes what the class *is*, and a
+ * driver declares no override for it.
  */
-function groupCapabilitiesByClass(
-  vehicles: readonly CapabilitySource[],
-): Map<string, VehicleCapability[]> {
-  const byClass = new Map<string, VehicleCapability[]>();
-
-  for (const vehicle of vehicles) {
-    const capability = capabilityOf(vehicle, vehicle.vehicleTypeSpec);
-    const existing = byClass.get(vehicle.vehicleTypeSpecId);
-
-    if (existing === undefined) {
-      byClass.set(vehicle.vehicleTypeSpecId, [capability]);
-    } else {
-      existing.push(capability);
-    }
-  }
-
-  return byClass;
+function resolveFleet(vehicles: readonly CapabilitySource[]): FleetVehicle[] {
+  return vehicles.map((vehicle) => ({
+    capability: capabilityOf(vehicle, vehicle.vehicleTypeSpec),
+    bodyTypes: vehicle.vehicleTypeSpec.bodyTypes,
+  }));
 }
 
 /**
@@ -615,43 +661,55 @@ function toLoadBoardItem(
  * Accept on work that would be refused. The board repeats the test client-side
  * for responsiveness; this is where it is enforced.
  *
- * **Eligibility has two parts, and both are required: the vehicle class the
- * client booked, and the physical fit of the actual truck.** They answer
- * different questions and neither subsumes the other.
+ * **Eligibility asks one question of one vehicle at a time: does this account
+ * own a vehicle that (a) offers the body the client asked for, (b) meets or
+ * beats the class the client booked on all four capacity axes, and (c)
+ * physically fits the declared cargo?** All three are required and none
+ * subsumes the others.
  *
- * The class is the *commercial contract*. A client picks a vehicle class on the
- * booking form, is priced on it and pays for it, and `Order.vehicleTypeSpecId`
- * is that promise recorded. Fulfilling a refrigerated booking with a dry van
- * delivers something other than what was bought, even if the cargo would fit —
- * so both claim routes require the claiming vehicle's `vehicleTypeSpecId` to
- * equal the order's (src/app/api/orders/[id]/accept/route.ts refuses with "This
- * vehicle's type doesn't match what this delivery requires."; the company claim
- * route with "Your fleet has no vehicle of the type this delivery requires.").
- * That requirement is correct and stays where it is — this route does not
- * replace it, and removing it there would let a claim break what the client
- * paid for.
+ * (a) and (b) together are the *commercial contract*. A client picks a vehicle
+ * on the booking form — under a step titled "Recommended vehicle" — is priced
+ * on it and pays for it, and `Order.vehicleTypeSpecId` records that. This route
+ * used to read it as an identity and offer the load only to vehicles registered
+ * under exactly that class. That was wrong, and it produced an unclaimable
+ * order: a 30 kg load booked as an MPV, invisible to a company whose Minivan
+ * beats an MPV on every axis, with no MPV registered anywhere on the platform.
+ * The class is a floor now, not an identity — upgrades always qualify,
+ * downgrades never do, and the body type is checked separately so a
+ * refrigerated booking still cannot be served by a dry box. See
+ * src/lib/orders/class-substitution.ts for the full argument and the rejected
+ * alternatives.
  *
- * The physical fit is the *reality check* on the specific truck that would turn
- * up: within a matching class, a particular load can still be too heavy or too
- * long for a particular vehicle, because a `Vehicle` carries its own declared
- * capacity that `capabilityOf` prefers over the class average.
+ * (c) is the *reality check* on the specific truck that would turn up: a
+ * particular load can still be too heavy or too long for a particular vehicle,
+ * because a `Vehicle` carries its own declared capacity that `capabilityOf`
+ * prefers over the class average.
  *
  * The board's job is to show only work that can actually be claimed, so it
- * applies both — and applies them to the **same vehicle**. A driver with a
- * matching-class van and a big-enough truck of another class can fulfil with
- * neither; testing the two conditions across a whole fleet independently would
- * show them the load anyway. `groupCapabilitiesByClass` exists to prevent
- * exactly that, and `eligibilityOf` below reads only the class-matching subset.
- * Before this filter existed the board showed loads that Accept then refused
- * with a 400 — the failure this route is now the first line of defence against.
+ * applies all three — and applies them to the **same vehicle**. A driver with a
+ * right-body van that is too small and a big truck of the wrong body can fulfil
+ * with neither; testing the conditions across a whole fleet independently would
+ * show them the load anyway. `FleetVehicle` and `candidatesFor` exist to
+ * prevent exactly that: the body and floor tests select a subset of real
+ * vehicles, and only that subset is measured against the cargo. Before this
+ * filter existed the board showed loads that Accept then refused with a 400 —
+ * the failure this route is now the first line of defence against.
  *
- * Loads that clear the class but fail the fit are counted into
+ * The claim routes enforce the same substitution rule at the moment a vehicle
+ * is committed (src/app/api/orders/[id]/accept/route.ts,
+ * src/app/api/logistics-company/orders/[id]/claim/route.ts and that route's
+ * dispatch sibling), reading the same two predicates from the same shared
+ * module. This route does not replace those checks; a listing that agrees with
+ * the claim path is the whole point, and both reading one module is what stops
+ * them drifting apart again.
+ *
+ * Loads with a permitted vehicle that still fails the fit are counted into
  * `hiddenByCapacityCount` for the footer's "N loads hidden — over your vehicle
- * capacity or dimensions" note. Loads excluded on class alone are not counted:
- * see `eligibilityOf` and `LoadBoardResponse` for why.
+ * capacity or dimensions" note. Loads with no permitted vehicle at all are not
+ * counted: see `eligibilityOf` and `LoadBoardResponse` for why.
  *
- * **Both halves of eligibility measure something the client declared, so a load
- * that declared no cargo envelope at all fails neither.** It is listed, and it
+ * **Every part of eligibility measures something the client declared, so a load
+ * that declared no cargo envelope at all fails none of them.** It is listed, and it
  * is not counted as hidden by capacity. Fit is measured through `classifyFit`
  * rather than `loadFits` precisely so this route can tell "too big" apart from
  * "never described"; the claim routes have always drawn that line, and the
@@ -796,9 +854,9 @@ export async function GET(request: Request): Promise<NextResponse> {
   // --- Fleet capability, and the driver's own location for the distance column.
 
   // Declared without an initialiser: both branches below assign it, so an empty
-  // starting map would be a throwaway allocation that also hides a missed
+  // starting array would be a throwaway allocation that also hides a missed
   // assignment from the compiler.
-  let capabilitiesByClass: Map<string, VehicleCapability[]>;
+  let fleet: FleetVehicle[];
   let driverLocation: LatLng | null = null;
 
   if (scope.kind === "INDIVIDUAL") {
@@ -813,150 +871,29 @@ export async function GET(request: Request): Promise<NextResponse> {
       },
     });
 
-    // One capability per registered vehicle, each resolved from that vehicle's
-    // own declared capacity with its class spec as the per-field fallback, and
-    // filed under the class that vehicle may legitimately claim work in.
-    capabilitiesByClass = groupCapabilitiesByClass(
-      driverProfile?.vehicles ?? [],
-    );
+    // One record per registered vehicle: its capability, resolved from that
+    // vehicle's own declared capacity with its class spec as the per-field
+    // fallback, paired with the load spaces its class offers.
+    fleet = resolveFleet(driverProfile?.vehicles ?? []);
 
     driverLocation =
       driverProfile?.currentLat != null && driverProfile.currentLng != null
         ? { lat: driverProfile.currentLat, lng: driverProfile.currentLng }
         : null;
   } else {
-    const fleet = await prisma.vehicle.findMany({
+    const companyVehicles = await prisma.vehicle.findMany({
       where: { companyId: scope.companyId },
       select: VEHICLE_CAPABILITY_SELECT,
     });
 
     // Same resolution as the driver branch — each fleet vehicle's own declared
-    // capacity, spec as fallback — grouped by class before `widestCapability`
-    // is allowed anywhere near it.
-    capabilitiesByClass = groupCapabilitiesByClass(fleet);
+    // capacity, spec as fallback, paired with its class's body list. Kept as
+    // individual vehicles here; `widestCapability` is applied per order, to the
+    // subset a given order actually permits, and never to this whole list.
+    fleet = resolveFleet(companyVehicles);
     // A COMPANY account has no single location of its own — a fleet is not
     // somewhere — so the distance column is always null for one.
   }
-
-  /**
-   * The company fit filter: `widestCapability`, computed **per class**.
-   *
-   * *Why `widestCapability` at all, rather than `fitsAnyVehicle`.* A company
-   * claims a load with its *account*, not with a specific truck: the vehicle
-   * and driver are assigned afterwards, from the job sheet. At claim time there
-   * is therefore no single vehicle to test the load against, so this endpoint
-   * has to make an optimistic guess about what the fleet *could* carry — the
-   * largest payload and the largest each-dimension across the candidate
-   * vehicles, taken independently per axis.
-   *
-   * That is deliberately optimistic and it can admit a load no single truck can
-   * actually take: if the heaviest vehicle is not also the longest, the
-   * synthesised capability describes a composite vehicle that does not exist.
-   * This is the accepted, documented cost of claim-first-assign-later, not a
-   * bug. The mismatch surfaces at a desk during assignment, before anything is
-   * dispatched — a re-assignment rather than a driver's wasted trip, which is
-   * the failure direction the fit filter exists to avoid. Picking a specific
-   * vehicle at claim time was the other option the design left open;
-   * requirements.md resolves open question 1 the other way.
-   *
-   * *Why per class, and why that part is not optional.* Widening across the
-   * **whole** fleet would reintroduce precisely the mismatch this endpoint now
-   * exists to prevent: a fleet of small vans and one unrelated heavy truck
-   * would report the truck's payload while claiming a van-class load, and the
-   * company claim route — which looks for a vehicle of the order's class and
-   * measures *that* one — would refuse it. The optimism stays confined to
-   * "which of my vehicles **of the required class** turns up", which is the
-   * only question assignment actually gets to answer.
-   *
-   * A class the fleet has no vehicle in is absent from this map, exactly as it
-   * is from `capabilitiesByClass`, and reads as "nothing to claim that load
-   * with". An empty fleet produces an empty map and therefore an empty board.
-   */
-  const widestByClass = new Map<string, VehicleCapability>();
-
-  if (scope.kind === "BUSINESS") {
-    for (const [vehicleTypeSpecId, capabilities] of capabilitiesByClass) {
-      const widest = widestCapability(capabilities);
-
-      // `widestCapability` returns null only for an empty list, which
-      // `groupCapabilitiesByClass` never produces — the check is here so the
-      // invariant is enforced by the compiler rather than by a non-null
-      // assertion that would survive the invariant changing.
-      if (widest !== null) {
-        widestByClass.set(vehicleTypeSpecId, widest);
-      }
-    }
-  }
-
-  /**
-   * Whether one open load is claimable by this account, and if not, why not.
-   *
-   * The class test comes first and is a lookup, not a comparison: a load is
-   * offered only to vehicles registered under the class the client booked and
-   * paid for. Only the capabilities of *those* vehicles are then measured
-   * against the cargo, which is what keeps both halves of eligibility pointing
-   * at one real truck. See the GET handler's doc comment for the full argument.
-   *
-   * **A wrong-class load returns `WRONG_CLASS` and is dropped without being
-   * counted anywhere.** The alternative — a second counter beside
-   * `hiddenByCapacityCount` — was considered and rejected: the footer's one
-   * number exists to tell a driver something they can act on ("a bigger vehicle
-   * would unlock these"), and "17 loads exist that your van is not the right
-   * class for" is not that. It is closer to the size of the market than to a
-   * fact about this driver, it would dwarf the capacity figure on any real
-   * board, and folding the two together would make the footer's "over your
-   * vehicle capacity or dimensions" copy untrue of most of what it counts. If
-   * product later wants "loads for other vehicle classes" surfaced, that is a
-   * new field with its own copy, not a redefinition of this one.
-   *
-   * A driver with zero registered vehicles has an empty map, so every load is
-   * `WRONG_CLASS` and `hiddenByCapacityCount` stays 0 — an empty board with no
-   * misleading capacity note, which is the honest answer for an account that
-   * has not registered a vehicle yet.
-   *
-   * **`UNDECLARED` maps to `ELIGIBLE`, and that is the point of measuring with
-   * `classifyFit` rather than `loadFits`.** A load whose cargo envelope was
-   * never declared has not been shown to exceed anything; it has only not been
-   * described. Every claim route in the codebase already lets one through — see
-   * `hasDeclaredEnvelope` — so hiding it here would advertise less work than the
-   * platform will actually hand over, which is the precise divergence this
-   * filter exists to close, running in the wrong direction. It also kept the
-   * footer's capacity sentence honest only by accident: see
-   * `LoadBoardResponse.hiddenByCapacityCount`.
-   *
-   * The class test still runs first and still applies to these loads. An
-   * undeclared envelope makes a load unmeasurable, not unbooked: the client
-   * still chose and paid for a vehicle class, and that promise is enforced
-   * exactly as it is for every other load.
-   */
-  const eligibilityOf = (order: LoadRow): LoadEligibility => {
-    const load = loadDimensionsOf(order);
-
-    if (scope.kind === "BUSINESS") {
-      const widest = widestByClass.get(order.vehicleTypeSpecId);
-
-      if (widest === undefined) {
-        return "WRONG_CLASS";
-      }
-
-      return classifyFit(load, widest) === "DOES_NOT_FIT"
-        ? "OVER_CAPACITY"
-        : "ELIGIBLE";
-    }
-
-    const classMatches = capabilitiesByClass.get(order.vehicleTypeSpecId);
-
-    if (classMatches === undefined) {
-      return "WRONG_CLASS";
-    }
-
-    // Strict, unlike the company branch: an individual driver claims with one
-    // named vehicle (`POST /api/orders/[id]/accept` takes a `vehicleId`), so
-    // the load must fit one of these outright — never a per-axis composite.
-    return classifyFitAnyVehicle(load, classMatches) === "DOES_NOT_FIT"
-      ? "OVER_CAPACITY"
-      : "ELIGIBLE";
-  };
 
   // --- Candidates.
 
@@ -1020,6 +957,218 @@ export async function GET(request: Request): Promise<NextResponse> {
     rejections.map((rejection) => rejection.orderId),
   );
 
+  // --- Eligibility.
+
+  /**
+   * The capacity floor each booked class sets, keyed by
+   * `Order.vehicleTypeSpecId` — the catalogue figures of the class the client
+   * chose, which every substituting vehicle must meet or beat on all four axes.
+   *
+   * **Why this query exists at all.** Under exact-class matching the order's
+   * class was only ever compared for equality, so its id was enough and its
+   * *figures* were never needed. A floor is a comparison against numbers, so the
+   * numbers have to be in hand. They are fetched here rather than through a
+   * relation on `LOADS_SELECT` deliberately: that select is the file's
+   * fare-leak defence and its doc comment states it is the scalar row and
+   * nothing more, so it stays exactly as narrow as it is and the capacity
+   * columns come from their own query. One extra round trip, over at most the
+   * eleven seeded classes, is a cheap price for not reopening that list.
+   *
+   * Narrowed to the classes actually referenced by this board's orders rather
+   * than reading the whole catalogue — the same figures, but the query stays
+   * proportional to the page instead of to the catalogue's future growth.
+   *
+   * Built through `specCapability`, never from the four columns by hand: that
+   * helper routes through `capabilityOf`, which is the one place
+   * `cargoHeightM === 0` becomes `Infinity` for an open bed. A literal here
+   * would give every flatbed booking a floor of zero height, which every vehicle
+   * on the platform trivially clears — quietly turning the strictest floor in
+   * the catalogue into the loosest.
+   */
+  const bookedClassIds = [
+    ...new Set(orders.map((order) => order.vehicleTypeSpecId)),
+  ];
+
+  const bookedSpecs = await prisma.vehicleTypeSpec.findMany({
+    where: { id: { in: bookedClassIds } },
+    select: {
+      id: true,
+      maxPayloadKg: true,
+      cargoLengthM: true,
+      cargoWidthM: true,
+      cargoHeightM: true,
+    },
+  });
+
+  const floorByBookedClass = new Map<string, VehicleCapability>(
+    bookedSpecs.map((spec) => [spec.id, specCapability(spec)]),
+  );
+
+  /**
+   * Which of this account's vehicles are *permitted* to take one order: those
+   * whose class offers the body the client asked for and whose capability meets
+   * or beats the booked class on every axis. Nothing here measures the cargo —
+   * that is the next step, and it runs only over what this returns.
+   *
+   * **Memoised on (booked class, body type), because that pair is the entire
+   * input.** Two orders booked against the same class asking for the same body
+   * have identical candidate sets whatever else differs about them — their
+   * cargo, their route, their client — so a real board of a few hundred loads
+   * resolves to at most a handful of distinct filters. The key joins the two
+   * parts with a NUL, which cannot occur in a cuid or in a `ChassisType`, so no
+   * pair of different inputs can collide on one key. A null body type is a
+   * distinct key from any real one, which is correct: it means "no constraint"
+   * and admits strictly more vehicles.
+   *
+   * A booked class missing from `floorByBookedClass` yields no candidates. That
+   * is unreachable — `Order.vehicleTypeSpecId` is a foreign key and the query
+   * above asked for exactly the ids these orders carry — and it is a floor
+   * rather than a live branch: with no figures there is no floor to enforce, and
+   * silently admitting every vehicle would be the one failure direction this
+   * whole module refuses. It fails closed, and one unlisted load is the cost.
+   */
+  const candidatesByBooking = new Map<string, FleetVehicle[]>();
+
+  const candidatesFor = (order: LoadRow): FleetVehicle[] => {
+    const bookingKey = `${order.vehicleTypeSpecId}\u0000${order.bodyType ?? ""}`;
+    const cached = candidatesByBooking.get(bookingKey);
+
+    if (cached !== undefined) {
+      return cached;
+    }
+
+    const floor = floorByBookedClass.get(order.vehicleTypeSpecId);
+    const candidates =
+      floor === undefined
+        ? []
+        : fleet.filter(
+            (vehicle) =>
+              offersBodyType(vehicle.bodyTypes, order.bodyType) &&
+              meetsBookedClass(vehicle.capability, floor),
+          );
+
+    candidatesByBooking.set(bookingKey, candidates);
+
+    return candidates;
+  };
+
+  /**
+   * Whether one open load is claimable by this account, and if not, why not.
+   *
+   * The permission test comes first: a load is offered only to vehicles that
+   * carry the body the client asked for and are at least as capable as the class
+   * they booked and paid for. Only *those* vehicles are then measured against
+   * the cargo, which is what keeps every part of eligibility pointing at one
+   * real truck. See the GET handler's doc comment for the full argument.
+   *
+   * **A load with no permitted vehicle returns `NO_ELIGIBLE_VEHICLE` and is
+   * dropped without being counted anywhere.** The alternative — a second counter
+   * beside `hiddenByCapacityCount` — was considered and rejected: the footer's
+   * one number exists to tell a driver something they can act on ("a bigger
+   * vehicle would unlock these"), and "17 loads exist that your van may not
+   * take" is not that. It is closer to the size of the market than to a fact
+   * about this driver, it would dwarf the capacity figure on any real board, and
+   * folding the two together would make the footer's "over your vehicle capacity
+   * or dimensions" copy untrue of most of what it counts. If product later wants
+   * "loads your fleet is not equipped for" surfaced, that is a new field with its
+   * own copy, not a redefinition of this one.
+   *
+   * A driver with zero registered vehicles has an empty fleet, so every load is
+   * `NO_ELIGIBLE_VEHICLE` and `hiddenByCapacityCount` stays 0 — an empty board
+   * with no misleading capacity note, which is the honest answer for an account
+   * that has not registered a vehicle yet.
+   *
+   * **`UNDECLARED` maps to `ELIGIBLE`, and that is the point of measuring with
+   * `classifyFit` rather than `loadFits`.** A load whose cargo envelope was
+   * never declared has not been shown to exceed anything; it has only not been
+   * described. Every claim route in the codebase already lets one through — see
+   * `hasDeclaredEnvelope` — so hiding it here would advertise less work than the
+   * platform will actually hand over, which is the precise divergence this
+   * filter exists to close, running in the wrong direction. It also kept the
+   * footer's capacity sentence honest only by accident: see
+   * `LoadBoardResponse.hiddenByCapacityCount`.
+   *
+   * The permission test still runs first and still applies to these loads. An
+   * undeclared envelope makes a load unmeasurable, not unbooked: the client
+   * still chose and paid for a body and a class, and both promises are enforced
+   * exactly as they are for every other load.
+   */
+  const eligibilityOf = (order: LoadRow): LoadEligibility => {
+    const candidates = candidatesFor(order);
+
+    if (candidates.length === 0) {
+      return "NO_ELIGIBLE_VEHICLE";
+    }
+
+    const load = loadDimensionsOf(order);
+    const capabilities = candidates.map((candidate) => candidate.capability);
+
+    if (scope.kind === "BUSINESS") {
+      /**
+       * The company fit filter: `widestCapability` over **this order's
+       * candidates**, not over the whole fleet and no longer over a class
+       * bucket.
+       *
+       * *Why `widestCapability` at all, rather than `fitsAnyVehicle`.* A company
+       * claims a load with its *account*, not with a specific truck: the vehicle
+       * and driver are assigned afterwards, from the job sheet. At claim time
+       * there is no single vehicle to test the load against, so this endpoint
+       * makes an optimistic guess about what the fleet *could* bring — the
+       * largest payload and the largest each-dimension across the candidates,
+       * taken independently per axis. That can admit a load no single truck can
+       * take, if the heaviest candidate is not also the longest; the mismatch
+       * surfaces at a desk during assignment, before anything is dispatched, so
+       * it costs a re-assignment rather than a driver a wasted trip. This is the
+       * accepted, documented cost of claim-first-assign-later. Unchanged by this
+       * rewrite.
+       *
+       * *What did change: the grouping.* The previous comment argued that
+       * widening across the whole fleet was dangerous because "a fleet of small
+       * vans and one unrelated heavy truck would report the truck's payload
+       * while claiming a van-class load, and the company claim route — which
+       * looks for a vehicle of the order's class and measures *that* one — would
+       * refuse it". **That argument still holds, and its conclusion is
+       * unchanged: whole-fleet widening is still wrong.** Only its premise moved.
+       * The claim route no longer looks for a vehicle of the order's class; it
+       * looks for one permitted to substitute for it. So the set the optimism
+       * may range over is no longer "my vehicles of the booked class" but "my
+       * vehicles the claim route would accept for this order" — which is exactly
+       * `candidatesFor(order)`. Widening over the whole fleet would still
+       * synthesise a composite out of trucks that may not take this load at all
+       * (wrong body, or smaller than the class the client paid for), and the
+       * claim route would still refuse the result. The optimism stays confined
+       * to "which of my **permitted** vehicles turns up", which remains the only
+       * question assignment gets to answer.
+       *
+       * One property worth stating because it is not obvious: every candidate
+       * already meets or beats the booked class on all four axes, so their
+       * per-axis maximum does too. The composite may be a vehicle that does not
+       * exist, but it is never a vehicle the client would have been short-changed
+       * by — the optimism can cost an assignment, never a downgrade.
+       */
+      const widest = widestCapability(capabilities);
+
+      // `widestCapability` returns null only for an empty list, which the
+      // `candidates.length === 0` guard above has already returned on — the
+      // check is here so the invariant is enforced by the compiler rather than
+      // by a non-null assertion that would survive the invariant changing.
+      if (widest === null) {
+        return "NO_ELIGIBLE_VEHICLE";
+      }
+
+      return classifyFit(load, widest) === "DOES_NOT_FIT"
+        ? "OVER_CAPACITY"
+        : "ELIGIBLE";
+    }
+
+    // Strict, unlike the company branch: an individual driver claims with one
+    // named vehicle (`POST /api/orders/[id]/accept` takes a `vehicleId`), so
+    // the load must fit one of these outright — never a per-axis composite.
+    return classifyFitAnyVehicle(load, capabilities) === "DOES_NOT_FIT"
+      ? "OVER_CAPACITY"
+      : "ELIGIBLE";
+  };
+
   // --- Classification.
 
   const available: LoadBoardItem[] = [];
@@ -1062,20 +1211,21 @@ export async function GET(request: Request): Promise<NextResponse> {
         continue;
       }
 
-      // The server-side eligibility filter — the class the client booked, then
-      // the physical fit of the vehicles registered under it.
+      // The server-side eligibility filter — the body and the booked class's
+      // capacity floor first, then the physical fit of the vehicles that clear
+      // them.
       //
       // Only the capacity failure is counted for the footer, and it counts only
-      // loads a right-class vehicle was actually measured against and found too
+      // loads a permitted vehicle was actually measured against and found too
       // small for. An order that declared no cargo envelope at all is neither
       // counted nor hidden: it was never measured, the claim routes accept it,
       // and the board now lists it. See `eligibilityOf`.
       //
-      // A wrong-class load is dropped in silence — it is not "over your
-      // capacity", and counting it would make the footer's copy untrue. Same
-      // rule, same reason: this number is a claim about the driver's vehicle,
-      // so nothing may be counted into it that the vehicle is not the reason
-      // for. See `eligibilityOf`.
+      // A load this account has no permitted vehicle for is dropped in silence —
+      // it is not "over your capacity", and counting it would make the footer's
+      // copy untrue. Same rule, same reason: this number is a claim about the
+      // driver's vehicle, so nothing may be counted into it that the vehicle is
+      // not the reason for. See `eligibilityOf`.
       const eligibility = eligibilityOf(order);
 
       if (eligibility !== "ELIGIBLE") {
@@ -1094,7 +1244,7 @@ export async function GET(request: Request): Promise<NextResponse> {
 
     // The transient "just claimed by somebody else" window. Not eligibility-
     // filtered — the row exists so the board can grey out in place something it
-    // was already showing, and re-testing class or capacity on the way out
+    // was already showing, and re-testing eligibility or capacity on the way out
     // would only make rows vanish that the driver is watching. A row that was
     // never eligible was never rendered, so nothing can appear here that the
     // board was not already showing. Rejection-filtered all the same:

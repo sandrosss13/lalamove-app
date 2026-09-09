@@ -302,8 +302,9 @@ export type LoadFitVerdict = "FITS" | "DOES_NOT_FIT" | "UNDECLARED";
  * hold onto: this returns `UNDECLARED`, never `DOES_NOT_FIT`, however small the
  * capability passed in — so a caller reading `UNDECLARED` as "offer it" must
  * have already established that there is a vehicle to offer it *with*.
- * `GET /api/loads` does: its per-class capability lookup answers `WRONG_CLASS`
- * and returns before this function is ever reached.
+ * `GET /api/loads` does: it answers `NO_ELIGIBLE_VEHICLE` and returns before
+ * this function is ever reached whenever no vehicle of this account is
+ * permitted to take the load — see `src/lib/orders/class-substitution.ts`.
  */
 export function classifyFit(
   load: LoadDimensions,
