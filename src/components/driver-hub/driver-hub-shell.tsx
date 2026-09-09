@@ -184,8 +184,12 @@ export function DriverHubShell({ account, children }: DriverHubShellProps) {
   );
 
   // Nav filtering is cosmetic — hiding a link does nothing about a hand-typed
-  // URL, which is why `drivers/page.tsx`, `employees/page.tsx` and
-  // `loads/page.tsx` each re-derive their own rule server-side.
+  // URL, so every screen withheld from a persona re-derives its own rule
+  // server-side: `drivers/page.tsx` and `employees/page.tsx` on
+  // `kind !== "BUSINESS"`, and `loads/page.tsx` on the roster case (which
+  // `GET /api/loads` 403s to match). The Wallet is now withheld from a roster
+  // driver in the list below, and `earnings/page.tsx` owes it the matching
+  // server-side redirect.
   const items = hubNavForAccount(account);
   const activeItem = hubNavItemForPath(pathname);
 

@@ -12,7 +12,7 @@
  * filtering below.
  */
 
-import type { HubAccount } from "@/lib/dashboard/hub/account";
+import type { HubAccount, HubPersona } from "@/lib/dashboard/hub/account";
 
 /** One sidebar link, and the header copy for the screen behind it. */
 export type HubNavItem = {
@@ -22,31 +22,29 @@ export type HubNavItem = {
   label: string;
   href: string;
   /**
-   * Business-only screens. This is a *cosmetic* filter: hiding a link does
-   * nothing about a hand-typed URL, so `/dashboard/drivers` and
-   * `/dashboard/employees` must each also resolve the account kind
-   * server-side and `redirect("/dashboard/today")` for an individual driver.
+   * The personas this entry is withheld from. Empty means everyone sees it.
+   *
+   * One persona-keyed list rather than the two-boolean pair it replaces
+   * (a business-only flag and an employed-driver flag, both subsumed by the
+   * persona axis). That pair was genuinely two axes and could not be collapsed
+   * into one flag: a roster driver and an independent driver are both
+   * `kind: "INDIVIDUAL"`, so "business only" and "not for an employed driver"
+   * were different questions asked of different fields. Keying on
+   * `HubPersona` — the axis that actually distinguishes all three account
+   * shapes — makes them the same question, and makes the next rule a list
+   * entry rather than a third boolean and a third clause in the filter below.
+   *
+   * **This is a *cosmetic* filter.** Hiding a link does nothing about a
+   * hand-typed URL, a bookmark, or an account whose shape changed since the
+   * link was last drawn. Every entry named here must therefore ALSO be
+   * enforced server-side: the screen's own `page.tsx` resolves the account and
+   * `redirect("/dashboard/today")`s, and where an API backs the screen the
+   * route handler refuses on the same terms. Today `/dashboard/drivers` and
+   * `/dashboard/employees` each guard on `kind !== "BUSINESS"`, and
+   * `/dashboard/loads` guards the roster case while `GET /api/loads` 403s it.
    * The link list is the convenience; the page guard is the boundary.
    */
-  businessOnly: boolean;
-  /**
-   * Hidden for a DRIVER on a company's roster (`DriverProfile.companyId` set).
-   *
-   * Per `specs/driver-load-board/requirements.md`'s Assumptions: an employed
-   * driver receives work through their company's dispatch, not the open
-   * market, so the load board is not theirs to browse. The board's own
-   * server-side guard (`src/app/dashboard/(hub)/loads/page.tsx`) redirects them
-   * away even if they hand-type the URL, and `GET /api/loads` 403s them — this
-   * field only controls the sidebar link, exactly the cosmetic-only
-   * relationship `businessOnly` above already has to its own page guards.
-   *
-   * A separate axis from `businessOnly` because it cannot be expressed in
-   * terms of it: a roster driver and an independent driver are both
-   * `kind: "INDIVIDUAL"`, and the distinction lives on `companyId`.
-   *
-   * Only `loads` sets this today; every other entry is `false`.
-   */
-  rosterHidden: boolean;
+  hiddenFor: readonly HubPersona[];
   /** The 20px page title in the sticky header. */
   title: string;
   /**
@@ -76,16 +74,22 @@ export type HubNavItemId =
 
 /**
  * In the design's sidebar order. Drivers and Employees come last because they
- * are the two that disappear for an individual account — dropping them leaves
- * the remaining five in an unchanged order.
+ * are the two that disappear for anything but a BUSINESS persona — dropping
+ * them leaves the remaining six in an unchanged order.
+ *
+ * A ROSTER driver additionally loses Load Board and Wallet, which are *not*
+ * last and cannot be moved there: the design puts Wallet second and the board
+ * third, and reordering the rail per persona would shuffle links under a
+ * returning user rather than simply removing two. Filtering by `hiddenFor`
+ * preserves the relative order of whatever survives, which is the property
+ * that makes per-persona rails feel like the same product.
  */
 export const HUB_NAV: readonly HubNavItem[] = [
   {
     id: "today",
     label: "Today",
     href: "/dashboard/today",
-    businessOnly: false,
-    rosterHidden: false,
+    hiddenFor: [],
     title: "Today",
     subtitle: "Saturday 29 August · Tbilisi",
   },
@@ -101,8 +105,15 @@ export const HUB_NAV: readonly HubNavItem[] = [
     id: "earnings",
     label: "Wallet",
     href: "/dashboard/earnings",
-    businessOnly: false,
-    rosterHidden: false,
+    // Withheld from a ROSTER driver, and new in this feature. The screen sums
+    // `driverPayout` over the orders assigned to the signed-in driver and
+    // labels the total as *their* earnings — but an employed driver's fares
+    // are paid to their employer, so for them the screen asserts something
+    // false about whose money it is. Planning chose to hide it outright rather
+    // than relabel it as a non-currency work summary: the failure direction
+    // worth engineering against is showing an employee a currency figure that
+    // is not theirs.
+    hiddenFor: ["ROSTER"],
     title: "Earnings & payouts",
     subtitle: "24 – 30 August 2026 · next payout Friday 4 September",
   },
@@ -118,8 +129,14 @@ export const HUB_NAV: readonly HubNavItem[] = [
     id: "loads",
     label: "Load Board",
     href: "/dashboard/loads",
-    businessOnly: false,
-    rosterHidden: true,
+    // Withheld from a ROSTER driver. Per
+    // `specs/driver-load-board/requirements.md`'s Assumptions, an employed
+    // driver receives work through their company's dispatch rather than the
+    // open market, so the board is not theirs to browse. Its own server-side
+    // guard (`src/app/dashboard/(hub)/loads/page.tsx`) redirects them even if
+    // they hand-type the URL, and `GET /api/loads` 403s them; this list only
+    // controls the sidebar link.
+    hiddenFor: ["ROSTER"],
     title: "Load Board",
     subtitle: "Bookings open to drivers",
   },
@@ -131,8 +148,7 @@ export const HUB_NAV: readonly HubNavItem[] = [
     id: "jobs",
     label: "My orders",
     href: "/dashboard/jobs",
-    businessOnly: false,
-    rosterHidden: false,
+    hiddenFor: [],
     title: "Job history",
     subtitle: "182 jobs in the last 30 days",
   },
@@ -140,8 +156,7 @@ export const HUB_NAV: readonly HubNavItem[] = [
     id: "performance",
     label: "Performance",
     href: "/dashboard/performance",
-    businessOnly: false,
-    rosterHidden: false,
+    hiddenFor: [],
     title: "Performance",
     // The one subhead that is genuinely static — it describes the window the
     // screen always uses, not a value inside it.
@@ -151,8 +166,7 @@ export const HUB_NAV: readonly HubNavItem[] = [
     id: "vehicles",
     label: "Vehicles",
     href: "/dashboard/vehicles",
-    businessOnly: false,
-    rosterHidden: false,
+    hiddenFor: [],
     title: "Vehicles",
     subtitle: "7 vehicles registered · 4 on the road, 1 unassigned",
   },
@@ -160,8 +174,12 @@ export const HUB_NAV: readonly HubNavItem[] = [
     id: "drivers",
     label: "Drivers",
     href: "/dashboard/drivers",
-    businessOnly: true,
-    rosterHidden: false,
+    // Business-only, spelled as the two personas it is withheld from rather
+    // than as a "BUSINESS only" flag — one rule shape across all eight entries
+    // is worth more than the two characters the inverse would save. The
+    // boundary is `drivers/page.tsx`'s own `kind !== "BUSINESS"` guard, which
+    // this does not replace.
+    hiddenFor: ["INDEPENDENT", "ROSTER"],
     title: "Drivers",
     subtitle: "7 registered drivers · 4 online in Tbilisi now",
   },
@@ -169,52 +187,40 @@ export const HUB_NAV: readonly HubNavItem[] = [
     id: "employees",
     label: "Employees",
     href: "/dashboard/employees",
-    businessOnly: true,
-    rosterHidden: false,
+    hiddenFor: ["INDEPENDENT", "ROSTER"],
     title: "Employees & roles",
     subtitle: "Gizo Cargo LLC · 6 people, 4 roles · 1 invite pending",
   },
 ];
 
 /**
- * The links this account sees: every entry filtered by `kind` as before, then
- * further filtered by `rosterHidden` for a driver employed on a company's
- * roster.
+ * The links this account sees: every entry whose `hiddenFor` list does not name
+ * this account's persona.
  *
- * Renamed from `hubNavForKind` (which took only `kind`) because a roster driver
- * and an independent driver are both `kind: "INDIVIDUAL"` — the distinction
- * this function now also has to make lives on `companyId`, which `kind` alone
- * cannot see.
+ * It takes the persona and nothing else. The roster test — `kind ===
+ * "INDIVIDUAL" && companyId !== null` — used to be evaluated right here,
+ * because a roster driver and an independent driver are both
+ * `kind: "INDIVIDUAL"` and `kind` alone cannot see the difference. That test
+ * has not been dropped; it has moved into `resolveHubAccount()`, which derives
+ * `persona` once per request and is now the single place in the codebase where
+ * the conjunction is written. The reasoning behind it is still load-bearing and
+ * is worth repeating at every site that depends on it:
  *
  * **`companyId` alone is not the roster test.** A BUSINESS account's
  * `companyId` names *its own* company and that account must keep every link;
  * only `kind === "INDIVIDUAL" && companyId !== null` is an employed driver on
- * somebody else's roster. Getting this backwards would hide the board from the
- * one account type it exists to serve.
+ * somebody else's roster. Getting this backwards would hide the Load Board —
+ * and now the Wallet too — from the one account shape both exist to serve.
  *
- * Cosmetic only — see `businessOnly` and `rosterHidden` above. The account
- * itself comes from the session (`resolveHubAccount()`), never from a
- * client-side toggle: the prototype's Business/Individual switcher is a
- * prototype affordance and the real header shows a static account-type chip
- * instead.
+ * Cosmetic only — see `hiddenFor` above. The account itself comes from the
+ * session (`resolveHubAccount()`), never from a client-side toggle: the
+ * prototype's Business/Individual switcher is a prototype affordance and the
+ * real header shows a static account-type chip instead.
  */
 export function hubNavForAccount(
-  account: Pick<HubAccount, "kind" | "companyId">,
+  account: Pick<HubAccount, "persona">,
 ): HubNavItem[] {
-  const isRosterDriver =
-    account.kind === "INDIVIDUAL" && account.companyId !== null;
-
-  return HUB_NAV.filter((item) => {
-    if (account.kind !== "BUSINESS" && item.businessOnly) {
-      return false;
-    }
-
-    if (isRosterDriver && item.rosterHidden) {
-      return false;
-    }
-
-    return true;
-  });
+  return HUB_NAV.filter((item) => !item.hiddenFor.includes(account.persona));
 }
 
 /**

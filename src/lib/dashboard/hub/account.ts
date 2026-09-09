@@ -2,12 +2,13 @@
  * Who is signed in, in the one shape every Driver Hub screen renders from.
  *
  * The hub's shell (sidebar, header, account chip) and each of its seven pages
- * all need the same handful of facts: which kind of account this is, what to
- * print in the avatar block, and whether the online toggle may be operated.
- * Resolving that once, here, is what keeps the nav, the header and the
- * server-side page guards from disagreeing with each other — nav filtering is
- * cosmetic, and the Drivers/Employees pages re-derive their business-only
- * guard from this same `kind`.
+ * all need the same handful of facts: which kind of account this is, which of
+ * the three personas it is, what to print in the avatar block, and whether the
+ * online toggle may be operated. Resolving that once, here, is what keeps the
+ * nav, the header and the server-side page guards from disagreeing with each
+ * other — nav filtering is cosmetic, the Drivers/Employees pages re-derive
+ * their business-only guard from this same `kind`, and every screen withheld
+ * from a roster driver re-derives its guard from this same `persona`.
  *
  * Server-only: it reads the Better Auth session and talks to Prisma. The
  * returned object is handed straight into `"use client"` components, so every
@@ -28,11 +29,68 @@ import { prisma } from "@/lib/prisma";
  * up as a BUSINESS is still one person driving, and a driver on a fleet's
  * roster is too. Only a `LogisticsCompany` session — the fleet owner — gets the
  * business hub with its Drivers and Employees screens.
+ *
+ * This is the *coarse* axis: which shell to render, and the one the Vehicles
+ * and Loads screens already consume by name (`HubVehiclesData.kind`,
+ * `LoadsScreen`'s `accountKind` prop). The finer axis is `HubPersona` below,
+ * which splits INDIVIDUAL into the driver who owns their work and the driver
+ * on somebody else's roster. A screen that must tell those two apart reads
+ * `HubAccount.persona`; this stays for the screens that genuinely only care
+ * which of the two shells they are in.
  */
 export type HubAccountKind = "BUSINESS" | "INDIVIDUAL";
 
+/**
+ * Which of the three registered-driver account shapes this is — the hub's
+ * first-class account axis, and the one every loader and screen branches on.
+ *
+ * | Persona       | `kind`         | `companyId`                 |
+ * |---------------|----------------|-----------------------------|
+ * | `INDEPENDENT` | `"INDIVIDUAL"` | `null`                      |
+ * | `ROSTER`      | `"INDIVIDUAL"` | set — their *employer*      |
+ * | `BUSINESS`    | `"BUSINESS"`   | set — their *own* company   |
+ *
+ * An `INDEPENDENT` driver owns their vehicle, browses the open Load Board and
+ * keeps their own fares. A `ROSTER` driver is employed: work reaches them
+ * through their company's dispatch rather than the open market, and the fares
+ * they collect are paid to their employer — which is why the Wallet and the
+ * Load Board are withheld from them, not merely relabelled. A `BUSINESS`
+ * account is the fleet owner, and is the only shape that gets the Drivers and
+ * Employees screens.
+ *
+ * **`companyId !== null` is not, on its own, the roster test.** A BUSINESS
+ * account's `companyId` names *its own* company, so the roster case is the
+ * conjunction `kind === "INDIVIDUAL" && companyId !== null` and nothing less.
+ * Reading `companyId` alone would classify every fleet owner as one of their
+ * own employees and would withhold the Load Board and the Wallet from exactly
+ * the accounts those screens exist to serve.
+ *
+ * Deliberately *not* `DriverProfile.accountType` (`DriverAccountType`), which
+ * is a different axis entirely: a sole-proprietor driver who registered as a
+ * business is still `kind: "INDIVIDUAL"` and, with no employer, persona
+ * `INDEPENDENT`. Branch on this; never on `accountType`.
+ *
+ * Derived once, in `resolveHubAccount()` below, which is React-`cache()`d — so
+ * the derivation costs nothing per request and a screen reads
+ * `account.persona` rather than re-deriving the conjunction at the point of
+ * use. Two sites deriving it independently is precisely how the sidebar and a
+ * page guard drift apart.
+ */
+export type HubPersona = "INDEPENDENT" | "ROSTER" | "BUSINESS";
+
 export type HubAccount = {
   kind: HubAccountKind;
+  /**
+   * The three-way account shape — see `HubPersona` above.
+   *
+   * Added *alongside* `kind`, never in place of it: `HubVehiclesData.kind` and
+   * `LoadsScreen`'s `accountKind` prop already consume the two-way axis by
+   * name, and collapsing them into this one would be a rename with no
+   * behavioural gain. Screens that need to tell an employed driver from an
+   * independent one read this; screens that only need to know which shell they
+   * are in keep reading `kind`.
+   */
+  persona: HubPersona;
   userId: string;
   /** Person's full name, or the company name for a COMPANY session. */
   displayName: string;
@@ -174,6 +232,13 @@ export const resolveHubAccount = cache(async (): Promise<HubAccount | null> => {
 
     return {
       kind: "BUSINESS",
+      // A `LogisticsCompany` session *is* the fleet owner, so the persona is
+      // fixed by the branch rather than derived within it — there is no
+      // conjunction to evaluate here. Note that `companyId` below names this
+      // account's *own* company, which is exactly why the roster test in the
+      // driver branch has to be conjoined with `kind` and can never read
+      // `companyId` alone.
+      persona: "BUSINESS",
       userId,
       displayName: company.companyName,
       initials: initialsOf(company.companyName),
@@ -251,10 +316,23 @@ export const resolveHubAccount = cache(async (): Promise<HubAccount | null> => {
     driverProfile.assignments[0]?.vehicle.vehicleTypeSpec.label;
 
   return {
-    // A fleet-affiliated driver is still an individual-shaped hub: they drive,
-    // they do not manage a roster. `companyId` only decides whether the header
-    // names their company, never which screens they get.
+    // A fleet-affiliated driver is still an individual-shaped *hub*: they
+    // drive, they do not manage a roster, so both kinds of driver share this
+    // shell and `kind` cannot tell them apart. That is what `persona` is for.
     kind: "INDIVIDUAL",
+    // `companyId` names this driver's **employer** here — contrast the
+    // BUSINESS branch above, where it names the account's own company. What it
+    // decides is which screens this driver gets: through the persona it
+    // withholds the Load Board (work reaches an employed driver through
+    // dispatch, not the open market) and the Wallet (the fares they collect
+    // are paid to their employer, so a personal earnings total would assert
+    // something false about whose money it is).
+    //
+    // `kind` is `"INDIVIDUAL"` for everything reaching this branch, so the
+    // conjunction the roster test requires is already satisfied structurally
+    // and this null check is the whole of it *here*. It is not the whole of it
+    // anywhere else — see `HubPersona`.
+    persona: driverProfile.companyId === null ? "INDEPENDENT" : "ROSTER",
     userId,
     displayName: personName,
     initials: initialsOf(personName),
