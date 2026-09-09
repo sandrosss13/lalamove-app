@@ -68,8 +68,12 @@ import { cn } from "@/lib/utils";
  *    away it starts. `DriverProfile.currentLat/currentLng` are frequently stale
  *    or null (`specs/driver-load-board/requirements.md`, Assumptions), so the
  *    column renders `—` rather than throwing or falling back to the job length,
- *    and it never filters the table. Dropping it is one `<TableHead>` and one
- *    `<TableCell>`.
+ *    and it never filters the table — it only informs and sorts. Rows with no
+ *    measurable distance sort last in **both** directions, which
+ *    `compareLoads` in `loads-context.tsx` does generically for every nullable
+ *    key and which this file therefore does not reimplement. Dropping the
+ *    column is one `<SortableHead>`, one `<TableCell>` and the `"fromYou"`
+ *    member of `LoadsSortKey`.
  * 2. **Load age ("posted 14 min ago").** Appended to the Route cell's third
  *    line rather than given a column of its own: it is supplementary,
  *    non-filterable context exactly like the reference beside it, and a ninth
@@ -92,11 +96,6 @@ import { cn } from "@/lib/utils";
  *
  * ## Deviations from the task file, forced by the shipped context
  *
- * - **"From you" does not sort.** `LoadsSortKey` has six members and no
- *   `fromYou`; adding one is a change to `loads-context.tsx`, which this task
- *   may not touch. The column informs but does not order, which is the smaller
- *   half of the addition's justification. Adding it later is one enum member,
- *   one `sortValueOf` case and a `SortableHead` here.
  * - **No client name on Route line 3.** `GET /api/loads` deliberately strips
  *   everything identifying the client from an unclaimed load, so `HubLoad` has
  *   no `clientName`. Line 3 is the reference plus the load age.
@@ -192,11 +191,14 @@ function SortableHead({
   label,
   align = "left",
   className,
+  title,
 }: {
   columnKey: LoadsSortKey;
   label: string;
   align?: ColumnAlignment;
   className?: string;
+  /** Hover copy for a header whose two-word label cannot carry its meaning. */
+  title?: string;
 }) {
   const { sortKey, sortDir, setSort } = useLoadsBoard();
   const isActive = sortKey === columnKey;
@@ -204,6 +206,7 @@ function SortableHead({
   return (
     <TableHead
       scope="col"
+      title={title}
       aria-sort={
         isActive ? (sortDir === "asc" ? "ascending" : "descending") : undefined
       }
@@ -265,10 +268,12 @@ function HelpersBadge({ helperCount }: { helperCount: number }) {
  *
  * Four cases, in the order they are tested:
  *
- * 1. **In the rejected sub-view** — a single Restore, whatever the row's
- *    status. `showRejected` is what put this row on screen, so the open-board
- *    actions would be offering a claim on a load the driver has explicitly
- *    hidden.
+ * 1. **A load this account has hidden** — a single Restore, whatever the row's
+ *    status: the open-board actions would otherwise offer a claim on a load the
+ *    driver explicitly hid. Asked of the context's `isRejected(id)` rather than
+ *    inferred from `showRejected`, which is only *coincidentally* the same
+ *    answer — a rejected row carries `status: "available"` from the endpoint,
+ *    so nothing on the row itself says so.
  * 2. **`available`** — Reject then Accept.
  * 3. **`claimed`** — somebody else got it; the neutral pill, no buttons.
  * 4. **`mine`** — the success pill. Only reachable on the "My loads" tab, where
@@ -281,7 +286,7 @@ function HelpersBadge({ helperCount }: { helperCount: number }) {
  */
 function LoadActions({ load }: { load: HubLoad }) {
   const {
-    showRejected,
+    isRejected,
     selectLoad,
     openConfirm,
     reject,
@@ -300,7 +305,7 @@ function LoadActions({ load }: { load: HubLoad }) {
   // reject is in flight would be a lost race for no reason.
   const isBusy = pendingActionId !== null;
 
-  if (showRejected) {
+  if (isRejected(load.id)) {
     return (
       <div className="flex justify-end">
         <Button
@@ -573,15 +578,16 @@ export function LoadsTable() {
         <TableHeader>
           <TableRow className="bg-muted hover:bg-muted">
             <SortableHead columnKey="route" label="Route" />
-            {/* Not sortable: `LoadsSortKey` has no `fromYou` member and adding
-                one is a change to `loads-context.tsx`. See the file header. */}
-            <TableHead
-              scope="col"
-              className={cn(HEAD_CLASSES, "text-right")}
+            {/* "Show me what's nearest right now" — the most useful non-default
+                sort this board offers, and half the reason the column exists.
+                Loads with no measurable distance sort to the bottom either
+                way; the comparator in `loads-context.tsx` owns that rule. */}
+            <SortableHead
+              columnKey="fromYou"
+              label="From you"
+              align="right"
               title="How far the pick-up is from you right now"
-            >
-              From you
-            </TableHead>
+            />
             <SortableHead columnKey="window" label="Pick-up window" />
             <SortableHead columnKey="cargo" label="Cargo" />
             <SortableHead columnKey="helpers" label="Helpers" align="center" />

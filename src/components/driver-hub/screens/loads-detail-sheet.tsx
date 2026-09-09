@@ -12,20 +12,21 @@ import {
 } from "@/components/driver-hub/screens/loads-context";
 import {
   EM_DASH,
+  cargoCategoryLabel,
   formatDeadlineLine,
   formatDistanceKm,
   formatGel,
+  formatHelperRequest,
   formatLoadDims,
   formatPickupWindow,
   formatVolumeM3,
   formatWeightKg,
-  pluralise,
   sortedHandlingTags,
+  waitingAllowanceOf,
 } from "@/components/driver-hub/screens/loads-format";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
-import { CARGO_CATEGORY_LABELS } from "@/lib/cargo";
 import { cn } from "@/lib/utils";
 
 /**
@@ -73,17 +74,25 @@ import { cn } from "@/lib/utils";
  * *open* whenever the drawer is, even though nothing of it should paint. Three
  * consequences are handled here rather than left to chance:
  *
- * 1. The overlay and the content are portalled to `document.body` as siblings,
- *    so **both** carry `lg:hidden` (the overlay via `sheet.tsx`'s
+ * 1. The scrim and the content are portalled to `document.body` as siblings,
+ *    so **both** carry `lg:hidden` (the scrim via `sheet.tsx`'s
  *    `overlayClassName`). Hiding only the content would leave a scrim over the
  *    desktop board.
  * 2. `modal={false}`. A modal Radix dialog locks `pointer-events` on the body
  *    and `aria-hidden`s everything behind it — which, at `lg`, would freeze the
- *    desktop board behind an invisible sheet.
+ *    desktop board behind an invisible sheet. This is also why `sheet.tsx`
+ *    paints its own scrim rather than using `SheetPrimitive.Overlay`, which
+ *    renders nothing at all when a dialog is non-modal.
  * 3. Outside interactions do not dismiss unless they land on the sheet's own
  *    scrim. Dismissing on any outside pointer-down would mean a desktop click
  *    anywhere clearing `selectedId` and closing the drawer the driver is
  *    actually reading.
+ *
+ * Escape is the deliberate exception to (3) and is left unguarded: at `lg` it
+ * clears `selectedId` and so closes the *desktop drawer*. That is what a driver
+ * pressing Escape on an open detail panel expects, and this sheet is the only
+ * layer listening for it while a load is selected. Recorded here so nobody
+ * "fixes" it into an `onEscapeKeyDown` guard alongside the other two.
  */
 
 /* -------------------------------------------------------------------------- */
@@ -163,27 +172,20 @@ const JOB_SHEET_TITLE =
 const PHOTO_TILES = ["Photo 1", "Photo 2", "Photo 3"];
 
 /**
- * The cargo category's display copy, falling back to the raw enum value.
+ * The waiting allowance is **presentational, not accounting**, and it is
+ * defined once in `loads-format.ts` rather than in each surface that prints it.
  *
- * `HubLoad.cargoCategory` is typed `string` — it crosses the wire as JSON — so
- * the `Record<CargoCategory, string>` lookup is widened here rather than the row
- * being cast. A category added to the schema without copy fails typecheck in
- * `src/lib/cargo.ts` long before it could reach this fallback.
+ * No column backs the figure: the design defines the sub-line as 6% of the
+ * client's price, which a driver-facing surface may not read, so it is taken
+ * from the payout instead. This sheet and `loads-drawer.tsx` used to make that
+ * substitution independently and agreed only because both happened to pick the
+ * same percentage; `waitingAllowanceOf` is now the one place it is decided.
+ * Whether drivers should be shown a breakdown of their pay that no stored value
+ * supports is a spec question, not a component one.
+ *
+ * Its rounding to the tetri is unobservable here — `formatGel` prints whole
+ * lari — and is kept for the surface that may one day print a fractional one.
  */
-const CARGO_CATEGORY_LABEL_BY_VALUE: Record<string, string> =
-  CARGO_CATEGORY_LABELS;
-
-function cargoCategoryLabel(cargoCategory: string): string {
-  return CARGO_CATEGORY_LABEL_BY_VALUE[cargoCategory] ?? cargoCategory;
-}
-
-/** The share of the payout the design presents as a waiting allowance. */
-const WAITING_ALLOWANCE_SHARE = 0.06;
-
-/** Currency rounding, to the tetri. `roundCurrency` in `pricing.ts` is server-side. */
-function roundToTetri(value: number): number {
-  return Math.round(value * 100) / 100;
-}
 
 /* -------------------------------------------------------------------------- */
 /* Sections                                                                   */
@@ -278,22 +280,8 @@ function cargoRows(load: HubLoad): { key: string; value: string }[] {
           ? "None declared"
           : tags.map((tag) => tag.label).join(", "),
     },
-    { key: "Helpers", value: helperText(load.helperCount) },
+    { key: "Helpers", value: formatHelperRequest(load.helperCount) },
   ];
-}
-
-/**
- * `"No helpers requested"` / `"1 helper requested"` / `"2 helpers requested"`.
- *
- * Composed from the shared `pluralise` rather than added to `loads-format.ts`:
- * that module is another task's file this wave and may not be edited from here.
- * The same sentence is built the same way in `loads-drawer.tsx`; folding both
- * into one shared formatter is part of the post-wave cleanup.
- */
-export function helperText(helperCount: number): string {
-  return helperCount === 0
-    ? "No helpers requested"
-    : `${pluralise(helperCount, "helper")} requested`;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -321,10 +309,15 @@ export function LoadsDetailSheet({ nowIso }: LoadsDetailSheetProps) {
     restore,
     pendingActionId,
     actionError,
-    showRejected,
+    isRejected,
   } = useLoadsBoard();
 
   const load = selectedLoad;
+
+  // Resolved once per render rather than at each of the two places the pills
+  // and their absence are decided — the sort runs over the six-entry label
+  // table, so the cost is trivial, but two calls invite the two sites to drift.
+  const tags = load === null ? [] : sortedHandlingTags(load.handlingTags);
 
   return (
     <Sheet
@@ -346,17 +339,40 @@ export function LoadsDetailSheet({ nowIso }: LoadsDetailSheetProps) {
           // instead of the hub's. Nothing errors; the colours are quietly
           // wrong. Same precedent as `loads-filters.tsx`'s `SelectContent`.
           data-admin-surface=""
-          aria-label={`Load ${load.reference}`}
           // Radix warns when a dialog has no description; this sheet is a
           // detail panel with no single summarising sentence, so the warning is
-          // answered by opting out rather than by inventing one.
+          // answered by opting out rather than by inventing one. The accessible
+          // *name* comes from the `sr-only` `SheetTitle` below — an `aria-label`
+          // here would only override it with the same words.
           aria-describedby={undefined}
-          className="max-h-[85vh] gap-0 overflow-y-auto rounded-t-xl p-0 lg:hidden"
+          // Radix auto-focuses the first tabbable element on open, which here is
+          // **Accept this load** — the ✕ is rendered last, after the content. A
+          // screen-reader user would land on the claim button having heard
+          // neither the payout, the route, nor the hazmat and cold-chain pills,
+          // which is the exact failure this sheet exists to prevent. Focusing
+          // the panel itself instead starts the reader at the top. The panel is
+          // focusable: Radix's `FocusScope` gives it `tabIndex={-1}`.
+          onOpenAutoFocus={(event) => {
+            event.preventDefault();
+
+            if (event.currentTarget instanceof HTMLElement) {
+              event.currentTarget.focus();
+            }
+          }}
+          // The panel itself does not scroll — the body block below does. That
+          // keeps the header (reference, status, payout) and the sheet's own ✕
+          // pinned instead of scrolling away on a long load, which matters more
+          // here than on desktop: a phone has no Escape key, so the ✕ and the
+          // scrim are the only ways out.
+          className="flex max-h-[85vh] flex-col gap-0 rounded-t-xl p-0 lg:hidden"
           overlayClassName="lg:hidden"
           onPointerDownOutside={(event) => {
             // Only the sheet's own scrim dismisses. At `lg` the scrim is
             // `display:none`, so no desktop click can reach this and clear the
-            // selection out from under the drawer.
+            // selection out from under the drawer. The scrim is a real element
+            // that `SheetContent` paints itself — Radix's `Overlay` renders
+            // nothing under `modal={false}`, which is why this guard could
+            // never match before that fix.
             const target = event.detail.originalEvent.target;
             const onScrim =
               target instanceof Element &&
@@ -407,42 +423,44 @@ export function LoadsDetailSheet({ nowIso }: LoadsDetailSheetProps) {
               {formatGel(load.driverPayout)}
             </p>
             <p className="mt-1.5 text-xs text-muted-foreground">
-              incl.{" "}
-              {formatGel(
-                roundToTetri(load.driverPayout * WAITING_ALLOWANCE_SHARE),
-              )}{" "}
-              waiting allowance
+              incl. {formatGel(waitingAllowanceOf(load.driverPayout))} waiting
+              allowance
             </p>
           </div>
 
-          {/* ---------------------------------------------------------------- */}
-          {/* 2. Route                                                         */}
-          {/* ---------------------------------------------------------------- */}
-          <div className="border-b border-border p-4">
-            <div className="flex flex-col gap-3">
-              <RouteStop
-                label="Pick-up"
-                marker="filled"
-                city={load.pickupCity}
-                address={load.pickupAddress}
-                time={formatPickupWindow(
-                  load.pickupWindowStart,
-                  load.pickupWindowEnd,
-                  nowIso,
-                )}
-              />
-              <RouteStop
-                label="Drop-off"
-                marker="ring"
-                city={load.dropoffCity}
-                address={load.dropoffAddress}
-                time={
-                  formatDeadlineLine(load.deliveryDeadline, nowIso) ?? EM_DASH
-                }
-              />
-            </div>
+          {/* Everything below the header scrolls. `min-h-0` is what lets it: a
+              flex child's default `min-height: auto` refuses to shrink below its
+              content, and the panel would grow past its own `max-h-[85vh]`
+              instead of the block scrolling inside it. */}
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            {/* ---------------------------------------------------------------- */}
+            {/* 2. Route                                                         */}
+            {/* ---------------------------------------------------------------- */}
+            <div className="border-b border-border p-4">
+              <div className="flex flex-col gap-3">
+                <RouteStop
+                  label="Pick-up"
+                  marker="filled"
+                  city={load.pickupCity}
+                  address={load.pickupAddress}
+                  time={formatPickupWindow(
+                    load.pickupWindowStart,
+                    load.pickupWindowEnd,
+                    nowIso,
+                  )}
+                />
+                <RouteStop
+                  label="Drop-off"
+                  marker="ring"
+                  city={load.dropoffCity}
+                  address={load.dropoffAddress}
+                  time={
+                    formatDeadlineLine(load.deliveryDeadline, nowIso) ?? EM_DASH
+                  }
+                />
+              </div>
 
-            {/* Indented 20px — the 8px marker plus its 12px gap — so it hangs
+              {/* Indented 20px — the 8px marker plus its 12px gap — so it hangs
                 under the addresses rather than under the markers.
 
                 `distanceKm` is the load's own pick-up-to-drop-off trip, not
@@ -451,160 +469,164 @@ export function LoadsDetailSheet({ nowIso }: LoadsDetailSheetProps) {
                 "2 stops" is a constant, not a field: `Order` is a single
                 pick-up → single drop-off booking with no stop table, so two is
                 the only number it can be. See requirements.md's Non-Goals. */}
-            <p className="mt-3 pl-5 text-xs text-muted-foreground tabular-nums">
-              {formatDistanceKm(load.distanceKm)} · 2 stops
-            </p>
-          </div>
+              <p className="mt-3 pl-5 text-xs text-muted-foreground tabular-nums">
+                {formatDistanceKm(load.distanceKm)} · 2 stops
+              </p>
+            </div>
 
-          {/* ---------------------------------------------------------------- */}
-          {/* 3. Cargo                                                         */}
-          {/* ---------------------------------------------------------------- */}
-          <div className="border-b border-border p-4">
-            <h3 className={SECTION_LABEL_CLASSES}>Cargo</h3>
+            {/* ---------------------------------------------------------------- */}
+            {/* 3. Cargo                                                         */}
+            {/* ---------------------------------------------------------------- */}
+            <div className="border-b border-border p-4">
+              <h3 className={SECTION_LABEL_CLASSES}>Cargo</h3>
 
-            <dl className="mt-2 grid grid-cols-[96px_1fr] gap-x-3 gap-y-2 text-[13px]">
-              {cargoRows(load).map((row) => (
-                <React.Fragment key={row.key}>
-                  <dt className="text-muted-foreground">{row.key}</dt>
-                  <dd className="min-w-0 break-words">{row.value}</dd>
-                </React.Fragment>
-              ))}
-            </dl>
+              <dl className="mt-2 grid grid-cols-[96px_1fr] gap-x-3 gap-y-2 text-[13px]">
+                {cargoRows(load).map((row) => (
+                  <React.Fragment key={row.key}>
+                    <dt className="text-muted-foreground">{row.key}</dt>
+                    <dd className="min-w-0 break-words">{row.value}</dd>
+                  </React.Fragment>
+                ))}
+              </dl>
 
-            {/* The reason this sheet exists. Sorted by `CargoHandlingTag`
+              {/* The reason this sheet exists. Sorted by `CargoHandlingTag`
                 declaration order through `sortedHandlingTags` — never by the
                 order they sit in `Order.handlingTags`, which is whatever order
                 the client tapped the chips in.
 
                 Absent entirely at zero tags: the Handling row above already
                 reads "None declared". */}
-            {sortedHandlingTags(load.handlingTags).length === 0 ? null : (
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                {sortedHandlingTags(load.handlingTags).map((tag) => (
-                  <span
-                    key={tag.value}
-                    className={cn(
-                      PILL_CLASSES,
-                      "border border-border bg-muted text-muted-foreground",
-                    )}
+              {tags.length === 0 ? null : (
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {tags.map((tag) => (
+                    <span
+                      key={tag.value}
+                      className={cn(
+                        PILL_CLASSES,
+                        "border border-border bg-muted text-muted-foreground",
+                      )}
+                    >
+                      {tag.label}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                {PHOTO_TILES.map((label) => (
+                  <div
+                    key={label}
+                    className="flex aspect-[4/3] items-center justify-center rounded-md border border-dashed border-border bg-muted text-[10px] text-muted-foreground"
                   >
-                    {tag.label}
-                  </span>
+                    {label}
+                  </div>
                 ))}
               </div>
-            )}
-
-            <div className="mt-3 grid grid-cols-3 gap-2">
-              {PHOTO_TILES.map((label) => (
-                <div
-                  key={label}
-                  className="flex aspect-[4/3] items-center justify-center rounded-md border border-dashed border-border bg-muted text-[10px] text-muted-foreground"
-                >
-                  {label}
-                </div>
-              ))}
             </div>
-          </div>
 
-          {/* ---------------------------------------------------------------- */}
-          {/* 4. Actions                                                       */}
-          {/* ---------------------------------------------------------------- */}
-          <div className="flex flex-col gap-2 p-4">
-            {load.status === "claimed" ? (
-              <p className={cn(NOTE_CLASSES, "border-border bg-muted")}>
-                Claimed by another driver. No longer available.
-              </p>
-            ) : load.status === "mine" ? (
-              <>
-                <p
-                  className={cn(
-                    NOTE_CLASSES,
-                    "border-transparent",
-                    HUB_STATUS_TONE_CLASSES.success,
-                  )}
-                >
-                  You claimed this load. Contact details are in your job sheet.
+            {/* ---------------------------------------------------------------- */}
+            {/* 4. Actions                                                       */}
+            {/* ---------------------------------------------------------------- */}
+            <div className="flex flex-col gap-2 p-4">
+              {load.status === "claimed" ? (
+                <p className={cn(NOTE_CLASSES, "border-border bg-muted")}>
+                  Claimed by another driver. No longer available.
                 </p>
-                <Button
-                  type="button"
-                  variant="outline"
-                  // Ships disabled: there is no job sheet to open. See
-                  // requirements.md's Non-Goals — do not wire this to a
-                  // placeholder route.
-                  disabled
-                  title={JOB_SHEET_TITLE}
-                  className={TOUCH_TARGET_CLASSES}
-                >
-                  Open job sheet
-                  {/* `title` is not reliably announced, so the reason is real
+              ) : load.status === "mine" ? (
+                <>
+                  <p
+                    className={cn(
+                      NOTE_CLASSES,
+                      "border-transparent",
+                      HUB_STATUS_TONE_CLASSES.success,
+                    )}
+                  >
+                    You claimed this load. Contact details are in your job
+                    sheet.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    // Ships disabled: there is no job sheet to open. See
+                    // requirements.md's Non-Goals — do not wire this to a
+                    // placeholder route.
+                    disabled
+                    title={JOB_SHEET_TITLE}
+                    className={TOUCH_TARGET_CLASSES}
+                  >
+                    Open job sheet
+                    {/* `title` is not reliably announced, so the reason is real
                       text for assistive tech too. */}
-                  <span className="sr-only">. {JOB_SHEET_TITLE}</span>
-                </Button>
-              </>
-            ) : showRejected ? (
-              // No Accept for a load the driver has hidden: restoring it is the
-              // only path back to claiming it, matching the table and drawer.
-              // `showRejected` is what put this load on screen — the context
-              // clears the selection whenever that sub-view is entered or left,
-              // so a selected row while it is on came from the rejected list.
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => void restore(load.id)}
-                disabled={pendingActionId !== null}
-                className={TOUCH_TARGET_CLASSES}
-              >
-                {pendingActionId === load.id
-                  ? "Restoring…"
-                  : "Restore to open loads"}
-              </Button>
-            ) : (
-              <>
-                {/* Opens the shared confirm dialog (task-12) by id — exactly
-                    what the desktop drawer's Accept does. This sheet never
-                    calls a claim endpoint itself. */}
-                <Button
-                  type="button"
-                  onClick={() => openConfirm(load.id)}
-                  disabled={pendingActionId !== null}
-                  className={TOUCH_TARGET_CLASSES}
-                >
-                  Accept this load
-                </Button>
+                    <span className="sr-only">. {JOB_SHEET_TITLE}</span>
+                  </Button>
+                </>
+              ) : isRejected(load.id) ? (
+                // No Accept for a load the driver has hidden: restoring it is the
+                // only path back to claiming it, matching the table and drawer.
+                // Asked of the board rather than inferred from the rejected
+                // sub-view being open: a rejected load still arrives with
+                // `status: "available"`, so the row itself cannot say.
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => void reject(load.id)}
+                  onClick={() => void restore(load.id)}
                   disabled={pendingActionId !== null}
-                  // The design's destructive hover, expressed through the
-                  // existing `--destructive` token rather than three raw oklch
-                  // literals.
-                  className={cn(
-                    TOUCH_TARGET_CLASSES,
-                    "hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive",
-                  )}
+                  className={TOUCH_TARGET_CLASSES}
                 >
                   {pendingActionId === load.id
-                    ? "Rejecting…"
-                    : "Reject this load"}
+                    ? "Restoring…"
+                    : "Restore to open loads"}
                 </Button>
-                <p className="text-center text-[11px] leading-relaxed text-muted-foreground">
-                  First driver to confirm claims the order. Rejecting only hides
-                  it from your board.
-                </p>
-              </>
-            )}
+              ) : (
+                <>
+                  {/* Opens the shared confirm dialog (task-12) by id — exactly
+                    what the desktop drawer's Accept does. This sheet never
+                    calls a claim endpoint itself. */}
+                  <Button
+                    type="button"
+                    onClick={() => openConfirm(load.id)}
+                    disabled={pendingActionId !== null}
+                    className={TOUCH_TARGET_CLASSES}
+                  >
+                    Accept this load
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => void reject(load.id)}
+                    disabled={pendingActionId !== null}
+                    // The design's destructive hover, expressed through the
+                    // existing `--destructive` token rather than three raw oklch
+                    // literals.
+                    className={cn(
+                      TOUCH_TARGET_CLASSES,
+                      "hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive",
+                    )}
+                  >
+                    {pendingActionId === load.id
+                      ? "Rejecting…"
+                      : "Reject this load"}
+                  </Button>
+                  <p className="text-center text-[11px] leading-relaxed text-muted-foreground">
+                    First driver to confirm claims the order. Rejecting only
+                    hides it from your board.
+                  </p>
+                </>
+              )}
 
-            {/* The board-wide reject/restore failure, shown here because this
-                sheet is where those two actions were taken from. */}
-            {actionError === null ? null : (
-              <p
-                role="alert"
-                className="text-xs leading-relaxed text-destructive"
-              >
-                {actionError}
-              </p>
-            )}
+              {/* The board-wide reject/restore failure, repeated here because
+                this sheet covers the board copy of it when it is open.
+
+                Deliberately *not* a live region: `loads-mobile.tsx` renders the
+                same string in a `role="alert"`, and that element is never
+                aria-hidden by this sheet (it is non-modal), so making this one
+                live too would have a screen reader announce one failure twice. */}
+              {actionError === null ? null : (
+                <p className="text-xs leading-relaxed text-destructive">
+                  {actionError}
+                </p>
+              )}
+            </div>
           </div>
         </SheetContent>
       )}

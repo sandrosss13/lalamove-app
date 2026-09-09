@@ -9,11 +9,14 @@ import {
 } from "@/components/driver-hub/screens/loads-context";
 import {
   EM_DASH,
+  cargoCategoryLabel,
+  formatAbsoluteDateTime,
+  formatAbsoluteWindow,
   formatDistanceKm,
   formatGel,
+  formatHelperRequest,
   formatLoadDims,
   formatWeightKg,
-  pluralise,
 } from "@/components/driver-hub/screens/loads-format";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -24,9 +27,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useSession } from "@/lib/auth-client";
-import { CARGO_CATEGORY_LABELS } from "@/lib/cargo";
-import { HUB_TIME_ZONE } from "@/lib/dashboard/hub/timezone";
 
 /**
  * The two dialogs that decide whether a driver actually gets a load: the
@@ -82,109 +82,30 @@ import { HUB_TIME_ZONE } from "@/lib/dashboard/hub/timezone";
  */
 
 /* -------------------------------------------------------------------------- */
-/* Local formatting                                                           */
+/* Formatting                                                                 */
 /* -------------------------------------------------------------------------- */
 
 /**
- * The clock and calendar formatters this dialog needs, pinned to
- * `HUB_TIME_ZONE` and `en-GB` for the reasons `jobs-format.ts` sets out at
- * length: an unzoned formatter renders a Tbilisi 20:00 deadline as 16:00, and a
- * locale-reading one renders one string on the server and another after
- * hydration.
+ * Every string in this file comes from `loads-format.ts`.
  *
- * They live here rather than in `loads-format.ts` only because that module is
- * being edited concurrently; `formatWindow` and `formatDeadline` below are
- * general enough that they belong there, beside `formatWeightKg` and friends,
- * and should be moved when it is free. **Do not fork them in the meantime** —
- * the drawer and this dialog naming the same pickup window two different ways is
- * exactly what a shared format module exists to prevent.
+ * This dialog used to carry its own clock, day-month, ISO-parse, window,
+ * deadline, cargo-category and helper-sentence helpers, written here only
+ * because that module was fenced to a sibling task while this file was being
+ * built. They are all shared now, which is what stops the drawer and this dialog
+ * from naming one pick-up window two different ways — the failure the old
+ * comment here warned against and which had already happened one file over: the
+ * drawer printed "4 Aug, 18:00" where this dialog printed "4 Aug 18:00".
+ *
+ * **The absolute phrasing survives the merge, deliberately.** The board's rows
+ * label an instant relatively ("Today 14:00–16:00") through
+ * `formatPickupWindow`; this dialog names it as a date through
+ * `formatAbsoluteWindow` and `formatAbsoluteDateTime`. A relative label needs a
+ * "now" to compare against, and this is the one screen a driver can leave open
+ * across Tbilisi midnight while deciding — where "Today" would quietly become a
+ * lie on the exact screen they commit from. The two are separate shared
+ * functions rather than a forked formatter, so both spellings still come from
+ * one place.
  */
-const clockFormatter = new Intl.DateTimeFormat("en-GB", {
-  hour: "2-digit",
-  minute: "2-digit",
-  hour12: false,
-  timeZone: HUB_TIME_ZONE,
-});
-
-const dayMonthFormatter = new Intl.DateTimeFormat("en-GB", {
-  day: "numeric",
-  month: "short",
-  timeZone: HUB_TIME_ZONE,
-});
-
-/**
- * An ISO timestamp as a `Date`, or `null` when it is absent or unparseable.
- *
- * These arrive as JSON strings — `JSON.parse` revives no dates — so every one of
- * them is a parse that can fail. It never should, but an `Invalid Date` reaching
- * `Intl` renders the literal string "Invalid Date" into the driver's
- * confirmation summary, which is worse than an em dash.
- */
-function parseInstant(iso: string | null): Date | null {
-  if (iso === null) {
-    return null;
-  }
-
-  const date = new Date(iso);
-
-  return Number.isNaN(date.getTime()) ? null : date;
-}
-
-/**
- * The pickup window: `"4 Aug 14:00–16:00"`, or `"—"` when either end is missing.
- *
- * The design's own copy reads "Today 14:00–16:00", and the date is printed
- * instead of the relative day deliberately. A relative label needs a "now" to
- * compare against, and "now" read during render is both a hydration hazard and a
- * value that goes stale in place — a confirmation dialog left open across
- * midnight would go on insisting the pickup is "Today". This is the one screen
- * where a driver commits to a slot, so the slot is named absolutely.
- *
- * Both ends are required because half a window ("14:00–") describes nothing a
- * driver can plan around.
- */
-function formatWindow(startIso: string | null, endIso: string | null): string {
-  const start = parseInstant(startIso);
-  const end = parseInstant(endIso);
-
-  if (start === null || end === null) {
-    return EM_DASH;
-  }
-
-  return `${dayMonthFormatter.format(start)} ${clockFormatter.format(start)}–${clockFormatter.format(end)}`;
-}
-
-/** The delivery deadline: `"4 Aug 20:00"`, or `"—"`. */
-function formatDeadline(deadlineIso: string | null): string {
-  const deadline = parseInstant(deadlineIso);
-
-  return deadline === null
-    ? EM_DASH
-    : `${dayMonthFormatter.format(deadline)} ${clockFormatter.format(deadline)}`;
-}
-
-/**
- * The cargo category's display label, looked up without a cast.
- *
- * `HubLoad.cargoCategory` is a bare `string` — it crossed the wire as JSON, so
- * the `CargoCategory` enum is gone by the time it gets here — and asserting it
- * back into the enum would turn a value the table does not cover into a
- * `undefined` rendered as blank. The raw value is the fallback instead: seeing
- * `RETAIL_STOCK` in the summary is ugly, but it names the cargo, which an empty
- * cell does not.
- */
-function cargoCategoryLabel(cargoCategory: string): string {
-  const labels: Record<string, string | undefined> = CARGO_CATEGORY_LABELS;
-
-  return labels[cargoCategory] ?? cargoCategory;
-}
-
-/** The Helpers row's sentence, matching the drawer's wording exactly. */
-function helpersText(helperCount: number): string {
-  return helperCount === 0
-    ? "No helpers requested"
-    : `${pluralise(helperCount, "helper")} requested`;
-}
 
 /**
  * **A constant, never derived from a field.**
@@ -277,6 +198,7 @@ export type LoadsConfirmDialogProps = {
  */
 export function LoadsConfirmDialog({ load }: LoadsConfirmDialogProps) {
   const {
+    accountKind,
     closeConfirm,
     confirmClaim,
     isClaiming,
@@ -290,19 +212,15 @@ export function LoadsConfirmDialog({ load }: LoadsConfirmDialogProps) {
    * driver, which decides two things below: the needs-assignment note, and
    * whether a `DRIVER_OFFLINE` refusal is offered a remedy.
    *
-   * Read from the session because the board's context does not carry the
-   * account kind — `loads/page.tsx` resolves it and hands it to `LoadsProvider`,
-   * which uses it internally and does not re-expose it. This is the *same*
-   * source of truth, not a second one: `resolveHubAccount()` derives
-   * `kind: "BUSINESS"` from exactly this `role === "COMPANY"` test, and reading
-   * the session client-side is the established pattern (`landing-nav-pill.tsx`,
-   * `auth-status.tsx`). **When `LoadsBoardValue` gains an `accountKind` field,
-   * delete this hook and read it from the context instead** — one line, and it
-   * removes the brief pre-session render in which a company sees no note.
+   * Read from the board's own `accountKind`, which `loads/page.tsx` resolves
+   * server-side through `resolveHubAccount()` and hands to `LoadsProvider` —
+   * the same value `confirmClaim` picks its endpoint with, so the note and the
+   * request it describes can never disagree. This used to call `useSession()`
+   * and re-derive `role === "COMPANY"`: the same fact by a longer route, and one
+   * that arrives a render late, so a company account's first paint of this
+   * dialog showed the individual driver's copy.
    */
-  const { data: session, isPending: isSessionPending } = useSession();
-  const isCompanyAccount =
-    !isSessionPending && session?.user.role === "COMPANY";
+  const isCompanyAccount = accountKind === "BUSINESS";
 
   const [hazmatAcknowledged, setHazmatAcknowledged] = React.useState(false);
   const [isGoingOnline, setIsGoingOnline] = React.useState(false);
@@ -406,14 +324,14 @@ export function LoadsConfirmDialog({ load }: LoadsConfirmDialogProps) {
     },
     {
       label: "Pick-up",
-      value: `${load.pickupCity ?? EM_DASH} · ${formatWindow(
+      value: `${load.pickupCity ?? EM_DASH} · ${formatAbsoluteWindow(
         load.pickupWindowStart,
         load.pickupWindowEnd,
       )}`,
     },
     {
       label: "Drop-off",
-      value: `${load.dropoffCity ?? EM_DASH} · by ${formatDeadline(
+      value: `${load.dropoffCity ?? EM_DASH} · by ${formatAbsoluteDateTime(
         load.deliveryDeadline,
       )}`,
     },
@@ -423,7 +341,7 @@ export function LoadsConfirmDialog({ load }: LoadsConfirmDialogProps) {
         load.packagingDescription ?? EM_DASH
       }`,
     },
-    { label: "Helpers", value: helpersText(load.helperCount) },
+    { label: "Helpers", value: formatHelperRequest(load.helperCount) },
     {
       label: "Weight",
       value: `${formatWeightKg(load.cargoWeightKg)} · ${formatLoadDims({

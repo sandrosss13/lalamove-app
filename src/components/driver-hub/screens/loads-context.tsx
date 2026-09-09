@@ -177,9 +177,15 @@ export type LoadsTab = "available" | "mine";
  * `price` is the one word on this feature that must never label anything a
  * driver sees or that a reviewer skims past. The *column header* Wave 4 renders
  * may still read "Price"; only this internal key changes.
+ *
+ * `"fromYou"` orders by `pickupDistanceKm` — how far the pick-up is from the
+ * driver right now, the table's own addition to the approved design. It is the
+ * one nullable axis here, and `compareLoads` puts nulls last in **both**
+ * directions: a driver asking for "closest first" must not get the rows whose
+ * distance is unknown at the top of the list.
  */
 export type LoadsSortKey =
-  "route" | "window" | "cargo" | "helpers" | "weight" | "payout";
+  "route" | "fromYou" | "window" | "cargo" | "helpers" | "weight" | "payout";
 
 export type LoadsSortDirection = "asc" | "desc";
 
@@ -234,6 +240,21 @@ export type LoadsClaimError = {
  * exactly the failure the wave split exists to prevent.
  */
 export type LoadsBoardValue = {
+  /* --- the account ------------------------------------------------------ */
+  /**
+   * Which kind of account is looking at the board.
+   *
+   * Resolved server-side by `resolveHubAccount()` and handed to the provider,
+   * which needs it to pick a claim endpoint. It is re-exposed here because the
+   * surfaces need the same fact for copy — the confirm dialog's "assign a
+   * driver and vehicle afterwards" note is a company-only sentence — and the
+   * alternative was each of them calling `useSession()` and re-deriving
+   * `role === "COMPANY"`: the same fact by a longer route, arriving one render
+   * late, with a first paint in which a company account sees the individual's
+   * copy.
+   */
+  accountKind: HubAccountKind;
+
   /* --- server state --------------------------------------------------- */
   isLoading: boolean;
   loadError: string | null;
@@ -270,6 +291,20 @@ export type LoadsBoardValue = {
   /* --- the rejected sub-view ------------------------------------------- */
   showRejected: boolean;
   setShowRejected: (show: boolean) => void;
+  /**
+   * Whether this account has hidden a given load.
+   *
+   * A predicate rather than something a surface can infer, because **the row
+   * cannot say**: `GET /api/loads` returns a rejected load with
+   * `status: "available"` (a rejection changes what *this* account's board
+   * shows, never the load's real server-side status), so the fact lives only in
+   * the endpoint's third array. Every Wave 4 surface previously re-derived it
+   * as `isRejected = showRejected`, which is true today only because entering
+   * or leaving the sub-view clears the selection and the three arrays are
+   * disjoint — a chain of two unrelated invariants holding up a per-row
+   * decision. This carries the fact instead of re-deriving it.
+   */
+  isRejected: (id: string) => boolean;
 
   /* --- selection and dialogs ------------------------------------------- */
   selectedId: string | null;
@@ -334,6 +369,12 @@ function sortValueOf(load: HubLoad, key: LoadsSortKey): string | number | null {
   switch (key) {
     case "route":
       return load.pickupCity;
+    case "fromYou":
+      // Null whenever the distance could not be measured — a stale or absent
+      // driver location, an ungeocodable pickup, or a COMPANY session. Those
+      // rows sort last in both directions, which `compareLoads` handles
+      // generically for every nullable key here.
+      return load.pickupDistanceKm;
     case "window":
       return load.pickupWindowStart;
     case "cargo":
@@ -625,6 +666,23 @@ export function LoadsProvider({
   // exhaustive-deps lint rule, which then asks for the whole array instead.
   const mineCount = mine.length;
   const rejectedCount = rejected.length;
+
+  /**
+   * The ids of the loads this account has hidden.
+   *
+   * A `Set` rather than an `Array.includes` over `rejected` on every row: the
+   * table asks this question once per visible row per render, and the endpoint
+   * imposes no ceiling on how many loads an account may have rejected.
+   */
+  const rejectedIds = React.useMemo(
+    () => new Set(rejected.map((load) => load.id)),
+    [rejected],
+  );
+
+  const isRejected = React.useCallback(
+    (id: string) => rejectedIds.has(id),
+    [rejectedIds],
+  );
 
   /* --- selection --------------------------------------------------------- */
 
@@ -923,6 +981,7 @@ export function LoadsProvider({
 
   const value = React.useMemo<LoadsBoardValue>(
     () => ({
+      accountKind,
       isLoading,
       loadError,
       refetch,
@@ -948,6 +1007,7 @@ export function LoadsProvider({
       setSort,
       showRejected,
       setShowRejected,
+      isRejected,
       selectedId,
       selectedLoad,
       selectLoad,
@@ -971,6 +1031,7 @@ export function LoadsProvider({
       visibleLoads,
     }),
     [
+      accountKind,
       activeFilterCount,
       actionError,
       availableCount,
@@ -990,6 +1051,7 @@ export function LoadsProvider({
       hiddenByCapacityCount,
       isClaiming,
       isLoading,
+      isRejected,
       loadError,
       lostLoad,
       mineCount,

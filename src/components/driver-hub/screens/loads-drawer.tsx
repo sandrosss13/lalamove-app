@@ -11,17 +11,22 @@ import {
 } from "@/components/driver-hub/screens/loads-context";
 import {
   EM_DASH,
+  cargoCategoryLabel,
+  formatAbsoluteDateTime,
+  formatClock,
   formatDistanceKm,
+  formatFullTimestamp,
   formatGel,
+  formatHelperRequest,
   formatLoadDims,
+  formatRelativeAgo,
+  formatVolumeM3,
   formatWeightKg,
-  pluralise,
   sortedHandlingTags,
+  waitingAllowanceOf,
 } from "@/components/driver-hub/screens/loads-format";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CARGO_CATEGORY_LABELS } from "@/lib/cargo";
-import { HUB_TIME_ZONE } from "@/lib/dashboard/hub/timezone";
 import { cn } from "@/lib/utils";
 
 /**
@@ -96,177 +101,27 @@ import { cn } from "@/lib/utils";
  */
 
 /* -------------------------------------------------------------------------- */
-/* Local formatters                                                           */
+/* Formatting                                                                 */
 /* -------------------------------------------------------------------------- */
 
 /**
- * **These four belong in `loads-format.ts` and should move there.**
+ * Every string this drawer prints comes from `loads-format.ts`.
  *
- * They are defined here only because that module was being edited concurrently
- * while this file was written, and two agents editing one file is exactly the
- * failure the Wave 4 split exists to prevent. Everything this drawer needs that
- * `loads-format.ts` already exports — `formatGel`, `formatWeightKg`,
- * `formatLoadDims`, `formatDistanceKm`, `sortedHandlingTags`, `pluralise`,
- * `EM_DASH` — is imported from it rather than re-implemented.
+ * It used to carry eight private formatters — a clock, a deadline, a full
+ * timestamp, a relative age, an ISO parse guard, a volume, a currency rounding
+ * and a cargo-category lookup — written here only because that module was
+ * fenced to a sibling task while this file was being built. They have all moved
+ * there, and one of them had already drifted: the deadline was formatted with a
+ * single `Intl` pattern carrying day, month, hour and minute together, which
+ * `en-GB` renders as "4 Aug, 18:00", while the claim dialogs composed the same
+ * instant as "4 Aug 18:00". The shared `formatAbsoluteDateTime` is the
+ * composed spelling, so this drawer's deadline lost a comma in the merge.
  *
- * Every one of them is pinned to `HUB_TIME_ZONE`, the hub's single definition of
- * what a clock time and a day are. An unzoned formatter renders a 22:30 Tbilisi
- * pickup window as "18:30" — four hours wrong on every row, and wrong about the
- * *day* for anything after 20:00. See `src/lib/dashboard/hub/timezone.ts`.
+ * Nothing time-related is formatted locally any more, which is the point: every
+ * one of those helpers is pinned to `HUB_TIME_ZONE`, and an unzoned formatter
+ * renders a 22:30 Tbilisi pick-up window as "18:30" — four hours wrong on every
+ * row, and wrong about the *day* for anything after 20:00.
  */
-
-/** `09:40`. 24-hour, matching every other clock time in the hub. */
-const clockFormatter = new Intl.DateTimeFormat("en-GB", {
-  hour: "2-digit",
-  minute: "2-digit",
-  hour12: false,
-  timeZone: HUB_TIME_ZONE,
-});
-
-/** `4 Aug 18:00` — a deadline can be days out, so it carries its date. */
-const dateTimeFormatter = new Intl.DateTimeFormat("en-GB", {
-  day: "numeric",
-  month: "short",
-  hour: "2-digit",
-  minute: "2-digit",
-  hour12: false,
-  timeZone: HUB_TIME_ZONE,
-});
-
-/** The unabbreviated form, for the `title` on a line that shows only a clock. */
-const fullFormatter = new Intl.DateTimeFormat("en-GB", {
-  day: "numeric",
-  month: "long",
-  year: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-  hour12: false,
-  timeZone: HUB_TIME_ZONE,
-});
-
-/**
- * Parse an ISO timestamp, or `null` if there is nothing usable to parse.
- *
- * Guards the formatters below against `RangeError`: these strings cross the
- * wire as JSON and `new Date("")` is an `Invalid Date` that every `Intl`
- * formatter throws on rather than degrading.
- */
-function parseIso(iso: string | null): Date | null {
-  if (iso === null) {
-    return null;
-  }
-
-  const date = new Date(iso);
-
-  return Number.isNaN(date.getTime()) ? null : date;
-}
-
-/** `"2025-08-04T09:40:00Z"` → `"09:40"`; unusable input → `"—"`. */
-function formatClock(iso: string | null): string {
-  const date = parseIso(iso);
-
-  return date === null ? EM_DASH : clockFormatter.format(date);
-}
-
-/** `"2025-08-04T18:00:00Z"` → `"4 Aug 18:00"`; unusable input → `"—"`. */
-function formatDeadline(iso: string | null): string {
-  const date = parseIso(iso);
-
-  return date === null ? EM_DASH : dateTimeFormatter.format(date);
-}
-
-/** The long form for a `title`, or `undefined` so no tooltip is attached. */
-function formatFullTimestamp(iso: string | null): string | undefined {
-  const date = parseIso(iso);
-
-  return date === null ? undefined : fullFormatter.format(date);
-}
-
-/**
- * `"4 min ago"` — how long ago a load was claimed, or `null` when it cannot be
- * said honestly.
- *
- * Whole minutes only: the row exists for a two-minute grey-out window, so
- * seconds are noise and hours are impossible. `null` for an unparseable
- * timestamp and for one in the future (a clock skew between the driver's device
- * and the server), because "in -1 minutes" is worse than saying nothing — the
- * caller falls back to the unqualified sentence.
- *
- * Sampled at render rather than ticking. The board re-reads `GET /api/loads`
- * after every mutation and task-14 will poll it, so this label refreshes with
- * the data it describes rather than drifting on its own timer.
- */
-function formatMinutesAgo(iso: string, nowMs: number): string | null {
-  const date = parseIso(iso);
-
-  if (date === null) {
-    return null;
-  }
-
-  const elapsedMs = nowMs - date.getTime();
-
-  if (elapsedMs < 0) {
-    return null;
-  }
-
-  const minutes = Math.floor(elapsedMs / 60_000);
-
-  // Not `pluralise`: "min" is a unit abbreviation and does not take an s.
-  return minutes < 1 ? "just now" : `${minutes} min ago`;
-}
-
-/**
- * `3.2 × 1.7 × 1.9` → `"10.3 m³"`; any axis undeclared → `"—"`.
- *
- * Volume is not a stored column — it is derived from the three declared axes.
- * One decimal, matching `formatDistanceKm` and the Dimensions row it sits under;
- * a cubic metre quoted to three decimals implies a precision a client typing
- * "about 3 by 2" never had.
- *
- * All-or-nothing on the nulls for the same reason `formatLoadDims` is: two of
- * three axes multiply to an area, not a volume, and printing one would be
- * worse than printing nothing.
- */
-function formatVolumeM3(
-  lengthM: number | null,
-  widthM: number | null,
-  heightM: number | null,
-): string {
-  if (lengthM === null || widthM === null || heightM === null) {
-    return EM_DASH;
-  }
-
-  return `${(lengthM * widthM * heightM).toFixed(1)} m³`;
-}
-
-/**
- * The whole-cent rounding rule used everywhere else in this codebase (see
- * `roundCurrency` in `src/lib/pricing.ts`, which is not exported).
- *
- * Local rather than imported because `pricing.ts` is a server-side pricing
- * engine and this is a `"use client"` component; the rule is one expression and
- * duplicating it costs less than widening that module's public surface.
- */
-function roundCurrency(value: number): number {
-  return Math.round(value * 100) / 100;
-}
-
-/**
- * The cargo category's display copy, falling back to the raw enum value.
- *
- * `HubLoad.cargoCategory` is typed `string` rather than `CargoCategory` — it
- * crosses the wire as JSON — so the lookup is widened here instead of the row
- * being cast. An unrecognised value renders as itself, which is ugly but true;
- * `CARGO_CATEGORY_LABELS` is `Record`-keyed on the enum, so a category added to
- * the schema without copy fails typecheck there before it can reach this
- * fallback.
- */
-const CARGO_CATEGORY_LABEL_BY_VALUE: Record<string, string> =
-  CARGO_CATEGORY_LABELS;
-
-function cargoCategoryLabel(cargoCategory: string): string {
-  return CARGO_CATEGORY_LABEL_BY_VALUE[cargoCategory] ?? cargoCategory;
-}
 
 /* -------------------------------------------------------------------------- */
 /* Status pill                                                                */
@@ -422,26 +277,17 @@ function RouteStop({
  */
 function cargoRows(load: HubLoad): { key: string; value: string }[] {
   const tags = sortedHandlingTags(load.handlingTags);
+  const dims = {
+    lengthM: load.cargoLengthM,
+    widthM: load.cargoWidthM,
+    heightM: load.cargoHeightM,
+  };
 
   return [
     { key: "Type", value: cargoCategoryLabel(load.cargoCategory) },
     { key: "Weight", value: formatWeightKg(load.cargoWeightKg) },
-    {
-      key: "Dimensions",
-      value: formatLoadDims({
-        lengthM: load.cargoLengthM,
-        widthM: load.cargoWidthM,
-        heightM: load.cargoHeightM,
-      }),
-    },
-    {
-      key: "Volume",
-      value: formatVolumeM3(
-        load.cargoLengthM,
-        load.cargoWidthM,
-        load.cargoHeightM,
-      ),
-    },
+    { key: "Dimensions", value: formatLoadDims(dims) },
+    { key: "Volume", value: formatVolumeM3(dims) },
     { key: "Packaging", value: load.packagingDescription ?? EM_DASH },
     { key: "Quantity", value: load.itemQuantity ?? EM_DASH },
     {
@@ -453,13 +299,7 @@ function cargoRows(load: HubLoad): { key: string; value: string }[] {
           ? "None declared"
           : tags.map((tag) => tag.label).join(", "),
     },
-    {
-      key: "Helpers",
-      value:
-        load.helperCount === 0
-          ? "No helpers requested"
-          : `${pluralise(load.helperCount, "helper")} requested`,
-    },
+    { key: "Helpers", value: formatHelperRequest(load.helperCount) },
   ];
 }
 
@@ -489,7 +329,7 @@ export function LoadsDrawer() {
     restore,
     pendingActionId,
     actionError,
-    showRejected,
+    isRejected,
   } = useLoadsBoard();
 
   if (selectedLoad === null) {
@@ -501,20 +341,31 @@ export function LoadsDrawer() {
   /**
    * Whether this load is one the driver has hidden.
    *
-   * Derived from the sub-view rather than from the row, because the row cannot
-   * say: `GET /api/loads` returns rejected loads with `status: "available"` (a
-   * rejection changes what *this* account's board shows, never the load's real
-   * server-side status), and the context exposes no per-row rejected flag. The
-   * inference is sound because entering or leaving the rejected sub-view clears
-   * the selection — see `setShowRejected` in `loads-context.tsx` — so a selected
-   * row while `showRejected` is on came from the rejected list and nowhere else.
+   * Read from the board rather than inferred from the rejected sub-view being
+   * open: the row itself cannot say, because `GET /api/loads` returns a rejected
+   * load with `status: "available"`, and "the sub-view is on, therefore this row
+   * is rejected" only holds while two unrelated invariants do. The context
+   * carries the fact — see `isRejected` in `loads-context.tsx`.
    */
-  const isRejected = showRejected;
+  const isLoadRejected = isRejected(load.id);
+
+  /**
+   * The instant the "claimed N ago" line below is measured against.
+   *
+   * Sampled at render rather than ticking on a timer. The board re-reads
+   * `GET /api/loads` after every mutation and task-14 will poll it, so this
+   * label refreshes with the data it describes instead of drifting on a clock
+   * of its own. Safe to read during render here for the reason the table's own
+   * `nowIso` states: the board fetches from the browser, so this drawer never
+   * renders on the server and there is no first pass to disagree with.
+   */
+  const nowIso = new Date().toISOString();
 
   /**
    * 6% of the driver's payout, not of the client's price. See the money rule in
    * this file's doc comment for why the design's own definition is not the one
-   * implemented.
+   * implemented; the share and its rounding live in `loads-format.ts` so this
+   * drawer and the mobile sheet cannot quote two different allowances.
    *
    * Formatted with `formatGel` — the board's own whole-lari formatter — so the
    * sub-line and the headline above it print the same way. The task file asked
@@ -523,7 +374,7 @@ export function LoadsDrawer() {
    * the note on `formatGel` in `loads-format.ts`), and a "₾11.40" under a "₾190"
    * would be the one figure on this board rendered differently from the rest.
    */
-  const waitingAllowance = roundCurrency(load.driverPayout * 0.06);
+  const waitingAllowance = waitingAllowanceOf(load.driverPayout);
 
   const isPending = pendingActionId === load.id;
   const isBusy = pendingActionId !== null;
@@ -550,11 +401,14 @@ export function LoadsDrawer() {
    * into that bucket — see the `CLAIMED_BY_OTHERS_STATUSES` branch in
    * `src/app/api/loads/route.ts`), and `HubLoad` documents it as such. So the
    * design's own wording is restored. It degrades to the unqualified sentence
-   * rather than to a wrong number if the timestamp is unusable.
+   * rather than to a wrong number if the timestamp is unusable or in the
+   * future — `formatRelativeAgo` answers `null` in both cases, which is exactly
+   * the fallback this line wants and the reason the shared helper returns the
+   * fragment unprefixed rather than the table's "posted …" phrasing.
    */
   const claimedAgo =
     load.status === "claimed"
-      ? formatMinutesAgo(load.updatedAt, Date.now())
+      ? formatRelativeAgo(load.updatedAt, nowIso)
       : null;
 
   return (
@@ -647,7 +501,7 @@ export function LoadsDrawer() {
             time={
               load.deliveryDeadline === null
                 ? EM_DASH
-                : `Deliver by ${formatDeadline(load.deliveryDeadline)}`
+                : `Deliver by ${formatAbsoluteDateTime(load.deliveryDeadline)}`
             }
             timeTitle={formatFullTimestamp(load.deliveryDeadline)}
           />
@@ -789,7 +643,7 @@ export function LoadsDrawer() {
               <span className="sr-only">. {JOB_SHEET_TITLE}</span>
             </Button>
           </>
-        ) : isRejected ? (
+        ) : isLoadRejected ? (
           // No Accept is offered for a load the driver has hidden: restoring it
           // is the only path back to claiming it, matching the table's own
           // row-state behaviour.

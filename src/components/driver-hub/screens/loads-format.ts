@@ -9,6 +9,24 @@
  * file rather than creating a second — a per-task formatter file would put two
  * spellings of "₾190" on the same screen within a week.
  *
+ * ## Every Wave 4 local fork now lives here
+ *
+ * The four Wave 4 surfaces were written simultaneously with this file fenced to
+ * one of them, so the drawer, the claim dialogs and the mobile board each grew
+ * a private copy of the helpers they needed — and the copies had already
+ * diverged: the drawer printed a deadline as "4 Aug, 18:00" (one `Intl` pattern
+ * with day, month and clock together, which `en-GB` comma-separates) where the
+ * dialogs printed "4 Aug 18:00" (day-month and clock composed). They are folded
+ * back in below, and **new surfaces import from here rather than re-deriving**:
+ * that comma was invisible until the two strings were read side by side, which
+ * is exactly how formatter drift always presents.
+ *
+ * Two differences between surfaces survived the merge because they are
+ * deliberate, and each is documented where it is implemented: `formatPostedAgo`
+ * prefixes the relative age it shares with the drawer's "claimed N ago" line,
+ * and the claim dialogs name a date absolutely where the board names it
+ * relatively.
+ *
  * ## The money rule, stated where the money is formatted
  *
  * `Order.price` is what the **client** pays. The driver earns 85% of it,
@@ -30,6 +48,7 @@
 
 import type { CargoHandlingTag } from "@prisma/client";
 
+import { CARGO_CATEGORY_LABELS } from "@/lib/cargo";
 import {
   HUB_TIME_ZONE,
   hubCivilDate,
@@ -88,6 +107,27 @@ export function formatGelPerKm(driverRatePerKm: number | null): string {
   return driverRatePerKm === null
     ? EM_DASH
     : `₾${gelPerKmFormatter.format(driverRatePerKm)}/km`;
+}
+
+/**
+ * The share of the driver's payout the design presents as a waiting allowance,
+ * and the rounding it is quoted to.
+ *
+ * **6% of `driverPayout`, not of the client's price.** The design defines this
+ * line as a share of `Order.price`; that figure is not available to any
+ * driver-facing surface and must not become available, so the same percentage
+ * is taken from the payout instead. The two numbers are not meant to agree —
+ * see the money rule above — and this is stated once, here, rather than in each
+ * of the two surfaces that render the line.
+ *
+ * `roundCurrency` in `src/lib/pricing.ts` is the same rule server-side; it is
+ * reproduced rather than imported because that module is a server-side pricing
+ * engine and both callers here are `"use client"` components.
+ */
+const WAITING_ALLOWANCE_SHARE = 0.06;
+
+export function waitingAllowanceOf(driverPayout: number): number {
+  return Math.round(driverPayout * WAITING_ALLOWANCE_SHARE * 100) / 100;
 }
 
 /**
@@ -290,6 +330,38 @@ export function formatVolumeM3(dims: {
   return `${(lengthM * widthM * heightM).toFixed(1)} m³`;
 }
 
+/**
+ * The cargo category's display copy, falling back to the raw enum value.
+ *
+ * `HubLoad.cargoCategory` is typed `string` rather than `CargoCategory` — it
+ * crosses the wire as JSON, where the enum is gone — so the
+ * `Record<CargoCategory, string>` lookup is widened here instead of the row
+ * being cast back. An unrecognised value renders as itself: seeing
+ * `RETAIL_STOCK` in a summary is ugly, but it names the cargo, which the blank
+ * an assertion-plus-`undefined` would produce does not. A category added to the
+ * schema without copy fails typecheck in `src/lib/cargo.ts` long before it
+ * could reach the fallback.
+ */
+const CARGO_CATEGORY_LABEL_BY_VALUE: Record<string, string> =
+  CARGO_CATEGORY_LABELS;
+
+export function cargoCategoryLabel(cargoCategory: string): string {
+  return CARGO_CATEGORY_LABEL_BY_VALUE[cargoCategory] ?? cargoCategory;
+}
+
+/**
+ * `"No helpers requested"` / `"1 helper requested"` / `"2 helpers requested"`.
+ *
+ * "No helpers requested" rather than "0 helpers": the sentence answers "does
+ * this job need a second pair of hands", and a zero reads as a quantity
+ * somebody chose rather than as a request nobody made.
+ */
+export function formatHelperRequest(helperCount: number): string {
+  return helperCount === 0
+    ? "No helpers requested"
+    : `${pluralise(helperCount, "helper")} requested`;
+}
+
 /* -------------------------------------------------------------------------- */
 /* Time                                                                       */
 /* -------------------------------------------------------------------------- */
@@ -329,6 +401,110 @@ const dayMonthYearFormatter = new Intl.DateTimeFormat("en-GB", {
 });
 
 /**
+ * `4 August 2025 at 18:00` — the unabbreviated form, for the `title` on a line
+ * that shows only a clock.
+ */
+const fullTimestampFormatter = new Intl.DateTimeFormat("en-GB", {
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+  timeZone: HUB_TIME_ZONE,
+});
+
+/**
+ * An ISO timestamp as a `Date`, or `null` when there is nothing usable to
+ * parse.
+ *
+ * Every timestamp on this board crosses the wire as JSON — `JSON.parse` revives
+ * no dates — so every one of them is a parse that can fail. It never should,
+ * but `Intl.DateTimeFormat.prototype.format` throws a `RangeError` on an
+ * `Invalid Date` rather than degrading, and a thrown formatter takes the whole
+ * board down over one malformed field. Every public function below routes its
+ * input through here, so absent and unusable collapse to the same answer.
+ */
+function parseIso(iso: string | null): Date | null {
+  if (iso === null) {
+    return null;
+  }
+
+  const date = new Date(iso);
+
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+/** `"2025-08-04T09:40:00Z"` → `"09:40"`; absent or unusable → `"—"`. */
+export function formatClock(iso: string | null): string {
+  const date = parseIso(iso);
+
+  return date === null ? EM_DASH : clockFormatter.format(date);
+}
+
+/**
+ * The long form for a `title` attribute, or `undefined` so no tooltip is
+ * attached at all.
+ *
+ * `undefined` rather than `"—"`: a tooltip that says nothing is worse than no
+ * tooltip, because it still has to be hovered to find that out.
+ */
+export function formatFullTimestamp(iso: string | null): string | undefined {
+  const date = parseIso(iso);
+
+  return date === null ? undefined : fullTimestampFormatter.format(date);
+}
+
+/**
+ * `"4 Aug 18:00"` — a date and a clock time with no relative day label at all;
+ * absent or unusable → `"—"`.
+ *
+ * Composed from `dayMonthFormatter` and `clockFormatter` rather than asked of
+ * one `Intl.DateTimeFormat` carrying day, month, hour and minute together:
+ * `en-GB` renders that combination as `"4 Aug, 18:00"`, and the comma is the
+ * kind of difference that goes unnoticed until two surfaces print the same
+ * deadline side by side. One composition, one spelling.
+ *
+ * **Absolute on purpose, where it is used.** The claim dialogs name every
+ * instant this way instead of through `formatLoadDayLabel`'s
+ * Today/Tomorrow copy, because a relative label needs a "now" to compare
+ * against, and a confirmation dialog can sit open across Tbilisi midnight and go
+ * on insisting the pick-up is "Today" on the one screen where a driver commits
+ * to it. The board's own rows, which re-render on a timer, use the relative
+ * form.
+ */
+export function formatAbsoluteDateTime(iso: string | null): string {
+  const date = parseIso(iso);
+
+  return date === null
+    ? EM_DASH
+    : `${dayMonthFormatter.format(date)} ${clockFormatter.format(date)}`;
+}
+
+/**
+ * `"4 Aug 14:00–16:00"` — a pick-up window named absolutely; `"—"` when either
+ * end is missing or unusable.
+ *
+ * The absolute sibling of `formatPickupWindow`, for the reason
+ * `formatAbsoluteDateTime` states. Both ends are required because half a window
+ * ("14:00–") describes nothing a driver can plan around, and the en dash is the
+ * typographic range separator, not a hyphen.
+ */
+export function formatAbsoluteWindow(
+  startIso: string | null,
+  endIso: string | null,
+): string {
+  const start = parseIso(startIso);
+  const end = parseIso(endIso);
+
+  if (start === null || end === null) {
+    return EM_DASH;
+  }
+
+  return `${dayMonthFormatter.format(start)} ${clockFormatter.format(start)}–${clockFormatter.format(end)}`;
+}
+
+/**
  * Which Tbilisi calendar day and year an instant falls on.
  *
  * A day *number* rather than a formatted date so two days can simply be
@@ -354,7 +530,20 @@ function civilDate(date: Date): { dayNumber: number; year: number } {
  * an open board are in the future.
  */
 export function formatLoadDayLabel(iso: string, nowIso: string): string {
-  const date = new Date(iso);
+  const date = parseIso(iso);
+
+  return date === null ? EM_DASH : dayLabelOf(date, nowIso);
+}
+
+/**
+ * The same label over an already-parsed instant.
+ *
+ * Split out so the window and deadline formatters below — which have to parse
+ * anyway, to print the clock time — do not parse the same string twice and do
+ * not have to re-prove to the type checker that a string they already validated
+ * is non-null.
+ */
+function dayLabelOf(date: Date, nowIso: string): string {
   const then = civilDate(date);
   const now = civilDate(new Date(nowIso));
   const dayDelta = now.dayNumber - then.dayNumber;
@@ -396,16 +585,16 @@ export function formatPickupWindow(
   endIso: string | null,
   nowIso: string,
 ): string {
-  if (startIso === null) {
+  const start = parseIso(startIso);
+
+  if (start === null) {
     return EM_DASH;
   }
 
-  const start = new Date(startIso);
-  const opening = `${formatLoadDayLabel(startIso, nowIso)} ${clockFormatter.format(start)}`;
+  const opening = `${dayLabelOf(start, nowIso)} ${clockFormatter.format(start)}`;
+  const end = parseIso(endIso);
 
-  return endIso === null
-    ? opening
-    : `${opening}–${clockFormatter.format(new Date(endIso))}`;
+  return end === null ? opening : `${opening}–${clockFormatter.format(end)}`;
 }
 
 /**
@@ -420,19 +609,80 @@ export function formatDeadlineLine(
   deadlineIso: string | null,
   nowIso: string,
 ): string | null {
-  if (deadlineIso === null) {
+  const deadline = parseIso(deadlineIso);
+
+  if (deadline === null) {
     return null;
   }
 
-  return `Deliver by ${formatLoadDayLabel(deadlineIso, nowIso)} ${clockFormatter.format(
-    new Date(deadlineIso),
-  )}`;
+  return `Deliver by ${dayLabelOf(deadline, nowIso)} ${clockFormatter.format(deadline)}`;
 }
 
-/** Bucket boundaries for `formatPostedAgo`, named so the thresholds read. */
+/** Bucket boundaries for `formatRelativeAgo`, named so the thresholds read. */
 const MS_PER_MINUTE = 60_000;
 const MINUTES_PER_HOUR = 60;
 const HOURS_PER_DAY = 24;
+
+/**
+ * How long ago an instant was, unprefixed: `"just now"` / `"14 min ago"` /
+ * `"2h ago"` / `"3d ago"`. `null` when it cannot be said honestly.
+ *
+ * The one implementation of this board's bucketing rule. Two surfaces phrase it
+ * differently — the table's Route line reads "posted 14 min ago", the drawer's
+ * claimed note reads "Claimed by another driver 4 min ago" — and a sentence
+ * fragment is the only thing they can share without one of them owning the
+ * other's copy. `formatPostedAgo` below is the prefixing wrapper.
+ *
+ * Coarse buckets on purpose: the difference between 14 and 15 minutes changes
+ * no decision, and a string that re-rendered every second would. "min" takes no
+ * plural — it is a unit abbreviation, not a word — so `pluralise` is not
+ * involved.
+ *
+ * `null` in two cases, both of which mean the caller should fall back to a
+ * sentence with no age in it rather than print a number it cannot stand behind:
+ *
+ * - an unusable timestamp;
+ * - an instant in the *future*. `createdAt` and `updatedAt` come from the
+ *   database clock and `nowIso` from the browser's, so a row written seconds
+ *   ago legitimately arrives "in the future" on a device whose clock runs slow.
+ *   `"in 2 min ago"` would be the only visible symptom of a skew nobody can act
+ *   on.
+ */
+export function formatRelativeAgo(
+  instantIso: string,
+  nowIso: string,
+): string | null {
+  const instant = parseIso(instantIso);
+  const now = parseIso(nowIso);
+
+  if (instant === null || now === null) {
+    return null;
+  }
+
+  const elapsedMs = now.getTime() - instant.getTime();
+
+  if (elapsedMs < 0) {
+    return null;
+  }
+
+  const minutes = Math.floor(elapsedMs / MS_PER_MINUTE);
+
+  if (minutes < 1) {
+    return "just now";
+  }
+
+  if (minutes < MINUTES_PER_HOUR) {
+    return `${minutes} min ago`;
+  }
+
+  const hours = Math.floor(minutes / MINUTES_PER_HOUR);
+
+  if (hours < HOURS_PER_DAY) {
+    return `${hours}h ago`;
+  }
+
+  return `${Math.floor(hours / HOURS_PER_DAY)}d ago`;
+}
 
 /**
  * `"posted just now"` / `"posted 14 min ago"` / `"posted 2h ago"` /
@@ -440,36 +690,16 @@ const HOURS_PER_DAY = 24;
  *
  * How long a load has sat unclaimed is the cheapest signal a driver has that
  * something about it is off — a well-paid, well-located row that nobody has
- * taken in three days usually has a reason. Coarse buckets on purpose: the
- * difference between 14 and 15 minutes changes no decision, and a string that
- * re-renders every second would.
+ * taken in three days usually has a reason.
  *
- * Clamped at zero rather than printing a negative age. `createdAt` comes from
- * the database clock and `nowIso` from the browser's, so a row created seconds
- * ago can legitimately arrive "in the future" on a machine whose clock runs
- * slow; `"posted in 2 min"` would be the only visible symptom of a skew nobody
- * can act on.
+ * The two cases `formatRelativeAgo` refuses to name both collapse to "just
+ * now" here rather than to nothing, because this fragment sits in the middle of
+ * a row's third line where an absent phrase would read as a rendering fault
+ * rather than as an unknown. That is also the pre-existing behaviour for a
+ * future `createdAt`, which this wrapper preserves exactly.
  */
 export function formatPostedAgo(createdAtIso: string, nowIso: string): string {
-  const elapsedMs =
-    new Date(nowIso).getTime() - new Date(createdAtIso).getTime();
-  const minutes = Math.max(0, Math.floor(elapsedMs / MS_PER_MINUTE));
-
-  if (minutes < 1) {
-    return "posted just now";
-  }
-
-  if (minutes < MINUTES_PER_HOUR) {
-    return `posted ${minutes} min ago`;
-  }
-
-  const hours = Math.floor(minutes / MINUTES_PER_HOUR);
-
-  if (hours < HOURS_PER_DAY) {
-    return `posted ${hours}h ago`;
-  }
-
-  return `posted ${Math.floor(hours / HOURS_PER_DAY)}d ago`;
+  return `posted ${formatRelativeAgo(createdAtIso, nowIso) ?? "just now"}`;
 }
 
 /**

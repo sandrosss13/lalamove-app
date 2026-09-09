@@ -103,10 +103,10 @@ graph TD
 - [x] [task-16-driver-payload-redaction](./tasks/task-16-driver-payload-redaction.md) — Remove `price` and the itemised fare breakdown from every driver- and company-facing order response
 
 ### Wave 4
-- [ ] [task-10-loads-table](./tasks/task-10-loads-table.md) — Seven-column sortable table, row states, empty state, footer
-- [ ] [task-11-load-drawer](./tasks/task-11-load-drawer.md) — 400px detail drawer: header, route, cargo, actions
-- [ ] [task-12-claim-dialogs](./tasks/task-12-claim-dialogs.md) — Confirm dialog and lost-the-race dialog
-- [ ] [task-13-mobile-board](./tasks/task-13-mobile-board.md) — Mobile card list plus the detail bottom sheet the design omits
+- [x] [task-10-loads-table](./tasks/task-10-loads-table.md) — Seven-column sortable table, row states, empty state, footer
+- [x] [task-11-load-drawer](./tasks/task-11-load-drawer.md) — 400px detail drawer: header, route, cargo, actions
+- [x] [task-12-claim-dialogs](./tasks/task-12-claim-dialogs.md) — Confirm dialog and lost-the-race dialog
+- [x] [task-13-mobile-board](./tasks/task-13-mobile-board.md) — Mobile card list plus the detail bottom sheet the design omits
 
 ### Wave 5
 - [ ] [task-14-live-updates](./tasks/task-14-live-updates.md) — Poll for status changes, update rows in place

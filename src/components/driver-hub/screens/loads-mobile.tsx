@@ -4,10 +4,7 @@ import * as React from "react";
 
 import { HubEmptyState } from "@/components/driver-hub/hub-primitives";
 import { HUB_STATUS_TONE_CLASSES } from "@/components/driver-hub/hub-status";
-import {
-  LoadsDetailSheet,
-  helperText,
-} from "@/components/driver-hub/screens/loads-detail-sheet";
+import { LoadsDetailSheet } from "@/components/driver-hub/screens/loads-detail-sheet";
 import {
   ALL_CITIES,
   MAX_WEIGHT_FILTER_KG,
@@ -18,8 +15,10 @@ import {
 } from "@/components/driver-hub/screens/loads-context";
 import {
   EM_DASH,
+  cargoCategoryLabel,
   formatDistanceKm,
   formatGel,
+  formatHelperRequest,
   formatLoadDims,
   formatPickupWindow,
   formatWeightKg,
@@ -27,7 +26,6 @@ import {
   sortedHandlingTags,
 } from "@/components/driver-hub/screens/loads-format";
 import { Button } from "@/components/ui/button";
-import { CARGO_CATEGORY_LABELS } from "@/lib/cargo";
 import { cn } from "@/lib/utils";
 
 /**
@@ -84,28 +82,6 @@ import { cn } from "@/lib/utils";
  * and a faster tick would re-render every card to produce identical strings.
  */
 const CLOCK_TICK_MS = 60_000;
-
-/**
- * The cargo category's display copy, falling back to the raw enum value.
- *
- * `GET /api/loads` returns `Order.cargoCategory` verbatim — a
- * `FURNITURE_FURNISHINGS`, not a "Furniture & Furnishings" — and `HubLoad` types
- * it as `string` because it crosses the wire as JSON. So the
- * `Record<CargoCategory, string>` lookup is widened here rather than the row
- * being cast; a category added to the schema without copy fails typecheck in
- * `src/lib/cargo.ts` long before it could reach this fallback.
- *
- * This repeats four lines of `loads-detail-sheet.tsx`, which needs the same
- * mapping. They are not shared because that file is being written by another
- * agent in this same wave; folding both onto one helper in `loads-format.ts` is
- * a follow-up once the wave closes.
- */
-const CARGO_CATEGORY_LABEL_BY_VALUE: Record<string, string> =
-  CARGO_CATEGORY_LABELS;
-
-function cargoCategoryLabel(cargoCategory: string): string {
-  return CARGO_CATEGORY_LABEL_BY_VALUE[cargoCategory] ?? cargoCategory;
-}
 
 /* -------------------------------------------------------------------------- */
 /* Board                                                                      */
@@ -189,7 +165,7 @@ export function LoadsMobile() {
           answering a question nobody asked. The count is the board's own
           `hiddenByCapacityCount`, the same figure the desktop footer prints.
           This surface does not recompute it. */}
-      {tab === "available" && hiddenByCapacityCount > 0 ? (
+      {tab === "available" && !showRejected && hiddenByCapacityCount > 0 ? (
         <p className="border-t border-border bg-muted px-3.5 py-2.5 text-[11px] text-muted-foreground tabular-nums">
           {pluralise(hiddenByCapacityCount, "load")} hidden — over your vehicle
           capacity or dimensions
@@ -385,6 +361,18 @@ function LoadCard({ load, nowIso }: { load: HubLoad; nowIso: string }) {
       aria-haspopup="dialog"
       onClick={open}
       onKeyDown={(event) => {
+        // The nested Reject/Accept/Restore buttons own their own keys. Without
+        // this guard their `keydown` bubbles here first and the
+        // `preventDefault()` below cancels the button's own activation — Enter
+        // dispatches a button's click as the keydown default action, and Space
+        // arms on keydown and is cancelled the same way — so a keyboard user
+        // pressing Enter on Reject would open the detail sheet and never
+        // reject. `stopPropagation` on the buttons cannot help: it is wired for
+        // mouse events, which is what opens the sheet by pointer.
+        if (event.target !== event.currentTarget) {
+          return;
+        }
+
         if (event.key === "Enter" || event.key === " ") {
           // Space scrolls the page on anything that is not a real button, and a
           // list that jumps a screen whenever a card is activated by keyboard
@@ -423,7 +411,8 @@ function LoadCard({ load, nowIso }: { load: HubLoad; nowIso: string }) {
           load.pickupWindowEnd,
           nowIso,
         )}{" "}
-        · {formatDistanceKm(load.distanceKm)} · {helperText(load.helperCount)}
+        · {formatDistanceKm(load.distanceKm)} ·{" "}
+        {formatHelperRequest(load.helperCount)}
       </p>
 
       {/* Declaration order via `sortedHandlingTags`, never the stored array's
@@ -465,7 +454,7 @@ function LoadCard({ load, nowIso }: { load: HubLoad; nowIso: string }) {
  */
 function LoadCardActions({ load }: { load: HubLoad }) {
   const {
-    showRejected,
+    isRejected,
     openConfirm,
     reject,
     restore,
@@ -483,7 +472,10 @@ function LoadCardActions({ load }: { load: HubLoad }) {
     event.stopPropagation();
   };
 
-  if (showRejected) {
+  // Asked of the board rather than inferred from the rejected sub-view being
+  // open: `GET /api/loads` returns a hidden load with `status: "available"`, so
+  // nothing on the card's own row says it has been rejected.
+  if (isRejected(load.id)) {
     return (
       <div className="mt-2.5">
         <Button
@@ -551,6 +543,11 @@ function LoadCardActions({ load }: { load: HubLoad }) {
       <Button
         type="button"
         className="h-11 flex-1"
+        // Disabled alongside Reject while any reject/restore is in flight:
+        // opening the confirm dialog mid-reject would race `confirmClaim`
+        // against the reject's own `refetch`. The detail sheet gates all three
+        // of its actions the same way.
+        disabled={isActionBlocked}
         onClick={(event) => {
           stop(event);
           // Selecting the load as well as opening the confirm dialog means
