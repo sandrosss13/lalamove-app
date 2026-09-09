@@ -30,6 +30,11 @@
 
 import type { CargoHandlingTag } from "@prisma/client";
 
+import {
+  HUB_TIME_ZONE,
+  hubCivilDate,
+  hubDayNumber,
+} from "@/lib/dashboard/hub/timezone";
 import type { VehicleCapability } from "@/lib/orders/vehicle-fit";
 
 /**
@@ -258,6 +263,214 @@ type HandlingTagsAreExhaustive = CargoHandlingTag extends HandlingTag
 
 /** Referenced only so the assertion above is actually checked. */
 export const HANDLING_TAGS_COVER_SCHEMA: HandlingTagsAreExhaustive = true;
+
+/**
+ * A load's declared box as a volume: `"3.7 m³"`, or `"—"` when any axis is
+ * undeclared.
+ *
+ * One decimal, matching the design's `vol` and `formatLoadDims`' own precision:
+ * quoting a cubic metre to three places implies a survey nobody did — these are
+ * three numbers a client typed into a booking form.
+ *
+ * Null-tolerant on the same terms as `formatLoadDims` and for the same reason —
+ * a volume computed from two of three axes is not a smaller number, it is a
+ * wrong one.
+ */
+export function formatVolumeM3(dims: {
+  lengthM: number | null;
+  widthM: number | null;
+  heightM: number | null;
+}): string {
+  const { lengthM, widthM, heightM } = dims;
+
+  if (lengthM === null || widthM === null || heightM === null) {
+    return EM_DASH;
+  }
+
+  return `${(lengthM * widthM * heightM).toFixed(1)} m³`;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Time                                                                       */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * `09:40`. 24-hour and pinned to `HUB_TIME_ZONE`, exactly as `jobs-format.ts`
+ * pins its own.
+ *
+ * Reproduced here rather than imported from `jobs-format.ts` because this hub
+ * keeps one formatter module per screen (see that file's own header, and
+ * `vehicles-format.ts` / `drivers-format.ts`), and a cross-screen import is the
+ * first step towards one screen's copy changing another's. The *zone* is shared
+ * — it comes from `@/lib/dashboard/hub/timezone`, which is the single definition
+ * of what a Tbilisi day is — so the two modules cannot drift on the thing that
+ * actually matters.
+ */
+const clockFormatter = new Intl.DateTimeFormat("en-GB", {
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+  timeZone: HUB_TIME_ZONE,
+});
+
+/** `4 Aug` — a date inside the current Tbilisi year, where the year is noise. */
+const dayMonthFormatter = new Intl.DateTimeFormat("en-GB", {
+  day: "numeric",
+  month: "short",
+  timeZone: HUB_TIME_ZONE,
+});
+
+/** `4 Aug 2025` — a date in another year, where it is not. */
+const dayMonthYearFormatter = new Intl.DateTimeFormat("en-GB", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  timeZone: HUB_TIME_ZONE,
+});
+
+/**
+ * Which Tbilisi calendar day and year an instant falls on.
+ *
+ * A day *number* rather than a formatted date so two days can simply be
+ * subtracted — `Date` offers no way to count calendar days across a zone, and
+ * dividing a millisecond difference puts the boundary an hour out the first time
+ * a zone gains DST.
+ */
+function civilDate(date: Date): { dayNumber: number; year: number } {
+  return { dayNumber: hubDayNumber(date), year: hubCivilDate(date).year };
+}
+
+/**
+ * `"Today"` / `"Tomorrow"` / `"Yesterday"` / `"4 Aug"` / `"4 Aug 2025"`.
+ *
+ * Unlike `jobs-format.ts`'s equivalent, today is spelled out rather than
+ * returning `null`. Job history is read as a list of things that already
+ * happened, so a bare `09:40` there unambiguously means this morning; a load
+ * board is read forwards, and a bare `14:00–16:00` on a row a driver is deciding
+ * whether to accept is precisely the string that gets misread as "this
+ * afternoon" when it is tomorrow's.
+ *
+ * "Tomorrow" earns its place here for the same reason: most pick-up windows on
+ * an open board are in the future.
+ */
+export function formatLoadDayLabel(iso: string, nowIso: string): string {
+  const date = new Date(iso);
+  const then = civilDate(date);
+  const now = civilDate(new Date(nowIso));
+  const dayDelta = now.dayNumber - then.dayNumber;
+
+  if (dayDelta === 0) {
+    return "Today";
+  }
+
+  if (dayDelta === 1) {
+    return "Yesterday";
+  }
+
+  if (dayDelta === -1) {
+    return "Tomorrow";
+  }
+
+  return then.year === now.year
+    ? dayMonthFormatter.format(date)
+    : dayMonthYearFormatter.format(date);
+}
+
+/**
+ * `"Today 14:00–16:00"`, `"Tomorrow 09:00"`, or `"—"`.
+ *
+ * Both bounds are nullable on `HubLoad` because an order can be booked with no
+ * requested slot at all, and the three cases are genuinely different:
+ *
+ * - no start → there is no window, and `"—"` says so;
+ * - start but no end → an open-ended "from 09:00", printed as the single time
+ *   rather than as `"09:00–—"`, which reads as a rendering failure;
+ * - both → the range, with an en dash (the typographic range separator), not a
+ *   hyphen.
+ *
+ * The day label is taken from the *start*: a window that crosses Tbilisi
+ * midnight is labelled by the day the driver has to be there.
+ */
+export function formatPickupWindow(
+  startIso: string | null,
+  endIso: string | null,
+  nowIso: string,
+): string {
+  if (startIso === null) {
+    return EM_DASH;
+  }
+
+  const start = new Date(startIso);
+  const opening = `${formatLoadDayLabel(startIso, nowIso)} ${clockFormatter.format(start)}`;
+
+  return endIso === null
+    ? opening
+    : `${opening}–${clockFormatter.format(new Date(endIso))}`;
+}
+
+/**
+ * `"Deliver by Today 20:00"`, or `null` when the order carries no deadline.
+ *
+ * `null` rather than `"—"` so the caller omits the sub-line entirely instead of
+ * printing a labelled em dash. This line is supplementary context under the
+ * pick-up window; a row that has no deadline is better with one line than with
+ * two where the second says nothing.
+ */
+export function formatDeadlineLine(
+  deadlineIso: string | null,
+  nowIso: string,
+): string | null {
+  if (deadlineIso === null) {
+    return null;
+  }
+
+  return `Deliver by ${formatLoadDayLabel(deadlineIso, nowIso)} ${clockFormatter.format(
+    new Date(deadlineIso),
+  )}`;
+}
+
+/** Bucket boundaries for `formatPostedAgo`, named so the thresholds read. */
+const MS_PER_MINUTE = 60_000;
+const MINUTES_PER_HOUR = 60;
+const HOURS_PER_DAY = 24;
+
+/**
+ * `"posted just now"` / `"posted 14 min ago"` / `"posted 2h ago"` /
+ * `"posted 3d ago"`.
+ *
+ * How long a load has sat unclaimed is the cheapest signal a driver has that
+ * something about it is off — a well-paid, well-located row that nobody has
+ * taken in three days usually has a reason. Coarse buckets on purpose: the
+ * difference between 14 and 15 minutes changes no decision, and a string that
+ * re-renders every second would.
+ *
+ * Clamped at zero rather than printing a negative age. `createdAt` comes from
+ * the database clock and `nowIso` from the browser's, so a row created seconds
+ * ago can legitimately arrive "in the future" on a machine whose clock runs
+ * slow; `"posted in 2 min"` would be the only visible symptom of a skew nobody
+ * can act on.
+ */
+export function formatPostedAgo(createdAtIso: string, nowIso: string): string {
+  const elapsedMs =
+    new Date(nowIso).getTime() - new Date(createdAtIso).getTime();
+  const minutes = Math.max(0, Math.floor(elapsedMs / MS_PER_MINUTE));
+
+  if (minutes < 1) {
+    return "posted just now";
+  }
+
+  if (minutes < MINUTES_PER_HOUR) {
+    return `posted ${minutes} min ago`;
+  }
+
+  const hours = Math.floor(minutes / MINUTES_PER_HOUR);
+
+  if (hours < HOURS_PER_DAY) {
+    return `posted ${hours}h ago`;
+  }
+
+  return `posted ${Math.floor(hours / HOURS_PER_DAY)}d ago`;
+}
 
 /**
  * Re-exported so Wave 4 surfaces get the capability shape without a second
