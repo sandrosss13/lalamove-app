@@ -538,6 +538,8 @@ export function LoadsTable() {
     showRejected,
     setShowRejected,
     rejectedCount,
+    activeFilterCount,
+    filtersApply,
     actionError,
     // The instant every relative label on this board is measured against,
     // re-sampled once a minute by the provider. Shared rather than owned here:
@@ -561,6 +563,22 @@ export function LoadsTable() {
     : tab === "mine"
       ? `${pluralise(count, "load")} you have claimed`
       : `${pluralise(count, "load")} open to you`;
+
+  /**
+   * Whether the empty state below is allowed to blame the filters.
+   *
+   * `visibleLoads` ignores the city, weight and handling-tag filters on "My
+   * loads" and in the rejected sub-view — see `filtersApply` in
+   * `loads-context.tsx` — so on those two lists no filter selected the rows
+   * that are missing, and "widen the weight range or clear a city" would send a
+   * driver to controls that were hiding nothing. `activeFilterCount` covers the
+   * rest of it: on the open board with every control at its default, the empty
+   * board is the answer, not the filters.
+   *
+   * The same condition `loads-mobile.tsx` gates its own filter sentence on, so
+   * the two surfaces read as one decision rather than two.
+   */
+  const filtersExplainEmpty = filtersApply && activeFilterCount > 0;
 
   return (
     <div className="hidden overflow-hidden rounded-lg border border-border bg-card lg:block">
@@ -617,16 +635,35 @@ export function LoadsTable() {
 
       {/* Outside the table rather than in an empty `<TableBody>`, so the copy
           is not constrained to one cell of an eight-column grid. The header row
-          stays: it is what explains that the filters, not the board, are why
-          there is nothing here. */}
+          stays: it is what keeps this reading as a board with nothing on it
+          rather than a panel that failed to draw. */}
       {count === 0 ? (
         // No `border-t`: the header row above already draws its own bottom
         // border, and a second rule here would render as a 2px line.
         <div className="py-12 text-center">
-          <p className="text-sm font-medium">No loads match these filters</p>
-          <p className="mt-1 text-[13px] text-muted-foreground">
-            Widen the weight range or clear a city to see more.
+          {/* `showRejected` is tested first for the reason `resultLine` above
+              tests it first: it is a different question ("what have I
+              hidden?"), and answering it with the board's own emptiness would
+              be false the moment a driver opens a full board's rejected list
+              having hidden nothing. The three strings and their order are
+              `loads-mobile.tsx`'s, verbatim but for the trailing stops, which
+              this file's headings do not carry. */}
+          <p className="text-sm font-medium">
+            {showRejected
+              ? "You haven't hidden any loads"
+              : filtersExplainEmpty
+                ? "No loads match these filters"
+                : "No loads on the board right now"}
           </p>
+          {/* Only the filter heading gets the advice line — see
+              `filtersExplainEmpty`. Nothing replaces it on the other lists:
+              there is no control to point a driver at, and the phone surface
+              says the one sentence and stops there too. */}
+          {filtersExplainEmpty ? (
+            <p className="mt-1 text-[13px] text-muted-foreground">
+              Widen the weight range or clear a city to see more.
+            </p>
+          ) : null}
         </div>
       ) : null}
 
