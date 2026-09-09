@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { X } from "lucide-react";
 
 import { useLoadsBoard } from "@/components/driver-hub/screens/loads-context";
@@ -9,7 +10,6 @@ import {
   ClaimedByYouNote,
   ClaimedElsewhereNote,
   HandlingTagPills,
-  JOB_SHEET_TITLE,
   LoadComplianceNotes,
   LoadStatusPill,
   RouteStopHeading,
@@ -81,15 +81,22 @@ import { Button } from "@/components/ui/button";
  * wraps instead, because a phone has no hover), and the action block, whose
  * controls are sized for a pointer rather than for the mobile touch floor.
  *
- * ## "Open job sheet" ships disabled
+ * ## "Open job sheet" — why it shipped disabled, and why it no longer is
  *
- * There is no job-sheet screen to link to, and inventing one is explicitly out
- * of scope (`specs/driver-load-board/requirements.md`, Non-Goals: "The drawer's
- * 'Open job sheet' button is designed but has no destination. Render it
- * disabled with a tooltip; do not invent the screen."). The gap is tracked in
+ * It shipped `disabled`, with an explanatory `title` paired with `sr-only` text
+ * carrying the same sentence, because there was no job-sheet screen to link to
+ * and inventing one was explicitly out of scope
+ * (`specs/driver-load-board/requirements.md`, Non-Goals: "The drawer's 'Open
+ * job sheet' button is designed but has no destination. Render it disabled with
+ * a tooltip; do not invent the screen."). The gap was tracked in
  * `specs/driver-load-board/action-required.md` under "Design the job sheet".
- * The button is `disabled` with an explanatory `title`, paired with `sr-only`
- * text carrying the same sentence — `title` alone is not reliably announced.
+ *
+ * That screen was built. The button is now a `Button asChild` wrapping a
+ * `next/link` to `/dashboard/jobs/[id]` — the hub's own pattern for a link that
+ * looks like a button, as `today-screen.tsx` uses for "View earnings" — and the
+ * `title`/`sr-only` pair went with the reason for it: there is nothing left to
+ * explain, and text repeating a label a screen reader has already announced is
+ * noise rather than access. Its metrics (`h-10`, outline) are unchanged.
  *
  * ## Takes no props, by contract
  *
@@ -353,21 +360,16 @@ export function LoadsDrawer() {
         ) : load.status === "mine" ? (
           <>
             <ClaimedByYouNote />
+            {/* A real destination, reached only from a load this driver holds:
+                `getHubJobSheet` refuses the page to anyone else, so the link is
+                never offered where it would land on a rejection. See this
+                file's doc comment for why it spent a release disabled. */}
             <Button
-              type="button"
+              asChild
               variant="outline"
-              // Ships disabled: there is no job sheet to open. See this file's
-              // doc comment and requirements.md's Non-Goals — do not wire this
-              // to a placeholder route.
-              disabled
-              title={JOB_SHEET_TITLE}
               className="h-10 text-sm font-medium"
             >
-              Open job sheet
-              {/* `title` is not reliably announced, so the reason is real text
-                  for assistive tech too — the same pairing
-                  `hub-online-toggle.tsx` uses for its disabled pill. */}
-              <span className="sr-only">. {JOB_SHEET_TITLE}</span>
+              <Link href={`/dashboard/jobs/${load.id}`}>Open job sheet</Link>
             </Button>
           </>
         ) : isLoadRejected ? (

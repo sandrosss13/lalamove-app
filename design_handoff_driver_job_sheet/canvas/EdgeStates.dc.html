@@ -1,0 +1,73 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+  <style>
+    body { margin: 0; background: oklch(96.7% 0.003 264.542); font-family: "IBM Plex Sans", system-ui, sans-serif; color: oklch(13% 0.028 261.692); -webkit-font-smoothing: antialiased; }
+    a { color: oklch(13% 0.028 261.692); text-decoration: none; }
+    a:hover { color: oklch(64% 0.19 48); }
+  </style>
+</helmet>
+
+<div style="width: 390px; min-height: 1120px; background: oklch(96.7% 0.003 264.542); display: flex; flex-direction: column; gap: 16px; padding: 16px; box-sizing: border-box;">
+
+  <div style="background: #fff; border: 1px solid oklch(92.8% 0.006 264.531); border-radius: 14px; overflow: hidden;">
+    <div style="padding: 10px 16px; border-bottom: 1px solid oklch(92.8% 0.006 264.531); font-size: 11px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: oklch(44.6% 0.03 256.802);">Not your job</div>
+    <div style="padding: 40px 22px; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="oklch(44.6% 0.03 256.802)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><path d="M12 16.5v.01"/></svg>
+      <div style="font-size: 14px; font-weight: 500;">This delivery isn't assigned to you.</div>
+      <div style="font-size: 12px; color: oklch(44.6% 0.03 256.802); line-height: 1.5; max-width: 260px;">Deliberately says nothing about whether the job exists — the same answer a wrong id gets.</div>
+      <a href="#" style="margin-top: 8px; display: flex; align-items: center; justify-content: center; height: 44px; padding: 0 18px; border: 1px solid oklch(92.8% 0.006 264.531); border-radius: 8px; font-size: 14px; font-weight: 500;">Back to load board</a>
+    </div>
+  </div>
+
+  <div style="background: #fff; border: 1px solid oklch(92.8% 0.006 264.531); border-radius: 14px; overflow: hidden;">
+    <div style="padding: 10px 16px; border-bottom: 1px solid oklch(92.8% 0.006 264.531); font-size: 11px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: oklch(44.6% 0.03 256.802);">Cancelled while held</div>
+    <div style="padding: 22px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 14px;">
+        <div style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 13px; color: oklch(44.6% 0.03 256.802);">GE-48204</div>
+        <div style="border-radius: 999px; padding: 3px 9px; font-size: 11px; font-weight: 600; letter-spacing: 0.02em; background: oklch(93.6% 0.032 17.717); color: oklch(44.4% 0.177 26.899);">Cancelled</div>
+      </div>
+      <div style="border: 1px solid oklch(92.8% 0.006 264.531); border-radius: 8px; background: oklch(96.7% 0.003 264.542); padding: 14px; display: flex; flex-direction: column; gap: 6px;">
+        <div style="font-size: 13px; font-weight: 500;">This delivery was cancelled.</div>
+        <div style="font-size: 12px; color: oklch(44.6% 0.03 256.802); line-height: 1.5;">Cancelled after pickup. Nothing records when it was cancelled.</div>
+      </div>
+      <a href="#" style="margin-top: 14px; display: flex; align-items: center; justify-content: center; height: 44px; border: 1px solid oklch(92.8% 0.006 264.531); border-radius: 8px; font-size: 14px; font-weight: 500;">Back to load board</a>
+    </div>
+  </div>
+
+  <div style="background: #fff; border: 1px solid oklch(92.8% 0.006 264.531); border-radius: 14px; overflow: hidden;">
+    <div style="padding: 10px 16px; border-bottom: 1px solid oklch(92.8% 0.006 264.531); font-size: 11px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: oklch(44.6% 0.03 256.802);">No coordinates — common, not an edge case</div>
+    <div style="padding: 22px; display: flex; flex-direction: column; gap: 14px;">
+      <div style="display: flex; align-items: flex-start; gap: 12px;">
+        <div style="width: 8px; height: 8px; border-radius: 999px; background: oklch(13% 0.028 261.692); margin-top: 5px; flex: none;" aria-hidden="true"></div>
+        <div style="display: flex; flex-direction: column; gap: 3px;">
+          <div style="font-size: 11px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: oklch(44.6% 0.03 256.802);">Pick-up</div>
+          <div style="font-size: 14px; font-weight: 500;">Kutaisi</div>
+          <div style="font-size: 13px; color: oklch(44.6% 0.03 256.802); line-height: 1.45;">Tamar Mepe Ave 14, Kutaisi</div>
+        </div>
+      </div>
+      <div style="display: flex; gap: 12px;">
+        <a href="#" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; height: 44px; border: 1px solid oklch(92.8% 0.006 264.531); border-radius: 8px; font-size: 14px; font-weight: 500;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          Call
+        </a>
+        <div style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; height: 44px; border: 1px dashed oklch(92.8% 0.006 264.531); border-radius: 8px; font-size: 14px; font-weight: 500; color: oklch(44.6% 0.03 256.802); background: oklch(96.7% 0.003 264.542);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+          Navigate
+        </div>
+      </div>
+      <div style="font-size: 12px; color: oklch(44.6% 0.03 256.802); line-height: 1.5;">No map coordinates were recorded for this address, so Navigate is unavailable. The address is still shown and callable.</div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

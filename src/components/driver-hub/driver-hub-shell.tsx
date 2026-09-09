@@ -60,6 +60,8 @@ import type { HubHeaderData } from "@/lib/dashboard/hub/header";
  * moved.
  */
 type HubHeaderContextValue = {
+  /** `null` restores the active nav item's static title. */
+  setTitle: (title: string | null) => void;
   /** `null` restores the active nav item's static subtitle. */
   setSubtitle: (subtitle: string | null) => void;
   /** `null` hides the vehicle pill — the default for every screen but Loads. */
@@ -69,6 +71,54 @@ type HubHeaderContextValue = {
 const HubHeaderContext = React.createContext<HubHeaderContextValue | null>(
   null,
 );
+
+/**
+ * Lets a screen replace the header's **page title**.
+ *
+ * `driver-hub-nav.ts` carries one title per registered nav entry, and
+ * `hubNavItemForPath` resolves a path to the longest matching entry — which is
+ * exactly right for the eight top-level screens and exactly wrong for the first
+ * nested one. `/dashboard/jobs/[id]` prefix-matches the Jobs entry and would
+ * inherit its title, so a driver opening a single delivery's job sheet would be
+ * told they are looking at "Job history".
+ *
+ * The alternative was a ninth `HUB_NAV` entry, and it is worse: every entry in
+ * that list is a **sidebar link**, so registering the job sheet there would put
+ * a rail item pointing at a route that needs an order id to exist. The nav list
+ * is the hub's information architecture; a detail view is not part of it. So the
+ * screen retitles the bar from below, exactly as six screens already replace the
+ * subhead from below.
+ *
+ * ```tsx
+ * // inside a "use client" screen rendered under <DriverHubShell>
+ * useHubTitle("Job sheet");
+ * ```
+ *
+ * Same mechanics, and the same reasoning, as `useHubSubtitle` below: registered
+ * in an effect rather than during render, `null` to keep the nav entry's static
+ * title, and cleared on unmount so navigating from the job sheet back to the job
+ * list cannot leave "Job sheet" up over a table of every job.
+ */
+export function useHubTitle(title: string | null): void {
+  const context = React.useContext(HubHeaderContext);
+
+  if (context === null) {
+    throw new Error(
+      "useHubTitle must be called inside <DriverHubShell> — it retitles the " +
+        "hub header, which only exists under src/app/dashboard/(hub).",
+    );
+  }
+
+  const { setTitle } = context;
+
+  React.useEffect(() => {
+    setTitle(title);
+
+    return () => {
+      setTitle(null);
+    };
+  }, [setTitle, title]);
+}
 
 /**
  * Lets a screen replace the header's subhead with one derived from its data.
@@ -188,6 +238,7 @@ export function DriverHubShell({
   children,
 }: DriverHubShellProps) {
   const pathname = usePathname();
+  const [titleOverride, setTitleOverride] = React.useState<string | null>(null);
   const [subtitleOverride, setSubtitleOverride] = React.useState<string | null>(
     null,
   );
@@ -200,6 +251,7 @@ export function DriverHubShell({
   // re-render.
   const headerContext = React.useMemo<HubHeaderContextValue>(
     () => ({
+      setTitle: setTitleOverride,
       setSubtitle: setSubtitleOverride,
       setVehiclePill: setVehiclePillOverride,
     }),
@@ -244,7 +296,7 @@ export function DriverHubShell({
           header={header}
           navItems={items}
           activeId={activeItem?.id}
-          title={activeItem?.title ?? FALLBACK_TITLE}
+          title={titleOverride ?? activeItem?.title ?? FALLBACK_TITLE}
           subtitle={subtitleOverride ?? activeItem?.subtitle ?? ""}
           vehiclePill={vehiclePillOverride}
         />

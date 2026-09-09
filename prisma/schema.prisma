@@ -1163,6 +1163,24 @@ model Order {
   // the rule's `freeLoadingMinutes` is charged as `overtimeFee`.
   waitingMinutes Int?
 
+  /// Who the driver handed the load to, captured as free text in the job
+  /// sheet's delivery-confirmation dialog alongside `waitingMinutes`.
+  ///
+  /// Nullable and staying nullable. It is optional in the dialog, so a delivery
+  /// confirmed without a name is not a broken row, and every order completed
+  /// before this column existed has none — there is nothing to derive one from,
+  /// and inventing "Recipient" for those rows would be worse than an em dash.
+  ///
+  /// **This is a record, not evidence.** v1 of the job sheet captures no photo
+  /// and no signature: the delivery is proved by the `COMPLETED` state
+  /// transition, and this column only says who the driver reported handing it
+  /// to. Do not build a proof-of-delivery claim on it.
+  ///
+  /// Free text rather than a relation to `User`: the person who signs for a
+  /// load at a warehouse door is usually not the account that booked it, and
+  /// very often has no account at all.
+  receivedBy String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

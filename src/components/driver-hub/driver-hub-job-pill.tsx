@@ -36,13 +36,19 @@ const ACCENT_BG = "bg-[oklch(64%_0.19_48)]";
 /**
  * Where a job row and the dropdown's footer link point.
  *
- * There is no `/dashboard/jobs/[id]` route in this app — the Jobs screen holds
- * its selection in local state (`jobs-screen.tsx`), so a job is not addressable
- * by URL — and inventing one here would produce a 404 from the header on every
- * click. Each persona therefore gets the existing screen that actually shows
- * the job it is looking at: a fleet gets the list it dispatches from, and a
- * single driver gets Today, whose current-job card is that one job in full.
- * When job detail routes land, this is the one place that changes.
+ * `/dashboard/jobs/[id]` — the job sheet — now exists, so a job IS addressable
+ * by URL, and a *driver's* dropdown rows link to their own sheets. These two
+ * constants are what the footer link always uses, and what a fleet's rows use
+ * as well: the footer is the "see all of them" affordance and a set has no
+ * sheet, while a fleet's rows name jobs the owner is not the driver of and so
+ * cannot open. See the row's own comment for that second rule.
+ *
+ * This comment previously said no such route existed and that linking to one
+ * would 404 from the header on every click — true when written, and the reason
+ * each persona was given the nearest list instead: a fleet gets the screen it
+ * dispatches from, a single driver gets Today, whose current-job card is that
+ * one job in full. Both remain the right destinations for a *footer*; what
+ * changed is that they are now a choice rather than the only option.
  */
 const FLEET_JOBS_HREF = "/dashboard/jobs";
 const SINGLE_DRIVER_JOB_HREF = "/dashboard/today";
@@ -163,7 +169,21 @@ export function DriverHubJobPill({
           {jobs.map((job) => (
             <Link
               key={job.id}
-              href={href}
+              // A row names one job, so for a driver it goes to that job's
+              // sheet — the route the header has been waiting for.
+              //
+              // **Not for a fleet.** `hubOrderScope` scopes a BUSINESS
+              // account's rows by `companyId`, so they are jobs its employees
+              // are driving, or are still unassigned. `getHubJobSheet`
+              // requires `driverId === userId`, so every one of those rows
+              // would land the owner on the generic "Order not found." — the
+              // same page a probed id gets, which is correct behaviour for a
+              // stranger's order and useless feedback for your own fleet's.
+              // A company-scoped sheet is a different screen; until it
+              // exists, the list is the honest destination.
+              href={
+                persona === "BUSINESS" ? href : `/dashboard/jobs/${job.id}`
+              }
               // The panel does not survive the navigation it starts: without
               // this the popover stays mounted and open over the screen the
               // driver just asked for.

@@ -1,0 +1,26 @@
+-- The job sheet's optional "Received by" field: who the driver handed the load
+-- to, reported in the delivery-confirmation dialog alongside `waitingMinutes`.
+--
+-- One nullable column and nothing else, which is what makes this safe to run
+-- against a populated production table:
+--
+--   * `NULL`, not `NOT NULL DEFAULT ''`. Every order completed before the job
+--     sheet existed genuinely has no recipient name, and there is nothing to
+--     derive one from. A defaulted empty string would make "not recorded" and
+--     "recorded as blank" the same value, and the screen has to tell them
+--     apart to know whether to print an em dash.
+--   * No backfill, so no row is rewritten and the statement takes no long
+--     table lock — adding a nullable column with no default is a catalogue-only
+--     change in Postgres 11+, independent of how many orders exist.
+--   * Additive, so the previous deployment keeps working against it.
+--     `scripts/migrate-deploy.mjs` runs `prisma migrate deploy` ahead of
+--     `next build`, which means the *old* code — which has never heard of
+--     `receivedBy` — serves traffic against the new column for the length of a
+--     build. An insert from that code names no `receivedBy` and gets `NULL`,
+--     which is a value this column is defined to accept.
+--
+-- TEXT rather than VARCHAR(n): the length limit that matters is the one
+-- `POST /api/orders/[id]/complete` enforces on the way in, and Postgres stores
+-- both identically anyway. Pinning a width here would mean a migration to
+-- change a validation rule.
+ALTER TABLE "Order" ADD COLUMN "receivedBy" TEXT;
