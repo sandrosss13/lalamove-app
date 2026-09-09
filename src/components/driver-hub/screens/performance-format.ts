@@ -9,6 +9,12 @@
  * Formatting only — nothing here decides what a number *means*. That is
  * `src/lib/dashboard/hub/performance.ts`'s job, and it has already rounded
  * every figure to the precision the design shows.
+ *
+ * These are not tile-only helpers. `formatRate`, `formatDecimal`, `pluralise`
+ * and `EMPTY_VALUE` also render the per-driver fleet table a BUSINESS account
+ * sees under the chart — which is exactly why `formatRate`'s `null` case earns
+ * its em dash twice over: once for a week in which nothing finished, and once
+ * per roster member who finished nothing in it.
  */
 import { HUB_TIME_ZONE, parseHubDayKey } from "@/lib/dashboard/hub/timezone";
 

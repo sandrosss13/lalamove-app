@@ -7,6 +7,7 @@ import type {
   HubNavItemId,
 } from "@/components/driver-hub/driver-hub-nav";
 import { SampleNote } from "@/components/driver-hub/hub-primitives";
+import type { HubPersona } from "@/lib/dashboard/hub/account";
 import { SAMPLE_WEEKLY_INCENTIVE } from "@/lib/dashboard/hub/sample";
 import { cn } from "@/lib/utils";
 
@@ -15,10 +16,20 @@ import { cn } from "@/lib/utils";
 const ACCENT_BG = "bg-[oklch(64%_0.19_48)]";
 
 export type DriverHubSidebarProps = {
-  /** Already filtered for the account kind by the shell. */
+  /** Already filtered for the persona by the shell. */
   items: readonly HubNavItem[];
   /** The entry the current pathname resolves to, if any. */
   activeId: HubNavItemId | undefined;
+  /**
+   * Which of the three account shapes is signed in, resolved once by
+   * `resolveHubAccount()` and passed down by the shell.
+   *
+   * The rail reads it for exactly one decision — whether the weekly-incentive
+   * card belongs to this account at all. Required rather than optional and
+   * defaulted, so a future render site that forgets it fails at `tsc` instead
+   * of silently showing an independent driver's bonus bar to a fleet owner.
+   */
+  persona: HubPersona;
   /**
    * Optional right-aligned count badges, keyed by nav id — the design's accent
    * pill beside "Employees".
@@ -32,7 +43,8 @@ export type DriverHubSidebarProps = {
 };
 
 /**
- * The hub's left rail: brand row, the nav, and the weekly-incentive card.
+ * The hub's left rail: brand row, the nav, and — for an independent driver —
+ * the weekly-incentive card.
  *
  * The links are Next `<Link>`s rather than buttons with click handlers, so
  * every screen stays deep-linkable, middle-click and ⌘-click open a new tab,
@@ -42,16 +54,9 @@ export type DriverHubSidebarProps = {
 export function DriverHubSidebar({
   items,
   activeId,
+  persona,
   counts = {},
 }: DriverHubSidebarProps) {
-  const { jobsDone, jobsTarget, note } = SAMPLE_WEEKLY_INCENTIVE;
-
-  // Clamped so a future target of 0 (or an overshoot) cannot paint a fill
-  // wider than its track.
-  const incentivePercent = Math.round(
-    Math.min(1, Math.max(0, jobsTarget > 0 ? jobsDone / jobsTarget : 0)) * 100,
-  );
-
   return (
     <aside
       // Sticky at full viewport height rather than `fixed`, so the rail scrolls
@@ -105,39 +110,69 @@ export function DriverHubSidebar({
         })}
       </nav>
 
-      {/* Weekly incentive. Entirely sampled — there is no incentive or bonus
-          model in the schema — so it carries the honesty badge rather than
-          passing itself off as this driver's real progress. */}
-      <section
-        aria-label="Weekly incentive"
-        className="mt-auto rounded-xl border border-border p-3.5"
-      >
-        <p className="mb-2 text-[11px] tracking-[0.08em] uppercase text-muted-foreground">
-          Weekly incentive
-        </p>
-        <p className="font-price text-[20px] font-semibold">
-          {jobsDone}
-          <span className="text-sm text-muted-foreground">/{jobsTarget}</span>
-        </p>
-        <div
-          role="progressbar"
-          aria-label="Jobs towards this week's bonus"
-          aria-valuenow={incentivePercent}
-          aria-valuemin={0}
-          aria-valuemax={100}
-          className="mt-2.5 mb-2 h-1.5 overflow-hidden rounded-full bg-border"
-        >
-          <div
-            className={cn("h-full rounded-full", ACCENT_BG)}
-            style={{ width: `${incentivePercent}%` }}
-          />
-        </div>
-        <p className="text-xs leading-[1.4] text-muted-foreground">{note}</p>
-        <SampleNote
-          note="Needs an incentive/bonus model — the schema records no weekly target or bonus."
-          className="mt-2.5"
-        />
-      </section>
+      {/* The incentive card is an independent driver's fact and nobody else's:
+          a roster driver is paid by their employer, so a per-job bonus is not
+          theirs to earn, and a fleet owner is not the person completing the
+          jobs the bar counts. Hidden rather than adapted — the numbers behind
+          it are sampled, and this spec does not make sampled data real. */}
+      {persona === "INDEPENDENT" ? <WeeklyIncentiveCard /> : null}
     </aside>
+  );
+}
+
+/**
+ * The rail's bottom card: progress towards a weekly job target.
+ *
+ * Entirely sampled — there is no incentive or bonus model in the schema — so it
+ * carries the honesty badge rather than passing itself off as this driver's
+ * real progress. Rendered for `INDEPENDENT` only; see the call site above.
+ *
+ * A file-local component rather than an inline block so the sampled import and
+ * the percentage arithmetic live with the one thing that uses them, instead of
+ * running on every render of a rail that is not going to show them.
+ */
+function WeeklyIncentiveCard() {
+  const { jobsDone, jobsTarget, note } = SAMPLE_WEEKLY_INCENTIVE;
+
+  // Clamped so a future target of 0 (or an overshoot) cannot paint a fill
+  // wider than its track.
+  const incentivePercent = Math.round(
+    Math.min(1, Math.max(0, jobsTarget > 0 ? jobsDone / jobsTarget : 0)) * 100,
+  );
+
+  return (
+    // `mt-auto` pins the card to the bottom of the rail's flex column. When it
+    // is absent nothing else claims the free space and the rail simply ends
+    // after the nav — the design has nothing else down there.
+    <section
+      aria-label="Weekly incentive"
+      className="mt-auto rounded-xl border border-border p-3.5"
+    >
+      <p className="mb-2 text-[11px] tracking-[0.08em] uppercase text-muted-foreground">
+        Weekly incentive
+      </p>
+      <p className="font-price text-[20px] font-semibold">
+        {jobsDone}
+        <span className="text-sm text-muted-foreground">/{jobsTarget}</span>
+      </p>
+      <div
+        role="progressbar"
+        aria-label="Jobs towards this week's bonus"
+        aria-valuenow={incentivePercent}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        className="mt-2.5 mb-2 h-1.5 overflow-hidden rounded-full bg-border"
+      >
+        <div
+          className={cn("h-full rounded-full", ACCENT_BG)}
+          style={{ width: `${incentivePercent}%` }}
+        />
+      </div>
+      <p className="text-xs leading-[1.4] text-muted-foreground">{note}</p>
+      <SampleNote
+        note="Needs an incentive/bonus model — the schema records no weekly target or bonus."
+        className="mt-2.5"
+      />
+    </section>
   );
 }

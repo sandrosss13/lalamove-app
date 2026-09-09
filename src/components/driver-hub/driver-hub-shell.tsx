@@ -198,7 +198,11 @@ export function DriverHubShell({ account, children }: DriverHubShellProps) {
       data-admin-surface
       className="flex min-h-screen bg-background font-body text-foreground"
     >
-      <DriverHubSidebar items={items} activeId={activeItem?.id} />
+      <DriverHubSidebar
+        items={items}
+        activeId={activeItem?.id}
+        persona={account.persona}
+      />
 
       <div className="flex min-w-0 flex-1 flex-col">
         <DriverHubHeader

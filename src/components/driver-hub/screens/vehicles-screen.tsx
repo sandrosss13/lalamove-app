@@ -35,10 +35,24 @@ import { cn } from "@/lib/utils";
 /**
  * Vehicles — the fleet a company owns, or the vehicle one driver drives.
  *
- * One screen for both account kinds, because `getHubVehicles()` already
- * resolved the scope difference: the only thing that changes here is the
- * wording of a tile label and of the empty state, since "Fleet cost per km"
- * reads absurdly on an account with exactly one van.
+ * One screen for all three personas, because `getHubVehicles()` already
+ * resolved the scope difference. What changes here is the wording of two tile
+ * notes, the empty state and the header subtitle — "Fleet cost per km" reads
+ * absurdly on an account with exactly one van, and "Available to hand to a
+ * driver" describes a move only a fleet manager can make — **and one
+ * affordance**: a driver on a company's roster gets no "Add vehicle" button,
+ * because they drive a van their employer owns and assigned to them and there
+ * is nothing for them to register.
+ *
+ * That hidden button is *cosmetic*, in exactly the sense
+ * `src/components/driver-hub/driver-hub-nav.ts` means it for `hiddenFor`. The
+ * boundary is `POST /api/driver-profile/vehicles`, which returns `403` to a
+ * caller whose `DriverProfile.companyId` is non-null whether or not this screen
+ * ever drew the button. So the button reads the loader's decided
+ * `canAddVehicle` verdict rather than re-testing the persona here: a second
+ * copy of the rule in the client is free to drift away from the endpoint that
+ * actually decides. `persona` is read only for wording, where three distinct
+ * sentences are needed and `kind` can tell only two apart.
  *
  * ## What the design asks for and what ships
  *
@@ -195,7 +209,7 @@ export type VehiclesScreenProps = {
 };
 
 export function VehiclesScreen({ data }: VehiclesScreenProps) {
-  const { kind, vehicles, tiles } = data;
+  const { kind, persona, canAddVehicle, vehicles, tiles } = data;
 
   const [tab, setTab] = React.useState<VehiclesTab>("All");
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
@@ -203,12 +217,21 @@ export function VehiclesScreen({ data }: VehiclesScreenProps) {
   // The panel's two-step remove, armed from up here — see the file header.
   const [armed, setArmed] = React.useState(false);
 
+  // "1 vehicle · 1 on the road" is technically true for a roster driver and
+  // reads like a fleet report about a fleet of one. Their vehicle arrived by
+  // assignment, so the subhead says so — and stays correct for the roster
+  // driver who also holds a legacy personal vehicle, since `pluralise()` counts
+  // both rows.
   useHubSubtitle(
     tiles.vehicleCount === 0
-      ? "No vehicles yet"
-      : `${pluralise(tiles.vehicleCount, "vehicle")} · ${
-          tiles.onTheRoadCount
-        } on the road`,
+      ? persona === "ROSTER"
+        ? "No vehicle assigned to you yet"
+        : "No vehicles yet"
+      : persona === "ROSTER"
+        ? `${pluralise(tiles.vehicleCount, "vehicle")} assigned to you`
+        : `${pluralise(tiles.vehicleCount, "vehicle")} · ${
+            tiles.onTheRoadCount
+          } on the road`,
   );
 
   const reviewPending = vehicles.some(needsReview);
@@ -253,10 +276,18 @@ export function VehiclesScreen({ data }: VehiclesScreenProps) {
   }, []);
 
   const startAdding = React.useCallback(() => {
+    // Belt and braces: with the button hidden nothing calls this for a roster
+    // driver today, but the rail's add form posts to an endpoint that would
+    // 403 them, and a screen that can reach an unusable form is one refactor
+    // away from shipping it. Cheaper to make the state machine itself refuse.
+    if (!canAddVehicle) {
+      return;
+    }
+
     setAdding(true);
     setSelectedId(null);
     setArmed(false);
-  }, []);
+  }, [canAddVehicle]);
 
   const closeDetail = React.useCallback(() => {
     setSelectedId(null);
@@ -285,6 +316,12 @@ export function VehiclesScreen({ data }: VehiclesScreenProps) {
   const split = adding || selectedVehicle !== null;
   const columns = split ? COLUMNS_SPLIT : COLUMNS_FULL;
   const hasVehicles = vehicles.length > 0;
+
+  // Every item in the toolbar is conditional now, so the row itself has to be:
+  // a roster driver waiting on their first assignment has no rows to filter and
+  // no button to press, and an empty flex row would still contribute its
+  // bottom margin as an unexplained gap above the empty state.
+  const showToolbar = hasVehicles || canAddVehicle;
 
   const detail = adding ? (
     <VehiclesAddForm
@@ -326,12 +363,26 @@ export function VehiclesScreen({ data }: VehiclesScreenProps) {
         <MetricTile
           label="On the road"
           value={tiles.onTheRoadCount}
-          note="Held by a driver right now"
+          // A fleet's operator reads this as a dispatch fact about somebody
+          // else; a driver reads it as a fact about themselves, because the
+          // only vehicle they can be shown as holding is one assigned to them.
+          note={
+            kind === "BUSINESS"
+              ? "Held by a driver right now"
+              : "In your hands right now"
+          }
         />
         <MetricTile
           label="Unassigned"
           value={tiles.unassignedCount}
-          note="Available to hand to a driver"
+          // "Available to hand to a driver" is a move only a fleet manager can
+          // make. For a single driver the honest reading of the same number is
+          // that nobody is currently holding it.
+          note={
+            kind === "BUSINESS"
+              ? "Available to hand to a driver"
+              : "Not held by anyone right now"
+          }
         />
         <MetricTile
           label={kind === "BUSINESS" ? "Fleet cost per km" : "Cost per km"}
@@ -348,60 +399,75 @@ export function VehiclesScreen({ data }: VehiclesScreenProps) {
         onCloseDetail={closeDetail}
         master={
           <HubCard>
-            <div
-              className={cn(
-                "mb-[18px] flex flex-wrap items-center gap-x-4 gap-y-3",
-                // With no rows there is no filter strip to sit opposite, so the
-                // toolbar collapses to its right-hand end rather than leaving a
-                // gap where a strip that could only say "0 of 0" would have been.
-                hasVehicles ? "justify-between" : "justify-end",
-              )}
-            >
-              {hasVehicles ? (
-                <FilterStrip
-                  items={tabs}
-                  value={activeTab}
-                  onChange={(next) => {
-                    // Only a value the strip is currently rendering may become
-                    // the tab — `isVehiclesTab` alone would still admit "Needs
-                    // review" after the last flagged vehicle disappeared.
-                    if (
-                      isVehiclesTab(next) &&
-                      tabs.some((item) => item.value === next)
-                    ) {
-                      setTab(next);
-                    }
-                  }}
-                  ariaLabel="Filter vehicles by status"
-                />
-              ) : null}
-
-              <div className="flex flex-wrap items-center gap-x-3.5 gap-y-2">
-                {/* The legend for the accent dots on the Odometer and Cost/km
-                    headers. Dropped in the split state along with those two
-                    columns, so it never explains a marker that is not shown. */}
-                {hasVehicles && !split ? (
-                  <SampleNote
-                    label="Odometer · Cost/km"
-                    note={SAMPLED_COLUMNS_NOTE}
+            {showToolbar ? (
+              <div
+                className={cn(
+                  "mb-[18px] flex flex-wrap items-center gap-x-4 gap-y-3",
+                  // With no rows there is no filter strip to sit opposite, so the
+                  // toolbar collapses to its right-hand end rather than leaving a
+                  // gap where a strip that could only say "0 of 0" would have been.
+                  hasVehicles ? "justify-between" : "justify-end",
+                )}
+              >
+                {hasVehicles ? (
+                  <FilterStrip
+                    items={tabs}
+                    value={activeTab}
+                    onChange={(next) => {
+                      // Only a value the strip is currently rendering may become
+                      // the tab — `isVehiclesTab` alone would still admit "Needs
+                      // review" after the last flagged vehicle disappeared.
+                      if (
+                        isVehiclesTab(next) &&
+                        tabs.some((item) => item.value === next)
+                      ) {
+                        setTab(next);
+                      }
+                    }}
+                    ariaLabel="Filter vehicles by status"
                   />
                 ) : null}
-                {hasVehicles ? (
-                  <span className="text-xs text-muted-foreground">
-                    <span className="font-price">{visible.length}</span> of{" "}
-                    <span className="font-price">{vehicles.length}</span> shown
-                  </span>
-                ) : null}
-                <Button
-                  type="button"
-                  size="lg"
-                  onClick={startAdding}
-                  className="h-auto rounded-md px-[14px] py-2 text-[13px]"
-                >
-                  Add vehicle
-                </Button>
+
+                <div className="flex flex-wrap items-center gap-x-3.5 gap-y-2">
+                  {/* The legend for the accent dots on the Odometer and Cost/km
+                      headers. Dropped in the split state along with those two
+                      columns, so it never explains a marker that is not shown. */}
+                  {hasVehicles && !split ? (
+                    <SampleNote
+                      label="Odometer · Cost/km"
+                      note={SAMPLED_COLUMNS_NOTE}
+                    />
+                  ) : null}
+                  {hasVehicles ? (
+                    <span className="text-xs text-muted-foreground">
+                      <span className="font-price">{visible.length}</span> of{" "}
+                      <span className="font-price">{vehicles.length}</span> shown
+                    </span>
+                  ) : null}
+                  {/* A driver on a company's roster drives a van their employer
+                      owns and assigned to them; there is nothing for them to
+                      register, and `POST /api/driver-profile/vehicles` returns a
+                      403 if they try. Hiding the button is the courtesy — the
+                      route is the boundary — so this reads the loader's decided
+                      `canAddVehicle` rather than re-testing the persona, which
+                      would be a second copy of a rule that lives on the server.
+
+                      Nothing renders in its place: a greyed-out control would
+                      imply a permission this driver might one day be granted
+                      here, and the fleet's van was never theirs to add. */}
+                  {canAddVehicle ? (
+                    <Button
+                      type="button"
+                      size="lg"
+                      onClick={startAdding}
+                      className="h-auto rounded-md px-[14px] py-2 text-[13px]"
+                    >
+                      Add vehicle
+                    </Button>
+                  ) : null}
+                </div>
               </div>
-            </div>
+            ) : null}
 
             {hasVehicles ? (
               <>
@@ -575,17 +641,34 @@ export function VehiclesScreen({ data }: VehiclesScreenProps) {
               </>
             ) : (
               // An empty fleet gets a sentence, not a header row over nothing.
+              // Three arms rather than two: a fleet owner has an empty fleet, an
+              // independent driver has not registered their vehicle yet, and a
+              // roster driver has not been *given* one yet — which is neither of
+              // the first two, and is nothing they can act on. The follow-up
+              // line is dropped entirely for them rather than reworded into a
+              // softer instruction: there is no next step for them to take on
+              // this screen, and inventing one would be the same false
+              // affordance the hidden Add button just removed.
               <HubEmptyState
                 message={
-                  kind === "BUSINESS"
+                  persona === "BUSINESS"
                     ? "No vehicles in the fleet yet."
-                    : "You have no vehicle registered yet."
+                    : persona === "ROSTER"
+                      ? "No vehicle assigned to you yet."
+                      : "You have no vehicle registered yet."
                 }
               >
-                <p className="mt-1.5 text-[13px]">
-                  Add one to start taking jobs. It joins as idle until a driver
-                  is assigned to it.
-                </p>
+                {persona === "ROSTER" ? (
+                  <p className="mt-1.5 text-[13px]">
+                    Your fleet manager assigns you a vehicle from the
+                    company&apos;s own. It appears here once they do.
+                  </p>
+                ) : (
+                  <p className="mt-1.5 text-[13px]">
+                    Add one to start taking jobs. It joins as idle until a
+                    driver is assigned to it.
+                  </p>
+                )}
               </HubEmptyState>
             )}
           </HubCard>

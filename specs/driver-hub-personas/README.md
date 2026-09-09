@@ -58,10 +58,10 @@ graph TD
 
 ### Wave 3
 - [x] [task-06-today-screen-personas](./tasks/task-06-today-screen-personas.md) — Today screen renders the fleet count, fleet attention card and roster framing
-- [ ] [task-07-earnings-screen-fleet](./tasks/task-07-earnings-screen-fleet.md) — Earnings screen renders the per-driver revenue table and fleet-appropriate tile copy
-- [ ] [task-08-performance-screen-personas](./tasks/task-08-performance-screen-personas.md) — Performance screen renders the per-driver table and drops "your score" copy for fleets
-- [ ] [task-09-vehicles-screen-roster](./tasks/task-09-vehicles-screen-roster.md) — Vehicles screen hides "Add vehicle" for roster drivers and labels the assigned vehicle
-- [ ] [task-10-shell-persona-chrome](./tasks/task-10-shell-persona-chrome.md) — Sidebar hides the sampled incentive card off-persona; header chip reads the persona
+- [x] [task-07-earnings-screen-fleet](./tasks/task-07-earnings-screen-fleet.md) — Earnings screen renders the per-driver revenue table and fleet-appropriate tile copy
+- [x] [task-08-performance-screen-personas](./tasks/task-08-performance-screen-personas.md) — Performance screen renders the per-driver table and drops "your score" copy for fleets
+- [x] [task-09-vehicles-screen-roster](./tasks/task-09-vehicles-screen-roster.md) — Vehicles screen hides "Add vehicle" for roster drivers and labels the assigned vehicle
+- [x] [task-10-shell-persona-chrome](./tasks/task-10-shell-persona-chrome.md) — Sidebar hides the sampled incentive card off-persona; header chip reads the persona
 
 ---
 
