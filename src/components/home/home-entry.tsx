@@ -1,6 +1,7 @@
 "use client";
 
-import Link from "next/link";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 import { useSession } from "@/lib/auth-client";
 import { BookingForm } from "@/components/home/booking-form";
@@ -11,29 +12,15 @@ import {
 } from "@/components/landing/landing-page";
 
 /**
- * What a signed-in provider (driver or logistics company) sees instead of the
- * booking form: they fulfil deliveries rather than place them, so they are sent
- * to `/dashboard`, where both supply-side flows live.
+ * The holding screen `/` shows while it still doesn't know what to render:
+ * either the session is loading, or it has resolved to a provider and the
+ * redirect to `/dashboard` is in flight. Both are the same beat to a visitor —
+ * a page that is on its way somewhere — so both look the same.
  */
-function ProviderPrompt({
-  title,
-  message,
-}: {
-  title: string;
-  message: string;
-}) {
+function LoadingScreen() {
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-4 p-8 text-center">
-      <h1 className="text-3xl font-bold">{title}</h1>
-      <p className="opacity-70">{message}</p>
-      <div className="flex justify-center">
-        <Link
-          href="/dashboard"
-          className="rounded border px-4 py-2 font-medium hover:opacity-70"
-        >
-          Go to your dashboard →
-        </Link>
-      </div>
+    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center p-8">
+      <p className="text-center opacity-50">Loading…</p>
     </main>
   );
 }
@@ -71,13 +58,34 @@ export function HomeEntry({
   partnerBanners?: LandingBanner[];
 }) {
   const { data: session, isPending } = useSession();
+  const router = useRouter();
 
-  if (isPending) {
-    return (
-      <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center p-8">
-        <p className="text-center opacity-50">Loading…</p>
-      </main>
-    );
+  // Providers don't book deliveries — a driver fulfils them, and a logistics
+  // company claims them and dispatches them to its own drivers. Both of those
+  // flows live on `/dashboard` and neither has anything on `/`, so `/` sends
+  // them there outright instead of rendering a dead-end "you're signed in as a
+  // driver" screen with a link they have to click.
+  //
+  // `replace`, not `push`: the history entry a push would leave behind is this
+  // very page, so a back press would land here and be redirected forward
+  // again, trapping the user between the two.
+  const role = session?.user.role;
+  const isProvider = role === "DRIVER" || role === "COMPANY";
+
+  // Effect rather than a render-time redirect: navigating during render is a
+  // side effect React may run twice or discard, and the hook has to be called
+  // before the branches below return, unconditionally.
+  useEffect(() => {
+    if (isProvider) {
+      router.replace("/dashboard");
+    }
+  }, [isProvider, router]);
+
+  // The redirect is asynchronous, so the provider branch keeps rendering until
+  // it lands: show the same holding screen as a loading session rather than
+  // the client booking form, which would flash the wrong page.
+  if (isPending || isProvider) {
+    return <LoadingScreen />;
   }
 
   if (!session) {
@@ -90,27 +98,7 @@ export function HomeEntry({
     );
   }
 
-  // Drivers don't book deliveries — they fulfil them. Point them at their
-  // dashboard instead of showing the client booking form.
-  if (session.user.role === "DRIVER") {
-    return (
-      <ProviderPrompt
-        title="You're signed in as a driver"
-        message="Clients book deliveries here — drivers fulfil them. Head to your dashboard to see what's available and take a job."
-      />
-    );
-  }
-
-  // Companies don't book either: they claim deliveries and dispatch them to
-  // their own drivers, all of which lives on the dashboard.
-  if (session.user.role === "COMPANY") {
-    return (
-      <ProviderPrompt
-        title="You're signed in as a logistics company"
-        message="Clients book deliveries here — your company fulfils them. Head to your dashboard to claim work and dispatch it to your drivers."
-      />
-    );
-  }
-
+  // Everything left is a signed-in client: the two provider roles were sent to
+  // `/dashboard` above and never reach here.
   return <BookingForm />;
 }

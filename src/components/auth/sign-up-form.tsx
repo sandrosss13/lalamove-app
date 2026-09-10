@@ -560,11 +560,13 @@ export function SignUpForm({ audience, role, accountType }: SignUpFormProps) {
     // the user to an OTP screen the way the prototype does would be a dead end,
     // so the flow completes here.
 
-    // The merchant host doesn't serve `/` — sending a freshly created driver
-    // account there would bounce it straight back off the host it just signed
-    // up on. Every other audience owns `/`, except for a new company: `/` is
-    // the client landing page and a company has nothing there, so it lands on
-    // `/dashboard` whatever the audience.
+    // `/` is the client landing page, and neither provider role has anything
+    // there: a new driver and a new company both land on `/dashboard` whatever
+    // the audience. Sending a driver to `/` first was what made `/` flash a
+    // dead-end "you're signed in as a driver" screen before bouncing them on,
+    // and on the merchant host — which doesn't serve `/` at all — it bounced
+    // them straight off the host they had just signed up on. Only a new client
+    // still goes to `/`.
     //
     // `/dashboard` is the end of this form's responsibility. Deciding where a
     // COMPANY session goes from there — the onboarding wizard, the application
@@ -579,7 +581,11 @@ export function SignUpForm({ audience, role, accountType }: SignUpFormProps) {
       role,
       accountType,
       destination:
-        isCompanySignUp || audience === "MERCHANT" ? "/dashboard" : "/",
+        resolvedRole === "DRIVER" || resolvedRole === "COMPANY"
+          ? "/dashboard"
+          : audience === "MERCHANT"
+            ? "/dashboard"
+            : "/",
     });
   }
 
