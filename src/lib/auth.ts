@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { APIError, createAuthMiddleware, isAPIError } from "better-auth/api";
+import { deleteSessionCookie } from "better-auth/cookies";
 
 import {
   ADMIN_TRUSTED_ORIGINS,
@@ -52,6 +53,38 @@ const CHANGE_PASSWORD_PATH = "/change-password";
 const SIGN_UP_EMAIL_PATH = "/sign-up/email";
 
 /**
+ * Better Auth's built-in session-read endpoint (`getSession`).
+ *
+ * Every server component and route handler in this app reads its session
+ * through `auth.api.getSession(...)`, and `auth.api.*` dispatches through the
+ * same hook pipeline as an HTTP request to `/api/auth/get-session` does. That
+ * is what makes one `after` hook on this path a gate the whole application
+ * passes through, rather than a check each of the ~80 route handlers has to
+ * remember to make.
+ */
+const GET_SESSION_PATH = "/get-session";
+
+/**
+ * What a suspended account is told when it tries to sign in.
+ *
+ * Deliberately does *not* echo `User.suspendedReason`. That column holds a note
+ * staff wrote for staff — the human-readable half of the audit entry — and
+ * moderation notes are not written in the expectation that the moderated user
+ * will read them. Support is the channel for the specifics.
+ */
+const SUSPENDED_ACCOUNT_MESSAGE =
+  "This account has been suspended. Please contact support.";
+
+/**
+ * Machine-readable counterpart to the message above, returned as the error
+ * `code` so a caller can branch on the reason without matching on prose. Named
+ * after the domain's own word ("suspended") rather than Better Auth's admin
+ * plugin's ("BANNED_USER"), since this app has no admin plugin and no `banned`
+ * column — see the `databaseHooks` comment below.
+ */
+const SUSPENDED_ACCOUNT_CODE = "ACCOUNT_SUSPENDED";
+
+/**
  * Better Auth server instance.
  *
  * `secret` and `baseURL` are intentionally omitted — they are read from the
@@ -69,6 +102,16 @@ const SIGN_UP_EMAIL_PATH = "/sign-up/email";
  * surfaced on the session user. It is `input: false`: only trusted server code
  * (the driver-registration route, via a direct Prisma write) ever sets it to
  * `true`, never a client-supplied sign-up or update payload.
+ *
+ * `isSuspended` mirrors the moderation column the back office writes. It is
+ * declared here for one reason: Better Auth's `parseUserOutput` strips every
+ * column that isn't part of its own schema or an `additionalField`, so without
+ * this entry the session user would arrive with no suspension status on it and
+ * the `/get-session` hook below would have to issue a second query per session
+ * read — on a field that changes roughly never. `input: false` for the same
+ * reason as `mustChangePassword`, and more sharply: this one is a lockout, so
+ * a client-supplied sign-up or `update-user` payload must never be able to
+ * clear it.
  *
  * `advanced.crossSubDomainCookies` must never be enabled here. The
  * merchant/client host split (see `@/lib/host`) depends on the two hostnames
@@ -101,6 +144,57 @@ export const auth = betterAuth({
         required: false,
         input: false,
         defaultValue: false,
+      },
+      isSuspended: {
+        type: "boolean",
+        required: false,
+        input: false,
+        defaultValue: false,
+      },
+    },
+  },
+  databaseHooks: {
+    session: {
+      create: {
+        /**
+         * The lock on the front door: a suspended account may not obtain a
+         * session, by any route.
+         *
+         * This is deliberately a `databaseHooks.session.create.before` rather
+         * than a `hooks.before` on `/sign-in/email`. Every way of acquiring a
+         * session — email/password today, any social provider or plugin
+         * endpoint added later, and direct server-side `auth.api.*` calls —
+         * funnels through session creation, so this one hook covers the set
+         * rather than the one endpoint that exists right now. It is also the
+         * exact mechanism Better Auth's own admin plugin uses for its `banned`
+         * column, which is the closest thing upstream has to this feature.
+         *
+         * That plugin is not adopted here on purpose. Taking it would mean
+         * adding its `banned`/`banReason`/`banExpires` columns alongside the
+         * `isSuspended`/`suspendedAt`/`suspendedReason` ones the back office
+         * already writes, and adopting its own `role` semantics on top of this
+         * app's `UserRole` enum — two parallel notions of "blocked" and two of
+         * "role". Reusing its *pattern* against this app's existing columns is
+         * the cheaper half of that trade, and is what this hook does.
+         *
+         * Throwing an `APIError` (rather than returning `false`, which the
+         * hook API also accepts) is what turns the refusal into a 403 carrying
+         * a message the sign-in form can show; returning `false` aborts the
+         * write but leaves the caller with a generic failure.
+         */
+        before: async (session) => {
+          const user = await prisma.user.findUnique({
+            where: { id: session.userId },
+            select: { isSuspended: true },
+          });
+
+          if (user?.isSuspended) {
+            throw new APIError("FORBIDDEN", {
+              message: SUSPENDED_ACCOUNT_MESSAGE,
+              code: SUSPENDED_ACCOUNT_CODE,
+            });
+          }
+        },
       },
     },
   },
@@ -193,35 +287,87 @@ export const auth = betterAuth({
     }),
 
     /**
-     * Clear `mustChangePassword` once the user has actually picked a new
-     * password. This runs for every endpoint, so it self-filters on the path.
+     * Better Auth takes a single `after` middleware, not a list, so both
+     * post-endpoint behaviours live in this one function and self-filter on
+     * `ctx.path`.
+     *
+     * 1. `/get-session` — refuse to hand back a session belonging to a
+     *    suspended account, and destroy it on the way out.
+     * 2. `/change-password` — clear `mustChangePassword` once the user has
+     *    actually picked a new password.
      *
      * `ctx.context.returned` holds whatever the endpoint produced. Better Auth
      * catches a thrown `APIError` (e.g. a wrong current password) and stores
      * the error object there rather than rethrowing before hooks run, so a
-     * failed attempt is only distinguishable by inspecting it — without this
-     * check a driver could clear the flag by submitting the form incorrectly.
+     * failed attempt is only distinguishable by inspecting it — without the
+     * `isAPIError` check below a driver could clear the flag by submitting the
+     * form incorrectly.
      */
     after: createAuthMiddleware(async (ctx) => {
-      if (ctx.path !== CHANGE_PASSWORD_PATH) {
-        return;
+      /**
+       * The lock on the inside of the door, complementing the session-creation
+       * hook above: a session issued *before* the suspension is worthless from
+       * the next request onward.
+       *
+       * `POST /api/admin/users/[userId]/suspend` already revokes the target's
+       * sessions outright, and that — not this — is what makes suspension take
+       * effect in the same second an admin clicks the button. This hook exists
+       * because that route is not the only way the column can become `true`: a
+       * data fix, a future bulk-moderation job, or a second admin surface would
+       * each otherwise leave live sessions behind. The flag is authoritative
+       * here, whoever set it.
+       *
+       * The check is free: `isSuspended` rides on the session user because it
+       * is declared as an `additionalField` above, so this reads a value the
+       * endpoint had already loaded rather than issuing a query of its own on
+       * a path the whole application takes on every request.
+       *
+       * Returning `ctx.json(null)` replaces the endpoint's response, which is
+       * exactly what a caller of `auth.api.getSession(...)` receives — so all
+       * ~80 route handlers and server components see a signed-out user without
+       * any of them being edited. Deleting the row and the cookie as well means
+       * the stale token cannot be replayed and the browser stops sending it.
+       */
+      if (ctx.path === GET_SESSION_PATH) {
+        // A signed-out request, an expired session and an `APIError` all
+        // produce something without a suspended `user` on it, so the one check
+        // covers every shape this endpoint can return.
+        const returned = ctx.context.returned as {
+          session?: { token?: string };
+          user?: { isSuspended?: boolean };
+        } | null;
+
+        if (returned?.user?.isSuspended) {
+          const token = returned.session?.token;
+          if (token) {
+            await ctx.context.internalAdapter.deleteSession(token);
+          }
+
+          deleteSessionCookie(ctx);
+
+          return ctx.json(null);
+        }
       }
 
-      if (isAPIError(ctx.context.returned)) {
-        return;
+      if (
+        ctx.path === CHANGE_PASSWORD_PATH &&
+        !isAPIError(ctx.context.returned)
+      ) {
+        // `/change-password` runs behind a session middleware, so a successful
+        // call always has one; the guard is for the type, not for reachability.
+        const session = ctx.context.session;
+        if (session) {
+          await prisma.user.update({
+            where: { id: session.user.id },
+            data: { mustChangePassword: false },
+          });
+        }
       }
 
-      // `/change-password` runs behind a session middleware, so a successful
-      // call always has one; the guard is for the type, not for reachability.
-      const session = ctx.context.session;
-      if (!session) {
-        return;
-      }
-
-      await prisma.user.update({
-        where: { id: session.user.id },
-        data: { mustChangePassword: false },
-      });
+      // Every other path, and every non-suspended session read, leaves the
+      // endpoint's own response untouched. Spelled out rather than falling off
+      // the end because the branch above returns a value.
+      return undefined;
     }),
   },
 });

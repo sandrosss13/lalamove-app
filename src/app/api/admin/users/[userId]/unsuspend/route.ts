@@ -29,6 +29,13 @@ const ALLOWED_ROLES: readonly AdminRole[] = ["SUPER_ADMIN", "USER_MANAGER"];
  * guard exists there to stop the moderation route being used as a back door to
  * disable staff; lifting a suspension only ever *restores* access, so refusing
  * it could only strand an account someone suspended by another path.
+ *
+ * It also has no counterpart to the session revocation its sibling performs,
+ * and needs none: clearing `isSuspended` is the whole of it. The gate in
+ * `src/lib/auth.ts` reads the column on every session creation and every
+ * session read, so the account can sign in again on the next attempt. Nothing
+ * is restored, because suspension revoked the old sessions rather than
+ * suspending them — the user signs in fresh.
  */
 export async function POST(
   _request: Request,

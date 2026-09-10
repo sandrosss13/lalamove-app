@@ -28,6 +28,19 @@ model User {
 
   // Account moderation, set by an admin from the back office. `isSuspended`
   // alone gates login/API access; the other two are audit context, not logic.
+  //
+  // That gate lives in `src/lib/auth.ts`, in two halves: a
+  // `databaseHooks.session.create.before` that refuses to mint a session for a
+  // suspended account, and a `hooks.after` on `/get-session` that destroys an
+  // already-issued one. Every route handler and server component in the app
+  // reads its session through `auth.api.getSession`, so both halves apply
+  // without any individual route checking this column — and none of them do.
+  // `POST /api/admin/users/[userId]/suspend` additionally revokes the target's
+  // live sessions so the lockout is immediate rather than eventual.
+  //
+  // This comment previously claimed the same guarantee while no code provided
+  // it (issue #24). If the gate is ever moved or removed, this comment is the
+  // thing to fix first.
   isSuspended     Boolean   @default(false)
   suspendedAt     DateTime?
   suspendedReason String?

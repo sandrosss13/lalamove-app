@@ -4,6 +4,7 @@ import type { AdminRole } from "@prisma/client";
 
 import { authorizeAdminApi } from "@/lib/admin/api-auth";
 import { writeAuditLog } from "@/lib/admin/audit";
+import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -29,13 +30,25 @@ export type AdminSuspensionResponse = {
 
 /**
  * POST /api/admin/users/[userId]/suspend — flag a customer or seller account
- * as suspended, with the reason staff gave.
+ * as suspended, with the reason staff gave, and cut off the sessions it is
+ * holding right now.
  *
- * Storing the flag is all this does. Turning it into an actual block at
- * sign-in/session level is deliberately not wired up here (see the task notes):
- * that belongs in the shared auth configuration, which this task must not
- * touch, so until then `isSuspended` is a moderation record the back office
- * surfaces, not an enforced lockout.
+ * Two writes, in this order, and the order matters. Setting `isSuspended`
+ * first closes the front door: `src/lib/auth.ts` refuses to create a session
+ * for a suspended account, so nothing can sign back in during the moment
+ * between the two writes. Revoking afterwards then clears out whatever was
+ * already inside.
+ *
+ * Revocation is not optional politeness. Without it a suspended driver stays
+ * fully live until their token happens to expire — able to keep claiming loads
+ * off the board — which is precisely the situation suspension exists to stop.
+ *
+ * Deliberately NOT done here: releasing an accepted-but-undelivered order back
+ * to the load board. A suspended driver holding a live delivery is a real
+ * operational problem, but reassigning a client's in-flight order is a
+ * client-facing decision with its own notification and pricing consequences,
+ * and it does not belong in the auth fix. Suspension currently locks the driver
+ * out and leaves the order assigned to them for staff to move by hand.
  */
 export async function POST(
   request: Request,
@@ -120,6 +133,15 @@ export async function POST(
       suspendedReason: true,
     },
   });
+
+  // Better Auth owns the `session` table, so the revocation goes through its
+  // own internal adapter rather than a direct `prisma.session.deleteMany`.
+  // `auth.$context` is the documented handle on the initialised server
+  // instance, and `deleteUserSessions` is the call that also clears secondary
+  // storage — which this deployment does not configure today, but a
+  // hand-rolled Prisma delete would silently stop covering if it ever did.
+  const authContext = await auth.$context;
+  await authContext.internalAdapter.deleteUserSessions(userId);
 
   await writeAuditLog({
     actorId: authorized.context.actorId,
