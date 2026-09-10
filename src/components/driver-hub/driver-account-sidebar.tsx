@@ -26,12 +26,12 @@ import { cn } from "@/lib/utils";
  *   which row is current and the active section arrives as a prop instead.
  * - **Its rows are filtered by persona.** A roster driver has no payout
  *   account, so that row is absent for them. The client rail has no such axis.
- * - **It is painted in the hub's tokens, not the landing palette.** Inside
- *   `[data-admin-surface]` (see `driver-hub-shell.tsx`) `--color-accent`
- *   resolves to the shadcn neutral rather than the brand orange, so the client
- *   rail's `text-accent` active state would render as near-white on white. The
- *   active row therefore uses the hub sidebar's own idiom — `bg-muted` plus a
- *   weight change — which is what every other rail in this shell already does.
+ * - **Its accent is spelled out, not tokenised.** Inside `[data-admin-surface]`
+ *   (see `driver-hub-shell.tsx`) `--color-accent` resolves to the shadcn
+ *   neutral rather than the brand orange, so `text-accent` would paint the
+ *   active row near-white on white. The literal `oklch(64% 0.19 48)` below is
+ *   immune to that, and is the same call `driver-hub-job-pill.tsx` and
+ *   `driver-hub-sidebar.tsx` already make.
  *
  * What *is* reused is the part that matters most: `useSignOut`, unchanged. It
  * owns the destination and the in-flight flag, so this button cannot drift from
@@ -85,8 +85,21 @@ import { cn } from "@/lib/utils";
  */
 const STICKY_TOP_CLASS = "lg:top-[140px]";
 
+/**
+ * The brand orange, spelled as a literal for the reason in the note above. Both
+ * halves of the active row wear it — the rail's left border and the label — so
+ * it is written once and composed in.
+ */
+const ACCENT_BORDER = "border-[oklch(64%_0.19_48)]";
+const ACCENT_TEXT = "text-[oklch(64%_0.19_48)]";
+
+/**
+ * The eyebrow over the nav. Flush with nothing — the design's rail indents its
+ * *rows* by the 2px border plus 14px of padding and leaves this label at the
+ * aside's own left edge, so it deliberately carries no padding of its own.
+ */
 const SECTION_LABEL_CLASSES =
-  "px-3 text-[11px] font-semibold tracking-[0.08em] text-muted-foreground uppercase";
+  "text-[11px] font-semibold tracking-[0.1em] text-muted-foreground uppercase";
 
 export type DriverAccountSidebarProps = {
   /** The rows this account may see, already filtered by persona. */
@@ -114,14 +127,14 @@ export function DriverAccountSidebar({
   const { signOut, signingOut } = useSignOut();
 
   return (
-    <aside className={cn("lg:sticky lg:w-56 lg:shrink-0", STICKY_TOP_CLASS)}>
+    <aside className={cn("lg:sticky lg:w-52 lg:shrink-0", STICKY_TOP_CLASS)}>
       <div className="flex h-full flex-col">
         <p className={SECTION_LABEL_CLASSES}>Account</p>
 
-        <nav
-          aria-label="Account settings"
-          className="mt-3 flex flex-col gap-0.5"
-        >
+        {/* No `gap`: every row carries a 2px left border, and the rows abutting
+            is what makes those borders read as one continuous rail rather than
+            five detached ticks. The active row colours its own segment. */}
+        <nav aria-label="Account settings" className="mt-3 flex flex-col">
           {sections.map((section) => {
             const active = section.id === activeSection;
 
@@ -130,14 +143,16 @@ export function DriverAccountSidebar({
                 key={section.id}
                 href={sectionHref(section.id)}
                 // `aria-current` is what tells assistive tech which panel is
-                // open; the weight and background change is the sighted half
-                // of the same signal. Same pairing as `driver-hub-sidebar.tsx`.
+                // open; the orange border and label is the sighted half of the
+                // same signal. Same pairing as `driver-hub-sidebar.tsx`.
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "rounded-lg px-3 py-[9px] text-sm",
+                  // Weight is 500 in both states — the design moves colour
+                  // only, so the rail's rows do not reflow when you pick one.
+                  "cursor-pointer border-l-2 py-2 pl-3.5 text-sm font-medium transition-colors",
                   active
-                    ? "bg-muted font-semibold text-foreground"
-                    : "bg-transparent font-normal text-muted-foreground hover:bg-muted hover:text-foreground",
+                    ? cn(ACCENT_BORDER, ACCENT_TEXT)
+                    : "border-border text-muted-foreground hover:text-foreground",
                 )}
               >
                 {section.label}
@@ -154,9 +169,24 @@ export function DriverAccountSidebar({
           type="button"
           onClick={() => void signOut()}
           disabled={signingOut}
-          className="mt-8 inline-flex items-center gap-2 self-start rounded-lg px-3 py-[9px] text-sm font-medium text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50 lg:mt-auto"
+          className={cn(
+            // Bare text — no padding, no radius, no border — which is the
+            // other half of that: it sits beside the rail rather than
+            // continuing it. Hover goes orange, matching the rows' active
+            // state, since it is the one other thing here you can reach.
+            "mt-7 inline-flex cursor-pointer items-center gap-2 self-start text-sm font-medium text-muted-foreground transition-colors disabled:opacity-50 lg:mt-auto",
+            // Spelled out rather than `hover:${ACCENT_TEXT}`: Tailwind v4
+            // extracts candidates from the source text, so a class assembled at
+            // runtime is never generated and the hover would silently do
+            // nothing. Same literal as `ACCENT_TEXT`, kept in step by hand.
+            "hover:text-[oklch(64%_0.19_48)]",
+          )}
         >
-          <LogOut aria-hidden="true" className="size-4" />
+          <LogOut
+            aria-hidden="true"
+            className="size-[15px] flex-none"
+            strokeWidth={1.8}
+          />
           {signingOut ? "Logging out…" : "Log out"}
         </button>
       </div>

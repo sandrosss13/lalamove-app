@@ -60,6 +60,13 @@ const TONE_BY_STATUS: Record<string, HubStatusTone> = {
   "in transit": "info",
   "in review": "info",
   processing: "info",
+  // A vehicle off the road for maintenance: `'In service': tag(INFO_BG,
+  // INFO_FG)` in the design. Unreachable until the Vehicles screen grows the
+  // fleet tab that filters on it ("All / Active / In service / Idle /
+  // Defleeted"), but the word is part of the design's vocabulary and an
+  // unmapped one falls through to grey, so it is mapped here rather than
+  // discovered as a bug when that tab lands.
+  "in service": "info",
 
   // Danger — ended badly or blocks the driver from working.
   cancelled: "danger",
@@ -74,6 +81,9 @@ const TONE_BY_STATUS: Record<string, HubStatusTone> = {
   "due soon": "warning",
   pending: "warning",
   invited: "warning",
+  // Zone demand's middle step. The design tags it exactly like the other
+  // warnings — `Medium: tag(WARN_BG, WARN_FG)` — so it is amber, not grey.
+  medium: "warning",
 
   // Neutral — a real, deliberate state that simply is not an alert.
   scheduled: "neutral",
@@ -82,8 +92,9 @@ const TONE_BY_STATUS: Record<string, HubStatusTone> = {
   defleeted: "neutral",
   offboarded: "neutral",
 
-  // Zone demand on Today. Only "High" gets its own tone; "Medium" and "Low"
-  // fall through to the neutral default, which is what the design shows.
+  // Zone demand on Today. "High" is the only warm tone in the set; "Medium"
+  // is mapped with the other warnings above, and "Low" — `Low: tag(BG, MUTED)`
+  // — is the one demand step that really does want the neutral default.
   high: "demand",
 };
 

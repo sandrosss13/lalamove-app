@@ -222,6 +222,15 @@ export function VehiclesAddForm({
    * The 12px line under the save button: it reads the selection back when the
    * form is valid, and otherwise names the first thing still missing, in the
    * order the fields appear.
+   *
+   * The design collapses the invalid case to one string ("Add a plate
+   * (AB-123-CD) and a model to continue."), and that is not enough here. Its
+   * `canSaveVeh` tests two fields; `canSave` below tests six, because six are
+   * what the endpoint actually requires. A driver who has filled the plate and
+   * the model but typed `1975` into Year, or attached no photo, would be left
+   * with a dead button and a hint describing fields they have already
+   * completed. So each branch below names a real blocker in `canSave` — no
+   * branch is decorative, and none may be dropped while the gate tests for it.
    */
   const hint = canSave
     ? `${selectedType?.label ?? ""} · ${trimmedPlate} · ${photoCount} photo${
@@ -308,8 +317,7 @@ export function VehiclesAddForm({
         <div className="pr-9">
           <h2 className="text-base font-semibold">Add a vehicle</h2>
           <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
-            It joins the fleet as idle. Assigning a driver to it is what puts
-            it on the road.
+            It joins the fleet as idle. Assign a driver to start taking jobs.
           </p>
         </div>
 
@@ -398,7 +406,8 @@ export function VehiclesAddForm({
                   <label
                     key={type.code}
                     className={cn(
-                      "flex cursor-pointer items-center justify-between gap-3 rounded-[10px] border p-3 transition-colors",
+                      // 8px radius and 11/13 padding, the design's `pickRow`.
+                      "flex cursor-pointer items-center justify-between gap-3 rounded-lg border px-[13px] py-[11px] transition-colors",
                       "has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50",
                       selected
                         ? "border-foreground bg-muted"
@@ -409,6 +418,16 @@ export function VehiclesAddForm({
                       <span className="block text-[13px] font-medium">
                         {type.label}
                       </span>
+                      {/* The design gives each of its three rows a hand-written
+                          note ("Up to 1200 kg", "Documents and small parcels",
+                          "Pallets and bulk loads"), keyed to a Van / Sedan /
+                          Truck 1.5t catalogue this app does not have: the
+                          seeded `VehicleTypeSpec` rows are Cargo Van, Box
+                          Truck, Trailer Truck and eight more, and none of the
+                          design's three labels appears among them. So the note
+                          is templated from the spec's own `maxPayloadKg`, which
+                          is a real class-level fact for every row the endpoint
+                          can return. */}
                       <span className="mt-0.5 block text-xs text-muted-foreground">
                         Up to{" "}
                         <span className="font-price">
@@ -427,13 +446,17 @@ export function VehiclesAddForm({
                       // is operable with the arrow keys like any radio group.
                       className="sr-only"
                     />
+                    {/* The design's `dotStyle` is one 14px ring whose *colour*
+                        carries the selection — `border: '4px solid ' + (active
+                        ? INK : LINE)`, over `background: '#fff'` in both
+                        states. Varying the width instead made the unselected
+                        row's dot a hairline circle and shifted its optical
+                        weight as you moved down the list. */}
                     <span
                       aria-hidden="true"
                       className={cn(
-                        "size-3.5 shrink-0 rounded-full",
-                        selected
-                          ? "border-[5px] border-foreground"
-                          : "border border-border",
+                        "size-3.5 shrink-0 rounded-full border-4 bg-background",
+                        selected ? "border-foreground" : "border-border",
                       )}
                     />
                   </label>
@@ -519,11 +542,13 @@ export function VehiclesAddForm({
               "h-auto rounded-md px-[15px] py-[9px] text-[13px] font-medium",
               canSave
                 ? "bg-foreground text-background hover:bg-foreground/90"
-                : // The design's disabled save is grey-filled and shows a
-                  // not-allowed cursor rather than fading out, so the base
-                  // variant's `opacity-50` and `pointer-events-none` are both
-                  // overridden — the latter is what lets the cursor show.
-                  "cursor-not-allowed bg-muted text-muted-foreground hover:bg-muted disabled:pointer-events-auto disabled:opacity-100",
+                : // The design's disabled save is filled with LINE — the same
+                  // `oklch(92.8% 0.006 264.531)` as every border on the screen,
+                  // a step lighter than `--muted` — and shows a not-allowed
+                  // cursor rather than fading out, so the base variant's
+                  // `opacity-50` and `pointer-events-none` are both overridden;
+                  // the latter is what lets the cursor show.
+                  "cursor-not-allowed bg-border text-muted-foreground hover:bg-border disabled:pointer-events-auto disabled:opacity-100",
             )}
           >
             {submitting ? "Adding…" : "Add to fleet"}

@@ -152,8 +152,31 @@ function PanelField({
   );
 }
 
-/** Every text control in this panel wears the handoff's input metrics. */
-const INPUT_CLASSES = "h-9 rounded-md text-sm";
+/**
+ * Every text control in this panel wears the handoff's input metrics:
+ * `font-size:14px; padding:9px 11px; border-radius:6px`. Height comes from the
+ * padding, exactly as it does in the artboard — a fixed `h-9` fights that
+ * padding and leaves these boxes a different size from the sibling
+ * `vehicles-add-form.tsx`, which already carries these same three numbers.
+ */
+const INPUT_CLASSES = "h-auto rounded-md px-[11px] py-[9px] text-sm";
+
+/**
+ * The mono variant, for the values the hub always sets in `font-price`.
+ *
+ * `md:text-[13px]` is not redundant: `Input`'s own base classes end in
+ * `md:text-sm`, which would quietly restore 14px above the `md` breakpoint and
+ * leave these boxes disagreeing with the design's `font-size:13px`.
+ */
+const MONO_INPUT_CLASSES = "font-price text-[13px] md:text-[13px]";
+
+/**
+ * The design's pick-row, shared by the licence checkboxes and the vehicle
+ * radios: `padding: '11px 13px', borderRadius: 8` from the artboard's
+ * `pickRow` helper. Two lists of choices in one panel must not disagree about
+ * their own geometry.
+ */
+const PICK_ROW_CLASSES = "rounded-lg border px-[13px] py-[11px]";
 
 /* -------------------------------------------------------------------------- */
 /* Panel                                                                      */
@@ -313,7 +336,10 @@ export function DriversAddPanel({
       {/* `pr-9` keeps the heading clear of the ✕ that `MasterDetailSplit`
           renders at the panel's top-right. */}
       <div className="pr-9">
-        <p className="text-base font-semibold">Register a driver</p>
+        {/* A heading element, like the sibling panels' titles — this is the
+            heading of the rail `MasterDetailSplit` just opened, not a stray
+            line of body copy. */}
+        <h2 className="text-base font-semibold">Register a driver</h2>
         <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
           This creates their account. They sign in with the email below and the
           one-time password shown after saving, then set their own.
@@ -353,7 +379,7 @@ export function DriversAddPanel({
               onChange={(event) => setPhone(event.target.value)}
               placeholder="+995 5XX XXX XXX"
               autoComplete="off"
-              className={cn(INPUT_CLASSES, "font-price text-[13px]")}
+              className={cn(INPUT_CLASSES, MONO_INPUT_CLASSES)}
             />
           </PanelField>
 
@@ -361,7 +387,15 @@ export function DriversAddPanel({
             <Select value={city} onValueChange={setCity}>
               <SelectTrigger
                 id="hub-driver-zone"
-                className={cn(INPUT_CLASSES, "w-full")}
+                // `data-[size=default]:h-auto` rather than the plain `h-auto`
+                // in `INPUT_CLASSES`: `SelectTrigger`'s own height is written
+                // as `data-[size=default]:h-8`, and an attribute selector out-
+                // specifies a bare class — without this the trigger would keep
+                // its 32px and sit a step shorter than the Phone box beside it.
+                className={cn(
+                  INPUT_CLASSES,
+                  "w-full data-[size=default]:h-auto",
+                )}
               >
                 <SelectValue placeholder="Pick a city" />
               </SelectTrigger>
@@ -386,7 +420,7 @@ export function DriversAddPanel({
               onChange={(event) => setLicenceNumber(event.target.value)}
               placeholder="e.g. 01234567"
               autoComplete="off"
-              className={cn(INPUT_CLASSES, "font-price text-[13px]")}
+              className={cn(INPUT_CLASSES, MONO_INPUT_CLASSES)}
             />
           </PanelField>
 
@@ -396,7 +430,7 @@ export function DriversAddPanel({
               type="date"
               value={licenceExpiry}
               onChange={(event) => setLicenceExpiry(event.target.value)}
-              className={cn(INPUT_CLASSES, "font-price text-[13px]")}
+              className={cn(INPUT_CLASSES, MONO_INPUT_CLASSES)}
             />
           </PanelField>
         </div>
@@ -412,7 +446,8 @@ export function DriversAddPanel({
               <Label
                 key={option.value}
                 className={cn(
-                  "cursor-pointer gap-2.5 rounded-[10px] border p-3 text-[13px] font-normal",
+                  "cursor-pointer gap-2.5 text-[13px] font-normal",
+                  PICK_ROW_CLASSES,
                   checked
                     ? "border-foreground bg-muted"
                     : "border-border bg-background",
@@ -440,26 +475,37 @@ export function DriversAddPanel({
 
           {/* Real radios in a visually styled row: keyboard users get arrow-key
               navigation and a single tab stop for free, which a div with
-              `onClick` would have had to reimplement. */}
-          <VehicleRadioRow
-            label="Unassigned"
-            note="Assign later"
-            selected={vehicleId === NO_VEHICLE}
-            onSelect={() => setVehicleId(NO_VEHICLE)}
-          />
-          {vehicles.map((vehicle) => (
+              `onClick` would have had to reimplement.
+
+              The design caps this list at four rows (`.slice(0, 4)`, counting
+              its own "Unassigned" row first). Dropping the overflow outright
+              would make a fifth free vehicle unassignable from the only form
+              that can assign one, so the cap is on the list's *height*
+              instead: four rows tall, the rest one scroll away. `-m-0.5 p-0.5`
+              keeps a focused row's ring clear of the scroller's own clip. */}
+          <div className="-m-0.5 flex max-h-[260px] min-w-0 flex-col gap-2 overflow-y-auto p-0.5">
             <VehicleRadioRow
-              key={vehicle.id}
-              label={vehicle.plateNumber}
-              note={
-                vehicle.requiredLicenceCategory === null
-                  ? vehicle.description
-                  : `${vehicle.description} · needs ${vehicle.requiredLicenceCategory}`
-              }
-              selected={vehicleId === vehicle.id}
-              onSelect={() => setVehicleId(vehicle.id)}
+              label="Unassigned"
+              note="Assign later"
+              selected={vehicleId === NO_VEHICLE}
+              onSelect={() => setVehicleId(NO_VEHICLE)}
             />
-          ))}
+            {vehicles.map((vehicle) => (
+              <VehicleRadioRow
+                key={vehicle.id}
+                label={vehicle.plateNumber}
+                // `{{ v.model }} · {{ v.class }}`, which is what
+                // `description` already holds. The licence category the class
+                // demands is not repeated on every row: it only matters for
+                // the one vehicle actually picked, and the hint under the
+                // buttons names it there — "AB-482-QM needs category C" —
+                // where the operator is about to act on it.
+                note={vehicle.description}
+                selected={vehicleId === vehicle.id}
+                onSelect={() => setVehicleId(vehicle.id)}
+              />
+            ))}
+          </div>
           {vehicles.length === 0 ? (
             <p className="text-xs text-muted-foreground">
               Every fleet vehicle is currently held by a driver. Register this
@@ -485,7 +531,7 @@ export function DriversAddPanel({
             // restore the design's "grey fill, muted text, not-allowed" look,
             // which `Button`'s default `disabled:opacity-50` would wash out.
             disabled={!canSubmit || submitting}
-            className="h-9 rounded-md px-4 text-[13px] disabled:pointer-events-auto disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100"
+            className="h-auto rounded-md px-[15px] py-[9px] text-[13px] font-medium disabled:pointer-events-auto disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100"
           >
             {submitting ? "Registering…" : "Register driver"}
           </Button>
@@ -494,7 +540,7 @@ export function DriversAddPanel({
             variant="outline"
             disabled={submitting}
             onClick={onCancel}
-            className="h-9 rounded-md px-4 text-[13px]"
+            className="h-auto rounded-md px-[15px] py-[9px] text-[13px] font-medium"
           >
             Cancel
           </Button>
@@ -525,7 +571,8 @@ function VehicleRadioRow({
   return (
     <Label
       className={cn(
-        "cursor-pointer items-center justify-between gap-3 rounded-[10px] border p-3 font-normal",
+        "cursor-pointer items-center justify-between gap-3 font-normal",
+        PICK_ROW_CLASSES,
         // The radio itself is `sr-only`, so the focus ring has to be drawn by
         // the row that stands in for it.
         "has-[:focus-visible]:border-ring has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50",

@@ -60,13 +60,21 @@ import { cn } from "@/lib/utils";
  *
  * ## Operational context
  *
- * Below the fare, the panel carries what the client asked for at booking: who
- * to ask for at each end, the tier the order was placed on, the load space it
- * was booked for, and a business client's own PO reference. The service-level
- * pill is a *neutral* pill, not a status one — dispatch does not read
- * `Order.serviceLevel`, so a coloured pill would read as a promise about how
- * the job is being handled. The panel is where the flag is honestly visible:
- * the driver and ops can see it, and nothing here claims it changed anything.
+ * Below the fare, the panel carries what the client asked for at booking: the
+ * load space the job was booked for, the plate that ran it, who to ask for at
+ * each end, and a business client's own PO reference.
+ *
+ * The header above holds the handoff's two pills and no more — the status, and
+ * one neutral tag naming the vehicle class. The load space and the plate used
+ * to be two more pills there and are now labelled rows here, which is the
+ * honest shape for them: a bare "Dry box" in a grey capsule beside a status
+ * capsule is a word the reader has to place, while a row called "Body type"
+ * says what it is. The tier lost its pill and gained nothing, because it
+ * already had somewhere better to be: `Order.serviceLevel` is REGULAR on most
+ * orders and moves no money there, and wherever it *did* move money the note
+ * under "Paid to you" names it in a sentence. Dispatch never reads the column
+ * either — it matches on `vehicleTypeSpecId` alone — so a permanent pill for it
+ * was overstating a flag nothing acts on.
  *
  * ## Why the total is not the client's total
  *
@@ -348,38 +356,25 @@ export function JobsDetailPanel({
         </p>
       </div>
 
+      {/* Two pills, which is what the handoff draws: the status, and one
+          neutral tag naming the vehicle class the job was booked for
+          (`<span style="{{ selectedJob.tagStyle }}">…</span><span
+          style="{{ selectedJob.typeTagStyle }}">{{ selectedJob.vehicle }}</span>`,
+          where the prototype's `vehicle` is the class — "Van" — not a plate).
+
+          The tier, the body type and the plate used to ride here as three more
+          pills, and a five-pill row was the reason the status — the one thing a
+          reader scans this header for — had to be hunted for. None of the three
+          is lost: the tier is named under the total wherever it moved money,
+          and the other two now sit in the detail rows below, where a labelled
+          value says what it is instead of a bare word in a grey capsule. */}
       <div className="mt-4 mb-5 flex flex-wrap gap-2">
         <HubStatusBadge status={job.status} />
-        {/* Neutral, never a status tone: `hub-status.ts` defines six tones for
-            *states*, and a booked tier is not one. It is also always present —
-            the column defaults to REGULAR — so it is never conditional, and
-            hiding "Regular" would make its absence ambiguous. What this pill
-            must not be read as is a rate on the fare below it; the note under
-            "Paid to you" is what stops that. */}
-        <Badge variant="outline" className={NEUTRAL_PILL_CLASSES}>
-          {job.serviceLevel}
-        </Badge>
+        {/* Neutral, never a status tone. `hub-status.ts` defines six tones,
+            all of them for job states, and a vehicle class is not one. */}
         <Badge variant="outline" className={NEUTRAL_PILL_CLASSES}>
           {job.vehicleTypeLabel}
         </Badge>
-        {/* Null on every order placed before the body filter existed, and
-            nothing can derive one after the fact, so the pill is absent rather
-            than defaulted to "Dry box". */}
-        {job.bodyType === null ? null : (
-          <Badge variant="outline" className={NEUTRAL_PILL_CLASSES}>
-            {job.bodyType}
-          </Badge>
-        )}
-        {/* A plate only exists once a vehicle was actually dispatched, so an
-            unstarted job carries one pill fewer than a running one. */}
-        {job.vehiclePlate === null ? null : (
-          <Badge
-            variant="outline"
-            className={cn(NEUTRAL_PILL_CLASSES, "font-price")}
-          >
-            {job.vehiclePlate}
-          </Badge>
-        )}
       </div>
 
       <ol className="flex flex-col gap-3.5 border-b border-border pb-5">
@@ -463,20 +458,46 @@ export function JobsDetailPanel({
         </span>
       </div>
 
-      {/* The disclaimer the pills three lines up cannot carry on their own: a
-          "Priority" pill sitting above a figure smaller than the client's
-          invoice invites the reader to wonder where the premium went. The
-          sentence stays exactly as it was, because it is still true — the tier
-          adjusts what the client pays, and this figure is not that. What has
-          changed is why: the carrier's share of the adjustment is already inside
-          the Payout line above, not withheld pending a decision. Regular moves
-          the fare by nothing, so it earns no note; a line saying the adjustment
-          was zero would only be noise. */}
+      {/* Now the only place the booked tier is named, and the place it was
+          always doing the real work: a figure smaller than the client's invoice
+          invites the reader to wonder where the Priority premium went, and a
+          pill saying "Priority" never answered that — this sentence does. It is
+          still true word for word — the tier adjusts what the client pays, and
+          this figure is not that — and the reason is that the carrier's share of
+          the adjustment is already inside the Payout line above, not withheld
+          pending a decision. Regular moves the fare by nothing, so it earns no
+          note; a line saying the adjustment was zero would only be noise. */}
       {job.serviceLevel === "Regular" ? null : (
         <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
           Booked as {job.serviceLevel}. The tier adjusts what the client pays
           and is not part of this figure.
         </p>
+      )}
+
+      {/* The two facts that came out of the pill row. Both are conditional and
+          both are silent when absent rather than defaulted: `bodyType` is null
+          on every order placed before the load-space filter existed and there
+          is nothing to derive one from, and a plate only exists once a vehicle
+          was actually dispatched, so an unstarted job carries neither row.
+          Labelled rows rather than pills because that is what they are — a
+          value with a name — and because the handoff's header is two pills. */}
+      {job.bodyType === null && job.vehiclePlate === null ? null : (
+        <dl className="mt-5">
+          {job.bodyType === null ? null : (
+            <div className={DETAIL_ROW_CLASSES}>
+              <dt className="flex-none text-muted-foreground">Body type</dt>
+              <dd className="min-w-0 truncate font-medium">{job.bodyType}</dd>
+            </div>
+          )}
+          {job.vehiclePlate === null ? null : (
+            <div className={DETAIL_ROW_CLASSES}>
+              <dt className="flex-none text-muted-foreground">Plate</dt>
+              <dd className="min-w-0 truncate font-price font-medium">
+                {job.vehiclePlate}
+              </dd>
+            </div>
+          )}
+        </dl>
       )}
 
       {/* Below the money rather than above it: the fare lines and the total

@@ -19,7 +19,6 @@ import {
 } from "@/components/driver-hub/screens/today-format";
 import { Button } from "@/components/ui/button";
 import type { HubTodayData } from "@/lib/dashboard/hub/today";
-import { cn } from "@/lib/utils";
 
 /**
  * Today — the landing screen after sign-in, and the only one a driver looks at
@@ -27,8 +26,9 @@ import { cn } from "@/lib/utils";
  *
  * It answers four things at a glance: what today paid, how the week is going,
  * what is running right now, and what needs acting on. Two rows of cards, in
- * the handoff's own `1.15fr 1fr 1fr` and `1.15fr 1fr` tracks, stretched so the
- * cards in a row share a height and their footers line up.
+ * the handoff's own tracks: `1.15fr 1fr 1fr` up top, stretched so the three
+ * cards share a height and their footers line up, then a single full-width
+ * `minmax(0,1fr)` column beneath it.
  *
  * Those four questions are asked of three different readers, though, and they
  * do not all mean the same thing to each — see "Three personas" below.
@@ -279,22 +279,19 @@ export function TodayScreen({ data, subtitle }: TodayScreenProps) {
         />
       </div>
 
-      {/* Row 2. The zone-demand card is absent for a ROSTER driver: every row
-          on it is a repositioning prompt paired with a surge bonus, and an
-          employed driver neither chooses where to sit (work reaches them
-          through their employer's dispatch) nor keeps the bonus if they did.
-          Hidden rather than emptied, per this feature's rule that a sampled
-          card meaningless for a persona is removed rather than made real. With
-          one child the row is one column — otherwise the attention card would
-          sit in a 1.15fr track with a 1fr gap of nothing beside it. */}
-      <div
-        className={cn(
-          "grid items-stretch gap-5",
-          sampled.zoneDemand === null
-            ? "lg:grid-cols-1"
-            : "lg:grid-cols-[1.15fr_1fr]",
-        )}
-      >
+      {/* Row 2. One full-width track at every width, which is the handoff's own
+          `grid-template-columns:minmax(0,1fr)` — `grid-cols-1` compiles to
+          exactly that, and the `minmax(0,…)` is what stops the zone table's
+          long addresses from widening the track. So the cards stack rather than
+          sharing a row, and neither is squeezed by the other.
+
+          The zone-demand card is absent for a ROSTER driver: every row on it is
+          a repositioning prompt paired with a surge bonus, and an employed
+          driver neither chooses where to sit (work reaches them through their
+          employer's dispatch) nor keeps the bonus if they did. Hidden rather
+          than emptied, per this feature's rule that a sampled card meaningless
+          for a persona is removed rather than made real. */}
+      <div className="grid grid-cols-1 gap-5">
         {sampled.zoneDemand === null ? null : (
           <TodayZoneDemandCard zoneDemand={sampled.zoneDemand} />
         )}

@@ -160,7 +160,14 @@ export const HUB_NAV: readonly HubNavItem[] = [
     title: "Performance",
     // The one subhead that is genuinely static — it describes the window the
     // screen always uses, not a value inside it.
-    subtitle: "Rolling 7-day window",
+    //
+    // Not the artboard's "Rolling 7-day window": `lib/dashboard/hub/
+    // performance.ts` anchors every figure on this screen to the current
+    // Tbilisi week, Monday through Sunday, and explains why a trailing seven
+    // days was rejected (Thursday's jobs bar would sit under Monday's hours
+    // bar). The prototype's literal would contradict the screen's own "This
+    // week, 25–31 Aug" paragraph a few hundred pixels below it.
+    subtitle: "This Tbilisi week, Monday to Sunday",
   },
   {
     id: "vehicles",

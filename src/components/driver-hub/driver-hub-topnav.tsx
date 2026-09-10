@@ -15,6 +15,7 @@ import {
 } from "@/components/driver-hub/driver-hub-job-pill";
 import { DriverHubMobileMenu } from "@/components/driver-hub/driver-hub-mobile-menu";
 import { DriverHubNotifications } from "@/components/driver-hub/driver-hub-notifications";
+import { HubOnlineToggle } from "@/components/driver-hub/hub-online-toggle";
 import { Button } from "@/components/ui/button";
 import type { HubAccount, HubPersona } from "@/lib/dashboard/hub/account";
 import type { HubHeaderData } from "@/lib/dashboard/hub/header";
@@ -221,10 +222,17 @@ export function DriverHubTopNav({
 
   return (
     <>
-      <div className="flex h-15 items-center gap-3 border-b border-border bg-background px-4 lg:h-14 lg:gap-5 lg:px-8">
+      {/* `py-3` is the design's 12px on both sides of the bar, at both
+          breakpoints — on a phone it is what makes the row 68px around its 44px
+          controls (the design's own figure), and at `lg` it is already spent
+          inside the explicit 56px, which is that same 12px around a 32px bell.
+          The height is stated there and inferred here because the desktop bar
+          must not grow with its contents; the phone bar is sized *by* its
+          44px targets. */}
+      <div className="flex items-center gap-3 border-b border-border bg-background px-4 py-3 lg:h-14 lg:gap-5 lg:px-6">
         <Link
           href={HOME_HREF}
-          className="text-[15px] font-bold tracking-[-0.01em] whitespace-nowrap"
+          className="text-[16px] font-bold tracking-[-0.015em] whitespace-nowrap"
         >
           Lalamove Clone
         </Link>
@@ -253,6 +261,25 @@ export function DriverHubTopNav({
         </nav>
 
         <div className="ml-auto flex min-w-0 items-center gap-1 lg:gap-3">
+          {/* First in the right-hand cluster, ahead of the job pill, per the
+              design.
+
+              A company session has no availability to flip — `isOnline` is
+              `null` for it, and the endpoint 403s a non-DRIVER outright — so
+              the pill is absent rather than rendered in a permanently dead
+              state.
+
+              This stays a `!== null` test and must not become a persona test:
+              it is what narrows `boolean | null` down to the `boolean`
+              `HubOnlineToggle` requires, so swapping it for `persona !==
+              "BUSINESS"` would be a type error dressed up as a refactor. */}
+          {account.isOnline !== null ? (
+            <HubOnlineToggle
+              isOnline={account.isOnline}
+              canToggleOnline={account.canToggleOnline}
+            />
+          ) : null}
+
           {/* `hidden lg:contents` rather than a wrapper box, so the pill stays a
               direct child of this flex row at desktop and inherits its gap
               instead of nesting a second one. */}
@@ -276,28 +303,20 @@ export function DriverHubTopNav({
           />
 
           <div className="hidden min-w-0 items-center gap-3 lg:flex">
-            <div className="flex min-w-0 items-center gap-2.5">
-              <div
-                aria-hidden="true"
-                className="grid size-8 flex-none place-items-center rounded-full bg-border text-[12px] font-semibold"
-              >
-                {account.initials}
-              </div>
-              <div className="min-w-0">
-                <p className="truncate text-[13px] font-medium">
-                  {account.displayName}
-                </p>
-                {/* The mono identifier ("Van · Tbilisi", or a VAT id) is the
-                    one piece of the old header's identity block the design's
-                    plain `{{ driverName }}` drops. It is kept, because it is
-                    the only place the hub states which vehicle and city this
-                    session is working from — but only from `xl`, where the bar
-                    has the height to spare beside a 248px rail. */}
-                <p className="hidden truncate font-price text-[11px] text-muted-foreground xl:block">
-                  {account.identifier}
-                </p>
-              </div>
-            </div>
+            {/* The design's 1px rule between the bell and the identity. Pure
+                decoration, so it is hidden from assistive tech rather than
+                announced as a separator that separates nothing semantic. */}
+            <span
+              aria-hidden="true"
+              className="h-[22px] w-px flex-none bg-border"
+            />
+
+            {/* The design's identity is this one unweighted 14px line — no
+                avatar, no initials, no second line. `truncate` is the one
+                addition: it carries the design's `white-space: nowrap` and, on
+                a company name long enough to reach the bar's edge, clips it
+                rather than pushing Sign out off the row. */}
+            <span className="truncate text-sm">{account.displayName}</span>
 
             <Link
               href={ACCOUNT_HREF}
@@ -319,12 +338,26 @@ export function DriverHubTopNav({
                 user browsing the hub has no way to sign out at all.
 
                 Outline, per the design, where the old header used ghost. The
-                old reasoning ("the availability pill beside it is the header's
-                one real decision, and a border here would read as a second")
-                retired with the move: the availability pill now sits in the
-                page-title bar below this one, so nothing competes with it here.
+                availability pill now sits four elements to the left in this
+                same row, so the two borders do share a bar — but they read as
+                different things: the pill is a filled, rounded state you flip
+                all day, this is a square-cornered outline you press once. The
+                design draws them exactly that way.
                 `useSignOut()` owns the Better Auth call and the navigation that
-                follows it, so nothing is routed from here. */}
+                follows it, so nothing is routed from here.
+
+                `size="sm"` is the only size that carries the design's 6px
+                radius — its `min(var(--radius-md), 12px)` resolves to
+                Tailwind's 6px `md`, where every other size rounds to the base
+                8px `lg` — and it already sets the design's 10px sides. It
+                undershoots on the two axes left: it is a 28px pill at 0.8rem,
+                against 14px text in a 32px box. So those two are restated
+                here, and the variant is kept for the radius.
+
+                `cursor-pointer` because Tailwind v4's preflight leaves
+                `<button>` on the UA's `cursor: default`; the anchors beside it
+                take the pointer from the UA stylesheet, so this is the one
+                control in the bar that has to ask for it. */}
             <Button
               type="button"
               variant="outline"
@@ -333,7 +366,7 @@ export function DriverHubTopNav({
                 void signOut();
               }}
               disabled={signingOut}
-              className="flex-none"
+              className="h-8 flex-none cursor-pointer text-sm"
             >
               {signingOut ? "Signing out…" : "Sign out"}
             </Button>

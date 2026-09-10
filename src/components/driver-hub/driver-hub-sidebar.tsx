@@ -43,8 +43,13 @@ export type DriverHubSidebarProps = {
 };
 
 /**
- * The hub's left rail: brand row, the nav, and — for an independent driver —
- * the weekly-incentive card.
+ * The hub's left rail: the nav, and — for an independent driver — the
+ * weekly-incentive card.
+ *
+ * No brand block at the top, because the rail no longer starts at the top of
+ * the page. The wordmark lives in the top bar that spans the viewport above
+ * this column, so a second one here would state the product's name twice within
+ * a few dozen pixels of itself.
  *
  * The links are Next `<Link>`s rather than buttons with click handlers, so
  * every screen stays deep-linkable, middle-click and ⌘-click open a new tab,
@@ -59,21 +64,20 @@ export function DriverHubSidebar({
 }: DriverHubSidebarProps) {
   return (
     <aside
-      // Sticky at full viewport height rather than `fixed`, so the rail scrolls
-      // with a short page and pins on a long one without the main column
-      // needing a compensating left margin.
-      className="sticky top-0 flex h-screen w-[248px] flex-none flex-col gap-7 border-r border-border bg-background px-4 py-6"
+      // Sticky rather than `fixed`, so the rail scrolls with a short page and
+      // pins on a long one without the main column needing a compensating left
+      // margin.
+      //
+      // 57px, twice, and both are the same number for the same reason: the rail
+      // begins *below* the hub's top bar rather than beside it, so it pins to
+      // that bar's bottom edge (`lg:h-14` = 56px, plus its 1px bottom rule) and
+      // is a viewport tall minus the same. The two must move together and must
+      // track `driver-hub-topnav.tsx`'s height class — an offset that drifts
+      // from the bar above leaves a strip of scrolling page content visible in
+      // the gap, and a height that drifts makes the rail's own overflow point
+      // land off the bottom of the window.
+      className="sticky top-[57px] flex h-[calc(100vh-57px)] w-[248px] flex-none flex-col gap-6 border-r border-border bg-background px-4 py-5"
     >
-      <div className="flex items-center gap-2.5 px-2">
-        <div
-          aria-hidden="true"
-          className={cn("size-[26px] rounded-[7px]", ACCENT_BG)}
-        />
-        <span className="text-[15px] font-semibold tracking-[-0.01em]">
-          Driver Hub · Georgia
-        </span>
-      </div>
-
       <nav aria-label="Driver hub" className="flex flex-col gap-0.5">
         {items.map((item) => {
           const active = item.id === activeId;
@@ -98,7 +102,7 @@ export function DriverHubSidebar({
               {count === undefined ? null : (
                 <span
                   className={cn(
-                    "min-w-5 rounded-full px-1.5 py-px text-center font-price text-[11px] font-semibold text-white",
+                    "min-w-5 rounded-full px-1.5 py-px text-center text-[11px] font-semibold text-white",
                     ACCENT_BG,
                   )}
                 >

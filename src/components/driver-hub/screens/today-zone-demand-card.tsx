@@ -72,6 +72,11 @@ export function TodayZoneDemandCard({
     <HubCard
       className={cn("h-full", className)}
       title="Where the demand is"
+      // The design sits this card's 15px title and its 12px caption on a shared
+      // baseline rather than centring them — the two type sizes read as one
+      // line that way. The 16px title→body gap is the default and is correct
+      // here; only the alignment differs.
+      titleAlign="baseline"
       action={
         <span className="flex flex-wrap items-center justify-end gap-2">
           {caption}

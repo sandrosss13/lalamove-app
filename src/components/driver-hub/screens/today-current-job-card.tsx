@@ -78,10 +78,14 @@ const DOT_DONE =
 const DOT_NEXT = "bg-background border-[oklch(64%_0.19_48)]";
 const DOT_PENDING = "bg-background border-border";
 
-/** The two legs, named as the driver would say them. */
+/**
+ * The two legs, named as the driver would say them. Lower-case because they are
+ * only ever read mid-phrase, in the design's own composed stop name —
+ * "Avlabari · pickup" — rather than at the head of a line.
+ */
 const STOP_KIND_LABELS: Record<HubTodayStop["kind"], string> = {
-  PICKUP: "Pickup",
-  DROPOFF: "Drop-off",
+  PICKUP: "pickup",
+  DROPOFF: "drop-off",
 };
 
 /** What a served leg reads as. A drop-off is delivered; a pickup is collected. */
@@ -291,22 +295,17 @@ function JobDetail({ job }: { job: HubTodayCurrentJob }) {
 
   return (
     <>
-      <div className="mt-2.5 flex flex-wrap items-center gap-x-2.5 gap-y-1">
-        {/* A truncated id is a label, not an identifier — the full cuid rides
-            along as a title so it can still be read off and searched for. */}
-        <span
-          title={job.id}
-          className="font-price text-[16px] leading-none font-semibold"
-        >
-          {shortId(job.id)}
-        </span>
-        {/* Not in the design's card, which conveyed progress through three
-            stops and their times. With two stops and no ETA to print, the
-            pill is what still separates "accepted, not yet collected" from
-            "on the road" — and it is the shared status vocabulary, not a new
-            one. */}
-        <HubStatusBadge status={job.status} label={STATUS_LABELS[job.status]} />
-      </div>
+      {/* The id, then the meta line under it, and nothing else — the design's
+          own header. A truncated id is a label, not an identifier, so the full
+          cuid rides along as a title and can still be read off and searched
+          for. Progress is carried by the stop rows below, which is where the
+          design puts it too. */}
+      <p
+        title={job.id}
+        className="mt-2.5 font-price text-[16px] leading-none font-semibold"
+      >
+        {shortId(job.id)}
+      </p>
 
       <p className="mt-0.5 mb-3.5 text-[13px] text-muted-foreground">
         <span className="font-price">{job.stops.length}</span>{" "}
@@ -353,19 +352,24 @@ function StopRow({ stop, isNext }: { stop: HubTodayStop; isNext: boolean }) {
         )}
       />
       <div className="min-w-0">
-        <p className="truncate text-[13px] font-medium">{stop.address}</p>
+        {/* The design's two lines: the place and its role together on the first
+            ("Avlabari · pickup"), the timing alone on the second ("Collected
+            09:52"). Where the leg is matters more than what has happened to it,
+            so it leads. */}
+        <p className="truncate text-[13px] font-medium">
+          {stop.address} · {STOP_KIND_LABELS[stop.kind]}
+        </p>
         <p className="text-xs text-muted-foreground">
-          {STOP_KIND_LABELS[stop.kind]} ·{" "}
           {stop.at === null ? (
             // No ETA exists to print here — see the file header.
             isNext ? (
-              "up next"
+              "Up next"
             ) : (
-              "pending"
+              "Pending"
             )
           ) : (
             <>
-              {STOP_DONE_VERBS[stop.kind].toLowerCase()}{" "}
+              {STOP_DONE_VERBS[stop.kind]}{" "}
               <span className="font-price">{formatClock(stop.at)}</span>
             </>
           )}

@@ -147,8 +147,17 @@ function primaryTimestamp(job: HubJob): string {
 const COLUMNS =
   "grid-cols-[110px_minmax(180px,1fr)_90px_90px_90px_110px] min-w-[740px]";
 
+// `font-normal`, and it has to be spelled out rather than simply omitted:
+// `TableHead` bakes `font-medium` into its own base classes
+// (`src/components/ui/table.tsx`), so dropping the weight from here leaves
+// tailwind-merge nothing to override and the header still renders at 500.
+//
+// Weight 400 is what the handoff draws — its header row sets a size, a
+// transform, a letter-spacing and a colour, and no weight at all. The
+// uppercase 11px treatment is what separates the head from the rows here; a
+// bumped weight on top of it reads as a second emphasis.
 const HEAD_CLASSES =
-  "h-auto px-0 pb-2.5 text-[11px] font-medium tracking-[0.08em] uppercase text-muted-foreground";
+  "h-auto px-0 pb-2.5 text-[11px] font-normal tracking-[0.08em] uppercase text-muted-foreground";
 const CELL_CLASSES = "min-w-0 px-0 py-3.5";
 
 /* -------------------------------------------------------------------------- */
@@ -331,10 +340,7 @@ export function JobsScreen({ data, nowIso }: JobsScreenProps) {
 
                         <TableCell
                           role="cell"
-                          className={cn(
-                            CELL_CLASSES,
-                            "truncate font-price text-[13px]",
-                          )}
+                          className={cn(CELL_CLASSES, "truncate font-price")}
                         >
                           {formatDistanceKm(job.distanceKm)}
                         </TableCell>
@@ -343,7 +349,7 @@ export function JobsScreen({ data, nowIso }: JobsScreenProps) {
                           role="cell"
                           className={cn(
                             CELL_CLASSES,
-                            "truncate font-price text-[13px] text-muted-foreground",
+                            "truncate font-price text-muted-foreground",
                           )}
                           title={formatJobTimestamp(at)}
                         >
@@ -354,7 +360,7 @@ export function JobsScreen({ data, nowIso }: JobsScreenProps) {
                           role="cell"
                           className={cn(
                             CELL_CLASSES,
-                            "truncate font-price text-[13px] font-semibold",
+                            "truncate font-price font-semibold",
                           )}
                         >
                           {formatGel(job.fare)}

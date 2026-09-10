@@ -3,7 +3,10 @@
 import * as React from "react";
 import { usePathname } from "next/navigation";
 
-import { DriverHubHeader } from "@/components/driver-hub/driver-hub-header";
+import {
+  DriverHubHeader,
+  DriverHubPageHead,
+} from "@/components/driver-hub/driver-hub-header";
 import { DriverHubSidebar } from "@/components/driver-hub/driver-hub-sidebar";
 import {
   hubNavForAccount,
@@ -13,8 +16,16 @@ import type { HubAccount } from "@/lib/dashboard/hub/account";
 import type { HubHeaderData } from "@/lib/dashboard/hub/header";
 
 /**
- * The driver hub's frame: a 248px rail, the two-tier sticky header, and the
- * page body every screen renders into.
+ * The driver hub's frame: a full-bleed sticky top bar, a 248px rail beneath it,
+ * and the page body every screen renders into.
+ *
+ * The order of those three is the design's and is load-bearing. The bar is the
+ * page's **first child**, so it spans the viewport and its wordmark starts at
+ * the window's own left edge; the rail and the page body are a flex row *below*
+ * it. Built the other way round — rail first, bar inside the column beside it —
+ * the bar begins 248px in and its left edge is the rail's border rather than
+ * the screen, which is the single largest departure the hub had from the
+ * handoff.
  *
  * Desktop-first, but no longer desktop-only. Below `lg` the rail is dropped
  * from the layout and its links move into the top bar's menu, and the body's
@@ -271,44 +282,58 @@ export function DriverHubShell({
   return (
     <div
       data-admin-surface
-      className="flex min-h-screen bg-background font-body text-foreground"
+      // Marks the hub specifically, where `data-admin-surface` also covers the
+      // back office, the admin sign-in card and the onboarding wizard. Two
+      // tokens from this screen's handoff hang off it in `globals.css` so they
+      // reach the hub without repainting those three.
+      data-hub-surface
+      // The page surface is the design's grey (`BG`), not white: the artboard
+      // paints the body `oklch(96.7% 0.003 264.542)` and gives the header, the
+      // rail and every card `#fff` on top of it. Written as the literal rather
+      // than a token because `--background` is what those three white surfaces
+      // resolve to — re-pinning it would turn them grey too.
+      className="flex min-h-screen flex-col bg-[oklch(96.7%_0.003_264.542)] font-body text-foreground"
     >
-      {/* The rail is a hard `w-[248px] flex-none` and there is no phone design
-          for it, so below `lg` it is removed from the layout entirely and its
-          links are reached through the top bar's menu instead (see
-          `driver-hub-mobile-menu.tsx`, which renders the same
-          `hubNavForAccount()` list). `hidden lg:contents` rather than classes
-          on the rail itself: `driver-hub-sidebar.tsx` is not this task's file,
-          and `display: contents` leaves the `<aside>` a direct flex child of
-          this row at desktop, so its `sticky top-0 h-screen` is untouched.
-          Rebuilding the rail as a drawer is a separate piece of work. */}
-      <div className="hidden lg:contents">
-        <DriverHubSidebar
-          items={items}
-          activeId={activeItem?.id}
-          persona={account.persona}
-        />
-      </div>
+      <DriverHubHeader
+        account={account}
+        header={header}
+        navItems={items}
+        activeId={activeItem?.id}
+      />
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <DriverHubHeader
-          account={account}
-          header={header}
-          navItems={items}
-          activeId={activeItem?.id}
-          title={titleOverride ?? activeItem?.title ?? FALLBACK_TITLE}
-          subtitle={subtitleOverride ?? activeItem?.subtitle ?? ""}
-          vehiclePill={vehiclePillOverride}
-        />
+      <div className="flex min-w-0 flex-1">
+        {/* The rail is a hard `w-[248px] flex-none` and there is no phone design
+            for it, so below `lg` it is removed from the layout entirely and its
+            links are reached through the top bar's menu instead (see
+            `driver-hub-mobile-menu.tsx`, which renders the same
+            `hubNavForAccount()` list). `hidden lg:contents` rather than classes
+            on the rail itself: `display: contents` leaves the `<aside>` a direct
+            flex child of this row at desktop, so the sticky offset it pins
+            itself with is measured against this row and not a wrapper.
+            Rebuilding the rail as a drawer is a separate piece of work. */}
+        <div className="hidden lg:contents">
+          <DriverHubSidebar
+            items={items}
+            activeId={activeItem?.id}
+            persona={account.persona}
+          />
+        </div>
 
         {/* Page body: 28px 32px 56px on desktop, one 1180px content column,
             sections stacked with a 20px gap — so a screen returns its sections
-            as siblings and never restates the page's own spacing. The insets
-            halve below `lg`: at 390px a 32px gutter each side leaves 326px of
-            content, and the screens' own tables and cards are the first thing
-            to overflow when it does. */}
+            as siblings and never restates the page's own spacing. The page head
+            is the column's first sibling and takes its 20px bottom margin from
+            that same gap. The insets halve below `lg`: at 390px a 32px gutter
+            each side leaves 326px of content, and the screens' own tables and
+            cards are the first thing to overflow when it does. */}
         <main className="min-w-0 flex-1 px-4 pt-5 pb-10 lg:px-8 lg:pt-7 lg:pb-14">
           <div className="flex min-w-0 max-w-[1180px] flex-col gap-5">
+            <DriverHubPageHead
+              title={titleOverride ?? activeItem?.title ?? FALLBACK_TITLE}
+              subtitle={subtitleOverride ?? activeItem?.subtitle ?? ""}
+              vehiclePill={vehiclePillOverride}
+            />
+
             <HubHeaderContext.Provider value={headerContext}>
               {children}
             </HubHeaderContext.Provider>

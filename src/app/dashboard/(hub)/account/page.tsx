@@ -117,7 +117,11 @@ export default async function DriverAccountPage({
   const activeSection = driverAccountSection(section);
 
   return (
-    <div className="flex min-w-0 flex-col gap-8 lg:flex-row lg:gap-10">
+    // 40px between the rail and the panels at every width — the design's row
+    // is one `flex-wrap` line at a flat `gap:40px`, not a gap that tightens on
+    // a phone. Its `max-width:1180px` is not repeated here: `DriverHubShell`
+    // already caps every hub screen's content column at exactly that.
+    <div className="flex min-w-0 flex-col gap-10 lg:flex-row">
       <DriverAccountSidebar
         sections={driverAccountSectionsFor(account.persona)}
         activeSection={section}
@@ -125,17 +129,31 @@ export default async function DriverAccountPage({
 
       <div className="flex min-w-0 flex-1 flex-col gap-5">
         <header className="min-w-0">
-          <p className="text-[11px] font-semibold tracking-[0.08em] text-muted-foreground uppercase">
+          <p className="text-[11px] font-semibold tracking-[0.1em] text-muted-foreground uppercase">
             Settings
+            {/* The separator is decoration, so it is hidden from the
+                accessibility tree and the crumb reads "Settings Profile". */}
             <span aria-hidden="true" className="px-1.5">
               /
             </span>
-            <span className="text-foreground">{activeSection.title}</span>
+            {/* Orange, not `text-foreground`: the trailing crumb is the
+                section you are on, and it wears the same accent the rail's
+                active row does. Literal `oklch` for the reason
+                `driver-account-sidebar.tsx` gives — `text-accent` resolves to
+                a neutral inside `[data-admin-surface]`. */}
+            <span className="text-[oklch(64%_0.19_48)]">
+              {activeSection.title}
+            </span>
           </p>
-          <h1 className="mt-2 text-xl leading-none font-semibold tracking-[-0.01em]">
+          {/* 28px, where the hub's generic screen title is 20px. That is the
+              design's own distinction, not a drift: this screen suppresses the
+              header's page title (`showPageHead: s.screen !== 'account'`), so
+              this `<h1>` is the only title on it and carries the weight the
+              header's would have. */}
+          <h1 className="mt-2 text-[28px] leading-[1.1] font-semibold tracking-[-0.025em]">
             {activeSection.title}
           </h1>
-          <p className="mt-2 max-w-xl text-[13px] leading-relaxed text-muted-foreground">
+          <p className="mt-2.5 max-w-[520px] text-[13px] leading-[1.6] text-muted-foreground">
             {activeSection.description}
           </p>
         </header>
