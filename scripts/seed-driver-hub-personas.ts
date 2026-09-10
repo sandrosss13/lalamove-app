@@ -152,6 +152,7 @@ const ENV_FILES = [".env.local", ".env"] as const;
 /** Milliseconds in a minute and in an hour, for the date arithmetic below. */
 const MS_PER_MINUTE = 60_000;
 const MS_PER_HOUR = 60 * MS_PER_MINUTE;
+const MS_PER_DAY = 24 * MS_PER_HOUR;
 
 /**
  * The flat base fare stamped on every seeded order, and the share of the
@@ -430,6 +431,22 @@ type ActiveOrderPlan = {
    * the pill's countdown, and the three cases are the three it can produce.
    */
   deadlineMinutesFromNow: number | null;
+  /**
+   * Whole days from today to `Order.scheduledAt`, or `null` to leave the
+   * column unset.
+   *
+   * This is what `startBlockedReason` in `job-sheet-actions.tsx` reads to
+   * decide whether `Start delivery` is pressable: it compares Tbilisi
+   * *calendar days*, so `0` is startable today and anything positive is
+   * blocked with "You can start it on the day."
+   *
+   * Every fixture left this null until the job sheet's runtime verification,
+   * which meant the blocked branch could only be reached by hand-editing a
+   * row — a state the screen ships with and that the fixture could not show.
+   * One order below is now dated forward so both branches exist in a seeded
+   * database.
+   */
+  scheduledDaysFromNow: number | null;
   price: number;
   serviceLevel: ServiceLevel;
   distanceKm: number;
@@ -463,6 +480,7 @@ const ACTIVE_ORDERS: readonly ActiveOrderPlan[] = [
     driver: null,
     bookedMinutesAgo: 25,
     deadlineMinutesFromNow: 130,
+    scheduledDaysFromNow: 0,
     price: 148,
     serviceLevel: "REGULAR",
     distanceKm: 31.4,
@@ -477,6 +495,7 @@ const ACTIVE_ORDERS: readonly ActiveOrderPlan[] = [
     driver: "roster-lead",
     bookedMinutesAgo: 70,
     deadlineMinutesFromNow: -35,
+    scheduledDaysFromNow: 0,
     price: 96.5,
     serviceLevel: "PRIORITY",
     distanceKm: 18.2,
@@ -491,12 +510,13 @@ const ACTIVE_ORDERS: readonly ActiveOrderPlan[] = [
     driver: "roster-lead",
     bookedMinutesAgo: 145,
     deadlineMinutesFromNow: null,
+    scheduledDaysFromNow: 3,
     price: 210,
     serviceLevel: "REGULAR",
     distanceKm: 54.8,
     cargoCategory: "FURNITURE_FURNISHINGS",
     proves:
-      "No deadline agreed, so the row shows no ETA — the common null, not a fault. Also the roster driver's second in-flight job.",
+      "No deadline agreed, so the row shows no ETA — the common null, not a fault. Also the roster driver's second in-flight job, and the one order dated forward, so its job sheet shows `Start delivery` blocked until the day.",
   },
   {
     key: "fleet-active-fourth",
@@ -505,6 +525,7 @@ const ACTIVE_ORDERS: readonly ActiveOrderPlan[] = [
     driver: "roster-second",
     bookedMinutesAgo: 220,
     deadlineMinutesFromNow: 45,
+    scheduledDaysFromNow: 0,
     price: 268,
     serviceLevel: "REGULAR",
     distanceKm: 74.1,
@@ -519,6 +540,7 @@ const ACTIVE_ORDERS: readonly ActiveOrderPlan[] = [
     driver: "roster-third",
     bookedMinutesAgo: 300,
     deadlineMinutesFromNow: 360,
+    scheduledDaysFromNow: 0,
     price: 122.75,
     serviceLevel: "POOLING",
     distanceKm: 41.6,
@@ -532,6 +554,7 @@ const ACTIVE_ORDERS: readonly ActiveOrderPlan[] = [
     driver: "independent",
     bookedMinutesAgo: 55,
     deadlineMinutesFromNow: 95,
+    scheduledDaysFromNow: 0,
     price: 87.4,
     serviceLevel: "REGULAR",
     distanceKm: 22.9,
@@ -1557,6 +1580,10 @@ async function main(): Promise<void> {
             : new Date(
                 now.getTime() + plan.deadlineMinutesFromNow * MS_PER_MINUTE,
               ),
+        scheduledAt:
+          plan.scheduledDaysFromNow === null
+            ? null
+            : new Date(now.getTime() + plan.scheduledDaysFromNow * MS_PER_DAY),
         pickupWindowStart: createdAt,
         pickupWindowEnd: new Date(createdAt.getTime() + 3 * MS_PER_HOUR),
         description: `${SEED_PREFIX} — ${plan.proves}`,
