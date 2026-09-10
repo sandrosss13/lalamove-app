@@ -68,13 +68,18 @@ const PORTAL_LABELS: Record<Role, string> = {
 };
 
 /**
- * Where to send a successfully signed-in user. The merchant host must NOT push
- * `"/"` — that path is client-only, so the middleware would immediately bounce
- * the driver back to the client host, where their merchant session does not
- * exist and they would land signed out.
+ * Where to send a successfully signed-in **client**. Providers — drivers and
+ * logistics companies — never consult this table: `/` is the client landing
+ * page and neither of them has anything there, so both go straight to
+ * `/dashboard` whatever the host (see the end of `handleSubmit`).
  *
- * Keyed by audience only: the destination depends on which host the user is on,
- * not on which of that host's portals they picked.
+ * The merchant host must NOT push `"/"` — that path is client-only, so the
+ * middleware would immediately bounce the user back to the client host, where
+ * their merchant session does not exist and they would land signed out.
+ *
+ * Keyed by audience only: for the one role that still reads it, the destination
+ * depends on which host the user is on, not on which of that host's portals
+ * they picked.
  */
 const POST_SIGN_IN_PATH: Record<Audience, string> = {
   CLIENT: "/",
@@ -503,13 +508,21 @@ export function SignInForm({
     }
 
     setLoading(false);
-    // A company lands on `/dashboard` whatever the host, for the same reason as
-    // sign-up: `/` is the client landing page and a company has nothing there.
-    // Where it goes from `/dashboard` — the onboarding wizard, the application
-    // status screen or the ops dashboard — is decided there, from the
-    // application row this form has not read, so nothing further is pushed here.
+    // Both provider roles land on `/dashboard` whatever the host: `/` is the
+    // client landing page and neither a driver nor a company has anything
+    // there. Routing them through `/` first is what used to make `/` flash a
+    // dead-end "you're signed in as a driver" screen before bouncing them on,
+    // so the bounce is removed at the source and only a CLIENT still consults
+    // the per-audience table.
+    //
+    // Where a company goes from `/dashboard` — the onboarding wizard, the
+    // application status screen or the ops dashboard — is decided there, from
+    // the application row this form has not read, so nothing further is pushed
+    // here.
     router.push(
-      resolvedRole === "COMPANY" ? "/dashboard" : POST_SIGN_IN_PATH[audience],
+      resolvedRole === "DRIVER" || resolvedRole === "COMPANY"
+        ? "/dashboard"
+        : POST_SIGN_IN_PATH[audience],
     );
     router.refresh();
   }
@@ -776,26 +789,7 @@ export function SignInForm({
             </div>
 
             <div className="flex flex-col gap-2">
-              <div className="flex items-baseline justify-between gap-3">
-                <Label htmlFor={`${fieldId}-password`}>Password</Label>
-                {/*
-                  Becomes "Reset it" in the error red while an alert is up, per
-                  the handoff's screen 5 — the same control, re-pointed at what
-                  the user most likely needs next.
-                */}
-                <button
-                  type="button"
-                  onClick={() => goTo({ role, accountType, step: FORGOT_STEP })}
-                  className={cn(
-                    "text-[13px] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--landing-accent)]",
-                    formError
-                      ? "font-medium text-[#c3341a]"
-                      : "text-[var(--landing-muted)] hover:text-[var(--landing-accent)]",
-                  )}
-                >
-                  {formError ? "Reset it" : "Forgot password?"}
-                </button>
-              </div>
+              <Label htmlFor={`${fieldId}-password`}>Password</Label>
 
               <Input
                 id={`${fieldId}-password`}
@@ -818,6 +812,29 @@ export function SignInForm({
               {passwordError ? (
                 <FieldError id={passwordErrorId}>{passwordError}</FieldError>
               ) : null}
+
+              {/*
+                Sits below the input, right-aligned to the field's trailing
+                edge: it is the action offered *after* a password has been
+                tried, not a label for the box, and the field's own error stays
+                next to the field it describes, above this.
+
+                Becomes "Reset it" in the error red while an alert is up, per
+                the handoff's screen 5 — the same control, re-pointed at what
+                the user most likely needs next.
+              */}
+              <button
+                type="button"
+                onClick={() => goTo({ role, accountType, step: FORGOT_STEP })}
+                className={cn(
+                  "self-end text-[13px] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--landing-accent)]",
+                  formError
+                    ? "font-medium text-[#c3341a]"
+                    : "text-[var(--landing-muted)] hover:text-[var(--landing-accent)]",
+                )}
+              >
+                {formError ? "Reset it" : "Forgot password?"}
+              </button>
             </div>
 
             <Button
