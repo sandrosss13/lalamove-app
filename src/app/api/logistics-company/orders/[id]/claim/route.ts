@@ -3,6 +3,11 @@ import { OrderStatus } from "@prisma/client";
 
 import { auth } from "@/lib/auth";
 import { CARRIER_ORDER_PARTY_SELECT } from "@/lib/order-response-select";
+import { specCapability } from "@/lib/orders/booking-fit";
+import {
+  meetsBookedClass,
+  offersBodyType,
+} from "@/lib/orders/class-substitution";
 import {
   capabilityOf,
   hasDeclaredEnvelope,
@@ -98,12 +103,29 @@ export async function POST(
   // rather than re-querying after a failed `updateMany` is correct, not stale:
   // `reference` never changes after the order is created. The cargo columns feed
   // the physical fit re-check below.
+  //
+  // **`bodyType` and the booked class's four capacity columns join the bare
+  // `vehicleTypeSpecId` this route used to filter the fleet by.** The class id
+  // was only ever used to look for an exact-class vehicle, and it is no longer
+  // used that way: it goes to `meetsBookedClass`, whose identity clause admits a
+  // vehicle registered under the booked class outright. What that function needs
+  // alongside it is the *floor* the class sets — its payload and three hold
+  // dimensions — plus the body the client asked for.
   const existing = await prisma.order.findUnique({
     where: { id },
     select: {
       id: true,
       reference: true,
+      bodyType: true,
       vehicleTypeSpecId: true,
+      vehicleTypeSpec: {
+        select: {
+          maxPayloadKg: true,
+          cargoLengthM: true,
+          cargoWidthM: true,
+          cargoHeightM: true,
+        },
+      },
       cargoWeightKg: true,
       cargoLengthM: true,
       cargoWidthM: true,
@@ -115,21 +137,40 @@ export async function POST(
     return NextResponse.json({ error: "Order not found." }, { status: 404 });
   }
 
-  // Claiming a job the fleet cannot physically take would strand it in CLAIMED
-  // with no dispatchable vehicle, so the type match is checked up front — the
-  // same rule the dispatch endpoint then re-checks against the chosen vehicle.
+  // Claiming a job the fleet cannot fulfil would strand it in CLAIMED with no
+  // dispatchable vehicle, so eligibility is established up front — the same rule
+  // the dispatch endpoint then re-checks against the single chosen vehicle.
   //
-  // `findMany`, not `findFirst`: the fit re-check below now resolves each
-  // vehicle's OWN driver-declared capacity (spec as the per-field fallback), and
-  // two trucks of the same class no longer necessarily resolve to the same
-  // figures — the assumption a single-row lookup rested on. Both capacity
-  // sources are selected for that reason.
-  const matchingVehicles = await prisma.vehicle.findMany({
-    where: {
-      companyId: company.id,
-      vehicleTypeSpecId: existing.vehicleTypeSpecId,
-    },
+  // **This query no longer narrows by `vehicleTypeSpecId`, and that is the whole
+  // change.** It used to ask "does this company own a vehicle of exactly the
+  // class the client booked", which read the booking form's step 5 — titled
+  // *"Recommended vehicle"* — as a guarantee that one specific model turns up.
+  // The class is a recommendation and a pricing basis: it sets the floor the
+  // client is owed, not a model number to match. A client booked an MPV (400 kg,
+  // 1.8 x 1.3 x 1.1 m, DRY_BOX) and a fleet holding a Minivan (500 kg,
+  // 2 x 1.4 x 1.3 m, DRY_BOX) — larger on every axis, same body — was refused
+  // over two differing cuids, on an order no MPV exists on the platform to serve.
+  //
+  // The replacement asks "does this company own ANY vehicle that satisfies the
+  // upgrade rule for this order", which is not expressible as a Prisma `where`:
+  // it compares four capacity figures that are resolved per vehicle
+  // (driver-declared value, class spec as the per-field fallback) against four
+  // more from the *order's* class, plus an array membership test. So the fleet's
+  // capability slices are fetched and the rule is evaluated in application code —
+  // exactly how `GET /api/loads` does it, against the same shared helpers, which
+  // is what stops the board offering a load this route then refuses.
+  //
+  // `findMany`, not `findFirst`, for the reason it already was: `capabilityOf`
+  // resolves each vehicle's OWN declared capacity, so two trucks of one class no
+  // longer necessarily resolve to the same figures. `bodyTypes` joins the four
+  // capacity columns in the spec select because the body a class offers is not a
+  // capacity figure and no amount of payload substitutes for it.
+  const fleet = await prisma.vehicle.findMany({
+    where: { companyId: company.id },
     select: {
+      // Read only by `meetsBookedClass`'s identity clause — never compared
+      // against the order's class by hand.
+      vehicleTypeSpecId: true,
       payloadKg: true,
       cargoLengthM: true,
       cargoWidthM: true,
@@ -140,31 +181,73 @@ export async function POST(
           cargoLengthM: true,
           cargoWidthM: true,
           cargoHeightM: true,
+          bodyTypes: true,
         },
       },
     },
   });
 
-  // `widestCapability` returns null for an empty fleet and only for an empty
-  // fleet, so the "no vehicle of the required type" 400 and the capability the
-  // fit check needs fall out of one expression rather than two checks that could
-  // drift apart. The refusal itself is unchanged, wording included.
-  const fleetCapability = widestCapability(
-    matchingVehicles.map((vehicle) =>
-      capabilityOf(vehicle, vehicle.vehicleTypeSpec),
-    ),
-  );
+  // The floor the client paid for. Built with `specCapability` rather than a
+  // literal over the four spec columns because `capabilityOf` is the one place
+  // `cargoHeightM: 0` is translated to `Infinity` for an open bed — a literal
+  // would give a flatbed booking a height floor of zero that every vehicle on the
+  // platform trivially clears, turning the strictest class in the catalogue into
+  // the most substitutable one.
+  const bookedClass = {
+    vehicleTypeSpecId: existing.vehicleTypeSpecId,
+    floor: specCapability(existing.vehicleTypeSpec),
+  };
+
+  // Which of this fleet's vehicles could actually fulfil the booking: the right
+  // body, and either registered under the booked class or at or above it on all
+  // four axes. Never smaller than what the client paid for — the substitution
+  // rule is upgrade-only, and its identity clause is not an exception to that
+  // (a vehicle of the booked class *is* what the client paid for, whatever the
+  // catalogue average says about the class it belongs to).
+  //
+  // The body filter runs first, on the raw row, because it reads the spec
+  // directly and a vehicle with the wrong load space is out however large it is;
+  // the survivors are then paired with their resolved capability and put to the
+  // substitution rule, and only the capabilities of those that clear it are
+  // carried forward to the fit check.
+  const eligibleCapabilities = fleet
+    .filter((vehicle) =>
+      offersBodyType(vehicle.vehicleTypeSpec.bodyTypes, existing.bodyType),
+    )
+    .map((vehicle) => ({
+      vehicleTypeSpecId: vehicle.vehicleTypeSpecId,
+      capability: capabilityOf(vehicle, vehicle.vehicleTypeSpec),
+    }))
+    .filter((candidate) => meetsBookedClass(candidate, bookedClass))
+    .map((candidate) => candidate.capability);
+
+  // `widestCapability` returns null for an empty list and only for an empty list,
+  // so the "no vehicle that can fulfil this" 400 and the capability the fit check
+  // needs fall out of one expression rather than two checks that could drift
+  // apart. Only the *eligible* subset is widened, which is what keeps the
+  // optimism below honest: every capability folded in belongs to a vehicle the
+  // dispatch route would accept for this order, so the composite describes one
+  // it would accept too. (Not the same as "every axis clears the floor" — a
+  // vehicle admitted by the identity clause may sit under its own class on an
+  // axis, and so may the composite. That is the booked class as its operator
+  // declared it, not a downgrade.)
+  const fleetCapability = widestCapability(eligibleCapabilities);
 
   if (fleetCapability === null) {
     return NextResponse.json(
       {
-        error: "Your fleet has no vehicle of the type this delivery requires.",
+        error:
+          "Your fleet has no vehicle big enough for the vehicle class this delivery was booked as, in the load space it needs.",
       },
       { status: 400 },
     );
   }
 
-  // A second, independent check alongside the type match above. The board
+  // A second, independent check alongside the substitution rule above, and it
+  // does not overlap it: that rule asks whether any vehicle here is at least the
+  // class the client bought, this one asks whether *this particular load* fits
+  // inside one. A fleet can clear the booked class comfortably and still be too
+  // small for a load that was itself oversized for that class. The board
   // applies its own physical fit filter at listing time, but that filter runs
   // against a snapshot: the load could be re-weighed, the fleet could change, or
   // a caller could hit this endpoint directly and bypass the board entirely. A
@@ -185,7 +268,9 @@ export async function POST(
   // than the board: a dispatcher clicks Claim on a load the board showed them
   // and gets a 400. One shared predicate is the only way that stays fixed.
   //
-  // `widestCapability` is the per-axis maximum across the type-matching trucks,
+  // `widestCapability` is the per-axis maximum across the trucks eligible to
+  // fulfil this booking (see the substitution filter above, which replaced the
+  // old exact-class one),
   // and is knowingly optimistic in the same way the board is — see its own doc
   // comment. That optimism is right for a claim: the company names a real
   // vehicle at dispatch and sees any mismatch there, at a desk, before anything
@@ -232,8 +317,10 @@ export async function POST(
   ) {
     return NextResponse.json(
       {
+        // "Eligible", not "of this type": the vehicles measured here are the ones
+        // that satisfy the substitution rule, which is no longer one class.
         error:
-          "Your fleet's vehicles of this type can't carry this load's cargo — it exceeds the weight or size limit.",
+          "None of your fleet's eligible vehicles can carry this load's cargo — it exceeds the weight or size limit.",
       },
       { status: 400 },
     );

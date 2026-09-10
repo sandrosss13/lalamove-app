@@ -12,6 +12,7 @@ import {
   cargoCategoryLabel,
   formatAbsoluteDateTime,
   formatAbsoluteWindow,
+  formatDims,
   formatDistanceKm,
   formatGelExact,
   formatHelperRequest,
@@ -27,6 +28,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 
 /**
  * The two dialogs that decide whether a driver actually gets a load: the
@@ -65,6 +67,49 @@ import {
  * lost-the-race one, or pre-empt a claim already in flight: the only thing that
  * moves a driver from here to the second dialog is their own submit coming back
  * `409`.
+ *
+ * ## Which vehicle claims the load, and who picks it
+ *
+ * A driver's claim has to name one vehicle. The board's context works out which
+ * of the driver's vehicles the booking permits — registered under the booked
+ * class or at or above it on payload, length, width and height, and offering the
+ * body the client asked for — and, for each of those, whether this load's cargo
+ * actually goes in it. It hands both answers down as `claimCandidates`, whose
+ * `fits` flag carries the second. See `claimCandidatesFor` in
+ * `loads-context.tsx` for the rule and for why the client mirrors the server's
+ * version of it instead of sending any vehicle and letting the claim route sort
+ * it out.
+ *
+ * What is decided *here* is who chooses between them:
+ *
+ * - **One candidate** — no picker. There is nothing to ask about, and a radio
+ *   group with a single option is a question that reads as a decision.
+ * - **Two or more** — the picker below, defaulting to the first candidate that
+ *   fits the load, which is the smallest qualifying vehicle by payload. Every
+ *   candidate satisfies what the client booked, so the platform has no basis for
+ *   preferring one of the ones that can take the job; the driver knows which
+ *   truck is loaded, lent out, or in the shop today and the platform does not, so
+ *   the driver picks. The default is the choice that leaves their bigger vehicles
+ *   free for work that needs them.
+ *
+ *   A candidate that does *not* fit stays in the list, disabled and labelled
+ *   "Too small for this load". It is a vehicle the driver may bring to this class
+ *   of booking but not to this particular load, which is worth saying: the board
+ *   lists a load as soon as one of an account's vehicles fits it, so a mixed
+ *   fleet reaches this dialog routinely. It can never be the default and cannot
+ *   be selected, because `POST /api/orders/[id]/accept` refuses it — a picker
+ *   that offered it would produce a refusal *after* the driver committed, which
+ *   is the failure this dialog exists to prevent.
+ * - **None** — no picker and no request. Confirm reports the context's
+ *   `NO_ELIGIBLE_VEHICLE_MESSAGE` when nothing qualified at all, or its
+ *   `NO_FITTING_VEHICLE_MESSAGE` when something qualified and nothing fit. Both
+ *   are worded from the claim route's own refusals, so the driver cannot be told
+ *   two different things about one load.
+ *
+ * The choice is local state here rather than context state, and the `key` on
+ * this dialog is what resets it when the driver moves to another row — the same
+ * mechanism the hazmat acknowledgement relies on, for the same reason: a vehicle
+ * picked for one load means nothing on the next.
  *
  * ## The money rule, restated where it is easiest to break
  *
@@ -158,9 +203,11 @@ const ONLINE_NETWORK_ERROR =
  * point exists to prevent.
  *
  * The `key` on the confirm dialog is what resets its local state — the hazmat
- * acknowledgement, any go-online error — when the driver moves from one row to
- * another without closing the dialog in between. Without it, a box ticked for
- * one load would still be ticked for the next.
+ * acknowledgement, the chosen claim vehicle, any go-online error — when the
+ * driver moves from one row to another without closing the dialog in between.
+ * Without it, a box ticked for one load would still be ticked for the next, and
+ * a vehicle picked for one booking would be pre-selected for a booking that may
+ * not even permit it.
  *
  * It is keyed on the load's **id**, and `dialogLoad` is a frozen snapshot, so a
  * background poll cannot change it and cannot therefore remount this dialog
@@ -225,6 +272,7 @@ export type LoadsConfirmDialogProps = {
 export function LoadsConfirmDialog({ load }: LoadsConfirmDialogProps) {
   const {
     accountKind,
+    claimCandidates,
     closeConfirm,
     confirmClaim,
     isClaiming,
@@ -251,6 +299,70 @@ export function LoadsConfirmDialog({ load }: LoadsConfirmDialogProps) {
   const [hazmatAcknowledged, setHazmatAcknowledged] = React.useState(false);
   const [isGoingOnline, setIsGoingOnline] = React.useState(false);
   const [goOnlineError, setGoOnlineError] = React.useState<string | null>(null);
+
+  /**
+   * Which vehicle the driver picked, or `null` for "hasn't picked one".
+   *
+   * The null is not a missing value to be filled in on mount: it is the default,
+   * and `chosenCandidate` below resolves it to the first candidate on every
+   * render. Storing the default id in state instead would have to be kept in
+   * step with a candidate list that changes whenever the dialog's load does —
+   * which is exactly the effect-driven state this component has none of. Reset
+   * per load by the `key` on this component; see the module comment.
+   */
+  const [chosenVehicleId, setChosenVehicleId] = React.useState<string | null>(
+    null,
+  );
+
+  /**
+   * The candidate the Confirm button will actually send.
+   *
+   * `undefined` when nothing qualifies *or* when nothing that qualifies can
+   * carry the cargo — both are branches that report an error instead of
+   * claiming, and the context words them differently because they are different
+   * facts about the fleet.
+   *
+   * **Only a candidate that fits is ever chosen.** A vehicle can clear the
+   * booked class and the body and still be too small for this particular load,
+   * and `POST /api/orders/[id]/accept` refuses exactly that with "This vehicle
+   * can't carry this load's cargo"; picking one here would send a claim the
+   * server is certain to bounce, after the driver committed. Those options are
+   * rendered disabled below rather than hidden, so the driver can see which of
+   * their trucks the load actually needs.
+   *
+   * The `??` is the default rule in one line: an untouched picker, an id that has
+   * stopped being a candidate, and a deliberately disabled one all fall back to
+   * the first *fitting* entry — the smallest qualifying vehicle that takes the
+   * load, in the order the context sorts them.
+   */
+  const chosenCandidate =
+    claimCandidates.find(
+      (candidate) => candidate.vehicle.id === chosenVehicleId && candidate.fits,
+    ) ?? claimCandidates.find((candidate) => candidate.fits);
+
+  /**
+   * One qualifying vehicle is not a choice, so it is not offered as one. See the
+   * module comment for the product decision behind the three cases.
+   *
+   * Counted over every candidate, including those that do not fit: a driver with
+   * two eligible trucks of which one is too small is being told something by the
+   * second row, and hiding it would leave the dialog silently picking the larger
+   * truck with no indication that a choice existed or why it went that way.
+   */
+  const showVehiclePicker = claimCandidates.length > 1;
+
+  /**
+   * Whether every vehicle on offer can actually carry this load, which decides
+   * only how the picker's note is worded.
+   *
+   * The common case by far — the board lists a load for an individual driver
+   * only when one of their vehicles fits it, and a fleet is usually uniform
+   * enough that the rest do too — so the plain sentence stays the default and the
+   * qualified one appears exactly when it is true.
+   */
+  const everyCandidateFits = claimCandidates.every(
+    (candidate) => candidate.fits,
+  );
 
   /**
    * No target, no dialog.
@@ -326,7 +438,11 @@ export function LoadsConfirmDialog({ load }: LoadsConfirmDialogProps) {
       // The offline refusal is spent; clearing it here means the footer is back
       // to its normal state whatever the retry answers.
       dismissClaimError();
-      await confirmClaim();
+      // The same vehicle the plain Confirm button would send. Read at call time
+      // rather than captured, so a driver who changed the picker while the
+      // offline prompt was up retries with the vehicle they can actually see
+      // selected.
+      await confirmClaim(chosenCandidate?.vehicle.id ?? null);
       router.refresh();
     } catch {
       setGoOnlineError(ONLINE_NETWORK_ERROR);
@@ -454,6 +570,106 @@ export function LoadsConfirmDialog({ load }: LoadsConfirmDialogProps) {
           </div>
         </div>
 
+        {showVehiclePicker ? (
+          // A real `fieldset`/`legend` around real `input type="radio"`s, the
+          // pattern `vehicles-add-form.tsx` uses for its own class picker: the
+          // group is named and its selection announced by the platform, and the
+          // arrow keys move between options, none of which a div with click
+          // handlers gets. Each input is `sr-only` rather than hidden, so it
+          // keeps its place in the accessibility tree and the tab order while
+          // the ring beside it carries the visual state.
+          <fieldset
+            className="mx-5 mt-4 flex min-w-0 flex-col gap-2"
+            aria-describedby="loads-confirm-vehicle-note"
+          >
+            <legend className="mb-1.5 text-[13px] font-medium text-foreground">
+              Vehicle
+            </legend>
+            <p
+              id="loads-confirm-vehicle-note"
+              className="mb-0.5 text-[13px] text-muted-foreground"
+            >
+              {everyCandidateFits
+                ? "More than one of your vehicles fits this booking. Pick the one you’ll drive."
+                : "More than one of your vehicles matches this booking, but not all of them can carry this load. Pick the one you’ll drive."}
+            </p>
+
+            {claimCandidates.map((candidate) => {
+              const selected =
+                candidate.vehicle.id === chosenCandidate?.vehicle.id;
+              // Eligible for the booking but too small for this load. Shown and
+              // explained rather than dropped from the list — a driver reading
+              // "this one is too small" learns which truck the job needs; a
+              // driver shown a shorter list learns nothing. `disabled` on the
+              // real radio is what makes it unselectable to the keyboard and to
+              // assistive technology, not just to the pointer.
+              const tooSmall = !candidate.fits;
+
+              return (
+                <label
+                  key={candidate.vehicle.id}
+                  className={cn(
+                    "flex items-center justify-between gap-3 rounded-[10px] border p-3 transition-colors",
+                    tooSmall
+                      ? "cursor-not-allowed border-border bg-background opacity-60"
+                      : "cursor-pointer has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50",
+                    !tooSmall &&
+                      (selected
+                        ? "border-foreground bg-muted"
+                        : "border-border bg-background hover:bg-muted/50"),
+                  )}
+                >
+                  <span className="min-w-0">
+                    <span className="block text-[13px] font-medium">
+                      <span className="font-price">
+                        {candidate.vehicle.plateNumber}
+                      </span>{" "}
+                      · {candidate.vehicle.vehicleTypeSpec.label}
+                    </span>
+                    {/* The resolved capability, not the class catalogue's
+                        figures: it is what qualified this vehicle, it includes
+                        whatever the driver declared for this specific truck,
+                        and it is the only form in which an open bed reads
+                        "open" rather than as a height of zero. */}
+                    <span className="mt-0.5 block text-xs text-muted-foreground tabular-nums">
+                      {formatWeightKg(candidate.capability.payloadKg)} ·{" "}
+                      {formatDims(candidate.capability)}
+                    </span>
+                    {tooSmall ? (
+                      // The claim route's own refusal, shortened to a tag. It
+                      // names the vehicle's shortfall, never the load's size:
+                      // the load is what the client booked and is not wrong.
+                      <span className="mt-0.5 block text-xs font-medium text-muted-foreground">
+                        Too small for this load
+                      </span>
+                    ) : null}
+                  </span>
+                  <input
+                    type="radio"
+                    name="loads-confirm-vehicle"
+                    value={candidate.vehicle.id}
+                    checked={selected}
+                    onChange={() => {
+                      setChosenVehicleId(candidate.vehicle.id);
+                    }}
+                    disabled={isBusy || tooSmall}
+                    className="sr-only"
+                  />
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      "size-3.5 shrink-0 rounded-full",
+                      selected
+                        ? "border-[5px] border-foreground"
+                        : "border border-border",
+                    )}
+                  />
+                </label>
+              );
+            })}
+          </fieldset>
+        ) : null}
+
         {isCompanyAccount ? (
           // Informational, not a warning — hence `bg-muted` rather than a tone
           // colour. A company claims with its account as a whole; which truck
@@ -568,7 +784,15 @@ export function LoadsConfirmDialog({ load }: LoadsConfirmDialogProps) {
                 onClick={() => {
                   // No pre-check of `load.status`. The server decides the race;
                   // see the module comment.
-                  void confirmClaim();
+                  //
+                  // A `null` here means no vehicle of this driver's qualifies,
+                  // and `confirmClaim` answers it with the no-eligible-vehicle
+                  // message rather than a request. The button stays enabled for
+                  // that case on purpose: a driver who pressed Accept is owed a
+                  // reason, and a Confirm button that is simply dead offers
+                  // none. It is also a state the board should never have shown
+                  // them, so it is worth saying out loud rather than hiding.
+                  void confirmClaim(chosenCandidate?.vehicle.id ?? null);
                 }}
               >
                 {isClaiming ? "Claiming…" : "Confirm and claim"}

@@ -9,6 +9,7 @@ import {
   LoadsProvider,
   useLoadsBoard,
   type LoadsClaimVehicle,
+  type LoadsVehicleClass,
 } from "@/components/driver-hub/screens/loads-context";
 import { LoadsDrawer } from "@/components/driver-hub/screens/loads-drawer";
 import { LoadsFilters } from "@/components/driver-hub/screens/loads-filters";
@@ -97,8 +98,18 @@ const FILTERS_INERT_TITLE =
 export type LoadsScreenProps = {
   /** Picks which claim endpoint `confirmClaim()` calls. */
   accountKind: HubAccountKind;
-  /** The driver's registered vehicles, id and class only. Empty for a company. */
+  /**
+   * The driver's registered vehicles, with the capacity and body-type facts a
+   * claim is decided on. Empty for a company.
+   */
   claimVehicles: LoadsClaimVehicle[];
+  /**
+   * The vehicle-class catalogue, which the board looks a load's booked class up
+   * in to build the capacity floor a claim vehicle must clear. Empty for a
+   * company. Both of these are passed straight through to `LoadsProvider` —
+   * this file computes nothing, per its own doc comment.
+   */
+  vehicleClasses: LoadsVehicleClass[];
   /** `null` for an account with no vehicle registered yet — the pill is absent. */
   vehiclePill: HubVehiclePill | null;
 };
@@ -106,10 +117,15 @@ export type LoadsScreenProps = {
 export function LoadsScreen({
   accountKind,
   claimVehicles,
+  vehicleClasses,
   vehiclePill,
 }: LoadsScreenProps) {
   return (
-    <LoadsProvider accountKind={accountKind} claimVehicles={claimVehicles}>
+    <LoadsProvider
+      accountKind={accountKind}
+      claimVehicles={claimVehicles}
+      vehicleClasses={vehicleClasses}
+    >
       <LoadsScreenBody vehiclePill={vehiclePill} />
     </LoadsProvider>
   );

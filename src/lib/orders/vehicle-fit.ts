@@ -109,6 +109,30 @@ export type VehicleCapability = {
  * same thing the catalogue means by it, and having the two sources disagree
  * about the same number would be more confusing than either rule alone.
  *
+ * **On the height axis the spec's sentinel overrides the vehicle's own figure,
+ * and that is the one place the per-field preference is inverted.** Openness is
+ * a property of the *class* — `FLATBED_TRUCK` has no cargo box to measure — and
+ * a carrier cannot express it on their own row even when they want to:
+ * `src/lib/fleet-onboarding/vehicle-validation.ts` requires every dimension to
+ * be greater than zero, so an onboarded flatbed always carries some finite
+ * height its operator typed to get past the form. Preferring that figure made
+ * "no height limit" unreachable for any registered vehicle, which is not a
+ * conservative reading of the data but a wrong one, and it had three
+ * consequences: an onboarded flatbed could never clear its own class's infinite
+ * floor (`meetsBookedClass`), so it could neither claim a flatbed booking nor
+ * make the flatbed class serviceable; whether flatbed freight worked at all
+ * depended on which registration route the carrier had used, since
+ * `POST /api/driver-profile/vehicles` leaves the capacity columns null and falls
+ * back to the spec; and because `CARGO_MEASUREMENT_BOUNDS`'s 4 m height ceiling
+ * is justified *by* the flatbed exception (`src/lib/cargo.ts`), every load
+ * taller than the tallest enclosed hold was unbookable on every class. The
+ * alternative — giving `FLATBED_TRUCK` a real maximum height in the catalogue —
+ * was rejected because there is no such measurement to record: an open bed's
+ * limit is the load's own stability and the road's clearance, neither of which
+ * the platform knows, and inventing a figure would refuse the crane-loaded
+ * freight the class exists for. Only height behaves this way, because only
+ * height has a sentinel.
+ *
  * **Only height carries a sentinel.** `cargoLengthM`, `cargoWidthM` and
  * `maxPayloadKg` have no documented `0` meaning in the schema or the seed, and
  * every seeded row gives them a real positive figure — so they are compared
@@ -142,9 +166,13 @@ export function capabilityOf(
     cargoHeightM: number;
   },
 ): VehicleCapability {
-  // Resolved first, sentinel-translated second, so an open bed is recognised
+  // The spec's sentinel wins outright; otherwise the usual per-field
+  // preference, sentinel-translated afterwards so an open bed is recognised
   // whether the `0` came from the catalogue or from the driver's own override.
-  const resolvedHeightM = vehicle.cargoHeightM ?? spec.cargoHeightM;
+  // A class with no cargo box has none whatever its operator typed into the
+  // onboarding form's height field — see the doc comment above.
+  const resolvedHeightM =
+    spec.cargoHeightM === 0 ? 0 : (vehicle.cargoHeightM ?? spec.cargoHeightM);
 
   return {
     payloadKg: vehicle.payloadKg ?? spec.maxPayloadKg,
@@ -302,8 +330,9 @@ export type LoadFitVerdict = "FITS" | "DOES_NOT_FIT" | "UNDECLARED";
  * hold onto: this returns `UNDECLARED`, never `DOES_NOT_FIT`, however small the
  * capability passed in — so a caller reading `UNDECLARED` as "offer it" must
  * have already established that there is a vehicle to offer it *with*.
- * `GET /api/loads` does: its per-class capability lookup answers `WRONG_CLASS`
- * and returns before this function is ever reached.
+ * `GET /api/loads` does: it answers `NO_ELIGIBLE_VEHICLE` and returns before
+ * this function is ever reached whenever no vehicle of this account is
+ * permitted to take the load — see `src/lib/orders/class-substitution.ts`.
  */
 export function classifyFit(
   load: LoadDimensions,

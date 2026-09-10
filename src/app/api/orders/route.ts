@@ -16,6 +16,15 @@ import {
   type CargoMeasurementBounds,
 } from "@/lib/cargo";
 import { GEORGIAN_CITY_OPTIONS } from "@/lib/georgian-cities";
+import {
+  cargoFitMessage,
+  oversizeAxes,
+  specCapability,
+} from "@/lib/orders/booking-fit";
+import {
+  serviceableSpecIds,
+  unserviceableClassMessage,
+} from "@/lib/orders/class-serviceability";
 import { driverPayoutFor, PLATFORM_COMMISSION_RATE } from "@/lib/orders/payout";
 import {
   formatOrderReference,
@@ -47,9 +56,12 @@ const CARGO_HANDLING_TAGS = Object.values(CargoHandlingTag);
  * had no way to anticipate. One table, two readers, no drift.
  *
  * That module carries the reasoning behind each figure. What matters at this
- * call site is only that these are sanity bounds — they catch a negative number
- * or a stray extra zero — and that the vehicle-fit comparison, not this check,
- * is what decides whether a load actually suits a vehicle.
+ * call site is only that three of them — weight, length and width — are the
+ * largest figures in the seeded vehicle catalogue, so a body over one of them
+ * describes a load nothing on the platform could carry, while height alone is
+ * still a sanity bound catching a negative number or a stray extra zero; and
+ * that the vehicle-fit comparison, not this check, is what decides whether a
+ * load actually suits a vehicle.
  */
 
 /**
@@ -734,18 +746,115 @@ export async function POST(request: Request): Promise<NextResponse> {
   // booked anyway — the same reasoning the quote itself applies to its vehicle
   // and cargo checks.
 
-  // The booking form only offers vehicles that carry the chosen body, but the
-  // request can be edited after that filter ran. An unknown `vehicleTypeCode`
-  // is deliberately left to the quote, which already has the wording for it.
-  if (bodyType !== null) {
-    const spec = await prisma.vehicleTypeSpec.findUnique({
-      where: { code: vehicleTypeCode },
-      select: { bodyTypes: true },
-    });
+  // Looked up unconditionally, and for its capacity columns as well as its body
+  // list: the fit guard below needs this row for every booking, not only for one
+  // that names a body type. An unknown `vehicleTypeCode` is still deliberately
+  // left to the quote, which already has the wording for it — hence `spec &&`
+  // on both checks rather than an early 400 here.
+  const spec = await prisma.vehicleTypeSpec.findUnique({
+    where: { code: vehicleTypeCode },
+    select: {
+      // Read only to look this class up in the serviceable set, which is keyed
+      // by the id `Order.vehicleTypeSpecId` carries. Nothing in this handler
+      // returns it — the order's own `vehicleTypeSpecId` comes from the quote.
+      id: true,
+      label: true,
+      bodyTypes: true,
+      maxPayloadKg: true,
+      cargoLengthM: true,
+      cargoWidthM: true,
+      cargoHeightM: true,
+    },
+  });
 
-    if (spec && !spec.bodyTypes.includes(bodyType)) {
+  // The booking form only offers vehicles that carry the chosen body, but the
+  // request can be edited after that filter ran.
+  if (bodyType !== null && spec && !spec.bodyTypes.includes(bodyType)) {
+    return NextResponse.json(
+      { error: "That vehicle does not offer the load space you selected." },
+      { status: 400 },
+    );
+  }
+
+  // Does the declared load actually fit the class being booked? Nothing used to
+  // ask: an order was created declaring 15 m of length against a Box Truck
+  // (4.5 m), priced and paid at ₾101.67, and then hidden from every carrier by
+  // `GET /api/loads`, which filters the board by fit. The client was billed for
+  // a job no driver could ever see, let alone claim.
+  //
+  // Measured against the `VehicleTypeSpec` rather than any `Vehicle`, because at
+  // booking time no vehicle has been assigned and none can be — see
+  // `src/lib/orders/booking-fit.ts` for why the class figure is the right
+  // authority here, and why `specCapability` must not be inlined (it carries the
+  // open-bed height sentinel that keeps flatbed bookings working).
+  //
+  // Placed here, before `estimateDelivery`, deliberately: this is a comparison
+  // of numbers already in hand against a row already fetched, so an unbookable
+  // load is refused without spending geocoding lookups on it — the convention
+  // stated at the top of this block.
+  //
+  // `oversizeAxes(...).length > 0` rather than `!loadFits(...)`: `loadFits`
+  // folds an undeclared axis into `false`, which is right for a driver about to
+  // commit a truck and wrong here, where it would refuse a client's booking with
+  // a claim that cargo nobody measured is over capacity.
+  if (spec) {
+    const capability = specCapability(spec);
+    const axes = oversizeAxes(
+      {
+        weightKg: cargoWeightKg,
+        lengthM: cargoLengthM,
+        widthM: cargoWidthM,
+        heightM: cargoHeightM,
+      },
+      capability,
+    );
+
+    if (axes.length > 0) {
       return NextResponse.json(
-        { error: "That vehicle does not offer the load space you selected." },
+        { error: cargoFitMessage(spec.label, axes, capability) },
+        { status: 400 },
+      );
+    }
+  }
+
+  // Is there anybody who could take this at all? The third instance of one
+  // failure: an order created, priced, shown to its client as live, and then
+  // invisible to every carrier on the platform. The first two were about the
+  // load (cargo too big for its class; a class matched by identity rather than
+  // by capability); this one is about supply. Four of the eleven seeded classes
+  // — Flatbed, Curtainsider, Large Freight and Trailer — have no activated
+  // carrier able to serve them even under upgrade substitution, so every
+  // booking against one of them strands however well-declared its cargo is.
+  //
+  // Answered by the same two predicates `GET /api/loads` filters the board with
+  // and the claim routes enforce at commit, applied to the whole activated
+  // fleet — so "serviceable" means precisely "this load could appear on
+  // somebody's board". See `src/lib/orders/class-serviceability.ts` for the
+  // fleet scan, the empty-platform case and the known limitations (no city
+  // scoping).
+  //
+  // Scoped to the booking's own `bodyType`, which is what makes this match the
+  // board rather than approximate it: the board offers a load only to vehicles
+  // whose class carries the load space the client asked for, so a class nobody
+  // operates *with that body* strands exactly as surely as one nobody operates
+  // at all. `GET /api/vehicle-types` flags the weaker, body-agnostic version of
+  // this for the picker, which is why this check can refuse a class the form
+  // showed as available — the server being the stricter of the two is the safe
+  // direction, the same asymmetry the cargo check already runs.
+  //
+  // Placed here, before `estimateDelivery`, deliberately: two indexed local
+  // reads that refuse an unbookable order without spending geocoding lookups on
+  // it — the convention stated at the top of this block, and the same slot the
+  // cargo-fit guard above occupies. It runs after that guard because a cargo
+  // problem is the client's own edit to make, while this one takes the class off
+  // the table entirely; naming the fixable problem first is the more useful
+  // order for whoever reads the message.
+  if (spec) {
+    const serviceable = await serviceableSpecIds(bodyType);
+
+    if (!serviceable.has(spec.id)) {
+      return NextResponse.json(
+        { error: unserviceableClassMessage(spec.label) },
         { status: 400 },
       );
     }
