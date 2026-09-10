@@ -701,6 +701,16 @@ export function JobSheetConfirmDialog({
               value={waitingMinutes}
               onChange={(event) => setWaitingMinutes(event.target.value)}
               disabled={isBusy}
+              // `aria-required` rather than the HTML `required` attribute.
+              // The field is genuinely required — `POST .../complete` returns
+              // 400 without a whole number — but it is validated here, in
+              // `handleConfirm`, so that a cleared field produces this
+              // dialog's own message in the live region rather than a native
+              // browser bubble that would sit outside the panel and say
+              // something we did not write. `required` would add that bubble
+              // on top of the message we already show; this announces the
+              // obligation to assistive tech without changing the behaviour.
+              aria-required="true"
               aria-describedby="job-sheet-waiting-help job-sheet-waiting-pay"
               className="h-11 w-22 font-price text-[15px] tabular-nums"
             />
