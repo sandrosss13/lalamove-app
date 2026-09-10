@@ -31,10 +31,11 @@ import { cn } from "@/lib/utils";
  * dropped can be typed into.
  *
  * Two deviations from the prototype's field list, both forced by the endpoint:
- * its single "Make and model" box is split into the two columns the API
- * actually stores (guessing where a make ends and a model begins is exactly
- * the silent data loss the honesty rule exists to prevent), and a **Photos**
- * field is added because the endpoint rejects a vehicle with none.
+ * its single "Make and model" box is two inputs under one label here, because
+ * the API stores two non-null columns and guessing where a make ends and a
+ * model begins is exactly the silent data loss the honesty rule exists to
+ * prevent; and a **Photos** field is added because the endpoint rejects a
+ * vehicle with none.
  *
  * The class rows are the seeded `VehicleTypeSpec` catalogue read from the
  * public `GET /api/vehicle-types`, not the prototype's three hand-written
@@ -75,8 +76,7 @@ const MIN_VEHICLE_YEAR = 1980;
 const MIN_NAME_LENGTH = 3;
 
 const TYPES_ENDPOINT = "/api/vehicle-types";
-const TYPES_ERROR =
-  "Could not load the vehicle types. Refresh and try again.";
+const TYPES_ERROR = "Could not load the vehicle types. Refresh and try again.";
 const GENERIC_ERROR = "Could not add this vehicle.";
 const NETWORK_ERROR = "Network error. Please check your connection.";
 
@@ -337,25 +337,50 @@ export function VehiclesAddForm({
             />
           </Field>
 
-          <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3">
-            <Field label="Make" htmlFor="vehicle-make">
+          {/* One "Make and model" label over two inputs — the design's single
+              box, without its data model. The artboard can afford one field
+              because its seed fleet only ever had one string
+              (`model: 'Mercedes-Benz Vito 116 CDI'`, no `make` key anywhere);
+              `Vehicle` stores two non-null columns that ~20 call sites read
+              separately, including the client's order tracking page and the
+              admin application drawers. Splitting one typed string on a space
+              would guess wrong on "Land Rover Defender" and there is no
+              recovering the boundary afterwards, so the pair stays two inputs
+              and only *reads* as one field.
+
+              The group label is a `span` + `role="group"` rather than a
+              `label`, because a `label` may name exactly one control. Each
+              input therefore carries its own `aria-label`: without it the two
+              boxes would be announced only as "Make and model", and nothing
+              would tell a screen-reader user which is which. Sighted users get
+              that from the placeholders and, if they still get it wrong, from
+              the hint under the buttons ("Add the make, e.g. Mercedes-Benz."). */}
+          <div className="flex min-w-0 flex-col gap-1.5">
+            <span id="vehicle-make-model" className={FIELD_LABEL_CLASSES}>
+              Make and model
+            </span>
+            <div
+              role="group"
+              aria-labelledby="vehicle-make-model"
+              className="grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3"
+            >
               <Input
                 id="vehicle-make"
+                aria-label="Make"
                 value={make}
                 onChange={(event) => setMake(event.target.value)}
                 placeholder="Ford"
                 className="h-auto rounded-md px-[11px] py-[9px] text-sm md:text-sm"
               />
-            </Field>
-            <Field label="Model" htmlFor="vehicle-model">
               <Input
                 id="vehicle-model"
+                aria-label="Model"
                 value={model}
                 onChange={(event) => setModel(event.target.value)}
                 placeholder="Transit Custom"
                 className="h-auto rounded-md px-[11px] py-[9px] text-sm md:text-sm"
               />
-            </Field>
+            </div>
           </div>
 
           <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3">
@@ -504,8 +529,8 @@ export function VehiclesAddForm({
             </div>
             <p id="vehicle-cities-note" className={NOT_STORED_NOTE_CLASSES}>
               Disabled: a vehicle has no operating-cities column — only the
-              company&apos;s fleet-wide list exists — so a per-vehicle
-              selection has nowhere to go yet.
+              company&apos;s fleet-wide list exists — so a per-vehicle selection
+              has nowhere to go yet.
             </p>
           </fieldset>
 
