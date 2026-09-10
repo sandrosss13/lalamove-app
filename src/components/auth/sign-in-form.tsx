@@ -1,55 +1,70 @@
 "use client";
 
+import * as React from "react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { AccountTypeStep } from "@/components/auth/account-type-step";
+import {
+  AuthHeading,
+  AuthSubheading,
+  BackLink,
+  ContextChip,
+  ERROR_INPUT_CLASS,
+  FieldError,
+  FormAlert,
+  InlineLinkButton,
+  PhoneField,
+  SocialBlock,
+} from "@/components/auth/auth-primitives";
+import { AuthShell } from "@/components/auth/auth-shell";
+import { RoleStep } from "@/components/auth/role-step";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ACCOUNT_TYPE_LABELS, type AccountType } from "@/lib/account-types";
+import {
+  accountTypeParam,
+  accountTypeRowsForRole,
+  isValidEmail,
+  MODE_PATHS,
+  parseAccountType,
+  parseRole,
+  roleParam,
+  type FlowMode,
+  type FlowRole,
+} from "@/lib/auth-flow";
 import { signIn, signOut, authClient } from "@/lib/auth-client";
 import { merchantOrigin, type Audience } from "@/lib/host";
+import { cn } from "@/lib/utils";
 
 /**
  * Every portal this form can resolve to. COMPANY is not its own step-1 card —
  * it is what the Driver card plus the Business account type resolves to,
  * mirroring the sign-up wizard step for step so that what a user picked when
  * registering is exactly what they pick when returning.
+ *
+ * `FlowRole` (from `@/lib/auth-flow`) is the narrower set that step 1 offers as
+ * a card, and is what the URL's `role` param can hold.
  */
-type Role = "CLIENT" | "DRIVER" | "COMPANY";
-
-/** The subset of `Role` that step 1 offers as a card. */
-type CardRole = "CLIENT" | "DRIVER";
+type Role = FlowRole | "COMPANY";
 
 /** Every value the schema's `UserRole` can hold. ADMIN has no portal here. */
 type SessionRole = Role | "ADMIN";
 
-/** Human-readable label for a resolvable portal, used in headings and messaging. */
-const ROLE_LABELS: Record<Role, string> = {
+/**
+ * Human-readable label for a resolvable portal, used in the mismatch messaging.
+ *
+ * Deliberately *not* `ROLE_LABELS` from `@/lib/auth-flow`: that map is
+ * title-case ("Client", "Driver") for the context chip and covers only the two
+ * card roles, whereas these are lowercase because they appear mid-sentence and
+ * have to include COMPANY, which is a resolved portal rather than a card.
+ */
+const PORTAL_LABELS: Record<Role, string> = {
   CLIENT: "client",
   DRIVER: "driver",
   COMPANY: "logistics company",
-};
-
-/**
- * Subtext under each step-1 card. Keyed by card and shared by every audience:
- * only the card *headline* differs between hosts (see `cardLabel` below), the
- * description of what that portal is for does not.
- */
-const CARD_DESCRIPTIONS: Record<CardRole, string> = {
-  CLIENT: "Book deliveries for your packages",
-  DRIVER: "Deliver packages and earn",
-};
-
-/** Step-1 card headlines everywhere except the merchant host. */
-const CARD_LABELS: Record<CardRole, string> = {
-  CLIENT: "Client",
-  DRIVER: "Driver",
-};
-
-/**
- * The merchant host spells its driver portal out in full. Kept separate from
- * `CARD_LABELS` so the split-disabled picker's original wording is untouched.
- */
-const MERCHANT_CARD_LABELS: Partial<Record<CardRole, string>> = {
-  DRIVER: "Individual Driver",
 };
 
 /**
@@ -71,7 +86,89 @@ const POST_SIGN_IN_PATH: Record<Audience, string> = {
   BOTH: "/",
 };
 
-const CARD_CLASS_NAME = "rounded border p-6 text-left hover:opacity-70";
+/* -------------------------------------------------------------------------- */
+/* URL state                                                                  */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The screens this route serves, in wizard order. `role` and `type` are derived
+ * from the query string's `role`/`type`; `forgot` is the one screen that is not
+ * a wizard step and so names itself explicitly with `?step=forgot`.
+ *
+ * There is no `mode` param on this route: the *path* is the mode (`/sign-in` is
+ * `"signin"`, `/sign-up` is `"signup"` — see `MODE_PATHS`), so a `mode` in the
+ * query string could only ever contradict it. The step-1 toggle therefore
+ * navigates between the two paths rather than setting a param.
+ */
+type Step = "role" | "type" | "credentials" | "forgot";
+
+/** The only `step` value this route recognises. Anything else is ignored. */
+const FORGOT_STEP = "forgot";
+
+type FlowLocation = {
+  role?: FlowRole | null;
+  accountType?: AccountType | null;
+  step?: string | null;
+};
+
+/**
+ * Builds a URL for one of the flow's two paths, carrying whatever the user has
+ * already picked. Absent values are omitted rather than emitted empty, so the
+ * URL shortens as the user walks back through the wizard and every step has
+ * exactly one canonical address.
+ */
+function flowHref(path: string, { role, accountType, step }: FlowLocation) {
+  const query = new URLSearchParams();
+
+  if (role) {
+    query.set("role", roleParam(role));
+  }
+  if (accountType) {
+    query.set("type", accountTypeParam(accountType));
+  }
+  if (step) {
+    query.set("step", step);
+  }
+
+  const search = query.toString();
+
+  return search ? `${path}?${search}` : path;
+}
+
+/**
+ * The step-1 card set for a host, as `RoleStep`'s two props.
+ *
+ * - `"MERCHANT"` — drivers only; the client portal does not exist on that host.
+ * - `"CLIENT"` — Client advances in place, Driver is a real cross-origin
+ *   navigation to the merchant host, which is the only place a driver session
+ *   can exist. `merchantOrigin()` cannot be null here (a "CLIENT" audience means
+ *   the split is enabled), but fall back to a same-host relative path rather
+ *   than asserting non-null.
+ * - `"BOTH"` (split disabled) and `"ADMIN"` — both cards as buttons. ADMIN is
+ *   unreachable in practice (middleware redirects `/sign-in` off that host); it
+ *   takes the permissive branch only because `Audience` includes it.
+ */
+function roleCardsForAudience(audience: Audience): {
+  roles: readonly FlowRole[];
+  hrefs?: Partial<Record<FlowRole, string>>;
+} {
+  if (audience === "MERCHANT") {
+    return { roles: ["DRIVER"] };
+  }
+
+  if (audience === "CLIENT") {
+    return {
+      roles: ["CLIENT", "DRIVER"],
+      hrefs: { DRIVER: `${merchantOrigin() ?? ""}/sign-in` },
+    };
+  }
+
+  return { roles: ["CLIENT", "DRIVER"] };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Account-type lookup                                                        */
+/* -------------------------------------------------------------------------- */
 
 /** True when `value` is one of the known account types. */
 function isAccountType(value: unknown): value is AccountType {
@@ -94,7 +191,7 @@ function isAccountType(value: unknown): value is AccountType {
  * parameter type says so, and the caller skips the check outright.
  */
 async function fetchStoredAccountType(
-  sessionRole: CardRole,
+  sessionRole: FlowRole,
 ): Promise<AccountType | null> {
   const endpoint =
     sessionRole === "CLIENT" ? "/api/client-profile" : "/api/driver-profile";
@@ -114,59 +211,38 @@ async function fetchStoredAccountType(
   return isAccountType(profile?.accountType) ? profile.accountType : null;
 }
 
-type PortalCardProps = {
-  /** Headline shown on the card. */
-  label: string;
-  /** One-line explanation of who the portal is for. */
-  description: string;
-} & (
-  { onSelect: () => void; href?: never } | { href: string; onSelect?: never }
-);
+/* -------------------------------------------------------------------------- */
+/* Form                                                                       */
+/* -------------------------------------------------------------------------- */
 
 /**
- * One step-1 portal card. Renders as a `<button>` when picking it just advances
- * the wizard on this page, and as an `<a>` when it points at the *other* host —
- * a cross-origin destination has to be a real document navigation, since
- * Next's client router only handles same-origin URLs.
+ * A form-level failure, shown as the `FormAlert` above the fields (handoff
+ * screen 5). The kind decides only how far the styling reaches: a rejected
+ * credential also puts the password input into its error state, whereas a
+ * portal mismatch is about the *account*, not about what was typed.
  */
-function PortalCard({ label, description, onSelect, href }: PortalCardProps) {
-  const content = (
-    <>
-      <span className="block font-medium">{label}</span>
-      <span className="block text-sm opacity-70">{description}</span>
-    </>
-  );
-
-  if (href !== undefined) {
-    return (
-      <a href={href} className={CARD_CLASS_NAME}>
-        {content}
-      </a>
-    );
-  }
-
-  return (
-    <button type="button" onClick={onSelect} className={CARD_CLASS_NAME}>
-      {content}
-    </button>
-  );
-}
+type FormError = {
+  message: string;
+  kind: "credentials" | "portal";
+};
 
 type SignInFormProps = {
   /** Audience served by the host this page was requested on. */
   audience: Audience;
+  /** Raw `?role=` — unvalidated, straight off the query string. */
+  roleQuery: string | null;
+  /** Raw `?type=`. */
+  accountTypeQuery: string | null;
+  /** Raw `?step=`. */
+  stepQuery: string | null;
 };
 
 /**
  * Sign-in form. Every audience uses the same three-step flow — a portal picker,
  * then an account-type picker, then the credentials form — mirroring the
  * sign-up wizard step for step, so that what a user picked when registering is
- * exactly what they pick when returning. Only the *card list* in step 1 differs:
- *
- * - `"CLIENT"` — Client (stays here) and Driver (a link across to the merchant
- *   host, which owns driver sign-in).
- * - `"MERCHANT"` — Individual Driver only.
- * - `"BOTH"` — the split is disabled, so this offers both cards on one host.
+ * exactly what they pick when returning. Only the *card list* in step 1 differs
+ * (see `roleCardsForAudience`).
  *
  * A logistics company signs in through the Driver card plus the Business
  * account type, exactly as it registered: that pair resolves to the COMPANY
@@ -180,20 +256,110 @@ type SignInFormProps = {
  * beforehand would require an email → role lookup, which is an account
  * enumeration oracle. A rejected account is signed straight back out, and
  * `src/lib/auth.ts` enforces the same boundary server-side as a backstop.
+ *
+ * The wizard's position is read from the query string rather than held in
+ * state, so back/forward and refresh behave. The query string is user input,
+ * which is why every value below is re-derived through the parsers *and*
+ * re-checked against this host's card set on every render — a `role` this host
+ * does not serve falls back to step 1 rather than rendering a portal the host
+ * would never accept a session for.
  */
-export function SignInForm({ audience }: SignInFormProps) {
+export function SignInForm({
+  audience,
+  roleQuery,
+  accountTypeQuery,
+  stepQuery,
+}: SignInFormProps) {
   const router = useRouter();
+  const fieldId = React.useId();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  // Null until the user picks a portal in step 1; picking one reveals step 2.
-  // Every audience goes through this, including the split hosts — they just
-  // offer fewer cards.
-  const [role, setRole] = useState<CardRole | null>(null);
-  // Null until the user picks an account type in step 2; picking one reveals
-  // the credentials form in step 3.
-  const [accountType, setAccountType] = useState<AccountType | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<FormError | null>(null);
   const [loading, setLoading] = useState(false);
+
+  /* --- URL → step ------------------------------------------------------- */
+
+  const { roles: cardRoles, hrefs: cardHrefs } = roleCardsForAudience(audience);
+
+  // The roles this host can actually advance to *in page*. A card rendered as a
+  // cross-origin link (the Driver card on the client host) is deliberately not
+  // in this set: `/sign-in?role=driver` on the client host must fall back to
+  // step 1, because a driver session cannot exist on that origin at all.
+  const selectableRoles = cardRoles.filter(
+    (candidate) => cardHrefs?.[candidate] === undefined,
+  );
+
+  const parsedRole = parseRole(roleQuery);
+  const role =
+    parsedRole !== null && selectableRoles.includes(parsedRole)
+      ? parsedRole
+      : null;
+
+  const parsedAccountType = parseAccountType(accountTypeQuery);
+  // Clients have no Individual Entrepreneur option, so `?role=client&
+  // type=individual_entrepreneur` is not a state step 2 could have produced.
+  // Falling back to step 2 (rather than silently substituting a type) makes the
+  // user answer the question again, which is the only honest recovery.
+  const accountType =
+    role !== null &&
+    parsedAccountType !== null &&
+    accountTypeRowsForRole(role).some((row) => row.value === parsedAccountType)
+      ? parsedAccountType
+      : null;
+
+  const step: Step =
+    // Checked first and independently of `role`/`type`: the reset screen asks
+    // for an email and nothing else, so it is a valid destination even from a
+    // bare `/sign-in?step=forgot` link.
+    stepQuery === FORGOT_STEP
+      ? "forgot"
+      : role === null
+        ? "role"
+        : accountType === null
+          ? "type"
+          : "credentials";
+
+  /* --- Errors belong to the screen that produced them -------------------- */
+
+  // Changing step is a navigation, so nothing on screen carries over — least of
+  // all an alert about a submit the user has already walked away from. Keying
+  // this off the URL-derived step (rather than clearing inside each click
+  // handler) is what makes browser back/forward clear it too.
+  //
+  // Adjusted during render rather than in an effect on purpose: an effect would
+  // paint one frame of the previous screen's alert before clearing it. This is
+  // React's documented "adjust state when a prop changes" pattern.
+  const stepKey = `${step}:${role ?? ""}:${accountType ?? ""}`;
+  const [renderedStepKey, setRenderedStepKey] = useState(stepKey);
+  if (stepKey !== renderedStepKey) {
+    setRenderedStepKey(stepKey);
+    setFormError(null);
+    setEmailError(null);
+    setPasswordError(null);
+  }
+
+  /* --- Navigation ------------------------------------------------------- */
+
+  function goTo(location: FlowLocation) {
+    router.push(flowHref(MODE_PATHS.signin, location));
+  }
+
+  function handleModeChange(nextMode: FlowMode) {
+    // This route *is* `"signin"`, so the toggle only has somewhere to go when
+    // it moves off it. Crucially the role and type ride along rather than being
+    // dropped: switching mode must not skip step 2 — both modes run
+    // role → type → form.
+    if (nextMode === "signin") {
+      return;
+    }
+
+    router.push(flowHref(MODE_PATHS[nextMode], { role, accountType }));
+  }
+
+  /* --- Sign in ---------------------------------------------------------- */
 
   // The portal the two picks resolve to: the Driver card with the Business
   // account type is a logistics company, mirroring sign-up.
@@ -218,7 +384,7 @@ export function SignInForm({ audience }: SignInFormProps) {
     }
 
     if (audience === "CLIENT" && actualRole !== "CLIENT") {
-      const actualRoleLabel = ROLE_LABELS[actualRole];
+      const actualRoleLabel = PORTAL_LABELS[actualRole];
       return `This account is registered as a ${actualRoleLabel}. Please sign in at the merchant portal.`;
     }
 
@@ -231,41 +397,8 @@ export function SignInForm({ audience }: SignInFormProps) {
     // to two portals — a company that picked Individual is told to use the
     // logistics company sign-in, and a driver that picked Business is told to
     // use the driver one.
-    const actualRoleLabel = ROLE_LABELS[actualRole];
+    const actualRoleLabel = PORTAL_LABELS[actualRole];
     return `This account is registered as a ${actualRoleLabel}. Please use the ${actualRoleLabel} sign-in.`;
-  }
-
-  /** Step-1 card headline for this host. */
-  function cardLabel(cardRole: CardRole): string {
-    if (audience === "MERCHANT") {
-      return MERCHANT_CARD_LABELS[cardRole] ?? CARD_LABELS[cardRole];
-    }
-
-    return CARD_LABELS[cardRole];
-  }
-
-  /**
-   * Heading text for steps 2 and 3. Kept as a small override rather than
-   * changing ROLE_LABELS itself, so the "BOTH" (split-disabled) audience's
-   * existing "Sign in as a driver" wording is untouched — only the merchant
-   * host's "Individual Driver" card gets the fuller phrasing that matches its
-   * label.
-   *
-   * The company branch is checked first, and on every audience: once Business
-   * is picked the portal is a logistics company, not an individual driver. In
-   * step 2 no account type has been chosen yet, so that step keeps its existing
-   * wording.
-   */
-  function signInHeading(pickedRole: CardRole): string {
-    if (pickedRole === "DRIVER" && accountType === "BUSINESS") {
-      return "Sign in as a logistics company";
-    }
-
-    if (audience === "MERCHANT" && pickedRole === "DRIVER") {
-      return "Sign in as an individual driver";
-    }
-
-    return `Sign in as a ${ROLE_LABELS[pickedRole]}`;
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -275,14 +408,48 @@ export function SignInForm({ audience }: SignInFormProps) {
     // narrow the nullable state and are a defensive no-op in practice.
     if (!role) return;
     if (!accountType) return;
-    setError(null);
+
+    // Client-side shape checks first, so an obvious typo costs no round trip.
+    // The server is still the authority on both fields.
+    const trimmedEmail = email.trim();
+    const nextEmailError =
+      trimmedEmail.length === 0
+        ? "Enter your email address."
+        : isValidEmail(trimmedEmail)
+          ? null
+          : "Enter a valid email address.";
+    const nextPasswordError =
+      password.length === 0 ? "Enter your password." : null;
+
+    setEmailError(nextEmailError);
+    setPasswordError(nextPasswordError);
+    setFormError(null);
+
+    if (nextEmailError !== null || nextPasswordError !== null) {
+      return;
+    }
+
     setLoading(true);
 
-    const { error: signInError } = await signIn.email({ email, password });
+    const { error: signInError } = await signIn.email({
+      email: trimmedEmail,
+      password,
+    });
 
     if (signInError) {
       setLoading(false);
-      setError(signInError.message ?? "Invalid email or password.");
+      // Better Auth's own message is the alert's title — it is the only thing
+      // here that reflects what actually happened (a rejected credential, a
+      // suspended account, a rate limit). The handoff's mock adds a second line
+      // ("Two attempts left before we pause sign-in for 15 minutes."); it is
+      // not rendered, because nothing reports that number: `src/lib/auth.ts`
+      // configures no `rateLimit` block, and `src/lib/rate-limit.ts` is wired
+      // only to the pricing and geocoding routes. Inventing a countdown that
+      // does not match the server's behaviour is worse than showing none.
+      setFormError({
+        kind: "credentials",
+        message: signInError.message ?? "Invalid email or password.",
+      });
       return;
     }
 
@@ -300,7 +467,7 @@ export function SignInForm({ audience }: SignInFormProps) {
       // point them at the correct one without navigating away.
       await signOut();
       setLoading(false);
-      setError(mismatchMessage(actualRole));
+      setFormError({ kind: "portal", message: mismatchMessage(actualRole) });
       return;
     }
 
@@ -328,9 +495,10 @@ export function SignInForm({ audience }: SignInFormProps) {
       await signOut();
       setLoading(false);
       const storedLabel = ACCOUNT_TYPE_LABELS[storedAccountType];
-      setError(
-        `This account is registered as ${storedLabel}. Please use the ${storedLabel} sign-in.`,
-      );
+      setFormError({
+        kind: "portal",
+        message: `This account is registered as ${storedLabel}. Please use the ${storedLabel} sign-in.`,
+      });
       return;
     }
 
@@ -346,157 +514,338 @@ export function SignInForm({ audience }: SignInFormProps) {
     router.refresh();
   }
 
-  // Step 1: no portal chosen yet — present this host's portals as large cards.
+  /* --- Screen 6: forgot password ---------------------------------------- */
+
+  if (step === "forgot") {
+    return (
+      <AuthShell maxWidth="420" className="gap-6">
+        <BackLink
+          label="← Back to sign in"
+          onClick={() => goTo({ role, accountType })}
+        />
+
+        <div className="flex flex-col gap-2.5">
+          <AuthHeading>Reset your password</AuthHeading>
+          <AuthSubheading>
+            Enter the email on your account. We send a link that stays valid for
+            30 minutes.
+          </AuthSubheading>
+        </div>
+
+        {/*
+          `onSubmit` exists only to swallow the implicit submission a single
+          text input still triggers on Enter — there is nothing to send. See the
+          note under the button for why.
+        */}
+        <form
+          onSubmit={(event) => event.preventDefault()}
+          className="flex flex-col gap-4"
+        >
+          <div className="flex flex-col gap-2">
+            <Label htmlFor={`${fieldId}-reset-email`}>Email</Label>
+            {/* Shares the sign-in email state, so arriving here from a failed
+                attempt carries the address across instead of asking twice. */}
+            <Input
+              id={`${fieldId}-reset-email`}
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              placeholder="you@company.ge"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              aria-describedby={`${fieldId}-reset-note`}
+              className="h-11 text-base"
+            />
+          </div>
+
+          {/*
+            Disabled, and says why: `src/lib/auth.ts` configures no
+            `sendResetPassword`, so `requestPasswordReset` has nothing to
+            deliver the link with — it would succeed silently and no mail would
+            arrive. Same pattern as `SocialBlock`: the note is visible, and
+            `aria-describedby` gives a screen reader the reason a disabled
+            control announces its state but not its cause.
+          */}
+          <Button
+            type="submit"
+            disabled
+            title="Password reset is not available yet."
+            aria-describedby={`${fieldId}-reset-note`}
+            className="h-11 w-full text-base"
+          >
+            Send reset link
+          </Button>
+
+          <p
+            id={`${fieldId}-reset-note`}
+            className="text-[13px] leading-[1.5] text-[var(--landing-muted)]"
+          >
+            Password reset is not available yet — contact support and we will
+            reset it for you.
+          </p>
+
+          <p className="text-[13px] leading-[1.5] text-[var(--landing-muted)]">
+            Back-office accounts reset through your administrator, not this
+            form.
+          </p>
+        </form>
+      </AuthShell>
+    );
+  }
+
+  /* --- Screen 1: role --------------------------------------------------- */
+
+  if (step === "role") {
+    return (
+      <AuthShell maxWidth="860">
+        <RoleStep
+          mode="signin"
+          onModeChange={handleModeChange}
+          onSelectRole={(nextRole) => goTo({ role: nextRole })}
+          roles={cardRoles}
+          hrefs={cardHrefs}
+        />
+      </AuthShell>
+    );
+  }
+
+  /* --- Screen 2: account type ------------------------------------------- */
+
+  // `role` is non-null on both remaining branches — `step` is only ever "type"
+  // or "credentials" once it is — but the compiler cannot see that through the
+  // ternary chain above, so narrow it once here.
   if (role === null) {
+    return null;
+  }
+
+  if (step === "type") {
     return (
-      <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 p-8">
-        <h1 className="text-2xl font-bold">Sign in</h1>
-
-        <div className="flex flex-col gap-4">
-          {/* The merchant host serves drivers only. */}
-          {audience !== "MERCHANT" ? (
-            <PortalCard
-              label={cardLabel("CLIENT")}
-              description={CARD_DESCRIPTIONS.CLIENT}
-              onSelect={() => setRole("CLIENT")}
-            />
-          ) : null}
-
-          {audience === "CLIENT" ? (
-            // Drivers don't sign in on the client host at all — hand them off
-            // to the merchant host's own sign-in page, where their session
-            // will actually exist. `merchantOrigin()` cannot be null here (a
-            // "CLIENT" audience means the split is enabled), but fall back to
-            // a same-host relative path rather than asserting non-null.
-            <PortalCard
-              label={cardLabel("DRIVER")}
-              description={CARD_DESCRIPTIONS.DRIVER}
-              href={`${merchantOrigin() ?? ""}/sign-in`}
-            />
-          ) : (
-            <PortalCard
-              label={cardLabel("DRIVER")}
-              description={CARD_DESCRIPTIONS.DRIVER}
-              onSelect={() => setRole("DRIVER")}
-            />
-          )}
-        </div>
-      </main>
+      <AuthShell maxWidth="560">
+        <AccountTypeStep
+          role={role}
+          value={accountType}
+          onSelect={(nextType) => goTo({ role, accountType: nextType })}
+          onBack={() => goTo({})}
+        />
+      </AuthShell>
     );
   }
 
-  // Step 2: a portal is picked but no account type yet — present the account
-  // types as large cards in the same style as step 1, and in the same split as
-  // sign-up: clients see two options, drivers see three (adding Individual
-  // Entrepreneur). Going back from here clears the portal, returning to step 1.
+  /* --- Screens 3 and 5: credentials ------------------------------------- */
+
+  // Same narrowing as `role` above.
   if (accountType === null) {
-    return (
-      <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 p-8">
-        <button
-          type="button"
-          onClick={() => setRole(null)}
-          className="self-start text-sm hover:opacity-70"
-        >
-          ← Back
-        </button>
-
-        <h1 className="text-2xl font-bold">{signInHeading(role)}</h1>
-
-        <div className="flex flex-col gap-4">
-          <button
-            type="button"
-            onClick={() => setAccountType("INDIVIDUAL")}
-            className={CARD_CLASS_NAME}
-          >
-            <span className="block font-medium">Individual</span>
-            <span className="block text-sm opacity-70">
-              Sign in as a private individual
-            </span>
-          </button>
-
-          {role === "DRIVER" ? (
-            <button
-              type="button"
-              onClick={() => setAccountType("INDIVIDUAL_ENTREPRENEUR")}
-              className={CARD_CLASS_NAME}
-            >
-              <span className="block font-medium">Individual Entrepreneur</span>
-              <span className="block text-sm opacity-70">
-                Registered as an individual entrepreneur (ინდ. მეწარმე)
-              </span>
-            </button>
-          ) : null}
-
-          <button
-            type="button"
-            onClick={() => setAccountType("BUSINESS")}
-            className={CARD_CLASS_NAME}
-          >
-            <span className="block font-medium">Business</span>
-            <span className="block text-sm opacity-70">
-              Sign in as a registered company
-            </span>
-          </button>
-        </div>
-      </main>
-    );
+    return null;
   }
 
-  // Step 3: both portal and account type are picked — show the credentials
-  // form. Back here clears only the account type, dropping to step 2 rather
-  // than all the way out to the portal picker.
+  const emailErrorId = `${fieldId}-email-error`;
+  const passwordErrorId = `${fieldId}-password-error`;
+  const phoneNoteId = `${fieldId}-phone-note`;
+  const formErrorId = `${fieldId}-form-error`;
+
+  // A rejected credential puts the password field into the handoff's error
+  // styling (screen 5); a portal mismatch does not, because nothing about what
+  // was typed is wrong in that case — the account simply belongs elsewhere.
+  const passwordRejected = formError?.kind === "credentials";
+  const passwordInvalid = passwordError !== null || passwordRejected;
+
+  // What the password field points `aria-describedby` at. The field-level error
+  // and the form-level alert are not alternatives — a rejected credential can be
+  // showing while the user re-empties the field — so both ids are listed when
+  // both are on screen, rather than one replacing the other. The alert is only
+  // referenced when it is the credential kind: a portal mismatch is about the
+  // account, not about what was typed, and does not mark the field invalid.
+  const passwordDescribedBy =
+    [
+      passwordError ? passwordErrorId : null,
+      passwordRejected ? formErrorId : null,
+    ]
+      .filter(Boolean)
+      .join(" ") || undefined;
+
   return (
-    <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 p-8">
-      <button
-        type="button"
-        onClick={() => setAccountType(null)}
-        className="self-start text-sm hover:opacity-70"
-      >
-        ← Back
-      </button>
+    <AuthShell maxWidth="420" className="gap-6">
+      <BackLink onClick={() => goTo({ role })} />
 
-      {/* The company branch's heading already names the account type, so the
-          suffix would only add "— Business" noise to it. */}
-      <h1 className="text-2xl font-bold">
-        {signInHeading(role)}
-        {role === "DRIVER" && accountType === "BUSINESS"
-          ? null
-          : ` — ${ACCOUNT_TYPE_LABELS[accountType]}`}
-      </h1>
+      <div className="flex flex-col gap-2.5">
+        <ContextChip role={role} accountType={accountType} />
+        <AuthHeading>Sign in</AuthHeading>
+      </div>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <label className="flex flex-col gap-1 text-sm">
-          Email
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            className="rounded border px-3 py-2"
-          />
-        </label>
+      {/*
+        The handoff defaults this to `phone`, but the phone tab cannot complete
+        a sign-in: `src/lib/auth.ts` registers neither the `phoneNumber` nor the
+        `emailOTP` plugin, so there is no endpoint to send a code from. Email is
+        the default until one lands, at which point `defaultValue` becomes
+        "phone" and the disabled state below comes off.
+      */}
+      {/* `gap-0` cancels the DS root's own 8px gap, so the 20px the handoff
+          specifies between the tab strip and its panel is the `pt-5` below and
+          nothing else. */}
+      <Tabs defaultValue="email" className="w-full gap-0">
+        <TabsList className="w-full">
+          <TabsTrigger value="phone" className="flex-1">
+            Phone
+          </TabsTrigger>
+          <TabsTrigger value="email" className="flex-1">
+            Email
+          </TabsTrigger>
+        </TabsList>
 
-        <label className="flex flex-col gap-1 text-sm">
-          Password
-          <input
-            type="password"
-            required
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            className="rounded border px-3 py-2"
-          />
-        </label>
+        <TabsContent value="phone">
+          <div className="flex flex-col gap-4 pt-5">
+            {/*
+              Rendered exactly as designed, disabled rather than removed: the
+              tab is part of the shipped design and the plugin is the only thing
+              missing, so hiding it would misrepresent the roadmap while a live
+              button would dead-end. No fake success path, and nothing navigates
+              to an OTP screen that has no code to verify.
+            */}
+            <PhoneField
+              id={`${fieldId}-phone`}
+              value=""
+              onChange={() => {}}
+              disabled
+              helper="We text a 6-digit code. No password needed."
+              // Same `aria-describedby` note the Send code button carries, so
+              // the field itself also names the reason it is greyed out rather
+              // than leaving its helper text describing a flow that cannot run.
+              describedBy={phoneNoteId}
+            />
 
-        {error ? <p className="text-sm text-red-600">{error}</p> : null}
+            <Button
+              type="button"
+              disabled
+              title="Code sign-in is not available yet."
+              aria-describedby={phoneNoteId}
+              className="h-11 w-full text-base"
+            >
+              Send code
+            </Button>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="rounded border px-3 py-2 font-medium hover:opacity-70 disabled:opacity-50"
+            <p
+              id={phoneNoteId}
+              className="text-[13px] leading-[1.5] text-[var(--landing-muted)]"
+            >
+              Code sign-in is not available yet — use the Email tab to sign in
+              with your password.
+            </p>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="email">
+          {/*
+            `noValidate` so the browser's own validation bubble does not fire
+            ahead of the `FieldError` messages below, which are the ones the
+            handoff specifies. The `required` attributes stay: they are what
+            tells assistive tech the fields are mandatory.
+          */}
+          <form
+            onSubmit={handleSubmit}
+            noValidate
+            className="flex flex-col gap-4 pt-5"
+          >
+            {formError ? (
+              <FormAlert id={formErrorId} title={formError.message} />
+            ) : null}
+
+            <div className="flex flex-col gap-2">
+              <Label htmlFor={`${fieldId}-email`}>Email</Label>
+              <Input
+                id={`${fieldId}-email`}
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+                required
+                placeholder="you@company.ge"
+                value={email}
+                onChange={(event) => {
+                  setEmail(event.target.value);
+                  setEmailError(null);
+                }}
+                aria-invalid={emailError !== null ? true : undefined}
+                aria-describedby={emailError ? emailErrorId : undefined}
+                className={cn(
+                  "h-11 text-base",
+                  emailError && ERROR_INPUT_CLASS,
+                )}
+              />
+              {emailError ? (
+                <FieldError id={emailErrorId}>{emailError}</FieldError>
+              ) : null}
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <div className="flex items-baseline justify-between gap-3">
+                <Label htmlFor={`${fieldId}-password`}>Password</Label>
+                {/*
+                  Becomes "Reset it" in the error red while an alert is up, per
+                  the handoff's screen 5 — the same control, re-pointed at what
+                  the user most likely needs next.
+                */}
+                <button
+                  type="button"
+                  onClick={() => goTo({ role, accountType, step: FORGOT_STEP })}
+                  className={cn(
+                    "text-[13px] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--landing-accent)]",
+                    formError
+                      ? "font-medium text-[#c3341a]"
+                      : "text-[var(--landing-muted)] hover:text-[var(--landing-accent)]",
+                  )}
+                >
+                  {formError ? "Reset it" : "Forgot password?"}
+                </button>
+              </div>
+
+              <Input
+                id={`${fieldId}-password`}
+                type="password"
+                autoComplete="current-password"
+                required
+                placeholder="••••••••"
+                value={password}
+                onChange={(event) => {
+                  setPassword(event.target.value);
+                  setPasswordError(null);
+                }}
+                aria-invalid={passwordInvalid ? true : undefined}
+                aria-describedby={passwordDescribedBy}
+                className={cn(
+                  "h-11 text-base",
+                  passwordInvalid && ERROR_INPUT_CLASS,
+                )}
+              />
+              {passwordError ? (
+                <FieldError id={passwordErrorId}>{passwordError}</FieldError>
+              ) : null}
+            </div>
+
+            <Button
+              type="submit"
+              disabled={loading}
+              className="h-11 w-full text-base"
+            >
+              {loading ? "Signing in…" : "Sign in"}
+            </Button>
+          </form>
+        </TabsContent>
+      </Tabs>
+
+      <SocialBlock />
+
+      {/*
+        The handoff's screen 5 also offers "Signed up with a phone number
+        instead? Use a code". It is not shipped: the only place it could lead is
+        the phone tab, which cannot sign anyone in yet.
+      */}
+      <p className="text-sm text-[var(--landing-muted)]">
+        New to Lalamove?{" "}
+        <InlineLinkButton
+          href={flowHref(MODE_PATHS.signup, { role, accountType })}
         >
-          {loading ? "Signing in…" : "Sign in"}
-        </button>
-      </form>
-    </main>
+          Create an account
+        </InlineLinkButton>
+      </p>
+    </AuthShell>
   );
 }

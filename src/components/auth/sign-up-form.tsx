@@ -1,104 +1,424 @@
 "use client";
 
-import { useState } from "react";
+import * as React from "react";
 import { useRouter } from "next/navigation";
 
-import { ACCOUNT_TYPE_LABELS, type AccountType } from "@/lib/account-types";
+import { AccountTypeStep } from "@/components/auth/account-type-step";
+import {
+  AuthHeading,
+  AuthSubheading,
+  BackLink,
+  ERROR_INPUT_CLASS,
+  Eyebrow,
+  FieldError,
+  FormAlert,
+  InlineLinkButton,
+  PasswordStrengthMeter,
+  PhoneField,
+} from "@/components/auth/auth-primitives";
+import { AuthShell } from "@/components/auth/auth-shell";
+import { RoleStep } from "@/components/auth/role-step";
+import { SignUpSuccess } from "@/components/auth/sign-up-success";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { signUp } from "@/lib/auth-client";
+import {
+  accountTypeLabel,
+  accountTypeParam,
+  isValidEmail,
+  isValidGeorgianPhone,
+  MIN_PASSWORD_LENGTH,
+  MODE_PATHS,
+  passwordStrength,
+  phoneDigits,
+  roleParam,
+  ROLE_LABELS,
+  type AccountType,
+  type FlowMode,
+  type FlowRole,
+} from "@/lib/auth-flow";
 import { GEORGIAN_CITY_OPTIONS } from "@/lib/georgian-cities";
 import { merchantOrigin, type Audience } from "@/lib/host";
+import { cn } from "@/lib/utils";
 
-/** The two cards step 1 offers. */
-type Role = "CLIENT" | "DRIVER";
+/**
+ * The registration wizard — screens 1, 2, 7 and 8 of the auth handoff
+ * (`UI:UX/Sign-in:up/design_handoff_auth_redesign/README.md`).
+ *
+ * ## Where the wizard's position lives
+ *
+ * In the query string, not in state: `/sign-up?role=driver&type=business`. The
+ * page component parses and *validates* those params and hands the result down
+ * as props, so this component never reads the URL itself and never has to
+ * decide whether a value is trustworthy — by the time it arrives, it is. Every
+ * step advances with `router.push`, which is what makes browser back/forward
+ * walk the wizard a step at a time and a refresh stay where it was.
+ *
+ * Only step 3's field values are component state, because they are the only
+ * thing that is neither a position in the flow nor safe to put in a URL.
+ *
+ * ## The audience split
+ *
+ * Scoped to the audience of the host it is served from (`src/lib/host.ts`). The
+ * form itself — the fields, the follow-up profile writes — is identical for
+ * every audience; only which roles step 1 offers and the post-success
+ * destination differ:
+ *
+ * - `"BOTH"` (split disabled): the full two-role wizard.
+ * - `"CLIENT"`: step 1 offers two cards — Client, which continues the wizard
+ *   here, and Driver, which is a cross-origin link to the merchant host's own
+ *   sign-up page rather than a role this host can create.
+ * - `"MERCHANT"`: only the Driver card is offered, and a newly created account
+ *   lands on `/dashboard` rather than `/`, which is a client-host path the
+ *   merchant host would immediately bounce it off.
+ *
+ * The Driver card is not one-to-one with the DRIVER role: picking the Business
+ * account type in step 2 resolves it to a COMPANY account with a
+ * `LogisticsCompany` row instead (see `isCompanySignUp` in `handleSubmit`).
+ *
+ * ## What the redesign dropped on purpose
+ *
+ * The old wizard varied its heading by role and audience ("Sign up as an
+ * individual driver", "Sign up as a logistics company"). The new design puts a
+ * fixed "Create your account" over a context sub-line that names the role and
+ * type instead, so those per-audience headings — and the merchant host's
+ * "Individual Driver" card label — are gone. The step-1 card now reads "Driver
+ * or fleet", which covers the individual, the entrepreneur and the company that
+ * step 2 goes on to separate, and is correct on the merchant host too.
+ */
+
+/* -------------------------------------------------------------------------- */
+/* The role written to `User.role`                                            */
+/* -------------------------------------------------------------------------- */
 
 /**
  * The role actually written to `User.role`. COMPANY is not a card: it is what
  * the Driver card resolves to once the Business account type is picked, which
  * is the path someone registering a haulage business already takes today.
  */
-type SignUpRole = Role | "COMPANY";
+type SignUpRole = FlowRole | "COMPANY";
 
-/** Heading shown once a role has been chosen, in steps 2 and 3. */
-const ROLE_HEADINGS: Record<Role, string> = {
-  CLIENT: "Sign up as a client",
-  DRIVER: "Sign up as a driver",
+/* -------------------------------------------------------------------------- */
+/* URL helpers                                                                */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Builds a flow URL carrying whatever the user has answered so far.
+ *
+ * Every navigation in this file goes through here so the two params are
+ * serialised in one place and in one casing (`roleParam` / `accountTypeParam`
+ * only ever emit lowercase, which is what the parsers round-trip exactly).
+ * A `null` is simply omitted, which is how "not answered yet" is spelled — the
+ * absence of `type` is what puts the wizard on step 2.
+ */
+function flowHref(
+  path: string,
+  role: FlowRole | null,
+  accountType: AccountType | null,
+): string {
+  const params = new URLSearchParams();
+
+  if (role !== null) {
+    params.set("role", roleParam(role));
+  }
+  if (accountType !== null) {
+    params.set("type", accountTypeParam(accountType));
+  }
+
+  const query = params.toString();
+  return query.length > 0 ? `${path}?${query}` : path;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Validation                                                                 */
+/* -------------------------------------------------------------------------- */
+
+/** Every field step 3 can complain about. */
+type SignUpFieldKey =
+  | "firstName"
+  | "lastName"
+  | "companyName"
+  | "vatId"
+  | "phone"
+  | "email"
+  | "password"
+  | "city"
+  | "terms";
+
+type FieldErrors = Partial<Record<SignUpFieldKey, string>>;
+
+/** The raw field values, exactly as typed. */
+type SignUpValues = {
+  firstName: string;
+  lastName: string;
+  companyName: string;
+  vatId: string;
+  phone: string;
+  email: string;
+  password: string;
+  city: string;
+  termsAccepted: boolean;
 };
 
 /**
- * Heading text for steps 2 and 3. Kept as a small override rather than
- * changing ROLE_HEADINGS itself, so the "BOTH" (split-disabled) audience's
- * existing "Sign up as a driver" wording is untouched — only the merchant
- * host's "Individual Driver" card gets the fuller phrasing that matches its
- * label.
+ * The handoff's "Validation" section, as a pure function of the form's values.
  *
- * `pickedAccountType` is null in step 2, where no account type has been chosen
- * yet, so that step's wording is unaffected by the company branch below.
+ * Kept out of the component so the rules can be read as a list rather than
+ * traced through a submit handler, and so the handler's only job is deciding
+ * what to do with the result.
+ *
+ * Client-side validation is a courtesy, never the authority: `src/lib/auth.ts`
+ * and the three profile routes enforce their own requirements, and anything
+ * that gets past this still fails there and surfaces through `FormAlert`.
  */
-function roleHeading(
-  pickedRole: Role,
-  currentAudience: Audience,
-  pickedAccountType: AccountType | null,
-): string {
-  if (pickedRole === "DRIVER" && pickedAccountType === "BUSINESS") {
-    return "Sign up as a logistics company";
+function validateSignUp(
+  role: FlowRole,
+  accountType: AccountType,
+  values: SignUpValues,
+): FieldErrors {
+  const errors: FieldErrors = {};
+
+  // The identity fields swap wholesale on a business account: a company has a
+  // registered name and a VAT ID where a person has a first name and a surname.
+  if (accountType === "BUSINESS") {
+    if (values.companyName.trim().length === 0) {
+      errors.companyName = "Enter your registered company name.";
+    }
+    if (values.vatId.trim().length === 0) {
+      errors.vatId = "Enter your VAT ID.";
+    }
+  } else {
+    if (values.firstName.trim().length === 0) {
+      errors.firstName = "Enter your first name.";
+    }
+    if (values.lastName.trim().length === 0) {
+      errors.lastName = "Enter your surname.";
+    }
   }
 
-  if (currentAudience === "MERCHANT" && pickedRole === "DRIVER") {
-    return "Sign up as an individual driver";
+  if (!isValidGeorgianPhone(phoneDigits(values.phone))) {
+    errors.phone = "Enter the 9 digits that follow +995.";
   }
 
-  return ROLE_HEADINGS[pickedRole];
+  if (!isValidEmail(values.email)) {
+    errors.email = "Enter a valid email address.";
+  }
+
+  if (values.password.length < MIN_PASSWORD_LENGTH) {
+    errors.password = `Use at least ${MIN_PASSWORD_LENGTH} characters.`;
+  }
+
+  // Drivers only. A `DriverProfile` cannot be written without a city, and a
+  // `LogisticsCompany` is registered in one — clients are never asked.
+  if (role === "DRIVER" && values.city.length === 0) {
+    errors.city = "Select the city you are based in.";
+  }
+
+  if (!values.termsAccepted) {
+    errors.terms = "Accept the terms and the privacy policy to continue.";
+  }
+
+  return errors;
 }
 
+/* -------------------------------------------------------------------------- */
+/* Field plumbing                                                             */
+/* -------------------------------------------------------------------------- */
+
 /**
- * The registration wizard, scoped to the audience of the host it is served
- * from (see `src/lib/host.ts`). The wizard itself — the fields, the follow-up
- * profile writes, the markup — is identical for every audience; only which
- * roles step 1 offers and the post-success destination differ:
- *
- * - `"BOTH"` (split disabled): the full two-role wizard, offering both CLIENT
- *   and DRIVER.
- * - `"CLIENT"`: step 1 offers two cards — Client, which continues the wizard
- *   here, and Driver, which is a cross-origin link to the merchant host's own
- *   sign-up page rather than a role this host can create.
- * - `"MERCHANT"`: only the DRIVER card (labelled "Individual Driver" here) is
- *   offered, and a newly created account lands on `/dashboard` rather than `/`,
- *   which is a client-host path the merchant host would immediately bounce it
- *   off.
- *
- * The Driver card is not one-to-one with the DRIVER role: picking the Business
- * account type in step 2 resolves it to a COMPANY account with a
- * `LogisticsCompany` row instead (see `isCompanySignUp` in `handleSubmit`).
+ * A field's helper and error ids are derived from its own id rather than
+ * generated separately, so `aria-describedby` can be assembled without keeping
+ * a second set of ids in sync. Same shape `PhoneField` uses internally.
  */
-export function SignUpForm({ audience }: { audience: Audience }) {
+function helperIdFor(fieldId: string): string {
+  return `${fieldId}-helper`;
+}
+
+function errorIdFor(fieldId: string): string {
+  return `${fieldId}-error`;
+}
+
+function describedBy(
+  fieldId: string,
+  hasHelper: boolean,
+  hasError: boolean,
+): string | undefined {
+  return (
+    [
+      hasHelper ? helperIdFor(fieldId) : null,
+      hasError ? errorIdFor(fieldId) : null,
+    ]
+      .filter(Boolean)
+      .join(" ") || undefined
+  );
+}
+
+type TextFieldProps = {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  type?: React.ComponentProps<"input">["type"];
+  placeholder?: string;
+  autoComplete?: string;
+  /** Muted line under the control. */
+  helper?: React.ReactNode;
+  /** Non-empty switches the input to the error styling and announces it. */
+  error?: string;
+  /** Rendered between the input and its helper — the strength meter. */
+  children?: React.ReactNode;
+};
+
+/**
+ * One labelled text field in the handoff's shape: `Label`, a 44px `Input`, and
+ * the helper/error lines beneath it.
+ *
+ * Every field on this form is required, so `aria-required` is unconditional —
+ * and it is `aria-required` rather than the HTML `required` attribute for the
+ * reason `job-sheet-actions.tsx` gives at its waiting-minutes field: the form
+ * validates in `handleSubmit` so the messages are the ones this design
+ * specifies, and a native `required` would put a browser bubble on top of them
+ * saying something we did not write. This announces the obligation without
+ * changing the behaviour.
+ */
+function TextField({
+  id,
+  label,
+  value,
+  onChange,
+  type,
+  placeholder,
+  autoComplete,
+  helper,
+  error,
+  children,
+}: TextFieldProps) {
+  const hasHelper = helper !== undefined;
+
+  return (
+    <div className="flex flex-col gap-2">
+      <Label htmlFor={id}>{label}</Label>
+      <Input
+        id={id}
+        type={type}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        autoComplete={autoComplete}
+        aria-required="true"
+        aria-invalid={error ? true : undefined}
+        aria-describedby={describedBy(id, hasHelper, Boolean(error))}
+        className={cn("h-11 text-base", error && ERROR_INPUT_CLASS)}
+      />
+      {children}
+      {hasHelper ? (
+        <span
+          id={helperIdFor(id)}
+          className="text-[13px] text-[var(--landing-muted)]"
+        >
+          {helper}
+        </span>
+      ) : null}
+      {error ? <FieldError id={errorIdFor(id)}>{error}</FieldError> : null}
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* The wizard                                                                 */
+/* -------------------------------------------------------------------------- */
+
+export type SignUpFormProps = {
+  audience: Audience;
+  /** Step 1's answer, already checked against the audience by the page. */
+  role: FlowRole | null;
+  /** Step 2's answer, already checked against the role by the page. */
+  accountType: AccountType | null;
+};
+
+export function SignUpForm({ audience, role, accountType }: SignUpFormProps) {
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  // Null until the user picks a role in step 1; picking one reveals step 2.
-  // Every audience starts here, including the client host — its step 1 offers
-  // Client (which continues here) alongside a link out to the merchant host.
-  const [role, setRole] = useState<Role | null>(null);
-  // Null until the user picks an account type in step 2; picking one reveals
-  // the form in step 3.
-  const [accountType, setAccountType] = useState<AccountType | null>(null);
-  const [city, setCity] = useState<string>("");
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [companyName, setCompanyName] = useState("");
-  const [vatId, setVatId] = useState("");
-  const [phone, setPhone] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  // One generated base per mount; every field id and every `aria-describedby`
+  // target is derived from it, so nothing on the page can collide with it.
+  const fieldId = React.useId();
+
+  const [firstName, setFirstName] = React.useState("");
+  const [lastName, setLastName] = React.useState("");
+  const [companyName, setCompanyName] = React.useState("");
+  const [vatId, setVatId] = React.useState("");
+  const [phone, setPhone] = React.useState("");
+  const [email, setEmail] = React.useState("");
+  const [password, setPassword] = React.useState("");
+  const [city, setCity] = React.useState("");
+  const [termsAccepted, setTermsAccepted] = React.useState(false);
+
+  const [fieldErrors, setFieldErrors] = React.useState<FieldErrors>({});
+  /** Server- and API-level failures. Rendered as the alert above the fields. */
+  const [formError, setFormError] = React.useState<string | null>(null);
+  const [loading, setLoading] = React.useState(false);
+  /**
+   * Set once the account and its profile row both exist. Holds the picks and
+   * the destination rather than reading them back from props, because the
+   * success screen must keep saying what was created even though nothing about
+   * the URL changes underneath it.
+   */
+  const [created, setCreated] = React.useState<{
+    role: FlowRole;
+    accountType: AccountType;
+    destination: string;
+  } | null>(null);
+
+  /** Clears one field's error as soon as the user acts on that field. */
+  function clearFieldError(key: SignUpFieldKey) {
+    setFieldErrors((previous) => {
+      if (previous[key] === undefined) return previous;
+      const next = { ...previous };
+      delete next[key];
+      return next;
+    });
+  }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     // The form only renders in step 3, which every role reaches by way of
     // steps 1 and 2, so both `role` and `accountType` are always set here.
-    // These guards narrow the nullable state and are a defensive no-op in
+    // These guards narrow the nullable props and are a defensive no-op in
     // practice.
     if (!role) return;
     if (!accountType) return;
-    setError(null);
+
+    const nextErrors = validateSignUp(role, accountType, {
+      firstName,
+      lastName,
+      companyName,
+      vatId,
+      phone,
+      email,
+      password,
+      city,
+      termsAccepted,
+    });
+
+    setFieldErrors(nextErrors);
+
+    if (Object.keys(nextErrors).length > 0) {
+      // Each message is already rendered against its own field and reachable
+      // through that field's `aria-describedby`, so the form-level alert is
+      // cleared rather than restating them in a second place.
+      setFormError(null);
+      return;
+    }
+
+    setFormError(null);
     setLoading(true);
 
     // Better Auth requires a `name`, but the form never shows a bare name
@@ -128,7 +448,7 @@ export function SignUpForm({ audience }: { audience: Audience }) {
 
     if (signUpError) {
       setLoading(false);
-      setError(
+      setFormError(
         signUpError.message ?? "Something went wrong. Please try again.",
       );
       return;
@@ -161,7 +481,7 @@ export function SignUpForm({ audience }: { audience: Audience }) {
         const payload = (await response.json().catch(() => null)) as {
           error?: string;
         } | null;
-        setError(
+        setFormError(
           payload?.error ??
             "Could not save your company details. Please try again.",
         );
@@ -193,7 +513,7 @@ export function SignUpForm({ audience }: { audience: Audience }) {
         const payload = (await response.json().catch(() => null)) as {
           error?: string;
         } | null;
-        setError(
+        setFormError(
           payload?.error ??
             "Could not save your driver details. Please try again.",
         );
@@ -221,7 +541,7 @@ export function SignUpForm({ audience }: { audience: Audience }) {
         const payload = (await response.json().catch(() => null)) as {
           error?: string;
         } | null;
-        setError(
+        setFormError(
           payload?.error ??
             "Could not save your account details. Please try again.",
         );
@@ -231,6 +551,15 @@ export function SignUpForm({ audience }: { audience: Audience }) {
     }
 
     setLoading(false);
+
+    // TODO: phone verification slots in here, between the profile write and the
+    // success screen — the number is collected above and the handoff draws an
+    // OTP screen for it (section 4), but `src/lib/auth.ts` configures only
+    // `emailAndPassword` with no `phoneNumber` / `emailOTP` plugin, so there is
+    // no endpoint to send or check a code against. Until one exists, sending
+    // the user to an OTP screen the way the prototype does would be a dead end,
+    // so the flow completes here.
+
     // The merchant host doesn't serve `/` — sending a freshly created driver
     // account there would bounce it straight back off the host it just signed
     // up on. Every other audience owns `/`, except for a new company: `/` is
@@ -242,278 +571,384 @@ export function SignUpForm({ audience }: { audience: Audience }) {
     // status screen or the ops dashboard — needs the application row, which
     // this form has not read, so no onboarding path is pushed here and no
     // second redirect is chained.
-    router.push(
-      isCompanySignUp || audience === "MERCHANT" ? "/dashboard" : "/",
-    );
-    router.refresh();
+    //
+    // The navigation itself (`router.push` then `router.refresh`) now happens
+    // in `SignUpSuccess`, once its progress bar has run — same destination,
+    // same pair of calls, just after the beat screen 8 asks for.
+    setCreated({
+      role,
+      accountType,
+      destination:
+        isCompanySignUp || audience === "MERCHANT" ? "/dashboard" : "/",
+    });
   }
 
-  // Step 1: no role chosen yet — present the portals as large cards. Which
-  // cards appear depends on the audience: `"BOTH"` sees both roles, the client
-  // host sees Client + a link out to the merchant host's driver sign-up, and
-  // the merchant host sees only Driver, the one role it can actually create.
-  if (role === null) {
+  /* ------------------------------------------------------------------ */
+  /* Screen 8 — success                                                 */
+  /* ------------------------------------------------------------------ */
+
+  // Checked before the step branches below: the URL still says `?role=…&type=…`
+  // at this point, so nothing about the props has changed and step 3 would
+  // otherwise render straight over the account that was just created.
+  if (created !== null) {
     return (
-      <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 p-8">
-        <h1 className="text-2xl font-bold">Create an account</h1>
-
-        <div className="flex flex-col gap-4">
-          {/* The merchant host only ever creates DRIVER accounts. */}
-          {audience === "MERCHANT" ? null : (
-            <button
-              type="button"
-              onClick={() => setRole("CLIENT")}
-              className="rounded border p-6 text-left hover:opacity-70"
-            >
-              <span className="block font-medium">Client</span>
-              <span className="block text-sm opacity-70">
-                Book deliveries for your packages
-              </span>
-            </button>
-          )}
-
-          {/* Drivers belong to the merchant host, so on the client host this
-              card is a real cross-origin navigation rather than a role this
-              host can create. `merchantOrigin()` is only null while the split
-              is disabled — an audience of "CLIENT" means it is on — so the
-              empty-string fallback (which degrades to a same-host "/sign-up")
-              is purely defensive. */}
-          {audience === "CLIENT" ? (
-            <a
-              href={`${merchantOrigin() ?? ""}/sign-up`}
-              className="rounded border p-6 text-left hover:opacity-70"
-            >
-              <span className="block font-medium">Driver</span>
-              <span className="block text-sm opacity-70">
-                Deliver packages and earn
-              </span>
-            </a>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setRole("DRIVER")}
-              className="rounded border p-6 text-left hover:opacity-70"
-            >
-              <span className="block font-medium">
-                {/* The merchant host keeps the fuller label its sign-up
-                    headings are written around (see `roleHeading`). */}
-                {audience === "MERCHANT" ? "Individual Driver" : "Driver"}
-              </span>
-              <span className="block text-sm opacity-70">
-                Deliver packages and earn
-              </span>
-            </button>
-          )}
-        </div>
-      </main>
+      <SignUpSuccess
+        role={created.role}
+        accountType={created.accountType}
+        destination={created.destination}
+      />
     );
   }
 
-  // Step 2: a role is chosen but no account type yet — present the account
-  // types as large cards in the same style as step 1. Clients see two options;
-  // drivers see three (adding Individual Entrepreneur).
+  /* ------------------------------------------------------------------ */
+  /* Screen 1 — role                                                    */
+  /* ------------------------------------------------------------------ */
+
+  if (role === null) {
+    // Which cards step 1 *shows*, which is a different question from which
+    // roles this host may create (the page component owns that one, because it
+    // is the trust boundary for the query string). The client host shows a
+    // Driver card it cannot fulfil on purpose — as a link to the host that can.
+    //
+    // `merchantOrigin()` is only null while the split is disabled — an audience
+    // of "CLIENT" means it is on — so the empty-string fallback (which degrades
+    // to a same-host "/sign-up") is purely defensive.
+    const roles: readonly FlowRole[] =
+      audience === "MERCHANT" ? ["DRIVER"] : ["CLIENT", "DRIVER"];
+    const hrefs =
+      audience === "CLIENT"
+        ? { DRIVER: `${merchantOrigin() ?? ""}/sign-up` }
+        : undefined;
+
+    /**
+     * The toggle switches which flow the wizard *ends* in, and nothing else —
+     * it must never skip step 2, which both modes run through. Since role and
+     * type are still unanswered here, the sign-in route is entered at its own
+     * step 1; `flowHref` carries whatever has been picked anyway, so this stays
+     * correct if the toggle is ever shown on a later step.
+     *
+     * Selecting the segment that is already active is a no-op rather than a
+     * navigation to the page we are already on.
+     */
+    const handleModeChange = (mode: FlowMode) => {
+      if (mode === "signup") return;
+      router.push(flowHref(MODE_PATHS[mode], role, accountType));
+    };
+
+    return (
+      <AuthShell maxWidth="860">
+        <RoleStep
+          mode="signup"
+          onModeChange={handleModeChange}
+          onSelectRole={(picked) =>
+            router.push(flowHref("/sign-up", picked, null))
+          }
+          roles={roles}
+          hrefs={hrefs}
+        />
+      </AuthShell>
+    );
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Screen 2 — account type                                            */
+  /* ------------------------------------------------------------------ */
+
   if (accountType === null) {
     return (
-      <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 p-8">
-        <button
-          type="button"
-          onClick={() => setRole(null)}
-          className="self-start text-sm hover:opacity-70"
-        >
-          ← Back
-        </button>
-
-        {/* No account type is picked yet, so the heading cannot yet know
-            whether this is the company branch. */}
-        <h1 className="text-2xl font-bold">
-          {roleHeading(role, audience, null)}
-        </h1>
-
-        <div className="flex flex-col gap-4">
-          <button
-            type="button"
-            onClick={() => setAccountType("INDIVIDUAL")}
-            className="rounded border p-6 text-left hover:opacity-70"
-          >
-            <span className="block font-medium">Individual</span>
-            <span className="block text-sm opacity-70">
-              Sign up as a private individual
-            </span>
-          </button>
-
-          {role === "DRIVER" ? (
-            <button
-              type="button"
-              onClick={() => setAccountType("INDIVIDUAL_ENTREPRENEUR")}
-              className="rounded border p-6 text-left hover:opacity-70"
-            >
-              <span className="block font-medium">Individual Entrepreneur</span>
-              <span className="block text-sm opacity-70">
-                Registered as an individual entrepreneur (ინდ. მეწარმე)
-              </span>
-            </button>
-          ) : null}
-
-          <button
-            type="button"
-            onClick={() => setAccountType("BUSINESS")}
-            className="rounded border p-6 text-left hover:opacity-70"
-          >
-            <span className="block font-medium">Business</span>
-            {/* Same card in the same place; only what it produces changed.
-                Under the Driver role it now creates a logistics company rather
-                than a business-type driver, so it says so. */}
-            <span className="block text-sm opacity-70">
-              {role === "DRIVER"
-                ? "Register a logistics company running more than one vehicle"
-                : "Sign up as a registered company"}
-            </span>
-          </button>
-        </div>
-      </main>
+      <AuthShell maxWidth="560">
+        <AccountTypeStep
+          role={role}
+          // Always null, and necessarily so: `?type=` present *is* step 3, so
+          // there is no URL that means "on step 2 with a type already picked".
+          // Stepping back from step 3 therefore drops the param — which is what
+          // makes step 2 render at all — and the row set comes up unselected.
+          // `AccountTypeStep`'s selected styling is still live for the sign-in
+          // flow; this branch just cannot reach it.
+          value={null}
+          onSelect={(picked) => router.push(flowHref("/sign-up", role, picked))}
+          onBack={() => router.push(flowHref("/sign-up", null, null))}
+        />
+      </AuthShell>
     );
   }
 
-  // Step 3: both role and account type are chosen — show the identity form.
-  // The field shapes are identical across roles; drivers additionally get a
-  // city select.
-  return (
-    <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 p-8">
-      <button
-        type="button"
-        onClick={() => setAccountType(null)}
-        className="self-start text-sm hover:opacity-70"
-      >
-        ← Back
-      </button>
+  /* ------------------------------------------------------------------ */
+  /* Screen 7 — details                                                 */
+  /* ------------------------------------------------------------------ */
 
-      {/* The company branch's heading already names the account type, so the
-          suffix would only add "— Business" noise to it. */}
-      <h1 className="text-2xl font-bold">
-        {roleHeading(role, audience, accountType)}
-        {role === "DRIVER" && accountType === "BUSINESS"
-          ? null
-          : ` — ${ACCOUNT_TYPE_LABELS[accountType]}`}
-      </h1>
+  const firstNameId = `${fieldId}-first-name`;
+  const lastNameId = `${fieldId}-last-name`;
+  const companyNameId = `${fieldId}-company-name`;
+  const vatIdId = `${fieldId}-vat-id`;
+  const phoneId = `${fieldId}-phone`;
+  const emailId = `${fieldId}-email`;
+  const passwordId = `${fieldId}-password`;
+  const cityId = `${fieldId}-city`;
+  const termsId = `${fieldId}-terms`;
+
+  return (
+    <AuthShell maxWidth="420" className="gap-6">
+      <BackLink onClick={() => router.push(flowHref("/sign-up", role, null))} />
+
+      <div className="flex flex-col gap-2.5">
+        <Eyebrow>Step 3 of 3 · Details</Eyebrow>
+        <AuthHeading>Create your account</AuthHeading>
+        <AuthSubheading>
+          {ROLE_LABELS[role]} · {accountTypeLabel(accountType)} · takes about a
+          minute.
+        </AuthSubheading>
+      </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        {accountType === "BUSINESS" ? (
-          <>
-            <label className="flex flex-col gap-1 text-sm">
-              Company name
-              <input
-                type="text"
-                required
-                value={companyName}
-                onChange={(event) => setCompanyName(event.target.value)}
-                className="rounded border px-3 py-2"
-              />
-            </label>
+        {formError ? <FormAlert title={formError} /> : null}
 
-            <label className="flex flex-col gap-1 text-sm">
-              VAT ID
-              <input
-                type="text"
-                required
-                value={vatId}
-                onChange={(event) => setVatId(event.target.value)}
-                className="rounded border px-3 py-2"
-              />
-            </label>
+        {accountType === "BUSINESS" ? (
+          /*
+            The handoff never designed the business identity fields — its
+            section 7 says "not designed yet, follow the same field pattern or
+            ask before building". This is that fallback: the same `Label` + 44px
+            `Input` pattern as every other field, in the slot the name row
+            occupies for an individual. They are not optional extras —
+            `/api/logistics-company` and `/api/client-profile` both require a
+            company name and a VAT ID, so a business account cannot be completed
+            without them.
+          */
+          <>
+            <TextField
+              id={companyNameId}
+              label="Company name"
+              value={companyName}
+              onChange={(value) => {
+                setCompanyName(value);
+                clearFieldError("companyName");
+              }}
+              autoComplete="organization"
+              error={fieldErrors.companyName}
+            />
+            <TextField
+              id={vatIdId}
+              label="VAT ID"
+              value={vatId}
+              onChange={(value) => {
+                setVatId(value);
+                clearFieldError("vatId");
+              }}
+              autoComplete="off"
+              error={fieldErrors.vatId}
+            />
           </>
         ) : (
-          <>
-            <label className="flex flex-col gap-1 text-sm">
-              First name
-              <input
-                type="text"
-                required
-                value={firstName}
-                onChange={(event) => setFirstName(event.target.value)}
-                className="rounded border px-3 py-2"
-              />
-            </label>
-
-            <label className="flex flex-col gap-1 text-sm">
-              Surname
-              <input
-                type="text"
-                required
-                value={lastName}
-                onChange={(event) => setLastName(event.target.value)}
-                className="rounded border px-3 py-2"
-              />
-            </label>
-          </>
+          /* `auto-fit` with a 150px floor is what drops the pair to one column
+             under ~330px — no breakpoint to keep in sync with the content. */
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-3">
+            <TextField
+              id={firstNameId}
+              label="First name"
+              value={firstName}
+              onChange={(value) => {
+                setFirstName(value);
+                clearFieldError("firstName");
+              }}
+              autoComplete="given-name"
+              error={fieldErrors.firstName}
+            />
+            <TextField
+              id={lastNameId}
+              label="Surname"
+              value={lastName}
+              onChange={(value) => {
+                setLastName(value);
+                clearFieldError("lastName");
+              }}
+              autoComplete="family-name"
+              error={fieldErrors.lastName}
+            />
+          </div>
         )}
 
-        <label className="flex flex-col gap-1 text-sm">
-          Phone number
-          <input
-            type="tel"
-            required
-            value={phone}
-            onChange={(event) => setPhone(event.target.value)}
-            className="rounded border px-3 py-2"
-          />
-        </label>
+        <PhoneField
+          id={phoneId}
+          value={phone}
+          onChange={(value) => {
+            setPhone(value);
+            clearFieldError("phone");
+          }}
+          helper="Used to verify your account and to reach you about a delivery."
+          error={fieldErrors.phone}
+          // `PhoneField` now maps `required` to `aria-required`, not to the HTML
+          // attribute, so this announces the obligation the way every other
+          // field on this form does without letting a browser bubble fire ahead
+          // of `validateSignUp`'s message. The validation itself is unchanged
+          // and still lives in `handleSubmit`: an empty or malformed number
+          // fails `isValidGeorgianPhone` there and blocks the submit.
+          required
+        />
 
-        <label className="flex flex-col gap-1 text-sm">
-          Email
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            className="rounded border px-3 py-2"
-          />
-        </label>
+        <TextField
+          id={emailId}
+          label="Email"
+          type="email"
+          value={email}
+          onChange={(value) => {
+            setEmail(value);
+            clearFieldError("email");
+          }}
+          placeholder="you@company.ge"
+          autoComplete="email"
+          error={fieldErrors.email}
+        />
 
-        <label className="flex flex-col gap-1 text-sm">
-          Password
-          <input
-            type="password"
-            required
-            minLength={8}
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            className="rounded border px-3 py-2"
-          />
-        </label>
+        <TextField
+          id={passwordId}
+          label="Password"
+          type="password"
+          value={password}
+          onChange={(value) => {
+            setPassword(value);
+            clearFieldError("password");
+          }}
+          autoComplete="new-password"
+          helper="At least 8 characters. Add a number to make it stronger."
+          error={fieldErrors.password}
+        >
+          <PasswordStrengthMeter strength={passwordStrength(password)} />
+        </TextField>
 
+        {/* Drivers only, exactly as before the redesign: a `DriverProfile` and a
+            `LogisticsCompany` both require a city, and a client is never asked
+            for one. Migrated from the old native `<select>` to the DS `Select`
+            the handoff specifies. */}
         {role === "DRIVER" ? (
-          <>
-            <label className="flex flex-col gap-1 text-sm">
-              City
-              <select
-                required
-                value={city}
-                onChange={(event) => setCity(event.target.value)}
-                className="rounded border px-3 py-2"
+          <div className="flex flex-col gap-2">
+            <Label htmlFor={cityId}>City</Label>
+            <Select
+              value={city}
+              onValueChange={(value) => {
+                setCity(value);
+                clearFieldError("city");
+              }}
+            >
+              <SelectTrigger
+                id={cityId}
+                aria-required="true"
+                aria-invalid={fieldErrors.city ? true : undefined}
+                aria-describedby={describedBy(
+                  cityId,
+                  false,
+                  Boolean(fieldErrors.city),
+                )}
+                // `data-[size=default]:h-11` alongside the plain `h-11` the
+                // handoff asks for: `SelectTrigger` writes its own height as
+                // `data-[size=default]:h-8`, and an attribute selector
+                // out-specifies a bare class — without this the trigger would
+                // keep its 32px and sit a step shorter than every input above
+                // it. Same fix `drivers-add-panel.tsx` makes.
+                className={cn(
+                  "h-11 w-full text-base data-[size=default]:h-11",
+                  fieldErrors.city && ERROR_INPUT_CLASS,
+                )}
               >
-                <option value="" disabled>
-                  Select a city…
-                </option>
+                <SelectValue placeholder="Select a city…" />
+              </SelectTrigger>
+              {/* Portalled out of the shell's subtree, so it has to carry
+                  `data-admin-surface` itself or it renders in the site palette
+                  (and, for a visitor in dark mode, in the dark one). */}
+              <SelectContent data-admin-surface="" className="max-h-72">
                 {GEORGIAN_CITY_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
+                  <SelectItem key={option.value} value={option.value}>
                     {option.label}
-                  </option>
+                  </SelectItem>
                 ))}
-              </select>
-            </label>
-          </>
+              </SelectContent>
+            </Select>
+            {fieldErrors.city ? (
+              <FieldError id={errorIdFor(cityId)}>
+                {fieldErrors.city}
+              </FieldError>
+            ) : null}
+          </div>
         ) : null}
 
-        {error ? <p className="text-sm text-red-600">{error}</p> : null}
+        <div className="flex flex-col gap-2">
+          {/* Checkbox and label as siblings tied by `htmlFor`, the pairing the
+              rest of the app uses (`static-page-form-dialog.tsx` and friends)
+              rather than nesting the control inside the `<label>`: Radix's
+              checkbox is a `<button>`, and a labelable control inside its own
+              label is the one arrangement where a stray second activation is
+              even possible. */}
+          <div className="flex items-start gap-2.5">
+            <Checkbox
+              id={termsId}
+              checked={termsAccepted}
+              // Radix models a third, indeterminate state; this box has only
+              // two, so anything that is not literally `true` is unchecked.
+              onCheckedChange={(checked) => {
+                setTermsAccepted(checked === true);
+                clearFieldError("terms");
+              }}
+              aria-required="true"
+              aria-invalid={fieldErrors.terms ? true : undefined}
+              aria-describedby={describedBy(
+                termsId,
+                false,
+                Boolean(fieldErrors.terms),
+              )}
+              // The box is 16px against a 19.5px line, so it needs a nudge to
+              // sit on the text's first line rather than above it.
+              className="mt-0.5"
+            />
+            <Label
+              htmlFor={termsId}
+              className="text-[13px] leading-[1.5] font-normal text-[#3f3c36]"
+            >
+              {/*
+                TODO: link these two phrases once the pages exist. The route is
+                already there — `/pages/[slug]` in `src/app/(public)` serves the
+                back office's Static Pages section — but nothing seeds a `terms`
+                or a `privacy` slug, so `/pages/terms` and `/pages/privacy` are
+                both 404s today. Until staff publish them these stay plain text
+                with the handoff's underline: a dead `href="#"` would land
+                keyboard focus on something that does nothing, which is the same
+                call `auth-shell.tsx` makes for its "Need help?" link.
+              */}
+              <span>
+                I agree to the{" "}
+                <span className="underline decoration-[#d8d4cb] underline-offset-4">
+                  terms of service
+                </span>{" "}
+                and the{" "}
+                <span className="underline decoration-[#d8d4cb] underline-offset-4">
+                  privacy policy
+                </span>
+                .
+              </span>
+            </Label>
+          </div>
+          {fieldErrors.terms ? (
+            <FieldError id={errorIdFor(termsId)}>
+              {fieldErrors.terms}
+            </FieldError>
+          ) : null}
+        </div>
 
-        <button
+        <Button
           type="submit"
           disabled={loading}
-          className="rounded border px-3 py-2 font-medium hover:opacity-70 disabled:opacity-50"
+          className="h-11 w-full text-base"
         >
-          {loading ? "Creating account…" : "Sign up"}
-        </button>
+          {loading ? "Creating account…" : "Create account"}
+        </Button>
+
+        <p className="text-sm text-[var(--landing-muted)]">
+          Already registered?{" "}
+          <InlineLinkButton
+            href={flowHref(MODE_PATHS.signin, role, accountType)}
+          >
+            Sign in
+          </InlineLinkButton>
+        </p>
       </form>
-    </main>
+    </AuthShell>
   );
 }
