@@ -2,10 +2,16 @@
  * Which vehicle classes may fulfil a load booked against another class — the
  * rule that replaced exact-class identity matching.
  *
- * **The rule: a vehicle may fulfil a load when it meets or beats the booked
- * class on all four capacity axes AND offers the body type the order asked
- * for.** The booked class is a *floor*, never a ceiling and never an identity.
- * Upgrades are always allowed; downgrades never are.
+ * **The rule: a vehicle may fulfil a load when it is registered under the booked
+ * class, or meets or beats that class on all four capacity axes — and, either
+ * way, offers the body type the order asked for.** The booked class is a
+ * *floor*, never a ceiling; identity is one way of clearing that floor and not a
+ * requirement to be at it. Upgrades are always allowed; downgrades never are.
+ *
+ * The identity clause is not redundant with the comparison, for a reason worth
+ * having in mind before reading either: the floor is a *catalogue* figure and a
+ * vehicle's capability is a *resolved* one, so a vehicle can measure below the
+ * very class it is registered as. `meetsBookedClass` documents that at length.
  *
  * **Why identity matching was wrong.** `Order.vehicleTypeSpecId` was read as a
  * contract that a vehicle of exactly that class turns up, and every claim path
@@ -70,8 +76,61 @@
 import type { VehicleCapability } from "@/lib/orders/vehicle-fit";
 
 /**
- * Whether `candidate` may fulfil a load booked against `booked` on capacity
- * grounds: at or above the booked class on payload, length, width and height.
+ * One vehicle, as the substitution rule sees it: the class it is registered
+ * under, and what it can actually carry.
+ *
+ * The two travel together in one argument because the rule needs both and needs
+ * them to be about the *same* vehicle. `vehicleTypeSpecId` is `Vehicle
+ * .vehicleTypeSpecId` — the class the carrier registered this truck as — and
+ * `capability` is `capabilityOf(vehicle, vehicle.vehicleTypeSpec)`, the resolved
+ * figures, which prefer the driver's own declarations over the catalogue's.
+ * Those two facts can disagree, and the disagreement is the whole reason the id
+ * is here; see `meetsBookedClass`.
+ */
+export type SubstitutionCandidate = {
+  vehicleTypeSpecId: string;
+  capability: VehicleCapability;
+};
+
+/**
+ * One booking, as the substitution rule sees it: the class the client chose and
+ * was quoted on, and the capacity floor that class sets.
+ *
+ * `vehicleTypeSpecId` is `Order.vehicleTypeSpecId`; `floor` is
+ * `specCapability(order.vehicleTypeSpec)` — always built through that helper and
+ * never from the four catalogue columns by hand, because it is the one place a
+ * `cargoHeightM` of `0` becomes `Infinity` for an open bed.
+ */
+export type BookedClass = {
+  vehicleTypeSpecId: string;
+  floor: VehicleCapability;
+};
+
+/**
+ * Whether `candidate` may fulfil a load booked against `booked`: a vehicle of
+ * the booked class always may, and so does any vehicle at or above that class's
+ * floor on payload, length, width and height.
+ *
+ * **The identity disjunct is not a shortcut for the comparison — it is a
+ * separate, load-bearing case, and leaving it out was a live defect.** The two
+ * sides of the comparison are not symmetrical: `floor` is the *catalogue* figure
+ * for the booked class, while `candidate.capability` is a *resolved* figure that
+ * `capabilityOf` takes from the carrier's own declarations wherever they exist.
+ * Registration floors only `payloadKg` against the class spec — the three
+ * dimensions are written verbatim, `src/lib/fleet-onboarding/vehicle-validation
+ * .ts` asking only that each be greater than zero, and the company onboarding
+ * path floors nothing at all. So a vehicle can and does resolve *below its own
+ * class's* catalogue figures: on the live fleet at the time of writing, a
+ * registered Minivan declares 1.9 x 1.22 x 1.21 m against its class's
+ * 2.0 x 1.4 x 1.3, and a registered Refrigerated Truck declares a hold 2.19 m
+ * tall against a class figure of 2.20. Compared on the numbers alone, both are
+ * refused work *in the class they are registered and approved to do*, and — since
+ * `src/lib/orders/class-serviceability.ts` asks this same question of the whole
+ * fleet — a class whose only registered vehicles under-declare becomes
+ * unserviceable, so clients are refused at booking for freight carriers actively
+ * operate. A vehicle admitted by the identity case is one the platform has
+ * already accepted as a member of that class; refusing it here would be the
+ * platform disagreeing with its own onboarding.
  *
  * **All four axes, with no compensation between them.** A vehicle with double
  * the payload but a shorter hold does not qualify — being enormous in one
@@ -80,12 +139,22 @@ import type { VehicleCapability } from "@/lib/orders/vehicle-fit";
  * compared like-for-like and in the same order `loadFits` compares them, so the
  * two predicates can be read side by side.
  *
- * **Bounds are inclusive, which is what makes this a strict superset of the
- * identity matching it replaces.** A class trivially meets itself on every axis,
- * so every claim the old exact-match rule allowed is still allowed; this rule
- * only ever *adds* candidates. Nothing that used to work can stop working
- * because of this function — a property worth keeping if the comparison is ever
- * revisited.
+ * **Bounds are inclusive, and with the identity disjunct this rule is a strict
+ * superset of the identity matching it replaces.** The superset property is the
+ * disjunct's doing and not the comparison's: a class does *not* trivially meet
+ * itself here, because the resolved figures on the left and the catalogue
+ * figures on the right are not the same numbers. Stated the other way round, so
+ * that it stays true if this is ever revisited: **the first clause is what
+ * guarantees nothing that used to work stops working, and the second is what
+ * adds candidates on top.** Neither clause can be dropped without changing which
+ * claims stand.
+ *
+ * **Physical safety is untouched by the identity case.** This function answers
+ * eligibility only. Every consumer goes on to ask `loadFits` / `classifyFit`
+ * about the actual cargo against the actual truck, so an under-declared vehicle
+ * admitted here is still refused any load it cannot physically take — it is
+ * measured against its own declared figures, which is exactly the measurement a
+ * driver is entitled to.
  *
  * **`Infinity` is a real value on both sides and is handled by the plain
  * comparison, not by a special case.** `VehicleTypeSpec.cargoHeightM` carries a
@@ -97,32 +166,52 @@ import type { VehicleCapability } from "@/lib/orders/vehicle-fit";
  * bed, and `Infinity >= Infinity` is `true`, so one open bed does substitute for
  * another.
  *
+ * **An open bed is a property of the class, and `capabilityOf` now reads it from
+ * the class alone — which is what makes the fourth combination reachable at
+ * all.** A vehicle registered under an open-bed class used to resolve to
+ * whatever finite height its carrier typed at onboarding (the validator demands
+ * a figure above zero and so cannot accept the sentinel), and a finite height
+ * never clears an infinite floor. The result was that an onboarded flatbed could
+ * not take a flatbed booking, could not make the flatbed class serviceable, and
+ * — because `CARGO_MEASUREMENT_BOUNDS`'s 4 m height ceiling is justified *by* the
+ * flatbed exception — left every load over the tallest enclosed hold unbookable
+ * on every class. The translation belongs to the catalogue row rather than to
+ * the carrier's form, so `capabilityOf` takes it from there; see that function.
+ *
  * **The consequence, stated rather than special-cased: a load booked as a
- * flatbed can only be fulfilled by another vehicle with no height limit.** A
- * Curtainsider (6000 kg, 6.0 x 2.4 x 2.4, and `OPEN_CHASSIS` among its body
- * types) beats the seeded Flatbed on payload, length and width, and still fails
- * here, because 2.4 is not greater than or equal to "no limit". Read as a
- * capacity claim that is exactly right: a flatbed client may be shipping
- * something that does not go under a roof at all — an excavator, a stacked load,
- * a crane-loaded module — and the platform has no figure that says otherwise,
- * because "unlimited" is precisely the absence of one. Refusing the substitution
- * costs an offer that might have worked; allowing it risks a truck arriving at a
- * pickup it cannot physically load. That is the same asymmetry `loadFits`
- * resolves the same way, and it is why this is left alone rather than papered
- * over with a "treat `Infinity` as 4 m" rule that would be a guess dressed as a
- * measurement. If flatbed substitution turns out to matter commercially, the fix
- * is a real maximum-height figure on the catalogue row, not a comparison
- * exception here.
+ * flatbed can only be fulfilled by a vehicle of that class or by another with no
+ * height limit.** A Curtainsider (6000 kg, 6.0 x 2.4 x 2.4, and `OPEN_CHASSIS`
+ * among its body types) beats the seeded Flatbed on payload, length and width,
+ * and still fails the comparison, because 2.4 is not greater than or equal to
+ * "no limit". Read as a capacity claim that is exactly right: a flatbed client
+ * may be shipping something that does not go under a roof at all — an excavator,
+ * a stacked load, a crane-loaded module — and the platform has no figure that
+ * says otherwise, because "unlimited" is precisely the absence of one. Refusing
+ * the substitution costs an offer that might have worked; allowing it risks a
+ * truck arriving at a pickup it cannot physically load. That is the same
+ * asymmetry `loadFits` resolves the same way, and it is why this is left alone
+ * rather than papered over with a "treat `Infinity` as 4 m" rule that would be a
+ * guess dressed as a measurement. If flatbed substitution turns out to matter
+ * commercially, the fix is a real maximum-height figure on the catalogue row,
+ * not a comparison exception here.
  */
 export function meetsBookedClass(
-  candidate: VehicleCapability,
-  booked: VehicleCapability,
+  candidate: SubstitutionCandidate,
+  booked: BookedClass,
 ): boolean {
+  // The identity case, first and unconditional: a vehicle registered under the
+  // class the client booked is by definition a vehicle of that class, whatever
+  // its declared figures say. Never fold this into the comparison below — the
+  // two sides measure different things (see above).
+  if (candidate.vehicleTypeSpecId === booked.vehicleTypeSpecId) {
+    return true;
+  }
+
   return (
-    candidate.payloadKg >= booked.payloadKg &&
-    candidate.lengthM >= booked.lengthM &&
-    candidate.widthM >= booked.widthM &&
-    candidate.heightM >= booked.heightM
+    candidate.capability.payloadKg >= booked.floor.payloadKg &&
+    candidate.capability.lengthM >= booked.floor.lengthM &&
+    candidate.capability.widthM >= booked.floor.widthM &&
+    candidate.capability.heightM >= booked.floor.heightM
   );
 }
 

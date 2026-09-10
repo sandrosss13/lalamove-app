@@ -104,17 +104,20 @@ export async function POST(
   // `reference` never changes after the order is created. The cargo columns feed
   // the physical fit re-check below.
   //
-  // **`bodyType` and the booked class's four capacity columns replace the bare
+  // **`bodyType` and the booked class's four capacity columns join the bare
   // `vehicleTypeSpecId` this route used to filter the fleet by.** The class id
-  // was only ever used to look for an exact-class vehicle; what the substitution
-  // rule below needs instead is the *floor* that class sets — its payload and
-  // three hold dimensions — plus the body the client asked for.
+  // was only ever used to look for an exact-class vehicle, and it is no longer
+  // used that way: it goes to `meetsBookedClass`, whose identity clause admits a
+  // vehicle registered under the booked class outright. What that function needs
+  // alongside it is the *floor* the class sets — its payload and three hold
+  // dimensions — plus the body the client asked for.
   const existing = await prisma.order.findUnique({
     where: { id },
     select: {
       id: true,
       reference: true,
       bodyType: true,
+      vehicleTypeSpecId: true,
       vehicleTypeSpec: {
         select: {
           maxPayloadKg: true,
@@ -165,6 +168,9 @@ export async function POST(
   const fleet = await prisma.vehicle.findMany({
     where: { companyId: company.id },
     select: {
+      // Read only by `meetsBookedClass`'s identity clause — never compared
+      // against the order's class by hand.
+      vehicleTypeSpecId: true,
       payloadKg: true,
       cargoLengthM: true,
       cargoWidthM: true,
@@ -187,29 +193,44 @@ export async function POST(
   // would give a flatbed booking a height floor of zero that every vehicle on the
   // platform trivially clears, turning the strictest class in the catalogue into
   // the most substitutable one.
-  const bookedClass = specCapability(existing.vehicleTypeSpec);
+  const bookedClass = {
+    vehicleTypeSpecId: existing.vehicleTypeSpecId,
+    floor: specCapability(existing.vehicleTypeSpec),
+  };
 
   // Which of this fleet's vehicles could actually fulfil the booking: the right
-  // body, and at or above the booked class on all four axes. Never smaller than
-  // what the client paid for — the substitution rule is upgrade-only.
+  // body, and either registered under the booked class or at or above it on all
+  // four axes. Never smaller than what the client paid for — the substitution
+  // rule is upgrade-only, and its identity clause is not an exception to that
+  // (a vehicle of the booked class *is* what the client paid for, whatever the
+  // catalogue average says about the class it belongs to).
   //
   // The body filter runs first, on the raw row, because it reads the spec
   // directly and a vehicle with the wrong load space is out however large it is;
-  // the survivors are then resolved to capabilities and measured against the
-  // floor.
+  // the survivors are then paired with their resolved capability and put to the
+  // substitution rule, and only the capabilities of those that clear it are
+  // carried forward to the fit check.
   const eligibleCapabilities = fleet
     .filter((vehicle) =>
       offersBodyType(vehicle.vehicleTypeSpec.bodyTypes, existing.bodyType),
     )
-    .map((vehicle) => capabilityOf(vehicle, vehicle.vehicleTypeSpec))
-    .filter((capability) => meetsBookedClass(capability, bookedClass));
+    .map((vehicle) => ({
+      vehicleTypeSpecId: vehicle.vehicleTypeSpecId,
+      capability: capabilityOf(vehicle, vehicle.vehicleTypeSpec),
+    }))
+    .filter((candidate) => meetsBookedClass(candidate, bookedClass))
+    .map((candidate) => candidate.capability);
 
   // `widestCapability` returns null for an empty list and only for an empty list,
   // so the "no vehicle that can fulfil this" 400 and the capability the fit check
   // needs fall out of one expression rather than two checks that could drift
   // apart. Only the *eligible* subset is widened, which is what keeps the
-  // optimism below honest: every capability folded in already meets the booked
-  // class, so the composite it produces does too.
+  // optimism below honest: every capability folded in belongs to a vehicle the
+  // dispatch route would accept for this order, so the composite describes one
+  // it would accept too. (Not the same as "every axis clears the floor" — a
+  // vehicle admitted by the identity clause may sit under its own class on an
+  // axis, and so may the composite. That is the booked class as its operator
+  // declared it, not a downgrade.)
   const fleetCapability = widestCapability(eligibleCapabilities);
 
   if (fleetCapability === null) {

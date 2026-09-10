@@ -147,15 +147,18 @@ export async function POST(
   // to fit the vehicle this request names, not merely the widest set of figures
   // the fleet could muster at claim time.
   //
-  // **`bodyType` and the booked class's four capacity columns replace the bare
-  // `vehicleTypeSpecId` this route used to compare the assigned vehicle against.**
-  // Nothing checks class ids for equality any more; what the substitution rule
-  // below needs is the floor that class sets and the body the client asked for.
+  // **`bodyType` and the booked class's four capacity columns join the bare
+  // `vehicleTypeSpecId` this route used to compare the assigned vehicle
+  // against.** Nothing checks class ids for equality here any more; the id goes
+  // to `meetsBookedClass`, whose identity clause admits a vehicle registered
+  // under the booked class, and the figures give that same function the floor
+  // every other vehicle has to clear.
   const order = await prisma.order.findFirst({
     where: { id, companyId: company.id, status: OrderStatus.CLAIMED },
     select: {
       id: true,
       bodyType: true,
+      vehicleTypeSpecId: true,
       vehicleTypeSpec: {
         select: {
           maxPayloadKg: true,
@@ -202,12 +205,13 @@ export async function POST(
   // `vehicleTypeSpec.bodyTypes` is selected for the substitution check below and
   // is the one field here that is not a capacity figure: it is which load spaces
   // this vehicle's class offers, which no amount of payload stands in for.
-  // `vehicleTypeSpecId` is deliberately no longer selected — nothing compares
-  // class ids any more.
+  // `vehicleTypeSpecId` is selected for one purpose only: `meetsBookedClass`'s
+  // identity clause. Nothing here compares the two ids by hand.
   const vehicle = await prisma.vehicle.findFirst({
     where: { id: vehicleId, companyId: company.id },
     select: {
       id: true,
+      vehicleTypeSpecId: true,
       payloadKg: true,
       cargoLengthM: true,
       cargoWidthM: true,
@@ -279,8 +283,11 @@ export async function POST(
   // one vehicle being assigned, so a dispatcher cannot assign a vehicle that
   // could not have claimed the load. They are two tests because a bigger hold is
   // not the same promise as the right *kind* of hold: `meetsBookedClass` is the
-  // four-axis floor, `offersBodyType` is the load space (a null `bodyType` on the
-  // order asked for no particular body and imposes no requirement).
+  // four-axis floor plus an identity clause for a vehicle of the booked class
+  // itself (registration floors only `payloadKg`, so such a vehicle can measure
+  // under its own class and must not be refused its own work), `offersBodyType`
+  // is the load space (a null `bodyType` on the order asked for no particular
+  // body and imposes no requirement).
   //
   // Both come from `@/lib/orders/class-substitution`, read by `GET /api/loads`
   // and both claim routes as well — one definition of "may this vehicle fulfil
@@ -289,9 +296,20 @@ export async function POST(
   // four spec columns read by hand, because `capabilityOf` is where
   // `cargoHeightM: 0` becomes `Infinity` for an open bed; a literal would give a
   // flatbed booking a height floor of zero that anything clears.
-  const bookedClass = specCapability(order.vehicleTypeSpec);
+  const bookedClass = {
+    vehicleTypeSpecId: order.vehicleTypeSpecId,
+    floor: specCapability(order.vehicleTypeSpec),
+  };
 
-  if (!meetsBookedClass(vehicleCapability, bookedClass)) {
+  if (
+    !meetsBookedClass(
+      {
+        vehicleTypeSpecId: vehicle.vehicleTypeSpecId,
+        capability: vehicleCapability,
+      },
+      bookedClass,
+    )
+  ) {
     return NextResponse.json(
       {
         error:

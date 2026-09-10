@@ -30,13 +30,15 @@ const HUB_HOME = "/dashboard/today";
  * The capacity columns every vehicle read on this page needs, plus the class
  * spec `capabilityOf` falls back to per field.
  *
- * **`vehicleTypeSpecId` is deliberately no longer selected.** It was here so the
- * board could pick a claim vehicle by comparing class ids against the order's —
- * exact-class identity matching, the rule `src/lib/orders/class-substitution.ts`
- * replaced. Nothing on this screen compares class ids any more, and the fields
- * that took its place are the ones the substitution rule actually reads: the
- * class's four capacity figures (already here for the pill) and its `bodyTypes`.
- * `POST /api/orders/[id]/accept` dropped the same column for the same reason.
+ * **`vehicleTypeSpecId` is selected, and nothing on this screen compares it.**
+ * It was once here so the board could pick a claim vehicle by matching class ids
+ * against the order's — exact-class identity matching, the rule
+ * `src/lib/orders/class-substitution.ts` replaced. It comes back as an *input*
+ * to that rule rather than as the rule: `meetsBookedClass` admits a vehicle
+ * registered under the booked class outright, because registration floors only
+ * `payloadKg` against the class spec and a vehicle can therefore resolve below
+ * the very class it is approved to operate in. `POST /api/orders/[id]/accept`
+ * selects it again for the same reason and uses it the same way.
  *
  * `plateNumber` and `vehicleTypeSpec.label` are the only two fields here that no
  * rule reads: they name a vehicle to the driver in the confirm dialog's picker,
@@ -51,6 +53,7 @@ const HUB_HOME = "/dashboard/today";
 const VEHICLE_SELECT = {
   id: true,
   plateNumber: true,
+  vehicleTypeSpecId: true,
   payloadKg: true,
   cargoLengthM: true,
   cargoWidthM: true,
@@ -207,6 +210,7 @@ async function resolveVehicles(
     claimVehicles: vehicles.map((vehicle) => ({
       id: vehicle.id,
       plateNumber: vehicle.plateNumber,
+      vehicleTypeSpecId: vehicle.vehicleTypeSpecId,
       payloadKg: vehicle.payloadKg,
       cargoLengthM: vehicle.cargoLengthM,
       cargoWidthM: vehicle.cargoWidthM,

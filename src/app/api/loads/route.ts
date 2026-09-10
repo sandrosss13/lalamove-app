@@ -28,6 +28,7 @@ import { specCapability } from "@/lib/orders/booking-fit";
 import {
   meetsBookedClass,
   offersBodyType,
+  type BookedClass,
 } from "@/lib/orders/class-substitution";
 import {
   capabilityOf,
@@ -164,15 +165,17 @@ const CLAIMED_BY_OTHERS_STATUSES: readonly OrderStatus[] = [
  * which is the *commercial* half of eligibility and is read for a different
  * purpose from the four capacity columns.
  *
- * **`vehicleTypeSpecId` is deliberately not selected any more.** It was, while a
- * load was offered only to a vehicle registered under exactly the class the
- * client booked, and the eligibility filter grouped the fleet by that id before
- * measuring anything. Under upgrade-based substitution the id is not a fact
- * about eligibility at all: what qualifies a vehicle is its resolved capability
- * against the booked class's floor plus the bodies its class offers, both of
- * which are selected here. Leaving the id in would invite a future reader to
- * re-add an equality test that `src/lib/orders/class-substitution.ts` exists to
- * have removed.
+ * **`vehicleTypeSpecId` is selected, and it is no longer a grouping key.** It
+ * once was: a load was offered only to a vehicle registered under exactly the
+ * class the client booked, and the eligibility filter bucketed the fleet by that
+ * id before measuring anything. Under upgrade-based substitution the id is one
+ * *input* to the rule rather than the rule itself — `meetsBookedClass` admits a
+ * vehicle registered under the booked class unconditionally, because a vehicle's
+ * resolved capability can measure below its own class's catalogue figures and
+ * refusing it would put this route at odds with the onboarding that approved it.
+ * It is handed to that function and compared nowhere else in this file; the
+ * equality test `src/lib/orders/class-substitution.ts` exists to have removed
+ * was the *only* test, not this clause of it.
  *
  * **Both halves are selected deliberately, and the vehicle's own columns are
  * the more important half.** `capabilityOf` prefers the driver-declared
@@ -204,6 +207,9 @@ const CLAIMED_BY_OTHERS_STATUSES: readonly OrderStatus[] = [
  * otherwise be permanently empty.
  */
 const VEHICLE_CAPABILITY_SELECT = {
+  // The class this vehicle is registered under, read only by the substitution
+  // rule's identity clause — see the note above.
+  vehicleTypeSpecId: true,
   payloadKg: true,
   cargoLengthM: true,
   cargoWidthM: true,
@@ -315,18 +321,32 @@ export type LoadBoardResponse = {
    * substitution, and the sentence survives that unchanged.** It used to count
    * loads that a vehicle *of the booked class* was measured against and found
    * too small for; it now counts loads that every vehicle *permitted to
-   * substitute for the booked class* — big enough on all four axes, offering
-   * the right body — was measured against and found too small for. The
-   * denominator is strictly larger (substitution only ever adds candidates), so
-   * the number can only fall: a load a driver's own class was too small for may
-   * now be picked up by a bigger vehicle of theirs and be listed instead of
-   * counted.
+   * substitute for the booked class* — registered under it, or big enough on all
+   * four axes — and offering the right body was measured against and found too
+   * small for.
    *
-   * A consequence worth knowing before reading a low number as a bug: because
-   * every candidate meets or beats the booked class on all four axes, a load
-   * whose declared envelope fits *the class the client booked* fits every
-   * candidate too, and can never be counted here. What remains countable is
-   * exactly the loads whose declared envelope exceeds their own booked class
+   * **That denominator is not simply larger, and this number can move either
+   * way.** Substitution adds candidates that exact-class matching refused
+   * (anything bigger, of any class) and removes candidates it allowed: the old
+   * rule tested the class id and nothing else, so a vehicle of the booked class
+   * whose class does not offer the order's `bodyType` used to qualify and no
+   * longer does. `POST /api/orders` now refuses a booking naming a body its own
+   * class lacks, so that is a historical shape rather than one new orders can
+   * take — but historical rows are most of what a board of legacy `PENDING`
+   * orders is. So a load that had a candidate can lose its last one and become
+   * `NO_ELIGIBLE_VEHICLE`, dropping out of this count entirely — and a load that
+   * had *no* candidate under the old rule, and was therefore dropped uncounted,
+   * can gain a bigger substitute that it does not fit and be counted here for the
+   * first time. The figure can rise. Read it as "loads a permitted vehicle was
+   * measured against and found too small for", never as a trend line.
+   *
+   * A consequence worth knowing before reading a low number as a bug: a load
+   * whose declared envelope fits *the class the client booked* is counted only
+   * in the narrow case where the candidate that admitted it is one of the
+   * under-declared vehicles the identity clause lets through — every other
+   * candidate meets or beats the booked class on all four axes and therefore
+   * takes anything that class would. What remains countable is otherwise exactly
+   * the loads whose declared envelope exceeds their own booked class
    * (`POST /api/orders` refuses those at booking, so they are historical rows
    * predating that guard) and the partially declared ones `loadFits` refuses
    * all-or-nothing. On a healthy book this figure is therefore usually zero,
@@ -475,6 +495,7 @@ type LoadEligibility = "ELIGIBLE" | "NO_ELIGIBLE_VEHICLE" | "OVER_CAPACITY";
  * convention `capabilityOf` itself follows.
  */
 type CapabilitySource = {
+  vehicleTypeSpecId: string;
   payloadKg: number | null;
   cargoLengthM: number | null;
   cargoWidthM: number | null;
@@ -489,17 +510,23 @@ type CapabilitySource = {
 };
 
 /**
- * One of this account's vehicles, reduced to the two facts eligibility asks
- * about: what it can carry, and which load spaces its class offers.
+ * One of this account's vehicles, reduced to the three facts eligibility asks
+ * about: which class it is registered under, what it can carry, and which load
+ * spaces that class offers.
  *
- * The two travel together on one object because they are only meaningful
- * together — they are the two halves of "may *this* vehicle take that load", and
- * the bug the old code structure invited was answering them from two different
- * vehicles. Keeping them on the same record makes that mistake unrepresentable
- * rather than merely avoided: there is no list of capabilities to filter
- * independently of a list of body types.
+ * They travel together on one object because they are only meaningful together —
+ * they are the halves of "may *this* vehicle take that load", and the bug the
+ * old code structure invited was answering them from two different vehicles.
+ * Keeping them on the same record makes that mistake unrepresentable rather than
+ * merely avoided: there is no list of capabilities to filter independently of a
+ * list of body types.
+ *
+ * The first two fields are named exactly as `SubstitutionCandidate` names them,
+ * so this record *is* one and goes to `meetsBookedClass` whole rather than being
+ * unpacked and reassembled at the call site.
  */
 type FleetVehicle = {
+  vehicleTypeSpecId: string;
   capability: VehicleCapability;
   bodyTypes: readonly string[];
 };
@@ -528,6 +555,7 @@ type FleetVehicle = {
  */
 function resolveFleet(vehicles: readonly CapabilitySource[]): FleetVehicle[] {
   return vehicles.map((vehicle) => ({
+    vehicleTypeSpecId: vehicle.vehicleTypeSpecId,
     capability: capabilityOf(vehicle, vehicle.vehicleTypeSpec),
     bodyTypes: vehicle.vehicleTypeSpec.bodyTypes,
   }));
@@ -1000,8 +1028,16 @@ export async function GET(request: Request): Promise<NextResponse> {
     },
   });
 
-  const floorByBookedClass = new Map<string, VehicleCapability>(
-    bookedSpecs.map((spec) => [spec.id, specCapability(spec)]),
+  // Keyed by the same id the value carries, because `meetsBookedClass` needs the
+  // booked class's identity as well as its figures: a vehicle registered under
+  // the booked class qualifies whatever the numbers say. Storing the id in the
+  // value rather than relying on the caller to pass the key back is what stops a
+  // future lookup handing one class's floor to another class's identity test.
+  const floorByBookedClass = new Map<string, BookedClass>(
+    bookedSpecs.map((spec) => [
+      spec.id,
+      { vehicleTypeSpecId: spec.id, floor: specCapability(spec) },
+    ]),
   );
 
   /**
@@ -1037,14 +1073,14 @@ export async function GET(request: Request): Promise<NextResponse> {
       return cached;
     }
 
-    const floor = floorByBookedClass.get(order.vehicleTypeSpecId);
+    const booked = floorByBookedClass.get(order.vehicleTypeSpecId);
     const candidates =
-      floor === undefined
+      booked === undefined
         ? []
         : fleet.filter(
             (vehicle) =>
               offersBodyType(vehicle.bodyTypes, order.bodyType) &&
-              meetsBookedClass(vehicle.capability, floor),
+              meetsBookedClass(vehicle, booked),
           );
 
     candidatesByBooking.set(bookingKey, candidates);
@@ -1140,11 +1176,18 @@ export async function GET(request: Request): Promise<NextResponse> {
        * to "which of my **permitted** vehicles turns up", which remains the only
        * question assignment gets to answer.
        *
-       * One property worth stating because it is not obvious: every candidate
-       * already meets or beats the booked class on all four axes, so their
-       * per-axis maximum does too. The composite may be a vehicle that does not
-       * exist, but it is never a vehicle the client would have been short-changed
-       * by — the optimism can cost an assignment, never a downgrade.
+       * One property worth stating because it is not obvious: every candidate is
+       * one the claim route would accept for this order, so their per-axis
+       * maximum describes a vehicle the claim route would accept too. The
+       * composite may not exist, but it is never a *downgrade* — the optimism
+       * can cost an assignment, never the client's booking.
+       *
+       * Note the property is about eligibility and not about the four numbers.
+       * A candidate admitted by `meetsBookedClass`'s identity clause — a vehicle
+       * of the booked class whose declared figures fall under its own class's
+       * catalogue ones — can sit below the floor on an axis, and so therefore can
+       * the composite. That is not a downgrade: it is the class the client
+       * booked, resolved from what its operator actually declared.
        */
       const widest = widestCapability(capabilities);
 

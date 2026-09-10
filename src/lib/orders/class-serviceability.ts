@@ -17,9 +17,10 @@
  * is. A refusal at booking is information the client can act on at the moment
  * they can still act on it; a stranded order is not.
  *
- * **Serviceable means: at least one `Vehicle` on an activated account has a
- * resolved capability that `meetsBookedClass` the class's own floor** (and, when
- * the booking names one, whose class `offersBodyType` it). That is deliberately
+ * **Serviceable means: at least one `Vehicle` on an activated account is
+ * registered under the class, or has a resolved capability that
+ * `meetsBookedClass` the class's own floor** (and, when the booking names one,
+ * whose class `offersBodyType` it). That is deliberately
  * the *same* pair of predicates `GET /api/loads` filters the board with and the
  * three claim routes enforce at commit — read from the same module, not
  * reimplemented here. Serviceability is precisely the question "could this order
@@ -85,8 +86,10 @@ import { specCapability } from "@/lib/orders/booking-fit";
 import {
   meetsBookedClass,
   offersBodyType,
+  type BookedClass,
+  type SubstitutionCandidate,
 } from "@/lib/orders/class-substitution";
-import { capabilityOf, type VehicleCapability } from "@/lib/orders/vehicle-fit";
+import { capabilityOf } from "@/lib/orders/vehicle-fit";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -133,12 +136,21 @@ const ACTIVATED_CARRIER_VEHICLE_WHERE: Prisma.VehicleWhereInput = {
  * so a truck that beats its class average is credited for it, and the body list
  * comes from the class rather than from the nullable `Vehicle.chassisType`.
  *
- * `vehicleTypeSpecId` is deliberately absent. Which class a vehicle is registered
- * under says nothing about which classes it can *serve* — that is the whole
- * content of upgrade substitution — and selecting the id would invite a future
- * reader to answer this module's question with an equality test.
+ * `vehicleTypeSpecId` is present for exactly one reason and is never compared
+ * here by hand. Which class a vehicle is registered under does not decide which
+ * *other* classes it can serve — that is the whole content of upgrade
+ * substitution — but it does decide one thing outright: a vehicle can always
+ * serve its own class. `meetsBookedClass` holds that clause, and it is not
+ * cosmetic. Registration floors only `payloadKg` against the class spec, so a
+ * registered vehicle can resolve below its own class's catalogue dimensions;
+ * without the id, such a vehicle counts as no supply for the class it is
+ * approved to operate in, and a class whose only registered vehicles
+ * under-declare is reported unserviceable — refusing clients at booking for
+ * freight carriers actively run. Two of the eight vehicles on the live fleet
+ * were in exactly that position.
  */
 const SUPPLY_VEHICLE_SELECT = {
+  vehicleTypeSpecId: true,
   payloadKg: true,
   cargoLengthM: true,
   cargoWidthM: true,
@@ -211,6 +223,19 @@ const CLASS_FLOOR_SELECT = {
  * activate one, which is a thing that has to happen for the deployment to work
  * anyway.
  *
+ * **What activating one carrier buys, precisely.** Registering one vehicle makes
+ * *the class it is registered under* bookable, immediately and with no deploy —
+ * that is `meetsBookedClass`'s identity clause, and it holds even for
+ * `FLATBED_TRUCK`, whose floor is infinite on height and which no set of declared
+ * figures can clear (`capabilityOf` reads the open-bed sentinel from the class,
+ * so a flatbed also clears its own floor on the numbers). It additionally makes
+ * bookable every *smaller* class that vehicle out-measures on all four axes and
+ * whose body it offers, which on a real catalogue is usually several. It does
+ * **not** make the whole catalogue bookable: a class larger than the registered
+ * vehicle stays unserviceable until somebody registers for it. "Register one
+ * Trailer Truck and that class is bookable" is a statement about that class, not
+ * about the platform.
+ *
  * **Related but distinct: `HIDDEN_UNTIL_STOCKED`** in
  * `src/lib/vehicle-type-visibility.ts`. That is a hand-maintained list of codes
  * withheld from the public pickers until a *dispatchable vehicle of exactly that
@@ -238,11 +263,18 @@ export async function serviceableSpecIds(
   // The body test is a fact about the vehicle alone, so it is applied once here
   // rather than inside the per-class loop below — where it would be re-evaluated
   // for every class against every vehicle and could not change its answer.
-  const candidates: VehicleCapability[] = vehicles
+  //
+  // The class id travels with the capability because `meetsBookedClass` needs
+  // both: a vehicle registered under a class serves that class whatever its
+  // declared figures resolve to. See `SUPPLY_VEHICLE_SELECT`.
+  const candidates: SubstitutionCandidate[] = vehicles
     .filter((vehicle) =>
       offersBodyType(vehicle.vehicleTypeSpec.bodyTypes, bodyType),
     )
-    .map((vehicle) => capabilityOf(vehicle, vehicle.vehicleTypeSpec));
+    .map((vehicle) => ({
+      vehicleTypeSpecId: vehicle.vehicleTypeSpecId,
+      capability: capabilityOf(vehicle, vehicle.vehicleTypeSpec),
+    }));
 
   const serviceable = new Set<string>();
 
@@ -253,9 +285,12 @@ export async function serviceableSpecIds(
     // height that every vehicle on the platform trivially clears — turning the
     // strictest floor in the catalogue into the loosest, and reporting as
     // serviceable the very class this module was written to refuse.
-    const floor = specCapability(vehicleClass);
+    const booked: BookedClass = {
+      vehicleTypeSpecId: vehicleClass.id,
+      floor: specCapability(vehicleClass),
+    };
 
-    if (candidates.some((candidate) => meetsBookedClass(candidate, floor))) {
+    if (candidates.some((candidate) => meetsBookedClass(candidate, booked))) {
       serviceable.add(vehicleClass.id);
     }
   }

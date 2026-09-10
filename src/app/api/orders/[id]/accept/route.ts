@@ -177,6 +177,10 @@ export async function POST(
       id: true,
       reference: true,
       bodyType: true,
+      // The booked class's identity, read back alongside its figures: a vehicle
+      // registered under this class may fulfil the booking whatever its own
+      // declared capacity resolves to. See `meetsBookedClass`.
+      vehicleTypeSpecId: true,
       vehicleTypeSpec: {
         select: {
           maxPayloadKg: true,
@@ -207,12 +211,14 @@ export async function POST(
   // `vehicleTypeSpec.bodyTypes` is selected for the substitution check below and
   // is the one field here that is not a capacity figure: it is which load spaces
   // this vehicle's class actually offers, which no amount of payload can stand in
-  // for. `vehicleTypeSpecId` is deliberately no longer selected — nothing
-  // compares class ids any more.
+  // for. `vehicleTypeSpecId` is selected for one purpose only:
+  // `meetsBookedClass`'s identity clause, which admits a vehicle registered
+  // under the booked class outright. Nothing here compares the two ids by hand.
   const vehicle = await prisma.vehicle.findFirst({
     where: { id: vehicleId, driverProfileId: driverProfile.id },
     select: {
       id: true,
+      vehicleTypeSpecId: true,
       payloadKg: true,
       cargoLengthM: true,
       cargoWidthM: true,
@@ -256,9 +262,13 @@ export async function POST(
   //
   // The replacement is the upgrade rule, and it is two tests because a bigger
   // hold is not the same promise as the right *kind* of hold:
-  //  - `meetsBookedClass` — this vehicle's resolved capability is at or above the
-  //    booked class's catalogue capability on all four axes. Never smaller than
-  //    what was paid for; bigger is always welcome.
+  //  - `meetsBookedClass` — this vehicle is registered under the booked class, or
+  //    its resolved capability is at or above that class's catalogue capability
+  //    on all four axes. Never smaller than what was paid for; bigger is always
+  //    welcome. The identity clause is not redundant: registration floors only
+  //    `payloadKg` against the spec, so a vehicle can resolve *below* the very
+  //    class it is approved to operate in, and comparing figures alone refused
+  //    two of the eight vehicles on the live fleet work in their own class.
   //  - `offersBodyType` — the class this vehicle is registered under offers the
   //    body the client asked for. A dry box does not fulfil a refrigerated
   //    booking however much it out-measures it, and an order with a null
@@ -276,9 +286,20 @@ export async function POST(
   // literal would give a flatbed booking a height floor of zero, which every
   // vehicle on the platform trivially clears — silently turning the strictest
   // class on the catalogue into the most substitutable one.
-  const bookedClass = specCapability(existing.vehicleTypeSpec);
+  const bookedClass = {
+    vehicleTypeSpecId: existing.vehicleTypeSpecId,
+    floor: specCapability(existing.vehicleTypeSpec),
+  };
 
-  if (!meetsBookedClass(vehicleCapability, bookedClass)) {
+  if (
+    !meetsBookedClass(
+      {
+        vehicleTypeSpecId: vehicle.vehicleTypeSpecId,
+        capability: vehicleCapability,
+      },
+      bookedClass,
+    )
+  ) {
     return NextResponse.json(
       {
         error:

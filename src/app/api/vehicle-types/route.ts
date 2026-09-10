@@ -11,7 +11,28 @@ import { visibleVehicleTypeWhere } from "@/lib/vehicle-type-visibility";
  *
  * Public and unauthenticated: this is reference data a visitor needs before
  * signing up, and unlike the estimate endpoint it spends no third-party API
- * budget — one indexed read — so it carries no rate limit.
+ * budget, so it carries no rate limit.
+ *
+ * **It is no longer "one indexed read", and the rate-limit decision above has
+ * not been revisited in light of that.** `serviceableSpecIds()` adds a second
+ * and a third query, and one of them is a `Vehicle.findMany` filtered on an `OR`
+ * over two *relation* predicates (`company.activatedAt`,
+ * `driverProfile.activatedAt`) with no `take`. `Vehicle` carries only
+ * `@@index([driverProfileId])` and `@@index([companyId])`, neither of which
+ * serves a filter on the related row, so that read is a fleet scan whose cost
+ * grows with the business — on an endpoint anybody on the internet may call in a
+ * loop, with no `revalidate` and no `Cache-Control` on the response.
+ * `POST /api/orders` pays the same scan once per booking.
+ *
+ * The fix this wants is the one `src/lib/orders/class-serviceability.ts`'s own
+ * cost note prescribes: cache the snapshot the answer is derived from and
+ * invalidate it from every path that writes a `Vehicle` or an account's
+ * `activatedAt`. That is deliberately **not** done here yet — a cache without
+ * complete invalidation is worse than the scan, because it refuses bookings for
+ * a class whose carrier has just been approved. Tracked as follow-up work; do
+ * not add a partial version of it. A supporting index on `Vehicle` may also be
+ * warranted, but it needs a schema change and a migration and so is a separate
+ * decision from the caching.
  *
  * Ordered by category then label, which lists medium-duty types before
  * heavy-duty ones (the enum's declaration order) — a sensible default for a

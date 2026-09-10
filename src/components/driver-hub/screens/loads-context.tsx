@@ -11,8 +11,15 @@ import {
 import {
   meetsBookedClass,
   offersBodyType,
+  type BookedClass,
 } from "@/lib/orders/class-substitution";
-import { capabilityOf, type VehicleCapability } from "@/lib/orders/vehicle-fit";
+import {
+  capabilityOf,
+  hasDeclaredEnvelope,
+  loadFits,
+  type LoadDimensions,
+  type VehicleCapability,
+} from "@/lib/orders/vehicle-fit";
 
 /**
  * The load board's one shared state container.
@@ -299,10 +306,13 @@ export const WEIGHT_FILTER_STEP_KG = 50;
  *
  * **This used to be `{ id, vehicleTypeSpecId }` and nothing else**, because the
  * board picked a claim vehicle by comparing that id to the order's for equality.
- * The class id is gone entirely; what replaced it is everything
+ * That comparison is gone; what joined the class id is everything
  * `capabilityOf(vehicle, vehicle.vehicleTypeSpec)` reads — the driver's own
  * declared figures, nullable per field, with the class catalogue behind them —
- * plus the class's `bodyTypes`, which no amount of capacity substitutes for.
+ * plus the class's `bodyTypes`, which no amount of capacity substitutes for. The
+ * id itself stays because `meetsBookedClass` takes it: a vehicle registered
+ * under the booked class qualifies whatever its declared figures resolve to, and
+ * it is that function's business to say so, not this file's.
  *
  * The field names deliberately mirror the Prisma selects in
  * `POST /api/orders/[id]/accept` and `GET /api/loads`, down to the nested
@@ -313,6 +323,11 @@ export type LoadsClaimVehicle = {
   id: string;
   /** For the picker only. What a driver calls the truck; a cuid is not. */
   plateNumber: string;
+  /**
+   * The class this vehicle is registered under. Handed to `meetsBookedClass`
+   * and compared nowhere in this file — see the note above.
+   */
+  vehicleTypeSpecId: string;
   /**
    * The driver's own declared capacity, nullable per field — a specific truck
    * may be bigger or smaller than its class average, and a driver may have
@@ -375,6 +390,20 @@ export type LoadsVehicleClass = SpecCapacitySlice & { id: string };
 export type LoadsClaimCandidate = {
   vehicle: LoadsClaimVehicle;
   capability: VehicleCapability;
+  /**
+   * Whether this load's cargo actually goes in this vehicle — the accept
+   * route's third check, mirrored here.
+   *
+   * `true` for a load whose envelope was never declared, exactly as
+   * `POST /api/orders/[id]/accept` treats one: it guards its `loadFits` call
+   * with `hasDeclaredEnvelope` and lets an unmeasured load through, so a
+   * candidate the server would accept must not be shown here as one it would
+   * not. `false` means the server *will* refuse this vehicle for this load, and
+   * the picker renders it accordingly rather than hiding it — a driver who owns
+   * a van too small for a load is better told which of their trucks the load
+   * needs than shown a shorter list with no explanation.
+   */
+  fits: boolean;
 };
 
 /**
@@ -413,6 +442,27 @@ const NO_ELIGIBLE_VEHICLE_MESSAGE =
   "width and height, and offers the load space this delivery needs.";
 
 /**
+ * What a driver is told when their vehicles are *allowed* to take the load but
+ * none of them can physically carry it.
+ *
+ * A separate sentence from `NO_ELIGIBLE_VEHICLE_MESSAGE` because it is a
+ * separate fact, and telling a driver their truck is the wrong class when it is
+ * the right class and merely too small is the kind of untrue explanation
+ * `LoadFitVerdict` exists to stop. It borrows the accept route's own words —
+ * "This vehicle can't carry this load's cargo — it exceeds the weight or size
+ * limit." — widened from one named vehicle to the whole eligible set, which is
+ * the question actually being answered here.
+ *
+ * Reachable only from a stale board: `GET /api/loads` lists a load for an
+ * individual driver only when at least one of their vehicles clears all three
+ * checks, so seeing this means the fleet or the load has changed since the board
+ * was read.
+ */
+const NO_FITTING_VEHICLE_MESSAGE =
+  "None of your vehicles can carry this load's cargo — it exceeds the weight " +
+  "or size limit of every vehicle you could bring to this delivery.";
+
+/**
  * Which of this driver's vehicles may claim `load` — **the client's copy of the
  * server's rule, running the server's own functions on the server's own
  * inputs**.
@@ -432,9 +482,30 @@ const NO_ELIGIBLE_VEHICLE_MESSAGE =
  * server will accept.
  *
  * That is a courtesy, never a substitute. Nothing about this function weakens
- * anything: the route re-runs both predicates against freshly read rows, and a
+ * anything: the route re-runs all three checks against freshly read rows, and a
  * caller that never opens this dialog is checked exactly as it always was. This
  * is about not blocking a legitimate claim before it is sent.
+ *
+ * ## Which checks this runs, and in what order
+ *
+ * `POST /api/orders/[id]/accept` refuses a claim on three grounds, in this
+ * order: `meetsBookedClass`, then `offersBodyType`, then — guarded by
+ * `hasDeclaredEnvelope` — `loadFits`. This function asks all three of the same
+ * questions, from the same modules, but **not in that order**: the body test
+ * runs first, the class floor second, and the fit last.
+ *
+ * The difference is deliberate and it is safe, but only because of a property
+ * worth stating rather than assuming: all three are pure predicates over the
+ * same immutable inputs, and this function needs their *conjunction* rather than
+ * whichever one fails first. The route's order matters to the route because it
+ * decides which of three error messages a driver reads; nothing here reads a
+ * message, so nothing here depends on the order. It must stay a conjunction of
+ * exactly these three — dropping one is what let the picker default to a vehicle
+ * the route then refused, and adding a fourth check the route does not make
+ * would hide a claim that would have stood.
+ *
+ * The third check does not remove a candidate; it marks it `fits: false`. See
+ * `LoadsClaimCandidate.fits` and the ordering note below.
  *
  * ## Why it imports the shared helpers instead of writing the comparison out
  *
@@ -451,32 +522,55 @@ const NO_ELIGIBLE_VEHICLE_MESSAGE =
  *
  * ## Order
  *
- * Smallest qualifying payload first, ties broken on the plate so the list is
- * deterministic across renders and across polls. That order *is* the picker's
- * default (it takes the first), and it is the right default for the same reason
- * the server's floor is a floor: every candidate here already meets what the
- * client paid for, so the smallest one is the one that satisfies the booking
- * while leaving the driver's larger trucks free for work that needs them. It is
- * only a default — **which truck is actually available today is a fact only the
- * driver has**, which is why two or more candidates produce a picker rather than
- * a silent choice.
+ * Vehicles that fit the cargo first; then smallest qualifying payload; ties
+ * broken on the plate so the list is deterministic across renders and across
+ * polls. That order *is* the picker's default (it takes the first).
  *
- * A booked class missing from `floors` yields no candidates. That is unreachable
- * — `loads/page.tsx` ships the whole catalogue and `Order.vehicleTypeSpecId` is
- * a foreign key into it — and it fails closed deliberately: with no figures
- * there is no floor, and admitting everything is the one direction this rule
- * must never fail in. One un-claimable load, corrected by a reload, is the cost.
+ * **The fit key is load-bearing and is not a presentation choice.** Without it
+ * the default was the smallest qualifying vehicle outright, and
+ * `GET /api/loads` lists a load as soon as *at least one* of an account's
+ * vehicles fits it — so a driver whose small van cleared the booked class but
+ * not the cargo was shown the load, offered their van as the default, and told
+ * "This vehicle can't carry this load's cargo" only after committing. Sorting
+ * the fitting vehicles to the front makes the default a claim the server will
+ * accept whenever the driver owns one truck that can take the job.
+ *
+ * Among vehicles that fit, smallest payload first is the right default for the
+ * same reason the server's floor is a floor: every candidate already meets what
+ * the client paid for, so the smallest one satisfies the booking while leaving
+ * the driver's larger trucks free for work that needs them. It is only a default
+ * — **which truck is actually available today is a fact only the driver has**,
+ * which is why two or more candidates produce a picker rather than a silent
+ * choice.
+ *
+ * A booked class missing from `bookedClasses` yields no candidates. That is
+ * unreachable — `loads/page.tsx` ships the whole catalogue and
+ * `Order.vehicleTypeSpecId` is a foreign key into it — and it fails closed
+ * deliberately: with no figures there is no floor, and admitting everything is
+ * the one direction this rule must never fail in. One un-claimable load,
+ * corrected by a reload, is the cost.
  */
 function claimCandidatesFor(
   vehicles: readonly LoadsClaimVehicle[],
   load: HubLoad,
-  floors: ReadonlyMap<string, VehicleCapability>,
+  bookedClasses: ReadonlyMap<string, BookedClass>,
 ): readonly LoadsClaimCandidate[] {
-  const floor = floors.get(load.vehicleTypeSpecId);
+  const booked = bookedClasses.get(load.vehicleTypeSpecId);
 
-  if (floor === undefined) {
+  if (booked === undefined) {
     return NO_CLAIM_CANDIDATES;
   }
+
+  const declaredCargo: LoadDimensions = {
+    weightKg: load.cargoWeightKg,
+    lengthM: load.cargoLengthM,
+    widthM: load.cargoWidthM,
+    heightM: load.cargoHeightM,
+  };
+
+  // Hoisted out of the per-vehicle loop: it is a fact about the load, and no
+  // vehicle can change it.
+  const isMeasurable = hasDeclaredEnvelope(declaredCargo);
 
   const candidates = vehicles
     // Resolved once per vehicle and carried, rather than recomputed by the
@@ -489,19 +583,48 @@ function claimCandidatesFor(
     }))
     .filter(
       (candidate) =>
-        // Both tests, in the order the accept route applies them. Neither
-        // subsumes the other: a hold twice the required size is still the wrong
-        // hold if the client booked a refrigerated body and this class has none.
+        // The two *eligibility* tests. Neither subsumes the other: a hold twice
+        // the required size is still the wrong hold if the client booked a
+        // refrigerated body and this class has none. `meetsBookedClass` takes
+        // the whole candidate — the class it is registered under as well as its
+        // resolved figures — because a vehicle of the booked class qualifies
+        // outright; see that function.
         offersBodyType(
           candidate.vehicle.vehicleTypeSpec.bodyTypes,
           load.bodyType,
-        ) && meetsBookedClass(candidate.capability, floor),
-    );
+        ) &&
+        meetsBookedClass(
+          {
+            vehicleTypeSpecId: candidate.vehicle.vehicleTypeSpecId,
+            capability: candidate.capability,
+          },
+          booked,
+        ),
+    )
+    // The third test, and it decides how a candidate is *rendered* rather than
+    // whether it survives. Eligibility says the driver may bring this truck to
+    // this booking; this says whether the cargo goes in it. The accept route
+    // asks both and refuses on either, so a picker offering an eligible truck
+    // that does not fit offers a claim the server will bounce — which is the one
+    // outcome the confirm dialog exists to prevent. Guarded by
+    // `hasDeclaredEnvelope` exactly as the route guards its own call: an
+    // unmeasured load is not a refusal anywhere in this codebase, and must not
+    // become one here.
+    .map((candidate) => ({
+      ...candidate,
+      fits: !isMeasurable || loadFits(declaredCargo, candidate.capability),
+    }));
 
-  // `filter` already returned a fresh array, so sorting it in place cannot
-  // disturb the `claimVehicles` prop this derives from.
+  // `map` already returned a fresh array, so sorting it in place cannot disturb
+  // the `claimVehicles` prop this derives from.
+  //
+  // Fitting vehicles first, then smallest qualifying payload, then the plate.
+  // The first key is what keeps the picker's default — `claimCandidates[0]` — a
+  // vehicle the server will accept whenever the driver owns one; the other two
+  // are the original order and the reason for it is unchanged.
   return candidates.sort(
     (a, b) =>
+      Number(b.fits) - Number(a.fits) ||
       a.capability.payloadKg - b.capability.payloadKg ||
       a.vehicle.plateNumber.localeCompare(b.vehicle.plateNumber),
   );
@@ -1632,8 +1755,14 @@ export function LoadsProvider({
   /* --- who may claim what -------------------------------------------------- */
 
   /**
-   * Each vehicle class's capability, keyed by id — the floor a load booked
-   * against that class sets for every vehicle offered to fulfil it.
+   * Each vehicle class as `meetsBookedClass` takes one, keyed by id — its
+   * identity and the capacity floor it sets for every vehicle offered to fulfil
+   * a load booked against it.
+   *
+   * The id is stored in the value as well as used as the key so the pair cannot
+   * come apart: the identity clause and the floor have to be about the same
+   * class, and a lookup that returned bare figures would leave the caller to
+   * supply the identity from somewhere else.
    *
    * Built through `specCapability` and never from the four columns by hand, for
    * the reason that helper's own doc gives: it routes through `capabilityOf`,
@@ -1649,8 +1778,11 @@ export function LoadsProvider({
    */
   const bookedClassFloors = React.useMemo(
     () =>
-      new Map<string, VehicleCapability>(
-        vehicleClasses.map((spec) => [spec.id, specCapability(spec)]),
+      new Map<string, BookedClass>(
+        vehicleClasses.map((spec) => [
+          spec.id,
+          { vehicleTypeSpecId: spec.id, floor: specCapability(spec) },
+        ]),
       ),
     [vehicleClasses],
   );
@@ -1691,10 +1823,13 @@ export function LoadsProvider({
    *   four capacity axes while offering the body the client asked for — that is
    *   the commercial contract the client paid for, and the route refuses
    *   anything less — so the vehicle is `claimCandidates`' answer to that same
-   *   question, narrowed to the driver's own choice where they made one. If no
-   *   vehicle of theirs qualifies, the load should never have been on their
-   *   board (`GET /api/loads` runs the same two predicates at listing time), so
-   *   it is reported here as a state error rather than sent to be refused.
+   *   question, narrowed to the driver's own choice where they made one and to
+   *   the vehicles that actually take the cargo. If none of theirs does, the
+   *   load should never have been on their board — `GET /api/loads` runs the
+   *   same three checks at listing time (the two eligibility predicates, then
+   *   the guarded fit) and lists a load only when at least one vehicle of the
+   *   account clears all of them — so it is reported here as a state error
+   *   rather than sent to be refused.
    *
    *   **This is deliberately not "send the first vehicle and let the server
    *   decide".** The server would decide correctly — it re-checks everything —
@@ -1751,19 +1886,38 @@ export function LoadsProvider({
            * the same vehicle the picker would have defaulted to, which is a
            * claim that will stand rather than one the server has to refuse.
            */
-          const candidate =
-            claimCandidates.find((entry) => entry.vehicle.id === vehicleId) ??
-            claimCandidates[0];
+          const chosen = claimCandidates.find(
+            (entry) => entry.vehicle.id === vehicleId,
+          );
 
-          // No vehicle of this driver's may take this load. Reported here rather
+          // A vehicle that does not fit is never sent, whether it was named by
+          // the caller or would have been the fallback: the route refuses it,
+          // and the driver would have committed to be told so. The picker
+          // disables those options, so a `vehicleId` naming one cannot come from
+          // the dialog — this is the floor under a caller that does not know
+          // that, and the same expression is what makes the fallback the first
+          // *fitting* candidate rather than the first candidate.
+          const candidate =
+            chosen?.fits === true
+              ? chosen
+              : claimCandidates.find((entry) => entry.fits);
+
+          // Nothing of this driver's can take this load. Reported here rather
           // than sent to be refused: the answer would be the same and the driver
-          // would have committed to get it. `GET /api/loads` filters on the same
-          // two predicates, so a load reaching this branch means the board and
-          // the account's fleet have disagreed — a vehicle deregistered in
-          // another tab since the board was read, most plausibly.
+          // would have committed to get it. `GET /api/loads` runs the same three
+          // checks, so a load reaching this branch means the board and the
+          // account's fleet have disagreed — a vehicle deregistered in another
+          // tab since the board was read, most plausibly.
+          //
+          // Two different reasons, two different sentences, because they are
+          // different facts about the driver's fleet and only one of them is
+          // about class and body at all.
           if (candidate === undefined) {
             setClaimError({
-              message: NO_ELIGIBLE_VEHICLE_MESSAGE,
+              message:
+                claimCandidates.length === 0
+                  ? NO_ELIGIBLE_VEHICLE_MESSAGE
+                  : NO_FITTING_VEHICLE_MESSAGE,
               code: null,
             });
             return;
