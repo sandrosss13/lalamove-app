@@ -420,13 +420,6 @@ export type SamplePayoutRow = {
  */
 export const SAMPLE_PAYOUT_HISTORY: readonly SamplePayoutRow[] = [
   {
-    period: "25–31 Aug",
-    jobs: 46,
-    incentivesGel: 92.0,
-    amountGel: 658.4,
-    status: "Processing",
-  },
-  {
     period: "18–24 Aug",
     jobs: 51,
     incentivesGel: 108.0,
@@ -446,6 +439,15 @@ export const SAMPLE_PAYOUT_HISTORY: readonly SamplePayoutRow[] = [
     incentivesGel: 80.0,
     amountGel: 641.1,
     status: "Paid",
+  },
+  // Last, not first: the week still settling sits below the settled ones, so
+  // the three rows an operator can act on stay at the top of the table.
+  {
+    period: "25–31 Aug",
+    jobs: 46,
+    incentivesGel: 92.0,
+    amountGel: 658.4,
+    status: "Processing",
   },
 ];
 
@@ -623,12 +625,11 @@ export const SAMPLE_MONTHLY_KM = 1600;
  * Fixed monthly running costs, identical for every vehicle because nothing
  * records them per vehicle.
  *
- * Retire once a `VehicleExpense` model records service, insurance and toll
- * charges against a vehicle and a date.
+ * Retire once a `VehicleExpense` model records service and toll charges
+ * against a vehicle and a date.
  */
 export const SAMPLE_FIXED_RUNNING_COSTS: readonly SampleRunningCost[] = [
   { label: "Service & parts", amountGel: 280.0 },
-  { label: "Insurance (monthly)", amountGel: 96.0 },
   { label: "Parking & tolls", amountGel: 64.5 },
 ];
 
@@ -697,8 +698,7 @@ export const SAMPLE_DRIVER_VERIFICATION_FALLBACK: readonly SampleVerificationRow
   [
     { label: "Driver licence (GE)", status: "In review" },
     { label: "Vehicle registration", status: "In review" },
-    { label: "Insurance policy", status: "In review" },
-    { label: "Technical inspection", status: "In review" },
+    { label: "Criminal record extract", status: "In review" },
   ];
 
 /**
@@ -734,8 +734,7 @@ export const SAMPLE_DRIVER_FACTS: Record<string, SampleDriverFacts> = {
     verification: [
       { label: "Driver licence (GE)", status: "Verified" },
       { label: "Vehicle registration", status: "Verified" },
-      { label: "Insurance policy", status: "Valid" },
-      { label: "Technical inspection", status: "Valid" },
+      { label: "Criminal record extract", status: "Verified" },
     ],
   },
   "GE-88301": {
@@ -744,8 +743,7 @@ export const SAMPLE_DRIVER_FACTS: Record<string, SampleDriverFacts> = {
     verification: [
       { label: "Driver licence (GE)", status: "Verified" },
       { label: "Vehicle registration", status: "Verified" },
-      { label: "Insurance policy", status: "Valid" },
-      { label: "Technical inspection", status: "Valid" },
+      { label: "Criminal record extract", status: "Verified" },
     ],
   },
   "GE-87940": {
@@ -754,8 +752,7 @@ export const SAMPLE_DRIVER_FACTS: Record<string, SampleDriverFacts> = {
     verification: [
       { label: "Driver licence (GE)", status: "Verified" },
       { label: "Vehicle registration", status: "Verified" },
-      { label: "Insurance policy", status: "Valid" },
-      { label: "Technical inspection", status: "Valid" },
+      { label: "Criminal record extract", status: "Verified" },
     ],
   },
   "GE-88422": {
@@ -764,19 +761,18 @@ export const SAMPLE_DRIVER_FACTS: Record<string, SampleDriverFacts> = {
     verification: [
       { label: "Driver licence (GE)", status: "Verified" },
       { label: "Vehicle registration", status: "Verified" },
-      { label: "Insurance policy", status: "Valid" },
-      { label: "Technical inspection", status: "Valid" },
+      { label: "Criminal record extract", status: "Verified" },
     ],
   },
-  // A driver still being reviewed: registration not yet cleared.
+  // A driver still being reviewed: the two documents checked after the licence
+  // have not cleared yet, which is what keeps them off the road.
   "GE-88510": {
     rating: null,
     acceptanceRatePercent: 93,
     verification: [
       { label: "Driver licence (GE)", status: "Verified" },
       { label: "Vehicle registration", status: "In review" },
-      { label: "Insurance policy", status: "Valid" },
-      { label: "Technical inspection", status: "Valid" },
+      { label: "Criminal record extract", status: "In review" },
     ],
   },
   "GE-87755": {
@@ -785,19 +781,18 @@ export const SAMPLE_DRIVER_FACTS: Record<string, SampleDriverFacts> = {
     verification: [
       { label: "Driver licence (GE)", status: "Verified" },
       { label: "Vehicle registration", status: "Verified" },
-      { label: "Insurance policy", status: "Valid" },
-      { label: "Technical inspection", status: "Valid" },
+      { label: "Criminal record extract", status: "Verified" },
     ],
   },
-  // A suspended driver: the expired policy is why they are suspended.
+  // A suspended driver. Their documents are all in order: the suspension is an
+  // account decision under review, not a compliance failure.
   "GE-86903": {
     rating: 4.42,
     acceptanceRatePercent: 61,
     verification: [
       { label: "Driver licence (GE)", status: "Verified" },
       { label: "Vehicle registration", status: "Verified" },
-      { label: "Insurance policy", status: "Expired" },
-      { label: "Technical inspection", status: "Valid" },
+      { label: "Criminal record extract", status: "Verified" },
     ],
   },
 };
@@ -878,11 +873,10 @@ export const EMPLOYEE_ROLE_DEFINITIONS: Record<
 > = {
   "Fleet manager": {
     role: "Fleet manager",
-    summary: "Vehicles, drivers and compliance",
+    summary: "Vehicles and drivers",
     permissions: [
       { area: "Vehicles", level: "Manage" },
       { area: "Drivers", level: "Manage" },
-      { area: "Compliance documents", level: "Manage" },
       { area: "Earnings & payouts", level: "View" },
       { area: "Employees", level: "View" },
     ],
@@ -911,11 +905,10 @@ export const EMPLOYEE_ROLE_DEFINITIONS: Record<
   },
   Mechanic: {
     role: "Mechanic",
-    summary: "Service log and inspections",
+    summary: "Service log",
     permissions: [
       { area: "Vehicles", level: "Manage" },
       { area: "Service log", level: "Manage" },
-      { area: "Compliance documents", level: "View" },
       { area: "Jobs", level: "None" },
       { area: "Earnings & payouts", level: "None" },
     ],
@@ -968,6 +961,16 @@ export type SampleEmployee = {
   status: SampleEmployeeStatus;
   /** Sentence under the role pill in the detail panel. */
   roleNote: string;
+  /**
+   * What this person may actually do — the detail panel's permission list.
+   *
+   * Held per person rather than read back off `EMPLOYEE_ROLE_DEFINITIONS`
+   * because a grant belongs to the person: once an `Employee` model exists its
+   * rows carry their own permissions, which a role change or a one-off
+   * adjustment can leave narrower than the role's default. Seeded here from
+   * each person's role so the two agree today.
+   */
+  perms: readonly EmployeePermission[];
   assigned: readonly SampleEmployeeAssignment[];
 };
 
@@ -977,7 +980,7 @@ export type SampleEmployee = {
  * This is the one screen with no real backing at all: there is no `Employee`
  * model, no membership record and no invitation flow, so the roster, the invite
  * action and the remove action are all placeholder (the two mutations ship
- * visibly disabled). Their permission sets come from
+ * visibly disabled). Each person's `perms` is seeded from
  * `EMPLOYEE_ROLE_DEFINITIONS` above, which *is* real — only the people are not.
  *
  * `lastActive` is a pre-formatted string rather than a timestamp on purpose: it
@@ -996,7 +999,13 @@ export const SAMPLE_EMPLOYEE_ROSTER: readonly SampleEmployee[] = [
     lastActive: "5 min ago",
     status: "Active",
     roleNote:
-      "Full access to vehicles, drivers and compliance. Cannot change payout accounts.",
+      "Full access to vehicles and drivers. Cannot change payout accounts.",
+    perms: [
+      { area: "Vehicles", level: "Manage" },
+      { area: "Drivers", level: "Manage" },
+      { area: "Earnings & payouts", level: "View" },
+      { area: "Employees", level: "View" },
+    ],
     assigned: [
       { label: "Vehicles", value: "7" },
       { label: "Drivers", value: "7" },
@@ -1012,6 +1021,13 @@ export const SAMPLE_EMPLOYEE_ROSTER: readonly SampleEmployee[] = [
     status: "Active",
     roleNote:
       "Assigns and reassigns jobs inside their zones. No access to money or documents.",
+    perms: [
+      { area: "Jobs", level: "Manage" },
+      { area: "Drivers", level: "View" },
+      { area: "Vehicles", level: "View" },
+      { area: "Earnings & payouts", level: "None" },
+      { area: "Employees", level: "None" },
+    ],
     assigned: [
       { label: "Zones", value: "3" },
       { label: "Drivers", value: "4" },
@@ -1027,6 +1043,13 @@ export const SAMPLE_EMPLOYEE_ROSTER: readonly SampleEmployee[] = [
     status: "Active",
     roleNote:
       "Reconciles weekly payouts and exports invoices. Read-only on operations.",
+    perms: [
+      { area: "Earnings & payouts", level: "Manage" },
+      { area: "Invoices & tax", level: "Manage" },
+      { area: "Jobs", level: "View" },
+      { area: "Drivers", level: "View" },
+      { area: "Vehicles", level: "None" },
+    ],
     assigned: [
       { label: "Payout accounts", value: "2" },
       { label: "Tax ID", value: "404-882-140" },
@@ -1037,11 +1060,16 @@ export const SAMPLE_EMPLOYEE_ROSTER: readonly SampleEmployee[] = [
     name: "Vano Shengelia",
     email: "vano@gizocargo.ge",
     role: "Mechanic",
-    scope: "Service log · inspections",
+    scope: "Service log",
     lastActive: "Yesterday",
     status: "Active",
-    roleNote:
-      "Records service work and inspection results against each vehicle.",
+    roleNote: "Records service work against each vehicle.",
+    perms: [
+      { area: "Vehicles", level: "Manage" },
+      { area: "Service log", level: "Manage" },
+      { area: "Jobs", level: "None" },
+      { area: "Earnings & payouts", level: "None" },
+    ],
     assigned: [
       { label: "Vehicles", value: "7" },
       { label: "Open work orders", value: "2" },
@@ -1056,6 +1084,13 @@ export const SAMPLE_EMPLOYEE_ROSTER: readonly SampleEmployee[] = [
     lastActive: "Invite sent 27 Aug",
     status: "Invited",
     roleNote: "Invitation pending. Permissions apply once they accept.",
+    perms: [
+      { area: "Jobs", level: "Manage" },
+      { area: "Drivers", level: "View" },
+      { area: "Vehicles", level: "View" },
+      { area: "Earnings & payouts", level: "None" },
+      { area: "Employees", level: "None" },
+    ],
     assigned: [
       { label: "Zones", value: "3" },
       { label: "Drivers", value: "3" },
@@ -1069,7 +1104,14 @@ export const SAMPLE_EMPLOYEE_ROSTER: readonly SampleEmployee[] = [
     scope: "Own jobs only",
     lastActive: "3 days ago",
     status: "Suspended",
-    roleNote: "Employed driver. Access suspended while insurance is expired.",
+    roleNote: "Employed driver. Access suspended pending review.",
+    perms: [
+      { area: "Own jobs", level: "View" },
+      { area: "Own earnings", level: "View" },
+      { area: "Vehicles", level: "None" },
+      { area: "Drivers", level: "None" },
+      { area: "Employees", level: "None" },
+    ],
     assigned: [
       { label: "Vehicle", value: "MN-318-RS" },
       { label: "Zone", value: "Samgori" },

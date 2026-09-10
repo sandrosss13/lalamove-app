@@ -37,10 +37,10 @@ import { cn } from "@/lib/utils";
  *
  * One screen for all three personas, because `getHubVehicles()` already
  * resolved the scope difference. What changes here is the wording of two tile
- * notes, the empty state and the header subtitle — "Fleet cost per km" reads
- * absurdly on an account with exactly one van, and "Available to hand to a
- * driver" describes a move only a fleet manager can make — **and one
- * affordance**: a driver on a company's roster gets no "Add vehicle" button,
+ * notes, the empty state and the header subtitle — "Held by a driver right
+ * now" and "Available to hand to a driver" both describe a move only a fleet
+ * manager can make — **and one affordance**: a driver on a company's roster
+ * gets no "Add vehicle" button,
  * because they drive a van their employer owns and assigned to them and there
  * is nothing for them to register.
  *
@@ -67,6 +67,15 @@ import { cn } from "@/lib/utils";
  * other place on this screen to find the vehicles it is blocking. That tab
  * appears only when at least one vehicle is in one of those states, so it is
  * never a dead pill either.
+ *
+ * That tab is now the **only** surface for a blocking review verdict. The rows
+ * and the detail panel used to carry a second status pill beside the Active /
+ * Idle one; the handoff has a single right-aligned pill per row
+ * (`<div style="text-align:right"><span style="{{ v.tagStyle }}">{{ v.status
+ * }}</span></div>`) and a two-pill panel header (status + class), and the extra
+ * pill also grew the row past the design's height. So the pills went and the
+ * tab stayed — if that tab is ever dropped, a flagged vehicle becomes
+ * invisible on this screen.
  *
  * ## Sample data
  *
@@ -127,19 +136,6 @@ function isVehiclesTab(value: string): value is VehiclesTab {
   );
 }
 
-/**
- * The review verdict as a status pill, in the design's own vocabulary — the
- * same mapping the detail panel uses, so a row and its panel cannot disagree.
- * Only the two blocking verdicts appear; `APPROVED` is the silent default.
- */
-const REVIEW_BADGE: Record<
-  "PENDING" | "FLAGGED",
-  { status: string; label: string }
-> = {
-  PENDING: { status: "Pending", label: "In review" },
-  FLAGGED: { status: "Suspended", label: "Flagged" },
-};
-
 /* -------------------------------------------------------------------------- */
 /* Table geometry                                                             */
 /* -------------------------------------------------------------------------- */
@@ -158,8 +154,18 @@ const COLUMNS_FULL =
   "grid-cols-[1.4fr_100px_110px_90px_90px_120px] min-w-[780px]";
 const COLUMNS_SPLIT = "grid-cols-[1.6fr_1fr_120px] min-w-[420px]";
 
+/**
+ * `font-normal`, stated rather than omitted. The design's `headStyle` sets a
+ * size, a tracking, a transform and a colour and **no** `fontWeight`, under a
+ * `body` that declares none either — so its column headers inherit 400, and the
+ * only weights in that table are the ones the vehicle name and the Cost/km cell
+ * opt into explicitly. `TableHead` bakes `font-medium` into its own base
+ * classes (`src/components/ui/table.tsx:73`), so simply dropping a weight here
+ * would leave that 500 standing: the override has to be spelled out. Same
+ * reason `text-muted-foreground` is spelled out against the base `text-foreground`.
+ */
 const HEAD_CLASSES =
-  "h-auto px-0 pb-2.5 text-[11px] font-medium tracking-[0.08em] uppercase text-muted-foreground";
+  "h-auto px-0 pb-2.5 text-[11px] font-normal tracking-[0.08em] uppercase text-muted-foreground";
 const CELL_CLASSES = "min-w-0 px-0 py-3.5";
 
 /* -------------------------------------------------------------------------- */
@@ -172,7 +178,7 @@ const SAMPLED_COLUMNS_NOTE =
   "model.";
 
 const FLEET_COST_NOTE =
-  "No fuel, service, insurance or toll charge is recorded against any " +
+  "No fuel, service, parking or toll charge is recorded against any " +
   "vehicle, so there is nothing to average. Retire with a VehicleExpense " +
   "model.";
 
@@ -217,11 +223,18 @@ export function VehiclesScreen({ data }: VehiclesScreenProps) {
   // The panel's two-step remove, armed from up here — see the file header.
   const [armed, setArmed] = React.useState(false);
 
-  // "1 vehicle · 1 on the road" is technically true for a roster driver and
-  // reads like a fleet report about a fleet of one. Their vehicle arrived by
-  // assignment, so the subhead says so — and stays correct for the roster
-  // driver who also holds a legacy personal vehicle, since `pluralise()` counts
-  // both rows.
+  // The design's subhead is three facts, not two — `pageSub.vehicle` reads
+  // "7 vehicles registered · 4 on the road, 1 unassigned" — so the third one is
+  // restored here. It is *derived* rather than copied: the identical literal in
+  // `driver-hub-nav.ts` is only the fallback that renders before this screen's
+  // data resolves, and leaving that standing would report one seeded fleet's
+  // numbers as if they were this account's.
+  //
+  // "1 vehicle registered · 1 on the road, 0 unassigned" is technically true
+  // for a roster driver and reads like a fleet report about a fleet of one.
+  // Their vehicle arrived by assignment, so the subhead says so — and stays
+  // correct for the roster driver who also holds a legacy personal vehicle,
+  // since `pluralise()` counts both rows.
   useHubSubtitle(
     tiles.vehicleCount === 0
       ? persona === "ROSTER"
@@ -229,9 +242,9 @@ export function VehiclesScreen({ data }: VehiclesScreenProps) {
         : "No vehicles yet"
       : persona === "ROSTER"
         ? `${pluralise(tiles.vehicleCount, "vehicle")} assigned to you`
-        : `${pluralise(tiles.vehicleCount, "vehicle")} · ${
+        : `${pluralise(tiles.vehicleCount, "vehicle")} registered · ${
             tiles.onTheRoadCount
-          } on the road`,
+          } on the road, ${tiles.unassignedCount} unassigned`,
   );
 
   const reviewPending = vehicles.some(needsReview);
@@ -321,6 +334,14 @@ export function VehiclesScreen({ data }: VehiclesScreenProps) {
   // a roster driver waiting on their first assignment has no rows to filter and
   // no button to press, and an empty flex row would still contribute its
   // bottom margin as an unexplained gap above the empty state.
+  //
+  // The design draws the strip and the Add button unconditionally, and that is
+  // a deliberate deviation rather than an oversight: in the prototype every
+  // control is fake, whereas here the button posts to a route that answers
+  // `403` to this exact account. A disabled Add button would advertise a
+  // permission a roster driver will never be granted *on this screen* — their
+  // employer's van was never theirs to register — and a filter strip over zero
+  // rows can only ever say "0 of 0 shown".
   const showToolbar = hasVehicles || canAddVehicle;
 
   const detail = adding ? (
@@ -345,9 +366,13 @@ export function VehiclesScreen({ data }: VehiclesScreenProps) {
       ? `${selectedVehicle.make} ${selectedVehicle.model} details`
       : "vehicle details";
 
-  // "5 Van · 1 Sedan · 2 Truck 1.5t". The count is not folded into a plural of
-  // the label: these come from a hand-maintained class catalogue and from
-  // `VehicleTypeSpec.label`, where "Truck 1.5t" would pluralise to nonsense.
+  // The design's own note is the literal "5 vans · 1 sedan · 2 trucks", over a
+  // three-entry prototype catalogue this app does not have: the real labels come
+  // from `VEHICLE_CLASSES` ("Dry Box", "Open Chassis", …) and from
+  // `VehicleTypeSpec.label` ("Cargo Van", "Trailer Truck", …). So the shape is
+  // the design's and the vocabulary is the fleet's. The count is not folded into
+  // a plural of the label either, because "Truck 1.5t" and "MPV / Estate"
+  // pluralise to nonsense.
   const classNote = tiles.classBreakdown
     .map((entry) => `${entry.count} ${entry.label}`)
     .join(" · ");
@@ -384,10 +409,16 @@ export function VehiclesScreen({ data }: VehiclesScreenProps) {
               : "Not held by anyone right now"
           }
         />
+        {/* "Fleet cost per km" for everyone, as the design has it: its own
+            `fleetTiles` label is unconditional, and the note names the four
+            charge categories the detail panel's cost list actually shows
+            (`SAMPLE_FIXED_RUNNING_COSTS` is service and parking, never
+            insurance). A solo driver reading "fleet" of their one van is the
+            design's own wording, not a slip. */}
         <MetricTile
-          label={kind === "BUSINESS" ? "Fleet cost per km" : "Cost per km"}
+          label="Fleet cost per km"
           value={formatGel(tiles.sampled.fleetCostPerKmGel)}
-          note="Fuel, service, insurance, tolls"
+          note="Fuel, service, parking and tolls"
         >
           <SampleNote note={FLEET_COST_NOTE} className="mt-2.5" />
         </MetricTile>
@@ -438,10 +469,13 @@ export function VehiclesScreen({ data }: VehiclesScreenProps) {
                       note={SAMPLED_COLUMNS_NOTE}
                     />
                   ) : null}
+                  {/* Body font, not mono: the design's `fleetCountLabel` is one
+                      plain 12px muted string, and mono here would set two row
+                      counts in the typeface this screen reserves for plates,
+                      odometers and money. */}
                   {hasVehicles ? (
                     <span className="text-xs text-muted-foreground">
-                      <span className="font-price">{visible.length}</span> of{" "}
-                      <span className="font-price">{vehicles.length}</span> shown
+                      {visible.length} of {vehicles.length} shown
                     </span>
                   ) : null}
                   {/* A driver on a company's roster drives a van their employer
@@ -524,11 +558,6 @@ export function VehiclesScreen({ data }: VehiclesScreenProps) {
                       const selected = vehicle.id === selectedVehicle?.id;
                       const assigned =
                         vehicle.assignment?.driverName ?? "Unassigned";
-                      const review =
-                        vehicle.reviewStatus === "PENDING" ||
-                        vehicle.reviewStatus === "FLAGGED"
-                          ? REVIEW_BADGE[vehicle.reviewStatus]
-                          : null;
 
                       return (
                         <TableRow
@@ -595,11 +624,15 @@ export function VehiclesScreen({ data }: VehiclesScreenProps) {
                               >
                                 {formatOdometer(vehicle.sampled.odometerKm)}
                               </TableCell>
+                              {/* No size of its own — the design sets only
+                                  family and weight here, so this cell inherits
+                                  the row's 14px and reads a shade larger than
+                                  the odometer beside it, which does carry 13px. */}
                               <TableCell
                                 role="cell"
                                 className={cn(
                                   CELL_CLASSES,
-                                  "truncate font-price text-[13px] font-semibold",
+                                  "truncate font-price font-semibold",
                                 )}
                               >
                                 {formatGel(vehicle.sampled.costPerKmGel)}
@@ -607,25 +640,17 @@ export function VehiclesScreen({ data }: VehiclesScreenProps) {
                             </>
                           )}
 
+                          {/* One pill, right-aligned — the design's status cell
+                              is a single span. Text alignment rather than a
+                              flex column: a second stacked badge is what used
+                              to push these rows past the design's height. A
+                              blocking review verdict is reachable through the
+                              "Needs review" tab instead; see the file header. */}
                           <TableCell
                             role="cell"
-                            className={cn(
-                              CELL_CLASSES,
-                              "flex flex-col items-end gap-1",
-                            )}
+                            className={cn(CELL_CLASSES, "text-right")}
                           >
                             <HubStatusBadge status={vehicle.status} />
-                            {/* A blocking verdict rides beside the status
-                                rather than replacing it: the vehicle really is
-                                idle *and* really is unreviewable for dispatch,
-                                and folding one into the other hides whichever
-                                loses. */}
-                            {review === null ? null : (
-                              <HubStatusBadge
-                                status={review.status}
-                                label={review.label}
-                              />
-                            )}
                           </TableCell>
                         </TableRow>
                       );

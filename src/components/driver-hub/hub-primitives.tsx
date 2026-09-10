@@ -70,6 +70,41 @@ export type HubCardProps = Omit<React.ComponentProps<"div">, "title"> & {
   action?: React.ReactNode;
   /** Extra classes for the body wrapper, e.g. to set its own layout. */
   contentClassName?: string;
+  /**
+   * Gap between the title row and the body. `default` is the design's 16px,
+   * which nearly every card uses; `chart` is the 22px its two plot cards set
+   * (`margin-bottom:22px` on the "Daily earnings" and "Online hours vs jobs
+   * completed" title rows) to give the bars room to breathe.
+   */
+  titleGap?: HubCardTitleGap;
+  /**
+   * Vertical alignment inside the title row. The design centres a title
+   * against its action almost everywhere (`align-items:center`); the Today
+   * screen's zone card sets the pair on a shared baseline instead
+   * (`display:flex; align-items:baseline` on "Where the demand is").
+   */
+  titleAlign?: HubCardTitleAlign;
+};
+
+/** Title→body gaps the design uses. */
+export type HubCardTitleGap = "default" | "chart";
+
+/** Title-row cross-axis alignments the design uses. */
+export type HubCardTitleAlign = "center" | "baseline";
+
+/**
+ * Per-card overrides rather than a change to the shared default: 16px/centred
+ * is right for the great majority of the design's cards, and one card wanting
+ * something else is not a reason to move all of them.
+ */
+const CARD_TITLE_GAP_CLASSES: Record<HubCardTitleGap, string> = {
+  default: "gap-4",
+  chart: "gap-[22px]",
+};
+
+const CARD_TITLE_ALIGN_CLASSES: Record<HubCardTitleAlign, string> = {
+  center: "items-center",
+  baseline: "items-baseline",
 };
 
 /**
@@ -84,6 +119,8 @@ export function HubCard({
   title,
   action,
   contentClassName,
+  titleGap = "default",
+  titleAlign = "center",
   className,
   children,
   ...props
@@ -91,13 +128,16 @@ export function HubCard({
   return (
     <Card
       className={cn(
-        "min-w-0 gap-4 rounded-[14px] border border-border p-[22px] ring-0 [--card-spacing:0px]",
+        "min-w-0 rounded-[14px] border border-border p-[22px] ring-0 [--card-spacing:0px]",
+        CARD_TITLE_GAP_CLASSES[titleGap],
         className,
       )}
       {...props}
     >
       {title || action ? (
-        <CardHeader className="items-center gap-0">
+        <CardHeader
+          className={cn("gap-0", CARD_TITLE_ALIGN_CLASSES[titleAlign])}
+        >
           {title ? (
             <CardTitle className="text-[15px] font-semibold">{title}</CardTitle>
           ) : null}
@@ -127,7 +167,7 @@ export type MetricTileProps = {
   label: string;
   /** The headline number. Always rendered in `font-price`. */
   value: React.ReactNode;
-  /** 12px muted line under the value. */
+  /** Muted line under the value — 12px, or 13px on a `hero` tile. */
   note?: React.ReactNode;
   /** Renders the value at the hero size — the Today screen's "Earned today". */
   hero?: boolean;
@@ -137,8 +177,12 @@ export type MetricTileProps = {
   progress?: number;
   /**
    * Fill colour for that track. Defaults to the delta's tone (the Performance
-   * tiles colour the bar the same way they colour the delta) and to ink when
-   * the tile has no delta.
+   * tiles colour the bar the same way they colour the delta), and to `good`
+   * for a tile that states no tone at all — the design's track is
+   * `background: p.good ? OK : ACCENT`, so it is green or orange but never
+   * ink. A tile whose metric is moving the wrong way must say so with an
+   * explicit `progressTone="bad"`; nothing here can infer it, because a tile
+   * may carry its delta as `children` rather than through `delta`.
    */
   progressTone?: MetricDeltaTone;
   /** Anything below the note — the hero tile's links, or a `<SampleNote />`. */
@@ -164,7 +208,10 @@ export function MetricTile({
       ? undefined
       : Math.round(Math.min(1, Math.max(0, progress)) * 100);
 
-  const trackTone = progressTone ?? delta?.tone;
+  // `good` rather than nothing when neither is given: the Performance tiles
+  // pass their delta as `children` (so it can sit *below* the track), which
+  // left `trackTone` undefined and painted all five tracks ink.
+  const trackTone = progressTone ?? delta?.tone ?? "good";
 
   return (
     <Card
@@ -173,18 +220,38 @@ export function MetricTile({
         className,
       )}
     >
-      <p className="text-[11px] font-medium tracking-[0.08em] uppercase text-muted-foreground">
+      {/* No weight: every tile label in the design is a bare `font-size:11px;
+          text-transform:uppercase; letter-spacing:0.08em` with the inherited
+          400, so a `font-medium` here read a step heavier than the artboard. */}
+      <p className="text-[11px] tracking-[0.08em] uppercase text-muted-foreground">
         {label}
       </p>
       <p
         className={cn(
-          "mt-2 mb-1 font-price leading-none font-semibold",
+          // The design gives its tiles three shapes and two bottom margins:
+          // `margin:8px 0 4px` under the hero's 38px number ("Earned today")
+          // and under the Performance tiles that carry a track, `8px 0 3px`
+          // under the plain value-plus-note tiles every other screen uses.
+          // `progress` is what distinguishes the second from the third — the
+          // Performance tiles are exactly the tiles with a track.
+          "mt-2 font-price leading-none font-semibold",
+          hero || progress !== undefined ? "mb-1" : "mb-[3px]",
           hero ? "text-[38px] tracking-[-0.02em]" : "text-[26px]",
         )}
       >
         {value}
       </p>
-      {note ? <p className="text-xs text-muted-foreground">{note}</p> : null}
+      {/* 13px under the hero tile, 12px under every other one. */}
+      {note ? (
+        <p
+          className={cn(
+            "text-muted-foreground",
+            hero ? "text-[13px]" : "text-xs",
+          )}
+        >
+          {note}
+        </p>
+      ) : null}
       {delta ? (
         <p className={cn("text-xs", DELTA_TONE_CLASSES[delta.tone])}>
           {delta.label}
@@ -204,7 +271,7 @@ export function MetricTile({
           <div
             className={cn(
               "h-full rounded-full",
-              trackTone ? PROGRESS_TONE_CLASSES[trackTone] : "bg-foreground",
+              PROGRESS_TONE_CLASSES[trackTone],
             )}
             style={{ width: `${filled}%` }}
           />
@@ -604,9 +671,11 @@ export function HubBarChart({
               <div
                 key={entry.label}
                 className={cn(
-                  "rounded-[5px]",
+                  // The design rounds the two chart shapes differently: the
+                  // wide single-series earnings bar is `borderRadius: 5`, the
+                  // 14px paired hours/jobs bars are `borderRadius: 4`.
+                  paired ? "flex-none rounded-[4px]" : "w-full rounded-[5px]",
                   BAR_TONE_CLASSES[tone],
-                  paired ? "flex-none" : "w-full",
                 )}
                 style={style}
               />

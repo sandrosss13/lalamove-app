@@ -32,7 +32,7 @@ import { cn } from "@/lib/utils";
  * re-render into a different driver and turn one stray click into the removal
  * of the wrong person.
  *
- * Honesty rule: the identity lines, both status pills, the zone pill, the two
+ * Honesty rule: the identity lines, the status pill, the zone pill, the two
  * left-hand stat boxes and every "Recent jobs" row are read from the database.
  * Acceptance, Rating and the whole Verification list come from
  * `driver.sampled`, and each carries a `<SampleNote />` naming the schema
@@ -46,11 +46,19 @@ import { cn } from "@/lib/utils";
 const GENERIC_ERROR = "Could not offboard this driver.";
 const NETWORK_ERROR = "Network error. Please check your connection.";
 
-/** The design's destructive button, unarmed: white, red text, red border. */
+/**
+ * The design's destructive button, unarmed.
+ *
+ * `dangerBtn(false)` in the handoff's script is
+ * `border: '1px solid ' + LINE, background: '#fff', color: BAD` — a neutral
+ * border with BAD (not BAD_FG) text, which is what separates it from the armed
+ * state below. The hover tint is ours: a static artboard has no hover, and a
+ * plain white button that does not react reads as disabled.
+ */
 const OFFBOARD_UNARMED_CLASSES =
-  "border-[oklch(57.7%_0.245_27.325)] bg-background " +
-  "text-[oklch(44.4%_0.177_26.899)] hover:bg-[oklch(93.6%_0.032_17.717)] " +
-  "hover:text-[oklch(44.4%_0.177_26.899)]";
+  "border-border bg-background text-[oklch(57.7%_0.245_27.325)] " +
+  "hover:bg-[oklch(93.6%_0.032_17.717)] " +
+  "hover:text-[oklch(57.7%_0.245_27.325)]";
 
 /**
  * Armed: solid red with white text. Spelled out rather than using `Button`'s
@@ -102,6 +110,25 @@ const SAMPLE_NOTES = {
 const NEUTRAL_PILL_CLASSES =
   "h-auto rounded-full border-transparent bg-muted px-[9px] py-[3px] " +
   "text-[11px] font-semibold tracking-[0.02em] text-muted-foreground";
+
+/**
+ * The one status word both the roster row and this panel's first pill show.
+ *
+ * `HubDriver` carries presence and review state as *independent* facts (see
+ * `drivers.ts`), and the design gives each surface room for exactly one word:
+ * `{{ d.status }}` in a roster row, `{{ selectedDriver.status }}` beside
+ * `{{ selectedDriver.zone }}` in the panel. The review state wins whenever it
+ * is not "Active", because that is the axis that decides whether the driver can
+ * work at all — an operator scanning the screen needs "Suspended" far more than
+ * "Online". Neither caller loses the collapsed axis: both print it as
+ * screen-reader text on the same element.
+ *
+ * Defined here rather than in `drivers-screen.tsx` so the screen and its panel
+ * can share one rule without importing each other.
+ */
+export function driverStatusWord(driver: HubDriver): string {
+  return driver.reviewState === "Active" ? driver.presence : driver.reviewState;
+}
 
 export type DriversDetailPanelProps = {
   driver: HubDriver;
@@ -202,26 +229,34 @@ export function DriversDetailPanel({
           {initialsOf(driver.name)}
         </span>
         <div className="min-w-0">
-          <h2 className="truncate text-base font-semibold tracking-[-0.01em]">
-            {driver.name}
-          </h2>
+          {/* No letter-spacing: the design sets none on a driver's name
+              (`font-size:16px; font-weight:600`) — the tightened tracking
+              belongs to the *vehicle* panel's plate heading. */}
+          <h2 className="truncate text-base font-semibold">{driver.name}</h2>
           {/* Full profile id as the title: a truncated id is a label, never an
-              identifier. */}
+              identifier. 11px, 2px below the name — the design's
+              `font-size:11px; margin-top:2px`. */}
           <p
             title={driver.driverProfileId}
-            className="mt-[3px] truncate font-price text-xs text-muted-foreground"
+            className="mt-0.5 truncate font-price text-[11px] text-muted-foreground"
           >
             {displayId} · joined {formatJoinedMonth(driver.joinedAt)}
           </p>
         </div>
       </div>
 
-      {/* Presence and review state are independent axes — a suspended driver
-          can still have the app open — so the panel shows both rather than the
-          single collapsed pill the roster row has room for. */}
+      {/* Two pills, as the design has them: one status word and the zone —
+          `<span tagStyle>{{ selectedDriver.status }}</span><span
+          zoneTagStyle>{{ selectedDriver.zone }}</span>`. Presence and review
+          state are independent axes, so the one `driverStatusWord()` drops
+          rides along as screen-reader text, exactly as the roster row does.
+          The `sr-only` span is out of flow and so is not a flex item — it adds
+          no gap between the two pills. */}
       <div className="mt-4 mb-5 flex flex-wrap gap-2">
-        <HubStatusBadge status={driver.presence} />
-        <HubStatusBadge status={driver.reviewState} />
+        <HubStatusBadge status={driverStatusWord(driver)} />
+        <span className="sr-only">
+          — {driver.presence}, {driver.reviewState}
+        </span>
         <Badge variant="outline" className={NEUTRAL_PILL_CLASSES}>
           {driver.cityLabel}
         </Badge>

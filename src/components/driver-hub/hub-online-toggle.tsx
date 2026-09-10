@@ -23,7 +23,7 @@ export type HubOnlineToggleProps = {
 };
 
 /**
- * The header's availability pill: an 8px status dot plus "Online"/"Offline".
+ * The header's availability pill: a 7px status dot plus "Online"/"Offline".
  *
  * Deliberately a plain `<button>` rather than a `Button` variant — the design's
  * pill is a fully-round 99px shape with its own padding, border and two colour
@@ -129,7 +129,9 @@ export function HubOnlineToggle({
         aria-pressed={isOnline}
         title={disabled ? NOT_ACTIVATED_TITLE : undefined}
         className={cn(
-          "flex cursor-pointer items-center gap-[9px] rounded-full border px-[15px] py-2 text-[13px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60",
+          // Geometry is the design's `onlineBtnStyle` verbatim: `padding:'5px
+          // 12px'`, `fontSize:12`, `fontWeight:600`, `gap:9`, `borderRadius:99`.
+          "flex cursor-pointer items-center gap-[9px] rounded-full border px-3 py-[5px] text-[12px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60",
           isOnline
             ? "border-[oklch(96.2%_0.044_156.743)] bg-[oklch(96.2%_0.044_156.743)] text-[oklch(44.8%_0.119_151.328)]"
             : "border-border bg-background text-muted-foreground",
@@ -138,7 +140,9 @@ export function HubOnlineToggle({
         <span
           aria-hidden="true"
           className={cn(
-            "size-2 rounded-full",
+            // `onlineDotStyle` is `{ width: 7, height: 7 }` — not the 8px a
+            // `size-2` would give.
+            "size-[7px] rounded-full",
             isOnline
               ? "bg-[oklch(59.6%_0.145_163.225)]"
               : "bg-muted-foreground",

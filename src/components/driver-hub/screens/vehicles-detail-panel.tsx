@@ -68,11 +68,24 @@ import { cn } from "@/lib/utils";
 const GENERIC_ERROR = "Could not remove this vehicle.";
 const NETWORK_ERROR = "Network error. Please check your connection.";
 
-/** The design's destructive button, unarmed: white, red text, red border. */
+/**
+ * The design's destructive button, unarmed: white fill, red text, **grey**
+ * border — `border: '1px solid ' + (armed ? BAD : LINE)` and
+ * `color: armed ? '#fff' : BAD` in the handoff's `dangerBtn`.
+ *
+ * Two things about that pairing are easy to get wrong in opposite directions.
+ * The text is BAD (`oklch(57.7% 0.245 27.325)`), not the duller BAD_FG: BAD_FG
+ * is the *pill* red, tuned to sit on a BAD_BG wash, and on white it reads as a
+ * disabled control rather than a destructive one. The border, though, is plain
+ * LINE — the same hairline as every other border on the screen. Only arming it
+ * turns the border red, and that is the whole point of the two-step: an
+ * unarmed Remove is a quiet button with red lettering, and the red outline is
+ * the thing that appears when the next click actually deletes.
+ */
 const REMOVE_UNARMED_CLASSES =
-  "border-[oklch(57.7%_0.245_27.325)] bg-background " +
-  "text-[oklch(44.4%_0.177_26.899)] hover:bg-[oklch(93.6%_0.032_17.717)] " +
-  "hover:text-[oklch(44.4%_0.177_26.899)]";
+  "border-border bg-background " +
+  "text-[oklch(57.7%_0.245_27.325)] hover:bg-[oklch(93.6%_0.032_17.717)] " +
+  "hover:text-[oklch(57.7%_0.245_27.325)]";
 
 /**
  * Armed: solid red with white text. Spelled out rather than using `Button`'s
@@ -92,6 +105,28 @@ const REMOVE_UNARMED_NOTE =
   "it back from, so putting it back on the road means registering it again.";
 
 /**
+ * ## Why this is "Remove vehicle" and not the design's "Defleet vehicle"
+ *
+ * The handoff's button reads `Defleet vehicle` → `Confirm defleet`, with a
+ * third `Return to fleet` state and the note "Takes it out of service and
+ * unassigns its driver. **Reversible.**" Every word of that is a promise about
+ * a lifecycle column: its `defleet()` handler pushes the plate onto a
+ * `defleeted` array and its `Defleeted` status is derived from that list.
+ *
+ * `Vehicle` has no status column, and both routes behind this button
+ * (`DELETE /api/{logistics-company,driver-profile}/vehicles/[id]`) end in
+ * `prisma.vehicle.delete()` — the row goes, and `deleteVehiclePhotos()` takes
+ * its Storage objects with it. Nothing reinstates one. Borrowing the design's
+ * softer word for that would tell an operator their van is parked when it has
+ * been destroyed, and `Return to fleet` would be a button with no endpoint to
+ * call. So the label names what the endpoint does.
+ *
+ * Retire this note alongside the `HubVehicleStatus` narrowing in
+ * `src/lib/dashboard/hub/vehicles.ts`: once a lifecycle column exists and the
+ * routes become state changes, the design's three labels are all reachable.
+ */
+
+/**
  * Why the odometer, fuel, weekly job count, operating cities and running costs
  * are placeholders. Transcribed from the retirement notes in
  * `src/lib/dashboard/hub/sample.ts`, so each badge's tooltip names the schema
@@ -105,7 +140,7 @@ const SAMPLE_NOTES = {
     "Vehicle has no operating-cities column; only the company's fleet-wide " +
     "citiesOfOperation exists. Retire with Vehicle.operatingCities.",
   costs:
-    "Nothing records fuel, service, insurance or toll charges against a " +
+    "Nothing records fuel, service, parking or toll charges against a " +
     "vehicle. Retire with a VehicleExpense model.",
 } as const;
 
@@ -113,22 +148,6 @@ const SAMPLE_NOTES = {
 const NEUTRAL_PILL_CLASSES =
   "h-auto rounded-full border-transparent bg-muted px-[9px] py-[3px] " +
   "text-[11px] font-semibold tracking-[0.02em] text-muted-foreground";
-
-/**
- * Review verdicts rendered in the design's own status vocabulary: the tone
- * comes from `status` (which `hubStatusTone()` maps to one of the six colour
- * pairs) and the wording from `label`. A flagged vehicle blocks dispatch, so
- * it takes the danger tone the design gives "Suspended" rather than falling
- * through to a grey pill nobody reads as a problem.
- */
-const REVIEW_BADGE: Record<
-  NonNullable<HubVehicle["reviewStatus"]>,
-  { status: string; label: string }
-> = {
-  PENDING: { status: "Pending", label: "In review" },
-  FLAGGED: { status: "Suspended", label: "Flagged" },
-  APPROVED: { status: "Verified", label: "Approved" },
-};
 
 export type VehiclesDetailPanelProps = {
   vehicle: HubVehicle;
@@ -183,10 +202,6 @@ export function VehiclesDetailPanel({
 
   const title = `${vehicle.make} ${vehicle.model}`;
   const assignedName = vehicle.assignment?.driverName ?? "Unassigned";
-  const review =
-    vehicle.reviewStatus === null || vehicle.reviewStatus === "APPROVED"
-      ? null
-      : REVIEW_BADGE[vehicle.reviewStatus];
 
   // The declared payload is the owner's attestation for this specific vehicle
   // and the spec's is the class-level capacity pricing uses. The design shows
@@ -250,14 +265,15 @@ export function VehiclesDetailPanel({
         </p>
       </div>
 
+      {/* Two pills, as the design has it: status then class. A blocking review
+          verdict used to ride here as a third; it is reachable through the
+          screen's "Needs review" tab instead, which is now the only surface for
+          it — see the note in `vehicles-screen.tsx`. */}
       <div className="mt-4 mb-5 flex flex-wrap gap-2">
         <HubStatusBadge status={vehicle.status} />
         <Badge variant="outline" className={NEUTRAL_PILL_CLASSES}>
           {vehicle.vehicleClassLabel}
         </Badge>
-        {review ? (
-          <HubStatusBadge status={review.status} label={review.label} />
-        ) : null}
       </div>
 
       <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3">

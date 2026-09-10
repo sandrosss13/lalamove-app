@@ -34,7 +34,6 @@ import type {
   HubPerformanceData,
   HubPerformanceDriverRow,
 } from "@/lib/dashboard/hub/performance";
-import type { SampleMetricDelta } from "@/lib/dashboard/hub/sample";
 import { cn } from "@/lib/utils";
 
 /**
@@ -86,16 +85,48 @@ import { cn } from "@/lib/utils";
  * - Sampled value **and** sampled delta (Acceptance, Avg rating) → the tile
  *   carries the ordinary `<SampleNote />`, "Sample data", covering both.
  * - Real value, sampled delta (Completion, Cancellations, Jobs per day) → the
- *   badge reads **"Estimated delta"** and sits directly under the delta line,
- *   below the progress track that measures the real value. The value keeps the
- *   top of the tile to itself, unbadged, because it is true.
+ *   badge reads **"Estimated delta"**. The value keeps the top of the tile to
+ *   itself, unbadged, because it is true.
  *
- * The same reasoning removes the design's tinted progress track. In the handoff
- * a track is green when the metric moved the right way and amber when it did
- * not — an opinion sourced entirely from the delta. Tinting a track built from
- * a real value with a verdict from an invented one is precisely the confusion
- * the split above exists to prevent, so all five tracks are ink and the
- * good/amber tone survives only where it belongs: in the delta text itself.
+ * The tile itself is the handoff's, exactly: label → value → delta → track,
+ * and the track tinted green or amber by the delta's own tone. That tint was
+ * once refused here on the ground that a verdict drawn from an invented delta
+ * should not colour a bar built from a real value — and the objection was
+ * answered rather than overruled. The tone was never the *only* thing the
+ * delta's fictionality is announced by: the "Estimated delta" badge is, it
+ * still sits on all three of those tiles, and it now closes the tile below the
+ * track, so everything the badge qualifies — the delta line and the tint it
+ * gives the bar — is above it. What the old arrangement bought instead was a
+ * tile that looked like no other tile in the hub and a bar that said nothing
+ * at all.
+ *
+ * ## The `note` line, and the one state that keeps it
+ *
+ * No tile carries a `note` when it has a figure to show, because the handoff
+ * draws no such line. That dropped every tile's **denominator** — "Of the jobs
+ * offered to you", "N jobs finished this week", "From N rated jobs", "Across N
+ * days so far" — and for three of the five that is simply the design's call:
+ * a rating over "From 61 rated jobs" is context, and context is what this
+ * layout trades away for the four-line tile.
+ *
+ * The two **rate** tiles are the exception, and only in one state. `formatRate`
+ * returns an em dash when its rate is `null`, which is the loader's "nothing
+ * finished this week" — emphatically not zero. An em dash over an empty track
+ * with nothing else on the tile does not read as a quiet week; it reads as a
+ * broken tile. The handoff cannot arbitrate that, because its five figures are
+ * hardcoded and it has no empty tile anywhere: its silence here is an absence
+ * of opinion, not an instruction. So both rate tiles restore
+ * `NO_FINISHED_JOBS_NOTE` exactly when their own value is `null`, and render
+ * the design's four lines the rest of the time. The tile matches the artboard
+ * in every state the artboard actually depicts.
+ *
+ * That note gets no `<SampleNote>`: "nothing finished this week" is a true
+ * statement about real rows, and badging it would disown a fact.
+ *
+ * `sampled.ratedJobCount` and `window.daysElapsed` are consequently unread here
+ * now, and `data.finishedJobCount` is too — the rate tiles condition on their
+ * own values rather than on the shared denominator. All three stay on the
+ * payload; they are the loader's vocabulary, not this screen's leftovers.
  *
  * ## Two windows that look like one
  *
@@ -133,21 +164,6 @@ const DELTA_NOTE =
   // figures for a BUSINESS reader, whose snapshot would be per company.
   "storing each metric per account per week.";
 
-/**
- * The Acceptance tile's sub-line, per persona. A fleet is offered loads it may
- * claim; a driver is offered jobs they may take. "You" was correct for two of
- * the three personas and a category error for the third — a fleet owner is
- * never personally offered a job.
- *
- * The tile itself is not dropped for a fleet. Acceptance is a real fleet
- * concept, simply unrecorded, exactly as it is for a driver; `ACCEPTANCE_NOTE`
- * above says why, in terms that are already persona-neutral.
- */
-const ACCEPTANCE_TILE_NOTE = {
-  driver: "Of the jobs offered to you",
-  fleet: "Of the loads offered to the fleet",
-} as const;
-
 const ONLINE_HOURS_NOTE =
   "Online hours only. DriverProfile.isOnline is a single boolean with no " +
   "history behind it, so no duration can be computed from it. The jobs bars " +
@@ -157,6 +173,25 @@ const SCORE_NOTES_NOTE =
   "Every figure and threshold in this card is invented — the thresholds are " +
   "policy the product has not written down anywhere the code can read. " +
   "Retire alongside the metrics each row describes.";
+
+/* -------------------------------------------------------------------------- */
+/* Empty-state copy                                                           */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The line the two rate tiles show *instead of* a denominator, and only when
+ * they have none.
+ *
+ * Deliberately not in the honesty block above: every string there is the body
+ * of a `<SampleNote>` and names something invented. This is the opposite — a
+ * true statement about real data — so it must never acquire a badge.
+ *
+ * Shared by both tiles because they are unknown together: `performance.ts`
+ * documents `cancellationRatePercent` as the complement of
+ * `completionRatePercent`, null on the same condition, so a week that leaves
+ * one of them blank leaves both.
+ */
+const NO_FINISHED_JOBS_NOTE = "No jobs have finished yet this week";
 
 /* -------------------------------------------------------------------------- */
 /* Tile geometry                                                              */
@@ -190,12 +225,18 @@ const DELTA_TONE_CLASSES: Record<MetricDeltaTone, string> = {
 };
 
 /**
- * The two series of the paired chart. The legend names the sampled one in the
- * legend text itself, so a reader who never hovers the badge still knows which
- * half of each column is a guess.
+ * The two series of the paired chart, named as the handoff names them
+ * (`…>Online hours</span>` / `…>Jobs completed</span>`).
+ *
+ * The legend used to read "Online hours (estimated)", carrying the honesty
+ * marker inside the legend text. It no longer needs to: the card this chart
+ * sits in already wears a `<SampleNote label="Online hours" />` in its header
+ * action, which says the same thing in the place the rest of the hub says it,
+ * and a parenthetical in the legend on top of that badged the same fact twice.
+ * The badge is the marker; do not delete it and re-add the parenthetical.
  */
 const CHART_SERIES: readonly HubBarSeries[] = [
-  { label: "Online hours (estimated)", tone: "ink" },
+  { label: "Online hours", tone: "ink" },
   { label: "Jobs completed", tone: "accent" },
 ];
 
@@ -240,35 +281,35 @@ function Num({ children }: { children: React.ReactNode }) {
   return <span className="font-price">{children}</span>;
 }
 
-type TileFooterProps = {
-  delta: SampleMetricDelta;
+type TileMarkerProps = {
   /**
    * Badge text. `"Sample data"` (the default) when the tile's value is invented
-   * too; `"Estimated delta"` when only the line above the badge is.
+   * too; `"Estimated delta"` when only the delta line above the track is.
    */
-  markerLabel?: string;
+  label?: string;
   /** What would make the badged thing real. */
-  markerNote: string;
+  note: string;
 };
 
 /**
- * The bottom of every tile: the period-over-period line in its own tone, and
- * immediately under it the badge saying how much of the tile that line's
- * fictionality extends to.
+ * The honesty badge at the foot of every tile.
  *
- * Rendered as `MetricTile` children — i.e. *below* the progress track — rather
- * than through its `delta` prop, which would place the delta above the track
- * and tint the track with the delta's tone. Below the track is also the right
- * place semantically: the track measures the real value, and everything under
- * it on these three tiles is the estimate.
+ * It is the one thing on these tiles the handoff has no slot for, because the
+ * prototype's five figures are all invented and it never had to say so. Here
+ * three of the five values are real and every "vs last week" line is not, so
+ * the badge stays and the tile is built around it: label → value → delta →
+ * track is the handoff's order, and this sits *under* the track, which is the
+ * only place left that does not push a real value down the tile behind a
+ * caveat about an invented one.
+ *
+ * `flex` on the wrapper rather than a bare badge: `MetricTile`'s card is a flex
+ * column, so an unwrapped inline-flex badge would stretch to the tile's full
+ * width and lose its pill shape.
  */
-function TileFooter({ delta, markerLabel, markerNote }: TileFooterProps) {
+function TileMarker({ label, note }: TileMarkerProps) {
   return (
-    <div className="mt-2.5 flex flex-col items-start gap-1.5">
-      <p className={cn("text-xs", DELTA_TONE_CLASSES[delta.tone])}>
-        {delta.label}
-      </p>
-      <SampleNote label={markerLabel} note={markerNote} />
+    <div className="mt-2.5 flex">
+      <SampleNote label={label} note={note} />
     </div>
   );
 }
@@ -461,65 +502,67 @@ export function PerformanceScreen({ data }: PerformanceScreenProps) {
     </p>
   ) : null;
 
-  // Shared by both rate tiles: they have the same denominator, so they are
-  // unknown together and explained together.
-  const finishedNote =
-    data.finishedJobCount === 0 ? (
-      "No jobs have finished yet this week"
-    ) : (
-      <>
-        <Num>{pluralise(data.finishedJobCount, "job")}</Num> finished this week
-      </>
-    );
-
   return (
     <>
       <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-5">
+        {/* Five tiles in the handoff's shape: label → value → delta → track,
+            with the delta above the bar and the bar tinted to the delta's own
+            tone. `progressTone` is passed explicitly rather than left to
+            `MetricTile`'s `progressTone ?? delta?.tone` fallback — the tone is
+            a deliberate statement here, not an inherited default, and spelling
+            it out means a change to that fallback cannot silently repaint five
+            tracks. Each tile then closes with its `<TileMarker />`, which the
+            handoff has no equivalent for and which is not optional here; see
+            that component. */}
         <MetricTile
           label="Acceptance"
           value={`${formatDecimal(sampled.acceptanceRatePercent)}%`}
-          note={
-            isBusiness
-              ? ACCEPTANCE_TILE_NOTE.fleet
-              : ACCEPTANCE_TILE_NOTE.driver
-          }
+          delta={sampled.deltas.acceptance}
           progress={sampled.acceptanceRatePercent / 100}
+          progressTone={sampled.deltas.acceptance.tone}
         >
-          <TileFooter
-            delta={sampled.deltas.acceptance}
-            markerNote={ACCEPTANCE_NOTE}
-          />
+          <TileMarker note={ACCEPTANCE_NOTE} />
         </MetricTile>
 
         <MetricTile
           label="Completion"
           value={formatRate(data.completionRatePercent)}
-          note={finishedNote}
+          // Present only in the state the handoff never draws. `formatRate`
+          // returns the em dash on `null` and on nothing else, so this is the
+          // exact condition under which the tile would otherwise be a dash over
+          // an empty track with no account of itself. Conditioned on this
+          // tile's own value rather than on the shared `finishedJobCount`, so
+          // it stays right if the loader ever makes the two rates independent.
+          note={
+            data.completionRatePercent === null
+              ? NO_FINISHED_JOBS_NOTE
+              : undefined
+          }
+          delta={sampled.deltas.completion}
           // A rate with no denominator is not a full track and not a broken
           // one — it is an empty track under an em dash.
           progress={(data.completionRatePercent ?? 0) / 100}
+          progressTone={sampled.deltas.completion.tone}
         >
-          <TileFooter
-            delta={sampled.deltas.completion}
-            markerLabel="Estimated delta"
-            markerNote={DELTA_NOTE}
-          />
+          <TileMarker label="Estimated delta" note={DELTA_NOTE} />
         </MetricTile>
 
         <MetricTile
           label="Cancellations"
           value={formatRate(data.cancellationRatePercent)}
-          note={finishedNote}
+          note={
+            data.cancellationRatePercent === null
+              ? NO_FINISHED_JOBS_NOTE
+              : undefined
+          }
+          delta={sampled.deltas.cancellations}
           progress={
             (data.cancellationRatePercent ?? 0) /
             CANCELLATION_TRACK_CEILING_PERCENT
           }
+          progressTone={sampled.deltas.cancellations.tone}
         >
-          <TileFooter
-            delta={sampled.deltas.cancellations}
-            markerLabel="Estimated delta"
-            markerNote={DELTA_NOTE}
-          />
+          <TileMarker label="Estimated delta" note={DELTA_NOTE} />
         </MetricTile>
 
         {/* A company is not rated, its drivers are — so a fleet reads the
@@ -530,37 +573,21 @@ export function PerformanceScreen({ data }: PerformanceScreenProps) {
         <MetricTile
           label={isBusiness ? "Fleet rating" : "Avg rating"}
           value={formatRating(sampled.averageRating)}
-          note={
-            isBusiness ? (
-              <>
-                Across <Num>{sampled.ratedJobCount}</Num> rated jobs, fleet-wide
-              </>
-            ) : (
-              <>
-                From <Num>{sampled.ratedJobCount}</Num> rated jobs
-              </>
-            )
-          }
+          delta={sampled.deltas.rating}
           progress={sampled.averageRating / RATING_SCALE_MAX}
+          progressTone={sampled.deltas.rating.tone}
         >
-          <TileFooter delta={sampled.deltas.rating} markerNote={RATING_NOTE} />
+          <TileMarker note={RATING_NOTE} />
         </MetricTile>
 
         <MetricTile
           label="Jobs per day"
           value={formatDecimal(data.jobsPerDay)}
-          note={
-            <>
-              Across <Num>{pluralise(hubWindow.daysElapsed, "day")}</Num> so far
-            </>
-          }
+          delta={sampled.deltas.jobsPerDay}
           progress={data.jobsPerDay / JOBS_PER_DAY_TRACK_CEILING}
+          progressTone={sampled.deltas.jobsPerDay.tone}
         >
-          <TileFooter
-            delta={sampled.deltas.jobsPerDay}
-            markerLabel="Estimated delta"
-            markerNote={DELTA_NOTE}
-          />
+          <TileMarker label="Estimated delta" note={DELTA_NOTE} />
         </MetricTile>
       </div>
 
@@ -582,7 +609,14 @@ export function PerformanceScreen({ data }: PerformanceScreenProps) {
               nothing on this chart is sampled any more, and leaving the
               "Online hours" badge on a chart with no hours in it would be
               worse than either alternative. */}
-          <HubCard title="Jobs completed by day">
+          {/* `titleGap="chart"` for the same reason the driver chart below
+              takes it — this is the same bar chart under a different title, and
+              the handoff's plot cards set `margin-bottom:22px` on their title
+              row where every other card sets 16px. The artboard has no
+              fleet-owner Performance screen to quote a line from, so this one
+              follows the driver chart by analogy rather than by transcription;
+              two identical charts differing by 6px would be the odder result. */}
+          <HubCard title="Jobs completed by day" titleGap="chart">
             <HubBarChart
               columns={fleetColumns}
               series={FLEET_CHART_SERIES}
@@ -639,8 +673,13 @@ export function PerformanceScreen({ data }: PerformanceScreenProps) {
         </>
       ) : (
         <div className="grid items-start gap-5 lg:grid-cols-[1.4fr_1fr]">
+          {/* `margin-bottom:22px` on this card's title row in the handoff
+              (`…font-weight:600; margin-bottom:22px">Online hours vs jobs
+              completed</div>`), against the 16px the score card beside it uses
+              — so this one opts into the wider gap and that one does not. */}
           <HubCard
             title="Online hours vs jobs completed"
+            titleGap="chart"
             action={
               <SampleNote label="Online hours" note={ONLINE_HOURS_NOTE} />
             }
@@ -661,7 +700,11 @@ export function PerformanceScreen({ data }: PerformanceScreenProps) {
               {sampled.scoreNotes.map((note) => (
                 <li
                   key={note.title}
-                  className="border-t border-muted py-3.5 last:pb-0"
+                  // `padding:14px 0` on every row, last one included — the
+                  // handoff's own rule. Trimming the final row's bottom padding
+                  // pulled the list tight against the card's floor and made the
+                  // card read shorter than the chart beside it.
+                  className="border-t border-muted py-3.5"
                 >
                   <div className="flex items-baseline justify-between gap-3">
                     <p className="text-sm font-medium">{note.title}</p>

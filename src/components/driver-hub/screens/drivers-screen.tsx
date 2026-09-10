@@ -19,9 +19,13 @@ import {
   type DriversVehicleOption,
   type RegisteredDriver,
 } from "@/components/driver-hub/screens/drivers-add-panel";
-import { DriversDetailPanel } from "@/components/driver-hub/screens/drivers-detail-panel";
+import {
+  DriversDetailPanel,
+  driverStatusWord,
+} from "@/components/driver-hub/screens/drivers-detail-panel";
 import {
   formatGel,
+  formatJoinedMonth,
   formatRating,
   shortId,
 } from "@/components/driver-hub/screens/drivers-format";
@@ -34,7 +38,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { HubDriver, HubDriversData } from "@/lib/dashboard/hub/drivers";
+import type { HubDriversData } from "@/lib/dashboard/hub/drivers";
 import { cn } from "@/lib/utils";
 
 /**
@@ -44,18 +48,20 @@ import { cn } from "@/lib/utils";
  * Business accounts only; `drivers/page.tsx` is what enforces that, and
  * `getHubDrivers()` refuses an individual account independently.
  *
- * ## Two status axes, one column
+ * ## Two status axes, one pill
  *
  * `HubDriver` carries `presence` (Online/Offline — the app is open) and
  * `reviewState` (Active / In review / Not activated / Suspended — where they
  * stand with operations) as *independent* facts, because they are: a suspended
  * driver can still have the app open, and an offline driver can be perfectly
- * in order. The design's roster has one 110px status column, so the row shows
- * whichever of the two is the more blocking answer and the detail panel shows
- * both pills side by side. The collapsed axis is never lost — it rides along
- * as screen-reader text on the same cell.
+ * in order. The design has room for one status word in each place — a 110px
+ * roster column and a single pill in the detail panel — so both surfaces show
+ * whichever of the two is the more blocking answer, through the one
+ * `driverStatusWord()` rule. The collapsed axis is never lost: it rides along
+ * as screen-reader text beside the pill.
  *
- * There is deliberately **no "Offboarded" tab**, though the design has one.
+ * There is deliberately **no "Offboarded" tab**, though the design's
+ * `driverTabs` lists one ("All, Online, Offline, Needs review, Offboarded").
  * Removing a driver nulls `DriverProfile.companyId` and keeps no membership
  * record, so nothing can populate that tab: it would be a filter that is
  * permanently empty and implies the platform still tracks ex-employees.
@@ -112,8 +118,14 @@ const COLUMNS_FULL =
   "grid-cols-[1.3fr_110px_90px_70px_90px_110px] min-w-[760px]";
 const COLUMNS_SPLIT = "grid-cols-[1.6fr_70px_110px] min-w-[380px]";
 
+/**
+ * `font-normal` rather than no weight at all: the design's `headStyle()` sets
+ * none, so the header inherits 400 — but `TableHead` bakes `font-medium` into
+ * its own base classes, so dropping the weight from here would leave the 500
+ * standing. It has to be overridden explicitly.
+ */
 const HEAD_CLASSES =
-  "h-auto px-0 pb-2.5 text-[11px] font-medium tracking-[0.08em] uppercase text-muted-foreground";
+  "h-auto px-0 pb-2.5 text-[11px] font-normal tracking-[0.08em] uppercase text-muted-foreground";
 const CELL_CLASSES = "min-w-0 px-0 py-3.5";
 
 /* -------------------------------------------------------------------------- */
@@ -128,32 +140,9 @@ const RATING_SAMPLE_NOTE =
 /* Derived row values                                                         */
 /* -------------------------------------------------------------------------- */
 
-/**
- * The one status word a roster row has room for.
- *
- * The review state wins whenever it is not "Active", because that is the axis
- * that decides whether the driver can work at all — an operator scanning the
- * list needs "Suspended" far more than "Online". A driver in good standing
- * falls through to their presence, which is what the design's roster shows.
- */
-function rowStatus(driver: HubDriver): string {
-  return driver.reviewState === "Active" ? driver.presence : driver.reviewState;
-}
-
 /** Singular/plural for the counts in the header subhead and the tile notes. */
 function plural(count: number, singular: string, many: string): string {
   return count === 1 ? singular : many;
-}
-
-/** "Tbilisi, Batumi and Kutaisi" — the cities behind the Online now tile. */
-function listCities(cities: readonly string[]): string {
-  if (cities.length <= 1) {
-    return cities[0] ?? "";
-  }
-
-  const last = cities[cities.length - 1] ?? "";
-
-  return `${cities.slice(0, -1).join(", ")} and ${last}`;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -200,12 +189,51 @@ export function DriversScreen({ data, vehicles }: DriversScreenProps) {
     null,
   );
 
+  // Tile notes and the subhead, all derived from the roster already in hand so
+  // a note can never disagree with the number above it.
+  //
+  // `joinedAt` is `DriverProfile.createdAt`, so "added this month" is a real
+  // count. Months are compared as *formatted* strings rather than timestamps:
+  // `formatJoinedMonth` is pinned to the Tbilisi calendar this whole screen is
+  // bucketed in, and reusing it here means the tile and each driver's "joined
+  // Feb 2026" line can never disagree about which month a join fell in. The
+  // only way server render and hydration differ is a month rolling over
+  // between the two, which is a one-second window twelve times a year.
+  const currentMonth = formatJoinedMonth(new Date().toISOString());
+  const addedThisMonthCount = drivers.filter(
+    (driver) => formatJoinedMonth(driver.joinedAt) === currentMonth,
+  ).length;
+  const onlineCities = Array.from(
+    new Set(
+      drivers
+        .filter((driver) => driver.presence === "Online")
+        .map((driver) => driver.cityLabel),
+    ),
+  ).sort((a, b) => a.localeCompare(b));
+  const suspendedCount = drivers.filter(
+    (driver) => driver.reviewState === "Suspended",
+  ).length;
+  const notActivatedCount = drivers.filter(
+    (driver) => driver.reviewState === "Not activated",
+  ).length;
+  const inReviewCount = drivers.filter(
+    (driver) => driver.reviewState === "In review",
+  ).length;
+
+  // The design's "7 registered drivers · 4 online in Tbilisi now", derived.
+  // The city half is the roster's own online cities rather than the artboard's
+  // hard-coded Tbilisi, and "nobody online right now" replaces a "0 online in
+  // now" that would name no city at all.
   useHubSubtitle(
-    `${drivers.length} ${plural(
+    `${drivers.length} registered ${plural(
       drivers.length,
       "driver",
       "drivers",
-    )} · ${tiles.onlineNowCount} online`,
+    )} · ${
+      onlineCities.length === 0
+        ? "nobody online right now"
+        : `${tiles.onlineNowCount} online in ${onlineCities.join(", ")} now`
+    }`,
   );
 
   // The rail shows one thing at a time, and the register form wins: opening it
@@ -276,28 +304,6 @@ export function DriversScreen({ data, vehicles }: DriversScreenProps) {
     ? "the register a driver form"
     : `${selectedDriver?.name ?? "driver"} details`;
 
-  // Tile notes, all derived from the roster already in hand so a note can never
-  // disagree with the number above it.
-  const withVehicleCount = drivers.filter(
-    (driver) => driver.assignedVehicle !== null,
-  ).length;
-  const onlineCities = Array.from(
-    new Set(
-      drivers
-        .filter((driver) => driver.presence === "Online")
-        .map((driver) => driver.cityLabel),
-    ),
-  ).sort((a, b) => a.localeCompare(b));
-  const suspendedCount = drivers.filter(
-    (driver) => driver.reviewState === "Suspended",
-  ).length;
-  const notActivatedCount = drivers.filter(
-    (driver) => driver.reviewState === "Not activated",
-  ).length;
-  const inReviewCount = drivers.filter(
-    (driver) => driver.reviewState === "In review",
-  ).length;
-
   return (
     <>
       {registered === null ? null : (
@@ -311,7 +317,11 @@ export function DriversScreen({ data, vehicles }: DriversScreenProps) {
         <MetricTile
           label="Registered drivers"
           value={tiles.registeredDriversCount}
-          note={`${withVehicleCount} with a vehicle assigned`}
+          note={
+            addedThisMonthCount === 0
+              ? "Nobody added this month"
+              : `${addedThisMonthCount} added this month`
+          }
         />
         <MetricTile
           label="Online now"
@@ -319,7 +329,9 @@ export function DriversScreen({ data, vehicles }: DriversScreenProps) {
           note={
             onlineCities.length === 0
               ? "Nobody is taking work right now"
-              : `Across ${listCities(onlineCities)}`
+              : // Comma-joined throughout, like the design's "Across Vake,
+                // Saburtalo, Gldani, Vera" — no "and" before the last.
+                `Across ${onlineCities.join(", ")}`
           }
         />
         <MetricTile
@@ -335,12 +347,17 @@ export function DriversScreen({ data, vehicles }: DriversScreenProps) {
           note={
             tiles.needsReviewCount === 0
               ? "Everyone is activated and clear"
-              : [
-                  suspendedCount > 0 ? `${suspendedCount} suspended` : null,
+              : // Ordered as the design's "1 pending, 1 suspended" — the
+                // states that are merely waiting first, the one that blocks
+                // the driver outright last. The words stay ours: "pending"
+                // would collapse two states this roster keeps apart, and both
+                // are printed verbatim on the pills in the table below.
+                [
                   inReviewCount > 0 ? `${inReviewCount} in review` : null,
                   notActivatedCount > 0
                     ? `${notActivatedCount} not activated`
                     : null,
+                  suspendedCount > 0 ? `${suspendedCount} suspended` : null,
                 ]
                   .filter((part) => part !== null)
                   .join(", ")
@@ -369,9 +386,11 @@ export function DriversScreen({ data, vehicles }: DriversScreenProps) {
                 {/* The Rating column is the one invented figure in this table,
                     so the marker sits on the table's own toolbar. */}
                 <SampleNote label="Sample ratings" note={RATING_SAMPLE_NOTE} />
+                {/* Body font, not mono: the design's `driverCountLabel` is a
+                    plain 12px muted string, and the hub reserves mono for
+                    values a reader might compare or copy. */}
                 <span className="text-xs text-muted-foreground">
-                  <span className="font-price">{visible.length}</span> of{" "}
-                  <span className="font-price">{drivers.length}</span> shown
+                  {visible.length} of {drivers.length} shown
                 </span>
                 <Button
                   type="button"
@@ -454,15 +473,23 @@ export function DriversScreen({ data, vehicles }: DriversScreenProps) {
                           <span className="block truncate font-medium">
                             {driver.name}
                           </span>
-                          {/* An id and a plate are values, so they are mono.
-                              The full profile id rides along as a title —
+                          {/* `{{ d.id }} · {{ d.vehicle }}` — an id and the
+                              *class* of the vehicle they drive ("Large Van"),
+                              not its plate: a plate identifies the vehicle and
+                              belongs on the Vehicles screen, while the class is
+                              what tells an operator what this driver can carry.
+                              The whole line is mono, as it is in the design.
+
+                              The id is the profile cuid, shortened. The
+                              design's "GE-88214" is a display id no column
+                              holds, so the full cuid rides along as a title —
                               a truncated id is a label, not an identifier. */}
                           <span
                             title={driver.driverProfileId}
                             className="mt-0.5 block truncate font-price text-[11px] text-muted-foreground"
                           >
                             {shortId(driver.driverProfileId)} ·{" "}
-                            {driver.assignedVehicle?.plateNumber ??
+                            {driver.assignedVehicle?.vehicleTypeLabel ??
                               "Unassigned"}
                           </span>
                         </button>
@@ -515,7 +542,7 @@ export function DriversScreen({ data, vehicles }: DriversScreenProps) {
                         role="cell"
                         className={cn(CELL_CLASSES, "text-right")}
                       >
-                        <HubStatusBadge status={rowStatus(driver)} />
+                        <HubStatusBadge status={driverStatusWord(driver)} />
                         {/* The axis the single pill had to drop. */}
                         <span className="sr-only">
                           {" "}

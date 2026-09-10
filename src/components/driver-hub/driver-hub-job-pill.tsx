@@ -139,9 +139,19 @@ export function DriverHubJobPill({
 
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
+      {/* No height class: the design gives the pill padding and lets the line
+          box decide (5px + 12px text + 5px + two 1px borders ≈ 26px). A fixed
+          `h-8` would have overridden that and drawn a 32px pill with its text
+          floating in the middle of it.
+
+          `max-w-[240px]` + `truncate` is the one deliberate departure. The
+          design's label is a mock `Job in progress · #4821`; ours can be that
+          plus a real `shortId`, and the fleet string grows with the count, so
+          the pill is capped rather than allowed to push the header's right-hand
+          cluster around. See the dropdown row below for the same call. */}
       <PopoverTrigger
         type="button"
-        className="inline-flex h-8 max-w-[240px] items-center gap-[7px] rounded-full border border-border py-1 pr-[11px] pl-[9px] text-[12px] font-semibold whitespace-nowrap transition-colors hover:border-[oklch(64%_0.19_48)] focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+        className="inline-flex max-w-[240px] cursor-pointer items-center gap-[7px] rounded-full border border-border py-[5px] pr-3 pl-2.5 text-[12px] font-semibold whitespace-nowrap transition-colors hover:border-[oklch(64%_0.19_48)] focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
       >
         <span
           aria-hidden="true"
@@ -155,12 +165,21 @@ export function DriverHubJobPill({
           root, and without it `bg-popover`, `border-border` and `bg-accent`
           resolve to the marketing palette instead of the hub's. Nothing errors
           — the colours are simply wrong. Same precedent as
-          `loads-detail-sheet.tsx`. */}
+          `loads-detail-sheet.tsx`.
+
+          The shadow is the design's own `0 12px 32px rgba(0,0,0,0.12)`, a
+          deeper lift than the primitive's `shadow-md`, and `ring-0` is what
+          keeps it to one edge: `PopoverContent`'s base style carries a `ring-1
+          ring-foreground/10` that would otherwise sit a hairline outside this
+          panel's `border-border` and draw the border twice. Same call, and the
+          same reason, as `HubCard` and `add-card-dialog.tsx` — suppressed from
+          the consumer, because the ring is right for every other popover in the
+          app. */}
       <PopoverContent
         data-admin-surface=""
         align="end"
         sideOffset={8}
-        className="w-[330px] gap-0 overflow-hidden rounded-xl border border-border p-0"
+        className="w-[330px] gap-0 overflow-hidden rounded-xl border border-border p-0 shadow-[0_12px_32px_rgba(0,0,0,0.12)] ring-0"
       >
         <p className="border-b border-border px-3.5 py-[11px] text-[12px] font-semibold">
           {label}
@@ -181,9 +200,7 @@ export function DriverHubJobPill({
               // stranger's order and useless feedback for your own fleet's.
               // A company-scoped sheet is a different screen; until it
               // exists, the list is the honest destination.
-              href={
-                persona === "BUSINESS" ? href : `/dashboard/jobs/${job.id}`
-              }
+              href={persona === "BUSINESS" ? href : `/dashboard/jobs/${job.id}`}
               // The panel does not survive the navigation it starts: without
               // this the popover stays mounted and open over the screen the
               // driver just asked for.

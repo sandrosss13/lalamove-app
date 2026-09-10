@@ -71,9 +71,11 @@ import type {
  * Incentives tile is untouched, which leaves a fleet's tile row carrying exactly
  * one badge instead of three.
  *
- * `sampled.rangeTotal` is not rendered anywhere. The breakdown card's own
- * header explains at length why a total that folds estimates into real fares is
- * the one number this screen refuses to headline.
+ * `sampled.rangeTotal` is rendered in exactly one place — the breakdown card's
+ * footer, where it sums that card's own four rows. It is deliberately not a
+ * tile up here: the tile row leads with real `grossFares`, and a headline
+ * figure that folds three estimates into it would be the number a driver
+ * quoted, budgeted against and eventually disputed.
  */
 
 /**
@@ -215,9 +217,16 @@ export function EarningsScreen({ data, presets }: EarningsScreenProps) {
         </MetricTile>
       </div>
 
-      <div className="grid items-start gap-5 lg:grid-cols-[1.4fr_1fr]">
+      {/* The handoff's `1.4fr 1fr` with no `align-items` of its own, so the
+          breakdown card stretches to the chart card's height instead of ending
+          short of it and leaving the row visibly ragged. */}
+      <div className="grid gap-5 lg:grid-cols-[1.4fr_1fr]">
         <HubCard
           title={chartTitle}
+          // The design gives its two plot cards a 22px title→body gap where
+          // every other card uses 16px, so the bars start clear of the title
+          // rather than crowding it.
+          titleGap="chart"
           action={
             grouping === "weekly" ? (
               <>
@@ -244,6 +253,7 @@ export function EarningsScreen({ data, presets }: EarningsScreenProps) {
         <EarningsBreakdownCard
           grossFares={data.grossFares}
           jobsCompleted={data.jobsCompleted}
+          rangeTotal={sampled.rangeTotal}
           extras={sampled.extras}
           incentivesNote={sampled.incentivesNote}
         />

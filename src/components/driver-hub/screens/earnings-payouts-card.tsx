@@ -43,9 +43,22 @@ import { cn } from "@/lib/utils";
  */
 const COLUMNS = "grid-cols-[1.2fr_1fr_1fr_1fr_120px] min-w-[560px]";
 
+/**
+ * `font-normal` is stated rather than omitted: the design sets no weight on any
+ * table header, but `TableHead` bakes `font-medium` into its own base classes,
+ * so leaving the weight out here leaves tailwind-merge nothing to override and
+ * the header renders at 500 anyway. Shared verbatim with every other hub table,
+ * `earnings-fleet-card.tsx` included — the two share the Earnings screen for a
+ * BUSINESS account and must not disagree.
+ */
 const HEAD_CLASSES =
-  "h-auto px-0 pb-2.5 text-[11px] font-medium tracking-[0.08em] uppercase text-muted-foreground";
-const CELL_CLASSES = "min-w-0 px-0 py-3.5";
+  "h-auto px-0 pb-2.5 text-[11px] font-normal tracking-[0.08em] uppercase text-muted-foreground";
+/**
+ * 13px, not the 14px every other hub table uses: the handoff gives its job,
+ * driver and vehicle rows `padding:14px 0` and this one `padding:13px 0`, so
+ * the odd figure is the design's and not a slip.
+ */
+const CELL_CLASSES = "min-w-0 px-0 py-[13px]";
 
 const PAYOUTS_NOTE =
   "The whole table is a placeholder: order revenue is settled weekly, but " +
@@ -109,14 +122,14 @@ export function EarningsPayoutsCard({ payouts }: EarningsPayoutsCardProps) {
                   COLUMNS,
                 )}
               >
-                {/* A settlement window is a date, so it is mono like the
-                    figures beside it. */}
+                {/* Not mono, per the handoff: it sets `IBM Plex Mono` on Jobs,
+                    Incentives and Amount only. A settlement window is a phrase
+                    — "18–24 Aug" — and nothing below it lines up digit for
+                    digit, so the figures keep the mono column and this cell
+                    reads as the label it is. */}
                 <TableCell
                   role="cell"
-                  className={cn(
-                    CELL_CLASSES,
-                    "truncate font-price font-medium",
-                  )}
+                  className={cn(CELL_CLASSES, "truncate font-medium")}
                 >
                   {payout.period}
                 </TableCell>

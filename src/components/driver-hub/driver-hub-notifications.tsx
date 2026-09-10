@@ -1,7 +1,5 @@
 "use client";
 
-import { Bell } from "lucide-react";
-
 import { SampleNote } from "@/components/driver-hub/hub-primitives";
 import {
   Popover,
@@ -86,17 +84,25 @@ export function DriverHubNotifications({
         // header a 44px target (its own figure, and the WCAG 2.2 "Target Size
         // (Minimum)" floor) and the desktop bar a 32px one, where a pointer
         // rather than a thumb is doing the aiming.
-        className="relative grid size-11 flex-none place-items-center rounded-[10px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none lg:size-8 lg:rounded-lg"
+        className="relative grid size-11 flex-none cursor-pointer place-items-center rounded-[10px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none lg:size-8 lg:rounded-lg"
       >
-        <Bell aria-hidden="true" className="size-[19px] lg:size-[17px]" />
+        <BellGlyph />
         {count === 0 ? null : (
           // Decorative: the count is already in the trigger's accessible name
           // above, and announcing it twice is how an icon button ends up read
           // as "Notifications 2 unread sample data, 2".
+          //
+          // The `translate(35%,-35%)` is load-bearing, not a nudge: the design
+          // hangs the badge off the button's corner, so the offsets place it
+          // *inside* and the translate pushes it back out over the edge. Drop
+          // it and the badge sits tucked in the corner, which is a different
+          // and much quieter shape. The two offsets differ per breakpoint
+          // because the buttons do — 6px/7px inside the phone's 44px target,
+          // 1px inside the desktop bar's 32px one.
           <span
             aria-hidden="true"
             className={cn(
-              "absolute top-1.5 right-1.5 min-w-[15px] rounded-full px-[3px] text-center font-price text-[10px] leading-[15px] font-semibold text-white lg:top-px lg:right-px",
+              "absolute top-1.5 right-[7px] min-w-[15px] translate-x-[35%] -translate-y-[35%] rounded-full px-[3px] text-center font-price text-[10px] leading-[15px] font-semibold text-white lg:top-px lg:right-px",
               ACCENT_BG,
             )}
           >
@@ -106,12 +112,15 @@ export function DriverHubNotifications({
       </PopoverTrigger>
 
       {/* Portalled to `document.body`, so it repeats `data-admin-surface` — see
-          the identical note in `driver-hub-job-pill.tsx`. */}
+          the identical note in `driver-hub-job-pill.tsx`, which also explains
+          the design shadow and why `ring-0` has to come from here. 300px is the
+          full-dashboard artboard's width; the header-only artboard says 290,
+          and where the two disagree the newer one wins. */}
       <PopoverContent
         data-admin-surface=""
         align="end"
         sideOffset={8}
-        className="w-[290px] gap-0 overflow-hidden rounded-xl border border-border p-0"
+        className="w-[300px] gap-0 overflow-hidden rounded-xl border border-border p-0 shadow-[0_12px_32px_rgba(0,0,0,0.12)] ring-0"
       >
         <div className="flex items-center justify-between gap-2 border-b border-border px-3.5 py-[11px]">
           <p className="text-[12px] font-semibold">Notifications</p>
@@ -133,6 +142,18 @@ export function DriverHubNotifications({
               // so an anchor here would be a control that either goes nowhere
               // or lies about where it goes. Rows become links in the change
               // that makes them real.
+              //
+              // The design's `hover:bg-accent` is deliberately **not** carried
+              // over with it. In the design the highlight belongs to an `<a>`,
+              // where it is the honest half of a real affordance; on a `<div>`
+              // it is the affordance without the control — the row lights up
+              // under the pointer, and clicking it does nothing. That is a
+              // worse experience than a row that never claims to be
+              // interactive, and it is worse for a keyboard or screen-reader
+              // user, who gets no highlight and so no warning that the mouse
+              // user's expectation exists at all. The hover comes back in the
+              // same commit as the anchor. The job pill's rows keep theirs
+              // because those rows really do navigate.
               <div
                 key={notification.id}
                 className="flex flex-col gap-0.5 border-b border-border px-3.5 py-[11px] last:border-b-0"
@@ -149,5 +170,38 @@ export function DriverHubNotifications({
         </div>
       </PopoverContent>
     </Popover>
+  );
+}
+
+/**
+ * The bell, drawn rather than imported.
+ *
+ * `lucide-react`'s `Bell` is not the same glyph at a different weight — it is a
+ * different bell. Lucide draws a round-shouldered dome sitting on a curved
+ * base; the design draws the classic flat-based shape, and at 17px next to a
+ * 1.8-weight rail of icons the substitution reads as the wrong icon rather than
+ * as a heavier one. So the design's own two paths are transcribed, at its own
+ * `stroke-width:1.8`.
+ *
+ * Same call, and the same reason, as `XGlyph` in `driver-hub-mobile-menu.tsx`.
+ * Kept file-local: it is a detail of this button, not a shared icon.
+ */
+function BellGlyph() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      // The design's two figures, one per breakpoint: 19px on the phone's 44px
+      // target, 17px on the desktop bar's 32px one.
+      className="size-[19px] lg:size-[17px]"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+      <path d="M13.7 21a2 2 0 0 1-3.4 0" />
+    </svg>
   );
 }

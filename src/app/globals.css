@@ -646,6 +646,33 @@ body:has([data-admin-surface]) > header {
   display: none;
 }
 
+/* Two tokens the driver hub pins for itself, from the driver dashboard handoff
+   (`UI:UX/Registered Driver account (New)/Driver dashboard header alignment/`).
+
+   `--muted-foreground`: the artboard's `MUTED`. The shadcn default is a lighter
+   hue-neutral grey, which left every caption, column header and sub-line in the
+   hub paler than the design — and visibly paler than the neutral status pill
+   beside them, which spells this same literal by hand in `hub-status.ts`.
+
+   `--primary`: the artboard's `INK`, for the filled dark buttons (View
+   earnings, Add vehicle, Add driver, Invite employee, Send invite), against a
+   shadcn default that is lighter and neutral.
+
+   Scoped to `data-hub-surface`, which only `driver-hub-shell.tsx` sets, rather
+   than to the `data-admin-surface` block above, which the back office, the
+   admin sign-in card and the onboarding wizard also carry — a driver screen's
+   handoff is no reason to repaint those. This block must stay *after* that one:
+   the hub marks itself with both attributes, so equal specificity makes source
+   order the tie-breaker.
+
+   On `body:has(...)` rather than the element itself for the reason the block
+   above documents: Radix portals dialog/select/dropdown/popover content to
+   `document.body`, outside the marked subtree it belongs to. */
+body:has([data-hub-surface]) {
+  --muted-foreground: oklch(44.6% 0.03 256.802);
+  --primary: oklch(13% 0.028 261.692);
+}
+
 @layer base {
   /* Scoped to the back office rather than applied globally (as the shadcn CLI
      writes it): the shadcn primitives assume `border-color` defaults to the

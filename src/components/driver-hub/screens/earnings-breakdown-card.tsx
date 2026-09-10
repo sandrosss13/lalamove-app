@@ -12,28 +12,22 @@ import { cn } from "@/lib/utils";
  * Where the range's money came from: trip fares, tips, incentives and
  * adjustments, then a total.
  *
- * ## Why the footer is the fares total and not "Range total"
+ * ## The footer sums the four lines above it
  *
- * The design's footer is a single "Range total", and the loader offers exactly
- * that figure — `sampled.rangeTotal`, fares plus tips plus incentives plus
- * adjustments. It is not used here.
+ * "Range total" is the sum of the card's own four rows — `sampled.rangeTotal`
+ * from the loader, fares plus tips plus incentives plus adjustments — because a
+ * total under four lines that did not add up to them would be read as an error
+ * long before it was read as a scruple.
  *
- * Three of those four terms are invented (`sample.ts`), so `rangeTotal` is a
- * number in which real money and estimates have already been added together and
- * can no longer be separated by anyone reading it. Printed at 20px under a
- * "Range total" label it becomes the figure a driver quotes, budgets against,
- * and eventually disputes — and it will not match their bank statement, their
- * payout, or the Trip fares line two rows above it. A sample badge beside a
- * headline does not undo that: the number has still been asserted.
- *
- * So the footer totals only what the platform can actually stand behind — the
- * real `grossFares` — and says so, while the three estimated lines above stay
- * visible, individually marked, and deliberately not summed into it. A reader
- * who wants the mixed figure can add the marked lines themselves, which is the
- * point: doing it by hand is doing it knowingly. When `Order.tipAmount`, an
- * `Incentive` model and a `PayoutAdjustment` model land, this footer becomes
- * the design's "Range total" over four real lines and this comment goes with
- * them.
+ * Three of those four terms are invented (`sample.ts`), so the total is a
+ * figure in which real money and estimates have been added together and cannot
+ * be separated again by anyone reading it. That is exactly what the card's one
+ * `<SampleNote />` is for, and why the three sampled rows keep their accent
+ * markers: the reader is told which of the lines under the total are estimates
+ * before they reach it. Until `Order.tipAmount`, an `Incentive` model and a
+ * `PayoutAdjustment` model land, this number is not a payout figure and must
+ * not be quoted as one — the Payout history card below is where settled money
+ * will eventually be read.
  */
 
 /** The design's green for the incentives figure. */
@@ -52,7 +46,8 @@ const SAMPLED_LINES_NOTE =
   "Tips, incentives and adjustments are placeholders: Order has no tipAmount " +
   "column, nothing records that a bonus was earned, and no deduction is " +
   "stored against a payout. Retire with Order.tipAmount, an Incentive model " +
-  "and a PayoutAdjustment model. Trip fares are real.";
+  "and a PayoutAdjustment model. Trip fares are real, and the range total " +
+  "adds all four lines together — so it is part estimate too.";
 
 type BreakdownLine = {
   label: string;
@@ -81,6 +76,13 @@ export type EarningsBreakdownCardProps = {
   grossFares: number;
   /** Real: completed jobs in the range, the Trip fares line's note. */
   jobsCompleted: number;
+  /**
+   * The footer figure: `grossFares` plus the three sampled `extras`, summed by
+   * the loader so this card is not the second place that arithmetic lives. Part
+   * real and part invented, which is what the card's sample note and the accent
+   * markers on the three sampled rows above the footer exist to say.
+   */
+  rangeTotal: number;
   /** Sampled: tips, incentives and adjustments for the range. */
   extras: SampleEarningsExtras;
   /** Sampled: the caption under the Incentives line. */
@@ -90,6 +92,7 @@ export type EarningsBreakdownCardProps = {
 export function EarningsBreakdownCard({
   grossFares,
   jobsCompleted,
+  rangeTotal,
   extras,
   incentivesNote,
 }: EarningsBreakdownCardProps) {
@@ -132,7 +135,9 @@ export function EarningsBreakdownCard({
       title="Breakdown"
       // One legend for the three marked lines rather than three badges in a
       // narrow card: the marker belongs to the lines, and repeating it three
-      // times would drown the one line that is real.
+      // times would drown the one line that is real. It covers the footer as
+      // well — the total sums all four rows, so it inherits their estimates —
+      // which is why the note says so and the label names only the sources.
       action={
         <SampleNote
           label="Tips · Incentives · Adjustments"
@@ -178,14 +183,9 @@ export function EarningsBreakdownCard({
       </div>
 
       <div className="mt-1.5 flex items-center justify-between gap-3 border-t border-border pt-3.5">
-        <div className="min-w-0">
-          <p className="text-sm font-semibold">Range total</p>
-          <p className="text-xs text-muted-foreground">
-            Trip fares only — the estimated lines are not added in.
-          </p>
-        </div>
+        <p className="text-sm font-semibold">Range total</p>
         <p className="font-price text-xl font-semibold">
-          {formatGel(grossFares)}
+          {formatGel(rangeTotal)}
         </p>
       </div>
     </HubCard>

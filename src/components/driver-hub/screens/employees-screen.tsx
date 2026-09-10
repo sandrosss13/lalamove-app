@@ -35,16 +35,17 @@ import { cn } from "@/lib/utils";
  *
  * The company name in the subhead is real. **Everything else about the people
  * is invented**: there is no `Employee` model, so the roster, the four tiles
- * and both mutations are placeholders, and the screen says so twice — once in a
- * banner above the tiles, once on the roster card itself.
+ * and both mutations are placeholders, and the banner above the tiles says so
+ * once, for the whole fictional half of the screen.
  *
  * The **role definitions** are not placeholders. The five roles and their
  * Manage/View/None matrices are the product's access-control design; they sit
  * in `sample.ts` only because no table exists to hold them yet.
  * `HubEmployeesData` hands them over in their own field so this screen can
  * render them as what they are — an un-badged section of real product content,
- * and the source of the permission rows in the detail panel and the role rows
- * in the invite form.
+ * and the source of the role rows in the invite form. They are *not* what the
+ * detail panel's permission rows read: a grant belongs to the person, so that
+ * panel reads each person's own `perms`, seeded from these definitions.
  *
  * Conflating the two would be the one mistake here that actually misleads: an
  * operator who writes off the permission matrix as filler has written off the
@@ -93,8 +94,14 @@ function isEmployeesTab(value: string): value is EmployeesTab {
 const COLUMNS_FULL = "grid-cols-[1.4fr_130px_1fr_130px_110px] min-w-[780px]";
 const COLUMNS_SPLIT = "grid-cols-[1.6fr_110px_110px] min-w-[400px]";
 
+/**
+ * `font-normal` rather than no weight at all: the design's `headStyle()` sets
+ * none, so the header inherits 400 — but `TableHead` bakes `font-medium` into
+ * its own base classes, so dropping the weight from here would leave the 500
+ * standing. It has to be overridden explicitly.
+ */
 const HEAD_CLASSES =
-  "h-auto px-0 pb-2.5 text-[11px] font-medium tracking-[0.08em] uppercase text-muted-foreground";
+  "h-auto px-0 pb-2.5 text-[11px] font-normal tracking-[0.08em] uppercase text-muted-foreground";
 const CELL_CLASSES = "min-w-0 px-0 py-3.5";
 
 /* -------------------------------------------------------------------------- */
@@ -222,13 +229,17 @@ export function EmployeesScreen({ data }: EmployeesScreenProps) {
                 }}
                 ariaLabel="Filter employees by status"
               />
+              {/* The toolbar holds what the design's does — the count and the
+                  button. The roster's sample marker is not repeated here: the
+                  banner above states it once for the whole fictional half of
+                  the screen, and a second badge two card-heights below the
+                  first only crowds the toolbar. */}
               <div className="flex flex-wrap items-center gap-x-3.5 gap-y-2">
-                {/* Repeated here so the table carries its own marker for
-                    anyone who scrolls straight to it. */}
-                <SampleNote label="Sample roster" note={ROSTER_SAMPLE_NOTE} />
+                {/* Body font, not mono: the design's `empCountLabel` is a
+                    plain 12px muted string, and the hub reserves mono for
+                    values a reader might compare or copy. */}
                 <span className="text-xs text-muted-foreground">
-                  <span className="font-price">{visible.length}</span> of{" "}
-                  <span className="font-price">{roster.length}</span> shown
+                  {visible.length} of {roster.length} shown
                 </span>
                 <Button
                   type="button"

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { LogOut, Menu } from "lucide-react";
+import { LogOut } from "lucide-react";
 
 import { useSignOut } from "@/components/auth/use-sign-out";
 import type {
@@ -127,7 +127,7 @@ export function DriverHubMobileMenu({
         // 44×44, the design's own figure and the WCAG 2.2 target-size floor.
         className="grid size-11 flex-none place-items-center rounded-[10px] transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none lg:hidden"
       >
-        <Menu aria-hidden="true" className="size-5" />
+        <MenuGlyph />
       </SheetTrigger>
 
       {/* Portalled to `document.body`, outside `DriverHubShell`'s attributed
@@ -171,7 +171,7 @@ export function DriverHubMobileMenu({
         aria-describedby={undefined}
         showCloseButton={false}
       >
-        <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-2">
+        <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
           {/* The dialog's accessible name says what the dialog *is*. The
               wordmark beside it is the design's visible content and is a poor
               name for a menu, so the two are separate: an `sr-only` title, and
@@ -239,7 +239,7 @@ export function DriverHubMobileMenu({
           </Link>
         </nav>
 
-        <div className="mt-auto flex items-center justify-between gap-3 border-t border-border px-4 py-3.5">
+        <div className="mt-auto flex items-center justify-between gap-3 border-t border-border px-3 py-3.5">
           <div className="min-w-0">
             <p className="truncate text-[14px] font-medium">{displayName}</p>
             <p className="truncate font-price text-[11px] text-muted-foreground">
@@ -265,12 +265,42 @@ export function DriverHubMobileMenu({
 }
 
 /**
+ * The hamburger, drawn rather than imported, for the reason `XGlyph` below is.
+ *
+ * `lucide-react`'s `Menu` is three strokes too, but it rules them at 5/12/19
+ * against the design's 4/7 · 4/12 · 4/17 — a wider, differently-spaced set —
+ * and at lucide's stroke width of 2 against the design's 1.9. Both differences
+ * show at the 20px this trigger draws it, and the second of them would put the
+ * hamburger a notch heavier than the ✕ it swaps places with.
+ */
+function MenuGlyph() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      // The design's 20px, stated rather than inherited: this trigger is a bare
+      // `SheetTrigger` and not a `Button`, so nothing sizes an svg for it.
+      className="size-5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.9}
+      strokeLinecap="round"
+      aria-hidden="true"
+    >
+      <path d="M4 7h16" />
+      <path d="M4 12h16" />
+      <path d="M4 17h16" />
+    </svg>
+  );
+}
+
+/**
  * The close glyph, drawn rather than imported.
  *
  * `lucide-react`'s `X` is the same two strokes, but the design specifies a 1.9
- * stroke width against lucide's 2 and this is the one icon in the header shown
- * at 20px, where that difference is visible next to the 1.8-weight bell. Kept
- * file-local: it is a detail of this panel, not a shared icon.
+ * stroke width against lucide's 2, and this is one of the header's two 20px
+ * icons — the hamburger above is the other — where that difference is visible
+ * next to the 1.8-weight bell. Kept file-local: it is a detail of this panel,
+ * not a shared icon.
  */
 function XGlyph() {
   return (

@@ -65,8 +65,16 @@ import { cn } from "@/lib/utils";
  */
 const COLUMNS = "grid-cols-[1.6fr_0.7fr_0.8fr_1fr_1fr] min-w-[560px]";
 
+/**
+ * `font-normal` is stated rather than omitted: the design sets no weight on any
+ * table header, but `TableHead` bakes `font-medium` into its own base classes,
+ * so leaving the weight out here leaves tailwind-merge nothing to override and
+ * the header renders at 500 anyway. Shared verbatim with every other hub table,
+ * `earnings-payouts-card.tsx` included — the two share this screen for a
+ * BUSINESS account and must not disagree.
+ */
 const HEAD_CLASSES =
-  "h-auto px-0 pb-2.5 text-[11px] font-medium tracking-[0.08em] uppercase text-muted-foreground";
+  "h-auto px-0 pb-2.5 text-[11px] font-normal tracking-[0.08em] uppercase text-muted-foreground";
 const CELL_CLASSES = "min-w-0 px-0 py-3.5";
 
 /**
