@@ -61,7 +61,7 @@ export type HubOnlineToggleProps = {
  * ---------------------------------------------------------------------------
  *
  * Success refreshes the route instead of flipping local state, so the pill, the
- * Today screen and anything else reading `isOnline` all move together off one
+ * Drivers table and anything else reading `isOnline` all move together off one
  * server read — there is no second source of truth to drift.
  */
 export function HubOnlineToggle({

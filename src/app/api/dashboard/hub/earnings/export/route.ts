@@ -36,11 +36,15 @@ import {
  * clause inside `getHubEarnings` is the tenancy boundary, and a caller-supplied
  * id would turn this route into a way to read another fleet's takings.
  *
- * A roster driver — an employed driver on somebody else's fleet — is refused
- * with a `403` before any of that happens. The payouts this workbook sums were
- * settled to their employer rather than to them, so `/dashboard/earnings`
- * redirects that persona away entirely; this route is the other half of that
- * gate, because a hidden screen does nothing about a hand-issued `fetch`.
+ * Every persona that can sign into the hub may download it, an employed
+ * `ROSTER` driver included. The route used to refuse that persona with a `403`,
+ * paired with a redirect off `/dashboard/earnings`; both were removed when the
+ * wallet was merged into `/dashboard/performance` and opened to everyone. The
+ * path is unchanged — `earnings` here names the figures, not the deleted route.
+ *
+ * The route still refuses a `CLIENT`, an account that must change its password,
+ * and a session with no driver profile behind it: those are about who may read
+ * the hub at all, not about which hub reader deserves a currency column.
  */
 
 /**
@@ -296,32 +300,22 @@ export async function GET(request: Request): Promise<NextResponse> {
     );
   }
 
-  // The roster-driver gate, the API half of the pair — `/dashboard/earnings`
-  // redirects the same persona to /dashboard/loads, and a redirect is the wrong
-  // answer to a fetch for a file (see the note on the session check above), so
-  // it is answered as a status code here.
+  // No persona check follows. There used to be one: a ROSTER driver — an
+  // employee on somebody else's fleet — was refused with a 403 on the ground
+  // that the payouts this workbook sums were settled to their employer, so a
+  // file headed with the employee's own name misdescribed whose money it held.
+  // Product reversed that rule. An employed driver now reads the same figures on
+  // `/dashboard/performance` that everyone else does, and this route has to
+  // agree with the screen: a download that 403s where the screen shows numbers
+  // is the worse failure, because the driver is looking at the thing they were
+  // just told they cannot have.
   //
-  // Every figure in this workbook is scoped by `driverId = <this user>` and
-  // headed with this user's own name, but for an employed driver the payouts it
-  // sums were settled to their *employer*: the company claimed the order and was
-  // paid for it, and `Order.driverId` records only who drove. A spreadsheet
-  // outlives the screen that made it, so an employee's copy of their employer's
-  // takings, with their own name at the top, is the exact artefact this refusal
-  // exists to prevent.
-  //
-  // 403 rather than 401 — the caller is authenticated, just not entitled — and
-  // it matches both the two refusals above and the one `GET /api/loads` answers
-  // this same persona with.
-  if (account.persona === "ROSTER") {
-    return NextResponse.json<HubEarningsExportError>(
-      {
-        error:
-          "Drivers who belong to a company are paid through their employer, so there are no personal earnings to export.",
-      },
-      { status: 403 },
-    );
-  }
-
+  // What the refusal was protecting against is answered by the workbook's own
+  // framing instead — the figures are scoped by `driverId = <this user>` and
+  // describe what this driver drove and what those jobs were worth, which is
+  // exactly the question an employee checking their week against their payslip
+  // is asking. Do not reintroduce a persona gate here without changing the
+  // screen in the same commit; the two are a pair, whichever way the rule goes.
   const { searchParams } = new URL(request.url);
   const range = resolveHubEarningsRange({
     from: searchParams.get("from") ?? undefined,

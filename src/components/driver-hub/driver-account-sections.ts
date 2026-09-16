@@ -73,13 +73,17 @@ export const DRIVER_ACCOUNT_SECTIONS: readonly DriverAccountSection[] = [
   {
     id: "payout",
     label: "Payout & bank details",
-    // Withheld from a ROSTER driver, on the same reasoning that withholds the
-    // Wallet from them (`driver-hub-nav.ts`, and the server-side redirect in
-    // `(hub)/earnings/page.tsx`): an employed driver's fares are settled to
+    // Withheld from a ROSTER driver: an employed driver's fares are settled to
     // their employer, so they have no payout account of their own and no
     // payout schedule of their own. Showing them one — even an empty one —
     // would assert that money is on its way to them from us, which is the
     // single most expensive thing this screen could get wrong.
+    //
+    // This used to be half of a pair with the hub's Wallet, withheld from the
+    // same persona on the same reasoning. That half is gone — the Wallet was
+    // merged into Performance, which every persona sees — and this one
+    // deliberately stayed. `driver-account-payout-panel.tsx` carries the whole
+    // of that argument; change the two together or not at all.
     hiddenFor: ["ROSTER"],
     title: "Payout & bank details",
     description:

@@ -1,11 +1,11 @@
 /**
  * The one status-pill vocabulary for the driver hub.
  *
- * Seven screens show status words on `Badge` — job states, document validity,
- * vehicle and roster lifecycle, zone demand — and the design gives all of them
- * exactly six colour pairs. Keeping the map here rather than per screen means a
- * "Completed" job and a "Valid" insurance policy cannot drift apart, and a new
- * screen never has to invent a seventh tone.
+ * Six screens show status words on `Badge` — job states, document validity,
+ * vehicle and roster lifecycle — and the design gives all of them exactly five
+ * colour pairs. Keeping the map here rather than per screen means a "Completed"
+ * job and a "Valid" insurance policy cannot drift apart, and a new screen never
+ * has to invent a sixth tone.
  *
  * The classes are Tailwind arbitrary values rather than global tokens, matching
  * `STATUS_CHIP_CLASSES` in `src/app/admin/(sections)/drivers/applications/page.tsx`:
@@ -22,20 +22,21 @@
  *
  * Every light value above is a *pale tint carrying dark text* — the one shape
  * that cannot survive a theme flip untouched. A `bg-[oklch(96.2%…)]` pill keeps
- * its near-white fill on a near-black page, so in dark mode the six pills would
- * read as six bright labels stamped across the screens, each one louder than
- * the content it annotates; and once the fill is darkened, the 44%-lightness
- * foreground the design pairs with it is near-invisible on top of it.
+ * its near-white fill on a near-black page, so in dark mode the five pills
+ * would read as five bright labels stamped across the screens, each one louder
+ * than the content it annotates; and once the fill is darkened, the
+ * 44%-lightness foreground the design pairs with it is near-invisible on top of
+ * it.
  *
  * The handoff has no dark artboard to transcribe, so the dark half is derived
- * rather than quoted, by one rule applied six times: **keep the hue and the
+ * rather than quoted, by one rule applied five times: **keep the hue and the
  * chroma family, swap which end of the lightness scale each half sits at.** The
  * fill lands at 27–29% lightness — one step up from `--card`'s `oklch(0.205 0
  * 0)`, so a pill still separates from the card it sits on — and the text at
  * 83–88%, which clears WCAG AA against that fill. Keeping the hue is what
- * preserves the only property that actually matters here: the six tones stay
+ * preserves the only property that actually matters here: the five tones stay
  * distinguishable **from each other** in both themes, which is the whole reason
- * this map exists rather than six ad-hoc pills.
+ * this map exists rather than five ad-hoc pills.
  *
  * These are still Tailwind arbitrary values rather than `--color-*` tokens, for
  * the reason above — pill-only colours with no other use — but the two
@@ -46,9 +47,9 @@
  * file rather than a hunt across the surface.
  */
 
-/** The six colour pairs the design defines — no screen may add a seventh. */
+/** The five colour pairs the design defines — no screen may add a sixth. */
 export type HubStatusTone =
-  "success" | "info" | "danger" | "warning" | "neutral" | "demand";
+  "success" | "info" | "danger" | "warning" | "neutral";
 
 /** Background + text class pair for each tone, to spread onto a `Badge`. */
 export const HUB_STATUS_TONE_CLASSES: Record<HubStatusTone, string> = {
@@ -72,12 +73,6 @@ export const HUB_STATUS_TONE_CLASSES: Record<HubStatusTone, string> = {
   neutral:
     "bg-[oklch(96.7%_0.003_264.542)] text-[oklch(44.6%_0.03_256.802)] " +
     "dark:bg-[oklch(27.5%_0.005_264.542)] dark:text-[oklch(80%_0.015_264.542)]",
-  // The Today screen's "High" zone-demand pill — the only warm tone in the set.
-  // Its dark half has to stay clear of `danger`'s, which is only 35° away on a
-  // pill the eye never sees beside it; the extra chroma is what separates them.
-  demand:
-    "bg-[oklch(96%_0.04_60)] text-[oklch(48%_0.15_48)] " +
-    "dark:bg-[oklch(29%_0.06_55)] dark:text-[oklch(85%_0.13_58)]",
 };
 
 /**
@@ -123,9 +118,6 @@ const TONE_BY_STATUS: Record<string, HubStatusTone> = {
   "due soon": "warning",
   pending: "warning",
   invited: "warning",
-  // Zone demand's middle step. The design tags it exactly like the other
-  // warnings — `Medium: tag(WARN_BG, WARN_FG)` — so it is amber, not grey.
-  medium: "warning",
 
   // Neutral — a real, deliberate state that simply is not an alert.
   scheduled: "neutral",
@@ -133,11 +125,6 @@ const TONE_BY_STATUS: Record<string, HubStatusTone> = {
   idle: "neutral",
   defleeted: "neutral",
   offboarded: "neutral",
-
-  // Zone demand on Today. "High" is the only warm tone in the set; "Medium"
-  // is mapped with the other warnings above, and "Low" — `Low: tag(BG, MUTED)`
-  // — is the one demand step that really does want the neutral default.
-  high: "demand",
 };
 
 /**

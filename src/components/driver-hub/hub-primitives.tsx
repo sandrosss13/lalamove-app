@@ -107,9 +107,9 @@ export type HubCardProps = Omit<React.ComponentProps<"div">, "title"> & {
   titleGap?: HubCardTitleGap;
   /**
    * Vertical alignment inside the title row. The design centres a title
-   * against its action almost everywhere (`align-items:center`); the Today
-   * screen's zone card sets the pair on a shared baseline instead
-   * (`display:flex; align-items:baseline` on "Where the demand is").
+   * against its action almost everywhere (`align-items:center`); a card whose
+   * action is text rather than a control sets the pair on a shared baseline
+   * instead (`display:flex; align-items:baseline` in the artboards).
    */
   titleAlign?: HubCardTitleAlign;
 };
@@ -197,7 +197,7 @@ export type MetricTileProps = {
   value: React.ReactNode;
   /** Muted line under the value — 12px, or 13px on a `hero` tile. */
   note?: React.ReactNode;
-  /** Renders the value at the hero size — the Today screen's "Earned today". */
+  /** Renders the value at the hero size — Performance's "Earned this week". */
   hero?: boolean;
   /** Period-over-period movement, coloured by its own tone. */
   delta?: { label: string; tone: MetricDeltaTone };

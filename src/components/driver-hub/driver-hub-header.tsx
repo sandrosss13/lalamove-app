@@ -28,13 +28,13 @@ import type { HubHeaderData } from "@/lib/dashboard/hub/header";
  *
  * - **The top bar is the session.** Where you are in the app, whether you are
  *   taking work, what is running right now, who you are, and how you leave.
- *   Identical on all eight screens, so nothing in it can be overridden from
+ *   Identical on all six screens, so nothing in it can be overridden from
  *   below. The availability toggle belongs here for that reason and not because
  *   there was room: being online is a fact about the driver, not about the
  *   screen they happen to be reading, and it should not appear to change
- *   meaning as they move between Today and Job history.
+ *   meaning as they move between the board and Job history.
  * - **The page head is the screen**, and it is content rather than chrome: it
- *   changes on every route, six screens derive their subhead from their own
+ *   changes on every route, five screens derive their subhead from their own
  *   data through `useHubSubtitle()`, and a title that scrolls away with the rows
  *   it names costs nothing. Boxing it charged a second horizontal rule and a
  *   second sticky offset for the privilege of keeping a string on screen.

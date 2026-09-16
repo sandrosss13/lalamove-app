@@ -32,7 +32,7 @@ import type { HubHeaderData } from "@/lib/dashboard/hub/header";
  * gutters halve — enough that the hub does not overflow the 390px width the
  * header handoff designs for. The screens' own tables still have their own
  * narrow-width work to do; this is the shell, not a responsive pass over all
- * eight of them.
+ * six of them.
  *
  * Mirrors `src/components/admin/admin-shell.tsx` — a server layout resolves the
  * signed-in account once and hands it to one client shell, which owns the
@@ -88,17 +88,17 @@ const HubHeaderContext = React.createContext<HubHeaderContextValue | null>(
  *
  * `driver-hub-nav.ts` carries one title per registered nav entry, and
  * `hubNavItemForPath` resolves a path to the longest matching entry — which is
- * exactly right for the eight top-level screens and exactly wrong for the first
+ * exactly right for the six top-level screens and exactly wrong for the first
  * nested one. `/dashboard/jobs/[id]` prefix-matches the Jobs entry and would
  * inherit its title, so a driver opening a single delivery's job sheet would be
  * told they are looking at "Job history".
  *
- * The alternative was a ninth `HUB_NAV` entry, and it is worse: every entry in
- * that list is a **sidebar link**, so registering the job sheet there would put
- * a rail item pointing at a route that needs an order id to exist. The nav list
- * is the hub's information architecture; a detail view is not part of it. So the
- * screen retitles the bar from below, exactly as six screens already replace the
- * subhead from below.
+ * The alternative was a seventh `HUB_NAV` entry, and it is worse: every entry
+ * in that list is a **sidebar link**, so registering the job sheet there would
+ * put a rail item pointing at a route that needs an order id to exist. The nav
+ * list is the hub's information architecture; a detail view is not part of it.
+ * So the screen retitles the bar from below, exactly as five of the six screens
+ * already replace the subhead from below.
  *
  * ```tsx
  * // inside a "use client" screen rendered under <DriverHubShell>
@@ -134,8 +134,8 @@ export function useHubTitle(title: string | null): void {
 /**
  * Lets a screen replace the header's subhead with one derived from its data.
  *
- * Six of the seven subheads are runtime values — Today's date, Earnings' chosen
- * range, and the counts on Jobs, Vehicles, Drivers and Employees — while
+ * Five of the six subheads are runtime values — Performance's chosen range and
+ * the counts on Jobs, Vehicles, Drivers and Employees — while
  * `driver-hub-nav.ts` can only carry a static literal, which is what renders
  * before a screen's data resolves. A screen therefore *calls this hook* with
  * its own string rather than reaching into the header:
@@ -238,7 +238,7 @@ export type DriverHubShellProps = {
 /**
  * What the header shows on a path that matches no nav entry. Unreachable from
  * inside the `(hub)` route group — every child of this shell is one of the
- * eight registered screens — but a title is cheaper than a crash if a future
+ * six registered screens — but a title is cheaper than a crash if a future
  * route lands here before it registers itself in `HUB_NAV`.
  */
 const FALLBACK_TITLE = "Driver Hub";
@@ -271,11 +271,12 @@ export function DriverHubShell({
 
   // Nav filtering is cosmetic — hiding a link does nothing about a hand-typed
   // URL, so every screen withheld from a persona re-derives its own rule
-  // server-side: `drivers/page.tsx` and `employees/page.tsx` on
-  // `kind !== "BUSINESS"`, and `loads/page.tsx` on the roster case (which
-  // `GET /api/loads` 403s to match). The Wallet is now withheld from a roster
-  // driver in the list below, and `earnings/page.tsx` owes it the matching
-  // server-side redirect.
+  // server-side. Drivers and Employees are the only two left that are:
+  // `drivers/page.tsx` and `employees/page.tsx` each guard on
+  // `kind !== "BUSINESS"`. Nothing is withheld from a roster driver any more —
+  // the board dropped its redirect when an employed driver gained the open
+  // market, and the Wallet that used to be hidden from them has been folded
+  // into Performance, which every persona sees.
   const items = hubNavForAccount(account);
   const activeItem = hubNavItemForPath(pathname);
 

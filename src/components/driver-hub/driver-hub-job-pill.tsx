@@ -44,12 +44,11 @@ const ACCENT_BG = "bg-[oklch(64%_0.19_48)]";
  * cannot open. See the row's own comment for that second rule.
  *
  * Both now resolve to the same list, and they are still two names rather than
- * one. A single driver's footer used to point at Today, whose current-job card
- * showed that one job in full; Today is no longer in a driver's rail, so
- * sending them there from the header would hand them a screen their own
- * navigation has just denied them. Job history is the list they do have, it
- * holds the job the pill names, and every row above the footer already goes to
- * that job's sheet. The fleet constant is the one that would move first — a
+ * one. A single driver's footer used to point at a "Today" screen whose
+ * current-job card showed that one job in full; that screen has been deleted,
+ * so sending them there from the header would be a link to nothing. Job history
+ * is the list they do have, it holds the job the pill names, and every row above
+ * the footer already goes to that job's sheet. The fleet constant is the one that would move first — a
  * company-scoped job sheet is a screen that does not exist yet — so the pair
  * stays split along the axis that is actually going to diverge.
  */

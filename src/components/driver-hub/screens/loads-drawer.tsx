@@ -93,7 +93,7 @@ import { Button } from "@/components/ui/button";
  *
  * That screen was built. The button is now a `Button asChild` wrapping a
  * `next/link` to `/dashboard/jobs/[id]` — the hub's own pattern for a link that
- * looks like a button, as `today-screen.tsx` uses for "View earnings" — and the
+ * looks like a button — and the
  * `title`/`sr-only` pair went with the reason for it: there is nothing left to
  * explain, and text repeating a label a screen reader has already announced is
  * noise rather than access. Its metrics (`h-10`, outline) are unchanged.

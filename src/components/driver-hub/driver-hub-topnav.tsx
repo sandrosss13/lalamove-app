@@ -84,18 +84,23 @@ const DESKTOP_MEDIA_QUERY = "(min-width: 1024px)";
 
 /**
  * The two entries the design puts in the top bar's inline nav, in its order —
- * "My orders" then "Wallet", which is *not* `HUB_NAV`'s order.
+ * "My orders" then the driver's money screen, which is *not* `HUB_NAV`'s order.
+ *
+ * The design's second slot is the Wallet, and the Wallet no longer exists: it
+ * was merged into Performance, which is the one screen a driver now reads their
+ * takings on. So the pairing the handoff draws — the work you did, then what it
+ * paid — survives with Performance standing in for the deleted entry, and this
+ * bar keeps the shape of the design rather than the letter of it.
  *
  * Ids rather than transcribed labels and hrefs: `driver-hub-nav.ts` owns both,
- * it has already been through one relabelling for this same handoff (Earnings →
- * "Wallet", pointing at `/dashboard/earnings` and never the client's `/wallet`),
- * and a second copy of those strings here is the copy that would be missed by
- * the next one. Resolving through the account's *filtered* nav also means a
- * ROSTER driver loses the Wallet link from this bar for free, exactly as they
- * already lose it from the rail — an employed driver's fares are their
- * employer's money, and the screen is withheld rather than relabelled.
+ * this bar has already been through one relabelling (Jobs → "My orders") and
+ * one merge, and a second copy of those strings here is the copy that would be
+ * missed by the next one. Resolving through the account's *filtered* nav also
+ * means an entry a persona cannot see never renders here — nothing in this pair
+ * is withheld from anyone today, and the `flatMap` below is what keeps that a
+ * property of the data rather than an assumption.
  */
-const TOP_NAV_IDS: readonly HubNavItemId[] = ["jobs", "earnings"];
+const TOP_NAV_IDS: readonly HubNavItemId[] = ["jobs", "performance"];
 
 /**
  * The chip's copy, one label per persona — moved here with the identity block
@@ -224,9 +229,11 @@ export function DriverHubTopNav({
   const topNavItems = TOP_NAV_IDS.flatMap((id) => {
     const item = navItems.find((candidate) => candidate.id === id);
 
-    // `flatMap` over a filter+map so the absent case is expressed once: a
-    // ROSTER driver has no Wallet entry in `navItems` at all, and that is a
-    // link that must not appear rather than one that renders disabled.
+    // `flatMap` over a filter+map so the absent case is expressed once. Both
+    // ids above reach every persona today, so nothing is actually dropped —
+    // but an entry withheld by `hiddenFor` is a link that must not appear
+    // rather than one that renders disabled, and this is where that stays true
+    // without anyone having to re-check it.
     return item ? [item] : [];
   });
 

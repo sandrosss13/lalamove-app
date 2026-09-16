@@ -2,7 +2,7 @@
  * Placeholder data for the Driver Hub — every number the design shows that the
  * schema cannot source yet.
  *
- * **Nothing in this file is real.** It exists so the seven hub screens can be
+ * **Nothing in this file is real.** It exists so the six hub screens can be
  * built, reviewed and shipped ahead of the schema work that would make these
  * figures true, instead of the screens either waiting on a migration or
  * quietly inventing numbers wherever they happen to be rendered. Keeping the
@@ -61,8 +61,8 @@ export type SampleHeaderNotification = {
   title: string;
   /**
    * The muted second line. A literal such as "Yesterday" rather than something
-   * computed from `Date.now()`, for the reason `SAMPLE_ZONE_DEMAND_CAPTION`
-   * gives: a timestamp that ticks over frozen rows is a lie with a clock on it.
+   * computed from `Date.now()`: a timestamp that ticks over frozen rows is a
+   * lie with a clock on it.
    */
   timeLabel: string;
 };
@@ -97,15 +97,6 @@ export const SAMPLE_HEADER_NOTIFICATIONS: readonly SampleHeaderNotification[] =
 /* ------------------------------------------------------------------------- */
 /* Online time                                                               */
 /* ------------------------------------------------------------------------- */
-
-/**
- * Today's online time, as the header sub-line prints it.
- *
- * Retire once an `OnlineSession` model records the intervals between a driver
- * going online and offline; today `DriverProfile.isOnline` is a single boolean
- * with no history behind it, so no duration can be computed from it at all.
- */
-export const SAMPLE_ONLINE_TIME_TODAY_LABEL = "6h 12m";
 
 /**
  * Assumed online hours per completed job, used to turn a real job count into
@@ -191,16 +182,6 @@ export const SAMPLE_RATED_JOB_COUNT = 61;
  */
 export const SAMPLE_IDLE_MINUTES_PER_HOUR = 38;
 
-/**
- * Cancellations attributed to the driver today, as the Today glance card counts
- * them.
- *
- * Retire once `Order` records *who* cancelled: `CANCELLED` is a status with no
- * actor, so a client-cancelled order is indistinguishable from a driver-
- * cancelled one and cannot fairly be counted against a driver.
- */
-export const SAMPLE_CANCELLATIONS_TODAY = 1;
-
 /** The five tiles across the top of Performance. */
 export type SamplePerformanceMetric =
   "acceptance" | "completion" | "cancellations" | "rating" | "jobsPerDay";
@@ -271,50 +252,6 @@ export const SAMPLE_SCORE_NOTES: readonly SampleScoreNote[] = [
     body: "Highest in Gldani. Moving to Vake between 09:00 and 11:00 cuts it by about a third.",
   },
 ];
-
-/* ------------------------------------------------------------------------- */
-/* Zone demand (Today)                                                       */
-/* ------------------------------------------------------------------------- */
-
-export type SampleZoneDemandLevel = "High" | "Medium" | "Low";
-
-export type SampleZoneDemandRow = {
-  /** District grouping, e.g. "Vake · Vera". Not a `GeorgianCity` — finer. */
-  zone: string;
-  driversOnline: number;
-  level: SampleZoneDemandLevel;
-  /** Per-job bonus in GEL, or `null` when the zone pays no surge. */
-  bonusGel: number | null;
-};
-
-/**
- * The "Where the demand is" table.
- *
- * Retire once two things exist: a `Zone` model (districts below city level —
- * `GeorgianCity` stops at TBILISI, so "Vake · Vera" has nowhere to live) and a
- * surge/incentive model that sets the per-job bonus. The driver counts would
- * then come from `DriverProfile.currentLat`/`currentLng` joined to those zones.
- */
-export const SAMPLE_ZONE_DEMAND: readonly SampleZoneDemandRow[] = [
-  { zone: "Vake · Vera", driversOnline: 14, level: "High", bonusGel: 3.0 },
-  { zone: "Saburtalo", driversOnline: 22, level: "High", bonusGel: 2.0 },
-  {
-    zone: "Gldani · Didube",
-    driversOnline: 31,
-    level: "Medium",
-    bonusGel: null,
-  },
-  { zone: "Isani · Samgori", driversOnline: 9, level: "Low", bonusGel: null },
-];
-
-/**
- * Freshness caption above the zone table. A literal rather than a computed
- * "N min ago" precisely because the rows never refresh — a live-looking
- * timestamp over frozen data is the kind of lie this module exists to avoid.
- *
- * Retire with `SAMPLE_ZONE_DEMAND`.
- */
-export const SAMPLE_ZONE_DEMAND_CAPTION = "Sample snapshot";
 
 /* ------------------------------------------------------------------------- */
 /* Earnings: breakdown and payouts                                           */
@@ -1151,8 +1088,8 @@ export type SamplePayoutAccount = {
   cadenceLabel: string;
   /**
    * The next run. A literal date rather than something computed from
-   * `Date.now()`, for the reason `SAMPLE_ZONE_DEMAND_CAPTION` gives: a
-   * timestamp that ticks over frozen rows is a lie with a clock on it.
+   * `Date.now()`: a timestamp that ticks over frozen rows is a lie with a clock
+   * on it.
    */
   nextPayoutLabel: string;
 };
@@ -1174,7 +1111,7 @@ export type SamplePayoutAccount = {
  * in the schema, no `Payout` model, and nothing that runs on a Friday. They are
  * retired by the same work that retires `SAMPLE_PAYOUT_HISTORY`.
  *
- * Values are the design's own (`Driver Header.dc.html` and the Wallet subhead
+ * Values are the design's own (`Driver Header.dc.html` and the payouts subhead
  * it shares a cadence with).
  */
 export const SAMPLE_PAYOUT_ACCOUNT: SamplePayoutAccount = {

@@ -53,17 +53,17 @@ export type HubAccountKind = "BUSINESS" | "INDIVIDUAL";
  * An `INDEPENDENT` driver owns their vehicle and keeps their own fares. A
  * `ROSTER` driver is employed: their company's dispatch reaches them as well as
  * the open board, which they browse and claim from like any other driver, and
- * the fares they collect are paid to their employer — which is why the Wallet
- * is withheld from them, not merely relabelled. A `BUSINESS` account is the
- * fleet owner, and is the only shape that gets the Drivers and Employees
+ * the fares they collect are paid to their employer — which is why the account
+ * screen withholds "Payout & bank details" from them. A `BUSINESS` account is
+ * the fleet owner, and is the only shape that gets the Drivers and Employees
  * screens.
  *
  * **`companyId !== null` is not, on its own, the roster test.** A BUSINESS
  * account's `companyId` names *its own* company, so the roster case is the
  * conjunction `kind === "INDIVIDUAL" && companyId !== null` and nothing less.
  * Reading `companyId` alone would classify every fleet owner as one of their
- * own employees and would withhold the Wallet from exactly the accounts it
- * exists to serve.
+ * own employees and would withhold the Drivers and Employees screens from
+ * exactly the accounts they exist to serve.
  *
  * Deliberately *not* `DriverProfile.accountType` (`DriverAccountType`), which
  * is a different axis entirely: a sole-proprietor driver who registered as a
@@ -322,11 +322,12 @@ export const resolveHubAccount = cache(async (): Promise<HubAccount | null> => {
     kind: "INDIVIDUAL",
     // `companyId` names this driver's **employer** here — contrast the
     // BUSINESS branch above, where it names the account's own company. What it
-    // decides is which screens this driver gets: through the persona it
-    // withholds the Wallet (the fares they collect are paid to their employer,
-    // so a personal earnings total would assert something false about whose
-    // money it is). The board is not among them — it is every driver's home
-    // screen, employed or not.
+    // decides is what this driver is shown: through the persona it withholds
+    // the account screen's "Payout & bank details" section (the fares they
+    // collect are settled to their employer, so they have no payout account of
+    // their own). No hub *screen* is withheld from them any more — the board is
+    // every driver's home, employed or not, and the Wallet that used to be
+    // hidden from them has been merged into Performance, which they see.
     //
     // `kind` is `"INDIVIDUAL"` for everything reaching this branch, so the
     // conjunction the roster test requires is already satisfied structurally

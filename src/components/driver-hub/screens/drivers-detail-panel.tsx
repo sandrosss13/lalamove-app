@@ -151,7 +151,7 @@ const SAMPLE_NOTES = {
   verification:
     "DriverApplication verifies documents once at onboarding and models no " +
     "ongoing validity, so these verdicts are placeholders. Retire with a " +
-    "DriverDocument model. The licence expiry date on Today is real.",
+    "DriverDocument model. The licence expiry date itself is real.",
 } as const;
 
 /** The grey pill the design uses for the zone. */

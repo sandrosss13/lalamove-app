@@ -15,8 +15,8 @@ export const dynamic = "force-dynamic";
  * exist yet — because the open market is the first thing a provider wants after
  * signing in, and because the board is the only hub screen no persona is
  * bounced off. A driver and a company used to split here, the latter landing on
- * `/dashboard/today`; Today is a fleet owner's screen in the rail now but not
- * anyone's landing screen, so the split has nothing left to express.
+ * a "Today" summary screen; that screen has been deleted, so the split has
+ * nothing left to express.
  */
 const HUB_HOME = "/dashboard/loads";
 
@@ -41,7 +41,7 @@ const HUB_HOME = "/dashboard/loads";
  * `/dashboard/onboarding` and `/dashboard/fleet-onboarding`, which are children
  * of `src/app/dashboard/layout.tsx` — a guard that redirects to a page it also
  * wraps is an infinite redirect. The hub's own chrome lives one level
- * down, in the `(hub)` route group, precisely so it frames the seven hub
+ * down, in the `(hub)` route group, precisely so it frames the six hub
  * screens without ever framing the two wizards.
  */
 export default async function DashboardPage() {

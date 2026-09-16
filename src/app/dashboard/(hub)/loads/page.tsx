@@ -236,9 +236,9 @@ async function resolveVehicles(
  *
  * **Every kind of driver gets this board, employed ones included.** A roster
  * driver — an INDIVIDUAL account with a non-null `companyId`, on a fleet's
- * payroll — used to be redirected to `/dashboard/today` from here on the
- * grounds that work reaches them through their company's dispatcher rather than
- * the open market. That is no longer the rule: they browse, claim and reject
+ * payroll — used to be redirected off this route on the grounds that work
+ * reaches them through their company's dispatcher rather than the open
+ * market. That is no longer the rule: they browse, claim and reject
  * exactly as an independent driver does, and `GET /api/loads`, `POST
  * /api/orders/[id]/accept` and `POST /api/loads/[id]/reject` dropped the
  * matching refusals in the same change, so nothing left in the stack disagrees.

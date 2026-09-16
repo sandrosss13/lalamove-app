@@ -418,10 +418,9 @@ type ActiveOrderPlan = {
   /** `null` means a company order claimed but not yet dispatched to a person. */
   driver: SeedDriverKey | null;
   /**
-   * How long ago the order was booked. The header pill and the Today card both
-   * order in-flight jobs by `createdAt` descending and then cap the list, so
-   * this is what decides which rows land in the preview — see the comments on
-   * the rows themselves.
+   * How long ago the order was booked. The header pill orders in-flight jobs by
+   * `createdAt` descending and then caps the list, so this is what decides
+   * which rows land in the preview — see the comments on the rows themselves.
    */
   bookedMinutesAgo: number;
   /**
@@ -590,10 +589,10 @@ type FinishedOrderPlan = {
 };
 
 /**
- * The finished orders — everything Earnings, Performance and Today count.
+ * The finished orders — everything Earnings and Performance count.
  *
  * Every one of these is dated into the **current Tbilisi week** at run time (see
- * `finishedTimestamps`), because that is the window all three screens use.
+ * `finishedTimestamps`), because that is the window both rollups use.
  * Both `createdAt` and `completedAt` are set, and both matter: Earnings and the
  * daily bars key on `completedAt`, while the completion and cancellation rates
  * and `unattributedFinishedJobCount` key on `createdAt`. A row created last week
@@ -765,7 +764,7 @@ const FINISHED_ORDERS: readonly FinishedOrderPlan[] = [
     distanceKm: 43.9,
     cargoCategory: "RETAIL_STOCK",
     proves:
-      "Priority plus overtime, so their Wallet total is not a plain sum of prices.",
+      "Priority plus overtime, so their earnings total is not a plain sum of prices.",
   },
   {
     key: "independent-done-3",
@@ -892,10 +891,10 @@ function write(lines: readonly string[]): void {
  * Monday, when there is only one day to spread over and the fixture honestly
  * has one bar.
  *
- * Everything is pinned to the past. Today's "Earned today" aggregate has a
- * `gte` bound and no upper one, so an order completed at a future instant would
- * silently count toward today's figure — the one date mistake here that
- * produces a wrong number rather than an empty screen.
+ * Everything is pinned to the past. The week aggregates have a `gte` bound and
+ * no upper one, so an order completed at a future instant would silently count
+ * toward this week's figure — the one date mistake here that produces a wrong
+ * number rather than an empty screen.
  */
 function finishedTimestamps(
   index: number,
@@ -1709,33 +1708,29 @@ async function main(): Promise<void> {
         : []),
       "Check these",
       "-----------",
-      `  Start at  ${origin}/sign-in  and then  ${origin}/dashboard  (expect a redirect to /dashboard/today).`,
+      `  Start at  ${origin}/sign-in  and then  ${origin}/dashboard  (expect a redirect to /dashboard/loads).`,
       "",
       "  INDEPENDENT",
-      `    ${origin}/dashboard/today          earnings, one job in flight, weekly incentive card`,
-      `    ${origin}/dashboard/earnings       their own Wallet, week figures`,
       `    ${origin}/dashboard/loads          the open board`,
       `    ${origin}/dashboard/jobs`,
-      `    ${origin}/dashboard/performance    bars across the week, rate under 100%`,
+      `    ${origin}/dashboard/performance    their own week: earnings, bars across the week, rate under 100%`,
       `    ${origin}/dashboard/vehicles       one owned van, Add-vehicle button present`,
       `    ${origin}/dashboard/account?section=payout   payout panel renders, 5 rail rows`,
-      '    expect: 6 sidebar links, chip reads "Independent", online toggle present',
+      '    expect: 4 sidebar links, chip reads "Independent", online toggle present',
       "",
       "  ROSTER  — the persona this whole feature turns on",
-      `    ${origin}/dashboard/today          employer name shown, NO zone-demand card`,
+      `    ${origin}/dashboard/loads          the same open board an independent driver gets`,
       `    ${origin}/dashboard/jobs`,
-      `    ${origin}/dashboard/performance`,
+      `    ${origin}/dashboard/performance    their own week; nothing here is withheld from them any more`,
       `    ${origin}/dashboard/vehicles       the company van reached through their assignment, NO Add-vehicle button`,
       '    expect: 4 sidebar links, chip reads "Company driver"',
       "",
-      "    MUST REFUSE (all three are silent redirects or a JSON 403 — there is no error page,",
+      "    MUST REFUSE (both are silent redirects or a JSON 403 — there is no error page,",
       "    so check the URL bar and the status code, not for a message on screen):",
-      `      1. ${origin}/dashboard/earnings`,
-      "         -> 307 to /dashboard/today. The Wallet link is also absent from the sidebar.",
-      `      2. ${origin}/dashboard/account?section=payout`,
+      `      1. ${origin}/dashboard/account?section=payout`,
       "         -> 307 to /dashboard/account with the query string stripped; the Profile",
       '            panel renders and the rail shows 4 rows, without "Payout & bank details".',
-      "      3. POST /api/driver-profile/vehicles",
+      "      2. POST /api/driver-profile/vehicles",
       '         -> 403 "Drivers who belong to a company drive their employer\'s vehicles..."',
       "            The body must be a COMPLETE multipart form or an earlier 400 fires instead",
       "            and the guard is never reached:",
@@ -1750,26 +1745,22 @@ async function main(): Promise<void> {
       "                -F 'year=2021' -F 'vehicleTypeCode=CARGO_VAN' \\",
       "                -F 'photos=@/tmp/vehicle.png;type=image/png'",
       "",
-      "    Bonus refusals, same cookie jar:",
-      `      ${origin}/dashboard/loads   -> 307 to /dashboard/today`,
-      `      curl -i -b "$JAR" "${origin}/api/loads"   -> 403`,
-      "",
-      '    Expected NOT to refuse, and documented as deliberate: "Earned today" is still',
-      "    shown to a roster driver on /dashboard/today even though those fares go to their",
-      "    employer. That is a known, argued inconsistency in today.ts — not a bug to file.",
+      "    Expected NOT to refuse: the board and the wallet are both open to an employed",
+      "    driver now. They claim from /dashboard/loads like anyone else, and the earnings",
+      "    that used to live behind a withheld Wallet link are part of /dashboard/performance.",
       "",
       "  BUSINESS",
-      `    ${origin}/dashboard/today          fleet vehicle count, no online toggle`,
-      `    ${origin}/dashboard/earnings       fleet card — look for the "Not assigned to a driver" row,`,
-      "                                        which two completed driverless orders exist to produce",
-      `    ${origin}/dashboard/performance    look for unattributedFinishedJobCount > 0, and for the`,
-      "                                        idle roster driver who appears here but NOT on Earnings",
+      `    ${origin}/dashboard/performance    fleet card — look for the "Not assigned to a driver" row,`,
+      "                                        which two completed driverless orders exist to produce;",
+      "                                        for unattributedFinishedJobCount > 0; and for the idle",
+      "                                        roster driver the performance rollup lists and the",
+      "                                        earnings one does not",
       `    ${origin}/dashboard/drivers        ${DRIVERS.length - 1} roster drivers`,
       `    ${origin}/dashboard/employees`,
       `    ${origin}/dashboard/vehicles       ${VEHICLES.length - 1} company vehicles, one of them unassigned`,
       `    ${origin}/dashboard/loads`,
       `    ${origin}/dashboard/account?section=payout   real IBAN last-4, read-only company card`,
-      '    expect: 8 sidebar links, chip reads "Business", NO online toggle',
+      '    expect: 6 sidebar links, chip reads "Business", NO online toggle',
       "",
       "Removing all of it",
       "------------------",

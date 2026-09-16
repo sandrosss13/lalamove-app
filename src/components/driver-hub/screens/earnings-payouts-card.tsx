@@ -48,8 +48,8 @@ const COLUMNS = "grid-cols-[1.2fr_1fr_1fr_1fr_120px] min-w-[560px]";
  * table header, but `TableHead` bakes `font-medium` into its own base classes,
  * so leaving the weight out here leaves tailwind-merge nothing to override and
  * the header renders at 500 anyway. Shared verbatim with every other hub table,
- * `earnings-fleet-card.tsx` included — the two share the Earnings screen for a
- * BUSINESS account and must not disagree.
+ * `earnings-fleet-card.tsx` included — the two share the earnings sections for
+ * a BUSINESS account and must not disagree.
  */
 const HEAD_CLASSES =
   "h-auto px-0 pb-2.5 text-[11px] font-normal tracking-[0.08em] uppercase text-muted-foreground";
