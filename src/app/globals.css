@@ -233,6 +233,62 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+
+  /* --- Fleet Availability board, light half ---------------------------------
+     The Gantt on the hub's Drivers screen. Four bar states plus the track it
+     draws them on, from
+     `UI:UX/fleet availability/design_handoff_driver_availability/README.md`.
+
+     Custom properties rather than the handoff's literal hexes for one reason:
+     the handoff has only a light artboard, and three of its four fills are pale
+     tints carrying dark text — the exact shape `hub-status.ts` documents as
+     unable to survive a theme flip. A `#eef7f1` bar would be a near-white smear
+     on the dark board. The dark half below is therefore derived, not quoted, by
+     that file's rule: keep the hue and chroma family, swap which end of the
+     lightness scale each half sits at.
+
+     Values are the handoff's hexes converted to oklch so the two halves are
+     comparable on the one axis that matters here. `assigned` is the brand
+     accent as a solid fill and is pinned in both themes — see `ACCENT_BG` in
+     `hub-primitives.tsx`: the point of a brand colour is that it does not move
+     when the theme does. */
+  --hub-avail-available-bg: oklch(96.5% 0.014 156.7);
+  --hub-avail-available-fg: oklch(41% 0.085 155);
+  --hub-avail-available-border: oklch(90% 0.03 156.7);
+
+  --hub-avail-assigned-bg: oklch(64% 0.19 48);
+  --hub-avail-assigned-fg: oklch(100% 0 0);
+  --hub-avail-assigned-border: oklch(58% 0.18 44);
+
+  /* Near-black fill with near-white text — the one pair that must *invert*
+     rather than lift, so it is written against the theme's own ink tokens and
+     flips for free, exactly as `BAR_TONE_CLASSES.ink` does. */
+  --hub-avail-enroute-bg: oklch(17% 0.008 85);
+  --hub-avail-enroute-fg: oklch(95% 0.008 85);
+  --hub-avail-enroute-border: oklch(17% 0.008 85);
+
+  --hub-avail-booked-bg: oklch(96.5% 0.022 48);
+  --hub-avail-booked-fg: oklch(42% 0.13 45);
+  --hub-avail-booked-border: var(--landing-accent);
+
+  /* The wash under a whole track, and the hairline the hour grid is drawn with.
+     The wash is the loudest single theme break in the handoff: `#f7fbf8` would
+     paint a near-white strip across every row of a dark board, so it is mixed
+     against `--card` rather than stated, which keeps it a *tint of the surface*
+     in both themes instead of a fixed colour. */
+  --hub-avail-track: color-mix(in oklab, oklch(70% 0.06 156.7) 7%, var(--card));
+  --hub-avail-grid: var(--border);
+
+  /* The now marker, the drag ghost and its label. Accent-pinned like
+     `assigned`, except the label, which needs contrast against the 14%-opacity
+     ghost fill in each theme. */
+  --hub-avail-now: var(--landing-accent);
+  --hub-avail-ghost-bg: color-mix(
+    in oklab,
+    var(--landing-accent) 14%,
+    transparent
+  );
+  --hub-avail-ghost-fg: oklch(42% 0.13 45);
 }
 
 /* The app's dark theme. `.dark` is set on `<html>` before first paint by the
@@ -405,6 +461,40 @@ html.dark {
   --status-success-solid: oklch(0.5 0.13 145);
   --status-warning: oklch(0.78 0.15 70);
   --status-warning-solid: oklch(0.62 0.15 70);
+
+  /* --- Fleet Availability board, dark half ----------------------------------
+     Derived, not quoted — the handoff has no dark artboard. One rule, applied
+     to each pale pair: the fill lands at 27–29% lightness, one step up from
+     `--card`'s `oklch(0.205 0 0)`, and the text at 83–88%, which clears WCAG AA
+     against that fill. The same arithmetic `hub-status.ts` uses for its six
+     tones, so a status bar and a status pill agree in both themes.
+
+     `--hub-avail-track` and `--hub-avail-ghost-bg` are NOT restated: both are
+     `color-mix`es against `--card` or `transparent`, so they follow the theme on
+     their own. That is the whole reason they were written that way. */
+  --hub-avail-available-bg: oklch(27% 0.05 156.7);
+  --hub-avail-available-fg: oklch(84% 0.13 156.7);
+  --hub-avail-available-border: oklch(34% 0.06 156.7);
+
+  /* Pinned — the brand accent does not move with the theme. Restated rather
+     than omitted so that reads as a decision, like the `-solid` pair above. */
+  --hub-avail-assigned-bg: oklch(64% 0.19 48);
+  --hub-avail-assigned-fg: oklch(100% 0 0);
+  --hub-avail-assigned-border: oklch(58% 0.18 44);
+
+  /* The inversion. In light this bar is the darkest thing on the board; in dark
+     it has to become the lightest, or it disappears into the card behind it. */
+  --hub-avail-enroute-bg: oklch(93% 0.008 85);
+  --hub-avail-enroute-fg: oklch(17% 0.008 85);
+  --hub-avail-enroute-border: oklch(93% 0.008 85);
+
+  --hub-avail-booked-bg: oklch(29% 0.06 48);
+  --hub-avail-booked-fg: oklch(86% 0.1 55);
+  --hub-avail-booked-border: var(--landing-accent);
+
+  --hub-avail-grid: var(--border);
+  --hub-avail-now: var(--landing-accent);
+  --hub-avail-ghost-fg: oklch(86% 0.1 55);
 }
 
 @theme inline {
