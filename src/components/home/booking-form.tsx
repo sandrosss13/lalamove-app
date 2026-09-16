@@ -2001,9 +2001,18 @@ export function BookingForm(): React.ReactElement {
 
   /**
    * Enter, pressed anywhere in the form other than the multi-line
-   * description, does the same thing clicking the accent button in the bottom
-   * bar would — Calculate, or Recalculate once a quote exists. Never Book: see
-   * the closing comment.
+   * description, Calculates, the same as clicking the accent button in the
+   * bottom bar would. Never Book: see the closing comment.
+   *
+   * It stops short of the button in one place: with a quote already on screen
+   * it does nothing at all, rather than Recalculating. The invalidation effect
+   * above drops the estimate on any change to a pricing input, so a quote that
+   * is still showing is a quote for exactly the inputs currently entered, and
+   * quoting them again spends a request — three LocationIQ lookups — to arrive
+   * back at the number already being read. Enter is cheap to press and easy to
+   * press twice, and each one used to cost that. Pressing "Recalculate" still
+   * does, deliberately: reaching for the button is someone asking for a fresh
+   * quote, where a keypress is mostly someone moving through fields.
    *
    * Without this, the browser's own implicit-submission behavior takes over:
    * a lone text `<input>` inside a `<form>` submits that form on Enter even
@@ -2028,7 +2037,12 @@ export function BookingForm(): React.ReactElement {
 
     event.preventDefault();
 
-    void handleCalculate();
+    // `null` is precisely "nothing on screen is quoted for these inputs" —
+    // the effect above nulls it the moment a pricing input changes — so this
+    // quotes what has not been quoted and skips what has.
+    if (estimate === null) {
+      void handleCalculate();
+    }
 
     // Never the submit, at any quote state: placing a real order isn't a side
     // effect a stray Enter keypress should be able to trigger — that stays a
