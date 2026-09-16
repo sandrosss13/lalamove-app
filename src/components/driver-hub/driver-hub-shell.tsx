@@ -369,10 +369,14 @@ export function DriverHubShell({
               very wide monitor is a decision, not a leftover.
 
               Note for anyone re-tuning this: it does NOT follow that a table
-              now fits at every width. `loads-table.tsx` documents the
-              arithmetic — its thirteen columns need more than a 1280px or
-              1440px laptop can give inside a 248px rail, and it keeps its
-              `overflow-x-auto` for exactly that reason. */}
+              now fits at every width for free. `loads-table.tsx` documents the
+              arithmetic and pays for it — all thirteen of its columns need more
+              than a 1280px or 1440px laptop can give inside a 248px rail, so
+              below a 1760px window it drops three of them, and it keeps its
+              `overflow-x-auto` as a backstop below 1270px. Anything added to
+              this element's padding, or to the rail's width, comes straight off
+              that board's container: the conversion it reasons with is
+              `container = viewport − 248 − 64 − 2`. */}
           <div className="flex min-w-0 max-w-[1800px] flex-col gap-5">
             <DriverHubPageHead
               title={titleOverride ?? activeItem?.title ?? FALLBACK_TITLE}

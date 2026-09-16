@@ -70,6 +70,15 @@ import { cn } from "@/lib/utils";
  * date, Pick-up time, Drop-off address, Drop-off city, Cargo, Helpers,
  * Weight / dims, Distance, Price, Actions.
  *
+ * All thirteen are on the row from a 1760px window up. Below that, three of
+ * them drop out in a fixed order — Helpers, then Drop-off address, then
+ * Pick-up address — so that the board fits a laptop instead of scrolling
+ * sideways at every width a laptop has. The column set, the breakpoints and the
+ * arithmetic that picked them are `COLUMN_CLASSES`; what makes the hiding
+ * acceptable rather than data loss is that all three are on the detail drawer
+ * and all of them are on `loads-mobile.tsx`. The ten that never hide are the
+ * ones a driver answers "should I take this" with.
+ *
  * Three things about that list are worth stating because they are decisions
  * rather than transcription:
  *
@@ -133,18 +142,51 @@ import { cn } from "@/lib/utils";
 /* -------------------------------------------------------------------------- */
 
 /**
- * Header cells: the design's `9px 14px`, 11px/500 uppercase with 0.06em
+ * Header cells: the design's 9px vertical, 11px/500 uppercase with 0.06em
  * tracking, muted. `h-auto` because the shared `TableHead` ships a 40px floor
  * this header row is deliberately shorter than.
+ *
+ * Two departures from the handoff's `9px 14px`, and both are load-bearing —
+ * `COLUMN_CLASSES` below is the arithmetic they pay for:
+ *
+ * 1. **8px horizontal, not 14px.** 6px a side off thirteen columns is 156px of
+ *    table width, and 156px is most of the difference between a 1280px laptop
+ *    scrolling and not. 8px is also `TableHead`/`TableCell`'s own `p-2` default
+ *    in `src/components/ui/table.tsx`, so this is the primitive's number rather
+ *    than an invented one — the design's 14px was simply more than a thirteen
+ *    column board can afford on a laptop. The vertical padding is untouched.
+ * 2. **`whitespace-normal`, overriding `TableHead`'s `whitespace-nowrap`.**
+ *    Four columns — both cities, the pick-up date and the pick-up time — are
+ *    floored by their header label rather than by anything they can contain,
+ *    and a nowrap header makes that floor absolute: "PICK UP CITY" measures
+ *    77.9px, so that column could never be narrower than 94px however little a
+ *    Georgian city needs. Wrapping turns the floor into the widest *word run*
+ *    ("PICK UP", 47.3px), which is what lets those four sit at 68–80px.
+ *
+ *    The cost is a two-line header row: 48px at every width, where it used to
+ *    be 34px on a wide monitor. It is not a new mechanism — the two address
+ *    heads already wrapped (this is where `FLEX_HEAD_CLASSES` went), so the row
+ *    was already 48px at 1920px and 62px below the old floor.
+ *
+ *    Wrapping also means no header can clip or spill, which under `table-fixed`
+ *    a nowrap header in a too-narrow column does. Verified in Chromium at
+ *    1280/1366/1420/1440/1540/1600/1680/1760/1834/1920/2560: every head's
+ *    `scrollWidth` is inside its own cell, every wrapped head breaks after
+ *    "PICK UP" / "DROP OFF" rather than mid-phrase, and the row is two lines at
+ *    all eleven widths — never three.
  */
 const HEAD_CLASSES =
-  "h-auto px-3.5 py-2.5 text-[11px] font-medium tracking-[0.06em] uppercase text-muted-foreground";
+  "h-auto px-2 py-2.5 text-[11px] font-medium tracking-[0.06em] whitespace-normal uppercase text-muted-foreground";
 
 /**
- * Body cells: the design's `12px 14px` with `vertical-align: top`, which is
- * what keeps the first line of every multi-line cell on one baseline.
+ * Body cells: the design's 12px vertical with `vertical-align: top`, which is
+ * what keeps the first line of every multi-line cell on one baseline. The
+ * horizontal 14px is 8px here for the reason `HEAD_CLASSES` gives above, and
+ * the two constants have to keep agreeing: every width in `COLUMN_CLASSES` is
+ * `content + 16`, so a padding that differed between the header and the body
+ * would size the column for one of them and clip the other.
  */
-const CELL_CLASSES = "px-3.5 py-3 align-top";
+const CELL_CLASSES = "px-2 py-3 align-top";
 
 /** The design's 11px muted sub-line, used by four of the thirteen columns. */
 const SUBLINE_CLASSES = "text-[11px] text-muted-foreground";
@@ -161,82 +203,143 @@ const SUBLINE_CLASSES = "text-[11px] text-muted-foreground";
  * the table was squeezed or to take one when it had room. The cap was the
  * single largest reason this table could not fit any window.
  *
- * Under `table-fixed` (see `TABLE_MIN_WIDTH_CLASS`) the column decides the
- * width and this div simply fills it, so the two address columns are the only
- * ones that flex: they absorb every spare pixel on a wide monitor and are the
- * first to give it back on a narrow one. Both share this class so the two sides
- * of a route stay the same width as each other down the table.
+ * Under `table-fixed` (see `COLUMN_CLASSES`) the column decides the width and
+ * this div simply fills it, so the two address columns are the only ones that
+ * flex: they absorb every spare pixel on a wide monitor and are the first to
+ * give it back on a narrow one — and, below 1540px, the first to leave the
+ * table altogether. Both share this class so the two sides of a route stay the
+ * same width as each other down the table.
  *
  * Every truncated address still carries the whole string as a `title` — Tbilisi
  * addresses routinely outrun any width worth giving them, and a truncated
- * address with no way to read the rest is not an address.
+ * address with no way to read the rest is not an address. The same `title` is
+ * what makes hiding the column acceptable at narrow widths rather than a loss:
+ * the full address is in the drawer either way (`RouteStop` in
+ * `loads-drawer.tsx` renders both stops' `address` in full).
  */
 const ADDRESS_CELL_CLASSES = "truncate";
 
 /**
- * The two flexible columns' headers, which are the only ones allowed to wrap.
- *
- * `TableHead` ships `whitespace-nowrap`, which is right for the eleven fixed
- * columns — each is sized below to at least its own header — and wrong for
- * these two, whose width is whatever is left over. "Drop off address" needs
- * 142px of 11px uppercase and the column is often narrower than that, so nowrap
- * would either clip the header ("DROP OFF ADDRE…") or spill it into the
- * neighbour. Wrapping is the only option that keeps the full label readable
- * without renaming a column the user specified.
- *
- * The cost is the header row growing from 34px to 48px (and to 62px in the
- * squeeze below the table's floor, where it is already scrolling). That is a
- * two-line header on two of thirteen columns, which is ordinary for a dense
- * table and cheaper than any of the alternatives.
- */
-const FLEX_HEAD_CLASSES = "whitespace-normal";
-
-/**
- * THE COLUMN GEOMETRY. Eleven fixed widths, two flexible columns, one floor.
+ * THE COLUMN GEOMETRY. One entry per column, carrying both its width and the
+ * width of window at which it appears at all.
  *
  * ## Why the widths are declared at all
  *
  * The table is `table-fixed`. Under the automatic algorithm a table can never
  * be narrower than the sum of its columns' *content*, and with thirteen nowrap
  * columns that sum was an immovable 1770px — which is why the `min-w-[1440px]`
- * this replaces was pure decoration: 1440 < 1770, so the declared floor never
- * once decided anything. The table scrolled at every width, including the
- * 1920px monitor the complaint came from, and no amount of lowering that number
- * could have changed it.
+ * two revisions back was pure decoration: 1440 < 1770, so the declared floor
+ * never once decided anything.
  *
  * `table-fixed` is what makes the widths below mean something: the column set
- * is resolved from this header row alone, columns with a declared width get it,
- * and the two without one split whatever is left. That is the whole mechanism
- * by which the address columns flex and everything else stays put.
+ * is resolved from the header row alone, columns with a declared width get it,
+ * and the two without one split whatever is left. Chromium does **not** shrink
+ * declared columns to make a table fit — measured: a fixed table whose columns
+ * sum to 1178px inside a 966px box renders 1178px wide and scrolls. So "no
+ * horizontal scroll" is not a styling wish here, it is the arithmetic
+ * requirement that the *visible* widths sum to no more than the container.
  *
- * ## Why these eleven numbers
+ * ## The container, and how a viewport breakpoint maps onto it
  *
- * Each is `max(header label, worst-case cell content) + 28px` — the design's
- * `px-3.5` padding, 14px a side, unchanged. Measured in Chromium with the real
- * IBM Plex faces, not estimated; the widest string each column can actually
- * emit was taken from `loads-format.ts` rather than from a sample of today's
- * data. Worth knowing when re-tuning, because six of the eleven are floored by
- * their **header**, not their data:
+ * The breakpoints that matter are the **container's**, but Tailwind's variants
+ * are viewport media queries, so each one below is a container figure converted
+ * to a window figure by adding back everything between the window edge and the
+ * table:
  *
- *   load       124  "posted 59 min ago" (92) — the age line, not the reference
- *   pickupCity 106  header "PICK UP CITY" (78); no Georgian city comes close
- *   pickupDate 108  header "PICK UP DATE" (80); "Tomorrow" is 60
- *   pickupTime 108  header "PICK UP TIME" (80); "14:30" is 35
- *   dropoffCity 168 "Deliver by Tomorrow 18:00" (134), the deadline sub-line
- *   cargo      168  capped deliberately — see the truncation note below
- *   helpers     80  header "HELPERS" (52); the badge is 24
- *   weight     140  "12.4 × 12.2 × open m" (107), the dims sub-line
- *   distance   108  "12,312.5 km" (76)
- *   price       92  "₾124,800" (60) — ₾ has no IBM Plex glyph and falls back wide
- *   actions    160  Reject + Accept at `size="sm"` with their 6px gap (128)
+ *   container = viewport − 248 (the rail, `w-[248px]` incl. its right border)
+ *                        −  64 (the shell's `lg:px-8` gutters, 32 a side)
+ *                        −   2 (this card's own 1px border, a side)
+ *   so  viewport = container + 314
  *
- * They total **1362px** before either address column gets a pixel.
+ * Verified against the real tree, not assumed: at 1920px the table container
+ * measures 1606px, at 2560px it measures 1798px (the shell's 1800px cap binding
+ * rather than the window). `lg:` is where the rail appears and where this table
+ * replaces `loads-mobile.tsx`, so the formula holds across every width this
+ * component is painted at.
  *
- * `cargo` is the one number not set by its own content: the longest category
- * label, "Construction & Hardware Materials", is 204px and would make this the
- * widest column on the board for a value a driver reads once. It is given 168
- * and the label truncates with the full text in a `title`, the same bargain the
- * addresses and the packaging sub-line under it already make.
+ * ## Why these numbers
+ *
+ * Each width is `max(widest header line, worst-case cell content) + 16px` — the
+ * 8px padding of `CELL_CLASSES`. Measured in Chromium with the real IBM Plex
+ * faces; the widest string each column can emit was taken from
+ * `loads-format.ts` and `georgian-cities.ts` rather than from today's data:
+ *
+ *   load        112  "posted 59 min ago" (91.4) — the age line, not the ref
+ *   pickupCity   76  wrapped head "PICK UP" (47.3); long cities truncate
+ *   pickupDate   80  "Tomorrow" (59.2); wrapped head is 47.3
+ *   pickupTime   68  wrapped head "PICK UP" (47.3); "14:30" is 35
+ *   dropoffCity  80 → 154  see the two-step note below
+ *   cargo        96 → 140  see the two-step note below
+ *   helpers      84  head + sort glyph, "HELPERS ↓" (65.2); the badge is 24
+ *   weight      124  "12.4 × 12.2 × open m" (106.2), the dims sub-line
+ *   distance     92  "12,312.5 km" (75.1)
+ *   price        80  "₾124,800" (59.4) — ₾ has no IBM Plex glyph, falls back wide
+ *   actions     148  Reject + Accept at `size="sm"` with their 6px gap (127.6)
+ *
+ * The ten columns that never hide total **956px**, which is the whole point:
+ * a 1280px laptop has 966px to give. The old set totalled 1362px before either
+ * address column got a pixel, and scrolled at 1280, 1366, 1440 and 1600.
+ *
+ * Where the 406px came from, measured: 156px from the padding (`HEAD_CLASSES`),
+ * ~114px from letting the four header-floored columns wrap instead of sizing
+ * them to a nowrap label, 124px from the three columns that now hide, and the
+ * rest from `cargo` and `dropoffCity` giving up width at the tightest tier.
+ *
+ * ## The two-step columns
+ *
+ * `cargo` and `dropoffCity` are the only widths that change with the window,
+ * and both change at 1420px for the same reason: they are the two columns whose
+ * content is *worth* more width but survives without it.
+ *
+ * - `dropoffCity` is floored by its deadline sub-line, "Deliver by Tomorrow
+ *   18:00" (133.9). Below 1420px it is 80px and that line truncates behind a
+ *   `title`; at 1420px and up it is 154px and the line reads in full. 154px is
+ *   unaffordable at 1280 — it alone would put the board 74px over.
+ * - `cargo` was already a deliberate cap rather than a content measurement: the
+ *   longest category label, "Construction & Hardware Materials", is 204px and
+ *   would make this the widest column on the board for a value a driver reads
+ *   once. 140px is that cap; 96px is what the tightest tier can afford, and the
+ *   label truncates behind a `title` either way.
+ *
+ * 1420px is the window at which the container (1106px) clears the 1074px those
+ * two full widths need. Below it the board is at its tightest and the spare
+ * pixels are spread proportionally by `table-fixed` — at 1366px, for instance,
+ * cargo renders 105.6px rather than its declared 96.
+ *
+ * ## Which columns hide, and where
+ *
+ * In the order the user set, least decision-critical first. The row's job is
+ * "should I take this load", so `price`, `cargo`, `weight`, `distance`,
+ * `pickupCity`, `pickupDate`, `pickupTime` and `load` never hide — nor does
+ * `actions`, and nor does `dropoffCity`, because hiding both cities would take
+ * the route off the row entirely.
+ *
+ *   helpers         ≥ 1760px  needs container 1438 = 1158 fixed + 140 per address
+ *   dropoffAddress  ≥ 1680px  needs container 1354 = 1074 fixed + 140 per address
+ *   pickupAddress   ≥ 1540px  needs container 1214 = 1074 fixed + 140
+ *
+ * 140px is the least an address column can be given and still be an address —
+ * 124px of text, around twenty characters of a Tbilisi street. Each breakpoint
+ * is that floor converted through `viewport = container + 314` and rounded up
+ * to the next ten, which is where 1528→1540, 1668→1680 and 1752→1760 come from.
+ *
+ * All thirteen columns are therefore showing from 1760px, comfortably inside
+ * the 1834px the old geometry needed just to stop scrolling.
+ *
+ * ## Why this record holds the visibility as well as the width
+ *
+ * Because a header cell and its body cell must hide together or the table
+ * corrupts: one `<th>` fewer than its `<td>` shifts every column after it by
+ * one, silently, and only at some window widths. Both sites read the same entry
+ * from this record, so there is no second place for the two to disagree. The
+ * `w-*` half is inert on a body cell under `table-fixed` (the header row
+ * resolves the column set), which is exactly why sharing one string is safe.
+ *
+ * Deliberately not container queries: Tailwind v4 supports them, but nothing in
+ * this codebase uses one and a single adopter is a convention nobody else is
+ * following. The `viewport = container + 314` conversion above is the price of
+ * that, and it is why the rail and the gutters are spelled out rather than
+ * assumed.
  *
  * ## Where the columns are not in this list
  *
@@ -245,61 +348,65 @@ const FLEX_HEAD_CLASSES = "whitespace-normal";
  * pair to flex because they are the only cells whose content is unbounded and
  * already truncating (`ADDRESS_CELL_CLASSES`), so every extra pixel shows more
  * of a real address and every pixel taken back shows less — no other column
- * converts width into information that way.
+ * converts width into information that way. They are also, for the same reason,
+ * the right pair to hide first: a truncated address is the one cell on the row
+ * that is already only part of its own value.
  */
-const COLUMN_WIDTHS = {
-  load: "w-[124px]",
-  pickupCity: "w-[106px]",
-  pickupDate: "w-[108px]",
-  pickupTime: "w-[108px]",
-  dropoffCity: "w-[168px]",
-  cargo: "w-[168px]",
-  helpers: "w-[80px]",
-  weight: "w-[140px]",
-  distance: "w-[108px]",
-  price: "w-[92px]",
-  actions: "w-[160px]",
+const COLUMN_CLASSES = {
+  load: "w-[112px]",
+  pickupAddress: "hidden min-[1540px]:table-cell",
+  pickupCity: "w-[76px]",
+  pickupDate: "w-[80px]",
+  pickupTime: "w-[68px]",
+  dropoffAddress: "hidden min-[1680px]:table-cell",
+  dropoffCity: "w-[80px] min-[1420px]:w-[154px]",
+  cargo: "w-[96px] min-[1420px]:w-[140px]",
+  helpers: "hidden w-[84px] min-[1760px]:table-cell",
+  weight: "w-[124px]",
+  distance: "w-[92px]",
+  price: "w-[80px]",
+  actions: "w-[148px]",
 } as const;
 
 /**
- * The floor, and the honest arithmetic about what it can and cannot buy.
+ * The floor, and the measured arithmetic behind it.
  *
- * 1520px = the eleven fixed columns (1362) + 79px for each address column. It
- * is not a target width and it is not "how wide the board wants to be": it is
- * the point below which the addresses have been squeezed so far that showing
- * less of them is worse than letting `overflow-x-auto` take over. Above it the
- * table is exactly its container and the floor is inert.
+ * 956px is the sum of the ten columns that never hide — the board at its
+ * narrowest honest width. It is not a target and not "how wide the board wants
+ * to be": it is the width below which `overflow-x-auto` has to take over,
+ * because every one of those ten is already at
+ * `max(its own wrapped header, its own widest value) + 16`.
  *
- * The container is not the window. A hub screen gets
- * `viewport − 248 (the rail) − 64 (the shell's lg:px-8 gutters)`, so:
+ * With `viewport = container + 314` (see `COLUMN_CLASSES`) the floor stops
+ * binding at a 1270px window, so the only widths it engages at are 1024–1269px:
+ * the band between where `loads-mobile.tsx` hands over at `lg` and where the
+ * narrow tier fits. A 1024px window scrolls 246px. Narrowing that band means
+ * moving the `lg` handover, not tuning this number.
  *
- *   viewport  container  table  result
- *   ────────  ─────────  ─────  ──────────────────────────────────────────
- *     1280px      968px  1520   scrolls, 554px over; addresses 79px each
- *     1440px     1128px  1520   scrolls, 394px over; addresses 79px each
- *     1920px     1608px  1606   FITS; addresses 122px each
- *     2560px     1800px  1798   FITS; addresses 218px each (shell cap binds)
+ * Measured in Chromium against the real faces and the real shell — container,
+ * table, visible columns and whether the container scrolls:
  *
- * The break-even is a viewport of about **1834px**. Measured, not estimated —
- * Chromium, real IBM Plex metrics, worst-case strings in every cell.
+ *   viewport  container  table   cols  result
+ *   ────────  ─────────  ─────   ────  ───────────────────────────────────────
+ *     1280px      966px    966     10  FITS (10px of slack, spread across all)
+ *     1366px     1052px   1052     10  FITS; cargo renders 105.6, weight 136.4
+ *     1440px     1126px   1126     10  FITS; dropoffCity 161.5, deadline reads
+ *     1600px     1286px   1286     11  FITS; pickupAddress 212px
+ *     1834px     1520px   1520     13  FITS; addresses 181px each
+ *     1920px     1606px   1606     13  FITS; addresses 224px each
+ *     2560px     1798px   1798     13  FITS; addresses 320px (shell cap binds)
  *
- * **So this does not fit a 1280px or 1440px laptop, and nothing short of
- * changing the column set can make it.** That is arithmetic rather than a
- * tuning failure: the eleven non-address columns alone need 1362px, each of
- * them already at `max(its own header, its own widest value)`, and a 1440px
- * laptop only has 1128px to give. Six of those eleven are floored by their
- * header label, so the levers that would actually move this are, in order of
- * how much they cost: shorter header copy, letting the whole header row wrap to
- * two lines, tighter than the design's 14px cell padding, or fewer columns. All
- * four are the user's call, not this file's — the thirteen columns and their
- * names were specified deliberately.
- *
- * What did change: at 1920px the board now fits where it used to scroll 164px
- * short, and the ~430px of blank window that used to sit beside the clipped
- * columns is gone, because `driver-hub-shell.tsx` no longer caps the hub at
- * 1180px.
+ * The board no longer scrolls at any window width a laptop or monitor has. What
+ * that cost, stated plainly so nobody has to rediscover it: three columns are
+ * gone below 1760px, the design's 14px cell padding is 8px, the header row is
+ * permanently two lines, and between 1280px and 1419px the drop-off deadline
+ * and the cargo label are truncated behind their `title`s. Every one of those
+ * values is still on the row's detail drawer — which is the condition that made
+ * hiding them acceptable rather than a loss. See `loads-drawer.tsx`:
+ * `RouteStop` renders both stops' full address and the deadline, and
+ * `CargoSpecList` renders the cargo type and the helper count.
  */
-const TABLE_MIN_WIDTH_CLASS = "min-w-[1520px]";
+const TABLE_MIN_WIDTH_CLASS = "min-w-[956px]";
 
 /**
  * The `claimed` and `mine` pills.
@@ -601,9 +708,19 @@ function LoadRow({ load, nowIso }: { load: HubLoad; nowIso: string }) {
         load.status === "claimed" && "opacity-60",
       )}
     >
-      {/* 1 — Load (addition). The row's identity, and the only cell on it a
-          keyboard can use to open the drawer — see the module comment. */}
-      <TableCell className={CELL_CLASSES}>
+      {/* Every cell below carries its column's `COLUMN_CLASSES` entry, the same
+          string its header carries. The `w-*` half is inert here — under
+          `table-fixed` the header row alone resolves the column set — but the
+          `hidden`/`table-cell` half is not, and it is the reason the record is
+          shared rather than the widths being inlined above: a `<th>` that hides
+          without its `<td>` shifts every column after it by one, silently, and
+          only at some window widths. There is no second place for the two rows
+          to disagree.
+
+          1 — Load (addition). The row's identity, and the only cell on it a
+          keyboard can use to open the drawer — see the module comment. Never
+          hidden at any width: dropping it would delete that keyboard path. */}
+      <TableCell className={cn(CELL_CLASSES, COLUMN_CLASSES.load)}>
         <button
           type="button"
           onClick={() => selectLoad(load.id)}
@@ -623,10 +740,10 @@ function LoadRow({ load, nowIso }: { load: HubLoad; nowIso: string }) {
         </button>
         {/* Stacked under the reference rather than beside it, as it was on the
             old Route cell's third line. Side by side the two would want
-            63 + 92 = 155px of the 96px this column gives them; stacked, the age
-            line alone sets the width and the column is 124px rather than an
-            183px one that earns none of it. (Helpers, at 80px, is the narrowest
-            column on the board — this is the second.) */}
+            62 + 91 = 153px of the 96px this column gives them; stacked, the age
+            line alone sets the width and the column is 112px rather than a
+            169px one that earns none of it. (Pick-up time, at 68px, is the
+            narrowest column that never hides — this is the fourth widest.) */}
         <div className={SUBLINE_CLASSES}>
           {formatPostedAgo(load.createdAt, nowIso)}
         </div>
@@ -634,34 +751,51 @@ function LoadRow({ load, nowIso }: { load: HubLoad; nowIso: string }) {
 
       {/* 2 — Pick-up address. Not sortable: ordering rows by street name is not
           a question anybody asks, and a header that sorts is a header a driver
-          will press. */}
-      <TableCell className={CELL_CLASSES}>
+          will press.
+
+          The last column to hide, at 1540px, because it is the more useful half
+          of a route a driver is deciding whether to start. */}
+      <TableCell className={cn(CELL_CLASSES, COLUMN_CLASSES.pickupAddress)}>
         <div className={ADDRESS_CELL_CLASSES} title={load.pickupAddress}>
           {load.pickupAddress}
         </div>
       </TableCell>
 
-      {/* 3 — Pick-up city. Nullable: the geocoder could not place the stop. */}
-      <TableCell className={CELL_CLASSES}>
-        {load.pickupCity ?? EM_DASH}
+      {/* 3 — Pick-up city. Nullable: the geocoder could not place the stop.
+
+          Truncating behind a `title`, which it did not used to be. At 76px this
+          column has 60px of text, and the longest label in
+          `GEORGIAN_CITY_OPTIONS` ("Dedoplistsqaro") outruns it — under
+          `table-fixed` a nowrap cell that overruns spills into its neighbour
+          rather than widening the column, so the choice is an ellipsis or a
+          collision. Every common city (Tbilisi, Batumi, Kutaisi, Rustavi) fits
+          untouched. */}
+      <TableCell className={cn(CELL_CLASSES, COLUMN_CLASSES.pickupCity)}>
+        <div className="truncate" title={load.pickupCity ?? undefined}>
+          {load.pickupCity ?? EM_DASH}
+        </div>
       </TableCell>
 
       {/* 4 — Pick-up date. `scheduledAt`, relative-day labelled ("Today",
           "Tomorrow", "4 Aug") like every other date on this board, and dashed
           when the order predates the column. Never the pick-up window — see the
           module comment. */}
-      <TableCell className={CELL_CLASSES}>
+      <TableCell className={cn(CELL_CLASSES, COLUMN_CLASSES.pickupDate)}>
         {formatLoadDayLabel(load.scheduledAt, nowIso)}
       </TableCell>
 
       {/* 5 — Pick-up time. The same field's clock half, dashing on the same
           rows, so the two cells are never half-answered. */}
-      <TableCell className={cn(CELL_CLASSES, "tabular-nums")}>
+      <TableCell
+        className={cn(CELL_CLASSES, COLUMN_CLASSES.pickupTime, "tabular-nums")}
+      >
         {formatClock(load.scheduledAt)}
       </TableCell>
 
-      {/* 6 — Drop-off address. */}
-      <TableCell className={CELL_CLASSES}>
+      {/* 6 — Drop-off address. The second column to hide, at 1680px: of the two
+          addresses this is the one a driver reads after deciding, not while
+          deciding, and its city stays on the row either way. */}
+      <TableCell className={cn(CELL_CLASSES, COLUMN_CLASSES.dropoffAddress)}>
         <div className={ADDRESS_CELL_CLASSES} title={load.dropoffAddress}>
           {load.dropoffAddress}
         </div>
@@ -677,26 +811,38 @@ function LoadRow({ load, nowIso }: { load: HubLoad; nowIso: string }) {
           header above it.
 
           Omitted rather than dashed: a labelled em dash is a second line that
-          says nothing. */}
-      <TableCell className={CELL_CLASSES}>
-        <div>{load.dropoffCity ?? EM_DASH}</div>
+          says nothing.
+
+          Both lines truncate behind a `title`. This column is 154px from 1420px
+          up, which is the full 133.9px of "Deliver by Tomorrow 18:00" plus its
+          padding; below that it is 80px and the deadline reads as far as it
+          fits. `COLUMN_CLASSES` says why it cannot be 154px on a 1280px laptop.
+          The unabbreviated deadline is on the drawer's drop-off stop either
+          way. */}
+      <TableCell className={cn(CELL_CLASSES, COLUMN_CLASSES.dropoffCity)}>
+        <div className="truncate" title={load.dropoffCity ?? undefined}>
+          {load.dropoffCity ?? EM_DASH}
+        </div>
         {deadline === null ? null : (
-          <div className={SUBLINE_CLASSES}>{deadline}</div>
+          <div className={cn(SUBLINE_CLASSES, "truncate")} title={deadline}>
+            {deadline}
+          </div>
         )}
       </TableCell>
 
       {/* 8 — Cargo. */}
-      <TableCell className={CELL_CLASSES}>
+      <TableCell className={cn(CELL_CLASSES, COLUMN_CLASSES.cargo)}>
         {/* `cargoCategory` is the wire enum (`INDUSTRIAL_SUPPLIES`), never
             driver-facing copy. Same lookup as the drawer and the mobile card,
             so a row and the drawer describing it cannot read differently.
 
             Truncating, which it did not used to. The labels run to 204px
-            ("Construction & Hardware Materials") and this column is 168px, so
-            under `table-fixed` an untruncated label would spill into Helpers
-            rather than widening the column. The `title` carries the whole
-            label — the same bargain the addresses make, and the one the
-            packaging line below already made. */}
+            ("Construction & Hardware Materials") and this column is 140px, or
+            96px below a 1420px window, so under `table-fixed` an untruncated
+            label would spill into its neighbour rather than widening the
+            column. The `title` carries the whole label — the same bargain the
+            addresses make, and the one the packaging line below already
+            made. */}
         <div className="truncate" title={cargoLabel}>
           {cargoLabel}
         </div>
@@ -713,13 +859,20 @@ function LoadRow({ load, nowIso }: { load: HubLoad; nowIso: string }) {
         </div>
       </TableCell>
 
-      {/* 9 — Helpers. */}
-      <TableCell className={cn(CELL_CLASSES, "text-center")}>
+      {/* 9 — Helpers. The first column to hide, below 1760px: a one-glyph badge
+          costing 84px because of its own header, answering a question ("does
+          this need a second pair of hands") that the drawer's cargo table
+          answers in full as "Helpers". */}
+      <TableCell
+        className={cn(CELL_CLASSES, COLUMN_CLASSES.helpers, "text-center")}
+      >
         <HelpersBadge helperCount={load.helperCount} />
       </TableCell>
 
       {/* 10 — Weight / dims. */}
-      <TableCell className={cn(CELL_CLASSES, "text-right")}>
+      <TableCell
+        className={cn(CELL_CLASSES, COLUMN_CLASSES.weight, "text-right")}
+      >
         <div className="tabular-nums">{formatWeightKg(load.cargoWeightKg)}</div>
         <div className={cn(SUBLINE_CLASSES, "tabular-nums")}>
           {formatLoadDims({
@@ -733,12 +886,20 @@ function LoadRow({ load, nowIso }: { load: HubLoad; nowIso: string }) {
       {/* 11 — Distance. The **trip**: pick-up to drop-off, promoted out of the
           dissolved Route cell into a column of its own. Not `pickupDistanceKm`,
           which measured something else and no longer has a column. */}
-      <TableCell className={cn(CELL_CLASSES, "text-right tabular-nums")}>
+      <TableCell
+        className={cn(
+          CELL_CLASSES,
+          COLUMN_CLASSES.distance,
+          "text-right tabular-nums",
+        )}
+      >
         {formatDistanceKm(load.distanceKm)}
       </TableCell>
 
       {/* 12 — Price. `driverPayout` and its per-km rate, never a client fare. */}
-      <TableCell className={cn(CELL_CLASSES, "text-right")}>
+      <TableCell
+        className={cn(CELL_CLASSES, COLUMN_CLASSES.price, "text-right")}
+      >
         <div className="font-semibold tracking-[-0.01em] tabular-nums">
           {formatGel(load.driverPayout)}
         </div>
@@ -747,12 +908,14 @@ function LoadRow({ load, nowIso }: { load: HubLoad; nowIso: string }) {
         </div>
       </TableCell>
 
-      {/* 13 — Actions. No width here: under `table-fixed` the column is sized
-          by the header cell and a `w-*` on a body cell is inert. The 132px this
-          used to declare was already a fiction under the automatic algorithm
-          too — Reject and Accept measure 128px plus 28px of padding, so the
-          column has always been 156px and is now declared at 160. */}
-      <TableCell className={CELL_CLASSES}>
+      {/* 13 — Actions. The `w-*` inside this entry is inert on a body cell —
+          under `table-fixed` the header cell sizes the column — and it is
+          carried here only so every cell reads the same record; see the note at
+          the top of this row. The width itself is the one number on the board
+          that no amount of squeezing moves: Reject and Accept measure 127.6px
+          side by side with their 6px gap, so 148px is that plus the 16px of
+          padding and nothing else. */}
+      <TableCell className={cn(CELL_CLASSES, COLUMN_CLASSES.actions)}>
         <LoadActions load={load} />
       </TableCell>
     </TableRow>
@@ -815,19 +978,22 @@ export function LoadsTable() {
 
   return (
     <div className="hidden overflow-hidden rounded-lg border border-border bg-card lg:block">
-      {/* `table-fixed` is the load-bearing half of this; `TABLE_MIN_WIDTH_CLASS`
-          documents the arithmetic behind both, including what this layout does
-          and does not fix. In short: the automatic algorithm sized this table
-          from its content and could not be talked below 1770px, so it scrolled
-          at every width; the fixed algorithm sizes it from the header row, which
-          is what lets the eleven declared columns hold their width while the two
-          address columns take and give back the slack.
+      {/* `table-fixed` is the load-bearing half of this; `COLUMN_CLASSES` and
+          `TABLE_MIN_WIDTH_CLASS` document the arithmetic behind both. In short:
+          the automatic algorithm sized this table from its content and could not
+          be talked below 1770px, so it scrolled at every width; the fixed
+          algorithm sizes it from the header row, which is what lets the declared
+          columns hold their width while the address columns take and give back
+          the slack — and what lets three of them leave the row entirely on a
+          narrow window without the rest re-flowing.
 
-          `Table` brings its own `overflow-x-auto` wrapper and it stays — a
-          thirteen-column board on a 1280px laptop has nowhere else to go. The
-          point of this work is that the wrapper should rarely engage, not that
-          it disappears. Below `lg` (1024px) this tree is not painted at all;
-          `loads-mobile.tsx` has the viewport from there down. */}
+          `Table` brings its own `overflow-x-auto` wrapper and it stays, but it
+          is now a backstop rather than the everyday experience: with the narrow
+          tier at 956px and a 1280px window offering 966px, the wrapper engages
+          only between `lg` (1024px) and 1270px. Below `lg` this tree is not
+          painted at all; `loads-mobile.tsx` has the viewport from there down and
+          shows every field, which is the other half of why hiding columns here
+          costs a driver nothing. */}
       <Table
         className={cn("table-fixed", TABLE_MIN_WIDTH_CLASS)}
         aria-label="Loads"
@@ -840,12 +1006,13 @@ export function LoadsTable() {
             {/* Under `table-fixed` this row *is* the column set: every width
                 the table will use is read from these thirteen cells and from
                 nowhere else, which is why each one carries its own
-                `COLUMN_WIDTHS` entry and why the two address heads carry none.
-                A width added to a `TableCell` in the body below would be
-                ignored. */}
+                `COLUMN_CLASSES` entry and why the two address heads carry no
+                width inside theirs. A width added to a `TableCell` in the body
+                below would be ignored — which is what lets the body cells share
+                these same strings for the sake of the `hidden` half. */}
             <TableHead
               scope="col"
-              className={cn(HEAD_CLASSES, COLUMN_WIDTHS.load)}
+              className={cn(HEAD_CLASSES, COLUMN_CLASSES.load)}
             >
               Load
             </TableHead>
@@ -854,61 +1021,74 @@ export function LoadsTable() {
                 beside them are, which is what the sortable heads are for.
 
                 They are also the two that declare no width — they are the
-                board's flexible pair — and the two that are allowed to wrap;
-                `FLEX_HEAD_CLASSES` says why. */}
+                board's flexible pair — and the first two to leave the table as
+                it narrows; `COLUMN_CLASSES` has the breakpoints.
+
+                "Pick up", not "Pick up address": the noun was 104px of 11px
+                uppercase against 47px for the qualifier that actually
+                distinguishes this column from its neighbours, and the cell
+                under it visibly holds a street address. The three "Pick up …"
+                heads that follow are what make the bare one unambiguous. */}
             <TableHead
               scope="col"
-              className={cn(HEAD_CLASSES, FLEX_HEAD_CLASSES)}
+              className={cn(HEAD_CLASSES, COLUMN_CLASSES.pickupAddress)}
             >
-              Pick up address
+              Pick up
             </TableHead>
             <SortableHead
               columnKey="pickupCity"
               label="Pick up city"
-              className={COLUMN_WIDTHS.pickupCity}
+              className={COLUMN_CLASSES.pickupCity}
             />
             {/* Both of these order `scheduledAt`, and they order it differently
                 — chronologically here, by time of day next door. `LoadsSortKey`
-                in `loads-context.tsx` says why that is two keys and not one. */}
+                in `loads-context.tsx` says why that is two keys and not one.
+
+                Neither label is shortened to a bare "Date"/"Time", tempting as
+                the 50px would be: below 1540px both addresses are gone and
+                these sit beside a Drop off city carrying a "Deliver by …" line,
+                where an unqualified date column is exactly the ambiguity the
+                qualifier exists to prevent. They pay for themselves by wrapping
+                instead — see `HEAD_CLASSES`. */}
             <SortableHead
               columnKey="pickupDate"
               label="Pick up date"
               title="The day the client booked this job for"
-              className={COLUMN_WIDTHS.pickupDate}
+              className={COLUMN_CLASSES.pickupDate}
             />
             <SortableHead
               columnKey="pickupTime"
               label="Pick up time"
               title="Sorts by time of day, not by date"
-              className={COLUMN_WIDTHS.pickupTime}
+              className={COLUMN_CLASSES.pickupTime}
             />
             <TableHead
               scope="col"
-              className={cn(HEAD_CLASSES, FLEX_HEAD_CLASSES)}
+              className={cn(HEAD_CLASSES, COLUMN_CLASSES.dropoffAddress)}
             >
-              Drop off address
+              Drop off
             </TableHead>
             <SortableHead
               columnKey="dropoffCity"
               label="Drop off city"
-              className={COLUMN_WIDTHS.dropoffCity}
+              className={COLUMN_CLASSES.dropoffCity}
             />
             <SortableHead
               columnKey="cargo"
               label="Cargo"
-              className={COLUMN_WIDTHS.cargo}
+              className={COLUMN_CLASSES.cargo}
             />
             <SortableHead
               columnKey="helpers"
               label="Helpers"
               align="center"
-              className={COLUMN_WIDTHS.helpers}
+              className={COLUMN_CLASSES.helpers}
             />
             <SortableHead
               columnKey="weight"
               label="Weight / dims"
               align="right"
-              className={COLUMN_WIDTHS.weight}
+              className={COLUMN_CLASSES.weight}
             />
             {/* The trip's own length. The board no longer carries a second
                 distance for this one to be confused with. */}
@@ -917,7 +1097,7 @@ export function LoadsTable() {
               label="Distance"
               align="right"
               title="How far this job runs, pick-up to drop-off"
-              className={COLUMN_WIDTHS.distance}
+              className={COLUMN_CLASSES.distance}
             />
             {/* The header reads "Price" because that is the design's copy and
                 what a driver calls it; the key is `payout` because that is the
@@ -928,11 +1108,11 @@ export function LoadsTable() {
               columnKey="payout"
               label="Price"
               align="right"
-              className={COLUMN_WIDTHS.price}
+              className={COLUMN_CLASSES.price}
             />
             <TableHead
               scope="col"
-              className={cn(HEAD_CLASSES, COLUMN_WIDTHS.actions)}
+              className={cn(HEAD_CLASSES, COLUMN_CLASSES.actions)}
             >
               <span className="sr-only">Actions</span>
             </TableHead>

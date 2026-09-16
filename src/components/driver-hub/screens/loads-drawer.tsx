@@ -33,8 +33,17 @@ import { Button } from "@/components/ui/button";
  *
  * This is the only desktop surface that shows every handling tag, the free-text
  * packaging and quantity the client typed, and the per-load compliance warnings
- * the table's seven columns have no room for. Implements section 3 of the
- * design handoff (`UI:UX/Order Dashboard/design_handoff_driver_load_board/README.md`).
+ * the table's columns have no room for. Implements section 3 of the design
+ * handoff (`UI:UX/Order Dashboard/design_handoff_driver_load_board/README.md`).
+ *
+ * It carries more than that now. The board hides three of its thirteen columns
+ * as the window narrows — Helpers, then the drop-off address, then the pick-up
+ * address (`COLUMN_CLASSES` in `loads-table.tsx`) — and truncates the drop-off
+ * deadline below 1420px. Every one of those values is here: `RouteStop` below
+ * renders both full addresses and the deadline, and `CargoSpecList` renders the
+ * helper count. That is the condition that makes hiding a column on the board
+ * acceptable rather than data loss, so a value must not be taken off this
+ * drawer while the board is still dropping the column that carried it.
  *
  * ## The money rule
  *
@@ -196,9 +205,20 @@ function RouteStop({
             {time}
           </span>
         </div>
-        {/* `title` rather than wrapping: an address is one line in the design and
-            a two-line one would push the drop-off row out of alignment. */}
-        <p className="mt-0.5 truncate text-xs text-muted-foreground">
+        {/* `title` rather than wrapping: an address is one line in the design
+            and a two-line one would push the drop-off row out of alignment.
+
+            The `title` was missing until the load board started hiding its two
+            address columns below 1540px (`COLUMN_CLASSES` in
+            `loads-table.tsx`). That made this the only place a desktop driver
+            can read a pick-up address at all, and this drawer is 400px wide —
+            so a truncated Tbilisi address here had nowhere left to be read in
+            full. The board's own address cells have carried one all along;
+            this is the same bargain, in the surface the board now defers to. */}
+        <p
+          className="mt-0.5 truncate text-xs text-muted-foreground"
+          title={address}
+        >
           {address}
         </p>
       </div>
