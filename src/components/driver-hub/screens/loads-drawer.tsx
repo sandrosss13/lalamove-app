@@ -98,6 +98,23 @@ import { Button } from "@/components/ui/button";
  * explain, and text repeating a label a screen reader has already announced is
  * noise rather than access. Its metrics (`h-10`, outline) are unchanged.
  *
+ * ## It reached a refusal for a fleet, and no longer does
+ *
+ * The link was offered on `status === "mine"`, and "mine" is `hubOrderScope`'s
+ * answer: the assigned `driverId` for a solo driver, the holding `companyId`
+ * for a fleet. `getHubJobSheet` recognised only the first, so a fleet owner was
+ * shown this button on their own load and landed on "Order not found." — the
+ * page written to be indistinguishable from a probed id, which is the right
+ * answer to a stranger and a useless one to the company that holds the load.
+ * Three surfaces offered the same broken link on the same condition.
+ *
+ * The loader is a company tenancy now: it accepts either claim, and the sheet
+ * renders read-only for the company one, without the two driver-only write
+ * actions. The board's "mine" and the sheet's "yours" are the same question
+ * again, so this link cannot be offered where it would be refused. Nothing in
+ * this file changed for it — the route was widened underneath an href that was
+ * already correct.
+ *
  * ## Takes no props, by contract
  *
  * Everything comes from `useLoadsBoard()`. See the note at the top of
@@ -360,10 +377,14 @@ export function LoadsDrawer() {
         ) : load.status === "mine" ? (
           <>
             <ClaimedByYouNote />
-            {/* A real destination, reached only from a load this driver holds:
-                `getHubJobSheet` refuses the page to anyone else, so the link is
-                never offered where it would land on a rejection. See this
-                file's doc comment for why it spent a release disabled. */}
+            {/* A real destination, offered on the load board's own `"mine"` —
+                which is the assigned driver for a solo account and the holding
+                company for a fleet. `getHubJobSheet` now accepts both of those
+                claims and refuses everyone else, so the two agree and the link
+                cannot be offered where it would land on a rejection. It did not
+                always: see this file's doc comment for the release it spent
+                disabled, and for the release after that when it was live and
+                sent every fleet owner to "Order not found." */}
             <Button
               asChild
               variant="outline"

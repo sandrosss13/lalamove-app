@@ -662,6 +662,13 @@ function LoadCardActions({ load }: { load: HubLoad }) {
     // control. The job sheet exists, so the strip goes straight there and the
     // driver is spared the sheet in between.
     //
+    // "Yours" is `hubOrderScope`'s `"mine"`: the assigned driver on a solo
+    // account, the holding company on a fleet. `getHubJobSheet` reads both
+    // claims, so the strip's promise holds for either reader — and until the
+    // route was widened it did not, because the sheet required the driver
+    // claim and a fleet owner tapping their own load got "Order not found."
+    // The href never changed; the destination stopped refusing them.
+    //
     // `ghost` rather than the `outline` the sibling controls use: outline
     // declares its own background, which would fight the `success` tone that
     // makes this the "Yours" strip. Ghost declares none, so the tone survives

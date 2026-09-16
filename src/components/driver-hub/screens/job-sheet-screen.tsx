@@ -16,6 +16,7 @@ import {
   JobSheetTimelineCard,
   JobSheetTimingCard,
   jobSheetRouteSummary,
+  type JobSheetViewer,
 } from "@/components/driver-hub/screens/job-sheet-parts";
 import type { HubJobSheet } from "@/lib/dashboard/hub/job-sheet";
 
@@ -79,6 +80,30 @@ import type { HubJobSheet } from "@/lib/dashboard/hub/job-sheet";
  * There is no fifth branch for a driver-side cancel or abort. No endpoint
  * exists — only the company that placed an order can cancel it — so there is no
  * such affordance anywhere on this sheet.
+ *
+ * ## Two readers, four layouts, one tree
+ *
+ * The route used to refuse any fleet account outright: it gated on
+ * `driverId === session.user.id` while the load board calls a fleet's loads
+ * "mine" by `companyId`, so every "Open job sheet" a fleet owner could press
+ * landed on "Order not found." The loader is a company tenancy now, and
+ * `viewer` is how this screen knows which of the two it is drawing for.
+ *
+ * **It does not add a fifth layout.** All four run for both readers, on the same
+ * order data, in the same order. `viewer` changes exactly three things, and each
+ * one is a fact about the reader rather than about the job:
+ *
+ * - **The action bar is not mounted for a company at all** — not disabled, not
+ *   present. See the default branch below.
+ * - **Voice.** "You are paid" is addressed to the payee; `JobSheetHeaderCard`
+ *   and `JobSheetContactsCard` carry the company's wording for the same figures
+ *   and the same numbers.
+ * - **One extra fact.** `job.fleet` — which driver has it, on which vehicle —
+ *   drawn in the header card, which is the one card all four layouts render.
+ *
+ * Nothing is *withheld* from a company reader. Both stops keep their Call and
+ * Navigate row: a dispatcher ringing a consignee is ordinary, and a map is
+ * harmless to anyone.
  */
 
 /* -------------------------------------------------------------------------- */
@@ -111,9 +136,18 @@ export type JobSheetScreenProps = {
    * between the server pass and the hydration pass.
    */
   nowIso: string;
+  /**
+   * Which of the loader's two claims got this reader in — the driver assigned
+   * to the order, or the company that holds it.
+   *
+   * Resolved server-side by `getHubJobSheet`, never inferred here: this is a
+   * `"use client"` tree with no session, and a viewer a component decided for
+   * itself would be a permission guessed from props.
+   */
+  viewer: JobSheetViewer;
 };
 
-export function JobSheetScreen({ job, nowIso }: JobSheetScreenProps) {
+export function JobSheetScreen({ job, nowIso, viewer }: JobSheetScreenProps) {
   /**
    * The header says "Job sheet", not "Job history".
    *
@@ -134,11 +168,11 @@ export function JobSheetScreen({ job, nowIso }: JobSheetScreenProps) {
   useHubSubtitle(jobSheetRouteSummary(job));
 
   if (job.status === "CANCELLED") {
-    return <JobSheetCancelled job={job} />;
+    return <JobSheetCancelled job={job} viewer={viewer} />;
   }
 
   if (job.status === "COMPLETED") {
-    return <JobSheetCompleted job={job} />;
+    return <JobSheetCompleted job={job} viewer={viewer} />;
   }
 
   const inTransit = job.status === "IN_TRANSIT";
@@ -148,11 +182,32 @@ export function JobSheetScreen({ job, nowIso }: JobSheetScreenProps) {
       {/* Written first so a screen reader and the tab order meet the job's one
           action immediately after its title rather than after five cards. It
           renders nothing at all on the `PENDING`/`CLAIMED` states an assigned
-          order can briefly hold, where neither endpoint would accept a call. */}
-      <JobSheetActionBar job={job} nowIso={nowIso} />
+          order can briefly hold, where neither endpoint would accept a call.
+
+          **Absent for a company, rather than present and disabled.** Both
+          controls it holds write as the assigned driver — `POST
+          /api/orders/[id]/start` and `POST /api/orders/[id]/complete` each
+          403 unless `order.driverId === session.user.id` — so a fleet owner
+          pressing either could only ever collect a refusal. A disabled button
+          is the right shape for something that will become pressable; this
+          never will, for this reader, on this job.
+
+          There is no layout hole where it was. `gap-5` is flexbox gap, which
+          falls between flex *items*, and an omitted child is not one — the same
+          reason `JobSheetActionBar` can safely return `null` on a `CLAIMED`
+          order without the column above it moving. Both arrangements already
+          ship side by side in this file: the completed and cancelled layouts
+          below never mount the bar at all, and they are the same column with
+          the same first-card spacing as this one. It is also the only child
+          here carrying an `order-*` class, so dropping it cannot re-sequence
+          anything that stayed. */}
+      {viewer === "DRIVER" ? (
+        <JobSheetActionBar job={job} nowIso={nowIso} />
+      ) : null}
 
       <JobSheetHeaderCard
         job={job}
+        viewer={viewer}
         // The figure agreed at booking. Never a breakdown before completion:
         // `overtimeDriverPayout` is 0 and `waitingMinutes` is null until the
         // driver reports them, so it would print a total about to change.
@@ -241,20 +296,26 @@ export function JobSheetScreen({ job, nowIso }: JobSheetScreenProps) {
  * The cargo table stays too, last. It is the least urgent thing here and the
  * first thing wanted in a dispute about what was actually carried.
  */
-function JobSheetCompleted({ job }: { job: HubJobSheet }) {
+function JobSheetCompleted({
+  job,
+  viewer,
+}: {
+  job: HubJobSheet;
+  viewer: JobSheetViewer;
+}) {
   return (
     <div className={COLUMN_CLASSES}>
       {/* Booking plus overtime, with the two-line breakdown. Both halves are
           settled at this point, which is the only point at which summing them
           states a fact rather than a forecast. */}
-      <JobSheetHeaderCard job={job} payout="final" />
+      <JobSheetHeaderCard job={job} viewer={viewer} payout="final" />
 
       {/* Carries the completion time on its "Dropped off" step, and under the
           rail the two figures the driver typed into the confirmation dialog:
           the waiting minutes and, if they caught one, the recipient's name. */}
       <JobSheetTimelineCard job={job} running={false} />
 
-      <JobSheetContactsCard job={job} />
+      <JobSheetContactsCard job={job} viewer={viewer} />
 
       <JobSheetCargoCard job={job} />
     </div>
@@ -272,7 +333,9 @@ function JobSheetCompleted({ job }: { job: HubJobSheet }) {
  * still holds whatever the job was commissioned at when it was booked, and it
  * is still a real stored column — but a cancelled job is not going to pay it,
  * and printing a stored number under "You are paid" would be the one genuinely
- * dishonest figure this screen could show.
+ * dishonest figure this screen could show. A company reader is not an exception
+ * to that: relabelling the figure does not make a payout that never happened
+ * true, so `payout="none"` is unconditional and the header card says why.
  *
  * **The timeline cannot say when.** `Order` has no `cancelledAt` column, so
  * there is no fourth step to draw and no timestamp to put on one. What
@@ -285,10 +348,16 @@ function JobSheetCompleted({ job }: { job: HubJobSheet }) {
  * than current: what did happen (the client placed it; possibly a pick-up) is
  * the only account of the job there will ever be.
  */
-function JobSheetCancelled({ job }: { job: HubJobSheet }) {
+function JobSheetCancelled({
+  job,
+  viewer,
+}: {
+  job: HubJobSheet;
+  viewer: JobSheetViewer;
+}) {
   return (
     <div className={COLUMN_CLASSES}>
-      <JobSheetHeaderCard job={job} payout="none" />
+      <JobSheetHeaderCard job={job} viewer={viewer} payout="none" />
 
       <JobSheetNotice
         title="This delivery was cancelled."
@@ -317,9 +386,12 @@ function JobSheetCancelled({ job }: { job: HubJobSheet }) {
 /**
  * What `/dashboard/jobs/[id]` renders when `getHubJobSheet` returns `null`.
  *
- * **The same page for three different situations** — no such order, an order
- * belonging to another driver, and an order with no driver at all — and they
- * are indistinguishable on purpose. A "not yours" that reads differently from a
+ * **The same page for every situation** — no such order, an order assigned to
+ * another driver, one held by another company, and one that neither of this
+ * caller's two claims reaches — and they are indistinguishable on purpose. An
+ * order with no driver is no longer in that list: since the loader became a
+ * company tenancy it is a job sheet, and the fleet holding it reads "Awaiting
+ * dispatch" on the pill. A "not yours" that reads differently from a
  * "no such id" turns this route into an oracle: a caller could walk ids and
  * learn which ones exist, and roughly how much work the platform is carrying,
  * without ever being authorised to see one. `getHubJobSheet` returns one bare
