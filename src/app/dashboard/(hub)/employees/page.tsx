@@ -12,8 +12,17 @@ export const metadata: Metadata = {
   title: "Employees & roles · Driver Hub",
 };
 
-/** Where a non-business account is sent — the hub's own home screen. */
-const HUB_HOME = "/dashboard/today";
+/**
+ * Where a non-business account is sent — the board, which the hub labels
+ * "Dashboard" and puts first in every persona's rail.
+ *
+ * The one hub screen that bounces nobody: `(hub)/loads/page.tsx` carries no
+ * guard of its own, so a redirect here always comes to rest rather than
+ * starting a second hop. It is also where `src/app/dashboard/page.tsx` sends
+ * this account in the first place, so a driver who follows a stale Employees
+ * bookmark is returned to the screen they signed in on.
+ */
+const HUB_HOME = "/dashboard/loads";
 
 /**
  * The fleet's back office: who works here, what role each holds, and what that

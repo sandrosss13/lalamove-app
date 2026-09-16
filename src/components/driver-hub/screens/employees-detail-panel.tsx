@@ -33,17 +33,35 @@ import { cn } from "@/lib/utils";
 const REMOVE_NOTE_ID = "hub-employees-remove-note";
 
 /**
- * The design's destructive button, unarmed — `dangerBtn(false)`: BAD text on a
- * white ground inside a neutral LINE border, the same shape
+ * The design's destructive button, unarmed — `dangerBtn(false)`: BAD text on the
+ * card's own ground inside a neutral LINE border, the same shape
  * `drivers-detail-panel.tsx` wears before it is armed.
+ *
+ * All three colours are tokens rather than the handoff's literals, and BAD in
+ * particular is `text-destructive` because the handoff's BAD *is* that token's
+ * light value to the digit — so nothing moves in light mode, and in dark the
+ * lettering lightens with the ground it sits on instead of staying a deep red
+ * on near-black. The button has no hover tint to pair, because it never hovers:
+ * see below.
  *
  * There is no armed counterpart here on purpose. `Button`'s own `disabled`
  * styling — a 50% wash and `pointer-events: none`, so nothing reacts to a
  * hover either — stays on top of this, which is what keeps the control reading
  * as the right *kind* of button and still, unmistakably, as one that is off.
  */
+/*
+ * `bg-background`/`border-border` are restated under `dark:` because this is a
+ * `Button variant="outline"`, whose own `dark:border-input dark:bg-input/30`
+ * (`buttonVariants` in `src/components/ui/button.tsx`) is live now that the app
+ * has a `.dark` class. tailwind-merge only collapses classes within the same
+ * variant scope, so the unprefixed pair and the variant's `dark:` pair both
+ * survive `cn()` and the `dark:` one wins in dark mode; these restatements are
+ * what outrank it there. The button is permanently disabled, so this is about
+ * it still reading as the right *kind* of control, not about a live state.
+ */
 const REMOVE_UNARMED_CLASSES =
-  "border-border bg-background text-[oklch(57.7%_0.245_27.325)]";
+  "border-border bg-background dark:border-border dark:bg-background " +
+  "text-destructive";
 
 /** Why the remove button is off. Short, and about the system, not the person. */
 const REMOVE_NOTE =

@@ -14,10 +14,15 @@ const badgeVariants = cva(
           "bg-secondary text-secondary-foreground [a]:hover:bg-secondary/80",
         destructive:
           "bg-destructive/10 text-destructive focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:focus-visible:ring-destructive/40 [a]:hover:bg-destructive/20",
+        // `bg-secondary` where upstream shadcn writes `bg-muted`: see the
+        // `accent`/`muted` trap note above `buttonVariants` in `button.tsx`.
+        // The values are identical on a `[data-admin-surface]`, which is the
+        // only place `Badge` renders today, so this is a no-op here and a
+        // safeguard for the first client-page caller.
         outline:
-          "border-border text-foreground [a]:hover:bg-muted [a]:hover:text-muted-foreground",
+          "border-border text-foreground [a]:hover:bg-secondary [a]:hover:text-muted-foreground",
         ghost:
-          "hover:bg-muted hover:text-muted-foreground dark:hover:bg-muted/50",
+          "hover:bg-secondary hover:text-muted-foreground dark:hover:bg-secondary/50",
         link: "text-primary underline-offset-4 hover:underline",
       },
     },

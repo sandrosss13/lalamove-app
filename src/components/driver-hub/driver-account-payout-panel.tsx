@@ -48,8 +48,16 @@ import { SAMPLE_PAYOUT_ACCOUNT } from "@/lib/dashboard/hub/sample";
  * request is redirected server-side (`page.tsx`). This component is therefore
  * never reached by that persona, which is why it has no roster branch: it
  * would be unreachable code asserting something that is already impossible.
- * Same rule, same reasoning and the same pair of enforcement points as
- * `/dashboard/earnings`.
+ *
+ * This rule used to be half of a pair with the earnings screen, which withheld
+ * a roster driver's fares on the same reasoning. **That half is gone**: the
+ * wallet was merged into `/dashboard/performance` and opened to every persona,
+ * so an employed driver now reads what their jobs earned but still has no way
+ * to reach a payout account from this rail. The asymmetry is deliberate only in
+ * the sense that nobody has ruled on it yet — the earnings decision was made
+ * and this section was explicitly left alone. Whoever settles it changes
+ * `driver-account-sections.ts`, `page.tsx`'s `?section=` redirect and this
+ * component's roster story together, or none of them.
  */
 
 /** What changing a payout account actually requires today. */

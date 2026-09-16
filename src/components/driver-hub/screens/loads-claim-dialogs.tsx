@@ -7,6 +7,7 @@ import {
   useLoadsBoard,
   type HubLoad,
 } from "@/components/driver-hub/screens/loads-context";
+import { LoadsDispatchDialog } from "@/components/driver-hub/screens/loads-dispatch-dialog";
 import {
   EM_DASH,
   cargoCategoryLabel,
@@ -214,18 +215,61 @@ const ONLINE_NETWORK_ERROR =
  * from under a driver mid-decision — which would clear exactly that hazmat tick
  * and any go-online error alongside it.
  *
- * The two are siblings rather than an either/or: `confirmClaim()` sets
- * `lostLoad` and clears `dialogId` in the same update, so for one commit both
- * could be non-null in principle. Rendering them independently means that never
- * produces a dialog that fails to open.
+ * The three are siblings rather than an either/or: `confirmClaim()` sets
+ * `lostLoad` and clears `dialogId` in the same update, and on a company's
+ * success it sets `dispatchTarget` and clears `dialogId` in the same update, so
+ * for one commit two of them are non-null. Rendering them independently means
+ * that never produces a dialog that fails to open — a mutually-exclusive
+ * arrangement would have to pick a winner, and the one it dropped would be the
+ * one the account had just earned.
+ *
+ * ## The third dialog, and why its `key` matters as much as the first's
+ *
+ * `LoadsDispatchDialog` is the fleet's follow-up step: a `"BUSINESS"` claim
+ * names no vehicle and no driver, so the order it wins sits in "Awaiting
+ * dispatch" until somebody assigns one. `confirmClaim` hands it the frozen
+ * snapshot it just claimed, and it fetches the fleet's options by order id from
+ * there.
+ *
+ * It is keyed on the target's id for the same reason the confirm dialog is, and
+ * the consequence is more concrete: **a vehicle chosen for one order must not
+ * survive into the next order's dialog.** The pick is local state in that
+ * component, so without the key a dispatcher who claimed two loads in a row
+ * would find the second dialog pre-selected with the first one's truck — under
+ * a driver field that would then claim, truthfully but uselessly, that the name
+ * in it is paired with a vehicle they never picked for this job. The `"none"`
+ * fallback also remounts it between openings, which is what drops a stale
+ * options list and a spent error.
+ *
+ * Unlike the other two it takes no board state of its own beyond that target:
+ * it also opens from the company job sheet, which has no `LoadsProvider` above
+ * it, so everything it needs arrives as props.
  */
 export function LoadsClaimDialogs() {
-  const { dialogLoad, lostLoad } = useLoadsBoard();
+  const { dialogLoad, lostLoad, dispatchTarget, closeDispatch, refetch } =
+    useLoadsBoard();
 
   return (
     <>
       <LoadsConfirmDialog key={dialogLoad?.id ?? "none"} load={dialogLoad} />
       <LoadsLostRaceDialog reference={lostLoad?.reference ?? null} />
+      <LoadsDispatchDialog
+        key={dispatchTarget?.id ?? "none"}
+        orderId={dispatchTarget?.id ?? null}
+        reference={dispatchTarget?.reference ?? null}
+        onClose={closeDispatch}
+        // Close, then re-read the board. The dispatch moved the order from
+        // `CLAIMED` to `ACCEPTED` with a driver and a plate on it, which is a
+        // change the `mine` tab is now stale about — and `refetch` is the
+        // foreground read, so a failure surfaces through `loadError` rather than
+        // leaving a quietly wrong list. Closing first because the dialog's work
+        // is done either way; whether the board catches up is a separate
+        // question from whether the dispatch landed.
+        onDispatched={() => {
+          closeDispatch();
+          void refetch();
+        }}
+      />
     </>
   );
 }
@@ -870,7 +914,7 @@ export function LoadsLostRaceDialog({ reference }: LoadsLostRaceDialogProps) {
           className="mt-4 h-10 w-full text-sm"
           onClick={closeLost}
         >
-          Back to load board
+          Back to dashboard
         </Button>
       </DialogContent>
     </Dialog>

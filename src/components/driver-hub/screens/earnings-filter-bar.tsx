@@ -17,8 +17,14 @@ import type {
 import { cn } from "@/lib/utils";
 
 /**
- * The Earnings screen's range control: four preset tabs, a Custom tab, two date
- * fields, the range caption and the export button.
+ * The earnings range control at the top of `/dashboard/performance`: four
+ * preset tabs, a Custom tab, two date fields, the range caption and the export
+ * button.
+ *
+ * It governs the money sections only. The performance sections below them are
+ * anchored to the current Tbilisi week — a seven-column chart labelled Mon…Sun
+ * cannot honestly claim to cover a ninety-day custom range — so a push from
+ * here re-renders the whole page but moves only the figures above the fold.
  *
  * **The range lives in the URL, not in this component.** Every control here
  * ends in a `router.push` of the same route with new query params; Next

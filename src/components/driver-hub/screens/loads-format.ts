@@ -553,13 +553,65 @@ function civilDate(date: Date): { dayNumber: number; year: number } {
  * whether to accept is precisely the string that gets misread as "this
  * afternoon" when it is tomorrow's.
  *
- * "Tomorrow" earns its place here for the same reason: most pick-up windows on
- * an open board are in the future.
+ * "Tomorrow" earns its place here for the same reason: most pick-up dates on an
+ * open board are in the future.
+ *
+ * **This is the table's and the card's Pick-up date formatter**, reading
+ * `HubLoad.scheduledAt` — which is why `iso` is nullable. `scheduledAt` is a
+ * required field of the booking form and of `POST /api/orders`, so a load booked
+ * through the live UI always carries one; it is nullable on the column only
+ * because orders predating its migration were never backfilled, and because the
+ * hub's seed scripts deliberately leave some unset. Those rows dash here, which
+ * is the same treatment every other absent value on this surface gets and the
+ * reason this returns `EM_DASH` rather than throwing or guessing.
+ *
+ * It deliberately does **not** fall back to `pickupWindowStart`. That pair is an
+ * independent, optional refinement a client usually leaves at "Any time" — see
+ * `Order.pickupWindowStart` in `prisma/schema.prisma` — so substituting it would
+ * answer "when is this booked for" with a different question's answer, and would
+ * dash more often than the field it was covering for.
  */
-export function formatLoadDayLabel(iso: string, nowIso: string): string {
+export function formatLoadDayLabel(iso: string | null, nowIso: string): string {
   const date = parseIso(iso);
 
   return date === null ? EM_DASH : dayLabelOf(date, nowIso);
+}
+
+/**
+ * The minute of the Tbilisi day an instant falls on — `09:40` → `580`; absent
+ * or unusable → `null`.
+ *
+ * Exists for one caller: the ordering behind the table's **Pick-up time**
+ * column. Sorting that header on `scheduledAt` itself would order rows
+ * chronologically, which is what the *Pick-up date* header beside it already
+ * does and which would float a 23:00 pick-up today above a 07:00 one tomorrow —
+ * the opposite of what a driver asking a time column for "earliest start" means.
+ * Time of day is the only ordering that makes the header true.
+ *
+ * Derived by reading `clockFormatter`'s own output back rather than by
+ * configuring `Intl` a second time. The number then orders exactly what the
+ * column prints, in exactly the zone it prints it in, so a change to
+ * `HUB_TIME_ZONE` moves the display and the sort together instead of leaving one
+ * of them behind.
+ */
+export function hubMinuteOfDay(iso: string | null): number | null {
+  const date = parseIso(iso);
+
+  if (date === null) {
+    return null;
+  }
+
+  // `clockFormatter` is `hour12: false` with two-digit fields, so this is always
+  // exactly `HH:MM`. Both halves are still parsed defensively because
+  // `noUncheckedIndexedAccess` is on and because some ICU builds render midnight
+  // as "24:00" — `% 24` folds that back onto the zero it means.
+  const parts = clockFormatter.format(date).split(":");
+  const hours = Number.parseInt(parts[0] ?? "", 10);
+  const minutes = Number.parseInt(parts[1] ?? "", 10);
+
+  return Number.isNaN(hours) || Number.isNaN(minutes)
+    ? null
+    : (hours % 24) * MINUTES_PER_HOUR + minutes;
 }
 
 /**
@@ -645,7 +697,11 @@ export function formatDeadlineLine(
   return `Deliver by ${dayLabelOf(deadline, nowIso)} ${clockFormatter.format(deadline)}`;
 }
 
-/** Bucket boundaries for `formatRelativeAgo`, named so the thresholds read. */
+/**
+ * Bucket boundaries for `formatRelativeAgo`, named so the thresholds read.
+ * `MINUTES_PER_HOUR` is `hubMinuteOfDay`'s multiplier as well — the same fact,
+ * so the same constant.
+ */
 const MS_PER_MINUTE = 60_000;
 const MINUTES_PER_HOUR = 60;
 const HOURS_PER_DAY = 24;

@@ -116,10 +116,23 @@ export function SignUpSuccess({
       <div role="status" className="flex flex-col gap-5">
         <span className="sr-only">Your account has been created.</span>
 
-        {/* The check is the picture of the sentence beside it. */}
+        {/* The check is the picture of the sentence beside it, and its whole job
+            is to be the one high-contrast graphic on an otherwise typographic
+            screen — so the disc has to stay a solid chip in both themes.
+
+            That is why this inverts rather than taking a single token pair.
+            `ink-strong`/`on-strong` is the palette's filled-panel pair and the
+            obvious reach here, but `ink-strong` is dark in *both* halves of the
+            palette (`#15140f` light, `#111315` dark): on a dark page it renders
+            a disc darker than its own background, which reads as a check
+            floating with no chip behind it at all. Light mode keeps the
+            handoff's near-black disc; dark mode swaps to the page's own
+            foreground/background pair, giving the same graphic with the same
+            contrast the other way up. Plain `text-white` used to be enough here
+            only because the palette had no dark half to disagree with. */}
         <span
           aria-hidden="true"
-          className="flex size-12 items-center justify-center rounded-full bg-[var(--landing-ink-strong)] text-xl text-white"
+          className="flex size-12 items-center justify-center rounded-full bg-[var(--landing-ink-strong)] text-xl text-[var(--landing-on-strong)] dark:bg-[var(--landing-paper)] dark:text-[var(--landing-ink)]"
         >
           ✓
         </span>

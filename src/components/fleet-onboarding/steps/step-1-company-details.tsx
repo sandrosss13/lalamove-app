@@ -93,7 +93,15 @@ const GROUP_HEADING_CLASS =
 const FIELD_LABEL_CLASS =
   "font-price text-[11.5px] font-semibold tracking-[0.04em] text-muted-foreground uppercase";
 
-/** The wizard's shared primary CTA. */
+/**
+ * The wizard's shared primary CTA.
+ *
+ * `text-white` on `bg-onboarding-accent` is correct in both themes and must not
+ * grow a `dark:` variant: the brand orange is theme-independent by design — it
+ * is the one colour in this wizard that means the same thing on both grounds —
+ * so the label riding on it has to be theme-independent too. The disabled state
+ * carries no colour of its own, only opacity, so it inherits that correctness.
+ */
 const PRIMARY_CTA_CLASS =
   "h-12 cursor-pointer rounded-[11px] bg-onboarding-accent px-[30px] text-[15px] font-semibold tracking-[-0.01em] text-white transition-colors hover:bg-onboarding-accent-hover focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50";
 
@@ -1048,13 +1056,32 @@ export function CompanyDetailsForm({
                                 : "bg-transparent"
                           }`}
                         >
-                          {/* The row's own `aria-selected` carries the state. */}
+                          {/* The row's own `aria-selected` carries the state.
+
+                              Selected is brand orange with a white tick and
+                              stays that way in both themes: the orange is
+                              theme-independent by design, so its tick has to be
+                              too.
+
+                              Unselected is the harder half. `border-input` and
+                              `bg-card` are both themed, but in dark they resolve
+                              to a 15%-white hairline on a fill the popover is
+                              already painted in — a 17px box that is, in
+                              practice, invisible. `dark:bg-input/30` is the fill
+                              the shadcn `Checkbox` primitive gives its own
+                              unchecked state for exactly this reason, and
+                              borrowing it here keeps this hand-rolled tick box
+                              (hand-rolled because the row is a `role="option"`
+                              button, which cannot contain a real checkbox) and
+                              the real checkboxes in step 4 looking like the same
+                              control. Scoped to `dark:`, so the light popover is
+                              untouched. */}
                           <span
                             aria-hidden="true"
                             className={`flex size-[17px] shrink-0 items-center justify-center rounded-[5px] border-[1.5px] text-[10.5px] font-bold text-white ${
                               selected
                                 ? "border-onboarding-accent bg-onboarding-accent"
-                                : "border-input bg-card"
+                                : "border-input bg-card dark:bg-input/30"
                             }`}
                           >
                             {selected ? <CheckIcon className="size-3" /> : null}

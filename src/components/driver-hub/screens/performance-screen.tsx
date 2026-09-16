@@ -13,6 +13,8 @@ import {
   type HubBarSeries,
   type MetricDeltaTone,
 } from "@/components/driver-hub/hub-primitives";
+import { formatRangeSubtitle } from "@/components/driver-hub/screens/earnings-format";
+import { EarningsScreen } from "@/components/driver-hub/screens/earnings-screen";
 import {
   EMPTY_VALUE,
   formatDecimal,
@@ -31,14 +33,25 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type {
+  HubEarningsData,
+  HubEarningsPreset,
+} from "@/lib/dashboard/hub/earnings";
+import type {
   HubPerformanceData,
   HubPerformanceDriverRow,
 } from "@/lib/dashboard/hub/performance";
 import { cn } from "@/lib/utils";
 
 /**
- * Performance — how the week is going, for an independent driver, an employed
- * one, or a fleet.
+ * Performance — the money first, then how the week is going, for an independent
+ * driver, an employed one, or a fleet.
+ *
+ * This file holds two things: `PerformanceSections`, the week's rates, chart and
+ * fleet table that this screen has always been, and `PerformanceScreen`, the
+ * exported composition that stacks the earnings sections above them. The wallet
+ * used to be its own route (`/dashboard/earnings`); it was merged into this one
+ * and that route deleted. The composition lives at the bottom of the file, with
+ * its own block on what the merge decided.
  *
  * ## Two readers, not three
  *
@@ -46,8 +59,9 @@ import { cn } from "@/lib/utils";
  * tests it against `"BUSINESS"`. `INDEPENDENT` and `ROSTER` render identically:
  * both are one person driving, both have a personal completion rate and a
  * personal score, and the only thing that separates them — who is paid the fare
- * — is an Earnings concern. So there is deliberately no third branch here, and
- * the screen never re-derives the persona from `kind` or `companyId`.
+ * — is a question the earnings sections above now answer for both of them
+ * alike. So there is deliberately no third branch here, and the screen never
+ * re-derives the persona from `kind` or `companyId`.
  *
  * What a fleet owner gets instead of the driver-shaped surfaces:
  *
@@ -140,8 +154,10 @@ import { cn } from "@/lib/utils";
  *
  * ## Read-only
  *
- * Nothing here mutates: every figure is a rollup, so the screen holds no state
- * and needs `"use client"` only for `useHubSubtitle`.
+ * Nothing here mutates: every figure is a rollup, so these sections hold no
+ * state, and the file needs `"use client"` only for the `useHubSubtitle` call
+ * in the composition below. The one control on the merged screen — the earnings
+ * range filter — keeps its own state in the URL, in its own file.
  */
 
 /* -------------------------------------------------------------------------- */
@@ -218,10 +234,21 @@ const RATING_SCALE_MAX = 5;
  * rather than imported because Tailwind scans source text: a class assembled
  * from a shared import would never be generated. `vehicles-screen.tsx` repeats
  * the accent orange for the same reason.
+ *
+ * Each tone is a light literal plus a `dark:` counterpart, because neither
+ * green nor amber has a shadcn token to migrate to the way the hub's error
+ * lines migrated to `--destructive`. The light halves are the handoff's own
+ * values and are unchanged; the dark halves keep the hue and invert the
+ * lightness (44.8% → 84% for green, 47.6% → 88% for amber) so a delta reads as
+ * coloured on a near-black card instead of collapsing into the caption grey
+ * beside it. All four values are shared verbatim with the hub's status-pill
+ * foregrounds in `hub-status.ts` — since this map exists precisely to stay in
+ * step with `hub-primitives.tsx`, re-tuning one half here would break the
+ * duplication it is built on. Change all copies or none.
  */
 const DELTA_TONE_CLASSES: Record<MetricDeltaTone, string> = {
-  good: "text-[oklch(44.8%_0.119_151.328)]",
-  bad: "text-[oklch(47.6%_0.114_61.907)]",
+  good: "text-[oklch(44.8%_0.119_151.328)] dark:text-[oklch(84%_0.13_156.743)]",
+  bad: "text-[oklch(47.6%_0.114_61.907)] dark:text-[oklch(88%_0.12_85)]",
 };
 
 /**
@@ -433,11 +460,21 @@ function FleetTable({ rows }: { rows: readonly HubPerformanceDriverRow[] }) {
   );
 }
 
-export type PerformanceScreenProps = {
+type PerformanceSectionsProps = {
   data: HubPerformanceData;
 };
 
-export function PerformanceScreen({ data }: PerformanceScreenProps) {
+/**
+ * The performance half of the merged screen: five tiles, the window footnote,
+ * and either the driver's paired chart plus score card or the fleet's chart
+ * plus per-driver table.
+ *
+ * Returns its sections as siblings and nothing else — no page head, no wrapper
+ * — because the shell's content column is a flex stack with a 20px gap and the
+ * earnings sections are its siblings in that same stack. It is not exported:
+ * the only screen it belongs to is `PerformanceScreen` below.
+ */
+function PerformanceSections({ data }: PerformanceSectionsProps) {
   // `window` is the global's name; the alias keeps the two unambiguous in a
   // file that also does date formatting.
   const { window: hubWindow, sampled } = data;
@@ -453,8 +490,13 @@ export function PerformanceScreen({ data }: PerformanceScreenProps) {
   // opinion about who gets the table.
   const fleet = isBusiness ? data.fleet : null;
 
+  // Printed in the footnote under the tiles, not in the header. These sections
+  // used to register `Week of …` as the page subtitle; on the merged screen the
+  // header belongs to the earnings range, which is the window a reader can
+  // actually change — see `PerformanceScreen` below. The week is still stated
+  // on screen, one line under the tiles it describes, which is where a reader
+  // who has just scrolled past the money is looking anyway.
   const weekRange = formatWeekRange(hubWindow.from, hubWindow.to);
-  useHubSubtitle(`Week of ${weekRange}`);
 
   // The sampled hours series is keyed by weekday label, which is exactly what
   // `HubPerformanceDay.weekday` carries — `performance.ts` pins its formatter's
@@ -726,6 +768,97 @@ export function PerformanceScreen({ data }: PerformanceScreenProps) {
           </HubCard>
         </div>
       )}
+    </>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* The merged screen                                                          */
+/* -------------------------------------------------------------------------- */
+
+export type PerformanceScreenProps = {
+  /** Everything the wallet half renders, for the range resolved from the URL. */
+  earnings: HubEarningsData;
+  /**
+   * The earnings preset tabs, forwarded through `EarningsScreen` to the filter
+   * bar. They come in as a prop because the list is exported by a `server-only`
+   * module and this tree is a client one — see `EarningsFilterBarProps`.
+   */
+  earningsPresets: readonly HubEarningsPreset[];
+  /** Everything the performance half renders, for the current Tbilisi week. */
+  data: HubPerformanceData;
+};
+
+/**
+ * `/dashboard/performance` — the wallet and the week, in that order, under one
+ * page head.
+ *
+ * ## A stack, not a redesign
+ *
+ * These were two routes. `/dashboard/earnings` held the money and this one held
+ * the rates; product merged them and the earnings route was deleted outright,
+ * with no redirect left behind. Both screens' sections survive the merge
+ * unchanged and in their original order, because both were already written to
+ * return their sections as **siblings** — the shell's content column is a flex
+ * stack with a 20px gap, and a screen that returns a fragment of sections
+ * inherits that spacing instead of restating it. So the merge is literally two
+ * fragments in a row: nothing was re-laid-out, no card moved inside either
+ * half, and neither half learned about the other.
+ *
+ * Money first, by product decision. The filter bar and its Excel export ride
+ * along at the top of the earnings half, where they have always been, and they
+ * still govern only the money: the range they push into the URL is read by
+ * `getHubEarnings` and by the export route, and is deliberately not passed to
+ * `getHubPerformance`, whose seven-column chart and "vs last week" deltas only
+ * mean anything over a Monday–Sunday week.
+ *
+ * ## One subtitle for two windows
+ *
+ * The page's title comes from `HUB_NAV`'s `performance` entry through the shell
+ * — "Performance" — and so would its subtitle, except that a screen may
+ * override the subtitle with `useHubSubtitle`, and the shell holds exactly one
+ * override. Both halves used to claim it: the earnings screen registered its
+ * resolved range, these sections registered `Week of …`. Two registrations
+ * against one piece of state is a race decided by effect order, so the
+ * composition takes the call and both halves gave theirs up.
+ *
+ * It registers the **earnings range**. That is the window a reader can change,
+ * from a control on this screen, and a subtitle that did not move when the
+ * filter bar did would read as stale. The performance week is not lost by the
+ * trade: it is printed in the footnote directly under the performance tiles,
+ * which is the only place it was ever needed twice.
+ *
+ * The nav entry's static `subtitle` ("This Tbilisi week, Monday to Sunday") is
+ * consequently never shown — this screen always overrides it. It stays in
+ * `HUB_NAV` as the entry's description of itself, and as what the header falls
+ * back to for the first paint before this effect runs.
+ *
+ * ## Every persona, money included
+ *
+ * All three personas render both halves. A `ROSTER` driver used to be redirected
+ * away from the money entirely; that gate was removed by product decision, here,
+ * in the loaders and in the export route together. This component therefore has
+ * no persona branch of its own at all — each half still branches on `BUSINESS`
+ * for the surfaces that are genuinely fleet-shaped (the fleet revenue card, the
+ * per-driver table, the tiles whose driver copy a company cannot read), and
+ * `INDEPENDENT` and `ROSTER` are identical in both halves.
+ */
+export function PerformanceScreen({
+  earnings,
+  earningsPresets,
+  data,
+}: PerformanceScreenProps) {
+  const { range } = earnings;
+
+  // The screen's one header registration; see the block above for why it is the
+  // money range rather than the performance week, and why it is made here
+  // rather than in either half.
+  useHubSubtitle(formatRangeSubtitle(range.from, range.to, range.days));
+
+  return (
+    <>
+      <EarningsScreen data={earnings} presets={earningsPresets} />
+      <PerformanceSections data={data} />
     </>
   );
 }

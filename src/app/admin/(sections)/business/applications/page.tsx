@@ -11,6 +11,7 @@ import type {
   AdminBusinessApplicationRow,
   AdminBusinessApplicationStatus,
 } from "@/app/api/admin/business-applications/route";
+import { APPLICATION_STATUS_CHIP_CLASSES } from "@/components/admin/application-status-colors";
 import { BusinessApplicationDetailDrawer } from "@/components/admin/business-application-detail-drawer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -74,18 +75,6 @@ const STATUS_LABELS: Record<AdminBusinessApplicationStatus, string> = {
   PENDING: "Pending",
   ACTION_REQUIRED: "Action required",
   APPROVED: "Fleet active",
-};
-
-/**
- * The design's exact chip colours, as Tailwind arbitrary values rather than new
- * tokens in `globals.css` — they are used on this one screen, so a token would
- * be a palette of one. `cn()` inside `Badge` runs these through tailwind-merge,
- * so they replace the variant's own `bg-*`/`text-*` instead of racing it.
- */
-const STATUS_CHIP_CLASSES: Record<AdminBusinessApplicationStatus, string> = {
-  PENDING: "bg-[rgba(200,140,20,0.12)] text-[oklch(0.48_0.13_70)]",
-  ACTION_REQUIRED: "bg-[rgba(220,38,38,0.09)] text-[oklch(0.577_0.245_27.325)]",
-  APPROVED: "bg-[rgba(16,120,70,0.1)] text-[oklch(0.5_0.13_145)]",
 };
 
 /**
@@ -350,7 +339,9 @@ export default function AdminBusinessApplicationsPage() {
                     <TableCell>
                       <div className="flex flex-col items-start gap-1">
                         <Badge
-                          className={STATUS_CHIP_CLASSES[application.status]}
+                          className={
+                            APPLICATION_STATUS_CHIP_CLASSES[application.status]
+                          }
                         >
                           {STATUS_LABELS[application.status]}
                         </Badge>

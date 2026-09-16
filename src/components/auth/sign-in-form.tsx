@@ -10,6 +10,7 @@ import {
   AuthSubheading,
   BackLink,
   ContextChip,
+  DANGER_TEXT_CLASS,
   ERROR_INPUT_CLASS,
   FieldError,
   FormAlert,
@@ -829,7 +830,7 @@ export function SignInForm({
                 className={cn(
                   "self-end text-[13px] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--landing-accent)]",
                   formError
-                    ? "font-medium text-[#c3341a]"
+                    ? cn("font-medium", DANGER_TEXT_CLASS)
                     : "text-[var(--landing-muted)] hover:text-[var(--landing-accent)]",
                 )}
               >

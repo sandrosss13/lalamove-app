@@ -33,8 +33,17 @@ import { Button } from "@/components/ui/button";
  *
  * This is the only desktop surface that shows every handling tag, the free-text
  * packaging and quantity the client typed, and the per-load compliance warnings
- * the table's seven columns have no room for. Implements section 3 of the
- * design handoff (`UI:UX/Order Dashboard/design_handoff_driver_load_board/README.md`).
+ * the table's columns have no room for. Implements section 3 of the design
+ * handoff (`UI:UX/Order Dashboard/design_handoff_driver_load_board/README.md`).
+ *
+ * It carries more than that now. The board hides three of its thirteen columns
+ * as the window narrows — Helpers, then the drop-off address, then the pick-up
+ * address (`COLUMN_CLASSES` in `loads-table.tsx`) — and truncates the drop-off
+ * deadline below 1420px. Every one of those values is here: `RouteStop` below
+ * renders both full addresses and the deadline, and `CargoSpecList` renders the
+ * helper count. That is the condition that makes hiding a column on the board
+ * acceptable rather than data loss, so a value must not be taken off this
+ * drawer while the board is still dropping the column that carried it.
  *
  * ## The money rule
  *
@@ -93,10 +102,27 @@ import { Button } from "@/components/ui/button";
  *
  * That screen was built. The button is now a `Button asChild` wrapping a
  * `next/link` to `/dashboard/jobs/[id]` — the hub's own pattern for a link that
- * looks like a button, as `today-screen.tsx` uses for "View earnings" — and the
+ * looks like a button — and the
  * `title`/`sr-only` pair went with the reason for it: there is nothing left to
  * explain, and text repeating a label a screen reader has already announced is
  * noise rather than access. Its metrics (`h-10`, outline) are unchanged.
+ *
+ * ## It reached a refusal for a fleet, and no longer does
+ *
+ * The link was offered on `status === "mine"`, and "mine" is `hubOrderScope`'s
+ * answer: the assigned `driverId` for a solo driver, the holding `companyId`
+ * for a fleet. `getHubJobSheet` recognised only the first, so a fleet owner was
+ * shown this button on their own load and landed on "Order not found." — the
+ * page written to be indistinguishable from a probed id, which is the right
+ * answer to a stranger and a useless one to the company that holds the load.
+ * Three surfaces offered the same broken link on the same condition.
+ *
+ * The loader is a company tenancy now: it accepts either claim, and the sheet
+ * renders read-only for the company one, without the two driver-only write
+ * actions. The board's "mine" and the sheet's "yours" are the same question
+ * again, so this link cannot be offered where it would be refused. Nothing in
+ * this file changed for it — the route was widened underneath an href that was
+ * already correct.
  *
  * ## Takes no props, by contract
  *
@@ -179,9 +205,20 @@ function RouteStop({
             {time}
           </span>
         </div>
-        {/* `title` rather than wrapping: an address is one line in the design and
-            a two-line one would push the drop-off row out of alignment. */}
-        <p className="mt-0.5 truncate text-xs text-muted-foreground">
+        {/* `title` rather than wrapping: an address is one line in the design
+            and a two-line one would push the drop-off row out of alignment.
+
+            The `title` was missing until the load board started hiding its two
+            address columns below 1540px (`COLUMN_CLASSES` in
+            `loads-table.tsx`). That made this the only place a desktop driver
+            can read a pick-up address at all, and this drawer is 400px wide —
+            so a truncated Tbilisi address here had nowhere left to be read in
+            full. The board's own address cells have carried one all along;
+            this is the same bargain, in the surface the board now defers to. */}
+        <p
+          className="mt-0.5 truncate text-xs text-muted-foreground"
+          title={address}
+        >
           {address}
         </p>
       </div>
@@ -360,10 +397,14 @@ export function LoadsDrawer() {
         ) : load.status === "mine" ? (
           <>
             <ClaimedByYouNote />
-            {/* A real destination, reached only from a load this driver holds:
-                `getHubJobSheet` refuses the page to anyone else, so the link is
-                never offered where it would land on a rejection. See this
-                file's doc comment for why it spent a release disabled. */}
+            {/* A real destination, offered on the load board's own `"mine"` —
+                which is the assigned driver for a solo account and the holding
+                company for a fleet. `getHubJobSheet` now accepts both of those
+                claims and refuses everyone else, so the two agree and the link
+                cannot be offered where it would land on a rejection. It did not
+                always: see this file's doc comment for the release it spent
+                disabled, and for the release after that when it was live and
+                sent every fleet owner to "Order not found." */}
             <Button
               asChild
               variant="outline"
@@ -405,7 +446,17 @@ export function LoadsDrawer() {
               // The design's destructive hover, expressed through the existing
               // `--destructive` token rather than as three raw oklch literals:
               // the tone is the same and the colour stays in one place.
-              className="h-10 text-sm font-medium hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive"
+              //
+              // The hover is restated under `dark:` because `outline` carries
+              // its own `dark:hover:bg-input/50` (`buttonVariants` in
+              // `src/components/ui/button.tsx`), which was inert before the app
+              // had a `.dark` class. tailwind-merge only collapses classes in
+              // the same variant scope, so an unprefixed `hover:bg-` and the
+              // variant's `dark:hover:bg-` both survive `cn()` and the `dark:`
+              // one wins after dark — which would turn the reject hover from a
+              // red warning into the same neutral wash every other outline
+              // button uses, on the one control here that discards a load.
+              className="h-10 text-sm font-medium hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive dark:hover:border-destructive/40 dark:hover:bg-destructive/10"
             >
               {isPending ? "Rejecting…" : "Reject this load"}
             </Button>

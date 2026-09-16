@@ -20,8 +20,13 @@ type RejectionOwner =
  * Resolves the calling session to whichever kind of account rejects/restores
  * loads, applying the same gates `POST /api/orders/[id]/accept` and
  * `POST /api/logistics-company/orders/[id]/claim` already apply for their own
- * claim paths — a roster driver or an unactivated account has no board to
- * reject from in the first place, so it can't reject a load on it either.
+ * claim paths — an unactivated account has no board to reject from in the first
+ * place, so it can't reject a load on it either.
+ *
+ * There is no roster gate among them any more, in step with those two routes:
+ * an employed driver browses, claims and rejects the open board exactly as an
+ * independent driver does, so a load they hide is hidden from a board they
+ * genuinely have.
  *
  * Returns a `NextResponse` directly on any failure so both handlers can just
  * `return` it, keeping the two verbs' gates identical by construction instead of
@@ -76,9 +81,12 @@ async function resolveRejectionOwner(
   }
 
   if (session.user.role === "DRIVER") {
+    // `companyId` is no longer read: whether this driver is on a fleet's roster
+    // does not bear on whether they have a board, so it cannot bear on whether
+    // they may hide a load from it either.
     const driverProfile = await prisma.driverProfile.findUnique({
       where: { userId: session.user.id },
-      select: { id: true, companyId: true, activatedAt: true },
+      select: { id: true, activatedAt: true },
     });
 
     if (!driverProfile) {
@@ -88,21 +96,9 @@ async function resolveRejectionOwner(
       );
     }
 
-    // A driver on a company's roster receives work through that company's
-    // dispatch and never sees this board, so there is nothing on it for them to
-    // hide. Same 403 and same wording as the accept route's roster gate.
-    if (driverProfile.companyId !== null) {
-      return NextResponse.json(
-        {
-          error:
-            "Drivers who belong to a company receive deliveries through their company's dispatch, not by accepting directly.",
-        },
-        { status: 403 },
-      );
-    }
-
-    // Kept distinct from the roster 403 above: the two are different problems
-    // with different remedies, exactly as the accept route separates them.
+    // The one remaining driver-side gate, and the same wording the accept route
+    // refuses an unapproved driver with — an account that may not be offered
+    // work has nothing on a board to hide.
     if (driverProfile.activatedAt === null) {
       return NextResponse.json(
         {

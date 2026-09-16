@@ -1,6 +1,5 @@
 "use client";
 
-import { useHubSubtitle } from "@/components/driver-hub/driver-hub-shell";
 import {
   HubBarChart,
   HubCard,
@@ -18,7 +17,6 @@ import {
   formatDayMonth,
   formatGel,
   formatHours,
-  formatRangeSubtitle,
   formatWeekday,
   pluralise,
 } from "@/components/driver-hub/screens/earnings-format";
@@ -31,14 +29,35 @@ import type {
  * Earnings & payouts — what a chosen window paid, where it came from, and when
  * it settles.
  *
+ * ## Where this renders
+ *
+ * These are the **top sections of `/dashboard/performance`**, not a screen of
+ * their own. `/dashboard/earnings` was merged into Performance and deleted;
+ * `PerformanceScreen` renders this fragment above the week's rates and charts,
+ * money first, and owns the page head both halves sit under. Nothing here
+ * changed in the merge — the sections return as siblings, as they always did,
+ * and inherit the shell column's 20px gap whichever fragment they are part of.
+ *
+ * The one thing that moved out is the header subtitle: this component used to
+ * register the resolved range with `useHubSubtitle` and no longer does, because
+ * the shell holds one override and the performance half wanted it too.
+ * `PerformanceScreen` makes that call now — for this range, not the week — so
+ * the header still follows the filter bar. Do not re-add the hook here; two
+ * registrations against one piece of state is a race decided by effect order.
+ *
+ * Every persona reads these sections, an employed `ROSTER` driver included. See
+ * `PerformanceScreen` and `earnings.ts` for what that reversed and why.
+ *
  * ## The range is URL state
  *
- * This screen holds no state at all. The window comes in as
+ * This component holds no state at all. The window comes in as
  * `data.range`, resolved on the server by `resolveHubEarningsRange` from the
  * query string, and the filter bar changes it by pushing new params rather than
  * by calling a setter — see `earnings-filter-bar.tsx`. Nothing here refetches:
  * a new range is a new server render, which is what keeps the tiles, the bars,
  * the breakdown and the export button describing one window instead of four.
+ * It governs the money only: the performance sections below are anchored to the
+ * current Tbilisi week and do not move when this range does.
  *
  * ## Real versus sampled
  *
@@ -118,8 +137,6 @@ export type EarningsScreenProps = {
 
 export function EarningsScreen({ data, presets }: EarningsScreenProps) {
   const { range, grouping, buckets, sampled, fleet } = data;
-
-  useHubSubtitle(formatRangeSubtitle(range.from, range.to, range.days));
 
   // A fleet owner is reading a *company's* takings, so the tiles' second-person
   // driver copy is wrong for them twice over: a company has no online hours (its

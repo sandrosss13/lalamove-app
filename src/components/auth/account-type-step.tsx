@@ -35,7 +35,7 @@ import { cn } from "@/lib/utils";
  */
 
 const ROW_CLASS =
-  "flex items-center gap-3.5 rounded-xl border bg-white px-5 py-[18px] text-left transition-colors hover:border-[var(--landing-accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--landing-accent)]";
+  "flex items-center gap-3.5 rounded-xl border bg-[var(--landing-surface-raised)] px-5 py-[18px] text-left transition-colors hover:border-[var(--landing-accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--landing-accent)]";
 
 export type AccountTypeStepProps = {
   /** Drivers get the Individual Entrepreneur row; clients do not. */
@@ -149,16 +149,24 @@ export function AccountTypeStep({
                   "flex size-[18px] flex-none items-center justify-center rounded-full border-[1.5px] transition-colors",
                   checked
                     ? "border-[var(--landing-accent)] bg-[var(--landing-accent)]"
-                    : "border-[#cfcac0]",
+                    : // The unchecked ring has to read as a control rather than
+                      // as a hairline, so it takes `line-stronger` rather than
+                      // the row's own `line`. Its light value resolves within a
+                      // shade of the `#cfcac0` this used to spell literally.
+                      "border-[var(--landing-line-stronger)]",
                 )}
               >
+                {/* `on-accent`, not white: in dark mode the fill behind this dot
+                    is the brighter `#f58220`, where a white dot all but
+                    disappears. `on-accent` is the palette's answer to "what goes
+                    on top of accent" and is near-black there. */}
                 {checked ? (
-                  <span className="size-1.5 rounded-full bg-white" />
+                  <span className="size-1.5 rounded-full bg-[var(--landing-on-accent)]" />
                 ) : null}
               </span>
 
               <span className="flex min-w-0 flex-col gap-0.5">
-                <span className="text-base font-medium text-[var(--landing-ink-strong)]">
+                <span className="text-base font-medium text-[var(--landing-paper)]">
                   {ACCOUNT_TYPE_LABELS[row.value]}
                 </span>
                 <span className="text-[13px] text-[var(--landing-muted)]">

@@ -28,13 +28,13 @@ import type { HubHeaderData } from "@/lib/dashboard/hub/header";
  *
  * - **The top bar is the session.** Where you are in the app, whether you are
  *   taking work, what is running right now, who you are, and how you leave.
- *   Identical on all eight screens, so nothing in it can be overridden from
+ *   Identical on all six screens, so nothing in it can be overridden from
  *   below. The availability toggle belongs here for that reason and not because
  *   there was room: being online is a fact about the driver, not about the
  *   screen they happen to be reading, and it should not appear to change
- *   meaning as they move between Today and Job history.
+ *   meaning as they move between the board and Job history.
  * - **The page head is the screen**, and it is content rather than chrome: it
- *   changes on every route, six screens derive their subhead from their own
+ *   changes on every route, five screens derive their subhead from their own
  *   data through `useHubSubtitle()`, and a title that scrolls away with the rows
  *   it names costs nothing. Boxing it charged a second horizontal rule and a
  *   second sticky offset for the privilege of keeping a string on screen.
@@ -130,8 +130,8 @@ export type DriverHubPageHeadProps = {
  * The page head: the title, its subhead, and the one screen-owned control that
  * sits beside them.
  *
- * Rendered by the shell as the first child of the page body's 1180px column, so
- * it inherits that column's 20px gap rather than restating the design's
+ * Rendered by the shell as the first child of the page body's content column,
+ * so it inherits that column's 20px gap rather than restating the design's
  * `margin-bottom: 20px`, and sits inside the body's own `28px 32px 56px`
  * padding exactly as `showPageHead` does in the artboard.
  */
@@ -143,9 +143,10 @@ export function DriverHubPageHead({
   return (
     // The artboard has no load-board screen, so it is silent on where the
     // vehicle pill goes rather than contradicting the slot — it draws the page
-    // head as a title block and nothing else. The slot is a working Load Board
-    // control, so it is kept and placed opposite the title, which is the one
-    // position that neither pushes the head taller nor competes with it.
+    // head as a title block and nothing else. The slot is a working control on
+    // the board — the screen the rail labels "Dashboard" — so it is kept and
+    // placed opposite the title, which is the one position that neither pushes
+    // the head taller nor competes with it.
     <div className="flex items-start justify-between gap-4">
       <div className="min-w-0">
         <h1 className="truncate text-[17px] font-semibold tracking-[-0.015em] lg:text-[20px]">

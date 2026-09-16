@@ -3,6 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { APIProvider, Map, Marker, useMap } from "@vis.gl/react-google-maps";
 
+import { useTheme } from "@/hooks/use-theme";
+import { DEFAULT_MAP_STYLES, MAP_STYLES_DARK } from "@/lib/map-styles";
+
 /** A single map coordinate. Mirrors `LatLng` from `@/lib/geo`, duplicated here
  * so this client component never imports the server-only geo module. */
 type LatLng = {
@@ -104,6 +107,28 @@ function TrackingMap({
   pickup,
   dropoff,
 }: OrderTrackingMapProps & { apiKey: string }) {
+  // The basemap is painted by the Maps SDK into its own canvas, so no `dark:`
+  // utility reaches it and the style array has to be picked here. `useTheme`
+  // tracks the `dark` class on `<html>` — the same source of truth the `dark:`
+  // variant keys off — so the map re-styles the instant the header's toggle is
+  // clicked rather than on the next reload.
+  //
+  // Light mode keeps Google's stock basemap, which is what this screen has
+  // always shown and what a customer watching a driver move expects; only dark
+  // mode brings a hand-authored array, because Google has no default dark
+  // basemap reachable without a Cloud-styled Map ID. `DEFAULT_MAP_STYLES` is an
+  // empty array rather than `undefined` for a real reason — see its note in
+  // `@/lib/map-styles`.
+  //
+  // `styles` is a live map option: `@vis.gl/react-google-maps` deep-compares it
+  // and calls `map.setOptions()` when it changes, so the swap restyles the
+  // existing map in place. The camera is untouched, which matters here more
+  // than on the preview — `MapCameraController` deliberately refits only when
+  // the *number* of markers changes, so a remount would be the one thing able
+  // to yank a user's pan back mid-delivery.
+  const mapStyles =
+    useTheme() === "dark" ? MAP_STYLES_DARK : DEFAULT_MAP_STYLES;
+
   const [driver, setDriver] = useState<DriverLocation | null>(null);
   // Refreshed on every tick so the staleness check re-evaluates even when the
   // driver's reported position stops changing.
@@ -183,6 +208,7 @@ function TrackingMap({
             // set of markers changes.
             defaultCenter={points[0] ?? DEFAULT_CENTER}
             defaultZoom={points.length > 0 ? SINGLE_POINT_ZOOM : DEFAULT_ZOOM}
+            styles={mapStyles}
             gestureHandling="cooperative"
             disableDefaultUI
             zoomControl
@@ -213,7 +239,13 @@ function TrackingMap({
       )}
 
       {isStale ? (
-        <p className="text-sm text-yellow-700">Driver location may be stale.</p>
+        // A palette utility is a fixed hex and cannot follow the theme. In dark
+        // mode the warning climbs the ramp rather than darkening: `yellow-700`
+        // against a near-black page reads as dim brown text, losing the "this
+        // figure may be wrong" signal that is the line's entire purpose.
+        <p className="text-sm text-yellow-700 dark:text-yellow-400">
+          Driver location may be stale.
+        </p>
       ) : null}
     </div>
   );

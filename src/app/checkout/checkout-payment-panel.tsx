@@ -48,8 +48,10 @@ import { Label } from "@/components/ui/label";
  *
  * Colour rule: landing token utilities only (`bg-ink`, `bg-surface`,
  * `text-paper`, `text-muted`, `border-line`, the accent) — never a hex literal
- * and never a `dark:` variant, which cannot match on this page because it
- * carries no `data-landing-page` (see `globals.css`'s `@custom-variant dark`).
+ * and never a `dark:` variant. `dark:` *does* match on this page now (the
+ * variant in `globals.css` is app-wide, and the `--landing-*` tokens flip under
+ * `html.dark`); it stays unwanted because each of those utilities already
+ * resolves to both themes on its own.
  * The brand chip's palette utilities are the one deliberate exception the
  * codebase already makes, and they live in `card-brand.ts`.
  */

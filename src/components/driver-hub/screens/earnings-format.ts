@@ -1,12 +1,16 @@
 /**
- * Display helpers shared by the Earnings screen and its four child components
- * (the filter bar, the export button, the breakdown card and the payout table).
+ * Display helpers shared by the earnings sections of `/dashboard/performance`
+ * and their four child components (the filter bar, the export button, the
+ * breakdown card and the payout table).
  *
  * They live in their own module rather than in `earnings-screen.tsx` for the
- * reason `today-format.ts` and `vehicles-format.ts` give for theirs: the cards
- * need them too, and importing them from the screen would make the screen and
- * its cards mutually dependent. Nothing here decides what a number *means* —
- * that is `src/lib/dashboard/hub/earnings.ts`.
+ * reason `vehicles-format.ts` gives for its own: the cards
+ * need them too, and importing them from `earnings-screen.tsx` would make it
+ * and its cards mutually dependent. `performance-screen.tsx` reads
+ * `formatRangeSubtitle` from here for the same reason — it registers the page
+ * subtitle for both halves of the merged screen, and must not import it through
+ * the component it renders. Nothing here decides what a number *means* — that
+ * is `src/lib/dashboard/hub/earnings.ts`.
  *
  * `formatGel` is deliberately a third copy rather than an import from one of the
  * sibling format modules. Each screen owns its own presentation layer here, and
@@ -139,6 +143,10 @@ export function pluralise(count: number, singular: string): string {
  * `YYYY-MM-DD` strings resolved on the server, and every formatter above is
  * pinned to `en-GB`/`HUB_TIME_ZONE` — there is no second clock involved, unlike
  * Today's subhead, which is why this one is not formatted in the page.
+ *
+ * Called by `PerformanceScreen`, not by `EarningsScreen`: the merged screen has
+ * one header and the shell holds one subtitle override, so the composition
+ * makes the single registration for both halves.
  */
 export function formatRangeSubtitle(
   from: string,

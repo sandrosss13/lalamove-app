@@ -385,9 +385,17 @@ export function OnboardingWizardShell() {
 
 /**
  * The wizard's outermost element. `data-onboarding-surface` is what opts this
- * subtree into the shadcn token set and the fixed light scheme (see
- * `globals.css`) — without it the `src/components/ui` primitives resolve
- * `accent`/`muted` against the landing page's palette instead.
+ * subtree into the shadcn token set (see `globals.css`) — without it the
+ * `src/components/ui` primitives resolve `accent`/`muted` against the landing
+ * page's palette instead.
+ *
+ * That marker used to pin the subtree to a FIXED LIGHT SCHEME as well, because
+ * the shadcn primitives only carried light token values and there was no `.dark`
+ * class to flip. That is no longer true: `html.dark` declares the full shadcn
+ * dark set and `html.dark body:has([data-onboarding-surface])` supplies this
+ * surface's own dark `--background`/`--foreground`, so the marker now selects a
+ * token set that themes like everything else. Every colour below this point is
+ * expected to be a token or to carry a `dark:` counterpart.
  */
 function Surface({ children }: { children: React.ReactNode }) {
   return (
@@ -395,6 +403,21 @@ function Surface({ children }: { children: React.ReactNode }) {
       data-onboarding-surface=""
       className="flex min-h-[calc(100vh-3.5rem)] flex-col bg-muted font-body text-foreground md:flex-row"
     >
+      {/*
+        No `ThemeToggle` is mounted here, deliberately. Unlike the back office
+        and the driver hub, the wizard does NOT ship its own header: it renders
+        *below* the global site header (hence the `calc(100vh-3.5rem)` above),
+        and `globals.css` only hides that header for `[data-hide-site-header]`
+        and `[data-admin-surface]` — not for `[data-onboarding-surface]`. So the
+        toggle in `src/app/layout.tsx` is already on screen on every wizard
+        branch, and a second one here would stack two identical buttons at the
+        same right edge.
+
+        `fleet-wizard-shell.tsx` is the same case for the same reason. If either
+        wizard ever takes over the full viewport and hides the global header, it
+        has to mount its own toggle at that point — every full-bleed surface in
+        this app owns one.
+      */}
       {children}
     </main>
   );

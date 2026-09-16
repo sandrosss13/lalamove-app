@@ -119,8 +119,12 @@ export default async function DriverAccountPage({
   return (
     // 40px between the rail and the panels at every width — the design's row
     // is one `flex-wrap` line at a flat `gap:40px`, not a gap that tightens on
-    // a phone. Its `max-width:1180px` is not repeated here: `DriverHubShell`
-    // already caps every hub screen's content column at exactly that.
+    // a phone. Its `max-width:1180px` is not repeated here, because the cap is
+    // the shell's job and not a screen's: `DriverHubShell` caps every hub
+    // screen's content column in one place. That cap is 1800px rather than the
+    // artboard's 1180 — the hub is a suite of data screens and the shell sizes
+    // for the widest of them — so this row is now allowed to run wider than the
+    // artboard drew it. Deliberate, and the reasoning is on the constant.
     <div className="flex min-w-0 flex-col gap-10 lg:flex-row">
       <DriverAccountSidebar
         sections={driverAccountSectionsFor(account.persona)}

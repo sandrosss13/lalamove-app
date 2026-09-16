@@ -27,7 +27,56 @@ import { cn } from "@/lib/utils";
  * are deliberately avoided everywhere on this surface: inside a
  * `data-admin-surface` subtree those two names resolve to the *shadcn* palette,
  * not the landing one (see the `--admin-accent` fallback chain in `globals.css`).
+ *
+ * Those tokens now flip with `html.dark`, so the rule above is what makes this
+ * surface themeable at all — every hex that used to sit beside them was a
+ * light-only value that survived into dark mode and stopped being readable.
+ * Two traps worth stating once:
+ *
+ * - `--landing-paper` is the foreground (near-black light, near-white dark).
+ *   `--landing-ink-strong` is a *panel fill* that stays dark in both themes and
+ *   pairs with `--landing-on-strong`. Text takes `paper`; only a filled panel
+ *   takes `ink-strong`.
+ * - The handoff's error red has no `--landing-*` token in either theme, so it
+ *   is the one palette here that legitimately needs `dark:` variants. They are
+ *   collected in `DANGER_*` below rather than respelled at each call site.
  */
+
+/* -------------------------------------------------------------------------- */
+/* Error palette                                                              */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The handoff's error red, as light/dark pairs.
+ *
+ * `globals.css` has no `--landing-danger*` family to reach for, and shadcn's
+ * `--destructive` is not a substitute: it is a different hue from the handoff's
+ * warm brick red, and inside this `data-admin-surface` subtree it would pull the
+ * back office's palette into a screen drawn from the landing one. So these stay
+ * literals — the one place on this surface where `dark:` is the right tool
+ * rather than a shortcut past a missing token.
+ *
+ * The dark values are the light ones re-derived for a dark ground rather than
+ * invented: the wash and border become low-alpha versions of the red itself (so
+ * they tint the page instead of punching a light rectangle into it), and the two
+ * ink values lighten to the tint that was the *border* in light mode, which
+ * keeps them on the same hue ramp. Were a `--landing-danger` family ever added,
+ * every one of these should collapse into it.
+ */
+
+/** Alert wash and hairline — background and border of `FormAlert`. */
+const DANGER_SURFACE_CLASS =
+  "border-[#f3c4b4] bg-[#fdf2ee] dark:border-[#c3341a]/45 dark:bg-[#c3341a]/15";
+
+/** Body text inside `FormAlert`, on the wash above. */
+const DANGER_INK_CLASS = "text-[#7a2010] dark:text-[#f3c4b4]";
+
+/**
+ * The red itself, for text that sits on the *page* rather than on the wash —
+ * field errors and the expiry counter. `#c3341a` is only ~2.5:1 on the dark
+ * ground, so dark mode takes the lightened ramp value instead.
+ */
+export const DANGER_TEXT_CLASS = "text-[#c3341a] dark:text-[#ff8a68]";
 
 /* -------------------------------------------------------------------------- */
 /* Type and text                                                              */
@@ -81,7 +130,7 @@ export function AuthHeading({
     <h1
       id={id}
       className={cn(
-        "font-semibold tracking-[-0.02em] text-pretty text-[var(--landing-ink-strong)]",
+        "font-semibold tracking-[-0.02em] text-pretty text-[var(--landing-paper)]",
         HEADING_SIZE_CLASSES[size],
         className,
       )}
@@ -153,7 +202,7 @@ export function BackLink({
       type="button"
       onClick={onClick}
       className={cn(
-        "self-start text-[13px] text-[var(--landing-muted)] transition-colors hover:text-[var(--landing-ink-strong)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--landing-accent)]",
+        "self-start text-[13px] text-[var(--landing-muted)] transition-colors hover:text-[var(--landing-paper)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--landing-accent)]",
         className,
       )}
     >
@@ -182,7 +231,7 @@ export function ContextChip({
   return (
     <span
       className={cn(
-        "w-fit rounded-full bg-[var(--landing-frame)] px-2.5 py-[5px] text-xs font-medium text-[#3f3c36]",
+        "w-fit rounded-full bg-[var(--landing-frame)] px-2.5 py-[5px] text-xs font-medium text-[var(--landing-subtle)]",
         className,
       )}
     >
@@ -234,9 +283,14 @@ export function ModeToggle({ value, onChange, className }: ModeToggleProps) {
             onClick={() => onChange(segment.value)}
             className={cn(
               "rounded-[7px] px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--landing-accent)]",
+              // The active segment reads as a tile lifted off the `frame`
+              // track, which `surface-raised` states directly and in both
+              // themes: pure white on light, a 6% white film on dark. The drop
+              // shadow stays light-only by nature — it simply stops registering
+              // against a dark ground, where the lift is carried by the fill.
               active
-                ? "bg-white text-[var(--landing-ink-strong)] shadow-[0_1px_2px_rgba(21,20,15,.08)]"
-                : "bg-transparent text-[var(--landing-muted)] hover:text-[var(--landing-ink-strong)]",
+                ? "bg-[var(--landing-surface-raised)] text-[var(--landing-paper)] shadow-[0_1px_2px_rgba(21,20,15,.08)]"
+                : "bg-transparent text-[var(--landing-muted)] hover:text-[var(--landing-paper)]",
             )}
           >
             {segment.label}
@@ -258,9 +312,13 @@ export function ModeToggle({ value, onChange, className }: ModeToggleProps) {
  * `ring-3`, and both would sit on top of the handoff's. The two `aria-invalid:`
  * variants here exist only to win that override and put the design's border and
  * 3px wash back.
+ *
+ * The border lightens in dark mode for the reason `DANGER_TEXT_CLASS` gives —
+ * `#c3341a` all but disappears against a dark input. The 3px wash is an rgba
+ * shadow rather than a token and reads in both themes, so it is stated once.
  */
 export const ERROR_INPUT_CLASS =
-  "border-[#c3341a] shadow-[0_0_0_3px_rgba(195,52,26,.12)] aria-invalid:border-[#c3341a] aria-invalid:ring-0";
+  "border-[#c3341a] shadow-[0_0_0_3px_rgba(195,52,26,.12)] aria-invalid:border-[#c3341a] aria-invalid:ring-0 dark:border-[#ff8a68] dark:aria-invalid:border-[#ff8a68]";
 
 export type FormAlertProps = {
   /** The bold first line, e.g. "That email and password don't match." */
@@ -288,12 +346,18 @@ export function FormAlert({ title, children, id, className }: FormAlertProps) {
       id={id}
       role="alert"
       className={cn(
-        "flex gap-3 rounded-[10px] border border-[#f3c4b4] bg-[#fdf2ee] px-4 py-3.5",
+        "flex gap-3 rounded-[10px] border px-4 py-3.5",
+        DANGER_SURFACE_CLASS,
         className,
       )}
     >
       {/* Decorative: the alert's text already says what went wrong, and "!"
-          announced on its own is noise. */}
+          announced on its own is noise.
+
+          The one part of this alert that does not take a `dark:` variant: a
+          saturated red disc with a white glyph is the same picture on either
+          ground, and lightening it would only cost contrast against the white
+          "!" it carries. */}
       <span
         aria-hidden="true"
         className="flex size-[18px] flex-none items-center justify-center rounded-full bg-[#c3341a] text-xs font-semibold text-white"
@@ -301,9 +365,11 @@ export function FormAlert({ title, children, id, className }: FormAlertProps) {
         !
       </span>
       <span className="flex min-w-0 flex-col gap-1">
-        <span className="text-sm font-medium text-[#7a2010]">{title}</span>
+        <span className={cn("text-sm font-medium", DANGER_INK_CLASS)}>
+          {title}
+        </span>
         {children ? (
-          <span className="text-[13px] leading-[1.5] text-[#7a2010]">
+          <span className={cn("text-[13px] leading-[1.5]", DANGER_INK_CLASS)}>
             {children}
           </span>
         ) : null}
@@ -327,7 +393,7 @@ export function FieldError({ id, children, className }: FieldErrorProps) {
   return (
     <span
       id={id}
-      className={cn("text-[13px] leading-[1.5] text-[#c3341a]", className)}
+      className={cn("text-[13px] leading-[1.5]", DANGER_TEXT_CLASS, className)}
     >
       {children}
     </span>
@@ -414,7 +480,7 @@ export function PhoneField({
       <div className="flex gap-2">
         <span
           aria-hidden="true"
-          className="inline-flex h-11 flex-none items-center rounded-lg border border-[var(--landing-line)] bg-white px-3 text-[15px] text-[#3f3c36]"
+          className="inline-flex h-11 flex-none items-center rounded-lg border border-[var(--landing-line)] bg-[var(--landing-surface-raised)] px-3 text-[15px] text-[var(--landing-subtle)]"
         >
           +995
         </span>
@@ -490,7 +556,7 @@ export function PasswordStrengthMeter({
 /* -------------------------------------------------------------------------- */
 
 const INLINE_LINK_CLASS =
-  "text-sm font-medium text-[#15140f] border-b border-[#d8d4cb] transition-colors hover:border-[var(--landing-accent)] hover:text-[var(--landing-accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--landing-accent)]";
+  "text-sm font-medium text-[var(--landing-paper)] border-b border-[var(--landing-line-strong)] transition-colors hover:border-[var(--landing-accent)] hover:text-[var(--landing-accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--landing-accent)]";
 
 export type InlineLinkButtonProps = {
   children: React.ReactNode;

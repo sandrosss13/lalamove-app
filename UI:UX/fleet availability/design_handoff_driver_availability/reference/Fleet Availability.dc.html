@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/lalamove-ui-kit-c2ab8214-d170-4eee-9314-d9d44f5fc5b9/styles.css">
+<script src="_ds/lalamove-ui-kit-c2ab8214-d170-4eee-9314-d9d44f5fc5b9/_ds_bundle.js"></script>
+<style>
+  html, body { margin: 0; padding: 0; background: #faf9f6; }
+  a { color: #ff5a1f; text-decoration: none; }
+  a:hover { color: #d8410c; text-decoration: underline; }
+</style>
+</helmet>
+<div data-admin-surface class="font-body" style="min-height:100%;background:#faf9f6;color:var(--foreground);padding:24px 24px 40px;display:flex;flex-direction:column;gap:16px">
+
+  <div style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px">
+    <div style="display:flex;flex-direction:column;gap:4px;min-width:0">
+      <h1 class="font-display" style="margin:0;font-size:20px;font-weight:600;letter-spacing:-0.01em">Fleet availability</h1>
+      <p style="margin:0;font-size:13px;color:var(--muted-foreground)">{{ headline }}</p>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <x-import component-from-global-scope="LalamoveUI.Button" variant="outline" size="sm" on-click="{{ onClear }}" hint-size="auto,32px">Reset filters</x-import>
+      <x-import component-from-global-scope="LalamoveUI.Button" size="sm" on-click="{{ openExport }}" hint-size="auto,32px">Export to Excel</x-import>
+    </div>
+  </div>
+
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:14px">
+    <div style="display:flex;flex-wrap:wrap;align-items:flex-end;gap:16px">
+      <div style="display:flex;flex-direction:column;gap:5px">
+        <span style="font-size:11px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:var(--muted-foreground)">Date</span>
+        <div style="display:flex;align-items:center;gap:6px">
+          <x-import component-from-global-scope="LalamoveUI.Button" variant="outline" size="icon" on-click="{{ onPrevDay }}" hint-size="36px,36px">‹</x-import>
+          <div style="width:158px">
+            <x-import component-from-global-scope="LalamoveUI.Input" type="date" value="{{ date }}" on-change="{{ onDateChange }}" class-name="w-full h-9" hint-size="158px,36px"></x-import>
+          </div>
+          <x-import component-from-global-scope="LalamoveUI.Button" variant="outline" size="icon" on-click="{{ onNextDay }}" hint-size="36px,36px">›</x-import>
+          <x-import component-from-global-scope="LalamoveUI.Button" variant="ghost" size="sm" on-click="{{ onToday }}" hint-size="auto,32px">Today</x-import>
+        </div>
+      </div>
+
+      <sc-for list="{{ selectFilters }}" as="f" hint-placeholder-count="7">
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <span style="font-size:11px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:var(--muted-foreground)">{{ f.label }}</span>
+          <div style="width:{{ f.width }}">
+            <x-import component-from-global-scope="LalamoveUI.Select" value="{{ f.value }}" on-value-change="{{ f.onChange }}" hint-size="150px,36px">
+              <x-import component-from-global-scope="LalamoveUI.SelectTrigger" class-name="w-full" hint-size="150px,36px">
+                <x-import component-from-global-scope="LalamoveUI.SelectValue" hint-size="auto,20px"></x-import>
+              </x-import>
+              <x-import component-from-global-scope="LalamoveUI.SelectContent" hint-size="150px,180px">
+                <sc-for list="{{ f.options }}" as="opt" hint-placeholder-count="4">
+                  <x-import component-from-global-scope="LalamoveUI.SelectItem" value="{{ opt.value }}" hint-size="auto,32px">{{ opt.label }}</x-import>
+                </sc-for>
+              </x-import>
+            </x-import>
+          </div>
+        </div>
+      </sc-for>
+
+      <div style="display:flex;flex-direction:column;gap:5px">
+        <span style="font-size:11px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:var(--muted-foreground)">Driver</span>
+        <div style="width:200px">
+          <x-import component-from-global-scope="LalamoveUI.Popover" open="{{ driverOpen }}" on-open-change="{{ setDriverOpen }}" hint-size="200px,36px">
+            <x-import component-from-global-scope="LalamoveUI.PopoverTrigger" class-name="w-full h-9 justify-between font-normal border border-input bg-card rounded-md px-3 text-sm flex items-center gap-2 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50" hint-size="200px,36px">
+              <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ driverLabel }}</span>
+              <span style="color:var(--muted-foreground);font-size:10px">▾</span>
+            </x-import>
+            <sc-if value="{{ driverOpen }}" hint-placeholder-val="{{ false }}">
+            <x-import component-from-global-scope="LalamoveUI.PopoverContent" align="start" class-name="w-64 p-0" hint-size="256px,240px">
+              <div style="padding:8px;border-bottom:1px solid var(--border)">
+                <x-import component-from-global-scope="LalamoveUI.Input" value="{{ driverQuery }}" on-change="{{ onDriverQuery }}" placeholder="Type a driver name" class-name="w-full h-8" hint-size="100%,32px"></x-import>
+              </div>
+              <div style="max-height:216px;overflow:auto;padding:4px">
+                <sc-for list="{{ driverResults }}" as="d" hint-placeholder-count="5">
+                  <div style="{{ d.style }}" onClick="{{ d.onPick }}">
+                    <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ d.label }}</span>
+                    <span style="font-size:11px;color:var(--muted-foreground);white-space:nowrap">{{ d.meta }}</span>
+                  </div>
+                </sc-for>
+                <sc-if value="{{ driverNoMatch }}" hint-placeholder-val="{{ false }}">
+                  <div style="padding:12px 10px;font-size:12px;color:var(--muted-foreground)">No driver matches that name.</div>
+                </sc-if>
+              </div>
+            </x-import>
+            </sc-if>
+          </x-import>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:5px">
+        <span style="font-size:11px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:var(--muted-foreground)">Plate</span>
+        <div style="width:150px">
+          <x-import component-from-global-scope="LalamoveUI.Input" value="{{ plate }}" on-change="{{ onPlateChange }}" placeholder="Search plate" class-name="w-full h-9" hint-size="150px,36px"></x-import>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:5px">
+        <span style="font-size:11px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:var(--muted-foreground)">Zoom</span>
+        <div style="display:flex;align-items:center;gap:6px">
+          <x-import component-from-global-scope="LalamoveUI.Button" variant="outline" size="icon" on-click="{{ zoomOut }}" hint-size="36px,36px">−</x-import>
+          <span style="font-size:12px;color:var(--muted-foreground);min-width:62px;text-align:center;font-variant-numeric:tabular-nums">{{ zoomLabel }}</span>
+          <x-import component-from-global-scope="LalamoveUI.Button" variant="outline" size="icon" on-click="{{ zoomIn }}" hint-size="36px,36px">+</x-import>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:18px;padding-top:12px;border-top:1px solid var(--border)">
+      <sc-for list="{{ legend }}" as="l" hint-placeholder-count="5">
+        <div style="display:flex;align-items:center;gap:7px">
+          <span style="{{ l.swatch }}"></span>
+          <span style="font-size:12px;color:var(--foreground)">{{ l.label }}</span>
+          <span style="font-size:12px;color:var(--muted-foreground);font-variant-numeric:tabular-nums">{{ l.count }}</span>
+        </div>
+      </sc-for>
+      <div style="display:flex;align-items:center;gap:7px;margin-left:auto">
+        <span style="width:2px;height:14px;background:#ff5a1f;display:inline-block"></span>
+        <span style="font-size:12px;color:var(--muted-foreground)">Now {{ nowLabel }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="{{ boardStyle }}">
+    <div style="border:1px solid var(--border);border-radius:12px;background:var(--card);overflow:hidden">
+      <div style="overflow:auto;max-height:600px">
+        <div style="min-width:max-content;position:relative">
+
+          <div style="display:flex;position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--border)">
+            <div style="width:272px;flex:none;position:sticky;left:0;z-index:6;background:var(--card);border-right:1px solid var(--border);padding:9px 14px;font-size:11px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:var(--muted-foreground)">Vehicle · Driver</div>
+            <div style="display:flex;width:var(--track-w);flex:none;position:relative">
+              <sc-for list="{{ hours }}" as="h" hint-placeholder-count="16">
+                <div style="width:var(--px-hour);flex:none;border-left:1px solid var(--border);padding:9px 0 9px 6px;font-size:11px;color:var(--muted-foreground);font-variant-numeric:tabular-nums;overflow:hidden;white-space:nowrap">{{ h.label }}</div>
+              </sc-for>
+              <sc-if value="{{ showNow }}" hint-placeholder-val="{{ true }}">
+                <div style="position:absolute;left:var(--now-left);top:6px;transform:translateX(-50%);background:#ff5a1f;color:#fff;font-size:10px;font-weight:600;padding:1px 5px;border-radius:3px;white-space:nowrap;z-index:2">{{ nowLabel }}</div>
+              </sc-if>
+            </div>
+          </div>
+
+          <sc-for list="{{ rows }}" as="r" hint-placeholder-count="12">
+            <div style="display:flex;height:var(--row-h);border-bottom:1px solid var(--border)">
+              <div style="width:272px;flex:none;position:sticky;left:0;z-index:4;background:var(--card);border-right:1px solid var(--border);padding:0 14px;display:flex;flex-direction:column;justify-content:center;gap:2px;overflow:hidden">
+                <div style="display:flex;align-items:center;gap:8px;min-width:0">
+                  <span style="font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap">{{ r.plate }}</span>
+                  <span style="font-size:11px;color:var(--muted-foreground);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.vehicle }}</span>
+                </div>
+                <div style="font-size:11px;color:var(--muted-foreground);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.driverLine }}</div>
+              </div>
+              <div style="{{ r.trackStyle }}" on-mouse-down="{{ r.onDown }}">
+                <sc-for list="{{ r.segments }}" as="s" hint-placeholder-count="2">
+                  <div style="{{ s.style }}" onMouseEnter="{{ s.onEnter }}" onMouseMove="{{ s.onEnter }}" onMouseLeave="{{ s.onLeave }}">{{ s.label }}</div>
+                </sc-for>
+                <sc-if value="{{ r.hasGhost }}" hint-placeholder-val="{{ false }}">
+                  <div style="{{ r.ghostStyle }}">{{ r.ghostLabel }}</div>
+                </sc-if>
+                <sc-if value="{{ showNow }}" hint-placeholder-val="{{ true }}">
+                  <div style="position:absolute;left:var(--now-left);top:0;bottom:0;width:2px;background:#ff5a1f;pointer-events:none;z-index:3"></div>
+                </sc-if>
+              </div>
+            </div>
+          </sc-for>
+
+          <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:48px;text-align:center;font-size:13px;color:var(--muted-foreground)">No vehicles match these filters.</div>
+          </sc-if>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding:10px 16px;border-top:1px solid var(--border);background:var(--muted)">
+        <span style="font-size:12px;color:var(--muted-foreground);font-variant-numeric:tabular-nums">{{ pageLabel }}</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <x-import component-from-global-scope="LalamoveUI.Button" variant="outline" size="sm" disabled="{{ noPrev }}" on-click="{{ onPrevPage }}" hint-size="auto,32px">Previous</x-import>
+          <x-import component-from-global-scope="LalamoveUI.Button" variant="outline" size="sm" disabled="{{ noNext }}" on-click="{{ onNextPage }}" hint-size="auto,32px">Next</x-import>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <p style="margin:0;font-size:12px;color:var(--muted-foreground)">Drag across an empty stretch of a row to hold it as a booking.</p>
+
+  <sc-if value="{{ tipOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="{{ tipStyle }}">
+      <div style="font-size:12px;font-weight:600;margin-bottom:2px">{{ tipTitle }}</div>
+      <div style="font-size:12px;color:var(--muted-foreground);font-variant-numeric:tabular-nums">{{ tipRange }}</div>
+      <div style="font-size:12px;color:var(--muted-foreground)">{{ tipMeta }}</div>
+    </div>
+  </sc-if>
+
+  <x-import component-from-global-scope="LalamoveUI.Dialog" open="{{ exportOpen }}" on-open-change="{{ setExportOpen }}" hint-size="0,0">
+    <sc-if value="{{ exportOpen }}" hint-placeholder-val="{{ false }}">
+    <x-import component-from-global-scope="LalamoveUI.DialogContent" class-name="sm:max-w-[460px]" hint-size="460px,360px">
+      <x-import component-from-global-scope="LalamoveUI.DialogHeader" hint-size="100%,60px">
+        <x-import component-from-global-scope="LalamoveUI.DialogTitle" hint-size="100%,24px">Export availability</x-import>
+        <x-import component-from-global-scope="LalamoveUI.DialogDescription" hint-size="100%,20px">Choose what goes into the spreadsheet.</x-import>
+      </x-import>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <sc-for list="{{ scopes }}" as="sc" hint-placeholder-count="3">
+          <div style="{{ sc.style }}" onClick="{{ sc.onPick }}">
+            <div style="{{ sc.dot }}"></div>
+            <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+              <span style="font-size:13px;font-weight:500">{{ sc.label }}</span>
+              <span style="font-size:12px;color:var(--muted-foreground)">{{ sc.hint }}</span>
+            </div>
+          </div>
+        </sc-for>
+        <div style="display:flex;flex-direction:column;gap:8px;padding-top:4px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <x-import component-from-global-scope="LalamoveUI.Checkbox" id="opt-gaps" checked="{{ inclGaps }}" on-checked-change="{{ setInclGaps }}" hint-size="16px,16px"></x-import>
+            <x-import component-from-global-scope="LalamoveUI.Label" html-for="opt-gaps" hint-size="auto,20px">Include free slots as Available rows</x-import>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <x-import component-from-global-scope="LalamoveUI.Checkbox" id="opt-phone" checked="{{ inclPhone }}" on-checked-change="{{ setInclPhone }}" hint-size="16px,16px"></x-import>
+            <x-import component-from-global-scope="LalamoveUI.Label" html-for="opt-phone" hint-size="auto,20px">Include driver phone number</x-import>
+          </div>
+        </div>
+        <p style="margin:0;font-size:12px;color:var(--muted-foreground);font-variant-numeric:tabular-nums">{{ exportSummary }}</p>
+      </div>
+      <x-import component-from-global-scope="LalamoveUI.DialogFooter" hint-size="100%,44px">
+        <x-import component-from-global-scope="LalamoveUI.Button" variant="outline" on-click="{{ closeExport }}" hint-size="auto,36px">Cancel</x-import>
+        <x-import component-from-global-scope="LalamoveUI.Button" on-click="{{ doExport }}" hint-size="auto,36px">Download .xls</x-import>
+      </x-import>
+    </x-import>
+    </sc-if>
+  </x-import>
+
+  <x-import component-from-global-scope="LalamoveUI.Dialog" open="{{ bookOpen }}" on-open-change="{{ setBookOpen }}" hint-size="0,0">
+    <sc-if value="{{ bookOpen }}" hint-placeholder-val="{{ false }}">
+    <x-import component-from-global-scope="LalamoveUI.DialogContent" class-name="sm:max-w-[420px]" hint-size="420px,260px">
+      <x-import component-from-global-scope="LalamoveUI.DialogHeader" hint-size="100%,60px">
+        <x-import component-from-global-scope="LalamoveUI.DialogTitle" hint-size="100%,24px">Hold this slot</x-import>
+        <x-import component-from-global-scope="LalamoveUI.DialogDescription" hint-size="100%,20px">{{ bookSubtitle }}</x-import>
+      </x-import>
+      <div style="display:flex;flex-direction:column;gap:8px;font-size:13px">
+        <div style="display:flex;justify-content:space-between;gap:12px"><span style="color:var(--muted-foreground)">Date</span><span style="font-variant-numeric:tabular-nums">{{ date }}</span></div>
+        <div style="display:flex;justify-content:space-between;gap:12px"><span style="color:var(--muted-foreground)">Window</span><span style="font-variant-numeric:tabular-nums">{{ bookRange }}</span></div>
+        <div style="display:flex;justify-content:space-between;gap:12px"><span style="color:var(--muted-foreground)">Status</span><span>Booked (future)</span></div>
+      </div>
+      <x-import component-from-global-scope="LalamoveUI.DialogFooter" hint-size="100%,44px">
+        <x-import component-from-global-scope="LalamoveUI.Button" variant="outline" on-click="{{ cancelBook }}" hint-size="auto,36px">Discard</x-import>
+        <x-import component-from-global-scope="LalamoveUI.Button" on-click="{{ confirmBook }}" hint-size="auto,36px">Hold slot</x-import>
+      </x-import>
+    </x-import>
+    </sc-if>
+  </x-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;density&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;comfortable&quot;,&quot;compact&quot;],&quot;default&quot;:&quot;comfortable&quot;,&quot;tsType&quot;:&quot;\&quot;comfortable\&quot; | \&quot;compact\&quot;&quot;,&quot;section&quot;:&quot;Board&quot;},&quot;pageSize&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:12,&quot;min&quot;:6,&quot;max&quot;:28,&quot;step&quot;:2,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Board&quot;},&quot;showAvailabilityWash&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Board&quot;}}">
+const CITIES = ["Tbilisi", "Batumi", "Kutaisi", "Rustavi", "Zugdidi", "Gori", "Poti", "Telavi"];
+const CLASSES = [
+  { id: "SMALL_VAN", name: "Small Van", cap: 1200, models: ["Ford Transit Custom", "Mercedes Vito", "VW Transporter"] },
+  { id: "LARGE_VAN", name: "Large Van", cap: 2500, models: ["Mercedes Sprinter", "Iveco Daily", "Ford Transit L4"] },
+  { id: "MEDIUM_TRUCK", name: "Medium Truck", cap: 8000, models: ["Isuzu NPR", "Hino 300", "MAN TGL"] },
+  { id: "HEAVY_FREIGHT_TRUCK", name: "Heavy Freight Truck", cap: 18000, models: ["Volvo FL", "Mercedes Atego 1824", "MAN TGM"] },
+  { id: "TRAILER_TRUCK", name: "Trailer Truck", cap: 26000, models: ["Scania R450", "Volvo FH16", "DAF XF 480"] }
+];
+const BODIES = ["Dry Box", "Refrigerated", "Open Chassis"];
+const DRIVERS = ["Giorgi Beridze", "Levan Kapanadze", "Nika Tsiklauri", "Dato Jgharkava", "Zurab Mikadze", "Irakli Gogia", "Vano Kvaratskhelia", "Saba Lomidze", "Temur Abashidze", "Beka Nodia", "Luka Chkheidze", "Gela Tavadze", "Rati Meskhi", "Sandro Kutateladze", "Koba Shengelia", "Archil Dolidze", "Guram Tsereteli", "Vakhtang Gelashvili", "Aleko Chanturia", "Zaza Bolkvadze", "Davit Kharaishvili", "Mamuka Turmanidze", "Shota Kiknadze", "Otar Gvazava", "Tornike Maisuradze", "Ilia Robakidze", "Paata Sulava", "Nodar Eliava"];
+const LETTERS = "ABCDEGHIKLMNOPRSTVZ";
+const NOW = 18.17;
+const ZOOMS = [24, 34, 52, 78, 116];
+const CAPS = [
+  { value: "ALL", label: "Any capacity", min: 0, max: 1e9 },
+  { value: "S", label: "Up to 2 t", min: 0, max: 2000 },
+  { value: "M", label: "2 – 8 t", min: 2000, max: 8000 },
+  { value: "L", label: "8 – 18 t", min: 8000, max: 18000 },
+  { value: "X", label: "18 t and above", min: 18000, max: 1e9 }
+];
+const STATUS = {
+  available: { label: "Available", bg: "#eef7f1", fg: "#1f5c3a", bd: "1px solid #cfe6d8" },
+  assigned: { label: "Assigned / on order", bg: "#ff5a1f", fg: "#ffffff", bd: "1px solid #e64d16" },
+  enroute: { label: "En route", bg: "#15140f", fg: "#f5f2ea", bd: "1px solid #15140f" },
+  booked: { label: "Booked (future)", bg: "#fff3ec", fg: "#8f3810", bd: "1.5px dashed #ff5a1f" },
+  unavailable: { label: "Unavailable", bg: "repeating-linear-gradient(-45deg,#eceae6 0 5px,#dedbd5 5px 10px)", fg: "#4b473f", bd: "1px solid #d7d4ce" }
+};
+
+function rng(seed) {
+  let a = seed >>> 0;
+  return function () {
+    a += 0x6d2b79f5;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function hm(h) {
+  const t = Math.round(h * 60);
+  const hh = Math.floor(t / 60) % 24;
+  const mm = t % 60;
+  return String(hh).padStart(2, "0") + ":" + String(mm).padStart(2, "0");
+}
+function snap(h) { return Math.round(h * 4) / 4; }
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      date: "2026-09-16",
+      fromH: 6,
+      toH: 22,
+      zoom: 2,
+      city: "ALL",
+      vclass: "ALL",
+      cap: "ALL",
+      driver: "ALL",
+      driverOpen: false,
+      driverQuery: "",
+      status: "ALL",
+      plate: "",
+      page: 0,
+      fleet: this.buildFleet(),
+      tip: null,
+      drag: null,
+      pending: null,
+      exportOpen: false,
+      bookOpen: false,
+      scope: "view",
+      inclGaps: true,
+      inclPhone: false
+    };
+    this.onMove = this.onMove.bind(this);
+    this.onUp = this.onUp.bind(this);
+  }
+
+  buildFleet() {
+    const r = rng(20260916);
+    const out = [];
+    for (let i = 0; i < 28; i++) {
+      const cls = CLASSES[Math.floor(r() * CLASSES.length)];
+      const plate =
+        LETTERS[Math.floor(r() * 19)] + LETTERS[Math.floor(r() * 19)] + "-" +
+        String(100 + Math.floor(r() * 899)) + "-" +
+        LETTERS[Math.floor(r() * 19)] + LETTERS[Math.floor(r() * 19)];
+      const city = CITIES[Math.floor(r() * CITIES.length)];
+      const segs = [];
+      let cursor = 4.5 + r() * 4;
+      while (cursor < 22.5 && segs.length < 4) {
+        const off = r() < 0.13;
+        const dur = off ? 1 + r() * 2 : 1.25 + r() * 3.25;
+        const s = snap(cursor);
+        const e = snap(Math.min(cursor + dur, 23.75));
+        if (e - s >= 0.5) {
+          let status = "unavailable";
+          if (!off) status = s <= NOW && e >= NOW ? "enroute" : e < NOW ? "assigned" : "booked";
+          segs.push({
+            id: "seg-" + i + "-" + segs.length,
+            s: s,
+            e: e,
+            status: status,
+            ref: off ? "Off shift" : "LM-" + (48200 + Math.floor(r() * 9000)),
+            route: off ? "Driver rest window" : city + " → " + CITIES[Math.floor(r() * CITIES.length)]
+          });
+        }
+        cursor = e + 0.75 + r() * 3.5;
+      }
+      if (r() < 0.14) segs.length = 0;
+      out.push({
+        id: "v" + i,
+        plate: plate,
+        model: cls.models[Math.floor(r() * cls.models.length)],
+        className: cls.name,
+        classId: cls.id,
+        body: BODIES[Math.floor(r() * BODIES.length)],
+        cap: cls.cap,
+        city: city,
+        driver: DRIVERS[i],
+        phone: "+995 5" + String(10 + Math.floor(r() * 89)) + " " + String(100 + Math.floor(r() * 899)) + " " + String(100 + Math.floor(r() * 899)),
+        segs: segs
+      });
+    }
+    return out;
+  }
+
+  filtered() {
+    const st = this.state;
+    const cap = CAPS.find((c) => c.value === st.cap) || CAPS[0];
+    const q = st.plate.trim().toUpperCase();
+    return st.fleet.filter((v) => {
+      if (st.city !== "ALL" && v.city !== st.city) return false;
+      if (st.vclass !== "ALL" && v.classId !== st.vclass) return false;
+      if (st.driver !== "ALL" && v.driver !== st.driver) return false;
+      if (v.cap <= cap.min || v.cap > cap.max) { if (cap.value !== "ALL") return false; }
+      if (q && v.plate.indexOf(q) === -1) return false;
+      if (st.status !== "ALL") {
+        const inWindow = v.segs.filter((s) => s.e > st.fromH && s.s < st.toH);
+        if (st.status === "available") { if (this.busyAt(v, NOW)) return false; }
+        else if (!inWindow.some((s) => s.status === st.status)) return false;
+      }
+      return true;
+    });
+  }
+
+  busyAt(v, h) { return v.segs.some((s) => s.s <= h && s.e >= h); }
+
+  gaps(v, from, to) {
+    const busy = v.segs.filter((s) => s.e > from && s.s < to).sort((a, b) => a.s - b.s);
+    const out = [];
+    let cur = from;
+    busy.forEach((s) => {
+      const bs = Math.max(s.s, from);
+      if (bs - cur >= 0.25) out.push({ s: cur, e: bs, status: "available", ref: "—", route: "Free" });
+      cur = Math.max(cur, Math.min(s.e, to));
+    });
+    if (to - cur >= 0.25) out.push({ s: cur, e: to, status: "available", ref: "—", route: "Free" });
+    return out;
+  }
+
+  set(patch) { this.setState(patch); }
+
+  onTrackDown(row, ev) {
+    if (ev.button !== 0) return;
+    const rect = ev.currentTarget.getBoundingClientRect();
+    const st = this.state;
+    const h = st.fromH + ((ev.clientX - rect.left) / rect.width) * (st.toH - st.fromH);
+    this.setState({ drag: { rowId: row.id, a: snap(h), b: snap(h), w: rect.width, left: rect.left }, tip: null });
+    window.addEventListener("mousemove", this.onMove);
+    window.addEventListener("mouseup", this.onUp);
+  }
+
+  onMove(ev) {
+    const d = this.state.drag;
+    if (!d) return;
+    const st = this.state;
+    const h = st.fromH + ((ev.clientX - d.left) / d.w) * (st.toH - st.fromH);
+    this.setState({ drag: Object.assign({}, d, { b: snap(Math.max(st.fromH, Math.min(st.toH, h))) }) });
+  }
+
+  onUp() {
+    window.removeEventListener("mousemove", this.onMove);
+    window.removeEventListener("mouseup", this.onUp);
+    const d = this.state.drag;
+    if (!d) return;
+    const s = Math.min(d.a, d.b);
+    const e = Math.max(d.a, d.b);
+    if (e - s < 0.5) { this.setState({ drag: null }); return; }
+    this.setState({ drag: null, pending: { rowId: d.rowId, s: s, e: e }, bookOpen: true });
+  }
+
+  confirmBook() {
+    const p = this.state.pending;
+    if (!p) return;
+    const fleet = this.state.fleet.map((v) => {
+      if (v.id !== p.rowId) return v;
+      const segs = v.segs.concat([{ id: "new-" + Date.now(), s: p.s, e: p.e, status: "booked", ref: "Held", route: "Reserved by dispatcher" }]);
+      return Object.assign({}, v, { segs: segs });
+    });
+    this.setState({ fleet: fleet, pending: null, bookOpen: false });
+  }
+
+  exportRows() {
+    const st = this.state;
+    const all = st.scope === "all";
+    const rows = all ? st.fleet : this.filtered();
+    const from = st.scope === "view" ? st.fromH : 0;
+    const to = st.scope === "view" ? st.toH : 24;
+    const out = [];
+    rows.forEach((v) => {
+      const blocks = v.segs
+        .filter((s) => s.e > from && s.s < to)
+        .map((s) => ({ s: Math.max(s.s, from), e: Math.min(s.e, to), status: s.status, ref: s.ref, route: s.route }));
+      const list = st.inclGaps ? blocks.concat(this.gaps(v, from, to)) : blocks;
+      list.sort((a, b) => a.s - b.s).forEach((b) => out.push({ v: v, b: b }));
+    });
+    return out;
+  }
+
+  doExport() {
+    const st = this.state;
+    const data = this.exportRows();
+    const head = ["Date", "Plate", "Vehicle", "Class", "Body", "Capacity (kg)", "City", "Driver"]
+      .concat(st.inclPhone ? ["Driver phone"] : [])
+      .concat(["Status", "Start", "End", "Hours", "Reference", "Route"]);
+    const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const cell = (v, num) =>
+      '<Cell><Data ss:Type="' + (num ? "Number" : "String") + '">' + esc(v) + "</Data></Cell>";
+    let xml = '<?xml version="1.0"?>\n<?mso-application progid="Excel.Sheet"?>\n';
+    xml += '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">';
+    xml += '<Styles><Style ss:ID="h"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#FF5A1F" ss:Pattern="Solid"/></Style></Styles>';
+    xml += '<Worksheet ss:Name="Availability"><Table>';
+    xml += "<Row>" + head.map((h) => '<Cell ss:StyleID="h"><Data ss:Type="String">' + esc(h) + "</Data></Cell>").join("") + "</Row>";
+    data.forEach((d) => {
+      const v = d.v;
+      const b = d.b;
+      let row = cell(st.date) + cell(v.plate) + cell(v.model) + cell(v.className) + cell(v.body) + cell(v.cap, true) + cell(v.city) + cell(v.driver);
+      if (st.inclPhone) row += cell(v.phone);
+      row += cell(STATUS[b.status].label) + cell(hm(b.s)) + cell(hm(b.e)) + cell((b.e - b.s).toFixed(2), true) + cell(b.ref) + cell(b.route);
+      xml += "<Row>" + row + "</Row>";
+    });
+    xml += "</Table></Worksheet></Workbook>";
+    const blob = new Blob([xml], { type: "application/vnd.ms-excel" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "fleet-availability-" + st.date + ".xls";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    this.setState({ exportOpen: false });
+  }
+
+  segStyle(seg, from, span, rowH) {
+    const s = Math.max(seg.s, from);
+    const e = Math.min(seg.e, from + span);
+    const v = STATUS[seg.status];
+    return {
+      position: "absolute",
+      left: ((s - from) / span) * 100 + "%",
+      width: ((e - s) / span) * 100 + "%",
+      top: Math.max(4, (rowH - 26) / 2) + "px",
+      height: rowH - 2 * Math.max(4, (rowH - 26) / 2) + "px",
+      background: v.bg,
+      color: v.fg,
+      border: v.bd,
+      borderRadius: "5px",
+      display: "flex",
+      alignItems: "center",
+      padding: "0 7px",
+      fontSize: "11px",
+      fontWeight: 500,
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      boxSizing: "border-box",
+      cursor: "pointer",
+      zIndex: 2
+    };
+  }
+
+  renderVals() {
+    const st = this.state;
+    const p = this.props;
+    const rowH = (p.density || "comfortable") === "compact" ? 36 : 48;
+    const pageSize = p.pageSize || 12;
+    const px = ZOOMS[st.zoom];
+    const span = Math.max(1, st.toH - st.fromH);
+    const trackW = span * px;
+    const list = this.filtered();
+    const pages = Math.max(1, Math.ceil(list.length / pageSize));
+    const page = Math.min(st.page, pages - 1);
+    const slice = list.slice(page * pageSize, page * pageSize + pageSize);
+    const showNow = st.date === "2026-09-16" && NOW >= st.fromH && NOW <= st.toH;
+
+    const step = px >= 50 ? 1 : px >= 30 ? 2 : 4;
+    const hours = [];
+    for (let h = st.fromH; h < st.toH; h++) {
+      hours.push({ label: (h - st.fromH) % step === 0 ? hm(h) : "", key: h });
+    }
+
+    const counts = { available: 0, assigned: 0, enroute: 0, booked: 0, unavailable: 0 };
+    list.forEach((v) => {
+      if (!this.busyAt(v, NOW)) counts.available++;
+      v.segs.forEach((s) => { if (s.e > st.fromH && s.s < st.toH) counts[s.status]++; });
+    });
+
+    const rows = slice.map((v) => {
+      const drag = st.drag && st.drag.rowId === v.id ? st.drag : null;
+      const gs = drag ? Math.min(drag.a, drag.b) : 0;
+      const ge = drag ? Math.max(drag.a, drag.b) : 0;
+      return {
+        id: v.id,
+        plate: v.plate,
+        vehicle: v.model,
+        driverLine: v.driver + " · " + v.className + " · " + v.city,
+        trackStyle: { position: "relative", width: trackW + "px", flex: "none", cursor: "crosshair", backgroundImage: "linear-gradient(to right, var(--border) 0 1px, transparent 1px 100%)", backgroundSize: px + "px 100%", backgroundColor: (p.showAvailabilityWash !== false ? "#f7fbf8" : "transparent") },
+        onDown: (ev) => this.onTrackDown(v, ev),
+        hasGhost: !!drag && ge - gs >= 0.25,
+        ghostLabel: drag ? hm(gs) + " – " + hm(ge) : "",
+        ghostStyle: drag
+          ? {
+              position: "absolute",
+              left: ((gs - st.fromH) / span) * 100 + "%",
+              width: ((ge - gs) / span) * 100 + "%",
+              top: "6px",
+              bottom: "6px",
+              background: "rgba(255,90,31,0.14)",
+              border: "1.5px dashed #ff5a1f",
+              borderRadius: "5px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "11px",
+              color: "#8f3810",
+              pointerEvents: "none",
+              zIndex: 4
+            }
+          : null,
+        segments: v.segs
+          .filter((s) => s.e > st.fromH && s.s < st.toH)
+          .map((s) => ({
+            key: s.id,
+            label: (function (w) {
+              const short = STATUS[s.status].label.split(" /")[0];
+              if (w > 150) return short + " · " + s.ref;
+              if (w > 74) return short;
+              return "";
+            })((Math.min(s.e, st.toH) - Math.max(s.s, st.fromH)) * px),
+            style: this.segStyle(s, st.fromH, span, rowH),
+            onEnter: (ev) =>
+              this.setState({
+                tip: {
+                  x: ev.clientX,
+                  y: ev.clientY,
+                  title: v.plate + " · " + STATUS[s.status].label,
+                  range: hm(s.s) + " – " + hm(s.e) + "  (" + (s.e - s.s).toFixed(2) + " h)",
+                  meta: s.ref + " · " + s.route + " · " + v.driver
+                }
+              }),
+            onLeave: () => this.setState({ tip: null })
+          }))
+      };
+    });
+
+    const mk = (id, label, width, value, options) => ({
+      key: id,
+      label: label,
+      width: width,
+      value: value,
+      options: options,
+      onChange: (val) => this.setState({ [id]: val, page: 0 })
+    });
+    const hourOpts = [];
+    for (let h = 0; h <= 24; h++) hourOpts.push({ value: String(h), label: hm(h % 24 === 0 && h > 0 ? 24 : h) === "00:00" && h === 24 ? "24:00" : hm(h) });
+
+    const selectFilters = [
+      { key: "fromH", label: "From", width: "104px", value: String(st.fromH), options: hourOpts.slice(0, 24), onChange: (v) => this.setState({ fromH: Math.min(Number(v), st.toH - 1) }) },
+      { key: "toH", label: "To", width: "104px", value: String(st.toH), options: hourOpts.slice(1), onChange: (v) => this.setState({ toH: Math.max(Number(v), st.fromH + 1) }) },
+      mk("city", "City", "148px", st.city, [{ value: "ALL", label: "All cities" }].concat(CITIES.map((c) => ({ value: c, label: c })))),
+      mk("vclass", "Vehicle type", "176px", st.vclass, [{ value: "ALL", label: "All types" }].concat(CLASSES.map((c) => ({ value: c.id, label: c.name })))),
+      mk("cap", "Capacity", "150px", st.cap, CAPS),
+      mk("status", "Status", "168px", st.status, [{ value: "ALL", label: "All statuses" }].concat(Object.keys(STATUS).map((k) => ({ value: k, label: STATUS[k].label }))))
+    ];
+
+    const dq = st.driverQuery.trim().toLowerCase();
+    const matches = st.fleet.filter((v) => v.driver.toLowerCase().indexOf(dq) !== -1);
+    const driverResults = [{ value: "ALL", label: "All drivers", meta: st.fleet.length + " pairs" }]
+      .concat(matches.map((v) => ({ value: v.driver, label: v.driver, meta: v.plate })))
+      .filter((o, i) => (dq === "" ? true : i > 0 || "all drivers".indexOf(dq) !== -1))
+      .map((o) => ({
+        key: o.value,
+        label: o.label,
+        meta: o.meta,
+        onPick: () => this.setState({ driver: o.value, driverOpen: false, driverQuery: "", page: 0 }),
+        style: {
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "10px",
+          padding: "7px 9px",
+          borderRadius: "6px",
+          fontSize: "13px",
+          cursor: "pointer",
+          background: st.driver === o.value ? "var(--muted)" : "transparent",
+          fontWeight: st.driver === o.value ? 600 : 400
+        }
+      }));
+
+    const scopeDefs = [
+      { id: "view", label: "Current view", hint: list.length + " vehicles · " + hm(st.fromH) + "–" + hm(st.toH) },
+      { id: "day", label: "Filtered vehicles, whole day", hint: list.length + " vehicles · 00:00–24:00" },
+      { id: "all", label: "All vehicles, whole day", hint: st.fleet.length + " vehicles · filters ignored" }
+    ];
+
+    return {
+      headline:
+        counts.available + " of " + list.length + " vehicle–driver pairs free at " + hm(NOW) + " · " + st.fleet.length + " in fleet",
+      date: st.date,
+      nowLabel: hm(NOW),
+      showNow: showNow,
+      boardStyle: { "--px-hour": px + "px", "--track-w": trackW + "px", "--row-h": rowH + "px", "--now-left": ((NOW - st.fromH) / span) * 100 + "%" },
+      hours: hours,
+      rows: rows,
+      isEmpty: list.length === 0,
+      selectFilters: selectFilters,
+      driverOpen: st.driverOpen,
+      setDriverOpen: (v) => this.setState({ driverOpen: v, driverQuery: v ? st.driverQuery : "" }),
+      driverLabel: st.driver === "ALL" ? "All drivers" : st.driver,
+      driverQuery: st.driverQuery,
+      onDriverQuery: (e) => this.setState({ driverQuery: e.target.value }),
+      driverResults: driverResults,
+      driverNoMatch: driverResults.length === 0,
+      plate: st.plate,
+      onPlateChange: (e) => this.setState({ plate: e.target.value, page: 0 }),
+      onDateChange: (e) => this.setState({ date: e.target.value }),
+      onPrevDay: () => this.shiftDay(-1),
+      onNextDay: () => this.shiftDay(1),
+      onToday: () => this.setState({ date: "2026-09-16" }),
+      zoomLabel: px + " px/h",
+      zoomIn: () => this.setState({ zoom: Math.min(ZOOMS.length - 1, st.zoom + 1) }),
+      zoomOut: () => this.setState({ zoom: Math.max(0, st.zoom - 1) }),
+      onClear: () => this.setState({ city: "ALL", vclass: "ALL", cap: "ALL", driver: "ALL", driverQuery: "", status: "ALL", plate: "", fromH: 6, toH: 22, page: 0 }),
+      legend: Object.keys(STATUS).map((k) => ({
+        key: k,
+        label: STATUS[k].label,
+        count: k === "available" ? counts.available + " now" : String(counts[k]),
+        swatch: { width: "14px", height: "14px", borderRadius: "4px", display: "inline-block", background: STATUS[k].bg, border: STATUS[k].bd, boxSizing: "border-box" }
+      })),
+      pageLabel:
+        list.length === 0
+          ? "No rows"
+          : "Showing " + (page * pageSize + 1) + "–" + Math.min(list.length, page * pageSize + pageSize) + " of " + list.length + " rows",
+      noPrev: page === 0,
+      noNext: page >= pages - 1,
+      onPrevPage: () => this.setState({ page: Math.max(0, page - 1) }),
+      onNextPage: () => this.setState({ page: Math.min(pages - 1, page + 1) }),
+      tipOpen: !!st.tip,
+      tipTitle: st.tip ? st.tip.title : "",
+      tipRange: st.tip ? st.tip.range : "",
+      tipMeta: st.tip ? st.tip.meta : "",
+      tipStyle: st.tip
+        ? {
+            position: "fixed",
+            left: Math.min(st.tip.x + 14, window.innerWidth - 300) + "px",
+            top: Math.max(8, st.tip.y - 76) + "px",
+            zIndex: 60,
+            background: "var(--popover)",
+            color: "var(--popover-foreground)",
+            border: "1px solid var(--border)",
+            borderRadius: "8px",
+            boxShadow: "0 8px 24px rgba(21,20,15,0.14)",
+            padding: "8px 10px",
+            maxWidth: "280px",
+            pointerEvents: "none"
+          }
+        : null,
+      exportOpen: st.exportOpen,
+      openExport: () => this.setState({ exportOpen: true }),
+      closeExport: () => this.setState({ exportOpen: false }),
+      setExportOpen: (v) => this.setState({ exportOpen: v }),
+      scopes: scopeDefs.map((s) => ({
+        key: s.id,
+        label: s.label,
+        hint: s.hint,
+        onPick: () => this.setState({ scope: s.id }),
+        style: {
+          display: "flex",
+          gap: "10px",
+          alignItems: "flex-start",
+          padding: "10px 12px",
+          border: st.scope === s.id ? "1.5px solid #ff5a1f" : "1px solid var(--border)",
+          background: st.scope === s.id ? "#fff6f1" : "var(--card)",
+          borderRadius: "8px",
+          cursor: "pointer"
+        },
+        dot: {
+          width: "14px",
+          height: "14px",
+          borderRadius: "50%",
+          marginTop: "3px",
+          flex: "none",
+          border: st.scope === s.id ? "4px solid #ff5a1f" : "1.5px solid var(--input)",
+          boxSizing: "border-box"
+        }
+      })),
+      inclGaps: st.inclGaps,
+      setInclGaps: (v) => this.setState({ inclGaps: !!v }),
+      inclPhone: st.inclPhone,
+      setInclPhone: (v) => this.setState({ inclPhone: !!v }),
+      exportSummary: this.exportRows().length + " spreadsheet rows will be written.",
+      doExport: () => this.doExport(),
+      bookOpen: st.bookOpen,
+      setBookOpen: (v) => this.setState({ bookOpen: v, pending: v ? st.pending : null }),
+      bookSubtitle: st.pending ? (st.fleet.find((v) => v.id === st.pending.rowId) || {}).plate + " · " + (st.fleet.find((v) => v.id === st.pending.rowId) || {}).driver : "",
+      bookRange: st.pending ? hm(st.pending.s) + " – " + hm(st.pending.e) : "",
+      cancelBook: () => this.setState({ bookOpen: false, pending: null }),
+      confirmBook: () => this.confirmBook()
+    };
+  }
+
+  shiftDay(d) {
+    const dt = new Date(this.state.date + "T12:00:00");
+    dt.setDate(dt.getDate() + d);
+    this.setState({ date: dt.toISOString().slice(0, 10) });
+  }
+}
+</script>
+</body>
+</html>

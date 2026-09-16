@@ -23,6 +23,7 @@ import {
   DriversDetailPanel,
   driverStatusWord,
 } from "@/components/driver-hub/screens/drivers-detail-panel";
+import { FleetAvailabilityCard } from "@/components/driver-hub/screens/fleet-availability-card";
 import {
   formatGel,
   formatJoinedMonth,
@@ -39,6 +40,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { HubDriversData } from "@/lib/dashboard/hub/drivers";
+import type { HubFleetAvailability } from "@/lib/dashboard/hub/fleet-availability";
 import { cn } from "@/lib/utils";
 
 /**
@@ -157,9 +159,24 @@ export type DriversScreenProps = {
    * category a vehicle's class demands is a server-side concern.
    */
   vehicles: readonly DriversVehicleOption[];
+  /**
+   * Today's Fleet Availability board, or `null` when the loader refused.
+   *
+   * `null` is unreachable behind this page's `kind !== "BUSINESS"` guard —
+   * `getHubFleetAvailability()` refuses on exactly the condition the page has
+   * already redirected on. It is honoured rather than asserted away, for the
+   * same reason `getHubDrivers()`'s own `null` is: a `null!` here would turn a
+   * future change in either check into a runtime crash on the roster instead of
+   * one missing section.
+   */
+  availability: HubFleetAvailability | null;
 };
 
-export function DriversScreen({ data, vehicles }: DriversScreenProps) {
+export function DriversScreen({
+  data,
+  vehicles,
+  availability,
+}: DriversScreenProps) {
   const { drivers, tiles } = data;
   const router = useRouter();
 
@@ -575,6 +592,18 @@ export function DriversScreen({ data, vehicles }: DriversScreenProps) {
           </HubCard>
         }
       />
+
+      {/* Deliberately a sibling of the split rather than a card inside its
+          master column. The board carries a 272px sticky label column and a
+          timeline whose width is the visible hours times the zoom, and the
+          master column narrows to `minmax(300px, 1.5fr)` the moment the detail
+          rail opens — which would leave the timeline about thirty pixels wide
+          and scrolling inside a column that is itself scrolling. Out here it
+          keeps the full page width whatever the rail is doing, and selecting a
+          driver no longer resizes the day. */}
+      {availability === null ? null : (
+        <FleetAvailabilityCard initial={availability} />
+      )}
     </>
   );
 }

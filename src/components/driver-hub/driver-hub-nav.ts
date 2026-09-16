@@ -4,7 +4,7 @@
  * Two consumers read this file — the sidebar (`driver-hub-sidebar.tsx`) draws
  * the links, and the sticky header (`driver-hub-header.tsx`) looks up the
  * current route's page title and subhead. Declaring both here means the header
- * copy sits next to the link it belongs to instead of being restated in seven
+ * copy sits next to the link it belongs to instead of being restated in six
  * `page.tsx` files, and a later screen registers itself by adding its own route
  * rather than by editing a file five other tasks are also touching.
  *
@@ -36,13 +36,19 @@ export type HubNavItem = {
    *
    * **This is a *cosmetic* filter.** Hiding a link does nothing about a
    * hand-typed URL, a bookmark, or an account whose shape changed since the
-   * link was last drawn. Every entry named here must therefore ALSO be
-   * enforced server-side: the screen's own `page.tsx` resolves the account and
-   * `redirect("/dashboard/today")`s, and where an API backs the screen the
-   * route handler refuses on the same terms. Today `/dashboard/drivers` and
-   * `/dashboard/employees` each guard on `kind !== "BUSINESS"`, and
-   * `/dashboard/loads` guards the roster case while `GET /api/loads` 403s it.
-   * The link list is the convenience; the page guard is the boundary.
+   * link was last drawn. Every entry named here that is *withheld* must
+   * therefore ALSO be enforced server-side: the screen's own `page.tsx`
+   * resolves the account and `redirect("/dashboard/loads")`s, and where an API
+   * backs the screen the route handler refuses on the same terms. So
+   * `/dashboard/drivers` and `/dashboard/employees` each guard on
+   * `kind !== "BUSINESS"`. The link list is the convenience; the page guard is
+   * the boundary.
+   *
+   * That rule now holds without exception, which it did not use to. The two
+   * entries that bent it are both gone from the hub: Today, hidden from the
+   * driver personas with no guard behind it because its contents were never
+   * withheld from them, and the Wallet, withheld from a roster driver and
+   * since folded into Performance — which every persona sees.
    */
   hiddenFor: readonly HubPersona[];
   /** The 20px page title in the sticky header. */
@@ -51,100 +57,80 @@ export type HubNavItem = {
    * The 13px muted subhead under the title — the design's copy for this
    * screen, used as the *fallback*.
    *
-   * Four of these subheads are derived in the design (Today's date, Earnings'
-   * selected range, and the roster counts on Jobs, Vehicles, Drivers and
-   * Employees), so those screens pass their own computed string to the header
-   * and this literal is only what renders before their data resolves. The
-   * strings are transcribed from the prototype's `pageSub` map so the wording
-   * and separator style stay the design's, not ours.
+   * Five of the six are derived at runtime — Performance's selected range and
+   * the roster counts on Jobs, Vehicles, Drivers and Employees — so those
+   * screens pass their own computed string to the header through
+   * `useHubSubtitle()` and this literal is only what renders before their data
+   * resolves. Dashboard is the one entry whose subhead really is a constant.
+   * The strings are transcribed from the prototype's `pageSub` map so the
+   * wording and separator style stay the design's, not ours.
    */
   subtitle: string;
 };
 
-/** Stable identifiers for the eight screens. */
+/** Stable identifiers for the six screens. */
 export type HubNavItemId =
-  | "today"
-  | "earnings"
-  | "loads"
-  | "jobs"
-  | "performance"
-  | "vehicles"
-  | "drivers"
-  | "employees";
+  "loads" | "jobs" | "performance" | "vehicles" | "drivers" | "employees";
 
 /**
- * In the design's sidebar order. Drivers and Employees come last because they
- * are the two that disappear for anything but a BUSINESS persona — dropping
- * them leaves the remaining six in an unchanged order.
+ * In rail order, which is the design's with one entry lifted to the front:
+ * Dashboard — the load board — comes first because it is where every account
+ * lands after signing in, and a rail whose first link is not the screen the
+ * router just chose reads as though the user arrived in the wrong place.
  *
- * A ROSTER driver additionally loses Load Board and Wallet, which are *not*
- * last and cannot be moved there: the design puts Wallet second and the board
- * third, and reordering the rail per persona would shuffle links under a
- * returning user rather than simply removing two. Filtering by `hiddenFor`
- * preserves the relative order of whatever survives, which is the property
- * that makes per-persona rails feel like the same product.
+ * Drivers and Employees come last, and for the mirror-image reason: they are
+ * the only BUSINESS-only entries left, so keeping them at the end means
+ * dropping them leaves everything above in an unchanged order.
+ *
+ * What each persona is left with: an INDEPENDENT and a ROSTER driver get the
+ * same four links — Dashboard, My orders, Performance and Vehicles — and a
+ * BUSINESS account gets those four plus Drivers and Employees. The two driver
+ * personas no longer differ at all here: the Wallet was the one entry withheld
+ * from an employed driver, and it has been folded into Performance, which
+ * everyone sees. Filtering by `hiddenFor` never reorders what it keeps, which
+ * is the property that makes three rails feel like one product.
  */
 export const HUB_NAV: readonly HubNavItem[] = [
   {
-    id: "today",
-    label: "Today",
-    href: "/dashboard/today",
-    hiddenFor: [],
-    title: "Today",
-    subtitle: "Saturday 29 August · Tbilisi",
-  },
-  {
-    // Labelled "Wallet" rather than "Earnings" per the header-alignment
-    // handoff (`UI:UX/Registered Driver account (New)/Driver dashboard header
-    // alignment/`), which names a driver's payouts destination "Wallet". It
-    // points at the hub's existing earnings screen and NOT at the client route
-    // `/wallet`, which is the *client's saved payment cards* — a driver
-    // receives payouts, they do not store cards to pay with. The `title` stays
-    // "Earnings & payouts": that is the screen's own heading and the handoff
-    // renames the nav label, not the page.
-    id: "earnings",
-    label: "Wallet",
-    href: "/dashboard/earnings",
-    // Withheld from a ROSTER driver, and new in this feature. The screen sums
-    // `driverPayout` over the orders assigned to the signed-in driver and
-    // labels the total as *their* earnings — but an employed driver's fares
-    // are paid to their employer, so for them the screen asserts something
-    // false about whose money it is. Planning chose to hide it outright rather
-    // than relabel it as a non-currency work summary: the failure direction
-    // worth engineering against is showing an employee a currency figure that
-    // is not theirs.
-    hiddenFor: ["ROSTER"],
-    title: "Earnings & payouts",
-    subtitle: "24 – 30 August 2026 · next payout Friday 4 September",
-  },
-  {
-    // Between Earnings/Wallet and Jobs deliberately: the design frames the
-    // board as where a driver *gets* work, which reads next to what they are
-    // paid and before the history of what they have already run.
+    // First in the rail, and the entry point the whole hub is routed at:
+    // `src/app/dashboard/page.tsx` sends a driver, a company and an admin here
+    // alike, and the two persona gates below it bounce to here as well. The
+    // design puts the board third, between the driver's wallet and My orders,
+    // framing it as where a driver *gets* work; that framing is unchanged, but
+    // a link the router always lands on cannot sit third in the list of links
+    // to it.
     //
     // `title`/`subtitle` are transcribed from the design's header copy and are
-    // both genuinely static — unlike four of the other entries, neither is a
-    // runtime value — so the Loads screen registers no `useHubSubtitle()`
-    // override and these literals are the whole story.
+    // both genuinely static — unlike the four entries whose subheads are
+    // counts — so the Loads screen registers no `useHubSubtitle()` override and
+    // these literals are the whole story.
     id: "loads",
-    label: "Load Board",
+    // "Dashboard" rather than the design's "Load Board": the board is now where
+    // *every* driver lands after signing in, so the rail names it for the place
+    // it occupies rather than for the one screen it holds. A label change and
+    // nothing more — the id, the route and the files behind them all still say
+    // `loads`, which is what the rest of this feature is called throughout.
+    label: "Dashboard",
     href: "/dashboard/loads",
-    // Withheld from a ROSTER driver. Per
-    // `specs/driver-load-board/requirements.md`'s Assumptions, an employed
-    // driver receives work through their company's dispatch rather than the
-    // open market, so the board is not theirs to browse. Its own server-side
-    // guard (`src/app/dashboard/(hub)/loads/page.tsx`) redirects them even if
-    // they hand-type the URL, and `GET /api/loads` 403s them; this list only
-    // controls the sidebar link.
-    hiddenFor: ["ROSTER"],
-    title: "Load Board",
+    // Shown to every persona. It used to be withheld from a ROSTER driver, on
+    // the reading of `specs/driver-load-board/requirements.md`'s Assumptions
+    // that an employed driver receives work through their company's dispatch
+    // rather than the open market — but dispatch is one way work reaches them,
+    // not a fence around the market, and a roster driver browsing and claiming
+    // an open booking is now supported end to end. The two server-side gates
+    // that backed the old rule (the redirect in
+    // `src/app/dashboard/(hub)/loads/page.tsx` and the `GET /api/loads` 403)
+    // are gone with it, so nothing is left for this list to mirror.
+    hiddenFor: [],
+    title: "Dashboard",
     subtitle: "Bookings open to drivers",
   },
   {
-    // "My orders" rather than "Jobs" per the same header-alignment handoff.
-    // Points at the hub's job history and NOT at the client route `/orders`,
-    // which hard-rejects any non-CLIENT role (`src/app/orders/page.tsx`) and
-    // would simply bounce a driver.
+    // "My orders" rather than "Jobs" per the header-alignment handoff
+    // (`UI:UX/Registered Driver account (New)/Driver dashboard header
+    // alignment/`). Points at the hub's job history and NOT at the client route
+    // `/orders`, which hard-rejects any non-CLIENT role
+    // (`src/app/orders/page.tsx`) and would simply bounce a driver.
     id: "jobs",
     label: "My orders",
     href: "/dashboard/jobs",
@@ -153,13 +139,20 @@ export const HUB_NAV: readonly HubNavItem[] = [
     subtitle: "182 jobs in the last 30 days",
   },
   {
+    // The hub's one money-and-numbers screen, and every persona's: the Wallet
+    // that used to sit above My orders was merged into it, so a driver reads
+    // what they earned and how they are driving in one place rather than
+    // across two screens that shared a week.
     id: "performance",
     label: "Performance",
     href: "/dashboard/performance",
     hiddenFor: [],
     title: "Performance",
-    // The one subhead that is genuinely static — it describes the window the
-    // screen always uses, not a value inside it.
+    // The fallback only. The screen carries the Wallet's range selector now
+    // that the two are one, and names the range it actually resolved through
+    // `useHubSubtitle()`; this literal is what the header shows for the frame
+    // before that lands, so it describes the *default* window rather than
+    // asserting a fixed one.
     //
     // Not the artboard's "Rolling 7-day window": `lib/dashboard/hub/
     // performance.ts` anchors every figure on this screen to the current
@@ -182,7 +175,7 @@ export const HUB_NAV: readonly HubNavItem[] = [
     label: "Drivers",
     href: "/dashboard/drivers",
     // Business-only, spelled as the two personas it is withheld from rather
-    // than as a "BUSINESS only" flag — one rule shape across all eight entries
+    // than as a "BUSINESS only" flag — one rule shape across all six entries
     // is worth more than the two characters the inverse would save. The
     // boundary is `drivers/page.tsx`'s own `kind !== "BUSINESS"` guard, which
     // this does not replace.
@@ -216,8 +209,11 @@ export const HUB_NAV: readonly HubNavItem[] = [
  * **`companyId` alone is not the roster test.** A BUSINESS account's
  * `companyId` names *its own* company and that account must keep every link;
  * only `kind === "INDIVIDUAL" && companyId !== null` is an employed driver on
- * somebody else's roster. Getting this backwards would hide the Load Board —
- * and now the Wallet too — from the one account shape both exist to serve.
+ * somebody else's roster. No entry above is withheld from `ROSTER` alone any
+ * more — the two driver personas see the same four links — so what getting this
+ * backwards costs today is the other direction: a fleet owner misfiled as one
+ * of their own employees loses Drivers and Employees, the two screens the
+ * persona axis exists to protect.
  *
  * Cosmetic only — see `hiddenFor` above. The account itself comes from the
  * session (`resolveHubAccount()`), never from a client-side toggle: the

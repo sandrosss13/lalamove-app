@@ -32,7 +32,7 @@ import type { HubHeaderData } from "@/lib/dashboard/hub/header";
  * gutters halve — enough that the hub does not overflow the 390px width the
  * header handoff designs for. The screens' own tables still have their own
  * narrow-width work to do; this is the shell, not a responsive pass over all
- * eight of them.
+ * six of them.
  *
  * Mirrors `src/components/admin/admin-shell.tsx` — a server layout resolves the
  * signed-in account once and hands it to one client shell, which owns the
@@ -88,17 +88,17 @@ const HubHeaderContext = React.createContext<HubHeaderContextValue | null>(
  *
  * `driver-hub-nav.ts` carries one title per registered nav entry, and
  * `hubNavItemForPath` resolves a path to the longest matching entry — which is
- * exactly right for the eight top-level screens and exactly wrong for the first
+ * exactly right for the six top-level screens and exactly wrong for the first
  * nested one. `/dashboard/jobs/[id]` prefix-matches the Jobs entry and would
  * inherit its title, so a driver opening a single delivery's job sheet would be
  * told they are looking at "Job history".
  *
- * The alternative was a ninth `HUB_NAV` entry, and it is worse: every entry in
- * that list is a **sidebar link**, so registering the job sheet there would put
- * a rail item pointing at a route that needs an order id to exist. The nav list
- * is the hub's information architecture; a detail view is not part of it. So the
- * screen retitles the bar from below, exactly as six screens already replace the
- * subhead from below.
+ * The alternative was a seventh `HUB_NAV` entry, and it is worse: every entry
+ * in that list is a **sidebar link**, so registering the job sheet there would
+ * put a rail item pointing at a route that needs an order id to exist. The nav
+ * list is the hub's information architecture; a detail view is not part of it.
+ * So the screen retitles the bar from below, exactly as five of the six screens
+ * already replace the subhead from below.
  *
  * ```tsx
  * // inside a "use client" screen rendered under <DriverHubShell>
@@ -134,8 +134,8 @@ export function useHubTitle(title: string | null): void {
 /**
  * Lets a screen replace the header's subhead with one derived from its data.
  *
- * Six of the seven subheads are runtime values — Today's date, Earnings' chosen
- * range, and the counts on Jobs, Vehicles, Drivers and Employees — while
+ * Five of the six subheads are runtime values — Performance's chosen range and
+ * the counts on Jobs, Vehicles, Drivers and Employees — while
  * `driver-hub-nav.ts` can only carry a static literal, which is what renders
  * before a screen's data resolves. A screen therefore *calls this hook* with
  * its own string rather than reaching into the header:
@@ -179,7 +179,7 @@ export function useHubSubtitle(subtitle: string | null): void {
 
 /**
  * Lets a screen render extra content in the header's right-hand row, between
- * the title/spacer and the account chip — today only the Load Board's
+ * the title/spacer and the account chip — today only the load board's
  * vehicle-capacity pill (design §1 of
  * `specs/driver-load-board/tasks/task-09-board-shell.md`).
  *
@@ -238,7 +238,7 @@ export type DriverHubShellProps = {
 /**
  * What the header shows on a path that matches no nav entry. Unreachable from
  * inside the `(hub)` route group — every child of this shell is one of the
- * eight registered screens — but a title is cheaper than a crash if a future
+ * six registered screens — but a title is cheaper than a crash if a future
  * route lands here before it registers itself in `HUB_NAV`.
  */
 const FALLBACK_TITLE = "Driver Hub";
@@ -271,11 +271,12 @@ export function DriverHubShell({
 
   // Nav filtering is cosmetic — hiding a link does nothing about a hand-typed
   // URL, so every screen withheld from a persona re-derives its own rule
-  // server-side: `drivers/page.tsx` and `employees/page.tsx` on
-  // `kind !== "BUSINESS"`, and `loads/page.tsx` on the roster case (which
-  // `GET /api/loads` 403s to match). The Wallet is now withheld from a roster
-  // driver in the list below, and `earnings/page.tsx` owes it the matching
-  // server-side redirect.
+  // server-side. Drivers and Employees are the only two left that are:
+  // `drivers/page.tsx` and `employees/page.tsx` each guard on
+  // `kind !== "BUSINESS"`. Nothing is withheld from a roster driver any more —
+  // the board dropped its redirect when an employed driver gained the open
+  // market, and the Wallet that used to be hidden from them has been folded
+  // into Performance, which every persona sees.
   const items = hubNavForAccount(account);
   const activeItem = hubNavItemForPath(pathname);
 
@@ -292,7 +293,19 @@ export function DriverHubShell({
       // rail and every card `#fff` on top of it. Written as the literal rather
       // than a token because `--background` is what those three white surfaces
       // resolve to — re-pinning it would turn them grey too.
-      className="flex min-h-screen flex-col bg-[oklch(96.7%_0.003_264.542)] font-body text-foreground"
+      //
+      // In dark mode that relationship inverts, so the literal cannot simply
+      // carry over: a near-white page behind dark cards is the single loudest
+      // thing that would break on this surface. `dark:bg-background` is the
+      // counterpart rather than a second literal, because the token already
+      // holds exactly the value wanted. `globals.css` gives the hub
+      // `--background: oklch(0.145 0 0)` in dark (via `html.dark
+      // body:has([data-admin-surface])`) against a `--card` of `oklch(0.205 0
+      // 0)` — so the page sits one step *below* the header, the rail and the
+      // cards, which is the same "chrome floats on the ground" reading the
+      // light artboard gets from grey-behind-white, expressed the only way a
+      // dark theme can express it.
+      className="flex min-h-screen flex-col bg-[oklch(96.7%_0.003_264.542)] font-body text-foreground dark:bg-background"
     >
       <DriverHubHeader
         account={account}
@@ -319,15 +332,52 @@ export function DriverHubShell({
           />
         </div>
 
-        {/* Page body: 28px 32px 56px on desktop, one 1180px content column,
-            sections stacked with a 20px gap — so a screen returns its sections
-            as siblings and never restates the page's own spacing. The page head
+        {/* Page body: 28px 32px 56px on desktop, one content column, sections
+            stacked with a 20px gap — so a screen returns its sections as
+            siblings and never restates the page's own spacing. The page head
             is the column's first sibling and takes its 20px bottom margin from
             that same gap. The insets halve below `lg`: at 390px a 32px gutter
             each side leaves 326px of content, and the screens' own tables and
             cards are the first thing to overflow when it does. */}
         <main className="min-w-0 flex-1 px-4 pt-5 pb-10 lg:px-8 lg:pt-7 lg:pb-14">
-          <div className="flex min-w-0 max-w-[1180px] flex-col gap-5">
+          {/* THE HUB-WIDE CONTENT CAP. One number for every screen in here,
+              deliberately — there is no per-screen override and adding one
+              would be a mechanism with a single possible value.
+
+              1800px, up from the 1180px this shipped with. 1180 is a
+              *readable-prose* measure: it is the right cap for the landing
+              page, the auth cards and the two onboarding wizards, which are
+              columns of text and form fields and which all keep it. It is the
+              wrong cap for everything under this shell, because every screen
+              in the hub is a *data* screen — the load board, the job history,
+              the vehicle and driver rosters, the performance tables. On those,
+              width is not decoration: it is what lets a driver compare rows
+              without dragging a horizontal scrollbar.
+
+              What the old number cost, concretely: on a 1920px window the page
+              body has 1920 − 248 (the rail) − 64 (this element's `lg:px-8`
+              gutters) = 1608px to give. Capping at 1180 threw 428px of that
+              away and left it blank to the right of a load board that was
+              itself scrolling sideways — empty screen beside clipped columns,
+              which is the complaint this replaces.
+
+              Capped rather than dropped. `max-w-none` would stretch the load
+              board's thirteen columns across the full width of a 3440px
+              ultrawide and put a load's price a head-turn from its pick-up
+              address; past roughly 1800px a table stops gaining from the extra
+              room and starts losing to eye travel. So the gutter left on a
+              very wide monitor is a decision, not a leftover.
+
+              Note for anyone re-tuning this: it does NOT follow that a table
+              now fits at every width for free. `loads-table.tsx` documents the
+              arithmetic and pays for it — all thirteen of its columns need more
+              than a 1280px or 1440px laptop can give inside a 248px rail, so
+              below a 1760px window it drops three of them, and it keeps its
+              `overflow-x-auto` as a backstop below 1270px. Anything added to
+              this element's padding, or to the rail's width, comes straight off
+              that board's container: the conversion it reasons with is
+              `container = viewport − 248 − 64 − 2`. */}
+          <div className="flex min-w-0 max-w-[1800px] flex-col gap-5">
             <DriverHubPageHead
               title={titleOverride ?? activeItem?.title ?? FALLBACK_TITLE}
               subtitle={subtitleOverride ?? activeItem?.subtitle ?? ""}

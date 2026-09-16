@@ -67,6 +67,7 @@ import {
   sampleVehicleFacts,
 } from "@/lib/dashboard/hub/sample";
 import { VEHICLE_CLASSES } from "@/lib/driver-onboarding/vehicle-classes";
+import { isDispatchApproved } from "@/lib/orders/dispatch-fit";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -164,9 +165,17 @@ export type HubVehicle = {
   reviewStatus: BusinessApplicationVehicleStatus | null;
   /**
    * Whether the dispatch endpoint will accept this vehicle: no review row at
-   * all (grandfathered) or an approved one. Mirrors the gate in
-   * `src/app/api/logistics-company/orders/[id]/dispatch/route.ts` and in
-   * `company-dashboard-data.ts`, so the three cannot disagree.
+   * all (grandfathered) or an approved one.
+   *
+   * No longer *mirrors* that gate — it now calls it. `isDispatchApproved` in
+   * `src/lib/orders/dispatch-fit.ts` is the one statement of the rule, read
+   * here and by both company dispatch endpoints, so "the hub says dispatchable"
+   * and "the POST accepts it" are the same sentence rather than two that agreed
+   * by inspection. (`visibleVehicleTypeWhere` in
+   * `src/lib/vehicle-type-visibility.ts` states it a third time as a Prisma
+   * `where`; that one cannot call a predicate over an already-fetched row
+   * without turning an indexed query into a fleet scan, and is cross-referenced
+   * from `isDispatchApproved` instead.)
    */
   dispatchable: boolean;
   /** ISO string — when the vehicle joined the fleet. */
@@ -435,9 +444,7 @@ export async function getHubVehicles(
           }
         : null,
       reviewStatus: vehicle.applicationVehicle?.status ?? null,
-      dispatchable:
-        vehicle.applicationVehicle === null ||
-        vehicle.applicationVehicle.status === "APPROVED",
+      dispatchable: isDispatchApproved(vehicle.applicationVehicle),
       createdAt: vehicle.createdAt.toISOString(),
       sampled: {
         odometerKm: facts.odometerKm,

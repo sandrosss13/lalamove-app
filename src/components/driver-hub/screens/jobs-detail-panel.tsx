@@ -103,15 +103,38 @@ import { cn } from "@/lib/utils";
 /* Palette                                                                    */
 /* -------------------------------------------------------------------------- */
 
-/** Success green — a step that is on the record as having happened. */
+/**
+ * Success green — a step that is on the record as having happened. No `dark:`
+ * counterpart, and deliberately: at L=59.6% this green clears both the light
+ * card and the dark one, so pairing it would be inventing a second green to
+ * solve a problem the first one does not have.
+ */
 const DOT_DONE_CLASSES =
   "border-[oklch(59.6%_0.145_163.225)] bg-[oklch(59.6%_0.145_163.225)]";
 
-/** Brand orange, hollow — the step the job is currently waiting on. */
+/**
+ * Brand orange, hollow — the step the job is currently waiting on. Left
+ * unpaired for the same reason as the green above: L=64% is legible on either
+ * ground, and this is the brand's own orange, which is not a colour a theme gets
+ * to restate. Its `bg-background` fill is what flips, so the dot stays hollow —
+ * a ring around the card's own surface — rather than becoming a white disc
+ * floating on a dark panel.
+ */
 const DOT_CURRENT_CLASSES = "border-[oklch(64%_0.19_48)] bg-background";
 
-/** Border grey, hollow — a step that has not been reached. */
-const DOT_PENDING_CLASSES = "border-[oklch(92.8%_0.006_264.531)] bg-background";
+/**
+ * Border grey, hollow — a step that has not been reached.
+ *
+ * `--border`'s light value is within a hair of the handoff's own LINE grey that
+ * used to be spelled out here, so naming the token is not a colour change in
+ * light mode; what it buys is the dark one, where the token resolves to a
+ * translucent white hairline and the dot goes on reading as *not yet reached*
+ * instead of staying a near-white ring burning a hole in the panel. The token
+ * also ties the dot to the hairlines it sits among — `DETAIL_ROW_CLASSES`, the
+ * card edges — which is the relationship the design was drawing, and which a
+ * frozen literal could only keep by coincidence.
+ */
+const DOT_PENDING_CLASSES = "border-border bg-background";
 
 /** The grey pill the design uses beside the status for the vehicle. */
 const NEUTRAL_PILL_CLASSES =

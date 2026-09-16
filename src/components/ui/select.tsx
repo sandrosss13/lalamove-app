@@ -117,7 +117,16 @@ function SelectItem({
     <SelectPrimitive.Item
       data-slot="select-item"
       className={cn(
-        "relative flex w-full cursor-default items-center gap-1.5 rounded-md py-1 pr-8 pl-1.5 text-sm outline-hidden select-none focus:bg-accent focus:text-accent-foreground not-data-[variant=destructive]:focus:**:text-accent-foreground data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
+        // The highlight is `bg-secondary`/`text-secondary-foreground` where
+        // upstream shadcn writes `bg-accent`/`text-accent-foreground` — see
+        // the `accent`/`muted` trap note above `buttonVariants` in
+        // `button.tsx`. `accent` is the worse half of that trap: off a marked
+        // surface it is the brand ORANGE, so keyboard-arrowing down a list
+        // dragged a bright orange bar through it. `sign-up-form.tsx:863`
+        // carries a `data-admin-surface` attribute on its `SelectContent` as a
+        // local workaround for precisely this; that attribute is now redundant
+        // (harmless, and not ours to remove — another agent owns `auth/`).
+        "relative flex w-full cursor-default items-center gap-1.5 rounded-md py-1 pr-8 pl-1.5 text-sm outline-hidden select-none focus:bg-secondary focus:text-secondary-foreground not-data-[variant=destructive]:focus:**:text-secondary-foreground data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",
         className,
       )}
       {...props}

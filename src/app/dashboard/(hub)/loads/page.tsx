@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 
 import {
   LoadsScreen,
@@ -13,6 +12,7 @@ import {
   resolveHubAccount,
   type HubAccount,
 } from "@/lib/dashboard/hub/account";
+import { driverVehiclesWhere } from "@/lib/orders/driver-vehicles";
 import { capabilityOf, widestCapability } from "@/lib/orders/vehicle-fit";
 import { prisma } from "@/lib/prisma";
 
@@ -20,11 +20,8 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Load Board · Driver Hub",
+  title: "Dashboard · Driver Hub",
 };
-
-/** Where a driver who has no board of their own is sent instead. */
-const HUB_HOME = "/dashboard/today";
 
 /**
  * The capacity columns every vehicle read on this page needs, plus the class
@@ -124,14 +121,18 @@ type LoadsPageVehicles = {
 };
 
 /**
- * An INDIVIDUAL account (a driver or a sole proprietor) resolves to their own
- * registered vehicles: the most recent one labels the pill, and all of them are
- * candidates for a claim.
+ * An INDIVIDUAL account (a driver, employed or not, or a sole proprietor)
+ * resolves to the vehicles they hold: the most recent one labels the pill, and
+ * all of them are candidates for a claim.
  *
- * Only their *own* vehicles, with no fallback to a fleet assignment — unlike
- * `resolveHubAccount()`'s identifier line, which does fall back. It cannot
- * matter here: a driver with a fleet assignment is a roster driver, and a
- * roster driver was redirected away several lines above this ever runs.
+ * Both halves of "hold", through `driverVehiclesWhere` — the vehicles they own
+ * outright *and* the company vehicle they currently drive on an open
+ * `DriverVehicleAssignment`, the same fallback `resolveHubAccount()`'s
+ * identifier line makes. A roster driver owns no `Vehicle` row of their own, so
+ * without the assignment half this screen would hand them a null pill and an
+ * empty `claimVehicles`: a board they can browse and never claim from. The
+ * board's own fit filter and the claim route scope themselves with the very
+ * same helper, so all three agree on what this driver may turn up in.
  *
  * A BUSINESS account has no single vehicle. Per the requirements' "claim first,
  * assign afterwards" resolution it resolves to `widestCapability` across the
@@ -143,9 +144,10 @@ type LoadsPageVehicles = {
  * time would only go stale while the order waits.
  *
  * Returns a `null` pill when there is nothing to show — a driver or company
- * mid-onboarding with no vehicle registered. The pill is then absent rather
- * than rendered as a garbage string, the same reasoning `driverIdentifier()` in
- * `account.ts` gives for falling back to just the city.
+ * mid-onboarding with no vehicle registered, or a roster driver a fleet manager
+ * has not assigned one to yet. The pill is then absent rather than rendered as
+ * a garbage string, the same reasoning `driverIdentifier()` in `account.ts`
+ * gives for falling back to just the city.
  */
 async function resolveVehicles(
   account: HubAccount,
@@ -179,7 +181,7 @@ async function resolveVehicles(
   // cannot paint until both have landed.
   const [vehicles, vehicleClasses] = await Promise.all([
     prisma.vehicle.findMany({
-      where: { driverProfileId: account.driverProfileId },
+      where: driverVehiclesWhere(account.driverProfileId),
       orderBy: { createdAt: "desc" },
       select: VEHICLE_SELECT,
     }),
@@ -232,6 +234,19 @@ async function resolveVehicles(
  * The load board — open client bookings, first come first served, at
  * `/dashboard/loads` inside the existing driver hub shell.
  *
+ * **Every kind of driver gets this board, employed ones included.** A roster
+ * driver — an INDIVIDUAL account with a non-null `companyId`, on a fleet's
+ * payroll — used to be redirected off this route on the grounds that work
+ * reaches them through their company's dispatcher rather than the open
+ * market. That is no longer the rule: they browse, claim and reject
+ * exactly as an independent driver does, and `GET /api/loads`, `POST
+ * /api/orders/[id]/accept` and `POST /api/loads/[id]/reject` dropped the
+ * matching refusals in the same change, so nothing left in the stack disagrees.
+ * What an employed driver *lacks* is a vehicle of their own, which is why
+ * `resolveVehicles` below resolves a fleet assignment as well as ownership —
+ * without that, removing the redirect would only have moved the dead end one
+ * screen later.
+ *
  * `resolveHubAccount()` is React-`cache()`d and `(hub)/layout.tsx` above already
  * called it, so this is a memo hit within the same request rather than a second
  * session validation. A `null` account cannot reach here — the layout renders
@@ -249,21 +264,6 @@ export default async function LoadsPage() {
 
   if (account === null) {
     return null;
-  }
-
-  // The roster-driver gate, server-side — the hidden sidebar link is cosmetic
-  // and does nothing about a hand-typed URL.
-  //
-  // The test is `kind` **and** `companyId`, never `companyId` alone. A BUSINESS
-  // account's `companyId` names its *own* company and that account is exactly
-  // who this board is for; only an INDIVIDUAL with a non-null `companyId` is an
-  // employed driver on somebody else's roster. Per the requirements'
-  // Assumptions, they receive work through their company's dispatcher rather
-  // than the open market — and `GET /api/loads` 403s them for the same reason,
-  // so without this redirect they would land on a screen that can only ever
-  // show them an error.
-  if (account.kind === "INDIVIDUAL" && account.companyId !== null) {
-    redirect(HUB_HOME);
   }
 
   const { vehiclePill, claimVehicles, vehicleClasses } =

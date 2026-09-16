@@ -27,11 +27,13 @@ import { cn } from "@/lib/utils";
  * prototype has no left rail to account for. This app does:
  * `driver-hub-sidebar.tsx` is a hard `w-[248px] flex-none` and the shell hides
  * it below `lg` (see `driver-hub-shell.tsx`), so on a phone this menu is the
- * *only* route to Today, the Load Board, Performance, Vehicles, Drivers and
- * Employees. Shipping the three literal links would leave a driver on a phone
- * unable to reach six of the eight screens they can reach on a laptop. The list
- * is therefore the same persona-filtered `hubNavForAccount()` output the rail
- * draws, in the same order, with My account appended where the design puts it.
+ * *only* route to Dashboard, Performance, Vehicles, Drivers and Employees.
+ * Shipping the literal links would leave a driver on a phone unable to reach
+ * four of the six screens they can reach on a laptop — and one of the three it
+ * draws, the Wallet, no longer exists at all now that it has been folded into
+ * Performance. The list is therefore the same persona-filtered
+ * `hubNavForAccount()` output the rail draws, in the same order, with My
+ * account appended where the design puts it.
  *
  * Rebuilding the rail itself into a drawer is explicitly out of scope; this is
  * the cheap correct thing instead.

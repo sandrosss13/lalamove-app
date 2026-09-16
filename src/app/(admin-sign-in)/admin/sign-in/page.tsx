@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ShieldCheck } from "lucide-react";
 
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,6 +42,14 @@ const GENERIC_ERROR = "Those credentials don't have back-office access.";
  * server-side, so they are pushed to `/admin` and bounced back here by
  * `requireSystemUser()` — the same destination this form's own error state
  * would have produced.
+ *
+ * Colours are shadcn tokens throughout, which is what makes this page theme for
+ * free: `data-admin-surface` resolves `muted`/`accent` to the shadcn palette
+ * (see the `--admin-accent` chain in `globals.css`) and `html.dark` now carries
+ * a full dark set for it, so the panel, the ground and the lock mark all flip
+ * together. Nothing here should reach for a `--landing-*` token or a hex — that
+ * is the *public* `/sign-in`'s palette, and the visual gap between the two
+ * pages is the point.
  */
 export default function AdminSignInPage() {
   const router = useRouter();
@@ -83,7 +92,7 @@ export default function AdminSignInPage() {
   return (
     <div
       data-admin-surface
-      className="flex min-h-screen items-center justify-center bg-muted p-8 font-body text-foreground"
+      className="relative flex min-h-screen items-center justify-center bg-muted p-8 font-body text-foreground"
     >
       <div className="flex w-full max-w-sm flex-col gap-6 rounded-xl border border-border bg-background p-8 shadow-sm">
         <div className="flex flex-col gap-2">
@@ -134,6 +143,29 @@ export default function AdminSignInPage() {
             {loading ? "Signing in…" : "Sign in"}
           </Button>
         </form>
+      </div>
+
+      {/*
+        `data-admin-surface` hides the global site header (and with it the app's
+        only other `ThemeToggle`), so without this the two staff pages would be
+        the only screens with no way to switch themes.
+
+        Parked in the page corner rather than added to the panel: the panel is
+        the deliberate part of this design — lock mark, "Internal use only", a
+        single centred card with nothing else on it — and a theme switch inside
+        it would read as one more account control. `absolute` against the
+        `relative` root rather than `fixed` so it scrolls with the page on a
+        short viewport, and rendered after the panel so it lands last in tab
+        order, behind the credentials a visitor came here to type.
+
+        No `className`: `ThemeToggle`'s defaults are shadcn tokens, which is
+        exactly this page's palette. The orange-hover trap does not apply — the
+        shared button already avoids `bg-accent` — and even inside this subtree
+        `accent` resolves to the neutral shadcn grey rather than the landing
+        brand orange.
+      */}
+      <div className="absolute top-5 right-5">
+        <ThemeToggle />
       </div>
     </div>
   );

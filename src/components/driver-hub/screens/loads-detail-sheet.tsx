@@ -385,8 +385,16 @@ export function LoadsDetailSheet({ nowIso }: LoadsDetailSheetProps) {
                       rather than 40px. It spent a release `disabled` behind an
                       explanatory `title` because the screen did not exist; the
                       screen exists, so this is a plain link and there is
-                      nothing left to explain. See `loads-drawer.tsx`'s doc
-                      comment for the full history. */}
+                      nothing left to explain.
+
+                      `"mine"` is `hubOrderScope`'s answer — the assigned driver
+                      for a solo account, the holding company for a fleet — and
+                      `getHubJobSheet` accepts both claims, so this link lands
+                      on a sheet for either reader. For the length of one
+                      release it did not: the sheet required the driver claim
+                      and this button sent fleet owners to "Order not found."
+                      See `loads-drawer.tsx`'s doc comment for the full
+                      history. */}
                   <Button
                     asChild
                     variant="outline"

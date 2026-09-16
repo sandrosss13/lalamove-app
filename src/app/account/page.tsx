@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/lib/auth";
+import { DATA_SCREEN_WIDTH_CLASSES } from "@/lib/layout";
 import { prisma } from "@/lib/prisma";
 import { AccountPasswordCard } from "@/components/account-password-card";
 import { AccountSidebar } from "@/components/account-sidebar";
@@ -84,7 +85,17 @@ export default async function AccountPage() {
 
   return (
     <main className="min-h-screen bg-ink text-paper">
-      <div className="mx-auto flex max-w-6xl flex-col gap-8 px-5 py-8 sm:px-8 lg:flex-row lg:gap-12">
+      {/*
+        The nav rail plus the settings beside it is a data screen, so it takes
+        the platform's data-screen width instead of the 1152px it was capped at;
+        the forms inside keep their own field widths, and the intro paragraph
+        below keeps its `max-w-xl` — prose and forms are excluded from this cap
+        on purpose, see `DATA_SCREEN_WIDTH_CLASSES`. The `px-5`/`sm:px-8` gutter
+        is untouched so nothing runs into the window edge.
+      */}
+      <div
+        className={`${DATA_SCREEN_WIDTH_CLASSES} flex flex-col gap-8 px-5 py-8 sm:px-8 lg:flex-row lg:gap-12`}
+      >
         <AccountSidebar />
 
         <div className="flex min-w-0 flex-1 flex-col gap-6">

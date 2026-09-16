@@ -17,11 +17,12 @@ import {
 import {
   EM_DASH,
   cargoCategoryLabel,
+  formatClock,
   formatDistanceKm,
   formatGel,
   formatHelperRequest,
+  formatLoadDayLabel,
   formatLoadDims,
-  formatPickupWindow,
   formatWeightKg,
   pluralise,
   sortedHandlingTags,
@@ -50,8 +51,17 @@ import { cn } from "@/lib/utils";
  * drop all of it.
  *
  * `lg` (1024px) rather than `md`: the desktop tree needs a 248px sidebar plus a
- * table whose own minimum width is 760px, and a viewport between those two
- * breakpoints genuinely cannot fit both.
+ * thirteen-column table that does not fit a laptop, let alone a tablet, and a
+ * viewport between those two breakpoints genuinely cannot carry both. The
+ * table's floor is 1520px and its eleven fixed columns alone need 1362px before
+ * either address column gets a pixel — `TABLE_MIN_WIDTH_CLASS` in
+ * `loads-table.tsx` has the measured arithmetic, including the fact that it
+ * still scrolls on a 1280px and a 1440px window.
+ *
+ * None of which moves this breakpoint. It is not derived from the table's width
+ * — if it were, it would have to sit somewhere above 1800px and this card list
+ * would be what a laptop got. 1024px is where a phone stops being a phone; past
+ * it a driver gets the board with a scrollbar, which is more useful than cards.
  *
  * ## Takes no props
  *
@@ -347,8 +357,65 @@ function WeightRow() {
 /* -------------------------------------------------------------------------- */
 
 /**
- * One load, as five rows: route and payout, the cargo line, the timing line,
- * the handling pills, and the action row.
+ * One labelled field of a card's stop block: a `<dt>`/`<dd>` pair that lands as
+ * two cells of the enclosing `<dl>`'s two-column grid.
+ *
+ * A real description list rather than two `<span>`s, because that is what this
+ * is — six labels each naming one value — and because a screen reader then
+ * announces "Pick up city, Tbilisi" instead of running the six values together
+ * into one sentence the way the old combined route line did.
+ *
+ * `title` is the caller's, not derived here: only the two address fields can
+ * outrun their column, and attaching a tooltip to a city or a clock time that
+ * repeats what is already fully visible is noise a pointer user has to discover
+ * by hovering.
+ */
+function CardField({
+  label,
+  value,
+  emphasis = false,
+  title,
+}: {
+  label: string;
+  value: string;
+  /** The two addresses, which are what the card is actually identified by. */
+  emphasis?: boolean;
+  title?: string;
+}) {
+  return (
+    <>
+      <dt className="text-[11px] text-muted-foreground">{label}</dt>
+      <dd
+        className={cn("min-w-0 truncate", emphasis && "font-medium")}
+        title={title}
+      >
+        {value}
+      </dd>
+    </>
+  );
+}
+
+/**
+ * One load, as five rows: the labelled stop block with the payout beside it,
+ * the cargo line, the trip line, the handling pills, and the action row.
+ *
+ * ## Why the stop block is six labelled fields and not a route line
+ *
+ * This card used to open with `pickupCity → dropoffCity` and carry the pick-up
+ * window further down, mirroring the desktop table's Route cell. That cell has
+ * been dissolved into separate columns (see `loads-table.tsx`), and this surface
+ * follows it rather than keeping a second, denser telling of the same data: a
+ * driver who reads the board on a phone and then on a laptop should be reading
+ * one set of facts, not two arrangements of it that have to be mentally
+ * reconciled.
+ *
+ * It is the same content, labelled — not a redesign. The payout is still the
+ * card's top-right anchor, the cargo, trip and tag lines below are untouched,
+ * and the action row is unchanged.
+ *
+ * The addresses are new *to this surface*: the old route line showed only
+ * cities, and the table showed both. Showing cities alone here would have made
+ * the phone the one place a driver cannot see where a job actually starts.
  *
  * ## Why this is a `div role="group"` and not a `<button>`
  *
@@ -429,10 +496,45 @@ function LoadCard({ load, nowIso }: { load: HubLoad; nowIso: string }) {
       }}
       className="border-b border-border p-3.5 text-left outline-none focus-visible:bg-muted"
     >
-      <div className="flex items-baseline justify-between gap-2">
-        <span className="min-w-0 truncate font-medium">
-          {load.pickupCity ?? EM_DASH} → {load.dropoffCity ?? EM_DASH}
-        </span>
+      {/* `items-start`, not `items-baseline`: the block beside the payout is now
+          six rows tall, and baseline alignment would drop the payout onto the
+          last of them instead of the first. */}
+      <div className="flex items-start justify-between gap-3">
+        {/* The label column is `auto` so it sizes to the longest label once and
+            every value below starts on the same edge; the value column is
+            `minmax(0,1fr)` because a `1fr` track has a min-content floor that a
+            long address would push past, defeating the `truncate` on it. */}
+        <dl className="grid min-w-0 flex-1 grid-cols-[auto_minmax(0,1fr)] gap-x-2 text-xs">
+          <CardField
+            label="Pick up address"
+            value={load.pickupAddress}
+            emphasis
+            title={load.pickupAddress}
+          />
+          <CardField label="Pick up city" value={load.pickupCity ?? EM_DASH} />
+          {/* Both from `scheduledAt`, dashing together when it is absent —
+              exactly the desktop table's two columns. Never the pick-up window,
+              which is a different and rarer fact; `HubLoad.scheduledAt` has the
+              reasoning. */}
+          <CardField
+            label="Pick up date"
+            value={formatLoadDayLabel(load.scheduledAt, nowIso)}
+          />
+          <CardField
+            label="Pick up time"
+            value={formatClock(load.scheduledAt)}
+          />
+          <CardField
+            label="Drop off address"
+            value={load.dropoffAddress}
+            emphasis
+            title={load.dropoffAddress}
+          />
+          <CardField
+            label="Drop off city"
+            value={load.dropoffCity ?? EM_DASH}
+          />
+        </dl>
         {/* `driverPayout` — never `Order.price`, which is not a field on
             `HubLoad` and is not in the endpoint's select. See the money rule in
             `loads-format.ts`. */}
@@ -451,13 +553,14 @@ function LoadCard({ load, nowIso }: { load: HubLoad; nowIso: string }) {
         })}
       </p>
 
+      {/* The trip line. It used to open with the pick-up window; that fact moved
+          up into the labelled Pick-up date and time fields, which read
+          `scheduledAt` and are populated on more rows than the window ever was.
+          `distanceKm` is the job's own pick-up-to-drop-off length — the same
+          figure the table's Distance column shows, and never
+          `pickupDistanceKm`. */}
       <p className="mt-1 text-xs text-muted-foreground tabular-nums">
-        {formatPickupWindow(
-          load.pickupWindowStart,
-          load.pickupWindowEnd,
-          nowIso,
-        )}{" "}
-        · {formatDistanceKm(load.distanceKm)} ·{" "}
+        {formatDistanceKm(load.distanceKm)} ·{" "}
         {formatHelperRequest(load.helperCount)}
       </p>
 
@@ -564,6 +667,13 @@ function LoadCardActions({ load }: { load: HubLoad }) {
     // sheet, where the same unavailable action was spelled out on a disabled
     // control. The job sheet exists, so the strip goes straight there and the
     // driver is spared the sheet in between.
+    //
+    // "Yours" is `hubOrderScope`'s `"mine"`: the assigned driver on a solo
+    // account, the holding company on a fleet. `getHubJobSheet` reads both
+    // claims, so the strip's promise holds for either reader — and until the
+    // route was widened it did not, because the sheet required the driver
+    // claim and a fleet owner tapping their own load got "Order not found."
+    // The href never changed; the destination stopped refusing them.
     //
     // `ghost` rather than the `outline` the sibling controls use: outline
     // declares its own background, which would fight the `success` tone that

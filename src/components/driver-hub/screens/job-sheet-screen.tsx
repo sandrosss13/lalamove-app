@@ -1,5 +1,8 @@
 "use client";
 
+import * as React from "react";
+import { useRouter } from "next/navigation";
+
 import {
   useHubSubtitle,
   useHubTitle,
@@ -16,7 +19,9 @@ import {
   JobSheetTimelineCard,
   JobSheetTimingCard,
   jobSheetRouteSummary,
+  type JobSheetViewer,
 } from "@/components/driver-hub/screens/job-sheet-parts";
+import { LoadsDispatchDialog } from "@/components/driver-hub/screens/loads-dispatch-dialog";
 import type { HubJobSheet } from "@/lib/dashboard/hub/job-sheet";
 
 /**
@@ -42,14 +47,16 @@ import type { HubJobSheet } from "@/lib/dashboard/hub/job-sheet";
  * The primary artboard is 390 × 844 and the classes below are that layout; `lg`
  * changes two things and nothing else.
  *
- * **Desktop is the same single column, capped at 720px.** Not the hub's 1180px
- * content width, and not a grid. Every other hub screen spreads to 1180 because
- * it is a dashboard — a table with a detail panel beside it — and this is a task
- * list a driver reads top to bottom, where the only thing a wider column buys is
- * longer line lengths on Georgian addresses. Both artboards say so in as many
- * words ("Why 720, not 1180"), and it is why the wrapper below caps its own
- * width rather than inheriting the shell's: it is the one place this screen
- * restates a page-level measurement, and it restates a *narrower* one.
+ * **Desktop is the same single column, capped at 720px.** Not the hub's content
+ * width, and not a grid. Every other hub screen spreads to the shell's full cap
+ * because it is a dashboard — a table with a detail panel beside it — and this
+ * is a task list a driver reads top to bottom, where the only thing a wider
+ * column buys is longer line lengths on Georgian addresses. Both artboards say
+ * so in as many words ("Why 720, not 1180" — 1180 being what the shell capped
+ * at when they were drawn; it is 1800 now, which only widens the gap this 720
+ * is defending), and it is why the wrapper below caps its own width rather than
+ * inheriting the shell's: it is the one place this screen restates a page-level
+ * measurement, and it restates a *narrower* one.
  *
  * The consequence is that the DOM order **is** the visual order, top to bottom,
  * at every width — no `order-*` and no `col-start-*` moves a card out of its
@@ -79,6 +86,40 @@ import type { HubJobSheet } from "@/lib/dashboard/hub/job-sheet";
  * There is no fifth branch for a driver-side cancel or abort. No endpoint
  * exists — only the company that placed an order can cancel it — so there is no
  * such affordance anywhere on this sheet.
+ *
+ * ## Two readers, four layouts, one tree
+ *
+ * The route used to refuse any fleet account outright: it gated on
+ * `driverId === session.user.id` while the load board calls a fleet's loads
+ * "mine" by `companyId`, so every "Open job sheet" a fleet owner could press
+ * landed on "Order not found." The loader is a company tenancy now, and
+ * `viewer` is how this screen knows which of the two it is drawing for.
+ *
+ * **It does not add a fifth layout.** All four run for both readers, on the same
+ * order data, in the same order. `viewer` changes exactly three things, and each
+ * one is a fact about the reader rather than about the job:
+ *
+ * - **The action bar is not mounted for a company at all** — not disabled, not
+ *   present. See the default branch below.
+ * - **Voice.** "You are paid" is addressed to the payee; `JobSheetHeaderCard`
+ *   and `JobSheetContactsCard` carry the company's wording for the same figures
+ *   and the same numbers.
+ * - **One extra fact.** `job.fleet` — which driver has it, on which vehicle —
+ *   drawn in the header card, which is the one card all four layouts render.
+ * - **One extra action, on one status.** A company can claim a load without
+ *   naming anybody, so a `CLAIMED` order with a null `fleet.driverName` carries
+ *   an "Assign a driver and vehicle" trigger in that same header card, opening
+ *   `LoadsDispatchDialog`. It is the way back in for a dispatcher who claimed
+ *   from the load board and dismissed the dialog that opened there — dismissing
+ *   it is a legitimate answer, and "Awaiting dispatch" is where the order waits
+ *   until they come back. The three conditions that gate the trigger live on
+ *   `JobSheetHeaderCard`, where the fleet block is; what lives *here* is the
+ *   dialog's open state and the `router.refresh()` that re-reads the result, for
+ *   the reason the `useTransition` below gives.
+ *
+ * Nothing is *withheld* from a company reader. Both stops keep their Call and
+ * Navigate row: a dispatcher ringing a consignee is ordinary, and a map is
+ * harmless to anyone.
  */
 
 /* -------------------------------------------------------------------------- */
@@ -111,9 +152,18 @@ export type JobSheetScreenProps = {
    * between the server pass and the hydration pass.
    */
   nowIso: string;
+  /**
+   * Which of the loader's two claims got this reader in — the driver assigned
+   * to the order, or the company that holds it.
+   *
+   * Resolved server-side by `getHubJobSheet`, never inferred here: this is a
+   * `"use client"` tree with no session, and a viewer a component decided for
+   * itself would be a permission guessed from props.
+   */
+  viewer: JobSheetViewer;
 };
 
-export function JobSheetScreen({ job, nowIso }: JobSheetScreenProps) {
+export function JobSheetScreen({ job, nowIso, viewer }: JobSheetScreenProps) {
   /**
    * The header says "Job sheet", not "Job history".
    *
@@ -133,12 +183,45 @@ export function JobSheetScreen({ job, nowIso }: JobSheetScreenProps) {
    */
   useHubSubtitle(jobSheetRouteSummary(job));
 
+  const router = useRouter();
+
+  /**
+   * Whether the dispatch dialog is on screen, held here rather than in
+   * `JobSheetHeaderCard`.
+   *
+   * Lifted for one reason: the success path has to close the dialog *and*
+   * re-read the page in a single transition, and the transition has to belong to
+   * something that outlives the dialog. `job-sheet-actions.tsx` owns its confirm
+   * dialog's completion for exactly the same reason, and states the failure it
+   * avoids — a transition started inside a component that is already unmounting
+   * drops its pending flag, and the trigger behind it re-enables over a page
+   * that has not caught up.
+   *
+   * These three hooks sit above the two early returns below, unconditionally, as
+   * React requires. They are inert on the layouts that never mount the dialog.
+   */
+  const [isDispatchOpen, setIsDispatchOpen] = React.useState(false);
+
+  /**
+   * The dispatch POST's server re-render.
+   *
+   * `router.refresh()` is what re-reads the new driver, and nothing else would:
+   * `/dashboard/jobs/[id]` is `force-dynamic` and server-rendered, so the fleet
+   * block's `driverName` comes from a Prisma read on the server and no client
+   * state of this screen's can conjure it. Patching it locally would mean this
+   * screen holding an optimistic copy of a fact the server owns, which is the
+   * pattern `job-sheet-actions.tsx` rejected for the start and complete buttons
+   * on the same page. `isDispatchPending` keeps the trigger disabled until the
+   * new render commits — see `JobSheetHeaderCardProps.isDispatchPending`.
+   */
+  const [isDispatchPending, startDispatchTransition] = React.useTransition();
+
   if (job.status === "CANCELLED") {
-    return <JobSheetCancelled job={job} />;
+    return <JobSheetCancelled job={job} viewer={viewer} />;
   }
 
   if (job.status === "COMPLETED") {
-    return <JobSheetCompleted job={job} />;
+    return <JobSheetCompleted job={job} viewer={viewer} />;
   }
 
   const inTransit = job.status === "IN_TRANSIT";
@@ -148,16 +231,69 @@ export function JobSheetScreen({ job, nowIso }: JobSheetScreenProps) {
       {/* Written first so a screen reader and the tab order meet the job's one
           action immediately after its title rather than after five cards. It
           renders nothing at all on the `PENDING`/`CLAIMED` states an assigned
-          order can briefly hold, where neither endpoint would accept a call. */}
-      <JobSheetActionBar job={job} nowIso={nowIso} />
+          order can briefly hold, where neither endpoint would accept a call.
+
+          **Absent for a company, rather than present and disabled.** Both
+          controls it holds write as the assigned driver — `POST
+          /api/orders/[id]/start` and `POST /api/orders/[id]/complete` each
+          403 unless `order.driverId === session.user.id` — so a fleet owner
+          pressing either could only ever collect a refusal. A disabled button
+          is the right shape for something that will become pressable; this
+          never will, for this reader, on this job.
+
+          There is no layout hole where it was. `gap-5` is flexbox gap, which
+          falls between flex *items*, and an omitted child is not one — the same
+          reason `JobSheetActionBar` can safely return `null` on a `CLAIMED`
+          order without the column above it moving. Both arrangements already
+          ship side by side in this file: the completed and cancelled layouts
+          below never mount the bar at all, and they are the same column with
+          the same first-card spacing as this one. It is also the only child
+          here carrying an `order-*` class, so dropping it cannot re-sequence
+          anything that stayed. */}
+      {viewer === "DRIVER" ? (
+        <JobSheetActionBar job={job} nowIso={nowIso} />
+      ) : null}
 
       <JobSheetHeaderCard
         job={job}
+        viewer={viewer}
         // The figure agreed at booking. Never a breakdown before completion:
         // `overtimeDriverPayout` is 0 and `waitingMinutes` is null until the
         // driver reports them, so it would print a total about to change.
         payout="quoted"
+        // The card decides whether to draw the trigger at all, and it gates on
+        // three facts about the job rather than on this prop — including
+        // `status === "CLAIMED"`, which is why the same prop passed from the
+        // completed and cancelled layouts would be inert. It is not passed
+        // there anyway: those jobs have nothing to dispatch.
+        onDispatch={() => setIsDispatchOpen(true)}
+        isDispatchPending={isDispatchPending}
       />
+
+      {/* Mounted only while open, and keyed on nothing: this screen shows one
+          order and does not poll, so there is no second target a stale vehicle
+          pick could leak into — unlike the load board, where the same dialog is
+          keyed on the order id for precisely that reason. Unmounting on close is
+          what drops the chosen vehicle, the roster override and any spent error,
+          so a dispatcher who dismisses and reopens starts from the fleet as it
+          is now rather than from where they left off. */}
+      {isDispatchOpen ? (
+        <LoadsDispatchDialog
+          orderId={job.id}
+          reference={job.reference}
+          onClose={() => setIsDispatchOpen(false)}
+          // Close and resync inside *this* component's transition, so
+          // `isDispatchPending` — and with it the disabled trigger in the header
+          // card — stays true until the new server render commits. See the
+          // `useTransition` comment above.
+          onDispatched={() => {
+            setIsDispatchOpen(false);
+            startDispatchTransition(() => {
+              router.refresh();
+            });
+          }}
+        />
+      ) : null}
 
       {/* Directly under the money, in both running states — "what time am I due
           somewhere" is the most common reason a driver opens this sheet before
@@ -241,20 +377,26 @@ export function JobSheetScreen({ job, nowIso }: JobSheetScreenProps) {
  * The cargo table stays too, last. It is the least urgent thing here and the
  * first thing wanted in a dispute about what was actually carried.
  */
-function JobSheetCompleted({ job }: { job: HubJobSheet }) {
+function JobSheetCompleted({
+  job,
+  viewer,
+}: {
+  job: HubJobSheet;
+  viewer: JobSheetViewer;
+}) {
   return (
     <div className={COLUMN_CLASSES}>
       {/* Booking plus overtime, with the two-line breakdown. Both halves are
           settled at this point, which is the only point at which summing them
           states a fact rather than a forecast. */}
-      <JobSheetHeaderCard job={job} payout="final" />
+      <JobSheetHeaderCard job={job} viewer={viewer} payout="final" />
 
       {/* Carries the completion time on its "Dropped off" step, and under the
           rail the two figures the driver typed into the confirmation dialog:
           the waiting minutes and, if they caught one, the recipient's name. */}
       <JobSheetTimelineCard job={job} running={false} />
 
-      <JobSheetContactsCard job={job} />
+      <JobSheetContactsCard job={job} viewer={viewer} />
 
       <JobSheetCargoCard job={job} />
     </div>
@@ -272,7 +414,9 @@ function JobSheetCompleted({ job }: { job: HubJobSheet }) {
  * still holds whatever the job was commissioned at when it was booked, and it
  * is still a real stored column — but a cancelled job is not going to pay it,
  * and printing a stored number under "You are paid" would be the one genuinely
- * dishonest figure this screen could show.
+ * dishonest figure this screen could show. A company reader is not an exception
+ * to that: relabelling the figure does not make a payout that never happened
+ * true, so `payout="none"` is unconditional and the header card says why.
  *
  * **The timeline cannot say when.** `Order` has no `cancelledAt` column, so
  * there is no fourth step to draw and no timestamp to put on one. What
@@ -285,10 +429,16 @@ function JobSheetCompleted({ job }: { job: HubJobSheet }) {
  * than current: what did happen (the client placed it; possibly a pick-up) is
  * the only account of the job there will ever be.
  */
-function JobSheetCancelled({ job }: { job: HubJobSheet }) {
+function JobSheetCancelled({
+  job,
+  viewer,
+}: {
+  job: HubJobSheet;
+  viewer: JobSheetViewer;
+}) {
   return (
     <div className={COLUMN_CLASSES}>
-      <JobSheetHeaderCard job={job} payout="none" />
+      <JobSheetHeaderCard job={job} viewer={viewer} payout="none" />
 
       <JobSheetNotice
         title="This delivery was cancelled."
@@ -317,9 +467,12 @@ function JobSheetCancelled({ job }: { job: HubJobSheet }) {
 /**
  * What `/dashboard/jobs/[id]` renders when `getHubJobSheet` returns `null`.
  *
- * **The same page for three different situations** — no such order, an order
- * belonging to another driver, and an order with no driver at all — and they
- * are indistinguishable on purpose. A "not yours" that reads differently from a
+ * **The same page for every situation** — no such order, an order assigned to
+ * another driver, one held by another company, and one that neither of this
+ * caller's two claims reaches — and they are indistinguishable on purpose. An
+ * order with no driver is no longer in that list: since the loader became a
+ * company tenancy it is a job sheet, and the fleet holding it reads "Awaiting
+ * dispatch" on the pill. A "not yours" that reads differently from a
  * "no such id" turns this route into an oracle: a caller could walk ids and
  * learn which ones exist, and roughly how much work the platform is carrying,
  * without ever being authorised to see one. `getHubJobSheet` returns one bare

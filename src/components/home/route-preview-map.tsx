@@ -9,31 +9,17 @@ import {
   useMap,
 } from "@vis.gl/react-google-maps";
 
+import { useTheme } from "@/hooks/use-theme";
+import {
+  MAP_STYLES_DARK,
+  ROUTE_PREVIEW_MAP_STYLES_LIGHT,
+} from "@/lib/map-styles";
+
 /** A single map coordinate. Mirrors `LatLng` from `@/lib/geo`, duplicated here
  * so this client component never imports the server-only geo module. */
 type LatLng = {
   lat: number;
   lng: number;
-};
-
-/**
- * One entry of a Google Maps styled-map array. Mirrors `google.maps.MapTypeStyle`,
- * duplicated here because the `google` namespace is not reachable from project
- * source at all: `@types/google.maps` is only a transitive dependency of
- * `@vis.gl/react-google-maps`, and this project's `tsconfig.json` pins
- * `compilerOptions.types` to `["node"]`, so the global namespace those typings
- * declare is never loaded into our compilation. Same reflex as the duplicated
- * `LatLng` above — describe the shape locally rather than reach for a module
- * that isn't ours to import.
- *
- * `stylers` is deliberately loose (the real type is `object[]`) because each
- * styler is a one-key record whose key depends on what it adjusts — `color`,
- * `saturation`, `lightness`, `weight`, `visibility`.
- */
-type MapTypeStyleEntry = {
-  featureType?: string;
-  elementType?: string;
-  stylers: Record<string, string | number>[];
 };
 
 type RoutePreviewMapProps = {
@@ -103,82 +89,23 @@ const ROUTE_STOP_COUNT = 2;
 /** Placeholder for a summary figure that isn't known yet. */
 const EMPTY_VALUE = "—";
 
-/** The route line's colour — this project's brand orange (`--landing-accent`). */
-const ROUTE_STROKE_COLOR = "#ff5a1f";
+/**
+ * The route line's colour, per theme — this project's brand orange, matching
+ * `--landing-accent` in each half of the token set (`#ff5a1f` light,
+ * `#f58220` dark).
+ *
+ * Spelled as literals rather than read from the CSS variable because the
+ * polyline is drawn by the Maps SDK into its own canvas, where a `var()` never
+ * resolves; `getComputedStyle` could fetch it, but that trades a one-line
+ * constant for a layout read on every theme change. Keep these two in step with
+ * `--landing-accent` in `src/app/globals.css` — the dark value is lighter for
+ * the same reason the token is: the light orange goes muddy against a near-black
+ * basemap.
+ */
+const ROUTE_STROKE_COLOR_LIGHT = "#ff5a1f";
+const ROUTE_STROKE_COLOR_DARK = "#f58220";
 const ROUTE_STROKE_WEIGHT = 4;
 const ROUTE_STROKE_OPACITY = 0.9;
-
-/**
- * A cool green/teal restyle of the base map.
- *
- * The point is contrast: landcover, parks and water carry the whole surface in
- * low-saturation mint and teal, roads and labels are pushed back, and points of
- * interest are hidden entirely. That leaves the orange route line and its two
- * markers as the only saturated things on the canvas, which is the one job this
- * map has.
- */
-const MAP_STYLES: MapTypeStyleEntry[] = [
-  // Landcover reads as a pale mint wash rather than Google's default beige.
-  {
-    featureType: "landscape",
-    elementType: "geometry",
-    stylers: [{ color: "#e6f2ee" }],
-  },
-  // Green space sits a shade deeper so it stays legible against that wash.
-  {
-    featureType: "poi.park",
-    elementType: "geometry",
-    stylers: [{ color: "#c7e3d6" }],
-  },
-  // Every other POI is flattened into the landcover and loses its label: this
-  // is a route preview, not a map to explore.
-  {
-    featureType: "poi",
-    elementType: "geometry",
-    stylers: [{ color: "#dcebe5" }],
-  },
-  {
-    featureType: "poi",
-    elementType: "labels",
-    stylers: [{ visibility: "off" }],
-  },
-  // Water carries the teal end of the palette.
-  {
-    featureType: "water",
-    elementType: "geometry",
-    stylers: [{ color: "#a5d2cc" }],
-  },
-  // Roads stay visible for orientation, but desaturated and pale.
-  {
-    featureType: "road",
-    elementType: "geometry",
-    stylers: [{ color: "#ffffff" }, { saturation: -70 }],
-  },
-  {
-    featureType: "road.highway",
-    elementType: "geometry",
-    stylers: [{ color: "#f1f6f4" }],
-  },
-  {
-    featureType: "road",
-    elementType: "labels",
-    stylers: [{ saturation: -60 }, { lightness: 20 }],
-  },
-  // Transit lines would read as competing routes next to the polyline.
-  { featureType: "transit", stylers: [{ visibility: "off" }] },
-  {
-    featureType: "administrative",
-    elementType: "geometry.stroke",
-    stylers: [{ color: "#b6cec7" }],
-  },
-  // Remaining labels: muted slate-green text on a soft halo, so they read over
-  // both the mint landcover and the teal water.
-  { elementType: "labels.text.fill", stylers: [{ color: "#5b6f69" }] },
-  {
-    elementType: "labels.text.stroke",
-    stylers: [{ color: "#f3f8f6" }, { weight: 2 }],
-  },
-];
 
 /** `${distanceKm} km`, or a placeholder while no estimate has resolved. */
 function formatDistance(distanceKm: number | null): string {
@@ -311,6 +238,24 @@ function RoutePreview({
   durationMinutes,
   vehicleLabel,
 }: RoutePreviewMapProps & { apiKey: string }) {
+  // The one thing on this card that cannot be a `dark:` class. The basemap is
+  // painted by the Maps SDK into its own canvas from a style array handed over
+  // in JS, and the route polyline is drawn the same way, so both have to be
+  // chosen here. `useTheme` tracks the `dark` class on `<html>` — the same
+  // source of truth the `dark:` variant keys off — so the map re-styles the
+  // instant the header's toggle is clicked, not on the next reload.
+  //
+  // `styles` is a live map option: `@vis.gl/react-google-maps` deep-compares it
+  // and calls `map.setOptions()` when it changes, so swapping arrays restyles
+  // the existing map rather than remounting it. The camera, the markers and any
+  // pan or zoom the user has made are all preserved across the switch.
+  const theme = useTheme();
+  const isDark = theme === "dark";
+  const mapStyles = isDark ? MAP_STYLES_DARK : ROUTE_PREVIEW_MAP_STYLES_LIGHT;
+  const routeStrokeColor = isDark
+    ? ROUTE_STROKE_COLOR_DARK
+    : ROUTE_STROKE_COLOR_LIGHT;
+
   // Depend on the raw coordinates rather than the `pickup`/`dropoff` objects so
   // a parent re-render that rebuilds those literals — without actually moving an
   // endpoint — doesn't produce a new array identity and refit the camera.
@@ -389,7 +334,7 @@ function RoutePreview({
             // an endpoint actually moves.
             defaultCenter={points[0] ?? DEFAULT_CENTER}
             defaultZoom={points.length > 0 ? SINGLE_POINT_ZOOM : DEFAULT_ZOOM}
-            styles={MAP_STYLES}
+            styles={mapStyles}
             gestureHandling="cooperative"
             disableDefaultUI
             zoomControl
@@ -416,7 +361,7 @@ function RoutePreview({
             {polylinePath ? (
               <Polyline
                 path={polylinePath}
-                strokeColor={ROUTE_STROKE_COLOR}
+                strokeColor={routeStrokeColor}
                 strokeWeight={ROUTE_STROKE_WEIGHT}
                 strokeOpacity={ROUTE_STROKE_OPACITY}
               />

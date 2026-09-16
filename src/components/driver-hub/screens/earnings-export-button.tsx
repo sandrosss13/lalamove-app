@@ -37,7 +37,15 @@ const NETWORK_ERROR = "Network error. Please check your connection.";
  */
 const REVOKE_DELAY_MS = 2000;
 
-/** The 8px green square the design puts before the label. */
+/**
+ * The 8px green square the design puts before the label.
+ *
+ * No `dark:` pair: at L=59.6% this is the hub's mid green — the one used for
+ * timeline dots and success fills — and it holds against both the white
+ * artboard and the near-black dark card. Only the *darker* green used for
+ * standalone success text needs inverting, and this is a filled square with no
+ * text on it.
+ */
 const GREEN_SQUARE_CLASSES =
   "size-2 rounded-[2px] bg-[oklch(59.6%_0.145_163.225)]";
 
@@ -112,11 +120,18 @@ export function EarningsExportButton({ from, to }: EarningsExportButtonProps) {
         {exporting ? "Exporting…" : "Export to Excel"}
       </Button>
 
-      {/* Inline, under the control that failed. */}
+      {/* Inline, under the control that failed.
+
+          `text-destructive` rather than the handoff's own red, which this line
+          used to spell out as `oklch(44.4% 0.177 26.899)`: that literal is a
+          fixed dark red and would have sat almost unreadably on the dark filter
+          bar under `html.dark`. The token is a half-step lighter in light mode
+          and lifts in dark, which is the only way this line changes with the
+          theme at all. Every other error line in the hub made the same trade. */}
       {error ? (
         <p
           role="alert"
-          className="max-w-[260px] text-right text-xs text-[oklch(44.4%_0.177_26.899)]"
+          className="max-w-[260px] text-right text-xs text-destructive"
         >
           {error}
         </p>

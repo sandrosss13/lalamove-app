@@ -74,7 +74,18 @@ export type VehicleEditorValues = {
   cargoHeightM: number | undefined;
 };
 
-/** The twelve colour swatches, from the design. Stored by name, not by hex. */
+/**
+ * The twelve colour swatches, from the design. Stored by name, not by hex — the
+ * hex is only ever painted into the little circle beside the label.
+ *
+ * These hex values are vehicle *data*, not UI chrome, and are deliberately
+ * theme-independent: a white van is white whichever theme the operator happens
+ * to be looking at it in, and "Black" has to stay `#1a1a1c` or the swatch stops
+ * describing the thing it names. Do not swap them for tokens and do not add a
+ * `dark:` variant to them. The only part of the swatch that *is* chrome is the
+ * hairline around it, which has to keep both ends of this list separable from
+ * the card behind them — see the ring at the render site.
+ */
 const COLORS: [name: string, hex: string][] = [
   ["White", "#ffffff"],
   ["Silver", "#c9ccd1"],
@@ -97,9 +108,24 @@ const BODY_PHRASE: Record<ChassisType, string> = {
   OPEN_CHASSIS: "as an open chassis",
 };
 
-/** Shared chrome, matching the driver wizard's technical-details step. */
+/**
+ * Shared chrome, matching the driver wizard's technical-details step.
+ *
+ * `border-border` is deliberately ABSENT, having been removed rather than left
+ * alone. In light it was harmless — `--border` and `--input` are both
+ * `oklch(0.922 0 0)`, so it resolved to the same edge the `Input` primitive
+ * draws for itself. In dark the two part company: `--border` is white at 10%,
+ * `--input` at 15%, and `tailwind-merge` was handing the weaker of the two the
+ * win over the primitive's own `border-input`, leaving these fields a third
+ * fainter than every other shadcn input in the app for no reason anyone chose.
+ * This matters more here than on a step screen: the dialog floats over the
+ * wizard, so its fields are the only edges a reader has to work with.
+ * `step-2-licence.tsx`, `step-3c-technical-details.tsx` and
+ * `step-4-drivers-assignment.tsx` carry the same note — the four have to stay
+ * in step.
+ */
 const FIELD_CLASS =
-  "h-[46px] rounded-[10px] border-border bg-card px-[13px] text-[15px] focus-visible:border-onboarding-accent focus-visible:ring-onboarding-accent/15 md:text-[15px]";
+  "h-[46px] rounded-[10px] bg-card px-[13px] text-[15px] focus-visible:border-onboarding-accent focus-visible:ring-onboarding-accent/15 md:text-[15px]";
 
 const LABEL_CLASS =
   "text-[11.5px] font-semibold tracking-[0.04em] text-muted-foreground uppercase";
@@ -677,8 +703,25 @@ export function VehicleEditorDialog({
                       <span
                         aria-hidden="true"
                         style={{ background: hex }}
-                        // The ring is what keeps the White swatch visible.
-                        className="size-4 shrink-0 rounded-full border border-foreground/15"
+                        // The hairline is the only thing keeping the extremes of
+                        // the list from disappearing into the card, and which
+                        // extreme is at risk flips with the theme: `#ffffff` on
+                        // the white card in light, `#1a1a1c` on `oklch(0.205)`
+                        // in dark. Deriving it from `--foreground` rather than
+                        // from a fixed black or white is what makes one class
+                        // cover both cases — the ink is dark in light and light
+                        // in dark, so the hairline always contrasts with the
+                        // card whatever the swatch under it is doing.
+                        //
+                        // The alpha has to differ, though. In light the hairline
+                        // is a near-black over a pure-white card, so 15% is
+                        // already an obvious grey. In dark it is a near-white
+                        // over `oklch(0.205)` — a card that is nowhere near
+                        // black — so the same 15% barely lifts off it and the
+                        // Black swatch stays lost. 30% restores the same
+                        // apparent weight, and scoping it to `dark:` leaves the
+                        // light swatch exactly as designed.
+                        className="size-4 shrink-0 rounded-full border border-foreground/15 dark:border-foreground/30"
                       />
                       <span
                         className={`text-[13px] ${
@@ -766,6 +809,10 @@ export function VehicleEditorDialog({
               </p>
             ) : null}
             <div className="flex items-center gap-3.5">
+              {/* `text-white` on `bg-onboarding-accent` is right in both themes
+                  and must not grow a `dark:` variant — the brand orange is
+                  theme-independent by design, so its label is too. The Cancel
+                  button beside it is all semantic tokens and needs nothing. */}
               <button
                 type="submit"
                 disabled={saving}

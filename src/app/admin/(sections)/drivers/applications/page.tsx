@@ -11,6 +11,7 @@ import type {
   AdminDriverApplicationRow,
   AdminDriverApplicationStatus,
 } from "@/app/api/admin/driver-applications/route";
+import { APPLICATION_STATUS_CHIP_CLASSES } from "@/components/admin/application-status-colors";
 import { DriverApplicationDetailDrawer } from "@/components/admin/driver-application-detail-drawer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -73,19 +74,6 @@ const STATUS_LABELS: Record<AdminDriverApplicationStatus, string> = {
   PENDING: "Pending",
   ACTION_REQUIRED: "Action required",
   APPROVED: "Approved",
-};
-
-/**
- * The design's exact chip colours, as Tailwind arbitrary values rather than new
- * tokens in `globals.css` — they are used on this one screen, so a token would
- * be a palette of one (the same call the driver-facing status screen makes for
- * its own accents). `cn()` inside `Badge` runs these through tailwind-merge, so
- * they replace the variant's own `bg-*`/`text-*` instead of racing it.
- */
-const STATUS_CHIP_CLASSES: Record<AdminDriverApplicationStatus, string> = {
-  PENDING: "bg-[rgba(200,140,20,0.12)] text-[oklch(0.48_0.13_70)]",
-  ACTION_REQUIRED: "bg-[rgba(220,38,38,0.09)] text-[oklch(0.577_0.245_27.325)]",
-  APPROVED: "bg-[rgba(16,120,70,0.1)] text-[oklch(0.5_0.13_145)]",
 };
 
 /**
@@ -347,7 +335,9 @@ export default function AdminDriverApplicationsPage() {
                     </TableCell>
                     <TableCell>
                       <Badge
-                        className={STATUS_CHIP_CLASSES[application.status]}
+                        className={
+                          APPLICATION_STATUS_CHIP_CLASSES[application.status]
+                        }
                       >
                         {STATUS_LABELS[application.status]}
                       </Badge>

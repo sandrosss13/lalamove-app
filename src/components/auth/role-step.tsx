@@ -34,18 +34,31 @@ const DEFAULT_ROLES: readonly FlowRole[] = ["CLIENT", "DRIVER"];
 /** Where the footer's staff link points unless the caller says otherwise. */
 const DEFAULT_BACK_OFFICE_HREF = "/admin/sign-in";
 
-/** Per-role badge fill. Client gets the accent tint, Driver the neutral one. */
+/**
+ * Per-role badge fill. Client gets the accent tint, Driver the neutral one.
+ *
+ * The neutral badge is tokens throughout, so it flips on its own. The accent
+ * tint does not: `#fff1ea` is a ~6% orange wash mixed against white and there is
+ * no `--landing-accent-soft` to hold its dark counterpart, so dark mode borrows
+ * `--landing-line-accent` — the palette's existing low-alpha orange, which lays
+ * the same wash over whatever ground is behind it instead of punching a pale
+ * rectangle into the card. The orange glyph on top is a token and needs nothing.
+ */
 const BADGE_CLASSES: Record<FlowRole, string> = {
-  CLIENT: "bg-[#fff1ea] text-[var(--landing-accent)]",
-  DRIVER: "bg-[var(--landing-frame)] text-[var(--landing-ink-strong)]",
+  CLIENT:
+    "bg-[#fff1ea] text-[var(--landing-accent)] dark:bg-[var(--landing-line-accent)]",
+  DRIVER: "bg-[var(--landing-frame)] text-[var(--landing-paper)]",
 };
 
 /**
  * The whole card is the control, so the surface styling has to live on both the
  * `<button>` and the `<a>` branch below.
+ *
+ * The hover shadow is a light-only rgba by nature — it stops registering against
+ * a dark ground, where the hover state is carried by the accent border instead.
  */
 const CARD_CLASS =
-  "flex flex-col gap-3.5 rounded-[14px] border border-[var(--landing-line)] bg-white p-6 text-left transition-[border-color,box-shadow] duration-150 hover:border-[var(--landing-accent)] hover:shadow-[0_8px_24px_-16px_rgba(21,20,15,.35)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--landing-accent)]";
+  "flex flex-col gap-3.5 rounded-[14px] border border-[var(--landing-line)] bg-[var(--landing-surface-raised)] p-6 text-left transition-[border-color,box-shadow] duration-150 hover:border-[var(--landing-accent)] hover:shadow-[0_8px_24px_-16px_rgba(21,20,15,.35)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--landing-accent)]";
 
 export type RoleStepProps = {
   mode: FlowMode;
@@ -111,7 +124,7 @@ export function RoleStep({
               </span>
 
               <span className="flex flex-col gap-1">
-                <span className="text-xl font-semibold tracking-[-0.01em] text-[var(--landing-ink-strong)]">
+                <span className="text-xl font-semibold tracking-[-0.01em] text-[var(--landing-paper)]">
                   {card.title}
                 </span>
                 <span className="text-sm leading-[1.5] text-[var(--landing-muted)]">
@@ -121,13 +134,16 @@ export function RoleStep({
 
               <span className="flex flex-col gap-2 border-t border-[var(--landing-frame)] pt-1.5">
                 {card.benefits.map((benefit) => (
-                  <span key={benefit} className="text-[13px] text-[#3f3c36]">
+                  <span
+                    key={benefit}
+                    className="text-[13px] text-[var(--landing-subtle)]"
+                  >
                     {benefit}
                   </span>
                 ))}
               </span>
 
-              <span className="flex items-center gap-1.5 text-[13px] font-medium text-[var(--landing-ink-strong)]">
+              <span className="flex items-center gap-1.5 text-[13px] font-medium text-[var(--landing-paper)]">
                 {card.footer}
                 <span aria-hidden="true">→</span>
               </span>
@@ -155,7 +171,7 @@ export function RoleStep({
         Staff account?{" "}
         <Link
           href={backOfficeHref}
-          className="font-medium text-[var(--landing-ink-strong)] underline decoration-[#d8d4cb] underline-offset-4 transition-colors hover:decoration-[var(--landing-accent)]"
+          className="font-medium text-[var(--landing-paper)] underline decoration-[var(--landing-line-strong)] underline-offset-4 transition-colors hover:decoration-[var(--landing-accent)]"
         >
           Sign in to the back office
         </Link>

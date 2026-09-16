@@ -249,6 +249,28 @@ export function DocumentUploadDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
+        // `data-onboarding-surface` on the *content* rather than relying on the
+        // wizard's own marker, and it matters more than it looks. Radix portals
+        // this panel to `document.body`, so it renders outside the `<main>` that
+        // carries the wizard's attribute; without its own copy,
+        // `body:has([data-onboarding-surface])` would still match while a step
+        // is mounted, but would stop matching the moment this dialog is opened
+        // from anywhere that is not a step — and `globals.css` pins
+        // `--background`, `--foreground`, `--admin-accent` and `--admin-muted`
+        // on exactly that selector.
+        //
+        // The consequence for every colour below: `accent` and `muted` are the
+        // two utilities whose tokens are var-chains
+        // (`var(--admin-accent, var(--landing-accent))` and the `--admin-muted`
+        // equivalent), so they are the two that would fall through to the
+        // landing palette's bright orange and dark brown-grey if that pin ever
+        // failed to reach here. Nothing in this file uses either. Neutral
+        // surfaces are `bg-secondary`, which reads `--secondary` directly and
+        // carries the same value in both themes, and neutral ink is
+        // `text-muted-foreground`, which is likewise a direct token — only
+        // `--color-muted`, not `--color-muted-foreground`, is chained. Keep it
+        // that way; a `bg-accent`/`bg-muted` added here is a bug waiting for a
+        // portal edge case.
         data-onboarding-surface=""
         className="gap-0 p-0 sm:max-w-[560px]"
         // A click on the backdrop mid-upload would leave the request running
@@ -301,13 +323,27 @@ export function DocumentUploadDialog({
               const file = event.dataTransfer.files?.[0];
               if (file) handleFile(file);
             }}
+            // Two swaps in the resting state, neither of which moves a pixel in
+            // light mode:
+            //
+            // `border-input` rather than `border-border` — identical at
+            // `oklch(0.922 0 0)` in light, but in dark `--border` is white at
+            // 10% and `--input` at 15%. A dashed 1.5px rule at 10% over
+            // `bg-popover` is close to invisible, and the dashed rule *is* the
+            // dropzone's affordance: it is the only thing saying "drop a file
+            // on me". The 15% edge is also what every input in the wizard uses
+            // in dark, so the two read as the same kind of control.
+            //
+            // `bg-secondary/40` rather than `bg-muted/40` — the same value in
+            // both themes, but off the `--admin-muted` var-chain, per the note
+            // on `DialogContent` above.
             className={`flex w-full cursor-pointer flex-col items-center gap-2.5 rounded-[13px] border-[1.5px] border-dashed px-5 py-[34px] transition-colors disabled:cursor-wait ${
               dragging
                 ? "border-onboarding-accent bg-onboarding-accent/5"
-                : "border-border bg-muted/40 hover:border-onboarding-accent hover:bg-onboarding-accent/5"
+                : "border-input bg-secondary/40 hover:border-onboarding-accent hover:bg-onboarding-accent/5"
             }`}
           >
-            <span className="flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
+            <span className="flex size-10 items-center justify-center rounded-full bg-secondary text-muted-foreground">
               <UploadIcon className="size-[17px]" />
             </span>
             <span className="text-[14.5px] font-semibold">
@@ -345,7 +381,12 @@ export function DocumentUploadDialog({
           ) : null}
         </div>
 
-        <DialogFooter className="mx-0 mb-0 flex-row items-center justify-between gap-3.5 rounded-b-xl border-t border-border bg-muted/40 px-[22px] py-3.5 sm:justify-between">
+        {/* `bg-secondary/40` rather than `bg-muted/40`: same colour in both
+            themes, but off the `--admin-muted` var-chain (see `DialogContent`).
+            It is also what the `DialogFooter` primitive reaches for by default,
+            and for exactly this reason — the override here is only about the
+            40% the design asks for instead of the primitive's 50%. */}
+        <DialogFooter className="mx-0 mb-0 flex-row items-center justify-between gap-3.5 rounded-b-xl border-t border-border bg-secondary/40 px-[22px] py-3.5 sm:justify-between">
           <p className="text-xs text-muted-foreground">
             Files are checked by the review team, not automatically.
           </p>

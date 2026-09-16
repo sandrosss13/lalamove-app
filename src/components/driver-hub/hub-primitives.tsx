@@ -34,17 +34,45 @@ import { cn } from "@/lib/utils";
  * `hub-status.ts` and the admin tables already take. `globals.css` gains
  * nothing for this surface.
  *
+ * That rule is what makes this file mostly theme-proof: every token above flips
+ * with `html.dark` for free, so a `HubCard` is white on grey in light and
+ * `--card` on `--background` in dark without a single `dark:` class. Only the
+ * arbitrary values need attention, and they split two ways — see the two
+ * constants below, which are the only places on this surface where a colour is
+ * chosen rather than looked up.
+ *
  * All numeric text (money, counts, ids, plates, dates) uses `font-price`, the
  * repo's IBM Plex Mono variable — the handoff's "mono".
  */
 
-/** The brand orange. It has no `--color-*` token, so it is spelled out. */
+/**
+ * The brand orange. It has no `--color-*` token, so it is spelled out.
+ *
+ * Deliberately has no `dark:` counterpart, and must not grow one. At 64%
+ * lightness it clears both grounds this surface ever paints — the light
+ * artboard's white card and dark mode's `oklch(0.205 0 0)` — and the whole
+ * point of a brand colour is that it is the one thing on the page that does
+ * *not* change when the theme does. The same call is made for the mid-green
+ * `oklch(59.6% 0.145 163.225)` used for timeline dots and success fills across
+ * the screens.
+ */
 const ACCENT_BG = "bg-[oklch(64%_0.19_48)]";
 
-/** Delta text colours: green when the movement is good, amber when it is not. */
+/**
+ * Delta text colours: green when the movement is good, amber when it is not.
+ *
+ * Unlike the accent above, these two are *dark text meant for a light card* —
+ * 44.8% and 47.6% lightness — so on a dark card they are very nearly the card
+ * itself. The `dark:` halves are the same hue at the other end of the scale,
+ * and are quoted verbatim from `success` and `warning` in
+ * `HUB_STATUS_TONE_CLASSES` (`hub-status.ts`), which owns the hub's six-tone
+ * vocabulary. A delta reading "+12%" in green and a "Completed" pill in green
+ * are the same green in both themes because of that, rather than by
+ * coincidence — so a tone correction lands in `hub-status.ts` once.
+ */
 const DELTA_TONE_CLASSES: Record<MetricDeltaTone, string> = {
-  good: "text-[oklch(44.8%_0.119_151.328)]",
-  bad: "text-[oklch(47.6%_0.114_61.907)]",
+  good: "text-[oklch(44.8%_0.119_151.328)] dark:text-[oklch(84%_0.13_156.743)]",
+  bad: "text-[oklch(47.6%_0.114_61.907)] dark:text-[oklch(88%_0.12_85)]",
 };
 
 /** Progress-fill colours, matching the delta tone above. */
@@ -79,9 +107,9 @@ export type HubCardProps = Omit<React.ComponentProps<"div">, "title"> & {
   titleGap?: HubCardTitleGap;
   /**
    * Vertical alignment inside the title row. The design centres a title
-   * against its action almost everywhere (`align-items:center`); the Today
-   * screen's zone card sets the pair on a shared baseline instead
-   * (`display:flex; align-items:baseline` on "Where the demand is").
+   * against its action almost everywhere (`align-items:center`); a card whose
+   * action is text rather than a control sets the pair on a shared baseline
+   * instead (`display:flex; align-items:baseline` in the artboards).
    */
   titleAlign?: HubCardTitleAlign;
 };
@@ -169,7 +197,7 @@ export type MetricTileProps = {
   value: React.ReactNode;
   /** Muted line under the value — 12px, or 13px on a `hero` tile. */
   note?: React.ReactNode;
-  /** Renders the value at the hero size — the Today screen's "Earned today". */
+  /** Renders the value at the hero size — Performance's "Earned this week". */
   hero?: boolean;
   /** Period-over-period movement, coloured by its own tone. */
   delta?: { label: string; tone: MetricDeltaTone };
@@ -346,10 +374,24 @@ export function FilterStrip({
             size="sm"
             aria-pressed={active}
             onClick={() => onChange(item.value)}
+            // The selected pill is the design's white chip lifted off the grey
+            // track. Both halves of that — `bg-background` and the 6%-black
+            // drop shadow — are light-mode statements of one idea, "this pill
+            // is raised", and neither survives the flip: in dark, `background`
+            // is `oklch(0.145 0 0)` and `muted` is `oklch(0.269 0 0)`, so the
+            // token pair *inverts* and the selected pill sinks into a hole,
+            // while a black shadow on a near-black track is invisible.
+            //
+            // `dark:bg-[oklch(0.37_0_0)]` restores the direction rather than
+            // the literal: one step lighter than the track, which is how a dark
+            // UI says "raised" at all — elevation there is lightness, not
+            // shadow. The shadow is left in place unconditionally because it
+            // costs nothing and simply stops being perceptible; deleting it
+            // would lose the light artboard's own value for no gain.
             className={cn(
               "h-auto flex-none rounded-md px-[13px] py-1.5 text-[13px] whitespace-nowrap",
               active
-                ? "bg-background font-semibold text-foreground shadow-[0_1px_2px_rgba(0,0,0,0.06)] hover:bg-background hover:text-foreground"
+                ? "bg-background font-semibold text-foreground shadow-[0_1px_2px_rgba(0,0,0,0.06)] hover:bg-background hover:text-foreground dark:bg-[oklch(0.37_0_0)] dark:hover:bg-[oklch(0.37_0_0)]"
                 : "bg-transparent font-normal text-muted-foreground hover:bg-transparent hover:text-foreground",
             )}
           >

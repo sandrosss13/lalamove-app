@@ -137,9 +137,30 @@ const MESSAGES = {
   fixFields: "Fix the highlighted fields to continue.",
 } as const;
 
-/** Shared input styling: the design's 46px field, on the shadcn primitive. */
+/**
+ * Shared input styling: the design's 46px field, on the shadcn primitive.
+ *
+ * `bg-card` is the light-mode background only. The `Input` primitive carries its
+ * own `dark:bg-input/30`, and because that is a variant rule it survives
+ * `tailwind-merge` alongside this unprefixed utility and wins in dark mode — so
+ * the field lifts slightly off the card there instead of matching it exactly,
+ * which is the shadcn dark-field look and is left to fire deliberately. Nothing
+ * here should try to out-specify it: pinning `dark:bg-card` would put a field
+ * and the card behind it at the same `oklch(0.205 0 0)` and erase the field.
+ *
+ * `border-border` is deliberately ABSENT, having been removed rather than left
+ * alone. In light it was harmless — `--border` and `--input` are both
+ * `oklch(0.922 0 0)`, so it resolved to the same edge the `Input` primitive
+ * draws for itself. In dark the two part company: `--border` is white at 10%,
+ * `--input` at 15%, and `tailwind-merge` was handing the weaker of the two the
+ * win over the primitive's own `border-input`. That left every field on this
+ * screen a third fainter than every other shadcn input in the app, for no
+ * reason anyone had chosen. `step-2-licence.tsx` carries the same note on its
+ * own `FIELD_CLASS`; if a field class is added to a third screen, leave the
+ * border to the primitive there too.
+ */
 const FIELD_CLASS =
-  "h-[46px] rounded-[10px] border-border bg-card px-3.5 text-[15px] md:text-[15px] focus-visible:border-onboarding-accent focus-visible:ring-onboarding-accent/15";
+  "h-[46px] rounded-[10px] bg-card px-3.5 text-[15px] md:text-[15px] focus-visible:border-onboarding-accent focus-visible:ring-onboarding-accent/15";
 
 const LABEL_CLASS =
   "text-[11.5px] font-semibold tracking-[0.04em] text-muted-foreground uppercase";
@@ -148,12 +169,7 @@ const ERROR_CLASS = "text-xs text-destructive";
 
 /** Which fields can currently be showing an error. */
 type FieldKey =
-  | "makeModel"
-  | "year"
-  | "plate"
-  | "colour"
-  | "payload"
-  | "dimensions";
+  "makeModel" | "year" | "plate" | "colour" | "payload" | "dimensions";
 
 type FieldErrors = Partial<Record<FieldKey, string>>;
 
@@ -267,11 +283,7 @@ function validate(values: FormValues, currentYear: number): FieldErrors {
   const year = Number.parseInt(values.year, 10);
   if (values.year.trim() === "") {
     errors.year = MESSAGES.yearMissing;
-  } else if (
-    !Number.isFinite(year) ||
-    year < MIN_YEAR ||
-    year > currentYear
-  ) {
+  } else if (!Number.isFinite(year) || year < MIN_YEAR || year > currentYear) {
     errors.year = `Year must be between ${MIN_YEAR} and ${currentYear}.`;
   }
 
@@ -629,10 +641,19 @@ export function Step3cTechnicalDetails() {
                       : "border-border bg-card hover:bg-muted"
                 }`}
               >
+                {/* The swatch hex is vehicle data, not chrome: it is what the
+                    colour *is*, so it must not theme — a "Black" swatch that
+                    lightened in dark mode would be describing a different
+                    vehicle. That leaves the ring around it doing the work, and
+                    a 15% ring is only enough on a white page: in dark mode
+                    Black (#1a1a1c) and Navy sit within a hair of the
+                    `oklch(0.205 0 0)` card behind them and would read as empty
+                    buttons. The dark ring is lifted to 35% for exactly those
+                    two, at no cost to the ten swatches that never needed it. */}
                 <span
                   aria-hidden="true"
                   style={{ background: hex }}
-                  className="size-4 shrink-0 rounded-full border border-foreground/15"
+                  className="size-4 shrink-0 rounded-full border border-foreground/15 dark:border-foreground/35"
                 />
                 <span
                   className={`text-[13px] ${
@@ -792,6 +813,61 @@ function DimensionField({
 }
 
 /**
+ * The measurement drawings' palette, declared exactly once and read back by
+ * every shape as `fill="var(--truck-body)"` and friends. It carries a light and
+ * a dark value for each material rather than literals on the shapes, for the
+ * reasons the chassis cards' own silhouettes document at length
+ * (`step-3-chassis-class.tsx`), and it uses the same material names and the
+ * same values as those silhouettes and as the fleet wizard's
+ * (`fleet-onboarding/steps/step-2-fleet-composition.tsx`) — three sets of
+ * bespoke truck drawings across two wizards that have to stay recognisably the
+ * same hand.
+ *
+ * It goes on the wrapper rather than on each `<svg>` because custom properties
+ * inherit: the side view and the rear view are one diagram split across two
+ * viewBoxes, and declaring the palette on their shared container is what
+ * guarantees they cannot drift apart.
+ *
+ * The short version of why the dark half is not the light half darkened: a
+ * drawing lit off a white page inverts, so the outline flips from darker than
+ * the body it encloses to lighter than it, while the relative emphasis — seam
+ * subtler than outline, hub lighter than tyre — is what actually carries over.
+ * The dimension arrows move furthest of all, from near-black to near-white:
+ * unlike every other material they are drawn on the card itself rather than on
+ * a body panel, so they have to reverse outright to stay readable against
+ * `--card`'s `oklch(0.205 0 0)`.
+ *
+ * So the seam ends up lighter than the outline in light mode (0.87 against
+ * 0.72) and darker than it in dark (0.55 against 0.62). That inversion is
+ * correct and deliberate: absolute lightness ordering is not the thing being
+ * conserved, contrast against the surface each mark sits on is. Please do not
+ * "restore" it. This file's seam literal is 0.87 where the chassis cards use
+ * 0.88 and 0.86 — each drawing keeps the value it shipped with so light mode is
+ * pixel-identical, and all of them converge on `oklch(0.55 0 0)` in dark.
+ *
+ * Every light value is byte-identical to what this diagram shipped with, so
+ * light mode is unchanged. The underscores are Tailwind v4's escape for spaces
+ * inside an arbitrary value, not part of the colour.
+ */
+const TRUCK_PALETTE_CLASS_NAME = [
+  // Body shell and its panels. The cab's glazing is drawn as flat facets here
+  // rather than as glass — a smaller drawing than the chassis cards' — so it
+  // takes `--truck-unit` alongside them.
+  "[--truck-outline:oklch(0.72_0_0)] dark:[--truck-outline:oklch(0.62_0_0)]",
+  "[--truck-body:#fbfbfb] dark:[--truck-body:oklch(0.45_0_0)]",
+  "[--truck-box:#f7f7f8] dark:[--truck-box:oklch(0.40_0_0)]",
+  "[--truck-unit:#eceef0] dark:[--truck-unit:oklch(0.38_0_0)]",
+  "[--truck-seam:oklch(0.87_0_0)] dark:[--truck-seam:oklch(0.55_0_0)]",
+  // Running gear.
+  "[--truck-chassis:oklch(0.42_0_0)] dark:[--truck-chassis:oklch(0.62_0_0)]",
+  "[--truck-tyre:oklch(0.26_0_0)] dark:[--truck-tyre:oklch(0.32_0_0)]",
+  "[--truck-hub:oklch(0.82_0_0)] dark:[--truck-hub:oklch(0.58_0_0)]",
+  // The measurement arrows — the only material drawn on the card rather than on
+  // the vehicle, and so the only one that reverses rather than shifts.
+  "[--truck-dim:oklch(0.32_0_0)] dark:[--truck-dim:oklch(0.78_0_0)]",
+].join(" ");
+
+/**
  * The measurement guide above the dimension inputs: a side view carrying badges
  * 1 (length) and 3 (height), a rear view carrying badge 2 (width), and a legend.
  *
@@ -801,9 +877,9 @@ function DimensionField({
  * the top of its drop sides. Hand-authored inline SVG, matching how the chassis
  * cards on the previous screen draw their own bespoke silhouettes.
  *
- * The greys are literal rather than tokens on purpose: this is a technical
- * illustration on a surface pinned to the light palette (see `globals.css`), and
- * its shading has to stay readable independently of the theme tokens around it.
+ * Both drawings take their colours from `TRUCK_PALETTE_CLASS_NAME`, declared once on
+ * the wrapper below and inherited down into the SVGs — see that constant for
+ * why the palette is CSS custom properties rather than literals on the shapes.
  */
 function CargoDiagram({ flatbed }: { flatbed: boolean }) {
   // Where the rear view's body starts: a flatbed's side panels are short, so its
@@ -827,7 +903,9 @@ function CargoDiagram({ flatbed }: { flatbed: boolean }) {
       ];
 
   return (
-    <div className="flex flex-wrap items-center gap-4 rounded-[13px] border border-border bg-card px-4.5 py-4">
+    <div
+      className={`flex flex-wrap items-center gap-4 rounded-[13px] border border-border bg-card px-4.5 py-4 ${TRUCK_PALETTE_CLASS_NAME}`}
+    >
       <svg
         viewBox="0 0 420 200"
         className="h-auto w-[300px] shrink-0"
@@ -840,29 +918,32 @@ function CargoDiagram({ flatbed }: { flatbed: boolean }) {
       >
         {/* Cab — identical for both bodies. */}
         <g
-          stroke="oklch(0.72 0 0)"
+          stroke="var(--truck-outline)"
           strokeWidth="1.6"
           strokeLinejoin="round"
           strokeLinecap="round"
         >
           <path
             d="M286 140 V82 Q286 75 293 73 L331 66 Q338 66 343 72 L366 98 Q374 103 374 113 V140 Z"
-            fill="#fbfbfb"
+            fill="var(--truck-body)"
           />
-          <path d="M296 82 L330 76 L330 98 L296 98 Z" fill="#eceef0" />
-          <path d="M338 78 L360 100 L338 100 Z" fill="#eceef0" />
+          <path
+            d="M296 82 L330 76 L330 98 L296 98 Z"
+            fill="var(--truck-unit)"
+          />
+          <path d="M338 78 L360 100 L338 100 Z" fill="var(--truck-unit)" />
           {flatbed ? (
-            <path d="M52 96 H286 V132 H52 Z" fill="#f7f7f8" />
+            <path d="M52 96 H286 V132 H52 Z" fill="var(--truck-box)" />
           ) : (
             <>
-              <path d="M52 60 H286 V140 H52 Z" fill="#f7f7f8" />
+              <path d="M52 60 H286 V140 H52 Z" fill="var(--truck-box)" />
               <path d="M52 60 H286" />
             </>
           )}
         </g>
 
         {/* Panel lines: fewer and shallower on a flatbed's drop sides. */}
-        <g stroke="oklch(0.87 0 0)" strokeWidth="1.2">
+        <g stroke="var(--truck-seam)" strokeWidth="1.2">
           {flatbed ? (
             <path d="M52 108 H286 M52 120 H286 M148 96 V132 M244 96 V132" />
           ) : (
@@ -872,19 +953,19 @@ function CargoDiagram({ flatbed }: { flatbed: boolean }) {
 
         <path
           d={flatbed ? "M44 132 H366 V150 H44 Z" : "M44 140 H366 V150 H44 Z"}
-          fill="oklch(0.42 0 0)"
+          fill="var(--truck-chassis)"
         />
-        <g fill="oklch(0.26 0 0)">
+        <g fill="var(--truck-tyre)">
           <circle cx="120" cy="150" r="21" />
           <circle cx="312" cy="150" r="23" />
         </g>
-        <g fill="oklch(0.82 0 0)">
+        <g fill="var(--truck-hub)">
           <circle cx="120" cy="150" r="9" />
           <circle cx="312" cy="150" r="10" />
         </g>
 
         {/* Dimension arrows: length along the body, height up its side. */}
-        <g stroke="oklch(0.32 0 0)" strokeWidth="1.6" fill="none">
+        <g stroke="var(--truck-dim)" strokeWidth="1.6" fill="none">
           <path d="M52 180 H286" />
           <path d="M52 180 l7 -4 M52 180 l7 4 M286 180 l-7 -4 M286 180 l-7 4" />
           {flatbed ? (
@@ -900,6 +981,14 @@ function CargoDiagram({ flatbed }: { flatbed: boolean }) {
           )}
         </g>
 
+        {/* The numbered badges are the one part of these drawings that does not
+            theme, and deliberately: `--onboarding-accent` is the fixed brand
+            orange (`globals.css` declares it at `:root` and `html.dark` never
+            redeclares it), and white on that orange is the correct pairing on a
+            white page and on a near-black one alike. They are chrome tying the
+            drawing to the three numbered inputs below it, not part of the
+            vehicle, so they stay outside `TRUCK_PALETTE_CLASS_NAME` — leave the
+            literal `#fff` alone. */}
         <g className="font-price" fontSize="12" fontWeight="600">
           <circle cx="169" cy="180" r="12" className="fill-onboarding-accent" />
           <text x="169" y="184.5" textAnchor="middle" fill="#fff">
@@ -928,18 +1017,22 @@ function CargoDiagram({ flatbed }: { flatbed: boolean }) {
         role="img"
         aria-label="Rear view showing 2 body width"
       >
-        <g stroke="oklch(0.72 0 0)" strokeWidth="1.6" strokeLinejoin="round">
-          <path d={`M24 ${rearTop} H106 V132 H24 Z`} fill="#f7f7f8" />
+        <g
+          stroke="var(--truck-outline)"
+          strokeWidth="1.6"
+          strokeLinejoin="round"
+        >
+          <path d={`M24 ${rearTop} H106 V132 H24 Z`} fill="var(--truck-box)" />
         </g>
-        <g stroke="oklch(0.87 0 0)" strokeWidth="1.2">
+        <g stroke="var(--truck-seam)" strokeWidth="1.2">
           <path d={`M65 ${rearTop} V132`} />
         </g>
-        <path d="M18 132 H112 V144 H18 Z" fill="oklch(0.42 0 0)" />
-        <g fill="oklch(0.26 0 0)">
+        <path d="M18 132 H112 V144 H18 Z" fill="var(--truck-chassis)" />
+        <g fill="var(--truck-tyre)">
           <circle cx="34" cy="150" r="14" />
           <circle cx="96" cy="150" r="14" />
         </g>
-        <g stroke="oklch(0.32 0 0)" strokeWidth="1.6" fill="none">
+        <g stroke="var(--truck-dim)" strokeWidth="1.6" fill="none">
           <path d="M24 180 H106" />
           <path d="M24 180 l7 -4 M24 180 l7 4 M106 180 l-7 -4 M106 180 l-7 4" />
         </g>

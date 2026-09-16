@@ -1,6 +1,27 @@
 /**
- * Everything the Driver Hub's **Earnings & payouts** screen renders, fetched and
- * shaped in one server pass over a caller-supplied date range.
+ * Everything the Driver Hub's **Earnings & payouts** sections render, fetched
+ * and shaped in one server pass over a caller-supplied date range.
+ *
+ * Those sections are the top half of `/dashboard/performance`. They were their
+ * own route until the wallet and the performance screen were merged, and
+ * `/dashboard/earnings` was deleted rather than redirected; this module did not
+ * change shape in the merge, and `getHubPerformance` still answers the other
+ * half over its own window. The page runs the two concurrently.
+ *
+ * ## Who may read it
+ *
+ * All three personas, an employed `ROSTER` driver included. A roster driver was
+ * once redirected off the earnings route and refused the export with a `403`,
+ * on the ground that the fares they drove were settled to their employer and a
+ * total headed with their own name therefore asserted something false about
+ * whose money it was. Product overruled that and both gates are gone. What
+ * replaced the refusal is the figures' own framing: `hubOrderScopeSql` scopes a
+ * driver — employed or not — to `driverId = <this user>`, so the sums answer
+ * "what did the jobs I drove earn", which is the question an employee checking
+ * their week against their payslip is actually asking. Nothing in this module
+ * blanks, zeroes or relabels a figure by persona, and nothing here should start
+ * to; the only persona branch below is `BUSINESS`, and it is about *scope* —
+ * a fleet sees the orders its company holds — not about entitlement.
  *
  * The range lives in the URL, exactly as the back office's Sales Analytics range
  * does (`src/lib/admin/analytics.ts`): the filter bar pushes new query params,
@@ -274,11 +295,12 @@ export type HubEarningsData = {
    * Carried on the payload rather than re-derived in the screen because
    * `HubEarningsData` is what crosses into the `"use client"` tree — the screen
    * never sees a `HubAccount`, and a client component has no business
-   * re-deriving a persona from `kind` and `companyId` anyway. `ROSTER` cannot
-   * occur here in practice: the page redirects that persona away before this
-   * loader is called and the export route refuses it. The variant is still part
-   * of the type because the persona axis is closed and a screen switching on it
-   * should be exhaustive.
+   * re-deriving a persona from `kind` and `companyId` anyway. All three
+   * variants occur here, `ROSTER` included: an employed driver used to be
+   * redirected away from this data and refused the export, and both gates were
+   * removed by product decision — see the module header. The screen branches on
+   * `BUSINESS` only, so `INDEPENDENT` and `ROSTER` render identically, which is
+   * correct: `hubOrderScopeSql` scopes both to the orders assigned to them.
    */
   persona: HubPersona;
   /** Which shape `buckets` is in — see `DAILY_GROUPING_MAX_DAYS`. */
@@ -732,8 +754,8 @@ function toFleetBreakdown(
 }
 
 /**
- * Fetches and shapes every figure the Earnings screen shows, for either account
- * kind, over the given range.
+ * Fetches and shapes every figure the earnings sections show, for either
+ * account kind and any of the three personas, over the given range.
  *
  * `range` is re-normalised rather than trusted: it normally arrives straight
  * from `resolveHubEarningsRange`, but this function is the thing that touches

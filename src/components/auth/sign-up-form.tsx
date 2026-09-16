@@ -906,7 +906,7 @@ export function SignUpForm({ audience, role, accountType }: SignUpFormProps) {
             />
             <Label
               htmlFor={termsId}
-              className="text-[13px] leading-[1.5] font-normal text-[#3f3c36]"
+              className="text-[13px] leading-[1.5] font-normal text-[var(--landing-subtle)]"
             >
               {/*
                 TODO: link these two phrases once the pages exist. The route is
@@ -920,11 +920,11 @@ export function SignUpForm({ audience, role, accountType }: SignUpFormProps) {
               */}
               <span>
                 I agree to the{" "}
-                <span className="underline decoration-[#d8d4cb] underline-offset-4">
+                <span className="underline decoration-[var(--landing-line-strong)] underline-offset-4">
                   terms of service
                 </span>{" "}
                 and the{" "}
-                <span className="underline decoration-[#d8d4cb] underline-offset-4">
+                <span className="underline decoration-[var(--landing-line-strong)] underline-offset-4">
                   privacy policy
                 </span>
                 .

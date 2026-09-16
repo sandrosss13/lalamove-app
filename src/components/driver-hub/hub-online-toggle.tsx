@@ -61,7 +61,7 @@ export type HubOnlineToggleProps = {
  * ---------------------------------------------------------------------------
  *
  * Success refreshes the route instead of flipping local state, so the pill, the
- * Today screen and anything else reading `isOnline` all move together off one
+ * Drivers table and anything else reading `isOnline` all move together off one
  * server read — there is no second source of truth to drift.
  */
 export function HubOnlineToggle({
@@ -132,8 +132,20 @@ export function HubOnlineToggle({
           // Geometry is the design's `onlineBtnStyle` verbatim: `padding:'5px
           // 12px'`, `fontSize:12`, `fontWeight:600`, `gap:9`, `borderRadius:99`.
           "flex cursor-pointer items-center gap-[9px] rounded-full border px-3 py-[5px] text-[12px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60",
+          // Online is the hub's `success` tone, and it carries the same
+          // hand-written `dark:` half as every other pill on the surface —
+          // quoted verbatim from `HUB_STATUS_TONE_CLASSES` in `hub-status.ts`
+          // rather than re-picked here, so "Online" in this bar and an "Online"
+          // status pill on a screen below it stay the same green in both
+          // themes. Border and background are the same value on purpose: the
+          // design draws the pill as one flat tinted block, not a bordered one.
+          //
+          // Offline needs no `dark:` half at all — it is already three tokens,
+          // and `bg-background` against the bar's own `bg-background` gives it
+          // the design's "white pill on a white header, found by its border"
+          // reading in light and the identical relationship in dark.
           isOnline
-            ? "border-[oklch(96.2%_0.044_156.743)] bg-[oklch(96.2%_0.044_156.743)] text-[oklch(44.8%_0.119_151.328)]"
+            ? "border-[oklch(96.2%_0.044_156.743)] bg-[oklch(96.2%_0.044_156.743)] text-[oklch(44.8%_0.119_151.328)] dark:border-[oklch(27%_0.05_156.743)] dark:bg-[oklch(27%_0.05_156.743)] dark:text-[oklch(84%_0.13_156.743)]"
             : "border-border bg-background text-muted-foreground",
         )}
       >
@@ -142,6 +154,13 @@ export function HubOnlineToggle({
           className={cn(
             // `onlineDotStyle` is `{ width: 7, height: 7 }` — not the 8px a
             // `size-2` would give.
+            //
+            // The live dot's green is the one hub colour with no `dark:` half
+            // and no token: at 59.6% lightness it is a mid-green that carries
+            // on both the light tint above and its dark counterpart, and a dot
+            // that changed hue with the theme would be the one element in the
+            // bar claiming the driver's availability means something different
+            // after dark.
             "size-[7px] rounded-full",
             isOnline
               ? "bg-[oklch(59.6%_0.145_163.225)]"
@@ -153,11 +172,22 @@ export function HubOnlineToggle({
 
       {/* Inline rather than an `alert()`: the failure belongs next to the
           control that caused it, and a modal would block the whole hub over a
-          transient network blip. */}
+          transient network blip.
+
+          `text-destructive` rather than the handoff's `oklch(44.4% 0.177
+          26.899)`, which this line used to spell out. That literal is the
+          *pill* red — the foreground `hub-status.ts` pairs with a pale danger
+          wash — and it was never right on the bar's own background even in
+          light mode; on a dark one it is a near-black line of text in a
+          near-black header. The token is already the design's error red in
+          both themes (`oklch(0.577 0.245 27.325)` light, `oklch(0.704 0.191
+          22.216)` dark) and is what every other error line on this surface now
+          uses, so a failed availability flip reads the same as a failed form
+          submit. */}
       {error ? (
         <p
           role="alert"
-          className="max-w-[220px] text-right text-[11px] text-[oklch(44.4%_0.177_26.899)]"
+          className="max-w-[220px] text-right text-[11px] text-destructive"
         >
           {error}
         </p>

@@ -43,12 +43,18 @@ export type FleetTallyRow = {
 };
 
 /**
- * Success green has no token in `globals.css` — it is a design value used in a
- * handful of places rather than part of the shadcn palette — so it is written
- * as an arbitrary value here, the same call `step-1-auth-personal.tsx` makes
- * for its uploaded-slot green.
+ * Success green, now `--status-success` from `globals.css` — the shared token
+ * the literal this line used to carry was asking for. The same name backs the
+ * fleet status screen, both fleet steps, the driver wizard and the admin review
+ * chips, so "the pair agreed across both wizards" is now enforced by there being
+ * one definition rather than by everyone copying it correctly.
+ *
+ * The explicit dark half is gone with it. It was needed because nothing flipped
+ * a literal, and this 12.5px tally text needs 4.5:1: the light green manages
+ * only 3.2:1 on the dark card's `oklch(0.205)`. The token's dark half reads
+ * 7.7:1 there, so the requirement is met by the token rather than restated here.
  */
-const SUCCESS_TEXT_CLASS = "text-[oklch(0.5_0.13_145)]";
+const SUCCESS_TEXT_CLASS = "text-status-success";
 
 /** The tally row's text colour for each tone. */
 const TALLY_TONE_CLASS: Record<FleetTallyRow["tone"], string> = {
@@ -93,6 +99,19 @@ export function FleetStepRail({
             aria-current={active ? "step" : undefined}
             className="flex cursor-pointer items-start gap-3 rounded-lg text-left focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
           >
+            {/* Identical to the driver rail's disc, which carries the full
+                reasoning for all three states. In short: `active` keeps brand
+                orange with literal white text because `--onboarding-accent` is
+                a fixed brand value that does not flip and white is the ink the
+                brand specifies on top of it — a token here would put near-black
+                text on orange in dark mode; `done` needs no variant because
+                `bg-primary`/`text-primary-foreground` are a matched pair that
+                inverts on its own; `pending` gets a dark-only lift because
+                `bg-border` is `oklch(1 0 0 / 10%)` in dark and composites to a
+                thinner disc than a step indicator wants. `dark:bg-secondary`
+                would be a regression — opaque `oklch(0.269)` is *less*
+                separation from this `bg-card` rail than the translucent border
+                it would replace. */}
             <span
               aria-hidden="true"
               className={`mt-px flex size-[22px] shrink-0 items-center justify-center rounded-full font-price text-[11px] font-bold ${
@@ -100,7 +119,7 @@ export function FleetStepRail({
                   ? "bg-onboarding-accent text-white"
                   : done
                     ? "bg-primary text-primary-foreground"
-                    : "bg-border text-muted-foreground"
+                    : "bg-border text-muted-foreground dark:bg-foreground/15"
               }`}
             >
               {entry.step}

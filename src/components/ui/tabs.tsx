@@ -29,7 +29,14 @@ const tabsListVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-muted",
+        // `bg-secondary` where upstream shadcn writes `bg-muted` — see the
+        // `accent`/`muted` trap note above `buttonVariants` in `button.tsx`.
+        // Every current caller is inside a `[data-admin-surface]` or
+        // `[data-onboarding-surface]`, where the two tokens hold identical
+        // values, so this changes nothing today; it stops the tab tray coming
+        // out as a solid brown-grey slab the first time a client page mounts
+        // a `Tabs`.
+        default: "bg-secondary",
         line: "gap-1 bg-transparent",
       },
     },

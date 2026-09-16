@@ -147,8 +147,7 @@ export type HubDriver = {
    *
    * City is the honest proxy: there is no zone model. `GeorgianCity` stops at
    * TBILISI, so the design's districts ("Vake", "Saburtalo", "Gldani") have
-   * nowhere in the schema to live. Retire once a `Zone` model exists — the same
-   * one `SAMPLE_ZONE_DEMAND` is waiting on.
+   * nowhere in the schema to live. Retire once a `Zone` model exists.
    */
   cityLabel: string;
   isOnline: boolean;

@@ -113,18 +113,48 @@ const MIN_PHONE_DIGITS = 10;
 const MAX_PHONE_DIGITS = 15;
 
 /**
- * The design's success green. Written as an arbitrary `oklch` value rather than
- * a theme token because `globals.css` defines no success colour at all: the
- * only green it ever had belonged to the retired ops console's palette, which
- * this surface never resolved. The same call `step-1-auth-personal.tsx` and the
- * wizard shell already make.
+ * The design's success green — the `--status-success` token from `globals.css`,
+ * which is the "success colour" this comment used to note the file did not have.
+ *
+ * One ink, one tint, taking different halves of the token. The ink is
+ * `status-success` and needs no `dark:` variant: the light green is too close in
+ * lightness to `oklch(0.205)` to be read on it, so the token lifts to
+ * `oklch(0.72)` at the same hue and chroma on its own.
+ *
+ * The tint is a `color-mix` against `--card`, a themed token, so the single 12%
+ * wash lands as a pale green on the light card and a deep one on the dark card.
+ * It mixes `status-success-SOLID`, the half pinned to the design's light value
+ * in both themes, because the wash should sit a hair off the card rather than
+ * glow off it — see the `-solid` note in `globals.css`.
+ *
+ * Identical to step 3's "ready" pill, and the same two names back the fleet
+ * status screen, the fleet step rail, the driver wizard and the admin review
+ * chips. One definition, so they can no longer drift apart.
  */
 const ASSIGNED_PILL_CLASS =
-  "border-transparent bg-[color-mix(in_oklch,oklch(0.5_0.13_145)_12%,var(--card))] text-[oklch(0.5_0.13_145)]";
+  "border-transparent bg-[color-mix(in_oklch,var(--color-status-success-solid)_12%,var(--card))] text-status-success";
 
-/** Design-exact field chrome, shared by every input in the create-account tab. */
+/**
+ * Design-exact field chrome, shared by every input in the create-account tab.
+ *
+ * `border-border` is deliberately ABSENT, having been removed rather than left
+ * alone. In light it was harmless — `--border` and `--input` are both
+ * `oklch(0.922 0 0)`, so it resolved to the same edge the `Input` primitive
+ * draws for itself. In dark the two part company: `--border` is white at 10%,
+ * `--input` at 15%, and `tailwind-merge` was handing the weaker of the two the
+ * win over the primitive's own `border-input`, leaving these fields a third
+ * fainter than every other shadcn input in the app for no reason anyone chose.
+ * The driver wizard's `step-2-licence.tsx` and `step-3c-technical-details.tsx`
+ * carry the same note; the four field classes have to stay in step.
+ *
+ * `bg-card` stays but only applies in light: `Input` carries `dark:bg-input/30`,
+ * and that variant rule survives `tailwind-merge` beside this unprefixed
+ * utility and wins in dark. That is the intended shadcn dark-field look — the
+ * field sits as a well slightly lifted off the panel. Do not pin `dark:bg-card`
+ * to "fix" it; that would put field and panel at the same `oklch(0.205 0 0)`.
+ */
 const FIELD_CLASS =
-  "h-[46px] rounded-[10px] border-border bg-card px-[13px] text-[15px] focus-visible:border-onboarding-accent focus-visible:ring-onboarding-accent/15 md:text-[15px]";
+  "h-[46px] rounded-[10px] bg-card px-[13px] text-[15px] focus-visible:border-onboarding-accent focus-visible:ring-onboarding-accent/15 md:text-[15px]";
 
 /** Design-exact label chrome. */
 const LABEL_CLASS =
@@ -715,7 +745,14 @@ export function Step4DriversAssignment() {
 
       {/* Raw buttons rather than `src/components/ui/button.tsx`: the design's
           48px wizard CTA is well outside that primitive's size scale, and these
-          match the accent/outline pair the shell's own welcome screen uses. */}
+          match the accent/outline pair the shell's own welcome screen uses.
+
+          Both are theme-correct as written and neither should grow a `dark:`
+          variant. The accent one is `text-white` on the brand orange, which is
+          theme-independent by design, so its label is too; the outline one is
+          semantic tokens end to end (`border-border`, `bg-card`, `bg-muted` on
+          hover), so it follows the theme on its own. The same pair appears on
+          the two dialog footers below, for the same reason. */}
       <div className="flex items-center gap-3.5 border-t border-border pt-[22px]">
         <button
           type="button"
@@ -1449,6 +1486,21 @@ function CreateDriverForm({
                     : "border-border bg-card hover:border-input"
                 }`}
               >
+                {/* Only the checked state is overridden, and only to swap the
+                    primitive's `--primary` fill for the brand orange. The
+                    `text-white` tick that rides on it is correct in both themes
+                    — the orange is theme-independent by design, so its tick has
+                    to be too, and the primitive's own `data-checked:
+                    text-primary-foreground` would invert to near-black against
+                    it in dark.
+
+                    The unchecked state is deliberately left entirely to the
+                    primitive (`border-input` plus its `dark:bg-input/30` fill),
+                    which is what every other checkbox in the app renders. The
+                    classes below touch size, radius and border *width* only, so
+                    nothing here fights that fill; if the dark unchecked box ever
+                    needs more contrast, it needs it in the primitive rather than
+                    on this one chip. */}
                 <Checkbox
                   id={checkboxId}
                   checked={selected}

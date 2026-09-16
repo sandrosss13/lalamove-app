@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
  * The frame every driver-hub screen renders inside.
  *
  * `(hub)` is a **route group**: the parentheses are invisible in the URL, so
- * these pages are still `/dashboard/today`, `/dashboard/earnings` and so on —
+ * these pages are still `/dashboard/loads`, `/dashboard/performance` and so on —
  * but they are a separate branch of the file tree, and layouts nest by tree
  * rather than by URL. That is the whole point of the group here:
  * `/dashboard/onboarding` and `/dashboard/fleet-onboarding` keep their URLs

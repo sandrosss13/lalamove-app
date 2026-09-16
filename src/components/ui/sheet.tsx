@@ -97,9 +97,16 @@ function SheetPortal({
  * `pointer-events-auto` is load-bearing only in modal mode, where Radix sets
  * `pointer-events: none` on `<body>`: without it the scrim would not receive
  * the press that dismisses the sheet. In non-modal mode it is a no-op.
+ *
+ * The two-theme colour treatment matches `SCRIM_CLASSES` in `dialog.tsx` —
+ * the two are separate constants because neither file should import the
+ * other's internals, but a sheet and a dialog opening over the same page must
+ * dim it by the same amount, so keep them equal. The long-form reasoning for
+ * the `dark:` value (10% black over a `#0a0a0a` page is invisible, so dark
+ * mode needs a far heavier scrim to read as modal at all) lives there.
  */
 const SCRIM_CLASSES =
-  "pointer-events-auto fixed inset-0 z-50 bg-black/10 duration-100 supports-backdrop-filter:backdrop-blur-xs";
+  "pointer-events-auto fixed inset-0 z-50 bg-black/10 duration-100 supports-backdrop-filter:backdrop-blur-xs dark:bg-black/60";
 
 /**
  * Radix's own overlay — **not used by `SheetContent`**; see this file's doc

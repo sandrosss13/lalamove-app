@@ -24,17 +24,17 @@
  * `HubHeaderJob.eta`, which is honest about being a delivery deadline counted
  * down rather than a live routing estimate.
  *
- * ## Relationship to `today.ts`
+ * ## Relationship to `jobs.ts`
  *
- * The pill's jobs are very nearly `HubTodayData.jobsInProgress`, and the query
- * behind them is deliberately a *duplicate* rather than an import: the two
- * surfaces select different columns for different reasons (the header needs a
- * reference and a deadline, Today needs stops, fares and a vehicle class), and
- * the hub loaders already duplicate `hubOrderScope()` five times over on the
- * same reasoning. What must not diverge is the *definition* of "in progress" —
- * `ACTIVE_JOB_STATUSES` and the ordering below — because a pill saying "3 jobs
- * in progress" over a Today screen listing two is a bug a user reports. If you
- * change either here, change it in `today.ts`, `jobs.ts`, `earnings.ts` and
+ * The pill's jobs are very nearly the in-flight rows `jobs.ts` lists, and the
+ * query behind them is deliberately a *duplicate* rather than an import: the
+ * two surfaces select different columns for different reasons (the header needs
+ * a reference and a deadline, the job list needs a fare, a vehicle class and a
+ * full status), and the hub loaders already duplicate `hubOrderScope()` three
+ * times over on the same reasoning. What must not diverge is the *definition*
+ * of "in progress" — `ACTIVE_JOB_STATUSES` and the ordering below — because a
+ * pill saying "3 jobs in progress" over a job list showing two is a bug a user
+ * reports. If you change either here, change it in `jobs.ts`, `earnings.ts` and
  * `performance.ts` too.
  *
  * Server-only: it talks to Prisma directly. The object it returns is handed
@@ -143,14 +143,14 @@ export type HubHeaderJob = {
    * building the route from them would render "Tbilisi → Tbilisi" for exactly
    * the intra-city job the design illustrates. The addresses are longer than
    * the mock but they are true; the dropdown truncates them with CSS, the way
-   * the Today card already truncates the identical string.
+   * the job table's own route column already truncates the identical string.
    */
   route: string;
   /**
    * The design's `job.who` sub-line: "<driver name> · <reference>" for a fleet,
    * and `null` for an independent or roster driver, who is looking at their own
-   * job and does not need to be told whose it is. Same reasoning, same
-   * persona-gating, as `HubTodayCurrentJob.driverName`.
+   * job and does not need to be told whose it is — the same persona gate the
+   * fleet's own driver column on Jobs applies.
    *
    * A fleet's row falls back to "Unassigned" for the name: `Order.driverId` is
    * nullable and stays unset between a company claiming an order and
@@ -173,12 +173,11 @@ export type HubHeaderJob = {
    *
    * `null` is common and not a fault: the column is nullable because every
    * order placed before the load board existed has no deadline to backfill
-   * from. The dropdown shows no time for those rows, the same way the Today
-   * card shows an undelivered stop as pending rather than inventing an arrival.
+   * from. The dropdown shows no time for those rows, the same way the job sheet
+   * shows an undelivered stop as pending rather than inventing an arrival.
    *
-   * Computed against the server's clock at render, like
-   * `HubLicenceAlert.daysRemaining`, so it is accurate to the moment the page
-   * was built and does not tick. A pill that must tick needs the deadline
+   * Computed against the server's clock at render, so it is accurate to the
+   * moment the page was built and does not tick. A pill that must tick needs the deadline
    * itself, and that is a field to add when a consumer actually wants it.
    */
   eta: string | null;
@@ -203,7 +202,7 @@ export type HubHeaderData = {
    * driver's "Job in progress · GE-48210" without reaching back into
    * `kind`/`companyId`. `resolveHubAccount()` owns that derivation and a second
    * copy of it is one refactor away from disagreeing with the nav and the page
-   * guards. Same role it plays on `HubTodayData`.
+   * guards.
    */
   persona: HubPersona;
   /**

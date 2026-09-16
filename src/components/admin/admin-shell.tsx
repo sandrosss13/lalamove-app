@@ -8,10 +8,12 @@ import { LogOut } from "lucide-react";
 import type { AdminRole } from "@prisma/client";
 
 import { ADMIN_NAV, type AdminNavSection } from "@/components/admin/admin-nav";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { signOut } from "@/lib/auth-client";
 import { hasAdminRole } from "@/lib/admin/roles";
+import { DATA_SCREEN_WIDTH_CLASSES } from "@/lib/layout";
 import { cn } from "@/lib/utils";
 
 /** Where a signed-out staff member lands. Mirrors `ADMIN_SIGN_IN_PATH`. */
@@ -164,18 +166,50 @@ export function AdminShell({ systemUser, children }: AdminShellProps) {
             </Badge>
           </div>
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleSignOut}
-            disabled={signingOut}
-          >
-            <LogOut data-icon="inline-start" />
-            {signingOut ? "Signing out…" : "Sign out"}
-          </Button>
+          {/*
+            The back office's only theme switch, and it has to live here: the
+            global site header carries one, but `globals.css` hides that header
+            outright under `body:has([data-admin-surface]) > header` (the back
+            office ships its own top bar and owns the viewport, so two navbars
+            would stack). This shell wraps every route under `src/app/admin/`,
+            so mounting it once here is the whole back office.
+
+            Sized down to `h-7 w-7` from the toggle's own `h-9 w-9` default so
+            it matches the `size="sm"` Sign out button beside it — tailwind-merge
+            resolves the conflict in favour of the passed classes. Nothing else
+            is overridden: the default look is drawn from shadcn tokens, which
+            inside `[data-admin-surface]` are the neutral set, so it re-tints
+            with the bar it sits in.
+          */}
+          <div className="flex shrink-0 items-center gap-2">
+            <ThemeToggle className="h-7 w-7" />
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSignOut}
+              disabled={signingOut}
+            >
+              <LogOut data-icon="inline-start" />
+              {signingOut ? "Signing out…" : "Sign out"}
+            </Button>
+          </div>
         </header>
 
-        <main className="min-w-0 flex-1 p-6">{children}</main>
+        {/*
+          The back office was the one surface with no width cap at all, so on an
+          ultra-wide display a user table or an analytics grid ran the full
+          2000px+ of the monitor. It now shares the platform's data-screen
+          width: fill what is there, stop at 1800px, centre in the rest. That
+          makes admin *narrower* than it was on the widest screens, which is the
+          point — a row whose first and last cells are a monitor apart is not
+          readable. Prose and forms are excluded platform-wide; see
+          `DATA_SCREEN_WIDTH_CLASSES`. `p-6` stays so content never runs into the
+          window edge as the column widens.
+        */}
+        <main className={`${DATA_SCREEN_WIDTH_CLASSES} min-w-0 flex-1 p-6`}>
+          {children}
+        </main>
       </div>
     </div>
   );

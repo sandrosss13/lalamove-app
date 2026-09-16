@@ -318,7 +318,10 @@ const SERVICE_LEVEL_OPTIONS: {
    * carries none. Rendered `aria-hidden`: the title is what says which tier
    * this is, and a lightning bolt read aloud would only get in the way of it.
    * Palette utilities rather than landing tokens, as the codebase already does
-   * for the "Best" badge — the landing set holds no semantic colour.
+   * for the "Best" badge — the landing set holds no semantic colour. Each one
+   * is a light/dark pair, because a palette utility is a fixed hex that does
+   * not follow the theme: both glyphs sit in a faint disc on the card, and the
+   * mid-ramp light values go muddy against the dark card behind it.
    */
   badge: { glyph: string; className: string } | null;
 }[] = [
@@ -326,7 +329,7 @@ const SERVICE_LEVEL_OPTIONS: {
     level: "PRIORITY",
     title: "Priority",
     description: "Flagged to dispatch as time-critical.",
-    badge: { glyph: "⚡", className: "text-amber-500" },
+    badge: { glyph: "⚡", className: "text-amber-500 dark:text-amber-300" },
   },
   {
     level: "REGULAR",
@@ -338,7 +341,7 @@ const SERVICE_LEVEL_OPTIONS: {
     level: "POOLING",
     title: "Pooling",
     description: "You accept a wider collection and delivery window.",
-    badge: { glyph: "%", className: "text-teal-600" },
+    badge: { glyph: "%", className: "text-teal-600 dark:text-teal-300" },
   },
 ];
 
@@ -706,7 +709,9 @@ const HANDLING_TAG_OPTIONS = [
  * white oklch literals — and those are deliberately not copied here. They belong
  * to that surface's `data-admin-surface` palette; this page is the landing
  * theme, where the rule (stated in `booking-form-primitives.tsx`) is landing
- * token utilities only, never a raw colour literal and never a `dark:` variant.
+ * token utilities only, never a raw colour literal and never a `dark:` variant —
+ * not because `dark:` cannot match (it matches app-wide now), but because the
+ * landing tokens already carry both themes.
  * What carries across is the *pattern*: a filled, inverted-text selected state
  * against an outlined idle one, expressed in this page's accent exactly as
  * `PICK_CARD_SELECTED_CLASSES`/`PICK_CARD_IDLE_CLASSES` already do for the
@@ -2001,9 +2006,18 @@ export function BookingForm(): React.ReactElement {
 
   /**
    * Enter, pressed anywhere in the form other than the multi-line
-   * description, does the same thing clicking the accent button in the bottom
-   * bar would — Calculate, or Recalculate once a quote exists. Never Book: see
-   * the closing comment.
+   * description, Calculates, the same as clicking the accent button in the
+   * bottom bar would. Never Book: see the closing comment.
+   *
+   * It stops short of the button in one place: with a quote already on screen
+   * it does nothing at all, rather than Recalculating. The invalidation effect
+   * above drops the estimate on any change to a pricing input, so a quote that
+   * is still showing is a quote for exactly the inputs currently entered, and
+   * quoting them again spends a request — three LocationIQ lookups — to arrive
+   * back at the number already being read. Enter is cheap to press and easy to
+   * press twice, and each one used to cost that. Pressing "Recalculate" still
+   * does, deliberately: reaching for the button is someone asking for a fresh
+   * quote, where a keypress is mostly someone moving through fields.
    *
    * Without this, the browser's own implicit-submission behavior takes over:
    * a lone text `<input>` inside a `<form>` submits that form on Enter even
@@ -2028,7 +2042,12 @@ export function BookingForm(): React.ReactElement {
 
     event.preventDefault();
 
-    void handleCalculate();
+    // `null` is precisely "nothing on screen is quoted for these inputs" —
+    // the effect above nulls it the moment a pricing input changes — so this
+    // quotes what has not been quoted and skips what has.
+    if (estimate === null) {
+      void handleCalculate();
+    }
 
     // Never the submit, at any quote state: placing a real order isn't a side
     // effect a stray Enter keypress should be able to trigger — that stays a
@@ -2816,7 +2835,7 @@ export function BookingForm(): React.ReactElement {
                               it. */}
                                 {isBestFit ? (
                                   <span
-                                    className={`rounded-full bg-emerald-600/10 px-2 py-0.5 text-[0.5625rem] font-semibold tracking-[0.1em] text-emerald-700 uppercase ${
+                                    className={`rounded-full bg-emerald-600/10 px-2 py-0.5 text-[0.5625rem] font-semibold tracking-[0.1em] text-emerald-700 uppercase dark:bg-emerald-400/15 dark:text-emerald-300 ${
                                       selected ? "mr-5" : ""
                                     }`}
                                   >
@@ -3549,7 +3568,14 @@ export function BookingForm(): React.ReactElement {
                         {option.badge ? (
                           <span
                             aria-hidden="true"
-                            className={`absolute top-2.5 right-2.5 flex size-[22px] items-center justify-center rounded-full bg-black/[0.04] text-xs font-bold ${option.badge.className}`}
+                            // `bg-black/[0.04]` is a *light*-mode recess: 4% of
+                            // black over a pale card. Over a dark card it is
+                            // invisible, and darkening it further would only
+                            // dig a hole. The dark half inverts the direction
+                            // and lifts the disc off the card with 8% white
+                            // instead — the same "one step from the surface"
+                            // relationship, mirrored.
+                            className={`absolute top-2.5 right-2.5 flex size-[22px] items-center justify-center rounded-full bg-black/[0.04] text-xs font-bold dark:bg-white/[0.08] ${option.badge.className}`}
                           >
                             {option.badge.glyph}
                           </span>

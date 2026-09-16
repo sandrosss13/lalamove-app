@@ -6,6 +6,8 @@ import { DriversScreen } from "@/components/driver-hub/screens/drivers-screen";
 import type { DriversVehicleOption } from "@/components/driver-hub/screens/drivers-add-panel";
 import { resolveHubAccount } from "@/lib/dashboard/hub/account";
 import { getHubDrivers } from "@/lib/dashboard/hub/drivers";
+import { getHubFleetAvailability } from "@/lib/dashboard/hub/fleet-availability";
+import { toHubDayKey } from "@/lib/dashboard/hub/timezone";
 import { getHubVehicles } from "@/lib/dashboard/hub/vehicles";
 import type { HubVehicle } from "@/lib/dashboard/hub/vehicles";
 import { VEHICLE_CLASSES } from "@/lib/driver-onboarding/vehicle-classes";
@@ -17,8 +19,17 @@ export const metadata: Metadata = {
   title: "Drivers · Driver Hub",
 };
 
-/** Where a non-business account is sent — the hub's own home screen. */
-const HUB_HOME = "/dashboard/today";
+/**
+ * Where a non-business account is sent — the board, which the hub labels
+ * "Dashboard" and puts first in every persona's rail.
+ *
+ * The one hub screen that bounces nobody: `(hub)/loads/page.tsx` carries no
+ * guard of its own, so a redirect here always comes to rest rather than
+ * starting a second hop. It is also where `src/app/dashboard/page.tsx` sends
+ * this account in the first place, so a driver who follows a stale Drivers
+ * bookmark is returned to the screen they signed in on.
+ */
+const HUB_HOME = "/dashboard/loads";
 
 /**
  * The licence category a vehicle's class demands, or null when it declares no
@@ -96,9 +107,14 @@ export default async function DriversPage() {
     redirect(HUB_HOME);
   }
 
-  const [drivers, vehicles] = await Promise.all([
+  // Today in Tbilisi, which is the day the Fleet Availability board opens on
+  // and the only day its "now" marker can appear. Resolved here rather than
+  // inside the loader so the board and every other hub screen on this request
+  // agree on which day "today" is.
+  const [drivers, vehicles, availability] = await Promise.all([
     getHubDrivers(account),
     getHubVehicles(account),
+    getHubFleetAvailability(account, toHubDayKey(new Date())),
   ]);
 
   if (drivers === null) {
@@ -109,6 +125,7 @@ export default async function DriversPage() {
     <DriversScreen
       data={drivers}
       vehicles={vehicleOptions(vehicles.vehicles)}
+      availability={availability}
     />
   );
 }

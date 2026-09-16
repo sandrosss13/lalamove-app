@@ -417,10 +417,15 @@ export function VehiclesAddForm({
                 Loading vehicle classes…
               </p>
             ) : typesError !== null ? (
-              <p
-                role="alert"
-                className="text-[13px] text-[oklch(44.4%_0.177_26.899)]"
-              >
+              /* `text-destructive` rather than the handoff's red. Both error
+                 lines in this form used to spell `oklch(44.4% 0.177 26.899)`
+                 out — a fixed dark red, right on the white artboard and nearly
+                 unreadable on the dark card under `html.dark`. The token is a
+                 half-step lighter in light mode and lifts in dark; the theme
+                 awareness is what the literal could never have, and the hub
+                 accepted that half-step everywhere so its error red stays one
+                 colour. */
+              <p role="alert" className="text-[13px] text-destructive">
                 {typesError}
               </p>
             ) : (
@@ -476,7 +481,15 @@ export function VehiclesAddForm({
                         ? INK : LINE)`, over `background: '#fff'` in both
                         states. Varying the width instead made the unselected
                         row's dot a hairline circle and shifted its optical
-                        weight as you moved down the list. */}
+                        weight as you moved down the list.
+
+                        The artboard's three literals are already tokenised
+                        here: `INK`/`LINE` are `border-foreground`/
+                        `border-border` and its `'#fff'` fill is
+                        `bg-background`, so the ring inverts with `html.dark`
+                        and keeps the same selected/unselected reading on a dark
+                        card. Nothing in this row needs a `dark:` override —
+                        re-spelling any of the three would be what breaks it. */}
                     <span
                       aria-hidden="true"
                       className={cn(
@@ -549,12 +562,11 @@ export function VehiclesAddForm({
           </Field>
         </div>
 
-        {/* Inline, beside the control that failed — never an `alert()`. */}
+        {/* Inline, beside the control that failed — never an `alert()`. Same
+            `text-destructive` as the vehicle-class error above, for the reason
+            documented there. */}
         {error ? (
-          <p
-            role="alert"
-            className="mt-4 text-[13px] text-[oklch(44.4%_0.177_26.899)]"
-          >
+          <p role="alert" className="mt-4 text-[13px] text-destructive">
             {error}
           </p>
         ) : null}
@@ -567,12 +579,16 @@ export function VehiclesAddForm({
               "h-auto rounded-md px-[15px] py-[9px] text-[13px] font-medium",
               canSave
                 ? "bg-foreground text-background hover:bg-foreground/90"
-                : // The design's disabled save is filled with LINE — the same
-                  // `oklch(92.8% 0.006 264.531)` as every border on the screen,
-                  // a step lighter than `--muted` — and shows a not-allowed
-                  // cursor rather than fading out, so the base variant's
-                  // `opacity-50` and `pointer-events-none` are both overridden;
-                  // the latter is what lets the cursor show.
+                : // The design's disabled save is filled with LINE — the
+                  // artboard's `oklch(92.8% 0.006 264.531)`, the same value it
+                  // draws every border on the screen with, a step lighter than
+                  // `--muted` — and shows a not-allowed cursor rather than
+                  // fading out, so the base variant's `opacity-50` and
+                  // `pointer-events-none` are both overridden; the latter is
+                  // what lets the cursor show. `bg-border` is how that is
+                  // expressed rather than the literal, which is why the fill
+                  // follows `html.dark` down to `oklch(1 0 0 / 10%)` and stays
+                  // the same half-step off `--muted` there.
                   "cursor-not-allowed bg-border text-muted-foreground hover:bg-border disabled:pointer-events-auto disabled:opacity-100",
             )}
           >

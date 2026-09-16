@@ -287,7 +287,16 @@ export function Step4ReviewSubmit() {
           key={card.title}
           className="overflow-hidden rounded-[13px] border border-border bg-card"
         >
-          <div className="flex items-center justify-between border-b border-border bg-muted/40 px-[13px] py-[11px]">
+          {/* `bg-secondary/40` rather than `bg-muted/40` for the card's header
+              band: `--secondary` and `--muted` hold identical values in both
+              themes (`oklch(0.97 0 0)` light, `oklch(0.269 0 0)` dark), so the
+              band is the same colour it has always been — but `--color-muted`
+              is the var-chain `var(--admin-muted, var(--landing-muted))` and
+              only resolves to the shadcn value because `globals.css` pins
+              `--admin-muted` on `body:has([data-onboarding-surface])`.
+              `--color-secondary` reads `--secondary` directly, with no fallback
+              arm that could drop this band into the landing palette. */}
+          <div className="flex items-center justify-between border-b border-border bg-secondary/40 px-[13px] py-[11px]">
             <h2 className="text-[12.5px] font-semibold">{card.title}</h2>
             <button
               type="button"
@@ -328,6 +337,10 @@ export function Step4ReviewSubmit() {
           type="button"
           onClick={() => void handleSubmit()}
           disabled={submitting}
+          // `text-white` on `bg-onboarding-accent` is deliberate in both themes:
+          // the brand orange is theme-independent by design, so the label on it
+          // has to be too. `text-primary-foreground` would flip to near-black on
+          // orange under `.dark`. Leave the pair as it is.
           className="h-12 cursor-pointer rounded-[11px] bg-onboarding-accent px-[30px] text-[15px] font-semibold tracking-[-0.01em] text-white transition-colors hover:bg-onboarding-accent-hover focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
         >
           {submitting ? "Submitting…" : "Submit application"}

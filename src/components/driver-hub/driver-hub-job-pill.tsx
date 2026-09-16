@@ -34,24 +34,25 @@ import { cn } from "@/lib/utils";
 const ACCENT_BG = "bg-[oklch(64%_0.19_48)]";
 
 /**
- * Where a job row and the dropdown's footer link point.
+ * Where the dropdown's footer link and the phone bar point: the jobs list.
  *
- * `/dashboard/jobs/[id]` — the job sheet — now exists, so a job IS addressable
- * by URL, and a *driver's* dropdown rows link to their own sheets. These two
- * constants are what the footer link always uses, and what a fleet's rows use
- * as well: the footer is the "see all of them" affordance and a set has no
- * sheet, while a fleet's rows name jobs the owner is not the driver of and so
- * cannot open. See the row's own comment for that second rule.
+ * **One constant, where there were two.** `FLEET_JOBS_HREF` and
+ * `SINGLE_DRIVER_JOB_HREF` were kept apart against a divergence that has now
+ * happened and resolved the other way. The prediction was that a fleet would
+ * need a different destination because a company-scoped job sheet did not
+ * exist; it exists — `getHubJobSheet` accepts a `companyId` claim as well as a
+ * `driverId` one — so a fleet's rows go to the same sheet a driver's do, and
+ * nothing is left for the split to express.
  *
- * This comment previously said no such route existed and that linking to one
- * would 404 from the header on every click — true when written, and the reason
- * each persona was given the nearest list instead: a fleet gets the screen it
- * dispatches from, a single driver gets Today, whose current-job card is that
- * one job in full. Both remain the right destinations for a *footer*; what
- * changed is that they are now a choice rather than the only option.
+ * What remains is the footer, and it is the same list for both personas for a
+ * reason that has nothing to do with persona: it is the "see all of them"
+ * affordance, and a set of jobs has no sheet. (A single driver's footer used to
+ * point at a "Today" screen whose current-job card showed that one job in full;
+ * that screen has been deleted, so Job history is the list they have.) The two
+ * *labels* stay distinct — see `FLEET_LINK_LABEL` — because what the footer
+ * offers each reader genuinely differs even when the URL does not.
  */
-const FLEET_JOBS_HREF = "/dashboard/jobs";
-const SINGLE_DRIVER_JOB_HREF = "/dashboard/today";
+const JOBS_LIST_HREF = "/dashboard/jobs";
 
 /** The design's footer link copy, one per persona shape. */
 const FLEET_LINK_LABEL = "View all jobs in progress";
@@ -98,11 +99,6 @@ function jobPillLabel(
   return shortId ? `Job in progress · ${shortId}` : "Job in progress";
 }
 
-/** One row of the dropdown, and the mobile bar, share this destination rule. */
-function jobsHref(persona: HubPersona): string {
-  return persona === "BUSINESS" ? FLEET_JOBS_HREF : SINGLE_DRIVER_JOB_HREF;
-}
-
 /**
  * The desktop pill: an accent dot, the label, and a dropdown listing the jobs.
  *
@@ -133,7 +129,6 @@ export function DriverHubJobPill({
   }
 
   const label = jobPillLabel(persona, jobsInProgressCount, jobs);
-  const href = jobsHref(persona);
   const linkLabel =
     persona === "BUSINESS" ? FLEET_LINK_LABEL : SINGLE_DRIVER_LINK_LABEL;
 
@@ -188,19 +183,21 @@ export function DriverHubJobPill({
           {jobs.map((job) => (
             <Link
               key={job.id}
-              // A row names one job, so for a driver it goes to that job's
-              // sheet — the route the header has been waiting for.
+              // A row names one job, so it goes to that job's sheet — for
+              // every persona, including a fleet.
               //
-              // **Not for a fleet.** `hubOrderScope` scopes a BUSINESS
-              // account's rows by `companyId`, so they are jobs its employees
-              // are driving, or are still unassigned. `getHubJobSheet`
-              // requires `driverId === userId`, so every one of those rows
-              // would land the owner on the generic "Order not found." — the
-              // same page a probed id gets, which is correct behaviour for a
-              // stranger's order and useless feedback for your own fleet's.
-              // A company-scoped sheet is a different screen; until it
-              // exists, the list is the honest destination.
-              href={persona === "BUSINESS" ? href : `/dashboard/jobs/${job.id}`}
+              // A BUSINESS account's rows used to point at the list instead.
+              // `hubOrderScope` scopes them by `companyId`, so they are jobs
+              // the owner's employees are driving or that nobody has been sent
+              // to yet, and `getHubJobSheet` required `driverId === userId`:
+              // every one of those rows landed the owner on the generic "Order
+              // not found.", the same page a probed id gets. That is correct
+              // feedback about a stranger's order and useless feedback about
+              // your own fleet's. The loader accepts the `companyId` claim now
+              // and the sheet renders read-only for it, so the workaround is
+              // gone rather than left routing fleets around a refusal that no
+              // longer happens.
+              href={`/dashboard/jobs/${job.id}`}
               // The panel does not survive the navigation it starts: without
               // this the popover stays mounted and open over the screen the
               // driver just asked for.
@@ -234,7 +231,7 @@ export function DriverHubJobPill({
             </Link>
           ))}
           <Link
-            href={href}
+            href={JOBS_LIST_HREF}
             onClick={() => {
               onOpenChange(false);
             }}
@@ -263,6 +260,19 @@ export type DriverHubJobBarProps = Omit<
  * of the popover's state, which is also why the header can mount exactly one
  * jobs Popover across both breakpoints instead of a hidden duplicate whose
  * portalled content would still render.
+ *
+ * **It stays the list, now that the dropdown's rows are sheets.** This bar has
+ * no rows to give a destination to: it is one link wearing `jobPillLabel`,
+ * which for a fleet is a *count* ("3 jobs in progress"). A count that navigated
+ * to one of the three would have to pick one, and picking silently is worse
+ * than the extra tap; making it conditional on `jobsInProgressCount === 1` would
+ * leave one control meaning two things depending on a number the reader is not
+ * looking at. Giving it real per-job destinations means turning it into a list,
+ * which is the dropdown the width already ruled out.
+ *
+ * A single driver's bar does name one job, and still points at the list — a
+ * divergence from the desktop rows that predates the company sheet and is
+ * unrelated to it.
  */
 export function DriverHubJobBar({
   persona,
@@ -275,7 +285,7 @@ export function DriverHubJobBar({
 
   return (
     <Link
-      href={jobsHref(persona)}
+      href={JOBS_LIST_HREF}
       className="flex min-h-11 items-center gap-2 border-b border-border px-4 text-[13px] font-semibold active:bg-accent lg:hidden"
     >
       <span

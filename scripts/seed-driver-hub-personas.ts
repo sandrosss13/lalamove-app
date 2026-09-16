@@ -418,10 +418,9 @@ type ActiveOrderPlan = {
   /** `null` means a company order claimed but not yet dispatched to a person. */
   driver: SeedDriverKey | null;
   /**
-   * How long ago the order was booked. The header pill and the Today card both
-   * order in-flight jobs by `createdAt` descending and then cap the list, so
-   * this is what decides which rows land in the preview — see the comments on
-   * the rows themselves.
+   * How long ago the order was booked. The header pill orders in-flight jobs by
+   * `createdAt` descending and then caps the list, so this is what decides
+   * which rows land in the preview — see the comments on the rows themselves.
    */
   bookedMinutesAgo: number;
   /**
@@ -564,6 +563,142 @@ const ACTIVE_ORDERS: readonly ActiveOrderPlan[] = [
   },
 ];
 
+/**
+ * The one order in the fixture that sits in `CLAIMED` — the state a company
+ * order occupies between the two halves of the real dispatch flow.
+ *
+ * `POST /api/logistics-company/orders/[id]/claim` writes `companyId` and
+ * `status: CLAIMED` and names no vehicle; `POST .../dispatch` is the separate
+ * step that pins `driverId`, `vehicleId` and `ACCEPTED`. So **`CLAIMED` with a
+ * null driver and a null vehicle is not a half-written row, it is the state the
+ * fleet's board leaves a load in the moment it wins it**, and it is the only
+ * state from which a dispatcher can be shown a vehicle picker at all.
+ *
+ * Nothing in this fixture reached it before. Every other company order here is
+ * already `ACCEPTED` or later, and `GET .../dispatch-options` and `POST
+ * .../dispatch` both scope on `{ id, companyId, status: CLAIMED }` and answer
+ * 404 to anything else — so without this row the dispatch dialog could not be
+ * opened against a seeded order, in any database, by any means short of editing
+ * one by hand.
+ *
+ * **Not `fleet-active-unassigned` relabelled.** That row is `ACCEPTED` with a
+ * null driver, which is what the fleet header pill's "Unassigned" sub-line is
+ * seeded to render, and it is deliberately left alone — it is also, on its own
+ * terms, a shape the real claim/dispatch pair cannot produce, but changing it
+ * would move a row other expectations in this file are written against.
+ *
+ * It is a separate table from `ACTIVE_ORDERS` rather than a sixth entry in it
+ * because "in flight" is a claim this file makes and prints: `ACTIVE_JOB_STATUSES`
+ * in `src/lib/dashboard/hub/header.ts` is `[ACCEPTED, IN_TRANSIT]`, so a `CLAIMED`
+ * row is *not* counted by the pill, and folding it into that array would make
+ * the summary's "fleet pill must read 5" line read 6 and be wrong.
+ */
+type ClaimedOrderPlan = {
+  key: string;
+  /**
+   * Narrowed to the single status this table exists for, the way
+   * `ActiveOrderPlan` and `FinishedOrderPlan` narrow theirs. It is written out
+   * rather than hard-coded at the upsert so the row's status reads off the plan
+   * beside the figures that depend on it, and so widening this fixture to a
+   * second claimed-state order is an edit to the union rather than to the loop.
+   */
+  status: Extract<OrderStatus, "CLAIMED">;
+  /**
+   * The `VehicleTypeSpec.code` the client booked — the *floor*
+   * `meetsBookedClass` holds every candidate vehicle to, and the reason two of
+   * the fleet's four are refused. See `proves` for the arithmetic.
+   */
+  bookedSpecCode: string;
+  price: number;
+  serviceLevel: ServiceLevel;
+  distanceKm: number;
+  cargoCategory: CargoCategory;
+  bookedMinutesAgo: number;
+  deadlineMinutesFromNow: number;
+  scheduledDaysFromNow: number;
+  /**
+   * The declared load envelope, and the only order in this file that declares
+   * one — `baseOrderData` leaves all four columns null on every other row.
+   *
+   * Two things need it. `hasDeclaredEnvelope` in `src/lib/orders/vehicle-fit.ts`
+   * skips the cargo check entirely for an order that declared nothing, so a null
+   * envelope would leave `dispatchVerdictFor`'s fourth branch unreachable from
+   * this fixture; and the dispatch dialog renders the load's figures beside each
+   * vehicle's, which is a comparison with one side missing otherwise.
+   *
+   * **Every figure sits inside the booked class's own catalogue envelope**, so
+   * this is an order `POST /api/orders` would have accepted: `booking-fit.ts`
+   * refuses a load bigger than the class it is quoted against, and a fixture
+   * that violated that would be exercising the picker with an order the platform
+   * cannot produce.
+   */
+  cargoWeightKg: number;
+  cargoLengthM: number;
+  cargoWidthM: number;
+  cargoHeightM: number;
+  /** What this row is in the fixture to demonstrate. */
+  proves: string;
+};
+
+/**
+ * The claimed-but-undispatched order, and the numbers that make it a useful one.
+ *
+ * **The point of the cargo and the booked class is that the fleet splits on
+ * them.** A load every vehicle can take renders a picker in which every row says
+ * the same thing, which proves nothing about a dialog whose entire job is to
+ * show fit and unfit side by side. None of the four company vehicles declares
+ * any capacity of its own (see `VEHICLES`), so each resolves to its class's
+ * catalogue figures exactly, and against a `BOX_TRUCK` booking they split 2–2:
+ *
+ * - `PS-FLT-002` and `PS-FLT-004`, both `BOX_TRUCK` (3,500 kg, 4.5 x 2.1 x 2.2,
+ *   DRY_BOX) — **FITS**. They are the booked class itself, so `meetsBookedClass`
+ *   admits them on its identity clause; they offer the DRY_BOX body
+ *   `baseOrderData` asks for; and the envelope below is inside their hold.
+ * - `PS-FLT-001`, `CARGO_VAN` (1,000 kg, 2.5 x 1.6 x 1.6) — **UNDER_BOOKED_CLASS**.
+ *   Under the 3,500 kg floor and short on all three dimensions.
+ * - `PS-FLT-003`, `REFRIGERATED_VAN` (1,000 kg, 2.8 x 1.6 x 1.6) — **UNDER_BOOKED_CLASS**,
+ *   for the same arithmetic. Its extra 0.3 m of length does not save it; the
+ *   four axes are compared with no compensation between them.
+ *
+ * The cargo is sized so it *independently* rules both vans out — 2,150 kg over
+ * their 1,000, and over on every dimension — even though neither ever reaches
+ * the cargo check, because `dispatchVerdictFor` refuses on the booked class
+ * first. That redundancy is deliberate: it means the refusal survives someone
+ * later re-rating a van's class or declaring a capacity on the row, and it makes
+ * the dialog's "too small for this load" reading of the fixture true as well as
+ * its "under the booked class" one.
+ *
+ * All four vehicles are **approved** — `isDispatchApproved` grandfathers a
+ * vehicle with no `BusinessApplicationVehicle` row, and this seed writes none —
+ * so the `NOT_APPROVED` verdict is not reachable from this fixture, and neither
+ * is `WRONG_BODY_TYPE` while the booked body is the one every DRY_BOX class in
+ * the fleet offers. Both would need a second claimed order and a de-rated or
+ * unreviewed vehicle; this row is the 2–2 split, not the whole verdict table.
+ */
+const CLAIMED_ORDER: ClaimedOrderPlan = {
+  key: "fleet-claimed",
+  status: "CLAIMED",
+  bookedSpecCode: "BOX_TRUCK",
+  price: 232,
+  serviceLevel: "REGULAR",
+  distanceKm: 39.6,
+  cargoCategory: "CONSTRUCTION_MATERIALS",
+  bookedMinutesAgo: 12,
+  // A real deadline rather than null, because the dispatch dialog shows the
+  // dispatcher how long they have to pick — the case a null would not exercise.
+  deadlineMinutesFromNow: 300,
+  // Today, so the driver this gets dispatched to can actually start it: the job
+  // sheet's `Start delivery` is blocked until the scheduled Tbilisi day, and a
+  // forward-dated row would make the dispatch verifiable but its result not.
+  scheduledDaysFromNow: 0,
+  cargoWeightKg: 2150,
+  cargoLengthM: 3.9,
+  cargoWidthM: 1.95,
+  cargoHeightM: 2.05,
+  proves:
+    "Claimed by the fleet, dispatched to nobody: the only order the dispatch dialog opens on. Booked as a Box Truck with a 2,150 kg load, so the picker shows 2 of 4 company vehicles fitting and the two vans refused under the booked class.",
+};
+
 type FinishedOrderPlan = {
   key: string;
   status: Extract<OrderStatus, "COMPLETED" | "CANCELLED">;
@@ -590,10 +725,10 @@ type FinishedOrderPlan = {
 };
 
 /**
- * The finished orders — everything Earnings, Performance and Today count.
+ * The finished orders — everything Earnings and Performance count.
  *
  * Every one of these is dated into the **current Tbilisi week** at run time (see
- * `finishedTimestamps`), because that is the window all three screens use.
+ * `finishedTimestamps`), because that is the window both rollups use.
  * Both `createdAt` and `completedAt` are set, and both matter: Earnings and the
  * daily bars key on `completedAt`, while the completion and cancellation rates
  * and `unattributedFinishedJobCount` key on `createdAt`. A row created last week
@@ -765,7 +900,7 @@ const FINISHED_ORDERS: readonly FinishedOrderPlan[] = [
     distanceKm: 43.9,
     cargoCategory: "RETAIL_STOCK",
     proves:
-      "Priority plus overtime, so their Wallet total is not a plain sum of prices.",
+      "Priority plus overtime, so their earnings total is not a plain sum of prices.",
   },
   {
     key: "independent-done-3",
@@ -892,10 +1027,10 @@ function write(lines: readonly string[]): void {
  * Monday, when there is only one day to spread over and the fixture honestly
  * has one bar.
  *
- * Everything is pinned to the past. Today's "Earned today" aggregate has a
- * `gte` bound and no upper one, so an order completed at a future instant would
- * silently count toward today's figure — the one date mistake here that
- * produces a wrong number rather than an empty screen.
+ * Everything is pinned to the past. The week aggregates have a `gte` bound and
+ * no upper one, so an order completed at a future instant would silently count
+ * toward this week's figure — the one date mistake here that produces a wrong
+ * number rather than an empty screen.
  */
 function finishedTimestamps(
   index: number,
@@ -1037,7 +1172,18 @@ async function main(): Promise<void> {
     // The vehicle taxonomy has to exist before anything can reference it. It is
     // written by `prisma/seed.ts`, so a database that has never been seeded
     // fails here with a clear cause rather than on a foreign key later.
-    const specCodes = [...new Set(VEHICLES.map((vehicle) => vehicle.specCode))];
+    // The claimed order's booked class is listed alongside the vehicles' own
+    // classes rather than assumed to be among them. It happens to be one the
+    // fleet also drives today, but the booked class is a property of the
+    // *booking* — a client may book a class nobody in this fixture owns — and
+    // resolving it here is what keeps `Order.vehicleTypeSpecId`'s foreign key
+    // satisfied in the same run whatever `CLAIMED_ORDER.bookedSpecCode` is set to.
+    const specCodes = [
+      ...new Set([
+        ...VEHICLES.map((vehicle) => vehicle.specCode),
+        CLAIMED_ORDER.bookedSpecCode,
+      ]),
+    ];
     const specs = await prisma.vehicleTypeSpec.findMany({
       where: { code: { in: specCodes } },
       select: { id: true, code: true, label: true },
@@ -1120,6 +1266,7 @@ async function main(): Promise<void> {
     // is writing over a stranger's order.
     const orderIds = [
       ...ACTIVE_ORDERS.map((order) => seedId("order", order.key)),
+      seedId("order", CLAIMED_ORDER.key),
       ...FINISHED_ORDERS.map((order) => seedId("order", order.key)),
     ];
     const existingOrders = await prisma.order.findMany({
@@ -1156,6 +1303,7 @@ async function main(): Promise<void> {
       `  Vehicles:            ${VEHICLES.length} (1 driver-owned, ${VEHICLES.length - 1} company-owned)`,
       `  Live assignments:    ${VEHICLES.filter((v) => v.assignedTo !== null).length}`,
       `  Orders in flight:    ${ACTIVE_ORDERS.length}`,
+      `  Orders claimed:      1, held by the fleet and dispatched to nobody — the dispatch dialog's only subject`,
       `  Orders finished:     ${FINISHED_ORDERS.length}, dated into the current Tbilisi week`,
       "",
       "  Every row is namespaced: users under " +
@@ -1602,6 +1750,75 @@ async function main(): Promise<void> {
       orderIndex += 1;
     }
 
+    // The claimed-but-undispatched order. Written on its own rather than
+    // through either loop above because it is the only row that declares a
+    // cargo envelope and the only one whose booked class is chosen for what it
+    // *refuses* — see `CLAIMED_ORDER` for the 2–2 split those figures produce.
+    const claimedSpecId = specIdByCode.get(CLAIMED_ORDER.bookedSpecCode);
+    if (claimedSpecId === undefined) {
+      throw new SeedError(
+        `VehicleTypeSpec ${CLAIMED_ORDER.bookedSpecCode} is not seeded.`,
+      );
+    }
+
+    const claimedAdjustment = serviceLevelAdjustment(
+      CLAIMED_ORDER.serviceLevel,
+      CLAIMED_ORDER.price,
+    );
+    const claimedCreatedAt = new Date(
+      now.getTime() - CLAIMED_ORDER.bookedMinutesAgo * MS_PER_MINUTE,
+    );
+
+    const claimedOrderData = {
+      ...baseOrderData(
+        orderIndex,
+        CLAIMED_ORDER.cargoCategory,
+        CLAIMED_ORDER.distanceKm,
+        claimedSpecId,
+      ),
+      ...moneyFor(CLAIMED_ORDER.price, claimedAdjustment, 0),
+      status: CLAIMED_ORDER.status,
+      price: CLAIMED_ORDER.price,
+      serviceLevel: CLAIMED_ORDER.serviceLevel,
+      serviceLevelAdjustment: claimedAdjustment,
+      // The whole point of the row: the fleet holds it, nobody is driving it.
+      // Both nulls are written on the update half as well as the create half,
+      // so a re-run after somebody dispatched this order by hand puts it back
+      // into the state the dialog needs rather than leaving it dispatched.
+      driverId: null,
+      vehicleId: null,
+      companyId: fleetCompanyId,
+      // The declared load. Null on every other seeded order, which is why
+      // `dispatchVerdictFor`'s cargo branch has had nothing to measure.
+      cargoWeightKg: CLAIMED_ORDER.cargoWeightKg,
+      cargoLengthM: CLAIMED_ORDER.cargoLengthM,
+      cargoWidthM: CLAIMED_ORDER.cargoWidthM,
+      cargoHeightM: CLAIMED_ORDER.cargoHeightM,
+      createdAt: claimedCreatedAt,
+      // Claimed, never started and never finished: the two instants a dispatch
+      // has not happened yet are exactly the two that stay null.
+      inTransitAt: null,
+      completedAt: null,
+      deliveryDeadline: new Date(
+        now.getTime() + CLAIMED_ORDER.deadlineMinutesFromNow * MS_PER_MINUTE,
+      ),
+      scheduledAt: new Date(
+        now.getTime() + CLAIMED_ORDER.scheduledDaysFromNow * MS_PER_DAY,
+      ),
+      pickupWindowStart: claimedCreatedAt,
+      pickupWindowEnd: new Date(claimedCreatedAt.getTime() + 3 * MS_PER_HOUR),
+      description: `${SEED_PREFIX} — ${CLAIMED_ORDER.proves}`,
+    };
+
+    const claimedOrder = await prisma.order.upsert({
+      where: { id: seedId("order", CLAIMED_ORDER.key) },
+      create: { id: seedId("order", CLAIMED_ORDER.key), ...claimedOrderData },
+      update: claimedOrderData,
+      select: { reference: true },
+    });
+
+    orderIndex += 1;
+
     let finishedIndex = 0;
     for (const plan of FINISHED_ORDERS) {
       const { driverId, vehicleId, specCode } = assignmentFor(plan.driver);
@@ -1680,6 +1897,8 @@ async function main(): Promise<void> {
       `  Fleet:     ${fleetName} (activated, ${DRIVERS.length - 1} drivers on the roster, ${VEHICLES.length - 1} vehicles)`,
       `  Orders in flight (fleet pill must read ${ACTIVE_ORDERS.filter((o) => o.scope === "FLEET").length} while listing 3):`,
       ...activeSummaries,
+      "  Claimed, awaiting dispatch (this one is not counted by the pill — CLAIMED is not in flight):",
+      `  ${claimedOrder.reference.padEnd(12)} ${CLAIMED_ORDER.status.padEnd(11)} ${"unassigned".padEnd(15)} ${CLAIMED_ORDER.proves}`,
       "",
       "Sign in",
       "-------",
@@ -1709,33 +1928,29 @@ async function main(): Promise<void> {
         : []),
       "Check these",
       "-----------",
-      `  Start at  ${origin}/sign-in  and then  ${origin}/dashboard  (expect a redirect to /dashboard/today).`,
+      `  Start at  ${origin}/sign-in  and then  ${origin}/dashboard  (expect a redirect to /dashboard/loads).`,
       "",
       "  INDEPENDENT",
-      `    ${origin}/dashboard/today          earnings, one job in flight, weekly incentive card`,
-      `    ${origin}/dashboard/earnings       their own Wallet, week figures`,
       `    ${origin}/dashboard/loads          the open board`,
       `    ${origin}/dashboard/jobs`,
-      `    ${origin}/dashboard/performance    bars across the week, rate under 100%`,
+      `    ${origin}/dashboard/performance    their own week: earnings, bars across the week, rate under 100%`,
       `    ${origin}/dashboard/vehicles       one owned van, Add-vehicle button present`,
       `    ${origin}/dashboard/account?section=payout   payout panel renders, 5 rail rows`,
-      '    expect: 6 sidebar links, chip reads "Independent", online toggle present',
+      '    expect: 4 sidebar links, chip reads "Independent", online toggle present',
       "",
       "  ROSTER  — the persona this whole feature turns on",
-      `    ${origin}/dashboard/today          employer name shown, NO zone-demand card`,
+      `    ${origin}/dashboard/loads          the same open board an independent driver gets`,
       `    ${origin}/dashboard/jobs`,
-      `    ${origin}/dashboard/performance`,
+      `    ${origin}/dashboard/performance    their own week; nothing here is withheld from them any more`,
       `    ${origin}/dashboard/vehicles       the company van reached through their assignment, NO Add-vehicle button`,
       '    expect: 4 sidebar links, chip reads "Company driver"',
       "",
-      "    MUST REFUSE (all three are silent redirects or a JSON 403 — there is no error page,",
+      "    MUST REFUSE (both are silent redirects or a JSON 403 — there is no error page,",
       "    so check the URL bar and the status code, not for a message on screen):",
-      `      1. ${origin}/dashboard/earnings`,
-      "         -> 307 to /dashboard/today. The Wallet link is also absent from the sidebar.",
-      `      2. ${origin}/dashboard/account?section=payout`,
+      `      1. ${origin}/dashboard/account?section=payout`,
       "         -> 307 to /dashboard/account with the query string stripped; the Profile",
       '            panel renders and the rail shows 4 rows, without "Payout & bank details".',
-      "      3. POST /api/driver-profile/vehicles",
+      "      2. POST /api/driver-profile/vehicles",
       '         -> 403 "Drivers who belong to a company drive their employer\'s vehicles..."',
       "            The body must be a COMPLETE multipart form or an earlier 400 fires instead",
       "            and the guard is never reached:",
@@ -1750,26 +1965,28 @@ async function main(): Promise<void> {
       "                -F 'year=2021' -F 'vehicleTypeCode=CARGO_VAN' \\",
       "                -F 'photos=@/tmp/vehicle.png;type=image/png'",
       "",
-      "    Bonus refusals, same cookie jar:",
-      `      ${origin}/dashboard/loads   -> 307 to /dashboard/today`,
-      `      curl -i -b "$JAR" "${origin}/api/loads"   -> 403`,
-      "",
-      '    Expected NOT to refuse, and documented as deliberate: "Earned today" is still',
-      "    shown to a roster driver on /dashboard/today even though those fares go to their",
-      "    employer. That is a known, argued inconsistency in today.ts — not a bug to file.",
+      "    Expected NOT to refuse: the board and the wallet are both open to an employed",
+      "    driver now. They claim from /dashboard/loads like anyone else, and the earnings",
+      "    that used to live behind a withheld Wallet link are part of /dashboard/performance.",
       "",
       "  BUSINESS",
-      `    ${origin}/dashboard/today          fleet vehicle count, no online toggle`,
-      `    ${origin}/dashboard/earnings       fleet card — look for the "Not assigned to a driver" row,`,
-      "                                        which two completed driverless orders exist to produce",
-      `    ${origin}/dashboard/performance    look for unattributedFinishedJobCount > 0, and for the`,
-      "                                        idle roster driver who appears here but NOT on Earnings",
+      `    ${origin}/dashboard/performance    fleet card — look for the "Not assigned to a driver" row,`,
+      "                                        which two completed driverless orders exist to produce;",
+      "                                        for unattributedFinishedJobCount > 0; and for the idle",
+      "                                        roster driver the performance rollup lists and the",
+      "                                        earnings one does not",
       `    ${origin}/dashboard/drivers        ${DRIVERS.length - 1} roster drivers`,
       `    ${origin}/dashboard/employees`,
       `    ${origin}/dashboard/vehicles       ${VEHICLES.length - 1} company vehicles, one of them unassigned`,
-      `    ${origin}/dashboard/loads`,
+      `    ${origin}/dashboard/loads       under "My loads", the CLAIMED order above — Dispatch opens the`,
+      `                                        vehicle picker (GET /api/logistics-company/orders/<id>/dispatch-options).`,
+      `                                        Expect 4 vehicles: ${SEED_PLATE_PREFIX}FLT-002 and ${SEED_PLATE_PREFIX}FLT-004 choosable,`,
+      `                                        ${SEED_PLATE_PREFIX}FLT-001 and ${SEED_PLATE_PREFIX}FLT-003 shown but refused as under the`,
+      "                                        booked Box Truck class. Dispatching one moves it to ACCEPTED,",
+      "                                        after which the dialog 404s on the same order — re-run this seed to",
+      "                                        put it back into CLAIMED.",
       `    ${origin}/dashboard/account?section=payout   real IBAN last-4, read-only company card`,
-      '    expect: 8 sidebar links, chip reads "Business", NO online toggle',
+      '    expect: 6 sidebar links, chip reads "Business", NO online toggle',
       "",
       "Removing all of it",
       "------------------",

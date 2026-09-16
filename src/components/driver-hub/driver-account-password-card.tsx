@@ -22,14 +22,18 @@ import { cn } from "@/lib/utils";
  * That card is painted in the landing tokens — `bg-ink text-paper ring-line`,
  * with `bg-accent text-ink` on its submit button. Inside the driver hub, which
  * renders under `[data-admin-surface]`, `globals.css` resolves `--color-accent`
- * to the *shadcn* `--accent` (`oklch(0.97 0 0)`, a near-white) rather than to
- * the landing palette's brand orange, while `--color-ink` stays `#ffffff`. Its
- * "Save password" button would therefore be near-white text on a near-white
- * fill — an invisible primary action on the one form in this screen that
- * changes a credential — and its error line, `text-accent`, would be invisible
- * too. Both are exactly the collision the `--admin-accent` fallback chain in
- * `globals.css` exists to manage, and the client card predates the hub and does
- * not participate in it.
+ * to the *shadcn* `--accent` rather than to the landing palette's brand orange,
+ * and `--accent` sits at the same end of the scale as `--color-ink` in
+ * whichever theme is on: in light, a near-white `oklch(0.97 0 0)` against an
+ * `--color-ink` of `#ffffff`; in dark, a near-black `oklch(0.269 0 0)` against
+ * an `--color-ink` of `#08090a`. Its "Save password" button would therefore be
+ * near-invisible text on a near-invisible fill in *either* theme — on the one
+ * form in this screen that changes a credential — and its error line,
+ * `text-accent`, would disappear into the card the same way. Both are exactly
+ * the collision the `--admin-accent` fallback chain in `globals.css` exists to
+ * manage, and the client card predates the hub and does not participate in it;
+ * the dark theme flipped both sides of the collision together rather than
+ * resolving it.
  *
  * So the *logic* is reused verbatim and only the surface is redrawn: same
  * `changePassword` call, same pre-flight confirm-match check, same decision not
@@ -52,9 +56,30 @@ const MIN_PASSWORD_LENGTH = 8;
 
 const FIELD_LABEL_CLASSES = "text-xs font-medium text-muted-foreground";
 
-const ERROR_TEXT_CLASSES = "text-[13px] text-[oklch(44.4%_0.177_26.899)]";
+/**
+ * The error line goes through `--destructive` rather than through the handoff's
+ * own red. It used to spell `oklch(44.4% 0.177 26.899)` — a fixed dark red that
+ * stays dark on a dark card, so under `html.dark` this line was near-invisible
+ * on the one form that reports a failed credential change. `text-destructive`
+ * is a half-step lighter in light mode (`oklch(0.577 0.245 27.325)` against the
+ * literal's darker red) and lifts to `oklch(0.704 0.191 22.216)` in dark, which
+ * is the whole point: the token is the only thing here that knows the theme.
+ * That small lightening is accepted hub-wide so every error line in the driver
+ * hub reads as the same red.
+ */
+const ERROR_TEXT_CLASSES = "text-[13px] text-destructive";
 
-const SUCCESS_TEXT_CLASSES = "text-[13px] text-[oklch(44.8%_0.119_151.328)]";
+/**
+ * Success has no shadcn token to migrate to, so the light literal stays and a
+ * `dark:` counterpart is added beside it: same hue, lightness inverted from
+ * 44.8% to 84% so it reads as green on a near-black card instead of vanishing
+ * into it. The pair is copied verbatim from the hub's success status-pill
+ * foreground (`hub-status.ts`, and the delta tones in `hub-primitives.tsx`) so
+ * every green on these screens is the same green in both themes — do not
+ * re-tune either half in isolation.
+ */
+const SUCCESS_TEXT_CLASSES =
+  "text-[13px] text-[oklch(44.8%_0.119_151.328)] dark:text-[oklch(84%_0.13_156.743)]";
 
 const CONTROL_CLASSES =
   "h-auto rounded-md px-[11px] py-[9px] text-sm md:text-sm";
