@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { OrderStatus } from "@prisma/client";
 
 import { auth } from "@/lib/auth";
+import { DATA_SCREEN_WIDTH_CLASSES } from "@/lib/layout";
 import { prisma } from "@/lib/prisma";
 import { OrderCard } from "@/components/order-card";
 
@@ -88,7 +89,17 @@ export default async function OrdersPage() {
     // column-width background would leave that showing down both gutters. Same
     // shape as the booking page this list is styled after.
     <main className="min-h-screen bg-ink text-paper">
-      <div className="mx-auto flex max-w-3xl flex-col gap-6 px-8 pt-8 pb-16">
+      {/*
+        A data screen, so it takes the platform's data-screen width rather than
+        the 768px column it used to be: this is the client's list of orders, and
+        on a wide display the cards were a narrow ribbon with empty monitor
+        either side. Prose and the signed-out card above keep their own narrow
+        caps — see `DATA_SCREEN_WIDTH_CLASSES`. `px-8` is untouched so the cards
+        never touch the window edge.
+      */}
+      <div
+        className={`${DATA_SCREEN_WIDTH_CLASSES} flex flex-col gap-6 px-8 pt-8 pb-16`}
+      >
         <header className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-[11px] font-semibold tracking-[0.24em] text-accent uppercase">

@@ -130,8 +130,8 @@ export type DriverHubPageHeadProps = {
  * The page head: the title, its subhead, and the one screen-owned control that
  * sits beside them.
  *
- * Rendered by the shell as the first child of the page body's 1180px column, so
- * it inherits that column's 20px gap rather than restating the design's
+ * Rendered by the shell as the first child of the page body's content column,
+ * so it inherits that column's 20px gap rather than restating the design's
  * `margin-bottom: 20px`, and sits inside the body's own `28px 32px 56px`
  * padding exactly as `showPageHead` does in the artboard.
  */

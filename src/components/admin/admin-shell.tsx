@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { signOut } from "@/lib/auth-client";
 import { hasAdminRole } from "@/lib/admin/roles";
+import { DATA_SCREEN_WIDTH_CLASSES } from "@/lib/layout";
 import { cn } from "@/lib/utils";
 
 /** Where a signed-out staff member lands. Mirrors `ADMIN_SIGN_IN_PATH`. */
@@ -195,7 +196,20 @@ export function AdminShell({ systemUser, children }: AdminShellProps) {
           </div>
         </header>
 
-        <main className="min-w-0 flex-1 p-6">{children}</main>
+        {/*
+          The back office was the one surface with no width cap at all, so on an
+          ultra-wide display a user table or an analytics grid ran the full
+          2000px+ of the monitor. It now shares the platform's data-screen
+          width: fill what is there, stop at 1800px, centre in the rest. That
+          makes admin *narrower* than it was on the widest screens, which is the
+          point — a row whose first and last cells are a monitor apart is not
+          readable. Prose and forms are excluded platform-wide; see
+          `DATA_SCREEN_WIDTH_CLASSES`. `p-6` stays so content never runs into the
+          window edge as the column widens.
+        */}
+        <main className={`${DATA_SCREEN_WIDTH_CLASSES} min-w-0 flex-1 p-6`}>
+          {children}
+        </main>
       </div>
     </div>
   );

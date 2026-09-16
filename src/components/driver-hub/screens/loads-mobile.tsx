@@ -51,11 +51,17 @@ import { cn } from "@/lib/utils";
  * drop all of it.
  *
  * `lg` (1024px) rather than `md`: the desktop tree needs a 248px sidebar plus a
- * table whose own minimum width is 1440px, and a viewport between those two
- * breakpoints genuinely cannot fit both. (The table has since grown from eight
- * columns to thirteen and its floor from 760px to 1440px, which only widens the
- * gap this breakpoint exists to close — it does not move the breakpoint, because
- * 1024px is still where a phone stops being a phone.)
+ * thirteen-column table that does not fit a laptop, let alone a tablet, and a
+ * viewport between those two breakpoints genuinely cannot carry both. The
+ * table's floor is 1520px and its eleven fixed columns alone need 1362px before
+ * either address column gets a pixel — `TABLE_MIN_WIDTH_CLASS` in
+ * `loads-table.tsx` has the measured arithmetic, including the fact that it
+ * still scrolls on a 1280px and a 1440px window.
+ *
+ * None of which moves this breakpoint. It is not derived from the table's width
+ * — if it were, it would have to sit somewhere above 1800px and this card list
+ * would be what a laptop got. 1024px is where a phone stops being a phone; past
+ * it a driver gets the board with a scrollbar, which is more useful than cards.
  *
  * ## Takes no props
  *

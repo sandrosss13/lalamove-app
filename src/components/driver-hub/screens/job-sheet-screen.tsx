@@ -43,14 +43,16 @@ import type { HubJobSheet } from "@/lib/dashboard/hub/job-sheet";
  * The primary artboard is 390 × 844 and the classes below are that layout; `lg`
  * changes two things and nothing else.
  *
- * **Desktop is the same single column, capped at 720px.** Not the hub's 1180px
- * content width, and not a grid. Every other hub screen spreads to 1180 because
- * it is a dashboard — a table with a detail panel beside it — and this is a task
- * list a driver reads top to bottom, where the only thing a wider column buys is
- * longer line lengths on Georgian addresses. Both artboards say so in as many
- * words ("Why 720, not 1180"), and it is why the wrapper below caps its own
- * width rather than inheriting the shell's: it is the one place this screen
- * restates a page-level measurement, and it restates a *narrower* one.
+ * **Desktop is the same single column, capped at 720px.** Not the hub's content
+ * width, and not a grid. Every other hub screen spreads to the shell's full cap
+ * because it is a dashboard — a table with a detail panel beside it — and this
+ * is a task list a driver reads top to bottom, where the only thing a wider
+ * column buys is longer line lengths on Georgian addresses. Both artboards say
+ * so in as many words ("Why 720, not 1180" — 1180 being what the shell capped
+ * at when they were drawn; it is 1800 now, which only widens the gap this 720
+ * is defending), and it is why the wrapper below caps its own width rather than
+ * inheriting the shell's: it is the one place this screen restates a page-level
+ * measurement, and it restates a *narrower* one.
  *
  * The consequence is that the DOM order **is** the visual order, top to bottom,
  * at every width — no `order-*` and no `col-start-*` moves a card out of its

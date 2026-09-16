@@ -332,15 +332,48 @@ export function DriverHubShell({
           />
         </div>
 
-        {/* Page body: 28px 32px 56px on desktop, one 1180px content column,
-            sections stacked with a 20px gap — so a screen returns its sections
-            as siblings and never restates the page's own spacing. The page head
+        {/* Page body: 28px 32px 56px on desktop, one content column, sections
+            stacked with a 20px gap — so a screen returns its sections as
+            siblings and never restates the page's own spacing. The page head
             is the column's first sibling and takes its 20px bottom margin from
             that same gap. The insets halve below `lg`: at 390px a 32px gutter
             each side leaves 326px of content, and the screens' own tables and
             cards are the first thing to overflow when it does. */}
         <main className="min-w-0 flex-1 px-4 pt-5 pb-10 lg:px-8 lg:pt-7 lg:pb-14">
-          <div className="flex min-w-0 max-w-[1180px] flex-col gap-5">
+          {/* THE HUB-WIDE CONTENT CAP. One number for every screen in here,
+              deliberately — there is no per-screen override and adding one
+              would be a mechanism with a single possible value.
+
+              1800px, up from the 1180px this shipped with. 1180 is a
+              *readable-prose* measure: it is the right cap for the landing
+              page, the auth cards and the two onboarding wizards, which are
+              columns of text and form fields and which all keep it. It is the
+              wrong cap for everything under this shell, because every screen
+              in the hub is a *data* screen — the load board, the job history,
+              the vehicle and driver rosters, the performance tables. On those,
+              width is not decoration: it is what lets a driver compare rows
+              without dragging a horizontal scrollbar.
+
+              What the old number cost, concretely: on a 1920px window the page
+              body has 1920 − 248 (the rail) − 64 (this element's `lg:px-8`
+              gutters) = 1608px to give. Capping at 1180 threw 428px of that
+              away and left it blank to the right of a load board that was
+              itself scrolling sideways — empty screen beside clipped columns,
+              which is the complaint this replaces.
+
+              Capped rather than dropped. `max-w-none` would stretch the load
+              board's thirteen columns across the full width of a 3440px
+              ultrawide and put a load's price a head-turn from its pick-up
+              address; past roughly 1800px a table stops gaining from the extra
+              room and starts losing to eye travel. So the gutter left on a
+              very wide monitor is a decision, not a leftover.
+
+              Note for anyone re-tuning this: it does NOT follow that a table
+              now fits at every width. `loads-table.tsx` documents the
+              arithmetic — its thirteen columns need more than a 1280px or
+              1440px laptop can give inside a 248px rail, and it keeps its
+              `overflow-x-auto` for exactly that reason. */}
+          <div className="flex min-w-0 max-w-[1800px] flex-col gap-5">
             <DriverHubPageHead
               title={titleOverride ?? activeItem?.title ?? FALLBACK_TITLE}
               subtitle={subtitleOverride ?? activeItem?.subtitle ?? ""}
