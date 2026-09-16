@@ -2,7 +2,10 @@
 
 import * as React from "react";
 
-import type { HandlingTag } from "@/components/driver-hub/screens/loads-format";
+import {
+  hubMinuteOfDay,
+  type HandlingTag,
+} from "@/components/driver-hub/screens/loads-format";
 import type { HubAccountKind } from "@/lib/dashboard/hub/account";
 import {
   specCapability,
@@ -114,6 +117,22 @@ export type HubLoad = {
   description: string | null;
   bodyType: string | null;
   helperCount: number;
+  /**
+   * The single instant the client booked the job for — **the table's and the
+   * card's Pick-up date and Pick-up time, and the only source for either**.
+   *
+   * Required by the booking form and by `POST /api/orders`, which answers 400
+   * rather than defaulting it, so every load booked through the live UI carries
+   * one. Nullable only because `Order.scheduledAt` was added without a backfill
+   * and because the hub's seed scripts leave some unset; those rows dash in both
+   * columns.
+   *
+   * **Not interchangeable with `pickupWindowStart`/`pickupWindowEnd` below.**
+   * Those are an independent, optional refinement most clients leave at "Any
+   * time", so they are null far more often than this is — reading them as a
+   * fallback would answer "when is this booked for" with a different question's
+   * answer and dash more, not less.
+   */
   scheduledAt: string | null;
   pickupAddress: string;
   pickupLat: number | null;
@@ -137,6 +156,14 @@ export type HubLoad = {
    * How far the driver is from the pickup. Null whenever it cannot be measured
    * — a stale or absent driver location, an ungeocodable pickup, or a COMPANY
    * session, which has no single location of its own. Never used to filter.
+   *
+   * **Currently rendered by nothing.** It had a "From you" column on the desktop
+   * table; that column was removed when the Route cell was dissolved, and the
+   * board now shows the trip's own `distanceKm` instead. The field is kept here
+   * because the endpoint computes and returns it and because it is the obvious
+   * thing a proximity sort or a "nearest first" control would read — but a
+   * surface that picks it up must not conflate it with `distanceKm` above, which
+   * is the one mistake the two fields invite.
    */
   pickupDistanceKm: number | null;
   cargoWeightKg: number | null;
@@ -274,14 +301,35 @@ export type LoadsTab = "available" | "mine";
  * driver sees or that a reviewer skims past. The *column header* Wave 4 renders
  * may still read "Price"; only this internal key changes.
  *
- * `"fromYou"` orders by `pickupDistanceKm` — how far the pick-up is from the
- * driver right now, the table's own addition to the approved design. It is the
- * one nullable axis here, and `compareLoads` puts nulls last in **both**
- * directions: a driver asking for "closest first" must not get the rows whose
- * distance is unknown at the top of the list.
+ * **Nothing outside the board can name a key.** These are not URL parameters and
+ * are not persisted: `sortKey`/`sortDir` are plain React state below, written
+ * only by `setSort`, which only a `<SortableHead>` calls. So a key that is
+ * deleted here is unreachable the moment its header is, and there is no stale
+ * `?sort=` to defend against. Changing that — putting the sort in the URL — means
+ * adding a parser that falls back to the default on an unrecognised value, which
+ * is a decision to take deliberately rather than to discover.
+ *
+ * `"pickupDate"` and `"pickupTime"` both read `HubLoad.scheduledAt` and order it
+ * two different ways on purpose: the date key sorts chronologically, the time
+ * key sorts by time of day through `hubMinuteOfDay`. A single chronological key
+ * behind both headers would make the time column claim an ordering it does not
+ * have — see that function.
+ *
+ * Four of these axes are nullable (`pickupCity`, `dropoffCity`, the two
+ * `scheduledAt` keys and `weight`), and `compareLoads` puts nulls last in
+ * **both** directions: a driver asking for "earliest first" must not get the
+ * rows whose date is unknown at the top of the list.
  */
 export type LoadsSortKey =
-  "route" | "fromYou" | "window" | "cargo" | "helpers" | "weight" | "payout";
+  | "pickupCity"
+  | "pickupDate"
+  | "pickupTime"
+  | "dropoffCity"
+  | "cargo"
+  | "helpers"
+  | "weight"
+  | "distance"
+  | "payout";
 
 export type LoadsSortDirection = "asc" | "desc";
 
@@ -892,29 +940,39 @@ const LoadsBoardContext = React.createContext<LoadsBoardValue | null>(null);
  * The value each sort key reads, as either a string or a number, with `null`
  * meaning "this load cannot be ordered on this axis".
  *
- * Written as one function rather than six comparators so the null handling in
+ * Written as one function rather than nine comparators so the null handling in
  * `compareLoads` is stated once. Every key that can be null is nullable on
- * `HubLoad` for a real reason — a legacy order with no declared weight, a
- * booking with no pickup window, a stop the geocoder could not place.
+ * `HubLoad` for a real reason — a legacy order with no declared weight, an order
+ * predating the `scheduledAt` migration, a stop the geocoder could not place.
  */
 function sortValueOf(load: HubLoad, key: LoadsSortKey): string | number | null {
   switch (key) {
-    case "route":
+    case "pickupCity":
       return load.pickupCity;
-    case "fromYou":
-      // Null whenever the distance could not be measured — a stale or absent
-      // driver location, an ungeocodable pickup, or a COMPANY session. Those
-      // rows sort last in both directions, which `compareLoads` handles
-      // generically for every nullable key here.
-      return load.pickupDistanceKm;
-    case "window":
-      return load.pickupWindowStart;
+    case "pickupDate":
+      // The ISO string itself: fixed-width and UTC-normalised, so lexical order
+      // is chronological order — see `compareLoads`. Null on an order booked
+      // before the column existed; those rows sort last either way.
+      return load.scheduledAt;
+    case "pickupTime":
+      // The *same field*, ordered by time of day rather than chronologically,
+      // which is the only ordering that makes a "Pick-up time" header true.
+      // `hubMinuteOfDay` has the full reasoning.
+      return hubMinuteOfDay(load.scheduledAt);
+    case "dropoffCity":
+      return load.dropoffCity;
     case "cargo":
       return load.cargoCategory;
     case "helpers":
       return load.helperCount;
     case "weight":
       return load.cargoWeightKg;
+    case "distance":
+      // The trip's own length, pick-up to drop-off — never `pickupDistanceKm`,
+      // which measures how far the *driver* is from the pick-up and answers a
+      // different question. The board no longer surfaces that second figure in a
+      // column; the field stays on `HubLoad` for the detail surfaces.
+      return load.distanceKm;
     case "payout":
       return load.driverPayout;
   }
@@ -1686,9 +1744,15 @@ export function LoadsProvider({
    * Clicking the active column sorts the other way; clicking a new one sorts by
    * it, descending.
    *
-   * Descending rather than ascending for a newly chosen column because every
-   * key here is one where "most" is the interesting end — the biggest payout,
-   * the heaviest load, the most helpers, the latest window.
+   * Descending rather than ascending for a newly chosen column because most
+   * keys here are ones where "most" is the interesting end — the biggest
+   * payout, the heaviest load, the most helpers, the longest trip.
+   *
+   * The two `scheduledAt` columns are the exception and are left on the same
+   * rule anyway: a driver opening Pick-up date most likely wants the soonest
+   * job, which is the *second* click. Special-casing the initial direction per
+   * key would make the header behave differently depending on which one you
+   * pressed, which is a worse surprise than one extra click on two of nine.
    */
   const setSort = React.useCallback(
     (key: LoadsSortKey) => {

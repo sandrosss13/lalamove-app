@@ -9,12 +9,13 @@ import {
 import {
   EM_DASH,
   cargoCategoryLabel,
+  formatClock,
   formatDeadlineLine,
   formatDistanceKm,
   formatGel,
   formatGelPerKm,
+  formatLoadDayLabel,
   formatLoadDims,
-  formatPickupWindow,
   formatPostedAgo,
   formatVolumeM3,
   formatWeightKg,
@@ -34,10 +35,12 @@ import { cn } from "@/lib/utils";
 /**
  * The load board's desktop table — the primary surface of this feature.
  *
- * Eight columns a driver scans to decide what to accept, per-row Reject/Accept,
- * the three row states (`available` / `claimed` / `mine`), the empty state and
- * the footer. Transcribed from Section 2, "Desktop — Load board", of
- * `UI:UX/Order Dashboard/design_handoff_driver_load_board/README.md`.
+ * Thirteen columns a driver scans to decide what to accept, per-row
+ * Reject/Accept, the three row states (`available` / `claimed` / `mine`), the
+ * empty state and the footer. Transcribed from Section 2, "Desktop — Load
+ * board", of `UI:UX/Order Dashboard/design_handoff_driver_load_board/README.md`,
+ * and then departed from where the columns are concerned — see "The dissolved
+ * Route column" below.
  *
  * Desktop only: `hidden lg:block`, the same `lg` breakpoint `MasterDetailSplit`
  * gates the hub's two-column layouts on. `loads-mobile.tsx` is its `lg:hidden`
@@ -54,31 +57,46 @@ import { cn } from "@/lib/utils";
  * columns at all, so `HubLoad` carries no field to reach for by mistake; this
  * note exists so nobody adds one.
  *
- * ## Two additions beyond the approved design
+ * ## The dissolved Route column
  *
- * Both are flagged here rather than buried, because **neither is part of the
- * approved design** and each is cheap to drop if the design owner rejects it —
- * nothing else in the feature depends on either.
+ * The design's first column was a single Route cell stacking four facts —
+ * `pickupCity → dropoffCity` with the trip length beside it, the two addresses
+ * on one truncated line, and the reference plus the load's age underneath. It is
+ * gone. Each of those facts now has a column, because a driver comparing rows
+ * compares *one* fact at a time and a cell that answers four questions at once
+ * can be scanned for none of them.
  *
- * 1. **"From you" (the second column, `pickupDistanceKm`).** The design's Route
- *    cell already appends a distance to line 1, but that number is the *length*
- *    of the job, which says nothing about how far the driver currently is from
- *    the pick-up. What actually decides whether a driver takes a load is how far
- *    away it starts. `DriverProfile.currentLat/currentLng` are frequently stale
- *    or null (`specs/driver-load-board/requirements.md`, Assumptions), so the
- *    column renders `—` rather than throwing or falling back to the job length,
- *    and it never filters the table — it only informs and sorts. Rows with no
- *    measurable distance sort last in **both** directions, which
- *    `compareLoads` in `loads-context.tsx` does generically for every nullable
- *    key and which this file therefore does not reimplement. Dropping the
- *    column is one `<SortableHead>`, one `<TableCell>` and the `"fromYou"`
- *    member of `LoadsSortKey`.
- * 2. **Load age ("posted 14 min ago").** Appended to the Route cell's third
- *    line rather than given a column of its own: it is supplementary,
- *    non-filterable context exactly like the reference beside it, and a ninth
- *    physical column would push the table's practical minimum width past the
- *    design's 760px floor for no gain. A driver uses it to judge whether a load
- *    has been sitting unclaimed and is possibly stale.
+ * The order is the approved one: Load, Pick-up address, Pick-up city, Pick-up
+ * date, Pick-up time, Drop-off address, Drop-off city, Cargo, Helpers,
+ * Weight / dims, Distance, Price, Actions.
+ *
+ * Three things about that list are worth stating because they are decisions
+ * rather than transcription:
+ *
+ * 1. **The leading "Load" column is this file's own addition.** Nobody asked for
+ *    a thirteenth column; it exists because the reference button inside the old
+ *    Route cell is **the row's only keyboard path into the detail drawer**, and
+ *    dissolving the cell it lived in would have deleted that path. It carries
+ *    the reference button and, under it, the load's age ("posted 14 min ago"),
+ *    which a driver uses to judge whether a load has been sitting unclaimed. Both
+ *    were on the Route cell's third line and neither belongs to any of the twelve
+ *    columns around it. Dropping this column means finding somewhere else for the
+ *    button first — not deleting it.
+ * 2. **Pick-up date and Pick-up time both read `scheduledAt`, and nothing else.**
+ *    They replace the design's "Pick-up window" column, which read the
+ *    `pickupWindowStart`/`End` pair. That pair is an optional refinement most
+ *    clients leave at "Any time", whereas `scheduledAt` is required by the
+ *    booking form and by `POST /api/orders` — so the new columns are populated on
+ *    strictly more rows than the one they replace, not fewer. They do **not**
+ *    fall back to the window when `scheduledAt` is null (an order predating its
+ *    migration, or a seeded fixture); both cells dash, which is this table's
+ *    treatment for every absent value.
+ * 3. **"Distance" is the trip, and "From you" is gone.** The old second column
+ *    showed `pickupDistanceKm` — how far the driver is from the pick-up — beside
+ *    a Route cell that showed `distanceKm`, the job's own length. Two distances
+ *    in adjacent columns is a conflation waiting to happen, and only one of them
+ *    survives: the trip. `pickupDistanceKm` is still on `HubLoad` and is now
+ *    rendered by nothing; see its note in `loads-context.tsx` before reviving it.
  *
  * ## What this file does *not* own
  *
@@ -95,9 +113,10 @@ import { cn } from "@/lib/utils";
  *
  * ## Deviations from the task file, forced by the shipped context
  *
- * - **No client name on Route line 3.** `GET /api/loads` deliberately strips
- *   everything identifying the client from an unclaimed load, so `HubLoad` has
- *   no `clientName`. Line 3 is the reference plus the load age.
+ * - **No client name anywhere on a row.** The task file put one on the Route
+ *   cell's third line; `GET /api/loads` deliberately strips everything
+ *   identifying the client from an unclaimed load, so `HubLoad` has no
+ *   `clientName` to render. The Load column is the reference and the load age.
  * - **No handling-tag pills.** The design's column set has nowhere to put them
  *   and the drawer already shows them; the "sort tags by enum order" rule
  *   therefore has nothing to apply to on this surface. Any future pill here
@@ -127,8 +146,19 @@ const HEAD_CLASSES =
  */
 const CELL_CLASSES = "px-3.5 py-3 align-top";
 
-/** The design's 11px muted sub-line, used by five of the eight columns. */
+/** The design's 11px muted sub-line, used by four of the thirteen columns. */
 const SUBLINE_CLASSES = "text-[11px] text-muted-foreground";
+
+/**
+ * How wide an address cell is allowed to get before it truncates.
+ *
+ * Both address columns share it so the two sides of a route line up down the
+ * table instead of one column being sized by whichever booking happened to have
+ * the longest street name. Every truncated address carries the whole string as a
+ * `title` — Tbilisi addresses routinely outrun any cap worth setting, and a
+ * truncated address with no way to read the rest is not an address.
+ */
+const ADDRESS_CELL_CLASSES = "max-w-[180px] truncate";
 
 /**
  * The `claimed` and `mine` pills.
@@ -206,7 +236,11 @@ function SortableHead({
   label: string;
   align?: ColumnAlignment;
   className?: string;
-  /** Hover copy for a header whose two-word label cannot carry its meaning. */
+  /**
+   * Hover copy for a header whose label cannot carry its meaning in the two or
+   * three words the column has room for — "Pick up time", which sorts by time
+   * of day rather than by date, is the case that most needs it.
+   */
   title?: string;
 }) {
   const { sortKey, sortDir, setSort } = useLoadsBoard();
@@ -400,8 +434,6 @@ function LoadRow({ load, nowIso }: { load: HubLoad; nowIso: string }) {
   const { selectedId, selectLoad } = useLoadsBoard();
   const isSelected = load.id === selectedId;
 
-  const route = `${load.pickupCity ?? EM_DASH} → ${load.dropoffCity ?? EM_DASH}`;
-  const addresses = `${load.pickupAddress} → ${load.dropoffAddress}`;
   const deadline = formatDeadlineLine(load.deliveryDeadline, nowIso);
   const cargoDetail = `${load.packagingDescription ?? EM_DASH} · ${formatVolumeM3(
     {
@@ -414,7 +446,7 @@ function LoadRow({ load, nowIso }: { load: HubLoad; nowIso: string }) {
   return (
     <TableRow
       // Mouse convenience only — the keyboard path is the reference button in
-      // the Route cell, which selects the same row.
+      // the leading Load cell, which selects the same row.
       onClick={() => selectLoad(load.id)}
       data-state={isSelected ? "selected" : undefined}
       className={cn(
@@ -425,70 +457,89 @@ function LoadRow({ load, nowIso }: { load: HubLoad; nowIso: string }) {
         load.status === "claimed" && "opacity-60",
       )}
     >
-      {/* 1 — Route. No fixed width; this is the column that gets to breathe. */}
+      {/* 1 — Load (addition). The row's identity, and the only cell on it a
+          keyboard can use to open the drawer — see the module comment. */}
       <TableCell className={CELL_CLASSES}>
-        <div className="flex items-baseline gap-2">
-          <span className="font-medium">{route}</span>
-          {/* The job's own length, pick-up to drop-off — NOT the "From you"
-              column beside it. The two numbers answer different questions and
-              conflating them is the one mistake this cell invites. */}
-          <span className={cn(SUBLINE_CLASSES, "tabular-nums")}>
-            {formatDistanceKm(load.distanceKm)}
-          </span>
-        </div>
-        <div
-          className={cn(SUBLINE_CLASSES, "max-w-[300px] truncate")}
-          // Tbilisi addresses routinely outrun 300px, and a truncated route is
-          // unreadable without the whole string somewhere.
-          title={addresses}
+        <button
+          type="button"
+          onClick={() => selectLoad(load.id)}
+          aria-current={isSelected ? "true" : undefined}
+          // The cuid as a `title`: the visible reference is a readable
+          // stand-in, not the identifier.
+          title={load.id}
+          className="cursor-pointer rounded-sm font-price outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
         >
-          {addresses}
-        </div>
-        <div className={cn(SUBLINE_CLASSES, "flex items-baseline gap-2")}>
-          <button
-            type="button"
-            onClick={() => selectLoad(load.id)}
-            aria-current={isSelected ? "true" : undefined}
-            // The cuid as a `title`: the visible reference is a readable
-            // stand-in, not the identifier.
-            title={load.id}
-            className="cursor-pointer rounded-sm font-price outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-          >
-            {load.reference}
-            {/* Without this the accessible name is the bare reference —
-                "GE-48210" — which names the load but not what pressing it
-                does, and this button is the row's only keyboard path into the
-                drawer. `aria-current` above says the row *is* selected; it
-                cannot say that activating this selects it. */}
-            <span className="sr-only"> — open load details</span>
-          </button>
-          <span>{formatPostedAgo(load.createdAt, nowIso)}</span>
+          {load.reference}
+          {/* Without this the accessible name is the bare reference —
+              "GE-48210" — which names the load but not what pressing it does,
+              and this button is the row's only keyboard path into the drawer.
+              `aria-current` above says the row *is* selected; it cannot say
+              that activating this selects it. */}
+          <span className="sr-only"> — open load details</span>
+        </button>
+        {/* Stacked under the reference rather than beside it, as it was on the
+            old Route cell's third line: this column is the narrowest on the
+            table and two facts side by side would force it wider than either
+            needs. */}
+        <div className={SUBLINE_CLASSES}>
+          {formatPostedAgo(load.createdAt, nowIso)}
         </div>
       </TableCell>
 
-      {/* 2 — From you (addition). `—` when the driver's location is stale,
-          absent, or a company session that has no single location at all. */}
-      <TableCell className={cn(CELL_CLASSES, "text-right tabular-nums")}>
-        {formatDistanceKm(load.pickupDistanceKm)}
-      </TableCell>
-
-      {/* 3 — Pick-up window. */}
+      {/* 2 — Pick-up address. Not sortable: ordering rows by street name is not
+          a question anybody asks, and a header that sorts is a header a driver
+          will press. */}
       <TableCell className={CELL_CLASSES}>
-        <div>
-          {formatPickupWindow(
-            load.pickupWindowStart,
-            load.pickupWindowEnd,
-            nowIso,
-          )}
+        <div className={ADDRESS_CELL_CLASSES} title={load.pickupAddress}>
+          {load.pickupAddress}
         </div>
-        {/* Omitted rather than dashed: a labelled em dash under the window is a
-            second line that says nothing. */}
+      </TableCell>
+
+      {/* 3 — Pick-up city. Nullable: the geocoder could not place the stop. */}
+      <TableCell className={CELL_CLASSES}>
+        {load.pickupCity ?? EM_DASH}
+      </TableCell>
+
+      {/* 4 — Pick-up date. `scheduledAt`, relative-day labelled ("Today",
+          "Tomorrow", "4 Aug") like every other date on this board, and dashed
+          when the order predates the column. Never the pick-up window — see the
+          module comment. */}
+      <TableCell className={CELL_CLASSES}>
+        {formatLoadDayLabel(load.scheduledAt, nowIso)}
+      </TableCell>
+
+      {/* 5 — Pick-up time. The same field's clock half, dashing on the same
+          rows, so the two cells are never half-answered. */}
+      <TableCell className={cn(CELL_CLASSES, "tabular-nums")}>
+        {formatClock(load.scheduledAt)}
+      </TableCell>
+
+      {/* 6 — Drop-off address. */}
+      <TableCell className={CELL_CLASSES}>
+        <div className={ADDRESS_CELL_CLASSES} title={load.dropoffAddress}>
+          {load.dropoffAddress}
+        </div>
+      </TableCell>
+
+      {/* 7 — Drop-off city, and the delivery deadline under it.
+
+          The deadline sub-line used to hang under the pick-up window, which no
+          longer exists. This is the delivery side of the row, which is what the
+          deadline is about, and this cell's content is short enough to carry a
+          second line where the address beside it is not. The line names itself
+          ("Deliver by …"), so it cannot be misread as belonging to the city
+          header above it.
+
+          Omitted rather than dashed: a labelled em dash is a second line that
+          says nothing. */}
+      <TableCell className={CELL_CLASSES}>
+        <div>{load.dropoffCity ?? EM_DASH}</div>
         {deadline === null ? null : (
           <div className={SUBLINE_CLASSES}>{deadline}</div>
         )}
       </TableCell>
 
-      {/* 4 — Cargo. */}
+      {/* 8 — Cargo. */}
       <TableCell className={CELL_CLASSES}>
         {/* `cargoCategory` is the wire enum (`INDUSTRIAL_SUPPLIES`), never
             driver-facing copy. Same lookup as the drawer and the mobile card,
@@ -504,12 +555,12 @@ function LoadRow({ load, nowIso }: { load: HubLoad; nowIso: string }) {
         </div>
       </TableCell>
 
-      {/* 5 — Helpers. */}
+      {/* 9 — Helpers. */}
       <TableCell className={cn(CELL_CLASSES, "text-center")}>
         <HelpersBadge helperCount={load.helperCount} />
       </TableCell>
 
-      {/* 6 — Weight / dims. */}
+      {/* 10 — Weight / dims. */}
       <TableCell className={cn(CELL_CLASSES, "text-right")}>
         <div className="tabular-nums">{formatWeightKg(load.cargoWeightKg)}</div>
         <div className={cn(SUBLINE_CLASSES, "tabular-nums")}>
@@ -521,7 +572,14 @@ function LoadRow({ load, nowIso }: { load: HubLoad; nowIso: string }) {
         </div>
       </TableCell>
 
-      {/* 7 — Price. `driverPayout` and its per-km rate, never a client fare. */}
+      {/* 11 — Distance. The **trip**: pick-up to drop-off, promoted out of the
+          dissolved Route cell into a column of its own. Not `pickupDistanceKm`,
+          which measured something else and no longer has a column. */}
+      <TableCell className={cn(CELL_CLASSES, "text-right tabular-nums")}>
+        {formatDistanceKm(load.distanceKm)}
+      </TableCell>
+
+      {/* 12 — Price. `driverPayout` and its per-km rate, never a client fare. */}
       <TableCell className={cn(CELL_CLASSES, "text-right")}>
         <div className="font-semibold tracking-[-0.01em] tabular-nums">
           {formatGel(load.driverPayout)}
@@ -531,7 +589,7 @@ function LoadRow({ load, nowIso }: { load: HubLoad; nowIso: string }) {
         </div>
       </TableCell>
 
-      {/* 8 — Actions. */}
+      {/* 13 — Actions. */}
       <TableCell className={cn(CELL_CLASSES, "w-[132px]")}>
         <LoadActions load={load} />
       </TableCell>
@@ -596,28 +654,65 @@ export function LoadsTable() {
   return (
     <div className="hidden overflow-hidden rounded-lg border border-border bg-card lg:block">
       {/* `Table` brings its own `overflow-x-auto` wrapper; the min-width is
-          what gives that wrapper something to scroll below 760px. */}
-      <Table className="min-w-[760px]" aria-label="Loads">
+          what gives that wrapper something to scroll.
+
+          1440px, up from the 760px the design sized for eight columns. Thirteen
+          do not fit in 760 — they would compress to the point where the two
+          address cells truncate after a word and the uppercase headers wrap to
+          three lines each, which is worse than scrolling. The figure is a floor
+          rather than a target: the cells' own intrinsic widths (the header copy,
+          `ADDRESS_CELL_CLASSES`' 180px cap, the 132px action column) already add
+          up to a little more than this, so a narrow desktop scrolls and a wide
+          one distributes the slack. The `lg` breakpoint below which this tree is
+          not painted at all is 1024px, so some horizontal scrolling between
+          there and here is expected and is the intended behaviour. */}
+      <Table className="min-w-[1440px]" aria-label="Loads">
         <TableHeader>
           <TableRow className="bg-muted hover:bg-muted">
-            <SortableHead columnKey="route" label="Route" />
-            {/* "Show me what's nearest right now" — the most useful non-default
-                sort this board offers, and half the reason the column exists.
-                Loads with no measurable distance sort to the bottom either
-                way; the comparator in `loads-context.tsx` owns that rule. */}
+            {/* Not sortable. The reference is an opaque per-order string and the
+                age under it is already the default arrival order of the board;
+                neither is an axis a driver compares rows on. */}
+            <TableHead scope="col" className={HEAD_CLASSES}>
+              Load
+            </TableHead>
+            {/* The two address headers are plain `TableHead`s for the same
+                reason: alphabetical-by-street is not a question. Their cities
+                beside them are, which is what the sortable heads are for. */}
+            <TableHead scope="col" className={HEAD_CLASSES}>
+              Pick up address
+            </TableHead>
+            <SortableHead columnKey="pickupCity" label="Pick up city" />
+            {/* Both of these order `scheduledAt`, and they order it differently
+                — chronologically here, by time of day next door. `LoadsSortKey`
+                in `loads-context.tsx` says why that is two keys and not one. */}
             <SortableHead
-              columnKey="fromYou"
-              label="From you"
-              align="right"
-              title="How far the pick-up is from you right now"
+              columnKey="pickupDate"
+              label="Pick up date"
+              title="The day the client booked this job for"
             />
-            <SortableHead columnKey="window" label="Pick-up window" />
+            <SortableHead
+              columnKey="pickupTime"
+              label="Pick up time"
+              title="Sorts by time of day, not by date"
+            />
+            <TableHead scope="col" className={HEAD_CLASSES}>
+              Drop off address
+            </TableHead>
+            <SortableHead columnKey="dropoffCity" label="Drop off city" />
             <SortableHead columnKey="cargo" label="Cargo" />
             <SortableHead columnKey="helpers" label="Helpers" align="center" />
             <SortableHead
               columnKey="weight"
               label="Weight / dims"
               align="right"
+            />
+            {/* The trip's own length. The board no longer carries a second
+                distance for this one to be confused with. */}
+            <SortableHead
+              columnKey="distance"
+              label="Distance"
+              align="right"
+              title="How far this job runs, pick-up to drop-off"
             />
             {/* The header reads "Price" because that is the design's copy and
                 what a driver calls it; the key is `payout` because that is the
@@ -647,7 +742,7 @@ export function LoadsTable() {
       </Table>
 
       {/* Outside the table rather than in an empty `<TableBody>`, so the copy
-          is not constrained to one cell of an eight-column grid. The header row
+          is not constrained to one cell of a thirteen-column grid. The header row
           stays: it is what keeps this reading as a board with nothing on it
           rather than a panel that failed to draw. */}
       {count === 0 ? (
