@@ -4,7 +4,10 @@ import * as React from "react";
 import { Navigation, Phone } from "lucide-react";
 import Link from "next/link";
 
-import { HubCard, HubStatusBadge } from "@/components/driver-hub/hub-primitives";
+import {
+  HubCard,
+  HubStatusBadge,
+} from "@/components/driver-hub/hub-primitives";
 import { HUB_STATUS_TONE_CLASSES } from "@/components/driver-hub/hub-status";
 import {
   StopPhoneLink,
@@ -231,16 +234,26 @@ export type JobSheetViewer = "DRIVER" | "COMPANY";
  * Collapsing that into "Scheduled" hides the single distinction the company
  * view exists to show — claimed-but-unassigned versus dispatched — and hides it
  * on the pill, which is the one thing on this card read at a glance. So a
- * company reading a `CLAIMED`/`ACCEPTED` order with no driver on it gets
- * **"Awaiting dispatch"** instead, through the same `label` override the
- * Delivered case already uses. The tone stays "Scheduled": the job genuinely is
- * not moving, and minting a tone for this would be a colour no other hub
- * surface knows.
+ * company reading a `CLAIMED` order with no driver on it gets **"Awaiting
+ * dispatch"** instead, through the same `label` override the Delivered case
+ * already uses. The tone stays "Scheduled": the job genuinely is not moving,
+ * and minting a tone for this would be a colour no other hub surface knows.
  *
- * `PENDING` is deliberately not in that list. An order acquires a `companyId`
- * by being claimed, so a `PENDING` order is one no company holds and no company
- * viewer can reach this sheet for; naming it here would be a branch for a state
- * that cannot arrive.
+ * `CLAIMED` and nothing else, because that is exactly the set the dispatch
+ * endpoints accept. `POST /api/logistics-company/orders/[id]/dispatch` scopes
+ * on `{ id, companyId, status: CLAIMED }` and 404s anything else, and so does
+ * the `dispatch-options` GET behind the picker — so the label promises an
+ * action precisely where the action exists, and the "Assign a vehicle" control
+ * below it appears on the same condition. This list used to include `ACCEPTED`,
+ * which broke that pairing: dispatch is what *sets* `ACCEPTED`, so an
+ * `ACCEPTED` order with no driver is not a job awaiting dispatch but a row that
+ * the real flow cannot produce — reachable only as a seed artefact, where it
+ * rendered a promise with no button and no endpoint under it.
+ *
+ * `PENDING` is deliberately not here either, for the mirror-image reason. An
+ * order acquires a `companyId` by being claimed, so a `PENDING` order is one no
+ * company holds and no company viewer can reach this sheet for; naming it would
+ * be a branch for a state that cannot arrive.
  *
  * @param fleet The company's dispatch state for this order, or `null` for a
  *   driver — who is told nothing new by "a driver has this". Pass
@@ -264,11 +277,7 @@ export function jobSheetStatusPill(
     default:
       // `fleet !== null` is what says "a company is reading this"; a driver
       // passes nothing and lands on "Scheduled" exactly as before.
-      if (
-        fleet !== null &&
-        fleet.driverName === null &&
-        (status === "CLAIMED" || status === "ACCEPTED")
-      ) {
+      if (fleet !== null && fleet.driverName === null && status === "CLAIMED") {
         return { tone: "Scheduled", label: "Awaiting dispatch" };
       }
 
@@ -357,7 +366,10 @@ function StopNavigateAction({ destination, address }: StopNavigateActionProps) {
       >
         <Navigation aria-hidden="true" className="size-4" />
         Navigate
-        <span className="sr-only"> — unavailable. {NAVIGATION_UNAVAILABLE_NOTE}</span>
+        <span className="sr-only">
+          {" "}
+          — unavailable. {NAVIGATION_UNAVAILABLE_NOTE}
+        </span>
       </span>
     );
   }
@@ -458,6 +470,33 @@ export type JobSheetHeaderCardProps = {
    * one that had nowhere to go.
    */
   payout: "quoted" | "final" | "none";
+  /**
+   * Open the dispatch dialog — the way back into assigning a driver and vehicle
+   * to a load the company claimed and then dismissed the dialog on.
+   *
+   * Optional, and **absent is the normal case**: a driver never sees the fleet
+   * block at all, and the two read-only layouts pass nothing. It is state owned
+   * by `JobSheetScreen` rather than by this card because the success path has to
+   * close the dialog and `router.refresh()` in one transition, and this card
+   * cannot hold a transition that outlives the render it is dropped from.
+   *
+   * Passing it is not enough to make the trigger appear — see the three
+   * conditions below, all of which are about the job rather than the caller.
+   */
+  onDispatch?: () => void;
+  /**
+   * The dispatch and the server re-render that follows it are still in flight,
+   * so the trigger is disabled.
+   *
+   * Not merely cosmetic. The dialog closes the moment the POST succeeds, but the
+   * page is `force-dynamic` and server-rendered, so this card goes on saying
+   * "Not dispatched to a driver" — with a live trigger under it — until the
+   * refresh commits. A press in that window reopens the dialog on an order that
+   * is now `ACCEPTED`, which the endpoint answers with a refusal the dispatcher
+   * did nothing to deserve. The same window, and the same remedy, as the action
+   * bar's `isPending`.
+   */
+  isDispatchPending?: boolean;
 };
 
 /**
@@ -488,6 +527,8 @@ export function JobSheetHeaderCard({
   viewer,
   payout,
   className,
+  onDispatch,
+  isDispatchPending = false,
 }: JobSheetHeaderCardProps) {
   // The company's dispatch state, or `null` — which is what both the pill and
   // the block below read as "a driver is looking at this". `job.fleet` is
@@ -495,6 +536,35 @@ export function JobSheetHeaderCard({
   // to that braces, so a loader change cannot quietly start telling a driver
   // their own name.
   const fleet = viewer === "COMPANY" ? job.fleet : null;
+
+  /**
+   * Whether this card offers the way back into the dispatch dialog.
+   *
+   * **All three conditions, and the third is not optional.**
+   *
+   * - `fleet !== null` — a company is reading this. A driver has nothing to
+   *   dispatch and no permission to; `POST .../dispatch` is a company route.
+   * - `fleet.driverName === null` — nobody has it yet. Once someone does, the
+   *   endpoint refuses and there is nothing to offer: reassignment is a
+   *   different feature with no endpoint behind it.
+   * - `job.status === "CLAIMED"` — **and this is the load-bearing one.** The
+   *   same null `driverName` appears on a *cancelled* job nobody was ever sent
+   *   to, which is exactly why the text beside it says "Not dispatched" with no
+   *   "yet" (see the comment on that string). `JobSheetCancelled` and
+   *   `JobSheetCompleted` both render this same card, so without this clause a
+   *   dead job would carry a live Assign button whose only possible outcome is
+   *   the endpoint's 404 — it scopes its lookup to orders this company holds *in
+   *   `CLAIMED`*, so anything else is not found at all.
+   *
+   * `ACCEPTED` is not in the list either, and the null `driverName` cannot occur
+   * on it — the dispatch write sets the driver and the status together — so
+   * naming it would be a branch for a state that does not arrive.
+   */
+  const canDispatch =
+    onDispatch !== undefined &&
+    fleet !== null &&
+    fleet.driverName === null &&
+    job.status === "CLAIMED";
 
   const pill = jobSheetStatusPill(job.status, fleet);
   const lines = buildHubPayoutLines(job);
@@ -561,6 +631,32 @@ export function JobSheetHeaderCard({
               </>
             )}
           </p>
+
+          {/* Beside the sentence rather than replacing it: "Not dispatched to a
+              driver" is the *state* and this is the action on it, and a button
+              alone would leave the Driver row answering a question with a
+              control. It is the only way back into the dispatch dialog for an
+              order whose dispatcher dismissed it after claiming — which is a
+              legitimate thing to have done, so this is not a recovery path from
+              a mistake.
+
+              `self-start` so it is sized by its label instead of stretching the
+              card, the same call `BackToBoardButton` makes on the cancelled
+              layout. `variant="outline"` because the job sheet's one primary
+              action belongs to the driver's action bar, and a fleet owner
+              reading a claimed job is not being pushed to dispatch it this
+              minute. */}
+          {canDispatch ? (
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isDispatchPending}
+              onClick={onDispatch}
+              className="mt-1.5 h-auto self-start rounded-md px-[13px] py-[7px] text-[13px] font-medium"
+            >
+              Assign a driver and vehicle
+            </Button>
+          ) : null}
         </div>
       )}
 
@@ -757,9 +853,7 @@ export function JobSheetStopCard({
               it, which is why this degrades rather than hiding the row. */}
           <p
             className={
-              prominent
-                ? "text-[15px] font-semibold"
-                : "text-sm font-medium"
+              prominent ? "text-[15px] font-semibold" : "text-sm font-medium"
             }
           >
             {city ?? EM_DASH}
@@ -1126,12 +1220,17 @@ export function JobSheetTimelineCard({
                   />
                 )}
               </div>
-              <div className={cn("flex flex-col gap-0.5", last ? null : "pb-4")}>
+              <div
+                className={cn("flex flex-col gap-0.5", last ? null : "pb-4")}
+              >
                 <p className="text-[13px] font-medium">{step.label}</p>
-                <p className={cn(NUMERIC_CLASSES, "text-xs text-muted-foreground")}>
-                  {step.at === null
-                    ? EM_DASH
-                    : formatAbsoluteDateTime(step.at)}
+                <p
+                  className={cn(
+                    NUMERIC_CLASSES,
+                    "text-xs text-muted-foreground",
+                  )}
+                >
+                  {step.at === null ? EM_DASH : formatAbsoluteDateTime(step.at)}
                 </p>
               </div>
               {/* The dots carry the state visually; this is how it reaches a
@@ -1205,7 +1304,11 @@ export function JobSheetContactsCard({
   className?: string;
 }) {
   const stops = [
-    { label: "Pick-up", name: job.pickupContactName, phone: job.pickupContactPhone },
+    {
+      label: "Pick-up",
+      name: job.pickupContactName,
+      phone: job.pickupContactPhone,
+    },
     {
       label: "Drop-off",
       name: job.dropoffContactName,

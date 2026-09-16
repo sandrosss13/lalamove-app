@@ -3,23 +3,56 @@ import { OrderStatus } from "@prisma/client";
 
 import { auth } from "@/lib/auth";
 import { CARRIER_ORDER_PARTY_SELECT } from "@/lib/order-response-select";
-import { specCapability } from "@/lib/orders/booking-fit";
 import {
-  meetsBookedClass,
-  offersBodyType,
-} from "@/lib/orders/class-substitution";
-import {
-  capabilityOf,
-  hasDeclaredEnvelope,
-  loadFits,
-  type LoadDimensions,
-} from "@/lib/orders/vehicle-fit";
+  bookedClassFor,
+  dispatchVerdictFor,
+  isDispatchApproved,
+  type DispatchVerdict,
+} from "@/lib/orders/dispatch-fit";
 import { prisma } from "@/lib/prisma";
 
 /** Validated shape of a dispatch request body. */
 type DispatchInput = {
   driverUserId: string;
   vehicleId: string;
+};
+
+/**
+ * The refusal copy, one sentence per way a vehicle can fail to be dispatchable.
+ *
+ * **Verbatim the four strings this handler has always returned**, and all four
+ * are still a 400: each is a fact about the vehicle named in the request body,
+ * which is a bad-request condition rather than an authorisation one (the 403s in
+ * this file are about the *caller*, not about the row they pointed at). The
+ * checks themselves moved to `dispatchVerdictFor`; only the mapping from its
+ * answer back to a response lives here, because what a dispatcher reads is a
+ * property of this endpoint and not of the arithmetic.
+ *
+ * Keyed by `DispatchVerdict["kind"]` minus `"FITS"`, so a fifth refusal added to
+ * the verdict type fails typecheck here until it has been given copy — which is
+ * the one drift this table is for. `Record` rather than a `switch` for the same
+ * reason: exhaustiveness is checked at the declaration instead of depending on
+ * somebody remembering a `default` branch.
+ *
+ * `OVER_CARGO`'s sentence names no axis even though the verdict carries them.
+ * That is unchanged behaviour and deliberately kept: this is a refactor, and the
+ * per-axis phrasing belongs to the dispatch dialog, which reads the axes from
+ * `GET .../dispatch-options` and can say "too heavy and too long" *before* a
+ * dispatcher submits anything. By the time this string is reached the useful
+ * moment has passed.
+ */
+const DISPATCH_REFUSALS: Record<
+  Exclude<DispatchVerdict["kind"], "FITS">,
+  string
+> = {
+  NOT_APPROVED:
+    "This vehicle hasn't been approved yet. Only approved vehicles can be dispatched.",
+  UNDER_BOOKED_CLASS:
+    "This vehicle is smaller than the vehicle class this delivery was booked as. Assign one that matches or beats it on payload, length, width and height.",
+  WRONG_BODY_TYPE:
+    "This vehicle doesn't offer the load space this delivery needs. Assign one that does.",
+  OVER_CARGO:
+    "This vehicle can't carry this load's cargo — it exceeds the weight or size limit. Assign a vehicle that can.",
 };
 
 /**
@@ -236,38 +269,26 @@ export async function POST(
     return NextResponse.json({ error: "Vehicle not found." }, { status: 404 });
   }
 
-  // A vehicle that went through a fleet application has to have been approved:
-  // the fleet is cleared vehicle by vehicle, so an activated company can still
-  // hold a flagged or unreviewed one.
+  // **The four refusals, now asked as one question.** Approval, the booked-class
+  // floor, the body type and the cargo fit were four inline blocks here, each
+  // returning its own `NextResponse`. They are unchanged in content, order and
+  // precedence — `src/lib/orders/dispatch-fit.ts` is a transcription of them —
+  // and the only thing that moved is where they are written down.
   //
-  // A vehicle with no review row at all is grandfathered — there is no column on
-  // `Vehicle` to backfill a verdict onto, and manufacturing review rows for
-  // vehicles no reviewer ever looked at would fabricate a compliance record. The
-  // null case can never be produced by the new flow: the onboarding submit
-  // creates a `BusinessApplicationVehicle` for every vehicle in the same
-  // transaction that creates the vehicle itself.
+  // **The reason they moved is the dispatch dialog.** Its vehicle picker has to
+  // tell a dispatcher which of the fleet can take this load, and why the rest
+  // cannot, *before* anything is submitted. Re-deriving that rule in the UI
+  // would be a second copy of it, free to drift from this handler — a picker
+  // offering a vehicle this endpoint then bounces, or hiding one it would have
+  // accepted. `GET .../dispatch-options` feeds the dialog from the very function
+  // this refusal is computed by, so the two cannot disagree by construction
+  // rather than by vigilance. Same argument, and the same failure history, as
+  // `hasDeclaredEnvelope` and `driverVehiclesWhere`.
   //
-  // Placed before the substitution checks below so a vehicle that is both
-  // unapproved and unfit for the booking is reported as unapproved. 400 rather
-  // than 403: this is a fact about the vehicle named in the request body, which
-  // is a bad-request condition alongside those refusals.
-  if (
-    vehicle.applicationVehicle !== null &&
-    vehicle.applicationVehicle.status !== "APPROVED"
-  ) {
-    return NextResponse.json(
-      {
-        error:
-          "This vehicle hasn't been approved yet. Only approved vehicles can be dispatched.",
-      },
-      { status: 400 },
-    );
-  }
-
-  // Resolved once and used by both the substitution rule and the cargo fit below:
-  // this vehicle's own declared capacity, class spec as the per-field fallback.
-  const vehicleCapability = capabilityOf(vehicle, vehicle.vehicleTypeSpec);
-
+  // The precedence the old blocks encoded is preserved by that function and
+  // documented on it: approval is tested first, so a vehicle that is both
+  // unapproved and unfit for the booking is still reported as unapproved.
+  //
   // **The booked class is a floor, not an identity.** This was
   // `vehicle.vehicleTypeSpecId !== order.vehicleTypeSpecId` — a dispatcher could
   // only ever assign a vehicle of the one exact class the client picked — which
@@ -296,40 +317,7 @@ export async function POST(
   // four spec columns read by hand, because `capabilityOf` is where
   // `cargoHeightM: 0` becomes `Infinity` for an open bed; a literal would give a
   // flatbed booking a height floor of zero that anything clears.
-  const bookedClass = {
-    vehicleTypeSpecId: order.vehicleTypeSpecId,
-    floor: specCapability(order.vehicleTypeSpec),
-  };
-
-  if (
-    !meetsBookedClass(
-      {
-        vehicleTypeSpecId: vehicle.vehicleTypeSpecId,
-        capability: vehicleCapability,
-      },
-      bookedClass,
-    )
-  ) {
-    return NextResponse.json(
-      {
-        error:
-          "This vehicle is smaller than the vehicle class this delivery was booked as. Assign one that matches or beats it on payload, length, width and height.",
-      },
-      { status: 400 },
-    );
-  }
-
-  if (!offersBodyType(vehicle.vehicleTypeSpec.bodyTypes, order.bodyType)) {
-    return NextResponse.json(
-      {
-        error:
-          "This vehicle doesn't offer the load space this delivery needs. Assign one that does.",
-      },
-      { status: 400 },
-    );
-  }
-
-  // A third, independent check alongside the two substitution tests above — and
+  // The third check, independent of the two above — and
   // the one the claim endpoint's optimism was sold against.
   //
   // **Clearing the booked class is not a fit check.** The substitution rule says
@@ -377,22 +365,40 @@ export async function POST(
   // Written out inline in all four places until `GET /api/loads` was found to
   // have quietly disagreed with the other three — listing nothing where they
   // claimed happily. One exported predicate is what keeps that fixed.
-  const declaredCargo: LoadDimensions = {
-    weightKg: order.cargoWeightKg,
-    lengthM: order.cargoLengthM,
-    widthM: order.cargoWidthM,
-    heightM: order.cargoHeightM,
-  };
-
-  if (
-    hasDeclaredEnvelope(declaredCargo) &&
-    !loadFits(declaredCargo, vehicleCapability)
-  ) {
-    return NextResponse.json(
-      {
-        error:
-          "This vehicle can't carry this load's cargo — it exceeds the weight or size limit. Assign a vehicle that can.",
+  //
+  // `isDispatchApproved` is that same argument applied to the review verdict:
+  // the grandfathering rule (no review row at all is permitted) was written out
+  // here, in the Driver Hub's `dispatchable` field and — as a `where` clause —
+  // in `visibleVehicleTypeWhere`. The first two now read the one predicate.
+  const { verdict } = dispatchVerdictFor(
+    {
+      vehicleTypeSpecId: vehicle.vehicleTypeSpecId,
+      approved: isDispatchApproved(vehicle.applicationVehicle),
+      payloadKg: vehicle.payloadKg,
+      cargoLengthM: vehicle.cargoLengthM,
+      cargoWidthM: vehicle.cargoWidthM,
+      cargoHeightM: vehicle.cargoHeightM,
+      vehicleTypeSpec: vehicle.vehicleTypeSpec,
+    },
+    {
+      bodyType: order.bodyType,
+      cargo: {
+        weightKg: order.cargoWeightKg,
+        lengthM: order.cargoLengthM,
+        widthM: order.cargoWidthM,
+        heightM: order.cargoHeightM,
       },
+      bookedClass: bookedClassFor(order),
+    },
+  );
+
+  // One refusal per non-`FITS` verdict, with the copy this handler has always
+  // returned. The narrowing is what makes `DISPATCH_REFUSALS` exhaustive: a new
+  // verdict kind is a typecheck failure at the table above rather than a
+  // silently unhandled case that falls through to a successful dispatch.
+  if (verdict.kind !== "FITS") {
+    return NextResponse.json(
+      { error: DISPATCH_REFUSALS[verdict.kind] },
       { status: 400 },
     );
   }

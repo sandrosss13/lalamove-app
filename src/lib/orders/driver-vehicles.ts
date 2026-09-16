@@ -17,15 +17,35 @@
  * stamping that column rather than deleted, so reassignment keeps its history
  * and the vehicle a driver drove last month must not count as theirs today.
  *
- * **Nothing constrains a driver to one open assignment.**
- * `model DriverVehicleAssignment` carries two plain indexes and no unique of
- * any kind, so a fleet manager may leave several rows open on one driver and
- * this clause then returns every one of those vehicles. That is handled, not
- * merely tolerated: the confirm dialog's picker exists precisely for the case
- * where more than one vehicle qualifies, and the header pill names the newest
- * by `createdAt`. Do not rewrite this as a single-vehicle lookup on the
- * strength of the one-truck-per-driver convention — the database does not
- * enforce it.
+ * **A driver holds at most one *assigned* vehicle, but this clause can still
+ * return several — and the difference is why it must not be rewritten as a
+ * single-vehicle lookup.**
+ *
+ * `model DriverVehicleAssignment` declares only `@@index([driverProfileId])`
+ * and `@@index([vehicleId])`, which is where the belief that nothing is
+ * enforced comes from: reading the Prisma schema alone, there is no unique of
+ * any kind. The schema is not the whole story.
+ * `prisma/migrations/20260829121728_add_business_fleet_onboarding/migration.sql`
+ * adds two **partial** unique indexes that Prisma's schema language cannot
+ * express and therefore does not show —
+ * `driver_vehicle_assignment_live_driver_unique` on `("driverProfileId") WHERE
+ * "unassignedAt" IS NULL` and `driver_vehicle_assignment_live_vehicle_unique`
+ * on `("vehicleId")` under the same predicate. Their own migration comments
+ * give the reason: the "one live assignment" rule used to be enforced only
+ * inside the assignment route's transaction, which under READ COMMITTED narrows
+ * the race window without closing it. So the database does enforce it, and
+ * `GET /api/logistics-company/drivers` already relies on that, taking its live
+ * assignment with an exact `take: 1`.
+ *
+ * What is *not* constrained is the other half of the `OR`. `Vehicle
+ * .driverProfileId` carries a plain `@@index` and no unique, so an INDEPENDENT
+ * driver may own any number of trucks outright, and this clause returns every
+ * one of them alongside the single company vehicle a ROSTER driver may hold.
+ * More than one vehicle qualifying is therefore still an ordinary case, not a
+ * data error: the confirm dialog's picker exists precisely for it, and the
+ * header pill names the newest by `createdAt`. Do not collapse this to a
+ * single-vehicle lookup on the strength of the live-assignment index — that
+ * index says nothing about owned vehicles.
  *
  * **Exported as one `where` rather than written out per call site, and that is
  * the whole reason this module exists.** Three surfaces ask this question and

@@ -828,6 +828,54 @@ export type LoadsBoardValue = {
    */
   lostLoad: { id: string; reference: string } | null;
   closeLost: () => void;
+  /**
+   * The load the dispatch dialog is open on, or `null` — the same "open is a
+   * non-null target" convention as `dialogLoad` and `lostLoad`, and the same
+   * frozen snapshot rather than a live lookup.
+   *
+   * **Only ever set for a `"BUSINESS"` account.** A company's claim names no
+   * vehicle and no driver (see `confirmClaim`), so the order it wins is held by
+   * the company and assigned to nobody; assigning it is a second step against
+   * `POST /api/logistics-company/orders/[id]/dispatch`, and this is what opens
+   * the dialog that performs it. A driver's claim already named a vehicle and a
+   * driver — themselves — so there is nothing left for them to dispatch and this
+   * stays null for the whole life of an individual's session.
+   *
+   * It is a snapshot for the reason `dialogLoad` is: `confirmClaim` sets this
+   * and then immediately `refetch()`es, which replaces every row object on the
+   * board and moves this one from `available` to `mine`. A dialog holding an id
+   * and looking the row up would be reading a different object one tick later,
+   * on a panel that never moved.
+   */
+  dispatchTarget: HubLoad | null;
+  /**
+   * Open the dispatch dialog on a load.
+   *
+   * Takes the **row**, not an id, which is the one place this departs from
+   * `openConfirm`. `openConfirm`'s callers have only an id — a table row's
+   * Accept button — so the lookup belongs inside it. Everything that opens *this*
+   * dialog is already holding the snapshot it wants shown, and re-deriving it
+   * from an id would mean a lookup against arrays that the `refetch()` following
+   * a claim is about to replace wholesale.
+   *
+   * Nothing inside this provider calls it: `confirmClaim` writes the state
+   * setter directly, exactly as it does for `dialogLoad` and `lostLoad`, so that
+   * the success branch is one commit and carries no extra dependency. This is
+   * the handle for the same transition from outside — a "dispatch this" control
+   * on the `mine` tab would use it — and it is exported alongside `closeDispatch`
+   * so the pair is symmetrical rather than a lone close.
+   */
+  openDispatch: (load: HubLoad) => void;
+  /**
+   * Dismiss the dispatch dialog without assigning anything.
+   *
+   * A first-class outcome, not a cancel: the order stays `CLAIMED` with no
+   * driver, reads "Awaiting dispatch" everywhere it appears, and the company job
+   * sheet carries the way back into this same dialog. A dispatcher who claims a
+   * load at six in the evening does not necessarily know yet which truck takes
+   * it in the morning.
+   */
+  closeDispatch: () => void;
 
   /* --- mutations -------------------------------------------------------- */
   /**
@@ -1474,6 +1522,23 @@ export function LoadsProvider({
     id: string;
     reference: string;
   } | null>(null);
+
+  /**
+   * The dispatch dialog's target, and — exactly as above — **the snapshot is the
+   * state**, with any id derived from it rather than stored beside it.
+   *
+   * There is deliberately no `isDispatchOpen` boolean. Two pieces of state
+   * describing one thing are two pieces of state that can disagree about it, and
+   * this board already has the answer: a non-null target *is* "open".
+   *
+   * Set only by `confirmClaim`'s BUSINESS success branch. See
+   * `LoadsBoardValue.dispatchTarget` for why a company's claim leaves an order
+   * with nobody on it and why that is the intended shape rather than an omission
+   * in the claim endpoint.
+   */
+  const [dispatchTarget, setDispatchTarget] = React.useState<HubLoad | null>(
+    null,
+  );
   const [isClaiming, setIsClaiming] = React.useState(false);
   const [claimError, setClaimError] = React.useState<LoadsClaimError | null>(
     null,
@@ -1812,6 +1877,14 @@ export function LoadsProvider({
     setLostLoad(null);
   }, []);
 
+  const openDispatch = React.useCallback((load: HubLoad) => {
+    setDispatchTarget(load);
+  }, []);
+
+  const closeDispatch = React.useCallback(() => {
+    setDispatchTarget(null);
+  }, []);
+
   const dismissClaimError = React.useCallback(() => {
     setClaimError(null);
   }, []);
@@ -1995,6 +2068,34 @@ export function LoadsProvider({
         }
 
         if (response.ok) {
+          /**
+           * A company has won a load that names nobody, so hand it straight to
+           * the dispatch dialog.
+           *
+           * **Before `setDialogLoad(null)`, and from `load` rather than from
+           * `dialogLoad`.** `load` is the snapshot this function froze on entry;
+           * reading the state again here would read whatever the latest render
+           * closed over, and the very next line is clearing it. The two setters
+           * land in one update — the confirm dialog's target goes null and the
+           * dispatch dialog's goes non-null together — which is precisely why
+           * `loads-claim-dialogs.tsx` renders the three dialogs as independent
+           * siblings rather than as an either/or: for one commit both are
+           * non-null, and a mutually-exclusive arrangement would drop the
+           * dispatch dialog on the floor.
+           *
+           * Only for `"BUSINESS"`. A driver's claim already named their vehicle
+           * and themselves, so there is nothing left to assign and opening this
+           * would be asking a driver to dispatch themselves.
+           *
+           * It survives the `refetch()` below: the target is a snapshot, so the
+           * row moving from `available` to `mine` underneath it changes nothing
+           * the dialog reads. The dialog does not read the row anyway — it
+           * fetches the fleet's options by order id.
+           */
+          if (accountKind === "BUSINESS") {
+            setDispatchTarget(load);
+          }
+
           setDialogLoad(null);
           setTab("mine");
           await refetch();
@@ -2163,6 +2264,9 @@ export function LoadsProvider({
       closeConfirm,
       lostLoad,
       closeLost,
+      dispatchTarget,
+      openDispatch,
+      closeDispatch,
       claimCandidates,
       confirmClaim,
       isClaiming,
@@ -2188,11 +2292,13 @@ export function LoadsProvider({
       claimCandidates,
       claimError,
       closeConfirm,
+      closeDispatch,
       closeLost,
       confirmClaim,
       dialogId,
       dialogLoad,
       dismissClaimError,
+      dispatchTarget,
       dropCityOptions,
       fDrop,
       fPickup,
@@ -2209,6 +2315,7 @@ export function LoadsProvider({
       mineCount,
       nowIso,
       openConfirm,
+      openDispatch,
       pendingActionId,
       pickupCityOptions,
       refetch,

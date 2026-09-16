@@ -1,5 +1,8 @@
 "use client";
 
+import * as React from "react";
+import { useRouter } from "next/navigation";
+
 import {
   useHubSubtitle,
   useHubTitle,
@@ -18,6 +21,7 @@ import {
   jobSheetRouteSummary,
   type JobSheetViewer,
 } from "@/components/driver-hub/screens/job-sheet-parts";
+import { LoadsDispatchDialog } from "@/components/driver-hub/screens/loads-dispatch-dialog";
 import type { HubJobSheet } from "@/lib/dashboard/hub/job-sheet";
 
 /**
@@ -102,6 +106,16 @@ import type { HubJobSheet } from "@/lib/dashboard/hub/job-sheet";
  *   and the same numbers.
  * - **One extra fact.** `job.fleet` — which driver has it, on which vehicle —
  *   drawn in the header card, which is the one card all four layouts render.
+ * - **One extra action, on one status.** A company can claim a load without
+ *   naming anybody, so a `CLAIMED` order with a null `fleet.driverName` carries
+ *   an "Assign a driver and vehicle" trigger in that same header card, opening
+ *   `LoadsDispatchDialog`. It is the way back in for a dispatcher who claimed
+ *   from the load board and dismissed the dialog that opened there — dismissing
+ *   it is a legitimate answer, and "Awaiting dispatch" is where the order waits
+ *   until they come back. The three conditions that gate the trigger live on
+ *   `JobSheetHeaderCard`, where the fleet block is; what lives *here* is the
+ *   dialog's open state and the `router.refresh()` that re-reads the result, for
+ *   the reason the `useTransition` below gives.
  *
  * Nothing is *withheld* from a company reader. Both stops keep their Call and
  * Navigate row: a dispatcher ringing a consignee is ordinary, and a map is
@@ -169,6 +183,39 @@ export function JobSheetScreen({ job, nowIso, viewer }: JobSheetScreenProps) {
    */
   useHubSubtitle(jobSheetRouteSummary(job));
 
+  const router = useRouter();
+
+  /**
+   * Whether the dispatch dialog is on screen, held here rather than in
+   * `JobSheetHeaderCard`.
+   *
+   * Lifted for one reason: the success path has to close the dialog *and*
+   * re-read the page in a single transition, and the transition has to belong to
+   * something that outlives the dialog. `job-sheet-actions.tsx` owns its confirm
+   * dialog's completion for exactly the same reason, and states the failure it
+   * avoids — a transition started inside a component that is already unmounting
+   * drops its pending flag, and the trigger behind it re-enables over a page
+   * that has not caught up.
+   *
+   * These three hooks sit above the two early returns below, unconditionally, as
+   * React requires. They are inert on the layouts that never mount the dialog.
+   */
+  const [isDispatchOpen, setIsDispatchOpen] = React.useState(false);
+
+  /**
+   * The dispatch POST's server re-render.
+   *
+   * `router.refresh()` is what re-reads the new driver, and nothing else would:
+   * `/dashboard/jobs/[id]` is `force-dynamic` and server-rendered, so the fleet
+   * block's `driverName` comes from a Prisma read on the server and no client
+   * state of this screen's can conjure it. Patching it locally would mean this
+   * screen holding an optimistic copy of a fact the server owns, which is the
+   * pattern `job-sheet-actions.tsx` rejected for the start and complete buttons
+   * on the same page. `isDispatchPending` keeps the trigger disabled until the
+   * new render commits — see `JobSheetHeaderCardProps.isDispatchPending`.
+   */
+  const [isDispatchPending, startDispatchTransition] = React.useTransition();
+
   if (job.status === "CANCELLED") {
     return <JobSheetCancelled job={job} viewer={viewer} />;
   }
@@ -214,7 +261,39 @@ export function JobSheetScreen({ job, nowIso, viewer }: JobSheetScreenProps) {
         // `overtimeDriverPayout` is 0 and `waitingMinutes` is null until the
         // driver reports them, so it would print a total about to change.
         payout="quoted"
+        // The card decides whether to draw the trigger at all, and it gates on
+        // three facts about the job rather than on this prop — including
+        // `status === "CLAIMED"`, which is why the same prop passed from the
+        // completed and cancelled layouts would be inert. It is not passed
+        // there anyway: those jobs have nothing to dispatch.
+        onDispatch={() => setIsDispatchOpen(true)}
+        isDispatchPending={isDispatchPending}
       />
+
+      {/* Mounted only while open, and keyed on nothing: this screen shows one
+          order and does not poll, so there is no second target a stale vehicle
+          pick could leak into — unlike the load board, where the same dialog is
+          keyed on the order id for precisely that reason. Unmounting on close is
+          what drops the chosen vehicle, the roster override and any spent error,
+          so a dispatcher who dismisses and reopens starts from the fleet as it
+          is now rather than from where they left off. */}
+      {isDispatchOpen ? (
+        <LoadsDispatchDialog
+          orderId={job.id}
+          reference={job.reference}
+          onClose={() => setIsDispatchOpen(false)}
+          // Close and resync inside *this* component's transition, so
+          // `isDispatchPending` — and with it the disabled trigger in the header
+          // card — stays true until the new server render commits. See the
+          // `useTransition` comment above.
+          onDispatched={() => {
+            setIsDispatchOpen(false);
+            startDispatchTransition(() => {
+              router.refresh();
+            });
+          }}
+        />
+      ) : null}
 
       {/* Directly under the money, in both running states — "what time am I due
           somewhere" is the most common reason a driver opens this sheet before
