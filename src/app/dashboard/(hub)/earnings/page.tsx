@@ -19,8 +19,17 @@ export const metadata: Metadata = {
   title: "Earnings & payouts · Driver Hub",
 };
 
-/** Where a driver who has no wallet of their own is sent instead. */
-const HUB_HOME = "/dashboard/today";
+/**
+ * Where a driver who has no wallet of their own is sent instead — the board,
+ * which the hub labels "Dashboard" and puts first in their rail.
+ *
+ * The one hub screen that bounces nobody: `(hub)/loads/page.tsx` carries no
+ * guard of its own, and a ROSTER driver is explicitly welcome on it, so this
+ * redirect comes to rest rather than starting a second hop. It is also where
+ * `src/app/dashboard/page.tsx` sent them after sign-in, so the bounce returns
+ * them to the screen they came from.
+ */
+const HUB_HOME = "/dashboard/loads";
 
 /**
  * Gross earnings over a chosen range, the daily/weekly chart, the fare

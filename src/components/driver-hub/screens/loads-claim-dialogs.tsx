@@ -870,7 +870,7 @@ export function LoadsLostRaceDialog({ reference }: LoadsLostRaceDialogProps) {
           className="mt-4 h-10 w-full text-sm"
           onClick={closeLost}
         >
-          Back to load board
+          Back to dashboard
         </Button>
       </DialogContent>
     </Dialog>

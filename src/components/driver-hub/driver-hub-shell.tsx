@@ -179,7 +179,7 @@ export function useHubSubtitle(subtitle: string | null): void {
 
 /**
  * Lets a screen render extra content in the header's right-hand row, between
- * the title/spacer and the account chip — today only the Load Board's
+ * the title/spacer and the account chip — today only the load board's
  * vehicle-capacity pill (design §1 of
  * `specs/driver-load-board/tasks/task-09-board-shell.md`).
  *

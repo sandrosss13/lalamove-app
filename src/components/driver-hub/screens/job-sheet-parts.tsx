@@ -1106,9 +1106,16 @@ export type JobSheetNoticeProps = {
   children?: React.ReactNode;
 };
 
-/** Where a driver goes when there is nothing to do on this job. */
+/** Where a driver goes when there is nothing to do on this job.
+ *
+ *  The label deviates from `design_handoff_driver_job_sheet`, whose artboards
+ *  say "Back to load board" verbatim. The board is now every driver's home and
+ *  the rail names it "Dashboard" (`driver-hub-nav.ts`), so the handoff's copy
+ *  would be the only place left calling the screen by its old name. The href
+ *  and the internal `BOARD` naming are untouched — the route is still
+ *  `/dashboard/loads`. */
 export const BACK_TO_BOARD_HREF = "/dashboard/loads";
-export const BACK_TO_BOARD_LABEL = "Back to load board";
+export const BACK_TO_BOARD_LABEL = "Back to dashboard";
 
 /**
  * The boxed statement used by the cancelled and not-found states.

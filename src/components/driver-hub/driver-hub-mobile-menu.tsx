@@ -27,7 +27,7 @@ import { cn } from "@/lib/utils";
  * prototype has no left rail to account for. This app does:
  * `driver-hub-sidebar.tsx` is a hard `w-[248px] flex-none` and the shell hides
  * it below `lg` (see `driver-hub-shell.tsx`), so on a phone this menu is the
- * *only* route to Today, the Load Board, Performance, Vehicles, Drivers and
+ * *only* route to Today, Dashboard, Performance, Vehicles, Drivers and
  * Employees. Shipping the three literal links would leave a driver on a phone
  * unable to reach six of the eight screens they can reach on a laptop. The list
  * is therefore the same persona-filtered `hubNavForAccount()` output the rail

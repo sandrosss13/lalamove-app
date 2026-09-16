@@ -79,11 +79,11 @@ export const metadata: Metadata = {
  * tenancy clause. That rule lives in `getHubJobSheet`; this component supplies
  * the session's user id and renders whichever of the two answers comes back.
  *
- * There is no persona redirect, unlike `loads/page.tsx`. A roster driver is
- * withheld from the *Load Board* because work reaches them through their
- * employer's dispatch rather than the open market — but an order dispatched to
- * them is still assigned to them, and a job sheet for a job they are actually
- * driving is exactly what they need. The ownership test is the whole gate.
+ * There is no persona redirect, and `loads/page.tsx` no longer has one either:
+ * the board is open to every driver, roster and independent alike. This screen
+ * is narrower still — an order assigned to a driver is theirs to work however
+ * it reached them, dispatched by their employer or claimed off the board — so
+ * the ownership test is the whole gate.
  */
 export default async function JobSheetPage({
   params,

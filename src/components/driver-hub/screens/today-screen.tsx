@@ -21,8 +21,14 @@ import { Button } from "@/components/ui/button";
 import type { HubTodayData } from "@/lib/dashboard/hub/today";
 
 /**
- * Today — the landing screen after sign-in, and the only one a driver looks at
+ * Today — a fleet owner's morning read, and the one hub screen looked at
  * without a question already in mind.
+ *
+ * It is no longer where anyone lands: `src/app/dashboard/page.tsx` routes every
+ * account to the board, and `driver-hub-nav.ts` withholds this entry from both
+ * driver personas, leaving it in a BUSINESS rail alone. The screen itself is
+ * unchanged by that and still reads correctly for all three — see "Three
+ * personas" below — because what moved was the navigation, not the meaning.
  *
  * It answers four things at a glance: what today paid, how the week is going,
  * what is running right now, and what needs acting on. Two rows of cards, in

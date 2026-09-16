@@ -50,20 +50,20 @@ export type HubAccountKind = "BUSINESS" | "INDIVIDUAL";
  * | `ROSTER`      | `"INDIVIDUAL"` | set — their *employer*      |
  * | `BUSINESS`    | `"BUSINESS"`   | set — their *own* company   |
  *
- * An `INDEPENDENT` driver owns their vehicle, browses the open Load Board and
- * keeps their own fares. A `ROSTER` driver is employed: work reaches them
- * through their company's dispatch rather than the open market, and the fares
- * they collect are paid to their employer — which is why the Wallet and the
- * Load Board are withheld from them, not merely relabelled. A `BUSINESS`
- * account is the fleet owner, and is the only shape that gets the Drivers and
- * Employees screens.
+ * An `INDEPENDENT` driver owns their vehicle and keeps their own fares. A
+ * `ROSTER` driver is employed: their company's dispatch reaches them as well as
+ * the open board, which they browse and claim from like any other driver, and
+ * the fares they collect are paid to their employer — which is why the Wallet
+ * is withheld from them, not merely relabelled. A `BUSINESS` account is the
+ * fleet owner, and is the only shape that gets the Drivers and Employees
+ * screens.
  *
  * **`companyId !== null` is not, on its own, the roster test.** A BUSINESS
  * account's `companyId` names *its own* company, so the roster case is the
  * conjunction `kind === "INDIVIDUAL" && companyId !== null` and nothing less.
  * Reading `companyId` alone would classify every fleet owner as one of their
- * own employees and would withhold the Load Board and the Wallet from exactly
- * the accounts those screens exist to serve.
+ * own employees and would withhold the Wallet from exactly the accounts it
+ * exists to serve.
  *
  * Deliberately *not* `DriverProfile.accountType` (`DriverAccountType`), which
  * is a different axis entirely: a sole-proprietor driver who registered as a
@@ -323,10 +323,10 @@ export const resolveHubAccount = cache(async (): Promise<HubAccount | null> => {
     // `companyId` names this driver's **employer** here — contrast the
     // BUSINESS branch above, where it names the account's own company. What it
     // decides is which screens this driver gets: through the persona it
-    // withholds the Load Board (work reaches an employed driver through
-    // dispatch, not the open market) and the Wallet (the fares they collect
-    // are paid to their employer, so a personal earnings total would assert
-    // something false about whose money it is).
+    // withholds the Wallet (the fares they collect are paid to their employer,
+    // so a personal earnings total would assert something false about whose
+    // money it is). The board is not among them — it is every driver's home
+    // screen, employed or not.
     //
     // `kind` is `"INDIVIDUAL"` for everything reaching this branch, so the
     // conjunction the roster test requires is already satisfied structurally

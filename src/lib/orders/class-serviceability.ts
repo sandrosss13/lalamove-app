@@ -62,20 +62,21 @@
  * city is not something the platform currently knows. The refinement is a real
  * one; it wants a driver-side coverage field first.
  *
- * **Known limitation: a vehicle registered to a roster driver counts, though no
- * board can offer it work.** A `DriverProfile` with a `companyId` is an employed
- * driver: `GET /api/loads` refuses them a board of their own, and the company
- * dispatch route assigns only vehicles whose `companyId` is the company's, so a
- * vehicle hanging off a roster driver's profile is invisible to both paths. The
- * activation test below still counts it, because the instruction this module
- * implements is the load board's own activation rule (`company.activatedAt !==
- * null` OR `driverProfile.activatedAt !== null`) and nothing more — and because
- * whether roster drivers get a board at all is an open *business* decision
- * recorded in specs/driver-load-board/action-required.md. Hard-coding today's
- * answer into supply as well as into the board would mean two places to change
- * when it is decided. The cost is a false positive: a class held up only by such
- * a vehicle would be bookable and then strand. Revisit here the moment that
- * decision lands.
+ * **A vehicle registered to a roster driver counts, and that is now simply
+ * correct.** A `DriverProfile` with a `companyId` is an employed driver, and
+ * this block used to record a known false positive: the board refused them
+ * entirely, the company dispatch route assigns only vehicles whose `companyId`
+ * is the company's, so a vehicle hanging off a roster driver's own profile was
+ * invisible to both paths and a class held up only by one would be bookable and
+ * then strand. That decision — the open business question
+ * specs/driver-load-board/action-required.md recorded — was settled the other
+ * way: `GET /api/loads` gives every driver a board, employed or not, and
+ * `POST /api/orders/[id]/accept` lets them claim with any vehicle they own or
+ * hold on an open fleet assignment (see `driverVehiclesWhere`). Such a vehicle
+ * can therefore be offered work, so counting it as supply advertises a class
+ * somebody can actually serve. The activation test below is unchanged: it is
+ * still the load board's own rule (`company.activatedAt !== null` OR
+ * `driverProfile.activatedAt !== null`) and nothing more.
  */
 
 import "server-only";

@@ -143,9 +143,10 @@ export function DriverHubPageHead({
   return (
     // The artboard has no load-board screen, so it is silent on where the
     // vehicle pill goes rather than contradicting the slot — it draws the page
-    // head as a title block and nothing else. The slot is a working Load Board
-    // control, so it is kept and placed opposite the title, which is the one
-    // position that neither pushes the head taller nor competes with it.
+    // head as a title block and nothing else. The slot is a working control on
+    // the board — the screen the rail labels "Dashboard" — so it is kept and
+    // placed opposite the title, which is the one position that neither pushes
+    // the head taller nor competes with it.
     <div className="flex items-start justify-between gap-4">
       <div className="min-w-0">
         <h1 className="truncate text-[17px] font-semibold tracking-[-0.015em] lg:text-[20px]">

@@ -30,6 +30,7 @@ import {
   offersBodyType,
   type BookedClass,
 } from "@/lib/orders/class-substitution";
+import { driverVehiclesWhere } from "@/lib/orders/driver-vehicles";
 import {
   capabilityOf,
   classifyFit,
@@ -690,10 +691,14 @@ function toLoadBoardItem(
  * for responsiveness; this is where it is enforced.
  *
  * **Eligibility asks one question of one vehicle at a time: does this account
- * own a vehicle that (a) offers the body the client asked for, (b) meets or
+ * hold a vehicle that (a) offers the body the client asked for, (b) meets or
  * beats the class the client booked on all four capacity axes, and (c)
  * physically fits the declared cargo?** All three are required and none
  * subsumes the others.
+ *
+ * *Hold*, not own: an employed driver owns nothing and drives their company's
+ * vehicle on an open `DriverVehicleAssignment`, which counts here exactly as
+ * ownership does — see `driverVehiclesWhere`.
  *
  * (a) and (b) together are the *commercial contract*. A client picks a vehicle
  * on the booking form — under a step titled "Recommended vehicle" — is priced
@@ -813,27 +818,21 @@ export async function GET(request: Request): Promise<NextResponse> {
     );
   }
 
-  // `account.companyId` on an INDIVIDUAL account is `DriverProfile.companyId`:
-  // the fleet a roster driver belongs to, or null for an independent driver or
-  // sole proprietor. An employed roster driver receives work through their
-  // company's dispatcher, who accepts and rejects on the company's behalf, so
-  // they have no board of their own — the same reasoning
-  // src/app/api/orders/[id]/accept/route.ts already refuses them with, adapted
-  // from an action to a listing. This is a deliberate scoping choice rather
-  // than an oversight: see specs/driver-load-board/requirements.md's
-  // Assumptions ("Roster drivers do not accept work — confirmed, not assumed")
-  // and specs/driver-load-board/action-required.md's "Decide whether employed
-  // roster drivers get the board" item, which records the default (no) and the
-  // alternative (a per-company opt-in) as an open *business* decision.
-  if (account.kind === "INDIVIDUAL" && account.companyId !== null) {
-    return NextResponse.json<LoadBoardError>(
-      {
-        error:
-          "Drivers who belong to a company receive deliveries through their company's dispatch, not through the open load board.",
-      },
-      { status: 403 },
-    );
-  }
+  // **No roster gate here, deliberately.** An INDIVIDUAL account with a
+  // non-null `companyId` is a driver on a fleet's payroll, and this endpoint
+  // used to 403 them on the grounds that work reaches them through their
+  // company's dispatcher rather than the open market — the open business
+  // decision specs/driver-load-board/action-required.md recorded, now settled
+  // the other way. Every kind of driver gets this board: they browse, claim and
+  // reject exactly as an independent driver does, and `POST
+  // /api/orders/[id]/accept`, `POST /api/loads/[id]/reject` and the
+  // `/dashboard/loads` page dropped their matching refusals in the same change,
+  // so no layer of the stack disagrees about who the board is for.
+  //
+  // What an employed driver lacks is a `Vehicle` of their own — see the fleet
+  // resolution below, which reads an open fleet assignment as well as
+  // ownership. Removing this gate without that would have handed them a board
+  // whose every load is `NO_ELIGIBLE_VEHICLE`.
 
   // An account whose application has not been approved cannot claim work, so
   // there is nothing to compute and none of the queries below run.
@@ -888,21 +887,37 @@ export async function GET(request: Request): Promise<NextResponse> {
   let driverLocation: LatLng | null = null;
 
   if (scope.kind === "INDIVIDUAL") {
-    // One round trip for both: the vehicles the eligibility filter needs and
-    // the coordinates `pickupDistanceKm` needs hang off the same profile row.
-    const driverProfile = await prisma.driverProfile.findUnique({
-      where: { id: scope.driverProfileId },
-      select: {
-        currentLat: true,
-        currentLng: true,
-        vehicles: { select: VEHICLE_CAPABILITY_SELECT },
-      },
-    });
+    // Two round trips rather than the one nested read this used to be, and the
+    // split is what the roster driver costs. A driver's fleet is no longer
+    // `DriverProfile.vehicles`: an employed driver owns no `Vehicle` row and
+    // drives their company's through an open `DriverVehicleAssignment`, so the
+    // set is the union `driverVehiclesWhere` states — which is a
+    // `Prisma.VehicleWhereInput` and cannot be expressed as one relation on the
+    // profile. Expressing the union inline as a second nested relation was the
+    // alternative and was rejected: it would be a third spelling of a rule the
+    // `/dashboard/loads` page and `POST /api/orders/[id]/accept` also apply,
+    // and this endpoint's whole job is agreeing with the claim route.
+    //
+    // Issued together: neither query reads the other's result, so the split
+    // costs a connection rather than a latency.
+    const [driverProfile, driverVehicles] = await Promise.all([
+      // `currentLat`/`currentLng` are all that is left on the profile row —
+      // `pickupDistanceKm` is the only other thing this branch resolves.
+      prisma.driverProfile.findUnique({
+        where: { id: scope.driverProfileId },
+        select: { currentLat: true, currentLng: true },
+      }),
+      prisma.vehicle.findMany({
+        where: driverVehiclesWhere(scope.driverProfileId),
+        select: VEHICLE_CAPABILITY_SELECT,
+      }),
+    ]);
 
-    // One record per registered vehicle: its capability, resolved from that
-    // vehicle's own declared capacity with its class spec as the per-field
-    // fallback, paired with the load spaces its class offers.
-    fleet = resolveFleet(driverProfile?.vehicles ?? []);
+    // One record per vehicle this driver holds — owned outright or assigned to
+    // them off the fleet: its capability, resolved from that vehicle's own
+    // declared capacity with its class spec as the per-field fallback, paired
+    // with the load spaces its class offers.
+    fleet = resolveFleet(driverVehicles);
 
     driverLocation =
       driverProfile?.currentLat != null && driverProfile.currentLng != null
@@ -929,6 +944,13 @@ export async function GET(request: Request): Promise<NextResponse> {
    * "Assigned to me", as a query filter. Deliberately status-free: it is an
    * identity, used both to find this account's own work and (negated) to
    * exclude it from the just-claimed-by-someone-else window.
+   *
+   * An employed driver's "mine" is `driverId`, their own, and never their
+   * employer's `companyId` — a roster driver claiming off this board takes the
+   * load personally, the claim route writes their user id to `Order.driverId`,
+   * and work their company's dispatcher claimed belongs to the company's board
+   * rather than to theirs. The two are different boards for two different
+   * accounts, which is why this stays a `scope.kind` branch and not a union.
    */
   const myAssignmentFilter: Prisma.OrderWhereInput =
     scope.kind === "INDIVIDUAL"
@@ -1109,10 +1131,12 @@ export async function GET(request: Request): Promise<NextResponse> {
    * "loads your fleet is not equipped for" surfaced, that is a new field with its
    * own copy, not a redefinition of this one.
    *
-   * A driver with zero registered vehicles has an empty fleet, so every load is
-   * `NO_ELIGIBLE_VEHICLE` and `hiddenByCapacityCount` stays 0 — an empty board
-   * with no misleading capacity note, which is the honest answer for an account
-   * that has not registered a vehicle yet.
+   * A driver holding no vehicle at all — none registered, and none assigned to
+   * them off a fleet — has an empty fleet, so every load is
+   * `NO_ELIGIBLE_VEHICLE` and `hiddenByCapacityCount` stays 0. An empty board
+   * with no misleading capacity note is the honest answer both for an account
+   * that has not registered a vehicle yet and for a roster driver a fleet
+   * manager has not yet paired one with.
    *
    * **`UNDECLARED` maps to `ELIGIBLE`, and that is the point of measuring with
    * `classifyFit` rather than `loadFits`.** A load whose cargo envelope was

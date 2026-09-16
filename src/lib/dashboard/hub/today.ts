@@ -798,11 +798,10 @@ export async function getHubToday(account: HubAccount): Promise<HubTodayData> {
         ratedJobCount: SAMPLE_RATED_JOB_COUNT,
       },
       // Suppressed for a salaried employee: they neither choose where to
-      // position themselves — dispatch does, which is the same premise that
-      // hides the Load Board from them — nor would keep the surge bonus if they
-      // did, because the fare on their jobs is paid to their employer. Where a
-      // sampled card is meaningless for a persona this feature hides it rather
-      // than making it real.
+      // position themselves — their employer's dispatch does — nor would keep
+      // the surge bonus if they did, because the fare on their jobs is paid to
+      // their employer. Where a sampled card is meaningless for a persona this
+      // feature hides it rather than making it real.
       zoneDemand: isRoster
         ? null
         : {

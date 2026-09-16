@@ -297,7 +297,7 @@ export async function GET(request: Request): Promise<NextResponse> {
   }
 
   // The roster-driver gate, the API half of the pair — `/dashboard/earnings`
-  // redirects the same persona to /dashboard/today, and a redirect is the wrong
+  // redirects the same persona to /dashboard/loads, and a redirect is the wrong
   // answer to a fetch for a file (see the note on the session check above), so
   // it is answered as a status code here.
   //

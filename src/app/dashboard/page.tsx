@@ -6,14 +6,19 @@ import { prisma } from "@/lib/prisma";
 // Session + Prisma access can't be statically rendered.
 export const dynamic = "force-dynamic";
 
-/** The hub's fallback home: a company, an admin, and any driver the Load Board
- *  is not open to. */
-const HUB_HOME = "/dashboard/today";
-
-/** Where a driver who can actually use the board lands instead — the open
- *  market is the first thing they want after signing in, not a summary of a
- *  day that has not started yet. */
-const DRIVER_HOME = "/dashboard/loads";
+/**
+ * Where everything this page routes comes to rest: the board, which the hub
+ * labels "Dashboard" and puts first in the rail.
+ *
+ * One destination for all four cases — a driver with a profile, a company past
+ * the fleet gate, an admin, and the driver whose `DriverProfile` row does not
+ * exist yet — because the open market is the first thing a provider wants after
+ * signing in, and because the board is the only hub screen no persona is
+ * bounced off. A driver and a company used to split here, the latter landing on
+ * `/dashboard/today`; Today is a fleet owner's screen in the rail now but not
+ * anyone's landing screen, so the split has nothing left to express.
+ */
+const HUB_HOME = "/dashboard/loads";
 
 /**
  * The provider-side entry point: where an independent driver, a
@@ -29,13 +34,13 @@ const DRIVER_HOME = "/dashboard/loads";
  * cached one the layout already made, so it costs no second session validation —
  * it is here only to hand back the non-null session object.
  *
- * Past those two gates, an independent driver goes to the Load Board and
- * everyone else to `/dashboard/today`. This routing deliberately stays *in this
- * page* rather than moving into a layout: a layout wraps its children, and the
- * two onboarding redirects target `/dashboard/onboarding` and
- * `/dashboard/fleet-onboarding`, which are children of
- * `src/app/dashboard/layout.tsx` — a guard that redirects to a page
- * it also wraps is an infinite redirect. The hub's own chrome lives one level
+ * Past those two gates everyone lands on the same screen: the board the hub
+ * labels "Dashboard", at `/dashboard/loads`.
+ * This routing deliberately stays *in this page* rather than moving into a
+ * layout: a layout wraps its children, and the two onboarding redirects target
+ * `/dashboard/onboarding` and `/dashboard/fleet-onboarding`, which are children
+ * of `src/app/dashboard/layout.tsx` — a guard that redirects to a page it also
+ * wraps is an infinite redirect. The hub's own chrome lives one level
  * down, in the `(hub)` route group, precisely so it frames the seven hub
  * screens without ever framing the two wizards.
  */
@@ -147,28 +152,26 @@ export default async function DashboardPage() {
     if (shouldOnboard) {
       redirect("/dashboard/onboarding");
     }
-
-    // The Load Board is this driver's home, but only if it is a screen they may
-    // open. The test mirrors the board's own server-side gate in
-    // `(hub)/loads/page.tsx`: a driver with a non-null `companyId` is employed
-    // on somebody else's roster, receives work through their dispatcher rather
-    // than the open market, and is redirected off the board (and 403'd by
-    // `GET /api/loads`). Sending them there would cost a second redirect to
-    // arrive exactly where `HUB_HOME` puts them in one.
-    //
-    // `driverProfile !== null` is the interrupted-sign-up case, and it must
-    // stay: `resolveHubAccount()` returns `null` for a DRIVER with no profile
-    // row, which `(hub)/layout.tsx` answers with its "your driver profile isn't
-    // set up yet" fallback — but `loads/page.tsx` answers by rendering nothing
-    // at all. So a driver in that state goes to `HUB_HOME`, where the fallback
-    // is, rather than to a blank board.
-    if (driverProfile !== null && driverProfile.companyId === null) {
-      redirect(DRIVER_HOME);
-    }
   }
 
-  // Drivers, and the ADMIN the layout does not bounce. Both are resolved by
-  // `resolveHubAccount()` inside the hub — an admin has no `DriverProfile`, so
-  // they get the layout's fallback rather than a half-empty hub.
+  // Every remaining case — a driver past the onboarding gate, the driver whose
+  // `DriverProfile` row was never created, and the ADMIN the layout does not
+  // bounce — lands on the board.
+  //
+  // The board is every driver's home whatever their `companyId` says: a driver
+  // employed on a company's roster claims from the same open market as an
+  // owner-driver — dispatch is how work also reaches them, not the only way it
+  // may — so the persona split this branch used to apply is gone, along with
+  // the board's own redirect in `(hub)/loads/page.tsx` and the `403` that
+  // `GET /api/loads` paired with it. `companyId` is selected above for the
+  // onboarding test and is deliberately not consulted here.
+  //
+  // The profile-less driver is safe on this route and no longer needs the
+  // separate destination it used to get. `resolveHubAccount()` returns `null`
+  // for them, and `(hub)/layout.tsx` answers a `null` account by rendering its
+  // "your driver profile isn't set up yet" fallback *instead of* its children —
+  // on every hub route, this one included — so `loads/page.tsx`'s own `return
+  // null` for the same case is never reached and there is no blank board to
+  // land on.
   redirect(HUB_HOME);
 }

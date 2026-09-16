@@ -8,6 +8,7 @@ import {
   meetsBookedClass,
   offersBodyType,
 } from "@/lib/orders/class-substitution";
+import { driverVehiclesWhere } from "@/lib/orders/driver-vehicles";
 import {
   capabilityOf,
   hasDeclaredEnvelope,
@@ -37,22 +38,30 @@ function parseAcceptOrderBody(
 }
 
 /**
- * POST /api/orders/[id]/accept — an *independent* driver claims a pending,
- * unassigned order with one of their registered vehicles, recorded on the order.
+ * POST /api/orders/[id]/accept — a driver claims a pending, unassigned order
+ * with one of the vehicles they hold, recorded on the order.
  *
- * Drivers on a company's roster never reach the assignment here: their company
- * claims the order and dispatches it to them, so accepting directly is rejected
- * rather than treated as a second, parallel way in.
+ * **Any driver, employed or not.** A driver on a company's roster used to be
+ * refused here on the grounds that their company claims and dispatches on their
+ * behalf, so accepting directly was a second, parallel way in. That is no longer
+ * the rule: a roster driver browses and claims the open board exactly as an
+ * independent driver does, and `GET /api/loads`, `POST /api/loads/[id]/reject`
+ * and the `/dashboard/loads` page dropped their matching refusals in the same
+ * change. Their company's own claim path
+ * (`POST /api/logistics-company/orders/[id]/claim`) is untouched and remains a
+ * separate route for a separate account; the two no longer exclude each other.
  *
  * The claim is done with a single conditional `updateMany` (status PENDING and
  * driverId null in the `where`) rather than a read-then-write, so two drivers
  * racing for the same order can't both succeed: the database applies at most one
  * update and `count` tells us whether this request won.
  *
- * The vehicle is looked up scoped to the caller's own profile, and a vehicle
- * belonging to someone else is reported as 404 rather than 403 — the same
- * reasoning as DELETE /api/driver-profile/vehicles/[id]: a 403 would confirm
- * that the id exists, letting a caller enumerate other drivers' vehicles.
+ * The vehicle is looked up scoped to the vehicles this caller holds — owned
+ * outright, or held on an open fleet assignment, the union `driverVehiclesWhere`
+ * defines — and a vehicle that is neither is reported as 404 rather than 403,
+ * the same reasoning as DELETE /api/driver-profile/vehicles/[id]: a 403 would
+ * confirm that the id exists, letting a caller enumerate other drivers'
+ * vehicles.
  *
  * Two further preconditions come from the load board, and both are checked on
  * the read side, *before* the `updateMany` — never inside its `where`, which
@@ -101,28 +110,21 @@ export async function POST(
   const { vehicleId } = parsed.data;
   const { id } = await params;
 
+  // `companyId` is no longer read: whether this driver is on a fleet's roster
+  // does not bear on whether they may claim an open load. The columns left are
+  // the two conditions that do.
   const driverProfile = await prisma.driverProfile.findUnique({
     where: { userId: session.user.id },
-    select: { id: true, companyId: true, activatedAt: true, isOnline: true },
+    select: { id: true, activatedAt: true, isOnline: true },
   });
 
   if (!driverProfile) {
     return NextResponse.json({ error: "Vehicle not found." }, { status: 404 });
   }
 
-  if (driverProfile.companyId !== null) {
-    return NextResponse.json(
-      {
-        error:
-          "Drivers who belong to a company receive deliveries through their company's dispatch, not by accepting directly.",
-      },
-      { status: 403 },
-    );
-  }
-
   // A driver whose onboarding application has not been approved cannot claim
-  // work. Kept distinct from the company-affiliation 403 above: the two are
-  // different problems with different remedies.
+  // work. Kept distinct from the offline gate below: the two are different
+  // problems with different remedies.
   if (driverProfile.activatedAt === null) {
     return NextResponse.json(
       {
@@ -140,10 +142,10 @@ export async function POST(
   // has that they are actually available to act on it.
   //
   // 403 rather than 409 because this is a fact about the caller's own account
-  // state — the same class of condition as the roster and activation gates
-  // immediately above — not a conflict with what another request just did. The
-  // `code` is here, and not on those two, precisely because this one is
-  // recoverable: the UI offers "go online and retry" rather than their dead end.
+  // state — the same class of condition as the activation gate immediately
+  // above — not a conflict with what another request just did. The `code` is
+  // here, and not on that one, precisely because this one is recoverable: the
+  // UI offers "go online and retry" rather than its dead end.
   if (!driverProfile.isOnline) {
     return NextResponse.json(
       {
@@ -199,7 +201,18 @@ export async function POST(
     return NextResponse.json({ error: "Order not found." }, { status: 404 });
   }
 
-  // Scoped by owner, so this returns nothing for another driver's vehicle.
+  // Scoped to the vehicles this driver holds, so this returns nothing for
+  // another driver's vehicle — and the 404 below reports it as absent rather
+  // than forbidden, per the doc comment above.
+  //
+  // "Holds" is `driverVehiclesWhere`, not `driverProfileId` alone: an employed
+  // driver owns no `Vehicle` row and drives their company's on an open
+  // `DriverVehicleAssignment`, so an ownership-only scope would 404 the one
+  // vehicle a roster driver can actually turn up in. `GET /api/loads` filters
+  // the board with the same helper, so the vehicles the confirm dialog offers
+  // are exactly the vehicles this lookup accepts — a board that names a claim
+  // vehicle this route then refuses is the divergence both sides share the
+  // helper to prevent.
   //
   // Both capacity sources are selected because `capabilityOf` needs both: the
   // vehicle's OWN driver-declared `payloadKg`/`cargoLengthM`/`cargoWidthM`/
@@ -215,7 +228,7 @@ export async function POST(
   // `meetsBookedClass`'s identity clause, which admits a vehicle registered
   // under the booked class outright. Nothing here compares the two ids by hand.
   const vehicle = await prisma.vehicle.findFirst({
-    where: { id: vehicleId, driverProfileId: driverProfile.id },
+    where: { id: vehicleId, ...driverVehiclesWhere(driverProfile.id) },
     select: {
       id: true,
       vehicleTypeSpecId: true,

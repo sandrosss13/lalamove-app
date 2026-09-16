@@ -1249,7 +1249,7 @@ export function LoadsProvider({
           setLoadError(
             typeof body?.error === "string"
               ? body.error
-              : `The load board is unavailable (HTTP ${response.status}).`,
+              : `The dashboard is unavailable (HTTP ${response.status}).`,
           );
           return;
         }
@@ -1272,7 +1272,7 @@ export function LoadsProvider({
           return;
         }
 
-        setLoadError("Couldn't reach the load board.");
+        setLoadError("Couldn't reach the dashboard.");
       } finally {
         if (!silent) {
           foregroundReads.current -= 1;

@@ -36,22 +36,25 @@ const ACCENT_BG = "bg-[oklch(64%_0.19_48)]";
 /**
  * Where a job row and the dropdown's footer link point.
  *
- * `/dashboard/jobs/[id]` — the job sheet — now exists, so a job IS addressable
- * by URL, and a *driver's* dropdown rows link to their own sheets. These two
+ * `/dashboard/jobs/[id]` — the job sheet — exists, so a job IS addressable by
+ * URL, and a *driver's* dropdown rows link to their own sheets. These two
  * constants are what the footer link always uses, and what a fleet's rows use
  * as well: the footer is the "see all of them" affordance and a set has no
  * sheet, while a fleet's rows name jobs the owner is not the driver of and so
  * cannot open. See the row's own comment for that second rule.
  *
- * This comment previously said no such route existed and that linking to one
- * would 404 from the header on every click — true when written, and the reason
- * each persona was given the nearest list instead: a fleet gets the screen it
- * dispatches from, a single driver gets Today, whose current-job card is that
- * one job in full. Both remain the right destinations for a *footer*; what
- * changed is that they are now a choice rather than the only option.
+ * Both now resolve to the same list, and they are still two names rather than
+ * one. A single driver's footer used to point at Today, whose current-job card
+ * showed that one job in full; Today is no longer in a driver's rail, so
+ * sending them there from the header would hand them a screen their own
+ * navigation has just denied them. Job history is the list they do have, it
+ * holds the job the pill names, and every row above the footer already goes to
+ * that job's sheet. The fleet constant is the one that would move first — a
+ * company-scoped job sheet is a screen that does not exist yet — so the pair
+ * stays split along the axis that is actually going to diverge.
  */
 const FLEET_JOBS_HREF = "/dashboard/jobs";
-const SINGLE_DRIVER_JOB_HREF = "/dashboard/today";
+const SINGLE_DRIVER_JOB_HREF = "/dashboard/jobs";
 
 /** The design's footer link copy, one per persona shape. */
 const FLEET_LINK_LABEL = "View all jobs in progress";

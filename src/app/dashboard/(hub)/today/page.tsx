@@ -14,15 +14,19 @@ export const metadata: Metadata = {
 };
 
 /**
- * What the driver earned today, the job in progress, where demand is, and what
- * needs action — the landing screen after sign-in.
+ * What the account earned today, the job in progress, where demand is, and what
+ * needs action — a fleet owner's morning read.
  *
- * Open to every persona, and the only hub screen that is. Unlike
- * `/dashboard/earnings` and `/dashboard/loads` (both redirected for a roster
- * driver) and `/dashboard/drivers` and `/dashboard/employees` (business only),
- * there is no guard here at all — an independent driver, an employed driver and
- * a fleet owner each land on this page after sign-in and each are entitled to
- * it.
+ * Open to every persona, and one of the two hub screens that is. Unlike
+ * `/dashboard/earnings` (redirected for a roster driver) and
+ * `/dashboard/drivers` and `/dashboard/employees` (business only), there is no
+ * guard here at all, and that is deliberate: `driver-hub-nav.ts` withholds the
+ * rail link from both driver personas because Today is not *their* home screen
+ * — the board is, and `src/app/dashboard/page.tsx` routes every account there —
+ * but the page reads correctly for all three, so a driver who arrives with a
+ * bookmark sees their own day rather than a refusal. A hidden link is not a
+ * withheld screen; `driver-hub-nav.ts`'s `hiddenFor` doc says the same from the
+ * other end.
  *
  * That leaves the page with nothing persona-specific to do. `getHubToday()`
  * resolves the *scope* difference internally through `hubOrderScope()` (a fleet
