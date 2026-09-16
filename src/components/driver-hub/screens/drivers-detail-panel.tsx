@@ -38,9 +38,12 @@ import { cn } from "@/lib/utils";
  * `driver.sampled`, and each carries a `<SampleNote />` naming the schema
  * change that would make it real.
  *
- * Colours are written as literal Tailwind arbitrary values, never interpolated
- * — the compiler scans source text, so a class built from a variable would
- * never be generated.
+ * Colours go through a token wherever one already carries the handoff's value —
+ * `--destructive` is the handoff's BAD exactly, and a token is what makes a
+ * colour follow the theme instead of freezing at its light value. Only the
+ * hover tint, which no token covers, stays a literal, and it is written out in
+ * full for both themes: the compiler scans source text, so a class assembled
+ * from a variable would never be generated at all.
  */
 
 const GENERIC_ERROR = "Could not offboard this driver.";
@@ -53,21 +56,66 @@ const NETWORK_ERROR = "Network error. Please check your connection.";
  * `border: '1px solid ' + LINE, background: '#fff', color: BAD` — a neutral
  * border with BAD (not BAD_FG) text, which is what separates it from the armed
  * state below. The hover tint is ours: a static artboard has no hover, and a
- * plain white button that does not react reads as disabled.
+ * plain unreacting button reads as disabled.
+ *
+ * BAD is written as `text-destructive` because the handoff's BAD *is*
+ * `--destructive`'s light value to the digit, so the token is the same colour in
+ * light mode with a dark one attached — the lettering lightens on the dark card
+ * rather than staying a deep red on near-black. The hover wash has no token
+ * behind it, so it carries a hand-written `dark:` pair on the same hue with the
+ * lightness inverted, the way every untokenised tint on the hub is darkened, so
+ * the six hub tones stay distinguishable from one another in both themes.
+ */
+/*
+ * ## Why `bg-background` and `border-border` are restated under `dark:`
+ *
+ * This is a `Button variant="outline"`, and that variant carries
+ * `dark:border-input dark:bg-input/30 dark:hover:bg-input/50` (`buttonVariants`
+ * in `src/components/ui/button.tsx`) — inert while the app had no `.dark`
+ * class, live now.
+ *
+ * `cn()` does not resolve them away: tailwind-merge only collapses classes in
+ * the same variant scope, so an unprefixed `bg-background` and the variant's
+ * `dark:bg-input/30` both survive, and in dark mode the `dark:` one wins. The
+ * restatements below are what outrank it in the theme where it speaks.
  */
 const OFFBOARD_UNARMED_CLASSES =
-  "border-border bg-background text-[oklch(57.7%_0.245_27.325)] " +
+  "border-border bg-background dark:border-border dark:bg-background " +
+  "text-destructive " +
   "hover:bg-[oklch(93.6%_0.032_17.717)] " +
-  "hover:text-[oklch(57.7%_0.245_27.325)]";
+  "dark:hover:bg-[oklch(28%_0.06_17.717)] " +
+  "hover:text-destructive";
 
 /**
- * Armed: solid red with white text. Spelled out rather than using `Button`'s
- * `destructive` variant, which is *tinted* (`bg-destructive/10`) in this design
- * system and would read as the unarmed state.
+ * Armed: solid red with white text. The fill is named directly rather than
+ * reached for through `Button`'s `destructive` *variant*, which is *tinted*
+ * (`bg-destructive/10`) in this design system and would read as the unarmed
+ * state — it is the variant being avoided, not the token, whose light value is
+ * the handoff's BAD exactly and which therefore flips the fill for free.
+ *
+ * `text-white` is left unthemed on purpose: it is contrast against a saturated
+ * red fill, not against the page, and that fill is red in both themes.
+ *
+ * The `dark:` half is the point the unarmed block above makes, and this is
+ * where it bites hardest: without it, `outline`'s `dark:bg-input/30` washes
+ * straight over `bg-destructive` and the armed button — the one that actually
+ * offboards on the next click — renders as a plain dark-grey rectangle in dark
+ * mode. Verified in Chromium before the fix. A destructive confirm that does
+ * not read as destructive is exactly what the two-step exists to prevent.
+ *
+ * That dark fill is the handoff's BAD spelled out rather than `bg-destructive`.
+ * `--destructive` is a *lighter* red after dark (`oklch(0.704 0.191 22.216)`),
+ * which suits the token's usual jobs here — `text-destructive` lettering, and
+ * the `bg-destructive/10` tint the `Button` variant uses — but not a solid fill
+ * under `text-white`: measured in Chromium, white on the dark token is
+ * **2.89:1**, under the 3:1 floor, where white on BAD is 4.77:1. One red in
+ * both themes, and a deep saturated red on a near-black page is still loud.
  */
 const OFFBOARD_ARMED_CLASSES =
-  "border-transparent bg-[oklch(57.7%_0.245_27.325)] text-white " +
-  "hover:bg-[oklch(50%_0.22_27.325)] hover:text-white";
+  "dark:border-transparent dark:bg-[oklch(57.7%_0.245_27.325)] " +
+  "dark:hover:bg-[oklch(52%_0.235_27.325)] " +
+  "border-transparent bg-destructive text-white " +
+  "hover:bg-destructive/90 hover:text-white";
 
 /**
  * The design ends its offboard flow with a "Reinstate driver" button. There is
@@ -342,12 +390,13 @@ export function DriversDetailPanel({
           {armed ? OFFBOARD_ARMED_NOTE : OFFBOARD_UNARMED_NOTE}
         </p>
 
-        {/* Inline, beside the control that failed — never an `alert()`. */}
+        {/* Inline, beside the control that failed — never an `alert()`. The
+            handoff's darker error red gives way to `--destructive`: that red was
+            picked to carry small text on a white card, a judgement the token now
+            makes per theme, and a frozen 44% red would be near-unreadable on the
+            dark one. */}
         {error === null ? null : (
-          <p
-            role="alert"
-            className="mt-2 text-xs text-[oklch(44.4%_0.177_26.899)]"
-          >
+          <p role="alert" className="mt-2 text-xs text-destructive">
             {error}
           </p>
         )}

@@ -31,6 +31,25 @@ function DialogClose({
   return <DialogPrimitive.Close data-slot="dialog-close" {...props} />;
 }
 
+/**
+ * The scrim, shared in spirit with `SCRIM_CLASSES` in `sheet.tsx` — keep the
+ * two colour treatments in step.
+ *
+ * `bg-black/10` is the light-mode value and is deliberately left alone: over a
+ * white page, a tenth of black plus the backdrop blur is already enough to say
+ * "the page behind this is not available".
+ *
+ * Dark mode needs its own value rather than the same one. The page underneath
+ * is `--background` (`#0a0a0a`), so 10% black over it darkens by roughly one
+ * value step — invisible — and the dialog stopped reading as modal at all. A
+ * 60% black scrim takes that ground to near-pure black, which separates it
+ * clearly from `bg-popover` (`oklch(0.205 0 0)`) on the panel above it. Black
+ * rather than a token: a scrim is an absence of light, not a surface, and
+ * `--background` itself would be a no-op against the page it covers.
+ */
+const SCRIM_CLASSES =
+  "fixed inset-0 isolate z-50 bg-black/10 duration-100 supports-backdrop-filter:backdrop-blur-xs dark:bg-black/60";
+
 function DialogOverlay({
   className,
   ...props
@@ -39,7 +58,8 @@ function DialogOverlay({
     <DialogPrimitive.Overlay
       data-slot="dialog-overlay"
       className={cn(
-        "fixed inset-0 isolate z-50 bg-black/10 duration-100 supports-backdrop-filter:backdrop-blur-xs data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
+        SCRIM_CLASSES,
+        "data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
         className,
       )}
       {...props}
@@ -106,7 +126,12 @@ function DialogFooter({
     <div
       data-slot="dialog-footer"
       className={cn(
-        "-mx-4 -mb-4 flex flex-col-reverse gap-2 rounded-b-xl border-t bg-muted/50 p-4 sm:flex-row sm:justify-end",
+        // `bg-secondary/50`, not upstream's `bg-muted/50` — see the
+        // `accent`/`muted` trap note above `buttonVariants` in `button.tsx`.
+        // `Dialog` renders off a marked surface in the booking flow
+        // (`add-card-dialog.tsx`, `stop-contact-dialog.tsx`), where `muted`
+        // resolves to the landing palette rather than the shadcn token.
+        "-mx-4 -mb-4 flex flex-col-reverse gap-2 rounded-b-xl border-t bg-secondary/50 p-4 sm:flex-row sm:justify-end",
         className,
       )}
       {...props}

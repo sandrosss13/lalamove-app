@@ -147,11 +147,24 @@ const PILL_CLASSES =
  * The destructive tint the design gives Reject on hover, overriding the
  * `outline` variant's neutral one. Arbitrary values rather than the
  * `--destructive` token because these are the handoff's three exact colours and
- * this is their only use in the app — the same reasoning `hub-status.ts`
+ * none of them is that token's value — the same reasoning `hub-status.ts`
  * applies to its own pill pairs.
+ *
+ * Which is what obliges each of the three to carry a hand-written `dark:`
+ * counterpart. A literal has no token behind it to flip, so on the dark ground
+ * the near-white wash would blow out the row and the deep red label would go
+ * unreadable against it — the hover would announce itself as a mistake rather
+ * than as a destructive action. Each dark value keeps its light counterpart's
+ * hue and inverts its lightness, so the trio stays the same *relationship* —
+ * a red-tinted ground, a slightly stronger red edge, a red label with contrast
+ * to spare — and stays visibly the destructive hover next to the neutral one
+ * Accept gets from its own variant.
  */
 const REJECT_HOVER_CLASSES =
-  "text-muted-foreground hover:border-[oklch(88.5%_0.062_18.334)] hover:bg-[oklch(97.1%_0.013_17.38)] hover:text-[oklch(50.5%_0.213_27.518)]";
+  "text-muted-foreground " +
+  "hover:border-[oklch(88.5%_0.062_18.334)] dark:hover:border-[oklch(38%_0.09_20)] " +
+  "hover:bg-[oklch(97.1%_0.013_17.38)] dark:hover:bg-[oklch(28%_0.05_20)] " +
+  "hover:text-[oklch(50.5%_0.213_27.518)] dark:hover:text-[oklch(82%_0.12_22)]";
 
 /* -------------------------------------------------------------------------- */
 /* Headers                                                                    */

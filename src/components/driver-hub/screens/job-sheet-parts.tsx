@@ -831,9 +831,24 @@ export function JobSheetCargoCard({
  * The two `oklch` literals here are the file's only ones; see the "Colour"
  * section of the module comment for why neither can go through
  * `HUB_STATUS_TONE_CLASSES`.
+ *
+ * Only `done` carries a `dark:` half, and the asymmetry is deliberate. The
+ * other two dots are *hollow* — their visible part is a ring plus the card
+ * showing through a `bg-background` centre, so both halves already flip on
+ * their own, and the brand orange reads at 64% lightness on either ground.
+ * `done` is the one filled shape, and at 44.8% it is barely a step off
+ * `--card`'s `oklch(0.205 0 0)` in dark: the completed steps of a job would
+ * fade out precisely as the driver finished them, leaving the timeline looking
+ * like it had not started.
+ *
+ * The dark value is not invented — it is the `oklch(59.6% 0.145 163.225)` that
+ * `jobs-detail-panel.tsx` already uses for its own "this step happened" dot.
+ * The two screens draw the same concept and had drifted to two different
+ * greens; pairing them here converges the darker of the pair onto the lighter
+ * in dark mode, rather than adding a third green to the surface.
  */
 const TIMELINE_DOT_CLASSES: Record<HubTimelineStepState, string> = {
-  done: "bg-[oklch(44.8%_0.119_151.328)]",
+  done: "bg-[oklch(44.8%_0.119_151.328)] dark:bg-[oklch(59.6%_0.145_163.225)]",
   current: "border-2 border-[oklch(64%_0.19_48)] bg-background",
   pending: "border-2 border-border bg-background",
 };

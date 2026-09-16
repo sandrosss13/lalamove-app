@@ -16,6 +16,7 @@ import {
 import { DriverHubMobileMenu } from "@/components/driver-hub/driver-hub-mobile-menu";
 import { DriverHubNotifications } from "@/components/driver-hub/driver-hub-notifications";
 import { HubOnlineToggle } from "@/components/driver-hub/hub-online-toggle";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import type { HubAccount, HubPersona } from "@/lib/dashboard/hub/account";
 import type { HubHeaderData } from "@/lib/dashboard/hub/header";
@@ -27,9 +28,18 @@ import { cn } from "@/lib/utils";
  * alignment/Driver Header.dc.html`).
  *
  * Wordmark and inline nav on the left; the active-job pill, the notification
- * bell, who is signed in, My account and Sign out on the right. Below `lg` the
- * same bar collapses to the design's phone shape: wordmark, a 44px bell, a
- * hamburger, and the active job as a full-width strip underneath.
+ * bell, the theme toggle, who is signed in, My account and Sign out on the
+ * right. Below `lg` the same bar collapses to the design's phone shape:
+ * wordmark, a 44px bell, a 44px theme toggle, a hamburger, and the active job
+ * as a full-width strip underneath.
+ *
+ * The theme toggle is the one control here the handoff does not draw. The hub
+ * hides the global site header that carries the app's other one
+ * (`body:has([data-admin-surface]) > header { display: none }` in
+ * `globals.css`), so without a toggle in this bar the whole surface is a
+ * one-way door: a driver who lands on `/dashboard` can never change the theme
+ * back without leaving the hub. It is styled to the bell's vocabulary rather
+ * than introduced as a new shape — see its mount point below.
  *
  * ## One bar, not two trees
  *
@@ -301,6 +311,49 @@ export function DriverHubTopNav({
             open={openPanel === "notifications"}
             onOpenChange={panelHandler("notifications")}
           />
+
+          {/* Mounted **once**, visible at both breakpoints, per this file's
+              "one bar, not two trees" rule above. It has no panel of its own,
+              so it could safely have been duplicated — but the rule exists so
+              that no one has to check, and a second copy would be a second
+              place to keep the styling in step.
+
+              Placed immediately after the bell because the two are the same
+              kind of thing: unlabelled icon buttons that act on the chrome
+              rather than on the driver's data. Everything to the right of them
+              is identity (name, My account, Sign out, or the hamburger that
+              stands in for all three on a phone), and splitting that group
+              would be the one arrangement the design does argue against.
+
+              ## Why these classes
+
+              `ThemeToggle`'s default look is a 36px bordered circle drawn for
+              the global site header. The hub's icon-button vocabulary is the
+              bell four lines up, so the toggle is restyled to it exactly
+              rather than approximately: a borderless 10px-radius square,
+              44×44 below `lg` (the design's own phone figure, and the WCAG 2.2
+              "Target Size (Minimum)" floor) and 32×32 above it, where a
+              pointer rather than a thumb is aiming. `cn()` merges through
+              tailwind-merge, so `size-11` displaces the default `h-9 w-9`,
+              `rounded-[10px]` the `rounded-full`, and `border-0` the `border`.
+
+              `cursor-pointer` for the reason the Sign out button below states:
+              Tailwind v4's preflight leaves `<button>` on the UA's `cursor:
+              default`, and every other control in this row either asks for the
+              pointer or is an anchor that gets it free.
+
+              The hover is left as the toggle's own `hover:bg-secondary` rather
+              than restated as the bell's `hover:bg-muted`. On this surface the
+              two are the same colour in both themes — `globals.css` gives
+              `--secondary` and `--muted` identical values in `:root` and in
+              `html.dark` — so matching the bell visually costs nothing, and
+              `secondary` is the name that cannot be captured by the landing
+              palette's `--color-accent`/`--color-muted` fallback chain if this
+              component is ever lifted somewhere that does not resolve
+              `--admin-muted`. Only the hover foreground is overridden, because
+              the toggle's default `secondary-foreground` is a shade off the
+              bell's `foreground`. */}
+          <ThemeToggle className="size-11 cursor-pointer rounded-[10px] border-0 hover:text-foreground lg:size-8 lg:rounded-lg" />
 
           <div className="hidden min-w-0 items-center gap-3 lg:flex">
             {/* The design's 1px rule between the bell and the identity. Pure

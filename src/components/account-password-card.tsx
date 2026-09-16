@@ -244,7 +244,14 @@ export function AccountPasswordCard() {
             role="status"
             className={cn(
               MESSAGE_BASE_CLASSES,
-              "mt-4 border-emerald-600/30 bg-emerald-50 text-emerald-800",
+              // Success green, in both themes. A palette utility is a fixed hex
+              // and cannot follow the theme the way the `border-accent/30
+              // bg-accent/10 text-accent` error banner above it does, so the
+              // dark half is spelled out: a translucent wash of the bright end
+              // of the hue for the plate, and the light end of the ramp for the
+              // text. Darkening the light values instead would have left a
+              // near-black-on-near-black banner.
+              "mt-4 border-emerald-600/30 bg-emerald-50 text-emerald-800 dark:border-emerald-400/30 dark:bg-emerald-400/10 dark:text-emerald-300",
             )}
           >
             Password updated.

@@ -292,7 +292,19 @@ export function DriverHubShell({
       // rail and every card `#fff` on top of it. Written as the literal rather
       // than a token because `--background` is what those three white surfaces
       // resolve to — re-pinning it would turn them grey too.
-      className="flex min-h-screen flex-col bg-[oklch(96.7%_0.003_264.542)] font-body text-foreground"
+      //
+      // In dark mode that relationship inverts, so the literal cannot simply
+      // carry over: a near-white page behind dark cards is the single loudest
+      // thing that would break on this surface. `dark:bg-background` is the
+      // counterpart rather than a second literal, because the token already
+      // holds exactly the value wanted. `globals.css` gives the hub
+      // `--background: oklch(0.145 0 0)` in dark (via `html.dark
+      // body:has([data-admin-surface])`) against a `--card` of `oklch(0.205 0
+      // 0)` — so the page sits one step *below* the header, the rail and the
+      // cards, which is the same "chrome floats on the ground" reading the
+      // light artboard gets from grey-behind-white, expressed the only way a
+      // dark theme can express it.
+      className="flex min-h-screen flex-col bg-[oklch(96.7%_0.003_264.542)] font-body text-foreground dark:bg-background"
     >
       <DriverHubHeader
         account={account}

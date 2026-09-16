@@ -92,29 +92,66 @@ const VEHICLE_SAVED_TOAST =
 
 /**
  * The two status colours the design names that have no counterpart in the
- * shadcn token set (`--destructive` already covers its red). Applied inline
- * rather than added to `globals.css`, exactly as the driver flow's status screen
- * and the fleet step rail do: they are used on this one screen, so a token would
- * be a palette of one. Values are the design prototype's `GREEN` and `AMBER`.
+ * shadcn token set (`--destructive` already covers its red), read from the
+ * app-wide `--status-*` tokens in `globals.css`. They used to be declared as
+ * custom properties on this screen's own root element, on the grounds that only
+ * this screen, the driver status screen and the fleet step rail wanted them and
+ * a global token would be a palette of one. It was not a palette of one: four
+ * surfaces had each written the same two colours out by hand.
+ *
+ * Both values reach the DOM through inline `style`: the status card takes one
+ * accent for its border, its dot and its tag at once, and that accent differs
+ * per state, which no fixed set of classes can express. An inline style cannot
+ * carry a `dark:` variant, so as literals these two colours were the one part of
+ * the screen that could not follow the theme.
+ *
+ * This file used to solve that locally, by declaring a `--fleet-status-green` /
+ * `--fleet-status-amber` pair on the screen's root element and pointing the
+ * inline styles at those. The pair is gone: `--status-success` and
+ * `--status-warning` in `globals.css` are the same idea declared once for the
+ * whole app, and a local alias onto a global token is indirection that buys
+ * nothing. Custom properties resolve in inline styles against the element's
+ * inherited computed values, so referencing the token by name works exactly the
+ * way the local alias did — with no root-element declaration to keep in sync,
+ * and no risk of a consumer rendering outside it.
+ *
+ * The light values are still the design prototype's `GREEN` and `AMBER`, and the
+ * dark halves are still the same hue and chroma lifted to read on the dark card
+ * (`oklch(0.205)`), where the light green in particular all but vanishes. What
+ * changed is that the driver status screen, the driver steps, the fleet step
+ * rail, the two pills in steps 3 and 4 and the admin review chips now read those
+ * same two names, so "change one and you have to change all of them" no longer
+ * applies — there is only one to change.
  */
-const STATUS_GREEN = "oklch(0.5 0.13 145)";
-const STATUS_AMBER = "oklch(0.62 0.15 70)";
+const STATUS_GREEN = "var(--color-status-success)";
+const STATUS_AMBER = "var(--color-status-warning)";
 
 /** Shared chip geometry for the per-vehicle verdict column. */
 const CHIP_CLASS =
   "inline-flex items-center rounded-md px-2.5 py-1 text-[11.5px] font-semibold whitespace-nowrap";
 
 /**
- * The verdict chip's ink and tint per status, in the same arbitrary-value form
- * step 3's "Ready" pill uses — `color-mix` against `--card` so each tint lands
- * at the same strength regardless of which colour space its accent is in.
+ * The verdict chip's ink and tint per status, in the same form step 3's "Ready"
+ * pill uses — `color-mix` against `--card` so each tint lands at the same
+ * strength regardless of which colour space its accent is in.
+ *
+ * The tints need no theming of their own: `--card` is already a themed token, so
+ * the identical 12%/14% wash resolves to a pale tint on the light card and a
+ * deep one on `oklch(0.205)`. They mix the `-solid` half of each token — the one
+ * pinned to the design's light value in both themes — because the wash is meant
+ * to sit a hair off the card, and mixing the lifted colour in would make the
+ * chip glow instead of whisper.
+ *
+ * Only the ink switches, and it does so through the token rather than a `dark:`
+ * variant of its own, so the chip and the status card cannot end up disagreeing
+ * about what "approved green" is — they are now the same two names.
  */
 const CHIP_TONE: Record<FleetVehicleVerdict["status"], string> = {
   APPROVED:
-    "bg-[color-mix(in_oklch,oklch(0.5_0.13_145)_12%,var(--card))] text-[oklch(0.5_0.13_145)]",
+    "bg-[color-mix(in_oklch,var(--color-status-success-solid)_12%,var(--card))] text-status-success",
   FLAGGED: "bg-destructive/10 text-destructive",
   PENDING:
-    "bg-[color-mix(in_oklch,oklch(0.62_0.15_70)_14%,var(--card))] text-[oklch(0.62_0.15_70)]",
+    "bg-[color-mix(in_oklch,var(--color-status-warning-solid)_14%,var(--card))] text-status-warning",
 };
 
 /** The human word for each verdict, as the design's chip reads it. */
@@ -498,6 +535,16 @@ export function FleetApplicationStatusScreen() {
                 ) : null}
                 {/* A dialog, never `goToStep`: the shell has no editable step
                     left to route back to. See this file's header comment. */}
+                {/* `text-white` on `bg-destructive` is deliberately left alone
+                    in both themes, the same call the green button further down
+                    now makes. The theme's own contract is that white is the ink
+                    for `--destructive` — every destructive button in the app
+                    pairs them, in both themes — so flipping this one would leave
+                    it disagreeing with the per-row Fix button below it and with
+                    every red button outside this wizard. If the dark red ever
+                    needs a darker label it needs it app-wide, as a
+                    `--destructive-foreground` token, not as a local override
+                    here. */}
                 <button
                   type="button"
                   onClick={openCompanyDialog}
@@ -552,6 +599,10 @@ export function FleetApplicationStatusScreen() {
                 {resubmitError}
               </p>
             ) : null}
+            {/* `text-white` on `bg-onboarding-accent` stays put in both themes:
+                the brand orange is theme-independent by design, so its label has
+                to be too, and the disabled pair below it (`bg-muted` /
+                `text-muted-foreground`) is already themed tokens. */}
             <button
               type="button"
               onClick={() => void handleResubmit()}
@@ -574,8 +625,29 @@ export function FleetApplicationStatusScreen() {
               router.push("/dashboard");
               router.refresh();
             }}
-            style={{ backgroundColor: STATUS_GREEN }}
-            className="h-[50px] w-fit cursor-pointer rounded-xl px-[26px] text-[15.5px] font-semibold text-white transition-opacity hover:opacity-90 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+            // The one place the green is a *fill* rather than ink, so it takes
+            // `status-success-solid` — the token half pinned to the design's
+            // `oklch(0.5 0.13 145)` in both themes — and keeps `text-white` in
+            // both, with nothing flipping.
+            //
+            // This used to flip: the fill followed the theme up to `oklch(0.72)`
+            // and the label switched to `dark:text-primary-foreground` to stay
+            // readable on it. That worked, but it made this the only solid
+            // brand-coloured CTA in either wizard that changed colour with the
+            // theme — the orange "Add another vehicle" button a few lines up and
+            // the driver wizard's own green "Go online" CTA both stay put — so a
+            // reviewer flipping the toggle saw one button move and the rest hold
+            // still. The driver screen's approach is now the rule for both: a
+            // solid CTA fill is brand colour, not ink, and brand colour does not
+            // theme.
+            //
+            // The contrast that made the flip look necessary is fine without it.
+            // White on this green is 5.7:1 in either theme, past the 4.5:1 its
+            // 15.5px label needs, and the fill itself sits 3.5:1 off the dark
+            // page — clear of the 3:1 a UI boundary needs. The lifted green was
+            // the value that could not carry white (2.3:1); the pinned one never
+            // had that problem.
+            className="h-[50px] w-fit cursor-pointer rounded-xl bg-status-success-solid px-[26px] text-[15.5px] font-semibold text-white transition-opacity hover:opacity-90 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
           >
             Open the dispatch dashboard
           </button>
@@ -683,8 +755,11 @@ function StatusCard({
       style={{
         borderColor: accent,
         // `color-mix` rather than a hard-coded tint: `accent` is a different
-        // colour space per state (a token here, an oklch literal there), and
-        // this keeps every state's wash the same strength regardless.
+        // custom property per state (`--destructive` here, one of the two
+        // status colours there), and this keeps every state's wash the same
+        // strength regardless of which. Mixing against `--card` is also what
+        // makes the wash themed — the light card takes a pale tint and the dark
+        // one a deep tint from the identical 5%, with no variant needed.
         backgroundColor: `color-mix(in oklch, ${accent} 5%, var(--card))`,
       }}
     >

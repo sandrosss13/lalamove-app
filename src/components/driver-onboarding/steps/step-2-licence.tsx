@@ -41,19 +41,47 @@ const LICENCE_CATEGORIES: {
 const MIN_LICENCE_NUMBER_LENGTH = 5;
 
 /**
- * The design's success green (`GREEN` in the prototype). Written as an
- * arbitrary value rather than a theme token because `globals.css` defines no
- * success colour at all: the only green it ever had belonged to the retired ops
- * console's palette, which this surface never resolved. Adding a global token
- * for one pair of call sites is not worth it.
+ * The design's success green (`GREEN` in the prototype), for the filled upload
+ * tile — ink, border and tint.
+ *
+ * The shared `--success` token this comment used to ask for now exists as
+ * `--status-success` in `globals.css`, and step 1, the application status
+ * screen, the fleet wizard and the admin review chips all read it too. Same
+ * values, one definition.
+ *
+ * Ink and border need no `dark:` half any more — the token lifts from `0.5` to
+ * `0.72` on its own, which is what keeps the ink readable on the dark card
+ * (`oklch(0.205 0 0)`, where the light green is about 1.9:1) and keeps the
+ * border from being a dark line on a dark surface.
+ *
+ * The tint keeps its variant, because what changes there is strength rather than
+ * colour: a 5% wash of any light colour over an already-dark card is a change of
+ * roughly one hundredth of a lightness step, which is not a tint anyone can see,
+ * so dark doubles it. Light mode keeps the design's 5%.
  */
-const UPLOADED_TEXT_CLASS = "text-[oklch(0.5_0.13_145)]";
+const UPLOADED_TEXT_CLASS = "text-status-success";
 const UPLOADED_TILE_CLASS =
-  "border-[oklch(0.5_0.13_145)] bg-[oklch(0.5_0.13_145)]/5";
+  "border-status-success bg-status-success/5 dark:bg-status-success/10";
 
-/** Design-exact field chrome, shared by the two text inputs below. */
+/**
+ * Design-exact field chrome, shared by the two text inputs below.
+ *
+ * Deliberately no `border-border`, which this used to carry. In light the two
+ * tokens are the same colour (`--border` and `--input` are both
+ * `oklch(0.922 0 0)`), so dropping it changes nothing there; in dark they part
+ * company — `--border` is white at 10%, `--input` at 15% — and `tailwind-merge`
+ * was handing the weaker of the two the win over the `Input` primitive's own
+ * `border-input`. Letting the primitive's border through gives these fields the
+ * same edge every other shadcn input in the app has in dark mode.
+ *
+ * `bg-card` stays, but note it only actually applies in light: `Input` carries
+ * `dark:bg-input/30`, and the `dark` variant's `:is(.dark, .dark *)` makes that
+ * a (0,2,0) selector against this utility's (0,1,0). That is the desired
+ * outcome — the field fills with white at ~4.5% and reads as a well sunk into
+ * the panel, where `dark:bg-card` would make it vanish into the panel instead.
+ */
 const FIELD_CLASS =
-  "h-[46px] rounded-[10px] border-border bg-card px-[13px] text-[15px] focus-visible:border-onboarding-accent focus-visible:ring-onboarding-accent/15 md:text-[15px]";
+  "h-[46px] rounded-[10px] bg-card px-[13px] text-[15px] focus-visible:border-onboarding-accent focus-visible:ring-onboarding-accent/15 md:text-[15px]";
 
 /** One message per field, keyed so `aria-invalid` and the inline text agree. */
 type LicenceFieldErrors = {
@@ -250,7 +278,16 @@ export function Step2Licence() {
                       : "border-border bg-card"
                 }`}
               >
-                <span className="flex h-[104px] items-center justify-center overflow-hidden rounded-[9px] bg-muted font-price text-xs text-muted-foreground">
+                {/* `bg-secondary` rather than `bg-muted`: the two tokens hold
+                    identical values in both themes (`oklch(0.97 0 0)` light,
+                    `oklch(0.269 0 0)` dark) so the preview well looks the same,
+                    but `--color-muted` is the var-chain
+                    `var(--admin-muted, var(--landing-muted))` and only lands on
+                    the shadcn value because `globals.css` pins `--admin-muted`
+                    on `body:has([data-onboarding-surface])`. `--color-secondary`
+                    reads `--secondary` straight and has no fallback arm that
+                    could drop this into the landing palette. */}
+                <span className="flex h-[104px] items-center justify-center overflow-hidden rounded-[9px] bg-secondary font-price text-xs text-muted-foreground">
                   {uploadedDocument?.signedUrl != null ? (
                     <>
                       {/*
@@ -396,6 +433,22 @@ export function Step2Licence() {
                     ? categoriesErrorId
                     : undefined
                 }
+                // Only geometry and the checked state are overridden here; the
+                // unchecked state is left entirely to the primitive on purpose.
+                // It resolves to a `--input` border over `dark:bg-input/30`,
+                // i.e. a white-at-15% edge around a white-at-4.5% fill on the
+                // dark card — the same unchecked box every other form in the
+                // app shows, and findable because the fill separates it from
+                // `--card` even where the hairline is subtle. Overriding it to
+                // something louder here would make this one wizard's checkboxes
+                // the odd ones out.
+                //
+                // `data-checked:text-white` on `data-checked:bg-onboarding-accent`
+                // is correct in both themes and must stay literal: the brand
+                // orange does not flip, so the tick that sits on it cannot
+                // either. `text-primary-foreground` — the primitive's own
+                // default, which this replaces — would turn the tick near-black
+                // on orange under `.dark`.
                 className="size-[19px] rounded-[5px] border-[1.5px] data-checked:border-onboarding-accent data-checked:bg-onboarding-accent data-checked:text-white"
               />
               <span className="min-w-0 flex-1">
@@ -419,7 +472,13 @@ export function Step2Licence() {
 
       {/* Raw buttons rather than `src/components/ui/button.tsx`: the design's
           48px wizard CTA is well outside that primitive's size scale, and these
-          match the accent/outline pair the shell's own welcome screen uses. */}
+          match the accent/outline pair the shell's own welcome screen uses.
+
+          The primary's `text-white` on `bg-onboarding-accent` is deliberate in
+          both themes — the brand orange is theme-independent, so its label has
+          to be too, and `text-primary-foreground` would invert to near-black on
+          orange under `.dark`. Everything on the secondary is a token and flips
+          on its own. */}
       <div className="mt-1 flex items-center gap-3.5 border-t border-border pt-[22px]">
         <button
           type="button"
@@ -431,7 +490,7 @@ export function Step2Licence() {
         <button
           type="button"
           onClick={() => goToStep(ONBOARDING_SCREENS.personal)}
-          className="h-12 cursor-pointer rounded-[11px] border border-border bg-card px-5 text-[14.5px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+          className="h-12 cursor-pointer rounded-[11px] border border-border bg-card px-5 text-[14.5px] font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
         >
           Back
         </button>

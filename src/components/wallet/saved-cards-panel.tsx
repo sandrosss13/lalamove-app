@@ -27,8 +27,10 @@ import {
  * only, which is posted verbatim.
  *
  * Colour rule: landing token utilities, never a hex literal and never a `dark:`
- * variant — `/wallet` does not carry `data-landing-page`, so the dark variant
- * declared in `globals.css` cannot match. The two exceptions are semantic:
+ * variant. `dark:` *does* match on `/wallet` now (the variant in `globals.css`
+ * is app-wide, and the `--landing-*` tokens flip under `html.dark`); it stays
+ * unwanted because each of those utilities already resolves to both themes on
+ * its own. The two exceptions are semantic:
  * the brand chip (in `card-brand.ts`) and the destructive remove control, both
  * on Tailwind palette utilities, as the codebase already does for status pills.
  */
@@ -100,13 +102,29 @@ const MAKE_DEFAULT_BUTTON_CLASSES =
  * mistakable for one another. Palette utilities rather than landing tokens —
  * the landing set carries no semantic colour — matching the house treatment at
  * `vehicles-detail-panel.tsx`.
+ *
+ * Both states carry an explicit dark half, because a palette utility is a fixed
+ * hex and does not follow the theme. Note that the two halves move in opposite
+ * directions, and deliberately:
+ *
+ * - Unarmed is red *text*, so it climbs the ramp in dark mode (`700` → `400`).
+ *   `red-700` on a near-black page is barely distinguishable from the body text
+ *   beside it, which would lose the whole "this one is destructive" signal.
+ * - Armed is a filled red *plate* carrying white text, so it barely moves
+ *   (`700` → `600`): a saturated red fill already separates from a dark page,
+ *   and lightening it further would start to compete with the page's own
+ *   brand orange. What does have to flip is the hover, which goes lighter
+ *   rather than darker — on a dark ground "darker on hover" reads as the
+ *   control receding, i.e. the opposite of the affordance intended.
  */
 const REMOVE_BUTTON_BASE_CLASSES =
   "rounded-lg px-2 py-1.5 text-[13px] font-semibold transition-colors disabled:pointer-events-auto disabled:cursor-not-allowed disabled:opacity-60";
 
-const REMOVE_UNARMED_CLASSES = "text-red-700 hover:text-red-800";
+const REMOVE_UNARMED_CLASSES =
+  "text-red-700 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300";
 
-const REMOVE_ARMED_CLASSES = "bg-red-700 px-3 text-white hover:bg-red-800";
+const REMOVE_ARMED_CLASSES =
+  "bg-red-700 px-3 text-white hover:bg-red-800 dark:bg-red-600 dark:hover:bg-red-500";
 
 /* -------------------------------------------------------------------------- */
 /* Formatting                                                                 */
@@ -415,9 +433,15 @@ export function SavedCardsPanel({ cards }: { cards: SavedCardView[] }) {
                   </p>
                 ) : null}
 
-                {/* Inline, beside the control that failed — never an `alert()`. */}
+                {/* Inline, beside the control that failed — never an `alert()`.
+                    Same red-text pair as `REMOVE_UNARMED_CLASSES`, for the same
+                    reason: `red-700` all but disappears against a near-black
+                    page, so the dark half climbs the ramp instead of darkening. */}
                 {error === null ? null : (
-                  <p role="alert" className="mt-2.5 text-[12px] text-red-700">
+                  <p
+                    role="alert"
+                    className="mt-2.5 text-[12px] text-red-700 dark:text-red-400"
+                  >
                     {error}
                   </p>
                 )}

@@ -514,11 +514,15 @@ export function DriversAddPanel({
           ) : null}
         </div>
 
+        {/* `text-destructive`, not the handoff's own red. This line used to
+            spell `oklch(44.4% 0.177 26.899)` out, which is a fixed dark red:
+            correct on the white artboard, all but unreadable on the dark card
+            this panel became under `html.dark`. The token is a half-step
+            lighter in light mode and lifts in dark, and being theme-aware is
+            the only thing the literal could not do. Every error line in the hub
+            made the same trade. */}
         {error === null ? null : (
-          <p
-            role="alert"
-            className="text-[13px] text-[oklch(44.4%_0.177_26.899)]"
-          >
+          <p role="alert" className="text-[13px] text-destructive">
             {error}
           </p>
         )}

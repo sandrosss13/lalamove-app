@@ -218,10 +218,21 @@ const RATING_SCALE_MAX = 5;
  * rather than imported because Tailwind scans source text: a class assembled
  * from a shared import would never be generated. `vehicles-screen.tsx` repeats
  * the accent orange for the same reason.
+ *
+ * Each tone is a light literal plus a `dark:` counterpart, because neither
+ * green nor amber has a shadcn token to migrate to the way the hub's error
+ * lines migrated to `--destructive`. The light halves are the handoff's own
+ * values and are unchanged; the dark halves keep the hue and invert the
+ * lightness (44.8% → 84% for green, 47.6% → 88% for amber) so a delta reads as
+ * coloured on a near-black card instead of collapsing into the caption grey
+ * beside it. All four values are shared verbatim with the hub's status-pill
+ * foregrounds in `hub-status.ts` — since this map exists precisely to stay in
+ * step with `hub-primitives.tsx`, re-tuning one half here would break the
+ * duplication it is built on. Change all copies or none.
  */
 const DELTA_TONE_CLASSES: Record<MetricDeltaTone, string> = {
-  good: "text-[oklch(44.8%_0.119_151.328)]",
-  bad: "text-[oklch(47.6%_0.114_61.907)]",
+  good: "text-[oklch(44.8%_0.119_151.328)] dark:text-[oklch(84%_0.13_156.743)]",
+  bad: "text-[oklch(47.6%_0.114_61.907)] dark:text-[oklch(88%_0.12_85)]",
 };
 
 /**

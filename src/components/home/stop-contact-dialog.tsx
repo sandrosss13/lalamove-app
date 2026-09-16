@@ -28,9 +28,10 @@ import {
  *
  * Colour rule, as everywhere in the booking flow: landing token utilities only
  * (`bg-ink`, `text-paper`, `text-muted`, `border-line`, the accent pair) — never
- * a hex literal, and never a `dark:` variant, which cannot match here because
- * the booking page carries no `data-landing-page` (see `globals.css`'s
- * `@custom-variant dark`).
+ * a hex literal, and never a `dark:` variant. `dark:` *does* match here now (the
+ * variant in `globals.css` is app-wide, and the `--landing-*` tokens flip under
+ * `html.dark`); it stays unwanted because each of those utilities already
+ * resolves to both themes on its own.
  *
  * The component is fully controlled and owns no persistence: it reports a saved
  * contact upwards and nothing else. Cancel, Escape and a backdrop click all

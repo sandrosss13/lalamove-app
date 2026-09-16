@@ -90,9 +90,21 @@ const VEHICLE_ALERT_NOTE =
  * The handoff's warning surface, used as both background and border so the row
  * reads as one tinted block. No `--color-*` token exists for it, so it is a
  * Tailwind arbitrary value, the same as the tones in `hub-status.ts`.
+ *
+ * That missing token is exactly why the `dark:` half has to be written out by
+ * hand. A literal has nothing behind it to flip, so the pale wash would survive
+ * onto the dark ground and print near-white on near-white — the row would keep
+ * its warning colour and lose the fact that it *is* a row. The dark value holds
+ * the hue and inverts the lightness rather than picking a fresh yellow, which is
+ * what keeps this tone recognisably the same warning in both themes and keeps
+ * it distinguishable from the hub's other five tinted tones, every one of which
+ * is inverted the same way. Both halves are applied to the background and the
+ * border together, because the whole point of the pair is that the row reads as
+ * one block rather than a tint inside a rule.
  */
 const ROW_WARNING =
-  "bg-[oklch(97.3%_0.071_103.193)] border-[oklch(97.3%_0.071_103.193)]";
+  "bg-[oklch(97.3%_0.071_103.193)] dark:bg-[oklch(29%_0.05_85)] " +
+  "border-[oklch(97.3%_0.071_103.193)] dark:border-[oklch(29%_0.05_85)]";
 
 /** The plain surface the design gives its second, less urgent row. */
 const ROW_PLAIN = "bg-background border-border";

@@ -58,8 +58,11 @@ import { cn } from "@/lib/utils";
  * The shadcn `Input`/`Button` defaults are used as they come, unlike on
  * `/account` where both are re-tokenised onto the landing palette. Inside the
  * hub's `[data-admin-surface]` those defaults already resolve to the neutral
- * light set the rest of these screens are drawn in — so re-tokenising here
- * would be undoing the fix rather than applying one.
+ * shadcn set the rest of these screens are drawn in — and, since that block
+ * resolves `--admin-accent`/`--admin-muted` as a var-chain onto
+ * `--accent`/`--muted`, they follow `html.dark` on their own. Re-tokenising
+ * here would be undoing the fix rather than applying one, and would cost the
+ * theme flip that comes with leaving them alone.
  */
 
 /** `DriverAccountType` values, as strings — see `HubDriverAccountSettings`. */
@@ -67,10 +70,27 @@ const BUSINESS_ACCOUNT_TYPE = "BUSINESS";
 
 const FIELD_LABEL_CLASSES = "text-xs font-medium text-muted-foreground";
 
-/** The design's red, matching every other error line in the hub. */
-const ERROR_TEXT_CLASSES = "text-[13px] text-[oklch(44.4%_0.177_26.899)]";
+/**
+ * `--destructive`, matching every other error line in the hub. This used to be
+ * the design's own red spelled out as `oklch(44.4% 0.177 26.899)`, which is a
+ * fixed dark red: legible on the white artboard, near-invisible on a dark card
+ * once `html.dark` landed. The token is a half-step lighter in light mode and
+ * lifts to `oklch(0.704 0.191 22.216)` in dark, and that theme-awareness is
+ * what the literal could never have. The half-step is accepted across the hub
+ * so the error red stays one colour rather than two.
+ */
+const ERROR_TEXT_CLASSES = "text-[13px] text-destructive";
 
-const SUCCESS_TEXT_CLASSES = "text-[13px] text-[oklch(44.8%_0.119_151.328)]";
+/**
+ * Success has no token to migrate to, so the light literal stays and a `dark:`
+ * counterpart is added: same hue, lightness inverted from 44.8% to 84% so the
+ * confirmation reads as green on a near-black card. Copied verbatim from the
+ * hub's success status-pill foreground (`hub-status.ts`) and the `good` delta
+ * tone in `hub-primitives.tsx`, so all three stay the same green in both
+ * themes.
+ */
+const SUCCESS_TEXT_CLASSES =
+  "text-[13px] text-[oklch(44.8%_0.119_151.328)] dark:text-[oklch(84%_0.13_156.743)]";
 
 /** Inputs and the city select share one height and type scale. */
 const CONTROL_CLASSES =

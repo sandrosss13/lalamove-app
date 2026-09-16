@@ -84,7 +84,13 @@ function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="card-footer"
       className={cn(
-        "flex items-center rounded-b-xl border-t bg-muted/50 p-(--card-spacing)",
+        // `bg-secondary/50`, not upstream's `bg-muted/50` — see the
+        // `accent`/`muted` trap note above `buttonVariants` in `button.tsx`.
+        // `Card` backs the `/account` panels as well as the back office, and
+        // off a marked surface `muted` is the landing palette's secondary text
+        // colour, so this footer tray came out as a half-opaque brown-grey
+        // band under the card body instead of a faint tint of it.
+        "flex items-center rounded-b-xl border-t bg-secondary/50 p-(--card-spacing)",
         className,
       )}
       {...props}

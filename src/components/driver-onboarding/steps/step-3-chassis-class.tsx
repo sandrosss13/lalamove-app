@@ -363,6 +363,14 @@ export function Step3ChassisClass() {
               >
                 <span
                   aria-hidden="true"
+                  // The selected dot's inset ring stays literal white in both
+                  // themes, and is not `var(--card)` dressed up as a punched
+                  // hole: it is drawn *inside* the accent fill, so it is
+                  // white-on-orange chrome like the numerals on the accent
+                  // discs in 3c, and `--onboarding-accent` is a fixed brand
+                  // orange that `html.dark` never redeclares. Swapping it for a
+                  // card-coloured band would leave a dark ring on an orange dot
+                  // in dark mode — a different mark, not the same one themed.
                   className={`size-[18px] shrink-0 rounded-full border-[1.5px] ${
                     selected
                       ? "border-onboarding-accent bg-onboarding-accent shadow-[inset_0_0_0_2.5px_#fff]"
@@ -573,10 +581,39 @@ function ContinueButton({ onClick }: { onClick: () => void }) {
  * no icon set contains, and they have to differ from each other in exactly the
  * details being chosen between (a roof cooling unit, a drop-side deck).
  *
- * Their greys and the two accent colours are hardcoded rather than themed. The
- * whole wizard is pinned to the light scheme (`[data-onboarding-surface]` in
- * `globals.css`), and these are illustrations with their own internal
- * light-source shading, not UI chrome that should follow the palette.
+ * Their palette is declared exactly once, as CSS custom properties on
+ * `SILHOUETTE_CLASS_NAME`, and every shape reads a `var()` off it. That is a
+ * detour compared with writing colours straight onto the shapes, and it buys
+ * three things worth the indirection.
+ *
+ * The wizard is no longer pinned to the light scheme — `html.dark` themes
+ * `[data-onboarding-surface]` alongside everything else now — so the literal
+ * near-white body these drawings used to carry would sit on an
+ * `oklch(0.205 0 0)` card, and the near-black tyres and chassis rail would sink
+ * into it. One `dark:` counterpart per property repaints all three drawings
+ * from a single list, rather than from the thirty-odd duplicated `fill` and
+ * `stroke` attributes a shape-by-shape second palette would need.
+ *
+ * It also keeps every shape labelled by the material it is (`--truck-glass`,
+ * `--truck-hub`, `--truck-chassis`) instead of by a hex nobody can place at a
+ * glance — which is what lets the fleet wizard's own silhouettes
+ * (`fleet-onboarding/steps/step-2-fleet-composition.tsx`) adopt the same names
+ * and the same values and stay visibly the same family of drawing.
+ *
+ * And it keeps the declaration in Tailwind rather than in a `<style>` tag or in
+ * `globals.css`: these properties are meaningless outside these three SVGs, so
+ * they belong on the element that owns them, not in the global token set every
+ * surface in the app inherits.
+ *
+ * The dark values are deliberately not the light ones darkened. A drawing lit
+ * off a white page inverts when the page goes dark: the outline goes from
+ * *darker* than the body it encloses to *lighter* than it, because in either
+ * theme its job is to separate the body from the ground behind it. What does
+ * carry across is the relative emphasis — the seam stays the subtler line and
+ * the outline the stronger one, the hub stays lighter than the tyre around it,
+ * the under-deck block stays darker than the rail above it — so the drawing
+ * reads the same way in both. Every light value is byte-identical to what these
+ * silhouettes shipped with, so light mode is untouched.
  *
  * Marked `aria-hidden`, unlike the prototype's labelled `role="img"`: each one
  * sits inside a button whose text already names and describes the body type,
@@ -592,7 +629,65 @@ const CAB_WINDSCREEN_PATH = "M293 57 L316 80 H293 Z";
 /** The wing mirror, drawn as a stub off the front of the cab. */
 const CAB_MIRROR_PATH = "M331 68 h9";
 
-const SILHOUETTE_CLASS_NAME = "h-auto w-[172px] shrink-0";
+/**
+ * The silhouette palette, as Tailwind arbitrary-property utilities. Pairs are
+ * listed light-then-dark on one line per material so the two halves can never
+ * drift apart unnoticed; the underscores are Tailwind v4's escape for spaces
+ * inside an arbitrary value, not part of the colour.
+ *
+ * One thing that looks like a bug and is not: in light mode the seam is lighter
+ * than the outline (0.88 against 0.7), and in dark mode it is darker (0.55
+ * against 0.62). Absolute lightness ordering is the wrong thing to conserve
+ * here — what matters is the contrast each mark has against the surface it is
+ * actually drawn on. The seam is a hairline *on a body panel* and has to stay
+ * the quieter of the two; the outline separates the whole vehicle *from the
+ * card* and has to stay the louder. Both hold in both themes at these values.
+ * Please do not "restore" the light ordering.
+ */
+const TRUCK_PALETTE_CLASS_NAME = [
+  // Body shell, its panels, and the glazing.
+  "[--truck-outline:oklch(0.7_0_0)] dark:[--truck-outline:oklch(0.62_0_0)]",
+  "[--truck-body:#fbfbfb] dark:[--truck-body:oklch(0.45_0_0)]",
+  "[--truck-box:#f7f7f8] dark:[--truck-box:oklch(0.40_0_0)]",
+  "[--truck-panel:#f1f1f2] dark:[--truck-panel:oklch(0.35_0_0)]",
+  "[--truck-unit:#eceef0] dark:[--truck-unit:oklch(0.38_0_0)]",
+  // The only chromatic material in the drawing: a cold blue-grey in light, and
+  // in dark an actual low-chroma blue, because a neutral grey at the lightness
+  // glass needs here would read as another body panel rather than as a window.
+  "[--truck-glass:#dfe4e8] dark:[--truck-glass:oklch(0.55_0.03_240)]",
+  // Panel lines. The two light values are a shade apart — 0.88 on the box
+  // bodies, 0.86 on the open deck's side rail and stake posts — and are kept
+  // apart so light mode is pixel-identical rather than collapsed into one var;
+  // against a dark panel a single value carries both, so the pair converges on
+  // the dark side. The fleet wizard's drawings split the same material under
+  // the same two names for the same reason.
+  "[--truck-seam:oklch(0.88_0_0)] dark:[--truck-seam:oklch(0.55_0_0)]",
+  "[--truck-seam-deck:oklch(0.86_0_0)] dark:[--truck-seam-deck:oklch(0.55_0_0)]",
+  "[--truck-vent:oklch(0.76_0_0)] dark:[--truck-vent:oklch(0.58_0_0)]",
+  // Running gear. `--truck-chassis-deep` is the block slung under the open
+  // deck, which has to stay a step darker than the rail it hangs off in both
+  // themes or the two shapes merge into one silhouette.
+  "[--truck-chassis:oklch(0.42_0_0)] dark:[--truck-chassis:oklch(0.62_0_0)]",
+  "[--truck-chassis-deep:oklch(0.3_0_0)] dark:[--truck-chassis-deep:oklch(0.52_0_0)]",
+  // The wing-mirror stub, the one line drawn outside the body: it reads against
+  // the card, not against a panel, so it tracks the chassis rather than the
+  // outline and stays a shade below it in both themes.
+  "[--truck-mirror:oklch(0.5_0_0)] dark:[--truck-mirror:oklch(0.52_0_0)]",
+  "[--truck-tyre:oklch(0.26_0_0)] dark:[--truck-tyre:oklch(0.32_0_0)]",
+  "[--truck-hub:oklch(0.84_0_0)] dark:[--truck-hub:oklch(0.58_0_0)]",
+  // No `dark:` counterpart, and that is the point: the marker lights are a
+  // saturated orange, which carries against a white page and against an
+  // `oklch(0.205 0 0)` card alike. Listed here anyway so the palette stays one
+  // readable inventory of materials rather than a list with a hex hiding in the
+  // markup below it.
+  "[--truck-marker:#e0691c]",
+  // The snowflake, on the other hand, does flip: a mid-blue that reads as cold
+  // on white is barely separable from a dark card, so the dark half lifts it to
+  // a pale blue at the same hue.
+  "[--truck-cold:#2f5fb8] dark:[--truck-cold:#7aa5e8]",
+].join(" ");
+
+const SILHOUETTE_CLASS_NAME = `h-auto w-[172px] shrink-0 ${TRUCK_PALETTE_CLASS_NAME}`;
 
 function DryBoxSilhouette() {
   return (
@@ -602,35 +697,39 @@ function DryBoxSilhouette() {
       className={SILHOUETTE_CLASS_NAME}
     >
       <g
-        stroke="oklch(0.7 0 0)"
+        stroke="var(--truck-outline)"
         strokeWidth="1.7"
         strokeLinejoin="round"
         strokeLinecap="round"
       >
-        <path d={CAB_BODY_PATH} fill="#fbfbfb" />
-        <path d={CAB_SIDE_WINDOW_PATH} fill="#dfe4e8" />
-        <path d={CAB_WINDSCREEN_PATH} fill="#dfe4e8" />
+        <path d={CAB_BODY_PATH} fill="var(--truck-body)" />
+        <path d={CAB_SIDE_WINDOW_PATH} fill="var(--truck-glass)" />
+        <path d={CAB_WINDSCREEN_PATH} fill="var(--truck-glass)" />
         {/* The enclosed box body, with the rear door panel picked out. */}
-        <path d="M30 30 H240 V118 H30 Z" fill="#f7f7f8" />
-        <path d="M37 38 H63 V110 H37 Z" fill="#f1f1f2" />
+        <path d="M30 30 H240 V118 H30 Z" fill="var(--truck-box)" />
+        <path d="M37 38 H63 V110 H37 Z" fill="var(--truck-panel)" />
       </g>
-      <g stroke="oklch(0.88 0 0)" strokeWidth="1.2">
+      <g stroke="var(--truck-seam)" strokeWidth="1.2">
         <path d="M30 37 H240 M120 30 V118 M180 30 V118" />
       </g>
-      <path d="M26 118 H332 V128 H26 Z" fill="oklch(0.42 0 0)" />
-      <g fill="oklch(0.26 0 0)">
+      <path d="M26 118 H332 V128 H26 Z" fill="var(--truck-chassis)" />
+      <g fill="var(--truck-tyre)">
         <circle cx="96" cy="128" r="18" />
         <circle cx="272" cy="128" r="19" />
       </g>
-      <g fill="oklch(0.84 0 0)">
+      <g fill="var(--truck-hub)">
         <circle cx="96" cy="128" r="7.5" />
         <circle cx="272" cy="128" r="8" />
       </g>
-      <g fill="#e0691c">
+      <g fill="var(--truck-marker)">
         <rect x="27" y="104" width="6" height="9" rx="1" />
         <rect x="325" y="102" width="7" height="8" rx="1" />
       </g>
-      <path d={CAB_MIRROR_PATH} stroke="oklch(0.5 0 0)" strokeWidth="1.7" />
+      <path
+        d={CAB_MIRROR_PATH}
+        stroke="var(--truck-mirror)"
+        strokeWidth="1.7"
+      />
     </svg>
   );
 }
@@ -643,48 +742,57 @@ function RefrigeratedSilhouette() {
       className={SILHOUETTE_CLASS_NAME}
     >
       <g
-        stroke="oklch(0.7 0 0)"
+        stroke="var(--truck-outline)"
         strokeWidth="1.7"
         strokeLinejoin="round"
         strokeLinecap="round"
       >
-        <path d={CAB_BODY_PATH} fill="#fbfbfb" />
-        <path d={CAB_SIDE_WINDOW_PATH} fill="#dfe4e8" />
-        <path d={CAB_WINDSCREEN_PATH} fill="#dfe4e8" />
-        <path d="M30 30 H240 V118 H30 Z" fill="#f7f7f8" />
+        <path d={CAB_BODY_PATH} fill="var(--truck-body)" />
+        <path d={CAB_SIDE_WINDOW_PATH} fill="var(--truck-glass)" />
+        <path d={CAB_WINDSCREEN_PATH} fill="var(--truck-glass)" />
+        <path d="M30 30 H240 V118 H30 Z" fill="var(--truck-box)" />
         {/* The roof-mounted cooling unit, the one shape that distinguishes
             this body from the dry box. */}
         <path
           d="M198 8 H242 Q248 8 248 14 V30 H192 V14 Q192 8 198 8 Z"
-          fill="#eceef0"
+          fill="var(--truck-unit)"
         />
-        <path d="M37 38 H63 V110 H37 Z" fill="#f1f1f2" />
+        <path d="M37 38 H63 V110 H37 Z" fill="var(--truck-panel)" />
       </g>
       {/* Cooling-unit vents. */}
-      <g stroke="oklch(0.76 0 0)" strokeWidth="1.3">
+      <g stroke="var(--truck-vent)" strokeWidth="1.3">
         <path d="M200 15 H240 M200 21 H240 M200 27 H240" />
       </g>
-      <g stroke="oklch(0.88 0 0)" strokeWidth="1.2">
+      <g stroke="var(--truck-seam)" strokeWidth="1.2">
         <path d="M30 37 H240 M120 30 V118 M180 30 V118" />
       </g>
-      <path d="M26 118 H332 V128 H26 Z" fill="oklch(0.42 0 0)" />
-      <g fill="oklch(0.26 0 0)">
+      <path d="M26 118 H332 V128 H26 Z" fill="var(--truck-chassis)" />
+      <g fill="var(--truck-tyre)">
         <circle cx="96" cy="128" r="18" />
         <circle cx="272" cy="128" r="19" />
       </g>
-      <g fill="oklch(0.84 0 0)">
+      <g fill="var(--truck-hub)">
         <circle cx="96" cy="128" r="7.5" />
         <circle cx="272" cy="128" r="8" />
       </g>
       {/* Snowflake glyph on the box side. */}
-      <g stroke="#2f5fb8" strokeWidth="2.4" strokeLinecap="round" fill="none">
+      <g
+        stroke="var(--truck-cold)"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+        fill="none"
+      >
         <path d="M88 56 v26 M76 62 l24 14 M76 76 l24 -14" />
       </g>
-      <g fill="#e0691c">
+      <g fill="var(--truck-marker)">
         <rect x="27" y="104" width="6" height="9" rx="1" />
         <rect x="325" y="102" width="7" height="8" rx="1" />
       </g>
-      <path d={CAB_MIRROR_PATH} stroke="oklch(0.5 0 0)" strokeWidth="1.7" />
+      <path
+        d={CAB_MIRROR_PATH}
+        stroke="var(--truck-mirror)"
+        strokeWidth="1.7"
+      />
     </svg>
   );
 }
@@ -697,44 +805,48 @@ function OpenChassisSilhouette() {
       className={SILHOUETTE_CLASS_NAME}
     >
       <g
-        stroke="oklch(0.7 0 0)"
+        stroke="var(--truck-outline)"
         strokeWidth="1.7"
         strokeLinejoin="round"
         strokeLinecap="round"
       >
-        <path d={CAB_BODY_PATH} fill="#fbfbfb" />
-        <path d={CAB_SIDE_WINDOW_PATH} fill="#dfe4e8" />
-        <path d={CAB_WINDSCREEN_PATH} fill="#dfe4e8" />
+        <path d={CAB_BODY_PATH} fill="var(--truck-body)" />
+        <path d={CAB_SIDE_WINDOW_PATH} fill="var(--truck-glass)" />
+        <path d={CAB_WINDSCREEN_PATH} fill="var(--truck-glass)" />
         {/* A low deck instead of a box body — the drop sides, drawn as the
             hinged panels below. */}
-        <path d="M30 74 H240 V106 H30 Z" fill="#f7f7f8" />
+        <path d="M30 74 H240 V106 H30 Z" fill="var(--truck-box)" />
       </g>
-      <g stroke="oklch(0.86 0 0)" strokeWidth="1.2">
+      <g stroke="var(--truck-seam-deck)" strokeWidth="1.2">
         <path d="M30 84 H240 M30 95 H240 M86 74 V106 M142 74 V106 M198 74 V106" />
       </g>
-      <path d="M26 106 H332 V118 H26 Z" fill="oklch(0.42 0 0)" />
+      <path d="M26 106 H332 V118 H26 Z" fill="var(--truck-chassis)" />
       <rect
         x="152"
         y="112"
         width="76"
         height="16"
         rx="3"
-        fill="oklch(0.3 0 0)"
+        fill="var(--truck-chassis-deep)"
       />
-      <g fill="oklch(0.26 0 0)">
+      <g fill="var(--truck-tyre)">
         <circle cx="96" cy="126" r="18" />
         <circle cx="272" cy="126" r="19" />
       </g>
-      <g fill="oklch(0.84 0 0)">
+      <g fill="var(--truck-hub)">
         <circle cx="96" cy="126" r="7.5" />
         <circle cx="272" cy="126" r="8" />
       </g>
-      <g fill="#e0691c">
+      <g fill="var(--truck-marker)">
         <rect x="27" y="108" width="6" height="8" rx="1" />
         <rect x="112" y="108" width="9" height="7" rx="1" />
         <rect x="325" y="100" width="7" height="8" rx="1" />
       </g>
-      <path d={CAB_MIRROR_PATH} stroke="oklch(0.5 0 0)" strokeWidth="1.7" />
+      <path
+        d={CAB_MIRROR_PATH}
+        stroke="var(--truck-mirror)"
+        strokeWidth="1.7"
+      />
     </svg>
   );
 }

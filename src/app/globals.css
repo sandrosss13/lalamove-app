@@ -12,21 +12,27 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-/* Declared by the shadcn CLI as `&:is(.dark *)` and never used — nothing set
-   `.dark` until the landing page's theme toggle did. Narrowed to the landing
-   subtree on purpose: `.dark` now lives on `<html>` for the whole session, and
-   the `src/components/ui/*` primitives carry `dark:` classes (`dark:bg-input/30`
-   on input/textarea/select/button/checkbox, `dark:text-muted-foreground` on
-   tabs) that would otherwise start firing on the admin back office, the driver
-   hub and both onboarding wizards — all three of which are deliberately pinned
-   to a light palette with a light-only shadcn token set. This is a strict no-op
-   for existing behaviour (the variant has never matched anything) and it keeps
-   `dark:` available where it is actually wanted.
+/* Back to the shadcn CLI's standard global form. For a while this was narrowed
+   to `(.dark [data-landing-page], .dark [data-landing-page] *)` because the
+   landing page owned the only theme toggle, and the `src/components/ui/*`
+   primitives carry `dark:` classes (`dark:bg-input/30` on
+   input/textarea/select/button/checkbox, `dark:text-muted-foreground` on tabs)
+   that would have fired on the admin back office, the driver hub and both
+   onboarding wizards — surfaces that at the time had no dark token values for
+   those classes to resolve against, so `dark:` there would have painted dark
+   utilities over a light palette.
 
-   The landing root itself is listed alongside its descendants so a `dark:`
-   utility written on the page's outermost element still matches — that is what
-   makes the theme toggle's CSS-only icon swap work. */
-@custom-variant dark (&:is(.dark [data-landing-page], .dark [data-landing-page] *));
+   That premise is gone. The toggle now lives in the global site header
+   (`src/app/layout.tsx`), every surface is expected to theme, and the token
+   blocks below give `.dark` a complete shadcn dark set plus dark `--landing-*`
+   values app-wide. So `dark:` has to match everywhere, or the primitives' own
+   dark treatments would be the one part of the app that stayed light.
+
+   `.dark *` matches descendants only, so the element carrying the class is
+   listed alongside them: `.dark` lives on `<html>`, and a `dark:` utility
+   written on a page's outermost element (or on `<html>` itself) still has to
+   match. That is also what makes the theme toggle's CSS-only icon swap work. */
+@custom-variant dark (&:is(.dark, .dark *));
 
 :root {
   --background: #ffffff;
@@ -51,10 +57,10 @@
   --landing-on-strong: #f5f2ea;
 
   /* --- Georgia-homepage additions, light theme -------------------------------
-     Every token below has a dark counterpart in the
-     `html.dark body:has([data-landing-page])` block further down. They exist in
-     both themes so the section components reference one name and never branch on
-     the theme in TSX. Values that read as "translucent white over a dark page" in
+     Every token below has a dark counterpart in the `html.dark` block further
+     down. They exist in both themes so the section components reference one
+     name and never branch on the theme in TSX. Values that read as
+     "translucent white over a dark page" in
      the handoff become "translucent ink over a light page" here; the two that
      sit on top of photography (`glass-image*`) stay dark in both themes, because
      a caption pill over a banner needs to be legible either way. */
@@ -135,17 +141,69 @@
   --onboarding-accent: #ff5a1f;
   --onboarding-accent-hover: #e04a13;
 
-  /* shadcn/ui token set, used only by the `src/components/ui/*` primitives and
-     the admin back office built on them. `--background`/`--foreground` are
-     deliberately NOT re-declared here: this project already owns those two
-     names above (including the dark-mode override below), and letting shadcn's
-     values win would have repainted every pre-existing page. The remaining
-     tokens are new names, so adding them is inert everywhere else.
+  /* --- Status palette: success and warning -----------------------------------
+     The one green and the one amber that mean "this is cleared" / "this is
+     waiting" across the driver wizard, the fleet wizard and the admin review
+     screens. Four surfaces arrived at these values independently and each
+     hand-wrote the light/dark pair as an arbitrary Tailwind value; two of them
+     left a comment asking for exactly this token. That is what these replace —
+     20 hand-written copies of the light green, 14 of a dark green, and 7 of the
+     amber pair.
 
-     There is no `.dark` class toggle in this app, so these values are
-     light-only; the admin surface pins itself to a light scheme accordingly
-     (see `[data-admin-surface]` near the bottom of this file), the same
-     fixed-palette approach the landing page and ops dashboard already take. */
+     The dark green is `oklch(0.72 0.15 145)`, the value 12 of those 14 copies
+     already used (both onboarding wizards). The admin screens had drifted to
+     `oklch(0.8 0.13 150)` — lighter, and a few degrees bluer. That value was not
+     better, only later, and holding ONE hue app-wide matters more than the
+     contrast it gives up: 7.7:1 rather than 10.1:1 as ink on `--card`, both far
+     past the 4.5:1 its chip text needs. Moving the admin surface onto the
+     majority value is the one rendered change this consolidation makes.
+
+     The `-solid` half of each pair is that same colour pinned to its LIGHT value
+     in both themes, and it is not a redundant copy. The lifted dark value exists
+     so status *ink* stays readable on `oklch(0.205)`; it is the wrong value
+     everywhere the colour is not ink:
+
+     - A solid CTA fill keeps the darker green in both themes. White on it reads
+       5.7:1; on the lifted green it drops to 2.3:1. The brand-orange CTAs beside
+       it do not flip either, so a green one that did would be the odd one out.
+     - The `color-mix(… 12%, var(--card))` washes keep it for a different reason:
+       `--card` already flips, so one declaration lands pale on the white card
+       and deep on the dark one. Mixing the *lifted* colour in instead would make
+       the chip glow off the dark card rather than sit a hair off it.
+
+     Ink flips; fills and wash ingredients do not.
+
+     `--status-warning-solid` currently has exactly one call site (the fleet
+     verdict chip's 14% wash) against the green's six. It exists anyway, because
+     the alternative is one hand-written amber literal surviving in a file whose
+     green next to it is a token — which is the precise state this change is
+     undoing — and because "why does green have a solid and amber not?" is a
+     question with no good answer.
+
+     All four are brand-new names, so — unlike `--color-accent` / `--color-muted`
+     in the `@theme inline` block below — they need NO `var(--admin-*, …)`
+     fallback chain. That chain exists because two palettes both claim the words
+     "accent" and "muted"; nothing in this app claims "status-success" or
+     "status-warning", so there is no second palette to resolve against. */
+  --status-success: oklch(0.5 0.13 145);
+  --status-success-solid: oklch(0.5 0.13 145);
+  --status-warning: oklch(0.62 0.15 70);
+  --status-warning-solid: oklch(0.62 0.15 70);
+
+  /* shadcn/ui token set, used by the `src/components/ui/*` primitives and every
+     surface built on them (the admin back office, the driver hub, both
+     onboarding wizards). `--background`/`--foreground` are deliberately NOT
+     re-declared here: this project already owns those two names above, and
+     letting shadcn's values win would have repainted every pre-existing page.
+     The remaining tokens are new names, so adding them is inert everywhere
+     else.
+
+     This is the LIGHT half of the set. It used to be the only half — the app
+     had no `.dark` class toggle outside the landing page, so every shadcn-built
+     surface pinned itself to a light scheme. That is no longer true: the toggle
+     is in the global site header and `html.dark` below declares the matching
+     dark half. Any token added here needs a counterpart there, or that surface
+     will keep a light value in dark mode. */
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
@@ -177,50 +235,104 @@
   --sidebar-ring: oklch(0.708 0 0);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+/* The app's dark theme. `.dark` is set on `<html>` before first paint by the
+   inline script in `src/app/layout.tsx`, and is what the `dark:` variant above
+   keys off.
 
-/* Landing page, dark theme — the `Home-Georgia-v3` palette from
-   `UI:UX/homepage/design_handoff_georgia_homepage/README.md`.
-   `.dark` is set on `<html>` before first paint by the inline script in
-   `src/app/layout.tsx`, and is what the (narrowed) `dark:` variant keys off.
+   THIS BLOCK USED TO BE `html.dark body:has([data-landing-page])`. The narrow
+   scoping was deliberate while the landing page owned the only toggle: the
+   `--landing-*` prefix is misleading, because `bg-ink`, `bg-surface`,
+   `text-paper`, `border-line`, `text-subtle`, `text-accent` and `text-muted`
+   are also used by the account pages, the signed-in booking app
+   (`src/components/home/booking-form.tsx`), the auth shell and — via the
+   `var(--admin-muted, var(--landing-muted))` chain — the admin back office, the
+   driver hub and both onboarding wizards. Flipping them app-wide used to mean
+   repainting surfaces that had never opted into a theme.
 
-   Scoped to `body:has([data-landing-page])` rather than to `.dark` alone
-   ON PURPOSE. The `--landing-*` prefix is misleading: `bg-ink`, `bg-surface`,
-   `text-paper`, `border-line`, `text-accent` and `text-muted` are also used by
-   the account pages, the signed-in booking app (`src/components/home/
-   booking-form.tsx`, out of scope for this feature) and — via the
-   `var(--admin-muted, var(--landing-muted))` chain — by the admin back office,
-   the driver hub and both onboarding wizards. A bare `.dark { --landing-ink: ... }`
-   would repaint all of them for any visitor who once picked dark on the
-   homepage. `data-landing-page` is server-rendered on the landing root, so this
-   selector matches from the first paint with no flash.
+   Repainting all of them is now the INTENT, not a bug. The toggle lives in the
+   global site header, so a visitor who picks dark is asking for a dark app, not
+   a dark homepage. Every one of the surfaces listed above is expected to follow.
 
-   Body is the subject rather than `[data-landing-page]` itself because
-   `body:has([data-landing-page]) { background: var(--landing-ink) }` further
-   down resolves the variable on `body`. Specificity works out: that rule is
-   (0,1,1) and this block is (0,2,2), so the dark values win on `body` and the
-   background rule keeps working untouched.
+   Subject is `html` rather than `body` so the values inherit down to `body` and
+   beyond. `body:has([data-landing-page]) { background: var(--landing-ink) }`
+   further down resolves the variable on `body`, which inherits it from here —
+   nothing else declares `--landing-ink` on `body`, so there is no competing
+   declaration for inheritance to lose to.
 
-   Only `--landing-*` names appear here. The shadcn token set, `--onboarding-accent`,
-   `--admin-accent`/`--admin-muted` and `--background`/`--foreground` are all
-   deliberately absent — see the Non-Goals in
-   `specs/georgia-homepage-redesign/requirements.md`: the toggle governs the
-   landing page and nothing else. In particular never set `--color-muted` or
-   `--color-accent` here; those are the resolved `@theme` names and writing them
-   would bypass the `--admin-*` fallback chain the back office depends on.
+   `--color-muted` and `--color-accent` must still never be written here: those
+   are the resolved `@theme` names, and setting them would bypass the
+   `--admin-*` fallback chain the back office depends on. Set the `--landing-*`
+   and shadcn halves and let the chain resolve, exactly as `:root` does.
 
-   The motion tokens (`--landing-ease`, `--landing-duration-*`) are likewise
-   absent: they are theme-independent and declared once in `:root`. */
-html.dark body:has([data-landing-page]) {
+   The motion tokens (`--landing-ease`, `--landing-duration-*`) are absent on
+   purpose: they are theme-independent and declared once in `:root`. */
+html.dark {
   /* Native form controls, scrollbars and the canvas behind the page follow the
-     theme too. Scoped with everything else so the admin's scrollbars stay light. */
+     theme too. Global now, alongside everything else in this block — a light
+     scrollbar beside a dark page is exactly the mismatch this avoids. */
   color-scheme: dark;
 
+  /* Moved here out of a `@media (prefers-color-scheme: dark) { :root { … } }`
+     block, which is now DELETED rather than kept alongside. The pre-paint
+     script already resolves the system preference into the `.dark` class, so a
+     class-based rule is the authoritative one and the media query was not a
+     harmless fallback: it matched on a system-dark machine even when the
+     visitor had explicitly chosen light, overriding that choice with dark
+     `--background`/`--foreground` while everything else stayed light. One
+     source of truth — the class — is the whole point of the pre-paint script. */
+  --background: #0a0a0a;
+  --foreground: #ededed;
+
+  /* --- shadcn/ui token set, dark half ---------------------------------------
+     The counterpart to the light set in `:root`. shadcn's canonical neutral
+     dark values, with two deliberate deviations, both to keep this project's
+     monochrome treatment of the light set intact:
+
+     - `--chart-1..5` mirror the light set's greyscale ramp inverted for a dark
+       ground, rather than shadcn's five saturated hues. The light set here was
+       already customised to greyscale; importing colour in one theme only would
+       make charts change hue with the toggle. (Nothing renders charts yet —
+       these exist so the set is complete, not because anything reads them.)
+     - `--sidebar-primary`/`--sidebar-primary-foreground` mirror
+       `--primary`/`--primary-foreground` for the same reason; shadcn's
+       canonical dark values there are blue, and this project's light values are
+       neutral. `bg-sidebar` (admin-shell.tsx) is the only sidebar utility in
+       use, and that one does take the canonical value. */
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.269 0 0);
+  --chart-2: oklch(0.439 0 0);
+  --chart-3: oklch(0.556 0 0);
+  --chart-4: oklch(0.708 0 0);
+  --chart-5: oklch(0.87 0 0);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.922 0 0);
+  --sidebar-primary-foreground: oklch(0.205 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+
+  /* --- Landing palette, dark half -------------------------------------------
+     The `Home-Georgia-v3` palette from
+     `UI:UX/homepage/design_handoff_georgia_homepage/README.md`. Named for the
+     landing page it was drawn for, but — see the block comment above — these
+     names back several other surfaces too, and they all take these values now. */
   --landing-ink: #08090a;
   --landing-paper: #f4f4f2;
   --landing-accent: #f58220;
@@ -278,6 +390,21 @@ html.dark body:has([data-landing-page]) {
   --landing-shadow-frame: 0 40px 90px -30px rgba(0, 0, 0, 0.9);
   --landing-shadow-pill: 0 8px 30px rgba(0, 0, 0, 0.45);
   --landing-shadow-cta: 0 10px 30px rgba(245, 130, 32, 0.28);
+
+  /* --- Status palette, dark half ---------------------------------------------
+     Both inks lift about 0.2 in lightness and hold their hue. Holding hue is the
+     load-bearing part: green and amber have to stay tellable apart from each
+     other AND recognisable as the same code in either theme, so lightness is the
+     only axis allowed to move.
+
+     The two `-solid` values deliberately do NOT lift — same treatment, and the
+     same reasoning, as the `--landing-glass-image` pair above: a value that is
+     already correct in both themes. They are restated here rather than left to
+     `:root` so the non-lift reads as a decision instead of an oversight. */
+  --status-success: oklch(0.72 0.15 145);
+  --status-success-solid: oklch(0.5 0.13 145);
+  --status-warning: oklch(0.78 0.15 70);
+  --status-warning-solid: oklch(0.62 0.15 70);
 }
 
 @theme inline {
@@ -348,6 +475,22 @@ html.dark body:has([data-landing-page]) {
 
   --color-onboarding-accent: var(--onboarding-accent);
   --color-onboarding-accent-hover: var(--onboarding-accent-hover);
+
+  /* The status palette declared in `:root` / `html.dark`, exposed as utilities:
+     `text-status-success`, `bg-status-success/10`, `border-status-success`, and
+     the `-solid` variant for fills and `color-mix` ingredients. Each is an
+     ADDITIVE entry in Tailwind's `--color-*` namespace — a new colour name,
+     which is inert — and not an override of a Tailwind-owned token like
+     `--radius-*` or `--font-sans`. That distinction is the whole subject of the
+     two comments below; adding colours is safe, renaming Tailwind's own scales
+     is what resized and re-fonted the app.
+
+     No fallback chain, unlike `--color-accent` / `--color-muted` above: these
+     names are new, so nothing competes for them. */
+  --color-status-success: var(--status-success);
+  --color-status-success-solid: var(--status-success-solid);
+  --color-status-warning: var(--status-warning);
+  --color-status-warning-solid: var(--status-warning-solid);
 
   /* The design's `fadeUp` — the entering-panel animation for every wizard step,
      and (at the shorter duration) the onboarding toast's own entrance. Declared
@@ -610,16 +753,26 @@ body:has([data-landing-page]) {
   }
 }
 
-/* The two surfaces built out of the `src/components/ui` shadcn primitives: the
-   admin back office and the driver-onboarding wizard. Both are pinned to a
-   light scheme regardless of system theme — the same fixed-palette approach the
-   landing page and ops dashboard already take — because those primitives only
-   carry light-mode token values in this project (there is no `.dark` class
-   toggle to flip). Without this, a visitor in system dark mode would get a
-   near-black page background behind white shadcn cards and tables.
+/* The surfaces built out of the `src/components/ui` shadcn primitives: the
+   admin back office and the two onboarding wizards (the driver hub carries
+   `data-admin-surface` too, and adds its own overrides further down).
 
-   The onboarding wizard shares the selector rather than duplicating the block:
-   it needs exactly the same token resolution for exactly the same reason, and
+   These two blocks restate `--background`/`--foreground` as the shadcn
+   primitives' own values rather than this project's `#ffffff`/`#171717` and
+   `#0a0a0a`/`#ededed`. A shadcn `Card` is `bg-card` (`oklch(1 0 0)` light,
+   `oklch(0.205 0 0)` dark) and the page behind it has to be the token set's
+   matching ground, not a near-but-not-quite hex from the pre-shadcn palette,
+   or every card edge shows a faint seam against the page.
+
+   This used to be a single block that pinned both surfaces to LIGHT regardless
+   of system theme, because the shadcn primitives only carried light-mode token
+   values here and there was no `.dark` class to flip. That rationale is gone:
+   `html.dark` now declares the full shadcn dark set, so the pin below is only
+   the light half, and the `html.dark` block that follows it supplies the dark
+   half. Both surfaces theme like everything else now.
+
+   The onboarding wizards share the selector rather than duplicating the block:
+   they need exactly the same token resolution for exactly the same reason, and
    the one rule that is genuinely admin-only (hiding the global site header,
    below) stays on its own selector. */
 body:has([data-admin-surface]),
@@ -635,9 +788,29 @@ body:has([data-onboarding-surface]) {
      content, which portals to `document.body` and therefore sits outside
      the `[data-admin-surface]` subtree despite belonging to it — without
      this, portalled content falls through to the landing palette's
-     `--accent`/`--muted` (bright orange / dark brown-grey) instead. */
+     `--accent`/`--muted` (bright orange / dark brown-grey) instead.
+
+     Deliberately a var-chain, not a copy of the values: `--accent`/`--muted`
+     now flip with the theme in `html.dark`, and referencing them by name is
+     what makes these two follow along without a dark restatement. The `var()`
+     resolves against `body`'s own computed values, which inherit from
+     `html.dark` — so this one declaration covers both themes. */
   --admin-accent: var(--accent);
   --admin-muted: var(--muted);
+}
+
+/* The dark half of the block above. Only `--background`/`--foreground` need
+   restating: the light pin sets them literally, and at equal specificity
+   ((0,1,1) each) it comes after `html.dark` in source order, so it would win
+   and leave these surfaces with a white page under dark shadcn cards. This
+   selector is (0,2,2), so it wins outright.
+
+   `--admin-accent`/`--admin-muted` are deliberately NOT repeated — they are a
+   var-chain onto `--accent`/`--muted`, which `html.dark` already flipped. */
+html.dark body:has([data-admin-surface]),
+html.dark body:has([data-onboarding-surface]) {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
 }
 
 /* The back office ships its own top bar and owns the full viewport, so the
@@ -663,7 +836,8 @@ body:has([data-admin-surface]) > header {
    admin sign-in card and the onboarding wizard also carry — a driver screen's
    handoff is no reason to repaint those. This block must stay *after* that one:
    the hub marks itself with both attributes, so equal specificity makes source
-   order the tie-breaker.
+   order the tie-breaker. The same holds for the dark pair below, which has to
+   stay after `html.dark body:has([data-admin-surface])` for the same reason.
 
    On `body:has(...)` rather than the element itself for the reason the block
    above documents: Radix portals dialog/select/dropdown/popover content to
@@ -671,6 +845,24 @@ body:has([data-admin-surface]) > header {
 body:has([data-hub-surface]) {
   --muted-foreground: oklch(44.6% 0.03 256.802);
   --primary: oklch(13% 0.028 261.692);
+}
+
+/* The dark counterpart. Both values above are near-black literals from a
+   light-mode artboard, and without this they would survive into dark mode: the
+   hub's captions and column headers would be near-black on a near-black page,
+   and every filled `--primary` button (View earnings, Add vehicle, Add driver,
+   Invite employee, Send invite) would be a black rectangle carrying
+   `--primary-foreground`, which is itself near-black in dark mode.
+
+   The values are shadcn's canonical dark `--muted-foreground`/`--primary`, i.e.
+   exactly what `html.dark` declares — the handoff has no dark artboard to take
+   hue-tinted equivalents from, so the hub falls back to the neutral dark set
+   rather than to an invented one. Specificity (0,2,2) beats the (0,1,1) pin
+   above; source order keeps it ahead of nothing else, so the pair reads as one
+   unit with the light block. */
+html.dark body:has([data-hub-surface]) {
+  --muted-foreground: oklch(0.708 0 0);
+  --primary: oklch(0.922 0 0);
 }
 
 @layer base {

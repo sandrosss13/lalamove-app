@@ -331,7 +331,12 @@ export function AccountProfileForm({
               role="status"
               className={cn(
                 MESSAGE_BASE_CLASSES,
-                "border-emerald-600/30 bg-emerald-50 text-emerald-800",
+                // Kept identical to the "Password updated." banner in
+                // `account-password-card.tsx`, which carries the long note on
+                // why the dark half is spelled out rather than derived: the two
+                // sit on the same `/account` page and must not read as two
+                // different kinds of success.
+                "border-emerald-600/30 bg-emerald-50 text-emerald-800 dark:border-emerald-400/30 dark:bg-emerald-400/10 dark:text-emerald-300",
               )}
             >
               Profile saved.

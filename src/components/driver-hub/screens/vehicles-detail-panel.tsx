@@ -74,27 +74,80 @@ const NETWORK_ERROR = "Network error. Please check your connection.";
  * `color: armed ? '#fff' : BAD` in the handoff's `dangerBtn`.
  *
  * Two things about that pairing are easy to get wrong in opposite directions.
- * The text is BAD (`oklch(57.7% 0.245 27.325)`), not the duller BAD_FG: BAD_FG
- * is the *pill* red, tuned to sit on a BAD_BG wash, and on white it reads as a
- * disabled control rather than a destructive one. The border, though, is plain
- * LINE — the same hairline as every other border on the screen. Only arming it
- * turns the border red, and that is the whole point of the two-step: an
- * unarmed Remove is a quiet button with red lettering, and the red outline is
- * the thing that appears when the next click actually deletes.
+ * The text is BAD, not the duller BAD_FG: BAD_FG is the *pill* red, tuned to sit
+ * on a BAD_BG wash, and on the card's own ground it reads as a disabled control
+ * rather than a destructive one. The border, though, is plain LINE — the same
+ * hairline as every other border on the screen. Only arming it turns the border
+ * red, and that is the whole point of the two-step: an unarmed Remove is a quiet
+ * button with red lettering, and the red outline is the thing that appears when
+ * the next click actually deletes.
+ *
+ * BAD is named as `text-destructive` rather than spelled out because the
+ * handoff's BAD *is* `--destructive`'s light value, to the digit — so the token
+ * is not a colour change here, it is the same colour with a dark value attached,
+ * and the lettering lightens on the dark card instead of staying a deep red on
+ * near-black. Its hover wash has no such token behind it, so that one carries a
+ * hand-written `dark:` pair on the same hue with the lightness inverted, which
+ * is how every tint on the hub is darkened and what keeps them distinguishable
+ * from one another in both themes.
+ */
+/*
+ * ## Why the two `dark:` restatements of classes that are already here
+ *
+ * This button is a `Button variant="outline"`, and that variant carries
+ * `dark:border-input dark:bg-input/30 dark:hover:bg-input/50` (see
+ * `buttonVariants` in `src/components/ui/button.tsx`). Those were inert while
+ * the app had no `.dark` class and are live now.
+ *
+ * `cn()` cannot resolve them away. tailwind-merge only collapses classes in the
+ * *same* variant scope, so `bg-background` here and `dark:bg-input/30` on the
+ * variant are two different declarations that both survive the merge — and in
+ * dark mode the `dark:` one is the one that applies, laying a 30% white wash
+ * over this button. `dark:bg-background` is therefore not redundant with
+ * `bg-background`: it is the only thing that outranks the variant in the theme
+ * where the variant speaks. The same holds for `dark:border-border`.
  */
 const REMOVE_UNARMED_CLASSES =
-  "border-border bg-background " +
-  "text-[oklch(57.7%_0.245_27.325)] hover:bg-[oklch(93.6%_0.032_17.717)] " +
-  "hover:text-[oklch(57.7%_0.245_27.325)]";
+  "border-border bg-background dark:border-border dark:bg-background " +
+  "text-destructive hover:bg-[oklch(93.6%_0.032_17.717)] " +
+  "dark:hover:bg-[oklch(28%_0.06_17.717)] hover:text-destructive";
 
 /**
- * Armed: solid red with white text. Spelled out rather than using `Button`'s
- * `destructive` variant, which is *tinted* (`bg-destructive/10`) in this
- * design system and would read as the unarmed state.
+ * Armed: solid red with white text. The fill is named directly rather than
+ * reached for through `Button`'s `destructive` *variant*, which is *tinted*
+ * (`bg-destructive/10`) in this design system and would read as the unarmed
+ * state — the variant is what is being avoided, not the token, which is the
+ * handoff's BAD exactly and so flips the fill for free.
+ *
+ * The white lettering is not themed and should not be: `text-white` here is
+ * contrast against a saturated red fill, not against the page, and red stays
+ * red in both themes.
+ */
+/*
+ * The `dark:` half is the same point the unarmed block above makes, and this is
+ * where it bites hardest: without it, `outline`'s `dark:bg-input/30` paints its
+ * wash straight over `bg-destructive` and the armed button — the one that
+ * actually deletes on the next click — renders as a plain dark-grey rectangle
+ * in dark mode. Verified in Chromium before the fix. A destructive confirm that
+ * does not read as destructive is the failure this whole two-step exists to
+ * prevent, so the fill, the hover and the border are all restated under `dark:`.
+ */
+/*
+ * The dark fill is the handoff's BAD spelled out rather than `bg-destructive`,
+ * and that is deliberate: `--destructive` is a *lighter* red after dark
+ * (`oklch(0.704 0.191 22.216)`), which is right for the token's usual jobs here
+ * — `text-destructive` lettering and the `bg-destructive/10` tint the `Button`
+ * variant uses — but wrong as a solid fill under `text-white`. Measured in
+ * Chromium, white on the dark token is **2.89:1**, under the 3:1 floor and well
+ * under AA; white on BAD is 4.77:1, and BAD is what the light half already
+ * paints. So the armed button keeps one red in both themes, and a deep
+ * saturated red on a near-black page still reads as loud as it needs to.
  */
 const REMOVE_ARMED_CLASSES =
-  "border-transparent bg-[oklch(57.7%_0.245_27.325)] text-white " +
-  "hover:bg-[oklch(50%_0.22_27.325)] hover:text-white";
+  "border-transparent bg-destructive text-white " +
+  "hover:bg-destructive/90 hover:text-white " +
+  "dark:border-transparent dark:bg-[oklch(57.7%_0.245_27.325)] " +
+  "dark:hover:bg-[oklch(52%_0.235_27.325)]";
 
 const REMOVE_ARMED_NOTE =
   "Click again to delete this vehicle for good. Its photos go with it, and " +
@@ -365,12 +418,13 @@ export function VehiclesDetailPanel({
           </p>
         )}
 
-        {/* Inline, beside the control that failed — never an `alert()`. */}
+        {/* Inline, beside the control that failed — never an `alert()`. The
+            handoff's darker error red is dropped in favour of `--destructive`:
+            it was chosen to carry small text on a white card, which is a
+            judgement the token now makes per theme, and a frozen 44% red would
+            be all but unreadable on the dark one. */}
         {error ? (
-          <p
-            role="alert"
-            className="mt-2 text-xs text-[oklch(44.4%_0.177_26.899)]"
-          >
+          <p role="alert" className="mt-2 text-xs text-destructive">
             {error}
           </p>
         ) : null}

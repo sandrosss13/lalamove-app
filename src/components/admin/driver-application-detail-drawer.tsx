@@ -13,6 +13,10 @@ import type {
   AdminDriverApplicationDocument,
 } from "@/app/api/admin/driver-applications/[id]/route";
 import type { AdminDocumentReviewResponse } from "@/app/api/admin/driver-applications/[id]/documents/[docId]/route";
+import {
+  APPLICATION_APPROVED_BORDER_COLOR,
+  APPLICATION_APPROVED_TEXT_CLASSES,
+} from "@/components/admin/application-status-colors";
 import { Button } from "@/components/ui/button";
 import { GEORGIAN_CITY_OPTIONS } from "@/lib/georgian-cities";
 
@@ -83,14 +87,6 @@ const MONTH_NAMES = [
   "Nov",
   "Dec",
 ];
-
-/**
- * The design's "approved" green. Inline rather than a token in `globals.css`
- * for the same reason the driver's status screen keeps its own copy: it is used
- * on this one surface, so a token would be a palette of one. Flagged reuses the
- * shadcn `--destructive` token, which already covers the design's red.
- */
-const STATUS_GREEN = "oklch(0.5 0.13 145)";
 
 const LOAD_ERROR_FALLBACK = "Could not load this application.";
 const REVIEW_ERROR_FALLBACK = "Could not save that verdict.";
@@ -605,13 +601,27 @@ export function DriverApplicationDetailDrawer({
   return (
     <>
       {/* Dismissal is also on Escape and the close button, so this backdrop is
-          a redundant affordance rather than the only way out. */}
+          a redundant affordance rather than the only way out.
+
+          The treatment is `dialog.tsx`/`sheet.tsx`'s scrim, not a bespoke one:
+          a black wash plus a `backdrop-blur` guarded on `supports-backdrop-filter`.
+          The blur is what actually carries the "there is a layer over this
+          page" reading — the tint only deepens it — which matters because a
+          20%-black wash over a dark `--background` is very nearly invisible, and
+          a drawer whose scrim cannot be seen stops reading as modal.
+
+          Hence the dark override on top of it: the alpha has to grow with the
+          page it dims, because a scrim's job is a *contrast* difference and a
+          fixed alpha only delivers one against a light ground. Plain
+          `black/…` in both themes rather than a token — this is a wash over the
+          page, not a surface, and no token in the set means "darker than
+          whatever is underneath". */}
       <div
         onClick={() => {
           if (!isBusy) onClose();
         }}
         aria-hidden="true"
-        className="fixed inset-0 z-40 bg-black/20"
+        className="fixed inset-0 z-40 bg-black/20 supports-backdrop-filter:backdrop-blur-xs dark:bg-black/60"
       />
       <div
         role="dialog"
@@ -1002,11 +1012,13 @@ function DocumentRow({
             ? "bg-card"
             : "border-border bg-card"
       }`}
-      // The approved border is the design's green at low opacity, which has no
-      // token; the flagged and default cases use classes above.
+      // The approved border is the design's green mixed into the card it is
+      // drawn on, which no single utility expresses; the flagged and default
+      // cases use the classes above. See `APPLICATION_APPROVED_BORDER_COLOR`
+      // for why the mix is against `var(--card)` rather than literal white.
       style={
         isApproved
-          ? { borderColor: `color-mix(in oklch, ${STATUS_GREEN} 45%, white)` }
+          ? { borderColor: APPLICATION_APPROVED_BORDER_COLOR }
           : undefined
       }
     >
@@ -1043,10 +1055,9 @@ function DocumentRow({
               isFlagged
                 ? "text-destructive"
                 : isApproved
-                  ? ""
+                  ? APPLICATION_APPROVED_TEXT_CLASSES
                   : "text-muted-foreground"
             }`}
-            style={isApproved ? { color: STATUS_GREEN } : undefined}
           >
             {stateLine}
           </p>

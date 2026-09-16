@@ -40,13 +40,44 @@ const GO_ONLINE_ERROR_FALLBACK =
 
 /**
  * The two status colours the design names that have no counterpart in the
- * shadcn token set (`--destructive` already covers its red). Applied inline
- * rather than added to `globals.css`, for the same reason the onboarding
- * toast's ink is inline: they are used on this one screen, so a token would be
- * a palette of one. Values are the design prototype's `GREEN` and `AMBER`.
+ * shadcn token set (`--destructive` already covers its red), each declared as a
+ * class that sets one custom property rather than as a bare colour string.
+ *
+ * They used to be plain JS constants handed straight to inline `style`, which
+ * was fine while every onboarding surface was pinned light. It stopped being
+ * fine when `.dark` started theming this wizard: an inline style is a single
+ * value computed in JS, with no media query or class selector above it, so
+ * there is nowhere for a `dark:` variant to attach. Moving the decision into a
+ * className hands it back to CSS — the card sets `--status-accent` once, the
+ * `dark:` half overrides it, and the border, the `color-mix` tint, the dot and
+ * the tag's ink all keep reading the same variable without any of them knowing
+ * which theme is active. That is also what preserves the "one value per state"
+ * guarantee below: there is still exactly one place per state to change.
+ *
+ * Both now point at `--status-success` / `--status-warning` from `globals.css`
+ * instead of spelling the design prototype's `GREEN` and `AMBER` out here. The
+ * values are unchanged — the token holds the same light pair, and the same hues
+ * raised for the dark card (`--card` is `oklch(0.205 0 0)` there, and a
+ * 0.5-lightness green on it barely registers as a colour, let alone as readable
+ * ink). What changed is that the fleet status screen, the fleet step rail and
+ * the admin review chips now read the same two names, so the "if either value
+ * moves, it has to move in both" note this comment used to carry is no longer a
+ * thing anyone has to remember.
+ *
+ * Note the missing `dark:` half: the token already flips, so restating it behind
+ * the variant would only assert that the two themes differ somewhere they no
+ * longer do.
  */
-const STATUS_GREEN = "oklch(0.5 0.13 145)";
-const STATUS_AMBER = "oklch(0.62 0.15 70)";
+const STATUS_GREEN_ACCENT_CLASS =
+  "[--status-accent:var(--color-status-success)]";
+const STATUS_AMBER_ACCENT_CLASS =
+  "[--status-accent:var(--color-status-warning)]";
+/**
+ * Action required is the one state whose accent already is a themed token, so
+ * it needs no dark half — `--destructive` is redeclared by `html.dark` and the
+ * var-chain follows on its own.
+ */
+const STATUS_DESTRUCTIVE_ACCENT_CLASS = "[--status-accent:var(--destructive)]";
 
 /**
  * Each document's human label and the upload slot that replaces it — the
@@ -251,7 +282,7 @@ function PendingState() {
     <>
       <StatusCard
         tag="Pending verification"
-        accent={STATUS_AMBER}
+        accentClass={STATUS_AMBER_ACCENT_CLASS}
         title="Under review"
         // The design's copy promises an SMS. This feature ships no SMS
         // infrastructure at all (see the spec's non-goals, which drop the OTP
@@ -315,7 +346,7 @@ function ActionRequiredState({
     <>
       <StatusCard
         tag="Action required"
-        accent="var(--destructive)"
+        accentClass={STATUS_DESTRUCTIVE_ACCENT_CLASS}
         title={
           outstanding > 0
             ? `${outstanding} document${outstanding === 1 ? " needs" : "s need"} a new photo`
@@ -362,9 +393,19 @@ function ActionRequiredState({
               ) : (
                 // The document exists but its read URL could not be signed.
                 // A neutral tile keeps the row's shape without a broken image.
+                //
+                // `bg-secondary` rather than `bg-muted`, here and everywhere
+                // else in this file: the two tokens carry identical values in
+                // both themes (`oklch(0.97 0 0)` light, `oklch(0.269 0 0)`
+                // dark), so this is the same pixel — but `--color-muted` is the
+                // var-chain `var(--admin-muted, var(--landing-muted))`, which
+                // only lands on the shadcn value because `globals.css` pins
+                // `--admin-muted` on `body:has([data-onboarding-surface])`.
+                // `--color-secondary` reads `--secondary` directly and cannot
+                // fall through to the landing palette at all.
                 <div
                   aria-hidden="true"
-                  className="h-10 w-[52px] shrink-0 rounded-[7px] bg-muted"
+                  className="h-10 w-[52px] shrink-0 rounded-[7px] bg-secondary"
                 />
               )}
 
@@ -395,7 +436,12 @@ function ActionRequiredState({
           // for a second rejection.
           disabled={outstanding > 0 || resubmitting}
           onClick={onResubmit}
-          className="mt-1 h-12 w-full cursor-pointer rounded-xl bg-onboarding-accent text-[15px] font-semibold text-white transition-colors hover:bg-onboarding-accent-hover focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
+          // `text-white` on `bg-onboarding-accent` is correct in both themes
+          // and is not an oversight: the brand orange is theme-independent by
+          // design, so the label that sits on it has to be too. Do not "fix"
+          // it to `text-foreground` or `text-primary-foreground`, either of
+          // which inverts to near-black on orange in dark mode.
+          className="mt-1 h-12 w-full cursor-pointer rounded-xl bg-onboarding-accent text-[15px] font-semibold text-white transition-colors hover:bg-onboarding-accent-hover focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:bg-secondary disabled:text-muted-foreground"
         >
           {outstanding > 0
             ? `Replace ${outstanding} photo${outstanding === 1 ? "" : "s"} to resubmit`
@@ -451,7 +497,7 @@ function ApprovedState({
     <>
       <StatusCard
         tag="Approved"
-        accent={STATUS_GREEN}
+        accentClass={STATUS_GREEN_ACCENT_CLASS}
         title="You are cleared to drive"
         body="Your account is active. Orders matching your vehicle class will start arriving as soon as you go online."
       />
@@ -482,8 +528,19 @@ function ApprovedState({
           type="button"
           disabled={goingOnline}
           onClick={onGoOnline}
-          style={{ backgroundColor: STATUS_GREEN }}
-          className="h-[50px] w-full cursor-pointer rounded-xl text-[15.5px] font-semibold text-white transition-opacity hover:opacity-90 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+          // The one green on this screen that is a solid FILL rather than ink,
+          // so it takes `-solid` — the token half that stays at the design's
+          // `oklch(0.5 0.13 145)` in both themes — rather than `status-success`,
+          // which lifts for dark cards. The `text-white` sitting on it is the
+          // reason: white reads 5.7:1 on this green and 2.3:1 on the lifted one,
+          // so flipping the fill would break the one pairing that is currently
+          // correct in both themes. The problem the lifted value solves never
+          // arises here either — the fill is far brighter than the
+          // `oklch(0.145 0 0)` page behind it (3.5:1, clear of the 3:1 a UI
+          // boundary needs). Same call the brand-orange CTAs make, and since
+          // this comment was written the fleet wizard's approved CTA has been
+          // brought onto it too.
+          className="h-[50px] w-full cursor-pointer rounded-xl bg-status-success-solid text-[15.5px] font-semibold text-white transition-opacity hover:opacity-90 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
         >
           {goingOnline ? "Going online…" : "Go online and take orders"}
         </button>
@@ -504,41 +561,55 @@ function ApprovedState({
 }
 
 /**
- * The one card at the top of every state. `accent` colours the dot and the tag
- * and, at low opacity, the border and background — one value per state rather
- * than three, so a state can't end up with a red border and an amber dot.
+ * The one card at the top of every state. `accentClass` is one of the three
+ * constants at the top of this file; it sets `--status-accent`, which colours
+ * the dot and the tag and, at low opacity, the border and background — one
+ * declaration per state rather than four, so a state can't end up with a red
+ * border and an amber dot.
+ *
+ * The inline styles below are deliberate and are not the thing dark mode had to
+ * fix: each is `var(--status-accent)`, so the colour is chosen by CSS on the
+ * element above and merely *read* here. Only the `color-mix` genuinely needs to
+ * be inline — Tailwind's arbitrary-value syntax would have to spell the whole
+ * expression, underscores and all, three times over — and once one of the four
+ * is inline the other three may as well match it rather than split the same
+ * decision across two mechanisms.
  */
 function StatusCard({
   tag,
-  accent,
+  accentClass,
   title,
   body,
 }: {
   tag: string;
-  accent: string;
+  accentClass: string;
   title: string;
   body: string;
 }) {
   return (
     <section
-      className="animate-onboarding-fade-up rounded-2xl border p-[18px]"
+      className={`animate-onboarding-fade-up rounded-2xl border p-[18px] ${accentClass}`}
       style={{
-        borderColor: accent,
-        // `color-mix` rather than a hard-coded tint: `accent` is a different
+        borderColor: "var(--status-accent)",
+        // `color-mix` rather than a hard-coded tint: the accent is a different
         // colour space per state (a token here, an oklch literal there), and
-        // this keeps every state's wash the same strength regardless.
-        backgroundColor: `color-mix(in oklch, ${accent} 5%, var(--card))`,
+        // this keeps every state's wash the same strength regardless. Mixing
+        // into `var(--card)` is also what carries the tint across themes for
+        // free — the card is `oklch(1 0 0)` light and `oklch(0.205 0 0)` dark,
+        // so the wash stays a 5% lift of whatever surface it is actually on.
+        backgroundColor:
+          "color-mix(in oklch, var(--status-accent) 5%, var(--card))",
       }}
     >
       <div className="flex items-center gap-2.5">
         <span
           aria-hidden="true"
           className="size-2 shrink-0 rounded-full"
-          style={{ backgroundColor: accent }}
+          style={{ backgroundColor: "var(--status-accent)" }}
         />
         <p
           className="font-price text-[11px] font-semibold tracking-[0.08em] uppercase"
-          style={{ color: accent }}
+          style={{ color: "var(--status-accent)" }}
         >
           {tag}
         </p>
@@ -563,20 +634,24 @@ function TimelineRow({
   when: string;
   tone: "done" | "current" | "waiting";
 }) {
-  const dotColour =
+  // Same mechanism as `StatusCard`: the tone picks a class that declares
+  // `--status-accent`, so the dark half of each colour travels with it. The
+  // waiting dot borrows `--border` because it is meant to recede to the same
+  // degree the rows' own hairlines do, in whichever theme is on.
+  const dotAccentClass =
     tone === "done"
-      ? STATUS_GREEN
+      ? STATUS_GREEN_ACCENT_CLASS
       : tone === "current"
-        ? STATUS_AMBER
-        : "var(--border)";
+        ? STATUS_AMBER_ACCENT_CLASS
+        : "[--status-accent:var(--border)]";
 
   return (
     <li className="flex gap-3 border-b border-border py-[11px] last:border-b-0">
       <span className="flex w-4 shrink-0 justify-center pt-[3px]">
         <span
           aria-hidden="true"
-          className="size-[9px] rounded-full"
-          style={{ backgroundColor: dotColour }}
+          className={`size-[9px] rounded-full ${dotAccentClass}`}
+          style={{ backgroundColor: "var(--status-accent)" }}
         />
       </span>
       <span className="min-w-0 flex-1">

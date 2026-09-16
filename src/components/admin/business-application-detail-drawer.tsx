@@ -13,6 +13,10 @@ import type {
 } from "@/app/api/admin/business-applications/[id]/route";
 import type { AdminBusinessCompanyReviewResponse } from "@/app/api/admin/business-applications/[id]/company/route";
 import type { AdminBusinessVehicleReviewResponse } from "@/app/api/admin/business-applications/[id]/vehicles/[vehicleId]/route";
+import {
+  APPLICATION_APPROVED_BORDER_COLOR,
+  APPLICATION_APPROVED_TEXT_CLASSES,
+} from "@/components/admin/application-status-colors";
 import { Button } from "@/components/ui/button";
 import { GEORGIAN_CITY_OPTIONS } from "@/lib/georgian-cities";
 
@@ -59,14 +63,6 @@ const CHASSIS_LABELS: Record<string, string> = {
   REFRIGERATED: "Refrigerated",
   OPEN_CHASSIS: "Open Chassis",
 };
-
-/**
- * The design's "approved" green. Inline rather than a token in `globals.css`
- * for the same reason the driver drawer keeps its own copy: it is used on this
- * one surface, so a token would be a palette of one. Flagged reuses the shadcn
- * `--destructive` token, which already covers the design's red.
- */
-const STATUS_GREEN = "oklch(0.5 0.13 145)";
 
 /**
  * The reading the header, the fleet heading and the footer fall back to for the
@@ -779,13 +775,28 @@ export function BusinessApplicationDetailDrawer({
   return (
     <>
       {/* Dismissal is also on Escape and the close button, so this backdrop is
-          a redundant affordance rather than the only way out. */}
+          a redundant affordance rather than the only way out.
+
+          The treatment is `dialog.tsx`/`sheet.tsx`'s scrim, not a bespoke one:
+          a black wash plus a `backdrop-blur` guarded on `supports-backdrop-filter`.
+          The blur is what actually carries the "there is a layer over this
+          page" reading — the tint only deepens it — which matters because a
+          20%-black wash over a dark `--background` is very nearly invisible, and
+          a drawer whose scrim cannot be seen stops reading as modal.
+
+          Hence the dark override on top of it: the alpha has to grow with the
+          page it dims, because a scrim's job is a *contrast* difference and a
+          fixed alpha only delivers one against a light ground. Plain
+          `black/…` in both themes rather than a token — this is a wash over the
+          page, not a surface, and no token in the set means "darker than
+          whatever is underneath". Kept identical to the driver drawer's, which
+          is the same hand-rolled pattern for the same reason. */}
       <div
         onClick={() => {
           if (!isBusy) onClose();
         }}
         aria-hidden="true"
-        className="fixed inset-0 z-40 bg-black/20"
+        className="fixed inset-0 z-40 bg-black/20 supports-backdrop-filter:backdrop-blur-xs dark:bg-black/60"
       />
       <div
         role="dialog"
@@ -1129,11 +1140,9 @@ function CompanyBlock({
           isCompanyFlagged
             ? "text-destructive"
             : isCompanyVerified
-              ? ""
+              ? APPLICATION_APPROVED_TEXT_CLASSES
               : "text-muted-foreground"
         }`}
-        // The design's approved green has no token — see `STATUS_GREEN`.
-        style={isCompanyVerified ? { color: STATUS_GREEN } : undefined}
       >
         {stateLine}
       </p>
@@ -1252,11 +1261,13 @@ function VehicleCard({
           ? "border-destructive bg-destructive/5"
           : "border-border bg-card"
       }`}
-      // The approved border is the design's green at low opacity, which has no
-      // token; the flagged and default cases use the classes above.
+      // The approved border is the design's green mixed into the card it is
+      // drawn on, which no single utility expresses; the flagged and default
+      // cases use the classes above. See `APPLICATION_APPROVED_BORDER_COLOR`
+      // for why the mix is against `var(--card)` rather than literal white.
       style={
         isApproved
-          ? { borderColor: `color-mix(in oklch, ${STATUS_GREEN} 45%, white)` }
+          ? { borderColor: APPLICATION_APPROVED_BORDER_COLOR }
           : undefined
       }
     >
@@ -1295,10 +1306,9 @@ function VehicleCard({
               isFlagged
                 ? "text-destructive"
                 : isApproved
-                  ? ""
+                  ? APPLICATION_APPROVED_TEXT_CLASSES
                   : "text-muted-foreground"
             }`}
-            style={isApproved ? { color: STATUS_GREEN } : undefined}
           >
             {stateLine}
           </p>

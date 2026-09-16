@@ -405,7 +405,17 @@ export function LoadsDrawer() {
               // The design's destructive hover, expressed through the existing
               // `--destructive` token rather than as three raw oklch literals:
               // the tone is the same and the colour stays in one place.
-              className="h-10 text-sm font-medium hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive"
+              //
+              // The hover is restated under `dark:` because `outline` carries
+              // its own `dark:hover:bg-input/50` (`buttonVariants` in
+              // `src/components/ui/button.tsx`), which was inert before the app
+              // had a `.dark` class. tailwind-merge only collapses classes in
+              // the same variant scope, so an unprefixed `hover:bg-` and the
+              // variant's `dark:hover:bg-` both survive `cn()` and the `dark:`
+              // one wins after dark — which would turn the reject hover from a
+              // red warning into the same neutral wash every other outline
+              // button uses, on the one control here that discards a load.
+              className="h-10 text-sm font-medium hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive dark:hover:border-destructive/40 dark:hover:bg-destructive/10"
             >
               {isPending ? "Rejecting…" : "Reject this load"}
             </Button>

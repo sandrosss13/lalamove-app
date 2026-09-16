@@ -51,13 +51,29 @@ import {
 } from "@/lib/fleet-onboarding/fleet-vehicles";
 
 /**
- * The design's "ready" green. Written as arbitrary `oklch` values rather than
- * tokens because `globals.css` defines no green for this wizard and one step is
- * the wrong place to introduce one — the same call the step rail and the driver
- * wizard's step 1 make for their single-use ink.
+ * The design's "ready" green, now the `--status-success` token from
+ * `globals.css` rather than the arbitrary `oklch` values this used to spell out.
+ *
+ * One ink, one tint, and they take different halves of the token on purpose.
+ *
+ * The ink is `status-success`, which lifts to `oklch(0.72)` on the dark card —
+ * the light green is close enough in lightness to `oklch(0.205)` to be
+ * unreadable on it. No `dark:` variant: the token does that itself.
+ *
+ * The tint is a `color-mix` against `--card`, already a themed token, so the
+ * single 12% wash resolves to a pale green on the light card and a deep one on
+ * the dark card. It mixes `status-success-SOLID` — the half that stays at the
+ * design's `oklch(0.5 0.13 145)` in both themes — because the wash is meant to
+ * sit a hair off the card rather than glow off it; the lifted green would take
+ * the dark pill from `#1b211b` to `#202820`.
+ *
+ * Both names are shared with step 4's "assigned" pill, the fleet status screen,
+ * the fleet step rail, the driver wizard and the admin review chips. They agree
+ * now because they are one definition in `globals.css`, not because five files
+ * were copied carefully.
  */
 const READY_PILL_CLASS =
-  "border-transparent bg-[color-mix(in_oklch,oklch(0.5_0.13_145)_12%,var(--card))] text-[oklch(0.5_0.13_145)]";
+  "border-transparent bg-[color-mix(in_oklch,var(--color-status-success-solid)_12%,var(--card))] text-status-success";
 
 /** Shared pill geometry: the design's 20px radius, 11px mono uppercase. */
 const PILL_CLASS =
@@ -310,6 +326,9 @@ export function Step3VehicleSpecifications() {
       </div>
 
       <div className="mt-2 flex items-center gap-3.5 border-t border-border pt-5">
+        {/* `text-white` on `bg-onboarding-accent` is right in both themes and
+            must not grow a `dark:` variant: the brand orange is
+            theme-independent by design, so its label is too. */}
         <button
           type="button"
           onClick={handleContinue}

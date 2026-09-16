@@ -1,4 +1,5 @@
 import { AdminChangePasswordForm } from "@/components/admin/admin-change-password-form";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { requireSystemUser } from "@/lib/admin/auth";
 
 // Session + Prisma access can't be statically rendered.
@@ -37,5 +38,30 @@ export const dynamic = "force-dynamic";
 export default async function AdminChangePasswordPage() {
   await requireSystemUser();
 
-  return <AdminChangePasswordForm />;
+  /*
+    The wrapper exists only to anchor the theme toggle. `AdminChangePasswordForm`
+    carries `data-admin-surface`, which hides the global site header and the
+    app's only other `ThemeToggle` with it — so like `../sign-in/page.tsx` this
+    screen has to mount its own or it cannot switch themes at all.
+
+    It goes here rather than in the form because that component lives under
+    `src/components/admin` and is shared styling with the rest of the back
+    office; the toggle is a property of these two standalone, header-less pages,
+    not of the form. The form's own root is `min-h-screen`, so a `relative`
+    wrapper takes exactly that height and `absolute` positions against the full
+    page — same corner, same mechanics and same tab position (last, after the
+    password fields) as the staff sign-in page, which is the screen staff
+    arrive here from.
+
+    No `className` on the toggle: both pages are drawn from shadcn tokens, which
+    is what the shared defaults already use.
+  */
+  return (
+    <div className="relative">
+      <AdminChangePasswordForm />
+      <div className="absolute top-5 right-5">
+        <ThemeToggle />
+      </div>
+    </div>
+  );
 }

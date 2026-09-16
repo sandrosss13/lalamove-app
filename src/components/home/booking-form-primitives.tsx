@@ -26,9 +26,11 @@ import { cn } from "@/lib/utils";
  *
  * Colour rule throughout: only the landing token utilities (`bg-ink`,
  * `bg-surface`, `text-paper`, `text-muted`, `border-line`, the accent) — never a
- * hex literal, and never a `dark:` variant, which cannot match here because the
- * booking page carries no `data-landing-page` (see `globals.css`'s
- * `@custom-variant dark`).
+ * hex literal, and never a `dark:` variant. `dark:` *does* match here now (the
+ * variant in `globals.css` is app-wide, and the `--landing-*` tokens flip under
+ * `html.dark`); it stays unwanted because each of those utilities already
+ * resolves to both themes on its own, so writing a `dark:` override beside one
+ * would split this surface's dark treatment across two places.
  */
 
 /* -------------------------------------------------------------------------- */

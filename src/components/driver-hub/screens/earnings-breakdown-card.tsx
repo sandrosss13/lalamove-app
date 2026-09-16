@@ -30,14 +30,33 @@ import { cn } from "@/lib/utils";
  * will eventually be read.
  */
 
-/** The design's green for the incentives figure. */
-const POSITIVE_VALUE_CLASSES = "text-[oklch(44.8%_0.119_151.328)]";
+/**
+ * The design's green for the incentives figure, plus the dark counterpart the
+ * artboard never had to draw.
+ *
+ * There is no shadcn token for "money that went up", so unlike the hub's error
+ * lines this cannot be migrated — the literal stays and gains a `dark:` pair:
+ * same hue, lightness inverted from 44.8% to 84%, because a figure this dark on
+ * a near-black card would read as the muted grey on the Adjustments row below
+ * rather than as a positive number. Both halves are copied verbatim from the
+ * hub's success status-pill foreground (`hub-status.ts`) and the `good` delta
+ * tone in `hub-primitives.tsx`, so the one green figure in this card is the
+ * same green as every other positive figure on the screen in either theme.
+ */
+const POSITIVE_VALUE_CLASSES =
+  "text-[oklch(44.8%_0.119_151.328)] dark:text-[oklch(84%_0.13_156.743)]";
 
 /**
  * The accent orange, spelled out rather than imported: `hub-primitives.tsx`
  * keeps its own copy private, and Tailwind scans source text, so a class built
  * from a shared variable would never be generated. Same idiom as
  * `vehicles-screen.tsx`.
+ *
+ * No `dark:` pair, unlike the green above, and that is not an oversight: at
+ * L=64% this orange carries against both the white artboard and the near-black
+ * dark card, so inverting it would make the marker louder in dark mode than in
+ * light and break it away from the ten other hub files that spell the same
+ * literal.
  */
 const ACCENT_DOT_CLASSES =
   "size-1.5 shrink-0 rounded-full bg-[oklch(64%_0.19_48)]";

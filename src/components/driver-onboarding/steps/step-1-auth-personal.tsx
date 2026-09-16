@@ -51,14 +51,35 @@ const MAX_DRIVER_AGE = 75;
 const CITY_LIST_MAX_HEIGHT_CLASS = "max-h-[236px]";
 
 /**
- * The design's "approved" green, used here for the filled photo slot. Written
- * as an arbitrary value rather than a token because `globals.css` defines no
- * green for this wizard and one step is the wrong place to introduce one — the
- * same call the toast makes for its single-use ink.
+ * The design's "approved" green, used here for the filled photo slot — border,
+ * tint and ink.
+ *
+ * The duplication this comment used to flag upward has been resolved: the pair
+ * that was hand-written here, in step 2's upload tiles, in the application
+ * status screen and across the fleet wizard is now `--status-success` in
+ * `globals.css`, and all of those sites read it by name. The values are
+ * unchanged; only the spelling is.
+ *
+ * Two of the three lost their `dark:` half entirely, because the token carries
+ * that decision now:
+ *
+ * - The border: the light green against the dark card (`oklch(0.205 0 0)`) is a
+ *   dark line on a dark surface, which reads as no border at all. The token's
+ *   dark half sits clearly above the card the way its light half sits clearly
+ *   below white.
+ * - The text and the tick: the reason the token has a dark half at all. The
+ *   light green on `oklch(0.205)` is roughly 1.9:1 and unreadable; the dark half
+ *   reads 7.7:1 against the same card.
+ *
+ * The tint keeps an explicit `dark:` because what changes there is *strength*,
+ * not colour, and no colour token can express that: 5% of any light colour over
+ * an already-dark card moves it by about a hundredth of a lightness step —
+ * technically a tint, visually nothing — so dark doubles it to 10%. Light stays
+ * at the 5% the design specifies.
  */
-const UPLOADED_BORDER_CLASS = "border-[oklch(0.5_0.13_145)]";
-const UPLOADED_TINT_CLASS = "bg-[oklch(0.5_0.13_145)]/5";
-const UPLOADED_TEXT_CLASS = "text-[oklch(0.5_0.13_145)]";
+const UPLOADED_BORDER_CLASS = "border-status-success";
+const UPLOADED_TINT_CLASS = "bg-status-success/5 dark:bg-status-success/10";
+const UPLOADED_TEXT_CLASS = "text-status-success";
 
 const VALIDATION_TOAST = "Fix the highlighted fields to continue.";
 
@@ -499,8 +520,20 @@ export function Step1AuthPersonal() {
                         selectCity(option);
                       }}
                       onMouseEnter={() => setCityActiveIndex(index)}
+                      // `bg-secondary` rather than `bg-muted` for the highlight:
+                      // identical values in both themes (`oklch(0.97 0 0)` /
+                      // `oklch(0.269 0 0)`), so the row looks the same, but
+                      // `--color-muted` is the var-chain
+                      // `var(--admin-muted, var(--landing-muted))` and this list
+                      // is portalled to `document.body` by Radix, outside the
+                      // wizard's own subtree. `globals.css` does cover portalled
+                      // content by pinning `--admin-muted` on
+                      // `body:has([data-onboarding-surface])`, but that is one
+                      // `:has()` away from the landing palette's brown-grey;
+                      // `--color-secondary` reads `--secondary` directly and has
+                      // no fallback arm to fall through to.
                       className={`flex w-full items-baseline justify-between gap-2.5 border-b border-border px-[13px] py-2.5 text-left last:border-b-0 ${
-                        active ? "bg-muted" : "bg-transparent"
+                        active ? "bg-secondary" : "bg-transparent"
                       }`}
                     >
                       <span className="text-sm font-medium">
@@ -544,7 +577,10 @@ export function Step1AuthPersonal() {
                 : "border-border bg-card hover:border-onboarding-accent"
           }`}
         >
-          <span className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted text-muted-foreground">
+          {/* `bg-secondary`, not `bg-muted`: same value in both themes, but it
+              resolves without going through the `--admin-muted` var-chain (see
+              the city list above). */}
+          <span className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-secondary text-muted-foreground">
             {profilePhoto?.signedUrl ? (
               // Plain <img> rather than next/image: these are short-lived
               // signed Supabase URLs on a host this project has deliberately
@@ -600,6 +636,10 @@ export function Step1AuthPersonal() {
         <button
           type="button"
           onClick={handleContinue}
+          // `text-white` on `bg-onboarding-accent` is right in both themes and
+          // must stay literal: the brand orange is theme-independent by design,
+          // so its label has to be too. `text-primary-foreground` would invert
+          // to near-black on orange the moment `.dark` is on.
           className="h-12 cursor-pointer rounded-[11px] bg-onboarding-accent px-[30px] text-[15px] font-semibold tracking-[-0.01em] text-white transition-colors hover:bg-onboarding-accent-hover focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
         >
           Continue
@@ -624,6 +664,15 @@ export function Step1AuthPersonal() {
  * orange focus ring. The focus colours are dropped while the field is invalid so
  * they cannot compete with the primitive's own `aria-invalid` red border, which
  * carries the same specificity.
+ *
+ * `bg-card` is a light-mode-only instruction in practice, and deliberately left
+ * that way. `Input` itself carries `dark:bg-input/30`, whose `:is(.dark, .dark *)`
+ * makes it a (0,2,0) selector against this plain utility's (0,1,0) — so in dark
+ * the primitive wins and the field fills with white at ~4.5%, which is exactly
+ * the shadcn dark field and reads as a raised well against `--card`. Forcing
+ * `dark:bg-card` back over it would flatten every input into the panel it sits
+ * on. The design's "card background" instruction was written against a light
+ * artboard and is honoured where it was meant to apply.
  */
 function fieldClassName(invalid: boolean): string {
   return `h-[46px] rounded-[10px] bg-card px-[13px] text-[15px] md:text-[15px] ${

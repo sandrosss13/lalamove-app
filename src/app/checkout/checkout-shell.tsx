@@ -18,8 +18,12 @@ import Link from "next/link";
  *
  * Colour rule: landing token utilities only (`bg-ink`, `bg-surface`,
  * `text-paper`, `text-muted`, `border-line`, the accent) — never a hex literal
- * and never a `dark:` variant, which cannot match here because these pages carry
- * no `data-landing-page` (see `globals.css`'s `@custom-variant dark`).
+ * and never a `dark:` variant. `dark:` *does* match here now (the variant in
+ * `globals.css` is app-wide, and the `--landing-*` tokens flip under
+ * `html.dark`), which is exactly why it is still unwanted: each of those
+ * utilities already resolves to both themes on its own, so a `dark:` override
+ * beside one can only put this page's dark treatment somewhere other than the
+ * one place `globals.css` keeps it.
  */
 
 /**
@@ -27,8 +31,8 @@ import Link from "next/link";
  * to check out.
  *
  * The background is painted on `main` rather than on the column so it covers the
- * viewport: `body` still resolves `--background`, which is near-black under a
- * dark system preference, and a column-width background would leave that showing
+ * viewport: `body` still resolves `--background`, which is near-black in dark
+ * mode, and a column-width background would leave that showing
  * down both gutters. Same shell as the signed-in pages beside it, so both states
  * read as one page rather than two.
  */

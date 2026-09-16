@@ -445,6 +445,12 @@ export function Step5ReviewSubmit() {
           </p>
         ) : null}
 
+        {/* `text-white` on `bg-onboarding-accent` is right in both themes and
+            must not grow a `dark:` variant: the brand orange is
+            theme-independent by design, so its label is too. Everything else on
+            this step is already a semantic token (`bg-card`, `bg-muted/40`,
+            `border-border`, `text-muted-foreground`, `text-destructive`), which
+            is why no other colour here needed touching for dark. */}
         <button
           type="button"
           onClick={() => void handleSubmit()}

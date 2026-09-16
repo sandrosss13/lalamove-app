@@ -61,6 +61,34 @@ export function OnboardingStepRail({
             aria-current={active ? "step" : undefined}
             className="flex cursor-pointer items-start gap-3 rounded-lg text-left focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
           >
+            {/* The three disc states, and why each one is written the way it
+                is now that the rail themes:
+
+                `active` stays brand orange with literal white text in both
+                themes on purpose. `--onboarding-accent` is a fixed brand value
+                that does not flip, and white is the ink the brand specifies on
+                top of it; swapping in `text-primary-foreground` or any other
+                token here would put near-black text on orange the moment the
+                page went dark. Leave it alone.
+
+                `done` needs no variant: `bg-primary`/`text-primary-foreground`
+                are a matched pair, so the disc flips from a near-black one with
+                white numerals to a near-white one with dark numerals on its
+                own, and stays the loudest of the three in both themes.
+
+                `pending` is the one that needed help. `bg-border` alone is
+                `oklch(1 0 0 / 10%)` in dark — 10% white over this rail's
+                `bg-card`, which composites to rgb(46,46,46) against a card of
+                rgb(23,23,23). That is not invisible (1.32:1, in fact slightly
+                more separation than light mode's 1.26:1) but it is thinner than
+                a step indicator wants to be, so the dark half is lifted to 15%
+                of the surface's own foreground: rgb(57,57,57), 1.55:1 against
+                the card, while the `text-muted-foreground` numeral on top still
+                clears 4.4:1 — comfortably above the 3.8:1 the same numeral gets
+                in light. `dark:bg-secondary` was the obvious-looking fix and is
+                rejected deliberately: at an opaque `oklch(0.269)` it lands on
+                rgb(38,38,38), *less* separation from the card than the
+                translucent border it would replace. */}
             <span
               aria-hidden="true"
               className={`mt-px flex size-[22px] shrink-0 items-center justify-center rounded-full font-price text-[11px] font-bold ${
@@ -68,7 +96,7 @@ export function OnboardingStepRail({
                   ? "bg-onboarding-accent text-white"
                   : done
                     ? "bg-primary text-primary-foreground"
-                    : "bg-border text-muted-foreground"
+                    : "bg-border text-muted-foreground dark:bg-foreground/15"
               }`}
             >
               {entry.step}

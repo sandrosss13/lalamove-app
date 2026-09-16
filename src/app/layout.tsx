@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
 import "./globals.css";
 import { AuthStatus, HeaderBrandLink } from "@/components/auth-status";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 // Exposed as CSS variables only (never applied to `body`), so these are opt-in
 // per route via the `font-display` / `font-body` / `font-price` utilities. Both
@@ -40,21 +41,30 @@ const ibmPlexMono = IBM_Plex_Mono({
 });
 
 /**
- * Applied before first paint so the landing page never flashes the wrong theme.
- * This has to be an inline, synchronous `<script>` in `<head>`: a `useEffect`
- * (or `next/script` at any strategy other than `beforeInteractive`) runs after
- * the first paint, which is exactly the flash we are avoiding.
+ * Applied before first paint so no page ever flashes the wrong theme. This has
+ * to be an inline, synchronous `<script>` in `<head>`: a `useEffect` (or
+ * `next/script` at any strategy other than `beforeInteractive`) runs after the
+ * first paint, which is exactly the flash we are avoiding.
  *
  * Only the class is set here; every token the class selects lives in
- * `globals.css`, scoped to `body:has([data-landing-page])` so the class is inert
- * on the admin back office, the driver hub and the onboarding wizards.
+ * `globals.css`, under `html.dark`. That used to be scoped to
+ * `body:has([data-landing-page])`, which made the class inert on the admin back
+ * office, the driver hub and the onboarding wizards — it is not any more. The
+ * class now themes the whole app, so this script's correctness matters on every
+ * route rather than just on `/`.
+ *
+ * This is also why `globals.css` no longer carries a
+ * `@media (prefers-color-scheme: dark)` fallback: the script resolves the system
+ * preference into the class itself, so the class is the single source of truth
+ * and a media query alongside it would override an explicit "light" choice made
+ * on a system-dark machine.
  *
  * `localStorage` throws — not returns null — in a browser with site data blocked
  * and in some private-browsing modes, and an exception here would abort the
  * whole script and leave the page unthemed, so both reads are guarded. The
- * `"theme"` key is restated in `src/components/landing/landing-theme-toggle.tsx`,
- * which writes it; there is no shared constant because this string has to be
- * embedded in a script literal that runs before any module does.
+ * `"theme"` key is restated in `src/components/theme-toggle.tsx`, which writes
+ * it; there is no shared constant because this string has to be embedded in a
+ * script literal that runs before any module does.
  *
  * Kept minified on one line: a readable multi-line literal would add bytes to
  * every HTML response for no benefit.
@@ -96,7 +106,28 @@ export default function RootLayout({
       <body>
         <header className="flex items-center justify-between border-b px-6 py-3">
           <HeaderBrandLink />
-          <AuthStatus />
+          {/*
+            `AuthStatus` renders its own flex row, so the toggle gets a wrapper
+            rather than being dropped in beside it — otherwise it would be a
+            sibling of that row and the two would sit against each other with no
+            gap. `gap-3` matches the spacing `AuthStatus` uses internally, so the
+            toggle reads as one more item in the same run of controls.
+
+            The toggle is deliberately last: it is the least-used control here,
+            and putting it after the sign-out/dashboard links keeps those two in
+            the position returning visitors already reach for.
+
+            This header is hidden on the surfaces that ship their own — the
+            landing page (`[data-hide-site-header]`) and the admin back office
+            (`[data-admin-surface]`), both handled by rules in `globals.css`. So
+            this instance covers /home, the account pages, orders, wallet and
+            checkout; every other surface mounts its own `ThemeToggle` in its own
+            header.
+          */}
+          <div className="flex items-center gap-3">
+            <AuthStatus />
+            <ThemeToggle />
+          </div>
         </header>
         {children}
       </body>

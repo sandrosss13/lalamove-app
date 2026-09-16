@@ -14,8 +14,36 @@
  * tailwind-merge, so spreading one of these strings overrides the variant's own
  * background and text colour without needing a variant of its own.
  *
- * Values transcribed verbatim from the handoff README's "Status pill (Badge)"
- * table (`UI:UX/Registered Driver Account/design_handoff_driver_dashboard/README.md`).
+ * Light values transcribed verbatim from the handoff README's "Status pill
+ * (Badge)" table
+ * (`UI:UX/Registered Driver Account/design_handoff_driver_dashboard/README.md`).
+ *
+ * ## Why each pair has a hand-written `dark:` half
+ *
+ * Every light value above is a *pale tint carrying dark text* — the one shape
+ * that cannot survive a theme flip untouched. A `bg-[oklch(96.2%…)]` pill keeps
+ * its near-white fill on a near-black page, so in dark mode the six pills would
+ * read as six bright labels stamped across the screens, each one louder than
+ * the content it annotates; and once the fill is darkened, the 44%-lightness
+ * foreground the design pairs with it is near-invisible on top of it.
+ *
+ * The handoff has no dark artboard to transcribe, so the dark half is derived
+ * rather than quoted, by one rule applied six times: **keep the hue and the
+ * chroma family, swap which end of the lightness scale each half sits at.** The
+ * fill lands at 27–29% lightness — one step up from `--card`'s `oklch(0.205 0
+ * 0)`, so a pill still separates from the card it sits on — and the text at
+ * 83–88%, which clears WCAG AA against that fill. Keeping the hue is what
+ * preserves the only property that actually matters here: the six tones stay
+ * distinguishable **from each other** in both themes, which is the whole reason
+ * this map exists rather than six ad-hoc pills.
+ *
+ * These are still Tailwind arbitrary values rather than `--color-*` tokens, for
+ * the reason above — pill-only colours with no other use — but the two
+ * foregrounds shared with the hub's delta text (`success`'s green and
+ * `warning`'s amber, spelled out in `hub-primitives.tsx`,
+ * `performance-screen.tsx` and the two account cards) are quoted verbatim from
+ * here in both halves, so a tone correction stays a one-line change in one
+ * file rather than a hunt across the surface.
  */
 
 /** The six colour pairs the design defines — no screen may add a seventh. */
@@ -25,17 +53,31 @@ export type HubStatusTone =
 /** Background + text class pair for each tone, to spread onto a `Badge`. */
 export const HUB_STATUS_TONE_CLASSES: Record<HubStatusTone, string> = {
   // Completed / Verified / Paid / Valid / Active / Online
-  success: "bg-[oklch(96.2%_0.044_156.743)] text-[oklch(44.8%_0.119_151.328)]",
+  success:
+    "bg-[oklch(96.2%_0.044_156.743)] text-[oklch(44.8%_0.119_151.328)] " +
+    "dark:bg-[oklch(27%_0.05_156.743)] dark:text-[oklch(84%_0.13_156.743)]",
   // In transit / In review / Processing
-  info: "bg-[oklch(93.2%_0.032_255.585)] text-[oklch(42.4%_0.199_265.638)]",
+  info:
+    "bg-[oklch(93.2%_0.032_255.585)] text-[oklch(42.4%_0.199_265.638)] " +
+    "dark:bg-[oklch(28%_0.06_255.585)] dark:text-[oklch(83%_0.11_255.585)]",
   // Cancelled / Expired / Suspended
-  danger: "bg-[oklch(93.6%_0.032_17.717)] text-[oklch(44.4%_0.177_26.899)]",
+  danger:
+    "bg-[oklch(93.6%_0.032_17.717)] text-[oklch(44.4%_0.177_26.899)] " +
+    "dark:bg-[oklch(28%_0.06_17.717)] dark:text-[oklch(84%_0.11_17.717)]",
   // Expiring soon / Due soon / Pending / Invited
-  warning: "bg-[oklch(97.3%_0.071_103.193)] text-[oklch(47.6%_0.114_61.907)]",
+  warning:
+    "bg-[oklch(97.3%_0.071_103.193)] text-[oklch(47.6%_0.114_61.907)] " +
+    "dark:bg-[oklch(29%_0.05_85)] dark:text-[oklch(88%_0.12_85)]",
   // Scheduled / Offline / Idle / Defleeted / Offboarded
-  neutral: "bg-[oklch(96.7%_0.003_264.542)] text-[oklch(44.6%_0.03_256.802)]",
+  neutral:
+    "bg-[oklch(96.7%_0.003_264.542)] text-[oklch(44.6%_0.03_256.802)] " +
+    "dark:bg-[oklch(27.5%_0.005_264.542)] dark:text-[oklch(80%_0.015_264.542)]",
   // The Today screen's "High" zone-demand pill — the only warm tone in the set.
-  demand: "bg-[oklch(96%_0.04_60)] text-[oklch(48%_0.15_48)]",
+  // Its dark half has to stay clear of `danger`'s, which is only 35° away on a
+  // pill the eye never sees beside it; the extra chroma is what separates them.
+  demand:
+    "bg-[oklch(96%_0.04_60)] text-[oklch(48%_0.15_48)] " +
+    "dark:bg-[oklch(29%_0.06_55)] dark:text-[oklch(85%_0.13_58)]",
 };
 
 /**

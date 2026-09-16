@@ -99,11 +99,22 @@ export const CARD_BRAND_CHIP_BASE_CLASSES =
  * utilities rather than landing tokens, as the codebase already does for status
  * pills and the "Best" badge: the landing token set has no semantic colour at
  * all, and adding brand tokens to it for three chips would be the wrong trade.
+ *
+ * Each tone is a pair, because a palette utility is a fixed hex and does not
+ * follow the theme the way a token does. The dark halves are not the light ones
+ * darkened — that would sink the chip into the page. They invert the
+ * relationship instead: a translucent wash of the *bright* end of each hue for
+ * the plate (`-400/15`, so the card surface beneath still shows through and the
+ * chip reads as tinted glass rather than a sticker), and the light end of the
+ * ramp for the text (`-300`), which clears 4.5:1 against that plate over
+ * `--card`. `Card` is the untinted fallback and needs no pair: it is already
+ * written in `--landing-*` tokens, which theme themselves.
  */
 export const CARD_BRAND_CHIP_TONE_CLASSES: Record<CardBrand, string> = {
-  Visa: "bg-blue-100 text-blue-700",
-  Mastercard: "bg-amber-100 text-amber-800",
-  Amex: "bg-emerald-100 text-emerald-700",
+  Visa: "bg-blue-100 text-blue-700 dark:bg-blue-400/15 dark:text-blue-300",
+  Mastercard:
+    "bg-amber-100 text-amber-800 dark:bg-amber-400/15 dark:text-amber-300",
+  Amex: "bg-emerald-100 text-emerald-700 dark:bg-emerald-400/15 dark:text-emerald-300",
   Card: "bg-surface text-muted",
 };
 
