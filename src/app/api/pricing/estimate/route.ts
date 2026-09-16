@@ -9,12 +9,17 @@ import {
 import { checkRateLimit } from "@/lib/rate-limit";
 
 /**
- * Per-IP budget for the endpoint. A visitor pricing a few routes stays well
- * under it, while a script cannot burn through the LocationIQ key — each
- * allowed call costs three LocationIQ requests: two geocode lookups plus the
- * directions call that routes between them.
+ * Per-IP budget for the endpoint. Pitched at how one visitor actually prices a
+ * job rather than at the single quote it looks like from here: a client quotes
+ * a route, then swaps the vehicle type, adds a helper or corrects an address
+ * and quotes again, so one booking is a run of recalculations, not one call.
+ *
+ * A script still cannot burn through the LocationIQ key, because each allowed
+ * call costs three LocationIQ requests — two geocode lookups plus the
+ * directions call that routes between them — which caps one caller at 60
+ * LocationIQ requests a minute.
  */
-const RATE_LIMIT = { limit: 6, windowMs: 60_000 };
+const RATE_LIMIT = { limit: 20, windowMs: 60_000 };
 
 /** Bucket used when no proxy header identifies the caller (e.g. local dev). */
 const UNKNOWN_CALLER_KEY = "unknown-caller";
@@ -60,7 +65,12 @@ export async function POST(request: Request): Promise<NextResponse> {
   if (!checkRateLimit(getCallerKey(request), RATE_LIMIT)) {
     return NextResponse.json(
       { error: "Too many requests. Please wait a moment and try again." },
-      { status: 429 },
+      {
+        status: 429,
+        // Derived from the window rather than written out, so what a rejected
+        // caller is told to wait cannot drift away from the budget above.
+        headers: { "Retry-After": String(RATE_LIMIT.windowMs / 1000) },
+      },
     );
   }
 

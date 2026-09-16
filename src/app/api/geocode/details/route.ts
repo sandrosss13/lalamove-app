@@ -47,7 +47,12 @@ export async function GET(request: Request): Promise<NextResponse> {
   if (!checkRateLimit(getCallerKey(request), RATE_LIMIT)) {
     return NextResponse.json(
       { error: "Too many requests. Please wait a moment and try again." },
-      { status: 429 },
+      {
+        status: 429,
+        // Derived from the window rather than written out, so what a rejected
+        // caller is told to wait cannot drift away from the budget above.
+        headers: { "Retry-After": String(RATE_LIMIT.windowMs / 1000) },
+      },
     );
   }
 

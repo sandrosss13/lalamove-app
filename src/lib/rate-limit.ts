@@ -51,6 +51,18 @@ export function checkRateLimit(
   key: string,
   { limit, windowMs }: RateLimitOptions,
 ): boolean {
+  // Production only. The limiter exists to stop abuse of the third-party API
+  // keys over the public internet, and it tells callers apart by the proxy
+  // headers only a real deployment puts in front of the app. Under `next dev`
+  // there is no `x-forwarded-for`, so every caller collapses into the single
+  // shared `"unknown-caller"` bucket: the whole machine spends one budget
+  // across every tab, and a few passes through the booking form lock the
+  // developer out of their own app. That protects nothing locally — the key is
+  // already in the developer's own `.env` — while making the app unusable.
+  if (process.env.NODE_ENV !== "production") {
+    return true;
+  }
+
   const now = Date.now();
   sweepExpired(now);
 
