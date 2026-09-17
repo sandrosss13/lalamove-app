@@ -125,10 +125,15 @@ const OFFBOARD_ARMED_CLASSES =
  * someone who was never on the roster. Offering a reversal would be a button
  * that cannot work, so the note says plainly what actually happens instead.
  *
- * The vehicle sentence is not a hedge either: that endpoint touches only
- * `companyId`, and an open `DriverVehicleAssignment` survives it — so the van
- * has to be released from the Vehicles screen or it stays out on loan to
- * somebody who no longer works here.
+ * The vehicle sentence used to warn the operator that the van stayed out on
+ * loan and had to be released by hand from the Vehicles screen. That endpoint
+ * now closes every live `DriverVehicleAssignment` to a vehicle the *company*
+ * owns in the same transaction as the removal, so the sentence says the
+ * opposite and there is no manual step left to warn about. It still draws the
+ * ownership line, because the endpoint deliberately does not touch a pairing to
+ * a vehicle the driver owns themselves — an ex-roster driver leaves with their
+ * own truck, and an operator reading "released back to your fleet" should not
+ * expect that one back.
  */
 const OFFBOARD_UNARMED_NOTE =
   "Takes them off your roster. Their account, completed jobs and payouts stay " +
@@ -136,9 +141,9 @@ const OFFBOARD_UNARMED_NOTE =
   "roster, so bringing them back means registering them again.";
 
 const OFFBOARD_ARMED_NOTE =
-  "Click again to take them off the roster for good. Any fleet vehicle they " +
-  "hold stays assigned to them — release it from Vehicles first if you need it " +
-  "back.";
+  "Click again to take them off the roster for good. Any of your fleet " +
+  "vehicles they hold is released back to Vehicles automatically. A vehicle " +
+  "they own themselves goes with them.";
 
 /** Why the rating, the acceptance rate and the document rows are invented. */
 const SAMPLE_NOTES = {

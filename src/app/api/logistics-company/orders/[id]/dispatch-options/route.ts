@@ -322,15 +322,27 @@ export async function GET(
       // it last month": closed assignments are kept rather than deleted.
       //
       // `driverProfile.companyId` is the half that mirrors `POST .../dispatch`,
-      // whose driver lookup is `{ userId: driverUserId, companyId: company.id }`
-      // — and it is load-bearing rather than belt-and-braces. Taking a driver
-      // off a roster is `DELETE /api/logistics-company/drivers/[userId]`, which
-      // does exactly one thing: `data: { companyId: null }`
-      // (`DriverProfile.companyId` is `onDelete: SetNull` so the account stays
-      // intact, just independent again). **Nothing closes their assignments** —
-      // no handler under `src/app/api/logistics-company/drivers/` writes
-      // `unassignedAt` at all — so a live pairing to an ex-roster driver is the
-      // ordinary outcome of a supported action, not corrupt data.
+      // whose driver lookup is `{ userId: driverUserId, companyId: company.id }`.
+      // Taking a driver off a roster is
+      // `DELETE /api/logistics-company/drivers/[userId]`, which used to do
+      // exactly one thing — `data: { companyId: null }` (`DriverProfile
+      // .companyId` is `onDelete: SetNull` so the account stays intact, just
+      // independent again) — and close nothing, so a live pairing to an
+      // ex-roster driver was the ordinary outcome of a supported action rather
+      // than corrupt data.
+      //
+      // **That is fixed at the source now.** That endpoint closes every live
+      // assignment to a vehicle the company owns in the same transaction as the
+      // roster removal, stamping `unassignedAt` rather than deleting the row.
+      // This scoping is kept regardless. Nothing backfilled the rows left open
+      // by every removal performed before that fix landed, so the stale pairing
+      // it was written for is still readable out of the database and the
+      // paragraph below still describes what the dispatcher would see without
+      // it. The carve-out at the source cannot produce a new one here either
+      // way — `fleet` above is already `{ companyId: company.id }`, so a
+      // driver's own vehicle, which that fix deliberately leaves paired, never
+      // reaches this select at all. Belt-and-braces now rather than
+      // load-bearing, but do not drop it on that account.
       //
       // Unscoped, that pairing would be returned, and since this dialog no
       // longer offers a roster override the dispatcher would have no way past
@@ -344,15 +356,14 @@ export async function GET(
       // visibly have a driver on the Drivers screen) and is still strictly
       // better than a vehicle that looks fine and cannot be dispatched at all.
       //
-      // **This is a symptom fix and is deliberately placed here anyway.** The
-      // real defect is that removing a driver from a roster leaves their
-      // assignments open, and it belongs to whatever performs that departure —
-      // the DELETE above should close them in the same transaction. Until it
-      // does, every reader of a pairing has to scope it, and a GET cannot repair
-      // rows on a caller's behalf. The property this restores in the meantime is
-      // the one `dispatchVerdictFor` already gives for fit: the endpoint that
-      // offers a choice and the endpoint that accepts it agree on who is
-      // eligible, rather than agreeing by coincidence.
+      // **This shipped as a symptom fix and is kept as one.** A GET cannot
+      // repair rows on a caller's behalf, so scoping was the only thing this
+      // endpoint could ever do about a pairing that already existed — which is
+      // still its job for the ones the fix at the source could not reach
+      // backwards to. The property it holds is the one `dispatchVerdictFor`
+      // already gives for fit: the endpoint that offers a choice and the
+      // endpoint that accepts it agree on who is eligible, rather than agreeing
+      // by coincidence.
       //
       // `take: 1` stays exact rather than defensive: the partial unique index
       // `driver_vehicle_assignment_live_vehicle_unique`
