@@ -6,6 +6,7 @@ import {
   formatDims,
   formatWeightKg,
 } from "@/components/driver-hub/screens/loads-format";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -14,13 +15,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 /**
@@ -68,29 +62,72 @@ import { cn } from "@/lib/utils";
  * the translation back happens exactly once, in `resolveCapability` below.
  * `formatDims` is the only thing in this codebase that renders an open bed
  * correctly, and it does it by testing `Number.isFinite` — hand it a `0` or an
- * em-dash instead and every flatbed on the roster prints a height of "0.0 m",
+ * em-dash instead and every flatbed in the fleet prints a height of "0.0 m",
  * which reads as a vehicle with no usable hold at all. Getting this backwards is
  * silent: the figure is plausible, just wrong, on exactly the class of vehicle a
  * fleet dispatches the awkward loads to.
  *
- * ## Vehicle first, driver second, and the driver is only pre-filled
+ * ## One choice is made here — the vehicle — and the driver comes with it
  *
- * Picking a vehicle fills in the driver it is paired with; the dispatcher can
- * still pick anyone on the roster instead. A vehicle with **no** paired driver
- * is still dispatchable — the field simply starts empty and a driver is chosen
- * by hand. `POST .../dispatch` requires `driverUserId` *and* `vehicleId` and
- * rejects either alone, so the submit button is dead until both are settled:
- * there is no half-dispatch to send.
+ * **There is no driver picker.** A company vehicle carries its own driver: the
+ * assignment made on the Vehicles screen (`POST
+ * /api/logistics-company/vehicles/[id]/assignment`) is what "who drives this
+ * truck" means everywhere else in the hub, and this dialog now simply obeys it.
+ * Picking a plate dispatches that plate's `pairedDriver`, and the submit sends
+ * that driver's id alongside the vehicle's.
  *
- * ## Every vehicle is listed, and the unfit ones say why
+ * This replaces an earlier arrangement where the vehicle only *pre-filled* a
+ * roster select the dispatcher could override, and it deletes the `roster` half
+ * of the options response with it. The override was answering a question the
+ * fleet had already answered: a dispatcher who wants a different driver in that
+ * truck today changes the assignment, and then every screen agrees about it —
+ * whereas an override here produced a job whose driver matched nothing the
+ * Vehicles screen would tell you. The cost of the change is real and is accepted
+ * deliberately: a one-off swap now takes a trip to the Vehicles screen.
+ *
+ * The consequence for this list is that **a vehicle with no assigned driver is
+ * not dispatchable.** It stays on the list, disabled, tagged "No driver
+ * assigned" — the same treatment as a vehicle that is too small, because from
+ * the dispatcher's seat it is the same kind of fact: this truck cannot take this
+ * job until something is fixed, and here is what. Hiding it would leave a plate
+ * missing from the fleet with nothing to explain the gap.
+ *
+ * ## Every vehicle is listed, and the ones that cannot go say why
  *
  * The endpoint returns a verdict per vehicle rather than a filtered list, and
- * this renders all of them — the unfit ones disabled, with the shortfall named.
- * A dispatcher shown a shorter list learns nothing about why their other six
- * trucks are not on it; a dispatcher shown "Not approved for dispatch" beside a
- * plate knows what to go and fix. `disabled` on the **real radio** is what makes
- * those rows unselectable to the keyboard and to assistive technology, not just
- * to the pointer.
+ * this renders all of them — the ones that cannot take the job disabled, with
+ * the obstacle named. A dispatcher shown a shorter list learns nothing about why
+ * their other six trucks are not on it; a dispatcher shown "Not approved for
+ * dispatch" beside a plate knows what to go and fix. `disabled` on the **real
+ * radio** is what makes those rows unselectable to the keyboard and to assistive
+ * technology, not just to the pointer.
+ *
+ * ## The platform recommends; the dispatcher decides
+ *
+ * Exactly one option may arrive with `recommended: true` — the smallest vehicle
+ * that fits, computed by the server, which is the choice that leaves the bigger
+ * trucks free for work that needs them. It is rendered as a **tag on the row and
+ * nothing more**: nothing is selected when the dialog opens, no effect selects
+ * anything later, and the submit button stays dead until the dispatcher presses
+ * a row themselves.
+ *
+ * Pre-selecting it was rejected outright. The dispatcher knows which truck is
+ * loaded, lent out or in the shop today and the platform does not, so a
+ * pre-selection would be the platform making a decision it lacks the facts for,
+ * on a screen where the fastest path is to press the primary button without
+ * reading — and the resulting dispatch would look, in every record afterwards,
+ * exactly like one somebody chose. See `RecommendedTag` for how the tag is kept
+ * visually distinct from the selected state, which is the other half of the same
+ * requirement.
+ *
+ * ## Order is the server's, and is not recomputed here
+ *
+ * `vehicles` arrives sorted — dispatchable first, smallest payload first, then
+ * the rest — and is rendered in the order given. Sorting it again here would put
+ * two implementations of one rule in two files, and the recommendation is
+ * *defined* as the first dispatchable entry: a client-side re-sort that drifted
+ * would move the tag off the row it belongs to and the dialog would quietly
+ * recommend the wrong truck.
  *
  * ## `data-admin-surface=""` on `DialogContent` — mandatory
  *
@@ -98,8 +135,8 @@ import { cn } from "@/lib/utils";
  * root that carries `data-admin-surface` and with it the scheme pin that makes
  * `bg-card` / `bg-muted` / `border-border` resolve to the hub palette rather
  * than the marketing one. There is no wrapper up the tree that can carry it on
- * this component's behalf. The same applies to the roster `SelectContent`, which
- * is portalled separately and needs its own. See the doc comment on
+ * this component's behalf. Every other element this dialog renders is a child of
+ * `DialogContent` and inherits the pin from it. See the doc comment on
  * `src/components/driver-hub/driver-hub-shell.tsx`.
  */
 
@@ -140,14 +177,60 @@ type DispatchVehicle = {
     /** **`null` is "open bed, no height limit"**, not "not recorded". */
     heightM: number | null;
   };
+  /**
+   * The driver this vehicle is assigned to, and **the only driver it can be
+   * dispatched with**. `null` is a vehicle nobody is assigned to, which is a
+   * routine state of a real fleet and not an error — it is simply not
+   * dispatchable until the Vehicles screen fixes it.
+   */
   pairedDriver: DispatchDriver | null;
   verdict: DispatchVerdict;
+  /**
+   * The server's suggestion: the smallest vehicle that fits, true on at most one
+   * option in the array and on none at all when nothing fits.
+   *
+   * A suggestion is all it is. Nothing in this file selects a row because of it.
+   */
+  recommended: boolean;
 };
 
+/**
+ * `roster` used to ride along here, for a driver select this dialog no longer
+ * has. It is gone from the response as well as from this type — see the module
+ * comment's "One choice is made here".
+ */
 type DispatchOptionsResponse = {
   vehicles: DispatchVehicle[];
-  roster: DispatchDriver[];
 };
+
+/**
+ * A vehicle the dispatcher is allowed to pick: it fits **and** somebody is
+ * assigned to drive it.
+ *
+ * The narrowing is the point. `pairedDriver` is non-null on this type, so the
+ * submit below can read `chosenVehicle.pairedDriver.userId` and type-check —
+ * where a plain `DispatchVehicle` would need a `!` at exactly the spot where
+ * being wrong means POSTing `undefined` as a driver id. The guarantee is carried
+ * by `isDispatchable`, which is the only way to obtain one of these.
+ */
+type DispatchableVehicle = DispatchVehicle & {
+  pairedDriver: DispatchDriver;
+  verdict: { kind: "FITS" };
+};
+
+/**
+ * The selectability rule, in one place, as a type predicate.
+ *
+ * Both halves are load-bearing and neither is redundant: `POST .../dispatch`
+ * requires `driverUserId` *and* `vehicleId` and re-checks the fit, so a row that
+ * fails either half can only ever produce a refusal *after* the dispatcher
+ * committed — which is the failure this whole verdict list exists to prevent.
+ */
+function isDispatchable(
+  vehicle: DispatchVehicle,
+): vehicle is DispatchableVehicle {
+  return vehicle.verdict.kind === "FITS" && vehicle.pairedDriver !== null;
+}
 
 /* -------------------------------------------------------------------------- */
 /* Copy                                                                       */
@@ -212,6 +295,17 @@ const AXIS_ORDER: DispatchAxis[] = ["weight", "length", "width", "height"];
  */
 const GENERIC_SHORTFALL = "Too small for this load";
 
+/**
+ * The one obstacle that is not a verdict: nobody drives this truck.
+ *
+ * Worded to match the Vehicles screen, which prints "Unassigned" against a
+ * vehicle in exactly this state — the dispatcher reading this tag is being sent
+ * to that screen, and the two surfaces should be recognisably describing one
+ * thing. It keeps the voice rule the shortfalls keep: it names something missing
+ * from the vehicle, and says nothing about the load.
+ */
+const NO_DRIVER_SHORTFALL = "No driver assigned";
+
 /* -------------------------------------------------------------------------- */
 /* Verdicts                                                                   */
 /* -------------------------------------------------------------------------- */
@@ -245,6 +339,35 @@ function dispatchShortfall(verdict: DispatchVerdict): string | null {
     case "OVER_CARGO":
       return overCargoShortfall(verdict.axes);
   }
+}
+
+/**
+ * Why this vehicle cannot take this delivery, or `null` when it can.
+ *
+ * Two obstacles feed one line, and **the fit problem outranks the missing
+ * driver**. A truck that is too small for the load stays too small whoever is
+ * assigned to it, so "No driver assigned" on such a row would send the
+ * dispatcher off to the Vehicles screen to fix something that changes nothing
+ * about this job. The precedence is not invented here either: it is the one the
+ * server already applies one level up, where `dispatchVerdictFor`
+ * (`src/lib/orders/dispatch-fit.ts`) returns `NOT_APPROVED` from its first
+ * branch and never reaches the fit checks — so an unapproved *and* oversized
+ * vehicle reports as unapproved, on the same reasoning: report the obstacle that
+ * has to be cleared first.
+ *
+ * This returns `null` on exactly the vehicles `isDispatchable` accepts — both
+ * are "the verdict is `FITS` and a driver is assigned", read from the two halves
+ * in the same order — which is what lets a row use one for its text and the
+ * other for its disabled state without the two disagreeing.
+ */
+function dispatchObstacle(vehicle: DispatchVehicle): string | null {
+  const shortfall = dispatchShortfall(vehicle.verdict);
+
+  if (shortfall !== null) {
+    return shortfall;
+  }
+
+  return vehicle.pairedDriver === null ? NO_DRIVER_SHORTFALL : null;
 }
 
 /** `["weight"]` → `"Too heavy for this load"`; `["length", "weight"]` → `"Too heavy and too long for this load"`. */
@@ -386,21 +509,14 @@ export function LoadsDispatchDialog({
    */
   const [isLoadingOptions, setIsLoadingOptions] = React.useState(true);
 
-  const [chosenVehicleId, setChosenVehicleId] = React.useState<string | null>(
-    null,
-  );
   /**
-   * A driver chosen **instead of** the vehicle's pairing, or `null` for "use
-   * whatever the vehicle came with".
+   * The dispatcher's pick, and **the only choice this dialog collects**.
    *
-   * The null is the default rather than a value waiting to be filled in, which
-   * is what keeps the pre-fill out of an effect: `driverUserId` below resolves
-   * it against the selected vehicle on every render, so there is no moment where
-   * a synced copy of the paired driver can be stale. It is also what makes the
-   * "paired with this vehicle" note truthful — the note is the state, not a
-   * guess about how the id in the field got there.
+   * It starts `null` and stays `null` until a row is pressed. There is
+   * deliberately no effect seeding it from the recommended option: see "The
+   * platform recommends; the dispatcher decides" in the module comment.
    */
-  const [chosenDriverId, setChosenDriverId] = React.useState<string | null>(
+  const [chosenVehicleId, setChosenVehicleId] = React.useState<string | null>(
     null,
   );
 
@@ -472,48 +588,55 @@ export function LoadsDispatchDialog({
     };
   }, [orderId]);
 
+  const vehicles = options?.vehicles ?? [];
+
   /**
-   * The vehicle the submit will actually name.
+   * The row the dispatcher pressed, whatever its state, resolved against the
+   * list on every render rather than trusted from state.
    *
-   * Resolved against the list on every render rather than trusted from state,
-   * and **only ever a vehicle whose verdict is `FITS`**: the radios for the
-   * others are `disabled`, so an unfit id cannot come from this dialog, and this
-   * is the floor under that. The endpoint re-checks all of it and would refuse —
-   * after the dispatcher committed, which is the outcome the whole verdict list
-   * exists to prevent.
+   * Separate from `chosenVehicle` below so the dispatchability test is a real
+   * type guard applied to a real value — `Array.prototype.find` only narrows for
+   * a predicate that *is* a guard, and folding the id comparison into it would
+   * force an annotation that asserts the narrowing instead of proving it.
+   */
+  const pressedVehicle =
+    vehicles.find((vehicle) => vehicle.vehicleId === chosenVehicleId) ?? null;
+
+  /**
+   * The vehicle the submit will actually name, and the driver with it.
+   *
+   * **Only ever a `DispatchableVehicle`.** The radios on every other row are
+   * `disabled`, so an unfit or driverless id cannot come from this dialog, and
+   * this is the floor under that — the endpoint re-checks all of it and would
+   * refuse, but only after the dispatcher committed. The narrowing is also what
+   * makes `pairedDriver` non-null for the POST below without an assertion.
    */
   const chosenVehicle =
-    options?.vehicles.find(
-      (vehicle) =>
-        vehicle.vehicleId === chosenVehicleId &&
-        vehicle.verdict.kind === "FITS",
-    ) ?? null;
-
-  /** The vehicle's own driver, which is what the field pre-fills with. */
-  const pairedDriver = chosenVehicle?.pairedDriver ?? null;
-
-  /**
-   * The driver the submit will name: the dispatcher's override where they made
-   * one, the vehicle's pairing otherwise, `null` when neither exists.
-   *
-   * A `null` here is a perfectly ordinary state and not an error — a vehicle
-   * nobody is paired with is still dispatchable, the dispatcher just has to say
-   * who is driving it. It disables the submit button and nothing else.
-   */
-  const driverUserId = chosenDriverId ?? pairedDriver?.userId ?? null;
+    pressedVehicle !== null && isDispatchable(pressedVehicle)
+      ? pressedVehicle
+      : null;
 
   /**
    * One flag behind every disabled control on the panel.
    *
    * Both waits belong to it: the options read (nothing is choosable yet) and the
    * dispatch itself (a choice already committed). Deriving it once is what stops
-   * the vehicle radios, the roster select and the submit button from each
-   * growing their own slightly different condition.
+   * the vehicle radios and the submit button from each growing their own
+   * slightly different condition.
    */
   const isBusy = isLoadingOptions || isSubmitting;
 
-  const vehicles = options?.vehicles ?? [];
-  const roster = options?.roster ?? [];
+  /**
+   * Whether the list is in a state worth summarising underneath.
+   *
+   * Suppressed while the read is pending (the skeleton is the summary) and,
+   * crucially, when it **failed**: a failed read leaves `options` at `null`, and
+   * an empty `vehicles` array is then an artefact of the failure rather than a
+   * fact about the fleet. Telling a dispatcher whose request 500'd that they
+   * have no registered vehicles would be a confident lie printed directly under
+   * the error saying the list could not be read.
+   */
+  const listNoteSuppressed = isLoadingOptions || optionsError !== null;
 
   /**
    * No target, no dialog.
@@ -528,9 +651,11 @@ export function LoadsDispatchDialog({
   }
 
   async function handleDispatch() {
-    // Both halves are required by the route, which rejects either alone — the
-    // button is disabled without them, and this is the floor under that.
-    if (orderId === null || driverUserId === null || chosenVehicle === null) {
+    // The button is disabled without a pick, and this is the floor under that.
+    // One test covers both halves the route requires: a `DispatchableVehicle`
+    // carries its driver, so there is no second null to check and no
+    // half-dispatch this function can send.
+    if (orderId === null || chosenVehicle === null) {
       return;
     }
 
@@ -544,7 +669,9 @@ export function LoadsDispatchDialog({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            driverUserId,
+            // The vehicle's own driver, never a separately chosen one — that is
+            // the whole change. Non-null by the type, not by an assertion.
+            driverUserId: chosenVehicle.pairedDriver.userId,
             vehicleId: chosenVehicle.vehicleId,
           }),
         },
@@ -627,24 +754,29 @@ export function LoadsDispatchDialog({
           <legend className="mb-1.5 text-[13px] font-medium text-foreground">
             Vehicle
           </legend>
+          {/* Says the thing the removed Driver field used to say by existing:
+              the driver is not a second question, it rides with the plate. */}
           <p
             id="loads-dispatch-vehicle-note"
             className="mb-0.5 text-[13px] text-muted-foreground"
           >
-            Every vehicle in your fleet is listed. The ones this delivery
-            can&rsquo;t go on say why.
+            Every vehicle in your fleet is listed with the driver it goes out
+            with. The ones this delivery can&rsquo;t go on say why.
           </p>
 
-          {/* The list scrolls rather than the panel: the header, the driver
-              field and the button stay put while a large fleet is scrolled
-              through, which is the only arrangement where the submit button is
-              reachable without scrolling past forty plates. `-m-0.5 p-0.5`
-              keeps a focused row's ring clear of the scroller's clip — the same
-              trick `drivers-add-panel.tsx` uses on its own vehicle list. */}
+          {/* The list scrolls rather than the panel: the header, the note below
+              and the button stay put while a large fleet is scrolled through,
+              which is the only arrangement where the submit button is reachable
+              without scrolling past forty plates. `-m-0.5 p-0.5` keeps a focused
+              row's ring clear of the scroller's clip — the same trick
+              `drivers-add-panel.tsx` uses on its own vehicle list. */}
           <div className="-m-0.5 flex max-h-[228px] min-w-0 flex-col gap-2 overflow-y-auto p-0.5">
             {isLoadingOptions ? (
               <DispatchRowSkeletons />
             ) : (
+              // Rendered in the order received. See "Order is the server's" in
+              // the module comment — this `map` is deliberately not preceded by
+              // a `sort`.
               vehicles.map((vehicle) => (
                 <DispatchVehicleRow
                   key={vehicle.vehicleId}
@@ -652,92 +784,24 @@ export function LoadsDispatchDialog({
                   selected={vehicle.vehicleId === chosenVehicle?.vehicleId}
                   disabled={isBusy}
                   onSelect={() => {
+                    // The whole of this dialog's state-changing surface. There
+                    // is no paired-driver copy to keep in step any more, which
+                    // is the second half of what deleting the override bought.
                     setChosenVehicleId(vehicle.vehicleId);
-                    // The pre-fill belongs to the vehicle, so changing the
-                    // vehicle drops any override made against the previous one.
-                    // Keeping it would leave a dispatcher who picked a driver
-                    // for the box truck silently dispatching that same driver in
-                    // the van they switched to — a pairing they never chose,
-                    // under a field that claims nothing about where it came
-                    // from. Done in the handler rather than in an effect
-                    // watching `chosenVehicleId`: it is a consequence of this
-                    // press, not of the state settling.
-                    setChosenDriverId(null);
                   }}
                 />
               ))
             )}
-
-            {!isLoadingOptions && vehicles.length === 0 ? (
-              <p className="text-[13px] text-muted-foreground">
-                Your fleet has no registered vehicles. Register one from the
-                Vehicles screen, then dispatch this delivery.
-              </p>
-            ) : null}
           </div>
-        </fieldset>
 
-        <div className="mx-5 mt-4 flex min-w-0 flex-col gap-1.5">
-          <label
-            htmlFor="loads-dispatch-driver"
-            className="text-[13px] font-medium text-foreground"
-          >
-            Driver
-          </label>
-
-          <Select
-            // The resolved driver, which is the pairing until the dispatcher
-            // overrides it. `""` rather than `undefined` would make this an
-            // uncontrolled select; `undefined` is what Radix reads as "no
-            // value", which is what shows the placeholder.
-            value={driverUserId ?? undefined}
-            onValueChange={setChosenDriverId}
-            disabled={isBusy || chosenVehicle === null || roster.length === 0}
-          >
-            <SelectTrigger
-              id="loads-dispatch-driver"
-              className="w-full data-[size=default]:h-10"
-            >
-              <SelectValue
-                placeholder={
-                  chosenVehicle === null
-                    ? "Pick a vehicle first"
-                    : "Pick a driver"
-                }
-              />
-            </SelectTrigger>
-            {/* Portalled separately from the dialog and out of the shell, so it
-                carries its own scheme pin. See the module comment. */}
-            <SelectContent data-admin-surface="" className="max-h-64">
-              {roster.map((driver) => (
-                <SelectItem key={driver.userId} value={driver.userId}>
-                  {driver.name}
-                  {driver.isOnline ? null : (
-                    <span className="text-muted-foreground"> · Offline</span>
-                  )}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          {/* Where the name in the field came from, said out loud. The whole
-              point of the pre-fill is that it is a suggestion rather than a
-              decision, and a filled field with nothing beside it reads as a
-              decision somebody else already made. */}
-          <DispatchDriverNote
-            hasVehicle={chosenVehicle !== null}
-            // Overridden means "not the driver this vehicle came with", not
-            // merely "the select was touched". A dispatcher who opens the list
-            // and picks the paired driver back out of it has changed nothing,
-            // and telling them they chose someone other than the usual driver
-            // would be false.
-            isOverridden={
-              chosenDriverId !== null && chosenDriverId !== pairedDriver?.userId
-            }
-            pairedDriver={pairedDriver}
-            rosterIsEmpty={!isLoadingOptions && roster.length === 0}
+          {/* Outside the scroller on purpose: when every row is disabled the
+              note is the one thing the dispatcher needs, and a fleet of twelve
+              would bury it below the fold. */}
+          <DispatchListNote
+            vehicles={vehicles}
+            suppressed={listNoteSuppressed}
           />
-        </div>
+        </fieldset>
 
         {/* The options read failed, so there is nothing to choose from. Rendered
             where the message is useful rather than above the button: the button
@@ -762,10 +826,11 @@ export function LoadsDispatchDialog({
           <Button
             type="button"
             className="h-10 w-full text-sm"
-            // Both halves, because the route rejects either alone. A button that
-            // submits half a dispatch would collect a 400 the dialog could have
-            // prevented, after the press.
-            disabled={isBusy || chosenVehicle === null || driverUserId === null}
+            // One condition now, where there were two: a chosen vehicle carries
+            // its driver. It is `null` until the dispatcher presses a row — the
+            // recommendation does not enable this button, which is the point of
+            // marking rather than pre-selecting.
+            disabled={isBusy || chosenVehicle === null}
             onClick={() => {
               void handleDispatch();
             }}
@@ -798,6 +863,12 @@ export function LoadsDispatchDialog({
  * rather than `hidden` precisely so it keeps its place in the accessibility tree
  * and the tab order while the ring carries the visual state — the pattern
  * `vehicles-add-form.tsx`, `drivers-add-panel.tsx` and the claim dialog all use.
+ *
+ * Everything inside the `<label>` is part of the option's accessible name, which
+ * is why the driver's name, the "Recommended" tag and the obstacle line are all
+ * plain text rather than decorations: a screen-reader user hears "GE-123 · Van,
+ * 1,200 kg …, Recommended, Driver Nino Beridze" and has the same three facts a
+ * sighted dispatcher reads off the row.
  */
 function DispatchVehicleRow({
   vehicle,
@@ -810,17 +881,26 @@ function DispatchVehicleRow({
   disabled: boolean;
   onSelect: () => void;
 }) {
-  const shortfall = dispatchShortfall(vehicle.verdict);
-  const unfit = shortfall !== null;
+  const dispatchable = isDispatchable(vehicle);
+  const obstacle = dispatchObstacle(vehicle);
+
+  // A recommendation on a row nobody can press is not advice, it is noise — and
+  // it would flatly contradict the disabled tag beside it. The contract says the
+  // server only ever marks a dispatchable option, so this guard is expected to
+  // be a no-op; it is here because the tag is the one element on the row that
+  // would read as an instruction if the two halves of the response ever drifted.
+  const showRecommendation = vehicle.recommended && dispatchable;
 
   return (
     <label
       className={cn(
         "flex items-center justify-between gap-3 rounded-[10px] border p-3 transition-colors",
-        unfit
+        !dispatchable
           ? "cursor-not-allowed border-border bg-background opacity-60"
           : "cursor-pointer has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50",
-        !unfit &&
+        // The row's border and fill are reserved for **selection**, and nothing
+        // else on the row is allowed to touch them. See `RecommendedTag`.
+        dispatchable &&
           (selected
             ? "border-foreground bg-muted"
             : "border-border bg-background hover:bg-muted/50"),
@@ -830,6 +910,7 @@ function DispatchVehicleRow({
         <span className="block text-[13px] font-medium">
           <span className="font-price">{vehicle.plateNumber}</span> ·{" "}
           {vehicle.classLabel}
+          {showRecommendation ? <RecommendedTag /> : null}
         </span>
         {/* The **resolved** capability the endpoint computed for this specific
             vehicle — its own declared figures over its class catalogue's — and
@@ -840,17 +921,41 @@ function DispatchVehicleRow({
           {formatWeightKg(vehicle.capability.payloadKg)} ·{" "}
           {formatDims(resolveCapability(vehicle.capability))}
         </span>
-        {/* The third-row slot, and it means one thing only: this vehicle cannot
-            take this delivery, and here is why. The paired driver's name was
-            considered for this slot on the fitting rows and left out — it would
-            put a line on every row to restate what the Driver field below says
-            about the one row that matters, and it would blur a slot whose whole
-            value is that seeing it means "unavailable". */}
-        {shortfall === null ? null : (
+        {/* The third-row slot, and it now answers one of two questions: either
+            why this vehicle cannot go, or **who goes with it**.
+
+            The driver's name on a fitting row is a reversal. It was deliberately
+            left off while a separate Driver field existed below the list, on the
+            reasoning that a line on every row would restate what that field said
+            about the one row that mattered. That field is gone — the vehicle's
+            assignment *is* the dispatch now — so this row is the only place the
+            dispatcher ever sees who they are about to send, and omitting it
+            would mean committing a named person to a job without their name
+            appearing anywhere on the screen.
+
+            The two never compete for the slot: `dispatchObstacle` returns `null`
+            on exactly the rows that are dispatchable, so a row shows an obstacle
+            or a driver and never both. An unfit vehicle's driver is left unsaid
+            on purpose — that row cannot be pressed, so who drives it is not a
+            fact the dispatcher has to weigh. */}
+        {obstacle !== null ? (
           <span className="mt-0.5 block text-xs font-medium text-muted-foreground">
-            {shortfall}
+            {obstacle}
           </span>
-        )}
+        ) : vehicle.pairedDriver !== null ? (
+          <span className="mt-0.5 block text-xs text-muted-foreground">
+            Driver:{" "}
+            <span className="font-medium text-foreground">
+              {vehicle.pairedDriver.name}
+            </span>
+            {/* Carried over from the roster select this row replaced. Offline is
+                not a blocker — `POST .../dispatch` accepts an offline driver and
+                a dispatcher routinely assigns work to someone who has not opened
+                the app yet — but it is worth knowing before pressing, so it is
+                shown and never enforced. */}
+            {vehicle.pairedDriver.isOnline ? null : <span> · Offline</span>}
+          </span>
+        ) : null}
       </span>
       <input
         type="radio"
@@ -861,8 +966,10 @@ function DispatchVehicleRow({
         // `disabled` on the **real** radio, not merely `cursor-not-allowed` on
         // the label: pointer styling stops a mouse and nothing else. This is
         // what takes the row out of the arrow-key rotation and reports it as
-        // unavailable rather than as an option somebody failed to notice.
-        disabled={disabled || unfit}
+        // unavailable rather than as an option somebody failed to notice. A
+        // driverless vehicle is disabled here for the same reason an oversized
+        // one is: the route would refuse it.
+        disabled={disabled || !dispatchable}
         className="sr-only"
       />
       <span
@@ -876,6 +983,43 @@ function DispatchVehicleRow({
   );
 }
 
+/**
+ * "Recommended" — the server's suggestion, and it must not read as a choice
+ * already made.
+ *
+ * The two signals are kept in **different channels**, which is the whole design:
+ *
+ * - *Selected* is structural. It is the row's `border-foreground`, its `bg-muted`
+ *   fill and the filled radio on the right — the same three things every picker
+ *   in this hub uses for the state, and none of them appear anywhere in this
+ *   tag.
+ * - *Recommended* is a word. A small outlined pill in `text-muted-foreground`,
+ *   inline with the plate, adding no fill and no border to the row itself.
+ *
+ * So a recommended row that has not been pressed keeps a plain border and an
+ * empty radio — unmistakably unchosen — and pressing it adds the border, the
+ * fill and the dot *underneath* a tag that has not changed. Both facts stay
+ * readable at once, which a shared channel (tinting the recommended row, or
+ * pre-filling its radio) could not manage: the dispatcher would have to work out
+ * whether the highlight meant "we suggest" or "you picked", and on the fast path
+ * they would not.
+ *
+ * Muted rather than an accent colour for the same reason. The recommendation is
+ * the platform's opinion about a fleet it cannot see today; loud styling would
+ * make skipping it feel like overriding a warning, and skipping it is an
+ * entirely ordinary thing for a dispatcher to do.
+ */
+function RecommendedTag() {
+  return (
+    <Badge
+      variant="outline"
+      className="ml-1.5 h-auto rounded-full border-border bg-transparent px-[7px] py-px align-middle text-[10px] font-semibold tracking-[0.06em] text-muted-foreground uppercase"
+    >
+      Recommended
+    </Badge>
+  );
+}
+
 /* -------------------------------------------------------------------------- */
 /* Pending list                                                               */
 /* -------------------------------------------------------------------------- */
@@ -885,8 +1029,9 @@ function DispatchVehicleRow({
  *
  * `aria-hidden`, with no text and no role: it carries no information, and a
  * screen reader announcing three empty boxes would be worse than silence. The
- * `Select` beside it is disabled and the button says nothing has happened yet,
- * which between them is the honest account of the state.
+ * submit button below is disabled and still says "Assign and dispatch", which is
+ * the honest account of the state — nothing has been chosen and nothing has
+ * happened.
  *
  * Boxes at the real row height rather than a shrinking bar, so the panel does
  * not resize under the pointer when the answer lands.
@@ -905,76 +1050,70 @@ function DispatchRowSkeletons() {
 }
 
 /* -------------------------------------------------------------------------- */
-/* Driver note                                                                */
+/* List note                                                                  */
 /* -------------------------------------------------------------------------- */
 
 /**
- * The sentence under the roster select, which exists to make one distinction
- * legible: **is the name in that field the vehicle's pairing, or a choice?**
+ * The sentence under the list for the three states in which **the submit button
+ * can never enable**, whatever the dispatcher does.
  *
- * Four states, and they are genuinely four different facts rather than one
- * message with holes in it:
+ * Each of them is a dialog that would otherwise look broken — an empty box, or a
+ * full list where every row refuses the pointer and a dead primary button sits
+ * underneath with nothing to explain it. A disabled control with no stated
+ * reason is read as a bug, and the dispatcher's next move is to retry rather
+ * than to go and fix the fleet.
  *
- * - no vehicle yet — the field is disabled and the note says what unlocks it;
- * - pre-filled — the name came with the vehicle and can be changed;
- * - overridden — the dispatcher chose it, and the vehicle's own driver is not
- *   going;
- * - no pairing — a legitimate state, not an error. The vehicle is dispatchable
- *   and somebody has to be named.
+ * The three are genuinely different problems with different fixes:
  *
- * Written as a component rather than a nested ternary in the panel so each
- * branch can carry its own wording and the panel's JSX stays readable.
+ * - **No vehicles at all** — register one.
+ * - **Vehicles that fit, none of them driven** — the change that made this state
+ *   reachable at all. Assign a driver on the Vehicles screen; the trucks are
+ *   fine.
+ * - **Nothing fits** — nothing on this screen will help. The rows above each say
+ *   why, so this only has to say that they all do.
+ *
+ * The order of the tests is the order of severity, and the middle one is checked
+ * against `FITS` rather than against "not every row is unfit" so the actionable
+ * message is only offered when there is genuinely a truck waiting on a driver.
  */
-function DispatchDriverNote({
-  hasVehicle,
-  isOverridden,
-  pairedDriver,
-  rosterIsEmpty,
+function DispatchListNote({
+  vehicles,
+  /** Pending or failed read — see `listNoteSuppressed` for why a failure counts. */
+  suppressed,
 }: {
-  hasVehicle: boolean;
-  isOverridden: boolean;
-  pairedDriver: DispatchDriver | null;
-  rosterIsEmpty: boolean;
+  vehicles: DispatchVehicle[];
+  suppressed: boolean;
 }) {
-  // The hard stop, and it outranks the rest: nobody is on the roster, so no
-  // dispatch is possible whatever vehicle is picked. Said here rather than left
-  // to a disabled button with no explanation.
-  if (rosterIsEmpty) {
+  if (suppressed) {
+    return null;
+  }
+
+  if (vehicles.length === 0) {
     return (
-      <p className="text-xs text-muted-foreground">
-        Your roster has no drivers. Add one from the Drivers screen, then
-        dispatch this delivery.
+      <p className="text-[13px] text-muted-foreground">
+        Your fleet has no registered vehicles. Register one from the Vehicles
+        screen, then dispatch this delivery.
       </p>
     );
   }
 
-  if (!hasVehicle) {
-    return (
-      <p className="text-xs text-muted-foreground">
-        Pick a vehicle above and its driver fills in here.
-      </p>
-    );
+  // Something is pressable, so the list speaks for itself.
+  if (vehicles.some(isDispatchable)) {
+    return null;
   }
 
-  if (isOverridden) {
+  if (vehicles.some((vehicle) => vehicle.verdict.kind === "FITS")) {
     return (
-      <p className="text-xs text-muted-foreground">
-        Chosen from your roster, not this vehicle&rsquo;s usual driver.
-      </p>
-    );
-  }
-
-  if (pairedDriver === null) {
-    return (
-      <p className="text-xs text-muted-foreground">
-        No driver is paired with this vehicle. Pick who&rsquo;s driving it.
+      <p className="text-[13px] text-muted-foreground">
+        The vehicles that can take this delivery have no driver assigned. Assign
+        one from the Vehicles screen, then dispatch this delivery.
       </p>
     );
   }
 
   return (
-    <p className="text-xs text-muted-foreground">
-      Paired with this vehicle. Pick someone else to send them instead.
+    <p className="text-[13px] text-muted-foreground">
+      None of your vehicles can take this delivery. Each one above says why.
     </p>
   );
 }

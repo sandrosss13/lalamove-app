@@ -1,6 +1,8 @@
 /**
  * `dispatchVerdictFor` — the four refusals a fleet meets when it puts a vehicle
- * behind a load it has already claimed, and the traps hiding in each of them.
+ * behind a load it has already claimed, and the traps hiding in each of them —
+ * and `rankDispatchVehicles`, which turns a fleet of those verdicts into the
+ * order the dispatch picker renders and the one truck the platform suggests.
  *
  * The function is a transcription of the four inline checks that lived in
  * `POST /api/logistics-company/orders/[id]/dispatch`, lifted so the dispatch
@@ -18,7 +20,10 @@
  * generated client never has to. That property is what lets this spec build a
  * vehicle as an object literal, and it is worth preserving: a Prisma import in
  * that module would turn every assertion here into an integration test against
- * a live database.
+ * a live database. The ranking cases below lean on it harder still: they build
+ * a whole fleet per test, and each is a statement about a product rule — "the
+ * smallest truck that fits, and only one is ever recommended" — that is worth
+ * asserting directly rather than inferring from the shape of a JSON response.
  *
  * **The catalogue figures below are copied from `prisma/seed.ts` by hand**, the
  * same deliberate duplication `tests/class-substitution.spec.ts` explains:
@@ -29,7 +34,12 @@
 
 import { expect, test } from "@playwright/test";
 
-import { bookedClassFor, dispatchVerdictFor } from "@/lib/orders/dispatch-fit";
+import {
+  bookedClassFor,
+  dispatchVerdictFor,
+  rankDispatchVehicles,
+  type DispatchVerdict,
+} from "@/lib/orders/dispatch-fit";
 import type { LoadDimensions } from "@/lib/orders/vehicle-fit";
 
 /* -------------------------------------------------------------------------- */
@@ -539,5 +549,306 @@ test.describe("the returned capability", () => {
       widthM: BOX_TRUCK_SPEC.cargoWidthM,
       heightM: BOX_TRUCK_SPEC.cargoHeightM,
     });
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/* H8 — the recommendation: the smallest vehicle that fits                    */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * A driver, as `rankDispatchVehicles` sees one: a non-null object and nothing
+ * more. The function never reads a field on it — only whether there is one — so
+ * the id is here to make the fixtures readable rather than because anything
+ * compares it.
+ */
+const PAIRED = { userId: "user_driver" };
+
+/** The two verdicts these cases need, named so the fixtures read as prose. */
+const FITS: DispatchVerdict = { kind: "FITS" };
+const UNDER_CLASS: DispatchVerdict = { kind: "UNDER_BOOKED_CLASS" };
+
+/**
+ * The minimal vehicle the ranking is defined over.
+ *
+ * Spelled out rather than inferred from a fixture, so `verdict` is the union and
+ * not one member's literal type, and so this spec states the module's boundary
+ * in the same terms the module does.
+ */
+type Rankable = {
+  plateNumber: string;
+  capability: { payloadKg: number };
+  pairedDriver: { userId: string } | null;
+  verdict: DispatchVerdict;
+};
+
+/**
+ * A rankable vehicle, defaulting to the dispatchable case — fits, and somebody
+ * drives it — because most cases below vary exactly one thing away from that and
+ * an explicit `verdict: FITS, pairedDriver: PAIRED` at every call site would
+ * bury which one.
+ *
+ * The payload is the *resolved* capability, as the route passes it: the
+ * vehicle's own declared figure where it has one. Nothing in these fixtures goes
+ * near a class catalogue, which is the point of the function being pure.
+ */
+function rankable(
+  plateNumber: string,
+  payloadKg: number,
+  overrides: Partial<Omit<Rankable, "plateNumber" | "capability">> = {},
+): Rankable {
+  return {
+    plateNumber,
+    capability: { payloadKg },
+    pairedDriver: PAIRED,
+    verdict: FITS,
+    ...overrides,
+  };
+}
+
+/** The plates of whichever vehicles came back recommended, in returned order. */
+function recommendedPlates(
+  vehicles: readonly (Rankable & { recommended: boolean })[],
+): string[] {
+  return vehicles.filter((v) => v.recommended).map((v) => v.plateNumber);
+}
+
+test.describe("the recommendation", () => {
+  /**
+   * The rule, and the whole reason this function exists: the platform suggests
+   * the **smallest** vehicle that fits, not the first one the fleet query
+   * returned. Every dispatchable vehicle already clears the booked class — that
+   * floor is what `meetsBookedClass` guarantees — so the extra tonnes on a
+   * larger truck buy the client nothing and cost the fleet a truck it will want
+   * for the next job.
+   *
+   * The input here is deliberately ordered largest-first, which is a plausible
+   * real ordering (the endpoint reads its fleet newest-first, and fleets tend to
+   * buy bigger over time). An implementation that simply took `vehicles[0]`, or
+   * that sorted descending, passes nothing here.
+   */
+  test("the smallest fitting vehicle is recommended, not the first one given", () => {
+    const ranked = rankDispatchVehicles([
+      rankable("BIG-500", 5000),
+      rankable("MID-350", 3500),
+      rankable("SML-050", 500),
+    ]);
+
+    expect(ranked.map((v) => v.plateNumber)).toEqual([
+      "SML-050",
+      "MID-350",
+      "BIG-500",
+    ]);
+    expect(recommendedPlates(ranked)).toEqual(["SML-050"]);
+  });
+
+  /**
+   * "Smallest" is only ever read among vehicles that *fit*. A 500 kg van is the
+   * smallest thing in this fleet and is refused — it is under the booked class —
+   * so the recommendation is the smallest of what remains.
+   *
+   * This is the case that separates the rule from a naive `sort by payload asc`
+   * with no fit key, which would hand the dispatcher a van the POST then
+   * bounces. It is the same failure `claimCandidatesFor`'s `fits` key was added
+   * to fix on the driver side, where the picker defaulted to a truck that
+   * cleared the class but not the cargo and said so only after the driver
+   * committed.
+   */
+  test("a smaller vehicle that does not fit is not recommended", () => {
+    const ranked = rankDispatchVehicles([
+      rankable("TINY-050", 500, { verdict: UNDER_CLASS }),
+      rankable("MID-350", 3500),
+      rankable("BIG-500", 5000),
+    ]);
+
+    expect(recommendedPlates(ranked)).toEqual(["MID-350"]);
+    // And the refused van is below both vehicles that can actually take the job,
+    // however small it is.
+    expect(ranked.map((v) => v.plateNumber)).toEqual([
+      "MID-350",
+      "BIG-500",
+      "TINY-050",
+    ]);
+  });
+
+  /**
+   * The second half of "dispatchable", and it is not implied by the first.
+   *
+   * `dispatchVerdictFor` answers a question about capacity, class, body and
+   * cargo; it has never known anything about assignments. A `FITS` verdict on a
+   * vehicle nobody is paired with is a truck perfectly suited to the load that
+   * cannot leave the yard — and since the dialog's roster override was removed,
+   * there is no `driverUserId` to submit for it at all. So it is not a near miss
+   * to be offered hopefully: it is unselectable, it is not the recommendation
+   * however small it is, and it sorts into the tail with the refusals.
+   *
+   * The driverless van here is the smallest vehicle in the fleet *and* fits, so
+   * an implementation that ranked on the verdict alone would recommend it.
+   *
+   * **`pairedDriver: null` covers two real situations, not one.** The obvious
+   * one is a vehicle nobody was ever assigned to. The other is a vehicle with a
+   * live assignment to a driver who has since been taken off the roster —
+   * `DELETE /api/logistics-company/drivers/[userId]` only nulls
+   * `DriverProfile.companyId` and closes no assignment, so that state is
+   * reachable through supported actions — which the options endpoint filters out
+   * in its query so that it and `POST .../dispatch` agree on who is eligible.
+   * That scoping is a Prisma `where` and cannot be reached from here; this test
+   * pins the half of the behaviour that is pure, which is that a null pairing
+   * is excluded from the ranking however good the vehicle is.
+   */
+  test("a fitting vehicle with no paired driver is neither recommended nor ranked with the dispatchable", () => {
+    const ranked = rankDispatchVehicles([
+      rankable("NODRV-050", 500, { pairedDriver: null }),
+      rankable("MID-350", 3500),
+    ]);
+
+    expect(ranked.map((v) => v.plateNumber)).toEqual(["MID-350", "NODRV-050"]);
+    expect(recommendedPlates(ranked)).toEqual(["MID-350"]);
+  });
+
+  /**
+   * The invariant the client codes against, asserted on a fleet containing every
+   * kind of row at once: two dispatchable trucks, one that fits with nobody
+   * driving it, and one refused outright.
+   *
+   * **Exactly one `true`.** A dialog that pre-selects "the recommended one", or
+   * prints a badge beside it, has no sensible behaviour if two rows claim the
+   * title — and a rule stated only as "the first element" in a doc comment is
+   * one a later comparator change can quietly break. Both halves are asserted
+   * (which vehicle, and that it is the only one) because either alone passes
+   * against an implementation that is wrong in the other direction.
+   */
+  test("exactly one vehicle is recommended across a mixed fleet", () => {
+    const ranked = rankDispatchVehicles([
+      rankable("REFUSED-350", 3500, { verdict: UNDER_CLASS }),
+      rankable("BIG-500", 5000),
+      rankable("NODRV-050", 500, { pairedDriver: null }),
+      rankable("MID-350", 3500),
+    ]);
+
+    expect(recommendedPlates(ranked)).toEqual(["MID-350"]);
+    expect(ranked.filter((v) => v.recommended)).toHaveLength(1);
+    expect(ranked.filter((v) => !v.recommended)).toHaveLength(3);
+  });
+
+  /**
+   * And no vehicle at all when nothing can be dispatched — a fleet where every
+   * truck is refused, driverless, or both.
+   *
+   * This is the case a "recommend index 0" implementation gets wrong, and gets
+   * wrong in the worst available direction: it would badge the leading *unfit*
+   * vehicle as the platform's suggestion, which is both false and the one thing
+   * a recommendation must never be. A company whose whole fleet is under review
+   * sees no suggestion rather than a confident wrong one.
+   */
+  test("nothing is recommended when nothing is dispatchable", () => {
+    const ranked = rankDispatchVehicles([
+      rankable("REFUSED-050", 500, { verdict: UNDER_CLASS }),
+      rankable("NODRV-350", 3500, { pairedDriver: null }),
+      rankable("BOTH-500", 5000, {
+        verdict: UNDER_CLASS,
+        pairedDriver: null,
+      }),
+    ]);
+
+    expect(recommendedPlates(ranked)).toEqual([]);
+    expect(ranked.every((v) => v.recommended === false)).toBe(true);
+    // Nothing was dropped: an empty recommendation is not an empty picker, and a
+    // dispatcher still needs to read why each of these is unavailable.
+    expect(ranked).toHaveLength(3);
+  });
+});
+
+/* -------------------------------------------------------------------------- */
+/* H9 — the ordering itself                                                    */
+/* -------------------------------------------------------------------------- */
+
+test.describe("dispatch ordering", () => {
+  /**
+   * Two trucks of one class that both declared nothing resolve to identical
+   * capabilities, so payload cannot separate them and something else must — or
+   * the recommendation flips between two equally good vehicles from one poll of
+   * the dialog to the next, and a dispatcher learns not to trust a suggestion
+   * that had not actually changed.
+   *
+   * The plate is that something else, compared with `localeCompare` rather than
+   * `<` for the reason `claimCandidatesFor` uses it: plates on this platform are
+   * not ASCII. The input is in the opposite order to the answer, so a comparator
+   * that returned `0` on the tie would fail here rather than pass by luck.
+   */
+  test("equal payloads are broken on the plate, not on input order", () => {
+    const ranked = rankDispatchVehicles([
+      rankable("ZZ-999", 3500),
+      rankable("AA-111", 3500),
+    ]);
+
+    expect(ranked.map((v) => v.plateNumber)).toEqual(["AA-111", "ZZ-999"]);
+    expect(recommendedPlates(ranked)).toEqual(["AA-111"]);
+  });
+
+  /**
+   * The tail — everything not dispatchable — keeps the order it arrived in,
+   * which for the options endpoint is the fleet newest-first.
+   *
+   * It is a documented guarantee rather than an accident of the implementation,
+   * and it rests on `Array.prototype.sort` being stable (specified since ES2019;
+   * this project targets ES2022). The four tail rows below are deliberately
+   * *not* in payload order and mix both reasons for being there, so any
+   * accidental sub-sort — floating the driverless above the refused, ranking the
+   * refusals by size — shows up as a reordering rather than being masked by a
+   * tail that happened to already be sorted.
+   */
+  test("the non-dispatchable tail keeps its input order", () => {
+    const ranked = rankDispatchVehicles([
+      rankable("TAIL-A", 5000, { verdict: UNDER_CLASS }),
+      rankable("HEAD-B", 3500),
+      rankable("TAIL-C", 500, { pairedDriver: null }),
+      rankable("TAIL-D", 4000, { verdict: UNDER_CLASS, pairedDriver: null }),
+      rankable("HEAD-A", 1000),
+      rankable("TAIL-E", 2000, { pairedDriver: null }),
+    ]);
+
+    expect(ranked.map((v) => v.plateNumber)).toEqual([
+      // Dispatchable, smallest payload first.
+      "HEAD-A",
+      "HEAD-B",
+      // Then the rest, exactly as given.
+      "TAIL-A",
+      "TAIL-C",
+      "TAIL-D",
+      "TAIL-E",
+    ]);
+    expect(recommendedPlates(ranked)).toEqual(["HEAD-A"]);
+  });
+
+  /**
+   * The function is pure: it neither reorders the array it was handed nor writes
+   * `recommended` onto the caller's objects.
+   *
+   * Both halves matter. The options route passes an array it built and would not
+   * notice either mutation, but the ranking is deliberately importable from a
+   * client component — that is the whole point of this module carrying no
+   * `server-only` and no Prisma — and there the input is routinely derived from
+   * props or state. Sorting such an array in place mutates React's data behind
+   * its back, producing a render that disagrees with the state that caused it;
+   * `claimCandidatesFor` sorts in place only because its `map` had already
+   * returned a fresh array, and that reasoning does not transfer to a function
+   * handed an array it did not build.
+   */
+  test("neither reorders nor annotates its input", () => {
+    const input: Rankable[] = [
+      rankable("BIG-500", 5000),
+      rankable("SML-050", 500),
+    ];
+
+    const ranked = rankDispatchVehicles(input);
+
+    // The caller's array is untouched, in both membership and order.
+    expect(input.map((v) => v.plateNumber)).toEqual(["BIG-500", "SML-050"]);
+    expect(ranked).not.toBe(input);
+    // And the caller's *elements* are untouched: the flag went onto copies, so
+    // nothing upstream acquires a field it never declared.
+    expect(input.every((v) => !("recommended" in v))).toBe(true);
+    expect(ranked.every((v) => "recommended" in v)).toBe(true);
   });
 });
