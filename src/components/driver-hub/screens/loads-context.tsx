@@ -201,6 +201,26 @@ export type HubLoad = {
   driverId: string | null;
   companyId: string | null;
   vehicleId: string | null;
+  /**
+   * Whether this account can dispatch this order **right now** — the only thing
+   * here that separates a fleet load waiting for a truck from one already on
+   * the road, and the gate every "Assign a vehicle" control reads.
+   *
+   * Derived server-side, where the raw `OrderStatus` is in scope, because
+   * `status` above is the board's own three-value vocabulary and nothing on
+   * this type can reconstruct the order's real state from it. **Do not try to
+   * re-derive this from `driverId`/`vehicleId`.** Both are null on the seeded
+   * `fleet-active-unassigned` row, which is ACCEPTED and not dispatchable, and
+   * which the board returns in `mine` beside genuinely claimed loads — that
+   * exact substitution shipped a control that 404sed on press. The full
+   * reasoning is on `LoadBoardItem.dispatchable` in `src/app/api/loads/route.ts`.
+   *
+   * False for every row an individual driver sees, and for another company's
+   * claimed row. Not a promise the press will succeed — the load can be
+   * dispatched from another tab between the poll and the click — so the dialog
+   * still has to report a refusal intelligibly.
+   */
+  dispatchable: boolean;
   createdAt: string;
   /** The claim instant on a `"claimed"` row; "N min ago" is derived from it. */
   updatedAt: string;

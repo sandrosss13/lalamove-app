@@ -1,8 +1,8 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 
+import Link from "next/link";
 import { HubEmptyState } from "@/components/driver-hub/hub-primitives";
 import { HUB_STATUS_TONE_CLASSES } from "@/components/driver-hub/hub-status";
 import { LoadsDetailSheet } from "@/components/driver-hub/screens/loads-detail-sheet";
@@ -604,8 +604,10 @@ function LoadCard({ load, nowIso }: { load: HubLoad; nowIso: string }) {
  */
 function LoadCardActions({ load }: { load: HubLoad }) {
   const {
+    accountKind,
     isRejected,
     openConfirm,
+    openDispatch,
     reject,
     restore,
     pendingActionId,
@@ -662,6 +664,51 @@ function LoadCardActions({ load }: { load: HubLoad }) {
   }
 
   if (load.status === "mine") {
+    // A fleet load that is claimed and not yet assigned keeps the strip and
+    // changes its errand. Same single 44px control, same `success` tone, same
+    // place: only the label and the handler differ, so the design's one-strip
+    // action row is not restructured and "Yours" still reads as the card's
+    // status rather than becoming one of two half-width buttons that each say
+    // less. Splitting it was the alternative and was rejected — at phone width
+    // "Yours · view job sheet" beside "Assign a vehicle" truncates both, and the
+    // tone that makes this the "Yours" strip stops being legible as a status.
+    //
+    // The job sheet is not lost, it moves one tap out: the card body opens
+    // `loads-detail-sheet.tsx`, which carries "Open job sheet" beside its own
+    // copy of this control. That is the right trade for this state in
+    // particular, because the job sheet an awaiting-dispatch fleet load opens
+    // onto is, in substance, a page whose primary action is this same dialog.
+    //
+    // `dispatchable` is resolved by `GET /api/loads` against the raw
+    // `OrderStatus`, which is the only place the question can be answered: it
+    // folds in the enclosing `"mine"`, company ownership and `CLAIMED`. It is
+    // emphatically not `driverId === null`, which is what this first shipped as
+    // and which is true of a seeded ACCEPTED row too. See `canDispatch` in
+    // `loads-drawer.tsx`.
+    if (accountKind === "BUSINESS" && load.dispatchable) {
+      return (
+        <div className="mt-2.5">
+          <Button
+            type="button"
+            variant="ghost"
+            className={cn(
+              "h-11 w-full rounded-md text-xs font-medium",
+              HUB_STATUS_TONE_CLASSES.success,
+            )}
+            onClick={(event) => {
+              // Same rule as every other control on this row: the card behind
+              // it opens the detail sheet, and a press that opened both would
+              // leave a sheet sitting behind the dialog.
+              stop(event);
+              openDispatch(load);
+            }}
+          >
+            Yours · assign a vehicle
+          </Button>
+        </div>
+      );
+    }
+
     // A link now. It was inert text while "Open job sheet" had no destination
     // (`requirements.md`, Non-Goals) and tapping it merely opened the detail
     // sheet, where the same unavailable action was spelled out on a disabled

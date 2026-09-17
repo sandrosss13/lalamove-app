@@ -246,6 +246,34 @@ const NETWORK_ERROR =
   "Couldn't reach the server. Check your connection and retry.";
 
 /**
+ * What a dispatcher reads when the options request 404s.
+ *
+ * `GET .../dispatch-options` scopes on `{ id, companyId, status: CLAIMED }` and
+ * answers `{ error: "Order not found." }` to anything else. That sentence is
+ * right for the endpoint — the 404-not-403 convention keeps a stranger from
+ * confirming an id exists by probing it — and useless here, because this dialog
+ * only ever opens on a row the board just handed *this* dispatcher. Passing it
+ * through told somebody their own delivery did not exist.
+ *
+ * So the status is translated at this one call site rather than the route being
+ * reworded, and rather than `refusalMessage` being taught to rewrite 404s
+ * generally: the submit's 404s include "Driver not found." and "Vehicle not
+ * found.", which name a real obstacle and must keep reaching the dispatcher
+ * intact. A blanket rule would swallow them.
+ *
+ * It names two outcomes because the endpoint cannot distinguish them and
+ * neither can this: the order left CLAIMED (dispatched from another tab, which
+ * is the likely one) or it left the fleet's hands entirely (cancelled). Naming
+ * only the first would be the more fluent sentence and would sometimes be a
+ * lie. Both readings point at the same recovery, which is to look at the board
+ * again — so the sentence ends by saying the board is stale rather than leaving
+ * the dispatcher to work that out.
+ */
+const NOT_DISPATCHABLE_MESSAGE =
+  "This delivery can no longer be assigned — it already has a driver, or it " +
+  "was cancelled. Close this and refresh the board to see where it stands.";
+
+/**
  * How many placeholder rows stand in for the list while it loads.
  *
  * Three, because it is the shape of a small fleet's answer and the panel does
@@ -555,11 +583,22 @@ export function LoadsDispatchDialog({
         );
 
         if (!response.ok) {
+          // 404 is the one refusal this dialog can reach by being *right* about
+          // a stale fact rather than wrong about a request, so it is the one
+          // that gets its own sentence. The board gates this control on
+          // `HubLoad.dispatchable`, which is resolved server-side from the real
+          // `OrderStatus`, so a 404 here is no longer the predictable failure it
+          // was when the gate read `driverId === null` — it is the genuine race,
+          // where the load was dispatched from another tab between the last poll
+          // and this press. Every other status still carries the route's own
+          // wording, which names an obstacle better than anything here could.
           setOptionsError(
-            await refusalMessage(
-              response,
-              "Couldn't load this order's vehicles",
-            ),
+            response.status === 404
+              ? NOT_DISPATCHABLE_MESSAGE
+              : await refusalMessage(
+                  response,
+                  "Couldn't load this order's vehicles",
+                ),
           );
           return;
         }

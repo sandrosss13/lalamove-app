@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { X } from "lucide-react";
 
+import Link from "next/link";
 import { useLoadsBoard } from "@/components/driver-hub/screens/loads-context";
 import {
   CargoPhotoTiles,
@@ -124,6 +124,37 @@ import { Button } from "@/components/ui/button";
  * this file changed for it — the route was widened underneath an href that was
  * already correct.
  *
+ * ## "Assign a vehicle" — the board's own way into the dispatch dialog
+ *
+ * A fleet's claim names no vehicle and no driver: `POST
+ * /api/logistics-company/orders/[id]/claim` sends no body at all, the order
+ * lands in `CLAIMED` held by the company and assigned to nobody, and a second
+ * step against `POST .../orders/[id]/dispatch` is what puts a real truck and a
+ * real driver on it. That step's dialog (`loads-dispatch-dialog.tsx`) had two
+ * entry points and neither of them was this board: it auto-opens once, straight
+ * after a successful company claim, and the job sheet offers it again under
+ * "Awaiting dispatch".
+ *
+ * `openDispatch` was declared on `LoadsBoardValue`, implemented in the provider
+ * and exported in the context value **with no caller anywhere in the app** — the
+ * board's entry point was designed and then never wired. So a dispatcher who
+ * dismissed the auto-opened dialog (a legitimate outcome, and the whole reason
+ * `closeDispatch` exists — you do not always know at six in the evening which
+ * truck takes it in the morning) had to find their way back through My loads →
+ * row → this drawer → "Open job sheet" → a new page → assign. Four navigations,
+ * behind the only signpost on the board, which says nothing about vehicles.
+ *
+ * This is that path collapsed to one press. `loads-detail-sheet.tsx` carries
+ * the same control at the mobile touch floor, and `loads-mobile.tsx`'s "Yours"
+ * strip switches to it in place of the job-sheet link on exactly this state.
+ *
+ * It is offered on a strictly narrower condition than the job-sheet link beside
+ * it — `HubLoad.dispatchable`, resolved server-side. It was first written here
+ * as `driverId === null`, which reads like the exact question and is not: the
+ * seeded `fleet-active-unassigned` row is ACCEPTED with a null driver *and* a
+ * null vehicle, sits in `mine` beside a real claimed load, and so was offered a
+ * second Assign button that 404sed. See `canDispatch` below.
+ *
  * ## Takes no props, by contract
  *
  * Everything comes from `useLoadsBoard()`. See the note at the top of
@@ -232,9 +263,11 @@ function RouteStop({
 
 export function LoadsDrawer() {
   const {
+    accountKind,
     selectedLoad,
     selectLoad,
     openConfirm,
+    openDispatch,
     reject,
     restore,
     canAccept,
@@ -276,6 +309,45 @@ export function LoadsDrawer() {
    * and the mobile sheet cannot each decide it differently.
    */
   const isBusy = pendingActionId !== null;
+
+  /**
+   * Whether to offer the dispatch step on this load.
+   *
+   * `dispatchable` is resolved by `GET /api/loads`, where the raw `OrderStatus`
+   * is in scope, and answers exactly "would the dispatch routes serve this, or
+   * 404": it is `{ status: "mine", companyId non-null, OrderStatus.CLAIMED }`,
+   * which is the `where` both of those routes scope on. Nothing on `HubLoad`
+   * can reconstruct it — `status` here is the board's own three-value
+   * vocabulary, and `MINE_STATUSES` files CLAIMED, ACCEPTED and IN_TRANSIT
+   * alike under `"mine"`.
+   *
+   * **This was `driverId === null` and that was wrong.** The reasoning for it
+   * was an enumeration of the write paths: the company claim writes
+   * `{ companyId, CLAIMED }` with no driver, dispatch writes driver, vehicle and
+   * `ACCEPTED` together, and nothing ever nulls `Order.driverId` afterwards. All
+   * of that is true, and it establishes a property of the *flow* rather than of
+   * the *table*. The driver-hub fixture seeds `fleet-active-unassigned` as
+   * ACCEPTED with both `driverId` and `vehicleId` null — deliberately, to
+   * exercise the fleet header pill's "Unassigned" sub-line, and documented in
+   * `scripts/seed-driver-hub-personas.ts` as a shape the claim/dispatch pair
+   * cannot produce. It lands in `mine` beside a real claimed order, so the board
+   * drew two Assign buttons and the second one 404sed. Databases contain rows
+   * the current flow would not write; a gate on a user-visible control has to be
+   * right about the data, not about the happy path.
+   *
+   * `accountKind === "BUSINESS"` is kept although `dispatchable` already implies
+   * a company-held row. It is the reader-level half of the question — is this
+   * person a dispatcher at all — and it is exactly the kind of "implied, so
+   * redundant" clause whose removal is only safe while a server-side derivation
+   * keeps its current shape. That is the assumption this predicate just got
+   * wrong once.
+   *
+   * Not gated on `isBusy`. That flag exists because the provider drops a second
+   * reject or restore, and neither of those is even offered on a `"mine"` load;
+   * this opens a dialog and touches no board state, so disabling it during an
+   * unrelated in-flight request would only refuse a press that costs nothing.
+   */
+  const canDispatch = accountKind === "BUSINESS" && load.dispatchable;
 
   return (
     <aside
@@ -405,6 +477,33 @@ export function LoadsDrawer() {
                 always: see this file's doc comment for the release it spent
                 disabled, and for the release after that when it was live and
                 sent every fleet owner to "Order not found." */}
+            {/* Primary, and above the job-sheet link rather than below it: on a
+                load that is claimed and still unassigned, assigning it is what
+                the dispatcher came here to do and reading the sheet is not. The
+                link keeps `outline`, so the pair reads as one action and one
+                way out rather than as two equal offers.
+
+                "Assign a vehicle" and not "Dispatch": the board is read by
+                people doing the job, not by people naming the transition, and
+                the dialog it opens asks for exactly one thing — a plate. The
+                driver comes with the plate (the Vehicles screen's assignment is
+                what "who drives this truck" means everywhere in the hub), which
+                is why the label promises a vehicle and not a crew.
+
+                `openDispatch` takes the row rather than an id — the one place
+                it departs from `openConfirm`; see its note in
+                `loads-context.tsx`. Handing it `load` is right here because
+                `selectedLoad` is resolved live against the board on every
+                render, so this is the freshest snapshot the drawer has. */}
+            {canDispatch ? (
+              <Button
+                type="button"
+                onClick={() => openDispatch(load)}
+                className="h-10 text-sm font-medium"
+              >
+                Assign a vehicle
+              </Button>
+            ) : null}
             <Button
               asChild
               variant="outline"
