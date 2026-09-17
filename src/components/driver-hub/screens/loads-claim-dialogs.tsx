@@ -235,11 +235,13 @@ const ONLINE_NETWORK_ERROR =
  * the consequence is more concrete: **a vehicle chosen for one order must not
  * survive into the next order's dialog.** The pick is local state in that
  * component, so without the key a dispatcher who claimed two loads in a row
- * would find the second dialog pre-selected with the first one's truck — under
- * a driver field that would then claim, truthfully but uselessly, that the name
- * in it is paired with a vehicle they never picked for this job. The `"none"`
- * fallback also remounts it between openings, which is what drops a stale
- * options list and a spent error.
+ * would find the second dialog already holding the first one's truck — and
+ * since the vehicle now carries its own driver, that is a whole assignment
+ * inherited from another job rather than a stray radio. Worse, the pick would
+ * have been made against the first load's cargo: the second dialog would show
+ * it selected under a recommendation computed for a different envelope. The
+ * `"none"` fallback also remounts it between openings, which is what drops a
+ * stale options list and a spent error.
  *
  * Unlike the other two it takes no board state of its own beyond that target:
  * it also opens from the company job sheet, which has no `LoadsProvider` above

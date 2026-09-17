@@ -6,19 +6,30 @@ import {
   bookedClassFor,
   dispatchVerdictFor,
   isDispatchApproved,
+  rankDispatchVehicles,
   type DispatchVerdict,
 } from "@/lib/orders/dispatch-fit";
 import { prisma } from "@/lib/prisma";
 
 /**
  * GET /api/logistics-company/orders/[id]/dispatch-options — everything the
- * dispatch dialog needs to let a fleet put a driver and a vehicle behind a load
- * it has already claimed.
+ * dispatch dialog needs to let a fleet put a vehicle behind a load it has
+ * already claimed.
  *
  * A company claim records `companyId` only and names no vehicle; naming one is
  * `POST .../dispatch`. This is that POST's read half: the fleet, each vehicle
  * pre-judged against *this* order by the very function the POST refuses with,
- * plus the driver roster for the dispatcher to override the paired driver.
+ * ordered so the truck the platform recommends leads the list.
+ *
+ * **One choice, not two.** Every vehicle carries its own driver — the live
+ * `DriverVehicleAssignment` — so picking a vehicle picks a driver, and the
+ * dialog's separate driver override is gone. That is why this response no longer
+ * carries a `roster`: it existed solely to populate that override, and the
+ * driver the POST is submitted with is now always `pairedDriver.userId` off the
+ * chosen vehicle. The consequence is that a vehicle nobody is paired with cannot
+ * be dispatched at all, however well it fits — there is no id to send for it —
+ * which is a rule this endpoint states in the data it returns rather than one
+ * the dialog invents; see `DispatchVehicleOption.recommended`.
  *
  * **The verdicts come from `dispatchVerdictFor`, not from a rule restated
  * here.** That is the entire reason this endpoint exists rather than the dialog
@@ -44,7 +55,7 @@ import { prisma } from "@/lib/prisma";
  * 403 confirms the id exists, letting a caller enumerate a competitor's book.
  */
 
-/** A driver as the dialog names one — the roster rows and the paired driver alike. */
+/** A driver as the dialog names one: the driver paired with a fleet vehicle. */
 type DispatchDriverOption = {
   /**
    * `User.id`, not `DriverProfile.id`. This is what `POST .../dispatch` takes as
@@ -100,44 +111,72 @@ type DispatchVehicleOption = {
     heightM: number | null;
   };
   /**
-   * The driver currently holding this vehicle on an open `DriverVehicleAssignment`,
-   * or null when nobody does — the dialog's pre-selected driver.
+   * The driver currently holding this vehicle on an open `DriverVehicleAssignment`
+   * *and* still on this company's roster — **the driver this vehicle dispatches
+   * with, and the only one.**
    *
-   * A suggestion, not a constraint: the dispatcher may send any driver on the
-   * roster, which is why `roster` is returned alongside. The pairing is the
-   * fleet's own record of who drives what, so defaulting to it is right far more
-   * often than not; overriding it is an ordinary action, not an exception.
+   * Null therefore means "no driver this company can dispatch", which is
+   * slightly wider than "no assignment": a pairing to a driver who has since
+   * been removed from the roster also lands here, because the submit would
+   * refuse that id. See the `assignments` select for why the two must agree.
+   *
+   * A constraint, not a suggestion. The dialog used to render this as a default
+   * inside an editable roster select; that select is gone, because a fleet's own
+   * record of who drives what is the answer in every case anyone could name, and
+   * an override that is almost never the right choice is mostly a way to send
+   * the wrong driver. So `pairedDriver.userId` is what the client submits as the
+   * POST's `driverUserId`, and `null` here means the vehicle cannot be
+   * dispatched at all — there is no id to send. The client shows such a vehicle
+   * disabled, with "No driver assigned" as the reason, rather than hiding it:
+   * the remedy (pair a driver on the Drivers screen) is one the dispatcher can
+   * act on, and a truck that silently vanished from the fleet list is not.
+   *
+   * `isOnline` is carried so the dialog can mark an offline driver rather than
+   * withhold them. Dispatch does not require the driver to be online — that is
+   * the individual-driver claim path's rule, not this one — so it is information
+   * and not a gate.
    */
   pairedDriver: DispatchDriverOption | null;
   /**
    * Why this vehicle may or may not be dispatched against this order — the same
    * verdict, from the same function, that `POST .../dispatch` refuses on.
    *
-   * `{ kind: "FITS" }` is the only choosable one. The rest are returned rather
-   * than filtered out on purpose: a dispatcher looking for a truck needs to know
-   * *why* the obvious one is unavailable ("not approved" sends them to review;
-   * "too small for the booked class" does not), and a picker that simply omits
-   * two thirds of a fleet is one a dispatcher cannot trust or act on.
+   * `{ kind: "FITS" }` is the only choosable one, and it is necessary rather
+   * than sufficient: a fitting vehicle with no `pairedDriver` is still not
+   * dispatchable. The refusals are returned rather than filtered out on purpose:
+   * a dispatcher looking for a truck needs to know *why* the obvious one is
+   * unavailable ("not approved" sends them to review; "too small for the booked
+   * class" does not), and a picker that simply omits two thirds of a fleet is
+   * one a dispatcher cannot trust or act on.
    */
   verdict: DispatchVerdict;
+  /**
+   * Whether this is the vehicle the platform suggests — true on **exactly one**
+   * vehicle in the response, or on none at all when nothing is dispatchable.
+   *
+   * `rankDispatchVehicles` owns the rule: the smallest dispatchable vehicle,
+   * which is the first element once it has sorted. See that function for why
+   * "smallest" is the right suggestion and why it stays a suggestion — the
+   * dispatcher still chooses, and which truck is actually in the yard today is a
+   * fact this server does not hold.
+   *
+   * A flag rather than a `recommendedVehicleId` beside the array: an id would be
+   * a second thing to keep pointing at a row in a list that is already ordered
+   * by the same rule, and a stale or dangling one would be silent. Here the
+   * invariant is a property of the array itself.
+   */
+  recommended: boolean;
 };
 
 /** The frozen response body. The dispatch dialog codes against exactly this. */
 type DispatchOptionsResponse = {
-  /** The whole fleet, newest first — never filtered by verdict. */
-  vehicles: DispatchVehicleOption[];
   /**
-   * Every driver on the company's roster, oldest first, for the dialog's
-   * editable driver override. Unfiltered and unsorted by availability: `POST
-   * .../dispatch` accepts any roster driver, so narrowing here would hide
-   * choices the server permits.
-   *
-   * `isOnline` is carried so the dialog can mark an offline driver rather than
-   * withhold them — dispatch does not require the driver to be online (that is
-   * the individual-driver claim path's rule, not this one), so it is information
-   * and not a gate.
+   * The whole fleet — never filtered by verdict — in the order the dialog
+   * renders it, which `rankDispatchVehicles` decides: the dispatchable vehicles
+   * first and smallest-payload-first among them, then everything else in the
+   * newest-first order the fleet was read in. The client does not re-sort.
    */
-  roster: DispatchDriverOption[];
+  vehicles: DispatchVehicleOption[];
 };
 
 /**
@@ -156,7 +195,7 @@ function serialisableHeight(heightM: number): number | null {
   return Number.isFinite(heightM) ? heightM : null;
 }
 
-/** Flattens a driver profile join into the shape both `roster` and `pairedDriver` use. */
+/** Flattens the assignment's driver-profile join into the `pairedDriver` shape. */
 function toDriverOption(profile: {
   userId: string;
   isOnline: boolean;
@@ -277,15 +316,54 @@ export async function GET(
       // The review row, or null for a vehicle predating business applications.
       // Singular, because `BusinessApplicationVehicle.vehicleId` is `@unique`.
       applicationVehicle: { select: { status: true } },
-      // The live pairing. `take: 1` is exact rather than defensive: the partial
-      // unique index `driver_vehicle_assignment_live_vehicle_unique`
+      // The live pairing, **scoped to drivers still on this company's roster**.
+      //
+      // `unassignedAt: null` is what separates "drives this today" from "drove
+      // it last month": closed assignments are kept rather than deleted.
+      //
+      // `driverProfile.companyId` is the half that mirrors `POST .../dispatch`,
+      // whose driver lookup is `{ userId: driverUserId, companyId: company.id }`
+      // — and it is load-bearing rather than belt-and-braces. Taking a driver
+      // off a roster is `DELETE /api/logistics-company/drivers/[userId]`, which
+      // does exactly one thing: `data: { companyId: null }`
+      // (`DriverProfile.companyId` is `onDelete: SetNull` so the account stays
+      // intact, just independent again). **Nothing closes their assignments** —
+      // no handler under `src/app/api/logistics-company/drivers/` writes
+      // `unassignedAt` at all — so a live pairing to an ex-roster driver is the
+      // ordinary outcome of a supported action, not corrupt data.
+      //
+      // Unscoped, that pairing would be returned, and since this dialog no
+      // longer offers a roster override the dispatcher would have no way past
+      // it: the row shows a driver's name, reads as dispatchable, can win the
+      // recommendation if it is the smallest fitting vehicle, and then the
+      // submit answers "Driver not found." with no next move available inside
+      // the dialog. Scoped, the vehicle arrives as `pairedDriver: null`, is not
+      // dispatchable, is never recommended, and renders "No driver assigned" —
+      // which is accurate in the only sense that matters here: no driver *this
+      // company* can dispatch. That reads worse than it is (the vehicle may
+      // visibly have a driver on the Drivers screen) and is still strictly
+      // better than a vehicle that looks fine and cannot be dispatched at all.
+      //
+      // **This is a symptom fix and is deliberately placed here anyway.** The
+      // real defect is that removing a driver from a roster leaves their
+      // assignments open, and it belongs to whatever performs that departure —
+      // the DELETE above should close them in the same transaction. Until it
+      // does, every reader of a pairing has to scope it, and a GET cannot repair
+      // rows on a caller's behalf. The property this restores in the meantime is
+      // the one `dispatchVerdictFor` already gives for fit: the endpoint that
+      // offers a choice and the endpoint that accepts it agree on who is
+      // eligible, rather than agreeing by coincidence.
+      //
+      // `take: 1` stays exact rather than defensive: the partial unique index
+      // `driver_vehicle_assignment_live_vehicle_unique`
       // (prisma/migrations/20260829121728_add_business_fleet_onboarding) permits
-      // at most one row per vehicle with a null `unassignedAt`, at the database
-      // level. Closed assignments are kept rather than deleted, so the
-      // `unassignedAt` filter is what separates "drives this today" from "drove
-      // it last month".
+      // at most one row per vehicle with a null `unassignedAt` at the database
+      // level, and adding a filter can only narrow that.
       assignments: {
-        where: { unassignedAt: null },
+        where: {
+          unassignedAt: null,
+          driverProfile: { companyId: company.id },
+        },
         take: 1,
         select: {
           driverProfile: {
@@ -318,69 +396,72 @@ export async function GET(
     heightM: order.cargoHeightM,
   };
 
-  const vehicles: DispatchVehicleOption[] = fleet.map((vehicle) => {
-    // One call per vehicle, and the capability it resolved comes back with the
-    // verdict rather than being recomputed for the response. `capabilityOf` is
-    // cheap, but a second independent call is a second chance to be handed the
-    // wrong spec and disagree with the first — so the figures the dialog
-    // displays are, by construction, the figures the verdict was reached from.
-    const { verdict, capability } = dispatchVerdictFor(
-      {
-        vehicleTypeSpecId: vehicle.vehicleTypeSpecId,
-        approved: isDispatchApproved(vehicle.applicationVehicle),
-        payloadKg: vehicle.payloadKg,
-        cargoLengthM: vehicle.cargoLengthM,
-        cargoWidthM: vehicle.cargoWidthM,
-        cargoHeightM: vehicle.cargoHeightM,
-        vehicleTypeSpec: vehicle.vehicleTypeSpec,
-      },
-      { bodyType: order.bodyType, cargo, bookedClass },
-    );
+  // Judged but not yet ranked, which is why the element type is the response
+  // shape *minus* `recommended`: that field is not this map's to invent — it is
+  // a property of the whole fleet (exactly one vehicle carries it) and cannot be
+  // decided one row at a time. `Omit` rather than a hand-written second type, so
+  // adding a field to the response cannot leave the two drifting apart.
+  const judged: Omit<DispatchVehicleOption, "recommended">[] = fleet.map(
+    (vehicle) => {
+      // One call per vehicle, and the capability it resolved comes back with the
+      // verdict rather than being recomputed for the response. `capabilityOf` is
+      // cheap, but a second independent call is a second chance to be handed the
+      // wrong spec and disagree with the first — so the figures the dialog
+      // displays are, by construction, the figures the verdict was reached from.
+      const { verdict, capability } = dispatchVerdictFor(
+        {
+          vehicleTypeSpecId: vehicle.vehicleTypeSpecId,
+          approved: isDispatchApproved(vehicle.applicationVehicle),
+          payloadKg: vehicle.payloadKg,
+          cargoLengthM: vehicle.cargoLengthM,
+          cargoWidthM: vehicle.cargoWidthM,
+          cargoHeightM: vehicle.cargoHeightM,
+          vehicleTypeSpec: vehicle.vehicleTypeSpec,
+        },
+        { bodyType: order.bodyType, cargo, bookedClass },
+      );
 
-    const assignment = vehicle.assignments[0];
+      // At most one, guaranteed by the partial unique index rather than by this
+      // line — see the `assignments` select above.
+      //
+      // Absent here means "no driver this company can dispatch", which is a
+      // wider condition than "no assignment": it also covers a live pairing to
+      // a driver who has since left the roster, which that select deliberately
+      // filters out so this endpoint and `POST .../dispatch` agree on who is
+      // eligible. Do not widen the query without reading that comment first.
+      const assignment = vehicle.assignments[0];
 
-    return {
-      vehicleId: vehicle.id,
-      plateNumber: vehicle.plateNumber,
-      classLabel: vehicle.vehicleTypeSpec.label,
-      capability: {
-        payloadKg: capability.payloadKg,
-        lengthM: capability.lengthM,
-        widthM: capability.widthM,
-        // The one axis that can arrive unbounded — see `serialisableHeight` and
-        // `DispatchVehicleOption.capability.heightM`.
-        heightM: serialisableHeight(capability.heightM),
-      },
-      pairedDriver: assignment
-        ? toDriverOption(assignment.driverProfile)
-        : null,
-      verdict,
-    };
-  });
+      return {
+        vehicleId: vehicle.id,
+        plateNumber: vehicle.plateNumber,
+        classLabel: vehicle.vehicleTypeSpec.label,
+        capability: {
+          payloadKg: capability.payloadKg,
+          lengthM: capability.lengthM,
+          widthM: capability.widthM,
+          // The one axis that can arrive unbounded — see `serialisableHeight`
+          // and `DispatchVehicleOption.capability.heightM`.
+          heightM: serialisableHeight(capability.heightM),
+        },
+        pairedDriver: assignment
+          ? toDriverOption(assignment.driverProfile)
+          : null,
+        verdict,
+      };
+    },
+  );
 
-  // The roster, scoped and ordered exactly as `GET /api/logistics-company/drivers`
-  // scopes and orders it, so the dialog's list and the roster screen's agree on
-  // membership and on sequence. Narrowed to the three fields the picker renders:
-  // a driver's phone, city and licence are not needed to name a row here, and an
-  // endpoint should not hand out more than its consumer asked for.
+  // The order and the recommendation, both from the one testable function that
+  // owns them. Deliberately *not* an inline comparator here: "the smallest
+  // vehicle that fits, and it is the only one recommended" is a product rule
+  // worth asserting directly, and a comparator inside a route handler can only
+  // be exercised through a request against a database.
   //
-  // A paired driver is normally also a roster row — a company vehicle is
-  // assigned from this same roster — but the two lists are read independently
-  // and nothing here forces that. If a pairing survives a driver leaving the
-  // roster (`DriverProfile.companyId` is `onDelete: SetNull`), `pairedDriver`
-  // names someone `roster` does not contain, and the POST would refuse them.
-  // Surfaced as-is rather than suppressed: hiding the stale pairing would leave
-  // the dispatcher wondering why the vehicle has no default driver, where
-  // showing a name the submit rejects at least points at the real problem.
-  const roster = await prisma.driverProfile.findMany({
-    where: { companyId: company.id },
-    select: { userId: true, isOnline: true, user: { select: { name: true } } },
-    orderBy: { createdAt: "asc" },
-  });
-
+  // Note the payload it sorts on is `capability.payloadKg` above — the resolved
+  // figure, the vehicle's own where it declared one. Handing it the class
+  // catalogue's number instead would make every vehicle in a class tie.
   const body: DispatchOptionsResponse = {
-    vehicles,
-    roster: roster.map(toDriverOption),
+    vehicles: rankDispatchVehicles(judged),
   };
 
   return NextResponse.json(body, { status: 200 });

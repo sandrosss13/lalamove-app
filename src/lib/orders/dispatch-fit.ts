@@ -35,6 +35,16 @@
  * object literals, and a Prisma import here would turn every one of those
  * assertions into an integration test against a live database.
  *
+ * **`rankDispatchVehicles` lives here for the same reason**, one level up from
+ * the verdict: it turns a fleet of judged vehicles into the order the picker
+ * renders and marks the one the platform recommends. It is the sort's only home
+ * because the alternative is an inline comparator in the options route, which no
+ * test can reach without a database — and the recommendation is a product rule
+ * ("the smallest truck that fits", not "the first one we happened to fetch")
+ * that is worth asserting directly rather than inferring from a JSON response.
+ * It reads the verdict this module produces and a resolved payload, and nothing
+ * else, so it inherits the dependency freedom above unchanged.
+ *
  * **This module answers per-vehicle dispatchability, not scope.** Whether the
  * caller owns the order, the vehicle or the driver, whether the fleet is
  * activated, and whether the order is still CLAIMED are all questions for the
@@ -323,4 +333,197 @@ export function dispatchVerdictFor(
   }
 
   return { verdict: { kind: "FITS" }, capability };
+}
+
+/**
+ * The least a vehicle has to carry for `rankDispatchVehicles` to order it and to
+ * decide whether it is the one to recommend.
+ *
+ * **Structural and minimal on purpose.** The dispatch options endpoint's
+ * `DispatchVehicleOption` is much wider — plate, class label, four capability
+ * axes, the driver's name and online flag — and this module cannot name that
+ * type without importing a route, which would drag `server-only` and Prisma back
+ * in through the side door (see the module doc). Stating only the three things
+ * the ranking actually reads keeps the rule importable from a test that builds
+ * its vehicles as object literals, and keeps the endpoint free to add fields to
+ * its response without touching the ordering.
+ *
+ * `pairedDriver` is typed as `{ userId: string } | null` rather than as
+ * `unknown`/`object`: nothing here reads the driver, only whether there *is*
+ * one, but naming the id documents what the presence of this object means — the
+ * value `POST .../dispatch` will be submitted as — rather than leaving the
+ * nullable slot to be filled by any truthy thing at all.
+ */
+export type DispatchRankableVehicle = {
+  /** For the tie-break. `Vehicle.plateNumber`, the fleet's own human label. */
+  plateNumber: string;
+  /**
+   * The **resolved** capability's payload, from `DispatchAssessment.capability`
+   * — the vehicle's own declared figure where it has one, the class catalogue
+   * only as the fallback.
+   *
+   * Passing the catalogue figure instead would not merely be a slightly
+   * different number: every vehicle registered under one class would report the
+   * same payload, the `payloadKg` sort key would collapse to a constant within a
+   * class, and "the smallest vehicle that fits" would degrade into "whichever
+   * plate sorts first among the whole class". Only `payloadKg` is read; the
+   * other three axes are not part of the ordering (see `rankDispatchVehicles`).
+   */
+  capability: { payloadKg: number };
+  /**
+   * The driver holding this vehicle on a live assignment, or `null` when nobody
+   * does. Half of the dispatchability test — see `rankDispatchVehicles`.
+   */
+  pairedDriver: { userId: string } | null;
+  /** This vehicle's verdict against the order being dispatched. */
+  verdict: DispatchVerdict;
+};
+
+/**
+ * Whether this vehicle can actually be dispatched: it clears every rule *and*
+ * somebody is behind the wheel.
+ *
+ * Both halves are necessary and neither is implied by the other.
+ * `dispatchVerdictFor` answers a question about capacity, class, body and cargo
+ * and knows nothing about assignments, so a `FITS` verdict on a vehicle no
+ * driver is paired with is a truck that is perfectly suited to the load and
+ * cannot leave the yard. `POST .../dispatch` takes a `driverUserId`, and since
+ * the dialog no longer offers a roster override there is no id to send for such
+ * a vehicle — so "fits but driverless" is not a near miss to be offered
+ * hopefully, it is unselectable.
+ *
+ * Module-local rather than exported: the rule belongs to the ordering and the
+ * recommendation, and the surfaces that render a vehicle already receive the
+ * verdict and the pairing and read them directly to decide what to disable and
+ * what reason to print. A second exported predicate would be a second place for
+ * "dispatchable" to be defined, which is the failure this whole module exists to
+ * prevent.
+ */
+function isDispatchable(vehicle: DispatchRankableVehicle): boolean {
+  return vehicle.verdict.kind === "FITS" && vehicle.pairedDriver !== null;
+}
+
+/**
+ * Order a fleet for the dispatch picker and mark the one vehicle the platform
+ * recommends.
+ *
+ * ## What is recommended, and why "smallest"
+ *
+ * The recommendation is the **smallest vehicle that fits** — the tightest truck
+ * that still clears the booked class, the body requirement and the declared
+ * cargo. Every dispatchable vehicle already satisfies what the client paid for
+ * (that is what `meetsBookedClass` guarantees: the booked class is a *floor*),
+ * so the extra capacity on a larger one buys the client nothing and costs the
+ * fleet the truck. Recommending the first vehicle in the fleet list instead
+ * burns a 3.5 t box truck on a 200 kg load and leaves the job that genuinely
+ * needs it with nothing to run on.
+ *
+ * This is the same heuristic `claimCandidatesFor` in
+ * `src/components/driver-hub/screens/loads-context.tsx` already applies on the
+ * driver side — fits first, then ascending resolved `payloadKg`, then the plate
+ * — and it is stated the same way here deliberately. A driver picking their own
+ * truck and a dispatcher picking one out of a company fleet are the same
+ * decision seen from two seats, and two different answers to "which truck should
+ * this be" would be a difference nobody chose.
+ *
+ * **It is a recommendation and never a decision.** Exactly one vehicle carries
+ * `recommended: true` and every other carries `false`, including every
+ * non-dispatchable one; the caller still renders the whole fleet and the
+ * dispatcher still picks. Which truck is in the yard today, which is due a
+ * service and which driver is halfway across the city are facts the platform
+ * does not hold, so the sort orders the choice rather than making it.
+ *
+ * ## The order, exactly
+ *
+ *  1. **Dispatchable vehicles first** (`isDispatchable`), because those are the
+ *     only rows the dispatcher can act on and a picker that buries them under
+ *     refusals is one they have to scan rather than read.
+ *  2. Among those, **ascending resolved `payloadKg`** — the "smallest" above.
+ *  3. Ties broken on **`plateNumber.localeCompare`**, which is not cosmetic: two
+ *     vehicles of one class that both declared nothing resolve to identical
+ *     figures, and without a total order the recommendation would flip between
+ *     two equally good trucks from one poll to the next, making a dispatcher
+ *     doubt a suggestion that had not actually changed. `localeCompare` rather
+ *     than `<` for the reason `claimCandidatesFor` uses it: plates on this
+ *     platform are not ASCII.
+ *
+ * **Only `payloadKg` is sorted on, not a volume or a four-axis score.** A
+ * composite key would need weights nobody has justified — is a shorter hold
+ * worth more than a lighter one? — and would answer differently for two vehicles
+ * a dispatcher considers interchangeable. Payload is the one axis a fleet
+ * actually reasons about when deciding which truck is "too much truck", it is
+ * the axis vehicle registration floors, and it is the axis the driver side
+ * already ranks on. A genuine volume ranking is a plausible refinement, but it
+ * is a product decision, not a tidier comparator.
+ *
+ * ## The tail
+ *
+ * Everything not dispatchable — unfit for any of the four reasons, or fitting
+ * with nobody paired to it — follows **in the order it was given**, which for
+ * the options endpoint is the fleet newest-first. That ordering is preserved
+ * rather than recomputed because `Array.prototype.sort` is stable (specified
+ * since ES2019, and this project targets ES2022), so the comparator returns `0`
+ * for any two of them and the engine leaves them where they were.
+ *
+ * **Rejected: sub-sorting the tail** — floating the fitting-but-driverless rows
+ * above the unfit ones, or ranking the refusals by severity. It reads as an
+ * improvement and is not: it ranks rows the dispatcher cannot choose, implying a
+ * preference between two vehicles that are equally unavailable, and every row
+ * already prints its own reason, which is the information that actually moves
+ * someone ("no driver assigned" sends them to the Drivers screen, "not approved"
+ * to review). Keeping one undifferentiated tail also means the endpoint's own
+ * "newest first" ordering still describes the part of the response the
+ * recommendation does not touch.
+ *
+ * ## Purity
+ *
+ * Takes a `readonly` array and copies it before sorting, so the caller's array —
+ * and, in a client component, any array derived from props or state — is never
+ * reordered underneath it. Generic in the element type so the endpoint's full
+ * `DispatchVehicleOption` (class label, all four capability axes, the driver's
+ * name) survives the call and comes back widened with `recommended`, instead of
+ * being narrowed to the three fields the ranking reads.
+ */
+export function rankDispatchVehicles<T extends DispatchRankableVehicle>(
+  vehicles: readonly T[],
+): (T & { recommended: boolean })[] {
+  // Copied, not sorted in place — see the purity note above. `readonly T[]`
+  // states the intent in the type; the spread is what enforces it at runtime.
+  const ordered = [...vehicles].sort((a, b) => {
+    const aDispatchable = isDispatchable(a);
+    const bDispatchable = isDispatchable(b);
+
+    if (aDispatchable !== bDispatchable) {
+      // `true` sorts first. Written as a boolean comparison rather than
+      // `Number(b) - Number(a)` only because the two flags are needed again
+      // below; the resulting order is identical.
+      return aDispatchable ? -1 : 1;
+    }
+
+    // Two non-dispatchable vehicles compare equal, and a stable sort leaves them
+    // in input order. This is the whole of the tail rule.
+    if (!aDispatchable) {
+      return 0;
+    }
+
+    return (
+      a.capability.payloadKg - b.capability.payloadKg ||
+      a.plateNumber.localeCompare(b.plateNumber)
+    );
+  });
+
+  // The recommendation falls out of the order rather than being searched for
+  // separately: dispatchable vehicles sort to the front, so the smallest fitting
+  // one — if there is one at all — is now at index 0. The `isDispatchable` guard
+  // is what makes "nothing is dispatchable" mean no recommendation instead of
+  // recommending whatever unfit vehicle happens to lead the tail, and it is why
+  // a fleet with no usable truck returns `recommended: false` throughout.
+  //
+  // Deriving the flag from the index also makes "exactly one" structural: there
+  // is one index 0, so no second vehicle can be marked however the comparator is
+  // later changed.
+  return ordered.map((vehicle, index) => ({
+    ...vehicle,
+    recommended: index === 0 && isDispatchable(vehicle),
+  }));
 }
