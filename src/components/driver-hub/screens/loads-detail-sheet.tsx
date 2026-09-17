@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-
 import { useLoadsBoard } from "@/components/driver-hub/screens/loads-context";
 import {
   CargoPhotoTiles,
@@ -193,9 +192,11 @@ export type LoadsDetailSheetProps = {
 
 export function LoadsDetailSheet({ nowIso }: LoadsDetailSheetProps) {
   const {
+    accountKind,
     selectedLoad,
     selectLoad,
     openConfirm,
+    openDispatch,
     reject,
     restore,
     canAccept,
@@ -205,6 +206,25 @@ export function LoadsDetailSheet({ nowIso }: LoadsDetailSheetProps) {
   } = useLoadsBoard();
 
   const load = selectedLoad;
+
+  /**
+   * Whether to offer the dispatch step — the desktop drawer's condition,
+   * verbatim.
+   *
+   * **The reasoning lives on `canDispatch` in `loads-drawer.tsx`** and is not
+   * repeated here, because a predicate explained twice is a predicate that gets
+   * corrected once — which this one did, having first shipped as
+   * `driverId === null` and offered a 404ing control on an ACCEPTED row that
+   * carries no driver. `dispatchable` is resolved by `GET /api/loads` against
+   * the raw `OrderStatus` and is the only thing on `HubLoad` that answers the
+   * question.
+   *
+   * The `load !== null` arm is this file's alone: the drawer returns early on a
+   * null selection, whereas this sheet stays mounted so Radix can animate it
+   * out, and the flag is computed above the branch that narrows `load`.
+   */
+  const canDispatch =
+    accountKind === "BUSINESS" && load !== null && load.dispatchable;
 
   return (
     <Sheet
@@ -395,6 +415,31 @@ export function LoadsDetailSheet({ nowIso }: LoadsDetailSheetProps) {
                       and this button sent fleet owners to "Order not found."
                       See `loads-drawer.tsx`'s doc comment for the full
                       history. */}
+                  {/* The drawer's "Assign a vehicle", at the mobile touch
+                      floor rather than 40px, and primary above the job-sheet
+                      link for the same reason: a dispatcher on a load they have
+                      claimed and not yet assigned wants to put a truck on it far
+                      more often than they want to read the sheet.
+
+                      This sheet is `modal={false}` (see this file's doc comment),
+                      so the dispatch dialog Radix portals over it does not fight
+                      it for the focus trap — the dialog is modal and takes over,
+                      and dismissing it returns the dispatcher to the load they
+                      were reading rather than to an empty board.
+
+                      Why the dialog is reachable at all from here: it is mounted
+                      by `LoadsClaimDialogs` at board level off the context's
+                      `dispatchTarget`, not by this sheet, so `openDispatch` is
+                      the whole of the wiring. */}
+                  {canDispatch ? (
+                    <Button
+                      type="button"
+                      onClick={() => openDispatch(load)}
+                      className={TOUCH_TARGET_CLASSES}
+                    >
+                      Assign a vehicle
+                    </Button>
+                  ) : null}
                   <Button
                     asChild
                     variant="outline"

@@ -298,6 +298,41 @@ export type LoadBoardItem = {
   driverId: string | null;
   companyId: string | null;
   vehicleId: string | null;
+  /**
+   * Whether **this account** can dispatch this order right now — i.e. whether
+   * `GET/POST /api/logistics-company/orders/[id]/dispatch(-options)` would
+   * answer rather than 404.
+   *
+   * Derived here, where `Order.status` is in scope, because the board's own
+   * `status` above is a three-value vocabulary (`available`/`claimed`/`mine`)
+   * and deliberately not the raw `OrderStatus`. A consumer therefore **cannot**
+   * work this out from what it is given, and the two obvious attempts are both
+   * wrong on data that exists today:
+   *
+   * - `status === "mine"` is far too wide: `MINE_STATUSES` puts CLAIMED,
+   *   ACCEPTED and IN_TRANSIT alike into `mine`.
+   * - `driverId === null` looks exact and is not. It assumes the only way to
+   *   reach ACCEPTED is the dispatch write, which pairs a driver with the
+   *   status change. The *flow* does guarantee that; the *data* does not. The
+   *   driver-hub fixture seeds `fleet-active-unassigned` as ACCEPTED with a
+   *   null `driverId` **and** a null `vehicleId` on purpose, to exercise the
+   *   fleet header pill's "Unassigned" sub-line, and that row sits in `mine`
+   *   directly beside a genuinely claimed one. A board gating on `driverId`
+   *   offers a dispatch control on it that 404s on press.
+   *
+   * Exporting the raw `OrderStatus` instead was rejected: it would hand every
+   * driver-facing surface a fourth status vocabulary to get wrong, when the
+   * only question any of them asks is this one. The answer is the precondition
+   * both dispatch routes scope on, `{ companyId, status: CLAIMED }`, plus the
+   * per-account `"mine"` — so it is "can *you* dispatch this", not "is this
+   * dispatchable by somebody", and it is never true for another company's row.
+   *
+   * It is not a promise the press will succeed. A dispatcher can assign the
+   * load from a second tab between this response and a click, and the fleet
+   * activation gate is a 403 this flag knows nothing about. It removes the
+   * control that is *predictably* broken; the dialog still reports the rest.
+   */
+  dispatchable: boolean;
   /** NOT in the approved design — see the GET handler's doc comment. */
   createdAt: string;
   /** The claim instant for a `"claimed"` row; the UI derives "N min ago" from this. */
@@ -662,6 +697,19 @@ function toLoadBoardItem(
     driverId: order.driverId,
     companyId: order.companyId,
     vehicleId: order.vehicleId,
+    // Exactly the `where` both dispatch routes scope on — `{ id, companyId,
+    // status: CLAIMED }` — with `id` supplied by the lookup and ownership
+    // supplied by `status === "mine"`, which is what put this row in the
+    // caller's own array. Written as the same three facts in the same order so
+    // that a change to either route's scoping is visibly a change to this line.
+    //
+    // `driverId` is deliberately not consulted. See the field's own note: the
+    // pairing of "has a driver" with "is past CLAIMED" holds in the flow and
+    // not in the data, and this is the half that is actually load-bearing.
+    dispatchable:
+      status === "mine" &&
+      order.companyId !== null &&
+      order.status === OrderStatus.CLAIMED,
     createdAt: order.createdAt.toISOString(),
     updatedAt: order.updatedAt.toISOString(),
   };
