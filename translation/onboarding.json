@@ -1,297 +1,297 @@
 {
   "applicationStatusScreen.accountActivation": {
     "en": "Account activation",
-    "ka": "",
+    "ka": "ანგარიშის გააქტიურება",
     "_source": "src/components/driver-onboarding/application-status-screen.tsx"
   },
   "applicationStatusScreen.applicationSubmitted": {
     "en": "Application submitted",
-    "ka": "",
+    "ka": "განაცხადი გაგზავნილია",
     "_source": "src/components/driver-onboarding/application-status-screen.tsx"
   },
   "applicationStatusScreen.documentReview": {
     "en": "Document review",
-    "ka": "",
+    "ka": "დოკუმენტების გადამოწმება",
     "_source": "src/components/driver-onboarding/application-status-screen.tsx"
   },
   "applicationStatusScreen.keepYourLicenceAndInsuranceCurrent": {
     "en": "Keep your licence and insurance current — we re-check 30 days before expiry.",
-    "ka": "",
+    "ka": "მართვის მოწმობა და დაზღვევა შეინარჩუნეთ განახლებულ მდგომარეობაში — ჩვენ ხელახლა ვამოწმებთ ვადის გასვლამდე 30 დღით ადრე.",
     "_source": "src/components/driver-onboarding/application-status-screen.tsx"
   },
   "applicationStatusScreen.licenceBack": {
     "en": "Licence — back",
-    "ka": "",
+    "ka": "მართვის მოწმობა — უკანა მხარე",
     "_source": "src/components/driver-onboarding/application-status-screen.tsx"
   },
   "applicationStatusScreen.licenceFront": {
     "en": "Licence — front",
-    "ka": "",
+    "ka": "მართვის მოწმობა — წინა მხარე",
     "_source": "src/components/driver-onboarding/application-status-screen.tsx"
   },
   "applicationStatusScreen.needsANewPhoto": {
     "en": "Needs a new photo",
-    "ka": "",
+    "ka": "საჭიროებს ახალ ფოტოს",
     "_source": "src/components/driver-onboarding/application-status-screen.tsx"
   },
   "applicationStatusScreen.resubmittedApplicationsAreUsuallyReviewedWithin": {
     "en": "Resubmitted applications are usually reviewed within 4 hours.",
-    "ka": "",
+    "ka": "ხელახლა გაგზავნილი განაცხადები, როგორც წესი, მოწმდება 4 საათის განმავლობაში.",
     "_source": "src/components/driver-onboarding/application-status-screen.tsx"
   },
   "applicationStatusScreen.retake": {
     "en": "Retake",
-    "ka": "",
+    "ka": "ხელახლა გადაღება",
     "_source": "src/components/driver-onboarding/application-status-screen.tsx"
   },
   "applicationStatusScreen.typicalReviewTimeIs1224": {
     "en": "Typical review time is 12–24 hours on business days.",
-    "ka": "",
+    "ka": "სტანდარტული განხილვის დროა 12–24 საათი სამუშაო დღეებში.",
     "_source": "src/components/driver-onboarding/application-status-screen.tsx"
   },
   "applicationStatusScreen.underReview": {
     "en": "Under review",
-    "ka": "",
+    "ka": "განხილვის პროცესშია",
     "_source": "src/components/driver-onboarding/application-status-screen.tsx"
   },
   "applicationStatusScreen.youAreClearedToDrive": {
     "en": "You are cleared to drive",
-    "ka": "",
+    "ka": "თქვენ გაქვთ მართვის უფლება",
     "_source": "src/components/driver-onboarding/application-status-screen.tsx"
   },
   "documentUploadDialog.filesAreCheckedByTheReview": {
     "en": "Files are checked by the review team, not automatically.",
-    "ka": "",
+    "ka": "ფაილებს ამოწმებს გადამოწმების გუნდი და არა ავტომატურად.",
     "_source": "src/components/driver-onboarding/document-upload-dialog.tsx"
   },
   "documentUploadDialog.jpgOrPngMax10Mb": {
     "en": "JPG or PNG · max 10 MB",
-    "ka": "",
+    "ka": "JPG ან PNG · მაქს. 10 MB",
     "_source": "src/components/driver-onboarding/document-upload-dialog.tsx"
   },
   "documentUploadDialog.theCategoryTableIsWhatThe": {
     "en": "The category table is what the reviewer checks.",
-    "ka": "",
+    "ka": "კატეგორიების ცხრილს ამოწმებს ამმოწმებელი.",
     "_source": "src/components/driver-onboarding/document-upload-dialog.tsx"
   },
   "documentUploadDialog.thePhotoNameAndLicenceNumber": {
     "en": "The photo, name and licence number must be readable.",
-    "ka": "",
+    "ka": "ფოტო, სახელი და მართვის მოწმობის ნომერი უნდა იყოს მკაფიოდ წაკითხვადი.",
     "_source": "src/components/driver-onboarding/document-upload-dialog.tsx"
   },
   "documentUploadDialog.uploadTheBackOfYourLicence": {
     "en": "Upload the back of your licence",
-    "ka": "",
+    "ka": "ატვირთეთ მართვის მოწმობის უკანა მხარე",
     "_source": "src/components/driver-onboarding/document-upload-dialog.tsx"
   },
   "documentUploadDialog.uploadTheFrontOfYourLicence": {
     "en": "Upload the front of your licence",
-    "ka": "",
+    "ka": "ატვირთეთ მართვის მოწმობის წინა მხარე",
     "_source": "src/components/driver-onboarding/document-upload-dialog.tsx"
   },
   "documentUploadDialog.uploadYourProfilePhoto": {
     "en": "Upload your profile photo",
-    "ka": "",
+    "ka": "ატვირთეთ თქვენი პროფილის ფოტო",
     "_source": "src/components/driver-onboarding/document-upload-dialog.tsx"
   },
   "onboardingStepRail.authorisationPersonal": {
     "en": "Authorisation & personal",
-    "ka": "",
+    "ka": "ავტორიზაცია და პირადი მონაცემები",
     "_source": "src/components/driver-onboarding/onboarding-step-rail.tsx"
   },
   "onboardingStepRail.everyFieldValidatesOnContinueDocuments": {
     "en": "Every field validates on continue. Documents flagged in the admin console come back here for re-upload.",
-    "ka": "",
+    "ka": "თითოეული ველი მოწმდება გაგრძელებისას. ადმინისტრატორის კონსოლში მონიშნული დოკუმენტები ბრუნდება აქ ხელახლა ასატვირთად.",
     "_source": "src/components/driver-onboarding/onboarding-step-rail.tsx"
   },
   "onboardingStepRail.licenceVerification": {
     "en": "Licence verification",
-    "ka": "",
+    "ka": "მართვის მოწმობის ვერიფიკაცია",
     "_source": "src/components/driver-onboarding/onboarding-step-rail.tsx"
   },
   "onboardingWizardShell.becomeAPartnerDriver": {
     "en": "Become a partner driver",
-    "ka": "",
+    "ka": "გახდით პარტნიორი მძღოლი",
     "_source": "src/components/driver-onboarding/onboarding-wizard-shell.tsx"
   },
   "onboardingWizardShell.fourStepsAround12MinutesIf": {
     "en": "Four steps. Around 12 minutes if your licence and vehicle documents are to hand. Progress is saved as you go.",
-    "ka": "",
+    "ka": "ოთხი ნაბიჯი. დაახლოებით 12 წუთი, თუ მართვის მოწმობა და ტრანსპორტის დოკუმენტები ხელთ გაქვთ. პროგრესი ინახება ეტაპობრივად.",
     "_source": "src/components/driver-onboarding/onboarding-wizard-shell.tsx"
   },
   "onboardingWizardShell.technicalDetails": {
     "en": "Technical details",
-    "ka": "",
+    "ka": "ტექნიკური დეტალები",
     "_source": "src/components/driver-onboarding/onboarding-wizard-shell.tsx"
   },
   "onboardingWizardShell.whoYouAre": {
     "en": "Who you are",
-    "ka": "",
+    "ka": "ვინ ხართ თქვენ",
     "_source": "src/components/driver-onboarding/onboarding-wizard-shell.tsx"
   },
   "onboardingWizardShell.yourLicence": {
     "en": "Your licence",
-    "ka": "",
+    "ka": "თქვენი მართვის მოწმობა",
     "_source": "src/components/driver-onboarding/onboarding-wizard-shell.tsx"
   },
   "step1AuthPersonal.exactlyAsPrintedOnYourId": {
     "en": "Exactly as printed on your ID",
-    "ka": "",
+    "ka": "ზუსტად ისე, როგორც დაბეჭდილია თქვენს პირადობაში",
     "_source": "src/components/driver-onboarding/steps/step-1-auth-personal.tsx"
   },
   "step1AuthPersonal.idOrPassportNumber": {
     "en": "ID or passport number",
-    "ka": "",
+    "ka": "პირადი ნომერი ან პასპორტის ნომერი",
     "_source": "src/components/driver-onboarding/steps/step-1-auth-personal.tsx"
   },
   "step1AuthPersonal.mobileNumber": {
     "en": "Mobile number",
-    "ka": "",
+    "ka": "მობილურის ნომერი",
     "_source": "src/components/driver-onboarding/steps/step-1-auth-personal.tsx"
   },
   "step1AuthPersonal.startTypingTbilisiBatumiKutaisi": {
     "en": "Start typing — Tbilisi, Batumi, Kutaisi…",
-    "ka": "",
+    "ka": "დაიწყეთ აკრეფა — თბილისი, ბათუმი, ქუთაისი...",
     "_source": "src/components/driver-onboarding/steps/step-1-auth-personal.tsx"
   },
   "step1AuthPersonal.thisIsTheNumberCouriersAnd": {
     "en": "This is the number couriers and dispatch will call. Everything here is checked against your ID by the review team.",
-    "ka": "",
+    "ka": "ეს არის ნომერი, რომელზეც კურიერები და დისპეტჩერი დარეკავენ. აქ ყველაფერი მოწმდება თქვენს პირადობასთან გადამოწმების გუნდის მიერ.",
     "_source": "src/components/driver-onboarding/steps/step-1-auth-personal.tsx"
   },
   "step1AuthPersonal.whereYouWillMostlyPickUp": {
     "en": "Where you will mostly pick up orders. Georgia only for now.",
-    "ka": "",
+    "ka": "სად აიღებთ შეკვეთებს ძირითადად. ამჟამად მხოლოდ საქართველოში.",
     "_source": "src/components/driver-onboarding/steps/step-1-auth-personal.tsx"
   },
   "step2Licence.backOfLicence": {
     "en": "Back of licence",
-    "ka": "",
+    "ka": "მართვის მოწმობის უკანა მხარე",
     "_source": "src/components/driver-onboarding/steps/step-2-licence.tsx"
   },
   "step2Licence.carsAndVansUpTo3": {
     "en": "Cars and vans up to 3.5 t",
-    "ka": "",
+    "ka": "მსუბუქი ავტომობილები და ფურგონები 3.5 ტ-მდე",
     "_source": "src/components/driver-onboarding/steps/step-2-licence.tsx"
   },
   "step2Licence.expiryDate": {
     "en": "Expiry date",
-    "ka": "",
+    "ka": "მოქმედების ვადა",
     "_source": "src/components/driver-onboarding/steps/step-2-licence.tsx"
   },
   "step2Licence.frontOfLicence": {
     "en": "Front of licence",
-    "ka": "",
+    "ka": "მართვის მოწმობის წინა მხარე",
     "_source": "src/components/driver-onboarding/steps/step-2-licence.tsx"
   },
   "step2Licence.rigidTrucksOver35T": {
     "en": "Rigid trucks over 3.5 t",
-    "ka": "",
+    "ka": "მძიმე ძარიანი სატვირთოები 3.5 ტ-ზე მეტი",
     "_source": "src/components/driver-onboarding/steps/step-2-licence.tsx"
   },
   "step2Licence.scansOrPhotosBothWorkAll": {
     "en": "Scans or photos both work. All four corners must be visible and free of glare.",
-    "ka": "",
+    "ka": "სკანი ან ფოტო — ორივე მისაღებია. ოთხივე კუთხე უნდა ჩანდეს და არ უნდა ჰქონდეს ანარეკლი.",
     "_source": "src/components/driver-onboarding/steps/step-2-licence.tsx"
   },
   "step2Licence.theseDecideTheVehicleClassesYou": {
     "en": "These decide the vehicle classes you can be dispatched for.",
-    "ka": "",
+    "ka": "ეს განსაზღვრავს ტრანსპორტის კლასებს, რომლებზეც შეგიძლიათ გადანაწილდეთ.",
     "_source": "src/components/driver-onboarding/steps/step-2-licence.tsx"
   },
   "step2Licence.truckWithTrailerArticulated": {
     "en": "Truck with trailer / articulated",
-    "ka": "",
+    "ka": "სატვირთო მისაბმელით / ავტოპოზდი",
     "_source": "src/components/driver-onboarding/steps/step-2-licence.tsx"
   },
   "step3ChassisClass.cargoBodyType": {
     "en": "Cargo body type",
-    "ka": "",
+    "ka": "სატვირთო ძარის ტიპი",
     "_source": "src/components/driver-onboarding/steps/step-3-chassis-class.tsx"
   },
   "step3ChassisClass.enclosedRigidBoxGeneralPalletisedAnd": {
     "en": "Enclosed rigid box. General palletised and boxed cargo.",
-    "ka": "",
+    "ka": "დახურული მყარი ფურგონი. ზოგადი პალეტირებული და ყუთებში მოთავსებული ტვირთი.",
     "_source": "src/components/driver-onboarding/steps/step-3-chassis-class.tsx"
   },
   "step3ChassisClass.pickTheClassThatMatchesYour": {
     "en": "Pick the class that matches your vehicle. Classes above your licence categories, or not offered for the body type you chose, are locked.",
-    "ka": "",
+    "ka": "აირჩიეთ კლასი, რომელიც შეესაბამება თქვენს ტრანსპორტს. კლასები, რომლებიც აღემატება თქვენი მართვის მოწმობის კატეგორიებს ან არ არის შეთავაზებული თქვენ მიერ არჩეული ძარის ტიპისთვის, დაბლოკილია.",
     "_source": "src/components/driver-onboarding/steps/step-3-chassis-class.tsx"
   },
   "step3ChassisClass.temperatureControlledBody20CTo": {
     "en": "Temperature-controlled body, −20 °C to +8 °C. Requires a valid cooling unit service record.",
-    "ka": "",
+    "ka": "ტემპერატურულად კონტროლირებადი ძარა, -20 °C-დან +8 °C-მდე. საჭიროებს მაცივარი დანადგარის მოქმედ სერვისის ისტორიას.",
     "_source": "src/components/driver-onboarding/steps/step-3-chassis-class.tsx"
   },
   "step3ChassisClass.vehicleClass": {
     "en": "Vehicle class",
-    "ka": "",
+    "ka": "ტრანსპორტის კლასი",
     "_source": "src/components/driver-onboarding/steps/step-3-chassis-class.tsx"
   },
   "step3ChassisClass.whatKindOfCargoBodyDoes": {
     "en": "What kind of cargo body does the vehicle have?",
-    "ka": "",
+    "ka": "როგორი სატვირთო ძარა აქვს ტრანსპორტს?",
     "_source": "src/components/driver-onboarding/steps/step-3-chassis-class.tsx"
   },
   "step3cTechnicalDetails.rearViewShowing2BodyWidth": {
     "en": "Rear view showing 2 body width",
-    "ka": "",
+    "ka": "უკანა ხედი, სადაც ჩანს ძარის 2 სიგანე",
     "_source": "src/components/driver-onboarding/steps/step-3c-technical-details.tsx"
   },
   "step4ReviewSubmit.checkEverythingBeforeItGoesTo": {
     "en": "Check everything before it goes to the review team. Corrections after submission cost you a day.",
-    "ka": "",
+    "ka": "შეამოწმეთ ყველაფერი, სანამ გადამოწმების გუნდთან გაიგზავნება. გაგზავნის შემდეგ შესწორებები დაგიჯდებათ ერთი დღით შეყოვნება.",
     "_source": "src/components/driver-onboarding/steps/step-4-review-submit.tsx"
   },
   "step4ReviewSubmit.driverSLicence": {
     "en": "Driver's licence",
-    "ka": "",
+    "ka": "მართვის მოწმობა",
     "_source": "src/components/driver-onboarding/steps/step-4-review-submit.tsx"
   },
   "step4ReviewSubmit.number": {
     "en": "Number",
-    "ka": "",
+    "ka": "ნომერი",
     "_source": "src/components/driver-onboarding/steps/step-4-review-submit.tsx"
   },
   "step4ReviewSubmit.personalInformation": {
     "en": "Personal information",
-    "ka": "",
+    "ka": "პირადი ინფორმაცია",
     "_source": "src/components/driver-onboarding/steps/step-4-review-submit.tsx"
   },
   "vehicleClasses.enclosedRigidBodyGeneralPalletisedAnd": {
     "en": "Enclosed rigid body. General palletised and boxed cargo.",
-    "ka": "",
+    "ka": "დახურული მყარი ძარა. ზოგადი პალეტირებული და ყუთებში მოთავსებული ტვირთი.",
     "_source": "src/lib/driver-onboarding/vehicle-classes.ts"
   },
   "vehicleClasses.heavyFreightTruck": {
     "en": "Heavy Freight Truck",
-    "ka": "",
+    "ka": "მძიმე სატვირთო ავტომობილი (Heavy Freight Truck)",
     "_source": "src/lib/driver-onboarding/vehicle-classes.ts"
   },
   "vehicleClasses.largeVan": {
     "en": "Large Van",
-    "ka": "",
+    "ka": "დიდი ფურგონი (Large Van)",
     "_source": "src/lib/driver-onboarding/vehicle-classes.ts"
   },
   "vehicleClasses.mediumTruck": {
     "en": "Medium Truck",
-    "ka": "",
+    "ka": "საშუალო სატვირთო (Medium Truck)",
     "_source": "src/lib/driver-onboarding/vehicle-classes.ts"
   },
   "vehicleClasses.smallVan": {
     "en": "Small Van",
-    "ka": "",
+    "ka": "მცირე ფურგონი (Small Van)",
     "_source": "src/lib/driver-onboarding/vehicle-classes.ts"
   },
   "vehicleClasses.temperatureControlled20CTo8": {
     "en": "Temperature-controlled, −20 °C to +8 °C. Cooling unit service record required per vehicle.",
-    "ka": "",
+    "ka": "ტემპერატურულად კონტროლირებადი, -20 °C-დან +8 °C-მდე. თითოეულ ტრანსპორტზე სავალდებულოა მაცივარი დანადგარის სერვისის ისტორია.",
     "_source": "src/lib/driver-onboarding/vehicle-classes.ts"
   },
   "vehicleClasses.trailerTruck": {
     "en": "Trailer Truck",
-    "ka": "",
+    "ka": "სატვირთო მისაბმელით / ტრაილერი (Trailer Truck)",
     "_source": "src/lib/driver-onboarding/vehicle-classes.ts"
   }
 }

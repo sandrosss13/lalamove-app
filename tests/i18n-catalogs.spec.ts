@@ -158,6 +158,36 @@ test("a message's ICU placeholders match across locales", () => {
   expect(mismatched.sort()).toEqual([]);
 });
 
+/**
+ * Messages the translator deliberately left identical to English: example
+ * emails and plates, brand and model names, config identifiers, and a few
+ * code fragments the extractor picked up. Translating any of these would be
+ * the bug, so they are named here rather than weakening the check below.
+ */
+const IDENTICAL_BY_DESIGN = new Set([
+  "admin.adminContentVehiclePhotos.pnpmExecPrismaDbSeed",
+  "admin.adminNav.crm",
+  "admin.bannerFormDialog.homeHero",
+  "admin.createSystemUserDialog.staffExampleCom",
+  "admin.homePageContent.recordRecord",
+  "admin.homePageSectionFormDialog.url",
+  "admin.messagingTemplateFormDialog.orderConfirmed",
+  "admin.translationFormDialog.heroTitle",
+  "common.shared.34Abc128",
+  "common.shared.driverExampleCom",
+  "common.shared.slug",
+  "common.shared.vehicletypePricingruleBasefare",
+  "common.shared.youCompanyGe",
+  "driverHub.driversAddPanel.9955xxXxxXxx",
+  "driverHub.employeesInviteForm.nameGizocargoGe",
+  "driverHub.fleetAvailabilityFormat.blockStart",
+  "driverHub.vehiclesAddForm.ford",
+  "driverHub.vehiclesAddForm.transitCustom",
+  "fleet.step1CompanyDetails.dispatchCompanyGe",
+  "fleet.vehicleEditorDialog.booleanPromise",
+  "home.addCardDialog.cvc",
+]);
+
 test("Georgian copy is actually in Georgian", () => {
   // A key left at its English value is the most common way a translation pass
   // silently skips something. Messages that are legitimately identical in both
@@ -167,6 +197,7 @@ test("Georgian copy is actually in Georgian", () => {
   const untranslated: string[] = [];
 
   for (const [key, value] of kaMessages) {
+    if (IDENTICAL_BY_DESIGN.has(key)) continue;
     const hasGeorgian = /[Ⴀ-ჿ]/.test(value);
     const hasLatinWord = /[A-Za-z]{3,}/.test(value);
 

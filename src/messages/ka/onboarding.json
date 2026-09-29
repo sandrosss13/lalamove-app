@@ -1,1 +1,81 @@
-{}
+{
+  "applicationStatusScreen": {
+    "accountActivation": "ანგარიშის გააქტიურება",
+    "applicationSubmitted": "განაცხადი გაგზავნილია",
+    "documentReview": "დოკუმენტების გადამოწმება",
+    "keepYourLicenceAndInsuranceCurrent": "მართვის მოწმობა და დაზღვევა შეინარჩუნეთ განახლებულ მდგომარეობაში — ჩვენ ხელახლა ვამოწმებთ ვადის გასვლამდე 30 დღით ადრე.",
+    "licenceBack": "მართვის მოწმობა — უკანა მხარე",
+    "licenceFront": "მართვის მოწმობა — წინა მხარე",
+    "needsANewPhoto": "საჭიროებს ახალ ფოტოს",
+    "resubmittedApplicationsAreUsuallyReviewedWithin": "ხელახლა გაგზავნილი განაცხადები, როგორც წესი, მოწმდება 4 საათის განმავლობაში.",
+    "retake": "ხელახლა გადაღება",
+    "typicalReviewTimeIs1224": "სტანდარტული განხილვის დროა 12–24 საათი სამუშაო დღეებში.",
+    "underReview": "განხილვის პროცესშია",
+    "youAreClearedToDrive": "თქვენ გაქვთ მართვის უფლება"
+  },
+  "documentUploadDialog": {
+    "filesAreCheckedByTheReview": "ფაილებს ამოწმებს გადამოწმების გუნდი და არა ავტომატურად.",
+    "jpgOrPngMax10Mb": "JPG ან PNG · მაქს. 10 MB",
+    "theCategoryTableIsWhatThe": "კატეგორიების ცხრილს ამოწმებს ამმოწმებელი.",
+    "thePhotoNameAndLicenceNumber": "ფოტო, სახელი და მართვის მოწმობის ნომერი უნდა იყოს მკაფიოდ წაკითხვადი.",
+    "uploadTheBackOfYourLicence": "ატვირთეთ მართვის მოწმობის უკანა მხარე",
+    "uploadTheFrontOfYourLicence": "ატვირთეთ მართვის მოწმობის წინა მხარე",
+    "uploadYourProfilePhoto": "ატვირთეთ თქვენი პროფილის ფოტო"
+  },
+  "onboardingStepRail": {
+    "authorisationPersonal": "ავტორიზაცია და პირადი მონაცემები",
+    "everyFieldValidatesOnContinueDocuments": "თითოეული ველი მოწმდება გაგრძელებისას. ადმინისტრატორის კონსოლში მონიშნული დოკუმენტები ბრუნდება აქ ხელახლა ასატვირთად.",
+    "licenceVerification": "მართვის მოწმობის ვერიფიკაცია"
+  },
+  "onboardingWizardShell": {
+    "becomeAPartnerDriver": "გახდით პარტნიორი მძღოლი",
+    "fourStepsAround12MinutesIf": "ოთხი ნაბიჯი. დაახლოებით 12 წუთი, თუ მართვის მოწმობა და ტრანსპორტის დოკუმენტები ხელთ გაქვთ. პროგრესი ინახება ეტაპობრივად.",
+    "technicalDetails": "ტექნიკური დეტალები",
+    "whoYouAre": "ვინ ხართ თქვენ",
+    "yourLicence": "თქვენი მართვის მოწმობა"
+  },
+  "step1AuthPersonal": {
+    "exactlyAsPrintedOnYourId": "ზუსტად ისე, როგორც დაბეჭდილია თქვენს პირადობაში",
+    "idOrPassportNumber": "პირადი ნომერი ან პასპორტის ნომერი",
+    "mobileNumber": "მობილურის ნომერი",
+    "startTypingTbilisiBatumiKutaisi": "დაიწყეთ აკრეფა — თბილისი, ბათუმი, ქუთაისი...",
+    "thisIsTheNumberCouriersAnd": "ეს არის ნომერი, რომელზეც კურიერები და დისპეტჩერი დარეკავენ. აქ ყველაფერი მოწმდება თქვენს პირადობასთან გადამოწმების გუნდის მიერ.",
+    "whereYouWillMostlyPickUp": "სად აიღებთ შეკვეთებს ძირითადად. ამჟამად მხოლოდ საქართველოში."
+  },
+  "step2Licence": {
+    "backOfLicence": "მართვის მოწმობის უკანა მხარე",
+    "carsAndVansUpTo3": "მსუბუქი ავტომობილები და ფურგონები 3.5 ტ-მდე",
+    "expiryDate": "მოქმედების ვადა",
+    "frontOfLicence": "მართვის მოწმობის წინა მხარე",
+    "rigidTrucksOver35T": "მძიმე ძარიანი სატვირთოები 3.5 ტ-ზე მეტი",
+    "scansOrPhotosBothWorkAll": "სკანი ან ფოტო — ორივე მისაღებია. ოთხივე კუთხე უნდა ჩანდეს და არ უნდა ჰქონდეს ანარეკლი.",
+    "theseDecideTheVehicleClassesYou": "ეს განსაზღვრავს ტრანსპორტის კლასებს, რომლებზეც შეგიძლიათ გადანაწილდეთ.",
+    "truckWithTrailerArticulated": "სატვირთო მისაბმელით / ავტოპოზდი"
+  },
+  "step3ChassisClass": {
+    "cargoBodyType": "სატვირთო ძარის ტიპი",
+    "enclosedRigidBoxGeneralPalletisedAnd": "დახურული მყარი ფურგონი. ზოგადი პალეტირებული და ყუთებში მოთავსებული ტვირთი.",
+    "pickTheClassThatMatchesYour": "აირჩიეთ კლასი, რომელიც შეესაბამება თქვენს ტრანსპორტს. კლასები, რომლებიც აღემატება თქვენი მართვის მოწმობის კატეგორიებს ან არ არის შეთავაზებული თქვენ მიერ არჩეული ძარის ტიპისთვის, დაბლოკილია.",
+    "temperatureControlledBody20CTo": "ტემპერატურულად კონტროლირებადი ძარა, -20 °C-დან +8 °C-მდე. საჭიროებს მაცივარი დანადგარის მოქმედ სერვისის ისტორიას.",
+    "vehicleClass": "ტრანსპორტის კლასი",
+    "whatKindOfCargoBodyDoes": "როგორი სატვირთო ძარა აქვს ტრანსპორტს?"
+  },
+  "step3cTechnicalDetails": {
+    "rearViewShowing2BodyWidth": "უკანა ხედი, სადაც ჩანს ძარის 2 სიგანე"
+  },
+  "step4ReviewSubmit": {
+    "checkEverythingBeforeItGoesTo": "შეამოწმეთ ყველაფერი, სანამ გადამოწმების გუნდთან გაიგზავნება. გაგზავნის შემდეგ შესწორებები დაგიჯდებათ ერთი დღით შეყოვნება.",
+    "driverSLicence": "მართვის მოწმობა",
+    "number": "ნომერი",
+    "personalInformation": "პირადი ინფორმაცია"
+  },
+  "vehicleClasses": {
+    "enclosedRigidBodyGeneralPalletisedAnd": "დახურული მყარი ძარა. ზოგადი პალეტირებული და ყუთებში მოთავსებული ტვირთი.",
+    "heavyFreightTruck": "მძიმე სატვირთო ავტომობილი (Heavy Freight Truck)",
+    "largeVan": "დიდი ფურგონი (Large Van)",
+    "mediumTruck": "საშუალო სატვირთო (Medium Truck)",
+    "smallVan": "მცირე ფურგონი (Small Van)",
+    "temperatureControlled20CTo8": "ტემპერატურულად კონტროლირებადი, -20 °C-დან +8 °C-მდე. თითოეულ ტრანსპორტზე სავალდებულოა მაცივარი დანადგარის სერვისის ისტორია.",
+    "trailerTruck": "სატვირთო მისაბმელით / ტრაილერი (Trailer Truck)"
+  }
+}

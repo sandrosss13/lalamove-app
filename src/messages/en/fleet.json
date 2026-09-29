@@ -1,1 +1,71 @@
-{}
+{
+  "fleetApplicationStatusScreen": {
+    "correctAFlaggedVehicle": "Correct a flagged vehicle",
+    "correctTheCompanyDetails": "Correct the company details",
+    "fix": "Fix",
+    "fixCompanyDetails": "Fix company details",
+    "flaggedVehiclesCannotBeDispatchedContact": "Flagged vehicles cannot be dispatched. Contact support to have one re-reviewed.",
+    "fleetStatus": "Fleet status",
+    "fleetUnderReview": "Fleet under review",
+    "openTheDispatchDashboard": "Open the dispatch dashboard",
+    "yourFleetIsLive": "Your fleet is live."
+  },
+  "fleetStepRail": {
+    "companyAuthorisation": "Company & authorisation"
+  },
+  "fleetWizardShell": {
+    "forLogisticsCompaniesRunningMoreThan": "For logistics companies running more than one vehicle. Register the company once, declare the fleet by body type and class, then put a driver behind every vehicle.",
+    "registerYourFleet": "Register your fleet"
+  },
+  "step1CompanyDetails": {
+    "asRegistered": "As registered",
+    "bankAccountIban": "Bank account (IBAN)",
+    "companyPhone": "Company phone",
+    "contactPerson": "Contact person",
+    "dispatchCompanyGe": "dispatch@company.ge",
+    "fleetManager": "Fleet manager",
+    "legalEntity": "Legal entity",
+    "payouts": "Payouts",
+    "registeredCity": "Registered city",
+    "setWhenTheAccountWasCreated": "Set when the account was created. Contact operations to change it.",
+    "streetNumberPostcode": "Street, number, postcode",
+    "theAddressThisAccountSignsIn": "The address this account signs in with. It is also where review decisions and order correspondence go — change it if a different inbox should receive them.",
+    "whereTheFleetPicksUpOrders": "Where the fleet picks up. Orders outside these cities are not offered to your drivers.",
+    "whoWeSpeakTo": "Who we speak to"
+  },
+  "step2FleetComposition": {
+    "addOne": "Add one",
+    "dryBoxTruck": "Dry box truck",
+    "flatbedTruckWithDropSides": "Flatbed truck with drop sides",
+    "refrigeratedTruck": "Refrigerated truck",
+    "removeOne": "Remove one"
+  },
+  "step3VehicleSpecifications": {
+    "backToFleetComposition": "Back to fleet composition",
+    "noVehiclesYetGoBackAnd": "No vehicles yet. Go back and set how many you run in each combination."
+  },
+  "step4DriversAssignment": {
+    "copyCredentials": "Copy credentials",
+    "driverAccountCreated": "Driver account created",
+    "emailAddress": "Email address",
+    "everyVehicleNeedsANamedDriver": "Every vehicle needs a named driver. Create the account yourself for drivers already on staff, or pick one from your roster.",
+    "existingDriver": "Existing driver",
+    "lastName": "Last name",
+    "loadingYourRoster": "Loading your roster…",
+    "noDriverOnYourRosterHolds": "No driver on your roster holds the categories this vehicle needs. Create an account instead.",
+    "noLicenceOnFile": "No licence on file",
+    "noVehiclesYetDeclareYourFleet": "No vehicles yet — declare your fleet first.",
+    "notAssigned": "Not assigned",
+    "removeCurrentDriver": "Remove current driver",
+    "retry": "Retry",
+    "selectACity": "Select a city",
+    "shownOnceWhenYouSaveFor": "Shown once when you save, for you to pass on. The driver must change it at first sign-in and upload their own licence photos before their first order.",
+    "thisPasswordIsShownOnceCopy": "This password is shown once. Copy it before closing — we cannot show it again."
+  },
+  "step5ReviewSubmit": {
+    "theCompanyIsReviewedAsA": "The company is reviewed as a whole. Individual vehicles can be sent back without holding up the rest of the fleet."
+  },
+  "vehicleEditorDialog": {
+    "booleanPromise": "boolean | Promise"
+  }
+}

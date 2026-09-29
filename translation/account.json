@@ -1,47 +1,47 @@
 {
   "account.pleaseSignInToViewYour": {
     "en": "Please sign in to view your account.",
-    "ka": "",
+    "ka": "თხოვთ გაიაროთ ავტორიზაცია თქვენი ანგარიშის სანახავად",
     "_source": "src/app/[locale]/account/page.tsx"
   },
   "account.settings": {
     "en": "Settings",
-    "ka": "",
+    "ka": "პარამეტრები",
     "_source": "src/app/[locale]/account/page.tsx"
   },
   "account.theDetailsADriverSeesWhen": {
     "en": "The details a driver sees when they turn up for one of your pickups, and the credentials you sign in with. Keeping your phone number current is what stops a delivery stalling at the kerb.",
-    "ka": "",
+    "ka": "დეტალები, რომლებსაც მძღოლი ხედავს, როდესაც ის თქვენს შეკვეთაზე/წამოსაღებად მოდის, და მონაცემები, რომლებითაც შედიხართ სისტემაში. ტელეფონის ნომრის განახლებულ მდგომარეობაში შენარჩუნება თავიდან აგარიდებთ მიწოდების შეფერხებას",
     "_source": "src/app/[locale]/account/page.tsx"
   },
   "accountProfileForm.female": {
     "en": "Female",
-    "ka": "",
+    "ka": "მდედრობითი",
     "_source": "src/components/account-profile-form.tsx"
   },
   "accountProfileForm.gender": {
     "en": "Gender",
-    "ka": "",
+    "ka": "სქემი",
     "_source": "src/components/account-profile-form.tsx"
   },
   "accountProfileForm.male": {
     "en": "Male",
-    "ka": "",
+    "ka": "მამრობითი",
     "_source": "src/components/account-profile-form.tsx"
   },
   "accountProfileForm.other": {
     "en": "Other",
-    "ka": "",
+    "ka": "სხვა",
     "_source": "src/components/account-profile-form.tsx"
   },
   "accountProfileForm.personalDetails": {
     "en": "Personal details",
-    "ka": "",
+    "ka": "პირადი მონაცემები",
     "_source": "src/components/account-profile-form.tsx"
   },
   "accountProfileForm.preferNotToSay": {
     "en": "Prefer not to say",
-    "ka": "",
+    "ka": "ვარჩევ, არ მივუთითო",
     "_source": "src/components/account-profile-form.tsx"
   }
 }

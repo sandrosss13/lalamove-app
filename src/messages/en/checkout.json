@@ -1,1 +1,32 @@
-{}
+{
+  "checkout": {
+    "crew": "Crew",
+    "goods": "Goods",
+    "loadSpace": "Load space",
+    "loadingAndUnloadingTimeBeyondThe": "Loading and unloading time beyond the free allowance is settled after the delivery and is not part of this total.",
+    "notes": "Notes",
+    "reviewAndPay": "Review and pay",
+    "yourDelivery": "Your delivery"
+  },
+  "checkoutPaymentPanel": {
+    "chooseAPaymentMethodToContinue": "Choose a payment method to continue.",
+    "chooseHowYouWouldLikeTo": "Choose how you would like to settle this delivery.",
+    "eGPo20260184": "e.g. PO-2026-0184",
+    "nothingIsChargedNowNoPayment": "Nothing is charged now — no payment provider is connected yet.",
+    "optionalAppearsOnYourOrderRecord": "Optional. Appears on your order record for your own finance team.",
+    "payLater": "Pay later",
+    "payLaterSettleAfterTheDelivery": "Pay later — settle after the delivery",
+    "poOrCostCentreReference": "PO or cost-centre reference",
+    "settleAfterTheDelivery": "Settle after the delivery"
+  },
+  "checkoutShell": {
+    "backToYourOrders": "Back to your orders",
+    "checkout": "Checkout"
+  },
+  "checkoutSuccess": {
+    "trackThisDelivery": "Track this delivery",
+    "viewYourOrders": "View your orders",
+    "youReAllSet": "You’re all set",
+    "yourDeliveryIsBooked": "Your delivery is booked"
+  }
+}

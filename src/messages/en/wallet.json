@@ -6,6 +6,7 @@
   },
   "wallet": {
     "paymentMethods": "Payment methods",
-    "pleaseSignInToViewYour": "Please sign in to view your wallet."
+    "pleaseSignInToViewYour": "Please sign in to view your wallet.",
+    "gatewayIntegrationIsPendingCardsSaved": "Gateway integration is pending. Cards saved here are not charged, and only the brand and last four digits are stored."
   }
 }

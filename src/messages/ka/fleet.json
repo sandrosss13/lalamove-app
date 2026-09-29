@@ -1,1 +1,71 @@
-{}
+{
+  "fleetApplicationStatusScreen": {
+    "correctAFlaggedVehicle": "მონიშნული ტრანსპორტის გასწორება",
+    "correctTheCompanyDetails": "კომპანიის დეტალების გასწორება",
+    "fix": "გასწორება / შეკეთება",
+    "fixCompanyDetails": "კომპანიის დეტალების გასწორება",
+    "flaggedVehiclesCannotBeDispatchedContact": "მონიშნული ტრანსპორტის გადანაწილება შეუძლებელია. დაუკავშირდით მხარდაჭერის გუნდს ხელახლა გადასამოწმებლად.",
+    "fleetStatus": "ავტოპარკის სტატუსი",
+    "fleetUnderReview": "ავტოპარკი განხილვის პროცესშია",
+    "openTheDispatchDashboard": "დისპეტჩერიზაციის მართვის პანელის გახსნა",
+    "yourFleetIsLive": "თქვენი ავტოპარკი აქტიურია."
+  },
+  "fleetStepRail": {
+    "companyAuthorisation": "კომპანია და ავტორიზაცია"
+  },
+  "fleetWizardShell": {
+    "forLogisticsCompaniesRunningMoreThan": "ლოგისტიკური კომპანიებისთვის, რომლებიც ერთზე მეტ ტრანსპორტს მართავენ. დარეგისტრირეთ კომპანია ერთხელ, მიუთითეთ ავტოპარკი ძარის ტიპისა და კლასის მიხედვით, შემდეგ კი მიანიჭეთ მძღოლი თითოეულ ტრანსპორტს.",
+    "registerYourFleet": "თქვენი ავტოპარკის რეგისტრაცია"
+  },
+  "step1CompanyDetails": {
+    "asRegistered": "როგორც რეგისტრირებულია / რეგისტრაციის მიხედვით",
+    "bankAccountIban": "საბანკო ანგარიში (IBAN)",
+    "companyPhone": "კომპანიის ტელეფონი",
+    "contactPerson": "საკონტაქტო პირი",
+    "dispatchCompanyGe": "dispatch@company.ge",
+    "fleetManager": "ავტოპარკის მენეჯერი",
+    "legalEntity": "იურიდიული პირი",
+    "payouts": "გადარიცხვები (Payouts)",
+    "registeredCity": "რეგისტრირებული ქალაქი",
+    "setWhenTheAccountWasCreated": "დაყენებულია ანგარიშის შექმნისას. მის შესაცვლელად დაუკავშირდით ოპერაციების გუნდს.",
+    "streetNumberPostcode": "ქუჩა, ნომერი, საფოსტო ინდექსი",
+    "theAddressThisAccountSignsIn": "მისამართი, რომლითაც ეს ანგარიში შედის სისტემაში. ასევე აქ იგზავნება გადამოწმების გადაწყვეტილებები და შეკვეთის მიმოწერა — შეცვალეთ ის, თუ ეს შეტყობინებები სხვა ელფოსტაზე უნდა მოვიდეს.",
+    "whereTheFleetPicksUpOrders": "საიდან იღებს ტვირთს ავტოპარკი. ამ ქალაქების გარეთ არსებული შეკვეთები თქვენს მძღოლებს არ შეეთავაზებათ.",
+    "whoWeSpeakTo": "ვის ვუკავშირდებით"
+  },
+  "step2FleetComposition": {
+    "addOne": "ერთის დამატება",
+    "dryBoxTruck": "მშრალი ფურგონი სატვირთო (Dry box truck)",
+    "flatbedTruckWithDropSides": "ღია ბორტიანი სატვირთო ავტომობილი",
+    "refrigeratedTruck": "მაცივარი/რეფრიჟერატორი სატვირთო",
+    "removeOne": "ერთის ამოღება / წაშლა"
+  },
+  "step3VehicleSpecifications": {
+    "backToFleetComposition": "ავტოპარკის შემადგენლობაზე დაბრუნება",
+    "noVehiclesYetGoBackAnd": "ტრანსპორტი ჯერ არ არის. დაბრუნდით უკან და მიუთითეთ რაოდენობა თითოეულ კომბინაციაში."
+  },
+  "step4DriversAssignment": {
+    "copyCredentials": "ავტორიზაციის მონაცემების დაკოპირება",
+    "driverAccountCreated": "მძღოლის ანგარიში შეიქმნა",
+    "emailAddress": "ელფოსტის მისამართი",
+    "everyVehicleNeedsANamedDriver": "თითოეულ ტრანსპორტს სჭირდება მითითებული მძღოლი. შექმენით ანგარიში თავად შტატში მყოფი მძღოლებისთვის ან აირჩიეთ სიაიდან.",
+    "existingDriver": "არსებული მძღოლი",
+    "lastName": "გვარი",
+    "loadingYourRoster": "თქვენი სია იტვირთება...",
+    "noDriverOnYourRosterHolds": "თქვენს სიაში არცერთ მძღოლს არ აქვს ამ ტრანსპორტისთვის საჭირო კატეგორიები. ამის სანაცვლოდ შექმენით ანგარიში.",
+    "noLicenceOnFile": "მართვის მოწმობა არ არის ბაზაში",
+    "noVehiclesYetDeclareYourFleet": "ტრანსპორტი ჯერ არ არის — ჯერ მიუთითეთ თქვენი ავტოპარკი.",
+    "notAssigned": "არ არის მინიჭებული",
+    "removeCurrentDriver": "მიმდინარე მძღოლის ამოღება / მოხსნა",
+    "retry": "ხელახლა ცდა",
+    "selectACity": "აირჩიეთ ქალაქი",
+    "shownOnceWhenYouSaveFor": "ჩნდება მხოლოდ ერთხელ შენახვისას, რათა გადასცეთ მძღოლს. მძღოლმა ის პირველივე შესვლისას უნდა შეცვალოს და ატვირთოს მართვის მოწმობის ფოტოები პირველ შეკვეთამდე.",
+    "thisPasswordIsShownOnceCopy": "ეს პაროლი ჩნდება მხოლოდ ერთხელ. დააკოპირეთ დახურვამდე — ჩვენ მას ხელახლა ვერ ვაჩვენებთ."
+  },
+  "step5ReviewSubmit": {
+    "theCompanyIsReviewedAsA": "კომპანია მოწმდება მთლიანობაში. ცალკეული ტრანსპორტი შეიძლება უკან დაბრუნდეს ავტოპარკის დანარჩენი ნაწილის შეყოვნების გარეშე."
+  },
+  "vehicleEditorDialog": {
+    "booleanPromise": "boolean | Promise"
+  }
+}

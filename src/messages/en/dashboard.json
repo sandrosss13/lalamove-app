@@ -1,1 +1,73 @@
-{}
+{
+  "dashboard": {
+    "providerAccount": "Provider account"
+  },
+  "dashboardAccount": {
+    "accountDriverHub": "Account · Driver Hub"
+  },
+  "dashboardDrivers": {
+    "driversDriverHub": "Drivers · Driver Hub"
+  },
+  "dashboardEmployees": {
+    "employeesRolesDriverHub": "Employees & roles · Driver Hub"
+  },
+  "dashboardJobs": {
+    "jobHistoryDriverHub": "Job history · Driver Hub",
+    "jobSheetDriverHub": "Job sheet · Driver Hub"
+  },
+  "dashboardLoads": {
+    "dashboardDriverHub": "Dashboard · Driver Hub"
+  },
+  "dashboardPerformance": {
+    "performanceDriverHub": "Performance · Driver Hub"
+  },
+  "dashboardVehicles": {
+    "vehiclesDriverHub": "Vehicles · Driver Hub"
+  },
+  "earnings": {
+    "last30Days": "Last 30 days",
+    "lastWeek": "Last week",
+    "thisMonth": "This month",
+    "thisWeek": "This week"
+  },
+  "sample": {
+    "1InvitePending": "1 invite pending",
+    "1Invited1Suspended": "1 invited, 1 suspended",
+    "1PtVsLastWeek": "+1 pt vs last week",
+    "3MoreJobsBySundayFor": "3 more jobs by Sunday for a ₾40 bonus.",
+    "3PtsVsLastWeek": "+3 pts vs last week",
+    "acceptanceRate": "Acceptance rate",
+    "accountantOnly": "Accountant only",
+    "assignsJobsInsideTheirZones": "Assigns jobs inside their zones",
+    "contract": "Contract",
+    "criminalRecordExtract": "Criminal record extract",
+    "declinesCountedOverTheLast100": "Declines counted over the last 100 offers. Staying above 90% keeps priority matching.",
+    "driverLicenceGe": "Driver licence (GE)",
+    "eleneAbashidze": "Elene Abashidze",
+    "fleetManagerDispatcherAccountantMechanic": "Fleet manager, dispatcher, accountant, mechanic",
+    "from61RatedJobsRatingsBelow": "From 61 rated jobs. Ratings below 4.5 trigger a coaching review.",
+    "garage": "Garage",
+    "highestInGldaniMovingToVake": "Highest in Gldani. Moving to Vake between 09:00 and 11:00 cuts it by about a third.",
+    "idleTime": "Idle time",
+    "irakliBeruashvili": "Irakli Beruashvili",
+    "marikaDolidze": "Marika Dolidze",
+    "newJobOfferVakeSaburtalo": "New job offer · Vake → Saburtalo",
+    "openWorkOrders": "Open work orders",
+    "ownJobsAndEarningsOnly": "Own jobs and earnings only",
+    "parkingTolls": "Parking & tolls",
+    "payoutAccounts": "Payout accounts",
+    "payoutOf14260Sent": "Payout of ₾142.60 sent",
+    "payoutsInvoicesAndTax": "Payouts, invoices and tax",
+    "serviceLog": "Service log",
+    "serviceParts": "Service & parts",
+    "shift": "Shift",
+    "sopoKiknadze": "Sopo Kiknadze",
+    "taxId": "Tax ID",
+    "top15InTbilisi": "Top 15% in Tbilisi",
+    "twoCancellationsThisWeekBothBefore": "Two cancellations this week, both before pickup. Above 5% pauses incentives.",
+    "vanoShengelia": "Vano Shengelia",
+    "vehiclesAndDrivers": "Vehicles and drivers",
+    "zones": "Zones",
+    "zurabMaisuradze": "Zurab Maisuradze"
+  }
+}

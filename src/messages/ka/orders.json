@@ -1,1 +1,19 @@
-{}
+{
+  "orderTrackingMap": {
+    "driverLocationMayBeStale": "მძღოლის მდებარეობა შესაძლოა მოძველებული იყოს",
+    "waitingForADriverToShare": "ველოდებით მძღოლის მიერ მდებარეობის გაზიარებას..."
+  },
+  "orders": {
+    "above": "ზემოთ.",
+    "newOrder2": "ახალი შეკვეთა",
+    "signInToViewYourOrders": "თქვენი შეკვეთების სანახავად გაიარეთ ავტორიზაცია.",
+    "trackDelivery": "მიწოდების თვალყურის დევნება →",
+    "yourDeliveries": "თქვენი მიწოდებები",
+    "yourOrders": "თქვენი შეკვეთები"
+  },
+  "ordersTrack": {
+    "carrier": "გადამზიდავი",
+    "pleaseSignInToTrackThis": "ამ მიწოდებისთვის თვალყურის სადევნებლად, გთხოვთ, გაიაროთ ავტორიზაცია.",
+    "trackDelivery": "მიწოდების თვალყურის დევნება"
+  }
+}

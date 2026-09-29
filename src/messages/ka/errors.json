@@ -1,1 +1,267 @@
-{}
+{
+  "adminBusinessApplicationsActivate": {
+    "atLeastOneVehicleMustBe": "ავტოპარკის გააქტიურებამდე სავალდებულოა მინიმუმ ერთი ტრანსპორტის დადასტურება.",
+    "thisApplicationIsStillWaitingOn": "ეს განაცხადი ჯერ კიდევ ელოდება კომპანიის მიერ ხელახლა გაგზავნას.",
+    "verifyTheCompanySDetailsBefore": "ავტოპარკის გააქტიურებამდე შეამოწმეთ კომპანიის მონაცემები."
+  },
+  "adminBusinessApplicationsCompany": {
+    "aReasonIsRequiredToFlag": "კომპანიის მონაცემების მონიშვნისთვის აუცილებელია მიზეზის მითითება.",
+    "thatIsNotOneOfThe": "ეს არ არის კომპანიის მონიშვნის მიზეზებიდან ერთ-ერთი."
+  },
+  "adminBusinessApplicationsRequestChanges": {
+    "changesHaveAlreadyBeenRequestedOn": "ამ განაცხადზე ცვლილებები უკვე მოთხოვნილია.",
+    "flagTheCompanySDetailsOr": "ცვლილებების მოთხოვნამდე მონიშნეთ კომპანიის მონაცემები ან მინიმუმ ერთი ტრანსპორტი."
+  },
+  "adminBusinessApplicationsVehicles": {
+    "aReasonIsRequiredToFlag": "ტრანსპორტის მონიშვნისთვის აუცილებელია მიზეზის მითითება.",
+    "thatIsNotOneOfThe": "ეს არ არის ტრანსპორტის მონიშვნის მიზეზებიდან ერთ-ერთი.",
+    "vehicleNotFoundOnThisApplication": "ამ განაცხადში ტრანსპორტი ვერ მოიძებნა."
+  },
+  "adminContentBanners": {
+    "bannerNotFound": "ბანერი ვერ მოიძებნა.",
+    "imageurlIsRequiredAndMustBe": "imageUrl სავალდებულოა და არ უნდა იყოს ცარიელი ტექსტი.",
+    "imageurlMustBeANonEmpty": "imageUrl არ უნდა იყოს ცარიელი ტექსტი.",
+    "placementIsRequiredAndMustBe": "placement სავალდებულოა და არ უნდა იყოს ცარიელი ტექსტი.",
+    "placementMustBeANonEmpty": "placement არ უნდა იყოს ცარიელი ტექსტი.",
+    "titleMustBeANonEmpty": "title არ უნდა იყოს ცარიელი ტექსტი."
+  },
+  "adminContentHomePageSections": {
+    "homePageSectionNotFound": "მთავარი გვერდის სექცია ვერ მოიძებნა.",
+    "typeIsRequiredAndMustBe": "type სავალდებულოა და უნდა იყოს ტექსტური ტიპი (string).",
+    "typeMustBeAString": "type უნდა იყოს ტექსტური ტიპი (string)."
+  },
+  "adminContentMessagingTemplates": {
+    "bodyIsRequiredAndMustBe": "body სავალდებულოა და არ უნდა იყოს ცარიელი ტექსტი.",
+    "bodyMustBeANonEmpty": "body არ უნდა იყოს ცარიელი ტექსტი.",
+    "isactiveMustBeABooleanWhen": "isActive მითითებისას უნდა იყოს ლოგიკური ტიპი (boolean).",
+    "keyMustBeANonEmpty": "key არ უნდა იყოს ცარიელი ტექსტი.",
+    "subjectMustBeAStringWhen": "subject მითითებისას უნდა იყოს ტექსტური ტიპი (string).",
+    "thatMessagingTemplateWasNotFound": "შეტყობინებების ის შაბლონი ვერ მოიძებნა."
+  },
+  "adminContentPages": {
+    "pageNotFound": "გვერდი ვერ მოიძებნა."
+  },
+  "adminContentTranslations": {
+    "namespaceIsRequiredAndMustBe": "namespace სავალდებულოა და არ უნდა იყოს ცარიელი ტექსტი.",
+    "translationEntryNotFound": "თარგმანის ჩანაწერი ვერ მოიძებნა.",
+    "valueIsRequiredAndMustBe": "value სავალდებულოა და არ უნდა იყოს ცარიელი ტექსტი.",
+    "valueenIsRequiredAndMustBe": "valueEn სავალდებულოა და არ უნდა იყოს ცარიელი ტექსტი.",
+    "valuekaIsRequiredAndMustBe": "valueKa სავალდებულოა და არ უნდა იყოს ცარიელი ტექსტი."
+  },
+  "adminContentVehiclePhotos": {
+    "vehicleTypeNotFound": "ტრანსპორტის ტიპი ვერ მოიძებნა."
+  },
+  "adminDriverApplicationsApprove": {
+    "everyDocumentMustBeApprovedFirst": "ჯერ ყველა დოკუმენტი უნდა დადასტურდეს.",
+    "thisApplicationIsStillWaitingOn": "ეს განაცხადი ჯერ კიდევ ელოდება მძღოლის მიერ ხელახლა გაგზავნას.",
+    "thisApplicationNoLongerHasA": "ამ განაცხადს ბაზაში ტრანსპორტი აღარ ირიცხება და ვერ დამტკიცდება."
+  },
+  "adminDriverApplicationsDocuments": {
+    "aReasonIsRequiredToFlag": "დოკუმენტის მონიშვნისთვის აუცილებელია მიზეზის მითითება.",
+    "documentNotFound": "დოკუმენტი ვერ მოიძებნა."
+  },
+  "adminDriverApplicationsRequestChanges": {
+    "flagAtLeastOneDocumentBefore": "ცვლილებების მოთხოვნამდე მონიშნეთ მინიმუმ ერთი დოკუმენტი."
+  },
+  "adminFinancePaymentMethods": {
+    "configMustBeAJsonObject": "config უნდა იყოს JSON ობიექტი.",
+    "isenabledIsRequiredAndMustBe": "isEnabled სავალდებულოა და უნდა იყოს ლოგიკური ტიპი (boolean).",
+    "unknownPaymentMethod": "გადახდის უცნობი მეთოდი."
+  },
+  "adminFinancePromoCampaigns": {
+    "campaignNotFound": "კამპანია ვერ მოიძებნა.",
+    "codeIsRequired": "code სავალდებულოა.",
+    "codeMustBeAString": "code უნდა იყოს ტექსტური ტიპი (string).",
+    "thisCampaignHasAlreadyBeenRedeemed": "ეს კამპანია უკვე გამოყენებულია და მისი წაშლა შეუძლებელია. ამის სანაცვლოდ გაათიშეთ ის.",
+    "usagelimitMustBeAWholeNumber": "usageLimit უნდა იყოს მთელი რიცხვი (1 ან მეტი) ან გამოტოვებული."
+  },
+  "adminUsersSuspend": {
+    "staffAccountsAreManagedUnderSystem": "პერსონალის ანგარიშების მართვა ხდება „სისტემურ მომხმარებლებში“."
+  },
+  "adminUsersSystem": {
+    "couldNotCreateThisSystemUser": "ამ სისტემური მომხმარებლის შექმნა ვერ მოხერხდა. გთხოვთ, სცადოთ თავიდან.",
+    "nameIsRequiredAndMustBe": "name სავალდებულოა და არ უნდა იყოს ცარიელი ტექსტი.",
+    "youDoNotHaveAccessTo": "თქვენ არ გაქვთ ამ მოქმედების შესრულების უფლება."
+  },
+  "adminUsersSystemDeactivate": {
+    "onlyASuperAdminCanDeactivate": "სისტემური მომხმარებლების დეაქტივაცია მხოლოდ სუპერ ადმინისტრატორს შეუძლია.",
+    "youCannotDeactivateYourOwnAccount": "საკუთარი ანგარიშის დეაქტივაცია შეუძლებელია."
+  },
+  "adminUsersSystemReactivate": {
+    "onlyASuperAdminCanReactivate": "სისტემური მომხმარებლების ხელახლა გააქტიურება მხოლოდ სუპერ ადმინისტრატორს შეუძლია.",
+    "youCannotChangeYourOwnAccount": "საკუთარი ანგარიშის სტატუსის შეცვლა შეუძლებელია."
+  },
+  "clientProfile": {
+    "dateofbirthCannotBeInTheFuture": "dateOfBirth არ შეიძლება იყოს მომავალში.",
+    "dateofbirthMustBeAValidDate": "dateOfBirth უნდა იყოს ვალიდური თარიღი.",
+    "dateofbirthMustBeAnIsoDate": "dateOfBirth უნდა იყოს ISO თარიღის ფორმატის ტექსტი.",
+    "onlyClientsCanCreateAClient": "კლიენტის პროფილის შექმნა მხოლოდ კლიენტებს შეუძლიათ.",
+    "onlyClientsHaveAClientProfile": "კლიენტის პროფილი მხოლოდ კლიენტებს აქვთ."
+  },
+  "dashboardHubDriversAvailability": {
+    "thisAccountCannotReadAFleet": "ამ ანგარიშს არ შეუძლია ავტოპარკის განრიგის ნახვა."
+  },
+  "dashboardHubDriversAvailabilityExport": {
+    "thisAccountCannotExportAFleet": "ამ ანგარიშს არ შეუძლია ავტოპარკის განრიგის ექსპორტი."
+  },
+  "dashboardHubEarningsExport": {
+    "thisAccountCannotExportDriverEarnings": "ამ ანგარიშს არ შეუძლია მძღოლის შემოსავლების ექსპორტი."
+  },
+  "driverProfile": {
+    "onlyDriversCanCreateADriver": "მძღოლის პროფილის შექმნა მხოლოდ მძღოლებს შეუძლიათ.",
+    "onlyDriversHaveADriverProfile": "მძღოლის პროფილი მხოლოდ მძღოლებს აქვთ.",
+    "yourAccountTypeCanTBe": "თქვენი ანგარიშის ტიპის შეცვლა აქედან შეუძლებელია."
+  },
+  "driverProfileLocation": {
+    "completeYourDriverProfileBeforeSharing": "მდებარეობის გაზიარებამდე შეავსეთ მძღოლის პროფილი.",
+    "latAndLngMustBeValid": "lat და lng უნდა იყოს ვალიდური კოორდინატები.",
+    "onlyDriversCanUpdateLocation": "მდებარეობის განახლება მხოლოდ მძღოლებს შეუძლიათ."
+  },
+  "driverProfileOnboarding": {
+    "aSubmittedApplicationCanNoLonger": "გაგზავნილი განაცხადის რედაქტირება უკვე შეუძლებელია."
+  },
+  "driverProfileOnboardingDocuments": {
+    "anotherUploadForThisDocumentIs": "ამ დოკუმენტის სხვა ატვირთვა ჯერ კიდევ სრულდება.",
+    "pathIsRequiredAndMustBe": "path სავალდებულოა და არ უნდა იყოს ცარიელი ტექსტი.",
+    "thatUploadDoesNotBelongTo": "ეს ატვირთული ფაილი არ ეკუთვნის ამ განაცხადს."
+  },
+  "driverProfileOnboardingSubmit": {
+    "licenceBackPhoto": "მართვის მოწმობის უკანა მხარის ფოტო",
+    "licenceFrontPhoto": "მართვის მოწმობის წინა მხარის ფოტო",
+    "profilePhoto": "პროფილის ფოტო"
+  },
+  "driverProfileStatus": {
+    "completeYourDriverProfileBeforeGoing": "ონლაინ რეჟიმში გადასვლამდე შეავსეთ მძღოლის პროფილი.",
+    "isonlineMustBeABoolean": "isOnline უნდა იყოს ლოგიკური ტიპი (boolean).",
+    "onlyDriversCanUpdateOnlineStatus": "ონლაინ სტატუსის განახლება მხოლოდ მძღოლებს შეუძლიათ.",
+    "yourAccountIsnTApprovedYet": "თქვენი ანგარიში ჯერ არ არის დამტკიცებული. ონლაინში გადასასვლელად დაასრულეთ რეგისტრაცია."
+  },
+  "driverProfileVehicles": {
+    "completeYourDriverProfileBeforeAdding": "ტრანსპორტის დამატებამდე შეავსეთ მძღოლის პროფილი.",
+    "driversWhoBelongToACompany": "კომპანიის კუთვნილებაში მყოფი მძღოლები მართავენ დამსაქმებლის ტრანსპორტს. სთხოვეთ ავტოპარკის მენეჯერს დაამატოს ეს ტრანსპორტი და მოგანიჭოთ თქვენ.",
+    "onlyDriversCanAddVehicles": "ტრანსპორტის დამატება მხოლოდ მძღოლებს შეუძლიათ.",
+    "onlyDriversCanEditVehicles": "ტრანსპორტის რედაქტირება მხოლოდ მძღოლებს შეუძლიათ.",
+    "onlyDriversCanRemoveVehicles": "ტრანსპორტის წაშლა მხოლოდ მძღოლებს შეუძლიათ.",
+    "onlyDriversHaveVehicles": "ტრანსპორტი მხოლოდ მძღოლებს აქვთ."
+  },
+  "guard": {
+    "onlyDriversCanUploadOnboardingDocuments": "რეგისტრაციის დოკუმენტების ატვირთვა მხოლოდ მძღოლებს შეუძლიათ."
+  },
+  "loads": {
+    "onlyDriversAndLogisticsCompaniesCan": "ტვირთების დაფის ნახვა მხოლოდ მძღოლებსა და ლოგისტიკურ კომპანიებს შეუძლიათ."
+  },
+  "loadsReject": {
+    "driverProfileNotFound": "მძღოლის პროფილი ვერ მოიძებნა.",
+    "loadNotFound": "ტვირთი ვერ მოიძებნა.",
+    "onlyDriversAndLogisticsCompaniesCan": "ტვირთების დაფით სარგებლობა მხოლოდ მძღოლებსა და ლოგისტიკურ კომპანიებს შეუძლიათ.",
+    "thisLoadIsNoLongerOpen": "ეს ტვირთი აღარ არის ღია."
+  },
+  "logisticsCompany": {
+    "citiesofoperationMustBeAnArrayWith": "citiesOfOperation უნდა იყოს მასივი მინიმუმ ერთი ქალაქით.",
+    "contactemailMustBeAValidEmail": "contactEmail უნდა იყოს ვალიდური ელფოსტის მისამართი.",
+    "contactnameMustBeAFullName": "contactName უნდა იყოს სრული სახელი — სახელი და გვარი.",
+    "contactroleIsRequiredAndMustBe": "contactRole სავალდებულოა და არ უნდა იყოს ცარიელი ტექსტი.",
+    "onlyLogisticsCompaniesCanCreateA": "კომპანიის პროფილის შექმნა მხოლოდ ლოგისტიკურ კომპანიებს შეუძლიათ.",
+    "onlyLogisticsCompaniesHaveACompany": "კომპანიის პროფილი მხოლოდ ლოგისტიკურ კომპანიებს აქვთ.",
+    "registeredaddressIsRequiredAndMustBe": "registeredAddress სავალდებულოა და არ უნდა იყოს ცარიელი ტექსტი.",
+    "vatidMustBeExactly9Digits": "vatId უნდა იყოს ზუსტად 9-ნიშნა."
+  },
+  "logisticsCompanyDrivers": {
+    "onlyLogisticsCompaniesCanRemoveDrivers": "მძღოლების წაშლა მხოლოდ ლოგისტიკურ კომპანიებს შეუძლიათ.",
+    "onlyLogisticsCompaniesHaveADriver": "მძღოლების განრიგი მხოლოდ ლოგისტიკურ კომპანიებს აქვთ."
+  },
+  "logisticsCompanyDriversRegister": {
+    "completeYourCompanyProfileBeforeRegistering": "მძღოლების დარეგისტრირებამდე შეავსეთ კომპანიის პროფილი.",
+    "licencecategoriesMustBeAnArrayWith": "licenceCategories უნდა იყოს მასივი მინიმუმ ერთი კატეგორიით.",
+    "licenceexpiresatMustBeAValidIso": "licenceExpiresAt უნდა იყოს ვალიდური ISO თარიღი.",
+    "licencenumberIsRequiredAndMustBe": "licenceNumber სავალდებულოა და არ უნდა იყოს ცარიელი ტექსტი.",
+    "onlyLogisticsCompaniesCanRegisterDrivers": "მძღოლების რეგისტრაცია მხოლოდ ლოგისტიკურ კომპანიებს შეუძლიათ.",
+    "thatVehicleWasNotFoundIn": "ეს ტრანსპორტი ვერ მოიძებნა თქვენს ავტოპარკში.",
+    "theDriverAccountWasCreatedBut": "მძღოლის ანგარიში შეიქმნა, თუმცა კონფიგურაციის დასრულება ვერ მოხერხდა. იმავე ელფოსტით ხელახლა ცდამდე დაუკავშირდით მხარდაჭერის გუნდს.",
+    "theLicenceExpiryDateMustBe": "მართვის მოწმობის მოქმედების ვადა უნდა იყოს მომავალში.",
+    "thisVehicleIsAlreadyAssignedTo": "ეს ტრანსპორტი უკვე მინიჭებულია სხვა მძღოლზე.",
+    "vehicleidMustBeAStringWhen": "vehicleId მითითებისას უნდა იყოს ტექსტური ტიპი (string)."
+  },
+  "logisticsCompanyOnboarding": {
+    "anApplicationUnderReviewCanNo": "განხილვის პროცესში მყოფი განაცხადის რედაქტირება უკვე შეუძლებელია.",
+    "draftVehiclesMustBeAnArray": "draft.vehicles უნდა იყოს მასივი."
+  },
+  "logisticsCompanyOnboardingSubmit": {
+    "correctTheFlaggedCompanyDetailsBefore": "ხელახლა გაგზავნამდე გასწორეთ კომპანიის მონიშნული მონაცემები."
+  },
+  "logisticsCompanyOnboardingVehicles": {
+    "thisApplicationIsnTOpenFor": "ეს განაცხადი ღია არ არის შესასწორებლად.",
+    "thisVehicleWasnTFlaggedFor": "ეს ტრანსპორტი არ ყოფილა მონიშნული შესასწორებლად.",
+    "weCouldnTSaveThisVehicle": "ამ ტრანსპორტის შენახვა ვერ მოხერხდა. გთხოვთ, სცადოთ თავიდან."
+  },
+  "logisticsCompanyOrdersCancel": {
+    "onlyLogisticsCompaniesCanCancelDeliveries": "მიწოდების გაუქმება მხოლოდ ლოგისტიკურ კომპანიებს შეუძლიათ.",
+    "thisDeliveryCanNoLongerBe": "ამ მიწოდების გაუქმება უკვე შეუძლებელია."
+  },
+  "logisticsCompanyOrdersClaim": {
+    "noneOfYourFleetSEligible": "თქვენი ავტოპარკიდან არცერთ შესაბამის ტრანსპორტს არ შეუძლია ამ ტვირთის გადაზიდვა — ის აჭარბებს წონის ან ზომის ლიმიტს.",
+    "onlyLogisticsCompaniesCanClaimDeliveries": "შეკვეთების აღება მხოლოდ ლოგისტიკურ კომპანიებს შეუძლიათ.",
+    "yourFleetHasNoVehicleBig": "თქვენს ავტოპარკს არ აქვს საკმარისად დიდი ტრანსპორტი იმ კლასისთვის, რომლითაც დაჯავშნილი იყო ეს მიწოდება და იმ სატვირთო სივრცისთვის, რაც მას სჭირდება."
+  },
+  "logisticsCompanyVehicles": {
+    "completeYourCompanyProfileBeforeAdding": "ტრანსპორტის დამატებამდე შეავსეთ კომპანიის პროფილი.",
+    "onlyLogisticsCompaniesCanAddFleet": "ავტოპარკის ტრანსპორტის დამატება მხოლოდ ლოგისტიკურ კომპანიებს შეუძლიათ.",
+    "onlyLogisticsCompaniesCanRemoveFleet": "ავტოპარკის ტრანსპორტის წაშლა მხოლოდ ლოგისტიკურ კომპანიებს შეუძლიათ.",
+    "onlyLogisticsCompaniesHaveAFleet": "ავტოპარკი მხოლოდ ლოგისტიკურ კომპანიებს აქვთ.",
+    "vehicletypecodeDoesNotMatchAKnown": "vehicleTypeCode არ შეესაბამება ტრანსპორტის ცნობილ ტიპს."
+  },
+  "logisticsCompanyVehiclesAssignment": {
+    "onlyLogisticsCompaniesCanAssignVehicles": "ტრანსპორტის მინიჭება მხოლოდ ლოგისტიკურ კომპანიებს შეუძლიათ.",
+    "onlyLogisticsCompaniesCanUnassignVehicles": "ტრანსპორტის მინიჭების მოხსნა მხოლოდ ლოგისტიკურ კომპანიებს შეუძლიათ.",
+    "thisVehicleHasNoActiveAssignment": "ამ ტრანსპორტს აქტიური მინიჭება არ აქვს."
+  },
+  "orders": {
+    "deliverydeadlineMustBeAfterPickupwindowend": "deliveryDeadline უნდა იყოს pickupWindowEnd-ის შემდეგ.",
+    "descriptionMustBeAStringWhen": "description მითითებისას უნდა იყოს ტექსტური ტიპი (string).",
+    "failedToDrawAnOrderReference": "მიმდევრობიდან შეკვეთის კოდის/ნომრის გენერირება ვერ მოხერხდა.",
+    "handlingtagsMustBeAnArrayWhen": "handlingTags მითითებისას უნდა იყოს მასივი.",
+    "pickupwindowendMustBeAfterPickupwindowstart": "pickupWindowEnd უნდა იყოს pickupWindowStart-ის შემდეგ.",
+    "scheduledatCannotBeInThePast": "scheduledAt არ შეიძლება იყოს წარსულში.",
+    "scheduledatIsRequired": "scheduledAt სავალდებულოა.",
+    "scheduledatMustBeAValidDate": "scheduledAt უნდა იყოს ვალიდური თარიღი და დრო.",
+    "thatVehicleDoesNotOfferThe": "ეს ტრანსპორტი არ გთავაზობთ თქვენ მიერ არჩეულ სატვირთო სივრცეს."
+  },
+  "ordersAccept": {
+    "onlyDriversCanAcceptDeliveries": "მიწოდების მიღება მხოლოდ მძღოლებს შეუძლიათ.",
+    "thisVehicleCanTCarryThis": "ამ ტრანსპორტს არ შეუძლია ამ ტვირთის გადაზიდვა — ის აჭარბებს წონის ან ზომის ლიმიტს.",
+    "thisVehicleDoesnTOfferThe": "ეს ტრანსპორტი არ გთავაზობთ იმ სატვირთო სივრცეს, რაც ამ მიწოდებას სჭირდება.",
+    "thisVehicleIsSmallerThanThe": "ეს ტრანსპორტი უფრო პატარაა, ვიდრე ტრანსპორტის ის კლასი, რომლითაც დაჯავშნილი იყო ეს მიწოდება. გამოიყენეთ ტრანსპორტი, რომელიც შეესაბამება ან აღემატება მას ტვირთამწეობით, სიგრძით, სიგანითა და სიმაღლით.",
+    "youReOfflineGoOnlineTo": "თქვენ ოფლაინში ხართ. ტვირთების დასაჯავშნად/მისაღებად გადადით ონლაინ რეჟიმში."
+  },
+  "ordersComplete": {
+    "thisDeliveryCannotBeCompletedRight": "ამ მიწოდების დასრულება ახლა შეუძლებელია.",
+    "thisDeliverySVehicleTypeHas": "ამ მიწოდების ტრანსპორტის ტიპს არ აქვს ფასწარმოქმნის წესი (pricing rule).",
+    "waitingminutesIsRequiredAndMustBe": "waitingMinutes სავალდებულოა და უნდა იყოს წუთების მთელი რიცხვი."
+  },
+  "ordersLocation": {
+    "youDoNotHaveAccessTo": "თქვენ არ გაქვთ წვდომა ამ შეკვეთაზე."
+  },
+  "ordersPay": {
+    "thisDeliveryHasAlreadyBeenPaid": "ამ მიწოდების საფასური უკვე გადახდილია და ის ჩვენს მძღოლებთანაა."
+  },
+  "ordersStart": {
+    "thisDeliveryCannotBeStartedRight": "ამ მიწოდების დაწყება ახლა შეუძლებელია."
+  },
+  "savedCards": {
+    "enterAFourDigitCardEnding": "შეიყვანეთ ბარათის ბოლო ოთხი ციფრი.",
+    "enterAFourDigitExpiryYear": "შეიყვანეთ მოქმედების ვადა: ოთხნიშნა წელი.",
+    "enterAnExpiryMonthBetween1": "შეიყვანეთ მოქმედების ვადა: თვე 1-დან 12-მდე.",
+    "enterTheCardBrand": "შეიყვანეთ ბარათის ბრენდი.",
+    "enterTheCardholderNameAsIt": "შეიყვანეთ ბარათის მფლობელის სახელი და გვარი ზუსტად ისე, როგორც ბარათზეა.",
+    "isdefaultMustBeTrueOrFalse": "isDefault მითითებისას უნდა იყოს true ან false.",
+    "onlyClientsCanSaveACard": "ბარათის შენახვა მხოლოდ კლიენტებს შეუძლიათ.",
+    "onlyClientsHaveSavedCards": "შენახული ბარათები მხოლოდ კლიენტებს აქვთ.",
+    "thatCardHasExpiredAddA": "ამ ბარათს ვადა გაუვიდა. დაამატეთ ბარათი, რომელიც ჯერ კიდევ მოქმედებს."
+  },
+  "validation": {
+    "bodyhtmlIsRequiredAndMustBe": "bodyHtml სავალდებულოა და არ უნდა იყოს ცარიელი ტექსტი.",
+    "ispublishedMustBeABoolean": "isPublished უნდა იყოს ლოგიკური ტიპი (boolean).",
+    "slugIsRequiredAndMustBe": "slug სავალდებულოა და უნდა იყოს ტექსტური ტიპი (string).",
+    "slugMustBeLowercaseLettersNumbers": "slug უნდა შედგებოდეს მცირე ასოებისგან, ციფრებისგან და ცალკეული დეფისებისგან, მაგ. \"terms-of-service\"."
+  }
+}

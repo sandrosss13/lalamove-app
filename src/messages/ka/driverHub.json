@@ -1,1 +1,335 @@
-{}
+{
+  "driverAccountCompanyCard": {
+    "contactEmail": "საკონტაქტო ელფოსტა",
+    "contactName": "საკონტაქტო პირის სახელი",
+    "contactRole": "საკონტაქტო პირის როლი",
+    "theAddressYouSignInWith": "მისამართი, რომლითაც შედიხართ სისტემაში.",
+    "whatAClientIsBilledBy": "რით იბეგრება კლიენტი და როგორ უკავშირდება ოპერაციების გუნდი თქვენს ავტოპარკს."
+  },
+  "driverAccountPayoutPanel": {
+    "bank": "ბანკი",
+    "frequency": "სიხშირე",
+    "howOftenCompletedJobsAreSettled": "რამდენად ხშირად ხდება დასრულებული შეკვეთების ანგარიშსწორება.",
+    "iban": "IBAN (ანგარიშის ნომერი)",
+    "nextPayout": "შემდეგი გადარიცხვა",
+    "payoutSchedule": "გადარიცხვების განრიგი"
+  },
+  "driverAccountPlaceholderPanel": {
+    "notificationPreferences": "შეტყობინებების პარამეტრები",
+    "whatHappensToday": "რა ხდება დღეს",
+    "whyItIsEmpty": "რატომ არის ცარიელი"
+  },
+  "driverAccountProfileForm": {
+    "profileDetails": "პროფილის დეტალები",
+    "yourNameTheNumberAClient": "თქვენი სახელი, ნომერი, რომელზეც კლიენტი გირეკავთ, როდესაც ვერ გპოულობთ და ქალაქი, სადაც მუშაობთ."
+  },
+  "driverAccountSections": {
+    "gettingAPersonToLookAt": "პიროვნების ჩართვა, როდესაც რაღაც არასწორად წავიდა.",
+    "payoutBankDetails": "გადარიცხვისა და საბანკო დეტალები",
+    "theDetailsAClientSeesWhen": "დეტალები, რომლებსაც კლიენტი ხედავს, როდესაც ტვირთის აყვანაზე მიდიხართ, და ავტორიზაციის მონაცემები.",
+    "theLanguageThisDashboardAndYour": "ენა, რომელზეც მოცემულია ეს მართვის პანელი და შეკვეთის შეტყობინებები.",
+    "whereYourFaresAreSettledAnd": "სად და როდის ხდება თქვენი მგზავრობის/გადაზიდვის საფასურის ანგარიშსწორება. ანგარიშის შეცვლა ხდება მხარდაჭერის გუნდის მეშვეობით უსაფრთხოების გადამოწმებისთვის.",
+    "whichJobPayoutAndAccountEvents": "რომელი შეკვეთის, გადარიცხვისა და ანგარიშის სიახლეები მოგდით და რა არხით."
+  },
+  "driverHubMobileMenu": {
+    "closeMenu": "მენიუს დახურვა",
+    "driverMenu": "მძღოლის მენიუ",
+    "menu": "მენიუ"
+  },
+  "driverHubNav": {
+    "182JobsInTheLast30": "182 შეკვეთა ბოლო 30 დღეში",
+    "7RegisteredDrivers4OnlineIn": "7 რეგისტრირებული მძღოლი · 4 ონლაინში თბილისში",
+    "7VehiclesRegistered4OnThe": "7 რეგისტრირებული ტრანსპორტი · 4 ხაზზე, 1 მიუნიჭებელი",
+    "bookingsOpenToDrivers": "ჯავშნები ღიაა მძღოლებისთვის",
+    "employeesRoles": "თანამშრომლები და როლები",
+    "gizoCargoLlc6People4": "შპს გიზო კარგო · 6 ადამიანი, 4 როლი · 1 მოწვევა მოლოდინშია",
+    "jobHistory": "შეკვეთების ისტორია",
+    "performance": "პროდუქტიულობა",
+    "thisTbilisiWeekMondayToSunday": "ამ კვირაში თბილისში, ორშაბათიდან კვირამდე"
+  },
+  "driverHubNotifications": {
+    "nothingToCatchUpOn": "სიახლეები არ არის."
+  },
+  "driverHubSidebar": {
+    "jobsTowardsThisWeekSBonus": "ამ კვირის ბონუსისკენ მიმართული შეკვეთები",
+    "weeklyIncentive": "ყოველკვირეული ბონუსი / წახალისება"
+  },
+  "driversAddPanel": {
+    "9955xxXxxXxx": "+995 5XX XXX XXX",
+    "carsAndSmallVans": "მსუბუქი ავტომობილები და მცირე ფურგონები",
+    "eG01234567": "მაგ. 01234567",
+    "everyFleetVehicleIsCurrentlyHeld": "ავტოპარკის ყველა ტრანსპორტი ამჟამად მინიჭებულია მძღოლზე. დარეგისტრირეთ ეს ტრანსპორტი მიუნიჭებლად და დააკავშირეთ მძღოლს მოგვიანებით „ტრანსპორტის“ ეკრანიდან.",
+    "licenceCategories": "მართვის მოწმობის კატეგორიები",
+    "networkErrorCheckYourConnectionAnd": "ქსელის შეცდომა. შეამოწმეთ ინტერნეტთან კავშირი და სცადოთ თავიდან.",
+    "pickACity": "აირჩიეთ ქალაქი",
+    "registerADriver": "მძღოლის რეგისტრაცია",
+    "rigidTrucks": "ძარიანი / მძიმე სატვირთოები",
+    "thisCreatesTheirAccountTheySign": "ეს ქმნის მათ ანგარიშს. ისინი შედიან ქვემოთ მითითებული ელფოსტით და შენახვის შემდეგ გამოჩენილი ერთჯერადი პაროლით, რის შემდეგაც აყენებენ საკუთარს."
+  },
+  "driversDetailPanel": {
+    "jobsThisWeek": "ამ კვირის შეკვეთები",
+    "noCompletedJobsForThisFleet": "ამ ავტოპარკს ჯერ დასრულებული შეკვეთები არ აქვს.",
+    "recentJobs": "ბოლო შეკვეთები",
+    "verification": "ვერიფიკაცია / გადამოწმება"
+  },
+  "driversScreen": {
+    "addDriver": "მძღოლის დამატება",
+    "doneIHaveSharedIt": "მზადაა — გავაზიარე",
+    "fleetAvgRating": "ავტოპარკის საშუალო რეიტინგი",
+    "itIsNotStoredAnywhereIn": "— ის არ ინახება არსად წაკითხვად ფორმატში და ამ ბარათის დახურვა ასრულებს პროცესს. ისინი აყენებენ საკუთარ პაროლს სისტემაში შესვლის შემდეგ.",
+    "offline": "ოფლაინ",
+    "online": "ონლაინ",
+    "onlineNow": "ახლა ონლაინშია",
+    "registerYourFirstDriverToStart": "დარეგისტრირეთ თქვენი პირველი მძღოლი შეკვეთების გადანაწილების დასაწყებად.",
+    "registeredDrivers": "რეგისტრირებული მძღოლები",
+    "sampleRatings": "სანიმუშო რეიტინგები"
+  },
+  "earningsBreakdownCard": {
+    "adjustments": "კორექტირებები",
+    "breakdown": "დეტალური ჩაშლა",
+    "rangeTotal": "პერიოდის ჯამი",
+    "tips": "ჩაი / ჩაის ფული (Tips)",
+    "tipsIncentivesAdjustments": "ჩაი · ბონუსები · კორექტირებები",
+    "tripFares": "გადაზიდვის ტარიფები"
+  },
+  "earningsFilterBar": {
+    "custom": "სხვა / მორგებული",
+    "rangeEndDate": "პერიოდის დასრულების თარიღი",
+    "rangeStartDate": "პერიოდის დაწყების თარიღი"
+  },
+  "earningsFleetCard": {
+    "allCompletedOrdersInTheRange": "ყველა დასრულებული შეკვეთა ამ პერიოდში.",
+    "completedOrdersAppearHereOnceA": "დასრულებული შეკვეთები გამოჩნდება აქ, როგორც კი მათზე მძღოლი დაინიშნება.",
+    "fleetRevenue": "ავტოპარკის შემოსავალი",
+    "notAssignedToADriver": "არ არის მინიჭებული მძღოლზე",
+    "revenue": "შემოსავალი",
+    "revenueByDriver": "შემოსავალი მძღოლების მიხედვით",
+    "share": "გაზიარება"
+  },
+  "earningsPayoutsCard": {
+    "amount": "თანხა / რაოდენობა",
+    "fixedWeeklySettlementWindowsNotFiltered": "ფიქსირებული ყოველკვირეული ანგარიშსწორების ფანჯრები — არ ფილტრავს ზემოთ მითითებული პერიოდით.",
+    "payoutHistory": "გადარიცხვების ისტორია"
+  },
+  "earningsScreen": {
+    "perOnlineHour": "ონლაინ საათზე"
+  },
+  "employeesDetailPanel": {
+    "permissions": "უფლებები"
+  },
+  "employeesInviteForm": {
+    "employeeAccountsAreNotConnectedTo": "თანამშრომლის ანგარიშები ჯერ არ არის დაკავშირებული ბექენდთან, ამიტომ ამ ფორმას არ შეუძლია მოწვევის გაგზავნა. ის აქ არის, რათა ეკრანი მზად იყოს, როდესაც თანამშრომელთა ჩანაწერები შეიქმნება.",
+    "inviteAnEmployee": "თანამშრომლის მოწვევა",
+    "nameGizocargoGe": "name@gizocargo.ge",
+    "sendInvite": "მოწვევის გაგზავნა",
+    "theyGetAnEmailInvitePermissions": "ისინი იღებენ მოწვევას ელფოსტაზე. უფლებები განისაზღვრება როლის მიხედვით და ამოქმედდება დადასტურებისთანავე.",
+    "zonesOrVehiclesTheyCover": "ზონები ან ტრანსპორტი, რომელსაც ფარავენ"
+  },
+  "employeesRoleDefinitions": {
+    "roleDefinitions": "როლის განმარტებები"
+  },
+  "employeesScreen": {
+    "canMoveMoney": "შეუძლია თანხის გადარიცხვა/გადაადგილება",
+    "inviteEmployee": "თანამშრომლის მოწვევა",
+    "invited": "მოწვეული",
+    "lastActive": "ბოლოს აქტიური",
+    "person": "პირი / პიროვნება",
+    "rolesInUse": "გამოყენებული როლები",
+    "sampleRoster": "სანიმუშო განრიგი",
+    "thereIsNoEmployeeRecordIn": "სისტემაში თანამშრომლის ჩანაწერი ჯერ არ არის, ამიტომ მონაცემები და ხალხი გამოგონილია — არავინ ყოფილა მოწვეული და წვდომა არავისთვის მიუნიჭებიათ. ქვემოთ მოცემული როლის განმარტებები რეალური პროდუქტის შინაარსია."
+  },
+  "fleetAvailabilityBoard": {
+    "driverVehicle": "მძღოლი · ტრანსპორტი"
+  },
+  "fleetAvailabilityCard": {
+    "dragAcrossAnEmptyStretchOf": "გადაათრიეთ მწკრივის ცარიელ მონაკვეთზე ჯავშნად დასაფიქსირებლად.",
+    "fleetAvailability": "ავტოპარკის ხელმისაწვდომობა",
+    "notSaved": "არ არის შენახული",
+    "resetFilters": "ფილტრების გასუფთავება"
+  },
+  "fleetAvailabilityDialogs": {
+    "allDriversWholeDay": "ყველა მძღოლი, მთელი დღე",
+    "chooseWhatGoesIntoTheSpreadsheet": "აირჩიეთ, რა შევიდეს ცხრილში.",
+    "currentView": "მიმდინარე ხედი",
+    "discard": "გაუქმება / უარყოფა",
+    "exportAvailability": "ხელმისაწვდომობის ექსპორტი",
+    "filteredDriversWholeDay": "გაფილტრული მძღოლები, მთელი დღე",
+    "holdSlot": "სლოტის დაჯავშნა/დაკავება",
+    "holdThisSlot": "ამ სლოტის დაჯავშნა/დაკავება",
+    "includeDriverPhoneNumber": "მძღოლის ტელეფონის ნომრის ჩართვა",
+    "includeFreeSlotsAsAvailableRows": "თავისუფალი სლოტების ჩართვა, როგორც ხელმისაწვდომი მწკრივები",
+    "whatToExport": "რა გაექსპორტდეს"
+  },
+  "fleetAvailabilityFilters": {
+    "allCities": "ყველა ქალაქი",
+    "allDrivers": "ყველა მძღოლი",
+    "allStatuses": "ყველა სტატუსი",
+    "allTypes": "ყველა ტიპი",
+    "capacity": "ტვირთამწეობა / ტევადობა",
+    "nextDay": "შემდეგი დღე",
+    "noDriverMatchesThatName": "ამ დასახელების მძღოლი ვერ მოიძებნა.",
+    "previousDay": "წინა დღე",
+    "searchDriversByName": "მძღოლების ძებნა სახელით",
+    "searchPlate": "ნომრის ძებნა",
+    "typeADriverName": "ჩაწერეთ მძღოლის სახელი",
+    "vehicleType": "ტრანსპორტის ტიპი",
+    "zoom": "მასშტაბირება (Zoom)",
+    "zoomIn": "გადიდება",
+    "zoomOut": "დაპატარავება"
+  },
+  "fleetAvailabilityFormat": {
+    "18TAndAbove": "18 ტ და მეტი",
+    "28T": "2 – 8 ტ",
+    "818T": "8 – 18 ტ",
+    "anyCapacity": "ნებისმიერი ტევადობა",
+    "assignedOnOrder": "მინიჭებული / შეკვეთაშია",
+    "available": "ხელმისაწვდომი",
+    "blockStart": "block.start",
+    "bookedFuture": "დაჯავშნილი (მომავალში)",
+    "enRoute": "გზაშია",
+    "upTo2T": "2 ტ-მდე"
+  },
+  "hubJobParts": {
+    "droppedOff": "ჩაბარებულია",
+    "orderPlaced": "შეკვეთა განთავსებულია",
+    "payout": "გადარიცხვა / payout"
+  },
+  "jobSheetActions": {
+    "confirmDelivery": "მიწოდების დადასტურება",
+    "enterTheWaitingTimeAsA": "შეიყვანეთ ლოდინის დრო წუთებში (მთელი რიცხვი) ან 0.",
+    "markDelivered": "მონიშნეთ ჩაბარებულად",
+    "nameOfWhoeverTookTheGoods": "მიმღების სახელი, ვინც აიღო ტვირთი",
+    "receivedByOptional": "მიიღო (არასავალდებულო)",
+    "thisEndsTheJobAndCannot": "ეს ასრულებს შეკვეთას და მისი გაუქმება შეუძლებელია.",
+    "waitingTimeBeyondTheFreeAllowance": "უფასო ლიმიტს გადაცილებული ლოდინის დრო ამატებს ზეგანაკვეთურ ანაზღაურებას ამ შეკვეთაზე, ამიტომ ეს ციფრი მოქმედებს თქვენს გასამრჯელოზე.",
+    "wholeMinutesSpentWaitingAtEither": "ნებისმიერ გაჩერებაზე ლოდინში დახარჯული სრული წუთები. ჩაწერეთ 0, თუ ასეთი არ ყოფილა."
+  },
+  "jobSheetParts": {
+    "awaitingDispatch": "ელოდება გადანაწილებას (dispatch)",
+    "call": "დარეკვა",
+    "deadline": "ბოლო ვადა (Deadline)",
+    "delivered": "ჩაბარებულია",
+    "details": "დეტალები",
+    "inTransit": "ტრანზიტშია / გზაშია",
+    "navigate": "ნავიგაცია",
+    "notDispatchedToADriver": "არ არის გადანაწილებული მძღოლზე",
+    "receivedBy": "მიიღო",
+    "timeline": "ქრონოლოგია (Timeline)",
+    "timing": "დრო / ტაიმინგი"
+  },
+  "jobSheetScreen": {
+    "thisDeliveryWasCancelled": "ეს მიწოდება გაუქმდა."
+  },
+  "jobsDetailPanel": {
+    "paidToYou": "გადახდილია თქვენთვის",
+    "poReference": "შესყიდვის შეკვეთის (PO) კოდი"
+  },
+  "jobsScreen": {
+    "completedScheduledAndCancelledJobsAll": "დასრულებული, დაგეგმილი და გაუქმებული შეკვეთები აისახება აქ მათი მარშრუტით, ქრონოლოგიითა და ტარიფის ჩაშლით.",
+    "fare": "ტარიფი / მგზავრობის საფასური",
+    "job": "შეკვეთა / სამუშაო"
+  },
+  "loadsClaimDialogs": {
+    "backToDashboard": "მართვის პანელზე დაბრუნება",
+    "confirmThisShipment": "ამ ტვირთის/გადაზიდვის დადასტურება",
+    "firstComeFirstServedConfirmingClaims": "პირველი მომსვლელის პრინციპით (First come, first served). დადასტურება იღებს შეკვეთას და ხურავს მას სხვა მძღოლებისთვის.",
+    "justClaimedByAnotherDriver": "ახლახან აიღო სხვა მძღოლმა.",
+    "stayOffline": "დარჩით ოფლაინში",
+    "tooSmallForThisLoad": "ძალიან პატარაა ამ ტვირთისთვის",
+    "wasConfirmedAMomentBeforeYou": "დადასტურდა თქვენამდე ცოტა ხნით ადრე. ის ამოღებულია თქვენი ხელმისაწვდომი სიიდან.",
+    "weight": "წონა",
+    "youArePaid": "თქვენ ანაზღაურება მიღებული გაქვთ"
+  },
+  "loadsContext": {
+    "couldnTReachTheDashboard": "მართვის პანელთან დაკავშირება ვერ მოხერხდა.",
+    "couldnTReachTheServerCheck": "სერვერთან დაკავშირება ვერ მოხერხდა. შეამოწმეთ ინტერნეტთან კავშირი და სცადეთ თავიდან.",
+    "newMap": "ახალი რუკა"
+  },
+  "loadsDetailParts": {
+    "youClaimedThisLoadContactDetails": "თქვენ აიღეთ ეს ტვირთი. საკონტაქტო დეტალები მოცემულია თქვენი შეკვეთის ფურცელში."
+  },
+  "loadsDispatchDialog": {
+    "noneOfYourVehiclesCanTake": "თქვენს არცერთ ტრანსპორტს არ შეუძლია ამ ტვირთის წაღება. მიზეზები მითითებულია თითოეულზე ზემოთ.",
+    "offline": "· ოფლაინ",
+    "recommended": "რეკომენდებული",
+    "theVehiclesThatCanTakeThis": "ტრანსპორტს, რომელსაც შეუძლია ამ მიწოდების შესრულება, მძღოლი არ ჰყავს მინიჭებული. მიანიჭეთ მძღოლი „ტრანსპორტის“ ეკრანიდან და შემდეგ გაანაწილეთ ეს მიწოდება.",
+    "yourFleetHasNoRegisteredVehicles": "თქვენს ავტოპარკს არ ჰყავს რეგისტრირებული ტრანსპორტი. დარეგისტრირეთ ტრანსპორტი „ტრანსპორტის“ ეკრანიდან, შემდეგ კი გაანაწილეთ ეს მიწოდება."
+  },
+  "loadsFilters": {
+    "reset": "განახლება / ჩამოყრა",
+    "specialHandling": "სპეციალური დამუშავება"
+  },
+  "loadsFormat": {
+    "coldChain": "ცივი ჯაჭვი (მაცივარი)",
+    "fragile": "მსხვრევადი",
+    "hazmat": "სახიფათო ტვირთი (Hazmat)",
+    "heavyItem": "მძიმე ნივთი",
+    "timeCritical": "დროში შეზღუდული / სასწრაფო",
+    "uprightOnly": "მხოლოდ ვერტიკალურად"
+  },
+  "loadsMobile": {
+    "claimedByAnotherDriver": "აღებულია სხვა მძღოლის მიერ",
+    "dropOffAddress": "ჩაბარების მისამართი",
+    "pickUpAddress": "აყვანის მისამართი",
+    "restoreToBoard": "დაფაზე დაბრუნება / აღდგენა",
+    "yoursAssignAVehicle": "თქვენია · მიანიჭეთ ტრანსპორტი",
+    "yoursViewJobSheet": "თქვენია · ნახეთ შეკვეთის ფურცელი"
+  },
+  "loadsTable": {
+    "accept": "მიღება",
+    "claimed": "აღებულია",
+    "dropOff": "ჩაბარება",
+    "howFarThisJobRunsPick": "ამ შეკვეთის მანძილი, აყვანიდან ჩაბარებამდე",
+    "loads": "ტვირთები",
+    "openLoadDetails": "— ტვირთის დეტალების გახსნა",
+    "pickUp": "აყვანა",
+    "rejectedView": "უარყოფილია · ნახვა",
+    "restore": "აღდგენა",
+    "sortsByTimeOfDayNot": "სორტირება დღის დროის მიხედვით და არა თარიღით",
+    "theDayTheClientBookedThis": "დღე, რომლისთვისაც კლიენტმა დაჯავშნა ეს შეკვეთა",
+    "weightDims": "წონა / ზომები",
+    "widenTheWeightRangeOrClear": "მეტი შედეგის სანახავად გააფართოეთ წონის დიაპაზონი ან გასუფთავეთ ქალაქის ფილტრი.",
+    "yours": "თქვენია"
+  },
+  "performanceScreen": {
+    "andAFlatBarUntilThey": "და ბრტყელი ზოლი, სანამ არ მოხდება.",
+    "completion": "დასრულება",
+    "daysLaterThisWeekShow": "ამ კვირის მომდევნო დღეების გამოჩენა",
+    "estimatedDelta": "სავარაუდო სხვაობა (delta)",
+    "finished": "დასრულებულია",
+    "howTheWeekWentByDriver": "როგორ ჩაიარა კვირამ მძღოლების მიხედვით",
+    "jobsCompletedByDay": "დასრულებული შეკვეთები დღეების მიხედვით",
+    "jobsDay": "შეკვეთები / დღეში",
+    "jobsPerDay": "შეკვეთები დღეში",
+    "onlineHoursVsJobsCompleted": "ონლაინ საათები დასრულებული შეკვეთების წინააღმდეგ",
+    "registerADriverAndTheirWeek": "დაარეგისტრირეთ მძღოლი და მისი კვირის მონაცემები გამოჩნდება აქ.",
+    "thisWeek": "მიმდინარე კვირა,",
+    "whatAffectsYourScore": "რა მოქმედებს თქვენს ქულაზე / რეიტინგზე"
+  },
+  "vehiclesAddForm": {
+    "ab123Cd": "AB-123-CD",
+    "addAVehicle": "ტრანსპორტის დამატება",
+    "ford": "Ford",
+    "itJoinsTheFleetAsIdle": "ის ემატება ავტოპარკს უქმად დგომის სტატუსით. მიანიჭეთ მძღოლი შეკვეთების მისაღებად.",
+    "loadingVehicleClasses": "ტრანსპორტის კლასები იტვირთება...",
+    "odometerIsDisabledVehicleHasNo": "ოდომეტრი გათიშულია: „Vehicle“-ს არ აქვს ველი მონაცემის შესანახად, ამიტომ აქ აკრეფილი ნებისმიერი მონაცემი წაიშლება. ის მოდის `Vehicle.odometerKm`-ით.",
+    "odometerKm": "ოდომეტრი (კმ)",
+    "transitCustom": "Transit Custom"
+  },
+  "vehiclesDetailPanel": {
+    "costPerKm": "ღირებულება კმ-ზე",
+    "jobsWeek": "შეკვეთები · კვირაში",
+    "operatingCities": "ოპერირების ქალაქები",
+    "runningCostsThisMonth": "საექსპლუატაციო ხარჯები · ამ თვეში",
+    "thisVehicleBelongsToTheFleet": "ეს ტრანსპორტი ეკუთვნის ავტოპარკს, რომელზეც მუშაობთ და არა თქვენ. მისი წაშლა მხოლოდ მფლობელს შეუძლია."
+  },
+  "vehiclesScreen": {
+    "addOneToStartTakingJobs": "დაამატეთ ტრანსპორტი შეკვეთების მისაღებად. ის ემატება უქმად დგომის სტატუსით, სანამ მძღოლი არ მიენიჭება.",
+    "addVehicle": "ტრანსპორტის დამატება",
+    "costKm": "ღირებულება/კმ",
+    "fleetCostPerKm": "ავტოპარკის ხარჯი კმ-ზე",
+    "idle": "უქმად დგას",
+    "odometerCostKm": "ოდომეტრი · ღირებულება/კმ",
+    "onTheRoad": "ხაზზეა / გზაშია"
+  }
+}

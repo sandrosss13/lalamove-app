@@ -1,1 +1,335 @@
-{}
+{
+  "driverAccountCompanyCard": {
+    "contactEmail": "Contact email",
+    "contactName": "Contact name",
+    "contactRole": "Contact role",
+    "theAddressYouSignInWith": "The address you sign in with.",
+    "whatAClientIsBilledBy": "What a client is billed by, and how operations reaches your fleet."
+  },
+  "driverAccountPayoutPanel": {
+    "bank": "Bank",
+    "frequency": "Frequency",
+    "howOftenCompletedJobsAreSettled": "How often completed jobs are settled.",
+    "iban": "IBAN",
+    "nextPayout": "Next payout",
+    "payoutSchedule": "Payout schedule"
+  },
+  "driverAccountPlaceholderPanel": {
+    "notificationPreferences": "Notification preferences",
+    "whatHappensToday": "What happens today",
+    "whyItIsEmpty": "Why it is empty"
+  },
+  "driverAccountProfileForm": {
+    "profileDetails": "Profile details",
+    "yourNameTheNumberAClient": "Your name, the number a client calls when they cannot find you, and the city you work out of."
+  },
+  "driverAccountSections": {
+    "gettingAPersonToLookAt": "Getting a person to look at something that has gone wrong.",
+    "payoutBankDetails": "Payout & bank details",
+    "theDetailsAClientSeesWhen": "The details a client sees when you turn up for a pickup, and the credentials you sign in with.",
+    "theLanguageThisDashboardAndYour": "The language this dashboard and your job alerts are written in.",
+    "whereYourFaresAreSettledAnd": "Where your fares are settled, and when. Changing a payout account is done through support so the change can be verified.",
+    "whichJobPayoutAndAccountEvents": "Which job, payout and account events reach you, and how they reach you."
+  },
+  "driverHubMobileMenu": {
+    "closeMenu": "Close menu",
+    "driverMenu": "Driver menu",
+    "menu": "Menu"
+  },
+  "driverHubNav": {
+    "182JobsInTheLast30": "182 jobs in the last 30 days",
+    "7RegisteredDrivers4OnlineIn": "7 registered drivers · 4 online in Tbilisi now",
+    "7VehiclesRegistered4OnThe": "7 vehicles registered · 4 on the road, 1 unassigned",
+    "bookingsOpenToDrivers": "Bookings open to drivers",
+    "employeesRoles": "Employees & roles",
+    "gizoCargoLlc6People4": "Gizo Cargo LLC · 6 people, 4 roles · 1 invite pending",
+    "jobHistory": "Job history",
+    "performance": "Performance",
+    "thisTbilisiWeekMondayToSunday": "This Tbilisi week, Monday to Sunday"
+  },
+  "driverHubNotifications": {
+    "nothingToCatchUpOn": "Nothing to catch up on."
+  },
+  "driverHubSidebar": {
+    "jobsTowardsThisWeekSBonus": "Jobs towards this week's bonus",
+    "weeklyIncentive": "Weekly incentive"
+  },
+  "driversAddPanel": {
+    "9955xxXxxXxx": "+995 5XX XXX XXX",
+    "carsAndSmallVans": "Cars and small vans",
+    "eG01234567": "e.g. 01234567",
+    "everyFleetVehicleIsCurrentlyHeld": "Every fleet vehicle is currently held by a driver. Register this one unassigned and pair them from the Vehicles screen later.",
+    "licenceCategories": "Licence categories",
+    "networkErrorCheckYourConnectionAnd": "Network error. Check your connection and try again.",
+    "pickACity": "Pick a city",
+    "registerADriver": "Register a driver",
+    "rigidTrucks": "Rigid trucks",
+    "thisCreatesTheirAccountTheySign": "This creates their account. They sign in with the email below and the one-time password shown after saving, then set their own."
+  },
+  "driversDetailPanel": {
+    "jobsThisWeek": "Jobs this week",
+    "noCompletedJobsForThisFleet": "No completed jobs for this fleet yet.",
+    "recentJobs": "Recent jobs",
+    "verification": "Verification"
+  },
+  "driversScreen": {
+    "addDriver": "Add driver",
+    "doneIHaveSharedIt": "Done — I have shared it",
+    "fleetAvgRating": "Fleet avg rating",
+    "itIsNotStoredAnywhereIn": "— it is not stored anywhere in readable form, and closing this card is the end of it. They set their own password after signing in.",
+    "offline": "Offline",
+    "online": "Online",
+    "onlineNow": "Online now",
+    "registerYourFirstDriverToStart": "Register your first driver to start dispatching jobs.",
+    "registeredDrivers": "Registered drivers",
+    "sampleRatings": "Sample ratings"
+  },
+  "earningsBreakdownCard": {
+    "adjustments": "Adjustments",
+    "breakdown": "Breakdown",
+    "rangeTotal": "Range total",
+    "tips": "Tips",
+    "tipsIncentivesAdjustments": "Tips · Incentives · Adjustments",
+    "tripFares": "Trip fares"
+  },
+  "earningsFilterBar": {
+    "custom": "Custom",
+    "rangeEndDate": "Range end date",
+    "rangeStartDate": "Range start date"
+  },
+  "earningsFleetCard": {
+    "allCompletedOrdersInTheRange": "All completed orders in the range.",
+    "completedOrdersAppearHereOnceA": "Completed orders appear here once a driver is assigned to them.",
+    "fleetRevenue": "Fleet revenue",
+    "notAssignedToADriver": "Not assigned to a driver",
+    "revenue": "Revenue",
+    "revenueByDriver": "Revenue by driver",
+    "share": "Share"
+  },
+  "earningsPayoutsCard": {
+    "amount": "Amount",
+    "fixedWeeklySettlementWindowsNotFiltered": "Fixed weekly settlement windows — not filtered by the range above.",
+    "payoutHistory": "Payout history"
+  },
+  "earningsScreen": {
+    "perOnlineHour": "Per online hour"
+  },
+  "employeesDetailPanel": {
+    "permissions": "Permissions"
+  },
+  "employeesInviteForm": {
+    "employeeAccountsAreNotConnectedTo": "Employee accounts are not connected to the backend yet, so this form cannot send an invite. It is here so the screen is ready the day employee records exist.",
+    "inviteAnEmployee": "Invite an employee",
+    "nameGizocargoGe": "name@gizocargo.ge",
+    "sendInvite": "Send invite",
+    "theyGetAnEmailInvitePermissions": "They get an email invite. Permissions come from the role and apply once they accept.",
+    "zonesOrVehiclesTheyCover": "Zones or vehicles they cover"
+  },
+  "employeesRoleDefinitions": {
+    "roleDefinitions": "Role definitions"
+  },
+  "employeesScreen": {
+    "canMoveMoney": "Can move money",
+    "inviteEmployee": "Invite employee",
+    "invited": "Invited",
+    "lastActive": "Last active",
+    "person": "Person",
+    "rolesInUse": "Roles in use",
+    "sampleRoster": "Sample roster",
+    "thereIsNoEmployeeRecordIn": "There is no employee record in the system yet, so the counts and the people below are invented — nobody has been invited and nothing here grants access. The role definitions further down are the real product content."
+  },
+  "fleetAvailabilityBoard": {
+    "driverVehicle": "Driver · Vehicle"
+  },
+  "fleetAvailabilityCard": {
+    "dragAcrossAnEmptyStretchOf": "Drag across an empty stretch of a row to hold it as a booking.",
+    "fleetAvailability": "Fleet availability",
+    "notSaved": "Not saved",
+    "resetFilters": "Reset filters"
+  },
+  "fleetAvailabilityDialogs": {
+    "allDriversWholeDay": "All drivers, whole day",
+    "chooseWhatGoesIntoTheSpreadsheet": "Choose what goes into the spreadsheet.",
+    "currentView": "Current view",
+    "discard": "Discard",
+    "exportAvailability": "Export availability",
+    "filteredDriversWholeDay": "Filtered drivers, whole day",
+    "holdSlot": "Hold slot",
+    "holdThisSlot": "Hold this slot",
+    "includeDriverPhoneNumber": "Include driver phone number",
+    "includeFreeSlotsAsAvailableRows": "Include free slots as Available rows",
+    "whatToExport": "What to export"
+  },
+  "fleetAvailabilityFilters": {
+    "allCities": "All cities",
+    "allDrivers": "All drivers",
+    "allStatuses": "All statuses",
+    "allTypes": "All types",
+    "capacity": "Capacity",
+    "nextDay": "Next day",
+    "noDriverMatchesThatName": "No driver matches that name.",
+    "previousDay": "Previous day",
+    "searchDriversByName": "Search drivers by name",
+    "searchPlate": "Search plate",
+    "typeADriverName": "Type a driver name",
+    "vehicleType": "Vehicle type",
+    "zoom": "Zoom",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out"
+  },
+  "fleetAvailabilityFormat": {
+    "18TAndAbove": "18 t and above",
+    "28T": "2 – 8 t",
+    "818T": "8 – 18 t",
+    "anyCapacity": "Any capacity",
+    "assignedOnOrder": "Assigned / on order",
+    "available": "Available",
+    "blockStart": "block.start",
+    "bookedFuture": "Booked (future)",
+    "enRoute": "En route",
+    "upTo2T": "Up to 2 t"
+  },
+  "hubJobParts": {
+    "droppedOff": "Dropped off",
+    "orderPlaced": "Order placed",
+    "payout": "Payout"
+  },
+  "jobSheetActions": {
+    "confirmDelivery": "Confirm delivery",
+    "enterTheWaitingTimeAsA": "Enter the waiting time as a whole number of minutes, or 0.",
+    "markDelivered": "Mark delivered",
+    "nameOfWhoeverTookTheGoods": "Name of whoever took the goods",
+    "receivedByOptional": "Received by (optional)",
+    "thisEndsTheJobAndCannot": "This ends the job and cannot be undone.",
+    "waitingTimeBeyondTheFreeAllowance": "Waiting time beyond the free allowance adds an overtime payout to this job, so this figure affects what you are paid.",
+    "wholeMinutesSpentWaitingAtEither": "Whole minutes spent waiting at either stop. Enter 0 if none."
+  },
+  "jobSheetParts": {
+    "awaitingDispatch": "Awaiting dispatch",
+    "call": "Call",
+    "deadline": "Deadline",
+    "delivered": "Delivered",
+    "details": "Details",
+    "inTransit": "In transit",
+    "navigate": "Navigate",
+    "notDispatchedToADriver": "Not dispatched to a driver",
+    "receivedBy": "Received by",
+    "timeline": "Timeline",
+    "timing": "Timing"
+  },
+  "jobSheetScreen": {
+    "thisDeliveryWasCancelled": "This delivery was cancelled."
+  },
+  "jobsDetailPanel": {
+    "paidToYou": "Paid to you",
+    "poReference": "PO reference"
+  },
+  "jobsScreen": {
+    "completedScheduledAndCancelledJobsAll": "Completed, scheduled and cancelled jobs all land here, with their route, timeline and fare breakdown.",
+    "fare": "Fare",
+    "job": "Job"
+  },
+  "loadsClaimDialogs": {
+    "backToDashboard": "Back to dashboard",
+    "confirmThisShipment": "Confirm this shipment",
+    "firstComeFirstServedConfirmingClaims": "First come, first served. Confirming claims the order and closes it to other drivers.",
+    "justClaimedByAnotherDriver": "Just claimed by another driver",
+    "stayOffline": "Stay offline",
+    "tooSmallForThisLoad": "Too small for this load",
+    "wasConfirmedAMomentBeforeYou": "was confirmed a moment before you. It has been removed from your available list.",
+    "weight": "Weight",
+    "youArePaid": "You are paid"
+  },
+  "loadsContext": {
+    "couldnTReachTheDashboard": "Couldn't reach the dashboard.",
+    "couldnTReachTheServerCheck": "Couldn't reach the server. Check your connection and retry.",
+    "newMap": "new Map"
+  },
+  "loadsDetailParts": {
+    "youClaimedThisLoadContactDetails": "You claimed this load. Contact details are in your job sheet."
+  },
+  "loadsDispatchDialog": {
+    "noneOfYourVehiclesCanTake": "None of your vehicles can take this delivery. Each one above says why.",
+    "offline": "· Offline",
+    "recommended": "Recommended",
+    "theVehiclesThatCanTakeThis": "The vehicles that can take this delivery have no driver assigned. Assign one from the Vehicles screen, then dispatch this delivery.",
+    "yourFleetHasNoRegisteredVehicles": "Your fleet has no registered vehicles. Register one from the Vehicles screen, then dispatch this delivery."
+  },
+  "loadsFilters": {
+    "reset": "Reset",
+    "specialHandling": "Special handling"
+  },
+  "loadsFormat": {
+    "coldChain": "Cold chain",
+    "fragile": "Fragile",
+    "hazmat": "Hazmat",
+    "heavyItem": "Heavy item",
+    "timeCritical": "Time critical",
+    "uprightOnly": "Upright only"
+  },
+  "loadsMobile": {
+    "claimedByAnotherDriver": "Claimed by another driver",
+    "dropOffAddress": "Drop off address",
+    "pickUpAddress": "Pick up address",
+    "restoreToBoard": "Restore to board",
+    "yoursAssignAVehicle": "Yours · assign a vehicle",
+    "yoursViewJobSheet": "Yours · view job sheet"
+  },
+  "loadsTable": {
+    "accept": "Accept",
+    "claimed": "Claimed",
+    "dropOff": "Drop off",
+    "howFarThisJobRunsPick": "How far this job runs, pick-up to drop-off",
+    "loads": "Loads",
+    "openLoadDetails": "— open load details",
+    "pickUp": "Pick up",
+    "rejectedView": "rejected · view",
+    "restore": "Restore",
+    "sortsByTimeOfDayNot": "Sorts by time of day, not by date",
+    "theDayTheClientBookedThis": "The day the client booked this job for",
+    "weightDims": "Weight / dims",
+    "widenTheWeightRangeOrClear": "Widen the weight range or clear a city to see more.",
+    "yours": "Yours"
+  },
+  "performanceScreen": {
+    "andAFlatBarUntilThey": "and a flat bar until they happen.",
+    "completion": "Completion",
+    "daysLaterThisWeekShow": "Days later this week show",
+    "estimatedDelta": "Estimated delta",
+    "finished": "Finished",
+    "howTheWeekWentByDriver": "How the week went, by driver",
+    "jobsCompletedByDay": "Jobs completed by day",
+    "jobsDay": "Jobs / day",
+    "jobsPerDay": "Jobs per day",
+    "onlineHoursVsJobsCompleted": "Online hours vs jobs completed",
+    "registerADriverAndTheirWeek": "Register a driver and their week shows up here.",
+    "thisWeek": "This week,",
+    "whatAffectsYourScore": "What affects your score"
+  },
+  "vehiclesAddForm": {
+    "ab123Cd": "AB-123-CD",
+    "addAVehicle": "Add a vehicle",
+    "ford": "Ford",
+    "itJoinsTheFleetAsIdle": "It joins the fleet as idle. Assign a driver to start taking jobs.",
+    "loadingVehicleClasses": "Loading vehicle classes…",
+    "odometerIsDisabledVehicleHasNo": "Odometer is disabled: `Vehicle` has no reading to store it in, so anything typed here would be thrown away. It arrives with `Vehicle.odometerKm`.",
+    "odometerKm": "Odometer (km)",
+    "transitCustom": "Transit Custom"
+  },
+  "vehiclesDetailPanel": {
+    "costPerKm": "Cost per km",
+    "jobsWeek": "Jobs · week",
+    "operatingCities": "Operating cities",
+    "runningCostsThisMonth": "Running costs · this month",
+    "thisVehicleBelongsToTheFleet": "This vehicle belongs to the fleet you drive for, not to you. Only its owner can remove it."
+  },
+  "vehiclesScreen": {
+    "addOneToStartTakingJobs": "Add one to start taking jobs. It joins as idle until a driver is assigned to it.",
+    "addVehicle": "Add vehicle",
+    "costKm": "Cost/km",
+    "fleetCostPerKm": "Fleet cost per km",
+    "idle": "Idle",
+    "odometerCostKm": "Odometer · Cost/km",
+    "onTheRoad": "On the road"
+  }
+}

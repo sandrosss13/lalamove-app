@@ -1,1 +1,22 @@
-{}
+{
+  "landingCategoryTiles": {
+    "priceYourOwnRoute": "— გამოთვალეთ მარშრუტის ფასი"
+  },
+  "landingHeroCarousel": {
+    "featuredBanners": "რჩეული ბანერები",
+    "nextBanner": "შემდეგი ბანერი",
+    "previousBanner": "წინა ბანერი"
+  },
+  "landingQuoteCalculator": {
+    "1IsTheDriverAloneEach": "1 ნიშნავს, რომ მძღოლი მარტოა. ყოველი დამატებითი ადამიანი ეხმარება დატვირთვა-დაცლაში და ემატება ფიქსირებული საფასური.",
+    "aghmashenebeliAve88Tbilisi": "აღმაშენებლის გამზ. 88, თბილისი",
+    "couldNotPriceThisLoadPlease": "ამ ტვირთის ფასის გამოთვლა ვერ მოხერხდა. გთხოვთ, სცადოთ თავიდან.",
+    "estimate": "სავარაუდო ღირებულება / კალკულაცია",
+    "howManyPeople": "რამდენი ადამიანი",
+    "minimumFareApplied": "მოქმედებს მინიმალური ტარიფი",
+    "rustaveliAve12Tbilisi": "რუსთაველის გამზ. 12, თბილისი",
+    "signUpToBookThisLoad": "გაიარეთ რეგისტრაცია ამ ტვირთის დაჯავშნისთვის",
+    "whatAreYouMoving": "რა გადაგაქვთ",
+    "yourEstimate": "თქვენი სავარაუდო ღირებულება"
+  }
+}

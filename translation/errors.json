@@ -1,817 +1,817 @@
 {
   "adminBusinessApplicationsActivate.atLeastOneVehicleMustBe": {
     "en": "At least one vehicle must be approved before activating the fleet.",
-    "ka": "",
+    "ka": "ავტოპარკის გააქტიურებამდე სავალდებულოა მინიმუმ ერთი ტრანსპორტის დადასტურება.",
     "_source": "src/app/api/admin/business-applications/[id]/activate/route.ts"
   },
   "adminBusinessApplicationsActivate.thisApplicationIsStillWaitingOn": {
     "en": "This application is still waiting on the company to resubmit.",
-    "ka": "",
+    "ka": "ეს განაცხადი ჯერ კიდევ ელოდება კომპანიის მიერ ხელახლა გაგზავნას.",
     "_source": "src/app/api/admin/business-applications/[id]/activate/route.ts"
   },
   "adminBusinessApplicationsActivate.verifyTheCompanySDetailsBefore": {
     "en": "Verify the company's details before activating the fleet.",
-    "ka": "",
+    "ka": "ავტოპარკის გააქტიურებამდე შეამოწმეთ კომპანიის მონაცემები.",
     "_source": "src/app/api/admin/business-applications/[id]/activate/route.ts"
   },
   "adminBusinessApplicationsCompany.aReasonIsRequiredToFlag": {
     "en": "A reason is required to flag the company's details.",
-    "ka": "",
+    "ka": "კომპანიის მონაცემების მონიშვნისთვის აუცილებელია მიზეზის მითითება.",
     "_source": "src/app/api/admin/business-applications/[id]/company/route.ts"
   },
   "adminBusinessApplicationsCompany.thatIsNotOneOfThe": {
     "en": "That is not one of the company flag reasons.",
-    "ka": "",
+    "ka": "ეს არ არის კომპანიის მონიშვნის მიზეზებიდან ერთ-ერთი.",
     "_source": "src/app/api/admin/business-applications/[id]/company/route.ts"
   },
   "adminBusinessApplicationsRequestChanges.changesHaveAlreadyBeenRequestedOn": {
     "en": "Changes have already been requested on this application.",
-    "ka": "",
+    "ka": "ამ განაცხადზე ცვლილებები უკვე მოთხოვნილია.",
     "_source": "src/app/api/admin/business-applications/[id]/request-changes/route.ts"
   },
   "adminBusinessApplicationsRequestChanges.flagTheCompanySDetailsOr": {
     "en": "Flag the company's details or at least one vehicle before requesting changes.",
-    "ka": "",
+    "ka": "ცვლილებების მოთხოვნამდე მონიშნეთ კომპანიის მონაცემები ან მინიმუმ ერთი ტრანსპორტი.",
     "_source": "src/app/api/admin/business-applications/[id]/request-changes/route.ts"
   },
   "adminBusinessApplicationsVehicles.aReasonIsRequiredToFlag": {
     "en": "A reason is required to flag a vehicle.",
-    "ka": "",
+    "ka": "ტრანსპორტის მონიშვნისთვის აუცილებელია მიზეზის მითითება.",
     "_source": "src/app/api/admin/business-applications/[id]/vehicles/[vehicleId]/route.ts"
   },
   "adminBusinessApplicationsVehicles.thatIsNotOneOfThe": {
     "en": "That is not one of the vehicle flag reasons.",
-    "ka": "",
+    "ka": "ეს არ არის ტრანსპორტის მონიშვნის მიზეზებიდან ერთ-ერთი.",
     "_source": "src/app/api/admin/business-applications/[id]/vehicles/[vehicleId]/route.ts"
   },
   "adminBusinessApplicationsVehicles.vehicleNotFoundOnThisApplication": {
     "en": "Vehicle not found on this application.",
-    "ka": "",
+    "ka": "ამ განაცხადში ტრანსპორტი ვერ მოიძებნა.",
     "_source": "src/app/api/admin/business-applications/[id]/vehicles/[vehicleId]/route.ts"
   },
   "adminContentBanners.bannerNotFound": {
     "en": "Banner not found.",
-    "ka": "",
+    "ka": "ბანერი ვერ მოიძებნა.",
     "_source": "src/app/api/admin/content/banners/[id]/route.ts"
   },
   "adminContentBanners.imageurlIsRequiredAndMustBe": {
     "en": "imageUrl is required and must be a non-empty string.",
-    "ka": "",
+    "ka": "imageUrl სავალდებულოა და არ უნდა იყოს ცარიელი ტექსტი.",
     "_source": "src/app/api/admin/content/banners/route.ts"
   },
   "adminContentBanners.imageurlMustBeANonEmpty": {
     "en": "imageUrl must be a non-empty string.",
-    "ka": "",
+    "ka": "imageUrl არ უნდა იყოს ცარიელი ტექსტი.",
     "_source": "src/app/api/admin/content/banners/[id]/route.ts"
   },
   "adminContentBanners.placementIsRequiredAndMustBe": {
     "en": "placement is required and must be a non-empty string.",
-    "ka": "",
+    "ka": "placement სავალდებულოა და არ უნდა იყოს ცარიელი ტექსტი.",
     "_source": "src/app/api/admin/content/banners/route.ts"
   },
   "adminContentBanners.placementMustBeANonEmpty": {
     "en": "placement must be a non-empty string.",
-    "ka": "",
+    "ka": "placement არ უნდა იყოს ცარიელი ტექსტი.",
     "_source": "src/app/api/admin/content/banners/[id]/route.ts"
   },
   "adminContentBanners.titleMustBeANonEmpty": {
     "en": "title must be a non-empty string.",
-    "ka": "",
+    "ka": "title არ უნდა იყოს ცარიელი ტექსტი.",
     "_source": "src/app/api/admin/content/banners/[id]/route.ts"
   },
   "adminContentHomePageSections.homePageSectionNotFound": {
     "en": "Home page section not found.",
-    "ka": "",
+    "ka": "მთავარი გვერდის სექცია ვერ მოიძებნა.",
     "_source": "src/app/api/admin/content/home-page-sections/[id]/route.ts"
   },
   "adminContentHomePageSections.typeIsRequiredAndMustBe": {
     "en": "type is required and must be a string.",
-    "ka": "",
+    "ka": "type სავალდებულოა და უნდა იყოს ტექსტური ტიპი (string).",
     "_source": "src/app/api/admin/content/home-page-sections/route.ts"
   },
   "adminContentHomePageSections.typeMustBeAString": {
     "en": "type must be a string.",
-    "ka": "",
+    "ka": "type უნდა იყოს ტექსტური ტიპი (string).",
     "_source": "src/app/api/admin/content/home-page-sections/[id]/route.ts"
   },
   "adminContentMessagingTemplates.bodyIsRequiredAndMustBe": {
     "en": "body is required and must be a non-empty string.",
-    "ka": "",
+    "ka": "body სავალდებულოა და არ უნდა იყოს ცარიელი ტექსტი.",
     "_source": "src/app/api/admin/content/messaging-templates/route.ts"
   },
   "adminContentMessagingTemplates.bodyMustBeANonEmpty": {
     "en": "body must be a non-empty string.",
-    "ka": "",
+    "ka": "body არ უნდა იყოს ცარიელი ტექსტი.",
     "_source": "src/app/api/admin/content/messaging-templates/[id]/route.ts"
   },
   "adminContentMessagingTemplates.isactiveMustBeABooleanWhen": {
     "en": "isActive must be a boolean when provided.",
-    "ka": "",
+    "ka": "isActive მითითებისას უნდა იყოს ლოგიკური ტიპი (boolean).",
     "_source": "src/app/api/admin/content/messaging-templates/route.ts"
   },
   "adminContentMessagingTemplates.keyMustBeANonEmpty": {
     "en": "key must be a non-empty string.",
-    "ka": "",
+    "ka": "key არ უნდა იყოს ცარიელი ტექსტი.",
     "_source": "src/app/api/admin/content/messaging-templates/[id]/route.ts"
   },
   "adminContentMessagingTemplates.subjectMustBeAStringWhen": {
     "en": "subject must be a string when provided.",
-    "ka": "",
+    "ka": "subject მითითებისას უნდა იყოს ტექსტური ტიპი (string).",
     "_source": "src/app/api/admin/content/messaging-templates/route.ts"
   },
   "adminContentMessagingTemplates.thatMessagingTemplateWasNotFound": {
     "en": "That messaging template was not found.",
-    "ka": "",
+    "ka": "შეტყობინებების ის შაბლონი ვერ მოიძებნა.",
     "_source": "src/app/api/admin/content/messaging-templates/[id]/route.ts"
   },
   "adminContentPages.pageNotFound": {
     "en": "Page not found.",
-    "ka": "",
+    "ka": "გვერდი ვერ მოიძებნა.",
     "_source": "src/app/api/admin/content/pages/[id]/route.ts"
   },
   "adminContentTranslations.namespaceIsRequiredAndMustBe": {
     "en": "namespace is required and must be a non-empty string.",
-    "ka": "",
+    "ka": "namespace სავალდებულოა და არ უნდა იყოს ცარიელი ტექსტი.",
     "_source": "src/app/api/admin/content/translations/route.ts"
   },
   "adminContentTranslations.translationEntryNotFound": {
     "en": "Translation entry not found.",
-    "ka": "",
+    "ka": "თარგმანის ჩანაწერი ვერ მოიძებნა.",
     "_source": "src/app/api/admin/content/translations/[id]/route.ts"
   },
   "adminContentTranslations.valueIsRequiredAndMustBe": {
     "en": "value is required and must be a non-empty string.",
-    "ka": "",
+    "ka": "value სავალდებულოა და არ უნდა იყოს ცარიელი ტექსტი.",
     "_source": "src/app/api/admin/content/translations/[id]/route.ts"
   },
   "adminContentTranslations.valueenIsRequiredAndMustBe": {
     "en": "valueEn is required and must be a non-empty string.",
-    "ka": "",
+    "ka": "valueEn სავალდებულოა და არ უნდა იყოს ცარიელი ტექსტი.",
     "_source": "src/app/api/admin/content/translations/route.ts"
   },
   "adminContentTranslations.valuekaIsRequiredAndMustBe": {
     "en": "valueKa is required and must be a non-empty string.",
-    "ka": "",
+    "ka": "valueKa სავალდებულოა და არ უნდა იყოს ცარიელი ტექსტი.",
     "_source": "src/app/api/admin/content/translations/route.ts"
   },
   "adminContentVehiclePhotos.vehicleTypeNotFound": {
     "en": "Vehicle type not found.",
-    "ka": "",
+    "ka": "ტრანსპორტის ტიპი ვერ მოიძებნა.",
     "_source": "src/app/api/admin/content/vehicle-photos/[id]/route.ts"
   },
   "adminDriverApplicationsApprove.everyDocumentMustBeApprovedFirst": {
     "en": "Every document must be approved first.",
-    "ka": "",
+    "ka": "ჯერ ყველა დოკუმენტი უნდა დადასტურდეს.",
     "_source": "src/app/api/admin/driver-applications/[id]/approve/route.ts"
   },
   "adminDriverApplicationsApprove.thisApplicationIsStillWaitingOn": {
     "en": "This application is still waiting on the driver to resubmit.",
-    "ka": "",
+    "ka": "ეს განაცხადი ჯერ კიდევ ელოდება მძღოლის მიერ ხელახლა გაგზავნას.",
     "_source": "src/app/api/admin/driver-applications/[id]/approve/route.ts"
   },
   "adminDriverApplicationsApprove.thisApplicationNoLongerHasA": {
     "en": "This application no longer has a vehicle on file and can't be approved.",
-    "ka": "",
+    "ka": "ამ განაცხადს ბაზაში ტრანსპორტი აღარ ირიცხება და ვერ დამტკიცდება.",
     "_source": "src/app/api/admin/driver-applications/[id]/approve/route.ts"
   },
   "adminDriverApplicationsDocuments.aReasonIsRequiredToFlag": {
     "en": "A reason is required to flag a document.",
-    "ka": "",
+    "ka": "დოკუმენტის მონიშვნისთვის აუცილებელია მიზეზის მითითება.",
     "_source": "src/app/api/admin/driver-applications/[id]/documents/[docId]/route.ts"
   },
   "adminDriverApplicationsDocuments.documentNotFound": {
     "en": "Document not found.",
-    "ka": "",
+    "ka": "დოკუმენტი ვერ მოიძებნა.",
     "_source": "src/app/api/admin/driver-applications/[id]/documents/[docId]/route.ts"
   },
   "adminDriverApplicationsRequestChanges.flagAtLeastOneDocumentBefore": {
     "en": "Flag at least one document before requesting changes.",
-    "ka": "",
+    "ka": "ცვლილებების მოთხოვნამდე მონიშნეთ მინიმუმ ერთი დოკუმენტი.",
     "_source": "src/app/api/admin/driver-applications/[id]/request-changes/route.ts"
   },
   "adminFinancePaymentMethods.configMustBeAJsonObject": {
     "en": "config must be a JSON object.",
-    "ka": "",
+    "ka": "config უნდა იყოს JSON ობიექტი.",
     "_source": "src/app/api/admin/finance/payment-methods/[type]/route.ts"
   },
   "adminFinancePaymentMethods.isenabledIsRequiredAndMustBe": {
     "en": "isEnabled is required and must be a boolean.",
-    "ka": "",
+    "ka": "isEnabled სავალდებულოა და უნდა იყოს ლოგიკური ტიპი (boolean).",
     "_source": "src/app/api/admin/finance/payment-methods/[type]/route.ts"
   },
   "adminFinancePaymentMethods.unknownPaymentMethod": {
     "en": "Unknown payment method.",
-    "ka": "",
+    "ka": "გადახდის უცნობი მეთოდი.",
     "_source": "src/app/api/admin/finance/payment-methods/[type]/route.ts"
   },
   "adminFinancePromoCampaigns.campaignNotFound": {
     "en": "Campaign not found.",
-    "ka": "",
+    "ka": "კამპანია ვერ მოიძებნა.",
     "_source": "src/app/api/admin/finance/promo-campaigns/[id]/route.ts"
   },
   "adminFinancePromoCampaigns.codeIsRequired": {
     "en": "code is required.",
-    "ka": "",
+    "ka": "code სავალდებულოა.",
     "_source": "src/app/api/admin/finance/promo-campaigns/route.ts"
   },
   "adminFinancePromoCampaigns.codeMustBeAString": {
     "en": "code must be a string.",
-    "ka": "",
+    "ka": "code უნდა იყოს ტექსტური ტიპი (string).",
     "_source": "src/app/api/admin/finance/promo-campaigns/[id]/route.ts"
   },
   "adminFinancePromoCampaigns.thisCampaignHasAlreadyBeenRedeemed": {
     "en": "This campaign has already been redeemed and cannot be deleted. Deactivate it instead.",
-    "ka": "",
+    "ka": "ეს კამპანია უკვე გამოყენებულია და მისი წაშლა შეუძლებელია. ამის სანაცვლოდ გაათიშეთ ის.",
     "_source": "src/app/api/admin/finance/promo-campaigns/[id]/route.ts"
   },
   "adminFinancePromoCampaigns.usagelimitMustBeAWholeNumber": {
     "en": "usageLimit must be a whole number of 1 or more, or omitted.",
-    "ka": "",
+    "ka": "usageLimit უნდა იყოს მთელი რიცხვი (1 ან მეტი) ან გამოტოვებული.",
     "_source": "src/app/api/admin/finance/promo-campaigns/route.ts"
   },
   "adminUsersSuspend.staffAccountsAreManagedUnderSystem": {
     "en": "Staff accounts are managed under System Users.",
-    "ka": "",
+    "ka": "პერსონალის ანგარიშების მართვა ხდება „სისტემურ მომხმარებლებში“.",
     "_source": "src/app/api/admin/users/[userId]/suspend/route.ts"
   },
   "adminUsersSystem.couldNotCreateThisSystemUser": {
     "en": "Could not create this system user. Please try again.",
-    "ka": "",
+    "ka": "ამ სისტემური მომხმარებლის შექმნა ვერ მოხერხდა. გთხოვთ, სცადოთ თავიდან.",
     "_source": "src/app/api/admin/users/system/route.ts"
   },
   "adminUsersSystem.nameIsRequiredAndMustBe": {
     "en": "name is required and must be a non-empty string.",
-    "ka": "",
+    "ka": "name სავალდებულოა და არ უნდა იყოს ცარიელი ტექსტი.",
     "_source": "src/app/api/admin/users/system/route.ts"
   },
   "adminUsersSystem.youDoNotHaveAccessTo": {
     "en": "You do not have access to this action.",
-    "ka": "",
+    "ka": "თქვენ არ გაქვთ ამ მოქმედების შესრულების უფლება.",
     "_source": "src/app/api/admin/users/system/route.ts"
   },
   "adminUsersSystemDeactivate.onlyASuperAdminCanDeactivate": {
     "en": "Only a super admin can deactivate system users.",
-    "ka": "",
+    "ka": "სისტემური მომხმარებლების დეაქტივაცია მხოლოდ სუპერ ადმინისტრატორს შეუძლია.",
     "_source": "src/app/api/admin/users/system/[userId]/deactivate/route.ts"
   },
   "adminUsersSystemDeactivate.youCannotDeactivateYourOwnAccount": {
     "en": "You cannot deactivate your own account.",
-    "ka": "",
+    "ka": "საკუთარი ანგარიშის დეაქტივაცია შეუძლებელია.",
     "_source": "src/app/api/admin/users/system/[userId]/deactivate/route.ts"
   },
   "adminUsersSystemReactivate.onlyASuperAdminCanReactivate": {
     "en": "Only a super admin can reactivate system users.",
-    "ka": "",
+    "ka": "სისტემური მომხმარებლების ხელახლა გააქტიურება მხოლოდ სუპერ ადმინისტრატორს შეუძლია.",
     "_source": "src/app/api/admin/users/system/[userId]/reactivate/route.ts"
   },
   "adminUsersSystemReactivate.youCannotChangeYourOwnAccount": {
     "en": "You cannot change your own account's status.",
-    "ka": "",
+    "ka": "საკუთარი ანგარიშის სტატუსის შეცვლა შეუძლებელია.",
     "_source": "src/app/api/admin/users/system/[userId]/reactivate/route.ts"
   },
   "clientProfile.dateofbirthCannotBeInTheFuture": {
     "en": "dateOfBirth cannot be in the future.",
-    "ka": "",
+    "ka": "dateOfBirth არ შეიძლება იყოს მომავალში.",
     "_source": "src/app/api/client-profile/route.ts"
   },
   "clientProfile.dateofbirthMustBeAValidDate": {
     "en": "dateOfBirth must be a valid date.",
-    "ka": "",
+    "ka": "dateOfBirth უნდა იყოს ვალიდური თარიღი.",
     "_source": "src/app/api/client-profile/route.ts"
   },
   "clientProfile.dateofbirthMustBeAnIsoDate": {
     "en": "dateOfBirth must be an ISO date string.",
-    "ka": "",
+    "ka": "dateOfBirth უნდა იყოს ISO თარიღის ფორმატის ტექსტი.",
     "_source": "src/app/api/client-profile/route.ts"
   },
   "clientProfile.onlyClientsCanCreateAClient": {
     "en": "Only clients can create a client profile.",
-    "ka": "",
+    "ka": "კლიენტის პროფილის შექმნა მხოლოდ კლიენტებს შეუძლიათ.",
     "_source": "src/app/api/client-profile/route.ts"
   },
   "clientProfile.onlyClientsHaveAClientProfile": {
     "en": "Only clients have a client profile.",
-    "ka": "",
+    "ka": "კლიენტის პროფილი მხოლოდ კლიენტებს აქვთ.",
     "_source": "src/app/api/client-profile/route.ts"
   },
   "dashboardHubDriversAvailability.thisAccountCannotReadAFleet": {
     "en": "This account cannot read a fleet roster.",
-    "ka": "",
+    "ka": "ამ ანგარიშს არ შეუძლია ავტოპარკის განრიგის ნახვა.",
     "_source": "src/app/api/dashboard/hub/drivers/availability/route.ts"
   },
   "dashboardHubDriversAvailabilityExport.thisAccountCannotExportAFleet": {
     "en": "This account cannot export a fleet roster.",
-    "ka": "",
+    "ka": "ამ ანგარიშს არ შეუძლია ავტოპარკის განრიგის ექსპორტი.",
     "_source": "src/app/api/dashboard/hub/drivers/availability/export/route.ts"
   },
   "dashboardHubEarningsExport.thisAccountCannotExportDriverEarnings": {
     "en": "This account cannot export driver earnings.",
-    "ka": "",
+    "ka": "ამ ანგარიშს არ შეუძლია მძღოლის შემოსავლების ექსპორტი.",
     "_source": "src/app/api/dashboard/hub/earnings/export/route.ts"
   },
   "driverProfile.onlyDriversCanCreateADriver": {
     "en": "Only drivers can create a driver profile.",
-    "ka": "",
+    "ka": "მძღოლის პროფილის შექმნა მხოლოდ მძღოლებს შეუძლიათ.",
     "_source": "src/app/api/driver-profile/route.ts"
   },
   "driverProfile.onlyDriversHaveADriverProfile": {
     "en": "Only drivers have a driver profile.",
-    "ka": "",
+    "ka": "მძღოლის პროფილი მხოლოდ მძღოლებს აქვთ.",
     "_source": "src/app/api/driver-profile/route.ts"
   },
   "driverProfile.yourAccountTypeCanTBe": {
     "en": "Your account type can't be changed here.",
-    "ka": "",
+    "ka": "თქვენი ანგარიშის ტიპის შეცვლა აქედან შეუძლებელია.",
     "_source": "src/app/api/driver-profile/route.ts"
   },
   "driverProfileLocation.completeYourDriverProfileBeforeSharing": {
     "en": "Complete your driver profile before sharing location.",
-    "ka": "",
+    "ka": "მდებარეობის გაზიარებამდე შეავსეთ მძღოლის პროფილი.",
     "_source": "src/app/api/driver-profile/location/route.ts"
   },
   "driverProfileLocation.latAndLngMustBeValid": {
     "en": "lat and lng must be valid coordinates.",
-    "ka": "",
+    "ka": "lat და lng უნდა იყოს ვალიდური კოორდინატები.",
     "_source": "src/app/api/driver-profile/location/route.ts"
   },
   "driverProfileLocation.onlyDriversCanUpdateLocation": {
     "en": "Only drivers can update location.",
-    "ka": "",
+    "ka": "მდებარეობის განახლება მხოლოდ მძღოლებს შეუძლიათ.",
     "_source": "src/app/api/driver-profile/location/route.ts"
   },
   "driverProfileOnboarding.aSubmittedApplicationCanNoLonger": {
     "en": "A submitted application can no longer be edited.",
-    "ka": "",
+    "ka": "გაგზავნილი განაცხადის რედაქტირება უკვე შეუძლებელია.",
     "_source": "src/app/api/driver-profile/onboarding/route.ts"
   },
   "driverProfileOnboardingDocuments.anotherUploadForThisDocumentIs": {
     "en": "Another upload for this document is still finishing.",
-    "ka": "",
+    "ka": "ამ დოკუმენტის სხვა ატვირთვა ჯერ კიდევ სრულდება.",
     "_source": "src/app/api/driver-profile/onboarding/documents/route.ts"
   },
   "driverProfileOnboardingDocuments.pathIsRequiredAndMustBe": {
     "en": "path is required and must be a non-empty string.",
-    "ka": "",
+    "ka": "path სავალდებულოა და არ უნდა იყოს ცარიელი ტექსტი.",
     "_source": "src/app/api/driver-profile/onboarding/documents/route.ts"
   },
   "driverProfileOnboardingDocuments.thatUploadDoesNotBelongTo": {
     "en": "That upload does not belong to this application.",
-    "ka": "",
+    "ka": "ეს ატვირთული ფაილი არ ეკუთვნის ამ განაცხადს.",
     "_source": "src/app/api/driver-profile/onboarding/documents/route.ts"
   },
   "driverProfileOnboardingSubmit.licenceBackPhoto": {
     "en": "licence back photo",
-    "ka": "",
+    "ka": "მართვის მოწმობის უკანა მხარის ფოტო",
     "_source": "src/app/api/driver-profile/onboarding/submit/route.ts"
   },
   "driverProfileOnboardingSubmit.licenceFrontPhoto": {
     "en": "licence front photo",
-    "ka": "",
+    "ka": "მართვის მოწმობის წინა მხარის ფოტო",
     "_source": "src/app/api/driver-profile/onboarding/submit/route.ts"
   },
   "driverProfileOnboardingSubmit.profilePhoto": {
     "en": "profile photo",
-    "ka": "",
+    "ka": "პროფილის ფოტო",
     "_source": "src/app/api/driver-profile/onboarding/submit/route.ts"
   },
   "driverProfileStatus.completeYourDriverProfileBeforeGoing": {
     "en": "Complete your driver profile before going online.",
-    "ka": "",
+    "ka": "ონლაინ რეჟიმში გადასვლამდე შეავსეთ მძღოლის პროფილი.",
     "_source": "src/app/api/driver-profile/status/route.ts"
   },
   "driverProfileStatus.isonlineMustBeABoolean": {
     "en": "isOnline must be a boolean.",
-    "ka": "",
+    "ka": "isOnline უნდა იყოს ლოგიკური ტიპი (boolean).",
     "_source": "src/app/api/driver-profile/status/route.ts"
   },
   "driverProfileStatus.onlyDriversCanUpdateOnlineStatus": {
     "en": "Only drivers can update online status.",
-    "ka": "",
+    "ka": "ონლაინ სტატუსის განახლება მხოლოდ მძღოლებს შეუძლიათ.",
     "_source": "src/app/api/driver-profile/status/route.ts"
   },
   "driverProfileStatus.yourAccountIsnTApprovedYet": {
     "en": "Your account isn't approved yet. Finish onboarding to go online.",
-    "ka": "",
+    "ka": "თქვენი ანგარიში ჯერ არ არის დამტკიცებული. ონლაინში გადასასვლელად დაასრულეთ რეგისტრაცია.",
     "_source": "src/app/api/driver-profile/status/route.ts"
   },
   "driverProfileVehicles.completeYourDriverProfileBeforeAdding": {
     "en": "Complete your driver profile before adding a vehicle.",
-    "ka": "",
+    "ka": "ტრანსპორტის დამატებამდე შეავსეთ მძღოლის პროფილი.",
     "_source": "src/app/api/driver-profile/vehicles/route.ts"
   },
   "driverProfileVehicles.driversWhoBelongToACompany": {
     "en": "Drivers who belong to a company drive their employer's vehicles. Ask your fleet manager to add this vehicle and assign it to you.",
-    "ka": "",
+    "ka": "კომპანიის კუთვნილებაში მყოფი მძღოლები მართავენ დამსაქმებლის ტრანსპორტს. სთხოვეთ ავტოპარკის მენეჯერს დაამატოს ეს ტრანსპორტი და მოგანიჭოთ თქვენ.",
     "_source": "src/app/api/driver-profile/vehicles/route.ts"
   },
   "driverProfileVehicles.onlyDriversCanAddVehicles": {
     "en": "Only drivers can add vehicles.",
-    "ka": "",
+    "ka": "ტრანსპორტის დამატება მხოლოდ მძღოლებს შეუძლიათ.",
     "_source": "src/app/api/driver-profile/vehicles/route.ts"
   },
   "driverProfileVehicles.onlyDriversCanEditVehicles": {
     "en": "Only drivers can edit vehicles.",
-    "ka": "",
+    "ka": "ტრანსპორტის რედაქტირება მხოლოდ მძღოლებს შეუძლიათ.",
     "_source": "src/app/api/driver-profile/vehicles/[id]/route.ts"
   },
   "driverProfileVehicles.onlyDriversCanRemoveVehicles": {
     "en": "Only drivers can remove vehicles.",
-    "ka": "",
+    "ka": "ტრანსპორტის წაშლა მხოლოდ მძღოლებს შეუძლიათ.",
     "_source": "src/app/api/driver-profile/vehicles/[id]/route.ts"
   },
   "driverProfileVehicles.onlyDriversHaveVehicles": {
     "en": "Only drivers have vehicles.",
-    "ka": "",
+    "ka": "ტრანსპორტი მხოლოდ მძღოლებს აქვთ.",
     "_source": "src/app/api/driver-profile/vehicles/route.ts"
   },
   "guard.onlyDriversCanUploadOnboardingDocuments": {
     "en": "Only drivers can upload onboarding documents.",
-    "ka": "",
+    "ka": "რეგისტრაციის დოკუმენტების ატვირთვა მხოლოდ მძღოლებს შეუძლიათ.",
     "_source": "src/app/api/driver-profile/onboarding/documents/guard.ts"
   },
   "loads.onlyDriversAndLogisticsCompaniesCan": {
     "en": "Only drivers and logistics companies can view the load board.",
-    "ka": "",
+    "ka": "ტვირთების დაფის ნახვა მხოლოდ მძღოლებსა და ლოგისტიკურ კომპანიებს შეუძლიათ.",
     "_source": "src/app/api/loads/route.ts"
   },
   "loadsReject.driverProfileNotFound": {
     "en": "Driver profile not found.",
-    "ka": "",
+    "ka": "მძღოლის პროფილი ვერ მოიძებნა.",
     "_source": "src/app/api/loads/[id]/reject/route.ts"
   },
   "loadsReject.loadNotFound": {
     "en": "Load not found.",
-    "ka": "",
+    "ka": "ტვირთი ვერ მოიძებნა.",
     "_source": "src/app/api/loads/[id]/reject/route.ts"
   },
   "loadsReject.onlyDriversAndLogisticsCompaniesCan": {
     "en": "Only drivers and logistics companies can use the load board.",
-    "ka": "",
+    "ka": "ტვირთების დაფით სარგებლობა მხოლოდ მძღოლებსა და ლოგისტიკურ კომპანიებს შეუძლიათ.",
     "_source": "src/app/api/loads/[id]/reject/route.ts"
   },
   "loadsReject.thisLoadIsNoLongerOpen": {
     "en": "This load is no longer open.",
-    "ka": "",
+    "ka": "ეს ტვირთი აღარ არის ღია.",
     "_source": "src/app/api/loads/[id]/reject/route.ts"
   },
   "logisticsCompany.citiesofoperationMustBeAnArrayWith": {
     "en": "citiesOfOperation must be an array with at least one city.",
-    "ka": "",
+    "ka": "citiesOfOperation უნდა იყოს მასივი მინიმუმ ერთი ქალაქით.",
     "_source": "src/app/api/logistics-company/route.ts"
   },
   "logisticsCompany.contactemailMustBeAValidEmail": {
     "en": "contactEmail must be a valid email address.",
-    "ka": "",
+    "ka": "contactEmail უნდა იყოს ვალიდური ელფოსტის მისამართი.",
     "_source": "src/app/api/logistics-company/route.ts"
   },
   "logisticsCompany.contactnameMustBeAFullName": {
     "en": "contactName must be a full name — a first name and a surname.",
-    "ka": "",
+    "ka": "contactName უნდა იყოს სრული სახელი — სახელი და გვარი.",
     "_source": "src/app/api/logistics-company/route.ts"
   },
   "logisticsCompany.contactroleIsRequiredAndMustBe": {
     "en": "contactRole is required and must be a non-empty string.",
-    "ka": "",
+    "ka": "contactRole სავალდებულოა და არ უნდა იყოს ცარიელი ტექსტი.",
     "_source": "src/app/api/logistics-company/route.ts"
   },
   "logisticsCompany.onlyLogisticsCompaniesCanCreateA": {
     "en": "Only logistics companies can create a company profile.",
-    "ka": "",
+    "ka": "კომპანიის პროფილის შექმნა მხოლოდ ლოგისტიკურ კომპანიებს შეუძლიათ.",
     "_source": "src/app/api/logistics-company/route.ts"
   },
   "logisticsCompany.onlyLogisticsCompaniesHaveACompany": {
     "en": "Only logistics companies have a company profile.",
-    "ka": "",
+    "ka": "კომპანიის პროფილი მხოლოდ ლოგისტიკურ კომპანიებს აქვთ.",
     "_source": "src/app/api/logistics-company/route.ts"
   },
   "logisticsCompany.registeredaddressIsRequiredAndMustBe": {
     "en": "registeredAddress is required and must be a non-empty string.",
-    "ka": "",
+    "ka": "registeredAddress სავალდებულოა და არ უნდა იყოს ცარიელი ტექსტი.",
     "_source": "src/app/api/logistics-company/route.ts"
   },
   "logisticsCompany.vatidMustBeExactly9Digits": {
     "en": "vatId must be exactly 9 digits.",
-    "ka": "",
+    "ka": "vatId უნდა იყოს ზუსტად 9-ნიშნა.",
     "_source": "src/app/api/logistics-company/route.ts"
   },
   "logisticsCompanyDrivers.onlyLogisticsCompaniesCanRemoveDrivers": {
     "en": "Only logistics companies can remove drivers.",
-    "ka": "",
+    "ka": "მძღოლების წაშლა მხოლოდ ლოგისტიკურ კომპანიებს შეუძლიათ.",
     "_source": "src/app/api/logistics-company/drivers/[userId]/route.ts"
   },
   "logisticsCompanyDrivers.onlyLogisticsCompaniesHaveADriver": {
     "en": "Only logistics companies have a driver roster.",
-    "ka": "",
+    "ka": "მძღოლების განრიგი მხოლოდ ლოგისტიკურ კომპანიებს აქვთ.",
     "_source": "src/app/api/logistics-company/drivers/route.ts"
   },
   "logisticsCompanyDriversRegister.completeYourCompanyProfileBeforeRegistering": {
     "en": "Complete your company profile before registering drivers.",
-    "ka": "",
+    "ka": "მძღოლების დარეგისტრირებამდე შეავსეთ კომპანიის პროფილი.",
     "_source": "src/app/api/logistics-company/drivers/register/route.ts"
   },
   "logisticsCompanyDriversRegister.licencecategoriesMustBeAnArrayWith": {
     "en": "licenceCategories must be an array with at least one category.",
-    "ka": "",
+    "ka": "licenceCategories უნდა იყოს მასივი მინიმუმ ერთი კატეგორიით.",
     "_source": "src/app/api/logistics-company/drivers/register/route.ts"
   },
   "logisticsCompanyDriversRegister.licenceexpiresatMustBeAValidIso": {
     "en": "licenceExpiresAt must be a valid ISO date.",
-    "ka": "",
+    "ka": "licenceExpiresAt უნდა იყოს ვალიდური ISO თარიღი.",
     "_source": "src/app/api/logistics-company/drivers/register/route.ts"
   },
   "logisticsCompanyDriversRegister.licencenumberIsRequiredAndMustBe": {
     "en": "licenceNumber is required and must be a non-empty string.",
-    "ka": "",
+    "ka": "licenceNumber სავალდებულოა და არ უნდა იყოს ცარიელი ტექსტი.",
     "_source": "src/app/api/logistics-company/drivers/register/route.ts"
   },
   "logisticsCompanyDriversRegister.onlyLogisticsCompaniesCanRegisterDrivers": {
     "en": "Only logistics companies can register drivers.",
-    "ka": "",
+    "ka": "მძღოლების რეგისტრაცია მხოლოდ ლოგისტიკურ კომპანიებს შეუძლიათ.",
     "_source": "src/app/api/logistics-company/drivers/register/route.ts"
   },
   "logisticsCompanyDriversRegister.thatVehicleWasNotFoundIn": {
     "en": "That vehicle was not found in your fleet.",
-    "ka": "",
+    "ka": "ეს ტრანსპორტი ვერ მოიძებნა თქვენს ავტოპარკში.",
     "_source": "src/app/api/logistics-company/drivers/register/route.ts"
   },
   "logisticsCompanyDriversRegister.theDriverAccountWasCreatedBut": {
     "en": "The driver account was created, but finishing setup failed. Contact support before retrying with the same email.",
-    "ka": "",
+    "ka": "მძღოლის ანგარიში შეიქმნა, თუმცა კონფიგურაციის დასრულება ვერ მოხერხდა. იმავე ელფოსტით ხელახლა ცდამდე დაუკავშირდით მხარდაჭერის გუნდს.",
     "_source": "src/app/api/logistics-company/drivers/register/route.ts"
   },
   "logisticsCompanyDriversRegister.theLicenceExpiryDateMustBe": {
     "en": "The licence expiry date must be in the future.",
-    "ka": "",
+    "ka": "მართვის მოწმობის მოქმედების ვადა უნდა იყოს მომავალში.",
     "_source": "src/app/api/logistics-company/drivers/register/route.ts"
   },
   "logisticsCompanyDriversRegister.thisVehicleIsAlreadyAssignedTo": {
     "en": "This vehicle is already assigned to another driver.",
-    "ka": "",
+    "ka": "ეს ტრანსპორტი უკვე მინიჭებულია სხვა მძღოლზე.",
     "_source": "src/app/api/logistics-company/drivers/register/route.ts"
   },
   "logisticsCompanyDriversRegister.vehicleidMustBeAStringWhen": {
     "en": "vehicleId must be a string when provided.",
-    "ka": "",
+    "ka": "vehicleId მითითებისას უნდა იყოს ტექსტური ტიპი (string).",
     "_source": "src/app/api/logistics-company/drivers/register/route.ts"
   },
   "logisticsCompanyOnboarding.anApplicationUnderReviewCanNo": {
     "en": "An application under review can no longer be edited.",
-    "ka": "",
+    "ka": "განხილვის პროცესში მყოფი განაცხადის რედაქტირება უკვე შეუძლებელია.",
     "_source": "src/app/api/logistics-company/onboarding/route.ts"
   },
   "logisticsCompanyOnboarding.draftVehiclesMustBeAnArray": {
     "en": "draft.vehicles must be an array.",
-    "ka": "",
+    "ka": "draft.vehicles უნდა იყოს მასივი.",
     "_source": "src/app/api/logistics-company/onboarding/route.ts"
   },
   "logisticsCompanyOnboardingSubmit.correctTheFlaggedCompanyDetailsBefore": {
     "en": "Correct the flagged company details before resubmitting.",
-    "ka": "",
+    "ka": "ხელახლა გაგზავნამდე გასწორეთ კომპანიის მონიშნული მონაცემები.",
     "_source": "src/app/api/logistics-company/onboarding/submit/route.ts"
   },
   "logisticsCompanyOnboardingVehicles.thisApplicationIsnTOpenFor": {
     "en": "This application isn't open for corrections.",
-    "ka": "",
+    "ka": "ეს განაცხადი ღია არ არის შესასწორებლად.",
     "_source": "src/app/api/logistics-company/onboarding/vehicles/[vehicleId]/route.ts"
   },
   "logisticsCompanyOnboardingVehicles.thisVehicleWasnTFlaggedFor": {
     "en": "This vehicle wasn't flagged for correction.",
-    "ka": "",
+    "ka": "ეს ტრანსპორტი არ ყოფილა მონიშნული შესასწორებლად.",
     "_source": "src/app/api/logistics-company/onboarding/vehicles/[vehicleId]/route.ts"
   },
   "logisticsCompanyOnboardingVehicles.weCouldnTSaveThisVehicle": {
     "en": "We couldn't save this vehicle. Please try again.",
-    "ka": "",
+    "ka": "ამ ტრანსპორტის შენახვა ვერ მოხერხდა. გთხოვთ, სცადოთ თავიდან.",
     "_source": "src/app/api/logistics-company/onboarding/vehicles/[vehicleId]/route.ts"
   },
   "logisticsCompanyOrdersCancel.onlyLogisticsCompaniesCanCancelDeliveries": {
     "en": "Only logistics companies can cancel deliveries.",
-    "ka": "",
+    "ka": "მიწოდების გაუქმება მხოლოდ ლოგისტიკურ კომპანიებს შეუძლიათ.",
     "_source": "src/app/api/logistics-company/orders/[id]/cancel/route.ts"
   },
   "logisticsCompanyOrdersCancel.thisDeliveryCanNoLongerBe": {
     "en": "This delivery can no longer be cancelled.",
-    "ka": "",
+    "ka": "ამ მიწოდების გაუქმება უკვე შეუძლებელია.",
     "_source": "src/app/api/logistics-company/orders/[id]/cancel/route.ts"
   },
   "logisticsCompanyOrdersClaim.noneOfYourFleetSEligible": {
     "en": "None of your fleet's eligible vehicles can carry this load's cargo — it exceeds the weight or size limit.",
-    "ka": "",
+    "ka": "თქვენი ავტოპარკიდან არცერთ შესაბამის ტრანსპორტს არ შეუძლია ამ ტვირთის გადაზიდვა — ის აჭარბებს წონის ან ზომის ლიმიტს.",
     "_source": "src/app/api/logistics-company/orders/[id]/claim/route.ts"
   },
   "logisticsCompanyOrdersClaim.onlyLogisticsCompaniesCanClaimDeliveries": {
     "en": "Only logistics companies can claim deliveries.",
-    "ka": "",
+    "ka": "შეკვეთების აღება მხოლოდ ლოგისტიკურ კომპანიებს შეუძლიათ.",
     "_source": "src/app/api/logistics-company/orders/[id]/claim/route.ts"
   },
   "logisticsCompanyOrdersClaim.yourFleetHasNoVehicleBig": {
     "en": "Your fleet has no vehicle big enough for the vehicle class this delivery was booked as, in the load space it needs.",
-    "ka": "",
+    "ka": "თქვენს ავტოპარკს არ აქვს საკმარისად დიდი ტრანსპორტი იმ კლასისთვის, რომლითაც დაჯავშნილი იყო ეს მიწოდება და იმ სატვირთო სივრცისთვის, რაც მას სჭირდება.",
     "_source": "src/app/api/logistics-company/orders/[id]/claim/route.ts"
   },
   "logisticsCompanyVehicles.completeYourCompanyProfileBeforeAdding": {
     "en": "Complete your company profile before adding a vehicle.",
-    "ka": "",
+    "ka": "ტრანსპორტის დამატებამდე შეავსეთ კომპანიის პროფილი.",
     "_source": "src/app/api/logistics-company/vehicles/route.ts"
   },
   "logisticsCompanyVehicles.onlyLogisticsCompaniesCanAddFleet": {
     "en": "Only logistics companies can add fleet vehicles.",
-    "ka": "",
+    "ka": "ავტოპარკის ტრანსპორტის დამატება მხოლოდ ლოგისტიკურ კომპანიებს შეუძლიათ.",
     "_source": "src/app/api/logistics-company/vehicles/route.ts"
   },
   "logisticsCompanyVehicles.onlyLogisticsCompaniesCanRemoveFleet": {
     "en": "Only logistics companies can remove fleet vehicles.",
-    "ka": "",
+    "ka": "ავტოპარკის ტრანსპორტის წაშლა მხოლოდ ლოგისტიკურ კომპანიებს შეუძლიათ.",
     "_source": "src/app/api/logistics-company/vehicles/[id]/route.ts"
   },
   "logisticsCompanyVehicles.onlyLogisticsCompaniesHaveAFleet": {
     "en": "Only logistics companies have a fleet.",
-    "ka": "",
+    "ka": "ავტოპარკი მხოლოდ ლოგისტიკურ კომპანიებს აქვთ.",
     "_source": "src/app/api/logistics-company/vehicles/route.ts"
   },
   "logisticsCompanyVehicles.vehicletypecodeDoesNotMatchAKnown": {
     "en": "vehicleTypeCode does not match a known vehicle type.",
-    "ka": "",
+    "ka": "vehicleTypeCode არ შეესაბამება ტრანსპორტის ცნობილ ტიპს.",
     "_source": "src/app/api/logistics-company/vehicles/route.ts"
   },
   "logisticsCompanyVehiclesAssignment.onlyLogisticsCompaniesCanAssignVehicles": {
     "en": "Only logistics companies can assign vehicles.",
-    "ka": "",
+    "ka": "ტრანსპორტის მინიჭება მხოლოდ ლოგისტიკურ კომპანიებს შეუძლიათ.",
     "_source": "src/app/api/logistics-company/vehicles/[id]/assignment/route.ts"
   },
   "logisticsCompanyVehiclesAssignment.onlyLogisticsCompaniesCanUnassignVehicles": {
     "en": "Only logistics companies can unassign vehicles.",
-    "ka": "",
+    "ka": "ტრანსპორტის მინიჭების მოხსნა მხოლოდ ლოგისტიკურ კომპანიებს შეუძლიათ.",
     "_source": "src/app/api/logistics-company/vehicles/[id]/assignment/route.ts"
   },
   "logisticsCompanyVehiclesAssignment.thisVehicleHasNoActiveAssignment": {
     "en": "This vehicle has no active assignment.",
-    "ka": "",
+    "ka": "ამ ტრანსპორტს აქტიური მინიჭება არ აქვს.",
     "_source": "src/app/api/logistics-company/vehicles/[id]/assignment/route.ts"
   },
   "orders.deliverydeadlineMustBeAfterPickupwindowend": {
     "en": "deliveryDeadline must be after pickupWindowEnd.",
-    "ka": "",
+    "ka": "deliveryDeadline უნდა იყოს pickupWindowEnd-ის შემდეგ.",
     "_source": "src/app/api/orders/route.ts"
   },
   "orders.descriptionMustBeAStringWhen": {
     "en": "description must be a string when provided.",
-    "ka": "",
+    "ka": "description მითითებისას უნდა იყოს ტექსტური ტიპი (string).",
     "_source": "src/app/api/orders/route.ts"
   },
   "orders.failedToDrawAnOrderReference": {
     "en": "Failed to draw an order reference from the sequence.",
-    "ka": "",
+    "ka": "მიმდევრობიდან შეკვეთის კოდის/ნომრის გენერირება ვერ მოხერხდა.",
     "_source": "src/app/api/orders/route.ts"
   },
   "orders.handlingtagsMustBeAnArrayWhen": {
     "en": "handlingTags must be an array when provided.",
-    "ka": "",
+    "ka": "handlingTags მითითებისას უნდა იყოს მასივი.",
     "_source": "src/app/api/orders/route.ts"
   },
   "orders.pickupwindowendMustBeAfterPickupwindowstart": {
     "en": "pickupWindowEnd must be after pickupWindowStart.",
-    "ka": "",
+    "ka": "pickupWindowEnd უნდა იყოს pickupWindowStart-ის შემდეგ.",
     "_source": "src/app/api/orders/route.ts"
   },
   "orders.scheduledatCannotBeInThePast": {
     "en": "scheduledAt cannot be in the past.",
-    "ka": "",
+    "ka": "scheduledAt არ შეიძლება იყოს წარსულში.",
     "_source": "src/app/api/orders/route.ts"
   },
   "orders.scheduledatIsRequired": {
     "en": "scheduledAt is required.",
-    "ka": "",
+    "ka": "scheduledAt სავალდებულოა.",
     "_source": "src/app/api/orders/route.ts"
   },
   "orders.scheduledatMustBeAValidDate": {
     "en": "scheduledAt must be a valid date and time.",
-    "ka": "",
+    "ka": "scheduledAt უნდა იყოს ვალიდური თარიღი და დრო.",
     "_source": "src/app/api/orders/route.ts"
   },
   "orders.thatVehicleDoesNotOfferThe": {
     "en": "That vehicle does not offer the load space you selected.",
-    "ka": "",
+    "ka": "ეს ტრანსპორტი არ გთავაზობთ თქვენ მიერ არჩეულ სატვირთო სივრცეს.",
     "_source": "src/app/api/orders/route.ts"
   },
   "ordersAccept.onlyDriversCanAcceptDeliveries": {
     "en": "Only drivers can accept deliveries.",
-    "ka": "",
+    "ka": "მიწოდების მიღება მხოლოდ მძღოლებს შეუძლიათ.",
     "_source": "src/app/api/orders/[id]/accept/route.ts"
   },
   "ordersAccept.thisVehicleCanTCarryThis": {
     "en": "This vehicle can't carry this load's cargo — it exceeds the weight or size limit.",
-    "ka": "",
+    "ka": "ამ ტრანსპორტს არ შეუძლია ამ ტვირთის გადაზიდვა — ის აჭარბებს წონის ან ზომის ლიმიტს.",
     "_source": "src/app/api/orders/[id]/accept/route.ts"
   },
   "ordersAccept.thisVehicleDoesnTOfferThe": {
     "en": "This vehicle doesn't offer the load space this delivery needs.",
-    "ka": "",
+    "ka": "ეს ტრანსპორტი არ გთავაზობთ იმ სატვირთო სივრცეს, რაც ამ მიწოდებას სჭირდება.",
     "_source": "src/app/api/orders/[id]/accept/route.ts"
   },
   "ordersAccept.thisVehicleIsSmallerThanThe": {
     "en": "This vehicle is smaller than the vehicle class this delivery was booked as. Use a vehicle that matches or beats it on payload, length, width and height.",
-    "ka": "",
+    "ka": "ეს ტრანსპორტი უფრო პატარაა, ვიდრე ტრანსპორტის ის კლასი, რომლითაც დაჯავშნილი იყო ეს მიწოდება. გამოიყენეთ ტრანსპორტი, რომელიც შეესაბამება ან აღემატება მას ტვირთამწეობით, სიგრძით, სიგანითა და სიმაღლით.",
     "_source": "src/app/api/orders/[id]/accept/route.ts"
   },
   "ordersAccept.youReOfflineGoOnlineTo": {
     "en": "You're offline. Go online to claim loads.",
-    "ka": "",
+    "ka": "თქვენ ოფლაინში ხართ. ტვირთების დასაჯავშნად/მისაღებად გადადით ონლაინ რეჟიმში.",
     "_source": "src/app/api/orders/[id]/accept/route.ts"
   },
   "ordersComplete.thisDeliveryCannotBeCompletedRight": {
     "en": "This delivery cannot be completed right now.",
-    "ka": "",
+    "ka": "ამ მიწოდების დასრულება ახლა შეუძლებელია.",
     "_source": "src/app/api/orders/[id]/complete/route.ts"
   },
   "ordersComplete.thisDeliverySVehicleTypeHas": {
     "en": "This delivery's vehicle type has no pricing rule.",
-    "ka": "",
+    "ka": "ამ მიწოდების ტრანსპორტის ტიპს არ აქვს ფასწარმოქმნის წესი (pricing rule).",
     "_source": "src/app/api/orders/[id]/complete/route.ts"
   },
   "ordersComplete.waitingminutesIsRequiredAndMustBe": {
     "en": "waitingMinutes is required and must be a whole number of minutes.",
-    "ka": "",
+    "ka": "waitingMinutes სავალდებულოა და უნდა იყოს წუთების მთელი რიცხვი.",
     "_source": "src/app/api/orders/[id]/complete/route.ts"
   },
   "ordersLocation.youDoNotHaveAccessTo": {
     "en": "You do not have access to this order.",
-    "ka": "",
+    "ka": "თქვენ არ გაქვთ წვდომა ამ შეკვეთაზე.",
     "_source": "src/app/api/orders/[id]/location/route.ts"
   },
   "ordersPay.thisDeliveryHasAlreadyBeenPaid": {
     "en": "This delivery has already been paid for and is with our drivers.",
-    "ka": "",
+    "ka": "ამ მიწოდების საფასური უკვე გადახდილია და ის ჩვენს მძღოლებთანაა.",
     "_source": "src/app/api/orders/[id]/pay/route.ts"
   },
   "ordersStart.thisDeliveryCannotBeStartedRight": {
     "en": "This delivery cannot be started right now.",
-    "ka": "",
+    "ka": "ამ მიწოდების დაწყება ახლა შეუძლებელია.",
     "_source": "src/app/api/orders/[id]/start/route.ts"
   },
   "savedCards.enterAFourDigitCardEnding": {
     "en": "Enter a four-digit card ending.",
-    "ka": "",
+    "ka": "შეიყვანეთ ბარათის ბოლო ოთხი ციფრი.",
     "_source": "src/app/api/saved-cards/route.ts"
   },
   "savedCards.enterAFourDigitExpiryYear": {
     "en": "Enter a four-digit expiry year.",
-    "ka": "",
+    "ka": "შეიყვანეთ მოქმედების ვადა: ოთხნიშნა წელი.",
     "_source": "src/app/api/saved-cards/route.ts"
   },
   "savedCards.enterAnExpiryMonthBetween1": {
     "en": "Enter an expiry month between 1 and 12.",
-    "ka": "",
+    "ka": "შეიყვანეთ მოქმედების ვადა: თვე 1-დან 12-მდე.",
     "_source": "src/app/api/saved-cards/route.ts"
   },
   "savedCards.enterTheCardBrand": {
     "en": "Enter the card brand.",
-    "ka": "",
+    "ka": "შეიყვანეთ ბარათის ბრენდი.",
     "_source": "src/app/api/saved-cards/route.ts"
   },
   "savedCards.enterTheCardholderNameAsIt": {
     "en": "Enter the cardholder name as it appears on the card.",
-    "ka": "",
+    "ka": "შეიყვანეთ ბარათის მფლობელის სახელი და გვარი ზუსტად ისე, როგორც ბარათზეა.",
     "_source": "src/app/api/saved-cards/route.ts"
   },
   "savedCards.isdefaultMustBeTrueOrFalse": {
     "en": "isDefault must be true or false when provided.",
-    "ka": "",
+    "ka": "isDefault მითითებისას უნდა იყოს true ან false.",
     "_source": "src/app/api/saved-cards/route.ts"
   },
   "savedCards.onlyClientsCanSaveACard": {
     "en": "Only clients can save a card.",
-    "ka": "",
+    "ka": "ბარათის შენახვა მხოლოდ კლიენტებს შეუძლიათ.",
     "_source": "src/app/api/saved-cards/route.ts"
   },
   "savedCards.onlyClientsHaveSavedCards": {
     "en": "Only clients have saved cards.",
-    "ka": "",
+    "ka": "შენახული ბარათები მხოლოდ კლიენტებს აქვთ.",
     "_source": "src/app/api/saved-cards/route.ts"
   },
   "savedCards.thatCardHasExpiredAddA": {
     "en": "That card has expired. Add a card that is still valid.",
-    "ka": "",
+    "ka": "ამ ბარათს ვადა გაუვიდა. დაამატეთ ბარათი, რომელიც ჯერ კიდევ მოქმედებს.",
     "_source": "src/app/api/saved-cards/route.ts"
   },
   "validation.bodyhtmlIsRequiredAndMustBe": {
     "en": "bodyHtml is required and must be a non-empty string.",
-    "ka": "",
+    "ka": "bodyHtml სავალდებულოა და არ უნდა იყოს ცარიელი ტექსტი.",
     "_source": "src/app/api/admin/content/pages/validation.ts"
   },
   "validation.ispublishedMustBeABoolean": {
     "en": "isPublished must be a boolean.",
-    "ka": "",
+    "ka": "isPublished უნდა იყოს ლოგიკური ტიპი (boolean).",
     "_source": "src/app/api/admin/content/pages/validation.ts"
   },
   "validation.slugIsRequiredAndMustBe": {
     "en": "slug is required and must be a string.",
-    "ka": "",
+    "ka": "slug სავალდებულოა და უნდა იყოს ტექსტური ტიპი (string).",
     "_source": "src/app/api/admin/content/pages/validation.ts"
   },
   "validation.slugMustBeLowercaseLettersNumbers": {
     "en": "slug must be lowercase letters, numbers and single hyphens, e.g. “terms-of-service”.",
-    "ka": "",
+    "ka": "slug უნდა შედგებოდეს მცირე ასოებისგან, ციფრებისგან და ცალკეული დეფისებისგან, მაგ. \"terms-of-service\".",
     "_source": "src/app/api/admin/content/pages/validation.ts"
   }
 }

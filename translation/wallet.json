@@ -6,7 +6,7 @@
   },
   "savedCardsPanel.noCardsSavedYetAddA": {
     "en": "No cards saved yet. Add a credit or debit card to pay for deliveries.",
-    "ka": "ბარათი ჯერ არ არის შენახული. დაამატეთ საკრედიტო ან სადებეტო ბარათი მიწოდების გადასახდელად.",
+    "ka": "ბარათები ჯერ არ არის შენახული. მიწოდების საფასურის გადასახდელად დაამატეთ საკრედიტო ან დებეტის ბარათი.",
     "_source": "src/components/wallet/saved-cards-panel.tsx"
   },
   "savedCardsPanel.savedCards": {
@@ -16,7 +16,7 @@
   },
   "wallet.gatewayIntegrationIsPendingCardsSaved": {
     "en": "Gateway integration is pending. Cards saved here are not charged, and only the brand and last four digits are stored.",
-    "ka": "",
+    "ka": "გადახდის სისტემის ინტეგრაცია მოლოდინშია. აქ შენახული ბარათებიდან თანხა არ ჩამოგეჭრებათ — ინახება მხოლოდ ბრენდი და ბოლო ოთხი ციფრი.",
     "_source": "src/app/[locale]/wallet/page.tsx"
   },
   "wallet.paymentMethods": {
@@ -26,7 +26,7 @@
   },
   "wallet.pleaseSignInToViewYour": {
     "en": "Please sign in to view your wallet.",
-    "ka": "საფულის სანახავად გთხოვთ გაიაროთ ავტორიზაცია.",
+    "ka": "თქვენი საფულის სანახავად, გთხოვთ, გაიაროთ ავტორიზაცია.",
     "_source": "src/app/[locale]/wallet/page.tsx"
   }
 }

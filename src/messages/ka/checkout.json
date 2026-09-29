@@ -1,1 +1,32 @@
-{}
+{
+  "checkout": {
+    "crew": "დამხმარე პერსონალი",
+    "goods": "ტვირთი",
+    "loadSpace": "სატვირთო სივრცე",
+    "loadingAndUnloadingTimeBeyondThe": "უფასო ლიმიტს გადაცილებული დატვირთვა-დაცლის დროის საფასური გადაიხდება მიწოდების შემდეგ და არ შედის ამ ჯამურ თანხაში.",
+    "notes": "შენიშვნები",
+    "reviewAndPay": "გადამოწმება და გადახდა",
+    "yourDelivery": "თქვენი მიწოდება"
+  },
+  "checkoutPaymentPanel": {
+    "chooseAPaymentMethodToContinue": "გაგრძელებისთვის აირჩიეთ გადახდის მეთოდი.",
+    "chooseHowYouWouldLikeTo": "აირჩიეთ, როგორ გსურთ ამ მიწოდების ანგარიშსწორება",
+    "eGPo20260184": "მაგ. PO-2026-0184",
+    "nothingIsChargedNowNoPayment": "ახლა თანხა არ ჩამოგეჭრებათ — გადახდის პროვაიდერი ჯერ ჩართული არ არის.",
+    "optionalAppearsOnYourOrderRecord": "არასავალდებულო. გამოჩნდება თქვენი შეკვეთის ისტორიაში თქვენი ფინანსური გუნდისთვის.",
+    "payLater": "მოგვიანებით გადახდა",
+    "payLaterSettleAfterTheDelivery": "მოგვიანებით გადახდა — ანგარიშსწორება მიწოდების შემდეგ",
+    "poOrCostCentreReference": "შესყიდვის შეკვეთის (PO) ან დანახარჯების ცენტრის კოდი",
+    "settleAfterTheDelivery": "ანგარიშსწორება მიწოდების შემდეგ"
+  },
+  "checkoutShell": {
+    "backToYourOrders": "თქვენს შეკვეთებზე დაბრუნება",
+    "checkout": "გადახდა"
+  },
+  "checkoutSuccess": {
+    "trackThisDelivery": "ამ მიწოდების თვალყურის დევნება",
+    "viewYourOrders": "თქვენი შეკვეთების ნახვა",
+    "youReAllSet": "ყველაფერი მზადაა",
+    "yourDeliveryIsBooked": "თქვენი შეკვეთა დაჯავშნილია"
+  }
+}

@@ -1,1 +1,73 @@
-{}
+{
+  "dashboard": {
+    "providerAccount": "პროვაიდერის ანგარიში"
+  },
+  "dashboardAccount": {
+    "accountDriverHub": "ანგარიში · მძღოლის ჰაბი"
+  },
+  "dashboardDrivers": {
+    "driversDriverHub": "მძღოლები · მძღოლის ჰაბი"
+  },
+  "dashboardEmployees": {
+    "employeesRolesDriverHub": "თანამშრომლები და როლები · მძღოლის ჰაბი"
+  },
+  "dashboardJobs": {
+    "jobHistoryDriverHub": "შეკვეთების ისტორია · მძღოლის ჰაბი",
+    "jobSheetDriverHub": "შეკვეთის ფურცელი · მძღოლის ჰაბი"
+  },
+  "dashboardLoads": {
+    "dashboardDriverHub": "მართვის პანელი · მძღოლის ჰაბი"
+  },
+  "dashboardPerformance": {
+    "performanceDriverHub": "პროდუქტიულობა · მძღოლის ჰაბი"
+  },
+  "dashboardVehicles": {
+    "vehiclesDriverHub": "ტრანსპორტი · მძღოლის ჰაბი"
+  },
+  "earnings": {
+    "last30Days": "ბოლო 30 დღე",
+    "lastWeek": "გასული კვირა",
+    "thisMonth": "მიმდინარე თვე",
+    "thisWeek": "მიმდინარე კვირა"
+  },
+  "sample": {
+    "1InvitePending": "1 მოწვევა მოლოდინშია",
+    "1Invited1Suspended": "1 მოწვეული, 1 შეჩერებული",
+    "1PtVsLastWeek": "+1 ქულა გასულ კვირასთან შედარებით",
+    "3MoreJobsBySundayFor": "კიდევ 3 შეკვეთა კვირამდე ₾40 ბონუსისთვის.",
+    "3PtsVsLastWeek": "+3 ქულა გასულ კვირასთან შედარებით",
+    "acceptanceRate": "შეკვეთების მიღების მაჩვენებელი (Acceptance rate)",
+    "accountantOnly": "მხოლოდ ბუღალტერი",
+    "assignsJobsInsideTheirZones": "შეკვეთებს ანაწილებს მათ ზონებში",
+    "contract": "ხელშეკრულება",
+    "criminalRecordExtract": "ნასამართლობის ცნობა",
+    "declinesCountedOverTheLast100": "უარყოფები ითვლება ბოლო 100 შეთავაზებიდან. 90%-ზე მაღალი მაჩვენებელი ინარჩუნებს პრიორიტეტულ მატჩინგს.",
+    "driverLicenceGe": "მართვის მოწმობა (GE)",
+    "eleneAbashidze": "ელენე აბაშიძე",
+    "fleetManagerDispatcherAccountantMechanic": "ავტოპარკის მენეჯერი, დისპეტჩერი, ბუღალტერი, მექანიკოსი",
+    "from61RatedJobsRatingsBelow": "შეფასებული 61 შეკვეთიდან. 4.5-ზე დაბალი რეიტინგი იწვევს ტრენინგის გადახედვას.",
+    "garage": "გარაჟი / სერვისი",
+    "highestInGldaniMovingToVake": "ყველაზე მაღალია გლდანში. ვაკეში გადასვლა 09:00-დან 11:00-მდე ამცირებს მას დაახლოებით მესამედით.",
+    "idleTime": "უქმად დგომის დრო (Idle time)",
+    "irakliBeruashvili": "ირაკლი ბერუაშვილი",
+    "marikaDolidze": "მარიკა დოლიძე",
+    "newJobOfferVakeSaburtalo": "ახალი შეკვეთის შეთავაზება · ვაკე → საბურთალო",
+    "openWorkOrders": "აქტიური სამუშაო შეკვეთები",
+    "ownJobsAndEarningsOnly": "მხოლოდ საკუთარი შეკვეთები და შემოსავლები",
+    "parkingTolls": "პარკინგი და მოსაკრებლები",
+    "payoutAccounts": "გასატანი ანგარიშები (Payout accounts)",
+    "payoutOf14260Sent": "გადარიცხულია ₾142.60",
+    "payoutsInvoicesAndTax": "გადარიცხვები, ინვოისები და გადასახადები",
+    "serviceLog": "სერვისის ჟურნალი",
+    "serviceParts": "სერვისი და ნაწილები",
+    "shift": "ცვლა",
+    "sopoKiknadze": "სოფო კიკნაძე",
+    "taxId": "საიდენტიფიკაციო / საგადასახადო კოდი",
+    "top15InTbilisi": "საუკეთესო 15% თბილისში",
+    "twoCancellationsThisWeekBothBefore": "ორი გაუქმება ამ კვირაში, ორივე აყვანამდე. 5%-ზე მეტი აჩერებს ბონუსებს.",
+    "vanoShengelia": "ვანო შენგელია",
+    "vehiclesAndDrivers": "ტრანსპორტი და მძღოლები",
+    "zones": "ზონები",
+    "zurabMaisuradze": "ზურაბ მაისურაძე"
+  }
+}

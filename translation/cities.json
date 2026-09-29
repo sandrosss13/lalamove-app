@@ -1,12 +1,12 @@
 {
   "georgianCities.abasha": {
     "en": "Abasha",
-    "ka": "",
+    "ka": "აბაშა",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.adigeni": {
     "en": "Adigeni",
-    "ka": "",
+    "ka": "ადიგენი",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.adjara": {
@@ -16,32 +16,32 @@
   },
   "georgianCities.akhalkalaki": {
     "en": "Akhalkalaki",
-    "ka": "",
+    "ka": "ახალქალაქი",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.akhaltsikhe": {
     "en": "Akhaltsikhe",
-    "ka": "",
+    "ka": "ახალციხე",
     "_source": "src/lib/admin/home-page-content.ts"
   },
   "georgianCities.akhmeta": {
     "en": "Akhmeta",
-    "ka": "",
+    "ka": "ახმეტა",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.ambrolauri": {
     "en": "Ambrolauri",
-    "ka": "",
+    "ka": "ამბროლაური",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.aspindza": {
     "en": "Aspindza",
-    "ka": "",
+    "ka": "ასპინძა",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.baghdati": {
     "en": "Baghdati",
-    "ka": "",
+    "ka": "ბაღდათი",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.batumi": {
@@ -51,57 +51,57 @@
   },
   "georgianCities.bolnisi": {
     "en": "Bolnisi",
-    "ka": "",
+    "ka": "ბოლნისი",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.borjomi": {
     "en": "Borjomi",
-    "ka": "",
+    "ka": "ბორჯომი",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.chiatura": {
     "en": "Chiatura",
-    "ka": "",
+    "ka": "ჭიათურა",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.chkhorotsqu": {
     "en": "Chkhorotsqu",
-    "ka": "",
+    "ka": "ჩხოროწყუ",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.dedoplistsqaro": {
     "en": "Dedoplistsqaro",
-    "ka": "",
+    "ka": "დედოფლისწყარო",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.dmanisi": {
     "en": "Dmanisi",
-    "ka": "",
+    "ka": "დმანისი",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.dusheti": {
     "en": "Dusheti",
-    "ka": "",
+    "ka": "დუშეთი",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.gardabani": {
     "en": "Gardabani",
-    "ka": "",
+    "ka": "გარდაბანი",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.gori": {
     "en": "Gori",
-    "ka": "",
+    "ka": "გორი",
     "_source": "src/lib/admin/home-page-content.ts"
   },
   "georgianCities.guria": {
     "en": "Guria",
-    "ka": "",
+    "ka": "გურია",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.gurjaani": {
     "en": "Gurjaani",
-    "ka": "",
+    "ka": "გურჯაანი",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.imereti": {
@@ -111,62 +111,62 @@
   },
   "georgianCities.jvari": {
     "en": "Jvari",
-    "ka": "",
+    "ka": "ჯვარი",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.kakheti": {
     "en": "Kakheti",
-    "ka": "",
+    "ka": "კახეთი",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.kareli": {
     "en": "Kareli",
-    "ka": "",
+    "ka": "ქარელი",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.kaspi": {
     "en": "Kaspi",
-    "ka": "",
+    "ka": "კასპი",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.keda": {
     "en": "Keda",
-    "ka": "",
+    "ka": "ქედა",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.kharagauli": {
     "en": "Kharagauli",
-    "ka": "",
+    "ka": "ხარაგაული",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.khashuri": {
     "en": "Khashuri",
-    "ka": "",
+    "ka": "ხაშური",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.khelvachauri": {
     "en": "Khelvachauri",
-    "ka": "",
+    "ka": "ხელვაჩაური",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.khobi": {
     "en": "Khobi",
-    "ka": "",
+    "ka": "ხობი",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.khoni": {
     "en": "Khoni",
-    "ka": "",
+    "ka": "ხონი",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.khulo": {
     "en": "Khulo",
-    "ka": "",
+    "ka": "ხულო",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.kobuleti": {
     "en": "Kobuleti",
-    "ka": "",
+    "ka": "ქობულეთი",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.kutaisi": {
@@ -176,72 +176,72 @@
   },
   "georgianCities.kvareli": {
     "en": "Kvareli",
-    "ka": "",
+    "ka": "ყვარელი",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.kvemoKartli": {
     "en": "Kvemo Kartli",
-    "ka": "",
+    "ka": "ქვემო ქართლი",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.lagodekhi": {
     "en": "Lagodekhi",
-    "ka": "",
+    "ka": "ლაგოდეხი",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.lanchkhuti": {
     "en": "Lanchkhuti",
-    "ka": "",
+    "ka": "ლანჩხუთი",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.marneuli": {
     "en": "Marneuli",
-    "ka": "",
+    "ka": "მარნეული",
     "_source": "src/lib/admin/home-page-content.ts"
   },
   "georgianCities.martvili": {
     "en": "Martvili",
-    "ka": "",
+    "ka": "მარტვილი",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.mestia": {
     "en": "Mestia",
-    "ka": "",
+    "ka": "მესტია",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.mtskheta": {
     "en": "Mtskheta",
-    "ka": "",
+    "ka": "მცხეთა",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.mtskhetaMtianeti": {
     "en": "Mtskheta-Mtianeti",
-    "ka": "",
+    "ka": "მცხეთა-მთიანეთი",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.ninotsminda": {
     "en": "Ninotsminda",
-    "ka": "",
+    "ka": "ნინოწმინდა",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.oni": {
     "en": "Oni",
-    "ka": "",
+    "ka": "ონი",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.ozurgeti": {
     "en": "Ozurgeti",
-    "ka": "",
+    "ka": "ოზურგეთი",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.poti": {
     "en": "Poti",
-    "ka": "",
+    "ka": "ფოთი",
     "_source": "src/lib/admin/home-page-content.ts"
   },
   "georgianCities.rachaLechkhumi": {
     "en": "Racha-Lechkhumi",
-    "ka": "",
+    "ka": "რაჭა-ლეჩხუმი",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.rustavi": {
@@ -251,52 +251,52 @@
   },
   "georgianCities.sachkhere": {
     "en": "Sachkhere",
-    "ka": "",
+    "ka": "საჩხერე",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.sagarejo": {
     "en": "Sagarejo",
-    "ka": "",
+    "ka": "საგარეჯო",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.samegrelo": {
     "en": "Samegrelo",
-    "ka": "",
+    "ka": "სამეგრელო",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.samtredia": {
     "en": "Samtredia",
-    "ka": "",
+    "ka": "სამტრედია",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.samtskheJavakheti": {
     "en": "Samtskhe-Javakheti",
-    "ka": "",
+    "ka": "სამცხე-ჯავახეთი",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.senaki": {
     "en": "Senaki",
-    "ka": "",
+    "ka": "სენაკი",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.shidaKartli": {
     "en": "Shida Kartli",
-    "ka": "",
+    "ka": "შიდა ქართლი",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.shuakhevi": {
     "en": "Shuakhevi",
-    "ka": "",
+    "ka": "შუახევი",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.sighnaghi": {
     "en": "Sighnaghi",
-    "ka": "",
+    "ka": "სიღნაღი",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.svaneti": {
     "en": "Svaneti",
-    "ka": "",
+    "ka": "სვანეთი",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.tbilisi": {
@@ -306,67 +306,67 @@
   },
   "georgianCities.telavi": {
     "en": "Telavi",
-    "ka": "",
+    "ka": "თელავი",
     "_source": "src/lib/admin/home-page-content.ts"
   },
   "georgianCities.terjola": {
     "en": "Terjola",
-    "ka": "",
+    "ka": "თერჯოლა",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.tetritsqaro": {
     "en": "Tetritsqaro",
-    "ka": "",
+    "ka": "თეთრიწყარო",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.tianeti": {
     "en": "Tianeti",
-    "ka": "",
+    "ka": "თიანეთი",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.tkibuli": {
     "en": "Tkibuli",
-    "ka": "",
+    "ka": "ტყიბული",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.tsageri": {
     "en": "Tsageri",
-    "ka": "",
+    "ka": "ცაგერი",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.tsalenjikha": {
     "en": "Tsalenjikha",
-    "ka": "",
+    "ka": "წალენჯიხა",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.tsalka": {
     "en": "Tsalka",
-    "ka": "",
+    "ka": "წალკა",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.tskaltubo": {
     "en": "Tskaltubo",
-    "ka": "",
+    "ka": "წყალტუბო",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.vale": {
     "en": "Vale",
-    "ka": "",
+    "ka": "ვალე",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.vani": {
     "en": "Vani",
-    "ka": "",
+    "ka": "ვანი",
     "_source": "src/lib/georgian-cities.ts"
   },
   "georgianCities.zestaponi": {
     "en": "Zestaponi",
-    "ka": "",
+    "ka": "ზესტაფონი",
     "_source": "src/lib/admin/home-page-content.ts"
   },
   "georgianCities.zugdidi": {
     "en": "Zugdidi",
-    "ka": "",
+    "ka": "ზუგდიდი",
     "_source": "src/lib/admin/home-page-content.ts"
   }
 }
