@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
+
+import { vehicleTypeSpecLabel } from "@/lib/vehicle-type-spec-labels";
 
 /**
  * The fields of a vehicle type the marketing page uses. `GET /api/vehicle-types`
@@ -66,6 +68,8 @@ export function useLandingVehicleTypes(): {
   error: string | null;
 } {
   const t = useTranslations("landing.landingVehicleTypes");
+  // Root-namespace translator for `vehicleTypeSpecLabel`'s `common.*` keys.
+  const tRoot = useTranslations();
   const [vehicleTypes, setVehicleTypes] = useState<LandingVehicleType[]>([]);
   const [loading, setLoading] = useState(true);
   // A flag rather than the message itself, so the message is rendered in the
@@ -96,8 +100,19 @@ export function useLandingVehicleTypes(): {
     };
   }, []);
 
+  // The API returns the English seed label; every landing section reads
+  // `label`, so it is localized once here by `code` rather than per call site.
+  const localizedVehicleTypes = useMemo(
+    () =>
+      vehicleTypes.map((vehicleType) => ({
+        ...vehicleType,
+        label: vehicleTypeSpecLabel(vehicleType.code, vehicleType.label, tRoot),
+      })),
+    [vehicleTypes, tRoot],
+  );
+
   return {
-    vehicleTypes,
+    vehicleTypes: localizedVehicleTypes,
     loading,
     error: failed ? t("couldNotLoadTheVehicleTypes") : null,
   };
