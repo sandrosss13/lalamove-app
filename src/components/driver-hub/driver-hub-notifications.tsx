@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 import { SampleNote } from "@/components/driver-hub/hub-primitives";
 import {
   Popover,
@@ -33,13 +35,12 @@ import { cn } from "@/lib/utils";
 /** The brand orange. It has no `--color-*` token, so it is spelled out. */
 const ACCENT_BG = "bg-[oklch(64%_0.19_48)]";
 
-/**
- * What would make this real, shown on the note as a tooltip and read out by
- * assistive tech. Phrased as the schema change rather than as an apology,
- * matching every other `SampleNote` on this surface.
+/*
+ * The panel's `SampleNote` (catalog key `sampleNote`) says what would make this
+ * real, shown as a tooltip and read out by assistive tech. Phrased as the
+ * schema change rather than as an apology, matching every other `SampleNote`
+ * on this surface.
  */
-const SAMPLE_NOTE =
-  "Needs a Notification model — the schema records no notifications, so this count and these rows are invented.";
 
 export type DriverHubNotificationsProps = {
   /** `HubHeaderData.sampled.notificationCount`. Fictional; see above. */
@@ -51,8 +52,9 @@ export type DriverHubNotificationsProps = {
   onOpenChange: (open: boolean) => void;
 };
 
-/**
- * The trigger's accessible name.
+/*
+ * The trigger's accessible name (catalog key `bellLabel`, an ICU plural on
+ * `count`).
  *
  * It states the count, because the badge that carries it visually is
  * `aria-hidden` — an icon button whose only label was "Notifications" would
@@ -61,13 +63,6 @@ export type DriverHubNotificationsProps = {
  * this is the one piece of the bell a user can perceive without opening it, so
  * it is the one piece that has to carry the qualification on its own.
  */
-function bellLabel(count: number): string {
-  if (count === 0) {
-    return "Notifications — none (sample data)";
-  }
-
-  return `Notifications — ${count} unread (sample data)`;
-}
 
 export function DriverHubNotifications({
   count,
@@ -75,11 +70,14 @@ export function DriverHubNotifications({
   open,
   onOpenChange,
 }: DriverHubNotificationsProps) {
+  const t = useTranslations("driverHub.driverHubNotifications");
+  const tShared = useTranslations("common.shared");
+
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
       <PopoverTrigger
         type="button"
-        aria-label={bellLabel(count)}
+        aria-label={t("bellLabel", { count })}
         // 44×44 below `lg` and 32×32 above it: the design gives the phone
         // header a 44px target (its own figure, and the WCAG 2.2 "Target Size
         // (Minimum)" floor) and the desktop bar a 32px one, where a pointer
@@ -123,17 +121,19 @@ export function DriverHubNotifications({
         className="w-[300px] gap-0 overflow-hidden rounded-xl border border-border p-0 shadow-[0_12px_32px_rgba(0,0,0,0.12)] ring-0"
       >
         <div className="flex items-center justify-between gap-2 border-b border-border px-3.5 py-[11px]">
-          <p className="text-[12px] font-semibold">Notifications</p>
+          <p className="text-[12px] font-semibold">
+            {tShared("notifications")}
+          </p>
           {/* The honesty marker, and the reason this component may ship at all.
               Beside the title rather than under the rows so it is read before
               the fiction it qualifies, in both the visual and the DOM order. */}
-          <SampleNote note={SAMPLE_NOTE} />
+          <SampleNote note={t("sampleNote")} />
         </div>
 
         <div className="flex flex-col">
           {notifications.length === 0 ? (
             <p className="px-3.5 py-4 text-[12px] text-muted-foreground">
-              Nothing to catch up on.
+              {t("nothingToCatchUpOn")}
             </p>
           ) : (
             notifications.map((notification) => (

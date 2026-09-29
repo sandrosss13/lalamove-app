@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 import type { ContentLocale, MessagingChannel } from "@prisma/client";
 
@@ -44,6 +45,20 @@ export const MESSAGING_CHANNEL_LABELS: Record<MessagingChannel, string> = {
 export const CONTENT_LOCALE_LABELS: Record<ContentLocale, string> = {
   KA: "Georgian",
   EN: "English",
+};
+
+/**
+ * The same two maps as full message paths, resolved where they render. The
+ * English maps above stay exported for the templates table until it switches.
+ */
+export const MESSAGING_CHANNEL_LABEL_KEYS: Record<MessagingChannel, string> = {
+  EMAIL: "admin.messagingTemplateFormDialog.channelEmail",
+  SMS: "admin.messagingTemplateFormDialog.channelSms",
+};
+
+export const CONTENT_LOCALE_LABEL_KEYS: Record<ContentLocale, string> = {
+  KA: "common.shared.georgian",
+  EN: "common.shared.english",
 };
 
 /** Picker order for each enum. */
@@ -143,6 +158,7 @@ export function MessagingTemplateFormDialog({
   onClose,
   onCompleted,
 }: MessagingTemplateFormDialogProps) {
+  const t = useTranslations();
   const isEditing = template !== null;
 
   const [key, setKey] = useState(template?.key ?? "");
@@ -167,7 +183,9 @@ export function MessagingTemplateFormDialog({
     // Checked here as well as by the `required` attribute, since the field is
     // only mounted for EMAIL and a whitespace-only value would otherwise pass.
     if (needsSubject && trimmedSubject === "") {
-      setError("A subject is required for email templates.");
+      setError(
+        t("admin.messagingTemplateFormDialog.aSubjectIsRequiredForEmail"),
+      );
       return;
     }
 
@@ -200,8 +218,8 @@ export function MessagingTemplateFormDialog({
           await readErrorMessage(
             response,
             isEditing
-              ? "Could not save this template."
-              : "Could not create this template.",
+              ? t("admin.messagingTemplateFormDialog.couldNotSave")
+              : t("admin.messagingTemplateFormDialog.couldNotCreate"),
           ),
         );
         setPending(false);
@@ -212,7 +230,7 @@ export function MessagingTemplateFormDialog({
       // the button must not flash back to its idle label in between.
       onCompleted();
     } catch {
-      setError("Something went wrong. Please try again.");
+      setError(t("common.shared.somethingWentWrongPleaseTryAgain"));
       setPending(false);
     }
   }
@@ -232,18 +250,22 @@ export function MessagingTemplateFormDialog({
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <DialogHeader>
             <DialogTitle>
-              {isEditing ? "Edit template" : "New template"}
+              {isEditing
+                ? t("admin.messagingTemplateFormDialog.editTemplate")
+                : t("admin.messagingTemplateFormDialog.newTemplate")}
             </DialogTitle>
             <DialogDescription>
-              The wording of one transactional message, for a single channel and
-              language. Saving only changes the text on file — messages are sent
-              by the order flow, not from here.
+              {t(
+                "admin.messagingTemplateFormDialog.theWordingOfOneTransactionalMessage",
+              )}
             </DialogDescription>
           </DialogHeader>
 
           <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="messaging-template-key">Event key</Label>
+              <Label htmlFor="messaging-template-key">
+                {t("common.shared.eventKey")}
+              </Label>
               <Input
                 id="messaging-template-key"
                 list="messaging-template-key-options"
@@ -251,7 +273,9 @@ export function MessagingTemplateFormDialog({
                 maxLength={MAX_KEY_LENGTH}
                 value={key}
                 onChange={(event) => setKey(event.target.value)}
-                placeholder="order.confirmed"
+                placeholder={t(
+                  "admin.messagingTemplateFormDialog.orderConfirmed",
+                )}
                 disabled={pending}
                 autoFocus
               />
@@ -264,7 +288,9 @@ export function MessagingTemplateFormDialog({
 
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="messaging-template-channel">Channel</Label>
+                <Label htmlFor="messaging-template-channel">
+                  {t("common.shared.channel")}
+                </Label>
                 <Select
                   value={channel}
                   onValueChange={(value) =>
@@ -281,7 +307,7 @@ export function MessagingTemplateFormDialog({
                   <SelectContent>
                     {CHANNEL_OPTIONS.map((option) => (
                       <SelectItem key={option} value={option}>
-                        {MESSAGING_CHANNEL_LABELS[option]}
+                        {t(MESSAGING_CHANNEL_LABEL_KEYS[option])}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -289,7 +315,9 @@ export function MessagingTemplateFormDialog({
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="messaging-template-locale">Language</Label>
+                <Label htmlFor="messaging-template-locale">
+                  {t("common.shared.language")}
+                </Label>
                 <Select
                   value={locale}
                   onValueChange={(value) => setLocale(value as ContentLocale)}
@@ -304,7 +332,7 @@ export function MessagingTemplateFormDialog({
                   <SelectContent>
                     {LOCALE_OPTIONS.map((option) => (
                       <SelectItem key={option} value={option}>
-                        {CONTENT_LOCALE_LABELS[option]}
+                        {t(CONTENT_LOCALE_LABEL_KEYS[option])}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -314,21 +342,27 @@ export function MessagingTemplateFormDialog({
 
             {needsSubject ? (
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="messaging-template-subject">Subject</Label>
+                <Label htmlFor="messaging-template-subject">
+                  {t("common.shared.subject")}
+                </Label>
                 <Input
                   id="messaging-template-subject"
                   required
                   maxLength={MAX_SUBJECT_LENGTH}
                   value={subject}
                   onChange={(event) => setSubject(event.target.value)}
-                  placeholder="Your order is confirmed"
+                  placeholder={t(
+                    "admin.messagingTemplateFormDialog.yourOrderIsConfirmed",
+                  )}
                   disabled={pending}
                 />
               </div>
             ) : null}
 
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="messaging-template-body">Message</Label>
+              <Label htmlFor="messaging-template-body">
+                {t("admin.messagingTemplateFormDialog.message")}
+              </Label>
               <Textarea
                 id="messaging-template-body"
                 aria-describedby="messaging-template-body-help"
@@ -337,14 +371,14 @@ export function MessagingTemplateFormDialog({
                 rows={6}
                 value={body}
                 onChange={(event) => setBody(event.target.value)}
-                placeholder="Hi {{clientName}}, your order {{orderId}} is confirmed."
+                placeholder={t("admin.messagingTemplateFormDialog.bodyExample")}
                 disabled={pending}
               />
               <p
                 id="messaging-template-body-help"
                 className="text-xs text-muted-foreground"
               >
-                Placeholders filled in when the message is sent:{" "}
+                {t("admin.messagingTemplateFormDialog.placeholdersFilledIn")}{" "}
                 {SUPPORTED_PLACEHOLDERS.map((placeholder, index) => (
                   <span key={placeholder}>
                     {index > 0 ? ", " : null}
@@ -362,7 +396,9 @@ export function MessagingTemplateFormDialog({
                 onCheckedChange={(checked) => setIsActive(checked === true)}
                 disabled={pending}
               />
-              <Label htmlFor="messaging-template-is-active">Active</Label>
+              <Label htmlFor="messaging-template-is-active">
+                {t("common.shared.active")}
+              </Label>
             </div>
           </div>
 
@@ -379,14 +415,14 @@ export function MessagingTemplateFormDialog({
               onClick={onClose}
               disabled={pending}
             >
-              Cancel
+              {t("common.shared.cancel")}
             </Button>
             <Button type="submit" disabled={pending}>
               {pending
-                ? "Saving…"
+                ? t("common.shared.saving")
                 : isEditing
-                  ? "Save changes"
-                  : "Create template"}
+                  ? t("account.accountProfileForm.saveChanges")
+                  : t("admin.messagingTemplateFormDialog.createTemplate")}
             </Button>
           </DialogFooter>
         </form>

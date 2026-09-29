@@ -1,57 +1,122 @@
 {
+  "orderStatus.accepted": {
+    "en": "Accepted",
+    "ka": "დადასტურებული",
+    "_source": "src/components/orders-format.ts"
+  },
+  "orderStatus.cancelled": {
+    "en": "Cancelled",
+    "ka": "გაუქმებული",
+    "_source": "src/components/orders-format.ts"
+  },
+  "orderStatus.completed": {
+    "en": "Completed",
+    "ka": "დასრულებული",
+    "_source": "src/components/orders-format.ts"
+  },
+  "orderStatus.inTransit": {
+    "en": "In transit",
+    "ka": "გზაში",
+    "_source": "src/components/orders-format.ts"
+  },
+  "orderStatus.initiated": {
+    "en": "Initiated",
+    "ka": "ინიცირებული",
+    "_source": "src/components/orders-format.ts"
+  },
+  "orderStatus.pending": {
+    "en": "Pending",
+    "ka": "მოლოდინში",
+    "_source": "src/components/orders-format.ts"
+  },
   "orderTrackingMap.driverLocationMayBeStale": {
     "en": "Driver location may be stale.",
-    "ka": "",
+    "ka": "მძღოლის მდებარეობა შესაძლოა მოძველებული იყოს",
     "_source": "src/components/order-tracking-map.tsx"
   },
   "orderTrackingMap.waitingForADriverToShare": {
     "en": "Waiting for a driver to share their location…",
-    "ka": "",
+    "ka": "ველოდებით მძღოლის მიერ მდებარეობის გაზიარებას...",
     "_source": "src/components/order-tracking-map.tsx"
   },
   "orders.above": {
     "en": "above.",
-    "ka": "",
+    "ka": "ზემოთ.",
+    "_source": "src/app/[locale]/orders/page.tsx"
+  },
+  "orders.bookFirstDelivery": {
+    "en": "Book your first delivery with <b>New order</b> above.",
+    "ka": "პირველი მიწოდება დაჯავშნეთ ზემოთ მოცემული ღილაკით <b>ახალი შეკვეთა</b>.",
     "_source": "src/app/[locale]/orders/page.tsx"
   },
   "orders.newOrder2": {
     "en": "New order",
-    "ka": "",
+    "ka": "ახალი შეკვეთა",
+    "_source": "src/app/[locale]/orders/page.tsx"
+  },
+  "orders.noOrdersYet": {
+    "en": "You haven't placed any orders yet.",
+    "ka": "თქვენ ჯერ არცერთი შეკვეთა არ გაგიკეთებიათ.",
     "_source": "src/app/[locale]/orders/page.tsx"
   },
   "orders.signInToViewYourOrders": {
     "en": "Sign in to view your orders.",
-    "ka": "",
+    "ka": "თქვენი შეკვეთების სანახავად გაიარეთ ავტორიზაცია.",
     "_source": "src/app/[locale]/orders/page.tsx"
   },
   "orders.trackDelivery": {
     "en": "Track delivery →",
-    "ka": "",
+    "ka": "მიწოდების თვალყურის დევნება →",
     "_source": "src/app/[locale]/orders/page.tsx"
   },
   "orders.yourDeliveries": {
     "en": "Your deliveries",
-    "ka": "",
+    "ka": "თქვენი მიწოდებები",
     "_source": "src/app/[locale]/orders/page.tsx"
   },
   "orders.yourOrders": {
     "en": "Your orders",
-    "ka": "",
+    "ka": "თქვენი შეკვეთები",
     "_source": "src/app/[locale]/orders/page.tsx"
+  },
+  "ordersTrack.backToDashboard": {
+    "en": "← Back to dashboard",
+    "ka": "← მართვის პანელზე დაბრუნება",
+    "_source": "src/app/[locale]/orders/[id]/track/page.tsx"
+  },
+  "ordersTrack.backToOrders": {
+    "en": "← Back to orders",
+    "ka": "← შეკვეთებზე დაბრუნება",
+    "_source": "src/app/[locale]/orders/[id]/track/page.tsx"
   },
   "ordersTrack.carrier": {
     "en": "Carrier",
-    "ka": "",
+    "ka": "გადამზიდავი",
     "_source": "src/app/[locale]/orders/[id]/track/page.tsx"
   },
   "ordersTrack.pleaseSignInToTrackThis": {
     "en": "Please sign in to track this delivery.",
-    "ka": "",
+    "ka": "ამ მიწოდებისთვის თვალყურის სადევნებლად, გთხოვთ, გაიაროთ ავტორიზაცია.",
     "_source": "src/app/[locale]/orders/[id]/track/page.tsx"
   },
   "ordersTrack.trackDelivery": {
     "en": "Track delivery",
-    "ka": "",
+    "ka": "მიწოდების თვალყურის დევნება",
     "_source": "src/app/[locale]/orders/[id]/track/page.tsx"
+  },
+  "serviceLevel.pooling": {
+    "en": "Pooling",
+    "ka": "გაერთიანებული",
+    "_source": "src/components/orders-format.ts"
+  },
+  "serviceLevel.priority": {
+    "en": "Priority",
+    "ka": "პრიორიტეტული",
+    "_source": "src/components/orders-format.ts"
+  },
+  "serviceLevel.regular": {
+    "en": "Regular",
+    "ka": "სტანდარტული",
+    "_source": "src/components/orders-format.ts"
   }
 }

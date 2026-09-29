@@ -3,6 +3,7 @@
 import type * as React from "react";
 import { useCallback, useEffect, useId, useState } from "react";
 import { X } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import {
   cardBrandChipClasses,
@@ -88,9 +89,6 @@ const MAX_CVC_DIGITS = 4;
 
 /** Digits typed before the brand chip appears. */
 const BRAND_CHIP_MIN_DIGITS = 2;
-
-/** Shown when a rejected submission carries no message of its own. */
-const SAVE_FAILED_FALLBACK = "Could not save the card. Try again.";
 
 const FIELD_LABEL_CLASSES = "text-[0.8125rem] font-medium text-paper";
 
@@ -192,26 +190,40 @@ type CardFormValues = {
  * fix — never a list, so the reader is told one thing to do next. `null` once
  * the form may be submitted.
  */
-function firstMissingRequirement(values: CardFormValues): string | null {
+/**
+ * Keys in `home.addCardDialog`, one per requirement. Returned rather than the
+ * sentence itself so this stays a plain function outside the component, with
+ * translation happening at render.
+ */
+type MissingRequirementKey =
+  | "enterCardNumber"
+  | "enterExpiryFormat"
+  | "enterFutureExpiry"
+  | "enterCvc"
+  | "enterHolderName";
+
+function firstMissingRequirement(
+  values: CardFormValues,
+): MissingRequirementKey | null {
   if (toDigits(values.cardNumber).length < MIN_CARD_DIGITS) {
-    return `Enter a card number of at least ${MIN_CARD_DIGITS} digits.`;
+    return "enterCardNumber";
   }
 
   const expiry = parseExpiry(values.expiry);
   if (expiry === null) {
-    return "Enter the expiry date as MM/YY.";
+    return "enterExpiryFormat";
   }
 
   if (hasExpired(expiry)) {
-    return "Enter an expiry date in the future.";
+    return "enterFutureExpiry";
   }
 
   if (toDigits(values.cvc).length < MIN_CVC_DIGITS) {
-    return "Enter the three- or four-digit security code.";
+    return "enterCvc";
   }
 
   if (values.holderName.trim() === "") {
-    return "Enter the name printed on the card.";
+    return "enterHolderName";
   }
 
   return null;
@@ -227,6 +239,8 @@ export function AddCardDialog({
   isFirstCard,
   onSubmit,
 }: AddCardDialogProps) {
+  const t = useTranslations("home.addCardDialog");
+  const tShared = useTranslations("common.shared");
   const [cardNumber, setCardNumber] = useState("");
   const [expiry, setExpiry] = useState("");
   const [cvc, setCvc] = useState("");
@@ -313,7 +327,7 @@ export function AddCardDialog({
       setError(
         submitError instanceof Error && submitError.message !== ""
           ? submitError.message
-          : SAVE_FAILED_FALLBACK,
+          : t("saveFailed"),
       );
       setSubmitting(false);
     }
@@ -345,10 +359,10 @@ export function AddCardDialog({
               eyebrow, and its 13px/600/wide-tracking treatment assumes the body
               face. */}
           <DialogTitle className="font-sans text-[0.8125rem] font-semibold tracking-[0.1em] text-muted uppercase">
-            Add card
+            {t("addCard")}
           </DialogTitle>
           <DialogDescription className="text-[0.8125rem] leading-snug text-muted">
-            Credit or debit card. Nothing is charged until you book a delivery.
+            {t("creditOrDebitCardNothingIs")}
           </DialogDescription>
         </DialogHeader>
 
@@ -358,7 +372,7 @@ export function AddCardDialog({
             className="absolute top-4 right-4 flex size-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface hover:text-paper"
           >
             <X aria-hidden="true" className="size-4" />
-            <span className="sr-only">Close</span>
+            <span className="sr-only">{tShared("close")}</span>
           </button>
         </DialogClose>
 
@@ -372,9 +386,7 @@ export function AddCardDialog({
             remember the number in its card manager. That is the user's own
             browser and their own choice; nothing here transmits or stores it. */}
         <p className="mt-4 rounded-lg border border-line bg-surface p-3 text-xs leading-relaxed text-muted">
-          Gateway integration is pending. Your card details are not sent
-          anywhere and nothing is charged — only the brand and last four digits
-          are saved so you can recognise the card.
+          {t("gatewayIntegrationIsPendingYourCard")}
         </p>
 
         <form
@@ -395,7 +407,7 @@ export function AddCardDialog({
         >
           <div className="flex flex-col gap-1.5">
             <Label htmlFor={cardNumberId} className={FIELD_LABEL_CLASSES}>
-              Card number
+              {t("cardNumber")}
             </Label>
             <div className={CARD_NUMBER_BOX_CLASSES}>
               <input
@@ -424,14 +436,14 @@ export function AddCardDialog({
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor={expiryId} className={FIELD_LABEL_CLASSES}>
-                Expiry
+                {t("expiry")}
               </Label>
               <input
                 id={expiryId}
                 type="text"
                 inputMode="numeric"
                 autoComplete="cc-exp"
-                placeholder="MM/YY"
+                placeholder={t("mmYy")}
                 value={expiry}
                 onChange={(event) =>
                   setExpiry(formatExpiry(event.target.value))
@@ -442,7 +454,7 @@ export function AddCardDialog({
 
             <div className="flex flex-col gap-1.5">
               <Label htmlFor={cvcId} className={FIELD_LABEL_CLASSES}>
-                CVC
+                {t("cvc")}
               </Label>
               <input
                 id={cvcId}
@@ -461,13 +473,13 @@ export function AddCardDialog({
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor={holderNameId} className={FIELD_LABEL_CLASSES}>
-              Name on card
+              {t("nameOnCard")}
             </Label>
             <input
               id={holderNameId}
               type="text"
               autoComplete="cc-name"
-              placeholder="As printed on the card"
+              placeholder={t("asPrintedOnTheCard")}
               value={holderName}
               onChange={(event) => setHolderName(event.target.value)}
               className={FIELD_CLASSES}
@@ -489,7 +501,7 @@ export function AddCardDialog({
               htmlFor={defaultCheckboxId}
               className="text-[0.8125rem] font-normal text-paper"
             >
-              Set as default payment method
+              {t("setAsDefaultPaymentMethod")}
             </Label>
           </div>
 
@@ -503,7 +515,7 @@ export function AddCardDialog({
             <div className="flex items-center justify-end gap-2">
               <DialogClose asChild>
                 <button type="button" className={CANCEL_BUTTON_CLASSES}>
-                  Cancel
+                  {tShared("cancel")}
                 </button>
               </DialogClose>
               <button
@@ -517,12 +529,14 @@ export function AddCardDialog({
                 }
                 className={SAVE_BUTTON_CLASSES}
               >
-                {submitting ? "Saving…" : "Save card"}
+                {submitting ? tShared("saving") : t("saveCard")}
               </button>
             </div>
             {missingRequirement === null ? null : (
               <p id={reasonId} className="text-right text-xs text-muted">
-                {missingRequirement}
+                {/* `min` is only read by `enterCardNumber`; next-intl ignores
+                    values a message does not reference. */}
+                {t(missingRequirement, { min: MIN_CARD_DIGITS })}
               </p>
             )}
           </div>

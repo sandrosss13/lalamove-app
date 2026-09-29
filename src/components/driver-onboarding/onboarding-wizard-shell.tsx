@@ -38,6 +38,7 @@
 
 import { useState } from "react";
 import { ChevronLeftIcon } from "lucide-react";
+import { useFormatter, useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { ApplicationStatusScreen } from "@/components/driver-onboarding/application-status-screen";
@@ -62,31 +63,37 @@ import { Step4ReviewSubmit } from "@/components/driver-onboarding/steps/step-4-r
  * this feature drops the SMS code screen entirely and `task-09` builds the
  * remaining fields as a single step.
  */
-const SCREEN_HEADERS: { screen: number; kicker: string; title: string }[] = [
+/* `kickerKey` and `titleKey` are full `next-intl` message paths, translated at
+   render — this constant sits at module scope where no hook can run. */
+const SCREEN_HEADERS: {
+  screen: number;
+  kickerKey: string;
+  titleKey: string;
+}[] = [
   {
     screen: ONBOARDING_SCREENS.personal,
-    kicker: "Step 1 of 4 · Authorisation & personal",
-    title: "Who you are",
+    kickerKey: "onboarding.onboardingWizardShell.kickerPersonal",
+    titleKey: "onboarding.onboardingWizardShell.whoYouAre",
   },
   {
     screen: ONBOARDING_SCREENS.licence,
-    kicker: "Step 2 of 4 · Licence",
-    title: "Your licence",
+    kickerKey: "onboarding.onboardingWizardShell.kickerLicence",
+    titleKey: "onboarding.onboardingWizardShell.yourLicence",
   },
   {
     screen: ONBOARDING_SCREENS.vehicleBodyAndClass,
-    kicker: "Step 3 of 4 · Vehicle",
-    title: "Vehicle registration",
+    kickerKey: "onboarding.onboardingWizardShell.kickerVehicle",
+    titleKey: "common.shared.vehicleRegistration",
   },
   {
     screen: ONBOARDING_SCREENS.vehicleTechnical,
-    kicker: "Step 3 of 4 · Vehicle",
-    title: "Technical details",
+    kickerKey: "onboarding.onboardingWizardShell.kickerVehicle",
+    titleKey: "onboarding.onboardingWizardShell.technicalDetails",
   },
   {
     screen: ONBOARDING_SCREENS.review,
-    kicker: "Step 4 of 4 · Review",
-    title: "Check and submit",
+    kickerKey: "onboarding.onboardingWizardShell.kickerReview",
+    titleKey: "common.shared.checkAndSubmit",
   },
 ];
 
@@ -94,34 +101,45 @@ const SCREEN_HEADERS: { screen: number; kicker: string; title: string }[] = [
 const SCREEN_ORDER = SCREEN_HEADERS.map((header) => header.screen);
 
 /**
- * "saved 2 days ago"-style phrasing for the welcome screen's resume banner,
- * built on `Intl.RelativeTimeFormat` rather than a date library — this is the
- * only relative timestamp in the app, and the platform already has one.
+ * "saved 2 days ago"-style phrasing for the welcome screen's resume banner, in
+ * the reader's language: `next-intl`'s `relativeTime` wraps
+ * `Intl.RelativeTimeFormat` with the active locale. The unit is still chosen
+ * here, coarsest first, so a draft saved 26 hours ago reads "1 day ago" rather
+ * than "26 hours ago".
+ *
+ * The formatter and translator are passed in because this is a plain function
+ * and cannot call hooks itself.
  *
  * Safe to compute during render because `draftUpdatedAt` only exists after the
  * client-side `GET` has resolved, so there is no server-rendered value for a
  * clock difference to disagree with.
  */
-function formatSavedAt(iso: string): string {
+function formatSavedAt(
+  iso: string,
+  format: ReturnType<typeof useFormatter>,
+  t: ReturnType<typeof useTranslations<"onboarding.onboardingWizardShell">>,
+): string {
   const savedAt = new Date(iso);
-  if (Number.isNaN(savedAt.getTime())) return "saved earlier";
+  if (Number.isNaN(savedAt.getTime())) return t("savedEarlier");
 
-  const elapsedSeconds = (savedAt.getTime() - Date.now()) / 1000;
-  const formatter = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
+  const now = new Date();
+  const elapsedSeconds = Math.abs(savedAt.getTime() - now.getTime()) / 1000;
 
-  const units: { unit: Intl.RelativeTimeFormatUnit; seconds: number }[] = [
+  const units: { unit: "day" | "hour" | "minute"; seconds: number }[] = [
     { unit: "day", seconds: 86400 },
     { unit: "hour", seconds: 3600 },
     { unit: "minute", seconds: 60 },
   ];
 
   for (const { unit, seconds } of units) {
-    if (Math.abs(elapsedSeconds) >= seconds) {
-      return `saved ${formatter.format(Math.round(elapsedSeconds / seconds), unit)}`;
+    if (elapsedSeconds >= seconds) {
+      return t("savedRelative", {
+        relative: format.relativeTime(savedAt, { now, unit }),
+      });
     }
   }
 
-  return "saved just now";
+  return t("savedJustNow");
 }
 
 /** The step component for a screen number, or `null` for an unknown one. */
@@ -168,6 +186,9 @@ export function OnboardingWizardShell() {
     resetApplication,
     showToast,
   } = useOnboardingDraft();
+  const t = useTranslations("onboarding.onboardingWizardShell");
+  const tRoot = useTranslations();
+  const format = useFormatter();
 
   const [phase, setPhase] = useState<"welcome" | "step">("welcome");
   // Held so "Start a new application" can show progress and can't be
@@ -207,7 +228,7 @@ export function OnboardingWizardShell() {
       <Surface>
         <div className="flex flex-1 items-center justify-center p-16">
           <p className="text-sm text-muted-foreground">
-            Loading your application…
+            {tRoot("common.shared.loadingYourApplication")}
           </p>
         </div>
       </Surface>
@@ -224,7 +245,7 @@ export function OnboardingWizardShell() {
             variant="outline"
             onClick={() => void refetch()}
           >
-            Try again
+            {tRoot("common.shared.tryAgain")}
           </Button>
         </div>
       </Surface>
@@ -242,11 +263,7 @@ export function OnboardingWizardShell() {
             that rather than leaving four buttons that silently do nothing. */}
         <OnboardingStepRail
           currentStep={ONBOARDING_RAIL.length}
-          onSelect={() =>
-            showToast(
-              "Your application is with the review team — there is nothing left to edit.",
-            )
-          }
+          onSelect={() => showToast(t("nothingLeftToEdit"))}
         />
         <ContentColumn>
           <div className="animate-onboarding-fade-up py-10 pb-18">
@@ -271,11 +288,10 @@ export function OnboardingWizardShell() {
               className="mb-[30px] size-11 rounded-xl bg-onboarding-accent"
             />
             <h1 className="text-[42px] leading-[1.08] font-semibold tracking-[-0.03em]">
-              Become a partner driver
+              {t("becomeAPartnerDriver")}
             </h1>
             <p className="mt-3.5 max-w-[520px] text-base leading-[1.55] text-muted-foreground">
-              Four steps. Around 12 minutes if your licence and vehicle
-              documents are to hand. Progress is saved as you go.
+              {t("fourStepsAround12MinutesIf")}
             </p>
 
             <ol className="mt-[34px] overflow-hidden rounded-[14px] border border-border">
@@ -287,7 +303,9 @@ export function OnboardingWizardShell() {
                   <span className="flex size-[22px] shrink-0 items-center justify-center rounded-full bg-muted font-price text-[11px] font-semibold text-muted-foreground">
                     {entry.step}
                   </span>
-                  <span className="text-sm font-medium">{entry.label}</span>
+                  <span className="text-sm font-medium">
+                    {tRoot(entry.labelKey)}
+                  </span>
                 </li>
               ))}
             </ol>
@@ -296,11 +314,14 @@ export function OnboardingWizardShell() {
               <div className="mt-6 flex flex-wrap items-center gap-5 rounded-[14px] border border-onboarding-accent bg-onboarding-accent/6 px-[18px] py-4">
                 <div className="flex-1">
                   <p className="text-sm font-semibold">
-                    Unfinished application
+                    {tRoot("common.shared.unfinishedApplication")}
                   </p>
                   <p className="mt-[3px] text-[13px] text-muted-foreground">
-                    {formatSavedAt(draftUpdatedAt)} · you left off at step{" "}
-                    {currentStep} of {ONBOARDING_RAIL.length}.
+                    {t("leftOffAt", {
+                      saved: formatSavedAt(draftUpdatedAt, format, t),
+                      step: currentStep,
+                      total: ONBOARDING_RAIL.length,
+                    })}
                   </p>
                 </div>
                 <button
@@ -308,7 +329,7 @@ export function OnboardingWizardShell() {
                   onClick={() => setPhase("step")}
                   className="h-11 shrink-0 cursor-pointer rounded-[10px] bg-onboarding-accent px-5 text-[14.5px] font-semibold text-white transition-colors hover:bg-onboarding-accent-hover focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
                 >
-                  Resume
+                  {tRoot("common.shared.resume")}
                 </button>
               </div>
             ) : null}
@@ -319,7 +340,7 @@ export function OnboardingWizardShell() {
               onClick={() => void handleStartFresh()}
               className="mt-4 h-[50px] cursor-pointer rounded-xl border border-border bg-card px-[26px] text-[15px] font-semibold transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {resetting ? "Starting…" : "Start a new application"}
+              {resetting ? t("starting") : t("startNewApplication")}
             </button>
           </div>
         </ContentColumn>
@@ -341,17 +362,17 @@ export function OnboardingWizardShell() {
             <button
               type="button"
               onClick={handleBack}
-              aria-label="Back"
+              aria-label={tRoot("common.shared.back")}
               className="flex size-[34px] shrink-0 cursor-pointer items-center justify-center rounded-[9px] border border-border bg-card text-muted-foreground transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
             >
               <ChevronLeftIcon className="size-4" />
             </button>
             <div className="min-w-0 flex-1">
               <p className="font-price text-[10.5px] font-semibold tracking-[0.09em] text-onboarding-accent uppercase">
-                {header?.kicker}
+                {header ? tRoot(header.kickerKey) : null}
               </p>
               <h1 className="mt-0.5 text-[26px] font-semibold tracking-[-0.02em]">
-                {header?.title}
+                {header ? tRoot(header.titleKey) : null}
               </h1>
             </div>
             {/* Save state, deliberately quiet: a working save is a footnote, a
@@ -364,7 +385,7 @@ export function OnboardingWizardShell() {
               }`}
               role={saveError !== null ? "alert" : undefined}
             >
-              {saveError ?? (saving ? "Saving…" : null)}
+              {saveError ?? (saving ? t("saving") : null)}
             </p>
           </div>
 

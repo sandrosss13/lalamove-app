@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { ShieldCheck } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { useRouter } from "@/i18n/navigation";
+import { LanguageToggle } from "@/components/language-toggle";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,7 +18,7 @@ import { authClient, signIn, signOut } from "@/lib/auth-client";
  * turn this form into an account-enumeration oracle for a page whose whole
  * point is that only a handful of people should know it works at all.
  */
-const GENERIC_ERROR = "Those credentials don't have back-office access.";
+const GENERIC_ERROR_KEY = "credentialsNoAccess";
 
 /**
  * Staff sign-in for the back office.
@@ -52,6 +54,8 @@ const GENERIC_ERROR = "Those credentials don't have back-office access.";
  * pages is the point.
  */
 export default function AdminSignInPage() {
+  const t = useTranslations("admin.adminSignIn");
+  const tShared = useTranslations("common.shared");
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -67,7 +71,7 @@ export default function AdminSignInPage() {
 
     if (signInError) {
       setLoading(false);
-      setError(GENERIC_ERROR);
+      setError(t(GENERIC_ERROR_KEY));
       return;
     }
 
@@ -80,7 +84,7 @@ export default function AdminSignInPage() {
       // business on — undo the session rather than leaving them signed in.
       await signOut();
       setLoading(false);
-      setError(GENERIC_ERROR);
+      setError(t(GENERIC_ERROR_KEY));
       return;
     }
 
@@ -100,17 +104,16 @@ export default function AdminSignInPage() {
             <ShieldCheck className="size-4.5" />
           </span>
           <h1 className="text-xl font-semibold tracking-tight">
-            Back office sign-in
+            {t("backOfficeSignIn")}
           </h1>
           <p className="text-sm text-muted-foreground">
-            Internal use only. Customer and driver accounts sign in on the main
-            site.
+            {t("internalUseOnlyCustomerAndDriver")}
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
-            <Label htmlFor="admin-email">Work email</Label>
+            <Label htmlFor="admin-email">{tShared("workEmail")}</Label>
             <Input
               id="admin-email"
               type="email"
@@ -122,7 +125,7 @@ export default function AdminSignInPage() {
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="admin-password">Password</Label>
+            <Label htmlFor="admin-password">{tShared("password")}</Label>
             <Input
               id="admin-password"
               type="password"
@@ -140,15 +143,16 @@ export default function AdminSignInPage() {
           ) : null}
 
           <Button type="submit" disabled={loading}>
-            {loading ? "Signing in…" : "Sign in"}
+            {loading ? t("signingIn") : tShared("signIn")}
           </Button>
         </form>
       </div>
 
       {/*
         `data-admin-surface` hides the global site header (and with it the app's
-        only other `ThemeToggle`), so without this the two staff pages would be
-        the only screens with no way to switch themes.
+        only other `ThemeToggle` and `LanguageToggle`), so without these the two
+        staff pages would be the only screens with no way to switch themes or
+        languages.
 
         Parked in the page corner rather than added to the panel: the panel is
         the deliberate part of this design — lock mark, "Internal use only", a
@@ -164,7 +168,8 @@ export default function AdminSignInPage() {
         `accent` resolves to the neutral shadcn grey rather than the landing
         brand orange.
       */}
-      <div className="absolute top-5 right-5">
+      <div className="absolute top-5 right-5 flex items-center gap-2">
+        <LanguageToggle />
         <ThemeToggle />
       </div>
     </div>

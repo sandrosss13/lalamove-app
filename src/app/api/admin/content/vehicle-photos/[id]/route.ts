@@ -5,6 +5,7 @@ import type { AdminRole } from "@prisma/client";
 // Type-only import, so nothing of the sibling route's module reaches this one
 // at runtime — it is erased at compile time. Sharing the wire shape with the
 // endpoint that lists these rows is what stops the two responses drifting.
+import { getRequestTranslations } from "@/i18n/request-locale";
 import type { AdminVehiclePhotoRow } from "@/app/api/admin/content/vehicle-photos/route";
 import { authorizeAdminApi } from "@/lib/admin/api-auth";
 import { writeAuditLog } from "@/lib/admin/audit";
@@ -59,6 +60,12 @@ function isUsableUrl(value: string): boolean {
 }
 
 /**
+ * The request-locale translator, passed into the synchronous body validator so
+ * its messages reach the admin in their own language.
+ */
+type RequestTranslator = Awaited<ReturnType<typeof getRequestTranslations>>;
+
+/**
  * Hand-rolled body validation, consistent with the rest of the API (the project
  * deliberately uses no validation library).
  *
@@ -75,9 +82,10 @@ function isUsableUrl(value: string): boolean {
  */
 function parseUpdateBody(
   body: unknown,
+  t: RequestTranslator,
 ): { data: { imageUrl: string | null } } | { error: string } {
   if (typeof body !== "object" || body === null || Array.isArray(body)) {
-    return { error: "Request body must be a JSON object." };
+    return { error: t("common.shared.requestBodyMustBeAJson") };
   }
 
   const record = body as Record<string, unknown>;
@@ -89,9 +97,9 @@ function parseUpdateBody(
   const unexpected = Object.keys(record).filter((key) => key !== "imageUrl");
   if (unexpected.length > 0) {
     return {
-      error:
-        `This endpoint only sets imageUrl. Unexpected field(s): ${unexpected.join(", ")}. ` +
-        "Vehicle specifications and pricing are changed through the seed, not the back office.",
+      error: t("errors.adminContentVehiclePhotos.unexpectedFields", {
+        fields: unexpected.join(", "),
+      }),
     };
   }
 
@@ -105,15 +113,20 @@ function parseUpdateBody(
 
   if (typeof imageUrl !== "string" || imageUrl.trim() === "") {
     return {
-      error: "imageUrl must be a non-empty string, or null to clear it.",
+      error: t("errors.adminContentVehiclePhotos.imageUrlNonEmptyOrNull"),
     };
   }
   if (imageUrl.trim().length > MAX_URL_LENGTH) {
-    return { error: `imageUrl must be ${MAX_URL_LENGTH} characters or fewer.` };
+    return {
+      error: t("common.shared.fieldMaxLength", {
+        field: "imageUrl",
+        max: MAX_URL_LENGTH,
+      }),
+    };
   }
   if (!isUsableUrl(imageUrl.trim())) {
     return {
-      error: "imageUrl must be an http(s) URL or a path starting with /.",
+      error: t("common.shared.imageurlMustBeAnHttpS"),
     };
   }
 
@@ -140,6 +153,8 @@ export async function PATCH(
     return authorized.response;
   }
 
+  const t = await getRequestTranslations();
+
   const { id } = await params;
 
   let rawBody: unknown;
@@ -147,12 +162,12 @@ export async function PATCH(
     rawBody = await request.json();
   } catch {
     return NextResponse.json(
-      { error: "Request body must be valid JSON." },
+      { error: t("common.shared.requestBodyMustBeValidJson") },
       { status: 400 },
     );
   }
 
-  const parsed = parseUpdateBody(rawBody);
+  const parsed = parseUpdateBody(rawBody, t);
   if ("error" in parsed) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
@@ -173,7 +188,7 @@ export async function PATCH(
 
   if (!existing) {
     return NextResponse.json(
-      { error: "Vehicle type not found." },
+      { error: t("errors.adminContentVehiclePhotos.vehicleTypeNotFound") },
       { status: 404 },
     );
   }

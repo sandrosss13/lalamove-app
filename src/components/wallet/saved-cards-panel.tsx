@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
+import { useTranslations } from "next-intl";
 
 import {
   AddCardDialog,
@@ -69,23 +70,6 @@ type RowError = {
 /* -------------------------------------------------------------------------- */
 /* Constants                                                                  */
 /* -------------------------------------------------------------------------- */
-
-const REMOVE_FAILED_FALLBACK = "Could not remove this card.";
-const DEFAULT_FAILED_FALLBACK = "Could not make this card your default.";
-const SAVE_FAILED_FALLBACK = "Could not save this card.";
-const NETWORK_ERROR = "Network error. Check your connection and try again.";
-
-/**
- * What the armed state promises. Two wordings because removing the default is
- * not the same act as removing any other card: the API promotes the next card
- * in the same transaction, and the client is owed that fact before they commit
- * to it rather than after.
- */
-const REMOVE_ARMED_NOTE =
-  "Click again to remove this card for good. There is no undo.";
-
-const REMOVE_ARMED_DEFAULT_NOTE =
-  "Click again to remove this card for good. There is no undo, and your next card becomes the default.";
 
 const SECTION_HEADING_CLASSES =
   "text-[11px] font-semibold tracking-[0.1em] text-muted uppercase";
@@ -174,6 +158,8 @@ async function readErrorMessage(
 /* -------------------------------------------------------------------------- */
 
 export function SavedCardsPanel({ cards }: { cards: SavedCardView[] }) {
+  const t = useTranslations("wallet.savedCardsPanel");
+  const tShared = useTranslations("common.shared");
   const router = useRouter();
   const [addOpen, setAddOpen] = useState(false);
   const [armedCardId, setArmedCardId] = useState<string | null>(null);
@@ -208,7 +194,7 @@ export function SavedCardsPanel({ cards }: { cards: SavedCardView[] }) {
       if (!response.ok) {
         setRowError({
           cardId,
-          message: await readErrorMessage(response, DEFAULT_FAILED_FALLBACK),
+          message: await readErrorMessage(response, t("defaultFailed")),
         });
         return;
       }
@@ -217,7 +203,7 @@ export function SavedCardsPanel({ cards }: { cards: SavedCardView[] }) {
       // promoted card to the top and drops the old default's pill.
       router.refresh();
     } catch {
-      setRowError({ cardId, message: NETWORK_ERROR });
+      setRowError({ cardId, message: t("networkError") });
     } finally {
       setPending(null);
     }
@@ -244,7 +230,7 @@ export function SavedCardsPanel({ cards }: { cards: SavedCardView[] }) {
       if (!response.ok) {
         setRowError({
           cardId,
-          message: await readErrorMessage(response, REMOVE_FAILED_FALLBACK),
+          message: await readErrorMessage(response, t("removeFailed")),
         });
         // Disarmed on failure: the client should have to mean it again.
         setArmedCardId(null);
@@ -254,7 +240,7 @@ export function SavedCardsPanel({ cards }: { cards: SavedCardView[] }) {
       setArmedCardId(null);
       router.refresh();
     } catch {
-      setRowError({ cardId, message: NETWORK_ERROR });
+      setRowError({ cardId, message: t("networkError") });
       setArmedCardId(null);
     } finally {
       setPending(null);
@@ -275,7 +261,7 @@ export function SavedCardsPanel({ cards }: { cards: SavedCardView[] }) {
     });
 
     if (!response.ok) {
-      throw new Error(await readErrorMessage(response, SAVE_FAILED_FALLBACK));
+      throw new Error(await readErrorMessage(response, t("saveFailed")));
     }
 
     router.refresh();
@@ -285,7 +271,7 @@ export function SavedCardsPanel({ cards }: { cards: SavedCardView[] }) {
     <section aria-labelledby={headingId} className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 id={headingId} className={SECTION_HEADING_CLASSES}>
-          Saved cards
+          {t("savedCards")}
         </h2>
         <button
           type="button"
@@ -296,16 +282,13 @@ export function SavedCardsPanel({ cards }: { cards: SavedCardView[] }) {
           disabled={busy}
           className={ADD_CARD_BUTTON_CLASSES}
         >
-          + Add card
+          {tShared("addCard")}
         </button>
       </div>
 
       {cards.length === 0 ? (
         <div className="rounded-[14px] border border-dashed border-line bg-surface p-8 text-center">
-          <p className="text-[14px] text-muted">
-            No cards saved yet. Add a credit or debit card to pay for
-            deliveries.
-          </p>
+          <p className="text-[14px] text-muted">{t("noCardsSavedYetAddA")}</p>
         </div>
       ) : (
         <ul className="flex flex-col gap-3">
@@ -315,7 +298,10 @@ export function SavedCardsPanel({ cards }: { cards: SavedCardView[] }) {
               pending?.cardId === card.id && pending.action === "remove";
             const promoting =
               pending?.cardId === card.id && pending.action === "default";
-            const cardDescription = `${card.brand} card ending ${card.last4}`;
+            const cardDescription = t("cardDescription", {
+              brand: card.brand,
+              last4: card.last4,
+            });
             const error =
               rowError?.cardId === card.id ? rowError.message : null;
 
@@ -347,7 +333,7 @@ export function SavedCardsPanel({ cards }: { cards: SavedCardView[] }) {
                           {" · "}
                         </>
                       )}
-                      Expires{" "}
+                      {tShared("expires")}{" "}
                       <span className="font-price tabular-nums">
                         {formatExpiry(card.expMonth, card.expYear)}
                       </span>
@@ -356,7 +342,7 @@ export function SavedCardsPanel({ cards }: { cards: SavedCardView[] }) {
 
                   {card.isDefault ? (
                     <span className="rounded-full bg-accent/10 px-3 py-1 text-[11px] font-semibold tracking-[0.06em] text-accent uppercase">
-                      Default
+                      {t("default")}
                     </span>
                   ) : null}
 
@@ -370,10 +356,12 @@ export function SavedCardsPanel({ cards }: { cards: SavedCardView[] }) {
                           void handleMakeDefault(card.id);
                         }}
                         disabled={busy}
-                        aria-label={`Make default, ${cardDescription}`}
+                        aria-label={t("makeDefaultAria", {
+                          card: cardDescription,
+                        })}
                         className={MAKE_DEFAULT_BUTTON_CLASSES}
                       >
-                        {promoting ? "Saving…" : "Make default"}
+                        {promoting ? tShared("saving") : t("makeDefault")}
                       </button>
                     )}
 
@@ -385,8 +373,8 @@ export function SavedCardsPanel({ cards }: { cards: SavedCardView[] }) {
                       disabled={busy}
                       aria-label={
                         armed
-                          ? `Confirm removal, ${cardDescription}`
-                          : `Remove, ${cardDescription}`
+                          ? t("confirmRemovalAria", { card: cardDescription })
+                          : t("removeAria", { card: cardDescription })
                       }
                       // A disabled button leaves the tab order, so the armed
                       // note is pointed at from here rather than left to be
@@ -399,10 +387,10 @@ export function SavedCardsPanel({ cards }: { cards: SavedCardView[] }) {
                       }`}
                     >
                       {removing
-                        ? "Removing…"
+                        ? t("removing")
                         : armed
-                          ? "Confirm removal"
-                          : "Remove"}
+                          ? t("confirmRemoval")
+                          : tShared("remove")}
                     </button>
 
                     {/* The way out of an armed state. Interacting with another
@@ -413,10 +401,12 @@ export function SavedCardsPanel({ cards }: { cards: SavedCardView[] }) {
                         type="button"
                         onClick={() => setArmedCardId(null)}
                         disabled={busy}
-                        aria-label={`Cancel removal, ${cardDescription}`}
+                        aria-label={t("cancelRemovalAria", {
+                          card: cardDescription,
+                        })}
                         className={MAKE_DEFAULT_BUTTON_CLASSES}
                       >
-                        Cancel
+                        {tShared("cancel")}
                       </button>
                     ) : null}
                   </div>
@@ -427,9 +417,13 @@ export function SavedCardsPanel({ cards }: { cards: SavedCardView[] }) {
                     id={`${noteId}-${card.id}`}
                     className="mt-2.5 text-[12px] leading-relaxed text-muted"
                   >
+                    {/* Two wordings because removing the default is not the
+                        same act as removing any other card: the API promotes
+                        the next card in the same transaction, and the client
+                        is owed that fact before they commit to it. */}
                     {card.isDefault && cards.length > 1
-                      ? REMOVE_ARMED_DEFAULT_NOTE
-                      : REMOVE_ARMED_NOTE}
+                      ? t("armedDefaultNote")
+                      : t("armedNote")}
                   </p>
                 ) : null}
 

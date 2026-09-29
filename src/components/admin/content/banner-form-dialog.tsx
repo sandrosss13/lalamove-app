@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 import type { ContentLocale } from "@prisma/client";
 
@@ -36,10 +37,13 @@ import {
   MAX_HERO_BANNERS,
 } from "@/lib/admin/home-page-content";
 
-/** `ContentLocale` rendered for humans, in the order the picker offers them. */
-const LOCALE_OPTIONS: { value: ContentLocale; label: string }[] = [
-  { value: "KA", label: "Georgian (KA)" },
-  { value: "EN", label: "English (EN)" },
+/**
+ * `ContentLocale` rendered for humans, in the order the picker offers them.
+ * `labelKey` is a full message path, resolved where the option renders.
+ */
+const LOCALE_OPTIONS: { value: ContentLocale; labelKey: string }[] = [
+  { value: "KA", labelKey: "common.shared.georgianKa" },
+  { value: "EN", labelKey: "common.shared.englishEn" },
 ];
 
 /**
@@ -144,6 +148,7 @@ export function BannerFormDialog({
   onClose,
   onCompleted,
 }: BannerFormDialogProps) {
+  const t = useTranslations();
   const isEditing = banner !== null;
 
   const [title, setTitle] = useState(banner?.title ?? "");
@@ -177,7 +182,7 @@ export function BannerFormDialog({
     // no image posts and comes back as a 400 naming a wire field instead of the
     // box on screen.
     if (imageUrl.trim() === "") {
-      setError("Add an image before saving this banner.");
+      setError(t("admin.bannerFormDialog.addAnImageBeforeSavingThis"));
       return;
     }
 
@@ -188,7 +193,10 @@ export function BannerFormDialog({
       parsedSortOrder > MAX_SORT_ORDER
     ) {
       setError(
-        `Sort order must be a whole number between ${MIN_SORT_ORDER} and ${MAX_SORT_ORDER}.`,
+        t("common.shared.sortOrderWholeNumberBetween", {
+          min: MIN_SORT_ORDER,
+          max: MAX_SORT_ORDER,
+        }),
       );
       return;
     }
@@ -226,8 +234,8 @@ export function BannerFormDialog({
           await readErrorMessage(
             response,
             isEditing
-              ? "Could not save this banner."
-              : "Could not create this banner.",
+              ? t("admin.bannerFormDialog.couldNotSave")
+              : t("admin.bannerFormDialog.couldNotCreate"),
           ),
         );
         setPending(false);
@@ -238,7 +246,7 @@ export function BannerFormDialog({
       // the button must not flash back to its idle label in between.
       onCompleted();
     } catch {
-      setError("Something went wrong. Please try again.");
+      setError(t("common.shared.somethingWentWrongPleaseTryAgain"));
       setPending(false);
     }
   }
@@ -258,23 +266,23 @@ export function BannerFormDialog({
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <DialogHeader>
             <DialogTitle>
-              {isEditing ? "Edit banner" : "New banner"}
+              {isEditing
+                ? t("admin.bannerFormDialog.editBanner")
+                : t("admin.bannerFormDialog.newBanner")}
             </DialogTitle>
             <DialogDescription>
-              Banners are shown on the public site in the placement and locale
-              you pick, in sort order, while they are active and inside their
-              date window.
+              {t("admin.bannerFormDialog.bannersAreShownOnThePublic")}
             </DialogDescription>
           </DialogHeader>
 
           <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="banner-title">Title</Label>
+              <Label htmlFor="banner-title">{t("common.shared.title")}</Label>
               <Input
                 id="banner-title"
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
-                placeholder="Summer promotion"
+                placeholder={t("admin.bannerFormDialog.summerPromotion")}
                 disabled={pending}
                 required
                 autoFocus
@@ -283,19 +291,23 @@ export function BannerFormDialog({
 
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="banner-locale">Locale</Label>
+                <Label htmlFor="banner-locale">
+                  {t("common.shared.locale")}
+                </Label>
                 <Select
                   value={locale}
                   onValueChange={(value) => setLocale(value as ContentLocale)}
                   disabled={pending}
                 >
                   <SelectTrigger id="banner-locale" className="w-full">
-                    <SelectValue placeholder="Select a locale" />
+                    <SelectValue
+                      placeholder={t("common.shared.selectALocale")}
+                    />
                   </SelectTrigger>
                   <SelectContent>
                     {LOCALE_OPTIONS.map((option) => (
                       <SelectItem key={option.value} value={option.value}>
-                        {option.label}
+                        {t(option.labelKey)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -303,13 +315,15 @@ export function BannerFormDialog({
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="banner-placement">Placement</Label>
+                <Label htmlFor="banner-placement">
+                  {t("common.shared.placement")}
+                </Label>
                 <Input
                   id="banner-placement"
                   value={placement}
                   onChange={(event) => setPlacement(event.target.value)}
                   list={PLACEMENT_LIST_ID}
-                  placeholder="home_hero"
+                  placeholder={t("admin.bannerFormDialog.homeHero")}
                   disabled={pending}
                   required
                 />
@@ -319,17 +333,20 @@ export function BannerFormDialog({
                   ))}
                 </datalist>
                 <p className="text-xs text-muted-foreground">
-                  {HOME_HERO_BANNER_PLACEMENT} feeds the homepage carousel (max{" "}
-                  {MAX_HERO_BANNERS} active per locale),{" "}
-                  {HOME_PARTNER_LOGO_BANNER_PLACEMENT} feeds the partner
-                  marquee, {HOME_SECONDARY_BANNER_PLACEMENT} is the legacy
-                  inline slot.
+                  {t("admin.bannerFormDialog.placementHint", {
+                    heroPlacement: HOME_HERO_BANNER_PLACEMENT,
+                    maxHero: MAX_HERO_BANNERS,
+                    partnerPlacement: HOME_PARTNER_LOGO_BANNER_PLACEMENT,
+                    secondaryPlacement: HOME_SECONDARY_BANNER_PLACEMENT,
+                  })}
                 </p>
               </div>
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="banner-image-url">Image URL</Label>
+              <Label htmlFor="banner-image-url">
+                {t("common.shared.imageUrl")}
+              </Label>
               {/*
                 Uploads the file straight to Storage and hands back the public
                 URL, which is the only thing this form stores. It ships its own
@@ -347,19 +364,23 @@ export function BannerFormDialog({
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="banner-link-url">Link URL</Label>
+              <Label htmlFor="banner-link-url">
+                {t("common.shared.linkUrl")}
+              </Label>
               <Input
                 id="banner-link-url"
                 value={linkUrl}
                 onChange={(event) => setLinkUrl(event.target.value)}
-                placeholder="/services (optional)"
+                placeholder={t("admin.bannerFormDialog.linkUrlPlaceholder")}
                 disabled={pending}
               />
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="banner-starts-at">Starts on</Label>
+                <Label htmlFor="banner-starts-at">
+                  {t("admin.bannerFormDialog.startsOn")}
+                </Label>
                 <Input
                   id="banner-starts-at"
                   type="date"
@@ -370,7 +391,9 @@ export function BannerFormDialog({
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="banner-ends-at">Ends on</Label>
+                <Label htmlFor="banner-ends-at">
+                  {t("admin.bannerFormDialog.endsOn")}
+                </Label>
                 <Input
                   id="banner-ends-at"
                   type="date"
@@ -383,7 +406,9 @@ export function BannerFormDialog({
 
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="banner-sort-order">Sort order</Label>
+                <Label htmlFor="banner-sort-order">
+                  {t("common.shared.sortOrder")}
+                </Label>
                 <Input
                   id="banner-sort-order"
                   type="number"
@@ -405,13 +430,14 @@ export function BannerFormDialog({
                   onCheckedChange={(checked) => setIsActive(checked === true)}
                   disabled={pending}
                 />
-                <Label htmlFor="banner-is-active">Active</Label>
+                <Label htmlFor="banner-is-active">
+                  {t("common.shared.active")}
+                </Label>
               </div>
             </div>
 
             <p className="text-xs text-muted-foreground">
-              Leave the dates empty for a banner with no start or end. Dates are
-              read in UTC and both ends are inclusive.
+              {t("admin.bannerFormDialog.leaveTheDatesEmptyForA")}
             </p>
 
             {error ? (
@@ -428,14 +454,14 @@ export function BannerFormDialog({
               onClick={onClose}
               disabled={pending}
             >
-              Cancel
+              {t("common.shared.cancel")}
             </Button>
             <Button type="submit" disabled={pending}>
               {pending
-                ? "Saving…"
+                ? t("common.shared.saving")
                 : isEditing
-                  ? "Save banner"
-                  : "Create banner"}
+                  ? t("admin.bannerFormDialog.saveBanner")
+                  : t("admin.bannerFormDialog.createBanner")}
             </Button>
           </DialogFooter>
         </form>

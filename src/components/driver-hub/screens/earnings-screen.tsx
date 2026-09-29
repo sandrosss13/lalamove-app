@@ -1,5 +1,7 @@
 "use client";
 
+import { useFormatter, useTranslations } from "next-intl";
+
 import {
   HubBarChart,
   HubCard,
@@ -14,12 +16,9 @@ import { EarningsFleetCard } from "@/components/driver-hub/screens/earnings-flee
 import { EarningsPayoutsCard } from "@/components/driver-hub/screens/earnings-payouts-card";
 import {
   formatBarValue,
-  formatDayMonth,
   formatGel,
-  formatHours,
-  formatWeekday,
-  pluralise,
 } from "@/components/driver-hub/screens/earnings-format";
+import { HUB_TIME_ZONE, parseHubDayKey } from "@/lib/dashboard/hub/timezone";
 import type {
   HubEarningsData,
   HubEarningsPreset,
@@ -108,23 +107,6 @@ import type {
  */
 const WEEKDAY_LABEL_MAX_DAYS = 7;
 
-const ONLINE_HOURS_NOTE =
-  "Online hours are a placeholder estimated from the completed-job count: " +
-  "DriverProfile.isOnline is a single boolean with no history behind it, so " +
-  "no duration can be computed from it. Retire with an OnlineSession model. " +
-  "The job count and the money beside it are real.";
-
-const INCENTIVES_NOTE =
-  "Nothing in the schema knows a bonus was ever earned. The figure is " +
-  "estimated from weekend jobs. Retire with an Incentive model recording the " +
-  "campaigns a driver qualified for and what each paid.";
-
-const PER_ONLINE_HOUR_NOTE =
-  "Per-hour earnings divide by estimated online hours, so the rate inherits " +
-  "that estimate — and its numerator folds in the estimated tips and " +
-  "incentives. Retire with an OnlineSession model. The average per job above " +
-  "it is real.";
-
 export type EarningsScreenProps = {
   data: HubEarningsData;
   /**
@@ -137,6 +119,11 @@ export type EarningsScreenProps = {
 
 export function EarningsScreen({ data, presets }: EarningsScreenProps) {
   const { range, grouping, buckets, sampled, fleet } = data;
+  const t = useTranslations("driverHub.earningsScreen");
+  const tShared = useTranslations("common.shared");
+  // "Fleet revenue" is catalogued once, under the fleet card that also shows it.
+  const tFleetCard = useTranslations("driverHub.earningsFleetCard");
+  const format = useFormatter();
 
   // A fleet owner is reading a *company's* takings, so the tiles' second-person
   // driver copy is wrong for them twice over: a company has no online hours (its
@@ -153,15 +140,19 @@ export function EarningsScreen({ data, presets }: EarningsScreenProps) {
   const dated = range.days > WEEKDAY_LABEL_MAX_DAYS;
 
   const columns: readonly HubBarColumn[] = buckets.map((bucket) => ({
-    label: dated
-      ? formatDayMonth(bucket.startDate)
-      : formatWeekday(bucket.startDate),
+    // Named for the Tbilisi day each bucket covers, in the active locale.
+    label: format.dateTime(
+      parseHubDayKey(bucket.startDate),
+      dated
+        ? { day: "numeric", month: "short", timeZone: HUB_TIME_ZONE }
+        : { weekday: "short", timeZone: HUB_TIME_ZONE },
+    ),
     values: [bucket.fares],
     valueLabel: formatBarValue(bucket.fares),
   }));
 
   const chartTitle =
-    grouping === "weekly" ? "Weekly earnings" : "Daily earnings";
+    grouping === "weekly" ? t("weeklyEarnings") : t("dailyEarnings");
 
   return (
     <>
@@ -173,41 +164,48 @@ export function EarningsScreen({ data, presets }: EarningsScreenProps) {
             carrier's commissioned share, and "gross" has always meant before
             the sampled tips and incentives, never before commission. */}
         <MetricTile
-          label={isFleet ? "Fleet revenue" : "Gross earnings"}
+          label={isFleet ? tFleetCard("fleetRevenue") : t("grossEarnings")}
           value={formatGel(data.grossFares)}
-          note={`${pluralise(range.days, "day")} in range`}
+          note={t("daysInRange", { count: range.days })}
         />
 
         <MetricTile
-          label="Jobs completed"
+          label={tShared("jobsCompleted")}
           value={data.jobsCompleted}
           // `fleet.drivers` holds only drivers who completed a job in range, so
           // its length is exactly "drivers who earned in range".
           note={
             isFleet
-              ? `${pluralise(fleet.drivers.length, "driver")} earned in range`
-              : `${formatHours(sampled.onlineHours)} online`
+              ? t("driversEarnedInRange", { count: fleet.drivers.length })
+              : t("hoursOnline", {
+                  hours: format.number(sampled.onlineHours, {
+                    style: "unit",
+                    unit: "hour",
+                    unitDisplay: "narrow",
+                    maximumFractionDigits: 0,
+                  }),
+                })
           }
         >
           {isFleet ? null : (
             <SampleNote
-              label="Online hours"
-              note={ONLINE_HOURS_NOTE}
+              label={tShared("onlineHours")}
+              note={t("onlineHoursNote")}
               className="mt-2.5"
             />
           )}
         </MetricTile>
 
         <MetricTile
-          label="Incentives"
+          label={tShared("incentives")}
           value={formatGel(sampled.extras.incentivesGel)}
           note={sampled.incentivesNote}
         >
-          <SampleNote note={INCENTIVES_NOTE} className="mt-2.5" />
+          <SampleNote note={t("incentivesNote")} className="mt-2.5" />
         </MetricTile>
 
         <MetricTile
-          label="Avg per job"
+          label={tShared("avgPerJob")}
           value={formatGel(data.averagePerJob)}
           // `sampled.perOnlineHour` is doubly unfit for a fleet: it divides by
           // estimated online hours and its numerator folds in estimated tips and
@@ -220,14 +218,16 @@ export function EarningsScreen({ data, presets }: EarningsScreenProps) {
                 // driverless ones the fleet card gives their own "Not assigned
                 // to a driver" row. "Across every driver" would claim a
                 // narrower scope than the figure actually has.
-                "Across every completed job in range"
-              : `${formatGel(sampled.perOnlineHour)} per online hour`
+                t("acrossEveryCompletedJob")
+              : t("perOnlineHourValue", {
+                  amount: formatGel(sampled.perOnlineHour),
+                })
           }
         >
           {isFleet ? null : (
             <SampleNote
-              label="Per online hour"
-              note={PER_ONLINE_HOUR_NOTE}
+              label={t("perOnlineHour")}
+              note={t("perOnlineHourNote")}
               className="mt-2.5"
             />
           )}
@@ -245,15 +245,9 @@ export function EarningsScreen({ data, presets }: EarningsScreenProps) {
           // rather than crowding it.
           titleGap="chart"
           action={
-            grouping === "weekly" ? (
-              <>
-                Grouped by week ·{" "}
-                <span className="font-price">{buckets.length}</span>{" "}
-                {buckets.length === 1 ? "week" : "weeks"}
-              </>
-            ) : (
-              "One bar per day"
-            )
+            grouping === "weekly"
+              ? t("groupedByWeek", { count: buckets.length })
+              : t("oneBarPerDay")
           }
         >
           {/* A resolved range always covers at least one day, so this is the
@@ -261,7 +255,7 @@ export function EarningsScreen({ data, presets }: EarningsScreenProps) {
               design specifies the copy for it, and a chart that would otherwise
               divide by an empty column list is worth one guard. */}
           {columns.length === 0 ? (
-            <HubEmptyState message="No days in the selected range" />
+            <HubEmptyState message={t("noDaysInRange")} />
           ) : (
             <HubBarChart columns={columns} ariaLabel={chartTitle} />
           )}

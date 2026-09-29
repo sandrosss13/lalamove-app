@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 
 import { Link } from "@/i18n/navigation";
 import { localeHref } from "@/i18n/server";
@@ -33,6 +34,8 @@ export const dynamic = "force-dynamic";
  */
 export default async function WalletPage() {
   const session = await auth.api.getSession({ headers: await headers() });
+  const t = await getTranslations("wallet.wallet");
+  const tShared = await getTranslations("common.shared");
 
   // Access control is unchanged from the placeholder this page replaces: the
   // signed-out branch and the CLIENT-only redirect below behave exactly as they
@@ -40,20 +43,20 @@ export default async function WalletPage() {
   if (!session) {
     return (
       <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-4 p-8 text-center">
-        <h1 className="text-3xl font-bold">Wallet</h1>
-        <p className="opacity-70">Please sign in to view your wallet.</p>
+        <h1 className="text-3xl font-bold">{tShared("wallet")}</h1>
+        <p className="opacity-70">{t("pleaseSignInToViewYour")}</p>
         <div className="flex justify-center gap-3">
           <Link
             href="/sign-in"
             className="rounded border px-4 py-2 font-medium hover:opacity-70"
           >
-            Sign in
+            {tShared("signIn")}
           </Link>
           <Link
             href="/sign-up"
             className="rounded border px-4 py-2 font-medium hover:opacity-70"
           >
-            Sign up
+            {tShared("signUp")}
           </Link>
         </div>
       </main>
@@ -95,17 +98,17 @@ export default async function WalletPage() {
         <header className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-[11px] font-semibold tracking-[0.24em] text-accent uppercase">
-              Wallet
+              {tShared("wallet")}
             </p>
             <h1 className="font-display mt-2 text-[2.5rem] leading-none font-semibold tracking-[-0.025em] text-paper">
-              Payment methods
+              {t("paymentMethods")}
             </h1>
           </div>
           <Link
             href="/"
             className="text-[14px] font-semibold text-paper transition-colors hover:text-accent"
           >
-            ← New order
+            {tShared("newOrder")}
           </Link>
         </header>
 
@@ -115,8 +118,7 @@ export default async function WalletPage() {
             wording mirrors what the admin finance surface already tells staff
             about the CARD method, so both sides of the app say the same thing.  */}
         <p className="rounded-lg border border-line bg-surface p-3 text-[12px] leading-relaxed text-muted">
-          Gateway integration is pending. Cards saved here are not charged, and
-          only the brand and last four digits are stored.
+          {t("gatewayIntegrationIsPendingCardsSaved")}
         </p>
 
         <SavedCardsPanel cards={cards} />

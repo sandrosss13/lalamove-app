@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 
 import type { HubEarningsExportError } from "@/app/api/dashboard/hub/earnings/export/route";
 import { Button } from "@/components/ui/button";
@@ -24,9 +25,6 @@ import { Button } from "@/components/ui/button";
 
 /** Where the workbook comes from. Same origin, so the cookie rides along. */
 const EXPORT_ENDPOINT = "/api/dashboard/hub/earnings/export";
-
-const GENERIC_ERROR = "Could not build the export. Try again.";
-const NETWORK_ERROR = "Network error. Please check your connection.";
 
 /**
  * How long the object URL is kept alive after the click.
@@ -57,6 +55,7 @@ export type EarningsExportButtonProps = {
 };
 
 export function EarningsExportButton({ from, to }: EarningsExportButtonProps) {
+  const t = useTranslations();
   const [exporting, setExporting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -75,7 +74,9 @@ export function EarningsExportButton({ from, to }: EarningsExportButtonProps) {
           .json()
           .catch(() => null)) as Partial<HubEarningsExportError> | null;
 
-        setError(payload?.error ?? GENERIC_ERROR);
+        setError(
+          payload?.error ?? t("driverHub.fleetAvailabilityCard.exportError"),
+        );
         return;
       }
 
@@ -98,7 +99,7 @@ export function EarningsExportButton({ from, to }: EarningsExportButtonProps) {
         URL.revokeObjectURL(objectUrl);
       }, REVOKE_DELAY_MS);
     } catch {
-      setError(NETWORK_ERROR);
+      setError(t("driverHub.fleetAvailabilityCard.networkError"));
     } finally {
       setExporting(false);
     }
@@ -117,7 +118,9 @@ export function EarningsExportButton({ from, to }: EarningsExportButtonProps) {
         className="h-auto gap-[7px] rounded-md px-[14px] py-2 text-[13px] font-medium"
       >
         <span aria-hidden="true" className={GREEN_SQUARE_CLASSES} />
-        {exporting ? "Exporting…" : "Export to Excel"}
+        {exporting
+          ? t("driverHub.earningsExportButton.exporting")
+          : t("common.shared.exportToExcel")}
       </Button>
 
       {/* Inline, under the control that failed.

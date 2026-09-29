@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { deleteVehiclePhotos } from "@/lib/supabase-storage";
@@ -20,14 +21,23 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
+  const t = await getRequestTranslations();
+
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    return NextResponse.json(
+      { error: t("common.shared.unauthorized") },
+      { status: 401 },
+    );
   }
 
   if (session.user.role !== "COMPANY") {
     return NextResponse.json(
-      { error: "Only logistics companies can remove fleet vehicles." },
+      {
+        error: t(
+          "errors.logisticsCompanyVehicles.onlyLogisticsCompaniesCanRemoveFleet",
+        ),
+      },
       { status: 403 },
     );
   }
@@ -40,7 +50,10 @@ export async function DELETE(
   });
 
   if (!company) {
-    return NextResponse.json({ error: "Vehicle not found." }, { status: 404 });
+    return NextResponse.json(
+      { error: t("common.shared.vehicleNotFound") },
+      { status: 404 },
+    );
   }
 
   // Scoped by owner, so this returns nothing for another company's vehicle —
@@ -51,7 +64,10 @@ export async function DELETE(
   });
 
   if (!vehicle) {
-    return NextResponse.json({ error: "Vehicle not found." }, { status: 404 });
+    return NextResponse.json(
+      { error: t("common.shared.vehicleNotFound") },
+      { status: 404 },
+    );
   }
 
   await prisma.vehicle.delete({ where: { id: vehicle.id } });

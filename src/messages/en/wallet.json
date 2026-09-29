@@ -1,10 +1,25 @@
 {
   "savedCardsPanel": {
+    "armedDefaultNote": "Click again to remove this card for good. There is no undo, and your next card becomes the default.",
+    "armedNote": "Click again to remove this card for good. There is no undo.",
+    "cancelRemovalAria": "Cancel removal, {card}",
+    "cardDescription": "{brand} card ending {last4}",
+    "confirmRemoval": "Confirm removal",
+    "confirmRemovalAria": "Confirm removal, {card}",
     "default": "Default",
+    "defaultFailed": "Could not make this card your default.",
+    "makeDefault": "Make default",
+    "makeDefaultAria": "Make default, {card}",
+    "networkError": "Network error. Check your connection and try again.",
     "noCardsSavedYetAddA": "No cards saved yet. Add a credit or debit card to pay for deliveries.",
+    "removeAria": "Remove, {card}",
+    "removeFailed": "Could not remove this card.",
+    "removing": "Removing…",
+    "saveFailed": "Could not save this card.",
     "savedCards": "Saved cards"
   },
   "wallet": {
+    "gatewayIntegrationIsPendingCardsSaved": "Gateway integration is pending. Cards saved here are not charged, and only the brand and last four digits are stored.",
     "paymentMethods": "Payment methods",
     "pleaseSignInToViewYour": "Please sign in to view your wallet."
   }

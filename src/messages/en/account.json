@@ -1,1 +1,28 @@
-{}
+{
+  "account": {
+    "pleaseSignInToViewYour": "Please sign in to view your account.",
+    "settings": "Settings",
+    "theDetailsADriverSeesWhen": "The details a driver sees when they turn up for one of your pickups, and the credentials you sign in with. Keeping your phone number current is what stops a delivery stalling at the kerb."
+  },
+  "accountPasswordCard": {
+    "changePassword": "Change password",
+    "couldNotChangePassword": "Could not change your password. Please try again.",
+    "savePassword": "Save password"
+  },
+  "accountProfileForm": {
+    "businessDescription": "Who the delivery is billed to, and how a driver reaches you about a pickup.",
+    "couldNotSaveProfile": "Could not save your profile. Please try again.",
+    "female": "Female",
+    "gender": "Gender",
+    "individualDescription": "How a driver identifies and reaches you when they arrive for a pickup.",
+    "male": "Male",
+    "other": "Other",
+    "personalDetails": "Personal details",
+    "preferNotToSay": "Prefer not to say",
+    "saveChanges": "Save changes"
+  },
+  "accountSidebar": {
+    "logOut": "Log out",
+    "loggingOut": "Logging out…"
+  }
+}

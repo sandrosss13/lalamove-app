@@ -1,6 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
+
+import { vehicleTypeSpecLabel } from "@/lib/vehicle-type-spec-labels";
 
 /**
  * The fields of a vehicle type the marketing page uses. `GET /api/vehicle-types`
@@ -22,9 +25,6 @@ export type LandingVehicleType = {
   // and `pricePerKm` lets the category tiles show a nominal "from" price.
   pricingRule: { baseFare: number; pricePerKm: number };
 };
-
-export const LOAD_FAILED_MESSAGE =
-  "Could not load the vehicle types. Please refresh and try again.";
 
 /**
  * The in-flight (then resolved) request, shared across every landing section.
@@ -67,9 +67,14 @@ export function useLandingVehicleTypes(): {
   loading: boolean;
   error: string | null;
 } {
+  const t = useTranslations("landing.landingVehicleTypes");
+  // Root-namespace translator for `vehicleTypeSpecLabel`'s `common.*` keys.
+  const tRoot = useTranslations();
   const [vehicleTypes, setVehicleTypes] = useState<LandingVehicleType[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // A flag rather than the message itself, so the message is rendered in the
+  // reader's current language instead of the one the failure happened in.
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     // The request is shared, so it must not be aborted on unmount — the flag
@@ -85,7 +90,7 @@ export function useLandingVehicleTypes(): {
       })
       .catch(() => {
         if (active) {
-          setError(LOAD_FAILED_MESSAGE);
+          setFailed(true);
           setLoading(false);
         }
       });
@@ -95,5 +100,20 @@ export function useLandingVehicleTypes(): {
     };
   }, []);
 
-  return { vehicleTypes, loading, error };
+  // The API returns the English seed label; every landing section reads
+  // `label`, so it is localized once here by `code` rather than per call site.
+  const localizedVehicleTypes = useMemo(
+    () =>
+      vehicleTypes.map((vehicleType) => ({
+        ...vehicleType,
+        label: vehicleTypeSpecLabel(vehicleType.code, vehicleType.label, tRoot),
+      })),
+    [vehicleTypes, tRoot],
+  );
+
+  return {
+    vehicleTypes: localizedVehicleTypes,
+    loading,
+    error: failed ? t("couldNotLoadTheVehicleTypes") : null,
+  };
 }

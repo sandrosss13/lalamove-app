@@ -1,72 +1,132 @@
 {
+  "landingCategoryTiles.fromPrice": {
+    "en": "from {price}",
+    "ka": "{price}-დან",
+    "_source": "src/components/landing/landing-category-tiles.tsx"
+  },
+  "landingCategoryTiles.fromPriceEmphasised": {
+    "en": "from <figure>{price}</figure>",
+    "ka": "<figure>{price}</figure>-დან",
+    "_source": "src/components/landing/landing-category-tiles.tsx"
+  },
   "landingCategoryTiles.priceYourOwnRoute": {
     "en": "— price your own route",
-    "ka": "",
+    "ka": "— გამოთვალეთ მარშრუტის ფასი",
     "_source": "src/components/landing/landing-category-tiles.tsx"
   },
   "landingHeroCarousel.featuredBanners": {
     "en": "Featured banners",
-    "ka": "",
+    "ka": "რჩეული ბანერები",
+    "_source": "src/components/landing/landing-hero-carousel.tsx"
+  },
+  "landingHeroCarousel.goToBanner": {
+    "en": "Go to banner {index}",
+    "ka": "ბანერზე გადასვლა: {index}",
     "_source": "src/components/landing/landing-hero-carousel.tsx"
   },
   "landingHeroCarousel.nextBanner": {
     "en": "Next banner",
-    "ka": "",
+    "ka": "შემდეგი ბანერი",
     "_source": "src/components/landing/landing-hero-carousel.tsx"
   },
   "landingHeroCarousel.previousBanner": {
     "en": "Previous banner",
-    "ka": "",
+    "ka": "წინა ბანერი",
     "_source": "src/components/landing/landing-hero-carousel.tsx"
+  },
+  "landingHeroCarousel.slideOf": {
+    "en": "{index} of {count}",
+    "ka": "{index} / {count}",
+    "_source": "src/components/landing/landing-hero-carousel.tsx"
+  },
+  "landingNavPill.closeMenu": {
+    "en": "Close menu",
+    "ka": "მენიუს დახურვა",
+    "_source": "src/components/landing/landing-nav-pill.tsx"
+  },
+  "landingNavPill.openMenu": {
+    "en": "Open menu",
+    "ka": "მენიუს გახსნა",
+    "_source": "src/components/landing/landing-nav-pill.tsx"
   },
   "landingQuoteCalculator.1IsTheDriverAloneEach": {
     "en": "1 is the driver alone. Each extra person helps load and unload, and adds a flat fee.",
-    "ka": "",
+    "ka": "1 ნიშნავს, რომ მძღოლი მარტოა. ყოველი დამატებითი ადამიანი ეხმარება დატვირთვა-დაცლაში და ემატება ფიქსირებული საფასური.",
     "_source": "src/components/landing/landing-quote-calculator.tsx"
   },
   "landingQuoteCalculator.aghmashenebeliAve88Tbilisi": {
     "en": "Aghmashenebeli Ave 88, Tbilisi",
-    "ka": "",
+    "ka": "აღმაშენებლის გამზ. 88, თბილისი",
+    "_source": "src/components/landing/landing-quote-calculator.tsx"
+  },
+  "landingQuoteCalculator.calculatePrice": {
+    "en": "Calculate price",
+    "ka": "ფასის გამოთვლა",
+    "_source": "src/components/landing/landing-quote-calculator.tsx"
+  },
+  "landingQuoteCalculator.calculating": {
+    "en": "Calculating…",
+    "ka": "ითვლება…",
     "_source": "src/components/landing/landing-quote-calculator.tsx"
   },
   "landingQuoteCalculator.couldNotPriceThisLoadPlease": {
     "en": "Could not price this load. Please try again.",
-    "ka": "",
+    "ka": "ამ ტვირთის ფასის გამოთვლა ვერ მოხერხდა. გთხოვთ, სცადოთ თავიდან.",
     "_source": "src/components/landing/landing-quote-calculator.tsx"
   },
   "landingQuoteCalculator.estimate": {
     "en": "Estimate",
-    "ka": "",
+    "ka": "წინასწარი ფასი",
     "_source": "src/components/landing/landing-quote-calculator.tsx"
   },
   "landingQuoteCalculator.howManyPeople": {
     "en": "How many people",
-    "ka": "",
+    "ka": "რამდენი ადამიანი",
+    "_source": "src/components/landing/landing-quote-calculator.tsx"
+  },
+  "landingQuoteCalculator.loading": {
+    "en": "Loading…",
+    "ka": "იტვირთება…",
     "_source": "src/components/landing/landing-quote-calculator.tsx"
   },
   "landingQuoteCalculator.minimumFareApplied": {
     "en": "Minimum fare applied",
-    "ka": "",
+    "ka": "მოქმედებს მინიმალური ტარიფი",
+    "_source": "src/components/landing/landing-quote-calculator.tsx"
+  },
+  "landingQuoteCalculator.nPeople": {
+    "en": "{count} people — the driver plus {helpers, plural, one {# helper} other {# helpers}}",
+    "ka": "{count} ადამიანი — მძღოლი და {helpers, plural, one {# დამხმარე} other {# დამხმარე}}",
+    "_source": "src/components/landing/landing-quote-calculator.tsx"
+  },
+  "landingQuoteCalculator.onePerson": {
+    "en": "1 person — the driver alone",
+    "ka": "1 ადამიანი — მხოლოდ მძღოლი",
     "_source": "src/components/landing/landing-quote-calculator.tsx"
   },
   "landingQuoteCalculator.rustaveliAve12Tbilisi": {
     "en": "Rustaveli Ave 12, Tbilisi",
-    "ka": "",
+    "ka": "რუსთაველის გამზ. 12, თბილისი",
     "_source": "src/components/landing/landing-quote-calculator.tsx"
   },
   "landingQuoteCalculator.signUpToBookThisLoad": {
     "en": "Sign up to book this load",
-    "ka": "",
+    "ka": "გაიარეთ რეგისტრაცია ამ ტვირთის დაჯავშნისთვის",
     "_source": "src/components/landing/landing-quote-calculator.tsx"
   },
   "landingQuoteCalculator.whatAreYouMoving": {
     "en": "What are you moving",
-    "ka": "",
+    "ka": "რა გადაგაქვთ",
     "_source": "src/components/landing/landing-quote-calculator.tsx"
   },
   "landingQuoteCalculator.yourEstimate": {
     "en": "Your estimate",
-    "ka": "",
+    "ka": "თქვენი სავარაუდო ღირებულება",
     "_source": "src/components/landing/landing-quote-calculator.tsx"
+  },
+  "landingVehicleTypes.couldNotLoadTheVehicleTypes": {
+    "en": "Could not load the vehicle types. Please refresh and try again.",
+    "ka": "ავტომობილის ტიპების ჩატვირთვა ვერ მოხერხდა. განაახლეთ გვერდი და სცადეთ თავიდან.",
+    "_source": "src/components/landing/landing-vehicle-types.ts"
   }
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 import type { DiscountType } from "@prisma/client";
 
@@ -39,6 +40,12 @@ import {
 export const DISCOUNT_TYPE_LABELS: Record<DiscountType, string> = {
   PERCENTAGE: "Percentage off",
   FIXED_AMOUNT: "Fixed amount off",
+};
+
+/** `DISCOUNT_TYPE_LABELS` as full message paths, resolved where they render. */
+export const DISCOUNT_TYPE_LABEL_KEYS: Record<DiscountType, string> = {
+  PERCENTAGE: "admin.promoCampaignFormDialog.percentageOff",
+  FIXED_AMOUNT: "admin.promoCampaignFormDialog.fixedAmountOff",
 };
 
 /** Picker order — percentage first, since it is the common case. */
@@ -141,6 +148,7 @@ export function PromoCampaignFormDialog({
   onClose,
   onSaved,
 }: PromoCampaignFormDialogProps) {
+  const t = useTranslations();
   const isEditing = campaign !== null;
 
   const [code, setCode] = useState(campaign?.code ?? "");
@@ -178,25 +186,27 @@ export function PromoCampaignFormDialog({
     const normalizedCode = code.trim().toUpperCase();
 
     if (!PROMO_CODE_PATTERN.test(normalizedCode)) {
-      return "A code must be 3–32 characters, letters and numbers only (e.g. SUMMER25).";
+      return t("common.shared.aCodeMustBe332");
     }
 
     const parsedValue = Number(discountValue);
 
     if (discountValue.trim() === "" || !Number.isFinite(parsedValue)) {
-      return "Enter a discount value.";
+      return t("admin.promoCampaignFormDialog.enterADiscountValue");
     }
 
     if (discountType === "PERCENTAGE") {
       if (parsedValue <= 0 || parsedValue > MAX_PERCENTAGE_DISCOUNT) {
-        return `A percentage discount must be greater than 0 and at most ${MAX_PERCENTAGE_DISCOUNT}.`;
+        return t("common.shared.percentageDiscountRange", {
+          max: MAX_PERCENTAGE_DISCOUNT,
+        });
       }
     } else if (parsedValue <= 0) {
-      return "A fixed-amount discount must be greater than 0.";
+      return t("common.shared.fixedDiscountPositive");
     }
 
     if (startsAt === "" || endsAt === "") {
-      return "Pick a start and an end date.";
+      return t("admin.promoCampaignFormDialog.pickStartAndEndDate");
     }
 
     // Both are `YYYY-MM-DD`, so a plain string comparison orders them. The end
@@ -204,14 +214,14 @@ export function PromoCampaignFormDialog({
     // legitimate, and `toEndOfDay` keeps it valid for the route's
     // `startsAt < endsAt` check.
     if (startsAt > endsAt) {
-      return "The start date must be on or before the end date.";
+      return t("admin.promoCampaignFormDialog.startOnOrBeforeEnd");
     }
 
     if (usageLimit.trim() !== "") {
       const parsedLimit = Number(usageLimit);
 
       if (!Number.isInteger(parsedLimit) || parsedLimit < 1) {
-        return "A usage limit must be a whole number of 1 or more, or left blank.";
+        return t("admin.promoCampaignFormDialog.usageLimitWholeNumber");
       }
     }
 
@@ -259,8 +269,8 @@ export function PromoCampaignFormDialog({
           await readErrorMessage(
             response,
             isEditing
-              ? "Could not save this campaign."
-              : "Could not create this campaign.",
+              ? t("admin.promoCampaignFormDialog.couldNotSave")
+              : t("admin.promoCampaignFormDialog.couldNotCreate"),
           ),
         );
         setPending(false);
@@ -271,7 +281,7 @@ export function PromoCampaignFormDialog({
       // the button must not flash back to its idle label in between.
       onSaved();
     } catch {
-      setError("Something went wrong. Please try again.");
+      setError(t("common.shared.somethingWentWrongPleaseTryAgain"));
       setPending(false);
     }
   }
@@ -291,18 +301,20 @@ export function PromoCampaignFormDialog({
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <DialogHeader>
             <DialogTitle>
-              {isEditing ? "Edit campaign" : "New campaign"}
+              {isEditing
+                ? t("admin.promoCampaignFormDialog.editCampaign")
+                : t("admin.promoCampaignFormDialog.newCampaign")}
             </DialogTitle>
             <DialogDescription>
               {isEditing
-                ? "Changes apply to every redemption from now on. Redemptions already recorded are unaffected."
-                : "Clients redeem this code at checkout while it is active and inside its date window."}
+                ? t("admin.promoCampaignFormDialog.editDescription")
+                : t("admin.promoCampaignFormDialog.newDescription")}
             </DialogDescription>
           </DialogHeader>
 
           <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="promo-code">Code</Label>
+              <Label htmlFor="promo-code">{t("common.shared.code")}</Label>
               <Input
                 id="promo-code"
                 required
@@ -316,12 +328,14 @@ export function PromoCampaignFormDialog({
                 autoFocus
               />
               <p className="text-xs text-muted-foreground">
-                Letters and numbers only, 3–32 characters.
+                {t("admin.promoCampaignFormDialog.lettersAndNumbersOnly332")}
               </p>
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="promo-discount-type">Discount type</Label>
+              <Label htmlFor="promo-discount-type">
+                {t("admin.promoCampaignFormDialog.discountType")}
+              </Label>
               <Select
                 value={discountType}
                 onValueChange={(value) =>
@@ -335,7 +349,7 @@ export function PromoCampaignFormDialog({
                 <SelectContent>
                   {DISCOUNT_TYPE_OPTIONS.map((option) => (
                     <SelectItem key={option} value={option}>
-                      {DISCOUNT_TYPE_LABELS[option]}
+                      {t(DISCOUNT_TYPE_LABEL_KEYS[option])}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -345,8 +359,8 @@ export function PromoCampaignFormDialog({
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="promo-discount-value">
                 {discountType === "PERCENTAGE"
-                  ? "Percentage off"
-                  : "Amount off"}
+                  ? t("admin.promoCampaignFormDialog.percentageOff")
+                  : t("admin.promoCampaignFormDialog.amountOff")}
               </Label>
               <Input
                 id="promo-discount-value"
@@ -364,14 +378,18 @@ export function PromoCampaignFormDialog({
               />
               <p className="text-xs text-muted-foreground">
                 {discountType === "PERCENTAGE"
-                  ? `Greater than 0, up to ${MAX_PERCENTAGE_DISCOUNT}.`
-                  : "Greater than 0, in whole currency units."}
+                  ? t("admin.promoCampaignFormDialog.percentageHint", {
+                      max: MAX_PERCENTAGE_DISCOUNT,
+                    })
+                  : t("admin.promoCampaignFormDialog.amountHint")}
               </p>
             </div>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="promo-starts-at">Starts</Label>
+                <Label htmlFor="promo-starts-at">
+                  {t("admin.promoCampaignFormDialog.starts")}
+                </Label>
                 <Input
                   id="promo-starts-at"
                   type="date"
@@ -383,7 +401,9 @@ export function PromoCampaignFormDialog({
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="promo-ends-at">Ends</Label>
+                <Label htmlFor="promo-ends-at">
+                  {t("admin.promoCampaignFormDialog.ends")}
+                </Label>
                 <Input
                   id="promo-ends-at"
                   type="date"
@@ -396,7 +416,9 @@ export function PromoCampaignFormDialog({
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="promo-usage-limit">Usage limit (optional)</Label>
+              <Label htmlFor="promo-usage-limit">
+                {t("admin.promoCampaignFormDialog.usageLimitOptional")}
+              </Label>
               <Input
                 id="promo-usage-limit"
                 type="number"
@@ -404,11 +426,13 @@ export function PromoCampaignFormDialog({
                 step="1"
                 value={usageLimit}
                 onChange={(event) => setUsageLimit(event.target.value)}
-                placeholder="Unlimited"
+                placeholder={t("admin.promoCampaignFormDialog.unlimited")}
                 disabled={pending}
               />
               <p className="text-xs text-muted-foreground">
-                Leave blank for unlimited redemptions.
+                {t(
+                  "admin.promoCampaignFormDialog.leaveBlankForUnlimitedRedemptions",
+                )}
               </p>
             </div>
 
@@ -422,7 +446,9 @@ export function PromoCampaignFormDialog({
                 onCheckedChange={(checked) => setIsActive(checked === true)}
                 disabled={pending}
               />
-              <Label htmlFor="promo-is-active">Active</Label>
+              <Label htmlFor="promo-is-active">
+                {t("common.shared.active")}
+              </Label>
             </div>
 
             {error ? (
@@ -439,14 +465,14 @@ export function PromoCampaignFormDialog({
               onClick={onClose}
               disabled={pending}
             >
-              Cancel
+              {t("common.shared.cancel")}
             </Button>
             <Button type="submit" disabled={pending}>
               {pending
-                ? "Saving…"
+                ? t("common.shared.saving")
                 : isEditing
-                  ? "Save changes"
-                  : "Create campaign"}
+                  ? t("account.accountProfileForm.saveChanges")
+                  : t("admin.promoCampaignFormDialog.createCampaign")}
             </Button>
           </DialogFooter>
         </form>

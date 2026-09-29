@@ -19,6 +19,7 @@
  */
 
 import { Fragment, useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 
 import {
   FLEET_SCREENS,
@@ -43,7 +44,6 @@ import {
 import type { FleetDraftVehicle } from "@/lib/fleet-onboarding/draft-schema";
 import {
   firstVehicleMessage,
-  formatGroupLabel,
   otherPlatesExcluding,
   reconcileFleetVehicles,
   sameVehicleList,
@@ -96,6 +96,9 @@ function editorValuesFor(vehicle: FleetDraftVehicle): VehicleEditorValues {
 }
 
 export function Step3VehicleSpecifications() {
+  const t = useTranslations("fleet.step3VehicleSpecifications");
+  const tShared = useTranslations("common.shared");
+  const tRoot = useTranslations();
   const { draft, updateDraft, goToStep, showToast } = useFleetDraft();
 
   // `editingId` is kept while the dialog animates closed so its copy does not
@@ -134,6 +137,7 @@ export function Step3VehicleSpecifications() {
       vehicle,
       currentYear,
       otherPlatesExcluding(vehicles, vehicle.id),
+      tRoot,
     );
   }
 
@@ -191,7 +195,7 @@ export function Step3VehicleSpecifications() {
       // continue.": on a table step the failing field is inside a closed dialog,
       // so a message pointing at "highlighted fields" would point at nothing.
       // The row prefix is what tells the company where to look.
-      showToast(`Vehicle ${index + 1}: ${message}`, "error");
+      showToast(t("vehicleProblem", { number: index + 1, message }), "error");
       return;
     }
 
@@ -202,14 +206,14 @@ export function Step3VehicleSpecifications() {
     return (
       <div className="rounded-[14px] border border-border bg-card px-5 py-6">
         <p className="text-sm text-muted-foreground">
-          No vehicles yet. Go back and set how many you run in each combination.
+          {t("noVehiclesYetGoBackAnd")}
         </p>
         <button
           type="button"
           onClick={() => goToStep(FLEET_SCREENS.fleet)}
           className="mt-4 h-11 cursor-pointer rounded-[10px] border border-border bg-card px-5 text-[14.5px] font-medium transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
         >
-          Back to fleet composition
+          {t("backToFleetComposition")}
         </button>
       </div>
     );
@@ -221,7 +225,7 @@ export function Step3VehicleSpecifications() {
         aria-live="polite"
         className="text-right font-price text-[12px] font-semibold tracking-[0.06em] text-muted-foreground uppercase"
       >
-        {readyCount} of {vehicles.length} specified
+        {t("specifiedCount", { ready: readyCount, total: vehicles.length })}
       </p>
 
       <div className="overflow-hidden rounded-[14px] border border-border bg-card">
@@ -229,11 +233,13 @@ export function Step3VehicleSpecifications() {
           <TableHeader>
             <TableRow>
               <TableHead className="w-[52px] pl-4">#</TableHead>
-              <TableHead>Class &amp; body</TableHead>
-              <TableHead>Make / model</TableHead>
-              <TableHead>Plate</TableHead>
-              <TableHead>Payload</TableHead>
-              <TableHead className="pr-4 text-right">Status</TableHead>
+              <TableHead>{t("classAndBody")}</TableHead>
+              <TableHead>{tShared("makeModel")}</TableHead>
+              <TableHead>{tShared("plate")}</TableHead>
+              <TableHead>{tShared("payload")}</TableHead>
+              <TableHead className="pr-4 text-right">
+                {tShared("status")}
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -248,8 +254,12 @@ export function Step3VehicleSpecifications() {
                 previous.chassisType !== vehicle.chassisType ||
                 previous.classId !== vehicle.classId;
 
-              const className = findVehicleClass(vehicle.classId).name;
-              const bodyLabel = findBodyType(vehicle.chassisType).shortLabel;
+              const className = tRoot(
+                findVehicleClass(vehicle.classId).nameKey,
+              );
+              const bodyLabel = tRoot(
+                findBodyType(vehicle.chassisType).shortLabelKey,
+              );
               const ready = firstVehicleMessage(problemsFor(vehicle)) === null;
               const failing = !ready && showErrors;
               const number = index + 1;
@@ -262,14 +272,18 @@ export function Step3VehicleSpecifications() {
                         colSpan={6}
                         className="bg-muted/40 px-4 py-2 font-price text-[11px] font-semibold tracking-[0.08em] text-muted-foreground uppercase"
                       >
-                        {formatGroupLabel(vehicle.chassisType, vehicle.classId)}
+                        {`${bodyLabel} · ${className}`}
                       </TableCell>
                     </TableRow>
                   ) : null}
                   <TableRow
                     role="button"
                     tabIndex={0}
-                    aria-label={`Specify vehicle ${number}, ${className} ${bodyLabel}`}
+                    aria-label={t("specifyVehicleAria", {
+                      number,
+                      className,
+                      bodyLabel,
+                    })}
                     onClick={() => openEditor(vehicle.id)}
                     onKeyDown={(event) => {
                       if (event.key !== "Enter" && event.key !== " ") return;
@@ -302,7 +316,7 @@ export function Step3VehicleSpecifications() {
                     <TableCell className="font-price text-[13px]">
                       {vehicle.payloadKg === undefined
                         ? "—"
-                        : `${vehicle.payloadKg.toLocaleString("en-US")} kg`}
+                        : t("payloadKg", { payload: vehicle.payloadKg })}
                     </TableCell>
                     <TableCell className="pr-4 text-right">
                       <span
@@ -314,7 +328,7 @@ export function Step3VehicleSpecifications() {
                               : "border-transparent bg-muted text-muted-foreground"
                         }`}
                       >
-                        {ready ? "Ready" : "Incomplete"}
+                        {ready ? t("ready") : t("incomplete")}
                       </span>
                     </TableCell>
                   </TableRow>
@@ -334,14 +348,14 @@ export function Step3VehicleSpecifications() {
           onClick={handleContinue}
           className="h-12 cursor-pointer rounded-[11px] bg-onboarding-accent px-[30px] text-[15px] font-semibold tracking-[-0.01em] text-white transition-colors hover:bg-onboarding-accent-hover focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
         >
-          Continue
+          {tShared("continue")}
         </button>
         <button
           type="button"
           onClick={() => goToStep(FLEET_SCREENS.fleet)}
           className="h-12 cursor-pointer rounded-[11px] border border-border bg-card px-5 text-[14.5px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
         >
-          Back
+          {tShared("back")}
         </button>
       </div>
 
@@ -360,7 +374,7 @@ export function Step3VehicleSpecifications() {
           onToast={showToast}
           onSave={(values) => {
             handleSaveVehicle(editingVehicle.id, values);
-            showToast(`Vehicle ${editingIndex + 1} saved.`);
+            showToast(t("vehicleSaved", { number: editingIndex + 1 }));
             return true;
           }}
         />

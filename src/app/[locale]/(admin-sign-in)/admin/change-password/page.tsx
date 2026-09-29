@@ -1,4 +1,5 @@
 import { AdminChangePasswordForm } from "@/components/admin/admin-change-password-form";
+import { LanguageToggle } from "@/components/language-toggle";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { requireSystemUser } from "@/lib/admin/auth";
 
@@ -39,10 +40,11 @@ export default async function AdminChangePasswordPage() {
   await requireSystemUser();
 
   /*
-    The wrapper exists only to anchor the theme toggle. `AdminChangePasswordForm`
-    carries `data-admin-surface`, which hides the global site header and the
-    app's only other `ThemeToggle` with it — so like `../sign-in/page.tsx` this
-    screen has to mount its own or it cannot switch themes at all.
+    The wrapper exists only to anchor the theme and language toggles.
+    `AdminChangePasswordForm` carries `data-admin-surface`, which hides the
+    global site header and the app's only other `ThemeToggle` and
+    `LanguageToggle` with it — so like `../sign-in/page.tsx` this screen has to
+    mount its own or it cannot switch themes or languages at all.
 
     It goes here rather than in the form because that component lives under
     `src/components/admin` and is shared styling with the rest of the back
@@ -59,7 +61,8 @@ export default async function AdminChangePasswordPage() {
   return (
     <div className="relative">
       <AdminChangePasswordForm />
-      <div className="absolute top-5 right-5">
+      <div className="absolute top-5 right-5 flex items-center gap-2">
+        <LanguageToggle />
         <ThemeToggle />
       </div>
     </div>

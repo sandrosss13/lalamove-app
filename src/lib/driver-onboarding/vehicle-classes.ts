@@ -56,13 +56,23 @@ export type VehicleClassId =
 
 export type VehicleClass = {
   id: VehicleClassId;
+  /** English name — kept for server-side callers (admin routes, logs). */
   name: string;
+  /** Full `next-intl` message path of `name`, for anything a reader sees:
+   *  `useTranslations()(vehicleClass.nameKey)`. A path rather than a
+   *  translated string because this module is shared with server routes and
+   *  cannot call a hook. */
+  nameKey: string;
   /** Mono category chip shown on the card, e.g. "CAT B". */
   chip: string;
   requiredLicenceCategory: LicenceCategory;
   /** Capacity line shown on the card, e.g. "Up to 800 kg · 2 pallets". */
   capacityLine: string;
-  /** Sample-models line shown on the card. */
+  /** Full message paths of `chip` and `capacityLine` (see `nameKey`). */
+  chipKey: string;
+  capacityLineKey: string;
+  /** Sample-models line shown on the card. Make and model names only, which
+   *  the glossary keeps in Latin in every locale — so it has no message key. */
   samplesLine: string;
   /** (chassis type) -> existing VehicleTypeSpec.code, or null if this
    *  combination has no matching spec in the current catalogue and must be
@@ -74,9 +84,12 @@ export const VEHICLE_CLASSES: VehicleClass[] = [
   {
     id: "SMALL_VAN",
     name: "Small Van",
+    nameKey: "onboarding.vehicleClasses.smallVan",
     chip: "CAT B",
+    chipKey: "onboarding.vehicleClasses.chipCatB",
     requiredLicenceCategory: "B",
     capacityLine: "Up to 800 kg · 2 pallets",
+    capacityLineKey: "onboarding.vehicleClasses.capacitySmallVan",
     samplesLine:
       "Renault Dokker · Fiat Doblò · Toyota Proace City · Ford Transit Connect",
     specCodeByChassis: {
@@ -92,9 +105,12 @@ export const VEHICLE_CLASSES: VehicleClass[] = [
   {
     id: "LARGE_VAN",
     name: "Large Van",
+    nameKey: "onboarding.vehicleClasses.largeVan",
     chip: "CAT B",
+    chipKey: "onboarding.vehicleClasses.chipCatB",
     requiredLicenceCategory: "B",
     capacityLine: "800–1,500 kg · 4 pallets",
+    capacityLineKey: "onboarding.vehicleClasses.capacityLargeVan",
     samplesLine:
       "Fiat Ducato · Ford Transit · Mercedes-Benz Sprinter · Renault Master",
     specCodeByChassis: {
@@ -108,9 +124,12 @@ export const VEHICLE_CLASSES: VehicleClass[] = [
   {
     id: "MEDIUM_TRUCK",
     name: "Medium Truck",
+    nameKey: "onboarding.vehicleClasses.mediumTruck",
     chip: "CAT C",
+    chipKey: "onboarding.vehicleClasses.chipCatC",
     requiredLicenceCategory: "C",
     capacityLine: "1.5–7 t · 8 pallets",
+    capacityLineKey: "onboarding.vehicleClasses.capacityMediumTruck",
     samplesLine:
       "Hino 916 · Mitsubishi Fuso Canter · Isuzu NPR · Iveco Eurocargo",
     specCodeByChassis: {
@@ -122,13 +141,16 @@ export const VEHICLE_CLASSES: VehicleClass[] = [
   {
     id: "HEAVY_FREIGHT_TRUCK",
     name: "Heavy Freight Truck",
+    nameKey: "onboarding.vehicleClasses.heavyFreightTruck",
     chip: "CAT C",
+    chipKey: "onboarding.vehicleClasses.chipCatC",
     // Moved from CE to C by the approved business design: a three-axle rigid
     // is a Category C vehicle in Georgia; CE is what an articulated
     // combination needs, which is now its own class below. See
     // `specs/business-fleet-onboarding/action-required.md`.
     requiredLicenceCategory: "C",
     capacityLine: "7–18 t · 16 pallets · 3 axles",
+    capacityLineKey: "onboarding.vehicleClasses.capacityHeavyFreightTruck",
     samplesLine: "MAN TGM · MAN TGL · Volvo FL · Scania P-series",
     specCodeByChassis: {
       DRY_BOX: "LARGE_FREIGHT_TRUCK",
@@ -143,9 +165,12 @@ export const VEHICLE_CLASSES: VehicleClass[] = [
   {
     id: "TRAILER_TRUCK",
     name: "Trailer Truck",
+    nameKey: "onboarding.vehicleClasses.trailerTruck",
     chip: "CAT CE",
+    chipKey: "onboarding.vehicleClasses.chipCatCe",
     requiredLicenceCategory: "CE",
     capacityLine: "18–24 t · 33 pallets · articulated",
+    capacityLineKey: "onboarding.vehicleClasses.capacityTrailerTruck",
     samplesLine: "Mercedes-Benz Actros · Volvo FH · Scania R-series · MAN TGX",
     specCodeByChassis: {
       // The one spec row this feature adds (see `prisma/seed.ts`): 24,000 kg,
@@ -200,6 +225,12 @@ export type BodyType = {
   shortLabel: string;
   /** One-line description shown under the panel heading. */
   description: string;
+  /** Full `next-intl` message paths of the three strings above. The English
+   *  fields stay for server callers; anything rendered should translate these
+   *  (see `VehicleClass.nameKey` for why they are paths). */
+  labelKey: string;
+  shortLabelKey: string;
+  descriptionKey: string;
 };
 
 /** The three cargo body types, in the design's panel order. Reuses the
@@ -211,6 +242,10 @@ export const BODY_TYPES: BodyType[] = [
     label: "Dry Box",
     shortLabel: "Dry Box",
     description: "Enclosed rigid body. General palletised and boxed cargo.",
+    labelKey: "common.shared.dryBox",
+    shortLabelKey: "common.shared.dryBox",
+    descriptionKey:
+      "onboarding.vehicleClasses.enclosedRigidBodyGeneralPalletisedAnd",
   },
   {
     id: "REFRIGERATED",
@@ -218,6 +253,9 @@ export const BODY_TYPES: BodyType[] = [
     shortLabel: "Refrigerated",
     description:
       "Temperature-controlled, −20 °C to +8 °C. Cooling unit service record required per vehicle.",
+    labelKey: "common.shared.refrigeratedVehicle",
+    shortLabelKey: "home.bookingForm.refrigerated",
+    descriptionKey: "onboarding.vehicleClasses.temperatureControlled20CTo8",
   },
   {
     id: "OPEN_CHASSIS",
@@ -225,6 +263,9 @@ export const BODY_TYPES: BodyType[] = [
     shortLabel: "Open Chassis",
     description:
       "Flatbed or curtain-side with drop sides. Oversized, construction and machinery loads.",
+    labelKey: "common.shared.openChassis",
+    shortLabelKey: "common.shared.openChassis",
+    descriptionKey: "common.shared.flatbedOrCurtainSideWithDrop",
   },
 ];
 

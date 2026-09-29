@@ -2,11 +2,14 @@
 
 import { useState } from "react";
 import { LogOut } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import type { AdminRole } from "@prisma/client";
 
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import { ADMIN_NAV, type AdminNavSection } from "@/components/admin/admin-nav";
+import { ADMIN_ROLE_LABEL_KEYS } from "@/components/admin/users/create-system-user-dialog";
+import { LanguageToggle } from "@/components/language-toggle";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,20 +20,6 @@ import { cn } from "@/lib/utils";
 
 /** Where a signed-out staff member lands. Mirrors `ADMIN_SIGN_IN_PATH`. */
 const SIGN_IN_PATH = "/admin/sign-in";
-
-/**
- * `AdminRole` rendered for humans. A lookup rather than a `replace(/_/g, " ")`
- * so the two acronym-ish values ("CRM", "Super Admin") read correctly.
- */
-const ADMIN_ROLE_LABELS: Record<AdminRole, string> = {
-  SUPER_ADMIN: "Super Admin",
-  ANALYTICS: "Analytics",
-  CONTENT_MANAGER: "Content Manager",
-  FINANCE_MANAGER: "Finance Manager",
-  USER_MANAGER: "User Manager",
-  CRM_MANAGER: "CRM Manager",
-  SUPPORT: "Support",
-};
 
 /**
  * Whether `pathname` is inside `section`. Prefix-matched against the section's
@@ -71,6 +60,9 @@ export function AdminShell({ systemUser, children }: AdminShellProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [signingOut, setSigningOut] = useState(false);
+  // Un-namespaced: nav labels are full message paths spanning `admin` and
+  // `common` (see `labelKey` in `admin-nav.ts`).
+  const t = useTranslations();
 
   const sections = ADMIN_NAV.filter((section) =>
     hasAdminRole(systemUser, section.adminRoles),
@@ -96,9 +88,11 @@ export function AdminShell({ systemUser, children }: AdminShellProps) {
           className="flex flex-col gap-0.5 rounded-lg px-3 py-2.5 hover:bg-muted"
         >
           <span className="text-sm font-semibold tracking-tight">
-            Back Office
+            {t("admin.adminShell.backOffice")}
           </span>
-          <span className="text-xs text-muted-foreground">Internal tools</span>
+          <span className="text-xs text-muted-foreground">
+            {t("admin.adminShell.internalTools")}
+          </span>
         </Link>
 
         <div className="mt-2 flex flex-col gap-0.5">
@@ -122,7 +116,7 @@ export function AdminShell({ systemUser, children }: AdminShellProps) {
                   )}
                 >
                   <SectionIcon className="size-4 shrink-0" />
-                  {section.label}
+                  {t(section.labelKey)}
                 </Link>
 
                 {/* Sub-links expand only for the section being viewed, so the
@@ -143,7 +137,7 @@ export function AdminShell({ systemUser, children }: AdminShellProps) {
                             : "text-muted-foreground hover:text-foreground",
                         )}
                       >
-                        {item.label}
+                        {t(item.labelKey)}
                       </Link>
                     ))}
                   </div>
@@ -161,7 +155,7 @@ export function AdminShell({ systemUser, children }: AdminShellProps) {
               {systemUser.name}
             </span>
             <Badge variant="secondary">
-              {ADMIN_ROLE_LABELS[systemUser.adminRole]}
+              {t(ADMIN_ROLE_LABEL_KEYS[systemUser.adminRole])}
             </Badge>
           </div>
 
@@ -181,6 +175,10 @@ export function AdminShell({ systemUser, children }: AdminShellProps) {
             with the bar it sits in.
           */}
           <div className="flex shrink-0 items-center gap-2">
+            {/* Same reasoning as the theme toggle: the global header's copy is
+                hidden here, so the back office mounts its own, at the same
+                `h-7` as its neighbours. */}
+            <LanguageToggle className="h-7 px-2.5" />
             <ThemeToggle className="h-7 w-7" />
 
             <Button
@@ -190,7 +188,9 @@ export function AdminShell({ systemUser, children }: AdminShellProps) {
               disabled={signingOut}
             >
               <LogOut data-icon="inline-start" />
-              {signingOut ? "Signing out…" : "Sign out"}
+              {signingOut
+                ? t("common.authStatus.signingOut")
+                : t("common.authStatus.signOut")}
             </Button>
           </div>
         </header>

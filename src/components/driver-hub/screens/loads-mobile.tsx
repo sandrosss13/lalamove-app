@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 
 import { Link } from "@/i18n/navigation";
 import { HubEmptyState } from "@/components/driver-hub/hub-primitives";
@@ -24,10 +25,11 @@ import {
   formatLoadDayLabel,
   formatLoadDims,
   formatWeightKg,
-  pluralise,
   sortedHandlingTags,
+  useLoadsTimeFormat,
 } from "@/components/driver-hub/screens/loads-format";
 import { Button } from "@/components/ui/button";
+import { CITY_NAMES_NAMESPACE, cityNameKey } from "@/lib/georgian-cities";
 import { cn } from "@/lib/utils";
 
 /**
@@ -116,6 +118,7 @@ export function LoadsMobile() {
     tab,
     nowIso,
   } = useLoadsBoard();
+  const tBoard = useTranslations("driverHub.loadsBoard");
 
   return (
     <div className="overflow-hidden rounded-lg border border-border bg-card lg:hidden">
@@ -162,11 +165,16 @@ export function LoadsMobile() {
           // and are still not what emptied the list, so blaming them would send
           // a driver looking for controls to clear that were hiding nothing.
           message={
-            showRejected
-              ? "You haven't hidden any loads."
-              : filtersApply && activeFilterCount > 0
-                ? "No loads match these filters."
-                : "No loads on the board right now."
+            // The phone surface ends each sentence with a stop; the desktop
+            // table's headings do not, so the stop is added here rather than
+            // kept in the shared key.
+            `${
+              showRejected
+                ? tBoard("noHiddenLoads")
+                : filtersApply && activeFilterCount > 0
+                  ? tBoard("noLoadsMatchFilters")
+                  : tBoard("noLoadsOnBoard")
+            }.`
           }
         />
       ) : (
@@ -196,8 +204,7 @@ export function LoadsMobile() {
           This surface does not recompute it. */}
       {tab === "available" && !showRejected && hiddenByCapacityCount > 0 ? (
         <p className="border-t border-border bg-muted px-3.5 py-2.5 text-[11px] text-muted-foreground tabular-nums">
-          {pluralise(hiddenByCapacityCount, "load")} hidden — over your vehicle
-          capacity or dimensions
+          {tBoard("hiddenByCapacity", { count: hiddenByCapacityCount })}
         </p>
       ) : null}
 
@@ -237,11 +244,12 @@ function FilterRow() {
     pickupCityOptions,
     dropCityOptions,
   } = useLoadsBoard();
+  const tShared = useTranslations("common.shared");
 
   return (
     <div className="flex items-center gap-2 border-b border-border px-3.5 py-2.5">
       <CitySelect
-        label="Pick-up city"
+        label={tShared("pickUpCity")}
         value={fPickup}
         onChange={setFPickup}
         options={pickupCityOptions}
@@ -252,7 +260,7 @@ function FilterRow() {
         →
       </span>
       <CitySelect
-        label="Drop-off city"
+        label={tShared("dropOffCity")}
         value={fDrop}
         onChange={setFDrop}
         options={dropCityOptions}
@@ -285,6 +293,11 @@ function CitySelect({
   onChange: (city: string) => void;
   options: readonly string[];
 }) {
+  // The sentinel and the city values stay the stored English names; only the
+  // visible labels are localized, and a name outside the catalog shows as stored.
+  const tCities = useTranslations("driverHub.fleetAvailabilityFilters");
+  const tCityNames = useTranslations(CITY_NAMES_NAMESPACE);
+
   return (
     <select
       aria-label={label}
@@ -292,10 +305,12 @@ function CitySelect({
       onChange={(event) => onChange(event.target.value)}
       className="h-9 min-w-0 flex-1 rounded-md border border-border bg-background px-2 text-xs transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
     >
-      <option value={ALL_CITIES}>{ALL_CITIES}</option>
+      <option value={ALL_CITIES}>{tCities("allCities")}</option>
       {options.map((city) => (
         <option key={city} value={city}>
-          {city}
+          {tCityNames.has(cityNameKey(city))
+            ? tCityNames(cityNameKey(city))
+            : city}
         </option>
       ))}
     </select>
@@ -316,6 +331,7 @@ function CitySelect({
  */
 function WeightRow() {
   const { fWeight, setFWeight, visibleLoads } = useLoadsBoard();
+  const tBoard = useTranslations("driverHub.loadsBoard");
 
   // A generated id rather than a literal: a label→control association is the
   // kind of thing that breaks silently, and only for screen-reader users, if
@@ -346,7 +362,7 @@ function WeightRow() {
         aria-live="polite"
         className="flex-none text-[11px] text-muted-foreground tabular-nums"
       >
-        {pluralise(visibleLoads.length, "load")}
+        {tBoard("loadsCount", { count: visibleLoads.length })}
       </span>
     </div>
   );
@@ -459,8 +475,13 @@ function CardField({
  */
 function LoadCard({ load, nowIso }: { load: HubLoad; nowIso: string }) {
   const { selectLoad } = useLoadsBoard();
+  const t = useTranslations("driverHub.loadsMobile");
+  const tShared = useTranslations("common.shared");
+  const tFormat = useTranslations("driverHub.loadsFormat");
+  const tRoot = useTranslations();
+  const timeFormat = useLoadsTimeFormat();
 
-  const tags = sortedHandlingTags(load.handlingTags);
+  const tags = sortedHandlingTags(load.handlingTags, tFormat);
   const open = () => selectLoad(load.id);
 
   return (
@@ -471,7 +492,7 @@ function LoadCard({ load, nowIso }: { load: HubLoad; nowIso: string }) {
       // the lost-the-race dialog name a load by, so a driver hears the same
       // identifier from the card they pressed and the dialog it produced. Same
       // shape as `step-3-vehicle-specifications.tsx`'s row label.
-      aria-label={`Load ${load.reference} details`}
+      aria-label={t("loadDetailsAria", { reference: load.reference })}
       onClick={open}
       onKeyDown={(event) => {
         // The nested Reject/Accept/Restore buttons own their own keys. Without
@@ -506,32 +527,35 @@ function LoadCard({ load, nowIso }: { load: HubLoad; nowIso: string }) {
             long address would push past, defeating the `truncate` on it. */}
         <dl className="grid min-w-0 flex-1 grid-cols-[auto_minmax(0,1fr)] gap-x-2 text-xs">
           <CardField
-            label="Pick up address"
+            label={t("pickUpAddress")}
             value={load.pickupAddress}
             emphasis
             title={load.pickupAddress}
           />
-          <CardField label="Pick up city" value={load.pickupCity ?? EM_DASH} />
+          <CardField
+            label={tShared("pickUpCity2")}
+            value={load.pickupCity ?? EM_DASH}
+          />
           {/* Both from `scheduledAt`, dashing together when it is absent —
               exactly the desktop table's two columns. Never the pick-up window,
               which is a different and rarer fact; `HubLoad.scheduledAt` has the
               reasoning. */}
           <CardField
-            label="Pick up date"
-            value={formatLoadDayLabel(load.scheduledAt, nowIso)}
+            label={tShared("pickUpDate")}
+            value={formatLoadDayLabel(load.scheduledAt, nowIso, timeFormat)}
           />
           <CardField
-            label="Pick up time"
+            label={tShared("pickUpTime")}
             value={formatClock(load.scheduledAt)}
           />
           <CardField
-            label="Drop off address"
+            label={t("dropOffAddress")}
             value={load.dropoffAddress}
             emphasis
             title={load.dropoffAddress}
           />
           <CardField
-            label="Drop off city"
+            label={tShared("dropOffCity2")}
             value={load.dropoffCity ?? EM_DASH}
           />
         </dl>
@@ -544,7 +568,7 @@ function LoadCard({ load, nowIso }: { load: HubLoad; nowIso: string }) {
       </div>
 
       <p className="mt-1 text-xs text-muted-foreground">
-        {cargoCategoryLabel(load.cargoCategory)} ·{" "}
+        {cargoCategoryLabel(load.cargoCategory, tRoot)} ·{" "}
         {formatWeightKg(load.cargoWeightKg)} ·{" "}
         {formatLoadDims({
           lengthM: load.cargoLengthM,
@@ -561,7 +585,7 @@ function LoadCard({ load, nowIso }: { load: HubLoad; nowIso: string }) {
           `pickupDistanceKm`. */}
       <p className="mt-1 text-xs text-muted-foreground tabular-nums">
         {formatDistanceKm(load.distanceKm)} ·{" "}
-        {formatHelperRequest(load.helperCount)}
+        {formatHelperRequest(load.helperCount, tFormat)}
       </p>
 
       {/* Declaration order via `sortedHandlingTags`, never the stored array's
@@ -614,6 +638,8 @@ function LoadCardActions({ load }: { load: HubLoad }) {
     canAccept,
     selectLoad,
   } = useLoadsBoard();
+  const t = useTranslations("driverHub.loadsMobile");
+  const tShared = useTranslations("common.shared");
 
   const isPending = pendingActionId === load.id;
   // Reject and Restore only. The state container refuses a second reject or
@@ -644,7 +670,7 @@ function LoadCardActions({ load }: { load: HubLoad }) {
             void restore(load.id);
           }}
         >
-          Restore to board
+          {t("restoreToBoard")}
         </Button>
       </div>
     );
@@ -658,7 +684,7 @@ function LoadCardActions({ load }: { load: HubLoad }) {
           HUB_STATUS_TONE_CLASSES.neutral,
         )}
       >
-        Claimed by another driver
+        {t("claimedByAnotherDriver")}
       </p>
     );
   }
@@ -703,7 +729,7 @@ function LoadCardActions({ load }: { load: HubLoad }) {
               openDispatch(load);
             }}
           >
-            Yours · assign a vehicle
+            {t("yoursAssignAVehicle")}
           </Button>
         </div>
       );
@@ -744,7 +770,7 @@ function LoadCardActions({ load }: { load: HubLoad }) {
             // driver just navigated to. Same rule as every other control here.
             onClick={stop}
           >
-            Yours · view job sheet
+            {t("yoursViewJobSheet")}
           </Link>
         </Button>
       </div>
@@ -764,7 +790,7 @@ function LoadCardActions({ load }: { load: HubLoad }) {
           void reject(load.id);
         }}
       >
-        Reject
+        {tShared("reject")}
       </Button>
       <Button
         type="button"
@@ -787,7 +813,7 @@ function LoadCardActions({ load }: { load: HubLoad }) {
           openConfirm(load.id);
         }}
       >
-        Accept ·{" "}
+        {t("acceptWithPrice")}{" "}
         {/* `formatGel`, the scannable form, deliberately. This is the card's
             own payout repeated on its control, three lines below the figure at
             the top of the card, and the two disagreeing ("₾110" up there,

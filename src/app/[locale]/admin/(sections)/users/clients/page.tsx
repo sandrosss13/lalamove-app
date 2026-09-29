@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useEffect, useState } from "react";
+import { useFormatter, useTranslations } from "next-intl";
 
 import type { ClientAccountType } from "@prisma/client";
 
@@ -34,19 +35,18 @@ const COLUMN_COUNT = 6;
 /** How long typing has to pause before the list is re-queried. */
 const SEARCH_DEBOUNCE_MS = 300;
 
-const ACCOUNT_TYPE_LABELS: Record<ClientAccountType, string> = {
-  INDIVIDUAL: "Individual",
-  BUSINESS: "Business",
+/** `common.shared` key for each client account type's name. */
+const ACCOUNT_TYPE_LABEL_KEYS: Record<ClientAccountType, string> = {
+  INDIVIDUAL: "individual",
+  BUSINESS: "business",
 };
 
 /** Matches how every other dashboard in the app renders a date. */
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
+const ACCOUNT_DATE_FORMAT = {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+} as const;
 
 /**
  * Pulls the API's `{ error }` message out of a failed response — a `403` for a
@@ -103,6 +103,11 @@ function DetailField({
  * their behalf, so nothing on this page is a form except the search box.
  */
 export default function AdminClientsPage() {
+  const t = useTranslations("admin.adminUsersClients");
+  const tShared = useTranslations("common.shared");
+  const format = useFormatter();
+  const formatDate = (iso: string) =>
+    format.dateTime(new Date(iso), ACCOUNT_DATE_FORMAT);
   const [searchInput, setSearchInput] = useState("");
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
@@ -148,7 +153,7 @@ export default function AdminClientsPage() {
         );
 
         if (!response.ok) {
-          setError(await readErrorMessage(response, "Could not load clients."));
+          setError(await readErrorMessage(response, t("couldNotLoadClients")));
           setLoading(false);
           return;
         }
@@ -162,7 +167,7 @@ export default function AdminClientsPage() {
           return;
         }
 
-        setError("Could not load clients.");
+        setError(t("couldNotLoadClients"));
         setLoading(false);
       }
     }
@@ -170,7 +175,7 @@ export default function AdminClientsPage() {
     void load();
 
     return () => controller.abort();
-  }, [page, query, reloadToken]);
+  }, [page, query, reloadToken, t]);
 
   const items = data?.items ?? [];
 
@@ -180,13 +185,13 @@ export default function AdminClientsPage() {
         <Input
           value={searchInput}
           onChange={(event) => setSearchInput(event.target.value)}
-          placeholder="Search by name, email or phone…"
-          aria-label="Search clients by name, email or phone"
+          placeholder={tShared("searchByNameEmailOrPhone")}
+          aria-label={t("searchClientsByNameEmailOr")}
           className="w-full max-w-72"
         />
         {data ? (
           <p className="text-sm text-muted-foreground">
-            {data.total} {data.total === 1 ? "client" : "clients"}
+            {t("clientCount", { count: data.total })}
           </p>
         ) : null}
       </div>
@@ -195,12 +200,12 @@ export default function AdminClientsPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Client</TableHead>
-              <TableHead>Contact</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Orders</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead>{tShared("client")}</TableHead>
+              <TableHead>{tShared("contact")}</TableHead>
+              <TableHead>{tShared("type")}</TableHead>
+              <TableHead>{tShared("orders")}</TableHead>
+              <TableHead>{tShared("status")}</TableHead>
+              <TableHead className="text-right">{tShared("actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -219,7 +224,7 @@ export default function AdminClientsPage() {
                   colSpan={COLUMN_COUNT}
                   className="py-10 text-center text-muted-foreground"
                 >
-                  Loading clients…
+                  {t("loadingClients")}
                 </TableCell>
               </TableRow>
             ) : items.length === 0 ? (
@@ -229,8 +234,8 @@ export default function AdminClientsPage() {
                   className="py-10 text-center text-muted-foreground"
                 >
                   {query === ""
-                    ? "No client accounts yet."
-                    : "No clients match that search."}
+                    ? t("noClientAccountsYet")
+                    : t("noClientsMatchThatSearch")}
                 </TableCell>
               </TableRow>
             ) : (
@@ -264,15 +269,17 @@ export default function AdminClientsPage() {
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline">
-                          {ACCOUNT_TYPE_LABELS[client.accountType]}
+                          {tShared(ACCOUNT_TYPE_LABEL_KEYS[client.accountType])}
                         </Badge>
                       </TableCell>
                       <TableCell>{client.orderCount}</TableCell>
                       <TableCell>
                         {client.isSuspended ? (
-                          <Badge variant="destructive">Suspended</Badge>
+                          <Badge variant="destructive">
+                            {tShared("suspended")}
+                          </Badge>
                         ) : (
-                          <Badge variant="secondary">Active</Badge>
+                          <Badge variant="secondary">{tShared("active")}</Badge>
                         )}
                       </TableCell>
                       <TableCell className="text-right">
@@ -285,7 +292,9 @@ export default function AdminClientsPage() {
                               setExpandedUserId(expanded ? null : client.userId)
                             }
                           >
-                            {expanded ? "Hide details" : "Details"}
+                            {expanded
+                              ? tShared("hideDetails")
+                              : tShared("details")}
                           </Button>
                           <Button
                             variant={
@@ -301,7 +310,9 @@ export default function AdminClientsPage() {
                               })
                             }
                           >
-                            {client.isSuspended ? "Unsuspend" : "Suspend"}
+                            {client.isSuspended
+                              ? tShared("unsuspend")
+                              : tShared("suspend")}
                           </Button>
                         </div>
                       </TableCell>
@@ -312,22 +323,27 @@ export default function AdminClientsPage() {
                         <TableCell colSpan={COLUMN_COUNT}>
                           <dl className="grid grid-cols-2 gap-4 py-1 sm:grid-cols-4">
                             <DetailField
-                              label="Account type"
-                              value={ACCOUNT_TYPE_LABELS[client.accountType]}
+                              label={t("accountType")}
+                              value={tShared(
+                                ACCOUNT_TYPE_LABEL_KEYS[client.accountType],
+                              )}
                             />
-                            <DetailField label="VAT ID" value={client.vatId} />
                             <DetailField
-                              label="Orders placed"
+                              label={tShared("vatId")}
+                              value={client.vatId}
+                            />
+                            <DetailField
+                              label={t("ordersPlaced")}
                               value={String(client.orderCount)}
                             />
                             <DetailField
-                              label="Joined"
+                              label={tShared("joined")}
                               value={formatDate(client.createdAt)}
                             />
                             {client.isSuspended ? (
                               <>
                                 <DetailField
-                                  label="Suspended on"
+                                  label={tShared("suspendedOn")}
                                   value={
                                     client.suspendedAt
                                       ? formatDate(client.suspendedAt)
@@ -335,7 +351,7 @@ export default function AdminClientsPage() {
                                   }
                                 />
                                 <DetailField
-                                  label="Suspension reason"
+                                  label={tShared("suspensionReason")}
                                   value={client.suspendedReason}
                                 />
                               </>
@@ -355,7 +371,10 @@ export default function AdminClientsPage() {
       {data && data.pageCount > 1 ? (
         <div className="flex items-center justify-end gap-3">
           <span className="text-sm text-muted-foreground">
-            Page {data.page} of {data.pageCount}
+            {tShared("pageOf", {
+              page: data.page,
+              pageCount: data.pageCount,
+            })}
           </span>
           <Button
             variant="outline"
@@ -363,7 +382,7 @@ export default function AdminClientsPage() {
             disabled={loading || data.page <= 1}
             onClick={() => setPage((current) => Math.max(1, current - 1))}
           >
-            Previous
+            {tShared("previous")}
           </Button>
           <Button
             variant="outline"
@@ -371,7 +390,7 @@ export default function AdminClientsPage() {
             disabled={loading || data.page >= data.pageCount}
             onClick={() => setPage((current) => current + 1)}
           >
-            Next
+            {tShared("next")}
           </Button>
         </div>
       ) : null}

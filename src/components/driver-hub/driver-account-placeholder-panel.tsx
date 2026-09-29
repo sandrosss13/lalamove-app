@@ -1,3 +1,5 @@
+import { useTranslations } from "next-intl";
+
 import { HubCard } from "@/components/driver-hub/hub-primitives";
 import type { DriverAccountSectionId } from "@/components/driver-hub/driver-account-sections";
 
@@ -53,6 +55,10 @@ export type DriverAccountPlaceholderSectionId = Extract<
   "notifications" | "language" | "support"
 >;
 
+/**
+ * Every field is a root-relative message key, resolved at render time so the
+ * copy follows the active locale.
+ */
 type PlaceholderCopy = {
   /** Card heading. */
   heading: string;
@@ -69,28 +75,22 @@ const PLACEHOLDER_COPY: Record<
   PlaceholderCopy
 > = {
   notifications: {
-    heading: "Notification preferences",
-    purpose:
-      "Choose which job offers, payout confirmations and account notices reach you, and whether they arrive in the app, by SMS or by email.",
-    gap: "Nothing in the schema records a notification or a preference about one yet — not the offers, not the payouts, and nowhere a per-driver choice could be stored. The bell in the header shows placeholder rows for the same reason.",
-    today:
-      "Every driver currently gets every notice the app can send, and there is no setting that changes it. Rather than a switch that would forget what you chose, this section stays empty until there is something behind it.",
+    heading: "driverHub.driverAccountPlaceholderPanel.notificationPreferences",
+    purpose: "driverHub.driverAccountPlaceholderPanel.notificationsPurpose",
+    gap: "driverHub.driverAccountPlaceholderPanel.notificationsGap",
+    today: "driverHub.driverAccountPlaceholderPanel.notificationsToday",
   },
   language: {
-    heading: "Language",
-    purpose:
-      "Pick the language this dashboard, your job alerts and your payout notices are written in.",
-    gap: "The app has no translations and no per-user locale column. There is one language to pick from, and no column to remember a pick in.",
-    today:
-      "Everything here is in English. A picker offering a choice that could not be honoured — or could not be remembered — would be worse than saying so.",
+    heading: "common.shared.language",
+    purpose: "driverHub.driverAccountPlaceholderPanel.languagePurpose",
+    gap: "driverHub.driverAccountPlaceholderPanel.languageGap",
+    today: "driverHub.driverAccountPlaceholderPanel.languageToday",
   },
   support: {
-    heading: "Support",
-    purpose:
-      "Raise a problem with a job, a payout or your account, and follow it until somebody answers.",
-    gap: "There is no support ticket model, no queue for one to land in, and no support address configured in this codebase.",
-    today:
-      "Use the contact route your fleet or the operations team gave you when your account was approved. A form here would take what you typed and have nowhere to put it, which is the worst possible failure for the one screen you reach when something has already gone wrong.",
+    heading: "common.shared.support",
+    purpose: "driverHub.driverAccountPlaceholderPanel.supportPurpose",
+    gap: "driverHub.driverAccountPlaceholderPanel.supportGap",
+    today: "driverHub.driverAccountPlaceholderPanel.supportToday",
   },
 };
 
@@ -100,29 +100,30 @@ export function DriverAccountPlaceholderPanel({
   section: DriverAccountPlaceholderSectionId;
 }) {
   const copy = PLACEHOLDER_COPY[section];
+  const t = useTranslations();
 
   return (
     <HubCard>
       <div>
-        <h2 className="text-base font-semibold">{copy.heading}</h2>
+        <h2 className="text-base font-semibold">{t(copy.heading)}</h2>
         <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
-          {copy.purpose}
+          {t(copy.purpose)}
         </p>
       </div>
 
       <dl className="mt-5 flex flex-col gap-4 border-t border-border pt-4">
         <div className="flex min-w-0 flex-col gap-1">
           <dt className="text-xs font-medium tracking-[0.08em] uppercase text-muted-foreground">
-            Why it is empty
+            {t("driverHub.driverAccountPlaceholderPanel.whyItIsEmpty")}
           </dt>
-          <dd className="text-[13px] leading-relaxed">{copy.gap}</dd>
+          <dd className="text-[13px] leading-relaxed">{t(copy.gap)}</dd>
         </div>
 
         <div className="flex min-w-0 flex-col gap-1">
           <dt className="text-xs font-medium tracking-[0.08em] uppercase text-muted-foreground">
-            What happens today
+            {t("driverHub.driverAccountPlaceholderPanel.whatHappensToday")}
           </dt>
-          <dd className="text-[13px] leading-relaxed">{copy.today}</dd>
+          <dd className="text-[13px] leading-relaxed">{t(copy.today)}</dd>
         </div>
       </dl>
     </HubCard>

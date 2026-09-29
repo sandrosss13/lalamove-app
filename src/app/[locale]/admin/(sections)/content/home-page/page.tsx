@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 
 import type { ContentLocale } from "@prisma/client";
 
@@ -34,18 +35,44 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  HOME_PAGE_SECTION_TYPE_LABELS,
   isHomePageSectionType,
   parseHomePageSection,
+  type HomePageSectionType,
 } from "@/lib/admin/home-page-content";
 
 /** Columns in the table, so the full-width state rows can span all of them. */
 const COLUMN_COUNT = 6;
 
+/**
+ * `admin.homePageSectionTypes` key for each section type's display name.
+ *
+ * Kept here rather than beside `HOME_PAGE_SECTION_TYPE_LABELS` because that
+ * module belongs to the landing page; the English map there stays the source
+ * for non-rendering uses. Keyed by the full union, so a new section type is a
+ * compile error here rather than an untranslated cell.
+ */
+const SECTION_TYPE_LABEL_KEYS: Record<HomePageSectionType, string> = {
+  hero: "hero",
+  hero_carousel: "heroCarousel",
+  partner_marquee: "partnerMarquee",
+  stats: "stats",
+  bento: "bento",
+  quote_calculator: "quoteCalculator",
+  how_it_works: "howItWorks",
+  vehicle_types: "vehicleTypes",
+  driver_cta: "driverCta",
+  coverage: "coverage",
+  faq: "faq",
+  closing_cta: "closingCta",
+  category_tiles: "categoryTiles",
+  nav: "nav",
+  footer: "footer",
+};
+
 /** Locale tabs, in the order they are offered. */
-const LOCALE_TABS: { value: ContentLocale; label: string }[] = [
-  { value: "KA", label: "Georgian (KA)" },
-  { value: "EN", label: "English (EN)" },
+const LOCALE_TABS: { value: ContentLocale; labelKey: string }[] = [
+  { value: "KA", labelKey: "georgianKa" },
+  { value: "EN", labelKey: "englishEn" },
 ];
 
 /**
@@ -70,7 +97,10 @@ const DEFAULT_LOCALE: ContentLocale = "EN";
  * as unparseable content. Without it, adding a section type is a compile error
  * here, which is a question answered once rather than a wrong cell shipped.
  */
-function summarize(row: AdminHomePageSectionRow): string | null {
+function summarize(
+  row: AdminHomePageSectionRow,
+  t: (key: string) => string,
+): string | null {
   const parsed = parseHomePageSection(row.type, row.content);
 
   if ("error" in parsed) {
@@ -90,7 +120,7 @@ function summarize(row: AdminHomePageSectionRow): string | null {
     case "hero_carousel":
       // Its only field is an optional fallback caption, so the useful thing to
       // say is where the slides actually come from.
-      return "Slides come from Banners (home_hero)";
+      return t("slidesFromBanners");
     case "partner_marquee":
       // Same: the logos are Banner rows, and the eyebrow is the only copy.
       return parsed.data.content.eyebrow;
@@ -163,6 +193,9 @@ async function readErrorMessage(
  * which is the real boundary.
  */
 export default function AdminHomePageSectionsPage() {
+  const t = useTranslations("admin.adminContentHomePage");
+  const tShared = useTranslations("common.shared");
+  const tTypes = useTranslations("admin.homePageSectionTypes");
   const [locale, setLocale] = useState<ContentLocale>(DEFAULT_LOCALE);
   const [sections, setSections] = useState<AdminHomePageSectionRow[] | null>(
     null,
@@ -199,9 +232,7 @@ export default function AdminHomePageSectionsPage() {
         );
 
         if (!response.ok) {
-          setError(
-            await readErrorMessage(response, "Could not load sections."),
-          );
+          setError(await readErrorMessage(response, t("couldNotLoadSections")));
           setLoading(false);
           return;
         }
@@ -217,7 +248,7 @@ export default function AdminHomePageSectionsPage() {
           return;
         }
 
-        setError("Could not load sections.");
+        setError(t("couldNotLoadSections"));
         setLoading(false);
       }
     }
@@ -225,7 +256,7 @@ export default function AdminHomePageSectionsPage() {
     void load();
 
     return () => controller.abort();
-  }, [locale, reloadToken]);
+  }, [locale, reloadToken, t]);
 
   const items = sections ?? [];
 
@@ -259,14 +290,14 @@ export default function AdminHomePageSectionsPage() {
         // A partial patch: nothing else about the section is being confirmed
         // here, so nothing else is overwritten.
         { isActive: !section.isActive },
-        "Could not update this section.",
+        t("couldNotUpdateThisSection"),
       );
       setReloadToken((token) => token + 1);
     } catch (cause) {
       setActionError(
         cause instanceof Error
           ? cause.message
-          : "Something went wrong. Please try again.",
+          : tShared("somethingWentWrongPleaseTryAgain"),
       );
     } finally {
       setBusy(false);
@@ -313,7 +344,7 @@ export default function AdminHomePageSectionsPage() {
           await patchSection(
             section.id,
             { sortOrder: position },
-            "Could not reorder the sections.",
+            t("couldNotReorderTheSections"),
           );
         }
       }
@@ -323,7 +354,7 @@ export default function AdminHomePageSectionsPage() {
       setActionError(
         cause instanceof Error
           ? cause.message
-          : "Something went wrong. Please try again.",
+          : tShared("somethingWentWrongPleaseTryAgain"),
       );
       // Reloaded even on failure: some rows may already have been renumbered,
       // so the table must not keep showing the order it started from.
@@ -345,7 +376,7 @@ export default function AdminHomePageSectionsPage() {
 
       if (!response.ok) {
         setActionError(
-          await readErrorMessage(response, "Could not delete this section."),
+          await readErrorMessage(response, t("couldNotDeleteThisSection")),
         );
         return;
       }
@@ -353,7 +384,7 @@ export default function AdminHomePageSectionsPage() {
       setDeleteTarget(null);
       setReloadToken((token) => token + 1);
     } catch {
-      setActionError("Something went wrong. Please try again.");
+      setActionError(tShared("somethingWentWrongPleaseTryAgain"));
     } finally {
       setBusy(false);
     }
@@ -370,14 +401,10 @@ export default function AdminHomePageSectionsPage() {
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <p className="max-w-2xl text-sm text-muted-foreground">
-          The sections of the public landing page, in the order they render.
-          With no sections for a locale, the page falls back to its built-in
-          default composition. The navigation bar and the footer are page
-          chrome: they render at the top and the bottom whatever their position
-          in this list, so moving them changes nothing.
+          {t("theSectionsOfThePublicLanding")}
         </p>
         <Button size="sm" onClick={() => setFormTarget(null)}>
-          New Section
+          {t("newSection")}
         </Button>
       </div>
 
@@ -388,7 +415,7 @@ export default function AdminHomePageSectionsPage() {
         <TabsList>
           {LOCALE_TABS.map((tab) => (
             <TabsTrigger key={tab.value} value={tab.value}>
-              {tab.label}
+              {tShared(tab.labelKey)}
             </TabsTrigger>
           ))}
         </TabsList>
@@ -406,12 +433,12 @@ export default function AdminHomePageSectionsPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Order</TableHead>
-              <TableHead>Section</TableHead>
-              <TableHead>Content</TableHead>
-              <TableHead>Active</TableHead>
-              <TableHead>Move</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead>{tShared("order")}</TableHead>
+              <TableHead>{tShared("section")}</TableHead>
+              <TableHead>{t("content")}</TableHead>
+              <TableHead>{tShared("active")}</TableHead>
+              <TableHead>{t("move")}</TableHead>
+              <TableHead className="text-right">{tShared("actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -430,7 +457,7 @@ export default function AdminHomePageSectionsPage() {
                   colSpan={COLUMN_COUNT}
                   className="py-10 text-center text-muted-foreground"
                 >
-                  Loading sections…
+                  {t("loadingSections")}
                 </TableCell>
               </TableRow>
             ) : items.length === 0 ? (
@@ -439,8 +466,7 @@ export default function AdminHomePageSectionsPage() {
                   colSpan={COLUMN_COUNT}
                   className="py-10 text-center text-muted-foreground"
                 >
-                  No sections for this locale yet — the landing page is showing
-                  its default composition.
+                  {t("noSectionsForThisLocaleYet")}
                 </TableCell>
               </TableRow>
             ) : (
@@ -449,10 +475,10 @@ export default function AdminHomePageSectionsPage() {
                 // the label map is type-safe: `type` is a free-form column and
                 // a row can hold a value this build does not know.
                 const typeLabel = isHomePageSectionType(section.type)
-                  ? HOME_PAGE_SECTION_TYPE_LABELS[section.type]
+                  ? tTypes(SECTION_TYPE_LABEL_KEYS[section.type])
                   : section.type;
                 const known = isHomePageSectionType(section.type);
-                const summary = summarize(section);
+                const summary = summarize(section, t);
 
                 return (
                   <TableRow key={section.id}>
@@ -464,7 +490,7 @@ export default function AdminHomePageSectionsPage() {
                         <span className="font-medium">{typeLabel}</span>
                         {known ? null : (
                           <Badge variant="destructive" className="mt-1 w-fit">
-                            Unrecognized type
+                            {t("unrecognizedType")}
                           </Badge>
                         )}
                       </div>
@@ -472,7 +498,7 @@ export default function AdminHomePageSectionsPage() {
                     <TableCell className="max-w-xs">
                       {summary === null ? (
                         <span className="text-destructive">
-                          Content does not match this type
+                          {t("contentDoesNotMatchThisType")}
                         </span>
                       ) : (
                         <span className="line-clamp-2 text-muted-foreground">
@@ -484,9 +510,10 @@ export default function AdminHomePageSectionsPage() {
                       <Checkbox
                         checked={section.isActive}
                         disabled={busy}
-                        aria-label={`${
-                          section.isActive ? "Deactivate" : "Activate"
-                        } the ${typeLabel} section`}
+                        aria-label={t("toggleActiveLabel", {
+                          isActive: String(section.isActive),
+                          type: typeLabel,
+                        })}
                         onCheckedChange={() => void handleToggleActive(section)}
                       />
                     </TableCell>
@@ -496,7 +523,7 @@ export default function AdminHomePageSectionsPage() {
                           variant="outline"
                           size="sm"
                           disabled={busy || index === 0}
-                          aria-label="Move section up"
+                          aria-label={t("moveSectionUp")}
                           onClick={() => void handleMove(index, -1)}
                         >
                           ↑
@@ -505,7 +532,7 @@ export default function AdminHomePageSectionsPage() {
                           variant="outline"
                           size="sm"
                           disabled={busy || index === items.length - 1}
-                          aria-label="Move section down"
+                          aria-label={t("moveSectionDown")}
                           onClick={() => void handleMove(index, 1)}
                         >
                           ↓
@@ -519,7 +546,7 @@ export default function AdminHomePageSectionsPage() {
                           size="sm"
                           onClick={() => setFormTarget(section)}
                         >
-                          Edit
+                          {tShared("edit")}
                         </Button>
                         <Button
                           variant="destructive"
@@ -531,7 +558,7 @@ export default function AdminHomePageSectionsPage() {
                             setDeleteTarget(section);
                           }}
                         >
-                          Delete
+                          {tShared("delete")}
                         </Button>
                       </div>
                     </TableCell>
@@ -574,10 +601,9 @@ export default function AdminHomePageSectionsPage() {
         >
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Delete section</DialogTitle>
+              <DialogTitle>{t("deleteSection")}</DialogTitle>
               <DialogDescription>
-                This section will be removed from the landing page for good. To
-                take it off the page without deleting it, switch it off instead.
+                {t("thisSectionWillBeRemovedFrom")}
               </DialogDescription>
             </DialogHeader>
 
@@ -596,7 +622,7 @@ export default function AdminHomePageSectionsPage() {
                 onClick={() => setDeleteTarget(null)}
                 disabled={busy}
               >
-                Cancel
+                {tShared("cancel")}
               </Button>
               <Button
                 type="button"
@@ -604,7 +630,7 @@ export default function AdminHomePageSectionsPage() {
                 disabled={busy}
                 onClick={() => void handleDelete(deleteTarget)}
               >
-                {busy ? "Deleting…" : "Delete section"}
+                {busy ? tShared("deleting") : t("deleteSection")}
               </Button>
             </DialogFooter>
           </DialogContent>

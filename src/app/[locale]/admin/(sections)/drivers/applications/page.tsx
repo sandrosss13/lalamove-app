@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 
 // Type-only import, so nothing of the server route (Prisma, Better Auth) is
 // pulled into this client bundle — it is erased at compile time. Sharing the
@@ -58,22 +59,33 @@ const FILTER_ORDER: readonly ApplicationFilter[] = [
  */
 const FILTERS: Record<
   ApplicationFilter,
-  { label: string; emptyMessage: string }
+  { labelKey: string; emptyKey: string }
 > = {
-  ALL: { label: "All", emptyMessage: "No applications yet." },
-  PENDING: { label: "Pending", emptyMessage: "No pending applications." },
-  ACTION_REQUIRED: {
-    label: "Action required",
-    emptyMessage: "No action-required applications.",
+  // Full dotted paths: "All" is shared copy, while the statuses use the
+  // *application* wording (under review), not the order-status one.
+  ALL: {
+    labelKey: "common.shared.all",
+    emptyKey: "admin.adminDriversApplications.emptyAll",
   },
-  APPROVED: { label: "Approved", emptyMessage: "No approved applications." },
+  PENDING: {
+    labelKey: "admin.applicationStatus.pending",
+    emptyKey: "admin.adminDriversApplications.emptyPending",
+  },
+  ACTION_REQUIRED: {
+    labelKey: "admin.applicationStatus.actionRequired",
+    emptyKey: "admin.adminDriversApplications.emptyActionRequired",
+  },
+  APPROVED: {
+    labelKey: "admin.applicationStatus.approved",
+    emptyKey: "admin.adminDriversApplications.emptyApproved",
+  },
 };
 
 /** Label for a row's status chip. */
-const STATUS_LABELS: Record<AdminDriverApplicationStatus, string> = {
-  PENDING: "Pending",
-  ACTION_REQUIRED: "Action required",
-  APPROVED: "Approved",
+const STATUS_LABEL_KEYS: Record<AdminDriverApplicationStatus, string> = {
+  PENDING: "pending",
+  ACTION_REQUIRED: "actionRequired",
+  APPROVED: "approved",
 };
 
 /**
@@ -83,10 +95,10 @@ const STATUS_LABELS: Record<AdminDriverApplicationStatus, string> = {
  * keeping its internal constants exported. Keyed loosely because the row's
  * `chassisType` crosses the wire as a plain string.
  */
-const CHASSIS_LABELS: Record<string, string> = {
-  DRY_BOX: "Dry Box",
-  REFRIGERATED: "Refrigerated Vehicle",
-  OPEN_CHASSIS: "Open Chassis",
+const CHASSIS_LABEL_KEYS: Record<string, string> = {
+  DRY_BOX: "dryBox",
+  REFRIGERATED: "refrigeratedVehicle",
+  OPEN_CHASSIS: "openChassis",
 };
 
 /**
@@ -118,14 +130,23 @@ async function readErrorMessage(
  * with no vehicle row at all (`vehicleId` nulls rather than cascading) — so the
  * present halves are joined and an entirely empty pair falls back to a dash.
  */
-function formatVehicleSummary(application: AdminDriverApplicationRow): string {
+function formatVehicleSummary(
+  application: AdminDriverApplicationRow,
+  translateShared: (key: string) => string,
+): string {
+  const chassisLabelKey =
+    application.chassisType === null
+      ? undefined
+      : CHASSIS_LABEL_KEYS[application.chassisType];
   const parts = [
     application.vehicleClassName,
     application.chassisType === null
       ? null
       : // An unrecognised chassis type shows its raw enum value rather than
         // vanishing, so a new one added upstream is visible instead of silent.
-        (CHASSIS_LABELS[application.chassisType] ?? application.chassisType),
+        chassisLabelKey === undefined
+        ? application.chassisType
+        : translateShared(chassisLabelKey),
   ].filter((part): part is string => part !== null && part !== "");
 
   return parts.length > 0 ? parts.join(" · ") : EMPTY_VALUE;
@@ -144,6 +165,10 @@ function formatVehicleSummary(application: AdminDriverApplicationRow): string {
  * request, which is the real boundary.
  */
 export default function AdminDriverApplicationsPage() {
+  const t = useTranslations("admin.adminDriversApplications");
+  const tShared = useTranslations("common.shared");
+  const tStatus = useTranslations("admin.applicationStatus");
+  const tRoot = useTranslations();
   const [filter, setFilter] = useState<ApplicationFilter>("ALL");
   const [page, setPage] = useState(1);
   const [data, setData] = useState<AdminDriverApplicationListResponse | null>(
@@ -181,7 +206,7 @@ export default function AdminDriverApplicationsPage() {
 
         if (!response.ok) {
           setError(
-            await readErrorMessage(response, "Could not load applications."),
+            await readErrorMessage(response, t("couldNotLoadApplications")),
           );
           setLoading(false);
           return;
@@ -196,7 +221,7 @@ export default function AdminDriverApplicationsPage() {
           return;
         }
 
-        setError("Could not load applications.");
+        setError(t("couldNotLoadApplications"));
         setLoading(false);
       }
     }
@@ -204,7 +229,7 @@ export default function AdminDriverApplicationsPage() {
     void load();
 
     return () => controller.abort();
-  }, [filter, page, reloadToken]);
+  }, [filter, page, reloadToken, t]);
 
   const items = data?.items ?? [];
 
@@ -228,14 +253,14 @@ export default function AdminDriverApplicationsPage() {
                   setPage(1);
                 }}
               >
-                {FILTERS[candidate].label}
+                {tRoot(FILTERS[candidate].labelKey)}
               </Button>
             );
           })}
         </div>
         {data ? (
           <p className="text-sm text-muted-foreground">
-            {data.total} {data.total === 1 ? "application" : "applications"}
+            {t("applicationCount", { count: data.total })}
           </p>
         ) : null}
       </div>
@@ -244,11 +269,11 @@ export default function AdminDriverApplicationsPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Applicant</TableHead>
-              <TableHead>Vehicle</TableHead>
-              <TableHead>Categories</TableHead>
-              <TableHead>Docs</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead>{tShared("applicant")}</TableHead>
+              <TableHead>{tShared("vehicle")}</TableHead>
+              <TableHead>{tShared("categories")}</TableHead>
+              <TableHead>{t("docs")}</TableHead>
+              <TableHead>{tShared("status")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -267,7 +292,7 @@ export default function AdminDriverApplicationsPage() {
                   colSpan={COLUMN_COUNT}
                   className="py-10 text-center text-muted-foreground"
                 >
-                  Loading applications…
+                  {t("loadingApplications")}
                 </TableCell>
               </TableRow>
             ) : items.length === 0 ? (
@@ -276,7 +301,7 @@ export default function AdminDriverApplicationsPage() {
                   colSpan={COLUMN_COUNT}
                   className="py-10 text-center text-muted-foreground"
                 >
-                  {FILTERS[filter].emptyMessage}
+                  {tRoot(FILTERS[filter].emptyKey)}
                 </TableCell>
               </TableRow>
             ) : (
@@ -316,7 +341,9 @@ export default function AdminDriverApplicationsPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col">
-                        <span>{formatVehicleSummary(application)}</span>
+                        <span>
+                          {formatVehicleSummary(application, tShared)}
+                        </span>
                         {application.plateNumber === null ? null : (
                           <span className="font-mono text-xs text-muted-foreground">
                             {application.plateNumber}
@@ -339,7 +366,7 @@ export default function AdminDriverApplicationsPage() {
                           APPLICATION_STATUS_CHIP_CLASSES[application.status]
                         }
                       >
-                        {STATUS_LABELS[application.status]}
+                        {tStatus(STATUS_LABEL_KEYS[application.status])}
                       </Badge>
                     </TableCell>
                   </TableRow>
@@ -353,7 +380,10 @@ export default function AdminDriverApplicationsPage() {
       {data && data.pageCount > 1 ? (
         <div className="flex items-center justify-end gap-3">
           <span className="text-sm text-muted-foreground">
-            Page {data.page} of {data.pageCount}
+            {tShared("pageOf", {
+              page: data.page,
+              pageCount: data.pageCount,
+            })}
           </span>
           <Button
             variant="outline"
@@ -361,7 +391,7 @@ export default function AdminDriverApplicationsPage() {
             disabled={loading || data.page <= 1}
             onClick={() => setPage((current) => Math.max(1, current - 1))}
           >
-            Previous
+            {tShared("previous")}
           </Button>
           <Button
             variant="outline"
@@ -369,7 +399,7 @@ export default function AdminDriverApplicationsPage() {
             disabled={loading || data.page >= data.pageCount}
             onClick={() => setPage((current) => current + 1)}
           >
-            Next
+            {tShared("next")}
           </Button>
         </div>
       ) : null}

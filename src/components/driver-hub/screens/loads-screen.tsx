@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 
 import { useHubVehiclePill } from "@/components/driver-hub/driver-hub-shell";
 import { HubEmptyState } from "@/components/driver-hub/hub-primitives";
@@ -16,7 +17,6 @@ import { LoadsFilters } from "@/components/driver-hub/screens/loads-filters";
 import {
   formatDims,
   formatWeightKg,
-  pluralise,
   type VehicleCapability,
 } from "@/components/driver-hub/screens/loads-format";
 import { LoadsMobile } from "@/components/driver-hub/screens/loads-mobile";
@@ -83,18 +83,6 @@ export type HubVehiclePill = {
   capability: VehicleCapability;
 };
 
-/**
- * Why Filters is disabled on "My loads" and in the rejected sub-view.
- *
- * One string for the visible tooltip and the `sr-only` sentence beside it, so
- * the two cannot drift — the pairing `loads-drawer.tsx` and
- * `hub-online-toggle.tsx` both use for their own disabled controls, because a
- * `title` alone reaches a mouse and nobody else.
- */
-const FILTERS_INERT_TITLE =
-  "Filters apply to the open board only. My loads and the rejected list " +
-  "always show every load.";
-
 export type LoadsScreenProps = {
   /** Picks which claim endpoint `confirmClaim()` calls. */
   accountKind: HubAccountKind;
@@ -153,6 +141,12 @@ function LoadsScreenBody({
     availableCount,
     mineCount,
   } = useLoadsBoard();
+  const t = useTranslations("driverHub.loadsScreen");
+  const tShared = useTranslations("common.shared");
+  // Why Filters is disabled on "My loads" and in the rejected sub-view. One
+  // string for the visible tooltip and the `sr-only` sentence beside it, so
+  // the two cannot drift — a `title` alone reaches a mouse and nobody else.
+  const filtersInertTitle = t("filtersInertTitle");
 
   // Memoised because `useHubVehiclePill` registers its argument in an effect
   // keyed on identity: inline JSX is a new object every render, which would
@@ -170,7 +164,9 @@ function LoadsScreenBody({
           aria-hidden="true"
           className="size-1.5 rounded-full bg-[oklch(59.6%_0.145_163.225)]"
         />
-        <span className="text-xs text-muted-foreground">Vehicle</span>
+        <span className="text-xs text-muted-foreground">
+          {tShared("vehicle")}
+        </span>
         <span className="font-price text-xs tabular-nums">
           {vehiclePill.label} ·{" "}
           {formatWeightKg(vehiclePill.capability.payloadKg)} ·{" "}
@@ -178,17 +174,17 @@ function LoadsScreenBody({
         </span>
       </div>
     );
-  }, [vehiclePill]);
+  }, [vehiclePill, tShared]);
 
   useHubVehiclePill(pillNode);
 
   if (isLoading) {
-    return <HubEmptyState message="Loading loads…" />;
+    return <HubEmptyState message={t("loadingLoads")} />;
   }
 
   if (loadError !== null) {
     return (
-      <HubEmptyState message="Couldn't load the board.">
+      <HubEmptyState message={t("couldNotLoadBoard")}>
         <p className="mt-1 text-sm">{loadError}</p>
       </HubEmptyState>
     );
@@ -210,7 +206,7 @@ function LoadsScreenBody({
               value="available"
               className="rounded-none border-none px-0 py-2.5 text-sm font-medium text-muted-foreground data-active:text-foreground"
             >
-              Available loads{" "}
+              {t("availableLoads")}{" "}
               {/* The counts are over the raw arrays, so they do not shrink when
                   a filter is on — the tab says how much work exists, the list
                   says how much of it you are looking at. */}
@@ -222,7 +218,7 @@ function LoadsScreenBody({
               value="mine"
               className="rounded-none border-none px-0 py-2.5 text-sm font-medium text-muted-foreground data-active:text-foreground"
             >
-              My loads{" "}
+              {t("myLoads")}{" "}
               <span className="text-muted-foreground tabular-nums">
                 ({mineCount})
               </span>
@@ -235,14 +231,14 @@ function LoadsScreenBody({
           variant="outline"
           size="sm"
           disabled={!filtersApply}
-          title={filtersApply ? undefined : FILTERS_INERT_TITLE}
+          title={filtersApply ? undefined : filtersInertTitle}
           onClick={() => setFiltersOpen(!filtersOpen)}
           // Tracks the panel below, which is gated on both — on the two lists
           // the filters do not reach, the button controls nothing that is open.
           aria-expanded={filtersOpen && filtersApply}
           className="gap-1.5 text-[13px] font-medium"
         >
-          Filters
+          {t("filters")}
           {/* Absent at zero rather than showing "0": a badge reading nothing is
               a badge that costs the eye a fixation to dismiss. Absent again
               wherever the filters do not reach the list — the count would then
@@ -250,7 +246,7 @@ function LoadsScreenBody({
           {filtersApply && activeFilterCount > 0 ? (
             <Badge
               className="h-auto rounded-full bg-foreground px-1.5 py-0 text-[11px] text-background tabular-nums"
-              aria-label={pluralise(activeFilterCount, "filter") + " active"}
+              aria-label={t("filtersActive", { count: activeFilterCount })}
             >
               {activeFilterCount}
             </Badge>
@@ -258,7 +254,7 @@ function LoadsScreenBody({
           {/* A disabled button is out of the tab order and its `title` is not
               reliably announced, so the reason is real text too. */}
           {filtersApply ? null : (
-            <span className="sr-only">{FILTERS_INERT_TITLE}</span>
+            <span className="sr-only">{filtersInertTitle}</span>
           )}
         </Button>
       </div>

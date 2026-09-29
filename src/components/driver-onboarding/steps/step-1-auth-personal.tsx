@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { CheckIcon, UploadIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,13 +20,22 @@ import {
   useOnboardingDraft,
 } from "@/components/driver-onboarding/onboarding-draft-context";
 import type { OnboardingDraftV1 } from "@/lib/driver-onboarding/draft-schema";
-import { GEORGIAN_CITY_OPTIONS } from "@/lib/georgian-cities";
+import {
+  GEORGIAN_CITY_OPTIONS,
+  useLocalizedCityOptions,
+} from "@/lib/georgian-cities";
 
 /** The `personal` section of the draft, with its optionality unwrapped. */
 type PersonalDraft = NonNullable<OnboardingDraftV1["personal"]>;
 
-/** One entry of `GEORGIAN_CITY_OPTIONS`. */
-type CityOption = (typeof GEORGIAN_CITY_OPTIONS)[number];
+/** One city as this step shows it: `label` and `region` in the reader's
+ *  language, `value` the stored `GeorgianCity` enum value. */
+type CityOption = ReturnType<typeof useLocalizedCityOptions>[number];
+
+/** The step's translator, passed to the module-level validator below. */
+type Step1Translator = ReturnType<
+  typeof useTranslations<"onboarding.step1AuthPersonal">
+>;
 
 /**
  * Every input on this screen that can carry its own inline error. The profile
@@ -81,8 +91,6 @@ const UPLOADED_BORDER_CLASS = "border-status-success";
 const UPLOADED_TINT_CLASS = "bg-status-success/5 dark:bg-status-success/10";
 const UPLOADED_TEXT_CLASS = "text-status-success";
 
-const VALIDATION_TOAST = "Fix the highlighted fields to continue.";
-
 /**
  * Whole years between `isoDate` and `today`, or `null` if the string is not a
  * date at all.
@@ -106,12 +114,38 @@ function ageInYears(isoDate: string, today: Date): number | null {
   );
 }
 
-/** The city whose label is exactly `label`, ignoring case, or `undefined`. */
-function findCityByLabel(label: string): CityOption | undefined {
-  const needle = label.trim().toLowerCase();
+/**
+ * Whether `option` answers to `needle` (already lowercased), by its name in the
+ * reader's language or by its English name. The English is kept as a second
+ * way in because Latin is what many Georgian keyboards type by default, and a
+ * driver typing "Batumi" should not be told there is no such city.
+ * `localizeCityOptions` preserves `GEORGIAN_CITY_OPTIONS` order, so the two
+ * are matched by index.
+ */
+function cityAnswersTo(
+  option: CityOption,
+  index: number,
+  needle: string,
+  exact: boolean,
+): boolean {
+  const names = [
+    option.label.toLocaleLowerCase(),
+    GEORGIAN_CITY_OPTIONS[index]?.label.toLowerCase() ?? "",
+  ];
+  return names.some((name) =>
+    exact ? name === needle : name.includes(needle),
+  );
+}
+
+/** The city whose name is exactly `label`, ignoring case, or `undefined`. */
+function findCityByLabel(
+  cities: CityOption[],
+  label: string,
+): CityOption | undefined {
+  const needle = label.trim().toLocaleLowerCase();
   if (!needle) return undefined;
-  return GEORGIAN_CITY_OPTIONS.find(
-    (option) => option.label.toLowerCase() === needle,
+  return cities.find((option, index) =>
+    cityAnswersTo(option, index, needle, true),
   );
 }
 
@@ -131,51 +165,55 @@ function collectProblems(
   cityQuery: string,
   hasProfilePhoto: boolean,
   today: Date,
+  t: Step1Translator,
 ): Problems {
   const problems: Problems = {};
 
   const phoneDigits = (personal.phone ?? "").replace(/\D/g, "");
   if (!phoneDigits) {
-    problems.phone = "Enter your mobile number.";
+    problems.phone = t("enterMobileNumber");
   } else if (
     phoneDigits.length < MIN_PHONE_DIGITS ||
     phoneDigits.length > MAX_PHONE_DIGITS
   ) {
-    problems.phone = `That is not a valid mobile number (${MIN_PHONE_DIGITS}–${MAX_PHONE_DIGITS} digits).`;
+    problems.phone = t("invalidMobileNumber", {
+      min: MIN_PHONE_DIGITS,
+      max: MAX_PHONE_DIGITS,
+    });
   }
 
   const fullName = (personal.fullName ?? "").trim();
   if (!fullName) {
-    problems.fullName = "Enter your full name.";
+    problems.fullName = t("enterFullName");
   } else if (fullName.split(/\s+/).length < 2) {
-    problems.fullName = "Give first and last name, exactly as on your ID.";
+    problems.fullName = t("giveFirstAndLastName");
   }
 
   const idNumber = (personal.idNumber ?? "").trim();
   if (!idNumber) {
-    problems.idNumber = "Enter your ID or passport number.";
+    problems.idNumber = t("enterIdOrPassport");
   } else if (!ID_NUMBER_PATTERN.test(idNumber)) {
-    problems.idNumber = "6–20 letters, digits or hyphens, no spaces.";
+    problems.idNumber = t("idNumberFormat");
   }
 
   const dateOfBirth = personal.dateOfBirth ?? "";
   const age = dateOfBirth ? ageInYears(dateOfBirth, today) : null;
   if (!dateOfBirth || age === null) {
-    problems.dateOfBirth = "Enter your date of birth.";
+    problems.dateOfBirth = t("enterDateOfBirth");
   } else if (age < MIN_DRIVER_AGE) {
-    problems.dateOfBirth = `Partner drivers must be ${MIN_DRIVER_AGE} or older.`;
+    problems.dateOfBirth = t("minimumDriverAge", { age: MIN_DRIVER_AGE });
   } else if (age > MAX_DRIVER_AGE) {
-    problems.dateOfBirth = "Check the date — that does not look right.";
+    problems.dateOfBirth = t("checkTheDate");
   }
 
   if (!personal.city) {
     problems.city = cityQuery.trim()
-      ? "Pick a city from the list."
-      : "Select the city you will drive in.";
+      ? t("pickCityFromList")
+      : t("selectCityYouDriveIn");
   }
 
   if (!hasProfilePhoto) {
-    problems.profilePhoto = "A profile photo is required for identity checks.";
+    problems.profilePhoto = t("profilePhotoRequired");
   }
 
   return problems;
@@ -201,6 +239,9 @@ function collectProblems(
 export function Step1AuthPersonal() {
   const { draft, documents, updateDraft, goToStep, showToast } =
     useOnboardingDraft();
+  const t = useTranslations("onboarding.step1AuthPersonal");
+  const tShared = useTranslations("common.shared");
+  const cities = useLocalizedCityOptions();
 
   const personal = useMemo<PersonalDraft>(
     () => draft.personal ?? {},
@@ -221,9 +262,8 @@ export function Step1AuthPersonal() {
   // already populated on first render and there is nothing to sync later.
   const [cityQuery, setCityQuery] = useState<string>(
     () =>
-      GEORGIAN_CITY_OPTIONS.find(
-        (option) => option.value === draft.personal?.city,
-      )?.label ?? "",
+      cities.find((option) => option.value === draft.personal?.city)?.label ??
+      "",
   );
   const [cityOpen, setCityOpen] = useState(false);
   const [cityActiveIndex, setCityActiveIndex] = useState(0);
@@ -241,12 +281,12 @@ export function Step1AuthPersonal() {
     null;
 
   const cityMatches = useMemo(() => {
-    const needle = cityQuery.trim().toLowerCase();
-    if (!needle) return GEORGIAN_CITY_OPTIONS;
-    return GEORGIAN_CITY_OPTIONS.filter((option) =>
-      option.label.toLowerCase().includes(needle),
+    const needle = cityQuery.trim().toLocaleLowerCase();
+    if (!needle) return cities;
+    return cities.filter((option, index) =>
+      cityAnswersTo(option, index, needle, false),
     );
-  }, [cityQuery]);
+  }, [cities, cityQuery]);
 
   // Clamped rather than reset when the list shrinks under the cursor, so
   // narrowing a search never leaves the highlight pointing past the last row.
@@ -273,6 +313,7 @@ export function Step1AuthPersonal() {
     cityQuery,
     profilePhoto !== null,
     new Date(),
+    t,
   );
 
   /** The message to show under `field`, or `undefined` while it stays quiet. */
@@ -296,7 +337,7 @@ export function Step1AuthPersonal() {
     // Only an exact city name counts as a selection: the draft stores the
     // `GeorgianCity` enum value, so anything else has to clear it rather than
     // leave a stale city attached to text that no longer names it.
-    setPersonal({ city: findCityByLabel(value)?.value });
+    setPersonal({ city: findCityByLabel(cities, value)?.value });
   }
 
   function selectCity(option: CityOption) {
@@ -351,7 +392,7 @@ export function Step1AuthPersonal() {
       });
       // An open dropdown would cover the fields the toast is pointing at.
       setCityOpen(false);
-      showToast(VALIDATION_TOAST, "error");
+      showToast(t("fixHighlightedFields"), "error");
       return;
     }
 
@@ -366,12 +407,11 @@ export function Step1AuthPersonal() {
       {/* The design's own intro sentence with its OTP clause removed — this
           feature sends no SMS code, so promising one would be a lie. */}
       <p className="text-[13.5px] leading-[1.5] text-muted-foreground">
-        This is the number couriers and dispatch will call. Everything here is
-        checked against your ID by the review team.
+        {t("thisIsTheNumberCouriersAnd")}
       </p>
 
       <Field
-        label="Mobile number"
+        label={t("mobileNumber")}
         htmlFor={`${fieldId}-phone`}
         error={errorFor("phone")}
       >
@@ -389,14 +429,14 @@ export function Step1AuthPersonal() {
       </Field>
 
       <Field
-        label="Full name"
+        label={tShared("fullName")}
         htmlFor={`${fieldId}-name`}
         error={errorFor("fullName")}
       >
         <Input
           id={`${fieldId}-name`}
           autoComplete="name"
-          placeholder="Exactly as printed on your ID"
+          placeholder={t("exactlyAsPrintedOnYourId")}
           value={personal.fullName ?? ""}
           aria-invalid={errorFor("fullName") !== undefined}
           onChange={(event) => setPersonal({ fullName: event.target.value })}
@@ -405,7 +445,7 @@ export function Step1AuthPersonal() {
       </Field>
 
       <Field
-        label="ID or passport number"
+        label={t("idOrPassportNumber")}
         htmlFor={`${fieldId}-id-number`}
         error={errorFor("idNumber")}
       >
@@ -422,7 +462,7 @@ export function Step1AuthPersonal() {
       </Field>
 
       <Field
-        label="Date of birth"
+        label={tShared("dateOfBirth")}
         htmlFor={`${fieldId}-dob`}
         error={errorFor("dateOfBirth")}
       >
@@ -438,10 +478,10 @@ export function Step1AuthPersonal() {
       </Field>
 
       <Field
-        label="City"
+        label={tShared("city")}
         htmlFor={`${fieldId}-city`}
         error={errorFor("city")}
-        hint="Where you will mostly pick up orders. Georgia only for now."
+        hint={t("whereYouWillMostlyPickUp")}
       >
         {/* Hand-built combobox: this codebase has no such primitive, and the
             design needs a filtered, region-annotated list rather than the flat
@@ -461,7 +501,7 @@ export function Step1AuthPersonal() {
                   ? `${cityListId}-${activeIndex}`
                   : undefined
               }
-              placeholder="Start typing — Tbilisi, Batumi, Kutaisi…"
+              placeholder={t("startTypingTbilisiBatumiKutaisi")}
               value={cityQuery}
               aria-invalid={errorFor("city") !== undefined}
               onChange={(event) => handleCityQueryChange(event.target.value)}
@@ -498,7 +538,7 @@ export function Step1AuthPersonal() {
             <div ref={cityListRef} id={cityListId} role="listbox">
               {cityMatches.length === 0 ? (
                 <p className="px-[13px] py-[11px] text-[13px] text-muted-foreground">
-                  No city by that name. Check the spelling.
+                  {tShared("noCityByThatNameCheck")}
                 </p>
               ) : (
                 cityMatches.map((option, index) => {
@@ -556,11 +596,10 @@ export function Step1AuthPersonal() {
             that opens a dialog, and a label bound to it would only re-fire the
             click that opened the dialog in the first place. */}
         <p className="font-price text-[11.5px] font-semibold tracking-[0.04em] text-muted-foreground uppercase">
-          Profile photo
+          {tShared("profilePhoto")}
         </p>
         <p className="text-[12.5px] leading-[1.5] text-muted-foreground">
-          A recent photo of your face, matched against your ID by the review
-          team.
+          {tShared("aRecentPhotoOfYourFace")}
         </p>
 
         <button
@@ -602,13 +641,11 @@ export function Step1AuthPersonal() {
           <span className="min-w-0 flex-1">
             <span className="block text-sm font-semibold">
               {photoUploaded
-                ? "Profile photo uploaded"
-                : "Upload a profile photo"}
+                ? t("profilePhotoUploaded")
+                : t("uploadAProfilePhoto")}
             </span>
             <span className="mt-0.5 block text-xs text-muted-foreground">
-              {photoUploaded
-                ? "Click to replace the file"
-                : "JPG or PNG, max 10 MB"}
+              {photoUploaded ? t("clickToReplaceFile") : t("jpgOrPngMax10Mb")}
             </span>
           </span>
 
@@ -617,7 +654,7 @@ export function Step1AuthPersonal() {
               photoUploaded ? UPLOADED_TEXT_CLASS : "text-muted-foreground"
             }`}
           >
-            {photoUploaded ? "Uploaded" : "Required"}
+            {photoUploaded ? t("uploaded") : t("required")}
           </span>
         </button>
 
@@ -642,7 +679,7 @@ export function Step1AuthPersonal() {
           // to near-black on orange the moment `.dark` is on.
           className="h-12 cursor-pointer rounded-[11px] bg-onboarding-accent px-[30px] text-[15px] font-semibold tracking-[-0.01em] text-white transition-colors hover:bg-onboarding-accent-hover focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
         >
-          Continue
+          {tShared("continue")}
         </button>
       </div>
 

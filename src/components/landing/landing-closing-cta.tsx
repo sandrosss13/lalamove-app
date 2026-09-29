@@ -1,7 +1,4 @@
-import {
-  DEFAULT_HOME_PAGE_CONTENT,
-  type ClosingCtaContent,
-} from "@/lib/admin/home-page-content";
+import { type ClosingCtaContent } from "@/lib/admin/home-page-content";
 import { Link } from "@/i18n/navigation";
 
 /**
@@ -11,11 +8,7 @@ import { Link } from "@/i18n/navigation";
  * falls back to the copy the page ships with when the locale has no rows yet.
  * The section carries no anchor id: nothing in the nav links to it.
  */
-export function LandingClosingCta({
-  content = DEFAULT_HOME_PAGE_CONTENT.closing_cta,
-}: {
-  content?: ClosingCtaContent;
-}) {
+export function LandingClosingCta({ content }: { content: ClosingCtaContent }) {
   return (
     <section className="px-[clamp(20px,4vw,48px)] py-[clamp(56px,7vw,104px)]">
       <div className="mx-auto w-full max-w-[1200px]">

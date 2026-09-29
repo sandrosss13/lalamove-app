@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 import { Link, usePathname } from "@/i18n/navigation";
 import type { AdminNavItem } from "@/components/admin/admin-nav";
 import { cn } from "@/lib/utils";
@@ -21,10 +23,12 @@ export function AdminSectionTabs({
   items: readonly AdminNavItem[];
 }) {
   const pathname = usePathname();
+  // Root-scoped, because each item's `labelKey` is a full dotted path.
+  const t = useTranslations();
 
   return (
     <nav
-      aria-label="Section"
+      aria-label={t("common.shared.section")}
       className="flex flex-wrap items-center gap-1 border-b border-border pb-2"
     >
       {items.map((item) => {
@@ -43,7 +47,7 @@ export function AdminSectionTabs({
                 : "text-muted-foreground hover:bg-muted hover:text-foreground",
             )}
           >
-            {item.label}
+            {t(item.labelKey)}
           </Link>
         );
       })}

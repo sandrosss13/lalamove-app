@@ -59,6 +59,7 @@
  * module for why.
  */
 
+import type { Translator } from "@/i18n/translator";
 import { CARGO_MEASUREMENT_BOUNDS } from "@/lib/cargo";
 
 import {
@@ -115,6 +116,10 @@ type CargoAxisDescriptor = {
   exceededPhrase: string;
   /** The unit the limit is quoted in, as the bounds table spells it. */
   unit: string;
+  /** Catalog key of `exceededPhrase`, for a localized refusal. */
+  exceededPhraseKey: string;
+  /** Catalog key quoting one limit with its unit (`{value}` placeholder). */
+  limitKey: string;
 };
 
 const CARGO_AXIS_DESCRIPTORS: Record<CargoAxis, CargoAxisDescriptor> = {
@@ -123,24 +128,32 @@ const CARGO_AXIS_DESCRIPTORS: Record<CargoAxis, CargoAxisDescriptor> = {
     capabilityField: "payloadKg",
     exceededPhrase: "too heavy",
     unit: CARGO_MEASUREMENT_BOUNDS.cargoWeightKg.unit,
+    exceededPhraseKey: "errors.cargoFit.exceeded.weight",
+    limitKey: "errors.cargoFit.limitKg",
   },
   length: {
     loadField: "lengthM",
     capabilityField: "lengthM",
     exceededPhrase: "too long",
     unit: CARGO_MEASUREMENT_BOUNDS.cargoLengthM.unit,
+    exceededPhraseKey: "errors.cargoFit.exceeded.length",
+    limitKey: "errors.cargoFit.limitM",
   },
   width: {
     loadField: "widthM",
     capabilityField: "widthM",
     exceededPhrase: "too wide",
     unit: CARGO_MEASUREMENT_BOUNDS.cargoWidthM.unit,
+    exceededPhraseKey: "errors.cargoFit.exceeded.width",
+    limitKey: "errors.cargoFit.limitM",
   },
   height: {
     loadField: "heightM",
     capabilityField: "heightM",
     exceededPhrase: "too tall",
     unit: CARGO_MEASUREMENT_BOUNDS.cargoHeightM.unit,
+    exceededPhraseKey: "errors.cargoFit.exceeded.height",
+    limitKey: "errors.cargoFit.limitM",
   },
 };
 
@@ -237,11 +250,10 @@ export function oversizeAxes(
 /**
  * Join phrases the way a sentence does: "a", "a and b", "a, b and c".
  *
- * Written out rather than reached for `Intl.ListFormat` because the output of
- * this module is a stored, tested error string and not a localised UI label —
- * every other message in `POST /api/orders` is a plain English literal, and
- * `quoteFailureMessage` builds its own list with `.join(" or ")` for the same
- * reason. No Oxford comma, matching the house voice of those messages.
+ * The English fallback only: written out rather than reached for
+ * `Intl.ListFormat` so the untranslated sentence keeps its house voice (no
+ * Oxford comma). The localized path uses `Intl.ListFormat` for the reader's
+ * locale instead.
  */
 function joinPhrases(phrases: string[]): string {
   if (phrases.length <= 1) {
@@ -301,7 +313,19 @@ export function cargoFitMessage(
   specLabel: string,
   axes: CargoAxis[],
   capability: VehicleCapability,
+  /**
+   * Renders the refusal in the reader's language: a root-scoped translator and
+   * the locale its numbers and list are formatted for. English (the wording
+   * above) when omitted. Every caller that shows the sentence to a person
+   * passes both, so the booking form and `POST /api/orders` still word it
+   * identically — they share the `errors.cargoFit.*` keys.
+   */
+  localize?: { t: Translator; locale: string },
 ): string {
+  if (localize) {
+    return localizedCargoFitMessage(specLabel, axes, capability, localize);
+  }
+
   if (axes.length === 0) {
     return `Cargo does not fit a ${specLabel}.`;
   }
@@ -318,4 +342,40 @@ export function cargoFitMessage(
     .join(", ");
 
   return `Cargo is ${phrases} for a ${specLabel} (max ${limits}).`;
+}
+
+/** `cargoFitMessage` through the catalog; see its `localize` parameter. */
+function localizedCargoFitMessage(
+  specLabel: string,
+  axes: CargoAxis[],
+  capability: VehicleCapability,
+  { t, locale }: { t: Translator; locale: string },
+): string {
+  if (axes.length === 0) {
+    return t("errors.cargoFit.doesNotFit", { vehicle: specLabel });
+  }
+
+  const numberFormat = new Intl.NumberFormat(locale);
+  const problems = new Intl.ListFormat(locale, {
+    style: "long",
+    type: "conjunction",
+  }).format(
+    axes.map((axis) => t(CARGO_AXIS_DESCRIPTORS[axis].exceededPhraseKey)),
+  );
+
+  const limits = axes
+    .map((axis) => {
+      const { capabilityField, limitKey } = CARGO_AXIS_DESCRIPTORS[axis];
+      // Pre-formatted and passed as a string so ICU does not re-group it.
+      return t(limitKey, {
+        value: numberFormat.format(capability[capabilityField]),
+      });
+    })
+    .join(", ");
+
+  return t("errors.cargoFit.tooBig", {
+    problems,
+    vehicle: specLabel,
+    limits,
+  });
 }

@@ -10,6 +10,11 @@ import {
   type Prisma,
 } from "@prisma/client";
 
+import {
+  getRequestLocale,
+  getRequestTranslations,
+  type RequestTranslator,
+} from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
 import {
   CARGO_MEASUREMENT_BOUNDS,
@@ -31,6 +36,7 @@ import {
   ORDER_REFERENCE_SEQUENCE,
 } from "@/lib/orders/reference";
 import { prisma } from "@/lib/prisma";
+import { vehicleTypeSpecLabel } from "@/lib/vehicle-type-spec-labels";
 import {
   estimateDelivery,
   parseQuoteFields,
@@ -233,13 +239,18 @@ const SCHEDULED_AT_PAST_GRACE_MS = 5 * 60 * 1000;
 function parseOptionalText(
   value: unknown,
   fieldName: string,
+  t: RequestTranslator,
 ): { value: string | null } | { error: string } {
   if (value === undefined || value === null) {
     return { value: null };
   }
 
   if (typeof value !== "string") {
-    return { error: `${fieldName} must be a string when provided.` };
+    return {
+      error: t("errors.orders.fieldMustBeStringWhenProvided", {
+        field: fieldName,
+      }),
+    };
   }
 
   const trimmed = value.trim();
@@ -249,7 +260,10 @@ function parseOptionalText(
 
   if (trimmed.length > FREE_TEXT_MAX_LENGTH) {
     return {
-      error: `${fieldName} must be ${FREE_TEXT_MAX_LENGTH} characters or fewer.`,
+      error: t("errors.orders.fieldTooLong", {
+        field: fieldName,
+        max: FREE_TEXT_MAX_LENGTH,
+      }),
     };
   }
 
@@ -263,6 +277,7 @@ function parseOptionalText(
 function parseStopContact(
   value: unknown,
   fieldName: string,
+  t: RequestTranslator,
 ): { data: StopContact } | { error: string } {
   const empty: StopContact = { name: null, phone: null, details: null };
 
@@ -271,22 +286,26 @@ function parseStopContact(
   }
 
   if (typeof value !== "object" || Array.isArray(value)) {
-    return { error: `${fieldName} must be a JSON object when provided.` };
+    return {
+      error: t("errors.orders.fieldMustBeObjectWhenProvided", {
+        field: fieldName,
+      }),
+    };
   }
 
   const record = value as Record<string, unknown>;
 
-  const name = parseOptionalText(record.name, `${fieldName}.name`);
+  const name = parseOptionalText(record.name, `${fieldName}.name`, t);
   if ("error" in name) {
     return name;
   }
 
-  const phone = parseOptionalText(record.phone, `${fieldName}.phone`);
+  const phone = parseOptionalText(record.phone, `${fieldName}.phone`, t);
   if ("error" in phone) {
     return phone;
   }
 
-  const details = parseOptionalText(record.details, `${fieldName}.details`);
+  const details = parseOptionalText(record.details, `${fieldName}.details`, t);
   if ("error" in details) {
     return details;
   }
@@ -316,6 +335,7 @@ function parsePositiveMeasurement(
   value: unknown,
   fieldName: string,
   bounds: CargoMeasurementBounds,
+  t: RequestTranslator,
 ): { value: number } | { error: string } {
   if (
     typeof value !== "number" ||
@@ -324,7 +344,11 @@ function parsePositiveMeasurement(
     value > bounds.max
   ) {
     return {
-      error: `${fieldName} must be a number greater than 0 and no more than ${bounds.max} ${bounds.unit}.`,
+      error: t("errors.orders.fieldMeasurementOutOfRange", {
+        field: fieldName,
+        max: bounds.max,
+        unit: bounds.unit,
+      }),
     };
   }
 
@@ -347,13 +371,14 @@ function parsePositiveMeasurement(
  */
 function parseHandlingTags(
   value: unknown,
+  t: RequestTranslator,
 ): { value: CargoHandlingTag[] } | { error: string } {
   if (value === undefined || value === null) {
     return { value: [] };
   }
 
   if (!Array.isArray(value)) {
-    return { error: "handlingTags must be an array when provided." };
+    return { error: t("errors.orders.handlingtagsMustBeAnArrayWhen") };
   }
 
   const isHandlingTag = (tag: unknown): tag is CargoHandlingTag =>
@@ -362,7 +387,9 @@ function parseHandlingTags(
 
   if (!value.every(isHandlingTag)) {
     return {
-      error: `handlingTags must contain only: ${CARGO_HANDLING_TAGS.join(", ")}.`,
+      error: t("errors.orders.handlingTagsMustContainOnly", {
+        allowed: CARGO_HANDLING_TAGS.join(", "),
+      }),
     };
   }
 
@@ -390,13 +417,18 @@ function parseHandlingTags(
 function parseOptionalDate(
   value: unknown,
   fieldName: string,
+  t: RequestTranslator,
 ): { value: Date | null } | { error: string } {
   if (value === undefined || value === null) {
     return { value: null };
   }
 
   if (typeof value !== "string") {
-    return { error: `${fieldName} must be a string when provided.` };
+    return {
+      error: t("errors.orders.fieldMustBeStringWhenProvided", {
+        field: fieldName,
+      }),
+    };
   }
 
   if (value.trim().length === 0) {
@@ -405,7 +437,9 @@ function parseOptionalDate(
 
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
-    return { error: `${fieldName} must be a valid date and time.` };
+    return {
+      error: t("errors.orders.fieldMustBeValidDateTime", { field: fieldName }),
+    };
   }
 
   return { value: date };
@@ -420,14 +454,15 @@ function parseOptionalDate(
  */
 function parseCreateOrderBody(
   body: unknown,
+  t: RequestTranslator,
 ): { data: CreateOrderInput } | { error: string } {
   if (typeof body !== "object" || body === null) {
-    return { error: "Request body must be a JSON object." };
+    return { error: t("common.shared.requestBodyMustBeAJson") };
   }
 
   const record = body as Record<string, unknown>;
 
-  const quote = parseQuoteFields(record);
+  const quote = parseQuoteFields(record, t);
   if ("error" in quote) {
     return quote;
   }
@@ -435,23 +470,27 @@ function parseCreateOrderBody(
   const { description, scheduledAt } = record;
 
   if (description !== undefined && typeof description !== "string") {
-    return { error: "description must be a string when provided." };
+    return { error: t("errors.orders.descriptionMustBeAStringWhen") };
   }
 
   if (typeof scheduledAt !== "string" || scheduledAt.trim().length === 0) {
-    return { error: "scheduledAt is required." };
+    return { error: t("errors.orders.scheduledatIsRequired") };
   }
 
   const scheduledAtDate = new Date(scheduledAt);
   if (Number.isNaN(scheduledAtDate.getTime())) {
-    return { error: "scheduledAt must be a valid date and time." };
+    return { error: t("errors.orders.scheduledatMustBeAValidDate") };
   }
 
   if (scheduledAtDate.getTime() < Date.now() - SCHEDULED_AT_PAST_GRACE_MS) {
-    return { error: "scheduledAt cannot be in the past." };
+    return { error: t("errors.orders.scheduledatCannotBeInThePast") };
   }
 
-  const pickupContact = parseStopContact(record.pickupContact, "pickupContact");
+  const pickupContact = parseStopContact(
+    record.pickupContact,
+    "pickupContact",
+    t,
+  );
   if ("error" in pickupContact) {
     return pickupContact;
   }
@@ -459,6 +498,7 @@ function parseCreateOrderBody(
   const dropoffContact = parseStopContact(
     record.dropoffContact,
     "dropoffContact",
+    t,
   );
   if ("error" in dropoffContact) {
     return dropoffContact;
@@ -473,7 +513,9 @@ function parseCreateOrderBody(
       !SERVICE_LEVELS.includes(serviceLevel as ServiceLevel))
   ) {
     return {
-      error: `serviceLevel must be one of: ${SERVICE_LEVELS.join(", ")}.`,
+      error: t("errors.orders.serviceLevelMustBeOneOf", {
+        allowed: SERVICE_LEVELS.join(", "),
+      }),
     };
   }
 
@@ -483,7 +525,11 @@ function parseCreateOrderBody(
     (typeof bodyType !== "string" ||
       !BODY_TYPES.includes(bodyType as ChassisType))
   ) {
-    return { error: `bodyType must be one of: ${BODY_TYPES.join(", ")}.` };
+    return {
+      error: t("errors.orders.bodyTypeMustBeOneOf", {
+        allowed: BODY_TYPES.join(", "),
+      }),
+    };
   }
 
   const { paymentMethodType } = record;
@@ -493,7 +539,9 @@ function parseCreateOrderBody(
       !PAYMENT_METHOD_TYPES.includes(paymentMethodType as PaymentMethodType))
   ) {
     return {
-      error: `paymentMethodType must be one of: ${PAYMENT_METHOD_TYPES.join(", ")}.`,
+      error: t("errors.orders.paymentMethodTypeMustBeOneOf", {
+        allowed: PAYMENT_METHOD_TYPES.join(", "),
+      }),
     };
   }
 
@@ -502,7 +550,7 @@ function parseCreateOrderBody(
     savedCardId !== undefined &&
     (typeof savedCardId !== "string" || savedCardId.trim().length === 0)
   ) {
-    return { error: "savedCardId must be a non-empty string when provided." };
+    return { error: t("common.shared.savedcardidMustBeANonEmpty") };
   }
 
   const chosenCardId =
@@ -513,16 +561,19 @@ function parseCreateOrderBody(
   // means the client changed method without clearing its card — either way, say
   // which of the two to change rather than quietly picking one.
   if (paymentMethodType === PaymentMethodType.CARD && chosenCardId === null) {
-    return { error: "Choose a saved card to pay by card." };
+    return { error: t("common.shared.chooseASavedCardToPay") };
   }
 
   if (paymentMethodType !== PaymentMethodType.CARD && chosenCardId !== null) {
-    return { error: "Send savedCardId only when paymentMethodType is CARD." };
+    return {
+      error: t("common.shared.sendSavedcardidOnlyWhenPaymentmethodtypeIs"),
+    };
   }
 
   const purchaseOrderRef = parseOptionalText(
     record.purchaseOrderRef,
     "purchaseOrderRef",
+    t,
   );
   if ("error" in purchaseOrderRef) {
     return purchaseOrderRef;
@@ -536,6 +587,7 @@ function parseCreateOrderBody(
     record.cargoWeightKg,
     "cargoWeightKg",
     CARGO_MEASUREMENT_BOUNDS.cargoWeightKg,
+    t,
   );
   if ("error" in cargoWeightKg) {
     return cargoWeightKg;
@@ -545,6 +597,7 @@ function parseCreateOrderBody(
     record.cargoLengthM,
     "cargoLengthM",
     CARGO_MEASUREMENT_BOUNDS.cargoLengthM,
+    t,
   );
   if ("error" in cargoLengthM) {
     return cargoLengthM;
@@ -554,6 +607,7 @@ function parseCreateOrderBody(
     record.cargoWidthM,
     "cargoWidthM",
     CARGO_MEASUREMENT_BOUNDS.cargoWidthM,
+    t,
   );
   if ("error" in cargoWidthM) {
     return cargoWidthM;
@@ -563,6 +617,7 @@ function parseCreateOrderBody(
     record.cargoHeightM,
     "cargoHeightM",
     CARGO_MEASUREMENT_BOUNDS.cargoHeightM,
+    t,
   );
   if ("error" in cargoHeightM) {
     return cargoHeightM;
@@ -574,17 +629,22 @@ function parseCreateOrderBody(
   const packagingDescription = parseOptionalText(
     record.packagingDescription,
     "packagingDescription",
+    t,
   );
   if ("error" in packagingDescription) {
     return packagingDescription;
   }
 
-  const itemQuantity = parseOptionalText(record.itemQuantity, "itemQuantity");
+  const itemQuantity = parseOptionalText(
+    record.itemQuantity,
+    "itemQuantity",
+    t,
+  );
   if ("error" in itemQuantity) {
     return itemQuantity;
   }
 
-  const handlingTags = parseHandlingTags(record.handlingTags);
+  const handlingTags = parseHandlingTags(record.handlingTags, t);
   if ("error" in handlingTags) {
     return handlingTags;
   }
@@ -592,6 +652,7 @@ function parseCreateOrderBody(
   const pickupWindowStart = parseOptionalDate(
     record.pickupWindowStart,
     "pickupWindowStart",
+    t,
   );
   if ("error" in pickupWindowStart) {
     return pickupWindowStart;
@@ -600,6 +661,7 @@ function parseCreateOrderBody(
   const pickupWindowEnd = parseOptionalDate(
     record.pickupWindowEnd,
     "pickupWindowEnd",
+    t,
   );
   if ("error" in pickupWindowEnd) {
     return pickupWindowEnd;
@@ -622,12 +684,15 @@ function parseCreateOrderBody(
     pickupWindowEnd.value !== null &&
     pickupWindowEnd.value.getTime() <= pickupWindowStart.value.getTime()
   ) {
-    return { error: "pickupWindowEnd must be after pickupWindowStart." };
+    return {
+      error: t("errors.orders.pickupwindowendMustBeAfterPickupwindowstart"),
+    };
   }
 
   const deliveryDeadline = parseOptionalDate(
     record.deliveryDeadline,
     "deliveryDeadline",
+    t,
   );
   if ("error" in deliveryDeadline) {
     return deliveryDeadline;
@@ -647,7 +712,9 @@ function parseCreateOrderBody(
     pickupWindowEnd.value !== null &&
     deliveryDeadline.value.getTime() <= pickupWindowEnd.value.getTime()
   ) {
-    return { error: "deliveryDeadline must be after pickupWindowEnd." };
+    return {
+      error: t("errors.orders.deliverydeadlineMustBeAfterPickupwindowend"),
+    };
   }
 
   return {
@@ -694,9 +761,14 @@ function parseCreateOrderBody(
  * so no figure the browser computed is ever booked.
  */
 export async function POST(request: Request): Promise<NextResponse> {
+  const t = await getRequestTranslations();
+
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    return NextResponse.json(
+      { error: t("common.shared.unauthorized") },
+      { status: 401 },
+    );
   }
 
   let rawBody: unknown;
@@ -704,12 +776,12 @@ export async function POST(request: Request): Promise<NextResponse> {
     rawBody = await request.json();
   } catch {
     return NextResponse.json(
-      { error: "Request body must be valid JSON." },
+      { error: t("common.shared.requestBodyMustBeValidJson") },
       { status: 400 },
     );
   }
 
-  const parsed = parseCreateOrderBody(rawBody);
+  const parsed = parseCreateOrderBody(rawBody, t);
   if ("error" in parsed) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
@@ -771,7 +843,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   // request can be edited after that filter ran.
   if (bodyType !== null && spec && !spec.bodyTypes.includes(bodyType)) {
     return NextResponse.json(
-      { error: "That vehicle does not offer the load space you selected." },
+      { error: t("errors.orders.thatVehicleDoesNotOfferThe") },
       { status: 400 },
     );
   }
@@ -811,7 +883,19 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     if (axes.length > 0) {
       return NextResponse.json(
-        { error: cargoFitMessage(spec.label, axes, capability) },
+        {
+          error: cargoFitMessage(
+            // Localized by code exactly as the booking form does, so the two
+            // copies of this sentence stay identical.
+            vehicleTypeSpecLabel(vehicleTypeCode, spec.label, t),
+            axes,
+            capability,
+            {
+              t,
+              locale: await getRequestLocale(),
+            },
+          ),
+        },
         { status: 400 },
       );
     }
@@ -872,7 +956,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     if (!paymentMethodConfig?.isEnabled) {
       return NextResponse.json(
-        { error: "That payment method is not available." },
+        { error: t("common.shared.thatPaymentMethodIsNotAvailable") },
         { status: 400 },
       );
     }
@@ -889,7 +973,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     if (!savedCard) {
       return NextResponse.json(
-        { error: "Choose a card saved to your own payment methods." },
+        { error: t("common.shared.chooseACardSavedToYour") },
         { status: 400 },
       );
     }
@@ -918,7 +1002,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     // cargo/vehicle pairing is bad input (400).
     const status = result.reason === "unresolved_address" ? 422 : 400;
     return NextResponse.json(
-      { error: quoteFailureMessage(result) },
+      { error: quoteFailureMessage(result, t) },
       { status },
     );
   }
@@ -1310,9 +1394,14 @@ function canSeeStopContacts(
  * avoid. Two queries, two clean types.
  */
 export async function GET(request: Request): Promise<NextResponse> {
+  const t = await getRequestTranslations();
+
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    return NextResponse.json(
+      { error: t("common.shared.unauthorized") },
+      { status: 401 },
+    );
   }
 
   const { id: userId, role } = session.user;

@@ -20,6 +20,10 @@
  * when no `HomePageSection` row exists (the expected state until a human seeds
  * real content), and the admin form pre-fills a new section with the same copy
  * that is currently on the page.
+ *
+ * The defaults are authored in English and rendered in the visitor's language:
+ * `localizeDefaultHomePageContent` swaps each string for its catalog message, so
+ * `/ka` shows Georgian defaults without a single `KA` row existing.
  */
 
 /**
@@ -773,6 +777,457 @@ export const DEFAULT_HOME_PAGE_CONTENT: HomePageSectionContentByType = {
     ],
   },
 };
+
+/**
+ * Resolves one catalog key to its message in the reader's language, or
+ * `undefined` when no catalog has it. Deliberately not `next-intl`'s `t`: the
+ * same resolution has to run in a server component, in a client component and
+ * in a bare `tsx` seed script, so it is expressed over a plain messages object
+ * (see `createMessageLookup`).
+ */
+export type HomePageMessageLookup = (key: string) => string | undefined;
+
+/**
+ * The catalog key for every translatable string in `DEFAULT_HOME_PAGE_CONTENT`,
+ * keyed by that English string.
+ *
+ * Keyed by the English rather than by a path such as `faq.items.1.answer`
+ * because the defaults repeat themselves — "Price a load" is a hero CTA, an
+ * eyebrow and a footer link — and one entry then covers every place a string
+ * appears. The English stays the source: `DEFAULT_HOME_PAGE_CONTENT` above is
+ * untouched, the `en` catalog holds the identical strings, and a string with no
+ * entry here simply renders as written.
+ *
+ * Most keys were extracted from this file into `admin.homePageContent`; a few
+ * strings were already catalogued elsewhere (`common.shared`, the city names in
+ * `cities.georgianCities`) and are reused rather than duplicated.
+ */
+const DEFAULT_COPY_MESSAGE_KEYS: Readonly<Record<string, string>> = {
+  // hero
+  "Commercial freight & cargo": "admin.homePageContent.commercialFreightCargo",
+  "Now moving freight across Georgia":
+    "admin.homePageContent.nowMovingFreightAcrossGeorgia",
+  New: "admin.homePageContent.statusChipNew",
+  "Move any load, anywhere in Georgia.":
+    "admin.homePageContent.moveAnyLoadAnywhereInGeorgia",
+  "Vans to trailer trucks, priced before you book and tracked door to door. Set the route, pick the vehicle rated for the load, and a nearby driver takes it from there.":
+    "admin.homePageContent.vansToTrailerTrucksPricedBefore",
+  "Get started": "admin.homePageContent.getStarted",
+  "Price a load": "admin.homePageContent.priceALoad",
+  // hero_carousel, partner_marquee
+  "Freight moving across Georgia":
+    "admin.homePageContent.freightMovingAcrossGeorgia",
+  "Dispatching every day for": "admin.homePageContent.dispatchingEveryDayFor",
+  // stats
+  "Georgian cities served": "admin.homePageContent.georgianCitiesServed",
+  "Vehicle types, van to trailer":
+    "admin.homePageContent.vehicleTypesVanToTrailer",
+  "Dispatch and support": "admin.homePageContent.dispatchAndSupport",
+  "Fares quoted before you book":
+    "admin.homePageContent.faresQuotedBeforeYouBook",
+  // bento
+  "Live tracking": "admin.homePageContent.liveTracking",
+  "See the truck move, not a status label.":
+    "admin.homePageContent.seeTheTruckMoveNotA",
+  "Every accepted order gets its own tracking page: pickup and dropoff on a map, the driver's position as they report it, and a status that moves from accepted to in transit to completed.":
+    "admin.homePageContent.everyAcceptedOrderGetsItsOwn",
+  "Order #A4821 · Box Truck": "admin.homePageContent.mockOrderLabel",
+  "19 min": "admin.homePageContent.mockEtaLabel",
+  "Chavchavadze Ave, Vake": "admin.homePageContent.mockFromLabel",
+  "Tsereteli Ave, Didube": "admin.homePageContent.mockToLabel",
+  Payload: "common.shared.payload",
+  "Rated for the load, not guessed":
+    "admin.homePageContent.ratedForTheLoadNotGuessed",
+  "Every vehicle type publishes its maximum payload and its cargo length, width and height, so you match the rating to what you are actually moving.":
+    "admin.homePageContent.everyVehicleTypePublishesItsMaximum",
+  "For business": "admin.homePageContent.forBusiness",
+  "Fleets and logistics companies":
+    "admin.homePageContent.fleetsAndLogisticsCompanies",
+  "Register a company, put your drivers and vehicles on one roster, and claim freight jobs from the dispatch queue.":
+    "admin.homePageContent.registerACompanyPutYourDrivers",
+  "Register a company": "admin.homePageContent.registerACompany",
+  Helper: "admin.homePageContent.helper",
+  "A second pair of hands": "admin.homePageContent.aSecondPairOfHands",
+  "Add a helper to load and unload alongside the driver. It is a flat fee, already in the total and in the breakdown before you book.":
+    "admin.homePageContent.addAHelperToLoadAnd",
+  Intercity: "admin.homePageContent.intercity",
+  "Tbilisi to Batumi, and back": "admin.homePageContent.tbilisiToBatumiAndBack",
+  "Price a run between any two cities we cover. The fare is worked out on the real driving distance and time, not a flat intercity band.":
+    "admin.homePageContent.priceARunBetweenAnyTwo",
+  Pricing: "admin.homePageContent.pricing",
+  "Itemised before you book": "admin.homePageContent.itemisedBeforeYouBook",
+  "Base fare, distance, driving time and any helper fee, listed separately — and the same calculation runs again when you place the order.":
+    "admin.homePageContent.baseFareDistanceDrivingTimeAnd",
+  // quote_calculator
+  "Know the fare before you commit.":
+    "admin.homePageContent.knowTheFareBeforeYouCommit",
+  "Enter a pickup and a dropoff, pick a vehicle rated for the load, and we quote base fare, distance and driving time in lari. No account needed to see the number.":
+    "admin.homePageContent.enterAPickupAndADropoffPick",
+  // how_it_works
+  "How it works": "admin.homePageContent.howItWorks",
+  "Four steps, no phone calls.": "admin.homePageContent.fourStepsNoPhoneCalls",
+  "Built for the load that won't fit in a car boot — an office move, a pallet of stock, a machine that needs a tail lift.":
+    "admin.homePageContent.builtForTheLoadThatWontFit",
+  "Set the route": "admin.homePageContent.setTheRoute",
+  "Type the pickup and the dropoff — addresses autocomplete as you go — then tell us what you're moving: furniture, appliances, retail stock, or a full relocation.":
+    "admin.homePageContent.typeThePickupAndTheDropoff",
+  "Pick a vehicle": "admin.homePageContent.pickAVehicle",
+  "Cargo van for a few boxes, trailer truck for pallets. Every type lists its payload rating and cargo dimensions, so you can match the vehicle to the load.":
+    "admin.homePageContent.cargoVanForAFewBoxes",
+  "Lock the price": "admin.homePageContent.lockThePrice",
+  "We quote on real distance, driving time and whether you need a helper, itemised line by line. No auction, no surprise line items at the door.":
+    "admin.homePageContent.weQuoteOnRealDistanceDriving",
+  "Track it to the door": "admin.homePageContent.trackItToTheDoor",
+  "An independent driver or a logistics company takes the job and it goes live on your map. Follow the vehicle from loading to unload, and keep every order in your account.":
+    "admin.homePageContent.anIndependentDriverOrALogistics",
+  // vehicle_types
+  "The fleet": "admin.homePageContent.theFleet",
+  "Every size, one account.": "admin.homePageContent.everySizeOneAccount",
+  "Pick the vehicle the load actually needs. Eleven types across two duty classes, medium and heavy, each with its own payload rating and cargo dimensions.":
+    "admin.homePageContent.pickTheVehicleTheLoadActuallyNeeds",
+  "Medium duty": "admin.adminContentVehiclePhotos.mediumDuty",
+  "Heavy duty": "admin.adminContentVehiclePhotos.heavyDuty",
+  "Business account": "admin.homePageContent.businessAccount",
+  "Register your company, put your fleet and your drivers on one roster, and dispatch from a single hub. Applications are reviewed by our team before the account goes live.":
+    "admin.homePageContent.registerYourCompanyPutYourFleet",
+  // driver_cta
+  "For transport providers": "admin.homePageContent.forTransportProviders",
+  "Your truck.\nYour hours.\nYour jobs.":
+    "admin.homePageContent.yourTruckYourHoursYourJobs",
+  "Sign up as an independent driver or as a logistics company, register your vehicles, and start accepting freight jobs from shippers near you.":
+    "admin.homePageContent.signUpAsAnIndependentDriver",
+  "Become a driver": "admin.homePageContent.becomeADriver",
+  "Take the loads that suit your vehicle, your payload rating and your day.":
+    "admin.homePageContent.takeTheLoadsThatSuitYourVehicle",
+  "Every job shows the route, the cargo and the payout before you accept.":
+    "admin.homePageContent.everyJobShowsTheRouteTheCargo",
+  "Driving your own truck or running a fleet — both sign up here.":
+    "admin.homePageContent.drivingYourOwnTruckOrRunningAFleet",
+  "What you need to sign up": "admin.homePageContent.whatYouNeedToSignUp",
+  // coverage — city names come from the shared city catalog, never restated
+  Coverage: "admin.homePageContent.coverage",
+  "Every major city, one account.":
+    "admin.homePageContent.everyMajorCityOneAccount",
+  "Set a pickup and a dropoff anywhere we operate and the fare is worked out on the real route between them — across town or across the country. Support in Georgian and English.":
+    "admin.homePageContent.setAPickupAndADropoff",
+  "Price your route": "admin.homePageContent.priceYourRoute",
+  Tbilisi: "cities.georgianCities.tbilisi",
+  Batumi: "cities.georgianCities.batumi",
+  Kutaisi: "cities.georgianCities.kutaisi",
+  Rustavi: "cities.georgianCities.rustavi",
+  Gori: "cities.georgianCities.gori",
+  Zugdidi: "cities.georgianCities.zugdidi",
+  Telavi: "cities.georgianCities.telavi",
+  Poti: "cities.georgianCities.poti",
+  Zestaponi: "cities.georgianCities.zestaponi",
+  Marneuli: "cities.georgianCities.marneuli",
+  Akhaltsikhe: "cities.georgianCities.akhaltsikhe",
+  Citywide: "admin.homePageContent.coverageTierCitywide",
+  Regional: "admin.homePageContent.coverageTierRegional",
+  Nationwide: "admin.homePageContent.coverageTierNationwide",
+  // faq
+  Questions: "common.shared.questions",
+  "Before you book": "admin.homePageContent.beforeYouBook",
+  "What sits behind the quote, how a vehicle is matched to the load, and what happens once a driver takes the job.":
+    "admin.homePageContent.whatSitsBehindTheQuote",
+  "How is the price worked out?":
+    "admin.homePageContent.howIsThePriceWorkedOut",
+  "We geocode both addresses and price the distance between them with the vehicle type's own rates: a base fare, a per-kilometre rate and a rate for the estimated time of the trip. A helper, if you ask for one, adds a flat fee on top. You get the total itemised, and the same calculation runs when you place the order — the estimate is not a separate marketing number.":
+    "admin.homePageContent.weGeocodeBothAddressesAndPrice",
+  "Which vehicle should I book?":
+    "admin.homePageContent.whichVehicleShouldIBook",
+  "Vehicles come in two duty classes, medium-duty and heavy-duty, and each cargo category only offers the classes that can take it. Furniture, appliances, retail stock and event equipment go either way; a full relocation, industrial supplies and construction materials are heavy-duty only. Every type lists its maximum payload, so you can match the rating to the load.":
+    "admin.homePageContent.vehiclesComeInTwoDutyClasses",
+  "What does adding a helper do?":
+    "admin.homePageContent.whatDoesAddingAHelperDo",
+  "A helper is a second pair of hands who rides along to load and unload with the driver. It is a flat fee on top of the distance and time components, so tick it before you price the job and it is already in the total and in the breakdown you see.":
+    "admin.homePageContent.aHelperIsASecondPair",
+  "Who actually moves my cargo?":
+    "admin.homePageContent.whoActuallyMovesMyCargo",
+  "An order starts out pending until a transport provider takes it. That is either an independent driver, who accepts it with one of the vehicles registered to their profile, or a logistics company, which claims the job and dispatches it to a driver on its own roster.":
+    "admin.homePageContent.anOrderStartsOutPendingUntil",
+  "Can I follow the delivery?": "admin.homePageContent.canIFollowTheDelivery",
+  "Yes. Once an order is accepted it gets its own tracking page: pickup and dropoff on a map, plus the driver's position as they report it, refreshed while you watch. The status moves from accepted to in transit to completed, and the order stays in your account afterwards.":
+    "admin.homePageContent.yesOnceAnOrderIsAccepted",
+  "Can a company book and dispatch as a business?":
+    "admin.homePageContent.canACompanyBookAndDispatch",
+  "Yes. A logistics company registers, adds its drivers and its vehicles to one roster, and claims jobs from the dispatch queue; the application is reviewed before the account goes live. Shippers book the same way whether they are an individual or a business.":
+    "admin.homePageContent.yesALogisticsCompanyRegisters",
+  // closing_cta
+  "Your next load is a route away.":
+    "admin.homePageContent.yourNextLoadIsARoute",
+  "Price it in the open, book it in a few steps, and follow the vehicle to the door. No card needed to get a quote.":
+    "admin.homePageContent.priceItInTheOpenBook",
+  "Create an account": "auth.signInForm.createAnAccount",
+  "Drive with us": "admin.homePageContent.driveWithUs",
+  // category_tiles (retired, still renderable)
+  "What we carry": "admin.homePageContent.whatWeCarry",
+  "Ship anything, across the city":
+    "admin.homePageContent.shipAnythingAcrossTheCity",
+  "Pick the category your load falls under and the vehicle rated to carry it comes with it. Figures below are a starting point for a short cross-town run — your price is calculated on the route you enter.":
+    "admin.homePageContent.pickTheCategoryYourLoadFallsUnder",
+  // nav, footer
+  Vehicles: "common.shared.vehicles",
+  "For drivers": "admin.homePageContent.forDrivers",
+  FAQ: "admin.homePageContent.faq",
+  "Sign in": "common.shared.signIn",
+  "Sign up": "common.shared.signUp",
+  "Commercial freight and cargo across Georgia — vans to trailer trucks, priced before you book.":
+    "admin.homePageContent.commercialFreightAndCargoAcrossGeorgia",
+  Product: "admin.homePageContent.product",
+  Business: "admin.homePageContent.business",
+  "Fleet dashboard": "admin.homePageContent.fleetDashboard",
+  Drivers: "common.shared.drivers",
+  "Driver sign-up": "admin.homePageContent.driverSignUp",
+  "Driver hub": "common.shared.driverHub",
+  Company: "common.shared.company",
+  About: "admin.homePageContent.about",
+  Careers: "admin.homePageContent.careers",
+  Contact: "common.shared.contact",
+  Privacy: "admin.homePageContent.privacy",
+  Terms: "admin.homePageContent.terms",
+  Cookies: "admin.homePageContent.cookies",
+};
+
+/**
+ * Default strings that are the same in every language, so have no catalog key.
+ *
+ * The brand is a mark, not a word (`src/messages/GLOSSARY.md`: "Lalamove" is
+ * never translated), the copyright line is that mark plus the renderer's
+ * `{year}` token, and the stat figures are numerals. Listed so a coverage
+ * check over the defaults can tell a deliberate literal from a string someone
+ * forgot to key.
+ */
+export const UNTRANSLATED_DEFAULT_COPY: ReadonlySet<string> = new Set([
+  "Lalamove Georgia",
+  "© {year} Lalamove Georgia",
+  "25",
+  "11",
+  "24/7",
+  "100%",
+]);
+
+/** The catalog key a default string is translated through, if it has one. */
+export function defaultCopyMessageKey(english: string): string | undefined {
+  return Object.hasOwn(DEFAULT_COPY_MESSAGE_KEYS, english)
+    ? DEFAULT_COPY_MESSAGE_KEYS[english]
+    : undefined;
+}
+
+/**
+ * The catalog keys the defaults need that `lookup` cannot resolve, sorted.
+ *
+ * Rendering tolerates a gap (the English default shows instead), but writing
+ * rows must not: `scripts/seed-home-page-content.ts --locale ka` refuses to
+ * store English in a row labelled Georgian, and names these keys instead.
+ */
+export function listUnresolvedDefaultCopyKeys(
+  lookup: HomePageMessageLookup,
+): string[] {
+  const keys = new Set(Object.values(DEFAULT_COPY_MESSAGE_KEYS));
+
+  return [...keys].filter((key) => lookup(key) === undefined).sort();
+}
+
+/**
+ * Whether a content field holds a link target rather than copy. Hrefs are
+ * locale-neutral (the locale prefix is added by `Link`, not by content), so they
+ * are never looked up.
+ */
+function isHrefField(fieldName: string | undefined): boolean {
+  return fieldName !== undefined && /Href$|^href$/.test(fieldName);
+}
+
+/**
+ * Rebuilds a default content value with every translatable string swapped for
+ * its localized message. Structure, numbers and hrefs are carried over
+ * unchanged, so the result satisfies the same content type as its input.
+ */
+function localizeDefaultValue(
+  value: unknown,
+  lookup: HomePageMessageLookup,
+  fieldName?: string,
+): unknown {
+  if (typeof value === "string") {
+    if (isHrefField(fieldName)) {
+      return value;
+    }
+
+    const key = defaultCopyMessageKey(value);
+    // A missing message falls back to the English default rather than to a
+    // key path: the English is real copy, the key path is not.
+    return (key && lookup(key)) || value;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((entry) => localizeDefaultValue(entry, lookup));
+  }
+
+  if (typeof value === "object" && value !== null) {
+    return Object.fromEntries(
+      Object.entries(value).map(([name, entry]) => [
+        name,
+        localizeDefaultValue(entry, lookup, name),
+      ]),
+    );
+  }
+
+  return value;
+}
+
+/**
+ * `DEFAULT_HOME_PAGE_CONTENT` in the reader's language.
+ *
+ * This is what the landing page falls back to for a section with no row in the
+ * visitor's locale, and what `scripts/seed-home-page-content.ts --locale ka`
+ * writes. With the `en` catalog it reproduces `DEFAULT_HOME_PAGE_CONTENT`
+ * exactly — every key above resolves to the very string it is keyed by.
+ */
+export function localizeDefaultHomePageContent(
+  lookup: HomePageMessageLookup,
+): HomePageSectionContentByType {
+  // The walk preserves shape by construction (it only ever replaces a string
+  // with a string), which the type system cannot follow through `unknown`.
+  return localizeDefaultValue(
+    DEFAULT_HOME_PAGE_CONTENT,
+    lookup,
+  ) as HomePageSectionContentByType;
+}
+
+/**
+ * A `HomePageMessageLookup` over a nested messages object — the shape
+ * `next-intl`'s `getMessages()` / `useMessages()` return and the catalog
+ * barrels under `src/messages/<locale>` export. Only string leaves resolve; a
+ * key that stops at a namespace is `undefined`, not the namespace object.
+ */
+export function createMessageLookup(messages: unknown): HomePageMessageLookup {
+  return (key) => {
+    let node: unknown = messages;
+
+    for (const segment of key.split(".")) {
+      const record = asRecord(node);
+      if (!record || !Object.hasOwn(record, segment)) {
+        return undefined;
+      }
+      node = record[segment];
+    }
+
+    return typeof node === "string" && node.trim() !== "" ? node : undefined;
+  };
+}
+
+/** A section as the landing page composes it: validated content plus a row id. */
+export type HomePageSectionWithId = HomePageSectionData & { id: string };
+
+/**
+ * The full default composition for one set of content — every body section in
+ * `DEFAULT_HOME_PAGE_SECTION_ORDER`, then the two chrome sections.
+ *
+ * Written out literally rather than mapped from the order constant so each
+ * entry's `content` is checked against the shape its own `type` demands; the
+ * order here is that constant's, and the two are meant to stay in step.
+ * `category_tiles` is absent for the same reason it is absent there.
+ */
+export function buildDefaultHomePageSections(
+  content: HomePageSectionContentByType,
+): HomePageSectionWithId[] {
+  return [
+    { id: "default-hero", type: "hero", content: content.hero },
+    {
+      id: "default-hero_carousel",
+      type: "hero_carousel",
+      content: content.hero_carousel,
+    },
+    {
+      id: "default-partner_marquee",
+      type: "partner_marquee",
+      content: content.partner_marquee,
+    },
+    { id: "default-stats", type: "stats", content: content.stats },
+    { id: "default-bento", type: "bento", content: content.bento },
+    {
+      id: "default-quote_calculator",
+      type: "quote_calculator",
+      content: content.quote_calculator,
+    },
+    {
+      id: "default-how_it_works",
+      type: "how_it_works",
+      content: content.how_it_works,
+    },
+    {
+      id: "default-vehicle_types",
+      type: "vehicle_types",
+      content: content.vehicle_types,
+    },
+    {
+      id: "default-driver_cta",
+      type: "driver_cta",
+      content: content.driver_cta,
+    },
+    { id: "default-coverage", type: "coverage", content: content.coverage },
+    { id: "default-faq", type: "faq", content: content.faq },
+    {
+      id: "default-closing_cta",
+      type: "closing_cta",
+      content: content.closing_cta,
+    },
+    { id: "default-nav", type: "nav", content: content.nav },
+    { id: "default-footer", type: "footer", content: content.footer },
+  ];
+}
+
+/**
+ * Completes a partly-authored page: every default section whose type has no
+ * row in `authoredTypes` is added, so a locale with only some sections authored
+ * still renders the whole page instead of a handful of strips.
+ *
+ * `authoredTypes` must include types whose only rows are *inactive* — switching
+ * a section off in the back office is a decision, and filling it back in with
+ * the default would silently overrule it.
+ *
+ * A filled-in body section lands where the default order puts it: straight
+ * after the last section already on the page that precedes it in
+ * `DEFAULT_HOME_PAGE_SECTION_ORDER`, or first if none does. Authored sections
+ * never move. Chrome is appended — the renderer finds it by type, so its
+ * position is irrelevant.
+ */
+export function withDefaultSections<Section extends HomePageSectionWithId>(
+  sections: readonly Section[],
+  defaults: readonly Section[],
+  authoredTypes: ReadonlySet<string>,
+): Section[] {
+  const rank = new Map<string, number>(
+    DEFAULT_HOME_PAGE_SECTION_ORDER.map((type, index) => [type, index]),
+  );
+  const composed = [...sections];
+
+  // `defaults` arrive in the default order, so a section filled in on one
+  // iteration is already in place to anchor the next.
+  for (const fallback of defaults) {
+    if (authoredTypes.has(fallback.type)) {
+      continue;
+    }
+
+    const fallbackRank = rank.get(fallback.type);
+    if (fallbackRank === undefined) {
+      composed.push(fallback);
+      continue;
+    }
+
+    let insertAt = 0;
+    composed.forEach((section, index) => {
+      const sectionRank = rank.get(section.type);
+      if (sectionRank !== undefined && sectionRank < fallbackRank) {
+        insertAt = index + 1;
+      }
+    });
+
+    composed.splice(insertAt, 0, fallback);
+  }
+
+  return composed;
+}
 
 /** Either a validated value or the reason it was rejected. */
 type Parsed<Value> = { data: Value } | { error: string };

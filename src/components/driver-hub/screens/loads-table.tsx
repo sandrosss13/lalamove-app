@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 import { HUB_STATUS_TONE_CLASSES } from "@/components/driver-hub/hub-status";
 import {
   useLoadsBoard,
@@ -19,7 +21,7 @@ import {
   formatPostedAgo,
   formatVolumeM3,
   formatWeightKg,
-  pluralise,
+  useLoadsTimeFormat,
 } from "@/components/driver-hub/screens/loads-format";
 import { Button } from "@/components/ui/button";
 import {
@@ -585,6 +587,8 @@ function LoadActions({ load }: { load: HubLoad }) {
     pendingActionId,
     canAccept,
   } = useLoadsBoard();
+  const t = useTranslations("driverHub.loadsTable");
+  const tShared = useTranslations("common.shared");
 
   // One reject/restore at a time, board-wide — `pendingActionId` is not this
   // row's id, it is any row's. The context drops a second call outright while
@@ -614,7 +618,7 @@ function LoadActions({ load }: { load: HubLoad }) {
             void restore(load.id);
           }}
         >
-          Restore
+          {t("restore")}
         </Button>
       </div>
     );
@@ -634,7 +638,7 @@ function LoadActions({ load }: { load: HubLoad }) {
             void reject(load.id);
           }}
         >
-          Reject
+          {tShared("reject")}
         </Button>
         <Button
           type="button"
@@ -649,7 +653,7 @@ function LoadActions({ load }: { load: HubLoad }) {
             openConfirm(load.id);
           }}
         >
-          Accept
+          {t("accept")}
         </Button>
       </div>
     );
@@ -659,11 +663,11 @@ function LoadActions({ load }: { load: HubLoad }) {
     <div className="flex justify-end">
       {load.status === "claimed" ? (
         <span className={cn(PILL_CLASSES, HUB_STATUS_TONE_CLASSES.neutral)}>
-          Claimed
+          {t("claimed")}
         </span>
       ) : (
         <span className={cn(PILL_CLASSES, HUB_STATUS_TONE_CLASSES.success)}>
-          Yours
+          {t("yours")}
         </span>
       )}
     </div>
@@ -680,12 +684,19 @@ function LoadActions({ load }: { load: HubLoad }) {
  */
 function LoadRow({ load, nowIso }: { load: HubLoad; nowIso: string }) {
   const { selectedId, selectLoad } = useLoadsBoard();
+  const t = useTranslations("driverHub.loadsTable");
+  const tRoot = useTranslations();
+  const timeFormat = useLoadsTimeFormat();
   const isSelected = load.id === selectedId;
 
-  const deadline = formatDeadlineLine(load.deliveryDeadline, nowIso);
+  const deadline = formatDeadlineLine(
+    load.deliveryDeadline,
+    nowIso,
+    timeFormat,
+  );
   // Resolved once: the cargo cell renders it and also hands it to its own
   // `title`, and a lookup written twice is a lookup that can be changed once.
-  const cargoLabel = cargoCategoryLabel(load.cargoCategory);
+  const cargoLabel = cargoCategoryLabel(load.cargoCategory, tRoot);
   const cargoDetail = `${load.packagingDescription ?? EM_DASH} · ${formatVolumeM3(
     {
       lengthM: load.cargoLengthM,
@@ -736,7 +747,7 @@ function LoadRow({ load, nowIso }: { load: HubLoad; nowIso: string }) {
               and this button is the row's only keyboard path into the drawer.
               `aria-current` above says the row *is* selected; it cannot say
               that activating this selects it. */}
-          <span className="sr-only"> — open load details</span>
+          <span className="sr-only"> {t("openLoadDetails")}</span>
         </button>
         {/* Stacked under the reference rather than beside it, as it was on the
             old Route cell's third line. Side by side the two would want
@@ -745,7 +756,7 @@ function LoadRow({ load, nowIso }: { load: HubLoad; nowIso: string }) {
             169px one that earns none of it. (Pick-up time, at 68px, is the
             narrowest column that never hides — this is the fourth widest.) */}
         <div className={SUBLINE_CLASSES}>
-          {formatPostedAgo(load.createdAt, nowIso)}
+          {formatPostedAgo(load.createdAt, nowIso, timeFormat.t)}
         </div>
       </TableCell>
 
@@ -781,7 +792,7 @@ function LoadRow({ load, nowIso }: { load: HubLoad; nowIso: string }) {
           when the order predates the column. Never the pick-up window — see the
           module comment. */}
       <TableCell className={cn(CELL_CLASSES, COLUMN_CLASSES.pickupDate)}>
-        {formatLoadDayLabel(load.scheduledAt, nowIso)}
+        {formatLoadDayLabel(load.scheduledAt, nowIso, timeFormat)}
       </TableCell>
 
       {/* 5 — Pick-up time. The same field's clock half, dashing on the same
@@ -944,6 +955,9 @@ export function LoadsTable() {
     // of phase. See `LoadsBoardValue.nowIso`.
     nowIso,
   } = useLoadsBoard();
+  const t = useTranslations("driverHub.loadsTable");
+  const tShared = useTranslations("common.shared");
+  const tBoard = useTranslations("driverHub.loadsBoard");
 
   const count = visibleLoads.length;
 
@@ -954,11 +968,12 @@ export function LoadsTable() {
    * ("what have I hidden?") rather than a third tab, and it is what actually
    * selected the rows being counted.
    */
+  const countLabel = tBoard("loadsCount", { count });
   const resultLine = showRejected
-    ? `${pluralise(count, "load")} you rejected`
+    ? t("resultRejected", { count: countLabel })
     : tab === "mine"
-      ? `${pluralise(count, "load")} you have claimed`
-      : `${pluralise(count, "load")} open to you`;
+      ? t("resultClaimed", { count: countLabel })
+      : t("resultOpen", { count: countLabel });
 
   /**
    * Whether the empty state below is allowed to blame the filters.
@@ -996,7 +1011,7 @@ export function LoadsTable() {
           costs a driver nothing. */}
       <Table
         className={cn("table-fixed", TABLE_MIN_WIDTH_CLASS)}
-        aria-label="Loads"
+        aria-label={t("loads")}
       >
         <TableHeader>
           <TableRow className="bg-muted hover:bg-muted">
@@ -1014,7 +1029,7 @@ export function LoadsTable() {
               scope="col"
               className={cn(HEAD_CLASSES, COLUMN_CLASSES.load)}
             >
-              Load
+              {tShared("load")}
             </TableHead>
             {/* The two address headers are plain `TableHead`s for the same
                 reason: alphabetical-by-street is not a question. Their cities
@@ -1033,11 +1048,11 @@ export function LoadsTable() {
               scope="col"
               className={cn(HEAD_CLASSES, COLUMN_CLASSES.pickupAddress)}
             >
-              Pick up
+              {t("pickUp")}
             </TableHead>
             <SortableHead
               columnKey="pickupCity"
-              label="Pick up city"
+              label={tShared("pickUpCity2")}
               className={COLUMN_CLASSES.pickupCity}
             />
             {/* Both of these order `scheduledAt`, and they order it differently
@@ -1052,41 +1067,41 @@ export function LoadsTable() {
                 instead — see `HEAD_CLASSES`. */}
             <SortableHead
               columnKey="pickupDate"
-              label="Pick up date"
-              title="The day the client booked this job for"
+              label={tShared("pickUpDate")}
+              title={t("theDayTheClientBookedThis")}
               className={COLUMN_CLASSES.pickupDate}
             />
             <SortableHead
               columnKey="pickupTime"
-              label="Pick up time"
-              title="Sorts by time of day, not by date"
+              label={tShared("pickUpTime")}
+              title={t("sortsByTimeOfDayNot")}
               className={COLUMN_CLASSES.pickupTime}
             />
             <TableHead
               scope="col"
               className={cn(HEAD_CLASSES, COLUMN_CLASSES.dropoffAddress)}
             >
-              Drop off
+              {t("dropOff")}
             </TableHead>
             <SortableHead
               columnKey="dropoffCity"
-              label="Drop off city"
+              label={tShared("dropOffCity2")}
               className={COLUMN_CLASSES.dropoffCity}
             />
             <SortableHead
               columnKey="cargo"
-              label="Cargo"
+              label={tShared("cargo")}
               className={COLUMN_CLASSES.cargo}
             />
             <SortableHead
               columnKey="helpers"
-              label="Helpers"
+              label={tShared("helpers")}
               align="center"
               className={COLUMN_CLASSES.helpers}
             />
             <SortableHead
               columnKey="weight"
-              label="Weight / dims"
+              label={t("weightDims")}
               align="right"
               className={COLUMN_CLASSES.weight}
             />
@@ -1094,9 +1109,9 @@ export function LoadsTable() {
                 distance for this one to be confused with. */}
             <SortableHead
               columnKey="distance"
-              label="Distance"
+              label={tShared("distance")}
               align="right"
-              title="How far this job runs, pick-up to drop-off"
+              title={t("howFarThisJobRunsPick")}
               className={COLUMN_CLASSES.distance}
             />
             {/* The header reads "Price" because that is the design's copy and
@@ -1106,7 +1121,7 @@ export function LoadsTable() {
                 that always carries an arrow. */}
             <SortableHead
               columnKey="payout"
-              label="Price"
+              label={tShared("price")}
               align="right"
               className={COLUMN_CLASSES.price}
             />
@@ -1114,7 +1129,7 @@ export function LoadsTable() {
               scope="col"
               className={cn(HEAD_CLASSES, COLUMN_CLASSES.actions)}
             >
-              <span className="sr-only">Actions</span>
+              <span className="sr-only">{tShared("actions")}</span>
             </TableHead>
           </TableRow>
         </TableHeader>
@@ -1153,10 +1168,10 @@ export function LoadsTable() {
               this file's headings do not carry. */}
           <p className="text-sm font-medium">
             {showRejected
-              ? "You haven't hidden any loads"
+              ? tBoard("noHiddenLoads")
               : filtersExplainEmpty
-                ? "No loads match these filters"
-                : "No loads on the board right now"}
+                ? tBoard("noLoadsMatchFilters")
+                : tBoard("noLoadsOnBoard")}
           </p>
           {/* Only the filter heading gets the advice line — see
               `filtersExplainEmpty`. Nothing replaces it on the other lists:
@@ -1164,7 +1179,7 @@ export function LoadsTable() {
               says the one sentence and stops there too. */}
           {filtersExplainEmpty ? (
             <p className="mt-1 text-[13px] text-muted-foreground">
-              Widen the weight range or clear a city to see more.
+              {t("widenTheWeightRangeOrClear")}
             </p>
           ) : null}
         </div>
@@ -1194,8 +1209,7 @@ export function LoadsTable() {
               and the count is about a list that is not being shown. */}
           {tab === "available" && !showRejected && hiddenByCapacityCount > 0 ? (
             <span className="tabular-nums">
-              {pluralise(hiddenByCapacityCount, "load")} hidden — over your
-              vehicle capacity or dimensions
+              {tBoard("hiddenByCapacity", { count: hiddenByCapacityCount })}
             </span>
           ) : null}
 
@@ -1216,14 +1230,14 @@ export function LoadsTable() {
               className="cursor-pointer rounded-sm underline underline-offset-2 outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
             >
               {showRejected ? (
-                "Back to open loads"
+                t("backToOpenLoads")
               ) : (
                 <>
                   {/* The design's own copy, which does not pluralise the word
                       "rejected" — "1 rejected · view", "2 rejected · view" —
                       so this is not run through `pluralise`. */}
-                  <span className="tabular-nums">{rejectedCount}</span> rejected
-                  · view
+                  <span className="tabular-nums">{rejectedCount}</span>{" "}
+                  {t("rejectedView")}
                 </>
               )}
             </button>

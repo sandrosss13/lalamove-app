@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useLocale, useTranslations } from "next-intl";
 
 import { useRouter } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
@@ -98,14 +99,6 @@ import { cn } from "@/lib/utils";
 const PRIMARY_ACTION_CLASSES =
   "h-14 w-full text-[15px] font-medium lg:h-10 lg:w-auto lg:px-[22px] lg:text-sm";
 
-/** What a request that never reached the server is called. */
-const NETWORK_ERROR =
-  "Couldn't reach the server. Check your connection and try again.";
-
-/** The fallback when a refusal arrives without a readable message. */
-const START_GENERIC_ERROR = "Could not start this delivery.";
-const COMPLETE_GENERIC_ERROR = "Could not complete this delivery.";
-
 /**
  * Whole minutes, and nothing else.
  *
@@ -194,6 +187,12 @@ function hasJobSheetAction(status: HubJobSheet["status"]): boolean {
 export function startBlockedReason(
   job: HubJobSheet,
   nowIso: string,
+  // The sentence is copy, so the caller hands in how to phrase it for the
+  // reader's locale; the date itself still comes from the hub formatter.
+  describeBooked: (when: string) => string = (when) =>
+    `Booked for ${when}. You can start it on the day.`,
+  // The reader's locale, for the month name in `when`; English when omitted.
+  locale?: string,
 ): string | null {
   if (job.scheduledAt === null) {
     return null;
@@ -213,7 +212,7 @@ export function startBlockedReason(
     return null;
   }
 
-  return `Booked for ${formatAbsoluteDateTime(job.scheduledAt)}. You can start it on the day.`;
+  return describeBooked(formatAbsoluteDateTime(job.scheduledAt, locale));
 }
 
 /* -------------------------------------------------------------------------- */
@@ -293,6 +292,8 @@ export type JobSheetActionBarProps = {
  */
 export function JobSheetActionBar({ job, nowIso }: JobSheetActionBarProps) {
   const router = useRouter();
+  const t = useTranslations("driverHub.jobSheetActions");
+  const locale = useLocale();
 
   const [isConfirmOpen, setIsConfirmOpen] = React.useState(false);
   const [startError, setStartError] = React.useState<string | null>(null);
@@ -329,12 +330,12 @@ export function JobSheetActionBar({ job, nowIso }: JobSheetActionBarProps) {
       // the session and the route parameter.
       response = await fetch(`/api/orders/${job.id}/start`, { method: "POST" });
     } catch {
-      setStartError(NETWORK_ERROR);
+      setStartError(t("networkError"));
       return;
     }
 
     if (!response.ok) {
-      setStartError(await refusalMessage(response, START_GENERIC_ERROR));
+      setStartError(await refusalMessage(response, t("couldNotStart")));
 
       // A 409 says the order is no longer `ACCEPTED` — someone (or this driver,
       // on another device) already started it, or a company cancelled it. The
@@ -365,7 +366,14 @@ export function JobSheetActionBar({ job, nowIso }: JobSheetActionBarProps) {
   const isAccepted = job.status === "ACCEPTED";
   // Only `Start delivery` can be early. A job already `IN_TRANSIT` is by
   // definition under way, whatever its `scheduledAt` says.
-  const blockedReason = isAccepted ? startBlockedReason(job, nowIso) : null;
+  const blockedReason = isAccepted
+    ? startBlockedReason(
+        job,
+        nowIso,
+        (when) => t("bookedFor", { when }),
+        locale,
+      )
+    : null;
 
   return (
     <>
@@ -431,7 +439,7 @@ export function JobSheetActionBar({ job, nowIso }: JobSheetActionBarProps) {
             }}
             className={PRIMARY_ACTION_CLASSES}
           >
-            {isPending ? "Starting…" : "Start delivery"}
+            {isPending ? t("starting") : t("startDelivery")}
           </Button>
         ) : (
           <Button
@@ -444,7 +452,7 @@ export function JobSheetActionBar({ job, nowIso }: JobSheetActionBarProps) {
             disabled={isPending}
             className={PRIMARY_ACTION_CLASSES}
           >
-            Mark delivered
+            {t("markDelivered")}
           </Button>
         )}
       </div>
@@ -542,6 +550,8 @@ export function JobSheetConfirmDialog({
   onCompleted,
 }: JobSheetConfirmDialogProps) {
   const router = useRouter();
+  const t = useTranslations("driverHub.jobSheetActions");
+  const tShared = useTranslations("common.shared");
 
   /**
    * The waiting figure as a **string**, not a number.
@@ -579,7 +589,7 @@ export function JobSheetConfirmDialog({
     const trimmed = waitingMinutes.trim();
 
     if (!WHOLE_MINUTES.test(trimmed)) {
-      setError("Enter the waiting time as a whole number of minutes, or 0.");
+      setError(t("enterTheWaitingTimeAsA"));
       return;
     }
 
@@ -602,13 +612,13 @@ export function JobSheetConfirmDialog({
         }),
       });
     } catch {
-      setError(NETWORK_ERROR);
+      setError(t("networkError"));
       setIsSubmitting(false);
       return;
     }
 
     if (!response.ok) {
-      setError(await refusalMessage(response, COMPLETE_GENERIC_ERROR));
+      setError(await refusalMessage(response, t("couldNotComplete")));
       setIsSubmitting(false);
 
       // The order is no longer `IN_TRANSIT` — completed from another device, or
@@ -661,10 +671,10 @@ export function JobSheetConfirmDialog({
       >
         <DialogHeader className="gap-1.5">
           <DialogTitle className="text-base font-semibold tracking-[-0.01em]">
-            Confirm delivery
+            {t("confirmDelivery")}
           </DialogTitle>
           <DialogDescription className="text-[13px] leading-[1.5]">
-            This ends the job and cannot be undone.
+            {t("thisEndsTheJobAndCannot")}
           </DialogDescription>
         </DialogHeader>
 
@@ -673,9 +683,9 @@ export function JobSheetConfirmDialog({
             rather than the city: two deliveries in one afternoon are routinely
             both "Tbilisi". */}
         <dl className="mt-4.5 grid grid-cols-[76px_1fr] gap-x-3 gap-y-2 rounded-lg border border-border bg-muted p-3.5 text-[13px]">
-          <dt className="text-muted-foreground">Load</dt>
+          <dt className="text-muted-foreground">{tShared("load")}</dt>
           <dd className="min-w-0 truncate font-price">{job.reference}</dd>
-          <dt className="text-muted-foreground">Drop-off</dt>
+          <dt className="text-muted-foreground">{tShared("dropOff")}</dt>
           <dd className="min-w-0 leading-[1.4] break-words">
             {job.dropoffAddress}
           </dd>
@@ -683,7 +693,7 @@ export function JobSheetConfirmDialog({
 
         <div className="mt-4.5 flex flex-col gap-[7px]">
           <Label htmlFor="job-sheet-waiting" className="text-[13px]">
-            Waiting time
+            {tShared("waitingTime")}
           </Label>
           <div className="flex items-center gap-2.5">
             <Input
@@ -714,13 +724,15 @@ export function JobSheetConfirmDialog({
               aria-describedby="job-sheet-waiting-help job-sheet-waiting-pay"
               className="h-11 w-22 font-price text-[15px] tabular-nums"
             />
-            <span className="text-[13px] text-muted-foreground">minutes</span>
+            <span className="text-[13px] text-muted-foreground">
+              {t("minutes")}
+            </span>
           </div>
           <p
             id="job-sheet-waiting-help"
             className="text-xs leading-[1.45] text-muted-foreground"
           >
-            Whole minutes spent waiting at either stop. Enter 0 if none.
+            {t("wholeMinutesSpentWaitingAtEither")}
           </p>
           {/* **That** it changes the driver's pay, never *by how much*.
               `complete` computes the overtime server-side from the vehicle
@@ -740,14 +752,13 @@ export function JobSheetConfirmDialog({
             id="job-sheet-waiting-pay"
             className="text-xs leading-[1.45] text-muted-foreground"
           >
-            Waiting time beyond the free allowance adds an overtime payout to
-            this job, so this figure affects what you are paid.
+            {t("waitingTimeBeyondTheFreeAllowance")}
           </p>
         </div>
 
         <div className="mt-4.5 flex flex-col gap-[7px]">
           <Label htmlFor="job-sheet-received-by" className="text-[13px]">
-            Received by (optional)
+            {t("receivedByOptional")}
           </Label>
           <Input
             id="job-sheet-received-by"
@@ -762,7 +773,7 @@ export function JobSheetConfirmDialog({
             // Matched to `MAX_RECEIVED_BY_LENGTH` in `complete/route.ts`; the
             // server check is the boundary and stays.
             maxLength={RECEIVED_BY_MAX_LENGTH}
-            placeholder="Name of whoever took the goods"
+            placeholder={t("nameOfWhoeverTookTheGoods")}
             className="h-11 text-sm"
           />
         </div>
@@ -789,7 +800,7 @@ export function JobSheetConfirmDialog({
             disabled={isBusy}
             onClick={onClose}
           >
-            Cancel
+            {tShared("cancel")}
           </Button>
           <Button
             type="button"
@@ -799,7 +810,7 @@ export function JobSheetConfirmDialog({
               void handleConfirm();
             }}
           >
-            {isBusy ? "Confirming…" : "Confirm delivery"}
+            {isBusy ? t("confirming") : t("confirmDelivery")}
           </Button>
         </div>
       </DialogContent>

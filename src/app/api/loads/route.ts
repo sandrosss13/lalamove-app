@@ -17,6 +17,7 @@ import "server-only";
 import { NextResponse } from "next/server";
 import { OrderStatus, type Prisma } from "@prisma/client";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
 import {
   resolveHubAccount,
@@ -813,11 +814,13 @@ function toLoadBoardItem(
  * src/app/api/dashboard/hub/earnings/export/route.ts.
  */
 export async function GET(request: Request): Promise<NextResponse> {
+  const t = await getRequestTranslations();
+
   const session = await auth.api.getSession({ headers: request.headers });
 
   if (!session) {
     return NextResponse.json<LoadBoardError>(
-      { error: "Unauthorized." },
+      { error: t("common.shared.unauthorized") },
       { status: 401 },
     );
   }
@@ -829,7 +832,7 @@ export async function GET(request: Request): Promise<NextResponse> {
   if (session.user.mustChangePassword) {
     return NextResponse.json<LoadBoardError>(
       {
-        error: "Change your temporary password before viewing the load board.",
+        error: t("common.shared.changeYourTemporaryPasswordBeforeViewing"),
       },
       { status: 403 },
     );
@@ -843,7 +846,7 @@ export async function GET(request: Request): Promise<NextResponse> {
   if (role !== "DRIVER" && role !== "COMPANY") {
     return NextResponse.json<LoadBoardError>(
       {
-        error: "Only drivers and logistics companies can view the load board.",
+        error: t("errors.loads.onlyDriversAndLogisticsCompaniesCan"),
       },
       { status: 403 },
     );
@@ -851,8 +854,8 @@ export async function GET(request: Request): Promise<NextResponse> {
 
   const profileMissingError =
     role === "COMPANY"
-      ? "Your company profile isn't set up yet."
-      : "Your driver profile isn't set up yet.";
+      ? t("errors.loads.yourCompanyProfileIsnTSetUp")
+      : t("common.shared.yourDriverProfileIsnTSet");
 
   const account = await resolveHubAccount();
 

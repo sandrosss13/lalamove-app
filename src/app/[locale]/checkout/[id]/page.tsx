@@ -2,21 +2,23 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { OrderStatus } from "@prisma/client";
 import type { CargoCategory, ChassisType, ServiceLevel } from "@prisma/client";
+import { useLocale, useTranslations } from "next-intl";
+import { getTranslations } from "next-intl/server";
 
 import { localeHref } from "@/i18n/server";
 import { auth } from "@/lib/auth";
-import { CARGO_CATEGORY_LABELS } from "@/lib/cargo";
+import { useCargoCategoryLabel } from "@/lib/cargo";
 import { loadBookingPaymentOptions } from "@/lib/home/booking-payment-options";
 import { prisma } from "@/lib/prisma";
+import { vehicleTypeSpecLabel } from "@/lib/vehicle-type-spec-labels";
 import { BreakdownRow } from "@/components/home/booking-form-primitives";
-import { SERVICE_LEVEL_LABEL, formatGel } from "@/components/orders-format";
+import { formatGel, useServiceLevelLabel } from "@/components/orders-format";
 import { CheckoutPaymentPanel } from "../checkout-payment-panel";
 import {
-  BODY_TYPE_LABEL,
-  crewSizeLabel,
   formatBookedDistanceKm,
   formatScheduledAt,
   transportationCost,
+  useCheckoutLabels,
 } from "../checkout-format";
 import {
   CheckoutHeader,
@@ -62,7 +64,7 @@ const CHECKOUT_ORDER_SELECT = {
   serviceLevelAdjustment: true,
   // A relation, so it is not returned unless it is asked for — and only the one
   // column the summary prints.
-  vehicleTypeSpec: { select: { label: true } },
+  vehicleTypeSpec: { select: { code: true, label: true } },
 } as const;
 
 /**
@@ -87,11 +89,10 @@ export default async function CheckoutPage({
   params: Promise<{ id: string }>;
 }) {
   const session = await auth.api.getSession({ headers: await headers() });
+  const t = await getTranslations("checkout.checkout");
 
   if (!session) {
-    return (
-      <CheckoutSignInNotice prompt="Sign in to review and pay for this delivery." />
-    );
+    return <CheckoutSignInNotice prompt={t("signInToReviewAndPay")} />;
   }
 
   // Checkout is a client's own step. Drivers and logistics companies take and
@@ -143,10 +144,10 @@ export default async function CheckoutPage({
     <main className="min-h-screen bg-ink text-paper">
       <div className="mx-auto flex max-w-5xl flex-col gap-6 px-5 pt-8 pb-16 sm:px-8">
         <CheckoutHeader
-          eyebrow="Almost there"
-          title="Review and pay"
+          eyebrow={t("almostThere")}
+          title={t("reviewAndPay")}
           backHref="/"
-          backLabel="← Back to booking"
+          backLabel={t("backToBooking")}
         />
 
         {/* Two columns from `lg` up — the summary to read on one side, the
@@ -191,11 +192,19 @@ type CheckoutOrder = {
   price: number;
   serviceLevel: ServiceLevel;
   serviceLevelAdjustment: number;
-  vehicleTypeSpec: { label: string };
+  vehicleTypeSpec: { code: string; label: string };
 };
 
 /** What was booked: the route, then everything that describes the job. */
 function OrderSummaryPanel({ order }: { order: CheckoutOrder }) {
+  const t = useTranslations("checkout.checkout");
+  const tShared = useTranslations("common.shared");
+  const tRoot = useTranslations();
+  const locale = useLocale();
+  const cargoCategoryLabel = useCargoCategoryLabel();
+  const serviceLevelLabel = useServiceLevelLabel();
+  const labels = useCheckoutLabels();
+
   return (
     <section
       aria-labelledby="checkout-summary-heading"
@@ -205,14 +214,18 @@ function OrderSummaryPanel({ order }: { order: CheckoutOrder }) {
         id="checkout-summary-heading"
         className="font-display text-base font-semibold text-paper"
       >
-        Your delivery
+        {t("yourDelivery")}
       </h2>
 
       <div className="mt-4 flex flex-col gap-2">
-        <RouteEndpoint badge="P" name="Pickup" address={order.pickupAddress} />
+        <RouteEndpoint
+          badge="P"
+          name={tShared("pickup")}
+          address={order.pickupAddress}
+        />
         <RouteEndpoint
           badge="D"
-          name="Dropoff"
+          name={tShared("dropoff")}
           address={order.dropoffAddress}
         />
       </div>
@@ -222,26 +235,36 @@ function OrderSummaryPanel({ order }: { order: CheckoutOrder }) {
             existed has none, and there is nothing to invent one from. */}
         {order.scheduledAt ? (
           <DetailRow
-            label="Scheduled"
-            value={formatScheduledAt(order.scheduledAt)}
+            label={tShared("scheduled")}
+            value={formatScheduledAt(order.scheduledAt, locale)}
           />
         ) : null}
-        <DetailRow label="Vehicle" value={order.vehicleTypeSpec.label} />
         <DetailRow
-          label="Goods"
-          value={CARGO_CATEGORY_LABELS[order.cargoCategory]}
+          label={tShared("vehicle")}
+          value={vehicleTypeSpecLabel(
+            order.vehicleTypeSpec.code,
+            order.vehicleTypeSpec.label,
+            tRoot,
+          )}
         />
-        <DetailRow label="Crew" value={crewSizeLabel(order.helperCount)} />
+        <DetailRow
+          label={t("goods")}
+          value={cargoCategoryLabel(order.cargoCategory)}
+        />
+        <DetailRow
+          label={t("crew")}
+          value={labels.crewSize(order.helperCount)}
+        />
         {/* Also nullable, and for the same reason as the schedule. */}
         {order.bodyType ? (
           <DetailRow
-            label="Load space"
-            value={BODY_TYPE_LABEL[order.bodyType]}
+            label={t("loadSpace")}
+            value={labels.bodyType(order.bodyType)}
           />
         ) : null}
         <DetailRow
-          label="Service level"
-          value={SERVICE_LEVEL_LABEL[order.serviceLevel]}
+          label={tShared("serviceLevel")}
+          value={serviceLevelLabel(order.serviceLevel)}
         />
         {/* Full width, because it is the one free-text field here and a note
             about the load has no business being squeezed into half a row. The
@@ -249,7 +272,7 @@ function OrderSummaryPanel({ order }: { order: CheckoutOrder }) {
             groups are `div`s may not nest a second `div` between them. */}
         {order.description ? (
           <DetailRow
-            label="Notes"
+            label={t("notes")}
             value={order.description}
             className="sm:col-span-2"
           />
@@ -274,6 +297,10 @@ function PriceBreakdownPanel({
   order: CheckoutOrder;
   total: number;
 }) {
+  const t = useTranslations("checkout.checkout");
+  const tShared = useTranslations("common.shared");
+  const tBooking = useTranslations("home.bookingForm");
+
   return (
     <section
       aria-labelledby="checkout-price-heading"
@@ -283,21 +310,24 @@ function PriceBreakdownPanel({
         id="checkout-price-heading"
         className="font-display text-base font-semibold text-paper"
       >
-        Price
+        {tShared("price")}
       </h2>
 
       <dl className="mt-4 flex flex-col gap-1.5">
         <BreakdownRow
-          label="Distance"
+          label={tShared("distance")}
           value={formatBookedDistanceKm(order.distanceKm)}
         />
         <BreakdownRow
-          label="Transportation cost"
+          label={tShared("transportationCost")}
           value={formatGel(transportationCost(order))}
         />
         {/* Only worth a line when at least one helper was actually requested. */}
         {order.helperFee > 0 ? (
-          <BreakdownRow label="Helper Fee" value={formatGel(order.helperFee)} />
+          <BreakdownRow
+            label={tShared("helperFee")}
+            value={formatGel(order.helperFee)}
+          />
         ) : null}
         {/* Exactly one of these, or neither: Regular is the tier the quote is
             already priced at, so it books at a zero adjustment and there is
@@ -306,8 +336,8 @@ function PriceBreakdownPanel({
           <BreakdownRow
             label={
               order.serviceLevel === "PRIORITY"
-                ? "Priority fee"
-                : "Pooling discount"
+                ? tBooking("priorityFee")
+                : tBooking("poolingDiscount")
             }
             value={
               order.serviceLevelAdjustment > 0
@@ -323,7 +353,9 @@ function PriceBreakdownPanel({
         {/* Not a `BreakdownRow`: that primitive gives every line the same
             weight, and this is the figure the button beside it commits to. */}
         <div className="mt-1.5 flex items-baseline justify-between gap-4 border-t border-line pt-3">
-          <dt className="text-sm font-semibold text-paper">Total</dt>
+          <dt className="text-sm font-semibold text-paper">
+            {tShared("total")}
+          </dt>
           <dd className="font-price text-lg font-semibold text-paper tabular-nums">
             {formatGel(total)}
           </dd>
@@ -331,8 +363,7 @@ function PriceBreakdownPanel({
       </dl>
 
       <p className="mt-3 text-xs leading-snug text-muted">
-        Loading and unloading time beyond the free allowance is settled after
-        the delivery and is not part of this total.
+        {t("loadingAndUnloadingTimeBeyondThe")}
       </p>
     </section>
   );

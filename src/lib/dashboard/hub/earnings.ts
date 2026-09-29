@@ -75,6 +75,7 @@
 import "server-only";
 
 import { OrderStatus, Prisma } from "@prisma/client";
+import { getTranslations } from "next-intl/server";
 
 import type { HubAccount, HubPersona } from "@/lib/dashboard/hub/account";
 import {
@@ -149,21 +150,48 @@ export type HubEarningsPresetId =
 
 export type HubEarningsPreset = {
   id: HubEarningsPresetId;
-  /** Tab copy, straight from the design. */
+  /** Tab copy, straight from the design, already in the reader's language. */
   label: string;
 };
+
+/**
+ * Where each preset's tab copy lives: a key under the `dashboard.earnings`
+ * message namespace. A key rather than the copy itself because this module is
+ * locale-agnostic — the page that renders the tabs knows the reader's language
+ * and resolves the key there (see `translateHubEarningsPresets`).
+ */
+export type HubEarningsPresetDefinition = {
+  id: HubEarningsPresetId;
+  labelKey: "thisWeek" | "lastWeek" | "thisMonth" | "last30Days";
+};
+
+/** The message namespace every `HubEarningsPresetDefinition.labelKey` is in. */
+export const HUB_EARNINGS_PRESET_NAMESPACE = "dashboard.earnings";
 
 /**
  * The four presets, in the order the design's tab strip shows them. Exported so
  * the filter bar renders from the same list this module resolves against and
  * cannot offer a tab that does not resolve.
  */
-export const HUB_EARNINGS_PRESETS: readonly HubEarningsPreset[] = [
-  { id: "this-week", label: "This week" },
-  { id: "last-week", label: "Last week" },
-  { id: "this-month", label: "This month" },
-  { id: "last-30-days", label: "Last 30 days" },
+export const HUB_EARNINGS_PRESETS: readonly HubEarningsPresetDefinition[] = [
+  { id: "this-week", labelKey: "thisWeek" },
+  { id: "last-week", labelKey: "lastWeek" },
+  { id: "this-month", labelKey: "thisMonth" },
+  { id: "last-30-days", labelKey: "last30Days" },
 ];
+
+/**
+ * The presets with their tab copy resolved, given a translator already bound
+ * to `HUB_EARNINGS_PRESET_NAMESPACE`.
+ */
+export function translateHubEarningsPresets(
+  t: (key: HubEarningsPresetDefinition["labelKey"]) => string,
+): HubEarningsPreset[] {
+  return HUB_EARNINGS_PRESETS.map(({ id, labelKey }) => ({
+    id,
+    label: t(labelKey),
+  }));
+}
 
 /** Where a visitor with no (or an unusable) range in the URL lands. */
 export const HUB_EARNINGS_DEFAULT_PRESET: HubEarningsPresetId = "this-week";
@@ -633,6 +661,8 @@ async function loadFleetRevenue(
 ): Promise<{
   rows: FleetRevenueRow[];
   namesByDriverId: ReadonlyMap<string, string>;
+  /** What a driver whose `User` row is gone is called, in the reader's language. */
+  formerDriverLabel: string;
 } | null> {
   const { companyId } = account;
 
@@ -693,9 +723,15 @@ async function loadFleetRevenue(
           select: { id: true, name: true },
         });
 
+  // Resolved here, in request scope, because the breakdown below is plain
+  // data. Only the performance page renders these names; the earnings export
+  // (an `/api` route, outside `[locale]`) reads the day table and not this.
+  const t = await getTranslations("dashboard.earnings");
+
   return {
     rows,
     namesByDriverId: new Map(users.map((user) => [user.id, user.name])),
+    formerDriverLabel: t("formerDriver"),
   };
 }
 
@@ -709,6 +745,7 @@ async function loadFleetRevenue(
 function toFleetBreakdown(
   rows: readonly FleetRevenueRow[],
   namesByDriverId: ReadonlyMap<string, string>,
+  formerDriverLabel: string,
   grossFares: number,
 ): HubEarningsFleet {
   const share = (fares: number): number =>
@@ -725,7 +762,7 @@ function toFleetBreakdown(
       // (`onDelete: SetNull` fires on the FK, not on history) but loses their
       // name, so the fallback is a label rather than an empty cell — the money
       // is real and must still be attributable to *something*.
-      name: namesByDriverId.get(row.driverId) ?? "Former driver",
+      name: namesByDriverId.get(row.driverId) ?? formerDriverLabel,
       jobsCompleted: row.jobsCompleted,
       grossFaresGel: row.grossFaresGel,
       averagePerJobGel:
@@ -737,7 +774,8 @@ function toFleetBreakdown(
     // Largest earner first, then by name so two equal rows have a stable order
     // across renders rather than whatever the database returned.
     .sort(
-      (a, b) => b.grossFaresGel - a.grossFaresGel || a.name.localeCompare(b.name),
+      (a, b) =>
+        b.grossFaresGel - a.grossFaresGel || a.name.localeCompare(b.name),
     );
 
   const unassignedRow = rows.find((row) => row.driverId === null);
@@ -932,6 +970,7 @@ export async function getHubEarnings(
         : toFleetBreakdown(
             fleetRevenue.rows,
             fleetRevenue.namesByDriverId,
+            fleetRevenue.formerDriverLabel,
             grossFares,
           ),
     sampled: {

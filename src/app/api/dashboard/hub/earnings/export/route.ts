@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { Workbook } from "exceljs";
+import { getFormatter } from "next-intl/server";
 
+import {
+  getRequestLocale,
+  getRequestTranslations,
+} from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
 import { resolveHubAccount } from "@/lib/dashboard/hub/account";
 import type { HubAccount } from "@/lib/dashboard/hub/account";
@@ -72,29 +77,33 @@ const CURRENCY_FORMAT = "#,##0.00";
  */
 const HOURS_FORMAT = "0.00";
 
-/** The design's day-name column: "Mon". UTC, like every bucket in the range. */
-const weekdayFormatter = new Intl.DateTimeFormat("en-GB", {
-  weekday: "short",
-  timeZone: "UTC",
-});
+/**
+ * The request-locale translator, resolving full key paths. The workbook is
+ * written in the reader's language: sheet name, header block, note and column
+ * titles all go through it.
+ */
+type RequestTranslator = Awaited<ReturnType<typeof getRequestTranslations>>;
+
+/**
+ * Names a UTC day for the design's day-name column ("Mon" / "ორშ"), in the
+ * reader's locale.
+ */
+type WeekdayNamer = (date: Date) => string;
 
 /** Which columns of the sheet are invented, said in the sheet itself. */
-const ESTIMATES_NOTE =
-  "Online hours, Tips, Incentives and Adjustments are estimates, not recorded " +
-  "data — and the Total column includes them. Date, Day, Jobs and Fares are " +
-  "real completed-order figures.";
+const ESTIMATES_NOTE_KEY = "errors.dashboardHubEarningsExport.estimatesNote";
 
-/** Header row copy. The four estimated columns say so in their own headers. */
-const TABLE_HEADERS = [
-  "Date",
-  "Day",
-  "Jobs",
-  "Online hours (estimate)",
-  "Fares",
-  "Tips (estimate)",
-  "Incentives (estimate)",
-  "Adjustments (estimate)",
-  "Total (incl. estimates)",
+/** Header row copy, as keys. The four estimated columns say so in their own headers. */
+const TABLE_HEADER_KEYS = [
+  "common.shared.date",
+  "errors.dashboardHubEarningsExport.day",
+  "common.shared.jobs",
+  "errors.dashboardHubEarningsExport.onlineHoursEstimate",
+  "errors.dashboardHubEarningsExport.fares",
+  "errors.dashboardHubEarningsExport.tipsEstimate",
+  "errors.dashboardHubEarningsExport.incentivesEstimate",
+  "errors.dashboardHubEarningsExport.adjustmentsEstimate",
+  "errors.dashboardHubEarningsExport.totalInclEstimates",
 ] as const;
 
 /** Money is rounded to the cent it is printed at, as the loader does. */
@@ -129,7 +138,7 @@ function estimatedDayHours(jobs: number): number {
   return roundCurrency(jobs * SAMPLE_ONLINE_HOURS_PER_JOB);
 }
 
-/** One row of the sheet's day table, in the order `TABLE_HEADERS` names. */
+/** One row of the sheet's day table, in the order `TABLE_HEADER_KEYS` names. */
 type DayRow = {
   date: string;
   day: string;
@@ -154,12 +163,16 @@ type DayRow = {
  * day fares by construction, and tips and incentives are linear in the job
  * counts.
  */
-function buildRows(data: HubEarningsData): {
+function buildRows(
+  data: HubEarningsData,
+  t: RequestTranslator,
+  weekdayOf: WeekdayNamer,
+): {
   rows: readonly DayRow[];
   totals: DayRow;
 } {
   const totals: DayRow = {
-    date: "Totals",
+    date: t("errors.dashboardHubEarningsExport.totals"),
     day: "",
     jobs: 0,
     hours: 0,
@@ -192,7 +205,7 @@ function buildRows(data: HubEarningsData): {
 
     return {
       date: day.date,
-      day: weekdayFormatter.format(utcDay(day.date)),
+      day: weekdayOf(utcDay(day.date)),
       jobs: day.jobs,
       hours,
       fares: day.fares,
@@ -211,8 +224,12 @@ function addEarningsSheet(
   workbook: Workbook,
   account: HubAccount,
   data: HubEarningsData,
+  t: RequestTranslator,
+  weekdayOf: WeekdayNamer,
 ): void {
-  const sheet = workbook.addWorksheet("Earnings");
+  const sheet = workbook.addWorksheet(
+    t("errors.dashboardHubEarningsExport.sheetName"),
+  );
 
   // Keys and widths only — the header row is written by hand below, because a
   // sheet that opens with a header block cannot have exceljs put column titles
@@ -235,12 +252,29 @@ function addEarningsSheet(
   // Date column below is text for the same reason — and sorts correctly anyway,
   // `YYYY-MM-DD` being lexicographically ordered.
   const headerBlock = [
-    [account.kind === "BUSINESS" ? "Company" : "Driver", account.displayName],
-    ["Range", `${data.range.from} to ${data.range.to}`],
-    ["Currency", "GEL (₾)"],
+    [
+      account.kind === "BUSINESS"
+        ? t("common.shared.company")
+        : t("common.shared.driver"),
+      account.displayName,
+    ],
+    [
+      t("errors.dashboardHubEarningsExport.range"),
+      t("errors.dashboardHubEarningsExport.rangeFromTo", {
+        from: data.range.from,
+        to: data.range.to,
+      }),
+    ],
+    [
+      t("errors.dashboardHubEarningsExport.currency"),
+      t("errors.dashboardHubEarningsExport.gelSymbol"),
+    ],
     // A spreadsheet outlives the screen that made it: a column of invented tips
     // with no marker beside it is the failure mode this row exists to prevent.
-    ["Estimated columns", ESTIMATES_NOTE],
+    [
+      t("errors.dashboardHubEarningsExport.estimatedColumns"),
+      t(ESTIMATES_NOTE_KEY),
+    ],
   ];
 
   for (const line of headerBlock) {
@@ -250,12 +284,12 @@ function addEarningsSheet(
 
   sheet.addRow([]);
 
-  const headerRow = sheet.addRow([...TABLE_HEADERS]);
+  const headerRow = sheet.addRow(TABLE_HEADER_KEYS.map((key) => t(key)));
   headerRow.font = { bold: true };
   // Keep the column titles in view while scrolling a long range.
   sheet.views = [{ state: "frozen", ySplit: headerRow.number }];
 
-  const { rows, totals } = buildRows(data);
+  const { rows, totals } = buildRows(data, t, weekdayOf);
 
   for (const row of rows) {
     sheet.addRow(row);
@@ -268,6 +302,8 @@ function addEarningsSheet(
 }
 
 export async function GET(request: Request): Promise<NextResponse> {
+  const t = await getRequestTranslations();
+
   // The session is read directly rather than through the page-side guard
   // because that guard `redirect()`s, and a redirect is the wrong answer to a
   // `fetch` for a file: the browser would follow it and save the sign-in page
@@ -279,14 +315,18 @@ export async function GET(request: Request): Promise<NextResponse> {
 
   if (!session) {
     return NextResponse.json<HubEarningsExportError>(
-      { error: "Unauthorized." },
+      { error: t("common.shared.unauthorized") },
       { status: 401 },
     );
   }
 
   if (session.user.mustChangePassword || session.user.role === "CLIENT") {
     return NextResponse.json<HubEarningsExportError>(
-      { error: "This account cannot export driver earnings." },
+      {
+        error: t(
+          "errors.dashboardHubEarningsExport.thisAccountCannotExportDriverEarnings",
+        ),
+      },
       { status: 403 },
     );
   }
@@ -295,7 +335,7 @@ export async function GET(request: Request): Promise<NextResponse> {
 
   if (account === null) {
     return NextResponse.json<HubEarningsExportError>(
-      { error: "Your driver profile isn't set up yet." },
+      { error: t("common.shared.yourDriverProfileIsnTSet") },
       { status: 403 },
     );
   }
@@ -325,11 +365,16 @@ export async function GET(request: Request): Promise<NextResponse> {
 
   const data = await getHubEarnings(account, range);
 
+  // UTC, like every bucket in the range; the day names follow the reader.
+  const format = await getFormatter({ locale: await getRequestLocale() });
+  const weekdayOf: WeekdayNamer = (date) =>
+    format.dateTime(date, { weekday: "short", timeZone: "UTC" });
+
   const workbook = new Workbook();
-  workbook.creator = "Driver Hub";
+  workbook.creator = t("errors.dashboardHubEarningsExport.driverHub");
   workbook.created = new Date();
 
-  addEarningsSheet(workbook, account, data);
+  addEarningsSheet(workbook, account, data, t, weekdayOf);
 
   const buffer = await workbook.xlsx.writeBuffer();
 

@@ -6,6 +6,10 @@ import {
   PaymentStatus,
 } from "@prisma/client";
 
+import {
+  getRequestTranslations,
+  type RequestTranslator,
+} from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
 import { settleOrderPayment } from "@/lib/orders/payment-settlement";
 import { prisma } from "@/lib/prisma";
@@ -70,13 +74,18 @@ function roundCurrency(value: number): number {
 function parseOptionalText(
   value: unknown,
   fieldName: string,
+  t: RequestTranslator,
 ): { value: string | null } | { error: string } {
   if (value === undefined || value === null) {
     return { value: null };
   }
 
   if (typeof value !== "string") {
-    return { error: `${fieldName} must be a string when provided.` };
+    return {
+      error: t("errors.ordersPay.fieldMustBeStringWhenProvided", {
+        field: fieldName,
+      }),
+    };
   }
 
   const trimmed = value.trim();
@@ -86,7 +95,10 @@ function parseOptionalText(
 
   if (trimmed.length > FREE_TEXT_MAX_LENGTH) {
     return {
-      error: `${fieldName} must be ${FREE_TEXT_MAX_LENGTH} characters or fewer.`,
+      error: t("errors.ordersPay.fieldTooLong", {
+        field: fieldName,
+        max: FREE_TEXT_MAX_LENGTH,
+      }),
     };
   }
 
@@ -103,9 +115,10 @@ function parseOptionalText(
  */
 function parsePayOrderBody(
   body: unknown,
+  t: RequestTranslator,
 ): { data: PayOrderInput } | { error: string } {
   if (typeof body !== "object" || body === null) {
-    return { error: "Request body must be a JSON object." };
+    return { error: t("common.shared.requestBodyMustBeAJson") };
   }
 
   const record = body as Record<string, unknown>;
@@ -116,7 +129,9 @@ function parsePayOrderBody(
     !CHECKOUT_PAYMENT_METHODS.includes(paymentMethodType as PaymentMethodType)
   ) {
     return {
-      error: `paymentMethodType must be one of: ${CHECKOUT_PAYMENT_METHODS.join(", ")}.`,
+      error: t("errors.ordersPay.paymentMethodTypeMustBeOneOf", {
+        allowed: CHECKOUT_PAYMENT_METHODS.join(", "),
+      }),
     };
   }
 
@@ -127,7 +142,7 @@ function parsePayOrderBody(
     savedCardId !== undefined &&
     (typeof savedCardId !== "string" || savedCardId.trim().length === 0)
   ) {
-    return { error: "savedCardId must be a non-empty string when provided." };
+    return { error: t("common.shared.savedcardidMustBeANonEmpty") };
   }
 
   const chosenCardId =
@@ -139,16 +154,19 @@ function parsePayOrderBody(
   // client changed method without clearing its card. Say which of the two to
   // change rather than quietly picking one.
   if (method === PaymentMethodType.CARD && chosenCardId === null) {
-    return { error: "Choose a saved card to pay by card." };
+    return { error: t("common.shared.chooseASavedCardToPay") };
   }
 
   if (method !== PaymentMethodType.CARD && chosenCardId !== null) {
-    return { error: "Send savedCardId only when paymentMethodType is CARD." };
+    return {
+      error: t("common.shared.sendSavedcardidOnlyWhenPaymentmethodtypeIs"),
+    };
   }
 
   const purchaseOrderRef = parseOptionalText(
     record.purchaseOrderRef,
     "purchaseOrderRef",
+    t,
   );
   if ("error" in purchaseOrderRef) {
     return purchaseOrderRef;
@@ -192,9 +210,14 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
+  const t = await getRequestTranslations();
+
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    return NextResponse.json(
+      { error: t("common.shared.unauthorized") },
+      { status: 401 },
+    );
   }
 
   let rawBody: unknown;
@@ -202,12 +225,12 @@ export async function POST(
     rawBody = await request.json();
   } catch {
     return NextResponse.json(
-      { error: "Request body must be valid JSON." },
+      { error: t("common.shared.requestBodyMustBeValidJson") },
       { status: 400 },
     );
   }
 
-  const parsed = parsePayOrderBody(rawBody);
+  const parsed = parsePayOrderBody(rawBody, t);
   if ("error" in parsed) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
@@ -230,7 +253,10 @@ export async function POST(
   });
 
   if (!order) {
-    return NextResponse.json({ error: "Order not found." }, { status: 404 });
+    return NextResponse.json(
+      { error: t("common.shared.orderNotFound") },
+      { status: 404 },
+    );
   }
 
   // Checked before the payment-method work below so a client who double-submits,
@@ -241,8 +267,7 @@ export async function POST(
   if (order.status !== OrderStatus.INITIATED) {
     return NextResponse.json(
       {
-        error:
-          "This delivery has already been paid for and is with our drivers.",
+        error: t("errors.ordersPay.thisDeliveryHasAlreadyBeenPaid"),
       },
       { status: 409 },
     );
@@ -261,7 +286,7 @@ export async function POST(
 
   if (!paymentMethodConfig?.isEnabled) {
     return NextResponse.json(
-      { error: "That payment method is not available." },
+      { error: t("common.shared.thatPaymentMethodIsNotAvailable") },
       { status: 400 },
     );
   }
@@ -277,7 +302,7 @@ export async function POST(
 
     if (!savedCard) {
       return NextResponse.json(
-        { error: "Choose a card saved to your own payment methods." },
+        { error: t("common.shared.chooseACardSavedToYour") },
         { status: 400 },
       );
     }
@@ -359,8 +384,7 @@ export async function POST(
   if (!claimed) {
     return NextResponse.json(
       {
-        error:
-          "This delivery has already been paid for and is with our drivers.",
+        error: t("errors.ordersPay.thisDeliveryHasAlreadyBeenPaid"),
       },
       { status: 409 },
     );

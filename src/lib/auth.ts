@@ -12,6 +12,43 @@ import {
 import { prisma } from "@/lib/prisma";
 
 /**
+ * A sign-up refusal in the requester's language. These messages reach the
+ * sign-up form verbatim, so they are localised from the request's
+ * `NEXT_LOCALE` cookie (or Referer) via `resolveLocaleFromHeaders`.
+ *
+ * Only the message text changes — every refusal still throws the same
+ * `APIError` with the same status. Both i18n modules are loaded lazily and the
+ * lookup is guarded, because this module is also imported by seed scripts that
+ * run outside Next, where there is no request config to translate with; there,
+ * and whenever `request` is absent, the English original is returned as-is.
+ */
+async function localizedSignUpRefusal(
+  request: Request | undefined,
+  key: string,
+  english: string,
+): Promise<string> {
+  if (!request) {
+    return english;
+  }
+
+  try {
+    const [{ getTranslations }, { resolveLocaleFromHeaders }] =
+      await Promise.all([
+        import("next-intl/server"),
+        import("@/i18n/request-locale"),
+      ]);
+    const t = await getTranslations({
+      locale: resolveLocaleFromHeaders(request.headers),
+      namespace: "auth.auth",
+    });
+
+    return t(key);
+  } catch {
+    return english;
+  }
+}
+
+/**
  * Origins trusted to make authenticated requests, beyond `BETTER_AUTH_URL`
  * itself (which Better Auth trusts implicitly). This Vercel project serves
  * the same deployment from several stable aliases — the production domain,
@@ -239,7 +276,11 @@ export const auth = betterAuth({
 
       if (role === "ADMIN") {
         throw new APIError("FORBIDDEN", {
-          message: "Admin accounts cannot be created through sign-up.",
+          message: await localizedSignUpRefusal(
+            ctx.request,
+            "adminAccountsCannotBeCreatedThrough",
+            "Admin accounts cannot be created through sign-up.",
+          ),
         });
       }
 
@@ -263,7 +304,11 @@ export const auth = betterAuth({
       // one — it can be enabled while `NEXT_PUBLIC_MERCHANT_HOST` is unset.
       if (audience === "ADMIN") {
         throw new APIError("FORBIDDEN", {
-          message: "Accounts cannot be created from the admin host.",
+          message: await localizedSignUpRefusal(
+            ctx.request,
+            "accountsCannotBeCreatedFromThe",
+            "Accounts cannot be created from the admin host.",
+          ),
         });
       }
 
@@ -273,15 +318,21 @@ export const auth = betterAuth({
 
       if (audience === "CLIENT" && role !== "CLIENT") {
         throw new APIError("FORBIDDEN", {
-          message:
+          message: await localizedSignUpRefusal(
+            ctx.request,
+            "driverAndLogisticsCompanyAccountsMust",
             "Driver and logistics company accounts must be created from the merchant sign-up page.",
+          ),
         });
       }
 
       if (audience === "MERCHANT" && role === "CLIENT") {
         throw new APIError("FORBIDDEN", {
-          message:
+          message: await localizedSignUpRefusal(
+            ctx.request,
+            "clientAccountsMustBeCreatedFrom",
             "Client accounts must be created from the main sign-up page.",
+          ),
         });
       }
     }),

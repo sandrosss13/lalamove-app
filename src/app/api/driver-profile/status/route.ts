@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -16,14 +17,20 @@ import { prisma } from "@/lib/prisma";
  * going offline never does.
  */
 export async function PATCH(request: Request): Promise<NextResponse> {
+  const t = await getRequestTranslations();
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    return NextResponse.json(
+      { error: t("common.shared.unauthorized") },
+      { status: 401 },
+    );
   }
 
   if (session.user.role !== "DRIVER") {
     return NextResponse.json(
-      { error: "Only drivers can update online status." },
+      {
+        error: t("errors.driverProfileStatus.onlyDriversCanUpdateOnlineStatus"),
+      },
       { status: 403 },
     );
   }
@@ -33,7 +40,7 @@ export async function PATCH(request: Request): Promise<NextResponse> {
     rawBody = await request.json();
   } catch {
     return NextResponse.json(
-      { error: "Request body must be valid JSON." },
+      { error: t("common.shared.requestBodyMustBeValidJson") },
       { status: 400 },
     );
   }
@@ -47,7 +54,7 @@ export async function PATCH(request: Request): Promise<NextResponse> {
 
   if (typeof isOnline !== "boolean") {
     return NextResponse.json(
-      { error: "isOnline must be a boolean." },
+      { error: t("errors.driverProfileStatus.isonlineMustBeABoolean") },
       { status: 400 },
     );
   }
@@ -62,7 +69,11 @@ export async function PATCH(request: Request): Promise<NextResponse> {
   });
   if (!existing) {
     return NextResponse.json(
-      { error: "Complete your driver profile before going online." },
+      {
+        error: t(
+          "errors.driverProfileStatus.completeYourDriverProfileBeforeGoing",
+        ),
+      },
       { status: 404 },
     );
   }
@@ -73,8 +84,7 @@ export async function PATCH(request: Request): Promise<NextResponse> {
   if (isOnline && existing.activatedAt === null) {
     return NextResponse.json(
       {
-        error:
-          "Your account isn't approved yet. Finish onboarding to go online.",
+        error: t("errors.driverProfileStatus.yourAccountIsnTApprovedYet"),
       },
       { status: 403 },
     );

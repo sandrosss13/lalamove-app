@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import type { AdminRole } from "@prisma/client";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { authorizeAdminApi } from "@/lib/admin/api-auth";
 import { writeAuditLog } from "@/lib/admin/audit";
 import { auth } from "@/lib/auth";
@@ -59,6 +60,8 @@ export async function POST(
     return authorized.response;
   }
 
+  const t = await getRequestTranslations();
+
   const { userId } = await params;
 
   let rawBody: unknown;
@@ -66,14 +69,14 @@ export async function POST(
     rawBody = await request.json();
   } catch {
     return NextResponse.json(
-      { error: "Request body must be valid JSON." },
+      { error: t("common.shared.requestBodyMustBeValidJson") },
       { status: 400 },
     );
   }
 
   if (typeof rawBody !== "object" || rawBody === null) {
     return NextResponse.json(
-      { error: "Request body must be a JSON object." },
+      { error: t("common.shared.requestBodyMustBeAJson") },
       { status: 400 },
     );
   }
@@ -82,7 +85,7 @@ export async function POST(
 
   if (typeof reason !== "string" || reason.trim() === "") {
     return NextResponse.json(
-      { error: "A reason is required to suspend an account." },
+      { error: t("common.shared.aReasonIsRequiredToSuspend") },
       { status: 400 },
     );
   }
@@ -91,7 +94,7 @@ export async function POST(
 
   if (trimmedReason.length > MAX_REASON_LENGTH) {
     return NextResponse.json(
-      { error: `A reason must be ${MAX_REASON_LENGTH} characters or fewer.` },
+      { error: t("common.shared.reasonMaxLength", { max: MAX_REASON_LENGTH }) },
       { status: 400 },
     );
   }
@@ -104,7 +107,10 @@ export async function POST(
   });
 
   if (!target) {
-    return NextResponse.json({ error: "User not found." }, { status: 404 });
+    return NextResponse.json(
+      { error: t("common.shared.userNotFound") },
+      { status: 404 },
+    );
   }
 
   // Internal staff are out of this endpoint's reach on purpose. Admin accounts
@@ -114,7 +120,9 @@ export async function POST(
   // around that restriction.
   if (target.role === "ADMIN") {
     return NextResponse.json(
-      { error: "Staff accounts are managed under System Users." },
+      {
+        error: t("errors.adminUsersSuspend.staffAccountsAreManagedUnderSystem"),
+      },
       { status: 403 },
     );
   }

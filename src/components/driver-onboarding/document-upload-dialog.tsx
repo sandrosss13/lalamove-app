@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { UploadIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -29,25 +30,27 @@ export type DocumentSlot = "selfie" | "licFront" | "licBack";
  */
 export const CAPTURE_META: Record<
   DocumentSlot,
-  { title: string; hint: string; guide: string; badge: string }
+  // `titleKey` / `hintKey` are full `next-intl` message paths, translated at
+  // render (no hook can run at module scope). `guideKey` and `badgeKey` too.
+  { titleKey: string; hintKey: string; guideKey: string; badgeKey: string }
 > = {
   selfie: {
-    title: "Upload your profile photo",
-    hint: "A recent photo of your face, matched against your ID by the review team.",
-    guide: "Face centred, no hat or sunglasses, plain background.",
-    badge: "STEP 1 · PROFILE PHOTO",
+    titleKey: "onboarding.documentUploadDialog.uploadYourProfilePhoto",
+    hintKey: "common.shared.aRecentPhotoOfYourFace",
+    guideKey: "onboarding.documentUploadDialog.guideSelfie",
+    badgeKey: "onboarding.documentUploadDialog.badgeSelfie",
   },
   licFront: {
-    title: "Upload the front of your licence",
-    hint: "The photo, name and licence number must be readable.",
-    guide: "All four corners visible, no glare across the card.",
-    badge: "STEP 2 · LICENCE FRONT",
+    titleKey: "onboarding.documentUploadDialog.uploadTheFrontOfYourLicence",
+    hintKey: "onboarding.documentUploadDialog.thePhotoNameAndLicenceNumber",
+    guideKey: "onboarding.documentUploadDialog.guideLicenceFront",
+    badgeKey: "onboarding.documentUploadDialog.badgeLicenceFront",
   },
   licBack: {
-    title: "Upload the back of your licence",
-    hint: "The category table is what the reviewer checks.",
-    guide: "All four corners visible, category rows legible.",
-    badge: "STEP 2 · LICENCE BACK",
+    titleKey: "onboarding.documentUploadDialog.uploadTheBackOfYourLicence",
+    hintKey: "onboarding.documentUploadDialog.theCategoryTableIsWhatThe",
+    guideKey: "onboarding.documentUploadDialog.guideLicenceBack",
+    badgeKey: "onboarding.documentUploadDialog.badgeLicenceBack",
   },
 };
 
@@ -80,23 +83,22 @@ const MAX_FILE_BYTES = 10 * 1024 * 1024;
  */
 const ACCEPTED_CONTENT_TYPES = ["image/jpeg", "image/png"];
 
-const UPLOAD_FAILED_FALLBACK =
-  "The upload didn't finish. Check your connection and try again.";
-
 /** What the response of `POST .../documents/upload-url` carries. */
 type UploadUrlResponse = { path: string; signedUrl: string; token: string };
 
 /**
  * Rejects a file the endpoints would refuse anyway, before any request is made.
- * Returns the message to show, or `null` when the file is fine.
+ * Returns the `onboarding.documentUploadDialog` message key to show, or `null`
+ * when the file is fine — a key rather than copy, since this runs outside the
+ * component and cannot translate.
  */
-function rejectFile(file: File): string | null {
+function rejectFile(file: File): "notJpgOrPng" | "fileTooLarge" | null {
   if (!ACCEPTED_CONTENT_TYPES.includes(file.type)) {
-    return "That file is not a JPG or PNG. Choose a different one.";
+    return "notJpgOrPng";
   }
 
   if (file.size > MAX_FILE_BYTES) {
-    return "That file is larger than 10 MB. Choose a smaller one.";
+    return "fileTooLarge";
   }
 
   return null;
@@ -129,6 +131,8 @@ export function DocumentUploadDialog({
   onUploaded: (signedUrl: string) => void;
 }) {
   const { recordDocument, showToast } = useOnboardingDraft();
+  const t = useTranslations("onboarding.documentUploadDialog");
+  const tRoot = useTranslations();
 
   const [state, setState] = useState<"idle" | "uploading" | "failed">("idle");
   const [message, setMessage] = useState<string | null>(null);
@@ -171,7 +175,7 @@ export function DocumentUploadDialog({
             error?: string;
           } | null;
           setState("failed");
-          setMessage(payload?.error ?? UPLOAD_FAILED_FALLBACK);
+          setMessage(payload?.error ?? t("uploadFailed"));
           return;
         }
 
@@ -192,7 +196,7 @@ export function DocumentUploadDialog({
             error?: string;
           } | null;
           setState("failed");
-          setMessage(payload?.error ?? UPLOAD_FAILED_FALLBACK);
+          setMessage(payload?.error ?? t("uploadFailed"));
           return;
         }
 
@@ -213,7 +217,7 @@ export function DocumentUploadDialog({
           // could not be signed, so there is no thumbnail to hand back. Say so
           // rather than passing an empty string that would render as a broken
           // image in the caller's slot.
-          showToast("Uploaded. The preview will appear shortly.");
+          showToast(t("previewSoon"));
         } else {
           onUploaded(recorded.signedUrl);
         }
@@ -221,10 +225,10 @@ export function DocumentUploadDialog({
         onOpenChange(false);
       } catch {
         setState("failed");
-        setMessage(UPLOAD_FAILED_FALLBACK);
+        setMessage(t("uploadFailed"));
       }
     },
-    [onOpenChange, onUploaded, recordDocument, showToast, slot],
+    [onOpenChange, onUploaded, recordDocument, showToast, slot, t],
   );
 
   const handleFile = useCallback(
@@ -233,7 +237,7 @@ export function DocumentUploadDialog({
       if (rejection) {
         // No request is made at all: the file is known-bad here.
         setState("failed");
-        setMessage(rejection);
+        setMessage(t(rejection));
         setPendingFile(null);
         return;
       }
@@ -241,7 +245,7 @@ export function DocumentUploadDialog({
       setPendingFile(file);
       void upload(file);
     },
-    [upload],
+    [t, upload],
   );
 
   const uploading = state === "uploading";
@@ -282,13 +286,13 @@ export function DocumentUploadDialog({
       >
         <DialogHeader className="gap-1 border-b border-border px-[22px] pt-5 pb-4">
           <span className="font-price text-[10.5px] font-semibold tracking-[0.09em] text-muted-foreground uppercase">
-            {meta.badge}
+            {tRoot(meta.badgeKey)}
           </span>
           <DialogTitle className="text-[18px] leading-tight font-semibold tracking-[-0.01em]">
-            {meta.title}
+            {tRoot(meta.titleKey)}
           </DialogTitle>
           <DialogDescription className="text-[13px] leading-[1.5]">
-            {meta.hint}
+            {tRoot(meta.hintKey)}
           </DialogDescription>
         </DialogHeader>
 
@@ -347,15 +351,13 @@ export function DocumentUploadDialog({
               <UploadIcon className="size-[17px]" />
             </span>
             <span className="text-[14.5px] font-semibold">
-              {uploading
-                ? "Uploading…"
-                : "Drag a file here, or click to browse"}
+              {uploading ? t("uploading") : t("dragOrBrowse")}
             </span>
             <span className="text-center text-[12.5px] leading-[1.5] text-muted-foreground">
-              {meta.guide}
+              {tRoot(meta.guideKey)}
             </span>
             <span className="mt-0.5 font-price text-[11.5px] text-muted-foreground">
-              JPG or PNG · max 10 MB
+              {t("jpgOrPngMax10Mb")}
             </span>
           </button>
 
@@ -374,7 +376,7 @@ export function DocumentUploadDialog({
                   size="sm"
                   onClick={() => void upload(pendingFile)}
                 >
-                  Try again
+                  {tRoot("common.shared.tryAgain")}
                 </Button>
               ) : null}
             </div>
@@ -388,7 +390,7 @@ export function DocumentUploadDialog({
             40% the design asks for instead of the primitive's 50%. */}
         <DialogFooter className="mx-0 mb-0 flex-row items-center justify-between gap-3.5 rounded-b-xl border-t border-border bg-secondary/40 px-[22px] py-3.5 sm:justify-between">
           <p className="text-xs text-muted-foreground">
-            Files are checked by the review team, not automatically.
+            {t("filesAreCheckedByTheReview")}
           </p>
           <Button
             type="button"
@@ -397,7 +399,7 @@ export function DocumentUploadDialog({
             disabled={uploading}
             onClick={() => onOpenChange(false)}
           >
-            Cancel
+            {tRoot("common.shared.cancel")}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 import type { ContentLocale } from "@prisma/client";
 
@@ -37,6 +38,12 @@ import { Textarea } from "@/components/ui/textarea";
 export const CONTENT_LOCALE_LABELS: Record<ContentLocale, string> = {
   KA: "Georgian",
   EN: "English",
+};
+
+/** `CONTENT_LOCALE_LABELS` as full message paths, resolved where they render. */
+export const CONTENT_LOCALE_LABEL_KEYS: Record<ContentLocale, string> = {
+  KA: "common.shared.georgian",
+  EN: "common.shared.english",
 };
 
 /** Picker order — the site's default locale first. */
@@ -104,6 +111,7 @@ export function StaticPageFormDialog({
   onClose,
   onCompleted,
 }: StaticPageFormDialogProps) {
+  const t = useTranslations();
   const isEditing = target.mode === "edit";
   const existing = target.mode === "edit" ? target.page : null;
 
@@ -142,7 +150,9 @@ export function StaticPageFormDialog({
         setError(
           await readErrorMessage(
             response,
-            existing ? "Could not save this page." : "Could not create page.",
+            existing
+              ? t("admin.staticPageFormDialog.couldNotSave")
+              : t("admin.staticPageFormDialog.couldNotCreate"),
           ),
         );
         return;
@@ -150,7 +160,7 @@ export function StaticPageFormDialog({
 
       onCompleted();
     } catch {
-      setError("Network error. Please check your connection and try again.");
+      setError(t("common.shared.networkErrorPleaseCheckYourConnection"));
     } finally {
       setPending(false);
     }
@@ -167,19 +177,24 @@ export function StaticPageFormDialog({
         <form onSubmit={handleSubmit} className="contents">
           <DialogHeader>
             <DialogTitle>
-              {isEditing ? "Edit static page" : "New static page"}
+              {isEditing
+                ? t("admin.staticPageFormDialog.editStaticPage")
+                : t("admin.staticPageFormDialog.newStaticPage")}
             </DialogTitle>
             <DialogDescription>
-              Each locale is its own page. The body is raw HTML and is rendered
-              as-is at{" "}
-              <span className="font-mono">/pages/{slug || "slug"}</span>.
+              {t.rich("admin.staticPageFormDialog.description", {
+                slug: slug || "slug",
+                path: (chunks) => <span className="font-mono">{chunks}</span>,
+              })}
             </DialogDescription>
           </DialogHeader>
 
           <div className="flex flex-col gap-3">
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="static-page-slug">Slug</Label>
+                <Label htmlFor="static-page-slug">
+                  {t("common.shared.slug")}
+                </Label>
                 <Input
                   id="static-page-slug"
                   required
@@ -190,18 +205,22 @@ export function StaticPageFormDialog({
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="static-page-locale">Locale</Label>
+                <Label htmlFor="static-page-locale">
+                  {t("common.shared.locale")}
+                </Label>
                 <Select
                   value={locale}
                   onValueChange={(value) => setLocale(value as ContentLocale)}
                 >
                   <SelectTrigger id="static-page-locale" className="w-full">
-                    <SelectValue placeholder="Select a locale" />
+                    <SelectValue
+                      placeholder={t("common.shared.selectALocale")}
+                    />
                   </SelectTrigger>
                   <SelectContent>
                     {CONTENT_LOCALE_OPTIONS.map((option) => (
                       <SelectItem key={option} value={option}>
-                        {CONTENT_LOCALE_LABELS[option]}
+                        {t(CONTENT_LOCALE_LABEL_KEYS[option])}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -210,18 +229,22 @@ export function StaticPageFormDialog({
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="static-page-title">Title</Label>
+              <Label htmlFor="static-page-title">
+                {t("common.shared.title")}
+              </Label>
               <Input
                 id="static-page-title"
                 required
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
-                placeholder="Terms of Service"
+                placeholder={t("admin.staticPageFormDialog.termsOfService")}
               />
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="static-page-body">Body (HTML)</Label>
+              <Label htmlFor="static-page-body">
+                {t("admin.staticPageFormDialog.bodyHtml")}
+              </Label>
               <Textarea
                 id="static-page-body"
                 required
@@ -240,7 +263,7 @@ export function StaticPageFormDialog({
                 onCheckedChange={(checked) => setIsPublished(checked === true)}
               />
               <Label htmlFor="static-page-published">
-                Published — visible to visitors
+                {t("admin.staticPageFormDialog.publishedVisibleToVisitors")}
               </Label>
             </div>
 
@@ -249,10 +272,14 @@ export function StaticPageFormDialog({
 
           <DialogFooter showCloseButton={false}>
             <Button type="button" variant="outline" onClick={onClose}>
-              Cancel
+              {t("common.shared.cancel")}
             </Button>
             <Button type="submit" disabled={pending}>
-              {pending ? "Saving…" : isEditing ? "Save changes" : "Create page"}
+              {pending
+                ? t("common.shared.saving")
+                : isEditing
+                  ? t("account.accountProfileForm.saveChanges")
+                  : t("admin.staticPageFormDialog.createPage")}
             </Button>
           </DialogFooter>
         </form>

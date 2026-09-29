@@ -1,257 +1,557 @@
 {
+  "dashboard.driverProfileNotSetUpFinishSigningUp": {
+    "en": "Your driver profile isn't set up yet. Finish signing up as a driver to see your dashboard.",
+    "ka": "თქვენი მძღოლის პროფილი ჯერ არ არის შექმნილი. დაასრულეთ რეგისტრაცია მძღოლად, რომ ნახოთ თქვენი დაფა.",
+    "_source": "src/app/[locale]/dashboard/(hub)/layout.tsx"
+  },
   "dashboard.providerAccount": {
     "en": "Provider account",
-    "ka": "",
+    "ka": "პროვაიდერის ანგარიში",
     "_source": "src/app/[locale]/dashboard/(hub)/layout.tsx"
   },
   "dashboardAccount.accountDriverHub": {
     "en": "Account · Driver Hub",
-    "ka": "",
+    "ka": "ანგარიში · მძღოლის ჰაბი",
     "_source": "src/app/[locale]/dashboard/(hub)/account/page.tsx"
   },
   "dashboardDrivers.driversDriverHub": {
     "en": "Drivers · Driver Hub",
-    "ka": "",
+    "ka": "მძღოლები · მძღოლის ჰაბი",
     "_source": "src/app/[locale]/dashboard/(hub)/drivers/page.tsx"
   },
   "dashboardEmployees.employeesRolesDriverHub": {
     "en": "Employees & roles · Driver Hub",
-    "ka": "",
+    "ka": "თანამშრომლები და როლები · მძღოლის ჰაბი",
     "_source": "src/app/[locale]/dashboard/(hub)/employees/page.tsx"
   },
   "dashboardJobs.jobHistoryDriverHub": {
     "en": "Job history · Driver Hub",
-    "ka": "",
+    "ka": "შეკვეთების ისტორია · მძღოლის ჰაბი",
     "_source": "src/app/[locale]/dashboard/(hub)/jobs/page.tsx"
   },
   "dashboardJobs.jobSheetDriverHub": {
     "en": "Job sheet · Driver Hub",
-    "ka": "",
+    "ka": "შეკვეთის ფურცელი · მძღოლის ჰაბი",
     "_source": "src/app/[locale]/dashboard/(hub)/jobs/[id]/page.tsx"
   },
   "dashboardLoads.dashboardDriverHub": {
     "en": "Dashboard · Driver Hub",
-    "ka": "",
+    "ka": "მართვის პანელი · მძღოლის ჰაბი",
     "_source": "src/app/[locale]/dashboard/(hub)/loads/page.tsx"
   },
   "dashboardPerformance.performanceDriverHub": {
     "en": "Performance · Driver Hub",
-    "ka": "",
+    "ka": "პროდუქტიულობა · მძღოლის ჰაბი",
     "_source": "src/app/[locale]/dashboard/(hub)/performance/page.tsx"
   },
   "dashboardVehicles.vehiclesDriverHub": {
     "en": "Vehicles · Driver Hub",
-    "ka": "",
+    "ka": "ტრანსპორტი · მძღოლის ჰაბი",
     "_source": "src/app/[locale]/dashboard/(hub)/vehicles/page.tsx"
+  },
+  "earnings.formerDriver": {
+    "en": "Former driver",
+    "ka": "ყოფილი მძღოლი",
+    "_source": "src/lib/dashboard/hub/earnings.ts"
   },
   "earnings.last30Days": {
     "en": "Last 30 days",
-    "ka": "",
+    "ka": "ბოლო 30 დღე",
     "_source": "src/lib/dashboard/hub/earnings.ts"
   },
   "earnings.lastWeek": {
     "en": "Last week",
-    "ka": "",
+    "ka": "გასული კვირა",
     "_source": "src/lib/dashboard/hub/earnings.ts"
   },
   "earnings.thisMonth": {
     "en": "This month",
-    "ka": "",
+    "ka": "მიმდინარე თვე",
     "_source": "src/lib/dashboard/hub/earnings.ts"
   },
   "earnings.thisWeek": {
     "en": "This week",
-    "ka": "",
+    "ka": "მიმდინარე კვირა",
     "_source": "src/lib/dashboard/hub/earnings.ts"
+  },
+  "sample.04PtsVsLastWeek": {
+    "en": "-0.4 pts vs last week",
+    "ka": "-0.4 პუნქტი გასულ კვირასთან შედარებით",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.06VsLastWeek": {
+    "en": "-0.6 vs last week",
+    "ka": "-0.6 გასულ კვირასთან შედარებით",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.1HAgo": {
+    "en": "1 h ago",
+    "ka": "1 სთ-ის წინ",
+    "_source": "src/lib/dashboard/hub/sample.ts"
   },
   "sample.1InvitePending": {
     "en": "1 invite pending",
-    "ka": "",
+    "ka": "1 მოწვევა მოლოდინშია",
     "_source": "src/lib/dashboard/hub/sample.ts"
   },
   "sample.1Invited1Suspended": {
     "en": "1 invited, 1 suspended",
-    "ka": "",
+    "ka": "1 მოწვეული, 1 შეჩერებული",
     "_source": "src/lib/dashboard/hub/sample.ts"
   },
   "sample.1PtVsLastWeek": {
     "en": "+1 pt vs last week",
-    "ka": "",
+    "ka": "+1 ქულა გასულ კვირასთან შედარებით",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.2MinAgo": {
+    "en": "2 min ago",
+    "ka": "2 წთ-ის წინ",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.2MinutesAgo": {
+    "en": "2 minutes ago",
+    "ka": "2 წუთის წინ",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.38MinH": {
+    "en": "38 min/h",
+    "ka": "38 წთ/სთ",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.3DaysAgo": {
+    "en": "3 days ago",
+    "ka": "3 დღის წინ",
     "_source": "src/lib/dashboard/hub/sample.ts"
   },
   "sample.3MoreJobsBySundayFor": {
     "en": "3 more jobs by Sunday for a ₾40 bonus.",
-    "ka": "",
+    "ka": "კიდევ 3 შეკვეთა კვირამდე ₾40 ბონუსისთვის.",
     "_source": "src/lib/dashboard/hub/sample.ts"
   },
   "sample.3PtsVsLastWeek": {
     "en": "+3 pts vs last week",
-    "ka": "",
+    "ka": "+3 ქულა გასულ კვირასთან შედარებით",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.5MinAgo": {
+    "en": "5 min ago",
+    "ka": "5 წთ-ის წინ",
     "_source": "src/lib/dashboard/hub/sample.ts"
   },
   "sample.acceptanceRate": {
     "en": "Acceptance rate",
-    "ka": "",
+    "ka": "შეკვეთების მიღების მაჩვენებელი",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.accountant": {
+    "en": "Accountant",
+    "ka": "ბუღალტერი",
     "_source": "src/lib/dashboard/hub/sample.ts"
   },
   "sample.accountantOnly": {
     "en": "Accountant only",
-    "ka": "",
+    "ka": "მხოლოდ ბუღალტერი",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.allVehiclesAllZones": {
+    "en": "All vehicles · all zones",
+    "ka": "ყველა ავტომობილი · ყველა ზონა",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.assignsAndReassignsJobs": {
+    "en": "Assigns and reassigns jobs inside their zones. No access to money or documents.",
+    "ka": "ანიჭებს და გადაანაწილებს რეისებს თავის ზონებში. ფინანსებსა და დოკუმენტებზე წვდომა არ აქვს.",
     "_source": "src/lib/dashboard/hub/sample.ts"
   },
   "sample.assignsJobsInsideTheirZones": {
     "en": "Assigns jobs inside their zones",
-    "ka": "",
+    "ka": "შეკვეთებს ანაწილებს მათ ზონებში",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.bankOfGeorgia": {
+    "en": "Bank of Georgia",
+    "ka": "საქართველოს ბანკი",
     "_source": "src/lib/dashboard/hub/sample.ts"
   },
   "sample.contract": {
     "en": "Contract",
-    "ka": "",
+    "ka": "ხელშეკრულება",
     "_source": "src/lib/dashboard/hub/sample.ts"
   },
   "sample.criminalRecordExtract": {
     "en": "Criminal record extract",
-    "ka": "",
+    "ka": "ნასამართლობის ცნობა",
     "_source": "src/lib/dashboard/hub/sample.ts"
   },
   "sample.declinesCountedOverTheLast100": {
     "en": "Declines counted over the last 100 offers. Staying above 90% keeps priority matching.",
-    "ka": "",
+    "ka": "უარყოფები ითვლება ბოლო 100 შეთავაზებიდან. 90%-ზე მაღალი მაჩვენებელი ინარჩუნებს პრიორიტეტულ მატჩინგს.",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.didube": {
+    "en": "Didube",
+    "ka": "დიდუბე",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.diesel": {
+    "en": "Diesel",
+    "ka": "დიზელი",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.dispatcher": {
+    "en": "Dispatcher",
+    "ka": "დისპეტჩერი",
     "_source": "src/lib/dashboard/hub/sample.ts"
   },
   "sample.driverLicenceGe": {
     "en": "Driver licence (GE)",
-    "ka": "",
+    "ka": "მართვის მოწმობა (GE)",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.earningsPayouts": {
+    "en": "Earnings & payouts",
+    "ka": "შემოსავალი და ანაზღაურება",
     "_source": "src/lib/dashboard/hub/sample.ts"
   },
   "sample.eleneAbashidze": {
     "en": "Elene Abashidze",
-    "ka": "",
+    "ka": "ელენე აბაშიძე",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.employedDriverAccessSuspended": {
+    "en": "Employed driver. Access suspended pending review.",
+    "ka": "დაქირავებული მძღოლი. წვდომა შეჩერებულია განხილვამდე.",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.expired": {
+    "en": "Expired",
+    "ka": "ვადაგასული",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.expiringSoon": {
+    "en": "Expiring soon",
+    "ka": "მალე იწურება",
     "_source": "src/lib/dashboard/hub/sample.ts"
   },
   "sample.fleetManagerDispatcherAccountantMechanic": {
     "en": "Fleet manager, dispatcher, accountant, mechanic",
-    "ka": "",
+    "ka": "ავტოპარკის მენეჯერი, დისპეტჩერი, ბუღალტერი, მექანიკოსი",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.fri": {
+    "en": "Fri",
+    "ka": "პარ",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.friday4September": {
+    "en": "Friday 4 September",
+    "ka": "პარასკევი, 4 სექტემბერი",
     "_source": "src/lib/dashboard/hub/sample.ts"
   },
   "sample.from61RatedJobsRatingsBelow": {
     "en": "From 61 rated jobs. Ratings below 4.5 trigger a coaching review.",
-    "ka": "",
+    "ka": "შეფასებული 61 შეკვეთიდან. 4.5-ზე დაბალი რეიტინგი იწვევს ტრენინგის გადახედვას.",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.fullAccessToVehiclesAndDrivers": {
+    "en": "Full access to vehicles and drivers. Cannot change payout accounts.",
+    "ka": "სრული წვდომა ავტომობილებსა და მძღოლებზე. ანაზღაურების ანგარიშების შეცვლა არ შეუძლია.",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.fullTime": {
+    "en": "Full time",
+    "ka": "სრული განაკვეთი",
     "_source": "src/lib/dashboard/hub/sample.ts"
   },
   "sample.garage": {
     "en": "Garage",
-    "ka": "",
+    "ka": "გარაჟი",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.gldaniDidubeIsani": {
+    "en": "Gldani · Didube · Isani",
+    "ka": "გლდანი · დიდუბე · ისანი",
     "_source": "src/lib/dashboard/hub/sample.ts"
   },
   "sample.highestInGldaniMovingToVake": {
     "en": "Highest in Gldani. Moving to Vake between 09:00 and 11:00 cuts it by about a third.",
-    "ka": "",
+    "ka": "ყველაზე მაღალია გლდანში. ვაკეში გადასვლა 09:00-დან 11:00-მდე ამცირებს მას დაახლოებით მესამედით.",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.hybrid": {
+    "en": "Hybrid",
+    "ka": "ჰიბრიდი",
     "_source": "src/lib/dashboard/hub/sample.ts"
   },
   "sample.idleTime": {
     "en": "Idle time",
-    "ka": "",
+    "ka": "უქმად დგომის დრო",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.inReview": {
+    "en": "In review",
+    "ka": "განხილვაში",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.invitationPending": {
+    "en": "Invitation pending. Permissions apply once they accept.",
+    "ka": "მოწვევა მოლოდინშია. უფლებები ამოქმედდება მიღების შემდეგ.",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.inviteSent27Aug": {
+    "en": "Invite sent 27 Aug",
+    "ka": "მოწვევა გაიგზავნა 27 აგვისტოს",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.invoicesTax": {
+    "en": "Invoices & tax",
+    "ka": "ინვოისები და გადასახადები",
     "_source": "src/lib/dashboard/hub/sample.ts"
   },
   "sample.irakliBeruashvili": {
     "en": "Irakli Beruashvili",
-    "ka": "",
+    "ka": "ირაკლი ბერუაშვილი",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.manage": {
+    "en": "Manage",
+    "ka": "მართვა",
     "_source": "src/lib/dashboard/hub/sample.ts"
   },
   "sample.marikaDolidze": {
     "en": "Marika Dolidze",
-    "ka": "",
+    "ka": "მარიკა დოლიძე",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.mechanic": {
+    "en": "Mechanic",
+    "ka": "მექანიკოსი",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.mon": {
+    "en": "Mon",
+    "ka": "ორშ",
     "_source": "src/lib/dashboard/hub/sample.ts"
   },
   "sample.newJobOfferVakeSaburtalo": {
     "en": "New job offer · Vake → Saburtalo",
-    "ka": "",
+    "ka": "ახალი შეკვეთის შეთავაზება · ვაკე → საბურთალო",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.none": {
+    "en": "None",
+    "ka": "არცერთი",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.noneInRange": {
+    "en": "None in range",
+    "ka": "პერიოდში არ არის",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.notOnFile": {
+    "en": "not on file",
+    "ka": "არ არის მითითებული",
     "_source": "src/lib/dashboard/hub/sample.ts"
   },
   "sample.openWorkOrders": {
     "en": "Open work orders",
-    "ka": "",
+    "ka": "აქტიური სამუშაო შეკვეთები",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.ownEarnings": {
+    "en": "Own earnings",
+    "ka": "საკუთარი შემოსავალი",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.ownJobs": {
+    "en": "Own jobs",
+    "ka": "საკუთარი რეისები",
     "_source": "src/lib/dashboard/hub/sample.ts"
   },
   "sample.ownJobsAndEarningsOnly": {
     "en": "Own jobs and earnings only",
-    "ka": "",
+    "ka": "მხოლოდ საკუთარი შეკვეთები და შემოსავლები",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.ownJobsOnly": {
+    "en": "Own jobs only",
+    "ka": "მხოლოდ საკუთარი რეისები",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.paid": {
+    "en": "Paid",
+    "ka": "გადახდილი",
     "_source": "src/lib/dashboard/hub/sample.ts"
   },
   "sample.parkingTolls": {
     "en": "Parking & tolls",
-    "ka": "",
+    "ka": "პარკინგი და მოსაკრებლები",
     "_source": "src/lib/dashboard/hub/sample.ts"
   },
   "sample.payoutAccounts": {
     "en": "Payout accounts",
-    "ka": "",
+    "ka": "ანაზღაურების ანგარიშები",
     "_source": "src/lib/dashboard/hub/sample.ts"
   },
   "sample.payoutOf14260Sent": {
     "en": "Payout of ₾142.60 sent",
-    "ka": "",
+    "ka": "გადარიცხულია ₾142.60",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.payoutsInvoices": {
+    "en": "Payouts · invoices",
+    "ka": "ანაზღაურება · ინვოისები",
     "_source": "src/lib/dashboard/hub/sample.ts"
   },
   "sample.payoutsInvoicesAndTax": {
     "en": "Payouts, invoices and tax",
-    "ka": "",
+    "ka": "გადარიცხვები, ინვოისები და გადასახადები",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.processing": {
+    "en": "Processing",
+    "ka": "მუშავდება",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.reconcilesWeeklyPayouts": {
+    "en": "Reconciles weekly payouts and exports invoices. Read-only on operations.",
+    "ka": "ათანხმებს ყოველკვირეულ ანაზღაურებას და ექსპორტს უკეთებს ინვოისებს. ოპერაციებზე მხოლოდ ნახვის უფლება აქვს.",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.recordsServiceWork": {
+    "en": "Records service work against each vehicle.",
+    "ka": "აღრიცხავს თითოეული ავტომობილის სერვისულ სამუშაოებს.",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.samgori": {
+    "en": "Samgori",
+    "ka": "სამგორი",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.sat": {
+    "en": "Sat",
+    "ka": "შაბ",
     "_source": "src/lib/dashboard/hub/sample.ts"
   },
   "sample.serviceLog": {
     "en": "Service log",
-    "ka": "",
+    "ka": "სერვისის ჟურნალი",
     "_source": "src/lib/dashboard/hub/sample.ts"
   },
   "sample.serviceParts": {
     "en": "Service & parts",
-    "ka": "",
+    "ka": "სერვისი და ნაწილები",
     "_source": "src/lib/dashboard/hub/sample.ts"
   },
   "sample.shift": {
     "en": "Shift",
-    "ka": "",
+    "ka": "ცვლა",
     "_source": "src/lib/dashboard/hub/sample.ts"
   },
   "sample.sopoKiknadze": {
     "en": "Sopo Kiknadze",
-    "ka": "",
+    "ka": "სოფო კიკნაძე",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.sun": {
+    "en": "Sun",
+    "ka": "კვი",
     "_source": "src/lib/dashboard/hub/sample.ts"
   },
   "sample.taxId": {
     "en": "Tax ID",
-    "ka": "",
+    "ka": "საიდენტიფიკაციო კოდი",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.tbilisiAll": {
+    "en": "Tbilisi (all)",
+    "ka": "თბილისი (ყველა)",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.thu": {
+    "en": "Thu",
+    "ka": "ხუთ",
     "_source": "src/lib/dashboard/hub/sample.ts"
   },
   "sample.top15InTbilisi": {
     "en": "Top 15% in Tbilisi",
-    "ka": "",
+    "ka": "საუკეთესო 15% თბილისში",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.tue": {
+    "en": "Tue",
+    "ka": "სამ",
     "_source": "src/lib/dashboard/hub/sample.ts"
   },
   "sample.twoCancellationsThisWeekBothBefore": {
     "en": "Two cancellations this week, both before pickup. Above 5% pauses incentives.",
-    "ka": "",
+    "ka": "ორი გაუქმება ამ კვირაში, ორივე აყვანამდე. 5%-ზე მეტი აჩერებს ბონუსებს.",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.vakeSaburtaloVera": {
+    "en": "Vake · Saburtalo · Vera",
+    "ka": "ვაკე · საბურთალო · ვერა",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.valid": {
+    "en": "Valid",
+    "ka": "მოქმედი",
     "_source": "src/lib/dashboard/hub/sample.ts"
   },
   "sample.vanoShengelia": {
     "en": "Vano Shengelia",
-    "ka": "",
+    "ka": "ვანო შენგელია",
     "_source": "src/lib/dashboard/hub/sample.ts"
   },
   "sample.vehiclesAndDrivers": {
     "en": "Vehicles and drivers",
-    "ka": "",
+    "ka": "ტრანსპორტი და მძღოლები",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.verified": {
+    "en": "Verified",
+    "ka": "ვერიფიცირებული",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.view": {
+    "en": "View",
+    "ka": "ნახვა",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.wed": {
+    "en": "Wed",
+    "ka": "ოთხ",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.weekendSurgeStreak": {
+    "en": "Weekend surge + streak",
+    "ka": "შაბათ-კვირის ბონუსი + სერია",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.weekly": {
+    "en": "Weekly",
+    "ka": "ყოველკვირეული",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.weeklyEveryFriday": {
+    "en": "Weekly · every Friday",
+    "ka": "ყოველკვირეულად · ყოველ პარასკევს",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.yesterday": {
+    "en": "Yesterday",
+    "ka": "გუშინ",
     "_source": "src/lib/dashboard/hub/sample.ts"
   },
   "sample.zones": {
     "en": "Zones",
-    "ka": "",
+    "ka": "ზონები",
     "_source": "src/lib/dashboard/hub/sample.ts"
   },
   "sample.zurabMaisuradze": {
     "en": "Zurab Maisuradze",
-    "ka": "",
+    "ka": "ზურაბ მაისურაძე",
     "_source": "src/lib/dashboard/hub/sample.ts"
   }
 }

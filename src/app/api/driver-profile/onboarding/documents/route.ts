@@ -6,8 +6,9 @@ import {
   getDriverDocumentContentType,
   getDriverDocumentSignedUrl,
   isSupportedDriverDocumentContentType,
-  UNSUPPORTED_CONTENT_TYPE_ERROR,
+  UNSUPPORTED_CONTENT_TYPE_ERROR_KEY,
 } from "@/lib/driver-document-storage";
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { prisma } from "@/lib/prisma";
 import {
   asRecord,
@@ -18,12 +19,12 @@ import {
 } from "./guard";
 
 /**
- * Shown whenever the uploaded object's metadata cannot be read at all — the
- * upload never landed, or Storage is unreachable. Either way the document is
- * not recorded: verification fails closed.
+ * Message path shown whenever the uploaded object's metadata cannot be read at
+ * all — the upload never landed, or Storage is unreachable. Either way the
+ * document is not recorded: verification fails closed.
  */
-const UNVERIFIABLE_UPLOAD_ERROR =
-  "We couldn't verify the uploaded file. Please upload it again.";
+const UNVERIFIABLE_UPLOAD_ERROR_KEY =
+  "errors.driverProfileOnboardingDocuments.couldNotVerifyUpload";
 
 /** Best-effort removal of an object the request is refusing to record. */
 async function discardObject(path: string): Promise<void> {
@@ -111,6 +112,8 @@ function isLiveDocumentConflict(error: unknown): boolean {
  * a retry that uploads and supersedes all over again.
  */
 export async function POST(request: Request): Promise<NextResponse> {
+  const t = await getRequestTranslations();
+
   const guard = await resolveOnboardingDocumentContext(request);
   if ("error" in guard) {
     return NextResponse.json({ error: guard.error }, { status: guard.status });
@@ -126,12 +129,12 @@ export async function POST(request: Request): Promise<NextResponse> {
   const fields = asRecord(parsedBody.body);
   if (fields === null) {
     return NextResponse.json(
-      { error: "Request body must be a JSON object." },
+      { error: t("common.shared.requestBodyMustBeAJson") },
       { status: 400 },
     );
   }
 
-  const parsedType = parseDocumentType(fields.type);
+  const parsedType = parseDocumentType(fields.type, t);
   if ("error" in parsedType) {
     return NextResponse.json({ error: parsedType.error }, { status: 400 });
   }
@@ -141,14 +144,22 @@ export async function POST(request: Request): Promise<NextResponse> {
   const path = nonEmptyString(fields.path);
   if (path === null) {
     return NextResponse.json(
-      { error: "path is required and must be a non-empty string." },
+      {
+        error: t(
+          "errors.driverProfileOnboardingDocuments.pathIsRequiredAndMustBe",
+        ),
+      },
       { status: 400 },
     );
   }
 
   if (!isOwnedPath(path, driverProfileId)) {
     return NextResponse.json(
-      { error: "That upload does not belong to this application." },
+      {
+        error: t(
+          "errors.driverProfileOnboardingDocuments.thatUploadDoesNotBelongTo",
+        ),
+      },
       { status: 400 },
     );
   }
@@ -165,7 +176,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   } catch (error) {
     console.error("Failed to verify an uploaded driver document:", error);
     return NextResponse.json(
-      { error: UNVERIFIABLE_UPLOAD_ERROR },
+      { error: t(UNVERIFIABLE_UPLOAD_ERROR_KEY) },
       { status: 400 },
     );
   }
@@ -176,7 +187,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   ) {
     await discardObject(path);
     return NextResponse.json(
-      { error: UNSUPPORTED_CONTENT_TYPE_ERROR },
+      { error: t(UNSUPPORTED_CONTENT_TYPE_ERROR_KEY) },
       { status: 400 },
     );
   }
@@ -235,7 +246,11 @@ export async function POST(request: Request): Promise<NextResponse> {
   } catch (error) {
     if (isLiveDocumentConflict(error)) {
       return NextResponse.json(
-        { error: "Another upload for this document is still finishing." },
+        {
+          error: t(
+            "errors.driverProfileOnboardingDocuments.anotherUploadForThisDocumentIs",
+          ),
+        },
         { status: 409 },
       );
     }

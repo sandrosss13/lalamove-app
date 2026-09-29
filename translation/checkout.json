@@ -1,112 +1,237 @@
 {
+  "bodyType.dryBox": {
+    "en": "Dry box",
+    "ka": "მშრალი ფურგონი",
+    "_source": "src/app/[locale]/checkout/checkout-format.ts"
+  },
+  "bodyType.openChassis": {
+    "en": "Open chassis",
+    "ka": "ღია პლატფორმა",
+    "_source": "src/app/[locale]/checkout/checkout-format.ts"
+  },
+  "bodyType.refrigerated": {
+    "en": "Refrigerated",
+    "ka": "მაცივარ-ფურგონი",
+    "_source": "src/app/[locale]/checkout/checkout-format.ts"
+  },
+  "checkout.almostThere": {
+    "en": "Almost there",
+    "ka": "თითქმის მზადაა",
+    "_source": "src/app/[locale]/checkout/[id]/page.tsx"
+  },
+  "checkout.backToBooking": {
+    "en": "← Back to booking",
+    "ka": "← დაჯავშნაზე დაბრუნება",
+    "_source": "src/app/[locale]/checkout/[id]/page.tsx"
+  },
   "checkout.crew": {
     "en": "Crew",
-    "ka": "",
+    "ka": "დამხმარე პერსონალი",
     "_source": "src/app/[locale]/checkout/[id]/page.tsx"
   },
   "checkout.goods": {
     "en": "Goods",
-    "ka": "",
+    "ka": "ტვირთი",
     "_source": "src/app/[locale]/checkout/[id]/page.tsx"
   },
   "checkout.loadSpace": {
     "en": "Load space",
-    "ka": "",
+    "ka": "სატვირთო სივრცე",
     "_source": "src/app/[locale]/checkout/[id]/page.tsx"
   },
   "checkout.loadingAndUnloadingTimeBeyondThe": {
     "en": "Loading and unloading time beyond the free allowance is settled after the delivery and is not part of this total.",
-    "ka": "",
+    "ka": "უფასო ლიმიტს გადაცილებული დატვირთვა-დაცლის დროის საფასური გადაიხდება მიწოდების შემდეგ და არ შედის ამ ჯამურ თანხაში.",
     "_source": "src/app/[locale]/checkout/[id]/page.tsx"
   },
   "checkout.notes": {
     "en": "Notes",
-    "ka": "",
+    "ka": "შენიშვნები",
     "_source": "src/app/[locale]/checkout/[id]/page.tsx"
   },
   "checkout.reviewAndPay": {
     "en": "Review and pay",
-    "ka": "",
+    "ka": "გადამოწმება და გადახდა",
+    "_source": "src/app/[locale]/checkout/[id]/page.tsx"
+  },
+  "checkout.signInToReviewAndPay": {
+    "en": "Sign in to review and pay for this delivery.",
+    "ka": "შედით სისტემაში, რომ გადახედოთ ამ მიწოდებას და გადაიხადოთ.",
     "_source": "src/app/[locale]/checkout/[id]/page.tsx"
   },
   "checkout.yourDelivery": {
     "en": "Your delivery",
-    "ka": "",
+    "ka": "თქვენი მიწოდება",
     "_source": "src/app/[locale]/checkout/[id]/page.tsx"
+  },
+  "checkoutPaymentPanel.cardAriaLabel": {
+    "en": "{brand} card ending {last4} — expires {expiry}",
+    "ka": "{brand} ბარათი, ბოლო ციფრები {last4} — მოქმედების ვადა {expiry}",
+    "_source": "src/app/[locale]/checkout/checkout-payment-panel.tsx"
   },
   "checkoutPaymentPanel.chooseAPaymentMethodToContinue": {
     "en": "Choose a payment method to continue.",
-    "ka": "",
+    "ka": "გაგრძელებისთვის აირჩიეთ გადახდის მეთოდი.",
     "_source": "src/app/[locale]/checkout/checkout-payment-panel.tsx"
   },
   "checkoutPaymentPanel.chooseHowYouWouldLikeTo": {
     "en": "Choose how you would like to settle this delivery.",
-    "ka": "",
+    "ka": "აირჩიეთ, როგორ გსურთ ამ მიწოდების ანგარიშსწორება",
+    "_source": "src/app/[locale]/checkout/checkout-payment-panel.tsx"
+  },
+  "checkoutPaymentPanel.couldNotCompletePayment": {
+    "en": "Could not complete the payment. Try again.",
+    "ka": "გადახდა ვერ დასრულდა. სცადეთ თავიდან.",
+    "_source": "src/app/[locale]/checkout/checkout-payment-panel.tsx"
+  },
+  "checkoutPaymentPanel.couldNotSaveCard": {
+    "en": "Could not save the card. Try again.",
+    "ka": "ბარათის შენახვა ვერ მოხერხდა. სცადეთ თავიდან.",
+    "_source": "src/app/[locale]/checkout/checkout-payment-panel.tsx"
+  },
+  "checkoutPaymentPanel.defaultSuffix": {
+    "en": " · Default",
+    "ka": " · ნაგულისხმევი",
     "_source": "src/app/[locale]/checkout/checkout-payment-panel.tsx"
   },
   "checkoutPaymentPanel.eGPo20260184": {
     "en": "e.g. PO-2026-0184",
-    "ka": "",
+    "ka": "მაგ. PO-2026-0184",
+    "_source": "src/app/[locale]/checkout/checkout-payment-panel.tsx"
+  },
+  "checkoutPaymentPanel.noPaymentMethodAvailable": {
+    "en": "No payment method is available at the moment, so this delivery can’t be paid for yet. Your booking is saved — come back and pay once a method is switched on.",
+    "ka": "ამჟამად გადახდის არცერთი მეთოდი არ არის ხელმისაწვდომი, ამიტომ ამ მიწოდების გადახდა ჯერ შეუძლებელია. თქვენი ჯავშანი შენახულია — დაბრუნდით და გადაიხადეთ, როგორც კი მეთოდი ჩაირთვება.",
     "_source": "src/app/[locale]/checkout/checkout-payment-panel.tsx"
   },
   "checkoutPaymentPanel.nothingIsChargedNowNoPayment": {
     "en": "Nothing is charged now — no payment provider is connected yet.",
-    "ka": "",
+    "ka": "ახლა თანხა არ ჩამოგეჭრებათ — გადახდის პროვაიდერი ჯერ ჩართული არ არის.",
     "_source": "src/app/[locale]/checkout/checkout-payment-panel.tsx"
   },
   "checkoutPaymentPanel.optionalAppearsOnYourOrderRecord": {
     "en": "Optional. Appears on your order record for your own finance team.",
-    "ka": "",
+    "ka": "არასავალდებულო. გამოჩნდება თქვენი შეკვეთის ისტორიაში თქვენი ფინანსური გუნდისთვის.",
+    "_source": "src/app/[locale]/checkout/checkout-payment-panel.tsx"
+  },
+  "checkoutPaymentPanel.payAmount": {
+    "en": "Pay {amount}",
+    "ka": "გადახდა {amount}",
     "_source": "src/app/[locale]/checkout/checkout-payment-panel.tsx"
   },
   "checkoutPaymentPanel.payLater": {
     "en": "Pay later",
-    "ka": "",
+    "ka": "მოგვიანებით გადახდა",
     "_source": "src/app/[locale]/checkout/checkout-payment-panel.tsx"
   },
   "checkoutPaymentPanel.payLaterSettleAfterTheDelivery": {
     "en": "Pay later — settle after the delivery",
-    "ka": "",
+    "ka": "მოგვიანებით გადახდა — ანგარიშსწორება მიწოდების შემდეგ",
+    "_source": "src/app/[locale]/checkout/checkout-payment-panel.tsx"
+  },
+  "checkoutPaymentPanel.paying": {
+    "en": "Paying…",
+    "ka": "მიმდინარეობს გადახდა…",
     "_source": "src/app/[locale]/checkout/checkout-payment-panel.tsx"
   },
   "checkoutPaymentPanel.poOrCostCentreReference": {
     "en": "PO or cost-centre reference",
-    "ka": "",
+    "ka": "შესყიდვის შეკვეთის (PO) ან დანახარჯების ცენტრის კოდი",
     "_source": "src/app/[locale]/checkout/checkout-payment-panel.tsx"
   },
   "checkoutPaymentPanel.settleAfterTheDelivery": {
     "en": "Settle after the delivery",
-    "ka": "",
+    "ka": "ანგარიშსწორება მიწოდების შემდეგ",
     "_source": "src/app/[locale]/checkout/checkout-payment-panel.tsx"
   },
   "checkoutShell.backToYourOrders": {
     "en": "Back to your orders",
-    "ka": "",
+    "ka": "თქვენს შეკვეთებზე დაბრუნება",
     "_source": "src/app/[locale]/checkout/checkout-shell.tsx"
   },
   "checkoutShell.checkout": {
     "en": "Checkout",
-    "ka": "",
+    "ka": "გადახდა",
     "_source": "src/app/[locale]/checkout/checkout-shell.tsx"
+  },
+  "checkoutShell.couldNotFindDelivery": {
+    "en": "We couldn’t find that delivery under your account.",
+    "ka": "ეს მიწოდება თქვენს ანგარიშზე ვერ მოიძებნა.",
+    "_source": "src/app/[locale]/checkout/checkout-shell.tsx"
+  },
+  "checkoutSuccess.backToYourOrders": {
+    "en": "← Your orders",
+    "ka": "← თქვენი შეკვეთები",
+    "_source": "src/app/[locale]/checkout/[id]/success/page.tsx"
+  },
+  "checkoutSuccess.bookingConfirmed": {
+    "en": "Booking confirmed",
+    "ka": "ჯავშანი დადასტურებულია",
+    "_source": "src/app/[locale]/checkout/[id]/success/page.tsx"
+  },
+  "checkoutSuccess.dueAfterDelivery": {
+    "en": "Due after the delivery, collected off the platform when the job is done.",
+    "ka": "გადასახდელია მიწოდების შემდეგ — თანხა პლატფორმის გარეთ იკრიბება სამუშაოს დასრულებისას.",
+    "_source": "src/app/[locale]/checkout/[id]/success/page.tsx"
+  },
+  "checkoutSuccess.matchingWithDriver": {
+    "en": "We’re matching it with a driver now. You’ll be able to follow the job from your orders as soon as one accepts it.",
+    "ka": "ახლა მძღოლს ვუძებნით. როგორც კი რომელიმე მძღოლი მიიღებს, მის შესრულებას თქვენი შეკვეთების გვერდიდან გაადევნებთ თვალს.",
+    "_source": "src/app/[locale]/checkout/[id]/success/page.tsx"
+  },
+  "checkoutSuccess.notRecorded": {
+    "en": "Not recorded",
+    "ka": "არ არის მითითებული",
+    "_source": "src/app/[locale]/checkout/[id]/success/page.tsx"
+  },
+  "checkoutSuccess.settledAtCheckout": {
+    "en": "Settled at checkout. No payment provider is connected yet, so nothing has been charged to your card.",
+    "ka": "გადახდილია შეკვეთის გაფორმებისას. გადახდის პროვაიდერი ჯერ არ არის დაკავშირებული, ამიტომ თქვენი ბარათიდან თანხა არ ჩამოჭრილა.",
+    "_source": "src/app/[locale]/checkout/[id]/success/page.tsx"
+  },
+  "checkoutSuccess.signInToSeeConfirmation": {
+    "en": "Sign in to see the confirmation for this delivery.",
+    "ka": "შედით სისტემაში, რომ ნახოთ ამ მიწოდების დადასტურება.",
+    "_source": "src/app/[locale]/checkout/[id]/success/page.tsx"
   },
   "checkoutSuccess.trackThisDelivery": {
     "en": "Track this delivery",
-    "ka": "",
+    "ka": "ამ მიწოდების თვალყურის დევნება",
     "_source": "src/app/[locale]/checkout/[id]/success/page.tsx"
   },
   "checkoutSuccess.viewYourOrders": {
     "en": "View your orders",
-    "ka": "",
+    "ka": "თქვენი შეკვეთების ნახვა",
     "_source": "src/app/[locale]/checkout/[id]/success/page.tsx"
   },
   "checkoutSuccess.youReAllSet": {
     "en": "You’re all set",
-    "ka": "",
+    "ka": "ყველაფერი მზადაა",
     "_source": "src/app/[locale]/checkout/[id]/success/page.tsx"
   },
   "checkoutSuccess.yourDeliveryIsBooked": {
     "en": "Your delivery is booked",
-    "ka": "",
+    "ka": "თქვენი შეკვეთა დაჯავშნილია",
     "_source": "src/app/[locale]/checkout/[id]/success/page.tsx"
+  },
+  "crewSize": {
+    "en": "{count, plural, one {# person} other {# people}}",
+    "ka": "{count, plural, one {# ადამიანი} other {# ადამიანი}}",
+    "_source": "src/app/[locale]/checkout/checkout-format.ts"
+  },
+  "paymentMethod.bankTransfer": {
+    "en": "Bank transfer",
+    "ka": "საბანკო გადარიცხვა",
+    "_source": "src/app/[locale]/checkout/checkout-format.ts"
+  },
+  "paymentMethod.card": {
+    "en": "Card",
+    "ka": "ბარათი",
+    "_source": "src/app/[locale]/checkout/checkout-format.ts"
+  },
+  "paymentMethod.cash": {
+    "en": "Pay later",
+    "ka": "მოგვიანებით გადახდა",
+    "_source": "src/app/[locale]/checkout/checkout-format.ts"
   }
 }

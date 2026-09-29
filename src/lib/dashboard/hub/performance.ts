@@ -130,6 +130,11 @@ const TERMINAL_JOB_STATUSES = [OrderStatus.COMPLETED, OrderStatus.CANCELLED];
  * the locale is pinned rather than left to the server's — and the zone must be
  * `HUB_TIME_ZONE` because the instants it formats are Tbilisi midnights, which
  * fall on the previous UTC day and would label every bar one day early.
+ *
+ * Deliberately English whatever the reader's locale: `weekday` is a join key,
+ * not display text. The Performance screen labels each chart column from
+ * `date` through `formatWeekdayShort` in the reader's locale, so Georgian
+ * readers see Georgian day names while the sample join stays stable.
  */
 const WEEKDAY_FORMATTER = new Intl.DateTimeFormat("en-GB", {
   weekday: "short",

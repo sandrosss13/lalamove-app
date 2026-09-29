@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { OrderStatus } from "@prisma/client";
+import { getTranslations } from "next-intl/server";
 
 import { Link } from "@/i18n/navigation";
 import { localeHref } from "@/i18n/server";
@@ -14,6 +15,8 @@ export const dynamic = "force-dynamic";
 
 export default async function OrdersPage() {
   const session = await auth.api.getSession({ headers: await headers() });
+  const t = await getTranslations("orders.orders");
+  const tShared = await getTranslations("common.shared");
 
   if (!session) {
     return (
@@ -25,23 +28,23 @@ export default async function OrdersPage() {
         <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-8 py-16">
           <div className="rounded-[14px] border border-line bg-surface p-8 text-center">
             <h1 className="font-display text-[2rem] leading-none font-semibold tracking-[-0.025em] text-paper">
-              Your orders
+              {t("yourOrders")}
             </h1>
             <p className="mt-3 text-[14px] text-muted">
-              Sign in to view your orders.
+              {t("signInToViewYourOrders")}
             </p>
             <div className="mt-6 flex flex-wrap justify-center gap-3">
               <Link
                 href="/sign-in"
                 className="rounded-full bg-accent px-5 py-2.5 text-[14px] font-semibold text-ink transition-transform hover:-translate-y-0.5"
               >
-                Sign in
+                {tShared("signIn")}
               </Link>
               <Link
                 href="/sign-up"
                 className="rounded-full border border-line px-5 py-2.5 text-[14px] font-semibold text-paper transition-colors hover:border-accent/40 hover:text-accent"
               >
-                Sign up
+                {tShared("signUp")}
               </Link>
             </div>
           </div>
@@ -104,28 +107,29 @@ export default async function OrdersPage() {
         <header className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-[11px] font-semibold tracking-[0.24em] text-accent uppercase">
-              Your deliveries
+              {t("yourDeliveries")}
             </p>
             <h1 className="font-display mt-2 text-[2.5rem] leading-none font-semibold tracking-[-0.025em] text-paper">
-              Your orders
+              {t("yourOrders")}
             </h1>
           </div>
           <Link
             href="/"
             className="text-[14px] font-semibold text-paper transition-colors hover:text-accent"
           >
-            ← New order
+            {tShared("newOrder")}
           </Link>
         </header>
 
         {orders.length === 0 ? (
           <div className="rounded-[14px] border border-line bg-surface p-8 text-center">
-            <p className="text-[14px] text-muted">
-              You haven&apos;t placed any orders yet.
-            </p>
+            <p className="text-[14px] text-muted">{t("noOrdersYet")}</p>
             <p className="mt-1.5 text-[14px] text-muted">
-              Book your first delivery with{" "}
-              <span className="font-semibold text-paper">New order</span> above.
+              {t.rich("bookFirstDelivery", {
+                b: (chunks) => (
+                  <span className="font-semibold text-paper">{chunks}</span>
+                ),
+              })}
             </p>
           </div>
         ) : (
@@ -141,7 +145,7 @@ export default async function OrdersPage() {
                     href={`/orders/${order.id}/track`}
                     className="mt-3.5 inline-block text-[14px] font-semibold text-accent transition-colors hover:text-accent-hover"
                   >
-                    Track delivery →
+                    {t("trackDelivery")}
                   </Link>
                 ) : null}
               </OrderCard>

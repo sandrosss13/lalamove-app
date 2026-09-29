@@ -5,9 +5,11 @@ import type {
   BusinessApplicationVehicleStatus,
 } from "@prisma/client";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { authorizeAdminApi } from "@/lib/admin/api-auth";
 import { writeAuditLog } from "@/lib/admin/audit";
 import { prisma } from "@/lib/prisma";
+import { VEHICLE_FLAG_REASONS } from "@/lib/review-flag-reasons";
 
 /**
  * Staff who may review business fleet applications. Stated per route rather
@@ -15,23 +17,6 @@ import { prisma } from "@/lib/prisma";
  * read — and audited — without following an import.
  */
 const ALLOWED_ROLES: readonly AdminRole[] = ["SUPER_ADMIN", "USER_MANAGER"];
-
-/**
- * The six per-vehicle flag reasons from the design, verbatim. Closed for the
- * same reason as the company-level list: the company reads the reason verbatim
- * on its status screen, and its per-vehicle "Fix" editor keys its corrective
- * copy off it, so a free-typed reason would produce a card with nothing
- * actionable on it. The drawer offers exactly these six as chips, and a chip
- * click *is* the flag.
- */
-const VEHICLE_FLAG_REASONS: readonly string[] = [
-  "Plate does not match the documents",
-  "Payload above the class limit",
-  "Dimensions look wrong",
-  "Vehicle too old for the platform",
-  "Duplicate plate on another fleet",
-  "Cooling unit record missing",
-];
 
 /** The reviewer's verdict on one vehicle in the fleet. */
 type VehicleVerdict =
@@ -54,9 +39,10 @@ export type AdminBusinessVehicleReviewResponse = {
  */
 function parseVehicleVerdictBody(
   body: unknown,
+  t: (key: string, values?: Record<string, string | number>) => string,
 ): { value: VehicleVerdict } | { error: string } {
   if (typeof body !== "object" || body === null) {
-    return { error: "Request body must be a JSON object." };
+    return { error: t("common.shared.requestBodyMustBeAJson") };
   }
 
   const { verdict, reason } = body as Record<string, unknown>;
@@ -66,17 +52,27 @@ function parseVehicleVerdictBody(
   }
 
   if (verdict !== "FLAGGED") {
-    return { error: 'verdict must be either "APPROVED" or "FLAGGED".' };
+    return {
+      error: t(
+        "errors.adminBusinessApplicationsVehicles.verdictMustBeApprovedOrFlagged",
+      ),
+    };
   }
 
   if (typeof reason !== "string" || reason.trim() === "") {
-    return { error: "A reason is required to flag a vehicle." };
+    return {
+      error: t(
+        "errors.adminBusinessApplicationsVehicles.aReasonIsRequiredToFlag",
+      ),
+    };
   }
 
   const trimmedReason = reason.trim();
 
   if (!VEHICLE_FLAG_REASONS.includes(trimmedReason)) {
-    return { error: "That is not one of the vehicle flag reasons." };
+    return {
+      error: t("errors.adminBusinessApplicationsVehicles.thatIsNotOneOfThe"),
+    };
   }
 
   return { value: { verdict: "FLAGGED", reason: trimmedReason } };
@@ -107,6 +103,8 @@ export async function PATCH(
     return authorized.response;
   }
 
+  const t = await getRequestTranslations();
+
   const { id, vehicleId } = await params;
 
   let rawBody: unknown;
@@ -114,12 +112,12 @@ export async function PATCH(
     rawBody = await request.json();
   } catch {
     return NextResponse.json(
-      { error: "Request body must be valid JSON." },
+      { error: t("common.shared.requestBodyMustBeValidJson") },
       { status: 400 },
     );
   }
 
-  const parsed = parseVehicleVerdictBody(rawBody);
+  const parsed = parseVehicleVerdictBody(rawBody, t);
   if ("error" in parsed) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
@@ -136,7 +134,7 @@ export async function PATCH(
   // in-progress draft.
   if (!application || application.status === "DRAFT") {
     return NextResponse.json(
-      { error: "Application not found." },
+      { error: t("common.shared.applicationNotFound") },
       { status: 404 },
     );
   }
@@ -145,7 +143,7 @@ export async function PATCH(
   // stale tab, not a 404 — say so.
   if (application.status === "APPROVED") {
     return NextResponse.json(
-      { error: "This fleet has already been activated." },
+      { error: t("common.shared.thisFleetHasAlreadyBeenActivated") },
       { status: 400 },
     );
   }
@@ -159,7 +157,11 @@ export async function PATCH(
 
   if (!applicationVehicle) {
     return NextResponse.json(
-      { error: "Vehicle not found on this application." },
+      {
+        error: t(
+          "errors.adminBusinessApplicationsVehicles.vehicleNotFoundOnThisApplication",
+        ),
+      },
       { status: 404 },
     );
   }

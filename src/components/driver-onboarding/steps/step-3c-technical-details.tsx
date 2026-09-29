@@ -20,6 +20,7 @@
  */
 
 import { useMemo, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 
 import {
   ONBOARDING_SCREENS,
@@ -92,20 +93,24 @@ const MODELS_BY_CLASS: Record<VehicleClassId, [make: string, model: string][]> =
     ],
   };
 
-/** The twelve colour swatches, from the design. Stored by name, not by hex. */
-const COLORS: [name: string, hex: string][] = [
-  ["White", "#ffffff"],
-  ["Silver", "#c9ccd1"],
-  ["Grey", "#8a8f96"],
-  ["Black", "#1a1a1c"],
-  ["Blue", "#2f5fb8"],
-  ["Navy", "#1e2a4a"],
-  ["Red", "#c0392b"],
-  ["Green", "#2f7a4a"],
-  ["Yellow", "#e8c33a"],
-  ["Orange", "#e0691c"],
-  ["Beige", "#ded3bd"],
-  ["Brown", "#6b4a2f"],
+/**
+ * The twelve colour swatches, from the design. Stored by English name, not by
+ * hex — and not by the translated name either, so a draft saved in one language
+ * still selects its swatch in the other. `labelKey` is only what is displayed.
+ */
+const COLORS: [name: string, hex: string, labelKey: string][] = [
+  ["White", "#ffffff", "colours.white"],
+  ["Silver", "#c9ccd1", "colours.silver"],
+  ["Grey", "#8a8f96", "colours.grey"],
+  ["Black", "#1a1a1c", "colours.black"],
+  ["Blue", "#2f5fb8", "colours.blue"],
+  ["Navy", "#1e2a4a", "colours.navy"],
+  ["Red", "#c0392b", "colours.red"],
+  ["Green", "#2f7a4a", "colours.green"],
+  ["Yellow", "#e8c33a", "colours.yellow"],
+  ["Orange", "#e0691c", "colours.orange"],
+  ["Beige", "#ded3bd", "colours.beige"],
+  ["Brown", "#6b4a2f", "colours.brown"],
 ];
 
 /**
@@ -120,22 +125,12 @@ const MIN_PAYLOAD_KG = 100;
 const MAX_PAYLOAD_KG = 40_000;
 const MAX_DIMENSION_M = 20;
 
-/** Every message the step can show, kept together so the copy is reviewable. */
-const MESSAGES = {
-  makeModel: "Select or type the make and model.",
-  yearMissing: "Enter the year of manufacture.",
-  plateMissing: "Enter the licence plate.",
-  plateShort: "That plate looks incomplete.",
-  colour: "Select the vehicle colour.",
-  payloadMissing: "Enter the maximum payload in kg.",
-  payloadLow: `Payload must be at least ${MIN_PAYLOAD_KG} kg.`,
-  payloadHigh: "Payload above 40,000 kg needs a fleet account.",
-  dimensionsMissing: "Give length, width and height in metres.",
-  dimensionsHigh: "Check the dimensions — metres, not centimetres.",
-  noModelMatch: "No match. Type the make and model manually.",
-  volumeHint: "Length × width × height of the usable load space.",
-  fixFields: "Fix the highlighted fields to continue.",
-} as const;
+/** This step's translator. Every message the step can show lives under
+ *  `onboarding.step3cTechnicalDetails`, so the copy is reviewable in one place
+ *  there; the plain validator below takes the translator as an argument. */
+type Step3cTranslator = ReturnType<
+  typeof useTranslations<"onboarding.step3cTechnicalDetails">
+>;
 
 /**
  * Shared input styling: the design's 46px field, on the shadcn primitive.
@@ -273,47 +268,55 @@ function initialValues(vehicle: DraftVehicle | undefined): FormValues {
  * rather than read here so the ceiling is computed once per render pass and the
  * rule stays a pure function of its inputs.
  */
-function validate(values: FormValues, currentYear: number): FieldErrors {
+function validate(
+  values: FormValues,
+  currentYear: number,
+  t: Step3cTranslator,
+): FieldErrors {
   const errors: FieldErrors = {};
 
   if (values.makeModelQuery.trim() === "") {
-    errors.makeModel = MESSAGES.makeModel;
+    errors.makeModel = t("makeModel");
   }
 
   const year = Number.parseInt(values.year, 10);
   if (values.year.trim() === "") {
-    errors.year = MESSAGES.yearMissing;
+    errors.year = t("yearMissing");
   } else if (!Number.isFinite(year) || year < MIN_YEAR || year > currentYear) {
-    errors.year = `Year must be between ${MIN_YEAR} and ${currentYear}.`;
+    // Strings, not numbers: ICU would group a numeric year as "2,026".
+    errors.year = t("yearRange", {
+      min: String(MIN_YEAR),
+      max: String(currentYear),
+    });
   }
 
   const plate = values.plate.trim();
   if (plate === "") {
-    errors.plate = MESSAGES.plateMissing;
+    errors.plate = t("plateMissing");
   } else if (plate.length < MIN_PLATE_LENGTH) {
-    errors.plate = MESSAGES.plateShort;
+    errors.plate = t("plateShort");
   }
 
   if (values.colour === "") {
-    errors.colour = MESSAGES.colour;
+    errors.colour = t("colour");
   }
 
   const payload = Number.parseInt(values.payload, 10);
   if (values.payload.trim() === "") {
-    errors.payload = MESSAGES.payloadMissing;
+    errors.payload = t("payloadMissing");
   } else if (!Number.isFinite(payload) || payload < MIN_PAYLOAD_KG) {
-    errors.payload = MESSAGES.payloadLow;
+    errors.payload = t("payloadLow", { min: MIN_PAYLOAD_KG });
   } else if (payload > MAX_PAYLOAD_KG) {
-    errors.payload = MESSAGES.payloadHigh;
+    errors.payload = t("payloadHigh");
   }
 
   const dimensions = [values.length, values.width, values.height].map((value) =>
     Number.parseFloat(value),
   );
   if (dimensions.some((value) => !Number.isFinite(value) || value <= 0)) {
-    errors.dimensions = MESSAGES.dimensionsMissing;
+    errors.dimensions = t("dimensionsMissing");
   } else if (dimensions.some((value) => value > MAX_DIMENSION_M)) {
-    errors.dimensions = MESSAGES.dimensionsHigh;
+    errors.dimensions = t("dimensionsHigh");
   }
 
   return errors;
@@ -321,6 +324,9 @@ function validate(values: FormValues, currentYear: number): FieldErrors {
 
 export function Step3cTechnicalDetails() {
   const { draft, updateDraft, goToStep, showToast } = useOnboardingDraft();
+  const tShared = useTranslations("common.shared");
+  const t = useTranslations("onboarding.step3cTechnicalDetails");
+  const tRoot = useTranslations();
 
   const [values, setValues] = useState<FormValues>(() =>
     initialValues(draft.vehicle),
@@ -338,7 +344,9 @@ export function Step3cTechnicalDetails() {
   const makeModelInputRef = useRef<HTMLInputElement>(null);
 
   const classId = draft.vehicle?.classId;
-  const className = classId ? findVehicleClass(classId).name : "vehicle";
+  const className = classId
+    ? tRoot(findVehicleClass(classId).nameKey)
+    : tShared("vehicle").toLocaleLowerCase();
   const isFlatbed = draft.vehicle?.chassisType === "OPEN_CHASSIS";
   // Recomputed per render rather than captured once: a wizard left open across
   // midnight on 31 December must not reject a brand-new vehicle's year.
@@ -434,12 +442,12 @@ export function Step3cTechnicalDetails() {
   }
 
   function handleContinue() {
-    const found = validate(valuesRef.current, currentYear);
+    const found = validate(valuesRef.current, currentYear, t);
     setErrors(found);
 
     if (Object.keys(found).length > 0) {
       setModelsOpen(false);
-      showToast(MESSAGES.fixFields, "error");
+      showToast(t("fixFields"), "error");
       return;
     }
 
@@ -474,7 +482,7 @@ export function Step3cTechnicalDetails() {
     >
       <div className="flex flex-col gap-1.5">
         <label htmlFor="vehicle-make-model" className={LABEL_CLASS}>
-          Make and model
+          {tShared("makeAndModel")}
         </label>
         <Popover open={modelsOpen} onOpenChange={setModelsOpen}>
           <PopoverAnchor asChild>
@@ -497,7 +505,9 @@ export function Step3cTechnicalDetails() {
                   : undefined
               }
               autoComplete="off"
-              placeholder={`Search ${className} models`}
+              placeholder={tRoot("fleet.vehicleEditorDialog.searchModels", {
+                className,
+              })}
               value={values.makeModelQuery}
               onChange={(event) => handleQueryChange(event.target.value)}
               onFocus={() => setModelsOpen(true)}
@@ -549,7 +559,7 @@ export function Step3cTechnicalDetails() {
             ))}
             {modelOptions.length === 0 ? (
               <p className="px-3.5 py-2.5 text-[13px] text-muted-foreground">
-                {MESSAGES.noModelMatch}
+                {t("noModelMatch")}
               </p>
             ) : null}
           </PopoverContent>
@@ -564,7 +574,7 @@ export function Step3cTechnicalDetails() {
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">
           <label htmlFor="vehicle-year" className={LABEL_CLASS}>
-            Year
+            {tShared("year")}
           </label>
           <Input
             id="vehicle-year"
@@ -588,7 +598,7 @@ export function Step3cTechnicalDetails() {
         </div>
         <div className="flex flex-col gap-1.5">
           <label htmlFor="vehicle-plate" className={LABEL_CLASS}>
-            Licence plate
+            {tShared("licencePlate")}
           </label>
           <Input
             id="vehicle-plate"
@@ -622,9 +632,9 @@ export function Step3cTechnicalDetails() {
       ) : null}
 
       <fieldset className="flex flex-col gap-2">
-        <legend className={LABEL_CLASS}>Colour</legend>
+        <legend className={LABEL_CLASS}>{tShared("colour")}</legend>
         <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {COLORS.map(([name, hex]) => {
+          {COLORS.map(([name, hex, labelKey]) => {
             const selected = values.colour === name;
 
             return (
@@ -660,7 +670,7 @@ export function Step3cTechnicalDetails() {
                     selected ? "font-semibold" : "font-medium"
                   }`}
                 >
-                  {name}
+                  {t(labelKey)}
                 </span>
               </button>
             );
@@ -673,7 +683,7 @@ export function Step3cTechnicalDetails() {
 
       <div className="flex flex-col gap-1.5">
         <label htmlFor="vehicle-payload" className={LABEL_CLASS}>
-          Maximum payload (kg)
+          {tShared("maximumPayloadKg")}
         </label>
         <Input
           id="vehicle-payload"
@@ -697,7 +707,7 @@ export function Step3cTechnicalDetails() {
       </div>
 
       <div className="flex flex-col gap-2.5">
-        <span className={LABEL_CLASS}>Cargo hold (metres)</span>
+        <span className={LABEL_CLASS}>{tShared("cargoHoldMetres")}</span>
 
         <CargoDiagram flatbed={isFlatbed} />
 
@@ -705,7 +715,7 @@ export function Step3cTechnicalDetails() {
           <DimensionField
             id="vehicle-cargo-length"
             badge="1"
-            label="Length"
+            label={tShared("length")}
             placeholder="6.20"
             value={values.length}
             invalid={errors.dimensions !== undefined}
@@ -714,7 +724,7 @@ export function Step3cTechnicalDetails() {
           <DimensionField
             id="vehicle-cargo-width"
             badge="2"
-            label="Width"
+            label={tShared("width")}
             placeholder="2.40"
             value={values.width}
             invalid={errors.dimensions !== undefined}
@@ -723,7 +733,7 @@ export function Step3cTechnicalDetails() {
           <DimensionField
             id="vehicle-cargo-height"
             badge="3"
-            label="Height"
+            label={tShared("height")}
             placeholder="2.40"
             value={values.height}
             invalid={errors.dimensions !== undefined}
@@ -741,9 +751,7 @@ export function Step3cTechnicalDetails() {
             orders": these declared dimensions are compliance-facing overrides
             that order matching never reads (see this file's header comment). */}
         <p className="text-xs text-muted-foreground" aria-live="polite">
-          {volume === null
-            ? MESSAGES.volumeHint
-            : `Usable volume ${volume} m³ — shown to the review team alongside your declared payload.`}
+          {volume === null ? t("volumeHint") : t("usableVolume", { volume })}
         </p>
       </div>
 
@@ -752,14 +760,14 @@ export function Step3cTechnicalDetails() {
           type="submit"
           className="h-12 cursor-pointer rounded-[11px] bg-onboarding-accent px-[30px] text-[15px] font-semibold tracking-[-0.01em] text-white transition-colors hover:bg-onboarding-accent-hover focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
         >
-          Continue
+          {tShared("continue")}
         </button>
         <button
           type="button"
           onClick={() => goToStep(ONBOARDING_SCREENS.vehicleBodyAndClass)}
           className="h-12 cursor-pointer rounded-[11px] border border-border bg-card px-5 text-[14.5px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
         >
-          Back
+          {tShared("back")}
         </button>
       </div>
     </form>
@@ -882,24 +890,25 @@ const TRUCK_PALETTE_CLASS_NAME = [
  * why the palette is CSS custom properties rather than literals on the shapes.
  */
 function CargoDiagram({ flatbed }: { flatbed: boolean }) {
+  const t = useTranslations("onboarding.step3cTechnicalDetails");
+  const tShared = useTranslations("common.shared");
+
   // Where the rear view's body starts: a flatbed's side panels are short, so its
   // rear outline is the same box drawn from lower down.
   const rearTop = flatbed ? 96 : 60;
 
-  const note = flatbed
-    ? "Measure the usable deck, and the height of the drop sides."
-    : "Measure the load space inside the body, not the outside of the vehicle.";
+  const note = flatbed ? t("measureFlatbed") : t("measureBox");
 
   const legend: [badge: string, label: string, note: string][] = flatbed
     ? [
-        ["1", "Length", "deck front to tail"],
-        ["2", "Width", "deck side to side"],
-        ["3", "Height", "deck to top of side panel"],
+        ["1", tShared("length"), t("legendFlatbedLength")],
+        ["2", tShared("width"), t("legendFlatbedWidth")],
+        ["3", tShared("height"), t("legendFlatbedHeight")],
       ]
     : [
-        ["1", "Length", "front wall to doors"],
-        ["2", "Width", "wall to wall"],
-        ["3", "Height", "floor to ceiling"],
+        ["1", tShared("length"), t("legendBoxLength")],
+        ["2", tShared("width"), t("legendBoxWidth")],
+        ["3", tShared("height"), t("legendBoxHeight")],
       ];
 
   return (
@@ -910,11 +919,7 @@ function CargoDiagram({ flatbed }: { flatbed: boolean }) {
         viewBox="0 0 420 200"
         className="h-auto w-[300px] shrink-0"
         role="img"
-        aria-label={
-          flatbed
-            ? "Side view of a flatbed truck showing 1 deck length and 3 side panel height"
-            : "Side view of a box truck showing 1 body length and 3 body height"
-        }
+        aria-label={flatbed ? t("sideViewFlatbedAria") : t("sideViewBoxAria")}
       >
         {/* Cab — identical for both bodies. */}
         <g
@@ -1015,7 +1020,7 @@ function CargoDiagram({ flatbed }: { flatbed: boolean }) {
         viewBox="0 0 130 200"
         className="h-auto w-[82px] shrink-0"
         role="img"
-        aria-label="Rear view showing 2 body width"
+        aria-label={t("rearViewShowing2BodyWidth")}
       >
         <g
           stroke="var(--truck-outline)"

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -84,10 +85,6 @@ const SUCCESS_TEXT_CLASSES =
 const CONTROL_CLASSES =
   "h-auto rounded-md px-[11px] py-[9px] text-sm md:text-sm";
 
-const MISMATCH_ERROR = "Passwords don't match.";
-
-const GENERIC_ERROR = "Could not change your password. Please try again.";
-
 function Field({
   label,
   htmlFor,
@@ -110,6 +107,8 @@ function Field({
 }
 
 export function DriverAccountPasswordCard() {
+  const t = useTranslations("common.shared");
+  const tCard = useTranslations("account.accountPasswordCard");
   const formId = React.useId();
 
   const [open, setOpen] = React.useState(false);
@@ -150,7 +149,7 @@ export function DriverAccountPasswordCard() {
     // would otherwise succeed and leave the driver locked out behind a
     // password they mistyped. Same guard as `/change-password`.
     if (newPassword !== confirmPassword) {
-      setError(MISMATCH_ERROR);
+      setError(t("passwordsDonTMatch"));
       return;
     }
 
@@ -170,7 +169,7 @@ export function DriverAccountPasswordCard() {
     setSaving(false);
 
     if (changePasswordError) {
-      setError(changePasswordError.message ?? GENERIC_ERROR);
+      setError(changePasswordError.message ?? tCard("couldNotChangePassword"));
       return;
     }
 
@@ -182,17 +181,17 @@ export function DriverAccountPasswordCard() {
   return (
     <HubCard>
       <div>
-        <h2 className="text-base font-semibold">Account access</h2>
+        <h2 className="text-base font-semibold">{t("accountAccess")}</h2>
         <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
-          The credentials you sign in with.
+          {t("theCredentialsYouSignInWith")}
         </p>
       </div>
 
       <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
         <div className="min-w-0">
-          <p className="text-[13px] font-medium">Password</p>
+          <p className="text-[13px] font-medium">{t("password")}</p>
           <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-            Used with your email address to sign in.
+            {t("usedWithYourEmailAddressTo")}
           </p>
         </div>
 
@@ -204,7 +203,7 @@ export function DriverAccountPasswordCard() {
           aria-controls={formId}
           className="h-auto rounded-md px-[15px] py-[9px] text-[13px] font-medium"
         >
-          {open ? "Cancel" : "Change password"}
+          {open ? t("cancel") : tCard("changePassword")}
         </Button>
       </div>
 
@@ -221,7 +220,7 @@ export function DriverAccountPasswordCard() {
         >
           <div className="grid min-w-0 gap-3.5 sm:grid-cols-2">
             <Field
-              label="Current password"
+              label={t("currentPassword")}
               htmlFor={`${formId}-current`}
               className="sm:col-span-2"
             >
@@ -236,7 +235,7 @@ export function DriverAccountPasswordCard() {
               />
             </Field>
 
-            <Field label="New password" htmlFor={`${formId}-new`}>
+            <Field label={t("newPassword")} htmlFor={`${formId}-new`}>
               <Input
                 id={`${formId}-new`}
                 type="password"
@@ -249,7 +248,10 @@ export function DriverAccountPasswordCard() {
               />
             </Field>
 
-            <Field label="Confirm new password" htmlFor={`${formId}-confirm`}>
+            <Field
+              label={t("confirmNewPassword")}
+              htmlFor={`${formId}-confirm`}
+            >
               <Input
                 id={`${formId}-confirm`}
                 type="password"
@@ -275,7 +277,7 @@ export function DriverAccountPasswordCard() {
               disabled={saving}
               className="h-auto rounded-md bg-foreground px-[15px] py-[9px] text-[13px] font-medium text-background hover:bg-foreground/90"
             >
-              {saving ? "Saving…" : "Save password"}
+              {saving ? t("saving") : tCard("savePassword")}
             </Button>
           </div>
         </form>
@@ -283,7 +285,7 @@ export function DriverAccountPasswordCard() {
 
       {changed ? (
         <p role="status" className={cn("mt-4", SUCCESS_TEXT_CLASSES)}>
-          Password updated.
+          {t("passwordUpdated")}
         </p>
       ) : null}
     </HubCard>

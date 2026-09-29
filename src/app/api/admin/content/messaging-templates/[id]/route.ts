@@ -11,6 +11,7 @@ import {
 // Type-only, so this route does not pull the sibling module in at runtime — it
 // exists purely so both endpoints answer with the identical row shape.
 import type { AdminMessagingTemplateRow } from "@/app/api/admin/content/messaging-templates/route";
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { authorizeAdminApi } from "@/lib/admin/api-auth";
 import { writeAuditLog } from "@/lib/admin/audit";
 import { prisma } from "@/lib/prisma";
@@ -94,9 +95,10 @@ function isDuplicateTemplateError(error: unknown): boolean {
  */
 function parseUpdateBody(
   body: unknown,
+  t: (key: string, values?: Record<string, string | number>) => string,
 ): { data: Prisma.MessagingTemplateUpdateInput } | { error: string } {
   if (typeof body !== "object" || body === null) {
-    return { error: "Request body must be a JSON object." };
+    return { error: t("common.shared.requestBodyMustBeAJson") };
   }
 
   const record = body as Record<string, unknown>;
@@ -105,10 +107,17 @@ function parseUpdateBody(
   if (record.key !== undefined) {
     const { key } = record;
     if (typeof key !== "string" || key.trim() === "") {
-      return { error: "key must be a non-empty string." };
+      return {
+        error: t("errors.adminContentMessagingTemplates.keyMustBeANonEmpty"),
+      };
     }
     if (key.trim().length > MAX_KEY_LENGTH) {
-      return { error: `key must be ${MAX_KEY_LENGTH} characters or fewer.` };
+      return {
+        error: t("common.shared.fieldMaxLength", {
+          field: "key",
+          max: MAX_KEY_LENGTH,
+        }),
+      };
     }
     data.key = key.trim();
   }
@@ -117,7 +126,10 @@ function parseUpdateBody(
     const { channel } = record;
     if (typeof channel !== "string" || !isMessagingChannel(channel)) {
       return {
-        error: `channel must be one of: ${MESSAGING_CHANNELS.join(", ")}.`,
+        error: t("common.shared.fieldMustBeOneOf", {
+          field: "channel",
+          options: MESSAGING_CHANNELS.join(", "),
+        }),
       };
     }
     data.channel = channel;
@@ -126,7 +138,12 @@ function parseUpdateBody(
   if (record.locale !== undefined) {
     const { locale } = record;
     if (typeof locale !== "string" || !isContentLocale(locale)) {
-      return { error: `locale must be one of: ${CONTENT_LOCALES.join(", ")}.` };
+      return {
+        error: t("common.shared.fieldMustBeOneOf", {
+          field: "locale",
+          options: CONTENT_LOCALES.join(", "),
+        }),
+      };
     }
     data.locale = locale;
   }
@@ -134,7 +151,11 @@ function parseUpdateBody(
   if (record.subject !== undefined) {
     const { subject } = record;
     if (subject !== null && typeof subject !== "string") {
-      return { error: "subject must be a string or null." };
+      return {
+        error: t(
+          "errors.adminContentMessagingTemplates.subjectMustBeStringOrNull",
+        ),
+      };
     }
     // A blank string is normalized to null so the two ways of saying "no
     // subject" cannot both end up in the table.
@@ -144,7 +165,10 @@ function parseUpdateBody(
         : null;
     if (trimmedSubject !== null && trimmedSubject.length > MAX_SUBJECT_LENGTH) {
       return {
-        error: `subject must be ${MAX_SUBJECT_LENGTH} characters or fewer.`,
+        error: t("common.shared.fieldMaxLength", {
+          field: "subject",
+          max: MAX_SUBJECT_LENGTH,
+        }),
       };
     }
     data.subject = trimmedSubject;
@@ -153,10 +177,17 @@ function parseUpdateBody(
   if (record.body !== undefined) {
     const messageBody = record.body;
     if (typeof messageBody !== "string" || messageBody.trim() === "") {
-      return { error: "body must be a non-empty string." };
+      return {
+        error: t("errors.adminContentMessagingTemplates.bodyMustBeANonEmpty"),
+      };
     }
     if (messageBody.length > MAX_BODY_LENGTH) {
-      return { error: `body must be ${MAX_BODY_LENGTH} characters or fewer.` };
+      return {
+        error: t("common.shared.fieldMaxLength", {
+          field: "body",
+          max: MAX_BODY_LENGTH,
+        }),
+      };
     }
     data.body = messageBody.trim();
   }
@@ -164,13 +195,13 @@ function parseUpdateBody(
   if (record.isActive !== undefined) {
     const { isActive } = record;
     if (typeof isActive !== "boolean") {
-      return { error: "isActive must be a boolean." };
+      return { error: t("common.shared.isactiveMustBeABoolean") };
     }
     data.isActive = isActive;
   }
 
   if (Object.keys(data).length === 0) {
-    return { error: "No editable fields were provided." };
+    return { error: t("common.shared.noEditableFieldsWereProvided") };
   }
 
   return { data };
@@ -189,6 +220,8 @@ export async function PATCH(
     return authorized.response;
   }
 
+  const t = await getRequestTranslations();
+
   const { id } = await params;
 
   let rawBody: unknown;
@@ -196,12 +229,12 @@ export async function PATCH(
     rawBody = await request.json();
   } catch {
     return NextResponse.json(
-      { error: "Request body must be valid JSON." },
+      { error: t("common.shared.requestBodyMustBeValidJson") },
       { status: 400 },
     );
   }
 
-  const parsed = parseUpdateBody(rawBody);
+  const parsed = parseUpdateBody(rawBody, t);
   if ("error" in parsed) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
@@ -216,7 +249,11 @@ export async function PATCH(
 
   if (!existing) {
     return NextResponse.json(
-      { error: "That messaging template was not found." },
+      {
+        error: t(
+          "errors.adminContentMessagingTemplates.thatMessagingTemplateWasNotFound",
+        ),
+      },
       { status: 404 },
     );
   }
@@ -231,8 +268,7 @@ export async function PATCH(
     if (isDuplicateTemplateError(error)) {
       return NextResponse.json(
         {
-          error:
-            "A template with that key already exists for this channel and locale.",
+          error: t("common.shared.aTemplateWithThatKeyAlready"),
         },
         { status: 409 },
       );
@@ -286,6 +322,8 @@ export async function DELETE(
     return authorized.response;
   }
 
+  const t = await getRequestTranslations();
+
   const { id } = await params;
 
   const existing = await prisma.messagingTemplate.findUnique({
@@ -295,7 +333,11 @@ export async function DELETE(
 
   if (!existing) {
     return NextResponse.json(
-      { error: "That messaging template was not found." },
+      {
+        error: t(
+          "errors.adminContentMessagingTemplates.thatMessagingTemplateWasNotFound",
+        ),
+      },
       { status: 404 },
     );
   }

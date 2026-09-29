@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useFormatter, useTranslations } from "next-intl";
 
 import {
   HubCard,
@@ -9,15 +10,16 @@ import {
 } from "@/components/driver-hub/hub-primitives";
 import {
   formatGel,
-  formatJoinedMonth,
   formatRating,
   initialsOf,
   shortId,
 } from "@/components/driver-hub/screens/drivers-format";
 import { useRouter } from "@/i18n/navigation";
+import { useHubStatusLabel } from "@/components/driver-hub/use-hub-status-label";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { HubDriver } from "@/lib/dashboard/hub/drivers";
+import { HUB_TIME_ZONE } from "@/lib/dashboard/hub/timezone";
 import { cn } from "@/lib/utils";
 
 /**
@@ -45,9 +47,6 @@ import { cn } from "@/lib/utils";
  * full for both themes: the compiler scans source text, so a class assembled
  * from a variable would never be generated at all.
  */
-
-const GENERIC_ERROR = "Could not offboard this driver.";
-const NETWORK_ERROR = "Network error. Please check your connection.";
 
 /**
  * The design's destructive button, unarmed.
@@ -117,7 +116,9 @@ const OFFBOARD_ARMED_CLASSES =
   "border-transparent bg-destructive text-white " +
   "hover:bg-destructive/90 hover:text-white";
 
-/**
+/*
+ * Catalog keys `offboardUnarmedNote` / `offboardArmedNote`.
+ *
  * The design ends its offboard flow with a "Reinstate driver" button. There is
  * nothing here to reinstate *from*: `DELETE /api/logistics-company/drivers/
  * [userId]` sets `DriverProfile.companyId` to null and the schema keeps no
@@ -135,29 +136,6 @@ const OFFBOARD_ARMED_CLASSES =
  * own truck, and an operator reading "released back to your fleet" should not
  * expect that one back.
  */
-const OFFBOARD_UNARMED_NOTE =
-  "Takes them off your roster. Their account, completed jobs and payouts stay " +
-  "theirs. There is no reinstate — nothing records that they were ever on this " +
-  "roster, so bringing them back means registering them again.";
-
-const OFFBOARD_ARMED_NOTE =
-  "Click again to take them off the roster for good. Any of your fleet " +
-  "vehicles they hold is released back to Vehicles automatically. A vehicle " +
-  "they own themselves goes with them.";
-
-/** Why the rating, the acceptance rate and the document rows are invented. */
-const SAMPLE_NOTES = {
-  rating:
-    "Nothing records a customer rating for an order. Retire with an " +
-    "OrderRating model.",
-  acceptance:
-    "Nothing records an offer a driver was shown but did not take, so an " +
-    "acceptance rate cannot be computed. Retire with a JobOffer model.",
-  verification:
-    "DriverApplication verifies documents once at onboarding and models no " +
-    "ongoing validity, so these verdicts are placeholders. Retire with a " +
-    "DriverDocument model. The licence expiry date itself is real.",
-} as const;
 
 /** The grey pill the design uses for the zone. */
 const NEUTRAL_PILL_CLASSES =
@@ -203,6 +181,8 @@ function StatBox({
   /** Present only on a box fed by `driver.sampled`. */
   sampleNote?: string;
 }) {
+  const tShared = useTranslations("common.shared");
+
   return (
     <div className="min-w-0 rounded-[10px] border border-border p-3">
       <p className="text-[11px] tracking-[0.08em] uppercase text-muted-foreground">
@@ -212,7 +192,11 @@ function StatBox({
         {value}
       </p>
       {sampleNote === undefined ? null : (
-        <SampleNote note={sampleNote} label="Sample" className="mt-1.5" />
+        <SampleNote
+          note={sampleNote}
+          label={tShared("sample")}
+          className="mt-1.5"
+        />
       )}
     </div>
   );
@@ -225,6 +209,10 @@ export function DriversDetailPanel({
   onOffboarded,
 }: DriversDetailPanelProps) {
   const router = useRouter();
+  const t = useTranslations("driverHub.driversDetailPanel");
+  const tShared = useTranslations("common.shared");
+  const format = useFormatter();
+  const statusLabel = useHubStatusLabel();
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -254,7 +242,7 @@ export function DriversDetailPanel({
         } | null;
         // The route's own wording ("Driver not found.", "Only logistics
         // companies can remove drivers.") is more useful than ours.
-        setError(payload?.error ?? GENERIC_ERROR);
+        setError(payload?.error ?? t("couldNotOffboard"));
         return;
       }
 
@@ -262,7 +250,7 @@ export function DriversDetailPanel({
       onOffboarded();
       router.refresh();
     } catch {
-      setError(NETWORK_ERROR);
+      setError(t("networkError"));
     } finally {
       setSubmitting(false);
     }
@@ -293,7 +281,15 @@ export function DriversDetailPanel({
             title={driver.driverProfileId}
             className="mt-0.5 truncate font-price text-[11px] text-muted-foreground"
           >
-            {displayId} · joined {formatJoinedMonth(driver.joinedAt)}
+            {t("idAndJoined", {
+              id: displayId,
+              // Pinned to the Tbilisi calendar, like every other hub date.
+              month: format.dateTime(new Date(driver.joinedAt), {
+                month: "short",
+                year: "numeric",
+                timeZone: HUB_TIME_ZONE,
+              }),
+            })}
           </p>
         </div>
       </div>
@@ -306,9 +302,12 @@ export function DriversDetailPanel({
           The `sr-only` span is out of flow and so is not a flex item — it adds
           no gap between the two pills. */}
       <div className="mt-4 mb-5 flex flex-wrap gap-2">
-        <HubStatusBadge status={driverStatusWord(driver)} />
+        <HubStatusBadge
+          status={driverStatusWord(driver)}
+          label={statusLabel(driverStatusWord(driver))}
+        />
         <span className="sr-only">
-          — {driver.presence}, {driver.reviewState}
+          — {statusLabel(driver.presence)}, {statusLabel(driver.reviewState)}
         </span>
         <Badge variant="outline" className={NEUTRAL_PILL_CLASSES}>
           {driver.cityLabel}
@@ -316,24 +315,29 @@ export function DriversDetailPanel({
       </div>
 
       <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3 border-b border-border pb-5">
-        <StatBox label="Jobs this week" value={driver.jobsThisWeek} />
-        <StatBox label="Earned" value={formatGel(driver.totalEarnedGel)} />
+        <StatBox label={t("jobsThisWeek")} value={driver.jobsThisWeek} />
         <StatBox
-          label="Acceptance"
-          value={`${driver.sampled.acceptanceRatePercent}%`}
-          sampleNote={SAMPLE_NOTES.acceptance}
+          label={tShared("earned")}
+          value={formatGel(driver.totalEarnedGel)}
         />
         <StatBox
-          label="Rating"
+          label={tShared("acceptance")}
+          value={`${driver.sampled.acceptanceRatePercent}%`}
+          sampleNote={t("sampleAcceptanceNote")}
+        />
+        <StatBox
+          label={tShared("rating")}
           value={formatRating(driver.sampled.rating)}
-          sampleNote={SAMPLE_NOTES.rating}
+          sampleNote={t("sampleRatingNote")}
         />
       </div>
 
-      <h3 className="mt-[18px] mb-1 text-[13px] font-semibold">Recent jobs</h3>
+      <h3 className="mt-[18px] mb-1 text-[13px] font-semibold">
+        {t("recentJobs")}
+      </h3>
       {driver.recentJobs.length === 0 ? (
         <p className="border-t border-muted py-2.5 text-[13px] text-muted-foreground">
-          No completed jobs for this fleet yet.
+          {t("noCompletedJobsForThisFleet")}
         </p>
       ) : (
         <ul>
@@ -357,8 +361,8 @@ export function DriversDetailPanel({
       )}
 
       <div className="mt-[18px] mb-0.5 flex flex-wrap items-center gap-2">
-        <h3 className="text-[13px] font-semibold">Verification</h3>
-        <SampleNote note={SAMPLE_NOTES.verification} />
+        <h3 className="text-[13px] font-semibold">{t("verification")}</h3>
+        <SampleNote note={t("sampleVerificationNote")} />
       </div>
       <ul>
         {driver.sampled.verification.map((row) => (
@@ -367,7 +371,10 @@ export function DriversDetailPanel({
             className="flex items-center justify-between gap-3 border-t border-muted py-[9px] text-[13px]"
           >
             <span className="min-w-0 truncate">{row.label}</span>
-            <HubStatusBadge status={row.status} />
+            <HubStatusBadge
+              status={row.status}
+              label={statusLabel(row.status)}
+            />
           </li>
         ))}
       </ul>
@@ -386,13 +393,13 @@ export function DriversDetailPanel({
           )}
         >
           {submitting
-            ? "Offboarding…"
+            ? t("offboarding")
             : armed
-              ? "Confirm offboarding"
-              : "Offboard driver"}
+              ? t("confirmOffboarding")
+              : t("offboardDriver")}
         </Button>
         <p className="mt-[9px] text-xs leading-relaxed text-muted-foreground">
-          {armed ? OFFBOARD_ARMED_NOTE : OFFBOARD_UNARMED_NOTE}
+          {armed ? t("offboardArmedNote") : t("offboardUnarmedNote")}
         </p>
 
         {/* Inline, beside the control that failed — never an `alert()`. The

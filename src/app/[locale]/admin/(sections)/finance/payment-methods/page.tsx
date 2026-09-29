@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 
 import type { PaymentMethodType } from "@prisma/client";
 
@@ -26,21 +27,22 @@ import {
 /** Columns in the table, so the full-width state rows can span all of them. */
 const COLUMN_COUNT = 3;
 
-const PAYMENT_METHOD_LABELS: Record<PaymentMethodType, string> = {
-  CASH: "Cash on delivery",
-  CARD: "Card",
-  BANK_TRANSFER: "Bank transfer",
+/** `admin.adminFinancePaymentMethods` key for each method's name. */
+const PAYMENT_METHOD_LABEL_KEYS: Record<PaymentMethodType, string> = {
+  CASH: "cashOnDelivery",
+  CARD: "card",
+  BANK_TRANSFER: "bankTransfer",
 };
 
 /**
  * Extra context shown under a method's name. Partial on purpose — only a method
  * with something staff must know about carries a note.
  */
-const PAYMENT_METHOD_NOTES: Partial<Record<PaymentMethodType, string>> = {
+const PAYMENT_METHOD_NOTE_KEYS: Partial<Record<PaymentMethodType, string>> = {
   // The switch is real, the integration behind it is not: no payment gateway is
   // wired up yet, so enabling this records the intent to offer cards and
   // nothing more.
-  CARD: "Gateway integration pending — enabling this does not charge cards yet.",
+  CARD: "gatewayIntegrationPending",
 };
 
 /**
@@ -83,6 +85,8 @@ async function readErrorMessage(
  * why `CARD` carries a note saying so.
  */
 export default function AdminPaymentMethodsPage() {
+  const t = useTranslations("admin.adminFinancePaymentMethods");
+  const tShared = useTranslations("common.shared");
   const [items, setItems] = useState<AdminPaymentMethodRow[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -103,7 +107,7 @@ export default function AdminPaymentMethodsPage() {
 
         if (!response.ok) {
           setError(
-            await readErrorMessage(response, "Could not load payment methods."),
+            await readErrorMessage(response, t("couldNotLoadPaymentMethods")),
           );
           setLoading(false);
           return;
@@ -118,7 +122,7 @@ export default function AdminPaymentMethodsPage() {
           return;
         }
 
-        setError("Could not load payment methods.");
+        setError(t("couldNotLoadPaymentMethods"));
         setLoading(false);
       }
     }
@@ -126,7 +130,7 @@ export default function AdminPaymentMethodsPage() {
     void load();
 
     return () => controller.abort();
-  }, []);
+  }, [t]);
 
   async function handleToggle(method: AdminPaymentMethodRow) {
     setError(null);
@@ -146,7 +150,7 @@ export default function AdminPaymentMethodsPage() {
         setError(
           await readErrorMessage(
             response,
-            "Could not update this payment method.",
+            t("couldNotUpdateThisPaymentMethod"),
           ),
         );
         return;
@@ -164,7 +168,7 @@ export default function AdminPaymentMethodsPage() {
             ),
       );
     } catch {
-      setError("Could not update this payment method.");
+      setError(t("couldNotUpdateThisPaymentMethod"));
     } finally {
       setPendingType(null);
     }
@@ -173,16 +177,16 @@ export default function AdminPaymentMethodsPage() {
   return (
     <div className="flex flex-col gap-4">
       <p className="text-sm text-muted-foreground">
-        Payment methods offered at checkout, platform-wide.
+        {t("paymentMethodsOfferedAtCheckoutPlatform")}
       </p>
 
       <div className="overflow-hidden rounded-xl border border-border">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Method</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead>{t("method")}</TableHead>
+              <TableHead>{tShared("status")}</TableHead>
+              <TableHead className="text-right">{tShared("actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -192,7 +196,7 @@ export default function AdminPaymentMethodsPage() {
                   colSpan={COLUMN_COUNT}
                   className="py-10 text-center text-muted-foreground"
                 >
-                  Loading payment methods…
+                  {t("loadingPaymentMethods")}
                 </TableCell>
               </TableRow>
             ) : items === null ? (
@@ -202,22 +206,22 @@ export default function AdminPaymentMethodsPage() {
                   className="py-10 text-center text-destructive"
                 >
                   <span role="alert">
-                    {error ?? "Could not load payment methods."}
+                    {error ?? t("couldNotLoadPaymentMethods")}
                   </span>
                 </TableCell>
               </TableRow>
             ) : (
               items.map((method) => {
-                const note = PAYMENT_METHOD_NOTES[method.type];
+                const noteKey = PAYMENT_METHOD_NOTE_KEYS[method.type];
+                const note = noteKey === undefined ? null : t(noteKey);
+                const methodLabel = t(PAYMENT_METHOD_LABEL_KEYS[method.type]);
                 const pending = pendingType === method.type;
 
                 return (
                   <TableRow key={method.type}>
                     <TableCell>
                       <div className="flex flex-col">
-                        <span className="font-medium">
-                          {PAYMENT_METHOD_LABELS[method.type]}
-                        </span>
+                        <span className="font-medium">{methodLabel}</span>
                         {note ? (
                           <span className="text-xs text-muted-foreground">
                             {note}
@@ -227,9 +231,9 @@ export default function AdminPaymentMethodsPage() {
                     </TableCell>
                     <TableCell>
                       {method.isEnabled ? (
-                        <Badge variant="secondary">Enabled</Badge>
+                        <Badge variant="secondary">{t("enabled")}</Badge>
                       ) : (
-                        <Badge variant="outline">Disabled</Badge>
+                        <Badge variant="outline">{t("disabled")}</Badge>
                       )}
                     </TableCell>
                     <TableCell className="text-right">
@@ -239,10 +243,13 @@ export default function AdminPaymentMethodsPage() {
                         disabled={pending}
                         // Spelled out because "Disable" on its own says nothing
                         // about which method it belongs to out of table context.
-                        aria-label={`${method.isEnabled ? "Disable" : "Enable"} ${PAYMENT_METHOD_LABELS[method.type]}`}
+                        aria-label={t("toggleLabel", {
+                          isEnabled: String(method.isEnabled),
+                          method: methodLabel,
+                        })}
                         onClick={() => void handleToggle(method)}
                       >
-                        {method.isEnabled ? "Disable" : "Enable"}
+                        {method.isEnabled ? t("disable") : t("enable")}
                       </Button>
                     </TableCell>
                   </TableRow>

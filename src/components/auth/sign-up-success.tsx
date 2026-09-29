@@ -1,13 +1,17 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 
 import { useRouter } from "@/i18n/navigation";
-import { AuthHeading, AuthSubheading } from "@/components/auth/auth-primitives";
+import {
+  AuthHeading,
+  AuthSubheading,
+  useAccountTypeLabels,
+} from "@/components/auth/auth-primitives";
 import { AuthShell } from "@/components/auth/auth-shell";
 import {
-  accountTypeLabel,
-  ROLE_LABELS,
+  useRoleLabels,
   type AccountType,
   type FlowRole,
 } from "@/lib/auth-flow";
@@ -63,6 +67,9 @@ export function SignUpSuccess({
   accountType,
   destination,
 }: SignUpSuccessProps) {
+  const t = useTranslations("auth.signUpSuccess");
+  const roleLabels = useRoleLabels();
+  const accountTypeLabels = useAccountTypeLabels();
   const router = useRouter();
   const [fill, setFill] = React.useState<FillState>("empty");
 
@@ -114,7 +121,7 @@ export function SignUpSuccess({
         that was just created.
       */}
       <div role="status" className="flex flex-col gap-5">
-        <span className="sr-only">Your account has been created.</span>
+        <span className="sr-only">{t("yourAccountHasBeenCreated")}</span>
 
         {/* The check is the picture of the sentence beside it, and its whole job
             is to be the one high-contrast graphic on an otherwise typographic
@@ -138,10 +145,12 @@ export function SignUpSuccess({
         </span>
 
         <div className="flex flex-col gap-2.5">
-          <AuthHeading>You&rsquo;re signed in</AuthHeading>
+          <AuthHeading>{t("youAreSignedIn")}</AuthHeading>
           <AuthSubheading>
-            {ROLE_LABELS[role]} · {accountTypeLabel(accountType)} · taking you
-            to your dashboard.
+            {t("takingYouToDashboard", {
+              role: roleLabels[role],
+              accountType: accountTypeLabels[accountType],
+            })}
           </AuthSubheading>
         </div>
       </div>

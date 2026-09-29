@@ -1,6 +1,7 @@
 "use client";
 
 import { LogOut } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { Link } from "@/i18n/navigation";
 import { useSignOut } from "@/components/auth/use-sign-out";
@@ -125,16 +126,23 @@ export function DriverAccountSidebar({
   activeSection,
 }: DriverAccountSidebarProps) {
   const { signOut, signingOut } = useSignOut();
+  // Unscoped: section labels are root-relative keys (see `labelKey`).
+  const tRoot = useTranslations();
 
   return (
     <aside className={cn("lg:sticky lg:w-52 lg:shrink-0", STICKY_TOP_CLASS)}>
       <div className="flex h-full flex-col">
-        <p className={SECTION_LABEL_CLASSES}>Account</p>
+        <p className={SECTION_LABEL_CLASSES}>
+          {tRoot("common.shared.account")}
+        </p>
 
         {/* No `gap`: every row carries a 2px left border, and the rows abutting
             is what makes those borders read as one continuous rail rather than
             five detached ticks. The active row colours its own segment. */}
-        <nav aria-label="Account settings" className="mt-3 flex flex-col">
+        <nav
+          aria-label={tRoot("common.shared.accountSettings")}
+          className="mt-3 flex flex-col"
+        >
           {sections.map((section) => {
             const active = section.id === activeSection;
 
@@ -155,7 +163,7 @@ export function DriverAccountSidebar({
                     : "border-border text-muted-foreground hover:text-foreground",
                 )}
               >
-                {section.label}
+                {tRoot(section.labelKey)}
               </Link>
             );
           })}
@@ -187,7 +195,9 @@ export function DriverAccountSidebar({
             className="size-[15px] flex-none"
             strokeWidth={1.8}
           />
-          {signingOut ? "Logging out…" : "Log out"}
+          {signingOut
+            ? tRoot("account.accountSidebar.loggingOut")
+            : tRoot("account.accountSidebar.logOut")}
         </button>
       </div>
     </aside>

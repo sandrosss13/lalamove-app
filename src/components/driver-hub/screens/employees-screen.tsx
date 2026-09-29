@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 
 import { useHubSubtitle } from "@/components/driver-hub/driver-hub-shell";
 import {
@@ -16,6 +17,7 @@ import {
 import { EmployeeDetailPanel } from "@/components/driver-hub/screens/employees-detail-panel";
 import { EmployeeInviteForm } from "@/components/driver-hub/screens/employees-invite-form";
 import { EmployeeRoleDefinitions } from "@/components/driver-hub/screens/employees-role-definitions";
+import { useHubStatusLabel } from "@/components/driver-hub/use-hub-status-label";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -63,12 +65,17 @@ import { cn } from "@/lib/utils";
 /* Filters                                                                    */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * `labelKey` is a root-relative message key, resolved into `FilterStripItem`
+ * labels at render time; `value` stays English because it is compared against
+ * `SampleEmployee.status`, not shown.
+ */
 const EMPLOYEE_TABS = [
-  { value: "All", label: "All" },
-  { value: "Active", label: "Active" },
-  { value: "Invited", label: "Invited" },
-  { value: "Suspended", label: "Suspended" },
-] as const satisfies readonly FilterStripItem[];
+  { value: "All", labelKey: "common.shared.all" },
+  { value: "Active", labelKey: "common.shared.active" },
+  { value: "Invited", labelKey: "driverHub.employeesScreen.invited" },
+  { value: "Suspended", labelKey: "common.shared.suspended" },
+] as const;
 
 type EmployeesTab = (typeof EMPLOYEE_TABS)[number]["value"];
 
@@ -104,14 +111,19 @@ const HEAD_CLASSES =
   "h-auto px-0 pb-2.5 text-[11px] font-normal tracking-[0.08em] uppercase text-muted-foreground";
 const CELL_CLASSES = "min-w-0 px-0 py-3.5";
 
-/* -------------------------------------------------------------------------- */
-/* Honesty copy                                                               */
-/* -------------------------------------------------------------------------- */
-
-/** What would make the roster real, shown on every `<SampleNote />` here. */
-const ROSTER_SAMPLE_NOTE =
-  "No employee record exists in the schema yet — the roster, the counts and " +
-  "both actions are placeholders. The role definitions below are real.";
+/**
+ * The empty-table line for each filter. Keys under `driverHub.employeesScreen`,
+ * resolved at render time.
+ */
+const EMPTY_MESSAGE_KEY: Record<
+  EmployeesTab,
+  "emptyAll" | "emptyActive" | "emptyInvited" | "emptySuspended"
+> = {
+  All: "emptyAll",
+  Active: "emptyActive",
+  Invited: "emptyInvited",
+  Suspended: "emptySuspended",
+};
 
 export type EmployeesScreenProps = {
   data: HubEmployeesData;
@@ -119,23 +131,26 @@ export type EmployeesScreenProps = {
 
 export function EmployeesScreen({ data }: EmployeesScreenProps) {
   const { subhead, roster, tiles, roleDefinitions } = data;
+  const t = useTranslations("driverHub.employeesScreen");
+  const tShared = useTranslations("common.shared");
+  const tRoot = useTranslations();
+  const statusLabel = useHubStatusLabel();
+  const tabItems: FilterStripItem[] = EMPLOYEE_TABS.map((item) => ({
+    value: item.value,
+    label: tRoot(item.labelKey),
+  }));
 
   const [tab, setTab] = React.useState<EmployeesTab>("All");
   const [selectedEmail, setSelectedEmail] = React.useState<string | null>(null);
   const [inviting, setInviting] = React.useState(false);
 
   useHubSubtitle(
-    `${subhead.companyName} · ${subhead.peopleCount} ${plural(
-      subhead.peopleCount,
-      "person",
-      "people",
-    )}, ${subhead.roleCount} ${plural(subhead.roleCount, "role", "roles")} · ${
-      subhead.invitesPendingCount
-    } ${plural(
-      subhead.invitesPendingCount,
-      "invite",
-      "invites",
-    )} pending`,
+    t("subtitle", {
+      company: subhead.companyName,
+      people: subhead.peopleCount,
+      roles: subhead.roleCount,
+      invites: subhead.invitesPendingCount,
+    }),
   );
 
   // The rail shows one thing at a time, and the invite form wins: opening it
@@ -168,8 +183,10 @@ export function EmployeesScreen({ data }: EmployeesScreenProps) {
   ) : undefined;
 
   const detailLabel = inviting
-    ? "the invite employee form"
-    : `${selectedPerson?.name ?? "employee"} details`;
+    ? t("inviteFormLabel")
+    : t("employeeDetails", {
+        name: selectedPerson?.name ?? t("employeeFallback"),
+      });
 
   return (
     <>
@@ -180,33 +197,30 @@ export function EmployeesScreen({ data }: EmployeesScreenProps) {
         naming what *is* real — is the honest version.
       */}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-[10px] border border-border px-4 py-3.5">
-        <SampleNote label="Sample roster" note={ROSTER_SAMPLE_NOTE} />
+        <SampleNote label={t("sampleRoster")} note={t("rosterSampleNote")} />
         <p className="min-w-0 flex-1 text-[13px] leading-normal text-muted-foreground">
-          There is no employee record in the system yet, so the counts and the
-          people below are invented — nobody has been invited and nothing here
-          grants access. The role definitions further down are the real product
-          content.
+          {t("thereIsNoEmployeeRecordIn")}
         </p>
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
         <MetricTile
-          label="Employees"
+          label={tShared("employees")}
           value={tiles.employees.value}
           note={tiles.employees.note}
         />
         <MetricTile
-          label="Roles in use"
+          label={t("rolesInUse")}
           value={tiles.rolesInUse.value}
           note={tiles.rolesInUse.note}
         />
         <MetricTile
-          label="Can move money"
+          label={t("canMoveMoney")}
           value={tiles.canMoveMoney.value}
           note={tiles.canMoveMoney.note}
         />
         <MetricTile
-          label="Needs review"
+          label={tShared("needsReview")}
           value={tiles.needsReview.value}
           note={tiles.needsReview.note}
         />
@@ -220,14 +234,14 @@ export function EmployeesScreen({ data }: EmployeesScreenProps) {
           <HubCard>
             <div className="mb-[18px] flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
               <FilterStrip
-                items={EMPLOYEE_TABS}
+                items={tabItems}
                 value={tab}
                 onChange={(next) => {
                   if (isEmployeesTab(next)) {
                     setTab(next);
                   }
                 }}
-                ariaLabel="Filter employees by status"
+                ariaLabel={t("filterByStatus")}
               />
               {/* The toolbar holds what the design's does — the count and the
                   button. The roster's sample marker is not repeated here: the
@@ -239,7 +253,10 @@ export function EmployeesScreen({ data }: EmployeesScreenProps) {
                     plain 12px muted string, and the hub reserves mono for
                     values a reader might compare or copy. */}
                 <span className="text-xs text-muted-foreground">
-                  {visible.length} of {roster.length} shown
+                  {t("shownCount", {
+                    visible: visible.length,
+                    total: roster.length,
+                  })}
                 </span>
                 <Button
                   type="button"
@@ -250,7 +267,7 @@ export function EmployeesScreen({ data }: EmployeesScreenProps) {
                   }}
                   className="h-auto rounded-md px-[14px] py-2 text-[13px]"
                 >
-                  Invite employee
+                  {t("inviteEmployee")}
                 </Button>
               </div>
             </div>
@@ -267,18 +284,18 @@ export function EmployeesScreen({ data }: EmployeesScreenProps) {
                   )}
                 >
                   <TableHead role="columnheader" className={HEAD_CLASSES}>
-                    Person
+                    {t("person")}
                   </TableHead>
                   <TableHead role="columnheader" className={HEAD_CLASSES}>
-                    Role
+                    {tShared("role")}
                   </TableHead>
                   {split ? null : (
                     <>
                       <TableHead role="columnheader" className={HEAD_CLASSES}>
-                        Scope
+                        {tShared("scope")}
                       </TableHead>
                       <TableHead role="columnheader" className={HEAD_CLASSES}>
-                        Last active
+                        {t("lastActive")}
                       </TableHead>
                     </>
                   )}
@@ -286,7 +303,7 @@ export function EmployeesScreen({ data }: EmployeesScreenProps) {
                     role="columnheader"
                     className={cn(HEAD_CLASSES, "text-right")}
                   >
-                    Status
+                    {tShared("status")}
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -359,7 +376,10 @@ export function EmployeesScreen({ data }: EmployeesScreenProps) {
                         role="cell"
                         className={cn(CELL_CLASSES, "text-right")}
                       >
-                        <HubStatusBadge status={person.status} />
+                        <HubStatusBadge
+                          status={person.status}
+                          label={statusLabel(person.status)}
+                        />
                       </TableCell>
                     </TableRow>
                   );
@@ -368,7 +388,7 @@ export function EmployeesScreen({ data }: EmployeesScreenProps) {
             </Table>
 
             {visible.length === 0 ? (
-              <HubEmptyState message={`No ${tab.toLowerCase()} employees.`} />
+              <HubEmptyState message={t(EMPTY_MESSAGE_KEY[tab])} />
             ) : null}
           </HubCard>
         }
@@ -377,9 +397,4 @@ export function EmployeesScreen({ data }: EmployeesScreenProps) {
       <EmployeeRoleDefinitions roles={roleDefinitions} />
     </>
   );
-}
-
-/** Singular/plural for the three counts in the header subhead. */
-function plural(count: number, singular: string, many: string): string {
-  return count === 1 ? singular : many;
 }

@@ -1,1 +1,36 @@
-{}
+{
+  "orderStatus": {
+    "accepted": "Accepted",
+    "cancelled": "Cancelled",
+    "completed": "Completed",
+    "inTransit": "In transit",
+    "initiated": "Initiated",
+    "pending": "Pending"
+  },
+  "orderTrackingMap": {
+    "driverLocationMayBeStale": "Driver location may be stale.",
+    "waitingForADriverToShare": "Waiting for a driver to share their location…"
+  },
+  "orders": {
+    "above": "above.",
+    "bookFirstDelivery": "Book your first delivery with <b>New order</b> above.",
+    "newOrder2": "New order",
+    "noOrdersYet": "You haven't placed any orders yet.",
+    "signInToViewYourOrders": "Sign in to view your orders.",
+    "trackDelivery": "Track delivery →",
+    "yourDeliveries": "Your deliveries",
+    "yourOrders": "Your orders"
+  },
+  "ordersTrack": {
+    "backToDashboard": "← Back to dashboard",
+    "backToOrders": "← Back to orders",
+    "carrier": "Carrier",
+    "pleaseSignInToTrackThis": "Please sign in to track this delivery.",
+    "trackDelivery": "Track delivery"
+  },
+  "serviceLevel": {
+    "pooling": "Pooling",
+    "priority": "Priority",
+    "regular": "Regular"
+  }
+}

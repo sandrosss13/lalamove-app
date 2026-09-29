@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { DriverApplicationDocumentType, type AdminRole } from "@prisma/client";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { authorizeAdminApi } from "@/lib/admin/api-auth";
 import { writeAuditLog } from "@/lib/admin/audit";
 import { prisma } from "@/lib/prisma";
@@ -55,6 +56,7 @@ export async function POST(
   }
 
   const { id } = await params;
+  const t = await getRequestTranslations();
 
   // Live documents only: a superseded row is history, and an approval that was
   // given to a photo the driver has since replaced must not count for the one
@@ -78,7 +80,7 @@ export async function POST(
   // there is nothing here for a reviewer to have opened.
   if (!application || application.status === "DRAFT") {
     return NextResponse.json(
-      { error: "Application not found." },
+      { error: t("common.shared.applicationNotFound") },
       { status: 404 },
     );
   }
@@ -88,7 +90,7 @@ export async function POST(
   // `activatedAt` forward and rewrite when the driver was actually activated.
   if (application.status === "APPROVED") {
     return NextResponse.json(
-      { error: "This application has already been approved." },
+      { error: t("common.shared.thisApplicationHasAlreadyBeenApproved") },
       { status: 400 },
     );
   }
@@ -102,7 +104,11 @@ export async function POST(
   // or who may have aged out — during a round trip that can span days.
   if (application.status !== "PENDING") {
     return NextResponse.json(
-      { error: "This application is still waiting on the driver to resubmit." },
+      {
+        error: t(
+          "errors.adminDriverApplicationsApprove.thisApplicationIsStillWaitingOn",
+        ),
+      },
       { status: 400 },
     );
   }
@@ -118,7 +124,11 @@ export async function POST(
 
   if (!isFullyApproved) {
     return NextResponse.json(
-      { error: "Every document must be approved first." },
+      {
+        error: t(
+          "errors.adminDriverApplicationsApprove.everyDocumentMustBeApprovedFirst",
+        ),
+      },
       { status: 400 },
     );
   }
@@ -135,8 +145,9 @@ export async function POST(
   if (application.vehicleId === null) {
     return NextResponse.json(
       {
-        error:
-          "This application no longer has a vehicle on file and can't be approved.",
+        error: t(
+          "errors.adminDriverApplicationsApprove.thisApplicationNoLongerHasA",
+        ),
       },
       { status: 400 },
     );

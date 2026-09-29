@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import type { AdminRole } from "@prisma/client";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { authorizeAdminApi } from "@/lib/admin/api-auth";
 import { writeAuditLog } from "@/lib/admin/audit";
 import { createSiteMediaUploadUrl } from "@/lib/site-media-storage";
@@ -46,17 +47,19 @@ export async function POST(request: Request): Promise<NextResponse> {
     return authorized.response;
   }
 
+  const t = await getRequestTranslations();
+
   let rawBody: unknown;
   try {
     rawBody = await request.json();
   } catch {
     return NextResponse.json(
-      { error: "Request body must be valid JSON." },
+      { error: t("common.shared.requestBodyMustBeValidJson") },
       { status: 400 },
     );
   }
 
-  const parsed = parseMediaUploadUrlBody(rawBody);
+  const parsed = parseMediaUploadUrlBody(rawBody, t);
   if ("error" in parsed) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
@@ -81,7 +84,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     // for the form to show inline.
     console.error("Failed to create a site media upload URL:", error);
     return NextResponse.json(
-      { error: "Could not prepare the upload. Please try again." },
+      { error: t("common.shared.couldNotPrepareTheUploadPlease") },
       { status: 502 },
     );
   }

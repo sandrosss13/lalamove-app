@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import type { AdminRole, ContentLocale, Prisma } from "@prisma/client";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { authorizeAdminApi } from "@/lib/admin/api-auth";
 import { writeAuditLog } from "@/lib/admin/audit";
 import { prisma } from "@/lib/prisma";
@@ -101,43 +102,58 @@ function groupKeyFor(namespace: string, key: string): string {
  */
 function parseCreateTranslationBody(
   body: unknown,
+  t: (key: string, values?: Record<string, string | number>) => string,
 ): { data: CreateTranslationInput } | { error: string } {
   if (typeof body !== "object" || body === null) {
-    return { error: "Request body must be a JSON object." };
+    return { error: t("common.shared.requestBodyMustBeAJson") };
   }
 
   const record = body as Record<string, unknown>;
 
   const { namespace } = record;
   if (typeof namespace !== "string" || namespace.trim() === "") {
-    return { error: "namespace is required and must be a non-empty string." };
+    return {
+      error: t("errors.adminContentTranslations.namespaceIsRequiredAndMustBe"),
+    };
   }
 
   const trimmedNamespace = namespace.trim();
   if (trimmedNamespace.length > MAX_NAMESPACE_LENGTH) {
     return {
-      error: `namespace must be ${MAX_NAMESPACE_LENGTH} characters or fewer.`,
+      error: t("common.shared.fieldMaxLength", {
+        field: "namespace",
+        max: MAX_NAMESPACE_LENGTH,
+      }),
     };
   }
 
   const { key } = record;
   if (typeof key !== "string" || key.trim() === "") {
-    return { error: "key is required and must be a non-empty string." };
+    return { error: t("common.shared.keyIsRequiredAndMustBe") };
   }
 
   const trimmedKey = key.trim();
   if (trimmedKey.length > MAX_KEY_LENGTH) {
-    return { error: `key must be ${MAX_KEY_LENGTH} characters or fewer.` };
+    return {
+      error: t("common.shared.fieldMaxLength", {
+        field: "key",
+        max: MAX_KEY_LENGTH,
+      }),
+    };
   }
 
   const { valueKa } = record;
   if (typeof valueKa !== "string" || valueKa.trim() === "") {
-    return { error: "valueKa is required and must be a non-empty string." };
+    return {
+      error: t("errors.adminContentTranslations.valuekaIsRequiredAndMustBe"),
+    };
   }
 
   const { valueEn } = record;
   if (typeof valueEn !== "string" || valueEn.trim() === "") {
-    return { error: "valueEn is required and must be a non-empty string." };
+    return {
+      error: t("errors.adminContentTranslations.valueenIsRequiredAndMustBe"),
+    };
   }
 
   const trimmedValueKa = valueKa.trim();
@@ -148,7 +164,9 @@ function parseCreateTranslationBody(
     trimmedValueEn.length > MAX_VALUE_LENGTH
   ) {
     return {
-      error: `A translation value must be ${MAX_VALUE_LENGTH} characters or fewer.`,
+      error: t("errors.adminContentTranslations.translationValueMaxLength", {
+        max: MAX_VALUE_LENGTH,
+      }),
     };
   }
 
@@ -271,17 +289,19 @@ export async function POST(request: Request): Promise<NextResponse> {
     return authorized.response;
   }
 
+  const t = await getRequestTranslations();
+
   let rawBody: unknown;
   try {
     rawBody = await request.json();
   } catch {
     return NextResponse.json(
-      { error: "Request body must be valid JSON." },
+      { error: t("common.shared.requestBodyMustBeValidJson") },
       { status: 400 },
     );
   }
 
-  const parsed = parseCreateTranslationBody(rawBody);
+  const parsed = parseCreateTranslationBody(rawBody, t);
   if ("error" in parsed) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }

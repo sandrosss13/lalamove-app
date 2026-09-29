@@ -71,10 +71,62 @@ function flatten(
  * Only the argument name is captured — the format and the plural branches are
  * allowed to differ between languages, and for Georgian they often must.
  */
+/**
+ * The argument names an ICU message reads — `{name}`, `{count, plural, …}`,
+ * `{kind, select, …}` — walked rather than regex-matched, because the branch
+ * bodies of a plural or select (`one {# day}`, `true {Deactivate}`) are
+ * braces too, and they hold translated text rather than arguments.
+ */
 function placeholders(message: string): Set<string> {
-  return new Set(
-    [...message.matchAll(/\{\s*(\w+)/g)].map((match) => match[1] ?? ""),
-  );
+  const names = new Set<string>();
+  let i = 0;
+
+  // Reads message text until an unmatched `}` (or the end), collecting args.
+  function text(): void {
+    while (i < message.length && message[i] !== "}") {
+      if (message[i] === "'" && message[i + 1] === "{") {
+        const close = message.indexOf("'", i + 1);
+        i = close === -1 ? message.length : close + 1;
+      } else if (message[i] === "{") {
+        i++;
+        argument();
+      } else {
+        i++;
+      }
+    }
+  }
+
+  // Just past an argument's `{`: its name, then any `, type, branches`.
+  function argument(): void {
+    const match = /^\s*(\w+)\s*/.exec(message.slice(i));
+    if (match) {
+      names.add(match[1] ?? "");
+      i += match[0].length;
+    }
+    if (message[i] === ",") {
+      const typeMatch = /^,\s*(\w+)\s*/.exec(message.slice(i));
+      const type = typeMatch?.[1] ?? "";
+      i += typeMatch?.[0].length ?? 1;
+      if (["plural", "select", "selectordinal"].includes(type)) {
+        if (message[i] === ",") i++;
+        // `selector {body}` pairs until the argument's closing brace.
+        while (i < message.length && message[i] !== "}") {
+          if (message[i] === "{") {
+            i++;
+            text();
+          }
+          i++;
+        }
+      } else {
+        // A number/date style: skip to the argument's closing brace.
+        while (i < message.length && message[i] !== "}") i++;
+      }
+    }
+    i++; // the argument's own `}`
+  }
+
+  text();
+  return names;
 }
 
 const kaMessages = flatten(ka);
@@ -158,6 +210,42 @@ test("a message's ICU placeholders match across locales", () => {
   expect(mismatched.sort()).toEqual([]);
 });
 
+/**
+ * Messages the translator deliberately left identical to English: example
+ * emails and plates, brand and model names, config identifiers, and a few
+ * code fragments the extractor picked up. Translating any of these would be
+ * the bug, so they are named here rather than weakening the check below.
+ */
+const IDENTICAL_BY_DESIGN = new Set([
+  "admin.adminContentVehiclePhotos.pnpmExecPrismaDbSeed",
+  "admin.adminNav.crm",
+  "admin.bannerFormDialog.homeHero",
+  "admin.createSystemUserDialog.staffExampleCom",
+  "admin.homePageContent.recordRecord",
+  "admin.homePageSectionFormDialog.url",
+  "admin.messagingTemplateFormDialog.orderConfirmed",
+  "admin.translationFormDialog.heroTitle",
+  "common.shared.34Abc128",
+  "common.shared.driverExampleCom",
+  "common.shared.slug",
+  "common.shared.vehicletypePricingruleBasefare",
+  "common.shared.youCompanyGe",
+  "driverHub.driversAddPanel.9955xxXxxXxx",
+  "driverHub.employeesInviteForm.nameGizocargoGe",
+  "driverHub.fleetAvailabilityFormat.blockStart",
+  "driverHub.vehiclesAddForm.ford",
+  "driverHub.vehiclesAddForm.transitCustom",
+  "fleet.step1CompanyDetails.dispatchCompanyGe",
+  "fleet.vehicleEditorDialog.booleanPromise",
+  "home.addCardDialog.cvc",
+  "admin.adminContentBanners.windowRange",
+  "admin.messagingTemplateFormDialog.channelSms",
+  "errors.dashboardHubDriversAvailabilityExport.driverHub",
+  "errors.dashboardHubEarningsExport.driverHub",
+  "errors.dashboardHubEarningsExport.gelSymbol",
+  "errors.fleetVehicleValidation.labelled",
+]);
+
 test("Georgian copy is actually in Georgian", () => {
   // A key left at its English value is the most common way a translation pass
   // silently skips something. Messages that are legitimately identical in both
@@ -167,6 +255,7 @@ test("Georgian copy is actually in Georgian", () => {
   const untranslated: string[] = [];
 
   for (const [key, value] of kaMessages) {
+    if (IDENTICAL_BY_DESIGN.has(key)) continue;
     const hasGeorgian = /[Ⴀ-ჿ]/.test(value);
     const hasLatinWord = /[A-Za-z]{3,}/.test(value);
 

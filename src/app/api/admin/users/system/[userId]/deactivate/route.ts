@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { writeAuditLog } from "@/lib/admin/audit";
 import { hasAdminRole } from "@/lib/admin/roles";
 import { auth } from "@/lib/auth";
@@ -28,6 +29,8 @@ export async function POST(
   _request: Request,
   { params }: { params: Promise<{ userId: string }> },
 ): Promise<NextResponse> {
+  const t = await getRequestTranslations();
+
   // Inline rather than shared: `requireSystemUser()` is built for pages and
   // `redirect()`s on failure, which is meaningless to a `fetch` caller. Role is
   // checked off the session before any query so a stray request from a
@@ -35,7 +38,10 @@ export async function POST(
   const session = await auth.api.getSession({ headers: await headers() });
 
   if (!session || session.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    return NextResponse.json(
+      { error: t("common.shared.unauthorized") },
+      { status: 401 },
+    );
   }
 
   const actorProfile = await prisma.systemUserProfile.findUnique({
@@ -44,7 +50,10 @@ export async function POST(
   });
 
   if (!actorProfile || !actorProfile.isActive) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    return NextResponse.json(
+      { error: t("common.shared.unauthorized") },
+      { status: 401 },
+    );
   }
 
   // Deliberately narrower than the list endpoint: a USER_MANAGER can see who
@@ -52,7 +61,11 @@ export async function POST(
   // other admins is one half of taking the back office over.
   if (!hasAdminRole(actorProfile, ["SUPER_ADMIN"])) {
     return NextResponse.json(
-      { error: "Only a super admin can deactivate system users." },
+      {
+        error: t(
+          "errors.adminUsersSystemDeactivate.onlyASuperAdminCanDeactivate",
+        ),
+      },
       { status: 403 },
     );
   }
@@ -64,7 +77,11 @@ export async function POST(
   // there is no self-serve admin sign-up to start over from.
   if (userId === session.user.id) {
     return NextResponse.json(
-      { error: "You cannot deactivate your own account." },
+      {
+        error: t(
+          "errors.adminUsersSystemDeactivate.youCannotDeactivateYourOwnAccount",
+        ),
+      },
       { status: 400 },
     );
   }
@@ -76,7 +93,7 @@ export async function POST(
 
   if (!target) {
     return NextResponse.json(
-      { error: "That system user was not found." },
+      { error: t("common.shared.thatSystemUserWasNotFound") },
       { status: 404 },
     );
   }

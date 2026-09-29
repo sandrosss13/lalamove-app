@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 import type {
   HubNavItem,
   HubNavItemId,
@@ -7,7 +9,10 @@ import type {
 import { Link } from "@/i18n/navigation";
 import { SampleNote } from "@/components/driver-hub/hub-primitives";
 import type { HubPersona } from "@/lib/dashboard/hub/account";
-import { SAMPLE_WEEKLY_INCENTIVE } from "@/lib/dashboard/hub/sample";
+import {
+  localizeSampleCopy,
+  SAMPLE_WEEKLY_INCENTIVE,
+} from "@/lib/dashboard/hub/sample";
 import { cn } from "@/lib/utils";
 
 /** The brand orange. It has no `--color-*` token, so it is spelled out — the
@@ -61,6 +66,10 @@ export function DriverHubSidebar({
   persona,
   counts = {},
 }: DriverHubSidebarProps) {
+  const tShared = useTranslations("common.shared");
+  // Unscoped: nav labels are root-relative keys (see `HubNavItem.labelKey`).
+  const tRoot = useTranslations();
+
   return (
     <aside
       // Sticky rather than `fixed`, so the rail scrolls with a short page and
@@ -77,7 +86,7 @@ export function DriverHubSidebar({
       // land off the bottom of the window.
       className="sticky top-[57px] flex h-[calc(100vh-57px)] w-[248px] flex-none flex-col gap-6 border-r border-border bg-background px-4 py-5"
     >
-      <nav aria-label="Driver hub" className="flex flex-col gap-0.5">
+      <nav aria-label={tShared("driverHub")} className="flex flex-col gap-0.5">
         {items.map((item) => {
           const active = item.id === activeId;
           const count = counts[item.id];
@@ -97,7 +106,7 @@ export function DriverHubSidebar({
                   : "bg-transparent font-normal text-muted-foreground hover:bg-muted hover:text-foreground",
               )}
             >
-              <span>{item.label}</span>
+              <span>{tRoot(item.labelKey)}</span>
               {count === undefined ? null : (
                 <span
                   className={cn(
@@ -135,7 +144,13 @@ export function DriverHubSidebar({
  * running on every render of a rail that is not going to show them.
  */
 function WeeklyIncentiveCard() {
-  const { jobsDone, jobsTarget, note } = SAMPLE_WEEKLY_INCENTIVE;
+  const t = useTranslations("driverHub.driverHubSidebar");
+  const tRoot = useTranslations();
+  // Sampled copy, swapped for its catalog entry in the active locale.
+  const { jobsDone, jobsTarget, note } = localizeSampleCopy(
+    SAMPLE_WEEKLY_INCENTIVE,
+    tRoot,
+  );
 
   // Clamped so a future target of 0 (or an overshoot) cannot paint a fill
   // wider than its track.
@@ -148,11 +163,11 @@ function WeeklyIncentiveCard() {
     // is absent nothing else claims the free space and the rail simply ends
     // after the nav — the design has nothing else down there.
     <section
-      aria-label="Weekly incentive"
+      aria-label={t("weeklyIncentive")}
       className="mt-auto rounded-xl border border-border p-3.5"
     >
       <p className="mb-2 text-[11px] tracking-[0.08em] uppercase text-muted-foreground">
-        Weekly incentive
+        {t("weeklyIncentive")}
       </p>
       <p className="font-price text-[20px] font-semibold">
         {jobsDone}
@@ -160,7 +175,7 @@ function WeeklyIncentiveCard() {
       </p>
       <div
         role="progressbar"
-        aria-label="Jobs towards this week's bonus"
+        aria-label={t("jobsTowardsThisWeekSBonus")}
         aria-valuenow={incentivePercent}
         aria-valuemin={0}
         aria-valuemax={100}
@@ -172,10 +187,7 @@ function WeeklyIncentiveCard() {
         />
       </div>
       <p className="text-xs leading-[1.4] text-muted-foreground">{note}</p>
-      <SampleNote
-        note="Needs an incentive/bonus model — the schema records no weekly target or bonus."
-        className="mt-2.5"
-      />
+      <SampleNote note={t("incentiveSampleNote")} className="mt-2.5" />
     </section>
   );
 }

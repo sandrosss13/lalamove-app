@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { DiscountType, Prisma, type AdminRole } from "@prisma/client";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { authorizeAdminApi } from "@/lib/admin/api-auth";
 import { writeAuditLog } from "@/lib/admin/audit";
 import { prisma } from "@/lib/prisma";
@@ -122,6 +123,12 @@ function isDuplicateCodeError(error: unknown): boolean {
 }
 
 /**
+ * The request-locale translator, passed into the synchronous validators below so
+ * their messages reach the admin in their own language.
+ */
+type RequestTranslator = Awaited<ReturnType<typeof getRequestTranslations>>;
+
+/**
  * The discount rule, checked server-side because the dialog's copy of it is
  * only a convenience: a percentage over 100 would hand money back on every
  * order, and a zero or negative discount of either kind is a code that does
@@ -132,20 +139,21 @@ function isDuplicateCodeError(error: unknown): boolean {
 function discountValueError(
   discountType: DiscountType,
   discountValue: number,
+  t: RequestTranslator,
 ): string | null {
   if (typeof discountValue !== "number" || !Number.isFinite(discountValue)) {
-    return "discountValue must be a number.";
+    return t("common.shared.discountvalueMustBeANumber");
   }
 
   if (discountType === "PERCENTAGE") {
     return discountValue > 0 && discountValue <= MAX_PERCENTAGE_DISCOUNT
       ? null
-      : `A percentage discount must be greater than 0 and at most ${MAX_PERCENTAGE_DISCOUNT}.`;
+      : t("common.shared.percentageDiscountRange", {
+          max: MAX_PERCENTAGE_DISCOUNT,
+        });
   }
 
-  return discountValue > 0
-    ? null
-    : "A fixed-amount discount must be greater than 0.";
+  return discountValue > 0 ? null : t("common.shared.fixedDiscountPositive");
 }
 
 /**
@@ -169,6 +177,7 @@ function parseTimestamp(value: unknown): Date | null {
  */
 function parseUsageLimit(
   value: unknown,
+  t: RequestTranslator,
 ): { value: number | null } | { error: string } {
   if (value === undefined || value === null || value === "") {
     return { value: null };
@@ -176,7 +185,9 @@ function parseUsageLimit(
 
   if (typeof value !== "number" || !Number.isInteger(value) || value < 1) {
     return {
-      error: "usageLimit must be a whole number of 1 or more, or omitted.",
+      error: t(
+        "errors.adminFinancePromoCampaigns.usagelimitMustBeAWholeNumber",
+      ),
     };
   }
 
@@ -193,23 +204,23 @@ function parseUsageLimit(
  */
 function parseCreateBody(
   body: unknown,
+  t: RequestTranslator,
 ): { data: CreatePromoCampaignInput } | { error: string } {
   if (typeof body !== "object" || body === null) {
-    return { error: "Request body must be a JSON object." };
+    return { error: t("common.shared.requestBodyMustBeAJson") };
   }
 
   const record = body as Record<string, unknown>;
 
   const { code } = record;
   if (typeof code !== "string") {
-    return { error: "code is required." };
+    return { error: t("errors.adminFinancePromoCampaigns.codeIsRequired") };
   }
 
   const normalizedCode = code.trim().toUpperCase();
   if (!PROMO_CODE_PATTERN.test(normalizedCode)) {
     return {
-      error:
-        "A code must be 3–32 characters, letters and numbers only (e.g. SUMMER25).",
+      error: t("common.shared.aCodeMustBe332"),
     };
   }
 
@@ -219,18 +230,22 @@ function parseCreateBody(
     !DISCOUNT_TYPES.includes(discountType as DiscountType)
   ) {
     return {
-      error: `discountType must be one of: ${DISCOUNT_TYPES.join(", ")}.`,
+      error: t("common.shared.fieldMustBeOneOf", {
+        field: "discountType",
+        options: DISCOUNT_TYPES.join(", "),
+      }),
     };
   }
 
   const { discountValue } = record;
   if (typeof discountValue !== "number") {
-    return { error: "discountValue must be a number." };
+    return { error: t("common.shared.discountvalueMustBeANumber") };
   }
 
   const valueError = discountValueError(
     discountType as DiscountType,
     discountValue,
+    t,
   );
   if (valueError) {
     return { error: valueError };
@@ -238,26 +253,26 @@ function parseCreateBody(
 
   const startsAt = parseTimestamp(record.startsAt);
   if (!startsAt) {
-    return { error: "startsAt must be a valid date." };
+    return { error: t("common.shared.startsatMustBeAValidDate") };
   }
 
   const endsAt = parseTimestamp(record.endsAt);
   if (!endsAt) {
-    return { error: "endsAt must be a valid date." };
+    return { error: t("common.shared.endsatMustBeAValidDate") };
   }
 
   if (startsAt.getTime() >= endsAt.getTime()) {
-    return { error: "The start date must be before the end date." };
+    return { error: t("common.shared.theStartDateMustBeBefore") };
   }
 
-  const usageLimit = parseUsageLimit(record.usageLimit);
+  const usageLimit = parseUsageLimit(record.usageLimit, t);
   if ("error" in usageLimit) {
     return { error: usageLimit.error };
   }
 
   const { isActive } = record;
   if (isActive !== undefined && typeof isActive !== "boolean") {
-    return { error: "isActive must be a boolean." };
+    return { error: t("common.shared.isactiveMustBeABoolean") };
   }
 
   return {
@@ -314,17 +329,19 @@ export async function POST(request: Request): Promise<NextResponse> {
     return authorized.response;
   }
 
+  const t = await getRequestTranslations();
+
   let rawBody: unknown;
   try {
     rawBody = await request.json();
   } catch {
     return NextResponse.json(
-      { error: "Request body must be valid JSON." },
+      { error: t("common.shared.requestBodyMustBeValidJson") },
       { status: 400 },
     );
   }
 
-  const parsed = parseCreateBody(rawBody);
+  const parsed = parseCreateBody(rawBody, t);
   if ("error" in parsed) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
@@ -335,7 +352,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   } catch (error) {
     if (isDuplicateCodeError(error)) {
       return NextResponse.json(
-        { error: "A campaign with this code already exists." },
+        { error: t("common.shared.aCampaignWithThisCodeAlready") },
         { status: 400 },
       );
     }

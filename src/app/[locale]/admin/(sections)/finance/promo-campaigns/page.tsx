@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useFormatter, useTranslations } from "next-intl";
 
 // Type-only import, so nothing of the server route (Prisma, Better Auth) is
 // pulled into this client bundle — it is erased at compile time. Sharing the
@@ -11,7 +12,7 @@ import type {
   AdminPromoCampaignRow,
 } from "@/app/api/admin/finance/promo-campaigns/route";
 import {
-  DISCOUNT_TYPE_LABELS,
+  DISCOUNT_TYPE_LABEL_KEYS,
   PromoCampaignFormDialog,
 } from "@/components/admin/finance/promo-campaign-form-dialog";
 import { Badge } from "@/components/ui/badge";
@@ -32,30 +33,30 @@ const COLUMN_COUNT = 6;
  * Whole currency units with cents, matching how the rest of the back office
  * prints money. Hoisted so re-renders don't rebuild it per row.
  */
-const amountFormatter = new Intl.NumberFormat("en-US", {
+const AMOUNT_FORMAT = {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
-});
+} as const;
 
 /**
  * A percentage prints as the admin typed it — "25", not "25.00" — so up to two
  * decimals rather than exactly two.
  */
-const percentFormatter = new Intl.NumberFormat("en-US", {
+const PERCENT_FORMAT = {
   maximumFractionDigits: 2,
-});
+} as const;
 
 /**
  * UTC, because the dialog writes each end of a campaign's window as a UTC
  * day — so the table shows the dates the campaign was saved with no matter
  * where the browser sits.
  */
-const dateFormatter = new Intl.DateTimeFormat("en-US", {
+const WINDOW_DATE_FORMAT = {
   day: "numeric",
   month: "short",
   year: "numeric",
   timeZone: "UTC",
-});
+} as const;
 
 /** Which state a campaign's dialog is in, or null when none is open. */
 type DialogState =
@@ -84,17 +85,27 @@ async function readErrorMessage(
   return fallback;
 }
 
-/** "25%" or "$15.00", depending on which kind of discount the code carries. */
-function formatDiscount(campaign: AdminPromoCampaignRow): string {
+/** "25%" or "₾15.00", depending on which kind of discount the code carries. */
+/** The locale-aware formatter from `useFormatter()`, passed in from render. */
+type Formatter = ReturnType<typeof useFormatter>;
+
+function formatDiscount(
+  campaign: AdminPromoCampaignRow,
+  format: Formatter,
+): string {
   return campaign.discountType === "PERCENTAGE"
-    ? `${percentFormatter.format(campaign.discountValue)}%`
-    : `$${amountFormatter.format(campaign.discountValue)}`;
+    ? `${format.number(campaign.discountValue, PERCENT_FORMAT)}%`
+    : `₾${format.number(campaign.discountValue, AMOUNT_FORMAT)}`;
 }
 
 /** "1 Jan 2026 – 31 Jan 2026", both ends inclusive. */
-function formatWindow(campaign: AdminPromoCampaignRow): string {
-  return `${dateFormatter.format(new Date(campaign.startsAt))} – ${dateFormatter.format(
+function formatWindow(
+  campaign: AdminPromoCampaignRow,
+  format: Formatter,
+): string {
+  return `${format.dateTime(new Date(campaign.startsAt), WINDOW_DATE_FORMAT)} – ${format.dateTime(
     new Date(campaign.endsAt),
+    WINDOW_DATE_FORMAT,
   )}`;
 }
 
@@ -115,6 +126,14 @@ function formatWindow(campaign: AdminPromoCampaignRow): string {
  * `usedCount` is read-only on this page.
  */
 export default function AdminPromoCampaignsPage() {
+  const t = useTranslations("admin.adminFinancePromoCampaigns");
+  const tShared = useTranslations("common.shared");
+  // "Unlimited" is the same word the campaign form dialog uses for an uncapped
+  // campaign, so the table reads it from there rather than duplicating the key.
+  const tForm = useTranslations("admin.promoCampaignFormDialog");
+  const format = useFormatter();
+  // Root-scoped: `DISCOUNT_TYPE_LABEL_KEYS` holds full message paths.
+  const tRoot = useTranslations();
   const [items, setItems] = useState<AdminPromoCampaignRow[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -143,7 +162,7 @@ export default function AdminPromoCampaignsPage() {
 
         if (!response.ok) {
           setError(
-            await readErrorMessage(response, "Could not load campaigns."),
+            await readErrorMessage(response, t("couldNotLoadCampaigns")),
           );
           setLoading(false);
           return;
@@ -158,7 +177,7 @@ export default function AdminPromoCampaignsPage() {
           return;
         }
 
-        setError("Could not load campaigns.");
+        setError(t("couldNotLoadCampaigns"));
         setLoading(false);
       }
     }
@@ -166,7 +185,7 @@ export default function AdminPromoCampaignsPage() {
     void load();
 
     return () => controller.abort();
-  }, [reloadToken]);
+  }, [reloadToken, t]);
 
   /** Both row actions refetch on success, so neither patches local state. */
   function handleMutated() {
@@ -178,11 +197,7 @@ export default function AdminPromoCampaignsPage() {
     // Taking a live code out of circulation is one click away, so it is
     // confirmed; reactivating happens through the edit dialog, which is already
     // deliberate enough.
-    if (
-      !window.confirm(
-        `Stop accepting ${campaign.code}? It can be reactivated later from Edit.`,
-      )
-    ) {
+    if (!window.confirm(t("confirmDeactivate", { code: campaign.code }))) {
       return;
     }
 
@@ -201,28 +216,21 @@ export default function AdminPromoCampaignsPage() {
 
       if (!response.ok) {
         setActionError(
-          await readErrorMessage(
-            response,
-            "Could not deactivate this campaign.",
-          ),
+          await readErrorMessage(response, t("couldNotDeactivateThisCampaign")),
         );
         return;
       }
 
       handleMutated();
     } catch {
-      setActionError("Something went wrong. Please try again.");
+      setActionError(tShared("somethingWentWrongPleaseTryAgain"));
     } finally {
       setPendingId(null);
     }
   }
 
   async function handleDelete(campaign: AdminPromoCampaignRow) {
-    if (
-      !window.confirm(
-        `Permanently delete ${campaign.code}? This cannot be undone.`,
-      )
-    ) {
+    if (!window.confirm(t("confirmDelete", { code: campaign.code }))) {
       return;
     }
 
@@ -239,14 +247,14 @@ export default function AdminPromoCampaignsPage() {
         // A campaign that has been redeemed is refused here on purpose; the
         // route's message tells staff to deactivate it instead.
         setActionError(
-          await readErrorMessage(response, "Could not delete this campaign."),
+          await readErrorMessage(response, t("couldNotDeleteThisCampaign")),
         );
         return;
       }
 
       handleMutated();
     } catch {
-      setActionError("Something went wrong. Please try again.");
+      setActionError(tShared("somethingWentWrongPleaseTryAgain"));
     } finally {
       setPendingId(null);
     }
@@ -256,11 +264,10 @@ export default function AdminPromoCampaignsPage() {
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <p className="text-sm text-muted-foreground">
-          Discount codes clients redeem at checkout. A code applies only while
-          it is active and inside its date window.
+          {t("discountCodesClientsRedeemAtCheckout")}
         </p>
         <Button size="sm" onClick={() => setDialogState({ mode: "create" })}>
-          New Campaign
+          {t("newCampaign")}
         </Button>
       </div>
 
@@ -274,12 +281,12 @@ export default function AdminPromoCampaignsPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Code</TableHead>
-              <TableHead>Discount</TableHead>
-              <TableHead>Active window</TableHead>
-              <TableHead>Usage</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead>{tShared("code")}</TableHead>
+              <TableHead>{t("discount")}</TableHead>
+              <TableHead>{tShared("activeWindow")}</TableHead>
+              <TableHead>{t("usage")}</TableHead>
+              <TableHead>{tShared("status")}</TableHead>
+              <TableHead className="text-right">{tShared("actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -298,7 +305,7 @@ export default function AdminPromoCampaignsPage() {
                   colSpan={COLUMN_COUNT}
                   className="py-10 text-center text-muted-foreground"
                 >
-                  Loading campaigns…
+                  {t("loadingCampaigns")}
                 </TableCell>
               </TableRow>
             ) : items === null || items.length === 0 ? (
@@ -307,7 +314,7 @@ export default function AdminPromoCampaignsPage() {
                   colSpan={COLUMN_COUNT}
                   className="py-10 text-center text-muted-foreground"
                 >
-                  No promo campaigns yet.
+                  {t("noPromoCampaignsYet")}
                 </TableCell>
               </TableRow>
             ) : (
@@ -321,24 +328,26 @@ export default function AdminPromoCampaignsPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col">
-                        <span>{formatDiscount(campaign)}</span>
+                        <span>{formatDiscount(campaign, format)}</span>
                         <span className="text-xs text-muted-foreground">
-                          {DISCOUNT_TYPE_LABELS[campaign.discountType]}
+                          {tRoot(
+                            DISCOUNT_TYPE_LABEL_KEYS[campaign.discountType],
+                          )}
                         </span>
                       </div>
                     </TableCell>
-                    <TableCell>{formatWindow(campaign)}</TableCell>
+                    <TableCell>{formatWindow(campaign, format)}</TableCell>
                     <TableCell>
                       {campaign.usedCount} /{" "}
                       {campaign.usageLimit === null
-                        ? "Unlimited"
+                        ? tForm("unlimited")
                         : campaign.usageLimit}
                     </TableCell>
                     <TableCell>
                       {campaign.isActive ? (
-                        <Badge variant="secondary">Active</Badge>
+                        <Badge variant="secondary">{tShared("active")}</Badge>
                       ) : (
-                        <Badge variant="outline">Inactive</Badge>
+                        <Badge variant="outline">{tShared("inactive")}</Badge>
                       )}
                     </TableCell>
                     <TableCell className="text-right">
@@ -351,7 +360,7 @@ export default function AdminPromoCampaignsPage() {
                             setDialogState({ mode: "edit", campaign })
                           }
                         >
-                          Edit
+                          {tShared("edit")}
                         </Button>
                         {campaign.isActive ? (
                           <Button
@@ -360,7 +369,7 @@ export default function AdminPromoCampaignsPage() {
                             disabled={busy}
                             onClick={() => void handleDeactivate(campaign)}
                           >
-                            Deactivate
+                            {t("deactivate")}
                           </Button>
                         ) : null}
                         <Button
@@ -369,7 +378,7 @@ export default function AdminPromoCampaignsPage() {
                           disabled={busy}
                           onClick={() => void handleDelete(campaign)}
                         >
-                          Delete
+                          {tShared("delete")}
                         </Button>
                       </div>
                     </TableCell>

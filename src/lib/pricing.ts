@@ -17,6 +17,7 @@
 import { ServiceLevel } from "@prisma/client";
 import type { CargoCategory, VehicleCategory } from "@prisma/client";
 
+import type { RequestTranslator } from "@/i18n/request-locale";
 import {
   CARGO_CATEGORY_ALLOWED_VEHICLE_CATEGORIES,
   CARGO_CATEGORY_LABELS,
@@ -200,10 +201,21 @@ export function priceForServiceLevel(
  * typed input or an error message describing the first problem encountered.
  * Shared so the public and authenticated endpoints reject bad input
  * identically.
+ *
+ * `t` localises the messages into the caller's request locale. It is optional
+ * so a caller that has not been wired to `getRequestTranslations` yet keeps
+ * getting the English it always did, rather than failing to compile.
  */
 export function parseQuoteFields(
   record: Record<string, unknown>,
+  t?: RequestTranslator,
 ): { data: QuoteInput } | { error: string } {
+  const message = (
+    key: string,
+    english: string,
+    values?: Record<string, string | number>,
+  ) => (t ? t(key, values) : english);
+
   const {
     pickupAddress,
     dropoffAddress,
@@ -213,21 +225,36 @@ export function parseQuoteFields(
   } = record;
 
   if (typeof pickupAddress !== "string" || pickupAddress.trim().length === 0) {
-    return { error: "pickupAddress is required." };
+    return {
+      error: message(
+        "common.pricing.pickupaddressIsRequired",
+        "pickupAddress is required.",
+      ),
+    };
   }
 
   if (
     typeof dropoffAddress !== "string" ||
     dropoffAddress.trim().length === 0
   ) {
-    return { error: "dropoffAddress is required." };
+    return {
+      error: message(
+        "common.pricing.dropoffaddressIsRequired",
+        "dropoffAddress is required.",
+      ),
+    };
   }
 
   if (
     typeof vehicleTypeCode !== "string" ||
     vehicleTypeCode.trim().length === 0
   ) {
-    return { error: "vehicleTypeCode is required." };
+    return {
+      error: message(
+        "common.shared.vehicletypecodeIsRequired",
+        "vehicleTypeCode is required.",
+      ),
+    };
   }
 
   if (
@@ -235,7 +262,11 @@ export function parseQuoteFields(
     !CARGO_CATEGORIES.includes(cargoCategory as CargoCategory)
   ) {
     return {
-      error: `cargoCategory must be one of: ${CARGO_CATEGORIES.join(", ")}.`,
+      error: message(
+        "common.pricing.cargoCategoryMustBeOneOf",
+        `cargoCategory must be one of: ${CARGO_CATEGORIES.join(", ")}.`,
+        { allowed: CARGO_CATEGORIES.join(", ") },
+      ),
     };
   }
 
@@ -250,7 +281,11 @@ export function parseQuoteFields(
       helperCount > MAX_HELPER_COUNT)
   ) {
     return {
-      error: `helperCount must be a whole number between 0 and ${MAX_HELPER_COUNT}.`,
+      error: message(
+        "common.pricing.helperCountOutOfRange",
+        `helperCount must be a whole number between 0 and ${MAX_HELPER_COUNT}.`,
+        { max: MAX_HELPER_COUNT },
+      ),
     };
   }
 
@@ -377,19 +412,32 @@ export async function estimateDelivery({
  * The user-facing message for a failed quote. Shared so the public estimate
  * endpoint and authenticated order creation report the same problem in the same
  * words; the HTTP status differs per case and stays with each caller.
+ *
+ * `t` localises it into the request locale, as for `parseQuoteFields`; without
+ * one the English original is returned.
  */
 export function quoteFailureMessage(
   failure: Extract<DeliveryEstimateResult, { ok: false }>,
+  t?: RequestTranslator,
 ): string {
   switch (failure.reason) {
     case "unresolved_address":
-      return `Could not locate address: ${failure.unresolvedAddress}`;
+      return t
+        ? t("common.pricing.couldNotLocateAddress", {
+            address: failure.unresolvedAddress,
+          })
+        : `Could not locate address: ${failure.unresolvedAddress}`;
     case "invalid_vehicle_type":
-      return "vehicleTypeCode must be a known vehicle type.";
+      return t
+        ? t("common.pricing.vehicleTypeCodeMustBeKnown")
+        : "vehicleTypeCode must be a known vehicle type.";
     case "cargo_vehicle_mismatch":
-      return (
-        `This cargo category cannot be booked with a ${failure.vehicleCategory} ` +
-        `vehicle; it requires ${failure.allowedVehicleCategories.join(" or ")}.`
-      );
+      return t
+        ? t("common.pricing.cargoVehicleMismatch", {
+            vehicleCategory: failure.vehicleCategory,
+            allowedCategories: failure.allowedVehicleCategories.join(" or "),
+          })
+        : `This cargo category cannot be booked with a ${failure.vehicleCategory} ` +
+            `vehicle; it requires ${failure.allowedVehicleCategories.join(" or ")}.`;
   }
 }

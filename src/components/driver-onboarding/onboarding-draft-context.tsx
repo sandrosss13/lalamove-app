@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useTranslations } from "next-intl";
 
 import {
   ONBOARDING_DRAFT_VERSION,
@@ -137,12 +138,13 @@ const TOAST_DURATION_MS = 2200;
  */
 const STATUS_POLL_INTERVAL_MS = 25_000;
 
-const LOAD_ERROR_FALLBACK =
-  "We couldn't load your application. Check your connection and try again.";
-const SAVE_ERROR_FALLBACK =
-  "We couldn't save your progress. Your latest answers aren't stored yet.";
-const RESET_ERROR_FALLBACK =
-  "We couldn't start a new application. Please try again.";
+/**
+ * Catalog keys (under `onboarding.onboardingDraft`) for the messages shown
+ * when a request fails without an `{ error }` body of its own to show instead.
+ */
+const LOAD_ERROR_FALLBACK_KEY = "loadFailed";
+const SAVE_ERROR_FALLBACK_KEY = "saveFailed";
+const RESET_ERROR_FALLBACK_KEY = "resetFailed";
 
 /** A brand-new, empty draft — also what a failed load falls back to. */
 const EMPTY_DRAFT: OnboardingDraftV1 = { version: ONBOARDING_DRAFT_VERSION };
@@ -202,6 +204,7 @@ export function OnboardingDraftProvider({
 }: {
   children: React.ReactNode;
 }) {
+  const t = useTranslations("onboarding.onboardingDraft");
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -293,7 +296,9 @@ export function OnboardingDraftProvider({
         if (sequence !== saveSequence.current) return;
 
         if (!response.ok) {
-          setSaveError(await readErrorMessage(response, SAVE_ERROR_FALLBACK));
+          setSaveError(
+            await readErrorMessage(response, t(SAVE_ERROR_FALLBACK_KEY)),
+          );
           return;
         }
 
@@ -304,14 +309,14 @@ export function OnboardingDraftProvider({
         setDraftUpdatedAt(new Date().toISOString());
       } catch {
         if (sequence !== saveSequence.current) return;
-        setSaveError(SAVE_ERROR_FALLBACK);
+        setSaveError(t(SAVE_ERROR_FALLBACK_KEY));
       } finally {
         if (sequence === saveSequence.current) {
           setSaving(false);
         }
       }
     },
-    [],
+    [t],
   );
 
   /**
@@ -351,7 +356,9 @@ export function OnboardingDraftProvider({
 
         if (!response.ok) {
           if (silent) return;
-          setLoadError(await readErrorMessage(response, LOAD_ERROR_FALLBACK));
+          setLoadError(
+            await readErrorMessage(response, t(LOAD_ERROR_FALLBACK_KEY)),
+          );
           return;
         }
 
@@ -388,7 +395,7 @@ export function OnboardingDraftProvider({
         setLoadError(null);
       } catch {
         if (silent || sequence !== loadSequence.current) return;
-        setLoadError(LOAD_ERROR_FALLBACK);
+        setLoadError(t(LOAD_ERROR_FALLBACK_KEY));
       } finally {
         if (!silent) {
           foregroundLoads.current -= 1;
@@ -400,7 +407,7 @@ export function OnboardingDraftProvider({
         }
       }
     },
-    [],
+    [t],
   );
 
   const refetch = useCallback(
@@ -463,13 +470,13 @@ export function OnboardingDraftProvider({
 
       if (!response.ok) {
         showToast(
-          await readErrorMessage(response, RESET_ERROR_FALLBACK),
+          await readErrorMessage(response, t(RESET_ERROR_FALLBACK_KEY)),
           "error",
         );
         return false;
       }
     } catch {
-      showToast(RESET_ERROR_FALLBACK, "error");
+      showToast(t(RESET_ERROR_FALLBACK_KEY), "error");
       return false;
     }
 
@@ -477,7 +484,7 @@ export function OnboardingDraftProvider({
     // `draftStep`, and the reset also retired every uploaded document.
     await refetch();
     return true;
-  }, [refetch, showToast]);
+  }, [refetch, showToast, t]);
 
   const recordDocument = useCallback((document: OnboardingDocument) => {
     // Bumping the load sequence invalidates any load already in flight (in

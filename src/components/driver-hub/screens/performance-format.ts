@@ -16,7 +16,10 @@
  * its em dash twice over: once for a week in which nothing finished, and once
  * per roster member who finished nothing in it.
  */
-import { HUB_TIME_ZONE, parseHubDayKey } from "@/lib/dashboard/hub/timezone";
+import {
+  hubDateTimeFormat,
+  parseHubDayKey,
+} from "@/lib/dashboard/hub/timezone";
 
 /** What the design prints where a figure is genuinely not known. */
 export const EMPTY_VALUE = "—";
@@ -25,26 +28,33 @@ export const EMPTY_VALUE = "—";
 const MONTH_KEY_LENGTH = 7;
 
 /**
- * `en-GB` rather than the browser's locale, for the same reason
- * `vehicles-format.ts` pins its number format: the handoff writes its dates as
- * "24–30 August", and a `de-DE` browser rendering "24.–30. August" beside
- * English copy reads as a bug.
+ * Written in the reader's app locale (the caller passes it from `useLocale()`),
+ * never the browser's: the route's locale is identical on the server and after
+ * hydration, and a `de-DE` browser rendering "24.–30. August" beside English
+ * copy would read as a bug. `hubDateTimeFormat` maps the app's `en` to `en-GB`,
+ * the handoff's "24–30 August" style.
  *
- * Both formatters are pinned to `HUB_TIME_ZONE`, because that is the zone the
- * window they label is bucketed in. They used to be pinned to UTC against a UTC
- * week; the week is now Monday-to-Sunday in Tbilisi, so a label rendered in any
- * other zone would name days the bars underneath it do not cover.
+ * Both formats are pinned to `HUB_TIME_ZONE` (by `hubDateTimeFormat`), because
+ * that is the zone the window they label is bucketed in. The week is
+ * Monday-to-Sunday in Tbilisi, so a label rendered in any other zone would name
+ * days the bars underneath it do not cover.
  */
-const DAY_FORMAT = new Intl.DateTimeFormat("en-GB", {
-  day: "numeric",
-  timeZone: HUB_TIME_ZONE,
-});
+const DAY_OPTIONS = { day: "numeric" } as const;
 
-const DAY_MONTH_FORMAT = new Intl.DateTimeFormat("en-GB", {
-  day: "numeric",
-  month: "long",
-  timeZone: HUB_TIME_ZONE,
-});
+const DAY_MONTH_OPTIONS = { day: "numeric", month: "long" } as const;
+
+/** `"Mon"` — a chart column's label. */
+const WEEKDAY_OPTIONS = { weekday: "short" } as const;
+
+/**
+ * A `YYYY-MM-DD` hub day key → its short weekday name in the reader's locale
+ * (`"Mon"`, `"ორშ"`), named for the Tbilisi day the key covers.
+ */
+export function formatWeekdayShort(dayKey: string, locale?: string): string {
+  return hubDateTimeFormat(locale, WEEKDAY_OPTIONS).format(
+    parseHubDayKey(dayKey),
+  );
+}
 
 /**
  * The window's own label: `"24–30 August"`, or `"31 August – 6 September"` when
@@ -53,9 +63,14 @@ const DAY_MONTH_FORMAT = new Intl.DateTimeFormat("en-GB", {
  * The month is named once inside a single month on purpose — "24 August–30
  * August" reads as two separate dates rather than as one range.
  */
-export function formatWeekRange(fromDayKey: string, toDayKey: string): string {
+export function formatWeekRange(
+  fromDayKey: string,
+  toDayKey: string,
+  locale?: string,
+): string {
   const from = parseHubDayKey(fromDayKey);
   const to = parseHubDayKey(toDayKey);
+  const dayMonth = hubDateTimeFormat(locale, DAY_MONTH_OPTIONS);
 
   // Compared on the keys' own `YYYY-MM` prefix rather than by reading a month
   // off the parsed instants: those instants are Tbilisi midnights, which fall on
@@ -65,10 +80,10 @@ export function formatWeekRange(fromDayKey: string, toDayKey: string): string {
     fromDayKey.slice(0, MONTH_KEY_LENGTH) ===
     toDayKey.slice(0, MONTH_KEY_LENGTH)
   ) {
-    return `${DAY_FORMAT.format(from)}–${DAY_MONTH_FORMAT.format(to)}`;
+    return `${hubDateTimeFormat(locale, DAY_OPTIONS).format(from)}–${dayMonth.format(to)}`;
   }
 
-  return `${DAY_MONTH_FORMAT.format(from)} – ${DAY_MONTH_FORMAT.format(to)}`;
+  return `${dayMonth.format(from)} – ${dayMonth.format(to)}`;
 }
 
 /**

@@ -8,6 +8,7 @@ import {
   type MessagingTemplate,
 } from "@prisma/client";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { authorizeAdminApi } from "@/lib/admin/api-auth";
 import { writeAuditLog } from "@/lib/admin/audit";
 import { prisma } from "@/lib/prisma";
@@ -133,31 +134,45 @@ function isDuplicateTemplateError(error: unknown): boolean {
  */
 function parseCreateBody(
   body: unknown,
+  t: (key: string, values?: Record<string, string | number>) => string,
 ): { data: CreateMessagingTemplateInput } | { error: string } {
   if (typeof body !== "object" || body === null) {
-    return { error: "Request body must be a JSON object." };
+    return { error: t("common.shared.requestBodyMustBeAJson") };
   }
 
   const record = body as Record<string, unknown>;
 
   const { key } = record;
   if (typeof key !== "string" || key.trim() === "") {
-    return { error: "key is required and must be a non-empty string." };
+    return { error: t("common.shared.keyIsRequiredAndMustBe") };
   }
   if (key.trim().length > MAX_KEY_LENGTH) {
-    return { error: `key must be ${MAX_KEY_LENGTH} characters or fewer.` };
+    return {
+      error: t("common.shared.fieldMaxLength", {
+        field: "key",
+        max: MAX_KEY_LENGTH,
+      }),
+    };
   }
 
   const { channel } = record;
   if (typeof channel !== "string" || !isMessagingChannel(channel)) {
     return {
-      error: `channel must be one of: ${MESSAGING_CHANNELS.join(", ")}.`,
+      error: t("common.shared.fieldMustBeOneOf", {
+        field: "channel",
+        options: MESSAGING_CHANNELS.join(", "),
+      }),
     };
   }
 
   const { locale } = record;
   if (typeof locale !== "string" || !isContentLocale(locale)) {
-    return { error: `locale must be one of: ${CONTENT_LOCALES.join(", ")}.` };
+    return {
+      error: t("common.shared.fieldMustBeOneOf", {
+        field: "locale",
+        options: CONTENT_LOCALES.join(", "),
+      }),
+    };
   }
 
   const { subject } = record;
@@ -166,7 +181,11 @@ function parseCreateBody(
     subject !== null &&
     typeof subject !== "string"
   ) {
-    return { error: "subject must be a string when provided." };
+    return {
+      error: t(
+        "errors.adminContentMessagingTemplates.subjectMustBeAStringWhen",
+      ),
+    };
   }
   const trimmedSubject =
     typeof subject === "string" && subject.trim() !== ""
@@ -174,21 +193,35 @@ function parseCreateBody(
       : null;
   if (trimmedSubject !== null && trimmedSubject.length > MAX_SUBJECT_LENGTH) {
     return {
-      error: `subject must be ${MAX_SUBJECT_LENGTH} characters or fewer.`,
+      error: t("common.shared.fieldMaxLength", {
+        field: "subject",
+        max: MAX_SUBJECT_LENGTH,
+      }),
     };
   }
 
   const messageBody = record.body;
   if (typeof messageBody !== "string" || messageBody.trim() === "") {
-    return { error: "body is required and must be a non-empty string." };
+    return {
+      error: t("errors.adminContentMessagingTemplates.bodyIsRequiredAndMustBe"),
+    };
   }
   if (messageBody.length > MAX_BODY_LENGTH) {
-    return { error: `body must be ${MAX_BODY_LENGTH} characters or fewer.` };
+    return {
+      error: t("common.shared.fieldMaxLength", {
+        field: "body",
+        max: MAX_BODY_LENGTH,
+      }),
+    };
   }
 
   const { isActive } = record;
   if (isActive !== undefined && typeof isActive !== "boolean") {
-    return { error: "isActive must be a boolean when provided." };
+    return {
+      error: t(
+        "errors.adminContentMessagingTemplates.isactiveMustBeABooleanWhen",
+      ),
+    };
   }
 
   return {
@@ -224,11 +257,17 @@ export async function GET(request: Request): Promise<NextResponse> {
     return authorized.response;
   }
 
+  const t = await getRequestTranslations();
   const channelParam = new URL(request.url).searchParams.get("channel");
 
   if (channelParam !== null && !isMessagingChannel(channelParam)) {
     return NextResponse.json(
-      { error: `channel must be one of: ${MESSAGING_CHANNELS.join(", ")}.` },
+      {
+        error: t("common.shared.fieldMustBeOneOf", {
+          field: "channel",
+          options: MESSAGING_CHANNELS.join(", "),
+        }),
+      },
       { status: 400 },
     );
   }
@@ -252,17 +291,19 @@ export async function POST(request: Request): Promise<NextResponse> {
     return authorized.response;
   }
 
+  const t = await getRequestTranslations();
+
   let rawBody: unknown;
   try {
     rawBody = await request.json();
   } catch {
     return NextResponse.json(
-      { error: "Request body must be valid JSON." },
+      { error: t("common.shared.requestBodyMustBeValidJson") },
       { status: 400 },
     );
   }
 
-  const parsed = parseCreateBody(rawBody);
+  const parsed = parseCreateBody(rawBody, t);
   if ("error" in parsed) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
@@ -276,8 +317,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     if (isDuplicateTemplateError(error)) {
       return NextResponse.json(
         {
-          error:
-            "A template with that key already exists for this channel and locale.",
+          error: t("common.shared.aTemplateWithThatKeyAlready"),
         },
         { status: 409 },
       );

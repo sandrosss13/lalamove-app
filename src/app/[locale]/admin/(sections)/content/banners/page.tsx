@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useFormatter, useTranslations } from "next-intl";
 
 import type { ContentLocale } from "@prisma/client";
 
@@ -40,10 +41,23 @@ import {
 /** Columns in the table, so the full-width state rows can span all of them. */
 const COLUMN_COUNT = 7;
 
-const LOCALE_LABELS: Record<ContentLocale, string> = {
-  KA: "Georgian",
-  EN: "English",
+/** `common.shared` keys for each content locale's name. */
+const LOCALE_LABEL_KEYS: Record<ContentLocale, string> = {
+  KA: "georgian",
+  EN: "english",
 };
+
+/**
+ * UTC so a window reads back exactly as it was entered: the form writes each
+ * end as an instant of a UTC day, so rendering in the viewer's zone would show
+ * a banner set to end on the 30th as ending on the 29th or the 31st.
+ */
+const WINDOW_DATE_FORMAT = {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  timeZone: "UTC",
+} as const;
 
 /** How full one locale's hero carousel is, as the summary line renders it. */
 type HeroCapacityRow = {
@@ -79,34 +93,31 @@ function summarizeHeroCapacity(banners: AdminBannerRow[]): HeroCapacityRow[] {
 }
 
 /**
- * UTC so a window reads back exactly as it was entered: the form writes each
- * end as an instant of a UTC day, so rendering in the viewer's zone would show
- * a banner set to end on the 30th as ending on the 29th or the 31st.
+ * The active window as one cell of text, whichever ends are set. `formatDate`
+ * and `t` (bound to `admin.adminContentBanners`) come from the component, so
+ * both the dates and the wording follow the reader's locale.
  */
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    timeZone: "UTC",
-  });
-}
-
-/** The active window as one cell of text, whichever ends are set. */
-function formatWindow(banner: AdminBannerRow): string {
+function formatWindow(
+  banner: AdminBannerRow,
+  formatDate: (iso: string) => string,
+  t: (key: string, values?: Record<string, string>) => string,
+): string {
   if (banner.startsAt !== null && banner.endsAt !== null) {
-    return `${formatDate(banner.startsAt)} – ${formatDate(banner.endsAt)}`;
+    return t("windowRange", {
+      start: formatDate(banner.startsAt),
+      end: formatDate(banner.endsAt),
+    });
   }
 
   if (banner.startsAt !== null) {
-    return `From ${formatDate(banner.startsAt)}`;
+    return t("windowFrom", { date: formatDate(banner.startsAt) });
   }
 
   if (banner.endsAt !== null) {
-    return `Until ${formatDate(banner.endsAt)}`;
+    return t("windowUntil", { date: formatDate(banner.endsAt) });
   }
 
-  return "Always";
+  return t("always");
 }
 
 /**
@@ -148,6 +159,11 @@ async function readErrorMessage(
  * banner's position from silently rewriting every other row's.
  */
 export default function AdminBannersPage() {
+  const t = useTranslations("admin.adminContentBanners");
+  const tShared = useTranslations("common.shared");
+  const format = useFormatter();
+  const formatDate = (iso: string) =>
+    format.dateTime(new Date(iso), WINDOW_DATE_FORMAT);
   const [banners, setBanners] = useState<AdminBannerRow[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -178,7 +194,7 @@ export default function AdminBannersPage() {
         });
 
         if (!response.ok) {
-          setError(await readErrorMessage(response, "Could not load banners."));
+          setError(await readErrorMessage(response, t("couldNotLoadBanners")));
           setLoading(false);
           return;
         }
@@ -193,7 +209,7 @@ export default function AdminBannersPage() {
           return;
         }
 
-        setError("Could not load banners.");
+        setError(t("couldNotLoadBanners"));
         setLoading(false);
       }
     }
@@ -201,7 +217,7 @@ export default function AdminBannersPage() {
     void load();
 
     return () => controller.abort();
-  }, [reloadToken]);
+  }, [reloadToken, t]);
 
   /** Flips one banner's visibility straight from the table. */
   async function handleToggleActive(banner: AdminBannerRow) {
@@ -219,14 +235,14 @@ export default function AdminBannersPage() {
 
       if (!response.ok) {
         setActionError(
-          await readErrorMessage(response, "Could not update this banner."),
+          await readErrorMessage(response, t("couldNotUpdateThisBanner")),
         );
         return;
       }
 
       setReloadToken((token) => token + 1);
     } catch {
-      setActionError("Something went wrong. Please try again.");
+      setActionError(tShared("somethingWentWrongPleaseTryAgain"));
     } finally {
       setPendingId(null);
     }
@@ -243,7 +259,7 @@ export default function AdminBannersPage() {
 
       if (!response.ok) {
         setActionError(
-          await readErrorMessage(response, "Could not delete this banner."),
+          await readErrorMessage(response, t("couldNotDeleteThisBanner")),
         );
         return;
       }
@@ -251,7 +267,7 @@ export default function AdminBannersPage() {
       setDeleteTarget(null);
       setReloadToken((token) => token + 1);
     } catch {
-      setActionError("Something went wrong. Please try again.");
+      setActionError(tShared("somethingWentWrongPleaseTryAgain"));
     } finally {
       setPendingId(null);
     }
@@ -265,8 +281,7 @@ export default function AdminBannersPage() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex flex-col gap-1.5">
           <p className="text-sm text-muted-foreground">
-            Promotional images on the public site. Each banner shows in one
-            placement and locale, ordered by its sort order.
+            {t("promotionalImagesOnThePublicSite")}
           </p>
 
           {/* Shown before anything is saved, so the cap is learned here rather
@@ -282,19 +297,24 @@ export default function AdminBannersPage() {
                     className="flex items-center gap-1.5 text-xs text-muted-foreground"
                   >
                     <span>
-                      Hero carousel · {LOCALE_LABELS[locale]}:{" "}
-                      <span
-                        className={
-                          full
-                            ? "font-medium text-destructive"
-                            : "font-medium text-foreground"
-                        }
-                      >
-                        {active} of {MAX_HERO_BANNERS}
-                      </span>{" "}
-                      active
+                      {t.rich("heroCapacity", {
+                        language: tShared(LOCALE_LABEL_KEYS[locale]),
+                        active,
+                        max: MAX_HERO_BANNERS,
+                        strong: (chunks) => (
+                          <span
+                            className={
+                              full
+                                ? "font-medium text-destructive"
+                                : "font-medium text-foreground"
+                            }
+                          >
+                            {chunks}
+                          </span>
+                        ),
+                      })}
                     </span>
-                    {full ? <Badge variant="outline">Full</Badge> : null}
+                    {full ? <Badge variant="outline">{t("full")}</Badge> : null}
                   </li>
                 );
               })}
@@ -302,7 +322,7 @@ export default function AdminBannersPage() {
           ) : null}
         </div>
         <Button size="sm" onClick={() => setFormTarget(null)}>
-          New Banner
+          {t("newBanner")}
         </Button>
       </div>
 
@@ -318,13 +338,13 @@ export default function AdminBannersPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Banner</TableHead>
-              <TableHead>Locale</TableHead>
-              <TableHead>Placement</TableHead>
-              <TableHead>Order</TableHead>
-              <TableHead>Active window</TableHead>
-              <TableHead>Active</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead>{t("banner")}</TableHead>
+              <TableHead>{tShared("locale")}</TableHead>
+              <TableHead>{tShared("placement")}</TableHead>
+              <TableHead>{tShared("order")}</TableHead>
+              <TableHead>{tShared("activeWindow")}</TableHead>
+              <TableHead>{tShared("active")}</TableHead>
+              <TableHead className="text-right">{tShared("actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -343,7 +363,7 @@ export default function AdminBannersPage() {
                   colSpan={COLUMN_COUNT}
                   className="py-10 text-center text-muted-foreground"
                 >
-                  Loading banners…
+                  {t("loadingBanners")}
                 </TableCell>
               </TableRow>
             ) : items.length === 0 ? (
@@ -352,7 +372,7 @@ export default function AdminBannersPage() {
                   colSpan={COLUMN_COUNT}
                   className="py-10 text-center text-muted-foreground"
                 >
-                  No banners yet.
+                  {t("noBannersYet")}
                 </TableCell>
               </TableRow>
             ) : (
@@ -384,7 +404,7 @@ export default function AdminBannersPage() {
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline">
-                      {LOCALE_LABELS[banner.locale]}
+                      {tShared(LOCALE_LABEL_KEYS[banner.locale])}
                     </Badge>
                   </TableCell>
                   <TableCell className="font-mono text-xs">
@@ -392,13 +412,16 @@ export default function AdminBannersPage() {
                   </TableCell>
                   <TableCell>{banner.sortOrder}</TableCell>
                   <TableCell className="text-muted-foreground">
-                    {formatWindow(banner)}
+                    {formatWindow(banner, formatDate, t)}
                   </TableCell>
                   <TableCell>
                     <Checkbox
                       checked={banner.isActive}
                       disabled={pendingId === banner.id}
-                      aria-label={`${banner.isActive ? "Deactivate" : "Activate"} ${banner.title}`}
+                      aria-label={t("toggleActiveLabel", {
+                        isActive: String(banner.isActive),
+                        title: banner.title,
+                      })}
                       onCheckedChange={() => void handleToggleActive(banner)}
                     />
                   </TableCell>
@@ -409,7 +432,7 @@ export default function AdminBannersPage() {
                         size="sm"
                         onClick={() => setFormTarget(banner)}
                       >
-                        Edit
+                        {tShared("edit")}
                       </Button>
                       <Button
                         variant="destructive"
@@ -421,7 +444,7 @@ export default function AdminBannersPage() {
                           setDeleteTarget(banner);
                         }}
                       >
-                        Delete
+                        {tShared("delete")}
                       </Button>
                     </div>
                   </TableCell>
@@ -460,11 +483,12 @@ export default function AdminBannersPage() {
         >
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Delete banner</DialogTitle>
+              <DialogTitle>{t("deleteBanner")}</DialogTitle>
               <DialogDescription>
-                “{deleteTarget.title}” will be removed from the{" "}
-                {deleteTarget.placement} placement for good. To take it down
-                without deleting it, switch it off instead.
+                {t("deleteBannerDescription", {
+                  title: deleteTarget.title,
+                  placement: deleteTarget.placement,
+                })}
               </DialogDescription>
             </DialogHeader>
 
@@ -483,7 +507,7 @@ export default function AdminBannersPage() {
                 onClick={() => setDeleteTarget(null)}
                 disabled={pendingId !== null}
               >
-                Cancel
+                {tShared("cancel")}
               </Button>
               <Button
                 type="button"
@@ -491,7 +515,9 @@ export default function AdminBannersPage() {
                 disabled={pendingId !== null}
                 onClick={() => void handleDelete(deleteTarget)}
               >
-                {pendingId === deleteTarget.id ? "Deleting…" : "Delete banner"}
+                {pendingId === deleteTarget.id
+                  ? tShared("deleting")
+                  : t("deleteBanner")}
               </Button>
             </DialogFooter>
           </DialogContent>

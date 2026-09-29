@@ -1,7 +1,4 @@
-import {
-  DEFAULT_HOME_PAGE_CONTENT,
-  type HeroContent,
-} from "@/lib/admin/home-page-content";
+import { type HeroContent } from "@/lib/admin/home-page-content";
 import { Link } from "@/i18n/navigation";
 
 /**
@@ -57,11 +54,7 @@ const CTA_BASE =
  * is optional so the page still renders — with the copy it has today — before
  * any section has been authored for the locale.
  */
-export function LandingHero({
-  content = DEFAULT_HOME_PAGE_CONTENT.hero,
-}: {
-  content?: HeroContent;
-}) {
+export function LandingHero({ content }: { content: HeroContent }) {
   // Both chip fields post-date the original hero shape, so a row authored
   // against the previous design has neither. The chip is skipped whole rather
   // than rendered half-empty. (`headlineHighlight` is the mirror case: the

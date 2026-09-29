@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 
 import {
   hubMinuteOfDay,
@@ -504,10 +505,8 @@ const NO_CLAIM_CANDIDATES: readonly LoadsClaimCandidate[] = [];
  * nonetheless perfectly entitled to the load. Class membership is not what is
  * being asked about any more, so it is not what the refusal talks about.
  */
-const NO_ELIGIBLE_VEHICLE_MESSAGE =
-  "None of your vehicles can take this delivery. It needs one that matches or " +
-  "beats the vehicle class this delivery was booked as on payload, length, " +
-  "width and height, and offers the load space this delivery needs.";
+// Copy: `driverHub.loadsContext.noEligibleVehicle` (read as
+// `NO_ELIGIBLE_VEHICLE_MESSAGE` in the notes throughout this module).
 
 /**
  * What a driver is told when their vehicles are *allowed* to take the load but
@@ -526,9 +525,8 @@ const NO_ELIGIBLE_VEHICLE_MESSAGE =
  * checks, so seeing this means the fleet or the load has changed since the board
  * was read.
  */
-const NO_FITTING_VEHICLE_MESSAGE =
-  "None of your vehicles can carry this load's cargo — it exceeds the weight " +
-  "or size limit of every vehicle you could bring to this delivery.";
+// Copy: `driverHub.loadsContext.noFittingVehicle` (read as
+// `NO_FITTING_VEHICLE_MESSAGE` in the notes throughout this module).
 
 /**
  * Which of this driver's vehicles may claim `load` — **the client's copy of the
@@ -1119,6 +1117,8 @@ export function LoadsProvider({
   vehicleClasses,
   children,
 }: LoadsProviderProps) {
+  const t = useTranslations("driverHub.loadsContext");
+
   /* --- server state ------------------------------------------------------ */
 
   const [available, setAvailable] = React.useState<HubLoad[]>([]);
@@ -1375,7 +1375,7 @@ export function LoadsProvider({
           setLoadError(
             typeof body?.error === "string"
               ? body.error
-              : `The dashboard is unavailable (HTTP ${response.status}).`,
+              : t("dashboardUnavailable", { status: response.status }),
           );
           return;
         }
@@ -1398,7 +1398,7 @@ export function LoadsProvider({
           return;
         }
 
-        setLoadError("Couldn't reach the dashboard.");
+        setLoadError(t("couldnTReachTheDashboard"));
       } finally {
         if (!silent) {
           foregroundReads.current -= 1;
@@ -1413,7 +1413,7 @@ export function LoadsProvider({
         }
       }
     },
-    [applyBoard],
+    [applyBoard, t],
   );
 
   const refetch = React.useCallback(
@@ -2073,8 +2073,8 @@ export function LoadsProvider({
             setClaimError({
               message:
                 claimCandidates.length === 0
-                  ? NO_ELIGIBLE_VEHICLE_MESSAGE
-                  : NO_FITTING_VEHICLE_MESSAGE,
+                  ? t("noEligibleVehicle")
+                  : t("noFittingVehicle"),
               code: null,
             });
             return;
@@ -2149,20 +2149,19 @@ export function LoadsProvider({
           message:
             typeof body?.error === "string"
               ? body.error
-              : `Couldn't claim this load (HTTP ${response.status}).`,
+              : t("couldNotClaim", { status: response.status }),
           code: typeof body?.code === "string" ? body.code : null,
         });
       } catch {
         setClaimError({
-          message:
-            "Couldn't reach the server. Check your connection and retry.",
+          message: t("couldnTReachTheServerCheck"),
           code: null,
         });
       } finally {
         setIsClaiming(false);
       }
     },
-    [accountKind, claimCandidates, dialogLoad, isClaiming, refetch, setTab],
+    [accountKind, claimCandidates, dialogLoad, isClaiming, refetch, setTab, t],
   );
 
   /**
@@ -2198,7 +2197,7 @@ export function LoadsProvider({
           setActionError(
             typeof body?.error === "string"
               ? body.error
-              : `That didn't go through (HTTP ${response.status}).`,
+              : t("didNotGoThrough", { status: response.status }),
           );
           return;
         }
@@ -2208,14 +2207,12 @@ export function LoadsProvider({
         setSelectedId((current) => (current === id ? null : current));
         await refetch();
       } catch {
-        setActionError(
-          "Couldn't reach the server. Check your connection and retry.",
-        );
+        setActionError(t("couldnTReachTheServerCheck"));
       } finally {
         setPendingActionId(null);
       }
     },
-    [pendingActionId, refetch],
+    [pendingActionId, refetch, t],
   );
 
   const reject = React.useCallback(

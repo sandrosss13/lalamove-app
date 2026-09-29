@@ -1,10 +1,9 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 import { HubCard, HubEmptyState } from "@/components/driver-hub/hub-primitives";
-import {
-  formatGel,
-  pluralise,
-} from "@/components/driver-hub/screens/earnings-format";
+import { formatGel } from "@/components/driver-hub/screens/earnings-format";
 import {
   Table,
   TableBody,
@@ -96,6 +95,8 @@ export type EarningsFleetCardProps = {
 };
 
 export function EarningsFleetCard({ fleet, total }: EarningsFleetCardProps) {
+  const t = useTranslations("driverHub.earningsFleetCard");
+  const tShared = useTranslations("common.shared");
   const { drivers, unassigned } = fleet;
 
   // A range whose only completed orders had no driver on them still has one row
@@ -114,16 +115,16 @@ export function EarningsFleetCard({ fleet, total }: EarningsFleetCardProps) {
 
   return (
     <HubCard
-      title="Revenue by driver"
-      action={`${pluralise(drivers.length, "driver")} in range`}
+      title={t("revenueByDriver")}
+      action={t("driversInRange", { count: drivers.length })}
     >
       {!hasRows ? (
         // Named for the selected range rather than stated absolutely: the range
         // is a filter the reader chose and can widen, and an empty table should
         // point at it instead of implying the fleet has never earned.
-        <HubEmptyState message="No driver completed a job in this range.">
+        <HubEmptyState message={t("noDriverCompleted")}>
           <p className="mt-1.5 text-xs">
-            Completed orders appear here once a driver is assigned to them.
+            {t("completedOrdersAppearHereOnceA")}
           </p>
         </HubEmptyState>
       ) : (
@@ -138,22 +139,22 @@ export function EarningsFleetCard({ fleet, total }: EarningsFleetCardProps) {
               )}
             >
               <TableHead role="columnheader" className={HEAD_CLASSES}>
-                Driver
+                {tShared("driver")}
               </TableHead>
               <TableHead role="columnheader" className={HEAD_CLASSES}>
-                Jobs
+                {tShared("jobs")}
               </TableHead>
               <TableHead role="columnheader" className={HEAD_CLASSES}>
-                Share
+                {t("share")}
               </TableHead>
               <TableHead role="columnheader" className={HEAD_CLASSES}>
-                Avg per job
+                {tShared("avgPerJob")}
               </TableHead>
               <TableHead
                 role="columnheader"
                 className={cn(HEAD_CLASSES, "text-right")}
               >
-                Revenue
+                {t("revenue")}
               </TableHead>
             </TableRow>
           </TableHeader>
@@ -232,7 +233,7 @@ export function EarningsFleetCard({ fleet, total }: EarningsFleetCardProps) {
                     "truncate text-muted-foreground italic",
                   )}
                 >
-                  Not assigned to a driver
+                  {t("notAssignedToADriver")}
                 </TableCell>
                 <TableCell
                   role="cell"
@@ -269,9 +270,9 @@ export function EarningsFleetCard({ fleet, total }: EarningsFleetCardProps) {
 
       <div className="mt-1.5 flex items-center justify-between gap-3 border-t border-border pt-3.5">
         <div className="min-w-0">
-          <p className="text-sm font-semibold">Fleet revenue</p>
+          <p className="text-sm font-semibold">{t("fleetRevenue")}</p>
           <p className="text-xs text-muted-foreground">
-            All completed orders in the range.
+            {t("allCompletedOrdersInTheRange")}
           </p>
         </div>
         <p className="font-price text-xl font-semibold">{formatGel(total)}</p>

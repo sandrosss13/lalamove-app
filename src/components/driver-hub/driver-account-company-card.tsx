@@ -1,3 +1,5 @@
+import { useTranslations } from "next-intl";
+
 import { HubCard } from "@/components/driver-hub/hub-primitives";
 import { DriverAccountDetailList } from "@/components/driver-hub/driver-account-detail-list";
 import type { HubCompanyAccountSettings } from "@/lib/dashboard/hub/account-settings";
@@ -35,47 +37,47 @@ import type { HubCompanyAccountSettings } from "@/lib/dashboard/hub/account-sett
  * role-agnostic.
  */
 
-/** Where a fleet's registered details are actually corrected. */
-const COMPANY_DETAILS_NOTE =
-  "Your registered details are the ones operations verified when your fleet " +
-  "was approved. They are corrected through the fleet application, so a change " +
-  "is re-checked rather than taking effect unseen — contact support to reopen it.";
-
 export function DriverAccountCompanyCard({
   settings,
 }: {
   settings: HubCompanyAccountSettings;
 }) {
+  const t = useTranslations("driverHub.driverAccountCompanyCard");
+  const tShared = useTranslations("common.shared");
+
   return (
     <HubCard>
       <div>
-        <h2 className="text-base font-semibold">Company details</h2>
+        <h2 className="text-base font-semibold">{tShared("companyDetails")}</h2>
         <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
-          What a client is billed by, and how operations reaches your fleet.
+          {t("whatAClientIsBilledBy")}
         </p>
       </div>
 
       <DriverAccountDetailList
         className="mt-5"
         rows={[
-          { label: "Company name", value: settings.companyName },
-          { label: "VAT ID", value: settings.vatId, mono: true },
-          { label: "Phone", value: settings.phone, mono: true },
-          { label: "City", value: settings.city },
+          { label: tShared("companyName"), value: settings.companyName },
+          { label: tShared("vatId"), value: settings.vatId, mono: true },
+          { label: tShared("phone"), value: settings.phone, mono: true },
+          { label: tShared("city"), value: settings.city },
           {
-            label: "Email",
+            label: tShared("email"),
             value: settings.email,
-            note: "The address you sign in with.",
+            note: t("theAddressYouSignInWith"),
           },
-          { label: "Registered address", value: settings.registeredAddress },
-          { label: "Contact name", value: settings.contactName },
-          { label: "Contact role", value: settings.contactRole },
-          { label: "Contact email", value: settings.contactEmail },
+          {
+            label: tShared("registeredAddress"),
+            value: settings.registeredAddress,
+          },
+          { label: t("contactName"), value: settings.contactName },
+          { label: t("contactRole"), value: settings.contactRole },
+          { label: t("contactEmail"), value: settings.contactEmail },
         ]}
       />
 
       <p className="mt-5 border-t border-border pt-4 text-xs leading-relaxed text-muted-foreground">
-        {COMPANY_DETAILS_NOTE}
+        {t("companyDetailsNote")}
       </p>
     </HubCard>
   );

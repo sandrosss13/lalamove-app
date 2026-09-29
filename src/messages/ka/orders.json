@@ -1,1 +1,36 @@
-{}
+{
+  "orderStatus": {
+    "accepted": "დადასტურებული",
+    "cancelled": "გაუქმებული",
+    "completed": "დასრულებული",
+    "inTransit": "გზაში",
+    "initiated": "ინიცირებული",
+    "pending": "მოლოდინში"
+  },
+  "orderTrackingMap": {
+    "driverLocationMayBeStale": "მძღოლის მდებარეობა შესაძლოა მოძველებული იყოს",
+    "waitingForADriverToShare": "ველოდებით მძღოლის მიერ მდებარეობის გაზიარებას..."
+  },
+  "orders": {
+    "above": "ზემოთ.",
+    "bookFirstDelivery": "პირველი მიწოდება დაჯავშნეთ ზემოთ მოცემული ღილაკით <b>ახალი შეკვეთა</b>.",
+    "newOrder2": "ახალი შეკვეთა",
+    "noOrdersYet": "თქვენ ჯერ არცერთი შეკვეთა არ გაგიკეთებიათ.",
+    "signInToViewYourOrders": "თქვენი შეკვეთების სანახავად გაიარეთ ავტორიზაცია.",
+    "trackDelivery": "მიწოდების თვალყურის დევნება →",
+    "yourDeliveries": "თქვენი მიწოდებები",
+    "yourOrders": "თქვენი შეკვეთები"
+  },
+  "ordersTrack": {
+    "backToDashboard": "← მართვის პანელზე დაბრუნება",
+    "backToOrders": "← შეკვეთებზე დაბრუნება",
+    "carrier": "გადამზიდავი",
+    "pleaseSignInToTrackThis": "ამ მიწოდებისთვის თვალყურის სადევნებლად, გთხოვთ, გაიაროთ ავტორიზაცია.",
+    "trackDelivery": "მიწოდების თვალყურის დევნება"
+  },
+  "serviceLevel": {
+    "pooling": "გაერთიანებული",
+    "priority": "პრიორიტეტული",
+    "regular": "სტანდარტული"
+  }
+}

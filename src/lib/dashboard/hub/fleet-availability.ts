@@ -42,6 +42,7 @@ import "server-only";
 import { OrderStatus } from "@prisma/client";
 import type { ChassisType, GeorgianCity, VehicleClass } from "@prisma/client";
 
+import type { Translator } from "@/i18n/translator";
 import type { HubAccount } from "@/lib/dashboard/hub/account";
 import {
   parseHubDayKey,
@@ -54,7 +55,13 @@ import {
   VEHICLE_CLASSES,
 } from "@/lib/driver-onboarding/vehicle-classes";
 import { formatCity } from "@/lib/format-city";
+import {
+  CITY_NAMES_NAMESPACE,
+  GEORGIAN_CITY_OPTIONS,
+  cityNameKey,
+} from "@/lib/georgian-cities";
 import { prisma } from "@/lib/prisma";
+import { vehicleTypeSpecLabel } from "@/lib/vehicle-type-spec-labels";
 
 /* -------------------------------------------------------------------------- */
 /* Shapes                                                                     */
@@ -153,7 +160,7 @@ export type HubAvailabilityRow = {
   name: string;
   phone: string;
   city: GeorgianCity;
-  /** Humanised city, e.g. "Tbilisi". */
+  /** Humanised city in the reader's language, e.g. "Tbilisi" / "თბილისი". */
   cityLabel: string;
   /**
    * The vehicle the row's second line names — the driver's pairing for this
@@ -259,7 +266,7 @@ const AVAILABILITY_VEHICLE_SELECT = {
   vehicleClass: true,
   payloadKg: true,
   // The class-level fallbacks for the two fields a `Vehicle` may leave null.
-  vehicleTypeSpec: { select: { label: true, maxPayloadKg: true } },
+  vehicleTypeSpec: { select: { code: true, label: true, maxPayloadKg: true } },
 } as const;
 
 /* -------------------------------------------------------------------------- */
@@ -275,7 +282,7 @@ type AvailabilityVehicleRow = {
   chassisType: ChassisType | null;
   vehicleClass: VehicleClass | null;
   payloadKg: number | null;
-  vehicleTypeSpec: { label: string; maxPayloadKg: number };
+  vehicleTypeSpec: { code: string; label: string; maxPayloadKg: number };
 };
 
 /** The `Order` columns a block is derived from, and nothing else. */
@@ -318,8 +325,19 @@ type BlockBounds = {
  * class added to the schema first must degrade to the spec label rather than
  * take the Drivers screen down.
  */
-function vehicleClassName(vehicleClass: VehicleClass): string | undefined {
-  return VEHICLE_CLASSES.find((entry) => entry.id === vehicleClass)?.name;
+function vehicleClassName(
+  vehicleClass: VehicleClass,
+  t: Translator | undefined,
+): string | undefined {
+  const entry = VEHICLE_CLASSES.find(
+    (candidate) => candidate.id === vehicleClass,
+  );
+
+  if (entry === undefined) {
+    return undefined;
+  }
+
+  return t === undefined ? entry.name : t(entry.nameKey);
 }
 
 /**
@@ -334,14 +352,41 @@ function vehicleClassName(vehicleClass: VehicleClass): string | undefined {
  * above, and an unknown or absent body resolves to an em dash — the design's own
  * null rendering — instead of a guess about what a truck's body is.
  */
-function bodyTypeLabelOf(bodyType: ChassisType | null): string {
+function bodyTypeLabelOf(
+  bodyType: ChassisType | null,
+  t: Translator | undefined,
+): string {
   if (bodyType === null) {
     return EM_DASH;
   }
 
-  return (
-    BODY_TYPES.find((entry) => entry.id === bodyType)?.shortLabel ?? EM_DASH
+  const entry = BODY_TYPES.find((candidate) => candidate.id === bodyType);
+
+  if (entry === undefined) {
+    return EM_DASH;
+  }
+
+  return t === undefined ? entry.shortLabel : t(entry.shortLabelKey);
+}
+
+/**
+ * A `GeorgianCity` value as the reader's language names it.
+ *
+ * Resolved through `GEORGIAN_CITY_OPTIONS` rather than by camel-casing the enum
+ * value, because the catalog key is derived from the option's English `label`.
+ * A value missing from that list (an enum member added to the schema first), or
+ * a call with no translator, falls back to the humanised English name.
+ */
+function cityLabelOf(city: GeorgianCity, t: Translator | undefined): string {
+  const option = GEORGIAN_CITY_OPTIONS.find(
+    (candidate) => candidate.value === city,
   );
+
+  if (t === undefined || option === undefined) {
+    return formatCity(city);
+  }
+
+  return t(`${CITY_NAMES_NAMESPACE}.${cityNameKey(option.label)}`);
 }
 
 /**
@@ -357,20 +402,29 @@ function bodyTypeLabelOf(bodyType: ChassisType | null): string {
  */
 function toAvailabilityVehicle(
   vehicle: AvailabilityVehicleRow,
+  t: Translator | undefined,
 ): HubAvailabilityVehicle {
+  // Without a declared class the seeded spec label stands in, looked up by its
+  // stable code so it follows the reader's language too.
   const declaredClassName =
     vehicle.vehicleClass === null
       ? undefined
-      : vehicleClassName(vehicle.vehicleClass);
+      : vehicleClassName(vehicle.vehicleClass, t);
 
   return {
     id: vehicle.id,
     plateNumber: vehicle.plateNumber,
     model: `${vehicle.make} ${vehicle.model}`,
     vehicleClass: vehicle.vehicleClass,
-    vehicleClassLabel: declaredClassName ?? vehicle.vehicleTypeSpec.label,
+    vehicleClassLabel:
+      declaredClassName ??
+      vehicleTypeSpecLabel(
+        vehicle.vehicleTypeSpec.code,
+        vehicle.vehicleTypeSpec.label,
+        t,
+      ),
     bodyType: vehicle.chassisType,
-    bodyTypeLabel: bodyTypeLabelOf(vehicle.chassisType),
+    bodyTypeLabel: bodyTypeLabelOf(vehicle.chassisType, t),
     capacityKg: vehicle.payloadKg ?? vehicle.vehicleTypeSpec.maxPayloadKg,
   };
 }
@@ -630,15 +684,18 @@ function blockStatusOf(
  * those would drop the one piece of information a dispatcher actually needs
  * about the leg.
  */
-function routeLabel(order: AvailabilityOrderRow): string {
+function routeLabel(
+  order: AvailabilityOrderRow,
+  t: Translator | undefined,
+): string {
   const pickup =
     order.pickupCity === null
       ? order.pickupAddress
-      : formatCity(order.pickupCity);
+      : cityLabelOf(order.pickupCity, t);
   const dropoff =
     order.dropoffCity === null
       ? order.dropoffAddress
-      : formatCity(order.dropoffCity);
+      : cityLabelOf(order.dropoffCity, t);
 
   return `${pickup} → ${dropoff}`;
 }
@@ -659,10 +716,15 @@ function routeLabel(order: AvailabilityOrderRow): string {
  * memory — the same shape, and the same reasoning, as `drivers.ts`'s recent-jobs
  * pass. A per-driver query would be one round trip per row on a screen whose
  * whole point is showing the roster at once.
+ *
+ * `t` is a root-namespace translator for the reader's locale; with it the
+ * class, body and city labels (and the city names inside `route`) come back
+ * localized. Without it they stay English, for callers with no reader.
  */
 export async function getHubFleetAvailability(
   account: HubAccount,
   dayKey: string,
+  t?: Translator,
 ): Promise<HubFleetAvailability | null> {
   const { companyId } = account;
 
@@ -812,7 +874,7 @@ export async function getHubFleetAvailability(
       end: clipped.end,
       status: blockStatusOf(order.status, clipped.end, effectiveNowHour),
       reference: order.reference,
-      route: routeLabel(order),
+      route: routeLabel(order, t),
       vehiclePlate: order.vehicle?.plateNumber ?? null,
       derivedEnd: bounds.derivedEnd,
     });
@@ -825,9 +887,11 @@ export async function getHubFleetAvailability(
     // paired with a company truck shows that truck rather than one they happen
     // to own privately — the pairing is what they are driving for this fleet.
     const pairedVehicles = driver.assignments.map((assignment) =>
-      toAvailabilityVehicle(assignment.vehicle),
+      toAvailabilityVehicle(assignment.vehicle, t),
     );
-    const ownedVehicles = driver.vehicles.map(toAvailabilityVehicle);
+    const ownedVehicles = driver.vehicles.map((vehicle) =>
+      toAvailabilityVehicle(vehicle, t),
+    );
     const vehiclesInDay = distinctVehicles([
       ...pairedVehicles,
       ...ownedVehicles,
@@ -839,7 +903,7 @@ export async function getHubFleetAvailability(
       name: driver.user.name,
       phone: driver.phone,
       city: driver.city,
-      cityLabel: formatCity(driver.city),
+      cityLabel: cityLabelOf(driver.city, t),
       vehicle: vehiclesInDay[0] ?? null,
       vehiclesInDay,
       // Sorted here rather than by the query, because the sort key is a derived

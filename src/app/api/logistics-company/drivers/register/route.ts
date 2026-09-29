@@ -10,9 +10,13 @@ import {
 } from "@prisma/client";
 import { APIError } from "better-auth/api";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
 import { findVehicleClass } from "@/lib/driver-onboarding/vehicle-classes";
 import { prisma } from "@/lib/prisma";
+
+/** The request-locale translator the body parsers below phrase their errors with. */
+type RequestTranslator = Awaited<ReturnType<typeof getRequestTranslations>>;
 
 /**
  * Company-originated driver registration: the admin creates the whole driver
@@ -177,31 +181,32 @@ function generateTempPassword(): string {
  */
 function parseRegisterDriverBody(
   body: unknown,
+  t: RequestTranslator,
 ): { data: RegisterDriverInput } | { error: string } {
   if (typeof body !== "object" || body === null) {
-    return { error: "Request body must be a JSON object." };
+    return { error: t("common.shared.requestBodyMustBeAJson") };
   }
 
   const record = body as Record<string, unknown>;
 
   const email = nonEmptyString(record.email);
   if (email === null) {
-    return { error: "email is required and must be a non-empty string." };
+    return { error: t("common.shared.emailIsRequiredAndMustBe") };
   }
 
   const firstName = nonEmptyString(record.firstName);
   if (firstName === null) {
-    return { error: "firstName is required and must be a non-empty string." };
+    return { error: t("common.shared.firstnameIsRequiredAndMustBe") };
   }
 
   const lastName = nonEmptyString(record.lastName);
   if (lastName === null) {
-    return { error: "lastName is required and must be a non-empty string." };
+    return { error: t("common.shared.lastnameIsRequiredAndMustBe") };
   }
 
   const phone = nonEmptyString(record.phone);
   if (phone === null) {
-    return { error: "phone is required and must be a non-empty string." };
+    return { error: t("common.shared.phoneIsRequiredAndMustBe") };
   }
 
   const { city } = record;
@@ -209,30 +214,48 @@ function parseRegisterDriverBody(
     typeof city !== "string" ||
     !GEORGIAN_CITIES.includes(city as GeorgianCity)
   ) {
-    return { error: `city must be one of: ${GEORGIAN_CITIES.join(", ")}.` };
+    return {
+      error: t("errors.logisticsCompanyDriversRegister.cityMustBeOneOf", {
+        cities: GEORGIAN_CITIES.join(", "),
+      }),
+    };
   }
 
   const licenceNumber = nonEmptyString(record.licenceNumber);
   if (licenceNumber === null) {
     return {
-      error: "licenceNumber is required and must be a non-empty string.",
+      error: t(
+        "errors.logisticsCompanyDriversRegister.licencenumberIsRequiredAndMustBe",
+      ),
     };
   }
 
   const { licenceExpiresAt: rawLicenceExpiresAt } = record;
   if (typeof rawLicenceExpiresAt !== "string") {
-    return { error: "licenceExpiresAt must be a valid ISO date." };
+    return {
+      error: t(
+        "errors.logisticsCompanyDriversRegister.licenceexpiresatMustBeAValidIso",
+      ),
+    };
   }
 
   const licenceExpiresAt = new Date(rawLicenceExpiresAt);
   if (Number.isNaN(licenceExpiresAt.getTime())) {
-    return { error: "licenceExpiresAt must be a valid ISO date." };
+    return {
+      error: t(
+        "errors.logisticsCompanyDriversRegister.licenceexpiresatMustBeAValidIso",
+      ),
+    };
   }
 
   // Strictly after "now": a licence expiring today has already stopped being
   // usable by the time the driver takes their first order.
   if (licenceExpiresAt.getTime() <= Date.now()) {
-    return { error: "The licence expiry date must be in the future." };
+    return {
+      error: t(
+        "errors.logisticsCompanyDriversRegister.theLicenceExpiryDateMustBe",
+      ),
+    };
   }
 
   const { licenceCategories: rawLicenceCategories } = record;
@@ -241,7 +264,9 @@ function parseRegisterDriverBody(
     rawLicenceCategories.length === 0
   ) {
     return {
-      error: "licenceCategories must be an array with at least one category.",
+      error: t(
+        "errors.logisticsCompanyDriversRegister.licencecategoriesMustBeAnArrayWith",
+      ),
     };
   }
 
@@ -253,7 +278,12 @@ function parseRegisterDriverBody(
     )
   ) {
     return {
-      error: `licenceCategories must contain only: ${LICENCE_CATEGORIES.join(", ")}.`,
+      error: t(
+        "errors.logisticsCompanyDriversRegister.licenceCategoriesMustContainOnly",
+        {
+          categories: LICENCE_CATEGORIES.join(", "),
+        },
+      ),
     };
   }
 
@@ -268,7 +298,11 @@ function parseRegisterDriverBody(
     rawVehicleId !== null &&
     typeof rawVehicleId !== "string"
   ) {
-    return { error: "vehicleId must be a string when provided." };
+    return {
+      error: t(
+        "errors.logisticsCompanyDriversRegister.vehicleidMustBeAStringWhen",
+      ),
+    };
   }
 
   return {
@@ -297,14 +331,23 @@ function parseRegisterDriverBody(
  * always written with the caller's own company id.
  */
 export async function POST(request: Request): Promise<NextResponse> {
+  const t = await getRequestTranslations();
+
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    return NextResponse.json(
+      { error: t("common.shared.unauthorized") },
+      { status: 401 },
+    );
   }
 
   if (session.user.role !== "COMPANY") {
     return NextResponse.json(
-      { error: "Only logistics companies can register drivers." },
+      {
+        error: t(
+          "errors.logisticsCompanyDriversRegister.onlyLogisticsCompaniesCanRegisterDrivers",
+        ),
+      },
       { status: 403 },
     );
   }
@@ -314,12 +357,12 @@ export async function POST(request: Request): Promise<NextResponse> {
     rawBody = await request.json();
   } catch {
     return NextResponse.json(
-      { error: "Request body must be valid JSON." },
+      { error: t("common.shared.requestBodyMustBeValidJson") },
       { status: 400 },
     );
   }
 
-  const parsed = parseRegisterDriverBody(rawBody);
+  const parsed = parseRegisterDriverBody(rawBody, t);
   if ("error" in parsed) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
@@ -343,7 +386,11 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   if (!company) {
     return NextResponse.json(
-      { error: "Complete your company profile before registering drivers." },
+      {
+        error: t(
+          "errors.logisticsCompanyDriversRegister.completeYourCompanyProfileBeforeRegistering",
+        ),
+      },
       { status: 400 },
     );
   }
@@ -359,7 +406,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   if (existingUser) {
     return NextResponse.json(
-      { error: "An account with that email address already exists." },
+      { error: t("common.shared.anAccountWithThatEmailAddress") },
       { status: 400 },
     );
   }
@@ -386,7 +433,11 @@ export async function POST(request: Request): Promise<NextResponse> {
     // both and leaks nothing about who owns what.
     if (!vehicle || vehicle.companyId !== company.id) {
       return NextResponse.json(
-        { error: "That vehicle was not found in your fleet." },
+        {
+          error: t(
+            "errors.logisticsCompanyDriversRegister.thatVehicleWasNotFoundIn",
+          ),
+        },
         { status: 400 },
       );
     }
@@ -402,7 +453,11 @@ export async function POST(request: Request): Promise<NextResponse> {
     // caught off the insert below and mapped back to this same message.
     if (vehicle.assignments.length > 0) {
       return NextResponse.json(
-        { error: "This vehicle is already assigned to another driver." },
+        {
+          error: t(
+            "errors.logisticsCompanyDriversRegister.thisVehicleIsAlreadyAssignedTo",
+          ),
+        },
         { status: 400 },
       );
     }
@@ -416,7 +471,10 @@ export async function POST(request: Request): Promise<NextResponse> {
     if (required !== null && !licenceCategories.includes(required)) {
       return NextResponse.json(
         {
-          error: `This vehicle needs category ${required}. Assign a different driver or vehicle.`,
+          error: t(
+            "errors.logisticsCompanyDriversRegister.thisVehicleNeedsCategory",
+            { category: required },
+          ),
         },
         { status: 400 },
       );
@@ -554,7 +612,11 @@ export async function POST(request: Request): Promise<NextResponse> {
       // "An account with that email address already exists.", which is the same
       // interrupted state the 500 branch below describes.
       return NextResponse.json(
-        { error: "This vehicle is already assigned to another driver." },
+        {
+          error: t(
+            "errors.logisticsCompanyDriversRegister.thisVehicleIsAlreadyAssignedTo",
+          ),
+        },
         { status: 400 },
       );
     }
@@ -570,8 +632,9 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
     return NextResponse.json(
       {
-        error:
-          "The driver account was created, but finishing setup failed. Contact support before retrying with the same email.",
+        error: t(
+          "errors.logisticsCompanyDriversRegister.theDriverAccountWasCreatedBut",
+        ),
       },
       { status: 500 },
     );

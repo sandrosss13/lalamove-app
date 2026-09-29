@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useLocale, useTranslations } from "next-intl";
 
 import {
   useLoadsBoard,
@@ -178,14 +179,13 @@ import { cn } from "@/lib/utils";
  * (`specs/driver-load-board/requirements.md`, Non-Goals). The prototype's sample
  * data shows a `stops: 3` load; it is fiction.
  */
-const STOP_COUNT_TEXT = "2 stops";
+// Copy: `driverHub.loadsClaimDialogs.twoStops`.
 
 /** The endpoint that owns `DriverProfile.isOnline`, as `HubOnlineToggle` calls it. */
 const STATUS_ENDPOINT = "/api/driver-profile/status";
 
-const ONLINE_GENERIC_ERROR = "Could not update your online status.";
-const ONLINE_NETWORK_ERROR =
-  "Couldn't reach the server. Check your connection and retry.";
+// The go-online failure copy is `driverHub.loadsClaimDialogs.onlineGenericError`
+// and `driverHub.loadsContext.couldnTReachTheServerCheck`.
 
 /* -------------------------------------------------------------------------- */
 /* Entry point                                                                */
@@ -326,6 +326,12 @@ export function LoadsConfirmDialog({ load }: LoadsConfirmDialogProps) {
     dismissClaimError,
   } = useLoadsBoard();
   const router = useRouter();
+  const t = useTranslations("driverHub.loadsClaimDialogs");
+  const tShared = useTranslations("common.shared");
+  const tContext = useTranslations("driverHub.loadsContext");
+  const tFormat = useTranslations("driverHub.loadsFormat");
+  const tRoot = useTranslations();
+  const locale = useLocale();
 
   /**
    * Whether this session is a logistics company rather than an individual
@@ -476,7 +482,9 @@ export function LoadsConfirmDialog({ load }: LoadsConfirmDialogProps) {
         // than reverting to the plain footer: the driver is still offline, so
         // the plain Confirm button would only reproduce the same refusal.
         setGoOnlineError(
-          typeof body?.error === "string" ? body.error : ONLINE_GENERIC_ERROR,
+          typeof body?.error === "string"
+            ? body.error
+            : t("onlineGenericError"),
         );
         return;
       }
@@ -491,7 +499,7 @@ export function LoadsConfirmDialog({ load }: LoadsConfirmDialogProps) {
       await confirmClaim(chosenCandidate?.vehicle.id ?? null);
       router.refresh();
     } catch {
-      setGoOnlineError(ONLINE_NETWORK_ERROR);
+      setGoOnlineError(tContext("couldnTReachTheServerCheck"));
     } finally {
       setIsGoingOnline(false);
     }
@@ -507,31 +515,36 @@ export function LoadsConfirmDialog({ load }: LoadsConfirmDialogProps) {
    */
   const summaryRows: { label: string; value: React.ReactNode }[] = [
     {
-      label: "Load",
+      label: tShared("load"),
       value: <span className="font-price">{load.reference}</span>,
     },
     {
-      label: "Pick-up",
+      label: tShared("pickUp"),
       value: `${load.pickupCity ?? EM_DASH} · ${formatAbsoluteWindow(
         load.pickupWindowStart,
         load.pickupWindowEnd,
+        locale,
       )}`,
     },
     {
-      label: "Drop-off",
-      value: `${load.dropoffCity ?? EM_DASH} · by ${formatAbsoluteDateTime(
-        load.deliveryDeadline,
-      )}`,
+      label: tShared("dropOff"),
+      value: t("dropoffBy", {
+        city: load.dropoffCity ?? EM_DASH,
+        time: formatAbsoluteDateTime(load.deliveryDeadline, locale),
+      }),
     },
     {
-      label: "Cargo",
-      value: `${cargoCategoryLabel(load.cargoCategory)} · ${
+      label: tShared("cargo"),
+      value: `${cargoCategoryLabel(load.cargoCategory, tRoot)} · ${
         load.packagingDescription ?? EM_DASH
       }`,
     },
-    { label: "Helpers", value: formatHelperRequest(load.helperCount) },
     {
-      label: "Weight",
+      label: tShared("helpers"),
+      value: formatHelperRequest(load.helperCount, tFormat),
+    },
+    {
+      label: t("weight"),
       value: `${formatWeightKg(load.cargoWeightKg)} · ${formatLoadDims({
         lengthM: load.cargoLengthM,
         widthM: load.cargoWidthM,
@@ -539,8 +552,8 @@ export function LoadsConfirmDialog({ load }: LoadsConfirmDialogProps) {
       })}`,
     },
     {
-      label: "Distance",
-      value: `${formatDistanceKm(load.distanceKm)} · ${STOP_COUNT_TEXT}`,
+      label: tShared("distance"),
+      value: `${formatDistanceKm(load.distanceKm)} · ${t("twoStops")}`,
     },
   ];
 
@@ -576,11 +589,10 @@ export function LoadsConfirmDialog({ load }: LoadsConfirmDialogProps) {
       >
         <DialogHeader className="gap-1 px-5 pt-5">
           <DialogTitle className="text-base font-semibold tracking-[-0.01em]">
-            Confirm this shipment
+            {t("confirmThisShipment")}
           </DialogTitle>
           <DialogDescription className="text-[13px]">
-            First come, first served. Confirming claims the order and closes it
-            to other drivers.
+            {t("firstComeFirstServedConfirmingClaims")}
           </DialogDescription>
         </DialogHeader>
 
@@ -608,7 +620,7 @@ export function LoadsConfirmDialog({ load }: LoadsConfirmDialogProps) {
               the worst direction to be wrong in. */}
           <div className="flex items-baseline justify-between border-t border-border bg-muted px-[14px] py-3">
             <span className="text-[13px] text-muted-foreground">
-              You are paid
+              {t("youArePaid")}
             </span>
             <span className="font-price text-[20px] font-semibold tracking-[-0.02em] tabular-nums">
               {formatGelExact(load.driverPayout)}
@@ -629,15 +641,15 @@ export function LoadsConfirmDialog({ load }: LoadsConfirmDialogProps) {
             aria-describedby="loads-confirm-vehicle-note"
           >
             <legend className="mb-1.5 text-[13px] font-medium text-foreground">
-              Vehicle
+              {tShared("vehicle")}
             </legend>
             <p
               id="loads-confirm-vehicle-note"
               className="mb-0.5 text-[13px] text-muted-foreground"
             >
               {everyCandidateFits
-                ? "More than one of your vehicles fits this booking. Pick the one you’ll drive."
-                : "More than one of your vehicles matches this booking, but not all of them can carry this load. Pick the one you’ll drive."}
+                ? t("pickVehicleAllFit")
+                : t("pickVehicleSomeFit")}
             </p>
 
             {claimCandidates.map((candidate) => {
@@ -686,7 +698,7 @@ export function LoadsConfirmDialog({ load }: LoadsConfirmDialogProps) {
                       // names the vehicle's shortfall, never the load's size:
                       // the load is what the client booked and is not wrong.
                       <span className="mt-0.5 block text-xs font-medium text-muted-foreground">
-                        Too small for this load
+                        {t("tooSmallForThisLoad")}
                       </span>
                     ) : null}
                   </span>
@@ -723,8 +735,7 @@ export function LoadsConfirmDialog({ load }: LoadsConfirmDialogProps) {
           // per `specs/driver-load-board/requirements.md`'s Assumptions. That is
           // also why the claim request carries no vehicle at all.
           <p className="mx-5 mt-4 rounded-md border border-border bg-muted px-3 py-2 text-[13px] text-muted-foreground">
-            You&rsquo;re claiming with your company account. Assign a driver and
-            vehicle to this load afterwards.
+            {t("companyAccountNote")}
           </p>
         ) : null}
 
@@ -774,7 +785,7 @@ export function LoadsConfirmDialog({ load }: LoadsConfirmDialogProps) {
                   dismissClaimError();
                 }}
               >
-                Stay offline
+                {t("stayOffline")}
               </Button>
               <Button
                 type="button"
@@ -788,10 +799,10 @@ export function LoadsConfirmDialog({ load }: LoadsConfirmDialogProps) {
                     apart: the status flip is quick and the claim that follows
                     it is the one that can lose the race. */}
                 {isClaiming
-                  ? "Claiming…"
+                  ? t("claiming")
                   : isGoingOnline
-                    ? "Going online…"
-                    : "Go online & claim"}
+                    ? t("goingOnline")
+                    : t("goOnlineAndClaim")}
               </Button>
             </div>
           </div>
@@ -816,7 +827,7 @@ export function LoadsConfirmDialog({ load }: LoadsConfirmDialogProps) {
                 disabled={isBusy}
                 onClick={closeConfirm}
               >
-                Cancel
+                {tShared("cancel")}
               </Button>
               <Button
                 type="button"
@@ -841,7 +852,7 @@ export function LoadsConfirmDialog({ load }: LoadsConfirmDialogProps) {
                   void confirmClaim(chosenCandidate?.vehicle.id ?? null);
                 }}
               >
-                {isClaiming ? "Claiming…" : "Confirm and claim"}
+                {isClaiming ? t("claiming") : t("confirmAndClaim")}
               </Button>
             </div>
           </>
@@ -879,6 +890,7 @@ export type LoadsLostRaceDialogProps = {
  */
 export function LoadsLostRaceDialog({ reference }: LoadsLostRaceDialogProps) {
   const { closeLost } = useLoadsBoard();
+  const t = useTranslations("driverHub.loadsClaimDialogs");
 
   // Below the hook, for the reason the confirm dialog's own guard states.
   if (reference === null) {
@@ -903,11 +915,11 @@ export function LoadsLostRaceDialog({ reference }: LoadsLostRaceDialogProps) {
       >
         <DialogHeader className="gap-1.5">
           <DialogTitle className="text-base font-semibold">
-            Just claimed by another driver
+            {t("justClaimedByAnotherDriver")}
           </DialogTitle>
           <DialogDescription className="text-[13px]">
-            <span className="font-price">{reference}</span> was confirmed a
-            moment before you. It has been removed from your available list.
+            <span className="font-price">{reference}</span>{" "}
+            {t("wasConfirmedAMomentBeforeYou")}
           </DialogDescription>
         </DialogHeader>
 
@@ -916,7 +928,7 @@ export function LoadsLostRaceDialog({ reference }: LoadsLostRaceDialogProps) {
           className="mt-4 h-10 w-full text-sm"
           onClick={closeLost}
         >
-          Back to dashboard
+          {t("backToDashboard")}
         </Button>
       </DialogContent>
     </Dialog>

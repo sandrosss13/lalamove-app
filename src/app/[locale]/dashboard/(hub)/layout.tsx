@@ -1,6 +1,9 @@
+import { getTranslations } from "next-intl/server";
+
 import { DriverHubShell } from "@/components/driver-hub/driver-hub-shell";
 import { resolveHubAccount } from "@/lib/dashboard/hub/account";
 import { getHubHeader } from "@/lib/dashboard/hub/header";
+import { localizeSampleCopy } from "@/lib/dashboard/hub/sample";
 
 // Session + Prisma access can't be statically rendered.
 export const dynamic = "force-dynamic";
@@ -36,15 +39,19 @@ export default async function DriverHubLayout({
   // hub cannot render at all — the same plain fallback the old dashboard used
   // stands in, on the app's default light theme.
   if (!account) {
+    const [tShared, t] = await Promise.all([
+      getTranslations("common.shared"),
+      getTranslations("dashboard.dashboard"),
+    ]);
+
     return (
       <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-8 p-8">
         <header className="flex flex-col gap-1">
-          <h1 className="text-3xl font-bold">Dashboard</h1>
-          <p className="text-sm opacity-60">Provider account</p>
+          <h1 className="text-3xl font-bold">{tShared("dashboard")}</h1>
+          <p className="text-sm opacity-60">{t("providerAccount")}</p>
         </header>
         <p className="text-sm opacity-70">
-          Your driver profile isn&apos;t set up yet. Finish signing up as a
-          driver to see your dashboard.
+          {t("driverProfileNotSetUpFinishSigningUp")}
         </p>
       </main>
     );
@@ -57,7 +64,13 @@ export default async function DriverHubLayout({
   // after the account resolves because it takes it, and the `null` branch above
   // returns before it, so an interrupted sign-up never reaches Prisma for a
   // header it is not going to draw.
-  const header = await getHubHeader(account);
+  // The notification rows are sampled copy; `localizeSampleCopy` puts them in
+  // the reader's language (see `SAMPLE_COPY_KEYS`).
+  const [rawHeader, t] = await Promise.all([
+    getHubHeader(account),
+    getTranslations(),
+  ]);
+  const header = localizeSampleCopy(rawHeader, t);
 
   return (
     <DriverHubShell account={account} header={header}>

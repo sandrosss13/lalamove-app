@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { deleteVehiclePhotos } from "@/lib/supabase-storage";
@@ -8,7 +9,7 @@ import {
   isDuplicatePlateError,
   nonEmptyString,
   parseYear,
-  UNKNOWN_VEHICLE_TYPE_ERROR,
+  UNKNOWN_VEHICLE_TYPE_ERROR_KEY,
 } from "../validation";
 
 /** Validated shape of a vehicle-edit request; photos are not editable here. */
@@ -29,35 +30,37 @@ type UpdateVehicleInput = {
  * caller still resends the full field set rather than a partial patch, matching
  * the convention of the profile routes.
  */
-function parseUpdateVehicleBody(
+async function parseUpdateVehicleBody(
   body: unknown,
-): { data: UpdateVehicleInput } | { error: string } {
+): Promise<{ data: UpdateVehicleInput } | { error: string }> {
+  const tShared = await getRequestTranslations("common.shared");
+
   // A JSON body of `null`, `[]` or a scalar has no fields to read.
   if (typeof body !== "object" || body === null || Array.isArray(body)) {
-    return { error: "Request body must be a JSON object." };
+    return { error: tShared("requestBodyMustBeAJson") };
   }
 
   const fields = body as Record<string, unknown>;
 
   const plateNumber = nonEmptyString(fields.plateNumber);
   if (plateNumber === null) {
-    return { error: "plateNumber is required." };
+    return { error: tShared("platenumberIsRequired") };
   }
 
   const make = nonEmptyString(fields.make);
   if (make === null) {
-    return { error: "make is required." };
+    return { error: tShared("makeIsRequired") };
   }
 
   const model = nonEmptyString(fields.model);
   if (model === null) {
-    return { error: "model is required." };
+    return { error: tShared("modelIsRequired") };
   }
 
   // `parseYear` normalises via `nonEmptyString`, so a JSON number is
   // stringified first to go through the same checks the form-encoded create
   // path applies.
-  const year = parseYear(
+  const year = await parseYear(
     typeof fields.year === "number" ? String(fields.year) : fields.year,
   );
   if ("error" in year) {
@@ -66,7 +69,7 @@ function parseUpdateVehicleBody(
 
   const vehicleTypeCode = nonEmptyString(fields.vehicleTypeCode);
   if (vehicleTypeCode === null) {
-    return { error: "vehicleTypeCode is required." };
+    return { error: tShared("vehicletypecodeIsRequired") };
   }
 
   return {
@@ -99,14 +102,19 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
+  const t = await getRequestTranslations();
+
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    return NextResponse.json(
+      { error: t("common.shared.unauthorized") },
+      { status: 401 },
+    );
   }
 
   if (session.user.role !== "DRIVER") {
     return NextResponse.json(
-      { error: "Only drivers can remove vehicles." },
+      { error: t("errors.driverProfileVehicles.onlyDriversCanRemoveVehicles") },
       { status: 403 },
     );
   }
@@ -119,7 +127,10 @@ export async function DELETE(
   });
 
   if (!driverProfile) {
-    return NextResponse.json({ error: "Vehicle not found." }, { status: 404 });
+    return NextResponse.json(
+      { error: t("common.shared.vehicleNotFound") },
+      { status: 404 },
+    );
   }
 
   // Scoped by owner, so this returns nothing for another driver's vehicle.
@@ -129,7 +140,10 @@ export async function DELETE(
   });
 
   if (!vehicle) {
-    return NextResponse.json({ error: "Vehicle not found." }, { status: 404 });
+    return NextResponse.json(
+      { error: t("common.shared.vehicleNotFound") },
+      { status: 404 },
+    );
   }
 
   await prisma.vehicle.delete({ where: { id: vehicle.id } });
@@ -154,14 +168,19 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
+  const t = await getRequestTranslations();
+
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    return NextResponse.json(
+      { error: t("common.shared.unauthorized") },
+      { status: 401 },
+    );
   }
 
   if (session.user.role !== "DRIVER") {
     return NextResponse.json(
-      { error: "Only drivers can edit vehicles." },
+      { error: t("errors.driverProfileVehicles.onlyDriversCanEditVehicles") },
       { status: 403 },
     );
   }
@@ -173,12 +192,12 @@ export async function PATCH(
     body = await request.json();
   } catch {
     return NextResponse.json(
-      { error: "Request body must be valid JSON." },
+      { error: t("common.shared.requestBodyMustBeValidJson") },
       { status: 400 },
     );
   }
 
-  const parsed = parseUpdateVehicleBody(body);
+  const parsed = await parseUpdateVehicleBody(body);
   if ("error" in parsed) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
@@ -191,7 +210,10 @@ export async function PATCH(
   });
 
   if (!driverProfile) {
-    return NextResponse.json({ error: "Vehicle not found." }, { status: 404 });
+    return NextResponse.json(
+      { error: t("common.shared.vehicleNotFound") },
+      { status: 404 },
+    );
   }
 
   // Scoped by owner, so this returns nothing for another driver's vehicle.
@@ -201,13 +223,16 @@ export async function PATCH(
   });
 
   if (!existing) {
-    return NextResponse.json({ error: "Vehicle not found." }, { status: 404 });
+    return NextResponse.json(
+      { error: t("common.shared.vehicleNotFound") },
+      { status: 404 },
+    );
   }
 
   const vehicleTypeSpecId = await findVehicleTypeSpecIdByCode(vehicleTypeCode);
   if (vehicleTypeSpecId === null) {
     return NextResponse.json(
-      { error: UNKNOWN_VEHICLE_TYPE_ERROR },
+      { error: t(UNKNOWN_VEHICLE_TYPE_ERROR_KEY) },
       { status: 400 },
     );
   }
@@ -225,7 +250,7 @@ export async function PATCH(
     // unexpected and rethrown rather than swallowed.
     if (isDuplicatePlateError(error)) {
       return NextResponse.json(
-        { error: "This plate number is already registered." },
+        { error: t("common.shared.thisPlateNumberIsAlreadyRegistered") },
         { status: 409 },
       );
     }

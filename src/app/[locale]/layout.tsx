@@ -6,12 +6,12 @@ import {
   Noto_Sans_Georgian,
 } from "next/font/google";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
-import { setRequestLocale } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import "../globals.css";
 import { AuthStatus, HeaderBrandLink } from "@/components/auth-status";
 import { LanguageToggle } from "@/components/language-toggle";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { LOCALES, routing } from "@/i18n/routing";
+import { DEFAULT_LOCALE, LOCALES, routing } from "@/i18n/routing";
 
 // Exposed as CSS variables only (never applied to `body`), so these are opt-in
 // per route via the `font-display` / `font-body` / `font-price` utilities. Both
@@ -108,11 +108,28 @@ const notoSansGeorgian = Noto_Sans_Georgian({
  */
 const THEME_SCRIPT = `(function(){try{var s=localStorage.getItem("theme");var d=s==="dark"||(s!=="light"&&window.matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.classList.toggle("dark",d)}catch(e){try{if(window.matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.classList.add("dark")}}catch(e2){}}})();`;
 
-export const metadata: Metadata = {
-  title: "Lalamove Clone",
-  description:
-    "On-demand delivery platform — book a vehicle and move your goods across the city.",
-};
+/**
+ * The site-wide title and description, in the route's language. An unknown
+ * segment falls back to the default locale here rather than 404ing — the
+ * layout below is what answers that with `notFound()`, and metadata must not
+ * be the thing that throws first.
+ */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({
+    locale: hasLocale(routing.locales, locale) ? locale : DEFAULT_LOCALE,
+    namespace: "common",
+  });
+
+  return {
+    title: t("shared.lalamoveClone"),
+    description: t("srcApp.onDemandDeliveryPlatformBookA"),
+  };
+}
 
 /**
  * Both locales are known at build time and neither depends on request data, so
@@ -193,8 +210,8 @@ export default async function RootLayout({
             landing page (`[data-hide-site-header]`) and the admin back office
             (`[data-admin-surface]`), both handled by rules in `globals.css`. So
             this instance covers /home, the account pages, orders, wallet and
-            checkout; every other surface mounts its own `ThemeToggle` in its own
-            header.
+            checkout; every other surface mounts its own `ThemeToggle` and
+            `LanguageToggle` in its own header.
           */}
             <div className="flex items-center gap-3">
               <AuthStatus />

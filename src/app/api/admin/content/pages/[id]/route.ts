@@ -2,12 +2,13 @@ import { NextResponse } from "next/server";
 
 import type { AdminRole, Prisma } from "@prisma/client";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { authorizeAdminApi } from "@/lib/admin/api-auth";
 import { writeAuditLog } from "@/lib/admin/audit";
 import { prisma } from "@/lib/prisma";
 
 import {
-  DUPLICATE_PAGE_ERROR,
+  DUPLICATE_PAGE_ERROR_KEY,
   STATIC_PAGE_SELECT,
   isDuplicateSlugLocaleError,
   parseBodyHtml,
@@ -41,6 +42,8 @@ export async function PATCH(
     return authorized.response;
   }
 
+  const t = await getRequestTranslations();
+
   const { id } = await params;
 
   let rawBody: unknown;
@@ -48,14 +51,14 @@ export async function PATCH(
     rawBody = await request.json();
   } catch {
     return NextResponse.json(
-      { error: "Request body must be valid JSON." },
+      { error: t("common.shared.requestBodyMustBeValidJson") },
       { status: 400 },
     );
   }
 
   if (typeof rawBody !== "object" || rawBody === null) {
     return NextResponse.json(
-      { error: "Request body must be a JSON object." },
+      { error: t("common.shared.requestBodyMustBeAJson") },
       { status: 400 },
     );
   }
@@ -64,7 +67,7 @@ export async function PATCH(
   const data: Prisma.StaticPageUpdateInput = {};
 
   if (record.slug !== undefined) {
-    const slug = parseSlug(record.slug);
+    const slug = parseSlug(record.slug, t);
     if ("error" in slug) {
       return NextResponse.json({ error: slug.error }, { status: 400 });
     }
@@ -72,7 +75,7 @@ export async function PATCH(
   }
 
   if (record.locale !== undefined) {
-    const locale = parseLocale(record.locale);
+    const locale = parseLocale(record.locale, t);
     if ("error" in locale) {
       return NextResponse.json({ error: locale.error }, { status: 400 });
     }
@@ -80,7 +83,7 @@ export async function PATCH(
   }
 
   if (record.title !== undefined) {
-    const title = parseTitle(record.title);
+    const title = parseTitle(record.title, t);
     if ("error" in title) {
       return NextResponse.json({ error: title.error }, { status: 400 });
     }
@@ -88,7 +91,7 @@ export async function PATCH(
   }
 
   if (record.bodyHtml !== undefined) {
-    const bodyHtml = parseBodyHtml(record.bodyHtml);
+    const bodyHtml = parseBodyHtml(record.bodyHtml, t);
     if ("error" in bodyHtml) {
       return NextResponse.json({ error: bodyHtml.error }, { status: 400 });
     }
@@ -96,7 +99,7 @@ export async function PATCH(
   }
 
   if (record.isPublished !== undefined) {
-    const isPublished = parseIsPublished(record.isPublished);
+    const isPublished = parseIsPublished(record.isPublished, t);
     if ("error" in isPublished) {
       return NextResponse.json({ error: isPublished.error }, { status: 400 });
     }
@@ -105,7 +108,7 @@ export async function PATCH(
 
   if (Object.keys(data).length === 0) {
     return NextResponse.json(
-      { error: "No editable fields were provided." },
+      { error: t("common.shared.noEditableFieldsWereProvided") },
       { status: 400 },
     );
   }
@@ -119,7 +122,10 @@ export async function PATCH(
   });
 
   if (!existing) {
-    return NextResponse.json({ error: "Page not found." }, { status: 404 });
+    return NextResponse.json(
+      { error: t("errors.adminContentPages.pageNotFound") },
+      { status: 404 },
+    );
   }
 
   let updated;
@@ -132,7 +138,7 @@ export async function PATCH(
   } catch (error) {
     if (isDuplicateSlugLocaleError(error)) {
       return NextResponse.json(
-        { error: DUPLICATE_PAGE_ERROR },
+        { error: t(DUPLICATE_PAGE_ERROR_KEY) },
         { status: 409 },
       );
     }
@@ -185,6 +191,8 @@ export async function DELETE(
     return authorized.response;
   }
 
+  const t = await getRequestTranslations();
+
   const { id } = await params;
 
   const existing = await prisma.staticPage.findUnique({
@@ -193,7 +201,10 @@ export async function DELETE(
   });
 
   if (!existing) {
-    return NextResponse.json({ error: "Page not found." }, { status: 404 });
+    return NextResponse.json(
+      { error: t("errors.adminContentPages.pageNotFound") },
+      { status: 404 },
+    );
   }
 
   await prisma.staticPage.delete({ where: { id } });

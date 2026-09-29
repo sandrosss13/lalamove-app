@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import { Workbook } from "exceljs";
 
 import { adminNavSection } from "@/components/admin/admin-nav";
+import { orderStatusLabel } from "@/components/orders-format";
+import {
+  getRequestTranslations,
+  type RequestTranslator,
+} from "@/i18n/request-locale";
 import {
   MAX_EXPORT_ORDER_ROWS,
   getSalesOrders,
@@ -35,31 +40,36 @@ function addSummarySheet(
   workbook: Workbook,
   summary: SalesSummary,
   range: { fromParam: string; toParam: string },
+  t: RequestTranslator,
 ): void {
-  const sheet = workbook.addWorksheet("Summary");
+  const sheet = workbook.addWorksheet(t("admin.analyticsExport.summarySheet"));
 
   sheet.columns = [
     // The range is written as text, not as a date: these are calendar-day
     // bounds, and letting Excel reinterpret them in the reader's locale is how
     // a report ends up claiming a range it was never run for.
-    { header: "From", key: "from", width: 12 },
-    { header: "To", key: "to", width: 12 },
+    { header: t("common.shared.from"), key: "from", width: 12 },
+    { header: t("common.shared.to"), key: "to", width: 12 },
     {
-      header: "Turnover (all orders)",
+      header: t("admin.analyticsExport.turnoverAllOrders"),
       key: "turnover",
       width: 22,
       style: { numFmt: CURRENCY_FORMAT },
     },
     {
-      header: "Revenue (completed orders)",
+      header: t("admin.metricCards.revenueCompletedOrders"),
       key: "revenue",
       width: 26,
       style: { numFmt: CURRENCY_FORMAT },
     },
-    { header: "Completed", key: "completedCount", width: 12 },
-    { header: "In process", key: "inProcessCount", width: 12 },
-    { header: "Pending", key: "pendingCount", width: 12 },
-    { header: "Cancelled", key: "cancelledCount", width: 12 },
+    { header: t("common.shared.completed"), key: "completedCount", width: 12 },
+    {
+      header: t("admin.metricCards.inProcess"),
+      key: "inProcessCount",
+      width: 12,
+    },
+    { header: t("common.shared.pending"), key: "pendingCount", width: 12 },
+    { header: t("common.shared.cancelled"), key: "cancelledCount", width: 12 },
   ];
 
   sheet.getRow(1).font = { bold: true };
@@ -83,26 +93,30 @@ function addSummarySheet(
  * warning row, so nobody re-adds the visible rows and concludes the totals are
  * wrong.
  */
-function addOrdersSheet(workbook: Workbook, orders: SalesOrderRow[]): void {
-  const sheet = workbook.addWorksheet("Orders");
+function addOrdersSheet(
+  workbook: Workbook,
+  orders: SalesOrderRow[],
+  t: RequestTranslator,
+): void {
+  const sheet = workbook.addWorksheet(t("admin.analyticsExport.ordersSheet"));
 
   sheet.columns = [
-    { header: "Order ID", key: "id", width: 28 },
-    { header: "Status", key: "status", width: 14 },
+    { header: t("admin.analyticsExport.orderId"), key: "id", width: 28 },
+    { header: t("common.shared.status"), key: "status", width: 14 },
     {
-      header: "Price",
+      header: t("common.shared.price"),
       key: "price",
       width: 12,
       style: { numFmt: CURRENCY_FORMAT },
     },
     {
-      header: "Created at (UTC)",
+      header: t("admin.analyticsExport.createdAtUtc"),
       key: "createdAt",
       width: 20,
       style: { numFmt: TIMESTAMP_FORMAT },
     },
     {
-      header: "Completed at (UTC)",
+      header: t("admin.analyticsExport.completedAtUtc"),
       key: "completedAt",
       width: 20,
       style: { numFmt: TIMESTAMP_FORMAT },
@@ -114,12 +128,15 @@ function addOrdersSheet(workbook: Workbook, orders: SalesOrderRow[]): void {
   sheet.views = [{ state: "frozen", ySplit: 1 }];
 
   for (const order of orders) {
-    sheet.addRow(order);
+    // The enum value is the stored identifier; the sheet shows the reader's word for it.
+    sheet.addRow({ ...order, status: orderStatusLabel(order.status, t) });
   }
 
   if (orders.length === MAX_EXPORT_ORDER_ROWS) {
     sheet.addRow({
-      id: `Truncated at ${MAX_EXPORT_ORDER_ROWS} orders — narrow the date range for a complete list.`,
+      id: t("admin.analyticsExport.truncated", {
+        count: MAX_EXPORT_ORDER_ROWS,
+      }),
     });
   }
 }
@@ -148,6 +165,8 @@ export async function GET(request: Request): Promise<NextResponse> {
     to: searchParams.get("to") ?? undefined,
   });
 
+  const t = await getRequestTranslations();
+
   const [summary, orders] = await Promise.all([
     getSalesSummary(range),
     getSalesOrders(range),
@@ -157,8 +176,8 @@ export async function GET(request: Request): Promise<NextResponse> {
   workbook.creator = "Back Office";
   workbook.created = new Date();
 
-  addSummarySheet(workbook, summary, range);
-  addOrdersSheet(workbook, orders);
+  addSummarySheet(workbook, summary, range, t);
+  addOrdersSheet(workbook, orders, t);
 
   const buffer = await workbook.xlsx.writeBuffer();
 

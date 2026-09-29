@@ -15,6 +15,7 @@
  */
 
 import { useState } from "react";
+import { useFormatter, useTranslations } from "next-intl";
 
 import {
   ONBOARDING_SCREENS,
@@ -27,12 +28,9 @@ import {
   findVehicleClass,
   type VehicleClassId,
 } from "@/lib/driver-onboarding/vehicle-classes";
-import { GEORGIAN_CITY_OPTIONS } from "@/lib/georgian-cities";
+import { useLocalizedCityOptions } from "@/lib/georgian-cities";
 
 const SUBMIT_ENDPOINT = "/api/driver-profile/onboarding/submit";
-
-const SUBMIT_ERROR_FALLBACK =
-  "We couldn't submit your application. Check your connection and try again.";
 
 /** Placeholder for a row the draft has nothing for, per the design. */
 const EMPTY_VALUE = "—";
@@ -43,27 +41,32 @@ const EMPTY_VALUE = "—";
  * only other place that renders them, and a summary row must not depend on a
  * sibling *screen* staying mounted or keeping its internal constants exported.
  */
-const CHASSIS_LABELS: Record<string, string> = {
-  DRY_BOX: "Dry Box",
-  REFRIGERATED: "Refrigerated Vehicle",
-  OPEN_CHASSIS: "Open Chassis",
+// Keys in the `common.shared` namespace.
+const CHASSIS_LABEL_KEYS: Record<string, string> = {
+  DRY_BOX: "dryBox",
+  REFRIGERATED: "refrigeratedVehicle",
+  OPEN_CHASSIS: "openChassis",
 };
 
-/** Short month names, so dates format identically in every driver's browser. */
-const MONTH_NAMES = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
-];
+/**
+ * The vehicle colours the step-3c swatches store (by English name), mapped to
+ * their display keys under `onboarding.step3cTechnicalDetails.colours`. A
+ * colour outside this set — typed by an older client, say — renders verbatim.
+ */
+const COLOUR_KEYS: Record<string, string> = {
+  White: "white",
+  Silver: "silver",
+  Grey: "grey",
+  Black: "black",
+  Blue: "blue",
+  Navy: "navy",
+  Red: "red",
+  Green: "green",
+  Yellow: "yellow",
+  Orange: "orange",
+  Beige: "beige",
+  Brown: "brown",
+};
 
 /** The two documents the licence card counts. */
 const LICENCE_DOCUMENT_TYPES: OnboardingDocumentType[] = [
@@ -73,6 +76,23 @@ const LICENCE_DOCUMENT_TYPES: OnboardingDocumentType[] = [
 
 type SummaryRow = { label: string; value: string };
 
+/**
+ * A `next-intl` translator, passed into the row builders below: they are plain
+ * functions rather than components, so they cannot call `useTranslations`
+ * themselves. `tShared` is scoped to `common.shared`, `t` to this step's own
+ * `onboarding.step4ReviewSubmit` namespace, `tRoot` to the catalog root.
+ */
+type Translate = (
+  key: string,
+  values?: Record<string, string | number>,
+) => string;
+
+/** `next-intl`'s locale-aware formatter, passed in for the same reason. */
+type Formatter = ReturnType<typeof useFormatter>;
+
+/** The city options in the reader's language, from `useLocalizedCityOptions`. */
+type CityOptions = ReturnType<typeof useLocalizedCityOptions>;
+
 type SummaryCard = {
   title: string;
   /** The screen this card's Edit link jumps back to. */
@@ -81,38 +101,45 @@ type SummaryCard = {
 };
 
 /**
- * Formats a stored `YYYY-MM-DD` date for display, reading the parts out of the
- * string rather than through `Date`.
+ * Formats a stored `YYYY-MM-DD` date for display in the reader's language
+ * ("12 May 1990" / "12 მაი. 1990"), reading the parts out of the string.
  *
- * Deliberate: `new Date("1990-05-12")` is UTC midnight, so formatting it in any
- * timezone west of Greenwich renders the *previous* day — which on a date of
- * birth or a licence expiry is the kind of off-by-one a driver would rightly
- * report as a bug.
+ * Deliberate: `new Date("1990-05-12")` is UTC midnight, and formatting that in
+ * the request's own time zone could land on the *previous* day — which on a
+ * date of birth or a licence expiry is the kind of off-by-one a driver would
+ * rightly report as a bug. So the parts are rebuilt as a UTC instant and
+ * formatted *in* UTC, which can only ever print the stored calendar date.
  */
-function formatDate(value: string | undefined): string | null {
+function formatDate(
+  value: string | undefined,
+  format: Formatter,
+): string | null {
   if (!value) return null;
 
   const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
   if (!match) return null;
 
   const [, year, month, day] = match;
-  const monthName = MONTH_NAMES[Number(month) - 1];
-  if (!monthName) return null;
+  const date = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
+  if (Number.isNaN(date.getTime())) return null;
 
-  return `${Number(day)} ${monthName} ${year}`;
+  return format.dateTime(date, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  });
 }
 
-/** "TBILISI" → "Tbilisi", via the same option list the city picker uses. */
-function formatCityValue(value: string | undefined): string | null {
+/** "TBILISI" → "Tbilisi" / "თბილისი", via the localized city options. */
+function formatCityValue(
+  value: string | undefined,
+  cities: CityOptions,
+): string | null {
   if (!value) return null;
 
-  const option = GEORGIAN_CITY_OPTIONS.find((entry) => entry.value === value);
+  const option = cities.find((entry) => entry.value === value);
   return option?.label ?? null;
-}
-
-/** Groups the digits of a number for display, e.g. `1400` → "1,400". */
-function formatNumber(value: number): string {
-  return value.toLocaleString("en-US");
 }
 
 /** Renders `value` if it is usable, otherwise the design's em-dash placeholder. */
@@ -134,21 +161,30 @@ function hasDocument(
 function buildPersonalRows(
   draft: OnboardingDraftV1,
   documents: OnboardingDocument[],
+  t: Translate,
+  tShared: Translate,
+  format: Formatter,
+  cities: CityOptions,
 ): SummaryRow[] {
   const personal = draft.personal ?? {};
 
   return [
-    { label: "Name", value: orPlaceholder(personal.fullName) },
-    { label: "ID number", value: orPlaceholder(personal.idNumber) },
+    { label: tShared("name"), value: orPlaceholder(personal.fullName) },
+    { label: tShared("idNumber"), value: orPlaceholder(personal.idNumber) },
     {
-      label: "Date of birth",
-      value: orPlaceholder(formatDate(personal.dateOfBirth)),
+      label: tShared("dateOfBirth"),
+      value: orPlaceholder(formatDate(personal.dateOfBirth, format)),
     },
-    { label: "Mobile", value: orPlaceholder(personal.phone) },
-    { label: "City", value: orPlaceholder(formatCityValue(personal.city)) },
+    { label: tShared("mobile"), value: orPlaceholder(personal.phone) },
     {
-      label: "Profile photo",
-      value: hasDocument(documents, "PROFILE_PHOTO") ? "Uploaded" : "Missing",
+      label: tShared("city"),
+      value: orPlaceholder(formatCityValue(personal.city, cities)),
+    },
+    {
+      label: tShared("profilePhoto"),
+      value: hasDocument(documents, "PROFILE_PHOTO")
+        ? t("uploaded")
+        : t("missing"),
     },
   ];
 }
@@ -157,6 +193,9 @@ function buildPersonalRows(
 function buildLicenceRows(
   draft: OnboardingDraftV1,
   documents: OnboardingDocument[],
+  t: Translate,
+  tShared: Translate,
+  format: Formatter,
 ): SummaryRow[] {
   const licence = draft.licence ?? {};
   const uploadedCount = LICENCE_DOCUMENT_TYPES.filter((type) =>
@@ -164,83 +203,116 @@ function buildLicenceRows(
   ).length;
 
   return [
-    { label: "Number", value: orPlaceholder(licence.licenceNumber) },
-    { label: "Expires", value: orPlaceholder(formatDate(licence.expiresAt)) },
+    { label: t("number"), value: orPlaceholder(licence.licenceNumber) },
     {
-      label: "Categories",
+      label: tShared("expires"),
+      value: orPlaceholder(formatDate(licence.expiresAt, format)),
+    },
+    {
+      label: tShared("categories"),
       value: orPlaceholder(licence.categories?.join(", ")),
     },
     {
-      label: "Photos",
-      value: `${uploadedCount} of ${LICENCE_DOCUMENT_TYPES.length}`,
+      label: tShared("photos"),
+      value: t("uploadedCount", {
+        uploaded: uploadedCount,
+        total: LICENCE_DOCUMENT_TYPES.length,
+      }),
     },
   ];
 }
 
 /** The vehicle card's rows. */
-function buildVehicleRows(draft: OnboardingDraftV1): SummaryRow[] {
+function buildVehicleRows(
+  draft: OnboardingDraftV1,
+  tShared: Translate,
+  tRoot: Translate,
+  format: Formatter,
+): SummaryRow[] {
   const vehicle = draft.vehicle ?? {};
 
   // Guarded rather than called straight: `findVehicleClass` throws on an
   // unknown id, and a half-filled draft legitimately has no class yet.
   const className = vehicle.classId
-    ? findVehicleClass(vehicle.classId as VehicleClassId).name
+    ? tRoot(findVehicleClass(vehicle.classId as VehicleClassId).nameKey)
     : null;
+
+  const colourKey = vehicle.colour ? COLOUR_KEYS[vehicle.colour] : undefined;
+  const colourLabel = colourKey
+    ? tRoot(`onboarding.step3cTechnicalDetails.colours.${colourKey}`)
+    : vehicle.colour;
 
   const makeModel = [vehicle.make, vehicle.model].filter(Boolean).join(" ");
 
   const yearColour =
     vehicle.year || vehicle.colour
-      ? `${orPlaceholder(vehicle.year?.toString())} · ${orPlaceholder(vehicle.colour)}`
+      ? `${orPlaceholder(vehicle.year?.toString())} · ${orPlaceholder(colourLabel)}`
       : null;
 
   const cargoHold =
     vehicle.cargoLengthM && vehicle.cargoWidthM && vehicle.cargoHeightM
-      ? `${vehicle.cargoLengthM} × ${vehicle.cargoWidthM} × ${vehicle.cargoHeightM} m`
+      ? tRoot("onboarding.step4ReviewSubmit.cargoHoldValue", {
+          // Strings: these are already-rounded metre figures, and ICU would
+          // otherwise re-format them with the locale's number grouping rules.
+          length: String(vehicle.cargoLengthM),
+          width: String(vehicle.cargoWidthM),
+          height: String(vehicle.cargoHeightM),
+        })
       : null;
 
+  const chassisLabelKey = vehicle.chassisType
+    ? CHASSIS_LABEL_KEYS[vehicle.chassisType]
+    : undefined;
+
   return [
-    { label: "Class", value: orPlaceholder(className) },
+    { label: tShared("class"), value: orPlaceholder(className) },
     {
-      label: "Body",
+      label: tShared("body"),
+      value: orPlaceholder(chassisLabelKey ? tShared(chassisLabelKey) : null),
+    },
+    { label: tShared("makeModel"), value: orPlaceholder(makeModel) },
+    { label: tShared("yearColour"), value: orPlaceholder(yearColour) },
+    { label: tShared("plate"), value: orPlaceholder(vehicle.plateNumber) },
+    {
+      label: tShared("payload"),
       value: orPlaceholder(
-        vehicle.chassisType ? CHASSIS_LABELS[vehicle.chassisType] : null,
+        vehicle.payloadKg
+          ? tRoot("fleet.step3VehicleSpecifications.payloadKg", {
+              payload: format.number(vehicle.payloadKg),
+            })
+          : null,
       ),
     },
-    { label: "Make / model", value: orPlaceholder(makeModel) },
-    { label: "Year / colour", value: orPlaceholder(yearColour) },
-    { label: "Plate", value: orPlaceholder(vehicle.plateNumber) },
-    {
-      label: "Payload",
-      value: orPlaceholder(
-        vehicle.payloadKg ? `${formatNumber(vehicle.payloadKg)} kg` : null,
-      ),
-    },
-    { label: "Cargo hold", value: orPlaceholder(cargoHold) },
+    { label: tShared("cargoHold"), value: orPlaceholder(cargoHold) },
   ];
 }
 
 export function Step4ReviewSubmit() {
   const { draft, documents, goToStep, refetch } = useOnboardingDraft();
+  const t = useTranslations("onboarding.step4ReviewSubmit");
+  const tShared = useTranslations("common.shared");
+  const tRoot = useTranslations();
+  const format = useFormatter();
+  const cities = useLocalizedCityOptions();
 
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const cards: SummaryCard[] = [
     {
-      title: "Personal information",
+      title: t("personalInformation"),
       editStep: ONBOARDING_SCREENS.personal,
-      rows: buildPersonalRows(draft, documents),
+      rows: buildPersonalRows(draft, documents, t, tShared, format, cities),
     },
     {
-      title: "Driver's licence",
+      title: t("driverSLicence"),
       editStep: ONBOARDING_SCREENS.licence,
-      rows: buildLicenceRows(draft, documents),
+      rows: buildLicenceRows(draft, documents, t, tShared, format),
     },
     {
-      title: "Vehicle",
+      title: tShared("vehicle"),
       editStep: ONBOARDING_SCREENS.vehicleBodyAndClass,
-      rows: buildVehicleRows(draft),
+      rows: buildVehicleRows(draft, tShared, tRoot, format),
     },
   ];
 
@@ -254,7 +326,7 @@ export function Step4ReviewSubmit() {
       // draft, so there is nothing left for this screen to send.
       response = await fetch(SUBMIT_ENDPOINT, { method: "POST" });
     } catch {
-      setSubmitError(SUBMIT_ERROR_FALLBACK);
+      setSubmitError(t("submitFailed"));
       setSubmitting(false);
       return;
     }
@@ -263,7 +335,7 @@ export function Step4ReviewSubmit() {
       const payload = (await response.json().catch(() => null)) as {
         error?: string;
       } | null;
-      setSubmitError(payload?.error ?? SUBMIT_ERROR_FALLBACK);
+      setSubmitError(payload?.error ?? t("submitFailed"));
       setSubmitting(false);
       return;
     }
@@ -278,8 +350,7 @@ export function Step4ReviewSubmit() {
   return (
     <div className="flex flex-col gap-3">
       <p className="text-[13.5px] leading-[1.5] text-muted-foreground">
-        Check everything before it goes to the review team. Corrections after
-        submission cost you a day.
+        {t("checkEverythingBeforeItGoesTo")}
       </p>
 
       {cards.map((card) => (
@@ -303,7 +374,7 @@ export function Step4ReviewSubmit() {
               onClick={() => goToStep(card.editStep)}
               className="cursor-pointer text-xs font-semibold text-onboarding-accent transition-colors hover:text-onboarding-accent-hover focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
             >
-              Edit
+              {tShared("edit")}
               <span className="sr-only"> {card.title.toLowerCase()}</span>
             </button>
           </div>
@@ -343,7 +414,7 @@ export function Step4ReviewSubmit() {
           // orange under `.dark`. Leave the pair as it is.
           className="h-12 cursor-pointer rounded-[11px] bg-onboarding-accent px-[30px] text-[15px] font-semibold tracking-[-0.01em] text-white transition-colors hover:bg-onboarding-accent-hover focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {submitting ? "Submitting…" : "Submit application"}
+          {submitting ? t("submitting") : t("submitApplication")}
         </button>
       </div>
     </div>

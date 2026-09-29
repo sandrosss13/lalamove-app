@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 import { useRouter } from "@/i18n/navigation";
 import { AccountTypeStep } from "@/components/auth/account-type-step";
@@ -17,6 +18,7 @@ import {
   InlineLinkButton,
   PhoneField,
   SocialBlock,
+  useAccountTypeLabels,
 } from "@/components/auth/auth-primitives";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { RoleStep } from "@/components/auth/role-step";
@@ -62,11 +64,11 @@ type SessionRole = Role | "ADMIN";
  * card roles, whereas these are lowercase because they appear mid-sentence and
  * have to include COMPANY, which is a resolved portal rather than a card.
  */
-const PORTAL_LABELS: Record<Role, string> = {
-  CLIENT: "client",
-  DRIVER: "driver",
-  COMPANY: "logistics company",
-};
+const PORTAL_LABEL_KEYS = {
+  CLIENT: "portalClient",
+  DRIVER: "portalDriver",
+  COMPANY: "portalCompany",
+} as const satisfies Record<Role, string>;
 
 /**
  * Where to send a successfully signed-in **client**. Providers — drivers and
@@ -276,6 +278,9 @@ export function SignInForm({
   accountTypeQuery,
   stepQuery,
 }: SignInFormProps) {
+  const t = useTranslations("auth.signInForm");
+  const tShared = useTranslations("common.shared");
+  const accountTypeLabels = useAccountTypeLabels();
   const router = useRouter();
   const fieldId = React.useId();
 
@@ -386,16 +391,17 @@ export function SignInForm({
     // ADMIN has no card on this form and no portal to point at — the back office
     // is served from its own host, which middleware redirects `/sign-in` off.
     if (actualRole === "ADMIN") {
-      return "This account cannot sign in here. Please contact support.";
+      return t("cannotSignInHere");
     }
 
     if (audience === "CLIENT" && actualRole !== "CLIENT") {
-      const actualRoleLabel = PORTAL_LABELS[actualRole];
-      return `This account is registered as a ${actualRoleLabel}. Please sign in at the merchant portal.`;
+      return t("registeredAsMerchant", {
+        role: t(PORTAL_LABEL_KEYS[actualRole]),
+      });
     }
 
     if (audience === "MERCHANT" && actualRole === "CLIENT") {
-      return "This is a customer account. Please sign in at the main site.";
+      return t("customerAccount");
     }
 
     // Same-host mismatch: picked the wrong portal on a host that serves it.
@@ -403,8 +409,9 @@ export function SignInForm({
     // to two portals — a company that picked Individual is told to use the
     // logistics company sign-in, and a driver that picked Business is told to
     // use the driver one.
-    const actualRoleLabel = PORTAL_LABELS[actualRole];
-    return `This account is registered as a ${actualRoleLabel}. Please use the ${actualRoleLabel} sign-in.`;
+    return t("registeredAsUsePortal", {
+      role: t(PORTAL_LABEL_KEYS[actualRole]),
+    });
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -420,12 +427,12 @@ export function SignInForm({
     const trimmedEmail = email.trim();
     const nextEmailError =
       trimmedEmail.length === 0
-        ? "Enter your email address."
+        ? t("enterYourEmailAddress")
         : isValidEmail(trimmedEmail)
           ? null
-          : "Enter a valid email address.";
+          : t("enterAValidEmailAddress");
     const nextPasswordError =
-      password.length === 0 ? "Enter your password." : null;
+      password.length === 0 ? t("enterYourPassword") : null;
 
     setEmailError(nextEmailError);
     setPasswordError(nextPasswordError);
@@ -454,7 +461,7 @@ export function SignInForm({
       // does not match the server's behaviour is worse than showing none.
       setFormError({
         kind: "credentials",
-        message: signInError.message ?? "Invalid email or password.",
+        message: signInError.message ?? t("invalidEmailOrPassword"),
       });
       return;
     }
@@ -500,10 +507,11 @@ export function SignInForm({
       // half-accepted session behind, and stay on the form.
       await signOut();
       setLoading(false);
-      const storedLabel = ACCOUNT_TYPE_LABELS[storedAccountType];
       setFormError({
         kind: "portal",
-        message: `This account is registered as ${storedLabel}. Please use the ${storedLabel} sign-in.`,
+        message: t("registeredAsType", {
+          type: accountTypeLabels[storedAccountType],
+        }),
       });
       return;
     }
@@ -534,16 +542,13 @@ export function SignInForm({
     return (
       <AuthShell maxWidth="420" className="gap-6">
         <BackLink
-          label="← Back to sign in"
+          label={t("backToSignIn")}
           onClick={() => goTo({ role, accountType })}
         />
 
         <div className="flex flex-col gap-2.5">
-          <AuthHeading>Reset your password</AuthHeading>
-          <AuthSubheading>
-            Enter the email on your account. We send a link that stays valid for
-            30 minutes.
-          </AuthSubheading>
+          <AuthHeading>{t("resetYourPassword")}</AuthHeading>
+          <AuthSubheading>{t("enterTheEmailOnYourAccount")}</AuthSubheading>
         </div>
 
         {/*
@@ -556,7 +561,7 @@ export function SignInForm({
           className="flex flex-col gap-4"
         >
           <div className="flex flex-col gap-2">
-            <Label htmlFor={`${fieldId}-reset-email`}>Email</Label>
+            <Label htmlFor={`${fieldId}-reset-email`}>{tShared("email")}</Label>
             {/* Shares the sign-in email state, so arriving here from a failed
                 attempt carries the address across instead of asking twice. */}
             <Input
@@ -564,7 +569,7 @@ export function SignInForm({
               type="email"
               inputMode="email"
               autoComplete="email"
-              placeholder="you@company.ge"
+              placeholder={tShared("youCompanyGe")}
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               aria-describedby={`${fieldId}-reset-note`}
@@ -583,24 +588,22 @@ export function SignInForm({
           <Button
             type="submit"
             disabled
-            title="Password reset is not available yet."
+            title={t("passwordResetIsNotAvailableYet2")}
             aria-describedby={`${fieldId}-reset-note`}
             className="h-11 w-full text-base"
           >
-            Send reset link
+            {t("sendResetLink")}
           </Button>
 
           <p
             id={`${fieldId}-reset-note`}
             className="text-[13px] leading-[1.5] text-[var(--landing-muted)]"
           >
-            Password reset is not available yet — contact support and we will
-            reset it for you.
+            {t("passwordResetIsNotAvailableYet")}
           </p>
 
           <p className="text-[13px] leading-[1.5] text-[var(--landing-muted)]">
-            Back-office accounts reset through your administrator, not this
-            form.
+            {t("backOfficeAccountsResetThroughYour")}
           </p>
         </form>
       </AuthShell>
@@ -683,7 +686,7 @@ export function SignInForm({
 
       <div className="flex flex-col gap-2.5">
         <ContextChip role={role} accountType={accountType} />
-        <AuthHeading>Sign in</AuthHeading>
+        <AuthHeading>{tShared("signIn")}</AuthHeading>
       </div>
 
       {/*
@@ -699,10 +702,10 @@ export function SignInForm({
       <Tabs defaultValue="email" className="w-full gap-0">
         <TabsList className="w-full">
           <TabsTrigger value="phone" className="flex-1">
-            Phone
+            {tShared("phone")}
           </TabsTrigger>
           <TabsTrigger value="email" className="flex-1">
-            Email
+            {tShared("email")}
           </TabsTrigger>
         </TabsList>
 
@@ -720,7 +723,7 @@ export function SignInForm({
               value=""
               onChange={() => {}}
               disabled
-              helper="We text a 6-digit code. No password needed."
+              helper={t("weTextACode")}
               // Same `aria-describedby` note the Send code button carries, so
               // the field itself also names the reason it is greyed out rather
               // than leaving its helper text describing a flow that cannot run.
@@ -730,19 +733,18 @@ export function SignInForm({
             <Button
               type="button"
               disabled
-              title="Code sign-in is not available yet."
+              title={t("codeSignInIsNotAvailable2")}
               aria-describedby={phoneNoteId}
               className="h-11 w-full text-base"
             >
-              Send code
+              {t("sendCode")}
             </Button>
 
             <p
               id={phoneNoteId}
               className="text-[13px] leading-[1.5] text-[var(--landing-muted)]"
             >
-              Code sign-in is not available yet — use the Email tab to sign in
-              with your password.
+              {t("codeSignInIsNotAvailable")}
             </p>
           </div>
         </TabsContent>
@@ -764,14 +766,14 @@ export function SignInForm({
             ) : null}
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor={`${fieldId}-email`}>Email</Label>
+              <Label htmlFor={`${fieldId}-email`}>{tShared("email")}</Label>
               <Input
                 id={`${fieldId}-email`}
                 type="email"
                 inputMode="email"
                 autoComplete="email"
                 required
-                placeholder="you@company.ge"
+                placeholder={tShared("youCompanyGe")}
                 value={email}
                 onChange={(event) => {
                   setEmail(event.target.value);
@@ -790,7 +792,9 @@ export function SignInForm({
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor={`${fieldId}-password`}>Password</Label>
+              <Label htmlFor={`${fieldId}-password`}>
+                {tShared("password")}
+              </Label>
 
               <Input
                 id={`${fieldId}-password`}
@@ -834,7 +838,7 @@ export function SignInForm({
                     : "text-[var(--landing-muted)] hover:text-[var(--landing-accent)]",
                 )}
               >
-                {formError ? "Reset it" : "Forgot password?"}
+                {formError ? t("resetIt") : t("forgotPassword")}
               </button>
             </div>
 
@@ -843,7 +847,7 @@ export function SignInForm({
               disabled={loading}
               className="h-11 w-full text-base"
             >
-              {loading ? "Signing in…" : "Sign in"}
+              {loading ? t("signingIn") : tShared("signIn")}
             </Button>
           </form>
         </TabsContent>
@@ -857,11 +861,11 @@ export function SignInForm({
         the phone tab, which cannot sign anyone in yet.
       */}
       <p className="text-sm text-[var(--landing-muted)]">
-        New to Lalamove?{" "}
+        {t("newToLalamove")}{" "}
         <InlineLinkButton
           href={flowHref(MODE_PATHS.signup, { role, accountType })}
         >
-          Create an account
+          {t("createAnAccount")}
         </InlineLinkButton>
       </p>
     </AuthShell>

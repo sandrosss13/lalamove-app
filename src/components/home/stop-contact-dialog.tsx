@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 import {
   Dialog,
@@ -70,10 +71,13 @@ export const EMPTY_STOP_CONTACT: StopContact = {
 /** Georgian country code, fixed: the app books journeys within Georgia. */
 const PHONE_COUNTRY_CODE = "+995";
 
-/** What each stop is called in the dialog's accessible name and badge. */
+/**
+ * What each stop is called in the dialog's accessible name and badge.
+ * `accessibleNameKey` is a key in `home.stopContactDialog`, translated at render.
+ */
 const STOP_COPY = {
-  pickup: { accessibleName: "Delivery info for the pickup", badge: "1" },
-  dropoff: { accessibleName: "Delivery info for the dropoff", badge: "2" },
+  pickup: { accessibleNameKey: "deliveryInfoForPickup", badge: "1" },
+  dropoff: { accessibleNameKey: "deliveryInfoForDropoff", badge: "2" },
 } as const;
 
 /**
@@ -111,6 +115,8 @@ export function StopContactDialog({
   initialValue,
   onSave,
 }: StopContactDialogProps) {
+  const t = useTranslations("home.stopContactDialog");
+  const tShared = useTranslations("common.shared");
   const [draft, setDraft] = useState<StopContact>(
     initialValue ?? EMPTY_STOP_CONTACT,
   );
@@ -130,7 +136,7 @@ export function StopContactDialog({
     }
   }
 
-  const { accessibleName, badge } = STOP_COPY[stop];
+  const { accessibleNameKey, badge } = STOP_COPY[stop];
 
   function handleSave() {
     onSave(draft);
@@ -187,7 +193,7 @@ export function StopContactDialog({
         {/* The dialog's real accessible name: it says *which* stop is being
             filled in, which the styled heading below cannot, because it reads
             the same for both. */}
-        <DialogTitle className="sr-only">{accessibleName}</DialogTitle>
+        <DialogTitle className="sr-only">{t(accessibleNameKey)}</DialogTitle>
 
         <div className="mb-5 flex items-center gap-3">
           {/* Decorative: the accessible name already carries which stop this
@@ -202,7 +208,7 @@ export function StopContactDialog({
             aria-hidden="true"
             className="text-[13px] font-semibold tracking-[0.1em] text-muted uppercase"
           >
-            Delivery info
+            {t("deliveryInfo")}
           </span>
         </div>
 
@@ -228,8 +234,8 @@ export function StopContactDialog({
             onChange={(event) =>
               setDraft((current) => ({ ...current, name: event.target.value }))
             }
-            placeholder="Name"
-            aria-label="Name"
+            placeholder={tShared("name")}
+            aria-label={tShared("name")}
             autoComplete="off"
             className={`${FIELD_BOX_CLASSES} ${PLACEHOLDER_CLASSES} ${FIELD_FOCUS_CLASSES}`}
           />
@@ -252,8 +258,8 @@ export function StopContactDialog({
                   phone: event.target.value,
                 }))
               }
-              placeholder="Phone number"
-              aria-label="Phone number"
+              placeholder={t("phoneNumber")}
+              aria-label={t("phoneNumber")}
               autoComplete="off"
               className={`${PLACEHOLDER_CLASSES} h-full w-full min-w-0 border-0 bg-transparent pl-3 text-[15px] text-paper outline-none`}
             />
@@ -268,14 +274,16 @@ export function StopContactDialog({
                 details: event.target.value,
               }))
             }
-            placeholder="Block/Floor/Room"
-            aria-label="Block, floor or room"
+            placeholder={t("blockFloorRoom")}
+            aria-label={t("blockFloorOrRoom")}
             autoComplete="off"
             className={`${FIELD_BOX_CLASSES} ${PLACEHOLDER_CLASSES} ${FIELD_FOCUS_CLASSES}`}
           />
         </div>
 
-        <p className="mt-3 text-[12px] text-muted">All fields are optional.</p>
+        <p className="mt-3 text-[12px] text-muted">
+          {t("allFieldsAreOptional")}
+        </p>
 
         <div className="mt-[22px] flex items-center justify-end gap-4">
           {/* Cancel discards the draft simply by closing: the next open
@@ -285,7 +293,7 @@ export function StopContactDialog({
             onClick={() => onOpenChange(false)}
             className="px-2 py-3 text-[15px] font-semibold text-accent transition-colors hover:text-accent-hover"
           >
-            Cancel
+            {tShared("cancel")}
           </button>
           {/* Never disabled: all three fields are optional and none is
               validated, so there is no state in which saving is refused. */}
@@ -294,7 +302,7 @@ export function StopContactDialog({
             onClick={handleSave}
             className="rounded-lg bg-accent px-8 py-[13px] text-[15px] font-semibold text-on-accent transition-colors hover:bg-accent-hover"
           >
-            Save
+            {t("save")}
           </button>
         </div>
       </DialogContent>

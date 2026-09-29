@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import type { AdminRole } from "@prisma/client";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { authorizeAdminApi } from "@/lib/admin/api-auth";
 import { writeAuditLog } from "@/lib/admin/audit";
 import { prisma } from "@/lib/prisma";
@@ -44,6 +45,7 @@ export async function POST(
   }
 
   const { id } = await params;
+  const t = await getRequestTranslations();
 
   // Live documents only: a superseded row is history, and its old flag must not
   // stand in for a verdict on the photo that replaced it.
@@ -64,7 +66,7 @@ export async function POST(
   // there is nothing here for a reviewer to have opened.
   if (!application || application.status === "DRAFT") {
     return NextResponse.json(
-      { error: "Application not found." },
+      { error: t("common.shared.applicationNotFound") },
       { status: 404 },
     );
   }
@@ -73,7 +75,7 @@ export async function POST(
   // doc): an approved driver is already active and cannot be pulled back here.
   if (application.status === "APPROVED") {
     return NextResponse.json(
-      { error: "This application has already been approved." },
+      { error: t("common.shared.thisApplicationHasAlreadyBeenApproved") },
       { status: 400 },
     );
   }
@@ -84,7 +86,11 @@ export async function POST(
   // for. Reject rather than produce that dead end.
   if (application.documents.length === 0) {
     return NextResponse.json(
-      { error: "Flag at least one document before requesting changes." },
+      {
+        error: t(
+          "errors.adminDriverApplicationsRequestChanges.flagAtLeastOneDocumentBefore",
+        ),
+      },
       { status: 400 },
     );
   }

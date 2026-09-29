@@ -8,6 +8,7 @@ import type {
   DriverApplicationStatus,
 } from "@prisma/client";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { authorizeAdminApi } from "@/lib/admin/api-auth";
 import { getDriverDocumentSignedUrls } from "@/lib/driver-document-storage";
 import { prisma } from "@/lib/prisma";
@@ -224,8 +225,10 @@ export async function GET(
   });
 
   if (!application || application.status === "DRAFT") {
+    const t = await getRequestTranslations();
+
     return NextResponse.json(
-      { error: "Application not found." },
+      { error: t("common.shared.applicationNotFound") },
       { status: 404 },
     );
   }

@@ -2,20 +2,19 @@
 
 import type { ReactElement } from "react";
 import type { CargoCategory } from "@prisma/client";
+import { useTranslations } from "next-intl";
 
 import {
   CARGO_CATEGORY_ALLOWED_VEHICLE_CATEGORIES,
   CARGO_CATEGORY_LABELS,
+  useCargoCategoryLabel,
 } from "@/lib/cargo";
 import { formatGel } from "@/components/landing/landing-format";
 import {
   useLandingVehicleTypes,
   type LandingVehicleType,
 } from "@/components/landing/landing-vehicle-types";
-import {
-  DEFAULT_HOME_PAGE_CONTENT,
-  type CategoryTilesContent,
-} from "@/lib/admin/home-page-content";
+import { type CategoryTilesContent } from "@/lib/admin/home-page-content";
 
 /**
  * A short cross-town hop, used only to turn a pricing rule into a single
@@ -178,10 +177,9 @@ const CATEGORY_GLYPHS: Record<CargoCategory, () => ReactElement> = {
 };
 
 /** Cargo categories in the order the taxonomy declares them. */
-const CARGO_CATEGORY_OPTIONS = Object.entries(CARGO_CATEGORY_LABELS) as [
-  CargoCategory,
-  string,
-][];
+const CARGO_CATEGORY_OPTIONS = Object.keys(
+  CARGO_CATEGORY_LABELS,
+) as CargoCategory[];
 
 /**
  * The cheapest vehicle type this cargo may legally travel in, or `null` while
@@ -233,10 +231,12 @@ function fromPrice(vehicleType: LandingVehicleType): number {
  * generated from the live cargo taxonomy.
  */
 export function LandingCategoryTiles({
-  content = DEFAULT_HOME_PAGE_CONTENT.category_tiles,
+  content,
 }: {
-  content?: CategoryTilesContent;
+  content: CategoryTilesContent;
 }) {
+  const t = useTranslations("landing.landingCategoryTiles");
+  const cargoCategoryLabel = useCargoCategoryLabel();
   const { vehicleTypes } = useLandingVehicleTypes();
 
   return (
@@ -256,7 +256,7 @@ export function LandingCategoryTiles({
         </p>
 
         <ul className="mt-12 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {CARGO_CATEGORY_OPTIONS.map(([cargoCategory, label]) => {
+          {CARGO_CATEGORY_OPTIONS.map((cargoCategory) => {
             const Glyph = CATEGORY_GLYPHS[cargoCategory];
             const vehicleType = cheapestEligibleVehicleType(
               vehicleTypes,
@@ -273,19 +273,26 @@ export function LandingCategoryTiles({
                     <Glyph />
                   </span>
                   <span className="mt-2 font-display text-[0.9375rem] leading-snug font-semibold text-paper">
-                    {label}
+                    {cargoCategoryLabel(cargoCategory)}
                   </span>
                   <span className="text-[0.8125rem] leading-snug text-muted">
                     {vehicleType ? vehicleType.label : EMPTY_FIGURE}
                   </span>
                   <span className="mt-auto pt-3 text-[0.8125rem] text-muted">
-                    from{" "}
-                    <span className="font-price font-semibold text-paper">
-                      {vehicleType
+                    {/* Rich rather than plain so the figure keeps its own
+                        weight: where it sits in the sentence differs by
+                        language ("from ₾40" / "₾40-დან"). */}
+                    {t.rich("fromPriceEmphasised", {
+                      price: vehicleType
                         ? formatGel(fromPrice(vehicleType))
-                        : EMPTY_FIGURE}
-                    </span>
-                    <span className="sr-only"> — price your own route</span>
+                        : EMPTY_FIGURE,
+                      figure: (chunks) => (
+                        <span className="font-price font-semibold text-paper">
+                          {chunks}
+                        </span>
+                      ),
+                    })}
+                    <span className="sr-only"> {t("priceYourOwnRoute")}</span>
                   </span>
                 </a>
               </li>

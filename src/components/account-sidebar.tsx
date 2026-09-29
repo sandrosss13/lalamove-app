@@ -1,6 +1,7 @@
 "use client";
 
 import { LogOut } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { Link, usePathname } from "@/i18n/navigation";
 import { useSignOut } from "@/components/auth/use-sign-out";
@@ -17,8 +18,9 @@ import { cn } from "@/lib/utils";
  * for them would only promise screens that don't exist.
  */
 const NAV_ITEMS = [
-  { href: "/account", label: "Profile" },
-  { href: "/orders", label: "Orders" },
+  // `labelKey` is a key in `common.shared`, translated at render.
+  { href: "/account", labelKey: "profile" },
+  { href: "/orders", labelKey: "orders" },
 ] as const;
 
 const SECTION_LABEL_CLASSES =
@@ -42,6 +44,8 @@ function isNavItemActive(pathname: string, href: string): boolean {
  * out stay exactly where they were.
  */
 export function AccountSidebar() {
+  const t = useTranslations("common.shared");
+  const tSidebar = useTranslations("account.accountSidebar");
   const pathname = usePathname();
   // Shared with every other sign-out control in the app; `useSignOut` owns both
   // the destination and the in-flight `signingOut` flag this rail's button
@@ -51,9 +55,9 @@ export function AccountSidebar() {
   return (
     <aside className="lg:sticky lg:top-8 lg:h-[calc(100vh-6rem)] lg:w-56 lg:shrink-0">
       <div className="flex h-full flex-col">
-        <p className={SECTION_LABEL_CLASSES}>Account</p>
+        <p className={SECTION_LABEL_CLASSES}>{t("account")}</p>
 
-        <nav aria-label="Account settings" className="mt-3 flex flex-col">
+        <nav aria-label={t("accountSettings")} className="mt-3 flex flex-col">
           {NAV_ITEMS.map((item) => {
             const active = isNavItemActive(pathname, item.href);
 
@@ -69,7 +73,7 @@ export function AccountSidebar() {
                     : "border-line text-muted hover:text-paper",
                 )}
               >
-                {item.label}
+                {t(item.labelKey)}
               </Link>
             );
           })}
@@ -84,7 +88,7 @@ export function AccountSidebar() {
           className="mt-8 inline-flex items-center gap-2 self-start text-sm font-medium text-muted transition-colors hover:text-accent disabled:opacity-50 lg:mt-auto"
         >
           <LogOut aria-hidden="true" className="size-4" />
-          {signingOut ? "Logging out…" : "Log out"}
+          {signingOut ? tSidebar("loggingOut") : tSidebar("logOut")}
         </button>
       </div>
     </aside>

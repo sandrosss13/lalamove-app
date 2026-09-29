@@ -1,15 +1,17 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 
 import {
   AuthHeading,
   AuthSubheading,
   BackLink,
   Eyebrow,
+  useAccountTypeLabels,
 } from "@/components/auth/auth-primitives";
-import { ACCOUNT_TYPE_LABELS, type AccountType } from "@/lib/account-types";
-import { accountTypeRowsForRole, type FlowRole } from "@/lib/auth-flow";
+import type { AccountType } from "@/lib/account-types";
+import { useAccountTypeRowsForRole, type FlowRole } from "@/lib/auth-flow";
 import { cn } from "@/lib/utils";
 
 /**
@@ -54,8 +56,10 @@ export function AccountTypeStep({
   onBack,
   className,
 }: AccountTypeStepProps) {
+  const t = useTranslations("auth.accountTypeStep");
   const headingId = React.useId();
-  const rows = accountTypeRowsForRole(role);
+  const rows = useAccountTypeRowsForRole(role);
+  const accountTypeLabels = useAccountTypeLabels();
 
   // Populated on render so the arrow keys have something to move focus to.
   // Indexed the same way as `rows`, which is stable for a given role.
@@ -106,12 +110,9 @@ export function AccountTypeStep({
       <BackLink onClick={onBack} />
 
       <div className="flex flex-col gap-2.5">
-        <Eyebrow>Step 2 of 3 · Type</Eyebrow>
-        <AuthHeading id={headingId}>Which describes you?</AuthHeading>
-        <AuthSubheading>
-          This decides what we ask for next — personal details or company
-          documents.
-        </AuthSubheading>
+        <Eyebrow>{t("step2Of3Type")}</Eyebrow>
+        <AuthHeading id={headingId}>{t("whichDescribesYou")}</AuthHeading>
+        <AuthSubheading>{t("thisDecidesWhatWeAskFor")}</AuthSubheading>
       </div>
 
       <div
@@ -167,7 +168,7 @@ export function AccountTypeStep({
 
               <span className="flex min-w-0 flex-col gap-0.5">
                 <span className="text-base font-medium text-[var(--landing-paper)]">
-                  {ACCOUNT_TYPE_LABELS[row.value]}
+                  {accountTypeLabels[row.value]}
                 </span>
                 <span className="text-[13px] text-[var(--landing-muted)]">
                   {row.description}

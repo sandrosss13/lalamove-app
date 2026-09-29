@@ -1,10 +1,9 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 import { HubCard, SampleNote } from "@/components/driver-hub/hub-primitives";
-import {
-  formatGel,
-  pluralise,
-} from "@/components/driver-hub/screens/earnings-format";
+import { formatGel } from "@/components/driver-hub/screens/earnings-format";
 import type { SampleEarningsExtras } from "@/lib/dashboard/hub/sample";
 import { cn } from "@/lib/utils";
 
@@ -61,13 +60,6 @@ const POSITIVE_VALUE_CLASSES =
 const ACCENT_DOT_CLASSES =
   "size-1.5 shrink-0 rounded-full bg-[oklch(64%_0.19_48)]";
 
-const SAMPLED_LINES_NOTE =
-  "Tips, incentives and adjustments are placeholders: Order has no tipAmount " +
-  "column, nothing records that a bonus was earned, and no deduction is " +
-  "stored against a payout. Retire with Order.tipAmount, an Incentive model " +
-  "and a PayoutAdjustment model. Trip fares are real, and the range total " +
-  "adds all four lines together — so it is part estimate too.";
-
 type BreakdownLine = {
   label: string;
   note: string;
@@ -115,28 +107,31 @@ export function EarningsBreakdownCard({
   extras,
   incentivesNote,
 }: EarningsBreakdownCardProps) {
+  const t = useTranslations("driverHub.earningsBreakdownCard");
+  const tShared = useTranslations("common.shared");
+  const sampledLinesNote = t("sampledLinesNote");
   const lines: readonly BreakdownLine[] = [
     {
-      label: "Trip fares",
-      note: pluralise(jobsCompleted, "completed job"),
+      label: t("tripFares"),
+      note: t("completedJobsCount", { count: jobsCompleted }),
       amountGel: grossFares,
       sampled: false,
     },
     {
-      label: "Tips",
-      note: pluralise(extras.tippingCustomers, "customer"),
+      label: t("tips"),
+      note: t("customersCount", { count: extras.tippingCustomers }),
       amountGel: extras.tipsGel,
       sampled: true,
     },
     {
-      label: "Incentives",
+      label: tShared("incentives"),
       note: incentivesNote,
       amountGel: extras.incentivesGel,
       sampled: true,
       valueClassName: POSITIVE_VALUE_CLASSES,
     },
     {
-      label: "Adjustments",
+      label: t("adjustments"),
       note: extras.adjustmentsNote,
       amountGel: extras.adjustmentsGel,
       sampled: true,
@@ -151,7 +146,7 @@ export function EarningsBreakdownCard({
 
   return (
     <HubCard
-      title="Breakdown"
+      title={t("breakdown")}
       // One legend for the three marked lines rather than three badges in a
       // narrow card: the marker belongs to the lines, and repeating it three
       // times would drown the one line that is real. It covers the footer as
@@ -159,8 +154,8 @@ export function EarningsBreakdownCard({
       // which is why the note says so and the label names only the sources.
       action={
         <SampleNote
-          label="Tips · Incentives · Adjustments"
-          note={SAMPLED_LINES_NOTE}
+          label={t("tipsIncentivesAdjustments")}
+          note={sampledLinesNote}
         />
       }
     >
@@ -177,12 +172,12 @@ export function EarningsBreakdownCard({
                   <>
                     <span
                       aria-hidden="true"
-                      title={SAMPLED_LINES_NOTE}
+                      title={sampledLinesNote}
                       className={ACCENT_DOT_CLASSES}
                     />
                     <span className="sr-only">
                       {" "}
-                      — sample data. {SAMPLED_LINES_NOTE}
+                      {t("sampleDataSr")} {sampledLinesNote}
                     </span>
                   </>
                 ) : null}
@@ -202,7 +197,7 @@ export function EarningsBreakdownCard({
       </div>
 
       <div className="mt-1.5 flex items-center justify-between gap-3 border-t border-border pt-3.5">
-        <p className="text-sm font-semibold">Range total</p>
+        <p className="text-sm font-semibold">{t("rangeTotal")}</p>
         <p className="font-price text-xl font-semibold">
           {formatGel(rangeTotal)}
         </p>

@@ -2,25 +2,27 @@
 
 import { useId, useState } from "react";
 import type { CargoCategory } from "@prisma/client";
+import { useTranslations } from "next-intl";
 
 import {
   CARGO_CATEGORY_ALLOWED_VEHICLE_CATEGORIES,
   CARGO_CATEGORY_LABELS,
+  useCargoCategoryLabel,
 } from "@/lib/cargo";
 import { Link } from "@/i18n/navigation";
 import { formatGel } from "@/components/landing/landing-format";
 import { useLandingVehicleTypes } from "@/components/landing/landing-vehicle-types";
-import {
-  DEFAULT_HOME_PAGE_CONTENT,
-  type QuoteCalculatorContent,
-} from "@/lib/admin/home-page-content";
+import { type QuoteCalculatorContent } from "@/lib/admin/home-page-content";
 import { cn } from "@/lib/utils";
 
-/** Cargo categories in the order the taxonomy declares them. */
-const CARGO_CATEGORY_OPTIONS = Object.entries(CARGO_CATEGORY_LABELS) as [
-  CargoCategory,
-  string,
-][];
+/**
+ * Cargo categories in the order the taxonomy declares them. Only the keys are
+ * taken from the English label table — the labels themselves are rendered in
+ * the reader's language through `useCargoCategoryLabel`.
+ */
+const CARGO_CATEGORY_OPTIONS = Object.keys(
+  CARGO_CATEGORY_LABELS,
+) as CargoCategory[];
 
 const DEFAULT_CARGO_CATEGORY: CargoCategory = "FURNITURE_FURNISHINGS";
 
@@ -115,10 +117,13 @@ function transportationCost(estimate: Estimate): number {
  * message below is tied to a specific request/response shape and stays here.
  */
 export function LandingQuoteCalculator({
-  content = DEFAULT_HOME_PAGE_CONTENT.quote_calculator,
+  content,
 }: {
-  content?: QuoteCalculatorContent;
+  content: QuoteCalculatorContent;
 }) {
+  const t = useTranslations("landing.landingQuoteCalculator");
+  const tShared = useTranslations("common.shared");
+  const cargoCategoryLabel = useCargoCategoryLabel();
   const pickupId = useId();
   const dropoffId = useId();
   const cargoCategoryId = useId();
@@ -198,7 +203,7 @@ export function LandingQuoteCalculator({
     setEstimate(null);
 
     if (!cheapestVehicleType) {
-      setError("Could not price this load. Please try again.");
+      setError(t("couldNotPriceThisLoadPlease"));
       return;
     }
 
@@ -228,7 +233,7 @@ export function LandingQuoteCalculator({
         const message =
           "error" in payload && payload.error
             ? payload.error
-            : "Could not price this load. Please try again.";
+            : t("couldNotPriceThisLoadPlease");
         setError(message);
         return;
       }
@@ -240,7 +245,7 @@ export function LandingQuoteCalculator({
         vehicleLabel: cheapestVehicleType.label,
       });
     } catch {
-      setError("Network error. Please check your connection and try again.");
+      setError(tShared("networkErrorPleaseCheckYourConnection"));
     } finally {
       setSubmitting(false);
     }
@@ -293,7 +298,7 @@ export function LandingQuoteCalculator({
                 aria-hidden="true"
                 className="inline-block h-1.5 w-1.5 rounded-full bg-accent"
               />
-              Estimate
+              {t("estimate")}
             </span>
 
             <div className="mt-5 flex flex-col gap-3.5">
@@ -305,7 +310,7 @@ export function LandingQuoteCalculator({
                     aria-hidden="true"
                     className="h-2 w-2 rounded-full border-[1.5px] border-accent"
                   />
-                  Pickup
+                  {tShared("pickup")}
                 </label>
                 <input
                   id={pickupId}
@@ -314,7 +319,7 @@ export function LandingQuoteCalculator({
                   onChange={(event) =>
                     updateField(setPickupAddress, event.target.value)
                   }
-                  placeholder="Rustaveli Ave 12, Tbilisi"
+                  placeholder={t("rustaveliAve12Tbilisi")}
                   autoComplete="off"
                   required
                   className={FIELD_CLASSES}
@@ -327,7 +332,7 @@ export function LandingQuoteCalculator({
                     aria-hidden="true"
                     className="h-2 w-2 rounded-[2px] bg-accent"
                   />
-                  Dropoff
+                  {tShared("dropoff")}
                 </label>
                 <input
                   id={dropoffId}
@@ -336,7 +341,7 @@ export function LandingQuoteCalculator({
                   onChange={(event) =>
                     updateField(setDropoffAddress, event.target.value)
                   }
-                  placeholder="Aghmashenebeli Ave 88, Tbilisi"
+                  placeholder={t("aghmashenebeliAve88Tbilisi")}
                   autoComplete="off"
                   required
                   className={FIELD_CLASSES}
@@ -348,7 +353,7 @@ export function LandingQuoteCalculator({
                   htmlFor={cargoCategoryId}
                   className={FIELD_LABEL_CLASSES}
                 >
-                  What are you moving
+                  {t("whatAreYouMoving")}
                 </label>
                 {/* `appearance-none` drops the platform arrow, so the wrapper
                     draws the replacement as an inline SVG — a token stroke,
@@ -363,9 +368,9 @@ export function LandingQuoteCalculator({
                     required
                     className={SELECT_CLASSES}
                   >
-                    {CARGO_CATEGORY_OPTIONS.map(([value, label]) => (
+                    {CARGO_CATEGORY_OPTIONS.map((value) => (
                       <option key={value} value={value}>
-                        {label}
+                        {cargoCategoryLabel(value)}
                       </option>
                     ))}
                   </select>
@@ -395,7 +400,7 @@ export function LandingQuoteCalculator({
                   margins instead of the column's `gap`. */}
               <fieldset>
                 <legend className="text-[0.8125rem] font-medium text-paper">
-                  How many people
+                  {t("howManyPeople")}
                 </legend>
                 <div className="mt-1.5 grid grid-cols-4 gap-1.5 rounded-xl border border-line bg-surface-sunken p-1.5">
                   {CREW_SIZE_OPTIONS.map((option) => {
@@ -432,8 +437,11 @@ export function LandingQuoteCalculator({
                           // accessible name contains the visible one.
                           aria-label={
                             option === 1
-                              ? "1 person — the driver alone"
-                              : `${option} people — the driver plus ${option - 1} helper${option > 2 ? "s" : ""}`
+                              ? t("onePerson")
+                              : t("nPeople", {
+                                  count: option,
+                                  helpers: option - 1,
+                                })
                           }
                           className="sr-only"
                         />
@@ -443,8 +451,7 @@ export function LandingQuoteCalculator({
                   })}
                 </div>
                 <p className="mt-1.5 text-xs leading-snug text-faint">
-                  1 is the driver alone. Each extra person helps load and
-                  unload, and adds a flat fee.
+                  {t("1IsTheDriverAloneEach")}
                 </p>
               </fieldset>
             </div>
@@ -467,22 +474,28 @@ export function LandingQuoteCalculator({
             >
               <dl className="flex items-end justify-between gap-4">
                 <div className="min-w-0">
-                  <dt className={PANEL_LABEL_CLASSES}>Your estimate</dt>
+                  <dt className={PANEL_LABEL_CLASSES}>{t("yourEstimate")}</dt>
                   <dd className="mt-1.5 font-price text-[2.125rem] leading-none font-semibold tracking-[-0.03em] text-accent">
                     {estimate ? formatGel(estimate.price) : EMPTY_STAT}
                   </dd>
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-2 text-right">
                   <div>
-                    <dt className={PANEL_LABEL_CLASSES}>Distance</dt>
+                    <dt className={PANEL_LABEL_CLASSES}>
+                      {tShared("distance")}
+                    </dt>
                     <dd className="mt-1 font-price text-[0.8125rem] font-medium text-paper">
                       {estimate
-                        ? `${estimate.distanceKm.toFixed(1)} km`
+                        ? tShared("distanceKm", {
+                            km: estimate.distanceKm.toFixed(1),
+                          })
                         : EMPTY_STAT}
                     </dd>
                   </div>
                   <div>
-                    <dt className={PANEL_LABEL_CLASSES}>Vehicle</dt>
+                    <dt className={PANEL_LABEL_CLASSES}>
+                      {tShared("vehicle")}
+                    </dt>
                     <dd className="mt-1 text-[0.8125rem] font-medium text-paper">
                       {estimate ? estimate.vehicleLabel : EMPTY_STAT}
                     </dd>
@@ -495,7 +508,7 @@ export function LandingQuoteCalculator({
                   <dl className="mt-4 flex flex-col gap-1.5 border-t border-accent/15 pt-3.5">
                     <div className="flex items-baseline justify-between gap-4">
                       <dt className={BREAKDOWN_TERM_CLASSES}>
-                        Transportation cost
+                        {tShared("transportationCost")}
                       </dt>
                       <dd className={BREAKDOWN_VALUE_CLASSES}>
                         {formatGel(transportationCost(estimate))}
@@ -504,7 +517,9 @@ export function LandingQuoteCalculator({
                     {/* Only worth a line when at least one was requested. */}
                     {estimate.helperFee > 0 ? (
                       <div className="flex items-baseline justify-between gap-4">
-                        <dt className={BREAKDOWN_TERM_CLASSES}>Helper Fee</dt>
+                        <dt className={BREAKDOWN_TERM_CLASSES}>
+                          {tShared("helperFee")}
+                        </dt>
                         <dd className={BREAKDOWN_VALUE_CLASSES}>
                           {formatGel(estimate.helperFee)}
                         </dd>
@@ -518,7 +533,7 @@ export function LandingQuoteCalculator({
 
                   {minimumFareApplied ? (
                     <p className="mt-2.5 text-xs text-accent">
-                      Minimum fare applied
+                      {t("minimumFareApplied")}
                     </p>
                   ) : null}
                 </>
@@ -535,10 +550,10 @@ export function LandingQuoteCalculator({
               className="mt-5 w-full rounded-full bg-accent px-5 py-3.5 text-[15px] leading-none font-semibold text-on-accent transition-transform hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-60"
             >
               {submitting
-                ? "Calculating…"
+                ? t("calculating")
                 : loading
-                  ? "Loading…"
-                  : "Calculate price"}
+                  ? t("loading")
+                  : t("calculatePrice")}
             </button>
 
             {estimate ? (
@@ -546,7 +561,7 @@ export function LandingQuoteCalculator({
                 href="/sign-up"
                 className="group mt-4 inline-flex items-center gap-2 text-sm font-semibold text-paper transition-colors hover:text-accent"
               >
-                Sign up to book this load
+                {t("signUpToBookThisLoad")}
                 <span
                   aria-hidden="true"
                   className="transition-transform group-hover:translate-x-1"

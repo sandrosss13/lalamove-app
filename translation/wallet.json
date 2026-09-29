@@ -1,12 +1,82 @@
 {
+  "savedCardsPanel.armedDefaultNote": {
+    "en": "Click again to remove this card for good. There is no undo, and your next card becomes the default.",
+    "ka": "დააჭირეთ ხელახლა ბარათის სამუდამოდ წასაშლელად. ამის გაუქმება შეუძლებელია და ნაგულისხმევი გახდება თქვენი შემდეგი ბარათი.",
+    "_source": "src/components/wallet/saved-cards-panel.tsx"
+  },
+  "savedCardsPanel.armedNote": {
+    "en": "Click again to remove this card for good. There is no undo.",
+    "ka": "დააჭირეთ ხელახლა ბარათის სამუდამოდ წასაშლელად. ამის გაუქმება შეუძლებელია.",
+    "_source": "src/components/wallet/saved-cards-panel.tsx"
+  },
+  "savedCardsPanel.cancelRemovalAria": {
+    "en": "Cancel removal, {card}",
+    "ka": "წაშლის გაუქმება, {card}",
+    "_source": "src/components/wallet/saved-cards-panel.tsx"
+  },
+  "savedCardsPanel.cardDescription": {
+    "en": "{brand} card ending {last4}",
+    "ka": "{brand} ბარათი, ბოლო ციფრები {last4}",
+    "_source": "src/components/wallet/saved-cards-panel.tsx"
+  },
+  "savedCardsPanel.confirmRemoval": {
+    "en": "Confirm removal",
+    "ka": "წაშლის დადასტურება",
+    "_source": "src/components/wallet/saved-cards-panel.tsx"
+  },
+  "savedCardsPanel.confirmRemovalAria": {
+    "en": "Confirm removal, {card}",
+    "ka": "წაშლის დადასტურება, {card}",
+    "_source": "src/components/wallet/saved-cards-panel.tsx"
+  },
   "savedCardsPanel.default": {
     "en": "Default",
     "ka": "ნაგულისხმევი",
     "_source": "src/components/wallet/saved-cards-panel.tsx"
   },
+  "savedCardsPanel.defaultFailed": {
+    "en": "Could not make this card your default.",
+    "ka": "ბარათის ნაგულისხმევად დაყენება ვერ მოხერხდა.",
+    "_source": "src/components/wallet/saved-cards-panel.tsx"
+  },
+  "savedCardsPanel.makeDefault": {
+    "en": "Make default",
+    "ka": "ნაგულისხმევად დაყენება",
+    "_source": "src/components/wallet/saved-cards-panel.tsx"
+  },
+  "savedCardsPanel.makeDefaultAria": {
+    "en": "Make default, {card}",
+    "ka": "ნაგულისხმევად დაყენება, {card}",
+    "_source": "src/components/wallet/saved-cards-panel.tsx"
+  },
+  "savedCardsPanel.networkError": {
+    "en": "Network error. Check your connection and try again.",
+    "ka": "ქსელის შეცდომა. შეამოწმეთ კავშირი და სცადეთ ხელახლა.",
+    "_source": "src/components/wallet/saved-cards-panel.tsx"
+  },
   "savedCardsPanel.noCardsSavedYetAddA": {
     "en": "No cards saved yet. Add a credit or debit card to pay for deliveries.",
-    "ka": "ბარათი ჯერ არ არის შენახული. დაამატეთ საკრედიტო ან სადებეტო ბარათი მიწოდების გადასახდელად.",
+    "ka": "ბარათები ჯერ არ არის შენახული. მიწოდების საფასურის გადასახდელად დაამატეთ საკრედიტო ან დებეტის ბარათი.",
+    "_source": "src/components/wallet/saved-cards-panel.tsx"
+  },
+  "savedCardsPanel.removeAria": {
+    "en": "Remove, {card}",
+    "ka": "წაშლა, {card}",
+    "_source": "src/components/wallet/saved-cards-panel.tsx"
+  },
+  "savedCardsPanel.removeFailed": {
+    "en": "Could not remove this card.",
+    "ka": "ბარათის წაშლა ვერ მოხერხდა.",
+    "_source": "src/components/wallet/saved-cards-panel.tsx"
+  },
+  "savedCardsPanel.removing": {
+    "en": "Removing…",
+    "ka": "იშლება…",
+    "_source": "src/components/wallet/saved-cards-panel.tsx"
+  },
+  "savedCardsPanel.saveFailed": {
+    "en": "Could not save this card.",
+    "ka": "ბარათის შენახვა ვერ მოხერხდა.",
     "_source": "src/components/wallet/saved-cards-panel.tsx"
   },
   "savedCardsPanel.savedCards": {
@@ -16,7 +86,7 @@
   },
   "wallet.gatewayIntegrationIsPendingCardsSaved": {
     "en": "Gateway integration is pending. Cards saved here are not charged, and only the brand and last four digits are stored.",
-    "ka": "",
+    "ka": "გადახდის სისტემის ინტეგრაცია მოლოდინშია. აქ შენახული ბარათებიდან თანხა არ ჩამოგეჭრებათ — ინახება მხოლოდ ბრენდი და ბოლო ოთხი ციფრი.",
     "_source": "src/app/[locale]/wallet/page.tsx"
   },
   "wallet.paymentMethods": {
@@ -26,7 +96,7 @@
   },
   "wallet.pleaseSignInToViewYour": {
     "en": "Please sign in to view your wallet.",
-    "ka": "საფულის სანახავად გთხოვთ გაიაროთ ავტორიზაცია.",
+    "ka": "თქვენი საფულის სანახავად, გთხოვთ, გაიაროთ ავტორიზაცია.",
     "_source": "src/app/[locale]/wallet/page.tsx"
   }
 }

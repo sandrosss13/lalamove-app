@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 import { CompanyReviewStatus, GeorgianCity, Prisma } from "@prisma/client";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+
+/** The request-locale translator the body parsers below phrase their errors with. */
+type RequestTranslator = Awaited<ReturnType<typeof getRequestTranslations>>;
 
 /** Valid `GeorgianCity` values, derived from the generated Prisma enum. */
 const GEORGIAN_CITIES = Object.values(GeorgianCity);
@@ -85,9 +89,10 @@ function stripWhitespace(value: string): string {
  */
 function parseCreateLogisticsCompanyBody(
   body: unknown,
+  t: RequestTranslator,
 ): { data: CreateLogisticsCompanyInput } | { error: string } {
   if (typeof body !== "object" || body === null) {
-    return { error: "Request body must be a JSON object." };
+    return { error: t("common.shared.requestBodyMustBeAJson") };
   }
 
   const record = body as Record<string, unknown>;
@@ -99,13 +104,15 @@ function parseCreateLogisticsCompanyBody(
   const companyName = nonEmptyString(record.companyName);
   if (companyName === null || companyName.length < MIN_COMPANY_NAME_LENGTH) {
     return {
-      error: `companyName is required and must be at least ${MIN_COMPANY_NAME_LENGTH} characters.`,
+      error: t("errors.logisticsCompany.companyNameIsRequiredMinLength", {
+        min: MIN_COMPANY_NAME_LENGTH,
+      }),
     };
   }
 
   const vatId = nonEmptyString(record.vatId);
   if (vatId === null || !VAT_ID_PATTERN.test(vatId)) {
-    return { error: "vatId must be exactly 9 digits." };
+    return { error: t("errors.logisticsCompany.vatidMustBeExactly9Digits") };
   }
 
   // `undefined` and `null` both mean "the caller did not send this field", which
@@ -120,7 +127,9 @@ function parseCreateLogisticsCompanyBody(
     const registeredAddress = nonEmptyString(record.registeredAddress);
     if (registeredAddress === null) {
       return {
-        error: "registeredAddress is required and must be a non-empty string.",
+        error: t(
+          "errors.logisticsCompany.registeredaddressIsRequiredAndMustBe",
+        ),
       };
     }
     // Stored verbatim apart from the trim — a registered address is free text.
@@ -134,7 +143,7 @@ function parseCreateLogisticsCompanyBody(
     const { citiesOfOperation } = record;
     if (!Array.isArray(citiesOfOperation) || citiesOfOperation.length === 0) {
       return {
-        error: "citiesOfOperation must be an array with at least one city.",
+        error: t("errors.logisticsCompany.citiesofoperationMustBeAnArrayWith"),
       };
     }
 
@@ -144,7 +153,9 @@ function parseCreateLogisticsCompanyBody(
 
     if (!citiesOfOperation.every(isGeorgianCity)) {
       return {
-        error: `citiesOfOperation must contain only valid cities: ${GEORGIAN_CITIES.join(", ")}.`,
+        error: t("errors.logisticsCompany.citiesOfOperationMustContainOnly", {
+          cities: GEORGIAN_CITIES.join(", "),
+        }),
       };
     }
 
@@ -162,7 +173,7 @@ function parseCreateLogisticsCompanyBody(
       contactName?.split(/\s+/).filter((part) => part !== "") ?? [];
     if (contactName === null || nameParts.length < 2) {
       return {
-        error: "contactName must be a full name — a first name and a surname.",
+        error: t("errors.logisticsCompany.contactnameMustBeAFullName"),
       };
     }
     details.contactName = contactName;
@@ -172,7 +183,7 @@ function parseCreateLogisticsCompanyBody(
     const contactRole = nonEmptyString(record.contactRole);
     if (contactRole === null) {
       return {
-        error: "contactRole is required and must be a non-empty string.",
+        error: t("errors.logisticsCompany.contactroleIsRequiredAndMustBe"),
       };
     }
     details.contactRole = contactRole;
@@ -181,7 +192,9 @@ function parseCreateLogisticsCompanyBody(
   if (record.contactEmail !== undefined && record.contactEmail !== null) {
     const contactEmail = nonEmptyString(record.contactEmail);
     if (contactEmail === null || !EMAIL_PATTERN.test(contactEmail)) {
-      return { error: "contactEmail must be a valid email address." };
+      return {
+        error: t("errors.logisticsCompany.contactemailMustBeAValidEmail"),
+      };
     }
     // Lowercased on the way in: addresses are compared case-insensitively
     // everywhere else in this codebase, and storing one casing stops the same
@@ -196,7 +209,9 @@ function parseCreateLogisticsCompanyBody(
     const compactIban = stripWhitespace(bankAccountIban ?? "");
     if (bankAccountIban === null || compactIban.length < MIN_IBAN_LENGTH) {
       return {
-        error: `bankAccountIban must be at least ${MIN_IBAN_LENGTH} characters.`,
+        error: t("errors.logisticsCompany.bankAccountIbanMinLength", {
+          min: MIN_IBAN_LENGTH,
+        }),
       };
     }
     // Canonical form — whitespace-free and uppercased — because the grouping an
@@ -213,7 +228,10 @@ function parseCreateLogisticsCompanyBody(
     digitsOnly(phone).length > MAX_PHONE_DIGITS
   ) {
     return {
-      error: `phone must contain between ${MIN_PHONE_DIGITS} and ${MAX_PHONE_DIGITS} digits.`,
+      error: t("errors.logisticsCompany.phoneDigitsRange", {
+        min: MIN_PHONE_DIGITS,
+        max: MAX_PHONE_DIGITS,
+      }),
     };
   }
 
@@ -223,7 +241,9 @@ function parseCreateLogisticsCompanyBody(
     !GEORGIAN_CITIES.includes(city as GeorgianCity)
   ) {
     return {
-      error: `city must be one of: ${GEORGIAN_CITIES.join(", ")}.`,
+      error: t("errors.logisticsCompany.cityMustBeOneOf", {
+        cities: GEORGIAN_CITIES.join(", "),
+      }),
     };
   }
 
@@ -278,14 +298,21 @@ function isDuplicatePhoneError(error: unknown): boolean {
  * COMPANY users may call this.
  */
 export async function GET(request: Request): Promise<NextResponse> {
+  const t = await getRequestTranslations();
+
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    return NextResponse.json(
+      { error: t("common.shared.unauthorized") },
+      { status: 401 },
+    );
   }
 
   if (session.user.role !== "COMPANY") {
     return NextResponse.json(
-      { error: "Only logistics companies have a company profile." },
+      {
+        error: t("errors.logisticsCompany.onlyLogisticsCompaniesHaveACompany"),
+      },
       { status: 403 },
     );
   }
@@ -313,14 +340,19 @@ export async function GET(request: Request): Promise<NextResponse> {
  * is held to exactly the same rules.
  */
 export async function POST(request: Request): Promise<NextResponse> {
+  const t = await getRequestTranslations();
+
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    return NextResponse.json(
+      { error: t("common.shared.unauthorized") },
+      { status: 401 },
+    );
   }
 
   if (session.user.role !== "COMPANY") {
     return NextResponse.json(
-      { error: "Only logistics companies can create a company profile." },
+      { error: t("errors.logisticsCompany.onlyLogisticsCompaniesCanCreateA") },
       { status: 403 },
     );
   }
@@ -330,12 +362,12 @@ export async function POST(request: Request): Promise<NextResponse> {
     rawBody = await request.json();
   } catch {
     return NextResponse.json(
-      { error: "Request body must be valid JSON." },
+      { error: t("common.shared.requestBodyMustBeValidJson") },
       { status: 400 },
     );
   }
 
-  const parsed = parseCreateLogisticsCompanyBody(rawBody);
+  const parsed = parseCreateLogisticsCompanyBody(rawBody, t);
   if ("error" in parsed) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
@@ -421,7 +453,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     if (isDuplicatePhoneError(error)) {
       return NextResponse.json(
         {
-          error: "This phone number is already registered to another account.",
+          error: t("common.shared.thisPhoneNumberIsAlreadyRegistered"),
         },
         { status: 409 },
       );

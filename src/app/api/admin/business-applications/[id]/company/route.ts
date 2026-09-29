@@ -2,9 +2,11 @@ import { NextResponse } from "next/server";
 
 import type { AdminRole, CompanyReviewStatus } from "@prisma/client";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { authorizeAdminApi } from "@/lib/admin/api-auth";
 import { writeAuditLog } from "@/lib/admin/audit";
 import { prisma } from "@/lib/prisma";
+import { COMPANY_FLAG_REASONS } from "@/lib/review-flag-reasons";
 
 /**
  * Staff who may review business fleet applications. Stated per route rather
@@ -12,21 +14,6 @@ import { prisma } from "@/lib/prisma";
  * read — and audited — without following an import.
  */
 const ALLOWED_ROLES: readonly AdminRole[] = ["SUPER_ADMIN", "USER_MANAGER"];
-
-/**
- * The four company-level flag reasons from the design, verbatim. Unlike the
- * driver-document endpoint, which accepts any non-empty string, this is a
- * closed list: the company reads the reason verbatim on its status screen and
- * the "Action required" screen keys its corrective copy off it, so a
- * free-typed reason would produce a screen with nothing actionable on it. The
- * drawer offers exactly these four as chips, and a chip click *is* the flag.
- */
-const COMPANY_FLAG_REASONS: readonly string[] = [
-  "VAT ID not found in the registry",
-  "Address does not match registration",
-  "Bank account not held by the entity",
-  "Contact person unreachable",
-];
 
 /** The reviewer's verdict on the company block as a whole. */
 type CompanyVerdict =
@@ -48,9 +35,10 @@ export type AdminBusinessCompanyReviewResponse = {
  */
 function parseCompanyVerdictBody(
   body: unknown,
+  t: (key: string, values?: Record<string, string | number>) => string,
 ): { value: CompanyVerdict } | { error: string } {
   if (typeof body !== "object" || body === null) {
-    return { error: "Request body must be a JSON object." };
+    return { error: t("common.shared.requestBodyMustBeAJson") };
   }
 
   const { verdict, reason } = body as Record<string, unknown>;
@@ -60,17 +48,27 @@ function parseCompanyVerdictBody(
   }
 
   if (verdict !== "FLAGGED") {
-    return { error: 'verdict must be either "VERIFIED" or "FLAGGED".' };
+    return {
+      error: t(
+        "errors.adminBusinessApplicationsCompany.verdictMustBeVerifiedOrFlagged",
+      ),
+    };
   }
 
   if (typeof reason !== "string" || reason.trim() === "") {
-    return { error: "A reason is required to flag the company's details." };
+    return {
+      error: t(
+        "errors.adminBusinessApplicationsCompany.aReasonIsRequiredToFlag",
+      ),
+    };
   }
 
   const trimmedReason = reason.trim();
 
   if (!COMPANY_FLAG_REASONS.includes(trimmedReason)) {
-    return { error: "That is not one of the company flag reasons." };
+    return {
+      error: t("errors.adminBusinessApplicationsCompany.thatIsNotOneOfThe"),
+    };
   }
 
   return { value: { verdict: "FLAGGED", reason: trimmedReason } };
@@ -96,6 +94,8 @@ export async function PATCH(
     return authorized.response;
   }
 
+  const t = await getRequestTranslations();
+
   const { id } = await params;
 
   let rawBody: unknown;
@@ -103,12 +103,12 @@ export async function PATCH(
     rawBody = await request.json();
   } catch {
     return NextResponse.json(
-      { error: "Request body must be valid JSON." },
+      { error: t("common.shared.requestBodyMustBeValidJson") },
       { status: 400 },
     );
   }
 
-  const parsed = parseCompanyVerdictBody(rawBody);
+  const parsed = parseCompanyVerdictBody(rawBody, t);
   if ("error" in parsed) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
@@ -125,7 +125,7 @@ export async function PATCH(
   // in-progress draft.
   if (!application || application.status === "DRAFT") {
     return NextResponse.json(
-      { error: "Application not found." },
+      { error: t("common.shared.applicationNotFound") },
       { status: 404 },
     );
   }
@@ -134,7 +134,7 @@ export async function PATCH(
   // is a stale tab, not a 404 — say so.
   if (application.status === "APPROVED") {
     return NextResponse.json(
-      { error: "This fleet has already been activated." },
+      { error: t("common.shared.thisFleetHasAlreadyBeenActivated") },
       { status: 400 },
     );
   }

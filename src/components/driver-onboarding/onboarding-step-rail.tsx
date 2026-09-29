@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 /**
  * The four steps, verbatim from the design's own `RAIL` array — minus "OTP" in
  * step 1's sub-copy, which this feature drops along with the SMS code screen
@@ -8,20 +10,31 @@
  * Exported because the welcome screen's outline list is the same four entries;
  * it lives here rather than in the shell so the shell can import it without the
  * rail having to import back from the shell.
+ *
+ * `labelKey` is a full `next-intl` message path, translated where it renders —
+ * a module-level constant cannot call a hook. `subKey` likewise.
  */
 export const ONBOARDING_RAIL = [
-  { step: 1, label: "Authorisation & personal", sub: "Phone, ID, city, photo" },
+  {
+    step: 1,
+    labelKey: "onboarding.onboardingStepRail.authorisationPersonal",
+    subKey: "onboarding.onboardingStepRail.personalSub",
+  },
   {
     step: 2,
-    label: "Licence verification",
-    sub: "Photos, number, expiry, categories",
+    labelKey: "onboarding.onboardingStepRail.licenceVerification",
+    subKey: "onboarding.onboardingStepRail.licenceSub",
   },
   {
     step: 3,
-    label: "Vehicle registration",
-    sub: "Body, class, make, plate, capacity",
+    labelKey: "common.shared.vehicleRegistration",
+    subKey: "onboarding.onboardingStepRail.vehicleSub",
   },
-  { step: 4, label: "Review & status", sub: "Submit, pending, approved" },
+  {
+    step: 4,
+    labelKey: "common.shared.reviewStatus",
+    subKey: "onboarding.onboardingStepRail.reviewSub",
+  },
 ] as const;
 
 /**
@@ -40,13 +53,16 @@ export function OnboardingStepRail({
   currentStep: number;
   onSelect: (step: number) => void;
 }) {
+  const t = useTranslations("onboarding.onboardingStepRail");
+  const tRoot = useTranslations();
+
   return (
     <nav
-      aria-label="Application progress"
+      aria-label={tRoot("common.shared.applicationProgress")}
       className="flex w-full flex-col gap-4 border-b border-border bg-card p-6 md:h-full md:w-[300px] md:shrink-0 md:border-r md:border-b-0 md:px-[22px] md:py-[26px]"
     >
       <h2 className="font-price text-[10.5px] font-semibold tracking-[0.09em] text-muted-foreground uppercase">
-        Application progress
+        {tRoot("common.shared.applicationProgress")}
       </h2>
 
       {ONBOARDING_RAIL.map((entry) => {
@@ -107,10 +123,10 @@ export function OnboardingStepRail({
                   active ? "text-onboarding-accent" : "text-foreground"
                 }`}
               >
-                {entry.label}
+                {tRoot(entry.labelKey)}
               </span>
               <span className="mt-0.5 block text-[11.5px] leading-[1.45] text-muted-foreground">
-                {entry.sub}
+                {tRoot(entry.subKey)}
               </span>
             </span>
           </button>
@@ -118,8 +134,7 @@ export function OnboardingStepRail({
       })}
 
       <p className="mt-auto hidden border-t border-border pt-3.5 text-[11.5px] leading-[1.55] text-muted-foreground md:block">
-        Every field validates on continue. Documents flagged in the admin
-        console come back here for re-upload.
+        {t("everyFieldValidatesOnContinueDocuments")}
       </p>
     </nav>
   );

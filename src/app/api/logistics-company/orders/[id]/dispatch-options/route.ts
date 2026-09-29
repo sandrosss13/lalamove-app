@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { OrderStatus } from "@prisma/client";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
 import {
   bookedClassFor,
@@ -10,6 +11,7 @@ import {
   type DispatchVerdict,
 } from "@/lib/orders/dispatch-fit";
 import { prisma } from "@/lib/prisma";
+import { vehicleTypeSpecLabel } from "@/lib/vehicle-type-spec-labels";
 
 /**
  * GET /api/logistics-company/orders/[id]/dispatch-options — everything the
@@ -212,14 +214,19 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
+  const t = await getRequestTranslations();
+
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    return NextResponse.json(
+      { error: t("common.shared.unauthorized") },
+      { status: 401 },
+    );
   }
 
   if (session.user.role !== "COMPANY") {
     return NextResponse.json(
-      { error: "Only logistics companies can dispatch deliveries." },
+      { error: t("common.shared.onlyLogisticsCompaniesCanDispatchDeliveries") },
       { status: 403 },
     );
   }
@@ -232,7 +239,10 @@ export async function GET(
   });
 
   if (!company) {
-    return NextResponse.json({ error: "Order not found." }, { status: 404 });
+    return NextResponse.json(
+      { error: t("common.shared.orderNotFound") },
+      { status: 404 },
+    );
   }
 
   // The activation gate, with the POST's copy verbatim. An unactivated fleet
@@ -242,8 +252,7 @@ export async function GET(
   if (company.activatedAt === null) {
     return NextResponse.json(
       {
-        error:
-          "Your fleet is still under review. Operations must activate the company before you can dispatch deliveries.",
+        error: t("common.shared.yourFleetIsStillUnderReview2"),
       },
       { status: 403 },
     );
@@ -279,7 +288,10 @@ export async function GET(
   });
 
   if (!order) {
-    return NextResponse.json({ error: "Order not found." }, { status: 404 });
+    return NextResponse.json(
+      { error: t("common.shared.orderNotFound") },
+      { status: 404 },
+    );
   }
 
   // The fleet, scoped by owner exactly as `GET /api/logistics-company/vehicles`
@@ -305,6 +317,7 @@ export async function GET(
       cargoHeightM: true,
       vehicleTypeSpec: {
         select: {
+          code: true,
           label: true,
           maxPayloadKg: true,
           cargoLengthM: true,
@@ -445,7 +458,11 @@ export async function GET(
       return {
         vehicleId: vehicle.id,
         plateNumber: vehicle.plateNumber,
-        classLabel: vehicle.vehicleTypeSpec.label,
+        classLabel: vehicleTypeSpecLabel(
+          vehicle.vehicleTypeSpec.code,
+          vehicle.vehicleTypeSpec.label,
+          t,
+        ),
         capability: {
           payloadKg: capability.payloadKg,
           lengthM: capability.lengthM,

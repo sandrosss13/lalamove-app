@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 import {
   FilterStrip,
@@ -46,8 +47,11 @@ import { cn } from "@/lib/utils";
  * ranges on the server where a hand-typed URL is corrected too.
  */
 
-/** The tab the design shows selected whenever the dates did not come from a preset. */
-const CUSTOM_TAB: FilterStripItem = { value: "custom", label: "Custom" };
+/**
+ * The tab the design shows selected whenever the dates did not come from a
+ * preset. Only its `value` lives here; the label is translated at render time.
+ */
+const CUSTOM_TAB_VALUE = "custom";
 
 /** The three params this bar owns; anything else in the URL is left alone. */
 const RANGE_PARAMS = ["preset", "from", "to"] as const;
@@ -84,18 +88,19 @@ export function EarningsFilterBar({ range, presets }: EarningsFilterBarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const t = useTranslations("driverHub.earningsFilterBar");
   const [isPending, startTransition] = React.useTransition();
 
-  const custom = range.preset === CUSTOM_TAB.value;
+  const custom = range.preset === CUSTOM_TAB_VALUE;
 
   // Memoised so `FilterStrip` is handed a stable list rather than a new array
   // on every render of this bar.
   const tabs = React.useMemo<readonly FilterStripItem[]>(
     () => [
       ...presets.map((preset) => ({ value: preset.id, label: preset.label })),
-      CUSTOM_TAB,
+      { value: CUSTOM_TAB_VALUE, label: t("custom") },
     ],
-    [presets],
+    [presets, t],
   );
 
   /**
@@ -141,7 +146,7 @@ export function EarningsFilterBar({ range, presets }: EarningsFilterBarProps) {
     // this". Re-pushing the range as explicit dates is what switches the
     // loader into custom mode while keeping the window the driver is looking
     // at, and it is what un-dims the two fields.
-    if (value === CUSTOM_TAB.value) {
+    if (value === CUSTOM_TAB_VALUE) {
       applyDates(range.from, range.to);
       return;
     }
@@ -180,7 +185,7 @@ export function EarningsFilterBar({ range, presets }: EarningsFilterBarProps) {
           items={tabs}
           value={range.preset}
           onChange={handleTabChange}
-          ariaLabel="Earnings date range"
+          ariaLabel={t("earningsDateRange")}
         />
 
         <div className="flex items-center gap-2">
@@ -194,19 +199,19 @@ export function EarningsFilterBar({ range, presets }: EarningsFilterBarProps) {
             key={`from-${range.from}`}
             type="date"
             defaultValue={range.from}
-            aria-label="Range start date"
+            aria-label={t("rangeStartDate")}
             onChange={(event) => handleDateChange("from", event.target.value)}
             className={cn(
               DATE_INPUT_CLASSES,
               !custom && "opacity-55 focus-visible:opacity-100",
             )}
           />
-          <span className="text-[13px] text-muted-foreground">to</span>
+          <span className="text-[13px] text-muted-foreground">{t("to")}</span>
           <Input
             key={`to-${range.to}`}
             type="date"
             defaultValue={range.to}
-            aria-label="Range end date"
+            aria-label={t("rangeEndDate")}
             onChange={(event) => handleDateChange("to", event.target.value)}
             className={cn(
               DATE_INPUT_CLASSES,
@@ -221,7 +226,7 @@ export function EarningsFilterBar({ range, presets }: EarningsFilterBarProps) {
           <span className="font-price">{range.from}</span> →{" "}
           <span className="font-price">{range.to}</span> ·{" "}
           <span className="font-price">{range.days}</span>{" "}
-          {range.days === 1 ? "day" : "days"}
+          {t("dayUnit", { count: range.days })}
         </p>
 
         <EarningsExportButton from={range.from} to={range.to} />

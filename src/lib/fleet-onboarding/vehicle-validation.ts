@@ -25,6 +25,7 @@
  */
 import type { ChassisType } from "@prisma/client";
 
+import type { Translator } from "@/i18n/translator";
 import {
   BODY_TYPES,
   VEHICLE_CLASSES,
@@ -87,6 +88,48 @@ export type ValidatedVehicle = {
   cargoHeightM: number;
 };
 
+/**
+ * The `next-intl` message path of every rule's sentence, for answering the
+ * company in its own language — mirroring `VEHICLE_MESSAGE_KEYS` in
+ * `fleet-vehicles.ts`. The English sentences inline below stay as the fallback
+ * for a caller that passes no translator. Most paths reuse the driver
+ * wizard's submit copy, which states the same rule.
+ */
+export const VEHICLE_VALIDATION_MESSAGE_KEYS = {
+  /** `"{label}: {message}"` — prefixes a rule's sentence with its vehicle. */
+  labelled: "errors.fleetVehicleValidation.labelled",
+  /** `"Vehicle {number}"` — the submit path's per-row label. */
+  vehicleNumber: "fleet.step5ReviewSubmit.vehicleN",
+  tooFewVehicles: "fleet.step2FleetComposition.minVehicles",
+  tooManyVehicles: "errors.fleetVehicleValidation.tooManyVehicles",
+  bodyType: "errors.driverProfileOnboardingSubmit.chooseBodyType",
+  vehicleClass: "errors.driverProfileOnboardingSubmit.chooseVehicleClass",
+  classUnavailable:
+    "errors.driverProfileOnboardingSubmit.classUnavailableForBody",
+  make: "errors.driverProfileOnboardingSubmit.enterMake",
+  model: "errors.driverProfileOnboardingSubmit.enterModel",
+  yearRange: "errors.driverProfileOnboardingSubmit.yearRange",
+  plate: "errors.driverProfileOnboardingSubmit.enterPlate",
+  colour: "errors.driverProfileOnboardingSubmit.chooseColour",
+  payloadRange: "errors.driverProfileOnboardingSubmit.payloadRange",
+  dimensions: "errors.driverProfileOnboardingSubmit.checkDimensions",
+  trailerLength: "fleet.fleetVehicles.trailerLength",
+} as const;
+
+/**
+ * How the submit path names the vehicle at `index` (0-based) in its messages:
+ * "Vehicle 3", in the reader's language when a translator is given.
+ */
+export function numberedVehicleLabel(
+  index: number,
+  translate?: Translator,
+): string {
+  const number = index + 1;
+  return translate
+    ? translate(VEHICLE_VALIDATION_MESSAGE_KEYS.vehicleNumber, { number })
+    : `Vehicle ${number}`;
+}
+
 /** True for a plain JSON object — an array is not a vehicle. */
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -112,18 +155,29 @@ function finiteNumber(value: unknown): number | null {
  * client that lets a company add a 41st vehicle and a server that silently
  * refuses it come about.
  */
-export function validateFleetSize(count: number, problems: string[]): void {
+export function validateFleetSize(
+  count: number,
+  problems: string[],
+  /** Renders each message in the reader's language; English when omitted. */
+  translate?: Translator,
+): void {
   if (count < FLEET_MIN_VEHICLES) {
     // The word "two" is spelled out because this sentence is shown to a person,
     // not assembled from a constant; `FLEET_MIN_VEHICLES` is what decides.
     problems.push(
-      "A business account needs at least two vehicles. Use the individual driver flow for a single vehicle.",
+      translate
+        ? translate(VEHICLE_VALIDATION_MESSAGE_KEYS.tooFewVehicles)
+        : "A business account needs at least two vehicles. Use the individual driver flow for a single vehicle.",
     );
   }
 
   if (count > FLEET_MAX_VEHICLES) {
     problems.push(
-      `An application can hold at most ${FLEET_MAX_VEHICLES} vehicles.`,
+      translate
+        ? translate(VEHICLE_VALIDATION_MESSAGE_KEYS.tooManyVehicles, {
+            max: FLEET_MAX_VEHICLES,
+          })
+        : `An application can hold at most ${FLEET_MAX_VEHICLES} vehicles.`,
     );
   }
 }
@@ -151,21 +205,42 @@ export function validateVehicleInput(
   label: string,
   now: Date,
   problems: string[],
+  /** Renders each message in the reader's language; English when omitted. */
+  translate?: Translator,
 ): ValidatedVehicle | null {
   const record = isRecord(input) ? input : {};
+
+  /**
+   * Records one failure: the catalog sentence prefixed with `label` when
+   * translating, else the inline English (already prefixed).
+   */
+  const report = (
+    key: keyof typeof VEHICLE_VALIDATION_MESSAGE_KEYS,
+    english: string,
+    values?: Record<string, string | number>,
+  ) => {
+    problems.push(
+      translate
+        ? translate(VEHICLE_VALIDATION_MESSAGE_KEYS.labelled, {
+            label,
+            message: translate(VEHICLE_VALIDATION_MESSAGE_KEYS[key], values),
+          })
+        : english,
+    );
+  };
 
   const chassisType = CHASSIS_TYPES.includes(record.chassisType as ChassisType)
     ? (record.chassisType as ChassisType)
     : null;
   if (chassisType === null) {
-    problems.push(`${label}: choose a cargo body type.`);
+    report("bodyType", `${label}: choose a cargo body type.`);
   }
 
   const classId = VEHICLE_CLASS_IDS.includes(record.classId as VehicleClassId)
     ? (record.classId as VehicleClassId)
     : null;
   if (classId === null) {
-    problems.push(`${label}: choose a vehicle class.`);
+    report("vehicleClass", `${label}: choose a vehicle class.`);
   }
 
   // Seven of the fifteen (class, body) cells have no matching spec in the
@@ -177,7 +252,8 @@ export function validateVehicleInput(
   if (chassisType !== null && classId !== null) {
     specCode = resolveVehicleTypeSpecCode(classId, chassisType);
     if (specCode === null) {
-      problems.push(
+      report(
+        "classUnavailable",
         `${label}: that class isn't available with the selected body type.`,
       );
     }
@@ -188,12 +264,12 @@ export function validateVehicleInput(
   // presence.
   const make = trimmed(record.make);
   if (make === null) {
-    problems.push(`${label}: enter the vehicle's make.`);
+    report("make", `${label}: enter the vehicle's make.`);
   }
 
   const model = trimmed(record.model);
   if (model === null) {
-    problems.push(`${label}: enter the vehicle's model.`);
+    report("model", `${label}: enter the vehicle's model.`);
   }
 
   const maxVehicleYear = now.getFullYear();
@@ -204,8 +280,11 @@ export function validateVehicleInput(
     year >= MIN_VEHICLE_YEAR &&
     year <= maxVehicleYear;
   if (!isValidYear) {
-    problems.push(
+    report(
+      "yearRange",
       `${label}: enter a manufacturing year between ${MIN_VEHICLE_YEAR} and ${maxVehicleYear}.`,
+      // Strings, not numbers: ICU groups a numeric argument ("2,026").
+      { min: String(MIN_VEHICLE_YEAR), max: String(maxVehicleYear) },
     );
   }
 
@@ -216,12 +295,12 @@ export function validateVehicleInput(
   const isValidPlate =
     plateNumber !== null && plateNumber.length >= MIN_PLATE_LENGTH;
   if (!isValidPlate) {
-    problems.push(`${label}: enter the licence plate.`);
+    report("plate", `${label}: enter the licence plate.`);
   }
 
   const colour = trimmed(record.colour);
   if (colour === null) {
-    problems.push(`${label}: choose the vehicle's colour.`);
+    report("colour", `${label}: choose the vehicle's colour.`);
   }
 
   const payloadKg = finiteNumber(record.payloadKg);
@@ -230,8 +309,11 @@ export function validateVehicleInput(
     payloadKg >= MIN_PAYLOAD_KG &&
     payloadKg <= MAX_PAYLOAD_KG;
   if (!isValidPayload) {
-    problems.push(
+    report(
+      "payloadRange",
       `${label}: maximum payload must be between ${MIN_PAYLOAD_KG.toLocaleString("en-US")} and ${MAX_PAYLOAD_KG.toLocaleString("en-US")} kg.`,
+      // Numbers, so ICU groups them in the reader's locale.
+      { min: MIN_PAYLOAD_KG, max: MAX_PAYLOAD_KG },
     );
   }
 
@@ -242,7 +324,10 @@ export function validateVehicleInput(
     (value) => value !== null && value > 0 && value <= MAX_CARGO_DIMENSION_M,
   );
   if (!hasValidDimensions) {
-    problems.push(`${label}: check the dimensions — metres, not centimetres.`);
+    report(
+      "dimensions",
+      `${label}: check the dimensions — metres, not centimetres.`,
+    );
   }
 
   // Gated on `hasValidDimensions` so a vehicle with no length at all reports
@@ -254,8 +339,10 @@ export function validateVehicleInput(
     cargoLengthM !== null &&
     cargoLengthM < MIN_TRAILER_LENGTH_M
   ) {
-    problems.push(
+    report(
+      "trailerLength",
       `${label}: a trailer truck's cargo length must be at least ${MIN_TRAILER_LENGTH_M} m.`,
+      { min: MIN_TRAILER_LENGTH_M },
     );
   }
 

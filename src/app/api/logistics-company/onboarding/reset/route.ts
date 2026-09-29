@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { FLEET_FIRST_STEP } from "@/lib/fleet-onboarding/draft-schema";
@@ -29,14 +30,19 @@ import { FLEET_FIRST_STEP } from "@/lib/fleet-onboarding/draft-schema";
  *   v1, so there is no storage cleanup here, unlike the driver flow's reset.
  */
 export async function POST(request: Request): Promise<NextResponse> {
+  const t = await getRequestTranslations();
+
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    return NextResponse.json(
+      { error: t("common.shared.unauthorized") },
+      { status: 401 },
+    );
   }
 
   if (session.user.role !== "COMPANY") {
     return NextResponse.json(
-      { error: "Only logistics companies have a fleet application." },
+      { error: t("common.shared.onlyLogisticsCompaniesHaveAFleet") },
       { status: 403 },
     );
   }
@@ -48,7 +54,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   if (!company) {
     return NextResponse.json(
-      { error: "Complete your company profile before onboarding." },
+      { error: t("common.shared.completeYourCompanyProfileBeforeOnboarding") },
       { status: 404 },
     );
   }
@@ -56,14 +62,14 @@ export async function POST(request: Request): Promise<NextResponse> {
   const { application } = company;
   if (!application) {
     return NextResponse.json(
-      { error: "No application to reset." },
+      { error: t("common.shared.noApplicationToReset") },
       { status: 404 },
     );
   }
 
   if (application.status !== "DRAFT") {
     return NextResponse.json(
-      { error: "A submitted application cannot be reset." },
+      { error: t("common.shared.aSubmittedApplicationCannotBeReset") },
       { status: 400 },
     );
   }

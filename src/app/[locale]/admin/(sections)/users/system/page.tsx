@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
+import { getFormatter, getTranslations } from "next-intl/server";
 
 import {
-  ADMIN_ROLE_LABELS,
+  ADMIN_ROLE_LABEL_KEYS,
   CreateSystemUserDialog,
 } from "@/components/admin/users/create-system-user-dialog";
 import { localeHref } from "@/i18n/server";
@@ -26,14 +27,12 @@ export const dynamic = "force-dynamic";
  * reports, and so the server render and the client render agree regardless of
  * where either one runs.
  */
-function formatDate(date: Date): string {
-  return date.toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    timeZone: "UTC",
-  });
-}
+const CREATED_DATE_FORMAT = {
+  year: "numeric",
+  month: "short",
+  day: "numeric",
+  timeZone: "UTC",
+} as const;
 
 /**
  * The internal staff accounts that can sign into `/admin` itself — the one place
@@ -65,6 +64,11 @@ export default async function SystemUsersPage() {
   }
 
   const canManage = hasAdminRole(systemUserProfile, ["SUPER_ADMIN"]);
+  const t = await getTranslations("admin.adminUsersSystem");
+  const tShared = await getTranslations("common.shared");
+  // Root-scoped: `ADMIN_ROLE_LABEL_KEYS` holds full message paths.
+  const tRoot = await getTranslations();
+  const format = await getFormatter();
 
   // Read directly rather than through `GET /api/admin/users/system`: this is a
   // server component with the same database access the route has, and going
@@ -86,8 +90,7 @@ export default async function SystemUsersPage() {
     <div className="flex flex-col gap-4">
       <div className="flex items-start justify-between gap-4">
         <p className="text-sm text-muted-foreground">
-          Staff accounts with access to this back office. New accounts are
-          created with a temporary password that is shown once.
+          {t("staffAccountsWithAccessToThis")}
         </p>
         {canManage ? <CreateSystemUserDialog /> : null}
       </div>
@@ -96,13 +99,15 @@ export default async function SystemUsersPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Created</TableHead>
+              <TableHead>{tShared("name")}</TableHead>
+              <TableHead>{tShared("email")}</TableHead>
+              <TableHead>{tShared("role")}</TableHead>
+              <TableHead>{tShared("status")}</TableHead>
+              <TableHead>{t("created")}</TableHead>
               {canManage ? (
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="text-right">
+                  {tShared("actions")}
+                </TableHead>
               ) : null}
             </TableRow>
           </TableHeader>
@@ -113,7 +118,7 @@ export default async function SystemUsersPage() {
                   colSpan={canManage ? 6 : 5}
                   className="text-muted-foreground"
                 >
-                  No system users yet.
+                  {t("noSystemUsersYet")}
                 </TableCell>
               </TableRow>
             ) : (
@@ -125,14 +130,16 @@ export default async function SystemUsersPage() {
                   <TableCell className="text-muted-foreground">
                     {entry.user.email}
                   </TableCell>
-                  <TableCell>{ADMIN_ROLE_LABELS[entry.adminRole]}</TableCell>
+                  <TableCell>
+                    {tRoot(ADMIN_ROLE_LABEL_KEYS[entry.adminRole])}
+                  </TableCell>
                   <TableCell>
                     <Badge variant={entry.isActive ? "secondary" : "outline"}>
-                      {entry.isActive ? "Active" : "Deactivated"}
+                      {entry.isActive ? tShared("active") : t("deactivated")}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-muted-foreground">
-                    {formatDate(entry.createdAt)}
+                    {format.dateTime(entry.createdAt, CREATED_DATE_FORMAT)}
                   </TableCell>
                   {canManage ? (
                     <TableCell className="text-right">
@@ -141,7 +148,7 @@ export default async function SystemUsersPage() {
                           this spec has no way back from locking yourself out. */}
                       {entry.userId === systemUserProfile.userId ? (
                         <span className="text-xs text-muted-foreground">
-                          You
+                          {t("you")}
                         </span>
                       ) : (
                         <SystemUserStatusButton

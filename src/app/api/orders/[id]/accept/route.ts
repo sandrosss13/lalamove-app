@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { OrderStatus } from "@prisma/client";
 
+import {
+  getRequestTranslations,
+  type RequestTranslator,
+} from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
 import { CARRIER_ORDER_PARTY_SELECT } from "@/lib/order-response-select";
 import { specCapability } from "@/lib/orders/booking-fit";
@@ -23,15 +27,16 @@ import { prisma } from "@/lib/prisma";
  */
 function parseAcceptOrderBody(
   body: unknown,
+  t: RequestTranslator,
 ): { data: { vehicleId: string } } | { error: string } {
   if (typeof body !== "object" || body === null) {
-    return { error: "Request body must be a JSON object." };
+    return { error: t("common.shared.requestBodyMustBeAJson") };
   }
 
   const { vehicleId } = body as Record<string, unknown>;
 
   if (typeof vehicleId !== "string" || vehicleId.trim() === "") {
-    return { error: "vehicleId is required." };
+    return { error: t("common.shared.vehicleidIsRequired") };
   }
 
   return { data: { vehicleId: vehicleId.trim() } };
@@ -80,14 +85,19 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
+  const t = await getRequestTranslations();
+
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    return NextResponse.json(
+      { error: t("common.shared.unauthorized") },
+      { status: 401 },
+    );
   }
 
   if (session.user.role !== "DRIVER") {
     return NextResponse.json(
-      { error: "Only drivers can accept deliveries." },
+      { error: t("errors.ordersAccept.onlyDriversCanAcceptDeliveries") },
       { status: 403 },
     );
   }
@@ -97,12 +107,12 @@ export async function POST(
     rawBody = await request.json();
   } catch {
     return NextResponse.json(
-      { error: "Request body must be valid JSON." },
+      { error: t("common.shared.requestBodyMustBeValidJson") },
       { status: 400 },
     );
   }
 
-  const parsed = parseAcceptOrderBody(rawBody);
+  const parsed = parseAcceptOrderBody(rawBody, t);
   if ("error" in parsed) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
@@ -119,7 +129,10 @@ export async function POST(
   });
 
   if (!driverProfile) {
-    return NextResponse.json({ error: "Vehicle not found." }, { status: 404 });
+    return NextResponse.json(
+      { error: t("common.shared.vehicleNotFound") },
+      { status: 404 },
+    );
   }
 
   // A driver whose onboarding application has not been approved cannot claim
@@ -128,8 +141,7 @@ export async function POST(
   if (driverProfile.activatedAt === null) {
     return NextResponse.json(
       {
-        error:
-          "Your account isn't approved yet. Finish onboarding to accept deliveries.",
+        error: t("common.shared.yourAccountIsnTApprovedYet"),
       },
       { status: 403 },
     );
@@ -149,7 +161,7 @@ export async function POST(
   if (!driverProfile.isOnline) {
     return NextResponse.json(
       {
-        error: "You're offline. Go online to claim loads.",
+        error: t("errors.ordersAccept.youReOfflineGoOnlineTo"),
         code: "DRIVER_OFFLINE",
       },
       { status: 403 },
@@ -198,7 +210,10 @@ export async function POST(
     },
   });
   if (!existing) {
-    return NextResponse.json({ error: "Order not found." }, { status: 404 });
+    return NextResponse.json(
+      { error: t("common.shared.orderNotFound") },
+      { status: 404 },
+    );
   }
 
   // Scoped to the vehicles this driver holds, so this returns nothing for
@@ -249,7 +264,10 @@ export async function POST(
   });
 
   if (!vehicle) {
-    return NextResponse.json({ error: "Vehicle not found." }, { status: 404 });
+    return NextResponse.json(
+      { error: t("common.shared.vehicleNotFound") },
+      { status: 404 },
+    );
   }
 
   // Resolved once and used by both checks below: this vehicle's own declared
@@ -315,8 +333,7 @@ export async function POST(
   ) {
     return NextResponse.json(
       {
-        error:
-          "This vehicle is smaller than the vehicle class this delivery was booked as. Use a vehicle that matches or beats it on payload, length, width and height.",
+        error: t("errors.ordersAccept.thisVehicleIsSmallerThanThe"),
       },
       { status: 400 },
     );
@@ -325,7 +342,7 @@ export async function POST(
   if (!offersBodyType(vehicle.vehicleTypeSpec.bodyTypes, existing.bodyType)) {
     return NextResponse.json(
       {
-        error: "This vehicle doesn't offer the load space this delivery needs.",
+        error: t("errors.ordersAccept.thisVehicleDoesnTOfferThe"),
       },
       { status: 400 },
     );
@@ -388,8 +405,7 @@ export async function POST(
   ) {
     return NextResponse.json(
       {
-        error:
-          "This vehicle can't carry this load's cargo — it exceeds the weight or size limit.",
+        error: t("errors.ordersAccept.thisVehicleCanTCarryThis"),
       },
       { status: 400 },
     );
@@ -414,7 +430,7 @@ export async function POST(
   if (count === 0) {
     return NextResponse.json(
       {
-        error: "This load was just claimed by someone else.",
+        error: t("common.shared.thisLoadWasJustClaimedBy"),
         code: "ALREADY_CLAIMED",
         reference: existing.reference,
       },

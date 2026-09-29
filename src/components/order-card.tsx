@@ -1,13 +1,14 @@
 import type { ReactNode } from "react";
 import type { CargoCategory, OrderStatus, ServiceLevel } from "@prisma/client";
+import { useTranslations } from "next-intl";
 
-import { CARGO_CATEGORY_LABELS } from "@/lib/cargo";
+import { cargoCategoryLabel } from "@/lib/cargo";
 import {
-  ORDER_STATUS_LABEL,
   ORDER_STATUS_PILL,
   ORDER_STATUS_PILL_BASE,
-  SERVICE_LEVEL_LABEL,
   formatGel,
+  orderStatusLabel,
+  serviceLevelLabel,
 } from "@/components/orders-format";
 
 /** The subset of `Order` fields an order card needs to render. */
@@ -56,6 +57,8 @@ export function OrderCard({
   order: OrderCardOrder;
   children?: ReactNode;
 }) {
+  const t = useTranslations();
+
   return (
     <li className="rounded-[14px] border border-line bg-ink p-[22px]">
       {/* `items-start` rather than centred: the price side is two lines, and
@@ -64,7 +67,7 @@ export function OrderCard({
         <span
           className={`${ORDER_STATUS_PILL_BASE} ${ORDER_STATUS_PILL[order.status]}`}
         >
-          {ORDER_STATUS_LABEL[order.status]}
+          {orderStatusLabel(order.status, t)}
         </span>
         <div className="flex flex-col items-end gap-0.5">
           {/* The sum, not `price`: this is the client's own order list, and the
@@ -79,27 +82,33 @@ export function OrderCard({
       </div>
 
       <div className="mt-4 flex flex-col gap-2">
-        <OrderEndpoint badge="P" name="Pickup" address={order.pickupAddress} />
+        <OrderEndpoint
+          badge="P"
+          name={t("common.shared.pickup")}
+          address={order.pickupAddress}
+        />
         <OrderEndpoint
           badge="D"
-          name="Dropoff"
+          name={t("common.shared.dropoff")}
           address={order.dropoffAddress}
         />
       </div>
 
       <dl className="mt-4 flex flex-wrap gap-x-5 gap-y-2 border-t border-line pt-3.5">
         <OrderMeta
-          label="Cargo"
-          value={CARGO_CATEGORY_LABELS[order.cargoCategory]}
+          label={t("common.shared.cargo")}
+          value={cargoCategoryLabel(order.cargoCategory, t)}
         />
         <OrderMeta
-          label="Distance"
-          value={`${order.distanceKm.toFixed(2)} km`}
+          label={t("common.shared.distance")}
+          value={t("common.shared.distanceKm", {
+            km: order.distanceKm.toFixed(2),
+          })}
           numeric
         />
         {order.vehicle ? (
           <OrderMeta
-            label="Vehicle"
+            label={t("common.shared.vehicle")}
             value={`${order.vehicle.plateNumber} — ${order.vehicle.make} ${order.vehicle.model}`}
           />
         ) : null}
@@ -157,9 +166,11 @@ function OrderEndpoint({
  * and a `+₾0.00` line would invent a charge.
  */
 function OrderServiceLevel({ order }: { order: OrderCardOrder }) {
+  const t = useTranslations();
+
   return (
     <span className="text-[13px] text-muted">
-      {SERVICE_LEVEL_LABEL[order.serviceLevel]}
+      {serviceLevelLabel(order.serviceLevel, t)}
       {order.serviceLevelAdjustment === 0 ? null : (
         <>
           {" · "}

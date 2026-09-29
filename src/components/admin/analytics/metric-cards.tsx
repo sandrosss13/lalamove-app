@@ -1,3 +1,5 @@
+import { useFormatter, useTranslations } from "next-intl";
+
 import type { SalesSummary } from "@/lib/admin/analytics";
 import {
   Card,
@@ -6,33 +8,35 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-/**
- * Formatters are module-level so a re-render never rebuilds them (the same
- * reason `ops-revenue-tab.tsx` hoists its own).
- */
-const currencyFormatter = new Intl.NumberFormat("en-US", {
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-});
-
-const countFormatter = new Intl.NumberFormat("en-US");
+type NumberFormatter = ReturnType<typeof useFormatter>;
 
 /**
  * Money is shown to the cent rather than rounded to whole units: these figures
  * are reconciled against the Excel export, which carries the exact values.
+ *
+ * `Order.price` is in GEL major units, so the figure is prefixed with `₾` — the
+ * same shape as `formatGel` in `@/components/orders-format`, with the digits
+ * grouped for the reader's locale.
  */
-function formatCurrency(value: number): string {
-  return `$${currencyFormatter.format(value)}`;
+function formatCurrency(format: NumberFormatter, value: number): string {
+  return `₾${format.number(value, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
 }
 
+/**
+ * `labelKey` / `hintKey` are full message paths rather than copy: `metricsFor`
+ * is a plain function, so the text is resolved where the card renders.
+ */
 type Metric = {
-  label: string;
+  labelKey: string;
   value: string;
   /** One line under the number, saying what the number counts. */
-  hint: string;
+  hintKey: string;
 };
 
-function metricsFor(summary: SalesSummary): Metric[] {
+function metricsFor(format: NumberFormatter, summary: SalesSummary): Metric[] {
   return [
     {
       // "Turnover" and "Revenue" are the same `sum(price)` over different sets
@@ -42,34 +46,34 @@ function metricsFor(summary: SalesSummary): Metric[] {
       // "paid", not "all": `getSalesSummary` leaves out `INITIATED`, the
       // pre-payment state, so "all orders" would now name a set this figure
       // does not cover.
-      label: "Turnover (paid orders)",
-      value: formatCurrency(summary.turnover),
-      hint: "Gross bookings placed in range",
+      labelKey: "admin.metricCards.turnoverPaidOrders",
+      value: formatCurrency(format, summary.turnover),
+      hintKey: "admin.metricCards.grossBookingsPlacedInRange",
     },
     {
-      label: "Revenue (completed orders)",
-      value: formatCurrency(summary.revenue),
-      hint: "Recognised on delivery",
+      labelKey: "admin.metricCards.revenueCompletedOrders",
+      value: formatCurrency(format, summary.revenue),
+      hintKey: "admin.metricCards.recognisedOnDelivery",
     },
     {
-      label: "Completed",
-      value: countFormatter.format(summary.completedCount),
-      hint: "Delivered orders",
+      labelKey: "common.shared.completed",
+      value: format.number(summary.completedCount),
+      hintKey: "admin.metricCards.deliveredOrders",
     },
     {
-      label: "In process",
-      value: countFormatter.format(summary.inProcessCount),
-      hint: "Claimed, accepted or in transit",
+      labelKey: "admin.metricCards.inProcess",
+      value: format.number(summary.inProcessCount),
+      hintKey: "admin.metricCards.claimedAcceptedOrInTransit",
     },
     {
-      label: "Pending",
-      value: countFormatter.format(summary.pendingCount),
-      hint: "Awaiting a carrier",
+      labelKey: "common.shared.pending",
+      value: format.number(summary.pendingCount),
+      hintKey: "admin.metricCards.awaitingACarrier",
     },
     {
-      label: "Cancelled",
-      value: countFormatter.format(summary.cancelledCount),
-      hint: "Called off before delivery",
+      labelKey: "common.shared.cancelled",
+      value: format.number(summary.cancelledCount),
+      hintKey: "admin.metricCards.calledOffBeforeDelivery",
     },
   ];
 }
@@ -89,18 +93,23 @@ function metricsFor(summary: SalesSummary): Metric[] {
  * `src/lib/admin/analytics.ts`.
  */
 export function MetricCards({ summary }: { summary: SalesSummary }) {
+  const t = useTranslations();
+  const format = useFormatter();
+
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-      {metricsFor(summary).map((metric) => (
-        <Card key={metric.label} size="sm">
+      {metricsFor(format, summary).map((metric) => (
+        <Card key={metric.labelKey} size="sm">
           <CardHeader>
             <CardDescription className="text-xs">
-              {metric.label}
+              {t(metric.labelKey)}
             </CardDescription>
             <CardTitle className="text-xl tabular-nums">
               {metric.value}
             </CardTitle>
-            <CardDescription className="text-xs">{metric.hint}</CardDescription>
+            <CardDescription className="text-xs">
+              {t(metric.hintKey)}
+            </CardDescription>
           </CardHeader>
         </Card>
       ))}

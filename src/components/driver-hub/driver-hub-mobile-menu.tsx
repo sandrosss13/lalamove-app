@@ -1,6 +1,7 @@
 "use client";
 
 import { LogOut } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { Link } from "@/i18n/navigation";
 import { useSignOut } from "@/components/auth/use-sign-out";
@@ -112,6 +113,10 @@ export function DriverHubMobileMenu({
   onOpenChange,
 }: DriverHubMobileMenuProps) {
   const { signOut, signingOut } = useSignOut();
+  const t = useTranslations("driverHub.driverHubMobileMenu");
+  const tShared = useTranslations("common.shared");
+  // Unscoped: nav labels are root-relative keys (see `HubNavItem.labelKey`).
+  const tRoot = useTranslations();
 
   // Every link closes the menu on the way out. Without this the panel survives
   // the client-side navigation it started and covers the screen it asked for —
@@ -125,7 +130,7 @@ export function DriverHubMobileMenu({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetTrigger
         type="button"
-        aria-label="Menu"
+        aria-label={t("menu")}
         // 44×44, the design's own figure and the WCAG 2.2 target-size floor.
         className="grid size-11 flex-none place-items-center rounded-[10px] transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none lg:hidden"
       >
@@ -178,15 +183,15 @@ export function DriverHubMobileMenu({
               wordmark beside it is the design's visible content and is a poor
               name for a menu, so the two are separate: an `sr-only` title, and
               an `aria-hidden`-free but unnamed brand line. */}
-          <SheetTitle className="sr-only">Driver menu</SheetTitle>
+          <SheetTitle className="sr-only">{t("driverMenu")}</SheetTitle>
           <span className="text-[15px] font-bold tracking-[-0.01em]">
-            Lalamove Clone
+            {tShared("lalamoveClone")}
           </span>
           <Button
             type="button"
             variant="ghost"
             size="icon"
-            aria-label="Close menu"
+            aria-label={t("closeMenu")}
             onClick={close}
             className="size-11 rounded-[10px]"
           >
@@ -203,7 +208,7 @@ export function DriverHubMobileMenu({
             the momentum to the page behind the panel. This closes the common
             gesture; the residual scroll-through is documented above. */}
         <nav
-          aria-label="Driver menu"
+          aria-label={t("driverMenu")}
           className="flex flex-col gap-0.5 overflow-y-auto overscroll-contain p-2 pb-4"
         >
           {navItems.map((item) => {
@@ -220,7 +225,7 @@ export function DriverHubMobileMenu({
                   active ? "bg-muted font-semibold" : "font-medium",
                 )}
               >
-                {item.label}
+                {tRoot(item.labelKey)}
               </Link>
             );
           })}
@@ -237,7 +242,7 @@ export function DriverHubMobileMenu({
               onAccount ? "bg-muted font-semibold" : "font-medium",
             )}
           >
-            My account
+            {tShared("myAccount")}
           </Link>
         </nav>
 
@@ -258,7 +263,7 @@ export function DriverHubMobileMenu({
             className="h-9 flex-none"
           >
             <LogOut aria-hidden="true" data-icon="inline-start" />
-            {signingOut ? "Signing out…" : "Sign out"}
+            {signingOut ? t("signingOut") : t("signOut")}
           </Button>
         </div>
       </SheetContent>

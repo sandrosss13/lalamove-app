@@ -30,11 +30,19 @@ const MAX_SLUG_LENGTH = 120;
 const MAX_TITLE_LENGTH = 200;
 
 /**
- * Answer to a create or update that collides with `@@unique([slug, locale])`.
- * A constant so both routes phrase it identically.
+ * Message key for a create or update that collides with
+ * `@@unique([slug, locale])`. A constant so both routes phrase it identically.
  */
-export const DUPLICATE_PAGE_ERROR =
-  "A page with this slug already exists for this locale.";
+export const DUPLICATE_PAGE_ERROR_KEY = "errors.validation.duplicatePage";
+
+/**
+ * A root-scoped message lookup — `getRequestTranslations()` in a route handler —
+ * so every parser answers in the reader's language.
+ */
+export type ValidationTranslator = (
+  key: string,
+  values?: Record<string, string | number>,
+) => string;
 
 /** One static page as the admin table and the form dialog read it. */
 export type AdminStaticPageRow = {
@@ -87,9 +95,12 @@ export function serializeStaticPage(page: {
  */
 export function parseSlug(
   value: unknown,
+  t: ValidationTranslator,
 ): { value: string } | { error: string } {
   if (typeof value !== "string") {
-    return { error: "slug is required and must be a string." };
+    return {
+      error: t("errors.validation.slugIsRequiredAndMustBe"),
+    };
   }
 
   // Lowercased rather than rejected on case alone: "Terms" is a typo, not a
@@ -97,13 +108,17 @@ export function parseSlug(
   const slug = value.trim().toLowerCase();
 
   if (slug.length > MAX_SLUG_LENGTH) {
-    return { error: `slug must be ${MAX_SLUG_LENGTH} characters or fewer.` };
+    return {
+      error: t("common.shared.fieldMaxLength", {
+        field: "slug",
+        max: MAX_SLUG_LENGTH,
+      }),
+    };
   }
 
   if (!SLUG_PATTERN.test(slug)) {
     return {
-      error:
-        "slug must be lowercase letters, numbers and single hyphens, e.g. “terms-of-service”.",
+      error: t("errors.validation.slugMustBeLowercaseLettersNumbers"),
     };
   }
 
@@ -112,12 +127,18 @@ export function parseSlug(
 
 export function parseLocale(
   value: unknown,
+  t: ValidationTranslator,
 ): { value: ContentLocale } | { error: string } {
   if (
     typeof value !== "string" ||
     !CONTENT_LOCALES.includes(value as ContentLocale)
   ) {
-    return { error: `locale must be one of: ${CONTENT_LOCALES.join(", ")}.` };
+    return {
+      error: t("common.shared.fieldMustBeOneOf", {
+        field: "locale",
+        options: CONTENT_LOCALES.join(", "),
+      }),
+    };
   }
 
   return { value: value as ContentLocale };
@@ -125,15 +146,23 @@ export function parseLocale(
 
 export function parseTitle(
   value: unknown,
+  t: ValidationTranslator,
 ): { value: string } | { error: string } {
   if (typeof value !== "string" || value.trim() === "") {
-    return { error: "title is required and must be a non-empty string." };
+    return {
+      error: t("common.shared.titleIsRequiredAndMustBe"),
+    };
   }
 
   const title = value.trim();
 
   if (title.length > MAX_TITLE_LENGTH) {
-    return { error: `title must be ${MAX_TITLE_LENGTH} characters or fewer.` };
+    return {
+      error: t("common.shared.fieldMaxLength", {
+        field: "title",
+        max: MAX_TITLE_LENGTH,
+      }),
+    };
   }
 
   return { value: title };
@@ -147,9 +176,12 @@ export function parseTitle(
  */
 export function parseBodyHtml(
   value: unknown,
+  t: ValidationTranslator,
 ): { value: string } | { error: string } {
   if (typeof value !== "string" || value.trim() === "") {
-    return { error: "bodyHtml is required and must be a non-empty string." };
+    return {
+      error: t("errors.validation.bodyhtmlIsRequiredAndMustBe"),
+    };
   }
 
   return { value };
@@ -157,9 +189,12 @@ export function parseBodyHtml(
 
 export function parseIsPublished(
   value: unknown,
+  t: ValidationTranslator,
 ): { value: boolean } | { error: string } {
   if (typeof value !== "boolean") {
-    return { error: "isPublished must be a boolean." };
+    return {
+      error: t("errors.validation.ispublishedMustBeABoolean"),
+    };
   }
 
   return { value };

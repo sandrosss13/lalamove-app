@@ -2,14 +2,13 @@
 
 import { Menu, X } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 
 import { Link } from "@/i18n/navigation";
 import { useSignOut } from "@/components/auth/use-sign-out";
 import { LandingThemeToggle } from "@/components/landing/landing-theme-toggle";
-import {
-  DEFAULT_HOME_PAGE_CONTENT,
-  type NavContent,
-} from "@/lib/admin/home-page-content";
+import { LanguageToggle } from "@/components/language-toggle";
+import { type NavContent } from "@/lib/admin/home-page-content";
 import { useSession } from "@/lib/auth-client";
 
 /**
@@ -95,16 +94,15 @@ const CHIP_INVERTED = `${CHIP_BASE} bg-paper font-semibold text-ink hover:opacit
  * rgba literals; none of them appear here, because each token already resolves
  * to the right value in both themes.
  */
-export function LandingNavPill({
-  content = DEFAULT_HOME_PAGE_CONTENT.nav,
-}: {
-  content?: NavContent;
-}) {
+export function LandingNavPill({ content }: { content: NavContent }) {
   // The design ships no mobile menu — its links wrap to roughly four rows at
   // 360px, and because the pill is `position: fixed` that block never scrolls
   // away. The handoff flags this as a prototype-only compromise ("In production
   // consider a proper mobile menu"), so below `sm` the links collapse into this
   // disclosure instead.
+  const t = useTranslations("landing.landingNavPill");
+  const tShared = useTranslations("common.shared");
+  const tAuth = useTranslations("common.authStatus");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   /*
@@ -128,7 +126,7 @@ export function LandingNavPill({
   // logistics companies manage their work on /dashboard.
   const isClient = sessionUser?.role === "CLIENT";
   const accountHref = isClient ? "/account" : "/dashboard";
-  const accountLabel = isClient ? "My account" : "Dashboard";
+  const accountLabel = isClient ? tShared("myAccount") : tShared("dashboard");
 
   const panelId = useId();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -239,6 +237,13 @@ export function LandingNavPill({
         {/* Between the links and Sign up in the inline row; between the wordmark
             and the disclosure button once the links collapse. One instance in
             both cases — the toggle owns real state, so it is never duplicated. */}
+        {/* The language switch sits beside it in the same landing palette as
+            `LandingThemeToggle` (token classes, 36px tall), and cancels the
+            shared focus ring for the same reason: the landing page draws its
+            own `[data-landing-page] button:focus-visible` outline once for
+            every button, so the ring would indicate focus twice. */}
+        <LanguageToggle className="border-line text-subtle hover:bg-surface-raised hover:text-paper focus-visible:border-line focus-visible:ring-0" />
+
         <LandingThemeToggle />
 
         {/* Sign out takes the inverted slot Sign up occupies, carrying the same
@@ -251,7 +256,7 @@ export function LandingNavPill({
             disabled={signingOut}
             className={`${CHIP_INVERTED} ml-0.5 hidden px-5 py-2.5 sm:inline-block`}
           >
-            {signingOut ? "Signing out…" : "Sign out"}
+            {signingOut ? tAuth("signingOut") : tAuth("signOut")}
           </button>
         ) : (
           <NavLinkElement
@@ -267,7 +272,7 @@ export function LandingNavPill({
           type="button"
           aria-expanded={isMenuOpen}
           aria-controls={panelId}
-          aria-label={isMenuOpen ? "Close menu" : "Open menu"}
+          aria-label={isMenuOpen ? t("closeMenu") : t("openMenu")}
           onClick={() => (isMenuOpen ? closeMenu() : setIsMenuOpen(true))}
           className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-surface text-subtle transition-colors hover:bg-surface-raised hover:text-paper sm:hidden"
         >
@@ -327,7 +332,7 @@ export function LandingNavPill({
                   disabled={signingOut}
                   className={`${CHIP_INVERTED} mt-1 flex min-h-11 items-center justify-center px-5`}
                 >
-                  {signingOut ? "Signing out…" : "Sign out"}
+                  {signingOut ? tAuth("signingOut") : tAuth("signOut")}
                 </button>
               </>
             ) : (

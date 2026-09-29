@@ -7,6 +7,7 @@ import {
   type Prisma,
 } from "@prisma/client";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { authorizeAdminApi } from "@/lib/admin/api-auth";
 import { writeAuditLog } from "@/lib/admin/audit";
 import { prisma } from "@/lib/prisma";
@@ -93,19 +94,20 @@ function isUsableUrl(value: string): boolean {
 function parseTimestamp(
   raw: unknown,
   field: string,
+  t: (key: string, values?: Record<string, string | number>) => string,
 ): { value: Date | null } | { error: string } {
   if (raw === null) {
     return { value: null };
   }
 
   if (typeof raw !== "string") {
-    return { error: `${field} must be an ISO date string or null.` };
+    return { error: t("common.shared.fieldMustBeIsoDateOrNull", { field }) };
   }
 
   const parsed = new Date(raw);
 
   if (Number.isNaN(parsed.getTime())) {
-    return { error: `${field} must be a valid ISO date string.` };
+    return { error: t("common.shared.fieldMustBeValidIsoDate", { field }) };
   }
 
   return { value: parsed };
@@ -149,9 +151,10 @@ type ParsedBannerUpdate = {
 function parseUpdateBannerBody(
   body: unknown,
   existing: Banner,
+  t: (key: string, values?: Record<string, string | number>) => string,
 ): ParsedBannerUpdate | { error: string } {
   if (typeof body !== "object" || body === null) {
-    return { error: "Request body must be a JSON object." };
+    return { error: t("common.shared.requestBodyMustBeAJson") };
   }
 
   const record = body as Record<string, unknown>;
@@ -160,11 +163,14 @@ function parseUpdateBannerBody(
   if ("title" in record) {
     const { title } = record;
     if (typeof title !== "string" || title.trim() === "") {
-      return { error: "title must be a non-empty string." };
+      return { error: t("errors.adminContentBanners.titleMustBeANonEmpty") };
     }
     if (title.trim().length > MAX_TITLE_LENGTH) {
       return {
-        error: `title must be ${MAX_TITLE_LENGTH} characters or fewer.`,
+        error: t("common.shared.fieldMaxLength", {
+          field: "title",
+          max: MAX_TITLE_LENGTH,
+        }),
       };
     }
 
@@ -178,7 +184,12 @@ function parseUpdateBannerBody(
       typeof locale !== "string" ||
       !CONTENT_LOCALES.includes(locale as ContentLocale)
     ) {
-      return { error: `locale must be one of: ${CONTENT_LOCALES.join(", ")}.` };
+      return {
+        error: t("common.shared.fieldMustBeOneOf", {
+          field: "locale",
+          options: CONTENT_LOCALES.join(", "),
+        }),
+      };
     }
 
     data.locale = locale as ContentLocale;
@@ -188,16 +199,21 @@ function parseUpdateBannerBody(
   if ("imageUrl" in record) {
     const { imageUrl } = record;
     if (typeof imageUrl !== "string" || imageUrl.trim() === "") {
-      return { error: "imageUrl must be a non-empty string." };
+      return {
+        error: t("errors.adminContentBanners.imageurlMustBeANonEmpty"),
+      };
     }
     if (imageUrl.trim().length > MAX_URL_LENGTH) {
       return {
-        error: `imageUrl must be ${MAX_URL_LENGTH} characters or fewer.`,
+        error: t("common.shared.fieldMaxLength", {
+          field: "imageUrl",
+          max: MAX_URL_LENGTH,
+        }),
       };
     }
     if (!isUsableUrl(imageUrl.trim())) {
       return {
-        error: "imageUrl must be an http(s) URL or a path starting with /.",
+        error: t("common.shared.imageurlMustBeAnHttpS"),
       };
     }
 
@@ -209,7 +225,7 @@ function parseUpdateBannerBody(
     if (linkUrl === null) {
       data.linkUrl = null;
     } else if (typeof linkUrl !== "string") {
-      return { error: "linkUrl must be a string or null." };
+      return { error: t("common.shared.linkurlMustBeStringOrNull") };
     } else {
       const trimmedLinkUrl = linkUrl.trim();
 
@@ -220,12 +236,15 @@ function parseUpdateBannerBody(
       } else {
         if (trimmedLinkUrl.length > MAX_URL_LENGTH) {
           return {
-            error: `linkUrl must be ${MAX_URL_LENGTH} characters or fewer.`,
+            error: t("common.shared.fieldMaxLength", {
+              field: "linkUrl",
+              max: MAX_URL_LENGTH,
+            }),
           };
         }
         if (!isUsableUrl(trimmedLinkUrl)) {
           return {
-            error: "linkUrl must be an http(s) URL or a path starting with /.",
+            error: t("common.shared.linkurlMustBeAnHttpS"),
           };
         }
 
@@ -238,11 +257,16 @@ function parseUpdateBannerBody(
   if ("placement" in record) {
     const { placement } = record;
     if (typeof placement !== "string" || placement.trim() === "") {
-      return { error: "placement must be a non-empty string." };
+      return {
+        error: t("errors.adminContentBanners.placementMustBeANonEmpty"),
+      };
     }
     if (placement.trim().length > MAX_PLACEMENT_LENGTH) {
       return {
-        error: `placement must be ${MAX_PLACEMENT_LENGTH} characters or fewer.`,
+        error: t("common.shared.fieldMaxLength", {
+          field: "placement",
+          max: MAX_PLACEMENT_LENGTH,
+        }),
       };
     }
 
@@ -259,7 +283,10 @@ function parseUpdateBannerBody(
       sortOrder > MAX_SORT_ORDER
     ) {
       return {
-        error: `sortOrder must be an integer between ${MIN_SORT_ORDER} and ${MAX_SORT_ORDER}.`,
+        error: t("common.shared.sortOrderMustBeIntegerBetween", {
+          min: MIN_SORT_ORDER,
+          max: MAX_SORT_ORDER,
+        }),
       };
     }
 
@@ -270,7 +297,7 @@ function parseUpdateBannerBody(
   if ("isActive" in record) {
     const { isActive } = record;
     if (typeof isActive !== "boolean") {
-      return { error: "isActive must be a boolean." };
+      return { error: t("common.shared.isactiveMustBeABoolean") };
     }
 
     data.isActive = isActive;
@@ -281,7 +308,7 @@ function parseUpdateBannerBody(
   // below needs the values the row will *end up* with, not the ones it has.
   let nextStartsAt = existing.startsAt;
   if ("startsAt" in record) {
-    const startsAt = parseTimestamp(record.startsAt, "startsAt");
+    const startsAt = parseTimestamp(record.startsAt, "startsAt", t);
     if ("error" in startsAt) {
       return { error: startsAt.error };
     }
@@ -292,7 +319,7 @@ function parseUpdateBannerBody(
 
   let nextEndsAt = existing.endsAt;
   if ("endsAt" in record) {
-    const endsAt = parseTimestamp(record.endsAt, "endsAt");
+    const endsAt = parseTimestamp(record.endsAt, "endsAt", t);
     if ("error" in endsAt) {
       return { error: endsAt.error };
     }
@@ -308,7 +335,7 @@ function parseUpdateBannerBody(
     nextEndsAt !== null &&
     nextEndsAt.getTime() <= nextStartsAt.getTime()
   ) {
-    return { error: "endsAt must be after startsAt." };
+    return { error: t("common.shared.endsatMustBeAfterStartsat") };
   }
 
   return {
@@ -336,6 +363,8 @@ export async function PATCH(
     return authorized.response;
   }
 
+  const t = await getRequestTranslations();
+
   const { id } = await params;
 
   let rawBody: unknown;
@@ -343,7 +372,7 @@ export async function PATCH(
     rawBody = await request.json();
   } catch {
     return NextResponse.json(
-      { error: "Request body must be valid JSON." },
+      { error: t("common.shared.requestBodyMustBeValidJson") },
       { status: 400 },
     );
   }
@@ -354,10 +383,13 @@ export async function PATCH(
   const existing = await prisma.banner.findUnique({ where: { id } });
 
   if (!existing) {
-    return NextResponse.json({ error: "Banner not found." }, { status: 404 });
+    return NextResponse.json(
+      { error: t("errors.adminContentBanners.bannerNotFound") },
+      { status: 404 },
+    );
   }
 
-  const parsed = parseUpdateBannerBody(rawBody, existing);
+  const parsed = parseUpdateBannerBody(rawBody, existing, t);
   if ("error" in parsed) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
@@ -417,12 +449,17 @@ export async function DELETE(
     return authorized.response;
   }
 
+  const t = await getRequestTranslations();
+
   const { id } = await params;
 
   const existing = await prisma.banner.findUnique({ where: { id } });
 
   if (!existing) {
-    return NextResponse.json({ error: "Banner not found." }, { status: 404 });
+    return NextResponse.json(
+      { error: t("errors.adminContentBanners.bannerNotFound") },
+      { status: 404 },
+    );
   }
 
   await prisma.banner.delete({ where: { id } });

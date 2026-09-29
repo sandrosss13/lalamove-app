@@ -23,6 +23,7 @@
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { ChassisType } from "@prisma/client";
+import { useTranslations } from "next-intl";
 
 import {
   Dialog,
@@ -40,7 +41,7 @@ import {
 } from "@/lib/driver-onboarding/vehicle-classes";
 import type { FleetDraftVehicle } from "@/lib/fleet-onboarding/draft-schema";
 import {
-  VEHICLE_MESSAGES,
+  VEHICLE_MESSAGE_KEYS,
   firstVehicleMessage,
   validateFleetVehicle,
   type VehicleFieldErrors,
@@ -102,11 +103,20 @@ const COLORS: [name: string, hex: string][] = [
 ];
 
 /** How the footer names the body type the prefill was adjusted for. */
-const BODY_PHRASE: Record<ChassisType, string> = {
-  DRY_BOX: "as a dry box",
-  REFRIGERATED: "as a refrigerated vehicle",
-  OPEN_CHASSIS: "as an open chassis",
+const BODY_PHRASE_KEY: Record<
+  ChassisType,
+  "bodyPhrase.dryBox" | "bodyPhrase.refrigerated" | "bodyPhrase.openChassis"
+> = {
+  DRY_BOX: "bodyPhrase.dryBox",
+  REFRIGERATED: "bodyPhrase.refrigerated",
+  OPEN_CHASSIS: "bodyPhrase.openChassis",
 };
+
+/** Display key of each stored colour name. The draft keeps the English name
+ *  (it is data the server validates); only the label is translated. */
+function colourKey(name: string): string {
+  return `colours.${name.toLowerCase()}`;
+}
 
 /**
  * Shared chrome, matching the driver wizard's technical-details step.
@@ -199,12 +209,16 @@ function dimensionToField(value: number | undefined): string {
  *  dry-box figures, NOT the body-adjusted ones. The company is being shown what
  *  the manufacturer publishes; the adjustment happens when it lands in the
  *  fields. */
-function formatReferenceSpec(reference: VehicleModelReference): string {
-  return `${reference.payloadKg.toLocaleString("en-US")} kg · ${formatDimensionM(
-    reference.cargoLengthM,
-  )} × ${formatDimensionM(reference.cargoWidthM)} × ${formatDimensionM(
-    reference.cargoHeightM,
-  )} m`;
+function formatReferenceSpec(
+  reference: VehicleModelReference,
+  tRoot: (key: string, values?: Record<string, number | string>) => string,
+): string {
+  const dims = `${formatDimensionM(reference.cargoLengthM)} × ${formatDimensionM(
+    reference.cargoWidthM,
+  )} × ${formatDimensionM(reference.cargoHeightM)}`;
+  return `${tRoot("fleet.step3VehicleSpecifications.payloadKg", {
+    payload: reference.payloadKg,
+  })} · ${tRoot("fleet.vehicleEditorDialog.dimensionsM", { dims })}`;
 }
 
 export function VehicleEditorDialog({
@@ -242,6 +256,9 @@ export function VehicleEditorDialog({
   saveError?: string | null;
   saving?: boolean;
 }): React.ReactElement {
+  const t = useTranslations("fleet.vehicleEditorDialog");
+  const tShared = useTranslations("common.shared");
+  const tRoot = useTranslations();
   const fieldId = useId();
   const listId = `${fieldId}-model-list`;
 
@@ -355,7 +372,8 @@ export function VehicleEditorDialog({
   }, [listOpen]);
 
   const vehicleClass = findVehicleClass(classId);
-  const bodyLabel = findBodyType(chassisType).shortLabel;
+  const vehicleClassName = tRoot(vehicleClass.nameKey);
+  const bodyLabel = tRoot(findBodyType(chassisType).shortLabelKey);
   // The class/body default, shown as placeholder text so an empty field still
   // says what a vehicle of this kind usually measures.
   const placeholderSpec = defaultSpecForClass(chassisType, classId);
@@ -400,6 +418,7 @@ export function VehicleEditorDialog({
     candidate,
     currentYear,
     otherPlates,
+    tRoot,
   );
 
   /** The message to show under `field`, or `undefined` while it stays quiet. */
@@ -522,7 +541,7 @@ export function VehicleEditorDialog({
       >
         <DialogHeader className="gap-1 border-b border-border px-[22px] pt-5 pb-4">
           <DialogTitle className="text-[18px] leading-tight font-semibold tracking-[-0.01em]">
-            Vehicle {index} — {vehicleClass.name}
+            {t("dialogTitle", { index, className: vehicleClassName })}
           </DialogTitle>
           <DialogDescription className="text-[13px] leading-[1.5]">
             {bodyLabel} · needs licence category{" "}
@@ -541,7 +560,7 @@ export function VehicleEditorDialog({
           <div className="flex max-h-[calc(100dvh-6rem)] flex-col gap-4 overflow-y-auto px-[22px] py-5">
             <div className="flex flex-col gap-1.5">
               <label htmlFor={`${fieldId}-make-model`} className={LABEL_CLASS}>
-                Make and model
+                {tShared("makeAndModel")}
               </label>
               {/* Hand-rolled rather than a `Popover`: see the pointerdown effect
                   above for why a popover inside a dialog is the wrong layer. */}
@@ -560,7 +579,9 @@ export function VehicleEditorDialog({
                       : undefined
                   }
                   aria-invalid={errorFor("makeModel") !== undefined}
-                  placeholder={`Search ${vehicleClass.name} models`}
+                  placeholder={t("searchModels", {
+                    className: vehicleClassName,
+                  })}
                   value={query}
                   onChange={(event) => handleQueryChange(event.target.value)}
                   onFocus={() => setListOpen(true)}
@@ -581,7 +602,7 @@ export function VehicleEditorDialog({
                   >
                     {options.length === 0 ? (
                       <p className="px-[13px] py-2.5 text-[13px] text-muted-foreground">
-                        {VEHICLE_MESSAGES.noModelMatch}
+                        {tRoot(VEHICLE_MESSAGE_KEYS.noModelMatch)}
                       </p>
                     ) : (
                       options.map((reference, optionIndex) => {
@@ -617,7 +638,7 @@ export function VehicleEditorDialog({
                               {reference.model}
                             </span>
                             <span className="ml-auto font-price text-[12px] whitespace-nowrap text-muted-foreground">
-                              {formatReferenceSpec(reference)}
+                              {formatReferenceSpec(reference, tRoot)}
                             </span>
                           </button>
                         );
@@ -634,7 +655,7 @@ export function VehicleEditorDialog({
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="flex flex-col gap-1.5">
                 <label htmlFor={`${fieldId}-year`} className={LABEL_CLASS}>
-                  Year
+                  {tShared("year")}
                 </label>
                 <Input
                   id={`${fieldId}-year`}
@@ -652,7 +673,7 @@ export function VehicleEditorDialog({
               </div>
               <div className="flex flex-col gap-1.5">
                 <label htmlFor={`${fieldId}-plate`} className={LABEL_CLASS}>
-                  Licence plate
+                  {tShared("licencePlate")}
                 </label>
                 <Input
                   id={`${fieldId}-plate`}
@@ -660,7 +681,7 @@ export function VehicleEditorDialog({
                   autoCapitalize="characters"
                   autoComplete="off"
                   spellCheck={false}
-                  placeholder="34 ABC 128"
+                  placeholder={tShared("34Abc128")}
                   value={plate}
                   // Uppercased in state, not merely via `text-transform`, so the
                   // value that reaches the draft is the one on screen.
@@ -681,7 +702,7 @@ export function VehicleEditorDialog({
             ) : null}
 
             <fieldset className="flex flex-col gap-2">
-              <legend className={LABEL_CLASS}>Colour</legend>
+              <legend className={LABEL_CLASS}>{tShared("colour")}</legend>
               <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {COLORS.map(([name, hex]) => {
                   const selected = colour === name;
@@ -728,7 +749,7 @@ export function VehicleEditorDialog({
                           selected ? "font-semibold" : "font-medium"
                         }`}
                       >
-                        {name}
+                        {t(colourKey(name))}
                       </span>
                     </button>
                   );
@@ -741,7 +762,7 @@ export function VehicleEditorDialog({
 
             <div className="flex flex-col gap-1.5">
               <label htmlFor={`${fieldId}-payload`} className={LABEL_CLASS}>
-                Maximum payload (kg)
+                {tShared("maximumPayloadKg")}
               </label>
               <Input
                 id={`${fieldId}-payload`}
@@ -758,11 +779,11 @@ export function VehicleEditorDialog({
             </div>
 
             <div className="flex flex-col gap-2.5">
-              <span className={LABEL_CLASS}>Cargo hold (metres)</span>
+              <span className={LABEL_CLASS}>{tShared("cargoHoldMetres")}</span>
               <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
                 <DimensionField
                   id={`${fieldId}-length`}
-                  label="Length"
+                  label={tShared("length")}
                   placeholder={formatDimensionM(placeholderSpec.cargoLengthM)}
                   value={length}
                   invalid={errorFor("dimensions") !== undefined}
@@ -770,7 +791,7 @@ export function VehicleEditorDialog({
                 />
                 <DimensionField
                   id={`${fieldId}-width`}
-                  label="Width"
+                  label={tShared("width")}
                   placeholder={formatDimensionM(placeholderSpec.cargoWidthM)}
                   value={width}
                   invalid={errorFor("dimensions") !== undefined}
@@ -778,7 +799,7 @@ export function VehicleEditorDialog({
                 />
                 <DimensionField
                   id={`${fieldId}-height`}
-                  label="Height"
+                  label={tShared("height")}
                   placeholder={formatDimensionM(placeholderSpec.cargoHeightM)}
                   value={height}
                   invalid={errorFor("dimensions") !== undefined}
@@ -790,8 +811,8 @@ export function VehicleEditorDialog({
               ) : null}
               <p className="text-xs text-muted-foreground" aria-live="polite">
                 {volume === null
-                  ? VEHICLE_MESSAGES.volumeHint
-                  : `Usable volume ${volume} m³ — used to match this vehicle with orders.`}
+                  ? tRoot(VEHICLE_MESSAGE_KEYS.volumeHint)
+                  : t("usableVolume", { volume })}
               </p>
             </div>
           </div>
@@ -799,8 +820,10 @@ export function VehicleEditorDialog({
           <DialogFooter className="m-0 flex-col items-stretch gap-3 rounded-b-2xl border-t border-border bg-muted/50 px-[22px] py-4 sm:flex-col sm:items-stretch sm:justify-start">
             {prefillSource !== null ? (
               <p className="text-xs text-muted-foreground">
-                Prefilled from {prefillSource} {BODY_PHRASE[chassisType]}.
-                Correct them to the real vehicle.
+                {t("prefilledFrom", {
+                  source: prefillSource,
+                  bodyPhrase: t(BODY_PHRASE_KEY[chassisType]),
+                })}
               </p>
             ) : null}
             {saveError !== null ? (
@@ -818,14 +841,14 @@ export function VehicleEditorDialog({
                 disabled={saving}
                 className="h-12 cursor-pointer rounded-[11px] bg-onboarding-accent px-[30px] text-[15px] font-semibold tracking-[-0.01em] text-white transition-colors hover:bg-onboarding-accent-hover focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {saving ? "Saving…" : "Save vehicle"}
+                {saving ? t("saving") : t("saveVehicle")}
               </button>
               <button
                 type="button"
                 onClick={() => onOpenChange(false)}
                 className="h-12 cursor-pointer rounded-[11px] border border-border bg-card px-5 text-[14.5px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
               >
-                Cancel
+                {tShared("cancel")}
               </button>
             </div>
           </DialogFooter>

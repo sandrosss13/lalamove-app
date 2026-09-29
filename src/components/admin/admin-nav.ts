@@ -32,7 +32,15 @@ import type { AdminRole } from "@prisma/client";
 
 /** A leaf link — one tab inside a section. */
 export type AdminNavItem = {
+  /** English source copy — kept for non-rendering uses (logs, tests). */
   label: string;
+  /**
+   * Full `next-intl` message path for `label`, resolved with an un-namespaced
+   * `useTranslations()` / `getTranslations()` where the link is rendered. A
+   * key rather than translated text because this module is a plain constant,
+   * evaluated once, with no request locale to translate into.
+   */
+  labelKey: string;
   href: string;
   adminRoles: AdminRole[];
 };
@@ -53,7 +61,15 @@ export type AdminNavSectionId =
 /** A top-level sidebar entry. */
 export type AdminNavSection = {
   id: AdminNavSectionId;
+  /** English source copy — kept for non-rendering uses (logs, tests). */
   label: string;
+  /**
+   * Full `next-intl` message path for `label`, resolved with an un-namespaced
+   * `useTranslations()` / `getTranslations()` where the link is rendered. A
+   * key rather than translated text because this module is a plain constant,
+   * evaluated once, with no request locale to translate into.
+   */
+  labelKey: string;
   /**
    * Where clicking the section header goes. For sections with tabs this is the
    * first tab, so the section is never a dead end.
@@ -75,6 +91,7 @@ export const ADMIN_NAV: AdminNavSection[] = [
   {
     id: "analytics",
     label: "Sales Analytics",
+    labelKey: "admin.adminNav.salesAnalytics",
     href: "/admin/analytics",
     icon: ChartColumn,
     adminRoles: ["SUPER_ADMIN", "ANALYTICS"],
@@ -84,6 +101,7 @@ export const ADMIN_NAV: AdminNavSection[] = [
   {
     id: "users",
     label: "User Management",
+    labelKey: "admin.adminNav.userManagement",
     href: "/admin/users/clients",
     icon: Users,
     // SUPPORT is included because answering a customer ticket needs to read
@@ -92,11 +110,13 @@ export const ADMIN_NAV: AdminNavSection[] = [
     items: [
       {
         label: "Clients",
+        labelKey: "admin.adminNav.clients",
         href: "/admin/users/clients",
         adminRoles: ["SUPER_ADMIN", "USER_MANAGER", "SUPPORT"],
       },
       {
         label: "Sellers",
+        labelKey: "admin.adminNav.sellers",
         href: "/admin/users/sellers",
         adminRoles: ["SUPER_ADMIN", "USER_MANAGER", "SUPPORT"],
       },
@@ -105,6 +125,7 @@ export const ADMIN_NAV: AdminNavSection[] = [
         // no delegated role gets — it would let a USER_MANAGER mint itself a
         // SUPER_ADMIN.
         label: "System Users",
+        labelKey: "admin.adminNav.systemUsers",
         href: "/admin/users/system",
         adminRoles: ["SUPER_ADMIN"],
       },
@@ -113,32 +134,38 @@ export const ADMIN_NAV: AdminNavSection[] = [
   {
     id: "content",
     label: "Content Management",
+    labelKey: "admin.adminNav.contentManagement",
     href: "/admin/content/banners",
     icon: FileText,
     adminRoles: ["SUPER_ADMIN", "CONTENT_MANAGER"],
     items: [
       {
         label: "Banners",
+        labelKey: "admin.adminNav.banners",
         href: "/admin/content/banners",
         adminRoles: ["SUPER_ADMIN", "CONTENT_MANAGER"],
       },
       {
         label: "Static Pages",
+        labelKey: "admin.adminNav.staticPages",
         href: "/admin/content/pages",
         adminRoles: ["SUPER_ADMIN", "CONTENT_MANAGER"],
       },
       {
         label: "Translations",
+        labelKey: "admin.adminNav.translations",
         href: "/admin/content/translations",
         adminRoles: ["SUPER_ADMIN", "CONTENT_MANAGER"],
       },
       {
         label: "Messaging Templates",
+        labelKey: "admin.adminNav.messagingTemplates",
         href: "/admin/content/messaging-templates",
         adminRoles: ["SUPER_ADMIN", "CONTENT_MANAGER"],
       },
       {
         label: "Home Page",
+        labelKey: "admin.adminNav.homePage",
         href: "/admin/content/home-page",
         adminRoles: ["SUPER_ADMIN", "CONTENT_MANAGER"],
       },
@@ -147,6 +174,7 @@ export const ADMIN_NAV: AdminNavSection[] = [
         // one: payload, dimensions and pricing are operational data that drives
         // order matching, so they stay out of the back office entirely.
         label: "Vehicle Photos",
+        labelKey: "admin.adminNav.vehiclePhotos",
         href: "/admin/content/vehicle-photos",
         adminRoles: ["SUPER_ADMIN", "CONTENT_MANAGER"],
       },
@@ -155,17 +183,20 @@ export const ADMIN_NAV: AdminNavSection[] = [
   {
     id: "finance",
     label: "Finances",
+    labelKey: "admin.adminNav.finances",
     href: "/admin/finance/payment-methods",
     icon: CreditCard,
     adminRoles: ["SUPER_ADMIN", "FINANCE_MANAGER"],
     items: [
       {
         label: "Payment Methods",
+        labelKey: "admin.adminNav.paymentMethods",
         href: "/admin/finance/payment-methods",
         adminRoles: ["SUPER_ADMIN", "FINANCE_MANAGER"],
       },
       {
         label: "Promo Campaigns",
+        labelKey: "admin.adminNav.promoCampaigns",
         href: "/admin/finance/promo-campaigns",
         adminRoles: ["SUPER_ADMIN", "FINANCE_MANAGER"],
       },
@@ -174,22 +205,26 @@ export const ADMIN_NAV: AdminNavSection[] = [
   {
     id: "crm",
     label: "CRM",
+    labelKey: "admin.adminNav.crm",
     href: "/admin/crm/segments",
     icon: Megaphone,
     adminRoles: ["SUPER_ADMIN", "CRM_MANAGER"],
     items: [
       {
         label: "Segments",
+        labelKey: "admin.adminNav.segments",
         href: "/admin/crm/segments",
         adminRoles: ["SUPER_ADMIN", "CRM_MANAGER"],
       },
       {
         label: "Surveys",
+        labelKey: "admin.adminNav.surveys",
         href: "/admin/crm/surveys",
         adminRoles: ["SUPER_ADMIN", "CRM_MANAGER"],
       },
       {
         label: "Campaigns",
+        labelKey: "admin.adminNav.campaigns",
         href: "/admin/crm/campaigns",
         adminRoles: ["SUPER_ADMIN", "CRM_MANAGER"],
       },
@@ -198,6 +233,7 @@ export const ADMIN_NAV: AdminNavSection[] = [
   {
     id: "drivers",
     label: "Drivers",
+    labelKey: "common.shared.drivers",
     href: "/admin/drivers/applications",
     icon: Truck,
     // USER_MANAGER is the reviewing role for self-serve driver onboarding.
@@ -208,6 +244,7 @@ export const ADMIN_NAV: AdminNavSection[] = [
     items: [
       {
         label: "Applications",
+        labelKey: "admin.adminNav.applications",
         href: "/admin/drivers/applications",
         adminRoles: ["SUPER_ADMIN", "USER_MANAGER"],
       },
@@ -216,6 +253,7 @@ export const ADMIN_NAV: AdminNavSection[] = [
   {
     id: "business",
     label: "Business applications",
+    labelKey: "admin.adminNav.businessApplications",
     href: "/admin/business/applications",
     icon: Building2,
     // The same two roles that review individual driver applications. A fleet
@@ -227,6 +265,7 @@ export const ADMIN_NAV: AdminNavSection[] = [
     items: [
       {
         label: "Applications",
+        labelKey: "admin.adminNav.applications",
         href: "/admin/business/applications",
         adminRoles: ["SUPER_ADMIN", "USER_MANAGER"],
       },

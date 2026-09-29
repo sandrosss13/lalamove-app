@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import type { AdminRole } from "@prisma/client";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { authorizeAdminApi } from "@/lib/admin/api-auth";
 import { writeAuditLog } from "@/lib/admin/audit";
 import { prisma } from "@/lib/prisma";
@@ -51,6 +52,8 @@ export async function POST(
     return authorized.response;
   }
 
+  const t = await getRequestTranslations();
+
   const { id } = await params;
 
   const application = await prisma.businessApplication.findUnique({
@@ -71,7 +74,7 @@ export async function POST(
   // in-progress draft.
   if (!application || application.status === "DRAFT") {
     return NextResponse.json(
-      { error: "Application not found." },
+      { error: t("common.shared.applicationNotFound") },
       { status: 404 },
     );
   }
@@ -81,7 +84,7 @@ export async function POST(
   // the fleet was actually activated.
   if (application.status === "APPROVED") {
     return NextResponse.json(
-      { error: "This fleet has already been activated." },
+      { error: t("common.shared.thisFleetHasAlreadyBeenActivated") },
       { status: 400 },
     );
   }
@@ -96,7 +99,9 @@ export async function POST(
   if (application.status !== "PENDING") {
     return NextResponse.json(
       {
-        error: "This application is still waiting on the company to resubmit.",
+        error: t(
+          "errors.adminBusinessApplicationsActivate.thisApplicationIsStillWaitingOn",
+        ),
       },
       { status: 409 },
     );
@@ -104,7 +109,11 @@ export async function POST(
 
   if (application.companyReviewStatus !== "VERIFIED") {
     return NextResponse.json(
-      { error: "Verify the company's details before activating the fleet." },
+      {
+        error: t(
+          "errors.adminBusinessApplicationsActivate.verifyTheCompanySDetailsBefore",
+        ),
+      },
       { status: 409 },
     );
   }
@@ -118,7 +127,10 @@ export async function POST(
   if (pendingCount > 0) {
     return NextResponse.json(
       {
-        error: `${pendingCount} vehicle${pendingCount === 1 ? " is" : "s are"} still pending review. Decide every vehicle before activating the fleet.`,
+        error: t(
+          "errors.adminBusinessApplicationsActivate.vehiclesStillPendingReview",
+          { count: pendingCount },
+        ),
       },
       { status: 409 },
     );
@@ -137,8 +149,9 @@ export async function POST(
   if (approvedVehicleCount === 0) {
     return NextResponse.json(
       {
-        error:
-          "At least one vehicle must be approved before activating the fleet.",
+        error: t(
+          "errors.adminBusinessApplicationsActivate.atLeastOneVehicleMustBe",
+        ),
       },
       { status: 409 },
     );

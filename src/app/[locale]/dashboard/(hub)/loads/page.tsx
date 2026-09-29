@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 
 import {
   LoadsScreen,
@@ -12,16 +13,29 @@ import {
   resolveHubAccount,
   type HubAccount,
 } from "@/lib/dashboard/hub/account";
+import type { LocaleRouteParams } from "@/i18n/server";
+import type { Translator } from "@/i18n/translator";
 import { driverVehiclesWhere } from "@/lib/orders/driver-vehicles";
 import { capabilityOf, widestCapability } from "@/lib/orders/vehicle-fit";
 import { prisma } from "@/lib/prisma";
+import { vehicleTypeSpecLabel } from "@/lib/vehicle-type-spec-labels";
 
 // Session + Prisma access can't be statically rendered.
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Dashboard · Driver Hub",
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: LocaleRouteParams;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({
+    locale,
+    namespace: "dashboard.dashboardLoads",
+  });
+
+  return { title: t("dashboardDriverHub") };
+}
 
 /**
  * The capacity columns every vehicle read on this page needs, plus the class
@@ -57,6 +71,7 @@ const VEHICLE_SELECT = {
   cargoHeightM: true,
   vehicleTypeSpec: {
     select: {
+      code: true,
       label: true,
       maxPayloadKg: true,
       cargoLengthM: true,
@@ -151,6 +166,7 @@ type LoadsPageVehicles = {
  */
 async function resolveVehicles(
   account: HubAccount,
+  t: Translator,
 ): Promise<LoadsPageVehicles> {
   if (account.kind === "BUSINESS") {
     if (account.companyId === null) {
@@ -167,7 +183,10 @@ async function resolveVehicles(
     );
 
     return {
-      vehiclePill: capability === null ? null : { label: "Fleet", capability },
+      vehiclePill:
+        capability === null
+          ? null
+          : { label: t("common.shared.fleet"), capability },
       claimVehicles: [],
       vehicleClasses: [],
     };
@@ -195,7 +214,11 @@ async function resolveVehicles(
       newest === undefined
         ? null
         : {
-            label: newest.vehicleTypeSpec.label,
+            label: vehicleTypeSpecLabel(
+              newest.vehicleTypeSpec.code,
+              newest.vehicleTypeSpec.label,
+              t,
+            ),
             capability: capabilityOf(newest, newest.vehicleTypeSpec),
           },
     // Copied field by field rather than handed over as the Prisma rows
@@ -218,7 +241,11 @@ async function resolveVehicles(
       cargoWidthM: vehicle.cargoWidthM,
       cargoHeightM: vehicle.cargoHeightM,
       vehicleTypeSpec: {
-        label: vehicle.vehicleTypeSpec.label,
+        label: vehicleTypeSpecLabel(
+          vehicle.vehicleTypeSpec.code,
+          vehicle.vehicleTypeSpec.label,
+          t,
+        ),
         maxPayloadKg: vehicle.vehicleTypeSpec.maxPayloadKg,
         cargoLengthM: vehicle.vehicleTypeSpec.cargoLengthM,
         cargoWidthM: vehicle.vehicleTypeSpec.cargoWidthM,
@@ -266,8 +293,11 @@ export default async function LoadsPage() {
     return null;
   }
 
-  const { vehiclePill, claimVehicles, vehicleClasses } =
-    await resolveVehicles(account);
+  const t = await getTranslations();
+  const { vehiclePill, claimVehicles, vehicleClasses } = await resolveVehicles(
+    account,
+    t,
+  );
 
   return (
     <LoadsScreen

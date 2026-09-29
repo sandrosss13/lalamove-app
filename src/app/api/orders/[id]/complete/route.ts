@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { OrderStatus } from "@prisma/client";
 
+import {
+  getRequestTranslations,
+  type RequestTranslator,
+} from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
 import { CARRIER_ORDER_PARTY_SELECT } from "@/lib/order-response-select";
 import { driverPayoutFor } from "@/lib/orders/payout";
@@ -37,11 +41,12 @@ const MAX_RECEIVED_BY_LENGTH = 200;
  */
 function parseCompleteOrderBody(
   body: unknown,
+  t: RequestTranslator,
 ):
   | { data: { waitingMinutes: number; receivedBy: string | null } }
   | { error: string } {
   if (typeof body !== "object" || body === null) {
-    return { error: "Request body must be a JSON object." };
+    return { error: t("common.shared.requestBodyMustBeAJson") };
   }
 
   const { waitingMinutes, receivedBy } = body as Record<string, unknown>;
@@ -52,8 +57,7 @@ function parseCompleteOrderBody(
     waitingMinutes < 0
   ) {
     return {
-      error:
-        "waitingMinutes is required and must be a whole number of minutes.",
+      error: t("errors.ordersComplete.waitingminutesIsRequiredAndMustBe"),
     };
   }
 
@@ -65,14 +69,16 @@ function parseCompleteOrderBody(
   }
 
   if (typeof receivedBy !== "string") {
-    return { error: "receivedBy must be a string or null." };
+    return { error: t("errors.ordersComplete.receivedByMustBeStringOrNull") };
   }
 
   const trimmedReceivedBy = receivedBy.trim();
 
   if (trimmedReceivedBy.length > MAX_RECEIVED_BY_LENGTH) {
     return {
-      error: `receivedBy must be ${MAX_RECEIVED_BY_LENGTH} characters or fewer.`,
+      error: t("errors.ordersComplete.receivedByTooLong", {
+        max: MAX_RECEIVED_BY_LENGTH,
+      }),
     };
   }
 
@@ -130,9 +136,14 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
+  const t = await getRequestTranslations();
+
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    return NextResponse.json(
+      { error: t("common.shared.unauthorized") },
+      { status: 401 },
+    );
   }
 
   let rawBody: unknown;
@@ -140,12 +151,12 @@ export async function POST(
     rawBody = await request.json();
   } catch {
     return NextResponse.json(
-      { error: "Request body must be valid JSON." },
+      { error: t("common.shared.requestBodyMustBeValidJson") },
       { status: 400 },
     );
   }
 
-  const parsed = parseCompleteOrderBody(rawBody);
+  const parsed = parseCompleteOrderBody(rawBody, t);
   if ("error" in parsed) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
@@ -175,19 +186,22 @@ export async function POST(
   });
 
   if (!order) {
-    return NextResponse.json({ error: "Order not found." }, { status: 404 });
+    return NextResponse.json(
+      { error: t("common.shared.orderNotFound") },
+      { status: 404 },
+    );
   }
 
   if (order.driverId !== session.user.id) {
     return NextResponse.json(
-      { error: "You are not assigned to this delivery." },
+      { error: t("common.shared.youAreNotAssignedToThis") },
       { status: 403 },
     );
   }
 
   if (order.status !== OrderStatus.IN_TRANSIT) {
     return NextResponse.json(
-      { error: "This delivery cannot be completed right now." },
+      { error: t("errors.ordersComplete.thisDeliveryCannotBeCompletedRight") },
       { status: 409 },
     );
   }
@@ -198,7 +212,7 @@ export async function POST(
   // hand-edited data. Failing loudly beats silently waiving the overtime.
   if (!pricingRule) {
     return NextResponse.json(
-      { error: "This delivery's vehicle type has no pricing rule." },
+      { error: t("errors.ordersComplete.thisDeliverySVehicleTypeHas") },
       { status: 500 },
     );
   }

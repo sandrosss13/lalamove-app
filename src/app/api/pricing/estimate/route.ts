@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import {
   estimateDelivery,
   parseQuoteFields,
@@ -61,10 +62,12 @@ function getCallerKey(request: Request): string {
  * form can show the tiers side by side without re-quoting per tier.
  */
 export async function POST(request: Request): Promise<NextResponse> {
+  const t = await getRequestTranslations();
+
   // Checked before parsing or geocoding so a flood costs almost nothing.
   if (!checkRateLimit(getCallerKey(request), RATE_LIMIT)) {
     return NextResponse.json(
-      { error: "Too many requests. Please wait a moment and try again." },
+      { error: t("common.shared.tooManyRequestsPleaseWaitA") },
       {
         status: 429,
         // Derived from the window rather than written out, so what a rejected
@@ -79,19 +82,19 @@ export async function POST(request: Request): Promise<NextResponse> {
     rawBody = await request.json();
   } catch {
     return NextResponse.json(
-      { error: "Request body must be valid JSON." },
+      { error: t("common.shared.requestBodyMustBeValidJson") },
       { status: 400 },
     );
   }
 
   if (typeof rawBody !== "object" || rawBody === null) {
     return NextResponse.json(
-      { error: "Request body must be a JSON object." },
+      { error: t("common.shared.requestBodyMustBeAJson") },
       { status: 400 },
     );
   }
 
-  const parsed = parseQuoteFields(rawBody as Record<string, unknown>);
+  const parsed = parseQuoteFields(rawBody as Record<string, unknown>, t);
   if ("error" in parsed) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
@@ -103,7 +106,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     // cargo/vehicle pairing is bad input (400).
     const status = result.reason === "unresolved_address" ? 422 : 400;
     return NextResponse.json(
-      { error: quoteFailureMessage(result) },
+      { error: quoteFailureMessage(result, t) },
       { status },
     );
   }

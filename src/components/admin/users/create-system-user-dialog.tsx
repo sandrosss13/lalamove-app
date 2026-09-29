@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 
 import type { AdminRole } from "@prisma/client";
 
@@ -45,6 +46,21 @@ export const ADMIN_ROLE_LABELS: Record<AdminRole, string> = {
   USER_MANAGER: "User Manager",
 };
 
+/**
+ * The same roles as full message paths under `admin.adminRoles`, for every
+ * surface that renders a role to a person. `ADMIN_ROLE_LABELS` stays as the
+ * English source for the System Users table until that page switches over.
+ */
+export const ADMIN_ROLE_LABEL_KEYS: Record<AdminRole, string> = {
+  SUPER_ADMIN: "admin.adminRoles.superAdmin",
+  ANALYTICS: "admin.adminRoles.analytics",
+  CONTENT_MANAGER: "admin.adminRoles.contentManager",
+  CRM_MANAGER: "admin.adminRoles.crmManager",
+  FINANCE_MANAGER: "admin.adminRoles.financeManager",
+  SUPPORT: "admin.adminRoles.support",
+  USER_MANAGER: "admin.adminRoles.userManager",
+};
+
 /** Picker order, so the most privileged role is never buried mid-list. */
 const ADMIN_ROLE_OPTIONS: AdminRole[] = [
   "SUPER_ADMIN",
@@ -81,6 +97,7 @@ const COPIED_FEEDBACK_MS = 2000;
  * endpoint re-checks `adminRole` server-side, which is the real boundary.
  */
 export function CreateSystemUserDialog() {
+  const t = useTranslations();
   const router = useRouter();
 
   const [open, setOpen] = useState(false);
@@ -124,7 +141,7 @@ export function CreateSystemUserDialog() {
     event.preventDefault();
 
     if (adminRole === "") {
-      setError("Pick an admin role.");
+      setError(t("admin.createSystemUserDialog.pickAnAdminRole"));
       return;
     }
 
@@ -144,7 +161,9 @@ export function CreateSystemUserDialog() {
         } | null;
         // Reported inline rather than by closing the dialog: a taken email is
         // something the admin has to correct in the form still on screen.
-        setError(payload?.error ?? "Could not create this system user.");
+        setError(
+          payload?.error ?? t("admin.createSystemUserDialog.couldNotCreate"),
+        );
         return;
       }
 
@@ -164,7 +183,7 @@ export function CreateSystemUserDialog() {
       // unaffected.
       router.refresh();
     } catch {
-      setError("Network error. Please check your connection and try again.");
+      setError(t("common.shared.networkErrorPleaseCheckYourConnection"));
     } finally {
       setSubmitting(false);
     }
@@ -191,29 +210,35 @@ export function CreateSystemUserDialog() {
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button size="sm">New System User</Button>
+        <Button size="sm">
+          {t("admin.createSystemUserDialog.newSystemUser")}
+        </Button>
       </DialogTrigger>
 
       <DialogContent>
         {created ? (
           <>
             <DialogHeader>
-              <DialogTitle>System user created</DialogTitle>
+              <DialogTitle>
+                {t("admin.createSystemUserDialog.systemUserCreated")}
+              </DialogTitle>
               <DialogDescription>
-                Share these credentials with {created.name} directly — the
-                password won&apos;t be shown again. They&apos;ll be asked to set
-                their own password on first sign-in.
+                {t("admin.createSystemUserDialog.shareCredentials", {
+                  name: created.name,
+                })}
               </DialogDescription>
             </DialogHeader>
 
             <div className="flex flex-col gap-2 rounded-lg border border-border p-3 text-sm">
               <div className="flex justify-between gap-4">
-                <span className="text-muted-foreground">Email</span>
+                <span className="text-muted-foreground">
+                  {t("common.shared.email")}
+                </span>
                 <span className="break-all">{created.email}</span>
               </div>
               <div className="flex justify-between gap-4">
                 <span className="text-muted-foreground">
-                  Temporary password
+                  {t("common.shared.temporaryPassword")}
                 </span>
                 <span className="font-mono break-all">
                   {created.temporaryPassword}
@@ -223,58 +248,77 @@ export function CreateSystemUserDialog() {
 
             <DialogFooter showCloseButton={false}>
               <Button variant="outline" onClick={handleCopy}>
-                {copied ? "Copied!" : "Copy password"}
+                {copied
+                  ? t("admin.createSystemUserDialog.copied")
+                  : t("admin.createSystemUserDialog.copyPassword")}
               </Button>
-              <Button onClick={() => handleOpenChange(false)}>Done</Button>
+              <Button onClick={() => handleOpenChange(false)}>
+                {t("common.shared.done")}
+              </Button>
             </DialogFooter>
           </>
         ) : (
           <form onSubmit={handleSubmit} className="contents">
             <DialogHeader>
-              <DialogTitle>New system user</DialogTitle>
+              <DialogTitle>
+                {t("admin.createSystemUserDialog.newSystemUser2")}
+              </DialogTitle>
               <DialogDescription>
-                Creates a back-office account with a temporary password, shown
-                once after you submit.
+                {t(
+                  "admin.createSystemUserDialog.createsABackOfficeAccountWith",
+                )}
               </DialogDescription>
             </DialogHeader>
 
             <div className="flex flex-col gap-3">
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="system-user-name">Name</Label>
+                <Label htmlFor="system-user-name">
+                  {t("common.shared.name")}
+                </Label>
                 <Input
                   id="system-user-name"
                   required
                   value={name}
                   onChange={(event) => setName(event.target.value)}
-                  placeholder="Nino Beridze"
+                  placeholder={t("admin.createSystemUserDialog.ninoBeridze")}
                 />
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="system-user-email">Email</Label>
+                <Label htmlFor="system-user-email">
+                  {t("common.shared.email")}
+                </Label>
                 <Input
                   id="system-user-email"
                   type="email"
                   required
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
-                  placeholder="staff@example.com"
+                  placeholder={t(
+                    "admin.createSystemUserDialog.staffExampleCom",
+                  )}
                 />
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="system-user-role">Admin role</Label>
+                <Label htmlFor="system-user-role">
+                  {t("admin.createSystemUserDialog.adminRole")}
+                </Label>
                 <Select
                   value={adminRole === "" ? undefined : adminRole}
                   onValueChange={(value) => setAdminRole(value as AdminRole)}
                 >
                   <SelectTrigger id="system-user-role" className="w-full">
-                    <SelectValue placeholder="Select a role" />
+                    <SelectValue
+                      placeholder={t(
+                        "admin.createSystemUserDialog.selectARole",
+                      )}
+                    />
                   </SelectTrigger>
                   <SelectContent>
                     {ADMIN_ROLE_OPTIONS.map((role) => (
                       <SelectItem key={role} value={role}>
-                        {ADMIN_ROLE_LABELS[role]}
+                        {t(ADMIN_ROLE_LABEL_KEYS[role])}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -292,10 +336,12 @@ export function CreateSystemUserDialog() {
                 variant="outline"
                 onClick={() => handleOpenChange(false)}
               >
-                Cancel
+                {t("common.shared.cancel")}
               </Button>
               <Button type="submit" disabled={submitting || adminRole === ""}>
-                {submitting ? "Creating…" : "Create system user"}
+                {submitting
+                  ? t("fleet.step4DriversAssignment.creating")
+                  : t("admin.createSystemUserDialog.createSystemUser")}
               </Button>
             </DialogFooter>
           </form>

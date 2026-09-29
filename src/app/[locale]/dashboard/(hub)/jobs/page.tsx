@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 
+import type { LocaleRouteParams } from "@/i18n/server";
 import { JobsScreen } from "@/components/driver-hub/screens/jobs-screen";
 import { resolveHubAccount } from "@/lib/dashboard/hub/account";
 import { getHubJobs } from "@/lib/dashboard/hub/jobs";
@@ -7,9 +9,19 @@ import { getHubJobs } from "@/lib/dashboard/hub/jobs";
 // Session + Prisma access can't be statically rendered.
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Job history · Driver Hub",
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: LocaleRouteParams;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({
+    locale,
+    namespace: "dashboard.dashboardJobs",
+  });
+
+  return { title: t("jobHistoryDriverHub") };
+}
 
 /**
  * Every job this account has run — completed, scheduled, in flight or

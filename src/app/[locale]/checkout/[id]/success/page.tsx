@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { OrderStatus, PaymentStatus } from "@prisma/client";
+import { getLocale, getTranslations } from "next-intl/server";
 
 import { Link } from "@/i18n/navigation";
 import { localeHref } from "@/i18n/server";
@@ -8,7 +9,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { maskedCardNumber } from "@/components/home/payment-methods";
 import { formatGel } from "@/components/orders-format";
-import { PAYMENT_METHOD_LABEL, formatScheduledAt } from "../../checkout-format";
+import { formatScheduledAt, paymentMethodLabel } from "../../checkout-format";
 import {
   CheckoutHeader,
   CheckoutOrderNotFoundNotice,
@@ -65,11 +66,10 @@ export default async function CheckoutSuccessPage({
   params: Promise<{ id: string }>;
 }) {
   const session = await auth.api.getSession({ headers: await headers() });
+  const t = await getTranslations("checkout.checkoutSuccess");
 
   if (!session) {
-    return (
-      <CheckoutSignInNotice prompt="Sign in to see the confirmation for this delivery." />
-    );
+    return <CheckoutSignInNotice prompt={t("signInToSeeConfirmation")} />;
   }
 
   if (session.user.role !== "CLIENT") {
@@ -94,16 +94,19 @@ export default async function CheckoutSuccessPage({
   }
 
   const total = order.price + order.serviceLevelAdjustment;
+  const tShared = await getTranslations("common.shared");
+  const tRoot = await getTranslations();
+  const locale = await getLocale();
 
   // How they settled, named the way the client chose it. `paymentMethodType` is
   // nullable on the column — orders placed before the payment step existed have
   // none — so the absent case says so rather than printing a blank.
   const methodLabel =
     order.paymentMethodType === null
-      ? "Not recorded"
+      ? t("notRecorded")
       : order.savedCard && order.paymentMethodType === "CARD"
         ? `${order.savedCard.brand} ${maskedCardNumber(order.savedCard.last4)}`
-        : PAYMENT_METHOD_LABEL[order.paymentMethodType];
+        : paymentMethodLabel(order.paymentMethodType, tRoot);
 
   // Honest about what has and has not happened. A `PAID` payment row still means
   // only that nothing is left to collect up front — no gateway is integrated, so
@@ -112,9 +115,9 @@ export default async function CheckoutSuccessPage({
   // order, or a status this flow does not write) gets no claim made about it.
   const paymentNote =
     order.payment?.status === PaymentStatus.PAID
-      ? "Settled at checkout. No payment provider is connected yet, so nothing has been charged to your card."
+      ? t("settledAtCheckout")
       : order.payment?.status === PaymentStatus.PENDING
-        ? "Due after the delivery, collected off the platform when the job is done."
+        ? t("dueAfterDelivery")
         : null;
 
   return (
@@ -123,12 +126,12 @@ export default async function CheckoutSuccessPage({
     <main className="min-h-screen bg-ink text-paper">
       <div className="mx-auto flex max-w-3xl flex-col gap-6 px-5 pt-8 pb-16 sm:px-8">
         <CheckoutHeader
-          eyebrow="Booking confirmed"
+          eyebrow={t("bookingConfirmed")}
           // A literal typographic apostrophe rather than `&rsquo;`: this is a
           // string prop, not JSX text, so an entity would render as itself.
-          title="You’re all set"
+          title={t("youReAllSet")}
           backHref="/orders"
-          backLabel="← Your orders"
+          backLabel={t("backToYourOrders")}
         />
 
         <section
@@ -139,28 +142,36 @@ export default async function CheckoutSuccessPage({
             id="checkout-confirmation-heading"
             className="font-display text-lg font-semibold text-paper"
           >
-            Your delivery is booked
+            {t("yourDeliveryIsBooked")}
           </h2>
           <p className="mt-2 text-[14px] leading-relaxed text-muted">
-            We&rsquo;re matching it with a driver now. You&rsquo;ll be able to
-            follow the job from your orders as soon as one accepts it.
+            {t("matchingWithDriver")}
           </p>
 
           <dl className="mt-5 flex flex-col gap-3 border-t border-line pt-5">
             <ConfirmationRow
-              label="Total"
+              label={tShared("total")}
               value={formatGel(total)}
               emphasised
             />
-            <ConfirmationRow label="Payment method" value={methodLabel} />
+            <ConfirmationRow
+              label={tShared("paymentMethod")}
+              value={methodLabel}
+            />
             {order.scheduledAt ? (
               <ConfirmationRow
-                label="Scheduled"
-                value={formatScheduledAt(order.scheduledAt)}
+                label={tShared("scheduled")}
+                value={formatScheduledAt(order.scheduledAt, locale)}
               />
             ) : null}
-            <ConfirmationRow label="Pickup" value={order.pickupAddress} />
-            <ConfirmationRow label="Dropoff" value={order.dropoffAddress} />
+            <ConfirmationRow
+              label={tShared("pickup")}
+              value={order.pickupAddress}
+            />
+            <ConfirmationRow
+              label={tShared("dropoff")}
+              value={order.dropoffAddress}
+            />
           </dl>
 
           {paymentNote ? (
@@ -174,7 +185,7 @@ export default async function CheckoutSuccessPage({
               href="/orders"
               className="rounded-full bg-accent px-5 py-2.5 text-[14px] font-semibold text-on-accent transition-colors hover:bg-accent-hover"
             >
-              View your orders
+              {t("viewYourOrders")}
             </Link>
             {/* Reachable straight away: the tracking page renders the route and
                 the current status, and fills in the driver's position once one
@@ -183,7 +194,7 @@ export default async function CheckoutSuccessPage({
               href={`/orders/${order.id}/track`}
               className="rounded-full border border-line px-5 py-2.5 text-[14px] font-semibold text-paper transition-colors hover:border-accent/40 hover:text-accent"
             >
-              Track this delivery
+              {t("trackThisDelivery")}
             </Link>
           </div>
         </section>

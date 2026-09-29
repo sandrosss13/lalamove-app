@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -17,6 +18,10 @@ export const MIN_VEHICLE_YEAR = 1980;
 export const UNKNOWN_VEHICLE_TYPE_ERROR =
   "vehicleTypeCode does not match a known vehicle type.";
 
+/** Message path of `UNKNOWN_VEHICLE_TYPE_ERROR`, for a translated response. */
+export const UNKNOWN_VEHICLE_TYPE_ERROR_KEY =
+  "errors.logisticsCompanyVehicles.vehicletypecodeDoesNotMatchAKnown";
+
 /** Trims a value and returns it only if it is a non-empty string, else null. */
 export function nonEmptyString(value: unknown): string | null {
   return typeof value === "string" && value.trim() !== "" ? value.trim() : null;
@@ -26,20 +31,26 @@ export function nonEmptyString(value: unknown): string | null {
  * Parses the manufacturing year. Bounded on both ends: next year is allowed
  * because dealers register model years ahead of the calendar.
  */
-export function parseYear(
+export async function parseYear(
   value: unknown,
-): { value: number } | { error: string } {
+): Promise<{ value: number } | { error: string }> {
   const raw = nonEmptyString(value);
   if (raw === null) {
-    return { error: "year is required." };
+    const t = await getRequestTranslations("common.shared");
+    return { error: t("yearIsRequired") };
   }
 
   const year = Number(raw);
   const maxYear = new Date().getFullYear() + 1;
 
   if (!Number.isInteger(year) || year < MIN_VEHICLE_YEAR || year > maxYear) {
+    const tr = await getRequestTranslations();
+    // Years go in as strings: ICU would group a numeric argument ("2,027").
     return {
-      error: `year must be a whole number between ${MIN_VEHICLE_YEAR} and ${maxYear}.`,
+      error: tr("errors.driverProfileVehiclesValidation.yearRange", {
+        min: String(MIN_VEHICLE_YEAR),
+        max: String(maxYear),
+      }),
     };
   }
 

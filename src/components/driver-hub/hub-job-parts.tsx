@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 
 import { cn } from "@/lib/utils";
 
@@ -176,6 +177,36 @@ export type HubTimelineInput = {
   running: boolean;
 };
 
+/** The display label for each timeline step, keyed by step id. */
+export type HubTimelineLabels = Record<HubTimelineStep["id"], string>;
+
+/**
+ * The English labels, used when a caller passes none. Kept so the builder stays
+ * a pure function callable outside React; a rendering caller should pass
+ * `useHubTimelineLabels()` so the steps follow the active locale.
+ */
+const ENGLISH_TIMELINE_LABELS: HubTimelineLabels = {
+  placed: "Order placed",
+  "picked-up": "Picked up",
+  "dropped-off": "Dropped off",
+};
+
+/**
+ * The timeline labels in the active locale, for `buildHubTimeline`'s second
+ * argument. A hook rather than a translation inside the builder, because the
+ * builder is plain data shaping and must not depend on a React render.
+ */
+export function useHubTimelineLabels(): HubTimelineLabels {
+  const t = useTranslations("driverHub.hubJobParts");
+  const tShared = useTranslations("common.shared");
+
+  return {
+    placed: t("orderPlaced"),
+    "picked-up": tShared("pickedUp"),
+    "dropped-off": t("droppedOff"),
+  };
+}
+
 /**
  * The three real steps, in order, with the state each one is in.
  *
@@ -199,16 +230,14 @@ export type HubTimelineInput = {
  * borrowing the design's "accepted" would attribute the client's action to the
  * driver and date it wrongly.
  */
-export function buildHubTimeline({
-  createdAt,
-  inTransitAt,
-  completedAt,
-  running,
-}: HubTimelineInput): HubTimelineStep[] {
+export function buildHubTimeline(
+  { createdAt, inTransitAt, completedAt, running }: HubTimelineInput,
+  labels: HubTimelineLabels = ENGLISH_TIMELINE_LABELS,
+): HubTimelineStep[] {
   const steps: Omit<HubTimelineStep, "state">[] = [
-    { id: "placed", label: "Order placed", at: createdAt },
-    { id: "picked-up", label: "Picked up", at: inTransitAt },
-    { id: "dropped-off", label: "Dropped off", at: completedAt },
+    { id: "placed", label: labels.placed, at: createdAt },
+    { id: "picked-up", label: labels["picked-up"], at: inTransitAt },
+    { id: "dropped-off", label: labels["dropped-off"], at: completedAt },
   ];
 
   const nextIndex = steps.findIndex((step) => step.at === null);
@@ -238,6 +267,37 @@ export type HubPayoutInput = {
   /** `Order.waitingMinutes` — null until the delivery is completed. */
   waitingMinutes: number | null;
 };
+
+/** The payout line labels; `overtime` receives the recorded waiting minutes. */
+export type HubPayoutLabels = {
+  payout: string;
+  overtime: (waitingMinutes: number | null) => string;
+};
+
+/** English, for a caller that passes no labels — see `ENGLISH_TIMELINE_LABELS`. */
+function englishOvertimeLabel(waitingMinutes: number | null): string {
+  return waitingMinutes === null
+    ? "Overtime payout"
+    : `Overtime payout · ${waitingMinutes} min waiting`;
+}
+
+const ENGLISH_PAYOUT_LABELS: HubPayoutLabels = {
+  payout: "Payout",
+  overtime: englishOvertimeLabel,
+};
+
+/** The payout line labels in the active locale, for `buildHubPayoutLines`. */
+export function useHubPayoutLabels(): HubPayoutLabels {
+  const t = useTranslations("driverHub.hubJobParts");
+
+  return {
+    payout: t("payout"),
+    overtime: (waitingMinutes) =>
+      waitingMinutes === null
+        ? t("overtimePayout")
+        : t("overtimePayoutWaiting", { minutes: waitingMinutes }),
+  };
+}
 
 /**
  * What a job pays its carrier, in the at most two lines that side of it has —
@@ -271,21 +331,17 @@ export type HubPayoutInput = {
  * screens the same person reads. The shared string follows the input and the
  * column: **waiting**.
  */
-export function buildHubPayoutLines({
-  driverPayout,
-  overtimeDriverPayout,
-  waitingMinutes,
-}: HubPayoutInput): HubPayoutLine[] {
+export function buildHubPayoutLines(
+  { driverPayout, overtimeDriverPayout, waitingMinutes }: HubPayoutInput,
+  labels: HubPayoutLabels = ENGLISH_PAYOUT_LABELS,
+): HubPayoutLine[] {
   const lines: HubPayoutLine[] = [
-    { label: "Payout", amountGel: driverPayout },
+    { label: labels.payout, amountGel: driverPayout },
   ];
 
   if (overtimeDriverPayout !== 0) {
     lines.push({
-      label:
-        waitingMinutes === null
-          ? "Overtime payout"
-          : `Overtime payout · ${waitingMinutes} min waiting`,
+      label: labels.overtime(waitingMinutes),
       amountGel: overtimeDriverPayout,
     });
   }

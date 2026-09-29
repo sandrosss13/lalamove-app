@@ -9,6 +9,7 @@ import type {
   VehicleClass,
 } from "@prisma/client";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { findBodyType } from "@/lib/driver-onboarding/vehicle-classes";
@@ -21,6 +22,9 @@ import {
   parseFleetDraft,
   type FleetDraftV1,
 } from "@/lib/fleet-onboarding/draft-schema";
+
+/** The request-locale translator the body parsers below phrase their errors with. */
+type RequestTranslator = Awaited<ReturnType<typeof getRequestTranslations>>;
 
 /**
  * The read/write backbone of the fleet onboarding wizard, and the direct
@@ -251,17 +255,22 @@ type CompanyContext =
 async function resolveCompanyContext(
   request: Request,
 ): Promise<CompanyContext> {
+  const t = await getRequestTranslations();
+
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {
     return {
-      response: NextResponse.json({ error: "Unauthorized." }, { status: 401 }),
+      response: NextResponse.json(
+        { error: t("common.shared.unauthorized") },
+        { status: 401 },
+      ),
     };
   }
 
   if (session.user.role !== "COMPANY") {
     return {
       response: NextResponse.json(
-        { error: "Only logistics companies have a fleet application." },
+        { error: t("common.shared.onlyLogisticsCompaniesHaveAFleet") },
         { status: 403 },
       ),
     };
@@ -275,7 +284,9 @@ async function resolveCompanyContext(
   if (!company) {
     return {
       response: NextResponse.json(
-        { error: "Complete your company profile before onboarding." },
+        {
+          error: t("common.shared.completeYourCompanyProfileBeforeOnboarding"),
+        },
         { status: 404 },
       ),
     };
@@ -504,6 +515,8 @@ function buildCompanyOnRecord(
  * screen needs to render, creating the company's application row on first call.
  */
 export async function GET(request: Request): Promise<NextResponse> {
+  const t = await getRequestTranslations();
+
   const context = await resolveCompanyContext(request);
   if ("response" in context) {
     return context.response;
@@ -518,7 +531,7 @@ export async function GET(request: Request): Promise<NextResponse> {
     } catch (error: unknown) {
       console.error("Failed to create a business application:", error);
       return NextResponse.json(
-        { error: "Could not start your application. Please try again." },
+        { error: t("common.shared.couldNotStartYourApplicationPlease") },
         { status: 500 },
       );
     }
@@ -574,9 +587,10 @@ function isJsonObject(value: unknown): value is Record<string, unknown> {
  */
 function parseSaveDraftBody(
   body: unknown,
+  t: RequestTranslator,
 ): { data: SaveDraftInput } | { error: string } {
   if (!isJsonObject(body)) {
-    return { error: "Request body must be a JSON object." };
+    return { error: t("common.shared.requestBodyMustBeAJson") };
   }
 
   const { draftStep, draft } = body;
@@ -588,13 +602,16 @@ function parseSaveDraftBody(
     draftStep > FLEET_LAST_STEP
   ) {
     return {
-      error: `draftStep must be an integer between ${FLEET_FIRST_STEP} and ${FLEET_LAST_STEP}.`,
+      error: t("errors.logisticsCompanyOnboarding.draftStepMustBeAnInteger", {
+        min: FLEET_FIRST_STEP,
+        max: FLEET_LAST_STEP,
+      }),
     };
   }
 
   const parsedDraft = parseFleetDraft(draft);
   if (!parsedDraft) {
-    return { error: "draft must be an object with version 1." };
+    return { error: t("common.shared.draftMustBeAnObjectWith") };
   }
 
   // Two sections, not three: the driver of a vehicle lives on the vehicle, so
@@ -602,19 +619,30 @@ function parseSaveDraftBody(
   for (const section of ["company", "fleet"] as const) {
     const value = parsedDraft[section];
     if (value !== undefined && !isJsonObject(value)) {
-      return { error: `draft.${section} must be an object.` };
+      return {
+        error: t(
+          "errors.logisticsCompanyOnboarding.draftSectionMustBeAnObject",
+          { section },
+        ),
+      };
     }
   }
 
   const { vehicles } = parsedDraft;
   if (vehicles !== undefined) {
     if (!Array.isArray(vehicles)) {
-      return { error: "draft.vehicles must be an array." };
+      return {
+        error: t(
+          "errors.logisticsCompanyOnboarding.draftVehiclesMustBeAnArray",
+        ),
+      };
     }
 
     if (vehicles.length > FLEET_MAX_VEHICLES) {
       return {
-        error: `draft.vehicles must contain ${FLEET_MAX_VEHICLES} entries or fewer.`,
+        error: t("errors.logisticsCompanyOnboarding.draftVehiclesTooMany", {
+          max: FLEET_MAX_VEHICLES,
+        }),
       };
     }
   }
@@ -624,7 +652,9 @@ function parseSaveDraftBody(
   // `parseFleetDraft` count against the cap too.
   if (JSON.stringify(parsedDraft).length > MAX_DRAFT_JSON_LENGTH) {
     return {
-      error: `draft must serialise to ${MAX_DRAFT_JSON_LENGTH} characters or fewer.`,
+      error: t("errors.logisticsCompanyOnboarding.draftTooLong", {
+        max: MAX_DRAFT_JSON_LENGTH,
+      }),
     };
   }
 
@@ -653,6 +683,8 @@ function parseSaveDraftBody(
  * underneath them.
  */
 export async function PATCH(request: Request): Promise<NextResponse> {
+  const t = await getRequestTranslations();
+
   const context = await resolveCompanyContext(request);
   if ("response" in context) {
     return context.response;
@@ -661,14 +693,18 @@ export async function PATCH(request: Request): Promise<NextResponse> {
   const { application } = context.company;
   if (!application) {
     return NextResponse.json(
-      { error: "No application to save. Load your application first." },
+      { error: t("common.shared.noApplicationToSaveLoadYour") },
       { status: 404 },
     );
   }
 
   if (application.status !== "DRAFT") {
     return NextResponse.json(
-      { error: "An application under review can no longer be edited." },
+      {
+        error: t(
+          "errors.logisticsCompanyOnboarding.anApplicationUnderReviewCanNo",
+        ),
+      },
       { status: 400 },
     );
   }
@@ -678,12 +714,12 @@ export async function PATCH(request: Request): Promise<NextResponse> {
     rawBody = await request.json();
   } catch {
     return NextResponse.json(
-      { error: "Request body must be valid JSON." },
+      { error: t("common.shared.requestBodyMustBeValidJson") },
       { status: 400 },
     );
   }
 
-  const parsed = parseSaveDraftBody(rawBody);
+  const parsed = parseSaveDraftBody(rawBody, t);
   if ("error" in parsed) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }

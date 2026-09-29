@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { OrderStatus } from "@prisma/client";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
 import { CARRIER_ORDER_PARTY_SELECT } from "@/lib/order-response-select";
 import { specCapability } from "@/lib/orders/booking-fit";
@@ -51,14 +52,23 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
+  const t = await getRequestTranslations();
+
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    return NextResponse.json(
+      { error: t("common.shared.unauthorized") },
+      { status: 401 },
+    );
   }
 
   if (session.user.role !== "COMPANY") {
     return NextResponse.json(
-      { error: "Only logistics companies can claim deliveries." },
+      {
+        error: t(
+          "errors.logisticsCompanyOrdersClaim.onlyLogisticsCompaniesCanClaimDeliveries",
+        ),
+      },
       { status: 403 },
     );
   }
@@ -72,7 +82,7 @@ export async function POST(
 
   if (!company) {
     return NextResponse.json(
-      { error: "Complete your company profile before claiming deliveries." },
+      { error: t("common.shared.completeYourCompanyProfileBeforeClaiming") },
       { status: 400 },
     );
   }
@@ -88,8 +98,7 @@ export async function POST(
   if (company.activatedAt === null) {
     return NextResponse.json(
       {
-        error:
-          "Your fleet is still under review. Operations must activate the company before you can claim deliveries.",
+        error: t("common.shared.yourFleetIsStillUnderReview"),
       },
       { status: 403 },
     );
@@ -134,7 +143,10 @@ export async function POST(
   });
 
   if (!existing) {
-    return NextResponse.json({ error: "Order not found." }, { status: 404 });
+    return NextResponse.json(
+      { error: t("common.shared.orderNotFound") },
+      { status: 404 },
+    );
   }
 
   // Claiming a job the fleet cannot fulfil would strand it in CLAIMED with no
@@ -236,8 +248,7 @@ export async function POST(
   if (fleetCapability === null) {
     return NextResponse.json(
       {
-        error:
-          "Your fleet has no vehicle big enough for the vehicle class this delivery was booked as, in the load space it needs.",
+        error: t("errors.logisticsCompanyOrdersClaim.yourFleetHasNoVehicleBig"),
       },
       { status: 400 },
     );
@@ -319,8 +330,7 @@ export async function POST(
       {
         // "Eligible", not "of this type": the vehicles measured here are the ones
         // that satisfy the substitution rule, which is no longer one class.
-        error:
-          "None of your fleet's eligible vehicles can carry this load's cargo — it exceeds the weight or size limit.",
+        error: t("errors.logisticsCompanyOrdersClaim.noneOfYourFleetSEligible"),
       },
       { status: 400 },
     );
@@ -341,7 +351,7 @@ export async function POST(
   if (count === 0) {
     return NextResponse.json(
       {
-        error: "This load was just claimed by someone else.",
+        error: t("common.shared.thisLoadWasJustClaimedBy"),
         code: "ALREADY_CLAIMED",
         reference: existing.reference,
       },

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { OrderStatus } from "@prisma/client";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
 import { CARRIER_ORDER_PARTY_SELECT } from "@/lib/order-response-select";
 import { prisma } from "@/lib/prisma";
@@ -18,14 +19,23 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
+  const t = await getRequestTranslations();
+
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    return NextResponse.json(
+      { error: t("common.shared.unauthorized") },
+      { status: 401 },
+    );
   }
 
   if (session.user.role !== "COMPANY") {
     return NextResponse.json(
-      { error: "Only logistics companies can cancel deliveries." },
+      {
+        error: t(
+          "errors.logisticsCompanyOrdersCancel.onlyLogisticsCompaniesCanCancelDeliveries",
+        ),
+      },
       { status: 403 },
     );
   }
@@ -40,7 +50,10 @@ export async function POST(
   });
 
   if (!company) {
-    return NextResponse.json({ error: "Order not found." }, { status: 404 });
+    return NextResponse.json(
+      { error: t("common.shared.orderNotFound") },
+      { status: 404 },
+    );
   }
 
   // Scoped by ownership only, not by status (unlike dispatch, which requires
@@ -54,7 +67,10 @@ export async function POST(
   });
 
   if (!order) {
-    return NextResponse.json({ error: "Order not found." }, { status: 404 });
+    return NextResponse.json(
+      { error: t("common.shared.orderNotFound") },
+      { status: 404 },
+    );
   }
 
   // Atomic cancel: the state guard lives in the `where`, not in application
@@ -86,7 +102,11 @@ export async function POST(
 
   if (count === 0) {
     return NextResponse.json(
-      { error: "This delivery can no longer be cancelled." },
+      {
+        error: t(
+          "errors.logisticsCompanyOrdersCancel.thisDeliveryCanNoLongerBe",
+        ),
+      },
       { status: 409 },
     );
   }

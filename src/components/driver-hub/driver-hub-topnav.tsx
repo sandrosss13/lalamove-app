@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 
 import { Link, usePathname } from "@/i18n/navigation";
 import { useSignOut } from "@/components/auth/use-sign-out";
@@ -15,6 +16,7 @@ import {
 import { DriverHubMobileMenu } from "@/components/driver-hub/driver-hub-mobile-menu";
 import { DriverHubNotifications } from "@/components/driver-hub/driver-hub-notifications";
 import { HubOnlineToggle } from "@/components/driver-hub/hub-online-toggle";
+import { LanguageToggle } from "@/components/language-toggle";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import type { HubAccount, HubPersona } from "@/lib/dashboard/hub/account";
@@ -115,10 +117,13 @@ const TOP_NAV_IDS: readonly HubNavItemId[] = ["jobs", "performance"];
  * "Company driver" rather than "Roster": `ROSTER` is this codebase's word for
  * the shape, not the driver's word for their own job.
  */
-export const ACCOUNT_PERSONA_LABELS: Record<HubPersona, string> = {
-  INDEPENDENT: "Independent",
-  ROSTER: "Company driver",
-  BUSINESS: "Business",
+export const ACCOUNT_PERSONA_LABEL_KEYS: Record<
+  HubPersona,
+  "independent" | "companyDriver" | "business"
+> = {
+  INDEPENDENT: "independent",
+  ROSTER: "companyDriver",
+  BUSINESS: "business",
 };
 
 /** Which of the header's three mutually-exclusive panels is open. */
@@ -143,6 +148,10 @@ export function DriverHubTopNav({
   const pathname = usePathname();
   const { signOut, signingOut } = useSignOut();
   const [openPanel, setOpenPanel] = React.useState<OpenPanel>(null);
+  const t = useTranslations("driverHub.driverHubTopnav");
+  const tShared = useTranslations("common.shared");
+  // Unscoped: nav labels are root-relative keys (see `HubNavItem.labelKey`).
+  const tRoot = useTranslations();
 
   // `/dashboard/account` is not a `HUB_NAV` entry — it has no rail link, page
   // title or subhead — so its active state is resolved here rather than by
@@ -250,11 +259,11 @@ export function DriverHubTopNav({
           href={HOME_HREF}
           className="text-[16px] font-bold tracking-[-0.015em] whitespace-nowrap"
         >
-          Lalamove Clone
+          {tShared("lalamoveClone")}
         </Link>
 
         <nav
-          aria-label="Driver"
+          aria-label={tShared("driver")}
           className="hidden items-center gap-4 text-sm lg:flex"
         >
           {topNavItems.map((item) => {
@@ -270,7 +279,7 @@ export function DriverHubTopNav({
                   active ? "text-foreground" : "text-muted-foreground",
                 )}
               >
-                {item.label}
+                {tRoot(item.labelKey)}
               </Link>
             );
           })}
@@ -359,6 +368,14 @@ export function DriverHubTopNav({
               `--admin-muted`. Only the hover foreground is overridden, because
               the toggle's default `secondary-foreground` is a shade off the
               bell's `foreground`. */}
+          {/* The language switch, restyled to the same icon-button vocabulary
+              as the theme toggle below it (and for the same reasons): no
+              border, 10px radius, 44px tall below `lg` and 32px above it.
+              `min-w-*` rather than `size-*` because it holds a short text label
+              (`ქარ` / `EN`), so it may grow past square but never below the
+              touch-target floor. */}
+          <LanguageToggle className="h-11 min-w-11 cursor-pointer rounded-[10px] border-0 px-2 hover:text-foreground lg:h-8 lg:min-w-8 lg:rounded-lg" />
+
           <ThemeToggle className="size-11 cursor-pointer rounded-[10px] border-0 hover:text-foreground lg:size-8 lg:rounded-lg" />
 
           <div className="hidden min-w-0 items-center gap-3 lg:flex">
@@ -385,7 +402,7 @@ export function DriverHubTopNav({
                 onAccount ? "text-foreground" : "text-muted-foreground",
               )}
             >
-              My account
+              {tShared("myAccount")}
             </Link>
 
             {/* The hub's only way out, and the reason it has to live in the
@@ -427,7 +444,7 @@ export function DriverHubTopNav({
               disabled={signingOut}
               className="h-8 flex-none cursor-pointer text-sm"
             >
-              {signingOut ? "Signing out…" : "Sign out"}
+              {signingOut ? t("signingOut") : t("signOut")}
             </Button>
           </div>
 
@@ -436,7 +453,7 @@ export function DriverHubTopNav({
             activeId={activeId}
             onAccount={onAccount}
             displayName={account.displayName}
-            accountKindLabel={ACCOUNT_PERSONA_LABELS[account.persona]}
+            accountKindLabel={t(ACCOUNT_PERSONA_LABEL_KEYS[account.persona])}
             open={openPanel === "menu"}
             onOpenChange={panelHandler("menu")}
           />

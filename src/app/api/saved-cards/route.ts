@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 
+import {
+  getRequestTranslations,
+  type RequestTranslator,
+} from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -37,11 +41,11 @@ const FORBIDDEN_CARD_KEYS = new Set([
 const PAN_LIKE_DIGITS = /\p{Nd}{12,}/u;
 
 /**
- * The single message every tripwire rejection answers with. It names the rule
+ * The key of the single message every tripwire rejection answers with. It names the rule
  * rather than the field, because the fix is always the same: derive the brand
  * and the last four in the browser and send only those.
  */
-const CARD_DETAILS_REJECTED = "Card details must not be sent to the server.";
+const CARD_DETAILS_REJECTED_KEY = "errors.savedCards.cardDetailsMustNotBeSent";
 
 /** Normalises a body key for comparison against `FORBIDDEN_CARD_KEYS`. */
 function normaliseKey(key: string): string {
@@ -140,42 +144,43 @@ function hasExpired(expMonth: number, expYear: number): boolean {
  */
 function parseCreateSavedCardBody(
   body: unknown,
+  t: RequestTranslator,
 ): { data: CreateSavedCardInput } | { error: string } {
   // A JSON body of `null`, `[]` or a scalar has no fields to read.
   if (typeof body !== "object" || body === null || Array.isArray(body)) {
-    return { error: "Request body must be a JSON object." };
+    return { error: t("common.shared.requestBodyMustBeAJson") };
   }
 
   const fields = body as Record<string, unknown>;
 
   const brand = typeof fields.brand === "string" ? fields.brand.trim() : "";
   if (brand === "") {
-    return { error: "Enter the card brand." };
+    return { error: t("errors.savedCards.enterTheCardBrand") };
   }
 
   if (brand.length > MAX_BRAND_LENGTH) {
     return {
-      error: `Enter a card brand of ${MAX_BRAND_LENGTH} characters or fewer.`,
+      error: t("errors.savedCards.cardBrandTooLong", { max: MAX_BRAND_LENGTH }),
     };
   }
 
   const last4 = typeof fields.last4 === "string" ? fields.last4.trim() : "";
   if (!/^[0-9]{4}$/.test(last4)) {
-    return { error: "Enter a four-digit card ending." };
+    return { error: t("errors.savedCards.enterAFourDigitCardEnding") };
   }
 
   const { expMonth, expYear } = fields;
 
   if (!isInteger(expMonth) || expMonth < 1 || expMonth > 12) {
-    return { error: "Enter an expiry month between 1 and 12." };
+    return { error: t("errors.savedCards.enterAnExpiryMonthBetween1") };
   }
 
   if (!isInteger(expYear) || expYear < 1000 || expYear > 9999) {
-    return { error: "Enter a four-digit expiry year." };
+    return { error: t("errors.savedCards.enterAFourDigitExpiryYear") };
   }
 
   if (hasExpired(expMonth, expYear)) {
-    return { error: "That card has expired. Add a card that is still valid." };
+    return { error: t("errors.savedCards.thatCardHasExpiredAddA") };
   }
 
   const { holderName } = fields;
@@ -184,20 +189,22 @@ function parseCreateSavedCardBody(
     holderName !== null &&
     typeof holderName !== "string"
   ) {
-    return { error: "Enter the cardholder name as it appears on the card." };
+    return { error: t("errors.savedCards.enterTheCardholderNameAsIt") };
   }
 
   const trimmedHolderName =
     typeof holderName === "string" ? holderName.trim() : "";
   if (trimmedHolderName.length > MAX_HOLDER_NAME_LENGTH) {
     return {
-      error: `Enter a cardholder name of ${MAX_HOLDER_NAME_LENGTH} characters or fewer.`,
+      error: t("errors.savedCards.cardholderNameTooLong", {
+        max: MAX_HOLDER_NAME_LENGTH,
+      }),
     };
   }
 
   const { isDefault } = fields;
   if (isDefault !== undefined && typeof isDefault !== "boolean") {
-    return { error: "isDefault must be true or false when provided." };
+    return { error: t("errors.savedCards.isdefaultMustBeTrueOrFalse") };
   }
 
   return {
@@ -223,14 +230,19 @@ function parseCreateSavedCardBody(
  * client's payment methods.
  */
 export async function GET(request: Request): Promise<NextResponse> {
+  const t = await getRequestTranslations();
+
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    return NextResponse.json(
+      { error: t("common.shared.unauthorized") },
+      { status: 401 },
+    );
   }
 
   if (session.user.role !== "CLIENT") {
     return NextResponse.json(
-      { error: "Only clients have saved cards." },
+      { error: t("errors.savedCards.onlyClientsHaveSavedCards") },
       { status: 403 },
     );
   }
@@ -259,14 +271,19 @@ export async function GET(request: Request): Promise<NextResponse> {
  * than sanitised — see `containsCardDetails`.
  */
 export async function POST(request: Request): Promise<NextResponse> {
+  const t = await getRequestTranslations();
+
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    return NextResponse.json(
+      { error: t("common.shared.unauthorized") },
+      { status: 401 },
+    );
   }
 
   if (session.user.role !== "CLIENT") {
     return NextResponse.json(
-      { error: "Only clients can save a card." },
+      { error: t("errors.savedCards.onlyClientsCanSaveACard") },
       { status: 403 },
     );
   }
@@ -276,7 +293,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     rawBody = await request.json();
   } catch {
     return NextResponse.json(
-      { error: "Request body must be valid JSON." },
+      { error: t("common.shared.requestBodyMustBeValidJson") },
       { status: 400 },
     );
   }
@@ -284,10 +301,13 @@ export async function POST(request: Request): Promise<NextResponse> {
   // Runs before validation, and before anything is logged, so a body carrying
   // cardholder data is rejected without any part of it being echoed or stored.
   if (containsCardDetails(rawBody)) {
-    return NextResponse.json({ error: CARD_DETAILS_REJECTED }, { status: 400 });
+    return NextResponse.json(
+      { error: t(CARD_DETAILS_REJECTED_KEY) },
+      { status: 400 },
+    );
   }
 
-  const parsed = parseCreateSavedCardBody(rawBody);
+  const parsed = parseCreateSavedCardBody(rawBody, t);
   if ("error" in parsed) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }

@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/badge";
+import { useHubStatusLabel } from "@/components/driver-hub/use-hub-status-label";
 import {
   HUB_STATUS_TONE_CLASSES,
   type HubStatusTone,
@@ -47,12 +48,14 @@ export function EmployeePermissionPill({
   level,
   className,
 }: EmployeePermissionPillProps) {
+  const label = useHubStatusLabel();
+
   return (
     <Badge
       variant="outline"
       className={cn(PILL_CLASSES, HUB_STATUS_TONE_CLASSES[TONE_BY_LEVEL[level]], className)}
     >
-      {level}
+      {label(level)}
     </Badge>
   );
 }
@@ -68,12 +71,14 @@ export type EmployeeRolePillProps = {
  * good or bad.
  */
 export function EmployeeRolePill({ role, className }: EmployeeRolePillProps) {
+  const label = useHubStatusLabel();
+
   return (
     <Badge
       variant="outline"
       className={cn(PILL_CLASSES, HUB_STATUS_TONE_CLASSES.neutral, className)}
     >
-      {role}
+      {label(role)}
     </Badge>
   );
 }

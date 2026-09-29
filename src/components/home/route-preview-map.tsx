@@ -8,6 +8,7 @@ import {
   Polyline,
   useMap,
 } from "@vis.gl/react-google-maps";
+import { useFormatter, useTranslations } from "next-intl";
 
 import { useTheme } from "@/hooks/use-theme";
 import {
@@ -107,15 +108,22 @@ const ROUTE_STROKE_COLOR_DARK = "#f58220";
 const ROUTE_STROKE_WEIGHT = 4;
 const ROUTE_STROKE_OPACITY = 0.9;
 
-/** `${distanceKm} km`, or a placeholder while no estimate has resolved. */
-function formatDistance(distanceKm: number | null): string {
+/**
+ * Turns an already-rounded figure into its localized, unit-bearing label. The
+ * helpers below stay plain functions outside the component, so the component
+ * hands them its translator rather than they calling hooks.
+ */
+type UnitLabel = (value: number) => string;
+
+/** "12.3 km", or a placeholder while no estimate has resolved. */
+function formatDistance(distanceKm: number | null, kmLabel: UnitLabel): string {
   // Guards the non-finite case too: a malformed estimate should show the same
   // placeholder as no estimate, never "NaN km".
   if (distanceKm === null || !Number.isFinite(distanceKm)) {
     return EMPTY_VALUE;
   }
 
-  return `${distanceKm.toFixed(1)} km`;
+  return kmLabel(distanceKm);
 }
 
 /**
@@ -129,6 +137,7 @@ function formatDistance(distanceKm: number | null): string {
 function formatTravelTime(
   distanceKm: number | null,
   durationMinutes: number | null,
+  minutesLabel: UnitLabel,
 ): string {
   // Non-finite is filtered alongside null in both cases: a malformed estimate
   // should fall through to the placeholder, never render "NaN min".
@@ -145,7 +154,7 @@ function formatTravelTime(
 
   // Tilde throughout: even the routed figure is a free-flow estimate, not a
   // traffic-aware ETA.
-  return `~${Math.round(minutes)} min`;
+  return minutesLabel(Math.round(minutes));
 }
 
 /**
@@ -249,6 +258,19 @@ function RoutePreview({
   // and calls `map.setOptions()` when it changes, so swapping arrays restyles
   // the existing map rather than remounting it. The camera, the markers and any
   // pan or zoom the user has made are all preserved across the switch.
+  const t = useTranslations("home.routePreviewMap");
+  const tShared = useTranslations("common.shared");
+  const format = useFormatter();
+  const kmLabel: UnitLabel = (km) =>
+    tShared("distanceKm", {
+      // One decimal, in the reader's locale's decimal separator.
+      km: format.number(km, {
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1,
+      }),
+    });
+  const minutesLabel: UnitLabel = (minutes) =>
+    tShared("approxMinutes", { minutes: format.number(minutes) });
   const theme = useTheme();
   const isDark = theme === "dark";
   const mapStyles = isDark ? MAP_STYLES_DARK : ROUTE_PREVIEW_MAP_STYLES_LIGHT;
@@ -314,14 +336,22 @@ function RoutePreview({
    * vehicle name is prose and reads better in the body face.
    */
   const summaryItems: { label: string; value: string; numeric: boolean }[] = [
-    { label: "Stops", value: String(ROUTE_STOP_COUNT), numeric: true },
-    { label: "Distance", value: formatDistance(distanceKm), numeric: true },
+    { label: t("stops"), value: String(ROUTE_STOP_COUNT), numeric: true },
     {
-      label: "Est. travel time",
-      value: formatTravelTime(distanceKm, durationMinutes),
+      label: tShared("distance"),
+      value: formatDistance(distanceKm, kmLabel),
       numeric: true,
     },
-    { label: "Vehicle", value: vehicleLabel ?? EMPTY_VALUE, numeric: false },
+    {
+      label: t("estTravelTime"),
+      value: formatTravelTime(distanceKm, durationMinutes, minutesLabel),
+      numeric: true,
+    },
+    {
+      label: tShared("vehicle"),
+      value: vehicleLabel ?? EMPTY_VALUE,
+      numeric: false,
+    },
   ];
 
   return (
@@ -344,7 +374,9 @@ function RoutePreview({
               <Marker
                 position={pickupPoint}
                 title={
-                  pickupLabel.trim() ? `Pickup — ${pickupLabel}` : "Pickup"
+                  pickupLabel.trim()
+                    ? `${tShared("pickup")} — ${pickupLabel}`
+                    : tShared("pickup")
                 }
                 label="P"
               />
@@ -353,7 +385,9 @@ function RoutePreview({
               <Marker
                 position={dropoffPoint}
                 title={
-                  dropoffLabel.trim() ? `Dropoff — ${dropoffLabel}` : "Dropoff"
+                  dropoffLabel.trim()
+                    ? `${tShared("dropoff")} — ${dropoffLabel}`
+                    : tShared("dropoff")
                 }
                 label="D"
               />
@@ -373,19 +407,19 @@ function RoutePreview({
 
       <section className="border-t border-line bg-surface px-4 py-3.5">
         <h3 className="text-[0.6875rem] font-semibold tracking-[0.1em] text-muted uppercase">
-          Route summary
+          {t("routeSummary")}
         </h3>
 
         <div className="mt-2.5 flex flex-col gap-1.5">
           <RouteEndpoint
             badge="P"
             label={pickupLabel}
-            placeholder="Pickup address not set"
+            placeholder={t("pickupAddressNotSet")}
           />
           <RouteEndpoint
             badge="D"
             label={dropoffLabel}
-            placeholder="Dropoff address not set"
+            placeholder={t("dropoffAddressNotSet")}
           />
         </div>
 
@@ -435,6 +469,7 @@ export function RoutePreviewMap({
   durationMinutes,
   vehicleLabel,
 }: RoutePreviewMapProps): React.ReactElement {
+  const tShared = useTranslations("common.shared");
   // Inlined at build time by Next because of the NEXT_PUBLIC_ prefix; must be
   // referenced as a full literal expression for that substitution to happen.
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -446,7 +481,7 @@ export function RoutePreviewMap({
   if (!apiKey) {
     return (
       <p className="rounded-xl border border-line p-4 text-sm text-muted">
-        Map unavailable — missing Google Maps API key.
+        {tShared("mapUnavailableMissingGoogleMapsApi")}
       </p>
     );
   }

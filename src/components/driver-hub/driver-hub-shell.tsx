@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 
 import {
   DriverHubHeader,
@@ -241,7 +242,8 @@ export type DriverHubShellProps = {
  * six registered screens — but a title is cheaper than a crash if a future
  * route lands here before it registers itself in `HUB_NAV`.
  */
-const FALLBACK_TITLE = "Driver Hub";
+/** Root-relative message key for the title of a route with no nav entry. */
+const FALLBACK_TITLE_KEY = "driverHub.driverHubShell.fallbackTitle";
 
 export function DriverHubShell({
   account,
@@ -279,6 +281,8 @@ export function DriverHubShell({
   // into Performance, which every persona sees.
   const items = hubNavForAccount(account);
   const activeItem = hubNavItemForPath(pathname);
+  // Unscoped: nav copy is root-relative keys (see `HubNavItem.titleKey`).
+  const tRoot = useTranslations();
 
   return (
     <div
@@ -379,8 +383,14 @@ export function DriverHubShell({
               `container = viewport − 248 − 64 − 2`. */}
           <div className="flex min-w-0 max-w-[1800px] flex-col gap-5">
             <DriverHubPageHead
-              title={titleOverride ?? activeItem?.title ?? FALLBACK_TITLE}
-              subtitle={subtitleOverride ?? activeItem?.subtitle ?? ""}
+              title={
+                titleOverride ??
+                tRoot(activeItem ? activeItem.titleKey : FALLBACK_TITLE_KEY)
+              }
+              subtitle={
+                subtitleOverride ??
+                (activeItem ? tRoot(activeItem.subtitleKey) : "")
+              }
               vehiclePill={vehiclePillOverride}
             />
 

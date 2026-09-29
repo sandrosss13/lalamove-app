@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 
 import { useRouter } from "@/i18n/navigation";
 import { AccountTypeStep } from "@/components/auth/account-type-step";
@@ -15,6 +16,7 @@ import {
   InlineLinkButton,
   PasswordStrengthMeter,
   PhoneField,
+  useAccountTypeLabels,
 } from "@/components/auth/auth-primitives";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { RoleStep } from "@/components/auth/role-step";
@@ -32,7 +34,6 @@ import {
 } from "@/components/ui/select";
 import { signUp } from "@/lib/auth-client";
 import {
-  accountTypeLabel,
   accountTypeParam,
   isValidEmail,
   isValidGeorgianPhone,
@@ -41,12 +42,12 @@ import {
   passwordStrength,
   phoneDigits,
   roleParam,
-  ROLE_LABELS,
+  useRoleLabels,
   type AccountType,
   type FlowMode,
   type FlowRole,
 } from "@/lib/auth-flow";
-import { GEORGIAN_CITY_OPTIONS } from "@/lib/georgian-cities";
+import { useLocalizedCityOptions } from "@/lib/georgian-cities";
 import { merchantOrigin, type Audience } from "@/lib/host";
 import { cn } from "@/lib/utils";
 
@@ -180,10 +181,20 @@ type SignUpValues = {
  * and the three profile routes enforce their own requirements, and anything
  * that gets past this still fails there and surfaces through `FormAlert`.
  */
+/**
+ * A `next-intl` translator, narrowed to what `validateSignUp` needs. Passed in
+ * rather than called here because hooks cannot run outside a component.
+ */
+type Translate = (key: string, values?: Record<string, number>) => string;
+
 function validateSignUp(
   role: FlowRole,
   accountType: AccountType,
   values: SignUpValues,
+  /** Bound to `auth.signUpForm`. */
+  t: Translate,
+  /** Bound to `auth.signInForm`, which owns the shared email message. */
+  tSignIn: Translate,
 ): FieldErrors {
   const errors: FieldErrors = {};
 
@@ -191,40 +202,42 @@ function validateSignUp(
   // registered name and a VAT ID where a person has a first name and a surname.
   if (accountType === "BUSINESS") {
     if (values.companyName.trim().length === 0) {
-      errors.companyName = "Enter your registered company name.";
+      errors.companyName = t("enterCompanyName");
     }
     if (values.vatId.trim().length === 0) {
-      errors.vatId = "Enter your VAT ID.";
+      errors.vatId = t("enterVatId");
     }
   } else {
     if (values.firstName.trim().length === 0) {
-      errors.firstName = "Enter your first name.";
+      errors.firstName = t("enterFirstName");
     }
     if (values.lastName.trim().length === 0) {
-      errors.lastName = "Enter your surname.";
+      errors.lastName = t("enterSurname");
     }
   }
 
   if (!isValidGeorgianPhone(phoneDigits(values.phone))) {
-    errors.phone = "Enter the 9 digits that follow +995.";
+    errors.phone = t("enterPhoneDigits");
   }
 
   if (!isValidEmail(values.email)) {
-    errors.email = "Enter a valid email address.";
+    errors.email = tSignIn("enterAValidEmailAddress");
   }
 
   if (values.password.length < MIN_PASSWORD_LENGTH) {
-    errors.password = `Use at least ${MIN_PASSWORD_LENGTH} characters.`;
+    errors.password = t("useAtLeastCharacters", {
+      min: MIN_PASSWORD_LENGTH,
+    });
   }
 
   // Drivers only. A `DriverProfile` cannot be written without a city, and a
   // `LogisticsCompany` is registered in one — clients are never asked.
   if (role === "DRIVER" && values.city.length === 0) {
-    errors.city = "Select the city you are based in.";
+    errors.city = t("selectYourCity");
   }
 
   if (!values.termsAccepted) {
-    errors.terms = "Accept the terms and the privacy policy to continue.";
+    errors.terms = t("acceptTerms");
   }
 
   return errors;
@@ -346,6 +359,12 @@ export type SignUpFormProps = {
 };
 
 export function SignUpForm({ audience, role, accountType }: SignUpFormProps) {
+  const t = useTranslations("auth.signUpForm");
+  const tShared = useTranslations("common.shared");
+  const tSignIn = useTranslations("auth.signInForm");
+  const roleLabels = useRoleLabels();
+  const accountTypeLabels = useAccountTypeLabels();
+  const cityOptions = useLocalizedCityOptions();
   const router = useRouter();
   // One generated base per mount; every field id and every `aria-describedby`
   // target is derived from it, so nothing on the page can collide with it.
@@ -396,17 +415,23 @@ export function SignUpForm({ audience, role, accountType }: SignUpFormProps) {
     if (!role) return;
     if (!accountType) return;
 
-    const nextErrors = validateSignUp(role, accountType, {
-      firstName,
-      lastName,
-      companyName,
-      vatId,
-      phone,
-      email,
-      password,
-      city,
-      termsAccepted,
-    });
+    const nextErrors = validateSignUp(
+      role,
+      accountType,
+      {
+        firstName,
+        lastName,
+        companyName,
+        vatId,
+        phone,
+        email,
+        password,
+        city,
+        termsAccepted,
+      },
+      t,
+      tSignIn,
+    );
 
     setFieldErrors(nextErrors);
 
@@ -449,7 +474,7 @@ export function SignUpForm({ audience, role, accountType }: SignUpFormProps) {
     if (signUpError) {
       setLoading(false);
       setFormError(
-        signUpError.message ?? "Something went wrong. Please try again.",
+        signUpError.message ?? tShared("somethingWentWrongPleaseTryAgain"),
       );
       return;
     }
@@ -481,10 +506,7 @@ export function SignUpForm({ audience, role, accountType }: SignUpFormProps) {
         const payload = (await response.json().catch(() => null)) as {
           error?: string;
         } | null;
-        setFormError(
-          payload?.error ??
-            "Could not save your company details. Please try again.",
-        );
+        setFormError(payload?.error ?? t("couldNotSaveCompany"));
         setLoading(false);
         return;
       }
@@ -513,10 +535,7 @@ export function SignUpForm({ audience, role, accountType }: SignUpFormProps) {
         const payload = (await response.json().catch(() => null)) as {
           error?: string;
         } | null;
-        setFormError(
-          payload?.error ??
-            "Could not save your driver details. Please try again.",
-        );
+        setFormError(payload?.error ?? t("couldNotSaveDriver"));
         setLoading(false);
         return;
       }
@@ -541,10 +560,7 @@ export function SignUpForm({ audience, role, accountType }: SignUpFormProps) {
         const payload = (await response.json().catch(() => null)) as {
           error?: string;
         } | null;
-        setFormError(
-          payload?.error ??
-            "Could not save your account details. Please try again.",
-        );
+        setFormError(payload?.error ?? t("couldNotSaveAccount"));
         setLoading(false);
         return;
       }
@@ -698,11 +714,13 @@ export function SignUpForm({ audience, role, accountType }: SignUpFormProps) {
       <BackLink onClick={() => router.push(flowHref("/sign-up", role, null))} />
 
       <div className="flex flex-col gap-2.5">
-        <Eyebrow>Step 3 of 3 · Details</Eyebrow>
-        <AuthHeading>Create your account</AuthHeading>
+        <Eyebrow>{t("step3Of3Details")}</Eyebrow>
+        <AuthHeading>{t("createYourAccount")}</AuthHeading>
         <AuthSubheading>
-          {ROLE_LABELS[role]} · {accountTypeLabel(accountType)} · takes about a
-          minute.
+          {t("takesAboutAMinute", {
+            role: roleLabels[role],
+            accountType: accountTypeLabels[accountType],
+          })}
         </AuthSubheading>
       </div>
 
@@ -723,7 +741,7 @@ export function SignUpForm({ audience, role, accountType }: SignUpFormProps) {
           <>
             <TextField
               id={companyNameId}
-              label="Company name"
+              label={tShared("companyName")}
               value={companyName}
               onChange={(value) => {
                 setCompanyName(value);
@@ -734,7 +752,7 @@ export function SignUpForm({ audience, role, accountType }: SignUpFormProps) {
             />
             <TextField
               id={vatIdId}
-              label="VAT ID"
+              label={tShared("vatId")}
               value={vatId}
               onChange={(value) => {
                 setVatId(value);
@@ -750,7 +768,7 @@ export function SignUpForm({ audience, role, accountType }: SignUpFormProps) {
           <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-3">
             <TextField
               id={firstNameId}
-              label="First name"
+              label={tShared("firstName")}
               value={firstName}
               onChange={(value) => {
                 setFirstName(value);
@@ -761,7 +779,7 @@ export function SignUpForm({ audience, role, accountType }: SignUpFormProps) {
             />
             <TextField
               id={lastNameId}
-              label="Surname"
+              label={tShared("surname")}
               value={lastName}
               onChange={(value) => {
                 setLastName(value);
@@ -780,7 +798,7 @@ export function SignUpForm({ audience, role, accountType }: SignUpFormProps) {
             setPhone(value);
             clearFieldError("phone");
           }}
-          helper="Used to verify your account and to reach you about a delivery."
+          helper={t("phoneHelper")}
           error={fieldErrors.phone}
           // `PhoneField` now maps `required` to `aria-required`, not to the HTML
           // attribute, so this announces the obligation the way every other
@@ -793,21 +811,21 @@ export function SignUpForm({ audience, role, accountType }: SignUpFormProps) {
 
         <TextField
           id={emailId}
-          label="Email"
+          label={tShared("email")}
           type="email"
           value={email}
           onChange={(value) => {
             setEmail(value);
             clearFieldError("email");
           }}
-          placeholder="you@company.ge"
+          placeholder={tShared("youCompanyGe")}
           autoComplete="email"
           error={fieldErrors.email}
         />
 
         <TextField
           id={passwordId}
-          label="Password"
+          label={tShared("password")}
           type="password"
           value={password}
           onChange={(value) => {
@@ -815,7 +833,7 @@ export function SignUpForm({ audience, role, accountType }: SignUpFormProps) {
             clearFieldError("password");
           }}
           autoComplete="new-password"
-          helper="At least 8 characters. Add a number to make it stronger."
+          helper={t("passwordHelper")}
           error={fieldErrors.password}
         >
           <PasswordStrengthMeter strength={passwordStrength(password)} />
@@ -827,7 +845,7 @@ export function SignUpForm({ audience, role, accountType }: SignUpFormProps) {
             the handoff specifies. */}
         {role === "DRIVER" ? (
           <div className="flex flex-col gap-2">
-            <Label htmlFor={cityId}>City</Label>
+            <Label htmlFor={cityId}>{tShared("city")}</Label>
             <Select
               value={city}
               onValueChange={(value) => {
@@ -855,13 +873,13 @@ export function SignUpForm({ audience, role, accountType }: SignUpFormProps) {
                   fieldErrors.city && ERROR_INPUT_CLASS,
                 )}
               >
-                <SelectValue placeholder="Select a city…" />
+                <SelectValue placeholder={t("selectACity")} />
               </SelectTrigger>
               {/* Portalled out of the shell's subtree, so it has to carry
                   `data-admin-surface` itself or it renders in the site palette
                   (and, for a visitor in dark mode, in the dark one). */}
               <SelectContent data-admin-surface="" className="max-h-72">
-                {GEORGIAN_CITY_OPTIONS.map((option) => (
+                {cityOptions.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
                   </SelectItem>
@@ -919,15 +937,18 @@ export function SignUpForm({ audience, role, accountType }: SignUpFormProps) {
                 call `auth-shell.tsx` makes for its "Need help?" link.
               */}
               <span>
-                I agree to the{" "}
-                <span className="underline decoration-[var(--landing-line-strong)] underline-offset-4">
-                  terms of service
-                </span>{" "}
-                and the{" "}
-                <span className="underline decoration-[var(--landing-line-strong)] underline-offset-4">
-                  privacy policy
-                </span>
-                .
+                {t.rich("iAgreeToTerms", {
+                  terms: (chunks) => (
+                    <span className="underline decoration-[var(--landing-line-strong)] underline-offset-4">
+                      {chunks}
+                    </span>
+                  ),
+                  privacy: (chunks) => (
+                    <span className="underline decoration-[var(--landing-line-strong)] underline-offset-4">
+                      {chunks}
+                    </span>
+                  ),
+                })}
               </span>
             </Label>
           </div>
@@ -943,15 +964,15 @@ export function SignUpForm({ audience, role, accountType }: SignUpFormProps) {
           disabled={loading}
           className="h-11 w-full text-base"
         >
-          {loading ? "Creating account…" : "Create account"}
+          {loading ? t("creatingAccount") : tShared("createAccount")}
         </Button>
 
         <p className="text-sm text-[var(--landing-muted)]">
-          Already registered?{" "}
+          {t("alreadyRegistered")}{" "}
           <InlineLinkButton
             href={flowHref(MODE_PATHS.signin, role, accountType)}
           >
-            Sign in
+            {tShared("signIn")}
           </InlineLinkButton>
         </p>
       </form>

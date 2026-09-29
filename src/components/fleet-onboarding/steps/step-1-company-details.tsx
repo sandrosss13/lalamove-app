@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { CheckIcon } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
@@ -17,7 +18,7 @@ import {
   useFleetDraft,
 } from "@/components/fleet-onboarding/fleet-draft-context";
 import type { FleetDraftCompany } from "@/lib/fleet-onboarding/draft-schema";
-import { GEORGIAN_CITY_OPTIONS } from "@/lib/georgian-cities";
+import { useLocalizedCityOptions } from "@/lib/georgian-cities";
 
 /**
  * The `company` section of the fleet draft. Imported rather than restated: these
@@ -27,8 +28,8 @@ import { GEORGIAN_CITY_OPTIONS } from "@/lib/georgian-cities";
  */
 type CompanyDraft = FleetDraftCompany;
 
-/** One entry of `GEORGIAN_CITY_OPTIONS`. */
-type CityOption = (typeof GEORGIAN_CITY_OPTIONS)[number];
+/** One entry of the localized city list (`label`/`region` in the reader's language). */
+type CityOption = ReturnType<typeof useLocalizedCityOptions>[number];
 
 /**
  * Where this form's edits go, and what happens after a successful save.
@@ -106,18 +107,19 @@ const PRIMARY_CTA_CLASS =
   "h-12 cursor-pointer rounded-[11px] bg-onboarding-accent px-[30px] text-[15px] font-semibold tracking-[-0.01em] text-white transition-colors hover:bg-onboarding-accent-hover focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50";
 
 const COMPANY_ENDPOINT = "/api/logistics-company";
-const SAVE_FALLBACK =
-  "We couldn't save the company details. Check your connection and try again.";
-const VALIDATION_TOAST = "Fix the highlighted fields to continue.";
-const CORRECTION_SAVED_TOAST = "Company details updated.";
+/** Message keys in `fleet.step1CompanyDetails`, translated at render. */
+const SAVE_FALLBACK_KEY = "saveFailed";
+const VALIDATION_TOAST_KEY = "fixHighlightedFields";
+const CORRECTION_SAVED_TOAST_KEY = "companyDetailsUpdated";
 
-const CITY_PLACEHOLDER_EMPTY = "Start typing — Tbilisi, Batumi, Kutaisi…";
-const CITY_PLACEHOLDER_MORE = "Add another city…";
+/** Full message path, translated at render. */
+const CITY_PLACEHOLDER_EMPTY_KEY =
+  "onboarding.step1AuthPersonal.startTypingTbilisiBatumiKutaisi";
+const CITY_PLACEHOLDER_MORE_KEY = "addAnotherCity";
 const IBAN_PLACEHOLDER = "GE29 NB00 0000 0101 9049 17";
-const PAYOUT_HINT =
-  "Order revenue is settled to this account weekly. It must belong to the registered entity.";
+const PAYOUT_HINT_KEY = "payoutHint";
 /** Appended in correction mode, where the seeded value is masked (§8). */
-const PAYOUT_REENTRY_HINT = "Re-enter the full account number to confirm it.";
+const PAYOUT_REENTRY_HINT_KEY = "payoutReentryHint";
 
 /**
  * Reads an `{ error }` body without letting a non-JSON response (an HTML error
@@ -142,12 +144,16 @@ async function readErrorMessage(
  * seeding rule for which sub-screen opens first is "does the saved address
  * already pass this?". There is exactly one email predicate in this file, and
  * this is it — `collectProblems` calls it rather than restating the pattern.
+ *
+ * Like every rule below it returns a message *key* in
+ * `fleet.step1CompanyDetails`, not copy: these are module-level functions and
+ * cannot call a hook, so the components translate the key where they render it.
  */
 function emailProblem(value: string | undefined): string | undefined {
   const email = (value ?? "").trim();
-  if (!email) return "Enter a company email.";
+  if (!email) return "enterCompanyEmail";
   if (!EMAIL_PATTERN.test(email)) {
-    return "That does not look like an email address.";
+    return "invalidEmail";
   }
   return undefined;
 }
@@ -165,9 +171,9 @@ function emailProblem(value: string | undefined): string | undefined {
  */
 function phoneProblem(value: string | undefined): string | undefined {
   const digits = (value ?? "").replace(/\D/g, "");
-  if (!digits) return "Enter the company phone number.";
+  if (!digits) return "enterCompanyPhone";
   if (digits.length < MIN_PHONE_DIGITS || digits.length > MAX_PHONE_DIGITS) {
-    return "That is not a valid number (10–15 digits).";
+    return "invalidPhone";
   }
   return undefined;
 }
@@ -175,7 +181,8 @@ function phoneProblem(value: string | undefined): string | undefined {
 /**
  * Every rule this step enforces, evaluated together so a failed Continue can
  * light up *all* the offending fields at once rather than walking the company
- * through them one at a time. Messages are the design's, verbatim.
+ * through them one at a time. Messages are the design's, verbatim, returned as
+ * message keys (see `emailProblem`).
  *
  * `phone` is the one mode-dependent rule, and it is gated rather than always-on
  * for a reason. In `"draft"` the wizard never asks for a number — it is carried
@@ -201,24 +208,24 @@ function collectProblems(
 
   const companyName = (company.companyName ?? "").trim();
   if (!companyName) {
-    problems.companyName = "Enter the registered company name.";
+    problems.companyName = "enterCompanyName";
   } else if (companyName.length < MIN_COMPANY_NAME_LENGTH) {
-    problems.companyName = "That looks too short.";
+    problems.companyName = "tooShort";
   }
 
   const vatId = (company.vatId ?? "").trim();
   if (!vatId) {
-    problems.vatId = "Enter the VAT or tax ID.";
+    problems.vatId = "enterVatId";
   } else if (!VAT_ID_PATTERN.test(vatId)) {
-    problems.vatId = "A Georgian tax ID is 9 digits.";
+    problems.vatId = "invalidVatId";
   }
 
   if (!(company.registeredAddress ?? "").trim()) {
-    problems.registeredAddress = "Enter the registered address.";
+    problems.registeredAddress = "enterRegisteredAddress";
   }
 
   if ((company.citiesOfOperation ?? []).length === 0) {
-    problems.citiesOfOperation = "Select at least one city of operation.";
+    problems.citiesOfOperation = "selectCity";
   }
 
   const contactName = (company.contactName ?? "").trim();
@@ -226,13 +233,13 @@ function collectProblems(
     .split(/\s+/)
     .filter((part) => part !== "");
   if (!contactName) {
-    problems.contactName = "Enter the contact person.";
+    problems.contactName = "enterContactPerson";
   } else if (contactNameParts.length < 2) {
-    problems.contactName = "First and last name.";
+    problems.contactName = "firstAndLastName";
   }
 
   if (!(company.contactRole ?? "").trim()) {
-    problems.contactRole = "Required.";
+    problems.contactRole = "required";
   }
 
   // Checked in both modes even though only correction mode renders a field for
@@ -247,9 +254,9 @@ function collectProblems(
   // Whitespace-free, matching how the server measures it.
   const bankAccountIban = (company.bankAccountIban ?? "").replace(/\s+/g, "");
   if (!bankAccountIban) {
-    problems.bankAccountIban = "Enter the payout account.";
+    problems.bankAccountIban = "enterPayoutAccount";
   } else if (bankAccountIban.length < MIN_IBAN_LENGTH) {
-    problems.bankAccountIban = "A Georgian IBAN is 22 characters.";
+    problems.bankAccountIban = "invalidIban";
   }
 
   return problems;
@@ -425,6 +432,8 @@ export function Step1CompanyDetails() {
 
   const fieldId = useId();
   const emailInputId = `${fieldId}-contact-email`;
+  const t = useTranslations("fleet.step1CompanyDetails");
+  const tShared = useTranslations("common.shared");
 
   if (phase === "details") {
     return (
@@ -451,12 +460,13 @@ export function Step1CompanyDetails() {
    * inbox rather than the address one person registered with types over it.
    */
   const email = seed.contactEmail ?? "";
-  const emailError = emailTouched ? emailProblem(email) : undefined;
+  const emailErrorKey = emailTouched ? emailProblem(email) : undefined;
+  const emailError = emailErrorKey !== undefined ? t(emailErrorKey) : undefined;
 
   function handleEmailContinue() {
     if (emailProblem(email) !== undefined) {
       setEmailTouched(true);
-      showToast(VALIDATION_TOAST, "error");
+      showToast(t(VALIDATION_TOAST_KEY), "error");
       return;
     }
 
@@ -486,18 +496,20 @@ export function Step1CompanyDetails() {
   return (
     <div className="flex max-w-[520px] flex-col gap-[18px]">
       <p className="text-[13.5px] leading-[1.5] text-muted-foreground">
-        The address this account signs in with. It is also where review
-        decisions and order correspondence go — change it if a different inbox
-        should receive them.
+        {t("theAddressThisAccountSignsIn")}
       </p>
 
-      <Field label="Company email" htmlFor={emailInputId} error={emailError}>
+      <Field
+        label={tShared("companyEmail")}
+        htmlFor={emailInputId}
+        error={emailError}
+      >
         <Input
           id={emailInputId}
           type="email"
           inputMode="email"
           autoComplete="email"
-          placeholder="dispatch@company.ge"
+          placeholder={t("dispatchCompanyGe")}
           value={email}
           aria-invalid={emailError !== undefined}
           aria-describedby={
@@ -524,7 +536,7 @@ export function Step1CompanyDetails() {
           onClick={handleEmailContinue}
           className={PRIMARY_CTA_CLASS}
         >
-          Continue
+          {tShared("continue")}
         </button>
       </div>
     </div>
@@ -619,6 +631,10 @@ export function CompanyDetailsForm({
 
   const fieldId = useId();
   const cityListId = `${fieldId}-city-list`;
+  const t = useTranslations("fleet.step1CompanyDetails");
+  const tShared = useTranslations("common.shared");
+  const tRoot = useTranslations();
+  const cityOptions = useLocalizedCityOptions();
 
   /**
    * Fields that have been through a failed Continue. Not "has been edited" —
@@ -646,19 +662,17 @@ export function CompanyDetailsForm({
   const selectedCities = useMemo<CityOption[]>(() => {
     const values = company.citiesOfOperation ?? [];
     return values
-      .map((value) =>
-        GEORGIAN_CITY_OPTIONS.find((option) => option.value === value),
-      )
+      .map((value) => cityOptions.find((option) => option.value === value))
       .filter((option): option is CityOption => option !== undefined);
-  }, [company.citiesOfOperation]);
+  }, [company.citiesOfOperation, cityOptions]);
 
   const cityMatches = useMemo(() => {
     const needle = cityQuery.trim().toLowerCase();
-    if (!needle) return GEORGIAN_CITY_OPTIONS;
-    return GEORGIAN_CITY_OPTIONS.filter((option) =>
+    if (!needle) return cityOptions;
+    return cityOptions.filter((option) =>
       option.label.toLowerCase().includes(needle),
     );
-  }, [cityQuery]);
+  }, [cityQuery, cityOptions]);
 
   // Clamped rather than reset when the list shrinks under the cursor, so
   // narrowing a search never leaves the highlight pointing past the last row.
@@ -681,7 +695,8 @@ export function CompanyDetailsForm({
 
   /** The message to show under `field`, or `undefined` while it stays quiet. */
   function errorFor(field: CompanyField): string | undefined {
-    return touched[field] ? problems[field] : undefined;
+    const key = touched[field] ? problems[field] : undefined;
+    return key !== undefined ? t(key) : undefined;
   }
 
   function idFor(field: CompanyField): string {
@@ -773,7 +788,7 @@ export function CompanyDetailsForm({
       });
       // An open dropdown would cover the fields the toast is pointing at.
       setCityOpen(false);
-      showToast(VALIDATION_TOAST, "error");
+      showToast(t(VALIDATION_TOAST_KEY), "error");
       return;
     }
 
@@ -816,11 +831,14 @@ export function CompanyDetailsForm({
       if (!response.ok) {
         // Shown as-is, so the 409 "This phone number is already registered to
         // another account." reaches the company rather than being swallowed.
-        showToast(await readErrorMessage(response, SAVE_FALLBACK), "error");
+        showToast(
+          await readErrorMessage(response, t(SAVE_FALLBACK_KEY)),
+          "error",
+        );
         return; // Stay on the step; the details are not stored.
       }
     } catch {
-      showToast(SAVE_FALLBACK, "error");
+      showToast(t(SAVE_FALLBACK_KEY), "error");
       return;
     } finally {
       setSubmitting(false);
@@ -831,35 +849,37 @@ export function CompanyDetailsForm({
     // same transaction, so the status screen has to re-read to see the
     // resubmit gate open.
     if (mode === "correction") {
-      showToast(CORRECTION_SAVED_TOAST);
+      showToast(t(CORRECTION_SAVED_TOAST_KEY));
       await refetch();
     }
 
     onSaved();
   }
 
-  const registeredCity = GEORGIAN_CITY_OPTIONS.find(
+  const registeredCity = cityOptions.find(
     (option) => option.value === company.city,
   );
   const cityPlaceholder =
-    selectedCities.length > 0 ? CITY_PLACEHOLDER_MORE : CITY_PLACEHOLDER_EMPTY;
+    selectedCities.length > 0
+      ? t(CITY_PLACEHOLDER_MORE_KEY)
+      : tRoot(CITY_PLACEHOLDER_EMPTY_KEY);
   const citiesError = errorFor("citiesOfOperation");
 
   return (
     <div className="flex max-w-[680px] flex-col gap-[22px]">
       <div className="flex flex-col gap-3.5">
-        <p className={GROUP_HEADING_CLASS}>Legal entity</p>
+        <p className={GROUP_HEADING_CLASS}>{t("legalEntity")}</p>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1.4fr_1fr]">
           <Field
-            label="Company name"
+            label={tShared("companyName")}
             htmlFor={idFor("companyName")}
             error={errorFor("companyName")}
           >
             <Input
               id={idFor("companyName")}
               autoComplete="organization"
-              placeholder="As registered"
+              placeholder={t("asRegistered")}
               value={company.companyName ?? ""}
               aria-invalid={errorFor("companyName") !== undefined}
               aria-describedby={describedBy("companyName")}
@@ -871,7 +891,7 @@ export function CompanyDetailsForm({
           </Field>
 
           <Field
-            label="VAT / tax ID"
+            label={tShared("vatTaxId")}
             htmlFor={idFor("vatId")}
             error={errorFor("vatId")}
           >
@@ -891,14 +911,14 @@ export function CompanyDetailsForm({
         </div>
 
         <Field
-          label="Registered address"
+          label={tShared("registeredAddress")}
           htmlFor={idFor("registeredAddress")}
           error={errorFor("registeredAddress")}
         >
           <Input
             id={idFor("registeredAddress")}
             autoComplete="street-address"
-            placeholder="Street, number, postcode"
+            placeholder={t("streetNumberPostcode")}
             value={company.registeredAddress ?? ""}
             aria-invalid={errorFor("registeredAddress") !== undefined}
             aria-describedby={describedBy("registeredAddress")}
@@ -916,20 +936,20 @@ export function CompanyDetailsForm({
             company may be registered in one city and operate out of others, so
             it is never derived from the selection below. */}
         <div className="flex flex-col gap-1.5">
-          <p className={FIELD_LABEL_CLASS}>Registered city</p>
+          <p className={FIELD_LABEL_CLASS}>{t("registeredCity")}</p>
           <p className="text-[15px]">
             {registeredCity?.label ?? company.city ?? "—"}
           </p>
           <p className="text-xs text-muted-foreground">
-            Set when the account was created. Contact operations to change it.
+            {t("setWhenTheAccountWasCreated")}
           </p>
         </div>
 
         <Field
-          label="Cities of operation"
+          label={tShared("citiesOfOperation")}
           htmlFor={idFor("citiesOfOperation")}
           error={citiesError}
-          hint="Where the fleet picks up. Orders outside these cities are not offered to your drivers."
+          hint={t("whereTheFleetPicksUpOrders")}
         >
           <div className="flex flex-col gap-2">
             {selectedCities.length > 0 ? (
@@ -939,7 +959,7 @@ export function CompanyDetailsForm({
                     key={option.value}
                     type="button"
                     onClick={() => toggleCity(option)}
-                    aria-label={`Remove ${option.label}`}
+                    aria-label={t("removeCity", { city: option.label })}
                     className="flex cursor-pointer items-center gap-2 rounded-[20px] border border-onboarding-accent bg-onboarding-accent/6 py-1.5 pr-2.5 pl-3 transition-colors hover:bg-onboarding-accent/12 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
                   >
                     <span className="text-[13px] font-semibold">
@@ -1023,7 +1043,7 @@ export function CompanyDetailsForm({
                 >
                   {cityMatches.length === 0 ? (
                     <p className="px-[13px] py-[11px] text-[13px] text-muted-foreground">
-                      No city by that name. Check the spelling.
+                      {tShared("noCityByThatNameCheck")}
                     </p>
                   ) : (
                     cityMatches.map((option, index) => {
@@ -1111,18 +1131,18 @@ export function CompanyDetailsForm({
           since its first sub-screen owns the email and sign-up owns the
           number. */}
       <div className="flex flex-col gap-3.5 border-t border-border pt-5">
-        <p className={GROUP_HEADING_CLASS}>Contact person</p>
+        <p className={GROUP_HEADING_CLASS}>{t("contactPerson")}</p>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1.3fr_1fr]">
           <Field
-            label="Full name"
+            label={tShared("fullName")}
             htmlFor={idFor("contactName")}
             error={errorFor("contactName")}
           >
             <Input
               id={idFor("contactName")}
               autoComplete="name"
-              placeholder="Who we speak to"
+              placeholder={t("whoWeSpeakTo")}
               value={company.contactName ?? ""}
               aria-invalid={errorFor("contactName") !== undefined}
               aria-describedby={describedBy("contactName")}
@@ -1134,14 +1154,14 @@ export function CompanyDetailsForm({
           </Field>
 
           <Field
-            label="Role"
+            label={tShared("role")}
             htmlFor={idFor("contactRole")}
             error={errorFor("contactRole")}
           >
             <Input
               id={idFor("contactRole")}
               autoComplete="organization-title"
-              placeholder="Fleet manager"
+              placeholder={t("fleetManager")}
               value={company.contactRole ?? ""}
               aria-invalid={errorFor("contactRole") !== undefined}
               aria-describedby={describedBy("contactRole")}
@@ -1159,7 +1179,7 @@ export function CompanyDetailsForm({
         {mode === "correction" ? (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1.3fr_1fr]">
             <Field
-              label="Company email"
+              label={tShared("companyEmail")}
               htmlFor={idFor("contactEmail")}
               error={errorFor("contactEmail")}
             >
@@ -1167,7 +1187,7 @@ export function CompanyDetailsForm({
                 id={idFor("contactEmail")}
                 type="email"
                 autoComplete="email"
-                placeholder="dispatch@company.ge"
+                placeholder={t("dispatchCompanyGe")}
                 value={company.contactEmail ?? ""}
                 aria-invalid={errorFor("contactEmail") !== undefined}
                 aria-describedby={describedBy("contactEmail")}
@@ -1181,7 +1201,7 @@ export function CompanyDetailsForm({
             </Field>
 
             <Field
-              label="Company phone"
+              label={t("companyPhone")}
               htmlFor={idFor("phone")}
               error={errorFor("phone")}
             >
@@ -1203,16 +1223,16 @@ export function CompanyDetailsForm({
       </div>
 
       <div className="flex flex-col gap-3.5 border-t border-border pt-5">
-        <p className={GROUP_HEADING_CLASS}>Payouts</p>
+        <p className={GROUP_HEADING_CLASS}>{t("payouts")}</p>
 
         <Field
-          label="Bank account (IBAN)"
+          label={t("bankAccountIban")}
           htmlFor={idFor("bankAccountIban")}
           error={errorFor("bankAccountIban")}
           hint={
             mode === "correction"
-              ? `${PAYOUT_HINT} ${PAYOUT_REENTRY_HINT}`
-              : PAYOUT_HINT
+              ? `${t(PAYOUT_HINT_KEY)} ${t(PAYOUT_REENTRY_HINT_KEY)}`
+              : t(PAYOUT_HINT_KEY)
           }
         >
           <Input
@@ -1246,7 +1266,7 @@ export function CompanyDetailsForm({
             }}
             className="h-12 cursor-pointer rounded-[11px] border border-border bg-card px-[22px] text-[15px] font-semibold hover:bg-muted"
           >
-            Back
+            {tShared("back")}
           </button>
         ) : null}
 
@@ -1256,7 +1276,7 @@ export function CompanyDetailsForm({
           disabled={submitting}
           className={PRIMARY_CTA_CLASS}
         >
-          {submitting ? "Saving…" : "Continue"}
+          {submitting ? t("saving") : tShared("continue")}
         </button>
       </div>
     </div>

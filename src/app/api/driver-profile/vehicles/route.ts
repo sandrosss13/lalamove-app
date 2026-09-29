@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
@@ -11,7 +12,7 @@ import {
   isDuplicatePlateError,
   nonEmptyString,
   parseYear,
-  UNKNOWN_VEHICLE_TYPE_ERROR,
+  UNKNOWN_VEHICLE_TYPE_ERROR_KEY,
 } from "./validation";
 
 /** Form field carrying the (one or more) photo files. */
@@ -35,25 +36,32 @@ type CreateVehicleInput = {
  * type="file">` as a zero-byte entry with a blank name, so those are dropped
  * before the "at least one photo" check rather than being uploaded as junk.
  */
-function parsePhotos(
+async function parsePhotos(
   formData: FormData,
-): { value: File[] } | { error: string } {
+): Promise<{ value: File[] } | { error: string }> {
+  const tShared = await getRequestTranslations("common.shared");
+  const tErrors = await getRequestTranslations("errors.driverProfileVehicles");
   const photos = formData
     .getAll(PHOTO_FIELD)
     .filter((entry): entry is File => entry instanceof File && entry.size > 0);
 
   if (photos.length === 0) {
-    return { error: "At least one photo is required." };
+    return { error: tShared("atLeastOnePhotoIsRequired") };
   }
 
   for (const photo of photos) {
     if (!photo.type.startsWith("image/")) {
-      return { error: `${photo.name} is not an image file.` };
+      return {
+        error: tErrors("notAnImage", { name: photo.name }),
+      };
     }
 
     if (photo.size > MAX_PHOTO_BYTES) {
       return {
-        error: `${photo.name} is larger than ${MAX_PHOTO_BYTES / (1024 * 1024)} MB.`,
+        error: tErrors("photoTooLarge", {
+          name: photo.name,
+          mb: MAX_PHOTO_BYTES / (1024 * 1024),
+        }),
       };
     }
   }
@@ -73,35 +81,37 @@ function parsePhotos(
  * `vehicleTypeCode` is only checked for presence here; matching it to a real
  * `VehicleTypeSpec` needs a database read and so happens in the handler.
  */
-function parseCreateVehicleForm(
+async function parseCreateVehicleForm(
   formData: FormData,
-): { data: CreateVehicleInput } | { error: string } {
+): Promise<{ data: CreateVehicleInput } | { error: string }> {
+  const tShared = await getRequestTranslations("common.shared");
+
   const plateNumber = nonEmptyString(formData.get("plateNumber"));
   if (plateNumber === null) {
-    return { error: "plateNumber is required." };
+    return { error: tShared("platenumberIsRequired") };
   }
 
   const make = nonEmptyString(formData.get("make"));
   if (make === null) {
-    return { error: "make is required." };
+    return { error: tShared("makeIsRequired") };
   }
 
   const model = nonEmptyString(formData.get("model"));
   if (model === null) {
-    return { error: "model is required." };
+    return { error: tShared("modelIsRequired") };
   }
 
-  const year = parseYear(formData.get("year"));
+  const year = await parseYear(formData.get("year"));
   if ("error" in year) {
     return { error: year.error };
   }
 
   const vehicleTypeCode = nonEmptyString(formData.get("vehicleTypeCode"));
   if (vehicleTypeCode === null) {
-    return { error: "vehicleTypeCode is required." };
+    return { error: tShared("vehicletypecodeIsRequired") };
   }
 
-  const photos = parsePhotos(formData);
+  const photos = await parsePhotos(formData);
   if ("error" in photos) {
     return { error: photos.error };
   }
@@ -140,14 +150,18 @@ function parseCreateVehicleForm(
  * gain.
  */
 export async function GET(request: Request): Promise<NextResponse> {
+  const t = await getRequestTranslations();
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    return NextResponse.json(
+      { error: t("common.shared.unauthorized") },
+      { status: 401 },
+    );
   }
 
   if (session.user.role !== "DRIVER") {
     return NextResponse.json(
-      { error: "Only drivers have vehicles." },
+      { error: t("errors.driverProfileVehicles.onlyDriversHaveVehicles") },
       { status: 403 },
     );
   }
@@ -195,14 +209,18 @@ export async function GET(request: Request): Promise<NextResponse> {
  * a rejected request doesn't leave orphaned objects behind.
  */
 export async function POST(request: Request): Promise<NextResponse> {
+  const t = await getRequestTranslations();
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    return NextResponse.json(
+      { error: t("common.shared.unauthorized") },
+      { status: 401 },
+    );
   }
 
   if (session.user.role !== "DRIVER") {
     return NextResponse.json(
-      { error: "Only drivers can add vehicles." },
+      { error: t("errors.driverProfileVehicles.onlyDriversCanAddVehicles") },
       { status: 403 },
     );
   }
@@ -212,12 +230,12 @@ export async function POST(request: Request): Promise<NextResponse> {
     formData = await request.formData();
   } catch {
     return NextResponse.json(
-      { error: "Request body must be multipart/form-data." },
+      { error: t("common.shared.requestBodyMustBeMultipartForm") },
       { status: 400 },
     );
   }
 
-  const parsed = parseCreateVehicleForm(formData);
+  const parsed = await parseCreateVehicleForm(formData);
   if ("error" in parsed) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
@@ -237,7 +255,11 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   if (!driverProfile) {
     return NextResponse.json(
-      { error: "Complete your driver profile before adding a vehicle." },
+      {
+        error: t(
+          "errors.driverProfileVehicles.completeYourDriverProfileBeforeAdding",
+        ),
+      },
       { status: 400 },
     );
   }
@@ -269,8 +291,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   if (driverProfile.companyId !== null) {
     return NextResponse.json(
       {
-        error:
-          "Drivers who belong to a company drive their employer's vehicles. Ask your fleet manager to add this vehicle and assign it to you.",
+        error: t("errors.driverProfileVehicles.driversWhoBelongToACompany"),
       },
       { status: 403 },
     );
@@ -279,7 +300,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   const vehicleTypeSpecId = await findVehicleTypeSpecIdByCode(vehicleTypeCode);
   if (vehicleTypeSpecId === null) {
     return NextResponse.json(
-      { error: UNKNOWN_VEHICLE_TYPE_ERROR },
+      { error: t(UNKNOWN_VEHICLE_TYPE_ERROR_KEY) },
       { status: 400 },
     );
   }
@@ -294,7 +315,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     // fault, and neither should surface as an unhandled crash.
     console.error("Vehicle photo upload failed:", error);
     return NextResponse.json(
-      { error: "Could not upload the vehicle photos. Please try again." },
+      { error: t("common.shared.couldNotUploadTheVehiclePhotos") },
       { status: 502 },
     );
   }
@@ -330,7 +351,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     // Anything else is unexpected and rethrown rather than swallowed.
     if (isDuplicatePlateError(error)) {
       return NextResponse.json(
-        { error: "This plate number is already registered." },
+        { error: t("common.shared.thisPlateNumberIsAlreadyRegistered") },
         { status: 409 },
       );
     }

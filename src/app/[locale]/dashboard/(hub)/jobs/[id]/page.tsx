@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
+import { getTranslations } from "next-intl/server";
 
 import {
   JobSheetNotFound,
   JobSheetScreen,
 } from "@/components/driver-hub/screens/job-sheet-screen";
+import type { LocaleRouteParams } from "@/i18n/server";
 import { auth } from "@/lib/auth";
 import { resolveHubAccount } from "@/lib/dashboard/hub/account";
 import { getHubJobSheet } from "@/lib/dashboard/hub/job-sheet";
@@ -16,9 +18,19 @@ import { resolveJobSheetScope } from "@/lib/dashboard/hub/job-sheet-access";
 // looking at a "Start delivery" button for a delivery they already started.
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Job sheet · Driver Hub",
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: LocaleRouteParams;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({
+    locale,
+    namespace: "dashboard.dashboardJobs",
+  });
+
+  return { title: t("jobSheetDriverHub") };
+}
 
 /**
  * `/dashboard/jobs/[id]` — one delivery, as the driver assigned to it works

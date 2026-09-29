@@ -1,4 +1,7 @@
+import { useTranslations } from "next-intl";
+
 import { Link } from "@/i18n/navigation";
+import { LanguageToggle } from "@/components/language-toggle";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/utils";
 
@@ -66,6 +69,9 @@ export type AuthShellProps = {
 };
 
 export function AuthShell({ maxWidth, className, children }: AuthShellProps) {
+  const t = useTranslations("auth.authShell");
+  const tShared = useTranslations("common.shared");
+
   return (
     <div
       data-admin-surface
@@ -83,7 +89,7 @@ export function AuthShell({ maxWidth, className, children }: AuthShellProps) {
             aria-hidden="true"
             className="size-[22px] flex-none rounded-[6px] bg-[var(--landing-accent)]"
           />
-          Lalamove Clone
+          {tShared("lalamoveClone")}
         </Link>
 
         <div className="flex items-center gap-[18px]">
@@ -91,19 +97,21 @@ export function AuthShell({ maxWidth, className, children }: AuthShellProps) {
               is worse than plain text — it lands keyboard focus on something
               that does nothing. Make it a `<Link>` the day `/support` exists. */}
           <span className="text-[13px] text-[var(--landing-muted)]">
-            Need help?
+            {t("needHelp")}
           </span>
-          {/* Static for now — one locale is shipped, so a chip that cannot
-              change anything is a label rather than a control. */}
-          <span className="rounded-full border border-[var(--landing-line)] px-2.5 py-[5px] text-xs font-medium text-[var(--landing-muted)]">
-            EN
-          </span>
+          {/* The language switch, in the slot the static "EN" chip used to hold
+              and drawn to the same measurements (32px tall, `px-2.5`, the
+              landing line and muted text) so the bar's rhythm is unchanged.
+              The focus ring is recoloured to the landing accent for the same
+              reason as the theme toggle beside it — see the comment below. */}
+          <LanguageToggle className="h-8 border-[var(--landing-line)] px-2.5 text-[var(--landing-muted)] hover:bg-[var(--landing-frame)] hover:text-[var(--landing-paper)] focus-visible:border-[var(--landing-accent)] focus-visible:ring-[var(--landing-line-accent-strong)]" />
           {/*
             Last in the cluster, matching the global site header: it is the
             least-used control up here, and the two items before it are what a
             visitor actually scans for.
 
-            Restyled to the landing palette, because `ThemeToggle`'s defaults are
+            Restyled to the landing palette (and so is the `LanguageToggle`
+            before it, with the same classes), because `ThemeToggle`'s defaults are
             shadcn tokens and inside this `data-admin-surface` subtree those are
             the hue-neutral greys the back office uses — correct, but visibly
             cooler than the warm line and muted text it sits between. Sized 32px

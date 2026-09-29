@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 
 import {
   useHubSubtitle,
@@ -173,7 +174,10 @@ export function JobSheetScreen({ job, nowIso, viewer }: JobSheetScreenProps) {
    * from. See `useHubTitle` for why the fix is an override from below rather
    * than a ninth `HUB_NAV` entry.
    */
-  useHubTitle("Job sheet");
+  const t = useTranslations("driverHub.jobSheetScreen");
+  const tParts = useTranslations("driverHub.jobSheetParts");
+
+  useHubTitle(t("jobSheet"));
 
   /**
    * The subhead is the route, which is the fastest way for a driver to confirm
@@ -181,9 +185,12 @@ export function JobSheetScreen({ job, nowIso, viewer }: JobSheetScreenProps) {
    * entry's static "182 jobs in the last 30 days" — a sentence about the list,
    * on a screen showing one delivery.
    */
-  useHubSubtitle(jobSheetRouteSummary(job));
+  useHubSubtitle(
+    jobSheetRouteSummary(job, (parts) => tParts("routeSummary", parts)),
+  );
 
   const router = useRouter();
+  const tShared = useTranslations("common.shared");
 
   /**
    * Whether the dispatch dialog is on screen, held here rather than in
@@ -313,7 +320,7 @@ export function JobSheetScreen({ job, nowIso, viewer }: JobSheetScreenProps) {
         <JobSheetPickedUpStrip job={job} />
       ) : (
         <JobSheetStopCard
-          label="Pick-up"
+          label={tShared("pickUp")}
           marker="filled"
           city={job.pickupCity}
           address={job.pickupAddress}
@@ -327,7 +334,7 @@ export function JobSheetScreen({ job, nowIso, viewer }: JobSheetScreenProps) {
       )}
 
       <JobSheetStopCard
-        label="Drop-off"
+        label={tShared("dropOff")}
         marker="ring"
         city={job.dropoffCity}
         address={job.dropoffAddress}
@@ -436,16 +443,18 @@ function JobSheetCancelled({
   job: HubJobSheet;
   viewer: JobSheetViewer;
 }) {
+  const t = useTranslations("driverHub.jobSheetScreen");
+
   return (
     <div className={COLUMN_CLASSES}>
       <JobSheetHeaderCard job={job} viewer={viewer} payout="none" />
 
       <JobSheetNotice
-        title="This delivery was cancelled."
+        title={t("thisDeliveryWasCancelled")}
         detail={
           job.inTransitAt === null
-            ? "Cancelled before pickup. Nothing records when it was cancelled."
-            : "Cancelled after pickup. Nothing records when it was cancelled."
+            ? t("cancelledBeforePickup")
+            : t("cancelledAfterPickup")
         }
       />
 
@@ -498,11 +507,14 @@ function JobSheetCancelled({
  * own title, which is what a driver following a stale link should see.
  */
 export function JobSheetNotFound() {
+  const t = useTranslations("driverHub.jobSheetScreen");
+  const tShared = useTranslations("common.shared");
+
   return (
     <div className={COLUMN_CLASSES}>
       <JobSheetNotice
-        title="Order not found."
-        detail="It may have been removed, or the link may be wrong."
+        title={tShared("orderNotFound")}
+        detail={t("mayHaveBeenRemoved")}
       >
         <BackToBoardButton className="mt-1.5 self-start" />
       </JobSheetNotice>

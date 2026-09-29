@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 
 import { useRouter } from "@/i18n/navigation";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +19,7 @@ import {
 } from "@/components/driver-hub/screens/vehicles-format";
 import type { HubAccountKind } from "@/lib/dashboard/hub/account";
 import type { HubVehicle } from "@/lib/dashboard/hub/vehicles";
+import { CITY_NAMES_NAMESPACE, cityNameKey } from "@/lib/georgian-cities";
 import { cn } from "@/lib/utils";
 
 /**
@@ -64,9 +66,6 @@ import { cn } from "@/lib/utils";
  * Remove button — removing it being the corrective action for exactly the row
  * the roster guard now stops being created.
  */
-
-const GENERIC_ERROR = "Could not remove this vehicle.";
-const NETWORK_ERROR = "Network error. Please check your connection.";
 
 /**
  * The design's destructive button, unarmed: white fill, red text, **grey**
@@ -149,13 +148,10 @@ const REMOVE_ARMED_CLASSES =
   "dark:border-transparent dark:bg-[oklch(57.7%_0.245_27.325)] " +
   "dark:hover:bg-[oklch(52%_0.235_27.325)]";
 
-const REMOVE_ARMED_NOTE =
-  "Click again to delete this vehicle for good. Its photos go with it, and " +
-  "any open driver assignment ends.";
+// Keys into `driverHub.vehiclesDetailPanel`, translated where rendered.
+const REMOVE_ARMED_NOTE = "removeArmedNote";
 
-const REMOVE_UNARMED_NOTE =
-  "Deletes the vehicle record outright. There is no defleeted state to bring " +
-  "it back from, so putting it back on the road means registering it again.";
+const REMOVE_UNARMED_NOTE = "removeUnarmedNote";
 
 /**
  * ## Why this is "Remove vehicle" and not the design's "Defleet vehicle"
@@ -186,15 +182,9 @@ const REMOVE_UNARMED_NOTE =
  * change that would make the figure real.
  */
 const SAMPLE_NOTES = {
-  specs:
-    "Vehicle stores no odometer reading, fuel type or per-vehicle job count. " +
-    "Retire with Vehicle.odometerKm and a per-vehicle job rollup.",
-  cities:
-    "Vehicle has no operating-cities column; only the company's fleet-wide " +
-    "citiesOfOperation exists. Retire with Vehicle.operatingCities.",
-  costs:
-    "Nothing records fuel, service, parking or toll charges against a " +
-    "vehicle. Retire with a VehicleExpense model.",
+  specs: "sampleNoteSpecs",
+  cities: "sampleNoteCities",
+  costs: "sampleNoteCosts",
 } as const;
 
 /** The grey pill the design uses for a class and for each operating city. */
@@ -223,6 +213,9 @@ function SpecBox({
   value: React.ReactNode;
   sampled?: boolean;
 }) {
+  const t = useTranslations("driverHub.vehiclesDetailPanel");
+  const tShared = useTranslations("common.shared");
+
   return (
     <div className="min-w-0 rounded-[10px] border border-border p-3">
       <p className="text-[11px] tracking-[0.08em] uppercase text-muted-foreground">
@@ -233,8 +226,8 @@ function SpecBox({
       </p>
       {sampled ? (
         <SampleNote
-          note={SAMPLE_NOTES.specs}
-          label="Sample"
+          note={t(SAMPLE_NOTES.specs)}
+          label={tShared("sample")}
           className="mt-1.5"
         />
       ) : null}
@@ -249,12 +242,15 @@ export function VehiclesDetailPanel({
   onArmedChange,
   onRemoved,
 }: VehiclesDetailPanelProps) {
+  const t = useTranslations("driverHub.vehiclesDetailPanel");
+  const tShared = useTranslations("common.shared");
+  const tCities = useTranslations(CITY_NAMES_NAMESPACE);
   const router = useRouter();
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
   const title = `${vehicle.make} ${vehicle.model}`;
-  const assignedName = vehicle.assignment?.driverName ?? "Unassigned";
+  const assignedName = vehicle.assignment?.driverName ?? tShared("unassigned");
 
   // The declared payload is the owner's attestation for this specific vehicle
   // and the spec's is the class-level capacity pricing uses. The design shows
@@ -293,7 +289,7 @@ export function VehiclesDetailPanel({
         } | null;
         // The route's own wording ("Vehicle not found.", "Only logistics
         // companies can remove fleet vehicles.") is more useful than ours.
-        setError(payload?.error ?? GENERIC_ERROR);
+        setError(payload?.error ?? t("couldNotRemove"));
         return;
       }
 
@@ -301,7 +297,7 @@ export function VehiclesDetailPanel({
       onRemoved();
       router.refresh();
     } catch {
-      setError(NETWORK_ERROR);
+      setError(t("networkError"));
     } finally {
       setSubmitting(false);
     }
@@ -330,23 +326,26 @@ export function VehiclesDetailPanel({
       </div>
 
       <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3">
-        <SpecBox label="Payload" value={formatKilograms(payloadKg)} />
-        <SpecBox label="Fuel" value={vehicle.sampled.fuel} sampled />
         <SpecBox
-          label="Odometer"
+          label={tShared("payload")}
+          value={formatKilograms(payloadKg)}
+        />
+        <SpecBox label={tShared("fuel")} value={vehicle.sampled.fuel} sampled />
+        <SpecBox
+          label={tShared("odometer")}
           value={formatOdometer(vehicle.sampled.odometerKm)}
           sampled
         />
         <SpecBox
-          label="Jobs · week"
+          label={t("jobsWeek")}
           value={vehicle.sampled.jobsThisWeek}
           sampled
         />
       </div>
 
       <div className="mt-5 mb-2 flex flex-wrap items-center gap-2">
-        <h3 className="text-[13px] font-semibold">Operating cities</h3>
-        <SampleNote note={SAMPLE_NOTES.cities} />
+        <h3 className="text-[13px] font-semibold">{t("operatingCities")}</h3>
+        <SampleNote note={t(SAMPLE_NOTES.cities)} />
       </div>
       <div className="flex flex-wrap gap-1.5">
         {vehicle.sampled.operatingCities.length === 0 ? (
@@ -360,7 +359,7 @@ export function VehiclesDetailPanel({
               variant="outline"
               className={NEUTRAL_PILL_CLASSES}
             >
-              {city}
+              {tCities(cityNameKey(city))}
             </Badge>
           ))
         )}
@@ -368,9 +367,9 @@ export function VehiclesDetailPanel({
 
       <div className="mt-5 flex flex-wrap items-center gap-2">
         <h3 className="text-[13px] font-semibold">
-          Running costs · this month
+          {t("runningCostsThisMonth")}
         </h3>
-        <SampleNote note={SAMPLE_NOTES.costs} />
+        <SampleNote note={t(SAMPLE_NOTES.costs)} />
       </div>
       <dl className="mt-0.5">
         {vehicle.sampled.runningCosts.map((cost) => (
@@ -386,7 +385,7 @@ export function VehiclesDetailPanel({
         ))}
       </dl>
       <div className="mt-1.5 flex items-baseline justify-between gap-3 border-t border-border pt-3">
-        <span className="text-sm font-semibold">Cost per km</span>
+        <span className="text-sm font-semibold">{t("costPerKm")}</span>
         <span className="font-price text-lg font-semibold">
           {formatGel(vehicle.sampled.costPerKmGel)}
         </span>
@@ -408,19 +407,18 @@ export function VehiclesDetailPanel({
               )}
             >
               {submitting
-                ? "Removing…"
+                ? t("removing")
                 : armed
-                  ? "Confirm removal"
-                  : "Remove vehicle"}
+                  ? t("confirmRemoval")
+                  : t("removeVehicle")}
             </Button>
             <p className="mt-[9px] text-xs leading-relaxed text-muted-foreground">
-              {armed ? REMOVE_ARMED_NOTE : REMOVE_UNARMED_NOTE}
+              {armed ? t(REMOVE_ARMED_NOTE) : t(REMOVE_UNARMED_NOTE)}
             </p>
           </>
         ) : (
           <p className="text-xs leading-relaxed text-muted-foreground">
-            This vehicle belongs to the fleet you drive for, not to you. Only
-            its owner can remove it.
+            {t("thisVehicleBelongsToTheFleet")}
           </p>
         )}
 

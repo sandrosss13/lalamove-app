@@ -3,6 +3,7 @@
 import { useId, useState } from "react";
 import type * as React from "react";
 import { Banknote, Check } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import {
   AddCardDialog,
@@ -126,12 +127,6 @@ const PAY_BUTTON_CLASSES =
  */
 const PURCHASE_ORDER_REF_MAX_LENGTH = 200;
 
-/** Shown when a rejected card save carries no message of its own. */
-const SAVE_CARD_FAILED_MESSAGE = "Could not save the card. Try again.";
-
-/** Shown when a rejected payment carries no message of its own. */
-const PAY_FAILED_MESSAGE = "Could not complete the payment. Try again.";
-
 /* -------------------------------------------------------------------------- */
 /* Helpers                                                                    */
 /* -------------------------------------------------------------------------- */
@@ -213,6 +208,8 @@ export function CheckoutPaymentPanel({
   savedCards,
   accountType,
 }: CheckoutPaymentPanelProps): React.ReactElement {
+  const t = useTranslations("checkout.checkoutPaymentPanel");
+  const tShared = useTranslations("common.shared");
   const router = useRouter();
 
   // Not an element id but a shared radio `name`: it is what binds the rows into
@@ -270,16 +267,14 @@ export function CheckoutPaymentPanel({
     });
 
     if (!response.ok) {
-      throw new Error(
-        await readErrorMessage(response, SAVE_CARD_FAILED_MESSAGE),
-      );
+      throw new Error(await readErrorMessage(response, t("couldNotSaveCard")));
     }
 
     const payload = (await response.json()) as { card?: SavedCardSummary };
     const saved = payload.card;
 
     if (!saved) {
-      throw new Error(SAVE_CARD_FAILED_MESSAGE);
+      throw new Error(t("couldNotSaveCard"));
     }
 
     setCards((current) => withSavedCard(current, saved));
@@ -329,7 +324,9 @@ export function CheckoutPaymentPanel({
       });
 
       if (!response.ok) {
-        setError(await readErrorMessage(response, PAY_FAILED_MESSAGE));
+        setError(
+          await readErrorMessage(response, t("couldNotCompletePayment")),
+        );
         setPaying(false);
         return;
       }
@@ -338,7 +335,7 @@ export function CheckoutPaymentPanel({
     } catch {
       // A thrown fetch is the network being unavailable, not the server saying
       // no — there is no `{ error }` body to read a reason out of.
-      setError(PAY_FAILED_MESSAGE);
+      setError(t("couldNotCompletePayment"));
       setPaying(false);
     }
   }
@@ -352,10 +349,10 @@ export function CheckoutPaymentPanel({
         id={headingId}
         className="font-display text-base font-semibold text-paper"
       >
-        Payment method
+        {tShared("paymentMethod")}
       </h2>
       <p className="mt-1 text-[0.8125rem] leading-snug text-muted">
-        Choose how you would like to settle this delivery.
+        {t("chooseHowYouWouldLikeTo")}
       </p>
 
       {anyMethodEnabled ? (
@@ -367,7 +364,7 @@ export function CheckoutPaymentPanel({
             {/* The heading above is this group's visible name, and assistive
                 tech has no way to associate the two — so the legend says it
                 again rather than leaving the group unnamed. */}
-            <legend className="sr-only">Payment method</legend>
+            <legend className="sr-only">{tShared("paymentMethod")}</legend>
 
             <div className="flex flex-col gap-2.5">
               {cardPaymentEnabled
@@ -383,9 +380,11 @@ export function CheckoutPaymentPanel({
                     // assistive tech (below) and spoken from here instead, so a
                     // card arrives as one name in one reading order rather than
                     // as four loose digits.
-                    const cardLabel = `${card.brand} card ending ${card.last4} — expires ${expiry}${
-                      card.isDefault ? " · Default" : ""
-                    }`;
+                    const cardLabel = `${t("cardAriaLabel", {
+                      brand: card.brand,
+                      last4: card.last4,
+                      expiry,
+                    })}${card.isDefault ? t("defaultSuffix") : ""}`;
 
                     return (
                       <label
@@ -424,11 +423,11 @@ export function CheckoutPaymentPanel({
                             </span>
                           </span>
                           <span className="mt-0.5 block text-xs text-muted">
-                            Expires{" "}
+                            {tShared("expires")}{" "}
                             <span className="font-price tabular-nums">
                               {expiry}
                             </span>
-                            {card.isDefault ? " · Default" : null}
+                            {card.isDefault ? t("defaultSuffix") : null}
                           </span>
                         </span>
                         {selected ? <PaymentSelectedTick /> : null}
@@ -453,7 +452,7 @@ export function CheckoutPaymentPanel({
                     onChange={() =>
                       setPaymentChoice({ method: "CASH", savedCardId: null })
                     }
-                    aria-label="Pay later — settle after the delivery"
+                    aria-label={t("payLaterSettleAfterTheDelivery")}
                     className="sr-only"
                   />
                   {/* The brand chip's own geometry, so this row's glyph lines up
@@ -467,10 +466,10 @@ export function CheckoutPaymentPanel({
                   </span>
                   <span aria-hidden="true" className="min-w-0">
                     <span className="block text-sm font-medium text-paper">
-                      Pay later
+                      {t("payLater")}
                     </span>
                     <span className="mt-0.5 block text-xs text-muted">
-                      Settle after the delivery
+                      {t("settleAfterTheDelivery")}
                     </span>
                   </span>
                   {paymentChoice?.method === "CASH" ? (
@@ -491,15 +490,13 @@ export function CheckoutPaymentPanel({
               onClick={() => setAddCardOpen(true)}
               className={ADD_CARD_BUTTON_CLASSES}
             >
-              + Add card
+              {tShared("addCard")}
             </button>
           ) : null}
         </>
       ) : (
         <p className="mt-4 rounded-lg border border-line bg-ink px-3.5 py-2.5 text-[0.8125rem] leading-snug text-muted">
-          No payment method is available at the moment, so this delivery
-          can&rsquo;t be paid for yet. Your booking is saved — come back and pay
-          once a method is switched on.
+          {t("noPaymentMethodAvailable")}
         </p>
       )}
 
@@ -511,7 +508,7 @@ export function CheckoutPaymentPanel({
             htmlFor={purchaseOrderRefId}
             className="text-[0.8125rem] font-medium text-paper"
           >
-            PO or cost-centre reference
+            {t("poOrCostCentreReference")}
           </Label>
           <input
             id={purchaseOrderRefId}
@@ -521,7 +518,7 @@ export function CheckoutPaymentPanel({
             // Mirrors the server's own cap on the same field, so an over-long
             // reference is stopped at the keyboard rather than sent and bounced.
             maxLength={PURCHASE_ORDER_REF_MAX_LENGTH}
-            placeholder="e.g. PO-2026-0184"
+            placeholder={t("eGPo20260184")}
             aria-describedby={purchaseOrderNoteId}
             className={PURCHASE_ORDER_FIELD_CLASSES}
           />
@@ -529,7 +526,7 @@ export function CheckoutPaymentPanel({
             id={purchaseOrderNoteId}
             className="text-xs leading-snug text-muted"
           >
-            Optional. Appears on your order record for your own finance team.
+            {t("optionalAppearsOnYourOrderRecord")}
           </p>
         </div>
       ) : null}
@@ -555,7 +552,9 @@ export function CheckoutPaymentPanel({
             aria-describedby={paymentChoice === null ? payHintId : undefined}
             className={PAY_BUTTON_CLASSES}
           >
-            {paying ? "Paying…" : `Pay ${formatGel(totalGel)}`}
+            {paying
+              ? t("paying")
+              : t("payAmount", { amount: formatGel(totalGel) })}
           </button>
 
           {/* Named rather than left to the client to infer from a greyed-out
@@ -565,11 +564,11 @@ export function CheckoutPaymentPanel({
               id={payHintId}
               className="mt-2 text-center text-xs leading-snug text-muted"
             >
-              Choose a payment method to continue.
+              {t("chooseAPaymentMethodToContinue")}
             </p>
           ) : (
             <p className="mt-2 text-center text-xs leading-snug text-muted">
-              Nothing is charged now — no payment provider is connected yet.
+              {t("nothingIsChargedNowNoPayment")}
             </p>
           )}
         </>

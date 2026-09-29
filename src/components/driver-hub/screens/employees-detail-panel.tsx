@@ -1,8 +1,11 @@
+import { useTranslations } from "next-intl";
+
 import { HubCard, HubStatusBadge } from "@/components/driver-hub/hub-primitives";
 import {
   EmployeePermissionPill,
   EmployeeRolePill,
 } from "@/components/driver-hub/screens/employees-permission-pill";
+import { useHubStatusLabel } from "@/components/driver-hub/use-hub-status-label";
 import { Button } from "@/components/ui/button";
 import type { SampleEmployee } from "@/lib/dashboard/hub/sample";
 import { cn } from "@/lib/utils";
@@ -63,11 +66,6 @@ const REMOVE_UNARMED_CLASSES =
   "border-border bg-background dark:border-border dark:bg-background " +
   "text-destructive";
 
-/** Why the remove button is off. Short, and about the system, not the person. */
-const REMOVE_NOTE =
-  "Employee accounts are not connected to the backend yet, so nobody can be " +
-  "removed from here. This turns on with the employee record itself.";
-
 /** "Marika Dolidze" → "MD". Two letters is all the 38px circle holds. */
 function initialsOf(name: string): string {
   const words = name.trim().split(/\s+/).filter(Boolean);
@@ -87,6 +85,9 @@ export type EmployeeDetailPanelProps = {
 };
 
 export function EmployeeDetailPanel({ person }: EmployeeDetailPanelProps) {
+  const t = useTranslations("driverHub.employeesDetailPanel");
+  const tShared = useTranslations("common.shared");
+  const statusLabel = useHubStatusLabel();
   const invited = person.status === "Invited";
 
   return (
@@ -109,7 +110,10 @@ export function EmployeeDetailPanel({ person }: EmployeeDetailPanelProps) {
       </div>
 
       <div className="mt-4 mb-5 flex flex-wrap gap-2">
-        <HubStatusBadge status={person.status} />
+        <HubStatusBadge
+          status={person.status}
+          label={statusLabel(person.status)}
+        />
         <EmployeeRolePill role={person.role} />
       </div>
 
@@ -120,7 +124,9 @@ export function EmployeeDetailPanel({ person }: EmployeeDetailPanelProps) {
       {/* Heading straight to the first row, as the design has it — there is no
           line between the two. What these rows come from is the role note
           already printed above them. */}
-      <h3 className="mt-5 mb-0.5 text-[13px] font-semibold">Permissions</h3>
+      <h3 className="mt-5 mb-0.5 text-[13px] font-semibold">
+        {t("permissions")}
+      </h3>
       <dl>
         {person.perms.map((permission) => (
           <div
@@ -135,7 +141,9 @@ export function EmployeeDetailPanel({ person }: EmployeeDetailPanelProps) {
         ))}
       </dl>
 
-      <h3 className="mt-5 mb-0.5 text-[13px] font-semibold">Assigned</h3>
+      <h3 className="mt-5 mb-0.5 text-[13px] font-semibold">
+        {tShared("assigned")}
+      </h3>
       <dl>
         {person.assigned.map((assignment) => (
           <div
@@ -167,13 +175,13 @@ export function EmployeeDetailPanel({ person }: EmployeeDetailPanelProps) {
             REMOVE_UNARMED_CLASSES,
           )}
         >
-          {invited ? "Revoke invite" : "Remove employee"}
+          {invited ? t("revokeInvite") : t("removeEmployee")}
         </Button>
         <p
           id={REMOVE_NOTE_ID}
           className="mt-[9px] text-xs leading-normal text-muted-foreground"
         >
-          {REMOVE_NOTE}
+          {t("removeNote")}
         </p>
       </div>
     </HubCard>

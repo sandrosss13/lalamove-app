@@ -1,3 +1,5 @@
+import { useMessages } from "next-intl";
+
 import { LandingBento } from "@/components/landing/landing-bento";
 import { LandingCategoryTiles } from "@/components/landing/landing-category-tiles";
 import { LandingClosingCta } from "@/components/landing/landing-closing-cta";
@@ -15,14 +17,17 @@ import { LandingScrollReveal } from "@/components/landing/landing-scroll-reveal"
 import { LandingStats } from "@/components/landing/landing-stats";
 import { LandingVehicles } from "@/components/landing/landing-vehicles";
 import {
-  DEFAULT_HOME_PAGE_CONTENT,
   MAX_HERO_BANNERS,
+  buildDefaultHomePageSections,
+  createMessageLookup,
   isHomePageChromeSectionType,
-  type HomePageSectionData,
+  localizeDefaultHomePageContent,
+  type HomePageSectionContentByType,
+  type HomePageSectionWithId,
 } from "@/lib/admin/home-page-content";
 
 /** One composed section: a validated `HomePageSection` row, plus its row id. */
-export type LandingSection = HomePageSectionData & { id: string };
+export type LandingSection = HomePageSectionWithId;
 
 /** The fields of an active `Banner` this page renders. */
 export type LandingBanner = {
@@ -31,86 +36,6 @@ export type LandingBanner = {
   imageUrl: string;
   linkUrl: string | null;
 };
-
-/**
- * What the page renders when the locale has no `HomePageSection` rows at all —
- * the redesign's section order, each entry on its own default copy.
- *
- * This is the state a fresh database is in, and the one it stays in until
- * someone composes the page under `/admin/content/home-page`, so it is the
- * normal path rather than an error path. It therefore has to cover the whole
- * page, chrome included — see `navContent` / `footerContent` below for the two
- * types that are not in this list.
- *
- * Written out literally rather than mapped from
- * `DEFAULT_HOME_PAGE_SECTION_ORDER` so each entry's `content` is checked
- * against the shape its own `type` demands; the order here is that constant's,
- * and the two are meant to stay in step. `category_tiles` is absent for the
- * same reason it is absent there — retired by the redesign, but still
- * renderable so a pre-existing row does not vanish or crash the page.
- */
-const DEFAULT_LANDING_SECTIONS: LandingSection[] = [
-  {
-    id: "default-hero",
-    type: "hero",
-    content: DEFAULT_HOME_PAGE_CONTENT.hero,
-  },
-  {
-    id: "default-hero_carousel",
-    type: "hero_carousel",
-    content: DEFAULT_HOME_PAGE_CONTENT.hero_carousel,
-  },
-  {
-    id: "default-partner_marquee",
-    type: "partner_marquee",
-    content: DEFAULT_HOME_PAGE_CONTENT.partner_marquee,
-  },
-  {
-    id: "default-stats",
-    type: "stats",
-    content: DEFAULT_HOME_PAGE_CONTENT.stats,
-  },
-  {
-    id: "default-bento",
-    type: "bento",
-    content: DEFAULT_HOME_PAGE_CONTENT.bento,
-  },
-  {
-    id: "default-quote_calculator",
-    type: "quote_calculator",
-    content: DEFAULT_HOME_PAGE_CONTENT.quote_calculator,
-  },
-  {
-    id: "default-how_it_works",
-    type: "how_it_works",
-    content: DEFAULT_HOME_PAGE_CONTENT.how_it_works,
-  },
-  {
-    id: "default-vehicle_types",
-    type: "vehicle_types",
-    content: DEFAULT_HOME_PAGE_CONTENT.vehicle_types,
-  },
-  {
-    id: "default-driver_cta",
-    type: "driver_cta",
-    content: DEFAULT_HOME_PAGE_CONTENT.driver_cta,
-  },
-  {
-    id: "default-coverage",
-    type: "coverage",
-    content: DEFAULT_HOME_PAGE_CONTENT.coverage,
-  },
-  {
-    id: "default-faq",
-    type: "faq",
-    content: DEFAULT_HOME_PAGE_CONTENT.faq,
-  },
-  {
-    id: "default-closing_cta",
-    type: "closing_cta",
-    content: DEFAULT_HOME_PAGE_CONTENT.closing_cta,
-  },
-];
 
 /**
  * Renders one composed section with the landing component that owns its design.
@@ -203,11 +128,12 @@ function LandingSectionRenderer({
  *
  * The body is composed from `HomePageSection` rows edited under
  * `/admin/content/home-page`: `sections` arrives already filtered to one
- * locale, to active rows, and sorted by `sortOrder`. Passing nothing (or an
- * empty list, which is what a database nobody has authored content in yields)
- * falls back to `DEFAULT_LANDING_SECTIONS`, so the public page never renders
- * blank while it waits for content — and a partly-authored page renders its
- * authored rows without losing the chrome.
+ * locale, to active rows, sorted by `sortOrder`, and with every section the
+ * locale never authored filled in with its localized default
+ * (`loadHomePageContent`). Passing nothing falls back to the whole default
+ * composition in the reader's language, so the page never renders blank or in
+ * the wrong language — and a missing nav or footer falls back on its own, so a
+ * partly-authored page never loses its chrome.
  */
 export function LandingPage({
   sections,
@@ -239,8 +165,25 @@ export function LandingPage({
    */
   showSiteHeader?: boolean;
 }) {
+  const messages = useMessages();
+
+  // Built only when something is actually missing: both routes hand this page
+  // a composition the loader has already completed per section, so on the
+  // normal path none of this runs.
+  let localizedDefaults: HomePageSectionContentByType | undefined;
+  const defaults = () =>
+    (localizedDefaults ??= localizeDefaultHomePageContent(
+      createMessageLookup(messages),
+    ));
+
+  // No sections at all means a caller that passed nothing — the routes never
+  // do (see `loadHomePageContent`), but the page must still render whole, and
+  // in the reader's language rather than the English the defaults are written
+  // in.
   const composedSections =
-    sections && sections.length > 0 ? sections : DEFAULT_LANDING_SECTIONS;
+    sections && sections.length > 0
+      ? sections
+      : buildDefaultHomePageSections(defaults());
 
   /*
     Chrome, not content: the nav and footer render at fixed positions no matter
@@ -250,8 +193,10 @@ export function LandingPage({
     `sortOrder` is meaningless and the admin form says so.
 
     Duplicate rows are not worth handling: `find` takes the first, which is the
-    lowest `sortOrder`. Each falls back to its default copy independently, so a
-    page with an authored nav and no footer row still gets both.
+    lowest `sortOrder`. Each falls back to its localized default independently —
+    including a nav or footer row someone switched off, since the page has no
+    way out without them — so a page with an authored nav and no footer row
+    still gets both.
   */
   const navSection = composedSections.find((section) => section.type === "nav");
   const footerSection = composedSections.find(
@@ -261,13 +206,11 @@ export function LandingPage({
   // The second discriminant check is what narrows `content` to the shape each
   // component takes — `find`'s predicate does not carry that information back.
   const navContent =
-    navSection?.type === "nav"
-      ? navSection.content
-      : DEFAULT_HOME_PAGE_CONTENT.nav;
+    navSection?.type === "nav" ? navSection.content : defaults().nav;
   const footerContent =
     footerSection?.type === "footer"
       ? footerSection.content
-      : DEFAULT_HOME_PAGE_CONTENT.footer;
+      : defaults().footer;
 
   const orderedSections = composedSections.filter(
     (section) => !isHomePageChromeSectionType(section.type),

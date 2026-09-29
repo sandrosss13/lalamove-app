@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { ClientAccountType, ClientGender, Prisma } from "@prisma/client";
 
+import {
+  getRequestTranslations,
+  type RequestTranslator,
+} from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -37,22 +41,23 @@ function nonEmptyString(value: unknown): string | null {
  */
 function parseOptionalDateOfBirth(
   value: unknown,
+  t: RequestTranslator,
 ): { value: Date | null } | { error: string } {
   if (value === undefined || value === null || value === "") {
     return { value: null };
   }
 
   if (typeof value !== "string") {
-    return { error: "dateOfBirth must be an ISO date string." };
+    return { error: t("errors.clientProfile.dateofbirthMustBeAnIsoDate") };
   }
 
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) {
-    return { error: "dateOfBirth must be a valid date." };
+    return { error: t("errors.clientProfile.dateofbirthMustBeAValidDate") };
   }
 
   if (parsed.getTime() > Date.now()) {
-    return { error: "dateOfBirth cannot be in the future." };
+    return { error: t("errors.clientProfile.dateofbirthCannotBeInTheFuture") };
   }
 
   return { value: parsed };
@@ -64,6 +69,7 @@ function parseOptionalDateOfBirth(
  */
 function parseOptionalGender(
   value: unknown,
+  t: RequestTranslator,
 ): { value: ClientGender | null } | { error: string } {
   if (value === undefined || value === null || value === "") {
     return { value: null };
@@ -74,7 +80,9 @@ function parseOptionalGender(
     !CLIENT_GENDERS.includes(value as ClientGender)
   ) {
     return {
-      error: `gender must be one of: ${CLIENT_GENDERS.join(", ")}.`,
+      error: t("errors.clientProfile.genderMustBeOneOf", {
+        allowed: CLIENT_GENDERS.join(", "),
+      }),
     };
   }
 
@@ -92,9 +100,10 @@ function parseOptionalGender(
  */
 function parseCreateClientProfileBody(
   body: unknown,
+  t: RequestTranslator,
 ): { data: CreateClientProfileInput } | { error: string } {
   if (typeof body !== "object" || body === null) {
-    return { error: "Request body must be a JSON object." };
+    return { error: t("common.shared.requestBodyMustBeAJson") };
   }
 
   const record = body as Record<string, unknown>;
@@ -105,36 +114,38 @@ function parseCreateClientProfileBody(
     !CLIENT_ACCOUNT_TYPES.includes(accountType as ClientAccountType)
   ) {
     return {
-      error: `accountType must be one of: ${CLIENT_ACCOUNT_TYPES.join(", ")}.`,
+      error: t("errors.clientProfile.accountTypeMustBeOneOf", {
+        allowed: CLIENT_ACCOUNT_TYPES.join(", "),
+      }),
     };
   }
 
   const phone = nonEmptyString(record.phone);
   if (phone === null) {
-    return { error: "phone is required and must be a non-empty string." };
+    return { error: t("common.shared.phoneIsRequiredAndMustBe") };
   }
 
   if (accountType === ClientAccountType.INDIVIDUAL) {
     const firstName = nonEmptyString(record.firstName);
     if (firstName === null) {
       return {
-        error: "firstName is required and must be a non-empty string.",
+        error: t("common.shared.firstnameIsRequiredAndMustBe"),
       };
     }
 
     const lastName = nonEmptyString(record.lastName);
     if (lastName === null) {
-      return { error: "lastName is required and must be a non-empty string." };
+      return { error: t("common.shared.lastnameIsRequiredAndMustBe") };
     }
 
     // Verification details are optional here — a client can save their basic
     // profile at sign-up and complete these later on the profile page.
-    const dateOfBirth = parseOptionalDateOfBirth(record.dateOfBirth);
+    const dateOfBirth = parseOptionalDateOfBirth(record.dateOfBirth, t);
     if ("error" in dateOfBirth) {
       return { error: dateOfBirth.error };
     }
 
-    const gender = parseOptionalGender(record.gender);
+    const gender = parseOptionalGender(record.gender, t);
     if ("error" in gender) {
       return { error: gender.error };
     }
@@ -157,13 +168,13 @@ function parseCreateClientProfileBody(
   const companyName = nonEmptyString(record.companyName);
   if (companyName === null) {
     return {
-      error: "companyName is required and must be a non-empty string.",
+      error: t("common.shared.companynameIsRequiredAndMustBe"),
     };
   }
 
   const vatId = nonEmptyString(record.vatId);
   if (vatId === null) {
-    return { error: "vatId is required and must be a non-empty string." };
+    return { error: t("common.shared.vatidIsRequiredAndMustBe") };
   }
 
   // Verification details don't apply to a company; store them as null even if
@@ -213,14 +224,19 @@ function isDuplicatePhoneError(error: unknown): boolean {
  * users may call this.
  */
 export async function GET(request: Request): Promise<NextResponse> {
+  const t = await getRequestTranslations();
+
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    return NextResponse.json(
+      { error: t("common.shared.unauthorized") },
+      { status: 401 },
+    );
   }
 
   if (session.user.role !== "CLIENT") {
     return NextResponse.json(
-      { error: "Only clients have a client profile." },
+      { error: t("errors.clientProfile.onlyClientsHaveAClientProfile") },
       { status: 403 },
     );
   }
@@ -238,14 +254,19 @@ export async function GET(request: Request): Promise<NextResponse> {
  * so retries and re-submits are idempotent rather than an error.
  */
 export async function POST(request: Request): Promise<NextResponse> {
+  const t = await getRequestTranslations();
+
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    return NextResponse.json(
+      { error: t("common.shared.unauthorized") },
+      { status: 401 },
+    );
   }
 
   if (session.user.role !== "CLIENT") {
     return NextResponse.json(
-      { error: "Only clients can create a client profile." },
+      { error: t("errors.clientProfile.onlyClientsCanCreateAClient") },
       { status: 403 },
     );
   }
@@ -255,12 +276,12 @@ export async function POST(request: Request): Promise<NextResponse> {
     rawBody = await request.json();
   } catch {
     return NextResponse.json(
-      { error: "Request body must be valid JSON." },
+      { error: t("common.shared.requestBodyMustBeValidJson") },
       { status: 400 },
     );
   }
 
-  const parsed = parseCreateClientProfileBody(rawBody);
+  const parsed = parseCreateClientProfileBody(rawBody, t);
   if ("error" in parsed) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
@@ -311,7 +332,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     if (isDuplicatePhoneError(error)) {
       return NextResponse.json(
         {
-          error: "This phone number is already registered to another account.",
+          error: t("common.shared.thisPhoneNumberIsAlreadyRegistered"),
         },
         { status: 409 },
       );

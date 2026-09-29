@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
+import { useTranslations } from "next-intl";
 
 import {
   Card,
@@ -46,6 +47,8 @@ const MIN_PASSWORD_LENGTH = 8;
  * they want to be, so a successful change just collapses the form back down.
  */
 export function AccountPasswordCard() {
+  const t = useTranslations("common.shared");
+  const tCard = useTranslations("account.accountPasswordCard");
   const fieldId = useId();
   const formId = useId();
 
@@ -87,7 +90,7 @@ export function AccountPasswordCard() {
     // otherwise succeed and leave the client locked out behind a password they
     // mistyped. Same guard as `/change-password`.
     if (newPassword !== confirmPassword) {
-      setError("Passwords don't match.");
+      setError(t("passwordsDonTMatch"));
       return;
     }
 
@@ -106,10 +109,7 @@ export function AccountPasswordCard() {
     setSaving(false);
 
     if (changePasswordError) {
-      setError(
-        changePasswordError.message ??
-          "Could not change your password. Please try again.",
-      );
+      setError(changePasswordError.message ?? tCard("couldNotChangePassword"));
       return;
     }
 
@@ -122,19 +122,21 @@ export function AccountPasswordCard() {
     <Card className="gap-4 bg-ink text-paper ring-line">
       <CardHeader>
         <CardTitle className="font-display text-base font-semibold text-paper">
-          Account access
+          {t("accountAccess")}
         </CardTitle>
         <CardDescription className="text-[0.8125rem] leading-snug text-muted">
-          The credentials you sign in with.
+          {t("theCredentialsYouSignInWith")}
         </CardDescription>
       </CardHeader>
 
       <CardContent>
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
           <div className="min-w-0">
-            <p className="text-[0.8125rem] font-medium text-paper">Password</p>
+            <p className="text-[0.8125rem] font-medium text-paper">
+              {t("password")}
+            </p>
             <p className="mt-0.5 text-xs leading-snug text-muted">
-              Used with your email address to sign in.
+              {t("usedWithYourEmailAddressTo")}
             </p>
           </div>
 
@@ -146,7 +148,7 @@ export function AccountPasswordCard() {
             aria-controls={formId}
             className="h-9 rounded-full border-line bg-ink px-4 text-[0.8125rem] font-semibold text-paper hover:border-accent/40 hover:bg-surface hover:text-accent"
           >
-            {open ? "Cancel" : "Change password"}
+            {open ? t("cancel") : tCard("changePassword")}
           </Button>
         </div>
 
@@ -165,7 +167,7 @@ export function AccountPasswordCard() {
                   htmlFor={`${fieldId}-current`}
                   className={FIELD_LABEL_CLASSES}
                 >
-                  Current password
+                  {t("currentPassword")}
                 </Label>
                 <Input
                   id={`${fieldId}-current`}
@@ -183,7 +185,7 @@ export function AccountPasswordCard() {
                   htmlFor={`${fieldId}-new`}
                   className={FIELD_LABEL_CLASSES}
                 >
-                  New password
+                  {t("newPassword")}
                 </Label>
                 <Input
                   id={`${fieldId}-new`}
@@ -202,7 +204,7 @@ export function AccountPasswordCard() {
                   htmlFor={`${fieldId}-confirm`}
                   className={FIELD_LABEL_CLASSES}
                 >
-                  Confirm new password
+                  {t("confirmNewPassword")}
                 </Label>
                 <Input
                   id={`${fieldId}-confirm`}
@@ -234,7 +236,7 @@ export function AccountPasswordCard() {
               disabled={saving}
               className="h-10 self-start rounded-full bg-accent px-5 text-[0.8125rem] font-semibold text-ink hover:bg-accent"
             >
-              {saving ? "Saving…" : "Save password"}
+              {saving ? t("saving") : tCard("savePassword")}
             </Button>
           </form>
         ) : null}
@@ -254,7 +256,7 @@ export function AccountPasswordCard() {
               "mt-4 border-emerald-600/30 bg-emerald-50 text-emerald-800 dark:border-emerald-400/30 dark:bg-emerald-400/10 dark:text-emerald-300",
             )}
           >
-            Password updated.
+            {t("passwordUpdated")}
           </p>
         ) : null}
       </CardContent>

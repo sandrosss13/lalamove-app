@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 
-import { localeHref } from "@/i18n/server";
+import { localeHref, type LocaleRouteParams } from "@/i18n/server";
 import { DriverAccountCompanyCard } from "@/components/driver-hub/driver-account-company-card";
 import { DriverAccountPasswordCard } from "@/components/driver-hub/driver-account-password-card";
 import { DriverAccountPayoutPanel } from "@/components/driver-hub/driver-account-payout-panel";
@@ -25,9 +26,19 @@ import {
 // `searchParams`, which is dynamic in its own right.
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Account · Driver Hub",
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: LocaleRouteParams;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({
+    locale,
+    namespace: "dashboard.dashboardAccount",
+  });
+
+  return { title: t("accountDriverHub") };
+}
 
 /** This page's own URL, for correcting a `?section=` this account cannot have. */
 const HUB_ACCOUNT_PATH = "/dashboard/account";
@@ -116,6 +127,10 @@ export default async function DriverAccountPage({
   }
 
   const activeSection = driverAccountSection(section);
+  // Without a namespace: the section's `titleKey` / `descriptionKey` are full
+  // key paths, and the breadcrumb's root reuses the customer account page's
+  // "Settings" so the two surfaces cannot drift apart in translation.
+  const t = await getTranslations();
 
   return (
     // 40px between the rail and the panels at every width — the design's row
@@ -135,7 +150,7 @@ export default async function DriverAccountPage({
       <div className="flex min-w-0 flex-1 flex-col gap-5">
         <header className="min-w-0">
           <p className="text-[11px] font-semibold tracking-[0.1em] text-muted-foreground uppercase">
-            Settings
+            {t("account.account.settings")}
             {/* The separator is decoration, so it is hidden from the
                 accessibility tree and the crumb reads "Settings Profile". */}
             <span aria-hidden="true" className="px-1.5">
@@ -147,7 +162,7 @@ export default async function DriverAccountPage({
                 `driver-account-sidebar.tsx` gives — `text-accent` resolves to
                 a neutral inside `[data-admin-surface]`. */}
             <span className="text-[oklch(64%_0.19_48)]">
-              {activeSection.title}
+              {t(activeSection.titleKey)}
             </span>
           </p>
           {/* 28px, where the hub's generic screen title is 20px. That is the
@@ -156,10 +171,10 @@ export default async function DriverAccountPage({
               this `<h1>` is the only title on it and carries the weight the
               header's would have. */}
           <h1 className="mt-2 text-[28px] leading-[1.1] font-semibold tracking-[-0.025em]">
-            {activeSection.title}
+            {t(activeSection.titleKey)}
           </h1>
           <p className="mt-2.5 max-w-[520px] text-[13px] leading-[1.6] text-muted-foreground">
-            {activeSection.description}
+            {t(activeSection.descriptionKey)}
           </p>
         </header>
 

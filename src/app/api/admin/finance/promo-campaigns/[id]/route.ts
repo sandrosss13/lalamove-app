@@ -7,6 +7,7 @@ import {
   type PromoCampaign,
 } from "@prisma/client";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { authorizeAdminApi } from "@/lib/admin/api-auth";
 import { writeAuditLog } from "@/lib/admin/audit";
 import { prisma } from "@/lib/prisma";
@@ -86,24 +87,31 @@ function isDuplicateCodeError(error: unknown): boolean {
   return typeof target === "string" && target.includes("code");
 }
 
+/**
+ * The request-locale translator, passed into the synchronous validators below so
+ * their messages reach the admin in their own language.
+ */
+type RequestTranslator = Awaited<ReturnType<typeof getRequestTranslations>>;
+
 /** Mirrors `discountValueError` in the collection route. */
 function discountValueError(
   discountType: DiscountType,
   discountValue: number,
+  t: RequestTranslator,
 ): string | null {
   if (!Number.isFinite(discountValue)) {
-    return "discountValue must be a number.";
+    return t("common.shared.discountvalueMustBeANumber");
   }
 
   if (discountType === "PERCENTAGE") {
     return discountValue > 0 && discountValue <= MAX_PERCENTAGE_DISCOUNT
       ? null
-      : `A percentage discount must be greater than 0 and at most ${MAX_PERCENTAGE_DISCOUNT}.`;
+      : t("common.shared.percentageDiscountRange", {
+          max: MAX_PERCENTAGE_DISCOUNT,
+        });
   }
 
-  return discountValue > 0
-    ? null
-    : "A fixed-amount discount must be greater than 0.";
+  return discountValue > 0 ? null : t("common.shared.fixedDiscountPositive");
 }
 
 /** An ISO-8601 timestamp from the wire as a `Date`, or null when unparseable. */
@@ -125,9 +133,10 @@ function parseTimestamp(value: unknown): Date | null {
  */
 function parsePatchBody(
   body: unknown,
+  t: RequestTranslator,
 ): { data: PromoCampaignPatch } | { error: string } {
   if (typeof body !== "object" || body === null) {
-    return { error: "Request body must be a JSON object." };
+    return { error: t("common.shared.requestBodyMustBeAJson") };
   }
 
   const record = body as Record<string, unknown>;
@@ -136,14 +145,15 @@ function parsePatchBody(
   if ("code" in record) {
     const { code } = record;
     if (typeof code !== "string") {
-      return { error: "code must be a string." };
+      return {
+        error: t("errors.adminFinancePromoCampaigns.codeMustBeAString"),
+      };
     }
 
     const normalizedCode = code.trim().toUpperCase();
     if (!PROMO_CODE_PATTERN.test(normalizedCode)) {
       return {
-        error:
-          "A code must be 3–32 characters, letters and numbers only (e.g. SUMMER25).",
+        error: t("common.shared.aCodeMustBe332"),
       };
     }
 
@@ -157,7 +167,10 @@ function parsePatchBody(
       !DISCOUNT_TYPES.includes(discountType as DiscountType)
     ) {
       return {
-        error: `discountType must be one of: ${DISCOUNT_TYPES.join(", ")}.`,
+        error: t("common.shared.fieldMustBeOneOf", {
+          field: "discountType",
+          options: DISCOUNT_TYPES.join(", "),
+        }),
       };
     }
 
@@ -167,7 +180,7 @@ function parsePatchBody(
   if ("discountValue" in record) {
     const { discountValue } = record;
     if (typeof discountValue !== "number") {
-      return { error: "discountValue must be a number." };
+      return { error: t("common.shared.discountvalueMustBeANumber") };
     }
 
     patch.discountValue = discountValue;
@@ -176,7 +189,7 @@ function parsePatchBody(
   if ("startsAt" in record) {
     const startsAt = parseTimestamp(record.startsAt);
     if (!startsAt) {
-      return { error: "startsAt must be a valid date." };
+      return { error: t("common.shared.startsatMustBeAValidDate") };
     }
 
     patch.startsAt = startsAt;
@@ -185,7 +198,7 @@ function parsePatchBody(
   if ("endsAt" in record) {
     const endsAt = parseTimestamp(record.endsAt);
     if (!endsAt) {
-      return { error: "endsAt must be a valid date." };
+      return { error: t("common.shared.endsatMustBeAValidDate") };
     }
 
     patch.endsAt = endsAt;
@@ -201,7 +214,9 @@ function parsePatchBody(
       usageLimit < 1
     ) {
       return {
-        error: "usageLimit must be a whole number of 1 or more, or null.",
+        error: t(
+          "errors.adminFinancePromoCampaigns.usageLimitWholeNumberOrNull",
+        ),
       };
     } else {
       patch.usageLimit = usageLimit;
@@ -211,7 +226,7 @@ function parsePatchBody(
   if ("isActive" in record) {
     const { isActive } = record;
     if (typeof isActive !== "boolean") {
-      return { error: "isActive must be a boolean." };
+      return { error: t("common.shared.isactiveMustBeABoolean") };
     }
 
     patch.isActive = isActive;
@@ -240,6 +255,8 @@ export async function PATCH(
     return authorized.response;
   }
 
+  const t = await getRequestTranslations();
+
   const { id } = await params;
 
   let rawBody: unknown;
@@ -247,12 +264,12 @@ export async function PATCH(
     rawBody = await request.json();
   } catch {
     return NextResponse.json(
-      { error: "Request body must be valid JSON." },
+      { error: t("common.shared.requestBodyMustBeValidJson") },
       { status: 400 },
     );
   }
 
-  const parsed = parsePatchBody(rawBody);
+  const parsed = parsePatchBody(rawBody, t);
   if ("error" in parsed) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
@@ -264,7 +281,10 @@ export async function PATCH(
   const existing = await prisma.promoCampaign.findUnique({ where: { id } });
 
   if (!existing) {
-    return NextResponse.json({ error: "Campaign not found." }, { status: 404 });
+    return NextResponse.json(
+      { error: t("errors.adminFinancePromoCampaigns.campaignNotFound") },
+      { status: 404 },
+    );
   }
 
   const nextDiscountType = patch.discountType ?? existing.discountType;
@@ -272,14 +292,14 @@ export async function PATCH(
   const nextStartsAt = patch.startsAt ?? existing.startsAt;
   const nextEndsAt = patch.endsAt ?? existing.endsAt;
 
-  const valueError = discountValueError(nextDiscountType, nextDiscountValue);
+  const valueError = discountValueError(nextDiscountType, nextDiscountValue, t);
   if (valueError) {
     return NextResponse.json({ error: valueError }, { status: 400 });
   }
 
   if (nextStartsAt.getTime() >= nextEndsAt.getTime()) {
     return NextResponse.json(
-      { error: "The start date must be before the end date." },
+      { error: t("common.shared.theStartDateMustBeBefore") },
       { status: 400 },
     );
   }
@@ -290,7 +310,7 @@ export async function PATCH(
   } catch (error) {
     if (isDuplicateCodeError(error)) {
       return NextResponse.json(
-        { error: "A campaign with this code already exists." },
+        { error: t("common.shared.aCampaignWithThisCodeAlready") },
         { status: 400 },
       );
     }
@@ -352,19 +372,25 @@ export async function DELETE(
     return authorized.response;
   }
 
+  const t = await getRequestTranslations();
+
   const { id } = await params;
 
   const existing = await prisma.promoCampaign.findUnique({ where: { id } });
 
   if (!existing) {
-    return NextResponse.json({ error: "Campaign not found." }, { status: 404 });
+    return NextResponse.json(
+      { error: t("errors.adminFinancePromoCampaigns.campaignNotFound") },
+      { status: 404 },
+    );
   }
 
   if (existing.usedCount > 0) {
     return NextResponse.json(
       {
-        error:
-          "This campaign has already been redeemed and cannot be deleted. Deactivate it instead.",
+        error: t(
+          "errors.adminFinancePromoCampaigns.thisCampaignHasAlreadyBeenRedeemed",
+        ),
       },
       { status: 400 },
     );

@@ -3,8 +3,12 @@ import { NextResponse } from "next/server";
 import {
   createDriverDocumentUploadUrl,
   isSupportedDriverDocumentContentType,
-  UNSUPPORTED_CONTENT_TYPE_ERROR,
+  UNSUPPORTED_CONTENT_TYPE_ERROR_KEY,
 } from "@/lib/driver-document-storage";
+import {
+  getRequestTranslations,
+  type RequestTranslator,
+} from "@/i18n/request-locale";
 import {
   asRecord,
   nonEmptyString,
@@ -32,19 +36,20 @@ type UploadUrlInput = {
  */
 function parseUploadUrlBody(
   fields: Record<string, unknown>,
+  t: RequestTranslator,
 ): { data: UploadUrlInput } | { error: string } {
   const fileName = nonEmptyString(fields.fileName);
   if (fileName === null) {
-    return { error: "fileName is required and must be a non-empty string." };
+    return { error: t("common.shared.filenameIsRequiredAndMustBe") };
   }
 
   const contentType = nonEmptyString(fields.contentType);
   if (contentType === null) {
-    return { error: "contentType is required and must be a non-empty string." };
+    return { error: t("common.shared.contenttypeIsRequiredAndMustBe") };
   }
 
   if (!isSupportedDriverDocumentContentType(contentType)) {
-    return { error: UNSUPPORTED_CONTENT_TYPE_ERROR };
+    return { error: t(UNSUPPORTED_CONTENT_TYPE_ERROR_KEY) };
   }
 
   return { data: { fileName, contentType } };
@@ -64,6 +69,8 @@ function parseUploadUrlBody(
  * started and abandoned leaves an orphaned object and nothing else.
  */
 export async function POST(request: Request): Promise<NextResponse> {
+  const t = await getRequestTranslations();
+
   const guard = await resolveOnboardingDocumentContext(request);
   if ("error" in guard) {
     return NextResponse.json({ error: guard.error }, { status: guard.status });
@@ -77,17 +84,17 @@ export async function POST(request: Request): Promise<NextResponse> {
   const fields = asRecord(parsedBody.body);
   if (fields === null) {
     return NextResponse.json(
-      { error: "Request body must be a JSON object." },
+      { error: t("common.shared.requestBodyMustBeAJson") },
       { status: 400 },
     );
   }
 
-  const parsedType = parseDocumentType(fields.type);
+  const parsedType = parseDocumentType(fields.type, t);
   if ("error" in parsedType) {
     return NextResponse.json({ error: parsedType.error }, { status: 400 });
   }
 
-  const parsed = parseUploadUrlBody(fields);
+  const parsed = parseUploadUrlBody(fields, t);
   if ("error" in parsed) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
@@ -108,7 +115,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     // for the client to show inline.
     console.error("Failed to create a document upload URL:", error);
     return NextResponse.json(
-      { error: "Could not prepare the upload. Please try again." },
+      { error: t("common.shared.couldNotPrepareTheUploadPlease") },
       { status: 502 },
     );
   }

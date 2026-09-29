@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { APIProvider, Map, Marker, useMap } from "@vis.gl/react-google-maps";
+import { useTranslations } from "next-intl";
 
 import { useTheme } from "@/hooks/use-theme";
 import { DEFAULT_MAP_STYLES, MAP_STYLES_DARK } from "@/lib/map-styles";
@@ -107,6 +108,8 @@ function TrackingMap({
   pickup,
   dropoff,
 }: OrderTrackingMapProps & { apiKey: string }) {
+  const t = useTranslations("orders.orderTrackingMap");
+  const tShared = useTranslations("common.shared");
   // The basemap is painted by the Maps SDK into its own canvas, so no `dark:`
   // utility reaches it and the style array has to be picked here. `useTheme`
   // tracks the `dark` class on `<html>` — the same source of truth the `dark:`
@@ -215,15 +218,15 @@ function TrackingMap({
             style={{ width: "100%", height: "100%" }}
           >
             {pickup ? (
-              <Marker position={pickup} title="Pickup" label="P" />
+              <Marker position={pickup} title={tShared("pickup")} label="P" />
             ) : null}
             {dropoff ? (
-              <Marker position={dropoff} title="Dropoff" label="D" />
+              <Marker position={dropoff} title={tShared("dropoff")} label="D" />
             ) : null}
             {driverLat !== null && driverLng !== null ? (
               <Marker
                 position={{ lat: driverLat, lng: driverLng }}
-                title="Driver"
+                title={tShared("driver")}
                 label="🚚"
               />
             ) : null}
@@ -233,9 +236,7 @@ function TrackingMap({
       </div>
 
       {hasDriverPosition ? null : (
-        <p className="text-sm opacity-70">
-          Waiting for a driver to share their location…
-        </p>
+        <p className="text-sm opacity-70">{t("waitingForADriverToShare")}</p>
       )}
 
       {isStale ? (
@@ -244,7 +245,7 @@ function TrackingMap({
         // against a near-black page reads as dim brown text, losing the "this
         // figure may be wrong" signal that is the line's entire purpose.
         <p className="text-sm text-yellow-700 dark:text-yellow-400">
-          Driver location may be stale.
+          {t("driverLocationMayBeStale")}
         </p>
       ) : null}
     </div>
@@ -265,6 +266,7 @@ export function OrderTrackingMap({
   pickup,
   dropoff,
 }: OrderTrackingMapProps) {
+  const tShared = useTranslations("common.shared");
   // Inlined at build time by Next because of the NEXT_PUBLIC_ prefix; must be
   // referenced as a full literal expression for that substitution to happen.
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -274,7 +276,7 @@ export function OrderTrackingMap({
   if (!apiKey) {
     return (
       <p className="rounded border p-4 text-sm opacity-70">
-        Map unavailable — missing Google Maps API key.
+        {tShared("mapUnavailableMissingGoogleMapsApi")}
       </p>
     );
   }

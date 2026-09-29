@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
+import { useTranslations } from "next-intl";
 
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -17,10 +18,11 @@ import {
 import type { OnboardingDraftLicenceCategory } from "@/lib/driver-onboarding/draft-schema";
 import { isClassLockedByLicence } from "@/lib/driver-onboarding/vehicle-classes";
 
-/** The two document slots this step owns, in the design's order. */
-const LICENCE_SLOTS: { slot: DocumentSlot; title: string }[] = [
-  { slot: "licFront", title: "Front of licence" },
-  { slot: "licBack", title: "Back of licence" },
+/** The two document slots this step owns, in the design's order. `titleKey`
+ *  is a key in the `onboarding.step2Licence` namespace, translated at render. */
+const LICENCE_SLOTS: { slot: DocumentSlot; titleKey: string }[] = [
+  { slot: "licFront", titleKey: "frontOfLicence" },
+  { slot: "licBack", titleKey: "backOfLicence" },
 ];
 
 /**
@@ -30,11 +32,12 @@ const LICENCE_SLOTS: { slot: DocumentSlot; title: string }[] = [
  */
 const LICENCE_CATEGORIES: {
   code: OnboardingDraftLicenceCategory;
-  description: string;
+  /** A key in the `onboarding.step2Licence` namespace. */
+  descriptionKey: string;
 }[] = [
-  { code: "B", description: "Cars and vans up to 3.5 t" },
-  { code: "C", description: "Rigid trucks over 3.5 t" },
-  { code: "CE", description: "Truck with trailer / articulated" },
+  { code: "B", descriptionKey: "carsAndVansUpTo3" },
+  { code: "C", descriptionKey: "rigidTrucksOver35T" },
+  { code: "CE", descriptionKey: "truckWithTrailerArticulated" },
 ];
 
 /** The design's minimum for a plausible licence number. */
@@ -119,32 +122,35 @@ function validateLicence(input: {
   categories: OnboardingDraftLicenceCategory[];
   hasFront: boolean;
   hasBack: boolean;
+  /** This step's translator — passed in because this is a plain function. */
+  t: ReturnType<typeof useTranslations<"onboarding.step2Licence">>;
 }): LicenceFieldErrors {
+  const { t } = input;
   const errors: LicenceFieldErrors = {};
 
   if (!input.hasFront || !input.hasBack) {
-    errors.photos = "Both sides of the licence are required.";
+    errors.photos = t("bothSidesRequired");
   }
 
   const licenceNumber = input.licenceNumber.trim();
   if (!licenceNumber) {
-    errors.licenceNumber = "Enter the licence number.";
+    errors.licenceNumber = t("enterLicenceNumber");
   } else if (licenceNumber.length < MIN_LICENCE_NUMBER_LENGTH) {
-    errors.licenceNumber = "That looks too short.";
+    errors.licenceNumber = t("tooShort");
   }
 
   if (!input.expiresAt) {
-    errors.expiresAt = "Enter the expiry date.";
+    errors.expiresAt = t("enterExpiryDate");
   } else if (input.expiresAt <= todayIsoDate()) {
     // Lexicographic comparison is exact for `YYYY-MM-DD`, and — unlike parsing
     // both sides into `Date`s — has no timezone edge to get wrong. A licence
     // expiring today is already unusable for a journey, so "must be in the
     // future" excludes today.
-    errors.expiresAt = "This licence has expired. Renew it before applying.";
+    errors.expiresAt = t("licenceExpired");
   }
 
   if (input.categories.length === 0) {
-    errors.categories = "Select at least one category you hold.";
+    errors.categories = t("selectCategory");
   }
 
   return errors;
@@ -167,6 +173,9 @@ function validateLicence(input: {
 export function Step2Licence() {
   const { draft, documents, updateDraft, goToStep, showToast } =
     useOnboardingDraft();
+  const t = useTranslations("onboarding.step2Licence");
+  const tRoot = useTranslations();
+  const tShared = useTranslations("common.shared");
 
   // Which upload dialog is open, or null for none. One piece of state rather
   // than two booleans: the dialog is modal, so only ever one slot at a time.
@@ -199,6 +208,7 @@ export function Step2Licence() {
     categories,
     hasFront: documentForSlot("licFront") !== undefined,
     hasBack: documentForSlot("licBack") !== undefined,
+    t,
   });
   const errors: LicenceFieldErrors = showErrors ? problems : {};
 
@@ -242,7 +252,10 @@ export function Step2Licence() {
   function handleContinue() {
     if (Object.keys(problems).length > 0) {
       setShowErrors(true);
-      showToast("Fix the highlighted fields to continue.", "error");
+      showToast(
+        tRoot("onboarding.step1AuthPersonal.fixHighlightedFields"),
+        "error",
+      );
       return;
     }
 
@@ -253,12 +266,12 @@ export function Step2Licence() {
     <div className="flex flex-col gap-7">
       <section className="flex flex-col gap-3.5">
         <p className="text-[13.5px] leading-[1.5] text-muted-foreground">
-          Scans or photos both work. All four corners must be visible and free
-          of glare.
+          {t("scansOrPhotosBothWorkAll")}
         </p>
 
         <div className="grid gap-3 sm:grid-cols-2">
-          {LICENCE_SLOTS.map(({ slot, title }) => {
+          {LICENCE_SLOTS.map(({ slot, titleKey }) => {
+            const title = t(titleKey);
             const uploadedDocument = documentForSlot(slot);
             const uploaded = uploadedDocument !== undefined;
 
@@ -299,16 +312,16 @@ export function Step2Licence() {
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={uploadedDocument.signedUrl}
-                        alt={`${title}, uploaded`}
+                        alt={t("uploadedAlt", { title })}
                         className="size-full object-cover"
                       />
                     </>
                   ) : uploaded ? (
                     // The row exists but its read URL could not be signed —
                     // say so rather than rendering a broken image.
-                    "PREVIEW UNAVAILABLE"
+                    t("previewUnavailable")
                   ) : (
-                    "Click to upload"
+                    t("clickToUpload")
                   )}
                 </span>
 
@@ -319,7 +332,7 @@ export function Step2Licence() {
                       uploaded ? UPLOADED_TEXT_CLASS : "text-muted-foreground"
                     }`}
                   >
-                    {uploaded ? "Uploaded" : "Not uploaded"}
+                    {uploaded ? t("uploaded") : t("notUploaded")}
                   </span>
                 </span>
               </button>
@@ -340,7 +353,7 @@ export function Step2Licence() {
             htmlFor={licenceNumberId}
             className="text-[11.5px] font-semibold tracking-[0.04em] text-muted-foreground uppercase"
           >
-            Licence number
+            {tShared("licenceNumber")}
           </Label>
           <Input
             id={licenceNumberId}
@@ -372,7 +385,7 @@ export function Step2Licence() {
             htmlFor={expiresAtId}
             className="text-[11.5px] font-semibold tracking-[0.04em] text-muted-foreground uppercase"
           >
-            Expiry date
+            {t("expiryDate")}
           </Label>
           <Input
             id={expiresAtId}
@@ -399,13 +412,13 @@ export function Step2Licence() {
 
       <section className="flex flex-col gap-2.5">
         <p className="text-[11.5px] font-semibold tracking-[0.04em] text-muted-foreground uppercase">
-          Categories held
+          {tShared("categoriesHeld")}
         </p>
         <p className="text-[12.5px] leading-[1.5] text-muted-foreground">
-          These decide the vehicle classes you can be dispatched for.
+          {t("theseDecideTheVehicleClassesYou")}
         </p>
 
-        {LICENCE_CATEGORIES.map(({ code, description }) => {
+        {LICENCE_CATEGORIES.map(({ code, descriptionKey }) => {
           const checkboxId = `${licenceNumberId}-category-${code}`;
           const selected = categories.includes(code);
 
@@ -453,10 +466,10 @@ export function Step2Licence() {
               />
               <span className="min-w-0 flex-1">
                 <span className="block font-price text-sm font-semibold">
-                  Category {code}
+                  {t("categoryCode", { code })}
                 </span>
                 <span className="mt-px block text-xs text-muted-foreground">
-                  {description}
+                  {t(descriptionKey)}
                 </span>
               </span>
             </Label>
@@ -485,14 +498,14 @@ export function Step2Licence() {
           onClick={handleContinue}
           className="h-12 cursor-pointer rounded-[11px] bg-onboarding-accent px-[30px] text-[15px] font-semibold tracking-[-0.01em] text-white transition-colors hover:bg-onboarding-accent-hover focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
         >
-          Continue
+          {tShared("continue")}
         </button>
         <button
           type="button"
           onClick={() => goToStep(ONBOARDING_SCREENS.personal)}
           className="h-12 cursor-pointer rounded-[11px] border border-border bg-card px-5 text-[14.5px] font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
         >
-          Back
+          {tShared("back")}
         </button>
       </div>
 

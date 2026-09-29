@@ -7,6 +7,7 @@ import { NextResponse } from "next/server";
 
 import type { AdminRole, SystemUserProfile } from "@prisma/client";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { hasAdminRole } from "@/lib/admin/roles";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -26,6 +27,23 @@ export type AdminApiContext = {
 export type AdminApiAuthorization =
   | { ok: true; context: AdminApiContext }
   | { ok: false; response: NextResponse };
+
+/**
+ * The failure half of `AdminApiAuthorization`, with its message in the
+ * caller's language. Translated only here, on the way out, so the happy path
+ * of every admin route never pays for loading a catalog.
+ */
+async function deny(
+  status: 401 | 403,
+  messageKey: "common.shared.unauthorized" | "admin.apiAuth.forbidden",
+): Promise<AdminApiAuthorization> {
+  const t = await getRequestTranslations();
+
+  return {
+    ok: false,
+    response: NextResponse.json({ error: t(messageKey) }, { status }),
+  };
+}
 
 /**
  * `requireSystemUser()` for route handlers.
@@ -60,10 +78,7 @@ export async function authorizeAdminApi(
   // Coarse gate first, so a signed-in customer poking at an admin endpoint
   // costs no database query.
   if (!session || session.user.role !== "ADMIN") {
-    return {
-      ok: false,
-      response: NextResponse.json({ error: "Unauthorized." }, { status: 401 }),
-    };
+    return deny(401, "common.shared.unauthorized");
   }
 
   const systemUserProfile = await prisma.systemUserProfile.findUnique({
@@ -71,17 +86,11 @@ export async function authorizeAdminApi(
   });
 
   if (!systemUserProfile || !systemUserProfile.isActive) {
-    return {
-      ok: false,
-      response: NextResponse.json({ error: "Unauthorized." }, { status: 401 }),
-    };
+    return deny(401, "common.shared.unauthorized");
   }
 
   if (!hasAdminRole(systemUserProfile, allowedRoles)) {
-    return {
-      ok: false,
-      response: NextResponse.json({ error: "Forbidden." }, { status: 403 }),
-    };
+    return deny(403, "admin.apiAuth.forbidden");
   }
 
   return {

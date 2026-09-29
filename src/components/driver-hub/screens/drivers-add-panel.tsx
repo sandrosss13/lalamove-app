@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 import type { LicenceCategory } from "@prisma/client";
 
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { HubCard } from "@/components/driver-hub/hub-primitives";
-import { GEORGIAN_CITY_OPTIONS } from "@/lib/georgian-cities";
+import { useLocalizedCityOptions } from "@/lib/georgian-cities";
 import { cn } from "@/lib/utils";
 
 /**
@@ -109,11 +110,12 @@ export type DriversAddPanelProps = {
  */
 const LICENCE_CATEGORY_OPTIONS: readonly {
   value: LicenceCategory;
-  note: string;
+  /** Key under `driverHub.driversAddPanel`, resolved at render time. */
+  noteKey: "carsAndSmallVans" | "rigidTrucks" | "articulatedCombinations";
 }[] = [
-  { value: "B", note: "Cars and small vans" },
-  { value: "C", note: "Rigid trucks" },
-  { value: "CE", note: "Articulated combinations" },
+  { value: "B", noteKey: "carsAndSmallVans" },
+  { value: "C", noteKey: "rigidTrucks" },
+  { value: "CE", noteKey: "articulatedCombinations" },
 ];
 
 /** The radio value that means "no vehicle yet" — the endpoint reads it as null. */
@@ -187,6 +189,9 @@ export function DriversAddPanel({
   onCancel,
   onRegistered,
 }: DriversAddPanelProps) {
+  const t = useTranslations("driverHub.driversAddPanel");
+  const tShared = useTranslations("common.shared");
+  const cityOptions = useLocalizedCityOptions();
   const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [phone, setPhone] = React.useState("");
@@ -244,32 +249,38 @@ export function DriversAddPanel({
     vehicleCategoryValid;
 
   const cityLabel =
-    GEORGIAN_CITY_OPTIONS.find((option) => option.value === city)?.label ?? "";
+    cityOptions.find((option) => option.value === city)?.label ?? "";
 
   // One hint line naming the *first* thing standing in the way, in the order
   // the fields appear — a list of every problem at once reads as a wall and
   // does not tell the operator where to click.
   const hint = canSubmit
-    ? `Registers ${name.trim()} in ${cityLabel} with ${
-        selectedVehicle === null
-          ? "no vehicle yet"
-          : selectedVehicle.plateNumber
-      }. A temporary password is shown once, here.`
+    ? t("hintReady", {
+        name: name.trim(),
+        city: cityLabel,
+        vehicle:
+          selectedVehicle === null
+            ? t("noVehicleYet")
+            : selectedVehicle.plateNumber,
+      })
     : !nameValid
-      ? "Add a first and last name to continue."
+      ? t("hintName")
       : !emailValid
-        ? "Add the driver's email address — it is their login."
+        ? t("hintEmail")
         : !phoneValid
-          ? `Add a phone number with at least ${MIN_PHONE_DIGITS} digits.`
+          ? t("hintPhone", { minDigits: MIN_PHONE_DIGITS })
           : !cityValid
-            ? "Pick the zone this driver works."
+            ? t("hintCity")
             : !licenceNumberValid
-              ? "Add the driver's licence number."
+              ? t("hintLicenceNumber")
               : !expiryValid
-                ? "Add a licence expiry date in the future."
+                ? t("hintExpiry")
                 : !categoriesValid
-                  ? "Tick at least one licence category."
-                  : `${selectedVehicle?.plateNumber ?? "That vehicle"} needs category ${requiredCategory}. Tick it, or assign a different vehicle.`;
+                  ? t("hintCategories")
+                  : t("hintVehicleCategory", {
+                      vehicle: selectedVehicle?.plateNumber ?? t("thatVehicle"),
+                      category: requiredCategory ?? "",
+                    });
 
   function toggleCategory(category: LicenceCategory, checked: boolean): void {
     setCategories((current) =>
@@ -318,14 +329,14 @@ export function DriversAddPanel({
         // Reported inline and without clearing a single field: a rejected email
         // or an already-taken vehicle is something the operator fixes in the
         // form that is still on screen.
-        setError(payload?.error ?? "Could not register this driver.");
+        setError(payload?.error ?? t("couldNotRegister"));
         return;
       }
 
       const created = (await response.json()) as RegisteredDriver;
       onRegistered(created);
     } catch {
-      setError("Network error. Check your connection and try again.");
+      setError(t("networkErrorCheckYourConnectionAnd"));
     } finally {
       setSubmitting(false);
     }
@@ -339,51 +350,50 @@ export function DriversAddPanel({
         {/* A heading element, like the sibling panels' titles — this is the
             heading of the rail `MasterDetailSplit` just opened, not a stray
             line of body copy. */}
-        <h2 className="text-base font-semibold">Register a driver</h2>
+        <h2 className="text-base font-semibold">{t("registerADriver")}</h2>
         <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
-          This creates their account. They sign in with the email below and the
-          one-time password shown after saving, then set their own.
+          {t("thisCreatesTheirAccountTheySign")}
         </p>
       </div>
 
       <form onSubmit={handleSubmit} className="mt-5 flex flex-col gap-3.5">
-        <PanelField label="Full name" htmlFor="hub-driver-name">
+        <PanelField label={tShared("fullName")} htmlFor="hub-driver-name">
           <Input
             id="hub-driver-name"
             value={name}
             onChange={(event) => setName(event.target.value)}
-            placeholder="e.g. Nika Kavtaradze"
+            placeholder={tShared("eGNikaKavtaradze")}
             autoComplete="off"
             className={INPUT_CLASSES}
           />
         </PanelField>
 
-        <PanelField label="Email" htmlFor="hub-driver-email">
+        <PanelField label={tShared("email")} htmlFor="hub-driver-email">
           <Input
             id="hub-driver-email"
             type="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            placeholder="driver@example.com"
+            placeholder={tShared("driverExampleCom")}
             autoComplete="off"
             className={INPUT_CLASSES}
           />
         </PanelField>
 
         <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3">
-          <PanelField label="Phone" htmlFor="hub-driver-phone">
+          <PanelField label={tShared("phone")} htmlFor="hub-driver-phone">
             <Input
               id="hub-driver-phone"
               type="tel"
               value={phone}
               onChange={(event) => setPhone(event.target.value)}
-              placeholder="+995 5XX XXX XXX"
+              placeholder={t("9955xxXxxXxx")}
               autoComplete="off"
               className={cn(INPUT_CLASSES, MONO_INPUT_CLASSES)}
             />
           </PanelField>
 
-          <PanelField label="Zone" htmlFor="hub-driver-zone">
+          <PanelField label={tShared("zone")} htmlFor="hub-driver-zone">
             <Select value={city} onValueChange={setCity}>
               <SelectTrigger
                 id="hub-driver-zone"
@@ -397,12 +407,12 @@ export function DriversAddPanel({
                   "w-full data-[size=default]:h-auto",
                 )}
               >
-                <SelectValue placeholder="Pick a city" />
+                <SelectValue placeholder={t("pickACity")} />
               </SelectTrigger>
               {/* Portalled out of the shell's subtree, so it has to carry
                   `data-admin-surface` itself or it renders in the site palette. */}
               <SelectContent data-admin-surface="" className="max-h-72">
-                {GEORGIAN_CITY_OPTIONS.map((option) => (
+                {cityOptions.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
                   </SelectItem>
@@ -413,18 +423,24 @@ export function DriversAddPanel({
         </div>
 
         <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3">
-          <PanelField label="Licence number" htmlFor="hub-driver-licence">
+          <PanelField
+            label={tShared("licenceNumber")}
+            htmlFor="hub-driver-licence"
+          >
             <Input
               id="hub-driver-licence"
               value={licenceNumber}
               onChange={(event) => setLicenceNumber(event.target.value)}
-              placeholder="e.g. 01234567"
+              placeholder={t("eG01234567")}
               autoComplete="off"
               className={cn(INPUT_CLASSES, MONO_INPUT_CLASSES)}
             />
           </PanelField>
 
-          <PanelField label="Expires" htmlFor="hub-driver-licence-expiry">
+          <PanelField
+            label={tShared("expires")}
+            htmlFor="hub-driver-licence-expiry"
+          >
             <Input
               id="hub-driver-licence-expiry"
               type="date"
@@ -437,7 +453,7 @@ export function DriversAddPanel({
 
         <fieldset className="flex min-w-0 flex-col gap-2">
           <legend className="mb-1.5 text-xs font-medium text-muted-foreground">
-            Licence categories
+            {t("licenceCategories")}
           </legend>
           {LICENCE_CATEGORY_OPTIONS.map((option) => {
             const checked = categories.includes(option.value);
@@ -461,7 +477,7 @@ export function DriversAddPanel({
                 />
                 <span className="font-price font-semibold">{option.value}</span>
                 <span className="min-w-0 truncate text-muted-foreground">
-                  {option.note}
+                  {t(option.noteKey)}
                 </span>
               </Label>
             );
@@ -470,7 +486,7 @@ export function DriversAddPanel({
 
         <div className="flex min-w-0 flex-col gap-2">
           <span className="text-xs font-medium text-muted-foreground">
-            Assign a vehicle
+            {tShared("assignAVehicle")}
           </span>
 
           {/* Real radios in a visually styled row: keyboard users get arrow-key
@@ -485,8 +501,8 @@ export function DriversAddPanel({
               keeps a focused row's ring clear of the scroller's own clip. */}
           <div className="-m-0.5 flex max-h-[260px] min-w-0 flex-col gap-2 overflow-y-auto p-0.5">
             <VehicleRadioRow
-              label="Unassigned"
-              note="Assign later"
+              label={tShared("unassigned")}
+              note={t("assignLater")}
               selected={vehicleId === NO_VEHICLE}
               onSelect={() => setVehicleId(NO_VEHICLE)}
             />
@@ -508,8 +524,7 @@ export function DriversAddPanel({
           </div>
           {vehicles.length === 0 ? (
             <p className="text-xs text-muted-foreground">
-              Every fleet vehicle is currently held by a driver. Register this
-              one unassigned and pair them from the Vehicles screen later.
+              {t("everyFleetVehicleIsCurrentlyHeld")}
             </p>
           ) : null}
         </div>
@@ -537,7 +552,7 @@ export function DriversAddPanel({
             disabled={!canSubmit || submitting}
             className="h-auto rounded-md px-[15px] py-[9px] text-[13px] font-medium disabled:pointer-events-auto disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100"
           >
-            {submitting ? "Registering…" : "Register driver"}
+            {submitting ? t("registering") : t("registerDriver")}
           </Button>
           <Button
             type="button"
@@ -546,7 +561,7 @@ export function DriversAddPanel({
             onClick={onCancel}
             className="h-auto rounded-md px-[15px] py-[9px] text-[13px] font-medium"
           >
-            Cancel
+            {tShared("cancel")}
           </Button>
         </div>
 

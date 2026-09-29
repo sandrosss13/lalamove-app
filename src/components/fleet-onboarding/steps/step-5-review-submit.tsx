@@ -20,6 +20,7 @@
  */
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 
 import {
   FLEET_SCREENS,
@@ -35,7 +36,7 @@ import type {
   FleetDraftV1,
   FleetDraftVehicle,
 } from "@/lib/fleet-onboarding/draft-schema";
-import { GEORGIAN_CITY_OPTIONS } from "@/lib/georgian-cities";
+import { useLocalizedCityOptions } from "@/lib/georgian-cities";
 import { cn } from "@/lib/utils";
 
 /**
@@ -55,9 +56,6 @@ const SUBMIT_ENDPOINT = "/api/logistics-company/onboarding/submit";
  * with a bare array, not `{ drivers: [...] }`.
  */
 const ROSTER_ENDPOINT = "/api/logistics-company/drivers";
-
-const SUBMIT_ERROR_FALLBACK =
-  "We couldn't submit your application. Check your connection and try again.";
 
 /** Placeholder for a row the draft has nothing for, per the design. */
 const EMPTY_VALUE = "—";
@@ -100,22 +98,42 @@ function orPlaceholder(value: string | null | undefined): string {
     : EMPTY_VALUE;
 }
 
-/** "TBILISI" → "Tbilisi", via the same option list the city picker uses. */
-function formatCity(value: string): string {
-  const option = GEORGIAN_CITY_OPTIONS.find((entry) => entry.value === value);
+/**
+ * A message lookup already bound to a namespace. The row builders below are
+ * plain functions rather than components, so they are handed the component's
+ * translators instead of calling the hook themselves.
+ */
+type Translate = (
+  key: string,
+  values?: Record<string, string | number>,
+) => string;
+
+/** "TBILISI" → "Tbilisi" (or its Georgian name), via the same localized
+ *  option list the city picker uses. */
+function formatCity(
+  value: string,
+  cityOptions: ReadonlyArray<{ value: string; label: string }>,
+): string {
+  const option = cityOptions.find((entry) => entry.value === value);
   return option?.label ?? value;
 }
 
 /** "2 vehicles", "1 vehicle". */
-function vehicleCountLabel(count: number): string {
-  return `${count} vehicle${count === 1 ? "" : "s"}`;
+function vehicleCountLabel(count: number, t: Translate): string {
+  return t("vehicleCount", { count });
 }
 
 /** The company card's rows, in the design's order. */
-function buildCompanyRows(draft: FleetDraftV1): SummaryRow[] {
+function buildCompanyRows(
+  draft: FleetDraftV1,
+  tShared: Translate,
+  cityOptions: ReadonlyArray<{ value: string; label: string }>,
+): SummaryRow[] {
   const company = draft.company ?? {};
 
-  const cities = (company.citiesOfOperation ?? []).map(formatCity).join(", ");
+  const cities = (company.citiesOfOperation ?? [])
+    .map((city) => formatCity(city, cityOptions))
+    .join(", ");
 
   // Rendered as one row because operations always reads the two together —
   // "Nino Kapanadze · Fleet Manager" is who you call, not two facts.
@@ -126,35 +144,43 @@ function buildCompanyRows(draft: FleetDraftV1): SummaryRow[] {
   return [
     {
       key: "companyName",
-      label: "Company name",
+      label: tShared("companyName"),
       value: orPlaceholder(company.companyName),
     },
     {
       key: "vatId",
-      label: "VAT / tax ID",
+      label: tShared("vatTaxId"),
       value: orPlaceholder(company.vatId),
       valueClassName: "font-price",
     },
     {
       key: "registeredAddress",
-      label: "Registered address",
+      label: tShared("registeredAddress"),
       value: orPlaceholder(company.registeredAddress),
     },
     {
       key: "citiesOfOperation",
-      label: "Cities of operation",
+      label: tShared("citiesOfOperation"),
       value: orPlaceholder(cities),
     },
-    { key: "contact", label: "Contact", value: orPlaceholder(contact) },
+    {
+      key: "contact",
+      label: tShared("contact"),
+      value: orPlaceholder(contact),
+    },
     {
       key: "contactEmail",
-      label: "Company email",
+      label: tShared("companyEmail"),
       value: orPlaceholder(company.contactEmail),
     },
-    { key: "phone", label: "Phone", value: orPlaceholder(company.phone) },
+    {
+      key: "phone",
+      label: tShared("phone"),
+      value: orPlaceholder(company.phone),
+    },
     {
       key: "bankAccountIban",
-      label: "Payout account",
+      label: tShared("payoutAccount"),
       value: orPlaceholder(company.bankAccountIban),
       valueClassName: "font-price",
     },
@@ -170,7 +196,12 @@ function buildCompanyRows(draft: FleetDraftV1): SummaryRow[] {
  * the vehicles are what step 3 edited and what submit will write, so tallying
  * them here means this card can never disagree with the Vehicles card below it.
  */
-function buildFleetRows(vehicles: FleetDraftVehicle[]): SummaryRow[] {
+function buildFleetRows(
+  vehicles: FleetDraftVehicle[],
+  t: Translate,
+  tShared: Translate,
+  tRoot: Translate,
+): SummaryRow[] {
   const rows: SummaryRow[] = [];
 
   for (const body of BODY_TYPES) {
@@ -182,15 +213,15 @@ function buildFleetRows(vehicles: FleetDraftVehicle[]): SummaryRow[] {
 
     rows.push({
       key: body.id,
-      label: body.shortLabel,
-      value: vehicleCountLabel(count),
+      label: tRoot(body.shortLabelKey),
+      value: vehicleCountLabel(count, t),
     });
   }
 
   rows.push({
     key: "total",
-    label: "Total",
-    value: vehicleCountLabel(vehicles.length),
+    label: tShared("total"),
+    value: vehicleCountLabel(vehicles.length, t),
     valueClassName: "font-semibold",
   });
 
@@ -198,14 +229,17 @@ function buildFleetRows(vehicles: FleetDraftVehicle[]): SummaryRow[] {
 }
 
 /** The vehicles card's rows — one per vehicle, in the draft's own order. */
-function buildVehicleRows(vehicles: FleetDraftVehicle[]): SummaryRow[] {
+function buildVehicleRows(
+  vehicles: FleetDraftVehicle[],
+  tRoot: Translate,
+): SummaryRow[] {
   return vehicles.map((vehicle, index) => {
     const className = KNOWN_CLASS_IDS.includes(vehicle.classId)
-      ? findVehicleClass(vehicle.classId as VehicleClassId).name
+      ? tRoot(findVehicleClass(vehicle.classId as VehicleClassId).nameKey)
       : null;
-    const bodyLabel = BODY_TYPES.find(
-      (body) => body.id === vehicle.chassisType,
-    )?.shortLabel;
+    const bodyType = BODY_TYPES.find((body) => body.id === vehicle.chassisType);
+    const bodyLabel =
+      bodyType === undefined ? undefined : tRoot(bodyType.shortLabelKey);
 
     const label = [className, bodyLabel].filter(Boolean).join(" · ");
 
@@ -213,7 +247,9 @@ function buildVehicleRows(vehicles: FleetDraftVehicle[]): SummaryRow[] {
     const payload =
       vehicle.payloadKg === undefined
         ? null
-        : `${vehicle.payloadKg.toLocaleString("en-US")} kg`;
+        : tRoot("fleet.step3VehicleSpecifications.payloadKg", {
+            payload: vehicle.payloadKg,
+          });
 
     const value = [makeModel, vehicle.plateNumber, payload]
       .filter(Boolean)
@@ -237,9 +273,10 @@ function buildVehicleRows(vehicles: FleetDraftVehicle[]): SummaryRow[] {
 function buildDriverRows(
   vehicles: FleetDraftVehicle[],
   roster: Map<string, RosterEntry> | null,
+  t: Translate,
 ): SummaryRow[] {
   return vehicles.map((vehicle, index) => {
-    const label = vehicle.plateNumber ?? `Vehicle ${index + 1}`;
+    const label = vehicle.plateNumber ?? t("vehicleN", { number: index + 1 });
     const driver =
       vehicle.driverProfileId === undefined
         ? undefined
@@ -281,6 +318,10 @@ async function readErrorMessage(
 }
 
 export function Step5ReviewSubmit() {
+  const t = useTranslations("fleet.step5ReviewSubmit");
+  const tShared = useTranslations("common.shared");
+  const tRoot = useTranslations();
+  const cityOptions = useLocalizedCityOptions();
   const { draft, goToStep, refetch } = useFleetDraft();
 
   const [roster, setRoster] = useState<Map<string, RosterEntry> | null>(null);
@@ -323,38 +364,41 @@ export function Step5ReviewSubmit() {
 
   const cards: SummaryCard[] = [
     {
-      title: "Company",
+      title: tShared("company"),
       editStep: FLEET_SCREENS.company,
-      editLabel: "company",
-      rows: buildCompanyRows(draft),
+      editLabel: t("editLabel.company"),
+      rows: buildCompanyRows(draft, tShared, cityOptions),
     },
     {
-      title: "Fleet",
+      title: tShared("fleet"),
       editStep: FLEET_SCREENS.fleet,
-      editLabel: "fleet",
-      rows: buildFleetRows(vehicles),
+      editLabel: t("editLabel.fleet"),
+      rows: buildFleetRows(vehicles, t, tShared, tRoot),
     },
     {
-      title: "Vehicles",
+      title: tShared("vehicles"),
       editStep: FLEET_SCREENS.vehicles,
-      editLabel: "vehicles",
-      rows: buildVehicleRows(vehicles),
+      editLabel: t("editLabel.vehicles"),
+      rows: buildVehicleRows(vehicles, tRoot),
     },
     {
-      title: "Drivers",
+      title: tShared("drivers"),
       editStep: FLEET_SCREENS.drivers,
-      editLabel: "drivers",
+      editLabel: t("editLabel.drivers"),
       rows: rosterFailed
         ? // The raw count, rather than a card full of placeholders or no card at
           // all, when the roster could not be read.
           [
             {
               key: "assigned",
-              label: "Assigned",
-              value: `${assignedCount} of ${vehicleCountLabel(vehicles.length)}`,
+              label: tShared("assigned"),
+              value: t("assignedOf", {
+                assigned: assignedCount,
+                vehicles: vehicleCountLabel(vehicles.length, t),
+              }),
             },
           ]
-        : buildDriverRows(vehicles, roster),
+        : buildDriverRows(vehicles, roster, t),
     },
   ];
 
@@ -368,13 +412,13 @@ export function Step5ReviewSubmit() {
       // is nothing left for this screen to send.
       response = await fetch(SUBMIT_ENDPOINT, { method: "POST" });
     } catch {
-      setSubmitError(SUBMIT_ERROR_FALLBACK);
+      setSubmitError(t("submitError"));
       setSubmitting(false);
       return;
     }
 
     if (!response.ok) {
-      setSubmitError(await readErrorMessage(response, SUBMIT_ERROR_FALLBACK));
+      setSubmitError(await readErrorMessage(response, t("submitError")));
       setSubmitting(false);
       return;
     }
@@ -389,8 +433,7 @@ export function Step5ReviewSubmit() {
   return (
     <div className="flex flex-col gap-3">
       <p className="text-[13.5px] leading-[1.5] text-muted-foreground">
-        The company is reviewed as a whole. Individual vehicles can be sent back
-        without holding up the rest of the fleet.
+        {t("theCompanyIsReviewedAsA")}
       </p>
 
       {cards.map((card) => (
@@ -405,7 +448,7 @@ export function Step5ReviewSubmit() {
               onClick={() => goToStep(card.editStep)}
               className="cursor-pointer text-xs font-semibold text-onboarding-accent transition-colors hover:text-onboarding-accent-hover focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
             >
-              Edit
+              {tShared("edit")}
               <span className="sr-only"> {card.editLabel}</span>
             </button>
           </div>
@@ -457,7 +500,7 @@ export function Step5ReviewSubmit() {
           disabled={submitting}
           className="h-12 cursor-pointer rounded-[11px] bg-onboarding-accent px-[30px] text-[15px] font-semibold tracking-[-0.01em] text-white transition-colors hover:bg-onboarding-accent-hover focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {submitting ? "Submitting…" : "Submit application"}
+          {submitting ? t("submitting") : t("submitApplication")}
         </button>
       </div>
     </div>

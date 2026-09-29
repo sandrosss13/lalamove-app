@@ -1,12 +1,13 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 
 import { useRouter } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { HubCard } from "@/components/driver-hub/hub-primitives";
-import { GEORGIAN_CITY_OPTIONS } from "@/lib/georgian-cities";
+import { useLocalizedCityOptions } from "@/lib/georgian-cities";
 import type { HubDriverAccountSettings } from "@/lib/dashboard/hub/account-settings";
 import { cn } from "@/lib/utils";
 
@@ -100,16 +101,6 @@ const CONTROL_CLASSES =
 const READONLY_CLASSES =
   "cursor-not-allowed bg-muted text-muted-foreground disabled:opacity-100";
 
-const GENERIC_ERROR = "Could not save your profile. Please try again.";
-const NETWORK_ERROR = "Network error. Please check your connection.";
-
-/** Shown under a field the record holds but nothing in the app can rewrite. */
-const VERIFIED_FIELD_NOTE =
-  "Verified during onboarding. Contact support to correct it.";
-
-/** Printed in a disabled field the profile has no value for. */
-const EMPTY_VALUE = "Not recorded";
-
 function Field({
   label,
   htmlFor,
@@ -145,6 +136,16 @@ export function DriverAccountProfileForm({
   settings,
 }: DriverAccountProfileFormProps) {
   const router = useRouter();
+  const t = useTranslations("driverHub.driverAccountProfileForm");
+  const tShared = useTranslations("common.shared");
+  // Same sentence as the fleet's read-only card; one catalog entry serves both.
+  const tCompanyCard = useTranslations("driverHub.driverAccountCompanyCard");
+  const cityOptions = useLocalizedCityOptions();
+
+  /** Shown under a field the record holds but nothing in the app can rewrite. */
+  const verifiedFieldNote = t("verifiedDuringOnboarding");
+  /** Printed in a disabled field the profile has no value for. */
+  const emptyValue = t("notRecorded");
 
   const isBusiness = settings.accountType === BUSINESS_ACCOUNT_TYPE;
 
@@ -200,7 +201,7 @@ export function DriverAccountProfileForm({
           error?: string;
         } | null;
 
-        setError(payload?.error ?? GENERIC_ERROR);
+        setError(payload?.error ?? t("couldNotSaveProfile"));
         return;
       }
 
@@ -211,7 +212,7 @@ export function DriverAccountProfileForm({
       // profile as it was before this save.
       router.refresh();
     } catch {
-      setError(NETWORK_ERROR);
+      setError(t("networkError"));
     } finally {
       setSaving(false);
     }
@@ -225,17 +226,19 @@ export function DriverAccountProfileForm({
         }}
       >
         <div>
-          <h2 className="text-base font-semibold">Profile details</h2>
+          <h2 className="text-base font-semibold">{t("profileDetails")}</h2>
           <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
-            Your name, the number a client calls when they cannot find you, and
-            the city you work out of.
+            {t("yourNameTheNumberAClient")}
           </p>
         </div>
 
         <div className="mt-5 grid min-w-0 gap-3.5 sm:grid-cols-2">
           {isBusiness ? (
             <>
-              <Field label="Company name" htmlFor="driver-account-company">
+              <Field
+                label={tShared("companyName")}
+                htmlFor="driver-account-company"
+              >
                 <Input
                   id="driver-account-company"
                   autoComplete="organization"
@@ -246,7 +249,7 @@ export function DriverAccountProfileForm({
                 />
               </Field>
 
-              <Field label="VAT ID" htmlFor="driver-account-vat">
+              <Field label={tShared("vatId")} htmlFor="driver-account-vat">
                 <Input
                   id="driver-account-vat"
                   required
@@ -258,7 +261,10 @@ export function DriverAccountProfileForm({
             </>
           ) : (
             <>
-              <Field label="Name" htmlFor="driver-account-first-name">
+              <Field
+                label={tShared("name")}
+                htmlFor="driver-account-first-name"
+              >
                 <Input
                   id="driver-account-first-name"
                   autoComplete="given-name"
@@ -269,7 +275,10 @@ export function DriverAccountProfileForm({
                 />
               </Field>
 
-              <Field label="Surname" htmlFor="driver-account-last-name">
+              <Field
+                label={tShared("surname")}
+                htmlFor="driver-account-last-name"
+              >
                 <Input
                   id="driver-account-last-name"
                   autoComplete="family-name"
@@ -282,7 +291,7 @@ export function DriverAccountProfileForm({
             </>
           )}
 
-          <Field label="Cell number" htmlFor="driver-account-phone">
+          <Field label={tShared("cellNumber")} htmlFor="driver-account-phone">
             <Input
               id="driver-account-phone"
               type="tel"
@@ -301,14 +310,14 @@ export function DriverAccountProfileForm({
               has to repeat that attribute on itself. A plain select has no
               portal to mis-tone, and the list is 62 static options with no
               search behaviour attached to it. */}
-          <Field label="City" htmlFor="driver-account-city">
+          <Field label={tShared("city")} htmlFor="driver-account-city">
             <select
               id="driver-account-city"
               value={city}
               onChange={(event) => setCity(event.target.value)}
               className="h-auto w-full rounded-md border border-border bg-background px-[11px] py-[9px] text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
             >
-              {GEORGIAN_CITY_OPTIONS.map((option) => (
+              {cityOptions.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
@@ -317,9 +326,9 @@ export function DriverAccountProfileForm({
           </Field>
 
           <Field
-            label="Email"
+            label={tShared("email")}
             htmlFor="driver-account-email"
-            note="The address you sign in with."
+            note={tCompanyCard("theAddressYouSignInWith")}
           >
             <Input
               id="driver-account-email"
@@ -333,14 +342,14 @@ export function DriverAccountProfileForm({
           {isBusiness ? null : (
             <>
               <Field
-                label="ID / Passport"
+                label={tShared("idPassport")}
                 htmlFor="driver-account-id-number"
-                note={VERIFIED_FIELD_NOTE}
+                note={verifiedFieldNote}
               >
                 <Input
                   id="driver-account-id-number"
                   disabled
-                  value={settings.idNumber ?? EMPTY_VALUE}
+                  value={settings.idNumber ?? emptyValue}
                   className={cn(
                     CONTROL_CLASSES,
                     READONLY_CLASSES,
@@ -350,14 +359,14 @@ export function DriverAccountProfileForm({
               </Field>
 
               <Field
-                label="Date of birth"
+                label={tShared("dateOfBirth")}
                 htmlFor="driver-account-dob"
-                note={VERIFIED_FIELD_NOTE}
+                note={verifiedFieldNote}
               >
                 <Input
                   id="driver-account-dob"
                   disabled
-                  value={settings.dateOfBirth ?? EMPTY_VALUE}
+                  value={settings.dateOfBirth ?? emptyValue}
                   className={cn(
                     CONTROL_CLASSES,
                     READONLY_CLASSES,
@@ -377,7 +386,7 @@ export function DriverAccountProfileForm({
 
         {saved ? (
           <p role="status" className={cn("mt-4", SUCCESS_TEXT_CLASSES)}>
-            Profile saved.
+            {tShared("profileSaved")}
           </p>
         ) : null}
 
@@ -387,7 +396,7 @@ export function DriverAccountProfileForm({
             disabled={saving}
             className="h-auto rounded-md bg-foreground px-[15px] py-[9px] text-[13px] font-medium text-background hover:bg-foreground/90"
           >
-            {saving ? "Saving…" : "Save changes"}
+            {saving ? t("saving") : t("saveChanges")}
           </Button>
         </div>
       </form>

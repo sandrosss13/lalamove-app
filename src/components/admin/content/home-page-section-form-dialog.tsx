@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 import type { ContentLocale } from "@prisma/client";
 
@@ -34,7 +35,6 @@ import {
   DEFAULT_HOME_PAGE_CONTENT,
   HOME_HERO_BANNER_PLACEMENT,
   HOME_PAGE_SECTION_TYPES,
-  HOME_PAGE_SECTION_TYPE_LABELS,
   HOME_PARTNER_LOGO_BANNER_PLACEMENT,
   MAX_HERO_BANNERS,
   parseHomePageSection,
@@ -138,6 +138,18 @@ function moveAt<Item>(items: Item[], index: number, direction: -1 | 1): Item[] {
 }
 
 /** A labelled single-line field. */
+/**
+ * Each section type's name in the admin picker, as a message path under
+ * `admin.homePageSectionTypes` (the type in camelCase).
+ */
+function sectionTypeLabelKey(type: HomePageSectionType): string {
+  const camel = type.replace(/_([a-z])/g, (_, letter: string) =>
+    letter.toUpperCase(),
+  );
+
+  return `admin.homePageSectionTypes.${camel}`;
+}
+
 function TextField({
   id,
   label,
@@ -223,6 +235,7 @@ function RepeatableEntry({
   onRemove: () => void;
   children: React.ReactNode;
 }) {
+  const t = useTranslations();
   const reorderable = onMoveUp !== undefined || onMoveDown !== undefined;
 
   return (
@@ -239,7 +252,9 @@ function RepeatableEntry({
                 variant="outline"
                 size="sm"
                 disabled={onMoveUp === undefined}
-                aria-label={`Move ${title} up`}
+                aria-label={t("admin.homePageSectionFormDialog.moveUp", {
+                  title,
+                })}
                 onClick={onMoveUp}
               >
                 ↑
@@ -249,7 +264,9 @@ function RepeatableEntry({
                 variant="outline"
                 size="sm"
                 disabled={onMoveDown === undefined}
-                aria-label={`Move ${title} down`}
+                aria-label={t("admin.homePageSectionFormDialog.moveDown", {
+                  title,
+                })}
                 onClick={onMoveDown}
               >
                 ↓
@@ -257,7 +274,7 @@ function RepeatableEntry({
             </>
           ) : null}
           <Button type="button" variant="ghost" size="sm" onClick={onRemove}>
-            Remove
+            {t("common.shared.remove")}
           </Button>
         </div>
       </div>
@@ -293,6 +310,7 @@ export function HomePageSectionFormDialog({
   onClose,
   onCompleted,
 }: HomePageSectionFormDialogProps) {
+  const t = useTranslations();
   const isEditing = section !== null;
 
   // Parsed once: a row whose stored content does not match its type (hand-edited
@@ -447,7 +465,13 @@ export function HomePageSectionFormDialog({
         parsed > MAX_PROGRESS_PERCENT
       ) {
         return {
-          error: `Tracking panel progress must be a whole number between ${MIN_PROGRESS_PERCENT} and ${MAX_PROGRESS_PERCENT}.`,
+          error: t(
+            "admin.homePageSectionFormDialog.progressWholeNumberBetween",
+            {
+              min: MIN_PROGRESS_PERCENT,
+              max: MAX_PROGRESS_PERCENT,
+            },
+          ),
         };
       }
 
@@ -494,7 +518,10 @@ export function HomePageSectionFormDialog({
       parsedSortOrder > MAX_SORT_ORDER
     ) {
       setError(
-        `Sort order must be a whole number between ${MIN_SORT_ORDER} and ${MAX_SORT_ORDER}.`,
+        t("common.shared.sortOrderWholeNumberBetween", {
+          min: MIN_SORT_ORDER,
+          max: MAX_SORT_ORDER,
+        }),
       );
       return;
     }
@@ -543,8 +570,8 @@ export function HomePageSectionFormDialog({
           await readErrorMessage(
             response,
             isEditing
-              ? "Could not save this section."
-              : "Could not create this section.",
+              ? t("admin.homePageSectionFormDialog.couldNotSave")
+              : t("admin.homePageSectionFormDialog.couldNotCreate"),
           ),
         );
         return;
@@ -552,7 +579,7 @@ export function HomePageSectionFormDialog({
 
       onCompleted();
     } catch {
-      setError("Network error. Please check your connection and try again.");
+      setError(t("common.shared.networkErrorPleaseCheckYourConnection"));
     } finally {
       setPending(false);
     }
@@ -577,18 +604,22 @@ export function HomePageSectionFormDialog({
         <form onSubmit={handleSubmit} className="contents">
           <DialogHeader>
             <DialogTitle>
-              {isEditing ? "Edit section" : "New section"}
+              {isEditing
+                ? t("admin.homePageSectionFormDialog.editSection")
+                : t("admin.homePageSectionFormDialog.newSection")}
             </DialogTitle>
             <DialogDescription>
               {isEditing
-                ? "Changes go live on the public landing page as soon as you save."
-                : "Adds a section to the landing page for this locale. It goes live as soon as it is saved and active."}
+                ? t("admin.homePageSectionFormDialog.editDescription")
+                : t("admin.homePageSectionFormDialog.newDescription")}
             </DialogDescription>
           </DialogHeader>
 
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="section-type">Section type</Label>
+              <Label htmlFor="section-type">
+                {t("admin.homePageSectionFormDialog.sectionType")}
+              </Label>
               <Select
                 value={type}
                 onValueChange={(value) => setType(value as HomePageSectionType)}
@@ -599,14 +630,15 @@ export function HomePageSectionFormDialog({
                 <SelectContent>
                   {HOME_PAGE_SECTION_TYPES.map((sectionType) => (
                     <SelectItem key={sectionType} value={sectionType}>
-                      {HOME_PAGE_SECTION_TYPE_LABELS[sectionType]}
+                      {t(sectionTypeLabelKey(sectionType))}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                The type decides which landing component renders this section,
-                and therefore which fields it carries.
+                {t(
+                  "admin.homePageSectionFormDialog.theTypeDecidesWhichLandingComponent",
+                )}
               </p>
             </div>
 
@@ -614,19 +646,19 @@ export function HomePageSectionFormDialog({
               <div className="flex flex-col gap-3">
                 <TextField
                   id="hero-eyebrow"
-                  label="Eyebrow"
+                  label={t("admin.homePageSectionFormDialog.eyebrow")}
                   value={hero.eyebrow}
                   onChange={(eyebrow) => setHero({ ...hero, eyebrow })}
                 />
                 <TextField
                   id="hero-headline"
-                  label="Headline"
+                  label={t("admin.homePageSectionFormDialog.headline")}
                   value={hero.headline}
                   onChange={(headline) => setHero({ ...hero, headline })}
                 />
                 <TextAreaField
                   id="hero-subtext"
-                  label="Subtext"
+                  label={t("admin.homePageSectionFormDialog.subtext")}
                   rows={4}
                   value={hero.subtext}
                   onChange={(subtext) => setHero({ ...hero, subtext })}
@@ -634,7 +666,7 @@ export function HomePageSectionFormDialog({
                 <div className="grid gap-3 sm:grid-cols-2">
                   <TextField
                     id="hero-status-chip-text"
-                    label="Status chip text"
+                    label={t("admin.homePageSectionFormDialog.statusChipText")}
                     value={hero.statusChipText ?? ""}
                     onChange={(statusChipText) =>
                       setHero({ ...hero, statusChipText })
@@ -642,8 +674,10 @@ export function HomePageSectionFormDialog({
                   />
                   <TextField
                     id="hero-status-chip-tag"
-                    label="Status chip tag"
-                    hint="Both chip fields are optional; leave them empty for no chip."
+                    label={t("admin.homePageSectionFormDialog.statusChipTag")}
+                    hint={t(
+                      "admin.homePageSectionFormDialog.chipFieldsOptional",
+                    )}
                     value={hero.statusChipTag ?? ""}
                     onChange={(statusChipTag) =>
                       setHero({ ...hero, statusChipTag })
@@ -651,7 +685,9 @@ export function HomePageSectionFormDialog({
                   />
                   <TextField
                     id="hero-primary-cta-label"
-                    label="Primary button label"
+                    label={t(
+                      "admin.homePageSectionFormDialog.primaryButtonLabel",
+                    )}
                     value={hero.primaryCtaLabel}
                     onChange={(primaryCtaLabel) =>
                       setHero({ ...hero, primaryCtaLabel })
@@ -659,7 +695,9 @@ export function HomePageSectionFormDialog({
                   />
                   <TextField
                     id="hero-primary-cta-href"
-                    label="Primary button link"
+                    label={t(
+                      "admin.homePageSectionFormDialog.primaryButtonLink",
+                    )}
                     value={hero.primaryCtaHref}
                     onChange={(primaryCtaHref) =>
                       setHero({ ...hero, primaryCtaHref })
@@ -667,7 +705,9 @@ export function HomePageSectionFormDialog({
                   />
                   <TextField
                     id="hero-secondary-cta-label"
-                    label="Secondary button label"
+                    label={t(
+                      "admin.homePageSectionFormDialog.secondaryButtonLabel",
+                    )}
                     value={hero.secondaryCtaLabel}
                     onChange={(secondaryCtaLabel) =>
                       setHero({ ...hero, secondaryCtaLabel })
@@ -675,7 +715,9 @@ export function HomePageSectionFormDialog({
                   />
                   <TextField
                     id="hero-secondary-cta-href"
-                    label="Secondary button link"
+                    label={t(
+                      "admin.homePageSectionFormDialog.secondaryButtonLink",
+                    )}
                     value={hero.secondaryCtaHref}
                     onChange={(secondaryCtaHref) =>
                       setHero({ ...hero, secondaryCtaHref })
@@ -683,10 +725,9 @@ export function HomePageSectionFormDialog({
                   />
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  The figures below the hero are the stats row, which is a
-                  section of its own. The retired headline highlight has no
-                  field here, so saving a hero authored before the redesign
-                  drops it.
+                  {t(
+                    "admin.homePageSectionFormDialog.theFiguresBelowTheHeroAre",
+                  )}
                 </p>
               </div>
             ) : null}
@@ -695,21 +736,26 @@ export function HomePageSectionFormDialog({
               <div className="flex flex-col gap-3">
                 <TextField
                   id="carousel-fallback-caption"
-                  label="Fallback caption"
-                  hint="Optional. Used for a slide whose banner has no usable title."
+                  label={t("admin.homePageSectionFormDialog.fallbackCaption")}
+                  hint={t(
+                    "admin.homePageSectionFormDialog.optionalUsedForASlideWhose",
+                  )}
                   value={heroCarousel.fallbackCaption ?? ""}
                   onChange={(fallbackCaption) =>
                     setHeroCarousel({ ...heroCarousel, fallbackCaption })
                   }
                 />
                 <p className="text-xs text-muted-foreground">
-                  The slides themselves are Banners at the{" "}
-                  <span className="font-mono">
-                    {HOME_HERO_BANNER_PLACEMENT}
-                  </span>{" "}
-                  placement, edited under Content → Banners, and each slide’s
-                  caption is that banner’s title. The carousel shows at most{" "}
-                  {MAX_HERO_BANNERS} of them.
+                  {t.rich(
+                    "admin.homePageSectionFormDialog.carouselSlidesHint",
+                    {
+                      placement: HOME_HERO_BANNER_PLACEMENT,
+                      max: MAX_HERO_BANNERS,
+                      code: (chunks) => (
+                        <span className="font-mono">{chunks}</span>
+                      ),
+                    },
+                  )}
                 </p>
               </div>
             ) : null}
@@ -718,19 +764,19 @@ export function HomePageSectionFormDialog({
               <div className="flex flex-col gap-3">
                 <TextField
                   id="marquee-eyebrow"
-                  label="Eyebrow"
+                  label={t("admin.homePageSectionFormDialog.eyebrow")}
                   value={partnerMarquee.eyebrow}
                   onChange={(eyebrow) =>
                     setPartnerMarquee({ ...partnerMarquee, eyebrow })
                   }
                 />
                 <p className="text-xs text-muted-foreground">
-                  The logos are Banners at the{" "}
-                  <span className="font-mono">
-                    {HOME_PARTNER_LOGO_BANNER_PLACEMENT}
-                  </span>{" "}
-                  placement, edited under Content → Banners. This section only
-                  carries the line above them.
+                  {t.rich("admin.homePageSectionFormDialog.marqueeLogosHint", {
+                    placement: HOME_PARTNER_LOGO_BANNER_PLACEMENT,
+                    code: (chunks) => (
+                      <span className="font-mono">{chunks}</span>
+                    ),
+                  })}
                 </p>
               </div>
             ) : null}
@@ -738,13 +784,17 @@ export function HomePageSectionFormDialog({
             {type === "stats" ? (
               <div className="flex flex-col gap-3">
                 <div className="flex flex-col gap-2">
-                  <span className="text-sm font-medium">Tiles</span>
+                  <span className="text-sm font-medium">
+                    {t("admin.homePageSectionFormDialog.tiles")}
+                  </span>
                   {stats.items.map((item, index) => (
                     <RepeatableEntry
                       // Position: two tiles may share a label, and the list is
                       // only ever edited through these controls.
                       key={index}
-                      title={`Stat ${index + 1}`}
+                      title={t("admin.homePageSectionFormDialog.statTitle", {
+                        number: index + 1,
+                      })}
                       onMoveUp={
                         index === 0
                           ? undefined
@@ -768,7 +818,7 @@ export function HomePageSectionFormDialog({
                       <div className="grid gap-3 sm:grid-cols-2">
                         <TextField
                           id={`stat-value-${index}`}
-                          label="Value"
+                          label={t("common.shared.value")}
                           value={item.value}
                           onChange={(value) =>
                             setStats({
@@ -781,7 +831,7 @@ export function HomePageSectionFormDialog({
                         />
                         <TextField
                           id={`stat-label-${index}`}
-                          label="Label"
+                          label={t("admin.homePageSectionFormDialog.label")}
                           value={item.label}
                           onChange={(label) =>
                             setStats({
@@ -806,12 +856,10 @@ export function HomePageSectionFormDialog({
                       })
                     }
                   >
-                    Add stat
+                    {t("admin.homePageSectionFormDialog.addStat")}
                   </Button>
                   <p className="text-xs text-muted-foreground">
-                    Tiles read left to right in this order. The design is four
-                    of them; the grid tolerates fewer. A value is free text, so
-                    “24/7” and “100%” are as valid as a number.
+                    {t("admin.homePageSectionFormDialog.tilesOrderHint")}
                   </p>
                 </div>
               </div>
@@ -821,35 +869,37 @@ export function HomePageSectionFormDialog({
               <div className="flex flex-col gap-3">
                 <TextField
                   id="bento-eyebrow"
-                  label="Eyebrow"
+                  label={t("admin.homePageSectionFormDialog.eyebrow")}
                   value={bento.eyebrow}
                   onChange={(eyebrow) => setBento({ ...bento, eyebrow })}
                 />
                 <TextField
                   id="bento-heading"
-                  label="Heading"
+                  label={t("admin.homePageSectionFormDialog.heading")}
                   value={bento.heading}
                   onChange={(heading) => setBento({ ...bento, heading })}
                 />
                 <TextAreaField
                   id="bento-body"
-                  label="Body"
+                  label={t("common.shared.body")}
                   rows={4}
                   value={bento.body}
                   onChange={(body) => setBento({ ...bento, body })}
                 />
 
                 <div className="flex flex-col gap-3 rounded-lg border border-border p-3">
-                  <span className="text-sm font-medium">Tracking panel</span>
+                  <span className="text-sm font-medium">
+                    {t("admin.homePageSectionFormDialog.trackingPanel")}
+                  </span>
                   <p className="text-xs text-muted-foreground">
-                    The mock order pinned to the large card. It is an
-                    illustration, not live data — which is exactly why it is
-                    authored here rather than hardcoded.
+                    {t(
+                      "admin.homePageSectionFormDialog.theMockOrderPinnedToThe",
+                    )}
                   </p>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <TextField
                       id="bento-order-label"
-                      label="Order label"
+                      label={t("admin.homePageSectionFormDialog.orderLabel")}
                       value={bento.trackingPanel.orderLabel}
                       onChange={(orderLabel) =>
                         setBento({
@@ -863,7 +913,7 @@ export function HomePageSectionFormDialog({
                     />
                     <TextField
                       id="bento-eta-label"
-                      label="ETA label"
+                      label={t("admin.homePageSectionFormDialog.etaLabel")}
                       value={bento.trackingPanel.etaLabel}
                       onChange={(etaLabel) =>
                         setBento({
@@ -874,7 +924,7 @@ export function HomePageSectionFormDialog({
                     />
                     <TextField
                       id="bento-from-label"
-                      label="From label"
+                      label={t("admin.homePageSectionFormDialog.fromLabel")}
                       value={bento.trackingPanel.fromLabel}
                       onChange={(fromLabel) =>
                         setBento({
@@ -885,7 +935,7 @@ export function HomePageSectionFormDialog({
                     />
                     <TextField
                       id="bento-to-label"
-                      label="To label"
+                      label={t("admin.homePageSectionFormDialog.toLabel")}
                       value={bento.trackingPanel.toLabel}
                       onChange={(toLabel) =>
                         setBento({
@@ -897,7 +947,7 @@ export function HomePageSectionFormDialog({
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor="bento-progress-percent">
-                      Progress percent
+                      {t("admin.homePageSectionFormDialog.progressPercent")}
                     </Label>
                     <Input
                       id="bento-progress-percent"
@@ -912,22 +962,30 @@ export function HomePageSectionFormDialog({
                       }
                     />
                     <p className="text-xs text-muted-foreground">
-                      How far along the progress bar sits: a whole number from{" "}
-                      {MIN_PROGRESS_PERCENT} to {MAX_PROGRESS_PERCENT}.
+                      {t("admin.homePageSectionFormDialog.progressHint", {
+                        min: MIN_PROGRESS_PERCENT,
+                        max: MAX_PROGRESS_PERCENT,
+                      })}
                     </p>
                   </div>
                 </div>
 
                 <div className="flex flex-col gap-2">
-                  <span className="text-sm font-medium">Side cards</span>
+                  <span className="text-sm font-medium">
+                    {t("admin.homePageSectionFormDialog.sideCards")}
+                  </span>
                   <p className="text-xs text-muted-foreground">
-                    Row A, the column beside the large card. The design is two
-                    of them.
+                    {t(
+                      "admin.homePageSectionFormDialog.rowATheColumnBesideThe",
+                    )}
                   </p>
                   {bento.sideCards.map((card, index) => (
                     <RepeatableEntry
                       key={index}
-                      title={`Side card ${index + 1}`}
+                      title={t(
+                        "admin.homePageSectionFormDialog.sideCardTitle",
+                        { number: index + 1 },
+                      )}
                       onMoveUp={
                         index === 0
                           ? undefined
@@ -955,7 +1013,7 @@ export function HomePageSectionFormDialog({
                     >
                       <TextField
                         id={`bento-side-card-${index}-eyebrow`}
-                        label="Eyebrow"
+                        label={t("admin.homePageSectionFormDialog.eyebrow")}
                         value={card.eyebrow}
                         onChange={(eyebrow) =>
                           setBento({
@@ -969,7 +1027,7 @@ export function HomePageSectionFormDialog({
                       />
                       <TextField
                         id={`bento-side-card-${index}-title`}
-                        label="Title"
+                        label={t("common.shared.title")}
                         value={card.title}
                         onChange={(title) =>
                           setBento({
@@ -983,7 +1041,7 @@ export function HomePageSectionFormDialog({
                       />
                       <TextAreaField
                         id={`bento-side-card-${index}-body`}
-                        label="Body"
+                        label={t("common.shared.body")}
                         value={card.body}
                         onChange={(body) =>
                           setBento({
@@ -998,7 +1056,7 @@ export function HomePageSectionFormDialog({
                       <div className="grid gap-3 sm:grid-cols-2">
                         <TextField
                           id={`bento-side-card-${index}-link-label`}
-                          label="Link label"
+                          label={t("admin.homePageSectionFormDialog.linkLabel")}
                           value={card.linkLabel ?? ""}
                           onChange={(linkLabel) =>
                             setBento({
@@ -1012,8 +1070,10 @@ export function HomePageSectionFormDialog({
                         />
                         <TextField
                           id={`bento-side-card-${index}-link-href`}
-                          label="Link URL"
-                          hint="Optional; most cards carry no link."
+                          label={t("common.shared.linkUrl")}
+                          hint={t(
+                            "admin.homePageSectionFormDialog.optionalMostCardsNoLink",
+                          )}
                           value={card.linkHref ?? ""}
                           onChange={(linkHref) =>
                             setBento({
@@ -1043,21 +1103,25 @@ export function HomePageSectionFormDialog({
                       })
                     }
                   >
-                    Add side card
+                    {t("admin.homePageSectionFormDialog.addSideCard")}
                   </Button>
                 </div>
 
                 <div className="flex flex-col gap-2">
-                  <span className="text-sm font-medium">Row cards</span>
+                  <span className="text-sm font-medium">
+                    {t("admin.homePageSectionFormDialog.rowCards")}
+                  </span>
                   <p className="text-xs text-muted-foreground">
-                    Row B, across the full width. The design is three of them.
-                    They are a separate list from the side cards because the two
-                    rows have different card sizes and grid tracks.
+                    {t(
+                      "admin.homePageSectionFormDialog.rowBAcrossTheFullWidth",
+                    )}
                   </p>
                   {bento.rowCards.map((card, index) => (
                     <RepeatableEntry
                       key={index}
-                      title={`Row card ${index + 1}`}
+                      title={t("admin.homePageSectionFormDialog.rowCardTitle", {
+                        number: index + 1,
+                      })}
                       onMoveUp={
                         index === 0
                           ? undefined
@@ -1085,7 +1149,7 @@ export function HomePageSectionFormDialog({
                     >
                       <TextField
                         id={`bento-row-card-${index}-eyebrow`}
-                        label="Eyebrow"
+                        label={t("admin.homePageSectionFormDialog.eyebrow")}
                         value={card.eyebrow}
                         onChange={(eyebrow) =>
                           setBento({
@@ -1099,7 +1163,7 @@ export function HomePageSectionFormDialog({
                       />
                       <TextField
                         id={`bento-row-card-${index}-title`}
-                        label="Title"
+                        label={t("common.shared.title")}
                         value={card.title}
                         onChange={(title) =>
                           setBento({
@@ -1113,7 +1177,7 @@ export function HomePageSectionFormDialog({
                       />
                       <TextAreaField
                         id={`bento-row-card-${index}-body`}
-                        label="Body"
+                        label={t("common.shared.body")}
                         value={card.body}
                         onChange={(body) =>
                           setBento({
@@ -1128,7 +1192,7 @@ export function HomePageSectionFormDialog({
                       <div className="grid gap-3 sm:grid-cols-2">
                         <TextField
                           id={`bento-row-card-${index}-link-label`}
-                          label="Link label"
+                          label={t("admin.homePageSectionFormDialog.linkLabel")}
                           value={card.linkLabel ?? ""}
                           onChange={(linkLabel) =>
                             setBento({
@@ -1142,8 +1206,10 @@ export function HomePageSectionFormDialog({
                         />
                         <TextField
                           id={`bento-row-card-${index}-link-href`}
-                          label="Link URL"
-                          hint="Optional; most cards carry no link."
+                          label={t("common.shared.linkUrl")}
+                          hint={t(
+                            "admin.homePageSectionFormDialog.optionalMostCardsNoLink",
+                          )}
                           value={card.linkHref ?? ""}
                           onChange={(linkHref) =>
                             setBento({
@@ -1173,7 +1239,7 @@ export function HomePageSectionFormDialog({
                       })
                     }
                   >
-                    Add row card
+                    {t("admin.homePageSectionFormDialog.addRowCard")}
                   </Button>
                 </div>
               </div>
@@ -1183,7 +1249,7 @@ export function HomePageSectionFormDialog({
               <div className="flex flex-col gap-3">
                 <TextField
                   id="quote-eyebrow"
-                  label="Eyebrow"
+                  label={t("admin.homePageSectionFormDialog.eyebrow")}
                   value={quoteCalculator.eyebrow}
                   onChange={(eyebrow) =>
                     setQuoteCalculator({ ...quoteCalculator, eyebrow })
@@ -1191,7 +1257,7 @@ export function HomePageSectionFormDialog({
                 />
                 <TextField
                   id="quote-heading"
-                  label="Heading"
+                  label={t("admin.homePageSectionFormDialog.heading")}
                   value={quoteCalculator.heading}
                   onChange={(heading) =>
                     setQuoteCalculator({ ...quoteCalculator, heading })
@@ -1199,16 +1265,16 @@ export function HomePageSectionFormDialog({
                 />
                 <TextAreaField
                   id="quote-intro"
-                  label="Intro"
+                  label={t("admin.homePageSectionFormDialog.intro")}
                   value={quoteCalculator.intro}
                   onChange={(intro) =>
                     setQuoteCalculator({ ...quoteCalculator, intro })
                   }
                 />
                 <p className="text-xs text-muted-foreground">
-                  The calculator itself is the live pricing widget — it owns its
-                  own labels and quotes against the real pricing endpoint, so
-                  only the framing copy above is editable.
+                  {t(
+                    "admin.homePageSectionFormDialog.theCalculatorItselfIsTheLive",
+                  )}
                 </p>
               </div>
             ) : null}
@@ -1217,7 +1283,7 @@ export function HomePageSectionFormDialog({
               <div className="flex flex-col gap-3">
                 <TextField
                   id="tiles-eyebrow"
-                  label="Eyebrow"
+                  label={t("admin.homePageSectionFormDialog.eyebrow")}
                   value={categoryTiles.eyebrow}
                   onChange={(eyebrow) =>
                     setCategoryTiles({ ...categoryTiles, eyebrow })
@@ -1225,7 +1291,7 @@ export function HomePageSectionFormDialog({
                 />
                 <TextField
                   id="tiles-heading"
-                  label="Heading"
+                  label={t("admin.homePageSectionFormDialog.heading")}
                   value={categoryTiles.heading}
                   onChange={(heading) =>
                     setCategoryTiles({ ...categoryTiles, heading })
@@ -1233,9 +1299,11 @@ export function HomePageSectionFormDialog({
                 />
                 <TextAreaField
                   id="tiles-intro"
-                  label="Intro"
+                  label={t("admin.homePageSectionFormDialog.intro")}
                   rows={3}
-                  hint="The tiles themselves are generated from the cargo taxonomy and its pricing rules."
+                  hint={t(
+                    "admin.homePageSectionFormDialog.theTilesThemselvesAreGeneratedFrom",
+                  )}
                   value={categoryTiles.intro}
                   onChange={(intro) =>
                     setCategoryTiles({ ...categoryTiles, intro })
@@ -1248,7 +1316,7 @@ export function HomePageSectionFormDialog({
               <div className="flex flex-col gap-3">
                 <TextField
                   id="fleet-eyebrow"
-                  label="Eyebrow"
+                  label={t("admin.homePageSectionFormDialog.eyebrow")}
                   value={vehicleTypes.eyebrow}
                   onChange={(eyebrow) =>
                     setVehicleTypes({ ...vehicleTypes, eyebrow })
@@ -1256,7 +1324,7 @@ export function HomePageSectionFormDialog({
                 />
                 <TextField
                   id="fleet-heading"
-                  label="Heading"
+                  label={t("admin.homePageSectionFormDialog.heading")}
                   value={vehicleTypes.heading}
                   onChange={(heading) =>
                     setVehicleTypes({ ...vehicleTypes, heading })
@@ -1264,8 +1332,8 @@ export function HomePageSectionFormDialog({
                 />
                 <TextAreaField
                   id="fleet-intro"
-                  label="Intro"
-                  hint="Optional."
+                  label={t("admin.homePageSectionFormDialog.intro")}
+                  hint={t("admin.homePageSectionFormDialog.optional")}
                   value={vehicleTypes.intro ?? ""}
                   onChange={(intro) =>
                     setVehicleTypes({ ...vehicleTypes, intro })
@@ -1273,8 +1341,12 @@ export function HomePageSectionFormDialog({
                 />
                 <TextField
                   id="fleet-medium-duty-label"
-                  label="Medium-duty group heading"
-                  hint="Optional. The heading above the medium-duty vehicles. Renaming it is display only — it does not change the MEDIUM_DUTY category that drives matching and pricing."
+                  label={t(
+                    "admin.homePageSectionFormDialog.mediumDutyGroupHeading",
+                  )}
+                  hint={t(
+                    "admin.homePageSectionFormDialog.optionalMediumDutyHeading",
+                  )}
                   value={vehicleTypes.mediumDutyLabel ?? ""}
                   onChange={(mediumDutyLabel) =>
                     setVehicleTypes({ ...vehicleTypes, mediumDutyLabel })
@@ -1282,8 +1354,12 @@ export function HomePageSectionFormDialog({
                 />
                 <TextField
                   id="fleet-heavy-duty-label"
-                  label="Heavy-duty group heading"
-                  hint="Optional. The heading above the heavy-duty vehicles. Display only, as above."
+                  label={t(
+                    "admin.homePageSectionFormDialog.heavyDutyGroupHeading",
+                  )}
+                  hint={t(
+                    "admin.homePageSectionFormDialog.optionalTheHeadingAboveTheHeavy",
+                  )}
                   value={vehicleTypes.heavyDutyLabel ?? ""}
                   onChange={(heavyDutyLabel) =>
                     setVehicleTypes({ ...vehicleTypes, heavyDutyLabel })
@@ -1291,15 +1367,17 @@ export function HomePageSectionFormDialog({
                 />
 
                 <div className="flex flex-col gap-3 rounded-lg border border-border p-3">
-                  <span className="text-sm font-medium">Business panel</span>
+                  <span className="text-sm font-medium">
+                    {t("admin.homePageSectionFormDialog.businessPanel")}
+                  </span>
                   <p className="text-xs text-muted-foreground">
-                    The panel that closes the section. Optional as a whole:
-                    clear all four boxes to drop it. Fill any one of them and
-                    all four are required.
+                    {t(
+                      "admin.homePageSectionFormDialog.thePanelThatClosesTheSection",
+                    )}
                   </p>
                   <TextField
                     id="fleet-panel-title"
-                    label="Title"
+                    label={t("common.shared.title")}
                     value={vehicleTypes.businessPanel?.title ?? ""}
                     onChange={(title) =>
                       setVehicleTypes({
@@ -1310,7 +1388,7 @@ export function HomePageSectionFormDialog({
                   />
                   <TextAreaField
                     id="fleet-panel-body"
-                    label="Body"
+                    label={t("common.shared.body")}
                     value={vehicleTypes.businessPanel?.body ?? ""}
                     onChange={(body) =>
                       setVehicleTypes({
@@ -1322,7 +1400,7 @@ export function HomePageSectionFormDialog({
                   <div className="grid gap-3 sm:grid-cols-2">
                     <TextField
                       id="fleet-panel-cta-label"
-                      label="Button label"
+                      label={t("admin.homePageSectionFormDialog.buttonLabel")}
                       value={vehicleTypes.businessPanel?.ctaLabel ?? ""}
                       onChange={(ctaLabel) =>
                         setVehicleTypes({
@@ -1333,7 +1411,7 @@ export function HomePageSectionFormDialog({
                     />
                     <TextField
                       id="fleet-panel-cta-href"
-                      label="Button link"
+                      label={t("admin.homePageSectionFormDialog.buttonLink")}
                       value={vehicleTypes.businessPanel?.ctaHref ?? ""}
                       onChange={(ctaHref) =>
                         setVehicleTypes({
@@ -1346,8 +1424,9 @@ export function HomePageSectionFormDialog({
                 </div>
 
                 <p className="text-xs text-muted-foreground">
-                  The duty classes and their vehicles come from the live
-                  taxonomy, so only the framing copy is edited here.
+                  {t(
+                    "admin.homePageSectionFormDialog.theDutyClassesAndTheirVehicles",
+                  )}
                 </p>
               </div>
             ) : null}
@@ -1356,7 +1435,7 @@ export function HomePageSectionFormDialog({
               <div className="flex flex-col gap-3">
                 <TextField
                   id="steps-eyebrow"
-                  label="Eyebrow"
+                  label={t("admin.homePageSectionFormDialog.eyebrow")}
                   value={howItWorks.eyebrow}
                   onChange={(eyebrow) =>
                     setHowItWorks({ ...howItWorks, eyebrow })
@@ -1364,7 +1443,7 @@ export function HomePageSectionFormDialog({
                 />
                 <TextField
                   id="steps-heading"
-                  label="Heading"
+                  label={t("admin.homePageSectionFormDialog.heading")}
                   value={howItWorks.heading}
                   onChange={(heading) =>
                     setHowItWorks({ ...howItWorks, heading })
@@ -1372,22 +1451,28 @@ export function HomePageSectionFormDialog({
                 />
                 <TextAreaField
                   id="steps-aside"
-                  label="Aside"
+                  label={t("admin.homePageSectionFormDialog.aside")}
                   // Optional since the redesign dropped the aside column, and
                   // the field takes a string.
-                  hint="Optional. The redesign's layout has no column for it, but an existing paragraph is kept rather than discarded."
+                  hint={t(
+                    "admin.homePageSectionFormDialog.optionalTheRedesignSLayoutHas",
+                  )}
                   value={howItWorks.aside ?? ""}
                   onChange={(aside) => setHowItWorks({ ...howItWorks, aside })}
                 />
 
                 <div className="flex flex-col gap-2">
-                  <span className="text-sm font-medium">Steps</span>
+                  <span className="text-sm font-medium">
+                    {t("admin.homePageSectionFormDialog.steps")}
+                  </span>
                   {howItWorks.steps.map((step, index) => (
                     <RepeatableEntry
                       // Position: two steps may share a title, and the list is
                       // only ever edited through these controls.
                       key={index}
-                      title={`Step ${index + 1}`}
+                      title={t("admin.homePageSectionFormDialog.stepTitle", {
+                        number: index + 1,
+                      })}
                       onMoveUp={
                         index === 0
                           ? undefined
@@ -1415,7 +1500,7 @@ export function HomePageSectionFormDialog({
                     >
                       <TextField
                         id={`step-title-${index}`}
-                        label="Title"
+                        label={t("common.shared.title")}
                         value={step.title}
                         onChange={(title) =>
                           setHowItWorks({
@@ -1429,7 +1514,7 @@ export function HomePageSectionFormDialog({
                       />
                       <TextAreaField
                         id={`step-body-${index}`}
-                        label="Body"
+                        label={t("common.shared.body")}
                         value={step.body}
                         onChange={(body) =>
                           setHowItWorks({
@@ -1455,10 +1540,12 @@ export function HomePageSectionFormDialog({
                       })
                     }
                   >
-                    Add step
+                    {t("admin.homePageSectionFormDialog.addStep")}
                   </Button>
                   <p className="text-xs text-muted-foreground">
-                    Steps are numbered by their position on the page.
+                    {t(
+                      "admin.homePageSectionFormDialog.stepsAreNumberedByTheirPosition",
+                    )}
                   </p>
                 </div>
               </div>
@@ -1468,7 +1555,7 @@ export function HomePageSectionFormDialog({
               <div className="flex flex-col gap-3">
                 <TextField
                   id="driver-eyebrow"
-                  label="Eyebrow"
+                  label={t("admin.homePageSectionFormDialog.eyebrow")}
                   value={driverCta.eyebrow}
                   onChange={(eyebrow) =>
                     setDriverCta({ ...driverCta, eyebrow })
@@ -1476,9 +1563,11 @@ export function HomePageSectionFormDialog({
                 />
                 <TextAreaField
                   id="driver-headline"
-                  label="Headline"
+                  label={t("admin.homePageSectionFormDialog.headline")}
                   rows={2}
-                  hint="Each new line is rendered as a line break in the heading."
+                  hint={t(
+                    "admin.homePageSectionFormDialog.eachNewLineIsRenderedAs",
+                  )}
                   value={driverCta.headline}
                   onChange={(headline) =>
                     setDriverCta({ ...driverCta, headline })
@@ -1486,7 +1575,7 @@ export function HomePageSectionFormDialog({
                 />
                 <TextAreaField
                   id="driver-subtext"
-                  label="Subtext"
+                  label={t("admin.homePageSectionFormDialog.subtext")}
                   value={driverCta.subtext}
                   onChange={(subtext) =>
                     setDriverCta({ ...driverCta, subtext })
@@ -1494,7 +1583,7 @@ export function HomePageSectionFormDialog({
                 />
                 <TextField
                   id="driver-cta-label"
-                  label="Button label"
+                  label={t("admin.homePageSectionFormDialog.buttonLabel")}
                   value={driverCta.ctaLabel}
                   onChange={(ctaLabel) =>
                     setDriverCta({ ...driverCta, ctaLabel })
@@ -1503,7 +1592,9 @@ export function HomePageSectionFormDialog({
                 <div className="grid gap-3 sm:grid-cols-2">
                   <TextField
                     id="driver-secondary-cta-label"
-                    label="Secondary link label"
+                    label={t(
+                      "admin.homePageSectionFormDialog.secondaryLinkLabel",
+                    )}
                     value={driverCta.secondaryCtaLabel ?? ""}
                     onChange={(secondaryCtaLabel) =>
                       setDriverCta({ ...driverCta, secondaryCtaLabel })
@@ -1511,8 +1602,12 @@ export function HomePageSectionFormDialog({
                   />
                   <TextField
                     id="driver-secondary-cta-href"
-                    label="Secondary link URL"
-                    hint="Optional; the pair renders only when both halves are set."
+                    label={t(
+                      "admin.homePageSectionFormDialog.secondaryLinkUrl",
+                    )}
+                    hint={t(
+                      "admin.homePageSectionFormDialog.optionalPairBothHalves",
+                    )}
                     value={driverCta.secondaryCtaHref ?? ""}
                     onChange={(secondaryCtaHref) =>
                       setDriverCta({ ...driverCta, secondaryCtaHref })
@@ -1521,7 +1616,9 @@ export function HomePageSectionFormDialog({
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="driver-image-url">Driver photograph</Label>
+                  <Label htmlFor="driver-image-url">
+                    {t("admin.homePageSectionFormDialog.driverPhotograph")}
+                  </Label>
                   <AdminImageUpload
                     id="driver-image-url"
                     purpose={DRIVER_IMAGE_PURPOSE}
@@ -1535,17 +1632,22 @@ export function HomePageSectionFormDialog({
                     disabled={pending}
                   />
                   <p className="text-xs text-muted-foreground">
-                    Fills the panel’s right column. Optional — the panel is
-                    designed to render without one.
+                    {t(
+                      "admin.homePageSectionFormDialog.fillsThePanelSRightColumn",
+                    )}
                   </p>
                 </div>
 
                 <div className="flex flex-col gap-2">
-                  <span className="text-sm font-medium">Points</span>
+                  <span className="text-sm font-medium">
+                    {t("admin.homePageSectionFormDialog.points")}
+                  </span>
                   {driverCta.points.map((point, index) => (
                     <RepeatableEntry
                       key={index}
-                      title={`Point ${index + 1}`}
+                      title={t("admin.homePageSectionFormDialog.pointTitle", {
+                        number: index + 1,
+                      })}
                       onMoveUp={
                         index === 0
                           ? undefined
@@ -1573,7 +1675,7 @@ export function HomePageSectionFormDialog({
                     >
                       <TextAreaField
                         id={`driver-point-${index}`}
-                        label="Text"
+                        label={t("admin.homePageSectionFormDialog.text")}
                         rows={2}
                         value={point}
                         onChange={(next) =>
@@ -1597,11 +1699,12 @@ export function HomePageSectionFormDialog({
                       })
                     }
                   >
-                    Add point
+                    {t("admin.homePageSectionFormDialog.addPoint")}
                   </Button>
                   <p className="text-xs text-muted-foreground">
-                    Where the button sends a driver depends on deployment
-                    configuration, so it is not editable here.
+                    {t(
+                      "admin.homePageSectionFormDialog.whereTheButtonSendsADriver",
+                    )}
                   </p>
                 </div>
               </div>
@@ -1611,19 +1714,19 @@ export function HomePageSectionFormDialog({
               <div className="flex flex-col gap-3">
                 <TextField
                   id="coverage-eyebrow"
-                  label="Eyebrow"
+                  label={t("admin.homePageSectionFormDialog.eyebrow")}
                   value={coverage.eyebrow}
                   onChange={(eyebrow) => setCoverage({ ...coverage, eyebrow })}
                 />
                 <TextField
                   id="coverage-heading"
-                  label="Heading"
+                  label={t("admin.homePageSectionFormDialog.heading")}
                   value={coverage.heading}
                   onChange={(heading) => setCoverage({ ...coverage, heading })}
                 />
                 <TextAreaField
                   id="coverage-body"
-                  label="Body"
+                  label={t("common.shared.body")}
                   rows={4}
                   value={coverage.body}
                   onChange={(body) => setCoverage({ ...coverage, body })}
@@ -1631,7 +1734,7 @@ export function HomePageSectionFormDialog({
                 <div className="grid gap-3 sm:grid-cols-2">
                   <TextField
                     id="coverage-cta-label"
-                    label="Button label"
+                    label={t("admin.homePageSectionFormDialog.buttonLabel")}
                     value={coverage.ctaLabel}
                     onChange={(ctaLabel) =>
                       setCoverage({ ...coverage, ctaLabel })
@@ -1639,7 +1742,7 @@ export function HomePageSectionFormDialog({
                   />
                   <TextField
                     id="coverage-cta-href"
-                    label="Button link"
+                    label={t("admin.homePageSectionFormDialog.buttonLink")}
                     value={coverage.ctaHref}
                     onChange={(ctaHref) =>
                       setCoverage({ ...coverage, ctaHref })
@@ -1648,11 +1751,15 @@ export function HomePageSectionFormDialog({
                 </div>
 
                 <div className="flex flex-col gap-2">
-                  <span className="text-sm font-medium">Cities</span>
+                  <span className="text-sm font-medium">
+                    {t("admin.homePageSectionFormDialog.cities")}
+                  </span>
                   {coverage.cities.map((city, index) => (
                     <RepeatableEntry
                       key={index}
-                      title={`City ${index + 1}`}
+                      title={t("admin.homePageSectionFormDialog.cityTitle", {
+                        number: index + 1,
+                      })}
                       onMoveUp={
                         index === 0
                           ? undefined
@@ -1681,7 +1788,7 @@ export function HomePageSectionFormDialog({
                       <div className="grid gap-3 sm:grid-cols-2">
                         <TextField
                           id={`coverage-city-${index}-name`}
-                          label="Name"
+                          label={t("common.shared.name")}
                           value={city.name}
                           onChange={(name) =>
                             setCoverage({
@@ -1695,7 +1802,7 @@ export function HomePageSectionFormDialog({
                         />
                         <TextField
                           id={`coverage-city-${index}-tier`}
-                          label="Tier"
+                          label={t("admin.homePageSectionFormDialog.tier")}
                           value={city.tier}
                           onChange={(tier) =>
                             setCoverage({
@@ -1722,13 +1829,12 @@ export function HomePageSectionFormDialog({
                       })
                     }
                   >
-                    Add city
+                    {t("admin.homePageSectionFormDialog.addCity")}
                   </Button>
                   <p className="text-xs text-muted-foreground">
-                    Both fields are free text and purely editorial. The name is
-                    not tied to the city list the booking flow uses, and there
-                    is no service-tier data anywhere in the system — a tier is
-                    whatever a human who knows the real answer types here.
+                    {t(
+                      "admin.homePageSectionFormDialog.bothFieldsAreFreeTextAnd",
+                    )}
                   </p>
                 </div>
               </div>
@@ -1738,26 +1844,28 @@ export function HomePageSectionFormDialog({
               <div className="flex flex-col gap-3">
                 <TextField
                   id="faq-eyebrow"
-                  label="Eyebrow"
+                  label={t("admin.homePageSectionFormDialog.eyebrow")}
                   value={faq.eyebrow}
                   onChange={(eyebrow) => setFaq({ ...faq, eyebrow })}
                 />
                 <TextField
                   id="faq-heading"
-                  label="Heading"
+                  label={t("admin.homePageSectionFormDialog.heading")}
                   value={faq.heading}
                   onChange={(heading) => setFaq({ ...faq, heading })}
                 />
                 <TextAreaField
                   id="faq-intro"
-                  label="Intro"
+                  label={t("admin.homePageSectionFormDialog.intro")}
                   value={faq.intro}
                   onChange={(intro) => setFaq({ ...faq, intro })}
                 />
                 <div className="grid gap-3 sm:grid-cols-2">
                   <TextField
                     id="faq-support-link-label"
-                    label="Support link label"
+                    label={t(
+                      "admin.homePageSectionFormDialog.supportLinkLabel",
+                    )}
                     value={faq.supportLinkLabel ?? ""}
                     onChange={(supportLinkLabel) =>
                       setFaq({ ...faq, supportLinkLabel })
@@ -1765,8 +1873,10 @@ export function HomePageSectionFormDialog({
                   />
                   <TextField
                     id="faq-support-link-href"
-                    label="Support link URL"
-                    hint="Optional; the link renders only when both halves are set, so a half-finished edit produces no link rather than a link to nowhere."
+                    label={t("admin.homePageSectionFormDialog.supportLinkUrl")}
+                    hint={t(
+                      "admin.homePageSectionFormDialog.optionalLinkBothHalves",
+                    )}
                     value={faq.supportLinkHref ?? ""}
                     onChange={(supportLinkHref) =>
                       setFaq({ ...faq, supportLinkHref })
@@ -1775,11 +1885,16 @@ export function HomePageSectionFormDialog({
                 </div>
 
                 <div className="flex flex-col gap-2">
-                  <span className="text-sm font-medium">Questions</span>
+                  <span className="text-sm font-medium">
+                    {t("common.shared.questions")}
+                  </span>
                   {faq.items.map((item, index) => (
                     <RepeatableEntry
                       key={index}
-                      title={`Question ${index + 1}`}
+                      title={t(
+                        "admin.homePageSectionFormDialog.questionTitle",
+                        { number: index + 1 },
+                      )}
                       onMoveUp={
                         index === 0
                           ? undefined
@@ -1804,7 +1919,7 @@ export function HomePageSectionFormDialog({
                     >
                       <TextField
                         id={`faq-question-${index}`}
-                        label="Question"
+                        label={t("admin.homePageSectionFormDialog.question")}
                         value={item.question}
                         onChange={(question) =>
                           setFaq({
@@ -1818,7 +1933,7 @@ export function HomePageSectionFormDialog({
                       />
                       <TextAreaField
                         id={`faq-answer-${index}`}
-                        label="Answer"
+                        label={t("admin.homePageSectionFormDialog.answer")}
                         rows={4}
                         value={item.answer}
                         onChange={(answer) =>
@@ -1845,7 +1960,7 @@ export function HomePageSectionFormDialog({
                       })
                     }
                   >
-                    Add question
+                    {t("admin.homePageSectionFormDialog.addQuestion")}
                   </Button>
                 </div>
               </div>
@@ -1855,7 +1970,7 @@ export function HomePageSectionFormDialog({
               <div className="flex flex-col gap-3">
                 <TextField
                   id="closing-heading"
-                  label="Heading"
+                  label={t("admin.homePageSectionFormDialog.heading")}
                   value={closingCta.heading}
                   onChange={(heading) =>
                     setClosingCta({ ...closingCta, heading })
@@ -1863,14 +1978,16 @@ export function HomePageSectionFormDialog({
                 />
                 <TextAreaField
                   id="closing-body"
-                  label="Body"
+                  label={t("common.shared.body")}
                   value={closingCta.body}
                   onChange={(body) => setClosingCta({ ...closingCta, body })}
                 />
                 <div className="grid gap-3 sm:grid-cols-2">
                   <TextField
                     id="closing-primary-cta-label"
-                    label="Primary button label"
+                    label={t(
+                      "admin.homePageSectionFormDialog.primaryButtonLabel",
+                    )}
                     value={closingCta.primaryCtaLabel}
                     onChange={(primaryCtaLabel) =>
                       setClosingCta({ ...closingCta, primaryCtaLabel })
@@ -1878,7 +1995,9 @@ export function HomePageSectionFormDialog({
                   />
                   <TextField
                     id="closing-primary-cta-href"
-                    label="Primary button link"
+                    label={t(
+                      "admin.homePageSectionFormDialog.primaryButtonLink",
+                    )}
                     value={closingCta.primaryCtaHref}
                     onChange={(primaryCtaHref) =>
                       setClosingCta({ ...closingCta, primaryCtaHref })
@@ -1886,7 +2005,9 @@ export function HomePageSectionFormDialog({
                   />
                   <TextField
                     id="closing-secondary-cta-label"
-                    label="Secondary button label"
+                    label={t(
+                      "admin.homePageSectionFormDialog.secondaryButtonLabel",
+                    )}
                     value={closingCta.secondaryCtaLabel}
                     onChange={(secondaryCtaLabel) =>
                       setClosingCta({ ...closingCta, secondaryCtaLabel })
@@ -1894,7 +2015,9 @@ export function HomePageSectionFormDialog({
                   />
                   <TextField
                     id="closing-secondary-cta-href"
-                    label="Secondary button link"
+                    label={t(
+                      "admin.homePageSectionFormDialog.secondaryButtonLink",
+                    )}
                     value={closingCta.secondaryCtaHref}
                     onChange={(secondaryCtaHref) =>
                       setClosingCta({ ...closingCta, secondaryCtaHref })
@@ -1908,17 +2031,21 @@ export function HomePageSectionFormDialog({
               <div className="flex flex-col gap-3">
                 <TextField
                   id="nav-wordmark"
-                  label="Wordmark"
+                  label={t("admin.homePageSectionFormDialog.wordmark")}
                   value={nav.wordmark}
                   onChange={(wordmark) => setNav({ ...nav, wordmark })}
                 />
 
                 <div className="flex flex-col gap-2">
-                  <span className="text-sm font-medium">Links</span>
+                  <span className="text-sm font-medium">
+                    {t("admin.homePageSectionFormDialog.links")}
+                  </span>
                   {nav.links.map((link, index) => (
                     <RepeatableEntry
                       key={index}
-                      title={`Link ${index + 1}`}
+                      title={t("admin.homePageSectionFormDialog.linkTitle", {
+                        number: index + 1,
+                      })}
                       onMoveUp={
                         index === 0
                           ? undefined
@@ -1944,7 +2071,7 @@ export function HomePageSectionFormDialog({
                       <div className="grid gap-3 sm:grid-cols-2">
                         <TextField
                           id={`nav-link-${index}-label`}
-                          label="Label"
+                          label={t("admin.homePageSectionFormDialog.label")}
                           value={link.label}
                           onChange={(label) =>
                             setNav({
@@ -1958,7 +2085,7 @@ export function HomePageSectionFormDialog({
                         />
                         <TextField
                           id={`nav-link-${index}-href`}
-                          label="URL"
+                          label={t("admin.homePageSectionFormDialog.url")}
                           value={link.href}
                           onChange={(href) =>
                             setNav({
@@ -1985,43 +2112,41 @@ export function HomePageSectionFormDialog({
                       })
                     }
                   >
-                    Add link
+                    {t("admin.homePageSectionFormDialog.addLink")}
                   </Button>
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-2">
                   <TextField
                     id="nav-sign-in-label"
-                    label="Sign-in label"
+                    label={t("admin.homePageSectionFormDialog.signInLabel")}
                     value={nav.signInLabel}
                     onChange={(signInLabel) => setNav({ ...nav, signInLabel })}
                   />
                   <TextField
                     id="nav-sign-in-href"
-                    label="Sign-in link"
+                    label={t("admin.homePageSectionFormDialog.signInLink")}
                     value={nav.signInHref}
                     onChange={(signInHref) => setNav({ ...nav, signInHref })}
                   />
                   <TextField
                     id="nav-sign-up-label"
-                    label="Sign-up label"
+                    label={t("admin.homePageSectionFormDialog.signUpLabel")}
                     value={nav.signUpLabel}
                     onChange={(signUpLabel) => setNav({ ...nav, signUpLabel })}
                   />
                   <TextField
                     id="nav-sign-up-href"
-                    label="Sign-up link"
+                    label={t("admin.homePageSectionFormDialog.signUpLink")}
                     value={nav.signUpHref}
                     onChange={(signUpHref) => setNav({ ...nav, signUpHref })}
                   />
                 </div>
 
                 <p className="text-xs text-muted-foreground">
-                  The navigation bar is page chrome: it renders at the top of
-                  the page whatever its sort order, so moving it in the section
-                  list changes nothing. Sign-in and sign-up are separate fields
-                  rather than two more links because they render as the pill’s
-                  trailing pair.
+                  {t(
+                    "admin.homePageSectionFormDialog.theNavigationBarIsPageChrome",
+                  )}
                 </p>
               </div>
             ) : null}
@@ -2030,13 +2155,13 @@ export function HomePageSectionFormDialog({
               <div className="flex flex-col gap-3">
                 <TextField
                   id="footer-brand-name"
-                  label="Brand name"
+                  label={t("admin.homePageSectionFormDialog.brandName")}
                   value={footer.brandName}
                   onChange={(brandName) => setFooter({ ...footer, brandName })}
                 />
                 <TextAreaField
                   id="footer-brand-blurb"
-                  label="Brand blurb"
+                  label={t("admin.homePageSectionFormDialog.brandBlurb")}
                   value={footer.brandBlurb}
                   onChange={(brandBlurb) =>
                     setFooter({ ...footer, brandBlurb })
@@ -2044,18 +2169,23 @@ export function HomePageSectionFormDialog({
                 />
                 <TextField
                   id="footer-copyright"
-                  label="Copyright line"
-                  hint="Write {year} where the current year should go — the page substitutes it as it renders, so the line never needs bumping in January. It is not a typo."
+                  label={t("admin.homePageSectionFormDialog.copyrightLine")}
+                  hint={t("admin.homePageSectionFormDialog.copyrightYearHint")}
                   value={footer.copyright}
                   onChange={(copyright) => setFooter({ ...footer, copyright })}
                 />
 
                 <div className="flex flex-col gap-2">
-                  <span className="text-sm font-medium">Columns</span>
+                  <span className="text-sm font-medium">
+                    {t("admin.homePageSectionFormDialog.columns")}
+                  </span>
                   {footer.columns.map((column, columnIndex) => (
                     <RepeatableEntry
                       key={columnIndex}
-                      title={`Column ${columnIndex + 1}`}
+                      title={t(
+                        "admin.homePageSectionFormDialog.columnTitleNumber",
+                        { number: columnIndex + 1 },
+                      )}
                       onMoveUp={
                         columnIndex === 0
                           ? undefined
@@ -2087,7 +2217,7 @@ export function HomePageSectionFormDialog({
                     >
                       <TextField
                         id={`footer-col-${columnIndex}-title`}
-                        label="Column title"
+                        label={t("admin.homePageSectionFormDialog.columnTitle")}
                         value={column.title}
                         onChange={(title) =>
                           setFooter({
@@ -2104,13 +2234,16 @@ export function HomePageSectionFormDialog({
                           links, keyed by both indices so no two fields in the
                           dialog can share an id. */}
                       <div className="flex flex-col gap-2 pl-3">
-                        <span className="text-xs font-medium">Links</span>
+                        <span className="text-xs font-medium">
+                          {t("admin.homePageSectionFormDialog.links")}
+                        </span>
                         {column.links.map((link, linkIndex) => (
                           <RepeatableEntry
                             key={linkIndex}
-                            title={`Column ${columnIndex + 1} link ${
-                              linkIndex + 1
-                            }`}
+                            title={t(
+                              "admin.homePageSectionFormDialog.columnLinkTitle",
+                              { column: columnIndex + 1, link: linkIndex + 1 },
+                            )}
                             onMoveUp={
                               linkIndex === 0
                                 ? undefined
@@ -2168,7 +2301,9 @@ export function HomePageSectionFormDialog({
                             <div className="grid gap-3 sm:grid-cols-2">
                               <TextField
                                 id={`footer-col-${columnIndex}-link-${linkIndex}-label`}
-                                label="Label"
+                                label={t(
+                                  "admin.homePageSectionFormDialog.label",
+                                )}
                                 value={link.label}
                                 onChange={(label) =>
                                   setFooter({
@@ -2190,7 +2325,7 @@ export function HomePageSectionFormDialog({
                               />
                               <TextField
                                 id={`footer-col-${columnIndex}-link-${linkIndex}-href`}
-                                label="URL"
+                                label={t("admin.homePageSectionFormDialog.url")}
                                 value={link.href}
                                 onChange={(href) =>
                                   setFooter({
@@ -2231,7 +2366,7 @@ export function HomePageSectionFormDialog({
                             })
                           }
                         >
-                          Add link
+                          {t("admin.homePageSectionFormDialog.addLink")}
                         </Button>
                       </div>
                     </RepeatableEntry>
@@ -2248,20 +2383,26 @@ export function HomePageSectionFormDialog({
                       })
                     }
                   >
-                    Add column
+                    {t("admin.homePageSectionFormDialog.addColumn")}
                   </Button>
                   <p className="text-xs text-muted-foreground">
-                    Columns read left to right in this order. The design is
-                    four.
+                    {t(
+                      "admin.homePageSectionFormDialog.columnsReadLeftToRightIn",
+                    )}
                   </p>
                 </div>
 
                 <div className="flex flex-col gap-2">
-                  <span className="text-sm font-medium">Legal links</span>
+                  <span className="text-sm font-medium">
+                    {t("admin.homePageSectionFormDialog.legalLinks")}
+                  </span>
                   {footer.legalLinks.map((link, index) => (
                     <RepeatableEntry
                       key={index}
-                      title={`Legal link ${index + 1}`}
+                      title={t(
+                        "admin.homePageSectionFormDialog.legalLinkTitle",
+                        { number: index + 1 },
+                      )}
                       onMoveUp={
                         index === 0
                           ? undefined
@@ -2294,7 +2435,7 @@ export function HomePageSectionFormDialog({
                       <div className="grid gap-3 sm:grid-cols-2">
                         <TextField
                           id={`footer-legal-${index}-label`}
-                          label="Label"
+                          label={t("admin.homePageSectionFormDialog.label")}
                           value={link.label}
                           onChange={(label) =>
                             setFooter({
@@ -2308,7 +2449,7 @@ export function HomePageSectionFormDialog({
                         />
                         <TextField
                           id={`footer-legal-${index}-href`}
-                          label="URL"
+                          label={t("admin.homePageSectionFormDialog.url")}
                           value={link.href}
                           onChange={(href) =>
                             setFooter({
@@ -2338,21 +2479,21 @@ export function HomePageSectionFormDialog({
                       })
                     }
                   >
-                    Add legal link
+                    {t("admin.homePageSectionFormDialog.addLegalLink")}
                   </Button>
                 </div>
 
                 <p className="text-xs text-muted-foreground">
-                  The footer is page chrome: it renders at the bottom of the
-                  page whatever its sort order, so moving it in the section list
-                  changes nothing.
+                  {t("admin.homePageSectionFormDialog.theFooterIsPageChromeIt")}
                 </p>
               </div>
             ) : null}
 
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="section-sort-order">Sort order</Label>
+                <Label htmlFor="section-sort-order">
+                  {t("common.shared.sortOrder")}
+                </Label>
                 <Input
                   id="section-sort-order"
                   type="number"
@@ -2370,7 +2511,7 @@ export function HomePageSectionFormDialog({
                     checked={isActive}
                     onCheckedChange={(checked) => setIsActive(checked === true)}
                   />
-                  Active
+                  {t("common.shared.active")}
                 </Label>
               </div>
             </div>
@@ -2389,14 +2530,14 @@ export function HomePageSectionFormDialog({
               onClick={onClose}
               disabled={pending}
             >
-              Cancel
+              {t("common.shared.cancel")}
             </Button>
             <Button type="submit" disabled={pending}>
               {pending
-                ? "Saving…"
+                ? t("common.shared.saving")
                 : isEditing
-                  ? "Save section"
-                  : "Create section"}
+                  ? t("admin.homePageSectionFormDialog.saveSection")
+                  : t("admin.homePageSectionFormDialog.createSection")}
             </Button>
           </DialogFooter>
         </form>

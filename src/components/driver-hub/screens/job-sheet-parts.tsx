@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Navigation, Phone } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 
 import {
   HubCard,
@@ -13,6 +14,8 @@ import {
   StopPhoneLink,
   buildHubPayoutLines,
   buildHubTimeline,
+  useHubPayoutLabels,
+  useHubTimelineLabels,
   toTelHref,
   type HubTimelineStepState,
 } from "@/components/driver-hub/hub-job-parts";
@@ -31,7 +34,6 @@ import {
   formatDistanceKm,
 } from "@/components/driver-hub/screens/loads-format";
 import {
-  NAVIGATION_UNAVAILABLE_NOTE,
   detectMapsPlatform,
   mapsHandoffHref,
   toNavigationDestination,
@@ -260,28 +262,47 @@ export type JobSheetViewer = "DRIVER" | "COMPANY";
  *   `HubJobSheet.fleet` only when the reader is the company; see
  *   `JobSheetViewer`.
  */
+/**
+ * The pill's label as a message key rather than English, so this stays a plain
+ * function a caller can use outside render; `useJobSheetStatusLabel` resolves
+ * it. Three live in this file's namespace, two are the shared status words.
+ */
+export type JobSheetStatusLabelKey =
+  "inTransit" | "delivered" | "cancelled" | "awaitingDispatch" | "scheduled";
+
+/** Resolves a `JobSheetStatusLabelKey` against the active locale. */
+export function useJobSheetStatusLabel(): (
+  key: JobSheetStatusLabelKey,
+) => string {
+  const t = useTranslations("driverHub.jobSheetParts");
+  const tShared = useTranslations("common.shared");
+
+  return (key) =>
+    key === "cancelled" || key === "scheduled" ? tShared(key) : t(key);
+}
+
 export function jobSheetStatusPill(
   status: HubJobSheet["status"],
   fleet: HubJobSheet["fleet"] = null,
 ): {
   tone: string;
-  label: string;
+  labelKey: JobSheetStatusLabelKey;
 } {
   switch (status) {
     case "IN_TRANSIT":
-      return { tone: "In transit", label: "In transit" };
+      return { tone: "In transit", labelKey: "inTransit" };
     case "COMPLETED":
-      return { tone: "Completed", label: "Delivered" };
+      return { tone: "Completed", labelKey: "delivered" };
     case "CANCELLED":
-      return { tone: "Cancelled", label: "Cancelled" };
+      return { tone: "Cancelled", labelKey: "cancelled" };
     default:
       // `fleet !== null` is what says "a company is reading this"; a driver
       // passes nothing and lands on "Scheduled" exactly as before.
       if (fleet !== null && fleet.driverName === null && status === "CLAIMED") {
-        return { tone: "Scheduled", label: "Awaiting dispatch" };
+        return { tone: "Scheduled", labelKey: "awaitingDispatch" };
       }
 
-      return { tone: "Scheduled", label: "Scheduled" };
+      return { tone: "Scheduled", labelKey: "scheduled" };
   }
 }
 
@@ -355,6 +376,7 @@ type StopNavigateActionProps = {
 function StopNavigateAction({ destination, address }: StopNavigateActionProps) {
   const platform = useMapsPlatform();
   const href = mapsHandoffHref(destination, platform);
+  const t = useTranslations("driverHub.jobSheetParts");
 
   if (href === null) {
     return (
@@ -365,10 +387,10 @@ function StopNavigateAction({ destination, address }: StopNavigateActionProps) {
         )}
       >
         <Navigation aria-hidden="true" className="size-4" />
-        Navigate
+        {t("navigate")}
         <span className="sr-only">
           {" "}
-          — unavailable. {NAVIGATION_UNAVAILABLE_NOTE}
+          {t("navigateUnavailable")} {t("navigationUnavailableNote")}
         </span>
       </span>
     );
@@ -382,11 +404,11 @@ function StopNavigateAction({ destination, address }: StopNavigateActionProps) {
           the path, and a map provider has no business with it. */}
       <a href={href} target="_blank" rel="noreferrer">
         <Navigation aria-hidden="true" className="size-4" />
-        Navigate
+        {t("navigate")}
         {/* The address is the label the design asks for, placed where it is
             useful rather than in a query parameter that would cost a
             coordinate's precision. See `toNavigationDestination`. */}
-        <span className="sr-only"> to {address}</span>
+        <span className="sr-only"> {t("navigateTo", { address })}</span>
       </a>
     </Button>
   );
@@ -417,11 +439,14 @@ function StopNavigateAction({ destination, address }: StopNavigateActionProps) {
  * `payout: "none"` reads nothing from here. A cancelled job prints no label
  * because it prints no figure, for either reader — see `JobSheetHeaderCardProps`.
  */
-type PayoutLabelPair = { quoted: string; final: string };
+type PayoutLabelKey =
+  "youArePaid" | "youWerePaid" | "thisJobPays" | "thisJobPaid";
+
+type PayoutLabelPair = { quoted: PayoutLabelKey; final: PayoutLabelKey };
 
 const PAYOUT_LABELS: Record<JobSheetViewer, PayoutLabelPair> = {
-  DRIVER: { quoted: "You are paid", final: "You were paid" },
-  COMPANY: { quoted: "This job pays", final: "This job paid" },
+  DRIVER: { quoted: "youArePaid", final: "youWerePaid" },
+  COMPANY: { quoted: "thisJobPays", final: "thisJobPaid" },
 };
 
 export type JobSheetHeaderCardProps = {
@@ -536,6 +561,9 @@ export function JobSheetHeaderCard({
   // to that braces, so a loader change cannot quietly start telling a driver
   // their own name.
   const fleet = viewer === "COMPANY" ? job.fleet : null;
+  const t = useTranslations("driverHub.jobSheetParts");
+  const tShared = useTranslations("common.shared");
+  const statusLabel = useJobSheetStatusLabel();
 
   /**
    * Whether this card offers the way back into the dispatch dialog.
@@ -567,7 +595,7 @@ export function JobSheetHeaderCard({
     job.status === "CLAIMED";
 
   const pill = jobSheetStatusPill(job.status, fleet);
-  const lines = buildHubPayoutLines(job);
+  const lines = buildHubPayoutLines(job, useHubPayoutLabels());
   const isFinal = payout === "final";
 
   // Summed only in the completed branch, where both halves are final. The
@@ -589,7 +617,7 @@ export function JobSheetHeaderCard({
         </span>
         <HubStatusBadge
           status={pill.tone}
-          label={pill.label}
+          label={statusLabel(pill.labelKey)}
           className="flex-none"
         />
       </div>
@@ -600,7 +628,7 @@ export function JobSheetHeaderCard({
           answers in one card instead of a section boundary. */}
       {fleet === null ? null : (
         <div className="flex flex-col gap-1">
-          <p className={LABEL_CLASSES}>Driver</p>
+          <p className={LABEL_CLASSES}>{tShared("driver")}</p>
           <p className="text-sm leading-[1.45]">
             {fleet.driverName === null ? (
               // Named, not em-dashed. An em dash here means "no value stored",
@@ -611,7 +639,7 @@ export function JobSheetHeaderCard({
               // yet" would promise a dispatch that is not coming. The pill says
               // "Awaiting dispatch" alongside it while the job is still live.
               <span className="text-muted-foreground">
-                Not dispatched to a driver
+                {t("notDispatchedToADriver")}
               </span>
             ) : (
               fleet.driverName
@@ -654,7 +682,7 @@ export function JobSheetHeaderCard({
               onClick={onDispatch}
               className="mt-1.5 h-auto self-start rounded-md px-[13px] py-[7px] text-[13px] font-medium"
             >
-              Assign a driver and vehicle
+              {tShared("assignADriverAndVehicle")}
             </Button>
           ) : null}
         </div>
@@ -664,8 +692,8 @@ export function JobSheetHeaderCard({
         <div className="flex flex-col gap-1">
           <p className={LABEL_CLASSES}>
             {isFinal
-              ? PAYOUT_LABELS[viewer].final
-              : PAYOUT_LABELS[viewer].quoted}
+              ? t(PAYOUT_LABELS[viewer].final)
+              : t(PAYOUT_LABELS[viewer].quoted)}
           </p>
           <p
             className={cn(
@@ -730,18 +758,32 @@ export function JobSheetTimingCard({
   job: HubJobSheet;
   className?: string;
 }) {
+  const t = useTranslations("driverHub.jobSheetParts");
+  const tShared = useTranslations("common.shared");
+  const locale = useLocale();
+
   const rows = [
-    { label: "Pick-up", value: formatAbsoluteDateTime(job.scheduledAt) },
     {
-      label: "Window",
-      value: formatAbsoluteWindow(job.pickupWindowStart, job.pickupWindowEnd),
+      label: tShared("pickUp"),
+      value: formatAbsoluteDateTime(job.scheduledAt, locale),
     },
-    { label: "Deadline", value: formatAbsoluteDateTime(job.deliveryDeadline) },
+    {
+      label: tShared("window"),
+      value: formatAbsoluteWindow(
+        job.pickupWindowStart,
+        job.pickupWindowEnd,
+        locale,
+      ),
+    },
+    {
+      label: t("deadline"),
+      value: formatAbsoluteDateTime(job.deliveryDeadline, locale),
+    },
   ];
 
   return (
     <HubCard className={className} contentClassName="flex flex-col gap-3">
-      <h2 className={LABEL_CLASSES}>Timing</h2>
+      <h2 className={LABEL_CLASSES}>{t("timing")}</h2>
       <dl className={SPEC_GRID_CLASSES}>
         {rows.map((row) => (
           <React.Fragment key={row.label}>
@@ -837,6 +879,8 @@ export function JobSheetStopCard({
   // resolving it twice is how those two could ever disagree.
   const destination = toNavigationDestination(lat, lng, address, city);
   const callHref = contactPhone === null ? null : toTelHref(contactPhone);
+  const t = useTranslations("driverHub.jobSheetParts");
+  const tShared = useTranslations("common.shared");
 
   return (
     <HubCard
@@ -868,13 +912,13 @@ export function JobSheetStopCard({
       </div>
 
       <dl className={cn(SPEC_GRID_CLASSES, "pt-0.5")}>
-        <dt className="text-muted-foreground">Contact</dt>
+        <dt className="text-muted-foreground">{tShared("contact")}</dt>
         <dd className="min-w-0 break-words">
           {contactName ?? (
             <span className="text-muted-foreground">{EM_DASH}</span>
           )}
         </dd>
-        <dt className="text-muted-foreground">Phone</dt>
+        <dt className="text-muted-foreground">{tShared("phone")}</dt>
         <dd className="min-w-0 break-words">
           {contactPhone === null ? (
             <span className="text-muted-foreground">{EM_DASH}</span>
@@ -887,7 +931,7 @@ export function JobSheetStopCard({
             already shows two. Omitted rather than emptied. */}
         {contactDetails === null ? null : (
           <>
-            <dt className="text-muted-foreground">Details</dt>
+            <dt className="text-muted-foreground">{t("details")}</dt>
             <dd className="min-w-0 break-words">{contactDetails}</dd>
           </>
         )}
@@ -915,10 +959,13 @@ export function JobSheetStopCard({
           >
             <a href={callHref}>
               <Phone aria-hidden="true" className="size-4" />
-              Call
+              {t("call")}
               <span className="sr-only">
                 {" "}
-                {contactName ?? label} on {contactPhone}
+                {t("callOn", {
+                  name: contactName ?? label,
+                  phone: contactPhone ?? "",
+                })}
               </span>
             </a>
           </Button>
@@ -935,8 +982,8 @@ export function JobSheetStopCard({
       {destination.kind === "coords" ? null : (
         <p className="text-xs leading-[1.5] text-muted-foreground">
           {destination.kind === "unavailable"
-            ? NAVIGATION_UNAVAILABLE_NOTE
-            : "No map coordinates were recorded for this stop, so Navigate opens a map search on the address text."}
+            ? t("navigationUnavailableNote")
+            : t("noCoordinates")}
         </p>
       )}
     </HubCard>
@@ -971,6 +1018,8 @@ export function JobSheetPickedUpStrip({
   job: HubJobSheet;
   className?: string;
 }) {
+  const tShared = useTranslations("common.shared");
+
   return (
     <HubCard
       className={cn("py-4", className)}
@@ -1000,7 +1049,7 @@ export function JobSheetPickedUpStrip({
         </svg>
       </span>
       <div className="flex min-w-0 flex-col gap-0.5">
-        <h2 className={LABEL_CLASSES}>Picked up</h2>
+        <h2 className={LABEL_CLASSES}>{tShared("pickedUp")}</h2>
         <p className="truncate text-[13px] text-muted-foreground">
           {job.pickupAddress}
           {/* `inTransitAt` is non-null by construction in the IN_TRANSIT
@@ -1059,9 +1108,11 @@ export function JobSheetCargoCard({
   job: HubJobSheet;
   className?: string;
 }) {
+  const tShared = useTranslations("common.shared");
+
   return (
     <HubCard className={className} contentClassName="flex flex-col gap-3">
-      <h2 className={LABEL_CLASSES}>Cargo</h2>
+      <h2 className={LABEL_CLASSES}>{tShared("cargo")}</h2>
       {/* `CargoSpecList` sets its own `mt-2`; the card's gap is what separates
           it from the heading, so the two do not both add space. */}
       <div className="-mt-2">
@@ -1160,12 +1211,18 @@ export function JobSheetTimelineCard({
   running,
   className,
 }: JobSheetTimelineCardProps) {
-  const steps = buildHubTimeline({
-    createdAt: job.createdAt,
-    inTransitAt: job.inTransitAt,
-    completedAt: job.completedAt,
-    running,
-  });
+  const t = useTranslations("driverHub.jobSheetParts");
+  const tShared = useTranslations("common.shared");
+  const locale = useLocale();
+  const steps = buildHubTimeline(
+    {
+      createdAt: job.createdAt,
+      inTransitAt: job.inTransitAt,
+      completedAt: job.completedAt,
+      running,
+    },
+    useHubTimelineLabels(),
+  );
 
   /**
    * What the driver reported when they closed the job.
@@ -1178,23 +1235,24 @@ export function JobSheetTimelineCard({
    * test here would hide the answer on exactly the jobs where a driver is most
    * likely to be checking what they reported.
    */
-  const reported: { label: string; value: string }[] = [
+  const reported: { label: string; value: string; numeric: boolean }[] = [
     ...(job.waitingMinutes === null
       ? []
       : [
           {
-            label: "Waiting time",
-            value: `${job.waitingMinutes} min`,
+            label: tShared("waitingTime"),
+            value: t("minutesShort", { n: job.waitingMinutes }),
+            numeric: true,
           },
         ]),
     ...(job.receivedBy === null
       ? []
-      : [{ label: "Received by", value: job.receivedBy }]),
+      : [{ label: t("receivedBy"), value: job.receivedBy, numeric: false }]),
   ];
 
   return (
     <HubCard className={className} contentClassName="flex flex-col gap-3.5">
-      <h2 className={LABEL_CLASSES}>Timeline</h2>
+      <h2 className={LABEL_CLASSES}>{t("timeline")}</h2>
 
       <ol className="flex flex-col">
         {steps.map((step, index) => {
@@ -1230,7 +1288,9 @@ export function JobSheetTimelineCard({
                     "text-xs text-muted-foreground",
                   )}
                 >
-                  {step.at === null ? EM_DASH : formatAbsoluteDateTime(step.at)}
+                  {step.at === null
+                    ? EM_DASH
+                    : formatAbsoluteDateTime(step.at, locale)}
                 </p>
               </div>
               {/* The dots carry the state visually; this is how it reaches a
@@ -1257,7 +1317,7 @@ export function JobSheetTimelineCard({
                   "min-w-0 break-words",
                   // The minutes are a figure and take the mono face; a name is
                   // prose and does not.
-                  row.label === "Waiting time" ? NUMERIC_CLASSES : null,
+                  row.numeric ? NUMERIC_CLASSES : null,
                 )}
               >
                 {row.value}
@@ -1303,14 +1363,16 @@ export function JobSheetContactsCard({
   viewer: JobSheetViewer;
   className?: string;
 }) {
+  const t = useTranslations("driverHub.jobSheetParts");
+  const tShared = useTranslations("common.shared");
   const stops = [
     {
-      label: "Pick-up",
+      label: tShared("pickUp"),
       name: job.pickupContactName,
       phone: job.pickupContactPhone,
     },
     {
-      label: "Drop-off",
+      label: tShared("dropOff"),
       name: job.dropoffContactName,
       phone: job.dropoffContactPhone,
     },
@@ -1318,7 +1380,7 @@ export function JobSheetContactsCard({
 
   return (
     <HubCard className={className} contentClassName="flex flex-col gap-3.5">
-      <h2 className={LABEL_CLASSES}>Contacts</h2>
+      <h2 className={LABEL_CLASSES}>{tShared("contacts")}</h2>
       <dl className={SPEC_GRID_CLASSES}>
         {stops.map((stop) => (
           <React.Fragment key={stop.label}>
@@ -1343,8 +1405,8 @@ export function JobSheetContactsCard({
       </dl>
       <p className="text-xs leading-[1.45] text-muted-foreground">
         {viewer === "COMPANY"
-          ? "Kept visible after delivery — a dispatcher may still need to call about a finished job."
-          : "Kept visible after delivery — a driver may still need to call about a finished job."}
+          ? t("keptVisibleDispatcher")
+          : t("keptVisibleDriver")}
       </p>
     </HubCard>
   );
@@ -1363,10 +1425,22 @@ export function JobSheetContactsCard({
  * drop-off booking with six columns rather than a `Stop` relation, so two is
  * the only number it can be.
  */
-export function jobSheetRouteSummary(job: HubJobSheet): string {
-  return `${job.pickupAddress} → ${job.dropoffAddress} · ${formatDistanceKm(
-    job.distanceKm,
-  )} · 2 stops`;
+export function jobSheetRouteSummary(
+  job: HubJobSheet,
+  // The sentence's shape is copy; the caller supplies it in the reader's
+  // locale. The English default keeps the function usable without one.
+  describe: (parts: {
+    from: string;
+    to: string;
+    distance: string;
+  }) => string = (parts) =>
+    `${parts.from} → ${parts.to} · ${parts.distance} · 2 stops`,
+): string {
+  return describe({
+    from: job.pickupAddress,
+    to: job.dropoffAddress,
+    distance: formatDistanceKm(job.distanceKm),
+  });
 }
 
 /* -------------------------------------------------------------------------- */
@@ -1390,7 +1464,6 @@ export type JobSheetNoticeProps = {
  *  and the internal `BOARD` naming are untouched — the route is still
  *  `/dashboard/loads`. */
 export const BACK_TO_BOARD_HREF = "/dashboard/loads";
-export const BACK_TO_BOARD_LABEL = "Back to dashboard";
 
 /**
  * The boxed statement used by the cancelled and not-found states.
@@ -1417,13 +1490,15 @@ export function JobSheetNotice({
 
 /** The 44px outline link back to the board, shared by both terminal states. */
 export function BackToBoardButton({ className }: { className?: string }) {
+  const t = useTranslations("driverHub.jobSheetParts");
+
   return (
     <Button
       asChild
       variant="outline"
       className={cn("h-11 text-sm font-medium", className)}
     >
-      <Link href={BACK_TO_BOARD_HREF}>{BACK_TO_BOARD_LABEL}</Link>
+      <Link href={BACK_TO_BOARD_HREF}>{t("backToDashboard")}</Link>
     </Button>
   );
 }

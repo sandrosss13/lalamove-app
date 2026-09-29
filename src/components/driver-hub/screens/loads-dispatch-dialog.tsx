@@ -1,11 +1,13 @@
 "use client";
 
 import * as React from "react";
+import { useFormatter, useTranslations } from "next-intl";
 
 import {
   formatDims,
   formatWeightKg,
 } from "@/components/driver-hub/screens/loads-format";
+import type { Translator } from "@/i18n/translator";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -242,8 +244,7 @@ function isDispatchable(
  * should not be told two different things depending on which of the two
  * requests was in flight.
  */
-const NETWORK_ERROR =
-  "Couldn't reach the server. Check your connection and retry.";
+const NETWORK_ERROR_KEY = "networkError";
 
 /**
  * What a dispatcher reads when the options request 404s.
@@ -269,9 +270,7 @@ const NETWORK_ERROR =
  * again — so the sentence ends by saying the board is stale rather than leaving
  * the dispatcher to work that out.
  */
-const NOT_DISPATCHABLE_MESSAGE =
-  "This delivery can no longer be assigned — it already has a driver, or it " +
-  "was cancelled. Close this and refresh the board to see where it stands.";
+const NOT_DISPATCHABLE_KEY = "notDispatchable";
 
 /**
  * How many placeholder rows stand in for the list while it loads.
@@ -290,12 +289,35 @@ const SKELETON_ROW_COUNT = 3;
  * payload and length cannot read "too long and too heavy" on one request and
  * "too heavy and too long" on the next.
  */
-const AXIS_SHORTFALL: Record<DispatchAxis, string> = {
-  weight: "heavy",
-  length: "long",
-  width: "wide",
-  height: "tall",
+const AXIS_SHORTFALL: Record<DispatchAxis, { word: string; alone: string }> = {
+  weight: { word: "dimHeavy", alone: "tooHeavy" },
+  length: { word: "dimLong", alone: "tooLong" },
+  width: { word: "dimWide", alone: "tooWide" },
+  height: { word: "dimTall", alone: "tooTall" },
 };
+
+/**
+ * What the shortfall sentences need from the active locale: the dialog's
+ * translator and a conjunction list formatter. Passed in rather than looked up
+ * so the helpers below stay plain functions.
+ */
+type ShortfallCopy = {
+  t: Translator;
+  list: (items: string[]) => string;
+};
+
+function useShortfallCopy(): ShortfallCopy {
+  const t = useTranslations("driverHub.loadsDispatchDialog");
+  const format = useFormatter();
+
+  return React.useMemo(
+    () => ({
+      t,
+      list: (items: string[]) => format.list(items, { type: "conjunction" }),
+    }),
+    [t, format],
+  );
+}
 
 const AXIS_ORDER: DispatchAxis[] = ["weight", "length", "width", "height"];
 
@@ -321,7 +343,7 @@ const AXIS_ORDER: DispatchAxis[] = ["weight", "length", "width", "height"];
  * axis-specific tags keep: it names the vehicle as too small, never the load as
  * too big.
  */
-const GENERIC_SHORTFALL = "Too small for this load";
+const GENERIC_SHORTFALL_KEY = "tooSmall";
 
 /**
  * The one obstacle that is not a verdict: nobody drives this truck.
@@ -332,7 +354,7 @@ const GENERIC_SHORTFALL = "Too small for this load";
  * thing. It keeps the voice rule the shortfalls keep: it names something missing
  * from the vehicle, and says nothing about the load.
  */
-const NO_DRIVER_SHORTFALL = "No driver assigned";
+const NO_DRIVER_SHORTFALL_KEY = "noDriver";
 
 /* -------------------------------------------------------------------------- */
 /* Verdicts                                                                   */
@@ -354,18 +376,21 @@ const NO_DRIVER_SHORTFALL = "No driver assigned";
  * presence test and not a truthiness test on a string that could plausibly
  * arrive empty.
  */
-function dispatchShortfall(verdict: DispatchVerdict): string | null {
+function dispatchShortfall(
+  verdict: DispatchVerdict,
+  copy: ShortfallCopy,
+): string | null {
   switch (verdict.kind) {
     case "FITS":
       return null;
     case "NOT_APPROVED":
-      return "Not approved for dispatch";
+      return copy.t("notApproved");
     case "UNDER_BOOKED_CLASS":
-      return "Under the booked vehicle class";
+      return copy.t("underBookedClass");
     case "WRONG_BODY_TYPE":
-      return "Doesn't offer this load space";
+      return copy.t("wrongBodyType");
     case "OVER_CARGO":
-      return overCargoShortfall(verdict.axes);
+      return overCargoShortfall(verdict.axes, copy);
   }
 }
 
@@ -388,62 +413,43 @@ function dispatchShortfall(verdict: DispatchVerdict): string | null {
  * in the same order — which is what lets a row use one for its text and the
  * other for its disabled state without the two disagreeing.
  */
-function dispatchObstacle(vehicle: DispatchVehicle): string | null {
-  const shortfall = dispatchShortfall(vehicle.verdict);
+function dispatchObstacle(
+  vehicle: DispatchVehicle,
+  copy: ShortfallCopy,
+): string | null {
+  const shortfall = dispatchShortfall(vehicle.verdict, copy);
 
   if (shortfall !== null) {
     return shortfall;
   }
 
-  return vehicle.pairedDriver === null ? NO_DRIVER_SHORTFALL : null;
+  return vehicle.pairedDriver === null ? copy.t(NO_DRIVER_SHORTFALL_KEY) : null;
 }
 
-/** `["weight"]` → `"Too heavy for this load"`; `["length", "weight"]` → `"Too heavy and too long for this load"`. */
-function overCargoShortfall(axes: DispatchAxis[]): string {
-  const words = AXIS_ORDER.filter((axis) => axes.includes(axis)).map(
-    (axis) => `too ${AXIS_SHORTFALL[axis]}`,
-  );
+/** `["weight"]` → `"Too heavy for this load"`; `["length", "weight"]` → `"Too heavy and long for this load"`. */
+function overCargoShortfall(axes: DispatchAxis[], copy: ShortfallCopy): string {
+  const ordered = AXIS_ORDER.filter((axis) => axes.includes(axis));
+  const [only] = ordered;
 
-  // `pop` on an array `map` just produced, so nothing shared is mutated — and it
-  // is what makes the last word a plain `string` under
-  // `noUncheckedIndexedAccess`, where `words[words.length - 1]` is
-  // `string | undefined` and would need an assertion to use. The `undefined`
-  // here is the empty-`axes` case and is handled rather than asserted away.
-  const last = words.pop();
-
-  if (last === undefined) {
-    return GENERIC_SHORTFALL;
+  if (only === undefined) {
+    return copy.t(GENERIC_SHORTFALL_KEY);
   }
 
-  // "too heavy", "too heavy and too long", "too heavy, too long and too tall".
-  // Spelled out rather than run through an `Intl.ListFormat`: four items is the
-  // ceiling, the locale is fixed, and a formatter would be a dependency on a
-  // list this surface can enumerate.
-  const joined = words.length === 0 ? last : `${words.join(", ")} and ${last}`;
+  // One axis reads best as its own whole sentence ("Too heavy for this load"),
+  // which a translator can phrase freely. Two or more are joined by the
+  // locale's own list conjunction ("heavy, long and tall" / "მძიმეა, გრძელია და
+  // მაღალია") inside one template, so no word order is hard-coded here.
+  if (ordered.length === 1) {
+    return copy.t(AXIS_SHORTFALL[only].alone);
+  }
 
-  // Sentence case restored on the first word only — the rest of the clause is
-  // lowercase by construction.
-  return `${joined.charAt(0).toUpperCase()}${joined.slice(1)} for this load`;
+  return copy.t("tooMany", {
+    dimensions: copy.list(
+      ordered.map((axis) => copy.t(AXIS_SHORTFALL[axis].word)),
+    ),
+  });
 }
 
-/**
- * The wire's capability as `formatDims` takes one.
- *
- * **This is the `null` → `Infinity` translation, and it happens exactly here.**
- * `capability.heightM === null` means the bed is open and imposes no height
- * limit; JSON has no `Infinity` literal, so the endpoint spells it `null` and
- * this is where it becomes a number again. `formatDims` tests `Number.isFinite`
- * and prints "open" for anything that fails it — the only rendering of a
- * flatbed in this codebase that is not a lie. Translating to `0` would print
- * "0.0 m" (a hold with no height), and passing the `null` straight through
- * would not type-check against `formatDims`, which takes three plain numbers
- * precisely so that a caller has to make this decision consciously.
- *
- * The payload and the other two axes pass through untouched: they are always
- * bounded, and the endpoint has already resolved each vehicle's own declared
- * figures over its class catalogue's, so these are the **resolved** capability
- * and never the class's nominal one.
- */
 function resolveCapability(capability: DispatchVehicle["capability"]): {
   lengthM: number;
   widthM: number;
@@ -467,7 +473,7 @@ function resolveCapability(capability: DispatchVehicle["capability"]): {
  */
 async function refusalMessage(
   response: Response,
-  fallback: string,
+  fallback: (status: number) => string,
 ): Promise<string> {
   const body = (await response.json().catch(() => null)) as {
     error?: unknown;
@@ -475,7 +481,7 @@ async function refusalMessage(
 
   return typeof body?.error === "string"
     ? body.error
-    : `${fallback} (HTTP ${response.status}).`;
+    : fallback(response.status);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -524,6 +530,8 @@ export function LoadsDispatchDialog({
   onClose,
   onDispatched,
 }: LoadsDispatchDialogProps) {
+  const t = useTranslations("driverHub.loadsDispatchDialog");
+  const tShared = useTranslations("common.shared");
   const [options, setOptions] = React.useState<DispatchOptionsResponse | null>(
     null,
   );
@@ -594,10 +602,9 @@ export function LoadsDispatchDialog({
           // wording, which names an obstacle better than anything here could.
           setOptionsError(
             response.status === 404
-              ? NOT_DISPATCHABLE_MESSAGE
-              : await refusalMessage(
-                  response,
-                  "Couldn't load this order's vehicles",
+              ? t(NOT_DISPATCHABLE_KEY)
+              : await refusalMessage(response, (status) =>
+                  t("couldNotLoadVehicles", { status }),
                 ),
           );
           return;
@@ -612,7 +619,7 @@ export function LoadsDispatchDialog({
           return;
         }
 
-        setOptionsError(NETWORK_ERROR);
+        setOptionsError(t(NETWORK_ERROR_KEY));
       } finally {
         if (!controller.signal.aborted) {
           setIsLoadingOptions(false);
@@ -625,7 +632,9 @@ export function LoadsDispatchDialog({
     return () => {
       controller.abort();
     };
-  }, [orderId]);
+    // `t` only changes when the reader switches language, and a re-read then is
+    // harmless — the error it may set should be in the new language anyway.
+  }, [orderId, t]);
 
   const vehicles = options?.vehicles ?? [];
 
@@ -718,7 +727,9 @@ export function LoadsDispatchDialog({
 
       if (!response.ok) {
         setSubmitError(
-          await refusalMessage(response, "Couldn't dispatch this delivery"),
+          await refusalMessage(response, (status) =>
+            t("couldNotDispatch", { status }),
+          ),
         );
         return;
       }
@@ -726,7 +737,7 @@ export function LoadsDispatchDialog({
       // The caller closes and resyncs. See `onDispatched`.
       onDispatched();
     } catch {
-      setSubmitError(NETWORK_ERROR);
+      setSubmitError(t(NETWORK_ERROR_KEY));
     } finally {
       setIsSubmitting(false);
     }
@@ -771,18 +782,15 @@ export function LoadsDispatchDialog({
             positioned against the panel rather than flowed after the header. */}
         <DialogHeader className="gap-1 px-5 pt-5 pr-10">
           <DialogTitle className="text-base font-semibold tracking-[-0.01em]">
-            Assign a driver and vehicle
+            {tShared("assignADriverAndVehicle")}
           </DialogTitle>
           <DialogDescription className="text-[13px]">
-            {reference === null ? (
-              "Your company holds this delivery. Choose which vehicle takes it."
-            ) : (
-              <>
-                Your company holds{" "}
-                <span className="font-price">{reference}</span>. Choose which
-                vehicle takes it.
-              </>
-            )}
+            {reference === null
+              ? t("holdsThisDelivery")
+              : t.rich("holdsReference", {
+                  reference,
+                  ref: (chunks) => <span className="font-price">{chunks}</span>,
+                })}
           </DialogDescription>
         </DialogHeader>
 
@@ -791,7 +799,7 @@ export function LoadsDispatchDialog({
           aria-describedby="loads-dispatch-vehicle-note"
         >
           <legend className="mb-1.5 text-[13px] font-medium text-foreground">
-            Vehicle
+            {tShared("vehicle")}
           </legend>
           {/* Says the thing the removed Driver field used to say by existing:
               the driver is not a second question, it rides with the plate. */}
@@ -799,8 +807,7 @@ export function LoadsDispatchDialog({
             id="loads-dispatch-vehicle-note"
             className="mb-0.5 text-[13px] text-muted-foreground"
           >
-            Every vehicle in your fleet is listed with the driver it goes out
-            with. The ones this delivery can&rsquo;t go on say why.
+            {t("vehicleNote")}
           </p>
 
           {/* The list scrolls rather than the panel: the header, the note below
@@ -877,7 +884,7 @@ export function LoadsDispatchDialog({
             {/* Relabelled, never a spinner: the button is the only thing that
                 changed and the label is the only place the change means
                 anything. U+2026, not three periods. */}
-            {isSubmitting ? "Assigning…" : "Assign and dispatch"}
+            {isSubmitting ? t("assigning") : t("assignAndDispatch")}
           </Button>
         </div>
       </DialogContent>
@@ -920,8 +927,10 @@ function DispatchVehicleRow({
   disabled: boolean;
   onSelect: () => void;
 }) {
+  const t = useTranslations("driverHub.loadsDispatchDialog");
+  const shortfallCopy = useShortfallCopy();
   const dispatchable = isDispatchable(vehicle);
-  const obstacle = dispatchObstacle(vehicle);
+  const obstacle = dispatchObstacle(vehicle, shortfallCopy);
 
   // A recommendation on a row nobody can press is not advice, it is noise — and
   // it would flatly contradict the disabled tag beside it. The contract says the
@@ -983,7 +992,7 @@ function DispatchVehicleRow({
           </span>
         ) : vehicle.pairedDriver !== null ? (
           <span className="mt-0.5 block text-xs text-muted-foreground">
-            Driver:{" "}
+            {t("driverLabel")}{" "}
             <span className="font-medium text-foreground">
               {vehicle.pairedDriver.name}
             </span>
@@ -992,7 +1001,9 @@ function DispatchVehicleRow({
                 a dispatcher routinely assigns work to someone who has not opened
                 the app yet — but it is worth knowing before pressing, so it is
                 shown and never enforced. */}
-            {vehicle.pairedDriver.isOnline ? null : <span> · Offline</span>}
+            {vehicle.pairedDriver.isOnline ? null : (
+              <span> {t("offline")}</span>
+            )}
           </span>
         ) : null}
       </span>
@@ -1049,12 +1060,14 @@ function DispatchVehicleRow({
  * entirely ordinary thing for a dispatcher to do.
  */
 function RecommendedTag() {
+  const t = useTranslations("driverHub.loadsDispatchDialog");
+
   return (
     <Badge
       variant="outline"
       className="ml-1.5 h-auto rounded-full border-border bg-transparent px-[7px] py-px align-middle text-[10px] font-semibold tracking-[0.06em] text-muted-foreground uppercase"
     >
-      Recommended
+      {t("recommended")}
     </Badge>
   );
 }
@@ -1123,6 +1136,8 @@ function DispatchListNote({
   vehicles: DispatchVehicle[];
   suppressed: boolean;
 }) {
+  const t = useTranslations("driverHub.loadsDispatchDialog");
+
   if (suppressed) {
     return null;
   }
@@ -1130,8 +1145,7 @@ function DispatchListNote({
   if (vehicles.length === 0) {
     return (
       <p className="text-[13px] text-muted-foreground">
-        Your fleet has no registered vehicles. Register one from the Vehicles
-        screen, then dispatch this delivery.
+        {t("yourFleetHasNoRegisteredVehicles")}
       </p>
     );
   }
@@ -1144,15 +1158,14 @@ function DispatchListNote({
   if (vehicles.some((vehicle) => vehicle.verdict.kind === "FITS")) {
     return (
       <p className="text-[13px] text-muted-foreground">
-        The vehicles that can take this delivery have no driver assigned. Assign
-        one from the Vehicles screen, then dispatch this delivery.
+        {t("theVehiclesThatCanTakeThis")}
       </p>
     );
   }
 
   return (
     <p className="text-[13px] text-muted-foreground">
-      None of your vehicles can take this delivery. Each one above says why.
+      {t("noneOfYourVehiclesCanTake")}
     </p>
   );
 }

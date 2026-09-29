@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useEffect, useState } from "react";
+import { useFormatter, useTranslations } from "next-intl";
 
 import type { DriverAccountType } from "@prisma/client";
 
@@ -29,6 +30,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatCity } from "@/lib/format-city";
+import { useLocalizedCityOptions } from "@/lib/georgian-cities";
 
 /** Columns in the table, so the full-width state rows can span all of them. */
 const COLUMN_COUNT = 6;
@@ -41,25 +43,24 @@ const SEARCH_DEBOUNCE_MS = 300;
  * driver and a fleet operator. Both fulfil orders, which is why staff see them
  * as one "Sellers" list rather than two tabs.
  */
-const SELLER_TYPE_LABELS: Record<AdminSellerType, string> = {
-  DRIVER: "Driver",
-  COMPANY: "Company",
+const SELLER_TYPE_LABEL_KEYS: Record<AdminSellerType, string> = {
+  DRIVER: "driver",
+  COMPANY: "company",
 };
 
-const DRIVER_ACCOUNT_TYPE_LABELS: Record<DriverAccountType, string> = {
-  INDIVIDUAL: "Individual",
-  INDIVIDUAL_ENTREPRENEUR: "Individual entrepreneur",
-  BUSINESS: "Business",
+/** Full message path for each driver account type's name. */
+const DRIVER_ACCOUNT_TYPE_LABEL_KEYS: Record<DriverAccountType, string> = {
+  INDIVIDUAL: "common.shared.individual",
+  INDIVIDUAL_ENTREPRENEUR: "admin.adminUsersSellers.individualEntrepreneur",
+  BUSINESS: "common.shared.business",
 };
 
 /** Matches how every other dashboard in the app renders a date. */
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
+const ACCOUNT_DATE_FORMAT = {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+} as const;
 
 /**
  * Pulls the API's `{ error }` message out of a failed response — a `403` for a
@@ -118,6 +119,13 @@ function DetailField({
  * Staff never edit a seller's own profile data on their behalf.
  */
 export default function AdminSellersPage() {
+  const t = useTranslations("admin.adminUsersSellers");
+  const tShared = useTranslations("common.shared");
+  const tRoot = useTranslations();
+  const format = useFormatter();
+  const formatDate = (iso: string) =>
+    format.dateTime(new Date(iso), ACCOUNT_DATE_FORMAT);
+  const cityOptions = useLocalizedCityOptions();
   const [searchInput, setSearchInput] = useState("");
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
@@ -163,7 +171,7 @@ export default function AdminSellersPage() {
         );
 
         if (!response.ok) {
-          setError(await readErrorMessage(response, "Could not load sellers."));
+          setError(await readErrorMessage(response, t("couldNotLoadSellers")));
           setLoading(false);
           return;
         }
@@ -177,7 +185,7 @@ export default function AdminSellersPage() {
           return;
         }
 
-        setError("Could not load sellers.");
+        setError(t("couldNotLoadSellers"));
         setLoading(false);
       }
     }
@@ -185,7 +193,7 @@ export default function AdminSellersPage() {
     void load();
 
     return () => controller.abort();
-  }, [page, query, reloadToken]);
+  }, [page, query, reloadToken, t]);
 
   const items = data?.items ?? [];
 
@@ -195,13 +203,13 @@ export default function AdminSellersPage() {
         <Input
           value={searchInput}
           onChange={(event) => setSearchInput(event.target.value)}
-          placeholder="Search by name, email or phone…"
-          aria-label="Search sellers by name, email or phone"
+          placeholder={tShared("searchByNameEmailOrPhone")}
+          aria-label={t("searchSellersByNameEmailOr")}
           className="w-full max-w-72"
         />
         {data ? (
           <p className="text-sm text-muted-foreground">
-            {data.total} {data.total === 1 ? "seller" : "sellers"}
+            {t("sellerCount", { count: data.total })}
           </p>
         ) : null}
       </div>
@@ -210,12 +218,12 @@ export default function AdminSellersPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Seller</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Contact</TableHead>
-              <TableHead>City</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead>{t("seller")}</TableHead>
+              <TableHead>{tShared("type")}</TableHead>
+              <TableHead>{tShared("contact")}</TableHead>
+              <TableHead>{tShared("city")}</TableHead>
+              <TableHead>{tShared("status")}</TableHead>
+              <TableHead className="text-right">{tShared("actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -234,7 +242,7 @@ export default function AdminSellersPage() {
                   colSpan={COLUMN_COUNT}
                   className="py-10 text-center text-muted-foreground"
                 >
-                  Loading sellers…
+                  {t("loadingSellers")}
                 </TableCell>
               </TableRow>
             ) : items.length === 0 ? (
@@ -244,8 +252,8 @@ export default function AdminSellersPage() {
                   className="py-10 text-center text-muted-foreground"
                 >
                   {query === ""
-                    ? "No driver or company accounts yet."
-                    : "No sellers match that search."}
+                    ? t("noDriverOrCompanyAccountsYet")
+                    : t("noSellersMatchThatSearch")}
                 </TableCell>
               </TableRow>
             ) : (
@@ -275,7 +283,7 @@ export default function AdminSellersPage() {
                             seller.type === "COMPANY" ? "secondary" : "outline"
                           }
                         >
-                          {SELLER_TYPE_LABELS[seller.type]}
+                          {tShared(SELLER_TYPE_LABEL_KEYS[seller.type])}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -286,12 +294,18 @@ export default function AdminSellersPage() {
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell>{formatCity(seller.city)}</TableCell>
+                      <TableCell>
+                        {cityOptions.find(
+                          (option) => option.value === seller.city,
+                        )?.label ?? formatCity(seller.city)}
+                      </TableCell>
                       <TableCell>
                         {seller.isSuspended ? (
-                          <Badge variant="destructive">Suspended</Badge>
+                          <Badge variant="destructive">
+                            {tShared("suspended")}
+                          </Badge>
                         ) : (
-                          <Badge variant="secondary">Active</Badge>
+                          <Badge variant="secondary">{tShared("active")}</Badge>
                         )}
                       </TableCell>
                       <TableCell className="text-right">
@@ -304,7 +318,9 @@ export default function AdminSellersPage() {
                               setExpandedUserId(expanded ? null : seller.userId)
                             }
                           >
-                            {expanded ? "Hide details" : "Details"}
+                            {expanded
+                              ? tShared("hideDetails")
+                              : tShared("details")}
                           </Button>
                           <Button
                             variant={
@@ -320,7 +336,9 @@ export default function AdminSellersPage() {
                               })
                             }
                           >
-                            {seller.isSuspended ? "Unsuspend" : "Suspend"}
+                            {seller.isSuspended
+                              ? tShared("unsuspend")
+                              : tShared("suspend")}
                           </Button>
                         </div>
                       </TableCell>
@@ -331,31 +349,38 @@ export default function AdminSellersPage() {
                         <TableCell colSpan={COLUMN_COUNT}>
                           <dl className="grid grid-cols-2 gap-4 py-1 sm:grid-cols-4">
                             <DetailField
-                              label="Account"
-                              value={SELLER_TYPE_LABELS[seller.type]}
+                              label={tShared("account")}
+                              value={tShared(
+                                SELLER_TYPE_LABEL_KEYS[seller.type],
+                              )}
                             />
                             <DetailField
-                              label="Registration"
+                              label={t("registration")}
                               value={
                                 seller.accountType === null
                                   ? // A logistics company has no
                                     // `DriverAccountType` — it is a business by
                                     // definition.
-                                    "Business"
-                                  : DRIVER_ACCOUNT_TYPE_LABELS[
-                                      seller.accountType
-                                    ]
+                                    tShared("business")
+                                  : tRoot(
+                                      DRIVER_ACCOUNT_TYPE_LABEL_KEYS[
+                                        seller.accountType
+                                      ],
+                                    )
                               }
                             />
-                            <DetailField label="VAT ID" value={seller.vatId} />
                             <DetailField
-                              label="Joined"
+                              label={tShared("vatId")}
+                              value={seller.vatId}
+                            />
+                            <DetailField
+                              label={tShared("joined")}
                               value={formatDate(seller.createdAt)}
                             />
                             {seller.isSuspended ? (
                               <>
                                 <DetailField
-                                  label="Suspended on"
+                                  label={tShared("suspendedOn")}
                                   value={
                                     seller.suspendedAt
                                       ? formatDate(seller.suspendedAt)
@@ -363,7 +388,7 @@ export default function AdminSellersPage() {
                                   }
                                 />
                                 <DetailField
-                                  label="Suspension reason"
+                                  label={tShared("suspensionReason")}
                                   value={seller.suspendedReason}
                                 />
                               </>
@@ -383,7 +408,10 @@ export default function AdminSellersPage() {
       {data && data.pageCount > 1 ? (
         <div className="flex items-center justify-end gap-3">
           <span className="text-sm text-muted-foreground">
-            Page {data.page} of {data.pageCount}
+            {tShared("pageOf", {
+              page: data.page,
+              pageCount: data.pageCount,
+            })}
           </span>
           <Button
             variant="outline"
@@ -391,7 +419,7 @@ export default function AdminSellersPage() {
             disabled={loading || data.page <= 1}
             onClick={() => setPage((current) => Math.max(1, current - 1))}
           >
-            Previous
+            {tShared("previous")}
           </Button>
           <Button
             variant="outline"
@@ -399,7 +427,7 @@ export default function AdminSellersPage() {
             disabled={loading || data.page >= data.pageCount}
             onClick={() => setPage((current) => current + 1)}
           >
-            Next
+            {tShared("next")}
           </Button>
         </div>
       ) : null}

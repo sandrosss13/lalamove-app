@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useTranslations } from "next-intl";
 
 import { useRouter } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
@@ -8,12 +9,9 @@ import { cn } from "@/lib/utils";
 /** The endpoint that owns `DriverProfile.isOnline`. */
 const STATUS_ENDPOINT = "/api/driver-profile/status";
 
-const GENERIC_ERROR = "Could not update your online status.";
-const NETWORK_ERROR = "Network error. Please check your connection.";
-
 /** Why the pill is disabled. Mirrors the 403 the endpoint returns. */
-const NOT_ACTIVATED_TITLE =
-  "Your account isn't approved yet. Finish onboarding to go online.";
+const NOT_ACTIVATED_TITLE_KEY =
+  "errors.driverProfileStatus.yourAccountIsnTApprovedYet";
 
 export type HubOnlineToggleProps = {
   /** Current availability, from `resolveHubAccount()`. */
@@ -68,6 +66,7 @@ export function HubOnlineToggle({
   isOnline,
   canToggleOnline,
 }: HubOnlineToggleProps) {
+  const t = useTranslations();
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -100,7 +99,9 @@ export function HubOnlineToggle({
         } | null;
         // The endpoint's own message is more useful than ours ("Complete your
         // driver profile…", "Your account isn't approved yet…").
-        setError(payload?.error ?? GENERIC_ERROR);
+        setError(
+          payload?.error ?? t("driverHub.loadsClaimDialogs.onlineGenericError"),
+        );
         return;
       }
 
@@ -108,13 +109,15 @@ export function HubOnlineToggle({
         router.refresh();
       });
     } catch {
-      setError(NETWORK_ERROR);
+      setError(t("driverHub.fleetAvailabilityCard.networkError"));
     } finally {
       setSubmitting(false);
     }
   }
 
-  const label = isOnline ? "Online" : "Offline";
+  const label = isOnline
+    ? t("driverHub.driversScreen.online")
+    : t("driverHub.driversScreen.offline");
 
   return (
     <div className="flex flex-col items-end gap-1">
@@ -127,7 +130,7 @@ export function HubOnlineToggle({
         // `aria-pressed` states the toggle's value; the visible label already
         // reads "Online"/"Offline", so the two agree rather than conflict.
         aria-pressed={isOnline}
-        title={disabled ? NOT_ACTIVATED_TITLE : undefined}
+        title={disabled ? t(NOT_ACTIVATED_TITLE_KEY) : undefined}
         className={cn(
           // Geometry is the design's `onlineBtnStyle` verbatim: `padding:'5px
           // 12px'`, `fontSize:12`, `fontWeight:600`, `gap:9`, `borderRadius:99`.
@@ -167,7 +170,7 @@ export function HubOnlineToggle({
               : "bg-muted-foreground",
           )}
         />
-        {busy ? "Updating…" : label}
+        {busy ? t("driverHub.hubOnlineToggle.updating") : label}
       </button>
 
       {/* Inline rather than an `alert()`: the failure belongs next to the
@@ -196,7 +199,7 @@ export function HubOnlineToggle({
       {disabled ? (
         // `title` is not reliably announced, so the reason is also real text
         // for assistive tech — the same approach `<SampleNote />` takes.
-        <span className="sr-only">{NOT_ACTIVATED_TITLE}</span>
+        <span className="sr-only">{t(NOT_ACTIVATED_TITLE_KEY)}</span>
       ) : null}
     </div>
   );

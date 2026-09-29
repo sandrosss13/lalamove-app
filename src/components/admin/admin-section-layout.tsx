@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 
 import {
   adminNavSection,
@@ -45,9 +46,15 @@ export async function AdminSectionLayout({
     hasAdminRole(systemUserProfile, item.adminRoles),
   );
 
+  // Root-scoped: `labelKey` in `admin-nav.ts` is a full dotted path, and a
+  // section can borrow a key from another namespace (`common.shared.drivers`).
+  const t = await getTranslations();
+
   return (
     <div className="flex flex-col gap-5">
-      <h1 className="text-lg font-semibold tracking-tight">{section.label}</h1>
+      <h1 className="text-lg font-semibold tracking-tight">
+        {t(section.labelKey)}
+      </h1>
       <AdminSectionTabs items={items} />
       <div className="min-w-0">{children}</div>
     </div>

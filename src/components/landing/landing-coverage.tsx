@@ -1,7 +1,4 @@
-import {
-  DEFAULT_HOME_PAGE_CONTENT,
-  type CoverageContent,
-} from "@/lib/admin/home-page-content";
+import { type CoverageContent } from "@/lib/admin/home-page-content";
 import { Link } from "@/i18n/navigation";
 
 /**
@@ -13,11 +10,7 @@ import { Link } from "@/i18n/navigation";
  * "Same hour" / "Scheduled" split cannot be computed from the `GeorgianCity`
  * enum and must be typed by a human who knows the real footprint.
  */
-export function LandingCoverage({
-  content = DEFAULT_HOME_PAGE_CONTENT.coverage,
-}: {
-  content?: CoverageContent;
-}) {
+export function LandingCoverage({ content }: { content: CoverageContent }) {
   return (
     <section
       id="coverage"

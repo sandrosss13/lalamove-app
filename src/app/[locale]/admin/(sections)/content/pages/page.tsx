@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useFormatter, useTranslations } from "next-intl";
 
 // Type-only imports, so nothing of the server route (Prisma, Better Auth) is
 // pulled into this client bundle — they are erased at compile time. Sharing the
@@ -11,7 +12,7 @@ import type {
   AdminStaticPageRow,
 } from "@/app/api/admin/content/pages/route";
 import {
-  CONTENT_LOCALE_LABELS,
+  CONTENT_LOCALE_LABEL_KEYS,
   StaticPageFormDialog,
   type StaticPageFormTarget,
 } from "@/components/admin/content/static-page-form-dialog";
@@ -38,13 +39,11 @@ import {
 const COLUMN_COUNT = 5;
 
 /** Matches how every other dashboard in the app renders a date. */
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
+const UPDATED_DATE_FORMAT = {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+} as const;
 
 /**
  * Pulls the API's `{ error }` message out of a failed response — a `403` for a
@@ -83,6 +82,9 @@ function DeletePageDialog({
   onClose: () => void;
   onCompleted: () => void;
 }) {
+  const t = useTranslations("admin.adminContentPages");
+  const tShared = useTranslations("common.shared");
+  const tRoot = useTranslations();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -96,13 +98,13 @@ function DeletePageDialog({
       });
 
       if (!response.ok) {
-        setError(await readErrorMessage(response, "Could not delete page."));
+        setError(await readErrorMessage(response, t("couldNotDeletePage")));
         return;
       }
 
       onCompleted();
     } catch {
-      setError("Network error. Please check your connection and try again.");
+      setError(tShared("networkErrorPleaseCheckYourConnection"));
     } finally {
       setPending(false);
     }
@@ -117,12 +119,14 @@ function DeletePageDialog({
     >
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Delete this page?</DialogTitle>
+          <DialogTitle>{t("deleteThisPage")}</DialogTitle>
           <DialogDescription>
-            “{page.title}” ({CONTENT_LOCALE_LABELS[page.locale]}) will be
-            removed permanently, and{" "}
-            <span className="font-mono">/pages/{page.slug}</span> will stop
-            resolving for that locale. This cannot be undone.
+            {t.rich("deletePageDetail", {
+              title: page.title,
+              language: tRoot(CONTENT_LOCALE_LABEL_KEYS[page.locale]),
+              slug: page.slug,
+              path: (chunks) => <span className="font-mono">{chunks}</span>,
+            })}
           </DialogDescription>
         </DialogHeader>
 
@@ -130,14 +134,14 @@ function DeletePageDialog({
 
         <DialogFooter showCloseButton={false}>
           <Button variant="outline" onClick={onClose}>
-            Cancel
+            {tShared("cancel")}
           </Button>
           <Button
             variant="destructive"
             disabled={pending}
             onClick={handleDelete}
           >
-            {pending ? "Deleting…" : "Delete page"}
+            {pending ? tShared("deleting") : t("deletePage")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -156,6 +160,10 @@ function DeletePageDialog({
  * `adminRole` on every request, which is the real boundary.
  */
 export default function AdminStaticPagesPage() {
+  const t = useTranslations("admin.adminContentPages");
+  const tShared = useTranslations("common.shared");
+  const tRoot = useTranslations();
+  const format = useFormatter();
   const [items, setItems] = useState<AdminStaticPageRow[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -182,7 +190,7 @@ export default function AdminStaticPagesPage() {
         });
 
         if (!response.ok) {
-          setError(await readErrorMessage(response, "Could not load pages."));
+          setError(await readErrorMessage(response, t("couldNotLoadPages")));
           setLoading(false);
           return;
         }
@@ -197,7 +205,7 @@ export default function AdminStaticPagesPage() {
           return;
         }
 
-        setError("Could not load pages.");
+        setError(t("couldNotLoadPages"));
         setLoading(false);
       }
     }
@@ -205,7 +213,7 @@ export default function AdminStaticPagesPage() {
     void load();
 
     return () => controller.abort();
-  }, [reloadToken]);
+  }, [reloadToken, t]);
 
   /** Closes whichever dialog was open and re-reads the list. */
   const handleMutated = useCallback(() => {
@@ -220,11 +228,12 @@ export default function AdminStaticPagesPage() {
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-muted-foreground">
-          Published pages are served at{" "}
-          <span className="font-mono">/pages/[slug]</span>.
+          {t.rich("publishedPagesServedAt", {
+            path: (chunks) => <span className="font-mono">{chunks}</span>,
+          })}
         </p>
         <Button size="sm" onClick={() => setFormTarget({ mode: "create" })}>
-          New Page
+          {t("newPage")}
         </Button>
       </div>
 
@@ -232,11 +241,11 @@ export default function AdminStaticPagesPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Slug</TableHead>
-              <TableHead>Locale</TableHead>
-              <TableHead>Title</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead>{tShared("slug")}</TableHead>
+              <TableHead>{tShared("locale")}</TableHead>
+              <TableHead>{tShared("title")}</TableHead>
+              <TableHead>{tShared("status")}</TableHead>
+              <TableHead className="text-right">{tShared("actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -255,7 +264,7 @@ export default function AdminStaticPagesPage() {
                   colSpan={COLUMN_COUNT}
                   className="py-10 text-center text-muted-foreground"
                 >
-                  Loading pages…
+                  {t("loadingPages")}
                 </TableCell>
               </TableRow>
             ) : rows.length === 0 ? (
@@ -264,7 +273,7 @@ export default function AdminStaticPagesPage() {
                   colSpan={COLUMN_COUNT}
                   className="py-10 text-center text-muted-foreground"
                 >
-                  No static pages yet.
+                  {t("noStaticPagesYet")}
                 </TableCell>
               </TableRow>
             ) : (
@@ -275,22 +284,27 @@ export default function AdminStaticPagesPage() {
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline">
-                      {CONTENT_LOCALE_LABELS[page.locale]}
+                      {tRoot(CONTENT_LOCALE_LABEL_KEYS[page.locale])}
                     </Badge>
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-col">
                       <span className="font-medium">{page.title}</span>
                       <span className="text-xs text-muted-foreground">
-                        Updated {formatDate(page.updatedAt)}
+                        {t("updatedOn", {
+                          date: format.dateTime(
+                            new Date(page.updatedAt),
+                            UPDATED_DATE_FORMAT,
+                          ),
+                        })}
                       </span>
                     </div>
                   </TableCell>
                   <TableCell>
                     {page.isPublished ? (
-                      <Badge variant="secondary">Published</Badge>
+                      <Badge variant="secondary">{t("published")}</Badge>
                     ) : (
-                      <Badge variant="outline">Draft</Badge>
+                      <Badge variant="outline">{t("draft")}</Badge>
                     )}
                   </TableCell>
                   <TableCell className="text-right">
@@ -300,14 +314,14 @@ export default function AdminStaticPagesPage() {
                         size="sm"
                         onClick={() => setFormTarget({ mode: "edit", page })}
                       >
-                        Edit
+                        {tShared("edit")}
                       </Button>
                       <Button
                         variant="destructive"
                         size="sm"
                         onClick={() => setDeleteTarget(page)}
                       >
-                        Delete
+                        {tShared("delete")}
                       </Button>
                     </div>
                   </TableCell>

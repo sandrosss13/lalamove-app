@@ -18,17 +18,26 @@
  * screen is free to change; the shared vocabulary is `hub-primitives.tsx`, and
  * a two-line `Intl` wrapper has never earned a place in it.
  *
- * Every formatter is locale-pinned and anchored to `HUB_TIME_ZONE`:
+ * Every date formatter is anchored to `HUB_TIME_ZONE` and written in the
+ * reader's app locale (passed in, never read from the runtime):
  *
  * 1. This tree server-renders and then hydrates. A formatter that read the
  *    runtime's locale or time zone would produce one string in Node and another
- *    in the browser — a hydration mismatch. A fixed IANA zone cannot.
+ *    in the browser — a hydration mismatch. A fixed IANA zone and the route's
+ *    own locale cannot.
  * 2. `earnings.ts` buckets every day in that same zone. Both used to be UTC,
  *    which put every bar four hours off the driver's own day and disagreed with
  *    the clock times on the Jobs screen; see `@/lib/dashboard/hub/timezone` for
  *    why the hub pins Tbilisi rather than UTC or the browser's zone.
  */
-import { HUB_TIME_ZONE, parseHubDayKey } from "@/lib/dashboard/hub/timezone";
+import { useLocale, useTranslations } from "next-intl";
+import { useMemo } from "react";
+
+import type { Translator } from "@/i18n/translator";
+import {
+  hubDateTimeFormat,
+  parseHubDayKey,
+} from "@/lib/dashboard/hub/timezone";
 
 /**
  * `en-US` with two decimals, matching the handoff's `₾142.60` and the sibling
@@ -49,38 +58,23 @@ const wholeGelFormatter = new Intl.NumberFormat("en-US", {
 });
 
 /** The design's `Mon`, for a daily bar's label. */
-const weekdayFormatter = new Intl.DateTimeFormat("en-GB", {
-  weekday: "short",
-  timeZone: HUB_TIME_ZONE,
-});
+const WEEKDAY_OPTIONS = { weekday: "short" } as const;
 
 /** The design's `24 Aug`, for a weekly bar's label. */
-const dayMonthFormatter = new Intl.DateTimeFormat("en-GB", {
-  day: "numeric",
-  month: "short",
-  timeZone: HUB_TIME_ZONE,
-});
+const DAY_MONTH_OPTIONS = { day: "numeric", month: "short" } as const;
 
 /** `24`, the opening half of a subhead whose two ends share a month. */
-const dayFormatter = new Intl.DateTimeFormat("en-GB", {
-  day: "numeric",
-  timeZone: HUB_TIME_ZONE,
-});
+const DAY_OPTIONS = { day: "numeric" } as const;
 
 /** `31 July`, the opening half of a subhead whose two ends share a year. */
-const dayLongMonthFormatter = new Intl.DateTimeFormat("en-GB", {
-  day: "numeric",
-  month: "long",
-  timeZone: HUB_TIME_ZONE,
-});
+const DAY_LONG_MONTH_OPTIONS = { day: "numeric", month: "long" } as const;
 
 /** `30 August 2026`, the design's own subhead vocabulary. */
-const longDateFormatter = new Intl.DateTimeFormat("en-GB", {
+const LONG_DATE_OPTIONS = {
   day: "numeric",
   month: "long",
   year: "numeric",
-  timeZone: HUB_TIME_ZONE,
-});
+} as const;
 
 /** What the design prints where a figure is genuinely not known. */
 export const EMPTY_VALUE = "—";
@@ -117,13 +111,35 @@ export function formatHours(hours: number): string {
 }
 
 /** A day key → the design's `Mon`, named for the Tbilisi day it covers. */
-export function formatWeekday(dateKey: string): string {
-  return weekdayFormatter.format(parseHubDayKey(dateKey));
+export function formatWeekday(dateKey: string, locale?: string): string {
+  return hubDateTimeFormat(locale, WEEKDAY_OPTIONS).format(
+    parseHubDayKey(dateKey),
+  );
 }
 
 /** A day key → the design's `24 Aug`, named for the Tbilisi day it covers. */
-export function formatDayMonth(dateKey: string): string {
-  return dayMonthFormatter.format(parseHubDayKey(dateKey));
+export function formatDayMonth(dateKey: string, locale?: string): string {
+  return hubDateTimeFormat(locale, DAY_MONTH_OPTIONS).format(
+    parseHubDayKey(dateKey),
+  );
+}
+
+/**
+ * What `formatRangeSubtitle` needs to speak the reader's language: the
+ * `driverHub.earningsFormat` translator for the day count, and the locale for
+ * month names. Omitted, the subtitle falls back to English.
+ */
+export type EarningsDateFormat = {
+  t: Translator;
+  locale: string;
+};
+
+/** Component hook: the `EarningsDateFormat` for the active locale. */
+export function useEarningsDateFormat(): EarningsDateFormat {
+  const t = useTranslations("driverHub.earningsFormat");
+  const locale = useLocale();
+
+  return useMemo(() => ({ t, locale }), [t, locale]);
 }
 
 /** `1, "day"` → `"1 day"`; `7` → `"7 days"`. */
@@ -141,7 +157,8 @@ export function pluralise(count: number, singular: string): string {
  *
  * Safe to call during render on both sides of hydration: both arguments are
  * `YYYY-MM-DD` strings resolved on the server, and every formatter above is
- * pinned to `en-GB`/`HUB_TIME_ZONE` — there is no second clock involved, unlike
+ * pinned to the route's locale and `HUB_TIME_ZONE` — there is no second clock
+ * involved, unlike
  * Today's subhead, which is why this one is not formatted in the page.
  *
  * Called by `PerformanceScreen`, not by `EarningsScreen`: the merged screen has
@@ -152,7 +169,9 @@ export function formatRangeSubtitle(
   from: string,
   to: string,
   days: number,
+  format?: EarningsDateFormat,
 ): string {
+  const locale = format?.locale;
   const fromDate = parseHubDayKey(from);
   const toDate = parseHubDayKey(to);
 
@@ -166,14 +185,18 @@ export function formatRangeSubtitle(
     sameYear &&
     from.slice(0, MONTH_KEY_LENGTH) === to.slice(0, MONTH_KEY_LENGTH);
 
-  const start = sameMonth
-    ? dayFormatter.format(fromDate)
-    : sameYear
-      ? dayLongMonthFormatter.format(fromDate)
-      : longDateFormatter.format(fromDate);
+  const start = hubDateTimeFormat(
+    locale,
+    sameMonth
+      ? DAY_OPTIONS
+      : sameYear
+        ? DAY_LONG_MONTH_OPTIONS
+        : LONG_DATE_OPTIONS,
+  ).format(fromDate);
+  const end = hubDateTimeFormat(locale, LONG_DATE_OPTIONS).format(toDate);
+  const dayCount = format
+    ? format.t("daysCount", { count: days })
+    : pluralise(days, "day");
 
-  return `${start} – ${longDateFormatter.format(toDate)} · ${pluralise(
-    days,
-    "day",
-  )}`;
+  return `${start} – ${end} · ${dayCount}`;
 }
