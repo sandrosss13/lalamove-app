@@ -1,0 +1,57 @@
+{
+  "orderTrackingMap.driverLocationMayBeStale": {
+    "en": "Driver location may be stale.",
+    "ka": "",
+    "_source": "src/components/order-tracking-map.tsx"
+  },
+  "orderTrackingMap.waitingForADriverToShare": {
+    "en": "Waiting for a driver to share their location…",
+    "ka": "",
+    "_source": "src/components/order-tracking-map.tsx"
+  },
+  "orders.above": {
+    "en": "above.",
+    "ka": "",
+    "_source": "src/app/[locale]/orders/page.tsx"
+  },
+  "orders.newOrder2": {
+    "en": "New order",
+    "ka": "",
+    "_source": "src/app/[locale]/orders/page.tsx"
+  },
+  "orders.signInToViewYourOrders": {
+    "en": "Sign in to view your orders.",
+    "ka": "",
+    "_source": "src/app/[locale]/orders/page.tsx"
+  },
+  "orders.trackDelivery": {
+    "en": "Track delivery →",
+    "ka": "",
+    "_source": "src/app/[locale]/orders/page.tsx"
+  },
+  "orders.yourDeliveries": {
+    "en": "Your deliveries",
+    "ka": "",
+    "_source": "src/app/[locale]/orders/page.tsx"
+  },
+  "orders.yourOrders": {
+    "en": "Your orders",
+    "ka": "",
+    "_source": "src/app/[locale]/orders/page.tsx"
+  },
+  "ordersTrack.carrier": {
+    "en": "Carrier",
+    "ka": "",
+    "_source": "src/app/[locale]/orders/[id]/track/page.tsx"
+  },
+  "ordersTrack.pleaseSignInToTrackThis": {
+    "en": "Please sign in to track this delivery.",
+    "ka": "",
+    "_source": "src/app/[locale]/orders/[id]/track/page.tsx"
+  },
+  "ordersTrack.trackDelivery": {
+    "en": "Track delivery",
+    "ka": "",
+    "_source": "src/app/[locale]/orders/[id]/track/page.tsx"
+  }
+}

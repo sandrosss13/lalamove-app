@@ -1,12 +1,11 @@
 "use client";
 
-import Link from "next/link";
-
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { Link } from "@/i18n/navigation";
 import type { HubHeaderJob } from "@/lib/dashboard/hub/header";
 import type { HubPersona } from "@/lib/dashboard/hub/account";
 import { cn } from "@/lib/utils";

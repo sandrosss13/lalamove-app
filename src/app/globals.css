@@ -550,9 +550,28 @@ html.dark {
   --blur-glass: 18px;
   --blur-glass-chip: 12px;
 
-  --font-display: var(--font-ibm-plex-sans), sans-serif;
-  --font-body: var(--font-ibm-plex-sans), sans-serif;
-  --font-price: var(--font-ibm-plex), monospace;
+  /* `--font-noto-georgian` (loaded in `src/app/[locale]/layout.tsx`) sits in
+     every stack, immediately before the generic family. IBM Plex has no
+     Mkhedruli glyph at all, so without it every Georgian character on the site
+     falls through to whatever the OS supplies — Sylfaen on Windows, a serif on
+     some Android builds, three different faces for the platform's primary
+     language.
+
+     Its position is the whole point: font fallback is resolved per *glyph*, not
+     per element, so Latin text keeps rendering in IBM Plex even mid-sentence in
+     a Georgian paragraph, and only the characters IBM Plex cannot draw reach
+     this face. Moving it to the front of a stack would re-font the entire app.
+
+     On `--font-price` it does one extra job: the lari sign (U+20BE) is not in
+     IBM Plex Mono either — see the measurements in the layout's comment — and
+     Noto Sans Georgian has it. The glyph now comes from a font that actually
+     contains it, though it is still proportional rather than tabular, so `₾`
+     remains wider than a mono cell. Digits are unaffected and price columns
+     still align. */
+  --font-display:
+    var(--font-ibm-plex-sans), var(--font-noto-georgian), sans-serif;
+  --font-body: var(--font-ibm-plex-sans), var(--font-noto-georgian), sans-serif;
+  --font-price: var(--font-ibm-plex), var(--font-noto-georgian), monospace;
 
   --animate-rise: landing-rise 0.75s cubic-bezier(0.16, 1, 0.3, 1) both;
   --animate-wipe: landing-wipe 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
@@ -607,8 +626,8 @@ html.dark {
      re-introduces `--font-sans` cannot silently re-font the app again. */
   --default-font-family:
     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
-    "Noto Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
-    "Segoe UI Symbol", "Noto Color Emoji";
+    "Noto Sans", Arial, var(--font-noto-georgian), sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -755,6 +774,7 @@ body {
     Roboto,
     Helvetica,
     Arial,
+    var(--font-noto-georgian),
     sans-serif;
 }
 

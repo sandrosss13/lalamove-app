@@ -1,13 +1,12 @@
 "use client";
 
-import Link from "next/link";
-
 import {
   AuthHeading,
   AuthSubheading,
   Eyebrow,
   ModeToggle,
 } from "@/components/auth/auth-primitives";
+import { Link } from "@/i18n/navigation";
 import { ROLE_CARDS, type FlowMode, type FlowRole } from "@/lib/auth-flow";
 import { cn } from "@/lib/utils";
 

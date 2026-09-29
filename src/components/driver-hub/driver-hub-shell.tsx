@@ -1,12 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { usePathname } from "next/navigation";
 
 import {
   DriverHubHeader,
   DriverHubPageHead,
 } from "@/components/driver-hub/driver-hub-header";
+import { usePathname } from "@/i18n/navigation";
 import { DriverHubSidebar } from "@/components/driver-hub/driver-hub-sidebar";
 import {
   hubNavForAccount,

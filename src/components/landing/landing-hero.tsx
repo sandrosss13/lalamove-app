@@ -1,9 +1,8 @@
-import Link from "next/link";
-
 import {
   DEFAULT_HOME_PAGE_CONTENT,
   type HeroContent,
 } from "@/lib/admin/home-page-content";
+import { Link } from "@/i18n/navigation";
 
 /**
  * A hero CTA. The two buttons differ only in their skin, so the element choice

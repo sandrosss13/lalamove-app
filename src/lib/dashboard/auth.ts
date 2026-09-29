@@ -7,6 +7,7 @@ import { headers } from "next/headers";
 import { cache } from "react";
 import { redirect } from "next/navigation";
 
+import { localeHref } from "@/i18n/server";
 import { auth } from "@/lib/auth";
 
 /** Where a signed-out visitor to any `/dashboard` route is sent. */
@@ -58,18 +59,18 @@ export const requireDashboardSession = cache(
     const session = await auth.api.getSession({ headers: await headers() });
 
     if (!session) {
-      redirect(DASHBOARD_SIGN_IN_PATH);
+      redirect(await localeHref(DASHBOARD_SIGN_IN_PATH));
     }
 
     // A driver registered by a company starts on a temporary password that
     // whoever relayed it has also seen, so the reset gates every role.
     if (session.user.mustChangePassword) {
-      redirect(DASHBOARD_CHANGE_PASSWORD_PATH);
+      redirect(await localeHref(DASHBOARD_CHANGE_PASSWORD_PATH));
     }
 
     // Clients have nothing to do here — `/account` is theirs.
     if (session.user.role === "CLIENT") {
-      redirect(CLIENT_HOME_PATH);
+      redirect(await localeHref(CLIENT_HOME_PATH));
     }
 
     return session;

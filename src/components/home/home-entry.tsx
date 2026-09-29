@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
 
+import { useRouter } from "@/i18n/navigation";
 import { useSession } from "@/lib/auth-client";
 import { BookingForm } from "@/components/home/booking-form";
 import {

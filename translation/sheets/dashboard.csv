@@ -1,0 +1,52 @@
+﻿key,english,georgian,source
+dashboard.providerAccount,Provider account,,src/app/[locale]/dashboard/(hub)/layout.tsx
+dashboardAccount.accountDriverHub,Account · Driver Hub,,src/app/[locale]/dashboard/(hub)/account/page.tsx
+dashboardDrivers.driversDriverHub,Drivers · Driver Hub,,src/app/[locale]/dashboard/(hub)/drivers/page.tsx
+dashboardEmployees.employeesRolesDriverHub,Employees & roles · Driver Hub,,src/app/[locale]/dashboard/(hub)/employees/page.tsx
+dashboardJobs.jobHistoryDriverHub,Job history · Driver Hub,,src/app/[locale]/dashboard/(hub)/jobs/page.tsx
+dashboardJobs.jobSheetDriverHub,Job sheet · Driver Hub,,src/app/[locale]/dashboard/(hub)/jobs/[id]/page.tsx
+dashboardLoads.dashboardDriverHub,Dashboard · Driver Hub,,src/app/[locale]/dashboard/(hub)/loads/page.tsx
+dashboardPerformance.performanceDriverHub,Performance · Driver Hub,,src/app/[locale]/dashboard/(hub)/performance/page.tsx
+dashboardVehicles.vehiclesDriverHub,Vehicles · Driver Hub,,src/app/[locale]/dashboard/(hub)/vehicles/page.tsx
+earnings.last30Days,Last 30 days,,src/lib/dashboard/hub/earnings.ts
+earnings.lastWeek,Last week,,src/lib/dashboard/hub/earnings.ts
+earnings.thisMonth,This month,,src/lib/dashboard/hub/earnings.ts
+earnings.thisWeek,This week,,src/lib/dashboard/hub/earnings.ts
+sample.1Invited1Suspended,"1 invited, 1 suspended",,src/lib/dashboard/hub/sample.ts
+sample.1InvitePending,1 invite pending,,src/lib/dashboard/hub/sample.ts
+sample.1PtVsLastWeek,+1 pt vs last week,,src/lib/dashboard/hub/sample.ts
+sample.3MoreJobsBySundayFor,3 more jobs by Sunday for a ₾40 bonus.,,src/lib/dashboard/hub/sample.ts
+sample.3PtsVsLastWeek,+3 pts vs last week,,src/lib/dashboard/hub/sample.ts
+sample.acceptanceRate,Acceptance rate,,src/lib/dashboard/hub/sample.ts
+sample.accountantOnly,Accountant only,,src/lib/dashboard/hub/sample.ts
+sample.assignsJobsInsideTheirZones,Assigns jobs inside their zones,,src/lib/dashboard/hub/sample.ts
+sample.contract,Contract,,src/lib/dashboard/hub/sample.ts
+sample.criminalRecordExtract,Criminal record extract,,src/lib/dashboard/hub/sample.ts
+sample.declinesCountedOverTheLast100,Declines counted over the last 100 offers. Staying above 90% keeps priority matching.,,src/lib/dashboard/hub/sample.ts
+sample.driverLicenceGe,Driver licence (GE),,src/lib/dashboard/hub/sample.ts
+sample.eleneAbashidze,Elene Abashidze,,src/lib/dashboard/hub/sample.ts
+sample.fleetManagerDispatcherAccountantMechanic,"Fleet manager, dispatcher, accountant, mechanic",,src/lib/dashboard/hub/sample.ts
+sample.from61RatedJobsRatingsBelow,From 61 rated jobs. Ratings below 4.5 trigger a coaching review.,,src/lib/dashboard/hub/sample.ts
+sample.garage,Garage,,src/lib/dashboard/hub/sample.ts
+sample.highestInGldaniMovingToVake,Highest in Gldani. Moving to Vake between 09:00 and 11:00 cuts it by about a third.,,src/lib/dashboard/hub/sample.ts
+sample.idleTime,Idle time,,src/lib/dashboard/hub/sample.ts
+sample.irakliBeruashvili,Irakli Beruashvili,,src/lib/dashboard/hub/sample.ts
+sample.marikaDolidze,Marika Dolidze,,src/lib/dashboard/hub/sample.ts
+sample.newJobOfferVakeSaburtalo,New job offer · Vake → Saburtalo,,src/lib/dashboard/hub/sample.ts
+sample.openWorkOrders,Open work orders,,src/lib/dashboard/hub/sample.ts
+sample.ownJobsAndEarningsOnly,Own jobs and earnings only,,src/lib/dashboard/hub/sample.ts
+sample.parkingTolls,Parking & tolls,,src/lib/dashboard/hub/sample.ts
+sample.payoutAccounts,Payout accounts,,src/lib/dashboard/hub/sample.ts
+sample.payoutOf14260Sent,Payout of ₾142.60 sent,,src/lib/dashboard/hub/sample.ts
+sample.payoutsInvoicesAndTax,"Payouts, invoices and tax",,src/lib/dashboard/hub/sample.ts
+sample.serviceLog,Service log,,src/lib/dashboard/hub/sample.ts
+sample.serviceParts,Service & parts,,src/lib/dashboard/hub/sample.ts
+sample.shift,Shift,,src/lib/dashboard/hub/sample.ts
+sample.sopoKiknadze,Sopo Kiknadze,,src/lib/dashboard/hub/sample.ts
+sample.taxId,Tax ID,,src/lib/dashboard/hub/sample.ts
+sample.top15InTbilisi,Top 15% in Tbilisi,,src/lib/dashboard/hub/sample.ts
+sample.twoCancellationsThisWeekBothBefore,"Two cancellations this week, both before pickup. Above 5% pauses incentives.",,src/lib/dashboard/hub/sample.ts
+sample.vanoShengelia,Vano Shengelia,,src/lib/dashboard/hub/sample.ts
+sample.vehiclesAndDrivers,Vehicles and drivers,,src/lib/dashboard/hub/sample.ts
+sample.zones,Zones,,src/lib/dashboard/hub/sample.ts
+sample.zurabMaisuradze,Zurab Maisuradze,,src/lib/dashboard/hub/sample.ts

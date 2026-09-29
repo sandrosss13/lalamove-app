@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 
+import { Link } from "@/i18n/navigation";
 import { useSignOut } from "@/components/auth/use-sign-out";
 import { LandingThemeToggle } from "@/components/landing/landing-theme-toggle";
 import {

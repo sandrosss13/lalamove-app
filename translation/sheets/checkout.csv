@@ -1,0 +1,23 @@
+﻿key,english,georgian,source
+checkout.crew,Crew,,src/app/[locale]/checkout/[id]/page.tsx
+checkout.goods,Goods,,src/app/[locale]/checkout/[id]/page.tsx
+checkout.loadingAndUnloadingTimeBeyondThe,Loading and unloading time beyond the free allowance is settled after the delivery and is not part of this total.,,src/app/[locale]/checkout/[id]/page.tsx
+checkout.loadSpace,Load space,,src/app/[locale]/checkout/[id]/page.tsx
+checkout.notes,Notes,,src/app/[locale]/checkout/[id]/page.tsx
+checkout.reviewAndPay,Review and pay,,src/app/[locale]/checkout/[id]/page.tsx
+checkout.yourDelivery,Your delivery,,src/app/[locale]/checkout/[id]/page.tsx
+checkoutPaymentPanel.chooseAPaymentMethodToContinue,Choose a payment method to continue.,,src/app/[locale]/checkout/checkout-payment-panel.tsx
+checkoutPaymentPanel.chooseHowYouWouldLikeTo,Choose how you would like to settle this delivery.,,src/app/[locale]/checkout/checkout-payment-panel.tsx
+checkoutPaymentPanel.eGPo20260184,e.g. PO-2026-0184,,src/app/[locale]/checkout/checkout-payment-panel.tsx
+checkoutPaymentPanel.nothingIsChargedNowNoPayment,Nothing is charged now — no payment provider is connected yet.,,src/app/[locale]/checkout/checkout-payment-panel.tsx
+checkoutPaymentPanel.optionalAppearsOnYourOrderRecord,Optional. Appears on your order record for your own finance team.,,src/app/[locale]/checkout/checkout-payment-panel.tsx
+checkoutPaymentPanel.payLater,Pay later,,src/app/[locale]/checkout/checkout-payment-panel.tsx
+checkoutPaymentPanel.payLaterSettleAfterTheDelivery,Pay later — settle after the delivery,,src/app/[locale]/checkout/checkout-payment-panel.tsx
+checkoutPaymentPanel.poOrCostCentreReference,PO or cost-centre reference,,src/app/[locale]/checkout/checkout-payment-panel.tsx
+checkoutPaymentPanel.settleAfterTheDelivery,Settle after the delivery,,src/app/[locale]/checkout/checkout-payment-panel.tsx
+checkoutShell.backToYourOrders,Back to your orders,,src/app/[locale]/checkout/checkout-shell.tsx
+checkoutShell.checkout,Checkout,,src/app/[locale]/checkout/checkout-shell.tsx
+checkoutSuccess.trackThisDelivery,Track this delivery,,src/app/[locale]/checkout/[id]/success/page.tsx
+checkoutSuccess.viewYourOrders,View your orders,,src/app/[locale]/checkout/[id]/success/page.tsx
+checkoutSuccess.yourDeliveryIsBooked,Your delivery is booked,,src/app/[locale]/checkout/[id]/success/page.tsx
+checkoutSuccess.youReAllSet,You’re all set,,src/app/[locale]/checkout/[id]/success/page.tsx

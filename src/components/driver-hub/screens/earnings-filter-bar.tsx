@@ -1,13 +1,14 @@
 "use client";
 
 import * as React from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 
 import {
   FilterStrip,
   HubCard,
   type FilterStripItem,
 } from "@/components/driver-hub/hub-primitives";
+import { usePathname, useRouter } from "@/i18n/navigation";
 import { EarningsExportButton } from "@/components/driver-hub/screens/earnings-export-button";
 import { Input } from "@/components/ui/input";
 import type {

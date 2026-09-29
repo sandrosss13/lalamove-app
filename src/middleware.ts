@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import createIntlMiddleware from "next-intl/middleware";
 
 import {
   adminOrigin,
@@ -8,6 +9,19 @@ import {
   IS_HOST_SPLIT_ENABLED,
   merchantOrigin,
 } from "@/lib/host";
+import { routing, splitLocalePrefix, withLocalePrefix } from "@/i18n/routing";
+
+/**
+ * Locale negotiation: matches `/ka/**` and `/en/**`, redirects an unprefixed
+ * path to the visitor's locale (cookie, then `Accept-Language`, then Georgian)
+ * and writes the `NEXT_LOCALE` cookie so the choice sticks.
+ *
+ * It runs *after* the host gate below, never before. Both layers redirect, and
+ * the host gate's decisions are the coarser of the two: bouncing to another
+ * origin first means the locale is negotiated once, at the destination, instead
+ * of being resolved on a host that is about to hand the request away anyway.
+ */
+const intlMiddleware = createIntlMiddleware(routing);
 
 /**
  * Paths that only make sense on the merchant host, matched as a prefix (the
@@ -58,9 +72,7 @@ function isAdminOnly(pathname: string): boolean {
 }
 
 /**
- * Paths that must keep working on the admin host even though they live outside
- * `/admin`, and so are exempt from the "admin host serves only `/admin`"
- * redirect below:
+ * Paths this gate does not classify at all — neither by host nor by locale:
  *
  * - `/api/**` — the admin sign-in page posts to Better Auth's own
  *   `/api/auth/**` endpoints same-origin, so bouncing these to the client host
@@ -70,15 +82,21 @@ function isAdminOnly(pathname: string): boolean {
  *   traffic. The `config.matcher` below already excludes the static/image
  *   subsets, but not these.
  *
+ * Originally this list existed only to exempt those paths from the "admin host
+ * serves only `/admin`" redirect. It now carries a second, heavier job: these
+ * are the paths that must never be locale-prefixed. `/api/**` in particular is
+ * one flat namespace shared by both languages — route handlers resolve the
+ * reader's locale from the `NEXT_LOCALE` cookie, not from their URL — so
+ * letting the locale layer see them would have it redirect every fetch the app
+ * makes to `/ka/api/...`, where nothing is mounted.
+ *
  * Matched with `startsWith` rather than `matchesPrefix` because the dev-only
  * endpoints (`/__nextjs_original-stack-frame`, …) are not path segments.
  */
-const ADMIN_HOST_PASSTHROUGH_PREFIXES = ["/api/", "/_next/", "/__next"];
+const PASSTHROUGH_PREFIXES = ["/api/", "/_next/", "/__next"];
 
-function isAdminHostPassthrough(pathname: string): boolean {
-  return ADMIN_HOST_PASSTHROUGH_PREFIXES.some((prefix) =>
-    pathname.startsWith(prefix),
-  );
+function isPassthrough(pathname: string): boolean {
+  return PASSTHROUGH_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
 
 function isClientOnly(pathname: string): boolean {
@@ -90,20 +108,34 @@ function isClientOnly(pathname: string): boolean {
 
 /**
  * Host gate for the merchant/client split and for the admin back office's own
- * host (see `src/lib/host.ts` for the full design rationale). Pure routing: it
- * never inspects role or session — every route's real authorization stays in
- * its own server component / API route handler, untouched by this file. The
- * back office in particular is gated by `requireSystemUser()` in
- * `src/app/admin/layout.tsx`, not here.
+ * host (see `src/lib/host.ts` for the full design rationale), plus locale
+ * negotiation for the `/ka` and `/en` prefixes. Pure routing: it never inspects
+ * role or session — every route's real authorization stays in its own server
+ * component / API route handler, untouched by this file. The back office in
+ * particular is gated by `requireSystemUser()` in
+ * `src/app/[locale]/admin/layout.tsx`, not here.
  *
- * The two splits are layered independently, each a no-op while its own env var
- * is unset (`NEXT_PUBLIC_MERCHANT_HOST` / `NEXT_PUBLIC_ADMIN_HOST`) — both
+ * The two host splits are layered independently, each a no-op while its own env
+ * var is unset (`NEXT_PUBLIC_MERCHANT_HOST` / `NEXT_PUBLIC_ADMIN_HOST`) — both
  * unset, the default, is a zero-behavior-change state.
  *
- * Everything not classified below passes through on both hosts — notably all
- * of `/api/*` (Better Auth's own `/api/auth/*` endpoints must be reachable
- * from both origins), `/sign-in`, `/sign-up`, `/change-password` and
- * `/orders/[id]/track`.
+ * ORDER OF OPERATIONS, and it matters:
+ *
+ * 1. Passthrough traffic (`/api/**`, `/_next/**`) leaves immediately, seen by
+ *    neither layer.
+ * 2. The locale prefix is split off the path. Every classification below runs
+ *    on the remainder, so `CLIENT_ONLY_EXACT`, `CLIENT_ONLY_PREFIXES`,
+ *    `MERCHANT_ONLY_PREFIXES` and `ADMIN_ONLY_PREFIXES` are still written as
+ *    plain unprefixed paths and still match `/ka/...` and `/en/...`.
+ * 3. The host gate runs and may redirect to another origin, re-attaching the
+ *    prefix so the reader keeps their language across the bounce.
+ * 4. Whatever stays on this host is handed to `intlMiddleware`, which serves
+ *    the matched route or redirects an unprefixed path into a locale.
+ *
+ * Everything not classified below reaches the locale layer on both hosts —
+ * notably `/sign-in`, `/sign-up`, `/change-password` and `/orders/[id]/track`.
+ * `/api/*` (Better Auth's own `/api/auth/*` endpoints must be reachable from
+ * both origins) leaves at step 1 and is never prefixed at all.
  *
  * Redirects (rather than rewrites or 404s) because two `page.tsx` files can't
  * resolve the same path, and because a stale bookmark or shared cross-host
@@ -136,21 +168,52 @@ export function middleware(request: NextRequest) {
   const host =
     request.headers.get("x-forwarded-host") ?? request.headers.get("host");
   const audience = audienceForHost(host);
-  const { pathname, search } = request.nextUrl;
+  const { search } = request.nextUrl;
+
+  // API, asset and RSC traffic leaves before either layer looks at it. Hoisted
+  // out of the `audience === "ADMIN"` branch it used to live in: the check is
+  // now about locales as much as hosts (see `PASSTHROUGH_PREFIXES`), and it has
+  // to apply on all three hosts rather than one. Behaviour on the client and
+  // merchant hosts is unchanged — none of these paths matched any of the
+  // classifications below, so they already fell through to `next()`.
+  if (isPassthrough(request.nextUrl.pathname)) {
+    return NextResponse.next();
+  }
+
+  // Everything from here down is classified on the *unprefixed* path, which is
+  // what lets the lists above stay written the way they always were:
+  // `CLIENT_ONLY_EXACT` is still `["/", "/home", "/orders"]` and still matches
+  // `/ka/home`. `locale` is null for a path that has not been through locale
+  // negotiation yet — an external link, a bookmark from before this shipped —
+  // and `intlMiddleware` is what redirects those.
+  const { locale, pathname } = splitLocalePrefix(request.nextUrl.pathname);
+
+  /**
+   * Re-attaches the prefix the request arrived with to a cross-host redirect,
+   * so bouncing a reader between hosts never changes their language. Without
+   * this, an English reader following `/en/dashboard` on the client host would
+   * land on the merchant host at `/dashboard` and be re-negotiated back into
+   * Georgian by its own middleware.
+   */
+  const crossHost = (origin: string) =>
+    NextResponse.redirect(
+      new URL(
+        `${locale ? withLocalePrefix(locale, pathname) : pathname}${search}`,
+        origin,
+      ),
+    );
 
   // The admin host serves the back office and nothing else: anything that
-  // isn't `/admin/**` or infrastructure traffic goes back to the client host,
-  // so a stray link never renders the customer-facing app on an internal
-  // hostname. Only reachable when `NEXT_PUBLIC_ADMIN_HOST` is set —
-  // `audienceForHost` cannot return "ADMIN" otherwise.
+  // isn't `/admin/**` goes back to the client host, so a stray link never
+  // renders the customer-facing app on an internal hostname. Only reachable
+  // when `NEXT_PUBLIC_ADMIN_HOST` is set — `audienceForHost` cannot return
+  // "ADMIN" otherwise.
   if (audience === "ADMIN") {
-    if (isAdminOnly(pathname) || isAdminHostPassthrough(pathname)) {
-      return NextResponse.next();
+    if (isAdminOnly(pathname)) {
+      return intlMiddleware(request);
     }
 
-    return NextResponse.redirect(
-      new URL(`${pathname}${search}`, clientOrigin()),
-    );
+    return crossHost(clientOrigin());
   }
 
   // Mirror image: `/admin` asked for on the client or merchant host while the
@@ -159,28 +222,29 @@ export function middleware(request: NextRequest) {
   if (IS_ADMIN_HOST_ENABLED && isAdminOnly(pathname)) {
     const origin = adminOrigin();
     if (origin) {
-      return NextResponse.redirect(new URL(`${pathname}${search}`, origin));
+      return crossHost(origin);
     }
   }
 
   if (!IS_HOST_SPLIT_ENABLED) {
-    return NextResponse.next();
+    return intlMiddleware(request);
   }
 
   if (audience === "CLIENT" && isMerchantOnly(pathname)) {
     const origin = merchantOrigin();
     if (origin) {
-      return NextResponse.redirect(new URL(`${pathname}${search}`, origin));
+      return crossHost(origin);
     }
   }
 
   if (audience === "MERCHANT" && isClientOnly(pathname)) {
-    return NextResponse.redirect(
-      new URL(`${pathname}${search}`, clientOrigin()),
-    );
+    return crossHost(clientOrigin());
   }
 
-  return NextResponse.next();
+  // No host redirect applies, so the request is staying here: hand it to the
+  // locale layer, which either serves the matched `/[locale]/**` route or
+  // redirects an unprefixed path to the reader's language.
+  return intlMiddleware(request);
 }
 
 export const config = {

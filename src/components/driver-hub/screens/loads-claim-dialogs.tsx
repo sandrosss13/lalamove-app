@@ -1,12 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
 
 import {
   useLoadsBoard,
   type HubLoad,
 } from "@/components/driver-hub/screens/loads-context";
+import { useRouter } from "@/i18n/navigation";
 import { LoadsDispatchDialog } from "@/components/driver-hub/screens/loads-dispatch-dialog";
 import {
   EM_DASH,

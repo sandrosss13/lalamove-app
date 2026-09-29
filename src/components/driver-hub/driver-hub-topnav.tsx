@@ -1,9 +1,8 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 
+import { Link, usePathname } from "@/i18n/navigation";
 import { useSignOut } from "@/components/auth/use-sign-out";
 import type {
   HubNavItem,

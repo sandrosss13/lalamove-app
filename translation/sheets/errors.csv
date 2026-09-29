@@ -1,0 +1,164 @@
+﻿key,english,georgian,source
+adminBusinessApplicationsActivate.atLeastOneVehicleMustBe,At least one vehicle must be approved before activating the fleet.,,src/app/api/admin/business-applications/[id]/activate/route.ts
+adminBusinessApplicationsActivate.thisApplicationIsStillWaitingOn,This application is still waiting on the company to resubmit.,,src/app/api/admin/business-applications/[id]/activate/route.ts
+adminBusinessApplicationsActivate.verifyTheCompanySDetailsBefore,Verify the company's details before activating the fleet.,,src/app/api/admin/business-applications/[id]/activate/route.ts
+adminBusinessApplicationsCompany.aReasonIsRequiredToFlag,A reason is required to flag the company's details.,,src/app/api/admin/business-applications/[id]/company/route.ts
+adminBusinessApplicationsCompany.thatIsNotOneOfThe,That is not one of the company flag reasons.,,src/app/api/admin/business-applications/[id]/company/route.ts
+adminBusinessApplicationsRequestChanges.changesHaveAlreadyBeenRequestedOn,Changes have already been requested on this application.,,src/app/api/admin/business-applications/[id]/request-changes/route.ts
+adminBusinessApplicationsRequestChanges.flagTheCompanySDetailsOr,Flag the company's details or at least one vehicle before requesting changes.,,src/app/api/admin/business-applications/[id]/request-changes/route.ts
+adminBusinessApplicationsVehicles.aReasonIsRequiredToFlag,A reason is required to flag a vehicle.,,src/app/api/admin/business-applications/[id]/vehicles/[vehicleId]/route.ts
+adminBusinessApplicationsVehicles.thatIsNotOneOfThe,That is not one of the vehicle flag reasons.,,src/app/api/admin/business-applications/[id]/vehicles/[vehicleId]/route.ts
+adminBusinessApplicationsVehicles.vehicleNotFoundOnThisApplication,Vehicle not found on this application.,,src/app/api/admin/business-applications/[id]/vehicles/[vehicleId]/route.ts
+adminContentBanners.bannerNotFound,Banner not found.,,src/app/api/admin/content/banners/[id]/route.ts
+adminContentBanners.imageurlIsRequiredAndMustBe,imageUrl is required and must be a non-empty string.,,src/app/api/admin/content/banners/route.ts
+adminContentBanners.imageurlMustBeANonEmpty,imageUrl must be a non-empty string.,,src/app/api/admin/content/banners/[id]/route.ts
+adminContentBanners.placementIsRequiredAndMustBe,placement is required and must be a non-empty string.,,src/app/api/admin/content/banners/route.ts
+adminContentBanners.placementMustBeANonEmpty,placement must be a non-empty string.,,src/app/api/admin/content/banners/[id]/route.ts
+adminContentBanners.titleMustBeANonEmpty,title must be a non-empty string.,,src/app/api/admin/content/banners/[id]/route.ts
+adminContentHomePageSections.homePageSectionNotFound,Home page section not found.,,src/app/api/admin/content/home-page-sections/[id]/route.ts
+adminContentHomePageSections.typeIsRequiredAndMustBe,type is required and must be a string.,,src/app/api/admin/content/home-page-sections/route.ts
+adminContentHomePageSections.typeMustBeAString,type must be a string.,,src/app/api/admin/content/home-page-sections/[id]/route.ts
+adminContentMessagingTemplates.bodyIsRequiredAndMustBe,body is required and must be a non-empty string.,,src/app/api/admin/content/messaging-templates/route.ts
+adminContentMessagingTemplates.bodyMustBeANonEmpty,body must be a non-empty string.,,src/app/api/admin/content/messaging-templates/[id]/route.ts
+adminContentMessagingTemplates.isactiveMustBeABooleanWhen,isActive must be a boolean when provided.,,src/app/api/admin/content/messaging-templates/route.ts
+adminContentMessagingTemplates.keyMustBeANonEmpty,key must be a non-empty string.,,src/app/api/admin/content/messaging-templates/[id]/route.ts
+adminContentMessagingTemplates.subjectMustBeAStringWhen,subject must be a string when provided.,,src/app/api/admin/content/messaging-templates/route.ts
+adminContentMessagingTemplates.thatMessagingTemplateWasNotFound,That messaging template was not found.,,src/app/api/admin/content/messaging-templates/[id]/route.ts
+adminContentPages.pageNotFound,Page not found.,,src/app/api/admin/content/pages/[id]/route.ts
+adminContentTranslations.namespaceIsRequiredAndMustBe,namespace is required and must be a non-empty string.,,src/app/api/admin/content/translations/route.ts
+adminContentTranslations.translationEntryNotFound,Translation entry not found.,,src/app/api/admin/content/translations/[id]/route.ts
+adminContentTranslations.valueenIsRequiredAndMustBe,valueEn is required and must be a non-empty string.,,src/app/api/admin/content/translations/route.ts
+adminContentTranslations.valueIsRequiredAndMustBe,value is required and must be a non-empty string.,,src/app/api/admin/content/translations/[id]/route.ts
+adminContentTranslations.valuekaIsRequiredAndMustBe,valueKa is required and must be a non-empty string.,,src/app/api/admin/content/translations/route.ts
+adminContentVehiclePhotos.vehicleTypeNotFound,Vehicle type not found.,,src/app/api/admin/content/vehicle-photos/[id]/route.ts
+adminDriverApplicationsApprove.everyDocumentMustBeApprovedFirst,Every document must be approved first.,,src/app/api/admin/driver-applications/[id]/approve/route.ts
+adminDriverApplicationsApprove.thisApplicationIsStillWaitingOn,This application is still waiting on the driver to resubmit.,,src/app/api/admin/driver-applications/[id]/approve/route.ts
+adminDriverApplicationsApprove.thisApplicationNoLongerHasA,This application no longer has a vehicle on file and can't be approved.,,src/app/api/admin/driver-applications/[id]/approve/route.ts
+adminDriverApplicationsDocuments.aReasonIsRequiredToFlag,A reason is required to flag a document.,,src/app/api/admin/driver-applications/[id]/documents/[docId]/route.ts
+adminDriverApplicationsDocuments.documentNotFound,Document not found.,,src/app/api/admin/driver-applications/[id]/documents/[docId]/route.ts
+adminDriverApplicationsRequestChanges.flagAtLeastOneDocumentBefore,Flag at least one document before requesting changes.,,src/app/api/admin/driver-applications/[id]/request-changes/route.ts
+adminFinancePaymentMethods.configMustBeAJsonObject,config must be a JSON object.,,src/app/api/admin/finance/payment-methods/[type]/route.ts
+adminFinancePaymentMethods.isenabledIsRequiredAndMustBe,isEnabled is required and must be a boolean.,,src/app/api/admin/finance/payment-methods/[type]/route.ts
+adminFinancePaymentMethods.unknownPaymentMethod,Unknown payment method.,,src/app/api/admin/finance/payment-methods/[type]/route.ts
+adminFinancePromoCampaigns.campaignNotFound,Campaign not found.,,src/app/api/admin/finance/promo-campaigns/[id]/route.ts
+adminFinancePromoCampaigns.codeIsRequired,code is required.,,src/app/api/admin/finance/promo-campaigns/route.ts
+adminFinancePromoCampaigns.codeMustBeAString,code must be a string.,,src/app/api/admin/finance/promo-campaigns/[id]/route.ts
+adminFinancePromoCampaigns.thisCampaignHasAlreadyBeenRedeemed,This campaign has already been redeemed and cannot be deleted. Deactivate it instead.,,src/app/api/admin/finance/promo-campaigns/[id]/route.ts
+adminFinancePromoCampaigns.usagelimitMustBeAWholeNumber,"usageLimit must be a whole number of 1 or more, or omitted.",,src/app/api/admin/finance/promo-campaigns/route.ts
+adminUsersSuspend.staffAccountsAreManagedUnderSystem,Staff accounts are managed under System Users.,,src/app/api/admin/users/[userId]/suspend/route.ts
+adminUsersSystem.couldNotCreateThisSystemUser,Could not create this system user. Please try again.,,src/app/api/admin/users/system/route.ts
+adminUsersSystem.nameIsRequiredAndMustBe,name is required and must be a non-empty string.,,src/app/api/admin/users/system/route.ts
+adminUsersSystem.youDoNotHaveAccessTo,You do not have access to this action.,,src/app/api/admin/users/system/route.ts
+adminUsersSystemDeactivate.onlyASuperAdminCanDeactivate,Only a super admin can deactivate system users.,,src/app/api/admin/users/system/[userId]/deactivate/route.ts
+adminUsersSystemDeactivate.youCannotDeactivateYourOwnAccount,You cannot deactivate your own account.,,src/app/api/admin/users/system/[userId]/deactivate/route.ts
+adminUsersSystemReactivate.onlyASuperAdminCanReactivate,Only a super admin can reactivate system users.,,src/app/api/admin/users/system/[userId]/reactivate/route.ts
+adminUsersSystemReactivate.youCannotChangeYourOwnAccount,You cannot change your own account's status.,,src/app/api/admin/users/system/[userId]/reactivate/route.ts
+clientProfile.dateofbirthCannotBeInTheFuture,dateOfBirth cannot be in the future.,,src/app/api/client-profile/route.ts
+clientProfile.dateofbirthMustBeAnIsoDate,dateOfBirth must be an ISO date string.,,src/app/api/client-profile/route.ts
+clientProfile.dateofbirthMustBeAValidDate,dateOfBirth must be a valid date.,,src/app/api/client-profile/route.ts
+clientProfile.onlyClientsCanCreateAClient,Only clients can create a client profile.,,src/app/api/client-profile/route.ts
+clientProfile.onlyClientsHaveAClientProfile,Only clients have a client profile.,,src/app/api/client-profile/route.ts
+dashboardHubDriversAvailability.thisAccountCannotReadAFleet,This account cannot read a fleet roster.,,src/app/api/dashboard/hub/drivers/availability/route.ts
+dashboardHubDriversAvailabilityExport.thisAccountCannotExportAFleet,This account cannot export a fleet roster.,,src/app/api/dashboard/hub/drivers/availability/export/route.ts
+dashboardHubEarningsExport.thisAccountCannotExportDriverEarnings,This account cannot export driver earnings.,,src/app/api/dashboard/hub/earnings/export/route.ts
+driverProfile.onlyDriversCanCreateADriver,Only drivers can create a driver profile.,,src/app/api/driver-profile/route.ts
+driverProfile.onlyDriversHaveADriverProfile,Only drivers have a driver profile.,,src/app/api/driver-profile/route.ts
+driverProfile.yourAccountTypeCanTBe,Your account type can't be changed here.,,src/app/api/driver-profile/route.ts
+driverProfileLocation.completeYourDriverProfileBeforeSharing,Complete your driver profile before sharing location.,,src/app/api/driver-profile/location/route.ts
+driverProfileLocation.latAndLngMustBeValid,lat and lng must be valid coordinates.,,src/app/api/driver-profile/location/route.ts
+driverProfileLocation.onlyDriversCanUpdateLocation,Only drivers can update location.,,src/app/api/driver-profile/location/route.ts
+driverProfileOnboarding.aSubmittedApplicationCanNoLonger,A submitted application can no longer be edited.,,src/app/api/driver-profile/onboarding/route.ts
+driverProfileOnboardingDocuments.anotherUploadForThisDocumentIs,Another upload for this document is still finishing.,,src/app/api/driver-profile/onboarding/documents/route.ts
+driverProfileOnboardingDocuments.pathIsRequiredAndMustBe,path is required and must be a non-empty string.,,src/app/api/driver-profile/onboarding/documents/route.ts
+driverProfileOnboardingDocuments.thatUploadDoesNotBelongTo,That upload does not belong to this application.,,src/app/api/driver-profile/onboarding/documents/route.ts
+driverProfileOnboardingSubmit.licenceBackPhoto,licence back photo,,src/app/api/driver-profile/onboarding/submit/route.ts
+driverProfileOnboardingSubmit.licenceFrontPhoto,licence front photo,,src/app/api/driver-profile/onboarding/submit/route.ts
+driverProfileOnboardingSubmit.profilePhoto,profile photo,,src/app/api/driver-profile/onboarding/submit/route.ts
+driverProfileStatus.completeYourDriverProfileBeforeGoing,Complete your driver profile before going online.,,src/app/api/driver-profile/status/route.ts
+driverProfileStatus.isonlineMustBeABoolean,isOnline must be a boolean.,,src/app/api/driver-profile/status/route.ts
+driverProfileStatus.onlyDriversCanUpdateOnlineStatus,Only drivers can update online status.,,src/app/api/driver-profile/status/route.ts
+driverProfileStatus.yourAccountIsnTApprovedYet,Your account isn't approved yet. Finish onboarding to go online.,,src/app/api/driver-profile/status/route.ts
+driverProfileVehicles.completeYourDriverProfileBeforeAdding,Complete your driver profile before adding a vehicle.,,src/app/api/driver-profile/vehicles/route.ts
+driverProfileVehicles.driversWhoBelongToACompany,Drivers who belong to a company drive their employer's vehicles. Ask your fleet manager to add this vehicle and assign it to you.,,src/app/api/driver-profile/vehicles/route.ts
+driverProfileVehicles.onlyDriversCanAddVehicles,Only drivers can add vehicles.,,src/app/api/driver-profile/vehicles/route.ts
+driverProfileVehicles.onlyDriversCanEditVehicles,Only drivers can edit vehicles.,,src/app/api/driver-profile/vehicles/[id]/route.ts
+driverProfileVehicles.onlyDriversCanRemoveVehicles,Only drivers can remove vehicles.,,src/app/api/driver-profile/vehicles/[id]/route.ts
+driverProfileVehicles.onlyDriversHaveVehicles,Only drivers have vehicles.,,src/app/api/driver-profile/vehicles/route.ts
+guard.onlyDriversCanUploadOnboardingDocuments,Only drivers can upload onboarding documents.,,src/app/api/driver-profile/onboarding/documents/guard.ts
+loads.onlyDriversAndLogisticsCompaniesCan,Only drivers and logistics companies can view the load board.,,src/app/api/loads/route.ts
+loadsReject.driverProfileNotFound,Driver profile not found.,,src/app/api/loads/[id]/reject/route.ts
+loadsReject.loadNotFound,Load not found.,,src/app/api/loads/[id]/reject/route.ts
+loadsReject.onlyDriversAndLogisticsCompaniesCan,Only drivers and logistics companies can use the load board.,,src/app/api/loads/[id]/reject/route.ts
+loadsReject.thisLoadIsNoLongerOpen,This load is no longer open.,,src/app/api/loads/[id]/reject/route.ts
+logisticsCompany.citiesofoperationMustBeAnArrayWith,citiesOfOperation must be an array with at least one city.,,src/app/api/logistics-company/route.ts
+logisticsCompany.contactemailMustBeAValidEmail,contactEmail must be a valid email address.,,src/app/api/logistics-company/route.ts
+logisticsCompany.contactnameMustBeAFullName,contactName must be a full name — a first name and a surname.,,src/app/api/logistics-company/route.ts
+logisticsCompany.contactroleIsRequiredAndMustBe,contactRole is required and must be a non-empty string.,,src/app/api/logistics-company/route.ts
+logisticsCompany.onlyLogisticsCompaniesCanCreateA,Only logistics companies can create a company profile.,,src/app/api/logistics-company/route.ts
+logisticsCompany.onlyLogisticsCompaniesHaveACompany,Only logistics companies have a company profile.,,src/app/api/logistics-company/route.ts
+logisticsCompany.registeredaddressIsRequiredAndMustBe,registeredAddress is required and must be a non-empty string.,,src/app/api/logistics-company/route.ts
+logisticsCompany.vatidMustBeExactly9Digits,vatId must be exactly 9 digits.,,src/app/api/logistics-company/route.ts
+logisticsCompanyDrivers.onlyLogisticsCompaniesCanRemoveDrivers,Only logistics companies can remove drivers.,,src/app/api/logistics-company/drivers/[userId]/route.ts
+logisticsCompanyDrivers.onlyLogisticsCompaniesHaveADriver,Only logistics companies have a driver roster.,,src/app/api/logistics-company/drivers/route.ts
+logisticsCompanyDriversRegister.completeYourCompanyProfileBeforeRegistering,Complete your company profile before registering drivers.,,src/app/api/logistics-company/drivers/register/route.ts
+logisticsCompanyDriversRegister.licencecategoriesMustBeAnArrayWith,licenceCategories must be an array with at least one category.,,src/app/api/logistics-company/drivers/register/route.ts
+logisticsCompanyDriversRegister.licenceexpiresatMustBeAValidIso,licenceExpiresAt must be a valid ISO date.,,src/app/api/logistics-company/drivers/register/route.ts
+logisticsCompanyDriversRegister.licencenumberIsRequiredAndMustBe,licenceNumber is required and must be a non-empty string.,,src/app/api/logistics-company/drivers/register/route.ts
+logisticsCompanyDriversRegister.onlyLogisticsCompaniesCanRegisterDrivers,Only logistics companies can register drivers.,,src/app/api/logistics-company/drivers/register/route.ts
+logisticsCompanyDriversRegister.thatVehicleWasNotFoundIn,That vehicle was not found in your fleet.,,src/app/api/logistics-company/drivers/register/route.ts
+logisticsCompanyDriversRegister.theDriverAccountWasCreatedBut,"The driver account was created, but finishing setup failed. Contact support before retrying with the same email.",,src/app/api/logistics-company/drivers/register/route.ts
+logisticsCompanyDriversRegister.theLicenceExpiryDateMustBe,The licence expiry date must be in the future.,,src/app/api/logistics-company/drivers/register/route.ts
+logisticsCompanyDriversRegister.thisVehicleIsAlreadyAssignedTo,This vehicle is already assigned to another driver.,,src/app/api/logistics-company/drivers/register/route.ts
+logisticsCompanyDriversRegister.vehicleidMustBeAStringWhen,vehicleId must be a string when provided.,,src/app/api/logistics-company/drivers/register/route.ts
+logisticsCompanyOnboarding.anApplicationUnderReviewCanNo,An application under review can no longer be edited.,,src/app/api/logistics-company/onboarding/route.ts
+logisticsCompanyOnboarding.draftVehiclesMustBeAnArray,draft.vehicles must be an array.,,src/app/api/logistics-company/onboarding/route.ts
+logisticsCompanyOnboardingSubmit.correctTheFlaggedCompanyDetailsBefore,Correct the flagged company details before resubmitting.,,src/app/api/logistics-company/onboarding/submit/route.ts
+logisticsCompanyOnboardingVehicles.thisApplicationIsnTOpenFor,This application isn't open for corrections.,,src/app/api/logistics-company/onboarding/vehicles/[vehicleId]/route.ts
+logisticsCompanyOnboardingVehicles.thisVehicleWasnTFlaggedFor,This vehicle wasn't flagged for correction.,,src/app/api/logistics-company/onboarding/vehicles/[vehicleId]/route.ts
+logisticsCompanyOnboardingVehicles.weCouldnTSaveThisVehicle,We couldn't save this vehicle. Please try again.,,src/app/api/logistics-company/onboarding/vehicles/[vehicleId]/route.ts
+logisticsCompanyOrdersCancel.onlyLogisticsCompaniesCanCancelDeliveries,Only logistics companies can cancel deliveries.,,src/app/api/logistics-company/orders/[id]/cancel/route.ts
+logisticsCompanyOrdersCancel.thisDeliveryCanNoLongerBe,This delivery can no longer be cancelled.,,src/app/api/logistics-company/orders/[id]/cancel/route.ts
+logisticsCompanyOrdersClaim.noneOfYourFleetSEligible,None of your fleet's eligible vehicles can carry this load's cargo — it exceeds the weight or size limit.,,src/app/api/logistics-company/orders/[id]/claim/route.ts
+logisticsCompanyOrdersClaim.onlyLogisticsCompaniesCanClaimDeliveries,Only logistics companies can claim deliveries.,,src/app/api/logistics-company/orders/[id]/claim/route.ts
+logisticsCompanyOrdersClaim.yourFleetHasNoVehicleBig,"Your fleet has no vehicle big enough for the vehicle class this delivery was booked as, in the load space it needs.",,src/app/api/logistics-company/orders/[id]/claim/route.ts
+logisticsCompanyVehicles.completeYourCompanyProfileBeforeAdding,Complete your company profile before adding a vehicle.,,src/app/api/logistics-company/vehicles/route.ts
+logisticsCompanyVehicles.onlyLogisticsCompaniesCanAddFleet,Only logistics companies can add fleet vehicles.,,src/app/api/logistics-company/vehicles/route.ts
+logisticsCompanyVehicles.onlyLogisticsCompaniesCanRemoveFleet,Only logistics companies can remove fleet vehicles.,,src/app/api/logistics-company/vehicles/[id]/route.ts
+logisticsCompanyVehicles.onlyLogisticsCompaniesHaveAFleet,Only logistics companies have a fleet.,,src/app/api/logistics-company/vehicles/route.ts
+logisticsCompanyVehicles.vehicletypecodeDoesNotMatchAKnown,vehicleTypeCode does not match a known vehicle type.,,src/app/api/logistics-company/vehicles/route.ts
+logisticsCompanyVehiclesAssignment.onlyLogisticsCompaniesCanAssignVehicles,Only logistics companies can assign vehicles.,,src/app/api/logistics-company/vehicles/[id]/assignment/route.ts
+logisticsCompanyVehiclesAssignment.onlyLogisticsCompaniesCanUnassignVehicles,Only logistics companies can unassign vehicles.,,src/app/api/logistics-company/vehicles/[id]/assignment/route.ts
+logisticsCompanyVehiclesAssignment.thisVehicleHasNoActiveAssignment,This vehicle has no active assignment.,,src/app/api/logistics-company/vehicles/[id]/assignment/route.ts
+orders.deliverydeadlineMustBeAfterPickupwindowend,deliveryDeadline must be after pickupWindowEnd.,,src/app/api/orders/route.ts
+orders.descriptionMustBeAStringWhen,description must be a string when provided.,,src/app/api/orders/route.ts
+orders.failedToDrawAnOrderReference,Failed to draw an order reference from the sequence.,,src/app/api/orders/route.ts
+orders.handlingtagsMustBeAnArrayWhen,handlingTags must be an array when provided.,,src/app/api/orders/route.ts
+orders.pickupwindowendMustBeAfterPickupwindowstart,pickupWindowEnd must be after pickupWindowStart.,,src/app/api/orders/route.ts
+orders.scheduledatCannotBeInThePast,scheduledAt cannot be in the past.,,src/app/api/orders/route.ts
+orders.scheduledatIsRequired,scheduledAt is required.,,src/app/api/orders/route.ts
+orders.scheduledatMustBeAValidDate,scheduledAt must be a valid date and time.,,src/app/api/orders/route.ts
+orders.thatVehicleDoesNotOfferThe,That vehicle does not offer the load space you selected.,,src/app/api/orders/route.ts
+ordersAccept.onlyDriversCanAcceptDeliveries,Only drivers can accept deliveries.,,src/app/api/orders/[id]/accept/route.ts
+ordersAccept.thisVehicleCanTCarryThis,This vehicle can't carry this load's cargo — it exceeds the weight or size limit.,,src/app/api/orders/[id]/accept/route.ts
+ordersAccept.thisVehicleDoesnTOfferThe,This vehicle doesn't offer the load space this delivery needs.,,src/app/api/orders/[id]/accept/route.ts
+ordersAccept.thisVehicleIsSmallerThanThe,"This vehicle is smaller than the vehicle class this delivery was booked as. Use a vehicle that matches or beats it on payload, length, width and height.",,src/app/api/orders/[id]/accept/route.ts
+ordersAccept.youReOfflineGoOnlineTo,You're offline. Go online to claim loads.,,src/app/api/orders/[id]/accept/route.ts
+ordersComplete.thisDeliveryCannotBeCompletedRight,This delivery cannot be completed right now.,,src/app/api/orders/[id]/complete/route.ts
+ordersComplete.thisDeliverySVehicleTypeHas,This delivery's vehicle type has no pricing rule.,,src/app/api/orders/[id]/complete/route.ts
+ordersComplete.waitingminutesIsRequiredAndMustBe,waitingMinutes is required and must be a whole number of minutes.,,src/app/api/orders/[id]/complete/route.ts
+ordersLocation.youDoNotHaveAccessTo,You do not have access to this order.,,src/app/api/orders/[id]/location/route.ts
+ordersPay.thisDeliveryHasAlreadyBeenPaid,This delivery has already been paid for and is with our drivers.,,src/app/api/orders/[id]/pay/route.ts
+ordersStart.thisDeliveryCannotBeStartedRight,This delivery cannot be started right now.,,src/app/api/orders/[id]/start/route.ts
+savedCards.enterAFourDigitCardEnding,Enter a four-digit card ending.,,src/app/api/saved-cards/route.ts
+savedCards.enterAFourDigitExpiryYear,Enter a four-digit expiry year.,,src/app/api/saved-cards/route.ts
+savedCards.enterAnExpiryMonthBetween1,Enter an expiry month between 1 and 12.,,src/app/api/saved-cards/route.ts
+savedCards.enterTheCardBrand,Enter the card brand.,,src/app/api/saved-cards/route.ts
+savedCards.enterTheCardholderNameAsIt,Enter the cardholder name as it appears on the card.,,src/app/api/saved-cards/route.ts
+savedCards.isdefaultMustBeTrueOrFalse,isDefault must be true or false when provided.,,src/app/api/saved-cards/route.ts
+savedCards.onlyClientsCanSaveACard,Only clients can save a card.,,src/app/api/saved-cards/route.ts
+savedCards.onlyClientsHaveSavedCards,Only clients have saved cards.,,src/app/api/saved-cards/route.ts
+savedCards.thatCardHasExpiredAddA,That card has expired. Add a card that is still valid.,,src/app/api/saved-cards/route.ts
+validation.bodyhtmlIsRequiredAndMustBe,bodyHtml is required and must be a non-empty string.,,src/app/api/admin/content/pages/validation.ts
+validation.ispublishedMustBeABoolean,isPublished must be a boolean.,,src/app/api/admin/content/pages/validation.ts
+validation.slugIsRequiredAndMustBe,slug is required and must be a string.,,src/app/api/admin/content/pages/validation.ts
+validation.slugMustBeLowercaseLettersNumbers,"slug must be lowercase letters, numbers and single hyphens, e.g. “terms-of-service”.",,src/app/api/admin/content/pages/validation.ts

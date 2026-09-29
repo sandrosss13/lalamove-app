@@ -1,0 +1,321 @@
+﻿key,english,georgian,source
+addressAutocomplete.loadingAddressDetails,Loading address details…,,src/components/address-autocomplete.tsx
+addressAutocomplete.selectedAddress,Selected address,,src/components/address-autocomplete.tsx
+authStatus.placeOrder,Place order,,src/components/auth-status.tsx
+companyVehicleForm.atLeastOnePhotoIsRequired,At least one photo is required. You can select several at once.,,src/components/company-vehicle-form.tsx
+companyVehicleForm.eGAa123Bb,e.g. AA-123-BB,,src/components/company-vehicle-form.tsx
+companyVehicleForm.eGActros,e.g. Actros,,src/components/company-vehicle-form.tsx
+companyVehicleForm.eGMercedesBenz,e.g. Mercedes-Benz,,src/components/company-vehicle-form.tsx
+companyVehicleForm.plateNumber,Plate number,,src/components/company-vehicle-form.tsx
+companyVehicleForm.vehicleAddedToYourFleet,Vehicle added to your fleet.,,src/components/company-vehicle-form.tsx
+notFound.pageNotFound,Page not found,,src/app/not-found.tsx
+notFound.pickALanguageToHeadBack,Pick a language to head back to the home page:,,src/app/not-found.tsx
+pricing.dropoffaddressIsRequired,dropoffAddress is required.,,src/lib/pricing.ts
+pricing.pickupaddressIsRequired,pickupAddress is required.,,src/lib/pricing.ts
+shared.34Abc128,34 ABC 128,,src/components/driver-onboarding/steps/step-3c-technical-details.tsx
+shared.aCampaignWithThisCodeAlready,A campaign with this code already exists.,,src/app/api/admin/finance/promo-campaigns/[id]/route.ts
+shared.acceptance,Acceptance,,src/components/driver-hub/screens/drivers-detail-panel.tsx
+shared.acceptThisLoad,Accept this load,,src/components/driver-hub/screens/loads-detail-sheet.tsx
+shared.account,Account,,src/app/[locale]/admin/(sections)/users/sellers/page.tsx
+shared.accountAccess,Account access,,src/components/account-password-card.tsx
+shared.accountSettings,Account settings,,src/components/account-sidebar.tsx
+shared.aCodeMustBe332,"A code must be 3–32 characters, letters and numbers only (e.g. SUMMER25).",,src/app/api/admin/finance/promo-campaigns/[id]/route.ts
+shared.actionRequired,Action required,,src/app/[locale]/admin/(sections)/business/applications/page.tsx
+shared.actions,Actions,,src/app/[locale]/admin/(sections)/content/banners/page.tsx
+shared.active,Active,,src/app/[locale]/admin/(sections)/content/banners/page.tsx
+shared.activeWindow,Active window,,src/app/[locale]/admin/(sections)/content/banners/page.tsx
+shared.addCard,+ Add card,,src/app/[locale]/checkout/checkout-payment-panel.tsx
+shared.all,All,,src/app/[locale]/admin/(sections)/business/applications/page.tsx
+shared.anAccountWithThatEmailAddress,An account with that email address already exists.,,src/app/api/admin/users/system/route.ts
+shared.applicant,Applicant,,src/app/[locale]/admin/(sections)/drivers/applications/page.tsx
+shared.applicationNotFound,Application not found.,,src/app/api/admin/business-applications/[id]/activate/route.ts
+shared.applicationProgress,Application progress,,src/components/driver-onboarding/onboarding-step-rail.tsx
+shared.approved,Approved,,src/app/[locale]/admin/(sections)/business/applications/page.tsx
+shared.approvedForDispatch,Approved for dispatch,,src/components/driver-onboarding/application-status-screen.tsx
+shared.aReasonIsRequiredToSuspend,A reason is required to suspend an account.,,src/app/api/admin/users/[userId]/suspend/route.ts
+shared.aRecentPhotoOfYourFace,"A recent photo of your face, matched against your ID by the review team.",,src/components/driver-onboarding/document-upload-dialog.tsx
+shared.assignADriverAndVehicle,Assign a driver and vehicle,,src/components/driver-hub/screens/job-sheet-parts.tsx
+shared.assignAVehicle,Assign a vehicle,,src/components/driver-hub/screens/drivers-add-panel.tsx
+shared.assigned,Assigned,,src/components/driver-hub/screens/employees-detail-panel.tsx
+shared.aSubmittedApplicationCannotBeReset,A submitted application cannot be reset.,,src/app/api/driver-profile/onboarding/reset/route.ts
+shared.aTemplateWithThatKeyAlready,A template with that key already exists for this channel and locale.,,src/app/api/admin/content/messaging-templates/[id]/route.ts
+shared.atLeastOnePhotoIsRequired,At least one photo is required.,,src/app/api/driver-profile/vehicles/route.ts
+shared.avgPerJob,Avg per job,,src/components/driver-hub/screens/earnings-fleet-card.tsx
+shared.back,Back,,src/components/driver-onboarding/onboarding-wizard-shell.tsx
+shared.body,Body,,src/components/admin/content/home-page-section-form-dialog.tsx
+shared.bodyType,Body type,,src/components/admin/driver-application-detail-drawer.tsx
+shared.cancel,Cancel,,src/app/[locale]/admin/(sections)/content/banners/page.tsx
+shared.cancellations,Cancellations,,src/components/driver-hub/screens/performance-screen.tsx
+shared.cancelled,Cancelled,,src/components/admin/analytics/metric-cards.tsx
+shared.cargo,Cargo,,src/components/driver-hub/screens/job-sheet-parts.tsx
+shared.cargoHold,Cargo hold,,src/components/admin/driver-application-detail-drawer.tsx
+shared.cargoHoldMetres,Cargo hold (metres),,src/components/driver-onboarding/steps/step-3c-technical-details.tsx
+shared.categories,Categories,,src/app/[locale]/admin/(sections)/drivers/applications/page.tsx
+shared.categoriesHeld,Categories held,,src/components/driver-onboarding/steps/step-2-licence.tsx
+shared.cellNumber,Cell number,,src/components/account-profile-form.tsx
+shared.changeYourTemporaryPasswordBeforeViewing,Change your temporary password before viewing the load board.,,src/app/api/loads/[id]/reject/route.ts
+shared.channel,Channel,,src/app/[locale]/admin/(sections)/content/messaging-templates/page.tsx
+shared.checkAndSubmit,Check and submit,,src/components/driver-onboarding/onboarding-wizard-shell.tsx
+shared.chooseACardSavedToYour,Choose a card saved to your own payment methods.,,src/app/api/orders/[id]/pay/route.ts
+shared.chooseASavedCardToPay,Choose a saved card to pay by card.,,src/app/api/orders/[id]/pay/route.ts
+shared.citiesOfOperation,Cities of operation,,src/components/admin/business-application-detail-drawer.tsx
+shared.city,City,,src/app/[locale]/admin/(sections)/business/applications/page.tsx
+shared.class,Class,,src/components/admin/driver-application-detail-drawer.tsx
+shared.client,Client,,src/app/[locale]/admin/(sections)/users/clients/page.tsx
+shared.close,Close,,src/components/admin/business-application-detail-drawer.tsx
+shared.code,Code,,src/app/[locale]/admin/(sections)/finance/promo-campaigns/page.tsx
+shared.colour,Colour,,src/components/driver-onboarding/steps/step-3c-technical-details.tsx
+shared.company,Company,,src/app/[locale]/admin/(sections)/business/applications/page.tsx
+shared.companyDetails,Company details,,src/components/driver-hub/driver-account-company-card.tsx
+shared.companyEmail,Company email,,src/components/fleet-onboarding/steps/step-1-company-details.tsx
+shared.companyName,Company name,,src/components/account-profile-form.tsx
+shared.companynameIsRequiredAndMustBe,companyName is required and must be a non-empty string.,,src/app/api/client-profile/route.ts
+shared.completed,Completed,,src/components/admin/analytics/metric-cards.tsx
+shared.completeYourCompanyProfileBeforeClaiming,Complete your company profile before claiming deliveries.,,src/app/api/loads/[id]/reject/route.ts
+shared.completeYourCompanyProfileBeforeOnboarding,Complete your company profile before onboarding.,,src/app/api/logistics-company/onboarding/reset/route.ts
+shared.completeYourDriverProfileBeforeOnboarding,Complete your driver profile before onboarding.,,src/app/api/driver-profile/onboarding/reset/route.ts
+shared.confirmNewPassword,Confirm new password,,src/app/[locale]/change-password/page.tsx
+shared.contact,Contact,,src/app/[locale]/admin/(sections)/users/clients/page.tsx
+shared.contacts,Contacts,,src/components/driver-hub/screens/job-sheet-parts.tsx
+shared.contenttypeIsRequiredAndMustBe,contentType is required and must be a non-empty string.,,src/app/api/admin/content/media/upload-url/validation.ts
+shared.continue,Continue,,src/components/driver-onboarding/steps/step-1-auth-personal.tsx
+shared.couldNotPrepareTheUploadPlease,Could not prepare the upload. Please try again.,,src/app/api/admin/content/media/upload-url/route.ts
+shared.couldNotStartYourApplicationPlease,Could not start your application. Please try again.,,src/app/api/driver-profile/onboarding/route.ts
+shared.couldNotUploadTheVehiclePhotos,Could not upload the vehicle photos. Please try again.,,src/app/api/driver-profile/vehicles/route.ts
+shared.createAccount,Create account,,src/components/auth/auth-primitives.tsx
+shared.currentPassword,Current password,,src/components/account-password-card.tsx
+shared.d441988210,D4419-88210,,src/components/driver-onboarding/steps/step-2-licence.tsx
+shared.dashboard,Dashboard,,src/app/[locale]/dashboard/(hub)/layout.tsx
+shared.date,Date,,src/components/driver-hub/screens/fleet-availability-dialogs.tsx
+shared.dateOfBirth,Date of birth,,src/components/account-profile-form.tsx
+shared.delete,Delete,,src/app/[locale]/admin/(sections)/content/banners/page.tsx
+shared.discountvalueMustBeANumber,discountValue must be a number.,,src/app/api/admin/finance/promo-campaigns/[id]/route.ts
+shared.distance,Distance,,src/app/[locale]/checkout/[id]/page.tsx
+shared.done,Done,,src/components/admin/users/create-system-user-dialog.tsx
+shared.draftMustBeAnObjectWith,draft must be an object with version 1.,,src/app/api/driver-profile/onboarding/route.ts
+shared.driver,Driver,,src/components/driver-hub/driver-hub-topnav.tsx
+shared.driverAvailabilityIsAFleetScreen,Driver availability is a fleet screen — only a logistics company account has a roster to lay out.,,src/app/api/dashboard/hub/drivers/availability/export/route.ts
+shared.driverExampleCom,driver@example.com,,src/components/driver-hub/screens/drivers-add-panel.tsx
+shared.driverHub,Driver hub,,src/components/driver-hub/driver-hub-sidebar.tsx
+shared.driverNotFound,Driver not found.,,src/app/api/logistics-company/drivers/[userId]/route.ts
+shared.drivers,Drivers,,src/app/[locale]/admin/(sections)/business/applications/page.tsx
+shared.driversAssignment,Drivers & assignment,,src/components/fleet-onboarding/fleet-step-rail.tsx
+shared.driveruseridIsRequired,driverUserId is required.,,src/app/api/logistics-company/orders/[id]/dispatch/route.ts
+shared.dropoff,Dropoff,,src/app/[locale]/checkout/[id]/success/page.tsx
+shared.dropOff,Drop-off,,src/components/driver-hub/screens/job-sheet-actions.tsx
+shared.dropOffCity,Drop-off city,,src/components/driver-hub/screens/loads-filters.tsx
+shared.dropOffCity2,Drop off city,,src/components/driver-hub/screens/loads-mobile.tsx
+shared.dryBox,Dry Box,,src/components/driver-onboarding/steps/step-3-chassis-class.tsx
+shared.earned,Earned,,src/components/driver-hub/screens/drivers-detail-panel.tsx
+shared.edit,Edit,,src/app/[locale]/admin/(sections)/content/banners/page.tsx
+shared.eGNikaKavtaradze,e.g. Nika Kavtaradze,,src/components/driver-hub/screens/drivers-add-panel.tsx
+shared.email,Email,,src/app/[locale]/admin/(sections)/users/system/page.tsx
+shared.emailIsRequiredAndMustBe,email is required and must be a non-empty string.,,src/app/api/admin/users/system/route.ts
+shared.employees,Employees,,src/components/driver-hub/driver-hub-nav.ts
+shared.endsatMustBeAfterStartsat,endsAt must be after startsAt.,,src/app/api/admin/content/banners/[id]/route.ts
+shared.endsatMustBeAValidDate,endsAt must be a valid date.,,src/app/api/admin/finance/promo-campaigns/[id]/route.ts
+shared.englishEn,English (EN),,src/app/[locale]/admin/(sections)/content/home-page/page.tsx
+shared.eventKey,Event key,,src/app/[locale]/admin/(sections)/content/messaging-templates/page.tsx
+shared.expires,Expires,,src/components/driver-hub/screens/drivers-add-panel.tsx
+shared.exportToExcel,Export to Excel,,src/app/[locale]/admin/analytics/page.tsx
+shared.filenameIsRequiredAndMustBe,fileName is required and must be a non-empty string.,,src/app/api/admin/content/media/upload-url/validation.ts
+shared.fillInTheWizardBeforeSubmitting,Fill in the wizard before submitting your application.,,src/app/api/driver-profile/onboarding/submit/route.ts
+shared.firstDriverToConfirmClaimsThe,First driver to confirm claims the order. Rejecting only hides it from your board.,,src/components/driver-hub/screens/loads-detail-sheet.tsx
+shared.firstName,First name,,src/components/auth/sign-up-form.tsx
+shared.firstnameIsRequiredAndMustBe,firstName is required and must be a non-empty string.,,src/app/api/client-profile/route.ts
+shared.flag,Flag,,src/components/admin/business-application-detail-drawer.tsx
+shared.flatbedOrCurtainSideWithDrop,"Flatbed or curtain-side with drop sides. Oversized, construction and machinery loads.",,src/components/driver-onboarding/steps/step-3-chassis-class.tsx
+shared.fleet,Fleet,,src/app/[locale]/admin/(sections)/business/applications/page.tsx
+shared.fleetComposition,Fleet composition,,src/components/fleet-onboarding/fleet-step-rail.tsx
+shared.from,From,,src/app/[locale]/orders/[id]/track/page.tsx
+shared.fuel,Fuel,,src/components/driver-hub/screens/vehicles-detail-panel.tsx
+shared.fullName,Full name,,src/components/driver-hub/screens/drivers-add-panel.tsx
+shared.georgianKa,Georgian (KA),,src/app/[locale]/admin/(sections)/content/home-page/page.tsx
+shared.height,Height,,src/components/driver-onboarding/steps/step-3c-technical-details.tsx
+shared.helperFee,Helper Fee,,src/app/[locale]/checkout/[id]/page.tsx
+shared.helpers,Helpers,,src/components/driver-hub/screens/loads-claim-dialogs.tsx
+shared.idNumber,ID number,,src/components/admin/driver-application-detail-drawer.tsx
+shared.idPassport,ID / Passport,,src/components/account-profile-form.tsx
+shared.imageUrl,Image URL,,src/components/admin/content/admin-image-upload.tsx
+shared.imageurlMustBeAnHttpS,imageUrl must be an http(s) URL or a path starting with /.,,src/app/api/admin/content/banners/[id]/route.ts
+shared.inactive,Inactive,,src/app/[locale]/admin/(sections)/content/messaging-templates/page.tsx
+shared.incentives,Incentives,,src/components/driver-hub/screens/earnings-breakdown-card.tsx
+shared.isactiveMustBeABoolean,isActive must be a boolean.,,src/app/api/admin/content/banners/[id]/route.ts
+shared.jobs,Jobs,,src/components/driver-hub/screens/earnings-fleet-card.tsx
+shared.jobsCompleted,Jobs completed,,src/components/driver-hub/screens/earnings-screen.tsx
+shared.jobsWk,Jobs · wk,,src/components/driver-hub/screens/drivers-screen.tsx
+shared.joined,Joined,,src/app/[locale]/admin/(sections)/users/clients/page.tsx
+shared.key,Key,,src/app/[locale]/admin/(sections)/content/translations/page.tsx
+shared.keyIsRequiredAndMustBe,key is required and must be a non-empty string.,,src/app/api/admin/content/messaging-templates/route.ts
+shared.lalamoveClone,Lalamove Clone,,src/app/[locale]/layout.tsx
+shared.language,Language,,src/app/[locale]/admin/(sections)/content/messaging-templates/page.tsx
+shared.lastnameIsRequiredAndMustBe,lastName is required and must be a non-empty string.,,src/app/api/client-profile/route.ts
+shared.length,Length,,src/components/driver-onboarding/steps/step-3c-technical-details.tsx
+shared.licenceExpiry,Licence expiry,,src/components/admin/driver-application-detail-drawer.tsx
+shared.licenceNumber,Licence number,,src/components/driver-hub/screens/drivers-add-panel.tsx
+shared.licencePlate,Licence plate,,src/components/driver-onboarding/steps/step-3c-technical-details.tsx
+shared.linkUrl,Link URL,,src/components/admin/content/banner-form-dialog.tsx
+shared.linkurlMustBeAnHttpS,linkUrl must be an http(s) URL or a path starting with /.,,src/app/api/admin/content/banners/[id]/route.ts
+shared.load,Load,,src/components/driver-hub/screens/job-sheet-actions.tsx
+shared.loadingApplication,Loading application…,,src/components/admin/business-application-detail-drawer.tsx
+shared.loadingVehicleTypes,Loading vehicle types…,,src/app/[locale]/admin/(sections)/content/vehicle-photos/page.tsx
+shared.loadingYourApplication,Loading your application…,,src/components/driver-onboarding/onboarding-wizard-shell.tsx
+shared.locale,Locale,,src/app/[locale]/admin/(sections)/content/banners/page.tsx
+shared.make,Make,,src/components/company-vehicle-form.tsx
+shared.makeAndModel,Make and model,,src/components/driver-hub/screens/vehicles-add-form.tsx
+shared.makeIsRequired,make is required.,,src/app/api/driver-profile/vehicles/[id]/route.ts
+shared.makeModel,Make / model,,src/components/admin/driver-application-detail-drawer.tsx
+shared.mapUnavailableMissingGoogleMapsApi,Map unavailable — missing Google Maps API key.,,src/components/home/route-preview-map.tsx
+shared.maximumPayloadKg,Maximum payload (kg),,src/components/driver-onboarding/steps/step-3c-technical-details.tsx
+shared.mobile,Mobile,,src/components/admin/driver-application-detail-drawer.tsx
+shared.model,Model,,src/components/company-vehicle-form.tsx
+shared.modelIsRequired,model is required.,,src/app/api/driver-profile/vehicles/[id]/route.ts
+shared.myAccount,My account,,src/app/[locale]/account/page.tsx
+shared.myOrders,My orders,,src/components/auth-status.tsx
+shared.name,Name,,src/app/[locale]/admin/(sections)/users/system/page.tsx
+shared.namespace,Namespace,,src/app/[locale]/admin/(sections)/content/translations/page.tsx
+shared.needsReview,Needs review,,src/components/driver-hub/screens/drivers-screen.tsx
+shared.networkErrorPleaseCheckYourConnection,Network error. Please check your connection and try again.,,src/app/[locale]/admin/(sections)/content/pages/page.tsx
+shared.newOrder,← New order,,src/app/[locale]/orders/page.tsx
+shared.newPassword,New password,,src/app/[locale]/change-password/page.tsx
+shared.next,Next,,src/app/[locale]/admin/(sections)/business/applications/page.tsx
+shared.noApplicationToReset,No application to reset.,,src/app/api/driver-profile/onboarding/reset/route.ts
+shared.noApplicationToSaveLoadYour,No application to save. Load your application first.,,src/app/api/driver-profile/onboarding/route.ts
+shared.noCityByThatNameCheck,No city by that name. Check the spelling.,,src/components/driver-onboarding/steps/step-1-auth-personal.tsx
+shared.noEditableFieldsWereProvided,No editable fields were provided.,,src/app/api/admin/content/messaging-templates/[id]/route.ts
+shared.notifications,Notifications,,src/components/driver-hub/driver-account-sections.ts
+shared.noVehiclesOnThisApplication,No vehicles on this application.,,src/components/admin/business-application-detail-drawer.tsx
+shared.odometer,Odometer,,src/components/driver-hub/screens/vehicles-detail-panel.tsx
+shared.onlineHours,Online hours,,src/components/driver-hub/screens/earnings-screen.tsx
+shared.onlyDriversHaveAnOnboardingApplication,Only drivers have an onboarding application.,,src/app/api/driver-profile/onboarding/reset/route.ts
+shared.onlyLogisticsCompaniesCanDispatchDeliveries,Only logistics companies can dispatch deliveries.,,src/app/api/logistics-company/orders/[id]/dispatch-options/route.ts
+shared.onlyLogisticsCompaniesHaveAFleet,Only logistics companies have a fleet application.,,src/app/api/logistics-company/onboarding/reset/route.ts
+shared.openChassis,Open Chassis,,src/components/driver-onboarding/steps/step-3-chassis-class.tsx
+shared.openJobSheet,Open job sheet,,src/components/driver-hub/screens/loads-detail-sheet.tsx
+shared.order,Order,,src/app/[locale]/admin/(sections)/content/banners/page.tsx
+shared.orderNotFound,Order not found.,,src/app/[locale]/checkout/checkout-shell.tsx
+shared.orders,Orders,,src/app/[locale]/admin/(sections)/users/clients/page.tsx
+shared.password,Password,,src/app/[locale]/(admin-sign-in)/admin/sign-in/page.tsx
+shared.passwordsDonTMatch,Passwords don't match.,,src/app/[locale]/change-password/page.tsx
+shared.passwordUpdated,Password updated.,,src/components/account-password-card.tsx
+shared.payload,Payload,,src/components/admin/driver-application-detail-drawer.tsx
+shared.paymentMethod,Payment method,,src/app/[locale]/checkout/[id]/success/page.tsx
+shared.payoutAccount,Payout account,,src/components/admin/business-application-detail-drawer.tsx
+shared.pending,Pending,,src/app/[locale]/admin/(sections)/business/applications/page.tsx
+shared.period,Period,,src/components/driver-hub/screens/earnings-payouts-card.tsx
+shared.phone,Phone,,src/components/admin/business-application-detail-drawer.tsx
+shared.phoneIsRequiredAndMustBe,phone is required and must be a non-empty string.,,src/app/api/client-profile/route.ts
+shared.photos,Photos,,src/components/company-vehicle-form.tsx
+shared.pickedUp,Picked up,,src/components/driver-hub/hub-job-parts.tsx
+shared.pickup,Pickup,,src/app/[locale]/checkout/[id]/success/page.tsx
+shared.pickUp,Pick-up,,src/components/driver-hub/screens/job-sheet-parts.tsx
+shared.pickUpCity,Pick-up city,,src/components/driver-hub/screens/loads-filters.tsx
+shared.pickUpCity2,Pick up city,,src/components/driver-hub/screens/loads-mobile.tsx
+shared.pickUpDate,Pick up date,,src/components/driver-hub/screens/loads-mobile.tsx
+shared.pickUpTime,Pick up time,,src/components/driver-hub/screens/loads-mobile.tsx
+shared.placement,Placement,,src/app/[locale]/admin/(sections)/content/banners/page.tsx
+shared.plate,Plate,,src/components/admin/driver-application-detail-drawer.tsx
+shared.platenumberIsRequired,plateNumber is required.,,src/app/api/driver-profile/vehicles/[id]/route.ts
+shared.previous,Previous,,src/app/[locale]/admin/(sections)/business/applications/page.tsx
+shared.price,Price,,src/app/[locale]/checkout/[id]/page.tsx
+shared.profile,Profile,,src/app/[locale]/account/page.tsx
+shared.profilePhoto,Profile photo,,src/components/driver-onboarding/application-status-screen.tsx
+shared.profileSaved,Profile saved.,,src/components/account-profile-form.tsx
+shared.promise,Promise,,src/components/auth/use-sign-out.ts
+shared.questions,Questions,,src/components/admin/content/home-page-section-form-dialog.tsx
+shared.rating,Rating,,src/components/driver-hub/screens/drivers-detail-panel.tsx
+shared.reason,Reason,,src/components/admin/users/suspend-dialog.tsx
+shared.refrigeratedVehicle,Refrigerated Vehicle,,src/components/driver-onboarding/steps/step-3-chassis-class.tsx
+shared.registeredAddress,Registered address,,src/components/admin/business-application-detail-drawer.tsx
+shared.reject,Reject,,src/components/driver-hub/screens/loads-mobile.tsx
+shared.remove,Remove,,src/components/admin/content/admin-image-upload.tsx
+shared.requestBodyMustBeAJson,Request body must be a JSON object.,,src/app/api/admin/business-applications/[id]/company/route.ts
+shared.requestBodyMustBeMultipartForm,Request body must be multipart/form-data.,,src/app/api/driver-profile/vehicles/route.ts
+shared.requestBodyMustBeValidJson,Request body must be valid JSON.,,src/app/api/admin/business-applications/[id]/company/route.ts
+shared.resume,Resume,,src/components/driver-onboarding/onboarding-wizard-shell.tsx
+shared.reviewStatus,Review & status,,src/components/driver-onboarding/onboarding-step-rail.tsx
+shared.role,Role,,src/app/[locale]/admin/(sections)/users/system/page.tsx
+shared.route,Route,,src/components/driver-hub/screens/jobs-screen.tsx
+shared.sample,Sample,,src/components/driver-hub/screens/drivers-detail-panel.tsx
+shared.savedcardidMustBeANonEmpty,savedCardId must be a non-empty string when provided.,,src/app/api/orders/[id]/pay/route.ts
+shared.scheduled,Scheduled,,src/app/[locale]/checkout/[id]/page.tsx
+shared.scope,Scope,,src/components/driver-hub/screens/employees-invite-form.tsx
+shared.searchByNameEmailOrPhone,"Search by name, email or phone…",,src/app/[locale]/admin/(sections)/users/clients/page.tsx
+shared.section,Section,,src/app/[locale]/admin/(sections)/content/home-page/page.tsx
+shared.selectALocale,Select a locale,,src/components/admin/content/banner-form-dialog.tsx
+shared.sendSavedcardidOnlyWhenPaymentmethodtypeIs,Send savedCardId only when paymentMethodType is CARD.,,src/app/api/orders/[id]/pay/route.ts
+shared.serviceLevel,Service level,,src/app/[locale]/checkout/[id]/page.tsx
+shared.setANewPassword,Set a new password,,src/app/[locale]/change-password/page.tsx
+shared.signIn,Sign in,,src/app/[locale]/account/page.tsx
+shared.signUp,Sign up,,src/app/[locale]/account/page.tsx
+shared.slug,Slug,,src/app/[locale]/admin/(sections)/content/pages/page.tsx
+shared.somethingWentWrongPleaseTryAgain,Something went wrong. Please try again.,,src/app/[locale]/admin/(sections)/content/banners/page.tsx
+shared.sortOrder,Sort order,,src/components/admin/content/banner-form-dialog.tsx
+shared.startsatMustBeAValidDate,startsAt must be a valid date.,,src/app/api/admin/finance/promo-campaigns/[id]/route.ts
+shared.startTheApplicationFirst,Start the application first.,,src/app/api/driver-profile/onboarding/documents/guard.ts
+shared.status,Status,,src/app/[locale]/admin/(sections)/business/applications/page.tsx
+shared.subject,Subject,,src/app/[locale]/admin/(sections)/content/messaging-templates/page.tsx
+shared.support,Support,,src/components/driver-hub/driver-account-placeholder-panel.tsx
+shared.surname,Surname,,src/components/account-profile-form.tsx
+shared.suspended,Suspended,,src/app/[locale]/admin/(sections)/users/clients/page.tsx
+shared.suspendedOn,Suspended on,,src/app/[locale]/admin/(sections)/users/clients/page.tsx
+shared.suspensionReason,Suspension reason,,src/app/[locale]/admin/(sections)/users/clients/page.tsx
+shared.temporaryPassword,Temporary password,,src/app/[locale]/change-password/page.tsx
+shared.thatPaymentMethodIsNotAvailable,That payment method is not available.,,src/app/api/orders/[id]/pay/route.ts
+shared.thatSystemUserWasNotFound,That system user was not found.,,src/app/api/admin/users/system/[userId]/deactivate/route.ts
+shared.theCredentialsYouSignInWith,The credentials you sign in with.,,src/components/account-password-card.tsx
+shared.theStartDateMustBeBefore,The start date must be before the end date.,,src/app/api/admin/finance/promo-campaigns/[id]/route.ts
+shared.thisApplicationHasAlreadyBeenApproved,This application has already been approved.,,src/app/api/admin/driver-applications/[id]/approve/route.ts
+shared.thisApplicationHasAlreadyBeenSubmitted,This application has already been submitted.,,src/app/api/driver-profile/onboarding/submit/route.ts
+shared.thisFleetHasAlreadyBeenActivated,This fleet has already been activated.,,src/app/api/admin/business-applications/[id]/activate/route.ts
+shared.thisLoadWasJustClaimedBy,This load was just claimed by someone else.,,src/app/api/logistics-company/orders/[id]/claim/route.ts
+shared.thisPhoneNumberIsAlreadyRegistered,This phone number is already registered to another account.,,src/app/api/client-profile/route.ts
+shared.thisPlateNumberIsAlreadyRegistered,This plate number is already registered.,,src/app/api/driver-profile/vehicles/[id]/route.ts
+shared.thisPlateNumberIsAlreadyRegistered2,This plate number is already registered to another vehicle.,,src/app/api/driver-profile/onboarding/submit/route.ts
+shared.time,Time,,src/components/driver-hub/screens/jobs-screen.tsx
+shared.title,Title,,src/app/[locale]/admin/(sections)/content/pages/page.tsx
+shared.titleIsRequiredAndMustBe,title is required and must be a non-empty string.,,src/app/api/admin/content/banners/route.ts
+shared.to,To,,src/app/[locale]/orders/[id]/track/page.tsx
+shared.today,Today,,src/components/admin/analytics/date-range-picker.tsx
+shared.tooManyRequestsPleaseWaitA,Too many requests. Please wait a moment and try again.,,src/app/api/geocode/details/route.ts
+shared.total,Total,,src/app/[locale]/checkout/[id]/page.tsx
+shared.transportationCost,Transportation cost,,src/app/[locale]/checkout/[id]/page.tsx
+shared.tryAgain,Try again,,src/components/admin/business-application-detail-drawer.tsx
+shared.type,Type,,src/app/[locale]/admin/(sections)/users/clients/page.tsx
+shared.unassigned,Unassigned,,src/components/driver-hub/screens/drivers-add-panel.tsx
+shared.unauthorized,Unauthorized.,,src/app/api/admin/users/system/[userId]/deactivate/route.ts
+shared.unfinishedApplication,Unfinished application,,src/components/driver-onboarding/onboarding-wizard-shell.tsx
+shared.usedWithYourEmailAddressTo,Used with your email address to sign in.,,src/components/account-password-card.tsx
+shared.userNotFound,User not found.,,src/app/api/admin/users/[userId]/suspend/route.ts
+shared.value,Value,,src/components/admin/content/home-page-section-form-dialog.tsx
+shared.vatId,VAT ID,,src/app/[locale]/admin/(sections)/users/clients/page.tsx
+shared.vatidIsRequiredAndMustBe,vatId is required and must be a non-empty string.,,src/app/api/client-profile/route.ts
+shared.vatTaxId,VAT / tax ID,,src/components/admin/business-application-detail-drawer.tsx
+shared.vehicle,Vehicle,,src/app/[locale]/admin/(sections)/drivers/applications/page.tsx
+shared.vehicleidIsRequired,vehicleId is required.,,src/app/api/logistics-company/orders/[id]/dispatch/route.ts
+shared.vehicleNoLongerOnFile,Vehicle no longer on file,,src/components/admin/business-application-detail-drawer.tsx
+shared.vehicleNotFound,Vehicle not found.,,src/app/api/driver-profile/vehicles/[id]/route.ts
+shared.vehicleRegistration,Vehicle registration,,src/components/driver-onboarding/onboarding-step-rail.tsx
+shared.vehicles,Vehicles,,src/components/driver-hub/driver-hub-nav.ts
+shared.vehicleSpecifications,Vehicle specifications,,src/components/fleet-onboarding/fleet-step-rail.tsx
+shared.vehicletypecodeIsRequired,vehicleTypeCode is required.,,src/app/api/driver-profile/vehicles/[id]/route.ts
+shared.vehicletypePricingruleBasefare,vehicleType.pricingRule.baseFare,,src/components/landing/landing-category-tiles.tsx
+shared.waitingTime,Waiting time,,src/components/driver-hub/screens/job-sheet-actions.tsx
+shared.wallet,Wallet,,src/app/[locale]/wallet/page.tsx
+shared.weCouldnTSubmitYourApplication,We couldn't submit your application. Please try again.,,src/app/api/driver-profile/onboarding/submit/route.ts
+shared.width,Width,,src/components/driver-onboarding/steps/step-3c-technical-details.tsx
+shared.window,Window,,src/components/driver-hub/screens/fleet-availability-dialogs.tsx
+shared.workEmail,Work email,,src/app/[locale]/(admin-sign-in)/admin/sign-in/page.tsx
+shared.year,Year,,src/components/company-vehicle-form.tsx
+shared.yearColour,Year / colour,,src/components/admin/driver-application-detail-drawer.tsx
+shared.yearIsRequired,year is required.,,src/app/api/driver-profile/vehicles/validation.ts
+shared.youAreNotAssignedToThis,You are not assigned to this delivery.,,src/app/api/orders/[id]/complete/route.ts
+shared.youCompanyGe,you@company.ge,,src/components/auth/sign-in-form.tsx
+shared.yourAccountIsnTApprovedYet,Your account isn't approved yet. Finish onboarding to accept deliveries.,,src/app/api/loads/[id]/reject/route.ts
+shared.yourApplicationIsIncompleteContactSupport,Your application is incomplete — contact support so we can restore it.,,src/app/api/driver-profile/onboarding/submit/route.ts
+shared.yourDriverProfileIsnTSet,Your driver profile isn't set up yet.,,src/app/api/dashboard/hub/drivers/availability/export/route.ts
+shared.yourFleetIsStillUnderReview,Your fleet is still under review. Operations must activate the company before you can claim deliveries.,,src/app/api/loads/[id]/reject/route.ts
+shared.yourFleetIsStillUnderReview2,Your fleet is still under review. Operations must activate the company before you can dispatch deliveries.,,src/app/api/logistics-company/orders/[id]/dispatch-options/route.ts
+shared.zone,Zone,,src/components/driver-hub/screens/drivers-add-panel.tsx
+srcApp.onDemandDeliveryPlatformBookA,On-demand delivery platform — book a vehicle and move your goods across the city.,,src/app/[locale]/layout.tsx
+themeToggle.darkTheme,Dark theme,,src/components/theme-toggle.tsx

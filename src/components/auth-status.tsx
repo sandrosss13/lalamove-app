@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-
+import { Link } from "@/i18n/navigation";
 import { useSignOut } from "@/components/auth/use-sign-out";
 import { useSession } from "@/lib/auth-client";
 

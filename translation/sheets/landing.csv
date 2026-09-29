@@ -1,0 +1,15 @@
+﻿key,english,georgian,source
+landingCategoryTiles.priceYourOwnRoute,— price your own route,,src/components/landing/landing-category-tiles.tsx
+landingHeroCarousel.featuredBanners,Featured banners,,src/components/landing/landing-hero-carousel.tsx
+landingHeroCarousel.nextBanner,Next banner,,src/components/landing/landing-hero-carousel.tsx
+landingHeroCarousel.previousBanner,Previous banner,,src/components/landing/landing-hero-carousel.tsx
+landingQuoteCalculator.1IsTheDriverAloneEach,"1 is the driver alone. Each extra person helps load and unload, and adds a flat fee.",,src/components/landing/landing-quote-calculator.tsx
+landingQuoteCalculator.aghmashenebeliAve88Tbilisi,"Aghmashenebeli Ave 88, Tbilisi",,src/components/landing/landing-quote-calculator.tsx
+landingQuoteCalculator.couldNotPriceThisLoadPlease,Could not price this load. Please try again.,,src/components/landing/landing-quote-calculator.tsx
+landingQuoteCalculator.estimate,Estimate,,src/components/landing/landing-quote-calculator.tsx
+landingQuoteCalculator.howManyPeople,How many people,,src/components/landing/landing-quote-calculator.tsx
+landingQuoteCalculator.minimumFareApplied,Minimum fare applied,,src/components/landing/landing-quote-calculator.tsx
+landingQuoteCalculator.rustaveliAve12Tbilisi,"Rustaveli Ave 12, Tbilisi",,src/components/landing/landing-quote-calculator.tsx
+landingQuoteCalculator.signUpToBookThisLoad,Sign up to book this load,,src/components/landing/landing-quote-calculator.tsx
+landingQuoteCalculator.whatAreYouMoving,What are you moving,,src/components/landing/landing-quote-calculator.tsx
+landingQuoteCalculator.yourEstimate,Your estimate,,src/components/landing/landing-quote-calculator.tsx

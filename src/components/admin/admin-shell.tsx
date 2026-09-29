@@ -1,12 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
 
 import type { AdminRole } from "@prisma/client";
 
+import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import { ADMIN_NAV, type AdminNavSection } from "@/components/admin/admin-nav";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Badge } from "@/components/ui/badge";

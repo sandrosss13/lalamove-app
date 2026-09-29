@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { usePathname, useRouter } from "next/navigation";
 import type { DateRange } from "react-day-picker";
 import { CalendarDays } from "lucide-react";
 
+import { usePathname, useRouter } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {

@@ -1,0 +1,257 @@
+{
+  "dashboard.providerAccount": {
+    "en": "Provider account",
+    "ka": "",
+    "_source": "src/app/[locale]/dashboard/(hub)/layout.tsx"
+  },
+  "dashboardAccount.accountDriverHub": {
+    "en": "Account · Driver Hub",
+    "ka": "",
+    "_source": "src/app/[locale]/dashboard/(hub)/account/page.tsx"
+  },
+  "dashboardDrivers.driversDriverHub": {
+    "en": "Drivers · Driver Hub",
+    "ka": "",
+    "_source": "src/app/[locale]/dashboard/(hub)/drivers/page.tsx"
+  },
+  "dashboardEmployees.employeesRolesDriverHub": {
+    "en": "Employees & roles · Driver Hub",
+    "ka": "",
+    "_source": "src/app/[locale]/dashboard/(hub)/employees/page.tsx"
+  },
+  "dashboardJobs.jobHistoryDriverHub": {
+    "en": "Job history · Driver Hub",
+    "ka": "",
+    "_source": "src/app/[locale]/dashboard/(hub)/jobs/page.tsx"
+  },
+  "dashboardJobs.jobSheetDriverHub": {
+    "en": "Job sheet · Driver Hub",
+    "ka": "",
+    "_source": "src/app/[locale]/dashboard/(hub)/jobs/[id]/page.tsx"
+  },
+  "dashboardLoads.dashboardDriverHub": {
+    "en": "Dashboard · Driver Hub",
+    "ka": "",
+    "_source": "src/app/[locale]/dashboard/(hub)/loads/page.tsx"
+  },
+  "dashboardPerformance.performanceDriverHub": {
+    "en": "Performance · Driver Hub",
+    "ka": "",
+    "_source": "src/app/[locale]/dashboard/(hub)/performance/page.tsx"
+  },
+  "dashboardVehicles.vehiclesDriverHub": {
+    "en": "Vehicles · Driver Hub",
+    "ka": "",
+    "_source": "src/app/[locale]/dashboard/(hub)/vehicles/page.tsx"
+  },
+  "earnings.last30Days": {
+    "en": "Last 30 days",
+    "ka": "",
+    "_source": "src/lib/dashboard/hub/earnings.ts"
+  },
+  "earnings.lastWeek": {
+    "en": "Last week",
+    "ka": "",
+    "_source": "src/lib/dashboard/hub/earnings.ts"
+  },
+  "earnings.thisMonth": {
+    "en": "This month",
+    "ka": "",
+    "_source": "src/lib/dashboard/hub/earnings.ts"
+  },
+  "earnings.thisWeek": {
+    "en": "This week",
+    "ka": "",
+    "_source": "src/lib/dashboard/hub/earnings.ts"
+  },
+  "sample.1InvitePending": {
+    "en": "1 invite pending",
+    "ka": "",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.1Invited1Suspended": {
+    "en": "1 invited, 1 suspended",
+    "ka": "",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.1PtVsLastWeek": {
+    "en": "+1 pt vs last week",
+    "ka": "",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.3MoreJobsBySundayFor": {
+    "en": "3 more jobs by Sunday for a ₾40 bonus.",
+    "ka": "",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.3PtsVsLastWeek": {
+    "en": "+3 pts vs last week",
+    "ka": "",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.acceptanceRate": {
+    "en": "Acceptance rate",
+    "ka": "",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.accountantOnly": {
+    "en": "Accountant only",
+    "ka": "",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.assignsJobsInsideTheirZones": {
+    "en": "Assigns jobs inside their zones",
+    "ka": "",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.contract": {
+    "en": "Contract",
+    "ka": "",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.criminalRecordExtract": {
+    "en": "Criminal record extract",
+    "ka": "",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.declinesCountedOverTheLast100": {
+    "en": "Declines counted over the last 100 offers. Staying above 90% keeps priority matching.",
+    "ka": "",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.driverLicenceGe": {
+    "en": "Driver licence (GE)",
+    "ka": "",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.eleneAbashidze": {
+    "en": "Elene Abashidze",
+    "ka": "",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.fleetManagerDispatcherAccountantMechanic": {
+    "en": "Fleet manager, dispatcher, accountant, mechanic",
+    "ka": "",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.from61RatedJobsRatingsBelow": {
+    "en": "From 61 rated jobs. Ratings below 4.5 trigger a coaching review.",
+    "ka": "",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.garage": {
+    "en": "Garage",
+    "ka": "",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.highestInGldaniMovingToVake": {
+    "en": "Highest in Gldani. Moving to Vake between 09:00 and 11:00 cuts it by about a third.",
+    "ka": "",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.idleTime": {
+    "en": "Idle time",
+    "ka": "",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.irakliBeruashvili": {
+    "en": "Irakli Beruashvili",
+    "ka": "",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.marikaDolidze": {
+    "en": "Marika Dolidze",
+    "ka": "",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.newJobOfferVakeSaburtalo": {
+    "en": "New job offer · Vake → Saburtalo",
+    "ka": "",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.openWorkOrders": {
+    "en": "Open work orders",
+    "ka": "",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.ownJobsAndEarningsOnly": {
+    "en": "Own jobs and earnings only",
+    "ka": "",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.parkingTolls": {
+    "en": "Parking & tolls",
+    "ka": "",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.payoutAccounts": {
+    "en": "Payout accounts",
+    "ka": "",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.payoutOf14260Sent": {
+    "en": "Payout of ₾142.60 sent",
+    "ka": "",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.payoutsInvoicesAndTax": {
+    "en": "Payouts, invoices and tax",
+    "ka": "",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.serviceLog": {
+    "en": "Service log",
+    "ka": "",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.serviceParts": {
+    "en": "Service & parts",
+    "ka": "",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.shift": {
+    "en": "Shift",
+    "ka": "",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.sopoKiknadze": {
+    "en": "Sopo Kiknadze",
+    "ka": "",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.taxId": {
+    "en": "Tax ID",
+    "ka": "",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.top15InTbilisi": {
+    "en": "Top 15% in Tbilisi",
+    "ka": "",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.twoCancellationsThisWeekBothBefore": {
+    "en": "Two cancellations this week, both before pickup. Above 5% pauses incentives.",
+    "ka": "",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.vanoShengelia": {
+    "en": "Vano Shengelia",
+    "ka": "",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.vehiclesAndDrivers": {
+    "en": "Vehicles and drivers",
+    "ka": "",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.zones": {
+    "en": "Zones",
+    "ka": "",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  },
+  "sample.zurabMaisuradze": {
+    "en": "Zurab Maisuradze",
+    "ka": "",
+    "_source": "src/lib/dashboard/hub/sample.ts"
+  }
+}

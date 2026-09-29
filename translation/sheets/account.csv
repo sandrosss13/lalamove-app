@@ -1,0 +1,10 @@
+﻿key,english,georgian,source
+account.pleaseSignInToViewYour,Please sign in to view your account.,,src/app/[locale]/account/page.tsx
+account.settings,Settings,,src/app/[locale]/account/page.tsx
+account.theDetailsADriverSeesWhen,"The details a driver sees when they turn up for one of your pickups, and the credentials you sign in with. Keeping your phone number current is what stops a delivery stalling at the kerb.",,src/app/[locale]/account/page.tsx
+accountProfileForm.female,Female,,src/components/account-profile-form.tsx
+accountProfileForm.gender,Gender,,src/components/account-profile-form.tsx
+accountProfileForm.male,Male,,src/components/account-profile-form.tsx
+accountProfileForm.other,Other,,src/components/account-profile-form.tsx
+accountProfileForm.personalDetails,Personal details,,src/components/account-profile-form.tsx
+accountProfileForm.preferNotToSay,Prefer not to say,,src/components/account-profile-form.tsx

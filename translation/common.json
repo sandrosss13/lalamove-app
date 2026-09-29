@@ -1,0 +1,1602 @@
+{
+  "addressAutocomplete.loadingAddressDetails": {
+    "en": "Loading address details…",
+    "ka": "",
+    "_source": "src/components/address-autocomplete.tsx"
+  },
+  "addressAutocomplete.selectedAddress": {
+    "en": "Selected address",
+    "ka": "",
+    "_source": "src/components/address-autocomplete.tsx"
+  },
+  "authStatus.placeOrder": {
+    "en": "Place order",
+    "ka": "",
+    "_source": "src/components/auth-status.tsx"
+  },
+  "companyVehicleForm.atLeastOnePhotoIsRequired": {
+    "en": "At least one photo is required. You can select several at once.",
+    "ka": "",
+    "_source": "src/components/company-vehicle-form.tsx"
+  },
+  "companyVehicleForm.eGAa123Bb": {
+    "en": "e.g. AA-123-BB",
+    "ka": "",
+    "_source": "src/components/company-vehicle-form.tsx"
+  },
+  "companyVehicleForm.eGActros": {
+    "en": "e.g. Actros",
+    "ka": "",
+    "_source": "src/components/company-vehicle-form.tsx"
+  },
+  "companyVehicleForm.eGMercedesBenz": {
+    "en": "e.g. Mercedes-Benz",
+    "ka": "",
+    "_source": "src/components/company-vehicle-form.tsx"
+  },
+  "companyVehicleForm.plateNumber": {
+    "en": "Plate number",
+    "ka": "",
+    "_source": "src/components/company-vehicle-form.tsx"
+  },
+  "companyVehicleForm.vehicleAddedToYourFleet": {
+    "en": "Vehicle added to your fleet.",
+    "ka": "",
+    "_source": "src/components/company-vehicle-form.tsx"
+  },
+  "notFound.pageNotFound": {
+    "en": "Page not found",
+    "ka": "",
+    "_source": "src/app/not-found.tsx"
+  },
+  "notFound.pickALanguageToHeadBack": {
+    "en": "Pick a language to head back to the home page:",
+    "ka": "",
+    "_source": "src/app/not-found.tsx"
+  },
+  "pricing.dropoffaddressIsRequired": {
+    "en": "dropoffAddress is required.",
+    "ka": "",
+    "_source": "src/lib/pricing.ts"
+  },
+  "pricing.pickupaddressIsRequired": {
+    "en": "pickupAddress is required.",
+    "ka": "",
+    "_source": "src/lib/pricing.ts"
+  },
+  "shared.34Abc128": {
+    "en": "34 ABC 128",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/steps/step-3c-technical-details.tsx"
+  },
+  "shared.aCampaignWithThisCodeAlready": {
+    "en": "A campaign with this code already exists.",
+    "ka": "",
+    "_source": "src/app/api/admin/finance/promo-campaigns/[id]/route.ts"
+  },
+  "shared.aCodeMustBe332": {
+    "en": "A code must be 3–32 characters, letters and numbers only (e.g. SUMMER25).",
+    "ka": "",
+    "_source": "src/app/api/admin/finance/promo-campaigns/[id]/route.ts"
+  },
+  "shared.aReasonIsRequiredToSuspend": {
+    "en": "A reason is required to suspend an account.",
+    "ka": "",
+    "_source": "src/app/api/admin/users/[userId]/suspend/route.ts"
+  },
+  "shared.aRecentPhotoOfYourFace": {
+    "en": "A recent photo of your face, matched against your ID by the review team.",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/document-upload-dialog.tsx"
+  },
+  "shared.aSubmittedApplicationCannotBeReset": {
+    "en": "A submitted application cannot be reset.",
+    "ka": "",
+    "_source": "src/app/api/driver-profile/onboarding/reset/route.ts"
+  },
+  "shared.aTemplateWithThatKeyAlready": {
+    "en": "A template with that key already exists for this channel and locale.",
+    "ka": "",
+    "_source": "src/app/api/admin/content/messaging-templates/[id]/route.ts"
+  },
+  "shared.acceptThisLoad": {
+    "en": "Accept this load",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-detail-sheet.tsx"
+  },
+  "shared.acceptance": {
+    "en": "Acceptance",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/drivers-detail-panel.tsx"
+  },
+  "shared.account": {
+    "en": "Account",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/users/sellers/page.tsx"
+  },
+  "shared.accountAccess": {
+    "en": "Account access",
+    "ka": "",
+    "_source": "src/components/account-password-card.tsx"
+  },
+  "shared.accountSettings": {
+    "en": "Account settings",
+    "ka": "",
+    "_source": "src/components/account-sidebar.tsx"
+  },
+  "shared.actionRequired": {
+    "en": "Action required",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/business/applications/page.tsx"
+  },
+  "shared.actions": {
+    "en": "Actions",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/banners/page.tsx"
+  },
+  "shared.active": {
+    "en": "Active",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/banners/page.tsx"
+  },
+  "shared.activeWindow": {
+    "en": "Active window",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/banners/page.tsx"
+  },
+  "shared.addCard": {
+    "en": "+ Add card",
+    "ka": "",
+    "_source": "src/app/[locale]/checkout/checkout-payment-panel.tsx"
+  },
+  "shared.all": {
+    "en": "All",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/business/applications/page.tsx"
+  },
+  "shared.anAccountWithThatEmailAddress": {
+    "en": "An account with that email address already exists.",
+    "ka": "",
+    "_source": "src/app/api/admin/users/system/route.ts"
+  },
+  "shared.applicant": {
+    "en": "Applicant",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/drivers/applications/page.tsx"
+  },
+  "shared.applicationNotFound": {
+    "en": "Application not found.",
+    "ka": "",
+    "_source": "src/app/api/admin/business-applications/[id]/activate/route.ts"
+  },
+  "shared.applicationProgress": {
+    "en": "Application progress",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/onboarding-step-rail.tsx"
+  },
+  "shared.approved": {
+    "en": "Approved",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/business/applications/page.tsx"
+  },
+  "shared.approvedForDispatch": {
+    "en": "Approved for dispatch",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/application-status-screen.tsx"
+  },
+  "shared.assignADriverAndVehicle": {
+    "en": "Assign a driver and vehicle",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/job-sheet-parts.tsx"
+  },
+  "shared.assignAVehicle": {
+    "en": "Assign a vehicle",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/drivers-add-panel.tsx"
+  },
+  "shared.assigned": {
+    "en": "Assigned",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/employees-detail-panel.tsx"
+  },
+  "shared.atLeastOnePhotoIsRequired": {
+    "en": "At least one photo is required.",
+    "ka": "",
+    "_source": "src/app/api/driver-profile/vehicles/route.ts"
+  },
+  "shared.avgPerJob": {
+    "en": "Avg per job",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/earnings-fleet-card.tsx"
+  },
+  "shared.back": {
+    "en": "Back",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/onboarding-wizard-shell.tsx"
+  },
+  "shared.body": {
+    "en": "Body",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "shared.bodyType": {
+    "en": "Body type",
+    "ka": "",
+    "_source": "src/components/admin/driver-application-detail-drawer.tsx"
+  },
+  "shared.cancel": {
+    "en": "Cancel",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/banners/page.tsx"
+  },
+  "shared.cancellations": {
+    "en": "Cancellations",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/performance-screen.tsx"
+  },
+  "shared.cancelled": {
+    "en": "Cancelled",
+    "ka": "",
+    "_source": "src/components/admin/analytics/metric-cards.tsx"
+  },
+  "shared.cargo": {
+    "en": "Cargo",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/job-sheet-parts.tsx"
+  },
+  "shared.cargoHold": {
+    "en": "Cargo hold",
+    "ka": "",
+    "_source": "src/components/admin/driver-application-detail-drawer.tsx"
+  },
+  "shared.cargoHoldMetres": {
+    "en": "Cargo hold (metres)",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/steps/step-3c-technical-details.tsx"
+  },
+  "shared.categories": {
+    "en": "Categories",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/drivers/applications/page.tsx"
+  },
+  "shared.categoriesHeld": {
+    "en": "Categories held",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/steps/step-2-licence.tsx"
+  },
+  "shared.cellNumber": {
+    "en": "Cell number",
+    "ka": "",
+    "_source": "src/components/account-profile-form.tsx"
+  },
+  "shared.changeYourTemporaryPasswordBeforeViewing": {
+    "en": "Change your temporary password before viewing the load board.",
+    "ka": "",
+    "_source": "src/app/api/loads/[id]/reject/route.ts"
+  },
+  "shared.channel": {
+    "en": "Channel",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/messaging-templates/page.tsx"
+  },
+  "shared.checkAndSubmit": {
+    "en": "Check and submit",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/onboarding-wizard-shell.tsx"
+  },
+  "shared.chooseACardSavedToYour": {
+    "en": "Choose a card saved to your own payment methods.",
+    "ka": "",
+    "_source": "src/app/api/orders/[id]/pay/route.ts"
+  },
+  "shared.chooseASavedCardToPay": {
+    "en": "Choose a saved card to pay by card.",
+    "ka": "",
+    "_source": "src/app/api/orders/[id]/pay/route.ts"
+  },
+  "shared.citiesOfOperation": {
+    "en": "Cities of operation",
+    "ka": "",
+    "_source": "src/components/admin/business-application-detail-drawer.tsx"
+  },
+  "shared.city": {
+    "en": "City",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/business/applications/page.tsx"
+  },
+  "shared.class": {
+    "en": "Class",
+    "ka": "",
+    "_source": "src/components/admin/driver-application-detail-drawer.tsx"
+  },
+  "shared.client": {
+    "en": "Client",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/users/clients/page.tsx"
+  },
+  "shared.close": {
+    "en": "Close",
+    "ka": "",
+    "_source": "src/components/admin/business-application-detail-drawer.tsx"
+  },
+  "shared.code": {
+    "en": "Code",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/finance/promo-campaigns/page.tsx"
+  },
+  "shared.colour": {
+    "en": "Colour",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/steps/step-3c-technical-details.tsx"
+  },
+  "shared.company": {
+    "en": "Company",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/business/applications/page.tsx"
+  },
+  "shared.companyDetails": {
+    "en": "Company details",
+    "ka": "",
+    "_source": "src/components/driver-hub/driver-account-company-card.tsx"
+  },
+  "shared.companyEmail": {
+    "en": "Company email",
+    "ka": "",
+    "_source": "src/components/fleet-onboarding/steps/step-1-company-details.tsx"
+  },
+  "shared.companyName": {
+    "en": "Company name",
+    "ka": "",
+    "_source": "src/components/account-profile-form.tsx"
+  },
+  "shared.companynameIsRequiredAndMustBe": {
+    "en": "companyName is required and must be a non-empty string.",
+    "ka": "",
+    "_source": "src/app/api/client-profile/route.ts"
+  },
+  "shared.completeYourCompanyProfileBeforeClaiming": {
+    "en": "Complete your company profile before claiming deliveries.",
+    "ka": "",
+    "_source": "src/app/api/loads/[id]/reject/route.ts"
+  },
+  "shared.completeYourCompanyProfileBeforeOnboarding": {
+    "en": "Complete your company profile before onboarding.",
+    "ka": "",
+    "_source": "src/app/api/logistics-company/onboarding/reset/route.ts"
+  },
+  "shared.completeYourDriverProfileBeforeOnboarding": {
+    "en": "Complete your driver profile before onboarding.",
+    "ka": "",
+    "_source": "src/app/api/driver-profile/onboarding/reset/route.ts"
+  },
+  "shared.completed": {
+    "en": "Completed",
+    "ka": "",
+    "_source": "src/components/admin/analytics/metric-cards.tsx"
+  },
+  "shared.confirmNewPassword": {
+    "en": "Confirm new password",
+    "ka": "",
+    "_source": "src/app/[locale]/change-password/page.tsx"
+  },
+  "shared.contact": {
+    "en": "Contact",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/users/clients/page.tsx"
+  },
+  "shared.contacts": {
+    "en": "Contacts",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/job-sheet-parts.tsx"
+  },
+  "shared.contenttypeIsRequiredAndMustBe": {
+    "en": "contentType is required and must be a non-empty string.",
+    "ka": "",
+    "_source": "src/app/api/admin/content/media/upload-url/validation.ts"
+  },
+  "shared.continue": {
+    "en": "Continue",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/steps/step-1-auth-personal.tsx"
+  },
+  "shared.couldNotPrepareTheUploadPlease": {
+    "en": "Could not prepare the upload. Please try again.",
+    "ka": "",
+    "_source": "src/app/api/admin/content/media/upload-url/route.ts"
+  },
+  "shared.couldNotStartYourApplicationPlease": {
+    "en": "Could not start your application. Please try again.",
+    "ka": "",
+    "_source": "src/app/api/driver-profile/onboarding/route.ts"
+  },
+  "shared.couldNotUploadTheVehiclePhotos": {
+    "en": "Could not upload the vehicle photos. Please try again.",
+    "ka": "",
+    "_source": "src/app/api/driver-profile/vehicles/route.ts"
+  },
+  "shared.createAccount": {
+    "en": "Create account",
+    "ka": "",
+    "_source": "src/components/auth/auth-primitives.tsx"
+  },
+  "shared.currentPassword": {
+    "en": "Current password",
+    "ka": "",
+    "_source": "src/components/account-password-card.tsx"
+  },
+  "shared.d441988210": {
+    "en": "D4419-88210",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/steps/step-2-licence.tsx"
+  },
+  "shared.dashboard": {
+    "en": "Dashboard",
+    "ka": "",
+    "_source": "src/app/[locale]/dashboard/(hub)/layout.tsx"
+  },
+  "shared.date": {
+    "en": "Date",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/fleet-availability-dialogs.tsx"
+  },
+  "shared.dateOfBirth": {
+    "en": "Date of birth",
+    "ka": "",
+    "_source": "src/components/account-profile-form.tsx"
+  },
+  "shared.delete": {
+    "en": "Delete",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/banners/page.tsx"
+  },
+  "shared.discountvalueMustBeANumber": {
+    "en": "discountValue must be a number.",
+    "ka": "",
+    "_source": "src/app/api/admin/finance/promo-campaigns/[id]/route.ts"
+  },
+  "shared.distance": {
+    "en": "Distance",
+    "ka": "",
+    "_source": "src/app/[locale]/checkout/[id]/page.tsx"
+  },
+  "shared.done": {
+    "en": "Done",
+    "ka": "",
+    "_source": "src/components/admin/users/create-system-user-dialog.tsx"
+  },
+  "shared.draftMustBeAnObjectWith": {
+    "en": "draft must be an object with version 1.",
+    "ka": "",
+    "_source": "src/app/api/driver-profile/onboarding/route.ts"
+  },
+  "shared.driver": {
+    "en": "Driver",
+    "ka": "",
+    "_source": "src/components/driver-hub/driver-hub-topnav.tsx"
+  },
+  "shared.driverAvailabilityIsAFleetScreen": {
+    "en": "Driver availability is a fleet screen — only a logistics company account has a roster to lay out.",
+    "ka": "",
+    "_source": "src/app/api/dashboard/hub/drivers/availability/export/route.ts"
+  },
+  "shared.driverExampleCom": {
+    "en": "driver@example.com",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/drivers-add-panel.tsx"
+  },
+  "shared.driverHub": {
+    "en": "Driver hub",
+    "ka": "",
+    "_source": "src/components/driver-hub/driver-hub-sidebar.tsx"
+  },
+  "shared.driverNotFound": {
+    "en": "Driver not found.",
+    "ka": "",
+    "_source": "src/app/api/logistics-company/drivers/[userId]/route.ts"
+  },
+  "shared.drivers": {
+    "en": "Drivers",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/business/applications/page.tsx"
+  },
+  "shared.driversAssignment": {
+    "en": "Drivers & assignment",
+    "ka": "",
+    "_source": "src/components/fleet-onboarding/fleet-step-rail.tsx"
+  },
+  "shared.driveruseridIsRequired": {
+    "en": "driverUserId is required.",
+    "ka": "",
+    "_source": "src/app/api/logistics-company/orders/[id]/dispatch/route.ts"
+  },
+  "shared.dropOff": {
+    "en": "Drop-off",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/job-sheet-actions.tsx"
+  },
+  "shared.dropOffCity": {
+    "en": "Drop-off city",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-filters.tsx"
+  },
+  "shared.dropOffCity2": {
+    "en": "Drop off city",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-mobile.tsx"
+  },
+  "shared.dropoff": {
+    "en": "Dropoff",
+    "ka": "",
+    "_source": "src/app/[locale]/checkout/[id]/success/page.tsx"
+  },
+  "shared.dryBox": {
+    "en": "Dry Box",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/steps/step-3-chassis-class.tsx"
+  },
+  "shared.eGNikaKavtaradze": {
+    "en": "e.g. Nika Kavtaradze",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/drivers-add-panel.tsx"
+  },
+  "shared.earned": {
+    "en": "Earned",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/drivers-detail-panel.tsx"
+  },
+  "shared.edit": {
+    "en": "Edit",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/banners/page.tsx"
+  },
+  "shared.email": {
+    "en": "Email",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/users/system/page.tsx"
+  },
+  "shared.emailIsRequiredAndMustBe": {
+    "en": "email is required and must be a non-empty string.",
+    "ka": "",
+    "_source": "src/app/api/admin/users/system/route.ts"
+  },
+  "shared.employees": {
+    "en": "Employees",
+    "ka": "",
+    "_source": "src/components/driver-hub/driver-hub-nav.ts"
+  },
+  "shared.endsatMustBeAValidDate": {
+    "en": "endsAt must be a valid date.",
+    "ka": "",
+    "_source": "src/app/api/admin/finance/promo-campaigns/[id]/route.ts"
+  },
+  "shared.endsatMustBeAfterStartsat": {
+    "en": "endsAt must be after startsAt.",
+    "ka": "",
+    "_source": "src/app/api/admin/content/banners/[id]/route.ts"
+  },
+  "shared.englishEn": {
+    "en": "English (EN)",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/home-page/page.tsx"
+  },
+  "shared.eventKey": {
+    "en": "Event key",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/messaging-templates/page.tsx"
+  },
+  "shared.expires": {
+    "en": "Expires",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/drivers-add-panel.tsx"
+  },
+  "shared.exportToExcel": {
+    "en": "Export to Excel",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/analytics/page.tsx"
+  },
+  "shared.filenameIsRequiredAndMustBe": {
+    "en": "fileName is required and must be a non-empty string.",
+    "ka": "",
+    "_source": "src/app/api/admin/content/media/upload-url/validation.ts"
+  },
+  "shared.fillInTheWizardBeforeSubmitting": {
+    "en": "Fill in the wizard before submitting your application.",
+    "ka": "",
+    "_source": "src/app/api/driver-profile/onboarding/submit/route.ts"
+  },
+  "shared.firstDriverToConfirmClaimsThe": {
+    "en": "First driver to confirm claims the order. Rejecting only hides it from your board.",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-detail-sheet.tsx"
+  },
+  "shared.firstName": {
+    "en": "First name",
+    "ka": "",
+    "_source": "src/components/auth/sign-up-form.tsx"
+  },
+  "shared.firstnameIsRequiredAndMustBe": {
+    "en": "firstName is required and must be a non-empty string.",
+    "ka": "",
+    "_source": "src/app/api/client-profile/route.ts"
+  },
+  "shared.flag": {
+    "en": "Flag",
+    "ka": "",
+    "_source": "src/components/admin/business-application-detail-drawer.tsx"
+  },
+  "shared.flatbedOrCurtainSideWithDrop": {
+    "en": "Flatbed or curtain-side with drop sides. Oversized, construction and machinery loads.",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/steps/step-3-chassis-class.tsx"
+  },
+  "shared.fleet": {
+    "en": "Fleet",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/business/applications/page.tsx"
+  },
+  "shared.fleetComposition": {
+    "en": "Fleet composition",
+    "ka": "",
+    "_source": "src/components/fleet-onboarding/fleet-step-rail.tsx"
+  },
+  "shared.from": {
+    "en": "From",
+    "ka": "",
+    "_source": "src/app/[locale]/orders/[id]/track/page.tsx"
+  },
+  "shared.fuel": {
+    "en": "Fuel",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/vehicles-detail-panel.tsx"
+  },
+  "shared.fullName": {
+    "en": "Full name",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/drivers-add-panel.tsx"
+  },
+  "shared.georgianKa": {
+    "en": "Georgian (KA)",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/home-page/page.tsx"
+  },
+  "shared.height": {
+    "en": "Height",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/steps/step-3c-technical-details.tsx"
+  },
+  "shared.helperFee": {
+    "en": "Helper Fee",
+    "ka": "",
+    "_source": "src/app/[locale]/checkout/[id]/page.tsx"
+  },
+  "shared.helpers": {
+    "en": "Helpers",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-claim-dialogs.tsx"
+  },
+  "shared.idNumber": {
+    "en": "ID number",
+    "ka": "",
+    "_source": "src/components/admin/driver-application-detail-drawer.tsx"
+  },
+  "shared.idPassport": {
+    "en": "ID / Passport",
+    "ka": "",
+    "_source": "src/components/account-profile-form.tsx"
+  },
+  "shared.imageUrl": {
+    "en": "Image URL",
+    "ka": "",
+    "_source": "src/components/admin/content/admin-image-upload.tsx"
+  },
+  "shared.imageurlMustBeAnHttpS": {
+    "en": "imageUrl must be an http(s) URL or a path starting with /.",
+    "ka": "",
+    "_source": "src/app/api/admin/content/banners/[id]/route.ts"
+  },
+  "shared.inactive": {
+    "en": "Inactive",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/messaging-templates/page.tsx"
+  },
+  "shared.incentives": {
+    "en": "Incentives",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/earnings-breakdown-card.tsx"
+  },
+  "shared.isactiveMustBeABoolean": {
+    "en": "isActive must be a boolean.",
+    "ka": "",
+    "_source": "src/app/api/admin/content/banners/[id]/route.ts"
+  },
+  "shared.jobs": {
+    "en": "Jobs",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/earnings-fleet-card.tsx"
+  },
+  "shared.jobsCompleted": {
+    "en": "Jobs completed",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/earnings-screen.tsx"
+  },
+  "shared.jobsWk": {
+    "en": "Jobs · wk",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/drivers-screen.tsx"
+  },
+  "shared.joined": {
+    "en": "Joined",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/users/clients/page.tsx"
+  },
+  "shared.key": {
+    "en": "Key",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/translations/page.tsx"
+  },
+  "shared.keyIsRequiredAndMustBe": {
+    "en": "key is required and must be a non-empty string.",
+    "ka": "",
+    "_source": "src/app/api/admin/content/messaging-templates/route.ts"
+  },
+  "shared.lalamoveClone": {
+    "en": "Lalamove Clone",
+    "ka": "",
+    "_source": "src/app/[locale]/layout.tsx"
+  },
+  "shared.language": {
+    "en": "Language",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/messaging-templates/page.tsx"
+  },
+  "shared.lastnameIsRequiredAndMustBe": {
+    "en": "lastName is required and must be a non-empty string.",
+    "ka": "",
+    "_source": "src/app/api/client-profile/route.ts"
+  },
+  "shared.length": {
+    "en": "Length",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/steps/step-3c-technical-details.tsx"
+  },
+  "shared.licenceExpiry": {
+    "en": "Licence expiry",
+    "ka": "",
+    "_source": "src/components/admin/driver-application-detail-drawer.tsx"
+  },
+  "shared.licenceNumber": {
+    "en": "Licence number",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/drivers-add-panel.tsx"
+  },
+  "shared.licencePlate": {
+    "en": "Licence plate",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/steps/step-3c-technical-details.tsx"
+  },
+  "shared.linkUrl": {
+    "en": "Link URL",
+    "ka": "",
+    "_source": "src/components/admin/content/banner-form-dialog.tsx"
+  },
+  "shared.linkurlMustBeAnHttpS": {
+    "en": "linkUrl must be an http(s) URL or a path starting with /.",
+    "ka": "",
+    "_source": "src/app/api/admin/content/banners/[id]/route.ts"
+  },
+  "shared.load": {
+    "en": "Load",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/job-sheet-actions.tsx"
+  },
+  "shared.loadingApplication": {
+    "en": "Loading application…",
+    "ka": "",
+    "_source": "src/components/admin/business-application-detail-drawer.tsx"
+  },
+  "shared.loadingVehicleTypes": {
+    "en": "Loading vehicle types…",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/vehicle-photos/page.tsx"
+  },
+  "shared.loadingYourApplication": {
+    "en": "Loading your application…",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/onboarding-wizard-shell.tsx"
+  },
+  "shared.locale": {
+    "en": "Locale",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/banners/page.tsx"
+  },
+  "shared.make": {
+    "en": "Make",
+    "ka": "",
+    "_source": "src/components/company-vehicle-form.tsx"
+  },
+  "shared.makeAndModel": {
+    "en": "Make and model",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/vehicles-add-form.tsx"
+  },
+  "shared.makeIsRequired": {
+    "en": "make is required.",
+    "ka": "",
+    "_source": "src/app/api/driver-profile/vehicles/[id]/route.ts"
+  },
+  "shared.makeModel": {
+    "en": "Make / model",
+    "ka": "",
+    "_source": "src/components/admin/driver-application-detail-drawer.tsx"
+  },
+  "shared.mapUnavailableMissingGoogleMapsApi": {
+    "en": "Map unavailable — missing Google Maps API key.",
+    "ka": "",
+    "_source": "src/components/home/route-preview-map.tsx"
+  },
+  "shared.maximumPayloadKg": {
+    "en": "Maximum payload (kg)",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/steps/step-3c-technical-details.tsx"
+  },
+  "shared.mobile": {
+    "en": "Mobile",
+    "ka": "",
+    "_source": "src/components/admin/driver-application-detail-drawer.tsx"
+  },
+  "shared.model": {
+    "en": "Model",
+    "ka": "",
+    "_source": "src/components/company-vehicle-form.tsx"
+  },
+  "shared.modelIsRequired": {
+    "en": "model is required.",
+    "ka": "",
+    "_source": "src/app/api/driver-profile/vehicles/[id]/route.ts"
+  },
+  "shared.myAccount": {
+    "en": "My account",
+    "ka": "",
+    "_source": "src/app/[locale]/account/page.tsx"
+  },
+  "shared.myOrders": {
+    "en": "My orders",
+    "ka": "",
+    "_source": "src/components/auth-status.tsx"
+  },
+  "shared.name": {
+    "en": "Name",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/users/system/page.tsx"
+  },
+  "shared.namespace": {
+    "en": "Namespace",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/translations/page.tsx"
+  },
+  "shared.needsReview": {
+    "en": "Needs review",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/drivers-screen.tsx"
+  },
+  "shared.networkErrorPleaseCheckYourConnection": {
+    "en": "Network error. Please check your connection and try again.",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/pages/page.tsx"
+  },
+  "shared.newOrder": {
+    "en": "← New order",
+    "ka": "",
+    "_source": "src/app/[locale]/orders/page.tsx"
+  },
+  "shared.newPassword": {
+    "en": "New password",
+    "ka": "",
+    "_source": "src/app/[locale]/change-password/page.tsx"
+  },
+  "shared.next": {
+    "en": "Next",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/business/applications/page.tsx"
+  },
+  "shared.noApplicationToReset": {
+    "en": "No application to reset.",
+    "ka": "",
+    "_source": "src/app/api/driver-profile/onboarding/reset/route.ts"
+  },
+  "shared.noApplicationToSaveLoadYour": {
+    "en": "No application to save. Load your application first.",
+    "ka": "",
+    "_source": "src/app/api/driver-profile/onboarding/route.ts"
+  },
+  "shared.noCityByThatNameCheck": {
+    "en": "No city by that name. Check the spelling.",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/steps/step-1-auth-personal.tsx"
+  },
+  "shared.noEditableFieldsWereProvided": {
+    "en": "No editable fields were provided.",
+    "ka": "",
+    "_source": "src/app/api/admin/content/messaging-templates/[id]/route.ts"
+  },
+  "shared.noVehiclesOnThisApplication": {
+    "en": "No vehicles on this application.",
+    "ka": "",
+    "_source": "src/components/admin/business-application-detail-drawer.tsx"
+  },
+  "shared.notifications": {
+    "en": "Notifications",
+    "ka": "",
+    "_source": "src/components/driver-hub/driver-account-sections.ts"
+  },
+  "shared.odometer": {
+    "en": "Odometer",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/vehicles-detail-panel.tsx"
+  },
+  "shared.onlineHours": {
+    "en": "Online hours",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/earnings-screen.tsx"
+  },
+  "shared.onlyDriversHaveAnOnboardingApplication": {
+    "en": "Only drivers have an onboarding application.",
+    "ka": "",
+    "_source": "src/app/api/driver-profile/onboarding/reset/route.ts"
+  },
+  "shared.onlyLogisticsCompaniesCanDispatchDeliveries": {
+    "en": "Only logistics companies can dispatch deliveries.",
+    "ka": "",
+    "_source": "src/app/api/logistics-company/orders/[id]/dispatch-options/route.ts"
+  },
+  "shared.onlyLogisticsCompaniesHaveAFleet": {
+    "en": "Only logistics companies have a fleet application.",
+    "ka": "",
+    "_source": "src/app/api/logistics-company/onboarding/reset/route.ts"
+  },
+  "shared.openChassis": {
+    "en": "Open Chassis",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/steps/step-3-chassis-class.tsx"
+  },
+  "shared.openJobSheet": {
+    "en": "Open job sheet",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-detail-sheet.tsx"
+  },
+  "shared.order": {
+    "en": "Order",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/banners/page.tsx"
+  },
+  "shared.orderNotFound": {
+    "en": "Order not found.",
+    "ka": "",
+    "_source": "src/app/[locale]/checkout/checkout-shell.tsx"
+  },
+  "shared.orders": {
+    "en": "Orders",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/users/clients/page.tsx"
+  },
+  "shared.password": {
+    "en": "Password",
+    "ka": "",
+    "_source": "src/app/[locale]/(admin-sign-in)/admin/sign-in/page.tsx"
+  },
+  "shared.passwordUpdated": {
+    "en": "Password updated.",
+    "ka": "",
+    "_source": "src/components/account-password-card.tsx"
+  },
+  "shared.passwordsDonTMatch": {
+    "en": "Passwords don't match.",
+    "ka": "",
+    "_source": "src/app/[locale]/change-password/page.tsx"
+  },
+  "shared.payload": {
+    "en": "Payload",
+    "ka": "",
+    "_source": "src/components/admin/driver-application-detail-drawer.tsx"
+  },
+  "shared.paymentMethod": {
+    "en": "Payment method",
+    "ka": "",
+    "_source": "src/app/[locale]/checkout/[id]/success/page.tsx"
+  },
+  "shared.payoutAccount": {
+    "en": "Payout account",
+    "ka": "",
+    "_source": "src/components/admin/business-application-detail-drawer.tsx"
+  },
+  "shared.pending": {
+    "en": "Pending",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/business/applications/page.tsx"
+  },
+  "shared.period": {
+    "en": "Period",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/earnings-payouts-card.tsx"
+  },
+  "shared.phone": {
+    "en": "Phone",
+    "ka": "",
+    "_source": "src/components/admin/business-application-detail-drawer.tsx"
+  },
+  "shared.phoneIsRequiredAndMustBe": {
+    "en": "phone is required and must be a non-empty string.",
+    "ka": "",
+    "_source": "src/app/api/client-profile/route.ts"
+  },
+  "shared.photos": {
+    "en": "Photos",
+    "ka": "",
+    "_source": "src/components/company-vehicle-form.tsx"
+  },
+  "shared.pickUp": {
+    "en": "Pick-up",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/job-sheet-parts.tsx"
+  },
+  "shared.pickUpCity": {
+    "en": "Pick-up city",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-filters.tsx"
+  },
+  "shared.pickUpCity2": {
+    "en": "Pick up city",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-mobile.tsx"
+  },
+  "shared.pickUpDate": {
+    "en": "Pick up date",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-mobile.tsx"
+  },
+  "shared.pickUpTime": {
+    "en": "Pick up time",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-mobile.tsx"
+  },
+  "shared.pickedUp": {
+    "en": "Picked up",
+    "ka": "",
+    "_source": "src/components/driver-hub/hub-job-parts.tsx"
+  },
+  "shared.pickup": {
+    "en": "Pickup",
+    "ka": "",
+    "_source": "src/app/[locale]/checkout/[id]/success/page.tsx"
+  },
+  "shared.placement": {
+    "en": "Placement",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/banners/page.tsx"
+  },
+  "shared.plate": {
+    "en": "Plate",
+    "ka": "",
+    "_source": "src/components/admin/driver-application-detail-drawer.tsx"
+  },
+  "shared.platenumberIsRequired": {
+    "en": "plateNumber is required.",
+    "ka": "",
+    "_source": "src/app/api/driver-profile/vehicles/[id]/route.ts"
+  },
+  "shared.previous": {
+    "en": "Previous",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/business/applications/page.tsx"
+  },
+  "shared.price": {
+    "en": "Price",
+    "ka": "",
+    "_source": "src/app/[locale]/checkout/[id]/page.tsx"
+  },
+  "shared.profile": {
+    "en": "Profile",
+    "ka": "",
+    "_source": "src/app/[locale]/account/page.tsx"
+  },
+  "shared.profilePhoto": {
+    "en": "Profile photo",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/application-status-screen.tsx"
+  },
+  "shared.profileSaved": {
+    "en": "Profile saved.",
+    "ka": "",
+    "_source": "src/components/account-profile-form.tsx"
+  },
+  "shared.promise": {
+    "en": "Promise",
+    "ka": "",
+    "_source": "src/components/auth/use-sign-out.ts"
+  },
+  "shared.questions": {
+    "en": "Questions",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "shared.rating": {
+    "en": "Rating",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/drivers-detail-panel.tsx"
+  },
+  "shared.reason": {
+    "en": "Reason",
+    "ka": "",
+    "_source": "src/components/admin/users/suspend-dialog.tsx"
+  },
+  "shared.refrigeratedVehicle": {
+    "en": "Refrigerated Vehicle",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/steps/step-3-chassis-class.tsx"
+  },
+  "shared.registeredAddress": {
+    "en": "Registered address",
+    "ka": "",
+    "_source": "src/components/admin/business-application-detail-drawer.tsx"
+  },
+  "shared.reject": {
+    "en": "Reject",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-mobile.tsx"
+  },
+  "shared.remove": {
+    "en": "Remove",
+    "ka": "",
+    "_source": "src/components/admin/content/admin-image-upload.tsx"
+  },
+  "shared.requestBodyMustBeAJson": {
+    "en": "Request body must be a JSON object.",
+    "ka": "",
+    "_source": "src/app/api/admin/business-applications/[id]/company/route.ts"
+  },
+  "shared.requestBodyMustBeMultipartForm": {
+    "en": "Request body must be multipart/form-data.",
+    "ka": "",
+    "_source": "src/app/api/driver-profile/vehicles/route.ts"
+  },
+  "shared.requestBodyMustBeValidJson": {
+    "en": "Request body must be valid JSON.",
+    "ka": "",
+    "_source": "src/app/api/admin/business-applications/[id]/company/route.ts"
+  },
+  "shared.resume": {
+    "en": "Resume",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/onboarding-wizard-shell.tsx"
+  },
+  "shared.reviewStatus": {
+    "en": "Review & status",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/onboarding-step-rail.tsx"
+  },
+  "shared.role": {
+    "en": "Role",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/users/system/page.tsx"
+  },
+  "shared.route": {
+    "en": "Route",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/jobs-screen.tsx"
+  },
+  "shared.sample": {
+    "en": "Sample",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/drivers-detail-panel.tsx"
+  },
+  "shared.savedcardidMustBeANonEmpty": {
+    "en": "savedCardId must be a non-empty string when provided.",
+    "ka": "",
+    "_source": "src/app/api/orders/[id]/pay/route.ts"
+  },
+  "shared.scheduled": {
+    "en": "Scheduled",
+    "ka": "",
+    "_source": "src/app/[locale]/checkout/[id]/page.tsx"
+  },
+  "shared.scope": {
+    "en": "Scope",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/employees-invite-form.tsx"
+  },
+  "shared.searchByNameEmailOrPhone": {
+    "en": "Search by name, email or phone…",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/users/clients/page.tsx"
+  },
+  "shared.section": {
+    "en": "Section",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/home-page/page.tsx"
+  },
+  "shared.selectALocale": {
+    "en": "Select a locale",
+    "ka": "",
+    "_source": "src/components/admin/content/banner-form-dialog.tsx"
+  },
+  "shared.sendSavedcardidOnlyWhenPaymentmethodtypeIs": {
+    "en": "Send savedCardId only when paymentMethodType is CARD.",
+    "ka": "",
+    "_source": "src/app/api/orders/[id]/pay/route.ts"
+  },
+  "shared.serviceLevel": {
+    "en": "Service level",
+    "ka": "",
+    "_source": "src/app/[locale]/checkout/[id]/page.tsx"
+  },
+  "shared.setANewPassword": {
+    "en": "Set a new password",
+    "ka": "",
+    "_source": "src/app/[locale]/change-password/page.tsx"
+  },
+  "shared.signIn": {
+    "en": "Sign in",
+    "ka": "",
+    "_source": "src/app/[locale]/account/page.tsx"
+  },
+  "shared.signUp": {
+    "en": "Sign up",
+    "ka": "",
+    "_source": "src/app/[locale]/account/page.tsx"
+  },
+  "shared.slug": {
+    "en": "Slug",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/pages/page.tsx"
+  },
+  "shared.somethingWentWrongPleaseTryAgain": {
+    "en": "Something went wrong. Please try again.",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/banners/page.tsx"
+  },
+  "shared.sortOrder": {
+    "en": "Sort order",
+    "ka": "",
+    "_source": "src/components/admin/content/banner-form-dialog.tsx"
+  },
+  "shared.startTheApplicationFirst": {
+    "en": "Start the application first.",
+    "ka": "",
+    "_source": "src/app/api/driver-profile/onboarding/documents/guard.ts"
+  },
+  "shared.startsatMustBeAValidDate": {
+    "en": "startsAt must be a valid date.",
+    "ka": "",
+    "_source": "src/app/api/admin/finance/promo-campaigns/[id]/route.ts"
+  },
+  "shared.status": {
+    "en": "Status",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/business/applications/page.tsx"
+  },
+  "shared.subject": {
+    "en": "Subject",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/messaging-templates/page.tsx"
+  },
+  "shared.support": {
+    "en": "Support",
+    "ka": "",
+    "_source": "src/components/driver-hub/driver-account-placeholder-panel.tsx"
+  },
+  "shared.surname": {
+    "en": "Surname",
+    "ka": "",
+    "_source": "src/components/account-profile-form.tsx"
+  },
+  "shared.suspended": {
+    "en": "Suspended",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/users/clients/page.tsx"
+  },
+  "shared.suspendedOn": {
+    "en": "Suspended on",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/users/clients/page.tsx"
+  },
+  "shared.suspensionReason": {
+    "en": "Suspension reason",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/users/clients/page.tsx"
+  },
+  "shared.temporaryPassword": {
+    "en": "Temporary password",
+    "ka": "",
+    "_source": "src/app/[locale]/change-password/page.tsx"
+  },
+  "shared.thatPaymentMethodIsNotAvailable": {
+    "en": "That payment method is not available.",
+    "ka": "",
+    "_source": "src/app/api/orders/[id]/pay/route.ts"
+  },
+  "shared.thatSystemUserWasNotFound": {
+    "en": "That system user was not found.",
+    "ka": "",
+    "_source": "src/app/api/admin/users/system/[userId]/deactivate/route.ts"
+  },
+  "shared.theCredentialsYouSignInWith": {
+    "en": "The credentials you sign in with.",
+    "ka": "",
+    "_source": "src/components/account-password-card.tsx"
+  },
+  "shared.theStartDateMustBeBefore": {
+    "en": "The start date must be before the end date.",
+    "ka": "",
+    "_source": "src/app/api/admin/finance/promo-campaigns/[id]/route.ts"
+  },
+  "shared.thisApplicationHasAlreadyBeenApproved": {
+    "en": "This application has already been approved.",
+    "ka": "",
+    "_source": "src/app/api/admin/driver-applications/[id]/approve/route.ts"
+  },
+  "shared.thisApplicationHasAlreadyBeenSubmitted": {
+    "en": "This application has already been submitted.",
+    "ka": "",
+    "_source": "src/app/api/driver-profile/onboarding/submit/route.ts"
+  },
+  "shared.thisFleetHasAlreadyBeenActivated": {
+    "en": "This fleet has already been activated.",
+    "ka": "",
+    "_source": "src/app/api/admin/business-applications/[id]/activate/route.ts"
+  },
+  "shared.thisLoadWasJustClaimedBy": {
+    "en": "This load was just claimed by someone else.",
+    "ka": "",
+    "_source": "src/app/api/logistics-company/orders/[id]/claim/route.ts"
+  },
+  "shared.thisPhoneNumberIsAlreadyRegistered": {
+    "en": "This phone number is already registered to another account.",
+    "ka": "",
+    "_source": "src/app/api/client-profile/route.ts"
+  },
+  "shared.thisPlateNumberIsAlreadyRegistered": {
+    "en": "This plate number is already registered.",
+    "ka": "",
+    "_source": "src/app/api/driver-profile/vehicles/[id]/route.ts"
+  },
+  "shared.thisPlateNumberIsAlreadyRegistered2": {
+    "en": "This plate number is already registered to another vehicle.",
+    "ka": "",
+    "_source": "src/app/api/driver-profile/onboarding/submit/route.ts"
+  },
+  "shared.time": {
+    "en": "Time",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/jobs-screen.tsx"
+  },
+  "shared.title": {
+    "en": "Title",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/pages/page.tsx"
+  },
+  "shared.titleIsRequiredAndMustBe": {
+    "en": "title is required and must be a non-empty string.",
+    "ka": "",
+    "_source": "src/app/api/admin/content/banners/route.ts"
+  },
+  "shared.to": {
+    "en": "To",
+    "ka": "",
+    "_source": "src/app/[locale]/orders/[id]/track/page.tsx"
+  },
+  "shared.today": {
+    "en": "Today",
+    "ka": "",
+    "_source": "src/components/admin/analytics/date-range-picker.tsx"
+  },
+  "shared.tooManyRequestsPleaseWaitA": {
+    "en": "Too many requests. Please wait a moment and try again.",
+    "ka": "",
+    "_source": "src/app/api/geocode/details/route.ts"
+  },
+  "shared.total": {
+    "en": "Total",
+    "ka": "",
+    "_source": "src/app/[locale]/checkout/[id]/page.tsx"
+  },
+  "shared.transportationCost": {
+    "en": "Transportation cost",
+    "ka": "",
+    "_source": "src/app/[locale]/checkout/[id]/page.tsx"
+  },
+  "shared.tryAgain": {
+    "en": "Try again",
+    "ka": "",
+    "_source": "src/components/admin/business-application-detail-drawer.tsx"
+  },
+  "shared.type": {
+    "en": "Type",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/users/clients/page.tsx"
+  },
+  "shared.unassigned": {
+    "en": "Unassigned",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/drivers-add-panel.tsx"
+  },
+  "shared.unauthorized": {
+    "en": "Unauthorized.",
+    "ka": "",
+    "_source": "src/app/api/admin/users/system/[userId]/deactivate/route.ts"
+  },
+  "shared.unfinishedApplication": {
+    "en": "Unfinished application",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/onboarding-wizard-shell.tsx"
+  },
+  "shared.usedWithYourEmailAddressTo": {
+    "en": "Used with your email address to sign in.",
+    "ka": "",
+    "_source": "src/components/account-password-card.tsx"
+  },
+  "shared.userNotFound": {
+    "en": "User not found.",
+    "ka": "",
+    "_source": "src/app/api/admin/users/[userId]/suspend/route.ts"
+  },
+  "shared.value": {
+    "en": "Value",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "shared.vatId": {
+    "en": "VAT ID",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/users/clients/page.tsx"
+  },
+  "shared.vatTaxId": {
+    "en": "VAT / tax ID",
+    "ka": "",
+    "_source": "src/components/admin/business-application-detail-drawer.tsx"
+  },
+  "shared.vatidIsRequiredAndMustBe": {
+    "en": "vatId is required and must be a non-empty string.",
+    "ka": "",
+    "_source": "src/app/api/client-profile/route.ts"
+  },
+  "shared.vehicle": {
+    "en": "Vehicle",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/drivers/applications/page.tsx"
+  },
+  "shared.vehicleNoLongerOnFile": {
+    "en": "Vehicle no longer on file",
+    "ka": "",
+    "_source": "src/components/admin/business-application-detail-drawer.tsx"
+  },
+  "shared.vehicleNotFound": {
+    "en": "Vehicle not found.",
+    "ka": "",
+    "_source": "src/app/api/driver-profile/vehicles/[id]/route.ts"
+  },
+  "shared.vehicleRegistration": {
+    "en": "Vehicle registration",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/onboarding-step-rail.tsx"
+  },
+  "shared.vehicleSpecifications": {
+    "en": "Vehicle specifications",
+    "ka": "",
+    "_source": "src/components/fleet-onboarding/fleet-step-rail.tsx"
+  },
+  "shared.vehicleidIsRequired": {
+    "en": "vehicleId is required.",
+    "ka": "",
+    "_source": "src/app/api/logistics-company/orders/[id]/dispatch/route.ts"
+  },
+  "shared.vehicles": {
+    "en": "Vehicles",
+    "ka": "",
+    "_source": "src/components/driver-hub/driver-hub-nav.ts"
+  },
+  "shared.vehicletypePricingruleBasefare": {
+    "en": "vehicleType.pricingRule.baseFare",
+    "ka": "",
+    "_source": "src/components/landing/landing-category-tiles.tsx"
+  },
+  "shared.vehicletypecodeIsRequired": {
+    "en": "vehicleTypeCode is required.",
+    "ka": "",
+    "_source": "src/app/api/driver-profile/vehicles/[id]/route.ts"
+  },
+  "shared.waitingTime": {
+    "en": "Waiting time",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/job-sheet-actions.tsx"
+  },
+  "shared.wallet": {
+    "en": "Wallet",
+    "ka": "",
+    "_source": "src/app/[locale]/wallet/page.tsx"
+  },
+  "shared.weCouldnTSubmitYourApplication": {
+    "en": "We couldn't submit your application. Please try again.",
+    "ka": "",
+    "_source": "src/app/api/driver-profile/onboarding/submit/route.ts"
+  },
+  "shared.width": {
+    "en": "Width",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/steps/step-3c-technical-details.tsx"
+  },
+  "shared.window": {
+    "en": "Window",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/fleet-availability-dialogs.tsx"
+  },
+  "shared.workEmail": {
+    "en": "Work email",
+    "ka": "",
+    "_source": "src/app/[locale]/(admin-sign-in)/admin/sign-in/page.tsx"
+  },
+  "shared.year": {
+    "en": "Year",
+    "ka": "",
+    "_source": "src/components/company-vehicle-form.tsx"
+  },
+  "shared.yearColour": {
+    "en": "Year / colour",
+    "ka": "",
+    "_source": "src/components/admin/driver-application-detail-drawer.tsx"
+  },
+  "shared.yearIsRequired": {
+    "en": "year is required.",
+    "ka": "",
+    "_source": "src/app/api/driver-profile/vehicles/validation.ts"
+  },
+  "shared.youAreNotAssignedToThis": {
+    "en": "You are not assigned to this delivery.",
+    "ka": "",
+    "_source": "src/app/api/orders/[id]/complete/route.ts"
+  },
+  "shared.youCompanyGe": {
+    "en": "you@company.ge",
+    "ka": "",
+    "_source": "src/components/auth/sign-in-form.tsx"
+  },
+  "shared.yourAccountIsnTApprovedYet": {
+    "en": "Your account isn't approved yet. Finish onboarding to accept deliveries.",
+    "ka": "",
+    "_source": "src/app/api/loads/[id]/reject/route.ts"
+  },
+  "shared.yourApplicationIsIncompleteContactSupport": {
+    "en": "Your application is incomplete — contact support so we can restore it.",
+    "ka": "",
+    "_source": "src/app/api/driver-profile/onboarding/submit/route.ts"
+  },
+  "shared.yourDriverProfileIsnTSet": {
+    "en": "Your driver profile isn't set up yet.",
+    "ka": "",
+    "_source": "src/app/api/dashboard/hub/drivers/availability/export/route.ts"
+  },
+  "shared.yourFleetIsStillUnderReview": {
+    "en": "Your fleet is still under review. Operations must activate the company before you can claim deliveries.",
+    "ka": "",
+    "_source": "src/app/api/loads/[id]/reject/route.ts"
+  },
+  "shared.yourFleetIsStillUnderReview2": {
+    "en": "Your fleet is still under review. Operations must activate the company before you can dispatch deliveries.",
+    "ka": "",
+    "_source": "src/app/api/logistics-company/orders/[id]/dispatch-options/route.ts"
+  },
+  "shared.zone": {
+    "en": "Zone",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/drivers-add-panel.tsx"
+  },
+  "srcApp.onDemandDeliveryPlatformBookA": {
+    "en": "On-demand delivery platform — book a vehicle and move your goods across the city.",
+    "ka": "",
+    "_source": "src/app/[locale]/layout.tsx"
+  },
+  "themeToggle.darkTheme": {
+    "en": "Dark theme",
+    "ka": "",
+    "_source": "src/components/theme-toggle.tsx"
+  }
+}

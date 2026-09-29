@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 
+import { useRouter } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 
 /**
@@ -83,9 +83,7 @@ export function SystemUserStatusButton({
       >
         {isActive ? "Deactivate" : "Reactivate"}
       </Button>
-      {error ? (
-        <span className="text-xs text-destructive">{error}</span>
-      ) : null}
+      {error ? <span className="text-xs text-destructive">{error}</span> : null}
     </div>
   );
 }

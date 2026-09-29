@@ -1,8 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
 
+import { useRouter } from "@/i18n/navigation";
 import { AuthHeading, AuthSubheading } from "@/components/auth/auth-primitives";
 import { AuthShell } from "@/components/auth/auth-shell";
 import {

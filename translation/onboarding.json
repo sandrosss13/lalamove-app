@@ -1,0 +1,297 @@
+{
+  "applicationStatusScreen.accountActivation": {
+    "en": "Account activation",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/application-status-screen.tsx"
+  },
+  "applicationStatusScreen.applicationSubmitted": {
+    "en": "Application submitted",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/application-status-screen.tsx"
+  },
+  "applicationStatusScreen.documentReview": {
+    "en": "Document review",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/application-status-screen.tsx"
+  },
+  "applicationStatusScreen.keepYourLicenceAndInsuranceCurrent": {
+    "en": "Keep your licence and insurance current — we re-check 30 days before expiry.",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/application-status-screen.tsx"
+  },
+  "applicationStatusScreen.licenceBack": {
+    "en": "Licence — back",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/application-status-screen.tsx"
+  },
+  "applicationStatusScreen.licenceFront": {
+    "en": "Licence — front",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/application-status-screen.tsx"
+  },
+  "applicationStatusScreen.needsANewPhoto": {
+    "en": "Needs a new photo",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/application-status-screen.tsx"
+  },
+  "applicationStatusScreen.resubmittedApplicationsAreUsuallyReviewedWithin": {
+    "en": "Resubmitted applications are usually reviewed within 4 hours.",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/application-status-screen.tsx"
+  },
+  "applicationStatusScreen.retake": {
+    "en": "Retake",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/application-status-screen.tsx"
+  },
+  "applicationStatusScreen.typicalReviewTimeIs1224": {
+    "en": "Typical review time is 12–24 hours on business days.",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/application-status-screen.tsx"
+  },
+  "applicationStatusScreen.underReview": {
+    "en": "Under review",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/application-status-screen.tsx"
+  },
+  "applicationStatusScreen.youAreClearedToDrive": {
+    "en": "You are cleared to drive",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/application-status-screen.tsx"
+  },
+  "documentUploadDialog.filesAreCheckedByTheReview": {
+    "en": "Files are checked by the review team, not automatically.",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/document-upload-dialog.tsx"
+  },
+  "documentUploadDialog.jpgOrPngMax10Mb": {
+    "en": "JPG or PNG · max 10 MB",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/document-upload-dialog.tsx"
+  },
+  "documentUploadDialog.theCategoryTableIsWhatThe": {
+    "en": "The category table is what the reviewer checks.",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/document-upload-dialog.tsx"
+  },
+  "documentUploadDialog.thePhotoNameAndLicenceNumber": {
+    "en": "The photo, name and licence number must be readable.",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/document-upload-dialog.tsx"
+  },
+  "documentUploadDialog.uploadTheBackOfYourLicence": {
+    "en": "Upload the back of your licence",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/document-upload-dialog.tsx"
+  },
+  "documentUploadDialog.uploadTheFrontOfYourLicence": {
+    "en": "Upload the front of your licence",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/document-upload-dialog.tsx"
+  },
+  "documentUploadDialog.uploadYourProfilePhoto": {
+    "en": "Upload your profile photo",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/document-upload-dialog.tsx"
+  },
+  "onboardingStepRail.authorisationPersonal": {
+    "en": "Authorisation & personal",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/onboarding-step-rail.tsx"
+  },
+  "onboardingStepRail.everyFieldValidatesOnContinueDocuments": {
+    "en": "Every field validates on continue. Documents flagged in the admin console come back here for re-upload.",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/onboarding-step-rail.tsx"
+  },
+  "onboardingStepRail.licenceVerification": {
+    "en": "Licence verification",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/onboarding-step-rail.tsx"
+  },
+  "onboardingWizardShell.becomeAPartnerDriver": {
+    "en": "Become a partner driver",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/onboarding-wizard-shell.tsx"
+  },
+  "onboardingWizardShell.fourStepsAround12MinutesIf": {
+    "en": "Four steps. Around 12 minutes if your licence and vehicle documents are to hand. Progress is saved as you go.",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/onboarding-wizard-shell.tsx"
+  },
+  "onboardingWizardShell.technicalDetails": {
+    "en": "Technical details",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/onboarding-wizard-shell.tsx"
+  },
+  "onboardingWizardShell.whoYouAre": {
+    "en": "Who you are",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/onboarding-wizard-shell.tsx"
+  },
+  "onboardingWizardShell.yourLicence": {
+    "en": "Your licence",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/onboarding-wizard-shell.tsx"
+  },
+  "step1AuthPersonal.exactlyAsPrintedOnYourId": {
+    "en": "Exactly as printed on your ID",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/steps/step-1-auth-personal.tsx"
+  },
+  "step1AuthPersonal.idOrPassportNumber": {
+    "en": "ID or passport number",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/steps/step-1-auth-personal.tsx"
+  },
+  "step1AuthPersonal.mobileNumber": {
+    "en": "Mobile number",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/steps/step-1-auth-personal.tsx"
+  },
+  "step1AuthPersonal.startTypingTbilisiBatumiKutaisi": {
+    "en": "Start typing — Tbilisi, Batumi, Kutaisi…",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/steps/step-1-auth-personal.tsx"
+  },
+  "step1AuthPersonal.thisIsTheNumberCouriersAnd": {
+    "en": "This is the number couriers and dispatch will call. Everything here is checked against your ID by the review team.",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/steps/step-1-auth-personal.tsx"
+  },
+  "step1AuthPersonal.whereYouWillMostlyPickUp": {
+    "en": "Where you will mostly pick up orders. Georgia only for now.",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/steps/step-1-auth-personal.tsx"
+  },
+  "step2Licence.backOfLicence": {
+    "en": "Back of licence",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/steps/step-2-licence.tsx"
+  },
+  "step2Licence.carsAndVansUpTo3": {
+    "en": "Cars and vans up to 3.5 t",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/steps/step-2-licence.tsx"
+  },
+  "step2Licence.expiryDate": {
+    "en": "Expiry date",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/steps/step-2-licence.tsx"
+  },
+  "step2Licence.frontOfLicence": {
+    "en": "Front of licence",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/steps/step-2-licence.tsx"
+  },
+  "step2Licence.rigidTrucksOver35T": {
+    "en": "Rigid trucks over 3.5 t",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/steps/step-2-licence.tsx"
+  },
+  "step2Licence.scansOrPhotosBothWorkAll": {
+    "en": "Scans or photos both work. All four corners must be visible and free of glare.",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/steps/step-2-licence.tsx"
+  },
+  "step2Licence.theseDecideTheVehicleClassesYou": {
+    "en": "These decide the vehicle classes you can be dispatched for.",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/steps/step-2-licence.tsx"
+  },
+  "step2Licence.truckWithTrailerArticulated": {
+    "en": "Truck with trailer / articulated",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/steps/step-2-licence.tsx"
+  },
+  "step3ChassisClass.cargoBodyType": {
+    "en": "Cargo body type",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/steps/step-3-chassis-class.tsx"
+  },
+  "step3ChassisClass.enclosedRigidBoxGeneralPalletisedAnd": {
+    "en": "Enclosed rigid box. General palletised and boxed cargo.",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/steps/step-3-chassis-class.tsx"
+  },
+  "step3ChassisClass.pickTheClassThatMatchesYour": {
+    "en": "Pick the class that matches your vehicle. Classes above your licence categories, or not offered for the body type you chose, are locked.",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/steps/step-3-chassis-class.tsx"
+  },
+  "step3ChassisClass.temperatureControlledBody20CTo": {
+    "en": "Temperature-controlled body, −20 °C to +8 °C. Requires a valid cooling unit service record.",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/steps/step-3-chassis-class.tsx"
+  },
+  "step3ChassisClass.vehicleClass": {
+    "en": "Vehicle class",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/steps/step-3-chassis-class.tsx"
+  },
+  "step3ChassisClass.whatKindOfCargoBodyDoes": {
+    "en": "What kind of cargo body does the vehicle have?",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/steps/step-3-chassis-class.tsx"
+  },
+  "step3cTechnicalDetails.rearViewShowing2BodyWidth": {
+    "en": "Rear view showing 2 body width",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/steps/step-3c-technical-details.tsx"
+  },
+  "step4ReviewSubmit.checkEverythingBeforeItGoesTo": {
+    "en": "Check everything before it goes to the review team. Corrections after submission cost you a day.",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/steps/step-4-review-submit.tsx"
+  },
+  "step4ReviewSubmit.driverSLicence": {
+    "en": "Driver's licence",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/steps/step-4-review-submit.tsx"
+  },
+  "step4ReviewSubmit.number": {
+    "en": "Number",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/steps/step-4-review-submit.tsx"
+  },
+  "step4ReviewSubmit.personalInformation": {
+    "en": "Personal information",
+    "ka": "",
+    "_source": "src/components/driver-onboarding/steps/step-4-review-submit.tsx"
+  },
+  "vehicleClasses.enclosedRigidBodyGeneralPalletisedAnd": {
+    "en": "Enclosed rigid body. General palletised and boxed cargo.",
+    "ka": "",
+    "_source": "src/lib/driver-onboarding/vehicle-classes.ts"
+  },
+  "vehicleClasses.heavyFreightTruck": {
+    "en": "Heavy Freight Truck",
+    "ka": "",
+    "_source": "src/lib/driver-onboarding/vehicle-classes.ts"
+  },
+  "vehicleClasses.largeVan": {
+    "en": "Large Van",
+    "ka": "",
+    "_source": "src/lib/driver-onboarding/vehicle-classes.ts"
+  },
+  "vehicleClasses.mediumTruck": {
+    "en": "Medium Truck",
+    "ka": "",
+    "_source": "src/lib/driver-onboarding/vehicle-classes.ts"
+  },
+  "vehicleClasses.smallVan": {
+    "en": "Small Van",
+    "ka": "",
+    "_source": "src/lib/driver-onboarding/vehicle-classes.ts"
+  },
+  "vehicleClasses.temperatureControlled20CTo8": {
+    "en": "Temperature-controlled, −20 °C to +8 °C. Cooling unit service record required per vehicle.",
+    "ka": "",
+    "_source": "src/lib/driver-onboarding/vehicle-classes.ts"
+  },
+  "vehicleClasses.trailerTruck": {
+    "en": "Trailer Truck",
+    "ka": "",
+    "_source": "src/lib/driver-onboarding/vehicle-classes.ts"
+  }
+}

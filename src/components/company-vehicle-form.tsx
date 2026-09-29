@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 
+import { useRouter } from "@/i18n/navigation";
 import { VehicleTypeSelect } from "@/components/vehicle-type-select";
 
 /** Oldest selectable manufacturing year; mirrors the API's lower bound. */

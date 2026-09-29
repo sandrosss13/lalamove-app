@@ -1,0 +1,112 @@
+{
+  "checkout.crew": {
+    "en": "Crew",
+    "ka": "",
+    "_source": "src/app/[locale]/checkout/[id]/page.tsx"
+  },
+  "checkout.goods": {
+    "en": "Goods",
+    "ka": "",
+    "_source": "src/app/[locale]/checkout/[id]/page.tsx"
+  },
+  "checkout.loadSpace": {
+    "en": "Load space",
+    "ka": "",
+    "_source": "src/app/[locale]/checkout/[id]/page.tsx"
+  },
+  "checkout.loadingAndUnloadingTimeBeyondThe": {
+    "en": "Loading and unloading time beyond the free allowance is settled after the delivery and is not part of this total.",
+    "ka": "",
+    "_source": "src/app/[locale]/checkout/[id]/page.tsx"
+  },
+  "checkout.notes": {
+    "en": "Notes",
+    "ka": "",
+    "_source": "src/app/[locale]/checkout/[id]/page.tsx"
+  },
+  "checkout.reviewAndPay": {
+    "en": "Review and pay",
+    "ka": "",
+    "_source": "src/app/[locale]/checkout/[id]/page.tsx"
+  },
+  "checkout.yourDelivery": {
+    "en": "Your delivery",
+    "ka": "",
+    "_source": "src/app/[locale]/checkout/[id]/page.tsx"
+  },
+  "checkoutPaymentPanel.chooseAPaymentMethodToContinue": {
+    "en": "Choose a payment method to continue.",
+    "ka": "",
+    "_source": "src/app/[locale]/checkout/checkout-payment-panel.tsx"
+  },
+  "checkoutPaymentPanel.chooseHowYouWouldLikeTo": {
+    "en": "Choose how you would like to settle this delivery.",
+    "ka": "",
+    "_source": "src/app/[locale]/checkout/checkout-payment-panel.tsx"
+  },
+  "checkoutPaymentPanel.eGPo20260184": {
+    "en": "e.g. PO-2026-0184",
+    "ka": "",
+    "_source": "src/app/[locale]/checkout/checkout-payment-panel.tsx"
+  },
+  "checkoutPaymentPanel.nothingIsChargedNowNoPayment": {
+    "en": "Nothing is charged now — no payment provider is connected yet.",
+    "ka": "",
+    "_source": "src/app/[locale]/checkout/checkout-payment-panel.tsx"
+  },
+  "checkoutPaymentPanel.optionalAppearsOnYourOrderRecord": {
+    "en": "Optional. Appears on your order record for your own finance team.",
+    "ka": "",
+    "_source": "src/app/[locale]/checkout/checkout-payment-panel.tsx"
+  },
+  "checkoutPaymentPanel.payLater": {
+    "en": "Pay later",
+    "ka": "",
+    "_source": "src/app/[locale]/checkout/checkout-payment-panel.tsx"
+  },
+  "checkoutPaymentPanel.payLaterSettleAfterTheDelivery": {
+    "en": "Pay later — settle after the delivery",
+    "ka": "",
+    "_source": "src/app/[locale]/checkout/checkout-payment-panel.tsx"
+  },
+  "checkoutPaymentPanel.poOrCostCentreReference": {
+    "en": "PO or cost-centre reference",
+    "ka": "",
+    "_source": "src/app/[locale]/checkout/checkout-payment-panel.tsx"
+  },
+  "checkoutPaymentPanel.settleAfterTheDelivery": {
+    "en": "Settle after the delivery",
+    "ka": "",
+    "_source": "src/app/[locale]/checkout/checkout-payment-panel.tsx"
+  },
+  "checkoutShell.backToYourOrders": {
+    "en": "Back to your orders",
+    "ka": "",
+    "_source": "src/app/[locale]/checkout/checkout-shell.tsx"
+  },
+  "checkoutShell.checkout": {
+    "en": "Checkout",
+    "ka": "",
+    "_source": "src/app/[locale]/checkout/checkout-shell.tsx"
+  },
+  "checkoutSuccess.trackThisDelivery": {
+    "en": "Track this delivery",
+    "ka": "",
+    "_source": "src/app/[locale]/checkout/[id]/success/page.tsx"
+  },
+  "checkoutSuccess.viewYourOrders": {
+    "en": "View your orders",
+    "ka": "",
+    "_source": "src/app/[locale]/checkout/[id]/success/page.tsx"
+  },
+  "checkoutSuccess.youReAllSet": {
+    "en": "You’re all set",
+    "ka": "",
+    "_source": "src/app/[locale]/checkout/[id]/success/page.tsx"
+  },
+  "checkoutSuccess.yourDeliveryIsBooked": {
+    "en": "Your delivery is booked",
+    "ka": "",
+    "_source": "src/app/[locale]/checkout/[id]/success/page.tsx"
+  }
+}

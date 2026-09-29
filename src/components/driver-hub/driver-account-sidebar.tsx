@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { LogOut } from "lucide-react";
 
+import { Link } from "@/i18n/navigation";
 import { useSignOut } from "@/components/auth/use-sign-out";
 import {
   DEFAULT_DRIVER_ACCOUNT_SECTION,

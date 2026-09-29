@@ -1,0 +1,9 @@
+{
+  "languageToggle": {
+    "switchTo": "Switch to {language}",
+    "short": {
+      "ka": "ქარ",
+      "en": "EN"
+    }
+  }
+}
