@@ -1616,7 +1616,7 @@
   },
   "flagReasons.vehicleTooOld": {
     "en": "Vehicle too old for the platform",
-    "ka": "ტრანსპორტი ძალიან ძველია პლატფორმისთვის",
+    "ka": "ავტომობილი ძალიან ძველია",
     "_source": "src/lib/review-flag-reasons.ts"
   },
   "flagReasons.wrongDocumentUploaded": {

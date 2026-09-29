@@ -379,7 +379,7 @@
     "photoIsBlurry": "ფოტო ბუნდოვანია",
     "plateDoesNotMatch": "სახელმწიფო ნომერი არ ემთხვევა დოკუმენტებს",
     "vatIdNotFound": "დღგ-ის გადამხდელის ნომერი რეესტრში ვერ მოიძებნა",
-    "vehicleTooOld": "ტრანსპორტი ძალიან ძველია პლატფორმისთვის",
+    "vehicleTooOld": "ავტომობილი ძალიან ძველია",
     "wrongDocumentUploaded": "ატვირთულია არასწორი დოკუმენტი"
   },
   "homePageContent": {
