@@ -1,0 +1,1232 @@
+{
+  "driverAccountCompanyCard.contactEmail": {
+    "en": "Contact email",
+    "ka": "",
+    "_source": "src/components/driver-hub/driver-account-company-card.tsx"
+  },
+  "driverAccountCompanyCard.contactName": {
+    "en": "Contact name",
+    "ka": "",
+    "_source": "src/components/driver-hub/driver-account-company-card.tsx"
+  },
+  "driverAccountCompanyCard.contactRole": {
+    "en": "Contact role",
+    "ka": "",
+    "_source": "src/components/driver-hub/driver-account-company-card.tsx"
+  },
+  "driverAccountCompanyCard.theAddressYouSignInWith": {
+    "en": "The address you sign in with.",
+    "ka": "",
+    "_source": "src/components/driver-hub/driver-account-company-card.tsx"
+  },
+  "driverAccountCompanyCard.whatAClientIsBilledBy": {
+    "en": "What a client is billed by, and how operations reaches your fleet.",
+    "ka": "",
+    "_source": "src/components/driver-hub/driver-account-company-card.tsx"
+  },
+  "driverAccountPayoutPanel.bank": {
+    "en": "Bank",
+    "ka": "",
+    "_source": "src/components/driver-hub/driver-account-payout-panel.tsx"
+  },
+  "driverAccountPayoutPanel.frequency": {
+    "en": "Frequency",
+    "ka": "",
+    "_source": "src/components/driver-hub/driver-account-payout-panel.tsx"
+  },
+  "driverAccountPayoutPanel.howOftenCompletedJobsAreSettled": {
+    "en": "How often completed jobs are settled.",
+    "ka": "",
+    "_source": "src/components/driver-hub/driver-account-payout-panel.tsx"
+  },
+  "driverAccountPayoutPanel.iban": {
+    "en": "IBAN",
+    "ka": "",
+    "_source": "src/components/driver-hub/driver-account-payout-panel.tsx"
+  },
+  "driverAccountPayoutPanel.nextPayout": {
+    "en": "Next payout",
+    "ka": "",
+    "_source": "src/components/driver-hub/driver-account-payout-panel.tsx"
+  },
+  "driverAccountPayoutPanel.payoutSchedule": {
+    "en": "Payout schedule",
+    "ka": "",
+    "_source": "src/components/driver-hub/driver-account-payout-panel.tsx"
+  },
+  "driverAccountPlaceholderPanel.notificationPreferences": {
+    "en": "Notification preferences",
+    "ka": "",
+    "_source": "src/components/driver-hub/driver-account-placeholder-panel.tsx"
+  },
+  "driverAccountPlaceholderPanel.whatHappensToday": {
+    "en": "What happens today",
+    "ka": "",
+    "_source": "src/components/driver-hub/driver-account-placeholder-panel.tsx"
+  },
+  "driverAccountPlaceholderPanel.whyItIsEmpty": {
+    "en": "Why it is empty",
+    "ka": "",
+    "_source": "src/components/driver-hub/driver-account-placeholder-panel.tsx"
+  },
+  "driverAccountProfileForm.profileDetails": {
+    "en": "Profile details",
+    "ka": "",
+    "_source": "src/components/driver-hub/driver-account-profile-form.tsx"
+  },
+  "driverAccountProfileForm.yourNameTheNumberAClient": {
+    "en": "Your name, the number a client calls when they cannot find you, and the city you work out of.",
+    "ka": "",
+    "_source": "src/components/driver-hub/driver-account-profile-form.tsx"
+  },
+  "driverAccountSections.gettingAPersonToLookAt": {
+    "en": "Getting a person to look at something that has gone wrong.",
+    "ka": "",
+    "_source": "src/components/driver-hub/driver-account-sections.ts"
+  },
+  "driverAccountSections.payoutBankDetails": {
+    "en": "Payout & bank details",
+    "ka": "",
+    "_source": "src/components/driver-hub/driver-account-sections.ts"
+  },
+  "driverAccountSections.theDetailsAClientSeesWhen": {
+    "en": "The details a client sees when you turn up for a pickup, and the credentials you sign in with.",
+    "ka": "",
+    "_source": "src/components/driver-hub/driver-account-sections.ts"
+  },
+  "driverAccountSections.theLanguageThisDashboardAndYour": {
+    "en": "The language this dashboard and your job alerts are written in.",
+    "ka": "",
+    "_source": "src/components/driver-hub/driver-account-sections.ts"
+  },
+  "driverAccountSections.whereYourFaresAreSettledAnd": {
+    "en": "Where your fares are settled, and when. Changing a payout account is done through support so the change can be verified.",
+    "ka": "",
+    "_source": "src/components/driver-hub/driver-account-sections.ts"
+  },
+  "driverAccountSections.whichJobPayoutAndAccountEvents": {
+    "en": "Which job, payout and account events reach you, and how they reach you.",
+    "ka": "",
+    "_source": "src/components/driver-hub/driver-account-sections.ts"
+  },
+  "driverHubMobileMenu.closeMenu": {
+    "en": "Close menu",
+    "ka": "",
+    "_source": "src/components/driver-hub/driver-hub-mobile-menu.tsx"
+  },
+  "driverHubMobileMenu.driverMenu": {
+    "en": "Driver menu",
+    "ka": "",
+    "_source": "src/components/driver-hub/driver-hub-mobile-menu.tsx"
+  },
+  "driverHubMobileMenu.menu": {
+    "en": "Menu",
+    "ka": "",
+    "_source": "src/components/driver-hub/driver-hub-mobile-menu.tsx"
+  },
+  "driverHubNav.182JobsInTheLast30": {
+    "en": "182 jobs in the last 30 days",
+    "ka": "",
+    "_source": "src/components/driver-hub/driver-hub-nav.ts"
+  },
+  "driverHubNav.7RegisteredDrivers4OnlineIn": {
+    "en": "7 registered drivers · 4 online in Tbilisi now",
+    "ka": "",
+    "_source": "src/components/driver-hub/driver-hub-nav.ts"
+  },
+  "driverHubNav.7VehiclesRegistered4OnThe": {
+    "en": "7 vehicles registered · 4 on the road, 1 unassigned",
+    "ka": "",
+    "_source": "src/components/driver-hub/driver-hub-nav.ts"
+  },
+  "driverHubNav.bookingsOpenToDrivers": {
+    "en": "Bookings open to drivers",
+    "ka": "",
+    "_source": "src/components/driver-hub/driver-hub-nav.ts"
+  },
+  "driverHubNav.employeesRoles": {
+    "en": "Employees & roles",
+    "ka": "",
+    "_source": "src/components/driver-hub/driver-hub-nav.ts"
+  },
+  "driverHubNav.gizoCargoLlc6People4": {
+    "en": "Gizo Cargo LLC · 6 people, 4 roles · 1 invite pending",
+    "ka": "",
+    "_source": "src/components/driver-hub/driver-hub-nav.ts"
+  },
+  "driverHubNav.jobHistory": {
+    "en": "Job history",
+    "ka": "",
+    "_source": "src/components/driver-hub/driver-hub-nav.ts"
+  },
+  "driverHubNav.performance": {
+    "en": "Performance",
+    "ka": "",
+    "_source": "src/components/driver-hub/driver-hub-nav.ts"
+  },
+  "driverHubNav.thisTbilisiWeekMondayToSunday": {
+    "en": "This Tbilisi week, Monday to Sunday",
+    "ka": "",
+    "_source": "src/components/driver-hub/driver-hub-nav.ts"
+  },
+  "driverHubNotifications.nothingToCatchUpOn": {
+    "en": "Nothing to catch up on.",
+    "ka": "",
+    "_source": "src/components/driver-hub/driver-hub-notifications.tsx"
+  },
+  "driverHubSidebar.jobsTowardsThisWeekSBonus": {
+    "en": "Jobs towards this week's bonus",
+    "ka": "",
+    "_source": "src/components/driver-hub/driver-hub-sidebar.tsx"
+  },
+  "driverHubSidebar.weeklyIncentive": {
+    "en": "Weekly incentive",
+    "ka": "",
+    "_source": "src/components/driver-hub/driver-hub-sidebar.tsx"
+  },
+  "driversAddPanel.9955xxXxxXxx": {
+    "en": "+995 5XX XXX XXX",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/drivers-add-panel.tsx"
+  },
+  "driversAddPanel.articulatedCombinations": {
+    "en": "Articulated combinations",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/drivers-add-panel.tsx"
+  },
+  "driversAddPanel.carsAndSmallVans": {
+    "en": "Cars and small vans",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/drivers-add-panel.tsx"
+  },
+  "driversAddPanel.eG01234567": {
+    "en": "e.g. 01234567",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/drivers-add-panel.tsx"
+  },
+  "driversAddPanel.everyFleetVehicleIsCurrentlyHeld": {
+    "en": "Every fleet vehicle is currently held by a driver. Register this one unassigned and pair them from the Vehicles screen later.",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/drivers-add-panel.tsx"
+  },
+  "driversAddPanel.licenceCategories": {
+    "en": "Licence categories",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/drivers-add-panel.tsx"
+  },
+  "driversAddPanel.networkErrorCheckYourConnectionAnd": {
+    "en": "Network error. Check your connection and try again.",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/drivers-add-panel.tsx"
+  },
+  "driversAddPanel.pickACity": {
+    "en": "Pick a city",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/drivers-add-panel.tsx"
+  },
+  "driversAddPanel.registerADriver": {
+    "en": "Register a driver",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/drivers-add-panel.tsx"
+  },
+  "driversAddPanel.rigidTrucks": {
+    "en": "Rigid trucks",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/drivers-add-panel.tsx"
+  },
+  "driversAddPanel.thisCreatesTheirAccountTheySign": {
+    "en": "This creates their account. They sign in with the email below and the one-time password shown after saving, then set their own.",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/drivers-add-panel.tsx"
+  },
+  "driversDetailPanel.jobsThisWeek": {
+    "en": "Jobs this week",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/drivers-detail-panel.tsx"
+  },
+  "driversDetailPanel.noCompletedJobsForThisFleet": {
+    "en": "No completed jobs for this fleet yet.",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/drivers-detail-panel.tsx"
+  },
+  "driversDetailPanel.recentJobs": {
+    "en": "Recent jobs",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/drivers-detail-panel.tsx"
+  },
+  "driversDetailPanel.verification": {
+    "en": "Verification",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/drivers-detail-panel.tsx"
+  },
+  "driversScreen.addDriver": {
+    "en": "Add driver",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/drivers-screen.tsx"
+  },
+  "driversScreen.doneIHaveSharedIt": {
+    "en": "Done — I have shared it",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/drivers-screen.tsx"
+  },
+  "driversScreen.fleetAvgRating": {
+    "en": "Fleet avg rating",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/drivers-screen.tsx"
+  },
+  "driversScreen.itIsNotStoredAnywhereIn": {
+    "en": "— it is not stored anywhere in readable form, and closing this card is the end of it. They set their own password after signing in.",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/drivers-screen.tsx"
+  },
+  "driversScreen.offline": {
+    "en": "Offline",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/drivers-screen.tsx"
+  },
+  "driversScreen.online": {
+    "en": "Online",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/drivers-screen.tsx"
+  },
+  "driversScreen.onlineNow": {
+    "en": "Online now",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/drivers-screen.tsx"
+  },
+  "driversScreen.registerYourFirstDriverToStart": {
+    "en": "Register your first driver to start dispatching jobs.",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/drivers-screen.tsx"
+  },
+  "driversScreen.registeredDrivers": {
+    "en": "Registered drivers",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/drivers-screen.tsx"
+  },
+  "driversScreen.sampleRatings": {
+    "en": "Sample ratings",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/drivers-screen.tsx"
+  },
+  "earningsBreakdownCard.adjustments": {
+    "en": "Adjustments",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/earnings-breakdown-card.tsx"
+  },
+  "earningsBreakdownCard.breakdown": {
+    "en": "Breakdown",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/earnings-breakdown-card.tsx"
+  },
+  "earningsBreakdownCard.rangeTotal": {
+    "en": "Range total",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/earnings-breakdown-card.tsx"
+  },
+  "earningsBreakdownCard.tips": {
+    "en": "Tips",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/earnings-breakdown-card.tsx"
+  },
+  "earningsBreakdownCard.tipsIncentivesAdjustments": {
+    "en": "Tips · Incentives · Adjustments",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/earnings-breakdown-card.tsx"
+  },
+  "earningsBreakdownCard.tripFares": {
+    "en": "Trip fares",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/earnings-breakdown-card.tsx"
+  },
+  "earningsFilterBar.custom": {
+    "en": "Custom",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/earnings-filter-bar.tsx"
+  },
+  "earningsFilterBar.rangeEndDate": {
+    "en": "Range end date",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/earnings-filter-bar.tsx"
+  },
+  "earningsFilterBar.rangeStartDate": {
+    "en": "Range start date",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/earnings-filter-bar.tsx"
+  },
+  "earningsFleetCard.allCompletedOrdersInTheRange": {
+    "en": "All completed orders in the range.",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/earnings-fleet-card.tsx"
+  },
+  "earningsFleetCard.completedOrdersAppearHereOnceA": {
+    "en": "Completed orders appear here once a driver is assigned to them.",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/earnings-fleet-card.tsx"
+  },
+  "earningsFleetCard.fleetRevenue": {
+    "en": "Fleet revenue",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/earnings-fleet-card.tsx"
+  },
+  "earningsFleetCard.notAssignedToADriver": {
+    "en": "Not assigned to a driver",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/earnings-fleet-card.tsx"
+  },
+  "earningsFleetCard.revenue": {
+    "en": "Revenue",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/earnings-fleet-card.tsx"
+  },
+  "earningsFleetCard.revenueByDriver": {
+    "en": "Revenue by driver",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/earnings-fleet-card.tsx"
+  },
+  "earningsFleetCard.share": {
+    "en": "Share",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/earnings-fleet-card.tsx"
+  },
+  "earningsPayoutsCard.amount": {
+    "en": "Amount",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/earnings-payouts-card.tsx"
+  },
+  "earningsPayoutsCard.fixedWeeklySettlementWindowsNotFiltered": {
+    "en": "Fixed weekly settlement windows — not filtered by the range above.",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/earnings-payouts-card.tsx"
+  },
+  "earningsPayoutsCard.payoutHistory": {
+    "en": "Payout history",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/earnings-payouts-card.tsx"
+  },
+  "earningsScreen.perOnlineHour": {
+    "en": "Per online hour",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/earnings-screen.tsx"
+  },
+  "employeesDetailPanel.permissions": {
+    "en": "Permissions",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/employees-detail-panel.tsx"
+  },
+  "employeesInviteForm.employeeAccountsAreNotConnectedTo": {
+    "en": "Employee accounts are not connected to the backend yet, so this form cannot send an invite. It is here so the screen is ready the day employee records exist.",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/employees-invite-form.tsx"
+  },
+  "employeesInviteForm.inviteAnEmployee": {
+    "en": "Invite an employee",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/employees-invite-form.tsx"
+  },
+  "employeesInviteForm.nameGizocargoGe": {
+    "en": "name@gizocargo.ge",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/employees-invite-form.tsx"
+  },
+  "employeesInviteForm.sendInvite": {
+    "en": "Send invite",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/employees-invite-form.tsx"
+  },
+  "employeesInviteForm.theyGetAnEmailInvitePermissions": {
+    "en": "They get an email invite. Permissions come from the role and apply once they accept.",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/employees-invite-form.tsx"
+  },
+  "employeesInviteForm.zonesOrVehiclesTheyCover": {
+    "en": "Zones or vehicles they cover",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/employees-invite-form.tsx"
+  },
+  "employeesRoleDefinitions.roleDefinitions": {
+    "en": "Role definitions",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/employees-role-definitions.tsx"
+  },
+  "employeesScreen.canMoveMoney": {
+    "en": "Can move money",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/employees-screen.tsx"
+  },
+  "employeesScreen.inviteEmployee": {
+    "en": "Invite employee",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/employees-screen.tsx"
+  },
+  "employeesScreen.invited": {
+    "en": "Invited",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/employees-screen.tsx"
+  },
+  "employeesScreen.lastActive": {
+    "en": "Last active",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/employees-screen.tsx"
+  },
+  "employeesScreen.person": {
+    "en": "Person",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/employees-screen.tsx"
+  },
+  "employeesScreen.rolesInUse": {
+    "en": "Roles in use",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/employees-screen.tsx"
+  },
+  "employeesScreen.sampleRoster": {
+    "en": "Sample roster",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/employees-screen.tsx"
+  },
+  "employeesScreen.thereIsNoEmployeeRecordIn": {
+    "en": "There is no employee record in the system yet, so the counts and the people below are invented — nobody has been invited and nothing here grants access. The role definitions further down are the real product content.",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/employees-screen.tsx"
+  },
+  "fleetAvailabilityBoard.driverVehicle": {
+    "en": "Driver · Vehicle",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/fleet-availability-board.tsx"
+  },
+  "fleetAvailabilityCard.dragAcrossAnEmptyStretchOf": {
+    "en": "Drag across an empty stretch of a row to hold it as a booking.",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/fleet-availability-card.tsx"
+  },
+  "fleetAvailabilityCard.fleetAvailability": {
+    "en": "Fleet availability",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/fleet-availability-card.tsx"
+  },
+  "fleetAvailabilityCard.notSaved": {
+    "en": "Not saved",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/fleet-availability-card.tsx"
+  },
+  "fleetAvailabilityCard.resetFilters": {
+    "en": "Reset filters",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/fleet-availability-card.tsx"
+  },
+  "fleetAvailabilityDialogs.allDriversWholeDay": {
+    "en": "All drivers, whole day",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/fleet-availability-dialogs.tsx"
+  },
+  "fleetAvailabilityDialogs.chooseWhatGoesIntoTheSpreadsheet": {
+    "en": "Choose what goes into the spreadsheet.",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/fleet-availability-dialogs.tsx"
+  },
+  "fleetAvailabilityDialogs.currentView": {
+    "en": "Current view",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/fleet-availability-dialogs.tsx"
+  },
+  "fleetAvailabilityDialogs.discard": {
+    "en": "Discard",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/fleet-availability-dialogs.tsx"
+  },
+  "fleetAvailabilityDialogs.exportAvailability": {
+    "en": "Export availability",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/fleet-availability-dialogs.tsx"
+  },
+  "fleetAvailabilityDialogs.filteredDriversWholeDay": {
+    "en": "Filtered drivers, whole day",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/fleet-availability-dialogs.tsx"
+  },
+  "fleetAvailabilityDialogs.holdSlot": {
+    "en": "Hold slot",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/fleet-availability-dialogs.tsx"
+  },
+  "fleetAvailabilityDialogs.holdThisSlot": {
+    "en": "Hold this slot",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/fleet-availability-dialogs.tsx"
+  },
+  "fleetAvailabilityDialogs.includeDriverPhoneNumber": {
+    "en": "Include driver phone number",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/fleet-availability-dialogs.tsx"
+  },
+  "fleetAvailabilityDialogs.includeFreeSlotsAsAvailableRows": {
+    "en": "Include free slots as Available rows",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/fleet-availability-dialogs.tsx"
+  },
+  "fleetAvailabilityDialogs.whatToExport": {
+    "en": "What to export",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/fleet-availability-dialogs.tsx"
+  },
+  "fleetAvailabilityFilters.allCities": {
+    "en": "All cities",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/fleet-availability-filters.tsx"
+  },
+  "fleetAvailabilityFilters.allDrivers": {
+    "en": "All drivers",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/fleet-availability-filters.tsx"
+  },
+  "fleetAvailabilityFilters.allStatuses": {
+    "en": "All statuses",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/fleet-availability-filters.tsx"
+  },
+  "fleetAvailabilityFilters.allTypes": {
+    "en": "All types",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/fleet-availability-filters.tsx"
+  },
+  "fleetAvailabilityFilters.capacity": {
+    "en": "Capacity",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/fleet-availability-filters.tsx"
+  },
+  "fleetAvailabilityFilters.nextDay": {
+    "en": "Next day",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/fleet-availability-filters.tsx"
+  },
+  "fleetAvailabilityFilters.noDriverMatchesThatName": {
+    "en": "No driver matches that name.",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/fleet-availability-filters.tsx"
+  },
+  "fleetAvailabilityFilters.previousDay": {
+    "en": "Previous day",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/fleet-availability-filters.tsx"
+  },
+  "fleetAvailabilityFilters.searchDriversByName": {
+    "en": "Search drivers by name",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/fleet-availability-filters.tsx"
+  },
+  "fleetAvailabilityFilters.searchPlate": {
+    "en": "Search plate",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/fleet-availability-filters.tsx"
+  },
+  "fleetAvailabilityFilters.typeADriverName": {
+    "en": "Type a driver name",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/fleet-availability-filters.tsx"
+  },
+  "fleetAvailabilityFilters.vehicleType": {
+    "en": "Vehicle type",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/fleet-availability-filters.tsx"
+  },
+  "fleetAvailabilityFilters.zoom": {
+    "en": "Zoom",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/fleet-availability-filters.tsx"
+  },
+  "fleetAvailabilityFilters.zoomIn": {
+    "en": "Zoom in",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/fleet-availability-filters.tsx"
+  },
+  "fleetAvailabilityFilters.zoomOut": {
+    "en": "Zoom out",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/fleet-availability-filters.tsx"
+  },
+  "fleetAvailabilityFormat.18TAndAbove": {
+    "en": "18 t and above",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/fleet-availability-format.ts"
+  },
+  "fleetAvailabilityFormat.28T": {
+    "en": "2 – 8 t",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/fleet-availability-format.ts"
+  },
+  "fleetAvailabilityFormat.818T": {
+    "en": "8 – 18 t",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/fleet-availability-format.ts"
+  },
+  "fleetAvailabilityFormat.anyCapacity": {
+    "en": "Any capacity",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/fleet-availability-format.ts"
+  },
+  "fleetAvailabilityFormat.assignedOnOrder": {
+    "en": "Assigned / on order",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/fleet-availability-format.ts"
+  },
+  "fleetAvailabilityFormat.available": {
+    "en": "Available",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/fleet-availability-format.ts"
+  },
+  "fleetAvailabilityFormat.blockStart": {
+    "en": "block.start",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/fleet-availability-format.ts"
+  },
+  "fleetAvailabilityFormat.bookedFuture": {
+    "en": "Booked (future)",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/fleet-availability-format.ts"
+  },
+  "fleetAvailabilityFormat.enRoute": {
+    "en": "En route",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/fleet-availability-format.ts"
+  },
+  "fleetAvailabilityFormat.upTo2T": {
+    "en": "Up to 2 t",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/fleet-availability-format.ts"
+  },
+  "hubJobParts.droppedOff": {
+    "en": "Dropped off",
+    "ka": "",
+    "_source": "src/components/driver-hub/hub-job-parts.tsx"
+  },
+  "hubJobParts.orderPlaced": {
+    "en": "Order placed",
+    "ka": "",
+    "_source": "src/components/driver-hub/hub-job-parts.tsx"
+  },
+  "hubJobParts.payout": {
+    "en": "Payout",
+    "ka": "",
+    "_source": "src/components/driver-hub/hub-job-parts.tsx"
+  },
+  "jobSheetActions.confirmDelivery": {
+    "en": "Confirm delivery",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/job-sheet-actions.tsx"
+  },
+  "jobSheetActions.enterTheWaitingTimeAsA": {
+    "en": "Enter the waiting time as a whole number of minutes, or 0.",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/job-sheet-actions.tsx"
+  },
+  "jobSheetActions.markDelivered": {
+    "en": "Mark delivered",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/job-sheet-actions.tsx"
+  },
+  "jobSheetActions.nameOfWhoeverTookTheGoods": {
+    "en": "Name of whoever took the goods",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/job-sheet-actions.tsx"
+  },
+  "jobSheetActions.receivedByOptional": {
+    "en": "Received by (optional)",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/job-sheet-actions.tsx"
+  },
+  "jobSheetActions.thisEndsTheJobAndCannot": {
+    "en": "This ends the job and cannot be undone.",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/job-sheet-actions.tsx"
+  },
+  "jobSheetActions.waitingTimeBeyondTheFreeAllowance": {
+    "en": "Waiting time beyond the free allowance adds an overtime payout to this job, so this figure affects what you are paid.",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/job-sheet-actions.tsx"
+  },
+  "jobSheetActions.wholeMinutesSpentWaitingAtEither": {
+    "en": "Whole minutes spent waiting at either stop. Enter 0 if none.",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/job-sheet-actions.tsx"
+  },
+  "jobSheetParts.awaitingDispatch": {
+    "en": "Awaiting dispatch",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/job-sheet-parts.tsx"
+  },
+  "jobSheetParts.call": {
+    "en": "Call",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/job-sheet-parts.tsx"
+  },
+  "jobSheetParts.deadline": {
+    "en": "Deadline",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/job-sheet-parts.tsx"
+  },
+  "jobSheetParts.delivered": {
+    "en": "Delivered",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/job-sheet-parts.tsx"
+  },
+  "jobSheetParts.details": {
+    "en": "Details",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/job-sheet-parts.tsx"
+  },
+  "jobSheetParts.inTransit": {
+    "en": "In transit",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/job-sheet-parts.tsx"
+  },
+  "jobSheetParts.navigate": {
+    "en": "Navigate",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/job-sheet-parts.tsx"
+  },
+  "jobSheetParts.notDispatchedToADriver": {
+    "en": "Not dispatched to a driver",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/job-sheet-parts.tsx"
+  },
+  "jobSheetParts.receivedBy": {
+    "en": "Received by",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/job-sheet-parts.tsx"
+  },
+  "jobSheetParts.timeline": {
+    "en": "Timeline",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/job-sheet-parts.tsx"
+  },
+  "jobSheetParts.timing": {
+    "en": "Timing",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/job-sheet-parts.tsx"
+  },
+  "jobSheetScreen.thisDeliveryWasCancelled": {
+    "en": "This delivery was cancelled.",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/job-sheet-screen.tsx"
+  },
+  "jobsDetailPanel.paidToYou": {
+    "en": "Paid to you",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/jobs-detail-panel.tsx"
+  },
+  "jobsDetailPanel.poReference": {
+    "en": "PO reference",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/jobs-detail-panel.tsx"
+  },
+  "jobsScreen.completedScheduledAndCancelledJobsAll": {
+    "en": "Completed, scheduled and cancelled jobs all land here, with their route, timeline and fare breakdown.",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/jobs-screen.tsx"
+  },
+  "jobsScreen.fare": {
+    "en": "Fare",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/jobs-screen.tsx"
+  },
+  "jobsScreen.job": {
+    "en": "Job",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/jobs-screen.tsx"
+  },
+  "loadsClaimDialogs.backToDashboard": {
+    "en": "Back to dashboard",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-claim-dialogs.tsx"
+  },
+  "loadsClaimDialogs.confirmThisShipment": {
+    "en": "Confirm this shipment",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-claim-dialogs.tsx"
+  },
+  "loadsClaimDialogs.firstComeFirstServedConfirmingClaims": {
+    "en": "First come, first served. Confirming claims the order and closes it to other drivers.",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-claim-dialogs.tsx"
+  },
+  "loadsClaimDialogs.justClaimedByAnotherDriver": {
+    "en": "Just claimed by another driver",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-claim-dialogs.tsx"
+  },
+  "loadsClaimDialogs.stayOffline": {
+    "en": "Stay offline",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-claim-dialogs.tsx"
+  },
+  "loadsClaimDialogs.tooSmallForThisLoad": {
+    "en": "Too small for this load",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-claim-dialogs.tsx"
+  },
+  "loadsClaimDialogs.wasConfirmedAMomentBeforeYou": {
+    "en": "was confirmed a moment before you. It has been removed from your available list.",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-claim-dialogs.tsx"
+  },
+  "loadsClaimDialogs.weight": {
+    "en": "Weight",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-claim-dialogs.tsx"
+  },
+  "loadsClaimDialogs.youArePaid": {
+    "en": "You are paid",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-claim-dialogs.tsx"
+  },
+  "loadsContext.couldnTReachTheDashboard": {
+    "en": "Couldn't reach the dashboard.",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-context.tsx"
+  },
+  "loadsContext.couldnTReachTheServerCheck": {
+    "en": "Couldn't reach the server. Check your connection and retry.",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-context.tsx"
+  },
+  "loadsContext.newMap": {
+    "en": "new Map",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-context.tsx"
+  },
+  "loadsDetailParts.youClaimedThisLoadContactDetails": {
+    "en": "You claimed this load. Contact details are in your job sheet.",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-detail-parts.tsx"
+  },
+  "loadsDispatchDialog.noneOfYourVehiclesCanTake": {
+    "en": "None of your vehicles can take this delivery. Each one above says why.",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-dispatch-dialog.tsx"
+  },
+  "loadsDispatchDialog.offline": {
+    "en": "· Offline",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-dispatch-dialog.tsx"
+  },
+  "loadsDispatchDialog.recommended": {
+    "en": "Recommended",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-dispatch-dialog.tsx"
+  },
+  "loadsDispatchDialog.theVehiclesThatCanTakeThis": {
+    "en": "The vehicles that can take this delivery have no driver assigned. Assign one from the Vehicles screen, then dispatch this delivery.",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-dispatch-dialog.tsx"
+  },
+  "loadsDispatchDialog.yourFleetHasNoRegisteredVehicles": {
+    "en": "Your fleet has no registered vehicles. Register one from the Vehicles screen, then dispatch this delivery.",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-dispatch-dialog.tsx"
+  },
+  "loadsFilters.reset": {
+    "en": "Reset",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-filters.tsx"
+  },
+  "loadsFilters.specialHandling": {
+    "en": "Special handling",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-filters.tsx"
+  },
+  "loadsFormat.coldChain": {
+    "en": "Cold chain",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-format.ts"
+  },
+  "loadsFormat.fragile": {
+    "en": "Fragile",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-format.ts"
+  },
+  "loadsFormat.hazmat": {
+    "en": "Hazmat",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-format.ts"
+  },
+  "loadsFormat.heavyItem": {
+    "en": "Heavy item",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-format.ts"
+  },
+  "loadsFormat.timeCritical": {
+    "en": "Time critical",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-format.ts"
+  },
+  "loadsFormat.uprightOnly": {
+    "en": "Upright only",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-format.ts"
+  },
+  "loadsMobile.claimedByAnotherDriver": {
+    "en": "Claimed by another driver",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-mobile.tsx"
+  },
+  "loadsMobile.dropOffAddress": {
+    "en": "Drop off address",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-mobile.tsx"
+  },
+  "loadsMobile.pickUpAddress": {
+    "en": "Pick up address",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-mobile.tsx"
+  },
+  "loadsMobile.restoreToBoard": {
+    "en": "Restore to board",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-mobile.tsx"
+  },
+  "loadsMobile.yoursAssignAVehicle": {
+    "en": "Yours · assign a vehicle",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-mobile.tsx"
+  },
+  "loadsMobile.yoursViewJobSheet": {
+    "en": "Yours · view job sheet",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-mobile.tsx"
+  },
+  "loadsTable.accept": {
+    "en": "Accept",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-table.tsx"
+  },
+  "loadsTable.claimed": {
+    "en": "Claimed",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-table.tsx"
+  },
+  "loadsTable.dropOff": {
+    "en": "Drop off",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-table.tsx"
+  },
+  "loadsTable.howFarThisJobRunsPick": {
+    "en": "How far this job runs, pick-up to drop-off",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-table.tsx"
+  },
+  "loadsTable.loads": {
+    "en": "Loads",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-table.tsx"
+  },
+  "loadsTable.openLoadDetails": {
+    "en": "— open load details",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-table.tsx"
+  },
+  "loadsTable.pickUp": {
+    "en": "Pick up",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-table.tsx"
+  },
+  "loadsTable.rejectedView": {
+    "en": "rejected · view",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-table.tsx"
+  },
+  "loadsTable.restore": {
+    "en": "Restore",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-table.tsx"
+  },
+  "loadsTable.sortsByTimeOfDayNot": {
+    "en": "Sorts by time of day, not by date",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-table.tsx"
+  },
+  "loadsTable.theDayTheClientBookedThis": {
+    "en": "The day the client booked this job for",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-table.tsx"
+  },
+  "loadsTable.weightDims": {
+    "en": "Weight / dims",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-table.tsx"
+  },
+  "loadsTable.widenTheWeightRangeOrClear": {
+    "en": "Widen the weight range or clear a city to see more.",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-table.tsx"
+  },
+  "loadsTable.yours": {
+    "en": "Yours",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/loads-table.tsx"
+  },
+  "performanceScreen.andAFlatBarUntilThey": {
+    "en": "and a flat bar until they happen.",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/performance-screen.tsx"
+  },
+  "performanceScreen.completion": {
+    "en": "Completion",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/performance-screen.tsx"
+  },
+  "performanceScreen.daysLaterThisWeekShow": {
+    "en": "Days later this week show",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/performance-screen.tsx"
+  },
+  "performanceScreen.estimatedDelta": {
+    "en": "Estimated delta",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/performance-screen.tsx"
+  },
+  "performanceScreen.finished": {
+    "en": "Finished",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/performance-screen.tsx"
+  },
+  "performanceScreen.howTheWeekWentByDriver": {
+    "en": "How the week went, by driver",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/performance-screen.tsx"
+  },
+  "performanceScreen.jobsCompletedByDay": {
+    "en": "Jobs completed by day",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/performance-screen.tsx"
+  },
+  "performanceScreen.jobsDay": {
+    "en": "Jobs / day",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/performance-screen.tsx"
+  },
+  "performanceScreen.jobsPerDay": {
+    "en": "Jobs per day",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/performance-screen.tsx"
+  },
+  "performanceScreen.onlineHoursVsJobsCompleted": {
+    "en": "Online hours vs jobs completed",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/performance-screen.tsx"
+  },
+  "performanceScreen.registerADriverAndTheirWeek": {
+    "en": "Register a driver and their week shows up here.",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/performance-screen.tsx"
+  },
+  "performanceScreen.thisWeek": {
+    "en": "This week,",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/performance-screen.tsx"
+  },
+  "performanceScreen.whatAffectsYourScore": {
+    "en": "What affects your score",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/performance-screen.tsx"
+  },
+  "vehiclesAddForm.ab123Cd": {
+    "en": "AB-123-CD",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/vehicles-add-form.tsx"
+  },
+  "vehiclesAddForm.addAVehicle": {
+    "en": "Add a vehicle",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/vehicles-add-form.tsx"
+  },
+  "vehiclesAddForm.ford": {
+    "en": "Ford",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/vehicles-add-form.tsx"
+  },
+  "vehiclesAddForm.itJoinsTheFleetAsIdle": {
+    "en": "It joins the fleet as idle. Assign a driver to start taking jobs.",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/vehicles-add-form.tsx"
+  },
+  "vehiclesAddForm.loadingVehicleClasses": {
+    "en": "Loading vehicle classes…",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/vehicles-add-form.tsx"
+  },
+  "vehiclesAddForm.odometerIsDisabledVehicleHasNo": {
+    "en": "Odometer is disabled: `Vehicle` has no reading to store it in, so anything typed here would be thrown away. It arrives with `Vehicle.odometerKm`.",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/vehicles-add-form.tsx"
+  },
+  "vehiclesAddForm.odometerKm": {
+    "en": "Odometer (km)",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/vehicles-add-form.tsx"
+  },
+  "vehiclesAddForm.transitCustom": {
+    "en": "Transit Custom",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/vehicles-add-form.tsx"
+  },
+  "vehiclesDetailPanel.costPerKm": {
+    "en": "Cost per km",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/vehicles-detail-panel.tsx"
+  },
+  "vehiclesDetailPanel.jobsWeek": {
+    "en": "Jobs · week",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/vehicles-detail-panel.tsx"
+  },
+  "vehiclesDetailPanel.operatingCities": {
+    "en": "Operating cities",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/vehicles-detail-panel.tsx"
+  },
+  "vehiclesDetailPanel.runningCostsThisMonth": {
+    "en": "Running costs · this month",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/vehicles-detail-panel.tsx"
+  },
+  "vehiclesDetailPanel.thisVehicleBelongsToTheFleet": {
+    "en": "This vehicle belongs to the fleet you drive for, not to you. Only its owner can remove it.",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/vehicles-detail-panel.tsx"
+  },
+  "vehiclesScreen.addOneToStartTakingJobs": {
+    "en": "Add one to start taking jobs. It joins as idle until a driver is assigned to it.",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
+  },
+  "vehiclesScreen.addVehicle": {
+    "en": "Add vehicle",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
+  },
+  "vehiclesScreen.costKm": {
+    "en": "Cost/km",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
+  },
+  "vehiclesScreen.fleetCostPerKm": {
+    "en": "Fleet cost per km",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
+  },
+  "vehiclesScreen.idle": {
+    "en": "Idle",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
+  },
+  "vehiclesScreen.odometerCostKm": {
+    "en": "Odometer · Cost/km",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
+  },
+  "vehiclesScreen.onTheRoad": {
+    "en": "On the road",
+    "ka": "",
+    "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
+  }
+}

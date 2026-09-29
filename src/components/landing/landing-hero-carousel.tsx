@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import {
@@ -9,6 +8,7 @@ import {
   MAX_HERO_BANNERS,
   type HeroCarouselContent,
 } from "@/lib/admin/home-page-content";
+import { Link } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 // Type-only, so nothing from the page module is pulled into the client bundle
 // and the import cycle (the page will render this component) is erased at

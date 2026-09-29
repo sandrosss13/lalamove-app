@@ -1,0 +1,45 @@
+﻿key,english,georgian,source
+accountTypeStep.step2Of3Type,Step 2 of 3 · Type,,src/components/auth/account-type-step.tsx
+accountTypeStep.thisDecidesWhatWeAskFor,This decides what we ask for next — personal details or company documents.,,src/components/auth/account-type-step.tsx
+accountTypeStep.whichDescribesYou,Which describes you?,,src/components/auth/account-type-step.tsx
+auth.accountsCannotBeCreatedFromThe,Accounts cannot be created from the admin host.,,src/lib/auth.ts
+auth.adminAccountsCannotBeCreatedThrough,Admin accounts cannot be created through sign-up.,,src/lib/auth.ts
+auth.clientAccountsMustBeCreatedFrom,Client accounts must be created from the main sign-up page.,,src/lib/auth.ts
+auth.driverAndLogisticsCompanyAccountsMust,Driver and logistics company accounts must be created from the merchant sign-up page.,,src/lib/auth.ts
+authFlow.aPrivatePersonNoRegistrationNumber,"A private person, no registration number",,src/lib/auth-flow.ts
+authFlow.aRegisteredCompanyWithAVat,A registered company with a VAT ID,,src/lib/auth-flow.ts
+authFlow.bookDeliveriesForYourPackages,Book deliveries for your packages,,src/lib/auth-flow.ts
+authFlow.deliverPackagesAndEarn,Deliver packages and earn,,src/lib/auth-flow.ts
+authFlow.driverOrFleet,Driver or fleet,,src/lib/auth-flow.ts
+authFlow.registeredAsAnIndividualEntrepreneur,Registered as an individual entrepreneur (ინდ. მეწარმე),,src/lib/auth-flow.ts
+authPrimitives.orContinueWith,or continue with,,src/components/auth/auth-primitives.tsx
+authPrimitives.socialSignInIsComingSoon,Social sign-in is coming soon.,,src/components/auth/auth-primitives.tsx
+authPrimitives.socialSignInIsNotAvailable,Social sign-in is not available yet — use your email and password.,,src/components/auth/auth-primitives.tsx
+authShell.en,EN,,src/components/auth/auth-shell.tsx
+authShell.needHelp,Need help?,,src/components/auth/auth-shell.tsx
+changePassword.yourAccountWasCreatedWithA,Your account was created with a temporary password. Choose a new one to continue.,,src/app/[locale]/change-password/page.tsx
+roleStep.howWillYouUseLalamove,How will you use Lalamove?,,src/components/auth/role-step.tsx
+roleStep.pickTheSideOfTheDelivery,Pick the side of the delivery you are on. You can sign in or create an account from either one.,,src/components/auth/role-step.tsx
+roleStep.signInToTheBackOffice,Sign in to the back office,,src/components/auth/role-step.tsx
+roleStep.step1Of3Account,Step 1 of 3 · Account,,src/components/auth/role-step.tsx
+signInForm.backOfficeAccountsResetThroughYour,"Back-office accounts reset through your administrator, not this form.",,src/components/auth/sign-in-form.tsx
+signInForm.backToSignIn,← Back to sign in,,src/components/auth/sign-in-form.tsx
+signInForm.codeSignInIsNotAvailable,Code sign-in is not available yet — use the Email tab to sign in with your password.,,src/components/auth/sign-in-form.tsx
+signInForm.codeSignInIsNotAvailable2,Code sign-in is not available yet.,,src/components/auth/sign-in-form.tsx
+signInForm.createAnAccount,Create an account,,src/components/auth/sign-in-form.tsx
+signInForm.enterTheEmailOnYourAccount,Enter the email on your account. We send a link that stays valid for 30 minutes.,,src/components/auth/sign-in-form.tsx
+signInForm.passwordResetIsNotAvailableYet,Password reset is not available yet — contact support and we will reset it for you.,,src/components/auth/sign-in-form.tsx
+signInForm.passwordResetIsNotAvailableYet2,Password reset is not available yet.,,src/components/auth/sign-in-form.tsx
+signInForm.resetYourPassword,Reset your password,,src/components/auth/sign-in-form.tsx
+signInForm.sendCode,Send code,,src/components/auth/sign-in-form.tsx
+signInForm.sendResetLink,Send reset link,,src/components/auth/sign-in-form.tsx
+signUpForm.companyname,companyName,,src/components/auth/sign-up-form.tsx
+signUpForm.createYourAccount,Create your account,,src/components/auth/sign-up-form.tsx
+signUpForm.firstname,firstName,,src/components/auth/sign-up-form.tsx
+signUpForm.lastname,lastName,,src/components/auth/sign-up-form.tsx
+signUpForm.privacyPolicy,privacy policy,,src/components/auth/sign-up-form.tsx
+signUpForm.selectACity,Select a city…,,src/components/auth/sign-up-form.tsx
+signUpForm.step3Of3Details,Step 3 of 3 · Details,,src/components/auth/sign-up-form.tsx
+signUpForm.termsOfService,terms of service,,src/components/auth/sign-up-form.tsx
+signUpForm.vatid,vatId,,src/components/auth/sign-up-form.tsx
+signUpSuccess.yourAccountHasBeenCreated,Your account has been created.,,src/components/auth/sign-up-success.tsx

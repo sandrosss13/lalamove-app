@@ -34,7 +34,6 @@
  */
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 
 import {
   useFleetDraft,
@@ -42,6 +41,7 @@ import {
   type FleetSubmittedSummary,
   type FleetVehicleVerdict,
 } from "@/components/fleet-onboarding/fleet-draft-context";
+import { useRouter } from "@/i18n/navigation";
 import { CompanyDetailsForm } from "@/components/fleet-onboarding/steps/step-1-company-details";
 import {
   VehicleEditorDialog,

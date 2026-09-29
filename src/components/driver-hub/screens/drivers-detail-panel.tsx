@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
 
 import {
   HubCard,
@@ -15,6 +14,7 @@ import {
   initialsOf,
   shortId,
 } from "@/components/driver-hub/screens/drivers-format";
+import { useRouter } from "@/i18n/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { HubDriver } from "@/lib/dashboard/hub/drivers";

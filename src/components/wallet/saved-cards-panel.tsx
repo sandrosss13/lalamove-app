@@ -1,7 +1,6 @@
 "use client";
 
 import { useId, useState } from "react";
-import { useRouter } from "next/navigation";
 
 import {
   AddCardDialog,
@@ -11,6 +10,7 @@ import {
   cardBrandChipClasses,
   cardBrandChipLabel,
 } from "@/components/home/card-brand";
+import { useRouter } from "@/i18n/navigation";
 
 /**
  * The saved-card list on `/wallet`, and the only interactive part of that page.

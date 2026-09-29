@@ -2,12 +2,12 @@
 
 import * as React from "react";
 import { Navigation, Phone } from "lucide-react";
-import Link from "next/link";
 
 import {
   HubCard,
   HubStatusBadge,
 } from "@/components/driver-hub/hub-primitives";
+import { Link } from "@/i18n/navigation";
 import { HUB_STATUS_TONE_CLASSES } from "@/components/driver-hub/hub-status";
 import {
   StopPhoneLink,

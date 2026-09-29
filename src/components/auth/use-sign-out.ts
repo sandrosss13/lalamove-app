@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { useLocale } from "next-intl";
 
+import { withLocalePrefix, type AppLocale } from "@/i18n/routing";
 import { signOut } from "@/lib/auth-client";
 
 /**
@@ -13,10 +15,13 @@ import { signOut } from "@/lib/auth-client";
  *
  * Two decisions are baked in here:
  *
- * - **Where it lands.** The homepage (`/`), always. A signed-out user has no
- *   account surface left to stand on, and every authenticated route above the
- *   control redirects to `/sign-in` on the next request anyway — landing on the
- *   marketing page is the one destination that is valid for every role.
+ * - **Where it lands.** The homepage, always — in the language the user was
+ *   reading. A signed-out user has no account surface left to stand on, and
+ *   every authenticated route above the control redirects to `/sign-in` on the
+ *   next request anyway, so the marketing page is the one destination valid for
+ *   every role. The prefix is applied here rather than left to the middleware:
+ *   a bare `/` would be negotiated from the `NEXT_LOCALE` cookie, which is
+ *   normally right but costs an extra redirect on the way out.
  * - **How it navigates.** A full document navigation (`window.location`), not
  *   `router.push()` + `router.refresh()`. Two reasons: the App Router's client
  *   cache holds server-rendered output produced *with* the session, and only a
@@ -35,6 +40,7 @@ export function useSignOut(): {
   signingOut: boolean;
 } {
   const [signingOut, setSigningOut] = useState(false);
+  const locale = useLocale() as AppLocale;
 
   const handleSignOut = useCallback(async () => {
     setSigningOut(true);
@@ -46,8 +52,8 @@ export function useSignOut(): {
       return;
     }
 
-    window.location.assign("/");
-  }, []);
+    window.location.assign(withLocalePrefix(locale, "/"));
+  }, [locale]);
 
   return { signOut: handleSignOut, signingOut };
 }

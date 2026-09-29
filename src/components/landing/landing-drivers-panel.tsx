@@ -1,6 +1,6 @@
 import { Fragment } from "react";
-import Link from "next/link";
 
+import { Link } from "@/i18n/navigation";
 import { merchantOrigin } from "@/lib/host";
 import {
   DEFAULT_HOME_PAGE_CONTENT,

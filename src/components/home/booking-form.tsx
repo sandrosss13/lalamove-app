@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { ArrowRight, CalendarDays } from "lucide-react";
 import type {
   CargoCategory,
@@ -11,6 +9,7 @@ import type {
   ServiceLevel,
 } from "@prisma/client";
 
+import { Link, useRouter } from "@/i18n/navigation";
 import { AddressAutocomplete } from "@/components/address-autocomplete";
 import { formatDistanceKm, formatGel } from "@/components/home/booking-format";
 import {

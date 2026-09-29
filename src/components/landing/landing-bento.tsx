@@ -1,10 +1,9 @@
-import Link from "next/link";
-
 import {
   DEFAULT_HOME_PAGE_CONTENT,
   type BentoCard,
   type BentoContent,
 } from "@/lib/admin/home-page-content";
+import { Link } from "@/i18n/navigation";
 
 /**
  * Chrome and type scale shared by every small card in both rows. Kept as

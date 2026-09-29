@@ -1,9 +1,8 @@
-import Link from "next/link";
-
 import {
   DEFAULT_HOME_PAGE_CONTENT,
   type ClosingCtaContent,
 } from "@/lib/admin/home-page-content";
+import { Link } from "@/i18n/navigation";
 
 /**
  * The accent panel that closes the page above the footer.

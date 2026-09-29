@@ -1,0 +1,477 @@
+{
+  "addCardDialog.addCard": {
+    "en": "Add card",
+    "ka": "",
+    "_source": "src/components/home/add-card-dialog.tsx"
+  },
+  "addCardDialog.asPrintedOnTheCard": {
+    "en": "As printed on the card",
+    "ka": "",
+    "_source": "src/components/home/add-card-dialog.tsx"
+  },
+  "addCardDialog.cardNumber": {
+    "en": "Card number",
+    "ka": "",
+    "_source": "src/components/home/add-card-dialog.tsx"
+  },
+  "addCardDialog.creditOrDebitCardNothingIs": {
+    "en": "Credit or debit card. Nothing is charged until you book a delivery.",
+    "ka": "",
+    "_source": "src/components/home/add-card-dialog.tsx"
+  },
+  "addCardDialog.cvc": {
+    "en": "CVC",
+    "ka": "",
+    "_source": "src/components/home/add-card-dialog.tsx"
+  },
+  "addCardDialog.expiry": {
+    "en": "Expiry",
+    "ka": "",
+    "_source": "src/components/home/add-card-dialog.tsx"
+  },
+  "addCardDialog.gatewayIntegrationIsPendingYourCard": {
+    "en": "Gateway integration is pending. Your card details are not sent anywhere and nothing is charged — only the brand and last four digits are saved so you can recognise the card.",
+    "ka": "",
+    "_source": "src/components/home/add-card-dialog.tsx"
+  },
+  "addCardDialog.mmYy": {
+    "en": "MM/YY",
+    "ka": "",
+    "_source": "src/components/home/add-card-dialog.tsx"
+  },
+  "addCardDialog.nameOnCard": {
+    "en": "Name on card",
+    "ka": "",
+    "_source": "src/components/home/add-card-dialog.tsx"
+  },
+  "addCardDialog.setAsDefaultPaymentMethod": {
+    "en": "Set as default payment method",
+    "ka": "",
+    "_source": "src/components/home/add-card-dialog.tsx"
+  },
+  "bookingForm.1IsTheDriverOnTheir": {
+    "en": "1 is the driver on their own. Every person after that is a helper for loading and unloading, charged as a flat fee on top of the fare.",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.additionalDetails": {
+    "en": "Additional details",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.anyTime": {
+    "en": "Any time",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.anythingTheDriverShouldKnow": {
+    "en": "Anything the driver should know",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.best": {
+    "en": "Best",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.bookADelivery": {
+    "en": "Book a delivery",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.cargoDetails": {
+    "en": "Cargo details",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.deliveryDateTime": {
+    "en": "Delivery date & time",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.deliveryDeadlineOptional": {
+    "en": "Delivery deadline (optional)",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.descriptionOptional": {
+    "en": "Description (optional)",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.dropoffAddress": {
+    "en": "Dropoff address",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.dryBox": {
+    "en": "Dry box",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.eG08": {
+    "en": "e.g. 0.8",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.eG11": {
+    "en": "e.g. 1.1",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.eG12": {
+    "en": "e.g. 1.2",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.eG4Pallets": {
+    "en": "e.g. 4 pallets",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.eG850": {
+    "en": "e.g. 850",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.eG96Cartons": {
+    "en": "e.g. 96 cartons",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.eGAghmashenebeliAve88Tbilisi": {
+    "en": "e.g. Aghmashenebeli Ave 88, Tbilisi",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.eGRustaveliAve12Tbilisi": {
+    "en": "e.g. Rustaveli Ave 12, Tbilisi",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.enclosedAndWeatherProof": {
+    "en": "Enclosed and weather-proof",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.estimatedTotal": {
+    "en": "Estimated total",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.flaggedToDispatchAsTimeCritical": {
+    "en": "Flagged to dispatch as time-critical.",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.flatbedLoadableFromAnySide": {
+    "en": "Flatbed, loadable from any side",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.heightM": {
+    "en": "Height (m)",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.lengthM": {
+    "en": "Length (m)",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.minimumFareAppliedForThisVehicle": {
+    "en": "Minimum fare applied for this vehicle type.",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.newDelivery": {
+    "en": "New delivery",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.noDeadline": {
+    "en": "No deadline",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.noSlotsLeftTodayPickA": {
+    "en": "No slots left today — pick a later date.",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.noVehicleIsCurrentlyAvailableFor": {
+    "en": "No vehicle is currently available for these goods. Pick a different category.",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.noVehicleMatchesThisBodyType": {
+    "en": "No vehicle matches this body type for your goods and weight. Pick a different load space.",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.onlyVehiclesClearedForYourGoods": {
+    "en": "Only vehicles cleared for your goods, load space and weight are shown, cheapest first.",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.openChassis": {
+    "en": "Open chassis",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.packagingOptional": {
+    "en": "Packaging (optional)",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.peopleForLoadingUnloading": {
+    "en": "People for loading / unloading",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.pickTheClosestMatchItDecides": {
+    "en": "Pick the closest match — it decides which vehicles can take the job.",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.pickupAddress": {
+    "en": "Pickup address",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.pickupWindowOptional": {
+    "en": "Pickup window (optional)",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.pleaseChooseADeliveryDateAnd": {
+    "en": "Please choose a delivery date and time.",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.pooling": {
+    "en": "Pooling",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.poolingDiscount": {
+    "en": "Pooling discount",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.priceBreakdown": {
+    "en": "Price breakdown",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.priority": {
+    "en": "Priority",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.priorityFee": {
+    "en": "Priority fee",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.quantityOptional": {
+    "en": "Quantity (optional)",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.recommendedVehicle": {
+    "en": "Recommended vehicle",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.refrigerated": {
+    "en": "Refrigerated",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.regular": {
+    "en": "Regular",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.regularFare": {
+    "en": "Regular fare",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.roughlyHowMuchIsBeingMoved": {
+    "en": "Roughly how much is being moved — we'll only recommend vehicles that can carry it.",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.setBothEndsOfThePickup": {
+    "en": "Set both ends of the pickup window, or leave both blank.",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.specialHandlingOptional": {
+    "en": "Special handling (optional)",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.standardCollectionAndDeliveryWindow": {
+    "en": "Standard collection and delivery window.",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.temperatureControlledLoadSpace": {
+    "en": "Temperature-controlled load space",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.thePickupWindowHasToEnd": {
+    "en": "The pickup window has to end after it starts.",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.totalWeight": {
+    "en": "Total weight",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.totalWeightKg": {
+    "en": "Total weight (kg)",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.until": {
+    "en": "Until",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.weightAndSizeOfTheLargest": {
+    "en": "Weight and size of the largest item",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.whatAreYouMoving": {
+    "en": "What are you moving?",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.whatIsActuallyBeingMovedWeight": {
+    "en": "What is actually being moved. Weight and size decide which drivers can see and take the job.",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.whatKindOfLoadSpaceDo": {
+    "en": "What kind of load space do you need?",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.whenShouldTheDriverComeBy": {
+    "en": "When should the driver come by?",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.widthM": {
+    "en": "Width (m)",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.youAcceptAWiderCollectionAnd": {
+    "en": "You accept a wider collection and delivery window.",
+    "ka": "",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "homeEntry.loading": {
+    "en": "Loading…",
+    "ka": "",
+    "_source": "src/components/home/home-entry.tsx"
+  },
+  "orderCargoOptions.aWholeHomeOrOffice": {
+    "en": "A whole home or office",
+    "ka": "",
+    "_source": "src/components/home/order-cargo-options.ts"
+  },
+  "orderCargoOptions.fridgesWashersOfficeKit": {
+    "en": "Fridges, washers, office kit",
+    "ka": "",
+    "_source": "src/components/home/order-cargo-options.ts"
+  },
+  "orderCargoOptions.machineryPartsBulkGoods": {
+    "en": "Machinery, parts, bulk goods",
+    "ka": "",
+    "_source": "src/components/home/order-cargo-options.ts"
+  },
+  "orderCargoOptions.palletsCartonsShopFitOut": {
+    "en": "Pallets, cartons, shop fit-out",
+    "ka": "",
+    "_source": "src/components/home/order-cargo-options.ts"
+  },
+  "orderCargoOptions.sofasBedsWardrobes": {
+    "en": "Sofas, beds, wardrobes",
+    "ka": "",
+    "_source": "src/components/home/order-cargo-options.ts"
+  },
+  "orderCargoOptions.stagingBoothsAvGear": {
+    "en": "Staging, booths, AV gear",
+    "ka": "",
+    "_source": "src/components/home/order-cargo-options.ts"
+  },
+  "orderCargoOptions.timberCementFixings": {
+    "en": "Timber, cement, fixings",
+    "ka": "",
+    "_source": "src/components/home/order-cargo-options.ts"
+  },
+  "routePreviewMap.dropoffAddressNotSet": {
+    "en": "Dropoff address not set",
+    "ka": "",
+    "_source": "src/components/home/route-preview-map.tsx"
+  },
+  "routePreviewMap.estTravelTime": {
+    "en": "Est. travel time",
+    "ka": "",
+    "_source": "src/components/home/route-preview-map.tsx"
+  },
+  "routePreviewMap.pickupAddressNotSet": {
+    "en": "Pickup address not set",
+    "ka": "",
+    "_source": "src/components/home/route-preview-map.tsx"
+  },
+  "routePreviewMap.routeSummary": {
+    "en": "Route summary",
+    "ka": "",
+    "_source": "src/components/home/route-preview-map.tsx"
+  },
+  "routePreviewMap.stops": {
+    "en": "Stops",
+    "ka": "",
+    "_source": "src/components/home/route-preview-map.tsx"
+  },
+  "stopContactDialog.allFieldsAreOptional": {
+    "en": "All fields are optional.",
+    "ka": "",
+    "_source": "src/components/home/stop-contact-dialog.tsx"
+  },
+  "stopContactDialog.blockFloorOrRoom": {
+    "en": "Block, floor or room",
+    "ka": "",
+    "_source": "src/components/home/stop-contact-dialog.tsx"
+  },
+  "stopContactDialog.blockFloorRoom": {
+    "en": "Block/Floor/Room",
+    "ka": "",
+    "_source": "src/components/home/stop-contact-dialog.tsx"
+  },
+  "stopContactDialog.deliveryInfo": {
+    "en": "Delivery info",
+    "ka": "",
+    "_source": "src/components/home/stop-contact-dialog.tsx"
+  },
+  "stopContactDialog.phoneNumber": {
+    "en": "Phone number",
+    "ka": "",
+    "_source": "src/components/home/stop-contact-dialog.tsx"
+  },
+  "stopContactDialog.save": {
+    "en": "Save",
+    "ka": "",
+    "_source": "src/components/home/stop-contact-dialog.tsx"
+  }
+}

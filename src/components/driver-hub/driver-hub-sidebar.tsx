@@ -1,11 +1,10 @@
 "use client";
 
-import Link from "next/link";
-
 import type {
   HubNavItem,
   HubNavItemId,
 } from "@/components/driver-hub/driver-hub-nav";
+import { Link } from "@/i18n/navigation";
 import { SampleNote } from "@/components/driver-hub/hub-primitives";
 import type { HubPersona } from "@/lib/dashboard/hub/account";
 import { SAMPLE_WEEKLY_INCENTIVE } from "@/lib/dashboard/hub/sample";

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { HubEmptyState } from "@/components/driver-hub/hub-primitives";
 import { HUB_STATUS_TONE_CLASSES } from "@/components/driver-hub/hub-status";
 import { LoadsDetailSheet } from "@/components/driver-hub/screens/loads-detail-sheet";

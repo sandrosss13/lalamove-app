@@ -1,0 +1,52 @@
+﻿key,english,georgian,source
+fleetApplicationStatusScreen.correctAFlaggedVehicle,Correct a flagged vehicle,,src/components/fleet-onboarding/fleet-application-status-screen.tsx
+fleetApplicationStatusScreen.correctTheCompanyDetails,Correct the company details,,src/components/fleet-onboarding/fleet-application-status-screen.tsx
+fleetApplicationStatusScreen.fix,Fix,,src/components/fleet-onboarding/fleet-application-status-screen.tsx
+fleetApplicationStatusScreen.fixCompanyDetails,Fix company details,,src/components/fleet-onboarding/fleet-application-status-screen.tsx
+fleetApplicationStatusScreen.flaggedVehiclesCannotBeDispatchedContact,Flagged vehicles cannot be dispatched. Contact support to have one re-reviewed.,,src/components/fleet-onboarding/fleet-application-status-screen.tsx
+fleetApplicationStatusScreen.fleetStatus,Fleet status,,src/components/fleet-onboarding/fleet-application-status-screen.tsx
+fleetApplicationStatusScreen.fleetUnderReview,Fleet under review,,src/components/fleet-onboarding/fleet-application-status-screen.tsx
+fleetApplicationStatusScreen.openTheDispatchDashboard,Open the dispatch dashboard,,src/components/fleet-onboarding/fleet-application-status-screen.tsx
+fleetApplicationStatusScreen.yourFleetIsLive,Your fleet is live.,,src/components/fleet-onboarding/fleet-application-status-screen.tsx
+fleetStepRail.companyAuthorisation,Company & authorisation,,src/components/fleet-onboarding/fleet-step-rail.tsx
+fleetWizardShell.forLogisticsCompaniesRunningMoreThan,"For logistics companies running more than one vehicle. Register the company once, declare the fleet by body type and class, then put a driver behind every vehicle.",,src/components/fleet-onboarding/fleet-wizard-shell.tsx
+fleetWizardShell.registerYourFleet,Register your fleet,,src/components/fleet-onboarding/fleet-wizard-shell.tsx
+step1CompanyDetails.asRegistered,As registered,,src/components/fleet-onboarding/steps/step-1-company-details.tsx
+step1CompanyDetails.bankAccountIban,Bank account (IBAN),,src/components/fleet-onboarding/steps/step-1-company-details.tsx
+step1CompanyDetails.companyPhone,Company phone,,src/components/fleet-onboarding/steps/step-1-company-details.tsx
+step1CompanyDetails.contactPerson,Contact person,,src/components/fleet-onboarding/steps/step-1-company-details.tsx
+step1CompanyDetails.dispatchCompanyGe,dispatch@company.ge,,src/components/fleet-onboarding/steps/step-1-company-details.tsx
+step1CompanyDetails.fleetManager,Fleet manager,,src/components/fleet-onboarding/steps/step-1-company-details.tsx
+step1CompanyDetails.legalEntity,Legal entity,,src/components/fleet-onboarding/steps/step-1-company-details.tsx
+step1CompanyDetails.payouts,Payouts,,src/components/fleet-onboarding/steps/step-1-company-details.tsx
+step1CompanyDetails.registeredCity,Registered city,,src/components/fleet-onboarding/steps/step-1-company-details.tsx
+step1CompanyDetails.setWhenTheAccountWasCreated,Set when the account was created. Contact operations to change it.,,src/components/fleet-onboarding/steps/step-1-company-details.tsx
+step1CompanyDetails.streetNumberPostcode,"Street, number, postcode",,src/components/fleet-onboarding/steps/step-1-company-details.tsx
+step1CompanyDetails.theAddressThisAccountSignsIn,The address this account signs in with. It is also where review decisions and order correspondence go — change it if a different inbox should receive them.,,src/components/fleet-onboarding/steps/step-1-company-details.tsx
+step1CompanyDetails.whereTheFleetPicksUpOrders,Where the fleet picks up. Orders outside these cities are not offered to your drivers.,,src/components/fleet-onboarding/steps/step-1-company-details.tsx
+step1CompanyDetails.whoWeSpeakTo,Who we speak to,,src/components/fleet-onboarding/steps/step-1-company-details.tsx
+step2FleetComposition.addOne,Add one,,src/components/fleet-onboarding/steps/step-2-fleet-composition.tsx
+step2FleetComposition.dryBoxTruck,Dry box truck,,src/components/fleet-onboarding/steps/step-2-fleet-composition.tsx
+step2FleetComposition.flatbedTruckWithDropSides,Flatbed truck with drop sides,,src/components/fleet-onboarding/steps/step-2-fleet-composition.tsx
+step2FleetComposition.refrigeratedTruck,Refrigerated truck,,src/components/fleet-onboarding/steps/step-2-fleet-composition.tsx
+step2FleetComposition.removeOne,Remove one,,src/components/fleet-onboarding/steps/step-2-fleet-composition.tsx
+step3VehicleSpecifications.backToFleetComposition,Back to fleet composition,,src/components/fleet-onboarding/steps/step-3-vehicle-specifications.tsx
+step3VehicleSpecifications.noVehiclesYetGoBackAnd,No vehicles yet. Go back and set how many you run in each combination.,,src/components/fleet-onboarding/steps/step-3-vehicle-specifications.tsx
+step4DriversAssignment.copyCredentials,Copy credentials,,src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx
+step4DriversAssignment.driverAccountCreated,Driver account created,,src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx
+step4DriversAssignment.emailAddress,Email address,,src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx
+step4DriversAssignment.everyVehicleNeedsANamedDriver,"Every vehicle needs a named driver. Create the account yourself for drivers already on staff, or pick one from your roster.",,src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx
+step4DriversAssignment.existingDriver,Existing driver,,src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx
+step4DriversAssignment.lastName,Last name,,src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx
+step4DriversAssignment.loadingYourRoster,Loading your roster…,,src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx
+step4DriversAssignment.noDriverOnYourRosterHolds,No driver on your roster holds the categories this vehicle needs. Create an account instead.,,src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx
+step4DriversAssignment.noLicenceOnFile,No licence on file,,src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx
+step4DriversAssignment.notAssigned,Not assigned,,src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx
+step4DriversAssignment.noVehiclesYetDeclareYourFleet,No vehicles yet — declare your fleet first.,,src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx
+step4DriversAssignment.removeCurrentDriver,Remove current driver,,src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx
+step4DriversAssignment.retry,Retry,,src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx
+step4DriversAssignment.selectACity,Select a city,,src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx
+step4DriversAssignment.shownOnceWhenYouSaveFor,"Shown once when you save, for you to pass on. The driver must change it at first sign-in and upload their own licence photos before their first order.",,src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx
+step4DriversAssignment.thisPasswordIsShownOnceCopy,This password is shown once. Copy it before closing — we cannot show it again.,,src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx
+step5ReviewSubmit.theCompanyIsReviewedAsA,The company is reviewed as a whole. Individual vehicles can be sent back without holding up the rest of the fleet.,,src/components/fleet-onboarding/steps/step-5-review-submit.tsx
+vehicleEditorDialog.booleanPromise,boolean | Promise,,src/components/fleet-onboarding/vehicle-editor-dialog.tsx

@@ -1,0 +1,355 @@
+﻿key,english,georgian,source
+adminBusinessApplications.companyFlagged,Company flagged,,src/app/[locale]/admin/(sections)/business/applications/page.tsx
+adminBusinessApplications.companyUnverified,Company unverified,,src/app/[locale]/admin/(sections)/business/applications/page.tsx
+adminBusinessApplications.couldNotLoadFleetApplications,Could not load fleet applications.,,src/app/[locale]/admin/(sections)/business/applications/page.tsx
+adminBusinessApplications.loadingFleetApplications,Loading fleet applications…,,src/app/[locale]/admin/(sections)/business/applications/page.tsx
+adminChangePasswordForm.yourBackOfficeAccountWasCreated,Your back-office account was created with a temporary password. Choose a new one to continue.,,src/components/admin/admin-change-password-form.tsx
+adminContentBanners.banner,Banner,,src/app/[locale]/admin/(sections)/content/banners/page.tsx
+adminContentBanners.couldNotLoadBanners,Could not load banners.,,src/app/[locale]/admin/(sections)/content/banners/page.tsx
+adminContentBanners.deleteBanner,Delete banner,,src/app/[locale]/admin/(sections)/content/banners/page.tsx
+adminContentBanners.full,Full,,src/app/[locale]/admin/(sections)/content/banners/page.tsx
+adminContentBanners.loadingBanners,Loading banners…,,src/app/[locale]/admin/(sections)/content/banners/page.tsx
+adminContentBanners.newBanner,New Banner,,src/app/[locale]/admin/(sections)/content/banners/page.tsx
+adminContentBanners.noBannersYet,No banners yet.,,src/app/[locale]/admin/(sections)/content/banners/page.tsx
+adminContentBanners.promotionalImagesOnThePublicSite,"Promotional images on the public site. Each banner shows in one placement and locale, ordered by its sort order.",,src/app/[locale]/admin/(sections)/content/banners/page.tsx
+adminContentHomePage.content,Content,,src/app/[locale]/admin/(sections)/content/home-page/page.tsx
+adminContentHomePage.contentDoesNotMatchThisType,Content does not match this type,,src/app/[locale]/admin/(sections)/content/home-page/page.tsx
+adminContentHomePage.couldNotLoadSections,Could not load sections.,,src/app/[locale]/admin/(sections)/content/home-page/page.tsx
+adminContentHomePage.deleteSection,Delete section,,src/app/[locale]/admin/(sections)/content/home-page/page.tsx
+adminContentHomePage.loadingSections,Loading sections…,,src/app/[locale]/admin/(sections)/content/home-page/page.tsx
+adminContentHomePage.move,Move,,src/app/[locale]/admin/(sections)/content/home-page/page.tsx
+adminContentHomePage.moveSectionDown,Move section down,,src/app/[locale]/admin/(sections)/content/home-page/page.tsx
+adminContentHomePage.moveSectionUp,Move section up,,src/app/[locale]/admin/(sections)/content/home-page/page.tsx
+adminContentHomePage.newSection,New Section,,src/app/[locale]/admin/(sections)/content/home-page/page.tsx
+adminContentHomePage.noSectionsForThisLocaleYet,No sections for this locale yet — the landing page is showing its default composition.,,src/app/[locale]/admin/(sections)/content/home-page/page.tsx
+adminContentHomePage.theSectionsOfThePublicLanding,"The sections of the public landing page, in the order they render. With no sections for a locale, the page falls back to its built-in default composition. The navigation bar and the footer are page chrome: they render at the top and the bottom whatever their position in this list, so moving them changes nothing.",,src/app/[locale]/admin/(sections)/content/home-page/page.tsx
+adminContentHomePage.thisSectionWillBeRemovedFrom,"This section will be removed from the landing page for good. To take it off the page without deleting it, switch it off instead.",,src/app/[locale]/admin/(sections)/content/home-page/page.tsx
+adminContentHomePage.unrecognizedType,Unrecognized type,,src/app/[locale]/admin/(sections)/content/home-page/page.tsx
+adminContentMessagingTemplates.allChannels,All channels,,src/app/[locale]/admin/(sections)/content/messaging-templates/page.tsx
+adminContentMessagingTemplates.couldNotLoadTemplates,Could not load templates.,,src/app/[locale]/admin/(sections)/content/messaging-templates/page.tsx
+adminContentMessagingTemplates.deleteTemplate,Delete template,,src/app/[locale]/admin/(sections)/content/messaging-templates/page.tsx
+adminContentMessagingTemplates.filterTemplatesByChannel,Filter templates by channel,,src/app/[locale]/admin/(sections)/content/messaging-templates/page.tsx
+adminContentMessagingTemplates.loadingTemplates,Loading templates…,,src/app/[locale]/admin/(sections)/content/messaging-templates/page.tsx
+adminContentMessagingTemplates.newTemplate,New Template,,src/app/[locale]/admin/(sections)/content/messaging-templates/page.tsx
+adminContentMessagingTemplates.updated,Updated,,src/app/[locale]/admin/(sections)/content/messaging-templates/page.tsx
+adminContentPages.couldNotLoadPages,Could not load pages.,,src/app/[locale]/admin/(sections)/content/pages/page.tsx
+adminContentPages.deleteThisPage,Delete this page?,,src/app/[locale]/admin/(sections)/content/pages/page.tsx
+adminContentPages.draft,Draft,,src/app/[locale]/admin/(sections)/content/pages/page.tsx
+adminContentPages.loadingPages,Loading pages…,,src/app/[locale]/admin/(sections)/content/pages/page.tsx
+adminContentPages.newPage,New Page,,src/app/[locale]/admin/(sections)/content/pages/page.tsx
+adminContentPages.noStaticPagesYet,No static pages yet.,,src/app/[locale]/admin/(sections)/content/pages/page.tsx
+adminContentPages.published,Published,,src/app/[locale]/admin/(sections)/content/pages/page.tsx
+adminContentPages.willStopResolvingForThatLocale,will stop resolving for that locale. This cannot be undone.,,src/app/[locale]/admin/(sections)/content/pages/page.tsx
+adminContentTranslations.allNamespaces,All namespaces,,src/app/[locale]/admin/(sections)/content/translations/page.tsx
+adminContentTranslations.couldNotLoadTranslations,Could not load translations.,,src/app/[locale]/admin/(sections)/content/translations/page.tsx
+adminContentTranslations.deleteEnglish,Delete English,,src/app/[locale]/admin/(sections)/content/translations/page.tsx
+adminContentTranslations.deleteGeorgian,Delete Georgian,,src/app/[locale]/admin/(sections)/content/translations/page.tsx
+adminContentTranslations.filterTranslationsByNamespace,Filter translations by namespace,,src/app/[locale]/admin/(sections)/content/translations/page.tsx
+adminContentTranslations.loadingTranslations,Loading translations…,,src/app/[locale]/admin/(sections)/content/translations/page.tsx
+adminContentTranslations.newKey,New Key,,src/app/[locale]/admin/(sections)/content/translations/page.tsx
+adminContentTranslations.notSet,Not set,,src/app/[locale]/admin/(sections)/content/translations/page.tsx
+adminContentVehiclePhotos.aPhotoGoesLiveAsSoon,"A photo goes live as soon as it is saved. There is no draft state for a vehicle type, so do not upload a work-in-progress crop expecting to publish it later.",,src/app/[locale]/admin/(sections)/content/vehicle-photos/page.tsx
+adminContentVehiclePhotos.bestAt720560ThePublic,Best at 720×560. The public card crops to a 140px-tall area.,,src/app/[locale]/admin/(sections)/content/vehicle-photos/page.tsx
+adminContentVehiclePhotos.couldNotLoadVehicleTypes,Could not load vehicle types.,,src/app/[locale]/admin/(sections)/content/vehicle-photos/page.tsx
+adminContentVehiclePhotos.noPhotoThePublicCardFalls,No photo — the public card falls back to its illustrated glyph.,,src/app/[locale]/admin/(sections)/content/vehicle-photos/page.tsx
+adminContentVehiclePhotos.notSavedYet,Not saved yet.,,src/app/[locale]/admin/(sections)/content/vehicle-photos/page.tsx
+adminContentVehiclePhotos.photosForTheVehicleCatalogueOn,"Photos for the vehicle catalogue on the public homepage. Only the photo is editable here — payload ratings, cargo dimensions, loading access and pricing drive order matching, so they are not content and are changed through the seed.",,src/app/[locale]/admin/(sections)/content/vehicle-photos/page.tsx
+adminContentVehiclePhotos.pnpmExecPrismaDbSeed,pnpm exec prisma db seed,,src/app/[locale]/admin/(sections)/content/vehicle-photos/page.tsx
+adminContentVehiclePhotos.removePhoto,Remove photo,,src/app/[locale]/admin/(sections)/content/vehicle-photos/page.tsx
+adminContentVehiclePhotos.removeThisPhotoTheCardFalls,Remove this photo? The card falls back to its illustrated glyph on the public homepage. The uploaded file itself is kept.,,src/app/[locale]/admin/(sections)/content/vehicle-photos/page.tsx
+adminDriversApplications.couldNotLoadApplications,Could not load applications.,,src/app/[locale]/admin/(sections)/drivers/applications/page.tsx
+adminDriversApplications.docs,Docs,,src/app/[locale]/admin/(sections)/drivers/applications/page.tsx
+adminDriversApplications.loadingApplications,Loading applications…,,src/app/[locale]/admin/(sections)/drivers/applications/page.tsx
+adminFinancePaymentMethods.couldNotLoadPaymentMethods,Could not load payment methods.,,src/app/[locale]/admin/(sections)/finance/payment-methods/page.tsx
+adminFinancePaymentMethods.couldNotUpdateThisPaymentMethod,Could not update this payment method.,,src/app/[locale]/admin/(sections)/finance/payment-methods/page.tsx
+adminFinancePaymentMethods.disabled,Disabled,,src/app/[locale]/admin/(sections)/finance/payment-methods/page.tsx
+adminFinancePaymentMethods.enabled,Enabled,,src/app/[locale]/admin/(sections)/finance/payment-methods/page.tsx
+adminFinancePaymentMethods.loadingPaymentMethods,Loading payment methods…,,src/app/[locale]/admin/(sections)/finance/payment-methods/page.tsx
+adminFinancePaymentMethods.method,Method,,src/app/[locale]/admin/(sections)/finance/payment-methods/page.tsx
+adminFinancePaymentMethods.paymentMethodsOfferedAtCheckoutPlatform,"Payment methods offered at checkout, platform-wide.",,src/app/[locale]/admin/(sections)/finance/payment-methods/page.tsx
+adminFinancePromoCampaigns.couldNotLoadCampaigns,Could not load campaigns.,,src/app/[locale]/admin/(sections)/finance/promo-campaigns/page.tsx
+adminFinancePromoCampaigns.deactivate,Deactivate,,src/app/[locale]/admin/(sections)/finance/promo-campaigns/page.tsx
+adminFinancePromoCampaigns.discount,Discount,,src/app/[locale]/admin/(sections)/finance/promo-campaigns/page.tsx
+adminFinancePromoCampaigns.discountCodesClientsRedeemAtCheckout,Discount codes clients redeem at checkout. A code applies only while it is active and inside its date window.,,src/app/[locale]/admin/(sections)/finance/promo-campaigns/page.tsx
+adminFinancePromoCampaigns.loadingCampaigns,Loading campaigns…,,src/app/[locale]/admin/(sections)/finance/promo-campaigns/page.tsx
+adminFinancePromoCampaigns.newCampaign,New Campaign,,src/app/[locale]/admin/(sections)/finance/promo-campaigns/page.tsx
+adminFinancePromoCampaigns.noPromoCampaignsYet,No promo campaigns yet.,,src/app/[locale]/admin/(sections)/finance/promo-campaigns/page.tsx
+adminFinancePromoCampaigns.usage,Usage,,src/app/[locale]/admin/(sections)/finance/promo-campaigns/page.tsx
+adminImageUpload.noPreview,No preview,,src/components/admin/content/admin-image-upload.tsx
+adminImageUpload.uploadingImage,Uploading image,,src/components/admin/content/admin-image-upload.tsx
+adminNav.applications,Applications,,src/components/admin/admin-nav.ts
+adminNav.banners,Banners,,src/components/admin/admin-nav.ts
+adminNav.businessApplications,Business applications,,src/components/admin/admin-nav.ts
+adminNav.campaigns,Campaigns,,src/components/admin/admin-nav.ts
+adminNav.clients,Clients,,src/components/admin/admin-nav.ts
+adminNav.contentManagement,Content Management,,src/components/admin/admin-nav.ts
+adminNav.crm,CRM,,src/components/admin/admin-nav.ts
+adminNav.finances,Finances,,src/components/admin/admin-nav.ts
+adminNav.homePage,Home Page,,src/components/admin/admin-nav.ts
+adminNav.messagingTemplates,Messaging Templates,,src/components/admin/admin-nav.ts
+adminNav.paymentMethods,Payment Methods,,src/components/admin/admin-nav.ts
+adminNav.promoCampaigns,Promo Campaigns,,src/components/admin/admin-nav.ts
+adminNav.salesAnalytics,Sales Analytics,,src/components/admin/admin-nav.ts
+adminNav.segments,Segments,,src/components/admin/admin-nav.ts
+adminNav.sellers,Sellers,,src/components/admin/admin-nav.ts
+adminNav.staticPages,Static Pages,,src/components/admin/admin-nav.ts
+adminNav.surveys,Surveys,,src/components/admin/admin-nav.ts
+adminNav.systemUsers,System Users,,src/components/admin/admin-nav.ts
+adminNav.translations,Translations,,src/components/admin/admin-nav.ts
+adminNav.userManagement,User Management,,src/components/admin/admin-nav.ts
+adminNav.vehiclePhotos,Vehicle Photos,,src/components/admin/admin-nav.ts
+adminShell.backOffice,Back Office,,src/components/admin/admin-shell.tsx
+adminShell.internalTools,Internal tools,,src/components/admin/admin-shell.tsx
+adminSignIn.backOfficeSignIn,Back office sign-in,,src/app/[locale]/(admin-sign-in)/admin/sign-in/page.tsx
+adminSignIn.internalUseOnlyCustomerAndDriver,Internal use only. Customer and driver accounts sign in on the main site.,,src/app/[locale]/(admin-sign-in)/admin/sign-in/page.tsx
+adminUsersClients.accountType,Account type,,src/app/[locale]/admin/(sections)/users/clients/page.tsx
+adminUsersClients.couldNotLoadClients,Could not load clients.,,src/app/[locale]/admin/(sections)/users/clients/page.tsx
+adminUsersClients.loadingClients,Loading clients…,,src/app/[locale]/admin/(sections)/users/clients/page.tsx
+adminUsersClients.ordersPlaced,Orders placed,,src/app/[locale]/admin/(sections)/users/clients/page.tsx
+adminUsersClients.searchClientsByNameEmailOr,"Search clients by name, email or phone",,src/app/[locale]/admin/(sections)/users/clients/page.tsx
+adminUsersSellers.couldNotLoadSellers,Could not load sellers.,,src/app/[locale]/admin/(sections)/users/sellers/page.tsx
+adminUsersSellers.loadingSellers,Loading sellers…,,src/app/[locale]/admin/(sections)/users/sellers/page.tsx
+adminUsersSellers.registration,Registration,,src/app/[locale]/admin/(sections)/users/sellers/page.tsx
+adminUsersSellers.searchSellersByNameEmailOr,"Search sellers by name, email or phone",,src/app/[locale]/admin/(sections)/users/sellers/page.tsx
+adminUsersSellers.seller,Seller,,src/app/[locale]/admin/(sections)/users/sellers/page.tsx
+adminUsersSystem.created,Created,,src/app/[locale]/admin/(sections)/users/system/page.tsx
+adminUsersSystem.noSystemUsersYet,No system users yet.,,src/app/[locale]/admin/(sections)/users/system/page.tsx
+adminUsersSystem.staffAccountsWithAccessToThis,Staff accounts with access to this back office. New accounts are created with a temporary password that is shown once.,,src/app/[locale]/admin/(sections)/users/system/page.tsx
+adminUsersSystem.you,You,,src/app/[locale]/admin/(sections)/users/system/page.tsx
+apiAuth.forbidden,Forbidden.,,src/lib/admin/api-auth.ts
+bannerFormDialog.addAnImageBeforeSavingThis,Add an image before saving this banner.,,src/components/admin/content/banner-form-dialog.tsx
+bannerFormDialog.bannersAreShownOnThePublic,"Banners are shown on the public site in the placement and locale you pick, in sort order, while they are active and inside their date window.",,src/components/admin/content/banner-form-dialog.tsx
+bannerFormDialog.endsOn,Ends on,,src/components/admin/content/banner-form-dialog.tsx
+bannerFormDialog.homeHero,home_hero,,src/components/admin/content/banner-form-dialog.tsx
+bannerFormDialog.leaveTheDatesEmptyForA,Leave the dates empty for a banner with no start or end. Dates are read in UTC and both ends are inclusive.,,src/components/admin/content/banner-form-dialog.tsx
+bannerFormDialog.startsOn,Starts on,,src/components/admin/content/banner-form-dialog.tsx
+bannerFormDialog.summerPromotion,Summer promotion,,src/components/admin/content/banner-form-dialog.tsx
+businessApplicationDetailDrawer.flagCompanyDetails,Flag company details,,src/components/admin/business-application-detail-drawer.tsx
+businessApplicationDetailDrawer.noDriverAssigned,No driver assigned,,src/components/admin/business-application-detail-drawer.tsx
+businessApplicationDetailDrawer.recordsEveryVerdictAtOnceActivating,Records every verdict at once. Activating the fleet stays a separate step.,,src/components/admin/business-application-detail-drawer.tsx
+businessApplicationDetailDrawer.thisVehicleWasRemovedAfterThe,This vehicle was removed after the fleet was submitted. Flag it so the company can correct the application.,,src/components/admin/business-application-detail-drawer.tsx
+createSystemUserDialog.adminRole,Admin role,,src/components/admin/users/create-system-user-dialog.tsx
+createSystemUserDialog.createsABackOfficeAccountWith,"Creates a back-office account with a temporary password, shown once after you submit.",,src/components/admin/users/create-system-user-dialog.tsx
+createSystemUserDialog.newSystemUser,New System User,,src/components/admin/users/create-system-user-dialog.tsx
+createSystemUserDialog.newSystemUser2,New system user,,src/components/admin/users/create-system-user-dialog.tsx
+createSystemUserDialog.ninoBeridze,Nino Beridze,,src/components/admin/users/create-system-user-dialog.tsx
+createSystemUserDialog.pickAnAdminRole,Pick an admin role.,,src/components/admin/users/create-system-user-dialog.tsx
+createSystemUserDialog.selectARole,Select a role,,src/components/admin/users/create-system-user-dialog.tsx
+createSystemUserDialog.staffExampleCom,staff@example.com,,src/components/admin/users/create-system-user-dialog.tsx
+createSystemUserDialog.systemUserCreated,System user created,,src/components/admin/users/create-system-user-dialog.tsx
+dateRangePicker.apply,Apply,,src/components/admin/analytics/date-range-picker.tsx
+dateRangePicker.customRange,Custom range,,src/components/admin/analytics/date-range-picker.tsx
+dateRangePicker.thisMonth,This Month,,src/components/admin/analytics/date-range-picker.tsx
+dateRangePicker.thisWeek,This Week,,src/components/admin/analytics/date-range-picker.tsx
+driverApplicationDetailDrawer.licence,Licence,,src/components/admin/driver-application-detail-drawer.tsx
+driverApplicationDetailDrawer.licenceNo,Licence no.,,src/components/admin/driver-application-detail-drawer.tsx
+driverApplicationDetailDrawer.noDocumentsOnThisApplication,No documents on this application.,,src/components/admin/driver-application-detail-drawer.tsx
+driverApplicationDetailDrawer.theDriverRemovedThisVehicleAfter,The driver removed this vehicle after submitting. They cannot be approved until a vehicle is registered again.,,src/components/admin/driver-application-detail-drawer.tsx
+homePageContent.about,About,,src/lib/admin/home-page-content.ts
+homePageContent.addAHelperToLoadAnd,"Add a helper to load and unload alongside the driver. It is a flat fee, already in the total and in the breakdown before you book.",,src/lib/admin/home-page-content.ts
+homePageContent.aHelperIsASecondPair,"A helper is a second pair of hands who rides along to load and unload with the driver. It is a flat fee on top of the distance and time components, so tick it before you price the job and it is already in the total and in the breakdown you see.",,src/lib/admin/home-page-content.ts
+homePageContent.anIndependentDriverOrALogistics,"An independent driver or a logistics company takes the job and it goes live on your map. Follow the vehicle from loading to unload, and keep every order in your account.",,src/lib/admin/home-page-content.ts
+homePageContent.anOrderStartsOutPendingUntil,"An order starts out pending until a transport provider takes it. That is either an independent driver, who accepts it with one of the vehicles registered to their profile, or a logistics company, which claims the job and dispatches it to a driver on its own roster.",,src/lib/admin/home-page-content.ts
+homePageContent.aSecondPairOfHands,A second pair of hands,,src/lib/admin/home-page-content.ts
+homePageContent.baseFareDistanceDrivingTimeAnd,"Base fare, distance, driving time and any helper fee, listed separately — and the same calculation runs again when you place the order.",,src/lib/admin/home-page-content.ts
+homePageContent.becomeADriver,Become a driver,,src/lib/admin/home-page-content.ts
+homePageContent.beforeYouBook,Before you book,,src/lib/admin/home-page-content.ts
+homePageContent.bentoContentMustBeAnObject,bento content must be an object.,,src/lib/admin/home-page-content.ts
+homePageContent.business,Business,,src/lib/admin/home-page-content.ts
+homePageContent.businessAccount,Business account,,src/lib/admin/home-page-content.ts
+homePageContent.canACompanyBookAndDispatch,Can a company book and dispatch as a business?,,src/lib/admin/home-page-content.ts
+homePageContent.canIFollowTheDelivery,Can I follow the delivery?,,src/lib/admin/home-page-content.ts
+homePageContent.careers,Careers,,src/lib/admin/home-page-content.ts
+homePageContent.cargoVanForAFewBoxes,"Cargo van for a few boxes, trailer truck for pallets. Every type lists its payload rating and cargo dimensions, so you can match the vehicle to the load.",,src/lib/admin/home-page-content.ts
+homePageContent.categoryTilesContentMustBeAn,category_tiles content must be an object.,,src/lib/admin/home-page-content.ts
+homePageContent.closingCta,Closing CTA,,src/lib/admin/home-page-content.ts
+homePageContent.closingCtaContentMustBeAn,closing_cta content must be an object.,,src/lib/admin/home-page-content.ts
+homePageContent.commercialFreightCargo,Commercial freight & cargo,,src/lib/admin/home-page-content.ts
+homePageContent.cookies,Cookies,,src/lib/admin/home-page-content.ts
+homePageContent.coverage,Coverage,,src/lib/admin/home-page-content.ts
+homePageContent.coverageContentMustBeAnObject,coverage content must be an object.,,src/lib/admin/home-page-content.ts
+homePageContent.dispatchAndSupport,Dispatch and support,,src/lib/admin/home-page-content.ts
+homePageContent.dispatchingEveryDayFor,Dispatching every day for,,src/lib/admin/home-page-content.ts
+homePageContent.driverCta,Driver CTA,,src/lib/admin/home-page-content.ts
+homePageContent.driverCtaContentMustBeAn,driver_cta content must be an object.,,src/lib/admin/home-page-content.ts
+homePageContent.driverSignUp,Driver sign-up,,src/lib/admin/home-page-content.ts
+homePageContent.everyAcceptedOrderGetsItsOwn,"Every accepted order gets its own tracking page: pickup and dropoff on a map, the driver's position as they report it, and a status that moves from accepted to in transit to completed.",,src/lib/admin/home-page-content.ts
+homePageContent.everyMajorCityOneAccount,"Every major city, one account.",,src/lib/admin/home-page-content.ts
+homePageContent.everySizeOneAccount,"Every size, one account.",,src/lib/admin/home-page-content.ts
+homePageContent.everyVehicleTypePublishesItsMaximum,"Every vehicle type publishes its maximum payload and its cargo length, width and height, so you match the rating to what you are actually moving.",,src/lib/admin/home-page-content.ts
+homePageContent.faq,FAQ,,src/lib/admin/home-page-content.ts
+homePageContent.faqContentMustBeAnObject,faq content must be an object.,,src/lib/admin/home-page-content.ts
+homePageContent.faresQuotedBeforeYouBook,Fares quoted before you book,,src/lib/admin/home-page-content.ts
+homePageContent.fleetDashboard,Fleet dashboard,,src/lib/admin/home-page-content.ts
+homePageContent.fleetsAndLogisticsCompanies,Fleets and logistics companies,,src/lib/admin/home-page-content.ts
+homePageContent.footerContentMustBeAnObject,footer content must be an object.,,src/lib/admin/home-page-content.ts
+homePageContent.forBusiness,For business,,src/lib/admin/home-page-content.ts
+homePageContent.forDrivers,For drivers,,src/lib/admin/home-page-content.ts
+homePageContent.forTransportProviders,For transport providers,,src/lib/admin/home-page-content.ts
+homePageContent.fourStepsNoPhoneCalls,"Four steps, no phone calls.",,src/lib/admin/home-page-content.ts
+homePageContent.georgianCitiesServed,Georgian cities served,,src/lib/admin/home-page-content.ts
+homePageContent.helper,Helper,,src/lib/admin/home-page-content.ts
+homePageContent.heroCarouselContentMustBeAn,hero_carousel content must be an object.,,src/lib/admin/home-page-content.ts
+homePageContent.heroContentMustBeAnObject,hero content must be an object.,,src/lib/admin/home-page-content.ts
+homePageContent.howIsThePriceWorkedOut,How is the price worked out?,,src/lib/admin/home-page-content.ts
+homePageContent.howItWorks,How it works,,src/lib/admin/home-page-content.ts
+homePageContent.howItWorksContentMustBe,how_it_works content must be an object.,,src/lib/admin/home-page-content.ts
+homePageContent.intercity,Intercity,,src/lib/admin/home-page-content.ts
+homePageContent.itemisedBeforeYouBook,Itemised before you book,,src/lib/admin/home-page-content.ts
+homePageContent.knowTheFareBeforeYouCommit,Know the fare before you commit.,,src/lib/admin/home-page-content.ts
+homePageContent.liveTracking,Live tracking,,src/lib/admin/home-page-content.ts
+homePageContent.lockThePrice,Lock the price,,src/lib/admin/home-page-content.ts
+homePageContent.navContentMustBeAnObject,nav content must be an object.,,src/lib/admin/home-page-content.ts
+homePageContent.partnerMarqueeContentMustBeAn,partner_marquee content must be an object.,,src/lib/admin/home-page-content.ts
+homePageContent.pickAVehicle,Pick a vehicle,,src/lib/admin/home-page-content.ts
+homePageContent.priceALoad,Price a load,,src/lib/admin/home-page-content.ts
+homePageContent.priceARunBetweenAnyTwo,"Price a run between any two cities we cover. The fare is worked out on the real driving distance and time, not a flat intercity band.",,src/lib/admin/home-page-content.ts
+homePageContent.priceItInTheOpenBook,"Price it in the open, book it in a few steps, and follow the vehicle to the door. No card needed to get a quote.",,src/lib/admin/home-page-content.ts
+homePageContent.pricing,Pricing,,src/lib/admin/home-page-content.ts
+homePageContent.privacy,Privacy,,src/lib/admin/home-page-content.ts
+homePageContent.product,Product,,src/lib/admin/home-page-content.ts
+homePageContent.quoteCalculatorContentMustBeAn,quote_calculator content must be an object.,,src/lib/admin/home-page-content.ts
+homePageContent.ratedForTheLoadNotGuessed,"Rated for the load, not guessed",,src/lib/admin/home-page-content.ts
+homePageContent.recordRecord,( record: Record,,src/lib/admin/home-page-content.ts
+homePageContent.registerACompany,Register a company,,src/lib/admin/home-page-content.ts
+homePageContent.registerACompanyPutYourDrivers,"Register a company, put your drivers and vehicles on one roster, and claim freight jobs from the dispatch queue.",,src/lib/admin/home-page-content.ts
+homePageContent.registerYourCompanyPutYourFleet,"Register your company, put your fleet and your drivers on one roster, and dispatch from a single hub. Applications are reviewed by our team before the account goes live.",,src/lib/admin/home-page-content.ts
+homePageContent.seeTheTruckMoveNotA,"See the truck move, not a status label.",,src/lib/admin/home-page-content.ts
+homePageContent.setAPickupAndADropoff,Set a pickup and a dropoff anywhere we operate and the fare is worked out on the real route between them — across town or across the country. Support in Georgian and English.,,src/lib/admin/home-page-content.ts
+homePageContent.setTheRoute,Set the route,,src/lib/admin/home-page-content.ts
+homePageContent.shipAnythingAcrossTheCity,"Ship anything, across the city",,src/lib/admin/home-page-content.ts
+homePageContent.signUpAsAnIndependentDriver,"Sign up as an independent driver or as a logistics company, register your vehicles, and start accepting freight jobs from shippers near you.",,src/lib/admin/home-page-content.ts
+homePageContent.statsContentMustBeAnObject,stats content must be an object.,,src/lib/admin/home-page-content.ts
+homePageContent.tbilisiToBatumiAndBack,"Tbilisi to Batumi, and back",,src/lib/admin/home-page-content.ts
+homePageContent.terms,Terms,,src/lib/admin/home-page-content.ts
+homePageContent.theFleet,The fleet,,src/lib/admin/home-page-content.ts
+homePageContent.trackItToTheDoor,Track it to the door,,src/lib/admin/home-page-content.ts
+homePageContent.typeThePickupAndTheDropoff,"Type the pickup and the dropoff — addresses autocomplete as you go — then tell us what you're moving: furniture, appliances, retail stock, or a full relocation.",,src/lib/admin/home-page-content.ts
+homePageContent.vansToTrailerTrucksPricedBefore,"Vans to trailer trucks, priced before you book and tracked door to door. Set the route, pick the vehicle rated for the load, and a nearby driver takes it from there.",,src/lib/admin/home-page-content.ts
+homePageContent.vehicleTypesBusinesspanelMustBeAn,vehicle_types.businessPanel must be an object.,,src/lib/admin/home-page-content.ts
+homePageContent.vehicleTypesContentMustBeAn,vehicle_types content must be an object.,,src/lib/admin/home-page-content.ts
+homePageContent.vehicleTypesVanToTrailer,"Vehicle types, van to trailer",,src/lib/admin/home-page-content.ts
+homePageContent.weGeocodeBothAddressesAndPrice,"We geocode both addresses and price the distance between them with the vehicle type's own rates: a base fare, a per-kilometre rate and a rate for the estimated time of the trip. A helper, if you ask for one, adds a flat fee on top. You get the total itemised, and the same calculation runs when you place the order — the estimate is not a separate marketing number.",,src/lib/admin/home-page-content.ts
+homePageContent.weQuoteOnRealDistanceDriving,"We quote on real distance, driving time and whether you need a helper, itemised line by line. No auction, no surprise line items at the door.",,src/lib/admin/home-page-content.ts
+homePageContent.whatDoesAddingAHelperDo,What does adding a helper do?,,src/lib/admin/home-page-content.ts
+homePageContent.whatWeCarry,What we carry,,src/lib/admin/home-page-content.ts
+homePageContent.whichVehicleShouldIBook,Which vehicle should I book?,,src/lib/admin/home-page-content.ts
+homePageContent.whoActuallyMovesMyCargo,Who actually moves my cargo?,,src/lib/admin/home-page-content.ts
+homePageContent.yesOnceAnOrderIsAccepted,"Yes. Once an order is accepted it gets its own tracking page: pickup and dropoff on a map, plus the driver's position as they report it, refreshed while you watch. The status moves from accepted to in transit to completed, and the order stays in your account afterwards.",,src/lib/admin/home-page-content.ts
+homePageContent.yourNextLoadIsARoute,Your next load is a route away.,,src/lib/admin/home-page-content.ts
+homePageSectionFormDialog.addCity,Add city,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.addColumn,Add column,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.addLegalLink,Add legal link,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.addLink,Add link,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.addPoint,Add point,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.addQuestion,Add question,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.addRowCard,Add row card,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.addSideCard,Add side card,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.addStat,Add stat,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.addStep,Add step,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.answer,Answer,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.aside,Aside,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.bothFieldsAreFreeTextAnd,"Both fields are free text and purely editorial. The name is not tied to the city list the booking flow uses, and there is no service-tier data anywhere in the system — a tier is whatever a human who knows the real answer types here.",,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.brandBlurb,Brand blurb,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.brandName,Brand name,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.businessPanel,Business panel,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.buttonLabel,Button label,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.buttonLink,Button link,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.cities,Cities,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.columns,Columns,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.columnsReadLeftToRightIn,Columns read left to right in this order. The design is four.,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.columnTitle,Column title,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.copyrightLine,Copyright line,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.driverPhotograph,Driver photograph,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.eachNewLineIsRenderedAs,Each new line is rendered as a line break in the heading.,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.etaLabel,ETA label,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.eyebrow,Eyebrow,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.fallbackCaption,Fallback caption,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.fillsThePanelSRightColumn,Fills the panel’s right column. Optional — the panel is designed to render without one.,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.fromLabel,From label,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.heading,Heading,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.headline,Headline,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.heavyDutyGroupHeading,Heavy-duty group heading,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.intro,Intro,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.label,Label,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.legalLinks,Legal links,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.linkLabel,Link label,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.links,Links,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.mediumDutyGroupHeading,Medium-duty group heading,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.optional,Optional.,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.optionalTheHeadingAboveTheHeavy,"Optional. The heading above the heavy-duty vehicles. Display only, as above.",,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.optionalTheRedesignSLayoutHas,"Optional. The redesign's layout has no column for it, but an existing paragraph is kept rather than discarded.",,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.optionalUsedForASlideWhose,Optional. Used for a slide whose banner has no usable title.,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.orderLabel,Order label,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.points,Points,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.primaryButtonLabel,Primary button label,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.primaryButtonLink,Primary button link,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.progressPercent,Progress percent,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.question,Question,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.rowATheColumnBesideThe,"Row A, the column beside the large card. The design is two of them.",,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.rowBAcrossTheFullWidth,"Row B, across the full width. The design is three of them. They are a separate list from the side cards because the two rows have different card sizes and grid tracks.",,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.rowCards,Row cards,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.secondaryButtonLabel,Secondary button label,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.secondaryButtonLink,Secondary button link,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.secondaryLinkLabel,Secondary link label,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.secondaryLinkUrl,Secondary link URL,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.sectionType,Section type,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.sideCards,Side cards,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.signInLabel,Sign-in label,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.signInLink,Sign-in link,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.signUpLabel,Sign-up label,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.signUpLink,Sign-up link,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.statusChipTag,Status chip tag,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.statusChipText,Status chip text,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.steps,Steps,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.stepsAreNumberedByTheirPosition,Steps are numbered by their position on the page.,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.subtext,Subtext,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.supportLinkLabel,Support link label,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.supportLinkUrl,Support link URL,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.text,Text,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.theCalculatorItselfIsTheLive,"The calculator itself is the live pricing widget — it owns its own labels and quotes against the real pricing endpoint, so only the framing copy above is editable.",,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.theDutyClassesAndTheirVehicles,"The duty classes and their vehicles come from the live taxonomy, so only the framing copy is edited here.",,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.theFiguresBelowTheHeroAre,"The figures below the hero are the stats row, which is a section of its own. The retired headline highlight has no field here, so saving a hero authored before the redesign drops it.",,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.theFooterIsPageChromeIt,"The footer is page chrome: it renders at the bottom of the page whatever its sort order, so moving it in the section list changes nothing.",,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.theMockOrderPinnedToThe,"The mock order pinned to the large card. It is an illustration, not live data — which is exactly why it is authored here rather than hardcoded.",,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.theNavigationBarIsPageChrome,"The navigation bar is page chrome: it renders at the top of the page whatever its sort order, so moving it in the section list changes nothing. Sign-in and sign-up are separate fields rather than two more links because they render as the pill’s trailing pair.",,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.thePanelThatClosesTheSection,The panel that closes the section. Optional as a whole: clear all four boxes to drop it. Fill any one of them and all four are required.,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.theTilesThemselvesAreGeneratedFrom,The tiles themselves are generated from the cargo taxonomy and its pricing rules.,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.theTypeDecidesWhichLandingComponent,"The type decides which landing component renders this section, and therefore which fields it carries.",,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.tier,Tier,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.tiles,Tiles,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.toLabel,To label,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.trackingPanel,Tracking panel,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.url,URL,,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.whereTheButtonSendsADriver,"Where the button sends a driver depends on deployment configuration, so it is not editable here.",,src/components/admin/content/home-page-section-form-dialog.tsx
+homePageSectionFormDialog.wordmark,Wordmark,,src/components/admin/content/home-page-section-form-dialog.tsx
+messagingTemplateFormDialog.aSubjectIsRequiredForEmail,A subject is required for email templates.,,src/components/admin/content/messaging-template-form-dialog.tsx
+messagingTemplateFormDialog.message,Message,,src/components/admin/content/messaging-template-form-dialog.tsx
+messagingTemplateFormDialog.orderConfirmed,order.confirmed,,src/components/admin/content/messaging-template-form-dialog.tsx
+messagingTemplateFormDialog.theWordingOfOneTransactionalMessage,"The wording of one transactional message, for a single channel and language. Saving only changes the text on file — messages are sent by the order flow, not from here.",,src/components/admin/content/messaging-template-form-dialog.tsx
+messagingTemplateFormDialog.yourOrderIsConfirmed,Your order is confirmed,,src/components/admin/content/messaging-template-form-dialog.tsx
+metricCards.awaitingACarrier,Awaiting a carrier,,src/components/admin/analytics/metric-cards.tsx
+metricCards.calledOffBeforeDelivery,Called off before delivery,,src/components/admin/analytics/metric-cards.tsx
+metricCards.claimedAcceptedOrInTransit,"Claimed, accepted or in transit",,src/components/admin/analytics/metric-cards.tsx
+metricCards.deliveredOrders,Delivered orders,,src/components/admin/analytics/metric-cards.tsx
+metricCards.grossBookingsPlacedInRange,Gross bookings placed in range,,src/components/admin/analytics/metric-cards.tsx
+metricCards.inProcess,In process,,src/components/admin/analytics/metric-cards.tsx
+metricCards.recognisedOnDelivery,Recognised on delivery,,src/components/admin/analytics/metric-cards.tsx
+metricCards.revenueCompletedOrders,Revenue (completed orders),,src/components/admin/analytics/metric-cards.tsx
+metricCards.turnoverPaidOrders,Turnover (paid orders),,src/components/admin/analytics/metric-cards.tsx
+promoCampaignFormDialog.discountType,Discount type,,src/components/admin/finance/promo-campaign-form-dialog.tsx
+promoCampaignFormDialog.ends,Ends,,src/components/admin/finance/promo-campaign-form-dialog.tsx
+promoCampaignFormDialog.leaveBlankForUnlimitedRedemptions,Leave blank for unlimited redemptions.,,src/components/admin/finance/promo-campaign-form-dialog.tsx
+promoCampaignFormDialog.lettersAndNumbersOnly332,"Letters and numbers only, 3–32 characters.",,src/components/admin/finance/promo-campaign-form-dialog.tsx
+promoCampaignFormDialog.starts,Starts,,src/components/admin/finance/promo-campaign-form-dialog.tsx
+promoCampaignFormDialog.unlimited,Unlimited,,src/components/admin/finance/promo-campaign-form-dialog.tsx
+promoCampaignFormDialog.usageLimitOptional,Usage limit (optional),,src/components/admin/finance/promo-campaign-form-dialog.tsx
+staticPageFormDialog.bodyHtml,Body (HTML),,src/components/admin/content/static-page-form-dialog.tsx
+staticPageFormDialog.publishedVisibleToVisitors,Published — visible to visitors,,src/components/admin/content/static-page-form-dialog.tsx
+staticPageFormDialog.termsOfService,Terms of Service,,src/components/admin/content/static-page-form-dialog.tsx
+suspendDialog.whyIsThisAccountBeingSuspended,Why is this account being suspended?,,src/components/admin/users/suspend-dialog.tsx
+systemUserStatusButton.networkErrorPleaseTryAgain,Network error. Please try again.,,src/components/admin/users/system-user-status-button.tsx
+translationFormDialog.aNamespaceAndAKeyAre,A namespace and a key are required.,,src/components/admin/content/translation-form-dialog.tsx
+translationFormDialog.bothTheGeorgianAndTheEnglish,Both the Georgian and the English value are required.,,src/components/admin/content/translation-form-dialog.tsx
+translationFormDialog.englishText,English text,,src/components/admin/content/translation-form-dialog.tsx
+translationFormDialog.heroTitle,hero.title,,src/components/admin/content/translation-form-dialog.tsx

@@ -1,6 +1,13 @@
 allowBuilds:
+  # Both are pulled in by `next-intl`, for its optional message *extractor*
+  # (`useExtracted`/`getExtracted`) — tooling this project does not use: the
+  # catalogs under `src/messages` are written by hand. Denied rather than
+  # allowed so neither compiles native bindings on every install; `@swc/core`
+  # ships prebuilt platform binaries for the case anything does reach for it.
+  "@parcel/watcher": false
   "@prisma/client": true
   "@prisma/engines": true
+  "@swc/core": false
   better-sqlite3: true
   # Pulled in by `tsx`, which runs the Prisma seed script.
   esbuild: true

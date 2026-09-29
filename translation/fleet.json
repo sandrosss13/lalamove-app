@@ -1,0 +1,257 @@
+{
+  "fleetApplicationStatusScreen.correctAFlaggedVehicle": {
+    "en": "Correct a flagged vehicle",
+    "ka": "",
+    "_source": "src/components/fleet-onboarding/fleet-application-status-screen.tsx"
+  },
+  "fleetApplicationStatusScreen.correctTheCompanyDetails": {
+    "en": "Correct the company details",
+    "ka": "",
+    "_source": "src/components/fleet-onboarding/fleet-application-status-screen.tsx"
+  },
+  "fleetApplicationStatusScreen.fix": {
+    "en": "Fix",
+    "ka": "",
+    "_source": "src/components/fleet-onboarding/fleet-application-status-screen.tsx"
+  },
+  "fleetApplicationStatusScreen.fixCompanyDetails": {
+    "en": "Fix company details",
+    "ka": "",
+    "_source": "src/components/fleet-onboarding/fleet-application-status-screen.tsx"
+  },
+  "fleetApplicationStatusScreen.flaggedVehiclesCannotBeDispatchedContact": {
+    "en": "Flagged vehicles cannot be dispatched. Contact support to have one re-reviewed.",
+    "ka": "",
+    "_source": "src/components/fleet-onboarding/fleet-application-status-screen.tsx"
+  },
+  "fleetApplicationStatusScreen.fleetStatus": {
+    "en": "Fleet status",
+    "ka": "",
+    "_source": "src/components/fleet-onboarding/fleet-application-status-screen.tsx"
+  },
+  "fleetApplicationStatusScreen.fleetUnderReview": {
+    "en": "Fleet under review",
+    "ka": "",
+    "_source": "src/components/fleet-onboarding/fleet-application-status-screen.tsx"
+  },
+  "fleetApplicationStatusScreen.openTheDispatchDashboard": {
+    "en": "Open the dispatch dashboard",
+    "ka": "",
+    "_source": "src/components/fleet-onboarding/fleet-application-status-screen.tsx"
+  },
+  "fleetApplicationStatusScreen.yourFleetIsLive": {
+    "en": "Your fleet is live.",
+    "ka": "",
+    "_source": "src/components/fleet-onboarding/fleet-application-status-screen.tsx"
+  },
+  "fleetStepRail.companyAuthorisation": {
+    "en": "Company & authorisation",
+    "ka": "",
+    "_source": "src/components/fleet-onboarding/fleet-step-rail.tsx"
+  },
+  "fleetWizardShell.forLogisticsCompaniesRunningMoreThan": {
+    "en": "For logistics companies running more than one vehicle. Register the company once, declare the fleet by body type and class, then put a driver behind every vehicle.",
+    "ka": "",
+    "_source": "src/components/fleet-onboarding/fleet-wizard-shell.tsx"
+  },
+  "fleetWizardShell.registerYourFleet": {
+    "en": "Register your fleet",
+    "ka": "",
+    "_source": "src/components/fleet-onboarding/fleet-wizard-shell.tsx"
+  },
+  "step1CompanyDetails.asRegistered": {
+    "en": "As registered",
+    "ka": "",
+    "_source": "src/components/fleet-onboarding/steps/step-1-company-details.tsx"
+  },
+  "step1CompanyDetails.bankAccountIban": {
+    "en": "Bank account (IBAN)",
+    "ka": "",
+    "_source": "src/components/fleet-onboarding/steps/step-1-company-details.tsx"
+  },
+  "step1CompanyDetails.companyPhone": {
+    "en": "Company phone",
+    "ka": "",
+    "_source": "src/components/fleet-onboarding/steps/step-1-company-details.tsx"
+  },
+  "step1CompanyDetails.contactPerson": {
+    "en": "Contact person",
+    "ka": "",
+    "_source": "src/components/fleet-onboarding/steps/step-1-company-details.tsx"
+  },
+  "step1CompanyDetails.dispatchCompanyGe": {
+    "en": "dispatch@company.ge",
+    "ka": "",
+    "_source": "src/components/fleet-onboarding/steps/step-1-company-details.tsx"
+  },
+  "step1CompanyDetails.fleetManager": {
+    "en": "Fleet manager",
+    "ka": "",
+    "_source": "src/components/fleet-onboarding/steps/step-1-company-details.tsx"
+  },
+  "step1CompanyDetails.legalEntity": {
+    "en": "Legal entity",
+    "ka": "",
+    "_source": "src/components/fleet-onboarding/steps/step-1-company-details.tsx"
+  },
+  "step1CompanyDetails.payouts": {
+    "en": "Payouts",
+    "ka": "",
+    "_source": "src/components/fleet-onboarding/steps/step-1-company-details.tsx"
+  },
+  "step1CompanyDetails.registeredCity": {
+    "en": "Registered city",
+    "ka": "",
+    "_source": "src/components/fleet-onboarding/steps/step-1-company-details.tsx"
+  },
+  "step1CompanyDetails.setWhenTheAccountWasCreated": {
+    "en": "Set when the account was created. Contact operations to change it.",
+    "ka": "",
+    "_source": "src/components/fleet-onboarding/steps/step-1-company-details.tsx"
+  },
+  "step1CompanyDetails.streetNumberPostcode": {
+    "en": "Street, number, postcode",
+    "ka": "",
+    "_source": "src/components/fleet-onboarding/steps/step-1-company-details.tsx"
+  },
+  "step1CompanyDetails.theAddressThisAccountSignsIn": {
+    "en": "The address this account signs in with. It is also where review decisions and order correspondence go — change it if a different inbox should receive them.",
+    "ka": "",
+    "_source": "src/components/fleet-onboarding/steps/step-1-company-details.tsx"
+  },
+  "step1CompanyDetails.whereTheFleetPicksUpOrders": {
+    "en": "Where the fleet picks up. Orders outside these cities are not offered to your drivers.",
+    "ka": "",
+    "_source": "src/components/fleet-onboarding/steps/step-1-company-details.tsx"
+  },
+  "step1CompanyDetails.whoWeSpeakTo": {
+    "en": "Who we speak to",
+    "ka": "",
+    "_source": "src/components/fleet-onboarding/steps/step-1-company-details.tsx"
+  },
+  "step2FleetComposition.addOne": {
+    "en": "Add one",
+    "ka": "",
+    "_source": "src/components/fleet-onboarding/steps/step-2-fleet-composition.tsx"
+  },
+  "step2FleetComposition.dryBoxTruck": {
+    "en": "Dry box truck",
+    "ka": "",
+    "_source": "src/components/fleet-onboarding/steps/step-2-fleet-composition.tsx"
+  },
+  "step2FleetComposition.flatbedTruckWithDropSides": {
+    "en": "Flatbed truck with drop sides",
+    "ka": "",
+    "_source": "src/components/fleet-onboarding/steps/step-2-fleet-composition.tsx"
+  },
+  "step2FleetComposition.refrigeratedTruck": {
+    "en": "Refrigerated truck",
+    "ka": "",
+    "_source": "src/components/fleet-onboarding/steps/step-2-fleet-composition.tsx"
+  },
+  "step2FleetComposition.removeOne": {
+    "en": "Remove one",
+    "ka": "",
+    "_source": "src/components/fleet-onboarding/steps/step-2-fleet-composition.tsx"
+  },
+  "step3VehicleSpecifications.backToFleetComposition": {
+    "en": "Back to fleet composition",
+    "ka": "",
+    "_source": "src/components/fleet-onboarding/steps/step-3-vehicle-specifications.tsx"
+  },
+  "step3VehicleSpecifications.noVehiclesYetGoBackAnd": {
+    "en": "No vehicles yet. Go back and set how many you run in each combination.",
+    "ka": "",
+    "_source": "src/components/fleet-onboarding/steps/step-3-vehicle-specifications.tsx"
+  },
+  "step4DriversAssignment.copyCredentials": {
+    "en": "Copy credentials",
+    "ka": "",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
+  "step4DriversAssignment.driverAccountCreated": {
+    "en": "Driver account created",
+    "ka": "",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
+  "step4DriversAssignment.emailAddress": {
+    "en": "Email address",
+    "ka": "",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
+  "step4DriversAssignment.everyVehicleNeedsANamedDriver": {
+    "en": "Every vehicle needs a named driver. Create the account yourself for drivers already on staff, or pick one from your roster.",
+    "ka": "",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
+  "step4DriversAssignment.existingDriver": {
+    "en": "Existing driver",
+    "ka": "",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
+  "step4DriversAssignment.lastName": {
+    "en": "Last name",
+    "ka": "",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
+  "step4DriversAssignment.loadingYourRoster": {
+    "en": "Loading your roster…",
+    "ka": "",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
+  "step4DriversAssignment.noDriverOnYourRosterHolds": {
+    "en": "No driver on your roster holds the categories this vehicle needs. Create an account instead.",
+    "ka": "",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
+  "step4DriversAssignment.noLicenceOnFile": {
+    "en": "No licence on file",
+    "ka": "",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
+  "step4DriversAssignment.noVehiclesYetDeclareYourFleet": {
+    "en": "No vehicles yet — declare your fleet first.",
+    "ka": "",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
+  "step4DriversAssignment.notAssigned": {
+    "en": "Not assigned",
+    "ka": "",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
+  "step4DriversAssignment.removeCurrentDriver": {
+    "en": "Remove current driver",
+    "ka": "",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
+  "step4DriversAssignment.retry": {
+    "en": "Retry",
+    "ka": "",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
+  "step4DriversAssignment.selectACity": {
+    "en": "Select a city",
+    "ka": "",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
+  "step4DriversAssignment.shownOnceWhenYouSaveFor": {
+    "en": "Shown once when you save, for you to pass on. The driver must change it at first sign-in and upload their own licence photos before their first order.",
+    "ka": "",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
+  "step4DriversAssignment.thisPasswordIsShownOnceCopy": {
+    "en": "This password is shown once. Copy it before closing — we cannot show it again.",
+    "ka": "",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
+  "step5ReviewSubmit.theCompanyIsReviewedAsA": {
+    "en": "The company is reviewed as a whole. Individual vehicles can be sent back without holding up the rest of the fleet.",
+    "ka": "",
+    "_source": "src/components/fleet-onboarding/steps/step-5-review-submit.tsx"
+  },
+  "vehicleEditorDialog.booleanPromise": {
+    "en": "boolean | Promise",
+    "ka": "",
+    "_source": "src/components/fleet-onboarding/vehicle-editor-dialog.tsx"
+  }
+}

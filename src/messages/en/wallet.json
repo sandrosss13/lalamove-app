@@ -1,0 +1,11 @@
+{
+  "savedCardsPanel": {
+    "default": "Default",
+    "noCardsSavedYetAddA": "No cards saved yet. Add a credit or debit card to pay for deliveries.",
+    "savedCards": "Saved cards"
+  },
+  "wallet": {
+    "paymentMethods": "Payment methods",
+    "pleaseSignInToViewYour": "Please sign in to view your wallet."
+  }
+}

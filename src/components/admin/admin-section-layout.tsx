@@ -4,6 +4,7 @@ import {
   adminNavSection,
   type AdminNavSectionId,
 } from "@/components/admin/admin-nav";
+import { localeHref } from "@/i18n/server";
 import { AdminSectionTabs } from "@/components/admin/admin-section-tabs";
 import { hasAdminRole, requireSystemUser } from "@/lib/admin/auth";
 
@@ -37,7 +38,7 @@ export async function AdminSectionLayout({
   const section = adminNavSection(sectionId);
 
   if (!hasAdminRole(systemUserProfile, section.adminRoles)) {
-    redirect("/admin");
+    redirect(await localeHref("/admin"));
   }
 
   const items = section.items.filter((item) =>

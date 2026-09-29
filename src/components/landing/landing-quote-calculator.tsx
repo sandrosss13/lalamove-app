@@ -1,13 +1,13 @@
 "use client";
 
 import { useId, useState } from "react";
-import Link from "next/link";
 import type { CargoCategory } from "@prisma/client";
 
 import {
   CARGO_CATEGORY_ALLOWED_VEHICLE_CATEGORIES,
   CARGO_CATEGORY_LABELS,
 } from "@/lib/cargo";
+import { Link } from "@/i18n/navigation";
 import { formatGel } from "@/components/landing/landing-format";
 import { useLandingVehicleTypes } from "@/components/landing/landing-vehicle-types";
 import {

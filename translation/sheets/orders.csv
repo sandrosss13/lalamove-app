@@ -1,0 +1,12 @@
+﻿key,english,georgian,source
+orders.above,above.,,src/app/[locale]/orders/page.tsx
+orders.newOrder2,New order,,src/app/[locale]/orders/page.tsx
+orders.signInToViewYourOrders,Sign in to view your orders.,,src/app/[locale]/orders/page.tsx
+orders.trackDelivery,Track delivery →,,src/app/[locale]/orders/page.tsx
+orders.yourDeliveries,Your deliveries,,src/app/[locale]/orders/page.tsx
+orders.yourOrders,Your orders,,src/app/[locale]/orders/page.tsx
+ordersTrack.carrier,Carrier,,src/app/[locale]/orders/[id]/track/page.tsx
+ordersTrack.pleaseSignInToTrackThis,Please sign in to track this delivery.,,src/app/[locale]/orders/[id]/track/page.tsx
+ordersTrack.trackDelivery,Track delivery,,src/app/[locale]/orders/[id]/track/page.tsx
+orderTrackingMap.driverLocationMayBeStale,Driver location may be stale.,,src/components/order-tracking-map.tsx
+orderTrackingMap.waitingForADriverToShare,Waiting for a driver to share their location…,,src/components/order-tracking-map.tsx

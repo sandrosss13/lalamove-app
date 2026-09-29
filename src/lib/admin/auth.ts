@@ -13,6 +13,7 @@ import { redirect } from "next/navigation";
 
 import type { SystemUserProfile } from "@prisma/client";
 
+import { localeHref } from "@/i18n/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -84,7 +85,7 @@ export const requireSystemUser = cache(async (): Promise<SystemUserContext> => {
   const session = await auth.api.getSession({ headers: await headers() });
 
   if (!session || session.user.role !== "ADMIN") {
-    redirect(ADMIN_SIGN_IN_PATH);
+    redirect(await localeHref(ADMIN_SIGN_IN_PATH));
   }
 
   const systemUserProfile = await prisma.systemUserProfile.findUnique({
@@ -92,7 +93,7 @@ export const requireSystemUser = cache(async (): Promise<SystemUserContext> => {
   });
 
   if (!systemUserProfile || !systemUserProfile.isActive) {
-    redirect(ADMIN_SIGN_IN_PATH);
+    redirect(await localeHref(ADMIN_SIGN_IN_PATH));
   }
 
   return { session, systemUserProfile };

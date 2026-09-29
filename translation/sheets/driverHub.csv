@@ -1,0 +1,247 @@
+﻿key,english,georgian,source
+driverAccountCompanyCard.contactEmail,Contact email,,src/components/driver-hub/driver-account-company-card.tsx
+driverAccountCompanyCard.contactName,Contact name,,src/components/driver-hub/driver-account-company-card.tsx
+driverAccountCompanyCard.contactRole,Contact role,,src/components/driver-hub/driver-account-company-card.tsx
+driverAccountCompanyCard.theAddressYouSignInWith,The address you sign in with.,,src/components/driver-hub/driver-account-company-card.tsx
+driverAccountCompanyCard.whatAClientIsBilledBy,"What a client is billed by, and how operations reaches your fleet.",,src/components/driver-hub/driver-account-company-card.tsx
+driverAccountPayoutPanel.bank,Bank,,src/components/driver-hub/driver-account-payout-panel.tsx
+driverAccountPayoutPanel.frequency,Frequency,,src/components/driver-hub/driver-account-payout-panel.tsx
+driverAccountPayoutPanel.howOftenCompletedJobsAreSettled,How often completed jobs are settled.,,src/components/driver-hub/driver-account-payout-panel.tsx
+driverAccountPayoutPanel.iban,IBAN,,src/components/driver-hub/driver-account-payout-panel.tsx
+driverAccountPayoutPanel.nextPayout,Next payout,,src/components/driver-hub/driver-account-payout-panel.tsx
+driverAccountPayoutPanel.payoutSchedule,Payout schedule,,src/components/driver-hub/driver-account-payout-panel.tsx
+driverAccountPlaceholderPanel.notificationPreferences,Notification preferences,,src/components/driver-hub/driver-account-placeholder-panel.tsx
+driverAccountPlaceholderPanel.whatHappensToday,What happens today,,src/components/driver-hub/driver-account-placeholder-panel.tsx
+driverAccountPlaceholderPanel.whyItIsEmpty,Why it is empty,,src/components/driver-hub/driver-account-placeholder-panel.tsx
+driverAccountProfileForm.profileDetails,Profile details,,src/components/driver-hub/driver-account-profile-form.tsx
+driverAccountProfileForm.yourNameTheNumberAClient,"Your name, the number a client calls when they cannot find you, and the city you work out of.",,src/components/driver-hub/driver-account-profile-form.tsx
+driverAccountSections.gettingAPersonToLookAt,Getting a person to look at something that has gone wrong.,,src/components/driver-hub/driver-account-sections.ts
+driverAccountSections.payoutBankDetails,Payout & bank details,,src/components/driver-hub/driver-account-sections.ts
+driverAccountSections.theDetailsAClientSeesWhen,"The details a client sees when you turn up for a pickup, and the credentials you sign in with.",,src/components/driver-hub/driver-account-sections.ts
+driverAccountSections.theLanguageThisDashboardAndYour,The language this dashboard and your job alerts are written in.,,src/components/driver-hub/driver-account-sections.ts
+driverAccountSections.whereYourFaresAreSettledAnd,"Where your fares are settled, and when. Changing a payout account is done through support so the change can be verified.",,src/components/driver-hub/driver-account-sections.ts
+driverAccountSections.whichJobPayoutAndAccountEvents,"Which job, payout and account events reach you, and how they reach you.",,src/components/driver-hub/driver-account-sections.ts
+driverHubMobileMenu.closeMenu,Close menu,,src/components/driver-hub/driver-hub-mobile-menu.tsx
+driverHubMobileMenu.driverMenu,Driver menu,,src/components/driver-hub/driver-hub-mobile-menu.tsx
+driverHubMobileMenu.menu,Menu,,src/components/driver-hub/driver-hub-mobile-menu.tsx
+driverHubNav.182JobsInTheLast30,182 jobs in the last 30 days,,src/components/driver-hub/driver-hub-nav.ts
+driverHubNav.7RegisteredDrivers4OnlineIn,7 registered drivers · 4 online in Tbilisi now,,src/components/driver-hub/driver-hub-nav.ts
+driverHubNav.7VehiclesRegistered4OnThe,"7 vehicles registered · 4 on the road, 1 unassigned",,src/components/driver-hub/driver-hub-nav.ts
+driverHubNav.bookingsOpenToDrivers,Bookings open to drivers,,src/components/driver-hub/driver-hub-nav.ts
+driverHubNav.employeesRoles,Employees & roles,,src/components/driver-hub/driver-hub-nav.ts
+driverHubNav.gizoCargoLlc6People4,"Gizo Cargo LLC · 6 people, 4 roles · 1 invite pending",,src/components/driver-hub/driver-hub-nav.ts
+driverHubNav.jobHistory,Job history,,src/components/driver-hub/driver-hub-nav.ts
+driverHubNav.performance,Performance,,src/components/driver-hub/driver-hub-nav.ts
+driverHubNav.thisTbilisiWeekMondayToSunday,"This Tbilisi week, Monday to Sunday",,src/components/driver-hub/driver-hub-nav.ts
+driverHubNotifications.nothingToCatchUpOn,Nothing to catch up on.,,src/components/driver-hub/driver-hub-notifications.tsx
+driverHubSidebar.jobsTowardsThisWeekSBonus,Jobs towards this week's bonus,,src/components/driver-hub/driver-hub-sidebar.tsx
+driverHubSidebar.weeklyIncentive,Weekly incentive,,src/components/driver-hub/driver-hub-sidebar.tsx
+driversAddPanel.9955xxXxxXxx,+995 5XX XXX XXX,,src/components/driver-hub/screens/drivers-add-panel.tsx
+driversAddPanel.articulatedCombinations,Articulated combinations,,src/components/driver-hub/screens/drivers-add-panel.tsx
+driversAddPanel.carsAndSmallVans,Cars and small vans,,src/components/driver-hub/screens/drivers-add-panel.tsx
+driversAddPanel.eG01234567,e.g. 01234567,,src/components/driver-hub/screens/drivers-add-panel.tsx
+driversAddPanel.everyFleetVehicleIsCurrentlyHeld,Every fleet vehicle is currently held by a driver. Register this one unassigned and pair them from the Vehicles screen later.,,src/components/driver-hub/screens/drivers-add-panel.tsx
+driversAddPanel.licenceCategories,Licence categories,,src/components/driver-hub/screens/drivers-add-panel.tsx
+driversAddPanel.networkErrorCheckYourConnectionAnd,Network error. Check your connection and try again.,,src/components/driver-hub/screens/drivers-add-panel.tsx
+driversAddPanel.pickACity,Pick a city,,src/components/driver-hub/screens/drivers-add-panel.tsx
+driversAddPanel.registerADriver,Register a driver,,src/components/driver-hub/screens/drivers-add-panel.tsx
+driversAddPanel.rigidTrucks,Rigid trucks,,src/components/driver-hub/screens/drivers-add-panel.tsx
+driversAddPanel.thisCreatesTheirAccountTheySign,"This creates their account. They sign in with the email below and the one-time password shown after saving, then set their own.",,src/components/driver-hub/screens/drivers-add-panel.tsx
+driversDetailPanel.jobsThisWeek,Jobs this week,,src/components/driver-hub/screens/drivers-detail-panel.tsx
+driversDetailPanel.noCompletedJobsForThisFleet,No completed jobs for this fleet yet.,,src/components/driver-hub/screens/drivers-detail-panel.tsx
+driversDetailPanel.recentJobs,Recent jobs,,src/components/driver-hub/screens/drivers-detail-panel.tsx
+driversDetailPanel.verification,Verification,,src/components/driver-hub/screens/drivers-detail-panel.tsx
+driversScreen.addDriver,Add driver,,src/components/driver-hub/screens/drivers-screen.tsx
+driversScreen.doneIHaveSharedIt,Done — I have shared it,,src/components/driver-hub/screens/drivers-screen.tsx
+driversScreen.fleetAvgRating,Fleet avg rating,,src/components/driver-hub/screens/drivers-screen.tsx
+driversScreen.itIsNotStoredAnywhereIn,"— it is not stored anywhere in readable form, and closing this card is the end of it. They set their own password after signing in.",,src/components/driver-hub/screens/drivers-screen.tsx
+driversScreen.offline,Offline,,src/components/driver-hub/screens/drivers-screen.tsx
+driversScreen.online,Online,,src/components/driver-hub/screens/drivers-screen.tsx
+driversScreen.onlineNow,Online now,,src/components/driver-hub/screens/drivers-screen.tsx
+driversScreen.registeredDrivers,Registered drivers,,src/components/driver-hub/screens/drivers-screen.tsx
+driversScreen.registerYourFirstDriverToStart,Register your first driver to start dispatching jobs.,,src/components/driver-hub/screens/drivers-screen.tsx
+driversScreen.sampleRatings,Sample ratings,,src/components/driver-hub/screens/drivers-screen.tsx
+earningsBreakdownCard.adjustments,Adjustments,,src/components/driver-hub/screens/earnings-breakdown-card.tsx
+earningsBreakdownCard.breakdown,Breakdown,,src/components/driver-hub/screens/earnings-breakdown-card.tsx
+earningsBreakdownCard.rangeTotal,Range total,,src/components/driver-hub/screens/earnings-breakdown-card.tsx
+earningsBreakdownCard.tips,Tips,,src/components/driver-hub/screens/earnings-breakdown-card.tsx
+earningsBreakdownCard.tipsIncentivesAdjustments,Tips · Incentives · Adjustments,,src/components/driver-hub/screens/earnings-breakdown-card.tsx
+earningsBreakdownCard.tripFares,Trip fares,,src/components/driver-hub/screens/earnings-breakdown-card.tsx
+earningsFilterBar.custom,Custom,,src/components/driver-hub/screens/earnings-filter-bar.tsx
+earningsFilterBar.rangeEndDate,Range end date,,src/components/driver-hub/screens/earnings-filter-bar.tsx
+earningsFilterBar.rangeStartDate,Range start date,,src/components/driver-hub/screens/earnings-filter-bar.tsx
+earningsFleetCard.allCompletedOrdersInTheRange,All completed orders in the range.,,src/components/driver-hub/screens/earnings-fleet-card.tsx
+earningsFleetCard.completedOrdersAppearHereOnceA,Completed orders appear here once a driver is assigned to them.,,src/components/driver-hub/screens/earnings-fleet-card.tsx
+earningsFleetCard.fleetRevenue,Fleet revenue,,src/components/driver-hub/screens/earnings-fleet-card.tsx
+earningsFleetCard.notAssignedToADriver,Not assigned to a driver,,src/components/driver-hub/screens/earnings-fleet-card.tsx
+earningsFleetCard.revenue,Revenue,,src/components/driver-hub/screens/earnings-fleet-card.tsx
+earningsFleetCard.revenueByDriver,Revenue by driver,,src/components/driver-hub/screens/earnings-fleet-card.tsx
+earningsFleetCard.share,Share,,src/components/driver-hub/screens/earnings-fleet-card.tsx
+earningsPayoutsCard.amount,Amount,,src/components/driver-hub/screens/earnings-payouts-card.tsx
+earningsPayoutsCard.fixedWeeklySettlementWindowsNotFiltered,Fixed weekly settlement windows — not filtered by the range above.,,src/components/driver-hub/screens/earnings-payouts-card.tsx
+earningsPayoutsCard.payoutHistory,Payout history,,src/components/driver-hub/screens/earnings-payouts-card.tsx
+earningsScreen.perOnlineHour,Per online hour,,src/components/driver-hub/screens/earnings-screen.tsx
+employeesDetailPanel.permissions,Permissions,,src/components/driver-hub/screens/employees-detail-panel.tsx
+employeesInviteForm.employeeAccountsAreNotConnectedTo,"Employee accounts are not connected to the backend yet, so this form cannot send an invite. It is here so the screen is ready the day employee records exist.",,src/components/driver-hub/screens/employees-invite-form.tsx
+employeesInviteForm.inviteAnEmployee,Invite an employee,,src/components/driver-hub/screens/employees-invite-form.tsx
+employeesInviteForm.nameGizocargoGe,name@gizocargo.ge,,src/components/driver-hub/screens/employees-invite-form.tsx
+employeesInviteForm.sendInvite,Send invite,,src/components/driver-hub/screens/employees-invite-form.tsx
+employeesInviteForm.theyGetAnEmailInvitePermissions,They get an email invite. Permissions come from the role and apply once they accept.,,src/components/driver-hub/screens/employees-invite-form.tsx
+employeesInviteForm.zonesOrVehiclesTheyCover,Zones or vehicles they cover,,src/components/driver-hub/screens/employees-invite-form.tsx
+employeesRoleDefinitions.roleDefinitions,Role definitions,,src/components/driver-hub/screens/employees-role-definitions.tsx
+employeesScreen.canMoveMoney,Can move money,,src/components/driver-hub/screens/employees-screen.tsx
+employeesScreen.invited,Invited,,src/components/driver-hub/screens/employees-screen.tsx
+employeesScreen.inviteEmployee,Invite employee,,src/components/driver-hub/screens/employees-screen.tsx
+employeesScreen.lastActive,Last active,,src/components/driver-hub/screens/employees-screen.tsx
+employeesScreen.person,Person,,src/components/driver-hub/screens/employees-screen.tsx
+employeesScreen.rolesInUse,Roles in use,,src/components/driver-hub/screens/employees-screen.tsx
+employeesScreen.sampleRoster,Sample roster,,src/components/driver-hub/screens/employees-screen.tsx
+employeesScreen.thereIsNoEmployeeRecordIn,"There is no employee record in the system yet, so the counts and the people below are invented — nobody has been invited and nothing here grants access. The role definitions further down are the real product content.",,src/components/driver-hub/screens/employees-screen.tsx
+fleetAvailabilityBoard.driverVehicle,Driver · Vehicle,,src/components/driver-hub/screens/fleet-availability-board.tsx
+fleetAvailabilityCard.dragAcrossAnEmptyStretchOf,Drag across an empty stretch of a row to hold it as a booking.,,src/components/driver-hub/screens/fleet-availability-card.tsx
+fleetAvailabilityCard.fleetAvailability,Fleet availability,,src/components/driver-hub/screens/fleet-availability-card.tsx
+fleetAvailabilityCard.notSaved,Not saved,,src/components/driver-hub/screens/fleet-availability-card.tsx
+fleetAvailabilityCard.resetFilters,Reset filters,,src/components/driver-hub/screens/fleet-availability-card.tsx
+fleetAvailabilityDialogs.allDriversWholeDay,"All drivers, whole day",,src/components/driver-hub/screens/fleet-availability-dialogs.tsx
+fleetAvailabilityDialogs.chooseWhatGoesIntoTheSpreadsheet,Choose what goes into the spreadsheet.,,src/components/driver-hub/screens/fleet-availability-dialogs.tsx
+fleetAvailabilityDialogs.currentView,Current view,,src/components/driver-hub/screens/fleet-availability-dialogs.tsx
+fleetAvailabilityDialogs.discard,Discard,,src/components/driver-hub/screens/fleet-availability-dialogs.tsx
+fleetAvailabilityDialogs.exportAvailability,Export availability,,src/components/driver-hub/screens/fleet-availability-dialogs.tsx
+fleetAvailabilityDialogs.filteredDriversWholeDay,"Filtered drivers, whole day",,src/components/driver-hub/screens/fleet-availability-dialogs.tsx
+fleetAvailabilityDialogs.holdSlot,Hold slot,,src/components/driver-hub/screens/fleet-availability-dialogs.tsx
+fleetAvailabilityDialogs.holdThisSlot,Hold this slot,,src/components/driver-hub/screens/fleet-availability-dialogs.tsx
+fleetAvailabilityDialogs.includeDriverPhoneNumber,Include driver phone number,,src/components/driver-hub/screens/fleet-availability-dialogs.tsx
+fleetAvailabilityDialogs.includeFreeSlotsAsAvailableRows,Include free slots as Available rows,,src/components/driver-hub/screens/fleet-availability-dialogs.tsx
+fleetAvailabilityDialogs.whatToExport,What to export,,src/components/driver-hub/screens/fleet-availability-dialogs.tsx
+fleetAvailabilityFilters.allCities,All cities,,src/components/driver-hub/screens/fleet-availability-filters.tsx
+fleetAvailabilityFilters.allDrivers,All drivers,,src/components/driver-hub/screens/fleet-availability-filters.tsx
+fleetAvailabilityFilters.allStatuses,All statuses,,src/components/driver-hub/screens/fleet-availability-filters.tsx
+fleetAvailabilityFilters.allTypes,All types,,src/components/driver-hub/screens/fleet-availability-filters.tsx
+fleetAvailabilityFilters.capacity,Capacity,,src/components/driver-hub/screens/fleet-availability-filters.tsx
+fleetAvailabilityFilters.nextDay,Next day,,src/components/driver-hub/screens/fleet-availability-filters.tsx
+fleetAvailabilityFilters.noDriverMatchesThatName,No driver matches that name.,,src/components/driver-hub/screens/fleet-availability-filters.tsx
+fleetAvailabilityFilters.previousDay,Previous day,,src/components/driver-hub/screens/fleet-availability-filters.tsx
+fleetAvailabilityFilters.searchDriversByName,Search drivers by name,,src/components/driver-hub/screens/fleet-availability-filters.tsx
+fleetAvailabilityFilters.searchPlate,Search plate,,src/components/driver-hub/screens/fleet-availability-filters.tsx
+fleetAvailabilityFilters.typeADriverName,Type a driver name,,src/components/driver-hub/screens/fleet-availability-filters.tsx
+fleetAvailabilityFilters.vehicleType,Vehicle type,,src/components/driver-hub/screens/fleet-availability-filters.tsx
+fleetAvailabilityFilters.zoom,Zoom,,src/components/driver-hub/screens/fleet-availability-filters.tsx
+fleetAvailabilityFilters.zoomIn,Zoom in,,src/components/driver-hub/screens/fleet-availability-filters.tsx
+fleetAvailabilityFilters.zoomOut,Zoom out,,src/components/driver-hub/screens/fleet-availability-filters.tsx
+fleetAvailabilityFormat.18TAndAbove,18 t and above,,src/components/driver-hub/screens/fleet-availability-format.ts
+fleetAvailabilityFormat.28T,2 – 8 t,,src/components/driver-hub/screens/fleet-availability-format.ts
+fleetAvailabilityFormat.818T,8 – 18 t,,src/components/driver-hub/screens/fleet-availability-format.ts
+fleetAvailabilityFormat.anyCapacity,Any capacity,,src/components/driver-hub/screens/fleet-availability-format.ts
+fleetAvailabilityFormat.assignedOnOrder,Assigned / on order,,src/components/driver-hub/screens/fleet-availability-format.ts
+fleetAvailabilityFormat.available,Available,,src/components/driver-hub/screens/fleet-availability-format.ts
+fleetAvailabilityFormat.blockStart,block.start,,src/components/driver-hub/screens/fleet-availability-format.ts
+fleetAvailabilityFormat.bookedFuture,Booked (future),,src/components/driver-hub/screens/fleet-availability-format.ts
+fleetAvailabilityFormat.enRoute,En route,,src/components/driver-hub/screens/fleet-availability-format.ts
+fleetAvailabilityFormat.upTo2T,Up to 2 t,,src/components/driver-hub/screens/fleet-availability-format.ts
+hubJobParts.droppedOff,Dropped off,,src/components/driver-hub/hub-job-parts.tsx
+hubJobParts.orderPlaced,Order placed,,src/components/driver-hub/hub-job-parts.tsx
+hubJobParts.payout,Payout,,src/components/driver-hub/hub-job-parts.tsx
+jobsDetailPanel.paidToYou,Paid to you,,src/components/driver-hub/screens/jobs-detail-panel.tsx
+jobsDetailPanel.poReference,PO reference,,src/components/driver-hub/screens/jobs-detail-panel.tsx
+jobSheetActions.confirmDelivery,Confirm delivery,,src/components/driver-hub/screens/job-sheet-actions.tsx
+jobSheetActions.enterTheWaitingTimeAsA,"Enter the waiting time as a whole number of minutes, or 0.",,src/components/driver-hub/screens/job-sheet-actions.tsx
+jobSheetActions.markDelivered,Mark delivered,,src/components/driver-hub/screens/job-sheet-actions.tsx
+jobSheetActions.nameOfWhoeverTookTheGoods,Name of whoever took the goods,,src/components/driver-hub/screens/job-sheet-actions.tsx
+jobSheetActions.receivedByOptional,Received by (optional),,src/components/driver-hub/screens/job-sheet-actions.tsx
+jobSheetActions.thisEndsTheJobAndCannot,This ends the job and cannot be undone.,,src/components/driver-hub/screens/job-sheet-actions.tsx
+jobSheetActions.waitingTimeBeyondTheFreeAllowance,"Waiting time beyond the free allowance adds an overtime payout to this job, so this figure affects what you are paid.",,src/components/driver-hub/screens/job-sheet-actions.tsx
+jobSheetActions.wholeMinutesSpentWaitingAtEither,Whole minutes spent waiting at either stop. Enter 0 if none.,,src/components/driver-hub/screens/job-sheet-actions.tsx
+jobSheetParts.awaitingDispatch,Awaiting dispatch,,src/components/driver-hub/screens/job-sheet-parts.tsx
+jobSheetParts.call,Call,,src/components/driver-hub/screens/job-sheet-parts.tsx
+jobSheetParts.deadline,Deadline,,src/components/driver-hub/screens/job-sheet-parts.tsx
+jobSheetParts.delivered,Delivered,,src/components/driver-hub/screens/job-sheet-parts.tsx
+jobSheetParts.details,Details,,src/components/driver-hub/screens/job-sheet-parts.tsx
+jobSheetParts.inTransit,In transit,,src/components/driver-hub/screens/job-sheet-parts.tsx
+jobSheetParts.navigate,Navigate,,src/components/driver-hub/screens/job-sheet-parts.tsx
+jobSheetParts.notDispatchedToADriver,Not dispatched to a driver,,src/components/driver-hub/screens/job-sheet-parts.tsx
+jobSheetParts.receivedBy,Received by,,src/components/driver-hub/screens/job-sheet-parts.tsx
+jobSheetParts.timeline,Timeline,,src/components/driver-hub/screens/job-sheet-parts.tsx
+jobSheetParts.timing,Timing,,src/components/driver-hub/screens/job-sheet-parts.tsx
+jobSheetScreen.thisDeliveryWasCancelled,This delivery was cancelled.,,src/components/driver-hub/screens/job-sheet-screen.tsx
+jobsScreen.completedScheduledAndCancelledJobsAll,"Completed, scheduled and cancelled jobs all land here, with their route, timeline and fare breakdown.",,src/components/driver-hub/screens/jobs-screen.tsx
+jobsScreen.fare,Fare,,src/components/driver-hub/screens/jobs-screen.tsx
+jobsScreen.job,Job,,src/components/driver-hub/screens/jobs-screen.tsx
+loadsClaimDialogs.backToDashboard,Back to dashboard,,src/components/driver-hub/screens/loads-claim-dialogs.tsx
+loadsClaimDialogs.confirmThisShipment,Confirm this shipment,,src/components/driver-hub/screens/loads-claim-dialogs.tsx
+loadsClaimDialogs.firstComeFirstServedConfirmingClaims,"First come, first served. Confirming claims the order and closes it to other drivers.",,src/components/driver-hub/screens/loads-claim-dialogs.tsx
+loadsClaimDialogs.justClaimedByAnotherDriver,Just claimed by another driver,,src/components/driver-hub/screens/loads-claim-dialogs.tsx
+loadsClaimDialogs.stayOffline,Stay offline,,src/components/driver-hub/screens/loads-claim-dialogs.tsx
+loadsClaimDialogs.tooSmallForThisLoad,Too small for this load,,src/components/driver-hub/screens/loads-claim-dialogs.tsx
+loadsClaimDialogs.wasConfirmedAMomentBeforeYou,was confirmed a moment before you. It has been removed from your available list.,,src/components/driver-hub/screens/loads-claim-dialogs.tsx
+loadsClaimDialogs.weight,Weight,,src/components/driver-hub/screens/loads-claim-dialogs.tsx
+loadsClaimDialogs.youArePaid,You are paid,,src/components/driver-hub/screens/loads-claim-dialogs.tsx
+loadsContext.couldnTReachTheDashboard,Couldn't reach the dashboard.,,src/components/driver-hub/screens/loads-context.tsx
+loadsContext.couldnTReachTheServerCheck,Couldn't reach the server. Check your connection and retry.,,src/components/driver-hub/screens/loads-context.tsx
+loadsContext.newMap,new Map,,src/components/driver-hub/screens/loads-context.tsx
+loadsDetailParts.youClaimedThisLoadContactDetails,You claimed this load. Contact details are in your job sheet.,,src/components/driver-hub/screens/loads-detail-parts.tsx
+loadsDispatchDialog.noneOfYourVehiclesCanTake,None of your vehicles can take this delivery. Each one above says why.,,src/components/driver-hub/screens/loads-dispatch-dialog.tsx
+loadsDispatchDialog.offline,· Offline,,src/components/driver-hub/screens/loads-dispatch-dialog.tsx
+loadsDispatchDialog.recommended,Recommended,,src/components/driver-hub/screens/loads-dispatch-dialog.tsx
+loadsDispatchDialog.theVehiclesThatCanTakeThis,"The vehicles that can take this delivery have no driver assigned. Assign one from the Vehicles screen, then dispatch this delivery.",,src/components/driver-hub/screens/loads-dispatch-dialog.tsx
+loadsDispatchDialog.yourFleetHasNoRegisteredVehicles,"Your fleet has no registered vehicles. Register one from the Vehicles screen, then dispatch this delivery.",,src/components/driver-hub/screens/loads-dispatch-dialog.tsx
+loadsFilters.reset,Reset,,src/components/driver-hub/screens/loads-filters.tsx
+loadsFilters.specialHandling,Special handling,,src/components/driver-hub/screens/loads-filters.tsx
+loadsFormat.coldChain,Cold chain,,src/components/driver-hub/screens/loads-format.ts
+loadsFormat.fragile,Fragile,,src/components/driver-hub/screens/loads-format.ts
+loadsFormat.hazmat,Hazmat,,src/components/driver-hub/screens/loads-format.ts
+loadsFormat.heavyItem,Heavy item,,src/components/driver-hub/screens/loads-format.ts
+loadsFormat.timeCritical,Time critical,,src/components/driver-hub/screens/loads-format.ts
+loadsFormat.uprightOnly,Upright only,,src/components/driver-hub/screens/loads-format.ts
+loadsMobile.claimedByAnotherDriver,Claimed by another driver,,src/components/driver-hub/screens/loads-mobile.tsx
+loadsMobile.dropOffAddress,Drop off address,,src/components/driver-hub/screens/loads-mobile.tsx
+loadsMobile.pickUpAddress,Pick up address,,src/components/driver-hub/screens/loads-mobile.tsx
+loadsMobile.restoreToBoard,Restore to board,,src/components/driver-hub/screens/loads-mobile.tsx
+loadsMobile.yoursAssignAVehicle,Yours · assign a vehicle,,src/components/driver-hub/screens/loads-mobile.tsx
+loadsMobile.yoursViewJobSheet,Yours · view job sheet,,src/components/driver-hub/screens/loads-mobile.tsx
+loadsTable.accept,Accept,,src/components/driver-hub/screens/loads-table.tsx
+loadsTable.claimed,Claimed,,src/components/driver-hub/screens/loads-table.tsx
+loadsTable.dropOff,Drop off,,src/components/driver-hub/screens/loads-table.tsx
+loadsTable.howFarThisJobRunsPick,"How far this job runs, pick-up to drop-off",,src/components/driver-hub/screens/loads-table.tsx
+loadsTable.loads,Loads,,src/components/driver-hub/screens/loads-table.tsx
+loadsTable.openLoadDetails,— open load details,,src/components/driver-hub/screens/loads-table.tsx
+loadsTable.pickUp,Pick up,,src/components/driver-hub/screens/loads-table.tsx
+loadsTable.rejectedView,rejected · view,,src/components/driver-hub/screens/loads-table.tsx
+loadsTable.restore,Restore,,src/components/driver-hub/screens/loads-table.tsx
+loadsTable.sortsByTimeOfDayNot,"Sorts by time of day, not by date",,src/components/driver-hub/screens/loads-table.tsx
+loadsTable.theDayTheClientBookedThis,The day the client booked this job for,,src/components/driver-hub/screens/loads-table.tsx
+loadsTable.weightDims,Weight / dims,,src/components/driver-hub/screens/loads-table.tsx
+loadsTable.widenTheWeightRangeOrClear,Widen the weight range or clear a city to see more.,,src/components/driver-hub/screens/loads-table.tsx
+loadsTable.yours,Yours,,src/components/driver-hub/screens/loads-table.tsx
+performanceScreen.andAFlatBarUntilThey,and a flat bar until they happen.,,src/components/driver-hub/screens/performance-screen.tsx
+performanceScreen.completion,Completion,,src/components/driver-hub/screens/performance-screen.tsx
+performanceScreen.daysLaterThisWeekShow,Days later this week show,,src/components/driver-hub/screens/performance-screen.tsx
+performanceScreen.estimatedDelta,Estimated delta,,src/components/driver-hub/screens/performance-screen.tsx
+performanceScreen.finished,Finished,,src/components/driver-hub/screens/performance-screen.tsx
+performanceScreen.howTheWeekWentByDriver,"How the week went, by driver",,src/components/driver-hub/screens/performance-screen.tsx
+performanceScreen.jobsCompletedByDay,Jobs completed by day,,src/components/driver-hub/screens/performance-screen.tsx
+performanceScreen.jobsDay,Jobs / day,,src/components/driver-hub/screens/performance-screen.tsx
+performanceScreen.jobsPerDay,Jobs per day,,src/components/driver-hub/screens/performance-screen.tsx
+performanceScreen.onlineHoursVsJobsCompleted,Online hours vs jobs completed,,src/components/driver-hub/screens/performance-screen.tsx
+performanceScreen.registerADriverAndTheirWeek,Register a driver and their week shows up here.,,src/components/driver-hub/screens/performance-screen.tsx
+performanceScreen.thisWeek,"This week,",,src/components/driver-hub/screens/performance-screen.tsx
+performanceScreen.whatAffectsYourScore,What affects your score,,src/components/driver-hub/screens/performance-screen.tsx
+vehiclesAddForm.ab123Cd,AB-123-CD,,src/components/driver-hub/screens/vehicles-add-form.tsx
+vehiclesAddForm.addAVehicle,Add a vehicle,,src/components/driver-hub/screens/vehicles-add-form.tsx
+vehiclesAddForm.ford,Ford,,src/components/driver-hub/screens/vehicles-add-form.tsx
+vehiclesAddForm.itJoinsTheFleetAsIdle,It joins the fleet as idle. Assign a driver to start taking jobs.,,src/components/driver-hub/screens/vehicles-add-form.tsx
+vehiclesAddForm.loadingVehicleClasses,Loading vehicle classes…,,src/components/driver-hub/screens/vehicles-add-form.tsx
+vehiclesAddForm.odometerIsDisabledVehicleHasNo,"Odometer is disabled: `Vehicle` has no reading to store it in, so anything typed here would be thrown away. It arrives with `Vehicle.odometerKm`.",,src/components/driver-hub/screens/vehicles-add-form.tsx
+vehiclesAddForm.odometerKm,Odometer (km),,src/components/driver-hub/screens/vehicles-add-form.tsx
+vehiclesAddForm.transitCustom,Transit Custom,,src/components/driver-hub/screens/vehicles-add-form.tsx
+vehiclesDetailPanel.costPerKm,Cost per km,,src/components/driver-hub/screens/vehicles-detail-panel.tsx
+vehiclesDetailPanel.jobsWeek,Jobs · week,,src/components/driver-hub/screens/vehicles-detail-panel.tsx
+vehiclesDetailPanel.operatingCities,Operating cities,,src/components/driver-hub/screens/vehicles-detail-panel.tsx
+vehiclesDetailPanel.runningCostsThisMonth,Running costs · this month,,src/components/driver-hub/screens/vehicles-detail-panel.tsx
+vehiclesDetailPanel.thisVehicleBelongsToTheFleet,"This vehicle belongs to the fleet you drive for, not to you. Only its owner can remove it.",,src/components/driver-hub/screens/vehicles-detail-panel.tsx
+vehiclesScreen.addOneToStartTakingJobs,Add one to start taking jobs. It joins as idle until a driver is assigned to it.,,src/components/driver-hub/screens/vehicles-screen.tsx
+vehiclesScreen.addVehicle,Add vehicle,,src/components/driver-hub/screens/vehicles-screen.tsx
+vehiclesScreen.costKm,Cost/km,,src/components/driver-hub/screens/vehicles-screen.tsx
+vehiclesScreen.fleetCostPerKm,Fleet cost per km,,src/components/driver-hub/screens/vehicles-screen.tsx
+vehiclesScreen.idle,Idle,,src/components/driver-hub/screens/vehicles-screen.tsx
+vehiclesScreen.odometerCostKm,Odometer · Cost/km,,src/components/driver-hub/screens/vehicles-screen.tsx
+vehiclesScreen.onTheRoad,On the road,,src/components/driver-hub/screens/vehicles-screen.tsx

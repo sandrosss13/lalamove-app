@@ -1,0 +1,60 @@
+﻿key,english,georgian,source
+applicationStatusScreen.accountActivation,Account activation,,src/components/driver-onboarding/application-status-screen.tsx
+applicationStatusScreen.applicationSubmitted,Application submitted,,src/components/driver-onboarding/application-status-screen.tsx
+applicationStatusScreen.documentReview,Document review,,src/components/driver-onboarding/application-status-screen.tsx
+applicationStatusScreen.keepYourLicenceAndInsuranceCurrent,Keep your licence and insurance current — we re-check 30 days before expiry.,,src/components/driver-onboarding/application-status-screen.tsx
+applicationStatusScreen.licenceBack,Licence — back,,src/components/driver-onboarding/application-status-screen.tsx
+applicationStatusScreen.licenceFront,Licence — front,,src/components/driver-onboarding/application-status-screen.tsx
+applicationStatusScreen.needsANewPhoto,Needs a new photo,,src/components/driver-onboarding/application-status-screen.tsx
+applicationStatusScreen.resubmittedApplicationsAreUsuallyReviewedWithin,Resubmitted applications are usually reviewed within 4 hours.,,src/components/driver-onboarding/application-status-screen.tsx
+applicationStatusScreen.retake,Retake,,src/components/driver-onboarding/application-status-screen.tsx
+applicationStatusScreen.typicalReviewTimeIs1224,Typical review time is 12–24 hours on business days.,,src/components/driver-onboarding/application-status-screen.tsx
+applicationStatusScreen.underReview,Under review,,src/components/driver-onboarding/application-status-screen.tsx
+applicationStatusScreen.youAreClearedToDrive,You are cleared to drive,,src/components/driver-onboarding/application-status-screen.tsx
+documentUploadDialog.filesAreCheckedByTheReview,"Files are checked by the review team, not automatically.",,src/components/driver-onboarding/document-upload-dialog.tsx
+documentUploadDialog.jpgOrPngMax10Mb,JPG or PNG · max 10 MB,,src/components/driver-onboarding/document-upload-dialog.tsx
+documentUploadDialog.theCategoryTableIsWhatThe,The category table is what the reviewer checks.,,src/components/driver-onboarding/document-upload-dialog.tsx
+documentUploadDialog.thePhotoNameAndLicenceNumber,"The photo, name and licence number must be readable.",,src/components/driver-onboarding/document-upload-dialog.tsx
+documentUploadDialog.uploadTheBackOfYourLicence,Upload the back of your licence,,src/components/driver-onboarding/document-upload-dialog.tsx
+documentUploadDialog.uploadTheFrontOfYourLicence,Upload the front of your licence,,src/components/driver-onboarding/document-upload-dialog.tsx
+documentUploadDialog.uploadYourProfilePhoto,Upload your profile photo,,src/components/driver-onboarding/document-upload-dialog.tsx
+onboardingStepRail.authorisationPersonal,Authorisation & personal,,src/components/driver-onboarding/onboarding-step-rail.tsx
+onboardingStepRail.everyFieldValidatesOnContinueDocuments,Every field validates on continue. Documents flagged in the admin console come back here for re-upload.,,src/components/driver-onboarding/onboarding-step-rail.tsx
+onboardingStepRail.licenceVerification,Licence verification,,src/components/driver-onboarding/onboarding-step-rail.tsx
+onboardingWizardShell.becomeAPartnerDriver,Become a partner driver,,src/components/driver-onboarding/onboarding-wizard-shell.tsx
+onboardingWizardShell.fourStepsAround12MinutesIf,Four steps. Around 12 minutes if your licence and vehicle documents are to hand. Progress is saved as you go.,,src/components/driver-onboarding/onboarding-wizard-shell.tsx
+onboardingWizardShell.technicalDetails,Technical details,,src/components/driver-onboarding/onboarding-wizard-shell.tsx
+onboardingWizardShell.whoYouAre,Who you are,,src/components/driver-onboarding/onboarding-wizard-shell.tsx
+onboardingWizardShell.yourLicence,Your licence,,src/components/driver-onboarding/onboarding-wizard-shell.tsx
+step1AuthPersonal.exactlyAsPrintedOnYourId,Exactly as printed on your ID,,src/components/driver-onboarding/steps/step-1-auth-personal.tsx
+step1AuthPersonal.idOrPassportNumber,ID or passport number,,src/components/driver-onboarding/steps/step-1-auth-personal.tsx
+step1AuthPersonal.mobileNumber,Mobile number,,src/components/driver-onboarding/steps/step-1-auth-personal.tsx
+step1AuthPersonal.startTypingTbilisiBatumiKutaisi,"Start typing — Tbilisi, Batumi, Kutaisi…",,src/components/driver-onboarding/steps/step-1-auth-personal.tsx
+step1AuthPersonal.thisIsTheNumberCouriersAnd,This is the number couriers and dispatch will call. Everything here is checked against your ID by the review team.,,src/components/driver-onboarding/steps/step-1-auth-personal.tsx
+step1AuthPersonal.whereYouWillMostlyPickUp,Where you will mostly pick up orders. Georgia only for now.,,src/components/driver-onboarding/steps/step-1-auth-personal.tsx
+step2Licence.backOfLicence,Back of licence,,src/components/driver-onboarding/steps/step-2-licence.tsx
+step2Licence.carsAndVansUpTo3,Cars and vans up to 3.5 t,,src/components/driver-onboarding/steps/step-2-licence.tsx
+step2Licence.expiryDate,Expiry date,,src/components/driver-onboarding/steps/step-2-licence.tsx
+step2Licence.frontOfLicence,Front of licence,,src/components/driver-onboarding/steps/step-2-licence.tsx
+step2Licence.rigidTrucksOver35T,Rigid trucks over 3.5 t,,src/components/driver-onboarding/steps/step-2-licence.tsx
+step2Licence.scansOrPhotosBothWorkAll,Scans or photos both work. All four corners must be visible and free of glare.,,src/components/driver-onboarding/steps/step-2-licence.tsx
+step2Licence.theseDecideTheVehicleClassesYou,These decide the vehicle classes you can be dispatched for.,,src/components/driver-onboarding/steps/step-2-licence.tsx
+step2Licence.truckWithTrailerArticulated,Truck with trailer / articulated,,src/components/driver-onboarding/steps/step-2-licence.tsx
+step3ChassisClass.cargoBodyType,Cargo body type,,src/components/driver-onboarding/steps/step-3-chassis-class.tsx
+step3ChassisClass.enclosedRigidBoxGeneralPalletisedAnd,Enclosed rigid box. General palletised and boxed cargo.,,src/components/driver-onboarding/steps/step-3-chassis-class.tsx
+step3ChassisClass.pickTheClassThatMatchesYour,"Pick the class that matches your vehicle. Classes above your licence categories, or not offered for the body type you chose, are locked.",,src/components/driver-onboarding/steps/step-3-chassis-class.tsx
+step3ChassisClass.temperatureControlledBody20CTo,"Temperature-controlled body, −20 °C to +8 °C. Requires a valid cooling unit service record.",,src/components/driver-onboarding/steps/step-3-chassis-class.tsx
+step3ChassisClass.vehicleClass,Vehicle class,,src/components/driver-onboarding/steps/step-3-chassis-class.tsx
+step3ChassisClass.whatKindOfCargoBodyDoes,What kind of cargo body does the vehicle have?,,src/components/driver-onboarding/steps/step-3-chassis-class.tsx
+step3cTechnicalDetails.rearViewShowing2BodyWidth,Rear view showing 2 body width,,src/components/driver-onboarding/steps/step-3c-technical-details.tsx
+step4ReviewSubmit.checkEverythingBeforeItGoesTo,Check everything before it goes to the review team. Corrections after submission cost you a day.,,src/components/driver-onboarding/steps/step-4-review-submit.tsx
+step4ReviewSubmit.driverSLicence,Driver's licence,,src/components/driver-onboarding/steps/step-4-review-submit.tsx
+step4ReviewSubmit.number,Number,,src/components/driver-onboarding/steps/step-4-review-submit.tsx
+step4ReviewSubmit.personalInformation,Personal information,,src/components/driver-onboarding/steps/step-4-review-submit.tsx
+vehicleClasses.enclosedRigidBodyGeneralPalletisedAnd,Enclosed rigid body. General palletised and boxed cargo.,,src/lib/driver-onboarding/vehicle-classes.ts
+vehicleClasses.heavyFreightTruck,Heavy Freight Truck,,src/lib/driver-onboarding/vehicle-classes.ts
+vehicleClasses.largeVan,Large Van,,src/lib/driver-onboarding/vehicle-classes.ts
+vehicleClasses.mediumTruck,Medium Truck,,src/lib/driver-onboarding/vehicle-classes.ts
+vehicleClasses.smallVan,Small Van,,src/lib/driver-onboarding/vehicle-classes.ts
+vehicleClasses.temperatureControlled20CTo8,"Temperature-controlled, −20 °C to +8 °C. Cooling unit service record required per vehicle.",,src/lib/driver-onboarding/vehicle-classes.ts
+vehicleClasses.trailerTruck,Trailer Truck,,src/lib/driver-onboarding/vehicle-classes.ts

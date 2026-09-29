@@ -1,9 +1,8 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { LogOut } from "lucide-react";
 
+import { Link, usePathname } from "@/i18n/navigation";
 import { useSignOut } from "@/components/auth/use-sign-out";
 import { cn } from "@/lib/utils";
 

@@ -1,12 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
 
 import {
   useHubSubtitle,
   useHubTitle,
 } from "@/components/driver-hub/driver-hub-shell";
+import { useRouter } from "@/i18n/navigation";
 import { JobSheetActionBar } from "@/components/driver-hub/screens/job-sheet-actions";
 import {
   BackToBoardButton,

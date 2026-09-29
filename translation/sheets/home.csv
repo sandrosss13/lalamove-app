@@ -1,0 +1,96 @@
+﻿key,english,georgian,source
+addCardDialog.addCard,Add card,,src/components/home/add-card-dialog.tsx
+addCardDialog.asPrintedOnTheCard,As printed on the card,,src/components/home/add-card-dialog.tsx
+addCardDialog.cardNumber,Card number,,src/components/home/add-card-dialog.tsx
+addCardDialog.creditOrDebitCardNothingIs,Credit or debit card. Nothing is charged until you book a delivery.,,src/components/home/add-card-dialog.tsx
+addCardDialog.cvc,CVC,,src/components/home/add-card-dialog.tsx
+addCardDialog.expiry,Expiry,,src/components/home/add-card-dialog.tsx
+addCardDialog.gatewayIntegrationIsPendingYourCard,Gateway integration is pending. Your card details are not sent anywhere and nothing is charged — only the brand and last four digits are saved so you can recognise the card.,,src/components/home/add-card-dialog.tsx
+addCardDialog.mmYy,MM/YY,,src/components/home/add-card-dialog.tsx
+addCardDialog.nameOnCard,Name on card,,src/components/home/add-card-dialog.tsx
+addCardDialog.setAsDefaultPaymentMethod,Set as default payment method,,src/components/home/add-card-dialog.tsx
+bookingForm.1IsTheDriverOnTheir,"1 is the driver on their own. Every person after that is a helper for loading and unloading, charged as a flat fee on top of the fare.",,src/components/home/booking-form.tsx
+bookingForm.additionalDetails,Additional details,,src/components/home/booking-form.tsx
+bookingForm.anythingTheDriverShouldKnow,Anything the driver should know,,src/components/home/booking-form.tsx
+bookingForm.anyTime,Any time,,src/components/home/booking-form.tsx
+bookingForm.best,Best,,src/components/home/booking-form.tsx
+bookingForm.bookADelivery,Book a delivery,,src/components/home/booking-form.tsx
+bookingForm.cargoDetails,Cargo details,,src/components/home/booking-form.tsx
+bookingForm.deliveryDateTime,Delivery date & time,,src/components/home/booking-form.tsx
+bookingForm.deliveryDeadlineOptional,Delivery deadline (optional),,src/components/home/booking-form.tsx
+bookingForm.descriptionOptional,Description (optional),,src/components/home/booking-form.tsx
+bookingForm.dropoffAddress,Dropoff address,,src/components/home/booking-form.tsx
+bookingForm.dryBox,Dry box,,src/components/home/booking-form.tsx
+bookingForm.eG08,e.g. 0.8,,src/components/home/booking-form.tsx
+bookingForm.eG11,e.g. 1.1,,src/components/home/booking-form.tsx
+bookingForm.eG12,e.g. 1.2,,src/components/home/booking-form.tsx
+bookingForm.eG4Pallets,e.g. 4 pallets,,src/components/home/booking-form.tsx
+bookingForm.eG850,e.g. 850,,src/components/home/booking-form.tsx
+bookingForm.eG96Cartons,e.g. 96 cartons,,src/components/home/booking-form.tsx
+bookingForm.eGAghmashenebeliAve88Tbilisi,"e.g. Aghmashenebeli Ave 88, Tbilisi",,src/components/home/booking-form.tsx
+bookingForm.eGRustaveliAve12Tbilisi,"e.g. Rustaveli Ave 12, Tbilisi",,src/components/home/booking-form.tsx
+bookingForm.enclosedAndWeatherProof,Enclosed and weather-proof,,src/components/home/booking-form.tsx
+bookingForm.estimatedTotal,Estimated total,,src/components/home/booking-form.tsx
+bookingForm.flaggedToDispatchAsTimeCritical,Flagged to dispatch as time-critical.,,src/components/home/booking-form.tsx
+bookingForm.flatbedLoadableFromAnySide,"Flatbed, loadable from any side",,src/components/home/booking-form.tsx
+bookingForm.heightM,Height (m),,src/components/home/booking-form.tsx
+bookingForm.lengthM,Length (m),,src/components/home/booking-form.tsx
+bookingForm.minimumFareAppliedForThisVehicle,Minimum fare applied for this vehicle type.,,src/components/home/booking-form.tsx
+bookingForm.newDelivery,New delivery,,src/components/home/booking-form.tsx
+bookingForm.noDeadline,No deadline,,src/components/home/booking-form.tsx
+bookingForm.noSlotsLeftTodayPickA,No slots left today — pick a later date.,,src/components/home/booking-form.tsx
+bookingForm.noVehicleIsCurrentlyAvailableFor,No vehicle is currently available for these goods. Pick a different category.,,src/components/home/booking-form.tsx
+bookingForm.noVehicleMatchesThisBodyType,No vehicle matches this body type for your goods and weight. Pick a different load space.,,src/components/home/booking-form.tsx
+bookingForm.onlyVehiclesClearedForYourGoods,"Only vehicles cleared for your goods, load space and weight are shown, cheapest first.",,src/components/home/booking-form.tsx
+bookingForm.openChassis,Open chassis,,src/components/home/booking-form.tsx
+bookingForm.packagingOptional,Packaging (optional),,src/components/home/booking-form.tsx
+bookingForm.peopleForLoadingUnloading,People for loading / unloading,,src/components/home/booking-form.tsx
+bookingForm.pickTheClosestMatchItDecides,Pick the closest match — it decides which vehicles can take the job.,,src/components/home/booking-form.tsx
+bookingForm.pickupAddress,Pickup address,,src/components/home/booking-form.tsx
+bookingForm.pickupWindowOptional,Pickup window (optional),,src/components/home/booking-form.tsx
+bookingForm.pleaseChooseADeliveryDateAnd,Please choose a delivery date and time.,,src/components/home/booking-form.tsx
+bookingForm.pooling,Pooling,,src/components/home/booking-form.tsx
+bookingForm.poolingDiscount,Pooling discount,,src/components/home/booking-form.tsx
+bookingForm.priceBreakdown,Price breakdown,,src/components/home/booking-form.tsx
+bookingForm.priority,Priority,,src/components/home/booking-form.tsx
+bookingForm.priorityFee,Priority fee,,src/components/home/booking-form.tsx
+bookingForm.quantityOptional,Quantity (optional),,src/components/home/booking-form.tsx
+bookingForm.recommendedVehicle,Recommended vehicle,,src/components/home/booking-form.tsx
+bookingForm.refrigerated,Refrigerated,,src/components/home/booking-form.tsx
+bookingForm.regular,Regular,,src/components/home/booking-form.tsx
+bookingForm.regularFare,Regular fare,,src/components/home/booking-form.tsx
+bookingForm.roughlyHowMuchIsBeingMoved,Roughly how much is being moved — we'll only recommend vehicles that can carry it.,,src/components/home/booking-form.tsx
+bookingForm.setBothEndsOfThePickup,"Set both ends of the pickup window, or leave both blank.",,src/components/home/booking-form.tsx
+bookingForm.specialHandlingOptional,Special handling (optional),,src/components/home/booking-form.tsx
+bookingForm.standardCollectionAndDeliveryWindow,Standard collection and delivery window.,,src/components/home/booking-form.tsx
+bookingForm.temperatureControlledLoadSpace,Temperature-controlled load space,,src/components/home/booking-form.tsx
+bookingForm.thePickupWindowHasToEnd,The pickup window has to end after it starts.,,src/components/home/booking-form.tsx
+bookingForm.totalWeight,Total weight,,src/components/home/booking-form.tsx
+bookingForm.totalWeightKg,Total weight (kg),,src/components/home/booking-form.tsx
+bookingForm.until,Until,,src/components/home/booking-form.tsx
+bookingForm.weightAndSizeOfTheLargest,Weight and size of the largest item,,src/components/home/booking-form.tsx
+bookingForm.whatAreYouMoving,What are you moving?,,src/components/home/booking-form.tsx
+bookingForm.whatIsActuallyBeingMovedWeight,What is actually being moved. Weight and size decide which drivers can see and take the job.,,src/components/home/booking-form.tsx
+bookingForm.whatKindOfLoadSpaceDo,What kind of load space do you need?,,src/components/home/booking-form.tsx
+bookingForm.whenShouldTheDriverComeBy,When should the driver come by?,,src/components/home/booking-form.tsx
+bookingForm.widthM,Width (m),,src/components/home/booking-form.tsx
+bookingForm.youAcceptAWiderCollectionAnd,You accept a wider collection and delivery window.,,src/components/home/booking-form.tsx
+homeEntry.loading,Loading…,,src/components/home/home-entry.tsx
+orderCargoOptions.aWholeHomeOrOffice,A whole home or office,,src/components/home/order-cargo-options.ts
+orderCargoOptions.fridgesWashersOfficeKit,"Fridges, washers, office kit",,src/components/home/order-cargo-options.ts
+orderCargoOptions.machineryPartsBulkGoods,"Machinery, parts, bulk goods",,src/components/home/order-cargo-options.ts
+orderCargoOptions.palletsCartonsShopFitOut,"Pallets, cartons, shop fit-out",,src/components/home/order-cargo-options.ts
+orderCargoOptions.sofasBedsWardrobes,"Sofas, beds, wardrobes",,src/components/home/order-cargo-options.ts
+orderCargoOptions.stagingBoothsAvGear,"Staging, booths, AV gear",,src/components/home/order-cargo-options.ts
+orderCargoOptions.timberCementFixings,"Timber, cement, fixings",,src/components/home/order-cargo-options.ts
+routePreviewMap.dropoffAddressNotSet,Dropoff address not set,,src/components/home/route-preview-map.tsx
+routePreviewMap.estTravelTime,Est. travel time,,src/components/home/route-preview-map.tsx
+routePreviewMap.pickupAddressNotSet,Pickup address not set,,src/components/home/route-preview-map.tsx
+routePreviewMap.routeSummary,Route summary,,src/components/home/route-preview-map.tsx
+routePreviewMap.stops,Stops,,src/components/home/route-preview-map.tsx
+stopContactDialog.allFieldsAreOptional,All fields are optional.,,src/components/home/stop-contact-dialog.tsx
+stopContactDialog.blockFloorOrRoom,"Block, floor or room",,src/components/home/stop-contact-dialog.tsx
+stopContactDialog.blockFloorRoom,Block/Floor/Room,,src/components/home/stop-contact-dialog.tsx
+stopContactDialog.deliveryInfo,Delivery info,,src/components/home/stop-contact-dialog.tsx
+stopContactDialog.phoneNumber,Phone number,,src/components/home/stop-contact-dialog.tsx
+stopContactDialog.save,Save,,src/components/home/stop-contact-dialog.tsx

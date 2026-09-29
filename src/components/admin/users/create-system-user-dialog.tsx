@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 
 import type { AdminRole } from "@prisma/client";
 
+import { useRouter } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,

@@ -1,0 +1,1772 @@
+{
+  "adminBusinessApplications.companyFlagged": {
+    "en": "Company flagged",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/business/applications/page.tsx"
+  },
+  "adminBusinessApplications.companyUnverified": {
+    "en": "Company unverified",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/business/applications/page.tsx"
+  },
+  "adminBusinessApplications.couldNotLoadFleetApplications": {
+    "en": "Could not load fleet applications.",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/business/applications/page.tsx"
+  },
+  "adminBusinessApplications.loadingFleetApplications": {
+    "en": "Loading fleet applications…",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/business/applications/page.tsx"
+  },
+  "adminChangePasswordForm.yourBackOfficeAccountWasCreated": {
+    "en": "Your back-office account was created with a temporary password. Choose a new one to continue.",
+    "ka": "",
+    "_source": "src/components/admin/admin-change-password-form.tsx"
+  },
+  "adminContentBanners.banner": {
+    "en": "Banner",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/banners/page.tsx"
+  },
+  "adminContentBanners.couldNotLoadBanners": {
+    "en": "Could not load banners.",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/banners/page.tsx"
+  },
+  "adminContentBanners.deleteBanner": {
+    "en": "Delete banner",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/banners/page.tsx"
+  },
+  "adminContentBanners.full": {
+    "en": "Full",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/banners/page.tsx"
+  },
+  "adminContentBanners.loadingBanners": {
+    "en": "Loading banners…",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/banners/page.tsx"
+  },
+  "adminContentBanners.newBanner": {
+    "en": "New Banner",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/banners/page.tsx"
+  },
+  "adminContentBanners.noBannersYet": {
+    "en": "No banners yet.",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/banners/page.tsx"
+  },
+  "adminContentBanners.promotionalImagesOnThePublicSite": {
+    "en": "Promotional images on the public site. Each banner shows in one placement and locale, ordered by its sort order.",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/banners/page.tsx"
+  },
+  "adminContentHomePage.content": {
+    "en": "Content",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/home-page/page.tsx"
+  },
+  "adminContentHomePage.contentDoesNotMatchThisType": {
+    "en": "Content does not match this type",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/home-page/page.tsx"
+  },
+  "adminContentHomePage.couldNotLoadSections": {
+    "en": "Could not load sections.",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/home-page/page.tsx"
+  },
+  "adminContentHomePage.deleteSection": {
+    "en": "Delete section",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/home-page/page.tsx"
+  },
+  "adminContentHomePage.loadingSections": {
+    "en": "Loading sections…",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/home-page/page.tsx"
+  },
+  "adminContentHomePage.move": {
+    "en": "Move",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/home-page/page.tsx"
+  },
+  "adminContentHomePage.moveSectionDown": {
+    "en": "Move section down",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/home-page/page.tsx"
+  },
+  "adminContentHomePage.moveSectionUp": {
+    "en": "Move section up",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/home-page/page.tsx"
+  },
+  "adminContentHomePage.newSection": {
+    "en": "New Section",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/home-page/page.tsx"
+  },
+  "adminContentHomePage.noSectionsForThisLocaleYet": {
+    "en": "No sections for this locale yet — the landing page is showing its default composition.",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/home-page/page.tsx"
+  },
+  "adminContentHomePage.theSectionsOfThePublicLanding": {
+    "en": "The sections of the public landing page, in the order they render. With no sections for a locale, the page falls back to its built-in default composition. The navigation bar and the footer are page chrome: they render at the top and the bottom whatever their position in this list, so moving them changes nothing.",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/home-page/page.tsx"
+  },
+  "adminContentHomePage.thisSectionWillBeRemovedFrom": {
+    "en": "This section will be removed from the landing page for good. To take it off the page without deleting it, switch it off instead.",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/home-page/page.tsx"
+  },
+  "adminContentHomePage.unrecognizedType": {
+    "en": "Unrecognized type",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/home-page/page.tsx"
+  },
+  "adminContentMessagingTemplates.allChannels": {
+    "en": "All channels",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/messaging-templates/page.tsx"
+  },
+  "adminContentMessagingTemplates.couldNotLoadTemplates": {
+    "en": "Could not load templates.",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/messaging-templates/page.tsx"
+  },
+  "adminContentMessagingTemplates.deleteTemplate": {
+    "en": "Delete template",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/messaging-templates/page.tsx"
+  },
+  "adminContentMessagingTemplates.filterTemplatesByChannel": {
+    "en": "Filter templates by channel",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/messaging-templates/page.tsx"
+  },
+  "adminContentMessagingTemplates.loadingTemplates": {
+    "en": "Loading templates…",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/messaging-templates/page.tsx"
+  },
+  "adminContentMessagingTemplates.newTemplate": {
+    "en": "New Template",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/messaging-templates/page.tsx"
+  },
+  "adminContentMessagingTemplates.updated": {
+    "en": "Updated",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/messaging-templates/page.tsx"
+  },
+  "adminContentPages.couldNotLoadPages": {
+    "en": "Could not load pages.",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/pages/page.tsx"
+  },
+  "adminContentPages.deleteThisPage": {
+    "en": "Delete this page?",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/pages/page.tsx"
+  },
+  "adminContentPages.draft": {
+    "en": "Draft",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/pages/page.tsx"
+  },
+  "adminContentPages.loadingPages": {
+    "en": "Loading pages…",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/pages/page.tsx"
+  },
+  "adminContentPages.newPage": {
+    "en": "New Page",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/pages/page.tsx"
+  },
+  "adminContentPages.noStaticPagesYet": {
+    "en": "No static pages yet.",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/pages/page.tsx"
+  },
+  "adminContentPages.published": {
+    "en": "Published",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/pages/page.tsx"
+  },
+  "adminContentPages.willStopResolvingForThatLocale": {
+    "en": "will stop resolving for that locale. This cannot be undone.",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/pages/page.tsx"
+  },
+  "adminContentTranslations.allNamespaces": {
+    "en": "All namespaces",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/translations/page.tsx"
+  },
+  "adminContentTranslations.couldNotLoadTranslations": {
+    "en": "Could not load translations.",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/translations/page.tsx"
+  },
+  "adminContentTranslations.deleteEnglish": {
+    "en": "Delete English",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/translations/page.tsx"
+  },
+  "adminContentTranslations.deleteGeorgian": {
+    "en": "Delete Georgian",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/translations/page.tsx"
+  },
+  "adminContentTranslations.filterTranslationsByNamespace": {
+    "en": "Filter translations by namespace",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/translations/page.tsx"
+  },
+  "adminContentTranslations.loadingTranslations": {
+    "en": "Loading translations…",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/translations/page.tsx"
+  },
+  "adminContentTranslations.newKey": {
+    "en": "New Key",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/translations/page.tsx"
+  },
+  "adminContentTranslations.notSet": {
+    "en": "Not set",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/translations/page.tsx"
+  },
+  "adminContentVehiclePhotos.aPhotoGoesLiveAsSoon": {
+    "en": "A photo goes live as soon as it is saved. There is no draft state for a vehicle type, so do not upload a work-in-progress crop expecting to publish it later.",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/vehicle-photos/page.tsx"
+  },
+  "adminContentVehiclePhotos.bestAt720560ThePublic": {
+    "en": "Best at 720×560. The public card crops to a 140px-tall area.",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/vehicle-photos/page.tsx"
+  },
+  "adminContentVehiclePhotos.couldNotLoadVehicleTypes": {
+    "en": "Could not load vehicle types.",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/vehicle-photos/page.tsx"
+  },
+  "adminContentVehiclePhotos.noPhotoThePublicCardFalls": {
+    "en": "No photo — the public card falls back to its illustrated glyph.",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/vehicle-photos/page.tsx"
+  },
+  "adminContentVehiclePhotos.notSavedYet": {
+    "en": "Not saved yet.",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/vehicle-photos/page.tsx"
+  },
+  "adminContentVehiclePhotos.photosForTheVehicleCatalogueOn": {
+    "en": "Photos for the vehicle catalogue on the public homepage. Only the photo is editable here — payload ratings, cargo dimensions, loading access and pricing drive order matching, so they are not content and are changed through the seed.",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/vehicle-photos/page.tsx"
+  },
+  "adminContentVehiclePhotos.pnpmExecPrismaDbSeed": {
+    "en": "pnpm exec prisma db seed",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/vehicle-photos/page.tsx"
+  },
+  "adminContentVehiclePhotos.removePhoto": {
+    "en": "Remove photo",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/vehicle-photos/page.tsx"
+  },
+  "adminContentVehiclePhotos.removeThisPhotoTheCardFalls": {
+    "en": "Remove this photo? The card falls back to its illustrated glyph on the public homepage. The uploaded file itself is kept.",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/content/vehicle-photos/page.tsx"
+  },
+  "adminDriversApplications.couldNotLoadApplications": {
+    "en": "Could not load applications.",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/drivers/applications/page.tsx"
+  },
+  "adminDriversApplications.docs": {
+    "en": "Docs",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/drivers/applications/page.tsx"
+  },
+  "adminDriversApplications.loadingApplications": {
+    "en": "Loading applications…",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/drivers/applications/page.tsx"
+  },
+  "adminFinancePaymentMethods.couldNotLoadPaymentMethods": {
+    "en": "Could not load payment methods.",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/finance/payment-methods/page.tsx"
+  },
+  "adminFinancePaymentMethods.couldNotUpdateThisPaymentMethod": {
+    "en": "Could not update this payment method.",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/finance/payment-methods/page.tsx"
+  },
+  "adminFinancePaymentMethods.disabled": {
+    "en": "Disabled",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/finance/payment-methods/page.tsx"
+  },
+  "adminFinancePaymentMethods.enabled": {
+    "en": "Enabled",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/finance/payment-methods/page.tsx"
+  },
+  "adminFinancePaymentMethods.loadingPaymentMethods": {
+    "en": "Loading payment methods…",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/finance/payment-methods/page.tsx"
+  },
+  "adminFinancePaymentMethods.method": {
+    "en": "Method",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/finance/payment-methods/page.tsx"
+  },
+  "adminFinancePaymentMethods.paymentMethodsOfferedAtCheckoutPlatform": {
+    "en": "Payment methods offered at checkout, platform-wide.",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/finance/payment-methods/page.tsx"
+  },
+  "adminFinancePromoCampaigns.couldNotLoadCampaigns": {
+    "en": "Could not load campaigns.",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/finance/promo-campaigns/page.tsx"
+  },
+  "adminFinancePromoCampaigns.deactivate": {
+    "en": "Deactivate",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/finance/promo-campaigns/page.tsx"
+  },
+  "adminFinancePromoCampaigns.discount": {
+    "en": "Discount",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/finance/promo-campaigns/page.tsx"
+  },
+  "adminFinancePromoCampaigns.discountCodesClientsRedeemAtCheckout": {
+    "en": "Discount codes clients redeem at checkout. A code applies only while it is active and inside its date window.",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/finance/promo-campaigns/page.tsx"
+  },
+  "adminFinancePromoCampaigns.loadingCampaigns": {
+    "en": "Loading campaigns…",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/finance/promo-campaigns/page.tsx"
+  },
+  "adminFinancePromoCampaigns.newCampaign": {
+    "en": "New Campaign",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/finance/promo-campaigns/page.tsx"
+  },
+  "adminFinancePromoCampaigns.noPromoCampaignsYet": {
+    "en": "No promo campaigns yet.",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/finance/promo-campaigns/page.tsx"
+  },
+  "adminFinancePromoCampaigns.usage": {
+    "en": "Usage",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/finance/promo-campaigns/page.tsx"
+  },
+  "adminImageUpload.noPreview": {
+    "en": "No preview",
+    "ka": "",
+    "_source": "src/components/admin/content/admin-image-upload.tsx"
+  },
+  "adminImageUpload.uploadingImage": {
+    "en": "Uploading image",
+    "ka": "",
+    "_source": "src/components/admin/content/admin-image-upload.tsx"
+  },
+  "adminNav.applications": {
+    "en": "Applications",
+    "ka": "",
+    "_source": "src/components/admin/admin-nav.ts"
+  },
+  "adminNav.banners": {
+    "en": "Banners",
+    "ka": "",
+    "_source": "src/components/admin/admin-nav.ts"
+  },
+  "adminNav.businessApplications": {
+    "en": "Business applications",
+    "ka": "",
+    "_source": "src/components/admin/admin-nav.ts"
+  },
+  "adminNav.campaigns": {
+    "en": "Campaigns",
+    "ka": "",
+    "_source": "src/components/admin/admin-nav.ts"
+  },
+  "adminNav.clients": {
+    "en": "Clients",
+    "ka": "",
+    "_source": "src/components/admin/admin-nav.ts"
+  },
+  "adminNav.contentManagement": {
+    "en": "Content Management",
+    "ka": "",
+    "_source": "src/components/admin/admin-nav.ts"
+  },
+  "adminNav.crm": {
+    "en": "CRM",
+    "ka": "",
+    "_source": "src/components/admin/admin-nav.ts"
+  },
+  "adminNav.finances": {
+    "en": "Finances",
+    "ka": "",
+    "_source": "src/components/admin/admin-nav.ts"
+  },
+  "adminNav.homePage": {
+    "en": "Home Page",
+    "ka": "",
+    "_source": "src/components/admin/admin-nav.ts"
+  },
+  "adminNav.messagingTemplates": {
+    "en": "Messaging Templates",
+    "ka": "",
+    "_source": "src/components/admin/admin-nav.ts"
+  },
+  "adminNav.paymentMethods": {
+    "en": "Payment Methods",
+    "ka": "",
+    "_source": "src/components/admin/admin-nav.ts"
+  },
+  "adminNav.promoCampaigns": {
+    "en": "Promo Campaigns",
+    "ka": "",
+    "_source": "src/components/admin/admin-nav.ts"
+  },
+  "adminNav.salesAnalytics": {
+    "en": "Sales Analytics",
+    "ka": "",
+    "_source": "src/components/admin/admin-nav.ts"
+  },
+  "adminNav.segments": {
+    "en": "Segments",
+    "ka": "",
+    "_source": "src/components/admin/admin-nav.ts"
+  },
+  "adminNav.sellers": {
+    "en": "Sellers",
+    "ka": "",
+    "_source": "src/components/admin/admin-nav.ts"
+  },
+  "adminNav.staticPages": {
+    "en": "Static Pages",
+    "ka": "",
+    "_source": "src/components/admin/admin-nav.ts"
+  },
+  "adminNav.surveys": {
+    "en": "Surveys",
+    "ka": "",
+    "_source": "src/components/admin/admin-nav.ts"
+  },
+  "adminNav.systemUsers": {
+    "en": "System Users",
+    "ka": "",
+    "_source": "src/components/admin/admin-nav.ts"
+  },
+  "adminNav.translations": {
+    "en": "Translations",
+    "ka": "",
+    "_source": "src/components/admin/admin-nav.ts"
+  },
+  "adminNav.userManagement": {
+    "en": "User Management",
+    "ka": "",
+    "_source": "src/components/admin/admin-nav.ts"
+  },
+  "adminNav.vehiclePhotos": {
+    "en": "Vehicle Photos",
+    "ka": "",
+    "_source": "src/components/admin/admin-nav.ts"
+  },
+  "adminShell.backOffice": {
+    "en": "Back Office",
+    "ka": "",
+    "_source": "src/components/admin/admin-shell.tsx"
+  },
+  "adminShell.internalTools": {
+    "en": "Internal tools",
+    "ka": "",
+    "_source": "src/components/admin/admin-shell.tsx"
+  },
+  "adminSignIn.backOfficeSignIn": {
+    "en": "Back office sign-in",
+    "ka": "",
+    "_source": "src/app/[locale]/(admin-sign-in)/admin/sign-in/page.tsx"
+  },
+  "adminSignIn.internalUseOnlyCustomerAndDriver": {
+    "en": "Internal use only. Customer and driver accounts sign in on the main site.",
+    "ka": "",
+    "_source": "src/app/[locale]/(admin-sign-in)/admin/sign-in/page.tsx"
+  },
+  "adminUsersClients.accountType": {
+    "en": "Account type",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/users/clients/page.tsx"
+  },
+  "adminUsersClients.couldNotLoadClients": {
+    "en": "Could not load clients.",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/users/clients/page.tsx"
+  },
+  "adminUsersClients.loadingClients": {
+    "en": "Loading clients…",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/users/clients/page.tsx"
+  },
+  "adminUsersClients.ordersPlaced": {
+    "en": "Orders placed",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/users/clients/page.tsx"
+  },
+  "adminUsersClients.searchClientsByNameEmailOr": {
+    "en": "Search clients by name, email or phone",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/users/clients/page.tsx"
+  },
+  "adminUsersSellers.couldNotLoadSellers": {
+    "en": "Could not load sellers.",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/users/sellers/page.tsx"
+  },
+  "adminUsersSellers.loadingSellers": {
+    "en": "Loading sellers…",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/users/sellers/page.tsx"
+  },
+  "adminUsersSellers.registration": {
+    "en": "Registration",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/users/sellers/page.tsx"
+  },
+  "adminUsersSellers.searchSellersByNameEmailOr": {
+    "en": "Search sellers by name, email or phone",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/users/sellers/page.tsx"
+  },
+  "adminUsersSellers.seller": {
+    "en": "Seller",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/users/sellers/page.tsx"
+  },
+  "adminUsersSystem.created": {
+    "en": "Created",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/users/system/page.tsx"
+  },
+  "adminUsersSystem.noSystemUsersYet": {
+    "en": "No system users yet.",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/users/system/page.tsx"
+  },
+  "adminUsersSystem.staffAccountsWithAccessToThis": {
+    "en": "Staff accounts with access to this back office. New accounts are created with a temporary password that is shown once.",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/users/system/page.tsx"
+  },
+  "adminUsersSystem.you": {
+    "en": "You",
+    "ka": "",
+    "_source": "src/app/[locale]/admin/(sections)/users/system/page.tsx"
+  },
+  "apiAuth.forbidden": {
+    "en": "Forbidden.",
+    "ka": "",
+    "_source": "src/lib/admin/api-auth.ts"
+  },
+  "bannerFormDialog.addAnImageBeforeSavingThis": {
+    "en": "Add an image before saving this banner.",
+    "ka": "",
+    "_source": "src/components/admin/content/banner-form-dialog.tsx"
+  },
+  "bannerFormDialog.bannersAreShownOnThePublic": {
+    "en": "Banners are shown on the public site in the placement and locale you pick, in sort order, while they are active and inside their date window.",
+    "ka": "",
+    "_source": "src/components/admin/content/banner-form-dialog.tsx"
+  },
+  "bannerFormDialog.endsOn": {
+    "en": "Ends on",
+    "ka": "",
+    "_source": "src/components/admin/content/banner-form-dialog.tsx"
+  },
+  "bannerFormDialog.homeHero": {
+    "en": "home_hero",
+    "ka": "",
+    "_source": "src/components/admin/content/banner-form-dialog.tsx"
+  },
+  "bannerFormDialog.leaveTheDatesEmptyForA": {
+    "en": "Leave the dates empty for a banner with no start or end. Dates are read in UTC and both ends are inclusive.",
+    "ka": "",
+    "_source": "src/components/admin/content/banner-form-dialog.tsx"
+  },
+  "bannerFormDialog.startsOn": {
+    "en": "Starts on",
+    "ka": "",
+    "_source": "src/components/admin/content/banner-form-dialog.tsx"
+  },
+  "bannerFormDialog.summerPromotion": {
+    "en": "Summer promotion",
+    "ka": "",
+    "_source": "src/components/admin/content/banner-form-dialog.tsx"
+  },
+  "businessApplicationDetailDrawer.flagCompanyDetails": {
+    "en": "Flag company details",
+    "ka": "",
+    "_source": "src/components/admin/business-application-detail-drawer.tsx"
+  },
+  "businessApplicationDetailDrawer.noDriverAssigned": {
+    "en": "No driver assigned",
+    "ka": "",
+    "_source": "src/components/admin/business-application-detail-drawer.tsx"
+  },
+  "businessApplicationDetailDrawer.recordsEveryVerdictAtOnceActivating": {
+    "en": "Records every verdict at once. Activating the fleet stays a separate step.",
+    "ka": "",
+    "_source": "src/components/admin/business-application-detail-drawer.tsx"
+  },
+  "businessApplicationDetailDrawer.thisVehicleWasRemovedAfterThe": {
+    "en": "This vehicle was removed after the fleet was submitted. Flag it so the company can correct the application.",
+    "ka": "",
+    "_source": "src/components/admin/business-application-detail-drawer.tsx"
+  },
+  "createSystemUserDialog.adminRole": {
+    "en": "Admin role",
+    "ka": "",
+    "_source": "src/components/admin/users/create-system-user-dialog.tsx"
+  },
+  "createSystemUserDialog.createsABackOfficeAccountWith": {
+    "en": "Creates a back-office account with a temporary password, shown once after you submit.",
+    "ka": "",
+    "_source": "src/components/admin/users/create-system-user-dialog.tsx"
+  },
+  "createSystemUserDialog.newSystemUser": {
+    "en": "New System User",
+    "ka": "",
+    "_source": "src/components/admin/users/create-system-user-dialog.tsx"
+  },
+  "createSystemUserDialog.newSystemUser2": {
+    "en": "New system user",
+    "ka": "",
+    "_source": "src/components/admin/users/create-system-user-dialog.tsx"
+  },
+  "createSystemUserDialog.ninoBeridze": {
+    "en": "Nino Beridze",
+    "ka": "",
+    "_source": "src/components/admin/users/create-system-user-dialog.tsx"
+  },
+  "createSystemUserDialog.pickAnAdminRole": {
+    "en": "Pick an admin role.",
+    "ka": "",
+    "_source": "src/components/admin/users/create-system-user-dialog.tsx"
+  },
+  "createSystemUserDialog.selectARole": {
+    "en": "Select a role",
+    "ka": "",
+    "_source": "src/components/admin/users/create-system-user-dialog.tsx"
+  },
+  "createSystemUserDialog.staffExampleCom": {
+    "en": "staff@example.com",
+    "ka": "",
+    "_source": "src/components/admin/users/create-system-user-dialog.tsx"
+  },
+  "createSystemUserDialog.systemUserCreated": {
+    "en": "System user created",
+    "ka": "",
+    "_source": "src/components/admin/users/create-system-user-dialog.tsx"
+  },
+  "dateRangePicker.apply": {
+    "en": "Apply",
+    "ka": "",
+    "_source": "src/components/admin/analytics/date-range-picker.tsx"
+  },
+  "dateRangePicker.customRange": {
+    "en": "Custom range",
+    "ka": "",
+    "_source": "src/components/admin/analytics/date-range-picker.tsx"
+  },
+  "dateRangePicker.thisMonth": {
+    "en": "This Month",
+    "ka": "",
+    "_source": "src/components/admin/analytics/date-range-picker.tsx"
+  },
+  "dateRangePicker.thisWeek": {
+    "en": "This Week",
+    "ka": "",
+    "_source": "src/components/admin/analytics/date-range-picker.tsx"
+  },
+  "driverApplicationDetailDrawer.licence": {
+    "en": "Licence",
+    "ka": "",
+    "_source": "src/components/admin/driver-application-detail-drawer.tsx"
+  },
+  "driverApplicationDetailDrawer.licenceNo": {
+    "en": "Licence no.",
+    "ka": "",
+    "_source": "src/components/admin/driver-application-detail-drawer.tsx"
+  },
+  "driverApplicationDetailDrawer.noDocumentsOnThisApplication": {
+    "en": "No documents on this application.",
+    "ka": "",
+    "_source": "src/components/admin/driver-application-detail-drawer.tsx"
+  },
+  "driverApplicationDetailDrawer.theDriverRemovedThisVehicleAfter": {
+    "en": "The driver removed this vehicle after submitting. They cannot be approved until a vehicle is registered again.",
+    "ka": "",
+    "_source": "src/components/admin/driver-application-detail-drawer.tsx"
+  },
+  "homePageContent.aHelperIsASecondPair": {
+    "en": "A helper is a second pair of hands who rides along to load and unload with the driver. It is a flat fee on top of the distance and time components, so tick it before you price the job and it is already in the total and in the breakdown you see.",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.aSecondPairOfHands": {
+    "en": "A second pair of hands",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.about": {
+    "en": "About",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.addAHelperToLoadAnd": {
+    "en": "Add a helper to load and unload alongside the driver. It is a flat fee, already in the total and in the breakdown before you book.",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.anIndependentDriverOrALogistics": {
+    "en": "An independent driver or a logistics company takes the job and it goes live on your map. Follow the vehicle from loading to unload, and keep every order in your account.",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.anOrderStartsOutPendingUntil": {
+    "en": "An order starts out pending until a transport provider takes it. That is either an independent driver, who accepts it with one of the vehicles registered to their profile, or a logistics company, which claims the job and dispatches it to a driver on its own roster.",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.baseFareDistanceDrivingTimeAnd": {
+    "en": "Base fare, distance, driving time and any helper fee, listed separately — and the same calculation runs again when you place the order.",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.becomeADriver": {
+    "en": "Become a driver",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.beforeYouBook": {
+    "en": "Before you book",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.bentoContentMustBeAnObject": {
+    "en": "bento content must be an object.",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.business": {
+    "en": "Business",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.businessAccount": {
+    "en": "Business account",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.canACompanyBookAndDispatch": {
+    "en": "Can a company book and dispatch as a business?",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.canIFollowTheDelivery": {
+    "en": "Can I follow the delivery?",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.careers": {
+    "en": "Careers",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.cargoVanForAFewBoxes": {
+    "en": "Cargo van for a few boxes, trailer truck for pallets. Every type lists its payload rating and cargo dimensions, so you can match the vehicle to the load.",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.categoryTilesContentMustBeAn": {
+    "en": "category_tiles content must be an object.",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.closingCta": {
+    "en": "Closing CTA",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.closingCtaContentMustBeAn": {
+    "en": "closing_cta content must be an object.",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.commercialFreightCargo": {
+    "en": "Commercial freight & cargo",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.cookies": {
+    "en": "Cookies",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.coverage": {
+    "en": "Coverage",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.coverageContentMustBeAnObject": {
+    "en": "coverage content must be an object.",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.dispatchAndSupport": {
+    "en": "Dispatch and support",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.dispatchingEveryDayFor": {
+    "en": "Dispatching every day for",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.driverCta": {
+    "en": "Driver CTA",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.driverCtaContentMustBeAn": {
+    "en": "driver_cta content must be an object.",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.driverSignUp": {
+    "en": "Driver sign-up",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.everyAcceptedOrderGetsItsOwn": {
+    "en": "Every accepted order gets its own tracking page: pickup and dropoff on a map, the driver's position as they report it, and a status that moves from accepted to in transit to completed.",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.everyMajorCityOneAccount": {
+    "en": "Every major city, one account.",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.everySizeOneAccount": {
+    "en": "Every size, one account.",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.everyVehicleTypePublishesItsMaximum": {
+    "en": "Every vehicle type publishes its maximum payload and its cargo length, width and height, so you match the rating to what you are actually moving.",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.faq": {
+    "en": "FAQ",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.faqContentMustBeAnObject": {
+    "en": "faq content must be an object.",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.faresQuotedBeforeYouBook": {
+    "en": "Fares quoted before you book",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.fleetDashboard": {
+    "en": "Fleet dashboard",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.fleetsAndLogisticsCompanies": {
+    "en": "Fleets and logistics companies",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.footerContentMustBeAnObject": {
+    "en": "footer content must be an object.",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.forBusiness": {
+    "en": "For business",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.forDrivers": {
+    "en": "For drivers",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.forTransportProviders": {
+    "en": "For transport providers",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.fourStepsNoPhoneCalls": {
+    "en": "Four steps, no phone calls.",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.georgianCitiesServed": {
+    "en": "Georgian cities served",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.helper": {
+    "en": "Helper",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.heroCarouselContentMustBeAn": {
+    "en": "hero_carousel content must be an object.",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.heroContentMustBeAnObject": {
+    "en": "hero content must be an object.",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.howIsThePriceWorkedOut": {
+    "en": "How is the price worked out?",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.howItWorks": {
+    "en": "How it works",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.howItWorksContentMustBe": {
+    "en": "how_it_works content must be an object.",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.intercity": {
+    "en": "Intercity",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.itemisedBeforeYouBook": {
+    "en": "Itemised before you book",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.knowTheFareBeforeYouCommit": {
+    "en": "Know the fare before you commit.",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.liveTracking": {
+    "en": "Live tracking",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.lockThePrice": {
+    "en": "Lock the price",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.navContentMustBeAnObject": {
+    "en": "nav content must be an object.",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.partnerMarqueeContentMustBeAn": {
+    "en": "partner_marquee content must be an object.",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.pickAVehicle": {
+    "en": "Pick a vehicle",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.priceALoad": {
+    "en": "Price a load",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.priceARunBetweenAnyTwo": {
+    "en": "Price a run between any two cities we cover. The fare is worked out on the real driving distance and time, not a flat intercity band.",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.priceItInTheOpenBook": {
+    "en": "Price it in the open, book it in a few steps, and follow the vehicle to the door. No card needed to get a quote.",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.pricing": {
+    "en": "Pricing",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.privacy": {
+    "en": "Privacy",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.product": {
+    "en": "Product",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.quoteCalculatorContentMustBeAn": {
+    "en": "quote_calculator content must be an object.",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.ratedForTheLoadNotGuessed": {
+    "en": "Rated for the load, not guessed",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.recordRecord": {
+    "en": "( record: Record",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.registerACompany": {
+    "en": "Register a company",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.registerACompanyPutYourDrivers": {
+    "en": "Register a company, put your drivers and vehicles on one roster, and claim freight jobs from the dispatch queue.",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.registerYourCompanyPutYourFleet": {
+    "en": "Register your company, put your fleet and your drivers on one roster, and dispatch from a single hub. Applications are reviewed by our team before the account goes live.",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.seeTheTruckMoveNotA": {
+    "en": "See the truck move, not a status label.",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.setAPickupAndADropoff": {
+    "en": "Set a pickup and a dropoff anywhere we operate and the fare is worked out on the real route between them — across town or across the country. Support in Georgian and English.",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.setTheRoute": {
+    "en": "Set the route",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.shipAnythingAcrossTheCity": {
+    "en": "Ship anything, across the city",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.signUpAsAnIndependentDriver": {
+    "en": "Sign up as an independent driver or as a logistics company, register your vehicles, and start accepting freight jobs from shippers near you.",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.statsContentMustBeAnObject": {
+    "en": "stats content must be an object.",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.tbilisiToBatumiAndBack": {
+    "en": "Tbilisi to Batumi, and back",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.terms": {
+    "en": "Terms",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.theFleet": {
+    "en": "The fleet",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.trackItToTheDoor": {
+    "en": "Track it to the door",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.typeThePickupAndTheDropoff": {
+    "en": "Type the pickup and the dropoff — addresses autocomplete as you go — then tell us what you're moving: furniture, appliances, retail stock, or a full relocation.",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.vansToTrailerTrucksPricedBefore": {
+    "en": "Vans to trailer trucks, priced before you book and tracked door to door. Set the route, pick the vehicle rated for the load, and a nearby driver takes it from there.",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.vehicleTypesBusinesspanelMustBeAn": {
+    "en": "vehicle_types.businessPanel must be an object.",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.vehicleTypesContentMustBeAn": {
+    "en": "vehicle_types content must be an object.",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.vehicleTypesVanToTrailer": {
+    "en": "Vehicle types, van to trailer",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.weGeocodeBothAddressesAndPrice": {
+    "en": "We geocode both addresses and price the distance between them with the vehicle type's own rates: a base fare, a per-kilometre rate and a rate for the estimated time of the trip. A helper, if you ask for one, adds a flat fee on top. You get the total itemised, and the same calculation runs when you place the order — the estimate is not a separate marketing number.",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.weQuoteOnRealDistanceDriving": {
+    "en": "We quote on real distance, driving time and whether you need a helper, itemised line by line. No auction, no surprise line items at the door.",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.whatDoesAddingAHelperDo": {
+    "en": "What does adding a helper do?",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.whatWeCarry": {
+    "en": "What we carry",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.whichVehicleShouldIBook": {
+    "en": "Which vehicle should I book?",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.whoActuallyMovesMyCargo": {
+    "en": "Who actually moves my cargo?",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.yesOnceAnOrderIsAccepted": {
+    "en": "Yes. Once an order is accepted it gets its own tracking page: pickup and dropoff on a map, plus the driver's position as they report it, refreshed while you watch. The status moves from accepted to in transit to completed, and the order stays in your account afterwards.",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.yourNextLoadIsARoute": {
+    "en": "Your next load is a route away.",
+    "ka": "",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageSectionFormDialog.addCity": {
+    "en": "Add city",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.addColumn": {
+    "en": "Add column",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.addLegalLink": {
+    "en": "Add legal link",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.addLink": {
+    "en": "Add link",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.addPoint": {
+    "en": "Add point",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.addQuestion": {
+    "en": "Add question",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.addRowCard": {
+    "en": "Add row card",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.addSideCard": {
+    "en": "Add side card",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.addStat": {
+    "en": "Add stat",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.addStep": {
+    "en": "Add step",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.answer": {
+    "en": "Answer",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.aside": {
+    "en": "Aside",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.bothFieldsAreFreeTextAnd": {
+    "en": "Both fields are free text and purely editorial. The name is not tied to the city list the booking flow uses, and there is no service-tier data anywhere in the system — a tier is whatever a human who knows the real answer types here.",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.brandBlurb": {
+    "en": "Brand blurb",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.brandName": {
+    "en": "Brand name",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.businessPanel": {
+    "en": "Business panel",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.buttonLabel": {
+    "en": "Button label",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.buttonLink": {
+    "en": "Button link",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.cities": {
+    "en": "Cities",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.columnTitle": {
+    "en": "Column title",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.columns": {
+    "en": "Columns",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.columnsReadLeftToRightIn": {
+    "en": "Columns read left to right in this order. The design is four.",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.copyrightLine": {
+    "en": "Copyright line",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.driverPhotograph": {
+    "en": "Driver photograph",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.eachNewLineIsRenderedAs": {
+    "en": "Each new line is rendered as a line break in the heading.",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.etaLabel": {
+    "en": "ETA label",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.eyebrow": {
+    "en": "Eyebrow",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.fallbackCaption": {
+    "en": "Fallback caption",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.fillsThePanelSRightColumn": {
+    "en": "Fills the panel’s right column. Optional — the panel is designed to render without one.",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.fromLabel": {
+    "en": "From label",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.heading": {
+    "en": "Heading",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.headline": {
+    "en": "Headline",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.heavyDutyGroupHeading": {
+    "en": "Heavy-duty group heading",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.intro": {
+    "en": "Intro",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.label": {
+    "en": "Label",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.legalLinks": {
+    "en": "Legal links",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.linkLabel": {
+    "en": "Link label",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.links": {
+    "en": "Links",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.mediumDutyGroupHeading": {
+    "en": "Medium-duty group heading",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.optional": {
+    "en": "Optional.",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.optionalTheHeadingAboveTheHeavy": {
+    "en": "Optional. The heading above the heavy-duty vehicles. Display only, as above.",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.optionalTheRedesignSLayoutHas": {
+    "en": "Optional. The redesign's layout has no column for it, but an existing paragraph is kept rather than discarded.",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.optionalUsedForASlideWhose": {
+    "en": "Optional. Used for a slide whose banner has no usable title.",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.orderLabel": {
+    "en": "Order label",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.points": {
+    "en": "Points",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.primaryButtonLabel": {
+    "en": "Primary button label",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.primaryButtonLink": {
+    "en": "Primary button link",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.progressPercent": {
+    "en": "Progress percent",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.question": {
+    "en": "Question",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.rowATheColumnBesideThe": {
+    "en": "Row A, the column beside the large card. The design is two of them.",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.rowBAcrossTheFullWidth": {
+    "en": "Row B, across the full width. The design is three of them. They are a separate list from the side cards because the two rows have different card sizes and grid tracks.",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.rowCards": {
+    "en": "Row cards",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.secondaryButtonLabel": {
+    "en": "Secondary button label",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.secondaryButtonLink": {
+    "en": "Secondary button link",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.secondaryLinkLabel": {
+    "en": "Secondary link label",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.secondaryLinkUrl": {
+    "en": "Secondary link URL",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.sectionType": {
+    "en": "Section type",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.sideCards": {
+    "en": "Side cards",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.signInLabel": {
+    "en": "Sign-in label",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.signInLink": {
+    "en": "Sign-in link",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.signUpLabel": {
+    "en": "Sign-up label",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.signUpLink": {
+    "en": "Sign-up link",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.statusChipTag": {
+    "en": "Status chip tag",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.statusChipText": {
+    "en": "Status chip text",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.steps": {
+    "en": "Steps",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.stepsAreNumberedByTheirPosition": {
+    "en": "Steps are numbered by their position on the page.",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.subtext": {
+    "en": "Subtext",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.supportLinkLabel": {
+    "en": "Support link label",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.supportLinkUrl": {
+    "en": "Support link URL",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.text": {
+    "en": "Text",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.theCalculatorItselfIsTheLive": {
+    "en": "The calculator itself is the live pricing widget — it owns its own labels and quotes against the real pricing endpoint, so only the framing copy above is editable.",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.theDutyClassesAndTheirVehicles": {
+    "en": "The duty classes and their vehicles come from the live taxonomy, so only the framing copy is edited here.",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.theFiguresBelowTheHeroAre": {
+    "en": "The figures below the hero are the stats row, which is a section of its own. The retired headline highlight has no field here, so saving a hero authored before the redesign drops it.",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.theFooterIsPageChromeIt": {
+    "en": "The footer is page chrome: it renders at the bottom of the page whatever its sort order, so moving it in the section list changes nothing.",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.theMockOrderPinnedToThe": {
+    "en": "The mock order pinned to the large card. It is an illustration, not live data — which is exactly why it is authored here rather than hardcoded.",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.theNavigationBarIsPageChrome": {
+    "en": "The navigation bar is page chrome: it renders at the top of the page whatever its sort order, so moving it in the section list changes nothing. Sign-in and sign-up are separate fields rather than two more links because they render as the pill’s trailing pair.",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.thePanelThatClosesTheSection": {
+    "en": "The panel that closes the section. Optional as a whole: clear all four boxes to drop it. Fill any one of them and all four are required.",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.theTilesThemselvesAreGeneratedFrom": {
+    "en": "The tiles themselves are generated from the cargo taxonomy and its pricing rules.",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.theTypeDecidesWhichLandingComponent": {
+    "en": "The type decides which landing component renders this section, and therefore which fields it carries.",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.tier": {
+    "en": "Tier",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.tiles": {
+    "en": "Tiles",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.toLabel": {
+    "en": "To label",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.trackingPanel": {
+    "en": "Tracking panel",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.url": {
+    "en": "URL",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.whereTheButtonSendsADriver": {
+    "en": "Where the button sends a driver depends on deployment configuration, so it is not editable here.",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "homePageSectionFormDialog.wordmark": {
+    "en": "Wordmark",
+    "ka": "",
+    "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
+  },
+  "messagingTemplateFormDialog.aSubjectIsRequiredForEmail": {
+    "en": "A subject is required for email templates.",
+    "ka": "",
+    "_source": "src/components/admin/content/messaging-template-form-dialog.tsx"
+  },
+  "messagingTemplateFormDialog.message": {
+    "en": "Message",
+    "ka": "",
+    "_source": "src/components/admin/content/messaging-template-form-dialog.tsx"
+  },
+  "messagingTemplateFormDialog.orderConfirmed": {
+    "en": "order.confirmed",
+    "ka": "",
+    "_source": "src/components/admin/content/messaging-template-form-dialog.tsx"
+  },
+  "messagingTemplateFormDialog.theWordingOfOneTransactionalMessage": {
+    "en": "The wording of one transactional message, for a single channel and language. Saving only changes the text on file — messages are sent by the order flow, not from here.",
+    "ka": "",
+    "_source": "src/components/admin/content/messaging-template-form-dialog.tsx"
+  },
+  "messagingTemplateFormDialog.yourOrderIsConfirmed": {
+    "en": "Your order is confirmed",
+    "ka": "",
+    "_source": "src/components/admin/content/messaging-template-form-dialog.tsx"
+  },
+  "metricCards.awaitingACarrier": {
+    "en": "Awaiting a carrier",
+    "ka": "",
+    "_source": "src/components/admin/analytics/metric-cards.tsx"
+  },
+  "metricCards.calledOffBeforeDelivery": {
+    "en": "Called off before delivery",
+    "ka": "",
+    "_source": "src/components/admin/analytics/metric-cards.tsx"
+  },
+  "metricCards.claimedAcceptedOrInTransit": {
+    "en": "Claimed, accepted or in transit",
+    "ka": "",
+    "_source": "src/components/admin/analytics/metric-cards.tsx"
+  },
+  "metricCards.deliveredOrders": {
+    "en": "Delivered orders",
+    "ka": "",
+    "_source": "src/components/admin/analytics/metric-cards.tsx"
+  },
+  "metricCards.grossBookingsPlacedInRange": {
+    "en": "Gross bookings placed in range",
+    "ka": "",
+    "_source": "src/components/admin/analytics/metric-cards.tsx"
+  },
+  "metricCards.inProcess": {
+    "en": "In process",
+    "ka": "",
+    "_source": "src/components/admin/analytics/metric-cards.tsx"
+  },
+  "metricCards.recognisedOnDelivery": {
+    "en": "Recognised on delivery",
+    "ka": "",
+    "_source": "src/components/admin/analytics/metric-cards.tsx"
+  },
+  "metricCards.revenueCompletedOrders": {
+    "en": "Revenue (completed orders)",
+    "ka": "",
+    "_source": "src/components/admin/analytics/metric-cards.tsx"
+  },
+  "metricCards.turnoverPaidOrders": {
+    "en": "Turnover (paid orders)",
+    "ka": "",
+    "_source": "src/components/admin/analytics/metric-cards.tsx"
+  },
+  "promoCampaignFormDialog.discountType": {
+    "en": "Discount type",
+    "ka": "",
+    "_source": "src/components/admin/finance/promo-campaign-form-dialog.tsx"
+  },
+  "promoCampaignFormDialog.ends": {
+    "en": "Ends",
+    "ka": "",
+    "_source": "src/components/admin/finance/promo-campaign-form-dialog.tsx"
+  },
+  "promoCampaignFormDialog.leaveBlankForUnlimitedRedemptions": {
+    "en": "Leave blank for unlimited redemptions.",
+    "ka": "",
+    "_source": "src/components/admin/finance/promo-campaign-form-dialog.tsx"
+  },
+  "promoCampaignFormDialog.lettersAndNumbersOnly332": {
+    "en": "Letters and numbers only, 3–32 characters.",
+    "ka": "",
+    "_source": "src/components/admin/finance/promo-campaign-form-dialog.tsx"
+  },
+  "promoCampaignFormDialog.starts": {
+    "en": "Starts",
+    "ka": "",
+    "_source": "src/components/admin/finance/promo-campaign-form-dialog.tsx"
+  },
+  "promoCampaignFormDialog.unlimited": {
+    "en": "Unlimited",
+    "ka": "",
+    "_source": "src/components/admin/finance/promo-campaign-form-dialog.tsx"
+  },
+  "promoCampaignFormDialog.usageLimitOptional": {
+    "en": "Usage limit (optional)",
+    "ka": "",
+    "_source": "src/components/admin/finance/promo-campaign-form-dialog.tsx"
+  },
+  "staticPageFormDialog.bodyHtml": {
+    "en": "Body (HTML)",
+    "ka": "",
+    "_source": "src/components/admin/content/static-page-form-dialog.tsx"
+  },
+  "staticPageFormDialog.publishedVisibleToVisitors": {
+    "en": "Published — visible to visitors",
+    "ka": "",
+    "_source": "src/components/admin/content/static-page-form-dialog.tsx"
+  },
+  "staticPageFormDialog.termsOfService": {
+    "en": "Terms of Service",
+    "ka": "",
+    "_source": "src/components/admin/content/static-page-form-dialog.tsx"
+  },
+  "suspendDialog.whyIsThisAccountBeingSuspended": {
+    "en": "Why is this account being suspended?",
+    "ka": "",
+    "_source": "src/components/admin/users/suspend-dialog.tsx"
+  },
+  "systemUserStatusButton.networkErrorPleaseTryAgain": {
+    "en": "Network error. Please try again.",
+    "ka": "",
+    "_source": "src/components/admin/users/system-user-status-button.tsx"
+  },
+  "translationFormDialog.aNamespaceAndAKeyAre": {
+    "en": "A namespace and a key are required.",
+    "ka": "",
+    "_source": "src/components/admin/content/translation-form-dialog.tsx"
+  },
+  "translationFormDialog.bothTheGeorgianAndTheEnglish": {
+    "en": "Both the Georgian and the English value are required.",
+    "ka": "",
+    "_source": "src/components/admin/content/translation-form-dialog.tsx"
+  },
+  "translationFormDialog.englishText": {
+    "en": "English text",
+    "ka": "",
+    "_source": "src/components/admin/content/translation-form-dialog.tsx"
+  },
+  "translationFormDialog.heroTitle": {
+    "en": "hero.title",
+    "ka": "",
+    "_source": "src/components/admin/content/translation-form-dialog.tsx"
+  }
+}

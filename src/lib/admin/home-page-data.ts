@@ -18,23 +18,6 @@ import {
 } from "@/lib/admin/home-page-content";
 import { prisma } from "@/lib/prisma";
 
-/**
- * The locale served when the visitor asks for nothing in particular.
- *
- * The site has no locale mechanism yet — no path prefix, no cookie, no
- * `Accept-Language` negotiation — so the landing routes read an optional
- * `?locale=` query parameter as a stopgap, the same way `/pages/[slug]` does.
- * When that mechanism lands, this module and `/pages/[slug]` are the places
- * that have to change.
- */
-const DEFAULT_LOCALE: ContentLocale = "EN";
-
-/** `?locale=` values accepted, lowercased, mapped to the schema's enum. */
-const LOCALE_BY_QUERY_VALUE: Record<string, ContentLocale> = {
-  en: "EN",
-  ka: "KA",
-};
-
 /** Every landing placement, so all three banner lists come out of one query. */
 const HOME_BANNER_PLACEMENTS = [
   HOME_HERO_BANNER_PLACEMENT,
@@ -61,25 +44,6 @@ export type HomePageBanners = {
 export type HomePageContent = HomePageBanners & {
   sections: LandingSection[];
 };
-
-/**
- * Resolves `?locale=` to a `ContentLocale`, falling back to the default for
- * anything unrecognised (including a repeated parameter, which arrives as an
- * array).
- *
- * Unlike `/pages/[slug]`, which 404s on a locale it does not have, the landing
- * page always renders: it is the site's front door, and a mistyped query
- * parameter must not be able to take it down.
- */
-export function resolveHomePageLocale(
-  raw: string | string[] | undefined,
-): ContentLocale {
-  if (typeof raw !== "string") {
-    return DEFAULT_LOCALE;
-  }
-
-  return LOCALE_BY_QUERY_VALUE[raw.trim().toLowerCase()] ?? DEFAULT_LOCALE;
-}
 
 /**
  * The active, locale-matched sections in `sortOrder`, each validated against

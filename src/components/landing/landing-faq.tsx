@@ -1,12 +1,12 @@
 "use client";
 
 import { useId, useState } from "react";
-import Link from "next/link";
 
 import {
   DEFAULT_HOME_PAGE_CONTENT,
   type FaqContent,
 } from "@/lib/admin/home-page-content";
+import { Link } from "@/i18n/navigation";
 
 /**
  * `content` comes from the matching `HomePageSection` row when one exists, and

@@ -1,8 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
 
+import { useRouter } from "@/i18n/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -355,7 +355,11 @@ export function VehiclesDetailPanel({
           </span>
         ) : (
           vehicle.sampled.operatingCities.map((city) => (
-            <Badge key={city} variant="outline" className={NEUTRAL_PILL_CLASSES}>
+            <Badge
+              key={city}
+              variant="outline"
+              className={NEUTRAL_PILL_CLASSES}
+            >
               {city}
             </Badge>
           ))
@@ -363,7 +367,9 @@ export function VehiclesDetailPanel({
       </div>
 
       <div className="mt-5 flex flex-wrap items-center gap-2">
-        <h3 className="text-[13px] font-semibold">Running costs · this month</h3>
+        <h3 className="text-[13px] font-semibold">
+          Running costs · this month
+        </h3>
         <SampleNote note={SAMPLE_NOTES.costs} />
       </div>
       <dl className="mt-0.5">

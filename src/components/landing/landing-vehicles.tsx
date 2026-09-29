@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import type { ReactElement } from "react";
 
 import {
@@ -11,6 +10,7 @@ import {
   DEFAULT_HOME_PAGE_CONTENT,
   type VehicleTypesContent,
 } from "@/lib/admin/home-page-content";
+import { Link } from "@/i18n/navigation";
 
 const CARD_CLASSES =
   "overflow-hidden rounded-3xl border border-line bg-surface";

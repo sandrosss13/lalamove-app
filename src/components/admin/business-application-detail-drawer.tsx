@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 
 // Type-only imports, so nothing of the server routes (Prisma, Better Auth) is
 // pulled into this client bundle — they are erased at compile time. Sharing the
@@ -11,6 +10,7 @@ import type {
   AdminBusinessApplicationDetail,
   AdminBusinessApplicationVehicle,
 } from "@/app/api/admin/business-applications/[id]/route";
+import { useRouter } from "@/i18n/navigation";
 import type { AdminBusinessCompanyReviewResponse } from "@/app/api/admin/business-applications/[id]/company/route";
 import type { AdminBusinessVehicleReviewResponse } from "@/app/api/admin/business-applications/[id]/vehicles/[vehicleId]/route";
 import {
