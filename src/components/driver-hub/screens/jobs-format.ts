@@ -17,18 +17,25 @@
  * onto the same zone, display and day-bucketing alike, so the constant is now
  * imported rather than spelled out here and no screen can drift off it again.
  *
- * The locale is pinned for the other half of the same reason — `en-GB` gives
- * 24-hour times and "4 Aug", the handoff's own style, whatever the browser is
- * set to, and a formatter reading the machine's locale would render one string
- * in Node and a different one in the browser after hydration.
+ * The locale is never the machine's, for the other half of the same reason: a
+ * formatter reading it would render one string in Node and a different one in
+ * the browser after hydration. The clock is pinned to `en-GB` (24-hour, the
+ * handoff's style); day and month *words* follow the reader's app locale, which
+ * callers pass in through `JobsTimeFormat` — the route's locale is the same on
+ * both sides of hydration. `en` still resolves to `en-GB` ("4 Aug").
  *
  * The other half of that determinism is "now", which is *not* read from the
  * clock here: every relative label takes the instant its caller was rendered at,
  * threaded down from the server page. See `formatJobTime` below.
  */
+import { useLocale, useTranslations } from "next-intl";
+import { useMemo } from "react";
+
+import type { Translator } from "@/i18n/translator";
 import {
   HUB_TIME_ZONE,
   hubCivilDate,
+  hubDateTimeFormat,
   hubDayNumber,
 } from "@/lib/dashboard/hub/timezone";
 
@@ -63,30 +70,43 @@ const clockFormatter = new Intl.DateTimeFormat("en-GB", {
 });
 
 /** `4 Aug` — a date inside the current year, where the year is redundant. */
-const dayMonthFormatter = new Intl.DateTimeFormat("en-GB", {
-  day: "numeric",
-  month: "short",
-  timeZone: HUB_TIME_ZONE,
-});
+const DAY_MONTH_OPTIONS = { day: "numeric", month: "short" } as const;
 
 /** `4 Aug 2025` — a date in another year, where it is not. */
-const dayMonthYearFormatter = new Intl.DateTimeFormat("en-GB", {
+const DAY_MONTH_YEAR_OPTIONS = {
   day: "numeric",
   month: "short",
   year: "numeric",
-  timeZone: HUB_TIME_ZONE,
-});
+} as const;
 
 /** The unabbreviated form, for the `title` on a cell that may truncate. */
-const fullFormatter = new Intl.DateTimeFormat("en-GB", {
+const FULL_OPTIONS = {
   day: "numeric",
   month: "long",
   year: "numeric",
   hour: "2-digit",
   minute: "2-digit",
   hour12: false,
-  timeZone: HUB_TIME_ZONE,
-});
+} as const;
+
+/**
+ * What the day-labelled formatters need to speak the reader's language: the
+ * `driverHub.jobsFormat` translator for "Today" / "Yesterday" / "Tomorrow",
+ * and the locale for month names. Every formatter that takes one falls back to
+ * English when it is omitted.
+ */
+export type JobsTimeFormat = {
+  t: Translator;
+  locale: string;
+};
+
+/** Component hook: the `JobsTimeFormat` for the active locale. */
+export function useJobsTimeFormat(): JobsTimeFormat {
+  const t = useTranslations("driverHub.jobsFormat");
+  const locale = useLocale();
+
+  return useMemo(() => ({ t, locale }), [t, locale]);
+}
 
 /**
  * Which calendar day and year this instant falls on *in Tbilisi*.
@@ -109,7 +129,11 @@ function civilDate(date: Date): { dayNumber: number; year: number } {
  * order carries the client's requested slot, which routinely *is* in the
  * future, and rendering that as a bare "13:30" would read as this afternoon.
  */
-function relativeDayLabel(date: Date, now: Date): string | null {
+function relativeDayLabel(
+  date: Date,
+  now: Date,
+  format?: JobsTimeFormat,
+): string | null {
   const civilThen = civilDate(date);
   const civilNow = civilDate(now);
   const dayDelta = civilNow.dayNumber - civilThen.dayNumber;
@@ -119,16 +143,19 @@ function relativeDayLabel(date: Date, now: Date): string | null {
   }
 
   if (dayDelta === 1) {
-    return "Yesterday";
+    return format ? format.t("yesterday") : "Yesterday";
   }
 
   if (dayDelta === -1) {
-    return "Tomorrow";
+    return format ? format.t("tomorrow") : "Tomorrow";
   }
 
-  return civilThen.year === civilNow.year
-    ? dayMonthFormatter.format(date)
-    : dayMonthYearFormatter.format(date);
+  return hubDateTimeFormat(
+    format?.locale,
+    civilThen.year === civilNow.year
+      ? DAY_MONTH_OPTIONS
+      : DAY_MONTH_YEAR_OPTIONS,
+  ).format(date);
 }
 
 /**
@@ -143,18 +170,28 @@ function relativeDayLabel(date: Date, now: Date): string | null {
  * Threading one instant down from the page makes both passes agree by
  * construction.
  */
-export function formatJobTime(iso: string, nowIso: string): string {
+export function formatJobTime(
+  iso: string,
+  nowIso: string,
+  format?: JobsTimeFormat,
+): string {
   const date = new Date(iso);
-  const day = relativeDayLabel(date, new Date(nowIso));
+  const day = relativeDayLabel(date, new Date(nowIso), format);
   const clock = clockFormatter.format(date);
 
   return day === null ? clock : `${day} ${clock}`;
 }
 
 /** The detail panel's "Today · 09:40" line, from the same day vocabulary. */
-export function formatJobDateLabel(iso: string, nowIso: string): string {
+export function formatJobDateLabel(
+  iso: string,
+  nowIso: string,
+  format?: JobsTimeFormat,
+): string {
   const date = new Date(iso);
-  const day = relativeDayLabel(date, new Date(nowIso)) ?? "Today";
+  const day =
+    relativeDayLabel(date, new Date(nowIso), format) ??
+    (format ? format.t("today") : "Today");
 
   return `${day} · ${clockFormatter.format(date)}`;
 }
@@ -163,15 +200,18 @@ export function formatJobDateLabel(iso: string, nowIso: string): string {
  * `4 August 2026, 18:20`, for the `title` of a cell narrow enough to truncate.
  * A truncated timestamp is a label; this is the thing itself.
  */
-export function formatJobTimestamp(iso: string): string {
-  return fullFormatter.format(new Date(iso));
+export function formatJobTimestamp(
+  iso: string,
+  format?: Pick<JobsTimeFormat, "locale">,
+): string {
+  return hubDateTimeFormat(format?.locale, FULL_OPTIONS).format(new Date(iso));
 }
 
 /**
  * `toTelHref` **moved** to `@/components/driver-hub/hub-job-parts`.
  *
  * It was never a formatter in this module's sense — everything else here is
- * pinned to `HUB_TIME_ZONE` or to `en-GB`, and that one was a parsing rule about
+ * pinned to `HUB_TIME_ZONE`, and that one was a parsing rule about
  * a stored free-text column. The driver's Job sheet needed the same rule, and
  * the per-screen formatter convention this file's header defends (which is why
  * `loads-format.ts` carries its own clock rather than importing this one) is a

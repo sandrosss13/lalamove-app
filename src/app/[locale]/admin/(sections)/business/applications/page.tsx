@@ -24,7 +24,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { GEORGIAN_CITY_OPTIONS } from "@/lib/georgian-cities";
+import { useLocalizedCityOptions } from "@/lib/georgian-cities";
 
 /** Columns in the table, so the full-width state rows can span all of them. */
 const COLUMN_COUNT = 5;
@@ -60,18 +60,26 @@ const FILTER_ORDER: readonly ApplicationFilter[] = [
  */
 const FILTERS: Record<
   ApplicationFilter,
-  { labelKey: string; emptyMessage: string }
+  { labelKey: string; emptyKey: string }
 > = {
-  ALL: { labelKey: "all", emptyMessage: "No fleet applications yet." },
+  // Full dotted paths: "All" is shared copy, while the statuses use the
+  // *application* wording (under review), not the order-status one.
+  ALL: {
+    labelKey: "common.shared.all",
+    emptyKey: "admin.adminBusinessApplications.emptyAll",
+  },
   PENDING: {
-    labelKey: "pending",
-    emptyMessage: "No pending fleet applications.",
+    labelKey: "admin.applicationStatus.pending",
+    emptyKey: "admin.adminBusinessApplications.emptyPending",
   },
   ACTION_REQUIRED: {
-    labelKey: "actionRequired",
-    emptyMessage: "No action-required fleet applications.",
+    labelKey: "admin.applicationStatus.actionRequired",
+    emptyKey: "admin.adminBusinessApplications.emptyActionRequired",
   },
-  APPROVED: { labelKey: "approved", emptyMessage: "No activated fleets." },
+  APPROVED: {
+    labelKey: "admin.applicationStatus.approved",
+    emptyKey: "admin.adminBusinessApplications.emptyApproved",
+  },
 };
 
 /**
@@ -127,12 +135,15 @@ async function readErrorMessage(
  * the company declared — the design's "Tbilisi +2". A city value that predates
  * the enum-backed picker falls back to its stored value rather than vanishing.
  */
-function formatCityColumn(row: AdminBusinessApplicationRow): string {
+function formatCityColumn(
+  row: AdminBusinessApplicationRow,
+  cityOptions: readonly { value: string; label: string }[],
+): string {
   if (row.primaryCity === "") return EMPTY_VALUE;
 
   const label =
-    GEORGIAN_CITY_OPTIONS.find((option) => option.value === row.primaryCity)
-      ?.label ?? row.primaryCity;
+    cityOptions.find((option) => option.value === row.primaryCity)?.label ??
+    row.primaryCity;
 
   return row.otherCitiesCount > 0 ? `${label} +${row.otherCitiesCount}` : label;
 }
@@ -153,11 +164,13 @@ function formatCityColumn(row: AdminBusinessApplicationRow): string {
 export default function AdminBusinessApplicationsPage() {
   const t = useTranslations("admin.adminBusinessApplications");
   const tShared = useTranslations("common.shared");
+  const tRoot = useTranslations();
+  const cityOptions = useLocalizedCityOptions();
   /** Label for a row's application status chip. */
   const statusLabels: Record<AdminBusinessApplicationStatus, string> = {
-    PENDING: tShared("pending"),
-    ACTION_REQUIRED: tShared("actionRequired"),
-    APPROVED: "Fleet active",
+    PENDING: tRoot("admin.applicationStatus.pending"),
+    ACTION_REQUIRED: tRoot("admin.applicationStatus.actionRequired"),
+    APPROVED: t("fleetActive"),
   };
   const [filter, setFilter] = useState<ApplicationFilter>("ALL");
   const [page, setPage] = useState(1);
@@ -247,14 +260,14 @@ export default function AdminBusinessApplicationsPage() {
                   setPage(1);
                 }}
               >
-                {tShared(FILTERS[candidate].labelKey)}
+                {tRoot(FILTERS[candidate].labelKey)}
               </Button>
             );
           })}
         </div>
         {data ? (
           <p className="text-sm text-muted-foreground">
-            {data.total} {data.total === 1 ? "application" : "applications"}
+            {t("applicationCount", { count: data.total })}
           </p>
         ) : null}
       </div>
@@ -295,7 +308,7 @@ export default function AdminBusinessApplicationsPage() {
                   colSpan={COLUMN_COUNT}
                   className="py-10 text-center text-muted-foreground"
                 >
-                  {FILTERS[filter].emptyMessage}
+                  {tRoot(FILTERS[filter].emptyKey)}
                 </TableCell>
               </TableRow>
             ) : (
@@ -335,7 +348,9 @@ export default function AdminBusinessApplicationsPage() {
                         </span>
                       </div>
                     </TableCell>
-                    <TableCell>{formatCityColumn(application)}</TableCell>
+                    <TableCell>
+                      {formatCityColumn(application, cityOptions)}
+                    </TableCell>
                     <TableCell>{application.fleetSize}</TableCell>
                     {/* Mono for counts, per the design. */}
                     <TableCell className="font-price">
@@ -368,7 +383,10 @@ export default function AdminBusinessApplicationsPage() {
       {data && data.pageCount > 1 ? (
         <div className="flex items-center justify-end gap-3">
           <span className="text-sm text-muted-foreground">
-            Page {data.page} of {data.pageCount}
+            {tShared("pageOf", {
+              page: data.page,
+              pageCount: data.pageCount,
+            })}
           </span>
           <Button
             variant="outline"

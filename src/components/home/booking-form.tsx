@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { ArrowRight, CalendarDays } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import type {
   CargoCategory,
   CargoHandlingTag,
@@ -48,9 +48,10 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import {
   CARGO_CATEGORY_ALLOWED_VEHICLE_CATEGORIES,
-  CARGO_HANDLING_TAG_LABELS,
   CARGO_MEASUREMENT_BOUNDS,
   type CargoMeasurementBounds,
+  useCargoCategoryLabel,
+  useCargoHandlingTagLabel,
 } from "@/lib/cargo";
 // The one fit vocabulary this form and `POST /api/orders` share. Imported, never
 // re-implemented here: a client-side copy of these comparisons is exactly how the
@@ -67,6 +68,7 @@ import {
   specCapability,
   type CargoAxis,
 } from "@/lib/orders/booking-fit";
+import { vehicleTypeSpecLabel } from "@/lib/vehicle-type-spec-labels";
 
 /** A single map coordinate, as `AddressAutocomplete` reports it. Mirrors
  *  `LatLng` from `@/lib/geo`, duplicated here so this client component never
@@ -217,9 +219,15 @@ const CURRENCY_EPSILON = 0.005;
 /** Placeholder for a figure that isn't known yet. */
 const EMPTY_STAT = "—";
 
-const QUOTE_FAILED_MESSAGE = "Could not price this load. Please try again.";
-
-const ORDER_FAILED_MESSAGE = "Could not create the order. Please try again.";
+/**
+ * The subset of a `next-intl` translator the module-level helpers below need.
+ * They sit outside the component, so they are handed the component's
+ * `home.bookingForm` translator rather than calling a hook themselves.
+ */
+type BookingFormTranslate = (
+  key: string,
+  values?: Record<string, string | number>,
+) => string;
 
 const PANEL_LABEL_CLASSES =
   "text-[0.6875rem] font-semibold tracking-[0.1em] text-muted uppercase";
@@ -394,16 +402,24 @@ type ParseResult<T> = { data: T } | { error: string };
  */
 function parseCargoNumber(
   raw: string,
-  { bounds, label }: { bounds: CargoMeasurementBounds; label: string },
+  {
+    bounds,
+    label,
+    t,
+  }: {
+    bounds: CargoMeasurementBounds;
+    label: string;
+    t: BookingFormTranslate;
+  },
 ): ParseResult<number> {
   const trimmed = raw.trim();
   if (trimmed === "") {
-    return { error: `Enter a ${label}.` };
+    return { error: t("enterA", { label }) };
   }
 
   const value = Number(trimmed);
   if (!Number.isFinite(value)) {
-    return { error: `Enter a valid ${label}.` };
+    return { error: t("enterAValid", { label }) };
   }
   // No unit in this sentence: `label` is the on-screen field label and already
   // carries one ("Width (m)"), so appending `bounds.unit` would read "Width (m)
@@ -411,7 +427,7 @@ function parseCargoNumber(
   // below, where the sentence has no label to lean on.
   if (value < bounds.min || value > bounds.max) {
     return {
-      error: `${label} must be between ${bounds.min} and ${bounds.max}.`,
+      error: t("mustBeBetween", { label, min: bounds.min, max: bounds.max }),
     };
   }
 
@@ -436,7 +452,7 @@ type CargoNumberFieldKey = "weight" | "length" | "width" | "height";
  * reads above the input, so it is capitalised and carries its unit. Collapsing
  * them would force one of the two to read badly.
  *
- * `emptyError` overrides the parser's own terse empty-field message for the one
+ * `emptyErrorKey` overrides the parser's own terse empty-field message for the one
  * case the client is most likely to hit, because being required is not
  * self-explaining: an unanswered weight does not merely fail a rule, it makes
  * the finished order invisible to the entire driver pool (the load board's fit
@@ -463,7 +479,9 @@ type CargoNumberField = {
   step: string;
   /** Key under `home.bookingForm` for the placeholder, resolved at render. */
   placeholderKey: "eG850" | "eG12" | "eG08" | "eG11";
-  emptyError: string;
+  /** Key under `home.bookingForm` for the empty-field error, resolved at render. */
+  emptyErrorKey:
+    "enterTotalWeight" | "enterLength" | "enterWidth" | "enterHeight";
 };
 
 /**
@@ -473,8 +491,6 @@ type CargoNumberField = {
  * through the field's own `aria-describedby` exactly like any other field hint,
  * and it is as true before the client touches the field as after.
  */
-const CARGO_FIELD_HELPER =
-  "Needed to show your load to drivers with the right vehicle.";
 
 /**
  * The accepted range, spelled out under the field rather than left for the
@@ -485,8 +501,15 @@ const CARGO_FIELD_HELPER =
  * failure this whole shared table exists to prevent, in its mildest form: copy
  * that says 15 m over a field that rejects 5.
  */
-function cargoRangeHelper(bounds: CargoMeasurementBounds): string {
-  return `Accepted range ${bounds.min}–${bounds.max} ${bounds.unit}.`;
+function cargoRangeHelper(
+  bounds: CargoMeasurementBounds,
+  t: BookingFormTranslate,
+): string {
+  return t("acceptedRange", {
+    min: bounds.min,
+    max: bounds.max,
+    unit: bounds.unit,
+  });
 }
 
 /**
@@ -545,13 +568,13 @@ type DeclaredCargoEnvelope = {
  */
 const CARGO_AXIS_CARD_REASONS: Record<
   CargoAxis,
-  (envelope: DeclaredCargoEnvelope) => string
+  (envelope: DeclaredCargoEnvelope, t: BookingFormTranslate) => string
 > = {
-  weight: (envelope) =>
-    `Can't carry ${formatVehiclePayload(envelope.weightKg)}`,
-  length: (envelope) => `Too short for ${envelope.lengthM} m`,
-  width: (envelope) => `Too narrow for ${envelope.widthM} m`,
-  height: (envelope) => `Too low for ${envelope.heightM} m`,
+  weight: (envelope, t) =>
+    t("cantCarry", { weight: formatVehiclePayload(envelope.weightKg) }),
+  length: (envelope, t) => t("tooShortFor", { size: envelope.lengthM }),
+  width: (envelope, t) => t("tooNarrowFor", { size: envelope.widthM }),
+  height: (envelope, t) => t("tooLowFor", { size: envelope.heightM }),
 };
 
 /**
@@ -567,9 +590,10 @@ const CARGO_AXIS_CARD_REASONS: Record<
 function cargoFitCardReason(
   axes: CargoAxis[],
   envelope: DeclaredCargoEnvelope,
+  t: BookingFormTranslate,
 ): string {
   return axes
-    .map((axis) => CARGO_AXIS_CARD_REASONS[axis](envelope))
+    .map((axis) => CARGO_AXIS_CARD_REASONS[axis](envelope, t))
     .join(" · ");
 }
 
@@ -591,7 +615,7 @@ function cargoFitCardReason(
  * one way to be unserviceable and nothing of the client's own to quote back at
  * them.
  */
-const NO_CARRIERS_CARD_REASON = "No carriers run this class";
+const NO_CARRIERS_CARD_REASON_KEY = "noCarriersRunThisClass";
 
 /**
  * The same fact said once, with the fix attached, when it is true of *every*
@@ -606,8 +630,7 @@ const NO_CARRIERS_CARD_REASON = "No carriers run this class";
  * only the last two are still adjustable at this point in the form (a goods
  * change would re-default both, which is a bigger instruction than it sounds).
  */
-const NO_SERVICEABLE_VEHICLES_MESSAGE =
-  "No carrier currently runs any of these vehicle classes. Pick a different load space or weight.";
+const NO_SERVICEABLE_VEHICLES_MESSAGE_KEY = "noServiceableVehicles";
 
 /**
  * The ceiling comes from `CARGO_MEASUREMENT_BOUNDS`: the heaviest thing the
@@ -620,12 +643,11 @@ const NO_SERVICEABLE_VEHICLES_MESSAGE =
 const CARGO_WEIGHT_FIELD: CargoNumberField = {
   key: "weight",
   labelKey: "totalWeightKg",
+  emptyErrorKey: "enterTotalWeight",
   parseLabel: "total weight",
   bounds: CARGO_MEASUREMENT_BOUNDS.cargoWeightKg,
   step: "0.1",
   placeholderKey: "eG850",
-  emptyError:
-    "Enter a total weight — drivers can't be matched to a load with unknown weight.",
 };
 
 /**
@@ -645,34 +667,31 @@ const CARGO_WEIGHT_FIELD: CargoNumberField = {
 const CARGO_LENGTH_FIELD: CargoNumberField = {
   key: "length",
   labelKey: "lengthM",
+  emptyErrorKey: "enterLength",
   parseLabel: "length",
   bounds: CARGO_MEASUREMENT_BOUNDS.cargoLengthM,
   step: "0.01",
   placeholderKey: "eG12",
-  emptyError:
-    "Enter a length — drivers can't be matched to a load with unknown dimensions.",
 };
 
 const CARGO_WIDTH_FIELD: CargoNumberField = {
   key: "width",
   labelKey: "widthM",
+  emptyErrorKey: "enterWidth",
   parseLabel: "width",
   bounds: CARGO_MEASUREMENT_BOUNDS.cargoWidthM,
   step: "0.01",
   placeholderKey: "eG08",
-  emptyError:
-    "Enter a width — drivers can't be matched to a load with unknown dimensions.",
 };
 
 const CARGO_HEIGHT_FIELD: CargoNumberField = {
   key: "height",
   labelKey: "heightM",
+  emptyErrorKey: "enterHeight",
   parseLabel: "height",
   bounds: CARGO_MEASUREMENT_BOUNDS.cargoHeightM,
   step: "0.01",
   placeholderKey: "eG11",
-  emptyError:
-    "Enter a height — drivers can't be matched to a load with unknown dimensions.",
 };
 
 /** Which of the four the client has already left, and so may be told off. */
@@ -743,8 +762,7 @@ const HANDLING_TAG_IDLE_CLASSES =
  * appropriately licensed driver. Telling the client plainly is the whole of what
  * this form can honestly do; the gap itself is tracked as follow-up work.
  */
-const HAZMAT_NOTICE =
-  "Hazmat loads require a driver with the appropriate carrier certification. This isn't checked automatically yet — see the compliance note in specs/driver-load-board/action-required.md.";
+const HAZMAT_NOTICE_KEY = "hazmatNotice";
 
 /** Shared treatment for an inline field error on this page. */
 const FIELD_ERROR_CLASSES = "text-xs leading-snug text-accent";
@@ -794,8 +812,8 @@ const PICK_CARD_UNAVAILABLE_REASON_CLASSES =
  * leave a client with nothing to act on, so the reason is rendered in the card
  * and referenced by its `aria-describedby` (see `StepCard`).
  */
-const CHOOSE_DATE_FIRST = "Choose a date and time first.";
-const ENTER_ADDRESSES_FIRST = "Enter both addresses first.";
+const CHOOSE_DATE_FIRST_KEY = "chooseDateFirst";
+const ENTER_ADDRESSES_FIRST_KEY = "enterAddressesFirst";
 /**
  * The vehicle step's line, and the one gate with no action behind it: the weight
  * effect settles on a capacity the moment any exists, so this card is shut only
@@ -804,8 +822,8 @@ const ENTER_ADDRESSES_FIRST = "Enter both addresses first.";
  * goods clear no vehicle). "Choose a total weight first" would name a choice
  * that is not on offer in any of them.
  */
-const WEIGHT_UNAVAILABLE = "Available once a total weight can be chosen above.";
-const CHOOSE_VEHICLE_FIRST = "Choose a vehicle first.";
+const WEIGHT_UNAVAILABLE_KEY = "weightUnavailable";
+const CHOOSE_VEHICLE_FIRST_KEY = "chooseVehicleFirst";
 
 /** Shared geometry for a native `<select>`/date-trigger styled to match the
  *  rest of this form's fields — the same treatment `account-profile-form.tsx`
@@ -816,18 +834,34 @@ const NATIVE_FIELD_CLASSES =
   "h-10 w-full rounded-lg border border-line bg-ink px-2.5 text-left text-sm text-paper transition-colors outline-none focus-visible:border-accent focus-visible:ring-3 focus-visible:ring-accent/20";
 
 /** "Sat, Aug 22" — compact enough for the date trigger button. */
-const scheduledDateFormatter = new Intl.DateTimeFormat("en-US", {
+/**
+ * Options for the date triggers' label. The formatter itself is built per
+ * locale inside the component (see `scheduledDateFormatter` there) from the
+ * browser's own time zone, as before: the chosen day is a local calendar day,
+ * and re-zoning it to the app's configured zone could shift it across midnight.
+ */
+const SCHEDULED_DATE_FORMAT: Intl.DateTimeFormatOptions = {
   weekday: "short",
   month: "short",
   day: "numeric",
-});
+};
+
+/** Options for a time-slot label: "8:00 AM" in English, "08:00" in Georgian. */
+const TIME_SLOT_FORMAT: Intl.DateTimeFormatOptions = {
+  hour: "numeric",
+  minute: "2-digit",
+};
 
 /** Selectable pickup times, half-hour apart across a normal working day. */
 const TIME_SLOT_START_HOUR = 8;
 const TIME_SLOT_END_HOUR = 20;
 const TIME_SLOT_STEP_MINUTES = 30;
 
-type TimeSlot = { value: string; label: string };
+/**
+ * One selectable start time. `value` is the wire format, "HH:MM"; the label is
+ * formatted for the active locale at render (`formatTimeSlot`).
+ */
+type TimeSlot = { value: string; hour: number; minute: number };
 
 /**
  * Every half-hour from 08:00 to 20:00, as both a sortable "HH:MM" value (what
@@ -848,12 +882,10 @@ const TIME_SLOTS: TimeSlot[] = (() => {
     const minute = minutes % 60;
     const paddedMinute = String(minute).padStart(2, "0");
 
-    const period = hour24 < 12 ? "AM" : "PM";
-    const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
-
     slots.push({
       value: `${String(hour24).padStart(2, "0")}:${paddedMinute}`,
-      label: `${hour12}:${paddedMinute} ${period}`,
+      hour: hour24,
+      minute,
     });
   }
 
@@ -894,13 +926,12 @@ function combineDateAndTime(date: Date, time: string): Date | null {
  * bare numeral, which on its own never says what is being counted — or that
  * the first of those people is the driver rather than a helper.
  */
-function crewSizeDescription(size: CrewSize): string {
+function crewSizeDescription(size: CrewSize, t: BookingFormTranslate): string {
   if (size === 1) {
-    return "1 person — the driver alone";
+    return t("crewSizeOne");
   }
 
-  const helpers = size - 1;
-  return `${size} people — the driver and ${helpers} helper${helpers === 1 ? "" : "s"}`;
+  return t("crewSizeMany", { size, helpers: size - 1 });
 }
 
 /**
@@ -908,8 +939,8 @@ function crewSizeDescription(size: CrewSize): string {
  * Pluralised rather than printed as a bare "1 vehicles", the same reflex as
  * `crewSizeDescription` above.
  */
-function vehicleCountLabel(count: number): string {
-  return `${count} vehicle${count === 1 ? "" : "s"}`;
+function vehicleCountLabel(count: number, t: BookingFormTranslate): string {
+  return t("vehicleCount", { count });
 }
 
 /**
@@ -964,6 +995,31 @@ const VEHICLE_CATEGORY_GLYPHS: Record<
  */
 export function BookingForm(): React.ReactElement {
   const t = useTranslations("home.bookingForm");
+  const locale = useLocale();
+  // Root-scoped, for shared helpers that take full keys (`cargoFitMessage`).
+  const tRoot = useTranslations();
+  // A catalogue class's name in the reader's language, by its stable code; the
+  // API's `label` is the seeded English and the fallback for an unknown code.
+  const vehicleTypeLabel = (vehicleType: { code: string; label: string }) =>
+    vehicleTypeSpecLabel(vehicleType.code, vehicleType.label, tRoot);
+  // The shared cargo taxonomy's labels in the reader's language; the English
+  // maps in `@/lib/cargo` stay as the source for non-UI callers.
+  const cargoCategoryLabel = useCargoCategoryLabel();
+  const cargoHandlingTagLabel = useCargoHandlingTagLabel();
+  // Built per locale rather than at module scope, so the date and time labels
+  // follow the language toggle. No `timeZone`: see `SCHEDULED_DATE_FORMAT`.
+  const scheduledDateFormatter = useMemo(
+    () => new Intl.DateTimeFormat(locale, SCHEDULED_DATE_FORMAT),
+    [locale],
+  );
+  const timeSlotFormatter = useMemo(
+    () => new Intl.DateTimeFormat(locale, TIME_SLOT_FORMAT),
+    [locale],
+  );
+  const formatTimeSlot = (slot: TimeSlot) =>
+    // Any fixed date works: only the hour and minute are printed, in the same
+    // local zone the `Date` is constructed in.
+    timeSlotFormatter.format(new Date(2000, 0, 1, slot.hour, slot.minute));
   const tShared = useTranslations("common.shared");
   const tCargo = useTranslations("home.orderCargoOptions");
   const router = useRouter();
@@ -1556,21 +1612,25 @@ export function BookingForm(): React.ReactElement {
     bounds: CARGO_WEIGHT_FIELD.bounds,
     // Translated here: the parser interpolates the label and has no locale.
     label: t(CARGO_WEIGHT_FIELD.labelKey),
+    t,
   });
   const cargoLengthResult = parseCargoNumber(cargoLengthMInput, {
     bounds: CARGO_LENGTH_FIELD.bounds,
     // Translated here: the parser interpolates the label and has no locale.
     label: t(CARGO_LENGTH_FIELD.labelKey),
+    t,
   });
   const cargoWidthResult = parseCargoNumber(cargoWidthMInput, {
     bounds: CARGO_WIDTH_FIELD.bounds,
     // Translated here: the parser interpolates the label and has no locale.
     label: t(CARGO_WIDTH_FIELD.labelKey),
+    t,
   });
   const cargoHeightResult = parseCargoNumber(cargoHeightMInput, {
     bounds: CARGO_HEIGHT_FIELD.bounds,
     // Translated here: the parser interpolates the label and has no locale.
     label: t(CARGO_HEIGHT_FIELD.labelKey),
+    t,
   });
 
   /**
@@ -1713,9 +1773,10 @@ export function BookingForm(): React.ReactElement {
   const cargoFitBlockingMessage =
     selectedVehicleType !== null && cargoOversizeAxes.length > 0
       ? cargoFitMessage(
-          selectedVehicleType.label,
+          vehicleTypeLabel(selectedVehicleType),
           cargoOversizeAxes,
           specCapability(selectedVehicleType),
+          { t: tRoot, locale },
         )
       : null;
 
@@ -1871,7 +1932,7 @@ export function BookingForm(): React.ReactElement {
         setEstimateError(
           "error" in payload && payload.error
             ? payload.error
-            : QUOTE_FAILED_MESSAGE,
+            : t("couldNotPriceThisLoad"),
         );
         return;
       }
@@ -1994,7 +2055,7 @@ export function BookingForm(): React.ReactElement {
         const message =
           "error" in payload && payload.error
             ? payload.error
-            : ORDER_FAILED_MESSAGE;
+            : t("orderFailed");
         setError(message);
         // Cleared here rather than in a `finally`, so that the one path that
         // does not clear it — the successful one below — keeps the button
@@ -2124,7 +2185,7 @@ export function BookingForm(): React.ReactElement {
     selectedServiceLevelOption
       ? t(selectedServiceLevelOption.titleKey)
       : undefined,
-    selectedVehicleType?.label,
+    selectedVehicleType ? vehicleTypeLabel(selectedVehicleType) : undefined,
   ]
     .filter((part): part is string => Boolean(part))
     .join(" · ");
@@ -2289,7 +2350,7 @@ export function BookingForm(): React.ReactElement {
                         >
                           {scheduledDate
                             ? scheduledDateFormatter.format(scheduledDate)
-                            : "Select a date"}
+                            : t("selectADate")}
                         </span>
                       </button>
                     </PopoverTrigger>
@@ -2340,11 +2401,11 @@ export function BookingForm(): React.ReactElement {
                     className={NATIVE_FIELD_CLASSES}
                   >
                     <option value="" disabled>
-                      {scheduledDate ? "Select a time" : "Pick a date first"}
+                      {scheduledDate ? t("selectATime") : t("pickADateFirst")}
                     </option>
                     {availableTimeSlots.map((slot) => (
                       <option key={slot.value} value={slot.value}>
-                        {slot.label}
+                        {formatTimeSlot(slot)}
                       </option>
                     ))}
                   </select>
@@ -2373,7 +2434,7 @@ export function BookingForm(): React.ReactElement {
               step={2}
               title={tShared("route")}
               disabled={!routeStepEnabled}
-              disabledReason={CHOOSE_DATE_FIRST}
+              disabledReason={t(CHOOSE_DATE_FIRST_KEY)}
             >
               <div className="flex flex-col gap-4">
                 {/* No remount key on either field any more. Each one owns
@@ -2459,11 +2520,11 @@ export function BookingForm(): React.ReactElement {
               title={t("whatAreYouMoving")}
               description={t("pickTheClosestMatchItDecides")}
               disabled={!goodsStepEnabled}
-              disabledReason={ENTER_ADDRESSES_FIRST}
+              disabledReason={t(ENTER_ADDRESSES_FIRST_KEY)}
             >
               <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
                 {CARGO_OPTIONS.map((option) => {
-                  const { category, label, Icon } = option;
+                  const { category, Icon } = option;
                   const selected = category === cargoCategory;
 
                   return (
@@ -2483,7 +2544,7 @@ export function BookingForm(): React.ReactElement {
                         className={`size-5 ${selected ? "text-accent" : "text-muted"}`}
                       />
                       <span className="pr-4 text-[0.8125rem] leading-snug font-semibold text-paper">
-                        {label}
+                        {cargoCategoryLabel(category)}
                       </span>
                       <span className="text-xs leading-snug text-muted">
                         {tCargo(option.descriptionKey)}
@@ -2503,7 +2564,7 @@ export function BookingForm(): React.ReactElement {
               // The addresses, not the goods step: this card and the goods card
               // open on the identical predicate, so the goods step is never a
               // thing to go and do while this line is on screen.
-              disabledReason={ENTER_ADDRESSES_FIRST}
+              disabledReason={t(ENTER_ADDRESSES_FIRST_KEY)}
             >
               {weightOptions.length === 0 ? (
                 <p className="text-[0.8125rem] text-muted">
@@ -2528,7 +2589,9 @@ export function BookingForm(): React.ReactElement {
                   >
                     {weightOptions.map((capacity) => (
                       <option key={capacity} value={capacity}>
-                        Up to {formatVehiclePayload(capacity)}
+                        {t("upToWeight", {
+                          weight: formatVehiclePayload(capacity),
+                        })}
                       </option>
                     ))}
                   </select>
@@ -2549,7 +2612,7 @@ export function BookingForm(): React.ReactElement {
               // derives from the fetched types, so a failed fetch empties it and
               // shuts this step every time. Nothing competes with anything: one
               // string, in the one place a screen reader can still reach.
-              disabledReason={vehicleTypesError ?? WEIGHT_UNAVAILABLE}
+              disabledReason={vehicleTypesError ?? t(WEIGHT_UNAVAILABLE_KEY)}
             >
               {vehicleTypesError ? (
                 <p role="alert" className="text-[0.8125rem] text-accent">
@@ -2578,6 +2641,7 @@ export function BookingForm(): React.ReactElement {
                         const selected = option.body === bodyType;
                         const countLabel = vehicleCountLabel(
                           option.vehicleCount,
+                          t,
                         );
 
                         return (
@@ -2727,7 +2791,7 @@ export function BookingForm(): React.ReactElement {
                           role="alert"
                           className="mb-2.5 rounded-lg border border-accent/30 bg-accent/[0.08] px-3.5 py-3 text-[0.8125rem] leading-snug text-accent"
                         >
-                          {NO_SERVICEABLE_VEHICLES_MESSAGE}
+                          {t(NO_SERVICEABLE_VEHICLES_MESSAGE_KEY)}
                         </p>
                       ) : null}
 
@@ -2762,6 +2826,7 @@ export function BookingForm(): React.ReactElement {
                               ? cargoFitCardReason(
                                   unfitAxes,
                                   declaredCargoEnvelope,
+                                  t,
                                 )
                               : null;
 
@@ -2789,7 +2854,7 @@ export function BookingForm(): React.ReactElement {
                           // the one line the client needs — and the second line
                           // would be advice about a hypothetical truck.
                           const cardReason = !vehicleType.serviceable
-                            ? NO_CARRIERS_CARD_REASON
+                            ? t(NO_CARRIERS_CARD_REASON_KEY)
                             : unfitReason;
 
                           return (
@@ -2859,7 +2924,7 @@ export function BookingForm(): React.ReactElement {
                               </span>
 
                               <span className="mt-2.5 pr-4 text-[0.8125rem] leading-snug font-semibold text-paper">
-                                {vehicleType.label}
+                                {vehicleTypeLabel(vehicleType)}
                               </span>
                               <span className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-0.5 font-price text-[0.6875rem] text-muted">
                                 <span>
@@ -2870,10 +2935,11 @@ export function BookingForm(): React.ReactElement {
                                   )}
                                 </span>
                                 <span>
-                                  up to{" "}
-                                  {formatVehiclePayload(
-                                    vehicleType.maxPayloadKg,
-                                  )}
+                                  {t("specUpTo", {
+                                    weight: formatVehiclePayload(
+                                      vehicleType.maxPayloadKg,
+                                    ),
+                                  })}
                                 </span>
                               </span>
 
@@ -2924,7 +2990,7 @@ export function BookingForm(): React.ReactElement {
               title={t("cargoDetails")}
               description={t("whatIsActuallyBeingMovedWeight")}
               disabled={!cargoStepEnabled}
-              disabledReason={CHOOSE_VEHICLE_FIRST}
+              disabledReason={t(CHOOSE_VEHICLE_FIRST_KEY)}
             >
               <div className="flex flex-col gap-5">
                 <fieldset>
@@ -2944,7 +3010,7 @@ export function BookingForm(): React.ReactElement {
                         const errorMessage =
                           cargoFieldsTouched[field.key] && parseError !== null
                             ? value.trim() === ""
-                              ? field.emptyError
+                              ? t(field.emptyErrorKey)
                               : parseError
                             : null;
 
@@ -3028,8 +3094,8 @@ export function BookingForm(): React.ReactElement {
                               id={`${id}-helper`}
                               className="text-xs leading-snug text-muted"
                             >
-                              {CARGO_FIELD_HELPER}{" "}
-                              {cargoRangeHelper(field.bounds)}
+                              {t("cargoFieldHelper")}{" "}
+                              {cargoRangeHelper(field.bounds, t)}
                             </p>
                             {errorMessage ? (
                               <p
@@ -3106,19 +3172,20 @@ export function BookingForm(): React.ReactElement {
                       {selectedVehicleType !== null ? (
                         <p className="mt-1.5 text-accent/85">
                           <span className="font-price">
-                            {selectedVehicleType.label}:{" "}
+                            {vehicleTypeLabel(selectedVehicleType)}:{" "}
                             {formatVehicleDimensions(
                               selectedVehicleType.cargoLengthM,
                               selectedVehicleType.cargoWidthM,
                               selectedVehicleType.cargoHeightM,
                             )}
-                            , up to{" "}
-                            {formatVehiclePayload(
-                              selectedVehicleType.maxPayloadKg,
-                            )}
+                            ,{" "}
+                            {t("specUpTo", {
+                              weight: formatVehiclePayload(
+                                selectedVehicleType.maxPayloadKg,
+                              ),
+                            })}
                           </span>
-                          . Pick a bigger vehicle in step 5, or correct the
-                          figures above.
+                          . {t("pickBiggerVehicle")}
                         </p>
                       ) : null}
                     </div>
@@ -3187,7 +3254,7 @@ export function BookingForm(): React.ReactElement {
                               : HANDLING_TAG_IDLE_CLASSES
                           }`}
                         >
-                          {CARGO_HANDLING_TAG_LABELS[tag]}
+                          {cargoHandlingTagLabel(tag)}
                         </button>
                       );
                     })}
@@ -3203,13 +3270,11 @@ export function BookingForm(): React.ReactElement {
                       role="status"
                       className={`mt-2.5 ${FIELD_NOTICE_CLASSES}`}
                     >
-                      Cold-chain cargo travels best in a refrigerated body. You
-                      picked{" "}
-                      {selectedBodyTypeOption
-                        ? t(selectedBodyTypeOption.titleKey)
-                        : "another body"}{" "}
-                      in the vehicle step above — go back and switch it if this
-                      load needs temperature control.
+                      {t("coldChainNotice", {
+                        body: selectedBodyTypeOption
+                          ? t(selectedBodyTypeOption.titleKey)
+                          : t("anotherBody"),
+                      })}
                     </p>
                   ) : null}
 
@@ -3218,7 +3283,7 @@ export function BookingForm(): React.ReactElement {
                       role="status"
                       className={`mt-2.5 ${FIELD_NOTICE_CLASSES}`}
                     >
-                      {HAZMAT_NOTICE}
+                      {t(HAZMAT_NOTICE_KEY)}
                     </p>
                   ) : null}
                 </fieldset>
@@ -3256,7 +3321,7 @@ export function BookingForm(): React.ReactElement {
                         <option value="">{t("anyTime")}</option>
                         {TIME_SLOTS.map((slot) => (
                           <option key={slot.value} value={slot.value}>
-                            {slot.label}
+                            {formatTimeSlot(slot)}
                           </option>
                         ))}
                       </select>
@@ -3280,7 +3345,7 @@ export function BookingForm(): React.ReactElement {
                         <option value="">{t("anyTime")}</option>
                         {TIME_SLOTS.map((slot) => (
                           <option key={slot.value} value={slot.value}>
-                            {slot.label}
+                            {formatTimeSlot(slot)}
                           </option>
                         ))}
                       </select>
@@ -3404,15 +3469,15 @@ export function BookingForm(): React.ReactElement {
                         <option value="">{t("noDeadline")}</option>
                         {TIME_SLOTS.map((slot) => (
                           <option key={slot.value} value={slot.value}>
-                            {slot.label}
+                            {formatTimeSlot(slot)}
                           </option>
                         ))}
                       </select>
                       {deliveryDeadlineValid ? null : (
                         <p className={FIELD_ERROR_CLASSES}>
                           {pickupWindowEndDateTime
-                            ? "The delivery deadline has to be after the pickup window ends."
-                            : "The delivery deadline has to be after the scheduled delivery time."}
+                            ? t("deadlineAfterWindow")
+                            : t("deadlineAfterScheduled")}
                         </p>
                       )}
                     </div>
@@ -3425,7 +3490,7 @@ export function BookingForm(): React.ReactElement {
               step={7}
               title={t("additionalDetails")}
               disabled={!vehicleChosenStepsEnabled}
-              disabledReason={CHOOSE_VEHICLE_FIRST}
+              disabledReason={t(CHOOSE_VEHICLE_FIRST_KEY)}
             >
               <div className="flex flex-col gap-4">
                 {/* Native radios, one per crew size, each visually replaced by
@@ -3457,7 +3522,7 @@ export function BookingForm(): React.ReactElement {
                             value={size}
                             checked={selected}
                             onChange={() => setCrewSize(size)}
-                            aria-label={crewSizeDescription(size)}
+                            aria-label={crewSizeDescription(size, t)}
                             className="sr-only"
                           />
                           <span aria-hidden="true">{size}</span>
@@ -3502,14 +3567,14 @@ export function BookingForm(): React.ReactElement {
               title={tShared("serviceLevel")}
               description={
                 estimate
-                  ? "Prices below are for this route"
-                  : "Prices appear after you calculate"
+                  ? t("pricesBelowForRoute")
+                  : t("pricesAppearAfterCalculate")
               }
               // The third sibling of the vehicle choice, and never a gate on the
               // quote: the tier it opens on is the one the fare is quoted at, so
               // a client who never reaches this card still books at Regular.
               disabled={!vehicleChosenStepsEnabled}
-              disabledReason={CHOOSE_VEHICLE_FIRST}
+              disabledReason={t(CHOOSE_VEHICLE_FIRST_KEY)}
             >
               {/* Native radios again, for the third time in this form and for
                   the same reasons as the load-space and crew-size pickers:
@@ -3610,7 +3675,7 @@ export function BookingForm(): React.ReactElement {
               <div className="flex items-baseline justify-between gap-4">
                 <h2 className={PANEL_LABEL_CLASSES}>{t("priceBreakdown")}</h2>
                 <p className="text-[0.6875rem] text-muted">
-                  {estimating ? "Calculating…" : null}
+                  {estimating ? t("calculating") : null}
                 </p>
               </div>
 
@@ -3681,9 +3746,7 @@ export function BookingForm(): React.ReactElement {
                 </>
               ) : (
                 <p className="mt-2 text-[0.8125rem] leading-snug text-muted">
-                  {canCalculate
-                    ? "Press Calculate to see your price."
-                    : "Fill in both addresses and choose a vehicle, then press Calculate to see your price."}
+                  {canCalculate ? t("pressCalculate") : t("fillInBoth")}
                 </p>
               )}
 
@@ -3715,7 +3778,7 @@ export function BookingForm(): React.ReactElement {
               aria-controls="route-preview"
               className="w-full rounded-xl border border-line px-4 py-3 text-[0.8125rem] font-semibold text-paper transition-colors hover:border-accent/40 hover:text-accent lg:hidden"
             >
-              {mapVisible ? "Hide route map" : "Show route map"}
+              {mapVisible ? t("hideRouteMap") : t("showRouteMap")}
             </button>
 
             <div
@@ -3739,7 +3802,11 @@ export function BookingForm(): React.ReactElement {
                 distanceKm={estimate?.distanceKm ?? null}
                 routePath={estimate?.routePath ?? null}
                 durationMinutes={estimate?.durationMinutes ?? null}
-                vehicleLabel={selectedVehicleType?.label ?? null}
+                vehicleLabel={
+                  selectedVehicleType
+                    ? vehicleTypeLabel(selectedVehicleType)
+                    : null
+                }
               />
             </div>
           </div>
@@ -3792,7 +3859,7 @@ export function BookingForm(): React.ReactElement {
                   disabled={!canSubmit}
                   className="h-12 gap-2 rounded-full border-paper bg-transparent px-6 text-[0.9375rem] font-semibold text-paper transition-colors hover:bg-surface hover:text-paper"
                 >
-                  {submitting ? "Booking…" : "Book delivery"}
+                  {submitting ? t("booking") : t("bookDelivery")}
                   <ArrowRight aria-hidden="true" />
                 </Button>
               ) : null}
@@ -3804,10 +3871,10 @@ export function BookingForm(): React.ReactElement {
                 className="h-12 gap-2 rounded-full bg-accent px-6 text-[0.9375rem] font-semibold text-ink transition-transform hover:bg-accent hover:-translate-y-0.5 disabled:translate-y-0"
               >
                 {estimating
-                  ? "Calculating…"
+                  ? t("calculating")
                   : estimate
-                    ? "Recalculate"
-                    : "Calculate"}
+                    ? t("recalculate")
+                    : t("calculate")}
               </Button>
             </div>
           </div>

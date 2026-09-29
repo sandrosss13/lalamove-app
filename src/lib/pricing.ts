@@ -210,7 +210,11 @@ export function parseQuoteFields(
   record: Record<string, unknown>,
   t?: RequestTranslator,
 ): { data: QuoteInput } | { error: string } {
-  const message = (key: string, english: string) => (t ? t(key) : english);
+  const message = (
+    key: string,
+    english: string,
+    values?: Record<string, string | number>,
+  ) => (t ? t(key, values) : english);
 
   const {
     pickupAddress,
@@ -258,7 +262,11 @@ export function parseQuoteFields(
     !CARGO_CATEGORIES.includes(cargoCategory as CargoCategory)
   ) {
     return {
-      error: `cargoCategory must be one of: ${CARGO_CATEGORIES.join(", ")}.`,
+      error: message(
+        "common.pricing.cargoCategoryMustBeOneOf",
+        `cargoCategory must be one of: ${CARGO_CATEGORIES.join(", ")}.`,
+        { allowed: CARGO_CATEGORIES.join(", ") },
+      ),
     };
   }
 
@@ -273,7 +281,11 @@ export function parseQuoteFields(
       helperCount > MAX_HELPER_COUNT)
   ) {
     return {
-      error: `helperCount must be a whole number between 0 and ${MAX_HELPER_COUNT}.`,
+      error: message(
+        "common.pricing.helperCountOutOfRange",
+        `helperCount must be a whole number between 0 and ${MAX_HELPER_COUNT}.`,
+        { max: MAX_HELPER_COUNT },
+      ),
     };
   }
 
@@ -400,19 +412,32 @@ export async function estimateDelivery({
  * The user-facing message for a failed quote. Shared so the public estimate
  * endpoint and authenticated order creation report the same problem in the same
  * words; the HTTP status differs per case and stays with each caller.
+ *
+ * `t` localises it into the request locale, as for `parseQuoteFields`; without
+ * one the English original is returned.
  */
 export function quoteFailureMessage(
   failure: Extract<DeliveryEstimateResult, { ok: false }>,
+  t?: RequestTranslator,
 ): string {
   switch (failure.reason) {
     case "unresolved_address":
-      return `Could not locate address: ${failure.unresolvedAddress}`;
+      return t
+        ? t("common.pricing.couldNotLocateAddress", {
+            address: failure.unresolvedAddress,
+          })
+        : `Could not locate address: ${failure.unresolvedAddress}`;
     case "invalid_vehicle_type":
-      return "vehicleTypeCode must be a known vehicle type.";
+      return t
+        ? t("common.pricing.vehicleTypeCodeMustBeKnown")
+        : "vehicleTypeCode must be a known vehicle type.";
     case "cargo_vehicle_mismatch":
-      return (
-        `This cargo category cannot be booked with a ${failure.vehicleCategory} ` +
-        `vehicle; it requires ${failure.allowedVehicleCategories.join(" or ")}.`
-      );
+      return t
+        ? t("common.pricing.cargoVehicleMismatch", {
+            vehicleCategory: failure.vehicleCategory,
+            allowedCategories: failure.allowedVehicleCategories.join(" or "),
+          })
+        : `This cargo category cannot be booked with a ${failure.vehicleCategory} ` +
+            `vehicle; it requires ${failure.allowedVehicleCategories.join(" or ")}.`;
   }
 }

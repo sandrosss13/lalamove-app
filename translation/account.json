@@ -11,7 +11,7 @@
   },
   "account.theDetailsADriverSeesWhen": {
     "en": "The details a driver sees when they turn up for one of your pickups, and the credentials you sign in with. Keeping your phone number current is what stops a delivery stalling at the kerb.",
-    "ka": "დეტალები, რომლებსაც მძღოლი ხედავს, როდესაც ის თქვენს შეკვეთაზე/წამოსაღებად მოდის, და მონაცემები, რომლებითაც შედიხართ სისტემაში. ტელეფონის ნომრის განახლებულ მდგომარეობაში შენარჩუნება თავიდან აგარიდებთ მიწოდების შეფერხებას",
+    "ka": "დეტალები, რომლებსაც მძღოლი ხედავს, როდესაც ის თქვენთან ტვირთის ასაღებად მოდის, და მონაცემები, რომლებითაც შედიხართ სისტემაში. ტელეფონის ნომრის განახლებულ მდგომარეობაში შენარჩუნება თავიდან აგარიდებთ მიწოდების შეფერხებას.",
     "_source": "src/app/[locale]/account/page.tsx"
   },
   "accountPasswordCard.changePassword": {

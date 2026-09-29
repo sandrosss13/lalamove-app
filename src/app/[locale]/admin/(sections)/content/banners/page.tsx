@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 
 import type { ContentLocale } from "@prisma/client";
 
@@ -41,10 +41,23 @@ import {
 /** Columns in the table, so the full-width state rows can span all of them. */
 const COLUMN_COUNT = 7;
 
-const LOCALE_LABELS: Record<ContentLocale, string> = {
-  KA: "Georgian",
-  EN: "English",
+/** `common.shared` keys for each content locale's name. */
+const LOCALE_LABEL_KEYS: Record<ContentLocale, string> = {
+  KA: "georgian",
+  EN: "english",
 };
+
+/**
+ * UTC so a window reads back exactly as it was entered: the form writes each
+ * end as an instant of a UTC day, so rendering in the viewer's zone would show
+ * a banner set to end on the 30th as ending on the 29th or the 31st.
+ */
+const WINDOW_DATE_FORMAT = {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  timeZone: "UTC",
+} as const;
 
 /** How full one locale's hero carousel is, as the summary line renders it. */
 type HeroCapacityRow = {
@@ -80,34 +93,31 @@ function summarizeHeroCapacity(banners: AdminBannerRow[]): HeroCapacityRow[] {
 }
 
 /**
- * UTC so a window reads back exactly as it was entered: the form writes each
- * end as an instant of a UTC day, so rendering in the viewer's zone would show
- * a banner set to end on the 30th as ending on the 29th or the 31st.
+ * The active window as one cell of text, whichever ends are set. `formatDate`
+ * and `t` (bound to `admin.adminContentBanners`) come from the component, so
+ * both the dates and the wording follow the reader's locale.
  */
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    timeZone: "UTC",
-  });
-}
-
-/** The active window as one cell of text, whichever ends are set. */
-function formatWindow(banner: AdminBannerRow): string {
+function formatWindow(
+  banner: AdminBannerRow,
+  formatDate: (iso: string) => string,
+  t: (key: string, values?: Record<string, string>) => string,
+): string {
   if (banner.startsAt !== null && banner.endsAt !== null) {
-    return `${formatDate(banner.startsAt)} – ${formatDate(banner.endsAt)}`;
+    return t("windowRange", {
+      start: formatDate(banner.startsAt),
+      end: formatDate(banner.endsAt),
+    });
   }
 
   if (banner.startsAt !== null) {
-    return `From ${formatDate(banner.startsAt)}`;
+    return t("windowFrom", { date: formatDate(banner.startsAt) });
   }
 
   if (banner.endsAt !== null) {
-    return `Until ${formatDate(banner.endsAt)}`;
+    return t("windowUntil", { date: formatDate(banner.endsAt) });
   }
 
-  return "Always";
+  return t("always");
 }
 
 /**
@@ -151,6 +161,9 @@ async function readErrorMessage(
 export default function AdminBannersPage() {
   const t = useTranslations("admin.adminContentBanners");
   const tShared = useTranslations("common.shared");
+  const format = useFormatter();
+  const formatDate = (iso: string) =>
+    format.dateTime(new Date(iso), WINDOW_DATE_FORMAT);
   const [banners, setBanners] = useState<AdminBannerRow[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -222,7 +235,7 @@ export default function AdminBannersPage() {
 
       if (!response.ok) {
         setActionError(
-          await readErrorMessage(response, "Could not update this banner."),
+          await readErrorMessage(response, t("couldNotUpdateThisBanner")),
         );
         return;
       }
@@ -246,7 +259,7 @@ export default function AdminBannersPage() {
 
       if (!response.ok) {
         setActionError(
-          await readErrorMessage(response, "Could not delete this banner."),
+          await readErrorMessage(response, t("couldNotDeleteThisBanner")),
         );
         return;
       }
@@ -284,17 +297,22 @@ export default function AdminBannersPage() {
                     className="flex items-center gap-1.5 text-xs text-muted-foreground"
                   >
                     <span>
-                      Hero carousel · {LOCALE_LABELS[locale]}:{" "}
-                      <span
-                        className={
-                          full
-                            ? "font-medium text-destructive"
-                            : "font-medium text-foreground"
-                        }
-                      >
-                        {active} of {MAX_HERO_BANNERS}
-                      </span>{" "}
-                      active
+                      {t.rich("heroCapacity", {
+                        language: tShared(LOCALE_LABEL_KEYS[locale]),
+                        active,
+                        max: MAX_HERO_BANNERS,
+                        strong: (chunks) => (
+                          <span
+                            className={
+                              full
+                                ? "font-medium text-destructive"
+                                : "font-medium text-foreground"
+                            }
+                          >
+                            {chunks}
+                          </span>
+                        ),
+                      })}
                     </span>
                     {full ? <Badge variant="outline">{t("full")}</Badge> : null}
                   </li>
@@ -386,7 +404,7 @@ export default function AdminBannersPage() {
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline">
-                      {LOCALE_LABELS[banner.locale]}
+                      {tShared(LOCALE_LABEL_KEYS[banner.locale])}
                     </Badge>
                   </TableCell>
                   <TableCell className="font-mono text-xs">
@@ -394,13 +412,16 @@ export default function AdminBannersPage() {
                   </TableCell>
                   <TableCell>{banner.sortOrder}</TableCell>
                   <TableCell className="text-muted-foreground">
-                    {formatWindow(banner)}
+                    {formatWindow(banner, formatDate, t)}
                   </TableCell>
                   <TableCell>
                     <Checkbox
                       checked={banner.isActive}
                       disabled={pendingId === banner.id}
-                      aria-label={`${banner.isActive ? "Deactivate" : "Activate"} ${banner.title}`}
+                      aria-label={t("toggleActiveLabel", {
+                        isActive: String(banner.isActive),
+                        title: banner.title,
+                      })}
                       onCheckedChange={() => void handleToggleActive(banner)}
                     />
                   </TableCell>
@@ -464,9 +485,10 @@ export default function AdminBannersPage() {
             <DialogHeader>
               <DialogTitle>{t("deleteBanner")}</DialogTitle>
               <DialogDescription>
-                “{deleteTarget.title}” will be removed from the{" "}
-                {deleteTarget.placement} placement for good. To take it down
-                without deleting it, switch it off instead.
+                {t("deleteBannerDescription", {
+                  title: deleteTarget.title,
+                  placement: deleteTarget.placement,
+                })}
               </DialogDescription>
             </DialogHeader>
 
@@ -494,7 +516,7 @@ export default function AdminBannersPage() {
                 onClick={() => void handleDelete(deleteTarget)}
               >
                 {pendingId === deleteTarget.id
-                  ? "Deleting…"
+                  ? tShared("deleting")
                   : t("deleteBanner")}
               </Button>
             </DialogFooter>

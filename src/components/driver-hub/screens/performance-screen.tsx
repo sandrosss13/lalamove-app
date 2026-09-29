@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import { useHubSubtitle } from "@/components/driver-hub/driver-hub-shell";
 import {
@@ -14,7 +14,10 @@ import {
   type HubBarSeries,
   type MetricDeltaTone,
 } from "@/components/driver-hub/hub-primitives";
-import { formatRangeSubtitle } from "@/components/driver-hub/screens/earnings-format";
+import {
+  formatRangeSubtitle,
+  useEarningsDateFormat,
+} from "@/components/driver-hub/screens/earnings-format";
 import { EarningsScreen } from "@/components/driver-hub/screens/earnings-screen";
 import {
   EMPTY_VALUE,
@@ -23,7 +26,7 @@ import {
   formatRate,
   formatRating,
   formatWeekRange,
-  pluralise,
+  formatWeekdayShort,
 } from "@/components/driver-hub/screens/performance-format";
 import {
   Table,
@@ -165,31 +168,16 @@ import { cn } from "@/lib/utils";
 /* Honesty copy                                                               */
 /* -------------------------------------------------------------------------- */
 
-const ACCEPTANCE_NOTE =
-  "A declined offer leaves no row — Order only ever stores the offer that was " +
-  "taken — so acceptance is unrecorded, not merely unaggregated. Retire with " +
-  "a JobOffer model holding every dispatch and its outcome.";
+// Each is a key into `driverHub.performanceScreen`, translated where rendered.
+const ACCEPTANCE_NOTE = "acceptanceNote";
 
-const RATING_NOTE =
-  "Nothing in the schema captures customer feedback. Retire with an " +
-  "OrderRating model — one score per completed order.";
+const RATING_NOTE = "ratingNote";
 
-const DELTA_NOTE =
-  "The value above is real; this comparison is not. Last week's figure is not " +
-  "held anywhere to compare against. Retire with a DriverMetricSnapshot model " +
-  // "per account" rather than "per driver": the same tiles carry a fleet's
-  // figures for a BUSINESS reader, whose snapshot would be per company.
-  "storing each metric per account per week.";
+const DELTA_NOTE = "deltaNote";
 
-const ONLINE_HOURS_NOTE =
-  "Online hours only. DriverProfile.isOnline is a single boolean with no " +
-  "history behind it, so no duration can be computed from it. The jobs bars " +
-  "are real. Retire with an OnlineSession model bucketed by Tbilisi day.";
+const ONLINE_HOURS_NOTE = "onlineHoursNote";
 
-const SCORE_NOTES_NOTE =
-  "Every figure and threshold in this card is invented — the thresholds are " +
-  "policy the product has not written down anywhere the code can read. " +
-  "Retire alongside the metrics each row describes.";
+const SCORE_NOTES_NOTE = "scoreNotesNote";
 
 /* -------------------------------------------------------------------------- */
 /* Empty-state copy                                                           */
@@ -208,7 +196,7 @@ const SCORE_NOTES_NOTE =
  * `completionRatePercent`, null on the same condition, so a week that leaves
  * one of them blank leaves both.
  */
-const NO_FINISHED_JOBS_NOTE = "No jobs have finished yet this week";
+const NO_FINISHED_JOBS_NOTE = "noFinishedJobsNote";
 
 /* -------------------------------------------------------------------------- */
 /* Tile geometry                                                              */
@@ -485,6 +473,7 @@ type PerformanceSectionsProps = {
 function PerformanceSections({ data }: PerformanceSectionsProps) {
   const t = useTranslations("driverHub.performanceScreen");
   const tShared = useTranslations("common.shared");
+  const locale = useLocale();
 
   // `window` is the global's name; the alias keeps the two unambiguous in a
   // file that also does date formatting.
@@ -507,11 +496,13 @@ function PerformanceSections({ data }: PerformanceSectionsProps) {
   // actually change — see `PerformanceScreen` below. The week is still stated
   // on screen, one line under the tiles it describes, which is where a reader
   // who has just scrolled past the money is looking anyway.
-  const weekRange = formatWeekRange(hubWindow.from, hubWindow.to);
+  const weekRange = formatWeekRange(hubWindow.from, hubWindow.to, locale);
 
   // The sampled hours series is keyed by weekday label, which is exactly what
   // `HubPerformanceDay.weekday` carries — `performance.ts` pins its formatter's
-  // locale so the two vocabularies cannot drift apart.
+  // locale so the two vocabularies cannot drift apart. That English label is a
+  // join key only; the column itself is labelled from `day.date` in the
+  // reader's locale.
   const hoursByWeekday = new Map(
     sampled.onlineHoursWeek.map((day) => [day.day, day.onlineHours]),
   );
@@ -532,7 +523,7 @@ function PerformanceSections({ data }: PerformanceSectionsProps) {
     const hours = day.isFuture ? 0 : (hoursByWeekday.get(day.weekday) ?? 0);
 
     return {
-      label: day.weekday,
+      label: formatWeekdayShort(day.date, locale),
       values: [hours, day.jobsCompleted],
       valueLabel: day.isFuture
         ? EMPTY_VALUE
@@ -541,7 +532,7 @@ function PerformanceSections({ data }: PerformanceSectionsProps) {
   });
 
   const fleetColumns: HubBarColumn[] = data.jobsByDay.map((day) => ({
-    label: day.weekday,
+    label: formatWeekdayShort(day.date, locale),
     values: [day.jobsCompleted],
     valueLabel: day.isFuture ? EMPTY_VALUE : String(day.jobsCompleted),
   }));
@@ -574,7 +565,7 @@ function PerformanceSections({ data }: PerformanceSectionsProps) {
           progress={sampled.acceptanceRatePercent / 100}
           progressTone={sampled.deltas.acceptance.tone}
         >
-          <TileMarker note={ACCEPTANCE_NOTE} />
+          <TileMarker note={t(ACCEPTANCE_NOTE)} />
         </MetricTile>
 
         <MetricTile
@@ -588,7 +579,7 @@ function PerformanceSections({ data }: PerformanceSectionsProps) {
           // it stays right if the loader ever makes the two rates independent.
           note={
             data.completionRatePercent === null
-              ? NO_FINISHED_JOBS_NOTE
+              ? t(NO_FINISHED_JOBS_NOTE)
               : undefined
           }
           delta={sampled.deltas.completion}
@@ -597,7 +588,7 @@ function PerformanceSections({ data }: PerformanceSectionsProps) {
           progress={(data.completionRatePercent ?? 0) / 100}
           progressTone={sampled.deltas.completion.tone}
         >
-          <TileMarker label={t("estimatedDelta")} note={DELTA_NOTE} />
+          <TileMarker label={t("estimatedDelta")} note={t(DELTA_NOTE)} />
         </MetricTile>
 
         <MetricTile
@@ -605,7 +596,7 @@ function PerformanceSections({ data }: PerformanceSectionsProps) {
           value={formatRate(data.cancellationRatePercent)}
           note={
             data.cancellationRatePercent === null
-              ? NO_FINISHED_JOBS_NOTE
+              ? t(NO_FINISHED_JOBS_NOTE)
               : undefined
           }
           delta={sampled.deltas.cancellations}
@@ -615,7 +606,7 @@ function PerformanceSections({ data }: PerformanceSectionsProps) {
           }
           progressTone={sampled.deltas.cancellations.tone}
         >
-          <TileMarker label={t("estimatedDelta")} note={DELTA_NOTE} />
+          <TileMarker label={t("estimatedDelta")} note={t(DELTA_NOTE)} />
         </MetricTile>
 
         {/* A company is not rated, its drivers are — so a fleet reads the
@@ -624,13 +615,13 @@ function PerformanceSections({ data }: PerformanceSectionsProps) {
             does not claim the score is the reader's own. Both are still on the
             same five-point scale, and both are still fully sampled. */}
         <MetricTile
-          label={isBusiness ? "Fleet rating" : "Avg rating"}
+          label={isBusiness ? t("fleetRating") : t("avgRating")}
           value={formatRating(sampled.averageRating)}
           delta={sampled.deltas.rating}
           progress={sampled.averageRating / RATING_SCALE_MAX}
           progressTone={sampled.deltas.rating.tone}
         >
-          <TileMarker note={RATING_NOTE} />
+          <TileMarker note={t(RATING_NOTE)} />
         </MetricTile>
 
         <MetricTile
@@ -640,18 +631,18 @@ function PerformanceSections({ data }: PerformanceSectionsProps) {
           progress={data.jobsPerDay / JOBS_PER_DAY_TRACK_CEILING}
           progressTone={sampled.deltas.jobsPerDay.tone}
         >
-          <TileMarker label={t("estimatedDelta")} note={DELTA_NOTE} />
+          <TileMarker label={t("estimatedDelta")} note={t(DELTA_NOTE)} />
         </MetricTile>
       </div>
 
       {/* One line, not a banner: the two windows really are different sets of
           jobs, and a reader who never notices would quietly assume they match. */}
       <p className="text-xs text-muted-foreground">
-        {t("thisWeek")} <Num>{weekRange}</Num>. The rates count jobs by when
-        they were <strong className="font-medium">booked</strong>; the chart
-        counts them by when they were{" "}
-        <strong className="font-medium">completed</strong>, so the two need not
-        describe the same jobs.
+        {t.rich("windowFootnoteRich", {
+          range: weekRange,
+          num: (chunks) => <Num>{chunks}</Num>,
+          strong: (chunks) => <strong className="font-medium">{chunks}</strong>,
+        })}
       </p>
 
       {isBusiness ? (
@@ -676,7 +667,7 @@ function PerformanceSections({ data }: PerformanceSectionsProps) {
                 label: tShared(labelKey),
                 tone,
               }))}
-              ariaLabel="Jobs completed by day of this week"
+              ariaLabel={t("chartAriaFleet")}
             />
             {futureDaysNote}
           </HubCard>
@@ -692,7 +683,7 @@ function PerformanceSections({ data }: PerformanceSectionsProps) {
                 // The message matches the Drivers screen's own wording for the
                 // same condition; the hint differs because that screen can
                 // offer the register action and this one cannot.
-                <HubEmptyState message="No drivers on this roster yet.">
+                <HubEmptyState message={t("noDriversOnRoster")}>
                   <p className="mt-1 text-[13px]">
                     {t("registerADriverAndTheirWeek")}
                   </p>
@@ -709,17 +700,9 @@ function PerformanceSections({ data }: PerformanceSectionsProps) {
                       renders when the gap is zero. */}
                   {fleet.unattributedFinishedJobCount > 0 ? (
                     <p className="mt-3.5 text-xs text-muted-foreground">
-                      <Num>
-                        {pluralise(
-                          fleet.unattributedFinishedJobCount,
-                          "finished job",
-                        )}
-                      </Num>{" "}
-                      this week{" "}
-                      {fleet.unattributedFinishedJobCount === 1 ? "is" : "are"}{" "}
-                      not attributed to anyone on the roster — either never
-                      dispatched, or carried by a driver who has since left. The
-                      rows above will not add up to the tiles.
+                      {t("unattributedJobs", {
+                        count: fleet.unattributedFinishedJobCount,
+                      })}
                     </p>
                   ) : null}
                 </>
@@ -739,7 +722,7 @@ function PerformanceSections({ data }: PerformanceSectionsProps) {
             action={
               <SampleNote
                 label={tShared("onlineHours")}
-                note={ONLINE_HOURS_NOTE}
+                note={t(ONLINE_HOURS_NOTE)}
               />
             }
           >
@@ -749,14 +732,14 @@ function PerformanceSections({ data }: PerformanceSectionsProps) {
                 label: tShared(labelKey),
                 tone,
               }))}
-              ariaLabel="Online hours against jobs completed, by day of this week"
+              ariaLabel={t("chartAriaDriver")}
             />
             {futureDaysNote}
           </HubCard>
 
           <HubCard
             title={t("whatAffectsYourScore")}
-            action={<SampleNote note={SCORE_NOTES_NOTE} />}
+            action={<SampleNote note={t(SCORE_NOTES_NOTE)} />}
           >
             <ul className="flex flex-col">
               {sampled.scoreNotes.map((note) => (
@@ -869,11 +852,14 @@ export function PerformanceScreen({
   data,
 }: PerformanceScreenProps) {
   const { range } = earnings;
+  const dateFormat = useEarningsDateFormat();
 
   // The screen's one header registration; see the block above for why it is the
   // money range rather than the performance week, and why it is made here
   // rather than in either half.
-  useHubSubtitle(formatRangeSubtitle(range.from, range.to, range.days));
+  useHubSubtitle(
+    formatRangeSubtitle(range.from, range.to, range.days, dateFormat),
+  );
 
   return (
     <>

@@ -48,7 +48,8 @@ export default async function AnalyticsPage({
   const params = await searchParams;
   const range = resolveSalesRange({ from: params.from, to: params.to });
   const summary = await getSalesSummary(range);
-  const tShared = await getTranslations("common.shared");
+  // Root-scoped so the section's full-path `labelKey` resolves too.
+  const t = await getTranslations();
 
   // Built from the *resolved* params rather than the raw query string, so a
   // partial or malformed URL exports the same range the cards are showing.
@@ -58,7 +59,7 @@ export default async function AnalyticsPage({
     <div className="flex flex-col gap-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-lg font-semibold tracking-tight">
-          {section.label}
+          {t(section.labelKey)}
         </h1>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -75,7 +76,7 @@ export default async function AnalyticsPage({
           <Button asChild variant="outline" size="sm">
             <a href={exportHref}>
               <Download data-icon="inline-start" />
-              {tShared("exportToExcel")}
+              {t("common.shared.exportToExcel")}
             </a>
           </Button>
         </div>

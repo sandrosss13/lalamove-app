@@ -106,12 +106,12 @@ function discountValueError(
   if (discountType === "PERCENTAGE") {
     return discountValue > 0 && discountValue <= MAX_PERCENTAGE_DISCOUNT
       ? null
-      : `A percentage discount must be greater than 0 and at most ${MAX_PERCENTAGE_DISCOUNT}.`;
+      : t("common.shared.percentageDiscountRange", {
+          max: MAX_PERCENTAGE_DISCOUNT,
+        });
   }
 
-  return discountValue > 0
-    ? null
-    : "A fixed-amount discount must be greater than 0.";
+  return discountValue > 0 ? null : t("common.shared.fixedDiscountPositive");
 }
 
 /** An ISO-8601 timestamp from the wire as a `Date`, or null when unparseable. */
@@ -167,7 +167,10 @@ function parsePatchBody(
       !DISCOUNT_TYPES.includes(discountType as DiscountType)
     ) {
       return {
-        error: `discountType must be one of: ${DISCOUNT_TYPES.join(", ")}.`,
+        error: t("common.shared.fieldMustBeOneOf", {
+          field: "discountType",
+          options: DISCOUNT_TYPES.join(", "),
+        }),
       };
     }
 
@@ -211,7 +214,9 @@ function parsePatchBody(
       usageLimit < 1
     ) {
       return {
-        error: "usageLimit must be a whole number of 1 or more, or null.",
+        error: t(
+          "errors.adminFinancePromoCampaigns.usageLimitWholeNumberOrNull",
+        ),
       };
     } else {
       patch.usageLimit = usageLimit;

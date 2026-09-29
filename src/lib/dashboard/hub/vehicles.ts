@@ -66,7 +66,9 @@ import {
   sampleRunningCosts,
   sampleVehicleFacts,
 } from "@/lib/dashboard/hub/sample";
+import type { Translator } from "@/i18n/translator";
 import { VEHICLE_CLASSES } from "@/lib/driver-onboarding/vehicle-classes";
+import { vehicleTypeSpecLabel } from "@/lib/vehicle-type-spec-labels";
 import { isDispatchApproved } from "@/lib/orders/dispatch-fit";
 import { prisma } from "@/lib/prisma";
 
@@ -260,9 +262,23 @@ export type HubVehiclesData = {
  * `VehicleClass` is a database enum and `VEHICLE_CLASSES` is a hand-maintained
  * TypeScript list, so a class added to the schema first would take a dashboard
  * page down instead of degrading to the spec label.
+ *
+ * Translated through the entry's `nameKey` when the caller passes a root
+ * translator; the English `name` otherwise.
  */
-function vehicleClassName(vehicleClass: VehicleClass): string | undefined {
-  return VEHICLE_CLASSES.find((entry) => entry.id === vehicleClass)?.name;
+function vehicleClassName(
+  vehicleClass: VehicleClass,
+  t: Translator | undefined,
+): string | undefined {
+  const entry = VEHICLE_CLASSES.find(
+    (candidate) => candidate.id === vehicleClass,
+  );
+
+  if (entry === undefined) {
+    return undefined;
+  }
+
+  return t === undefined ? entry.name : t(entry.nameKey);
 }
 
 /**
@@ -312,9 +328,15 @@ function classBreakdownOf(vehicles: HubVehicle[]): HubVehicleClassCount[] {
  * state (a company mid-onboarding, a rostered driver awaiting an assignment),
  * not the "profile row is missing" case that `resolveHubAccount()` already
  * absorbed before this is ever called.
+ *
+ * `t` — a root-namespace translator from `getTranslations()` — localizes the
+ * declared class names in `vehicleClassLabel` and the class breakdown, and the
+ * `VehicleTypeSpec` labels (looked up by spec code) that stand in for a vehicle
+ * with no declared class.
  */
 export async function getHubVehicles(
   account: HubAccount,
+  t?: Translator,
 ): Promise<HubVehiclesData> {
   // `HubAccount` types both ids as nullable because one kind of account has
   // each. Reading them into locals is what lets the `where` below narrow, and
@@ -413,7 +435,12 @@ export async function getHubVehicles(
     const declaredClassName =
       vehicle.vehicleClass === null
         ? undefined
-        : vehicleClassName(vehicle.vehicleClass);
+        : vehicleClassName(vehicle.vehicleClass, t);
+    const specLabel = vehicleTypeSpecLabel(
+      vehicle.vehicleTypeSpec.code,
+      vehicle.vehicleTypeSpec.label,
+      t,
+    );
 
     return {
       id: vehicle.id,
@@ -424,10 +451,10 @@ export async function getHubVehicles(
       colour: vehicle.colour,
       photoUrls: vehicle.photoUrls,
       vehicleClass: vehicle.vehicleClass,
-      vehicleClassLabel: declaredClassName ?? vehicle.vehicleTypeSpec.label,
+      vehicleClassLabel: declaredClassName ?? specLabel,
       vehicleTypeSpecId: vehicle.vehicleTypeSpecId,
       vehicleTypeCode: vehicle.vehicleTypeSpec.code,
-      vehicleTypeLabel: vehicle.vehicleTypeSpec.label,
+      vehicleTypeLabel: specLabel,
       category: vehicle.vehicleTypeSpec.category,
       maxPayloadKg: vehicle.vehicleTypeSpec.maxPayloadKg,
       declaredPayloadKg: vehicle.payloadKg,

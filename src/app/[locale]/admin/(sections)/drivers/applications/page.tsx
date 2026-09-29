@@ -59,17 +59,25 @@ const FILTER_ORDER: readonly ApplicationFilter[] = [
  */
 const FILTERS: Record<
   ApplicationFilter,
-  { labelKey: string; emptyMessage: string }
+  { labelKey: string; emptyKey: string }
 > = {
-  ALL: { labelKey: "all", emptyMessage: "No applications yet." },
-  PENDING: { labelKey: "pending", emptyMessage: "No pending applications." },
+  // Full dotted paths: "All" is shared copy, while the statuses use the
+  // *application* wording (under review), not the order-status one.
+  ALL: {
+    labelKey: "common.shared.all",
+    emptyKey: "admin.adminDriversApplications.emptyAll",
+  },
+  PENDING: {
+    labelKey: "admin.applicationStatus.pending",
+    emptyKey: "admin.adminDriversApplications.emptyPending",
+  },
   ACTION_REQUIRED: {
-    labelKey: "actionRequired",
-    emptyMessage: "No action-required applications.",
+    labelKey: "admin.applicationStatus.actionRequired",
+    emptyKey: "admin.adminDriversApplications.emptyActionRequired",
   },
   APPROVED: {
-    labelKey: "approved",
-    emptyMessage: "No approved applications.",
+    labelKey: "admin.applicationStatus.approved",
+    emptyKey: "admin.adminDriversApplications.emptyApproved",
   },
 };
 
@@ -159,6 +167,8 @@ function formatVehicleSummary(
 export default function AdminDriverApplicationsPage() {
   const t = useTranslations("admin.adminDriversApplications");
   const tShared = useTranslations("common.shared");
+  const tStatus = useTranslations("admin.applicationStatus");
+  const tRoot = useTranslations();
   const [filter, setFilter] = useState<ApplicationFilter>("ALL");
   const [page, setPage] = useState(1);
   const [data, setData] = useState<AdminDriverApplicationListResponse | null>(
@@ -243,14 +253,14 @@ export default function AdminDriverApplicationsPage() {
                   setPage(1);
                 }}
               >
-                {tShared(FILTERS[candidate].labelKey)}
+                {tRoot(FILTERS[candidate].labelKey)}
               </Button>
             );
           })}
         </div>
         {data ? (
           <p className="text-sm text-muted-foreground">
-            {data.total} {data.total === 1 ? "application" : "applications"}
+            {t("applicationCount", { count: data.total })}
           </p>
         ) : null}
       </div>
@@ -291,7 +301,7 @@ export default function AdminDriverApplicationsPage() {
                   colSpan={COLUMN_COUNT}
                   className="py-10 text-center text-muted-foreground"
                 >
-                  {FILTERS[filter].emptyMessage}
+                  {tRoot(FILTERS[filter].emptyKey)}
                 </TableCell>
               </TableRow>
             ) : (
@@ -356,7 +366,7 @@ export default function AdminDriverApplicationsPage() {
                           APPLICATION_STATUS_CHIP_CLASSES[application.status]
                         }
                       >
-                        {tShared(STATUS_LABEL_KEYS[application.status])}
+                        {tStatus(STATUS_LABEL_KEYS[application.status])}
                       </Badge>
                     </TableCell>
                   </TableRow>
@@ -370,7 +380,10 @@ export default function AdminDriverApplicationsPage() {
       {data && data.pageCount > 1 ? (
         <div className="flex items-center justify-end gap-3">
           <span className="text-sm text-muted-foreground">
-            Page {data.page} of {data.pageCount}
+            {tShared("pageOf", {
+              page: data.page,
+              pageCount: data.pageCount,
+            })}
           </span>
           <Button
             variant="outline"

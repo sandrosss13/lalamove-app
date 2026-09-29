@@ -1,7 +1,7 @@
 import {
   isSupportedSiteMediaContentType,
   SITE_MEDIA_PURPOSES,
-  UNSUPPORTED_CONTENT_TYPE_ERROR,
+  UNSUPPORTED_CONTENT_TYPE_ERROR_KEY,
   type SiteMediaPurpose,
 } from "@/lib/site-media-storage";
 
@@ -53,7 +53,7 @@ const MAX_FILE_NAME_LENGTH = 200;
  */
 export function parseMediaUploadUrlBody(
   body: unknown,
-  t: (key: string) => string,
+  t: (key: string, values?: Record<string, string | number>) => string,
 ): { data: MediaUploadUrlInput } | { error: string } {
   if (typeof body !== "object" || body === null) {
     return { error: t("common.shared.requestBodyMustBeAJson") };
@@ -67,7 +67,10 @@ export function parseMediaUploadUrlBody(
     !SITE_MEDIA_PURPOSES.includes(purpose as SiteMediaPurpose)
   ) {
     return {
-      error: `purpose must be one of: ${SITE_MEDIA_PURPOSES.join(", ")}.`,
+      error: t("common.shared.fieldMustBeOneOf", {
+        field: "purpose",
+        options: SITE_MEDIA_PURPOSES.join(", "),
+      }),
     };
   }
 
@@ -77,7 +80,10 @@ export function parseMediaUploadUrlBody(
   }
   if (fileName.trim().length > MAX_FILE_NAME_LENGTH) {
     return {
-      error: `fileName must be ${MAX_FILE_NAME_LENGTH} characters or fewer.`,
+      error: t("common.shared.fieldMaxLength", {
+        field: "fileName",
+        max: MAX_FILE_NAME_LENGTH,
+      }),
     };
   }
 
@@ -85,10 +91,10 @@ export function parseMediaUploadUrlBody(
   if (typeof contentType !== "string" || contentType.trim() === "") {
     return { error: t("common.shared.contenttypeIsRequiredAndMustBe") };
   }
-  // The storage helper's own message, verbatim, so the browser shows the same
-  // sentence its pre-flight check would have shown for the same file.
+  // The storage helper's own message (by key), so every rejection of the same
+  // file reads as the same sentence.
   if (!isSupportedSiteMediaContentType(contentType.trim())) {
-    return { error: UNSUPPORTED_CONTENT_TYPE_ERROR };
+    return { error: t(UNSUPPORTED_CONTENT_TYPE_ERROR_KEY) };
   }
 
   return {

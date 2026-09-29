@@ -115,19 +115,6 @@ const MINIMUM_HOLD_HOURS = 0.5;
 /** How long the object URL outlives the click — see `earnings-export-button.tsx`. */
 const REVOKE_DELAY_MS = 2000;
 
-const LOAD_ERROR = "Couldn't load availability for this day.";
-const EXPORT_GENERIC_ERROR = "Could not build the export. Try again.";
-const EXPORT_NETWORK_ERROR = "Network error. Please check your connection.";
-
-/** The second line's wording for a driver with no vehicle pairing. */
-const NO_VEHICLE_LABEL = "No vehicle assigned";
-
-/** What the `<SampleNote />` beside the hint line explains. */
-const HOLD_NOT_SAVED_NOTE =
-  "A held slot lives in this browser tab only. The schema carries no " +
-  "reservation model yet, so nothing is written to the database and the hold " +
-  "is gone on reload.";
-
 /* -------------------------------------------------------------------------- */
 /* Local holds                                                                */
 /* -------------------------------------------------------------------------- */
@@ -144,9 +131,15 @@ function holdKey(dayKey: string, driverId: string): string {
   return `${dayKey}::${driverId}`;
 }
 
-/** What a driver's row shows for the plate, including the "none" case. */
-function rowPlateLabel(row: HubAvailabilityRow): string {
-  return row.vehicle?.plateNumber ?? NO_VEHICLE_LABEL;
+/**
+ * What a driver's row shows for the plate, including the "none" case, whose
+ * wording the caller passes in the reader's language.
+ */
+function rowPlateLabel(
+  row: HubAvailabilityRow,
+  noVehicleLabel: string,
+): string {
+  return row.vehicle?.plateNumber ?? noVehicleLabel;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -170,6 +163,8 @@ export type FleetAvailabilityCardProps = {
 
 export function FleetAvailabilityCard({ initial }: FleetAvailabilityCardProps) {
   const t = useTranslations("driverHub.fleetAvailabilityCard");
+  const tBoard = useTranslations("driverHub.fleetAvailabilityBoard");
+  const noVehicleLabel = tBoard("noVehicleAssigned");
   const tShared = useTranslations("common.shared");
 
   /* ---------------------------------------------------------------------- */
@@ -206,7 +201,9 @@ export function FleetAvailabilityCard({ initial }: FleetAvailabilityCardProps) {
   const [rows, setRows] = React.useState<HubAvailabilityRow[]>(initial.rows);
   const [nowHour, setNowHour] = React.useState<number | null>(initial.nowHour);
   const [isLoading, setIsLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
+  // A flag rather than the message itself, so the fetch effect does not
+  // depend on the translator; the wording is resolved at render.
+  const [loadFailed, setLoadFailed] = React.useState(false);
   /** Bumped by the inline retry to re-run the fetch effect for the same day. */
   const [reloadToken, setReloadToken] = React.useState(0);
 
@@ -235,7 +232,7 @@ export function FleetAvailabilityCard({ initial }: FleetAvailabilityCardProps) {
     let cancelled = false;
 
     setIsLoading(true);
-    setError(null);
+    setLoadFailed(false);
 
     async function load(): Promise<void> {
       try {
@@ -247,7 +244,7 @@ export function FleetAvailabilityCard({ initial }: FleetAvailabilityCardProps) {
 
         if (!response.ok) {
           if (!cancelled) {
-            setError(LOAD_ERROR);
+            setLoadFailed(true);
           }
           return;
         }
@@ -263,7 +260,7 @@ export function FleetAvailabilityCard({ initial }: FleetAvailabilityCardProps) {
         // dispatcher should be told about — `cancelled` is what distinguishes
         // "the day changed again" from "the network is down".
         if (!cancelled) {
-          setError(LOAD_ERROR);
+          setLoadFailed(true);
         }
       } finally {
         if (!cancelled) {
@@ -430,7 +427,10 @@ export function FleetAvailabilityCard({ initial }: FleetAvailabilityCardProps) {
       // window", and the wording says which of the two it is.
       return {
         status: entry,
-        count: nowHour === null ? `${freeCount} free` : `${freeCount} now`,
+        count:
+          nowHour === null
+            ? t("legendFree", { count: freeCount })
+            : t("legendNow", { count: freeCount }),
       };
     },
   );
@@ -458,8 +458,13 @@ export function FleetAvailabilityCard({ initial }: FleetAvailabilityCardProps) {
    */
   const summary =
     nowHour === null
-      ? `${filteredRows.length} drivers · ${rows.length} in fleet`
-      : `${freeCount} of ${filteredRows.length} drivers free at ${formatHour(nowHour)} · ${rows.length} in fleet`;
+      ? t("summaryNoNow", { count: filteredRows.length, fleet: rows.length })
+      : t("summaryNow", {
+          free: freeCount,
+          count: filteredRows.length,
+          time: formatHour(nowHour),
+          fleet: rows.length,
+        });
 
   const driverOptions: DriverFilterOption[] = React.useMemo(
     () =>
@@ -470,9 +475,9 @@ export function FleetAvailabilityCard({ initial }: FleetAvailabilityCardProps) {
       rows.map((row) => ({
         id: row.driverId,
         name: row.name,
-        meta: rowPlateLabel(row),
+        meta: rowPlateLabel(row, noVehicleLabel),
       })),
-    [rows],
+    [rows, noVehicleLabel],
   );
 
   /* ---------------------------------------------------------------------- */
@@ -634,7 +639,7 @@ export function FleetAvailabilityCard({ initial }: FleetAvailabilityCardProps) {
     const next: AvailabilityDrag = {
       driverId: row.driverId,
       driverName: row.name,
-      plateLabel: rowPlateLabel(row),
+      plateLabel: rowPlateLabel(row, noVehicleLabel),
       anchorHour: hour,
       cursorHour: hour,
       trackLeft: rect.left,
@@ -664,8 +669,8 @@ export function FleetAvailabilityCard({ initial }: FleetAvailabilityCardProps) {
       start: pending.start,
       end: pending.end,
       status: "booked",
-      reference: "Held",
-      route: "Reserved by dispatcher",
+      reference: t("held"),
+      route: t("reservedByDispatcher"),
       // The driver's current pairing, because that is the truck this hold is
       // against — unlike an order's block, where the plate is a record of what
       // actually ran.
@@ -771,7 +776,7 @@ export function FleetAvailabilityCard({ initial }: FleetAvailabilityCardProps) {
     try {
       response = await fetch(`${EXPORT_ENDPOINT}?${params.toString()}`);
     } catch {
-      throw new Error(EXPORT_NETWORK_ERROR);
+      throw new Error(t("networkError"));
     }
 
     if (!response.ok) {
@@ -781,7 +786,7 @@ export function FleetAvailabilityCard({ initial }: FleetAvailabilityCardProps) {
         error?: string;
       } | null;
 
-      throw new Error(payload?.error ?? EXPORT_GENERIC_ERROR);
+      throw new Error(payload?.error ?? t("exportError"));
     }
 
     const blob = await response.blob();
@@ -897,7 +902,7 @@ export function FleetAvailabilityCard({ initial }: FleetAvailabilityCardProps) {
         canPreviousPage={safePage > 0}
         canNextPage={safePage < pageCount - 1}
         isLoading={isLoading}
-        error={error}
+        error={loadFailed ? t("loadError") : null}
         onRetry={() => setReloadToken((token) => token + 1)}
         drag={drag}
         onTrackMouseDown={handleTrackMouseDown}
@@ -909,7 +914,7 @@ export function FleetAvailabilityCard({ initial }: FleetAvailabilityCardProps) {
         <p className="text-xs text-muted-foreground">
           {t("dragAcrossAnEmptyStretchOf")}
         </p>
-        <SampleNote label={t("notSaved")} note={HOLD_NOT_SAVED_NOTE} />
+        <SampleNote label={t("notSaved")} note={t("holdNotSavedNote")} />
       </div>
 
       <HoldSlotDialog

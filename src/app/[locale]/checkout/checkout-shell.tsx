@@ -106,9 +106,7 @@ export function CheckoutOrderNotFoundNotice() {
 
   return (
     <CheckoutNotice title={tShared("orderNotFound")}>
-      <p className="mt-3 text-[14px] text-muted">
-        We couldn&rsquo;t find that delivery under your account.
-      </p>
+      <p className="mt-3 text-[14px] text-muted">{t("couldNotFindDelivery")}</p>
       <div className="mt-6 flex justify-center">
         <Link
           href="/orders"

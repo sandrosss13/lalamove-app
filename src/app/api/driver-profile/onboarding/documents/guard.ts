@@ -91,8 +91,8 @@ export async function resolveOnboardingDocumentContext(
     return {
       error:
         application.status === DriverApplicationStatus.PENDING
-          ? "Your application is under review — its documents cannot be changed until it comes back to you."
-          : "Your application is already approved — its documents cannot be changed.",
+          ? t("errors.guard.applicationUnderReview")
+          : t("errors.guard.applicationAlreadyApproved"),
       status: 400,
     };
   }
@@ -111,12 +111,20 @@ export async function resolveOnboardingDocumentContext(
  */
 export function parseDocumentType(
   value: unknown,
+  /** Localizes the message. Optional so callers that have not been converted
+   *  yet keep the English message they had. */
+  t?: Awaited<ReturnType<typeof getRequestTranslations>>,
 ): { type: DriverApplicationDocumentType } | { error: string } {
   if (
     typeof value !== "string" ||
     !DOCUMENT_TYPES.includes(value as DriverApplicationDocumentType)
   ) {
-    return { error: `type must be one of: ${DOCUMENT_TYPES.join(", ")}.` };
+    const types = DOCUMENT_TYPES.join(", ");
+    return {
+      error: t
+        ? t("errors.guard.typeMustBeOneOf", { types })
+        : `type must be one of: ${types}.`,
+    };
   }
 
   return { type: value as DriverApplicationDocumentType };

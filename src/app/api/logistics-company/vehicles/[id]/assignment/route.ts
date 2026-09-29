@@ -119,9 +119,11 @@ function liveAssignmentConflict(error: unknown): "VEHICLE" | "DRIVER" | null {
  * messages depending on which microsecond it happened in would be a worse API.
  */
 const LIVE_ASSIGNMENT_CONFLICT_ERROR = {
-  VEHICLE: "This vehicle already has an active assignment. Unassign it first.",
+  // Message keys (full paths), resolved with the request's translator.
+  VEHICLE:
+    "errors.logisticsCompanyVehiclesAssignment.thisVehicleAlreadyHasAnActive",
   DRIVER:
-    "This driver already has an active vehicle assignment. Unassign it first.",
+    "errors.logisticsCompanyVehiclesAssignment.thisDriverAlreadyHasAnActive",
 } as const;
 
 /**
@@ -251,7 +253,7 @@ export async function POST(
 
     if (vehicle.assignments.length > 0) {
       return {
-        error: LIVE_ASSIGNMENT_CONFLICT_ERROR.VEHICLE,
+        error: t(LIVE_ASSIGNMENT_CONFLICT_ERROR.VEHICLE),
         status: 400,
       } as const;
     }
@@ -278,7 +280,10 @@ export async function POST(
       const held = driverProfile.licence?.categories ?? [];
       if (!held.includes(required)) {
         return {
-          error: `This vehicle needs category ${required}. Assign a different driver or vehicle.`,
+          error: t(
+            "errors.logisticsCompanyVehiclesAssignment.thisVehicleNeedsCategory",
+            { category: required },
+          ),
           status: 400,
         } as const;
       }
@@ -296,7 +301,7 @@ export async function POST(
 
     if (driverAssignment) {
       return {
-        error: LIVE_ASSIGNMENT_CONFLICT_ERROR.DRIVER,
+        error: t(LIVE_ASSIGNMENT_CONFLICT_ERROR.DRIVER),
         status: 400,
       } as const;
     }
@@ -337,7 +342,7 @@ export async function POST(
     );
 
     return NextResponse.json(
-      { error: LIVE_ASSIGNMENT_CONFLICT_ERROR[conflict] },
+      { error: t(LIVE_ASSIGNMENT_CONFLICT_ERROR[conflict]) },
       { status: 400 },
     );
   }

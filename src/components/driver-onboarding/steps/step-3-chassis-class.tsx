@@ -94,17 +94,21 @@ const CHASSIS_OPTIONS: {
  * against `CHASSIS_OPTIONS` so every enum value is required to have one and a
  * missing case is a type error, not a runtime fallback.
  */
-const CHASSIS_LOCK_LABELS: Record<OnboardingDraftChassisType, string> = {
-  DRY_BOX: "a dry box",
-  REFRIGERATED: "a refrigerated vehicle",
-  OPEN_CHASSIS: "an open chassis",
+/* Values are `onboarding.step3ChassisClass` message keys, translated where the
+   phrase is used — a module-level constant cannot call a hook. */
+const CHASSIS_LOCK_LABELS: Record<
+  OnboardingDraftChassisType,
+  "lockPhraseDryBox" | "lockPhraseRefrigerated" | "lockPhraseOpenChassis"
+> = {
+  DRY_BOX: "lockPhraseDryBox",
+  REFRIGERATED: "lockPhraseRefrigerated",
+  OPEN_CHASSIS: "lockPhraseOpenChassis",
 };
 
-/** The toast every step raises when Continue is pressed on an invalid screen. */
-const VALIDATION_TOAST = "Fix the highlighted fields to continue.";
-
-const BODY_REQUIRED_MESSAGE = "Choose a cargo body type.";
-const CLASS_REQUIRED_MESSAGE = "Choose the vehicle class.";
+/** This step's translator, passed to the module-level lock resolver. */
+type Step3Translator = ReturnType<
+  typeof useTranslations<"onboarding.step3ChassisClass">
+>;
 
 /**
  * The `GET /api/vehicle-types` fields this step needs — the seeded
@@ -196,20 +200,22 @@ function resolveClassLock(
   vehicleClass: VehicleClass,
   heldCategories: OnboardingDraftLicenceCategory[],
   chassisType: OnboardingDraftChassisType,
+  t: Step3Translator,
 ): ClassLock | null {
   if (isClassLockedByLicence(vehicleClass.id, heldCategories)) {
     const category = vehicleClass.requiredLicenceCategory;
     return {
-      note: `Locked — your licence does not list category ${category}.`,
-      flash: `Add category ${category} in step 2 to drive this class.`,
+      note: t("lockedByLicence", { category }),
+      flash: t("addCategoryToDrive", { category }),
     };
   }
 
   if (resolveVehicleTypeSpecCode(vehicleClass.id, chassisType) === null) {
     return {
-      note: `Locked — not offered as ${CHASSIS_LOCK_LABELS[chassisType]} yet.`,
-      flash:
-        "Choose a different body type in the previous screen to unlock this class.",
+      note: t("lockedNotOffered", {
+        body: t(CHASSIS_LOCK_LABELS[chassisType]),
+      }),
+      flash: t("chooseDifferentBody"),
     };
   }
 
@@ -311,7 +317,10 @@ export function Step3ChassisClass() {
         // Dropping a visible selection silently is worse than one extra
         // toast — say which class went and why.
         showToast(
-          `${previousClass.name} isn't offered as ${CHASSIS_LOCK_LABELS[nextChassis]} — choose another class.`,
+          t("classNotOfferedAsBody", {
+            className: tRoot(previousClass.nameKey),
+            body: t(CHASSIS_LOCK_LABELS[nextChassis]),
+          }),
         );
       }
     }
@@ -322,7 +331,7 @@ export function Step3ChassisClass() {
   function handleContinueFromBody() {
     if (chassisType === undefined) {
       setBodyError(true);
-      showToast(VALIDATION_TOAST, "error");
+      showToast(t("fixHighlightedFields"), "error");
       return;
     }
 
@@ -397,7 +406,7 @@ export function Step3ChassisClass() {
 
         {bodyError ? (
           <p role="alert" className="text-xs text-destructive">
-            {BODY_REQUIRED_MESSAGE}
+            {t("chooseCargoBodyType")}
           </p>
         ) : null}
 
@@ -419,7 +428,7 @@ export function Step3ChassisClass() {
   // selected nor pass validation.
   const classCards = VEHICLE_CLASSES.map((vehicleClass) => ({
     vehicleClass,
-    lock: resolveClassLock(vehicleClass, heldCategories, bodyType),
+    lock: resolveClassLock(vehicleClass, heldCategories, bodyType, t),
   }));
 
   const selectedCard = classCards.find(
@@ -460,7 +469,7 @@ export function Step3ChassisClass() {
   function handleContinueFromClass() {
     if (!hasValidClass) {
       setClassError(true);
-      showToast(VALIDATION_TOAST, "error");
+      showToast(t("fixHighlightedFields"), "error");
       return;
     }
 
@@ -516,12 +525,12 @@ export function Step3ChassisClass() {
                       : "bg-muted text-muted-foreground"
                   }`}
                 >
-                  {vehicleClass.chip}
+                  {tRoot(vehicleClass.chipKey)}
                 </span>
               </span>
 
               <span className="text-[12.5px] text-muted-foreground">
-                {vehicleClass.capacityLine}
+                {tRoot(vehicleClass.capacityLineKey)}
               </span>
 
               <span className="w-full border-t border-border pt-2 text-[12px] leading-[1.5] text-muted-foreground">
@@ -540,7 +549,7 @@ export function Step3ChassisClass() {
 
       {classError ? (
         <p role="alert" className="text-xs text-destructive">
-          {CLASS_REQUIRED_MESSAGE}
+          {t("chooseVehicleClass")}
         </p>
       ) : null}
 

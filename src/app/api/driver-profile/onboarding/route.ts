@@ -434,7 +434,10 @@ function parseSaveDraftBody(
     draftStep > ONBOARDING_LAST_STEP
   ) {
     return {
-      error: `draftStep must be an integer between ${ONBOARDING_FIRST_STEP} and ${ONBOARDING_LAST_STEP}.`,
+      error: t("errors.driverProfileOnboarding.draftStepRange", {
+        min: ONBOARDING_FIRST_STEP,
+        max: ONBOARDING_LAST_STEP,
+      }),
     };
   }
 
@@ -446,7 +449,11 @@ function parseSaveDraftBody(
   for (const section of ["personal", "licence", "vehicle"] as const) {
     const value = parsedDraft[section];
     if (value !== undefined && !isJsonObject(value)) {
-      return { error: `draft.${section} must be an object.` };
+      return {
+        error: t("errors.driverProfileOnboarding.draftSectionMustBeObject", {
+          section,
+        }),
+      };
     }
   }
 
@@ -455,7 +462,9 @@ function parseSaveDraftBody(
   // `parseOnboardingDraft` count against the cap too.
   if (JSON.stringify(parsedDraft).length > MAX_DRAFT_JSON_LENGTH) {
     return {
-      error: `draft must serialise to ${MAX_DRAFT_JSON_LENGTH} characters or fewer.`,
+      error: t("errors.driverProfileOnboarding.draftTooLarge", {
+        max: MAX_DRAFT_JSON_LENGTH,
+      }),
     };
   }
 

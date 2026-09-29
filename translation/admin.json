@@ -51,7 +51,7 @@
   },
   "adminChangePasswordForm.yourBackOfficeAccountWasCreated": {
     "en": "Your back-office account was created with a temporary password. Choose a new one to continue.",
-    "ka": "თქვენი ადმინისტრაციული (back-office) ანგარიში შეიქმნა დროებითი პაროლით. გაგრძელებისთვის აირჩიეთ ახალი პაროლი",
+    "ka": "თქვენი ადმინისტრაციული ანგარიში შეიქმნა დროებითი პაროლით. გაგრძელებისთვის აირჩიეთ ახალი პაროლი.",
     "_source": "src/components/admin/admin-change-password-form.tsx"
   },
   "adminContentBanners.always": {
@@ -116,7 +116,7 @@
   },
   "adminContentBanners.promotionalImagesOnThePublicSite": {
     "en": "Promotional images on the public site. Each banner shows in one placement and locale, ordered by its sort order.",
-    "ka": "სარეკლამო გამოსახულებები საჯარო საიტზე. თითოეული ბანერი ჩანს ერთ კონკრეტულ ადგილას და ლოკალზე (რეგიონში/ენაზე), დალაგებული სორტირების თანმიმდევრობის მიხედვით.",
+    "ka": "სარეკლამო გამოსახულებები საჯარო საიტზე. თითოეული ბანერი ჩანს ერთ კონკრეტულ ადგილას და ლოკალზე, დალაგებული სორტირების თანმიმდევრობის მიხედვით.",
     "_source": "src/app/[locale]/admin/(sections)/content/banners/page.tsx"
   },
   "adminContentBanners.toggleActiveLabel": {
@@ -201,7 +201,7 @@
   },
   "adminContentHomePage.noSectionsForThisLocaleYet": {
     "en": "No sections for this locale yet — the landing page is showing its default composition.",
-    "ka": "მ ლოკალისთვის სექციები ჯერ არ არის — სადესანტო გვერდი (landing page) აჩვენებს თავის ნაგულისხმევ სტრუქტურას.",
+    "ka": "ამ ლოკალისთვის სექციები ჯერ არ არის — მთავარი გვერდი აჩვენებს თავის ნაგულისხმევ სტრუქტურას.",
     "_source": "src/app/[locale]/admin/(sections)/content/home-page/page.tsx"
   },
   "adminContentHomePage.slidesFromBanners": {
@@ -211,7 +211,7 @@
   },
   "adminContentHomePage.theSectionsOfThePublicLanding": {
     "en": "The sections of the public landing page, in the order they render. With no sections for a locale, the page falls back to its built-in default composition. The navigation bar and the footer are page chrome: they render at the top and the bottom whatever their position in this list, so moving them changes nothing.",
-    "ka": "საჯარო გვერდის სექციები მათი გამოჩენის თანმიმდევრობით. თუ კონკრეტული ლოკალისთვის სექციები არ არის, გვერდი უბრუნდება ჩაშენებულ ნაგულისხმევ სტრუქტურას. ნავიგაციის ზოლი და ფუტერი (footer) გვერდის მუდმივი ელემენტებია (page chrome): ისინი ყოველთვის ჩნდებიან ზემოთ და ქვემოთ, მიუხედავად ამ სიასში მათი პოზიციისა, ამიტომ მათი გადაადგილება არაფერს ცვლის.",
+    "ka": "საჯარო მთავარი გვერდის სექციები მათი გამოჩენის თანმიმდევრობით. თუ კონკრეტული ლოკალისთვის სექციები არ არის, გვერდი უბრუნდება ჩაშენებულ ნაგულისხმევ სტრუქტურას. ნავიგაციის ზოლი და ფუტერი გვერდის მუდმივი ელემენტებია: ისინი ყოველთვის ჩნდებიან ზემოთ და ქვემოთ, მიუხედავად ამ სიაში მათი პოზიციისა, ამიტომ მათი გადაადგილება არაფერს ცვლის.",
     "_source": "src/app/[locale]/admin/(sections)/content/home-page/page.tsx"
   },
   "adminContentHomePage.thisSectionWillBeRemovedFrom": {
@@ -252,6 +252,11 @@
   "adminContentMessagingTemplates.deleteTemplateDescription": {
     "en": "Removes the {channel} wording for <key>{key}</key> in {language}. To stop it being used without losing the text, edit it and turn Active off instead.",
     "ka": "წაიშლება {channel} ტექსტი გასაღებისთვის <key>{key}</key> ({language}). თუ გსურთ, რომ აღარ გამოიყენებოდეს და ტექსტი არ დაიკარგოს, დაარედაქტირეთ და გამორთეთ „აქტიური“.",
+    "_source": "src/app/[locale]/admin/(sections)/content/messaging-templates/page.tsx"
+  },
+  "adminContentMessagingTemplates.deleteTemplateDetail": {
+    "en": "Removes the {channel} wording for <mark>{key}</mark> in {language}. To stop it being used without losing the text, edit it and turn Active off instead.",
+    "ka": "წაიშლება {channel} ტექსტი გასაღებისთვის <mark>{key}</mark> ({language}). თუ გსურთ, რომ აღარ გამოიყენებოდეს და ტექსტი არ დაიკარგოს, დაარედაქტირეთ და გამორთეთ „აქტიური“.",
     "_source": "src/app/[locale]/admin/(sections)/content/messaging-templates/page.tsx"
   },
   "adminContentMessagingTemplates.filterTemplatesByChannel": {
@@ -307,6 +312,11 @@
   "adminContentPages.deletePageDescription": {
     "en": "“{title}” ({language}) will be removed permanently, and <slug>/pages/{slug}</slug> will stop resolving for that locale. This cannot be undone.",
     "ka": "„{title}“ ({language}) სამუდამოდ წაიშლება და <slug>/pages/{slug}</slug> ამ ლოკალისთვის აღარ გაიხსნება. ამ მოქმედების გაუქმება შეუძლებელია.",
+    "_source": "src/app/[locale]/admin/(sections)/content/pages/page.tsx"
+  },
+  "adminContentPages.deletePageDetail": {
+    "en": "“{title}” ({language}) will be removed permanently, and <path>/pages/{slug}</path> will stop resolving for that locale. This cannot be undone.",
+    "ka": "„{title}“ ({language}) სამუდამოდ წაიშლება და <path>/pages/{slug}</path> ამ ლოკალისთვის აღარ გაიხსნება. ამ მოქმედების გაუქმება შეუძლებელია.",
     "_source": "src/app/[locale]/admin/(sections)/content/pages/page.tsx"
   },
   "adminContentPages.deleteThisPage": {
@@ -382,6 +392,11 @@
   "adminContentTranslations.deleteValueDescription": {
     "en": "Removes the {language} text for <key>{key}</key>. The other language keeps the key, and you can add this one back from the same row.",
     "ka": "წაიშლება {language} ტექსტი გასაღებისთვის <key>{key}</key>. მეორე ენაზე გასაღები შენარჩუნდება და ამ მნიშვნელობის ხელახლა დამატება იმავე სტრიქონიდან შეგიძლიათ.",
+    "_source": "src/app/[locale]/admin/(sections)/content/translations/page.tsx"
+  },
+  "adminContentTranslations.deleteValueDetail": {
+    "en": "Removes the {language} text for <mark>{key}</mark>. The other language keeps the key, and you can add this one back from the same row.",
+    "ka": "წაიშლება {language} ტექსტი გასაღებისთვის <mark>{key}</mark>. მეორე ენაზე გასაღები შენარჩუნდება და ამ მნიშვნელობის ხელახლა დამატება იმავე სტრიქონიდან შეგიძლიათ.",
     "_source": "src/app/[locale]/admin/(sections)/content/translations/page.tsx"
   },
   "adminContentTranslations.deleteValueTitle": {
@@ -511,7 +526,7 @@
   },
   "adminDriversApplications.docs": {
     "en": "Docs",
-    "ka": "დოკუმენტაცია (Docs)",
+    "ka": "დოკუმენტები",
     "_source": "src/app/[locale]/admin/(sections)/drivers/applications/page.tsx"
   },
   "adminDriversApplications.emptyActionRequired": {
@@ -866,7 +881,7 @@
   },
   "adminShell.backOffice": {
     "en": "Back Office",
-    "ka": "ბექ-ოფისი (Back Office)",
+    "ka": "ბექ-ოფისი",
     "_source": "src/components/admin/admin-shell.tsx"
   },
   "adminShell.internalTools": {
@@ -1004,6 +1019,41 @@
     "ka": "თქვენ",
     "_source": "src/app/[locale]/admin/(sections)/users/system/page.tsx"
   },
+  "analyticsExport.completedAtUtc": {
+    "en": "Completed at (UTC)",
+    "ka": "დასრულების დრო (UTC)",
+    "_source": "src/app/api/admin/analytics/export/route.ts"
+  },
+  "analyticsExport.createdAtUtc": {
+    "en": "Created at (UTC)",
+    "ka": "შექმნის დრო (UTC)",
+    "_source": "src/app/api/admin/analytics/export/route.ts"
+  },
+  "analyticsExport.orderId": {
+    "en": "Order ID",
+    "ka": "შეკვეთის ID",
+    "_source": "src/app/api/admin/analytics/export/route.ts"
+  },
+  "analyticsExport.ordersSheet": {
+    "en": "Orders",
+    "ka": "შეკვეთები",
+    "_source": "src/app/api/admin/analytics/export/route.ts"
+  },
+  "analyticsExport.summarySheet": {
+    "en": "Summary",
+    "ka": "შეჯამება",
+    "_source": "src/app/api/admin/analytics/export/route.ts"
+  },
+  "analyticsExport.truncated": {
+    "en": "Truncated at {count} orders — narrow the date range for a complete list.",
+    "ka": "სია შემოკლებულია {count} შეკვეთამდე — სრული სიისთვის შეამცირეთ თარიღების დიაპაზონი.",
+    "_source": "src/app/api/admin/analytics/export/route.ts"
+  },
+  "analyticsExport.turnoverAllOrders": {
+    "en": "Turnover (all orders)",
+    "ka": "ბრუნვა (ყველა შეკვეთა)",
+    "_source": "src/app/api/admin/analytics/export/route.ts"
+  },
   "apiAuth.forbidden": {
     "en": "Forbidden.",
     "ka": "აკრძალულია",
@@ -1122,6 +1172,11 @@
   "bannerFormDialog.leaveTheDatesEmptyForA": {
     "en": "Leave the dates empty for a banner with no start or end. Dates are read in UTC and both ends are inclusive.",
     "ka": "დატოვეთ თარიღები ცარიელი ბანერისთვის, რომელსაც არ აქვს დაწყების ან დასრულების დრო. თარიღები იკითხება UTC-ში და ორივე ზღვარი ჩათვლილია.",
+    "_source": "src/components/admin/content/banner-form-dialog.tsx"
+  },
+  "bannerFormDialog.linkUrlPlaceholder": {
+    "en": "/services (optional)",
+    "ka": "/services (არასავალდებულო)",
     "_source": "src/components/admin/content/banner-form-dialog.tsx"
   },
   "bannerFormDialog.newBanner": {
@@ -1371,7 +1426,7 @@
   },
   "dateRangePicker.apply": {
     "en": "Apply",
-    "ka": "გამოყენება / დადასტურება",
+    "ka": "გამოყენება",
     "_source": "src/components/admin/analytics/date-range-picker.tsx"
   },
   "dateRangePicker.customRange": {
@@ -1489,6 +1544,86 @@
     "ka": "{label}, ატვირთული განმცხადებლის მიერ",
     "_source": "src/components/admin/driver-application-detail-drawer.tsx"
   },
+  "flagReasons.addressDoesNotMatch": {
+    "en": "Address does not match registration",
+    "ka": "მისამართი არ ემთხვევა რეგისტრაციის მონაცემებს",
+    "_source": "src/lib/review-flag-reasons.ts"
+  },
+  "flagReasons.bankAccountNotHeldByEntity": {
+    "en": "Bank account not held by the entity",
+    "ka": "საბანკო ანგარიში არ ეკუთვნის კომპანიას",
+    "_source": "src/lib/review-flag-reasons.ts"
+  },
+  "flagReasons.contactPersonUnreachable": {
+    "en": "Contact person unreachable",
+    "ka": "საკონტაქტო პირთან დაკავშირება ვერ მოხერხდა",
+    "_source": "src/lib/review-flag-reasons.ts"
+  },
+  "flagReasons.coolingUnitRecordMissing": {
+    "en": "Cooling unit record missing",
+    "ka": "მაცივარი დანადგარის ჩანაწერი აკლია",
+    "_source": "src/lib/review-flag-reasons.ts"
+  },
+  "flagReasons.dimensionsLookWrong": {
+    "en": "Dimensions look wrong",
+    "ka": "ზომები არასწორი ჩანს",
+    "_source": "src/lib/review-flag-reasons.ts"
+  },
+  "flagReasons.documentExpired": {
+    "en": "Document expired",
+    "ka": "დოკუმენტს ვადა გაუვიდა",
+    "_source": "src/lib/review-flag-reasons.ts"
+  },
+  "flagReasons.doesNotMatchTheId": {
+    "en": "Does not match the ID",
+    "ka": "არ ემთხვევა პირადობის მოწმობას",
+    "_source": "src/lib/review-flag-reasons.ts"
+  },
+  "flagReasons.duplicatePlate": {
+    "en": "Duplicate plate on another fleet",
+    "ka": "ეს სახელმწიფო ნომერი უკვე სხვა ავტოპარკშია",
+    "_source": "src/lib/review-flag-reasons.ts"
+  },
+  "flagReasons.faceNotClearlyVisible": {
+    "en": "Face not clearly visible",
+    "ka": "სახე მკაფიოდ არ ჩანს",
+    "_source": "src/lib/review-flag-reasons.ts"
+  },
+  "flagReasons.glareDetailsUnreadable": {
+    "en": "Glare — details unreadable",
+    "ka": "ანარეკლი — დეტალები არ იკითხება",
+    "_source": "src/lib/review-flag-reasons.ts"
+  },
+  "flagReasons.payloadAboveClassLimit": {
+    "en": "Payload above the class limit",
+    "ka": "ტვირთამწეობა აღემატება კლასის ლიმიტს",
+    "_source": "src/lib/review-flag-reasons.ts"
+  },
+  "flagReasons.photoIsBlurry": {
+    "en": "Photo is blurry",
+    "ka": "ფოტო ბუნდოვანია",
+    "_source": "src/lib/review-flag-reasons.ts"
+  },
+  "flagReasons.plateDoesNotMatch": {
+    "en": "Plate does not match the documents",
+    "ka": "სახელმწიფო ნომერი არ ემთხვევა დოკუმენტებს",
+    "_source": "src/lib/review-flag-reasons.ts"
+  },
+  "flagReasons.vatIdNotFound": {
+    "en": "VAT ID not found in the registry",
+    "ka": "დღგ-ის გადამხდელის ნომერი რეესტრში ვერ მოიძებნა",
+    "_source": "src/lib/review-flag-reasons.ts"
+  },
+  "flagReasons.vehicleTooOld": {
+    "en": "Vehicle too old for the platform",
+    "ka": "ტრანსპორტი ძალიან ძველია პლატფორმისთვის",
+    "_source": "src/lib/review-flag-reasons.ts"
+  },
+  "flagReasons.wrongDocumentUploaded": {
+    "en": "Wrong document uploaded",
+    "ka": "ატვირთულია არასწორი დოკუმენტი",
+    "_source": "src/lib/review-flag-reasons.ts"
+  },
   "homePageContent.aHelperIsASecondPair": {
     "en": "A helper is a second pair of hands who rides along to load and unload with the driver. It is a flat fee on top of the distance and time components, so tick it before you price the job and it is already in the total and in the breakdown you see.",
     "ka": "დამხმარე არის წყვილი ხელის დამატებითი ძალა, რომელიც მიყვება მძღოლს დატვირთვა-დაცლისთვის. ეს არის ფიქსირებული საფასური, რომელიც ემატება მანძილისა და დროის კომპონენტებს, ასე რომ მონიშნეთ ის შეკვეთის ფასის გამოთვლამდე — ის უკვე ჩანს ჯამში და ჩაშლილ ჩანახატში.",
@@ -1511,12 +1646,12 @@
   },
   "homePageContent.anIndependentDriverOrALogistics": {
     "en": "An independent driver or a logistics company takes the job and it goes live on your map. Follow the vehicle from loading to unload, and keep every order in your account.",
-    "ka": "დამოუკიდებელი მძღოლი ან ლოგისტიკური კომპანია იღებს შეკვეთას და ის აისახება თქვენს რუკაზე. ადევნეთ თვალი ტრანსპორტს დატვირთვიდან დაცლამდე და შეინახეთ თითოეული შეკვეთა თქვენს ანგარიშზე.",
+    "ka": "დამოუკიდებელი მძღოლი ან ლოჯისტიკური კომპანია იღებს შეკვეთას და ის აისახება თქვენს რუკაზე. ადევნეთ თვალი ტრანსპორტს დატვირთვიდან დაცლამდე და შეინახეთ თითოეული შეკვეთა თქვენს ანგარიშზე.",
     "_source": "src/lib/admin/home-page-content.ts"
   },
   "homePageContent.anOrderStartsOutPendingUntil": {
     "en": "An order starts out pending until a transport provider takes it. That is either an independent driver, who accepts it with one of the vehicles registered to their profile, or a logistics company, which claims the job and dispatches it to a driver on its own roster.",
-    "ka": "შეკვეთა იწყება მოლოდინის სტატუსით, სანამ მას ტრანსპორტის პროვაიდერი არ აიღებს. ეს არის ან დამოუკიდებელი მძღოლი, რომელიც იღებს მას მის პროფილზე რეგისტრირებული ერთ-ერთი ტრანსპორტით, ან ლოგისტიკური კომპანია, რომელიც იღებს შეკვეთას და ანაწილებს მას საკუთარ სიაში მყოფ მძღოლზე.",
+    "ka": "შეკვეთა იწყება მოლოდინის სტატუსით, სანამ მას ტრანსპორტის პროვაიდერი არ აიღებს. ეს არის ან დამოუკიდებელი მძღოლი, რომელიც იღებს მას მის პროფილზე რეგისტრირებული ერთ-ერთი ტრანსპორტით, ან ლოჯისტიკური კომპანია, რომელიც იღებს შეკვეთას და ანაწილებს მას საკუთარ სიაში მყოფ მძღოლზე.",
     "_source": "src/lib/admin/home-page-content.ts"
   },
   "homePageContent.baseFareDistanceDrivingTimeAnd": {
@@ -1539,6 +1674,11 @@
     "ka": "bento content უნდა იყოს ობიექტი.",
     "_source": "src/lib/admin/home-page-content.ts"
   },
+  "homePageContent.builtForTheLoadThatWontFit": {
+    "en": "Built for the load that won't fit in a car boot — an office move, a pallet of stock, a machine that needs a tail lift.",
+    "ka": "შექმნილია იმ ტვირთისთვის, რომელიც მსუბუქი ავტომობილის საბარგულში არ ეტევა — ოფისის გადატანა, საქონლის პალეტი ან დანადგარი, რომელსაც ჰიდრავლიკური ბაქანი სჭირდება.",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
   "homePageContent.business": {
     "en": "Business",
     "ka": "ბიზნესი",
@@ -1551,7 +1691,7 @@
   },
   "homePageContent.canACompanyBookAndDispatch": {
     "en": "Can a company book and dispatch as a business?",
-    "ka": "შეუძლია თუ არა კომპანიას დაჯავშნა და გადანაწილება (dispatch) როგორც ბიზნესს?",
+    "ka": "შეუძლია თუ არა კომპანიას დაჯავშნა და დანიშვნა, როგორც იურიდიულ პირს?",
     "_source": "src/lib/admin/home-page-content.ts"
   },
   "homePageContent.canIFollowTheDelivery": {
@@ -1576,12 +1716,17 @@
   },
   "homePageContent.closingCta": {
     "en": "Closing CTA",
-    "ka": "საბოლოო CTA (Call to Action)",
+    "ka": "დასკვნითი მოწოდება",
     "_source": "src/lib/admin/home-page-content.ts"
   },
   "homePageContent.closingCtaContentMustBeAn": {
     "en": "closing_cta content must be an object.",
     "ka": "closing_cta content უნდა იყოს ობიექტი.",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.commercialFreightAndCargoAcrossGeorgia": {
+    "en": "Commercial freight and cargo across Georgia — vans to trailer trucks, priced before you book.",
+    "ka": "კომერციული გადაზიდვები და ტვირთი მთელ საქართველოში — ფურგონებიდან მისაბმელიან სატვირთოებამდე, ფასით დაჯავშნამდე.",
     "_source": "src/lib/admin/home-page-content.ts"
   },
   "homePageContent.commercialFreightCargo": {
@@ -1591,7 +1736,7 @@
   },
   "homePageContent.cookies": {
     "en": "Cookies",
-    "ka": "ქუქი-ფაილები (Cookies)",
+    "ka": "ქუქი-ფაილები",
     "_source": "src/lib/admin/home-page-content.ts"
   },
   "homePageContent.coverage": {
@@ -1604,6 +1749,21 @@
     "ka": "coverage content უნდა იყოს ობიექტი.",
     "_source": "src/lib/admin/home-page-content.ts"
   },
+  "homePageContent.coverageTierCitywide": {
+    "en": "Citywide",
+    "ka": "მთელ ქალაქში",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.coverageTierNationwide": {
+    "en": "Nationwide",
+    "ka": "მთელ ქვეყანაში",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.coverageTierRegional": {
+    "en": "Regional",
+    "ka": "რეგიონული",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
   "homePageContent.dispatchAndSupport": {
     "en": "Dispatch and support",
     "ka": "გადანაწილება და მხარდაჭერა",
@@ -1612,6 +1772,11 @@
   "homePageContent.dispatchingEveryDayFor": {
     "en": "Dispatching every day for",
     "ka": "ყოველდღიური გადანაწილება",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.driveWithUs": {
+    "en": "Drive with us",
+    "ka": "იმუშავეთ ჩვენთან მძღოლად",
     "_source": "src/lib/admin/home-page-content.ts"
   },
   "homePageContent.driverCta": {
@@ -1629,9 +1794,24 @@
     "ka": "მძღოლის რეგისტრაცია",
     "_source": "src/lib/admin/home-page-content.ts"
   },
+  "homePageContent.drivingYourOwnTruckOrRunningAFleet": {
+    "en": "Driving your own truck or running a fleet — both sign up here.",
+    "ka": "საკუთარ სატვირთოს მართავთ თუ ავტოპარკს — ორივე შემთხვევაში აქ დარეგისტრირდით.",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.enterAPickupAndADropoffPick": {
+    "en": "Enter a pickup and a dropoff, pick a vehicle rated for the load, and we quote base fare, distance and driving time in lari. No account needed to see the number.",
+    "ka": "მიუთითეთ აღებისა და ჩაბარების მისამართები, აირჩიეთ ტვირთისთვის შესაფერისი ავტომობილი და ჩვენ ლარში გამოვთვლით საბაზო ღირებულებას, მანძილსა და მგზავრობის დროს. ფასის სანახავად ანგარიში არ გჭირდებათ.",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
   "homePageContent.everyAcceptedOrderGetsItsOwn": {
     "en": "Every accepted order gets its own tracking page: pickup and dropoff on a map, the driver's position as they report it, and a status that moves from accepted to in transit to completed.",
     "ka": "თითოეულ დადასტურებულ შეკვეთას აქვს თვალყურის დევნების საკუთარი გვერდი: აყვანა და ჩაბარება რუკაზე, მძღოლის პოზიცია რეალურ დროში და სტატუსი, რომელიც იცვლება „მიღებულიდან“ „ტრანზიტშია“ და „დასრულებულამდე“.",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.everyJobShowsTheRouteTheCargo": {
+    "en": "Every job shows the route, the cargo and the payout before you accept.",
+    "ka": "ყოველ რეისს მიღებამდე ახლავს მარშრუტი, ტვირთი და ანაზღაურება.",
     "_source": "src/lib/admin/home-page-content.ts"
   },
   "homePageContent.everyMajorCityOneAccount": {
@@ -1651,7 +1831,7 @@
   },
   "homePageContent.faq": {
     "en": "FAQ",
-    "ka": "ხშირად დასმული კითხვები (FAQ)",
+    "ka": "ხშირად დასმული კითხვები",
     "_source": "src/lib/admin/home-page-content.ts"
   },
   "homePageContent.faqContentMustBeAnObject": {
@@ -1671,7 +1851,7 @@
   },
   "homePageContent.fleetsAndLogisticsCompanies": {
     "en": "Fleets and logistics companies",
-    "ka": "ავტოპარკები და ლოგისტიკური კომპანიები",
+    "ka": "ავტოპარკები და ლოჯისტიკური კომპანიები",
     "_source": "src/lib/admin/home-page-content.ts"
   },
   "homePageContent.footerContentMustBeAnObject": {
@@ -1699,9 +1879,19 @@
     "ka": "ოთხი ნაბიჯი, სატელეფონო ზარების გარეშე.",
     "_source": "src/lib/admin/home-page-content.ts"
   },
+  "homePageContent.freightMovingAcrossGeorgia": {
+    "en": "Freight moving across Georgia",
+    "ka": "ტვირთის გადაზიდვა მთელ საქართველოში",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
   "homePageContent.georgianCitiesServed": {
     "en": "Georgian cities served",
     "ka": "საქართველოს ქალაქები, სადაც ვოპერირებთ",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.getStarted": {
+    "en": "Get started",
+    "ka": "დაწყება",
     "_source": "src/lib/admin/home-page-content.ts"
   },
   "homePageContent.helper": {
@@ -1736,7 +1926,7 @@
   },
   "homePageContent.intercity": {
     "en": "Intercity",
-    "ka": "ქალაქთაშორისი (Intercity)",
+    "ka": "ქალაქთაშორისი",
     "_source": "src/lib/admin/home-page-content.ts"
   },
   "homePageContent.itemisedBeforeYouBook": {
@@ -1746,12 +1936,12 @@
   },
   "homePageContent.knowTheFareBeforeYouCommit": {
     "en": "Know the fare before you commit.",
-    "ka": "იcodeთ ტარიფი სანამ დაადასტურებთ.",
+    "ka": "იცოდეთ ღირებულება, სანამ დაადასტურებთ.",
     "_source": "src/lib/admin/home-page-content.ts"
   },
   "homePageContent.liveTracking": {
     "en": "Live tracking",
-    "ka": "თვალყურის დევნება რეალურ დროში (Live tracking)",
+    "ka": "თვალყურის დევნება რეალურ დროში",
     "_source": "src/lib/admin/home-page-content.ts"
   },
   "homePageContent.lockThePrice": {
@@ -1759,9 +1949,39 @@
     "ka": "ფასის დაფიქსირება",
     "_source": "src/lib/admin/home-page-content.ts"
   },
+  "homePageContent.mockEtaLabel": {
+    "en": "19 min",
+    "ka": "19 წთ",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.mockFromLabel": {
+    "en": "Chavchavadze Ave, Vake",
+    "ka": "ჭავჭავაძის გამზ., ვაკე",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.mockOrderLabel": {
+    "en": "Order #A4821 · Box Truck",
+    "ka": "შეკვეთა #A4821 · ფურგონიანი სატვირთო",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.mockToLabel": {
+    "en": "Tsereteli Ave, Didube",
+    "ka": "წერეთლის გამზ., დიდუბე",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.moveAnyLoadAnywhereInGeorgia": {
+    "en": "Move any load, anywhere in Georgia.",
+    "ka": "გადაზიდეთ ნებისმიერი ტვირთი საქართველოს ნებისმიერ წერტილში.",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
   "homePageContent.navContentMustBeAnObject": {
     "en": "nav content must be an object.",
     "ka": "nav content უნდა იყოს ობიექტი.",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.nowMovingFreightAcrossGeorgia": {
+    "en": "Now moving freight across Georgia",
+    "ka": "ახლა ტვირთს მთელ საქართველოში გადავზიდავთ",
     "_source": "src/lib/admin/home-page-content.ts"
   },
   "homePageContent.partnerMarqueeContentMustBeAn": {
@@ -1772,6 +1992,16 @@
   "homePageContent.pickAVehicle": {
     "en": "Pick a vehicle",
     "ka": "აირჩიეთ ტრანსპორტი",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.pickTheCategoryYourLoadFallsUnder": {
+    "en": "Pick the category your load falls under and the vehicle rated to carry it comes with it. Figures below are a starting point for a short cross-town run — your price is calculated on the route you enter.",
+    "ka": "აირჩიეთ თქვენი ტვირთის კატეგორია და მას შესაბამისი ტვირთამწეობის ავტომობილი მოჰყვება. ქვემოთ მოცემული თანხები ქალაქში მოკლე მგზავრობის საწყისი ფასია — თქვენი ფასი თქვენ მიერ მითითებული მარშრუტით გამოითვლება.",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.pickTheVehicleTheLoadActuallyNeeds": {
+    "en": "Pick the vehicle the load actually needs. Eleven types across two duty classes, medium and heavy, each with its own payload rating and cargo dimensions.",
+    "ka": "აირჩიეთ ავტომობილი, რომელიც ტვირთს ნამდვილად სჭირდება. თერთმეტი ტიპი ორ კლასში — საშუალო და მძიმე ტვირთამწეობის — თითოეულს თავისი ტვირთამწეობა და ძარის ზომები აქვს.",
     "_source": "src/lib/admin/home-page-content.ts"
   },
   "homePageContent.priceALoad": {
@@ -1787,6 +2017,11 @@
   "homePageContent.priceItInTheOpenBook": {
     "en": "Price it in the open, book it in a few steps, and follow the vehicle to the door. No card needed to get a quote.",
     "ka": "გამოითვალეთ ფასი გამჭვირვალედ, დაჯავშნეთ რამდენიმე ნაბიჯში და მიადევნეთ თვალი ტრანსპორტს კარამდე. საფასურის გამოსათვლელად ბარათი საჭირო არ არის.",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.priceYourRoute": {
+    "en": "Price your route",
+    "ka": "მარშრუტის ფასის გამოთვლა",
     "_source": "src/lib/admin/home-page-content.ts"
   },
   "homePageContent.pricing": {
@@ -1856,12 +2091,22 @@
   },
   "homePageContent.signUpAsAnIndependentDriver": {
     "en": "Sign up as an independent driver or as a logistics company, register your vehicles, and start accepting freight jobs from shippers near you.",
-    "ka": "დარეგისტრირდით როგორც დამოუკიდებელი მძღოლი ან როგორც ლოგისტიკური კომპანია, დაარეგისტრირეთ ტრანსპორტი და დაიწყეთ ტვირთების მიღება თქვენთან ახლოს მყოფი დამკვეთებისგან.",
+    "ka": "დარეგისტრირდით როგორც დამოუკიდებელი მძღოლი ან როგორც ლოჯისტიკური კომპანია, დაარეგისტრირეთ ტრანსპორტი და დაიწყეთ ტვირთების მიღება თქვენთან ახლოს მყოფი დამკვეთებისგან.",
     "_source": "src/lib/admin/home-page-content.ts"
   },
   "homePageContent.statsContentMustBeAnObject": {
     "en": "stats content must be an object.",
     "ka": "stats content უნდა იყოს ობიექტი.",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.statusChipNew": {
+    "en": "New",
+    "ka": "ახალი",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.takeTheLoadsThatSuitYourVehicle": {
+    "en": "Take the loads that suit your vehicle, your payload rating and your day.",
+    "ka": "აიღეთ გადაზიდვები, რომლებიც თქვენს ავტომობილს, მის ტვირთამწეობასა და თქვენს დღის განრიგს შეესაბამება.",
     "_source": "src/lib/admin/home-page-content.ts"
   },
   "homePageContent.tbilisiToBatumiAndBack": {
@@ -1909,6 +2154,11 @@
     "ka": "ტრანსპორტის ტიპები, ფურგონიდან ტრაილერამდე",
     "_source": "src/lib/admin/home-page-content.ts"
   },
+  "homePageContent.vehiclesComeInTwoDutyClasses": {
+    "en": "Vehicles come in two duty classes, medium-duty and heavy-duty, and each cargo category only offers the classes that can take it. Furniture, appliances, retail stock and event equipment go either way; a full relocation, industrial supplies and construction materials are heavy-duty only. Every type lists its maximum payload, so you can match the rating to the load.",
+    "ka": "ავტომობილები ორ კლასად იყოფა — საშუალო და მძიმე ტვირთამწეობის — და ტვირთის თითოეული კატეგორია მხოლოდ იმ კლასებს გთავაზობთ, რომლებსაც მისი გადატანა შეუძლია. ავეჯი, საყოფაცხოვრებო ტექნიკა, სავაჭრო მარაგი და ღონისძიების აღჭურვილობა ორივე კლასით გადაიზიდება; სრული გადასვლა, სამრეწველო მასალები და სამშენებლო მასალები — მხოლოდ მძიმე ტვირთამწეობით. თითოეულ ტიპს მითითებული აქვს მაქსიმალური ტვირთამწეობა, ასე რომ მას ტვირთს მარტივად შეუსაბამებთ.",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
   "homePageContent.weGeocodeBothAddressesAndPrice": {
     "en": "We geocode both addresses and price the distance between them with the vehicle type's own rates: a base fare, a per-kilometre rate and a rate for the estimated time of the trip. A helper, if you ask for one, adds a flat fee on top. You get the total itemised, and the same calculation runs when you place the order — the estimate is not a separate marketing number.",
     "ka": "ჩვენ ვადგენთ ორივე მისამართის კოორდინატებს და იანგარიშება მათ შორის მანძილი ტრანსპორტის ტიპის ტარიფით: საბაზო ტარიფი, კილომეტრის საფასური და სავარაუდო დროის საფასური. დამხმარე, მოთხოვნის შემთხვევაში, ამატებს ფიქსირებულ საფასურს. თქვენ იღებთ სრულ ჩაშლილ ფასს და იგივე კალკულაცია მოქმედებს შეკვეთის განთავსებისას — სავარაუდო ფასი არ არის ცალკე მარკეტინგული ციფრი.",
@@ -1924,9 +2174,19 @@
     "ka": "რას აკეთებს დამატებითი დამხმარე?",
     "_source": "src/lib/admin/home-page-content.ts"
   },
+  "homePageContent.whatSitsBehindTheQuote": {
+    "en": "What sits behind the quote, how a vehicle is matched to the load, and what happens once a driver takes the job.",
+    "ka": "რას ეფუძნება წინასწარი ფასი, როგორ ერგება ავტომობილი ტვირთს და რა ხდება მას შემდეგ, რაც მძღოლი რეისს აიღებს.",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
   "homePageContent.whatWeCarry": {
     "en": "What we carry",
     "ka": "რა გადაგვაქვს",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.whatYouNeedToSignUp": {
+    "en": "What you need to sign up",
+    "ka": "რა გჭირდებათ რეგისტრაციისთვის",
     "_source": "src/lib/admin/home-page-content.ts"
   },
   "homePageContent.whichVehicleShouldIBook": {
@@ -1939,6 +2199,11 @@
     "ka": "რეალურად ვის გადააქვს ჩემი ტვირთი?",
     "_source": "src/lib/admin/home-page-content.ts"
   },
+  "homePageContent.yesALogisticsCompanyRegisters": {
+    "en": "Yes. A logistics company registers, adds its drivers and its vehicles to one roster, and claims jobs from the dispatch queue; the application is reviewed before the account goes live. Shippers book the same way whether they are an individual or a business.",
+    "ka": "დიახ. ლოჯისტიკური კომპანია რეგისტრირდება, თავის მძღოლებსა და ავტომობილებს ერთ სიაში ამატებს და გადაზიდვებს დანიშვნის რიგიდან იღებს; განაცხადი ანგარიშის გააქტიურებამდე განიხილება. ტვირთის გამგზავნები ერთნაირად ჯავშნიან, ფიზიკური პირები იქნებიან თუ იურიდიული.",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
   "homePageContent.yesOnceAnOrderIsAccepted": {
     "en": "Yes. Once an order is accepted it gets its own tracking page: pickup and dropoff on a map, plus the driver's position as they report it, refreshed while you watch. The status moves from accepted to in transit to completed, and the order stays in your account afterwards.",
     "ka": "დიახ. შეკვეთის დადასტურებისთანავე იქმნება თვალყურის დევნების გვერდი: აყვანა და ჩაბარება რუკაზე, მძღოლის პოზიცია რეალურ დროში, რომელიც ახლდება თქვენ თვალწინ. სტატუსი იცვლება „მიღებულიდან“ „ტრანზიტშია“ და „დასრულებულამდე“, ხოლო შეკვეთა რჩება თქვენს ანგარიშზე.",
@@ -1947,6 +2212,11 @@
   "homePageContent.yourNextLoadIsARoute": {
     "en": "Your next load is a route away.",
     "ka": "თქვენი შემდეგი ტვირთი ერთი მარშრუტის დაშორებითაა.",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.yourTruckYourHoursYourJobs": {
+    "en": "Your truck.\nYour hours.\nYour jobs.",
+    "ka": "თქვენი სატვირთო.\nთქვენი საათები.\nთქვენი რეისები.",
     "_source": "src/lib/admin/home-page-content.ts"
   },
   "homePageSectionFormDialog.addCity": {
@@ -2006,12 +2276,12 @@
   },
   "homePageSectionFormDialog.aside": {
     "en": "Aside",
-    "ka": "გვერდითი ბლოკი / Aside",
+    "ka": "გვერდითი ბლოკი",
     "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
   },
   "homePageSectionFormDialog.bothFieldsAreFreeTextAnd": {
     "en": "Both fields are free text and purely editorial. The name is not tied to the city list the booking flow uses, and there is no service-tier data anywhere in the system — a tier is whatever a human who knows the real answer types here.",
-    "ka": "ორივე ველი თავისუფალი ტექსტია და მხოლოდ სარედაქციო ხასიათისაა. სახელი არ არის დაკავშირებული ქალაქების სიასთან, რომელსაც ჯავშნის ნაკადი использует, და სისტემაში არ არსებობს მომსახურების დონის (tier) მონაცემები — დონე არის ის, რასაც აქ ჩაწერს ადამიანი, ვინც იცის რეალური პასუხი.",
+    "ka": "ორივე ველი თავისუფალი ტექსტია და მხოლოდ სარედაქციო ხასიათისაა. სახელი არ არის დაკავშირებული ქალაქების სიასთან, რომელსაც ჯავშნის ნაკადი იყენებს, და სისტემაში არსად არ არსებობს მომსახურების დონის მონაცემები — დონე არის ის, რასაც აქ ჩაწერს ადამიანი, ვინც იცის რეალური პასუხი.",
     "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
   },
   "homePageSectionFormDialog.brandBlurb": {
@@ -2031,7 +2301,7 @@
   },
   "homePageSectionFormDialog.buttonLabel": {
     "en": "Button label",
-    "ka": "ღილაკის ტექსტი (Label)",
+    "ka": "ღილაკის ტექსტი",
     "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
   },
   "homePageSectionFormDialog.buttonLink": {
@@ -2116,7 +2386,7 @@
   },
   "homePageSectionFormDialog.eachNewLineIsRenderedAs": {
     "en": "Each new line is rendered as a line break in the heading.",
-    "ka": "თითოეული ახალი სტრიქონი აისახება სათაურის ახალ აბზაცად (line break).",
+    "ka": "თითოეული ახალი სტრიქონი სათაურში ხაზის გადატანად აისახება.",
     "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
   },
   "homePageSectionFormDialog.editDescription": {
@@ -2131,17 +2401,17 @@
   },
   "homePageSectionFormDialog.etaLabel": {
     "en": "ETA label",
-    "ka": "ETA ტექსტი (სავარაუდო დრო)",
+    "ka": "მისვლის სავარაუდო დროის ტექსტი",
     "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
   },
   "homePageSectionFormDialog.eyebrow": {
     "en": "Eyebrow",
-    "ka": "ზედა სათაური / Eyebrow",
+    "ka": "ზედა სათაური",
     "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
   },
   "homePageSectionFormDialog.fallbackCaption": {
     "en": "Fallback caption",
-    "ka": "სარეზერვო წარწერა (Fallback caption)",
+    "ka": "სარეზერვო წარწერა",
     "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
   },
   "homePageSectionFormDialog.fillsThePanelSRightColumn": {
@@ -2151,17 +2421,17 @@
   },
   "homePageSectionFormDialog.fromLabel": {
     "en": "From label",
-    "ka": "საიდან ტექსტი (From label)",
+    "ka": "„საიდან“ ტექსტი",
     "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
   },
   "homePageSectionFormDialog.heading": {
     "en": "Heading",
-    "ka": "სათაური (Heading)",
+    "ka": "სათაური",
     "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
   },
   "homePageSectionFormDialog.headline": {
     "en": "Headline",
-    "ka": "მთავარი სათაური (Headline)",
+    "ka": "მთავარი სათაური",
     "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
   },
   "homePageSectionFormDialog.heavyDutyGroupHeading": {
@@ -2171,12 +2441,12 @@
   },
   "homePageSectionFormDialog.intro": {
     "en": "Intro",
-    "ka": "შესავალი (Intro)",
+    "ka": "შესავალი",
     "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
   },
   "homePageSectionFormDialog.label": {
     "en": "Label",
-    "ka": "ტექსტი / Label",
+    "ka": "ტექსტი",
     "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
   },
   "homePageSectionFormDialog.legalLinkTitle": {
@@ -2276,7 +2546,7 @@
   },
   "homePageSectionFormDialog.orderLabel": {
     "en": "Order label",
-    "ka": "შეკვეთის ტექსტი (Label)",
+    "ka": "შეკვეთის ტექსტი",
     "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
   },
   "homePageSectionFormDialog.pointTitle": {
@@ -2411,7 +2681,7 @@
   },
   "homePageSectionFormDialog.statusChipTag": {
     "en": "Status chip tag",
-    "ka": "სტატუსის ჭდის თეგი (Status chip tag)",
+    "ka": "სტატუსის ჭდის თეგი",
     "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
   },
   "homePageSectionFormDialog.statusChipText": {
@@ -2466,7 +2736,7 @@
   },
   "homePageSectionFormDialog.theFiguresBelowTheHeroAre": {
     "en": "The figures below the hero are the stats row, which is a section of its own. The retired headline highlight has no field here, so saving a hero authored before the redesign drops it.",
-    "ka": "მთავარი ბანერის (hero) ქვემოთ მოცემული ციფრები არის სტატისტიკის მწკრივი, რომელიც ცალკე სექციაა. ძველ სათაურს აქ ველი არ აქვს, ამიტომ განახლებულ დიზაინამდე შექმნილი ტექსტი უქმდება.",
+    "ka": "მთავარი ბანერის ქვემოთ მოცემული ციფრები არის სტატისტიკის მწკრივი, რომელიც ცალკე სექციაა. ძველ სათაურს აქ ველი არ აქვს, ამიტომ განახლებულ დიზაინამდე შექმნილი ტექსტი უქმდება.",
     "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
   },
   "homePageSectionFormDialog.theFooterIsPageChromeIt": {
@@ -2476,7 +2746,7 @@
   },
   "homePageSectionFormDialog.theMockOrderPinnedToThe": {
     "en": "The mock order pinned to the large card. It is an illustration, not live data — which is exactly why it is authored here rather than hardcoded.",
-    "ka": "დიდ ბარათზე მიმაგრებული სანიმუშო შეკვეთა არის ილუსტრაცია და არა რეალური მონაცემი — სწორედ ამიტომ არის ის აქ გაწერილი და არ არის კოდში ხისტად ჩასმული (hardcoded).",
+    "ka": "დიდ ბარათზე მიმაგრებული სანიმუშო შეკვეთა არის ილუსტრაცია და არა რეალური მონაცემი — სწორედ ამიტომ არის ის აქ გაწერილი და არ არის კოდში ხისტად ჩასმული.",
     "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
   },
   "homePageSectionFormDialog.theNavigationBarIsPageChrome": {
@@ -2491,7 +2761,7 @@
   },
   "homePageSectionFormDialog.theTilesThemselvesAreGeneratedFrom": {
     "en": "The tiles themselves are generated from the cargo taxonomy and its pricing rules.",
-    "ka": "თვითონ ფილები (tiles) გენერირდება ტვირთის ტაქსონომიიდან და მისი ფასწარმოქმნის წესებიდან.",
+    "ka": "თვითონ ფილები გენერირდება ტვირთის ტაქსონომიიდან და მისი ფასწარმოქმნის წესებიდან.",
     "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
   },
   "homePageSectionFormDialog.theTypeDecidesWhichLandingComponent": {
@@ -2501,12 +2771,12 @@
   },
   "homePageSectionFormDialog.tier": {
     "en": "Tier",
-    "ka": "დონე / Tier",
+    "ka": "დონე",
     "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
   },
   "homePageSectionFormDialog.tiles": {
     "en": "Tiles",
-    "ka": "ფილები (Tiles)",
+    "ka": "ფილები",
     "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
   },
   "homePageSectionFormDialog.tilesOrderHint": {
@@ -2516,7 +2786,7 @@
   },
   "homePageSectionFormDialog.toLabel": {
     "en": "To label",
-    "ka": "ტექსტი / To label",
+    "ka": "„სადამდე“ ტექსტი",
     "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
   },
   "homePageSectionFormDialog.trackingPanel": {
@@ -2536,7 +2806,7 @@
   },
   "homePageSectionFormDialog.wordmark": {
     "en": "Wordmark",
-    "ka": "ლოგოტიპი / Wordmark",
+    "ka": "ლოგოტიპი",
     "_source": "src/components/admin/content/home-page-section-form-dialog.tsx"
   },
   "homePageSectionTypes.bento": {
@@ -2551,7 +2821,7 @@
   },
   "homePageSectionTypes.closingCta": {
     "en": "Closing CTA",
-    "ka": "დასკვნითი მოწოდება (CTA)",
+    "ka": "დასკვნითი მოწოდება",
     "_source": "src/lib/admin/home-page-content.ts"
   },
   "homePageSectionTypes.coverage": {
@@ -2561,7 +2831,7 @@
   },
   "homePageSectionTypes.driverCta": {
     "en": "Driver CTA",
-    "ka": "მოწოდება მძღოლებისთვის (CTA)",
+    "ka": "მოწოდება მძღოლებისთვის",
     "_source": "src/lib/admin/home-page-content.ts"
   },
   "homePageSectionTypes.faq": {
@@ -2616,7 +2886,7 @@
   },
   "messagingTemplateFormDialog.aSubjectIsRequiredForEmail": {
     "en": "A subject is required for email templates.",
-    "ka": "ელფოსტის შაბლონებისთვის აუცილებელია თემის (Subject) მითითება.",
+    "ka": "ელფოსტის შაბლონებისთვის აუცილებელია თემის მითითება.",
     "_source": "src/components/admin/content/messaging-template-form-dialog.tsx"
   },
   "messagingTemplateFormDialog.bodyExample": {

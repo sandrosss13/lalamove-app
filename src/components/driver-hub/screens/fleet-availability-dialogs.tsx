@@ -104,9 +104,6 @@ const ACCENT = "var(--landing-accent)";
 const SCOPE_TINT =
   "color-mix(in oklab, var(--landing-accent) 8%, var(--popover))";
 
-/** Shown when a rejection carries no message of its own. */
-const DOWNLOAD_GENERIC_ERROR = "Could not build the export. Try again.";
-
 /* -------------------------------------------------------------------------- */
 /* Hold a slot                                                                */
 /* -------------------------------------------------------------------------- */
@@ -219,7 +216,10 @@ export function HoldSlotDialog({
                   own would describe a slot the board does not draw. */}
               <span className="font-price tabular-nums">
                 {formatHour(pending.start)} – {formatHour(pending.end)} (
-                {formatDuration(pending.end - pending.start)})
+                {formatDuration(pending.end - pending.start, (hours) =>
+                  tFormat("durationHours", { hours }),
+                )}
+                )
               </span>
             </div>
 
@@ -248,9 +248,7 @@ export function HoldSlotDialog({
               a database, and the one place a dispatcher could reasonably assume
               otherwise is the moment before they press "Hold slot". */}
           <p className="text-xs text-muted-foreground">
-            Kept in this browser only. Reservations aren&rsquo;t stored yet, so
-            this hold disappears when the board reloads and other dispatchers
-            won&rsquo;t see it.
+            {t("keptInBrowserOnly")}
           </p>
 
           <DialogFooter>
@@ -388,17 +386,21 @@ function ExportAvailabilityDialogBody({
     {
       id: "view",
       label: t("currentView"),
-      hint: `${filteredDriverCount} drivers · ${formatHour(fromHour)}–${formatHour(toHour)}`,
+      hint: t("scopeViewHint", {
+        count: filteredDriverCount,
+        from: formatHour(fromHour),
+        to: formatHour(toHour),
+      }),
     },
     {
       id: "day",
       label: t("filteredDriversWholeDay"),
-      hint: `${filteredDriverCount} drivers · 00:00–24:00`,
+      hint: t("scopeDayHint", { count: filteredDriverCount }),
     },
     {
       id: "all",
       label: t("allDriversWholeDay"),
-      hint: `${totalDriverCount} drivers · filters ignored`,
+      hint: t("scopeAllHint", { count: totalDriverCount }),
     },
   ];
 
@@ -438,7 +440,7 @@ function ExportAvailabilityDialogBody({
       setError(
         cause instanceof Error && cause.message !== ""
           ? cause.message
-          : DOWNLOAD_GENERIC_ERROR,
+          : t("exportError"),
       );
     } finally {
       setIsDownloading(false);
@@ -572,9 +574,7 @@ function ExportAvailabilityDialogBody({
             whole day, with free slots" is the 60-row answer they wanted or the
             4,000-row one they did not. */}
         <p className="text-xs text-muted-foreground tabular-nums">
-          {spreadsheetRowCount === 1
-            ? "1 spreadsheet row will be written."
-            : `${spreadsheetRowCount} spreadsheet rows will be written.`}
+          {t("rowsWillBeWritten", { count: spreadsheetRowCount })}
         </p>
 
         {/* What an "Available" row in the file actually asserts.
@@ -591,9 +591,7 @@ function ExportAvailabilityDialogBody({
             those rows. */}
         {includeGaps ? (
           <p className="text-xs text-muted-foreground">
-            A free slot means no committed work in the window — not a confirmed
-            shift. Shifts and rest periods aren&rsquo;t recorded yet, so these
-            rows can&rsquo;t promise a driver is on duty.
+            {t("freeSlotDisclaimer")}
           </p>
         ) : null}
       </div>
@@ -626,7 +624,7 @@ function ExportAvailabilityDialogBody({
             void handleDownload();
           }}
         >
-          {isDownloading ? "Preparing…" : "Download .xlsx"}
+          {isDownloading ? t("preparing") : t("downloadXlsx")}
         </Button>
       </DialogFooter>
     </>

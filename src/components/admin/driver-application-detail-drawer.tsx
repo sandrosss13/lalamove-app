@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 
 import type { DriverApplicationDocumentType } from "@prisma/client";
 
@@ -19,7 +19,11 @@ import {
   APPLICATION_APPROVED_TEXT_CLASSES,
 } from "@/components/admin/application-status-colors";
 import { Button } from "@/components/ui/button";
-import { GEORGIAN_CITY_OPTIONS } from "@/lib/georgian-cities";
+import { useLocalizedCityOptions } from "@/lib/georgian-cities";
+import {
+  DOCUMENT_FLAG_REASONS,
+  flagReasonLabel,
+} from "@/lib/review-flag-reasons";
 
 /** Placeholder for a field the application has nothing to show for. */
 const EMPTY_VALUE = "—";
@@ -47,21 +51,6 @@ const DOCUMENT_LABEL_KEYS: Record<DriverApplicationDocumentType, string> = {
 };
 
 /**
- * The six flag reasons from the design, verbatim. A chip click *is* the flag
- * action (there is no confirm step), so this exact text is what the driver
- * reads on their status screen — which is why it is a fixed list rather than
- * free text: six reviewers phrasing "too blurry" six ways helps nobody.
- */
-const FLAG_REASONS: readonly string[] = [
-  "Photo is blurry",
-  "Glare — details unreadable",
-  "Face not clearly visible",
-  "Wrong document uploaded",
-  "Document expired",
-  "Does not match the ID",
-];
-
-/**
  * Display names for the three cargo body types, matching the design's step-3a
  * cards. Held here rather than imported from a wizard step, for the same
  * reason step 4 keeps its own copy: a read-only summary must not depend on a
@@ -76,6 +65,7 @@ const CHASSIS_LABEL_KEYS: Record<string, string> = {
 };
 
 type Translator = ReturnType<typeof useTranslations>;
+type Formatter = ReturnType<typeof useFormatter>;
 
 /** A document type's display name, falling back to the raw enum value for a
  *  type this build has no label for. */
@@ -92,26 +82,13 @@ function chassisLabel(t: Translator, chassisType: string): string | undefined {
   return key === undefined ? undefined : t(key);
 }
 
-/** Short month names, so dates format identically in every reviewer's browser. */
-const MONTH_NAMES = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
-];
-
-const LOAD_ERROR_FALLBACK = "Could not load this application.";
-const REVIEW_ERROR_FALLBACK = "Could not save that verdict.";
-const REQUEST_CHANGES_ERROR_FALLBACK = "Could not request changes.";
-const APPROVE_ERROR_FALLBACK = "Could not approve this driver.";
+// Message paths for the fallbacks, resolved with `t` where each one is shown.
+const LOAD_ERROR_FALLBACK = "admin.applicationReview.couldNotLoadApplication";
+const REVIEW_ERROR_FALLBACK = "admin.applicationReview.couldNotSaveVerdict";
+const REQUEST_CHANGES_ERROR_FALLBACK =
+  "admin.applicationReview.couldNotRequestChanges";
+const APPROVE_ERROR_FALLBACK =
+  "admin.driverApplicationDetailDrawer.couldNotApproveDriver";
 
 /**
  * Which request is in flight. One value for all four kinds of mutation rather
@@ -165,8 +142,8 @@ async function readErrorMessage(
 }
 
 /**
- * Formats an ISO date for display by reading the parts out of the string rather
- * than through `Date`.
+ * Formats an ISO date for display by reading the parts out of the string and
+ * formatting them as that calendar day in UTC, in the reader's locale.
  *
  * Deliberate, and the same choice the wizard's review step makes: a date of
  * birth or a licence expiry is stored as a date, serialized as UTC midnight, so
@@ -174,23 +151,32 @@ async function readErrorMessage(
  * an off-by-one on exactly the two fields a reviewer is checking against a
  * document.
  */
-function formatDate(iso: string): string | null {
+function formatDate(format: Formatter, iso: string): string | null {
   const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
   if (!match) return null;
 
   const [, year, month, day] = match;
-  const monthName = MONTH_NAMES[Number(month) - 1];
-  if (!monthName) return null;
+  const monthIndex = Number(month) - 1;
+  if (monthIndex < 0 || monthIndex > 11) return null;
 
-  return `${Number(day)} ${monthName} ${year}`;
+  // Pinned to UTC on both ends — built as UTC midnight and formatted in UTC —
+  // so no reader's or server's zone can move it to a neighbouring day.
+  return format.dateTime(
+    new Date(Date.UTC(Number(year), monthIndex, Number(day))),
+    { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" },
+  );
 }
 
-/** "TBILISI" → "Tbilisi". Falls back to the stored value for a profile whose
- *  city predates the enum-backed picker. */
-function formatCity(value: string): string | null {
+/** "TBILISI" → "თბილისი" / "Tbilisi", from `useLocalizedCityOptions()`. Falls
+ *  back to the stored value for a profile whose city predates the enum-backed
+ *  picker. */
+function formatCity(
+  cities: readonly { value: string; label: string }[],
+  value: string,
+): string | null {
   if (value === "") return null;
 
-  const option = GEORGIAN_CITY_OPTIONS.find((entry) => entry.value === value);
+  const option = cities.find((entry) => entry.value === value);
   return option?.label ?? value;
 }
 
@@ -228,12 +214,18 @@ function sortDocuments(
  * just flagged a document needs to see that this button would overwrite that
  * verdict, which a count that excludes it would hide.
  */
-function describeApproveAll(remaining: number, total: number): string {
-  const noun = remaining === 1 ? "document" : "documents";
-
+function describeApproveAll(
+  t: Translator,
+  remaining: number,
+  total: number,
+): string {
   return remaining === total
-    ? `Approve all ${remaining} ${noun}`
-    : `Approve remaining ${remaining} ${noun}`;
+    ? t("admin.driverApplicationDetailDrawer.approveAllDocuments", {
+        count: remaining,
+      })
+    : t("admin.driverApplicationDetailDrawer.approveRemainingDocuments", {
+        count: remaining,
+      });
 }
 
 /**
@@ -258,6 +250,8 @@ export function DriverApplicationDetailDrawer({
   onChanged,
 }: DriverApplicationDetailDrawerProps) {
   const t = useTranslations();
+  const format = useFormatter();
+  const cityOptions = useLocalizedCityOptions();
   const [data, setData] = useState<AdminDriverApplicationDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -300,7 +294,9 @@ export function DriverApplicationDetailDrawer({
         );
 
         if (!response.ok) {
-          setLoadError(await readErrorMessage(response, LOAD_ERROR_FALLBACK));
+          setLoadError(
+            await readErrorMessage(response, t(LOAD_ERROR_FALLBACK)),
+          );
           setLoading(false);
           return;
         }
@@ -314,7 +310,7 @@ export function DriverApplicationDetailDrawer({
           return;
         }
 
-        setLoadError(LOAD_ERROR_FALLBACK);
+        setLoadError(t(LOAD_ERROR_FALLBACK));
         setLoading(false);
       }
     }
@@ -322,7 +318,7 @@ export function DriverApplicationDetailDrawer({
     void load();
 
     return () => controller.abort();
-  }, [applicationId, reloadToken]);
+  }, [applicationId, reloadToken, t]);
 
   /**
    * Re-reads the detail after a verdict, without touching `loading` — the panel
@@ -439,7 +435,7 @@ export function DriverApplicationDetailDrawer({
       if (!response.ok) {
         setDocumentError({
           documentId,
-          message: await readErrorMessage(response, REVIEW_ERROR_FALLBACK),
+          message: await readErrorMessage(response, t(REVIEW_ERROR_FALLBACK)),
         });
         return;
       }
@@ -452,7 +448,7 @@ export function DriverApplicationDetailDrawer({
       onChanged();
       await refreshDetail();
     } catch {
-      setDocumentError({ documentId, message: REVIEW_ERROR_FALLBACK });
+      setDocumentError({ documentId, message: t(REVIEW_ERROR_FALLBACK) });
     } finally {
       setPending(null);
     }
@@ -517,10 +513,16 @@ export function DriverApplicationDetailDrawer({
             // this one were never asked.
             setDocumentError({
               documentId: target.documentId,
-              message: `Stopped at ${label}: ${await readErrorMessage(
-                response,
-                REVIEW_ERROR_FALLBACK,
-              )}`,
+              message: t(
+                "admin.driverApplicationDetailDrawer.stoppedAtDocument",
+                {
+                  document: label,
+                  error: await readErrorMessage(
+                    response,
+                    t(REVIEW_ERROR_FALLBACK),
+                  ),
+                },
+              ),
             });
             break;
           }
@@ -530,7 +532,13 @@ export function DriverApplicationDetailDrawer({
         } catch {
           setDocumentError({
             documentId: target.documentId,
-            message: `Stopped at ${label}: ${REVIEW_ERROR_FALLBACK}`,
+            message: t(
+              "admin.driverApplicationDetailDrawer.stoppedAtDocument",
+              {
+                document: label,
+                error: t(REVIEW_ERROR_FALLBACK),
+              },
+            ),
           });
           break;
         }
@@ -610,14 +618,19 @@ export function DriverApplicationDetailDrawer({
   // both are true once a reviewer clears a retaken document, and the one that
   // matters is why the Approve button next to this line is still disabled.
   const footerHint = isReadOnly
-    ? "This application is approved — the driver's account is active."
+    ? t("admin.driverApplicationDetailDrawer.hintApproved")
     : isAwaitingDriver
-      ? "Changes were requested — waiting on the driver to resubmit before this application can be approved."
+      ? t("admin.driverApplicationDetailDrawer.hintAwaitingDriver")
       : allApproved
-        ? "All documents approved — ready to approve this driver."
+        ? t("admin.driverApplicationDetailDrawer.hintReadyToApprove")
         : flaggedCount > 0
-          ? `${flaggedCount} document${flaggedCount === 1 ? "" : "s"} flagged. Requesting changes sends the driver back for re-upload.`
-          : `${reviewedCount} of ${documents.length} documents reviewed.`;
+          ? t("admin.driverApplicationDetailDrawer.hintDocumentsFlagged", {
+              count: flaggedCount,
+            })
+          : t("admin.driverApplicationDetailDrawer.hintDocumentsReviewed", {
+              reviewed: reviewedCount,
+              total: documents.length,
+            });
 
   return (
     <>
@@ -648,14 +661,18 @@ export function DriverApplicationDetailDrawer({
         role="dialog"
         aria-modal="true"
         aria-label={
-          data ? `Application ${data.reference}` : "Driver application"
+          data
+            ? t("fleet.fleetApplicationStatusScreen.applicationReference", {
+                reference: data.reference,
+              })
+            : t("admin.driverApplicationDetailDrawer.driverApplication")
         }
         className="animate-in slide-in-from-right-6 fade-in-0 fixed top-0 right-0 z-50 flex h-full w-[520px] max-w-full flex-col border-l border-border bg-card duration-150"
       >
         <header className="flex items-start justify-between gap-3 border-b border-border px-[22px] py-5">
           <div className="min-w-0">
             <p className="font-price text-[10.5px] font-semibold tracking-[0.09em] text-muted-foreground uppercase">
-              {data?.reference ?? "Application"}
+              {data?.reference ?? t("admin.applicationReview.application")}
             </p>
             <h2 className="mt-[3px] truncate text-[17px] font-semibold tracking-[-0.01em]">
               {data?.driver.name ?? t("home.homeEntry.loading")}
@@ -706,7 +723,7 @@ export function DriverApplicationDetailDrawer({
                   },
                   {
                     label: t("common.shared.dateOfBirth"),
-                    value: formatDate(data.driver.dateOfBirth),
+                    value: formatDate(format, data.driver.dateOfBirth),
                   },
                   {
                     label: t("common.shared.mobile"),
@@ -714,7 +731,7 @@ export function DriverApplicationDetailDrawer({
                   },
                   {
                     label: t("common.shared.city"),
-                    value: formatCity(data.driver.city),
+                    value: formatCity(cityOptions, data.driver.city),
                   },
                 ]}
               />
@@ -728,7 +745,7 @@ export function DriverApplicationDetailDrawer({
                   },
                   {
                     label: t("common.shared.licenceExpiry"),
-                    value: formatDate(data.licence.expiresAt),
+                    value: formatDate(format, data.licence.expiresAt),
                   },
                   {
                     label: t("common.shared.categories"),
@@ -766,7 +783,9 @@ export function DriverApplicationDetailDrawer({
                       value:
                         data.vehicle.payloadKg === null
                           ? null
-                          : `${data.vehicle.payloadKg.toLocaleString("en-US")} kg`,
+                          : t("fleet.step3VehicleSpecifications.payloadKg", {
+                              payload: format.number(data.vehicle.payloadKg),
+                            }),
                     },
                     {
                       label: t("common.shared.cargoHold"),
@@ -803,7 +822,11 @@ export function DriverApplicationDetailDrawer({
                     would file it alongside the two decisions that end the
                     review — which is exactly what it is not. */}
                 <div className="flex items-center justify-between gap-3">
-                  <SectionTitle>Documents ({documents.length})</SectionTitle>
+                  <SectionTitle>
+                    {t("admin.driverApplicationDetailDrawer.documentsCount", {
+                      count: documents.length,
+                    })}
+                  </SectionTitle>
                   {canApproveAll ? (
                     <Button
                       type="button"
@@ -815,8 +838,11 @@ export function DriverApplicationDetailDrawer({
                       }
                     >
                       {pending?.kind === "approve-all"
-                        ? "Approving documents…"
+                        ? t(
+                            "admin.driverApplicationDetailDrawer.approvingDocuments",
+                          )
                         : describeApproveAll(
+                            t,
                             unapprovedDocuments.length,
                             documents.length,
                           )}
@@ -901,15 +927,17 @@ export function DriverApplicationDetailDrawer({
               onClick={() =>
                 void submitVerdict(
                   "request-changes",
-                  REQUEST_CHANGES_ERROR_FALLBACK,
+                  t(REQUEST_CHANGES_ERROR_FALLBACK),
                 )
               }
             >
               {pending?.kind === "request-changes"
-                ? "Requesting…"
+                ? t("admin.applicationReview.requesting")
                 : flaggedCount > 0
-                  ? `Request changes (${flaggedCount})`
-                  : "Request changes"}
+                  ? t("admin.applicationReview.requestChangesCount", {
+                      count: flaggedCount,
+                    })
+                  : t("admin.applicationReview.requestChanges")}
             </Button>
             <Button
               type="button"
@@ -926,10 +954,12 @@ export function DriverApplicationDetailDrawer({
                 isBusy
               }
               onClick={() =>
-                void submitVerdict("approve", APPROVE_ERROR_FALLBACK)
+                void submitVerdict("approve", t(APPROVE_ERROR_FALLBACK))
               }
             >
-              {pending?.kind === "approve" ? "Approving…" : "Approve driver"}
+              {pending?.kind === "approve"
+                ? t("admin.applicationReview.approving")
+                : t("admin.driverApplicationDetailDrawer.approveDriver")}
             </Button>
           </div>
         </footer>
@@ -944,7 +974,7 @@ function describeVehicle(
   data: AdminDriverApplicationDetail,
 ): string {
   if (data.vehicle === null) {
-    return "No vehicle on file";
+    return t("admin.driverApplicationDetailDrawer.noVehicleOnFile");
   }
 
   return [
@@ -1046,8 +1076,12 @@ function DocumentRow({
   const stateLine = isApproved
     ? t("common.shared.approved")
     : isFlagged
-      ? `Flagged — ${orPlaceholder(document.flagReason)}`
-      : "Pending review";
+      ? t("admin.applicationReview.flaggedWithReason", {
+          reason: document.flagReason
+            ? flagReasonLabel(document.flagReason, t)
+            : orPlaceholder(document.flagReason),
+        })
+      : t("admin.applicationReview.pendingReview");
 
   return (
     <div
@@ -1080,7 +1114,12 @@ function DocumentRow({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={document.signedUrl}
-              alt={`${label} uploaded by the applicant`}
+              alt={t(
+                "admin.driverApplicationDetailDrawer.uploadedByApplicant",
+                {
+                  label,
+                },
+              )}
               loading="lazy"
               className="h-11 w-[60px] shrink-0 rounded-[7px] border border-border object-cover"
             />
@@ -1118,7 +1157,9 @@ function DocumentRow({
               disabled={disabled}
               onClick={onApprove}
             >
-              {pending ? "Saving…" : "Approve"}
+              {pending
+                ? t("common.shared.saving")
+                : t("admin.applicationReview.approve")}
             </Button>
             <Button
               type="button"
@@ -1136,7 +1177,7 @@ function DocumentRow({
 
       {reasonsOpen && !readOnly ? (
         <div className="mt-2.5 flex flex-wrap gap-1.5 border-t border-border pt-2.5">
-          {FLAG_REASONS.map((reason) => (
+          {DOCUMENT_FLAG_REASONS.map((reason) => (
             <button
               key={reason}
               type="button"
@@ -1144,7 +1185,7 @@ function DocumentRow({
               onClick={() => onPickReason(reason)}
               className="cursor-pointer rounded-full border border-border bg-card px-[11px] py-[5px] text-[11.5px] transition-colors hover:border-destructive hover:text-destructive focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
             >
-              {reason}
+              {flagReasonLabel(reason, t)}
             </button>
           ))}
         </div>

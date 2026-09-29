@@ -31,6 +31,7 @@ import {
   formatRating,
   shortId,
 } from "@/components/driver-hub/screens/drivers-format";
+import { useHubStatusLabel } from "@/components/driver-hub/use-hub-status-label";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -100,12 +101,18 @@ function isDriversTab(value: string): value is DriversTab {
   return DRIVER_TABS.some((tab) => tab.value === value);
 }
 
-/** The empty-table line for each filter, phrased for the filter that emptied it. */
-const EMPTY_MESSAGE: Record<DriversTab, string> = {
-  All: "No drivers on this roster yet.",
-  Online: "Nobody is online right now.",
-  Offline: "Everybody on the roster is online.",
-  "Needs review": "Nothing outstanding — every driver is activated and clear.",
+/**
+ * The empty-table line for each filter, phrased for the filter that emptied
+ * it. Keys under `driverHub.driversScreen`, resolved at render time.
+ */
+const EMPTY_MESSAGE_KEY: Record<
+  DriversTab,
+  "emptyAll" | "emptyOnline" | "emptyOffline" | "emptyNeedsReview"
+> = {
+  All: "emptyAll",
+  Online: "emptyOnline",
+  Offline: "emptyOffline",
+  "Needs review": "emptyNeedsReview",
 };
 
 /* -------------------------------------------------------------------------- */
@@ -137,21 +144,8 @@ const HEAD_CLASSES =
 const CELL_CLASSES = "min-w-0 px-0 py-3.5";
 
 /* -------------------------------------------------------------------------- */
-/* Honesty copy                                                               */
-/* -------------------------------------------------------------------------- */
-
-const RATING_SAMPLE_NOTE =
-  "Nothing records a customer rating for an order, so every rating on this " +
-  "screen is a placeholder. Retire with an OrderRating model.";
-
-/* -------------------------------------------------------------------------- */
 /* Derived row values                                                         */
 /* -------------------------------------------------------------------------- */
-
-/** Singular/plural for the counts in the header subhead and the tile notes. */
-function plural(count: number, singular: string, many: string): string {
-  return count === 1 ? singular : many;
-}
 
 /* -------------------------------------------------------------------------- */
 /* Screen                                                                     */
@@ -188,6 +182,7 @@ export function DriversScreen({
   const t = useTranslations("driverHub.driversScreen");
   const tShared = useTranslations("common.shared");
   const tRoot = useTranslations();
+  const statusLabel = useHubStatusLabel();
   const tabItems: FilterStripItem[] = DRIVER_TABS.map((item) => ({
     value: item.value,
     label: tRoot(item.labelKey),
@@ -255,14 +250,13 @@ export function DriversScreen({
   // hard-coded Tbilisi, and "nobody online right now" replaces a "0 online in
   // now" that would name no city at all.
   useHubSubtitle(
-    `${drivers.length} registered ${plural(
-      drivers.length,
-      "driver",
-      "drivers",
-    )} · ${
+    `${t("subtitleRegistered", { count: drivers.length })} · ${
       onlineCities.length === 0
-        ? "nobody online right now"
-        : `${tiles.onlineNowCount} online in ${onlineCities.join(", ")} now`
+        ? t("subtitleNobodyOnline")
+        : t("subtitleOnlineIn", {
+            count: tiles.onlineNowCount,
+            cities: onlineCities.join(", "),
+          })
     }`,
   );
 
@@ -331,8 +325,10 @@ export function DriversScreen({
   ) : undefined;
 
   const detailLabel = adding
-    ? "the register a driver form"
-    : `${selectedDriver?.name ?? "driver"} details`;
+    ? t("registerFormLabel")
+    : t("driverDetails", {
+        name: selectedDriver?.name ?? t("driverFallback"),
+      });
 
   return (
     <>
@@ -349,8 +345,8 @@ export function DriversScreen({
           value={tiles.registeredDriversCount}
           note={
             addedThisMonthCount === 0
-              ? "Nobody added this month"
-              : `${addedThisMonthCount} added this month`
+              ? t("nobodyAddedThisMonth")
+              : t("addedThisMonth", { count: addedThisMonthCount })
           }
         />
         <MetricTile
@@ -358,36 +354,42 @@ export function DriversScreen({
           value={tiles.onlineNowCount}
           note={
             onlineCities.length === 0
-              ? "Nobody is taking work right now"
+              ? t("nobodyTakingWork")
               : // Comma-joined throughout, like the design's "Across Vake,
                 // Saburtalo, Gldani, Vera" — no "and" before the last.
-                `Across ${onlineCities.join(", ")}`
+                t("acrossCities", { cities: onlineCities.join(", ") })
           }
         />
         <MetricTile
           label={t("fleetAvgRating")}
           value={tiles.sampled.fleetAvgRating.toFixed(2)}
-          note={`From ${tiles.sampled.fleetRatedJobCount} rated jobs`}
+          note={t("fromRatedJobs", {
+            count: tiles.sampled.fleetRatedJobCount,
+          })}
         >
-          <SampleNote note={RATING_SAMPLE_NOTE} className="mt-2.5" />
+          <SampleNote note={t("ratingSampleNote")} className="mt-2.5" />
         </MetricTile>
         <MetricTile
           label={tShared("needsReview")}
           value={tiles.needsReviewCount}
           note={
             tiles.needsReviewCount === 0
-              ? "Everyone is activated and clear"
+              ? t("everyoneActivated")
               : // Ordered as the design's "1 pending, 1 suspended" — the
                 // states that are merely waiting first, the one that blocks
                 // the driver outright last. The words stay ours: "pending"
                 // would collapse two states this roster keeps apart, and both
                 // are printed verbatim on the pills in the table below.
                 [
-                  inReviewCount > 0 ? `${inReviewCount} in review` : null,
-                  notActivatedCount > 0
-                    ? `${notActivatedCount} not activated`
+                  inReviewCount > 0
+                    ? t("inReviewCount", { count: inReviewCount })
                     : null,
-                  suspendedCount > 0 ? `${suspendedCount} suspended` : null,
+                  notActivatedCount > 0
+                    ? t("notActivatedCount", { count: notActivatedCount })
+                    : null,
+                  suspendedCount > 0
+                    ? t("suspendedCount", { count: suspendedCount })
+                    : null,
                 ]
                   .filter((part) => part !== null)
                   .join(", ")
@@ -410,20 +412,23 @@ export function DriversScreen({
                     setTab(next);
                   }
                 }}
-                ariaLabel="Filter drivers by status"
+                ariaLabel={t("filterByStatus")}
               />
               <div className="flex flex-wrap items-center gap-x-3.5 gap-y-2">
                 {/* The Rating column is the one invented figure in this table,
                     so the marker sits on the table's own toolbar. */}
                 <SampleNote
                   label={t("sampleRatings")}
-                  note={RATING_SAMPLE_NOTE}
+                  note={t("ratingSampleNote")}
                 />
                 {/* Body font, not mono: the design's `driverCountLabel` is a
                     plain 12px muted string, and the hub reserves mono for
                     values a reader might compare or copy. */}
                 <span className="text-xs text-muted-foreground">
-                  {visible.length} of {drivers.length} shown
+                  {t("shownCount", {
+                    visible: visible.length,
+                    total: drivers.length,
+                  })}
                 </span>
                 <Button
                   type="button"
@@ -575,11 +580,15 @@ export function DriversScreen({
                         role="cell"
                         className={cn(CELL_CLASSES, "text-right")}
                       >
-                        <HubStatusBadge status={driverStatusWord(driver)} />
+                        <HubStatusBadge
+                          status={driverStatusWord(driver)}
+                          label={statusLabel(driverStatusWord(driver))}
+                        />
                         {/* The axis the single pill had to drop. */}
                         <span className="sr-only">
                           {" "}
-                          — {driver.presence}, {driver.reviewState}
+                          — {statusLabel(driver.presence)},{" "}
+                          {statusLabel(driver.reviewState)}
                         </span>
                       </TableCell>
                     </TableRow>
@@ -594,9 +603,11 @@ export function DriversScreen({
                 // on the roster is online" would be an absurd thing to tell a
                 // company that has registered nobody — so the roster's own
                 // message wins over the filter's.
-                message={
-                  drivers.length === 0 ? EMPTY_MESSAGE.All : EMPTY_MESSAGE[tab]
-                }
+                message={t(
+                  drivers.length === 0
+                    ? EMPTY_MESSAGE_KEY.All
+                    : EMPTY_MESSAGE_KEY[tab],
+                )}
               >
                 {drivers.length === 0 ? (
                   <p className="mt-1 text-[13px]">
@@ -661,12 +672,13 @@ function CredentialsCard({
       className="border-[oklch(64%_0.19_48)]"
     >
       <p className="text-base font-semibold">
-        {driver.name} is registered
-        {driver.vehicleAssigned ? " and has their vehicle" : ""}
+        {driver.vehicleAssigned
+          ? t("registeredWithVehicle", { name: driver.name })
+          : t("registered", { name: driver.name })}
       </p>
       <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
-        Give them these sign-in details now. The password is shown{" "}
-        <strong className="font-semibold text-foreground">once</strong>{" "}
+        {t("giveThemDetails")}{" "}
+        <strong className="font-semibold text-foreground">{t("once")}</strong>{" "}
         {t("itIsNotStoredAnywhereIn")}
       </p>
 

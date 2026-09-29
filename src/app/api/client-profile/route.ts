@@ -69,6 +69,7 @@ function parseOptionalDateOfBirth(
  */
 function parseOptionalGender(
   value: unknown,
+  t: RequestTranslator,
 ): { value: ClientGender | null } | { error: string } {
   if (value === undefined || value === null || value === "") {
     return { value: null };
@@ -79,7 +80,9 @@ function parseOptionalGender(
     !CLIENT_GENDERS.includes(value as ClientGender)
   ) {
     return {
-      error: `gender must be one of: ${CLIENT_GENDERS.join(", ")}.`,
+      error: t("errors.clientProfile.genderMustBeOneOf", {
+        allowed: CLIENT_GENDERS.join(", "),
+      }),
     };
   }
 
@@ -111,7 +114,9 @@ function parseCreateClientProfileBody(
     !CLIENT_ACCOUNT_TYPES.includes(accountType as ClientAccountType)
   ) {
     return {
-      error: `accountType must be one of: ${CLIENT_ACCOUNT_TYPES.join(", ")}.`,
+      error: t("errors.clientProfile.accountTypeMustBeOneOf", {
+        allowed: CLIENT_ACCOUNT_TYPES.join(", "),
+      }),
     };
   }
 
@@ -140,7 +145,7 @@ function parseCreateClientProfileBody(
       return { error: dateOfBirth.error };
     }
 
-    const gender = parseOptionalGender(record.gender);
+    const gender = parseOptionalGender(record.gender, t);
     if ("error" in gender) {
       return { error: gender.error };
     }

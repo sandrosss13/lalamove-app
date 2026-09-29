@@ -75,6 +75,7 @@
 import "server-only";
 
 import { OrderStatus, Prisma } from "@prisma/client";
+import { getTranslations } from "next-intl/server";
 
 import type { HubAccount, HubPersona } from "@/lib/dashboard/hub/account";
 import {
@@ -660,6 +661,8 @@ async function loadFleetRevenue(
 ): Promise<{
   rows: FleetRevenueRow[];
   namesByDriverId: ReadonlyMap<string, string>;
+  /** What a driver whose `User` row is gone is called, in the reader's language. */
+  formerDriverLabel: string;
 } | null> {
   const { companyId } = account;
 
@@ -720,9 +723,15 @@ async function loadFleetRevenue(
           select: { id: true, name: true },
         });
 
+  // Resolved here, in request scope, because the breakdown below is plain
+  // data. Only the performance page renders these names; the earnings export
+  // (an `/api` route, outside `[locale]`) reads the day table and not this.
+  const t = await getTranslations("dashboard.earnings");
+
   return {
     rows,
     namesByDriverId: new Map(users.map((user) => [user.id, user.name])),
+    formerDriverLabel: t("formerDriver"),
   };
 }
 
@@ -736,6 +745,7 @@ async function loadFleetRevenue(
 function toFleetBreakdown(
   rows: readonly FleetRevenueRow[],
   namesByDriverId: ReadonlyMap<string, string>,
+  formerDriverLabel: string,
   grossFares: number,
 ): HubEarningsFleet {
   const share = (fares: number): number =>
@@ -752,7 +762,7 @@ function toFleetBreakdown(
       // (`onDelete: SetNull` fires on the FK, not on history) but loses their
       // name, so the fallback is a label rather than an empty cell — the money
       // is real and must still be attributable to *something*.
-      name: namesByDriverId.get(row.driverId) ?? "Former driver",
+      name: namesByDriverId.get(row.driverId) ?? formerDriverLabel,
       jobsCompleted: row.jobsCompleted,
       grossFaresGel: row.grossFaresGel,
       averagePerJobGel:
@@ -960,6 +970,7 @@ export async function getHubEarnings(
         : toFleetBreakdown(
             fleetRevenue.rows,
             fleetRevenue.namesByDriverId,
+            fleetRevenue.formerDriverLabel,
             grossFares,
           ),
     sampled: {

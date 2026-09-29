@@ -165,9 +165,7 @@ export function AccountProfileForm({
         const payload = (await response.json().catch(() => null)) as {
           error?: string;
         } | null;
-        setError(
-          payload?.error ?? "Could not save your profile. Please try again.",
-        );
+        setError(payload?.error ?? t("couldNotSaveProfile"));
         return;
       }
 
@@ -190,9 +188,7 @@ export function AccountProfileForm({
           {t("personalDetails")}
         </CardTitle>
         <CardDescription className="text-[0.8125rem] leading-snug text-muted">
-          {isBusiness
-            ? "Who the delivery is billed to, and how a driver reaches you about a pickup."
-            : "How a driver identifies and reaches you when they arrive for a pickup."}
+          {isBusiness ? t("businessDescription") : t("individualDescription")}
         </CardDescription>
       </CardHeader>
 
@@ -357,7 +353,7 @@ export function AccountProfileForm({
             disabled={saving}
             className="h-10 self-start rounded-full bg-accent px-5 text-[0.8125rem] font-semibold text-ink hover:bg-accent"
           >
-            {saving ? "Saving…" : "Save changes"}
+            {saving ? tShared("saving") : t("saveChanges")}
           </Button>
         </form>
       </CardContent>

@@ -16,6 +16,9 @@
  * it is listed here.
  */
 import type { OrderStatus, ServiceLevel } from "@prisma/client";
+import { useTranslations } from "next-intl";
+
+import type { Translator } from "@/i18n/translator";
 
 /**
  * Two decimals, pinned to `en-GB` rather than left to the browser: a client on
@@ -134,3 +137,53 @@ export const ORDER_STATUS_PILL: Record<OrderStatus, string> = {
   COMPLETED: "bg-emerald-100 text-emerald-700",
   CANCELLED: "bg-red-100 text-red-700",
 };
+
+/* -------------------------------------------------------------------------- */
+/* Localised labels                                                           */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Message keys for `ORDER_STATUS_LABEL`, which stays as the English source.
+ * `CLAIMED` shares `PENDING`'s key on purpose — see the note on
+ * `ORDER_STATUS_LABEL` for why the client never sees "Claimed".
+ */
+const ORDER_STATUS_KEY: Record<OrderStatus, string> = {
+  INITIATED: "orders.orderStatus.initiated",
+  PENDING: "orders.orderStatus.pending",
+  CLAIMED: "orders.orderStatus.pending",
+  ACCEPTED: "orders.orderStatus.accepted",
+  IN_TRANSIT: "orders.orderStatus.inTransit",
+  COMPLETED: "orders.orderStatus.completed",
+  CANCELLED: "orders.orderStatus.cancelled",
+};
+
+/** Message keys for `SERVICE_LEVEL_LABEL`. */
+const SERVICE_LEVEL_KEY: Record<ServiceLevel, string> = {
+  PRIORITY: "orders.serviceLevel.priority",
+  REGULAR: "orders.serviceLevel.regular",
+  POOLING: "orders.serviceLevel.pooling",
+};
+
+/** `ORDER_STATUS_LABEL[status]` in the reader's language, for server code holding a root `t`. */
+export function orderStatusLabel(status: OrderStatus, t: Translator): string {
+  return t(ORDER_STATUS_KEY[status]);
+}
+
+/** `SERVICE_LEVEL_LABEL[level]` in the reader's language, for server code holding a root `t`. */
+export function serviceLevelLabel(level: ServiceLevel, t: Translator): string {
+  return t(SERVICE_LEVEL_KEY[level]);
+}
+
+/** Component hook: returns a `status → label` lookup in the reader's language. */
+export function useOrderStatusLabel(): (status: OrderStatus) => string {
+  const t = useTranslations();
+
+  return (status) => orderStatusLabel(status, t);
+}
+
+/** Component hook: returns a `level → label` lookup in the reader's language. */
+export function useServiceLevelLabel(): (level: ServiceLevel) => string {
+  const t = useTranslations();
+
+  return (level) => serviceLevelLabel(level, t);
+}

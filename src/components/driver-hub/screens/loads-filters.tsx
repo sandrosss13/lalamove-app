@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 
 import {
   ALL_CITIES,
@@ -20,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { CITY_NAMES_NAMESPACE, cityNameKey } from "@/lib/georgian-cities";
 import { cn } from "@/lib/utils";
 
 /**
@@ -59,9 +60,6 @@ const HANDLING_FILTER_CHIPS = HANDLING_TAG_LABELS.filter((entry) =>
   FILTERABLE_TAGS.includes(entry.value),
 );
 
-/** `1200` → `"1,200"`. Module-scope so the panel does not rebuild it per render. */
-const weightFormatter = new Intl.NumberFormat("en-GB");
-
 export function LoadsFilters() {
   const {
     fPickup,
@@ -79,6 +77,8 @@ export function LoadsFilters() {
   const t = useTranslations("driverHub.loadsFilters");
   const tShared = useTranslations("common.shared");
   const tFormat = useTranslations("driverHub.loadsFormat");
+  // `1200` → "1,200" in English, "1 200" in Georgian.
+  const format = useFormatter();
 
   // `useId` rather than hardcoded strings: the panel is rendered once today,
   // but a duplicated id is the kind of thing that only breaks the label→control
@@ -110,7 +110,7 @@ export function LoadsFilters() {
           htmlFor={weightId}
           className="text-xs text-muted-foreground tabular-nums"
         >
-          Cargo weight up to {weightFormatter.format(fWeight)} kg
+          {t("cargoWeightUpTo", { weight: format.number(fWeight) })}
         </label>
         <input
           id={weightId}
@@ -194,6 +194,7 @@ function CityFilter({
   const id = React.useId();
   // The sentinel value stays English; only its visible label is translated.
   const tCities = useTranslations("driverHub.fleetAvailabilityFilters");
+  const tCityNames = useTranslations(CITY_NAMES_NAMESPACE);
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -214,7 +215,11 @@ function CityFilter({
           <SelectItem value={ALL_CITIES}>{tCities("allCities")}</SelectItem>
           {options.map((city) => (
             <SelectItem key={city} value={city}>
-              {city}
+              {/* The value stays the stored English name; only the label is
+                  localized, and a name outside the catalog shows as stored. */}
+              {tCityNames.has(cityNameKey(city))
+                ? tCityNames(cityNameKey(city))
+                : city}
             </SelectItem>
           ))}
         </SelectContent>

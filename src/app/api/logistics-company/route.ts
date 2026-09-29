@@ -104,7 +104,9 @@ function parseCreateLogisticsCompanyBody(
   const companyName = nonEmptyString(record.companyName);
   if (companyName === null || companyName.length < MIN_COMPANY_NAME_LENGTH) {
     return {
-      error: `companyName is required and must be at least ${MIN_COMPANY_NAME_LENGTH} characters.`,
+      error: t("errors.logisticsCompany.companyNameIsRequiredMinLength", {
+        min: MIN_COMPANY_NAME_LENGTH,
+      }),
     };
   }
 
@@ -151,7 +153,9 @@ function parseCreateLogisticsCompanyBody(
 
     if (!citiesOfOperation.every(isGeorgianCity)) {
       return {
-        error: `citiesOfOperation must contain only valid cities: ${GEORGIAN_CITIES.join(", ")}.`,
+        error: t("errors.logisticsCompany.citiesOfOperationMustContainOnly", {
+          cities: GEORGIAN_CITIES.join(", "),
+        }),
       };
     }
 
@@ -205,7 +209,9 @@ function parseCreateLogisticsCompanyBody(
     const compactIban = stripWhitespace(bankAccountIban ?? "");
     if (bankAccountIban === null || compactIban.length < MIN_IBAN_LENGTH) {
       return {
-        error: `bankAccountIban must be at least ${MIN_IBAN_LENGTH} characters.`,
+        error: t("errors.logisticsCompany.bankAccountIbanMinLength", {
+          min: MIN_IBAN_LENGTH,
+        }),
       };
     }
     // Canonical form — whitespace-free and uppercased — because the grouping an
@@ -222,7 +228,10 @@ function parseCreateLogisticsCompanyBody(
     digitsOnly(phone).length > MAX_PHONE_DIGITS
   ) {
     return {
-      error: `phone must contain between ${MIN_PHONE_DIGITS} and ${MAX_PHONE_DIGITS} digits.`,
+      error: t("errors.logisticsCompany.phoneDigitsRange", {
+        min: MIN_PHONE_DIGITS,
+        max: MAX_PHONE_DIGITS,
+      }),
     };
   }
 
@@ -232,7 +241,9 @@ function parseCreateLogisticsCompanyBody(
     !GEORGIAN_CITIES.includes(city as GeorgianCity)
   ) {
     return {
-      error: `city must be one of: ${GEORGIAN_CITIES.join(", ")}.`,
+      error: t("errors.logisticsCompany.cityMustBeOneOf", {
+        cities: GEORGIAN_CITIES.join(", "),
+      }),
     };
   }
 

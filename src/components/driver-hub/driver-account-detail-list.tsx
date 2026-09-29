@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useTranslations } from "next-intl";
 
 import { cn } from "@/lib/utils";
 
@@ -30,7 +31,7 @@ export type DriverAccountDetailRow = {
 };
 
 /** Printed where a record holds no value, so a row is never visibly blank. */
-export const DETAIL_EMPTY_VALUE = "Not recorded";
+const DETAIL_EMPTY_VALUE_KEY = "driverHub.driverAccountProfileForm.notRecorded";
 
 export function DriverAccountDetailList({
   rows,
@@ -39,6 +40,8 @@ export function DriverAccountDetailList({
   rows: readonly DriverAccountDetailRow[];
   className?: string;
 }) {
+  const t = useTranslations();
+
   return (
     <dl className={cn("grid min-w-0 gap-3.5 sm:grid-cols-2", className)}>
       {rows.map((row) => (
@@ -53,7 +56,7 @@ export function DriverAccountDetailList({
               row.value === null ? "text-muted-foreground" : null,
             )}
           >
-            {row.value ?? DETAIL_EMPTY_VALUE}
+            {row.value ?? t(DETAIL_EMPTY_VALUE_KEY)}
           </dd>
           {row.note ? (
             <p className="text-xs leading-relaxed text-muted-foreground">

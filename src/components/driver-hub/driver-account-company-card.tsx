@@ -37,12 +37,6 @@ import type { HubCompanyAccountSettings } from "@/lib/dashboard/hub/account-sett
  * role-agnostic.
  */
 
-/** Where a fleet's registered details are actually corrected. */
-const COMPANY_DETAILS_NOTE =
-  "Your registered details are the ones operations verified when your fleet " +
-  "was approved. They are corrected through the fleet application, so a change " +
-  "is re-checked rather than taking effect unseen — contact support to reopen it.";
-
 export function DriverAccountCompanyCard({
   settings,
 }: {
@@ -83,7 +77,7 @@ export function DriverAccountCompanyCard({
       />
 
       <p className="mt-5 border-t border-border pt-4 text-xs leading-relaxed text-muted-foreground">
-        {COMPANY_DETAILS_NOTE}
+        {t("companyDetailsNote")}
       </p>
     </HubCard>
   );

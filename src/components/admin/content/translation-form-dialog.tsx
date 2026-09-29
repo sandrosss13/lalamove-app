@@ -118,7 +118,10 @@ export function TranslationFormDialog({
 
     return response.ok
       ? null
-      : await readErrorMessage(response, "Could not save this translation.");
+      : await readErrorMessage(
+          response,
+          t("admin.translationFormDialog.couldNotSave"),
+        );
   }
 
   /** Updates one existing locale row, leaving the other untouched. */
@@ -134,7 +137,10 @@ export function TranslationFormDialog({
 
     return response.ok
       ? null
-      : await readErrorMessage(response, "Could not save this translation.");
+      : await readErrorMessage(
+          response,
+          t("admin.translationFormDialog.couldNotSave"),
+        );
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -231,12 +237,14 @@ export function TranslationFormDialog({
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <DialogHeader>
             <DialogTitle>
-              {isEditing ? "Edit translation" : "New translation key"}
+              {isEditing
+                ? t("admin.translationFormDialog.editTranslation")
+                : t("admin.translationFormDialog.newTranslationKey")}
             </DialogTitle>
             <DialogDescription>
               {isEditing
-                ? "A key's namespace and key can't be changed — create a new key instead."
-                : "Both languages are saved together, so a key is never left translated on one side only."}
+                ? t("admin.translationFormDialog.keyCannotChange")
+                : t("admin.translationFormDialog.bothLanguagesSavedTogether")}
             </DialogDescription>
           </DialogHeader>
 
@@ -327,10 +335,10 @@ export function TranslationFormDialog({
             </Button>
             <Button type="submit" disabled={pending}>
               {pending
-                ? "Saving…"
+                ? t("common.shared.saving")
                 : isEditing
-                  ? "Save changes"
-                  : "Create translation"}
+                  ? t("account.accountProfileForm.saveChanges")
+                  : t("admin.translationFormDialog.createTranslation")}
             </Button>
           </DialogFooter>
         </form>

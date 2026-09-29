@@ -44,8 +44,13 @@ export async function parseYear(
   const maxYear = new Date().getFullYear() + 1;
 
   if (!Number.isInteger(year) || year < MIN_VEHICLE_YEAR || year > maxYear) {
+    const tr = await getRequestTranslations();
+    // Years go in as strings: ICU would group a numeric argument ("2,027").
     return {
-      error: `year must be a whole number between ${MIN_VEHICLE_YEAR} and ${maxYear}.`,
+      error: tr("errors.driverProfileVehiclesValidation.yearRange", {
+        min: String(MIN_VEHICLE_YEAR),
+        max: String(maxYear),
+      }),
     };
   }
 

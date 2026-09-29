@@ -102,7 +102,7 @@ function groupKeyFor(namespace: string, key: string): string {
  */
 function parseCreateTranslationBody(
   body: unknown,
-  t: (key: string) => string,
+  t: (key: string, values?: Record<string, string | number>) => string,
 ): { data: CreateTranslationInput } | { error: string } {
   if (typeof body !== "object" || body === null) {
     return { error: t("common.shared.requestBodyMustBeAJson") };
@@ -120,7 +120,10 @@ function parseCreateTranslationBody(
   const trimmedNamespace = namespace.trim();
   if (trimmedNamespace.length > MAX_NAMESPACE_LENGTH) {
     return {
-      error: `namespace must be ${MAX_NAMESPACE_LENGTH} characters or fewer.`,
+      error: t("common.shared.fieldMaxLength", {
+        field: "namespace",
+        max: MAX_NAMESPACE_LENGTH,
+      }),
     };
   }
 
@@ -131,7 +134,12 @@ function parseCreateTranslationBody(
 
   const trimmedKey = key.trim();
   if (trimmedKey.length > MAX_KEY_LENGTH) {
-    return { error: `key must be ${MAX_KEY_LENGTH} characters or fewer.` };
+    return {
+      error: t("common.shared.fieldMaxLength", {
+        field: "key",
+        max: MAX_KEY_LENGTH,
+      }),
+    };
   }
 
   const { valueKa } = record;
@@ -156,7 +164,9 @@ function parseCreateTranslationBody(
     trimmedValueEn.length > MAX_VALUE_LENGTH
   ) {
     return {
-      error: `A translation value must be ${MAX_VALUE_LENGTH} characters or fewer.`,
+      error: t("errors.adminContentTranslations.translationValueMaxLength", {
+        max: MAX_VALUE_LENGTH,
+      }),
     };
   }
 

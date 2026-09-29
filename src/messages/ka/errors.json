@@ -30,15 +30,18 @@
   },
   "adminContentHomePageSections": {
     "homePageSectionNotFound": "მთავარი გვერდის სექცია ვერ მოიძებნა.",
-    "typeIsRequiredAndMustBe": "type სავალდებულოა და უნდა იყოს ტექსტური ტიპი (string).",
-    "typeMustBeAString": "type უნდა იყოს ტექსტური ტიპი (string)."
+    "typeIsRequiredAndMustBe": "type სავალდებულოა და უნდა იყოს ტექსტური ტიპი.",
+    "typeMustBeAString": "type უნდა იყოს ტექსტური ტიპი."
+  },
+  "adminContentMedia": {
+    "unsupportedContentType": "მიიღება მხოლოდ JPG, PNG და WebP სურათები."
   },
   "adminContentMessagingTemplates": {
     "bodyIsRequiredAndMustBe": "body სავალდებულოა და არ უნდა იყოს ცარიელი ტექსტი.",
     "bodyMustBeANonEmpty": "body არ უნდა იყოს ცარიელი ტექსტი.",
-    "isactiveMustBeABooleanWhen": "isActive მითითებისას უნდა იყოს ლოგიკური ტიპი (boolean).",
+    "isactiveMustBeABooleanWhen": "isActive მითითებისას უნდა იყოს ლოგიკური ტიპი.",
     "keyMustBeANonEmpty": "key არ უნდა იყოს ცარიელი ტექსტი.",
-    "subjectMustBeAStringWhen": "subject მითითებისას უნდა იყოს ტექსტური ტიპი (string).",
+    "subjectMustBeAStringWhen": "subject მითითებისას უნდა იყოს ტექსტური ტიპი.",
     "subjectMustBeStringOrNull": "subject უნდა იყოს სტრიქონი ან null.",
     "thatMessagingTemplateWasNotFound": "შეტყობინებების ის შაბლონი ვერ მოიძებნა."
   },
@@ -73,13 +76,13 @@
   },
   "adminFinancePaymentMethods": {
     "configMustBeAJsonObject": "config უნდა იყოს JSON ობიექტი.",
-    "isenabledIsRequiredAndMustBe": "isEnabled სავალდებულოა და უნდა იყოს ლოგიკური ტიპი (boolean).",
+    "isenabledIsRequiredAndMustBe": "isEnabled სავალდებულოა და უნდა იყოს ლოგიკური ტიპი.",
     "unknownPaymentMethod": "გადახდის უცნობი მეთოდი."
   },
   "adminFinancePromoCampaigns": {
     "campaignNotFound": "კამპანია ვერ მოიძებნა.",
     "codeIsRequired": "code სავალდებულოა.",
-    "codeMustBeAString": "code უნდა იყოს ტექსტური ტიპი (string).",
+    "codeMustBeAString": "code უნდა იყოს ტექსტური ტიპი.",
     "thisCampaignHasAlreadyBeenRedeemed": "ეს კამპანია უკვე გამოყენებულია და მისი წაშლა შეუძლებელია. ამის სანაცვლოდ გაათიშეთ ის.",
     "usageLimitWholeNumberOrNull": "usageLimit უნდა იყოს 1 ან მეტი მთელი რიცხვი, ან null.",
     "usagelimitMustBeAWholeNumber": "usageLimit უნდა იყოს მთელი რიცხვი (1 ან მეტი) ან გამოტოვებული."
@@ -99,6 +102,18 @@
   "adminUsersSystemReactivate": {
     "onlyASuperAdminCanReactivate": "სისტემური მომხმარებლების ხელახლა გააქტიურება მხოლოდ სუპერ ადმინისტრატორს შეუძლია.",
     "youCannotChangeYourOwnAccount": "საკუთარი ანგარიშის სტატუსის შეცვლა შეუძლებელია."
+  },
+  "cargoFit": {
+    "doesNotFit": "ტვირთი არ ეტევა კლასში „{vehicle}“.",
+    "exceeded": {
+      "height": "ზედმეტად მაღალია",
+      "length": "ზედმეტად გრძელია",
+      "weight": "ზედმეტად მძიმეა",
+      "width": "ზედმეტად განიერია"
+    },
+    "limitKg": "{value} კგ",
+    "limitM": "{value} მ",
+    "tooBig": "ტვირთი არ ეტევა კლასში „{vehicle}“: {problems} (მაქს. {limits})."
   },
   "clientProfile": {
     "accountTypeMustBeOneOf": "accountType უნდა იყოს ერთ-ერთი შემდეგიდან: {allowed}.",
@@ -174,7 +189,8 @@
     "anotherUploadForThisDocumentIs": "ამ დოკუმენტის სხვა ატვირთვა ჯერ კიდევ სრულდება.",
     "couldNotVerifyUpload": "ატვირთული ფაილის შემოწმება ვერ მოხერხდა. გთხოვთ, ატვირთოთ ის ხელახლა.",
     "pathIsRequiredAndMustBe": "path სავალდებულოა და არ უნდა იყოს ცარიელი ტექსტი.",
-    "thatUploadDoesNotBelongTo": "ეს ატვირთული ფაილი არ ეკუთვნის ამ განაცხადს."
+    "thatUploadDoesNotBelongTo": "ეს ატვირთული ფაილი არ ეკუთვნის ამ განაცხადს.",
+    "unsupportedContentType": "მიიღება მხოლოდ JPG და PNG ფაილები."
   },
   "driverProfileOnboardingSubmit": {
     "ageRange": "მძღოლის ასაკი უნდა იყოს {min}-დან {max} წლამდე.",
@@ -212,7 +228,7 @@
   },
   "driverProfileStatus": {
     "completeYourDriverProfileBeforeGoing": "ონლაინ რეჟიმში გადასვლამდე შეავსეთ მძღოლის პროფილი.",
-    "isonlineMustBeABoolean": "isOnline უნდა იყოს ლოგიკური ტიპი (boolean).",
+    "isonlineMustBeABoolean": "isOnline უნდა იყოს ლოგიკური ტიპი.",
     "onlyDriversCanUpdateOnlineStatus": "ონლაინ სტატუსის განახლება მხოლოდ მძღოლებს შეუძლიათ.",
     "yourAccountIsnTApprovedYet": "თქვენი ანგარიში ჯერ არ არის დამტკიცებული. ონლაინში გადასასვლელად დაასრულეთ რეგისტრაცია."
   },
@@ -229,6 +245,10 @@
   "driverProfileVehiclesValidation": {
     "yearRange": "year უნდა იყოს მთელი რიცხვი {min}-დან {max}-მდე."
   },
+  "fleetVehicleValidation": {
+    "labelled": "{label}: {message}",
+    "tooManyVehicles": "ერთი განაცხადი შეიძლება მოიცავდეს მაქსიმუმ {max} ავტომობილს."
+  },
   "guard": {
     "applicationAlreadyApproved": "თქვენი განაცხადი უკვე დამტკიცებულია — მისი დოკუმენტების შეცვლა შეუძლებელია.",
     "applicationUnderReview": "თქვენი განაცხადი განხილვაშია — მისი დოკუმენტების შეცვლა შეუძლებელია, სანამ განაცხადი თქვენ არ დაგიბრუნდებათ.",
@@ -236,13 +256,13 @@
     "typeMustBeOneOf": "type უნდა იყოს ერთ-ერთი შემდეგიდან: {types}."
   },
   "loads": {
-    "onlyDriversAndLogisticsCompaniesCan": "ტვირთების დაფის ნახვა მხოლოდ მძღოლებსა და ლოგისტიკურ კომპანიებს შეუძლიათ.",
+    "onlyDriversAndLogisticsCompaniesCan": "ტვირთების დაფის ნახვა მხოლოდ მძღოლებსა და ლოჯისტიკურ კომპანიებს შეუძლიათ.",
     "yourCompanyProfileIsnTSetUp": "თქვენი კომპანიის პროფილი ჯერ არ არის შექმნილი."
   },
   "loadsReject": {
     "driverProfileNotFound": "მძღოლის პროფილი ვერ მოიძებნა.",
     "loadNotFound": "ტვირთი ვერ მოიძებნა.",
-    "onlyDriversAndLogisticsCompaniesCan": "ტვირთების დაფით სარგებლობა მხოლოდ მძღოლებსა და ლოგისტიკურ კომპანიებს შეუძლიათ.",
+    "onlyDriversAndLogisticsCompaniesCan": "ტვირთების დაფით სარგებლობა მხოლოდ მძღოლებსა და ლოჯისტიკურ კომპანიებს შეუძლიათ.",
     "thisLoadIsNoLongerOpen": "ეს ტვირთი აღარ არის ღია."
   },
   "logisticsCompany": {
@@ -254,15 +274,15 @@
     "contactemailMustBeAValidEmail": "contactEmail უნდა იყოს ვალიდური ელფოსტის მისამართი.",
     "contactnameMustBeAFullName": "contactName უნდა იყოს სრული სახელი — სახელი და გვარი.",
     "contactroleIsRequiredAndMustBe": "contactRole სავალდებულოა და არ უნდა იყოს ცარიელი ტექსტი.",
-    "onlyLogisticsCompaniesCanCreateA": "კომპანიის პროფილის შექმნა მხოლოდ ლოგისტიკურ კომპანიებს შეუძლიათ.",
-    "onlyLogisticsCompaniesHaveACompany": "კომპანიის პროფილი მხოლოდ ლოგისტიკურ კომპანიებს აქვთ.",
+    "onlyLogisticsCompaniesCanCreateA": "კომპანიის პროფილის შექმნა მხოლოდ ლოჯისტიკურ კომპანიებს შეუძლიათ.",
+    "onlyLogisticsCompaniesHaveACompany": "კომპანიის პროფილი მხოლოდ ლოჯისტიკურ კომპანიებს აქვთ.",
     "phoneDigitsRange": "phone უნდა შეიცავდეს {min}-დან {max}-მდე ციფრს.",
     "registeredaddressIsRequiredAndMustBe": "registeredAddress სავალდებულოა და არ უნდა იყოს ცარიელი ტექსტი.",
     "vatidMustBeExactly9Digits": "vatId უნდა იყოს ზუსტად 9-ნიშნა."
   },
   "logisticsCompanyDrivers": {
-    "onlyLogisticsCompaniesCanRemoveDrivers": "მძღოლების წაშლა მხოლოდ ლოგისტიკურ კომპანიებს შეუძლიათ.",
-    "onlyLogisticsCompaniesHaveADriver": "მძღოლების განრიგი მხოლოდ ლოგისტიკურ კომპანიებს აქვთ."
+    "onlyLogisticsCompaniesCanRemoveDrivers": "მძღოლების წაშლა მხოლოდ ლოჯისტიკურ კომპანიებს შეუძლიათ.",
+    "onlyLogisticsCompaniesHaveADriver": "მძღოლების განრიგი მხოლოდ ლოჯისტიკურ კომპანიებს აქვთ."
   },
   "logisticsCompanyDriversRegister": {
     "cityMustBeOneOf": "city უნდა იყოს ერთ-ერთი შემდეგიდან: {cities}.",
@@ -271,13 +291,13 @@
     "licencecategoriesMustBeAnArrayWith": "licenceCategories უნდა იყოს მასივი მინიმუმ ერთი კატეგორიით.",
     "licenceexpiresatMustBeAValidIso": "licenceExpiresAt უნდა იყოს ვალიდური ISO თარიღი.",
     "licencenumberIsRequiredAndMustBe": "licenceNumber სავალდებულოა და არ უნდა იყოს ცარიელი ტექსტი.",
-    "onlyLogisticsCompaniesCanRegisterDrivers": "მძღოლების რეგისტრაცია მხოლოდ ლოგისტიკურ კომპანიებს შეუძლიათ.",
+    "onlyLogisticsCompaniesCanRegisterDrivers": "მძღოლების რეგისტრაცია მხოლოდ ლოჯისტიკურ კომპანიებს შეუძლიათ.",
     "thatVehicleWasNotFoundIn": "ეს ტრანსპორტი ვერ მოიძებნა თქვენს ავტოპარკში.",
     "theDriverAccountWasCreatedBut": "მძღოლის ანგარიში შეიქმნა, თუმცა კონფიგურაციის დასრულება ვერ მოხერხდა. იმავე ელფოსტით ხელახლა ცდამდე დაუკავშირდით მხარდაჭერის გუნდს.",
     "theLicenceExpiryDateMustBe": "მართვის მოწმობის მოქმედების ვადა უნდა იყოს მომავალში.",
     "thisVehicleIsAlreadyAssignedTo": "ეს ტრანსპორტი უკვე მინიჭებულია სხვა მძღოლზე.",
     "thisVehicleNeedsCategory": "ამ ავტომობილს {category} კატეგორია სჭირდება. მიამაგრეთ სხვა მძღოლი ან ავტომობილი.",
-    "vehicleidMustBeAStringWhen": "vehicleId მითითებისას უნდა იყოს ტექსტური ტიპი (string)."
+    "vehicleidMustBeAStringWhen": "vehicleId მითითებისას უნდა იყოს ტექსტური ტიპი."
   },
   "logisticsCompanyOnboarding": {
     "anApplicationUnderReviewCanNo": "განხილვის პროცესში მყოფი განაცხადის რედაქტირება უკვე შეუძლებელია.",
@@ -316,12 +336,12 @@
     "weCouldnTSaveThisVehicle": "ამ ტრანსპორტის შენახვა ვერ მოხერხდა. გთხოვთ, სცადოთ თავიდან."
   },
   "logisticsCompanyOrdersCancel": {
-    "onlyLogisticsCompaniesCanCancelDeliveries": "მიწოდების გაუქმება მხოლოდ ლოგისტიკურ კომპანიებს შეუძლიათ.",
+    "onlyLogisticsCompaniesCanCancelDeliveries": "მიწოდების გაუქმება მხოლოდ ლოჯისტიკურ კომპანიებს შეუძლიათ.",
     "thisDeliveryCanNoLongerBe": "ამ მიწოდების გაუქმება უკვე შეუძლებელია."
   },
   "logisticsCompanyOrdersClaim": {
     "noneOfYourFleetSEligible": "თქვენი ავტოპარკიდან არცერთ შესაბამის ტრანსპორტს არ შეუძლია ამ ტვირთის გადაზიდვა — ის აჭარბებს წონის ან ზომის ლიმიტს.",
-    "onlyLogisticsCompaniesCanClaimDeliveries": "შეკვეთების აღება მხოლოდ ლოგისტიკურ კომპანიებს შეუძლიათ.",
+    "onlyLogisticsCompaniesCanClaimDeliveries": "შეკვეთების აღება მხოლოდ ლოჯისტიკურ კომპანიებს შეუძლიათ.",
     "yourFleetHasNoVehicleBig": "თქვენს ავტოპარკს არ აქვს საკმარისად დიდი ტრანსპორტი იმ კლასისთვის, რომლითაც დაჯავშნილი იყო ეს მიწოდება და იმ სატვირთო სივრცისთვის, რაც მას სჭირდება."
   },
   "logisticsCompanyOrdersDispatch": {
@@ -334,15 +354,15 @@
     "completeYourCompanyProfileBeforeAdding": "ტრანსპორტის დამატებამდე შეავსეთ კომპანიის პროფილი.",
     "fileIsNotAnImage": "{fileName} არ არის სურათის ფაილი.",
     "fileIsTooLarge": "{fileName} აღემატება {maxMb} MB-ს.",
-    "onlyLogisticsCompaniesCanAddFleet": "ავტოპარკის ტრანსპორტის დამატება მხოლოდ ლოგისტიკურ კომპანიებს შეუძლიათ.",
-    "onlyLogisticsCompaniesCanRemoveFleet": "ავტოპარკის ტრანსპორტის წაშლა მხოლოდ ლოგისტიკურ კომპანიებს შეუძლიათ.",
-    "onlyLogisticsCompaniesHaveAFleet": "ავტოპარკი მხოლოდ ლოგისტიკურ კომპანიებს აქვთ.",
+    "onlyLogisticsCompaniesCanAddFleet": "ავტოპარკის ტრანსპორტის დამატება მხოლოდ ლოჯისტიკურ კომპანიებს შეუძლიათ.",
+    "onlyLogisticsCompaniesCanRemoveFleet": "ავტოპარკის ტრანსპორტის წაშლა მხოლოდ ლოჯისტიკურ კომპანიებს შეუძლიათ.",
+    "onlyLogisticsCompaniesHaveAFleet": "ავტოპარკი მხოლოდ ლოჯისტიკურ კომპანიებს აქვთ.",
     "vehicletypecodeDoesNotMatchAKnown": "vehicleTypeCode არ შეესაბამება ტრანსპორტის ცნობილ ტიპს.",
     "yearMustBeAWholeNumber": "year უნდა იყოს მთელი რიცხვი {min}-დან {max}-მდე."
   },
   "logisticsCompanyVehiclesAssignment": {
-    "onlyLogisticsCompaniesCanAssignVehicles": "ტრანსპორტის მინიჭება მხოლოდ ლოგისტიკურ კომპანიებს შეუძლიათ.",
-    "onlyLogisticsCompaniesCanUnassignVehicles": "ტრანსპორტის მინიჭების მოხსნა მხოლოდ ლოგისტიკურ კომპანიებს შეუძლიათ.",
+    "onlyLogisticsCompaniesCanAssignVehicles": "ტრანსპორტის მინიჭება მხოლოდ ლოჯისტიკურ კომპანიებს შეუძლიათ.",
+    "onlyLogisticsCompaniesCanUnassignVehicles": "ტრანსპორტის მინიჭების მოხსნა მხოლოდ ლოჯისტიკურ კომპანიებს შეუძლიათ.",
     "thisDriverAlreadyHasAnActive": "ამ მძღოლს უკვე აქვს აქტიურად მიმაგრებული ავტომობილი. ჯერ მოხსენით იგი.",
     "thisVehicleAlreadyHasAnActive": "ამ ავტომობილს უკვე აქვს აქტიური მიმაგრება. ჯერ მოხსენით იგი.",
     "thisVehicleHasNoActiveAssignment": "ამ ტრანსპორტს აქტიური მინიჭება არ აქვს.",
@@ -351,8 +371,8 @@
   "orders": {
     "bodyTypeMustBeOneOf": "bodyType უნდა იყოს ერთ-ერთი შემდეგიდან: {allowed}.",
     "deliverydeadlineMustBeAfterPickupwindowend": "deliveryDeadline უნდა იყოს pickupWindowEnd-ის შემდეგ.",
-    "descriptionMustBeAStringWhen": "description მითითებისას უნდა იყოს ტექსტური ტიპი (string).",
-    "failedToDrawAnOrderReference": "მიმდევრობიდან შეკვეთის კოდის/ნომრის გენერირება ვერ მოხერხდა.",
+    "descriptionMustBeAStringWhen": "description მითითებისას უნდა იყოს ტექსტური ტიპი.",
+    "failedToDrawAnOrderReference": "მიმდევრობიდან შეკვეთის ნომრის გენერირება ვერ მოხერხდა.",
     "fieldMeasurementOutOfRange": "{field} უნდა იყოს 0-ზე მეტი რიცხვი და არაუმეტეს {max} {unit}.",
     "fieldMustBeObjectWhenProvided": "{field} მითითების შემთხვევაში უნდა იყოს JSON ობიექტი.",
     "fieldMustBeStringWhenProvided": "{field} მითითების შემთხვევაში უნდა იყოს ტექსტი.",
@@ -373,13 +393,13 @@
     "thisVehicleCanTCarryThis": "ამ ტრანსპორტს არ შეუძლია ამ ტვირთის გადაზიდვა — ის აჭარბებს წონის ან ზომის ლიმიტს.",
     "thisVehicleDoesnTOfferThe": "ეს ტრანსპორტი არ გთავაზობთ იმ სატვირთო სივრცეს, რაც ამ მიწოდებას სჭირდება.",
     "thisVehicleIsSmallerThanThe": "ეს ტრანსპორტი უფრო პატარაა, ვიდრე ტრანსპორტის ის კლასი, რომლითაც დაჯავშნილი იყო ეს მიწოდება. გამოიყენეთ ტრანსპორტი, რომელიც შეესაბამება ან აღემატება მას ტვირთამწეობით, სიგრძით, სიგანითა და სიმაღლით.",
-    "youReOfflineGoOnlineTo": "თქვენ ოფლაინში ხართ. ტვირთების დასაჯავშნად/მისაღებად გადადით ონლაინ რეჟიმში."
+    "youReOfflineGoOnlineTo": "თქვენ ოფლაინში ხართ. გადაზიდვების ასაღებად გადადით ონლაინ რეჟიმში."
   },
   "ordersComplete": {
     "receivedByMustBeStringOrNull": "receivedBy უნდა იყოს ტექსტი ან null.",
     "receivedByTooLong": "receivedBy არ უნდა აღემატებოდეს {max} სიმბოლოს.",
     "thisDeliveryCannotBeCompletedRight": "ამ მიწოდების დასრულება ახლა შეუძლებელია.",
-    "thisDeliverySVehicleTypeHas": "ამ მიწოდების ტრანსპორტის ტიპს არ აქვს ფასწარმოქმნის წესი (pricing rule).",
+    "thisDeliverySVehicleTypeHas": "ამ მიწოდების ავტომობილის ტიპს ფასწარმოქმნის წესი არ აქვს.",
     "waitingminutesIsRequiredAndMustBe": "waitingMinutes სავალდებულოა და უნდა იყოს წუთების მთელი რიცხვი."
   },
   "ordersLocation": {
@@ -396,6 +416,8 @@
   },
   "savedCards": {
     "cardBrandTooLong": "მიუთითეთ ბარათის ბრენდი არაუმეტეს {max} სიმბოლოსი.",
+    "cardDetailsMustNotBeSent": "ბარათის მონაცემები სერვერზე არ უნდა გაიგზავნოს.",
+    "cardNotFound": "ბარათი ვერ მოიძებნა.",
     "cardholderNameTooLong": "მიუთითეთ ბარათის მფლობელის სახელი არაუმეტეს {max} სიმბოლოსი.",
     "enterAFourDigitCardEnding": "შეიყვანეთ ბარათის ბოლო ოთხი ციფრი.",
     "enterAFourDigitExpiryYear": "შეიყვანეთ მოქმედების ვადა: ოთხნიშნა წელი.",
@@ -410,8 +432,8 @@
   "validation": {
     "bodyhtmlIsRequiredAndMustBe": "bodyHtml სავალდებულოა და არ უნდა იყოს ცარიელი ტექსტი.",
     "duplicatePage": "ამ ლოკალისთვის ამ slug-ით გვერდი უკვე არსებობს.",
-    "ispublishedMustBeABoolean": "isPublished უნდა იყოს ლოგიკური ტიპი (boolean).",
-    "slugIsRequiredAndMustBe": "slug სავალდებულოა და უნდა იყოს ტექსტური ტიპი (string).",
+    "ispublishedMustBeABoolean": "isPublished უნდა იყოს ლოგიკური ტიპი.",
+    "slugIsRequiredAndMustBe": "slug სავალდებულოა და უნდა იყოს ტექსტური ტიპი.",
     "slugMustBeLowercaseLettersNumbers": "slug უნდა შედგებოდეს მცირე ასოებისგან, ციფრებისგან და ცალკეული დეფისებისგან, მაგ. \"terms-of-service\"."
   }
 }

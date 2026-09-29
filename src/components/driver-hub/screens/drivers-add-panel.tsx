@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { HubCard } from "@/components/driver-hub/hub-primitives";
-import { GEORGIAN_CITY_OPTIONS } from "@/lib/georgian-cities";
+import { useLocalizedCityOptions } from "@/lib/georgian-cities";
 import { cn } from "@/lib/utils";
 
 /**
@@ -191,6 +191,7 @@ export function DriversAddPanel({
 }: DriversAddPanelProps) {
   const t = useTranslations("driverHub.driversAddPanel");
   const tShared = useTranslations("common.shared");
+  const cityOptions = useLocalizedCityOptions();
   const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [phone, setPhone] = React.useState("");
@@ -248,32 +249,38 @@ export function DriversAddPanel({
     vehicleCategoryValid;
 
   const cityLabel =
-    GEORGIAN_CITY_OPTIONS.find((option) => option.value === city)?.label ?? "";
+    cityOptions.find((option) => option.value === city)?.label ?? "";
 
   // One hint line naming the *first* thing standing in the way, in the order
   // the fields appear — a list of every problem at once reads as a wall and
   // does not tell the operator where to click.
   const hint = canSubmit
-    ? `Registers ${name.trim()} in ${cityLabel} with ${
-        selectedVehicle === null
-          ? "no vehicle yet"
-          : selectedVehicle.plateNumber
-      }. A temporary password is shown once, here.`
+    ? t("hintReady", {
+        name: name.trim(),
+        city: cityLabel,
+        vehicle:
+          selectedVehicle === null
+            ? t("noVehicleYet")
+            : selectedVehicle.plateNumber,
+      })
     : !nameValid
-      ? "Add a first and last name to continue."
+      ? t("hintName")
       : !emailValid
-        ? "Add the driver's email address — it is their login."
+        ? t("hintEmail")
         : !phoneValid
-          ? `Add a phone number with at least ${MIN_PHONE_DIGITS} digits.`
+          ? t("hintPhone", { minDigits: MIN_PHONE_DIGITS })
           : !cityValid
-            ? "Pick the zone this driver works."
+            ? t("hintCity")
             : !licenceNumberValid
-              ? "Add the driver's licence number."
+              ? t("hintLicenceNumber")
               : !expiryValid
-                ? "Add a licence expiry date in the future."
+                ? t("hintExpiry")
                 : !categoriesValid
-                  ? "Tick at least one licence category."
-                  : `${selectedVehicle?.plateNumber ?? "That vehicle"} needs category ${requiredCategory}. Tick it, or assign a different vehicle.`;
+                  ? t("hintCategories")
+                  : t("hintVehicleCategory", {
+                      vehicle: selectedVehicle?.plateNumber ?? t("thatVehicle"),
+                      category: requiredCategory ?? "",
+                    });
 
   function toggleCategory(category: LicenceCategory, checked: boolean): void {
     setCategories((current) =>
@@ -322,7 +329,7 @@ export function DriversAddPanel({
         // Reported inline and without clearing a single field: a rejected email
         // or an already-taken vehicle is something the operator fixes in the
         // form that is still on screen.
-        setError(payload?.error ?? "Could not register this driver.");
+        setError(payload?.error ?? t("couldNotRegister"));
         return;
       }
 
@@ -405,7 +412,7 @@ export function DriversAddPanel({
               {/* Portalled out of the shell's subtree, so it has to carry
                   `data-admin-surface` itself or it renders in the site palette. */}
               <SelectContent data-admin-surface="" className="max-h-72">
-                {GEORGIAN_CITY_OPTIONS.map((option) => (
+                {cityOptions.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
                   </SelectItem>
@@ -495,7 +502,7 @@ export function DriversAddPanel({
           <div className="-m-0.5 flex max-h-[260px] min-w-0 flex-col gap-2 overflow-y-auto p-0.5">
             <VehicleRadioRow
               label={tShared("unassigned")}
-              note="Assign later"
+              note={t("assignLater")}
               selected={vehicleId === NO_VEHICLE}
               onSelect={() => setVehicleId(NO_VEHICLE)}
             />
@@ -545,7 +552,7 @@ export function DriversAddPanel({
             disabled={!canSubmit || submitting}
             className="h-auto rounded-md px-[15px] py-[9px] text-[13px] font-medium disabled:pointer-events-auto disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100"
           >
-            {submitting ? "Registering…" : "Register driver"}
+            {submitting ? t("registering") : t("registerDriver")}
           </Button>
           <Button
             type="button"

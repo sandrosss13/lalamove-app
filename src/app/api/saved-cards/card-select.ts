@@ -31,8 +31,8 @@ export const CARD_SELECT = {
 } as const;
 
 /**
- * The message every ownership failure answers with. A card belonging to someone
+ * The message key every ownership failure answers with. A card belonging to someone
  * else is reported as "not found" rather than "forbidden": a 403 would confirm
  * that the id exists, letting a caller enumerate other clients' cards.
  */
-export const CARD_NOT_FOUND = "Card not found.";
+export const CARD_NOT_FOUND_KEY = "errors.savedCards.cardNotFound";

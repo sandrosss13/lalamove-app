@@ -141,7 +141,12 @@ function parseCreateSystemUserBody(
     typeof adminRole !== "string" ||
     !ADMIN_ROLES.includes(adminRole as AdminRole)
   ) {
-    return { error: `adminRole must be one of: ${ADMIN_ROLES.join(", ")}.` };
+    return {
+      error: t("common.shared.fieldMustBeOneOf", {
+        field: "adminRole",
+        options: ADMIN_ROLES.join(", "),
+      }),
+    };
   }
 
   return {

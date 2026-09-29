@@ -9,9 +9,8 @@ import { useTranslations } from "next-intl";
  * it lives here rather than in the shell so the shell can import it without the
  * rail having to import back from the shell.
  *
- * `labelKey` is the label's full `next-intl` message path; render that, not
- * `label`, which stays as the English source of truth. The `sub` lines have no
- * catalog entry yet and still render in English.
+ * `labelKey` and `subKey` are full `next-intl` message paths; render those,
+ * not `label` / `sub`, which stay as the English source of truth.
  */
 export const FLEET_RAIL = [
   {
@@ -19,30 +18,35 @@ export const FLEET_RAIL = [
     label: "Company & authorisation",
     labelKey: "fleet.fleetStepRail.companyAuthorisation",
     sub: "Phone, legal entity, contact, payouts",
+    subKey: "fleet.fleetStepRail.companySub",
   },
   {
     step: 2,
     label: "Fleet composition",
     labelKey: "common.shared.fleetComposition",
     sub: "How many of each body type and class",
+    subKey: "fleet.fleetStepRail.fleetSub",
   },
   {
     step: 3,
     label: "Vehicle specifications",
     labelKey: "common.shared.vehicleSpecifications",
     sub: "Plate, model, capacity per vehicle",
+    subKey: "fleet.fleetStepRail.vehiclesSub",
   },
   {
     step: 4,
     label: "Drivers & assignment",
     labelKey: "common.shared.driversAssignment",
     sub: "A named driver behind every vehicle",
+    subKey: "fleet.fleetStepRail.driversSub",
   },
   {
     step: 5,
     label: "Review & status",
     labelKey: "common.shared.reviewStatus",
     sub: "Submit, per-vehicle verdicts, activation",
+    subKey: "fleet.fleetStepRail.reviewSub",
   },
 ] as const;
 
@@ -147,7 +151,7 @@ export function FleetStepRail({
                 {tRoot(entry.labelKey)}
               </span>
               <span className="mt-0.5 block text-[11.5px] leading-[1.45] text-muted-foreground">
-                {entry.sub}
+                {tRoot(entry.subKey)}
               </span>
             </span>
           </button>

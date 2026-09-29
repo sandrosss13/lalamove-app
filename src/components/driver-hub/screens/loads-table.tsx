@@ -21,7 +21,7 @@ import {
   formatPostedAgo,
   formatVolumeM3,
   formatWeightKg,
-  pluralise,
+  useLoadsTimeFormat,
 } from "@/components/driver-hub/screens/loads-format";
 import { Button } from "@/components/ui/button";
 import {
@@ -685,12 +685,18 @@ function LoadActions({ load }: { load: HubLoad }) {
 function LoadRow({ load, nowIso }: { load: HubLoad; nowIso: string }) {
   const { selectedId, selectLoad } = useLoadsBoard();
   const t = useTranslations("driverHub.loadsTable");
+  const tRoot = useTranslations();
+  const timeFormat = useLoadsTimeFormat();
   const isSelected = load.id === selectedId;
 
-  const deadline = formatDeadlineLine(load.deliveryDeadline, nowIso);
+  const deadline = formatDeadlineLine(
+    load.deliveryDeadline,
+    nowIso,
+    timeFormat,
+  );
   // Resolved once: the cargo cell renders it and also hands it to its own
   // `title`, and a lookup written twice is a lookup that can be changed once.
-  const cargoLabel = cargoCategoryLabel(load.cargoCategory);
+  const cargoLabel = cargoCategoryLabel(load.cargoCategory, tRoot);
   const cargoDetail = `${load.packagingDescription ?? EM_DASH} · ${formatVolumeM3(
     {
       lengthM: load.cargoLengthM,
@@ -750,7 +756,7 @@ function LoadRow({ load, nowIso }: { load: HubLoad; nowIso: string }) {
             169px one that earns none of it. (Pick-up time, at 68px, is the
             narrowest column that never hides — this is the fourth widest.) */}
         <div className={SUBLINE_CLASSES}>
-          {formatPostedAgo(load.createdAt, nowIso)}
+          {formatPostedAgo(load.createdAt, nowIso, timeFormat.t)}
         </div>
       </TableCell>
 
@@ -786,7 +792,7 @@ function LoadRow({ load, nowIso }: { load: HubLoad; nowIso: string }) {
           when the order predates the column. Never the pick-up window — see the
           module comment. */}
       <TableCell className={cn(CELL_CLASSES, COLUMN_CLASSES.pickupDate)}>
-        {formatLoadDayLabel(load.scheduledAt, nowIso)}
+        {formatLoadDayLabel(load.scheduledAt, nowIso, timeFormat)}
       </TableCell>
 
       {/* 5 — Pick-up time. The same field's clock half, dashing on the same
@@ -951,6 +957,7 @@ export function LoadsTable() {
   } = useLoadsBoard();
   const t = useTranslations("driverHub.loadsTable");
   const tShared = useTranslations("common.shared");
+  const tBoard = useTranslations("driverHub.loadsBoard");
 
   const count = visibleLoads.length;
 
@@ -961,11 +968,12 @@ export function LoadsTable() {
    * ("what have I hidden?") rather than a third tab, and it is what actually
    * selected the rows being counted.
    */
+  const countLabel = tBoard("loadsCount", { count });
   const resultLine = showRejected
-    ? `${pluralise(count, "load")} you rejected`
+    ? t("resultRejected", { count: countLabel })
     : tab === "mine"
-      ? `${pluralise(count, "load")} you have claimed`
-      : `${pluralise(count, "load")} open to you`;
+      ? t("resultClaimed", { count: countLabel })
+      : t("resultOpen", { count: countLabel });
 
   /**
    * Whether the empty state below is allowed to blame the filters.
@@ -1160,10 +1168,10 @@ export function LoadsTable() {
               this file's headings do not carry. */}
           <p className="text-sm font-medium">
             {showRejected
-              ? "You haven't hidden any loads"
+              ? tBoard("noHiddenLoads")
               : filtersExplainEmpty
-                ? "No loads match these filters"
-                : "No loads on the board right now"}
+                ? tBoard("noLoadsMatchFilters")
+                : tBoard("noLoadsOnBoard")}
           </p>
           {/* Only the filter heading gets the advice line — see
               `filtersExplainEmpty`. Nothing replaces it on the other lists:
@@ -1201,8 +1209,7 @@ export function LoadsTable() {
               and the count is about a list that is not being shown. */}
           {tab === "available" && !showRejected && hiddenByCapacityCount > 0 ? (
             <span className="tabular-nums">
-              {pluralise(hiddenByCapacityCount, "load")} hidden — over your
-              vehicle capacity or dimensions
+              {tBoard("hiddenByCapacity", { count: hiddenByCapacityCount })}
             </span>
           ) : null}
 
@@ -1223,7 +1230,7 @@ export function LoadsTable() {
               className="cursor-pointer rounded-sm underline underline-offset-2 outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
             >
               {showRejected ? (
-                "Back to open loads"
+                t("backToOpenLoads")
               ) : (
                 <>
                   {/* The design's own copy, which does not pluralise the word

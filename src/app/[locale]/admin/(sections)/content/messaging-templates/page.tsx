@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 
 import type { MessagingChannel } from "@prisma/client";
 
@@ -14,8 +14,8 @@ import type {
   AdminMessagingTemplateRow,
 } from "@/app/api/admin/content/messaging-templates/route";
 import {
-  CONTENT_LOCALE_LABELS,
-  MESSAGING_CHANNEL_LABELS,
+  CONTENT_LOCALE_LABEL_KEYS,
+  MESSAGING_CHANNEL_LABEL_KEYS,
   MessagingTemplateFormDialog,
 } from "@/components/admin/content/messaging-template-form-dialog";
 import { Badge } from "@/components/ui/badge";
@@ -69,13 +69,11 @@ type FormState =
   { mode: "create" } | { mode: "edit"; row: AdminMessagingTemplateRow };
 
 /** Matches how every other dashboard in the app renders a date. */
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
+const UPDATED_DATE_FORMAT = {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+} as const;
 
 /**
  * Pulls the API's `{ error }` message out of a failed response — a `403` for a
@@ -123,6 +121,7 @@ function DeleteTemplateDialog({
 }) {
   const t = useTranslations("admin.adminContentMessagingTemplates");
   const tShared = useTranslations("common.shared");
+  const tRoot = useTranslations();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -138,7 +137,7 @@ function DeleteTemplateDialog({
 
       if (!response.ok) {
         setError(
-          await readErrorMessage(response, "Could not delete this template."),
+          await readErrorMessage(response, t("couldNotDeleteThisTemplate")),
         );
         setPending(false);
         return;
@@ -167,10 +166,14 @@ function DeleteTemplateDialog({
         <DialogHeader>
           <DialogTitle>{t("deleteTemplate")}</DialogTitle>
           <DialogDescription>
-            Removes the {MESSAGING_CHANNEL_LABELS[target.channel]} wording for{" "}
-            <span className="text-foreground">{target.key}</span> in{" "}
-            {CONTENT_LOCALE_LABELS[target.locale]}. To stop it being used
-            without losing the text, edit it and turn Active off instead.
+            {t.rich("deleteTemplateDetail", {
+              channel: tRoot(MESSAGING_CHANNEL_LABEL_KEYS[target.channel]),
+              key: target.key,
+              language: tRoot(CONTENT_LOCALE_LABEL_KEYS[target.locale]),
+              mark: (chunks) => (
+                <span className="text-foreground">{chunks}</span>
+              ),
+            })}
           </DialogDescription>
         </DialogHeader>
 
@@ -193,7 +196,7 @@ function DeleteTemplateDialog({
             onClick={handleDelete}
             disabled={pending}
           >
-            {pending ? "Deleting…" : tShared("delete")}
+            {pending ? tShared("deleting") : tShared("delete")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -220,6 +223,8 @@ function DeleteTemplateDialog({
 export default function AdminMessagingTemplatesPage() {
   const t = useTranslations("admin.adminContentMessagingTemplates");
   const tShared = useTranslations("common.shared");
+  const tRoot = useTranslations();
+  const format = useFormatter();
   const [channel, setChannel] = useState<
     MessagingChannel | typeof ALL_CHANNELS
   >(ALL_CHANNELS);
@@ -311,7 +316,7 @@ export default function AdminMessagingTemplatesPage() {
             <SelectItem value={ALL_CHANNELS}>{t("allChannels")}</SelectItem>
             {CHANNEL_FILTER_OPTIONS.map((option) => (
               <SelectItem key={option} value={option}>
-                {MESSAGING_CHANNEL_LABELS[option]}
+                {tRoot(MESSAGING_CHANNEL_LABEL_KEYS[option])}
               </SelectItem>
             ))}
           </SelectContent>
@@ -320,7 +325,7 @@ export default function AdminMessagingTemplatesPage() {
         <div className="flex items-center gap-3">
           {data ? (
             <p className="text-sm text-muted-foreground">
-              {items.length} {items.length === 1 ? "template" : "templates"}
+              {t("templateCount", { count: items.length })}
             </p>
           ) : null}
           <Button size="sm" onClick={() => setForm({ mode: "create" })}>
@@ -367,8 +372,10 @@ export default function AdminMessagingTemplatesPage() {
                   className="py-10 text-center text-muted-foreground"
                 >
                   {channel === ALL_CHANNELS
-                    ? "No messaging templates yet."
-                    : `No ${MESSAGING_CHANNEL_LABELS[channel]} templates yet.`}
+                    ? t("noTemplatesYet")
+                    : t("noChannelTemplatesYet", {
+                        channel: tRoot(MESSAGING_CHANNEL_LABEL_KEYS[channel]),
+                      })}
                 </TableCell>
               </TableRow>
             ) : (
@@ -379,11 +386,11 @@ export default function AdminMessagingTemplatesPage() {
                   </TableCell>
                   <TableCell className="align-top">
                     <Badge variant="outline">
-                      {MESSAGING_CHANNEL_LABELS[row.channel]}
+                      {tRoot(MESSAGING_CHANNEL_LABEL_KEYS[row.channel])}
                     </Badge>
                   </TableCell>
                   <TableCell className="align-top">
-                    {CONTENT_LOCALE_LABELS[row.locale]}
+                    {tRoot(CONTENT_LOCALE_LABEL_KEYS[row.locale])}
                   </TableCell>
                   <TableCell className="max-w-xs align-top break-words">
                     {/* SMS rows have no subject line at all, which is a fact
@@ -402,7 +409,10 @@ export default function AdminMessagingTemplatesPage() {
                   <TableCell className="align-top text-right">
                     <div className="flex items-center justify-end gap-2">
                       <span className="text-sm text-muted-foreground">
-                        {formatDate(row.updatedAt)}
+                        {format.dateTime(
+                          new Date(row.updatedAt),
+                          UPDATED_DATE_FORMAT,
+                        )}
                       </span>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>

@@ -2,23 +2,23 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { OrderStatus } from "@prisma/client";
 import type { CargoCategory, ChassisType, ServiceLevel } from "@prisma/client";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { getTranslations } from "next-intl/server";
 
 import { localeHref } from "@/i18n/server";
 import { auth } from "@/lib/auth";
-import { CARGO_CATEGORY_LABELS } from "@/lib/cargo";
+import { useCargoCategoryLabel } from "@/lib/cargo";
 import { loadBookingPaymentOptions } from "@/lib/home/booking-payment-options";
 import { prisma } from "@/lib/prisma";
+import { vehicleTypeSpecLabel } from "@/lib/vehicle-type-spec-labels";
 import { BreakdownRow } from "@/components/home/booking-form-primitives";
-import { SERVICE_LEVEL_LABEL, formatGel } from "@/components/orders-format";
+import { formatGel, useServiceLevelLabel } from "@/components/orders-format";
 import { CheckoutPaymentPanel } from "../checkout-payment-panel";
 import {
-  BODY_TYPE_LABEL,
-  crewSizeLabel,
   formatBookedDistanceKm,
   formatScheduledAt,
   transportationCost,
+  useCheckoutLabels,
 } from "../checkout-format";
 import {
   CheckoutHeader,
@@ -64,7 +64,7 @@ const CHECKOUT_ORDER_SELECT = {
   serviceLevelAdjustment: true,
   // A relation, so it is not returned unless it is asked for — and only the one
   // column the summary prints.
-  vehicleTypeSpec: { select: { label: true } },
+  vehicleTypeSpec: { select: { code: true, label: true } },
 } as const;
 
 /**
@@ -89,11 +89,10 @@ export default async function CheckoutPage({
   params: Promise<{ id: string }>;
 }) {
   const session = await auth.api.getSession({ headers: await headers() });
+  const t = await getTranslations("checkout.checkout");
 
   if (!session) {
-    return (
-      <CheckoutSignInNotice prompt="Sign in to review and pay for this delivery." />
-    );
+    return <CheckoutSignInNotice prompt={t("signInToReviewAndPay")} />;
   }
 
   // Checkout is a client's own step. Drivers and logistics companies take and
@@ -136,7 +135,6 @@ export default async function CheckoutPage({
   // the browser is in a position to make. The pay endpoint re-checks all of
   // them anyway.
   const paymentOptions = await loadBookingPaymentOptions();
-  const t = await getTranslations("checkout.checkout");
 
   return (
     // The background is painted on `main` rather than on the centred column so
@@ -146,10 +144,10 @@ export default async function CheckoutPage({
     <main className="min-h-screen bg-ink text-paper">
       <div className="mx-auto flex max-w-5xl flex-col gap-6 px-5 pt-8 pb-16 sm:px-8">
         <CheckoutHeader
-          eyebrow="Almost there"
+          eyebrow={t("almostThere")}
           title={t("reviewAndPay")}
           backHref="/"
-          backLabel="← Back to booking"
+          backLabel={t("backToBooking")}
         />
 
         {/* Two columns from `lg` up — the summary to read on one side, the
@@ -194,13 +192,18 @@ type CheckoutOrder = {
   price: number;
   serviceLevel: ServiceLevel;
   serviceLevelAdjustment: number;
-  vehicleTypeSpec: { label: string };
+  vehicleTypeSpec: { code: string; label: string };
 };
 
 /** What was booked: the route, then everything that describes the job. */
 function OrderSummaryPanel({ order }: { order: CheckoutOrder }) {
   const t = useTranslations("checkout.checkout");
   const tShared = useTranslations("common.shared");
+  const tRoot = useTranslations();
+  const locale = useLocale();
+  const cargoCategoryLabel = useCargoCategoryLabel();
+  const serviceLevelLabel = useServiceLevelLabel();
+  const labels = useCheckoutLabels();
 
   return (
     <section
@@ -233,28 +236,35 @@ function OrderSummaryPanel({ order }: { order: CheckoutOrder }) {
         {order.scheduledAt ? (
           <DetailRow
             label={tShared("scheduled")}
-            value={formatScheduledAt(order.scheduledAt)}
+            value={formatScheduledAt(order.scheduledAt, locale)}
           />
         ) : null}
         <DetailRow
           label={tShared("vehicle")}
-          value={order.vehicleTypeSpec.label}
+          value={vehicleTypeSpecLabel(
+            order.vehicleTypeSpec.code,
+            order.vehicleTypeSpec.label,
+            tRoot,
+          )}
         />
         <DetailRow
           label={t("goods")}
-          value={CARGO_CATEGORY_LABELS[order.cargoCategory]}
+          value={cargoCategoryLabel(order.cargoCategory)}
         />
-        <DetailRow label={t("crew")} value={crewSizeLabel(order.helperCount)} />
+        <DetailRow
+          label={t("crew")}
+          value={labels.crewSize(order.helperCount)}
+        />
         {/* Also nullable, and for the same reason as the schedule. */}
         {order.bodyType ? (
           <DetailRow
             label={t("loadSpace")}
-            value={BODY_TYPE_LABEL[order.bodyType]}
+            value={labels.bodyType(order.bodyType)}
           />
         ) : null}
         <DetailRow
           label={tShared("serviceLevel")}
-          value={SERVICE_LEVEL_LABEL[order.serviceLevel]}
+          value={serviceLevelLabel(order.serviceLevel)}
         />
         {/* Full width, because it is the one free-text field here and a note
             about the load has no business being squeezed into half a row. The

@@ -1,7 +1,4 @@
-import {
-  DEFAULT_HOME_PAGE_CONTENT,
-  type StatsContent,
-} from "@/lib/admin/home-page-content";
+import { type StatsContent } from "@/lib/admin/home-page-content";
 
 /**
  * The figures strip: one card per authored stat, a large mono value over its
@@ -12,11 +9,7 @@ import {
  * (see `specs/georgia-homepage-redesign/action-required.md`), so this component
  * renders whatever a content manager has put in and nothing else.
  */
-export function LandingStats({
-  content = DEFAULT_HOME_PAGE_CONTENT.stats,
-}: {
-  content?: StatsContent;
-}) {
+export function LandingStats({ content }: { content: StatsContent }) {
   return (
     <section className="px-[clamp(20px,4vw,48px)] py-[clamp(56px,7vw,104px)]">
       {/*

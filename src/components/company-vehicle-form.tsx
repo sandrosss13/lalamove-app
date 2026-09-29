@@ -64,7 +64,7 @@ export function CompanyVehicleForm({ onSuccess }: { onSuccess?: () => void }) {
         const payload = (await response.json().catch(() => null)) as {
           error?: string;
         } | null;
-        setError(payload?.error ?? "Could not add this vehicle.");
+        setError(payload?.error ?? t("couldNotAddVehicle"));
         return;
       }
 
@@ -166,7 +166,7 @@ export function CompanyVehicleForm({ onSuccess }: { onSuccess?: () => void }) {
         disabled={submitting}
         className="self-start rounded border px-4 py-2 font-medium hover:opacity-70 disabled:opacity-50"
       >
-        {submitting ? "Adding…" : tVehicles("addVehicle")}
+        {submitting ? t("adding") : tVehicles("addVehicle")}
       </button>
     </form>
   );

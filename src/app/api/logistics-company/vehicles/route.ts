@@ -63,7 +63,10 @@ function parseYear(
 
   if (!Number.isInteger(year) || year < MIN_VEHICLE_YEAR || year > maxYear) {
     return {
-      error: `year must be a whole number between ${MIN_VEHICLE_YEAR} and ${maxYear}.`,
+      error: t("errors.logisticsCompanyVehicles.yearMustBeAWholeNumber", {
+        min: MIN_VEHICLE_YEAR,
+        max: maxYear,
+      }),
     };
   }
 
@@ -112,12 +115,19 @@ function parsePhotos(
 
   for (const photo of photos) {
     if (!photo.type.startsWith("image/")) {
-      return { error: `${photo.name} is not an image file.` };
+      return {
+        error: t("errors.logisticsCompanyVehicles.fileIsNotAnImage", {
+          fileName: photo.name,
+        }),
+      };
     }
 
     if (photo.size > MAX_PHOTO_BYTES) {
       return {
-        error: `${photo.name} is larger than ${MAX_PHOTO_BYTES / (1024 * 1024)} MB.`,
+        error: t("errors.logisticsCompanyVehicles.fileIsTooLarge", {
+          fileName: photo.name,
+          maxMb: MAX_PHOTO_BYTES / (1024 * 1024),
+        }),
       };
     }
   }

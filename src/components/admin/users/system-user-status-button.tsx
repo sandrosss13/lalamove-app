@@ -42,7 +42,9 @@ export function SystemUserStatusButton({
     // reactivating restores access and is harmless to do by accident.
     if (
       isActive &&
-      !window.confirm(`Revoke ${name}'s access to the back office?`)
+      !window.confirm(
+        t("admin.systemUserStatusButton.revokeAccessConfirm", { name }),
+      )
     ) {
       return;
     }
@@ -61,7 +63,9 @@ export function SystemUserStatusButton({
         const payload = (await response.json().catch(() => null)) as {
           error?: string;
         } | null;
-        setError(payload?.error ?? "Could not update this system user.");
+        setError(
+          payload?.error ?? t("admin.systemUserStatusButton.couldNotUpdate"),
+        );
         return;
       }
 
@@ -85,7 +89,7 @@ export function SystemUserStatusButton({
       >
         {isActive
           ? t("admin.adminFinancePromoCampaigns.deactivate")
-          : "Reactivate"}
+          : t("admin.systemUserStatusButton.reactivate")}
       </Button>
       {error ? <span className="text-xs text-destructive">{error}</span> : null}
     </div>

@@ -5,7 +5,6 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import {
-  DEFAULT_HOME_PAGE_CONTENT,
   MAX_HERO_BANNERS,
   type HeroCarouselContent,
 } from "@/lib/admin/home-page-content";
@@ -66,10 +65,10 @@ function easeOutExpo(progress: number) {
  */
 export function LandingHeroCarousel({
   banners,
-  content = DEFAULT_HOME_PAGE_CONTENT.hero_carousel,
+  content,
 }: {
   banners: LandingBanner[];
-  content?: HeroCarouselContent;
+  content: HeroCarouselContent;
 }) {
   // Sliced defensively even though the admin form and the loader both cap the
   // list: a row inserted straight into the database must not be able to produce
@@ -283,7 +282,7 @@ export function LandingHeroCarousel({
                 key={banner.id}
                 role="group"
                 aria-roledescription="slide"
-                aria-label={`${slideIndex + 1} of ${count}`}
+                aria-label={t("slideOf", { index: slideIndex + 1, count })}
                 className="relative h-full w-full shrink-0 grow-0 basis-full snap-start"
               >
                 {banner.linkUrl ? (
@@ -352,7 +351,7 @@ export function LandingHeroCarousel({
                 <button
                   key={banner.id}
                   type="button"
-                  aria-label={`Go to banner ${dotIndex + 1}`}
+                  aria-label={t("goToBanner", { index: dotIndex + 1 })}
                   aria-current={dotIndex === index ? "true" : undefined}
                   onClick={() => {
                     stopAutoAdvance();

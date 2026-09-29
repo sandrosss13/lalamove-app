@@ -46,7 +46,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -93,10 +93,13 @@ import {
 const ROSTER_ENDPOINT = "/api/logistics-company/drivers";
 const REGISTER_ENDPOINT = "/api/logistics-company/drivers/register";
 
-const ROSTER_ERROR_FALLBACK =
-  "We couldn't load your drivers. Check your connection and try again.";
-const CREATE_ERROR_FALLBACK =
-  "We couldn't create this driver account. Please try again.";
+/** This step's translator, handed to the pure helpers below that build copy. */
+type Step4Translator = ReturnType<
+  typeof useTranslations<"fleet.step4DriversAssignment">
+>;
+
+/** Formats a calendar date in the reader's locale (`useFormatter().dateTime`). */
+type DateFormatter = ReturnType<typeof useFormatter>["dateTime"];
 
 /**
  * The register route's own wording for a taken address, matched verbatim so the
@@ -163,22 +166,6 @@ const FIELD_CLASS =
 /** Design-exact label chrome. */
 const LABEL_CLASS =
   "text-[11.5px] font-semibold tracking-[0.04em] text-muted-foreground uppercase";
-
-/** Short month names, so dates format identically in every browser. */
-const MONTH_NAMES = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
-];
 
 /**
  * The three licence categories, in the order a driver's categories are stored
@@ -273,7 +260,10 @@ async function readErrorMessage(
  * a licence expiry reads as a bug. The same call `step-4-review-submit.tsx`
  * makes in the driver flow.
  */
-function formatIsoDate(value: string): string | null {
+function formatIsoDate(
+  value: string,
+  formatDateTime: DateFormatter,
+): string | null {
   const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
   if (!match) return null;
 
@@ -282,10 +272,15 @@ function formatIsoDate(value: string): string | null {
     return null;
   }
 
-  const monthName = MONTH_NAMES[Number(month) - 1];
-  if (monthName === undefined) return null;
+  const monthIndex = Number(month) - 1;
+  if (monthIndex < 0 || monthIndex > 11) return null;
 
-  return `${Number(day)} ${monthName} ${year}`;
+  // Built and formatted in UTC so the calendar date read from the string is
+  // the one displayed, whatever the configured display timezone.
+  return formatDateTime(
+    new Date(Date.UTC(Number(year), monthIndex, Number(day))),
+    { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" },
+  );
 }
 
 /**
@@ -333,30 +328,33 @@ function evaluateEligibility(
   driver: RosterEntry,
   required: DriverLicenceCategory,
   takenInDraft: Map<string, DraftHolder>,
-  noLicenceNote: string,
+  t: Step4Translator,
+  formatDateTime: DateFormatter,
 ): Eligibility {
   if (driver.licenceExpiresAt === null) {
-    return { eligible: false, note: noLicenceNote };
+    return { eligible: false, note: t("noLicenceOnFile") };
   }
 
   if (!driver.categories.includes(required)) {
-    return { eligible: false, note: `No category ${required}` };
+    return { eligible: false, note: t("noCategory", { category: required }) };
   }
 
   const expiresAt = new Date(driver.licenceExpiresAt);
   if (!Number.isNaN(expiresAt.getTime()) && expiresAt.getTime() <= Date.now()) {
-    const formatted = formatIsoDate(driver.licenceExpiresAt);
+    const formatted = formatIsoDate(driver.licenceExpiresAt, formatDateTime);
     return {
       eligible: false,
       note:
-        formatted === null ? "Licence expired" : `Licence expired ${formatted}`,
+        formatted === null
+          ? t("licenceExpired")
+          : t("licenceExpiredOn", { date: formatted }),
     };
   }
 
   if (driver.currentAssignment !== null) {
     return {
       eligible: false,
-      note: `on ${driver.currentAssignment.plateNumber}`,
+      note: t("onPlate", { plate: driver.currentAssignment.plateNumber }),
     };
   }
 
@@ -366,8 +364,8 @@ function evaluateEligibility(
       eligible: false,
       note:
         holder.plateNumber !== undefined && holder.plateNumber !== ""
-          ? `on ${holder.plateNumber}`
-          : `on vehicle ${holder.index}`,
+          ? t("onPlate", { plate: holder.plateNumber })
+          : t("onVehicle", { index: holder.index }),
     };
   }
 
@@ -428,7 +426,7 @@ export function Step4DriversAssignment() {
       if (sequence !== rosterSequence.current) return;
 
       if (!response.ok) {
-        setRosterError(await readErrorMessage(response, ROSTER_ERROR_FALLBACK));
+        setRosterError(await readErrorMessage(response, t("rosterLoadError")));
         return;
       }
 
@@ -444,13 +442,14 @@ export function Step4DriversAssignment() {
       setRosterLoaded(true);
     } catch {
       if (sequence !== rosterSequence.current) return;
-      setRosterError(ROSTER_ERROR_FALLBACK);
+      setRosterError(t("rosterLoadError"));
     } finally {
       if (sequence === rosterSequence.current) {
         setRosterLoading(false);
       }
     }
-  }, []);
+    // `t` is stable for a given locale, so this still runs once per mount.
+  }, [t]);
 
   useEffect(() => {
     void loadRoster();
@@ -590,7 +589,7 @@ export function Step4DriversAssignment() {
       // control lives inside a closed dialog, so pointing at highlighted fields
       // would point at nothing.
       showToast(
-        `Vehicle ${firstUnassigned + 1}: assign a driver before continuing.`,
+        t("assignBeforeContinuing", { number: firstUnassigned + 1 }),
         "error",
       );
       return;
@@ -608,7 +607,10 @@ export function Step4DriversAssignment() {
           {t("everyVehicleNeedsANamedDriver")}
         </p>
         <p aria-live="polite" className={`shrink-0 font-price ${LABEL_CLASS}`}>
-          {assignedCount} of {vehicles.length} assigned
+          {t("assignedCount", {
+            assigned: assignedCount,
+            total: vehicles.length,
+          })}
         </p>
       </div>
 
@@ -683,7 +685,11 @@ export function Step4DriversAssignment() {
                   key={vehicle.id}
                   role="button"
                   tabIndex={0}
-                  aria-label={`Assign a driver to vehicle ${rowNumber}, ${vehicleClassName} ${plate ?? ""}`.trim()}
+                  aria-label={t("assignAria", {
+                    number: rowNumber,
+                    className: vehicleClassName,
+                    plate: plate ?? "",
+                  }).trim()}
                   onClick={openDialog}
                   onKeyDown={(event) => {
                     if (event.key === "Enter") {
@@ -709,7 +715,9 @@ export function Step4DriversAssignment() {
                       {vehicleClassName}
                     </span>
                     <span className="mt-px block text-[12px] text-muted-foreground">
-                      needs category {vehicleClass.requiredLicenceCategory}
+                      {t("needsCategory", {
+                        category: vehicleClass.requiredLicenceCategory,
+                      })}
                     </span>
                   </TableCell>
                   <TableCell className="px-3 py-3 font-price text-[13px] font-semibold tracking-[0.12em]">
@@ -806,7 +814,7 @@ export function Step4DriversAssignment() {
             const vehicleNumber = openIndex + 1;
             removeDriver(openIndex);
             setOpenIndex(null);
-            showToast(`Driver removed from vehicle ${vehicleNumber}.`);
+            showToast(t("driverRemoved", { number: vehicleNumber }));
           }}
           onDriverCreated={handleDriverCreated}
           onCredentialsIssued={setCredentials}
@@ -882,7 +890,7 @@ function DriverAssignmentDialog({
   const vehicleClass = findVehicleClass(classId);
   const vehicleClassName = tRoot(vehicleClass.nameKey);
   const required: DriverLicenceCategory = vehicleClass.requiredLicenceCategory;
-  const noLicenceNote = t("noLicenceOnFile");
+  const format = useFormatter();
 
   const rows = useMemo(
     () =>
@@ -892,10 +900,11 @@ function DriverAssignmentDialog({
           driver,
           required,
           takenInDraft,
-          noLicenceNote,
+          t,
+          format.dateTime,
         ),
       })),
-    [drivers, required, takenInDraft, noLicenceNote],
+    [drivers, required, takenInDraft, t, format.dateTime],
   );
 
   const hasEligible = rows.some((row) => row.eligibility.eligible);
@@ -943,13 +952,19 @@ function DriverAssignmentDialog({
       >
         <DialogHeader className="gap-1 border-b border-border px-[22px] pt-5 pb-4">
           <DialogTitle className="text-[18px] leading-tight font-semibold tracking-[-0.01em]">
-            Vehicle {index} —{" "}
-            {plateNumber !== undefined && plateNumber !== ""
-              ? plateNumber
-              : vehicleClassName}
+            {t("dialogTitle", {
+              index,
+              label:
+                plateNumber !== undefined && plateNumber !== ""
+                  ? plateNumber
+                  : vehicleClassName,
+            })}
           </DialogTitle>
           <DialogDescription className="text-[13px] leading-[1.5]">
-            {vehicleClassName} · needs licence category {required}
+            {t("needsLicenceCategory", {
+              className: vehicleClassName,
+              category: required,
+            })}
           </DialogDescription>
         </DialogHeader>
 
@@ -1058,7 +1073,7 @@ function DriverAssignmentDialog({
                                 : "text-muted-foreground"
                             }`}
                           >
-                            {isCurrent ? tShared("assigned") : "Assign →"}
+                            {isCurrent ? tShared("assigned") : t("assign")}
                           </span>
                         ) : (
                           // Re-keyed on each flash so the animation replays
@@ -1160,42 +1175,45 @@ const CREATE_FIELD_ORDER: CreateFieldName[] = [
  * The expiry rule is a convenience only: the register route re-parses the date
  * and re-checks it against its own clock, and is the authoritative one.
  */
-function validateCreateDriver(input: {
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  city: string;
-  licenceNumber: string;
-  expiry: string;
-  categories: DriverLicenceCategory[];
-  required: DriverLicenceCategory;
-}): CreateFieldErrors {
+function validateCreateDriver(
+  input: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    city: string;
+    licenceNumber: string;
+    expiry: string;
+    categories: DriverLicenceCategory[];
+    required: DriverLicenceCategory;
+  },
+  t: Step4Translator,
+): CreateFieldErrors {
   const errors: CreateFieldErrors = {};
 
   if (!input.firstName.trim()) {
-    errors.firstName = "Enter the driver's first name.";
+    errors.firstName = t("enterFirstName");
   }
 
   if (!input.lastName.trim()) {
-    errors.lastName = "Enter the driver's last name.";
+    errors.lastName = t("enterLastName");
   }
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.email.trim())) {
-    errors.email = "Enter the driver's email address — they sign in with it.";
+    errors.email = t("enterEmail");
   }
 
   const digits = input.phone.replace(/\D/g, "");
   if (digits.length < MIN_PHONE_DIGITS || digits.length > MAX_PHONE_DIGITS) {
-    errors.phone = "Enter a valid mobile number.";
+    errors.phone = t("enterMobile");
   }
 
   if (!GEORGIAN_CITY_OPTIONS.some((option) => option.value === input.city)) {
-    errors.city = "Select the driver's city.";
+    errors.city = t("selectCity");
   }
 
   if (input.licenceNumber.trim().length < MIN_LICENCE_NUMBER_LENGTH) {
-    errors.licenceNumber = "Enter the licence number.";
+    errors.licenceNumber = t("enterLicenceNumber");
   }
 
   // Lexicographic comparison is exact for `YYYY-MM-DD` and, unlike parsing both
@@ -1205,15 +1223,15 @@ function validateCreateDriver(input: {
     !/^\d{4}-\d{2}-\d{2}$/.test(input.expiry) ||
     input.expiry <= todayIsoDate()
   ) {
-    errors.expiry = "That licence has expired. Enter a future expiry date.";
+    errors.expiry = t("licenceExpiredFuture");
   }
 
   if (input.categories.length === 0) {
-    errors.categories = "Select at least one licence category.";
+    errors.categories = t("selectCategory");
   } else if (!input.categories.includes(input.required)) {
     // The design's exact message, and the reason the vehicle's required
     // category is prechecked but still uncheckable.
-    errors.categories = `This vehicle needs category ${input.required}. Assign a different driver or vehicle.`;
+    errors.categories = t("categoryMismatch", { category: input.required });
   }
 
   return errors;
@@ -1262,17 +1280,20 @@ function CreateDriverForm({
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
-  const problems = validateCreateDriver({
-    firstName,
-    lastName,
-    email,
-    phone,
-    city,
-    licenceNumber,
-    expiry,
-    categories,
-    required,
-  });
+  const problems = validateCreateDriver(
+    {
+      firstName,
+      lastName,
+      email,
+      phone,
+      city,
+      licenceNumber,
+      expiry,
+      categories,
+      required,
+    },
+    t,
+  );
   const errors: CreateFieldErrors = showErrors ? problems : {};
 
   // A taken address comes back as a 400 naming the email, so it is mirrored
@@ -1338,7 +1359,7 @@ function CreateDriverForm({
       });
 
       if (!response.ok) {
-        setServerError(await readErrorMessage(response, CREATE_ERROR_FALLBACK));
+        setServerError(await readErrorMessage(response, t("createError")));
         return;
       }
 
@@ -1368,7 +1389,7 @@ function CreateDriverForm({
         },
       );
     } catch {
-      setServerError(CREATE_ERROR_FALLBACK);
+      setServerError(t("createError"));
     } finally {
       setSubmitting(false);
     }
@@ -1589,7 +1610,7 @@ function CreateDriverForm({
         onClick={() => void handleSave()}
         className="h-12 cursor-pointer rounded-[11px] bg-onboarding-accent px-[30px] text-[15px] font-semibold tracking-[-0.01em] text-white transition-colors hover:bg-onboarding-accent-hover focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {submitting ? "Creating…" : "Create driver account"}
+        {submitting ? t("creating") : t("createDriverAccount")}
       </button>
     </div>
   );
@@ -1674,17 +1695,14 @@ function TempPasswordDialog({
   async function handleCopy() {
     try {
       await navigator.clipboard.writeText(
-        `Email: ${email}\nTemporary password: ${tempPassword}`,
+        t("credentialsClipboard", { email, password: tempPassword }),
       );
-      showToast("Credentials copied.");
+      showToast(t("credentialsCopied"));
     } catch {
       // An insecure context, or a browser refusing without a user-gesture
       // heuristic. The dialog stays open and the values are `select-all`
       // precisely so copying by hand is workable.
-      showToast(
-        "Couldn't copy. Select the details and copy them by hand.",
-        "error",
-      );
+      showToast(t("copyFailed"), "error");
     }
   }
 
@@ -1699,7 +1717,7 @@ function TempPasswordDialog({
             {t("driverAccountCreated")}
           </DialogTitle>
           <DialogDescription className="text-[13px] leading-[1.5]">
-            {driverName} can sign in with these details.
+            {t("canSignIn", { name: driverName })}
           </DialogDescription>
         </DialogHeader>
 

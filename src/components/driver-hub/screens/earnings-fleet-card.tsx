@@ -3,10 +3,7 @@
 import { useTranslations } from "next-intl";
 
 import { HubCard, HubEmptyState } from "@/components/driver-hub/hub-primitives";
-import {
-  formatGel,
-  pluralise,
-} from "@/components/driver-hub/screens/earnings-format";
+import { formatGel } from "@/components/driver-hub/screens/earnings-format";
 import {
   Table,
   TableBody,
@@ -119,13 +116,13 @@ export function EarningsFleetCard({ fleet, total }: EarningsFleetCardProps) {
   return (
     <HubCard
       title={t("revenueByDriver")}
-      action={`${pluralise(drivers.length, "driver")} in range`}
+      action={t("driversInRange", { count: drivers.length })}
     >
       {!hasRows ? (
         // Named for the selected range rather than stated absolutely: the range
         // is a filter the reader chose and can widen, and an empty table should
         // point at it instead of implying the fleet has never earned.
-        <HubEmptyState message="No driver completed a job in this range.">
+        <HubEmptyState message={t("noDriverCompleted")}>
           <p className="mt-1.5 text-xs">
             {t("completedOrdersAppearHereOnceA")}
           </p>

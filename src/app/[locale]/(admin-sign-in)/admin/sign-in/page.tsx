@@ -18,7 +18,7 @@ import { authClient, signIn, signOut } from "@/lib/auth-client";
  * turn this form into an account-enumeration oracle for a page whose whole
  * point is that only a handful of people should know it works at all.
  */
-const GENERIC_ERROR = "Those credentials don't have back-office access.";
+const GENERIC_ERROR_KEY = "credentialsNoAccess";
 
 /**
  * Staff sign-in for the back office.
@@ -71,7 +71,7 @@ export default function AdminSignInPage() {
 
     if (signInError) {
       setLoading(false);
-      setError(GENERIC_ERROR);
+      setError(t(GENERIC_ERROR_KEY));
       return;
     }
 
@@ -84,7 +84,7 @@ export default function AdminSignInPage() {
       // business on — undo the session rather than leaving them signed in.
       await signOut();
       setLoading(false);
-      setError(GENERIC_ERROR);
+      setError(t(GENERIC_ERROR_KEY));
       return;
     }
 
@@ -143,7 +143,7 @@ export default function AdminSignInPage() {
           ) : null}
 
           <Button type="submit" disabled={loading}>
-            {loading ? "Signing in…" : tShared("signIn")}
+            {loading ? t("signingIn") : tShared("signIn")}
           </Button>
         </form>
       </div>

@@ -132,12 +132,17 @@ export function DriverAccountSidebar({
   return (
     <aside className={cn("lg:sticky lg:w-52 lg:shrink-0", STICKY_TOP_CLASS)}>
       <div className="flex h-full flex-col">
-        <p className={SECTION_LABEL_CLASSES}>Account</p>
+        <p className={SECTION_LABEL_CLASSES}>
+          {tRoot("common.shared.account")}
+        </p>
 
         {/* No `gap`: every row carries a 2px left border, and the rows abutting
             is what makes those borders read as one continuous rail rather than
             five detached ticks. The active row colours its own segment. */}
-        <nav aria-label="Account settings" className="mt-3 flex flex-col">
+        <nav
+          aria-label={tRoot("common.shared.accountSettings")}
+          className="mt-3 flex flex-col"
+        >
           {sections.map((section) => {
             const active = section.id === activeSection;
 
@@ -190,7 +195,9 @@ export function DriverAccountSidebar({
             className="size-[15px] flex-none"
             strokeWidth={1.8}
           />
-          {signingOut ? "Logging out…" : "Log out"}
+          {signingOut
+            ? tRoot("account.accountSidebar.loggingOut")
+            : tRoot("account.accountSidebar.logOut")}
         </button>
       </div>
     </aside>

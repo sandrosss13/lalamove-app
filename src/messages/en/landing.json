@@ -1,6 +1,7 @@
 {
   "landingCategoryTiles": {
     "fromPrice": "from {price}",
+    "fromPriceEmphasised": "from <figure>{price}</figure>",
     "priceYourOwnRoute": "— price your own route"
   },
   "landingHeroCarousel": {
@@ -9,6 +10,10 @@
     "nextBanner": "Next banner",
     "previousBanner": "Previous banner",
     "slideOf": "{index} of {count}"
+  },
+  "landingNavPill": {
+    "closeMenu": "Close menu",
+    "openMenu": "Open menu"
   },
   "landingQuoteCalculator": {
     "1IsTheDriverAloneEach": "1 is the driver alone. Each extra person helps load and unload, and adds a flat fee.",
@@ -26,5 +31,8 @@
     "signUpToBookThisLoad": "Sign up to book this load",
     "whatAreYouMoving": "What are you moving",
     "yourEstimate": "Your estimate"
+  },
+  "landingVehicleTypes": {
+    "couldNotLoadTheVehicleTypes": "Could not load the vehicle types. Please refresh and try again."
   }
 }

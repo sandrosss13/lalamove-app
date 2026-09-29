@@ -7,7 +7,7 @@ import { useRouter } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { HubCard } from "@/components/driver-hub/hub-primitives";
-import { GEORGIAN_CITY_OPTIONS } from "@/lib/georgian-cities";
+import { useLocalizedCityOptions } from "@/lib/georgian-cities";
 import type { HubDriverAccountSettings } from "@/lib/dashboard/hub/account-settings";
 import { cn } from "@/lib/utils";
 
@@ -101,16 +101,6 @@ const CONTROL_CLASSES =
 const READONLY_CLASSES =
   "cursor-not-allowed bg-muted text-muted-foreground disabled:opacity-100";
 
-const GENERIC_ERROR = "Could not save your profile. Please try again.";
-const NETWORK_ERROR = "Network error. Please check your connection.";
-
-/** Shown under a field the record holds but nothing in the app can rewrite. */
-const VERIFIED_FIELD_NOTE =
-  "Verified during onboarding. Contact support to correct it.";
-
-/** Printed in a disabled field the profile has no value for. */
-const EMPTY_VALUE = "Not recorded";
-
 function Field({
   label,
   htmlFor,
@@ -150,6 +140,12 @@ export function DriverAccountProfileForm({
   const tShared = useTranslations("common.shared");
   // Same sentence as the fleet's read-only card; one catalog entry serves both.
   const tCompanyCard = useTranslations("driverHub.driverAccountCompanyCard");
+  const cityOptions = useLocalizedCityOptions();
+
+  /** Shown under a field the record holds but nothing in the app can rewrite. */
+  const verifiedFieldNote = t("verifiedDuringOnboarding");
+  /** Printed in a disabled field the profile has no value for. */
+  const emptyValue = t("notRecorded");
 
   const isBusiness = settings.accountType === BUSINESS_ACCOUNT_TYPE;
 
@@ -205,7 +201,7 @@ export function DriverAccountProfileForm({
           error?: string;
         } | null;
 
-        setError(payload?.error ?? GENERIC_ERROR);
+        setError(payload?.error ?? t("couldNotSaveProfile"));
         return;
       }
 
@@ -216,7 +212,7 @@ export function DriverAccountProfileForm({
       // profile as it was before this save.
       router.refresh();
     } catch {
-      setError(NETWORK_ERROR);
+      setError(t("networkError"));
     } finally {
       setSaving(false);
     }
@@ -321,7 +317,7 @@ export function DriverAccountProfileForm({
               onChange={(event) => setCity(event.target.value)}
               className="h-auto w-full rounded-md border border-border bg-background px-[11px] py-[9px] text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
             >
-              {GEORGIAN_CITY_OPTIONS.map((option) => (
+              {cityOptions.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
@@ -348,12 +344,12 @@ export function DriverAccountProfileForm({
               <Field
                 label={tShared("idPassport")}
                 htmlFor="driver-account-id-number"
-                note={VERIFIED_FIELD_NOTE}
+                note={verifiedFieldNote}
               >
                 <Input
                   id="driver-account-id-number"
                   disabled
-                  value={settings.idNumber ?? EMPTY_VALUE}
+                  value={settings.idNumber ?? emptyValue}
                   className={cn(
                     CONTROL_CLASSES,
                     READONLY_CLASSES,
@@ -365,12 +361,12 @@ export function DriverAccountProfileForm({
               <Field
                 label={tShared("dateOfBirth")}
                 htmlFor="driver-account-dob"
-                note={VERIFIED_FIELD_NOTE}
+                note={verifiedFieldNote}
               >
                 <Input
                   id="driver-account-dob"
                   disabled
-                  value={settings.dateOfBirth ?? EMPTY_VALUE}
+                  value={settings.dateOfBirth ?? emptyValue}
                   className={cn(
                     CONTROL_CLASSES,
                     READONLY_CLASSES,
@@ -400,7 +396,7 @@ export function DriverAccountProfileForm({
             disabled={saving}
             className="h-auto rounded-md bg-foreground px-[15px] py-[9px] text-[13px] font-medium text-background hover:bg-foreground/90"
           >
-            {saving ? "Saving…" : "Save changes"}
+            {saving ? t("saving") : t("saveChanges")}
           </Button>
         </div>
       </form>

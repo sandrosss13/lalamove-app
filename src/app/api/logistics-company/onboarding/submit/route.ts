@@ -12,6 +12,7 @@ import {
 import { parseFleetDraft } from "@/lib/fleet-onboarding/draft-schema";
 import {
   validateFleetSize,
+  numberedVehicleLabel,
   validateVehicleInput,
   type ValidatedVehicle,
 } from "@/lib/fleet-onboarding/vehicle-validation";
@@ -202,6 +203,12 @@ async function resolveFleetSubmitContext(
 }
 
 /** A trimmed non-empty string, or null. */
+/**
+ * The request-locale translator, resolving full key paths, that the sync
+ * validators below phrase their problems with.
+ */
+type RequestTranslator = Awaited<ReturnType<typeof getRequestTranslations>>;
+
 function trimmed(value: unknown): string | null {
   return typeof value === "string" && value.trim() !== "" ? value.trim() : null;
 }
@@ -214,16 +221,21 @@ function trimmed(value: unknown): string | null {
  * generically rather than rendered as "null null" in a message the company is
  * meant to act on.
  */
-function driverFullName(driver: {
-  firstName: string | null;
-  lastName: string | null;
-}): string {
+function driverFullName(
+  driver: {
+    firstName: string | null;
+    lastName: string | null;
+  },
+  t: RequestTranslator,
+): string {
   const name = [driver.firstName, driver.lastName]
     .filter((part): part is string => trimmed(part) !== null)
     .join(" ")
     .trim();
 
-  return name === "" ? "This driver" : name;
+  return name === ""
+    ? t("errors.logisticsCompanyOnboardingSubmit.thisDriver")
+    : name;
 }
 
 /**
@@ -236,19 +248,30 @@ function driverFullName(driver: {
 function validateCompany(
   company: SubmittableCompany,
   problems: string[],
+  t: RequestTranslator,
 ): void {
   const companyName = trimmed(company.companyName);
   if (companyName === null || companyName.length < MIN_COMPANY_NAME_LENGTH) {
-    problems.push("Enter the company's registered name.");
+    problems.push(
+      t(
+        "errors.logisticsCompanyOnboardingSubmit.enterTheCompanySRegisteredName",
+      ),
+    );
   }
 
   const vatId = trimmed(company.vatId);
   if (vatId === null || !VAT_ID_PATTERN.test(vatId)) {
-    problems.push("The VAT or tax ID must be exactly 9 digits.");
+    problems.push(
+      t("errors.logisticsCompanyOnboardingSubmit.theVatOrTaxIdMust"),
+    );
   }
 
   if (trimmed(company.registeredAddress) === null) {
-    problems.push("Enter the company's registered address.");
+    problems.push(
+      t(
+        "errors.logisticsCompanyOnboardingSubmit.enterTheCompanySRegisteredAddress",
+      ),
+    );
   }
 
   const citiesOfOperation = company.citiesOfOperation;
@@ -256,7 +279,9 @@ function validateCompany(
     citiesOfOperation.length < 1 ||
     !citiesOfOperation.every((city) => GEORGIAN_CITIES.includes(city))
   ) {
-    problems.push("Choose at least one city of operation.");
+    problems.push(
+      t("errors.logisticsCompanyOnboardingSubmit.chooseAtLeastOneCityOf"),
+    );
   }
 
   // Split on any run of whitespace, so "  Ana   Beridze " still reads as two
@@ -267,22 +292,28 @@ function validateCompany(
   const nameParts = contactName?.split(/\s+/).filter(Boolean) ?? [];
   if (nameParts.length < 2) {
     problems.push(
-      "Enter the contact person's full name — at least a first and last name.",
+      t("errors.logisticsCompanyOnboardingSubmit.enterTheContactPersonSFull"),
     );
   }
 
   if (trimmed(company.contactRole) === null) {
-    problems.push("Enter the contact person's role.");
+    problems.push(
+      t("errors.logisticsCompanyOnboardingSubmit.enterTheContactPersonSRole"),
+    );
   }
 
   const contactEmail = trimmed(company.contactEmail);
   if (contactEmail === null || !EMAIL_PATTERN.test(contactEmail)) {
-    problems.push("Enter a valid company email address.");
+    problems.push(
+      t("errors.logisticsCompanyOnboardingSubmit.enterAValidCompanyEmail"),
+    );
   }
 
   const iban = trimmed(company.bankAccountIban)?.replace(/\s/g, "") ?? "";
   if (iban.length < MIN_IBAN_LENGTH) {
-    problems.push("Enter a valid IBAN for the payout account.");
+    problems.push(
+      t("errors.logisticsCompanyOnboardingSubmit.enterAValidIbanForThe"),
+    );
   }
 
   const phoneDigits = trimmed(company.phone)?.replace(/\D/g, "") ?? "";
@@ -290,7 +321,9 @@ function validateCompany(
     phoneDigits.length < MIN_PHONE_DIGITS ||
     phoneDigits.length > MAX_PHONE_DIGITS
   ) {
-    problems.push("Enter a valid company phone number.");
+    problems.push(
+      t("errors.logisticsCompanyOnboardingSubmit.enterAValidCompanyPhone"),
+    );
   }
 }
 
@@ -336,7 +369,10 @@ async function resubmit(
   if (flaggedCount > 0) {
     return NextResponse.json(
       {
-        error: `Fix the ${flaggedCount} flagged vehicle${flaggedCount === 1 ? "" : "s"} before resubmitting.`,
+        error: t(
+          "errors.logisticsCompanyOnboardingSubmit.fixTheFlaggedVehiclesBefore",
+          { count: flaggedCount },
+        ),
       },
       { status: 400 },
     );
@@ -418,12 +454,14 @@ async function resubmit(
     const driverProfile = vehicle.assignments[0]?.driverProfile;
     if (!driverProfile) {
       problems.push(
-        `Vehicle ${vehicle.plateNumber} has no driver. Every vehicle needs a named driver.`,
+        t("errors.logisticsCompanyOnboardingSubmit.vehiclePlateHasNoDriver", {
+          plate: vehicle.plateNumber,
+        }),
       );
       continue;
     }
 
-    const fullName = driverFullName(driverProfile);
+    const fullName = driverFullName(driverProfile, t);
     const { licence } = driverProfile;
 
     // A missing licence row is treated as an expired one rather than waved
@@ -431,7 +469,9 @@ async function resubmit(
     // drive at all, which is strictly worse than an expired one.
     if (licence === null || licence.expiresAt.getTime() <= now.getTime()) {
       problems.push(
-        `${fullName}'s licence has expired. Renew it before submitting.`,
+        t("errors.logisticsCompanyOnboardingSubmit.licenceHasExpired", {
+          name: fullName,
+        }),
       );
     } else {
       // Read from the `Vehicle` row, which the correction `PATCH` writes, and
@@ -444,7 +484,11 @@ async function resubmit(
       const vehicleClass = findVehicleClass(classId);
       if (!licence.categories.includes(vehicleClass.requiredLicenceCategory)) {
         problems.push(
-          `${fullName}'s licence does not list category ${vehicleClass.requiredLicenceCategory}, which the ${vehicleClass.name} class requires.`,
+          t("errors.logisticsCompanyOnboardingSubmit.licenceMissingCategory", {
+            name: fullName,
+            category: vehicleClass.requiredLicenceCategory,
+            vehicleClass: t(vehicleClass.nameKey),
+          }),
         );
       }
     }
@@ -458,7 +502,9 @@ async function resubmit(
 
   for (const fullName of duplicateDrivers.values()) {
     problems.push(
-      `${fullName} is assigned to two vehicles. Each driver can hold one vehicle.`,
+      t("errors.logisticsCompanyOnboardingSubmit.assignedToTwoVehicles", {
+        name: fullName,
+      }),
     );
   }
 
@@ -515,7 +561,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
   }
 
-  validateCompany(company, problems);
+  validateCompany(company, problems, t);
 
   // Guarded rather than trusted: `parseFleetDraft` shallow-trusts our own saved
   // rows, so a draft written by an older client can legitimately have no
@@ -524,10 +570,16 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   // The grand total, not the per-cell stepper's 0–40 range, and re-checked here
   // rather than trusted from step 2.
-  validateFleetSize(draftVehicles.length, problems);
+  validateFleetSize(draftVehicles.length, problems, t);
 
   const validated = draftVehicles.map((vehicle, index) =>
-    validateVehicleInput(vehicle, `Vehicle ${index + 1}`, now, problems),
+    validateVehicleInput(
+      vehicle,
+      numberedVehicleLabel(index, t),
+      now,
+      problems,
+      t,
+    ),
   );
 
   // Plate uniqueness *inside* the application. A 400 rather than a 409: this is
@@ -544,7 +596,11 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     problems.push(
-      `Vehicles ${firstIndex + 1} and ${index + 1} both have the plate ${vehicle.plateNumber}.`,
+      t("errors.logisticsCompanyOnboardingSubmit.duplicatePlate", {
+        first: firstIndex + 1,
+        second: index + 1,
+        plate: vehicle.plateNumber,
+      }),
     );
   });
 
@@ -561,7 +617,9 @@ export async function POST(request: Request): Promise<NextResponse> {
   driverIds.forEach((driverProfileId, index) => {
     if (driverProfileId === null) {
       problems.push(
-        `Vehicle ${index + 1} has no driver. Every vehicle needs a named driver.`,
+        t("errors.logisticsCompanyOnboardingSubmit.vehicleIndexHasNoDriver", {
+          index: index + 1,
+        }),
       );
       return;
     }
@@ -594,9 +652,13 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   for (const driverProfileId of duplicateDriverIds) {
     const driver = driversById.get(driverProfileId);
-    const fullName = driver ? driverFullName(driver) : "This driver";
+    const fullName = driver
+      ? driverFullName(driver, t)
+      : t("errors.logisticsCompanyOnboardingSubmit.thisDriver");
     problems.push(
-      `${fullName} is assigned to two vehicles. Each driver can hold one vehicle.`,
+      t("errors.logisticsCompanyOnboardingSubmit.assignedToTwoVehicles", {
+        name: fullName,
+      }),
     );
   }
 
@@ -606,7 +668,9 @@ export async function POST(request: Request): Promise<NextResponse> {
   driverIds.forEach((driverProfileId, index) => {
     if (driverProfileId !== null && !driversById.has(driverProfileId)) {
       problems.push(
-        `Vehicle ${index + 1}'s driver is no longer on your roster. Assign a different driver.`,
+        t("errors.logisticsCompanyOnboardingSubmit.driverNoLongerOnRoster", {
+          index: index + 1,
+        }),
       );
     }
   });
@@ -618,12 +682,14 @@ export async function POST(request: Request): Promise<NextResponse> {
     // Already reported by the roster pass above.
     if (!driver) return;
 
-    const fullName = driverFullName(driver);
+    const fullName = driverFullName(driver, t);
     const { licence } = driver;
 
     if (licence === null) {
       problems.push(
-        `${fullName} has no licence on file. Add it before submitting.`,
+        t("errors.logisticsCompanyOnboardingSubmit.noLicenceOnFile", {
+          name: fullName,
+        }),
       );
       return;
     }
@@ -632,7 +698,9 @@ export async function POST(request: Request): Promise<NextResponse> {
     // can sit for weeks.
     if (licence.expiresAt.getTime() <= now.getTime()) {
       problems.push(
-        `${fullName}'s licence has expired. Renew it before submitting.`,
+        t("errors.logisticsCompanyOnboardingSubmit.licenceHasExpired", {
+          name: fullName,
+        }),
       );
       return;
     }
@@ -645,7 +713,11 @@ export async function POST(request: Request): Promise<NextResponse> {
     const vehicleClass = findVehicleClass(vehicle.classId);
     if (!licence.categories.includes(vehicleClass.requiredLicenceCategory)) {
       problems.push(
-        `${fullName}'s licence does not list category ${vehicleClass.requiredLicenceCategory}, which the ${vehicleClass.name} class requires.`,
+        t("errors.logisticsCompanyOnboardingSubmit.licenceMissingCategory", {
+          name: fullName,
+          category: vehicleClass.requiredLicenceCategory,
+          vehicleClass: t(vehicleClass.nameKey),
+        }),
       );
     }
   });

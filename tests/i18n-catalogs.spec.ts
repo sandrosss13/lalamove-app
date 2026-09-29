@@ -243,6 +243,7 @@ const IDENTICAL_BY_DESIGN = new Set([
   "errors.dashboardHubDriversAvailabilityExport.driverHub",
   "errors.dashboardHubEarningsExport.driverHub",
   "errors.dashboardHubEarningsExport.gelSymbol",
+  "errors.fleetVehicleValidation.labelled",
 ]);
 
 test("Georgian copy is actually in Georgian", () => {

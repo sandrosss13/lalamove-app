@@ -65,7 +65,7 @@ export function AdminChangePasswordForm() {
       setLoading(false);
       setError(
         changePasswordError.message ??
-          "Could not change your password. Please try again.",
+          t("auth.changePassword.couldNotChangeYourPassword"),
       );
       return;
     }
@@ -152,7 +152,9 @@ export function AdminChangePasswordForm() {
           ) : null}
 
           <Button type="submit" disabled={loading}>
-            {loading ? "Saving…" : "Save password"}
+            {loading
+              ? t("common.shared.saving")
+              : t("auth.changePassword.savePassword")}
           </Button>
         </form>
       </div>

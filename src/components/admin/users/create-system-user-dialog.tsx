@@ -46,6 +46,21 @@ export const ADMIN_ROLE_LABELS: Record<AdminRole, string> = {
   USER_MANAGER: "User Manager",
 };
 
+/**
+ * The same roles as full message paths under `admin.adminRoles`, for every
+ * surface that renders a role to a person. `ADMIN_ROLE_LABELS` stays as the
+ * English source for the System Users table until that page switches over.
+ */
+export const ADMIN_ROLE_LABEL_KEYS: Record<AdminRole, string> = {
+  SUPER_ADMIN: "admin.adminRoles.superAdmin",
+  ANALYTICS: "admin.adminRoles.analytics",
+  CONTENT_MANAGER: "admin.adminRoles.contentManager",
+  CRM_MANAGER: "admin.adminRoles.crmManager",
+  FINANCE_MANAGER: "admin.adminRoles.financeManager",
+  SUPPORT: "admin.adminRoles.support",
+  USER_MANAGER: "admin.adminRoles.userManager",
+};
+
 /** Picker order, so the most privileged role is never buried mid-list. */
 const ADMIN_ROLE_OPTIONS: AdminRole[] = [
   "SUPER_ADMIN",
@@ -146,7 +161,9 @@ export function CreateSystemUserDialog() {
         } | null;
         // Reported inline rather than by closing the dialog: a taken email is
         // something the admin has to correct in the form still on screen.
-        setError(payload?.error ?? "Could not create this system user.");
+        setError(
+          payload?.error ?? t("admin.createSystemUserDialog.couldNotCreate"),
+        );
         return;
       }
 
@@ -206,9 +223,9 @@ export function CreateSystemUserDialog() {
                 {t("admin.createSystemUserDialog.systemUserCreated")}
               </DialogTitle>
               <DialogDescription>
-                Share these credentials with {created.name} directly — the
-                password won&apos;t be shown again. They&apos;ll be asked to set
-                their own password on first sign-in.
+                {t("admin.createSystemUserDialog.shareCredentials", {
+                  name: created.name,
+                })}
               </DialogDescription>
             </DialogHeader>
 
@@ -231,7 +248,9 @@ export function CreateSystemUserDialog() {
 
             <DialogFooter showCloseButton={false}>
               <Button variant="outline" onClick={handleCopy}>
-                {copied ? "Copied!" : "Copy password"}
+                {copied
+                  ? t("admin.createSystemUserDialog.copied")
+                  : t("admin.createSystemUserDialog.copyPassword")}
               </Button>
               <Button onClick={() => handleOpenChange(false)}>
                 {t("common.shared.done")}
@@ -299,7 +318,7 @@ export function CreateSystemUserDialog() {
                   <SelectContent>
                     {ADMIN_ROLE_OPTIONS.map((role) => (
                       <SelectItem key={role} value={role}>
-                        {ADMIN_ROLE_LABELS[role]}
+                        {t(ADMIN_ROLE_LABEL_KEYS[role])}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -320,7 +339,9 @@ export function CreateSystemUserDialog() {
                 {t("common.shared.cancel")}
               </Button>
               <Button type="submit" disabled={submitting || adminRole === ""}>
-                {submitting ? "Creating…" : "Create system user"}
+                {submitting
+                  ? t("fleet.step4DriversAssignment.creating")
+                  : t("admin.createSystemUserDialog.createSystemUser")}
               </Button>
             </DialogFooter>
           </form>

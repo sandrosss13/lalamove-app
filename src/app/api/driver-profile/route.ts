@@ -56,7 +56,9 @@ function parseCreateDriverProfileBody(
     !DRIVER_ACCOUNT_TYPES.includes(accountType as DriverAccountType)
   ) {
     return {
-      error: `accountType must be one of: ${DRIVER_ACCOUNT_TYPES.join(", ")}.`,
+      error: t("errors.driverProfile.accountTypeMustBeOneOf", {
+        types: DRIVER_ACCOUNT_TYPES.join(", "),
+      }),
     };
   }
 
@@ -65,7 +67,9 @@ function parseCreateDriverProfileBody(
     !GEORGIAN_CITIES.includes(city as GeorgianCity)
   ) {
     return {
-      error: `city must be one of: ${GEORGIAN_CITIES.join(", ")}.`,
+      error: t("errors.driverProfile.cityMustBeOneOf", {
+        cities: GEORGIAN_CITIES.join(", "),
+      }),
     };
   }
 

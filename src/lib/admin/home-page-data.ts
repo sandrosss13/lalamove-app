@@ -5,16 +5,24 @@
 import "server-only";
 
 import type { ContentLocale } from "@prisma/client";
+import { getMessages } from "next-intl/server";
 
 import type {
   LandingBanner,
   LandingSection,
 } from "@/components/landing/landing-page";
+import { toContentLocale, type AppLocale } from "@/i18n/routing";
 import {
   HOME_HERO_BANNER_PLACEMENT,
   HOME_PARTNER_LOGO_BANNER_PLACEMENT,
   HOME_SECONDARY_BANNER_PLACEMENT,
+  buildDefaultHomePageSections,
+  createMessageLookup,
+  isHomePageSectionType,
+  localizeDefaultHomePageContent,
   parseHomePageSection,
+  withDefaultSections,
+  type HomePageSectionContentByType,
 } from "@/lib/admin/home-page-content";
 import { prisma } from "@/lib/prisma";
 
@@ -45,30 +53,74 @@ export type HomePageContent = HomePageBanners & {
   sections: LandingSection[];
 };
 
+/** What one locale's `HomePageSection` rows say about the page. */
+type AuthoredHomePageSections = {
+  /** Active, valid rows in `sortOrder`, ready to render. */
+  sections: LandingSection[];
+  /**
+   * Every type the locale has made a decision about: an active row that
+   * parsed, or an inactive row (a section someone switched off). A type absent
+   * from this set has never been authored and gets its default.
+   */
+  authoredTypes: Set<string>;
+};
+
 /**
- * The active, locale-matched sections in `sortOrder`, each validated against
- * the shape its `type` declares.
+ * `DEFAULT_HOME_PAGE_CONTENT` in `locale`'s language, translated through the
+ * same catalogs the rest of the page reads.
+ *
+ * `getMessages` rather than `getTranslations`: the defaults are looked up by
+ * key from a table, and a plain messages object lets the one lookup
+ * (`createMessageLookup`) serve this, the client fallback in `LandingPage` and
+ * the seed script alike. The messages already carry the English layer beneath
+ * Georgian (`@/i18n/messages`), and a string with no message at all keeps its
+ * English default — so a missing translation degrades to English, never to a
+ * key path.
+ */
+export async function getDefaultHomePageContent(
+  locale: AppLocale,
+): Promise<HomePageSectionContentByType> {
+  const messages = await getMessages({ locale });
+
+  return localizeDefaultHomePageContent(createMessageLookup(messages));
+}
+
+/**
+ * The locale's section rows, each validated against the shape its `type`
+ * declares.
+ *
+ * Inactive rows are read too, but only for their type: they never render, and
+ * they are what stops `withDefaultSections` from filling a deliberately hidden
+ * section back in. One query either way, filtered here rather than twice in SQL.
  *
  * A row that fails validation is skipped rather than thrown on. `content` is a
  * `Json` column, so a row written before a shape changed — or edited straight
  * in the database — is possible, and one bad section must not take the whole
- * marketing page down. An empty result is not a failure: it is what a database
- * nobody has authored content in returns, and `LandingPage` answers it with its
- * built-in default composition.
+ * marketing page down. Its type is left out of `authoredTypes`, so the page
+ * shows that section's default rather than a hole.
  */
-export async function loadHomePageSections(
+async function loadAuthoredHomePageSections(
   locale: ContentLocale,
-): Promise<LandingSection[]> {
+): Promise<AuthoredHomePageSections> {
   const rows = await prisma.homePageSection.findMany({
-    where: { locale, isActive: true },
+    where: { locale },
     // `createdAt` breaks ties so two sections sharing a `sortOrder` keep a
     // stable order between renders instead of swapping around.
     orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+    select: { id: true, type: true, content: true, isActive: true },
   });
 
   const sections: LandingSection[] = [];
+  const authoredTypes = new Set<string>();
 
   for (const row of rows) {
+    if (!row.isActive) {
+      if (isHomePageSectionType(row.type)) {
+        authoredTypes.add(row.type);
+      }
+      continue;
+    }
+
     const parsed = parseHomePageSection(row.type, row.content);
 
     if ("error" in parsed) {
@@ -78,10 +130,11 @@ export async function loadHomePageSections(
       continue;
     }
 
+    authoredTypes.add(parsed.data.type);
     sections.push({ id: row.id, ...parsed.data });
   }
 
-  return sections;
+  return { sections, authoredTypes };
 }
 
 /**
@@ -132,18 +185,33 @@ export async function loadHomePageBanners(
 /**
  * Everything the landing page composes itself from, for one locale.
  *
- * Sections and banners are independent queries, so they overlap rather than
- * queue. Both `/` and `/home` render the same marketing page and so go through
- * here: there is one implementation of "what content is on the landing page",
- * not one per route.
+ * The page is always whole: each section type the locale has no row for is
+ * filled with its default copy in that locale's language, so a database nobody
+ * has authored content in renders the full default page, and a partly
+ * translated one renders its authored rows with the rest filled in around them.
+ *
+ * Sections, banners and the localized defaults are independent, so they
+ * overlap rather than queue. Both `/` and `/home` render the same marketing page
+ * and so go through here: there is one implementation of "what content is on
+ * the landing page", not one per route.
  */
 export async function loadHomePageContent(
-  locale: ContentLocale,
+  locale: AppLocale,
 ): Promise<HomePageContent> {
-  const [sections, banners] = await Promise.all([
-    loadHomePageSections(locale),
-    loadHomePageBanners(locale),
+  const contentLocale = toContentLocale(locale);
+
+  const [{ sections, authoredTypes }, banners, defaults] = await Promise.all([
+    loadAuthoredHomePageSections(contentLocale),
+    loadHomePageBanners(contentLocale),
+    getDefaultHomePageContent(locale),
   ]);
 
-  return { sections, ...banners };
+  return {
+    sections: withDefaultSections(
+      sections,
+      buildDefaultHomePageSections(defaults),
+      authoredTypes,
+    ),
+    ...banners,
+  };
 }

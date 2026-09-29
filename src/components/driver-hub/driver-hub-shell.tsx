@@ -242,7 +242,8 @@ export type DriverHubShellProps = {
  * six registered screens — but a title is cheaper than a crash if a future
  * route lands here before it registers itself in `HUB_NAV`.
  */
-const FALLBACK_TITLE = "Driver Hub";
+/** Root-relative message key for the title of a route with no nav entry. */
+const FALLBACK_TITLE_KEY = "driverHub.driverHubShell.fallbackTitle";
 
 export function DriverHubShell({
   account,
@@ -384,7 +385,7 @@ export function DriverHubShell({
             <DriverHubPageHead
               title={
                 titleOverride ??
-                (activeItem ? tRoot(activeItem.titleKey) : FALLBACK_TITLE)
+                tRoot(activeItem ? activeItem.titleKey : FALLBACK_TITLE_KEY)
               }
               subtitle={
                 subtitleOverride ??

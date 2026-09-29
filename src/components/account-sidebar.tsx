@@ -45,6 +45,7 @@ function isNavItemActive(pathname: string, href: string): boolean {
  */
 export function AccountSidebar() {
   const t = useTranslations("common.shared");
+  const tSidebar = useTranslations("account.accountSidebar");
   const pathname = usePathname();
   // Shared with every other sign-out control in the app; `useSignOut` owns both
   // the destination and the in-flight `signingOut` flag this rail's button
@@ -87,7 +88,7 @@ export function AccountSidebar() {
           className="mt-8 inline-flex items-center gap-2 self-start text-sm font-medium text-muted transition-colors hover:text-accent disabled:opacity-50 lg:mt-auto"
         >
           <LogOut aria-hidden="true" className="size-4" />
-          {signingOut ? "Logging out…" : "Log out"}
+          {signingOut ? tSidebar("loggingOut") : tSidebar("logOut")}
         </button>
       </div>
     </aside>

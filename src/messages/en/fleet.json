@@ -42,6 +42,11 @@
     "reviewSub": "Submit, per-vehicle verdicts, activation",
     "vehiclesSub": "Plate, model, capacity per vehicle"
   },
+  "fleetVehicles": {
+    "payloadRange": "Payload must be between {min} and {max} kg.",
+    "plateDuplicate": "That plate is already used by vehicle {number}.",
+    "trailerLength": "A trailer truck's cargo length must be at least {min} m."
+  },
   "fleetWizardShell": {
     "declareYourFleetFirst": "Declare your fleet first.",
     "declared": "Declared",
@@ -228,6 +233,7 @@
       "yellow": "Yellow"
     },
     "dialogTitle": "Vehicle {index} — {className}",
+    "dimensionsM": "{dims} m",
     "prefilledFrom": "Prefilled from {source} {bodyPhrase}. Correct them to the real vehicle.",
     "saveVehicle": "Save vehicle",
     "saving": "Saving…",

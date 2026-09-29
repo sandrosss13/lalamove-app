@@ -23,6 +23,7 @@ import {
   formatDistanceKm,
   formatGelExact,
   formatPickupWindow,
+  useLoadsTimeFormat,
 } from "@/components/driver-hub/screens/loads-format";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
@@ -206,6 +207,8 @@ export function LoadsDetailSheet({ nowIso }: LoadsDetailSheetProps) {
     actionError,
     isRejected,
   } = useLoadsBoard();
+  const t = useTranslations("driverHub.loadsDetailSheet");
+  const timeFormat = useLoadsTimeFormat();
   const tShared = useTranslations("common.shared");
 
   const load = selectedLoad;
@@ -347,6 +350,7 @@ export function LoadsDetailSheet({ nowIso }: LoadsDetailSheetProps) {
                     load.pickupWindowStart,
                     load.pickupWindowEnd,
                     nowIso,
+                    timeFormat,
                   )}
                 />
                 <RouteStop
@@ -355,7 +359,11 @@ export function LoadsDetailSheet({ nowIso }: LoadsDetailSheetProps) {
                   city={load.dropoffCity}
                   address={load.dropoffAddress}
                   time={
-                    formatDeadlineLine(load.deliveryDeadline, nowIso) ?? EM_DASH
+                    formatDeadlineLine(
+                      load.deliveryDeadline,
+                      nowIso,
+                      timeFormat,
+                    ) ?? EM_DASH
                   }
                 />
               </div>
@@ -370,7 +378,9 @@ export function LoadsDetailSheet({ nowIso }: LoadsDetailSheetProps) {
                 pick-up → single drop-off booking with no stop table, so two is
                 the only number it can be. See requirements.md's Non-Goals. */}
               <p className="mt-3 pl-5 text-xs text-muted-foreground tabular-nums">
-                {formatDistanceKm(load.distanceKm)} · 2 stops
+                {t("stopsCount", {
+                  distance: formatDistanceKm(load.distanceKm),
+                })}
               </p>
             </div>
 
@@ -467,8 +477,8 @@ export function LoadsDetailSheet({ nowIso }: LoadsDetailSheetProps) {
                   className={TOUCH_TARGET_CLASSES}
                 >
                   {pendingActionId === load.id
-                    ? "Restoring…"
-                    : "Restore to open loads"}
+                    ? t("restoring")
+                    : t("restoreToOpenLoads")}
                 </Button>
               ) : (
                 <>
@@ -505,8 +515,8 @@ export function LoadsDetailSheet({ nowIso }: LoadsDetailSheetProps) {
                     )}
                   >
                     {pendingActionId === load.id
-                      ? "Rejecting…"
-                      : "Reject this load"}
+                      ? t("rejecting")
+                      : t("rejectThisLoad")}
                   </Button>
                   <p className="text-center text-[11px] leading-relaxed text-muted-foreground">
                     {tShared("firstDriverToConfirmClaimsThe")}

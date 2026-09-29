@@ -51,8 +51,7 @@ export default async function DriverHubLayout({
           <p className="text-sm opacity-60">{t("providerAccount")}</p>
         </header>
         <p className="text-sm opacity-70">
-          Your driver profile isn&apos;t set up yet. Finish signing up as a
-          driver to see your dashboard.
+          {t("driverProfileNotSetUpFinishSigningUp")}
         </p>
       </main>
     );

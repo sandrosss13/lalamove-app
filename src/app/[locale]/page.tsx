@@ -1,5 +1,5 @@
 import { HomeEntry } from "@/components/home/home-entry";
-import { resolveContentLocale, type LocaleRouteParams } from "@/i18n/server";
+import { resolveRouteLocale, type LocaleRouteParams } from "@/i18n/server";
 import { loadHomePageContent } from "@/lib/admin/home-page-data";
 
 /**
@@ -37,9 +37,11 @@ export const revalidate = 60;
  * page's HTML server-rendered for crawlers rather than assembled after
  * hydration.
  *
- * With no rows authored for the locale, both lists come back empty and
- * `LandingPage` falls back to its built-in default composition — the same copy
- * the page rendered before it was made editable.
+ * Every section type the locale has no row for comes back filled with its
+ * default copy, translated into the route's language — so `/ka` with no `KA`
+ * rows is the whole default page in Georgian, and a partly authored locale
+ * still renders every section. Banners have no default: with none authored, the
+ * carousel and the marquee render nothing.
  *
  * Nothing here is read per-session. The booking form used to be handed the
  * client's payment options from this component, which cost a session read on
@@ -51,7 +53,7 @@ export const revalidate = 60;
  * of any shared cache by never producing one.
  */
 export default async function Home({ params }: { params: LocaleRouteParams }) {
-  const locale = await resolveContentLocale(params);
+  const locale = await resolveRouteLocale(params);
 
   const { sections, heroBanners, partnerBanners } =
     await loadHomePageContent(locale);

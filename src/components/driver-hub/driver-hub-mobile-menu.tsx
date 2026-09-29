@@ -263,7 +263,7 @@ export function DriverHubMobileMenu({
             className="h-9 flex-none"
           >
             <LogOut aria-hidden="true" data-icon="inline-start" />
-            {signingOut ? "Signing out…" : "Sign out"}
+            {signingOut ? t("signingOut") : t("signOut")}
           </Button>
         </div>
       </SheetContent>

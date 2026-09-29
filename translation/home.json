@@ -316,7 +316,7 @@
   },
   "bookingForm.flaggedToDispatchAsTimeCritical": {
     "en": "Flagged to dispatch as time-critical.",
-    "ka": "მონიშნულია დისპეტჩერისთვის, როგორც დროში შეზღუდული / სასწრაფო.",
+    "ka": "მონიშნულია დისპეტჩერისთვის, როგორც სასწრაფო.",
     "_source": "src/components/home/booking-form.tsx"
   },
   "bookingForm.flatbedLoadableFromAnySide": {
@@ -411,7 +411,7 @@
   },
   "bookingForm.peopleForLoadingUnloading": {
     "en": "People for loading / unloading",
-    "ka": "დამხმარეები დატვირთვა / დაცლისთვის",
+    "ka": "დამხმარეები დატვირთვა-გადმოტვირთვისთვის",
     "_source": "src/components/home/booking-form.tsx"
   },
   "bookingForm.pickADateFirst": {
@@ -441,7 +441,7 @@
   },
   "bookingForm.pickupWindowOptional": {
     "en": "Pickup window (optional)",
-    "ka": "აყვანის ფანჯარა / ინტერვალი (არასავალდებულო)",
+    "ka": "აღების დროის ინტერვალი (არასავალდებულო)",
     "_source": "src/components/home/booking-form.tsx"
   },
   "bookingForm.pleaseChooseADeliveryDateAnd": {
@@ -506,7 +506,7 @@
   },
   "bookingForm.refrigerated": {
     "en": "Refrigerated",
-    "ka": "მაცივარი / რეფრიჟერატორი",
+    "ka": "მაცივარ-ფურგონი",
     "_source": "src/components/home/booking-form.tsx"
   },
   "bookingForm.regular": {

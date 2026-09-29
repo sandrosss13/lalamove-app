@@ -18,7 +18,7 @@ import {
   formatGel,
   formatJobTime,
   formatJobTimestamp,
-  pluralise,
+  useJobsTimeFormat,
 } from "@/components/driver-hub/screens/jobs-format";
 import {
   Table,
@@ -79,6 +79,23 @@ const TABS = [
 })[];
 
 type JobsTab = (typeof TABS)[number]["value"];
+
+/**
+ * The empty-state sentence per tab. Spelled out rather than templated on the
+ * tab name: "No all jobs." is not a sentence, and a translated tab label does
+ * not drop into another language's sentence the way a lowercased English word
+ * did. `All` cannot actually reach the empty state (it matches every row) but
+ * still gets honest copy.
+ */
+const EMPTY_TAB_MESSAGE_KEY: Record<
+  JobsTab,
+  "noJobsToShow" | "noActiveJobs" | "noCompletedJobs" | "noCancelledJobs"
+> = {
+  All: "noJobsToShow",
+  Active: "noActiveJobs",
+  Completed: "noCompletedJobs",
+  Cancelled: "noCancelledJobs",
+};
 
 /** `FilterStrip` hands back a plain string; this is the narrowing back. */
 function isJobsTab(value: string): value is JobsTab {
@@ -192,6 +209,7 @@ export function JobsScreen({ data, nowIso }: JobsScreenProps) {
   const { jobs, counts } = data;
   const t = useTranslations("driverHub.jobsScreen");
   const tShared = useTranslations("common.shared");
+  const timeFormat = useJobsTimeFormat();
 
   const tabItems: FilterStripItem[] = TABS.map((item) => ({
     value: item.value,
@@ -203,10 +221,12 @@ export function JobsScreen({ data, nowIso }: JobsScreenProps) {
 
   useHubSubtitle(
     counts.all === 0
-      ? "No jobs yet"
-      : `${pluralise(counts.all, "job")} · ${counts.completed} completed · ${
-          counts.active
-        } active`,
+      ? t("noJobsYet")
+      : t("subtitle", {
+          count: counts.all,
+          completed: counts.completed,
+          active: counts.active,
+        }),
   );
 
   const visible = jobs.filter((job) => matchesTab(job, tab));
@@ -226,7 +246,9 @@ export function JobsScreen({ data, nowIso }: JobsScreenProps) {
   return (
     <MasterDetailSplit
       detailLabel={
-        selectedJob === null ? "job details" : `job ${selectedJob.shortId}`
+        selectedJob === null
+          ? t("detailLabelDefault")
+          : t("detailLabelJob", { id: selectedJob.shortId })
       }
       detail={
         selectedJob === null ? undefined : (
@@ -252,14 +274,17 @@ export function JobsScreen({ data, nowIso }: JobsScreenProps) {
                     setTab(next);
                   }
                 }}
-                ariaLabel="Filter jobs by status"
+                ariaLabel={t("filterByStatus")}
               />
               {/* The denominator is the server's own tally rather than
                   `jobs.length`, so the caption and the tab counts can never
                   describe different sets. */}
               <span className="text-xs text-muted-foreground">
-                <span className="font-price">{visible.length}</span> of{" "}
-                <span className="font-price">{counts.all}</span> shown
+                {t.rich("shownOfRich", {
+                  visible: visible.length,
+                  total: counts.all,
+                  num: (chunks) => <span className="font-price">{chunks}</span>,
+                })}
               </span>
             </div>
           ) : null}
@@ -362,9 +387,9 @@ export function JobsScreen({ data, nowIso }: JobsScreenProps) {
                             CELL_CLASSES,
                             "truncate font-price text-muted-foreground",
                           )}
-                          title={formatJobTimestamp(at)}
+                          title={formatJobTimestamp(at, timeFormat)}
                         >
-                          {formatJobTime(at, nowIso)}
+                          {formatJobTime(at, nowIso, timeFormat)}
                         </TableCell>
 
                         <TableCell
@@ -394,25 +419,22 @@ export function JobsScreen({ data, nowIso }: JobsScreenProps) {
                   (handled below, where there is no header row to sit under). */}
               {visible.length === 0 ? (
                 <HubEmptyState
-                  // `tab === "All"` cannot reach here — All matches every row
-                  // and the branch above already established there are rows —
-                  // but "No all jobs." is not a sentence, so it is spelled out
-                  // rather than left to a template that would produce one.
-                  message={
-                    tab === "All"
-                      ? "No jobs to show."
-                      : `No ${tab.toLowerCase()} jobs.`
-                  }
+                  // One spelled-out sentence per tab — see EMPTY_TAB_MESSAGE_KEY.
+                  message={t(EMPTY_TAB_MESSAGE_KEY[tab])}
                 >
                   <p className="mt-1.5 text-[13px]">
-                    <span className="font-price">{counts.all}</span> jobs in
-                    this account&rsquo;s history — switch to All to see them.
+                    {t.rich("historyHintRich", {
+                      count: counts.all,
+                      num: (chunks) => (
+                        <span className="font-price">{chunks}</span>
+                      ),
+                    })}
                   </p>
                 </HubEmptyState>
               ) : null}
             </>
           ) : (
-            <HubEmptyState message="No jobs yet.">
+            <HubEmptyState message={t("noJobsYetSentence")}>
               <p className="mt-1.5 text-[13px]">
                 {t("completedScheduledAndCancelledJobsAll")}
               </p>

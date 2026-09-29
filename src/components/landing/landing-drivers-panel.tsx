@@ -2,10 +2,7 @@ import { Fragment } from "react";
 
 import { Link } from "@/i18n/navigation";
 import { merchantOrigin } from "@/lib/host";
-import {
-  DEFAULT_HOME_PAGE_CONTENT,
-  type DriverCtaContent,
-} from "@/lib/admin/home-page-content";
+import { type DriverCtaContent } from "@/lib/admin/home-page-content";
 
 const PILL_CLASSES =
   "inline-flex items-center rounded-full px-6 py-3 text-[15px] font-semibold";
@@ -20,9 +17,9 @@ const PILL_CLASSES =
  * The sign-up destination is deliberately not editable — see below.
  */
 export function LandingDriversPanel({
-  content = DEFAULT_HOME_PAGE_CONTENT.driver_cta,
+  content,
 }: {
-  content?: DriverCtaContent;
+  content: DriverCtaContent;
 }) {
   // The landing page is client-host-only, and `/sign-up` there only offers
   // CLIENT registration — so a driver has to be sent across to the merchant

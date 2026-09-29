@@ -17,6 +17,7 @@ import {
 import { EmployeeDetailPanel } from "@/components/driver-hub/screens/employees-detail-panel";
 import { EmployeeInviteForm } from "@/components/driver-hub/screens/employees-invite-form";
 import { EmployeeRoleDefinitions } from "@/components/driver-hub/screens/employees-role-definitions";
+import { useHubStatusLabel } from "@/components/driver-hub/use-hub-status-label";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -110,14 +111,19 @@ const HEAD_CLASSES =
   "h-auto px-0 pb-2.5 text-[11px] font-normal tracking-[0.08em] uppercase text-muted-foreground";
 const CELL_CLASSES = "min-w-0 px-0 py-3.5";
 
-/* -------------------------------------------------------------------------- */
-/* Honesty copy                                                               */
-/* -------------------------------------------------------------------------- */
-
-/** What would make the roster real, shown on every `<SampleNote />` here. */
-const ROSTER_SAMPLE_NOTE =
-  "No employee record exists in the schema yet — the roster, the counts and " +
-  "both actions are placeholders. The role definitions below are real.";
+/**
+ * The empty-table line for each filter. Keys under `driverHub.employeesScreen`,
+ * resolved at render time.
+ */
+const EMPTY_MESSAGE_KEY: Record<
+  EmployeesTab,
+  "emptyAll" | "emptyActive" | "emptyInvited" | "emptySuspended"
+> = {
+  All: "emptyAll",
+  Active: "emptyActive",
+  Invited: "emptyInvited",
+  Suspended: "emptySuspended",
+};
 
 export type EmployeesScreenProps = {
   data: HubEmployeesData;
@@ -128,6 +134,7 @@ export function EmployeesScreen({ data }: EmployeesScreenProps) {
   const t = useTranslations("driverHub.employeesScreen");
   const tShared = useTranslations("common.shared");
   const tRoot = useTranslations();
+  const statusLabel = useHubStatusLabel();
   const tabItems: FilterStripItem[] = EMPLOYEE_TABS.map((item) => ({
     value: item.value,
     label: tRoot(item.labelKey),
@@ -138,17 +145,12 @@ export function EmployeesScreen({ data }: EmployeesScreenProps) {
   const [inviting, setInviting] = React.useState(false);
 
   useHubSubtitle(
-    `${subhead.companyName} · ${subhead.peopleCount} ${plural(
-      subhead.peopleCount,
-      "person",
-      "people",
-    )}, ${subhead.roleCount} ${plural(subhead.roleCount, "role", "roles")} · ${
-      subhead.invitesPendingCount
-    } ${plural(
-      subhead.invitesPendingCount,
-      "invite",
-      "invites",
-    )} pending`,
+    t("subtitle", {
+      company: subhead.companyName,
+      people: subhead.peopleCount,
+      roles: subhead.roleCount,
+      invites: subhead.invitesPendingCount,
+    }),
   );
 
   // The rail shows one thing at a time, and the invite form wins: opening it
@@ -181,8 +183,10 @@ export function EmployeesScreen({ data }: EmployeesScreenProps) {
   ) : undefined;
 
   const detailLabel = inviting
-    ? "the invite employee form"
-    : `${selectedPerson?.name ?? "employee"} details`;
+    ? t("inviteFormLabel")
+    : t("employeeDetails", {
+        name: selectedPerson?.name ?? t("employeeFallback"),
+      });
 
   return (
     <>
@@ -193,7 +197,7 @@ export function EmployeesScreen({ data }: EmployeesScreenProps) {
         naming what *is* real — is the honest version.
       */}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-[10px] border border-border px-4 py-3.5">
-        <SampleNote label={t("sampleRoster")} note={ROSTER_SAMPLE_NOTE} />
+        <SampleNote label={t("sampleRoster")} note={t("rosterSampleNote")} />
         <p className="min-w-0 flex-1 text-[13px] leading-normal text-muted-foreground">
           {t("thereIsNoEmployeeRecordIn")}
         </p>
@@ -237,7 +241,7 @@ export function EmployeesScreen({ data }: EmployeesScreenProps) {
                     setTab(next);
                   }
                 }}
-                ariaLabel="Filter employees by status"
+                ariaLabel={t("filterByStatus")}
               />
               {/* The toolbar holds what the design's does — the count and the
                   button. The roster's sample marker is not repeated here: the
@@ -249,7 +253,10 @@ export function EmployeesScreen({ data }: EmployeesScreenProps) {
                     plain 12px muted string, and the hub reserves mono for
                     values a reader might compare or copy. */}
                 <span className="text-xs text-muted-foreground">
-                  {visible.length} of {roster.length} shown
+                  {t("shownCount", {
+                    visible: visible.length,
+                    total: roster.length,
+                  })}
                 </span>
                 <Button
                   type="button"
@@ -369,7 +376,10 @@ export function EmployeesScreen({ data }: EmployeesScreenProps) {
                         role="cell"
                         className={cn(CELL_CLASSES, "text-right")}
                       >
-                        <HubStatusBadge status={person.status} />
+                        <HubStatusBadge
+                          status={person.status}
+                          label={statusLabel(person.status)}
+                        />
                       </TableCell>
                     </TableRow>
                   );
@@ -378,7 +388,7 @@ export function EmployeesScreen({ data }: EmployeesScreenProps) {
             </Table>
 
             {visible.length === 0 ? (
-              <HubEmptyState message={`No ${tab.toLowerCase()} employees.`} />
+              <HubEmptyState message={t(EMPTY_MESSAGE_KEY[tab])} />
             ) : null}
           </HubCard>
         }
@@ -387,9 +397,4 @@ export function EmployeesScreen({ data }: EmployeesScreenProps) {
       <EmployeeRoleDefinitions roles={roleDefinitions} />
     </>
   );
-}
-
-/** Singular/plural for the three counts in the header subhead. */
-function plural(count: number, singular: string, many: string): string {
-  return count === 1 ? singular : many;
 }

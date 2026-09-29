@@ -19,6 +19,7 @@ import {
   sortedHandlingTags,
   type HandlingTagTranslator,
 } from "@/components/driver-hub/screens/loads-format";
+import type { Translator } from "@/i18n/translator";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
@@ -140,10 +141,16 @@ const DETAIL_STATUS_TONE: Record<LoadStatus, HubStatusTone> = {
   mine: "success",
 };
 
-const DETAIL_STATUS_LABEL: Record<LoadStatus, string> = {
-  available: "Open · first to confirm",
-  claimed: "Claimed",
-  mine: "Yours",
+/** Catalog keys, resolved in `LoadStatusPill`. */
+const DETAIL_STATUS_LABEL_KEY: Record<
+  LoadStatus,
+  | "driverHub.loadsDetailParts.statusOpenFirstToConfirm"
+  | "driverHub.loadsTable.claimed"
+  | "driverHub.loadsTable.yours"
+> = {
+  available: "driverHub.loadsDetailParts.statusOpenFirstToConfirm",
+  claimed: "driverHub.loadsTable.claimed",
+  mine: "driverHub.loadsTable.yours",
 };
 
 /**
@@ -161,6 +168,8 @@ export function LoadStatusPill({
   status: LoadStatus;
   className?: string;
 }) {
+  const t = useTranslations();
+
   return (
     <Badge
       // `outline` so no variant background survives the merge if a tone class is
@@ -176,7 +185,7 @@ export function LoadStatusPill({
       {/* A rejected load keeps the "available" pill and label: rejecting hides
           the row from this driver's board and changes nothing about the load's
           real status, so there is nothing new for the pill to represent. */}
-      {DETAIL_STATUS_LABEL[status]}
+      {t(DETAIL_STATUS_LABEL_KEY[status])}
     </Badge>
   );
 }
@@ -308,8 +317,16 @@ export type CargoCompliance = {
  */
 function cargoRows(
   load: CargoSpec,
-  translateTag: HandlingTagTranslator,
-): { key: string; value: string }[] {
+  translators: {
+    /** `useTranslations("driverHub.loadsDetailParts")`: the row labels. */
+    t: Translator;
+    /** `useTranslations("driverHub.loadsFormat")`: tags and helper counts. */
+    tFormat: Translator & HandlingTagTranslator;
+    /** `useTranslations()`: the shared cargo-category keys. */
+    tRoot: Translator;
+  },
+): { key: string; label: string; value: string }[] {
+  const { t, tFormat: translateTag, tRoot } = translators;
   const tags = sortedHandlingTags(load.handlingTags, translateTag);
   const dims = {
     lengthM: load.cargoLengthM,
@@ -318,34 +335,61 @@ function cargoRows(
   };
 
   return [
-    { key: "Type", value: cargoCategoryLabel(load.cargoCategory) },
-    { key: "Weight", value: formatWeightKg(load.cargoWeightKg) },
-    { key: "Dimensions", value: formatLoadDims(dims) },
-    { key: "Volume", value: formatVolumeM3(dims) },
-    { key: "Packaging", value: load.packagingDescription ?? EM_DASH },
-    { key: "Quantity", value: load.itemQuantity ?? EM_DASH },
     {
-      key: "Handling",
+      key: "type",
+      label: t("rowType"),
+      value: cargoCategoryLabel(load.cargoCategory, tRoot),
+    },
+    {
+      key: "weight",
+      label: t("rowWeight"),
+      value: formatWeightKg(load.cargoWeightKg),
+    },
+    {
+      key: "dimensions",
+      label: t("rowDimensions"),
+      value: formatLoadDims(dims),
+    },
+    { key: "volume", label: t("rowVolume"), value: formatVolumeM3(dims) },
+    {
+      key: "packaging",
+      label: t("rowPackaging"),
+      value: load.packagingDescription ?? EM_DASH,
+    },
+    {
+      key: "quantity",
+      label: t("rowQuantity"),
+      value: load.itemQuantity ?? EM_DASH,
+    },
+    {
+      key: "handling",
+      label: t("rowHandling"),
       // "None declared" rather than an em dash: the client was asked and said
       // nothing applied, which is a different fact from a value being missing.
       value:
         tags.length === 0
-          ? "None declared"
+          ? t("noneDeclared")
           : tags.map((tag) => tag.label).join(", "),
     },
-    { key: "Helpers", value: formatHelperRequest(load.helperCount) },
+    {
+      key: "helpers",
+      label: t("rowHelpers"),
+      value: formatHelperRequest(load.helperCount, translateTag),
+    },
   ];
 }
 
 /** The cargo specification, as a two-column definition list. */
 export function CargoSpecList({ load }: { load: CargoSpec }) {
+  const t = useTranslations("driverHub.loadsDetailParts");
   const tFormat = useTranslations("driverHub.loadsFormat");
+  const tRoot = useTranslations();
 
   return (
     <dl className="mt-2 grid grid-cols-[96px_1fr] gap-x-3 gap-y-2 text-[13px]">
-      {cargoRows(load, tFormat).map((row) => (
+      {cargoRows(load, { t, tFormat, tRoot }).map((row) => (
         <React.Fragment key={row.key}>
-          <dt className="text-muted-foreground">{row.key}</dt>
+          <dt className="text-muted-foreground">{row.label}</dt>
           <dd className="min-w-0 break-words">{row.value}</dd>
         </React.Fragment>
       ))}
@@ -405,17 +449,19 @@ export function HandlingTagPills({
  * remove the tiles for a load with no photos — every load has no photos, and
  * that is the permanent state of this feature.
  */
-const PHOTO_TILES = ["Photo 1", "Photo 2", "Photo 3"];
+const PHOTO_TILE_NUMBERS = [1, 2, 3];
 
 export function CargoPhotoTiles() {
+  const t = useTranslations("driverHub.loadsDetailParts");
+
   return (
     <div className="mt-3 grid grid-cols-3 gap-2">
-      {PHOTO_TILES.map((label) => (
+      {PHOTO_TILE_NUMBERS.map((number) => (
         <div
-          key={label}
+          key={number}
           className="flex aspect-[4/3] items-center justify-center rounded-md border border-dashed border-border bg-muted text-[10px] text-muted-foreground"
         >
-          {label}
+          {t("photoPlaceholder", { number })}
         </div>
       ))}
     </div>
@@ -461,6 +507,7 @@ export function CargoPhotoTiles() {
  * reading it should see both.
  */
 export function LoadComplianceNotes({ load }: { load: CargoCompliance }) {
+  const t = useTranslations("driverHub.loadsDetailParts");
   const hasHazmat = load.handlingTags.includes("HAZMAT");
   const hasColdChainMismatch =
     load.handlingTags.includes("COLD_CHAIN") &&
@@ -476,9 +523,7 @@ export function LoadComplianceNotes({ load }: { load: CargoCompliance }) {
             HUB_STATUS_TONE_CLASSES.warning,
           )}
         >
-          Hazmat cargo. Confirm you and your vehicle hold a valid ADR
-          certification before accepting — this isn&apos;t checked
-          automatically.
+          {t("hazmatNote")}
         </p>
       ) : null}
 
@@ -490,9 +535,7 @@ export function LoadComplianceNotes({ load }: { load: CargoCompliance }) {
             HUB_STATUS_TONE_CLASSES.neutral,
           )}
         >
-          This load needs cold-chain handling, but wasn&apos;t booked with a
-          refrigerated body. Confirm your vehicle can keep it cold before
-          accepting.
+          {t("coldChainMismatchNote")}
         </p>
       ) : null}
     </>
@@ -528,13 +571,15 @@ export function ClaimedElsewhereNote({
   load: HubLoad;
   nowIso: string;
 }) {
-  const claimedAgo = formatRelativeAgo(load.updatedAt, nowIso);
+  const t = useTranslations("driverHub.loadsDetailParts");
+  const tFormat = useTranslations("driverHub.loadsFormat");
+  const claimedAgo = formatRelativeAgo(load.updatedAt, nowIso, tFormat);
 
   return (
     <p className={cn(NOTE_CLASSES, "border-border bg-muted")}>
       {claimedAgo === null
-        ? "Claimed by another driver. No longer available."
-        : `Claimed by another driver ${claimedAgo}. No longer available.`}
+        ? t("claimedElsewhere")
+        : t("claimedElsewhereAgo", { ago: claimedAgo })}
     </p>
   );
 }

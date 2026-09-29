@@ -83,7 +83,9 @@ export async function PATCH(
   if (trimmedValue.length > MAX_VALUE_LENGTH) {
     return NextResponse.json(
       {
-        error: `A translation value must be ${MAX_VALUE_LENGTH} characters or fewer.`,
+        error: t("errors.adminContentTranslations.translationValueMaxLength", {
+          max: MAX_VALUE_LENGTH,
+        }),
       },
       { status: 400 },
     );

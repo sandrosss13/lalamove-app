@@ -18,6 +18,8 @@ import {
   formatJobDateLabel,
   formatJobTime,
   formatJobTimestamp,
+  useJobsTimeFormat,
+  type JobsTimeFormat,
 } from "@/components/driver-hub/screens/jobs-format";
 // The three claims this panel and the driver's Job sheet both make about one
 // order — which timeline steps exist, what the payout lines are called, and
@@ -27,6 +29,8 @@ import {
   StopPhoneLink,
   buildHubPayoutLines,
   buildHubTimeline,
+  useHubPayoutLabels,
+  useHubTimelineLabels,
   type HubTimelineStep,
   type HubTimelineStepState,
 } from "@/components/driver-hub/hub-job-parts";
@@ -176,6 +180,11 @@ const DOT_CLASSES: Record<HubTimelineStepState, string> = {
 function detailFor(
   job: HubJob,
   nowIso: string,
+  t: (
+    key: "bookedForImmediatePickup" | "requestedFor",
+    values?: { when: string },
+  ) => string,
+  timeFormat: JobsTimeFormat,
   // Keyed on `HubTimelineStep["id"]` rather than on `string`, so that a step
   // added to the shared builder is a compile error here — a missing sub-line
   // would otherwise be an empty second row under a label, which reads as a
@@ -187,8 +196,10 @@ function detailFor(
     // is a statement about this order rather than an em dash.
     placed:
       job.scheduledAt === null
-        ? "Booked for immediate pickup"
-        : `Requested for ${formatJobTime(job.scheduledAt, nowIso)}`,
+        ? t("bookedForImmediatePickup")
+        : t("requestedFor", {
+            when: formatJobTime(job.scheduledAt, nowIso, timeFormat),
+          }),
     "picked-up": job.pickupAddress,
     "dropped-off": job.dropoffAddress,
   };
@@ -336,6 +347,7 @@ export function JobsDetailPanel({
 }: JobsDetailPanelProps) {
   const t = useTranslations("driverHub.jobsDetailPanel");
   const tShared = useTranslations("common.shared");
+  const timeFormat = useJobsTimeFormat();
 
   // `HubJobStatus` has already collapsed PENDING/CLAIMED/ACCEPTED into
   // "Scheduled", which is lossless for the only question asked here: is the job
@@ -343,14 +355,17 @@ export function JobsDetailPanel({
   // being waited on. The driver's Job sheet answers the same question from the
   // raw `OrderStatus` it needs for its action buttons — which is exactly why
   // `buildHubTimeline` takes the boolean rather than either enum.
-  const timeline = buildHubTimeline({
-    createdAt: job.createdAt,
-    inTransitAt: job.inTransitAt,
-    completedAt: job.completedAt,
-    running: job.status === "In transit" || job.status === "Scheduled",
-  });
-  const stepDetails = detailFor(job, nowIso);
-  const fareLines = buildHubPayoutLines(job);
+  const timeline = buildHubTimeline(
+    {
+      createdAt: job.createdAt,
+      inTransitAt: job.inTransitAt,
+      completedAt: job.completedAt,
+      running: job.status === "In transit" || job.status === "Scheduled",
+    },
+    useHubTimelineLabels(),
+  );
+  const stepDetails = detailFor(job, nowIso, t, timeFormat);
+  const fareLines = buildHubPayoutLines(job, useHubPayoutLabels());
 
   // Nothing records *when* an order was cancelled, so there is no fourth step
   // to draw for one — but `inTransitAt` does say whether it got as far as the
@@ -360,8 +375,8 @@ export function JobsDetailPanel({
     job.status !== "Cancelled"
       ? null
       : job.inTransitAt === null
-        ? "Cancelled before pickup. Nothing records when it was cancelled."
-        : "Cancelled after pickup. Nothing records when it was cancelled.";
+        ? t("cancelledBeforePickup")
+        : t("cancelledAfterPickup");
 
   return (
     <HubCard>
@@ -379,7 +394,7 @@ export function JobsDetailPanel({
         </h2>
         <p className="mt-[3px] text-[13px] text-muted-foreground">
           <span className="font-price">
-            {formatJobDateLabel(primaryAtIso, nowIso)}
+            {formatJobDateLabel(primaryAtIso, nowIso, timeFormat)}
           </span>
         </p>
       </div>
@@ -426,19 +441,25 @@ export function JobsDetailPanel({
                 and reads as a bare clock time, and only a step that crossed
                 midnight earns the day prefix. */}
             <span
-              title={step.at === null ? undefined : formatJobTimestamp(step.at)}
+              title={
+                step.at === null
+                  ? undefined
+                  : formatJobTimestamp(step.at, timeFormat)
+              }
               className="font-price text-xs whitespace-nowrap text-muted-foreground"
             >
-              {step.at === null ? EMPTY_VALUE : formatJobTime(step.at, nowIso)}
+              {step.at === null
+                ? EMPTY_VALUE
+                : formatJobTime(step.at, nowIso, timeFormat)}
             </span>
             {/* The dots carry the state visually; this is how it reaches a
                 screen reader, which cannot see a hollow ring. */}
             <span className="sr-only">
               {step.state === "done"
-                ? " — done"
+                ? t("stepDone")
                 : step.state === "current"
-                  ? " — next"
-                  : " — not reached"}
+                  ? t("stepNext")
+                  : t("stepNotReached")}
             </span>
           </li>
         ))}

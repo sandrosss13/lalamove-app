@@ -123,8 +123,8 @@ export function SuspendDialog({
           await readErrorMessage(
             response,
             isLifting
-              ? "Could not lift the suspension."
-              : "Could not suspend the account.",
+              ? t("admin.suspendDialog.couldNotLiftSuspension")
+              : t("admin.suspendDialog.couldNotSuspendAccount"),
           ),
         );
         setPending(false);
@@ -155,19 +155,25 @@ export function SuspendDialog({
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <DialogHeader>
             <DialogTitle>
-              {isLifting ? "Lift suspension" : "Suspend account"}
+              {isLifting
+                ? t("admin.suspendDialog.liftSuspension")
+                : t("admin.suspendDialog.suspendAccount")}
             </DialogTitle>
             <DialogDescription>
               {isLifting
-                ? `${target.name} will be able to use the platform again.`
-                : `${target.name} will be flagged as suspended. The reason is kept on the account and in the audit log.`}
+                ? t("admin.suspendDialog.willBeAbleToUseAgain", {
+                    name: target.name,
+                  })
+                : t("admin.suspendDialog.willBeFlaggedAsSuspended", {
+                    name: target.name,
+                  })}
             </DialogDescription>
           </DialogHeader>
 
           {isLifting ? (
             target.suspendedReason ? (
               <p className="text-sm text-muted-foreground">
-                Suspended for:{" "}
+                {t("admin.suspendDialog.suspendedFor")}{" "}
                 <span className="text-foreground">
                   {target.suspendedReason}
                 </span>
@@ -214,10 +220,10 @@ export function SuspendDialog({
               disabled={pending}
             >
               {pending
-                ? "Saving…"
+                ? t("common.shared.saving")
                 : isLifting
-                  ? "Lift suspension"
-                  : "Suspend account"}
+                  ? t("admin.suspendDialog.liftSuspension")
+                  : t("admin.suspendDialog.suspendAccount")}
             </Button>
           </DialogFooter>
         </form>

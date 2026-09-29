@@ -1,8 +1,5 @@
 import type { LandingBanner } from "@/components/landing/landing-page";
-import {
-  DEFAULT_HOME_PAGE_CONTENT,
-  type PartnerMarqueeContent,
-} from "@/lib/admin/home-page-content";
+import { type PartnerMarqueeContent } from "@/lib/admin/home-page-content";
 
 /**
  * One pass of the logo list.
@@ -61,10 +58,10 @@ function PartnerMarqueeRun({
  */
 export function LandingPartnerMarquee({
   logos,
-  content = DEFAULT_HOME_PAGE_CONTENT.partner_marquee,
+  content,
 }: {
   logos: LandingBanner[];
-  content?: PartnerMarqueeContent;
+  content: PartnerMarqueeContent;
 }) {
   // No logos means no band at all — not an empty strip, and not the eyebrow
   // announcing a list that isn't there. This is the live state until a content

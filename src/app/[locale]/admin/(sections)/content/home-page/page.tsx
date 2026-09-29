@@ -35,13 +35,39 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  HOME_PAGE_SECTION_TYPE_LABELS,
   isHomePageSectionType,
   parseHomePageSection,
+  type HomePageSectionType,
 } from "@/lib/admin/home-page-content";
 
 /** Columns in the table, so the full-width state rows can span all of them. */
 const COLUMN_COUNT = 6;
+
+/**
+ * `admin.homePageSectionTypes` key for each section type's display name.
+ *
+ * Kept here rather than beside `HOME_PAGE_SECTION_TYPE_LABELS` because that
+ * module belongs to the landing page; the English map there stays the source
+ * for non-rendering uses. Keyed by the full union, so a new section type is a
+ * compile error here rather than an untranslated cell.
+ */
+const SECTION_TYPE_LABEL_KEYS: Record<HomePageSectionType, string> = {
+  hero: "hero",
+  hero_carousel: "heroCarousel",
+  partner_marquee: "partnerMarquee",
+  stats: "stats",
+  bento: "bento",
+  quote_calculator: "quoteCalculator",
+  how_it_works: "howItWorks",
+  vehicle_types: "vehicleTypes",
+  driver_cta: "driverCta",
+  coverage: "coverage",
+  faq: "faq",
+  closing_cta: "closingCta",
+  category_tiles: "categoryTiles",
+  nav: "nav",
+  footer: "footer",
+};
 
 /** Locale tabs, in the order they are offered. */
 const LOCALE_TABS: { value: ContentLocale; labelKey: string }[] = [
@@ -71,7 +97,10 @@ const DEFAULT_LOCALE: ContentLocale = "EN";
  * as unparseable content. Without it, adding a section type is a compile error
  * here, which is a question answered once rather than a wrong cell shipped.
  */
-function summarize(row: AdminHomePageSectionRow): string | null {
+function summarize(
+  row: AdminHomePageSectionRow,
+  t: (key: string) => string,
+): string | null {
   const parsed = parseHomePageSection(row.type, row.content);
 
   if ("error" in parsed) {
@@ -91,7 +120,7 @@ function summarize(row: AdminHomePageSectionRow): string | null {
     case "hero_carousel":
       // Its only field is an optional fallback caption, so the useful thing to
       // say is where the slides actually come from.
-      return "Slides come from Banners (home_hero)";
+      return t("slidesFromBanners");
     case "partner_marquee":
       // Same: the logos are Banner rows, and the eyebrow is the only copy.
       return parsed.data.content.eyebrow;
@@ -166,6 +195,7 @@ async function readErrorMessage(
 export default function AdminHomePageSectionsPage() {
   const t = useTranslations("admin.adminContentHomePage");
   const tShared = useTranslations("common.shared");
+  const tTypes = useTranslations("admin.homePageSectionTypes");
   const [locale, setLocale] = useState<ContentLocale>(DEFAULT_LOCALE);
   const [sections, setSections] = useState<AdminHomePageSectionRow[] | null>(
     null,
@@ -260,7 +290,7 @@ export default function AdminHomePageSectionsPage() {
         // A partial patch: nothing else about the section is being confirmed
         // here, so nothing else is overwritten.
         { isActive: !section.isActive },
-        "Could not update this section.",
+        t("couldNotUpdateThisSection"),
       );
       setReloadToken((token) => token + 1);
     } catch (cause) {
@@ -314,7 +344,7 @@ export default function AdminHomePageSectionsPage() {
           await patchSection(
             section.id,
             { sortOrder: position },
-            "Could not reorder the sections.",
+            t("couldNotReorderTheSections"),
           );
         }
       }
@@ -346,7 +376,7 @@ export default function AdminHomePageSectionsPage() {
 
       if (!response.ok) {
         setActionError(
-          await readErrorMessage(response, "Could not delete this section."),
+          await readErrorMessage(response, t("couldNotDeleteThisSection")),
         );
         return;
       }
@@ -445,10 +475,10 @@ export default function AdminHomePageSectionsPage() {
                 // the label map is type-safe: `type` is a free-form column and
                 // a row can hold a value this build does not know.
                 const typeLabel = isHomePageSectionType(section.type)
-                  ? HOME_PAGE_SECTION_TYPE_LABELS[section.type]
+                  ? tTypes(SECTION_TYPE_LABEL_KEYS[section.type])
                   : section.type;
                 const known = isHomePageSectionType(section.type);
-                const summary = summarize(section);
+                const summary = summarize(section, t);
 
                 return (
                   <TableRow key={section.id}>
@@ -480,9 +510,10 @@ export default function AdminHomePageSectionsPage() {
                       <Checkbox
                         checked={section.isActive}
                         disabled={busy}
-                        aria-label={`${
-                          section.isActive ? "Deactivate" : "Activate"
-                        } the ${typeLabel} section`}
+                        aria-label={t("toggleActiveLabel", {
+                          isActive: String(section.isActive),
+                          type: typeLabel,
+                        })}
                         onCheckedChange={() => void handleToggleActive(section)}
                       />
                     </TableCell>
@@ -599,7 +630,7 @@ export default function AdminHomePageSectionsPage() {
                 disabled={busy}
                 onClick={() => void handleDelete(deleteTarget)}
               >
-                {busy ? "Deleting…" : t("deleteSection")}
+                {busy ? tShared("deleting") : t("deleteSection")}
               </Button>
             </DialogFooter>
           </DialogContent>

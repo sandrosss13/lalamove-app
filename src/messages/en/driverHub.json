@@ -23,9 +23,9 @@
     "whereYourFaresAreSettled": "Where your fares are settled."
   },
   "driverAccountPlaceholderPanel": {
-    "languageGap": "The app has no translations and no per-user locale column. There is one language to pick from, and no column to remember a pick in.",
-    "languagePurpose": "Pick the language this dashboard, your job alerts and your payout notices are written in.",
-    "languageToday": "Everything here is in English. A picker offering a choice that could not be honoured — or could not be remembered — would be worse than saying so.",
+    "languageGap": "The app ships in Georgian and English, but there is no per-account language setting to store a choice against — so there is nothing to save here, and job alerts and payout notices have no language of their own yet.",
+    "languagePurpose": "Choose whether this dashboard is shown in Georgian or English.",
+    "languageToday": "Use the language switch in the header — it is on every page. Your choice is remembered by this browser, not by your account, so a new device opens in Georgian until you switch it there too.",
     "notificationPreferences": "Notification preferences",
     "notificationsGap": "Nothing in the schema records a notification or a preference about one yet — not the offers, not the payouts, and nowhere a per-driver choice could be stored. The bell in the header shows placeholder rows for the same reason.",
     "notificationsPurpose": "Choose which job offers, payout confirmations and account notices reach you, and whether they arrive in the app, by SMS or by email.",
@@ -53,6 +53,13 @@
     "theLanguageThisDashboardAndYour": "The language this dashboard and your job alerts are written in.",
     "whereYourFaresAreSettledAnd": "Where your fares are settled, and when. Changing a payout account is done through support so the change can be verified.",
     "whichJobPayoutAndAccountEvents": "Which job, payout and account events reach you, and how they reach you."
+  },
+  "driverHubJobPill": {
+    "jobInProgress": "Job in progress",
+    "jobInProgressWithId": "Job in progress · {id}",
+    "jobsInProgress": "{count, plural, one {# job in progress} other {# jobs in progress}}",
+    "openThisJob": "Open this job",
+    "viewAllJobsInProgress": "View all jobs in progress"
   },
   "driverHubMobileMenu": {
     "closeMenu": "Close menu",
@@ -186,9 +193,13 @@
     "tipsIncentivesAdjustments": "Tips · Incentives · Adjustments",
     "tripFares": "Trip fares"
   },
+  "earningsExportButton": {
+    "exporting": "Exporting…"
+  },
   "earningsFilterBar": {
     "custom": "Custom",
     "dayUnit": "{count, plural, one {day} other {days}}",
+    "earningsDateRange": "Earnings date range",
     "rangeEndDate": "Range end date",
     "rangeStartDate": "Range start date",
     "to": "to"
@@ -203,6 +214,9 @@
     "revenue": "Revenue",
     "revenueByDriver": "Revenue by driver",
     "share": "Share"
+  },
+  "earningsFormat": {
+    "daysCount": "{count, plural, one {# day} other {# days}}"
   },
   "earningsPayoutsCard": {
     "amount": "Amount",
@@ -359,6 +373,16 @@
     "overtimePayoutWaiting": "Overtime payout · {minutes} min waiting",
     "payout": "Payout"
   },
+  "hubOnlineToggle": {
+    "updating": "Updating…"
+  },
+  "hubPrimitives": {
+    "closeDetail": "Close {label}",
+    "sampleData": "Sample data"
+  },
+  "hubStatusLabels": {
+    "notActivated": "Not activated"
+  },
   "jobSheetActions": {
     "bookedFor": "Booked for {when}. You can start it on the day.",
     "confirmDelivery": "Confirm delivery",
@@ -392,6 +416,7 @@
     "navigate": "Navigate",
     "navigateTo": "to {address}",
     "navigateUnavailable": "— unavailable.",
+    "navigationUnavailableNote": "No map location for this stop — check the job details before setting off.",
     "noCoordinates": "No map coordinates were recorded for this stop, so Navigate opens a map search on the address text.",
     "notDispatchedToADriver": "Not dispatched to a driver",
     "receivedBy": "Received by",
@@ -421,11 +446,19 @@
     "stepNext": " — next",
     "stepNotReached": " — not reached"
   },
+  "jobsFormat": {
+    "today": "Today",
+    "tomorrow": "Tomorrow",
+    "yesterday": "Yesterday"
+  },
   "jobsScreen": {
     "completedScheduledAndCancelledJobsAll": "Completed, scheduled and cancelled jobs all land here, with their route, timeline and fare breakdown.",
+    "detailLabelDefault": "job details",
+    "detailLabelJob": "job {id}",
     "fare": "Fare",
     "filterByStatus": "Filter jobs by status",
     "historyHint": "{count, plural, one {# job in this account's history — switch to All to see it.} other {# jobs in this account's history — switch to All to see them.}}",
+    "historyHintRich": "{count, plural, one {<num>#</num> job in this account's history — switch to All to see it.} other {<num>#</num> jobs in this account's history — switch to All to see them.}}",
     "job": "Job",
     "noActiveJobs": "No active jobs.",
     "noCancelledJobs": "No cancelled jobs.",
@@ -434,7 +467,9 @@
     "noJobsYet": "No jobs yet",
     "noJobsYetSentence": "No jobs yet.",
     "noScheduledJobs": "No scheduled jobs.",
-    "shownOf": "{visible} of {total} shown"
+    "shownOf": "{visible} of {total} shown",
+    "shownOfRich": "<num>{visible}</num> of <num>{total}</num> shown",
+    "subtitle": "{count, plural, one {# job} other {# jobs}} · {completed} completed · {active} active"
   },
   "loadsBoard": {
     "hiddenByCapacity": "{count, plural, one {# load hidden} other {# loads hidden}} — over your vehicle capacity or dimensions",
@@ -480,6 +515,7 @@
     "coldChainMismatchNote": "This load needs cold-chain handling, but wasn't booked with a refrigerated body. Confirm your vehicle can keep it cold before accepting.",
     "hazmatNote": "Hazmat cargo. Confirm you and your vehicle hold a valid ADR certification before accepting — this isn't checked automatically.",
     "noneDeclared": "None declared",
+    "photoPlaceholder": "Photo {number}",
     "rowDimensions": "Dimensions",
     "rowHandling": "Handling",
     "rowHelpers": "Helpers",
@@ -488,6 +524,7 @@
     "rowType": "Type",
     "rowVolume": "Volume",
     "rowWeight": "Weight",
+    "statusOpenFirstToConfirm": "Open · first to confirm",
     "youClaimedThisLoadContactDetails": "You claimed this load. Contact details are in your job sheet."
   },
   "loadsDetailSheet": {
@@ -500,6 +537,8 @@
   "loadsDispatchDialog": {
     "assignAndDispatch": "Assign and dispatch",
     "assigning": "Assigning…",
+    "couldNotDispatch": "Couldn't dispatch this delivery (HTTP {status}).",
+    "couldNotLoadVehicles": "Couldn't load this order's vehicles (HTTP {status}).",
     "dimHeavy": "heavy",
     "dimLong": "long",
     "dimTall": "tall",
@@ -525,6 +564,10 @@
     "vehicleNote": "Every vehicle in your fleet is listed with the driver it goes out with. The ones this delivery can't go on say why.",
     "wrongBodyType": "Doesn't offer this load space",
     "yourFleetHasNoRegisteredVehicles": "Your fleet has no registered vehicles. Register one from the Vehicles screen, then dispatch this delivery."
+  },
+  "loadsDrawer": {
+    "deliverBy": "Deliver by {dateTime}",
+    "loadAria": "Load {reference}"
   },
   "loadsFilters": {
     "cargoWeightUpTo": "Cargo weight up to {weight} kg",
@@ -568,6 +611,15 @@
     "restoreToBoard": "Restore to board",
     "yoursAssignAVehicle": "Yours · assign a vehicle",
     "yoursViewJobSheet": "Yours · view job sheet"
+  },
+  "loadsScreen": {
+    "availableLoads": "Available loads",
+    "couldNotLoadBoard": "Couldn't load the board.",
+    "filters": "Filters",
+    "filtersActive": "{count, plural, one {# filter active} other {# filters active}}",
+    "filtersInertTitle": "Filters apply to the open board only. My loads and the rejected list always show every load.",
+    "loadingLoads": "Loading loads…",
+    "myLoads": "My loads"
   },
   "loadsTable": {
     "accept": "Accept",
@@ -615,7 +667,8 @@
     "thisWeek": "This week,",
     "unattributedJobs": "{count, plural, one {# finished job this week is} other {# finished jobs this week are}} not attributed to anyone on the roster — either never dispatched, or carried by a driver who has since left. The rows above will not add up to the tiles.",
     "whatAffectsYourScore": "What affects your score",
-    "windowFootnote": "This week, {range}. The rates count jobs by when they were booked; the chart counts them by when they were completed, so the two need not describe the same jobs."
+    "windowFootnote": "This week, {range}. The rates count jobs by when they were booked; the chart counts them by when they were completed, so the two need not describe the same jobs.",
+    "windowFootnoteRich": "This week, <num>{range}</num>. The rates count jobs by when they were <strong>booked</strong>; the chart counts them by when they were <strong>completed</strong>, so the two need not describe the same jobs."
   },
   "vehiclesAddForm": {
     "ab123Cd": "AB-123-CD",
@@ -634,6 +687,7 @@
     "hintPhoto": "Add at least one photo of the vehicle.",
     "hintPlate": "Add a plate in the AB-123-CD format to continue.",
     "hintReady": "{class} · {plate} · {count, plural, one {# photo} other {# photos}}",
+    "hintReadyFull": "{class} · {plate} · {count, plural, one {# photo} other {# photos}}. It joins the fleet as idle until a driver is assigned to it.",
     "hintYear": "Add a manufacturing year between {min} and {max}.",
     "itJoinsTheFleetAsIdle": "It joins the fleet as idle. Assign a driver to start taking jobs.",
     "loadingVehicleClasses": "Loading vehicle classes…",
@@ -641,7 +695,9 @@
     "odometerKm": "Odometer (km)",
     "photoRequirementNote": "At least one photo is required — the endpoint rejects a vehicle without one. Up to 5 MB each.",
     "transitCustom": "Transit Custom",
-    "upTo": "Up to {weight}"
+    "typesError": "Could not load the vehicle types. Refresh and try again.",
+    "upTo": "Up to {weight}",
+    "upToRich": "Up to <num>{weight}</num>"
   },
   "vehiclesDetailPanel": {
     "confirmRemoval": "Confirm removal",
@@ -655,6 +711,9 @@
     "removeVehicle": "Remove vehicle",
     "removing": "Removing…",
     "runningCostsThisMonth": "Running costs · this month",
+    "sampleNoteCities": "Vehicle has no operating-cities column; only the company's fleet-wide citiesOfOperation exists. Retire with Vehicle.operatingCities.",
+    "sampleNoteCosts": "Nothing records fuel, service, parking or toll charges against a vehicle. Retire with a VehicleExpense model.",
+    "sampleNoteSpecs": "Vehicle stores no odometer reading, fuel type or per-vehicle job count. Retire with Vehicle.odometerKm and a per-vehicle job rollup.",
     "thisVehicleBelongsToTheFleet": "This vehicle belongs to the fleet you drive for, not to you. Only its owner can remove it."
   },
   "vehiclesScreen": {

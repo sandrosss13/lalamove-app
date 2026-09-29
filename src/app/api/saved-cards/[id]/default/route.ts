@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-import { CARD_NOT_FOUND, CARD_SELECT } from "../../card-select";
+import { CARD_NOT_FOUND_KEY, CARD_SELECT } from "../../card-select";
 
 /**
  * POST /api/saved-cards/[id]/default — make one of the signed-in client's saved
@@ -17,13 +18,18 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
+  const t = await getRequestTranslations();
+
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    return NextResponse.json(
+      { error: t("common.shared.unauthorized") },
+      { status: 401 },
+    );
   }
 
   if (session.user.role !== "CLIENT") {
-    return NextResponse.json({ error: CARD_NOT_FOUND }, { status: 404 });
+    return NextResponse.json({ error: t(CARD_NOT_FOUND_KEY) }, { status: 404 });
   }
 
   const { id } = await params;
@@ -53,7 +59,7 @@ export async function POST(
   });
 
   if (!card) {
-    return NextResponse.json({ error: CARD_NOT_FOUND }, { status: 404 });
+    return NextResponse.json({ error: t(CARD_NOT_FOUND_KEY) }, { status: 404 });
   }
 
   return NextResponse.json({ card }, { status: 200 });

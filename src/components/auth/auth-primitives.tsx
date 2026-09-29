@@ -7,8 +7,8 @@ import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ACCOUNT_TYPE_LABELS, type AccountType } from "@/lib/account-types";
-import { ROLE_LABELS, type FlowMode, type FlowRole } from "@/lib/auth-flow";
+import type { AccountType } from "@/lib/account-types";
+import { useRoleLabels, type FlowMode, type FlowRole } from "@/lib/auth-flow";
 import { cn } from "@/lib/utils";
 
 /**
@@ -193,11 +193,9 @@ export type BackLinkProps = {
  * steps the wizard back through the router, and the exact destination depends
  * on which step the caller is on, so there is no single href to give it.
  */
-export function BackLink({
-  onClick,
-  label = "← Back",
-  className,
-}: BackLinkProps) {
+export function BackLink({ onClick, label, className }: BackLinkProps) {
+  const t = useTranslations("auth.authPrimitives");
+
   return (
     <button
       type="button"
@@ -207,7 +205,7 @@ export function BackLink({
         className,
       )}
     >
-      {label}
+      {label ?? t("back")}
     </button>
   );
 }
@@ -229,6 +227,9 @@ export function ContextChip({
   accountType,
   className,
 }: ContextChipProps) {
+  const roleLabels = useRoleLabels();
+  const accountTypeLabels = useAccountTypeLabels();
+
   return (
     <span
       className={cn(
@@ -236,9 +237,25 @@ export function ContextChip({
         className,
       )}
     >
-      {ROLE_LABELS[role]} · {ACCOUNT_TYPE_LABELS[accountType]}
+      {roleLabels[role]} · {accountTypeLabels[accountType]}
     </span>
   );
+}
+
+/**
+ * `ACCOUNT_TYPE_LABELS` (`@/lib/account-types`) in the reader's language. Lives
+ * here rather than beside the English map because that module is shared with
+ * server code that must not pull in `next-intl`'s client hooks.
+ */
+export function useAccountTypeLabels(): Record<AccountType, string> {
+  const tShared = useTranslations("common.shared");
+  const tFlow = useTranslations("auth.authFlow");
+
+  return {
+    INDIVIDUAL: tShared("individual"),
+    INDIVIDUAL_ENTREPRENEUR: tFlow("individualEntrepreneur"),
+    BUSINESS: tShared("business"),
+  };
 }
 
 /* -------------------------------------------------------------------------- */
@@ -456,7 +473,7 @@ export function PhoneField({
   id,
   value,
   onChange,
-  label = "Phone number",
+  label,
   helper,
   error,
   describedBy,
@@ -465,6 +482,7 @@ export function PhoneField({
   autoComplete = "tel-national",
   className,
 }: PhoneFieldProps) {
+  const t = useTranslations("auth.authPrimitives");
   const helperId = `${id}-helper`;
   const errorId = `${id}-error`;
 
@@ -480,8 +498,8 @@ export function PhoneField({
   return (
     <div className={cn("flex flex-col gap-2", className)}>
       <Label htmlFor={id}>
-        {label}
-        <span className="sr-only">, Georgia, country code +995</span>
+        {label ?? t("phoneNumber")}
+        <span className="sr-only">{t("countryCodeSr")}</span>
       </Label>
 
       <div className="flex gap-2">

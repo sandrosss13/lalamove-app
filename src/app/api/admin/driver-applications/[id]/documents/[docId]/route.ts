@@ -65,7 +65,11 @@ function parseDocumentReviewBody(
   }
 
   if (action !== "flag") {
-    return { error: 'action must be either "approve" or "flag".' };
+    return {
+      error: t(
+        "errors.adminDriverApplicationsDocuments.actionMustBeApproveOrFlag",
+      ),
+    };
   }
 
   if (typeof reason !== "string" || reason.trim() === "") {
@@ -80,7 +84,9 @@ function parseDocumentReviewBody(
 
   if (trimmedReason.length > MAX_FLAG_REASON_LENGTH) {
     return {
-      error: `A reason must be ${MAX_FLAG_REASON_LENGTH} characters or fewer.`,
+      error: t("common.shared.reasonMaxLength", {
+        max: MAX_FLAG_REASON_LENGTH,
+      }),
     };
   }
 

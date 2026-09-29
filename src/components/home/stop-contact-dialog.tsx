@@ -71,10 +71,13 @@ export const EMPTY_STOP_CONTACT: StopContact = {
 /** Georgian country code, fixed: the app books journeys within Georgia. */
 const PHONE_COUNTRY_CODE = "+995";
 
-/** What each stop is called in the dialog's accessible name and badge. */
+/**
+ * What each stop is called in the dialog's accessible name and badge.
+ * `accessibleNameKey` is a key in `home.stopContactDialog`, translated at render.
+ */
 const STOP_COPY = {
-  pickup: { accessibleName: "Delivery info for the pickup", badge: "1" },
-  dropoff: { accessibleName: "Delivery info for the dropoff", badge: "2" },
+  pickup: { accessibleNameKey: "deliveryInfoForPickup", badge: "1" },
+  dropoff: { accessibleNameKey: "deliveryInfoForDropoff", badge: "2" },
 } as const;
 
 /**
@@ -133,7 +136,7 @@ export function StopContactDialog({
     }
   }
 
-  const { accessibleName, badge } = STOP_COPY[stop];
+  const { accessibleNameKey, badge } = STOP_COPY[stop];
 
   function handleSave() {
     onSave(draft);
@@ -190,7 +193,7 @@ export function StopContactDialog({
         {/* The dialog's real accessible name: it says *which* stop is being
             filled in, which the styled heading below cannot, because it reads
             the same for both. */}
-        <DialogTitle className="sr-only">{accessibleName}</DialogTitle>
+        <DialogTitle className="sr-only">{t(accessibleNameKey)}</DialogTitle>
 
         <div className="mb-5 flex items-center gap-3">
           {/* Decorative: the accessible name already carries which stop this

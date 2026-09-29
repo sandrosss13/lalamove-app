@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 
 import type { DriverAccountType } from "@prisma/client";
 
@@ -30,6 +30,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatCity } from "@/lib/format-city";
+import { useLocalizedCityOptions } from "@/lib/georgian-cities";
 
 /** Columns in the table, so the full-width state rows can span all of them. */
 const COLUMN_COUNT = 6;
@@ -47,20 +48,19 @@ const SELLER_TYPE_LABEL_KEYS: Record<AdminSellerType, string> = {
   COMPANY: "company",
 };
 
-const DRIVER_ACCOUNT_TYPE_LABELS: Record<DriverAccountType, string> = {
-  INDIVIDUAL: "Individual",
-  INDIVIDUAL_ENTREPRENEUR: "Individual entrepreneur",
-  BUSINESS: "Business",
+/** Full message path for each driver account type's name. */
+const DRIVER_ACCOUNT_TYPE_LABEL_KEYS: Record<DriverAccountType, string> = {
+  INDIVIDUAL: "common.shared.individual",
+  INDIVIDUAL_ENTREPRENEUR: "admin.adminUsersSellers.individualEntrepreneur",
+  BUSINESS: "common.shared.business",
 };
 
 /** Matches how every other dashboard in the app renders a date. */
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
+const ACCOUNT_DATE_FORMAT = {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+} as const;
 
 /**
  * Pulls the API's `{ error }` message out of a failed response — a `403` for a
@@ -121,6 +121,11 @@ function DetailField({
 export default function AdminSellersPage() {
   const t = useTranslations("admin.adminUsersSellers");
   const tShared = useTranslations("common.shared");
+  const tRoot = useTranslations();
+  const format = useFormatter();
+  const formatDate = (iso: string) =>
+    format.dateTime(new Date(iso), ACCOUNT_DATE_FORMAT);
+  const cityOptions = useLocalizedCityOptions();
   const [searchInput, setSearchInput] = useState("");
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
@@ -204,7 +209,7 @@ export default function AdminSellersPage() {
         />
         {data ? (
           <p className="text-sm text-muted-foreground">
-            {data.total} {data.total === 1 ? "seller" : "sellers"}
+            {t("sellerCount", { count: data.total })}
           </p>
         ) : null}
       </div>
@@ -247,8 +252,8 @@ export default function AdminSellersPage() {
                   className="py-10 text-center text-muted-foreground"
                 >
                   {query === ""
-                    ? "No driver or company accounts yet."
-                    : "No sellers match that search."}
+                    ? t("noDriverOrCompanyAccountsYet")
+                    : t("noSellersMatchThatSearch")}
                 </TableCell>
               </TableRow>
             ) : (
@@ -289,7 +294,11 @@ export default function AdminSellersPage() {
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell>{formatCity(seller.city)}</TableCell>
+                      <TableCell>
+                        {cityOptions.find(
+                          (option) => option.value === seller.city,
+                        )?.label ?? formatCity(seller.city)}
+                      </TableCell>
                       <TableCell>
                         {seller.isSuspended ? (
                           <Badge variant="destructive">
@@ -309,7 +318,9 @@ export default function AdminSellersPage() {
                               setExpandedUserId(expanded ? null : seller.userId)
                             }
                           >
-                            {expanded ? "Hide details" : "Details"}
+                            {expanded
+                              ? tShared("hideDetails")
+                              : tShared("details")}
                           </Button>
                           <Button
                             variant={
@@ -325,7 +336,9 @@ export default function AdminSellersPage() {
                               })
                             }
                           >
-                            {seller.isSuspended ? "Unsuspend" : "Suspend"}
+                            {seller.isSuspended
+                              ? tShared("unsuspend")
+                              : tShared("suspend")}
                           </Button>
                         </div>
                       </TableCell>
@@ -348,10 +361,12 @@ export default function AdminSellersPage() {
                                   ? // A logistics company has no
                                     // `DriverAccountType` — it is a business by
                                     // definition.
-                                    "Business"
-                                  : DRIVER_ACCOUNT_TYPE_LABELS[
-                                      seller.accountType
-                                    ]
+                                    tShared("business")
+                                  : tRoot(
+                                      DRIVER_ACCOUNT_TYPE_LABEL_KEYS[
+                                        seller.accountType
+                                      ],
+                                    )
                               }
                             />
                             <DetailField
@@ -393,7 +408,10 @@ export default function AdminSellersPage() {
       {data && data.pageCount > 1 ? (
         <div className="flex items-center justify-end gap-3">
           <span className="text-sm text-muted-foreground">
-            Page {data.page} of {data.pageCount}
+            {tShared("pageOf", {
+              page: data.page,
+              pageCount: data.pageCount,
+            })}
           </span>
           <Button
             variant="outline"

@@ -216,6 +216,67 @@ export const VEHICLE_MESSAGES = {
 } as const;
 
 /**
+ * The `next-intl` message path of every validator message, for rendering in
+ * the reader's language. The English in `VEHICLE_MESSAGES` stays as the
+ * fallback for a caller that passes no translator (tests, `isVehicleReady`,
+ * which only counts errors). Most paths reuse the driver wizard's step-3c
+ * copy, which is word-for-word the same rule.
+ */
+export const VEHICLE_MESSAGE_KEYS = {
+  makeModel: "onboarding.step3cTechnicalDetails.makeModel",
+  yearMissing: "onboarding.step3cTechnicalDetails.yearMissing",
+  yearRange: "onboarding.step3cTechnicalDetails.yearRange",
+  plateMissing: "onboarding.step3cTechnicalDetails.plateMissing",
+  plateShort: "onboarding.step3cTechnicalDetails.plateShort",
+  plateDuplicate: "fleet.fleetVehicles.plateDuplicate",
+  colour: "onboarding.step3cTechnicalDetails.colour",
+  payloadMissing: "onboarding.step3cTechnicalDetails.payloadMissing",
+  payloadRange: "fleet.fleetVehicles.payloadRange",
+  dimensionsMissing: "onboarding.step3cTechnicalDetails.dimensionsMissing",
+  dimensionsHigh: "onboarding.step3cTechnicalDetails.dimensionsHigh",
+  trailerLength: "fleet.fleetVehicles.trailerLength",
+  noModelMatch: "onboarding.step3cTechnicalDetails.noModelMatch",
+  volumeHint: "onboarding.step3cTechnicalDetails.volumeHint",
+} as const;
+
+type VehicleMessageId = keyof typeof VEHICLE_MESSAGE_KEYS;
+
+/** Values a message's ICU placeholders are filled from. */
+type VehicleMessageValues = Record<string, string | number>;
+
+/**
+ * A translator over full message paths — `useTranslations()` with no
+ * namespace satisfies it. Taken as an argument because this module is pure and
+ * shared, and so cannot call a hook itself.
+ */
+export type VehicleMessageTranslator = (
+  key: string,
+  values?: VehicleMessageValues,
+) => string;
+
+/** English for the messages that carry values, as templates of the catalog's
+ *  own ICU shape so the fallback and the catalog cannot drift apart. */
+const ENGLISH_TEMPLATES: Partial<Record<VehicleMessageId, string>> = {
+  yearRange: "Year must be between {min} and {max}.",
+  plateDuplicate: "That plate is already used by vehicle {number}.",
+};
+
+function vehicleMessage(
+  id: VehicleMessageId,
+  translate: VehicleMessageTranslator | undefined,
+  values?: VehicleMessageValues,
+): string {
+  if (translate) return translate(VEHICLE_MESSAGE_KEYS[id], values);
+
+  const template =
+    ENGLISH_TEMPLATES[id] ??
+    VEHICLE_MESSAGES[id as keyof typeof VEHICLE_MESSAGES];
+  return template.replace(/\{(\w+)\}/g, (_, name: string) =>
+    String(values?.[name] ?? ""),
+  );
+}
+
+/**
  * Every failing field of one vehicle at once, so the editor can reveal all of
  * them rather than marching the company through one error at a time, and so a
  * caller can report "the first message" through `VEHICLE_FIELD_ORDER`.
@@ -248,6 +309,8 @@ export function validateFleetVehicle(
   vehicle: FleetDraftVehicle,
   currentYear: number,
   otherPlates: Map<string, number>,
+  /** Renders each message in the reader's language; English when omitted. */
+  translate?: VehicleMessageTranslator,
 ): VehicleFieldErrors {
   const errors: VehicleFieldErrors = {};
 
@@ -255,45 +318,55 @@ export function validateFleetVehicle(
     (vehicle.make ?? "").trim() === "" ||
     (vehicle.model ?? "").trim() === ""
   ) {
-    errors.makeModel = VEHICLE_MESSAGES.makeModel;
+    errors.makeModel = vehicleMessage("makeModel", translate);
   }
 
   const year = vehicle.year;
   if (year === undefined) {
-    errors.year = VEHICLE_MESSAGES.yearMissing;
+    errors.year = vehicleMessage("yearMissing", translate);
   } else if (
     !Number.isInteger(year) ||
     year < MIN_VEHICLE_YEAR ||
     year > currentYear
   ) {
-    errors.year = `Year must be between ${MIN_VEHICLE_YEAR} and ${currentYear}.`;
+    errors.year = vehicleMessage("yearRange", translate, {
+      // Strings, not numbers: ICU groups a numeric argument, which would
+      // render the year as "2,026".
+      min: String(MIN_VEHICLE_YEAR),
+      max: String(currentYear),
+    });
   }
 
   const plate = (vehicle.plateNumber ?? "").trim();
   if (plate === "") {
-    errors.plate = VEHICLE_MESSAGES.plateMissing;
+    errors.plate = vehicleMessage("plateMissing", translate);
   } else if (plate.length < MIN_PLATE_LENGTH) {
-    errors.plate = VEHICLE_MESSAGES.plateShort;
+    errors.plate = vehicleMessage("plateShort", translate);
   } else {
     const duplicateOf = otherPlates.get(plate.toUpperCase());
     if (duplicateOf !== undefined) {
-      errors.plate = `That plate is already used by vehicle ${duplicateOf}.`;
+      errors.plate = vehicleMessage("plateDuplicate", translate, {
+        number: duplicateOf,
+      });
     }
   }
 
   if ((vehicle.colour ?? "").trim() === "") {
-    errors.colour = VEHICLE_MESSAGES.colour;
+    errors.colour = vehicleMessage("colour", translate);
   }
 
   const payload = vehicle.payloadKg;
   if (payload === undefined) {
-    errors.payload = VEHICLE_MESSAGES.payloadMissing;
+    errors.payload = vehicleMessage("payloadMissing", translate);
   } else if (
     !Number.isFinite(payload) ||
     payload < MIN_PAYLOAD_KG ||
     payload > MAX_PAYLOAD_KG
   ) {
-    errors.payload = VEHICLE_MESSAGES.payloadRange;
+    errors.payload = vehicleMessage("payloadRange", translate, {
+      min: MIN_PAYLOAD_KG,
+      max: MAX_PAYLOAD_KG,
+    });
   }
 
   const dimensions = [
@@ -306,14 +379,16 @@ export function validateFleetVehicle(
       (value) => value === undefined || !Number.isFinite(value) || value <= 0,
     )
   ) {
-    errors.dimensions = VEHICLE_MESSAGES.dimensionsMissing;
+    errors.dimensions = vehicleMessage("dimensionsMissing", translate);
   } else if (dimensions.some((value) => (value ?? 0) > MAX_DIMENSION_M)) {
-    errors.dimensions = VEHICLE_MESSAGES.dimensionsHigh;
+    errors.dimensions = vehicleMessage("dimensionsHigh", translate);
   } else if (
     vehicle.classId === "TRAILER_TRUCK" &&
     (vehicle.cargoLengthM ?? 0) < MIN_TRAILER_LENGTH_M
   ) {
-    errors.dimensions = VEHICLE_MESSAGES.trailerLength;
+    errors.dimensions = vehicleMessage("trailerLength", translate, {
+      min: MIN_TRAILER_LENGTH_M,
+    });
   }
 
   return errors;

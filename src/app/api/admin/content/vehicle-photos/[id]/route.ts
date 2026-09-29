@@ -97,9 +97,9 @@ function parseUpdateBody(
   const unexpected = Object.keys(record).filter((key) => key !== "imageUrl");
   if (unexpected.length > 0) {
     return {
-      error:
-        `This endpoint only sets imageUrl. Unexpected field(s): ${unexpected.join(", ")}. ` +
-        "Vehicle specifications and pricing are changed through the seed, not the back office.",
+      error: t("errors.adminContentVehiclePhotos.unexpectedFields", {
+        fields: unexpected.join(", "),
+      }),
     };
   }
 
@@ -113,11 +113,16 @@ function parseUpdateBody(
 
   if (typeof imageUrl !== "string" || imageUrl.trim() === "") {
     return {
-      error: "imageUrl must be a non-empty string, or null to clear it.",
+      error: t("errors.adminContentVehiclePhotos.imageUrlNonEmptyOrNull"),
     };
   }
   if (imageUrl.trim().length > MAX_URL_LENGTH) {
-    return { error: `imageUrl must be ${MAX_URL_LENGTH} characters or fewer.` };
+    return {
+      error: t("common.shared.fieldMaxLength", {
+        field: "imageUrl",
+        max: MAX_URL_LENGTH,
+      }),
+    };
   }
   if (!isUsableUrl(imageUrl.trim())) {
     return {

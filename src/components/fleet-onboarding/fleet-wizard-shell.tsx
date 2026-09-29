@@ -33,7 +33,7 @@
 
 import { useState } from "react";
 import { ChevronLeftIcon } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { FleetApplicationStatusScreen } from "@/components/fleet-onboarding/fleet-application-status-screen";
@@ -56,42 +56,49 @@ import type { FleetDraftVehicle } from "@/lib/fleet-onboarding/draft-schema";
 
 /**
  * The kicker/title pair above each screen, following the design's `STEPS` array.
- * `titleKey` is the title's `common.shared` message key — render that; `title`
- * stays as the English source. The kickers have no catalog entry yet.
+ * `titleKey` is the title's `common.shared` message key and `sectionKey` the
+ * kicker's section name as a full message path — render those; `kicker` and
+ * `title` stay as the English source.
  */
 const SCREEN_HEADERS: {
   screen: number;
   kicker: string;
+  sectionKey: string;
   title: string;
   titleKey: string;
 }[] = [
   {
     screen: FLEET_SCREENS.company,
     kicker: "Step 1 of 5 · Company & authorisation",
+    sectionKey: "fleet.fleetStepRail.companyAuthorisation",
     title: "Company details",
     titleKey: "companyDetails",
   },
   {
     screen: FLEET_SCREENS.fleet,
     kicker: "Step 2 of 5 · Fleet",
+    sectionKey: "common.shared.fleet",
     title: "Fleet composition",
     titleKey: "fleetComposition",
   },
   {
     screen: FLEET_SCREENS.vehicles,
     kicker: "Step 3 of 5 · Vehicles",
+    sectionKey: "common.shared.vehicles",
     title: "Vehicle specifications",
     titleKey: "vehicleSpecifications",
   },
   {
     screen: FLEET_SCREENS.drivers,
     kicker: "Step 4 of 5 · Drivers",
+    sectionKey: "common.shared.drivers",
     title: "Drivers & assignment",
     titleKey: "driversAssignment",
   },
   {
     screen: FLEET_SCREENS.review,
     kicker: "Step 5 of 5 · Review",
+    sectionKey: "fleet.fleetWizardShell.kickerReview",
     title: "Check and submit",
     titleKey: "checkAndSubmit",
   },
@@ -126,8 +133,9 @@ const COMPLETE_TONE: FleetTallyRow["tone"] = "success";
 
 /**
  * "saved 2 days ago"-style phrasing for the welcome screen's resume banner,
- * built on `Intl.RelativeTimeFormat` rather than a date library — the platform
- * already has one.
+ * built on next-intl's `relativeTime` so the phrase follows the reader's
+ * locale. The translator and formatter are passed in because this is not a
+ * component and so cannot call the hooks itself.
  *
  * Copied from the driver wizard's shell rather than imported: it is not
  * exported there, and extracting a shared module would mean editing a file this
@@ -137,26 +145,32 @@ const COMPLETE_TONE: FleetTallyRow["tone"] = "success";
  * client-side `GET` has resolved, so there is no server-rendered value for a
  * clock difference to disagree with.
  */
-function formatSavedAt(iso: string): string {
+function formatSavedAt(
+  iso: string,
+  t: ReturnType<typeof useTranslations>,
+  format: ReturnType<typeof useFormatter>,
+): string {
   const savedAt = new Date(iso);
-  if (Number.isNaN(savedAt.getTime())) return "saved earlier";
+  if (Number.isNaN(savedAt.getTime())) return t("savedEarlier");
 
-  const elapsedSeconds = (savedAt.getTime() - Date.now()) / 1000;
-  const formatter = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
+  const now = Date.now();
+  const elapsedSeconds = Math.abs(savedAt.getTime() - now) / 1000;
 
-  const units: { unit: Intl.RelativeTimeFormatUnit; seconds: number }[] = [
+  const units: { unit: "day" | "hour" | "minute"; seconds: number }[] = [
     { unit: "day", seconds: 86400 },
     { unit: "hour", seconds: 3600 },
     { unit: "minute", seconds: 60 },
   ];
 
   for (const { unit, seconds } of units) {
-    if (Math.abs(elapsedSeconds) >= seconds) {
-      return `saved ${formatter.format(Math.round(elapsedSeconds / seconds), unit)}`;
+    if (elapsedSeconds >= seconds) {
+      return t("savedRelative", {
+        relative: format.relativeTime(savedAt, { now, unit }),
+      });
     }
   }
 
-  return "saved just now";
+  return t("savedJustNow");
 }
 
 /**
@@ -235,6 +249,7 @@ export function FleetWizardShell() {
   const t = useTranslations("fleet.fleetWizardShell");
   const tShared = useTranslations("common.shared");
   const tRoot = useTranslations();
+  const format = useFormatter();
 
   const [phase, setPhase] = useState<"welcome" | "step">("welcome");
   // Held so "Start a new application" can show progress and can't be
@@ -268,9 +283,9 @@ export function FleetWizardShell() {
   }
 
   const tally: FleetTallyRow[] = [
-    { key: "Declared", value: String(declared), tone: "default" },
-    completionRow("Specified", specified),
-    completionRow("Drivers assigned", assigned),
+    { key: t("declared"), value: String(declared), tone: "default" },
+    completionRow(t("specified"), specified),
+    completionRow(t("driversAssigned"), assigned),
   ];
 
   function handleSelectStep(step: number) {
@@ -284,7 +299,7 @@ export function FleetWizardShell() {
     // entry, so a company that has declared a fleet but not yet reached step 3
     // must still be allowed through.
     if (step >= FLEET_SCREENS.vehicles && declared === 0) {
-      showToast("Declare your fleet first.", "error");
+      showToast(t("declareYourFleetFirst"), "error");
       return;
     }
 
@@ -358,11 +373,7 @@ export function FleetWizardShell() {
         <FleetStepRail
           currentStep={FLEET_RAIL.length}
           tally={tally}
-          onSelect={() =>
-            showToast(
-              "Your application is with the review team — there is nothing left to edit.",
-            )
-          }
+          onSelect={() => showToast(t("nothingLeftToEdit"))}
         />
         <ContentColumn>
           <div className="animate-onboarding-fade-up py-10 pb-18">
@@ -417,10 +428,13 @@ export function FleetWizardShell() {
                     {tShared("unfinishedApplication")}
                   </p>
                   <p className="mt-[3px] text-[13px] text-muted-foreground">
-                    {formatSavedAt(draftUpdatedAt)} · you left off at step{" "}
-                    {currentStep} of {FLEET_RAIL.length}
+                    {t("resumeLine", {
+                      savedAt: formatSavedAt(draftUpdatedAt, t, format),
+                      step: currentStep,
+                      total: FLEET_RAIL.length,
+                    })}
                     {declared > 0
-                      ? ` · ${declared} ${declared === 1 ? "vehicle" : "vehicles"} declared`
+                      ? ` · ${t("vehiclesDeclared", { count: declared })}`
                       : ""}
                   </p>
                 </div>
@@ -443,12 +457,12 @@ export function FleetWizardShell() {
               className="mt-4 h-[50px] cursor-pointer rounded-xl border border-border bg-card px-[26px] text-[15px] font-semibold transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
             >
               {resetting
-                ? "Starting…"
+                ? t("starting")
                 : draftUpdatedAt !== null
-                  ? "Start a new application"
+                  ? t("startANewApplication")
                   : // Nothing to discard yet, so the design drops the
                     // "new application" framing entirely.
-                    "Start"}
+                    t("start")}
             </button>
           </div>
         </ContentColumn>
@@ -480,7 +494,13 @@ export function FleetWizardShell() {
             </button>
             <div className="min-w-0 flex-1">
               <p className="font-price text-[10.5px] font-semibold tracking-[0.09em] text-onboarding-accent uppercase">
-                {header?.kicker}
+                {header
+                  ? t("kicker", {
+                      step: header.screen,
+                      total: SCREEN_HEADERS.length,
+                      section: tRoot(header.sectionKey),
+                    })
+                  : null}
               </p>
               <h1 className="mt-0.5 text-[26px] font-semibold tracking-[-0.02em]">
                 {header ? tShared(header.titleKey) : null}
@@ -496,7 +516,7 @@ export function FleetWizardShell() {
               }`}
               role={saveError !== null ? "alert" : undefined}
             >
-              {saveError ?? (saving ? "Saving…" : null)}
+              {saveError ?? (saving ? t("saving") : null)}
             </p>
           </div>
 

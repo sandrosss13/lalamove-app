@@ -42,16 +42,16 @@ const ACCEPTED_CONTENT_TYPES = ["image/jpeg", "image/png", "image/webp"];
  */
 const MAX_FILE_BYTES = 8 * 1024 * 1024;
 
-const UPLOAD_FAILED_FALLBACK =
-  "The upload didn't finish. Check your connection and try again.";
+/** Message paths — this module is plain constants, so text resolves at render. */
+const UPLOAD_FAILED_FALLBACK_KEY =
+  "onboarding.documentUploadDialog.uploadFailed";
 
 /**
  * Shown when the preview `<img>` fails to load. By far the most common cause is
  * a `site-media` bucket created *private*: uploads succeed against it and every
  * resulting URL then renders broken.
  */
-const PREVIEW_FAILED_MESSAGE =
-  "This image could not be loaded. If it was just uploaded, check the site-media bucket is public.";
+const PREVIEW_FAILED_MESSAGE_KEY = "admin.adminImageUpload.previewFailed";
 
 /**
  * A neutral checkerboard behind the preview, so a transparent partner logo is
@@ -79,15 +79,15 @@ export type AdminImageUploadProps = {
 
 /**
  * Rejects a file the endpoint would refuse anyway, before any request is made.
- * Returns the message to show, or `null` when the file is fine.
+ * Returns the message path to show, or `null` when the file is fine.
  */
 function rejectFile(file: File): string | null {
   if (!ACCEPTED_CONTENT_TYPES.includes(file.type)) {
-    return "That file is not a JPG, PNG or WebP image. Choose a different one.";
+    return "admin.adminImageUpload.wrongFileType";
   }
 
   if (file.size > MAX_FILE_BYTES) {
-    return "That file is larger than 8 MB. Choose a smaller one.";
+    return "admin.adminImageUpload.fileTooLarge";
   }
 
   return null;
@@ -165,7 +165,7 @@ export function AdminImageUpload({
             error?: string;
           } | null;
           setState("failed");
-          setMessage(payload?.error ?? UPLOAD_FAILED_FALLBACK);
+          setMessage(payload?.error ?? t(UPLOAD_FAILED_FALLBACK_KEY));
           // The most likely cause of a 502 here is a bucket nobody has created
           // yet, which no amount of retrying fixes — so offer the way out.
           setShowUrlField(true);
@@ -187,11 +187,11 @@ export function AdminImageUpload({
         setState("idle");
       } catch {
         setState("failed");
-        setMessage(UPLOAD_FAILED_FALLBACK);
+        setMessage(t(UPLOAD_FAILED_FALLBACK_KEY));
         setShowUrlField(true);
       }
     },
-    [onChange, purpose],
+    [onChange, purpose, t],
   );
 
   const handleFile = useCallback(
@@ -202,7 +202,7 @@ export function AdminImageUpload({
         // stays as it was — a wrong file is the content manager's to replace,
         // not a sign that uploading is unavailable.
         setState("failed");
-        setMessage(rejection);
+        setMessage(t(rejection));
         setPendingFile(null);
         return;
       }
@@ -210,7 +210,7 @@ export function AdminImageUpload({
       setPendingFile(file);
       void upload(file);
     },
-    [upload],
+    [t, upload],
   );
 
   const uploading = state === "uploading";
@@ -274,10 +274,10 @@ export function AdminImageUpload({
           onClick={() => inputRef.current?.click()}
         >
           {uploading
-            ? "Uploading…"
+            ? t("onboarding.documentUploadDialog.uploading")
             : value !== ""
-              ? "Replace image"
-              : "Choose image"}
+              ? t("admin.adminImageUpload.replaceImage")
+              : t("admin.adminImageUpload.chooseImage")}
         </Button>
 
         {value !== "" && !uploading ? (
@@ -310,7 +310,9 @@ export function AdminImageUpload({
           disabled={controlsDisabled}
           onClick={() => setShowUrlField((shown) => !shown)}
         >
-          {showUrlField ? "Hide URL field" : "Paste a URL instead"}
+          {showUrlField
+            ? t("admin.adminImageUpload.hideUrlField")
+            : t("admin.adminImageUpload.pasteAUrlInstead")}
         </button>
       </div>
 
@@ -339,8 +341,8 @@ export function AdminImageUpload({
 
       <p className="text-xs text-muted-foreground">
         {purpose === "partner-logos"
-          ? "JPG, PNG or WebP · max 8 MB. Logos must be transparent PNG — SVG is not accepted."
-          : "JPG, PNG or WebP · max 8 MB."}
+          ? t("admin.adminImageUpload.fileHintLogos")
+          : t("admin.adminImageUpload.fileHint")}
       </p>
 
       {message !== null ? (
@@ -351,7 +353,7 @@ export function AdminImageUpload({
 
       {previewFailed && value !== "" ? (
         <p role="alert" className="text-sm text-destructive">
-          {PREVIEW_FAILED_MESSAGE}
+          {t(PREVIEW_FAILED_MESSAGE_KEY)}
         </p>
       ) : null}
     </div>

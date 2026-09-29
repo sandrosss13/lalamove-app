@@ -1,6 +1,7 @@
 "use client";
 
 import { X } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 
 import { Link } from "@/i18n/navigation";
 import { useLoadsBoard } from "@/components/driver-hub/screens/loads-context";
@@ -276,6 +277,12 @@ export function LoadsDrawer() {
     isRejected,
     nowIso,
   } = useLoadsBoard();
+  const t = useTranslations("driverHub.loadsDrawer");
+  const tSheet = useTranslations("driverHub.loadsDetailSheet");
+  const tShared = useTranslations("common.shared");
+  // Month names in the tooltips and the deadline follow the reader's language;
+  // the Tbilisi time zone inside `loads-format.ts` is unchanged.
+  const locale = useLocale();
 
   if (selectedLoad === null) {
     return null;
@@ -354,7 +361,7 @@ export function LoadsDrawer() {
       // Required. Without it every token below resolves to the marketing
       // palette — see this file's doc comment.
       data-admin-surface=""
-      aria-label={`Load ${load.reference}`}
+      aria-label={t("loadAria", { reference: load.reference })}
       // The shadow is the design's own `-8px 0 24px rgba(0,0,0,0.08)`, written
       // as an arbitrary value for the same reason `hub-primitives.tsx` writes
       // the handoff's active-segment shadow that way: these are one-off
@@ -382,7 +389,7 @@ export function LoadsDrawer() {
               className="size-[26px]"
             >
               <X aria-hidden="true" />
-              <span className="sr-only">Close</span>
+              <span className="sr-only">{tShared("close")}</span>
             </Button>
           </div>
         </div>
@@ -403,7 +410,7 @@ export function LoadsDrawer() {
       <div className="border-b border-border p-4">
         <div className="flex flex-col gap-3">
           <RouteStop
-            label="Pick-up"
+            label={tShared("pickUp")}
             marker="filled"
             city={load.pickupCity}
             address={load.pickupAddress}
@@ -416,19 +423,24 @@ export function LoadsDrawer() {
             }
             // The window prints as a bare clock, so the date it falls on lives in
             // the tooltip rather than nowhere.
-            timeTitle={formatFullTimestamp(load.pickupWindowStart)}
+            timeTitle={formatFullTimestamp(load.pickupWindowStart, locale)}
           />
           <RouteStop
-            label="Drop-off"
+            label={tShared("dropOff")}
             marker="ring"
             city={load.dropoffCity}
             address={load.dropoffAddress}
             time={
               load.deliveryDeadline === null
                 ? EM_DASH
-                : `Deliver by ${formatAbsoluteDateTime(load.deliveryDeadline)}`
+                : t("deliverBy", {
+                    dateTime: formatAbsoluteDateTime(
+                      load.deliveryDeadline,
+                      locale,
+                    ),
+                  })
             }
-            timeTitle={formatFullTimestamp(load.deliveryDeadline)}
+            timeTitle={formatFullTimestamp(load.deliveryDeadline, locale)}
           />
         </div>
 
@@ -443,7 +455,9 @@ export function LoadsDrawer() {
             pickup → single dropoff booking with no stop table, so two is the
             only number it can be. See requirements.md's Non-Goals. */}
         <p className="mt-3 pl-5 text-xs text-muted-foreground tabular-nums">
-          {formatDistanceKm(load.distanceKm)} · 2 stops
+          {tSheet("stopsCount", {
+            distance: formatDistanceKm(load.distanceKm),
+          })}
         </p>
       </div>
 
@@ -451,7 +465,7 @@ export function LoadsDrawer() {
       {/* 3. Cargo                                                         */}
       {/* ---------------------------------------------------------------- */}
       <div className="border-b border-border p-4">
-        <h3 className={SECTION_LABEL_CLASSES}>Cargo</h3>
+        <h3 className={SECTION_LABEL_CLASSES}>{tShared("cargo")}</h3>
 
         <CargoSpecList load={load} />
         <HandlingTagPills load={load} />
@@ -501,7 +515,7 @@ export function LoadsDrawer() {
                 onClick={() => openDispatch(load)}
                 className="h-10 text-sm font-medium"
               >
-                Assign a vehicle
+                {tShared("assignAVehicle")}
               </Button>
             ) : null}
             <Button
@@ -509,7 +523,9 @@ export function LoadsDrawer() {
               variant="outline"
               className="h-10 text-sm font-medium"
             >
-              <Link href={`/dashboard/jobs/${load.id}`}>Open job sheet</Link>
+              <Link href={`/dashboard/jobs/${load.id}`}>
+                {tShared("openJobSheet")}
+              </Link>
             </Button>
           </>
         ) : isLoadRejected ? (
@@ -523,7 +539,7 @@ export function LoadsDrawer() {
             disabled={isBusy}
             className="h-10 text-sm font-medium"
           >
-            {isPending ? "Restoring…" : "Restore to open loads"}
+            {isPending ? tSheet("restoring") : tSheet("restoreToOpenLoads")}
           </Button>
         ) : (
           <>
@@ -535,7 +551,7 @@ export function LoadsDrawer() {
               disabled={!canAccept(load.id)}
               className="h-10 text-sm font-medium"
             >
-              Accept this load
+              {tShared("acceptThisLoad")}
             </Button>
             <Button
               type="button"
@@ -557,11 +573,10 @@ export function LoadsDrawer() {
               // button uses, on the one control here that discards a load.
               className="h-10 text-sm font-medium hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive dark:hover:border-destructive/40 dark:hover:bg-destructive/10"
             >
-              {isPending ? "Rejecting…" : "Reject this load"}
+              {isPending ? tSheet("rejecting") : tSheet("rejectThisLoad")}
             </Button>
             <p className="text-center text-[11px] leading-relaxed text-muted-foreground">
-              First driver to confirm claims the order. Rejecting only hides it
-              from your board.
+              {tShared("firstDriverToConfirmClaimsThe")}
             </p>
           </>
         )}

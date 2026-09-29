@@ -12,6 +12,7 @@ import { useSession } from "@/lib/auth-client";
  */
 export function AuthStatus() {
   const t = useTranslations("common.shared");
+  const tAuthStatus = useTranslations("common.authStatus");
   const { data: session, isPending } = useSession();
   // Hoisted above the `session` branch below because hooks cannot be called
   // conditionally — the control it drives only renders when there *is* a
@@ -51,7 +52,7 @@ export function AuthStatus() {
           disabled={signingOut}
           className="rounded border px-2 py-1 font-medium hover:opacity-70 disabled:opacity-50"
         >
-          {signingOut ? "Signing out…" : "Sign out"}
+          {signingOut ? tAuthStatus("signingOut") : tAuthStatus("signOut")}
         </button>
       </div>
     );

@@ -6,6 +6,7 @@ import type { AdminRole } from "@prisma/client";
 // unsuspend answer with the same object so the admin table can apply either
 // outcome the same way, and sharing the type is what keeps that true.
 import type { AdminSuspensionResponse } from "@/app/api/admin/users/[userId]/suspend/route";
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { authorizeAdminApi } from "@/lib/admin/api-auth";
 import { writeAuditLog } from "@/lib/admin/audit";
 import { prisma } from "@/lib/prisma";
@@ -57,7 +58,12 @@ export async function POST(
   });
 
   if (!target) {
-    return NextResponse.json({ error: "User not found." }, { status: 404 });
+    const t = await getRequestTranslations();
+
+    return NextResponse.json(
+      { error: t("common.shared.userNotFound") },
+      { status: 404 },
+    );
   }
 
   const updated = await prisma.user.update({

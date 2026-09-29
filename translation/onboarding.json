@@ -89,6 +89,11 @@
     "ka": "ელოდება ვერიფიკაციას",
     "_source": "src/components/driver-onboarding/application-status-screen.tsx"
   },
+  "applicationStatusScreen.photoReplaced": {
+    "en": "Photo replaced. Resubmit when you're ready.",
+    "ka": "ფოტო ჩანაცვლებულია. ხელახლა გაგზავნეთ, როცა მზად იქნებით.",
+    "_source": "src/components/driver-onboarding/application-status-screen.tsx"
+  },
   "applicationStatusScreen.profilePhoto": {
     "en": "Profile photo",
     "ka": "პროფილის ფოტო",
@@ -204,6 +209,11 @@
     "ka": "ეს ფაილი არ არის JPG ან PNG. აირჩიეთ სხვა ფაილი.",
     "_source": "src/components/driver-onboarding/document-upload-dialog.tsx"
   },
+  "documentUploadDialog.previewSoon": {
+    "en": "Uploaded. The preview will appear shortly.",
+    "ka": "ატვირთულია. გადახედვა მალე გამოჩნდება.",
+    "_source": "src/components/driver-onboarding/document-upload-dialog.tsx"
+  },
   "documentUploadDialog.theCategoryTableIsWhatThe": {
     "en": "The category table is what the reviewer checks.",
     "ka": "კატეგორიების ცხრილს ამოწმებს ამმოწმებელი.",
@@ -238,6 +248,21 @@
     "en": "Uploading…",
     "ka": "იტვირთება…",
     "_source": "src/components/driver-onboarding/document-upload-dialog.tsx"
+  },
+  "onboardingDraft.loadFailed": {
+    "en": "We couldn't load your application. Check your connection and try again.",
+    "ka": "თქვენი განაცხადის ჩატვირთვა ვერ მოხერხდა. შეამოწმეთ კავშირი და სცადეთ ხელახლა.",
+    "_source": "src/components/driver-onboarding/onboarding-draft-context.tsx"
+  },
+  "onboardingDraft.resetFailed": {
+    "en": "We couldn't start a new application. Please try again.",
+    "ka": "ახალი განაცხადის დაწყება ვერ მოხერხდა. გთხოვთ, სცადოთ ხელახლა.",
+    "_source": "src/components/driver-onboarding/onboarding-draft-context.tsx"
+  },
+  "onboardingDraft.saveFailed": {
+    "en": "We couldn't save your progress. Your latest answers aren't stored yet.",
+    "ka": "პროგრესის შენახვა ვერ მოხერხდა. თქვენი ბოლო პასუხები ჯერ არ არის შენახული.",
+    "_source": "src/components/driver-onboarding/onboarding-draft-context.tsx"
   },
   "onboardingStepRail.authorisationPersonal": {
     "en": "Authorisation & personal",
@@ -404,6 +429,11 @@
     "ka": "მიუთითეთ სახელი და გვარი ზუსტად ისე, როგორც პირადობის დოკუმენტშია.",
     "_source": "src/components/driver-onboarding/steps/step-1-auth-personal.tsx"
   },
+  "step1AuthPersonal.idNumberFormat": {
+    "en": "6–20 letters, digits or hyphens, no spaces.",
+    "ka": "6–20 ასო, ციფრი ან დეფისი, გამოტოვების გარეშე.",
+    "_source": "src/components/driver-onboarding/steps/step-1-auth-personal.tsx"
+  },
   "step1AuthPersonal.idOrPassportNumber": {
     "en": "ID or passport number",
     "ka": "პირადი ნომერი ან პასპორტის ნომერი",
@@ -566,7 +596,7 @@
   },
   "step2Licence.truckWithTrailerArticulated": {
     "en": "Truck with trailer / articulated",
-    "ka": "სატვირთო მისაბმელით / ავტოპოზდი",
+    "ka": "სატვირთო მისაბმელით / ნახევრადმისაბმელით",
     "_source": "src/components/driver-onboarding/steps/step-2-licence.tsx"
   },
   "step2Licence.uploaded": {
@@ -854,6 +884,11 @@
     "ka": "წელი უნდა იყოს {min}-დან {max}-მდე.",
     "_source": "src/components/driver-onboarding/steps/step-3c-technical-details.tsx"
   },
+  "step4ReviewSubmit.cargoHoldValue": {
+    "en": "{length} × {width} × {height} m",
+    "ka": "{length} × {width} × {height} მ",
+    "_source": "src/components/driver-onboarding/steps/step-4-review-submit.tsx"
+  },
   "step4ReviewSubmit.checkEverythingBeforeItGoesTo": {
     "en": "Check everything before it goes to the review team. Corrections after submission cost you a day.",
     "ka": "შეამოწმეთ ყველაფერი, სანამ გადამოწმების გუნდთან გაიგზავნება. გაგზავნის შემდეგ შესწორებები დაგიჯდებათ ერთი დღით შეყოვნება.",
@@ -1011,22 +1046,22 @@
   },
   "vehicleClasses.heavyFreightTruck": {
     "en": "Heavy Freight Truck",
-    "ka": "მძიმე სატვირთო ავტომობილი (Heavy Freight Truck)",
+    "ka": "მძიმე სატვირთო",
     "_source": "src/lib/driver-onboarding/vehicle-classes.ts"
   },
   "vehicleClasses.largeVan": {
     "en": "Large Van",
-    "ka": "დიდი ფურგონი (Large Van)",
+    "ka": "დიდი ფურგონი",
     "_source": "src/lib/driver-onboarding/vehicle-classes.ts"
   },
   "vehicleClasses.mediumTruck": {
     "en": "Medium Truck",
-    "ka": "საშუალო სატვირთო (Medium Truck)",
+    "ka": "საშუალო სატვირთო",
     "_source": "src/lib/driver-onboarding/vehicle-classes.ts"
   },
   "vehicleClasses.smallVan": {
     "en": "Small Van",
-    "ka": "მცირე ფურგონი (Small Van)",
+    "ka": "მცირე ფურგონი",
     "_source": "src/lib/driver-onboarding/vehicle-classes.ts"
   },
   "vehicleClasses.temperatureControlled20CTo8": {
@@ -1036,7 +1071,7 @@
   },
   "vehicleClasses.trailerTruck": {
     "en": "Trailer Truck",
-    "ka": "სატვირთო მისაბმელით / ტრაილერი (Trailer Truck)",
+    "ka": "მისაბმელიანი სატვირთო",
     "_source": "src/lib/driver-onboarding/vehicle-classes.ts"
   }
 }

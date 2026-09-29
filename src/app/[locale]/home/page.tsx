@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
 
 import { LandingPage } from "@/components/landing/landing-page";
-import { resolveContentLocale, type LocaleRouteParams } from "@/i18n/server";
+import { resolveRouteLocale, type LocaleRouteParams } from "@/i18n/server";
 import { auth } from "@/lib/auth";
 import { loadHomePageContent } from "@/lib/admin/home-page-data";
 
@@ -31,7 +31,7 @@ export default async function HomePage({
 }: {
   params: LocaleRouteParams;
 }) {
-  const locale = await resolveContentLocale(params);
+  const locale = await resolveRouteLocale(params);
 
   const [{ sections, heroBanners, partnerBanners }, session] =
     await Promise.all([

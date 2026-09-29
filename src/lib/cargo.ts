@@ -16,6 +16,9 @@ import type {
   CargoHandlingTag,
   VehicleCategory,
 } from "@prisma/client";
+import { useTranslations } from "next-intl";
+
+import type { Translator } from "@/i18n/translator";
 
 export const CARGO_CATEGORY_LABELS: Record<CargoCategory, string> = {
   FURNITURE_FURNISHINGS: "Furniture & Furnishings",
@@ -163,3 +166,62 @@ export const CARGO_MEASUREMENT_BOUNDS = {
   // Not 2.7 (the tallest enclosed hold) — the flatbed sentinel, above.
   cargoHeightM: { min: 0.1, max: 4, unit: "m" },
 } as const satisfies Record<string, CargoMeasurementBounds>;
+
+/* -------------------------------------------------------------------------- */
+/* Localised labels                                                           */
+/* -------------------------------------------------------------------------- */
+
+/** Message keys for `CARGO_CATEGORY_LABELS`, which stays as the English source. */
+const CARGO_CATEGORY_KEY: Record<CargoCategory, string> = {
+  FURNITURE_FURNISHINGS: "common.cargoCategory.furnitureFurnishings",
+  APPLIANCES: "common.cargoCategory.appliances",
+  RETAIL_STOCK: "common.cargoCategory.retailStock",
+  EVENT_EQUIPMENT: "common.cargoCategory.eventEquipment",
+  FULL_RELOCATION: "common.cargoCategory.fullRelocation",
+  INDUSTRIAL_SUPPLIES: "common.cargoCategory.industrialSupplies",
+  CONSTRUCTION_MATERIALS: "common.cargoCategory.constructionMaterials",
+};
+
+/**
+ * Message keys for `CARGO_HANDLING_TAG_LABELS`. They live under the driver
+ * hub's `loadsFormat` group because that is where the catalog first gave the
+ * tags Georgian; the words are the same on every surface.
+ */
+const CARGO_HANDLING_TAG_KEY: Record<CargoHandlingTag, string> = {
+  FRAGILE: "driverHub.loadsFormat.fragile",
+  COLD_CHAIN: "driverHub.loadsFormat.coldChain",
+  HAZMAT: "driverHub.loadsFormat.hazmat",
+  TIME_CRITICAL: "driverHub.loadsFormat.timeCritical",
+  UPRIGHT_ONLY: "driverHub.loadsFormat.uprightOnly",
+  HEAVY_ITEM: "driverHub.loadsFormat.heavyItem",
+};
+
+/** `CARGO_CATEGORY_LABELS[category]` in the reader's language, given a root `t`. */
+export function cargoCategoryLabel(
+  category: CargoCategory,
+  t: Translator,
+): string {
+  return t(CARGO_CATEGORY_KEY[category]);
+}
+
+/** `CARGO_HANDLING_TAG_LABELS[tag]` in the reader's language, given a root `t`. */
+export function cargoHandlingTagLabel(
+  tag: CargoHandlingTag,
+  t: Translator,
+): string {
+  return t(CARGO_HANDLING_TAG_KEY[tag]);
+}
+
+/** Component hook: a `category → label` lookup in the reader's language. */
+export function useCargoCategoryLabel(): (category: CargoCategory) => string {
+  const t = useTranslations();
+
+  return (category) => cargoCategoryLabel(category, t);
+}
+
+/** Component hook: a `tag → label` lookup in the reader's language. */
+export function useCargoHandlingTagLabel(): (tag: CargoHandlingTag) => string {
+  const t = useTranslations();
+
+  return (tag) => cargoHandlingTagLabel(tag, t);
+}

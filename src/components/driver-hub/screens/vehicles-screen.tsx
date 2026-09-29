@@ -19,7 +19,6 @@ import { VehiclesDetailPanel } from "@/components/driver-hub/screens/vehicles-de
 import {
   formatGel,
   formatOdometer,
-  pluralise,
 } from "@/components/driver-hub/screens/vehicles-format";
 import { Button } from "@/components/ui/button";
 import {
@@ -173,15 +172,10 @@ const CELL_CLASSES = "min-w-0 px-0 py-3.5";
 /* Honesty copy                                                               */
 /* -------------------------------------------------------------------------- */
 
-const SAMPLED_COLUMNS_NOTE =
-  "Odometer and cost per km are placeholders: nothing records a reading or a " +
-  "cost against a vehicle. Retire with Vehicle.odometerKm and a VehicleExpense " +
-  "model.";
+// Keys into `driverHub.vehiclesScreen`, translated where rendered.
+const SAMPLED_COLUMNS_NOTE = "sampledColumnsNote";
 
-const FLEET_COST_NOTE =
-  "No fuel, service, parking or toll charge is recorded against any " +
-  "vehicle, so there is nothing to average. Retire with a VehicleExpense " +
-  "model.";
+const FLEET_COST_NOTE = "fleetCostSampleNote";
 
 /**
  * The accent orange, spelled out rather than imported: `hub-primitives.tsx`
@@ -198,15 +192,19 @@ const ACCENT_DOT_CLASSES =
  * because the placeholder is a property of the column, not of each cell.
  */
 function SampledHead({ children }: { children: React.ReactNode }) {
+  const t = useTranslations("driverHub.vehiclesScreen");
+
   return (
     <span className="inline-flex items-center gap-1">
       {children}
       <span
         aria-hidden="true"
-        title={SAMPLED_COLUMNS_NOTE}
+        title={t(SAMPLED_COLUMNS_NOTE)}
         className={ACCENT_DOT_CLASSES}
       />
-      <span className="sr-only"> — sample data. {SAMPLED_COLUMNS_NOTE}</span>
+      <span className="sr-only">
+        {t("sampleData")} {t(SAMPLED_COLUMNS_NOTE)}
+      </span>
     </span>
   );
 }
@@ -241,13 +239,15 @@ export function VehiclesScreen({ data }: VehiclesScreenProps) {
   useHubSubtitle(
     tiles.vehicleCount === 0
       ? persona === "ROSTER"
-        ? "No vehicle assigned to you yet"
-        : "No vehicles yet"
+        ? t("subtitleNoneRoster")
+        : t("subtitleNone")
       : persona === "ROSTER"
-        ? `${pluralise(tiles.vehicleCount, "vehicle")} assigned to you`
-        : `${pluralise(tiles.vehicleCount, "vehicle")} registered · ${
-            tiles.onTheRoadCount
-          } on the road, ${tiles.unassignedCount} unassigned`,
+        ? t("subtitleRoster", { count: tiles.vehicleCount })
+        : t("subtitleFleet", {
+            count: tiles.vehicleCount,
+            onRoad: tiles.onTheRoadCount,
+            unassigned: tiles.unassignedCount,
+          }),
   );
 
   const reviewPending = vehicles.some(needsReview);
@@ -375,10 +375,13 @@ export function VehiclesScreen({ data }: VehiclesScreenProps) {
   ) : undefined;
 
   const detailLabel = adding
-    ? "the add vehicle form"
+    ? t("detailLabelAddForm")
     : selectedVehicle
-      ? `${selectedVehicle.make} ${selectedVehicle.model} details`
-      : "vehicle details";
+      ? t("detailLabelVehicle", {
+          make: selectedVehicle.make,
+          model: selectedVehicle.model,
+        })
+      : t("detailLabelDefault");
 
   // The design's own note is the literal "5 vans · 1 sedan · 2 trucks", over a
   // three-entry prototype catalogue this app does not have: the real labels come
@@ -405,11 +408,7 @@ export function VehiclesScreen({ data }: VehiclesScreenProps) {
           // A fleet's operator reads this as a dispatch fact about somebody
           // else; a driver reads it as a fact about themselves, because the
           // only vehicle they can be shown as holding is one assigned to them.
-          note={
-            kind === "BUSINESS"
-              ? "Held by a driver right now"
-              : "In your hands right now"
-          }
+          note={kind === "BUSINESS" ? t("heldByDriver") : t("inYourHands")}
         />
         <MetricTile
           label={tShared("unassigned")}
@@ -417,11 +416,7 @@ export function VehiclesScreen({ data }: VehiclesScreenProps) {
           // "Available to hand to a driver" is a move only a fleet manager can
           // make. For a single driver the honest reading of the same number is
           // that nobody is currently holding it.
-          note={
-            kind === "BUSINESS"
-              ? "Available to hand to a driver"
-              : "Not held by anyone right now"
-          }
+          note={kind === "BUSINESS" ? t("availableToHand") : t("notHeld")}
         />
         {/* "Fleet cost per km" for everyone, as the design has it: its own
             `fleetTiles` label is unconditional, and the note names the four
@@ -432,9 +427,9 @@ export function VehiclesScreen({ data }: VehiclesScreenProps) {
         <MetricTile
           label={t("fleetCostPerKm")}
           value={formatGel(tiles.sampled.fleetCostPerKmGel)}
-          note="Fuel, service, parking and tolls"
+          note={t("fleetCostNote")}
         >
-          <SampleNote note={FLEET_COST_NOTE} className="mt-2.5" />
+          <SampleNote note={t(FLEET_COST_NOTE)} className="mt-2.5" />
         </MetricTile>
       </div>
 
@@ -469,7 +464,7 @@ export function VehiclesScreen({ data }: VehiclesScreenProps) {
                         setTab(next);
                       }
                     }}
-                    ariaLabel="Filter vehicles by status"
+                    ariaLabel={t("filterAria")}
                   />
                 ) : null}
 
@@ -480,7 +475,7 @@ export function VehiclesScreen({ data }: VehiclesScreenProps) {
                   {hasVehicles && !split ? (
                     <SampleNote
                       label={t("odometerCostKm")}
-                      note={SAMPLED_COLUMNS_NOTE}
+                      note={t(SAMPLED_COLUMNS_NOTE)}
                     />
                   ) : null}
                   {/* Body font, not mono: the design's `fleetCountLabel` is one
@@ -489,7 +484,10 @@ export function VehiclesScreen({ data }: VehiclesScreenProps) {
                       odometers and money. */}
                   {hasVehicles ? (
                     <span className="text-xs text-muted-foreground">
-                      {visible.length} of {vehicles.length} shown
+                      {t("shownCount", {
+                        visible: visible.length,
+                        total: vehicles.length,
+                      })}
                     </span>
                   ) : null}
                   {/* A driver on a company's roster drives a van their employer
@@ -674,7 +672,12 @@ export function VehiclesScreen({ data }: VehiclesScreenProps) {
 
                 {visible.length === 0 ? (
                   <HubEmptyState
-                    message={`No ${activeTab.toLowerCase()} vehicles.`}
+                    message={t("noTabVehicles", {
+                      status: (
+                        tabs.find((item) => item.value === activeTab)?.label ??
+                        activeTab
+                      ).toLocaleLowerCase(),
+                    })}
                   />
                 ) : null}
               </>
@@ -691,17 +694,14 @@ export function VehiclesScreen({ data }: VehiclesScreenProps) {
               <HubEmptyState
                 message={
                   persona === "BUSINESS"
-                    ? "No vehicles in the fleet yet."
+                    ? t("noVehiclesFleet")
                     : persona === "ROSTER"
-                      ? "No vehicle assigned to you yet."
-                      : "You have no vehicle registered yet."
+                      ? t("noVehicleAssigned")
+                      : t("noVehicleRegistered")
                 }
               >
                 {persona === "ROSTER" ? (
-                  <p className="mt-1.5 text-[13px]">
-                    Your fleet manager assigns you a vehicle from the
-                    company&apos;s own. It appears here once they do.
-                  </p>
+                  <p className="mt-1.5 text-[13px]">{t("rosterEmptyHint")}</p>
                 ) : (
                   <p className="mt-1.5 text-[13px]">
                     {t("addOneToStartTakingJobs")}

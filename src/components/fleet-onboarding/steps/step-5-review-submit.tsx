@@ -57,9 +57,6 @@ const SUBMIT_ENDPOINT = "/api/logistics-company/onboarding/submit";
  */
 const ROSTER_ENDPOINT = "/api/logistics-company/drivers";
 
-const SUBMIT_ERROR_FALLBACK =
-  "We couldn't submit your application. Check your connection and try again.";
-
 /** Placeholder for a row the draft has nothing for, per the design. */
 const EMPTY_VALUE = "—";
 
@@ -106,7 +103,10 @@ function orPlaceholder(value: string | null | undefined): string {
  * plain functions rather than components, so they are handed the component's
  * translators instead of calling the hook themselves.
  */
-type Translate = (key: string) => string;
+type Translate = (
+  key: string,
+  values?: Record<string, string | number>,
+) => string;
 
 /** "TBILISI" → "Tbilisi" (or its Georgian name), via the same localized
  *  option list the city picker uses. */
@@ -119,8 +119,8 @@ function formatCity(
 }
 
 /** "2 vehicles", "1 vehicle". */
-function vehicleCountLabel(count: number): string {
-  return `${count} vehicle${count === 1 ? "" : "s"}`;
+function vehicleCountLabel(count: number, t: Translate): string {
+  return t("vehicleCount", { count });
 }
 
 /** The company card's rows, in the design's order. */
@@ -198,6 +198,7 @@ function buildCompanyRows(
  */
 function buildFleetRows(
   vehicles: FleetDraftVehicle[],
+  t: Translate,
   tShared: Translate,
   tRoot: Translate,
 ): SummaryRow[] {
@@ -213,14 +214,14 @@ function buildFleetRows(
     rows.push({
       key: body.id,
       label: tRoot(body.shortLabelKey),
-      value: vehicleCountLabel(count),
+      value: vehicleCountLabel(count, t),
     });
   }
 
   rows.push({
     key: "total",
     label: tShared("total"),
-    value: vehicleCountLabel(vehicles.length),
+    value: vehicleCountLabel(vehicles.length, t),
     valueClassName: "font-semibold",
   });
 
@@ -246,7 +247,9 @@ function buildVehicleRows(
     const payload =
       vehicle.payloadKg === undefined
         ? null
-        : `${vehicle.payloadKg.toLocaleString("en-US")} kg`;
+        : tRoot("fleet.step3VehicleSpecifications.payloadKg", {
+            payload: vehicle.payloadKg,
+          });
 
     const value = [makeModel, vehicle.plateNumber, payload]
       .filter(Boolean)
@@ -270,9 +273,10 @@ function buildVehicleRows(
 function buildDriverRows(
   vehicles: FleetDraftVehicle[],
   roster: Map<string, RosterEntry> | null,
+  t: Translate,
 ): SummaryRow[] {
   return vehicles.map((vehicle, index) => {
-    const label = vehicle.plateNumber ?? `Vehicle ${index + 1}`;
+    const label = vehicle.plateNumber ?? t("vehicleN", { number: index + 1 });
     const driver =
       vehicle.driverProfileId === undefined
         ? undefined
@@ -362,25 +366,25 @@ export function Step5ReviewSubmit() {
     {
       title: tShared("company"),
       editStep: FLEET_SCREENS.company,
-      editLabel: "company",
+      editLabel: t("editLabel.company"),
       rows: buildCompanyRows(draft, tShared, cityOptions),
     },
     {
       title: tShared("fleet"),
       editStep: FLEET_SCREENS.fleet,
-      editLabel: "fleet",
-      rows: buildFleetRows(vehicles, tShared, tRoot),
+      editLabel: t("editLabel.fleet"),
+      rows: buildFleetRows(vehicles, t, tShared, tRoot),
     },
     {
       title: tShared("vehicles"),
       editStep: FLEET_SCREENS.vehicles,
-      editLabel: "vehicles",
+      editLabel: t("editLabel.vehicles"),
       rows: buildVehicleRows(vehicles, tRoot),
     },
     {
       title: tShared("drivers"),
       editStep: FLEET_SCREENS.drivers,
-      editLabel: "drivers",
+      editLabel: t("editLabel.drivers"),
       rows: rosterFailed
         ? // The raw count, rather than a card full of placeholders or no card at
           // all, when the roster could not be read.
@@ -388,10 +392,13 @@ export function Step5ReviewSubmit() {
             {
               key: "assigned",
               label: tShared("assigned"),
-              value: `${assignedCount} of ${vehicleCountLabel(vehicles.length)}`,
+              value: t("assignedOf", {
+                assigned: assignedCount,
+                vehicles: vehicleCountLabel(vehicles.length, t),
+              }),
             },
           ]
-        : buildDriverRows(vehicles, roster),
+        : buildDriverRows(vehicles, roster, t),
     },
   ];
 
@@ -405,13 +412,13 @@ export function Step5ReviewSubmit() {
       // is nothing left for this screen to send.
       response = await fetch(SUBMIT_ENDPOINT, { method: "POST" });
     } catch {
-      setSubmitError(SUBMIT_ERROR_FALLBACK);
+      setSubmitError(t("submitError"));
       setSubmitting(false);
       return;
     }
 
     if (!response.ok) {
-      setSubmitError(await readErrorMessage(response, SUBMIT_ERROR_FALLBACK));
+      setSubmitError(await readErrorMessage(response, t("submitError")));
       setSubmitting(false);
       return;
     }
@@ -493,7 +500,7 @@ export function Step5ReviewSubmit() {
           disabled={submitting}
           className="h-12 cursor-pointer rounded-[11px] bg-onboarding-accent px-[30px] text-[15px] font-semibold tracking-[-0.01em] text-white transition-colors hover:bg-onboarding-accent-hover focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {submitting ? "Submitting…" : "Submit application"}
+          {submitting ? t("submitting") : t("submitApplication")}
         </button>
       </div>
     </div>

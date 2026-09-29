@@ -386,5 +386,18 @@
   "themeToggle": {
     "darkTheme": "Dark theme",
     "lightTheme": "Light theme"
+  },
+  "vehicleTypeSpecs": {
+    "boxTruck": "Box Truck",
+    "cargoVan": "Cargo Van",
+    "closedBoxVan": "Closed Box Van",
+    "curtainsiderTruck": "Curtainsider Truck",
+    "flatbedTruck": "Flatbed Truck",
+    "largeFreightTruck": "Large Freight Truck",
+    "minivan": "Minivan",
+    "mpv": "MPV / Estate",
+    "refrigeratedTruck": "Refrigerated Truck",
+    "refrigeratedVan": "Refrigerated Van",
+    "trailerTruck": "Trailer Truck"
   }
 }

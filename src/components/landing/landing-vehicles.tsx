@@ -1,15 +1,13 @@
 "use client";
 
 import type { ReactElement } from "react";
+import { useTranslations } from "next-intl";
 
 import {
   useLandingVehicleTypes,
   type LandingVehicleType,
 } from "@/components/landing/landing-vehicle-types";
-import {
-  DEFAULT_HOME_PAGE_CONTENT,
-  type VehicleTypesContent,
-} from "@/lib/admin/home-page-content";
+import { type VehicleTypesContent } from "@/lib/admin/home-page-content";
 import { Link } from "@/i18n/navigation";
 
 const CARD_CLASSES =
@@ -67,25 +65,26 @@ function VanGlyph() {
  *
  * The enum value is fixed — it drives matching and pricing — but the heading a
  * visitor reads above each group is authored copy, taken from
- * `VehicleTypesContent`'s `mediumDutyLabel` / `heavyDutyLabel`. `fallbackLabel`
- * is what renders when a row predates those fields (both are optional so an
- * older row still parses).
+ * `VehicleTypesContent`'s `mediumDutyLabel` / `heavyDutyLabel`.
+ * `fallbackLabelKey` names the catalog message that renders when a row predates
+ * those fields (both are optional so an older row still parses) — the same
+ * duty-class names the back office's vehicle photo screen uses.
  */
 const CATEGORY_ORDER: {
   category: LandingVehicleType["category"];
-  fallbackLabel: string;
+  fallbackLabelKey: "mediumDuty" | "heavyDuty";
   labelKey: "mediumDutyLabel" | "heavyDutyLabel";
   glyph: () => ReactElement;
 }[] = [
   {
     category: "MEDIUM_DUTY",
-    fallbackLabel: "Medium duty",
+    fallbackLabelKey: "mediumDuty",
     labelKey: "mediumDutyLabel",
     glyph: VanGlyph,
   },
   {
     category: "HEAVY_DUTY",
-    fallbackLabel: "Heavy duty",
+    fallbackLabelKey: "heavyDuty",
     labelKey: "heavyDutyLabel",
     glyph: TruckGlyph,
   },
@@ -101,11 +100,8 @@ const CATEGORY_ORDER: {
  * dimensions and above all no price. The platform does not quote a fare until a
  * route is entered, so this section must not read as a rate card.
  */
-export function LandingVehicles({
-  content = DEFAULT_HOME_PAGE_CONTENT.vehicle_types,
-}: {
-  content?: VehicleTypesContent;
-}) {
+export function LandingVehicles({ content }: { content: VehicleTypesContent }) {
+  const tDuty = useTranslations("admin.adminContentVehiclePhotos");
   const { vehicleTypes } = useLandingVehicleTypes();
   const businessPanel = content.businessPanel;
 
@@ -134,8 +130,8 @@ export function LandingVehicles({
 
         <div className="flex flex-col gap-[clamp(26px,3vw,40px)]">
           {CATEGORY_ORDER.map(
-            ({ category, fallbackLabel, labelKey, glyph: Glyph }) => {
-              const label = content[labelKey] ?? fallbackLabel;
+            ({ category, fallbackLabelKey, labelKey, glyph: Glyph }) => {
+              const label = content[labelKey] ?? tDuty(fallbackLabelKey);
               const grouped = vehicleTypes.filter(
                 (vehicleType) => vehicleType.category === category,
               );

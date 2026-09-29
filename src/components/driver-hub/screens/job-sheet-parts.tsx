@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Navigation, Phone } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import {
   HubCard,
@@ -14,6 +14,8 @@ import {
   StopPhoneLink,
   buildHubPayoutLines,
   buildHubTimeline,
+  useHubPayoutLabels,
+  useHubTimelineLabels,
   toTelHref,
   type HubTimelineStepState,
 } from "@/components/driver-hub/hub-job-parts";
@@ -32,7 +34,6 @@ import {
   formatDistanceKm,
 } from "@/components/driver-hub/screens/loads-format";
 import {
-  NAVIGATION_UNAVAILABLE_NOTE,
   detectMapsPlatform,
   mapsHandoffHref,
   toNavigationDestination,
@@ -389,7 +390,7 @@ function StopNavigateAction({ destination, address }: StopNavigateActionProps) {
         {t("navigate")}
         <span className="sr-only">
           {" "}
-          — unavailable. {NAVIGATION_UNAVAILABLE_NOTE}
+          {t("navigateUnavailable")} {t("navigationUnavailableNote")}
         </span>
       </span>
     );
@@ -407,7 +408,7 @@ function StopNavigateAction({ destination, address }: StopNavigateActionProps) {
         {/* The address is the label the design asks for, placed where it is
             useful rather than in a query parameter that would cost a
             coordinate's precision. See `toNavigationDestination`. */}
-        <span className="sr-only"> to {address}</span>
+        <span className="sr-only"> {t("navigateTo", { address })}</span>
       </a>
     </Button>
   );
@@ -438,11 +439,14 @@ function StopNavigateAction({ destination, address }: StopNavigateActionProps) {
  * `payout: "none"` reads nothing from here. A cancelled job prints no label
  * because it prints no figure, for either reader — see `JobSheetHeaderCardProps`.
  */
-type PayoutLabelPair = { quoted: string; final: string };
+type PayoutLabelKey =
+  "youArePaid" | "youWerePaid" | "thisJobPays" | "thisJobPaid";
+
+type PayoutLabelPair = { quoted: PayoutLabelKey; final: PayoutLabelKey };
 
 const PAYOUT_LABELS: Record<JobSheetViewer, PayoutLabelPair> = {
-  DRIVER: { quoted: "You are paid", final: "You were paid" },
-  COMPANY: { quoted: "This job pays", final: "This job paid" },
+  DRIVER: { quoted: "youArePaid", final: "youWerePaid" },
+  COMPANY: { quoted: "thisJobPays", final: "thisJobPaid" },
 };
 
 export type JobSheetHeaderCardProps = {
@@ -591,7 +595,7 @@ export function JobSheetHeaderCard({
     job.status === "CLAIMED";
 
   const pill = jobSheetStatusPill(job.status, fleet);
-  const lines = buildHubPayoutLines(job);
+  const lines = buildHubPayoutLines(job, useHubPayoutLabels());
   const isFinal = payout === "final";
 
   // Summed only in the completed branch, where both halves are final. The
@@ -688,8 +692,8 @@ export function JobSheetHeaderCard({
         <div className="flex flex-col gap-1">
           <p className={LABEL_CLASSES}>
             {isFinal
-              ? PAYOUT_LABELS[viewer].final
-              : PAYOUT_LABELS[viewer].quoted}
+              ? t(PAYOUT_LABELS[viewer].final)
+              : t(PAYOUT_LABELS[viewer].quoted)}
           </p>
           <p
             className={cn(
@@ -756,19 +760,24 @@ export function JobSheetTimingCard({
 }) {
   const t = useTranslations("driverHub.jobSheetParts");
   const tShared = useTranslations("common.shared");
+  const locale = useLocale();
 
   const rows = [
     {
       label: tShared("pickUp"),
-      value: formatAbsoluteDateTime(job.scheduledAt),
+      value: formatAbsoluteDateTime(job.scheduledAt, locale),
     },
     {
       label: tShared("window"),
-      value: formatAbsoluteWindow(job.pickupWindowStart, job.pickupWindowEnd),
+      value: formatAbsoluteWindow(
+        job.pickupWindowStart,
+        job.pickupWindowEnd,
+        locale,
+      ),
     },
     {
       label: t("deadline"),
-      value: formatAbsoluteDateTime(job.deliveryDeadline),
+      value: formatAbsoluteDateTime(job.deliveryDeadline, locale),
     },
   ];
 
@@ -953,7 +962,10 @@ export function JobSheetStopCard({
               {t("call")}
               <span className="sr-only">
                 {" "}
-                {contactName ?? label} on {contactPhone}
+                {t("callOn", {
+                  name: contactName ?? label,
+                  phone: contactPhone ?? "",
+                })}
               </span>
             </a>
           </Button>
@@ -970,8 +982,8 @@ export function JobSheetStopCard({
       {destination.kind === "coords" ? null : (
         <p className="text-xs leading-[1.5] text-muted-foreground">
           {destination.kind === "unavailable"
-            ? NAVIGATION_UNAVAILABLE_NOTE
-            : "No map coordinates were recorded for this stop, so Navigate opens a map search on the address text."}
+            ? t("navigationUnavailableNote")
+            : t("noCoordinates")}
         </p>
       )}
     </HubCard>
@@ -1201,12 +1213,16 @@ export function JobSheetTimelineCard({
 }: JobSheetTimelineCardProps) {
   const t = useTranslations("driverHub.jobSheetParts");
   const tShared = useTranslations("common.shared");
-  const steps = buildHubTimeline({
-    createdAt: job.createdAt,
-    inTransitAt: job.inTransitAt,
-    completedAt: job.completedAt,
-    running,
-  });
+  const locale = useLocale();
+  const steps = buildHubTimeline(
+    {
+      createdAt: job.createdAt,
+      inTransitAt: job.inTransitAt,
+      completedAt: job.completedAt,
+      running,
+    },
+    useHubTimelineLabels(),
+  );
 
   /**
    * What the driver reported when they closed the job.
@@ -1225,7 +1241,7 @@ export function JobSheetTimelineCard({
       : [
           {
             label: tShared("waitingTime"),
-            value: `${job.waitingMinutes} min`,
+            value: t("minutesShort", { n: job.waitingMinutes }),
             numeric: true,
           },
         ]),
@@ -1272,7 +1288,9 @@ export function JobSheetTimelineCard({
                     "text-xs text-muted-foreground",
                   )}
                 >
-                  {step.at === null ? EM_DASH : formatAbsoluteDateTime(step.at)}
+                  {step.at === null
+                    ? EM_DASH
+                    : formatAbsoluteDateTime(step.at, locale)}
                 </p>
               </div>
               {/* The dots carry the state visually; this is how it reaches a
@@ -1345,6 +1363,7 @@ export function JobSheetContactsCard({
   viewer: JobSheetViewer;
   className?: string;
 }) {
+  const t = useTranslations("driverHub.jobSheetParts");
   const tShared = useTranslations("common.shared");
   const stops = [
     {
@@ -1386,8 +1405,8 @@ export function JobSheetContactsCard({
       </dl>
       <p className="text-xs leading-[1.45] text-muted-foreground">
         {viewer === "COMPANY"
-          ? "Kept visible after delivery — a dispatcher may still need to call about a finished job."
-          : "Kept visible after delivery — a driver may still need to call about a finished job."}
+          ? t("keptVisibleDispatcher")
+          : t("keptVisibleDriver")}
       </p>
     </HubCard>
   );
@@ -1406,10 +1425,22 @@ export function JobSheetContactsCard({
  * drop-off booking with six columns rather than a `Stop` relation, so two is
  * the only number it can be.
  */
-export function jobSheetRouteSummary(job: HubJobSheet): string {
-  return `${job.pickupAddress} → ${job.dropoffAddress} · ${formatDistanceKm(
-    job.distanceKm,
-  )} · 2 stops`;
+export function jobSheetRouteSummary(
+  job: HubJobSheet,
+  // The sentence's shape is copy; the caller supplies it in the reader's
+  // locale. The English default keeps the function usable without one.
+  describe: (parts: {
+    from: string;
+    to: string;
+    distance: string;
+  }) => string = (parts) =>
+    `${parts.from} → ${parts.to} · ${parts.distance} · 2 stops`,
+): string {
+  return describe({
+    from: job.pickupAddress,
+    to: job.dropoffAddress,
+    distance: formatDistanceKm(job.distanceKm),
+  });
 }
 
 /* -------------------------------------------------------------------------- */
@@ -1433,7 +1464,6 @@ export type JobSheetNoticeProps = {
  *  and the internal `BOARD` naming are untouched — the route is still
  *  `/dashboard/loads`. */
 export const BACK_TO_BOARD_HREF = "/dashboard/loads";
-export const BACK_TO_BOARD_LABEL = "Back to dashboard";
 
 /**
  * The boxed statement used by the cancelled and not-found states.
@@ -1460,13 +1490,15 @@ export function JobSheetNotice({
 
 /** The 44px outline link back to the board, shared by both terminal states. */
 export function BackToBoardButton({ className }: { className?: string }) {
+  const t = useTranslations("driverHub.jobSheetParts");
+
   return (
     <Button
       asChild
       variant="outline"
       className={cn("h-11 text-sm font-medium", className)}
     >
-      <Link href={BACK_TO_BOARD_HREF}>{BACK_TO_BOARD_LABEL}</Link>
+      <Link href={BACK_TO_BOARD_HREF}>{t("backToDashboard")}</Link>
     </Button>
   );
 }

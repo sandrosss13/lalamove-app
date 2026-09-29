@@ -4,6 +4,11 @@
     "ka": "{price}-დან",
     "_source": "src/components/landing/landing-category-tiles.tsx"
   },
+  "landingCategoryTiles.fromPriceEmphasised": {
+    "en": "from <figure>{price}</figure>",
+    "ka": "<figure>{price}</figure>-დან",
+    "_source": "src/components/landing/landing-category-tiles.tsx"
+  },
   "landingCategoryTiles.priceYourOwnRoute": {
     "en": "— price your own route",
     "ka": "— გამოთვალეთ მარშრუტის ფასი",
@@ -34,6 +39,16 @@
     "ka": "{index} / {count}",
     "_source": "src/components/landing/landing-hero-carousel.tsx"
   },
+  "landingNavPill.closeMenu": {
+    "en": "Close menu",
+    "ka": "მენიუს დახურვა",
+    "_source": "src/components/landing/landing-nav-pill.tsx"
+  },
+  "landingNavPill.openMenu": {
+    "en": "Open menu",
+    "ka": "მენიუს გახსნა",
+    "_source": "src/components/landing/landing-nav-pill.tsx"
+  },
   "landingQuoteCalculator.1IsTheDriverAloneEach": {
     "en": "1 is the driver alone. Each extra person helps load and unload, and adds a flat fee.",
     "ka": "1 ნიშნავს, რომ მძღოლი მარტოა. ყოველი დამატებითი ადამიანი ეხმარება დატვირთვა-დაცლაში და ემატება ფიქსირებული საფასური.",
@@ -61,7 +76,7 @@
   },
   "landingQuoteCalculator.estimate": {
     "en": "Estimate",
-    "ka": "სავარაუდო ღირებულება / კალკულაცია",
+    "ka": "წინასწარი ფასი",
     "_source": "src/components/landing/landing-quote-calculator.tsx"
   },
   "landingQuoteCalculator.howManyPeople": {
@@ -108,5 +123,10 @@
     "en": "Your estimate",
     "ka": "თქვენი სავარაუდო ღირებულება",
     "_source": "src/components/landing/landing-quote-calculator.tsx"
+  },
+  "landingVehicleTypes.couldNotLoadTheVehicleTypes": {
+    "en": "Could not load the vehicle types. Please refresh and try again.",
+    "ka": "ავტომობილის ტიპების ჩატვირთვა ვერ მოხერხდა. განაახლეთ გვერდი და სცადეთ თავიდან.",
+    "_source": "src/components/landing/landing-vehicle-types.ts"
   }
 }

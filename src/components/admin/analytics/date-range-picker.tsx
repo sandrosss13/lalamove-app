@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import type { DateRange } from "react-day-picker";
 import { CalendarDays } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import { usePathname, useRouter } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
@@ -17,17 +17,34 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
-/** Hoisted so re-renders don't rebuild them on every keystroke of navigation. */
-const dayFormatter = new Intl.DateTimeFormat("en-US", {
-  month: "short",
-  day: "numeric",
-});
+type RangeFormatters = {
+  day: Intl.DateTimeFormat;
+  dayWithYear: Intl.DateTimeFormat;
+};
 
-const dayWithYearFormatter = new Intl.DateTimeFormat("en-US", {
-  month: "short",
-  day: "numeric",
-  year: "numeric",
-});
+/**
+ * The two day formatters, in the reader's locale. Plain `Intl` over the
+ * `useLocale()` tag rather than next-intl's `useFormatter`, deliberately: these
+ * dates are *local* midnights (see `parseDateParam`), and `useFormatter` would
+ * format them in the configured Asia/Tbilisi zone, which shifts the day for a
+ * reader — or a server — in any other zone. Memoised per locale so re-renders
+ * don't rebuild them.
+ */
+function useRangeFormatters(): RangeFormatters {
+  const locale = useLocale();
+
+  return useMemo(
+    () => ({
+      day: new Intl.DateTimeFormat(locale, { month: "short", day: "numeric" }),
+      dayWithYear: new Intl.DateTimeFormat(locale, {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      }),
+    }),
+    [locale],
+  );
+}
 
 /**
  * A `YYYY-MM-DD` param as local midnight.
@@ -99,12 +116,16 @@ const SHORTCUTS: {
 ];
 
 /** "Aug 3 – Aug 11, 2026", collapsing to one date when the range is a day. */
-function formatRangeLabel(from: Date, to: Date): string {
+function formatRangeLabel(
+  formatters: RangeFormatters,
+  from: Date,
+  to: Date,
+): string {
   if (from.getTime() === to.getTime()) {
-    return dayWithYearFormatter.format(from);
+    return formatters.dayWithYear.format(from);
   }
 
-  return `${dayFormatter.format(from)} – ${dayWithYearFormatter.format(to)}`;
+  return `${formatters.day.format(from)} – ${formatters.dayWithYear.format(to)}`;
 }
 
 export type DateRangePickerProps = {
@@ -130,6 +151,7 @@ export type DateRangePickerProps = {
  */
 export function DateRangePicker({ from, to, today }: DateRangePickerProps) {
   const t = useTranslations();
+  const formatters = useRangeFormatters();
   const router = useRouter();
   const pathname = usePathname();
   const [isPending, startTransition] = useTransition();
@@ -185,10 +207,10 @@ export function DateRangePicker({ from, to, today }: DateRangePickerProps) {
 
   const draftLabel =
     draft?.from && draft.to
-      ? formatRangeLabel(draft.from, draft.to)
+      ? formatRangeLabel(formatters, draft.from, draft.to)
       : draft?.from
-        ? `${dayFormatter.format(draft.from)} – …`
-        : "Pick a start and end day";
+        ? `${formatters.day.format(draft.from)} – …`
+        : t("admin.dateRangePicker.pickAStartAndEndDay");
 
   return (
     <div className="flex flex-wrap items-center gap-1.5" aria-busy={isPending}>
@@ -224,7 +246,7 @@ export function DateRangePicker({ from, to, today }: DateRangePickerProps) {
             disabled={isPending}
           >
             <CalendarDays data-icon="inline-start" />
-            {formatRangeLabel(appliedFrom, appliedTo)}
+            {formatRangeLabel(formatters, appliedFrom, appliedTo)}
           </Button>
         </PopoverTrigger>
 

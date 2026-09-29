@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 
 import type { ClientAccountType } from "@prisma/client";
 
@@ -35,19 +35,18 @@ const COLUMN_COUNT = 6;
 /** How long typing has to pause before the list is re-queried. */
 const SEARCH_DEBOUNCE_MS = 300;
 
-const ACCOUNT_TYPE_LABELS: Record<ClientAccountType, string> = {
-  INDIVIDUAL: "Individual",
-  BUSINESS: "Business",
+/** `common.shared` key for each client account type's name. */
+const ACCOUNT_TYPE_LABEL_KEYS: Record<ClientAccountType, string> = {
+  INDIVIDUAL: "individual",
+  BUSINESS: "business",
 };
 
 /** Matches how every other dashboard in the app renders a date. */
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
+const ACCOUNT_DATE_FORMAT = {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+} as const;
 
 /**
  * Pulls the API's `{ error }` message out of a failed response — a `403` for a
@@ -106,6 +105,9 @@ function DetailField({
 export default function AdminClientsPage() {
   const t = useTranslations("admin.adminUsersClients");
   const tShared = useTranslations("common.shared");
+  const format = useFormatter();
+  const formatDate = (iso: string) =>
+    format.dateTime(new Date(iso), ACCOUNT_DATE_FORMAT);
   const [searchInput, setSearchInput] = useState("");
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
@@ -189,7 +191,7 @@ export default function AdminClientsPage() {
         />
         {data ? (
           <p className="text-sm text-muted-foreground">
-            {data.total} {data.total === 1 ? "client" : "clients"}
+            {t("clientCount", { count: data.total })}
           </p>
         ) : null}
       </div>
@@ -232,8 +234,8 @@ export default function AdminClientsPage() {
                   className="py-10 text-center text-muted-foreground"
                 >
                   {query === ""
-                    ? "No client accounts yet."
-                    : "No clients match that search."}
+                    ? t("noClientAccountsYet")
+                    : t("noClientsMatchThatSearch")}
                 </TableCell>
               </TableRow>
             ) : (
@@ -267,7 +269,7 @@ export default function AdminClientsPage() {
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline">
-                          {ACCOUNT_TYPE_LABELS[client.accountType]}
+                          {tShared(ACCOUNT_TYPE_LABEL_KEYS[client.accountType])}
                         </Badge>
                       </TableCell>
                       <TableCell>{client.orderCount}</TableCell>
@@ -290,7 +292,9 @@ export default function AdminClientsPage() {
                               setExpandedUserId(expanded ? null : client.userId)
                             }
                           >
-                            {expanded ? "Hide details" : "Details"}
+                            {expanded
+                              ? tShared("hideDetails")
+                              : tShared("details")}
                           </Button>
                           <Button
                             variant={
@@ -306,7 +310,9 @@ export default function AdminClientsPage() {
                               })
                             }
                           >
-                            {client.isSuspended ? "Unsuspend" : "Suspend"}
+                            {client.isSuspended
+                              ? tShared("unsuspend")
+                              : tShared("suspend")}
                           </Button>
                         </div>
                       </TableCell>
@@ -318,7 +324,9 @@ export default function AdminClientsPage() {
                           <dl className="grid grid-cols-2 gap-4 py-1 sm:grid-cols-4">
                             <DetailField
                               label={t("accountType")}
-                              value={ACCOUNT_TYPE_LABELS[client.accountType]}
+                              value={tShared(
+                                ACCOUNT_TYPE_LABEL_KEYS[client.accountType],
+                              )}
                             />
                             <DetailField
                               label={tShared("vatId")}
@@ -363,7 +371,10 @@ export default function AdminClientsPage() {
       {data && data.pageCount > 1 ? (
         <div className="flex items-center justify-end gap-3">
           <span className="text-sm text-muted-foreground">
-            Page {data.page} of {data.pageCount}
+            {tShared("pageOf", {
+              page: data.page,
+              pageCount: data.pageCount,
+            })}
           </span>
           <Button
             variant="outline"

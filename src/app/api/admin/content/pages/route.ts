@@ -2,12 +2,13 @@ import { NextResponse } from "next/server";
 
 import type { AdminRole } from "@prisma/client";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { authorizeAdminApi } from "@/lib/admin/api-auth";
 import { writeAuditLog } from "@/lib/admin/audit";
 import { prisma } from "@/lib/prisma";
 
 import {
-  DUPLICATE_PAGE_ERROR,
+  DUPLICATE_PAGE_ERROR_KEY,
   STATIC_PAGE_SELECT,
   isDuplicateSlugLocaleError,
   parseBodyHtml,
@@ -79,41 +80,43 @@ export async function POST(request: Request): Promise<NextResponse> {
     return authorized.response;
   }
 
+  const t = await getRequestTranslations();
+
   let rawBody: unknown;
   try {
     rawBody = await request.json();
   } catch {
     return NextResponse.json(
-      { error: "Request body must be valid JSON." },
+      { error: t("common.shared.requestBodyMustBeValidJson") },
       { status: 400 },
     );
   }
 
   if (typeof rawBody !== "object" || rawBody === null) {
     return NextResponse.json(
-      { error: "Request body must be a JSON object." },
+      { error: t("common.shared.requestBodyMustBeAJson") },
       { status: 400 },
     );
   }
 
   const record = rawBody as Record<string, unknown>;
 
-  const slug = parseSlug(record.slug);
+  const slug = parseSlug(record.slug, t);
   if ("error" in slug) {
     return NextResponse.json({ error: slug.error }, { status: 400 });
   }
 
-  const locale = parseLocale(record.locale);
+  const locale = parseLocale(record.locale, t);
   if ("error" in locale) {
     return NextResponse.json({ error: locale.error }, { status: 400 });
   }
 
-  const title = parseTitle(record.title);
+  const title = parseTitle(record.title, t);
   if ("error" in title) {
     return NextResponse.json({ error: title.error }, { status: 400 });
   }
 
-  const bodyHtml = parseBodyHtml(record.bodyHtml);
+  const bodyHtml = parseBodyHtml(record.bodyHtml, t);
   if ("error" in bodyHtml) {
     return NextResponse.json({ error: bodyHtml.error }, { status: 400 });
   }
@@ -123,7 +126,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   const isPublished =
     record.isPublished === undefined
       ? { value: false }
-      : parseIsPublished(record.isPublished);
+      : parseIsPublished(record.isPublished, t);
   if ("error" in isPublished) {
     return NextResponse.json({ error: isPublished.error }, { status: 400 });
   }
@@ -146,7 +149,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     // surfacing it as a 409 keeps a routine collision out of the 500 logs.
     if (isDuplicateSlugLocaleError(error)) {
       return NextResponse.json(
-        { error: DUPLICATE_PAGE_ERROR },
+        { error: t(DUPLICATE_PAGE_ERROR_KEY) },
         { status: 409 },
       );
     }

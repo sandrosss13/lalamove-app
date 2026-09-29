@@ -57,9 +57,10 @@ const COLUMN_COUNT = 5;
  */
 const ALL_NAMESPACES = "__all__";
 
-const LOCALE_LABELS: Record<ContentLocale, string> = {
-  KA: "Georgian",
-  EN: "English",
+/** `common.shared` key for each content locale's name. */
+const LOCALE_LABEL_KEYS: Record<ContentLocale, string> = {
+  KA: "georgian",
+  EN: "english",
 };
 
 /** The single locale row a delete confirmation is about. */
@@ -119,7 +120,9 @@ function DeleteEntryDialog({
   onClose: () => void;
   onCompleted: () => void;
 }) {
+  const t = useTranslations("admin.adminContentTranslations");
   const tShared = useTranslations("common.shared");
+  const language = tShared(LOCALE_LABEL_KEYS[target.locale]);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -135,7 +138,7 @@ function DeleteEntryDialog({
 
       if (!response.ok) {
         setError(
-          await readErrorMessage(response, "Could not delete this entry."),
+          await readErrorMessage(response, t("couldNotDeleteThisEntry")),
         );
         setPending(false);
         return;
@@ -162,14 +165,15 @@ function DeleteEntryDialog({
     >
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Delete {LOCALE_LABELS[target.locale]} value</DialogTitle>
+          <DialogTitle>{t("deleteValueTitle", { language })}</DialogTitle>
           <DialogDescription>
-            Removes the {LOCALE_LABELS[target.locale]} text for{" "}
-            <span className="text-foreground">
-              {target.namespace}.{target.key}
-            </span>
-            . The other language keeps the key, and you can add this one back
-            from the same row.
+            {t.rich("deleteValueDetail", {
+              language,
+              key: `${target.namespace}.${target.key}`,
+              mark: (chunks) => (
+                <span className="text-foreground">{chunks}</span>
+              ),
+            })}
           </DialogDescription>
         </DialogHeader>
 
@@ -192,7 +196,7 @@ function DeleteEntryDialog({
             onClick={handleDelete}
             disabled={pending}
           >
-            {pending ? "Deleting…" : tShared("delete")}
+            {pending ? tShared("deleting") : tShared("delete")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -305,10 +309,10 @@ export default function AdminTranslationsPage() {
             aria-label={t("filterTranslationsByNamespace")}
             className="w-full max-w-72"
           >
-            <SelectValue placeholder="All namespaces" />
+            <SelectValue placeholder={t("allNamespaces")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={ALL_NAMESPACES}>All namespaces</SelectItem>
+            <SelectItem value={ALL_NAMESPACES}>{t("allNamespaces")}</SelectItem>
             {namespaces.map((name) => (
               <SelectItem key={name} value={name}>
                 {name}
@@ -320,7 +324,7 @@ export default function AdminTranslationsPage() {
         <div className="flex items-center gap-3">
           {data ? (
             <p className="text-sm text-muted-foreground">
-              {items.length} {items.length === 1 ? "key" : "keys"}
+              {t("keyCount", { count: items.length })}
             </p>
           ) : null}
           <Button size="sm" onClick={() => setForm({ mode: "create" })}>
@@ -366,8 +370,8 @@ export default function AdminTranslationsPage() {
                   className="py-10 text-center text-muted-foreground"
                 >
                   {namespace === ALL_NAMESPACES
-                    ? "No translations yet."
-                    : "No translations in this namespace."}
+                    ? t("noTranslationsYet")
+                    : t("noTranslationsInNamespace")}
                 </TableCell>
               </TableRow>
             ) : (

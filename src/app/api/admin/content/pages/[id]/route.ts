@@ -8,7 +8,7 @@ import { writeAuditLog } from "@/lib/admin/audit";
 import { prisma } from "@/lib/prisma";
 
 import {
-  DUPLICATE_PAGE_ERROR,
+  DUPLICATE_PAGE_ERROR_KEY,
   STATIC_PAGE_SELECT,
   isDuplicateSlugLocaleError,
   parseBodyHtml,
@@ -75,7 +75,7 @@ export async function PATCH(
   }
 
   if (record.locale !== undefined) {
-    const locale = parseLocale(record.locale);
+    const locale = parseLocale(record.locale, t);
     if ("error" in locale) {
       return NextResponse.json({ error: locale.error }, { status: 400 });
     }
@@ -138,7 +138,7 @@ export async function PATCH(
   } catch (error) {
     if (isDuplicateSlugLocaleError(error)) {
       return NextResponse.json(
-        { error: DUPLICATE_PAGE_ERROR },
+        { error: t(DUPLICATE_PAGE_ERROR_KEY) },
         { status: 409 },
       );
     }

@@ -193,7 +193,10 @@ export function BannerFormDialog({
       parsedSortOrder > MAX_SORT_ORDER
     ) {
       setError(
-        `Sort order must be a whole number between ${MIN_SORT_ORDER} and ${MAX_SORT_ORDER}.`,
+        t("common.shared.sortOrderWholeNumberBetween", {
+          min: MIN_SORT_ORDER,
+          max: MAX_SORT_ORDER,
+        }),
       );
       return;
     }
@@ -231,8 +234,8 @@ export function BannerFormDialog({
           await readErrorMessage(
             response,
             isEditing
-              ? "Could not save this banner."
-              : "Could not create this banner.",
+              ? t("admin.bannerFormDialog.couldNotSave")
+              : t("admin.bannerFormDialog.couldNotCreate"),
           ),
         );
         setPending(false);
@@ -263,7 +266,9 @@ export function BannerFormDialog({
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <DialogHeader>
             <DialogTitle>
-              {isEditing ? "Edit banner" : "New banner"}
+              {isEditing
+                ? t("admin.bannerFormDialog.editBanner")
+                : t("admin.bannerFormDialog.newBanner")}
             </DialogTitle>
             <DialogDescription>
               {t("admin.bannerFormDialog.bannersAreShownOnThePublic")}
@@ -328,11 +333,12 @@ export function BannerFormDialog({
                   ))}
                 </datalist>
                 <p className="text-xs text-muted-foreground">
-                  {HOME_HERO_BANNER_PLACEMENT} feeds the homepage carousel (max{" "}
-                  {MAX_HERO_BANNERS} active per locale),{" "}
-                  {HOME_PARTNER_LOGO_BANNER_PLACEMENT} feeds the partner
-                  marquee, {HOME_SECONDARY_BANNER_PLACEMENT} is the legacy
-                  inline slot.
+                  {t("admin.bannerFormDialog.placementHint", {
+                    heroPlacement: HOME_HERO_BANNER_PLACEMENT,
+                    maxHero: MAX_HERO_BANNERS,
+                    partnerPlacement: HOME_PARTNER_LOGO_BANNER_PLACEMENT,
+                    secondaryPlacement: HOME_SECONDARY_BANNER_PLACEMENT,
+                  })}
                 </p>
               </div>
             </div>
@@ -365,7 +371,7 @@ export function BannerFormDialog({
                 id="banner-link-url"
                 value={linkUrl}
                 onChange={(event) => setLinkUrl(event.target.value)}
-                placeholder="/services (optional)"
+                placeholder={t("admin.bannerFormDialog.linkUrlPlaceholder")}
                 disabled={pending}
               />
             </div>
@@ -452,10 +458,10 @@ export function BannerFormDialog({
             </Button>
             <Button type="submit" disabled={pending}>
               {pending
-                ? "Saving…"
+                ? t("common.shared.saving")
                 : isEditing
-                  ? "Save banner"
-                  : "Create banner"}
+                  ? t("admin.bannerFormDialog.saveBanner")
+                  : t("admin.bannerFormDialog.createBanner")}
             </Button>
           </DialogFooter>
         </form>

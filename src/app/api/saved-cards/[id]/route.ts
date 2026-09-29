@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-import { CARD_NOT_FOUND } from "../card-select";
+import { CARD_NOT_FOUND_KEY } from "../card-select";
 
 /**
  * DELETE /api/saved-cards/[id] — remove one of the signed-in client's saved
@@ -22,13 +23,18 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
+  const t = await getRequestTranslations();
+
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    return NextResponse.json(
+      { error: t("common.shared.unauthorized") },
+      { status: 401 },
+    );
   }
 
   if (session.user.role !== "CLIENT") {
-    return NextResponse.json({ error: CARD_NOT_FOUND }, { status: 404 });
+    return NextResponse.json({ error: t(CARD_NOT_FOUND_KEY) }, { status: 404 });
   }
 
   const { id } = await params;
@@ -68,7 +74,7 @@ export async function DELETE(
   });
 
   if (!removed) {
-    return NextResponse.json({ error: CARD_NOT_FOUND }, { status: 404 });
+    return NextResponse.json({ error: t(CARD_NOT_FOUND_KEY) }, { status: 404 });
   }
 
   return NextResponse.json({ ok: true }, { status: 200 });

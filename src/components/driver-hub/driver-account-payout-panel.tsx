@@ -3,7 +3,10 @@ import { useTranslations } from "next-intl";
 import { HubCard, SampleNote } from "@/components/driver-hub/hub-primitives";
 import { DriverAccountDetailList } from "@/components/driver-hub/driver-account-detail-list";
 import type { HubAccountSettings } from "@/lib/dashboard/hub/account-settings";
-import { SAMPLE_PAYOUT_ACCOUNT } from "@/lib/dashboard/hub/sample";
+import {
+  localizeSampleCopy,
+  SAMPLE_PAYOUT_ACCOUNT,
+} from "@/lib/dashboard/hub/sample";
 
 /**
  * "Payout & bank details" — where a driver's fares are settled, and when.
@@ -62,18 +65,6 @@ import { SAMPLE_PAYOUT_ACCOUNT } from "@/lib/dashboard/hub/sample";
  * component's roster story together, or none of them.
  */
 
-/** What changing a payout account actually requires today. */
-const CHANGE_NOTE =
-  "A payout account is changed through support so the new account can be " +
-  "verified against your registered details before any money moves.";
-
-/** Names the schema gap on the sampled rows. */
-const SAMPLE_ACCOUNT_NOTE =
-  "No driver payout account exists in the schema — this is placeholder data, not your bank details.";
-
-const SAMPLE_SCHEDULE_NOTE =
-  "No payout schedule exists in the schema — no Payout model records when a settlement ran or is due.";
-
 export function DriverAccountPayoutPanel({
   settings,
 }: {
@@ -87,6 +78,9 @@ export function DriverAccountPayoutPanel({
   const usesSampleAccount = !isCompany;
   const t = useTranslations("driverHub.driverAccountPayoutPanel");
   const tShared = useTranslations("common.shared");
+  // The sampled bank, cadence and next-payout copy, in the active locale.
+  const tRoot = useTranslations();
+  const samplePayoutAccount = localizeSampleCopy(SAMPLE_PAYOUT_ACCOUNT, tRoot);
 
   return (
     <div className="flex min-w-0 flex-col gap-5">
@@ -98,11 +92,13 @@ export function DriverAccountPayoutPanel({
             </h2>
             <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
               {isCompany
-                ? "Where order revenue is settled to your fleet."
-                : "Where your fares are settled."}
+                ? t("whereOrderRevenueIsSettled")
+                : t("whereYourFaresAreSettled")}
             </p>
           </div>
-          {usesSampleAccount ? <SampleNote note={SAMPLE_ACCOUNT_NOTE} /> : null}
+          {usesSampleAccount ? (
+            <SampleNote note={t("sampleAccountNote")} />
+          ) : null}
         </div>
 
         <DriverAccountDetailList
@@ -110,10 +106,10 @@ export function DriverAccountPayoutPanel({
           rows={
             usesSampleAccount
               ? [
-                  { label: t("bank"), value: SAMPLE_PAYOUT_ACCOUNT.bankName },
+                  { label: t("bank"), value: samplePayoutAccount.bankName },
                   {
                     label: t("iban"),
-                    value: `•••• ${SAMPLE_PAYOUT_ACCOUNT.ibanLast4}`,
+                    value: `•••• ${samplePayoutAccount.ibanLast4}`,
                     mono: true,
                   },
                 ]
@@ -125,15 +121,15 @@ export function DriverAccountPayoutPanel({
                     mono: realIbanLast4 !== null,
                     note:
                       realIbanLast4 === null
-                        ? "Your fleet application did not record a payout account."
-                        : "The account your fleet registered.",
+                        ? t("noPayoutAccountRecorded")
+                        : t("accountYourFleetRegistered"),
                   },
                 ]
           }
         />
 
         <p className="mt-5 border-t border-border pt-4 text-xs leading-relaxed text-muted-foreground">
-          {CHANGE_NOTE}
+          {t("changeNote")}
         </p>
       </HubCard>
 
@@ -147,7 +143,7 @@ export function DriverAccountPayoutPanel({
           </div>
           {/* Sampled for every persona, including the fleet whose IBAN above
               is real — see the note at the top of this file. */}
-          <SampleNote note={SAMPLE_SCHEDULE_NOTE} />
+          <SampleNote note={t("sampleScheduleNote")} />
         </div>
 
         <DriverAccountDetailList
@@ -155,11 +151,11 @@ export function DriverAccountPayoutPanel({
           rows={[
             {
               label: t("frequency"),
-              value: SAMPLE_PAYOUT_ACCOUNT.cadenceLabel,
+              value: samplePayoutAccount.cadenceLabel,
             },
             {
               label: t("nextPayout"),
-              value: SAMPLE_PAYOUT_ACCOUNT.nextPayoutLabel,
+              value: samplePayoutAccount.nextPayoutLabel,
             },
           ]}
         />

@@ -71,21 +71,30 @@ const MAX_PAYLOAD_KG = 40_000;
 /** Metres. A cargo hold larger than this is a centimetres-for-metres typo. */
 const MAX_CARGO_DIMENSION_M = 20;
 
-/** Every document type an application must carry, with its human label. */
+/** Every document type an application must carry, with the message path of
+ *  its human label (it fills the `{document}` slot of the upload messages). */
 const REQUIRED_DOCUMENTS: {
   type: DriverApplicationDocumentType;
-  label: string;
+  labelKey: string;
 }[] = [
-  { type: DriverApplicationDocumentType.PROFILE_PHOTO, label: "profile photo" },
+  {
+    type: DriverApplicationDocumentType.PROFILE_PHOTO,
+    labelKey: "errors.driverProfileOnboardingSubmit.documentLabel.profilePhoto",
+  },
   {
     type: DriverApplicationDocumentType.LICENCE_FRONT,
-    label: "licence front photo",
+    labelKey:
+      "errors.driverProfileOnboardingSubmit.documentLabel.licenceFrontPhoto",
   },
   {
     type: DriverApplicationDocumentType.LICENCE_BACK,
-    label: "licence back photo",
+    labelKey:
+      "errors.driverProfileOnboardingSubmit.documentLabel.licenceBackPhoto",
   },
 ];
+
+/** A root translator (full message paths), passed into the sync validators. */
+type RequestTranslator = Awaited<ReturnType<typeof getRequestTranslations>>;
 
 const GEORGIAN_CITIES = Object.values(GeorgianCity);
 const LICENCE_CATEGORIES = Object.values(LicenceCategory);
@@ -294,6 +303,7 @@ function validatePersonal(
   draft: OnboardingDraftV1,
   now: Date,
   problems: string[],
+  tr: RequestTranslator,
 ): ValidatedSubmission["personal"] | null {
   const personal = draft.personal ?? {};
 
@@ -307,14 +317,12 @@ function validatePersonal(
   const lastName = remainingNameWords.join(" ");
   const hasFullName = firstName !== undefined && lastName !== "";
   if (!hasFullName) {
-    problems.push("Enter your full name — at least a first and last name.");
+    problems.push(tr("errors.driverProfileOnboardingSubmit.enterFullName"));
   }
 
   const idNumber = trimmed(personal.idNumber);
   if (idNumber === null || !ID_NUMBER_PATTERN.test(idNumber)) {
-    problems.push(
-      "Enter a valid ID or passport number — 6 to 20 letters, digits or hyphens.",
-    );
+    problems.push(tr("errors.driverProfileOnboardingSubmit.enterValidId"));
   }
 
   // Checked against today rather than against the day the field was filled in:
@@ -323,7 +331,10 @@ function validatePersonal(
   const age = dateOfBirth === null ? null : ageInYears(dateOfBirth, now);
   if (age === null || age < MIN_AGE_YEARS || age > MAX_AGE_YEARS) {
     problems.push(
-      `Drivers must be between ${MIN_AGE_YEARS} and ${MAX_AGE_YEARS} years old.`,
+      tr("errors.driverProfileOnboardingSubmit.ageRange", {
+        min: MIN_AGE_YEARS,
+        max: MAX_AGE_YEARS,
+      }),
     );
   }
 
@@ -331,7 +342,7 @@ function validatePersonal(
   const isKnownCity =
     city !== null && GEORGIAN_CITIES.includes(city as GeorgianCity);
   if (!isKnownCity) {
-    problems.push("Choose a city from the list.");
+    problems.push(tr("errors.driverProfileOnboardingSubmit.chooseCity"));
   }
 
   const phone = trimmed(personal.phone);
@@ -340,7 +351,7 @@ function validatePersonal(
     phoneDigits.length < MIN_PHONE_DIGITS ||
     phoneDigits.length > MAX_PHONE_DIGITS
   ) {
-    problems.push("Enter a valid mobile number.");
+    problems.push(tr("errors.driverProfileOnboardingSubmit.enterValidMobile"));
   }
 
   if (
@@ -369,6 +380,7 @@ function validateLicence(
   draft: OnboardingDraftV1,
   now: Date,
   problems: string[],
+  tr: RequestTranslator,
 ): ValidatedSubmission["licence"] | null {
   const licence = draft.licence ?? {};
 
@@ -377,7 +389,9 @@ function validateLicence(
     licenceNumber === null ||
     licenceNumber.length < MIN_LICENCE_NUMBER_LENGTH
   ) {
-    problems.push("Enter your licence number.");
+    problems.push(
+      tr("errors.driverProfileOnboardingSubmit.enterLicenceNumber"),
+    );
   }
 
   // Re-checked against `now`, not against when step 2 was filled in: a licence
@@ -386,7 +400,7 @@ function validateLicence(
   const isValidExpiry =
     expiresAt !== null && expiresAt.getTime() > now.getTime();
   if (!isValidExpiry) {
-    problems.push("This licence has expired. Renew it before applying.");
+    problems.push(tr("errors.driverProfileOnboardingSubmit.licenceExpired"));
   }
 
   const rawCategories = licence.categories;
@@ -402,7 +416,9 @@ function validateLicence(
     Array.isArray(rawCategories) &&
     categories.length === rawCategories.length;
   if (!hasValidCategories) {
-    problems.push("Select at least one licence category.");
+    problems.push(
+      tr("errors.driverProfileOnboardingSubmit.selectLicenceCategory"),
+    );
   }
 
   if (
@@ -438,6 +454,7 @@ function validateVehicle(
   licence: ValidatedSubmission["licence"] | null,
   now: Date,
   problems: string[],
+  tr: RequestTranslator,
 ): ValidatedVehicleDraft | null {
   const vehicle = draft.vehicle ?? {};
 
@@ -445,14 +462,16 @@ function validateVehicle(
     ? (vehicle.chassisType as ChassisType)
     : null;
   if (chassisType === null) {
-    problems.push("Choose the vehicle's cargo body type.");
+    problems.push(tr("errors.driverProfileOnboardingSubmit.chooseBodyType"));
   }
 
   const classId = VEHICLE_CLASS_IDS.includes(vehicle.classId as VehicleClassId)
     ? (vehicle.classId as VehicleClassId)
     : null;
   if (classId === null) {
-    problems.push("Choose a vehicle class.");
+    problems.push(
+      tr("errors.driverProfileOnboardingSubmit.chooseVehicleClass"),
+    );
   }
 
   // The (class, chassis) grid has holes — combinations with no matching spec in
@@ -464,7 +483,7 @@ function validateVehicle(
     specCode = resolveVehicleTypeSpecCode(classId, chassisType);
     if (specCode === null) {
       problems.push(
-        "This vehicle class isn't available with the selected body type.",
+        tr("errors.driverProfileOnboardingSubmit.classUnavailableForBody"),
       );
     }
   }
@@ -475,7 +494,10 @@ function validateVehicle(
     const required = findVehicleClass(classId).requiredLicenceCategory;
     if (!licence.categories.includes(required)) {
       problems.push(
-        `Your licence does not list category ${required}, which the ${findVehicleClass(classId).name} class requires.`,
+        tr("errors.driverProfileOnboardingSubmit.licenceMissingCategory", {
+          category: required,
+          className: tr(findVehicleClass(classId).nameKey),
+        }),
       );
     }
   }
@@ -485,12 +507,12 @@ function validateVehicle(
   // to check here beyond presence.
   const make = trimmed(vehicle.make);
   if (make === null) {
-    problems.push("Enter the vehicle's make.");
+    problems.push(tr("errors.driverProfileOnboardingSubmit.enterMake"));
   }
 
   const model = trimmed(vehicle.model);
   if (model === null) {
-    problems.push("Enter the vehicle's model.");
+    problems.push(tr("errors.driverProfileOnboardingSubmit.enterModel"));
   }
 
   const maxVehicleYear = now.getFullYear();
@@ -502,7 +524,11 @@ function validateVehicle(
     year <= maxVehicleYear;
   if (!isValidYear) {
     problems.push(
-      `Enter a manufacturing year between ${MIN_VEHICLE_YEAR} and ${maxVehicleYear}.`,
+      // Years as strings: ICU would group a numeric argument ("2,027").
+      tr("errors.driverProfileOnboardingSubmit.yearRange", {
+        min: String(MIN_VEHICLE_YEAR),
+        max: String(maxVehicleYear),
+      }),
     );
   }
 
@@ -512,12 +538,12 @@ function validateVehicle(
   const isValidPlate =
     plateNumber !== null && plateNumber.length >= MIN_PLATE_LENGTH;
   if (!isValidPlate) {
-    problems.push("Enter the vehicle's licence plate.");
+    problems.push(tr("errors.driverProfileOnboardingSubmit.enterPlate"));
   }
 
   const colour = trimmed(vehicle.colour);
   if (colour === null) {
-    problems.push("Choose the vehicle's colour.");
+    problems.push(tr("errors.driverProfileOnboardingSubmit.chooseColour"));
   }
 
   const payloadKg = finiteNumber(vehicle.payloadKg);
@@ -527,7 +553,10 @@ function validateVehicle(
     payloadKg <= MAX_PAYLOAD_KG;
   if (!isValidPayload) {
     problems.push(
-      `Maximum payload must be between ${MIN_PAYLOAD_KG.toLocaleString("en-US")} and ${MAX_PAYLOAD_KG.toLocaleString("en-US")} kg.`,
+      tr("errors.driverProfileOnboardingSubmit.payloadRange", {
+        min: MIN_PAYLOAD_KG,
+        max: MAX_PAYLOAD_KG,
+      }),
     );
   }
 
@@ -540,7 +569,7 @@ function validateVehicle(
     (value) => value !== null && value > 0 && value <= MAX_CARGO_DIMENSION_M,
   );
   if (!hasValidDimensions) {
-    problems.push("Check the dimensions — metres, not centimetres.");
+    problems.push(tr("errors.driverProfileOnboardingSubmit.checkDimensions"));
   }
 
   if (
@@ -590,18 +619,25 @@ function validateVehicle(
 function validateDocuments(
   documents: SubmittableApplication["documents"],
   problems: string[],
+  tr: RequestTranslator,
 ): void {
   for (const required of REQUIRED_DOCUMENTS) {
     const live = documents.find((document) => document.type === required.type);
 
     if (!live) {
-      problems.push(`Upload your ${required.label} before submitting.`);
+      problems.push(
+        tr("errors.driverProfileOnboardingSubmit.uploadDocument", {
+          document: tr(required.labelKey),
+        }),
+      );
       continue;
     }
 
     if (live.status === "FLAGGED") {
       problems.push(
-        `Replace the flagged ${required.label} before resubmitting.`,
+        tr("errors.driverProfileOnboardingSubmit.replaceFlaggedDocument", {
+          document: tr(required.labelKey),
+        }),
       );
     }
   }
@@ -649,6 +685,7 @@ async function resubmit(context: SubmitContext): Promise<NextResponse> {
   // below, matching the main path's single-clock convention.
   const now = new Date();
   const problems: string[] = [];
+  const tr = await getRequestTranslations();
 
   // Checked in the same order as the main path (age, then licence expiry, then
   // documents) so the one message this endpoint reports is the same message the
@@ -656,7 +693,10 @@ async function resubmit(context: SubmitContext): Promise<NextResponse> {
   const age = dateOfBirth === null ? null : ageInYears(dateOfBirth, now);
   if (age === null || age < MIN_AGE_YEARS || age > MAX_AGE_YEARS) {
     problems.push(
-      `Drivers must be between ${MIN_AGE_YEARS} and ${MAX_AGE_YEARS} years old.`,
+      tr("errors.driverProfileOnboardingSubmit.ageRange", {
+        min: MIN_AGE_YEARS,
+        max: MAX_AGE_YEARS,
+      }),
     );
   }
 
@@ -668,10 +708,10 @@ async function resubmit(context: SubmitContext): Promise<NextResponse> {
     licenceExpiresAt === null ||
     licenceExpiresAt.getTime() <= now.getTime()
   ) {
-    problems.push("This licence has expired. Renew it before applying.");
+    problems.push(tr("errors.driverProfileOnboardingSubmit.licenceExpired"));
   }
 
-  validateDocuments(application.documents, problems);
+  validateDocuments(application.documents, problems, tr);
   if (problems.length > 0) {
     return NextResponse.json({ error: problems[0] }, { status: 400 });
   }
@@ -727,10 +767,11 @@ export async function POST(request: Request): Promise<NextResponse> {
   const now = new Date();
   const problems: string[] = [];
 
-  const personal = validatePersonal(draft, now, problems);
-  const licence = validateLicence(draft, now, problems);
-  const validatedVehicle = validateVehicle(draft, licence, now, problems);
-  validateDocuments(application.documents, problems);
+  const tr = await getRequestTranslations();
+  const personal = validatePersonal(draft, now, problems, tr);
+  const licence = validateLicence(draft, now, problems, tr);
+  const validatedVehicle = validateVehicle(draft, licence, now, problems, tr);
+  validateDocuments(application.documents, problems, tr);
 
   if (problems.length > 0 || !personal || !licence || !validatedVehicle) {
     return NextResponse.json(
@@ -740,7 +781,7 @@ export async function POST(request: Request): Promise<NextResponse> {
         // message per response, not a field-by-field array.
         error:
           problems[0] ??
-          "Something in your application is incomplete. Check each step and try again.",
+          tr("errors.driverProfileOnboardingSubmit.applicationIncomplete"),
       },
       { status: 400 },
     );
@@ -772,7 +813,13 @@ export async function POST(request: Request): Promise<NextResponse> {
   if (validatedVehicle.vehicle.payloadKg < spec.maxPayloadKg) {
     return NextResponse.json(
       {
-        error: `This vehicle's declared payload is below the ${findVehicleClass(validatedVehicle.classId).name} minimum of ${spec.maxPayloadKg.toLocaleString("en-US")} kg.`,
+        error: tr(
+          "errors.driverProfileOnboardingSubmit.payloadBelowClassMinimum",
+          {
+            className: tr(findVehicleClass(validatedVehicle.classId).nameKey),
+            kg: spec.maxPayloadKg,
+          },
+        ),
       },
       { status: 400 },
     );

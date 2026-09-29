@@ -171,12 +171,12 @@
   },
   "shared.aSubmittedApplicationCannotBeReset": {
     "en": "A submitted application cannot be reset.",
-    "ka": "გაგზავნილი განაცხადის გაუქმება/განახლება შეუძლებელია.",
+    "ka": "გაგზავნილი განაცხადის გაუქმება შეუძლებელია.",
     "_source": "src/app/api/driver-profile/onboarding/reset/route.ts"
   },
   "shared.aTemplateWithThatKeyAlready": {
     "en": "A template with that key already exists for this channel and locale.",
-    "ka": "ამ გასაღებით (key) შაბლონი უკვე არსებობს ამ არხისა და ლოკალისთვის.",
+    "ka": "ამ გასაღებით შაბლონი უკვე არსებობს ამ არხისა და ლოკალისთვის.",
     "_source": "src/app/api/admin/content/messaging-templates/[id]/route.ts"
   },
   "shared.acceptThisLoad": {
@@ -186,7 +186,7 @@
   },
   "shared.acceptance": {
     "en": "Acceptance",
-    "ka": "დადასტურება / მიღება",
+    "ka": "მიღება",
     "_source": "src/components/driver-hub/screens/drivers-detail-panel.tsx"
   },
   "shared.account": {
@@ -526,7 +526,7 @@
   },
   "shared.dashboard": {
     "en": "Dashboard",
-    "ka": "მართვის პანელი (Dashboard)",
+    "ka": "მართვის პანელი",
     "_source": "src/app/[locale]/dashboard/(hub)/layout.tsx"
   },
   "shared.date": {
@@ -586,7 +586,7 @@
   },
   "shared.driverAvailabilityIsAFleetScreen": {
     "en": "Driver availability is a fleet screen — only a logistics company account has a roster to lay out.",
-    "ka": "მძღოლის ხელმისაწვდომობა არის ავტოპარკის ეკრანი — განრიგი აქვს მხოლოდ ლოგისტიკურ კომპანიას.",
+    "ka": "მძღოლის ხელმისაწვდომობა არის ავტოპარკის ეკრანი — განრიგი აქვს მხოლოდ ლოჯისტიკურ კომპანიას.",
     "_source": "src/app/api/dashboard/hub/drivers/availability/export/route.ts"
   },
   "shared.driverExampleCom": {
@@ -696,7 +696,7 @@
   },
   "shared.eventKey": {
     "en": "Event key",
-    "ka": "მოვლენის გასაღები (Event key)",
+    "ka": "მოვლენის გასაღები",
     "_source": "src/app/[locale]/admin/(sections)/content/messaging-templates/page.tsx"
   },
   "shared.expires": {
@@ -736,7 +736,7 @@
   },
   "shared.fillInTheWizardBeforeSubmitting": {
     "en": "Fill in the wizard before submitting your application.",
-    "ka": "განაცხადის გაგზავნამდე შეავსეთ ოსტატის (wizard) ველები.",
+    "ka": "განაცხადის გაგზავნამდე შეავსეთ ფორმის ყველა ნაბიჯი.",
     "_source": "src/app/api/driver-profile/onboarding/submit/route.ts"
   },
   "shared.firstDriverToConfirmClaimsThe": {
@@ -761,7 +761,7 @@
   },
   "shared.flag": {
     "en": "Flag",
-    "ka": "დროშა / მონიშვნა",
+    "ka": "მონიშვნა",
     "_source": "src/components/admin/business-application-detail-drawer.tsx"
   },
   "shared.flatbedOrCurtainSideWithDrop": {
@@ -826,7 +826,7 @@
   },
   "shared.idNumber": {
     "en": "ID number",
-    "ka": "პირადი ნომერი / ID",
+    "ka": "პირადი ნომერი",
     "_source": "src/components/admin/driver-application-detail-drawer.tsx"
   },
   "shared.idPassport": {
@@ -851,7 +851,7 @@
   },
   "shared.incentives": {
     "en": "Incentives",
-    "ka": "წახალისებები / ბონუსები",
+    "ka": "ბონუსები",
     "_source": "src/components/driver-hub/screens/earnings-breakdown-card.tsx"
   },
   "shared.individual": {
@@ -861,12 +861,12 @@
   },
   "shared.isactiveMustBeABoolean": {
     "en": "isActive must be a boolean.",
-    "ka": "isActive უნდა იყოს ლოგიკური ტიპი (boolean).",
+    "ka": "isActive უნდა იყოს ლოგიკური ტიპი.",
     "_source": "src/app/api/admin/content/banners/[id]/route.ts"
   },
   "shared.jobs": {
     "en": "Jobs",
-    "ka": "შეკვეთები / სამუშაოები",
+    "ka": "რეისები",
     "_source": "src/components/driver-hub/screens/earnings-fleet-card.tsx"
   },
   "shared.jobsCompleted": {
@@ -886,7 +886,7 @@
   },
   "shared.key": {
     "en": "Key",
-    "ka": "გასაღები (Key)",
+    "ka": "გასაღები",
     "_source": "src/app/[locale]/admin/(sections)/content/translations/page.tsx"
   },
   "shared.keyIsRequiredAndMustBe": {
@@ -946,7 +946,7 @@
   },
   "shared.load": {
     "en": "Load",
-    "ka": "ტვირთი / დატვირთვა",
+    "ka": "გადაზიდვა",
     "_source": "src/components/driver-hub/screens/job-sheet-actions.tsx"
   },
   "shared.loadingApplication": {
@@ -1031,7 +1031,7 @@
   },
   "shared.namespace": {
     "en": "Namespace",
-    "ka": "სახელთა სივრცე (Namespace)",
+    "ka": "სახელთა სივრცე",
     "_source": "src/app/[locale]/admin/(sections)/content/translations/page.tsx"
   },
   "shared.needsReview": {
@@ -1061,7 +1061,7 @@
   },
   "shared.noApplicationToReset": {
     "en": "No application to reset.",
-    "ka": "გასაუქმებელი/აღსადგენი განაცხადი არ არის.",
+    "ka": "გასაუქმებელი განაცხადი არ არის.",
     "_source": "src/app/api/driver-profile/onboarding/reset/route.ts"
   },
   "shared.noApplicationToSaveLoadYour": {
@@ -1111,12 +1111,12 @@
   },
   "shared.onlyLogisticsCompaniesCanDispatchDeliveries": {
     "en": "Only logistics companies can dispatch deliveries.",
-    "ka": "შეკვეთების გადანაწილება (dispatch) მხოლოდ ლოგისტიკურ კომპანიებს შეუძლიათ.",
+    "ka": "შეკვეთების დანიშვნა მხოლოდ ლოჯისტიკურ კომპანიებს შეუძლიათ.",
     "_source": "src/app/api/logistics-company/orders/[id]/dispatch-options/route.ts"
   },
   "shared.onlyLogisticsCompaniesHaveAFleet": {
     "en": "Only logistics companies have a fleet application.",
-    "ka": "ავტოპარკის განაცხადი მხოლოდ ლოგისტიკურ კომპანიებს აქვს.",
+    "ka": "ავტოპარკის განაცხადი მხოლოდ ლოჯისტიკურ კომპანიებს აქვს.",
     "_source": "src/app/api/logistics-company/onboarding/reset/route.ts"
   },
   "shared.openChassis": {
@@ -1176,7 +1176,7 @@
   },
   "shared.payoutAccount": {
     "en": "Payout account",
-    "ka": "თანხის გასატანი (payout) ანგარიში",
+    "ka": "ანაზღაურების ანგარიში",
     "_source": "src/components/admin/business-application-detail-drawer.tsx"
   },
   "shared.pending": {
@@ -1246,7 +1246,7 @@
   },
   "shared.placement": {
     "en": "Placement",
-    "ka": "განთავსება / პოზიცია",
+    "ka": "განთავსება",
     "_source": "src/app/[locale]/admin/(sections)/content/banners/page.tsx"
   },
   "shared.plate": {
@@ -1286,7 +1286,7 @@
   },
   "shared.promise": {
     "en": "Promise",
-    "ka": "დაპირება / გარანტია",
+    "ka": "დაპირება",
     "_source": "src/components/auth/use-sign-out.ts"
   },
   "shared.questions": {
@@ -1371,7 +1371,7 @@
   },
   "shared.sample": {
     "en": "Sample",
-    "ka": "ნიმუში / Sample",
+    "ka": "ნიმუში",
     "_source": "src/components/driver-hub/screens/drivers-detail-panel.tsx"
   },
   "shared.savedcardidMustBeANonEmpty": {
@@ -1391,7 +1391,7 @@
   },
   "shared.scope": {
     "en": "Scope",
-    "ka": "მოქმედების სფერო / Scope",
+    "ka": "მოქმედების სფერო",
     "_source": "src/components/driver-hub/screens/employees-invite-form.tsx"
   },
   "shared.searchByNameEmailOrPhone": {
@@ -1476,7 +1476,7 @@
   },
   "shared.subject": {
     "en": "Subject",
-    "ka": "თემა / Subject",
+    "ka": "თემა",
     "_source": "src/app/[locale]/admin/(sections)/content/messaging-templates/page.tsx"
   },
   "shared.support": {
@@ -1621,12 +1621,12 @@
   },
   "shared.unassigned": {
     "en": "Unassigned",
-    "ka": "უმისამართო / მიუნიჭებელი",
+    "ka": "მიუმაგრებელი",
     "_source": "src/components/driver-hub/screens/drivers-add-panel.tsx"
   },
   "shared.unauthorized": {
     "en": "Unauthorized.",
-    "ka": "ავტორიზაცია არ არის გავლილი (Unauthorized).",
+    "ka": "ავტორიზაცია არ არის გავლილი.",
     "_source": "src/app/api/admin/users/system/[userId]/deactivate/route.ts"
   },
   "shared.unfinishedApplication": {
@@ -1701,7 +1701,7 @@
   },
   "shared.vehicles": {
     "en": "Vehicles",
-    "ka": "ტრანსპორტი (მრავლობითი)",
+    "ka": "ავტომობილები",
     "_source": "src/components/driver-hub/driver-hub-nav.ts"
   },
   "shared.vehicletypePricingruleBasefare": {
@@ -1813,5 +1813,60 @@
     "en": "Light theme",
     "ka": "ღია თემა",
     "_source": "src/components/theme-toggle.tsx"
+  },
+  "vehicleTypeSpecs.boxTruck": {
+    "en": "Box Truck",
+    "ka": "დახურულძარიანი სატვირთო",
+    "_source": "src/lib/vehicle-type-spec-labels.ts"
+  },
+  "vehicleTypeSpecs.cargoVan": {
+    "en": "Cargo Van",
+    "ka": "სატვირთო ფურგონი",
+    "_source": "src/lib/vehicle-type-spec-labels.ts"
+  },
+  "vehicleTypeSpecs.closedBoxVan": {
+    "en": "Closed Box Van",
+    "ka": "დახურული ფურგონი",
+    "_source": "src/lib/vehicle-type-spec-labels.ts"
+  },
+  "vehicleTypeSpecs.curtainsiderTruck": {
+    "en": "Curtainsider Truck",
+    "ka": "ტენტიანი სატვირთო",
+    "_source": "src/lib/vehicle-type-spec-labels.ts"
+  },
+  "vehicleTypeSpecs.flatbedTruck": {
+    "en": "Flatbed Truck",
+    "ka": "ღია პლატფორმიანი სატვირთო",
+    "_source": "src/lib/vehicle-type-spec-labels.ts"
+  },
+  "vehicleTypeSpecs.largeFreightTruck": {
+    "en": "Large Freight Truck",
+    "ka": "დიდი სატვირთო",
+    "_source": "src/lib/vehicle-type-spec-labels.ts"
+  },
+  "vehicleTypeSpecs.minivan": {
+    "en": "Minivan",
+    "ka": "მინივენი",
+    "_source": "src/lib/vehicle-type-spec-labels.ts"
+  },
+  "vehicleTypeSpecs.mpv": {
+    "en": "MPV / Estate",
+    "ka": "მინივენი / უნივერსალი",
+    "_source": "src/lib/vehicle-type-spec-labels.ts"
+  },
+  "vehicleTypeSpecs.refrigeratedTruck": {
+    "en": "Refrigerated Truck",
+    "ka": "მაცივარი სატვირთო",
+    "_source": "src/lib/vehicle-type-spec-labels.ts"
+  },
+  "vehicleTypeSpecs.refrigeratedVan": {
+    "en": "Refrigerated Van",
+    "ka": "მაცივარ-ფურგონი",
+    "_source": "src/lib/vehicle-type-spec-labels.ts"
+  },
+  "vehicleTypeSpecs.trailerTruck": {
+    "en": "Trailer Truck",
+    "ka": "მისაბმელიანი სატვირთო",
+    "_source": "src/lib/vehicle-type-spec-labels.ts"
   }
 }

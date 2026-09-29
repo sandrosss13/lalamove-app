@@ -40,6 +40,12 @@ export const CONTENT_LOCALE_LABELS: Record<ContentLocale, string> = {
   EN: "English",
 };
 
+/** `CONTENT_LOCALE_LABELS` as full message paths, resolved where they render. */
+export const CONTENT_LOCALE_LABEL_KEYS: Record<ContentLocale, string> = {
+  KA: "common.shared.georgian",
+  EN: "common.shared.english",
+};
+
 /** Picker order — the site's default locale first. */
 const CONTENT_LOCALE_OPTIONS: ContentLocale[] = ["EN", "KA"];
 
@@ -144,7 +150,9 @@ export function StaticPageFormDialog({
         setError(
           await readErrorMessage(
             response,
-            existing ? "Could not save this page." : "Could not create page.",
+            existing
+              ? t("admin.staticPageFormDialog.couldNotSave")
+              : t("admin.staticPageFormDialog.couldNotCreate"),
           ),
         );
         return;
@@ -169,12 +177,15 @@ export function StaticPageFormDialog({
         <form onSubmit={handleSubmit} className="contents">
           <DialogHeader>
             <DialogTitle>
-              {isEditing ? "Edit static page" : "New static page"}
+              {isEditing
+                ? t("admin.staticPageFormDialog.editStaticPage")
+                : t("admin.staticPageFormDialog.newStaticPage")}
             </DialogTitle>
             <DialogDescription>
-              Each locale is its own page. The body is raw HTML and is rendered
-              as-is at{" "}
-              <span className="font-mono">/pages/{slug || "slug"}</span>.
+              {t.rich("admin.staticPageFormDialog.description", {
+                slug: slug || "slug",
+                path: (chunks) => <span className="font-mono">{chunks}</span>,
+              })}
             </DialogDescription>
           </DialogHeader>
 
@@ -209,7 +220,7 @@ export function StaticPageFormDialog({
                   <SelectContent>
                     {CONTENT_LOCALE_OPTIONS.map((option) => (
                       <SelectItem key={option} value={option}>
-                        {CONTENT_LOCALE_LABELS[option]}
+                        {t(CONTENT_LOCALE_LABEL_KEYS[option])}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -264,7 +275,11 @@ export function StaticPageFormDialog({
               {t("common.shared.cancel")}
             </Button>
             <Button type="submit" disabled={pending}>
-              {pending ? "Saving…" : isEditing ? "Save changes" : "Create page"}
+              {pending
+                ? t("common.shared.saving")
+                : isEditing
+                  ? t("account.accountProfileForm.saveChanges")
+                  : t("admin.staticPageFormDialog.createPage")}
             </Button>
           </DialogFooter>
         </form>

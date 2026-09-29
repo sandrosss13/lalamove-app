@@ -4,10 +4,11 @@ import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { vehicleTypeSpecLabel } from "@/lib/vehicle-type-spec-labels";
 import {
-  ORDER_STATUS_LABEL,
   ORDER_STATUS_PILL,
   ORDER_STATUS_PILL_BASE,
+  orderStatusLabel,
 } from "@/components/orders-format";
 import { OrderTrackingMap } from "@/components/order-tracking-map";
 
@@ -30,6 +31,7 @@ export default async function TrackOrderPage({
   const session = await auth.api.getSession({ headers: await headers() });
   const t = await getTranslations("orders.ordersTrack");
   const tShared = await getTranslations("common.shared");
+  const tRoot = await getTranslations();
 
   if (!session) {
     return (
@@ -76,7 +78,7 @@ export default async function TrackOrderPage({
           plateNumber: true,
           make: true,
           model: true,
-          vehicleTypeSpec: { select: { label: true } },
+          vehicleTypeSpec: { select: { code: true, label: true } },
         },
       },
       company: { select: { companyName: true } },
@@ -89,7 +91,7 @@ export default async function TrackOrderPage({
   // dashboard — /orders redirects a driver or company straight back out again.
   const backHref = session.user.role === "CLIENT" ? "/orders" : "/dashboard";
   const backLabel =
-    session.user.role === "CLIENT" ? "← Back to orders" : "← Back to dashboard";
+    session.user.role === "CLIENT" ? t("backToOrders") : t("backToDashboard");
 
   // Someone else's order is reported exactly like a missing one, so this page
   // can't be used to probe which order ids exist.
@@ -117,7 +119,7 @@ export default async function TrackOrderPage({
         <span
           className={`${ORDER_STATUS_PILL_BASE} ${ORDER_STATUS_PILL[order.status]}`}
         >
-          {ORDER_STATUS_LABEL[order.status]}
+          {orderStatusLabel(order.status, tRoot)}
         </span>
 
         <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
@@ -132,7 +134,13 @@ export default async function TrackOrderPage({
               <dt className="opacity-60">{tShared("vehicle")}</dt>
               <dd>
                 {order.vehicle.plateNumber} — {order.vehicle.make}{" "}
-                {order.vehicle.model} ({order.vehicle.vehicleTypeSpec.label})
+                {order.vehicle.model} (
+                {vehicleTypeSpecLabel(
+                  order.vehicle.vehicleTypeSpec.code,
+                  order.vehicle.vehicleTypeSpec.label,
+                  tRoot,
+                )}
+                )
               </dd>
             </>
           ) : null}

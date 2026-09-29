@@ -18,6 +18,7 @@
     "needsANewPhoto": "Needs a new photo",
     "pendingBody": "Our team is checking your licence, ID and vehicle photos. This page checks for a decision every few seconds, so there's no need to refresh it.",
     "pendingVerification": "Pending verification",
+    "photoReplaced": "Photo replaced. Resubmit when you're ready.",
     "profilePhoto": "Profile photo",
     "resubmitApplication": "Resubmit application",
     "resubmitFailed": "We couldn't resubmit your application. Please try again.",
@@ -43,6 +44,7 @@
     "guideSelfie": "Face centred, no hat or sunglasses, plain background.",
     "jpgOrPngMax10Mb": "JPG or PNG · max 10 MB",
     "notJpgOrPng": "That file is not a JPG or PNG. Choose a different one.",
+    "previewSoon": "Uploaded. The preview will appear shortly.",
     "theCategoryTableIsWhatThe": "The category table is what the reviewer checks.",
     "thePhotoNameAndLicenceNumber": "The photo, name and licence number must be readable.",
     "uploadFailed": "The upload didn't finish. Check your connection and try again.",
@@ -50,6 +52,11 @@
     "uploadTheFrontOfYourLicence": "Upload the front of your licence",
     "uploadYourProfilePhoto": "Upload your profile photo",
     "uploading": "Uploading…"
+  },
+  "onboardingDraft": {
+    "loadFailed": "We couldn't load your application. Check your connection and try again.",
+    "resetFailed": "We couldn't start a new application. Please try again.",
+    "saveFailed": "We couldn't save your progress. Your latest answers aren't stored yet."
   },
   "onboardingStepRail": {
     "authorisationPersonal": "Authorisation & personal",
@@ -89,6 +96,7 @@
     "exactlyAsPrintedOnYourId": "Exactly as printed on your ID",
     "fixHighlightedFields": "Fix the highlighted fields to continue.",
     "giveFirstAndLastName": "Give first and last name, exactly as on your ID.",
+    "idNumberFormat": "6–20 letters, digits or hyphens, no spaces.",
     "idOrPassportNumber": "ID or passport number",
     "invalidMobileNumber": "That is not a valid mobile number ({min}–{max} digits).",
     "jpgOrPngMax10Mb": "JPG or PNG, max 10 MB",
@@ -189,6 +197,7 @@
     "yearRange": "Year must be between {min} and {max}."
   },
   "step4ReviewSubmit": {
+    "cargoHoldValue": "{length} × {width} × {height} m",
     "checkEverythingBeforeItGoesTo": "Check everything before it goes to the review team. Corrections after submission cost you a day.",
     "driverSLicence": "Driver's licence",
     "missing": "Missing",

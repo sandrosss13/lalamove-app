@@ -9,6 +9,7 @@ import { getRequestTranslations } from "@/i18n/request-locale";
 import { authorizeAdminApi } from "@/lib/admin/api-auth";
 import { writeAuditLog } from "@/lib/admin/audit";
 import { prisma } from "@/lib/prisma";
+import { VEHICLE_FLAG_REASONS } from "@/lib/review-flag-reasons";
 
 /**
  * Staff who may review business fleet applications. Stated per route rather
@@ -16,23 +17,6 @@ import { prisma } from "@/lib/prisma";
  * read — and audited — without following an import.
  */
 const ALLOWED_ROLES: readonly AdminRole[] = ["SUPER_ADMIN", "USER_MANAGER"];
-
-/**
- * The six per-vehicle flag reasons from the design, verbatim. Closed for the
- * same reason as the company-level list: the company reads the reason verbatim
- * on its status screen, and its per-vehicle "Fix" editor keys its corrective
- * copy off it, so a free-typed reason would produce a card with nothing
- * actionable on it. The drawer offers exactly these six as chips, and a chip
- * click *is* the flag.
- */
-const VEHICLE_FLAG_REASONS: readonly string[] = [
-  "Plate does not match the documents",
-  "Payload above the class limit",
-  "Dimensions look wrong",
-  "Vehicle too old for the platform",
-  "Duplicate plate on another fleet",
-  "Cooling unit record missing",
-];
 
 /** The reviewer's verdict on one vehicle in the fleet. */
 type VehicleVerdict =
@@ -55,7 +39,7 @@ export type AdminBusinessVehicleReviewResponse = {
  */
 function parseVehicleVerdictBody(
   body: unknown,
-  t: (key: string) => string,
+  t: (key: string, values?: Record<string, string | number>) => string,
 ): { value: VehicleVerdict } | { error: string } {
   if (typeof body !== "object" || body === null) {
     return { error: t("common.shared.requestBodyMustBeAJson") };
@@ -68,7 +52,11 @@ function parseVehicleVerdictBody(
   }
 
   if (verdict !== "FLAGGED") {
-    return { error: 'verdict must be either "APPROVED" or "FLAGGED".' };
+    return {
+      error: t(
+        "errors.adminBusinessApplicationsVehicles.verdictMustBeApprovedOrFlagged",
+      ),
+    };
   }
 
   if (typeof reason !== "string" || reason.trim() === "") {

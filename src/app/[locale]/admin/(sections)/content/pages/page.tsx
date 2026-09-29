@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 
 // Type-only imports, so nothing of the server route (Prisma, Better Auth) is
 // pulled into this client bundle — they are erased at compile time. Sharing the
@@ -12,7 +12,7 @@ import type {
   AdminStaticPageRow,
 } from "@/app/api/admin/content/pages/route";
 import {
-  CONTENT_LOCALE_LABELS,
+  CONTENT_LOCALE_LABEL_KEYS,
   StaticPageFormDialog,
   type StaticPageFormTarget,
 } from "@/components/admin/content/static-page-form-dialog";
@@ -39,13 +39,11 @@ import {
 const COLUMN_COUNT = 5;
 
 /** Matches how every other dashboard in the app renders a date. */
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
+const UPDATED_DATE_FORMAT = {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+} as const;
 
 /**
  * Pulls the API's `{ error }` message out of a failed response — a `403` for a
@@ -86,6 +84,7 @@ function DeletePageDialog({
 }) {
   const t = useTranslations("admin.adminContentPages");
   const tShared = useTranslations("common.shared");
+  const tRoot = useTranslations();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -99,7 +98,7 @@ function DeletePageDialog({
       });
 
       if (!response.ok) {
-        setError(await readErrorMessage(response, "Could not delete page."));
+        setError(await readErrorMessage(response, t("couldNotDeletePage")));
         return;
       }
 
@@ -122,10 +121,12 @@ function DeletePageDialog({
         <DialogHeader>
           <DialogTitle>{t("deleteThisPage")}</DialogTitle>
           <DialogDescription>
-            “{page.title}” ({CONTENT_LOCALE_LABELS[page.locale]}) will be
-            removed permanently, and{" "}
-            <span className="font-mono">/pages/{page.slug}</span>{" "}
-            {t("willStopResolvingForThatLocale")}
+            {t.rich("deletePageDetail", {
+              title: page.title,
+              language: tRoot(CONTENT_LOCALE_LABEL_KEYS[page.locale]),
+              slug: page.slug,
+              path: (chunks) => <span className="font-mono">{chunks}</span>,
+            })}
           </DialogDescription>
         </DialogHeader>
 
@@ -140,7 +141,7 @@ function DeletePageDialog({
             disabled={pending}
             onClick={handleDelete}
           >
-            {pending ? "Deleting…" : "Delete page"}
+            {pending ? tShared("deleting") : t("deletePage")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -161,6 +162,8 @@ function DeletePageDialog({
 export default function AdminStaticPagesPage() {
   const t = useTranslations("admin.adminContentPages");
   const tShared = useTranslations("common.shared");
+  const tRoot = useTranslations();
+  const format = useFormatter();
   const [items, setItems] = useState<AdminStaticPageRow[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -225,8 +228,9 @@ export default function AdminStaticPagesPage() {
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-muted-foreground">
-          Published pages are served at{" "}
-          <span className="font-mono">/pages/[slug]</span>.
+          {t.rich("publishedPagesServedAt", {
+            path: (chunks) => <span className="font-mono">{chunks}</span>,
+          })}
         </p>
         <Button size="sm" onClick={() => setFormTarget({ mode: "create" })}>
           {t("newPage")}
@@ -280,14 +284,19 @@ export default function AdminStaticPagesPage() {
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline">
-                      {CONTENT_LOCALE_LABELS[page.locale]}
+                      {tRoot(CONTENT_LOCALE_LABEL_KEYS[page.locale])}
                     </Badge>
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-col">
                       <span className="font-medium">{page.title}</span>
                       <span className="text-xs text-muted-foreground">
-                        Updated {formatDate(page.updatedAt)}
+                        {t("updatedOn", {
+                          date: format.dateTime(
+                            new Date(page.updatedAt),
+                            UPDATED_DATE_FORMAT,
+                          ),
+                        })}
                       </span>
                     </div>
                   </TableCell>

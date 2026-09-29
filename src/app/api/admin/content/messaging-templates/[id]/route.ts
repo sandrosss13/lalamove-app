@@ -95,7 +95,7 @@ function isDuplicateTemplateError(error: unknown): boolean {
  */
 function parseUpdateBody(
   body: unknown,
-  t: (key: string) => string,
+  t: (key: string, values?: Record<string, string | number>) => string,
 ): { data: Prisma.MessagingTemplateUpdateInput } | { error: string } {
   if (typeof body !== "object" || body === null) {
     return { error: t("common.shared.requestBodyMustBeAJson") };
@@ -112,7 +112,12 @@ function parseUpdateBody(
       };
     }
     if (key.trim().length > MAX_KEY_LENGTH) {
-      return { error: `key must be ${MAX_KEY_LENGTH} characters or fewer.` };
+      return {
+        error: t("common.shared.fieldMaxLength", {
+          field: "key",
+          max: MAX_KEY_LENGTH,
+        }),
+      };
     }
     data.key = key.trim();
   }
@@ -121,7 +126,10 @@ function parseUpdateBody(
     const { channel } = record;
     if (typeof channel !== "string" || !isMessagingChannel(channel)) {
       return {
-        error: `channel must be one of: ${MESSAGING_CHANNELS.join(", ")}.`,
+        error: t("common.shared.fieldMustBeOneOf", {
+          field: "channel",
+          options: MESSAGING_CHANNELS.join(", "),
+        }),
       };
     }
     data.channel = channel;
@@ -130,7 +138,12 @@ function parseUpdateBody(
   if (record.locale !== undefined) {
     const { locale } = record;
     if (typeof locale !== "string" || !isContentLocale(locale)) {
-      return { error: `locale must be one of: ${CONTENT_LOCALES.join(", ")}.` };
+      return {
+        error: t("common.shared.fieldMustBeOneOf", {
+          field: "locale",
+          options: CONTENT_LOCALES.join(", "),
+        }),
+      };
     }
     data.locale = locale;
   }
@@ -138,7 +151,11 @@ function parseUpdateBody(
   if (record.subject !== undefined) {
     const { subject } = record;
     if (subject !== null && typeof subject !== "string") {
-      return { error: "subject must be a string or null." };
+      return {
+        error: t(
+          "errors.adminContentMessagingTemplates.subjectMustBeStringOrNull",
+        ),
+      };
     }
     // A blank string is normalized to null so the two ways of saying "no
     // subject" cannot both end up in the table.
@@ -148,7 +165,10 @@ function parseUpdateBody(
         : null;
     if (trimmedSubject !== null && trimmedSubject.length > MAX_SUBJECT_LENGTH) {
       return {
-        error: `subject must be ${MAX_SUBJECT_LENGTH} characters or fewer.`,
+        error: t("common.shared.fieldMaxLength", {
+          field: "subject",
+          max: MAX_SUBJECT_LENGTH,
+        }),
       };
     }
     data.subject = trimmedSubject;
@@ -162,7 +182,12 @@ function parseUpdateBody(
       };
     }
     if (messageBody.length > MAX_BODY_LENGTH) {
-      return { error: `body must be ${MAX_BODY_LENGTH} characters or fewer.` };
+      return {
+        error: t("common.shared.fieldMaxLength", {
+          field: "body",
+          max: MAX_BODY_LENGTH,
+        }),
+      };
     }
     data.body = messageBody.trim();
   }

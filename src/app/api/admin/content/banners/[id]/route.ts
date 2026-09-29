@@ -94,19 +94,20 @@ function isUsableUrl(value: string): boolean {
 function parseTimestamp(
   raw: unknown,
   field: string,
+  t: (key: string, values?: Record<string, string | number>) => string,
 ): { value: Date | null } | { error: string } {
   if (raw === null) {
     return { value: null };
   }
 
   if (typeof raw !== "string") {
-    return { error: `${field} must be an ISO date string or null.` };
+    return { error: t("common.shared.fieldMustBeIsoDateOrNull", { field }) };
   }
 
   const parsed = new Date(raw);
 
   if (Number.isNaN(parsed.getTime())) {
-    return { error: `${field} must be a valid ISO date string.` };
+    return { error: t("common.shared.fieldMustBeValidIsoDate", { field }) };
   }
 
   return { value: parsed };
@@ -150,7 +151,7 @@ type ParsedBannerUpdate = {
 function parseUpdateBannerBody(
   body: unknown,
   existing: Banner,
-  t: (key: string) => string,
+  t: (key: string, values?: Record<string, string | number>) => string,
 ): ParsedBannerUpdate | { error: string } {
   if (typeof body !== "object" || body === null) {
     return { error: t("common.shared.requestBodyMustBeAJson") };
@@ -166,7 +167,10 @@ function parseUpdateBannerBody(
     }
     if (title.trim().length > MAX_TITLE_LENGTH) {
       return {
-        error: `title must be ${MAX_TITLE_LENGTH} characters or fewer.`,
+        error: t("common.shared.fieldMaxLength", {
+          field: "title",
+          max: MAX_TITLE_LENGTH,
+        }),
       };
     }
 
@@ -180,7 +184,12 @@ function parseUpdateBannerBody(
       typeof locale !== "string" ||
       !CONTENT_LOCALES.includes(locale as ContentLocale)
     ) {
-      return { error: `locale must be one of: ${CONTENT_LOCALES.join(", ")}.` };
+      return {
+        error: t("common.shared.fieldMustBeOneOf", {
+          field: "locale",
+          options: CONTENT_LOCALES.join(", "),
+        }),
+      };
     }
 
     data.locale = locale as ContentLocale;
@@ -196,7 +205,10 @@ function parseUpdateBannerBody(
     }
     if (imageUrl.trim().length > MAX_URL_LENGTH) {
       return {
-        error: `imageUrl must be ${MAX_URL_LENGTH} characters or fewer.`,
+        error: t("common.shared.fieldMaxLength", {
+          field: "imageUrl",
+          max: MAX_URL_LENGTH,
+        }),
       };
     }
     if (!isUsableUrl(imageUrl.trim())) {
@@ -213,7 +225,7 @@ function parseUpdateBannerBody(
     if (linkUrl === null) {
       data.linkUrl = null;
     } else if (typeof linkUrl !== "string") {
-      return { error: "linkUrl must be a string or null." };
+      return { error: t("common.shared.linkurlMustBeStringOrNull") };
     } else {
       const trimmedLinkUrl = linkUrl.trim();
 
@@ -224,7 +236,10 @@ function parseUpdateBannerBody(
       } else {
         if (trimmedLinkUrl.length > MAX_URL_LENGTH) {
           return {
-            error: `linkUrl must be ${MAX_URL_LENGTH} characters or fewer.`,
+            error: t("common.shared.fieldMaxLength", {
+              field: "linkUrl",
+              max: MAX_URL_LENGTH,
+            }),
           };
         }
         if (!isUsableUrl(trimmedLinkUrl)) {
@@ -248,7 +263,10 @@ function parseUpdateBannerBody(
     }
     if (placement.trim().length > MAX_PLACEMENT_LENGTH) {
       return {
-        error: `placement must be ${MAX_PLACEMENT_LENGTH} characters or fewer.`,
+        error: t("common.shared.fieldMaxLength", {
+          field: "placement",
+          max: MAX_PLACEMENT_LENGTH,
+        }),
       };
     }
 
@@ -265,7 +283,10 @@ function parseUpdateBannerBody(
       sortOrder > MAX_SORT_ORDER
     ) {
       return {
-        error: `sortOrder must be an integer between ${MIN_SORT_ORDER} and ${MAX_SORT_ORDER}.`,
+        error: t("common.shared.sortOrderMustBeIntegerBetween", {
+          min: MIN_SORT_ORDER,
+          max: MAX_SORT_ORDER,
+        }),
       };
     }
 
@@ -287,7 +308,7 @@ function parseUpdateBannerBody(
   // below needs the values the row will *end up* with, not the ones it has.
   let nextStartsAt = existing.startsAt;
   if ("startsAt" in record) {
-    const startsAt = parseTimestamp(record.startsAt, "startsAt");
+    const startsAt = parseTimestamp(record.startsAt, "startsAt", t);
     if ("error" in startsAt) {
       return { error: startsAt.error };
     }
@@ -298,7 +319,7 @@ function parseUpdateBannerBody(
 
   let nextEndsAt = existing.endsAt;
   if ("endsAt" in record) {
-    const endsAt = parseTimestamp(record.endsAt, "endsAt");
+    const endsAt = parseTimestamp(record.endsAt, "endsAt", t);
     if ("error" in endsAt) {
       return { error: endsAt.error };
     }

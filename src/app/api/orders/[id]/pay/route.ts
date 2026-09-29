@@ -74,13 +74,18 @@ function roundCurrency(value: number): number {
 function parseOptionalText(
   value: unknown,
   fieldName: string,
+  t: RequestTranslator,
 ): { value: string | null } | { error: string } {
   if (value === undefined || value === null) {
     return { value: null };
   }
 
   if (typeof value !== "string") {
-    return { error: `${fieldName} must be a string when provided.` };
+    return {
+      error: t("errors.ordersPay.fieldMustBeStringWhenProvided", {
+        field: fieldName,
+      }),
+    };
   }
 
   const trimmed = value.trim();
@@ -90,7 +95,10 @@ function parseOptionalText(
 
   if (trimmed.length > FREE_TEXT_MAX_LENGTH) {
     return {
-      error: `${fieldName} must be ${FREE_TEXT_MAX_LENGTH} characters or fewer.`,
+      error: t("errors.ordersPay.fieldTooLong", {
+        field: fieldName,
+        max: FREE_TEXT_MAX_LENGTH,
+      }),
     };
   }
 
@@ -121,7 +129,9 @@ function parsePayOrderBody(
     !CHECKOUT_PAYMENT_METHODS.includes(paymentMethodType as PaymentMethodType)
   ) {
     return {
-      error: `paymentMethodType must be one of: ${CHECKOUT_PAYMENT_METHODS.join(", ")}.`,
+      error: t("errors.ordersPay.paymentMethodTypeMustBeOneOf", {
+        allowed: CHECKOUT_PAYMENT_METHODS.join(", "),
+      }),
     };
   }
 
@@ -156,6 +166,7 @@ function parsePayOrderBody(
   const purchaseOrderRef = parseOptionalText(
     record.purchaseOrderRef,
     "purchaseOrderRef",
+    t,
   );
   if ("error" in purchaseOrderRef) {
     return purchaseOrderRef;

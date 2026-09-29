@@ -31,27 +31,26 @@ export type DocumentSlot = "selfie" | "licFront" | "licBack";
 export const CAPTURE_META: Record<
   DocumentSlot,
   // `titleKey` / `hintKey` are full `next-intl` message paths, translated at
-  // render (no hook can run at module scope). `guide` and `badge` have no
-  // catalog entry yet.
-  { titleKey: string; hintKey: string; guide: string; badge: string }
+  // render (no hook can run at module scope). `guideKey` and `badgeKey` too.
+  { titleKey: string; hintKey: string; guideKey: string; badgeKey: string }
 > = {
   selfie: {
     titleKey: "onboarding.documentUploadDialog.uploadYourProfilePhoto",
     hintKey: "common.shared.aRecentPhotoOfYourFace",
-    guide: "Face centred, no hat or sunglasses, plain background.",
-    badge: "STEP 1 · PROFILE PHOTO",
+    guideKey: "onboarding.documentUploadDialog.guideSelfie",
+    badgeKey: "onboarding.documentUploadDialog.badgeSelfie",
   },
   licFront: {
     titleKey: "onboarding.documentUploadDialog.uploadTheFrontOfYourLicence",
     hintKey: "onboarding.documentUploadDialog.thePhotoNameAndLicenceNumber",
-    guide: "All four corners visible, no glare across the card.",
-    badge: "STEP 2 · LICENCE FRONT",
+    guideKey: "onboarding.documentUploadDialog.guideLicenceFront",
+    badgeKey: "onboarding.documentUploadDialog.badgeLicenceFront",
   },
   licBack: {
     titleKey: "onboarding.documentUploadDialog.uploadTheBackOfYourLicence",
     hintKey: "onboarding.documentUploadDialog.theCategoryTableIsWhatThe",
-    guide: "All four corners visible, category rows legible.",
-    badge: "STEP 2 · LICENCE BACK",
+    guideKey: "onboarding.documentUploadDialog.guideLicenceBack",
+    badgeKey: "onboarding.documentUploadDialog.badgeLicenceBack",
   },
 };
 
@@ -84,23 +83,22 @@ const MAX_FILE_BYTES = 10 * 1024 * 1024;
  */
 const ACCEPTED_CONTENT_TYPES = ["image/jpeg", "image/png"];
 
-const UPLOAD_FAILED_FALLBACK =
-  "The upload didn't finish. Check your connection and try again.";
-
 /** What the response of `POST .../documents/upload-url` carries. */
 type UploadUrlResponse = { path: string; signedUrl: string; token: string };
 
 /**
  * Rejects a file the endpoints would refuse anyway, before any request is made.
- * Returns the message to show, or `null` when the file is fine.
+ * Returns the `onboarding.documentUploadDialog` message key to show, or `null`
+ * when the file is fine — a key rather than copy, since this runs outside the
+ * component and cannot translate.
  */
-function rejectFile(file: File): string | null {
+function rejectFile(file: File): "notJpgOrPng" | "fileTooLarge" | null {
   if (!ACCEPTED_CONTENT_TYPES.includes(file.type)) {
-    return "That file is not a JPG or PNG. Choose a different one.";
+    return "notJpgOrPng";
   }
 
   if (file.size > MAX_FILE_BYTES) {
-    return "That file is larger than 10 MB. Choose a smaller one.";
+    return "fileTooLarge";
   }
 
   return null;
@@ -177,7 +175,7 @@ export function DocumentUploadDialog({
             error?: string;
           } | null;
           setState("failed");
-          setMessage(payload?.error ?? UPLOAD_FAILED_FALLBACK);
+          setMessage(payload?.error ?? t("uploadFailed"));
           return;
         }
 
@@ -198,7 +196,7 @@ export function DocumentUploadDialog({
             error?: string;
           } | null;
           setState("failed");
-          setMessage(payload?.error ?? UPLOAD_FAILED_FALLBACK);
+          setMessage(payload?.error ?? t("uploadFailed"));
           return;
         }
 
@@ -219,7 +217,7 @@ export function DocumentUploadDialog({
           // could not be signed, so there is no thumbnail to hand back. Say so
           // rather than passing an empty string that would render as a broken
           // image in the caller's slot.
-          showToast("Uploaded. The preview will appear shortly.");
+          showToast(t("previewSoon"));
         } else {
           onUploaded(recorded.signedUrl);
         }
@@ -227,10 +225,10 @@ export function DocumentUploadDialog({
         onOpenChange(false);
       } catch {
         setState("failed");
-        setMessage(UPLOAD_FAILED_FALLBACK);
+        setMessage(t("uploadFailed"));
       }
     },
-    [onOpenChange, onUploaded, recordDocument, showToast, slot],
+    [onOpenChange, onUploaded, recordDocument, showToast, slot, t],
   );
 
   const handleFile = useCallback(
@@ -239,7 +237,7 @@ export function DocumentUploadDialog({
       if (rejection) {
         // No request is made at all: the file is known-bad here.
         setState("failed");
-        setMessage(rejection);
+        setMessage(t(rejection));
         setPendingFile(null);
         return;
       }
@@ -247,7 +245,7 @@ export function DocumentUploadDialog({
       setPendingFile(file);
       void upload(file);
     },
-    [upload],
+    [t, upload],
   );
 
   const uploading = state === "uploading";
@@ -288,7 +286,7 @@ export function DocumentUploadDialog({
       >
         <DialogHeader className="gap-1 border-b border-border px-[22px] pt-5 pb-4">
           <span className="font-price text-[10.5px] font-semibold tracking-[0.09em] text-muted-foreground uppercase">
-            {meta.badge}
+            {tRoot(meta.badgeKey)}
           </span>
           <DialogTitle className="text-[18px] leading-tight font-semibold tracking-[-0.01em]">
             {tRoot(meta.titleKey)}
@@ -353,12 +351,10 @@ export function DocumentUploadDialog({
               <UploadIcon className="size-[17px]" />
             </span>
             <span className="text-[14.5px] font-semibold">
-              {uploading
-                ? "Uploading…"
-                : "Drag a file here, or click to browse"}
+              {uploading ? t("uploading") : t("dragOrBrowse")}
             </span>
             <span className="text-center text-[12.5px] leading-[1.5] text-muted-foreground">
-              {meta.guide}
+              {tRoot(meta.guideKey)}
             </span>
             <span className="mt-0.5 font-price text-[11.5px] text-muted-foreground">
               {t("jpgOrPngMax10Mb")}

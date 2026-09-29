@@ -8,7 +8,7 @@ import {
   Polyline,
   useMap,
 } from "@vis.gl/react-google-maps";
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 
 import { useTheme } from "@/hooks/use-theme";
 import {
@@ -108,15 +108,22 @@ const ROUTE_STROKE_COLOR_DARK = "#f58220";
 const ROUTE_STROKE_WEIGHT = 4;
 const ROUTE_STROKE_OPACITY = 0.9;
 
-/** `${distanceKm} km`, or a placeholder while no estimate has resolved. */
-function formatDistance(distanceKm: number | null): string {
+/**
+ * Turns an already-rounded figure into its localized, unit-bearing label. The
+ * helpers below stay plain functions outside the component, so the component
+ * hands them its translator rather than they calling hooks.
+ */
+type UnitLabel = (value: number) => string;
+
+/** "12.3 km", or a placeholder while no estimate has resolved. */
+function formatDistance(distanceKm: number | null, kmLabel: UnitLabel): string {
   // Guards the non-finite case too: a malformed estimate should show the same
   // placeholder as no estimate, never "NaN km".
   if (distanceKm === null || !Number.isFinite(distanceKm)) {
     return EMPTY_VALUE;
   }
 
-  return `${distanceKm.toFixed(1)} km`;
+  return kmLabel(distanceKm);
 }
 
 /**
@@ -130,6 +137,7 @@ function formatDistance(distanceKm: number | null): string {
 function formatTravelTime(
   distanceKm: number | null,
   durationMinutes: number | null,
+  minutesLabel: UnitLabel,
 ): string {
   // Non-finite is filtered alongside null in both cases: a malformed estimate
   // should fall through to the placeholder, never render "NaN min".
@@ -146,7 +154,7 @@ function formatTravelTime(
 
   // Tilde throughout: even the routed figure is a free-flow estimate, not a
   // traffic-aware ETA.
-  return `~${Math.round(minutes)} min`;
+  return minutesLabel(Math.round(minutes));
 }
 
 /**
@@ -252,6 +260,17 @@ function RoutePreview({
   // pan or zoom the user has made are all preserved across the switch.
   const t = useTranslations("home.routePreviewMap");
   const tShared = useTranslations("common.shared");
+  const format = useFormatter();
+  const kmLabel: UnitLabel = (km) =>
+    tShared("distanceKm", {
+      // One decimal, in the reader's locale's decimal separator.
+      km: format.number(km, {
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1,
+      }),
+    });
+  const minutesLabel: UnitLabel = (minutes) =>
+    tShared("approxMinutes", { minutes: format.number(minutes) });
   const theme = useTheme();
   const isDark = theme === "dark";
   const mapStyles = isDark ? MAP_STYLES_DARK : ROUTE_PREVIEW_MAP_STYLES_LIGHT;
@@ -320,12 +339,12 @@ function RoutePreview({
     { label: t("stops"), value: String(ROUTE_STOP_COUNT), numeric: true },
     {
       label: tShared("distance"),
-      value: formatDistance(distanceKm),
+      value: formatDistance(distanceKm, kmLabel),
       numeric: true,
     },
     {
       label: t("estTravelTime"),
-      value: formatTravelTime(distanceKm, durationMinutes),
+      value: formatTravelTime(distanceKm, durationMinutes, minutesLabel),
       numeric: true,
     },
     {

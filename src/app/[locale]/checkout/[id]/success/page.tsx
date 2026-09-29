@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { OrderStatus, PaymentStatus } from "@prisma/client";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 
 import { Link } from "@/i18n/navigation";
 import { localeHref } from "@/i18n/server";
@@ -9,7 +9,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { maskedCardNumber } from "@/components/home/payment-methods";
 import { formatGel } from "@/components/orders-format";
-import { PAYMENT_METHOD_LABEL, formatScheduledAt } from "../../checkout-format";
+import { formatScheduledAt, paymentMethodLabel } from "../../checkout-format";
 import {
   CheckoutHeader,
   CheckoutOrderNotFoundNotice,
@@ -66,11 +66,10 @@ export default async function CheckoutSuccessPage({
   params: Promise<{ id: string }>;
 }) {
   const session = await auth.api.getSession({ headers: await headers() });
+  const t = await getTranslations("checkout.checkoutSuccess");
 
   if (!session) {
-    return (
-      <CheckoutSignInNotice prompt="Sign in to see the confirmation for this delivery." />
-    );
+    return <CheckoutSignInNotice prompt={t("signInToSeeConfirmation")} />;
   }
 
   if (session.user.role !== "CLIENT") {
@@ -95,18 +94,19 @@ export default async function CheckoutSuccessPage({
   }
 
   const total = order.price + order.serviceLevelAdjustment;
-  const t = await getTranslations("checkout.checkoutSuccess");
   const tShared = await getTranslations("common.shared");
+  const tRoot = await getTranslations();
+  const locale = await getLocale();
 
   // How they settled, named the way the client chose it. `paymentMethodType` is
   // nullable on the column — orders placed before the payment step existed have
   // none — so the absent case says so rather than printing a blank.
   const methodLabel =
     order.paymentMethodType === null
-      ? "Not recorded"
+      ? t("notRecorded")
       : order.savedCard && order.paymentMethodType === "CARD"
         ? `${order.savedCard.brand} ${maskedCardNumber(order.savedCard.last4)}`
-        : PAYMENT_METHOD_LABEL[order.paymentMethodType];
+        : paymentMethodLabel(order.paymentMethodType, tRoot);
 
   // Honest about what has and has not happened. A `PAID` payment row still means
   // only that nothing is left to collect up front — no gateway is integrated, so
@@ -115,9 +115,9 @@ export default async function CheckoutSuccessPage({
   // order, or a status this flow does not write) gets no claim made about it.
   const paymentNote =
     order.payment?.status === PaymentStatus.PAID
-      ? "Settled at checkout. No payment provider is connected yet, so nothing has been charged to your card."
+      ? t("settledAtCheckout")
       : order.payment?.status === PaymentStatus.PENDING
-        ? "Due after the delivery, collected off the platform when the job is done."
+        ? t("dueAfterDelivery")
         : null;
 
   return (
@@ -126,12 +126,12 @@ export default async function CheckoutSuccessPage({
     <main className="min-h-screen bg-ink text-paper">
       <div className="mx-auto flex max-w-3xl flex-col gap-6 px-5 pt-8 pb-16 sm:px-8">
         <CheckoutHeader
-          eyebrow="Booking confirmed"
+          eyebrow={t("bookingConfirmed")}
           // A literal typographic apostrophe rather than `&rsquo;`: this is a
           // string prop, not JSX text, so an entity would render as itself.
           title={t("youReAllSet")}
           backHref="/orders"
-          backLabel="← Your orders"
+          backLabel={t("backToYourOrders")}
         />
 
         <section
@@ -145,8 +145,7 @@ export default async function CheckoutSuccessPage({
             {t("yourDeliveryIsBooked")}
           </h2>
           <p className="mt-2 text-[14px] leading-relaxed text-muted">
-            We&rsquo;re matching it with a driver now. You&rsquo;ll be able to
-            follow the job from your orders as soon as one accepts it.
+            {t("matchingWithDriver")}
           </p>
 
           <dl className="mt-5 flex flex-col gap-3 border-t border-line pt-5">
@@ -162,7 +161,7 @@ export default async function CheckoutSuccessPage({
             {order.scheduledAt ? (
               <ConfirmationRow
                 label={tShared("scheduled")}
-                value={formatScheduledAt(order.scheduledAt)}
+                value={formatScheduledAt(order.scheduledAt, locale)}
               />
             ) : null}
             <ConfirmationRow

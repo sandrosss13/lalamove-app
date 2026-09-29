@@ -185,7 +185,7 @@ export function EarningsFilterBar({ range, presets }: EarningsFilterBarProps) {
           items={tabs}
           value={range.preset}
           onChange={handleTabChange}
-          ariaLabel="Earnings date range"
+          ariaLabel={t("earningsDateRange")}
         />
 
         <div className="flex items-center gap-2">
@@ -206,7 +206,7 @@ export function EarningsFilterBar({ range, presets }: EarningsFilterBarProps) {
               !custom && "opacity-55 focus-visible:opacity-100",
             )}
           />
-          <span className="text-[13px] text-muted-foreground">to</span>
+          <span className="text-[13px] text-muted-foreground">{t("to")}</span>
           <Input
             key={`to-${range.to}`}
             type="date"
@@ -226,7 +226,7 @@ export function EarningsFilterBar({ range, presets }: EarningsFilterBarProps) {
           <span className="font-price">{range.from}</span> →{" "}
           <span className="font-price">{range.to}</span> ·{" "}
           <span className="font-price">{range.days}</span>{" "}
-          {range.days === 1 ? "day" : "days"}
+          {t("dayUnit", { count: range.days })}
         </p>
 
         <EarningsExportButton from={range.from} to={range.to} />

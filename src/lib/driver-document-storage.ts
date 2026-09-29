@@ -48,6 +48,14 @@ const ALLOWED_CONTENT_TYPES = new Set(["image/jpeg", "image/png"]);
 export const UNSUPPORTED_CONTENT_TYPE_ERROR =
   "Only JPG and PNG files are accepted.";
 
+/**
+ * Catalog key for `UNSUPPORTED_CONTENT_TYPE_ERROR`, for routes that answer the
+ * driver in their own locale. The English constant stays for thrown errors and
+ * server logs.
+ */
+export const UNSUPPORTED_CONTENT_TYPE_ERROR_KEY =
+  "errors.driverProfileOnboardingDocuments.unsupportedContentType";
+
 /** Characters allowed in the file-name suffix of an object path. */
 const UNSAFE_FILE_NAME_CHARS = /[^a-zA-Z0-9._-]+/g;
 

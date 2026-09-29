@@ -94,7 +94,7 @@ export async function POST(
 
   if (trimmedReason.length > MAX_REASON_LENGTH) {
     return NextResponse.json(
-      { error: `A reason must be ${MAX_REASON_LENGTH} characters or fewer.` },
+      { error: t("common.shared.reasonMaxLength", { max: MAX_REASON_LENGTH }) },
       { status: 400 },
     );
   }

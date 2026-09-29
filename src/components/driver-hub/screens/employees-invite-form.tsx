@@ -1,6 +1,7 @@
 import { useTranslations } from "next-intl";
 
 import { HubCard } from "@/components/driver-hub/hub-primitives";
+import { useHubStatusLabel } from "@/components/driver-hub/use-hub-status-label";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -59,6 +60,7 @@ export function EmployeeInviteForm({
 }: EmployeeInviteFormProps) {
   const t = useTranslations("driverHub.employeesInviteForm");
   const tShared = useTranslations("common.shared");
+  const roleLabel = useHubStatusLabel();
 
   return (
     <HubCard>
@@ -134,7 +136,7 @@ export function EmployeeInviteForm({
                 >
                   <span className="min-w-0">
                     <span className="block text-[13px] font-medium">
-                      {definition.role}
+                      {roleLabel(definition.role)}
                     </span>
                     {/* Real product content: what this role can actually do. */}
                     <span className="mt-0.5 block text-xs font-normal text-muted-foreground">

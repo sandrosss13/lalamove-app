@@ -117,10 +117,13 @@ const TOP_NAV_IDS: readonly HubNavItemId[] = ["jobs", "performance"];
  * "Company driver" rather than "Roster": `ROSTER` is this codebase's word for
  * the shape, not the driver's word for their own job.
  */
-export const ACCOUNT_PERSONA_LABELS: Record<HubPersona, string> = {
-  INDEPENDENT: "Independent",
-  ROSTER: "Company driver",
-  BUSINESS: "Business",
+export const ACCOUNT_PERSONA_LABEL_KEYS: Record<
+  HubPersona,
+  "independent" | "companyDriver" | "business"
+> = {
+  INDEPENDENT: "independent",
+  ROSTER: "companyDriver",
+  BUSINESS: "business",
 };
 
 /** Which of the header's three mutually-exclusive panels is open. */
@@ -145,6 +148,7 @@ export function DriverHubTopNav({
   const pathname = usePathname();
   const { signOut, signingOut } = useSignOut();
   const [openPanel, setOpenPanel] = React.useState<OpenPanel>(null);
+  const t = useTranslations("driverHub.driverHubTopnav");
   const tShared = useTranslations("common.shared");
   // Unscoped: nav labels are root-relative keys (see `HubNavItem.labelKey`).
   const tRoot = useTranslations();
@@ -440,7 +444,7 @@ export function DriverHubTopNav({
               disabled={signingOut}
               className="h-8 flex-none cursor-pointer text-sm"
             >
-              {signingOut ? "Signing out…" : "Sign out"}
+              {signingOut ? t("signingOut") : t("signOut")}
             </Button>
           </div>
 
@@ -449,7 +453,7 @@ export function DriverHubTopNav({
             activeId={activeId}
             onAccount={onAccount}
             displayName={account.displayName}
-            accountKindLabel={ACCOUNT_PERSONA_LABELS[account.persona]}
+            accountKindLabel={t(ACCOUNT_PERSONA_LABEL_KEYS[account.persona])}
             open={openPanel === "menu"}
             onOpenChange={panelHandler("menu")}
           />

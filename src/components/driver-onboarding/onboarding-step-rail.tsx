@@ -12,28 +12,28 @@ import { useTranslations } from "next-intl";
  * rail having to import back from the shell.
  *
  * `labelKey` is a full `next-intl` message path, translated where it renders —
- * a module-level constant cannot call a hook. `sub` has no catalog entry yet.
+ * a module-level constant cannot call a hook. `subKey` likewise.
  */
 export const ONBOARDING_RAIL = [
   {
     step: 1,
     labelKey: "onboarding.onboardingStepRail.authorisationPersonal",
-    sub: "Phone, ID, city, photo",
+    subKey: "onboarding.onboardingStepRail.personalSub",
   },
   {
     step: 2,
     labelKey: "onboarding.onboardingStepRail.licenceVerification",
-    sub: "Photos, number, expiry, categories",
+    subKey: "onboarding.onboardingStepRail.licenceSub",
   },
   {
     step: 3,
     labelKey: "common.shared.vehicleRegistration",
-    sub: "Body, class, make, plate, capacity",
+    subKey: "onboarding.onboardingStepRail.vehicleSub",
   },
   {
     step: 4,
     labelKey: "common.shared.reviewStatus",
-    sub: "Submit, pending, approved",
+    subKey: "onboarding.onboardingStepRail.reviewSub",
   },
 ] as const;
 
@@ -126,7 +126,7 @@ export function OnboardingStepRail({
                 {tRoot(entry.labelKey)}
               </span>
               <span className="mt-0.5 block text-[11.5px] leading-[1.45] text-muted-foreground">
-                {entry.sub}
+                {tRoot(entry.subKey)}
               </span>
             </span>
           </button>

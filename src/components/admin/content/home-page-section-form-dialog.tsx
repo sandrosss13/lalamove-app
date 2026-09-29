@@ -35,7 +35,6 @@ import {
   DEFAULT_HOME_PAGE_CONTENT,
   HOME_HERO_BANNER_PLACEMENT,
   HOME_PAGE_SECTION_TYPES,
-  HOME_PAGE_SECTION_TYPE_LABELS,
   HOME_PARTNER_LOGO_BANNER_PLACEMENT,
   MAX_HERO_BANNERS,
   parseHomePageSection,
@@ -139,6 +138,18 @@ function moveAt<Item>(items: Item[], index: number, direction: -1 | 1): Item[] {
 }
 
 /** A labelled single-line field. */
+/**
+ * Each section type's name in the admin picker, as a message path under
+ * `admin.homePageSectionTypes` (the type in camelCase).
+ */
+function sectionTypeLabelKey(type: HomePageSectionType): string {
+  const camel = type.replace(/_([a-z])/g, (_, letter: string) =>
+    letter.toUpperCase(),
+  );
+
+  return `admin.homePageSectionTypes.${camel}`;
+}
+
 function TextField({
   id,
   label,
@@ -241,7 +252,9 @@ function RepeatableEntry({
                 variant="outline"
                 size="sm"
                 disabled={onMoveUp === undefined}
-                aria-label={`Move ${title} up`}
+                aria-label={t("admin.homePageSectionFormDialog.moveUp", {
+                  title,
+                })}
                 onClick={onMoveUp}
               >
                 ↑
@@ -251,7 +264,9 @@ function RepeatableEntry({
                 variant="outline"
                 size="sm"
                 disabled={onMoveDown === undefined}
-                aria-label={`Move ${title} down`}
+                aria-label={t("admin.homePageSectionFormDialog.moveDown", {
+                  title,
+                })}
                 onClick={onMoveDown}
               >
                 ↓
@@ -450,7 +465,13 @@ export function HomePageSectionFormDialog({
         parsed > MAX_PROGRESS_PERCENT
       ) {
         return {
-          error: `Tracking panel progress must be a whole number between ${MIN_PROGRESS_PERCENT} and ${MAX_PROGRESS_PERCENT}.`,
+          error: t(
+            "admin.homePageSectionFormDialog.progressWholeNumberBetween",
+            {
+              min: MIN_PROGRESS_PERCENT,
+              max: MAX_PROGRESS_PERCENT,
+            },
+          ),
         };
       }
 
@@ -497,7 +518,10 @@ export function HomePageSectionFormDialog({
       parsedSortOrder > MAX_SORT_ORDER
     ) {
       setError(
-        `Sort order must be a whole number between ${MIN_SORT_ORDER} and ${MAX_SORT_ORDER}.`,
+        t("common.shared.sortOrderWholeNumberBetween", {
+          min: MIN_SORT_ORDER,
+          max: MAX_SORT_ORDER,
+        }),
       );
       return;
     }
@@ -546,8 +570,8 @@ export function HomePageSectionFormDialog({
           await readErrorMessage(
             response,
             isEditing
-              ? "Could not save this section."
-              : "Could not create this section.",
+              ? t("admin.homePageSectionFormDialog.couldNotSave")
+              : t("admin.homePageSectionFormDialog.couldNotCreate"),
           ),
         );
         return;
@@ -580,12 +604,14 @@ export function HomePageSectionFormDialog({
         <form onSubmit={handleSubmit} className="contents">
           <DialogHeader>
             <DialogTitle>
-              {isEditing ? "Edit section" : "New section"}
+              {isEditing
+                ? t("admin.homePageSectionFormDialog.editSection")
+                : t("admin.homePageSectionFormDialog.newSection")}
             </DialogTitle>
             <DialogDescription>
               {isEditing
-                ? "Changes go live on the public landing page as soon as you save."
-                : "Adds a section to the landing page for this locale. It goes live as soon as it is saved and active."}
+                ? t("admin.homePageSectionFormDialog.editDescription")
+                : t("admin.homePageSectionFormDialog.newDescription")}
             </DialogDescription>
           </DialogHeader>
 
@@ -604,7 +630,7 @@ export function HomePageSectionFormDialog({
                 <SelectContent>
                   {HOME_PAGE_SECTION_TYPES.map((sectionType) => (
                     <SelectItem key={sectionType} value={sectionType}>
-                      {HOME_PAGE_SECTION_TYPE_LABELS[sectionType]}
+                      {t(sectionTypeLabelKey(sectionType))}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -649,7 +675,9 @@ export function HomePageSectionFormDialog({
                   <TextField
                     id="hero-status-chip-tag"
                     label={t("admin.homePageSectionFormDialog.statusChipTag")}
-                    hint="Both chip fields are optional; leave them empty for no chip."
+                    hint={t(
+                      "admin.homePageSectionFormDialog.chipFieldsOptional",
+                    )}
                     value={hero.statusChipTag ?? ""}
                     onChange={(statusChipTag) =>
                       setHero({ ...hero, statusChipTag })
@@ -718,13 +746,16 @@ export function HomePageSectionFormDialog({
                   }
                 />
                 <p className="text-xs text-muted-foreground">
-                  The slides themselves are Banners at the{" "}
-                  <span className="font-mono">
-                    {HOME_HERO_BANNER_PLACEMENT}
-                  </span>{" "}
-                  placement, edited under Content → Banners, and each slide’s
-                  caption is that banner’s title. The carousel shows at most{" "}
-                  {MAX_HERO_BANNERS} of them.
+                  {t.rich(
+                    "admin.homePageSectionFormDialog.carouselSlidesHint",
+                    {
+                      placement: HOME_HERO_BANNER_PLACEMENT,
+                      max: MAX_HERO_BANNERS,
+                      code: (chunks) => (
+                        <span className="font-mono">{chunks}</span>
+                      ),
+                    },
+                  )}
                 </p>
               </div>
             ) : null}
@@ -740,12 +771,12 @@ export function HomePageSectionFormDialog({
                   }
                 />
                 <p className="text-xs text-muted-foreground">
-                  The logos are Banners at the{" "}
-                  <span className="font-mono">
-                    {HOME_PARTNER_LOGO_BANNER_PLACEMENT}
-                  </span>{" "}
-                  placement, edited under Content → Banners. This section only
-                  carries the line above them.
+                  {t.rich("admin.homePageSectionFormDialog.marqueeLogosHint", {
+                    placement: HOME_PARTNER_LOGO_BANNER_PLACEMENT,
+                    code: (chunks) => (
+                      <span className="font-mono">{chunks}</span>
+                    ),
+                  })}
                 </p>
               </div>
             ) : null}
@@ -761,7 +792,9 @@ export function HomePageSectionFormDialog({
                       // Position: two tiles may share a label, and the list is
                       // only ever edited through these controls.
                       key={index}
-                      title={`Stat ${index + 1}`}
+                      title={t("admin.homePageSectionFormDialog.statTitle", {
+                        number: index + 1,
+                      })}
                       onMoveUp={
                         index === 0
                           ? undefined
@@ -826,9 +859,7 @@ export function HomePageSectionFormDialog({
                     {t("admin.homePageSectionFormDialog.addStat")}
                   </Button>
                   <p className="text-xs text-muted-foreground">
-                    Tiles read left to right in this order. The design is four
-                    of them; the grid tolerates fewer. A value is free text, so
-                    “24/7” and “100%” are as valid as a number.
+                    {t("admin.homePageSectionFormDialog.tilesOrderHint")}
                   </p>
                 </div>
               </div>
@@ -931,8 +962,10 @@ export function HomePageSectionFormDialog({
                       }
                     />
                     <p className="text-xs text-muted-foreground">
-                      How far along the progress bar sits: a whole number from{" "}
-                      {MIN_PROGRESS_PERCENT} to {MAX_PROGRESS_PERCENT}.
+                      {t("admin.homePageSectionFormDialog.progressHint", {
+                        min: MIN_PROGRESS_PERCENT,
+                        max: MAX_PROGRESS_PERCENT,
+                      })}
                     </p>
                   </div>
                 </div>
@@ -949,7 +982,10 @@ export function HomePageSectionFormDialog({
                   {bento.sideCards.map((card, index) => (
                     <RepeatableEntry
                       key={index}
-                      title={`Side card ${index + 1}`}
+                      title={t(
+                        "admin.homePageSectionFormDialog.sideCardTitle",
+                        { number: index + 1 },
+                      )}
                       onMoveUp={
                         index === 0
                           ? undefined
@@ -1035,7 +1071,9 @@ export function HomePageSectionFormDialog({
                         <TextField
                           id={`bento-side-card-${index}-link-href`}
                           label={t("common.shared.linkUrl")}
-                          hint="Optional; most cards carry no link."
+                          hint={t(
+                            "admin.homePageSectionFormDialog.optionalMostCardsNoLink",
+                          )}
                           value={card.linkHref ?? ""}
                           onChange={(linkHref) =>
                             setBento({
@@ -1081,7 +1119,9 @@ export function HomePageSectionFormDialog({
                   {bento.rowCards.map((card, index) => (
                     <RepeatableEntry
                       key={index}
-                      title={`Row card ${index + 1}`}
+                      title={t("admin.homePageSectionFormDialog.rowCardTitle", {
+                        number: index + 1,
+                      })}
                       onMoveUp={
                         index === 0
                           ? undefined
@@ -1167,7 +1207,9 @@ export function HomePageSectionFormDialog({
                         <TextField
                           id={`bento-row-card-${index}-link-href`}
                           label={t("common.shared.linkUrl")}
-                          hint="Optional; most cards carry no link."
+                          hint={t(
+                            "admin.homePageSectionFormDialog.optionalMostCardsNoLink",
+                          )}
                           value={card.linkHref ?? ""}
                           onChange={(linkHref) =>
                             setBento({
@@ -1302,7 +1344,9 @@ export function HomePageSectionFormDialog({
                   label={t(
                     "admin.homePageSectionFormDialog.mediumDutyGroupHeading",
                   )}
-                  hint="Optional. The heading above the medium-duty vehicles. Renaming it is display only — it does not change the MEDIUM_DUTY category that drives matching and pricing."
+                  hint={t(
+                    "admin.homePageSectionFormDialog.optionalMediumDutyHeading",
+                  )}
                   value={vehicleTypes.mediumDutyLabel ?? ""}
                   onChange={(mediumDutyLabel) =>
                     setVehicleTypes({ ...vehicleTypes, mediumDutyLabel })
@@ -1426,7 +1470,9 @@ export function HomePageSectionFormDialog({
                       // Position: two steps may share a title, and the list is
                       // only ever edited through these controls.
                       key={index}
-                      title={`Step ${index + 1}`}
+                      title={t("admin.homePageSectionFormDialog.stepTitle", {
+                        number: index + 1,
+                      })}
                       onMoveUp={
                         index === 0
                           ? undefined
@@ -1559,7 +1605,9 @@ export function HomePageSectionFormDialog({
                     label={t(
                       "admin.homePageSectionFormDialog.secondaryLinkUrl",
                     )}
-                    hint="Optional; the pair renders only when both halves are set."
+                    hint={t(
+                      "admin.homePageSectionFormDialog.optionalPairBothHalves",
+                    )}
                     value={driverCta.secondaryCtaHref ?? ""}
                     onChange={(secondaryCtaHref) =>
                       setDriverCta({ ...driverCta, secondaryCtaHref })
@@ -1597,7 +1645,9 @@ export function HomePageSectionFormDialog({
                   {driverCta.points.map((point, index) => (
                     <RepeatableEntry
                       key={index}
-                      title={`Point ${index + 1}`}
+                      title={t("admin.homePageSectionFormDialog.pointTitle", {
+                        number: index + 1,
+                      })}
                       onMoveUp={
                         index === 0
                           ? undefined
@@ -1707,7 +1757,9 @@ export function HomePageSectionFormDialog({
                   {coverage.cities.map((city, index) => (
                     <RepeatableEntry
                       key={index}
-                      title={`City ${index + 1}`}
+                      title={t("admin.homePageSectionFormDialog.cityTitle", {
+                        number: index + 1,
+                      })}
                       onMoveUp={
                         index === 0
                           ? undefined
@@ -1822,7 +1874,9 @@ export function HomePageSectionFormDialog({
                   <TextField
                     id="faq-support-link-href"
                     label={t("admin.homePageSectionFormDialog.supportLinkUrl")}
-                    hint="Optional; the link renders only when both halves are set, so a half-finished edit produces no link rather than a link to nowhere."
+                    hint={t(
+                      "admin.homePageSectionFormDialog.optionalLinkBothHalves",
+                    )}
                     value={faq.supportLinkHref ?? ""}
                     onChange={(supportLinkHref) =>
                       setFaq({ ...faq, supportLinkHref })
@@ -1837,7 +1891,10 @@ export function HomePageSectionFormDialog({
                   {faq.items.map((item, index) => (
                     <RepeatableEntry
                       key={index}
-                      title={`Question ${index + 1}`}
+                      title={t(
+                        "admin.homePageSectionFormDialog.questionTitle",
+                        { number: index + 1 },
+                      )}
                       onMoveUp={
                         index === 0
                           ? undefined
@@ -1986,7 +2043,9 @@ export function HomePageSectionFormDialog({
                   {nav.links.map((link, index) => (
                     <RepeatableEntry
                       key={index}
-                      title={`Link ${index + 1}`}
+                      title={t("admin.homePageSectionFormDialog.linkTitle", {
+                        number: index + 1,
+                      })}
                       onMoveUp={
                         index === 0
                           ? undefined
@@ -2111,7 +2170,7 @@ export function HomePageSectionFormDialog({
                 <TextField
                   id="footer-copyright"
                   label={t("admin.homePageSectionFormDialog.copyrightLine")}
-                  hint="Write {year} where the current year should go — the page substitutes it as it renders, so the line never needs bumping in January. It is not a typo."
+                  hint={t("admin.homePageSectionFormDialog.copyrightYearHint")}
                   value={footer.copyright}
                   onChange={(copyright) => setFooter({ ...footer, copyright })}
                 />
@@ -2123,7 +2182,10 @@ export function HomePageSectionFormDialog({
                   {footer.columns.map((column, columnIndex) => (
                     <RepeatableEntry
                       key={columnIndex}
-                      title={`Column ${columnIndex + 1}`}
+                      title={t(
+                        "admin.homePageSectionFormDialog.columnTitleNumber",
+                        { number: columnIndex + 1 },
+                      )}
                       onMoveUp={
                         columnIndex === 0
                           ? undefined
@@ -2178,9 +2240,10 @@ export function HomePageSectionFormDialog({
                         {column.links.map((link, linkIndex) => (
                           <RepeatableEntry
                             key={linkIndex}
-                            title={`Column ${columnIndex + 1} link ${
-                              linkIndex + 1
-                            }`}
+                            title={t(
+                              "admin.homePageSectionFormDialog.columnLinkTitle",
+                              { column: columnIndex + 1, link: linkIndex + 1 },
+                            )}
                             onMoveUp={
                               linkIndex === 0
                                 ? undefined
@@ -2336,7 +2399,10 @@ export function HomePageSectionFormDialog({
                   {footer.legalLinks.map((link, index) => (
                     <RepeatableEntry
                       key={index}
-                      title={`Legal link ${index + 1}`}
+                      title={t(
+                        "admin.homePageSectionFormDialog.legalLinkTitle",
+                        { number: index + 1 },
+                      )}
                       onMoveUp={
                         index === 0
                           ? undefined
@@ -2468,10 +2534,10 @@ export function HomePageSectionFormDialog({
             </Button>
             <Button type="submit" disabled={pending}>
               {pending
-                ? "Saving…"
+                ? t("common.shared.saving")
                 : isEditing
-                  ? "Save section"
-                  : "Create section"}
+                  ? t("admin.homePageSectionFormDialog.saveSection")
+                  : t("admin.homePageSectionFormDialog.createSection")}
             </Button>
           </DialogFooter>
         </form>

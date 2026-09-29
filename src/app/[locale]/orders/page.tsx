@@ -123,13 +123,13 @@ export default async function OrdersPage() {
 
         {orders.length === 0 ? (
           <div className="rounded-[14px] border border-line bg-surface p-8 text-center">
-            <p className="text-[14px] text-muted">
-              You haven&apos;t placed any orders yet.
-            </p>
+            <p className="text-[14px] text-muted">{t("noOrdersYet")}</p>
             <p className="mt-1.5 text-[14px] text-muted">
-              Book your first delivery with{" "}
-              <span className="font-semibold text-paper">{t("newOrder2")}</span>{" "}
-              {t("above")}
+              {t.rich("bookFirstDelivery", {
+                b: (chunks) => (
+                  <span className="font-semibold text-paper">{chunks}</span>
+                ),
+              })}
             </p>
           </div>
         ) : (

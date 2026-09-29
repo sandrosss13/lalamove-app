@@ -10,8 +10,10 @@
  * fallbacks, and editing a string in `/admin/content/home-page` changes the
  * public page without a deploy.
  *
- *   pnpm seed:home-page            # create anything missing; never overwrite
- *   pnpm seed:home-page --force    # rewrite the seeded rows back to the defaults
+ *   pnpm seed:home-page                    # EN: create anything missing; never overwrite
+ *   pnpm seed:home-page --force            # EN: rewrite the seeded rows back to the defaults
+ *   pnpm seed:home-page --locale ka        # KA: the same defaults, in Georgian
+ *   pnpm seed:home-page --locale ka --dry-run  # print the plan; touch no database
  *
  * Nothing runs this automatically. It is not part of `pnpm build`, not part of
  * `prisma migrate`, and not part of `postinstall`.
@@ -37,26 +39,23 @@
  *    exactly this pattern: a deliberately-invoked seed outside the reset path.
  *
  * ---------------------------------------------------------------------------
- * Why English only
+ * Locales
  * ---------------------------------------------------------------------------
  *
- * `DEFAULT_HOME_PAGE_CONTENT` is written in English and there is no Georgian
- * translation of it anywhere in the repository, so seeding `KA` would mean
- * writing English strings into rows labelled Georgian. It would also change
- * nothing on the page: `@/lib/admin/home-page-data` defaults to `EN`, and a
- * `?locale=ka` request with no `KA` rows already falls back to the same English
- * defaults — English-in-a-KA-row and no-KA-row render identically today. What it
- * *would* do is make the admin worse: fifteen rows in the KA tab that look
- * authored and translated, each needing to be found and corrected, versus an
- * empty tab whose empty state reads "No sections for this locale yet — the
- * landing page is showing its default composition", which is both true and
- * actionable. Translating is a content job, and the section dialog makes it a
- * pleasant one: New Section pre-fills every field with the current English copy,
- * so a translator picks the type and overwrites the strings in place. Tracked in
- * `specs/georgia-homepage-redesign/action-required.md`.
+ * `--locale en` (the default) writes `DEFAULT_HOME_PAGE_CONTENT` as authored.
+ * `--locale ka` writes the same defaults translated through the Georgian
+ * catalog (`localizeDefaultHomePageContent`) — exactly what `/ka` already
+ * renders with no `KA` rows, so seeding changes nothing a visitor sees; it
+ * turns that copy into rows a content manager can edit.
  *
- * There is deliberately no `--locale` flag: guessing at that interface before a
- * translator has asked for it is speculation.
+ * The Georgian run reads the `ka` catalog *without* the English layer the app
+ * renders through, and refuses to run if any default string has no Georgian
+ * message: a `KA` row holding English would look authored and translated in the
+ * admin while being neither, which is worse than an empty tab. The refusal
+ * lists the missing keys, so the fix is a catalog change, not a guess.
+ *
+ * `--dry-run` builds and validates the plan, prints it, and exits before the
+ * env files are read or a database connection exists.
  *
  * ---------------------------------------------------------------------------
  * Why no `Banner` rows
@@ -88,8 +87,12 @@ import {
   DEFAULT_HOME_PAGE_CONTENT,
   DEFAULT_HOME_PAGE_SECTION_ORDER,
   HOME_PAGE_CHROME_SECTION_TYPES,
+  createMessageLookup,
+  listUnresolvedDefaultCopyKeys,
+  localizeDefaultHomePageContent,
   parseHomePageSection,
   type HomePageSectionContent,
+  type HomePageSectionContentByType,
   type HomePageSectionType,
 } from "@/lib/admin/home-page-content";
 
@@ -105,14 +108,24 @@ import {
 const ENV_FILES = [".env.local", ".env"] as const;
 
 /**
- * The only locale seeded. See the header for why `KA` is left empty.
+ * The `--locale` values this script accepts, mapped to the rows' locale.
  *
- * Typed as `ContentLocale` (a type-only import, so nothing from
+ * Typed against `ContentLocale` (a type-only import, so nothing from
  * `@prisma/client` is evaluated before the env files are loaded) rather than
- * left as a bare string, so a future rename of the enum member is a compile
- * error here instead of a silent no-op at runtime.
+ * left as bare strings, so a future rename of an enum member is a compile
+ * error here instead of a silent no-op at runtime. Restated rather than taken
+ * from `@/i18n/routing`, which would pull `next-intl`'s routing into a script
+ * that only needs two strings.
  */
-const SEED_LOCALE: ContentLocale = "EN";
+const SEED_LOCALES = {
+  en: "EN",
+  ka: "KA",
+} as const satisfies Record<string, ContentLocale>;
+
+type SeedLocaleFlag = keyof typeof SEED_LOCALES;
+
+/** English unless `--locale` says otherwise — the script's original behaviour. */
+const DEFAULT_SEED_LOCALE: SeedLocaleFlag = "en";
 
 /**
  * Body sections, in the order the page renders them. Taken from the shared
@@ -142,6 +155,9 @@ const CHROME_SORT_ORDER_BASE = 100;
 /** Column width for the type name in the per-row progress lines. */
 const TYPE_COLUMN_WIDTH = 18;
 
+/** How much of each row's content `--dry-run` prints — enough to see the language. */
+const DRY_RUN_PREVIEW_LENGTH = 110;
+
 /**
  * An expected, explainable failure — a bad flag, or defaults that no longer
  * satisfy their own validator. Reported as a bare message, since a stack trace
@@ -150,7 +166,7 @@ const TYPE_COLUMN_WIDTH = 18;
  */
 class SeedError extends Error {}
 
-const USAGE = `Usage: pnpm seed:home-page [--force]`;
+const USAGE = `Usage: pnpm seed:home-page [--locale en|ka] [--force] [--dry-run]`;
 
 /**
  * One row the seed intends to write: a section type, the position it takes, and
@@ -165,24 +181,97 @@ type PlannedSection = {
 /** What happened to one planned row. */
 type SeedOutcome = "created" | "skipped" | "overwritten";
 
+type SeedArgs = {
+  force: boolean;
+  dryRun: boolean;
+  locale: SeedLocaleFlag;
+};
+
+function isSeedLocaleFlag(value: string): value is SeedLocaleFlag {
+  return Object.hasOwn(SEED_LOCALES, value);
+}
+
 /**
  * Flag parsing, kept deliberately minimal — this is a one-off operational
  * script, not a CLI. `--force` is spelled the same way `seed-super-admin.ts`
- * spells its escape hatch.
+ * spells its escape hatch; `--locale` takes its value as the next argument or
+ * after an `=`.
  */
-function parseArgs(argv: readonly string[]): { force: boolean } {
-  let force = false;
+function parseArgs(argv: readonly string[]): SeedArgs {
+  const args: SeedArgs = {
+    force: false,
+    dryRun: false,
+    locale: DEFAULT_SEED_LOCALE,
+  };
 
-  for (const arg of argv) {
+  // Consumed front to back, so `--locale` can take the argument after it.
+  const remaining = [...argv];
+
+  for (
+    let arg = remaining.shift();
+    arg !== undefined;
+    arg = remaining.shift()
+  ) {
     if (arg === "--force") {
-      force = true;
+      args.force = true;
+      continue;
+    }
+
+    if (arg === "--dry-run") {
+      args.dryRun = true;
+      continue;
+    }
+
+    if (arg === "--locale" || arg.startsWith("--locale=")) {
+      const value =
+        arg === "--locale" ? remaining.shift() : arg.slice("--locale=".length);
+
+      if (value === undefined || !isSeedLocaleFlag(value)) {
+        throw new SeedError(
+          `--locale must be one of: ${Object.keys(SEED_LOCALES).join(", ")}.\n${USAGE}`,
+        );
+      }
+
+      args.locale = value;
       continue;
     }
 
     throw new SeedError(`Unknown argument "${arg}".\n${USAGE}`);
   }
 
-  return { force };
+  return args;
+}
+
+/**
+ * The default content to write for `locale`.
+ *
+ * English is `DEFAULT_HOME_PAGE_CONTENT` itself, untouched. Georgian is the
+ * same defaults through the `ka` catalog alone — deliberately without the
+ * English fallback layer the app renders through (see the header), so a
+ * missing translation stops the run instead of being written as English.
+ * Imported dynamically so an English run never loads the catalogs at all.
+ */
+async function loadSeedContent(
+  locale: SeedLocaleFlag,
+): Promise<HomePageSectionContentByType> {
+  if (locale === "en") {
+    return DEFAULT_HOME_PAGE_CONTENT;
+  }
+
+  const { default: messages } = await import("@/messages/ka");
+  const lookup = createMessageLookup(messages);
+  const unresolved = listUnresolvedDefaultCopyKeys(lookup);
+
+  if (unresolved.length > 0) {
+    throw new SeedError(
+      `The Georgian catalog has no message for ${unresolved.length} default ` +
+        `string(s), so nothing was written:\n` +
+        unresolved.map((key) => `  - ${key}`).join("\n") +
+        "\nAdd them to src/messages/ka (via translation/*.json) and re-run.",
+    );
+  }
+
+  return localizeDefaultHomePageContent(lookup);
 }
 
 /**
@@ -203,7 +292,9 @@ function parseArgs(argv: readonly string[]): { force: boolean } {
 function loadEnvFiles(): void {
   for (const file of ENV_FILES) {
     try {
-      process.loadEnvFile(fileURLToPath(new URL(`../${file}`, import.meta.url)));
+      process.loadEnvFile(
+        fileURLToPath(new URL(`../${file}`, import.meta.url)),
+      );
     } catch {
       // Absent or unreadable: fall through to the next file, and ultimately to
       // whatever the real environment provides.
@@ -224,7 +315,7 @@ function loadEnvFiles(): void {
  * The whole plan is built before anything is written, so an invalid default
  * aborts the run without leaving a half-seeded page behind.
  */
-function planSections(): PlannedSection[] {
+function planSections(content: HomePageSectionContentByType): PlannedSection[] {
   const planned: PlannedSection[] = [];
 
   const entries: { type: HomePageSectionType; sortOrder: number }[] = [
@@ -242,7 +333,7 @@ function planSections(): PlannedSection[] {
   ];
 
   for (const { type, sortOrder } of entries) {
-    const validated = parseHomePageSection(type, DEFAULT_HOME_PAGE_CONTENT[type]);
+    const validated = parseHomePageSection(type, content[type]);
 
     if ("error" in validated) {
       // The defaults and the validator both live in
@@ -281,11 +372,27 @@ function formatOutcomeLine(
 async function main(): Promise<void> {
   // Parsed before anything else so a typo costs nothing and opens no database
   // connection.
-  const { force } = parseArgs(process.argv.slice(2));
+  const { force, dryRun, locale } = parseArgs(process.argv.slice(2));
+  const seedLocale = SEED_LOCALES[locale];
 
-  // Likewise validated before a connection exists: a broken contract should
-  // fail instantly, not after a round trip.
-  const planned = planSections();
+  // Likewise validated before a connection exists: a broken contract, or a
+  // Georgian catalog with gaps, should fail instantly, not after a round trip.
+  const planned = planSections(await loadSeedContent(locale));
+
+  if (dryRun) {
+    process.stdout.write(
+      `\nHome page content seed (locale ${seedLocale}) — dry run, nothing written\n\n` +
+        planned
+          .map(
+            (section) =>
+              `  ${section.type.padEnd(TYPE_COLUMN_WIDTH)} sortOrder ${section.sortOrder}  ` +
+              JSON.stringify(section.content).slice(0, DRY_RUN_PREVIEW_LENGTH),
+          )
+          .join("\n") +
+        "\n\n",
+    );
+    return;
+  }
 
   loadEnvFiles();
 
@@ -312,7 +419,7 @@ async function main(): Promise<void> {
     };
 
     write("");
-    write(`Home page content seed (locale ${SEED_LOCALE})`);
+    write(`Home page content seed (locale ${seedLocale})`);
 
     let created = 0;
     let overwritten = 0;
@@ -325,7 +432,7 @@ async function main(): Promise<void> {
       // database that somehow holds duplicate rows for a type has one of them
       // rewritten rather than gaining another.
       const existing = await prisma.homePageSection.findFirst({
-        where: { type: section.type, locale: SEED_LOCALE },
+        where: { type: section.type, locale: seedLocale },
         select: { id: true },
       });
 
@@ -333,7 +440,7 @@ async function main(): Promise<void> {
         await prisma.homePageSection.create({
           data: {
             type: section.type,
-            locale: SEED_LOCALE,
+            locale: seedLocale,
             sortOrder: section.sortOrder,
             isActive: true,
             content: section.content,

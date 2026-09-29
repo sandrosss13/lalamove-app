@@ -74,7 +74,7 @@ function toSectionRow(section: HomePageSection): AdminHomePageSectionRow {
 function parseUpdateBody(
   body: unknown,
   existing: HomePageSection,
-  t: (key: string) => string,
+  t: (key: string, values?: Record<string, string | number>) => string,
 ): { data: Prisma.HomePageSectionUpdateInput } | { error: string } {
   if (typeof body !== "object" || body === null) {
     return { error: t("common.shared.requestBodyMustBeAJson") };
@@ -111,7 +111,12 @@ function parseUpdateBody(
       typeof locale !== "string" ||
       !CONTENT_LOCALES.includes(locale as ContentLocale)
     ) {
-      return { error: `locale must be one of: ${CONTENT_LOCALES.join(", ")}.` };
+      return {
+        error: t("common.shared.fieldMustBeOneOf", {
+          field: "locale",
+          options: CONTENT_LOCALES.join(", "),
+        }),
+      };
     }
 
     data.locale = locale as ContentLocale;
@@ -126,7 +131,10 @@ function parseUpdateBody(
       sortOrder > MAX_SORT_ORDER
     ) {
       return {
-        error: `sortOrder must be an integer between ${MIN_SORT_ORDER} and ${MAX_SORT_ORDER}.`,
+        error: t("common.shared.sortOrderMustBeIntegerBetween", {
+          min: MIN_SORT_ORDER,
+          max: MAX_SORT_ORDER,
+        }),
       };
     }
 

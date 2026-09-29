@@ -8,6 +8,7 @@ import type { AdminRole } from "@prisma/client";
 
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import { ADMIN_NAV, type AdminNavSection } from "@/components/admin/admin-nav";
+import { ADMIN_ROLE_LABEL_KEYS } from "@/components/admin/users/create-system-user-dialog";
 import { LanguageToggle } from "@/components/language-toggle";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Badge } from "@/components/ui/badge";
@@ -19,20 +20,6 @@ import { cn } from "@/lib/utils";
 
 /** Where a signed-out staff member lands. Mirrors `ADMIN_SIGN_IN_PATH`. */
 const SIGN_IN_PATH = "/admin/sign-in";
-
-/**
- * `AdminRole` rendered for humans. A lookup rather than a `replace(/_/g, " ")`
- * so the two acronym-ish values ("CRM", "Super Admin") read correctly.
- */
-const ADMIN_ROLE_LABELS: Record<AdminRole, string> = {
-  SUPER_ADMIN: "Super Admin",
-  ANALYTICS: "Analytics",
-  CONTENT_MANAGER: "Content Manager",
-  FINANCE_MANAGER: "Finance Manager",
-  USER_MANAGER: "User Manager",
-  CRM_MANAGER: "CRM Manager",
-  SUPPORT: "Support",
-};
 
 /**
  * Whether `pathname` is inside `section`. Prefix-matched against the section's
@@ -168,7 +155,7 @@ export function AdminShell({ systemUser, children }: AdminShellProps) {
               {systemUser.name}
             </span>
             <Badge variant="secondary">
-              {ADMIN_ROLE_LABELS[systemUser.adminRole]}
+              {t(ADMIN_ROLE_LABEL_KEYS[systemUser.adminRole])}
             </Badge>
           </div>
 
@@ -201,7 +188,9 @@ export function AdminShell({ systemUser, children }: AdminShellProps) {
               disabled={signingOut}
             >
               <LogOut data-icon="inline-start" />
-              {signingOut ? "Signing out…" : "Sign out"}
+              {signingOut
+                ? t("common.authStatus.signingOut")
+                : t("common.authStatus.signOut")}
             </Button>
           </div>
         </header>

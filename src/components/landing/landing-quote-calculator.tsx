@@ -7,21 +7,22 @@ import { useTranslations } from "next-intl";
 import {
   CARGO_CATEGORY_ALLOWED_VEHICLE_CATEGORIES,
   CARGO_CATEGORY_LABELS,
+  useCargoCategoryLabel,
 } from "@/lib/cargo";
 import { Link } from "@/i18n/navigation";
 import { formatGel } from "@/components/landing/landing-format";
 import { useLandingVehicleTypes } from "@/components/landing/landing-vehicle-types";
-import {
-  DEFAULT_HOME_PAGE_CONTENT,
-  type QuoteCalculatorContent,
-} from "@/lib/admin/home-page-content";
+import { type QuoteCalculatorContent } from "@/lib/admin/home-page-content";
 import { cn } from "@/lib/utils";
 
-/** Cargo categories in the order the taxonomy declares them. */
-const CARGO_CATEGORY_OPTIONS = Object.entries(CARGO_CATEGORY_LABELS) as [
-  CargoCategory,
-  string,
-][];
+/**
+ * Cargo categories in the order the taxonomy declares them. Only the keys are
+ * taken from the English label table — the labels themselves are rendered in
+ * the reader's language through `useCargoCategoryLabel`.
+ */
+const CARGO_CATEGORY_OPTIONS = Object.keys(
+  CARGO_CATEGORY_LABELS,
+) as CargoCategory[];
 
 const DEFAULT_CARGO_CATEGORY: CargoCategory = "FURNITURE_FURNISHINGS";
 
@@ -116,12 +117,13 @@ function transportationCost(estimate: Estimate): number {
  * message below is tied to a specific request/response shape and stays here.
  */
 export function LandingQuoteCalculator({
-  content = DEFAULT_HOME_PAGE_CONTENT.quote_calculator,
+  content,
 }: {
-  content?: QuoteCalculatorContent;
+  content: QuoteCalculatorContent;
 }) {
   const t = useTranslations("landing.landingQuoteCalculator");
   const tShared = useTranslations("common.shared");
+  const cargoCategoryLabel = useCargoCategoryLabel();
   const pickupId = useId();
   const dropoffId = useId();
   const cargoCategoryId = useId();
@@ -366,9 +368,9 @@ export function LandingQuoteCalculator({
                     required
                     className={SELECT_CLASSES}
                   >
-                    {CARGO_CATEGORY_OPTIONS.map(([value, label]) => (
+                    {CARGO_CATEGORY_OPTIONS.map((value) => (
                       <option key={value} value={value}>
-                        {label}
+                        {cargoCategoryLabel(value)}
                       </option>
                     ))}
                   </select>
@@ -435,8 +437,11 @@ export function LandingQuoteCalculator({
                           // accessible name contains the visible one.
                           aria-label={
                             option === 1
-                              ? "1 person — the driver alone"
-                              : `${option} people — the driver plus ${option - 1} helper${option > 2 ? "s" : ""}`
+                              ? t("onePerson")
+                              : t("nPeople", {
+                                  count: option,
+                                  helpers: option - 1,
+                                })
                           }
                           className="sr-only"
                         />
@@ -481,7 +486,9 @@ export function LandingQuoteCalculator({
                     </dt>
                     <dd className="mt-1 font-price text-[0.8125rem] font-medium text-paper">
                       {estimate
-                        ? `${estimate.distanceKm.toFixed(1)} km`
+                        ? tShared("distanceKm", {
+                            km: estimate.distanceKm.toFixed(1),
+                          })
                         : EMPTY_STAT}
                     </dd>
                   </div>
@@ -543,10 +550,10 @@ export function LandingQuoteCalculator({
               className="mt-5 w-full rounded-full bg-accent px-5 py-3.5 text-[15px] leading-none font-semibold text-on-accent transition-transform hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-60"
             >
               {submitting
-                ? "Calculating…"
+                ? t("calculating")
                 : loading
-                  ? "Loading…"
-                  : "Calculate price"}
+                  ? t("loading")
+                  : t("calculatePrice")}
             </button>
 
             {estimate ? (

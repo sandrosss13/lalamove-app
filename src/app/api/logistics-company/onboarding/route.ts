@@ -602,7 +602,10 @@ function parseSaveDraftBody(
     draftStep > FLEET_LAST_STEP
   ) {
     return {
-      error: `draftStep must be an integer between ${FLEET_FIRST_STEP} and ${FLEET_LAST_STEP}.`,
+      error: t("errors.logisticsCompanyOnboarding.draftStepMustBeAnInteger", {
+        min: FLEET_FIRST_STEP,
+        max: FLEET_LAST_STEP,
+      }),
     };
   }
 
@@ -616,7 +619,12 @@ function parseSaveDraftBody(
   for (const section of ["company", "fleet"] as const) {
     const value = parsedDraft[section];
     if (value !== undefined && !isJsonObject(value)) {
-      return { error: `draft.${section} must be an object.` };
+      return {
+        error: t(
+          "errors.logisticsCompanyOnboarding.draftSectionMustBeAnObject",
+          { section },
+        ),
+      };
     }
   }
 
@@ -632,7 +640,9 @@ function parseSaveDraftBody(
 
     if (vehicles.length > FLEET_MAX_VEHICLES) {
       return {
-        error: `draft.vehicles must contain ${FLEET_MAX_VEHICLES} entries or fewer.`,
+        error: t("errors.logisticsCompanyOnboarding.draftVehiclesTooMany", {
+          max: FLEET_MAX_VEHICLES,
+        }),
       };
     }
   }
@@ -642,7 +652,9 @@ function parseSaveDraftBody(
   // `parseFleetDraft` count against the cap too.
   if (JSON.stringify(parsedDraft).length > MAX_DRAFT_JSON_LENGTH) {
     return {
-      error: `draft must serialise to ${MAX_DRAFT_JSON_LENGTH} characters or fewer.`,
+      error: t("errors.logisticsCompanyOnboarding.draftTooLong", {
+        max: MAX_DRAFT_JSON_LENGTH,
+      }),
     };
   }
 

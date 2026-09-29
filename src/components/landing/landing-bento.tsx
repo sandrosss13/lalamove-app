@@ -1,5 +1,4 @@
 import {
-  DEFAULT_HOME_PAGE_CONTENT,
   type BentoCard,
   type BentoContent,
 } from "@/lib/admin/home-page-content";
@@ -76,11 +75,7 @@ function LandingBentoCard({ card }: { card: BentoCard }) {
  * status, so the whole panel is `aria-hidden` — reading out a fake order id and
  * ETA is worse for a screen reader than saying nothing at all.
  */
-export function LandingBento({
-  content = DEFAULT_HOME_PAGE_CONTENT.bento,
-}: {
-  content?: BentoContent;
-}) {
+export function LandingBento({ content }: { content: BentoContent }) {
   const { trackingPanel } = content;
 
   // `content` is a free-form `Json` column that can be edited straight in the

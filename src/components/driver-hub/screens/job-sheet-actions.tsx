@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import { useRouter } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
@@ -99,14 +99,6 @@ import { cn } from "@/lib/utils";
 const PRIMARY_ACTION_CLASSES =
   "h-14 w-full text-[15px] font-medium lg:h-10 lg:w-auto lg:px-[22px] lg:text-sm";
 
-/** What a request that never reached the server is called. */
-const NETWORK_ERROR =
-  "Couldn't reach the server. Check your connection and try again.";
-
-/** The fallback when a refusal arrives without a readable message. */
-const START_GENERIC_ERROR = "Could not start this delivery.";
-const COMPLETE_GENERIC_ERROR = "Could not complete this delivery.";
-
 /**
  * Whole minutes, and nothing else.
  *
@@ -195,6 +187,12 @@ function hasJobSheetAction(status: HubJobSheet["status"]): boolean {
 export function startBlockedReason(
   job: HubJobSheet,
   nowIso: string,
+  // The sentence is copy, so the caller hands in how to phrase it for the
+  // reader's locale; the date itself still comes from the hub formatter.
+  describeBooked: (when: string) => string = (when) =>
+    `Booked for ${when}. You can start it on the day.`,
+  // The reader's locale, for the month name in `when`; English when omitted.
+  locale?: string,
 ): string | null {
   if (job.scheduledAt === null) {
     return null;
@@ -214,7 +212,7 @@ export function startBlockedReason(
     return null;
   }
 
-  return `Booked for ${formatAbsoluteDateTime(job.scheduledAt)}. You can start it on the day.`;
+  return describeBooked(formatAbsoluteDateTime(job.scheduledAt, locale));
 }
 
 /* -------------------------------------------------------------------------- */
@@ -295,6 +293,7 @@ export type JobSheetActionBarProps = {
 export function JobSheetActionBar({ job, nowIso }: JobSheetActionBarProps) {
   const router = useRouter();
   const t = useTranslations("driverHub.jobSheetActions");
+  const locale = useLocale();
 
   const [isConfirmOpen, setIsConfirmOpen] = React.useState(false);
   const [startError, setStartError] = React.useState<string | null>(null);
@@ -331,12 +330,12 @@ export function JobSheetActionBar({ job, nowIso }: JobSheetActionBarProps) {
       // the session and the route parameter.
       response = await fetch(`/api/orders/${job.id}/start`, { method: "POST" });
     } catch {
-      setStartError(NETWORK_ERROR);
+      setStartError(t("networkError"));
       return;
     }
 
     if (!response.ok) {
-      setStartError(await refusalMessage(response, START_GENERIC_ERROR));
+      setStartError(await refusalMessage(response, t("couldNotStart")));
 
       // A 409 says the order is no longer `ACCEPTED` — someone (or this driver,
       // on another device) already started it, or a company cancelled it. The
@@ -367,7 +366,14 @@ export function JobSheetActionBar({ job, nowIso }: JobSheetActionBarProps) {
   const isAccepted = job.status === "ACCEPTED";
   // Only `Start delivery` can be early. A job already `IN_TRANSIT` is by
   // definition under way, whatever its `scheduledAt` says.
-  const blockedReason = isAccepted ? startBlockedReason(job, nowIso) : null;
+  const blockedReason = isAccepted
+    ? startBlockedReason(
+        job,
+        nowIso,
+        (when) => t("bookedFor", { when }),
+        locale,
+      )
+    : null;
 
   return (
     <>
@@ -433,7 +439,7 @@ export function JobSheetActionBar({ job, nowIso }: JobSheetActionBarProps) {
             }}
             className={PRIMARY_ACTION_CLASSES}
           >
-            {isPending ? "Starting…" : "Start delivery"}
+            {isPending ? t("starting") : t("startDelivery")}
           </Button>
         ) : (
           <Button
@@ -606,13 +612,13 @@ export function JobSheetConfirmDialog({
         }),
       });
     } catch {
-      setError(NETWORK_ERROR);
+      setError(t("networkError"));
       setIsSubmitting(false);
       return;
     }
 
     if (!response.ok) {
-      setError(await refusalMessage(response, COMPLETE_GENERIC_ERROR));
+      setError(await refusalMessage(response, t("couldNotComplete")));
       setIsSubmitting(false);
 
       // The order is no longer `IN_TRANSIT` — completed from another device, or
@@ -718,7 +724,9 @@ export function JobSheetConfirmDialog({
               aria-describedby="job-sheet-waiting-help job-sheet-waiting-pay"
               className="h-11 w-22 font-price text-[15px] tabular-nums"
             />
-            <span className="text-[13px] text-muted-foreground">minutes</span>
+            <span className="text-[13px] text-muted-foreground">
+              {t("minutes")}
+            </span>
           </div>
           <p
             id="job-sheet-waiting-help"
@@ -802,7 +810,7 @@ export function JobSheetConfirmDialog({
               void handleConfirm();
             }}
           >
-            {isBusy ? "Confirming…" : t("confirmDelivery")}
+            {isBusy ? t("confirming") : t("confirmDelivery")}
           </Button>
         </div>
       </DialogContent>

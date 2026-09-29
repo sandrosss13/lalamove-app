@@ -134,7 +134,7 @@ function isDuplicateTemplateError(error: unknown): boolean {
  */
 function parseCreateBody(
   body: unknown,
-  t: (key: string) => string,
+  t: (key: string, values?: Record<string, string | number>) => string,
 ): { data: CreateMessagingTemplateInput } | { error: string } {
   if (typeof body !== "object" || body === null) {
     return { error: t("common.shared.requestBodyMustBeAJson") };
@@ -147,19 +147,32 @@ function parseCreateBody(
     return { error: t("common.shared.keyIsRequiredAndMustBe") };
   }
   if (key.trim().length > MAX_KEY_LENGTH) {
-    return { error: `key must be ${MAX_KEY_LENGTH} characters or fewer.` };
+    return {
+      error: t("common.shared.fieldMaxLength", {
+        field: "key",
+        max: MAX_KEY_LENGTH,
+      }),
+    };
   }
 
   const { channel } = record;
   if (typeof channel !== "string" || !isMessagingChannel(channel)) {
     return {
-      error: `channel must be one of: ${MESSAGING_CHANNELS.join(", ")}.`,
+      error: t("common.shared.fieldMustBeOneOf", {
+        field: "channel",
+        options: MESSAGING_CHANNELS.join(", "),
+      }),
     };
   }
 
   const { locale } = record;
   if (typeof locale !== "string" || !isContentLocale(locale)) {
-    return { error: `locale must be one of: ${CONTENT_LOCALES.join(", ")}.` };
+    return {
+      error: t("common.shared.fieldMustBeOneOf", {
+        field: "locale",
+        options: CONTENT_LOCALES.join(", "),
+      }),
+    };
   }
 
   const { subject } = record;
@@ -180,7 +193,10 @@ function parseCreateBody(
       : null;
   if (trimmedSubject !== null && trimmedSubject.length > MAX_SUBJECT_LENGTH) {
     return {
-      error: `subject must be ${MAX_SUBJECT_LENGTH} characters or fewer.`,
+      error: t("common.shared.fieldMaxLength", {
+        field: "subject",
+        max: MAX_SUBJECT_LENGTH,
+      }),
     };
   }
 
@@ -191,7 +207,12 @@ function parseCreateBody(
     };
   }
   if (messageBody.length > MAX_BODY_LENGTH) {
-    return { error: `body must be ${MAX_BODY_LENGTH} characters or fewer.` };
+    return {
+      error: t("common.shared.fieldMaxLength", {
+        field: "body",
+        max: MAX_BODY_LENGTH,
+      }),
+    };
   }
 
   const { isActive } = record;
@@ -236,11 +257,17 @@ export async function GET(request: Request): Promise<NextResponse> {
     return authorized.response;
   }
 
+  const t = await getRequestTranslations();
   const channelParam = new URL(request.url).searchParams.get("channel");
 
   if (channelParam !== null && !isMessagingChannel(channelParam)) {
     return NextResponse.json(
-      { error: `channel must be one of: ${MESSAGING_CHANNELS.join(", ")}.` },
+      {
+        error: t("common.shared.fieldMustBeOneOf", {
+          field: "channel",
+          options: MESSAGING_CHANNELS.join(", "),
+        }),
+      },
       { status: 400 },
     );
   }

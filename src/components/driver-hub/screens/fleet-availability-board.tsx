@@ -196,6 +196,7 @@ export function FleetAvailabilityBoard({
   tooltip,
   onTooltipChange,
 }: FleetAvailabilityBoardProps) {
+  const t = useTranslations("driverHub.fleetAvailabilityBoard");
   const tShared = useTranslations("common.shared");
   // Floored at one hour: `from`/`to` clamp against each other upstream, but a
   // zero span would divide every bar's width by zero and paint `NaN%`.
@@ -243,7 +244,7 @@ export function FleetAvailabilityBoard({
   // the six screens beside it.
   const body = (() => {
     if (isLoading) {
-      return <HubEmptyState message="Loading availability…" />;
+      return <HubEmptyState message={t("loadingAvailability")} />;
     }
 
     if (error !== null) {
@@ -264,7 +265,7 @@ export function FleetAvailabilityBoard({
     }
 
     if (rows.length === 0) {
-      return <HubEmptyState message="No drivers match these filters." />;
+      return <HubEmptyState message={t("noDriversMatchFilters")} />;
     }
 
     return (
@@ -322,8 +323,12 @@ export function FleetAvailabilityBoard({
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-muted px-4 py-2.5">
           <span className="font-price text-xs text-muted-foreground tabular-nums">
             {totalRowCount === 0
-              ? "No rows"
-              : `Showing ${rangeStart}–${rangeEnd} of ${totalRowCount} rows`}
+              ? t("noRows")
+              : t("showingRange", {
+                  start: rangeStart,
+                  end: rangeEnd,
+                  total: totalRowCount,
+                })}
           </span>
           <div className="flex items-center gap-2">
             <Button
@@ -431,9 +436,6 @@ function TimelineHeader({
 /* Row                                                                        */
 /* -------------------------------------------------------------------------- */
 
-/** The wording a row with no vehicle pairing shows on its second line. */
-const NO_VEHICLE_LINE = "No vehicle assigned";
-
 /**
  * What a block's tooltip calls the vehicle it ran on.
  *
@@ -443,8 +445,11 @@ const NO_VEHICLE_LINE = "No vehicle assigned";
  * the row's plate would put a specific truck's registration against a job that
  * never named one.
  */
-function blockPlateLabel(block: HubAvailabilityBlock): string {
-  return block.vehiclePlate ?? "Vehicle not recorded";
+function blockPlateLabel(
+  block: HubAvailabilityBlock,
+  notRecordedLabel: string,
+): string {
+  return block.vehiclePlate ?? notRecordedLabel;
 }
 
 function BoardRow({
@@ -470,6 +475,7 @@ function BoardRow({
   ) => void;
   onTooltipChange: (tooltip: AvailabilityTooltip | null) => void;
 }) {
+  const t = useTranslations("driverHub.fleetAvailabilityBoard");
   const tFormat = useTranslations("driverHub.fleetAvailabilityFormat");
   const visible = row.blocks.filter(
     (block) => block.end > fromHour && block.start < toHour,
@@ -507,7 +513,7 @@ function BoardRow({
             gap and the track stays readable. */}
         <div className="truncate text-[11px] text-muted-foreground">
           {row.vehicle === null ? (
-            NO_VEHICLE_LINE
+            t("noVehicleAssigned")
           ) : (
             <>
               <span className="font-price tabular-nums">
@@ -573,10 +579,14 @@ function BoardRow({
         <ul className="sr-only">
           {visible.map((block) => (
             <li key={block.id}>
-              {`${row.name}: ${formatHour(block.start)} to ${formatHour(block.end)}, ` +
+              {`${t("srBlock", {
+                name: row.name,
+                from: formatHour(block.start),
+                to: formatHour(block.end),
+              })}, ` +
                 `${tFormat(AVAILABILITY_STATUS[block.status].labelKey)}, ${block.reference}, ` +
-                `${block.route}, ${blockPlateLabel(block)}` +
-                (block.derivedEnd ? ", end time inferred" : "")}
+                `${block.route}, ${blockPlateLabel(block, t("vehicleNotRecorded"))}` +
+                (block.derivedEnd ? t("endTimeInferredShort") : "")}
             </li>
           ))}
         </ul>
@@ -588,10 +598,6 @@ function BoardRow({
 /* -------------------------------------------------------------------------- */
 /* Bar                                                                        */
 /* -------------------------------------------------------------------------- */
-
-/** What a bar's tooltip says when its end time was never recorded. */
-const DERIVED_END_NOTE =
-  "End time inferred — no completion or deadline is recorded for this job.";
 
 function Bar({
   block,
@@ -610,19 +616,21 @@ function Bar({
   pixelsPerHour: number;
   onTooltipChange: (tooltip: AvailabilityTooltip | null) => void;
 }) {
+  const t = useTranslations("driverHub.fleetAvailabilityBoard");
   const tFormat = useTranslations("driverHub.fleetAvailabilityFormat");
   const tShared = useTranslations("common.shared");
   const meta = AVAILABILITY_STATUS[block.status];
   const statusLabel = tFormat(meta.labelKey);
   // The bar's short word (blocks are never `available`). `assigned` and
-  // `booked` have shorter forms than the legend's; `assigned` has a catalog
-  // entry, `booked` does not yet and stays English until one is added.
+  // `booked` have shorter forms than the legend's.
   const shortLabel =
     block.status === "enroute"
       ? tFormat("enRoute")
       : block.status === "assigned"
         ? tShared("assigned")
-        : meta.shortLabel;
+        : block.status === "booked"
+          ? tFormat("booked")
+          : meta.shortLabel;
 
   // Clipped to the window rather than hidden: a job that starts at 05:00 on an
   // 06:00–22:00 board is still running at 06:00, and the bar has to say so.
@@ -635,13 +643,13 @@ function Bar({
     onTooltipChange({
       x: event.clientX,
       y: event.clientY,
-      title: `${blockPlateLabel(block)} · ${statusLabel}`,
+      title: `${blockPlateLabel(block, t("vehicleNotRecorded"))} · ${statusLabel}`,
       // The *uncut* hours, not the clipped ones the bar is drawn from: the
       // tooltip answers "when is this job", and a bar cropped by the visible
       // window must not report a shorter job than the one being run.
-      range: `${formatHour(block.start)} – ${formatHour(block.end)}  (${formatDuration(block.end - block.start)})`,
+      range: `${formatHour(block.start)} – ${formatHour(block.end)}  (${formatDuration(block.end - block.start, (hours) => tFormat("durationHours", { hours }))})`,
       meta: `${block.reference} · ${block.route} · ${row.name}`,
-      derivedNote: block.derivedEnd ? DERIVED_END_NOTE : null,
+      derivedNote: block.derivedEnd ? t("endTimeInferred") : null,
     });
   }
 

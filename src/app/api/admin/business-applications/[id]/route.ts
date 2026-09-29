@@ -8,6 +8,7 @@ import type {
   VehicleClass,
 } from "@prisma/client";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { authorizeAdminApi } from "@/lib/admin/api-auth";
 import { prisma } from "@/lib/prisma";
 import { VEHICLE_CLASSES } from "@/lib/driver-onboarding/vehicle-classes";
@@ -263,8 +264,10 @@ export async function GET(
   });
 
   if (!application || application.status === "DRAFT") {
+    const t = await getRequestTranslations();
+
     return NextResponse.json(
-      { error: "Application not found." },
+      { error: t("common.shared.applicationNotFound") },
       { status: 404 },
     );
   }

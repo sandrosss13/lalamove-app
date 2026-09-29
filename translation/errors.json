@@ -101,13 +101,18 @@
   },
   "adminContentHomePageSections.typeIsRequiredAndMustBe": {
     "en": "type is required and must be a string.",
-    "ka": "type სავალდებულოა და უნდა იყოს ტექსტური ტიპი (string).",
+    "ka": "type სავალდებულოა და უნდა იყოს ტექსტური ტიპი.",
     "_source": "src/app/api/admin/content/home-page-sections/route.ts"
   },
   "adminContentHomePageSections.typeMustBeAString": {
     "en": "type must be a string.",
-    "ka": "type უნდა იყოს ტექსტური ტიპი (string).",
+    "ka": "type უნდა იყოს ტექსტური ტიპი.",
     "_source": "src/app/api/admin/content/home-page-sections/[id]/route.ts"
+  },
+  "adminContentMedia.unsupportedContentType": {
+    "en": "Only JPG, PNG and WebP images are accepted.",
+    "ka": "მიიღება მხოლოდ JPG, PNG და WebP სურათები.",
+    "_source": "src/lib/site-media-storage.ts"
   },
   "adminContentMessagingTemplates.bodyIsRequiredAndMustBe": {
     "en": "body is required and must be a non-empty string.",
@@ -121,7 +126,7 @@
   },
   "adminContentMessagingTemplates.isactiveMustBeABooleanWhen": {
     "en": "isActive must be a boolean when provided.",
-    "ka": "isActive მითითებისას უნდა იყოს ლოგიკური ტიპი (boolean).",
+    "ka": "isActive მითითებისას უნდა იყოს ლოგიკური ტიპი.",
     "_source": "src/app/api/admin/content/messaging-templates/route.ts"
   },
   "adminContentMessagingTemplates.keyMustBeANonEmpty": {
@@ -131,7 +136,7 @@
   },
   "adminContentMessagingTemplates.subjectMustBeAStringWhen": {
     "en": "subject must be a string when provided.",
-    "ka": "subject მითითებისას უნდა იყოს ტექსტური ტიპი (string).",
+    "ka": "subject მითითებისას უნდა იყოს ტექსტური ტიპი.",
     "_source": "src/app/api/admin/content/messaging-templates/route.ts"
   },
   "adminContentMessagingTemplates.subjectMustBeStringOrNull": {
@@ -236,7 +241,7 @@
   },
   "adminFinancePaymentMethods.isenabledIsRequiredAndMustBe": {
     "en": "isEnabled is required and must be a boolean.",
-    "ka": "isEnabled სავალდებულოა და უნდა იყოს ლოგიკური ტიპი (boolean).",
+    "ka": "isEnabled სავალდებულოა და უნდა იყოს ლოგიკური ტიპი.",
     "_source": "src/app/api/admin/finance/payment-methods/[type]/route.ts"
   },
   "adminFinancePaymentMethods.unknownPaymentMethod": {
@@ -256,7 +261,7 @@
   },
   "adminFinancePromoCampaigns.codeMustBeAString": {
     "en": "code must be a string.",
-    "ka": "code უნდა იყოს ტექსტური ტიპი (string).",
+    "ka": "code უნდა იყოს ტექსტური ტიპი.",
     "_source": "src/app/api/admin/finance/promo-campaigns/[id]/route.ts"
   },
   "adminFinancePromoCampaigns.thisCampaignHasAlreadyBeenRedeemed": {
@@ -313,6 +318,46 @@
     "en": "You cannot change your own account's status.",
     "ka": "საკუთარი ანგარიშის სტატუსის შეცვლა შეუძლებელია.",
     "_source": "src/app/api/admin/users/system/[userId]/reactivate/route.ts"
+  },
+  "cargoFit.doesNotFit": {
+    "en": "Cargo does not fit a {vehicle}.",
+    "ka": "ტვირთი არ ეტევა კლასში „{vehicle}“.",
+    "_source": "src/lib/orders/booking-fit.ts"
+  },
+  "cargoFit.exceeded.height": {
+    "en": "too tall",
+    "ka": "ზედმეტად მაღალია",
+    "_source": "src/lib/orders/booking-fit.ts"
+  },
+  "cargoFit.exceeded.length": {
+    "en": "too long",
+    "ka": "ზედმეტად გრძელია",
+    "_source": "src/lib/orders/booking-fit.ts"
+  },
+  "cargoFit.exceeded.weight": {
+    "en": "too heavy",
+    "ka": "ზედმეტად მძიმეა",
+    "_source": "src/lib/orders/booking-fit.ts"
+  },
+  "cargoFit.exceeded.width": {
+    "en": "too wide",
+    "ka": "ზედმეტად განიერია",
+    "_source": "src/lib/orders/booking-fit.ts"
+  },
+  "cargoFit.limitKg": {
+    "en": "{value} kg",
+    "ka": "{value} კგ",
+    "_source": "src/lib/orders/booking-fit.ts"
+  },
+  "cargoFit.limitM": {
+    "en": "{value} m",
+    "ka": "{value} მ",
+    "_source": "src/lib/orders/booking-fit.ts"
+  },
+  "cargoFit.tooBig": {
+    "en": "Cargo is {problems} for a {vehicle} (max {limits}).",
+    "ka": "ტვირთი არ ეტევა კლასში „{vehicle}“: {problems} (მაქს. {limits}).",
+    "_source": "src/lib/orders/booking-fit.ts"
   },
   "clientProfile.accountTypeMustBeOneOf": {
     "en": "accountType must be one of: {allowed}.",
@@ -614,6 +659,11 @@
     "ka": "ეს ატვირთული ფაილი არ ეკუთვნის ამ განაცხადს.",
     "_source": "src/app/api/driver-profile/onboarding/documents/route.ts"
   },
+  "driverProfileOnboardingDocuments.unsupportedContentType": {
+    "en": "Only JPG and PNG files are accepted.",
+    "ka": "მიიღება მხოლოდ JPG და PNG ფაილები.",
+    "_source": "src/lib/driver-document-storage.ts"
+  },
   "driverProfileOnboardingSubmit.ageRange": {
     "en": "Drivers must be between {min} and {max} years old.",
     "ka": "მძღოლის ასაკი უნდა იყოს {min}-დან {max} წლამდე.",
@@ -771,7 +821,7 @@
   },
   "driverProfileStatus.isonlineMustBeABoolean": {
     "en": "isOnline must be a boolean.",
-    "ka": "isOnline უნდა იყოს ლოგიკური ტიპი (boolean).",
+    "ka": "isOnline უნდა იყოს ლოგიკური ტიპი.",
     "_source": "src/app/api/driver-profile/status/route.ts"
   },
   "driverProfileStatus.onlyDriversCanUpdateOnlineStatus": {
@@ -829,6 +879,16 @@
     "ka": "year უნდა იყოს მთელი რიცხვი {min}-დან {max}-მდე.",
     "_source": "src/app/api/driver-profile/vehicles/validation.ts"
   },
+  "fleetVehicleValidation.labelled": {
+    "en": "{label}: {message}",
+    "ka": "{label}: {message}",
+    "_source": "src/lib/fleet-onboarding/vehicle-validation.ts"
+  },
+  "fleetVehicleValidation.tooManyVehicles": {
+    "en": "An application can hold at most {max} vehicles.",
+    "ka": "ერთი განაცხადი შეიძლება მოიცავდეს მაქსიმუმ {max} ავტომობილს.",
+    "_source": "src/lib/fleet-onboarding/vehicle-validation.ts"
+  },
   "guard.applicationAlreadyApproved": {
     "en": "Your application is already approved — its documents cannot be changed.",
     "ka": "თქვენი განაცხადი უკვე დამტკიცებულია — მისი დოკუმენტების შეცვლა შეუძლებელია.",
@@ -851,7 +911,7 @@
   },
   "loads.onlyDriversAndLogisticsCompaniesCan": {
     "en": "Only drivers and logistics companies can view the load board.",
-    "ka": "ტვირთების დაფის ნახვა მხოლოდ მძღოლებსა და ლოგისტიკურ კომპანიებს შეუძლიათ.",
+    "ka": "ტვირთების დაფის ნახვა მხოლოდ მძღოლებსა და ლოჯისტიკურ კომპანიებს შეუძლიათ.",
     "_source": "src/app/api/loads/route.ts"
   },
   "loads.yourCompanyProfileIsnTSetUp": {
@@ -871,7 +931,7 @@
   },
   "loadsReject.onlyDriversAndLogisticsCompaniesCan": {
     "en": "Only drivers and logistics companies can use the load board.",
-    "ka": "ტვირთების დაფით სარგებლობა მხოლოდ მძღოლებსა და ლოგისტიკურ კომპანიებს შეუძლიათ.",
+    "ka": "ტვირთების დაფით სარგებლობა მხოლოდ მძღოლებსა და ლოჯისტიკურ კომპანიებს შეუძლიათ.",
     "_source": "src/app/api/loads/[id]/reject/route.ts"
   },
   "loadsReject.thisLoadIsNoLongerOpen": {
@@ -921,12 +981,12 @@
   },
   "logisticsCompany.onlyLogisticsCompaniesCanCreateA": {
     "en": "Only logistics companies can create a company profile.",
-    "ka": "კომპანიის პროფილის შექმნა მხოლოდ ლოგისტიკურ კომპანიებს შეუძლიათ.",
+    "ka": "კომპანიის პროფილის შექმნა მხოლოდ ლოჯისტიკურ კომპანიებს შეუძლიათ.",
     "_source": "src/app/api/logistics-company/route.ts"
   },
   "logisticsCompany.onlyLogisticsCompaniesHaveACompany": {
     "en": "Only logistics companies have a company profile.",
-    "ka": "კომპანიის პროფილი მხოლოდ ლოგისტიკურ კომპანიებს აქვთ.",
+    "ka": "კომპანიის პროფილი მხოლოდ ლოჯისტიკურ კომპანიებს აქვთ.",
     "_source": "src/app/api/logistics-company/route.ts"
   },
   "logisticsCompany.phoneDigitsRange": {
@@ -946,12 +1006,12 @@
   },
   "logisticsCompanyDrivers.onlyLogisticsCompaniesCanRemoveDrivers": {
     "en": "Only logistics companies can remove drivers.",
-    "ka": "მძღოლების წაშლა მხოლოდ ლოგისტიკურ კომპანიებს შეუძლიათ.",
+    "ka": "მძღოლების წაშლა მხოლოდ ლოჯისტიკურ კომპანიებს შეუძლიათ.",
     "_source": "src/app/api/logistics-company/drivers/[userId]/route.ts"
   },
   "logisticsCompanyDrivers.onlyLogisticsCompaniesHaveADriver": {
     "en": "Only logistics companies have a driver roster.",
-    "ka": "მძღოლების განრიგი მხოლოდ ლოგისტიკურ კომპანიებს აქვთ.",
+    "ka": "მძღოლების განრიგი მხოლოდ ლოჯისტიკურ კომპანიებს აქვთ.",
     "_source": "src/app/api/logistics-company/drivers/route.ts"
   },
   "logisticsCompanyDriversRegister.cityMustBeOneOf": {
@@ -986,7 +1046,7 @@
   },
   "logisticsCompanyDriversRegister.onlyLogisticsCompaniesCanRegisterDrivers": {
     "en": "Only logistics companies can register drivers.",
-    "ka": "მძღოლების რეგისტრაცია მხოლოდ ლოგისტიკურ კომპანიებს შეუძლიათ.",
+    "ka": "მძღოლების რეგისტრაცია მხოლოდ ლოჯისტიკურ კომპანიებს შეუძლიათ.",
     "_source": "src/app/api/logistics-company/drivers/register/route.ts"
   },
   "logisticsCompanyDriversRegister.thatVehicleWasNotFoundIn": {
@@ -1016,7 +1076,7 @@
   },
   "logisticsCompanyDriversRegister.vehicleidMustBeAStringWhen": {
     "en": "vehicleId must be a string when provided.",
-    "ka": "vehicleId მითითებისას უნდა იყოს ტექსტური ტიპი (string).",
+    "ka": "vehicleId მითითებისას უნდა იყოს ტექსტური ტიპი.",
     "_source": "src/app/api/logistics-company/drivers/register/route.ts"
   },
   "logisticsCompanyOnboarding.anApplicationUnderReviewCanNo": {
@@ -1171,7 +1231,7 @@
   },
   "logisticsCompanyOrdersCancel.onlyLogisticsCompaniesCanCancelDeliveries": {
     "en": "Only logistics companies can cancel deliveries.",
-    "ka": "მიწოდების გაუქმება მხოლოდ ლოგისტიკურ კომპანიებს შეუძლიათ.",
+    "ka": "მიწოდების გაუქმება მხოლოდ ლოჯისტიკურ კომპანიებს შეუძლიათ.",
     "_source": "src/app/api/logistics-company/orders/[id]/cancel/route.ts"
   },
   "logisticsCompanyOrdersCancel.thisDeliveryCanNoLongerBe": {
@@ -1186,7 +1246,7 @@
   },
   "logisticsCompanyOrdersClaim.onlyLogisticsCompaniesCanClaimDeliveries": {
     "en": "Only logistics companies can claim deliveries.",
-    "ka": "შეკვეთების აღება მხოლოდ ლოგისტიკურ კომპანიებს შეუძლიათ.",
+    "ka": "შეკვეთების აღება მხოლოდ ლოჯისტიკურ კომპანიებს შეუძლიათ.",
     "_source": "src/app/api/logistics-company/orders/[id]/claim/route.ts"
   },
   "logisticsCompanyOrdersClaim.yourFleetHasNoVehicleBig": {
@@ -1231,17 +1291,17 @@
   },
   "logisticsCompanyVehicles.onlyLogisticsCompaniesCanAddFleet": {
     "en": "Only logistics companies can add fleet vehicles.",
-    "ka": "ავტოპარკის ტრანსპორტის დამატება მხოლოდ ლოგისტიკურ კომპანიებს შეუძლიათ.",
+    "ka": "ავტოპარკის ტრანსპორტის დამატება მხოლოდ ლოჯისტიკურ კომპანიებს შეუძლიათ.",
     "_source": "src/app/api/logistics-company/vehicles/route.ts"
   },
   "logisticsCompanyVehicles.onlyLogisticsCompaniesCanRemoveFleet": {
     "en": "Only logistics companies can remove fleet vehicles.",
-    "ka": "ავტოპარკის ტრანსპორტის წაშლა მხოლოდ ლოგისტიკურ კომპანიებს შეუძლიათ.",
+    "ka": "ავტოპარკის ტრანსპორტის წაშლა მხოლოდ ლოჯისტიკურ კომპანიებს შეუძლიათ.",
     "_source": "src/app/api/logistics-company/vehicles/[id]/route.ts"
   },
   "logisticsCompanyVehicles.onlyLogisticsCompaniesHaveAFleet": {
     "en": "Only logistics companies have a fleet.",
-    "ka": "ავტოპარკი მხოლოდ ლოგისტიკურ კომპანიებს აქვთ.",
+    "ka": "ავტოპარკი მხოლოდ ლოჯისტიკურ კომპანიებს აქვთ.",
     "_source": "src/app/api/logistics-company/vehicles/route.ts"
   },
   "logisticsCompanyVehicles.vehicletypecodeDoesNotMatchAKnown": {
@@ -1256,12 +1316,12 @@
   },
   "logisticsCompanyVehiclesAssignment.onlyLogisticsCompaniesCanAssignVehicles": {
     "en": "Only logistics companies can assign vehicles.",
-    "ka": "ტრანსპორტის მინიჭება მხოლოდ ლოგისტიკურ კომპანიებს შეუძლიათ.",
+    "ka": "ტრანსპორტის მინიჭება მხოლოდ ლოჯისტიკურ კომპანიებს შეუძლიათ.",
     "_source": "src/app/api/logistics-company/vehicles/[id]/assignment/route.ts"
   },
   "logisticsCompanyVehiclesAssignment.onlyLogisticsCompaniesCanUnassignVehicles": {
     "en": "Only logistics companies can unassign vehicles.",
-    "ka": "ტრანსპორტის მინიჭების მოხსნა მხოლოდ ლოგისტიკურ კომპანიებს შეუძლიათ.",
+    "ka": "ტრანსპორტის მინიჭების მოხსნა მხოლოდ ლოჯისტიკურ კომპანიებს შეუძლიათ.",
     "_source": "src/app/api/logistics-company/vehicles/[id]/assignment/route.ts"
   },
   "logisticsCompanyVehiclesAssignment.thisDriverAlreadyHasAnActive": {
@@ -1296,12 +1356,12 @@
   },
   "orders.descriptionMustBeAStringWhen": {
     "en": "description must be a string when provided.",
-    "ka": "description მითითებისას უნდა იყოს ტექსტური ტიპი (string).",
+    "ka": "description მითითებისას უნდა იყოს ტექსტური ტიპი.",
     "_source": "src/app/api/orders/route.ts"
   },
   "orders.failedToDrawAnOrderReference": {
     "en": "Failed to draw an order reference from the sequence.",
-    "ka": "მიმდევრობიდან შეკვეთის კოდის/ნომრის გენერირება ვერ მოხერხდა.",
+    "ka": "მიმდევრობიდან შეკვეთის ნომრის გენერირება ვერ მოხერხდა.",
     "_source": "src/app/api/orders/route.ts"
   },
   "orders.fieldMeasurementOutOfRange": {
@@ -1396,7 +1456,7 @@
   },
   "ordersAccept.youReOfflineGoOnlineTo": {
     "en": "You're offline. Go online to claim loads.",
-    "ka": "თქვენ ოფლაინში ხართ. ტვირთების დასაჯავშნად/მისაღებად გადადით ონლაინ რეჟიმში.",
+    "ka": "თქვენ ოფლაინში ხართ. გადაზიდვების ასაღებად გადადით ონლაინ რეჟიმში.",
     "_source": "src/app/api/orders/[id]/accept/route.ts"
   },
   "ordersComplete.receivedByMustBeStringOrNull": {
@@ -1416,7 +1476,7 @@
   },
   "ordersComplete.thisDeliverySVehicleTypeHas": {
     "en": "This delivery's vehicle type has no pricing rule.",
-    "ka": "ამ მიწოდების ტრანსპორტის ტიპს არ აქვს ფასწარმოქმნის წესი (pricing rule).",
+    "ka": "ამ მიწოდების ავტომობილის ტიპს ფასწარმოქმნის წესი არ აქვს.",
     "_source": "src/app/api/orders/[id]/complete/route.ts"
   },
   "ordersComplete.waitingminutesIsRequiredAndMustBe": {
@@ -1458,6 +1518,16 @@
     "en": "Enter a card brand of {max} characters or fewer.",
     "ka": "მიუთითეთ ბარათის ბრენდი არაუმეტეს {max} სიმბოლოსი.",
     "_source": "src/app/api/saved-cards/route.ts"
+  },
+  "savedCards.cardDetailsMustNotBeSent": {
+    "en": "Card details must not be sent to the server.",
+    "ka": "ბარათის მონაცემები სერვერზე არ უნდა გაიგზავნოს.",
+    "_source": "src/app/api/saved-cards/route.ts"
+  },
+  "savedCards.cardNotFound": {
+    "en": "Card not found.",
+    "ka": "ბარათი ვერ მოიძებნა.",
+    "_source": "src/app/api/saved-cards/card-select.ts"
   },
   "savedCards.cardholderNameTooLong": {
     "en": "Enter a cardholder name of {max} characters or fewer.",
@@ -1521,12 +1591,12 @@
   },
   "validation.ispublishedMustBeABoolean": {
     "en": "isPublished must be a boolean.",
-    "ka": "isPublished უნდა იყოს ლოგიკური ტიპი (boolean).",
+    "ka": "isPublished უნდა იყოს ლოგიკური ტიპი.",
     "_source": "src/app/api/admin/content/pages/validation.ts"
   },
   "validation.slugIsRequiredAndMustBe": {
     "en": "slug is required and must be a string.",
-    "ka": "slug სავალდებულოა და უნდა იყოს ტექსტური ტიპი (string).",
+    "ka": "slug სავალდებულოა და უნდა იყოს ტექსტური ტიპი.",
     "_source": "src/app/api/admin/content/pages/validation.ts"
   },
   "validation.slugMustBeLowercaseLettersNumbers": {

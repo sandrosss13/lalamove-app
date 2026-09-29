@@ -40,11 +40,18 @@ export function formatHour(hour: number): string {
 }
 
 /** A duration in hours as the tooltip prints it: `"2.5 h"`. */
-export function formatDuration(hours: number): string {
+/**
+ * `withUnit` lets the screen attach the hour unit in the reader's language
+ * (`driverHub.fleetAvailabilityFormat.durationHours`); it defaults to English.
+ */
+export function formatDuration(
+  hours: number,
+  withUnit: (hours: number) => string = (value) => `${value} h`,
+): string {
   // Two decimals would print "1.00 h" for the commonest case; one keeps the
   // quarter-hours the board snaps to exact ("1.5 h", "0.25 h" → "0.3 h" is the
   // one lossy case, and a 15-minute bar is below the label threshold anyway).
-  return `${Number(hours.toFixed(2))} h`;
+  return withUnit(Number(hours.toFixed(2)));
 }
 
 /** Rounds an hour to the nearest {@link SNAP_MINUTES}. */

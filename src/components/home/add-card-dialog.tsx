@@ -90,9 +90,6 @@ const MAX_CVC_DIGITS = 4;
 /** Digits typed before the brand chip appears. */
 const BRAND_CHIP_MIN_DIGITS = 2;
 
-/** Shown when a rejected submission carries no message of its own. */
-const SAVE_FAILED_FALLBACK = "Could not save the card. Try again.";
-
 const FIELD_LABEL_CLASSES = "text-[0.8125rem] font-medium text-paper";
 
 const FIELD_CLASSES =
@@ -193,26 +190,40 @@ type CardFormValues = {
  * fix — never a list, so the reader is told one thing to do next. `null` once
  * the form may be submitted.
  */
-function firstMissingRequirement(values: CardFormValues): string | null {
+/**
+ * Keys in `home.addCardDialog`, one per requirement. Returned rather than the
+ * sentence itself so this stays a plain function outside the component, with
+ * translation happening at render.
+ */
+type MissingRequirementKey =
+  | "enterCardNumber"
+  | "enterExpiryFormat"
+  | "enterFutureExpiry"
+  | "enterCvc"
+  | "enterHolderName";
+
+function firstMissingRequirement(
+  values: CardFormValues,
+): MissingRequirementKey | null {
   if (toDigits(values.cardNumber).length < MIN_CARD_DIGITS) {
-    return `Enter a card number of at least ${MIN_CARD_DIGITS} digits.`;
+    return "enterCardNumber";
   }
 
   const expiry = parseExpiry(values.expiry);
   if (expiry === null) {
-    return "Enter the expiry date as MM/YY.";
+    return "enterExpiryFormat";
   }
 
   if (hasExpired(expiry)) {
-    return "Enter an expiry date in the future.";
+    return "enterFutureExpiry";
   }
 
   if (toDigits(values.cvc).length < MIN_CVC_DIGITS) {
-    return "Enter the three- or four-digit security code.";
+    return "enterCvc";
   }
 
   if (values.holderName.trim() === "") {
-    return "Enter the name printed on the card.";
+    return "enterHolderName";
   }
 
   return null;
@@ -316,7 +327,7 @@ export function AddCardDialog({
       setError(
         submitError instanceof Error && submitError.message !== ""
           ? submitError.message
-          : SAVE_FAILED_FALLBACK,
+          : t("saveFailed"),
       );
       setSubmitting(false);
     }
@@ -518,12 +529,14 @@ export function AddCardDialog({
                 }
                 className={SAVE_BUTTON_CLASSES}
               >
-                {submitting ? "Saving…" : "Save card"}
+                {submitting ? tShared("saving") : t("saveCard")}
               </button>
             </div>
             {missingRequirement === null ? null : (
               <p id={reasonId} className="text-right text-xs text-muted">
-                {missingRequirement}
+                {/* `min` is only read by `enterCardNumber`; next-intl ignores
+                    values a message does not reference. */}
+                {t(missingRequirement, { min: MIN_CARD_DIGITS })}
               </p>
             )}
           </div>

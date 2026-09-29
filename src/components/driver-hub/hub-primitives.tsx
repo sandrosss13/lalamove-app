@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -474,6 +475,7 @@ export function MasterDetailSplit({
   onCloseDetail,
   className,
 }: MasterDetailSplitProps) {
+  const t = useTranslations("driverHub.hubPrimitives");
   const open = Boolean(detail);
 
   return (
@@ -497,7 +499,7 @@ export function MasterDetailSplit({
             size="icon-sm"
             // Spelled out: "✕" alone announces as "multiplication x", which
             // tells a screen-reader user nothing about what closes.
-            aria-label={`Close ${detailLabel}`}
+            aria-label={t("closeDetail", { label: detailLabel })}
             onClick={onCloseDetail}
             className="absolute top-[22px] right-[22px] z-10 rounded-md text-muted-foreground"
           >
@@ -519,7 +521,7 @@ export type SampleNoteProps = {
    * missing. Shown on hover as a `title` and read out by assistive tech.
    */
   note: string;
-  /** Badge text. Defaults to "Sample data". */
+  /** Badge text. Defaults to the localized "Sample data". */
   label?: string;
   className?: string;
 };
@@ -534,11 +536,9 @@ export type SampleNoteProps = {
  * rides along as both a `title` (for a mouse) and screen-reader-only text,
  * because `title` is not reliably announced on its own.
  */
-export function SampleNote({
-  note,
-  label = "Sample data",
-  className,
-}: SampleNoteProps) {
+export function SampleNote({ note, label, className }: SampleNoteProps) {
+  const t = useTranslations("driverHub.hubPrimitives");
+
   return (
     <Badge
       variant="outline"
@@ -552,7 +552,7 @@ export function SampleNote({
         aria-hidden="true"
         className={cn("size-1.5 rounded-full", ACCENT_BG)}
       />
-      {label}
+      {label ?? t("sampleData")}
       <span className="sr-only"> — {note}</span>
     </Badge>
   );
@@ -630,10 +630,6 @@ export type HubBarChartProps = {
   className?: string;
 };
 
-const DEFAULT_SERIES: readonly HubBarSeries[] = [
-  { label: "Value", tone: "ink" },
-];
-
 /** Above this many columns the design tightens the gap so bars stay legible. */
 const DENSE_COLUMN_COUNT = 10;
 
@@ -653,12 +649,17 @@ const PAIRED_BAR_MAX_HEIGHT = 150;
  */
 export function HubBarChart({
   columns,
-  series = DEFAULT_SERIES,
+  series: seriesProp,
   highlightPeak = true,
   showLegend,
   ariaLabel,
   className,
 }: HubBarChartProps) {
+  const tShared = useTranslations("common.shared");
+  // A lone unnamed series still needs a legend / screen-reader name.
+  const series: readonly HubBarSeries[] = seriesProp ?? [
+    { label: tShared("value"), tone: "ink" },
+  ];
   const paired = series.length > 1;
   const legend = showLegend ?? paired;
 

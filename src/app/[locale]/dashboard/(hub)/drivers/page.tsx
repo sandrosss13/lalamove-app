@@ -124,11 +124,13 @@ export default async function DriversPage() {
   // and the only day its "now" marker can appear. Resolved here rather than
   // inside the loader so the board and every other hub screen on this request
   // agree on which day "today" is.
-  const [drivers, vehicles, availability, t] = await Promise.all([
+  // The translator first: the availability loader renders its class, body and
+  // city labels through it.
+  const t = await getTranslations();
+  const [drivers, vehicles, availability] = await Promise.all([
     getHubDrivers(account),
-    getHubVehicles(account),
-    getHubFleetAvailability(account, toHubDayKey(new Date())),
-    getTranslations(),
+    getHubVehicles(account, t),
+    getHubFleetAvailability(account, toHubDayKey(new Date()), t),
   ]);
 
   if (drivers === null) {

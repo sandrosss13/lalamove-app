@@ -122,32 +122,35 @@ function validateLicence(input: {
   categories: OnboardingDraftLicenceCategory[];
   hasFront: boolean;
   hasBack: boolean;
+  /** This step's translator — passed in because this is a plain function. */
+  t: ReturnType<typeof useTranslations<"onboarding.step2Licence">>;
 }): LicenceFieldErrors {
+  const { t } = input;
   const errors: LicenceFieldErrors = {};
 
   if (!input.hasFront || !input.hasBack) {
-    errors.photos = "Both sides of the licence are required.";
+    errors.photos = t("bothSidesRequired");
   }
 
   const licenceNumber = input.licenceNumber.trim();
   if (!licenceNumber) {
-    errors.licenceNumber = "Enter the licence number.";
+    errors.licenceNumber = t("enterLicenceNumber");
   } else if (licenceNumber.length < MIN_LICENCE_NUMBER_LENGTH) {
-    errors.licenceNumber = "That looks too short.";
+    errors.licenceNumber = t("tooShort");
   }
 
   if (!input.expiresAt) {
-    errors.expiresAt = "Enter the expiry date.";
+    errors.expiresAt = t("enterExpiryDate");
   } else if (input.expiresAt <= todayIsoDate()) {
     // Lexicographic comparison is exact for `YYYY-MM-DD`, and — unlike parsing
     // both sides into `Date`s — has no timezone edge to get wrong. A licence
     // expiring today is already unusable for a journey, so "must be in the
     // future" excludes today.
-    errors.expiresAt = "This licence has expired. Renew it before applying.";
+    errors.expiresAt = t("licenceExpired");
   }
 
   if (input.categories.length === 0) {
-    errors.categories = "Select at least one category you hold.";
+    errors.categories = t("selectCategory");
   }
 
   return errors;
@@ -171,6 +174,7 @@ export function Step2Licence() {
   const { draft, documents, updateDraft, goToStep, showToast } =
     useOnboardingDraft();
   const t = useTranslations("onboarding.step2Licence");
+  const tRoot = useTranslations();
   const tShared = useTranslations("common.shared");
 
   // Which upload dialog is open, or null for none. One piece of state rather
@@ -204,6 +208,7 @@ export function Step2Licence() {
     categories,
     hasFront: documentForSlot("licFront") !== undefined,
     hasBack: documentForSlot("licBack") !== undefined,
+    t,
   });
   const errors: LicenceFieldErrors = showErrors ? problems : {};
 
@@ -247,7 +252,10 @@ export function Step2Licence() {
   function handleContinue() {
     if (Object.keys(problems).length > 0) {
       setShowErrors(true);
-      showToast("Fix the highlighted fields to continue.", "error");
+      showToast(
+        tRoot("onboarding.step1AuthPersonal.fixHighlightedFields"),
+        "error",
+      );
       return;
     }
 
@@ -304,16 +312,16 @@ export function Step2Licence() {
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={uploadedDocument.signedUrl}
-                        alt={`${title}, uploaded`}
+                        alt={t("uploadedAlt", { title })}
                         className="size-full object-cover"
                       />
                     </>
                   ) : uploaded ? (
                     // The row exists but its read URL could not be signed —
                     // say so rather than rendering a broken image.
-                    "PREVIEW UNAVAILABLE"
+                    t("previewUnavailable")
                   ) : (
-                    "Click to upload"
+                    t("clickToUpload")
                   )}
                 </span>
 
@@ -324,7 +332,7 @@ export function Step2Licence() {
                       uploaded ? UPLOADED_TEXT_CLASS : "text-muted-foreground"
                     }`}
                   >
-                    {uploaded ? "Uploaded" : "Not uploaded"}
+                    {uploaded ? t("uploaded") : t("notUploaded")}
                   </span>
                 </span>
               </button>
@@ -458,7 +466,7 @@ export function Step2Licence() {
               />
               <span className="min-w-0 flex-1">
                 <span className="block font-price text-sm font-semibold">
-                  Category {code}
+                  {t("categoryCode", { code })}
                 </span>
                 <span className="mt-px block text-xs text-muted-foreground">
                   {t(descriptionKey)}

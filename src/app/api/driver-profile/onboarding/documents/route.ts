@@ -6,7 +6,7 @@ import {
   getDriverDocumentContentType,
   getDriverDocumentSignedUrl,
   isSupportedDriverDocumentContentType,
-  UNSUPPORTED_CONTENT_TYPE_ERROR,
+  UNSUPPORTED_CONTENT_TYPE_ERROR_KEY,
 } from "@/lib/driver-document-storage";
 import { getRequestTranslations } from "@/i18n/request-locale";
 import { prisma } from "@/lib/prisma";
@@ -19,12 +19,12 @@ import {
 } from "./guard";
 
 /**
- * Shown whenever the uploaded object's metadata cannot be read at all — the
- * upload never landed, or Storage is unreachable. Either way the document is
- * not recorded: verification fails closed.
+ * Message path shown whenever the uploaded object's metadata cannot be read at
+ * all — the upload never landed, or Storage is unreachable. Either way the
+ * document is not recorded: verification fails closed.
  */
-const UNVERIFIABLE_UPLOAD_ERROR =
-  "We couldn't verify the uploaded file. Please upload it again.";
+const UNVERIFIABLE_UPLOAD_ERROR_KEY =
+  "errors.driverProfileOnboardingDocuments.couldNotVerifyUpload";
 
 /** Best-effort removal of an object the request is refusing to record. */
 async function discardObject(path: string): Promise<void> {
@@ -134,7 +134,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
   }
 
-  const parsedType = parseDocumentType(fields.type);
+  const parsedType = parseDocumentType(fields.type, t);
   if ("error" in parsedType) {
     return NextResponse.json({ error: parsedType.error }, { status: 400 });
   }
@@ -176,7 +176,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   } catch (error) {
     console.error("Failed to verify an uploaded driver document:", error);
     return NextResponse.json(
-      { error: UNVERIFIABLE_UPLOAD_ERROR },
+      { error: t(UNVERIFIABLE_UPLOAD_ERROR_KEY) },
       { status: 400 },
     );
   }
@@ -187,7 +187,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   ) {
     await discardObject(path);
     return NextResponse.json(
-      { error: UNSUPPORTED_CONTENT_TYPE_ERROR },
+      { error: t(UNSUPPORTED_CONTENT_TYPE_ERROR_KEY) },
       { status: 400 },
     );
   }

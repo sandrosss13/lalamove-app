@@ -9,6 +9,7 @@ import {
   SampleNote,
 } from "@/components/driver-hub/hub-primitives";
 import { formatGel } from "@/components/driver-hub/screens/earnings-format";
+import { useHubStatusLabel } from "@/components/driver-hub/use-hub-status-label";
 import {
   Table,
   TableBody,
@@ -62,11 +63,6 @@ const HEAD_CLASSES =
  */
 const CELL_CLASSES = "min-w-0 px-0 py-[13px]";
 
-const PAYOUTS_NOTE =
-  "The whole table is a placeholder: order revenue is settled weekly, but " +
-  "nothing records that a settlement happened. Retire with a Payout model " +
-  "holding each period's order set, incentive total and transfer status.";
-
 export type EarningsPayoutsCardProps = {
   payouts: readonly SamplePayoutRow[];
 };
@@ -74,18 +70,19 @@ export type EarningsPayoutsCardProps = {
 export function EarningsPayoutsCard({ payouts }: EarningsPayoutsCardProps) {
   const t = useTranslations("driverHub.earningsPayoutsCard");
   const tShared = useTranslations("common.shared");
+  const statusLabel = useHubStatusLabel();
 
   return (
     <HubCard
       title={t("payoutHistory")}
-      action={<SampleNote note={PAYOUTS_NOTE} />}
+      action={<SampleNote note={t("payoutsNote")} />}
     >
       <p className="mb-4 text-[13px] text-muted-foreground">
         {t("fixedWeeklySettlementWindowsNotFiltered")}
       </p>
 
       {payouts.length === 0 ? (
-        <HubEmptyState message="No payouts on record yet." />
+        <HubEmptyState message={t("noPayouts")} />
       ) : (
         <Table role="table" className={cn("block", COLUMNS)}>
           <TableHeader role="rowgroup" className="block">
@@ -166,7 +163,10 @@ export function EarningsPayoutsCard({ payouts }: EarningsPayoutsCardProps) {
                   role="cell"
                   className={cn(CELL_CLASSES, "text-right")}
                 >
-                  <HubStatusBadge status={payout.status} />
+                  <HubStatusBadge
+                    status={payout.status}
+                    label={statusLabel(payout.status)}
+                  />
                 </TableCell>
               </TableRow>
             ))}

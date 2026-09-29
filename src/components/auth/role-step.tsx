@@ -9,8 +9,30 @@ import {
   ModeToggle,
 } from "@/components/auth/auth-primitives";
 import { Link } from "@/i18n/navigation";
-import { ROLE_CARDS, type FlowMode, type FlowRole } from "@/lib/auth-flow";
+import { useRoleCards, type FlowMode, type FlowRole } from "@/lib/auth-flow";
 import { cn } from "@/lib/utils";
+
+/**
+ * `auth.authFlow` keys for the card copy `useRoleCards` does not localise: the
+ * three selling points and the footer line. Same order as `ROLE_CARDS`.
+ */
+const ROLE_CARD_BENEFIT_KEYS = {
+  CLIENT: [
+    "clientBenefitInstantQuote",
+    "clientBenefitSameDay",
+    "clientBenefitLiveTracking",
+  ],
+  DRIVER: [
+    "driverBenefitLoadBoard",
+    "driverBenefitWeeklyPayouts",
+    "driverBenefitFleetSize",
+  ],
+} as const satisfies Record<FlowRole, readonly string[]>;
+
+const ROLE_CARD_FOOTER_KEYS = {
+  CLIENT: "clientFooter",
+  DRIVER: "driverFooter",
+} as const satisfies Record<FlowRole, string>;
 
 /**
  * Step 1: pick Client or Driver/fleet, and choose between signing in and
@@ -93,6 +115,8 @@ export function RoleStep({
   className,
 }: RoleStepProps) {
   const t = useTranslations("auth.roleStep");
+  const tFlow = useTranslations("auth.authFlow");
+  const roleCards = useRoleCards();
 
   return (
     <div className={cn("flex flex-col gap-7", className)}>
@@ -110,7 +134,7 @@ export function RoleStep({
           under ~610px — no breakpoint to keep in sync with the content. */}
       <div className="grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-4">
         {roles.map((role) => {
-          const card = ROLE_CARDS[role];
+          const card = roleCards[role];
           const href = hrefs?.[role];
 
           const content = (
@@ -135,18 +159,18 @@ export function RoleStep({
               </span>
 
               <span className="flex flex-col gap-2 border-t border-[var(--landing-frame)] pt-1.5">
-                {card.benefits.map((benefit) => (
+                {ROLE_CARD_BENEFIT_KEYS[role].map((benefitKey) => (
                   <span
-                    key={benefit}
+                    key={benefitKey}
                     className="text-[13px] text-[var(--landing-subtle)]"
                   >
-                    {benefit}
+                    {tFlow(benefitKey)}
                   </span>
                 ))}
               </span>
 
               <span className="flex items-center gap-1.5 text-[13px] font-medium text-[var(--landing-paper)]">
-                {card.footer}
+                {tFlow(ROLE_CARD_FOOTER_KEYS[role])}
                 <span aria-hidden="true">→</span>
               </span>
             </>
@@ -170,7 +194,7 @@ export function RoleStep({
       </div>
 
       <p className="text-[13px] text-[var(--landing-muted)]">
-        Staff account?{" "}
+        {t("staffAccount")}{" "}
         <Link
           href={backOfficeHref}
           className="font-medium text-[var(--landing-paper)] underline decoration-[var(--landing-line-strong)] underline-offset-4 transition-colors hover:decoration-[var(--landing-accent)]"

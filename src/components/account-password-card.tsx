@@ -48,6 +48,7 @@ const MIN_PASSWORD_LENGTH = 8;
  */
 export function AccountPasswordCard() {
   const t = useTranslations("common.shared");
+  const tCard = useTranslations("account.accountPasswordCard");
   const fieldId = useId();
   const formId = useId();
 
@@ -108,10 +109,7 @@ export function AccountPasswordCard() {
     setSaving(false);
 
     if (changePasswordError) {
-      setError(
-        changePasswordError.message ??
-          "Could not change your password. Please try again.",
-      );
+      setError(changePasswordError.message ?? tCard("couldNotChangePassword"));
       return;
     }
 
@@ -150,7 +148,7 @@ export function AccountPasswordCard() {
             aria-controls={formId}
             className="h-9 rounded-full border-line bg-ink px-4 text-[0.8125rem] font-semibold text-paper hover:border-accent/40 hover:bg-surface hover:text-accent"
           >
-            {open ? t("cancel") : "Change password"}
+            {open ? t("cancel") : tCard("changePassword")}
           </Button>
         </div>
 
@@ -238,7 +236,7 @@ export function AccountPasswordCard() {
               disabled={saving}
               className="h-10 self-start rounded-full bg-accent px-5 text-[0.8125rem] font-semibold text-ink hover:bg-accent"
             >
-              {saving ? "Saving…" : "Save password"}
+              {saving ? t("saving") : tCard("savePassword")}
             </Button>
           </form>
         ) : null}

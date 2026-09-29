@@ -10,7 +10,9 @@ import { HubCard } from "@/components/driver-hub/hub-primitives";
 import type { VehicleTypeOption } from "@/components/vehicle-type-select";
 import { formatKilograms } from "@/components/driver-hub/screens/vehicles-format";
 import type { HubAccountKind } from "@/lib/dashboard/hub/account";
+import { CITY_NAMES_NAMESPACE, cityNameKey } from "@/lib/georgian-cities";
 import { cn } from "@/lib/utils";
+import { vehicleTypeSpecLabel } from "@/lib/vehicle-type-spec-labels";
 
 /**
  * The "Add a vehicle" form, rendered in the Vehicles screen's right rail.
@@ -77,9 +79,11 @@ const MIN_VEHICLE_YEAR = 1980;
 const MIN_NAME_LENGTH = 3;
 
 const TYPES_ENDPOINT = "/api/vehicle-types";
-const TYPES_ERROR = "Could not load the vehicle types. Refresh and try again.";
-const GENERIC_ERROR = "Could not add this vehicle.";
-const NETWORK_ERROR = "Network error. Please check your connection.";
+/**
+ * A `driverHub.vehiclesAddForm` key, not copy: the error is held in state as
+ * the key and translated where it renders, so it follows a language switch.
+ */
+const TYPES_ERROR = "typesError";
 
 /**
  * The design's eight operating cities, kept verbatim so the disabled control
@@ -144,6 +148,9 @@ export function VehiclesAddForm({
   // "Operating cities" is catalogued once, under the detail panel that also
   // renders it; reusing that key keeps the two labels translated alike.
   const tDetail = useTranslations("driverHub.vehiclesDetailPanel");
+  const tCities = useTranslations(CITY_NAMES_NAMESPACE);
+  // Root translator for the spec labels, whose keys are full paths.
+  const tRoot = useTranslations();
   const router = useRouter();
 
   const [plate, setPlate] = React.useState("");
@@ -239,20 +246,24 @@ export function VehiclesAddForm({
    * branch is decorative, and none may be dropped while the gate tests for it.
    */
   const hint = canSave
-    ? `${selectedType?.label ?? ""} · ${trimmedPlate} · ${photoCount} photo${
-        photoCount === 1 ? "" : "s"
-      }. It joins the fleet as idle until a driver is assigned to it.`
+    ? t("hintReadyFull", {
+        class: selectedType
+          ? vehicleTypeSpecLabel(selectedType.code, selectedType.label, tRoot)
+          : "",
+        plate: trimmedPlate,
+        count: photoCount,
+      })
     : !PLATE_PATTERN.test(trimmedPlate)
-      ? "Add a plate in the AB-123-CD format to continue."
+      ? t("hintPlate")
       : make.trim().length < MIN_NAME_LENGTH
-        ? "Add the make, e.g. Mercedes-Benz."
+        ? t("hintMake")
         : model.trim().length < MIN_NAME_LENGTH
-          ? "Add the model, e.g. Sprinter."
+          ? t("hintModel")
           : !yearValid
-            ? `Add a manufacturing year between ${MIN_VEHICLE_YEAR} and ${maxYear}.`
+            ? t("hintYear", { min: MIN_VEHICLE_YEAR, max: maxYear })
             : selectedType === null
-              ? "Pick the class this vehicle is registered under."
-              : "Add at least one photo of the vehicle.";
+              ? t("hintClass")
+              : t("hintPhoto");
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -299,14 +310,14 @@ export function VehiclesAddForm({
       if (!response.ok) {
         // The route's own message is the specific one ("This plate number is
         // already registered.", "year must be a whole number between…").
-        setError(payload?.error ?? GENERIC_ERROR);
+        setError(payload?.error ?? t("couldNotAdd"));
         return;
       }
 
       onCreated(payload?.id ?? null);
       router.refresh();
     } catch {
-      setError(NETWORK_ERROR);
+      setError(tDetail("networkError"));
     } finally {
       setSubmitting(false);
     }
@@ -432,7 +443,7 @@ export function VehiclesAddForm({
                  accepted that half-step everywhere so its error red stays one
                  colour. */
               <p role="alert" className="text-[13px] text-destructive">
-                {typesError}
+                {t(typesError)}
               </p>
             ) : (
               types.map((type) => {
@@ -452,7 +463,7 @@ export function VehiclesAddForm({
                   >
                     <span className="min-w-0">
                       <span className="block text-[13px] font-medium">
-                        {type.label}
+                        {vehicleTypeSpecLabel(type.code, type.label, tRoot)}
                       </span>
                       {/* The design gives each of its three rows a hand-written
                           note ("Up to 1200 kg", "Documents and small parcels",
@@ -465,10 +476,12 @@ export function VehiclesAddForm({
                           is a real class-level fact for every row the endpoint
                           can return. */}
                       <span className="mt-0.5 block text-xs text-muted-foreground">
-                        Up to{" "}
-                        <span className="font-price">
-                          {formatKilograms(type.maxPayloadKg)}
-                        </span>
+                        {t.rich("upToRich", {
+                          weight: formatKilograms(type.maxPayloadKg),
+                          num: (chunks) => (
+                            <span className="font-price">{chunks}</span>
+                          ),
+                        })}
                       </span>
                     </span>
                     <input
@@ -522,8 +535,7 @@ export function VehiclesAddForm({
               className="w-full min-w-0 rounded-md border border-input px-[11px] py-[9px] text-[13px] file:mr-3 file:rounded file:border-0 file:bg-muted file:px-2 file:py-1 file:text-xs file:font-medium file:text-foreground"
             />
             <p className={NOT_STORED_NOTE_CLASSES}>
-              At least one photo is required — the endpoint rejects a vehicle
-              without one. Up to 5 MB each.
+              {t("photoRequirementNote")}
             </p>
           </Field>
 
@@ -542,28 +554,25 @@ export function VehiclesAddForm({
                   disabled
                   className="cursor-not-allowed rounded-full border border-border bg-background px-3 py-[7px] text-[13px] whitespace-nowrap text-muted-foreground opacity-60"
                 >
-                  {city}
+                  {tCities(cityNameKey(city))}
                 </button>
               ))}
             </div>
             <p id="vehicle-cities-note" className={NOT_STORED_NOTE_CLASSES}>
-              Disabled: a vehicle has no operating-cities column — only the
-              company&apos;s fleet-wide list exists — so a per-vehicle selection
-              has nowhere to go yet.
+              {t("citiesDisabledNote")}
             </p>
           </fieldset>
 
-          <Field label="Assign to driver" htmlFor="vehicle-assign">
+          <Field label={t("assignToDriver")} htmlFor="vehicle-assign">
             <Input
               id="vehicle-assign"
               disabled
-              placeholder="Assigned from the Drivers screen"
+              placeholder={t("assignedFromDriversScreen")}
               aria-describedby="vehicle-assign-note"
               className="h-auto rounded-md px-[11px] py-[9px] text-sm md:text-sm"
             />
             <p id="vehicle-assign-note" className={NOT_STORED_NOTE_CLASSES}>
-              Disabled: the driver↔vehicle pairing is its own record with its
-              own licence-category check, created after the vehicle exists.
+              {t("assignDisabledNote")}
             </p>
           </Field>
         </div>
@@ -598,7 +607,7 @@ export function VehiclesAddForm({
                   "cursor-not-allowed bg-border text-muted-foreground hover:bg-border disabled:pointer-events-auto disabled:opacity-100",
             )}
           >
-            {submitting ? "Adding…" : "Add to fleet"}
+            {submitting ? t("adding") : t("addToFleet")}
           </Button>
           <Button
             type="button"

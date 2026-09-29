@@ -127,7 +127,10 @@ export async function POST(
   if (pendingCount > 0) {
     return NextResponse.json(
       {
-        error: `${pendingCount} vehicle${pendingCount === 1 ? " is" : "s are"} still pending review. Decide every vehicle before activating the fleet.`,
+        error: t(
+          "errors.adminBusinessApplicationsActivate.vehiclesStillPendingReview",
+          { count: pendingCount },
+        ),
       },
       { status: 409 },
     );

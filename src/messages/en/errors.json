@@ -33,6 +33,9 @@
     "typeIsRequiredAndMustBe": "type is required and must be a string.",
     "typeMustBeAString": "type must be a string."
   },
+  "adminContentMedia": {
+    "unsupportedContentType": "Only JPG, PNG and WebP images are accepted."
+  },
   "adminContentMessagingTemplates": {
     "bodyIsRequiredAndMustBe": "body is required and must be a non-empty string.",
     "bodyMustBeANonEmpty": "body must be a non-empty string.",
@@ -99,6 +102,18 @@
   "adminUsersSystemReactivate": {
     "onlyASuperAdminCanReactivate": "Only a super admin can reactivate system users.",
     "youCannotChangeYourOwnAccount": "You cannot change your own account's status."
+  },
+  "cargoFit": {
+    "doesNotFit": "Cargo does not fit a {vehicle}.",
+    "exceeded": {
+      "height": "too tall",
+      "length": "too long",
+      "weight": "too heavy",
+      "width": "too wide"
+    },
+    "limitKg": "{value} kg",
+    "limitM": "{value} m",
+    "tooBig": "Cargo is {problems} for a {vehicle} (max {limits})."
   },
   "clientProfile": {
     "accountTypeMustBeOneOf": "accountType must be one of: {allowed}.",
@@ -174,7 +189,8 @@
     "anotherUploadForThisDocumentIs": "Another upload for this document is still finishing.",
     "couldNotVerifyUpload": "We couldn't verify the uploaded file. Please upload it again.",
     "pathIsRequiredAndMustBe": "path is required and must be a non-empty string.",
-    "thatUploadDoesNotBelongTo": "That upload does not belong to this application."
+    "thatUploadDoesNotBelongTo": "That upload does not belong to this application.",
+    "unsupportedContentType": "Only JPG and PNG files are accepted."
   },
   "driverProfileOnboardingSubmit": {
     "ageRange": "Drivers must be between {min} and {max} years old.",
@@ -228,6 +244,10 @@
   },
   "driverProfileVehiclesValidation": {
     "yearRange": "year must be a whole number between {min} and {max}."
+  },
+  "fleetVehicleValidation": {
+    "labelled": "{label}: {message}",
+    "tooManyVehicles": "An application can hold at most {max} vehicles."
   },
   "guard": {
     "applicationAlreadyApproved": "Your application is already approved — its documents cannot be changed.",
@@ -396,6 +416,8 @@
   },
   "savedCards": {
     "cardBrandTooLong": "Enter a card brand of {max} characters or fewer.",
+    "cardDetailsMustNotBeSent": "Card details must not be sent to the server.",
+    "cardNotFound": "Card not found.",
     "cardholderNameTooLong": "Enter a cardholder name of {max} characters or fewer.",
     "enterAFourDigitCardEnding": "Enter a four-digit card ending.",
     "enterAFourDigitExpiryYear": "Enter a four-digit expiry year.",

@@ -127,12 +127,6 @@ const PAY_BUTTON_CLASSES =
  */
 const PURCHASE_ORDER_REF_MAX_LENGTH = 200;
 
-/** Shown when a rejected card save carries no message of its own. */
-const SAVE_CARD_FAILED_MESSAGE = "Could not save the card. Try again.";
-
-/** Shown when a rejected payment carries no message of its own. */
-const PAY_FAILED_MESSAGE = "Could not complete the payment. Try again.";
-
 /* -------------------------------------------------------------------------- */
 /* Helpers                                                                    */
 /* -------------------------------------------------------------------------- */
@@ -216,7 +210,6 @@ export function CheckoutPaymentPanel({
 }: CheckoutPaymentPanelProps): React.ReactElement {
   const t = useTranslations("checkout.checkoutPaymentPanel");
   const tShared = useTranslations("common.shared");
-  const tSavedCards = useTranslations("wallet.savedCardsPanel");
   const router = useRouter();
 
   // Not an element id but a shared radio `name`: it is what binds the rows into
@@ -274,16 +267,14 @@ export function CheckoutPaymentPanel({
     });
 
     if (!response.ok) {
-      throw new Error(
-        await readErrorMessage(response, SAVE_CARD_FAILED_MESSAGE),
-      );
+      throw new Error(await readErrorMessage(response, t("couldNotSaveCard")));
     }
 
     const payload = (await response.json()) as { card?: SavedCardSummary };
     const saved = payload.card;
 
     if (!saved) {
-      throw new Error(SAVE_CARD_FAILED_MESSAGE);
+      throw new Error(t("couldNotSaveCard"));
     }
 
     setCards((current) => withSavedCard(current, saved));
@@ -333,7 +324,9 @@ export function CheckoutPaymentPanel({
       });
 
       if (!response.ok) {
-        setError(await readErrorMessage(response, PAY_FAILED_MESSAGE));
+        setError(
+          await readErrorMessage(response, t("couldNotCompletePayment")),
+        );
         setPaying(false);
         return;
       }
@@ -342,7 +335,7 @@ export function CheckoutPaymentPanel({
     } catch {
       // A thrown fetch is the network being unavailable, not the server saying
       // no — there is no `{ error }` body to read a reason out of.
-      setError(PAY_FAILED_MESSAGE);
+      setError(t("couldNotCompletePayment"));
       setPaying(false);
     }
   }
@@ -387,9 +380,11 @@ export function CheckoutPaymentPanel({
                     // assistive tech (below) and spoken from here instead, so a
                     // card arrives as one name in one reading order rather than
                     // as four loose digits.
-                    const cardLabel = `${card.brand} card ending ${card.last4} — expires ${expiry}${
-                      card.isDefault ? " · Default" : ""
-                    }`;
+                    const cardLabel = `${t("cardAriaLabel", {
+                      brand: card.brand,
+                      last4: card.last4,
+                      expiry,
+                    })}${card.isDefault ? t("defaultSuffix") : ""}`;
 
                     return (
                       <label
@@ -432,9 +427,7 @@ export function CheckoutPaymentPanel({
                             <span className="font-price tabular-nums">
                               {expiry}
                             </span>
-                            {card.isDefault
-                              ? ` · ${tSavedCards("default")}`
-                              : null}
+                            {card.isDefault ? t("defaultSuffix") : null}
                           </span>
                         </span>
                         {selected ? <PaymentSelectedTick /> : null}
@@ -503,9 +496,7 @@ export function CheckoutPaymentPanel({
         </>
       ) : (
         <p className="mt-4 rounded-lg border border-line bg-ink px-3.5 py-2.5 text-[0.8125rem] leading-snug text-muted">
-          No payment method is available at the moment, so this delivery
-          can&rsquo;t be paid for yet. Your booking is saved — come back and pay
-          once a method is switched on.
+          {t("noPaymentMethodAvailable")}
         </p>
       )}
 
@@ -561,7 +552,9 @@ export function CheckoutPaymentPanel({
             aria-describedby={paymentChoice === null ? payHintId : undefined}
             className={PAY_BUTTON_CLASSES}
           >
-            {paying ? "Paying…" : `Pay ${formatGel(totalGel)}`}
+            {paying
+              ? t("paying")
+              : t("payAmount", { amount: formatGel(totalGel) })}
           </button>
 
           {/* Named rather than left to the client to infer from a greyed-out

@@ -246,6 +246,7 @@ export async function PATCH(
     row.vehicle.plateNumber,
     now,
     problems,
+    t,
   );
 
   if (problems.length > 0 || validated === null) {
@@ -253,7 +254,9 @@ export async function PATCH(
       {
         error:
           problems[0] ??
-          "Something in this vehicle is incomplete. Check each field and try again.",
+          t(
+            "errors.logisticsCompanyOnboardingVehicles.somethingInThisVehicleIsIncomplete",
+          ),
       },
       { status: 400 },
     );

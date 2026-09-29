@@ -214,7 +214,11 @@ function parseRegisterDriverBody(
     typeof city !== "string" ||
     !GEORGIAN_CITIES.includes(city as GeorgianCity)
   ) {
-    return { error: `city must be one of: ${GEORGIAN_CITIES.join(", ")}.` };
+    return {
+      error: t("errors.logisticsCompanyDriversRegister.cityMustBeOneOf", {
+        cities: GEORGIAN_CITIES.join(", "),
+      }),
+    };
   }
 
   const licenceNumber = nonEmptyString(record.licenceNumber);
@@ -274,7 +278,12 @@ function parseRegisterDriverBody(
     )
   ) {
     return {
-      error: `licenceCategories must contain only: ${LICENCE_CATEGORIES.join(", ")}.`,
+      error: t(
+        "errors.logisticsCompanyDriversRegister.licenceCategoriesMustContainOnly",
+        {
+          categories: LICENCE_CATEGORIES.join(", "),
+        },
+      ),
     };
   }
 
@@ -462,7 +471,10 @@ export async function POST(request: Request): Promise<NextResponse> {
     if (required !== null && !licenceCategories.includes(required)) {
       return NextResponse.json(
         {
-          error: `This vehicle needs category ${required}. Assign a different driver or vehicle.`,
+          error: t(
+            "errors.logisticsCompanyDriversRegister.thisVehicleNeedsCategory",
+            { category: required },
+          ),
         },
         { status: 400 },
       );

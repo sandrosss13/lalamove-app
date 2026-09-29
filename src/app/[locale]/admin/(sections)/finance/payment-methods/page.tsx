@@ -27,21 +27,22 @@ import {
 /** Columns in the table, so the full-width state rows can span all of them. */
 const COLUMN_COUNT = 3;
 
-const PAYMENT_METHOD_LABELS: Record<PaymentMethodType, string> = {
-  CASH: "Cash on delivery",
-  CARD: "Card",
-  BANK_TRANSFER: "Bank transfer",
+/** `admin.adminFinancePaymentMethods` key for each method's name. */
+const PAYMENT_METHOD_LABEL_KEYS: Record<PaymentMethodType, string> = {
+  CASH: "cashOnDelivery",
+  CARD: "card",
+  BANK_TRANSFER: "bankTransfer",
 };
 
 /**
  * Extra context shown under a method's name. Partial on purpose — only a method
  * with something staff must know about carries a note.
  */
-const PAYMENT_METHOD_NOTES: Partial<Record<PaymentMethodType, string>> = {
+const PAYMENT_METHOD_NOTE_KEYS: Partial<Record<PaymentMethodType, string>> = {
   // The switch is real, the integration behind it is not: no payment gateway is
   // wired up yet, so enabling this records the intent to offer cards and
   // nothing more.
-  CARD: "Gateway integration pending — enabling this does not charge cards yet.",
+  CARD: "gatewayIntegrationPending",
 };
 
 /**
@@ -211,16 +212,16 @@ export default function AdminPaymentMethodsPage() {
               </TableRow>
             ) : (
               items.map((method) => {
-                const note = PAYMENT_METHOD_NOTES[method.type];
+                const noteKey = PAYMENT_METHOD_NOTE_KEYS[method.type];
+                const note = noteKey === undefined ? null : t(noteKey);
+                const methodLabel = t(PAYMENT_METHOD_LABEL_KEYS[method.type]);
                 const pending = pendingType === method.type;
 
                 return (
                   <TableRow key={method.type}>
                     <TableCell>
                       <div className="flex flex-col">
-                        <span className="font-medium">
-                          {PAYMENT_METHOD_LABELS[method.type]}
-                        </span>
+                        <span className="font-medium">{methodLabel}</span>
                         {note ? (
                           <span className="text-xs text-muted-foreground">
                             {note}
@@ -242,10 +243,13 @@ export default function AdminPaymentMethodsPage() {
                         disabled={pending}
                         // Spelled out because "Disable" on its own says nothing
                         // about which method it belongs to out of table context.
-                        aria-label={`${method.isEnabled ? "Disable" : "Enable"} ${PAYMENT_METHOD_LABELS[method.type]}`}
+                        aria-label={t("toggleLabel", {
+                          isEnabled: String(method.isEnabled),
+                          method: methodLabel,
+                        })}
                         onClick={() => void handleToggle(method)}
                       >
-                        {method.isEnabled ? "Disable" : "Enable"}
+                        {method.isEnabled ? t("disable") : t("enable")}
                       </Button>
                     </TableCell>
                   </TableRow>

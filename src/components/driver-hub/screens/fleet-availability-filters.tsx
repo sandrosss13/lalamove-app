@@ -34,7 +34,7 @@ import {
 import type { HubAvailabilityStatus } from "@/lib/dashboard/hub/fleet-availability";
 import { toHubDayKey } from "@/lib/dashboard/hub/timezone";
 import { VEHICLE_CLASSES } from "@/lib/driver-onboarding/vehicle-classes";
-import { GEORGIAN_CITY_OPTIONS } from "@/lib/georgian-cities";
+import { useLocalizedCityOptions } from "@/lib/georgian-cities";
 import { cn } from "@/lib/utils";
 
 /**
@@ -253,6 +253,10 @@ export function FleetAvailabilityFilters({
   const t = useTranslations("driverHub.fleetAvailabilityFilters");
   const tFormat = useTranslations("driverHub.fleetAvailabilityFormat");
   const tShared = useTranslations("common.shared");
+  // Root translator: `VehicleClass.nameKey` is a full message path.
+  const tRoot = useTranslations();
+  // Localized labels for display only; each `value` is the stored enum.
+  const cityOptions = useLocalizedCityOptions();
   // `useId` rather than literal ids: this card is rendered once today, but a
   // duplicated id breaks only the label→control association, and it breaks it
   // silently and only for screen readers. Same reasoning as `loads-filters.tsx`.
@@ -365,7 +369,7 @@ export function FleetAvailabilityFilters({
               the prototype were its own generated mock fleet, not a shortlist:
               a driver registered in Akhalkalaki would otherwise be unreachable
               by this filter while still occupying a row on the board. */}
-          {GEORGIAN_CITY_OPTIONS.map((option) => (
+          {cityOptions.map((option) => (
             <SelectItem key={option.value} value={option.value}>
               {option.label}
             </SelectItem>
@@ -382,7 +386,7 @@ export function FleetAvailabilityFilters({
           <SelectItem value={ALL_FILTER_VALUE}>{t("allTypes")}</SelectItem>
           {VEHICLE_CLASSES.map((entry) => (
             <SelectItem key={entry.id} value={entry.id}>
-              {entry.name}
+              {tRoot(entry.nameKey)}
             </SelectItem>
           ))}
         </SelectField>
@@ -488,7 +492,7 @@ export function FleetAvailabilityFilters({
                       clearing the box character by character. */}
                   <DriverOptionRow
                     label={t("allDrivers")}
-                    meta={`${driverOptions.length} drivers`}
+                    meta={t("driversCount", { count: driverOptions.length })}
                     selected={driverId === ALL_FILTER_VALUE}
                     onSelect={() => onDriverIdChange(ALL_FILTER_VALUE)}
                   />
@@ -557,7 +561,7 @@ export function FleetAvailabilityFilters({
               aria-live="polite"
               className="min-w-[62px] text-center font-price text-xs text-muted-foreground tabular-nums"
             >
-              {pixelsPerHour} px/h
+              {t("pxPerHour", { value: pixelsPerHour })}
             </span>
             <Button
               type="button"
@@ -616,7 +620,7 @@ export function FleetAvailabilityFilters({
               style={{ background: "var(--hub-avail-now)" }}
             />
             <span className="text-xs text-muted-foreground">
-              Now{" "}
+              {t("now")}{" "}
               <span className="font-price tabular-nums">
                 {formatHour(nowHour)}
               </span>

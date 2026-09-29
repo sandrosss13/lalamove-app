@@ -392,3 +392,46 @@ export const HUB_UTC_BOUND_SQL = "AT TIME ZONE 'UTC'";
 export function hubDayKeyFromSqlDay(day: Date): string {
   return day.toISOString().slice(0, ISO_DATE_LENGTH);
 }
+
+/**
+ * The `Intl` locale a hub date is written in when the caller names none, and
+ * what the app's bare `"en"` resolves to: `en-GB` gives the handoff's
+ * "4 Aug" / 24-hour style, where `en` alone would give "Aug 4" / "6:20 PM".
+ */
+const DEFAULT_HUB_DATE_LOCALE = "en-GB";
+
+/** Built formatters, keyed by locale and options — each is costly to construct. */
+const hubDateFormatterCache = new Map<string, Intl.DateTimeFormat>();
+
+/**
+ * A `DateTimeFormat` for a hub date in the reader's locale, always pinned to
+ * `HUB_TIME_ZONE`.
+ *
+ * Only the *language* follows the reader: month and weekday names, and the
+ * order the parts come in. The zone never does, for the reasons at the top of
+ * this module — a Georgian reader and an English one must see the same day. The
+ * locale is an explicit argument (from `useLocale()` / `getLocale()`) rather
+ * than the runtime's, so the server render and the hydrated one agree.
+ */
+export function hubDateTimeFormat(
+  locale: string | undefined,
+  options: Omit<Intl.DateTimeFormatOptions, "timeZone">,
+): Intl.DateTimeFormat {
+  const intlLocale =
+    locale === undefined || locale === "en" ? DEFAULT_HUB_DATE_LOCALE : locale;
+  const cacheKey = `${intlLocale}|${JSON.stringify(options)}`;
+  const cached = hubDateFormatterCache.get(cacheKey);
+
+  if (cached) {
+    return cached;
+  }
+
+  const built = new Intl.DateTimeFormat(intlLocale, {
+    ...options,
+    timeZone: HUB_TIME_ZONE,
+  });
+
+  hubDateFormatterCache.set(cacheKey, built);
+
+  return built;
+}

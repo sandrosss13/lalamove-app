@@ -68,7 +68,11 @@ export type VehicleClass = {
   requiredLicenceCategory: LicenceCategory;
   /** Capacity line shown on the card, e.g. "Up to 800 kg · 2 pallets". */
   capacityLine: string;
-  /** Sample-models line shown on the card. */
+  /** Full message paths of `chip` and `capacityLine` (see `nameKey`). */
+  chipKey: string;
+  capacityLineKey: string;
+  /** Sample-models line shown on the card. Make and model names only, which
+   *  the glossary keeps in Latin in every locale — so it has no message key. */
   samplesLine: string;
   /** (chassis type) -> existing VehicleTypeSpec.code, or null if this
    *  combination has no matching spec in the current catalogue and must be
@@ -82,8 +86,10 @@ export const VEHICLE_CLASSES: VehicleClass[] = [
     name: "Small Van",
     nameKey: "onboarding.vehicleClasses.smallVan",
     chip: "CAT B",
+    chipKey: "onboarding.vehicleClasses.chipCatB",
     requiredLicenceCategory: "B",
     capacityLine: "Up to 800 kg · 2 pallets",
+    capacityLineKey: "onboarding.vehicleClasses.capacitySmallVan",
     samplesLine:
       "Renault Dokker · Fiat Doblò · Toyota Proace City · Ford Transit Connect",
     specCodeByChassis: {
@@ -101,8 +107,10 @@ export const VEHICLE_CLASSES: VehicleClass[] = [
     name: "Large Van",
     nameKey: "onboarding.vehicleClasses.largeVan",
     chip: "CAT B",
+    chipKey: "onboarding.vehicleClasses.chipCatB",
     requiredLicenceCategory: "B",
     capacityLine: "800–1,500 kg · 4 pallets",
+    capacityLineKey: "onboarding.vehicleClasses.capacityLargeVan",
     samplesLine:
       "Fiat Ducato · Ford Transit · Mercedes-Benz Sprinter · Renault Master",
     specCodeByChassis: {
@@ -118,8 +126,10 @@ export const VEHICLE_CLASSES: VehicleClass[] = [
     name: "Medium Truck",
     nameKey: "onboarding.vehicleClasses.mediumTruck",
     chip: "CAT C",
+    chipKey: "onboarding.vehicleClasses.chipCatC",
     requiredLicenceCategory: "C",
     capacityLine: "1.5–7 t · 8 pallets",
+    capacityLineKey: "onboarding.vehicleClasses.capacityMediumTruck",
     samplesLine:
       "Hino 916 · Mitsubishi Fuso Canter · Isuzu NPR · Iveco Eurocargo",
     specCodeByChassis: {
@@ -133,12 +143,14 @@ export const VEHICLE_CLASSES: VehicleClass[] = [
     name: "Heavy Freight Truck",
     nameKey: "onboarding.vehicleClasses.heavyFreightTruck",
     chip: "CAT C",
+    chipKey: "onboarding.vehicleClasses.chipCatC",
     // Moved from CE to C by the approved business design: a three-axle rigid
     // is a Category C vehicle in Georgia; CE is what an articulated
     // combination needs, which is now its own class below. See
     // `specs/business-fleet-onboarding/action-required.md`.
     requiredLicenceCategory: "C",
     capacityLine: "7–18 t · 16 pallets · 3 axles",
+    capacityLineKey: "onboarding.vehicleClasses.capacityHeavyFreightTruck",
     samplesLine: "MAN TGM · MAN TGL · Volvo FL · Scania P-series",
     specCodeByChassis: {
       DRY_BOX: "LARGE_FREIGHT_TRUCK",
@@ -155,8 +167,10 @@ export const VEHICLE_CLASSES: VehicleClass[] = [
     name: "Trailer Truck",
     nameKey: "onboarding.vehicleClasses.trailerTruck",
     chip: "CAT CE",
+    chipKey: "onboarding.vehicleClasses.chipCatCe",
     requiredLicenceCategory: "CE",
     capacityLine: "18–24 t · 33 pallets · articulated",
+    capacityLineKey: "onboarding.vehicleClasses.capacityTrailerTruck",
     samplesLine: "Mercedes-Benz Actros · Volvo FH · Scania R-series · MAN TGX",
     specCodeByChassis: {
       // The one spec row this feature adds (see `prisma/seed.ts`): 24,000 kg,

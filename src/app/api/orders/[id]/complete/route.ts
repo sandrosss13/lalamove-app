@@ -69,14 +69,16 @@ function parseCompleteOrderBody(
   }
 
   if (typeof receivedBy !== "string") {
-    return { error: "receivedBy must be a string or null." };
+    return { error: t("errors.ordersComplete.receivedByMustBeStringOrNull") };
   }
 
   const trimmedReceivedBy = receivedBy.trim();
 
   if (trimmedReceivedBy.length > MAX_RECEIVED_BY_LENGTH) {
     return {
-      error: `receivedBy must be ${MAX_RECEIVED_BY_LENGTH} characters or fewer.`,
+      error: t("errors.ordersComplete.receivedByTooLong", {
+        max: MAX_RECEIVED_BY_LENGTH,
+      }),
     };
   }
 

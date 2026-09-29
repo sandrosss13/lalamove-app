@@ -41,7 +41,7 @@
   },
   "fleetApplicationStatusScreen.fix": {
     "en": "Fix",
-    "ka": "გასწორება / შეკეთება",
+    "ka": "გასწორება",
     "_source": "src/components/fleet-onboarding/fleet-application-status-screen.tsx"
   },
   "fleetApplicationStatusScreen.fixCompanyDetails": {
@@ -194,6 +194,21 @@
     "ka": "ნომერი, მოდელი და ტევადობა თითოეული ავტომობილისთვის",
     "_source": "src/components/fleet-onboarding/fleet-step-rail.tsx"
   },
+  "fleetVehicles.payloadRange": {
+    "en": "Payload must be between {min} and {max} kg.",
+    "ka": "ტვირთამწეობა უნდა იყოს {min}-დან {max} კგ-მდე.",
+    "_source": "src/lib/fleet-onboarding/fleet-vehicles.ts"
+  },
+  "fleetVehicles.plateDuplicate": {
+    "en": "That plate is already used by vehicle {number}.",
+    "ka": "ეს ნომერი უკვე გამოყენებულია ავტომობილზე {number}.",
+    "_source": "src/lib/fleet-onboarding/fleet-vehicles.ts"
+  },
+  "fleetVehicles.trailerLength": {
+    "en": "A trailer truck's cargo length must be at least {min} m.",
+    "ka": "მისაბმელიანი სატვირთოს ძარის სიგრძე უნდა იყოს მინიმუმ {min} მ.",
+    "_source": "src/lib/fleet-onboarding/fleet-vehicles.ts"
+  },
   "fleetWizardShell.declareYourFleetFirst": {
     "en": "Declare your fleet first.",
     "ka": "ჯერ დეკლარირება გაუკეთეთ თქვენს ავტოპარკს.",
@@ -211,7 +226,7 @@
   },
   "fleetWizardShell.forLogisticsCompaniesRunningMoreThan": {
     "en": "For logistics companies running more than one vehicle. Register the company once, declare the fleet by body type and class, then put a driver behind every vehicle.",
-    "ka": "ლოგისტიკური კომპანიებისთვის, რომლებიც ერთზე მეტ ტრანსპორტს მართავენ. დარეგისტრირეთ კომპანია ერთხელ, მიუთითეთ ავტოპარკი ძარის ტიპისა და კლასის მიხედვით, შემდეგ კი მიანიჭეთ მძღოლი თითოეულ ტრანსპორტს.",
+    "ka": "ლოჯისტიკური კომპანიებისთვის, რომლებიც ერთზე მეტ ტრანსპორტს მართავენ. დარეგისტრირეთ კომპანია ერთხელ, მიუთითეთ ავტოპარკი ძარის ტიპისა და კლასის მიხედვით, შემდეგ კი მიანიჭეთ მძღოლი თითოეულ ტრანსპორტს.",
     "_source": "src/components/fleet-onboarding/fleet-wizard-shell.tsx"
   },
   "fleetWizardShell.kicker": {
@@ -291,7 +306,7 @@
   },
   "step1CompanyDetails.asRegistered": {
     "en": "As registered",
-    "ka": "როგორც რეგისტრირებულია / რეგისტრაციის მიხედვით",
+    "ka": "რეგისტრაციის მიხედვით",
     "_source": "src/components/fleet-onboarding/steps/step-1-company-details.tsx"
   },
   "step1CompanyDetails.bankAccountIban": {
@@ -406,7 +421,7 @@
   },
   "step1CompanyDetails.payouts": {
     "en": "Payouts",
-    "ka": "გადარიცხვები (Payouts)",
+    "ka": "ანაზღაურება",
     "_source": "src/components/fleet-onboarding/steps/step-1-company-details.tsx"
   },
   "step1CompanyDetails.registeredCity": {
@@ -476,7 +491,7 @@
   },
   "step2FleetComposition.dryBoxTruck": {
     "en": "Dry box truck",
-    "ka": "მშრალი ფურგონი სატვირთო (Dry box truck)",
+    "ka": "მშრალი ფურგონი სატვირთო",
     "_source": "src/components/fleet-onboarding/steps/step-2-fleet-composition.tsx"
   },
   "step2FleetComposition.flatbedTruckWithDropSides": {
@@ -516,12 +531,12 @@
   },
   "step2FleetComposition.refrigeratedTruck": {
     "en": "Refrigerated truck",
-    "ka": "მაცივარი/რეფრიჟერატორი სატვირთო",
+    "ka": "მაცივარი სატვირთო",
     "_source": "src/components/fleet-onboarding/steps/step-2-fleet-composition.tsx"
   },
   "step2FleetComposition.removeOne": {
     "en": "Remove one",
-    "ka": "ერთის ამოღება / წაშლა",
+    "ka": "ერთის ამოღება",
     "_source": "src/components/fleet-onboarding/steps/step-2-fleet-composition.tsx"
   },
   "step2FleetComposition.vansNotSoldAsFlatbeds": {
@@ -841,7 +856,7 @@
   },
   "step4DriversAssignment.removeCurrentDriver": {
     "en": "Remove current driver",
-    "ka": "მიმდინარე მძღოლის ამოღება / მოხსნა",
+    "ka": "მიმდინარე მძღოლის მოხსნა",
     "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
   },
   "step4DriversAssignment.retry": {
@@ -1017,6 +1032,11 @@
   "vehicleEditorDialog.dialogTitle": {
     "en": "Vehicle {index} — {className}",
     "ka": "ავტომობილი {index} — {className}",
+    "_source": "src/components/fleet-onboarding/vehicle-editor-dialog.tsx"
+  },
+  "vehicleEditorDialog.dimensionsM": {
+    "en": "{dims} m",
+    "ka": "{dims} მ",
     "_source": "src/components/fleet-onboarding/vehicle-editor-dialog.tsx"
   },
   "vehicleEditorDialog.prefilledFrom": {

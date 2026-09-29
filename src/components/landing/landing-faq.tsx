@@ -2,10 +2,7 @@
 
 import { useId, useState } from "react";
 
-import {
-  DEFAULT_HOME_PAGE_CONTENT,
-  type FaqContent,
-} from "@/lib/admin/home-page-content";
+import { type FaqContent } from "@/lib/admin/home-page-content";
 import { Link } from "@/i18n/navigation";
 
 /**
@@ -14,11 +11,7 @@ import { Link } from "@/i18n/navigation";
  * yet — the ones a visitor actually has to answer before booking freight, in
  * the order they hit them.
  */
-export function LandingFaq({
-  content = DEFAULT_HOME_PAGE_CONTENT.faq,
-}: {
-  content?: FaqContent;
-}) {
+export function LandingFaq({ content }: { content: FaqContent }) {
   // One panel at a time, and the first is open on arrival so the section reads
   // as answers rather than as a row of closed bars. `null` = all collapsed.
   const [openIndex, setOpenIndex] = useState<number | null>(0);

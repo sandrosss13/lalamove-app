@@ -46,9 +46,15 @@
  * print the same characters.
  */
 
-import type { CargoHandlingTag } from "@prisma/client";
+import type { CargoCategory, CargoHandlingTag } from "@prisma/client";
+import { useMemo } from "react";
+import { useLocale, useTranslations } from "next-intl";
 
-import { CARGO_CATEGORY_LABELS } from "@/lib/cargo";
+import type { Translator } from "@/i18n/translator";
+import {
+  CARGO_CATEGORY_LABELS,
+  cargoCategoryLabel as translatedCargoCategoryLabel,
+} from "@/lib/cargo";
 import {
   HUB_TIME_ZONE,
   hubCivilDate,
@@ -395,8 +401,24 @@ export function formatVolumeM3(dims: {
 const CARGO_CATEGORY_LABEL_BY_VALUE: Record<string, string> =
   CARGO_CATEGORY_LABELS;
 
-export function cargoCategoryLabel(cargoCategory: string): string {
-  return CARGO_CATEGORY_LABEL_BY_VALUE[cargoCategory] ?? cargoCategory;
+export function cargoCategoryLabel(
+  cargoCategory: string,
+  /**
+   * A *root* translator (`useTranslations()`), handed to the shared helper in
+   * `src/lib/cargo.ts` so every surface names a category with one key. Omitted,
+   * the English label is returned.
+   */
+  t?: Translator,
+): string {
+  if (!(cargoCategory in CARGO_CATEGORY_LABEL_BY_VALUE)) {
+    return cargoCategory;
+  }
+
+  // The `in` check above is what makes the cast true: only enum members are
+  // keys of `CARGO_CATEGORY_LABELS`.
+  return t
+    ? translatedCargoCategoryLabel(cargoCategory as CargoCategory, t)
+    : (CARGO_CATEGORY_LABEL_BY_VALUE[cargoCategory] ?? cargoCategory);
 }
 
 /**
@@ -406,7 +428,17 @@ export function cargoCategoryLabel(cargoCategory: string): string {
  * this job need a second pair of hands", and a zero reads as a quantity
  * somebody chose rather than as a request nobody made.
  */
-export function formatHelperRequest(helperCount: number): string {
+export function formatHelperRequest(
+  helperCount: number,
+  /** `useTranslations("driverHub.loadsFormat")`; omitted → English. */
+  t?: Translator,
+): string {
+  if (t) {
+    return helperCount === 0
+      ? t("noHelpersRequested")
+      : t("helpersRequested", { count: helperCount });
+  }
+
   return helperCount === 0
     ? "No helpers requested"
     : `${pluralise(helperCount, "helper")} requested`;
@@ -435,34 +467,85 @@ const clockFormatter = new Intl.DateTimeFormat("en-GB", {
   timeZone: HUB_TIME_ZONE,
 });
 
-/** `4 Aug` — a date inside the current Tbilisi year, where the year is noise. */
-const dayMonthFormatter = new Intl.DateTimeFormat("en-GB", {
-  day: "numeric",
-  month: "short",
-  timeZone: HUB_TIME_ZONE,
-});
+/**
+ * The month-bearing formatters, per display locale.
+ *
+ * Unlike the clock (digits only, identical in every locale), these print a month
+ * name, so they follow the reader's language. `en` maps to `en-GB` so English
+ * keeps the day-before-month order this board has always used. Built lazily and
+ * cached: `Intl.DateTimeFormat` construction is the expensive part, and a board
+ * re-renders on a timer.
+ */
+type DateFormatters = {
+  /** `4 Aug` — a date inside the current Tbilisi year, where the year is noise. */
+  dayMonth: Intl.DateTimeFormat;
+  /** `4 Aug 2025` — a date in another year, where it is not. */
+  dayMonthYear: Intl.DateTimeFormat;
+  /**
+   * `4 August 2025 at 18:00` — the unabbreviated form, for the `title` on a line
+   * that shows only a clock.
+   */
+  fullTimestamp: Intl.DateTimeFormat;
+};
 
-/** `4 Aug 2025` — a date in another year, where it is not. */
-const dayMonthYearFormatter = new Intl.DateTimeFormat("en-GB", {
-  day: "numeric",
-  month: "short",
-  year: "numeric",
-  timeZone: HUB_TIME_ZONE,
-});
+const DEFAULT_DATE_LOCALE = "en-GB";
+
+const dateFormattersByLocale = new Map<string, DateFormatters>();
+
+function dateFormatters(locale: string = DEFAULT_DATE_LOCALE): DateFormatters {
+  const intlLocale = locale === "en" ? DEFAULT_DATE_LOCALE : locale;
+  const cached = dateFormattersByLocale.get(intlLocale);
+
+  if (cached) {
+    return cached;
+  }
+
+  const built: DateFormatters = {
+    dayMonth: new Intl.DateTimeFormat(intlLocale, {
+      day: "numeric",
+      month: "short",
+      timeZone: HUB_TIME_ZONE,
+    }),
+    dayMonthYear: new Intl.DateTimeFormat(intlLocale, {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      timeZone: HUB_TIME_ZONE,
+    }),
+    fullTimestamp: new Intl.DateTimeFormat(intlLocale, {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+      timeZone: HUB_TIME_ZONE,
+    }),
+  };
+
+  dateFormattersByLocale.set(intlLocale, built);
+
+  return built;
+}
 
 /**
- * `4 August 2025 at 18:00` — the unabbreviated form, for the `title` on a line
- * that shows only a clock.
+ * What the day-labelled formatters need to speak the reader's language: the
+ * `driverHub.loadsFormat` translator for "Today" / "Deliver by …", and the
+ * locale for month names. Every formatter that takes one falls back to English
+ * when it is omitted, so callers can adopt it one at a time.
  */
-const fullTimestampFormatter = new Intl.DateTimeFormat("en-GB", {
-  day: "numeric",
-  month: "long",
-  year: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-  hour12: false,
-  timeZone: HUB_TIME_ZONE,
-});
+export type LoadsTimeFormat = {
+  t: Translator;
+  locale: string;
+};
+
+/** Component hook: the `LoadsTimeFormat` for the active locale. */
+export function useLoadsTimeFormat(): LoadsTimeFormat {
+  const t = useTranslations("driverHub.loadsFormat");
+  const locale = useLocale();
+
+  return useMemo(() => ({ t, locale }), [t, locale]);
+}
 
 /**
  * An ISO timestamp as a `Date`, or `null` when there is nothing usable to
@@ -499,17 +582,22 @@ export function formatClock(iso: string | null): string {
  * `undefined` rather than `"—"`: a tooltip that says nothing is worse than no
  * tooltip, because it still has to be hovered to find that out.
  */
-export function formatFullTimestamp(iso: string | null): string | undefined {
+export function formatFullTimestamp(
+  iso: string | null,
+  locale?: string,
+): string | undefined {
   const date = parseIso(iso);
 
-  return date === null ? undefined : fullTimestampFormatter.format(date);
+  return date === null
+    ? undefined
+    : dateFormatters(locale).fullTimestamp.format(date);
 }
 
 /**
  * `"4 Aug 18:00"` — a date and a clock time with no relative day label at all;
  * absent or unusable → `"—"`.
  *
- * Composed from `dayMonthFormatter` and `clockFormatter` rather than asked of
+ * Composed from the `dayMonth` formatter and `clockFormatter` rather than asked of
  * one `Intl.DateTimeFormat` carrying day, month, hour and minute together:
  * `en-GB` renders that combination as `"4 Aug, 18:00"`, and the comma is the
  * kind of difference that goes unnoticed until two surfaces print the same
@@ -523,12 +611,15 @@ export function formatFullTimestamp(iso: string | null): string | undefined {
  * to it. The board's own rows, which re-render on a timer, use the relative
  * form.
  */
-export function formatAbsoluteDateTime(iso: string | null): string {
+export function formatAbsoluteDateTime(
+  iso: string | null,
+  locale?: string,
+): string {
   const date = parseIso(iso);
 
   return date === null
     ? EM_DASH
-    : `${dayMonthFormatter.format(date)} ${clockFormatter.format(date)}`;
+    : `${dateFormatters(locale).dayMonth.format(date)} ${clockFormatter.format(date)}`;
 }
 
 /**
@@ -543,6 +634,7 @@ export function formatAbsoluteDateTime(iso: string | null): string {
 export function formatAbsoluteWindow(
   startIso: string | null,
   endIso: string | null,
+  locale?: string,
 ): string {
   const start = parseIso(startIso);
   const end = parseIso(endIso);
@@ -551,7 +643,7 @@ export function formatAbsoluteWindow(
     return EM_DASH;
   }
 
-  return `${dayMonthFormatter.format(start)} ${clockFormatter.format(start)}–${clockFormatter.format(end)}`;
+  return `${dateFormatters(locale).dayMonth.format(start)} ${clockFormatter.format(start)}–${clockFormatter.format(end)}`;
 }
 
 /**
@@ -594,10 +686,14 @@ function civilDate(date: Date): { dayNumber: number; year: number } {
  * answer "when is this booked for" with a different question's answer, and would
  * dash more often than the field it was covering for.
  */
-export function formatLoadDayLabel(iso: string | null, nowIso: string): string {
+export function formatLoadDayLabel(
+  iso: string | null,
+  nowIso: string,
+  format?: LoadsTimeFormat,
+): string {
   const date = parseIso(iso);
 
-  return date === null ? EM_DASH : dayLabelOf(date, nowIso);
+  return date === null ? EM_DASH : dayLabelOf(date, nowIso, format);
 }
 
 /**
@@ -645,26 +741,32 @@ export function hubMinuteOfDay(iso: string | null): number | null {
  * not have to re-prove to the type checker that a string they already validated
  * is non-null.
  */
-function dayLabelOf(date: Date, nowIso: string): string {
+function dayLabelOf(
+  date: Date,
+  nowIso: string,
+  format?: LoadsTimeFormat,
+): string {
   const then = civilDate(date);
   const now = civilDate(new Date(nowIso));
   const dayDelta = now.dayNumber - then.dayNumber;
 
   if (dayDelta === 0) {
-    return "Today";
+    return format ? format.t("today") : "Today";
   }
 
   if (dayDelta === 1) {
-    return "Yesterday";
+    return format ? format.t("yesterday") : "Yesterday";
   }
 
   if (dayDelta === -1) {
-    return "Tomorrow";
+    return format ? format.t("tomorrow") : "Tomorrow";
   }
 
+  const formatters = dateFormatters(format?.locale);
+
   return then.year === now.year
-    ? dayMonthFormatter.format(date)
-    : dayMonthYearFormatter.format(date);
+    ? formatters.dayMonth.format(date)
+    : formatters.dayMonthYear.format(date);
 }
 
 /**
@@ -686,6 +788,7 @@ export function formatPickupWindow(
   startIso: string | null,
   endIso: string | null,
   nowIso: string,
+  format?: LoadsTimeFormat,
 ): string {
   const start = parseIso(startIso);
 
@@ -693,7 +796,7 @@ export function formatPickupWindow(
     return EM_DASH;
   }
 
-  const opening = `${dayLabelOf(start, nowIso)} ${clockFormatter.format(start)}`;
+  const opening = `${dayLabelOf(start, nowIso, format)} ${clockFormatter.format(start)}`;
   const end = parseIso(endIso);
 
   return end === null ? opening : `${opening}–${clockFormatter.format(end)}`;
@@ -710,6 +813,7 @@ export function formatPickupWindow(
 export function formatDeadlineLine(
   deadlineIso: string | null,
   nowIso: string,
+  format?: LoadsTimeFormat,
 ): string | null {
   const deadline = parseIso(deadlineIso);
 
@@ -717,7 +821,12 @@ export function formatDeadlineLine(
     return null;
   }
 
-  return `Deliver by ${dayLabelOf(deadline, nowIso)} ${clockFormatter.format(deadline)}`;
+  const day = dayLabelOf(deadline, nowIso, format);
+  const time = clockFormatter.format(deadline);
+
+  return format
+    ? format.t("deliverBy", { day, time })
+    : `Deliver by ${day} ${time}`;
 }
 
 /**
@@ -757,6 +866,8 @@ const HOURS_PER_DAY = 24;
 export function formatRelativeAgo(
   instantIso: string,
   nowIso: string,
+  /** `useTranslations("driverHub.loadsFormat")`; omitted → English. */
+  t?: Translator,
 ): string | null {
   const instant = parseIso(instantIso);
   const now = parseIso(nowIso);
@@ -774,20 +885,22 @@ export function formatRelativeAgo(
   const minutes = Math.floor(elapsedMs / MS_PER_MINUTE);
 
   if (minutes < 1) {
-    return "just now";
+    return t ? t("justNow") : "just now";
   }
 
   if (minutes < MINUTES_PER_HOUR) {
-    return `${minutes} min ago`;
+    return t ? t("minAgo", { minutes }) : `${minutes} min ago`;
   }
 
   const hours = Math.floor(minutes / MINUTES_PER_HOUR);
 
   if (hours < HOURS_PER_DAY) {
-    return `${hours}h ago`;
+    return t ? t("hoursAgo", { hours }) : `${hours}h ago`;
   }
 
-  return `${Math.floor(hours / HOURS_PER_DAY)}d ago`;
+  const days = Math.floor(hours / HOURS_PER_DAY);
+
+  return t ? t("daysAgo", { days }) : `${days}d ago`;
 }
 
 /**
@@ -804,7 +917,18 @@ export function formatRelativeAgo(
  * rather than as an unknown. That is also the pre-existing behaviour for a
  * future `createdAt`, which this wrapper preserves exactly.
  */
-export function formatPostedAgo(createdAtIso: string, nowIso: string): string {
+export function formatPostedAgo(
+  createdAtIso: string,
+  nowIso: string,
+  /** `useTranslations("driverHub.loadsFormat")`; omitted → English. */
+  t?: Translator,
+): string {
+  if (t) {
+    const ago = formatRelativeAgo(createdAtIso, nowIso, t) ?? t("justNow");
+
+    return t("posted", { ago });
+  }
+
   return `posted ${formatRelativeAgo(createdAtIso, nowIso) ?? "just now"}`;
 }
 

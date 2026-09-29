@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import {
   useLoadsBoard,
@@ -179,14 +179,13 @@ import { cn } from "@/lib/utils";
  * (`specs/driver-load-board/requirements.md`, Non-Goals). The prototype's sample
  * data shows a `stops: 3` load; it is fiction.
  */
-const STOP_COUNT_TEXT = "2 stops";
+// Copy: `driverHub.loadsClaimDialogs.twoStops`.
 
 /** The endpoint that owns `DriverProfile.isOnline`, as `HubOnlineToggle` calls it. */
 const STATUS_ENDPOINT = "/api/driver-profile/status";
 
-const ONLINE_GENERIC_ERROR = "Could not update your online status.";
-const ONLINE_NETWORK_ERROR =
-  "Couldn't reach the server. Check your connection and retry.";
+// The go-online failure copy is `driverHub.loadsClaimDialogs.onlineGenericError`
+// and `driverHub.loadsContext.couldnTReachTheServerCheck`.
 
 /* -------------------------------------------------------------------------- */
 /* Entry point                                                                */
@@ -329,6 +328,10 @@ export function LoadsConfirmDialog({ load }: LoadsConfirmDialogProps) {
   const router = useRouter();
   const t = useTranslations("driverHub.loadsClaimDialogs");
   const tShared = useTranslations("common.shared");
+  const tContext = useTranslations("driverHub.loadsContext");
+  const tFormat = useTranslations("driverHub.loadsFormat");
+  const tRoot = useTranslations();
+  const locale = useLocale();
 
   /**
    * Whether this session is a logistics company rather than an individual
@@ -479,7 +482,9 @@ export function LoadsConfirmDialog({ load }: LoadsConfirmDialogProps) {
         // than reverting to the plain footer: the driver is still offline, so
         // the plain Confirm button would only reproduce the same refusal.
         setGoOnlineError(
-          typeof body?.error === "string" ? body.error : ONLINE_GENERIC_ERROR,
+          typeof body?.error === "string"
+            ? body.error
+            : t("onlineGenericError"),
         );
         return;
       }
@@ -494,7 +499,7 @@ export function LoadsConfirmDialog({ load }: LoadsConfirmDialogProps) {
       await confirmClaim(chosenCandidate?.vehicle.id ?? null);
       router.refresh();
     } catch {
-      setGoOnlineError(ONLINE_NETWORK_ERROR);
+      setGoOnlineError(tContext("couldnTReachTheServerCheck"));
     } finally {
       setIsGoingOnline(false);
     }
@@ -518,21 +523,26 @@ export function LoadsConfirmDialog({ load }: LoadsConfirmDialogProps) {
       value: `${load.pickupCity ?? EM_DASH} · ${formatAbsoluteWindow(
         load.pickupWindowStart,
         load.pickupWindowEnd,
+        locale,
       )}`,
     },
     {
       label: tShared("dropOff"),
-      value: `${load.dropoffCity ?? EM_DASH} · by ${formatAbsoluteDateTime(
-        load.deliveryDeadline,
-      )}`,
+      value: t("dropoffBy", {
+        city: load.dropoffCity ?? EM_DASH,
+        time: formatAbsoluteDateTime(load.deliveryDeadline, locale),
+      }),
     },
     {
       label: tShared("cargo"),
-      value: `${cargoCategoryLabel(load.cargoCategory)} · ${
+      value: `${cargoCategoryLabel(load.cargoCategory, tRoot)} · ${
         load.packagingDescription ?? EM_DASH
       }`,
     },
-    { label: tShared("helpers"), value: formatHelperRequest(load.helperCount) },
+    {
+      label: tShared("helpers"),
+      value: formatHelperRequest(load.helperCount, tFormat),
+    },
     {
       label: t("weight"),
       value: `${formatWeightKg(load.cargoWeightKg)} · ${formatLoadDims({
@@ -543,7 +553,7 @@ export function LoadsConfirmDialog({ load }: LoadsConfirmDialogProps) {
     },
     {
       label: tShared("distance"),
-      value: `${formatDistanceKm(load.distanceKm)} · ${STOP_COUNT_TEXT}`,
+      value: `${formatDistanceKm(load.distanceKm)} · ${t("twoStops")}`,
     },
   ];
 
@@ -638,8 +648,8 @@ export function LoadsConfirmDialog({ load }: LoadsConfirmDialogProps) {
               className="mb-0.5 text-[13px] text-muted-foreground"
             >
               {everyCandidateFits
-                ? "More than one of your vehicles fits this booking. Pick the one you’ll drive."
-                : "More than one of your vehicles matches this booking, but not all of them can carry this load. Pick the one you’ll drive."}
+                ? t("pickVehicleAllFit")
+                : t("pickVehicleSomeFit")}
             </p>
 
             {claimCandidates.map((candidate) => {
@@ -725,8 +735,7 @@ export function LoadsConfirmDialog({ load }: LoadsConfirmDialogProps) {
           // per `specs/driver-load-board/requirements.md`'s Assumptions. That is
           // also why the claim request carries no vehicle at all.
           <p className="mx-5 mt-4 rounded-md border border-border bg-muted px-3 py-2 text-[13px] text-muted-foreground">
-            You&rsquo;re claiming with your company account. Assign a driver and
-            vehicle to this load afterwards.
+            {t("companyAccountNote")}
           </p>
         ) : null}
 
@@ -790,10 +799,10 @@ export function LoadsConfirmDialog({ load }: LoadsConfirmDialogProps) {
                     apart: the status flip is quick and the claim that follows
                     it is the one that can lose the race. */}
                 {isClaiming
-                  ? "Claiming…"
+                  ? t("claiming")
                   : isGoingOnline
-                    ? "Going online…"
-                    : "Go online & claim"}
+                    ? t("goingOnline")
+                    : t("goOnlineAndClaim")}
               </Button>
             </div>
           </div>
@@ -843,7 +852,7 @@ export function LoadsConfirmDialog({ load }: LoadsConfirmDialogProps) {
                   void confirmClaim(chosenCandidate?.vehicle.id ?? null);
                 }}
               >
-                {isClaiming ? "Claiming…" : "Confirm and claim"}
+                {isClaiming ? t("claiming") : t("confirmAndClaim")}
               </Button>
             </div>
           </>

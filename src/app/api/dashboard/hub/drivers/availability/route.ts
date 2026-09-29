@@ -80,6 +80,7 @@ export async function GET(request: Request): Promise<NextResponse> {
   const data = await getHubFleetAvailability(
     account,
     searchParams.get("date") ?? "",
+    t,
   );
 
   // `null` is the loader's "not a fleet owner" answer, and it is the only thing

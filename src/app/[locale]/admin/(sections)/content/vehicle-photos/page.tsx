@@ -28,9 +28,10 @@ const CATEGORY_ORDER: readonly VehicleCategory[] = [
   "HEAVY_DUTY",
 ];
 
-const CATEGORY_LABELS: Record<VehicleCategory, string> = {
-  MEDIUM_DUTY: "Medium duty",
-  HEAVY_DUTY: "Heavy duty",
+/** `admin.adminContentVehiclePhotos` key for each duty class's heading. */
+const CATEGORY_LABEL_KEYS: Record<VehicleCategory, string> = {
+  MEDIUM_DUTY: "mediumDuty",
+  HEAVY_DUTY: "heavyDuty",
 };
 
 /**
@@ -137,7 +138,7 @@ function VehiclePhotoCard({
       />
 
       <p className="text-xs text-muted-foreground">
-        Best at 720×560. The public card crops to a 140px-tall area.
+        {t("bestAt720560ThePublic")}
       </p>
 
       {confirmingRemove ? (
@@ -165,7 +166,7 @@ function VehiclePhotoCard({
                 onSave(null);
               }}
             >
-              {pending ? "Removing…" : t("removePhoto")}
+              {pending ? tShared("removing") : t("removePhoto")}
             </Button>
           </div>
         </div>
@@ -177,7 +178,7 @@ function VehiclePhotoCard({
             disabled={pending || !hasUnsavedChange || trimmedDraft === ""}
             onClick={() => onSave(trimmedDraft)}
           >
-            {pending ? "Saving…" : "Save photo"}
+            {pending ? tShared("saving") : t("savePhoto")}
           </Button>
 
           {vehicleType.imageUrl !== null ? (
@@ -307,7 +308,7 @@ export default function AdminVehiclePhotosPage() {
       if (!response.ok) {
         const message = await readErrorMessage(
           response,
-          "Could not update this photo.",
+          t("couldNotUpdateThisPhoto"),
         );
         setRowErrors((errors) => ({ ...errors, [vehicleType.id]: message }));
         return;
@@ -347,10 +348,11 @@ export default function AdminVehiclePhotosPage() {
         </p>
       ) : items.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          No vehicle types exist yet. They are created by the seed, not from the
-          back office — run{" "}
-          <code className="font-mono text-xs">pnpm exec prisma db seed</code>{" "}
-          and reload this page.
+          {t.rich("noVehicleTypesYet", {
+            code: (chunks) => (
+              <code className="font-mono text-xs">{chunks}</code>
+            ),
+          })}
         </p>
       ) : (
         CATEGORY_ORDER.map((category) => {
@@ -365,9 +367,9 @@ export default function AdminVehiclePhotosPage() {
           return (
             <section key={category} className="flex flex-col gap-3">
               <h2 className="text-sm font-semibold">
-                {CATEGORY_LABELS[category]}
+                {t(CATEGORY_LABEL_KEYS[category])}
                 <span className="ml-2 font-normal text-muted-foreground">
-                  {group.length} {group.length === 1 ? "type" : "types"}
+                  {t("typeCount", { count: group.length })}
                 </span>
               </h2>
 

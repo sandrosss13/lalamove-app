@@ -1,7 +1,4 @@
-import {
-  DEFAULT_HOME_PAGE_CONTENT,
-  type FooterContent,
-} from "@/lib/admin/home-page-content";
+import { type FooterContent } from "@/lib/admin/home-page-content";
 import { Link } from "@/i18n/navigation";
 import { merchantOrigin } from "@/lib/host";
 
@@ -87,11 +84,7 @@ function FooterLink({ href, label }: { href: string; label: string }) {
  * Stays a server component: it has no interactivity, and the year substitution
  * is a render-time read that belongs on the server.
  */
-export function LandingFooter({
-  content = DEFAULT_HOME_PAGE_CONTENT.footer,
-}: {
-  content?: FooterContent;
-}) {
+export function LandingFooter({ content }: { content: FooterContent }) {
   const copyright = content.copyright.replaceAll(
     YEAR_TOKEN,
     String(new Date().getFullYear()),

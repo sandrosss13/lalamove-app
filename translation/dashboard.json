@@ -141,7 +141,7 @@
   },
   "sample.acceptanceRate": {
     "en": "Acceptance rate",
-    "ka": "შეკვეთების მიღების მაჩვენებელი (Acceptance rate)",
+    "ka": "შეკვეთების მიღების მაჩვენებელი",
     "_source": "src/lib/dashboard/hub/sample.ts"
   },
   "sample.accountant": {
@@ -266,7 +266,7 @@
   },
   "sample.garage": {
     "en": "Garage",
-    "ka": "გარაჟი / სერვისი",
+    "ka": "გარაჟი",
     "_source": "src/lib/dashboard/hub/sample.ts"
   },
   "sample.gldaniDidubeIsani": {
@@ -286,7 +286,7 @@
   },
   "sample.idleTime": {
     "en": "Idle time",
-    "ka": "უქმად დგომის დრო (Idle time)",
+    "ka": "უქმად დგომის დრო",
     "_source": "src/lib/dashboard/hub/sample.ts"
   },
   "sample.inReview": {
@@ -391,7 +391,7 @@
   },
   "sample.payoutAccounts": {
     "en": "Payout accounts",
-    "ka": "გასატანი ანგარიშები (Payout accounts)",
+    "ka": "ანაზღაურების ანგარიშები",
     "_source": "src/lib/dashboard/hub/sample.ts"
   },
   "sample.payoutOf14260Sent": {
@@ -461,7 +461,7 @@
   },
   "sample.taxId": {
     "en": "Tax ID",
-    "ka": "საიდენტიფიკაციო / საგადასახადო კოდი",
+    "ka": "საიდენტიფიკაციო კოდი",
     "_source": "src/lib/dashboard/hub/sample.ts"
   },
   "sample.tbilisiAll": {

@@ -1,6 +1,7 @@
 import { useTranslations } from "next-intl";
 
 import { HubCard } from "@/components/driver-hub/hub-primitives";
+import { useHubStatusLabel } from "@/components/driver-hub/use-hub-status-label";
 import { EmployeePermissionPill } from "@/components/driver-hub/screens/employees-permission-pill";
 import type { EmployeeRoleDefinition } from "@/lib/dashboard/hub/sample";
 
@@ -32,16 +33,12 @@ export function EmployeeRoleDefinitions({
   roles,
 }: EmployeeRoleDefinitionsProps) {
   const t = useTranslations("driverHub.employeesRoleDefinitions");
+  const roleLabel = useHubStatusLabel();
 
   return (
-    <HubCard
-      title={t("roleDefinitions")}
-      action="Applies to every employee of this account"
-    >
+    <HubCard title={t("roleDefinitions")} action={t("appliesToEveryEmployee")}>
       <p className="max-w-[70ch] text-[13px] leading-normal text-muted-foreground">
-        These five roles and their permissions are the product&apos;s
-        access-control design — real content, not placeholder. An invited person
-        gets exactly the access listed under their role.
+        {t("intro")}
       </p>
 
       <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -50,7 +47,9 @@ export function EmployeeRoleDefinitions({
             key={definition.role}
             className="min-w-0 rounded-[10px] border border-border p-4"
           >
-            <h3 className="text-[13px] font-semibold">{definition.role}</h3>
+            <h3 className="text-[13px] font-semibold">
+              {roleLabel(definition.role)}
+            </h3>
             <p className="mt-0.5 text-xs text-muted-foreground">
               {definition.summary}
             </p>

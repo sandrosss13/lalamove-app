@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 
 // Type-only imports, so nothing of the server routes (Prisma, Better Auth) is
 // pulled into this client bundle — they are erased at compile time. Sharing the
@@ -19,39 +19,15 @@ import {
   APPLICATION_APPROVED_TEXT_CLASSES,
 } from "@/components/admin/application-status-colors";
 import { Button } from "@/components/ui/button";
-import { GEORGIAN_CITY_OPTIONS } from "@/lib/georgian-cities";
+import { useLocalizedCityOptions } from "@/lib/georgian-cities";
+import {
+  COMPANY_FLAG_REASONS,
+  VEHICLE_FLAG_REASONS,
+  flagReasonLabel,
+} from "@/lib/review-flag-reasons";
 
 /** Placeholder for a field the application has nothing to show for. */
 const EMPTY_VALUE = "—";
-
-/**
- * The four company-level flag reasons from the design, verbatim. A chip click
- * *is* the flag action (there is no confirm step), so this exact text is what
- * the company reads on its status screen — and the list is closed on the server
- * too, so an off-list reason is a 400. These four must stay byte for byte
- * identical to `COMPANY_FLAG_REASONS` in
- * `src/app/api/admin/business-applications/[id]/company/route.ts`.
- */
-const COMPANY_FLAG_REASONS: readonly string[] = [
-  "VAT ID not found in the registry",
-  "Address does not match registration",
-  "Bank account not held by the entity",
-  "Contact person unreachable",
-];
-
-/**
- * The six per-vehicle flag reasons from the design, verbatim. Closed on the
- * server for the same reason as the company list — see
- * `src/app/api/admin/business-applications/[id]/vehicles/[vehicleId]/route.ts`.
- */
-const VEHICLE_FLAG_REASONS: readonly string[] = [
-  "Plate does not match the documents",
-  "Payload above the class limit",
-  "Dimensions look wrong",
-  "Vehicle too old for the platform",
-  "Duplicate plate on another fleet",
-  "Cooling unit record missing",
-];
 
 /**
  * Display names for the three cargo body types, as full message paths resolved
@@ -79,14 +55,20 @@ const EMPTY_COUNTS = {
   pending: 0,
 } as const;
 
-const LOAD_ERROR_FALLBACK = "Could not load this application.";
-const COMPANY_VERDICT_ERROR_FALLBACK = "Could not save that verdict.";
-const VEHICLE_VERDICT_ERROR_FALLBACK = "Could not save that verdict.";
-const REQUEST_CHANGES_ERROR_FALLBACK = "Could not request changes.";
-const ACTIVATE_ERROR_FALLBACK = "Could not activate this fleet.";
+// Message paths for the fallbacks, resolved with `t` where each one is shown.
+const LOAD_ERROR_FALLBACK = "admin.applicationReview.couldNotLoadApplication";
+const COMPANY_VERDICT_ERROR_FALLBACK =
+  "admin.applicationReview.couldNotSaveVerdict";
+const VEHICLE_VERDICT_ERROR_FALLBACK =
+  "admin.applicationReview.couldNotSaveVerdict";
+const REQUEST_CHANGES_ERROR_FALLBACK =
+  "admin.applicationReview.couldNotRequestChanges";
+const ACTIVATE_ERROR_FALLBACK =
+  "admin.businessApplicationDetailDrawer.couldNotActivateFleet";
 /** Only for a failure with no response to read a message off — a dropped
  *  connection mid-run. A refusal names the item it stopped at instead. */
-const APPROVE_ALL_ERROR_FALLBACK = "Could not finish approving this fleet.";
+const APPROVE_ALL_ERROR_FALLBACK =
+  "admin.businessApplicationDetailDrawer.couldNotFinishApproving";
 
 /**
  * Which request is in flight. One value for all five kinds of mutation rather
@@ -140,13 +122,13 @@ async function readErrorMessage(
   return fallback;
 }
 
-/** `"TBILISI"` → `"Tbilisi"`. Falls back to the stored value for a city that
- *  predates the enum-backed picker, rather than rendering nothing. */
-function formatCity(value: string): string {
-  return (
-    GEORGIAN_CITY_OPTIONS.find((option) => option.value === value)?.label ??
-    value
-  );
+/** The reader-language city list from `useLocalizedCityOptions()`. */
+type CityOptions = readonly { value: string; label: string }[];
+
+/** `"TBILISI"` → `"თბილისი"` / `"Tbilisi"`. Falls back to the stored value for a
+ *  city that predates the enum-backed picker, rather than rendering nothing. */
+function formatCity(cities: CityOptions, value: string): string {
+  return cities.find((option) => option.value === value)?.label ?? value;
 }
 
 /** Renders `value` if it is usable, otherwise the design's em-dash placeholder. */
@@ -163,11 +145,12 @@ function orPlaceholder(value: string | null | undefined): string {
  * clicked and in the panel it opened.
  */
 function formatCityLine(
+  cities: CityOptions,
   company: AdminBusinessApplicationDetail["company"],
 ): string {
   if (company.primaryCity === "") return EMPTY_VALUE;
 
-  const label = formatCity(company.primaryCity);
+  const label = formatCity(cities, company.primaryCity);
   const otherCitiesCount = company.citiesOfOperation.filter(
     (city) => city !== company.primaryCity,
   ).length;
@@ -222,24 +205,24 @@ function describeVehicle(vehicle: AdminBusinessApplicationVehicle): string {
 }
 
 /**
- * The vehicle half of the bulk button's label — "all 4 vehicles", "remaining 2
- * vehicles", "1 vehicle", or nothing at all when the fleet is fully approved.
+ * Which vehicle half the bulk button's label takes — "all 4 vehicles",
+ * "remaining 2 vehicles", "1 vehicle", or none at all when the fleet is fully
+ * approved. Returned as a kind rather than text so each whole label can be one
+ * translatable sentence.
  *
  * The qualifier is chosen so it is never a lie: "all" only when the whole fleet
  * is still to decide, "remaining" once part of it is already approved. Both are
  * dropped for a single vehicle, where they read as noise and, in the case of
  * "all 1 vehicle", as a bug.
  */
-function formatVehicleWorkPhrase(
+function vehicleWorkKind(
   remainingCount: number,
   totalCount: number,
-): string {
-  if (remainingCount === 0) return "";
-  if (remainingCount === 1) return "1 vehicle";
+): "none" | "one" | "all" | "remaining" {
+  if (remainingCount === 0) return "none";
+  if (remainingCount === 1) return "one";
 
-  return remainingCount === totalCount
-    ? `all ${remainingCount} vehicles`
-    : `remaining ${remainingCount} vehicles`;
+  return remainingCount === totalCount ? "all" : "remaining";
 }
 
 /**
@@ -262,6 +245,7 @@ export function BusinessApplicationDetailDrawer({
   onChanged,
 }: BusinessApplicationDetailDrawerProps) {
   const t = useTranslations();
+  const cityOptions = useLocalizedCityOptions();
   const router = useRouter();
 
   const [data, setData] = useState<AdminBusinessApplicationDetail | null>(null);
@@ -321,7 +305,9 @@ export function BusinessApplicationDetailDrawer({
         );
 
         if (!response.ok) {
-          setLoadError(await readErrorMessage(response, LOAD_ERROR_FALLBACK));
+          setLoadError(
+            await readErrorMessage(response, t(LOAD_ERROR_FALLBACK)),
+          );
           setLoading(false);
           return;
         }
@@ -335,7 +321,7 @@ export function BusinessApplicationDetailDrawer({
           return;
         }
 
-        setLoadError(LOAD_ERROR_FALLBACK);
+        setLoadError(t(LOAD_ERROR_FALLBACK));
         setLoading(false);
       }
     }
@@ -343,7 +329,7 @@ export function BusinessApplicationDetailDrawer({
     void load();
 
     return () => controller.abort();
-  }, [applicationId, reloadToken]);
+  }, [applicationId, reloadToken, t]);
 
   /**
    * Re-reads the detail after a verdict, without touching `loading` — the panel
@@ -415,7 +401,7 @@ export function BusinessApplicationDetailDrawer({
 
       if (!response.ok) {
         setCompanyError(
-          await readErrorMessage(response, COMPANY_VERDICT_ERROR_FALLBACK),
+          await readErrorMessage(response, t(COMPANY_VERDICT_ERROR_FALLBACK)),
         );
         return;
       }
@@ -441,7 +427,7 @@ export function BusinessApplicationDetailDrawer({
       onChanged();
       await refreshDetail();
     } catch {
-      setCompanyError(COMPANY_VERDICT_ERROR_FALLBACK);
+      setCompanyError(t(COMPANY_VERDICT_ERROR_FALLBACK));
     } finally {
       setPending(null);
     }
@@ -480,7 +466,7 @@ export function BusinessApplicationDetailDrawer({
           applicationVehicleId,
           message: await readErrorMessage(
             response,
-            VEHICLE_VERDICT_ERROR_FALLBACK,
+            t(VEHICLE_VERDICT_ERROR_FALLBACK),
           ),
         });
         return;
@@ -501,7 +487,7 @@ export function BusinessApplicationDetailDrawer({
     } catch {
       setVehicleError({
         applicationVehicleId,
-        message: VEHICLE_VERDICT_ERROR_FALLBACK,
+        message: t(VEHICLE_VERDICT_ERROR_FALLBACK),
       });
     } finally {
       setPending(null);
@@ -562,10 +548,12 @@ export function BusinessApplicationDetailDrawer({
           // Named, because the reviewer clicked one button and cannot otherwise
           // tell which of a dozen requests refused.
           setApproveAllError(
-            `Stopped at the company details — ${await readErrorMessage(
-              response,
-              COMPANY_VERDICT_ERROR_FALLBACK,
-            )}`,
+            t("admin.businessApplicationDetailDrawer.stoppedAtCompany", {
+              error: await readErrorMessage(
+                response,
+                t(COMPANY_VERDICT_ERROR_FALLBACK),
+              ),
+            }),
           );
           return;
         }
@@ -604,10 +592,13 @@ export function BusinessApplicationDetailDrawer({
 
         if (!response.ok) {
           setApproveAllError(
-            `Stopped at ${describeVehicle(vehicle)} — ${await readErrorMessage(
-              response,
-              VEHICLE_VERDICT_ERROR_FALLBACK,
-            )}`,
+            t("admin.businessApplicationDetailDrawer.stoppedAtVehicle", {
+              vehicle: describeVehicle(vehicle),
+              error: await readErrorMessage(
+                response,
+                t(VEHICLE_VERDICT_ERROR_FALLBACK),
+              ),
+            }),
           );
           return;
         }
@@ -626,7 +617,7 @@ export function BusinessApplicationDetailDrawer({
     } catch {
       // No response to read a refusal off, so there is nothing truthful to say
       // about which item this was; what has been applied so far is on screen.
-      setApproveAllError(APPROVE_ALL_ERROR_FALLBACK);
+      setApproveAllError(t(APPROVE_ALL_ERROR_FALLBACK));
     } finally {
       // Once for the whole run, not per request: the queue row would otherwise
       // re-fetch forty times for one click, and every intermediate reading it
@@ -711,10 +702,7 @@ export function BusinessApplicationDetailDrawer({
   // APPROVED is work — a flagged vehicle included, since approving it is a
   // verdict change, not a no-op.
   const vehiclesToApproveCount = counts.total - counts.approved;
-  const approveAllWorkPhrase = formatVehicleWorkPhrase(
-    vehiclesToApproveCount,
-    counts.total,
-  );
+  const approveAllWork = vehicleWorkKind(vehiclesToApproveCount, counts.total);
   // Nothing left to write is the button's own exit condition: it disappears
   // once the company is verified and the whole fleet is approved, rather than
   // sitting there as a control that can only be a no-op.
@@ -728,28 +716,57 @@ export function BusinessApplicationDetailDrawer({
   // clicking how much of the panel this moves — and, once part of it is done by
   // hand, that the button now covers only what is left.
   const approveAllLabel =
-    approveAllWorkPhrase === ""
-      ? "Verify company details"
+    approveAllWork === "none"
+      ? t("admin.businessApplicationDetailDrawer.verifyCompanyDetails")
       : isCompanyVerified
-        ? `Approve ${approveAllWorkPhrase}`
-        : `Approve company & ${approveAllWorkPhrase}`;
+        ? approveAllWork === "one"
+          ? t("admin.businessApplicationDetailDrawer.approveOneVehicle")
+          : approveAllWork === "all"
+            ? t("admin.businessApplicationDetailDrawer.approveAllVehicles", {
+                count: vehiclesToApproveCount,
+              })
+            : t(
+                "admin.businessApplicationDetailDrawer.approveRemainingVehicles",
+                {
+                  count: vehiclesToApproveCount,
+                },
+              )
+        : approveAllWork === "one"
+          ? t(
+              "admin.businessApplicationDetailDrawer.approveCompanyAndOneVehicle",
+            )
+          : approveAllWork === "all"
+            ? t(
+                "admin.businessApplicationDetailDrawer.approveCompanyAndAllVehicles",
+                { count: vehiclesToApproveCount },
+              )
+            : t(
+                "admin.businessApplicationDetailDrawer.approveCompanyAndRemainingVehicles",
+                { count: vehiclesToApproveCount },
+              );
 
   // Evaluated in this order so the hint explains the *currently binding*
   // blocker rather than an earlier one. If an arm ever disagrees with a server
   // guard, the guard is right and the hint is the bug.
   const footerHint = isReadOnly
-    ? "This fleet is active — the company can dispatch its approved vehicles."
+    ? t("admin.businessApplicationDetailDrawer.hintFleetActive")
     : isAwaitingCompany
-      ? "Changes were requested — waiting on the company to resubmit before this fleet can be activated."
+      ? t("admin.businessApplicationDetailDrawer.hintAwaitingCompany")
       : companyReviewStatus === "PENDING"
-        ? "Verify the company's details before this fleet can be activated."
+        ? t("admin.businessApplicationDetailDrawer.hintVerifyCompany")
         : counts.pending > 0
-          ? `${counts.pending} vehicle${counts.pending === 1 ? "" : "s"} still to review.`
+          ? t("admin.businessApplicationDetailDrawer.hintVehiclesToReview", {
+              count: counts.pending,
+            })
           : companyFlagged || counts.flagged > 0
-            ? `${flaggedItemCount} item${flaggedItemCount === 1 ? "" : "s"} flagged. Requesting changes sends the fleet back for correction.`
+            ? t("admin.businessApplicationDetailDrawer.hintItemsFlagged", {
+                count: flaggedItemCount,
+              })
             : counts.approved === 0
-              ? "Every vehicle is flagged — approve at least one before activating the fleet."
-              : "Company verified and every vehicle decided — ready to activate the fleet.";
+              ? t(
+                  "admin.businessApplicationDetailDrawer.hintAllVehiclesFlagged",
+                )
+              : t("admin.businessApplicationDetailDrawer.hintReadyToActivate");
 
   // Mirrors the request-changes endpoint's guards exactly, so a disabled button
   // is never unexplained: the reason is surfaced as the hint, as the button's
@@ -815,14 +832,21 @@ export function BusinessApplicationDetailDrawer({
         role="dialog"
         aria-modal="true"
         aria-label={
-          data ? `Fleet application ${data.reference}` : "Fleet application"
+          data
+            ? t(
+                "admin.businessApplicationDetailDrawer.fleetApplicationReference",
+                {
+                  reference: data.reference,
+                },
+              )
+            : t("admin.businessApplicationDetailDrawer.fleetApplication")
         }
         className="animate-in slide-in-from-right-6 fade-in-0 fixed top-0 right-0 z-50 flex h-full w-[560px] max-w-full flex-col border-l border-border bg-card duration-150"
       >
         <header className="flex items-start justify-between gap-3 border-b border-border px-[22px] py-5">
           <div className="min-w-0">
             <p className="font-price text-[10.5px] font-semibold tracking-[0.09em] text-muted-foreground uppercase">
-              {data?.reference ?? "Application"}
+              {data?.reference ?? t("admin.applicationReview.application")}
             </p>
             <h2 className="mt-[3px] truncate text-[17px] font-semibold tracking-[-0.01em]">
               {data?.company.companyName ?? t("home.homeEntry.loading")}
@@ -830,7 +854,13 @@ export function BusinessApplicationDetailDrawer({
             <p className="mt-[3px] text-[12.5px] text-muted-foreground">
               {data === null
                 ? " "
-                : `${counts.total} vehicles · ${formatCityLine(data.company)}`}
+                : t(
+                    "admin.businessApplicationDetailDrawer.headerVehiclesCities",
+                    {
+                      count: counts.total,
+                      cities: formatCityLine(cityOptions, data.company),
+                    },
+                  )}
             </p>
           </div>
           <Button
@@ -887,7 +917,7 @@ export function BusinessApplicationDetailDrawer({
                     onClick={() => void approveAll(data)}
                   >
                     {pending?.kind === "approve-all"
-                      ? "Approving…"
+                      ? t("admin.applicationReview.approving")
                       : approveAllLabel}
                   </Button>
                   <p className="mt-2 text-[11.5px] text-muted-foreground">
@@ -925,10 +955,16 @@ export function BusinessApplicationDetailDrawer({
 
               <section>
                 <SectionTitle>
-                  Fleet &amp; drivers ({counts.total})
+                  {t("admin.businessApplicationDetailDrawer.fleetAndDrivers", {
+                    count: counts.total,
+                  })}
                 </SectionTitle>
                 <p className="mt-1 text-[11.5px] text-muted-foreground">
-                  {`${counts.approved} approved, ${counts.flagged} flagged, ${counts.pending} pending`}
+                  {t("admin.businessApplicationDetailDrawer.vehicleCounts", {
+                    approved: counts.approved,
+                    flagged: counts.flagged,
+                    pending: counts.pending,
+                  })}
                 </p>
 
                 <div className="mt-[9px] flex flex-col gap-[9px]">
@@ -1015,15 +1051,17 @@ export function BusinessApplicationDetailDrawer({
               onClick={() =>
                 void submitVerdict(
                   "request-changes",
-                  REQUEST_CHANGES_ERROR_FALLBACK,
+                  t(REQUEST_CHANGES_ERROR_FALLBACK),
                 )
               }
             >
               {pending?.kind === "request-changes"
-                ? "Requesting…"
+                ? t("admin.applicationReview.requesting")
                 : flaggedItemCount > 0
-                  ? `Request changes (${flaggedItemCount})`
-                  : "Request changes"}
+                  ? t("admin.applicationReview.requestChangesCount", {
+                      count: flaggedItemCount,
+                    })
+                  : t("admin.applicationReview.requestChanges")}
             </Button>
             <Button
               type="button"
@@ -1034,10 +1072,12 @@ export function BusinessApplicationDetailDrawer({
               }
               title={activateBlockedReason ?? undefined}
               onClick={() =>
-                void submitVerdict("activate", ACTIVATE_ERROR_FALLBACK)
+                void submitVerdict("activate", t(ACTIVATE_ERROR_FALLBACK))
               }
             >
-              {pending?.kind === "activate" ? "Activating…" : "Activate fleet"}
+              {pending?.kind === "activate"
+                ? t("admin.businessApplicationDetailDrawer.activating")
+                : t("admin.businessApplicationDetailDrawer.activateFleet")}
             </Button>
           </div>
         </footer>
@@ -1093,6 +1133,7 @@ function CompanyBlock({
   onPickReason: (reason: string) => void;
 }) {
   const t = useTranslations();
+  const cityOptions = useLocalizedCityOptions();
   const fields: {
     /** Full message path for the field's caption. */
     labelKey: string;
@@ -1107,7 +1148,9 @@ function CompanyBlock({
     },
     {
       labelKey: "common.shared.citiesOfOperation",
-      value: company.citiesOfOperation.map(formatCity).join(", "),
+      value: company.citiesOfOperation
+        .map((city) => formatCity(cityOptions, city))
+        .join(", "),
       wide: true,
     },
     {
@@ -1129,10 +1172,14 @@ function CompanyBlock({
   ];
 
   const stateLine = isCompanyVerified
-    ? "Verified"
+    ? t("dashboard.sample.verified")
     : isCompanyFlagged
-      ? `Flagged — ${orPlaceholder(companyFlagReason)}`
-      : "Pending review";
+      ? t("admin.applicationReview.flaggedWithReason", {
+          reason: companyFlagReason
+            ? flagReasonLabel(companyFlagReason, t)
+            : orPlaceholder(companyFlagReason),
+        })
+      : t("admin.applicationReview.pendingReview");
 
   return (
     <section>
@@ -1179,7 +1226,11 @@ function CompanyBlock({
             disabled={disabled}
             onClick={onVerify}
           >
-            {saving ? "Saving…" : "Company details verified"}
+            {saving
+              ? t("common.shared.saving")
+              : t(
+                  "admin.businessApplicationDetailDrawer.companyDetailsVerified",
+                )}
           </Button>
           <Button
             type="button"
@@ -1207,7 +1258,7 @@ function CompanyBlock({
               onClick={() => onPickReason(reason)}
               className="cursor-pointer rounded-full border border-border bg-card px-[11px] py-[5px] text-[11.5px] transition-colors hover:border-destructive hover:text-destructive focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
             >
-              {reason}
+              {flagReasonLabel(reason, t)}
             </button>
           ))}
         </div>
@@ -1255,6 +1306,7 @@ function VehicleCard({
   onPickReason: (reason: string) => void;
 }) {
   const t = useTranslations();
+  const format = useFormatter();
   const isApproved = vehicle.status === "APPROVED";
   const isFlagged = vehicle.status === "FLAGGED";
   const isMissing = vehicle.vehicleId === null;
@@ -1268,7 +1320,9 @@ function VehicleCard({
     vehicle.year === null ? "" : String(vehicle.year),
     vehicle.payloadKg === null
       ? ""
-      : `${vehicle.payloadKg.toLocaleString("en-US")} kg`,
+      : t("fleet.step3VehicleSpecifications.payloadKg", {
+          payload: format.number(vehicle.payloadKg),
+        }),
   ]
     .filter((part) => part !== "")
     .join(" · ");
@@ -1276,8 +1330,12 @@ function VehicleCard({
   const stateLine = isApproved
     ? t("common.shared.approved")
     : isFlagged
-      ? `Flagged — ${orPlaceholder(vehicle.flagReason)}`
-      : "Pending review";
+      ? t("admin.applicationReview.flaggedWithReason", {
+          reason: vehicle.flagReason
+            ? flagReasonLabel(vehicle.flagReason, t)
+            : orPlaceholder(vehicle.flagReason),
+        })
+      : t("admin.applicationReview.pendingReview");
 
   return (
     <div
@@ -1367,7 +1425,9 @@ function VehicleCard({
               disabled={disabled}
               onClick={onApprove}
             >
-              {saving ? "Saving…" : "Approve"}
+              {saving
+                ? t("common.shared.saving")
+                : t("admin.applicationReview.approve")}
             </Button>
             <Button
               type="button"
@@ -1393,7 +1453,7 @@ function VehicleCard({
               onClick={() => onPickReason(reason)}
               className="cursor-pointer rounded-full border border-border bg-card px-[11px] py-[5px] text-[11.5px] transition-colors hover:border-destructive hover:text-destructive focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
             >
-              {reason}
+              {flagReasonLabel(reason, t)}
             </button>
           ))}
         </div>

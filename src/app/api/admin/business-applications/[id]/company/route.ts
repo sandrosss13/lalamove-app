@@ -6,6 +6,7 @@ import { getRequestTranslations } from "@/i18n/request-locale";
 import { authorizeAdminApi } from "@/lib/admin/api-auth";
 import { writeAuditLog } from "@/lib/admin/audit";
 import { prisma } from "@/lib/prisma";
+import { COMPANY_FLAG_REASONS } from "@/lib/review-flag-reasons";
 
 /**
  * Staff who may review business fleet applications. Stated per route rather
@@ -13,21 +14,6 @@ import { prisma } from "@/lib/prisma";
  * read — and audited — without following an import.
  */
 const ALLOWED_ROLES: readonly AdminRole[] = ["SUPER_ADMIN", "USER_MANAGER"];
-
-/**
- * The four company-level flag reasons from the design, verbatim. Unlike the
- * driver-document endpoint, which accepts any non-empty string, this is a
- * closed list: the company reads the reason verbatim on its status screen and
- * the "Action required" screen keys its corrective copy off it, so a
- * free-typed reason would produce a screen with nothing actionable on it. The
- * drawer offers exactly these four as chips, and a chip click *is* the flag.
- */
-const COMPANY_FLAG_REASONS: readonly string[] = [
-  "VAT ID not found in the registry",
-  "Address does not match registration",
-  "Bank account not held by the entity",
-  "Contact person unreachable",
-];
 
 /** The reviewer's verdict on the company block as a whole. */
 type CompanyVerdict =
@@ -49,7 +35,7 @@ export type AdminBusinessCompanyReviewResponse = {
  */
 function parseCompanyVerdictBody(
   body: unknown,
-  t: (key: string) => string,
+  t: (key: string, values?: Record<string, string | number>) => string,
 ): { value: CompanyVerdict } | { error: string } {
   if (typeof body !== "object" || body === null) {
     return { error: t("common.shared.requestBodyMustBeAJson") };
@@ -62,7 +48,11 @@ function parseCompanyVerdictBody(
   }
 
   if (verdict !== "FLAGGED") {
-    return { error: 'verdict must be either "VERIFIED" or "FLAGGED".' };
+    return {
+      error: t(
+        "errors.adminBusinessApplicationsCompany.verdictMustBeVerifiedOrFlagged",
+      ),
+    };
   }
 
   if (typeof reason !== "string" || reason.trim() === "") {

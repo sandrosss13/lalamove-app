@@ -274,11 +274,7 @@ export type HubPayoutLabels = {
   overtime: (waitingMinutes: number | null) => string;
 };
 
-/**
- * English, for a caller that passes no labels — see `ENGLISH_TIMELINE_LABELS`.
- * The overtime wording has no catalog entry yet, so it is English in both this
- * and `useHubPayoutLabels()` until one is added.
- */
+/** English, for a caller that passes no labels — see `ENGLISH_TIMELINE_LABELS`. */
 function englishOvertimeLabel(waitingMinutes: number | null): string {
   return waitingMinutes === null
     ? "Overtime payout"
@@ -294,7 +290,13 @@ const ENGLISH_PAYOUT_LABELS: HubPayoutLabels = {
 export function useHubPayoutLabels(): HubPayoutLabels {
   const t = useTranslations("driverHub.hubJobParts");
 
-  return { payout: t("payout"), overtime: englishOvertimeLabel };
+  return {
+    payout: t("payout"),
+    overtime: (waitingMinutes) =>
+      waitingMinutes === null
+        ? t("overtimePayout")
+        : t("overtimePayoutWaiting", { minutes: waitingMinutes }),
+  };
 }
 
 /**

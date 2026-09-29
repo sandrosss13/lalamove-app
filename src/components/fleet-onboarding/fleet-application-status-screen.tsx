@@ -69,6 +69,7 @@ import {
 } from "@/lib/driver-onboarding/vehicle-classes";
 import type { FleetDraftCompany } from "@/lib/fleet-onboarding/draft-schema";
 import { useLocalizedCityOptions } from "@/lib/georgian-cities";
+import { flagReasonLabel } from "@/lib/review-flag-reasons";
 
 /** `POST` with no body; answers `{ status, reference }` or `{ error }`. */
 const SUBMIT_ENDPOINT = "/api/logistics-company/onboarding/submit";
@@ -82,15 +83,15 @@ const SUBMIT_ENDPOINT = "/api/logistics-company/onboarding/submit";
  */
 const VEHICLES_ENDPOINT = "/api/logistics-company/onboarding/vehicles";
 
-const RESUBMIT_ERROR_FALLBACK =
-  "We couldn't resubmit your application. Please try again.";
+/** Message key (in `fleet.fleetApplicationStatusScreen`), translated inside
+ *  the component. */
+const RESUBMIT_ERROR_FALLBACK_KEY = "resubmitFailed";
 /** Full message path, translated inside the component (a hook cannot run here). */
 const VEHICLE_SAVE_ERROR_FALLBACK_KEY =
   "errors.logisticsCompanyOnboardingVehicles.weCouldnTSaveThisVehicle";
 
 /** Raised after the server has cleared a vehicle's flag and we have re-read. */
-const VEHICLE_SAVED_TOAST =
-  "Vehicle updated. Resubmit when every flagged item is fixed.";
+const VEHICLE_SAVED_TOAST_KEY = "vehicleUpdated";
 
 /**
  * The two status colours the design names that have no counterpart in the
@@ -157,15 +158,14 @@ const CHIP_TONE: Record<FleetVehicleVerdict["status"], string> = {
 };
 
 /**
- * The human word for each verdict, as the design's chip reads it, as a
- * `common.shared` key. "Flagged" has no catalog entry yet, so it stays English.
+ * The human word for each verdict, as the design's chip reads it, as a full
+ * message path.
  */
-const CHIP_LABEL_KEY: Record<FleetVehicleVerdict["status"], string | null> = {
-  APPROVED: "approved",
-  FLAGGED: null,
-  PENDING: "pending",
+const CHIP_LABEL_KEY: Record<FleetVehicleVerdict["status"], string> = {
+  APPROVED: "common.shared.approved",
+  FLAGGED: "fleet.fleetApplicationStatusScreen.flagged",
+  PENDING: "common.shared.pending",
 };
-const FLAGGED_CHIP_LABEL = "Flagged";
 
 /** The design's placeholder for a cell the verdict has nothing for. */
 const EMPTY_VALUE = "—";
@@ -219,10 +219,11 @@ function bodyShortLabelText(shortLabel: string, tRoot: RootTranslator): string {
   return found ? tRoot(found.shortLabelKey) : shortLabel;
 }
 
-/** "2 vehicles", "1 vehicle". */
-function vehicleCountLabel(count: number): string {
-  return `${count} vehicle${count === 1 ? "" : "s"}`;
-}
+/** A translator bound to `fleet.fleetApplicationStatusScreen`. */
+type StatusTranslator = (
+  key: string,
+  values?: Record<string, string | number>,
+) => string;
 
 /**
  * The action-required title.
@@ -236,20 +237,17 @@ function vehicleCountLabel(count: number): string {
 function actionRequiredTitle(
   flaggedVehicles: number,
   companyFlagged: boolean,
+  t: StatusTranslator,
 ): string {
-  const vehicles = `${flaggedVehicles} vehicle${
-    flaggedVehicles === 1 ? "" : "s"
-  } need${flaggedVehicles === 1 ? "s" : ""} correcting`;
-
   if (companyFlagged && flaggedVehicles === 0) {
-    return "Company details need correcting";
+    return t("companyDetailsNeedCorrecting");
   }
 
   if (companyFlagged) {
-    return `Company details and ${vehicles}`;
+    return t("companyDetailsAndVehicles", { count: flaggedVehicles });
   }
 
-  return vehicles;
+  return t("vehiclesNeedCorrecting", { count: flaggedVehicles });
 }
 
 /**
@@ -466,7 +464,7 @@ export function FleetApplicationStatusScreen() {
     // the flag, in the same transaction as the vehicle, and re-reading is what
     // moves the chip to Pending and takes one item off the Resubmit label.
     await refetch();
-    showToast(VEHICLE_SAVED_TOAST);
+    showToast(t(VEHICLE_SAVED_TOAST_KEY));
     return true;
   }
 
@@ -484,7 +482,7 @@ export function FleetApplicationStatusScreen() {
         // exactly the case the disabled state cannot prevent, since the 25s poll
         // can pick up a new flag between this render and the click.
         setResubmitError(
-          await readErrorMessage(response, RESUBMIT_ERROR_FALLBACK),
+          await readErrorMessage(response, t(RESUBMIT_ERROR_FALLBACK_KEY)),
         );
         return;
       }
@@ -493,7 +491,7 @@ export function FleetApplicationStatusScreen() {
       // screen over to the pending state.
       await refetch();
     } catch {
-      setResubmitError(RESUBMIT_ERROR_FALLBACK);
+      setResubmitError(t(RESUBMIT_ERROR_FALLBACK_KEY));
     } finally {
       setResubmitting(false);
     }
@@ -503,10 +501,10 @@ export function FleetApplicationStatusScreen() {
     <div className="max-w-[820px]">
       <header className="border-b border-border pb-5">
         <p className="font-price text-[10.5px] font-semibold tracking-[0.09em] text-muted-foreground uppercase">
-          Application {reference ?? EMPTY_VALUE}
+          {t("applicationReference", { reference: reference ?? EMPTY_VALUE })}
         </p>
         <h1 className="mt-1 text-[26px] leading-tight font-semibold tracking-[-0.02em]">
-          {submittedSummary?.companyName ?? "Your application"}
+          {submittedSummary?.companyName ?? t("yourApplication")}
         </h1>
       </header>
 
@@ -514,7 +512,7 @@ export function FleetApplicationStatusScreen() {
         {status === "PENDING" ? (
           <>
             <StatusCard
-              tag="Pending verification"
+              tag={t("pendingVerification")}
               accent={STATUS_AMBER}
               title={t("fleetUnderReview")}
               // The design splits this exactly here: the title is "Fleet under
@@ -522,7 +520,7 @@ export function FleetApplicationStatusScreen() {
               // prints the pair as one sentence, which is where the apparent
               // duplicate leading sentence comes from — rendering it would
               // repeat the title verbatim one line below itself.
-              body="Our team is checking the company registration, then each vehicle and its driver. Vehicles are cleared individually — you can start dispatching as soon as the company is approved and at least one vehicle passes."
+              body={t("pendingBody")}
             />
             <CompanyRegistrationRow reviewStatus={companyReviewStatus} />
           </>
@@ -536,8 +534,9 @@ export function FleetApplicationStatusScreen() {
               title={actionRequiredTitle(
                 flaggedVehicles.length,
                 companyFlagged,
+                t,
               )}
-              body="The rest of the fleet is unaffected and stays in review. Fix what is flagged below and resubmit — approved vehicles keep their verdict."
+              body={t("actionRequiredBody")}
             />
 
             {companyFlagged ? (
@@ -547,7 +546,7 @@ export function FleetApplicationStatusScreen() {
                 </h2>
                 {companyFlagReason !== null ? (
                   <p className="mt-2 text-[13.5px] leading-[1.5] text-destructive">
-                    {companyFlagReason}
+                    {flagReasonLabel(companyFlagReason, tRoot)}
                   </p>
                 ) : null}
                 {/* A dialog, never `goToStep`: the shell has no editable step
@@ -580,7 +579,7 @@ export function FleetApplicationStatusScreen() {
               tag={tShared("approved")}
               accent={STATUS_GREEN}
               title={t("yourFleetIsLive")}
-              body="The company account is active and every approved vehicle can be dispatched. Assign new vehicles or drivers any time from the dispatch dashboard."
+              body={t("approvedBody")}
             />
             {submittedSummary !== null ? (
               <ApprovedSummary summary={submittedSummary} />
@@ -626,10 +625,10 @@ export function FleetApplicationStatusScreen() {
               className="h-12 w-fit cursor-pointer rounded-[11px] bg-onboarding-accent px-[26px] text-[15px] font-semibold tracking-[-0.01em] text-white transition-colors hover:bg-onboarding-accent-hover focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
             >
               {outstanding > 0
-                ? `Resubmit (${outstanding} to fix)`
+                ? t("resubmitToFix", { count: outstanding })
                 : resubmitting
-                  ? "Resubmitting…"
-                  : "Resubmit application"}
+                  ? t("resubmitting")
+                  : t("resubmitApplication")}
             </button>
           </div>
         ) : null}
@@ -671,12 +670,12 @@ export function FleetApplicationStatusScreen() {
 
         <Footnote>
           {status === "PENDING"
-            ? "Typical review time is 24–48 hours for a fleet this size."
+            ? t("typicalReviewTime")
             : status === "ACTION_REQUIRED"
               ? tRoot(
                   "onboarding.applicationStatusScreen.resubmittedApplicationsAreUsuallyReviewedWithin",
                 )
-              : "Licences and cooling-unit records are re-checked 30 days before expiry."}
+              : t("recheckedBeforeExpiry")}
         </Footnote>
       </div>
 
@@ -717,8 +716,9 @@ export function FleetApplicationStatusScreen() {
                 {t("correctTheCompanyDetails")}
               </DialogTitle>
               <DialogDescription className="text-[13px] leading-[1.5]">
-                {companyFlagReason ??
-                  "Save the corrected details to send them back for review."}
+                {companyFlagReason !== null
+                  ? flagReasonLabel(companyFlagReason, tRoot)
+                  : t("saveCorrectedDetails")}
               </DialogDescription>
             </DialogHeader>
 
@@ -819,6 +819,8 @@ function CompanyRegistrationRow({
 }: {
   reviewStatus: FleetCompanyReviewStatus | null;
 }) {
+  const t = useTranslations("fleet.fleetApplicationStatusScreen");
+
   if (reviewStatus !== "VERIFIED" && reviewStatus !== "PENDING") return null;
 
   const verified = reviewStatus === "VERIFIED";
@@ -831,12 +833,12 @@ function CompanyRegistrationRow({
         style={{ backgroundColor: verified ? STATUS_GREEN : STATUS_AMBER }}
       />
       <p className="text-[13px]">
-        Company registration:{" "}
+        {t("companyRegistration")}{" "}
         <span
           className="font-semibold"
           style={{ color: verified ? STATUS_GREEN : STATUS_AMBER }}
         >
-          {verified ? "verified" : "in review"}
+          {verified ? t("verified") : t("inReview")}
         </span>
       </p>
     </div>
@@ -875,7 +877,7 @@ function FleetStatusTable({
       <div className="flex items-center justify-between gap-3.5 border-b border-border bg-muted/40 px-4 py-3">
         <h2 className="text-[12.5px] font-semibold">{t("fleetStatus")}</h2>
         <p className="font-price text-[11.5px] text-muted-foreground">
-          {approved} approved · {flagged} flagged · {pending} pending
+          {t("verdictCounts", { approved, flagged, pending })}
         </p>
       </div>
 
@@ -960,16 +962,16 @@ function FleetStatusTable({
                     flaggedRow ? "text-destructive" : "text-muted-foreground"
                   }`}
                 >
-                  {verdict.flagReason ?? EMPTY_VALUE}
+                  {verdict.flagReason !== null
+                    ? flagReasonLabel(verdict.flagReason, tRoot)
+                    : EMPTY_VALUE}
                 </TableCell>
 
                 <TableCell>
                   <span
                     className={`${CHIP_CLASS} ${CHIP_TONE[verdict.status]}`}
                   >
-                    {CHIP_LABEL_KEY[verdict.status] !== null
-                      ? tShared(CHIP_LABEL_KEY[verdict.status] as string)
-                      : FLAGGED_CHIP_LABEL}
+                    {tRoot(CHIP_LABEL_KEY[verdict.status])}
                   </span>
                 </TableCell>
 
@@ -983,7 +985,7 @@ function FleetStatusTable({
                       {t("fix")}
                       <span className="sr-only">
                         {" "}
-                        vehicle {verdict.position}
+                        {t("fixVehicleSr", { number: verdict.position })}
                       </span>
                     </button>
                   ) : null}
@@ -1003,6 +1005,7 @@ function FleetStatusTable({
  * never re-derived here.
  */
 function ApprovedSummary({ summary }: { summary: FleetSubmittedSummary }) {
+  const t = useTranslations("fleet.fleetApplicationStatusScreen");
   const tShared = useTranslations("common.shared");
   const tRoot = useTranslations();
   const cityOptions = useLocalizedCityOptions();
@@ -1039,7 +1042,7 @@ function ApprovedSummary({ summary }: { summary: FleetSubmittedSummary }) {
     {
       key: "vehicleCount",
       label: tShared("fleet"),
-      value: vehicleCountLabel(summary.vehicleCount),
+      value: t("vehicleCount", { count: summary.vehicleCount }),
       mono: true,
     },
     // One row per cargo body that actually has vehicles, keyed and labelled by
@@ -1047,7 +1050,7 @@ function ApprovedSummary({ summary }: { summary: FleetSubmittedSummary }) {
     ...Object.entries(summary.countsByBodyType).map(([label, count]) => ({
       key: `body-${label}`,
       label: bodyShortLabelText(label, tRoot),
-      value: vehicleCountLabel(count),
+      value: t("vehicleCount", { count }),
       mono: true as const,
     })),
   ];

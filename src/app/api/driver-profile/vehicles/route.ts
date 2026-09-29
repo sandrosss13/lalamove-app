@@ -40,6 +40,7 @@ async function parsePhotos(
   formData: FormData,
 ): Promise<{ value: File[] } | { error: string }> {
   const tShared = await getRequestTranslations("common.shared");
+  const tErrors = await getRequestTranslations("errors.driverProfileVehicles");
   const photos = formData
     .getAll(PHOTO_FIELD)
     .filter((entry): entry is File => entry instanceof File && entry.size > 0);
@@ -50,12 +51,17 @@ async function parsePhotos(
 
   for (const photo of photos) {
     if (!photo.type.startsWith("image/")) {
-      return { error: `${photo.name} is not an image file.` };
+      return {
+        error: tErrors("notAnImage", { name: photo.name }),
+      };
     }
 
     if (photo.size > MAX_PHOTO_BYTES) {
       return {
-        error: `${photo.name} is larger than ${MAX_PHOTO_BYTES / (1024 * 1024)} MB.`,
+        error: tErrors("photoTooLarge", {
+          name: photo.name,
+          mb: MAX_PHOTO_BYTES / (1024 * 1024),
+        }),
       };
     }
   }

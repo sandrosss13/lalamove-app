@@ -41,11 +41,11 @@ const FORBIDDEN_CARD_KEYS = new Set([
 const PAN_LIKE_DIGITS = /\p{Nd}{12,}/u;
 
 /**
- * The single message every tripwire rejection answers with. It names the rule
+ * The key of the single message every tripwire rejection answers with. It names the rule
  * rather than the field, because the fix is always the same: derive the brand
  * and the last four in the browser and send only those.
  */
-const CARD_DETAILS_REJECTED = "Card details must not be sent to the server.";
+const CARD_DETAILS_REJECTED_KEY = "errors.savedCards.cardDetailsMustNotBeSent";
 
 /** Normalises a body key for comparison against `FORBIDDEN_CARD_KEYS`. */
 function normaliseKey(key: string): string {
@@ -160,7 +160,7 @@ function parseCreateSavedCardBody(
 
   if (brand.length > MAX_BRAND_LENGTH) {
     return {
-      error: `Enter a card brand of ${MAX_BRAND_LENGTH} characters or fewer.`,
+      error: t("errors.savedCards.cardBrandTooLong", { max: MAX_BRAND_LENGTH }),
     };
   }
 
@@ -196,7 +196,9 @@ function parseCreateSavedCardBody(
     typeof holderName === "string" ? holderName.trim() : "";
   if (trimmedHolderName.length > MAX_HOLDER_NAME_LENGTH) {
     return {
-      error: `Enter a cardholder name of ${MAX_HOLDER_NAME_LENGTH} characters or fewer.`,
+      error: t("errors.savedCards.cardholderNameTooLong", {
+        max: MAX_HOLDER_NAME_LENGTH,
+      }),
     };
   }
 
@@ -299,7 +301,10 @@ export async function POST(request: Request): Promise<NextResponse> {
   // Runs before validation, and before anything is logged, so a body carrying
   // cardholder data is rejected without any part of it being echoed or stored.
   if (containsCardDetails(rawBody)) {
-    return NextResponse.json({ error: CARD_DETAILS_REJECTED }, { status: 400 });
+    return NextResponse.json(
+      { error: t(CARD_DETAILS_REJECTED_KEY) },
+      { status: 400 },
+    );
   }
 
   const parsed = parseCreateSavedCardBody(rawBody, t);

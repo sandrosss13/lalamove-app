@@ -22,6 +22,9 @@
  */
 
 import type { ChassisType, PaymentMethodType } from "@prisma/client";
+import { useTranslations } from "next-intl";
+
+import type { Translator } from "@/i18n/translator";
 
 /**
  * The scheduled pickup, spelled out. `en-GB` and not the runtime's own locale,
@@ -33,7 +36,7 @@ import type { ChassisType, PaymentMethodType } from "@prisma/client";
  * date on this app already does. Both checkout pages are server components, so
  * there is no client re-render for this string to disagree with.
  */
-const SCHEDULED_AT_FORMAT = new Intl.DateTimeFormat("en-GB", {
+const SCHEDULED_AT_OPTIONS: Intl.DateTimeFormatOptions = {
   weekday: "short",
   day: "numeric",
   month: "short",
@@ -41,11 +44,28 @@ const SCHEDULED_AT_FORMAT = new Intl.DateTimeFormat("en-GB", {
   hour: "2-digit",
   minute: "2-digit",
   hour12: false,
-});
+};
 
-/** `Fri, 5 Sep 2026, 14:30` — the date and time the client picked. */
-export function formatScheduledAt(scheduledAt: Date): string {
-  return SCHEDULED_AT_FORMAT.format(scheduledAt);
+const SCHEDULED_AT_FORMAT = new Intl.DateTimeFormat(
+  "en-GB",
+  SCHEDULED_AT_OPTIONS,
+);
+
+/** The same format in Georgian, for the `/ka` pages. */
+const SCHEDULED_AT_FORMAT_KA = new Intl.DateTimeFormat(
+  "ka-GE",
+  SCHEDULED_AT_OPTIONS,
+);
+
+/**
+ * `Fri, 5 Sep 2026, 14:30` — the date and time the client picked. Pass the
+ * route's `locale` to get the Georgian month and weekday names on `/ka`; with
+ * no locale it stays the English form it always was.
+ */
+export function formatScheduledAt(scheduledAt: Date, locale?: string): string {
+  return (
+    locale === "ka" ? SCHEDULED_AT_FORMAT_KA : SCHEDULED_AT_FORMAT
+  ).format(scheduledAt);
 }
 
 /**
@@ -122,4 +142,54 @@ export function transportationCost(order: {
   helperFee: number;
 }): number {
   return order.price - order.helperFee;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Localised labels                                                           */
+/* -------------------------------------------------------------------------- */
+
+/** Message keys for `BODY_TYPE_LABEL`, which stays as the English source. */
+const BODY_TYPE_KEY: Record<ChassisType, string> = {
+  DRY_BOX: "checkout.bodyType.dryBox",
+  REFRIGERATED: "checkout.bodyType.refrigerated",
+  OPEN_CHASSIS: "checkout.bodyType.openChassis",
+};
+
+/** Message keys for `PAYMENT_METHOD_LABEL`; `CASH` is "Pay later" here too. */
+const PAYMENT_METHOD_KEY: Record<PaymentMethodType, string> = {
+  CASH: "checkout.paymentMethod.cash",
+  CARD: "checkout.paymentMethod.card",
+  BANK_TRANSFER: "checkout.paymentMethod.bankTransfer",
+};
+
+/** `BODY_TYPE_LABEL[bodyType]` in the reader's language, given a root `t`. */
+export function bodyTypeLabel(bodyType: ChassisType, t: Translator): string {
+  return t(BODY_TYPE_KEY[bodyType]);
+}
+
+/** `PAYMENT_METHOD_LABEL[method]` in the reader's language, given a root `t`. */
+export function paymentMethodLabel(
+  method: PaymentMethodType,
+  t: Translator,
+): string {
+  return t(PAYMENT_METHOD_KEY[method]);
+}
+
+/** `crewSizeLabel` in the reader's language (ICU plural), given a root `t`. */
+export function localizedCrewSizeLabel(
+  helperCount: number,
+  t: Translator,
+): string {
+  return t("checkout.crewSize", { count: helperCount + 1 });
+}
+
+/** Component hook: localised `bodyTypeLabel`, `paymentMethodLabel` and crew size. */
+export function useCheckoutLabels() {
+  const t = useTranslations();
+
+  return {
+    bodyType: (bodyType: ChassisType) => bodyTypeLabel(bodyType, t),
+    paymentMethod: (method: PaymentMethodType) => paymentMethodLabel(method, t),
+    crewSize: (helperCount: number) => localizedCrewSizeLabel(helperCount, t),
+  };
 }

@@ -105,7 +105,7 @@ function toSectionRow(section: HomePageSection): AdminHomePageSectionRow {
  */
 function parseCreateBody(
   body: unknown,
-  t: (key: string) => string,
+  t: (key: string, values?: Record<string, string | number>) => string,
 ): { data: CreateHomePageSectionInput } | { error: string } {
   if (typeof body !== "object" || body === null) {
     return { error: t("common.shared.requestBodyMustBeAJson") };
@@ -130,7 +130,12 @@ function parseCreateBody(
     typeof locale !== "string" ||
     !CONTENT_LOCALES.includes(locale as ContentLocale)
   ) {
-    return { error: `locale must be one of: ${CONTENT_LOCALES.join(", ")}.` };
+    return {
+      error: t("common.shared.fieldMustBeOneOf", {
+        field: "locale",
+        options: CONTENT_LOCALES.join(", "),
+      }),
+    };
   }
 
   const { sortOrder } = record;
@@ -141,7 +146,10 @@ function parseCreateBody(
     sortOrder > MAX_SORT_ORDER
   ) {
     return {
-      error: `sortOrder must be an integer between ${MIN_SORT_ORDER} and ${MAX_SORT_ORDER}.`,
+      error: t("common.shared.sortOrderMustBeIntegerBetween", {
+        min: MIN_SORT_ORDER,
+        max: MAX_SORT_ORDER,
+      }),
     };
   }
 
@@ -179,6 +187,7 @@ export async function GET(request: Request): Promise<NextResponse> {
     return authorized.response;
   }
 
+  const t = await getRequestTranslations();
   const rawLocale = new URL(request.url).searchParams.get("locale");
 
   if (
@@ -186,7 +195,12 @@ export async function GET(request: Request): Promise<NextResponse> {
     !CONTENT_LOCALES.includes(rawLocale as ContentLocale)
   ) {
     return NextResponse.json(
-      { error: `locale must be one of: ${CONTENT_LOCALES.join(", ")}.` },
+      {
+        error: t("common.shared.fieldMustBeOneOf", {
+          field: "locale",
+          options: CONTENT_LOCALES.join(", "),
+        }),
+      },
       { status: 400 },
     );
   }

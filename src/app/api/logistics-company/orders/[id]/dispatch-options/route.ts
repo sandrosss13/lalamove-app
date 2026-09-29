@@ -11,6 +11,7 @@ import {
   type DispatchVerdict,
 } from "@/lib/orders/dispatch-fit";
 import { prisma } from "@/lib/prisma";
+import { vehicleTypeSpecLabel } from "@/lib/vehicle-type-spec-labels";
 
 /**
  * GET /api/logistics-company/orders/[id]/dispatch-options — everything the
@@ -316,6 +317,7 @@ export async function GET(
       cargoHeightM: true,
       vehicleTypeSpec: {
         select: {
+          code: true,
           label: true,
           maxPayloadKg: true,
           cargoLengthM: true,
@@ -456,7 +458,11 @@ export async function GET(
       return {
         vehicleId: vehicle.id,
         plateNumber: vehicle.plateNumber,
-        classLabel: vehicle.vehicleTypeSpec.label,
+        classLabel: vehicleTypeSpecLabel(
+          vehicle.vehicleTypeSpec.code,
+          vehicle.vehicleTypeSpec.label,
+          t,
+        ),
         capability: {
           payloadKg: capability.payloadKg,
           lengthM: capability.lengthM,

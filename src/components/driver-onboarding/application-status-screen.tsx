@@ -14,6 +14,8 @@ import {
   type OnboardingDocument,
   type OnboardingDocumentType,
 } from "@/components/driver-onboarding/onboarding-draft-context";
+import { VEHICLE_CLASSES } from "@/lib/driver-onboarding/vehicle-classes";
+import { flagReasonLabel } from "@/lib/review-flag-reasons";
 
 /**
  * The post-submission status screen: pending verification, action required
@@ -33,11 +35,6 @@ import {
 const SUBMIT_ENDPOINT = "/api/driver-profile/onboarding/submit";
 /** The pre-existing availability toggle, gated on `activatedAt` server-side. */
 const STATUS_ENDPOINT = "/api/driver-profile/status";
-
-const RESUBMIT_ERROR_FALLBACK =
-  "We couldn't resubmit your application. Please try again.";
-const GO_ONLINE_ERROR_FALLBACK =
-  "We couldn't set you online. Please try again.";
 
 /**
  * The two status colours the design names that have no counterpart in the
@@ -88,21 +85,17 @@ const STATUS_DESTRUCTIVE_ACCENT_CLASS = "[--status-accent:var(--destructive)]";
 const DOCUMENT_META: Record<
   OnboardingDocumentType,
   // `labelKey` is a full `next-intl` message path, translated at render.
-  // `label` stays for the image alt text, which has no catalog entry yet.
-  { label: string; labelKey: string; slot: DocumentSlot }
+  { labelKey: string; slot: DocumentSlot }
 > = {
   PROFILE_PHOTO: {
-    label: "Profile photo",
     labelKey: "common.shared.profilePhoto",
     slot: "selfie",
   },
   LICENCE_FRONT: {
-    label: "Licence — front",
     labelKey: "onboarding.applicationStatusScreen.licenceFront",
     slot: "licFront",
   },
   LICENCE_BACK: {
-    label: "Licence — back",
     labelKey: "onboarding.applicationStatusScreen.licenceBack",
     slot: "licBack",
   },
@@ -172,6 +165,8 @@ export function ApplicationStatusScreen() {
   const [goOnlineError, setGoOnlineError] = useState<string | null>(null);
 
   const router = useRouter();
+  const t = useTranslations("onboarding.applicationStatusScreen");
+  const tRoot = useTranslations();
 
   // Guard rather than an assumption: the shell only mounts this component once
   // the application has been submitted, but rendering nothing is the right
@@ -193,9 +188,7 @@ export function ApplicationStatusScreen() {
       const response = await fetch(SUBMIT_ENDPOINT, { method: "POST" });
 
       if (!response.ok) {
-        setResubmitError(
-          await readErrorMessage(response, RESUBMIT_ERROR_FALLBACK),
-        );
+        setResubmitError(await readErrorMessage(response, t("resubmitFailed")));
         return;
       }
 
@@ -203,7 +196,7 @@ export function ApplicationStatusScreen() {
       // this screen over to the pending state.
       await refetch();
     } catch {
-      setResubmitError(RESUBMIT_ERROR_FALLBACK);
+      setResubmitError(t("resubmitFailed"));
     } finally {
       setResubmitting(false);
     }
@@ -221,9 +214,7 @@ export function ApplicationStatusScreen() {
       });
 
       if (!response.ok) {
-        setGoOnlineError(
-          await readErrorMessage(response, GO_ONLINE_ERROR_FALLBACK),
-        );
+        setGoOnlineError(await readErrorMessage(response, t("goOnlineFailed")));
         setGoingOnline(false);
         return;
       }
@@ -234,7 +225,7 @@ export function ApplicationStatusScreen() {
       router.push("/dashboard");
       router.refresh();
     } catch {
-      setGoOnlineError(GO_ONLINE_ERROR_FALLBACK);
+      setGoOnlineError(t("goOnlineFailed"));
       setGoingOnline(false);
     }
   }
@@ -243,10 +234,12 @@ export function ApplicationStatusScreen() {
     <div className="max-w-[680px]">
       <header className="border-b border-border pb-5">
         <p className="font-price text-[10.5px] font-semibold tracking-[0.09em] text-muted-foreground uppercase">
-          Application {reference ?? "—"}
+          {tRoot("fleet.fleetApplicationStatusScreen.applicationReference", {
+            reference: reference ?? "—",
+          })}
         </p>
         <h1 className="mt-1 text-[26px] leading-tight font-semibold tracking-[-0.02em]">
-          {driverName ?? "Your application"}
+          {driverName ?? t("yourApplication")}
         </h1>
       </header>
 
@@ -284,7 +277,7 @@ export function ApplicationStatusScreen() {
           // flash the shell's full-screen loading state over the top of it.
           onUploaded={() => {
             setRetakeOpen(false);
-            showToast("Photo replaced. Resubmit when you're ready.");
+            showToast(t("photoReplaced"));
           }}
         />
       ) : null}
@@ -300,7 +293,7 @@ function PendingState() {
   return (
     <>
       <StatusCard
-        tag="Pending verification"
+        tag={t("pendingVerification")}
         accentClass={STATUS_AMBER_ACCENT_CLASS}
         title={t("underReview")}
         // The design's copy promises an SMS. This feature ships no SMS
@@ -315,7 +308,7 @@ function PendingState() {
         // but not instant, and the promise the driver is given has to be the
         // one the code actually keeps. What matters to them either way is the
         // part that is exactly true — they do not have to refresh.
-        body="Our team is checking your licence, ID and vehicle photos. This page checks for a decision every few seconds, so there's no need to refresh it."
+        body={t("pendingBody")}
       />
 
       <ol className="mt-4 rounded-[14px] border border-border bg-card px-3.5">
@@ -326,12 +319,12 @@ function PendingState() {
         />
         <TimelineRow
           label={t("documentReview")}
-          when="In progress"
+          when={t("inProgress")}
           tone="current"
         />
         <TimelineRow
           label={t("accountActivation")}
-          when="Waiting"
+          when={t("waiting")}
           tone="waiting"
         />
       </ol>
@@ -379,14 +372,10 @@ function ActionRequiredState({
         accentClass={STATUS_DESTRUCTIVE_ACCENT_CLASS}
         title={
           outstanding > 0
-            ? `${outstanding} document${outstanding === 1 ? " needs" : "s need"} a new photo`
-            : "All photos replaced"
+            ? t("documentsNeedNewPhoto", { count: outstanding })
+            : t("allPhotosReplaced")
         }
-        body={
-          outstanding > 0
-            ? "The review team could not read the items below. Replace them and resubmit — the rest of your application is kept."
-            : "Send your application back to the review team when you're ready — the rest of it is unchanged."
-        }
+        body={outstanding > 0 ? t("flaggedItemsBody") : t("sendBackBody")}
       />
 
       <div className="mt-4 flex flex-col gap-2.5">
@@ -415,7 +404,9 @@ function ActionRequiredState({
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={document.signedUrl}
-                    alt={`The ${meta.label.toLowerCase()} the review team flagged`}
+                    alt={t("flaggedDocumentAlt", {
+                      document: tRoot(meta.labelKey).toLocaleLowerCase(),
+                    })}
                     loading="lazy"
                     className="h-10 w-[52px] shrink-0 rounded-[7px] border border-border object-cover"
                   />
@@ -444,7 +435,9 @@ function ActionRequiredState({
                   {tRoot(meta.labelKey)}
                 </p>
                 <p className="mt-[3px] text-[12.5px] leading-[1.45] text-destructive">
-                  {document.flagReason ?? t(DEFAULT_FLAG_REASON_KEY)}
+                  {document.flagReason
+                    ? flagReasonLabel(document.flagReason, tRoot)
+                    : t(DEFAULT_FLAG_REASON_KEY)}
                 </p>
               </div>
 
@@ -478,8 +471,8 @@ function ActionRequiredState({
           {outstanding > 0
             ? `Replace ${outstanding} photo${outstanding === 1 ? "" : "s"} to resubmit`
             : resubmitting
-              ? "Resubmitting…"
-              : "Resubmit application"}
+              ? t("resubmitting")
+              : t("resubmitApplication")}
         </button>
 
         {resubmitError !== null ? (
@@ -513,11 +506,16 @@ function ApprovedState({
   const categories = readSummaryList(summary, "categories");
   const t = useTranslations("onboarding.applicationStatusScreen");
   const tShared = useTranslations("common.shared");
+  const tRoot = useTranslations();
+  // The summary snapshots the class's English name; show it in the reader's
+  // language when it still names a known class, verbatim otherwise.
+  const className = readSummaryText(summary, "vehicleClassName");
+  const knownClass = VEHICLE_CLASSES.find((entry) => entry.name === className);
 
   const rows: { label: string; value: string }[] = [
     {
       label: tShared("class"),
-      value: readSummaryText(summary, "vehicleClassName") ?? "—",
+      value: knownClass ? tRoot(knownClass.nameKey) : (className ?? "—"),
     },
     {
       label: tShared("vehicle"),
@@ -536,7 +534,7 @@ function ApprovedState({
         tag={tShared("approved")}
         accentClass={STATUS_GREEN_ACCENT_CLASS}
         title={t("youAreClearedToDrive")}
-        body="Your account is active. Orders matching your vehicle class will start arriving as soon as you go online."
+        body={t("approvedBody")}
       />
 
       <div className="mt-4 flex flex-col gap-3">
@@ -579,7 +577,7 @@ function ApprovedState({
           // brought onto it too.
           className="h-[50px] w-full cursor-pointer rounded-xl bg-status-success-solid text-[15.5px] font-semibold text-white transition-opacity hover:opacity-90 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {goingOnline ? "Going online…" : "Go online and take orders"}
+          {goingOnline ? t("goingOnline") : t("goOnlineAndTakeOrders")}
         </button>
 
         {goOnlineError !== null ? (

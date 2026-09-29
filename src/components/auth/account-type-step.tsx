@@ -8,9 +8,10 @@ import {
   AuthSubheading,
   BackLink,
   Eyebrow,
+  useAccountTypeLabels,
 } from "@/components/auth/auth-primitives";
-import { ACCOUNT_TYPE_LABELS, type AccountType } from "@/lib/account-types";
-import { accountTypeRowsForRole, type FlowRole } from "@/lib/auth-flow";
+import type { AccountType } from "@/lib/account-types";
+import { useAccountTypeRowsForRole, type FlowRole } from "@/lib/auth-flow";
 import { cn } from "@/lib/utils";
 
 /**
@@ -57,7 +58,8 @@ export function AccountTypeStep({
 }: AccountTypeStepProps) {
   const t = useTranslations("auth.accountTypeStep");
   const headingId = React.useId();
-  const rows = accountTypeRowsForRole(role);
+  const rows = useAccountTypeRowsForRole(role);
+  const accountTypeLabels = useAccountTypeLabels();
 
   // Populated on render so the arrow keys have something to move focus to.
   // Indexed the same way as `rows`, which is stable for a given role.
@@ -166,7 +168,7 @@ export function AccountTypeStep({
 
               <span className="flex min-w-0 flex-col gap-0.5">
                 <span className="text-base font-medium text-[var(--landing-paper)]">
-                  {ACCOUNT_TYPE_LABELS[row.value]}
+                  {accountTypeLabels[row.value]}
                 </span>
                 <span className="text-[13px] text-[var(--landing-muted)]">
                   {row.description}

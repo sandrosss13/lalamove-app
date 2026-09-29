@@ -49,14 +49,14 @@ const DISPATCH_REFUSALS: Record<
   Exclude<DispatchVerdict["kind"], "FITS">,
   string
 > = {
+  // Message keys (full paths), resolved with the request's translator.
   NOT_APPROVED:
-    "This vehicle hasn't been approved yet. Only approved vehicles can be dispatched.",
+    "errors.logisticsCompanyOrdersDispatch.thisVehicleHasnTBeenApproved",
   UNDER_BOOKED_CLASS:
-    "This vehicle is smaller than the vehicle class this delivery was booked as. Assign one that matches or beats it on payload, length, width and height.",
+    "errors.logisticsCompanyOrdersDispatch.thisVehicleIsSmallerThanThe",
   WRONG_BODY_TYPE:
-    "This vehicle doesn't offer the load space this delivery needs. Assign one that does.",
-  OVER_CARGO:
-    "This vehicle can't carry this load's cargo — it exceeds the weight or size limit. Assign a vehicle that can.",
+    "errors.logisticsCompanyOrdersDispatch.thisVehicleDoesnTOfferThe",
+  OVER_CARGO: "errors.logisticsCompanyOrdersDispatch.thisVehicleCanTCarryThis",
 };
 
 /**
@@ -419,7 +419,7 @@ export async function POST(
   // silently unhandled case that falls through to a successful dispatch.
   if (verdict.kind !== "FITS") {
     return NextResponse.json(
-      { error: DISPATCH_REFUSALS[verdict.kind] },
+      { error: t(DISPATCH_REFUSALS[verdict.kind]) },
       { status: 400 },
     );
   }

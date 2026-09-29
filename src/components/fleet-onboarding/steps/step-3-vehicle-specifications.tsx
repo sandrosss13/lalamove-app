@@ -137,6 +137,7 @@ export function Step3VehicleSpecifications() {
       vehicle,
       currentYear,
       otherPlatesExcluding(vehicles, vehicle.id),
+      tRoot,
     );
   }
 
@@ -194,7 +195,7 @@ export function Step3VehicleSpecifications() {
       // continue.": on a table step the failing field is inside a closed dialog,
       // so a message pointing at "highlighted fields" would point at nothing.
       // The row prefix is what tells the company where to look.
-      showToast(`Vehicle ${index + 1}: ${message}`, "error");
+      showToast(t("vehicleProblem", { number: index + 1, message }), "error");
       return;
     }
 
@@ -224,7 +225,7 @@ export function Step3VehicleSpecifications() {
         aria-live="polite"
         className="text-right font-price text-[12px] font-semibold tracking-[0.06em] text-muted-foreground uppercase"
       >
-        {readyCount} of {vehicles.length} specified
+        {t("specifiedCount", { ready: readyCount, total: vehicles.length })}
       </p>
 
       <div className="overflow-hidden rounded-[14px] border border-border bg-card">
@@ -232,7 +233,7 @@ export function Step3VehicleSpecifications() {
           <TableHeader>
             <TableRow>
               <TableHead className="w-[52px] pl-4">#</TableHead>
-              <TableHead>Class &amp; body</TableHead>
+              <TableHead>{t("classAndBody")}</TableHead>
               <TableHead>{tShared("makeModel")}</TableHead>
               <TableHead>{tShared("plate")}</TableHead>
               <TableHead>{tShared("payload")}</TableHead>
@@ -278,7 +279,11 @@ export function Step3VehicleSpecifications() {
                   <TableRow
                     role="button"
                     tabIndex={0}
-                    aria-label={`Specify vehicle ${number}, ${className} ${bodyLabel}`}
+                    aria-label={t("specifyVehicleAria", {
+                      number,
+                      className,
+                      bodyLabel,
+                    })}
                     onClick={() => openEditor(vehicle.id)}
                     onKeyDown={(event) => {
                       if (event.key !== "Enter" && event.key !== " ") return;
@@ -311,7 +316,7 @@ export function Step3VehicleSpecifications() {
                     <TableCell className="font-price text-[13px]">
                       {vehicle.payloadKg === undefined
                         ? "—"
-                        : `${vehicle.payloadKg.toLocaleString("en-US")} kg`}
+                        : t("payloadKg", { payload: vehicle.payloadKg })}
                     </TableCell>
                     <TableCell className="pr-4 text-right">
                       <span
@@ -323,7 +328,7 @@ export function Step3VehicleSpecifications() {
                               : "border-transparent bg-muted text-muted-foreground"
                         }`}
                       >
-                        {ready ? "Ready" : "Incomplete"}
+                        {ready ? t("ready") : t("incomplete")}
                       </span>
                     </TableCell>
                   </TableRow>
@@ -369,7 +374,7 @@ export function Step3VehicleSpecifications() {
           onToast={showToast}
           onSave={(values) => {
             handleSaveVehicle(editingVehicle.id, values);
-            showToast(`Vehicle ${editingIndex + 1} saved.`);
+            showToast(t("vehicleSaved", { number: editingIndex + 1 }));
             return true;
           }}
         />

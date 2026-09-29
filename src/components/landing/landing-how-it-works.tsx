@@ -1,7 +1,4 @@
-import {
-  DEFAULT_HOME_PAGE_CONTENT,
-  type HowItWorksContent,
-} from "@/lib/admin/home-page-content";
+import { type HowItWorksContent } from "@/lib/admin/home-page-content";
 
 /**
  * `content` comes from the matching `HomePageSection` row when one exists, and
@@ -18,11 +15,7 @@ import {
  * two-element deviation from the design. `aside` is optional in the contract,
  * so it is rendered only when a row actually carries one.
  */
-export function LandingHowItWorks({
-  content = DEFAULT_HOME_PAGE_CONTENT.how_it_works,
-}: {
-  content?: HowItWorksContent;
-}) {
+export function LandingHowItWorks({ content }: { content: HowItWorksContent }) {
   return (
     <section
       id="how"

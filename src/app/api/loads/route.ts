@@ -854,7 +854,7 @@ export async function GET(request: Request): Promise<NextResponse> {
 
   const profileMissingError =
     role === "COMPANY"
-      ? "Your company profile isn't set up yet."
+      ? t("errors.loads.yourCompanyProfileIsnTSetUp")
       : t("common.shared.yourDriverProfileIsnTSet");
 
   const account = await resolveHubAccount();

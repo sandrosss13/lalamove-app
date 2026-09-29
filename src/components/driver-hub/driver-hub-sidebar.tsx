@@ -9,7 +9,10 @@ import type {
 import { Link } from "@/i18n/navigation";
 import { SampleNote } from "@/components/driver-hub/hub-primitives";
 import type { HubPersona } from "@/lib/dashboard/hub/account";
-import { SAMPLE_WEEKLY_INCENTIVE } from "@/lib/dashboard/hub/sample";
+import {
+  localizeSampleCopy,
+  SAMPLE_WEEKLY_INCENTIVE,
+} from "@/lib/dashboard/hub/sample";
 import { cn } from "@/lib/utils";
 
 /** The brand orange. It has no `--color-*` token, so it is spelled out — the
@@ -142,7 +145,12 @@ export function DriverHubSidebar({
  */
 function WeeklyIncentiveCard() {
   const t = useTranslations("driverHub.driverHubSidebar");
-  const { jobsDone, jobsTarget, note } = SAMPLE_WEEKLY_INCENTIVE;
+  const tRoot = useTranslations();
+  // Sampled copy, swapped for its catalog entry in the active locale.
+  const { jobsDone, jobsTarget, note } = localizeSampleCopy(
+    SAMPLE_WEEKLY_INCENTIVE,
+    tRoot,
+  );
 
   // Clamped so a future target of 0 (or an overshoot) cannot paint a fill
   // wider than its track.
@@ -179,10 +187,7 @@ function WeeklyIncentiveCard() {
         />
       </div>
       <p className="text-xs leading-[1.4] text-muted-foreground">{note}</p>
-      <SampleNote
-        note="Needs an incentive/bonus model — the schema records no weekly target or bonus."
-        className="mt-2.5"
-      />
+      <SampleNote note={t("incentiveSampleNote")} className="mt-2.5" />
     </section>
   );
 }

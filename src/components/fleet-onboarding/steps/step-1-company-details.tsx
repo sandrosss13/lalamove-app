@@ -107,20 +107,19 @@ const PRIMARY_CTA_CLASS =
   "h-12 cursor-pointer rounded-[11px] bg-onboarding-accent px-[30px] text-[15px] font-semibold tracking-[-0.01em] text-white transition-colors hover:bg-onboarding-accent-hover focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50";
 
 const COMPANY_ENDPOINT = "/api/logistics-company";
-const SAVE_FALLBACK =
-  "We couldn't save the company details. Check your connection and try again.";
-const VALIDATION_TOAST = "Fix the highlighted fields to continue.";
-const CORRECTION_SAVED_TOAST = "Company details updated.";
+/** Message keys in `fleet.step1CompanyDetails`, translated at render. */
+const SAVE_FALLBACK_KEY = "saveFailed";
+const VALIDATION_TOAST_KEY = "fixHighlightedFields";
+const CORRECTION_SAVED_TOAST_KEY = "companyDetailsUpdated";
 
 /** Full message path, translated at render. */
 const CITY_PLACEHOLDER_EMPTY_KEY =
   "onboarding.step1AuthPersonal.startTypingTbilisiBatumiKutaisi";
-const CITY_PLACEHOLDER_MORE = "Add another city…";
+const CITY_PLACEHOLDER_MORE_KEY = "addAnotherCity";
 const IBAN_PLACEHOLDER = "GE29 NB00 0000 0101 9049 17";
-const PAYOUT_HINT =
-  "Order revenue is settled to this account weekly. It must belong to the registered entity.";
+const PAYOUT_HINT_KEY = "payoutHint";
 /** Appended in correction mode, where the seeded value is masked (§8). */
-const PAYOUT_REENTRY_HINT = "Re-enter the full account number to confirm it.";
+const PAYOUT_REENTRY_HINT_KEY = "payoutReentryHint";
 
 /**
  * Reads an `{ error }` body without letting a non-JSON response (an HTML error
@@ -145,12 +144,16 @@ async function readErrorMessage(
  * seeding rule for which sub-screen opens first is "does the saved address
  * already pass this?". There is exactly one email predicate in this file, and
  * this is it — `collectProblems` calls it rather than restating the pattern.
+ *
+ * Like every rule below it returns a message *key* in
+ * `fleet.step1CompanyDetails`, not copy: these are module-level functions and
+ * cannot call a hook, so the components translate the key where they render it.
  */
 function emailProblem(value: string | undefined): string | undefined {
   const email = (value ?? "").trim();
-  if (!email) return "Enter a company email.";
+  if (!email) return "enterCompanyEmail";
   if (!EMAIL_PATTERN.test(email)) {
-    return "That does not look like an email address.";
+    return "invalidEmail";
   }
   return undefined;
 }
@@ -168,9 +171,9 @@ function emailProblem(value: string | undefined): string | undefined {
  */
 function phoneProblem(value: string | undefined): string | undefined {
   const digits = (value ?? "").replace(/\D/g, "");
-  if (!digits) return "Enter the company phone number.";
+  if (!digits) return "enterCompanyPhone";
   if (digits.length < MIN_PHONE_DIGITS || digits.length > MAX_PHONE_DIGITS) {
-    return "That is not a valid number (10–15 digits).";
+    return "invalidPhone";
   }
   return undefined;
 }
@@ -178,7 +181,8 @@ function phoneProblem(value: string | undefined): string | undefined {
 /**
  * Every rule this step enforces, evaluated together so a failed Continue can
  * light up *all* the offending fields at once rather than walking the company
- * through them one at a time. Messages are the design's, verbatim.
+ * through them one at a time. Messages are the design's, verbatim, returned as
+ * message keys (see `emailProblem`).
  *
  * `phone` is the one mode-dependent rule, and it is gated rather than always-on
  * for a reason. In `"draft"` the wizard never asks for a number — it is carried
@@ -204,24 +208,24 @@ function collectProblems(
 
   const companyName = (company.companyName ?? "").trim();
   if (!companyName) {
-    problems.companyName = "Enter the registered company name.";
+    problems.companyName = "enterCompanyName";
   } else if (companyName.length < MIN_COMPANY_NAME_LENGTH) {
-    problems.companyName = "That looks too short.";
+    problems.companyName = "tooShort";
   }
 
   const vatId = (company.vatId ?? "").trim();
   if (!vatId) {
-    problems.vatId = "Enter the VAT or tax ID.";
+    problems.vatId = "enterVatId";
   } else if (!VAT_ID_PATTERN.test(vatId)) {
-    problems.vatId = "A Georgian tax ID is 9 digits.";
+    problems.vatId = "invalidVatId";
   }
 
   if (!(company.registeredAddress ?? "").trim()) {
-    problems.registeredAddress = "Enter the registered address.";
+    problems.registeredAddress = "enterRegisteredAddress";
   }
 
   if ((company.citiesOfOperation ?? []).length === 0) {
-    problems.citiesOfOperation = "Select at least one city of operation.";
+    problems.citiesOfOperation = "selectCity";
   }
 
   const contactName = (company.contactName ?? "").trim();
@@ -229,13 +233,13 @@ function collectProblems(
     .split(/\s+/)
     .filter((part) => part !== "");
   if (!contactName) {
-    problems.contactName = "Enter the contact person.";
+    problems.contactName = "enterContactPerson";
   } else if (contactNameParts.length < 2) {
-    problems.contactName = "First and last name.";
+    problems.contactName = "firstAndLastName";
   }
 
   if (!(company.contactRole ?? "").trim()) {
-    problems.contactRole = "Required.";
+    problems.contactRole = "required";
   }
 
   // Checked in both modes even though only correction mode renders a field for
@@ -250,9 +254,9 @@ function collectProblems(
   // Whitespace-free, matching how the server measures it.
   const bankAccountIban = (company.bankAccountIban ?? "").replace(/\s+/g, "");
   if (!bankAccountIban) {
-    problems.bankAccountIban = "Enter the payout account.";
+    problems.bankAccountIban = "enterPayoutAccount";
   } else if (bankAccountIban.length < MIN_IBAN_LENGTH) {
-    problems.bankAccountIban = "A Georgian IBAN is 22 characters.";
+    problems.bankAccountIban = "invalidIban";
   }
 
   return problems;
@@ -456,12 +460,13 @@ export function Step1CompanyDetails() {
    * inbox rather than the address one person registered with types over it.
    */
   const email = seed.contactEmail ?? "";
-  const emailError = emailTouched ? emailProblem(email) : undefined;
+  const emailErrorKey = emailTouched ? emailProblem(email) : undefined;
+  const emailError = emailErrorKey !== undefined ? t(emailErrorKey) : undefined;
 
   function handleEmailContinue() {
     if (emailProblem(email) !== undefined) {
       setEmailTouched(true);
-      showToast(VALIDATION_TOAST, "error");
+      showToast(t(VALIDATION_TOAST_KEY), "error");
       return;
     }
 
@@ -690,7 +695,8 @@ export function CompanyDetailsForm({
 
   /** The message to show under `field`, or `undefined` while it stays quiet. */
   function errorFor(field: CompanyField): string | undefined {
-    return touched[field] ? problems[field] : undefined;
+    const key = touched[field] ? problems[field] : undefined;
+    return key !== undefined ? t(key) : undefined;
   }
 
   function idFor(field: CompanyField): string {
@@ -782,7 +788,7 @@ export function CompanyDetailsForm({
       });
       // An open dropdown would cover the fields the toast is pointing at.
       setCityOpen(false);
-      showToast(VALIDATION_TOAST, "error");
+      showToast(t(VALIDATION_TOAST_KEY), "error");
       return;
     }
 
@@ -825,11 +831,14 @@ export function CompanyDetailsForm({
       if (!response.ok) {
         // Shown as-is, so the 409 "This phone number is already registered to
         // another account." reaches the company rather than being swallowed.
-        showToast(await readErrorMessage(response, SAVE_FALLBACK), "error");
+        showToast(
+          await readErrorMessage(response, t(SAVE_FALLBACK_KEY)),
+          "error",
+        );
         return; // Stay on the step; the details are not stored.
       }
     } catch {
-      showToast(SAVE_FALLBACK, "error");
+      showToast(t(SAVE_FALLBACK_KEY), "error");
       return;
     } finally {
       setSubmitting(false);
@@ -840,7 +849,7 @@ export function CompanyDetailsForm({
     // same transaction, so the status screen has to re-read to see the
     // resubmit gate open.
     if (mode === "correction") {
-      showToast(CORRECTION_SAVED_TOAST);
+      showToast(t(CORRECTION_SAVED_TOAST_KEY));
       await refetch();
     }
 
@@ -852,7 +861,7 @@ export function CompanyDetailsForm({
   );
   const cityPlaceholder =
     selectedCities.length > 0
-      ? CITY_PLACEHOLDER_MORE
+      ? t(CITY_PLACEHOLDER_MORE_KEY)
       : tRoot(CITY_PLACEHOLDER_EMPTY_KEY);
   const citiesError = errorFor("citiesOfOperation");
 
@@ -950,7 +959,7 @@ export function CompanyDetailsForm({
                     key={option.value}
                     type="button"
                     onClick={() => toggleCity(option)}
-                    aria-label={`${tShared("remove")} ${option.label}`}
+                    aria-label={t("removeCity", { city: option.label })}
                     className="flex cursor-pointer items-center gap-2 rounded-[20px] border border-onboarding-accent bg-onboarding-accent/6 py-1.5 pr-2.5 pl-3 transition-colors hover:bg-onboarding-accent/12 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
                   >
                     <span className="text-[13px] font-semibold">
@@ -1222,8 +1231,8 @@ export function CompanyDetailsForm({
           error={errorFor("bankAccountIban")}
           hint={
             mode === "correction"
-              ? `${PAYOUT_HINT} ${PAYOUT_REENTRY_HINT}`
-              : PAYOUT_HINT
+              ? `${t(PAYOUT_HINT_KEY)} ${t(PAYOUT_REENTRY_HINT_KEY)}`
+              : t(PAYOUT_HINT_KEY)
           }
         >
           <Input
@@ -1267,7 +1276,7 @@ export function CompanyDetailsForm({
           disabled={submitting}
           className={PRIMARY_CTA_CLASS}
         >
-          {submitting ? "Saving…" : tShared("continue")}
+          {submitting ? t("saving") : tShared("continue")}
         </button>
       </div>
     </div>

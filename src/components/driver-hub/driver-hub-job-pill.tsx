@@ -1,11 +1,14 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Link } from "@/i18n/navigation";
+import type { Translator } from "@/i18n/translator";
 import type { HubHeaderJob } from "@/lib/dashboard/hub/header";
 import type { HubPersona } from "@/lib/dashboard/hub/account";
 import { cn } from "@/lib/utils";
@@ -54,8 +57,8 @@ const ACCENT_BG = "bg-[oklch(64%_0.19_48)]";
 const JOBS_LIST_HREF = "/dashboard/jobs";
 
 /** The design's footer link copy, one per persona shape. */
-const FLEET_LINK_LABEL = "View all jobs in progress";
-const SINGLE_DRIVER_LINK_LABEL = "Open this job";
+const FLEET_LINK_LABEL_KEY = "driverHub.driverHubJobPill.viewAllJobsInProgress";
+const SINGLE_DRIVER_LINK_LABEL_KEY = "driverHub.driverHubJobPill.openThisJob";
 
 export type DriverHubJobPillProps = {
   /** Echoed from `HubHeaderData.persona`; `"BUSINESS"` is the fleet shape. */
@@ -82,11 +85,12 @@ function jobPillLabel(
   persona: HubPersona,
   jobsInProgressCount: number,
   jobs: readonly HubHeaderJob[],
+  t: Translator,
 ): string {
   if (persona === "BUSINESS") {
-    return jobsInProgressCount === 1
-      ? "1 job in progress"
-      : `${jobsInProgressCount} jobs in progress`;
+    return t("driverHub.driverHubJobPill.jobsInProgress", {
+      count: jobsInProgressCount,
+    });
   }
 
   // `jobs[0]` exists wherever this renders — the caller drops the whole surface
@@ -95,7 +99,9 @@ function jobPillLabel(
   // fail, and a silent wrong string is worse than the reference being absent.
   const shortId = jobs[0]?.shortId;
 
-  return shortId ? `Job in progress · ${shortId}` : "Job in progress";
+  return shortId
+    ? t("driverHub.driverHubJobPill.jobInProgressWithId", { id: shortId })
+    : t("driverHub.driverHubJobPill.jobInProgress");
 }
 
 /**
@@ -121,15 +127,20 @@ export function DriverHubJobPill({
   open,
   onOpenChange,
 }: DriverHubJobPillProps) {
+  const t = useTranslations();
+
   // The design's `showActiveJob`: no live jobs means no pill at all, rather
   // than a pill that opens onto an empty list.
   if (jobs.length === 0) {
     return null;
   }
 
-  const label = jobPillLabel(persona, jobsInProgressCount, jobs);
-  const linkLabel =
-    persona === "BUSINESS" ? FLEET_LINK_LABEL : SINGLE_DRIVER_LINK_LABEL;
+  const label = jobPillLabel(persona, jobsInProgressCount, jobs, t);
+  const linkLabel = t(
+    persona === "BUSINESS"
+      ? FLEET_LINK_LABEL_KEY
+      : SINGLE_DRIVER_LINK_LABEL_KEY,
+  );
 
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
@@ -278,6 +289,8 @@ export function DriverHubJobBar({
   jobsInProgressCount,
   jobs,
 }: DriverHubJobBarProps) {
+  const t = useTranslations();
+
   if (jobs.length === 0) {
     return null;
   }
@@ -292,7 +305,7 @@ export function DriverHubJobBar({
         className={cn("size-[7px] flex-none rounded-full", ACCENT_BG)}
       />
       <span className="truncate">
-        {jobPillLabel(persona, jobsInProgressCount, jobs)}
+        {jobPillLabel(persona, jobsInProgressCount, jobs, t)}
       </span>
     </Link>
   );

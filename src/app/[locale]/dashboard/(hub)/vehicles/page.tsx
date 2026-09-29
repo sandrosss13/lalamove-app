@@ -62,10 +62,8 @@ export default async function VehiclesPage() {
     return null;
   }
 
-  const [data, t] = await Promise.all([
-    getHubVehicles(account),
-    getTranslations(),
-  ]);
+  const t = await getTranslations();
+  const data = await getHubVehicles(account, t);
 
   // Running-cost labels are sampled copy; see `SAMPLE_COPY_KEYS`.
   return <VehiclesScreen data={localizeSampleCopy(data, t)} />;

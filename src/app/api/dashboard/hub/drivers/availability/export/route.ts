@@ -107,11 +107,7 @@ type ExportScope = "view" | "day" | "all";
  * it and gets forwarded to people who never saw the board, so the distinction
  * has to travel with the file rather than live in a legend they will not read.
  */
-const GAPS_NOTE =
-  "An 'Available' row means no committed work in that stretch — NOT a confirmed " +
-  "available driver. This platform records no shifts, rest periods or " +
-  "unavailability, so nothing here says whether a driver is on duty. Confirm " +
-  "with the driver before dispatching.";
+const GAPS_NOTE_KEY = "errors.dashboardHubDriversAvailabilityExport.gapsNote";
 
 /**
  * Why the last column exists, said in the sheet itself.
@@ -121,10 +117,15 @@ const GAPS_NOTE =
  * reader planning a day around "09:00 – 10:00" is entitled to know which of
  * those two numbers was measured.
  */
-const DERIVED_END_NOTE =
-  "Derived end = Yes means the End time was not recorded and was estimated so " +
-  "the job could be shown at all. Treat those End and Hours values as " +
-  "placeholders, not measurements.";
+const DERIVED_END_NOTE_KEY =
+  "errors.dashboardHubDriversAvailabilityExport.derivedEndNote";
+
+/**
+ * The request-locale translator, resolving full key paths. The workbook is
+ * written in the reader's language: headers, header block, notes and the
+ * status column all go through it.
+ */
+type RequestTranslator = Awaited<ReturnType<typeof getRequestTranslations>>;
 
 /** One column of the sheet, in the handoff's order. */
 type SheetColumn = {
@@ -146,24 +147,53 @@ type SheetColumn = {
  * default is a workbook that leaks them every time somebody forwards a capacity
  * report.
  */
-function columnsFor(includePhone: boolean): SheetColumn[] {
+function columnsFor(
+  includePhone: boolean,
+  t: RequestTranslator,
+): SheetColumn[] {
   return [
-    { header: "Date", width: 12 },
-    { header: "Driver", width: 24 },
-    { header: "Plate", width: 12 },
-    { header: "Vehicle", width: 22 },
-    { header: "Class", width: 20 },
-    { header: "Body", width: 16 },
-    { header: "Capacity (kg)", width: 14, numFmt: "#,##0" },
-    { header: "City", width: 14 },
-    ...(includePhone ? [{ header: "Driver phone", width: 18 }] : []),
-    { header: "Status", width: 20 },
-    { header: "Start", width: 9 },
-    { header: "End", width: 9 },
-    { header: "Hours", width: 9, numFmt: HOURS_FORMAT },
-    { header: "Reference", width: 14 },
-    { header: "Route", width: 38 },
-    { header: "Derived end", width: 13 },
+    { header: t("common.shared.date"), width: 12 },
+    { header: t("common.shared.driver"), width: 24 },
+    { header: t("common.shared.plate"), width: 12 },
+    { header: t("common.shared.vehicle"), width: 22 },
+    { header: t("common.shared.class"), width: 20 },
+    { header: t("common.shared.body"), width: 16 },
+    {
+      header: t("errors.dashboardHubDriversAvailabilityExport.capacityKg"),
+      width: 14,
+      numFmt: "#,##0",
+    },
+    { header: t("common.shared.city"), width: 14 },
+    ...(includePhone
+      ? [
+          {
+            header: t(
+              "errors.dashboardHubDriversAvailabilityExport.driverPhone",
+            ),
+            width: 18,
+          },
+        ]
+      : []),
+    { header: t("common.shared.status"), width: 20 },
+    {
+      header: t("errors.dashboardHubDriversAvailabilityExport.start"),
+      width: 9,
+    },
+    { header: t("errors.dashboardHubDriversAvailabilityExport.end"), width: 9 },
+    {
+      header: t("errors.dashboardHubDriversAvailabilityExport.hours"),
+      width: 9,
+      numFmt: HOURS_FORMAT,
+    },
+    {
+      header: t("errors.dashboardHubDriversAvailabilityExport.reference"),
+      width: 14,
+    },
+    { header: t("common.shared.route"), width: 38 },
+    {
+      header: t("errors.dashboardHubDriversAvailabilityExport.derivedEnd"),
+      width: 13,
+    },
   ];
 }
 
@@ -466,7 +496,7 @@ function linesFor(
         // A gap's bounds are the edges of the blocks around it and of the
         // window, all of which are real. Nothing about it was invented — though
         // a gap beside a derived-end bar inherits that bar's uncertainty, which
-        // is what `DERIVED_END_NOTE` tells the reader to look for.
+        // is what `DERIVED_END_NOTE_KEY` tells the reader to look for.
         derivedEnd: false,
       });
     }
@@ -481,6 +511,7 @@ function cellsFor(
   row: HubAvailabilityRow,
   dayKey: string,
   includePhone: boolean,
+  t: RequestTranslator,
 ): (string | number)[] {
   return [
     // Written as text, not as an Excel date: this is a calendar day in Tbilisi,
@@ -497,13 +528,17 @@ function cellsFor(
     line.vehicle?.capacityKg ?? EM_DASH,
     row.cityLabel,
     ...(includePhone ? [row.phone] : []),
-    AVAILABILITY_STATUS[line.status].label,
+    t(
+      `driverHub.fleetAvailabilityFormat.${AVAILABILITY_STATUS[line.status].labelKey}`,
+    ),
     formatHour(line.start),
     formatHour(line.end),
     roundHours(line.end - line.start),
     line.reference ?? EM_DASH,
     line.route ?? EM_DASH,
-    line.derivedEnd ? "Yes" : "No",
+    line.derivedEnd
+      ? t("errors.dashboardHubDriversAvailabilityExport.yes")
+      : t("errors.dashboardHubDriversAvailabilityExport.no"),
   ];
 }
 
@@ -520,9 +555,12 @@ function addAvailabilitySheet(
     includeGaps: boolean;
     includePhone: boolean;
   },
+  t: RequestTranslator,
 ): void {
-  const sheet = workbook.addWorksheet("Driver availability");
-  const columns = columnsFor(options.includePhone);
+  const sheet = workbook.addWorksheet(
+    t("errors.dashboardHubDriversAvailabilityExport.sheetName"),
+  );
+  const columns = columnsFor(options.includePhone, t);
 
   // Widths and number formats only — the header titles are written by hand
   // below, because a sheet that opens with a header block cannot have exceljs
@@ -533,24 +571,35 @@ function addAvailabilitySheet(
   }));
 
   const headerBlock: [string, string][] = [
-    ["Company", account.displayName],
-    ["Date", data.dayKey],
-    ["Window", `${formatHour(options.from)}–${formatHour(options.to)}`],
+    [t("common.shared.company"), account.displayName],
+    [t("common.shared.date"), data.dayKey],
     [
-      "Scope",
-      options.scope === "all"
-        ? "All drivers, whole day (filters ignored)"
-        : `Filtered drivers, ${options.scope === "day" ? "whole day" : "current view"}`,
+      t("common.shared.window"),
+      `${formatHour(options.from)}–${formatHour(options.to)}`,
     ],
-    ["Drivers", String(options.rows.length)],
+    [
+      t("common.shared.scope"),
+      options.scope === "all"
+        ? t("errors.dashboardHubDriversAvailabilityExport.allDriversWholeDay")
+        : t("errors.dashboardHubDriversAvailabilityExport.filteredDrivers", {
+            range: options.scope === "day" ? "day" : "view",
+          }),
+    ],
+    [t("common.shared.drivers"), String(options.rows.length)],
     // Both notes ride in the header block rather than in a footer: a reader who
     // scrolls to the bottom of a 400-row sheet has already formed their opinion
     // of what the rows mean.
-    ["Derived ends", DERIVED_END_NOTE],
+    [
+      t("errors.dashboardHubDriversAvailabilityExport.derivedEnds"),
+      t(DERIVED_END_NOTE_KEY),
+    ],
   ];
 
   if (options.includeGaps) {
-    headerBlock.push(["Available rows", GAPS_NOTE]);
+    headerBlock.push([
+      t("errors.dashboardHubDriversAvailabilityExport.availableRows"),
+      t(GAPS_NOTE_KEY),
+    ]);
   }
 
   for (const line of headerBlock) {
@@ -579,7 +628,7 @@ function addAvailabilitySheet(
       options.to,
       options.includeGaps,
     )) {
-      sheet.addRow(cellsFor(line, row, data.dayKey, options.includePhone));
+      sheet.addRow(cellsFor(line, row, data.dayKey, options.includePhone, t));
     }
   }
 }
@@ -625,6 +674,7 @@ export async function GET(request: Request): Promise<NextResponse> {
   const data = await getHubFleetAvailability(
     account,
     searchParams.get("date") ?? "",
+    t,
   );
 
   // `null` is the loader's "not a fleet owner" answer and means only that — a
@@ -664,18 +714,26 @@ export async function GET(request: Request): Promise<NextResponse> {
       : data.rows.filter((row) => matchesFilters(row, filters, from, to));
 
   const workbook = new Workbook();
-  workbook.creator = "Driver Hub";
+  workbook.creator = t(
+    "errors.dashboardHubDriversAvailabilityExport.driverHub",
+  );
   workbook.created = new Date();
 
-  addAvailabilitySheet(workbook, account, data, {
-    rows,
-    from,
-    to,
-    scope,
-    // The dialog's defaults: free slots on, phone numbers off.
-    includeGaps: parseFlag(searchParams.get("gaps"), true),
-    includePhone: parseFlag(searchParams.get("phone"), false),
-  });
+  addAvailabilitySheet(
+    workbook,
+    account,
+    data,
+    {
+      rows,
+      from,
+      to,
+      scope,
+      // The dialog's defaults: free slots on, phone numbers off.
+      includeGaps: parseFlag(searchParams.get("gaps"), true),
+      includePhone: parseFlag(searchParams.get("phone"), false),
+    },
+    t,
+  );
 
   const buffer = await workbook.xlsx.writeBuffer();
 

@@ -60,10 +60,7 @@ export default function ChangePasswordPage() {
 
     if (changePasswordError) {
       setLoading(false);
-      setError(
-        changePasswordError.message ??
-          "Could not change your password. Please try again.",
-      );
+      setError(changePasswordError.message ?? t("couldNotChangeYourPassword"));
       return;
     }
 
@@ -146,7 +143,7 @@ export default function ChangePasswordPage() {
           disabled={loading}
           className="rounded border px-3 py-2 font-medium hover:opacity-70 disabled:opacity-50"
         >
-          {loading ? "Saving…" : "Save password"}
+          {loading ? t("saving") : t("savePassword")}
         </button>
       </form>
     </main>

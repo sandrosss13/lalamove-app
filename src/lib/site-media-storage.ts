@@ -97,6 +97,13 @@ export const UNSUPPORTED_CONTENT_TYPE_ERROR =
   "Only JPG, PNG and WebP images are accepted.";
 
 /**
+ * Catalog key for `UNSUPPORTED_CONTENT_TYPE_ERROR`, for the route's 400 in the
+ * content manager's locale. The English constant stays for the thrown error.
+ */
+export const UNSUPPORTED_CONTENT_TYPE_ERROR_KEY =
+  "errors.adminContentMedia.unsupportedContentType";
+
+/**
  * Cache lifetime for an uploaded object. Exported because the *browser* is what
  * sets it: the bytes go straight to Storage through a signed upload URL, so the
  * value has to travel with them (see `uploadFileToSignedUrl`). Object paths

@@ -3,10 +3,7 @@
 import { useTranslations } from "next-intl";
 
 import { HubCard, SampleNote } from "@/components/driver-hub/hub-primitives";
-import {
-  formatGel,
-  pluralise,
-} from "@/components/driver-hub/screens/earnings-format";
+import { formatGel } from "@/components/driver-hub/screens/earnings-format";
 import type { SampleEarningsExtras } from "@/lib/dashboard/hub/sample";
 import { cn } from "@/lib/utils";
 
@@ -63,13 +60,6 @@ const POSITIVE_VALUE_CLASSES =
 const ACCENT_DOT_CLASSES =
   "size-1.5 shrink-0 rounded-full bg-[oklch(64%_0.19_48)]";
 
-const SAMPLED_LINES_NOTE =
-  "Tips, incentives and adjustments are placeholders: Order has no tipAmount " +
-  "column, nothing records that a bonus was earned, and no deduction is " +
-  "stored against a payout. Retire with Order.tipAmount, an Incentive model " +
-  "and a PayoutAdjustment model. Trip fares are real, and the range total " +
-  "adds all four lines together — so it is part estimate too.";
-
 type BreakdownLine = {
   label: string;
   note: string;
@@ -119,16 +109,17 @@ export function EarningsBreakdownCard({
 }: EarningsBreakdownCardProps) {
   const t = useTranslations("driverHub.earningsBreakdownCard");
   const tShared = useTranslations("common.shared");
+  const sampledLinesNote = t("sampledLinesNote");
   const lines: readonly BreakdownLine[] = [
     {
       label: t("tripFares"),
-      note: pluralise(jobsCompleted, "completed job"),
+      note: t("completedJobsCount", { count: jobsCompleted }),
       amountGel: grossFares,
       sampled: false,
     },
     {
       label: t("tips"),
-      note: pluralise(extras.tippingCustomers, "customer"),
+      note: t("customersCount", { count: extras.tippingCustomers }),
       amountGel: extras.tipsGel,
       sampled: true,
     },
@@ -164,7 +155,7 @@ export function EarningsBreakdownCard({
       action={
         <SampleNote
           label={t("tipsIncentivesAdjustments")}
-          note={SAMPLED_LINES_NOTE}
+          note={sampledLinesNote}
         />
       }
     >
@@ -181,12 +172,12 @@ export function EarningsBreakdownCard({
                   <>
                     <span
                       aria-hidden="true"
-                      title={SAMPLED_LINES_NOTE}
+                      title={sampledLinesNote}
                       className={ACCENT_DOT_CLASSES}
                     />
                     <span className="sr-only">
                       {" "}
-                      — sample data. {SAMPLED_LINES_NOTE}
+                      {t("sampleDataSr")} {sampledLinesNote}
                     </span>
                   </>
                 ) : null}

@@ -47,6 +47,20 @@ export const CONTENT_LOCALE_LABELS: Record<ContentLocale, string> = {
   EN: "English",
 };
 
+/**
+ * The same two maps as full message paths, resolved where they render. The
+ * English maps above stay exported for the templates table until it switches.
+ */
+export const MESSAGING_CHANNEL_LABEL_KEYS: Record<MessagingChannel, string> = {
+  EMAIL: "admin.messagingTemplateFormDialog.channelEmail",
+  SMS: "admin.messagingTemplateFormDialog.channelSms",
+};
+
+export const CONTENT_LOCALE_LABEL_KEYS: Record<ContentLocale, string> = {
+  KA: "common.shared.georgian",
+  EN: "common.shared.english",
+};
+
 /** Picker order for each enum. */
 const CHANNEL_OPTIONS: MessagingChannel[] = ["EMAIL", "SMS"];
 const LOCALE_OPTIONS: ContentLocale[] = ["KA", "EN"];
@@ -204,8 +218,8 @@ export function MessagingTemplateFormDialog({
           await readErrorMessage(
             response,
             isEditing
-              ? "Could not save this template."
-              : "Could not create this template.",
+              ? t("admin.messagingTemplateFormDialog.couldNotSave")
+              : t("admin.messagingTemplateFormDialog.couldNotCreate"),
           ),
         );
         setPending(false);
@@ -236,7 +250,9 @@ export function MessagingTemplateFormDialog({
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <DialogHeader>
             <DialogTitle>
-              {isEditing ? "Edit template" : "New template"}
+              {isEditing
+                ? t("admin.messagingTemplateFormDialog.editTemplate")
+                : t("admin.messagingTemplateFormDialog.newTemplate")}
             </DialogTitle>
             <DialogDescription>
               {t(
@@ -291,7 +307,7 @@ export function MessagingTemplateFormDialog({
                   <SelectContent>
                     {CHANNEL_OPTIONS.map((option) => (
                       <SelectItem key={option} value={option}>
-                        {MESSAGING_CHANNEL_LABELS[option]}
+                        {t(MESSAGING_CHANNEL_LABEL_KEYS[option])}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -316,7 +332,7 @@ export function MessagingTemplateFormDialog({
                   <SelectContent>
                     {LOCALE_OPTIONS.map((option) => (
                       <SelectItem key={option} value={option}>
-                        {CONTENT_LOCALE_LABELS[option]}
+                        {t(CONTENT_LOCALE_LABEL_KEYS[option])}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -355,14 +371,14 @@ export function MessagingTemplateFormDialog({
                 rows={6}
                 value={body}
                 onChange={(event) => setBody(event.target.value)}
-                placeholder="Hi {{clientName}}, your order {{orderId}} is confirmed."
+                placeholder={t("admin.messagingTemplateFormDialog.bodyExample")}
                 disabled={pending}
               />
               <p
                 id="messaging-template-body-help"
                 className="text-xs text-muted-foreground"
               >
-                Placeholders filled in when the message is sent:{" "}
+                {t("admin.messagingTemplateFormDialog.placeholdersFilledIn")}{" "}
                 {SUPPORTED_PLACEHOLDERS.map((placeholder, index) => (
                   <span key={placeholder}>
                     {index > 0 ? ", " : null}
@@ -403,10 +419,10 @@ export function MessagingTemplateFormDialog({
             </Button>
             <Button type="submit" disabled={pending}>
               {pending
-                ? "Saving…"
+                ? t("common.shared.saving")
                 : isEditing
-                  ? "Save changes"
-                  : "Create template"}
+                  ? t("account.accountProfileForm.saveChanges")
+                  : t("admin.messagingTemplateFormDialog.createTemplate")}
             </Button>
           </DialogFooter>
         </form>
