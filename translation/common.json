@@ -14,9 +14,64 @@
     "ka": "შეკვეთის განთავსება",
     "_source": "src/components/auth-status.tsx"
   },
+  "authStatus.signOut": {
+    "en": "Sign out",
+    "ka": "გასვლა",
+    "_source": "src/components/auth-status.tsx"
+  },
+  "authStatus.signingOut": {
+    "en": "Signing out…",
+    "ka": "გასვლა…",
+    "_source": "src/components/auth-status.tsx"
+  },
+  "cargoCategory.appliances": {
+    "en": "Home & Office Appliances",
+    "ka": "საყოფაცხოვრებო და საოფისე ტექნიკა",
+    "_source": "src/lib/cargo.ts"
+  },
+  "cargoCategory.constructionMaterials": {
+    "en": "Construction & Hardware Materials",
+    "ka": "სამშენებლო და სამეურნეო მასალები",
+    "_source": "src/lib/cargo.ts"
+  },
+  "cargoCategory.eventEquipment": {
+    "en": "Event & Exhibition Equipment",
+    "ka": "ღონისძიებებისა და გამოფენის აღჭურვილობა",
+    "_source": "src/lib/cargo.ts"
+  },
+  "cargoCategory.fullRelocation": {
+    "en": "Full Relocation",
+    "ka": "სრული გადასახლება",
+    "_source": "src/lib/cargo.ts"
+  },
+  "cargoCategory.furnitureFurnishings": {
+    "en": "Furniture & Furnishings",
+    "ka": "ავეჯი და ინტერიერის ნივთები",
+    "_source": "src/lib/cargo.ts"
+  },
+  "cargoCategory.industrialSupplies": {
+    "en": "Industrial & Commercial Supplies",
+    "ka": "სამრეწველო და კომერციული მასალები",
+    "_source": "src/lib/cargo.ts"
+  },
+  "cargoCategory.retailStock": {
+    "en": "Store & Retail Stock",
+    "ka": "მაღაზიისა და საცალო მარაგი",
+    "_source": "src/lib/cargo.ts"
+  },
+  "companyVehicleForm.adding": {
+    "en": "Adding…",
+    "ka": "ემატება…",
+    "_source": "src/components/company-vehicle-form.tsx"
+  },
   "companyVehicleForm.atLeastOnePhotoIsRequired": {
     "en": "At least one photo is required. You can select several at once.",
     "ka": "სავალდებულოა მინიმუმ ერთი ფოტო. შეგიძლიათ აირჩიოთ რამდენიმე ერთდროულად.",
+    "_source": "src/components/company-vehicle-form.tsx"
+  },
+  "companyVehicleForm.couldNotAddVehicle": {
+    "en": "Could not add this vehicle.",
+    "ka": "ავტომობილის დამატება ვერ მოხერხდა.",
     "_source": "src/components/company-vehicle-form.tsx"
   },
   "companyVehicleForm.eGAa123Bb": {
@@ -54,14 +109,39 @@
     "ka": "მთავარ გვერდზე დასაბრუნებლად აირჩიეთ ენა:",
     "_source": "src/app/not-found.tsx"
   },
+  "pricing.cargoCategoryMustBeOneOf": {
+    "en": "cargoCategory must be one of: {allowed}.",
+    "ka": "cargoCategory უნდა იყოს ერთ-ერთი შემდეგიდან: {allowed}.",
+    "_source": "src/lib/pricing.ts"
+  },
+  "pricing.cargoVehicleMismatch": {
+    "en": "This cargo category cannot be booked with a {vehicleCategory} vehicle; it requires {allowedCategories}.",
+    "ka": "ამ კატეგორიის ტვირთის დაჯავშნა ავტომობილის ტიპით {vehicleCategory} შეუძლებელია; საჭიროა {allowedCategories}.",
+    "_source": "src/lib/pricing.ts"
+  },
+  "pricing.couldNotLocateAddress": {
+    "en": "Could not locate address: {address}",
+    "ka": "მისამართი ვერ მოიძებნა: {address}",
+    "_source": "src/lib/pricing.ts"
+  },
   "pricing.dropoffaddressIsRequired": {
     "en": "dropoffAddress is required.",
     "ka": "ჩაბარების მისამართი სავალდებულოა.",
     "_source": "src/lib/pricing.ts"
   },
+  "pricing.helperCountOutOfRange": {
+    "en": "helperCount must be a whole number between 0 and {max}.",
+    "ka": "helperCount უნდა იყოს მთელი რიცხვი 0-დან {max}-მდე.",
+    "_source": "src/lib/pricing.ts"
+  },
   "pricing.pickupaddressIsRequired": {
     "en": "pickupAddress is required.",
     "ka": "აყვანის მისამართი სავალდებულოა.",
+    "_source": "src/lib/pricing.ts"
+  },
+  "pricing.vehicleTypeCodeMustBeKnown": {
+    "en": "vehicleTypeCode must be a known vehicle type.",
+    "ka": "vehicleTypeCode უნდა იყოს ცნობილი ავტომობილის ტიპი.",
     "_source": "src/lib/pricing.ts"
   },
   "shared.34Abc128": {
@@ -134,6 +214,11 @@
     "ka": "მოქმედებები",
     "_source": "src/app/[locale]/admin/(sections)/content/banners/page.tsx"
   },
+  "shared.activate": {
+    "en": "Activate",
+    "ka": "გააქტიურება",
+    "_source": "src/app/[locale]/admin/(sections)/content/banners/page.tsx"
+  },
   "shared.active": {
     "en": "Active",
     "ka": "აქტიური",
@@ -184,6 +269,11 @@
     "ka": "დამტკიცებულია დისპეტჩერიზაციისთვის",
     "_source": "src/components/driver-onboarding/application-status-screen.tsx"
   },
+  "shared.approxMinutes": {
+    "en": "~{minutes} min",
+    "ka": "~{minutes} წთ",
+    "_source": "src/components/home/route-preview-map.tsx"
+  },
   "shared.assignADriverAndVehicle": {
     "en": "Assign a driver and vehicle",
     "ka": "მძღოლისა და ტრანსპორტის მინიჭება",
@@ -223,6 +313,11 @@
     "en": "Body type",
     "ka": "ძარის ტიპი",
     "_source": "src/components/admin/driver-application-detail-drawer.tsx"
+  },
+  "shared.business": {
+    "en": "Business",
+    "ka": "იურიდიული პირი",
+    "_source": "src/app/[locale]/admin/(sections)/users/clients/page.tsx"
   },
   "shared.cancel": {
     "en": "Cancel",
@@ -449,6 +544,16 @@
     "ka": "წაშლა",
     "_source": "src/app/[locale]/admin/(sections)/content/banners/page.tsx"
   },
+  "shared.deleting": {
+    "en": "Deleting…",
+    "ka": "იშლება…",
+    "_source": "src/app/[locale]/admin/(sections)/content/banners/page.tsx"
+  },
+  "shared.details": {
+    "en": "Details",
+    "ka": "დეტალები",
+    "_source": "src/app/[locale]/admin/(sections)/users/clients/page.tsx"
+  },
   "shared.discountvalueMustBeANumber": {
     "en": "discountValue must be a number.",
     "ka": "discountValue უნდა იყოს რიცხვი.",
@@ -458,6 +563,11 @@
     "en": "Distance",
     "ka": "მანძილი",
     "_source": "src/app/[locale]/checkout/[id]/page.tsx"
+  },
+  "shared.distanceKm": {
+    "en": "{km} km",
+    "ka": "{km} კმ",
+    "_source": "src/components/home/route-preview-map.tsx"
   },
   "shared.done": {
     "en": "Done",
@@ -574,6 +684,11 @@
     "ka": "endsAt უნდა იყოს startsAt-ის შემდეგ.",
     "_source": "src/app/api/admin/content/banners/[id]/route.ts"
   },
+  "shared.english": {
+    "en": "English",
+    "ka": "ინგლისური",
+    "_source": "src/components/admin/content/messaging-template-form-dialog.tsx"
+  },
   "shared.englishEn": {
     "en": "English (EN)",
     "ka": "ინგლისური (EN)",
@@ -593,6 +708,26 @@
     "en": "Export to Excel",
     "ka": "Excel-ში ექსპორტი",
     "_source": "src/app/[locale]/admin/analytics/page.tsx"
+  },
+  "shared.fieldMaxLength": {
+    "en": "{field} must be {max} characters or fewer.",
+    "ka": "{field} არ უნდა აღემატებოდეს {max} სიმბოლოს.",
+    "_source": "src/app/api/admin/content/banners/route.ts"
+  },
+  "shared.fieldMustBeIsoDateOrNull": {
+    "en": "{field} must be an ISO date string or null.",
+    "ka": "{field} უნდა იყოს ISO ფორმატის თარიღი ან null.",
+    "_source": "src/app/api/admin/content/banners/route.ts"
+  },
+  "shared.fieldMustBeOneOf": {
+    "en": "{field} must be one of: {options}.",
+    "ka": "{field} უნდა იყოს ერთ-ერთი შემდეგიდან: {options}.",
+    "_source": "src/app/api/admin/content/banners/route.ts"
+  },
+  "shared.fieldMustBeValidIsoDate": {
+    "en": "{field} must be a valid ISO date string.",
+    "ka": "{field} უნდა იყოს სწორი ISO ფორმატის თარიღი.",
+    "_source": "src/app/api/admin/content/banners/route.ts"
   },
   "shared.filenameIsRequiredAndMustBe": {
     "en": "fileName is required and must be a non-empty string.",
@@ -618,6 +753,11 @@
     "en": "firstName is required and must be a non-empty string.",
     "ka": "firstName სავალდებულოა და არ უნდა იყოს ცარიელი ტექსტი.",
     "_source": "src/app/api/client-profile/route.ts"
+  },
+  "shared.fixedDiscountPositive": {
+    "en": "A fixed-amount discount must be greater than 0.",
+    "ka": "ფიქსირებული ფასდაკლება უნდა იყოს 0-ზე მეტი.",
+    "_source": "src/app/api/admin/finance/promo-campaigns/route.ts"
   },
   "shared.flag": {
     "en": "Flag",
@@ -654,6 +794,11 @@
     "ka": "სრული სახელი",
     "_source": "src/components/driver-hub/screens/drivers-add-panel.tsx"
   },
+  "shared.georgian": {
+    "en": "Georgian",
+    "ka": "ქართული",
+    "_source": "src/components/admin/content/messaging-template-form-dialog.tsx"
+  },
   "shared.georgianKa": {
     "en": "Georgian (KA)",
     "ka": "ქართული (KA)",
@@ -673,6 +818,11 @@
     "en": "Helpers",
     "ka": "დამხმარეები",
     "_source": "src/components/driver-hub/screens/loads-claim-dialogs.tsx"
+  },
+  "shared.hideDetails": {
+    "en": "Hide details",
+    "ka": "დეტალების დამალვა",
+    "_source": "src/app/[locale]/admin/(sections)/users/clients/page.tsx"
   },
   "shared.idNumber": {
     "en": "ID number",
@@ -703,6 +853,11 @@
     "en": "Incentives",
     "ka": "წახალისებები / ბონუსები",
     "_source": "src/components/driver-hub/screens/earnings-breakdown-card.tsx"
+  },
+  "shared.individual": {
+    "en": "Individual",
+    "ka": "ფიზიკური პირი",
+    "_source": "src/app/[locale]/admin/(sections)/users/clients/page.tsx"
   },
   "shared.isactiveMustBeABoolean": {
     "en": "isActive must be a boolean.",
@@ -783,6 +938,11 @@
     "en": "linkUrl must be an http(s) URL or a path starting with /.",
     "ka": "linkUrl უნდა იყოს http(s) URL ან გზა, რომელიც იწყება /-ით.",
     "_source": "src/app/api/admin/content/banners/[id]/route.ts"
+  },
+  "shared.linkurlMustBeStringOrNull": {
+    "en": "linkUrl must be a string or null.",
+    "ka": "linkUrl უნდა იყოს სტრიქონი ან null.",
+    "_source": "src/app/api/admin/content/banners/route.ts"
   },
   "shared.load": {
     "en": "Load",
@@ -919,6 +1079,11 @@
     "ka": "რედაქტირებადი ველები არ არის მითითებული.",
     "_source": "src/app/api/admin/content/messaging-templates/[id]/route.ts"
   },
+  "shared.noMatchesForSearch": {
+    "en": "No results match that search.",
+    "ka": "ძიების შედეგად ვერაფერი მოიძებნა.",
+    "_source": "src/app/[locale]/admin/(sections)/users/clients/page.tsx"
+  },
   "shared.noVehiclesOnThisApplication": {
     "en": "No vehicles on this application.",
     "ka": "ამ განაცხადში ტრანსპორტი არ არის.",
@@ -979,6 +1144,11 @@
     "ka": "შეკვეთები",
     "_source": "src/app/[locale]/admin/(sections)/users/clients/page.tsx"
   },
+  "shared.pageOf": {
+    "en": "Page {page} of {pageCount}",
+    "ka": "გვერდი {page} / {pageCount}",
+    "_source": "src/app/[locale]/admin/(sections)/business/applications/page.tsx"
+  },
   "shared.password": {
     "en": "Password",
     "ka": "პაროლი",
@@ -1013,6 +1183,11 @@
     "en": "Pending",
     "ka": "მოლოდინში",
     "_source": "src/app/[locale]/admin/(sections)/business/applications/page.tsx"
+  },
+  "shared.percentageDiscountRange": {
+    "en": "A percentage discount must be greater than 0 and at most {max}.",
+    "ka": "პროცენტული ფასდაკლება უნდა იყოს 0-ზე მეტი და არაუმეტეს {max}-ისა.",
+    "_source": "src/app/api/admin/finance/promo-campaigns/route.ts"
   },
   "shared.period": {
     "en": "Period",
@@ -1129,6 +1304,11 @@
     "ka": "მიზეზი",
     "_source": "src/components/admin/users/suspend-dialog.tsx"
   },
+  "shared.reasonMaxLength": {
+    "en": "A reason must be {max} characters or fewer.",
+    "ka": "მიზეზი არ უნდა აღემატებოდეს {max} სიმბოლოს.",
+    "_source": "src/app/api/admin/users/[userId]/suspend/route.ts"
+  },
   "shared.refrigeratedVehicle": {
     "en": "Refrigerated Vehicle",
     "ka": "რეფრიჟერატორი (მაცივარი ტრანსპორტი)",
@@ -1148,6 +1328,11 @@
     "en": "Remove",
     "ka": "წაშლა",
     "_source": "src/components/admin/content/admin-image-upload.tsx"
+  },
+  "shared.removing": {
+    "en": "Removing…",
+    "ka": "იშლება…",
+    "_source": "src/app/[locale]/admin/(sections)/content/vehicle-photos/page.tsx"
   },
   "shared.requestBodyMustBeAJson": {
     "en": "Request body must be a JSON object.",
@@ -1193,6 +1378,11 @@
     "en": "savedCardId must be a non-empty string when provided.",
     "ka": "savedCardId მითითებისას უნდა იყოს არაცარიელი ტექსტი.",
     "_source": "src/app/api/orders/[id]/pay/route.ts"
+  },
+  "shared.saving": {
+    "en": "Saving…",
+    "ka": "ინახება…",
+    "_source": "src/components/account-profile-form.tsx"
   },
   "shared.scheduled": {
     "en": "Scheduled",
@@ -1259,6 +1449,16 @@
     "ka": "სორტირების თანმიმდევრობა",
     "_source": "src/components/admin/content/banner-form-dialog.tsx"
   },
+  "shared.sortOrderMustBeIntegerBetween": {
+    "en": "sortOrder must be an integer between {min} and {max}.",
+    "ka": "sortOrder უნდა იყოს მთელი რიცხვი {min}-დან {max}-მდე.",
+    "_source": "src/app/api/admin/content/banners/route.ts"
+  },
+  "shared.sortOrderWholeNumberBetween": {
+    "en": "Sort order must be a whole number between {min} and {max}.",
+    "ka": "რიგითობა უნდა იყოს მთელი რიცხვი {min}-დან {max}-მდე.",
+    "_source": "src/components/admin/content/banner-form-dialog.tsx"
+  },
   "shared.startTheApplicationFirst": {
     "en": "Start the application first.",
     "ka": "ჯერ დაიწყეთ განაცხადი.",
@@ -1288,6 +1488,11 @@
     "en": "Surname",
     "ka": "გვარი",
     "_source": "src/components/account-profile-form.tsx"
+  },
+  "shared.suspend": {
+    "en": "Suspend",
+    "ka": "შეჩერება",
+    "_source": "src/app/[locale]/admin/(sections)/users/clients/page.tsx"
   },
   "shared.suspended": {
     "en": "Suspended",
@@ -1428,6 +1633,11 @@
     "en": "Unfinished application",
     "ka": "დაუსრულებელი განაცხადი",
     "_source": "src/components/driver-onboarding/onboarding-wizard-shell.tsx"
+  },
+  "shared.unsuspend": {
+    "en": "Unsuspend",
+    "ka": "შეჩერების მოხსნა",
+    "_source": "src/app/[locale]/admin/(sections)/users/clients/page.tsx"
   },
   "shared.usedWithYourEmailAddressTo": {
     "en": "Used with your email address to sign in.",

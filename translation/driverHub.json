@@ -1,4 +1,9 @@
 {
+  "driverAccountCompanyCard.companyDetailsNote": {
+    "en": "Your registered details are the ones operations verified when your fleet was approved. They are corrected through the fleet application, so a change is re-checked rather than taking effect unseen — contact support to reopen it.",
+    "ka": "თქვენი რეგისტრირებული მონაცემები ისაა, რომლებიც ოპერაციების გუნდმა გადაამოწმა ავტოპარკის დამტკიცებისას. ისინი ავტოპარკის განაცხადის მეშვეობით სწორდება, რათა ცვლილება ხელახლა შემოწმდეს და შეუმჩნევლად არ ამოქმედდეს — განაცხადის ხელახლა გასახსნელად დაუკავშირდით მხარდაჭერას.",
+    "_source": "src/components/driver-hub/driver-account-company-card.tsx"
+  },
   "driverAccountCompanyCard.contactEmail": {
     "en": "Contact email",
     "ka": "საკონტაქტო ელფოსტა",
@@ -24,9 +29,19 @@
     "ka": "რით იბეგრება კლიენტი და როგორ უკავშირდება ოპერაციების გუნდი თქვენს ავტოპარკს.",
     "_source": "src/components/driver-hub/driver-account-company-card.tsx"
   },
+  "driverAccountPayoutPanel.accountYourFleetRegistered": {
+    "en": "The account your fleet registered.",
+    "ka": "თქვენი ავტოპარკის მიერ რეგისტრირებული ანგარიში.",
+    "_source": "src/components/driver-hub/driver-account-payout-panel.tsx"
+  },
   "driverAccountPayoutPanel.bank": {
     "en": "Bank",
     "ka": "ბანკი",
+    "_source": "src/components/driver-hub/driver-account-payout-panel.tsx"
+  },
+  "driverAccountPayoutPanel.changeNote": {
+    "en": "A payout account is changed through support so the new account can be verified against your registered details before any money moves.",
+    "ka": "ანაზღაურების ანგარიში მხარდაჭერის მეშვეობით იცვლება, რათა ახალი ანგარიში თქვენს რეგისტრირებულ მონაცემებთან გადამოწმდეს, სანამ თანხა გადაირიცხება.",
     "_source": "src/components/driver-hub/driver-account-payout-panel.tsx"
   },
   "driverAccountPayoutPanel.frequency": {
@@ -49,14 +64,84 @@
     "ka": "შემდეგი გადარიცხვა",
     "_source": "src/components/driver-hub/driver-account-payout-panel.tsx"
   },
+  "driverAccountPayoutPanel.noPayoutAccountRecorded": {
+    "en": "Your fleet application did not record a payout account.",
+    "ka": "თქვენი ავტოპარკის განაცხადში ანაზღაურების ანგარიში არ არის მითითებული.",
+    "_source": "src/components/driver-hub/driver-account-payout-panel.tsx"
+  },
   "driverAccountPayoutPanel.payoutSchedule": {
     "en": "Payout schedule",
     "ka": "გადარიცხვების განრიგი",
     "_source": "src/components/driver-hub/driver-account-payout-panel.tsx"
   },
+  "driverAccountPayoutPanel.sampleAccountNote": {
+    "en": "No driver payout account exists in the schema — this is placeholder data, not your bank details.",
+    "ka": "სქემაში მძღოლის ანაზღაურების ანგარიში არ არსებობს — ეს სანიმუშო მონაცემებია და არა თქვენი საბანკო რეკვიზიტები.",
+    "_source": "src/components/driver-hub/driver-account-payout-panel.tsx"
+  },
+  "driverAccountPayoutPanel.sampleScheduleNote": {
+    "en": "No payout schedule exists in the schema — no Payout model records when a settlement ran or is due.",
+    "ka": "სქემაში ანაზღაურების განრიგი არ არსებობს — Payout მოდელი არ აღრიცხავს, როდის შესრულდა ან როდის არის მოსალოდნელი ანგარიშსწორება.",
+    "_source": "src/components/driver-hub/driver-account-payout-panel.tsx"
+  },
+  "driverAccountPayoutPanel.whereOrderRevenueIsSettled": {
+    "en": "Where order revenue is settled to your fleet.",
+    "ka": "სად ირიცხება შეკვეთების შემოსავალი თქვენს ავტოპარკზე.",
+    "_source": "src/components/driver-hub/driver-account-payout-panel.tsx"
+  },
+  "driverAccountPayoutPanel.whereYourFaresAreSettled": {
+    "en": "Where your fares are settled.",
+    "ka": "სად ირიცხება თქვენი რეისების ღირებულება.",
+    "_source": "src/components/driver-hub/driver-account-payout-panel.tsx"
+  },
+  "driverAccountPlaceholderPanel.languageGap": {
+    "en": "The app has no translations and no per-user locale column. There is one language to pick from, and no column to remember a pick in.",
+    "ka": "აპლიკაციას არ აქვს თარგმანები და მომხმარებლის ენის შესანახი სვეტი. ასარჩევად მხოლოდ ერთი ენაა და არჩევანის დასამახსოვრებელი სვეტი არ არსებობს.",
+    "_source": "src/components/driver-hub/driver-account-placeholder-panel.tsx"
+  },
+  "driverAccountPlaceholderPanel.languagePurpose": {
+    "en": "Pick the language this dashboard, your job alerts and your payout notices are written in.",
+    "ka": "აირჩიეთ ენა, რომელზეც დაიწერება ეს პანელი, რეისების შეტყობინებები და ანაზღაურების შეტყობინებები.",
+    "_source": "src/components/driver-hub/driver-account-placeholder-panel.tsx"
+  },
+  "driverAccountPlaceholderPanel.languageToday": {
+    "en": "Everything here is in English. A picker offering a choice that could not be honoured — or could not be remembered — would be worse than saying so.",
+    "ka": "აქ ყველაფერი ინგლისურადაა. ამომრჩევი, რომელიც ისეთ არჩევანს შემოგთავაზებდათ, რომლის შესრულება ან დამახსოვრება შეუძლებელია, ამის პირდაპირ თქმაზე უარესი იქნებოდა.",
+    "_source": "src/components/driver-hub/driver-account-placeholder-panel.tsx"
+  },
   "driverAccountPlaceholderPanel.notificationPreferences": {
     "en": "Notification preferences",
     "ka": "შეტყობინებების პარამეტრები",
+    "_source": "src/components/driver-hub/driver-account-placeholder-panel.tsx"
+  },
+  "driverAccountPlaceholderPanel.notificationsGap": {
+    "en": "Nothing in the schema records a notification or a preference about one yet — not the offers, not the payouts, and nowhere a per-driver choice could be stored. The bell in the header shows placeholder rows for the same reason.",
+    "ka": "სქემა ჯერ არ აღრიცხავს არც შეტყობინებებს და არც მათთან დაკავშირებულ პარამეტრებს — არც შეთავაზებებს, არც ანაზღაურებებს და არ არსებობს ადგილი, სადაც თითოეული მძღოლის არჩევანი შეინახებოდა. იმავე მიზეზით ზედა ზოლის ზარი სანიმუშო ჩანაწერებს აჩვენებს.",
+    "_source": "src/components/driver-hub/driver-account-placeholder-panel.tsx"
+  },
+  "driverAccountPlaceholderPanel.notificationsPurpose": {
+    "en": "Choose which job offers, payout confirmations and account notices reach you, and whether they arrive in the app, by SMS or by email.",
+    "ka": "აირჩიეთ, რომელი რეისის შეთავაზებები, ანაზღაურების დადასტურებები და ანგარიშის შეტყობინებები მოგივიდეთ და როგორ — აპლიკაციაში, SMS-ით თუ ელფოსტით.",
+    "_source": "src/components/driver-hub/driver-account-placeholder-panel.tsx"
+  },
+  "driverAccountPlaceholderPanel.notificationsToday": {
+    "en": "Every driver currently gets every notice the app can send, and there is no setting that changes it. Rather than a switch that would forget what you chose, this section stays empty until there is something behind it.",
+    "ka": "ამჟამად ყველა მძღოლი იღებს ყველა შეტყობინებას, რისი გაგზავნაც აპლიკაციას შეუძლია, და ამის შესაცვლელი პარამეტრი არ არსებობს. გადამრთველის ნაცვლად, რომელიც თქვენს არჩევანს დაივიწყებდა, ეს განყოფილება ცარიელი დარჩება, სანამ მის უკან რეალური ფუნქცია არ გაჩნდება.",
+    "_source": "src/components/driver-hub/driver-account-placeholder-panel.tsx"
+  },
+  "driverAccountPlaceholderPanel.supportGap": {
+    "en": "There is no support ticket model, no queue for one to land in, and no support address configured in this codebase.",
+    "ka": "ამ კოდში არ არსებობს მხარდაჭერის მოთხოვნის მოდელი, რიგი, სადაც ის მოხვდებოდა, და არც მხარდაჭერის მისამართია მითითებული.",
+    "_source": "src/components/driver-hub/driver-account-placeholder-panel.tsx"
+  },
+  "driverAccountPlaceholderPanel.supportPurpose": {
+    "en": "Raise a problem with a job, a payout or your account, and follow it until somebody answers.",
+    "ka": "შეატყობინეთ პრობლემის შესახებ რეისთან, ანაზღაურებასთან ან ანგარიშთან დაკავშირებით და ადევნეთ თვალი, სანამ პასუხს მიიღებთ.",
+    "_source": "src/components/driver-hub/driver-account-placeholder-panel.tsx"
+  },
+  "driverAccountPlaceholderPanel.supportToday": {
+    "en": "Use the contact route your fleet or the operations team gave you when your account was approved. A form here would take what you typed and have nowhere to put it, which is the worst possible failure for the one screen you reach when something has already gone wrong.",
+    "ka": "გამოიყენეთ საკონტაქტო გზა, რომელიც ანგარიშის დამტკიცებისას თქვენმა ავტოპარკმა ან ოპერაციების გუნდმა მოგცათ. აქ არსებული ფორმა მიიღებდა თქვენს აკრეფილ ტექსტს და მას ვერსად შეინახავდა — ეს ყველაზე ცუდი შეცდომა იქნებოდა იმ ეკრანისთვის, რომელზეც მაშინ ხვდებით, როცა რაღაც უკვე არასწორად წავიდა.",
     "_source": "src/components/driver-hub/driver-account-placeholder-panel.tsx"
   },
   "driverAccountPlaceholderPanel.whatHappensToday": {
@@ -69,9 +154,39 @@
     "ka": "რატომ არის ცარიელი",
     "_source": "src/components/driver-hub/driver-account-placeholder-panel.tsx"
   },
+  "driverAccountProfileForm.couldNotSaveProfile": {
+    "en": "Could not save your profile. Please try again.",
+    "ka": "პროფილის შენახვა ვერ მოხერხდა. გთხოვთ, სცადოთ ხელახლა.",
+    "_source": "src/components/driver-hub/driver-account-profile-form.tsx"
+  },
+  "driverAccountProfileForm.networkError": {
+    "en": "Network error. Please check your connection.",
+    "ka": "ქსელის შეცდომა. გთხოვთ, შეამოწმოთ კავშირი.",
+    "_source": "src/components/driver-hub/driver-account-profile-form.tsx"
+  },
+  "driverAccountProfileForm.notRecorded": {
+    "en": "Not recorded",
+    "ka": "არ არის მითითებული",
+    "_source": "src/components/driver-hub/driver-account-profile-form.tsx"
+  },
   "driverAccountProfileForm.profileDetails": {
     "en": "Profile details",
     "ka": "პროფილის დეტალები",
+    "_source": "src/components/driver-hub/driver-account-profile-form.tsx"
+  },
+  "driverAccountProfileForm.saveChanges": {
+    "en": "Save changes",
+    "ka": "ცვლილებების შენახვა",
+    "_source": "src/components/driver-hub/driver-account-profile-form.tsx"
+  },
+  "driverAccountProfileForm.saving": {
+    "en": "Saving…",
+    "ka": "ინახება…",
+    "_source": "src/components/driver-hub/driver-account-profile-form.tsx"
+  },
+  "driverAccountProfileForm.verifiedDuringOnboarding": {
+    "en": "Verified during onboarding. Contact support to correct it.",
+    "ka": "ვერიფიცირებულია რეგისტრაციისას. შესასწორებლად დაუკავშირდით მხარდაჭერას.",
     "_source": "src/components/driver-hub/driver-account-profile-form.tsx"
   },
   "driverAccountProfileForm.yourNameTheNumberAClient": {
@@ -124,6 +239,16 @@
     "ka": "მენიუ",
     "_source": "src/components/driver-hub/driver-hub-mobile-menu.tsx"
   },
+  "driverHubMobileMenu.signOut": {
+    "en": "Sign out",
+    "ka": "გასვლა",
+    "_source": "src/components/driver-hub/driver-hub-mobile-menu.tsx"
+  },
+  "driverHubMobileMenu.signingOut": {
+    "en": "Signing out…",
+    "ka": "მიმდინარეობს გასვლა…",
+    "_source": "src/components/driver-hub/driver-hub-mobile-menu.tsx"
+  },
   "driverHubNav.182JobsInTheLast30": {
     "en": "182 jobs in the last 30 days",
     "ka": "182 შეკვეთა ბოლო 30 დღეში",
@@ -169,10 +294,30 @@
     "ka": "ამ კვირაში თბილისში, ორშაბათიდან კვირამდე",
     "_source": "src/components/driver-hub/driver-hub-nav.ts"
   },
+  "driverHubNotifications.bellLabel": {
+    "en": "{count, plural, =0 {Notifications — none (sample data)} one {Notifications — # unread (sample data)} other {Notifications — # unread (sample data)}}",
+    "ka": "{count, plural, =0 {შეტყობინებები — არცერთი (სანიმუშო მონაცემები)} one {შეტყობინებები — # წაუკითხავი (სანიმუშო მონაცემები)} other {შეტყობინებები — # წაუკითხავი (სანიმუშო მონაცემები)}}",
+    "_source": "src/components/driver-hub/driver-hub-notifications.tsx"
+  },
   "driverHubNotifications.nothingToCatchUpOn": {
     "en": "Nothing to catch up on.",
     "ka": "სიახლეები არ არის.",
     "_source": "src/components/driver-hub/driver-hub-notifications.tsx"
+  },
+  "driverHubNotifications.sampleNote": {
+    "en": "Needs a Notification model — the schema records no notifications, so this count and these rows are invented.",
+    "ka": "საჭიროებს Notification მოდელს — სქემა შეტყობინებებს არ აღრიცხავს, ამიტომ ეს რაოდენობა და ჩანაწერები გამოგონილია.",
+    "_source": "src/components/driver-hub/driver-hub-notifications.tsx"
+  },
+  "driverHubShell.fallbackTitle": {
+    "en": "Driver Hub",
+    "ka": "მძღოლის პანელი",
+    "_source": "src/components/driver-hub/driver-hub-shell.tsx"
+  },
+  "driverHubSidebar.incentiveSampleNote": {
+    "en": "Needs an incentive/bonus model — the schema records no weekly target or bonus.",
+    "ka": "საჭიროებს წახალისების/ბონუსის მოდელს — სქემა არ აღრიცხავს კვირის მიზანს ან ბონუსს.",
+    "_source": "src/components/driver-hub/driver-hub-sidebar.tsx"
   },
   "driverHubSidebar.jobsTowardsThisWeekSBonus": {
     "en": "Jobs towards this week's bonus",
@@ -184,6 +329,31 @@
     "ka": "ყოველკვირეული ბონუსი / წახალისება",
     "_source": "src/components/driver-hub/driver-hub-sidebar.tsx"
   },
+  "driverHubTopnav.business": {
+    "en": "Business",
+    "ka": "იურიდიული პირი",
+    "_source": "src/components/driver-hub/driver-hub-topnav.tsx"
+  },
+  "driverHubTopnav.companyDriver": {
+    "en": "Company driver",
+    "ka": "კომპანიის მძღოლი",
+    "_source": "src/components/driver-hub/driver-hub-topnav.tsx"
+  },
+  "driverHubTopnav.independent": {
+    "en": "Independent",
+    "ka": "დამოუკიდებელი",
+    "_source": "src/components/driver-hub/driver-hub-topnav.tsx"
+  },
+  "driverHubTopnav.signOut": {
+    "en": "Sign out",
+    "ka": "გასვლა",
+    "_source": "src/components/driver-hub/driver-hub-topnav.tsx"
+  },
+  "driverHubTopnav.signingOut": {
+    "en": "Signing out…",
+    "ka": "მიმდინარეობს გასვლა…",
+    "_source": "src/components/driver-hub/driver-hub-topnav.tsx"
+  },
   "driversAddPanel.9955xxXxxXxx": {
     "en": "+995 5XX XXX XXX",
     "ka": "+995 5XX XXX XXX",
@@ -194,9 +364,19 @@
     "ka": "",
     "_source": "src/components/driver-hub/screens/drivers-add-panel.tsx"
   },
+  "driversAddPanel.assignLater": {
+    "en": "Assign later",
+    "ka": "მოგვიანებით მიმაგრება",
+    "_source": "src/components/driver-hub/screens/drivers-add-panel.tsx"
+  },
   "driversAddPanel.carsAndSmallVans": {
     "en": "Cars and small vans",
     "ka": "მსუბუქი ავტომობილები და მცირე ფურგონები",
+    "_source": "src/components/driver-hub/screens/drivers-add-panel.tsx"
+  },
+  "driversAddPanel.couldNotRegister": {
+    "en": "Could not register this driver.",
+    "ka": "მძღოლის რეგისტრაცია ვერ მოხერხდა.",
     "_source": "src/components/driver-hub/screens/drivers-add-panel.tsx"
   },
   "driversAddPanel.eG01234567": {
@@ -209,6 +389,51 @@
     "ka": "ავტოპარკის ყველა ტრანსპორტი ამჟამად მინიჭებულია მძღოლზე. დარეგისტრირეთ ეს ტრანსპორტი მიუნიჭებლად და დააკავშირეთ მძღოლს მოგვიანებით „ტრანსპორტის“ ეკრანიდან.",
     "_source": "src/components/driver-hub/screens/drivers-add-panel.tsx"
   },
+  "driversAddPanel.hintCategories": {
+    "en": "Tick at least one licence category.",
+    "ka": "მონიშნეთ მართვის მოწმობის მინიმუმ ერთი კატეგორია.",
+    "_source": "src/components/driver-hub/screens/drivers-add-panel.tsx"
+  },
+  "driversAddPanel.hintCity": {
+    "en": "Pick the zone this driver works.",
+    "ka": "აირჩიეთ ზონა, სადაც ეს მძღოლი მუშაობს.",
+    "_source": "src/components/driver-hub/screens/drivers-add-panel.tsx"
+  },
+  "driversAddPanel.hintEmail": {
+    "en": "Add the driver's email address — it is their login.",
+    "ka": "მიუთითეთ მძღოლის ელფოსტა — ის მისი შესვლის სახელია.",
+    "_source": "src/components/driver-hub/screens/drivers-add-panel.tsx"
+  },
+  "driversAddPanel.hintExpiry": {
+    "en": "Add a licence expiry date in the future.",
+    "ka": "მიუთითეთ მართვის მოწმობის ვადის ამოწურვის მომავალი თარიღი.",
+    "_source": "src/components/driver-hub/screens/drivers-add-panel.tsx"
+  },
+  "driversAddPanel.hintLicenceNumber": {
+    "en": "Add the driver's licence number.",
+    "ka": "მიუთითეთ მძღოლის მართვის მოწმობის ნომერი.",
+    "_source": "src/components/driver-hub/screens/drivers-add-panel.tsx"
+  },
+  "driversAddPanel.hintName": {
+    "en": "Add a first and last name to continue.",
+    "ka": "გასაგრძელებლად მიუთითეთ სახელი და გვარი.",
+    "_source": "src/components/driver-hub/screens/drivers-add-panel.tsx"
+  },
+  "driversAddPanel.hintPhone": {
+    "en": "Add a phone number with at least {minDigits} digits.",
+    "ka": "მიუთითეთ ტელეფონის ნომერი მინიმუმ {minDigits} ციფრით.",
+    "_source": "src/components/driver-hub/screens/drivers-add-panel.tsx"
+  },
+  "driversAddPanel.hintReady": {
+    "en": "Registers {name} in {city} with {vehicle}. A temporary password is shown once, here.",
+    "ka": "დარეგისტრირდება {name} ქალაქში {city}, ავტომობილი: {vehicle}. დროებითი პაროლი ერთხელ, აქვე გამოჩნდება.",
+    "_source": "src/components/driver-hub/screens/drivers-add-panel.tsx"
+  },
+  "driversAddPanel.hintVehicleCategory": {
+    "en": "{vehicle} needs category {category}. Tick it, or assign a different vehicle.",
+    "ka": "{vehicle} საჭიროებს {category} კატეგორიას. მონიშნეთ ის ან მიამაგრეთ სხვა ავტომობილი.",
+    "_source": "src/components/driver-hub/screens/drivers-add-panel.tsx"
+  },
   "driversAddPanel.licenceCategories": {
     "en": "Licence categories",
     "ka": "მართვის მოწმობის კატეგორიები",
@@ -217,6 +442,11 @@
   "driversAddPanel.networkErrorCheckYourConnectionAnd": {
     "en": "Network error. Check your connection and try again.",
     "ka": "ქსელის შეცდომა. შეამოწმეთ ინტერნეტთან კავშირი და სცადოთ თავიდან.",
+    "_source": "src/components/driver-hub/screens/drivers-add-panel.tsx"
+  },
+  "driversAddPanel.noVehicleYet": {
+    "en": "no vehicle yet",
+    "ka": "ჯერ არ არის",
     "_source": "src/components/driver-hub/screens/drivers-add-panel.tsx"
   },
   "driversAddPanel.pickACity": {
@@ -229,9 +459,24 @@
     "ka": "მძღოლის რეგისტრაცია",
     "_source": "src/components/driver-hub/screens/drivers-add-panel.tsx"
   },
+  "driversAddPanel.registerDriver": {
+    "en": "Register driver",
+    "ka": "მძღოლის რეგისტრაცია",
+    "_source": "src/components/driver-hub/screens/drivers-add-panel.tsx"
+  },
+  "driversAddPanel.registering": {
+    "en": "Registering…",
+    "ka": "მიმდინარეობს რეგისტრაცია…",
+    "_source": "src/components/driver-hub/screens/drivers-add-panel.tsx"
+  },
   "driversAddPanel.rigidTrucks": {
     "en": "Rigid trucks",
     "ka": "ძარიანი / მძიმე სატვირთოები",
+    "_source": "src/components/driver-hub/screens/drivers-add-panel.tsx"
+  },
+  "driversAddPanel.thatVehicle": {
+    "en": "That vehicle",
+    "ka": "ეს ავტომობილი",
     "_source": "src/components/driver-hub/screens/drivers-add-panel.tsx"
   },
   "driversAddPanel.thisCreatesTheirAccountTheySign": {
@@ -239,9 +484,29 @@
     "ka": "ეს ქმნის მათ ანგარიშს. ისინი შედიან ქვემოთ მითითებული ელფოსტით და შენახვის შემდეგ გამოჩენილი ერთჯერადი პაროლით, რის შემდეგაც აყენებენ საკუთარს.",
     "_source": "src/components/driver-hub/screens/drivers-add-panel.tsx"
   },
+  "driversDetailPanel.confirmOffboarding": {
+    "en": "Confirm offboarding",
+    "ka": "გათიშვის დადასტურება",
+    "_source": "src/components/driver-hub/screens/drivers-detail-panel.tsx"
+  },
+  "driversDetailPanel.couldNotOffboard": {
+    "en": "Could not offboard this driver.",
+    "ka": "მძღოლის გათიშვა ვერ მოხერხდა.",
+    "_source": "src/components/driver-hub/screens/drivers-detail-panel.tsx"
+  },
+  "driversDetailPanel.idAndJoined": {
+    "en": "{id} · joined {month}",
+    "ka": "{id} · შემოგვიერთდა {month}",
+    "_source": "src/components/driver-hub/screens/drivers-detail-panel.tsx"
+  },
   "driversDetailPanel.jobsThisWeek": {
     "en": "Jobs this week",
     "ka": "ამ კვირის შეკვეთები",
+    "_source": "src/components/driver-hub/screens/drivers-detail-panel.tsx"
+  },
+  "driversDetailPanel.networkError": {
+    "en": "Network error. Please check your connection.",
+    "ka": "ქსელის შეცდომა. გთხოვთ, შეამოწმოთ კავშირი.",
     "_source": "src/components/driver-hub/screens/drivers-detail-panel.tsx"
   },
   "driversDetailPanel.noCompletedJobsForThisFleet": {
@@ -249,9 +514,44 @@
     "ka": "ამ ავტოპარკს ჯერ დასრულებული შეკვეთები არ აქვს.",
     "_source": "src/components/driver-hub/screens/drivers-detail-panel.tsx"
   },
+  "driversDetailPanel.offboardArmedNote": {
+    "en": "Click again to take them off the roster for good. Any of your fleet vehicles they hold is released back to Vehicles automatically. A vehicle they own themselves goes with them.",
+    "ka": "დააჭირეთ ხელახლა, რათა მძღოლი სიიდან საბოლოოდ ამოიშალოს. თქვენი ავტოპარკის ავტომობილები, რომლებიც მას ჰქონდა, ავტომატურად დაბრუნდება ავტომობილების სიაში. მისი საკუთარი ავტომობილი მასთან ერთად წავა.",
+    "_source": "src/components/driver-hub/screens/drivers-detail-panel.tsx"
+  },
+  "driversDetailPanel.offboardDriver": {
+    "en": "Offboard driver",
+    "ka": "მძღოლის გათიშვა",
+    "_source": "src/components/driver-hub/screens/drivers-detail-panel.tsx"
+  },
+  "driversDetailPanel.offboardUnarmedNote": {
+    "en": "Takes them off your roster. Their account, completed jobs and payouts stay theirs. There is no reinstate — nothing records that they were ever on this roster, so bringing them back means registering them again.",
+    "ka": "მძღოლი ამოიშლება თქვენი სიიდან. მისი ანგარიში, დასრულებული რეისები და ანაზღაურებები მას რჩება. აღდგენა შეუძლებელია — არსად ფიქსირდება, რომ ის ოდესმე ამ სიაში იყო, ამიტომ დასაბრუნებლად ხელახლა რეგისტრაცია იქნება საჭირო.",
+    "_source": "src/components/driver-hub/screens/drivers-detail-panel.tsx"
+  },
+  "driversDetailPanel.offboarding": {
+    "en": "Offboarding…",
+    "ka": "მიმდინარეობს გათიშვა…",
+    "_source": "src/components/driver-hub/screens/drivers-detail-panel.tsx"
+  },
   "driversDetailPanel.recentJobs": {
     "en": "Recent jobs",
     "ka": "ბოლო შეკვეთები",
+    "_source": "src/components/driver-hub/screens/drivers-detail-panel.tsx"
+  },
+  "driversDetailPanel.sampleAcceptanceNote": {
+    "en": "Nothing records an offer a driver was shown but did not take, so an acceptance rate cannot be computed. Retire with a JobOffer model.",
+    "ka": "არსად ფიქსირდება შეთავაზება, რომელიც მძღოლმა ნახა, მაგრამ არ მიიღო, ამიტომ მიღების მაჩვენებლის გამოთვლა შეუძლებელია. ჩანაცვლდება JobOffer მოდელით.",
+    "_source": "src/components/driver-hub/screens/drivers-detail-panel.tsx"
+  },
+  "driversDetailPanel.sampleRatingNote": {
+    "en": "Nothing records a customer rating for an order. Retire with an OrderRating model.",
+    "ka": "შეკვეთის კლიენტის შეფასება არსად ფიქსირდება. ჩანაცვლდება OrderRating მოდელით.",
+    "_source": "src/components/driver-hub/screens/drivers-detail-panel.tsx"
+  },
+  "driversDetailPanel.sampleVerificationNote": {
+    "en": "DriverApplication verifies documents once at onboarding and models no ongoing validity, so these verdicts are placeholders. Retire with a DriverDocument model. The licence expiry date itself is real.",
+    "ka": "DriverApplication დოკუმენტებს მხოლოდ ერთხელ, რეგისტრაციისას ამოწმებს და მათ მიმდინარე ვალიდურობას არ აღრიცხავს, ამიტომ ეს შედეგები სანიმუშოა. ჩანაცვლდება DriverDocument მოდელით. მართვის მოწმობის ვადის თარიღი რეალურია.",
     "_source": "src/components/driver-hub/screens/drivers-detail-panel.tsx"
   },
   "driversDetailPanel.verification": {
@@ -259,9 +559,19 @@
     "ka": "ვერიფიკაცია / გადამოწმება",
     "_source": "src/components/driver-hub/screens/drivers-detail-panel.tsx"
   },
+  "driversScreen.acrossCities": {
+    "en": "Across {cities}",
+    "ka": "{cities}",
+    "_source": "src/components/driver-hub/screens/drivers-screen.tsx"
+  },
   "driversScreen.addDriver": {
     "en": "Add driver",
     "ka": "მძღოლის დამატება",
+    "_source": "src/components/driver-hub/screens/drivers-screen.tsx"
+  },
+  "driversScreen.addedThisMonth": {
+    "en": "{count} added this month",
+    "ka": "ამ თვეში დაემატა {count}",
     "_source": "src/components/driver-hub/screens/drivers-screen.tsx"
   },
   "driversScreen.doneIHaveSharedIt": {
@@ -269,9 +579,64 @@
     "ka": "მზადაა — გავაზიარე",
     "_source": "src/components/driver-hub/screens/drivers-screen.tsx"
   },
+  "driversScreen.driverDetails": {
+    "en": "{name} details",
+    "ka": "{name} — დეტალები",
+    "_source": "src/components/driver-hub/screens/drivers-screen.tsx"
+  },
+  "driversScreen.driverFallback": {
+    "en": "driver",
+    "ka": "მძღოლი",
+    "_source": "src/components/driver-hub/screens/drivers-screen.tsx"
+  },
+  "driversScreen.emptyAll": {
+    "en": "No drivers on this roster yet.",
+    "ka": "ამ სიაში მძღოლები ჯერ არ არის.",
+    "_source": "src/components/driver-hub/screens/drivers-screen.tsx"
+  },
+  "driversScreen.emptyNeedsReview": {
+    "en": "Nothing outstanding — every driver is activated and clear.",
+    "ka": "გადაუჭრელი არაფერია — ყველა მძღოლი გააქტიურებულია და შენიშვნების გარეშეა.",
+    "_source": "src/components/driver-hub/screens/drivers-screen.tsx"
+  },
+  "driversScreen.emptyOffline": {
+    "en": "Everybody on the roster is online.",
+    "ka": "სიაში ყველა ონლაინაა.",
+    "_source": "src/components/driver-hub/screens/drivers-screen.tsx"
+  },
+  "driversScreen.emptyOnline": {
+    "en": "Nobody is online right now.",
+    "ka": "ამჟამად ონლაინ არავინ არის.",
+    "_source": "src/components/driver-hub/screens/drivers-screen.tsx"
+  },
+  "driversScreen.everyoneActivated": {
+    "en": "Everyone is activated and clear",
+    "ka": "ყველა გააქტიურებულია და შენიშვნების გარეშეა",
+    "_source": "src/components/driver-hub/screens/drivers-screen.tsx"
+  },
+  "driversScreen.filterByStatus": {
+    "en": "Filter drivers by status",
+    "ka": "მძღოლების ფილტრი სტატუსის მიხედვით",
+    "_source": "src/components/driver-hub/screens/drivers-screen.tsx"
+  },
   "driversScreen.fleetAvgRating": {
     "en": "Fleet avg rating",
     "ka": "ავტოპარკის საშუალო რეიტინგი",
+    "_source": "src/components/driver-hub/screens/drivers-screen.tsx"
+  },
+  "driversScreen.fromRatedJobs": {
+    "en": "From {count} rated jobs",
+    "ka": "{count} შეფასებული რეისიდან",
+    "_source": "src/components/driver-hub/screens/drivers-screen.tsx"
+  },
+  "driversScreen.giveThemDetails": {
+    "en": "Give them these sign-in details now. The password is shown",
+    "ka": "გადაეცით ეს შესვლის მონაცემები ახლავე. პაროლი ნაჩვენებია",
+    "_source": "src/components/driver-hub/screens/drivers-screen.tsx"
+  },
+  "driversScreen.inReviewCount": {
+    "en": "{count} in review",
+    "ka": "{count} განხილვაში",
     "_source": "src/components/driver-hub/screens/drivers-screen.tsx"
   },
   "driversScreen.itIsNotStoredAnywhereIn": {
@@ -279,9 +644,29 @@
     "ka": "— ის არ ინახება არსად წაკითხვად ფორმატში და ამ ბარათის დახურვა ასრულებს პროცესს. ისინი აყენებენ საკუთარ პაროლს სისტემაში შესვლის შემდეგ.",
     "_source": "src/components/driver-hub/screens/drivers-screen.tsx"
   },
+  "driversScreen.nobodyAddedThisMonth": {
+    "en": "Nobody added this month",
+    "ka": "ამ თვეში არავინ დამატებულა",
+    "_source": "src/components/driver-hub/screens/drivers-screen.tsx"
+  },
+  "driversScreen.nobodyTakingWork": {
+    "en": "Nobody is taking work right now",
+    "ka": "ამჟამად არავინ იღებს სამუშაოს",
+    "_source": "src/components/driver-hub/screens/drivers-screen.tsx"
+  },
+  "driversScreen.notActivatedCount": {
+    "en": "{count} not activated",
+    "ka": "{count} არ არის გააქტიურებული",
+    "_source": "src/components/driver-hub/screens/drivers-screen.tsx"
+  },
   "driversScreen.offline": {
     "en": "Offline",
     "ka": "ოფლაინ",
+    "_source": "src/components/driver-hub/screens/drivers-screen.tsx"
+  },
+  "driversScreen.once": {
+    "en": "once",
+    "ka": "მხოლოდ ერთხელ",
     "_source": "src/components/driver-hub/screens/drivers-screen.tsx"
   },
   "driversScreen.online": {
@@ -294,9 +679,24 @@
     "ka": "ახლა ონლაინშია",
     "_source": "src/components/driver-hub/screens/drivers-screen.tsx"
   },
+  "driversScreen.ratingSampleNote": {
+    "en": "Nothing records a customer rating for an order, so every rating on this screen is a placeholder. Retire with an OrderRating model.",
+    "ka": "შეკვეთის კლიენტის შეფასება არსად ფიქსირდება, ამიტომ ამ ეკრანზე ყველა შეფასება სანიმუშოა. ჩანაცვლდება OrderRating მოდელით.",
+    "_source": "src/components/driver-hub/screens/drivers-screen.tsx"
+  },
+  "driversScreen.registerFormLabel": {
+    "en": "the register a driver form",
+    "ka": "მძღოლის რეგისტრაციის ფორმა",
+    "_source": "src/components/driver-hub/screens/drivers-screen.tsx"
+  },
   "driversScreen.registerYourFirstDriverToStart": {
     "en": "Register your first driver to start dispatching jobs.",
     "ka": "დარეგისტრირეთ თქვენი პირველი მძღოლი შეკვეთების გადანაწილების დასაწყებად.",
+    "_source": "src/components/driver-hub/screens/drivers-screen.tsx"
+  },
+  "driversScreen.registered": {
+    "en": "{name} is registered",
+    "ka": "{name} დარეგისტრირდა",
     "_source": "src/components/driver-hub/screens/drivers-screen.tsx"
   },
   "driversScreen.registeredDrivers": {
@@ -304,9 +704,39 @@
     "ka": "რეგისტრირებული მძღოლები",
     "_source": "src/components/driver-hub/screens/drivers-screen.tsx"
   },
+  "driversScreen.registeredWithVehicle": {
+    "en": "{name} is registered and has their vehicle",
+    "ka": "{name} დარეგისტრირდა და ავტომობილი მიმაგრებულია",
+    "_source": "src/components/driver-hub/screens/drivers-screen.tsx"
+  },
   "driversScreen.sampleRatings": {
     "en": "Sample ratings",
     "ka": "სანიმუშო რეიტინგები",
+    "_source": "src/components/driver-hub/screens/drivers-screen.tsx"
+  },
+  "driversScreen.shownCount": {
+    "en": "{visible} of {total} shown",
+    "ka": "ნაჩვენებია {visible} / {total}",
+    "_source": "src/components/driver-hub/screens/drivers-screen.tsx"
+  },
+  "driversScreen.subtitleNobodyOnline": {
+    "en": "nobody online right now",
+    "ka": "ამჟამად ონლაინ არავინაა",
+    "_source": "src/components/driver-hub/screens/drivers-screen.tsx"
+  },
+  "driversScreen.subtitleOnlineIn": {
+    "en": "{count} online in {cities} now",
+    "ka": "ახლა ონლაინ: {count} ({cities})",
+    "_source": "src/components/driver-hub/screens/drivers-screen.tsx"
+  },
+  "driversScreen.subtitleRegistered": {
+    "en": "{count, plural, one {# registered driver} other {# registered drivers}}",
+    "ka": "{count, plural, one {# რეგისტრირებული მძღოლი} other {# რეგისტრირებული მძღოლი}}",
+    "_source": "src/components/driver-hub/screens/drivers-screen.tsx"
+  },
+  "driversScreen.suspendedCount": {
+    "en": "{count} suspended",
+    "ka": "{count} შეჩერებული",
     "_source": "src/components/driver-hub/screens/drivers-screen.tsx"
   },
   "earningsBreakdownCard.adjustments": {
@@ -319,9 +749,29 @@
     "ka": "დეტალური ჩაშლა",
     "_source": "src/components/driver-hub/screens/earnings-breakdown-card.tsx"
   },
+  "earningsBreakdownCard.completedJobsCount": {
+    "en": "{count, plural, one {# completed job} other {# completed jobs}}",
+    "ka": "{count, plural, one {# დასრულებული რეისი} other {# დასრულებული რეისი}}",
+    "_source": "src/components/driver-hub/screens/earnings-breakdown-card.tsx"
+  },
+  "earningsBreakdownCard.customersCount": {
+    "en": "{count, plural, one {# customer} other {# customers}}",
+    "ka": "{count, plural, one {# კლიენტი} other {# კლიენტი}}",
+    "_source": "src/components/driver-hub/screens/earnings-breakdown-card.tsx"
+  },
   "earningsBreakdownCard.rangeTotal": {
     "en": "Range total",
     "ka": "პერიოდის ჯამი",
+    "_source": "src/components/driver-hub/screens/earnings-breakdown-card.tsx"
+  },
+  "earningsBreakdownCard.sampleDataSr": {
+    "en": "— sample data.",
+    "ka": "— სანიმუშო მონაცემები.",
+    "_source": "src/components/driver-hub/screens/earnings-breakdown-card.tsx"
+  },
+  "earningsBreakdownCard.sampledLinesNote": {
+    "en": "Tips, incentives and adjustments are placeholders: Order has no tipAmount column, nothing records that a bonus was earned, and no deduction is stored against a payout. Retire with Order.tipAmount, an Incentive model and a PayoutAdjustment model. Trip fares are real, and the range total adds all four lines together — so it is part estimate too.",
+    "ka": "თიფები, წახალისებები და კორექტირებები სანიმუშოა: Order-ს არ აქვს tipAmount სვეტი, ბონუსის გამომუშავება არსად ფიქსირდება და ანაზღაურებიდან დაკავება არ ინახება. ჩანაცვლდება Order.tipAmount-ით, Incentive მოდელით და PayoutAdjustment მოდელით. რეისების ღირებულება რეალურია, ხოლო პერიოდის ჯამი ოთხივე ხაზს აჯამებს — ამიტომ ისიც ნაწილობრივ შეფასებაა.",
     "_source": "src/components/driver-hub/screens/earnings-breakdown-card.tsx"
   },
   "earningsBreakdownCard.tips": {
@@ -344,6 +794,11 @@
     "ka": "სხვა / მორგებული",
     "_source": "src/components/driver-hub/screens/earnings-filter-bar.tsx"
   },
+  "earningsFilterBar.dayUnit": {
+    "en": "{count, plural, one {day} other {days}}",
+    "ka": "{count, plural, one {დღე} other {დღე}}",
+    "_source": "src/components/driver-hub/screens/earnings-filter-bar.tsx"
+  },
   "earningsFilterBar.rangeEndDate": {
     "en": "Range end date",
     "ka": "პერიოდის დასრულების თარიღი",
@@ -352,6 +807,11 @@
   "earningsFilterBar.rangeStartDate": {
     "en": "Range start date",
     "ka": "პერიოდის დაწყების თარიღი",
+    "_source": "src/components/driver-hub/screens/earnings-filter-bar.tsx"
+  },
+  "earningsFilterBar.to": {
+    "en": "to",
+    "ka": "–",
     "_source": "src/components/driver-hub/screens/earnings-filter-bar.tsx"
   },
   "earningsFleetCard.allCompletedOrdersInTheRange": {
@@ -364,9 +824,19 @@
     "ka": "დასრულებული შეკვეთები გამოჩნდება აქ, როგორც კი მათზე მძღოლი დაინიშნება.",
     "_source": "src/components/driver-hub/screens/earnings-fleet-card.tsx"
   },
+  "earningsFleetCard.driversInRange": {
+    "en": "{count, plural, one {# driver} other {# drivers}} in range",
+    "ka": "{count, plural, one {# მძღოლი} other {# მძღოლი}} პერიოდში",
+    "_source": "src/components/driver-hub/screens/earnings-fleet-card.tsx"
+  },
   "earningsFleetCard.fleetRevenue": {
     "en": "Fleet revenue",
     "ka": "ავტოპარკის შემოსავალი",
+    "_source": "src/components/driver-hub/screens/earnings-fleet-card.tsx"
+  },
+  "earningsFleetCard.noDriverCompleted": {
+    "en": "No driver completed a job in this range.",
+    "ka": "ამ პერიოდში არცერთ მძღოლს არ დაუსრულებია რეისი.",
     "_source": "src/components/driver-hub/screens/earnings-fleet-card.tsx"
   },
   "earningsFleetCard.notAssignedToADriver": {
@@ -399,19 +869,114 @@
     "ka": "ფიქსირებული ყოველკვირეული ანგარიშსწორების ფანჯრები — არ ფილტრავს ზემოთ მითითებული პერიოდით.",
     "_source": "src/components/driver-hub/screens/earnings-payouts-card.tsx"
   },
+  "earningsPayoutsCard.noPayouts": {
+    "en": "No payouts on record yet.",
+    "ka": "ანაზღაურებები ჯერ არ არის აღრიცხული.",
+    "_source": "src/components/driver-hub/screens/earnings-payouts-card.tsx"
+  },
   "earningsPayoutsCard.payoutHistory": {
     "en": "Payout history",
     "ka": "გადარიცხვების ისტორია",
     "_source": "src/components/driver-hub/screens/earnings-payouts-card.tsx"
+  },
+  "earningsPayoutsCard.payoutsNote": {
+    "en": "The whole table is a placeholder: order revenue is settled weekly, but nothing records that a settlement happened. Retire with a Payout model holding each period's order set, incentive total and transfer status.",
+    "ka": "მთელი ცხრილი სანიმუშოა: შეკვეთების შემოსავალი ყოველკვირეულად ირიცხება, მაგრამ ანგარიშსწორების ფაქტი არსად ფიქსირდება. ჩანაცვლდება Payout მოდელით, რომელიც შეინახავს თითოეული პერიოდის შეკვეთებს, წახალისებების ჯამს და გადარიცხვის სტატუსს.",
+    "_source": "src/components/driver-hub/screens/earnings-payouts-card.tsx"
+  },
+  "earningsScreen.acrossEveryCompletedJob": {
+    "en": "Across every completed job in range",
+    "ka": "პერიოდის ყველა დასრულებული რეისის მიხედვით",
+    "_source": "src/components/driver-hub/screens/earnings-screen.tsx"
+  },
+  "earningsScreen.dailyEarnings": {
+    "en": "Daily earnings",
+    "ka": "დღიური შემოსავალი",
+    "_source": "src/components/driver-hub/screens/earnings-screen.tsx"
+  },
+  "earningsScreen.daysInRange": {
+    "en": "{count, plural, one {# day} other {# days}} in range",
+    "ka": "{count, plural, one {# დღე} other {# დღე}} პერიოდში",
+    "_source": "src/components/driver-hub/screens/earnings-screen.tsx"
+  },
+  "earningsScreen.driversEarnedInRange": {
+    "en": "{count, plural, one {# driver} other {# drivers}} earned in range",
+    "ka": "{count, plural, one {# მძღოლმა} other {# მძღოლმა}} გამოიმუშავა პერიოდში",
+    "_source": "src/components/driver-hub/screens/earnings-screen.tsx"
+  },
+  "earningsScreen.grossEarnings": {
+    "en": "Gross earnings",
+    "ka": "მთლიანი შემოსავალი",
+    "_source": "src/components/driver-hub/screens/earnings-screen.tsx"
+  },
+  "earningsScreen.groupedByWeek": {
+    "en": "Grouped by week · {count, plural, one {# week} other {# weeks}}",
+    "ka": "დაჯგუფებულია კვირების მიხედვით · {count, plural, one {# კვირა} other {# კვირა}}",
+    "_source": "src/components/driver-hub/screens/earnings-screen.tsx"
+  },
+  "earningsScreen.hoursOnline": {
+    "en": "{hours} online",
+    "ka": "{hours} ონლაინ",
+    "_source": "src/components/driver-hub/screens/earnings-screen.tsx"
+  },
+  "earningsScreen.incentivesNote": {
+    "en": "Nothing in the schema knows a bonus was ever earned. The figure is estimated from weekend jobs. Retire with an Incentive model recording the campaigns a driver qualified for and what each paid.",
+    "ka": "სქემამ არ იცის, იყო თუ არა ბონუსი ოდესმე გამომუშავებული. მაჩვენებელი შაბათ-კვირის რეისებიდან არის შეფასებული. ჩანაცვლდება Incentive მოდელით, რომელიც აღრიცხავს, რომელ კამპანიებში მიიღო მძღოლმა მონაწილეობა და რამდენი გადაიხადა თითოეულმა.",
+    "_source": "src/components/driver-hub/screens/earnings-screen.tsx"
+  },
+  "earningsScreen.noDaysInRange": {
+    "en": "No days in the selected range",
+    "ka": "არჩეულ პერიოდში დღეები არ არის",
+    "_source": "src/components/driver-hub/screens/earnings-screen.tsx"
+  },
+  "earningsScreen.oneBarPerDay": {
+    "en": "One bar per day",
+    "ka": "ერთი სვეტი დღეში",
+    "_source": "src/components/driver-hub/screens/earnings-screen.tsx"
+  },
+  "earningsScreen.onlineHoursNote": {
+    "en": "Online hours are a placeholder estimated from the completed-job count: DriverProfile.isOnline is a single boolean with no history behind it, so no duration can be computed from it. Retire with an OnlineSession model. The job count and the money beside it are real.",
+    "ka": "ონლაინ საათები სანიმუშოა და დასრულებული რეისების რაოდენობიდან არის შეფასებული: DriverProfile.isOnline ერთი ლოგიკური მნიშვნელობაა ისტორიის გარეშე, ამიტომ მისგან ხანგრძლივობის გამოთვლა შეუძლებელია. ჩანაცვლდება OnlineSession მოდელით. რეისების რაოდენობა და მის გვერდით თანხა რეალურია.",
+    "_source": "src/components/driver-hub/screens/earnings-screen.tsx"
   },
   "earningsScreen.perOnlineHour": {
     "en": "Per online hour",
     "ka": "ონლაინ საათზე",
     "_source": "src/components/driver-hub/screens/earnings-screen.tsx"
   },
+  "earningsScreen.perOnlineHourNote": {
+    "en": "Per-hour earnings divide by estimated online hours, so the rate inherits that estimate — and its numerator folds in the estimated tips and incentives. Retire with an OnlineSession model. The average per job above it is real.",
+    "ka": "საათობრივი შემოსავალი შეფასებულ ონლაინ საათებზე იყოფა, ამიტომ მაჩვენებელი ამ შეფასებას იმეორებს — და მის მრიცხველში შეფასებული თიფები და წახალისებებიც შედის. ჩანაცვლდება OnlineSession მოდელით. ზემოთ მოცემული საშუალო რეისზე რეალურია.",
+    "_source": "src/components/driver-hub/screens/earnings-screen.tsx"
+  },
+  "earningsScreen.perOnlineHourValue": {
+    "en": "{amount} per online hour",
+    "ka": "{amount} ონლაინ საათში",
+    "_source": "src/components/driver-hub/screens/earnings-screen.tsx"
+  },
+  "earningsScreen.weeklyEarnings": {
+    "en": "Weekly earnings",
+    "ka": "კვირის შემოსავალი",
+    "_source": "src/components/driver-hub/screens/earnings-screen.tsx"
+  },
   "employeesDetailPanel.permissions": {
     "en": "Permissions",
     "ka": "უფლებები",
+    "_source": "src/components/driver-hub/screens/employees-detail-panel.tsx"
+  },
+  "employeesDetailPanel.removeEmployee": {
+    "en": "Remove employee",
+    "ka": "თანამშრომლის წაშლა",
+    "_source": "src/components/driver-hub/screens/employees-detail-panel.tsx"
+  },
+  "employeesDetailPanel.removeNote": {
+    "en": "Employee accounts are not connected to the backend yet, so nobody can be removed from here. This turns on with the employee record itself.",
+    "ka": "თანამშრომლების ანგარიშები ჯერ სერვერთან დაკავშირებული არ არის, ამიტომ აქედან ვერავის წაშლით. ეს ფუნქცია თანამშრომლის ჩანაწერთან ერთად ჩაირთვება.",
+    "_source": "src/components/driver-hub/screens/employees-detail-panel.tsx"
+  },
+  "employeesDetailPanel.revokeInvite": {
+    "en": "Revoke invite",
+    "ka": "მოწვევის გაუქმება",
     "_source": "src/components/driver-hub/screens/employees-detail-panel.tsx"
   },
   "employeesInviteForm.employeeAccountsAreNotConnectedTo": {
@@ -444,6 +1009,16 @@
     "ka": "ზონები ან ტრანსპორტი, რომელსაც ფარავენ",
     "_source": "src/components/driver-hub/screens/employees-invite-form.tsx"
   },
+  "employeesRoleDefinitions.appliesToEveryEmployee": {
+    "en": "Applies to every employee of this account",
+    "ka": "ვრცელდება ამ ანგარიშის ყველა თანამშრომელზე",
+    "_source": "src/components/driver-hub/screens/employees-role-definitions.tsx"
+  },
+  "employeesRoleDefinitions.intro": {
+    "en": "These five roles and their permissions are the product's access-control design — real content, not placeholder. An invited person gets exactly the access listed under their role.",
+    "ka": "ეს ხუთი როლი და მათი უფლებები პროდუქტის წვდომის კონტროლის სტრუქტურაა — რეალური შინაარსი და არა სანიმუშო. მოწვეული პირი ზუსტად იმ წვდომას მიიღებს, რომელიც მისი როლის ქვეშაა ჩამოთვლილი.",
+    "_source": "src/components/driver-hub/screens/employees-role-definitions.tsx"
+  },
   "employeesRoleDefinitions.roleDefinitions": {
     "en": "Role definitions",
     "ka": "როლის განმარტებები",
@@ -454,9 +1029,49 @@
     "ka": "შეუძლია თანხის გადარიცხვა/გადაადგილება",
     "_source": "src/components/driver-hub/screens/employees-screen.tsx"
   },
+  "employeesScreen.employeeDetails": {
+    "en": "{name} details",
+    "ka": "{name} — დეტალები",
+    "_source": "src/components/driver-hub/screens/employees-screen.tsx"
+  },
+  "employeesScreen.employeeFallback": {
+    "en": "employee",
+    "ka": "თანამშრომელი",
+    "_source": "src/components/driver-hub/screens/employees-screen.tsx"
+  },
+  "employeesScreen.emptyActive": {
+    "en": "No active employees.",
+    "ka": "აქტიური თანამშრომლები არ არის.",
+    "_source": "src/components/driver-hub/screens/employees-screen.tsx"
+  },
+  "employeesScreen.emptyAll": {
+    "en": "No employees.",
+    "ka": "თანამშრომლები არ არის.",
+    "_source": "src/components/driver-hub/screens/employees-screen.tsx"
+  },
+  "employeesScreen.emptyInvited": {
+    "en": "No invited employees.",
+    "ka": "მოწვეული თანამშრომლები არ არის.",
+    "_source": "src/components/driver-hub/screens/employees-screen.tsx"
+  },
+  "employeesScreen.emptySuspended": {
+    "en": "No suspended employees.",
+    "ka": "შეჩერებული თანამშრომლები არ არის.",
+    "_source": "src/components/driver-hub/screens/employees-screen.tsx"
+  },
+  "employeesScreen.filterByStatus": {
+    "en": "Filter employees by status",
+    "ka": "თანამშრომლების ფილტრი სტატუსის მიხედვით",
+    "_source": "src/components/driver-hub/screens/employees-screen.tsx"
+  },
   "employeesScreen.inviteEmployee": {
     "en": "Invite employee",
     "ka": "თანამშრომლის მოწვევა",
+    "_source": "src/components/driver-hub/screens/employees-screen.tsx"
+  },
+  "employeesScreen.inviteFormLabel": {
+    "en": "the invite employee form",
+    "ka": "თანამშრომლის მოწვევის ფორმა",
     "_source": "src/components/driver-hub/screens/employees-screen.tsx"
   },
   "employeesScreen.invited": {
@@ -479,9 +1094,24 @@
     "ka": "გამოყენებული როლები",
     "_source": "src/components/driver-hub/screens/employees-screen.tsx"
   },
+  "employeesScreen.rosterSampleNote": {
+    "en": "No employee record exists in the schema yet — the roster, the counts and both actions are placeholders. The role definitions below are real.",
+    "ka": "სქემაში თანამშრომლის ჩანაწერი ჯერ არ არსებობს — სია, რაოდენობები და ორივე მოქმედება სანიმუშოა. ქვემოთ მოცემული როლების აღწერები რეალურია.",
+    "_source": "src/components/driver-hub/screens/employees-screen.tsx"
+  },
   "employeesScreen.sampleRoster": {
     "en": "Sample roster",
     "ka": "სანიმუშო განრიგი",
+    "_source": "src/components/driver-hub/screens/employees-screen.tsx"
+  },
+  "employeesScreen.shownCount": {
+    "en": "{visible} of {total} shown",
+    "ka": "ნაჩვენებია {visible} / {total}",
+    "_source": "src/components/driver-hub/screens/employees-screen.tsx"
+  },
+  "employeesScreen.subtitle": {
+    "en": "{company} · {people, plural, one {# person} other {# people}}, {roles, plural, one {# role} other {# roles}} · {invites, plural, one {# invite} other {# invites}} pending",
+    "ka": "{company} · {people, plural, one {# ადამიანი} other {# ადამიანი}}, {roles, plural, one {# როლი} other {# როლი}} · {invites, plural, one {# მოწვევა} other {# მოწვევა}} მოლოდინში",
     "_source": "src/components/driver-hub/screens/employees-screen.tsx"
   },
   "employeesScreen.thereIsNoEmployeeRecordIn": {
@@ -494,9 +1124,59 @@
     "ka": "მძღოლი · ტრანსპორტი",
     "_source": "src/components/driver-hub/screens/fleet-availability-board.tsx"
   },
+  "fleetAvailabilityBoard.endTimeInferred": {
+    "en": "End time inferred — no completion or deadline is recorded for this job.",
+    "ka": "დასრულების დრო შეფასებულია — ამ რეისისთვის დასრულება ან ვადა დაფიქსირებული არ არის.",
+    "_source": "src/components/driver-hub/screens/fleet-availability-board.tsx"
+  },
+  "fleetAvailabilityBoard.endTimeInferredShort": {
+    "en": ", end time inferred",
+    "ka": ", დასრულების დრო შეფასებულია",
+    "_source": "src/components/driver-hub/screens/fleet-availability-board.tsx"
+  },
+  "fleetAvailabilityBoard.loadingAvailability": {
+    "en": "Loading availability…",
+    "ka": "ხელმისაწვდომობა იტვირთება…",
+    "_source": "src/components/driver-hub/screens/fleet-availability-board.tsx"
+  },
+  "fleetAvailabilityBoard.noDriversMatchFilters": {
+    "en": "No drivers match these filters.",
+    "ka": "ამ ფილტრებს არცერთი მძღოლი არ შეესაბამება.",
+    "_source": "src/components/driver-hub/screens/fleet-availability-board.tsx"
+  },
+  "fleetAvailabilityBoard.noRows": {
+    "en": "No rows",
+    "ka": "ჩანაწერები არ არის",
+    "_source": "src/components/driver-hub/screens/fleet-availability-board.tsx"
+  },
+  "fleetAvailabilityBoard.noVehicleAssigned": {
+    "en": "No vehicle assigned",
+    "ka": "ავტომობილი არ არის მიმაგრებული",
+    "_source": "src/components/driver-hub/screens/fleet-availability-board.tsx"
+  },
+  "fleetAvailabilityBoard.showingRange": {
+    "en": "Showing {start}–{end} of {total} rows",
+    "ka": "ნაჩვენებია {start}–{end}, სულ {total} ჩანაწერიდან",
+    "_source": "src/components/driver-hub/screens/fleet-availability-board.tsx"
+  },
+  "fleetAvailabilityBoard.srBlock": {
+    "en": "{name}: {from} to {to}",
+    "ka": "{name}: {from}-დან {to}-მდე",
+    "_source": "src/components/driver-hub/screens/fleet-availability-board.tsx"
+  },
+  "fleetAvailabilityBoard.vehicleNotRecorded": {
+    "en": "Vehicle not recorded",
+    "ka": "ავტომობილი არ არის დაფიქსირებული",
+    "_source": "src/components/driver-hub/screens/fleet-availability-board.tsx"
+  },
   "fleetAvailabilityCard.dragAcrossAnEmptyStretchOf": {
     "en": "Drag across an empty stretch of a row to hold it as a booking.",
     "ka": "გადაათრიეთ მწკრივის ცარიელ მონაკვეთზე ჯავშნად დასაფიქსირებლად.",
+    "_source": "src/components/driver-hub/screens/fleet-availability-card.tsx"
+  },
+  "fleetAvailabilityCard.exportError": {
+    "en": "Could not build the export. Try again.",
+    "ka": "ექსპორტის შექმნა ვერ მოხერხდა. სცადეთ ხელახლა.",
     "_source": "src/components/driver-hub/screens/fleet-availability-card.tsx"
   },
   "fleetAvailabilityCard.fleetAvailability": {
@@ -504,14 +1184,59 @@
     "ka": "ავტოპარკის ხელმისაწვდომობა",
     "_source": "src/components/driver-hub/screens/fleet-availability-card.tsx"
   },
+  "fleetAvailabilityCard.held": {
+    "en": "Held",
+    "ka": "დაკავებული",
+    "_source": "src/components/driver-hub/screens/fleet-availability-card.tsx"
+  },
+  "fleetAvailabilityCard.holdNotSavedNote": {
+    "en": "A held slot lives in this browser tab only. The schema carries no reservation model yet, so nothing is written to the database and the hold is gone on reload.",
+    "ka": "დაკავებული სლოტი მხოლოდ ამ ბრაუზერის ჩანართში ინახება. დაჯავშნის მოდელი ჯერ არ არსებობს, ამიტომ მონაცემთა ბაზაში არაფერი იწერება და გვერდის გადატვირთვისას ის ქრება.",
+    "_source": "src/components/driver-hub/screens/fleet-availability-card.tsx"
+  },
+  "fleetAvailabilityCard.legendFree": {
+    "en": "{count} free",
+    "ka": "{count} თავისუფალი",
+    "_source": "src/components/driver-hub/screens/fleet-availability-card.tsx"
+  },
+  "fleetAvailabilityCard.legendNow": {
+    "en": "{count} now",
+    "ka": "{count} ახლა",
+    "_source": "src/components/driver-hub/screens/fleet-availability-card.tsx"
+  },
+  "fleetAvailabilityCard.loadError": {
+    "en": "Couldn't load availability for this day.",
+    "ka": "ამ დღის ხელმისაწვდომობის ჩატვირთვა ვერ მოხერხდა.",
+    "_source": "src/components/driver-hub/screens/fleet-availability-card.tsx"
+  },
+  "fleetAvailabilityCard.networkError": {
+    "en": "Network error. Please check your connection.",
+    "ka": "ქსელის შეცდომა. შეამოწმეთ კავშირი.",
+    "_source": "src/components/driver-hub/screens/fleet-availability-card.tsx"
+  },
   "fleetAvailabilityCard.notSaved": {
     "en": "Not saved",
     "ka": "არ არის შენახული",
     "_source": "src/components/driver-hub/screens/fleet-availability-card.tsx"
   },
+  "fleetAvailabilityCard.reservedByDispatcher": {
+    "en": "Reserved by dispatcher",
+    "ka": "დაჯავშნილია დისპეტჩერის მიერ",
+    "_source": "src/components/driver-hub/screens/fleet-availability-card.tsx"
+  },
   "fleetAvailabilityCard.resetFilters": {
     "en": "Reset filters",
     "ka": "ფილტრების გასუფთავება",
+    "_source": "src/components/driver-hub/screens/fleet-availability-card.tsx"
+  },
+  "fleetAvailabilityCard.summaryNoNow": {
+    "en": "{count} drivers · {fleet} in fleet",
+    "ka": "{count} მძღოლი · ავტოპარკში {fleet}",
+    "_source": "src/components/driver-hub/screens/fleet-availability-card.tsx"
+  },
+  "fleetAvailabilityCard.summaryNow": {
+    "en": "{free} of {count} drivers free at {time} · {fleet} in fleet",
+    "ka": "{count}-დან {free} მძღოლი თავისუფალია {time}-ზე · ავტოპარკში {fleet}",
     "_source": "src/components/driver-hub/screens/fleet-availability-card.tsx"
   },
   "fleetAvailabilityDialogs.allDriversWholeDay": {
@@ -534,14 +1259,29 @@
     "ka": "გაუქმება / უარყოფა",
     "_source": "src/components/driver-hub/screens/fleet-availability-dialogs.tsx"
   },
+  "fleetAvailabilityDialogs.downloadXlsx": {
+    "en": "Download .xlsx",
+    "ka": ".xlsx-ის ჩამოტვირთვა",
+    "_source": "src/components/driver-hub/screens/fleet-availability-dialogs.tsx"
+  },
   "fleetAvailabilityDialogs.exportAvailability": {
     "en": "Export availability",
     "ka": "ხელმისაწვდომობის ექსპორტი",
     "_source": "src/components/driver-hub/screens/fleet-availability-dialogs.tsx"
   },
+  "fleetAvailabilityDialogs.exportError": {
+    "en": "Could not build the export. Try again.",
+    "ka": "ექსპორტის შექმნა ვერ მოხერხდა. სცადეთ ხელახლა.",
+    "_source": "src/components/driver-hub/screens/fleet-availability-dialogs.tsx"
+  },
   "fleetAvailabilityDialogs.filteredDriversWholeDay": {
     "en": "Filtered drivers, whole day",
     "ka": "გაფილტრული მძღოლები, მთელი დღე",
+    "_source": "src/components/driver-hub/screens/fleet-availability-dialogs.tsx"
+  },
+  "fleetAvailabilityDialogs.freeSlotDisclaimer": {
+    "en": "A free slot means no committed work in the window — not a confirmed shift. Shifts and rest periods aren't recorded yet, so these rows can't promise a driver is on duty.",
+    "ka": "თავისუფალი სლოტი ნიშნავს, რომ ამ შუალედში დადასტურებული სამუშაო არ არის — და არა დადასტურებულ ცვლას. ცვლები და დასვენების პერიოდები ჯერ არ ფიქსირდება, ამიტომ ეს სტრიქონები ვერ დაადასტურებს, რომ მძღოლი სამსახურშია.",
     "_source": "src/components/driver-hub/screens/fleet-availability-dialogs.tsx"
   },
   "fleetAvailabilityDialogs.holdSlot": {
@@ -562,6 +1302,36 @@
   "fleetAvailabilityDialogs.includeFreeSlotsAsAvailableRows": {
     "en": "Include free slots as Available rows",
     "ka": "თავისუფალი სლოტების ჩართვა, როგორც ხელმისაწვდომი მწკრივები",
+    "_source": "src/components/driver-hub/screens/fleet-availability-dialogs.tsx"
+  },
+  "fleetAvailabilityDialogs.keptInBrowserOnly": {
+    "en": "Kept in this browser only. Reservations aren't stored yet, so this hold disappears when the board reloads and other dispatchers won't see it.",
+    "ka": "ინახება მხოლოდ ამ ბრაუზერში. დაჯავშნები ჯერ არ ინახება, ამიტომ დაფის გადატვირთვისას ის ქრება და სხვა დისპეტჩერები მას ვერ დაინახავენ.",
+    "_source": "src/components/driver-hub/screens/fleet-availability-dialogs.tsx"
+  },
+  "fleetAvailabilityDialogs.preparing": {
+    "en": "Preparing…",
+    "ka": "მზადდება…",
+    "_source": "src/components/driver-hub/screens/fleet-availability-dialogs.tsx"
+  },
+  "fleetAvailabilityDialogs.rowsWillBeWritten": {
+    "en": "{count, plural, one {# spreadsheet row will be written.} other {# spreadsheet rows will be written.}}",
+    "ka": "{count, plural, other {ცხრილში ჩაიწერება # სტრიქონი.}}",
+    "_source": "src/components/driver-hub/screens/fleet-availability-dialogs.tsx"
+  },
+  "fleetAvailabilityDialogs.scopeAllHint": {
+    "en": "{count} drivers · filters ignored",
+    "ka": "{count} მძღოლი · ფილტრები იგნორირებულია",
+    "_source": "src/components/driver-hub/screens/fleet-availability-dialogs.tsx"
+  },
+  "fleetAvailabilityDialogs.scopeDayHint": {
+    "en": "{count} drivers · 00:00–24:00",
+    "ka": "{count} მძღოლი · 00:00–24:00",
+    "_source": "src/components/driver-hub/screens/fleet-availability-dialogs.tsx"
+  },
+  "fleetAvailabilityDialogs.scopeViewHint": {
+    "en": "{count} drivers · {from}–{to}",
+    "ka": "{count} მძღოლი · {from}–{to}",
     "_source": "src/components/driver-hub/screens/fleet-availability-dialogs.tsx"
   },
   "fleetAvailabilityDialogs.whatToExport": {
@@ -594,6 +1364,11 @@
     "ka": "ტვირთამწეობა / ტევადობა",
     "_source": "src/components/driver-hub/screens/fleet-availability-filters.tsx"
   },
+  "fleetAvailabilityFilters.driversCount": {
+    "en": "{count} drivers",
+    "ka": "{count} მძღოლი",
+    "_source": "src/components/driver-hub/screens/fleet-availability-filters.tsx"
+  },
   "fleetAvailabilityFilters.nextDay": {
     "en": "Next day",
     "ka": "შემდეგი დღე",
@@ -604,9 +1379,19 @@
     "ka": "ამ დასახელების მძღოლი ვერ მოიძებნა.",
     "_source": "src/components/driver-hub/screens/fleet-availability-filters.tsx"
   },
+  "fleetAvailabilityFilters.now": {
+    "en": "Now",
+    "ka": "ახლა",
+    "_source": "src/components/driver-hub/screens/fleet-availability-filters.tsx"
+  },
   "fleetAvailabilityFilters.previousDay": {
     "en": "Previous day",
     "ka": "წინა დღე",
+    "_source": "src/components/driver-hub/screens/fleet-availability-filters.tsx"
+  },
+  "fleetAvailabilityFilters.pxPerHour": {
+    "en": "{value} px/h",
+    "ka": "{value} px/სთ",
     "_source": "src/components/driver-hub/screens/fleet-availability-filters.tsx"
   },
   "fleetAvailabilityFilters.searchDriversByName": {
@@ -679,9 +1464,19 @@
     "ka": "block.start",
     "_source": "src/components/driver-hub/screens/fleet-availability-format.ts"
   },
+  "fleetAvailabilityFormat.booked": {
+    "en": "Booked",
+    "ka": "დაჯავშნილი",
+    "_source": "src/components/driver-hub/screens/fleet-availability-format.ts"
+  },
   "fleetAvailabilityFormat.bookedFuture": {
     "en": "Booked (future)",
     "ka": "დაჯავშნილი (მომავალში)",
+    "_source": "src/components/driver-hub/screens/fleet-availability-format.ts"
+  },
+  "fleetAvailabilityFormat.durationHours": {
+    "en": "{hours} h",
+    "ka": "{hours} სთ",
     "_source": "src/components/driver-hub/screens/fleet-availability-format.ts"
   },
   "fleetAvailabilityFormat.enRoute": {
@@ -704,14 +1499,44 @@
     "ka": "შეკვეთა განთავსებულია",
     "_source": "src/components/driver-hub/hub-job-parts.tsx"
   },
+  "hubJobParts.overtimePayout": {
+    "en": "Overtime payout",
+    "ka": "ზეგანაკვეთური ანაზღაურება",
+    "_source": "src/components/driver-hub/hub-job-parts.tsx"
+  },
+  "hubJobParts.overtimePayoutWaiting": {
+    "en": "Overtime payout · {minutes} min waiting",
+    "ka": "ზეგანაკვეთური ანაზღაურება · {minutes} წთ ლოდინი",
+    "_source": "src/components/driver-hub/hub-job-parts.tsx"
+  },
   "hubJobParts.payout": {
     "en": "Payout",
     "ka": "გადარიცხვა / payout",
     "_source": "src/components/driver-hub/hub-job-parts.tsx"
   },
+  "jobSheetActions.bookedFor": {
+    "en": "Booked for {when}. You can start it on the day.",
+    "ka": "დაჯავშნილია {when}-ზე. დაწყებას შეძლებთ იმავე დღეს.",
+    "_source": "src/components/driver-hub/screens/job-sheet-actions.tsx"
+  },
   "jobSheetActions.confirmDelivery": {
     "en": "Confirm delivery",
     "ka": "მიწოდების დადასტურება",
+    "_source": "src/components/driver-hub/screens/job-sheet-actions.tsx"
+  },
+  "jobSheetActions.confirming": {
+    "en": "Confirming…",
+    "ka": "დადასტურება…",
+    "_source": "src/components/driver-hub/screens/job-sheet-actions.tsx"
+  },
+  "jobSheetActions.couldNotComplete": {
+    "en": "Could not complete this delivery.",
+    "ka": "მიწოდების დასრულება ვერ მოხერხდა.",
+    "_source": "src/components/driver-hub/screens/job-sheet-actions.tsx"
+  },
+  "jobSheetActions.couldNotStart": {
+    "en": "Could not start this delivery.",
+    "ka": "მიწოდების დაწყება ვერ მოხერხდა.",
     "_source": "src/components/driver-hub/screens/job-sheet-actions.tsx"
   },
   "jobSheetActions.enterTheWaitingTimeAsA": {
@@ -724,14 +1549,34 @@
     "ka": "მონიშნეთ ჩაბარებულად",
     "_source": "src/components/driver-hub/screens/job-sheet-actions.tsx"
   },
+  "jobSheetActions.minutes": {
+    "en": "minutes",
+    "ka": "წუთი",
+    "_source": "src/components/driver-hub/screens/job-sheet-actions.tsx"
+  },
   "jobSheetActions.nameOfWhoeverTookTheGoods": {
     "en": "Name of whoever took the goods",
     "ka": "მიმღების სახელი, ვინც აიღო ტვირთი",
     "_source": "src/components/driver-hub/screens/job-sheet-actions.tsx"
   },
+  "jobSheetActions.networkError": {
+    "en": "Couldn't reach the server. Check your connection and try again.",
+    "ka": "სერვერთან დაკავშირება ვერ მოხერხდა. შეამოწმეთ კავშირი და სცადეთ ხელახლა.",
+    "_source": "src/components/driver-hub/screens/job-sheet-actions.tsx"
+  },
   "jobSheetActions.receivedByOptional": {
     "en": "Received by (optional)",
     "ka": "მიიღო (არასავალდებულო)",
+    "_source": "src/components/driver-hub/screens/job-sheet-actions.tsx"
+  },
+  "jobSheetActions.startDelivery": {
+    "en": "Start delivery",
+    "ka": "მიწოდების დაწყება",
+    "_source": "src/components/driver-hub/screens/job-sheet-actions.tsx"
+  },
+  "jobSheetActions.starting": {
+    "en": "Starting…",
+    "ka": "იწყება…",
     "_source": "src/components/driver-hub/screens/job-sheet-actions.tsx"
   },
   "jobSheetActions.thisEndsTheJobAndCannot": {
@@ -754,9 +1599,19 @@
     "ka": "ელოდება გადანაწილებას (dispatch)",
     "_source": "src/components/driver-hub/screens/job-sheet-parts.tsx"
   },
+  "jobSheetParts.backToDashboard": {
+    "en": "Back to dashboard",
+    "ka": "დაფაზე დაბრუნება",
+    "_source": "src/components/driver-hub/screens/job-sheet-parts.tsx"
+  },
   "jobSheetParts.call": {
     "en": "Call",
     "ka": "დარეკვა",
+    "_source": "src/components/driver-hub/screens/job-sheet-parts.tsx"
+  },
+  "jobSheetParts.callOn": {
+    "en": "{name} on {phone}",
+    "ka": "{name}, {phone}",
     "_source": "src/components/driver-hub/screens/job-sheet-parts.tsx"
   },
   "jobSheetParts.deadline": {
@@ -779,9 +1634,39 @@
     "ka": "ტრანზიტშია / გზაშია",
     "_source": "src/components/driver-hub/screens/job-sheet-parts.tsx"
   },
+  "jobSheetParts.keptVisibleDispatcher": {
+    "en": "Kept visible after delivery — a dispatcher may still need to call about a finished job.",
+    "ka": "ჩაბარების შემდეგაც ჩანს — დისპეტჩერს შეიძლება დასრულებულ რეისზე დარეკვა დასჭირდეს.",
+    "_source": "src/components/driver-hub/screens/job-sheet-parts.tsx"
+  },
+  "jobSheetParts.keptVisibleDriver": {
+    "en": "Kept visible after delivery — a driver may still need to call about a finished job.",
+    "ka": "ჩაბარების შემდეგაც ჩანს — მძღოლს შეიძლება დასრულებულ რეისზე დარეკვა დასჭირდეს.",
+    "_source": "src/components/driver-hub/screens/job-sheet-parts.tsx"
+  },
+  "jobSheetParts.minutesShort": {
+    "en": "{n} min",
+    "ka": "{n} წთ",
+    "_source": "src/components/driver-hub/screens/job-sheet-parts.tsx"
+  },
   "jobSheetParts.navigate": {
     "en": "Navigate",
     "ka": "ნავიგაცია",
+    "_source": "src/components/driver-hub/screens/job-sheet-parts.tsx"
+  },
+  "jobSheetParts.navigateTo": {
+    "en": "to {address}",
+    "ka": "{address}-მდე",
+    "_source": "src/components/driver-hub/screens/job-sheet-parts.tsx"
+  },
+  "jobSheetParts.navigateUnavailable": {
+    "en": "— unavailable.",
+    "ka": "— მიუწვდომელია.",
+    "_source": "src/components/driver-hub/screens/job-sheet-parts.tsx"
+  },
+  "jobSheetParts.noCoordinates": {
+    "en": "No map coordinates were recorded for this stop, so Navigate opens a map search on the address text.",
+    "ka": "ამ გაჩერებისთვის რუკის კოორდინატები არ არის ჩაწერილი, ამიტომ ნავიგაცია რუკაზე მისამართის ტექსტით ეძებს.",
     "_source": "src/components/driver-hub/screens/job-sheet-parts.tsx"
   },
   "jobSheetParts.notDispatchedToADriver": {
@@ -794,6 +1679,21 @@
     "ka": "მიიღო",
     "_source": "src/components/driver-hub/screens/job-sheet-parts.tsx"
   },
+  "jobSheetParts.routeSummary": {
+    "en": "{from} → {to} · {distance} · 2 stops",
+    "ka": "{from} → {to} · {distance} · 2 გაჩერება",
+    "_source": "src/components/driver-hub/screens/job-sheet-parts.tsx"
+  },
+  "jobSheetParts.thisJobPaid": {
+    "en": "This job paid",
+    "ka": "რეისის ანაზღაურება იყო",
+    "_source": "src/components/driver-hub/screens/job-sheet-parts.tsx"
+  },
+  "jobSheetParts.thisJobPays": {
+    "en": "This job pays",
+    "ka": "რეისის ანაზღაურება",
+    "_source": "src/components/driver-hub/screens/job-sheet-parts.tsx"
+  },
   "jobSheetParts.timeline": {
     "en": "Timeline",
     "ka": "ქრონოლოგია (Timeline)",
@@ -804,10 +1704,55 @@
     "ka": "დრო / ტაიმინგი",
     "_source": "src/components/driver-hub/screens/job-sheet-parts.tsx"
   },
+  "jobSheetParts.youArePaid": {
+    "en": "You are paid",
+    "ka": "თქვენი ანაზღაურება",
+    "_source": "src/components/driver-hub/screens/job-sheet-parts.tsx"
+  },
+  "jobSheetParts.youWerePaid": {
+    "en": "You were paid",
+    "ka": "თქვენ მიიღეთ ანაზღაურება",
+    "_source": "src/components/driver-hub/screens/job-sheet-parts.tsx"
+  },
+  "jobSheetScreen.cancelledAfterPickup": {
+    "en": "Cancelled after pickup. Nothing records when it was cancelled.",
+    "ka": "გაუქმდა აღების შემდეგ. გაუქმების დრო არ არის ჩაწერილი.",
+    "_source": "src/components/driver-hub/screens/job-sheet-screen.tsx"
+  },
+  "jobSheetScreen.cancelledBeforePickup": {
+    "en": "Cancelled before pickup. Nothing records when it was cancelled.",
+    "ka": "გაუქმდა აღებამდე. გაუქმების დრო არ არის ჩაწერილი.",
+    "_source": "src/components/driver-hub/screens/job-sheet-screen.tsx"
+  },
+  "jobSheetScreen.jobSheet": {
+    "en": "Job sheet",
+    "ka": "რეისის ფურცელი",
+    "_source": "src/components/driver-hub/screens/job-sheet-screen.tsx"
+  },
+  "jobSheetScreen.mayHaveBeenRemoved": {
+    "en": "It may have been removed, or the link may be wrong.",
+    "ka": "შესაძლოა წაშლილია, ან ბმული არასწორია.",
+    "_source": "src/components/driver-hub/screens/job-sheet-screen.tsx"
+  },
   "jobSheetScreen.thisDeliveryWasCancelled": {
     "en": "This delivery was cancelled.",
     "ka": "ეს მიწოდება გაუქმდა.",
     "_source": "src/components/driver-hub/screens/job-sheet-screen.tsx"
+  },
+  "jobsDetailPanel.bookedForImmediatePickup": {
+    "en": "Booked for immediate pickup",
+    "ka": "დაჯავშნილია დაუყოვნებლივ აღებაზე",
+    "_source": "src/components/driver-hub/screens/jobs-detail-panel.tsx"
+  },
+  "jobsDetailPanel.cancelledAfterPickup": {
+    "en": "Cancelled after pickup. Nothing records when it was cancelled.",
+    "ka": "გაუქმდა აღების შემდეგ. გაუქმების დრო არ არის ჩაწერილი.",
+    "_source": "src/components/driver-hub/screens/jobs-detail-panel.tsx"
+  },
+  "jobsDetailPanel.cancelledBeforePickup": {
+    "en": "Cancelled before pickup. Nothing records when it was cancelled.",
+    "ka": "გაუქმდა აღებამდე. გაუქმების დრო არ არის ჩაწერილი.",
+    "_source": "src/components/driver-hub/screens/jobs-detail-panel.tsx"
   },
   "jobsDetailPanel.paidToYou": {
     "en": "Paid to you",
@@ -817,6 +1762,26 @@
   "jobsDetailPanel.poReference": {
     "en": "PO reference",
     "ka": "შესყიდვის შეკვეთის (PO) კოდი",
+    "_source": "src/components/driver-hub/screens/jobs-detail-panel.tsx"
+  },
+  "jobsDetailPanel.requestedFor": {
+    "en": "Requested for {when}",
+    "ka": "მოთხოვნილია {when}-ზე",
+    "_source": "src/components/driver-hub/screens/jobs-detail-panel.tsx"
+  },
+  "jobsDetailPanel.stepDone": {
+    "en": " — done",
+    "ka": " — შესრულებულია",
+    "_source": "src/components/driver-hub/screens/jobs-detail-panel.tsx"
+  },
+  "jobsDetailPanel.stepNext": {
+    "en": " — next",
+    "ka": " — შემდეგი",
+    "_source": "src/components/driver-hub/screens/jobs-detail-panel.tsx"
+  },
+  "jobsDetailPanel.stepNotReached": {
+    "en": " — not reached",
+    "ka": " — ჯერ არ მიღწეულა",
     "_source": "src/components/driver-hub/screens/jobs-detail-panel.tsx"
   },
   "jobsScreen.completedScheduledAndCancelledJobsAll": {
@@ -829,14 +1794,104 @@
     "ka": "ტარიფი / მგზავრობის საფასური",
     "_source": "src/components/driver-hub/screens/jobs-screen.tsx"
   },
+  "jobsScreen.filterByStatus": {
+    "en": "Filter jobs by status",
+    "ka": "რეისების გაფილტვრა სტატუსით",
+    "_source": "src/components/driver-hub/screens/jobs-screen.tsx"
+  },
+  "jobsScreen.historyHint": {
+    "en": "{count, plural, one {# job in this account's history — switch to All to see it.} other {# jobs in this account's history — switch to All to see them.}}",
+    "ka": "{count, plural, other {ამ ანგარიშის ისტორიაში # რეისია — სანახავად აირჩიეთ „ყველა“.}}",
+    "_source": "src/components/driver-hub/screens/jobs-screen.tsx"
+  },
   "jobsScreen.job": {
     "en": "Job",
     "ka": "შეკვეთა / სამუშაო",
     "_source": "src/components/driver-hub/screens/jobs-screen.tsx"
   },
+  "jobsScreen.noActiveJobs": {
+    "en": "No active jobs.",
+    "ka": "აქტიური რეისები არ არის.",
+    "_source": "src/components/driver-hub/screens/jobs-screen.tsx"
+  },
+  "jobsScreen.noCancelledJobs": {
+    "en": "No cancelled jobs.",
+    "ka": "გაუქმებული რეისები არ არის.",
+    "_source": "src/components/driver-hub/screens/jobs-screen.tsx"
+  },
+  "jobsScreen.noCompletedJobs": {
+    "en": "No completed jobs.",
+    "ka": "დასრულებული რეისები არ არის.",
+    "_source": "src/components/driver-hub/screens/jobs-screen.tsx"
+  },
+  "jobsScreen.noJobsToShow": {
+    "en": "No jobs to show.",
+    "ka": "საჩვენებელი რეისები არ არის.",
+    "_source": "src/components/driver-hub/screens/jobs-screen.tsx"
+  },
+  "jobsScreen.noJobsYet": {
+    "en": "No jobs yet",
+    "ka": "რეისები ჯერ არ არის",
+    "_source": "src/components/driver-hub/screens/jobs-screen.tsx"
+  },
+  "jobsScreen.noJobsYetSentence": {
+    "en": "No jobs yet.",
+    "ka": "რეისები ჯერ არ არის.",
+    "_source": "src/components/driver-hub/screens/jobs-screen.tsx"
+  },
+  "jobsScreen.noScheduledJobs": {
+    "en": "No scheduled jobs.",
+    "ka": "დაგეგმილი რეისები არ არის.",
+    "_source": "src/components/driver-hub/screens/jobs-screen.tsx"
+  },
+  "jobsScreen.shownOf": {
+    "en": "{visible} of {total} shown",
+    "ka": "ნაჩვენებია {visible} / {total}",
+    "_source": "src/components/driver-hub/screens/jobs-screen.tsx"
+  },
+  "loadsBoard.hiddenByCapacity": {
+    "en": "{count, plural, one {# load hidden} other {# loads hidden}} — over your vehicle capacity or dimensions",
+    "ka": "{count, plural, other {# გადაზიდვა დამალულია}} — აღემატება თქვენი ავტომობილის ტვირთამწეობას ან ზომებს",
+    "_source": "src/components/driver-hub/screens/loads-table.tsx"
+  },
+  "loadsBoard.loadsCount": {
+    "en": "{count, plural, one {# load} other {# loads}}",
+    "ka": "{count, plural, other {# გადაზიდვა}}",
+    "_source": "src/components/driver-hub/screens/loads-table.tsx"
+  },
+  "loadsBoard.noHiddenLoads": {
+    "en": "You haven't hidden any loads",
+    "ka": "დამალული გადაზიდვები არ გაქვთ",
+    "_source": "src/components/driver-hub/screens/loads-table.tsx"
+  },
+  "loadsBoard.noLoadsMatchFilters": {
+    "en": "No loads match these filters",
+    "ka": "ამ ფილტრებს არცერთი გადაზიდვა არ შეესაბამება",
+    "_source": "src/components/driver-hub/screens/loads-table.tsx"
+  },
+  "loadsBoard.noLoadsOnBoard": {
+    "en": "No loads on the board right now",
+    "ka": "დაფაზე ამჟამად გადაზიდვები არ არის",
+    "_source": "src/components/driver-hub/screens/loads-table.tsx"
+  },
   "loadsClaimDialogs.backToDashboard": {
     "en": "Back to dashboard",
     "ka": "მართვის პანელზე დაბრუნება",
+    "_source": "src/components/driver-hub/screens/loads-claim-dialogs.tsx"
+  },
+  "loadsClaimDialogs.claiming": {
+    "en": "Claiming…",
+    "ka": "მიმდინარეობს აღება…",
+    "_source": "src/components/driver-hub/screens/loads-claim-dialogs.tsx"
+  },
+  "loadsClaimDialogs.companyAccountNote": {
+    "en": "You're claiming with your company account. Assign a driver and vehicle to this load afterwards.",
+    "ka": "გადაზიდვას იღებთ კომპანიის ანგარიშით. მძღოლი და ავტომობილი ამ გადაზიდვას შემდეგ მიამაგრეთ.",
+    "_source": "src/components/driver-hub/screens/loads-claim-dialogs.tsx"
+  },
+  "loadsClaimDialogs.confirmAndClaim": {
+    "en": "Confirm and claim",
+    "ka": "დადასტურება და აღება",
     "_source": "src/components/driver-hub/screens/loads-claim-dialogs.tsx"
   },
   "loadsClaimDialogs.confirmThisShipment": {
@@ -844,14 +1899,44 @@
     "ka": "ამ ტვირთის/გადაზიდვის დადასტურება",
     "_source": "src/components/driver-hub/screens/loads-claim-dialogs.tsx"
   },
+  "loadsClaimDialogs.dropoffBy": {
+    "en": "{city} · by {time}",
+    "ka": "{city} · {time}-მდე",
+    "_source": "src/components/driver-hub/screens/loads-claim-dialogs.tsx"
+  },
   "loadsClaimDialogs.firstComeFirstServedConfirmingClaims": {
     "en": "First come, first served. Confirming claims the order and closes it to other drivers.",
     "ka": "პირველი მომსვლელის პრინციპით (First come, first served). დადასტურება იღებს შეკვეთას და ხურავს მას სხვა მძღოლებისთვის.",
     "_source": "src/components/driver-hub/screens/loads-claim-dialogs.tsx"
   },
+  "loadsClaimDialogs.goOnlineAndClaim": {
+    "en": "Go online & claim",
+    "ka": "ონლაინ გადასვლა და აღება",
+    "_source": "src/components/driver-hub/screens/loads-claim-dialogs.tsx"
+  },
+  "loadsClaimDialogs.goingOnline": {
+    "en": "Going online…",
+    "ka": "ონლაინ გადასვლა…",
+    "_source": "src/components/driver-hub/screens/loads-claim-dialogs.tsx"
+  },
   "loadsClaimDialogs.justClaimedByAnotherDriver": {
     "en": "Just claimed by another driver",
     "ka": "ახლახან აიღო სხვა მძღოლმა.",
+    "_source": "src/components/driver-hub/screens/loads-claim-dialogs.tsx"
+  },
+  "loadsClaimDialogs.onlineGenericError": {
+    "en": "Could not update your online status.",
+    "ka": "ონლაინ სტატუსის განახლება ვერ მოხერხდა.",
+    "_source": "src/components/driver-hub/screens/loads-claim-dialogs.tsx"
+  },
+  "loadsClaimDialogs.pickVehicleAllFit": {
+    "en": "More than one of your vehicles fits this booking. Pick the one you'll drive.",
+    "ka": "ამ დაჯავშნას თქვენი რამდენიმე ავტომობილი შეესაბამება. აირჩიეთ, რომლითაც იმოძრავებთ.",
+    "_source": "src/components/driver-hub/screens/loads-claim-dialogs.tsx"
+  },
+  "loadsClaimDialogs.pickVehicleSomeFit": {
+    "en": "More than one of your vehicles matches this booking, but not all of them can carry this load. Pick the one you'll drive.",
+    "ka": "ამ დაჯავშნას თქვენი რამდენიმე ავტომობილი შეესაბამება, მაგრამ ყველა ვერ შეასრულებს ამ გადაზიდვას. აირჩიეთ, რომლითაც იმოძრავებთ.",
     "_source": "src/components/driver-hub/screens/loads-claim-dialogs.tsx"
   },
   "loadsClaimDialogs.stayOffline": {
@@ -862,6 +1947,11 @@
   "loadsClaimDialogs.tooSmallForThisLoad": {
     "en": "Too small for this load",
     "ka": "ძალიან პატარაა ამ ტვირთისთვის",
+    "_source": "src/components/driver-hub/screens/loads-claim-dialogs.tsx"
+  },
+  "loadsClaimDialogs.twoStops": {
+    "en": "2 stops",
+    "ka": "2 გაჩერება",
     "_source": "src/components/driver-hub/screens/loads-claim-dialogs.tsx"
   },
   "loadsClaimDialogs.wasConfirmedAMomentBeforeYou": {
@@ -879,6 +1969,11 @@
     "ka": "თქვენ ანაზღაურება მიღებული გაქვთ",
     "_source": "src/components/driver-hub/screens/loads-claim-dialogs.tsx"
   },
+  "loadsContext.couldNotClaim": {
+    "en": "Couldn't claim this load (HTTP {status}).",
+    "ka": "ამ გადაზიდვის აღება ვერ მოხერხდა (HTTP {status}).",
+    "_source": "src/components/driver-hub/screens/loads-context.tsx"
+  },
   "loadsContext.couldnTReachTheDashboard": {
     "en": "Couldn't reach the dashboard.",
     "ka": "მართვის პანელთან დაკავშირება ვერ მოხერხდა.",
@@ -889,19 +1984,194 @@
     "ka": "სერვერთან დაკავშირება ვერ მოხერხდა. შეამოწმეთ ინტერნეტთან კავშირი და სცადეთ თავიდან.",
     "_source": "src/components/driver-hub/screens/loads-context.tsx"
   },
+  "loadsContext.dashboardUnavailable": {
+    "en": "The dashboard is unavailable (HTTP {status}).",
+    "ka": "დაფა მიუწვდომელია (HTTP {status}).",
+    "_source": "src/components/driver-hub/screens/loads-context.tsx"
+  },
+  "loadsContext.didNotGoThrough": {
+    "en": "That didn't go through (HTTP {status}).",
+    "ka": "მოქმედება ვერ შესრულდა (HTTP {status}).",
+    "_source": "src/components/driver-hub/screens/loads-context.tsx"
+  },
   "loadsContext.newMap": {
     "en": "new Map",
     "ka": "ახალი რუკა",
     "_source": "src/components/driver-hub/screens/loads-context.tsx"
+  },
+  "loadsContext.noEligibleVehicle": {
+    "en": "None of your vehicles can take this delivery. It needs one that matches or beats the vehicle class this delivery was booked as on payload, length, width and height, and offers the load space this delivery needs.",
+    "ka": "თქვენი არცერთი ავტომობილი ვერ შეასრულებს ამ მიწოდებას. საჭიროა ავტომობილი, რომელიც ტვირთამწეობით, სიგრძით, სიგანითა და სიმაღლით შეესაბამება ან აღემატება დაჯავშნილ კლასს და აქვს საჭირო სატვირთო სივრცე.",
+    "_source": "src/components/driver-hub/screens/loads-context.tsx"
+  },
+  "loadsContext.noFittingVehicle": {
+    "en": "None of your vehicles can carry this load's cargo — it exceeds the weight or size limit of every vehicle you could bring to this delivery.",
+    "ka": "თქვენი არცერთი ავტომობილი ვერ გადაზიდავს ამ გადაზიდვის ტვირთს — ის აღემატება ყველა შესაძლო ავტომობილის წონის ან ზომის ლიმიტს.",
+    "_source": "src/components/driver-hub/screens/loads-context.tsx"
+  },
+  "loadsDetailParts.claimedElsewhere": {
+    "en": "Claimed by another driver. No longer available.",
+    "ka": "აიღო სხვა მძღოლმა. აღარ არის ხელმისაწვდომი.",
+    "_source": "src/components/driver-hub/screens/loads-detail-parts.tsx"
+  },
+  "loadsDetailParts.claimedElsewhereAgo": {
+    "en": "Claimed by another driver {ago}. No longer available.",
+    "ka": "აიღო სხვა მძღოლმა {ago}. აღარ არის ხელმისაწვდომი.",
+    "_source": "src/components/driver-hub/screens/loads-detail-parts.tsx"
+  },
+  "loadsDetailParts.coldChainMismatchNote": {
+    "en": "This load needs cold-chain handling, but wasn't booked with a refrigerated body. Confirm your vehicle can keep it cold before accepting.",
+    "ka": "ეს გადაზიდვა საჭიროებს ცივ ჯაჭვს, მაგრამ მაცივარ-ფურგონით არ არის დაჯავშნილი. მიღებამდე დარწმუნდით, რომ თქვენი ავტომობილი ტვირთს გრილად შეინახავს.",
+    "_source": "src/components/driver-hub/screens/loads-detail-parts.tsx"
+  },
+  "loadsDetailParts.hazmatNote": {
+    "en": "Hazmat cargo. Confirm you and your vehicle hold a valid ADR certification before accepting — this isn't checked automatically.",
+    "ka": "საშიში ტვირთი. მიღებამდე დარწმუნდით, რომ თქვენ და თქვენს ავტომობილს გაქვთ მოქმედი ADR სერტიფიკატი — ეს ავტომატურად არ მოწმდება.",
+    "_source": "src/components/driver-hub/screens/loads-detail-parts.tsx"
+  },
+  "loadsDetailParts.noneDeclared": {
+    "en": "None declared",
+    "ka": "არ არის მითითებული",
+    "_source": "src/components/driver-hub/screens/loads-detail-parts.tsx"
+  },
+  "loadsDetailParts.rowDimensions": {
+    "en": "Dimensions",
+    "ka": "ზომები",
+    "_source": "src/components/driver-hub/screens/loads-detail-parts.tsx"
+  },
+  "loadsDetailParts.rowHandling": {
+    "en": "Handling",
+    "ka": "მოპყრობა",
+    "_source": "src/components/driver-hub/screens/loads-detail-parts.tsx"
+  },
+  "loadsDetailParts.rowHelpers": {
+    "en": "Helpers",
+    "ka": "დამხმარეები",
+    "_source": "src/components/driver-hub/screens/loads-detail-parts.tsx"
+  },
+  "loadsDetailParts.rowPackaging": {
+    "en": "Packaging",
+    "ka": "შეფუთვა",
+    "_source": "src/components/driver-hub/screens/loads-detail-parts.tsx"
+  },
+  "loadsDetailParts.rowQuantity": {
+    "en": "Quantity",
+    "ka": "რაოდენობა",
+    "_source": "src/components/driver-hub/screens/loads-detail-parts.tsx"
+  },
+  "loadsDetailParts.rowType": {
+    "en": "Type",
+    "ka": "ტიპი",
+    "_source": "src/components/driver-hub/screens/loads-detail-parts.tsx"
+  },
+  "loadsDetailParts.rowVolume": {
+    "en": "Volume",
+    "ka": "მოცულობა",
+    "_source": "src/components/driver-hub/screens/loads-detail-parts.tsx"
+  },
+  "loadsDetailParts.rowWeight": {
+    "en": "Weight",
+    "ka": "წონა",
+    "_source": "src/components/driver-hub/screens/loads-detail-parts.tsx"
   },
   "loadsDetailParts.youClaimedThisLoadContactDetails": {
     "en": "You claimed this load. Contact details are in your job sheet.",
     "ka": "თქვენ აიღეთ ეს ტვირთი. საკონტაქტო დეტალები მოცემულია თქვენი შეკვეთის ფურცელში.",
     "_source": "src/components/driver-hub/screens/loads-detail-parts.tsx"
   },
+  "loadsDetailSheet.rejectThisLoad": {
+    "en": "Reject this load",
+    "ka": "გადაზიდვის უარყოფა",
+    "_source": "src/components/driver-hub/screens/loads-detail-sheet.tsx"
+  },
+  "loadsDetailSheet.rejecting": {
+    "en": "Rejecting…",
+    "ka": "უარყოფა…",
+    "_source": "src/components/driver-hub/screens/loads-detail-sheet.tsx"
+  },
+  "loadsDetailSheet.restoreToOpenLoads": {
+    "en": "Restore to open loads",
+    "ka": "ღია გადაზიდვებში დაბრუნება",
+    "_source": "src/components/driver-hub/screens/loads-detail-sheet.tsx"
+  },
+  "loadsDetailSheet.restoring": {
+    "en": "Restoring…",
+    "ka": "აღდგენა…",
+    "_source": "src/components/driver-hub/screens/loads-detail-sheet.tsx"
+  },
+  "loadsDetailSheet.stopsCount": {
+    "en": "{distance} · 2 stops",
+    "ka": "{distance} · 2 გაჩერება",
+    "_source": "src/components/driver-hub/screens/loads-detail-sheet.tsx"
+  },
+  "loadsDispatchDialog.assignAndDispatch": {
+    "en": "Assign and dispatch",
+    "ka": "მიმაგრება და დანიშვნა",
+    "_source": "src/components/driver-hub/screens/loads-dispatch-dialog.tsx"
+  },
+  "loadsDispatchDialog.assigning": {
+    "en": "Assigning…",
+    "ka": "მიმაგრება…",
+    "_source": "src/components/driver-hub/screens/loads-dispatch-dialog.tsx"
+  },
+  "loadsDispatchDialog.dimHeavy": {
+    "en": "heavy",
+    "ka": "მძიმეა",
+    "_source": "src/components/driver-hub/screens/loads-dispatch-dialog.tsx"
+  },
+  "loadsDispatchDialog.dimLong": {
+    "en": "long",
+    "ka": "გრძელია",
+    "_source": "src/components/driver-hub/screens/loads-dispatch-dialog.tsx"
+  },
+  "loadsDispatchDialog.dimTall": {
+    "en": "tall",
+    "ka": "მაღალია",
+    "_source": "src/components/driver-hub/screens/loads-dispatch-dialog.tsx"
+  },
+  "loadsDispatchDialog.dimWide": {
+    "en": "wide",
+    "ka": "განიერია",
+    "_source": "src/components/driver-hub/screens/loads-dispatch-dialog.tsx"
+  },
+  "loadsDispatchDialog.driverLabel": {
+    "en": "Driver:",
+    "ka": "მძღოლი:",
+    "_source": "src/components/driver-hub/screens/loads-dispatch-dialog.tsx"
+  },
+  "loadsDispatchDialog.holdsReference": {
+    "en": "Your company holds <ref>{reference}</ref>. Choose which vehicle takes it.",
+    "ka": "<ref>{reference}</ref> თქვენს კომპანიას ეკუთვნის. აირჩიეთ, რომელი ავტომობილი შეასრულებს მას.",
+    "_source": "src/components/driver-hub/screens/loads-dispatch-dialog.tsx"
+  },
+  "loadsDispatchDialog.holdsThisDelivery": {
+    "en": "Your company holds this delivery. Choose which vehicle takes it.",
+    "ka": "ეს მიწოდება თქვენს კომპანიას ეკუთვნის. აირჩიეთ, რომელი ავტომობილი შეასრულებს მას.",
+    "_source": "src/components/driver-hub/screens/loads-dispatch-dialog.tsx"
+  },
+  "loadsDispatchDialog.networkError": {
+    "en": "Couldn't reach the server. Check your connection and retry.",
+    "ka": "სერვერთან დაკავშირება ვერ მოხერხდა. შეამოწმეთ კავშირი და სცადეთ ხელახლა.",
+    "_source": "src/components/driver-hub/screens/loads-dispatch-dialog.tsx"
+  },
+  "loadsDispatchDialog.noDriver": {
+    "en": "No driver assigned",
+    "ka": "მძღოლი არ არის მიმაგრებული",
+    "_source": "src/components/driver-hub/screens/loads-dispatch-dialog.tsx"
+  },
   "loadsDispatchDialog.noneOfYourVehiclesCanTake": {
     "en": "None of your vehicles can take this delivery. Each one above says why.",
     "ka": "თქვენს არცერთ ტრანსპორტს არ შეუძლია ამ ტვირთის წაღება. მიზეზები მითითებულია თითოეულზე ზემოთ.",
+    "_source": "src/components/driver-hub/screens/loads-dispatch-dialog.tsx"
+  },
+  "loadsDispatchDialog.notApproved": {
+    "en": "Not approved for dispatch",
+    "ka": "დანიშვნისთვის დამტკიცებული არ არის",
+    "_source": "src/components/driver-hub/screens/loads-dispatch-dialog.tsx"
+  },
+  "loadsDispatchDialog.notDispatchable": {
+    "en": "This delivery can no longer be assigned — it already has a driver, or it was cancelled. Close this and refresh the board to see where it stands.",
+    "ka": "ამ მიწოდების მიმაგრება აღარ შეიძლება — მას უკვე ჰყავს მძღოლი ან გაუქმდა. დახურეთ ფანჯარა და განაახლეთ დაფა სტატუსის სანახავად.",
     "_source": "src/components/driver-hub/screens/loads-dispatch-dialog.tsx"
   },
   "loadsDispatchDialog.offline": {
@@ -919,10 +2189,60 @@
     "ka": "ტრანსპორტს, რომელსაც შეუძლია ამ მიწოდების შესრულება, მძღოლი არ ჰყავს მინიჭებული. მიანიჭეთ მძღოლი „ტრანსპორტის“ ეკრანიდან და შემდეგ გაანაწილეთ ეს მიწოდება.",
     "_source": "src/components/driver-hub/screens/loads-dispatch-dialog.tsx"
   },
+  "loadsDispatchDialog.tooHeavy": {
+    "en": "Too heavy for this load",
+    "ka": "ამ გადაზიდვისთვის ძალიან მძიმეა",
+    "_source": "src/components/driver-hub/screens/loads-dispatch-dialog.tsx"
+  },
+  "loadsDispatchDialog.tooLong": {
+    "en": "Too long for this load",
+    "ka": "ამ გადაზიდვისთვის ძალიან გრძელია",
+    "_source": "src/components/driver-hub/screens/loads-dispatch-dialog.tsx"
+  },
+  "loadsDispatchDialog.tooMany": {
+    "en": "Too {dimensions} for this load",
+    "ka": "ამ გადაზიდვისთვის ზედმეტად {dimensions}",
+    "_source": "src/components/driver-hub/screens/loads-dispatch-dialog.tsx"
+  },
+  "loadsDispatchDialog.tooSmall": {
+    "en": "Too small for this load",
+    "ka": "ამ გადაზიდვისთვის ძალიან პატარაა",
+    "_source": "src/components/driver-hub/screens/loads-dispatch-dialog.tsx"
+  },
+  "loadsDispatchDialog.tooTall": {
+    "en": "Too tall for this load",
+    "ka": "ამ გადაზიდვისთვის ძალიან მაღალია",
+    "_source": "src/components/driver-hub/screens/loads-dispatch-dialog.tsx"
+  },
+  "loadsDispatchDialog.tooWide": {
+    "en": "Too wide for this load",
+    "ka": "ამ გადაზიდვისთვის ძალიან განიერია",
+    "_source": "src/components/driver-hub/screens/loads-dispatch-dialog.tsx"
+  },
+  "loadsDispatchDialog.underBookedClass": {
+    "en": "Under the booked vehicle class",
+    "ka": "დაჯავშნილ ავტომობილის კლასზე დაბალია",
+    "_source": "src/components/driver-hub/screens/loads-dispatch-dialog.tsx"
+  },
+  "loadsDispatchDialog.vehicleNote": {
+    "en": "Every vehicle in your fleet is listed with the driver it goes out with. The ones this delivery can't go on say why.",
+    "ka": "თქვენი ავტოპარკის ყველა ავტომობილი ნაჩვენებია თავისი მძღოლით. იმ ავტომობილებთან, რომლებითაც ეს მიწოდება ვერ შესრულდება, მიზეზია მითითებული.",
+    "_source": "src/components/driver-hub/screens/loads-dispatch-dialog.tsx"
+  },
+  "loadsDispatchDialog.wrongBodyType": {
+    "en": "Doesn't offer this load space",
+    "ka": "საჭირო სატვირთო სივრცე არ აქვს",
+    "_source": "src/components/driver-hub/screens/loads-dispatch-dialog.tsx"
+  },
   "loadsDispatchDialog.yourFleetHasNoRegisteredVehicles": {
     "en": "Your fleet has no registered vehicles. Register one from the Vehicles screen, then dispatch this delivery.",
     "ka": "თქვენს ავტოპარკს არ ჰყავს რეგისტრირებული ტრანსპორტი. დარეგისტრირეთ ტრანსპორტი „ტრანსპორტის“ ეკრანიდან, შემდეგ კი გაანაწილეთ ეს მიწოდება.",
     "_source": "src/components/driver-hub/screens/loads-dispatch-dialog.tsx"
+  },
+  "loadsFilters.cargoWeightUpTo": {
+    "en": "Cargo weight up to {weight} kg",
+    "ka": "ტვირთის წონა {weight} კგ-მდე",
+    "_source": "src/components/driver-hub/screens/loads-filters.tsx"
   },
   "loadsFilters.reset": {
     "en": "Reset",
@@ -934,9 +2254,54 @@
     "ka": "სპეციალური დამუშავება",
     "_source": "src/components/driver-hub/screens/loads-filters.tsx"
   },
+  "loadsFormat.cargoCategory.APPLIANCES": {
+    "en": "Home & Office Appliances",
+    "ka": "საყოფაცხოვრებო და საოფისე ტექნიკა",
+    "_source": "src/components/driver-hub/screens/loads-format.ts"
+  },
+  "loadsFormat.cargoCategory.CONSTRUCTION_MATERIALS": {
+    "en": "Construction & Hardware Materials",
+    "ka": "სამშენებლო და სამეურნეო მასალები",
+    "_source": "src/components/driver-hub/screens/loads-format.ts"
+  },
+  "loadsFormat.cargoCategory.EVENT_EQUIPMENT": {
+    "en": "Event & Exhibition Equipment",
+    "ka": "ღონისძიებებისა და გამოფენის აღჭურვილობა",
+    "_source": "src/components/driver-hub/screens/loads-format.ts"
+  },
+  "loadsFormat.cargoCategory.FULL_RELOCATION": {
+    "en": "Full Relocation",
+    "ka": "სრული გადასახლება",
+    "_source": "src/components/driver-hub/screens/loads-format.ts"
+  },
+  "loadsFormat.cargoCategory.FURNITURE_FURNISHINGS": {
+    "en": "Furniture & Furnishings",
+    "ka": "ავეჯი და ინტერიერის ნივთები",
+    "_source": "src/components/driver-hub/screens/loads-format.ts"
+  },
+  "loadsFormat.cargoCategory.INDUSTRIAL_SUPPLIES": {
+    "en": "Industrial & Commercial Supplies",
+    "ka": "სამრეწველო და კომერციული მასალები",
+    "_source": "src/components/driver-hub/screens/loads-format.ts"
+  },
+  "loadsFormat.cargoCategory.RETAIL_STOCK": {
+    "en": "Store & Retail Stock",
+    "ka": "მაღაზიისა და საცალო ვაჭრობის მარაგი",
+    "_source": "src/components/driver-hub/screens/loads-format.ts"
+  },
   "loadsFormat.coldChain": {
     "en": "Cold chain",
     "ka": "ცივი ჯაჭვი (მაცივარი)",
+    "_source": "src/components/driver-hub/screens/loads-format.ts"
+  },
+  "loadsFormat.daysAgo": {
+    "en": "{days}d ago",
+    "ka": "{days} დღის წინ",
+    "_source": "src/components/driver-hub/screens/loads-format.ts"
+  },
+  "loadsFormat.deliverBy": {
+    "en": "Deliver by {day} {time}",
+    "ka": "ჩაბარება {day} {time}-მდე",
     "_source": "src/components/driver-hub/screens/loads-format.ts"
   },
   "loadsFormat.fragile": {
@@ -954,15 +2319,65 @@
     "ka": "მძიმე ნივთი",
     "_source": "src/components/driver-hub/screens/loads-format.ts"
   },
+  "loadsFormat.helpersRequested": {
+    "en": "{count, plural, one {# helper requested} other {# helpers requested}}",
+    "ka": "{count, plural, other {მოთხოვნილია # დამხმარე}}",
+    "_source": "src/components/driver-hub/screens/loads-format.ts"
+  },
+  "loadsFormat.hoursAgo": {
+    "en": "{hours}h ago",
+    "ka": "{hours} სთ-ის წინ",
+    "_source": "src/components/driver-hub/screens/loads-format.ts"
+  },
+  "loadsFormat.justNow": {
+    "en": "just now",
+    "ka": "ახლახან",
+    "_source": "src/components/driver-hub/screens/loads-format.ts"
+  },
+  "loadsFormat.minAgo": {
+    "en": "{minutes} min ago",
+    "ka": "{minutes} წთ-ის წინ",
+    "_source": "src/components/driver-hub/screens/loads-format.ts"
+  },
+  "loadsFormat.noHelpersRequested": {
+    "en": "No helpers requested",
+    "ka": "დამხმარე არ არის მოთხოვნილი",
+    "_source": "src/components/driver-hub/screens/loads-format.ts"
+  },
+  "loadsFormat.posted": {
+    "en": "posted {ago}",
+    "ka": "გამოქვეყნდა {ago}",
+    "_source": "src/components/driver-hub/screens/loads-format.ts"
+  },
   "loadsFormat.timeCritical": {
     "en": "Time critical",
     "ka": "დროში შეზღუდული / სასწრაფო",
+    "_source": "src/components/driver-hub/screens/loads-format.ts"
+  },
+  "loadsFormat.today": {
+    "en": "Today",
+    "ka": "დღეს",
+    "_source": "src/components/driver-hub/screens/loads-format.ts"
+  },
+  "loadsFormat.tomorrow": {
+    "en": "Tomorrow",
+    "ka": "ხვალ",
     "_source": "src/components/driver-hub/screens/loads-format.ts"
   },
   "loadsFormat.uprightOnly": {
     "en": "Upright only",
     "ka": "მხოლოდ ვერტიკალურად",
     "_source": "src/components/driver-hub/screens/loads-format.ts"
+  },
+  "loadsFormat.yesterday": {
+    "en": "Yesterday",
+    "ka": "გუშინ",
+    "_source": "src/components/driver-hub/screens/loads-format.ts"
+  },
+  "loadsMobile.acceptWithPrice": {
+    "en": "Accept ·",
+    "ka": "მიღება ·",
+    "_source": "src/components/driver-hub/screens/loads-mobile.tsx"
   },
   "loadsMobile.claimedByAnotherDriver": {
     "en": "Claimed by another driver",
@@ -972,6 +2387,11 @@
   "loadsMobile.dropOffAddress": {
     "en": "Drop off address",
     "ka": "ჩაბარების მისამართი",
+    "_source": "src/components/driver-hub/screens/loads-mobile.tsx"
+  },
+  "loadsMobile.loadDetailsAria": {
+    "en": "Load {reference} details",
+    "ka": "გადაზიდვის {reference} დეტალები",
     "_source": "src/components/driver-hub/screens/loads-mobile.tsx"
   },
   "loadsMobile.pickUpAddress": {
@@ -997,6 +2417,11 @@
   "loadsTable.accept": {
     "en": "Accept",
     "ka": "მიღება",
+    "_source": "src/components/driver-hub/screens/loads-table.tsx"
+  },
+  "loadsTable.backToOpenLoads": {
+    "en": "Back to open loads",
+    "ka": "ღია გადაზიდვებზე დაბრუნება",
     "_source": "src/components/driver-hub/screens/loads-table.tsx"
   },
   "loadsTable.claimed": {
@@ -1039,6 +2464,21 @@
     "ka": "აღდგენა",
     "_source": "src/components/driver-hub/screens/loads-table.tsx"
   },
+  "loadsTable.resultClaimed": {
+    "en": "{count} you have claimed",
+    "ka": "{count} თქვენ მიერ აღებული",
+    "_source": "src/components/driver-hub/screens/loads-table.tsx"
+  },
+  "loadsTable.resultOpen": {
+    "en": "{count} open to you",
+    "ka": "{count} თქვენთვის ხელმისაწვდომი",
+    "_source": "src/components/driver-hub/screens/loads-table.tsx"
+  },
+  "loadsTable.resultRejected": {
+    "en": "{count} you rejected",
+    "ka": "{count} თქვენ მიერ უარყოფილი",
+    "_source": "src/components/driver-hub/screens/loads-table.tsx"
+  },
   "loadsTable.sortsByTimeOfDayNot": {
     "en": "Sorts by time of day, not by date",
     "ka": "სორტირება დღის დროის მიხედვით და არა თარიღით",
@@ -1064,9 +2504,29 @@
     "ka": "თქვენია",
     "_source": "src/components/driver-hub/screens/loads-table.tsx"
   },
+  "performanceScreen.acceptanceNote": {
+    "en": "A declined offer leaves no row — Order only ever stores the offer that was taken — so acceptance is unrecorded, not merely unaggregated. Retire with a JobOffer model holding every dispatch and its outcome.",
+    "ka": "უარყოფილი შეთავაზება ჩანაწერს არ ტოვებს — Order მხოლოდ მიღებულ შეთავაზებას ინახავს — ამიტომ მიღების მაჩვენებელი საერთოდ არ ფიქსირდება. ჩანაცვლდება JobOffer მოდელით, რომელიც ყოველ დანიშვნასა და მის შედეგს შეინახავს.",
+    "_source": "src/components/driver-hub/screens/performance-screen.tsx"
+  },
   "performanceScreen.andAFlatBarUntilThey": {
     "en": "and a flat bar until they happen.",
     "ka": "და ბრტყელი ზოლი, სანამ არ მოხდება.",
+    "_source": "src/components/driver-hub/screens/performance-screen.tsx"
+  },
+  "performanceScreen.avgRating": {
+    "en": "Avg rating",
+    "ka": "საშუალო რეიტინგი",
+    "_source": "src/components/driver-hub/screens/performance-screen.tsx"
+  },
+  "performanceScreen.chartAriaDriver": {
+    "en": "Online hours against jobs completed, by day of this week",
+    "ka": "ონლაინ საათები დასრულებულ რეისებთან შედარებით, ამ კვირის დღეების მიხედვით",
+    "_source": "src/components/driver-hub/screens/performance-screen.tsx"
+  },
+  "performanceScreen.chartAriaFleet": {
+    "en": "Jobs completed by day of this week",
+    "ka": "დასრულებული რეისები ამ კვირის დღეების მიხედვით",
     "_source": "src/components/driver-hub/screens/performance-screen.tsx"
   },
   "performanceScreen.completion": {
@@ -1079,6 +2539,11 @@
     "ka": "ამ კვირის მომდევნო დღეების გამოჩენა",
     "_source": "src/components/driver-hub/screens/performance-screen.tsx"
   },
+  "performanceScreen.deltaNote": {
+    "en": "The value above is real; this comparison is not. Last week's figure is not held anywhere to compare against. Retire with a DriverMetricSnapshot model storing each metric per account per week.",
+    "ka": "ზემოთ მოცემული მნიშვნელობა რეალურია, ეს შედარება — არა. გასული კვირის მაჩვენებელი შესადარებლად არსად ინახება. ჩანაცვლდება DriverMetricSnapshot მოდელით, რომელიც ყოველ მაჩვენებელს ანგარიშისა და კვირის მიხედვით შეინახავს.",
+    "_source": "src/components/driver-hub/screens/performance-screen.tsx"
+  },
   "performanceScreen.estimatedDelta": {
     "en": "Estimated delta",
     "ka": "სავარაუდო სხვაობა (delta)",
@@ -1087,6 +2552,11 @@
   "performanceScreen.finished": {
     "en": "Finished",
     "ka": "დასრულებულია",
+    "_source": "src/components/driver-hub/screens/performance-screen.tsx"
+  },
+  "performanceScreen.fleetRating": {
+    "en": "Fleet rating",
+    "ka": "ავტოპარკის რეიტინგი",
     "_source": "src/components/driver-hub/screens/performance-screen.tsx"
   },
   "performanceScreen.howTheWeekWentByDriver": {
@@ -1109,9 +2579,29 @@
     "ka": "შეკვეთები დღეში",
     "_source": "src/components/driver-hub/screens/performance-screen.tsx"
   },
+  "performanceScreen.noDriversOnRoster": {
+    "en": "No drivers on this roster yet.",
+    "ka": "ამ შემადგენლობაში ჯერ მძღოლები არ არიან.",
+    "_source": "src/components/driver-hub/screens/performance-screen.tsx"
+  },
+  "performanceScreen.noFinishedJobsNote": {
+    "en": "No jobs have finished yet this week",
+    "ka": "ამ კვირაში ჯერ არცერთი რეისი არ დასრულებულა",
+    "_source": "src/components/driver-hub/screens/performance-screen.tsx"
+  },
+  "performanceScreen.onlineHoursNote": {
+    "en": "Online hours only. DriverProfile.isOnline is a single boolean with no history behind it, so no duration can be computed from it. The jobs bars are real. Retire with an OnlineSession model bucketed by Tbilisi day.",
+    "ka": "მხოლოდ ონლაინ საათები. DriverProfile.isOnline ერთი ლოგიკური მნიშვნელობაა ისტორიის გარეშე, ამიტომ მისგან ხანგრძლივობის გამოთვლა შეუძლებელია. რეისების სვეტები რეალურია. ჩანაცვლდება OnlineSession მოდელით, თბილისის დღეების მიხედვით დაჯგუფებული.",
+    "_source": "src/components/driver-hub/screens/performance-screen.tsx"
+  },
   "performanceScreen.onlineHoursVsJobsCompleted": {
     "en": "Online hours vs jobs completed",
     "ka": "ონლაინ საათები დასრულებული შეკვეთების წინააღმდეგ",
+    "_source": "src/components/driver-hub/screens/performance-screen.tsx"
+  },
+  "performanceScreen.ratingNote": {
+    "en": "Nothing in the schema captures customer feedback. Retire with an OrderRating model — one score per completed order.",
+    "ka": "სქემაში კლიენტის შეფასება არსად ინახება. ჩანაცვლდება OrderRating მოდელით — თითო შეფასება თითო დასრულებულ შეკვეთაზე.",
     "_source": "src/components/driver-hub/screens/performance-screen.tsx"
   },
   "performanceScreen.registerADriverAndTheirWeek": {
@@ -1119,14 +2609,29 @@
     "ka": "დაარეგისტრირეთ მძღოლი და მისი კვირის მონაცემები გამოჩნდება აქ.",
     "_source": "src/components/driver-hub/screens/performance-screen.tsx"
   },
+  "performanceScreen.scoreNotesNote": {
+    "en": "Every figure and threshold in this card is invented — the thresholds are policy the product has not written down anywhere the code can read. Retire alongside the metrics each row describes.",
+    "ka": "ამ ბარათში ყველა მაჩვენებელი და ზღვარი პირობითია — ზღვრები ისეთი წესებია, რომლებიც პროდუქტს ჯერ არსად ჩაუწერია კოდისთვის წასაკითხად. ჩანაცვლდება თითოეული რიგის მაჩვენებლებთან ერთად.",
+    "_source": "src/components/driver-hub/screens/performance-screen.tsx"
+  },
   "performanceScreen.thisWeek": {
     "en": "This week,",
     "ka": "მიმდინარე კვირა,",
     "_source": "src/components/driver-hub/screens/performance-screen.tsx"
   },
+  "performanceScreen.unattributedJobs": {
+    "en": "{count, plural, one {# finished job this week is} other {# finished jobs this week are}} not attributed to anyone on the roster — either never dispatched, or carried by a driver who has since left. The rows above will not add up to the tiles.",
+    "ka": "{count, plural, other {ამ კვირაში # დასრულებული რეისი}} შემადგენლობიდან არავისზეა მიწერილი — ან არ დანიშნულა, ან შეასრულა მძღოლმა, რომელიც აღარ მუშაობს. ზემოთ მოცემული რიგები ფილებს არ დაემთხვევა.",
+    "_source": "src/components/driver-hub/screens/performance-screen.tsx"
+  },
   "performanceScreen.whatAffectsYourScore": {
     "en": "What affects your score",
     "ka": "რა მოქმედებს თქვენს ქულაზე / რეიტინგზე",
+    "_source": "src/components/driver-hub/screens/performance-screen.tsx"
+  },
+  "performanceScreen.windowFootnote": {
+    "en": "This week, {range}. The rates count jobs by when they were booked; the chart counts them by when they were completed, so the two need not describe the same jobs.",
+    "ka": "ეს კვირა, {range}. მაჩვენებლები რეისებს დაჯავშნის დროით ითვლის, დიაგრამა კი — დასრულების დროით, ამიტომ ისინი შეიძლება ერთსა და იმავე რეისებს არ ასახავდნენ.",
     "_source": "src/components/driver-hub/screens/performance-screen.tsx"
   },
   "vehiclesAddForm.ab123Cd": {
@@ -1139,9 +2644,79 @@
     "ka": "ტრანსპორტის დამატება",
     "_source": "src/components/driver-hub/screens/vehicles-add-form.tsx"
   },
+  "vehiclesAddForm.addToFleet": {
+    "en": "Add to fleet",
+    "ka": "ავტოპარკში დამატება",
+    "_source": "src/components/driver-hub/screens/vehicles-add-form.tsx"
+  },
+  "vehiclesAddForm.adding": {
+    "en": "Adding…",
+    "ka": "ემატება…",
+    "_source": "src/components/driver-hub/screens/vehicles-add-form.tsx"
+  },
+  "vehiclesAddForm.assignDisabledNote": {
+    "en": "Disabled: the driver↔vehicle pairing is its own record with its own licence-category check, created after the vehicle exists.",
+    "ka": "გათიშულია: მძღოლისა და ავტომობილის დაწყვილება ცალკე ჩანაწერია, მართვის მოწმობის კატეგორიის საკუთარი შემოწმებით, და იქმნება ავტომობილის დამატების შემდეგ.",
+    "_source": "src/components/driver-hub/screens/vehicles-add-form.tsx"
+  },
+  "vehiclesAddForm.assignToDriver": {
+    "en": "Assign to driver",
+    "ka": "მძღოლზე მიმაგრება",
+    "_source": "src/components/driver-hub/screens/vehicles-add-form.tsx"
+  },
+  "vehiclesAddForm.assignedFromDriversScreen": {
+    "en": "Assigned from the Drivers screen",
+    "ka": "მიმაგრება ხდება მძღოლების გვერდიდან",
+    "_source": "src/components/driver-hub/screens/vehicles-add-form.tsx"
+  },
+  "vehiclesAddForm.citiesDisabledNote": {
+    "en": "Disabled: a vehicle has no operating-cities column — only the company's fleet-wide list exists — so a per-vehicle selection has nowhere to go yet.",
+    "ka": "გათიშულია: ავტომობილს მომსახურების ქალაქების ველი არ აქვს — არსებობს მხოლოდ კომპანიის საერთო სია — ამიტომ ავტომობილის დონეზე არჩევანის შენახვა ჯერ შეუძლებელია.",
+    "_source": "src/components/driver-hub/screens/vehicles-add-form.tsx"
+  },
+  "vehiclesAddForm.couldNotAdd": {
+    "en": "Could not add this vehicle.",
+    "ka": "ავტომობილის დამატება ვერ მოხერხდა.",
+    "_source": "src/components/driver-hub/screens/vehicles-add-form.tsx"
+  },
   "vehiclesAddForm.ford": {
     "en": "Ford",
     "ka": "Ford",
+    "_source": "src/components/driver-hub/screens/vehicles-add-form.tsx"
+  },
+  "vehiclesAddForm.hintClass": {
+    "en": "Pick the class this vehicle is registered under.",
+    "ka": "აირჩიეთ კლასი, რომლითაც ეს ავტომობილია რეგისტრირებული.",
+    "_source": "src/components/driver-hub/screens/vehicles-add-form.tsx"
+  },
+  "vehiclesAddForm.hintMake": {
+    "en": "Add the make, e.g. Mercedes-Benz.",
+    "ka": "მიუთითეთ მწარმოებელი, მაგ. Mercedes-Benz.",
+    "_source": "src/components/driver-hub/screens/vehicles-add-form.tsx"
+  },
+  "vehiclesAddForm.hintModel": {
+    "en": "Add the model, e.g. Sprinter.",
+    "ka": "მიუთითეთ მოდელი, მაგ. Sprinter.",
+    "_source": "src/components/driver-hub/screens/vehicles-add-form.tsx"
+  },
+  "vehiclesAddForm.hintPhoto": {
+    "en": "Add at least one photo of the vehicle.",
+    "ka": "დაამატეთ ავტომობილის მინიმუმ ერთი ფოტო.",
+    "_source": "src/components/driver-hub/screens/vehicles-add-form.tsx"
+  },
+  "vehiclesAddForm.hintPlate": {
+    "en": "Add a plate in the AB-123-CD format to continue.",
+    "ka": "გასაგრძელებლად მიუთითეთ სახელმწიფო ნომერი AB-123-CD ფორმატით.",
+    "_source": "src/components/driver-hub/screens/vehicles-add-form.tsx"
+  },
+  "vehiclesAddForm.hintReady": {
+    "en": "{class} · {plate} · {count, plural, one {# photo} other {# photos}}",
+    "ka": "{class} · {plate} · {count, plural, other {# ფოტო}}",
+    "_source": "src/components/driver-hub/screens/vehicles-add-form.tsx"
+  },
+  "vehiclesAddForm.hintYear": {
+    "en": "Add a manufacturing year between {min} and {max}.",
+    "ka": "მიუთითეთ გამოშვების წელი {min}-დან {max}-მდე.",
     "_source": "src/components/driver-hub/screens/vehicles-add-form.tsx"
   },
   "vehiclesAddForm.itJoinsTheFleetAsIdle": {
@@ -1164,14 +2739,34 @@
     "ka": "ოდომეტრი (კმ)",
     "_source": "src/components/driver-hub/screens/vehicles-add-form.tsx"
   },
+  "vehiclesAddForm.photoRequirementNote": {
+    "en": "At least one photo is required — the endpoint rejects a vehicle without one. Up to 5 MB each.",
+    "ka": "საჭიროა მინიმუმ ერთი ფოტო — ფოტოს გარეშე ავტომობილი არ დაემატება. თითო ფაილი 5 MB-მდე.",
+    "_source": "src/components/driver-hub/screens/vehicles-add-form.tsx"
+  },
   "vehiclesAddForm.transitCustom": {
     "en": "Transit Custom",
     "ka": "Transit Custom",
     "_source": "src/components/driver-hub/screens/vehicles-add-form.tsx"
   },
+  "vehiclesAddForm.upTo": {
+    "en": "Up to {weight}",
+    "ka": "{weight}-მდე",
+    "_source": "src/components/driver-hub/screens/vehicles-add-form.tsx"
+  },
+  "vehiclesDetailPanel.confirmRemoval": {
+    "en": "Confirm removal",
+    "ka": "წაშლის დადასტურება",
+    "_source": "src/components/driver-hub/screens/vehicles-detail-panel.tsx"
+  },
   "vehiclesDetailPanel.costPerKm": {
     "en": "Cost per km",
     "ka": "ღირებულება კმ-ზე",
+    "_source": "src/components/driver-hub/screens/vehicles-detail-panel.tsx"
+  },
+  "vehiclesDetailPanel.couldNotRemove": {
+    "en": "Could not remove this vehicle.",
+    "ka": "ავტომობილის წაშლა ვერ მოხერხდა.",
     "_source": "src/components/driver-hub/screens/vehicles-detail-panel.tsx"
   },
   "vehiclesDetailPanel.jobsWeek": {
@@ -1179,9 +2774,34 @@
     "ka": "შეკვეთები · კვირაში",
     "_source": "src/components/driver-hub/screens/vehicles-detail-panel.tsx"
   },
+  "vehiclesDetailPanel.networkError": {
+    "en": "Network error. Please check your connection.",
+    "ka": "ქსელის შეცდომა. შეამოწმეთ კავშირი.",
+    "_source": "src/components/driver-hub/screens/vehicles-detail-panel.tsx"
+  },
   "vehiclesDetailPanel.operatingCities": {
     "en": "Operating cities",
     "ka": "ოპერირების ქალაქები",
+    "_source": "src/components/driver-hub/screens/vehicles-detail-panel.tsx"
+  },
+  "vehiclesDetailPanel.removeArmedNote": {
+    "en": "Click again to delete this vehicle for good. Its photos go with it, and any open driver assignment ends.",
+    "ka": "ავტომობილის სამუდამოდ წასაშლელად კიდევ ერთხელ დააჭირეთ. მასთან ერთად წაიშლება მისი ფოტოები და დასრულდება მძღოლზე მიმაგრება.",
+    "_source": "src/components/driver-hub/screens/vehicles-detail-panel.tsx"
+  },
+  "vehiclesDetailPanel.removeUnarmedNote": {
+    "en": "Deletes the vehicle record outright. There is no defleeted state to bring it back from, so putting it back on the road means registering it again.",
+    "ka": "ავტომობილის ჩანაწერი მთლიანად წაიშლება. აღდგენა შეუძლებელია, ამიტომ მის დასაბრუნებლად ავტომობილის ხელახლა რეგისტრაცია დაგჭირდებათ.",
+    "_source": "src/components/driver-hub/screens/vehicles-detail-panel.tsx"
+  },
+  "vehiclesDetailPanel.removeVehicle": {
+    "en": "Remove vehicle",
+    "ka": "ავტომობილის წაშლა",
+    "_source": "src/components/driver-hub/screens/vehicles-detail-panel.tsx"
+  },
+  "vehiclesDetailPanel.removing": {
+    "en": "Removing…",
+    "ka": "იშლება…",
     "_source": "src/components/driver-hub/screens/vehicles-detail-panel.tsx"
   },
   "vehiclesDetailPanel.runningCostsThisMonth": {
@@ -1204,9 +2824,39 @@
     "ka": "ტრანსპორტის დამატება",
     "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
   },
+  "vehiclesScreen.availableToHand": {
+    "en": "Available to hand to a driver",
+    "ka": "შესაძლებელია მძღოლზე გადაცემა",
+    "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
+  },
   "vehiclesScreen.costKm": {
     "en": "Cost/km",
     "ka": "ღირებულება/კმ",
+    "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
+  },
+  "vehiclesScreen.detailLabelAddForm": {
+    "en": "the add vehicle form",
+    "ka": "ავტომობილის დამატების ფორმა",
+    "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
+  },
+  "vehiclesScreen.detailLabelDefault": {
+    "en": "vehicle details",
+    "ka": "ავტომობილის დეტალები",
+    "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
+  },
+  "vehiclesScreen.detailLabelVehicle": {
+    "en": "{make} {model} details",
+    "ka": "{make} {model} — დეტალები",
+    "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
+  },
+  "vehiclesScreen.filterAria": {
+    "en": "Filter vehicles by status",
+    "ka": "ავტომობილების გაფილტვრა სტატუსით",
+    "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
+  },
+  "vehiclesScreen.fleetCostNote": {
+    "en": "Fuel, service, parking and tolls",
+    "ka": "საწვავი, მომსახურება, პარკირება და გზის საფასური",
     "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
   },
   "vehiclesScreen.fleetCostPerKm": {
@@ -1214,9 +2864,49 @@
     "ka": "ავტოპარკის ხარჯი კმ-ზე",
     "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
   },
+  "vehiclesScreen.fleetCostSampleNote": {
+    "en": "No fuel, service, parking or toll charge is recorded against any vehicle, so there is nothing to average. Retire with a VehicleExpense model.",
+    "ka": "არცერთ ავტომობილზე საწვავის, მომსახურების, პარკირების ან გზის ხარჯი არ ფიქსირდება, ამიტომ საშუალოს გამოსათვლელი არაფერია. ჩანაცვლდება VehicleExpense მოდელით.",
+    "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
+  },
+  "vehiclesScreen.heldByDriver": {
+    "en": "Held by a driver right now",
+    "ka": "ამჟამად მძღოლთანაა",
+    "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
+  },
   "vehiclesScreen.idle": {
     "en": "Idle",
     "ka": "უქმად დგას",
+    "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
+  },
+  "vehiclesScreen.inYourHands": {
+    "en": "In your hands right now",
+    "ka": "ამჟამად თქვენთანაა",
+    "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
+  },
+  "vehiclesScreen.noTabVehicles": {
+    "en": "No {status} vehicles.",
+    "ka": "{status} ავტომობილები არ არის.",
+    "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
+  },
+  "vehiclesScreen.noVehicleAssigned": {
+    "en": "No vehicle assigned to you yet.",
+    "ka": "თქვენზე ჯერ ავტომობილი არ არის მიმაგრებული.",
+    "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
+  },
+  "vehiclesScreen.noVehicleRegistered": {
+    "en": "You have no vehicle registered yet.",
+    "ka": "ჯერ ავტომობილი არ გაქვთ რეგისტრირებული.",
+    "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
+  },
+  "vehiclesScreen.noVehiclesFleet": {
+    "en": "No vehicles in the fleet yet.",
+    "ka": "ავტოპარკში ჯერ ავტომობილები არ არის.",
+    "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
+  },
+  "vehiclesScreen.notHeld": {
+    "en": "Not held by anyone right now",
+    "ka": "ამჟამად არავისთანაა",
     "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
   },
   "vehiclesScreen.odometerCostKm": {
@@ -1227,6 +2917,46 @@
   "vehiclesScreen.onTheRoad": {
     "en": "On the road",
     "ka": "ხაზზეა / გზაშია",
+    "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
+  },
+  "vehiclesScreen.rosterEmptyHint": {
+    "en": "Your fleet manager assigns you a vehicle from the company's own. It appears here once they do.",
+    "ka": "ავტოპარკის მენეჯერი კომპანიის ავტომობილებიდან ერთ-ერთს მოგამაგრებთ. ის აქ გამოჩნდება, როგორც კი ამას გააკეთებს.",
+    "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
+  },
+  "vehiclesScreen.sampleData": {
+    "en": " — sample data.",
+    "ka": " — სანიმუშო მონაცემები.",
+    "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
+  },
+  "vehiclesScreen.sampledColumnsNote": {
+    "en": "Odometer and cost per km are placeholders: nothing records a reading or a cost against a vehicle. Retire with Vehicle.odometerKm and a VehicleExpense model.",
+    "ka": "ოდომეტრი და ღირებულება კმ-ზე სანიმუშოა: ავტომობილზე არც ჩვენება და არც ხარჯი არ ფიქსირდება. ჩანაცვლდება Vehicle.odometerKm-ით და VehicleExpense მოდელით.",
+    "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
+  },
+  "vehiclesScreen.shownCount": {
+    "en": "{visible} of {total} shown",
+    "ka": "ნაჩვენებია {visible} / {total}",
+    "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
+  },
+  "vehiclesScreen.subtitleFleet": {
+    "en": "{count, plural, one {# vehicle registered} other {# vehicles registered}} · {onRoad} on the road, {unassigned} unassigned",
+    "ka": "{count, plural, other {რეგისტრირებულია # ავტომობილი}} · {onRoad} გზაზე, {unassigned} მიუმაგრებელი",
+    "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
+  },
+  "vehiclesScreen.subtitleNone": {
+    "en": "No vehicles yet",
+    "ka": "ავტომობილები ჯერ არ არის",
+    "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
+  },
+  "vehiclesScreen.subtitleNoneRoster": {
+    "en": "No vehicle assigned to you yet",
+    "ka": "თქვენზე ჯერ ავტომობილი არ არის მიმაგრებული",
+    "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
+  },
+  "vehiclesScreen.subtitleRoster": {
+    "en": "{count, plural, one {# vehicle assigned to you} other {# vehicles assigned to you}}",
+    "ka": "{count, plural, other {თქვენზე მიმაგრებულია # ავტომობილი}}",
     "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
   }
 }

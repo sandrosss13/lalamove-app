@@ -1,4 +1,34 @@
 {
+  "orderStatus.accepted": {
+    "en": "Accepted",
+    "ka": "დადასტურებული",
+    "_source": "src/components/orders-format.ts"
+  },
+  "orderStatus.cancelled": {
+    "en": "Cancelled",
+    "ka": "გაუქმებული",
+    "_source": "src/components/orders-format.ts"
+  },
+  "orderStatus.completed": {
+    "en": "Completed",
+    "ka": "დასრულებული",
+    "_source": "src/components/orders-format.ts"
+  },
+  "orderStatus.inTransit": {
+    "en": "In transit",
+    "ka": "გზაში",
+    "_source": "src/components/orders-format.ts"
+  },
+  "orderStatus.initiated": {
+    "en": "Initiated",
+    "ka": "ინიცირებული",
+    "_source": "src/components/orders-format.ts"
+  },
+  "orderStatus.pending": {
+    "en": "Pending",
+    "ka": "მოლოდინში",
+    "_source": "src/components/orders-format.ts"
+  },
   "orderTrackingMap.driverLocationMayBeStale": {
     "en": "Driver location may be stale.",
     "ka": "მძღოლის მდებარეობა შესაძლოა მოძველებული იყოს",
@@ -14,9 +44,19 @@
     "ka": "ზემოთ.",
     "_source": "src/app/[locale]/orders/page.tsx"
   },
+  "orders.bookFirstDelivery": {
+    "en": "Book your first delivery with <b>New order</b> above.",
+    "ka": "პირველი მიწოდება დაჯავშნეთ ზემოთ მოცემული ღილაკით <b>ახალი შეკვეთა</b>.",
+    "_source": "src/app/[locale]/orders/page.tsx"
+  },
   "orders.newOrder2": {
     "en": "New order",
     "ka": "ახალი შეკვეთა",
+    "_source": "src/app/[locale]/orders/page.tsx"
+  },
+  "orders.noOrdersYet": {
+    "en": "You haven't placed any orders yet.",
+    "ka": "თქვენ ჯერ არცერთი შეკვეთა არ გაგიკეთებიათ.",
     "_source": "src/app/[locale]/orders/page.tsx"
   },
   "orders.signInToViewYourOrders": {
@@ -39,6 +79,16 @@
     "ka": "თქვენი შეკვეთები",
     "_source": "src/app/[locale]/orders/page.tsx"
   },
+  "ordersTrack.backToDashboard": {
+    "en": "← Back to dashboard",
+    "ka": "← მართვის პანელზე დაბრუნება",
+    "_source": "src/app/[locale]/orders/[id]/track/page.tsx"
+  },
+  "ordersTrack.backToOrders": {
+    "en": "← Back to orders",
+    "ka": "← შეკვეთებზე დაბრუნება",
+    "_source": "src/app/[locale]/orders/[id]/track/page.tsx"
+  },
   "ordersTrack.carrier": {
     "en": "Carrier",
     "ka": "გადამზიდავი",
@@ -53,5 +103,20 @@
     "en": "Track delivery",
     "ka": "მიწოდების თვალყურის დევნება",
     "_source": "src/app/[locale]/orders/[id]/track/page.tsx"
+  },
+  "serviceLevel.pooling": {
+    "en": "Pooling",
+    "ka": "გაერთიანებული",
+    "_source": "src/components/orders-format.ts"
+  },
+  "serviceLevel.priority": {
+    "en": "Priority",
+    "ka": "პრიორიტეტული",
+    "_source": "src/components/orders-format.ts"
+  },
+  "serviceLevel.regular": {
+    "en": "Regular",
+    "ka": "სტანდარტული",
+    "_source": "src/components/orders-format.ts"
   }
 }

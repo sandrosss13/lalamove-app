@@ -24,6 +24,31 @@
     "ka": "CVC",
     "_source": "src/components/home/add-card-dialog.tsx"
   },
+  "addCardDialog.enterCardNumber": {
+    "en": "Enter a card number of at least {min} digits.",
+    "ka": "შეიყვანეთ ბარათის ნომერი, მინიმუმ {min} ციფრი.",
+    "_source": "src/components/home/add-card-dialog.tsx"
+  },
+  "addCardDialog.enterCvc": {
+    "en": "Enter the three- or four-digit security code.",
+    "ka": "შეიყვანეთ სამ- ან ოთხნიშნა უსაფრთხოების კოდი.",
+    "_source": "src/components/home/add-card-dialog.tsx"
+  },
+  "addCardDialog.enterExpiryFormat": {
+    "en": "Enter the expiry date as MM/YY.",
+    "ka": "შეიყვანეთ მოქმედების ვადა ფორმატით MM/YY.",
+    "_source": "src/components/home/add-card-dialog.tsx"
+  },
+  "addCardDialog.enterFutureExpiry": {
+    "en": "Enter an expiry date in the future.",
+    "ka": "შეიყვანეთ მომავალი თარიღის მოქმედების ვადა.",
+    "_source": "src/components/home/add-card-dialog.tsx"
+  },
+  "addCardDialog.enterHolderName": {
+    "en": "Enter the name printed on the card.",
+    "ka": "შეიყვანეთ ბარათზე დაბეჭდილი სახელი.",
+    "_source": "src/components/home/add-card-dialog.tsx"
+  },
   "addCardDialog.expiry": {
     "en": "Expiry",
     "ka": "მოქმედების ვადა",
@@ -44,6 +69,16 @@
     "ka": "სახელი ბარათზე",
     "_source": "src/components/home/add-card-dialog.tsx"
   },
+  "addCardDialog.saveCard": {
+    "en": "Save card",
+    "ka": "ბარათის შენახვა",
+    "_source": "src/components/home/add-card-dialog.tsx"
+  },
+  "addCardDialog.saveFailed": {
+    "en": "Could not save the card. Try again.",
+    "ka": "ბარათის შენახვა ვერ მოხერხდა. სცადეთ ხელახლა.",
+    "_source": "src/components/home/add-card-dialog.tsx"
+  },
   "addCardDialog.setAsDefaultPaymentMethod": {
     "en": "Set as default payment method",
     "ka": "დაყენება გადახდის ნაგულისხმევ მეთოდად",
@@ -54,9 +89,19 @@
     "ka": "1 ნიშნავს, რომ მძღოლი მარტოა. ყოველი დამატებითი ადამიანი არის დამხმარე დატვირთვა-დაცლისთვის, რისი საფასურიც ემატება ძირითად ტარიფს.",
     "_source": "src/components/home/booking-form.tsx"
   },
+  "bookingForm.acceptedRange": {
+    "en": "Accepted range {min}–{max} {unit}.",
+    "ka": "დასაშვები დიაპაზონი: {min}–{max} {unit}.",
+    "_source": "src/components/home/booking-form.tsx"
+  },
   "bookingForm.additionalDetails": {
     "en": "Additional details",
     "ka": "დამატებითი დეტალები",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.anotherBody": {
+    "en": "another body",
+    "ka": "სხვა ძარა",
     "_source": "src/components/home/booking-form.tsx"
   },
   "bookingForm.anyTime": {
@@ -79,9 +124,79 @@
     "ka": "მიწოდების დაჯავშნა",
     "_source": "src/components/home/booking-form.tsx"
   },
+  "bookingForm.bookDelivery": {
+    "en": "Book delivery",
+    "ka": "მიწოდების დაჯავშნა",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.booking": {
+    "en": "Booking…",
+    "ka": "იჯავშნება…",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.calculate": {
+    "en": "Calculate",
+    "ka": "გამოთვლა",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.calculating": {
+    "en": "Calculating…",
+    "ka": "ითვლება…",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.cantCarry": {
+    "en": "Can't carry {weight}",
+    "ka": "ვერ გადაზიდავს {weight}-ს",
+    "_source": "src/components/home/booking-form.tsx"
+  },
   "bookingForm.cargoDetails": {
     "en": "Cargo details",
     "ka": "ტვირთის დეტალები",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.cargoFieldHelper": {
+    "en": "Needed to show your load to drivers with the right vehicle.",
+    "ka": "საჭიროა, რომ თქვენი ტვირთი შესაბამისი ავტომობილის მძღოლებს ვაჩვენოთ.",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.chooseDateFirst": {
+    "en": "Choose a date and time first.",
+    "ka": "ჯერ აირჩიეთ თარიღი და დრო.",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.chooseVehicleFirst": {
+    "en": "Choose a vehicle first.",
+    "ka": "ჯერ აირჩიეთ ავტომობილი.",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.coldChainNotice": {
+    "en": "Cold-chain cargo travels best in a refrigerated body. You picked {body} in the vehicle step above — go back and switch it if this load needs temperature control.",
+    "ka": "ცივი ჯაჭვის ტვირთი საუკეთესოდ მაცივარ-ფურგონით გადაიზიდება. ავტომობილის ნაბიჯზე თქვენ აირჩიეთ {body} — დაბრუნდით და შეცვალეთ, თუ ამ ტვირთს ტემპერატურის კონტროლი სჭირდება.",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.couldNotPriceThisLoad": {
+    "en": "Could not price this load. Please try again.",
+    "ka": "ამ ტვირთის ფასის გამოთვლა ვერ მოხერხდა. გთხოვთ, სცადოთ ხელახლა.",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.crewSizeMany": {
+    "en": "{size} people — the driver and {helpers, plural, one {# helper} other {# helpers}}",
+    "ka": "{size} ადამიანი — მძღოლი და {helpers, plural, one {# დამხმარე} other {# დამხმარე}}",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.crewSizeOne": {
+    "en": "1 person — the driver alone",
+    "ka": "1 ადამიანი — მხოლოდ მძღოლი",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.deadlineAfterScheduled": {
+    "en": "The delivery deadline has to be after the scheduled delivery time.",
+    "ka": "მიწოდების ბოლო ვადა უნდა იყოს დაგეგმილი მიწოდების დროის შემდეგ.",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.deadlineAfterWindow": {
+    "en": "The delivery deadline has to be after the pickup window ends.",
+    "ka": "მიწოდების ბოლო ვადა უნდა იყოს აღების ინტერვალის დასრულების შემდეგ.",
     "_source": "src/components/home/booking-form.tsx"
   },
   "bookingForm.deliveryDateTime": {
@@ -154,9 +269,49 @@
     "ka": "დახურული და ამინდისგან დაცული",
     "_source": "src/components/home/booking-form.tsx"
   },
+  "bookingForm.enterA": {
+    "en": "Enter a {label}.",
+    "ka": "შეიყვანეთ {label}.",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.enterAValid": {
+    "en": "Enter a valid {label}.",
+    "ka": "შეიყვანეთ სწორი {label}.",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.enterAddressesFirst": {
+    "en": "Enter both addresses first.",
+    "ka": "ჯერ შეიყვანეთ ორივე მისამართი.",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.enterHeight": {
+    "en": "Enter a height — drivers can't be matched to a load with unknown dimensions.",
+    "ka": "შეიყვანეთ სიმაღლე — უცნობი ზომების ტვირთს მძღოლს ვერ დავუკავშირებთ.",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.enterLength": {
+    "en": "Enter a length — drivers can't be matched to a load with unknown dimensions.",
+    "ka": "შეიყვანეთ სიგრძე — უცნობი ზომების ტვირთს მძღოლს ვერ დავუკავშირებთ.",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.enterTotalWeight": {
+    "en": "Enter a total weight — drivers can't be matched to a load with unknown weight.",
+    "ka": "შეიყვანეთ საერთო წონა — უცნობი წონის ტვირთს მძღოლს ვერ დავუკავშირებთ.",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.enterWidth": {
+    "en": "Enter a width — drivers can't be matched to a load with unknown dimensions.",
+    "ka": "შეიყვანეთ სიგანე — უცნობი ზომების ტვირთს მძღოლს ვერ დავუკავშირებთ.",
+    "_source": "src/components/home/booking-form.tsx"
+  },
   "bookingForm.estimatedTotal": {
     "en": "Estimated total",
     "ka": "სავარაუდო ჯამი",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.fillInBoth": {
+    "en": "Fill in both addresses and choose a vehicle, then press Calculate to see your price.",
+    "ka": "შეავსეთ ორივე მისამართი, აირჩიეთ ავტომობილი და ფასის სანახავად დააჭირეთ „გამოთვლას“.",
     "_source": "src/components/home/booking-form.tsx"
   },
   "bookingForm.flaggedToDispatchAsTimeCritical": {
@@ -169,9 +324,19 @@
     "ka": "ღია პლატფორმა, დატვირთვა შესაძლებელია ნებისმიერი მხრიდან",
     "_source": "src/components/home/booking-form.tsx"
   },
+  "bookingForm.hazmatNotice": {
+    "en": "Hazmat loads require a driver with the appropriate carrier certification. This isn't checked automatically yet — see the compliance note in specs/driver-load-board/action-required.md.",
+    "ka": "საშიში ტვირთის გადაზიდვას სჭირდება შესაბამისი სერტიფიკატის მქონე მძღოლი. ეს ჯერ ავტომატურად არ მოწმდება — იხილეთ შესაბამისობის შენიშვნა specs/driver-load-board/action-required.md-ში.",
+    "_source": "src/components/home/booking-form.tsx"
+  },
   "bookingForm.heightM": {
     "en": "Height (m)",
     "ka": "სიმაღლე (მ)",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.hideRouteMap": {
+    "en": "Hide route map",
+    "ka": "მარშრუტის რუკის დამალვა",
     "_source": "src/components/home/booking-form.tsx"
   },
   "bookingForm.lengthM": {
@@ -184,14 +349,29 @@
     "ka": "ამ ტრანსპორტის ტიპისთვის მოქმედებს მინიმალური ტარიფი.",
     "_source": "src/components/home/booking-form.tsx"
   },
+  "bookingForm.mustBeBetween": {
+    "en": "{label} must be between {min} and {max}.",
+    "ka": "{label} უნდა იყოს {min}-სა და {max}-ს შორის.",
+    "_source": "src/components/home/booking-form.tsx"
+  },
   "bookingForm.newDelivery": {
     "en": "New delivery",
     "ka": "ახალი მიწოდება",
     "_source": "src/components/home/booking-form.tsx"
   },
+  "bookingForm.noCarriersRunThisClass": {
+    "en": "No carriers run this class",
+    "ka": "ამ კლასს არცერთი გადამზიდი არ ემსახურება",
+    "_source": "src/components/home/booking-form.tsx"
+  },
   "bookingForm.noDeadline": {
     "en": "No deadline",
     "ka": "ბოლო ვადის გარეშე",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.noServiceableVehicles": {
+    "en": "No carrier currently runs any of these vehicle classes. Pick a different load space or weight.",
+    "ka": "ამჟამად ამ კლასის ავტომობილებს არცერთი გადამზიდი არ ემსახურება. აირჩიეთ სხვა ძარის ტიპი ან წონა.",
     "_source": "src/components/home/booking-form.tsx"
   },
   "bookingForm.noSlotsLeftTodayPickA": {
@@ -219,6 +399,11 @@
     "ka": "ღია შასი",
     "_source": "src/components/home/booking-form.tsx"
   },
+  "bookingForm.orderFailed": {
+    "en": "Could not create the order. Please try again.",
+    "ka": "შეკვეთის შექმნა ვერ მოხერხდა. გთხოვთ, სცადოთ ხელახლა.",
+    "_source": "src/components/home/booking-form.tsx"
+  },
   "bookingForm.packagingOptional": {
     "en": "Packaging (optional)",
     "ka": "შეფუთვა (არასავალდებულო)",
@@ -229,9 +414,24 @@
     "ka": "დამხმარეები დატვირთვა / დაცლისთვის",
     "_source": "src/components/home/booking-form.tsx"
   },
+  "bookingForm.pickADateFirst": {
+    "en": "Pick a date first",
+    "ka": "ჯერ აირჩიეთ თარიღი",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.pickBiggerVehicle": {
+    "en": "Pick a bigger vehicle in step 5, or correct the figures above.",
+    "ka": "აირჩიეთ უფრო დიდი ავტომობილი მე-5 ნაბიჯზე ან შეასწორეთ ზემოთ მითითებული მონაცემები.",
+    "_source": "src/components/home/booking-form.tsx"
+  },
   "bookingForm.pickTheClosestMatchItDecides": {
     "en": "Pick the closest match — it decides which vehicles can take the job.",
     "ka": "აირჩიეთ ყველაზე ახლოს მყოფი ვარიანტი — ეს განსაზღვრავს, რომელ ტრანსპორტს შეუძლია შეკვეთის აღება.",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.pickWhatYoureMovingFirst": {
+    "en": "Pick what you're moving first — weight options depend on the vehicles cleared for it.",
+    "ka": "ჯერ აირჩიეთ, რას გადაზიდავთ — წონის ვარიანტები დამოკიდებულია მისთვის დაშვებულ ავტომობილებზე.",
     "_source": "src/components/home/booking-form.tsx"
   },
   "bookingForm.pickupAddress": {
@@ -259,9 +459,24 @@
     "ka": "პულინგის ფასდაკლება",
     "_source": "src/components/home/booking-form.tsx"
   },
+  "bookingForm.pressCalculate": {
+    "en": "Press Calculate to see your price.",
+    "ka": "ფასის სანახავად დააჭირეთ „გამოთვლას“.",
+    "_source": "src/components/home/booking-form.tsx"
+  },
   "bookingForm.priceBreakdown": {
     "en": "Price breakdown",
     "ka": "ფასის ჩაშლა",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.pricesAppearAfterCalculate": {
+    "en": "Prices appear after you calculate",
+    "ka": "ფასები გამოთვლის შემდეგ გამოჩნდება",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.pricesBelowForRoute": {
+    "en": "Prices below are for this route",
+    "ka": "ქვემოთ მოცემული ფასები ამ მარშრუტისთვისაა",
     "_source": "src/components/home/booking-form.tsx"
   },
   "bookingForm.priority": {
@@ -277,6 +492,11 @@
   "bookingForm.quantityOptional": {
     "en": "Quantity (optional)",
     "ka": "რაოდენობა (არასავალდებულო)",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.recalculate": {
+    "en": "Recalculate",
+    "ka": "ხელახლა გამოთვლა",
     "_source": "src/components/home/booking-form.tsx"
   },
   "bookingForm.recommendedVehicle": {
@@ -304,9 +524,29 @@
     "ka": "დაახლოებით რა მოცულობის/წონის ტვირთი გადადის — ჩვენ გაწევთ მხოლოდ იმ ტრანსპორტის რეკომენდაციას, რომელსაც მისი წაღება შეუძლია.",
     "_source": "src/components/home/booking-form.tsx"
   },
+  "bookingForm.selectADate": {
+    "en": "Select a date",
+    "ka": "აირჩიეთ თარიღი",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.selectATime": {
+    "en": "Select a time",
+    "ka": "აირჩიეთ დრო",
+    "_source": "src/components/home/booking-form.tsx"
+  },
   "bookingForm.setBothEndsOfThePickup": {
     "en": "Set both ends of the pickup window, or leave both blank.",
     "ka": "მიუთითეთ აყვანის ინტერვალის ორივე ზღვარი, ან დატოვეთ ორივე ცარიელი.",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.showRouteMap": {
+    "en": "Show route map",
+    "ka": "მარშრუტის რუკის ჩვენება",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.specUpTo": {
+    "en": "up to {weight}",
+    "ka": "{weight}-მდე",
     "_source": "src/components/home/booking-form.tsx"
   },
   "bookingForm.specialHandlingOptional": {
@@ -329,6 +569,21 @@
     "ka": "აყვანის ინტერვალი უნდა სრულდებოდეს დაწყების შემდეგ.",
     "_source": "src/components/home/booking-form.tsx"
   },
+  "bookingForm.tooLowFor": {
+    "en": "Too low for {size} m",
+    "ka": "ძალიან დაბალია {size} მ-ისთვის",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.tooNarrowFor": {
+    "en": "Too narrow for {size} m",
+    "ka": "ძალიან ვიწროა {size} მ-ისთვის",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.tooShortFor": {
+    "en": "Too short for {size} m",
+    "ka": "ძალიან მოკლეა {size} მ-ისთვის",
+    "_source": "src/components/home/booking-form.tsx"
+  },
   "bookingForm.totalWeight": {
     "en": "Total weight",
     "ka": "საერთო წონა",
@@ -344,9 +599,24 @@
     "ka": "მდე",
     "_source": "src/components/home/booking-form.tsx"
   },
+  "bookingForm.upToWeight": {
+    "en": "Up to {weight}",
+    "ka": "{weight}-მდე",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.vehicleCount": {
+    "en": "{count, plural, one {# vehicle} other {# vehicles}}",
+    "ka": "{count, plural, one {# ავტომობილი} other {# ავტომობილი}}",
+    "_source": "src/components/home/booking-form.tsx"
+  },
   "bookingForm.weightAndSizeOfTheLargest": {
     "en": "Weight and size of the largest item",
     "ka": "ყველაზე დიდი ნივთის წონა და ზომა",
+    "_source": "src/components/home/booking-form.tsx"
+  },
+  "bookingForm.weightUnavailable": {
+    "en": "Available once a total weight can be chosen above.",
+    "ka": "ხელმისაწვდომი გახდება, როცა ზემოთ საერთო წონის არჩევა შესაძლებელი იქნება.",
     "_source": "src/components/home/booking-form.tsx"
   },
   "bookingForm.whatAreYouMoving": {
@@ -462,6 +732,16 @@
   "stopContactDialog.deliveryInfo": {
     "en": "Delivery info",
     "ka": "ინფორმაცია მიწოდებაზე",
+    "_source": "src/components/home/stop-contact-dialog.tsx"
+  },
+  "stopContactDialog.deliveryInfoForDropoff": {
+    "en": "Delivery info for the dropoff",
+    "ka": "მიწოდების ინფორმაცია ჩაბარებისთვის",
+    "_source": "src/components/home/stop-contact-dialog.tsx"
+  },
+  "stopContactDialog.deliveryInfoForPickup": {
+    "en": "Delivery info for the pickup",
+    "ka": "მიწოდების ინფორმაცია აღებისთვის",
     "_source": "src/components/home/stop-contact-dialog.tsx"
   },
   "stopContactDialog.phoneNumber": {

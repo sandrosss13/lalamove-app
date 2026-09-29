@@ -2,11 +2,13 @@
   "adminBusinessApplicationsActivate": {
     "atLeastOneVehicleMustBe": "At least one vehicle must be approved before activating the fleet.",
     "thisApplicationIsStillWaitingOn": "This application is still waiting on the company to resubmit.",
+    "vehiclesStillPendingReview": "{count, plural, one {# vehicle is still pending review.} other {# vehicles are still pending review.}} Decide every vehicle before activating the fleet.",
     "verifyTheCompanySDetailsBefore": "Verify the company's details before activating the fleet."
   },
   "adminBusinessApplicationsCompany": {
     "aReasonIsRequiredToFlag": "A reason is required to flag the company's details.",
-    "thatIsNotOneOfThe": "That is not one of the company flag reasons."
+    "thatIsNotOneOfThe": "That is not one of the company flag reasons.",
+    "verdictMustBeVerifiedOrFlagged": "verdict must be either \"VERIFIED\" or \"FLAGGED\"."
   },
   "adminBusinessApplicationsRequestChanges": {
     "changesHaveAlreadyBeenRequestedOn": "Changes have already been requested on this application.",
@@ -15,7 +17,8 @@
   "adminBusinessApplicationsVehicles": {
     "aReasonIsRequiredToFlag": "A reason is required to flag a vehicle.",
     "thatIsNotOneOfThe": "That is not one of the vehicle flag reasons.",
-    "vehicleNotFoundOnThisApplication": "Vehicle not found on this application."
+    "vehicleNotFoundOnThisApplication": "Vehicle not found on this application.",
+    "verdictMustBeApprovedOrFlagged": "verdict must be either \"APPROVED\" or \"FLAGGED\"."
   },
   "adminContentBanners": {
     "bannerNotFound": "Banner not found.",
@@ -36,6 +39,7 @@
     "isactiveMustBeABooleanWhen": "isActive must be a boolean when provided.",
     "keyMustBeANonEmpty": "key must be a non-empty string.",
     "subjectMustBeAStringWhen": "subject must be a string when provided.",
+    "subjectMustBeStringOrNull": "subject must be a string or null.",
     "thatMessagingTemplateWasNotFound": "That messaging template was not found."
   },
   "adminContentPages": {
@@ -44,11 +48,14 @@
   "adminContentTranslations": {
     "namespaceIsRequiredAndMustBe": "namespace is required and must be a non-empty string.",
     "translationEntryNotFound": "Translation entry not found.",
+    "translationValueMaxLength": "A translation value must be {max} characters or fewer.",
     "valueIsRequiredAndMustBe": "value is required and must be a non-empty string.",
     "valueenIsRequiredAndMustBe": "valueEn is required and must be a non-empty string.",
     "valuekaIsRequiredAndMustBe": "valueKa is required and must be a non-empty string."
   },
   "adminContentVehiclePhotos": {
+    "imageUrlNonEmptyOrNull": "imageUrl must be a non-empty string, or null to clear it.",
+    "unexpectedFields": "This endpoint only sets imageUrl. Unexpected field(s): {fields}. Vehicle specifications and pricing are changed through the seed, not the back office.",
     "vehicleTypeNotFound": "Vehicle type not found."
   },
   "adminDriverApplicationsApprove": {
@@ -58,6 +65,7 @@
   },
   "adminDriverApplicationsDocuments": {
     "aReasonIsRequiredToFlag": "A reason is required to flag a document.",
+    "actionMustBeApproveOrFlag": "action must be either \"approve\" or \"flag\".",
     "documentNotFound": "Document not found."
   },
   "adminDriverApplicationsRequestChanges": {
@@ -73,6 +81,7 @@
     "codeIsRequired": "code is required.",
     "codeMustBeAString": "code must be a string.",
     "thisCampaignHasAlreadyBeenRedeemed": "This campaign has already been redeemed and cannot be deleted. Deactivate it instead.",
+    "usageLimitWholeNumberOrNull": "usageLimit must be a whole number of 1 or more, or null.",
     "usagelimitMustBeAWholeNumber": "usageLimit must be a whole number of 1 or more, or omitted."
   },
   "adminUsersSuspend": {
@@ -92,9 +101,11 @@
     "youCannotChangeYourOwnAccount": "You cannot change your own account's status."
   },
   "clientProfile": {
+    "accountTypeMustBeOneOf": "accountType must be one of: {allowed}.",
     "dateofbirthCannotBeInTheFuture": "dateOfBirth cannot be in the future.",
     "dateofbirthMustBeAValidDate": "dateOfBirth must be a valid date.",
     "dateofbirthMustBeAnIsoDate": "dateOfBirth must be an ISO date string.",
+    "genderMustBeOneOf": "gender must be one of: {allowed}.",
     "onlyClientsCanCreateAClient": "Only clients can create a client profile.",
     "onlyClientsHaveAClientProfile": "Only clients have a client profile."
   },
@@ -102,12 +113,47 @@
     "thisAccountCannotReadAFleet": "This account cannot read a fleet roster."
   },
   "dashboardHubDriversAvailabilityExport": {
-    "thisAccountCannotExportAFleet": "This account cannot export a fleet roster."
+    "allDriversWholeDay": "All drivers, whole day (filters ignored)",
+    "availableRows": "Available rows",
+    "capacityKg": "Capacity (kg)",
+    "derivedEnd": "Derived end",
+    "derivedEndNote": "Derived end = Yes means the End time was not recorded and was estimated so the job could be shown at all. Treat those End and Hours values as placeholders, not measurements.",
+    "derivedEnds": "Derived ends",
+    "driverHub": "Driver Hub",
+    "driverPhone": "Driver phone",
+    "end": "End",
+    "filteredDrivers": "Filtered drivers, {range, select, day {whole day} other {current view}}",
+    "gapsNote": "An 'Available' row means no committed work in that stretch — NOT a confirmed available driver. This platform records no shifts, rest periods or unavailability, so nothing here says whether a driver is on duty. Confirm with the driver before dispatching.",
+    "hours": "Hours",
+    "no": "No",
+    "reference": "Reference",
+    "sheetName": "Driver availability",
+    "start": "Start",
+    "thisAccountCannotExportAFleet": "This account cannot export a fleet roster.",
+    "yes": "Yes"
   },
   "dashboardHubEarningsExport": {
-    "thisAccountCannotExportDriverEarnings": "This account cannot export driver earnings."
+    "adjustmentsEstimate": "Adjustments (estimate)",
+    "currency": "Currency",
+    "day": "Day",
+    "driverHub": "Driver Hub",
+    "estimatedColumns": "Estimated columns",
+    "estimatesNote": "Online hours, Tips, Incentives and Adjustments are estimates, not recorded data — and the Total column includes them. Date, Day, Jobs and Fares are real completed-order figures.",
+    "fares": "Fares",
+    "gelSymbol": "GEL (₾)",
+    "incentivesEstimate": "Incentives (estimate)",
+    "onlineHoursEstimate": "Online hours (estimate)",
+    "range": "Range",
+    "rangeFromTo": "{from} to {to}",
+    "sheetName": "Earnings",
+    "thisAccountCannotExportDriverEarnings": "This account cannot export driver earnings.",
+    "tipsEstimate": "Tips (estimate)",
+    "totalInclEstimates": "Total (incl. estimates)",
+    "totals": "Totals"
   },
   "driverProfile": {
+    "accountTypeMustBeOneOf": "accountType must be one of: {types}.",
+    "cityMustBeOneOf": "city must be one of: {cities}.",
     "onlyDriversCanCreateADriver": "Only drivers can create a driver profile.",
     "onlyDriversHaveADriverProfile": "Only drivers have a driver profile.",
     "yourAccountTypeCanTBe": "Your account type can't be changed here."
@@ -118,17 +164,51 @@
     "onlyDriversCanUpdateLocation": "Only drivers can update location."
   },
   "driverProfileOnboarding": {
-    "aSubmittedApplicationCanNoLonger": "A submitted application can no longer be edited."
+    "aSubmittedApplicationCanNoLonger": "A submitted application can no longer be edited.",
+    "couldNotGenerateReference": "Could not generate a unique application reference after {attempts} attempts.",
+    "draftSectionMustBeObject": "draft.{section} must be an object.",
+    "draftStepRange": "draftStep must be an integer between {min} and {max}.",
+    "draftTooLarge": "draft must serialise to {max} characters or fewer."
   },
   "driverProfileOnboardingDocuments": {
     "anotherUploadForThisDocumentIs": "Another upload for this document is still finishing.",
+    "couldNotVerifyUpload": "We couldn't verify the uploaded file. Please upload it again.",
     "pathIsRequiredAndMustBe": "path is required and must be a non-empty string.",
     "thatUploadDoesNotBelongTo": "That upload does not belong to this application."
   },
   "driverProfileOnboardingSubmit": {
+    "ageRange": "Drivers must be between {min} and {max} years old.",
+    "applicationIncomplete": "Something in your application is incomplete. Check each step and try again.",
+    "checkDimensions": "Check the dimensions — metres, not centimetres.",
+    "chooseBodyType": "Choose the vehicle's cargo body type.",
+    "chooseCity": "Choose a city from the list.",
+    "chooseColour": "Choose the vehicle's colour.",
+    "chooseVehicleClass": "Choose a vehicle class.",
+    "classUnavailableForBody": "This vehicle class isn't available with the selected body type.",
+    "documentLabel": {
+      "licenceBackPhoto": "licence back photo",
+      "licenceFrontPhoto": "licence front photo",
+      "profilePhoto": "profile photo"
+    },
+    "enterFullName": "Enter your full name — at least a first and last name.",
+    "enterLicenceNumber": "Enter your licence number.",
+    "enterMake": "Enter the vehicle's make.",
+    "enterModel": "Enter the vehicle's model.",
+    "enterPlate": "Enter the vehicle's licence plate.",
+    "enterValidId": "Enter a valid ID or passport number — 6 to 20 letters, digits or hyphens.",
+    "enterValidMobile": "Enter a valid mobile number.",
     "licenceBackPhoto": "licence back photo",
+    "licenceExpired": "This licence has expired. Renew it before applying.",
     "licenceFrontPhoto": "licence front photo",
-    "profilePhoto": "profile photo"
+    "licenceMissingCategory": "Your licence does not list category {category}, which the {className} class requires.",
+    "payloadBelowClassMinimum": "This vehicle's declared payload is below the {className} minimum of {kg} kg.",
+    "payloadRange": "Maximum payload must be between {min} and {max} kg.",
+    "profilePhoto": "profile photo",
+    "replaceFlaggedDocument": "Replace the flagged {document} before resubmitting.",
+    "selectLicenceCategory": "Select at least one licence category.",
+    "uploadDocument": "Upload your {document} before submitting.",
+    "vehicleTypeSpecMissing": "Vehicle type spec \"{specCode}\" is missing; cannot submit application {applicationId}.",
+    "yearRange": "Enter a manufacturing year between {min} and {max}."
   },
   "driverProfileStatus": {
     "completeYourDriverProfileBeforeGoing": "Complete your driver profile before going online.",
@@ -139,16 +219,25 @@
   "driverProfileVehicles": {
     "completeYourDriverProfileBeforeAdding": "Complete your driver profile before adding a vehicle.",
     "driversWhoBelongToACompany": "Drivers who belong to a company drive their employer's vehicles. Ask your fleet manager to add this vehicle and assign it to you.",
+    "notAnImage": "{name} is not an image file.",
     "onlyDriversCanAddVehicles": "Only drivers can add vehicles.",
     "onlyDriversCanEditVehicles": "Only drivers can edit vehicles.",
     "onlyDriversCanRemoveVehicles": "Only drivers can remove vehicles.",
-    "onlyDriversHaveVehicles": "Only drivers have vehicles."
+    "onlyDriversHaveVehicles": "Only drivers have vehicles.",
+    "photoTooLarge": "{name} is larger than {mb} MB."
+  },
+  "driverProfileVehiclesValidation": {
+    "yearRange": "year must be a whole number between {min} and {max}."
   },
   "guard": {
-    "onlyDriversCanUploadOnboardingDocuments": "Only drivers can upload onboarding documents."
+    "applicationAlreadyApproved": "Your application is already approved — its documents cannot be changed.",
+    "applicationUnderReview": "Your application is under review — its documents cannot be changed until it comes back to you.",
+    "onlyDriversCanUploadOnboardingDocuments": "Only drivers can upload onboarding documents.",
+    "typeMustBeOneOf": "type must be one of: {types}."
   },
   "loads": {
-    "onlyDriversAndLogisticsCompaniesCan": "Only drivers and logistics companies can view the load board."
+    "onlyDriversAndLogisticsCompaniesCan": "Only drivers and logistics companies can view the load board.",
+    "yourCompanyProfileIsnTSetUp": "Your company profile isn't set up yet."
   },
   "loadsReject": {
     "driverProfileNotFound": "Driver profile not found.",
@@ -157,12 +246,17 @@
     "thisLoadIsNoLongerOpen": "This load is no longer open."
   },
   "logisticsCompany": {
+    "bankAccountIbanMinLength": "bankAccountIban must be at least {min} characters.",
+    "citiesOfOperationMustContainOnly": "citiesOfOperation must contain only valid cities: {cities}.",
     "citiesofoperationMustBeAnArrayWith": "citiesOfOperation must be an array with at least one city.",
+    "cityMustBeOneOf": "city must be one of: {cities}.",
+    "companyNameIsRequiredMinLength": "companyName is required and must be at least {min} characters.",
     "contactemailMustBeAValidEmail": "contactEmail must be a valid email address.",
     "contactnameMustBeAFullName": "contactName must be a full name — a first name and a surname.",
     "contactroleIsRequiredAndMustBe": "contactRole is required and must be a non-empty string.",
     "onlyLogisticsCompaniesCanCreateA": "Only logistics companies can create a company profile.",
     "onlyLogisticsCompaniesHaveACompany": "Only logistics companies have a company profile.",
+    "phoneDigitsRange": "phone must contain between {min} and {max} digits.",
     "registeredaddressIsRequiredAndMustBe": "registeredAddress is required and must be a non-empty string.",
     "vatidMustBeExactly9Digits": "vatId must be exactly 9 digits."
   },
@@ -171,7 +265,9 @@
     "onlyLogisticsCompaniesHaveADriver": "Only logistics companies have a driver roster."
   },
   "logisticsCompanyDriversRegister": {
+    "cityMustBeOneOf": "city must be one of: {cities}.",
     "completeYourCompanyProfileBeforeRegistering": "Complete your company profile before registering drivers.",
+    "licenceCategoriesMustContainOnly": "licenceCategories must contain only: {categories}.",
     "licencecategoriesMustBeAnArrayWith": "licenceCategories must be an array with at least one category.",
     "licenceexpiresatMustBeAValidIso": "licenceExpiresAt must be a valid ISO date.",
     "licencenumberIsRequiredAndMustBe": "licenceNumber is required and must be a non-empty string.",
@@ -180,16 +276,41 @@
     "theDriverAccountWasCreatedBut": "The driver account was created, but finishing setup failed. Contact support before retrying with the same email.",
     "theLicenceExpiryDateMustBe": "The licence expiry date must be in the future.",
     "thisVehicleIsAlreadyAssignedTo": "This vehicle is already assigned to another driver.",
+    "thisVehicleNeedsCategory": "This vehicle needs category {category}. Assign a different driver or vehicle.",
     "vehicleidMustBeAStringWhen": "vehicleId must be a string when provided."
   },
   "logisticsCompanyOnboarding": {
     "anApplicationUnderReviewCanNo": "An application under review can no longer be edited.",
-    "draftVehiclesMustBeAnArray": "draft.vehicles must be an array."
+    "draftSectionMustBeAnObject": "draft.{section} must be an object.",
+    "draftStepMustBeAnInteger": "draftStep must be an integer between {min} and {max}.",
+    "draftTooLong": "draft must serialise to {max} characters or fewer.",
+    "draftVehiclesMustBeAnArray": "draft.vehicles must be an array.",
+    "draftVehiclesTooMany": "draft.vehicles must contain {max} entries or fewer."
   },
   "logisticsCompanyOnboardingSubmit": {
-    "correctTheFlaggedCompanyDetailsBefore": "Correct the flagged company details before resubmitting."
+    "assignedToTwoVehicles": "{name} is assigned to two vehicles. Each driver can hold one vehicle.",
+    "chooseAtLeastOneCityOf": "Choose at least one city of operation.",
+    "correctTheFlaggedCompanyDetailsBefore": "Correct the flagged company details before resubmitting.",
+    "driverNoLongerOnRoster": "Vehicle {index}'s driver is no longer on your roster. Assign a different driver.",
+    "duplicatePlate": "Vehicles {first} and {second} both have the plate {plate}.",
+    "enterAValidCompanyEmail": "Enter a valid company email address.",
+    "enterAValidCompanyPhone": "Enter a valid company phone number.",
+    "enterAValidIbanForThe": "Enter a valid IBAN for the payout account.",
+    "enterTheCompanySRegisteredAddress": "Enter the company's registered address.",
+    "enterTheCompanySRegisteredName": "Enter the company's registered name.",
+    "enterTheContactPersonSFull": "Enter the contact person's full name — at least a first and last name.",
+    "enterTheContactPersonSRole": "Enter the contact person's role.",
+    "fixTheFlaggedVehiclesBefore": "Fix the {count, plural, one {# flagged vehicle} other {# flagged vehicles}} before resubmitting.",
+    "licenceHasExpired": "{name}'s licence has expired. Renew it before submitting.",
+    "licenceMissingCategory": "{name}'s licence does not list category {category}, which the {vehicleClass} class requires.",
+    "noLicenceOnFile": "{name} has no licence on file. Add it before submitting.",
+    "theVatOrTaxIdMust": "The VAT or tax ID must be exactly 9 digits.",
+    "thisDriver": "This driver",
+    "vehicleIndexHasNoDriver": "Vehicle {index} has no driver. Every vehicle needs a named driver.",
+    "vehiclePlateHasNoDriver": "Vehicle {plate} has no driver. Every vehicle needs a named driver."
   },
   "logisticsCompanyOnboardingVehicles": {
+    "somethingInThisVehicleIsIncomplete": "Something in this vehicle is incomplete. Check each field and try again.",
     "thisApplicationIsnTOpenFor": "This application isn't open for corrections.",
     "thisVehicleWasnTFlaggedFor": "This vehicle wasn't flagged for correction.",
     "weCouldnTSaveThisVehicle": "We couldn't save this vehicle. Please try again."
@@ -203,27 +324,48 @@
     "onlyLogisticsCompaniesCanClaimDeliveries": "Only logistics companies can claim deliveries.",
     "yourFleetHasNoVehicleBig": "Your fleet has no vehicle big enough for the vehicle class this delivery was booked as, in the load space it needs."
   },
+  "logisticsCompanyOrdersDispatch": {
+    "thisVehicleCanTCarryThis": "This vehicle can't carry this load's cargo — it exceeds the weight or size limit. Assign a vehicle that can.",
+    "thisVehicleDoesnTOfferThe": "This vehicle doesn't offer the load space this delivery needs. Assign one that does.",
+    "thisVehicleHasnTBeenApproved": "This vehicle hasn't been approved yet. Only approved vehicles can be dispatched.",
+    "thisVehicleIsSmallerThanThe": "This vehicle is smaller than the vehicle class this delivery was booked as. Assign one that matches or beats it on payload, length, width and height."
+  },
   "logisticsCompanyVehicles": {
     "completeYourCompanyProfileBeforeAdding": "Complete your company profile before adding a vehicle.",
+    "fileIsNotAnImage": "{fileName} is not an image file.",
+    "fileIsTooLarge": "{fileName} is larger than {maxMb} MB.",
     "onlyLogisticsCompaniesCanAddFleet": "Only logistics companies can add fleet vehicles.",
     "onlyLogisticsCompaniesCanRemoveFleet": "Only logistics companies can remove fleet vehicles.",
     "onlyLogisticsCompaniesHaveAFleet": "Only logistics companies have a fleet.",
-    "vehicletypecodeDoesNotMatchAKnown": "vehicleTypeCode does not match a known vehicle type."
+    "vehicletypecodeDoesNotMatchAKnown": "vehicleTypeCode does not match a known vehicle type.",
+    "yearMustBeAWholeNumber": "year must be a whole number between {min} and {max}."
   },
   "logisticsCompanyVehiclesAssignment": {
     "onlyLogisticsCompaniesCanAssignVehicles": "Only logistics companies can assign vehicles.",
     "onlyLogisticsCompaniesCanUnassignVehicles": "Only logistics companies can unassign vehicles.",
-    "thisVehicleHasNoActiveAssignment": "This vehicle has no active assignment."
+    "thisDriverAlreadyHasAnActive": "This driver already has an active vehicle assignment. Unassign it first.",
+    "thisVehicleAlreadyHasAnActive": "This vehicle already has an active assignment. Unassign it first.",
+    "thisVehicleHasNoActiveAssignment": "This vehicle has no active assignment.",
+    "thisVehicleNeedsCategory": "This vehicle needs category {category}. Assign a different driver or vehicle."
   },
   "orders": {
+    "bodyTypeMustBeOneOf": "bodyType must be one of: {allowed}.",
     "deliverydeadlineMustBeAfterPickupwindowend": "deliveryDeadline must be after pickupWindowEnd.",
     "descriptionMustBeAStringWhen": "description must be a string when provided.",
     "failedToDrawAnOrderReference": "Failed to draw an order reference from the sequence.",
+    "fieldMeasurementOutOfRange": "{field} must be a number greater than 0 and no more than {max} {unit}.",
+    "fieldMustBeObjectWhenProvided": "{field} must be a JSON object when provided.",
+    "fieldMustBeStringWhenProvided": "{field} must be a string when provided.",
+    "fieldMustBeValidDateTime": "{field} must be a valid date and time.",
+    "fieldTooLong": "{field} must be {max} characters or fewer.",
+    "handlingTagsMustContainOnly": "handlingTags must contain only: {allowed}.",
     "handlingtagsMustBeAnArrayWhen": "handlingTags must be an array when provided.",
+    "paymentMethodTypeMustBeOneOf": "paymentMethodType must be one of: {allowed}.",
     "pickupwindowendMustBeAfterPickupwindowstart": "pickupWindowEnd must be after pickupWindowStart.",
     "scheduledatCannotBeInThePast": "scheduledAt cannot be in the past.",
     "scheduledatIsRequired": "scheduledAt is required.",
     "scheduledatMustBeAValidDate": "scheduledAt must be a valid date and time.",
+    "serviceLevelMustBeOneOf": "serviceLevel must be one of: {allowed}.",
     "thatVehicleDoesNotOfferThe": "That vehicle does not offer the load space you selected."
   },
   "ordersAccept": {
@@ -234,6 +376,8 @@
     "youReOfflineGoOnlineTo": "You're offline. Go online to claim loads."
   },
   "ordersComplete": {
+    "receivedByMustBeStringOrNull": "receivedBy must be a string or null.",
+    "receivedByTooLong": "receivedBy must be {max} characters or fewer.",
     "thisDeliveryCannotBeCompletedRight": "This delivery cannot be completed right now.",
     "thisDeliverySVehicleTypeHas": "This delivery's vehicle type has no pricing rule.",
     "waitingminutesIsRequiredAndMustBe": "waitingMinutes is required and must be a whole number of minutes."
@@ -242,12 +386,17 @@
     "youDoNotHaveAccessTo": "You do not have access to this order."
   },
   "ordersPay": {
+    "fieldMustBeStringWhenProvided": "{field} must be a string when provided.",
+    "fieldTooLong": "{field} must be {max} characters or fewer.",
+    "paymentMethodTypeMustBeOneOf": "paymentMethodType must be one of: {allowed}.",
     "thisDeliveryHasAlreadyBeenPaid": "This delivery has already been paid for and is with our drivers."
   },
   "ordersStart": {
     "thisDeliveryCannotBeStartedRight": "This delivery cannot be started right now."
   },
   "savedCards": {
+    "cardBrandTooLong": "Enter a card brand of {max} characters or fewer.",
+    "cardholderNameTooLong": "Enter a cardholder name of {max} characters or fewer.",
     "enterAFourDigitCardEnding": "Enter a four-digit card ending.",
     "enterAFourDigitExpiryYear": "Enter a four-digit expiry year.",
     "enterAnExpiryMonthBetween1": "Enter an expiry month between 1 and 12.",
@@ -260,6 +409,7 @@
   },
   "validation": {
     "bodyhtmlIsRequiredAndMustBe": "bodyHtml is required and must be a non-empty string.",
+    "duplicatePage": "A page with this slug already exists for this locale.",
     "ispublishedMustBeABoolean": "isPublished must be a boolean.",
     "slugIsRequiredAndMustBe": "slug is required and must be a string.",
     "slugMustBeLowercaseLettersNumbers": "slug must be lowercase letters, numbers and single hyphens, e.g. “terms-of-service”."

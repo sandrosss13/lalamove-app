@@ -14,6 +14,31 @@
     "ka": "დეტალები, რომლებსაც მძღოლი ხედავს, როდესაც ის თქვენს შეკვეთაზე/წამოსაღებად მოდის, და მონაცემები, რომლებითაც შედიხართ სისტემაში. ტელეფონის ნომრის განახლებულ მდგომარეობაში შენარჩუნება თავიდან აგარიდებთ მიწოდების შეფერხებას",
     "_source": "src/app/[locale]/account/page.tsx"
   },
+  "accountPasswordCard.changePassword": {
+    "en": "Change password",
+    "ka": "პაროლის შეცვლა",
+    "_source": "src/components/account-password-card.tsx"
+  },
+  "accountPasswordCard.couldNotChangePassword": {
+    "en": "Could not change your password. Please try again.",
+    "ka": "პაროლის შეცვლა ვერ მოხერხდა. გთხოვთ, სცადოთ ხელახლა.",
+    "_source": "src/components/account-password-card.tsx"
+  },
+  "accountPasswordCard.savePassword": {
+    "en": "Save password",
+    "ka": "პაროლის შენახვა",
+    "_source": "src/components/account-password-card.tsx"
+  },
+  "accountProfileForm.businessDescription": {
+    "en": "Who the delivery is billed to, and how a driver reaches you about a pickup.",
+    "ka": "ვის ეკისრება მიწოდების ანგარიში და როგორ დაგიკავშირდებათ მძღოლი აღებასთან დაკავშირებით.",
+    "_source": "src/components/account-profile-form.tsx"
+  },
+  "accountProfileForm.couldNotSaveProfile": {
+    "en": "Could not save your profile. Please try again.",
+    "ka": "პროფილის შენახვა ვერ მოხერხდა. გთხოვთ, სცადოთ ხელახლა.",
+    "_source": "src/components/account-profile-form.tsx"
+  },
   "accountProfileForm.female": {
     "en": "Female",
     "ka": "მდედრობითი",
@@ -22,6 +47,11 @@
   "accountProfileForm.gender": {
     "en": "Gender",
     "ka": "სქემი",
+    "_source": "src/components/account-profile-form.tsx"
+  },
+  "accountProfileForm.individualDescription": {
+    "en": "How a driver identifies and reaches you when they arrive for a pickup.",
+    "ka": "როგორ გიცნობთ და დაგიკავშირდებათ მძღოლი, როცა აღებაზე მოვა.",
     "_source": "src/components/account-profile-form.tsx"
   },
   "accountProfileForm.male": {
@@ -43,5 +73,20 @@
     "en": "Prefer not to say",
     "ka": "ვარჩევ, არ მივუთითო",
     "_source": "src/components/account-profile-form.tsx"
+  },
+  "accountProfileForm.saveChanges": {
+    "en": "Save changes",
+    "ka": "ცვლილებების შენახვა",
+    "_source": "src/components/account-profile-form.tsx"
+  },
+  "accountSidebar.logOut": {
+    "en": "Log out",
+    "ka": "გასვლა",
+    "_source": "src/components/account-sidebar.tsx"
+  },
+  "accountSidebar.loggingOut": {
+    "en": "Logging out…",
+    "ka": "გასვლა…",
+    "_source": "src/components/account-sidebar.tsx"
   }
 }

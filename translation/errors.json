@@ -9,6 +9,11 @@
     "ka": "ეს განაცხადი ჯერ კიდევ ელოდება კომპანიის მიერ ხელახლა გაგზავნას.",
     "_source": "src/app/api/admin/business-applications/[id]/activate/route.ts"
   },
+  "adminBusinessApplicationsActivate.vehiclesStillPendingReview": {
+    "en": "{count, plural, one {# vehicle is still pending review.} other {# vehicles are still pending review.}} Decide every vehicle before activating the fleet.",
+    "ka": "{count, plural, one {# ავტომობილი ჯერ კიდევ განხილვაშია.} other {# ავტომობილი ჯერ კიდევ განხილვაშია.}} ავტოპარკის გააქტიურებამდე მიიღეთ გადაწყვეტილება ყველა ავტომობილზე.",
+    "_source": "src/app/api/admin/business-applications/[id]/activate/route.ts"
+  },
   "adminBusinessApplicationsActivate.verifyTheCompanySDetailsBefore": {
     "en": "Verify the company's details before activating the fleet.",
     "ka": "ავტოპარკის გააქტიურებამდე შეამოწმეთ კომპანიის მონაცემები.",
@@ -22,6 +27,11 @@
   "adminBusinessApplicationsCompany.thatIsNotOneOfThe": {
     "en": "That is not one of the company flag reasons.",
     "ka": "ეს არ არის კომპანიის მონიშვნის მიზეზებიდან ერთ-ერთი.",
+    "_source": "src/app/api/admin/business-applications/[id]/company/route.ts"
+  },
+  "adminBusinessApplicationsCompany.verdictMustBeVerifiedOrFlagged": {
+    "en": "verdict must be either \"VERIFIED\" or \"FLAGGED\".",
+    "ka": "verdict უნდა იყოს \"VERIFIED\" ან \"FLAGGED\".",
     "_source": "src/app/api/admin/business-applications/[id]/company/route.ts"
   },
   "adminBusinessApplicationsRequestChanges.changesHaveAlreadyBeenRequestedOn": {
@@ -47,6 +57,11 @@
   "adminBusinessApplicationsVehicles.vehicleNotFoundOnThisApplication": {
     "en": "Vehicle not found on this application.",
     "ka": "ამ განაცხადში ტრანსპორტი ვერ მოიძებნა.",
+    "_source": "src/app/api/admin/business-applications/[id]/vehicles/[vehicleId]/route.ts"
+  },
+  "adminBusinessApplicationsVehicles.verdictMustBeApprovedOrFlagged": {
+    "en": "verdict must be either \"APPROVED\" or \"FLAGGED\".",
+    "ka": "verdict უნდა იყოს \"APPROVED\" ან \"FLAGGED\".",
     "_source": "src/app/api/admin/business-applications/[id]/vehicles/[vehicleId]/route.ts"
   },
   "adminContentBanners.bannerNotFound": {
@@ -119,6 +134,11 @@
     "ka": "subject მითითებისას უნდა იყოს ტექსტური ტიპი (string).",
     "_source": "src/app/api/admin/content/messaging-templates/route.ts"
   },
+  "adminContentMessagingTemplates.subjectMustBeStringOrNull": {
+    "en": "subject must be a string or null.",
+    "ka": "subject უნდა იყოს სტრიქონი ან null.",
+    "_source": "src/app/api/admin/content/messaging-templates/[id]/route.ts"
+  },
   "adminContentMessagingTemplates.thatMessagingTemplateWasNotFound": {
     "en": "That messaging template was not found.",
     "ka": "შეტყობინებების ის შაბლონი ვერ მოიძებნა.",
@@ -139,6 +159,11 @@
     "ka": "თარგმანის ჩანაწერი ვერ მოიძებნა.",
     "_source": "src/app/api/admin/content/translations/[id]/route.ts"
   },
+  "adminContentTranslations.translationValueMaxLength": {
+    "en": "A translation value must be {max} characters or fewer.",
+    "ka": "თარგმანის მნიშვნელობა არ უნდა აღემატებოდეს {max} სიმბოლოს.",
+    "_source": "src/app/api/admin/content/translations/route.ts"
+  },
   "adminContentTranslations.valueIsRequiredAndMustBe": {
     "en": "value is required and must be a non-empty string.",
     "ka": "value სავალდებულოა და არ უნდა იყოს ცარიელი ტექსტი.",
@@ -153,6 +178,16 @@
     "en": "valueKa is required and must be a non-empty string.",
     "ka": "valueKa სავალდებულოა და არ უნდა იყოს ცარიელი ტექსტი.",
     "_source": "src/app/api/admin/content/translations/route.ts"
+  },
+  "adminContentVehiclePhotos.imageUrlNonEmptyOrNull": {
+    "en": "imageUrl must be a non-empty string, or null to clear it.",
+    "ka": "imageUrl უნდა იყოს არაცარიელი სტრიქონი, ან null მის გასასუფთავებლად.",
+    "_source": "src/app/api/admin/content/vehicle-photos/[id]/route.ts"
+  },
+  "adminContentVehiclePhotos.unexpectedFields": {
+    "en": "This endpoint only sets imageUrl. Unexpected field(s): {fields}. Vehicle specifications and pricing are changed through the seed, not the back office.",
+    "ka": "ეს endpoint მხოლოდ imageUrl-ს ცვლის. მოულოდნელი ველ(ებ)ი: {fields}. ავტომობილის მახასიათებლები და ფასები იცვლება seed-ის მეშვეობით და არა ბექ-ოფისიდან.",
+    "_source": "src/app/api/admin/content/vehicle-photos/[id]/route.ts"
   },
   "adminContentVehiclePhotos.vehicleTypeNotFound": {
     "en": "Vehicle type not found.",
@@ -177,6 +212,11 @@
   "adminDriverApplicationsDocuments.aReasonIsRequiredToFlag": {
     "en": "A reason is required to flag a document.",
     "ka": "დოკუმენტის მონიშვნისთვის აუცილებელია მიზეზის მითითება.",
+    "_source": "src/app/api/admin/driver-applications/[id]/documents/[docId]/route.ts"
+  },
+  "adminDriverApplicationsDocuments.actionMustBeApproveOrFlag": {
+    "en": "action must be either \"approve\" or \"flag\".",
+    "ka": "action უნდა იყოს \"approve\" ან \"flag\".",
     "_source": "src/app/api/admin/driver-applications/[id]/documents/[docId]/route.ts"
   },
   "adminDriverApplicationsDocuments.documentNotFound": {
@@ -224,6 +264,11 @@
     "ka": "ეს კამპანია უკვე გამოყენებულია და მისი წაშლა შეუძლებელია. ამის სანაცვლოდ გაათიშეთ ის.",
     "_source": "src/app/api/admin/finance/promo-campaigns/[id]/route.ts"
   },
+  "adminFinancePromoCampaigns.usageLimitWholeNumberOrNull": {
+    "en": "usageLimit must be a whole number of 1 or more, or null.",
+    "ka": "usageLimit უნდა იყოს 1 ან მეტი მთელი რიცხვი, ან null.",
+    "_source": "src/app/api/admin/finance/promo-campaigns/[id]/route.ts"
+  },
   "adminFinancePromoCampaigns.usagelimitMustBeAWholeNumber": {
     "en": "usageLimit must be a whole number of 1 or more, or omitted.",
     "ka": "usageLimit უნდა იყოს მთელი რიცხვი (1 ან მეტი) ან გამოტოვებული.",
@@ -269,6 +314,11 @@
     "ka": "საკუთარი ანგარიშის სტატუსის შეცვლა შეუძლებელია.",
     "_source": "src/app/api/admin/users/system/[userId]/reactivate/route.ts"
   },
+  "clientProfile.accountTypeMustBeOneOf": {
+    "en": "accountType must be one of: {allowed}.",
+    "ka": "accountType უნდა იყოს ერთ-ერთი შემდეგიდან: {allowed}.",
+    "_source": "src/app/api/client-profile/route.ts"
+  },
   "clientProfile.dateofbirthCannotBeInTheFuture": {
     "en": "dateOfBirth cannot be in the future.",
     "ka": "dateOfBirth არ შეიძლება იყოს მომავალში.",
@@ -282,6 +332,11 @@
   "clientProfile.dateofbirthMustBeAnIsoDate": {
     "en": "dateOfBirth must be an ISO date string.",
     "ka": "dateOfBirth უნდა იყოს ISO თარიღის ფორმატის ტექსტი.",
+    "_source": "src/app/api/client-profile/route.ts"
+  },
+  "clientProfile.genderMustBeOneOf": {
+    "en": "gender must be one of: {allowed}.",
+    "ka": "gender უნდა იყოს ერთ-ერთი შემდეგიდან: {allowed}.",
     "_source": "src/app/api/client-profile/route.ts"
   },
   "clientProfile.onlyClientsCanCreateAClient": {
@@ -299,15 +354,190 @@
     "ka": "ამ ანგარიშს არ შეუძლია ავტოპარკის განრიგის ნახვა.",
     "_source": "src/app/api/dashboard/hub/drivers/availability/route.ts"
   },
+  "dashboardHubDriversAvailabilityExport.allDriversWholeDay": {
+    "en": "All drivers, whole day (filters ignored)",
+    "ka": "ყველა მძღოლი, მთელი დღე (ფილტრების გარეშე)",
+    "_source": "src/app/api/dashboard/hub/drivers/availability/export/route.ts"
+  },
+  "dashboardHubDriversAvailabilityExport.availableRows": {
+    "en": "Available rows",
+    "ka": "თავისუფალი სტრიქონები",
+    "_source": "src/app/api/dashboard/hub/drivers/availability/export/route.ts"
+  },
+  "dashboardHubDriversAvailabilityExport.capacityKg": {
+    "en": "Capacity (kg)",
+    "ka": "ტვირთამწეობა (კგ)",
+    "_source": "src/app/api/dashboard/hub/drivers/availability/export/route.ts"
+  },
+  "dashboardHubDriversAvailabilityExport.derivedEnd": {
+    "en": "Derived end",
+    "ka": "გამოთვლილი დასრულება",
+    "_source": "src/app/api/dashboard/hub/drivers/availability/export/route.ts"
+  },
+  "dashboardHubDriversAvailabilityExport.derivedEndNote": {
+    "en": "Derived end = Yes means the End time was not recorded and was estimated so the job could be shown at all. Treat those End and Hours values as placeholders, not measurements.",
+    "ka": "„გამოთვლილი დასრულება = დიახ“ ნიშნავს, რომ დასრულების დრო არ იყო აღრიცხული და შეფასდა, რათა რეისის ჩვენება საერთოდ ყოფილიყო შესაძლებელი. ამ დასრულებისა და საათების მნიშვნელობები მიიჩნიეთ მიახლოებითად და არა გაზომილად.",
+    "_source": "src/app/api/dashboard/hub/drivers/availability/export/route.ts"
+  },
+  "dashboardHubDriversAvailabilityExport.derivedEnds": {
+    "en": "Derived ends",
+    "ka": "გამოთვლილი დასრულებები",
+    "_source": "src/app/api/dashboard/hub/drivers/availability/export/route.ts"
+  },
+  "dashboardHubDriversAvailabilityExport.driverHub": {
+    "en": "Driver Hub",
+    "ka": "Driver Hub",
+    "_source": "src/app/api/dashboard/hub/drivers/availability/export/route.ts"
+  },
+  "dashboardHubDriversAvailabilityExport.driverPhone": {
+    "en": "Driver phone",
+    "ka": "მძღოლის ტელეფონი",
+    "_source": "src/app/api/dashboard/hub/drivers/availability/export/route.ts"
+  },
+  "dashboardHubDriversAvailabilityExport.end": {
+    "en": "End",
+    "ka": "დასრულება",
+    "_source": "src/app/api/dashboard/hub/drivers/availability/export/route.ts"
+  },
+  "dashboardHubDriversAvailabilityExport.filteredDrivers": {
+    "en": "Filtered drivers, {range, select, day {whole day} other {current view}}",
+    "ka": "გაფილტრული მძღოლები, {range, select, day {მთელი დღე} other {მიმდინარე ხედი}}",
+    "_source": "src/app/api/dashboard/hub/drivers/availability/export/route.ts"
+  },
+  "dashboardHubDriversAvailabilityExport.gapsNote": {
+    "en": "An 'Available' row means no committed work in that stretch — NOT a confirmed available driver. This platform records no shifts, rest periods or unavailability, so nothing here says whether a driver is on duty. Confirm with the driver before dispatching.",
+    "ka": "„თავისუფალი“ სტრიქონი ნიშნავს, რომ ამ მონაკვეთში დაგეგმილი სამუშაო არ არის — ეს არ ადასტურებს, რომ მძღოლი ხელმისაწვდომია. პლატფორმა არ აღრიცხავს ცვლებს, დასვენების პერიოდებს ან მიუწვდომლობას, ამიტომ აქედან ვერ გაიგებთ, მორიგეობს თუ არა მძღოლი. დანიშვნამდე გადაამოწმეთ მძღოლთან.",
+    "_source": "src/app/api/dashboard/hub/drivers/availability/export/route.ts"
+  },
+  "dashboardHubDriversAvailabilityExport.hours": {
+    "en": "Hours",
+    "ka": "საათები",
+    "_source": "src/app/api/dashboard/hub/drivers/availability/export/route.ts"
+  },
+  "dashboardHubDriversAvailabilityExport.no": {
+    "en": "No",
+    "ka": "არა",
+    "_source": "src/app/api/dashboard/hub/drivers/availability/export/route.ts"
+  },
+  "dashboardHubDriversAvailabilityExport.reference": {
+    "en": "Reference",
+    "ka": "ნომერი",
+    "_source": "src/app/api/dashboard/hub/drivers/availability/export/route.ts"
+  },
+  "dashboardHubDriversAvailabilityExport.sheetName": {
+    "en": "Driver availability",
+    "ka": "მძღოლების ხელმისაწვდომობა",
+    "_source": "src/app/api/dashboard/hub/drivers/availability/export/route.ts"
+  },
+  "dashboardHubDriversAvailabilityExport.start": {
+    "en": "Start",
+    "ka": "დაწყება",
+    "_source": "src/app/api/dashboard/hub/drivers/availability/export/route.ts"
+  },
   "dashboardHubDriversAvailabilityExport.thisAccountCannotExportAFleet": {
     "en": "This account cannot export a fleet roster.",
     "ka": "ამ ანგარიშს არ შეუძლია ავტოპარკის განრიგის ექსპორტი.",
     "_source": "src/app/api/dashboard/hub/drivers/availability/export/route.ts"
   },
+  "dashboardHubDriversAvailabilityExport.yes": {
+    "en": "Yes",
+    "ka": "დიახ",
+    "_source": "src/app/api/dashboard/hub/drivers/availability/export/route.ts"
+  },
+  "dashboardHubEarningsExport.adjustmentsEstimate": {
+    "en": "Adjustments (estimate)",
+    "ka": "კორექტირებები (შეფასება)",
+    "_source": "src/app/api/dashboard/hub/earnings/export/route.ts"
+  },
+  "dashboardHubEarningsExport.currency": {
+    "en": "Currency",
+    "ka": "ვალუტა",
+    "_source": "src/app/api/dashboard/hub/earnings/export/route.ts"
+  },
+  "dashboardHubEarningsExport.day": {
+    "en": "Day",
+    "ka": "დღე",
+    "_source": "src/app/api/dashboard/hub/earnings/export/route.ts"
+  },
+  "dashboardHubEarningsExport.driverHub": {
+    "en": "Driver Hub",
+    "ka": "Driver Hub",
+    "_source": "src/app/api/dashboard/hub/earnings/export/route.ts"
+  },
+  "dashboardHubEarningsExport.estimatedColumns": {
+    "en": "Estimated columns",
+    "ka": "შეფასებითი სვეტები",
+    "_source": "src/app/api/dashboard/hub/earnings/export/route.ts"
+  },
+  "dashboardHubEarningsExport.estimatesNote": {
+    "en": "Online hours, Tips, Incentives and Adjustments are estimates, not recorded data — and the Total column includes them. Date, Day, Jobs and Fares are real completed-order figures.",
+    "ka": "ონლაინ საათები, ჩაის ფული, ბონუსები და კორექტირებები შეფასებებია და არა აღრიცხული მონაცემები — ჯამის სვეტი მათ მოიცავს. თარიღი, დღე, რეისები და ღირებულება დასრულებული შეკვეთების რეალური მონაცემებია.",
+    "_source": "src/app/api/dashboard/hub/earnings/export/route.ts"
+  },
+  "dashboardHubEarningsExport.fares": {
+    "en": "Fares",
+    "ka": "ღირებულება",
+    "_source": "src/app/api/dashboard/hub/earnings/export/route.ts"
+  },
+  "dashboardHubEarningsExport.gelSymbol": {
+    "en": "GEL (₾)",
+    "ka": "GEL (₾)",
+    "_source": "src/app/api/dashboard/hub/earnings/export/route.ts"
+  },
+  "dashboardHubEarningsExport.incentivesEstimate": {
+    "en": "Incentives (estimate)",
+    "ka": "ბონუსები (შეფასება)",
+    "_source": "src/app/api/dashboard/hub/earnings/export/route.ts"
+  },
+  "dashboardHubEarningsExport.onlineHoursEstimate": {
+    "en": "Online hours (estimate)",
+    "ka": "ონლაინ საათები (შეფასება)",
+    "_source": "src/app/api/dashboard/hub/earnings/export/route.ts"
+  },
+  "dashboardHubEarningsExport.range": {
+    "en": "Range",
+    "ka": "პერიოდი",
+    "_source": "src/app/api/dashboard/hub/earnings/export/route.ts"
+  },
+  "dashboardHubEarningsExport.rangeFromTo": {
+    "en": "{from} to {to}",
+    "ka": "{from} — {to}",
+    "_source": "src/app/api/dashboard/hub/earnings/export/route.ts"
+  },
+  "dashboardHubEarningsExport.sheetName": {
+    "en": "Earnings",
+    "ka": "შემოსავალი",
+    "_source": "src/app/api/dashboard/hub/earnings/export/route.ts"
+  },
   "dashboardHubEarningsExport.thisAccountCannotExportDriverEarnings": {
     "en": "This account cannot export driver earnings.",
     "ka": "ამ ანგარიშს არ შეუძლია მძღოლის შემოსავლების ექსპორტი.",
     "_source": "src/app/api/dashboard/hub/earnings/export/route.ts"
+  },
+  "dashboardHubEarningsExport.tipsEstimate": {
+    "en": "Tips (estimate)",
+    "ka": "ჩაის ფული (შეფასება)",
+    "_source": "src/app/api/dashboard/hub/earnings/export/route.ts"
+  },
+  "dashboardHubEarningsExport.totalInclEstimates": {
+    "en": "Total (incl. estimates)",
+    "ka": "ჯამი (შეფასებების ჩათვლით)",
+    "_source": "src/app/api/dashboard/hub/earnings/export/route.ts"
+  },
+  "dashboardHubEarningsExport.totals": {
+    "en": "Totals",
+    "ka": "ჯამი",
+    "_source": "src/app/api/dashboard/hub/earnings/export/route.ts"
+  },
+  "driverProfile.accountTypeMustBeOneOf": {
+    "en": "accountType must be one of: {types}.",
+    "ka": "accountType უნდა იყოს ერთ-ერთი შემდეგიდან: {types}.",
+    "_source": "src/app/api/driver-profile/route.ts"
+  },
+  "driverProfile.cityMustBeOneOf": {
+    "en": "city must be one of: {cities}.",
+    "ka": "city უნდა იყოს ერთ-ერთი შემდეგიდან: {cities}.",
+    "_source": "src/app/api/driver-profile/route.ts"
   },
   "driverProfile.onlyDriversCanCreateADriver": {
     "en": "Only drivers can create a driver profile.",
@@ -344,9 +574,34 @@
     "ka": "გაგზავნილი განაცხადის რედაქტირება უკვე შეუძლებელია.",
     "_source": "src/app/api/driver-profile/onboarding/route.ts"
   },
+  "driverProfileOnboarding.couldNotGenerateReference": {
+    "en": "Could not generate a unique application reference after {attempts} attempts.",
+    "ka": "განაცხადის უნიკალური ნომრის შექმნა ვერ მოხერხდა {attempts} მცდელობის შემდეგ.",
+    "_source": "src/app/api/driver-profile/onboarding/route.ts"
+  },
+  "driverProfileOnboarding.draftSectionMustBeObject": {
+    "en": "draft.{section} must be an object.",
+    "ka": "draft.{section} უნდა იყოს ობიექტი.",
+    "_source": "src/app/api/driver-profile/onboarding/route.ts"
+  },
+  "driverProfileOnboarding.draftStepRange": {
+    "en": "draftStep must be an integer between {min} and {max}.",
+    "ka": "draftStep უნდა იყოს მთელი რიცხვი {min}-დან {max}-მდე.",
+    "_source": "src/app/api/driver-profile/onboarding/route.ts"
+  },
+  "driverProfileOnboarding.draftTooLarge": {
+    "en": "draft must serialise to {max} characters or fewer.",
+    "ka": "draft-ის სერიალიზებული ზომა არ უნდა აღემატებოდეს {max} სიმბოლოს.",
+    "_source": "src/app/api/driver-profile/onboarding/route.ts"
+  },
   "driverProfileOnboardingDocuments.anotherUploadForThisDocumentIs": {
     "en": "Another upload for this document is still finishing.",
     "ka": "ამ დოკუმენტის სხვა ატვირთვა ჯერ კიდევ სრულდება.",
+    "_source": "src/app/api/driver-profile/onboarding/documents/route.ts"
+  },
+  "driverProfileOnboardingDocuments.couldNotVerifyUpload": {
+    "en": "We couldn't verify the uploaded file. Please upload it again.",
+    "ka": "ატვირთული ფაილის შემოწმება ვერ მოხერხდა. გთხოვთ, ატვირთოთ ის ხელახლა.",
     "_source": "src/app/api/driver-profile/onboarding/documents/route.ts"
   },
   "driverProfileOnboardingDocuments.pathIsRequiredAndMustBe": {
@@ -359,9 +614,104 @@
     "ka": "ეს ატვირთული ფაილი არ ეკუთვნის ამ განაცხადს.",
     "_source": "src/app/api/driver-profile/onboarding/documents/route.ts"
   },
+  "driverProfileOnboardingSubmit.ageRange": {
+    "en": "Drivers must be between {min} and {max} years old.",
+    "ka": "მძღოლის ასაკი უნდა იყოს {min}-დან {max} წლამდე.",
+    "_source": "src/app/api/driver-profile/onboarding/submit/route.ts"
+  },
+  "driverProfileOnboardingSubmit.applicationIncomplete": {
+    "en": "Something in your application is incomplete. Check each step and try again.",
+    "ka": "განაცხადში რაღაც შეუვსებელია. შეამოწმეთ თითოეული ნაბიჯი და სცადეთ ხელახლა.",
+    "_source": "src/app/api/driver-profile/onboarding/submit/route.ts"
+  },
+  "driverProfileOnboardingSubmit.checkDimensions": {
+    "en": "Check the dimensions — metres, not centimetres.",
+    "ka": "შეამოწმეთ ზომები — მეტრებში, არა სანტიმეტრებში.",
+    "_source": "src/app/api/driver-profile/onboarding/submit/route.ts"
+  },
+  "driverProfileOnboardingSubmit.chooseBodyType": {
+    "en": "Choose the vehicle's cargo body type.",
+    "ka": "აირჩიეთ ავტომობილის ძარის ტიპი.",
+    "_source": "src/app/api/driver-profile/onboarding/submit/route.ts"
+  },
+  "driverProfileOnboardingSubmit.chooseCity": {
+    "en": "Choose a city from the list.",
+    "ka": "აირჩიეთ ქალაქი სიიდან.",
+    "_source": "src/app/api/driver-profile/onboarding/submit/route.ts"
+  },
+  "driverProfileOnboardingSubmit.chooseColour": {
+    "en": "Choose the vehicle's colour.",
+    "ka": "აირჩიეთ ავტომობილის ფერი.",
+    "_source": "src/app/api/driver-profile/onboarding/submit/route.ts"
+  },
+  "driverProfileOnboardingSubmit.chooseVehicleClass": {
+    "en": "Choose a vehicle class.",
+    "ka": "აირჩიეთ ავტომობილის კლასი.",
+    "_source": "src/app/api/driver-profile/onboarding/submit/route.ts"
+  },
+  "driverProfileOnboardingSubmit.classUnavailableForBody": {
+    "en": "This vehicle class isn't available with the selected body type.",
+    "ka": "ავტომობილის ეს კლასი არჩეული ძარის ტიპით მიუწვდომელია.",
+    "_source": "src/app/api/driver-profile/onboarding/submit/route.ts"
+  },
+  "driverProfileOnboardingSubmit.documentLabel.licenceBackPhoto": {
+    "en": "licence back photo",
+    "ka": "მართვის მოწმობის უკანა მხარის ფოტო",
+    "_source": "src/app/api/driver-profile/onboarding/submit/route.ts"
+  },
+  "driverProfileOnboardingSubmit.documentLabel.licenceFrontPhoto": {
+    "en": "licence front photo",
+    "ka": "მართვის მოწმობის წინა მხარის ფოტო",
+    "_source": "src/app/api/driver-profile/onboarding/submit/route.ts"
+  },
+  "driverProfileOnboardingSubmit.documentLabel.profilePhoto": {
+    "en": "profile photo",
+    "ka": "პროფილის ფოტო",
+    "_source": "src/app/api/driver-profile/onboarding/submit/route.ts"
+  },
+  "driverProfileOnboardingSubmit.enterFullName": {
+    "en": "Enter your full name — at least a first and last name.",
+    "ka": "შეიყვანეთ სრული სახელი — მინიმუმ სახელი და გვარი.",
+    "_source": "src/app/api/driver-profile/onboarding/submit/route.ts"
+  },
+  "driverProfileOnboardingSubmit.enterLicenceNumber": {
+    "en": "Enter your licence number.",
+    "ka": "შეიყვანეთ მართვის მოწმობის ნომერი.",
+    "_source": "src/app/api/driver-profile/onboarding/submit/route.ts"
+  },
+  "driverProfileOnboardingSubmit.enterMake": {
+    "en": "Enter the vehicle's make.",
+    "ka": "შეიყვანეთ ავტომობილის მარკა.",
+    "_source": "src/app/api/driver-profile/onboarding/submit/route.ts"
+  },
+  "driverProfileOnboardingSubmit.enterModel": {
+    "en": "Enter the vehicle's model.",
+    "ka": "შეიყვანეთ ავტომობილის მოდელი.",
+    "_source": "src/app/api/driver-profile/onboarding/submit/route.ts"
+  },
+  "driverProfileOnboardingSubmit.enterPlate": {
+    "en": "Enter the vehicle's licence plate.",
+    "ka": "შეიყვანეთ ავტომობილის სახელმწიფო ნომერი.",
+    "_source": "src/app/api/driver-profile/onboarding/submit/route.ts"
+  },
+  "driverProfileOnboardingSubmit.enterValidId": {
+    "en": "Enter a valid ID or passport number — 6 to 20 letters, digits or hyphens.",
+    "ka": "შეიყვანეთ სწორი პირადი ან პასპორტის ნომერი — 6-დან 20-მდე ასო, ციფრი ან დეფისი.",
+    "_source": "src/app/api/driver-profile/onboarding/submit/route.ts"
+  },
+  "driverProfileOnboardingSubmit.enterValidMobile": {
+    "en": "Enter a valid mobile number.",
+    "ka": "შეიყვანეთ სწორი მობილურის ნომერი.",
+    "_source": "src/app/api/driver-profile/onboarding/submit/route.ts"
+  },
   "driverProfileOnboardingSubmit.licenceBackPhoto": {
     "en": "licence back photo",
     "ka": "მართვის მოწმობის უკანა მხარის ფოტო",
+    "_source": "src/app/api/driver-profile/onboarding/submit/route.ts"
+  },
+  "driverProfileOnboardingSubmit.licenceExpired": {
+    "en": "This licence has expired. Renew it before applying.",
+    "ka": "ამ მართვის მოწმობას ვადა გაუვიდა. განაახლეთ ის განაცხადის შეტანამდე.",
     "_source": "src/app/api/driver-profile/onboarding/submit/route.ts"
   },
   "driverProfileOnboardingSubmit.licenceFrontPhoto": {
@@ -369,9 +719,49 @@
     "ka": "მართვის მოწმობის წინა მხარის ფოტო",
     "_source": "src/app/api/driver-profile/onboarding/submit/route.ts"
   },
+  "driverProfileOnboardingSubmit.licenceMissingCategory": {
+    "en": "Your licence does not list category {category}, which the {className} class requires.",
+    "ka": "თქვენს მართვის მოწმობაში არ არის {category} კატეგორია, რომელსაც {className} კლასი მოითხოვს.",
+    "_source": "src/app/api/driver-profile/onboarding/submit/route.ts"
+  },
+  "driverProfileOnboardingSubmit.payloadBelowClassMinimum": {
+    "en": "This vehicle's declared payload is below the {className} minimum of {kg} kg.",
+    "ka": "ამ ავტომობილის მითითებული ტვირთამწეობა {className} კლასის მინიმუმზე ({kg} კგ) ნაკლებია.",
+    "_source": "src/app/api/driver-profile/onboarding/submit/route.ts"
+  },
+  "driverProfileOnboardingSubmit.payloadRange": {
+    "en": "Maximum payload must be between {min} and {max} kg.",
+    "ka": "მაქსიმალური ტვირთამწეობა უნდა იყოს {min}-დან {max} კგ-მდე.",
+    "_source": "src/app/api/driver-profile/onboarding/submit/route.ts"
+  },
   "driverProfileOnboardingSubmit.profilePhoto": {
     "en": "profile photo",
     "ka": "პროფილის ფოტო",
+    "_source": "src/app/api/driver-profile/onboarding/submit/route.ts"
+  },
+  "driverProfileOnboardingSubmit.replaceFlaggedDocument": {
+    "en": "Replace the flagged {document} before resubmitting.",
+    "ka": "ხელახლა გაგზავნამდე ჩაანაცვლეთ მონიშნული {document}.",
+    "_source": "src/app/api/driver-profile/onboarding/submit/route.ts"
+  },
+  "driverProfileOnboardingSubmit.selectLicenceCategory": {
+    "en": "Select at least one licence category.",
+    "ka": "აირჩიეთ მართვის მოწმობის მინიმუმ ერთი კატეგორია.",
+    "_source": "src/app/api/driver-profile/onboarding/submit/route.ts"
+  },
+  "driverProfileOnboardingSubmit.uploadDocument": {
+    "en": "Upload your {document} before submitting.",
+    "ka": "გაგზავნამდე ატვირთეთ {document}.",
+    "_source": "src/app/api/driver-profile/onboarding/submit/route.ts"
+  },
+  "driverProfileOnboardingSubmit.vehicleTypeSpecMissing": {
+    "en": "Vehicle type spec \"{specCode}\" is missing; cannot submit application {applicationId}.",
+    "ka": "ავტომობილის ტიპის სპეციფიკაცია \"{specCode}\" არ არსებობს; განაცხადის {applicationId} გაგზავნა შეუძლებელია.",
+    "_source": "src/app/api/driver-profile/onboarding/submit/route.ts"
+  },
+  "driverProfileOnboardingSubmit.yearRange": {
+    "en": "Enter a manufacturing year between {min} and {max}.",
+    "ka": "შეიყვანეთ გამოშვების წელი {min}-დან {max}-მდე.",
     "_source": "src/app/api/driver-profile/onboarding/submit/route.ts"
   },
   "driverProfileStatus.completeYourDriverProfileBeforeGoing": {
@@ -404,6 +794,11 @@
     "ka": "კომპანიის კუთვნილებაში მყოფი მძღოლები მართავენ დამსაქმებლის ტრანსპორტს. სთხოვეთ ავტოპარკის მენეჯერს დაამატოს ეს ტრანსპორტი და მოგანიჭოთ თქვენ.",
     "_source": "src/app/api/driver-profile/vehicles/route.ts"
   },
+  "driverProfileVehicles.notAnImage": {
+    "en": "{name} is not an image file.",
+    "ka": "{name} არ არის სურათის ფაილი.",
+    "_source": "src/app/api/driver-profile/vehicles/route.ts"
+  },
   "driverProfileVehicles.onlyDriversCanAddVehicles": {
     "en": "Only drivers can add vehicles.",
     "ka": "ტრანსპორტის დამატება მხოლოდ მძღოლებს შეუძლიათ.",
@@ -424,14 +819,44 @@
     "ka": "ტრანსპორტი მხოლოდ მძღოლებს აქვთ.",
     "_source": "src/app/api/driver-profile/vehicles/route.ts"
   },
+  "driverProfileVehicles.photoTooLarge": {
+    "en": "{name} is larger than {mb} MB.",
+    "ka": "{name} აღემატება {mb} MB-ს.",
+    "_source": "src/app/api/driver-profile/vehicles/route.ts"
+  },
+  "driverProfileVehiclesValidation.yearRange": {
+    "en": "year must be a whole number between {min} and {max}.",
+    "ka": "year უნდა იყოს მთელი რიცხვი {min}-დან {max}-მდე.",
+    "_source": "src/app/api/driver-profile/vehicles/validation.ts"
+  },
+  "guard.applicationAlreadyApproved": {
+    "en": "Your application is already approved — its documents cannot be changed.",
+    "ka": "თქვენი განაცხადი უკვე დამტკიცებულია — მისი დოკუმენტების შეცვლა შეუძლებელია.",
+    "_source": "src/app/api/driver-profile/onboarding/documents/guard.ts"
+  },
+  "guard.applicationUnderReview": {
+    "en": "Your application is under review — its documents cannot be changed until it comes back to you.",
+    "ka": "თქვენი განაცხადი განხილვაშია — მისი დოკუმენტების შეცვლა შეუძლებელია, სანამ განაცხადი თქვენ არ დაგიბრუნდებათ.",
+    "_source": "src/app/api/driver-profile/onboarding/documents/guard.ts"
+  },
   "guard.onlyDriversCanUploadOnboardingDocuments": {
     "en": "Only drivers can upload onboarding documents.",
     "ka": "რეგისტრაციის დოკუმენტების ატვირთვა მხოლოდ მძღოლებს შეუძლიათ.",
     "_source": "src/app/api/driver-profile/onboarding/documents/guard.ts"
   },
+  "guard.typeMustBeOneOf": {
+    "en": "type must be one of: {types}.",
+    "ka": "type უნდა იყოს ერთ-ერთი შემდეგიდან: {types}.",
+    "_source": "src/app/api/driver-profile/onboarding/documents/guard.ts"
+  },
   "loads.onlyDriversAndLogisticsCompaniesCan": {
     "en": "Only drivers and logistics companies can view the load board.",
     "ka": "ტვირთების დაფის ნახვა მხოლოდ მძღოლებსა და ლოგისტიკურ კომპანიებს შეუძლიათ.",
+    "_source": "src/app/api/loads/route.ts"
+  },
+  "loads.yourCompanyProfileIsnTSetUp": {
+    "en": "Your company profile isn't set up yet.",
+    "ka": "თქვენი კომპანიის პროფილი ჯერ არ არის შექმნილი.",
     "_source": "src/app/api/loads/route.ts"
   },
   "loadsReject.driverProfileNotFound": {
@@ -454,9 +879,29 @@
     "ka": "ეს ტვირთი აღარ არის ღია.",
     "_source": "src/app/api/loads/[id]/reject/route.ts"
   },
+  "logisticsCompany.bankAccountIbanMinLength": {
+    "en": "bankAccountIban must be at least {min} characters.",
+    "ka": "bankAccountIban უნდა შედგებოდეს მინიმუმ {min} სიმბოლოსგან.",
+    "_source": "src/app/api/logistics-company/route.ts"
+  },
+  "logisticsCompany.citiesOfOperationMustContainOnly": {
+    "en": "citiesOfOperation must contain only valid cities: {cities}.",
+    "ka": "citiesOfOperation შეიძლება შეიცავდეს მხოლოდ სწორ ქალაქებს: {cities}.",
+    "_source": "src/app/api/logistics-company/route.ts"
+  },
   "logisticsCompany.citiesofoperationMustBeAnArrayWith": {
     "en": "citiesOfOperation must be an array with at least one city.",
     "ka": "citiesOfOperation უნდა იყოს მასივი მინიმუმ ერთი ქალაქით.",
+    "_source": "src/app/api/logistics-company/route.ts"
+  },
+  "logisticsCompany.cityMustBeOneOf": {
+    "en": "city must be one of: {cities}.",
+    "ka": "city უნდა იყოს ერთ-ერთი შემდეგიდან: {cities}.",
+    "_source": "src/app/api/logistics-company/route.ts"
+  },
+  "logisticsCompany.companyNameIsRequiredMinLength": {
+    "en": "companyName is required and must be at least {min} characters.",
+    "ka": "companyName სავალდებულოა და უნდა შედგებოდეს მინიმუმ {min} სიმბოლოსგან.",
     "_source": "src/app/api/logistics-company/route.ts"
   },
   "logisticsCompany.contactemailMustBeAValidEmail": {
@@ -484,6 +929,11 @@
     "ka": "კომპანიის პროფილი მხოლოდ ლოგისტიკურ კომპანიებს აქვთ.",
     "_source": "src/app/api/logistics-company/route.ts"
   },
+  "logisticsCompany.phoneDigitsRange": {
+    "en": "phone must contain between {min} and {max} digits.",
+    "ka": "phone უნდა შეიცავდეს {min}-დან {max}-მდე ციფრს.",
+    "_source": "src/app/api/logistics-company/route.ts"
+  },
   "logisticsCompany.registeredaddressIsRequiredAndMustBe": {
     "en": "registeredAddress is required and must be a non-empty string.",
     "ka": "registeredAddress სავალდებულოა და არ უნდა იყოს ცარიელი ტექსტი.",
@@ -504,9 +954,19 @@
     "ka": "მძღოლების განრიგი მხოლოდ ლოგისტიკურ კომპანიებს აქვთ.",
     "_source": "src/app/api/logistics-company/drivers/route.ts"
   },
+  "logisticsCompanyDriversRegister.cityMustBeOneOf": {
+    "en": "city must be one of: {cities}.",
+    "ka": "city უნდა იყოს ერთ-ერთი შემდეგიდან: {cities}.",
+    "_source": "src/app/api/logistics-company/drivers/register/route.ts"
+  },
   "logisticsCompanyDriversRegister.completeYourCompanyProfileBeforeRegistering": {
     "en": "Complete your company profile before registering drivers.",
     "ka": "მძღოლების დარეგისტრირებამდე შეავსეთ კომპანიის პროფილი.",
+    "_source": "src/app/api/logistics-company/drivers/register/route.ts"
+  },
+  "logisticsCompanyDriversRegister.licenceCategoriesMustContainOnly": {
+    "en": "licenceCategories must contain only: {categories}.",
+    "ka": "licenceCategories შეიძლება შეიცავდეს მხოლოდ: {categories}.",
     "_source": "src/app/api/logistics-company/drivers/register/route.ts"
   },
   "logisticsCompanyDriversRegister.licencecategoriesMustBeAnArrayWith": {
@@ -549,6 +1009,11 @@
     "ka": "ეს ტრანსპორტი უკვე მინიჭებულია სხვა მძღოლზე.",
     "_source": "src/app/api/logistics-company/drivers/register/route.ts"
   },
+  "logisticsCompanyDriversRegister.thisVehicleNeedsCategory": {
+    "en": "This vehicle needs category {category}. Assign a different driver or vehicle.",
+    "ka": "ამ ავტომობილს {category} კატეგორია სჭირდება. მიამაგრეთ სხვა მძღოლი ან ავტომობილი.",
+    "_source": "src/app/api/logistics-company/drivers/register/route.ts"
+  },
   "logisticsCompanyDriversRegister.vehicleidMustBeAStringWhen": {
     "en": "vehicleId must be a string when provided.",
     "ka": "vehicleId მითითებისას უნდა იყოს ტექსტური ტიპი (string).",
@@ -559,15 +1024,135 @@
     "ka": "განხილვის პროცესში მყოფი განაცხადის რედაქტირება უკვე შეუძლებელია.",
     "_source": "src/app/api/logistics-company/onboarding/route.ts"
   },
+  "logisticsCompanyOnboarding.draftSectionMustBeAnObject": {
+    "en": "draft.{section} must be an object.",
+    "ka": "draft.{section} უნდა იყოს ობიექტი.",
+    "_source": "src/app/api/logistics-company/onboarding/route.ts"
+  },
+  "logisticsCompanyOnboarding.draftStepMustBeAnInteger": {
+    "en": "draftStep must be an integer between {min} and {max}.",
+    "ka": "draftStep უნდა იყოს მთელი რიცხვი {min}-დან {max}-მდე.",
+    "_source": "src/app/api/logistics-company/onboarding/route.ts"
+  },
+  "logisticsCompanyOnboarding.draftTooLong": {
+    "en": "draft must serialise to {max} characters or fewer.",
+    "ka": "draft-ის სერიალიზებული სიგრძე არ უნდა აღემატებოდეს {max} სიმბოლოს.",
+    "_source": "src/app/api/logistics-company/onboarding/route.ts"
+  },
   "logisticsCompanyOnboarding.draftVehiclesMustBeAnArray": {
     "en": "draft.vehicles must be an array.",
     "ka": "draft.vehicles უნდა იყოს მასივი.",
     "_source": "src/app/api/logistics-company/onboarding/route.ts"
   },
+  "logisticsCompanyOnboarding.draftVehiclesTooMany": {
+    "en": "draft.vehicles must contain {max} entries or fewer.",
+    "ka": "draft.vehicles უნდა შეიცავდეს არაუმეტეს {max} ჩანაწერს.",
+    "_source": "src/app/api/logistics-company/onboarding/route.ts"
+  },
+  "logisticsCompanyOnboardingSubmit.assignedToTwoVehicles": {
+    "en": "{name} is assigned to two vehicles. Each driver can hold one vehicle.",
+    "ka": "{name} მიმაგრებულია ორ ავტომობილზე. თითოეულ მძღოლს მხოლოდ ერთი ავტომობილი შეიძლება ჰქონდეს.",
+    "_source": "src/app/api/logistics-company/onboarding/submit/route.ts"
+  },
+  "logisticsCompanyOnboardingSubmit.chooseAtLeastOneCityOf": {
+    "en": "Choose at least one city of operation.",
+    "ka": "აირჩიეთ საქმიანობის მინიმუმ ერთი ქალაქი.",
+    "_source": "src/app/api/logistics-company/onboarding/submit/route.ts"
+  },
   "logisticsCompanyOnboardingSubmit.correctTheFlaggedCompanyDetailsBefore": {
     "en": "Correct the flagged company details before resubmitting.",
     "ka": "ხელახლა გაგზავნამდე გასწორეთ კომპანიის მონიშნული მონაცემები.",
     "_source": "src/app/api/logistics-company/onboarding/submit/route.ts"
+  },
+  "logisticsCompanyOnboardingSubmit.driverNoLongerOnRoster": {
+    "en": "Vehicle {index}'s driver is no longer on your roster. Assign a different driver.",
+    "ka": "ავტომობილი №{index}-ის მძღოლი აღარ არის თქვენს შემადგენლობაში. მიამაგრეთ სხვა მძღოლი.",
+    "_source": "src/app/api/logistics-company/onboarding/submit/route.ts"
+  },
+  "logisticsCompanyOnboardingSubmit.duplicatePlate": {
+    "en": "Vehicles {first} and {second} both have the plate {plate}.",
+    "ka": "ავტომობილებს №{first} და №{second} ერთი და იგივე სანომრე ნიშანი აქვთ: {plate}.",
+    "_source": "src/app/api/logistics-company/onboarding/submit/route.ts"
+  },
+  "logisticsCompanyOnboardingSubmit.enterAValidCompanyEmail": {
+    "en": "Enter a valid company email address.",
+    "ka": "შეიყვანეთ კომპანიის სწორი ელფოსტის მისამართი.",
+    "_source": "src/app/api/logistics-company/onboarding/submit/route.ts"
+  },
+  "logisticsCompanyOnboardingSubmit.enterAValidCompanyPhone": {
+    "en": "Enter a valid company phone number.",
+    "ka": "შეიყვანეთ კომპანიის სწორი ტელეფონის ნომერი.",
+    "_source": "src/app/api/logistics-company/onboarding/submit/route.ts"
+  },
+  "logisticsCompanyOnboardingSubmit.enterAValidIbanForThe": {
+    "en": "Enter a valid IBAN for the payout account.",
+    "ka": "შეიყვანეთ ანაზღაურების ანგარიშის სწორი IBAN.",
+    "_source": "src/app/api/logistics-company/onboarding/submit/route.ts"
+  },
+  "logisticsCompanyOnboardingSubmit.enterTheCompanySRegisteredAddress": {
+    "en": "Enter the company's registered address.",
+    "ka": "შეიყვანეთ კომპანიის იურიდიული მისამართი.",
+    "_source": "src/app/api/logistics-company/onboarding/submit/route.ts"
+  },
+  "logisticsCompanyOnboardingSubmit.enterTheCompanySRegisteredName": {
+    "en": "Enter the company's registered name.",
+    "ka": "შეიყვანეთ კომპანიის რეგისტრირებული სახელწოდება.",
+    "_source": "src/app/api/logistics-company/onboarding/submit/route.ts"
+  },
+  "logisticsCompanyOnboardingSubmit.enterTheContactPersonSFull": {
+    "en": "Enter the contact person's full name — at least a first and last name.",
+    "ka": "შეიყვანეთ საკონტაქტო პირის სრული სახელი — მინიმუმ სახელი და გვარი.",
+    "_source": "src/app/api/logistics-company/onboarding/submit/route.ts"
+  },
+  "logisticsCompanyOnboardingSubmit.enterTheContactPersonSRole": {
+    "en": "Enter the contact person's role.",
+    "ka": "შეიყვანეთ საკონტაქტო პირის თანამდებობა.",
+    "_source": "src/app/api/logistics-company/onboarding/submit/route.ts"
+  },
+  "logisticsCompanyOnboardingSubmit.fixTheFlaggedVehiclesBefore": {
+    "en": "Fix the {count, plural, one {# flagged vehicle} other {# flagged vehicles}} before resubmitting.",
+    "ka": "ხელახლა გაგზავნამდე გაასწორეთ {count, plural, one {# მონიშნული ავტომობილი} other {# მონიშნული ავტომობილი}}.",
+    "_source": "src/app/api/logistics-company/onboarding/submit/route.ts"
+  },
+  "logisticsCompanyOnboardingSubmit.licenceHasExpired": {
+    "en": "{name}'s licence has expired. Renew it before submitting.",
+    "ka": "{name}-ის მართვის მოწმობას ვადა გაუვიდა. განაახლეთ იგი გაგზავნამდე.",
+    "_source": "src/app/api/logistics-company/onboarding/submit/route.ts"
+  },
+  "logisticsCompanyOnboardingSubmit.licenceMissingCategory": {
+    "en": "{name}'s licence does not list category {category}, which the {vehicleClass} class requires.",
+    "ka": "{name}-ის მართვის მოწმობაში არ არის {category} კატეგორია, რომელსაც {vehicleClass} კლასი მოითხოვს.",
+    "_source": "src/app/api/logistics-company/onboarding/submit/route.ts"
+  },
+  "logisticsCompanyOnboardingSubmit.noLicenceOnFile": {
+    "en": "{name} has no licence on file. Add it before submitting.",
+    "ka": "{name}-ის მართვის მოწმობა არ არის დამატებული. დაამატეთ იგი გაგზავნამდე.",
+    "_source": "src/app/api/logistics-company/onboarding/submit/route.ts"
+  },
+  "logisticsCompanyOnboardingSubmit.theVatOrTaxIdMust": {
+    "en": "The VAT or tax ID must be exactly 9 digits.",
+    "ka": "საიდენტიფიკაციო კოდი ზუსტად 9 ციფრისგან უნდა შედგებოდეს.",
+    "_source": "src/app/api/logistics-company/onboarding/submit/route.ts"
+  },
+  "logisticsCompanyOnboardingSubmit.thisDriver": {
+    "en": "This driver",
+    "ka": "ეს მძღოლი",
+    "_source": "src/app/api/logistics-company/onboarding/submit/route.ts"
+  },
+  "logisticsCompanyOnboardingSubmit.vehicleIndexHasNoDriver": {
+    "en": "Vehicle {index} has no driver. Every vehicle needs a named driver.",
+    "ka": "ავტომობილს №{index} მძღოლი არ ჰყავს. ყველა ავტომობილს დასახელებული მძღოლი სჭირდება.",
+    "_source": "src/app/api/logistics-company/onboarding/submit/route.ts"
+  },
+  "logisticsCompanyOnboardingSubmit.vehiclePlateHasNoDriver": {
+    "en": "Vehicle {plate} has no driver. Every vehicle needs a named driver.",
+    "ka": "ავტომობილს {plate} მძღოლი არ ჰყავს. ყველა ავტომობილს დასახელებული მძღოლი სჭირდება.",
+    "_source": "src/app/api/logistics-company/onboarding/submit/route.ts"
+  },
+  "logisticsCompanyOnboardingVehicles.somethingInThisVehicleIsIncomplete": {
+    "en": "Something in this vehicle is incomplete. Check each field and try again.",
+    "ka": "ამ ავტომობილის მონაცემები არასრულია. შეამოწმეთ თითოეული ველი და სცადეთ ხელახლა.",
+    "_source": "src/app/api/logistics-company/onboarding/vehicles/[vehicleId]/route.ts"
   },
   "logisticsCompanyOnboardingVehicles.thisApplicationIsnTOpenFor": {
     "en": "This application isn't open for corrections.",
@@ -609,9 +1194,39 @@
     "ka": "თქვენს ავტოპარკს არ აქვს საკმარისად დიდი ტრანსპორტი იმ კლასისთვის, რომლითაც დაჯავშნილი იყო ეს მიწოდება და იმ სატვირთო სივრცისთვის, რაც მას სჭირდება.",
     "_source": "src/app/api/logistics-company/orders/[id]/claim/route.ts"
   },
+  "logisticsCompanyOrdersDispatch.thisVehicleCanTCarryThis": {
+    "en": "This vehicle can't carry this load's cargo — it exceeds the weight or size limit. Assign a vehicle that can.",
+    "ka": "ეს ავტომობილი ვერ გადაზიდავს ამ გადაზიდვის ტვირთს — ის აჭარბებს წონის ან ზომის ლიმიტს. მიამაგრეთ შესაბამისი ავტომობილი.",
+    "_source": "src/app/api/logistics-company/orders/[id]/dispatch/route.ts"
+  },
+  "logisticsCompanyOrdersDispatch.thisVehicleDoesnTOfferThe": {
+    "en": "This vehicle doesn't offer the load space this delivery needs. Assign one that does.",
+    "ka": "ამ ავტომობილს არ აქვს ამ მიწოდებისთვის საჭირო სატვირთო სივრცე. მიამაგრეთ შესაბამისი.",
+    "_source": "src/app/api/logistics-company/orders/[id]/dispatch/route.ts"
+  },
+  "logisticsCompanyOrdersDispatch.thisVehicleHasnTBeenApproved": {
+    "en": "This vehicle hasn't been approved yet. Only approved vehicles can be dispatched.",
+    "ka": "ეს ავტომობილი ჯერ არ არის დამტკიცებული. დანიშვნა მხოლოდ დამტკიცებული ავტომობილით შეიძლება.",
+    "_source": "src/app/api/logistics-company/orders/[id]/dispatch/route.ts"
+  },
+  "logisticsCompanyOrdersDispatch.thisVehicleIsSmallerThanThe": {
+    "en": "This vehicle is smaller than the vehicle class this delivery was booked as. Assign one that matches or beats it on payload, length, width and height.",
+    "ka": "ეს ავტომობილი იმ კლასზე მცირეა, რომლითაც ეს მიწოდება დაიჯავშნა. მიამაგრეთ ისეთი, რომელიც ტვირთამწეობით, სიგრძით, სიგანითა და სიმაღლით მას უტოლდება ან აღემატება.",
+    "_source": "src/app/api/logistics-company/orders/[id]/dispatch/route.ts"
+  },
   "logisticsCompanyVehicles.completeYourCompanyProfileBeforeAdding": {
     "en": "Complete your company profile before adding a vehicle.",
     "ka": "ტრანსპორტის დამატებამდე შეავსეთ კომპანიის პროფილი.",
+    "_source": "src/app/api/logistics-company/vehicles/route.ts"
+  },
+  "logisticsCompanyVehicles.fileIsNotAnImage": {
+    "en": "{fileName} is not an image file.",
+    "ka": "{fileName} არ არის სურათის ფაილი.",
+    "_source": "src/app/api/logistics-company/vehicles/route.ts"
+  },
+  "logisticsCompanyVehicles.fileIsTooLarge": {
+    "en": "{fileName} is larger than {maxMb} MB.",
+    "ka": "{fileName} აღემატება {maxMb} MB-ს.",
     "_source": "src/app/api/logistics-company/vehicles/route.ts"
   },
   "logisticsCompanyVehicles.onlyLogisticsCompaniesCanAddFleet": {
@@ -634,6 +1249,11 @@
     "ka": "vehicleTypeCode არ შეესაბამება ტრანსპორტის ცნობილ ტიპს.",
     "_source": "src/app/api/logistics-company/vehicles/route.ts"
   },
+  "logisticsCompanyVehicles.yearMustBeAWholeNumber": {
+    "en": "year must be a whole number between {min} and {max}.",
+    "ka": "year უნდა იყოს მთელი რიცხვი {min}-დან {max}-მდე.",
+    "_source": "src/app/api/logistics-company/vehicles/route.ts"
+  },
   "logisticsCompanyVehiclesAssignment.onlyLogisticsCompaniesCanAssignVehicles": {
     "en": "Only logistics companies can assign vehicles.",
     "ka": "ტრანსპორტის მინიჭება მხოლოდ ლოგისტიკურ კომპანიებს შეუძლიათ.",
@@ -644,10 +1264,30 @@
     "ka": "ტრანსპორტის მინიჭების მოხსნა მხოლოდ ლოგისტიკურ კომპანიებს შეუძლიათ.",
     "_source": "src/app/api/logistics-company/vehicles/[id]/assignment/route.ts"
   },
+  "logisticsCompanyVehiclesAssignment.thisDriverAlreadyHasAnActive": {
+    "en": "This driver already has an active vehicle assignment. Unassign it first.",
+    "ka": "ამ მძღოლს უკვე აქვს აქტიურად მიმაგრებული ავტომობილი. ჯერ მოხსენით იგი.",
+    "_source": "src/app/api/logistics-company/vehicles/[id]/assignment/route.ts"
+  },
+  "logisticsCompanyVehiclesAssignment.thisVehicleAlreadyHasAnActive": {
+    "en": "This vehicle already has an active assignment. Unassign it first.",
+    "ka": "ამ ავტომობილს უკვე აქვს აქტიური მიმაგრება. ჯერ მოხსენით იგი.",
+    "_source": "src/app/api/logistics-company/vehicles/[id]/assignment/route.ts"
+  },
   "logisticsCompanyVehiclesAssignment.thisVehicleHasNoActiveAssignment": {
     "en": "This vehicle has no active assignment.",
     "ka": "ამ ტრანსპორტს აქტიური მინიჭება არ აქვს.",
     "_source": "src/app/api/logistics-company/vehicles/[id]/assignment/route.ts"
+  },
+  "logisticsCompanyVehiclesAssignment.thisVehicleNeedsCategory": {
+    "en": "This vehicle needs category {category}. Assign a different driver or vehicle.",
+    "ka": "ამ ავტომობილს {category} კატეგორია სჭირდება. მიამაგრეთ სხვა მძღოლი ან ავტომობილი.",
+    "_source": "src/app/api/logistics-company/vehicles/[id]/assignment/route.ts"
+  },
+  "orders.bodyTypeMustBeOneOf": {
+    "en": "bodyType must be one of: {allowed}.",
+    "ka": "bodyType უნდა იყოს ერთ-ერთი შემდეგიდან: {allowed}.",
+    "_source": "src/app/api/orders/route.ts"
   },
   "orders.deliverydeadlineMustBeAfterPickupwindowend": {
     "en": "deliveryDeadline must be after pickupWindowEnd.",
@@ -664,9 +1304,44 @@
     "ka": "მიმდევრობიდან შეკვეთის კოდის/ნომრის გენერირება ვერ მოხერხდა.",
     "_source": "src/app/api/orders/route.ts"
   },
+  "orders.fieldMeasurementOutOfRange": {
+    "en": "{field} must be a number greater than 0 and no more than {max} {unit}.",
+    "ka": "{field} უნდა იყოს 0-ზე მეტი რიცხვი და არაუმეტეს {max} {unit}.",
+    "_source": "src/app/api/orders/route.ts"
+  },
+  "orders.fieldMustBeObjectWhenProvided": {
+    "en": "{field} must be a JSON object when provided.",
+    "ka": "{field} მითითების შემთხვევაში უნდა იყოს JSON ობიექტი.",
+    "_source": "src/app/api/orders/route.ts"
+  },
+  "orders.fieldMustBeStringWhenProvided": {
+    "en": "{field} must be a string when provided.",
+    "ka": "{field} მითითების შემთხვევაში უნდა იყოს ტექსტი.",
+    "_source": "src/app/api/orders/route.ts"
+  },
+  "orders.fieldMustBeValidDateTime": {
+    "en": "{field} must be a valid date and time.",
+    "ka": "{field} უნდა იყოს სწორი თარიღი და დრო.",
+    "_source": "src/app/api/orders/route.ts"
+  },
+  "orders.fieldTooLong": {
+    "en": "{field} must be {max} characters or fewer.",
+    "ka": "{field} არ უნდა აღემატებოდეს {max} სიმბოლოს.",
+    "_source": "src/app/api/orders/route.ts"
+  },
+  "orders.handlingTagsMustContainOnly": {
+    "en": "handlingTags must contain only: {allowed}.",
+    "ka": "handlingTags შეიძლება შეიცავდეს მხოლოდ: {allowed}.",
+    "_source": "src/app/api/orders/route.ts"
+  },
   "orders.handlingtagsMustBeAnArrayWhen": {
     "en": "handlingTags must be an array when provided.",
     "ka": "handlingTags მითითებისას უნდა იყოს მასივი.",
+    "_source": "src/app/api/orders/route.ts"
+  },
+  "orders.paymentMethodTypeMustBeOneOf": {
+    "en": "paymentMethodType must be one of: {allowed}.",
+    "ka": "paymentMethodType უნდა იყოს ერთ-ერთი შემდეგიდან: {allowed}.",
     "_source": "src/app/api/orders/route.ts"
   },
   "orders.pickupwindowendMustBeAfterPickupwindowstart": {
@@ -687,6 +1362,11 @@
   "orders.scheduledatMustBeAValidDate": {
     "en": "scheduledAt must be a valid date and time.",
     "ka": "scheduledAt უნდა იყოს ვალიდური თარიღი და დრო.",
+    "_source": "src/app/api/orders/route.ts"
+  },
+  "orders.serviceLevelMustBeOneOf": {
+    "en": "serviceLevel must be one of: {allowed}.",
+    "ka": "serviceLevel უნდა იყოს ერთ-ერთი შემდეგიდან: {allowed}.",
     "_source": "src/app/api/orders/route.ts"
   },
   "orders.thatVehicleDoesNotOfferThe": {
@@ -719,6 +1399,16 @@
     "ka": "თქვენ ოფლაინში ხართ. ტვირთების დასაჯავშნად/მისაღებად გადადით ონლაინ რეჟიმში.",
     "_source": "src/app/api/orders/[id]/accept/route.ts"
   },
+  "ordersComplete.receivedByMustBeStringOrNull": {
+    "en": "receivedBy must be a string or null.",
+    "ka": "receivedBy უნდა იყოს ტექსტი ან null.",
+    "_source": "src/app/api/orders/[id]/complete/route.ts"
+  },
+  "ordersComplete.receivedByTooLong": {
+    "en": "receivedBy must be {max} characters or fewer.",
+    "ka": "receivedBy არ უნდა აღემატებოდეს {max} სიმბოლოს.",
+    "_source": "src/app/api/orders/[id]/complete/route.ts"
+  },
   "ordersComplete.thisDeliveryCannotBeCompletedRight": {
     "en": "This delivery cannot be completed right now.",
     "ka": "ამ მიწოდების დასრულება ახლა შეუძლებელია.",
@@ -739,6 +1429,21 @@
     "ka": "თქვენ არ გაქვთ წვდომა ამ შეკვეთაზე.",
     "_source": "src/app/api/orders/[id]/location/route.ts"
   },
+  "ordersPay.fieldMustBeStringWhenProvided": {
+    "en": "{field} must be a string when provided.",
+    "ka": "{field} მითითების შემთხვევაში უნდა იყოს ტექსტი.",
+    "_source": "src/app/api/orders/[id]/pay/route.ts"
+  },
+  "ordersPay.fieldTooLong": {
+    "en": "{field} must be {max} characters or fewer.",
+    "ka": "{field} არ უნდა აღემატებოდეს {max} სიმბოლოს.",
+    "_source": "src/app/api/orders/[id]/pay/route.ts"
+  },
+  "ordersPay.paymentMethodTypeMustBeOneOf": {
+    "en": "paymentMethodType must be one of: {allowed}.",
+    "ka": "paymentMethodType უნდა იყოს ერთ-ერთი შემდეგიდან: {allowed}.",
+    "_source": "src/app/api/orders/[id]/pay/route.ts"
+  },
   "ordersPay.thisDeliveryHasAlreadyBeenPaid": {
     "en": "This delivery has already been paid for and is with our drivers.",
     "ka": "ამ მიწოდების საფასური უკვე გადახდილია და ის ჩვენს მძღოლებთანაა.",
@@ -748,6 +1453,16 @@
     "en": "This delivery cannot be started right now.",
     "ka": "ამ მიწოდების დაწყება ახლა შეუძლებელია.",
     "_source": "src/app/api/orders/[id]/start/route.ts"
+  },
+  "savedCards.cardBrandTooLong": {
+    "en": "Enter a card brand of {max} characters or fewer.",
+    "ka": "მიუთითეთ ბარათის ბრენდი არაუმეტეს {max} სიმბოლოსი.",
+    "_source": "src/app/api/saved-cards/route.ts"
+  },
+  "savedCards.cardholderNameTooLong": {
+    "en": "Enter a cardholder name of {max} characters or fewer.",
+    "ka": "მიუთითეთ ბარათის მფლობელის სახელი არაუმეტეს {max} სიმბოლოსი.",
+    "_source": "src/app/api/saved-cards/route.ts"
   },
   "savedCards.enterAFourDigitCardEnding": {
     "en": "Enter a four-digit card ending.",
@@ -797,6 +1512,11 @@
   "validation.bodyhtmlIsRequiredAndMustBe": {
     "en": "bodyHtml is required and must be a non-empty string.",
     "ka": "bodyHtml სავალდებულოა და არ უნდა იყოს ცარიელი ტექსტი.",
+    "_source": "src/app/api/admin/content/pages/validation.ts"
+  },
+  "validation.duplicatePage": {
+    "en": "A page with this slug already exists for this locale.",
+    "ka": "ამ ლოკალისთვის ამ slug-ით გვერდი უკვე არსებობს.",
     "_source": "src/app/api/admin/content/pages/validation.ts"
   },
   "validation.ispublishedMustBeABoolean": {

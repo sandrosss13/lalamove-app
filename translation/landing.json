@@ -1,4 +1,9 @@
 {
+  "landingCategoryTiles.fromPrice": {
+    "en": "from {price}",
+    "ka": "{price}-დან",
+    "_source": "src/components/landing/landing-category-tiles.tsx"
+  },
   "landingCategoryTiles.priceYourOwnRoute": {
     "en": "— price your own route",
     "ka": "— გამოთვალეთ მარშრუტის ფასი",
@@ -7,6 +12,11 @@
   "landingHeroCarousel.featuredBanners": {
     "en": "Featured banners",
     "ka": "რჩეული ბანერები",
+    "_source": "src/components/landing/landing-hero-carousel.tsx"
+  },
+  "landingHeroCarousel.goToBanner": {
+    "en": "Go to banner {index}",
+    "ka": "ბანერზე გადასვლა: {index}",
     "_source": "src/components/landing/landing-hero-carousel.tsx"
   },
   "landingHeroCarousel.nextBanner": {
@@ -19,6 +29,11 @@
     "ka": "წინა ბანერი",
     "_source": "src/components/landing/landing-hero-carousel.tsx"
   },
+  "landingHeroCarousel.slideOf": {
+    "en": "{index} of {count}",
+    "ka": "{index} / {count}",
+    "_source": "src/components/landing/landing-hero-carousel.tsx"
+  },
   "landingQuoteCalculator.1IsTheDriverAloneEach": {
     "en": "1 is the driver alone. Each extra person helps load and unload, and adds a flat fee.",
     "ka": "1 ნიშნავს, რომ მძღოლი მარტოა. ყოველი დამატებითი ადამიანი ეხმარება დატვირთვა-დაცლაში და ემატება ფიქსირებული საფასური.",
@@ -27,6 +42,16 @@
   "landingQuoteCalculator.aghmashenebeliAve88Tbilisi": {
     "en": "Aghmashenebeli Ave 88, Tbilisi",
     "ka": "აღმაშენებლის გამზ. 88, თბილისი",
+    "_source": "src/components/landing/landing-quote-calculator.tsx"
+  },
+  "landingQuoteCalculator.calculatePrice": {
+    "en": "Calculate price",
+    "ka": "ფასის გამოთვლა",
+    "_source": "src/components/landing/landing-quote-calculator.tsx"
+  },
+  "landingQuoteCalculator.calculating": {
+    "en": "Calculating…",
+    "ka": "ითვლება…",
     "_source": "src/components/landing/landing-quote-calculator.tsx"
   },
   "landingQuoteCalculator.couldNotPriceThisLoadPlease": {
@@ -44,9 +69,24 @@
     "ka": "რამდენი ადამიანი",
     "_source": "src/components/landing/landing-quote-calculator.tsx"
   },
+  "landingQuoteCalculator.loading": {
+    "en": "Loading…",
+    "ka": "იტვირთება…",
+    "_source": "src/components/landing/landing-quote-calculator.tsx"
+  },
   "landingQuoteCalculator.minimumFareApplied": {
     "en": "Minimum fare applied",
     "ka": "მოქმედებს მინიმალური ტარიფი",
+    "_source": "src/components/landing/landing-quote-calculator.tsx"
+  },
+  "landingQuoteCalculator.nPeople": {
+    "en": "{count} people — the driver plus {helpers, plural, one {# helper} other {# helpers}}",
+    "ka": "{count} ადამიანი — მძღოლი და {helpers, plural, one {# დამხმარე} other {# დამხმარე}}",
+    "_source": "src/components/landing/landing-quote-calculator.tsx"
+  },
+  "landingQuoteCalculator.onePerson": {
+    "en": "1 person — the driver alone",
+    "ka": "1 ადამიანი — მხოლოდ მძღოლი",
     "_source": "src/components/landing/landing-quote-calculator.tsx"
   },
   "landingQuoteCalculator.rustaveliAve12Tbilisi": {

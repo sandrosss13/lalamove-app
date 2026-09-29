@@ -1,19 +1,27 @@
 {
   "landingCategoryTiles": {
+    "fromPrice": "from {price}",
     "priceYourOwnRoute": "— price your own route"
   },
   "landingHeroCarousel": {
     "featuredBanners": "Featured banners",
+    "goToBanner": "Go to banner {index}",
     "nextBanner": "Next banner",
-    "previousBanner": "Previous banner"
+    "previousBanner": "Previous banner",
+    "slideOf": "{index} of {count}"
   },
   "landingQuoteCalculator": {
     "1IsTheDriverAloneEach": "1 is the driver alone. Each extra person helps load and unload, and adds a flat fee.",
     "aghmashenebeliAve88Tbilisi": "Aghmashenebeli Ave 88, Tbilisi",
+    "calculatePrice": "Calculate price",
+    "calculating": "Calculating…",
     "couldNotPriceThisLoadPlease": "Could not price this load. Please try again.",
     "estimate": "Estimate",
     "howManyPeople": "How many people",
+    "loading": "Loading…",
     "minimumFareApplied": "Minimum fare applied",
+    "nPeople": "{count} people — the driver plus {helpers, plural, one {# helper} other {# helpers}}",
+    "onePerson": "1 person — the driver alone",
     "rustaveliAve12Tbilisi": "Rustaveli Ave 12, Tbilisi",
     "signUpToBookThisLoad": "Sign up to book this load",
     "whatAreYouMoving": "What are you moving",

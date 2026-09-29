@@ -1,32 +1,61 @@
 {
+  "bodyType": {
+    "dryBox": "Dry box",
+    "openChassis": "Open chassis",
+    "refrigerated": "Refrigerated"
+  },
   "checkout": {
+    "almostThere": "Almost there",
+    "backToBooking": "← Back to booking",
     "crew": "Crew",
     "goods": "Goods",
     "loadSpace": "Load space",
     "loadingAndUnloadingTimeBeyondThe": "Loading and unloading time beyond the free allowance is settled after the delivery and is not part of this total.",
     "notes": "Notes",
     "reviewAndPay": "Review and pay",
+    "signInToReviewAndPay": "Sign in to review and pay for this delivery.",
     "yourDelivery": "Your delivery"
   },
   "checkoutPaymentPanel": {
+    "cardAriaLabel": "{brand} card ending {last4} — expires {expiry}",
     "chooseAPaymentMethodToContinue": "Choose a payment method to continue.",
     "chooseHowYouWouldLikeTo": "Choose how you would like to settle this delivery.",
+    "couldNotCompletePayment": "Could not complete the payment. Try again.",
+    "couldNotSaveCard": "Could not save the card. Try again.",
+    "defaultSuffix": " · Default",
     "eGPo20260184": "e.g. PO-2026-0184",
+    "noPaymentMethodAvailable": "No payment method is available at the moment, so this delivery can’t be paid for yet. Your booking is saved — come back and pay once a method is switched on.",
     "nothingIsChargedNowNoPayment": "Nothing is charged now — no payment provider is connected yet.",
     "optionalAppearsOnYourOrderRecord": "Optional. Appears on your order record for your own finance team.",
+    "payAmount": "Pay {amount}",
     "payLater": "Pay later",
     "payLaterSettleAfterTheDelivery": "Pay later — settle after the delivery",
+    "paying": "Paying…",
     "poOrCostCentreReference": "PO or cost-centre reference",
     "settleAfterTheDelivery": "Settle after the delivery"
   },
   "checkoutShell": {
     "backToYourOrders": "Back to your orders",
-    "checkout": "Checkout"
+    "checkout": "Checkout",
+    "couldNotFindDelivery": "We couldn’t find that delivery under your account."
   },
   "checkoutSuccess": {
+    "backToYourOrders": "← Your orders",
+    "bookingConfirmed": "Booking confirmed",
+    "dueAfterDelivery": "Due after the delivery, collected off the platform when the job is done.",
+    "matchingWithDriver": "We’re matching it with a driver now. You’ll be able to follow the job from your orders as soon as one accepts it.",
+    "notRecorded": "Not recorded",
+    "settledAtCheckout": "Settled at checkout. No payment provider is connected yet, so nothing has been charged to your card.",
+    "signInToSeeConfirmation": "Sign in to see the confirmation for this delivery.",
     "trackThisDelivery": "Track this delivery",
     "viewYourOrders": "View your orders",
     "youReAllSet": "You’re all set",
     "yourDeliveryIsBooked": "Your delivery is booked"
+  },
+  "crewSize": "{count, plural, one {# person} other {# people}}",
+  "paymentMethod": {
+    "bankTransfer": "Bank transfer",
+    "card": "Card",
+    "cash": "Pay later"
   }
 }

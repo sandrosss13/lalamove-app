@@ -4,14 +4,59 @@
     "ka": "ანგარიშის გააქტიურება",
     "_source": "src/components/driver-onboarding/application-status-screen.tsx"
   },
+  "applicationStatusScreen.allPhotosReplaced": {
+    "en": "All photos replaced",
+    "ka": "ყველა ფოტო ჩანაცვლებულია",
+    "_source": "src/components/driver-onboarding/application-status-screen.tsx"
+  },
   "applicationStatusScreen.applicationSubmitted": {
     "en": "Application submitted",
     "ka": "განაცხადი გაგზავნილია",
     "_source": "src/components/driver-onboarding/application-status-screen.tsx"
   },
+  "applicationStatusScreen.approvedBody": {
+    "en": "Your account is active. Orders matching your vehicle class will start arriving as soon as you go online.",
+    "ka": "თქვენი ანგარიში აქტიურია. თქვენი ავტომობილის კლასის შესაბამისი შეკვეთები ონლაინ რეჟიმში გადასვლისთანავე დაიწყებს შემოსვლას.",
+    "_source": "src/components/driver-onboarding/application-status-screen.tsx"
+  },
   "applicationStatusScreen.documentReview": {
     "en": "Document review",
     "ka": "დოკუმენტების გადამოწმება",
+    "_source": "src/components/driver-onboarding/application-status-screen.tsx"
+  },
+  "applicationStatusScreen.documentsNeedNewPhoto": {
+    "en": "{count, plural, one {# document needs a new photo} other {# documents need a new photo}}",
+    "ka": "{count, plural, one {# დოკუმენტს ახალი ფოტო სჭირდება} other {# დოკუმენტს ახალი ფოტო სჭირდება}}",
+    "_source": "src/components/driver-onboarding/application-status-screen.tsx"
+  },
+  "applicationStatusScreen.flaggedDocumentAlt": {
+    "en": "The {document} the review team flagged",
+    "ka": "{document}, რომელიც განხილვის გუნდმა მონიშნა",
+    "_source": "src/components/driver-onboarding/application-status-screen.tsx"
+  },
+  "applicationStatusScreen.flaggedItemsBody": {
+    "en": "The review team could not read the items below. Replace them and resubmit — the rest of your application is kept.",
+    "ka": "განხილვის გუნდმა ქვემოთ მოცემული ელემენტები ვერ წაიკითხა. ჩაანაცვლეთ ისინი და ხელახლა გაგზავნეთ — განაცხადის დანარჩენი ნაწილი შენახულია.",
+    "_source": "src/components/driver-onboarding/application-status-screen.tsx"
+  },
+  "applicationStatusScreen.goOnlineAndTakeOrders": {
+    "en": "Go online and take orders",
+    "ka": "ონლაინ რეჟიმში გადასვლა და შეკვეთების მიღება",
+    "_source": "src/components/driver-onboarding/application-status-screen.tsx"
+  },
+  "applicationStatusScreen.goOnlineFailed": {
+    "en": "We couldn't set you online. Please try again.",
+    "ka": "ონლაინ რეჟიმში გადაყვანა ვერ მოხერხდა. გთხოვთ, სცადოთ თავიდან.",
+    "_source": "src/components/driver-onboarding/application-status-screen.tsx"
+  },
+  "applicationStatusScreen.goingOnline": {
+    "en": "Going online…",
+    "ka": "ონლაინ რეჟიმში გადასვლა…",
+    "_source": "src/components/driver-onboarding/application-status-screen.tsx"
+  },
+  "applicationStatusScreen.inProgress": {
+    "en": "In progress",
+    "ka": "მიმდინარეობს",
     "_source": "src/components/driver-onboarding/application-status-screen.tsx"
   },
   "applicationStatusScreen.keepYourLicenceAndInsuranceCurrent": {
@@ -34,14 +79,49 @@
     "ka": "საჭიროებს ახალ ფოტოს",
     "_source": "src/components/driver-onboarding/application-status-screen.tsx"
   },
+  "applicationStatusScreen.pendingBody": {
+    "en": "Our team is checking your licence, ID and vehicle photos. This page checks for a decision every few seconds, so there's no need to refresh it.",
+    "ka": "ჩვენი გუნდი ამოწმებს თქვენს მართვის მოწმობას, პირადობის დოკუმენტს და ავტომობილის ფოტოებს. ეს გვერდი გადაწყვეტილებას ყოველ რამდენიმე წამში ამოწმებს, ამიტომ მისი განახლება საჭირო არ არის.",
+    "_source": "src/components/driver-onboarding/application-status-screen.tsx"
+  },
+  "applicationStatusScreen.pendingVerification": {
+    "en": "Pending verification",
+    "ka": "ელოდება ვერიფიკაციას",
+    "_source": "src/components/driver-onboarding/application-status-screen.tsx"
+  },
+  "applicationStatusScreen.profilePhoto": {
+    "en": "Profile photo",
+    "ka": "პროფილის ფოტო",
+    "_source": "src/components/driver-onboarding/application-status-screen.tsx"
+  },
+  "applicationStatusScreen.resubmitApplication": {
+    "en": "Resubmit application",
+    "ka": "განაცხადის ხელახლა გაგზავნა",
+    "_source": "src/components/driver-onboarding/application-status-screen.tsx"
+  },
+  "applicationStatusScreen.resubmitFailed": {
+    "en": "We couldn't resubmit your application. Please try again.",
+    "ka": "განაცხადის ხელახლა გაგზავნა ვერ მოხერხდა. გთხოვთ, სცადოთ თავიდან.",
+    "_source": "src/components/driver-onboarding/application-status-screen.tsx"
+  },
   "applicationStatusScreen.resubmittedApplicationsAreUsuallyReviewedWithin": {
     "en": "Resubmitted applications are usually reviewed within 4 hours.",
     "ka": "ხელახლა გაგზავნილი განაცხადები, როგორც წესი, მოწმდება 4 საათის განმავლობაში.",
     "_source": "src/components/driver-onboarding/application-status-screen.tsx"
   },
+  "applicationStatusScreen.resubmitting": {
+    "en": "Resubmitting…",
+    "ka": "იგზავნება ხელახლა…",
+    "_source": "src/components/driver-onboarding/application-status-screen.tsx"
+  },
   "applicationStatusScreen.retake": {
     "en": "Retake",
     "ka": "ხელახლა გადაღება",
+    "_source": "src/components/driver-onboarding/application-status-screen.tsx"
+  },
+  "applicationStatusScreen.sendBackBody": {
+    "en": "Send your application back to the review team when you're ready — the rest of it is unchanged.",
+    "ka": "როცა მზად იქნებით, განაცხადი ხელახლა გაუგზავნეთ განხილვის გუნდს — დანარჩენი ნაწილი უცვლელია.",
     "_source": "src/components/driver-onboarding/application-status-screen.tsx"
   },
   "applicationStatusScreen.typicalReviewTimeIs1224": {
@@ -54,19 +134,74 @@
     "ka": "განხილვის პროცესშია",
     "_source": "src/components/driver-onboarding/application-status-screen.tsx"
   },
+  "applicationStatusScreen.waiting": {
+    "en": "Waiting",
+    "ka": "მოლოდინში",
+    "_source": "src/components/driver-onboarding/application-status-screen.tsx"
+  },
   "applicationStatusScreen.youAreClearedToDrive": {
     "en": "You are cleared to drive",
     "ka": "თქვენ გაქვთ მართვის უფლება",
     "_source": "src/components/driver-onboarding/application-status-screen.tsx"
+  },
+  "applicationStatusScreen.yourApplication": {
+    "en": "Your application",
+    "ka": "თქვენი განაცხადი",
+    "_source": "src/components/driver-onboarding/application-status-screen.tsx"
+  },
+  "documentUploadDialog.badgeLicenceBack": {
+    "en": "STEP 2 · LICENCE BACK",
+    "ka": "ნაბიჯი 2 · მოწმობის უკანა მხარე",
+    "_source": "src/components/driver-onboarding/document-upload-dialog.tsx"
+  },
+  "documentUploadDialog.badgeLicenceFront": {
+    "en": "STEP 2 · LICENCE FRONT",
+    "ka": "ნაბიჯი 2 · მოწმობის წინა მხარე",
+    "_source": "src/components/driver-onboarding/document-upload-dialog.tsx"
+  },
+  "documentUploadDialog.badgeSelfie": {
+    "en": "STEP 1 · PROFILE PHOTO",
+    "ka": "ნაბიჯი 1 · პროფილის ფოტო",
+    "_source": "src/components/driver-onboarding/document-upload-dialog.tsx"
+  },
+  "documentUploadDialog.dragOrBrowse": {
+    "en": "Drag a file here, or click to browse",
+    "ka": "ჩააგდეთ ფაილი აქ ან დააწკაპუნეთ ასარჩევად",
+    "_source": "src/components/driver-onboarding/document-upload-dialog.tsx"
+  },
+  "documentUploadDialog.fileTooLarge": {
+    "en": "That file is larger than 10 MB. Choose a smaller one.",
+    "ka": "ფაილი 10 MB-ზე დიდია. აირჩიეთ უფრო მცირე ზომის ფაილი.",
+    "_source": "src/components/driver-onboarding/document-upload-dialog.tsx"
   },
   "documentUploadDialog.filesAreCheckedByTheReview": {
     "en": "Files are checked by the review team, not automatically.",
     "ka": "ფაილებს ამოწმებს გადამოწმების გუნდი და არა ავტომატურად.",
     "_source": "src/components/driver-onboarding/document-upload-dialog.tsx"
   },
+  "documentUploadDialog.guideLicenceBack": {
+    "en": "All four corners visible, category rows legible.",
+    "ka": "ოთხივე კუთხე ჩანს, კატეგორიების სტრიქონები იკითხება.",
+    "_source": "src/components/driver-onboarding/document-upload-dialog.tsx"
+  },
+  "documentUploadDialog.guideLicenceFront": {
+    "en": "All four corners visible, no glare across the card.",
+    "ka": "ოთხივე კუთხე ჩანს, ბარათზე ანარეკლი არ არის.",
+    "_source": "src/components/driver-onboarding/document-upload-dialog.tsx"
+  },
+  "documentUploadDialog.guideSelfie": {
+    "en": "Face centred, no hat or sunglasses, plain background.",
+    "ka": "სახე ცენტრში, ქუდისა და მზის სათვალის გარეშე, ერთფეროვან ფონზე.",
+    "_source": "src/components/driver-onboarding/document-upload-dialog.tsx"
+  },
   "documentUploadDialog.jpgOrPngMax10Mb": {
     "en": "JPG or PNG · max 10 MB",
     "ka": "JPG ან PNG · მაქს. 10 MB",
+    "_source": "src/components/driver-onboarding/document-upload-dialog.tsx"
+  },
+  "documentUploadDialog.notJpgOrPng": {
+    "en": "That file is not a JPG or PNG. Choose a different one.",
+    "ka": "ეს ფაილი არ არის JPG ან PNG. აირჩიეთ სხვა ფაილი.",
     "_source": "src/components/driver-onboarding/document-upload-dialog.tsx"
   },
   "documentUploadDialog.theCategoryTableIsWhatThe": {
@@ -77,6 +212,11 @@
   "documentUploadDialog.thePhotoNameAndLicenceNumber": {
     "en": "The photo, name and licence number must be readable.",
     "ka": "ფოტო, სახელი და მართვის მოწმობის ნომერი უნდა იყოს მკაფიოდ წაკითხვადი.",
+    "_source": "src/components/driver-onboarding/document-upload-dialog.tsx"
+  },
+  "documentUploadDialog.uploadFailed": {
+    "en": "The upload didn't finish. Check your connection and try again.",
+    "ka": "ატვირთვა ვერ დასრულდა. შეამოწმეთ კავშირი და სცადეთ თავიდან.",
     "_source": "src/components/driver-onboarding/document-upload-dialog.tsx"
   },
   "documentUploadDialog.uploadTheBackOfYourLicence": {
@@ -94,6 +234,11 @@
     "ka": "ატვირთეთ თქვენი პროფილის ფოტო",
     "_source": "src/components/driver-onboarding/document-upload-dialog.tsx"
   },
+  "documentUploadDialog.uploading": {
+    "en": "Uploading…",
+    "ka": "იტვირთება…",
+    "_source": "src/components/driver-onboarding/document-upload-dialog.tsx"
+  },
   "onboardingStepRail.authorisationPersonal": {
     "en": "Authorisation & personal",
     "ka": "ავტორიზაცია და პირადი მონაცემები",
@@ -104,9 +249,29 @@
     "ka": "თითოეული ველი მოწმდება გაგრძელებისას. ადმინისტრატორის კონსოლში მონიშნული დოკუმენტები ბრუნდება აქ ხელახლა ასატვირთად.",
     "_source": "src/components/driver-onboarding/onboarding-step-rail.tsx"
   },
+  "onboardingStepRail.licenceSub": {
+    "en": "Photos, number, expiry, categories",
+    "ka": "ფოტოები, ნომერი, ვადა, კატეგორიები",
+    "_source": "src/components/driver-onboarding/onboarding-step-rail.tsx"
+  },
   "onboardingStepRail.licenceVerification": {
     "en": "Licence verification",
     "ka": "მართვის მოწმობის ვერიფიკაცია",
+    "_source": "src/components/driver-onboarding/onboarding-step-rail.tsx"
+  },
+  "onboardingStepRail.personalSub": {
+    "en": "Phone, ID, city, photo",
+    "ka": "ტელეფონი, პირადობა, ქალაქი, ფოტო",
+    "_source": "src/components/driver-onboarding/onboarding-step-rail.tsx"
+  },
+  "onboardingStepRail.reviewSub": {
+    "en": "Submit, pending, approved",
+    "ka": "გაგზავნა, განხილვა, დამტკიცება",
+    "_source": "src/components/driver-onboarding/onboarding-step-rail.tsx"
+  },
+  "onboardingStepRail.vehicleSub": {
+    "en": "Body, class, make, plate, capacity",
+    "ka": "ძარა, კლასი, მარკა, ნომერი, ტევადობა",
     "_source": "src/components/driver-onboarding/onboarding-step-rail.tsx"
   },
   "onboardingWizardShell.becomeAPartnerDriver": {
@@ -117,6 +282,66 @@
   "onboardingWizardShell.fourStepsAround12MinutesIf": {
     "en": "Four steps. Around 12 minutes if your licence and vehicle documents are to hand. Progress is saved as you go.",
     "ka": "ოთხი ნაბიჯი. დაახლოებით 12 წუთი, თუ მართვის მოწმობა და ტრანსპორტის დოკუმენტები ხელთ გაქვთ. პროგრესი ინახება ეტაპობრივად.",
+    "_source": "src/components/driver-onboarding/onboarding-wizard-shell.tsx"
+  },
+  "onboardingWizardShell.kickerLicence": {
+    "en": "Step 2 of 4 · Licence",
+    "ka": "ნაბიჯი 2 / 4 · მართვის მოწმობა",
+    "_source": "src/components/driver-onboarding/onboarding-wizard-shell.tsx"
+  },
+  "onboardingWizardShell.kickerPersonal": {
+    "en": "Step 1 of 4 · Authorisation & personal",
+    "ka": "ნაბიჯი 1 / 4 · ავტორიზაცია და პირადი მონაცემები",
+    "_source": "src/components/driver-onboarding/onboarding-wizard-shell.tsx"
+  },
+  "onboardingWizardShell.kickerReview": {
+    "en": "Step 4 of 4 · Review",
+    "ka": "ნაბიჯი 4 / 4 · გადამოწმება",
+    "_source": "src/components/driver-onboarding/onboarding-wizard-shell.tsx"
+  },
+  "onboardingWizardShell.kickerVehicle": {
+    "en": "Step 3 of 4 · Vehicle",
+    "ka": "ნაბიჯი 3 / 4 · ავტომობილი",
+    "_source": "src/components/driver-onboarding/onboarding-wizard-shell.tsx"
+  },
+  "onboardingWizardShell.leftOffAt": {
+    "en": "{saved} · you left off at step {step} of {total}.",
+    "ka": "{saved} · შეჩერდით ნაბიჯზე {step} / {total}.",
+    "_source": "src/components/driver-onboarding/onboarding-wizard-shell.tsx"
+  },
+  "onboardingWizardShell.nothingLeftToEdit": {
+    "en": "Your application is with the review team — there is nothing left to edit.",
+    "ka": "თქვენი განაცხადი განხილვის გუნდთანაა — სარედაქტირებელი აღარაფერი დარჩა.",
+    "_source": "src/components/driver-onboarding/onboarding-wizard-shell.tsx"
+  },
+  "onboardingWizardShell.savedEarlier": {
+    "en": "saved earlier",
+    "ka": "შენახულია ადრე",
+    "_source": "src/components/driver-onboarding/onboarding-wizard-shell.tsx"
+  },
+  "onboardingWizardShell.savedJustNow": {
+    "en": "saved just now",
+    "ka": "შენახულია ახლახან",
+    "_source": "src/components/driver-onboarding/onboarding-wizard-shell.tsx"
+  },
+  "onboardingWizardShell.savedRelative": {
+    "en": "saved {relative}",
+    "ka": "შენახულია {relative}",
+    "_source": "src/components/driver-onboarding/onboarding-wizard-shell.tsx"
+  },
+  "onboardingWizardShell.saving": {
+    "en": "Saving…",
+    "ka": "ინახება…",
+    "_source": "src/components/driver-onboarding/onboarding-wizard-shell.tsx"
+  },
+  "onboardingWizardShell.startNewApplication": {
+    "en": "Start a new application",
+    "ka": "ახალი განაცხადის დაწყება",
+    "_source": "src/components/driver-onboarding/onboarding-wizard-shell.tsx"
+  },
+  "onboardingWizardShell.starting": {
+    "en": "Starting…",
+    "ka": "იწყება…",
     "_source": "src/components/driver-onboarding/onboarding-wizard-shell.tsx"
   },
   "onboardingWizardShell.technicalDetails": {
@@ -134,9 +359,49 @@
     "ka": "თქვენი მართვის მოწმობა",
     "_source": "src/components/driver-onboarding/onboarding-wizard-shell.tsx"
   },
+  "step1AuthPersonal.checkTheDate": {
+    "en": "Check the date — that does not look right.",
+    "ka": "შეამოწმეთ თარიღი — ის არასწორად გამოიყურება.",
+    "_source": "src/components/driver-onboarding/steps/step-1-auth-personal.tsx"
+  },
+  "step1AuthPersonal.clickToReplaceFile": {
+    "en": "Click to replace the file",
+    "ka": "დააწკაპუნეთ ფაილის ჩასანაცვლებლად",
+    "_source": "src/components/driver-onboarding/steps/step-1-auth-personal.tsx"
+  },
+  "step1AuthPersonal.enterDateOfBirth": {
+    "en": "Enter your date of birth.",
+    "ka": "შეიყვანეთ დაბადების თარიღი.",
+    "_source": "src/components/driver-onboarding/steps/step-1-auth-personal.tsx"
+  },
+  "step1AuthPersonal.enterFullName": {
+    "en": "Enter your full name.",
+    "ka": "შეიყვანეთ სრული სახელი.",
+    "_source": "src/components/driver-onboarding/steps/step-1-auth-personal.tsx"
+  },
+  "step1AuthPersonal.enterIdOrPassport": {
+    "en": "Enter your ID or passport number.",
+    "ka": "შეიყვანეთ პირადი ან პასპორტის ნომერი.",
+    "_source": "src/components/driver-onboarding/steps/step-1-auth-personal.tsx"
+  },
+  "step1AuthPersonal.enterMobileNumber": {
+    "en": "Enter your mobile number.",
+    "ka": "შეიყვანეთ მობილურის ნომერი.",
+    "_source": "src/components/driver-onboarding/steps/step-1-auth-personal.tsx"
+  },
   "step1AuthPersonal.exactlyAsPrintedOnYourId": {
     "en": "Exactly as printed on your ID",
     "ka": "ზუსტად ისე, როგორც დაბეჭდილია თქვენს პირადობაში",
+    "_source": "src/components/driver-onboarding/steps/step-1-auth-personal.tsx"
+  },
+  "step1AuthPersonal.fixHighlightedFields": {
+    "en": "Fix the highlighted fields to continue.",
+    "ka": "გასაგრძელებლად გამოასწორეთ მონიშნული ველები.",
+    "_source": "src/components/driver-onboarding/steps/step-1-auth-personal.tsx"
+  },
+  "step1AuthPersonal.giveFirstAndLastName": {
+    "en": "Give first and last name, exactly as on your ID.",
+    "ka": "მიუთითეთ სახელი და გვარი ზუსტად ისე, როგორც პირადობის დოკუმენტშია.",
     "_source": "src/components/driver-onboarding/steps/step-1-auth-personal.tsx"
   },
   "step1AuthPersonal.idOrPassportNumber": {
@@ -144,9 +409,49 @@
     "ka": "პირადი ნომერი ან პასპორტის ნომერი",
     "_source": "src/components/driver-onboarding/steps/step-1-auth-personal.tsx"
   },
+  "step1AuthPersonal.invalidMobileNumber": {
+    "en": "That is not a valid mobile number ({min}–{max} digits).",
+    "ka": "მობილურის ნომერი არასწორია ({min}–{max} ციფრი).",
+    "_source": "src/components/driver-onboarding/steps/step-1-auth-personal.tsx"
+  },
+  "step1AuthPersonal.jpgOrPngMax10Mb": {
+    "en": "JPG or PNG, max 10 MB",
+    "ka": "JPG ან PNG, მაქს. 10 MB",
+    "_source": "src/components/driver-onboarding/steps/step-1-auth-personal.tsx"
+  },
+  "step1AuthPersonal.minimumDriverAge": {
+    "en": "Partner drivers must be {age} or older.",
+    "ka": "პარტნიორი მძღოლი უნდა იყოს მინიმუმ {age} წლის.",
+    "_source": "src/components/driver-onboarding/steps/step-1-auth-personal.tsx"
+  },
   "step1AuthPersonal.mobileNumber": {
     "en": "Mobile number",
     "ka": "მობილურის ნომერი",
+    "_source": "src/components/driver-onboarding/steps/step-1-auth-personal.tsx"
+  },
+  "step1AuthPersonal.pickCityFromList": {
+    "en": "Pick a city from the list.",
+    "ka": "აირჩიეთ ქალაქი სიიდან.",
+    "_source": "src/components/driver-onboarding/steps/step-1-auth-personal.tsx"
+  },
+  "step1AuthPersonal.profilePhotoRequired": {
+    "en": "A profile photo is required for identity checks.",
+    "ka": "პიროვნების გადამოწმებისთვის პროფილის ფოტო სავალდებულოა.",
+    "_source": "src/components/driver-onboarding/steps/step-1-auth-personal.tsx"
+  },
+  "step1AuthPersonal.profilePhotoUploaded": {
+    "en": "Profile photo uploaded",
+    "ka": "პროფილის ფოტო ატვირთულია",
+    "_source": "src/components/driver-onboarding/steps/step-1-auth-personal.tsx"
+  },
+  "step1AuthPersonal.required": {
+    "en": "Required",
+    "ka": "სავალდებულო",
+    "_source": "src/components/driver-onboarding/steps/step-1-auth-personal.tsx"
+  },
+  "step1AuthPersonal.selectCityYouDriveIn": {
+    "en": "Select the city you will drive in.",
+    "ka": "აირჩიეთ ქალაქი, სადაც იმუშავებთ.",
     "_source": "src/components/driver-onboarding/steps/step-1-auth-personal.tsx"
   },
   "step1AuthPersonal.startTypingTbilisiBatumiKutaisi": {
@@ -159,6 +464,16 @@
     "ka": "ეს არის ნომერი, რომელზეც კურიერები და დისპეტჩერი დარეკავენ. აქ ყველაფერი მოწმდება თქვენს პირადობასთან გადამოწმების გუნდის მიერ.",
     "_source": "src/components/driver-onboarding/steps/step-1-auth-personal.tsx"
   },
+  "step1AuthPersonal.uploadAProfilePhoto": {
+    "en": "Upload a profile photo",
+    "ka": "ატვირთეთ პროფილის ფოტო",
+    "_source": "src/components/driver-onboarding/steps/step-1-auth-personal.tsx"
+  },
+  "step1AuthPersonal.uploaded": {
+    "en": "Uploaded",
+    "ka": "ატვირთულია",
+    "_source": "src/components/driver-onboarding/steps/step-1-auth-personal.tsx"
+  },
   "step1AuthPersonal.whereYouWillMostlyPickUp": {
     "en": "Where you will mostly pick up orders. Georgia only for now.",
     "ka": "სად აიღებთ შეკვეთებს ძირითადად. ამჟამად მხოლოდ საქართველოში.",
@@ -169,9 +484,34 @@
     "ka": "მართვის მოწმობის უკანა მხარე",
     "_source": "src/components/driver-onboarding/steps/step-2-licence.tsx"
   },
+  "step2Licence.bothSidesRequired": {
+    "en": "Both sides of the licence are required.",
+    "ka": "საჭიროა მართვის მოწმობის ორივე მხარე.",
+    "_source": "src/components/driver-onboarding/steps/step-2-licence.tsx"
+  },
   "step2Licence.carsAndVansUpTo3": {
     "en": "Cars and vans up to 3.5 t",
     "ka": "მსუბუქი ავტომობილები და ფურგონები 3.5 ტ-მდე",
+    "_source": "src/components/driver-onboarding/steps/step-2-licence.tsx"
+  },
+  "step2Licence.categoryCode": {
+    "en": "Category {code}",
+    "ka": "კატეგორია {code}",
+    "_source": "src/components/driver-onboarding/steps/step-2-licence.tsx"
+  },
+  "step2Licence.clickToUpload": {
+    "en": "Click to upload",
+    "ka": "დააწკაპუნეთ ასატვირთად",
+    "_source": "src/components/driver-onboarding/steps/step-2-licence.tsx"
+  },
+  "step2Licence.enterExpiryDate": {
+    "en": "Enter the expiry date.",
+    "ka": "შეიყვანეთ მოქმედების ვადა.",
+    "_source": "src/components/driver-onboarding/steps/step-2-licence.tsx"
+  },
+  "step2Licence.enterLicenceNumber": {
+    "en": "Enter the licence number.",
+    "ka": "შეიყვანეთ მართვის მოწმობის ნომერი.",
     "_source": "src/components/driver-onboarding/steps/step-2-licence.tsx"
   },
   "step2Licence.expiryDate": {
@@ -184,6 +524,21 @@
     "ka": "მართვის მოწმობის წინა მხარე",
     "_source": "src/components/driver-onboarding/steps/step-2-licence.tsx"
   },
+  "step2Licence.licenceExpired": {
+    "en": "This licence has expired. Renew it before applying.",
+    "ka": "ამ მართვის მოწმობას ვადა გაუვიდა. განაახლეთ განაცხადის შეტანამდე.",
+    "_source": "src/components/driver-onboarding/steps/step-2-licence.tsx"
+  },
+  "step2Licence.notUploaded": {
+    "en": "Not uploaded",
+    "ka": "არ არის ატვირთული",
+    "_source": "src/components/driver-onboarding/steps/step-2-licence.tsx"
+  },
+  "step2Licence.previewUnavailable": {
+    "en": "PREVIEW UNAVAILABLE",
+    "ka": "გადახედვა მიუწვდომელია",
+    "_source": "src/components/driver-onboarding/steps/step-2-licence.tsx"
+  },
   "step2Licence.rigidTrucksOver35T": {
     "en": "Rigid trucks over 3.5 t",
     "ka": "მძიმე ძარიანი სატვირთოები 3.5 ტ-ზე მეტი",
@@ -194,9 +549,19 @@
     "ka": "სკანი ან ფოტო — ორივე მისაღებია. ოთხივე კუთხე უნდა ჩანდეს და არ უნდა ჰქონდეს ანარეკლი.",
     "_source": "src/components/driver-onboarding/steps/step-2-licence.tsx"
   },
+  "step2Licence.selectCategory": {
+    "en": "Select at least one category you hold.",
+    "ka": "აირჩიეთ თქვენი მოწმობის მინიმუმ ერთი კატეგორია.",
+    "_source": "src/components/driver-onboarding/steps/step-2-licence.tsx"
+  },
   "step2Licence.theseDecideTheVehicleClassesYou": {
     "en": "These decide the vehicle classes you can be dispatched for.",
     "ka": "ეს განსაზღვრავს ტრანსპორტის კლასებს, რომლებზეც შეგიძლიათ გადანაწილდეთ.",
+    "_source": "src/components/driver-onboarding/steps/step-2-licence.tsx"
+  },
+  "step2Licence.tooShort": {
+    "en": "That looks too short.",
+    "ka": "ეს ძალიან მოკლეა.",
     "_source": "src/components/driver-onboarding/steps/step-2-licence.tsx"
   },
   "step2Licence.truckWithTrailerArticulated": {
@@ -204,14 +569,79 @@
     "ka": "სატვირთო მისაბმელით / ავტოპოზდი",
     "_source": "src/components/driver-onboarding/steps/step-2-licence.tsx"
   },
+  "step2Licence.uploaded": {
+    "en": "Uploaded",
+    "ka": "ატვირთულია",
+    "_source": "src/components/driver-onboarding/steps/step-2-licence.tsx"
+  },
+  "step2Licence.uploadedAlt": {
+    "en": "{title}, uploaded",
+    "ka": "{title}, ატვირთულია",
+    "_source": "src/components/driver-onboarding/steps/step-2-licence.tsx"
+  },
+  "step3ChassisClass.addCategoryToDrive": {
+    "en": "Add category {category} in step 2 to drive this class.",
+    "ka": "ამ კლასისთვის ნაბიჯ 2-ში დაამატეთ {category} კატეგორია.",
+    "_source": "src/components/driver-onboarding/steps/step-3-chassis-class.tsx"
+  },
   "step3ChassisClass.cargoBodyType": {
     "en": "Cargo body type",
     "ka": "სატვირთო ძარის ტიპი",
     "_source": "src/components/driver-onboarding/steps/step-3-chassis-class.tsx"
   },
+  "step3ChassisClass.chooseCargoBodyType": {
+    "en": "Choose a cargo body type.",
+    "ka": "აირჩიეთ ძარის ტიპი.",
+    "_source": "src/components/driver-onboarding/steps/step-3-chassis-class.tsx"
+  },
+  "step3ChassisClass.chooseDifferentBody": {
+    "en": "Choose a different body type in the previous screen to unlock this class.",
+    "ka": "ამ კლასის გასახსნელად წინა ეკრანზე აირჩიეთ სხვა ძარის ტიპი.",
+    "_source": "src/components/driver-onboarding/steps/step-3-chassis-class.tsx"
+  },
+  "step3ChassisClass.chooseVehicleClass": {
+    "en": "Choose the vehicle class.",
+    "ka": "აირჩიეთ ავტომობილის კლასი.",
+    "_source": "src/components/driver-onboarding/steps/step-3-chassis-class.tsx"
+  },
+  "step3ChassisClass.classNotOfferedAsBody": {
+    "en": "{className} isn't offered as {body} — choose another class.",
+    "ka": "{className} {body} სახით არ არის ხელმისაწვდომი — აირჩიეთ სხვა კლასი.",
+    "_source": "src/components/driver-onboarding/steps/step-3-chassis-class.tsx"
+  },
   "step3ChassisClass.enclosedRigidBoxGeneralPalletisedAnd": {
     "en": "Enclosed rigid box. General palletised and boxed cargo.",
     "ka": "დახურული მყარი ფურგონი. ზოგადი პალეტირებული და ყუთებში მოთავსებული ტვირთი.",
+    "_source": "src/components/driver-onboarding/steps/step-3-chassis-class.tsx"
+  },
+  "step3ChassisClass.fixHighlightedFields": {
+    "en": "Fix the highlighted fields to continue.",
+    "ka": "გასაგრძელებლად გამოასწორეთ მონიშნული ველები.",
+    "_source": "src/components/driver-onboarding/steps/step-3-chassis-class.tsx"
+  },
+  "step3ChassisClass.lockPhraseDryBox": {
+    "en": "a dry box",
+    "ka": "მშრალი ფურგონის",
+    "_source": "src/components/driver-onboarding/steps/step-3-chassis-class.tsx"
+  },
+  "step3ChassisClass.lockPhraseOpenChassis": {
+    "en": "an open chassis",
+    "ka": "ღია პლატფორმის",
+    "_source": "src/components/driver-onboarding/steps/step-3-chassis-class.tsx"
+  },
+  "step3ChassisClass.lockPhraseRefrigerated": {
+    "en": "a refrigerated vehicle",
+    "ka": "მაცივარ-ფურგონის",
+    "_source": "src/components/driver-onboarding/steps/step-3-chassis-class.tsx"
+  },
+  "step3ChassisClass.lockedByLicence": {
+    "en": "Locked — your licence does not list category {category}.",
+    "ka": "დაბლოკილია — თქვენს მოწმობაში არ არის {category} კატეგორია.",
+    "_source": "src/components/driver-onboarding/steps/step-3-chassis-class.tsx"
+  },
+  "step3ChassisClass.lockedNotOffered": {
+    "en": "Locked — not offered as {body} yet.",
+    "ka": "დაბლოკილია — {body} სახით ჯერ არ არის ხელმისაწვდომი.",
     "_source": "src/components/driver-onboarding/steps/step-3-chassis-class.tsx"
   },
   "step3ChassisClass.pickTheClassThatMatchesYour": {
@@ -234,9 +664,194 @@
     "ka": "როგორი სატვირთო ძარა აქვს ტრანსპორტს?",
     "_source": "src/components/driver-onboarding/steps/step-3-chassis-class.tsx"
   },
+  "step3cTechnicalDetails.colour": {
+    "en": "Select the vehicle colour.",
+    "ka": "აირჩიეთ ავტომობილის ფერი.",
+    "_source": "src/components/driver-onboarding/steps/step-3c-technical-details.tsx"
+  },
+  "step3cTechnicalDetails.colours.beige": {
+    "en": "Beige",
+    "ka": "კრემისფერი",
+    "_source": "src/components/driver-onboarding/steps/step-3c-technical-details.tsx"
+  },
+  "step3cTechnicalDetails.colours.black": {
+    "en": "Black",
+    "ka": "შავი",
+    "_source": "src/components/driver-onboarding/steps/step-3c-technical-details.tsx"
+  },
+  "step3cTechnicalDetails.colours.blue": {
+    "en": "Blue",
+    "ka": "ლურჯი",
+    "_source": "src/components/driver-onboarding/steps/step-3c-technical-details.tsx"
+  },
+  "step3cTechnicalDetails.colours.brown": {
+    "en": "Brown",
+    "ka": "ყავისფერი",
+    "_source": "src/components/driver-onboarding/steps/step-3c-technical-details.tsx"
+  },
+  "step3cTechnicalDetails.colours.green": {
+    "en": "Green",
+    "ka": "მწვანე",
+    "_source": "src/components/driver-onboarding/steps/step-3c-technical-details.tsx"
+  },
+  "step3cTechnicalDetails.colours.grey": {
+    "en": "Grey",
+    "ka": "ნაცრისფერი",
+    "_source": "src/components/driver-onboarding/steps/step-3c-technical-details.tsx"
+  },
+  "step3cTechnicalDetails.colours.navy": {
+    "en": "Navy",
+    "ka": "მუქი ლურჯი",
+    "_source": "src/components/driver-onboarding/steps/step-3c-technical-details.tsx"
+  },
+  "step3cTechnicalDetails.colours.orange": {
+    "en": "Orange",
+    "ka": "ნარინჯისფერი",
+    "_source": "src/components/driver-onboarding/steps/step-3c-technical-details.tsx"
+  },
+  "step3cTechnicalDetails.colours.red": {
+    "en": "Red",
+    "ka": "წითელი",
+    "_source": "src/components/driver-onboarding/steps/step-3c-technical-details.tsx"
+  },
+  "step3cTechnicalDetails.colours.silver": {
+    "en": "Silver",
+    "ka": "ვერცხლისფერი",
+    "_source": "src/components/driver-onboarding/steps/step-3c-technical-details.tsx"
+  },
+  "step3cTechnicalDetails.colours.white": {
+    "en": "White",
+    "ka": "თეთრი",
+    "_source": "src/components/driver-onboarding/steps/step-3c-technical-details.tsx"
+  },
+  "step3cTechnicalDetails.colours.yellow": {
+    "en": "Yellow",
+    "ka": "ყვითელი",
+    "_source": "src/components/driver-onboarding/steps/step-3c-technical-details.tsx"
+  },
+  "step3cTechnicalDetails.dimensionsHigh": {
+    "en": "Check the dimensions — metres, not centimetres.",
+    "ka": "შეამოწმეთ ზომები — მეტრებში და არა სანტიმეტრებში.",
+    "_source": "src/components/driver-onboarding/steps/step-3c-technical-details.tsx"
+  },
+  "step3cTechnicalDetails.dimensionsMissing": {
+    "en": "Give length, width and height in metres.",
+    "ka": "მიუთითეთ სიგრძე, სიგანე და სიმაღლე მეტრებში.",
+    "_source": "src/components/driver-onboarding/steps/step-3c-technical-details.tsx"
+  },
+  "step3cTechnicalDetails.fixFields": {
+    "en": "Fix the highlighted fields to continue.",
+    "ka": "გასაგრძელებლად გამოასწორეთ მონიშნული ველები.",
+    "_source": "src/components/driver-onboarding/steps/step-3c-technical-details.tsx"
+  },
+  "step3cTechnicalDetails.legendBoxHeight": {
+    "en": "floor to ceiling",
+    "ka": "იატაკიდან ჭერამდე",
+    "_source": "src/components/driver-onboarding/steps/step-3c-technical-details.tsx"
+  },
+  "step3cTechnicalDetails.legendBoxLength": {
+    "en": "front wall to doors",
+    "ka": "წინა კედლიდან კარებამდე",
+    "_source": "src/components/driver-onboarding/steps/step-3c-technical-details.tsx"
+  },
+  "step3cTechnicalDetails.legendBoxWidth": {
+    "en": "wall to wall",
+    "ka": "კედლიდან კედლამდე",
+    "_source": "src/components/driver-onboarding/steps/step-3c-technical-details.tsx"
+  },
+  "step3cTechnicalDetails.legendFlatbedHeight": {
+    "en": "deck to top of side panel",
+    "ka": "პლატფორმიდან გვერდითი ბორტის ზედა კიდემდე",
+    "_source": "src/components/driver-onboarding/steps/step-3c-technical-details.tsx"
+  },
+  "step3cTechnicalDetails.legendFlatbedLength": {
+    "en": "deck front to tail",
+    "ka": "პლატფორმის წინა ნაწილიდან ბოლომდე",
+    "_source": "src/components/driver-onboarding/steps/step-3c-technical-details.tsx"
+  },
+  "step3cTechnicalDetails.legendFlatbedWidth": {
+    "en": "deck side to side",
+    "ka": "პლატფორმის ერთი მხრიდან მეორემდე",
+    "_source": "src/components/driver-onboarding/steps/step-3c-technical-details.tsx"
+  },
+  "step3cTechnicalDetails.makeModel": {
+    "en": "Select or type the make and model.",
+    "ka": "აირჩიეთ ან ჩაწერეთ მარკა და მოდელი.",
+    "_source": "src/components/driver-onboarding/steps/step-3c-technical-details.tsx"
+  },
+  "step3cTechnicalDetails.measureBox": {
+    "en": "Measure the load space inside the body, not the outside of the vehicle.",
+    "ka": "გაზომეთ სატვირთო სივრცე ძარის შიგნით და არა ავტომობილის გარე ზომები.",
+    "_source": "src/components/driver-onboarding/steps/step-3c-technical-details.tsx"
+  },
+  "step3cTechnicalDetails.measureFlatbed": {
+    "en": "Measure the usable deck, and the height of the drop sides.",
+    "ka": "გაზომეთ სასარგებლო პლატფორმა და გვერდითი ბორტების სიმაღლე.",
+    "_source": "src/components/driver-onboarding/steps/step-3c-technical-details.tsx"
+  },
+  "step3cTechnicalDetails.noModelMatch": {
+    "en": "No match. Type the make and model manually.",
+    "ka": "დამთხვევა ვერ მოიძებნა. ჩაწერეთ მარკა და მოდელი ხელით.",
+    "_source": "src/components/driver-onboarding/steps/step-3c-technical-details.tsx"
+  },
+  "step3cTechnicalDetails.payloadHigh": {
+    "en": "Payload above 40,000 kg needs a fleet account.",
+    "ka": "40 000 კგ-ზე მეტი ტვირთამწეობისთვის საჭიროა ავტოპარკის ანგარიში.",
+    "_source": "src/components/driver-onboarding/steps/step-3c-technical-details.tsx"
+  },
+  "step3cTechnicalDetails.payloadLow": {
+    "en": "Payload must be at least {min} kg.",
+    "ka": "ტვირთამწეობა უნდა იყოს მინიმუმ {min} კგ.",
+    "_source": "src/components/driver-onboarding/steps/step-3c-technical-details.tsx"
+  },
+  "step3cTechnicalDetails.payloadMissing": {
+    "en": "Enter the maximum payload in kg.",
+    "ka": "შეიყვანეთ მაქსიმალური ტვირთამწეობა კგ-ში.",
+    "_source": "src/components/driver-onboarding/steps/step-3c-technical-details.tsx"
+  },
+  "step3cTechnicalDetails.plateMissing": {
+    "en": "Enter the licence plate.",
+    "ka": "შეიყვანეთ სახელმწიფო ნომერი.",
+    "_source": "src/components/driver-onboarding/steps/step-3c-technical-details.tsx"
+  },
+  "step3cTechnicalDetails.plateShort": {
+    "en": "That plate looks incomplete.",
+    "ka": "ნომერი არასრული ჩანს.",
+    "_source": "src/components/driver-onboarding/steps/step-3c-technical-details.tsx"
+  },
   "step3cTechnicalDetails.rearViewShowing2BodyWidth": {
     "en": "Rear view showing 2 body width",
     "ka": "უკანა ხედი, სადაც ჩანს ძარის 2 სიგანე",
+    "_source": "src/components/driver-onboarding/steps/step-3c-technical-details.tsx"
+  },
+  "step3cTechnicalDetails.sideViewBoxAria": {
+    "en": "Side view of a box truck showing 1 body length and 3 body height",
+    "ka": "დახურული ძარიანი სატვირთოს გვერდითი ხედი: 1 — ძარის სიგრძე, 3 — ძარის სიმაღლე",
+    "_source": "src/components/driver-onboarding/steps/step-3c-technical-details.tsx"
+  },
+  "step3cTechnicalDetails.sideViewFlatbedAria": {
+    "en": "Side view of a flatbed truck showing 1 deck length and 3 side panel height",
+    "ka": "ღია პლატფორმიანი სატვირთოს გვერდითი ხედი: 1 — პლატფორმის სიგრძე, 3 — გვერდითი ბორტის სიმაღლე",
+    "_source": "src/components/driver-onboarding/steps/step-3c-technical-details.tsx"
+  },
+  "step3cTechnicalDetails.usableVolume": {
+    "en": "Usable volume {volume} m³ — shown to the review team alongside your declared payload.",
+    "ka": "სასარგებლო მოცულობა {volume} მ³ — განხილვის გუნდს ეჩვენება თქვენს მითითებულ ტვირთამწეობასთან ერთად.",
+    "_source": "src/components/driver-onboarding/steps/step-3c-technical-details.tsx"
+  },
+  "step3cTechnicalDetails.volumeHint": {
+    "en": "Length × width × height of the usable load space.",
+    "ka": "სასარგებლო სატვირთო სივრცის სიგრძე × სიგანე × სიმაღლე.",
+    "_source": "src/components/driver-onboarding/steps/step-3c-technical-details.tsx"
+  },
+  "step3cTechnicalDetails.yearMissing": {
+    "en": "Enter the year of manufacture.",
+    "ka": "შეიყვანეთ გამოშვების წელი.",
+    "_source": "src/components/driver-onboarding/steps/step-3c-technical-details.tsx"
+  },
+  "step3cTechnicalDetails.yearRange": {
+    "en": "Year must be between {min} and {max}.",
+    "ka": "წელი უნდა იყოს {min}-დან {max}-მდე.",
     "_source": "src/components/driver-onboarding/steps/step-3c-technical-details.tsx"
   },
   "step4ReviewSubmit.checkEverythingBeforeItGoesTo": {
@@ -249,6 +864,71 @@
     "ka": "მართვის მოწმობა",
     "_source": "src/components/driver-onboarding/steps/step-4-review-submit.tsx"
   },
+  "step4ReviewSubmit.missing": {
+    "en": "Missing",
+    "ka": "აკლია",
+    "_source": "src/components/driver-onboarding/steps/step-4-review-submit.tsx"
+  },
+  "step4ReviewSubmit.months.apr": {
+    "en": "Apr",
+    "ka": "აპრ",
+    "_source": "src/components/driver-onboarding/steps/step-4-review-submit.tsx"
+  },
+  "step4ReviewSubmit.months.aug": {
+    "en": "Aug",
+    "ka": "აგვ",
+    "_source": "src/components/driver-onboarding/steps/step-4-review-submit.tsx"
+  },
+  "step4ReviewSubmit.months.dec": {
+    "en": "Dec",
+    "ka": "დეკ",
+    "_source": "src/components/driver-onboarding/steps/step-4-review-submit.tsx"
+  },
+  "step4ReviewSubmit.months.feb": {
+    "en": "Feb",
+    "ka": "თებ",
+    "_source": "src/components/driver-onboarding/steps/step-4-review-submit.tsx"
+  },
+  "step4ReviewSubmit.months.jan": {
+    "en": "Jan",
+    "ka": "იან",
+    "_source": "src/components/driver-onboarding/steps/step-4-review-submit.tsx"
+  },
+  "step4ReviewSubmit.months.jul": {
+    "en": "Jul",
+    "ka": "ივლ",
+    "_source": "src/components/driver-onboarding/steps/step-4-review-submit.tsx"
+  },
+  "step4ReviewSubmit.months.jun": {
+    "en": "Jun",
+    "ka": "ივნ",
+    "_source": "src/components/driver-onboarding/steps/step-4-review-submit.tsx"
+  },
+  "step4ReviewSubmit.months.mar": {
+    "en": "Mar",
+    "ka": "მარ",
+    "_source": "src/components/driver-onboarding/steps/step-4-review-submit.tsx"
+  },
+  "step4ReviewSubmit.months.may": {
+    "en": "May",
+    "ka": "მაი",
+    "_source": "src/components/driver-onboarding/steps/step-4-review-submit.tsx"
+  },
+  "step4ReviewSubmit.months.nov": {
+    "en": "Nov",
+    "ka": "ნოე",
+    "_source": "src/components/driver-onboarding/steps/step-4-review-submit.tsx"
+  },
+  "step4ReviewSubmit.months.oct": {
+    "en": "Oct",
+    "ka": "ოქტ",
+    "_source": "src/components/driver-onboarding/steps/step-4-review-submit.tsx"
+  },
+  "step4ReviewSubmit.months.sep": {
+    "en": "Sep",
+    "ka": "სექ",
+    "_source": "src/components/driver-onboarding/steps/step-4-review-submit.tsx"
+  },
   "step4ReviewSubmit.number": {
     "en": "Number",
     "ka": "ნომერი",
@@ -258,6 +938,71 @@
     "en": "Personal information",
     "ka": "პირადი ინფორმაცია",
     "_source": "src/components/driver-onboarding/steps/step-4-review-submit.tsx"
+  },
+  "step4ReviewSubmit.submitApplication": {
+    "en": "Submit application",
+    "ka": "განაცხადის გაგზავნა",
+    "_source": "src/components/driver-onboarding/steps/step-4-review-submit.tsx"
+  },
+  "step4ReviewSubmit.submitFailed": {
+    "en": "We couldn't submit your application. Check your connection and try again.",
+    "ka": "განაცხადის გაგზავნა ვერ მოხერხდა. შეამოწმეთ კავშირი და სცადეთ თავიდან.",
+    "_source": "src/components/driver-onboarding/steps/step-4-review-submit.tsx"
+  },
+  "step4ReviewSubmit.submitting": {
+    "en": "Submitting…",
+    "ka": "იგზავნება…",
+    "_source": "src/components/driver-onboarding/steps/step-4-review-submit.tsx"
+  },
+  "step4ReviewSubmit.uploaded": {
+    "en": "Uploaded",
+    "ka": "ატვირთულია",
+    "_source": "src/components/driver-onboarding/steps/step-4-review-submit.tsx"
+  },
+  "step4ReviewSubmit.uploadedCount": {
+    "en": "{uploaded} of {total}",
+    "ka": "{uploaded} / {total}",
+    "_source": "src/components/driver-onboarding/steps/step-4-review-submit.tsx"
+  },
+  "vehicleClasses.capacityHeavyFreightTruck": {
+    "en": "7–18 t · 16 pallets · 3 axles",
+    "ka": "7–18 ტ · 16 პალეტი · 3 ღერძი",
+    "_source": "src/lib/driver-onboarding/vehicle-classes.ts"
+  },
+  "vehicleClasses.capacityLargeVan": {
+    "en": "800–1,500 kg · 4 pallets",
+    "ka": "800–1,500 კგ · 4 პალეტი",
+    "_source": "src/lib/driver-onboarding/vehicle-classes.ts"
+  },
+  "vehicleClasses.capacityMediumTruck": {
+    "en": "1.5–7 t · 8 pallets",
+    "ka": "1.5–7 ტ · 8 პალეტი",
+    "_source": "src/lib/driver-onboarding/vehicle-classes.ts"
+  },
+  "vehicleClasses.capacitySmallVan": {
+    "en": "Up to 800 kg · 2 pallets",
+    "ka": "800 კგ-მდე · 2 პალეტი",
+    "_source": "src/lib/driver-onboarding/vehicle-classes.ts"
+  },
+  "vehicleClasses.capacityTrailerTruck": {
+    "en": "18–24 t · 33 pallets · articulated",
+    "ka": "18–24 ტ · 33 პალეტი · მისაბმელიანი",
+    "_source": "src/lib/driver-onboarding/vehicle-classes.ts"
+  },
+  "vehicleClasses.chipCatB": {
+    "en": "CAT B",
+    "ka": "კატ. B",
+    "_source": "src/lib/driver-onboarding/vehicle-classes.ts"
+  },
+  "vehicleClasses.chipCatC": {
+    "en": "CAT C",
+    "ka": "კატ. C",
+    "_source": "src/lib/driver-onboarding/vehicle-classes.ts"
+  },
+  "vehicleClasses.chipCatCe": {
+    "en": "CAT CE",
+    "ka": "კატ. CE",
+    "_source": "src/lib/driver-onboarding/vehicle-classes.ts"
   },
   "vehicleClasses.enclosedRigidBodyGeneralPalletisedAnd": {
     "en": "Enclosed rigid body. General palletised and boxed cargo.",

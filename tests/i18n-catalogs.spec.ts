@@ -71,10 +71,62 @@ function flatten(
  * Only the argument name is captured — the format and the plural branches are
  * allowed to differ between languages, and for Georgian they often must.
  */
+/**
+ * The argument names an ICU message reads — `{name}`, `{count, plural, …}`,
+ * `{kind, select, …}` — walked rather than regex-matched, because the branch
+ * bodies of a plural or select (`one {# day}`, `true {Deactivate}`) are
+ * braces too, and they hold translated text rather than arguments.
+ */
 function placeholders(message: string): Set<string> {
-  return new Set(
-    [...message.matchAll(/\{\s*(\w+)/g)].map((match) => match[1] ?? ""),
-  );
+  const names = new Set<string>();
+  let i = 0;
+
+  // Reads message text until an unmatched `}` (or the end), collecting args.
+  function text(): void {
+    while (i < message.length && message[i] !== "}") {
+      if (message[i] === "'" && message[i + 1] === "{") {
+        const close = message.indexOf("'", i + 1);
+        i = close === -1 ? message.length : close + 1;
+      } else if (message[i] === "{") {
+        i++;
+        argument();
+      } else {
+        i++;
+      }
+    }
+  }
+
+  // Just past an argument's `{`: its name, then any `, type, branches`.
+  function argument(): void {
+    const match = /^\s*(\w+)\s*/.exec(message.slice(i));
+    if (match) {
+      names.add(match[1] ?? "");
+      i += match[0].length;
+    }
+    if (message[i] === ",") {
+      const typeMatch = /^,\s*(\w+)\s*/.exec(message.slice(i));
+      const type = typeMatch?.[1] ?? "";
+      i += typeMatch?.[0].length ?? 1;
+      if (["plural", "select", "selectordinal"].includes(type)) {
+        if (message[i] === ",") i++;
+        // `selector {body}` pairs until the argument's closing brace.
+        while (i < message.length && message[i] !== "}") {
+          if (message[i] === "{") {
+            i++;
+            text();
+          }
+          i++;
+        }
+      } else {
+        // A number/date style: skip to the argument's closing brace.
+        while (i < message.length && message[i] !== "}") i++;
+      }
+    }
+    i++; // the argument's own `}`
+  }
+
+  text();
+  return names;
 }
 
 const kaMessages = flatten(ka);
@@ -186,6 +238,11 @@ const IDENTICAL_BY_DESIGN = new Set([
   "fleet.step1CompanyDetails.dispatchCompanyGe",
   "fleet.vehicleEditorDialog.booleanPromise",
   "home.addCardDialog.cvc",
+  "admin.adminContentBanners.windowRange",
+  "admin.messagingTemplateFormDialog.channelSms",
+  "errors.dashboardHubDriversAvailabilityExport.driverHub",
+  "errors.dashboardHubEarningsExport.driverHub",
+  "errors.dashboardHubEarningsExport.gelSymbol",
 ]);
 
 test("Georgian copy is actually in Georgian", () => {

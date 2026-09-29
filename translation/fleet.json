@@ -1,4 +1,34 @@
 {
+  "fleetApplicationStatusScreen.actionRequiredBody": {
+    "en": "The rest of the fleet is unaffected and stays in review. Fix what is flagged below and resubmit — approved vehicles keep their verdict.",
+    "ka": "ავტოპარკის დანარჩენ ნაწილზე ეს გავლენას არ ახდენს და ის განხილვაში რჩება. გამოასწორეთ ქვემოთ მონიშნული და ხელახლა გაგზავნეთ — დამტკიცებული ავტომობილები თავის გადაწყვეტილებას ინარჩუნებენ.",
+    "_source": "src/components/fleet-onboarding/fleet-application-status-screen.tsx"
+  },
+  "fleetApplicationStatusScreen.applicationReference": {
+    "en": "Application {reference}",
+    "ka": "განაცხადი {reference}",
+    "_source": "src/components/fleet-onboarding/fleet-application-status-screen.tsx"
+  },
+  "fleetApplicationStatusScreen.approvedBody": {
+    "en": "The company account is active and every approved vehicle can be dispatched. Assign new vehicles or drivers any time from the dispatch dashboard.",
+    "ka": "კომპანიის ანგარიში აქტიურია და ყველა დამტკიცებულ ავტომობილზე შესაძლებელია დანიშვნა. ახალი ავტომობილების ან მძღოლების მიმაგრება ნებისმიერ დროს შეგიძლიათ დანიშვნის პანელიდან.",
+    "_source": "src/components/fleet-onboarding/fleet-application-status-screen.tsx"
+  },
+  "fleetApplicationStatusScreen.companyDetailsAndVehicles": {
+    "en": "Company details and {count, plural, one {# vehicle need} other {# vehicles need}} correcting",
+    "ka": "კომპანიის მონაცემები და {count} ავტომობილი საჭიროებს შესწორებას",
+    "_source": "src/components/fleet-onboarding/fleet-application-status-screen.tsx"
+  },
+  "fleetApplicationStatusScreen.companyDetailsNeedCorrecting": {
+    "en": "Company details need correcting",
+    "ka": "კომპანიის მონაცემები საჭიროებს შესწორებას",
+    "_source": "src/components/fleet-onboarding/fleet-application-status-screen.tsx"
+  },
+  "fleetApplicationStatusScreen.companyRegistration": {
+    "en": "Company registration:",
+    "ka": "კომპანიის რეგისტრაცია:",
+    "_source": "src/components/fleet-onboarding/fleet-application-status-screen.tsx"
+  },
   "fleetApplicationStatusScreen.correctAFlaggedVehicle": {
     "en": "Correct a flagged vehicle",
     "ka": "მონიშნული ტრანსპორტის გასწორება",
@@ -19,6 +49,16 @@
     "ka": "კომპანიის დეტალების გასწორება",
     "_source": "src/components/fleet-onboarding/fleet-application-status-screen.tsx"
   },
+  "fleetApplicationStatusScreen.fixVehicleSr": {
+    "en": "vehicle {number}",
+    "ka": "ავტომობილი {number}",
+    "_source": "src/components/fleet-onboarding/fleet-application-status-screen.tsx"
+  },
+  "fleetApplicationStatusScreen.flagged": {
+    "en": "Flagged",
+    "ka": "მონიშნული",
+    "_source": "src/components/fleet-onboarding/fleet-application-status-screen.tsx"
+  },
   "fleetApplicationStatusScreen.flaggedVehiclesCannotBeDispatchedContact": {
     "en": "Flagged vehicles cannot be dispatched. Contact support to have one re-reviewed.",
     "ka": "მონიშნული ტრანსპორტის გადანაწილება შეუძლებელია. დაუკავშირდით მხარდაჭერის გუნდს ხელახლა გადასამოწმებლად.",
@@ -34,9 +74,89 @@
     "ka": "ავტოპარკი განხილვის პროცესშია",
     "_source": "src/components/fleet-onboarding/fleet-application-status-screen.tsx"
   },
+  "fleetApplicationStatusScreen.inReview": {
+    "en": "in review",
+    "ka": "განხილვაში",
+    "_source": "src/components/fleet-onboarding/fleet-application-status-screen.tsx"
+  },
   "fleetApplicationStatusScreen.openTheDispatchDashboard": {
     "en": "Open the dispatch dashboard",
     "ka": "დისპეტჩერიზაციის მართვის პანელის გახსნა",
+    "_source": "src/components/fleet-onboarding/fleet-application-status-screen.tsx"
+  },
+  "fleetApplicationStatusScreen.pendingBody": {
+    "en": "Our team is checking the company registration, then each vehicle and its driver. Vehicles are cleared individually — you can start dispatching as soon as the company is approved and at least one vehicle passes.",
+    "ka": "ჩვენი გუნდი ამოწმებს კომპანიის რეგისტრაციას, შემდეგ კი თითოეულ ავტომობილს და მის მძღოლს. ავტომობილები ცალ-ცალკე მოწმდება — დანიშვნის დაწყებას შეძლებთ, როგორც კი კომპანია დამტკიცდება და ერთი ავტომობილი მაინც გაივლის შემოწმებას.",
+    "_source": "src/components/fleet-onboarding/fleet-application-status-screen.tsx"
+  },
+  "fleetApplicationStatusScreen.pendingVerification": {
+    "en": "Pending verification",
+    "ka": "ვერიფიკაციის მოლოდინში",
+    "_source": "src/components/fleet-onboarding/fleet-application-status-screen.tsx"
+  },
+  "fleetApplicationStatusScreen.recheckedBeforeExpiry": {
+    "en": "Licences and cooling-unit records are re-checked 30 days before expiry.",
+    "ka": "მართვის მოწმობები და მაცივარი დანადგარის ჩანაწერები ხელახლა მოწმდება ვადის გასვლამდე 30 დღით ადრე.",
+    "_source": "src/components/fleet-onboarding/fleet-application-status-screen.tsx"
+  },
+  "fleetApplicationStatusScreen.resubmitApplication": {
+    "en": "Resubmit application",
+    "ka": "განაცხადის ხელახლა გაგზავნა",
+    "_source": "src/components/fleet-onboarding/fleet-application-status-screen.tsx"
+  },
+  "fleetApplicationStatusScreen.resubmitFailed": {
+    "en": "We couldn't resubmit your application. Please try again.",
+    "ka": "განაცხადის ხელახლა გაგზავნა ვერ მოხერხდა. გთხოვთ, სცადოთ თავიდან.",
+    "_source": "src/components/fleet-onboarding/fleet-application-status-screen.tsx"
+  },
+  "fleetApplicationStatusScreen.resubmitToFix": {
+    "en": "Resubmit ({count} to fix)",
+    "ka": "ხელახლა გაგზავნა ({count} გასასწორებელი)",
+    "_source": "src/components/fleet-onboarding/fleet-application-status-screen.tsx"
+  },
+  "fleetApplicationStatusScreen.resubmitting": {
+    "en": "Resubmitting…",
+    "ka": "ხელახლა იგზავნება…",
+    "_source": "src/components/fleet-onboarding/fleet-application-status-screen.tsx"
+  },
+  "fleetApplicationStatusScreen.saveCorrectedDetails": {
+    "en": "Save the corrected details to send them back for review.",
+    "ka": "შეინახეთ შესწორებული მონაცემები, რათა ისინი ხელახლა გაიგზავნოს განსახილველად.",
+    "_source": "src/components/fleet-onboarding/fleet-application-status-screen.tsx"
+  },
+  "fleetApplicationStatusScreen.typicalReviewTime": {
+    "en": "Typical review time is 24–48 hours for a fleet this size.",
+    "ka": "ამ ზომის ავტოპარკის განხილვას, როგორც წესი, 24–48 საათი სჭირდება.",
+    "_source": "src/components/fleet-onboarding/fleet-application-status-screen.tsx"
+  },
+  "fleetApplicationStatusScreen.vehicleCount": {
+    "en": "{count, plural, one {# vehicle} other {# vehicles}}",
+    "ka": "{count} ავტომობილი",
+    "_source": "src/components/fleet-onboarding/fleet-application-status-screen.tsx"
+  },
+  "fleetApplicationStatusScreen.vehicleUpdated": {
+    "en": "Vehicle updated. Resubmit when every flagged item is fixed.",
+    "ka": "ავტომობილი განახლდა. ხელახლა გაგზავნეთ, როცა ყველა მონიშნულ პუნქტს გამოასწორებთ.",
+    "_source": "src/components/fleet-onboarding/fleet-application-status-screen.tsx"
+  },
+  "fleetApplicationStatusScreen.vehiclesNeedCorrecting": {
+    "en": "{count, plural, one {# vehicle needs} other {# vehicles need}} correcting",
+    "ka": "{count} ავტომობილი საჭიროებს შესწორებას",
+    "_source": "src/components/fleet-onboarding/fleet-application-status-screen.tsx"
+  },
+  "fleetApplicationStatusScreen.verdictCounts": {
+    "en": "{approved} approved · {flagged} flagged · {pending} pending",
+    "ka": "{approved} დამტკიცებული · {flagged} მონიშნული · {pending} განხილვაში",
+    "_source": "src/components/fleet-onboarding/fleet-application-status-screen.tsx"
+  },
+  "fleetApplicationStatusScreen.verified": {
+    "en": "verified",
+    "ka": "ვერიფიცირებული",
+    "_source": "src/components/fleet-onboarding/fleet-application-status-screen.tsx"
+  },
+  "fleetApplicationStatusScreen.yourApplication": {
+    "en": "Your application",
+    "ka": "თქვენი განაცხადი",
     "_source": "src/components/fleet-onboarding/fleet-application-status-screen.tsx"
   },
   "fleetApplicationStatusScreen.yourFleetIsLive": {
@@ -49,15 +169,125 @@
     "ka": "კომპანია და ავტორიზაცია",
     "_source": "src/components/fleet-onboarding/fleet-step-rail.tsx"
   },
+  "fleetStepRail.companySub": {
+    "en": "Phone, legal entity, contact, payouts",
+    "ka": "ტელეფონი, იურიდიული პირი, საკონტაქტო პირი, ანაზღაურება",
+    "_source": "src/components/fleet-onboarding/fleet-step-rail.tsx"
+  },
+  "fleetStepRail.driversSub": {
+    "en": "A named driver behind every vehicle",
+    "ka": "კონკრეტული მძღოლი თითოეული ავტომობილისთვის",
+    "_source": "src/components/fleet-onboarding/fleet-step-rail.tsx"
+  },
+  "fleetStepRail.fleetSub": {
+    "en": "How many of each body type and class",
+    "ka": "რამდენი ავტომობილი თითოეული ძარის ტიპისა და კლასის მიხედვით",
+    "_source": "src/components/fleet-onboarding/fleet-step-rail.tsx"
+  },
+  "fleetStepRail.reviewSub": {
+    "en": "Submit, per-vehicle verdicts, activation",
+    "ka": "გაგზავნა, გადაწყვეტილება თითოეულ ავტომობილზე, აქტივაცია",
+    "_source": "src/components/fleet-onboarding/fleet-step-rail.tsx"
+  },
+  "fleetStepRail.vehiclesSub": {
+    "en": "Plate, model, capacity per vehicle",
+    "ka": "ნომერი, მოდელი და ტევადობა თითოეული ავტომობილისთვის",
+    "_source": "src/components/fleet-onboarding/fleet-step-rail.tsx"
+  },
+  "fleetWizardShell.declareYourFleetFirst": {
+    "en": "Declare your fleet first.",
+    "ka": "ჯერ დეკლარირება გაუკეთეთ თქვენს ავტოპარკს.",
+    "_source": "src/components/fleet-onboarding/fleet-wizard-shell.tsx"
+  },
+  "fleetWizardShell.declared": {
+    "en": "Declared",
+    "ka": "დეკლარირებული",
+    "_source": "src/components/fleet-onboarding/fleet-wizard-shell.tsx"
+  },
+  "fleetWizardShell.driversAssigned": {
+    "en": "Drivers assigned",
+    "ka": "მიმაგრებული მძღოლები",
+    "_source": "src/components/fleet-onboarding/fleet-wizard-shell.tsx"
+  },
   "fleetWizardShell.forLogisticsCompaniesRunningMoreThan": {
     "en": "For logistics companies running more than one vehicle. Register the company once, declare the fleet by body type and class, then put a driver behind every vehicle.",
     "ka": "ლოგისტიკური კომპანიებისთვის, რომლებიც ერთზე მეტ ტრანსპორტს მართავენ. დარეგისტრირეთ კომპანია ერთხელ, მიუთითეთ ავტოპარკი ძარის ტიპისა და კლასის მიხედვით, შემდეგ კი მიანიჭეთ მძღოლი თითოეულ ტრანსპორტს.",
+    "_source": "src/components/fleet-onboarding/fleet-wizard-shell.tsx"
+  },
+  "fleetWizardShell.kicker": {
+    "en": "Step {step} of {total} · {section}",
+    "ka": "ნაბიჯი {step} / {total} · {section}",
+    "_source": "src/components/fleet-onboarding/fleet-wizard-shell.tsx"
+  },
+  "fleetWizardShell.kickerReview": {
+    "en": "Review",
+    "ka": "გადახედვა",
+    "_source": "src/components/fleet-onboarding/fleet-wizard-shell.tsx"
+  },
+  "fleetWizardShell.nothingLeftToEdit": {
+    "en": "Your application is with the review team — there is nothing left to edit.",
+    "ka": "თქვენი განაცხადი განხილვის გუნდთანაა — რედაქტირებისთვის აღარაფერი დარჩა.",
     "_source": "src/components/fleet-onboarding/fleet-wizard-shell.tsx"
   },
   "fleetWizardShell.registerYourFleet": {
     "en": "Register your fleet",
     "ka": "თქვენი ავტოპარკის რეგისტრაცია",
     "_source": "src/components/fleet-onboarding/fleet-wizard-shell.tsx"
+  },
+  "fleetWizardShell.resumeLine": {
+    "en": "{savedAt} · you left off at step {step} of {total}",
+    "ka": "{savedAt} · შეჩერდით ნაბიჯზე {step} / {total}",
+    "_source": "src/components/fleet-onboarding/fleet-wizard-shell.tsx"
+  },
+  "fleetWizardShell.savedEarlier": {
+    "en": "saved earlier",
+    "ka": "შენახულია ადრე",
+    "_source": "src/components/fleet-onboarding/fleet-wizard-shell.tsx"
+  },
+  "fleetWizardShell.savedJustNow": {
+    "en": "saved just now",
+    "ka": "შენახულია ახლახან",
+    "_source": "src/components/fleet-onboarding/fleet-wizard-shell.tsx"
+  },
+  "fleetWizardShell.savedRelative": {
+    "en": "saved {relative}",
+    "ka": "შენახულია {relative}",
+    "_source": "src/components/fleet-onboarding/fleet-wizard-shell.tsx"
+  },
+  "fleetWizardShell.saving": {
+    "en": "Saving…",
+    "ka": "ინახება…",
+    "_source": "src/components/fleet-onboarding/fleet-wizard-shell.tsx"
+  },
+  "fleetWizardShell.specified": {
+    "en": "Specified",
+    "ka": "შევსებული",
+    "_source": "src/components/fleet-onboarding/fleet-wizard-shell.tsx"
+  },
+  "fleetWizardShell.start": {
+    "en": "Start",
+    "ka": "დაწყება",
+    "_source": "src/components/fleet-onboarding/fleet-wizard-shell.tsx"
+  },
+  "fleetWizardShell.startANewApplication": {
+    "en": "Start a new application",
+    "ka": "ახალი განაცხადის დაწყება",
+    "_source": "src/components/fleet-onboarding/fleet-wizard-shell.tsx"
+  },
+  "fleetWizardShell.starting": {
+    "en": "Starting…",
+    "ka": "იწყება…",
+    "_source": "src/components/fleet-onboarding/fleet-wizard-shell.tsx"
+  },
+  "fleetWizardShell.vehiclesDeclared": {
+    "en": "{count, plural, one {# vehicle} other {# vehicles}} declared",
+    "ka": "დეკლარირებულია {count} ავტომობილი",
+    "_source": "src/components/fleet-onboarding/fleet-wizard-shell.tsx"
+  },
+  "step1CompanyDetails.addAnotherCity": {
+    "en": "Add another city…",
+    "ka": "სხვა ქალაქის დამატება…",
+    "_source": "src/components/fleet-onboarding/steps/step-1-company-details.tsx"
   },
   "step1CompanyDetails.asRegistered": {
     "en": "As registered",
@@ -67,6 +297,11 @@
   "step1CompanyDetails.bankAccountIban": {
     "en": "Bank account (IBAN)",
     "ka": "საბანკო ანგარიში (IBAN)",
+    "_source": "src/components/fleet-onboarding/steps/step-1-company-details.tsx"
+  },
+  "step1CompanyDetails.companyDetailsUpdated": {
+    "en": "Company details updated.",
+    "ka": "კომპანიის მონაცემები განახლდა.",
     "_source": "src/components/fleet-onboarding/steps/step-1-company-details.tsx"
   },
   "step1CompanyDetails.companyPhone": {
@@ -84,14 +319,89 @@
     "ka": "dispatch@company.ge",
     "_source": "src/components/fleet-onboarding/steps/step-1-company-details.tsx"
   },
+  "step1CompanyDetails.enterCompanyEmail": {
+    "en": "Enter a company email.",
+    "ka": "შეიყვანეთ კომპანიის ელფოსტა.",
+    "_source": "src/components/fleet-onboarding/steps/step-1-company-details.tsx"
+  },
+  "step1CompanyDetails.enterCompanyName": {
+    "en": "Enter the registered company name.",
+    "ka": "შეიყვანეთ კომპანიის რეგისტრირებული დასახელება.",
+    "_source": "src/components/fleet-onboarding/steps/step-1-company-details.tsx"
+  },
+  "step1CompanyDetails.enterCompanyPhone": {
+    "en": "Enter the company phone number.",
+    "ka": "შეიყვანეთ კომპანიის ტელეფონის ნომერი.",
+    "_source": "src/components/fleet-onboarding/steps/step-1-company-details.tsx"
+  },
+  "step1CompanyDetails.enterContactPerson": {
+    "en": "Enter the contact person.",
+    "ka": "შეიყვანეთ საკონტაქტო პირი.",
+    "_source": "src/components/fleet-onboarding/steps/step-1-company-details.tsx"
+  },
+  "step1CompanyDetails.enterPayoutAccount": {
+    "en": "Enter the payout account.",
+    "ka": "შეიყვანეთ ანაზღაურების ანგარიში.",
+    "_source": "src/components/fleet-onboarding/steps/step-1-company-details.tsx"
+  },
+  "step1CompanyDetails.enterRegisteredAddress": {
+    "en": "Enter the registered address.",
+    "ka": "შეიყვანეთ რეგისტრირებული მისამართი.",
+    "_source": "src/components/fleet-onboarding/steps/step-1-company-details.tsx"
+  },
+  "step1CompanyDetails.enterVatId": {
+    "en": "Enter the VAT or tax ID.",
+    "ka": "შეიყვანეთ დღგ-ის ან საიდენტიფიკაციო ნომერი.",
+    "_source": "src/components/fleet-onboarding/steps/step-1-company-details.tsx"
+  },
+  "step1CompanyDetails.firstAndLastName": {
+    "en": "First and last name.",
+    "ka": "სახელი და გვარი.",
+    "_source": "src/components/fleet-onboarding/steps/step-1-company-details.tsx"
+  },
+  "step1CompanyDetails.fixHighlightedFields": {
+    "en": "Fix the highlighted fields to continue.",
+    "ka": "გასაგრძელებლად გამოასწორეთ მონიშნული ველები.",
+    "_source": "src/components/fleet-onboarding/steps/step-1-company-details.tsx"
+  },
   "step1CompanyDetails.fleetManager": {
     "en": "Fleet manager",
     "ka": "ავტოპარკის მენეჯერი",
     "_source": "src/components/fleet-onboarding/steps/step-1-company-details.tsx"
   },
+  "step1CompanyDetails.invalidEmail": {
+    "en": "That does not look like an email address.",
+    "ka": "ეს ელფოსტის მისამართს არ ჰგავს.",
+    "_source": "src/components/fleet-onboarding/steps/step-1-company-details.tsx"
+  },
+  "step1CompanyDetails.invalidIban": {
+    "en": "A Georgian IBAN is 22 characters.",
+    "ka": "საქართველოს IBAN 22 სიმბოლოსგან შედგება.",
+    "_source": "src/components/fleet-onboarding/steps/step-1-company-details.tsx"
+  },
+  "step1CompanyDetails.invalidPhone": {
+    "en": "That is not a valid number (10–15 digits).",
+    "ka": "ნომერი არასწორია (10–15 ციფრი).",
+    "_source": "src/components/fleet-onboarding/steps/step-1-company-details.tsx"
+  },
+  "step1CompanyDetails.invalidVatId": {
+    "en": "A Georgian tax ID is 9 digits.",
+    "ka": "საქართველოს საიდენტიფიკაციო ნომერი 9 ციფრისგან შედგება.",
+    "_source": "src/components/fleet-onboarding/steps/step-1-company-details.tsx"
+  },
   "step1CompanyDetails.legalEntity": {
     "en": "Legal entity",
     "ka": "იურიდიული პირი",
+    "_source": "src/components/fleet-onboarding/steps/step-1-company-details.tsx"
+  },
+  "step1CompanyDetails.payoutHint": {
+    "en": "Order revenue is settled to this account weekly. It must belong to the registered entity.",
+    "ka": "შეკვეთებიდან მიღებული შემოსავალი ამ ანგარიშზე ყოველკვირეულად ირიცხება. ანგარიში რეგისტრირებულ იურიდიულ პირს უნდა ეკუთვნოდეს.",
+    "_source": "src/components/fleet-onboarding/steps/step-1-company-details.tsx"
+  },
+  "step1CompanyDetails.payoutReentryHint": {
+    "en": "Re-enter the full account number to confirm it.",
+    "ka": "დასადასტურებლად ხელახლა შეიყვანეთ ანგარიშის სრული ნომერი.",
     "_source": "src/components/fleet-onboarding/steps/step-1-company-details.tsx"
   },
   "step1CompanyDetails.payouts": {
@@ -102,6 +412,31 @@
   "step1CompanyDetails.registeredCity": {
     "en": "Registered city",
     "ka": "რეგისტრირებული ქალაქი",
+    "_source": "src/components/fleet-onboarding/steps/step-1-company-details.tsx"
+  },
+  "step1CompanyDetails.removeCity": {
+    "en": "Remove {city}",
+    "ka": "{city} — წაშლა",
+    "_source": "src/components/fleet-onboarding/steps/step-1-company-details.tsx"
+  },
+  "step1CompanyDetails.required": {
+    "en": "Required.",
+    "ka": "სავალდებულოა.",
+    "_source": "src/components/fleet-onboarding/steps/step-1-company-details.tsx"
+  },
+  "step1CompanyDetails.saveFailed": {
+    "en": "We couldn't save the company details. Check your connection and try again.",
+    "ka": "კომპანიის მონაცემების შენახვა ვერ მოხერხდა. შეამოწმეთ კავშირი და სცადეთ თავიდან.",
+    "_source": "src/components/fleet-onboarding/steps/step-1-company-details.tsx"
+  },
+  "step1CompanyDetails.saving": {
+    "en": "Saving…",
+    "ka": "ინახება…",
+    "_source": "src/components/fleet-onboarding/steps/step-1-company-details.tsx"
+  },
+  "step1CompanyDetails.selectCity": {
+    "en": "Select at least one city of operation.",
+    "ka": "აირჩიეთ საქმიანობის ერთი ქალაქი მაინც.",
     "_source": "src/components/fleet-onboarding/steps/step-1-company-details.tsx"
   },
   "step1CompanyDetails.setWhenTheAccountWasCreated": {
@@ -117,6 +452,11 @@
   "step1CompanyDetails.theAddressThisAccountSignsIn": {
     "en": "The address this account signs in with. It is also where review decisions and order correspondence go — change it if a different inbox should receive them.",
     "ka": "მისამართი, რომლითაც ეს ანგარიში შედის სისტემაში. ასევე აქ იგზავნება გადამოწმების გადაწყვეტილებები და შეკვეთის მიმოწერა — შეცვალეთ ის, თუ ეს შეტყობინებები სხვა ელფოსტაზე უნდა მოვიდეს.",
+    "_source": "src/components/fleet-onboarding/steps/step-1-company-details.tsx"
+  },
+  "step1CompanyDetails.tooShort": {
+    "en": "That looks too short.",
+    "ka": "ეს ძალიან მოკლეა.",
     "_source": "src/components/fleet-onboarding/steps/step-1-company-details.tsx"
   },
   "step1CompanyDetails.whereTheFleetPicksUpOrders": {
@@ -144,6 +484,36 @@
     "ka": "ღია ბორტიანი სატვირთო ავტომობილი",
     "_source": "src/components/fleet-onboarding/steps/step-2-fleet-composition.tsx"
   },
+  "step2FleetComposition.intro": {
+    "en": "Set how many vehicles you run in each combination. You fill in plates and specifications for each one in the next step — this just builds the list.",
+    "ka": "მიუთითეთ, რამდენი ავტომობილი გყავთ თითოეულ კომბინაციაში. სახელმწიფო ნომრებსა და მახასიათებლებს თითოეულისთვის შემდეგ ნაბიჯზე შეავსებთ — აქ მხოლოდ სია იქმნება.",
+    "_source": "src/components/fleet-onboarding/steps/step-2-fleet-composition.tsx"
+  },
+  "step2FleetComposition.maxVehicles": {
+    "en": "A single application can cover at most 40 vehicles. Contact operations to register a larger fleet.",
+    "ka": "ერთი განაცხადი მოიცავს მაქსიმუმ 40 ავტომობილს. უფრო დიდი ავტოპარკის დასარეგისტრირებლად დაუკავშირდით ოპერაციების გუნდს.",
+    "_source": "src/components/fleet-onboarding/steps/step-2-fleet-composition.tsx"
+  },
+  "step2FleetComposition.minVehicles": {
+    "en": "A business account needs at least two vehicles. Use the individual driver flow for a single vehicle.",
+    "ka": "იურიდიული პირის ანგარიშს სჭირდება მინიმუმ ორი ავტომობილი. ერთი ავტომობილისთვის გამოიყენეთ ფიზიკური პირი მძღოლის რეგისტრაცია.",
+    "_source": "src/components/fleet-onboarding/steps/step-2-fleet-composition.tsx"
+  },
+  "step2FleetComposition.none": {
+    "en": "none",
+    "ka": "არცერთი",
+    "_source": "src/components/fleet-onboarding/steps/step-2-fleet-composition.tsx"
+  },
+  "step2FleetComposition.notOfferedYet": {
+    "en": "Not offered yet.",
+    "ka": "ჯერ არ არის ხელმისაწვდომი.",
+    "_source": "src/components/fleet-onboarding/steps/step-2-fleet-composition.tsx"
+  },
+  "step2FleetComposition.nothingDeclared": {
+    "en": "Nothing declared yet — add at least two vehicles",
+    "ka": "ჯერ არაფერია მითითებული — დაამატეთ მინიმუმ ორი ავტომობილი",
+    "_source": "src/components/fleet-onboarding/steps/step-2-fleet-composition.tsx"
+  },
   "step2FleetComposition.refrigeratedTruck": {
     "en": "Refrigerated truck",
     "ka": "მაცივარი/რეფრიჟერატორი სატვირთო",
@@ -154,9 +524,34 @@
     "ka": "ერთის ამოღება / წაშლა",
     "_source": "src/components/fleet-onboarding/steps/step-2-fleet-composition.tsx"
   },
+  "step2FleetComposition.vansNotSoldAsFlatbeds": {
+    "en": "Vans are not sold as flatbeds.",
+    "ka": "ფურგონები ღია პლატფორმის სახით არ გამოიყენება.",
+    "_source": "src/components/fleet-onboarding/steps/step-2-fleet-composition.tsx"
+  },
+  "step2FleetComposition.vehicleCount": {
+    "en": "{count, plural, one {# vehicle} other {# vehicles}}",
+    "ka": "{count, plural, one {# ავტომობილი} other {# ავტომობილი}}",
+    "_source": "src/components/fleet-onboarding/steps/step-2-fleet-composition.tsx"
+  },
+  "step2FleetComposition.vehiclesToSpecify": {
+    "en": "Vehicles to specify in the next step",
+    "ka": "შემდეგ ნაბიჯზე შესავსები ავტომობილები",
+    "_source": "src/components/fleet-onboarding/steps/step-2-fleet-composition.tsx"
+  },
   "step3VehicleSpecifications.backToFleetComposition": {
     "en": "Back to fleet composition",
     "ka": "ავტოპარკის შემადგენლობაზე დაბრუნება",
+    "_source": "src/components/fleet-onboarding/steps/step-3-vehicle-specifications.tsx"
+  },
+  "step3VehicleSpecifications.classAndBody": {
+    "en": "Class & body",
+    "ka": "კლასი და ძარა",
+    "_source": "src/components/fleet-onboarding/steps/step-3-vehicle-specifications.tsx"
+  },
+  "step3VehicleSpecifications.incomplete": {
+    "en": "Incomplete",
+    "ka": "შეუვსებელი",
     "_source": "src/components/fleet-onboarding/steps/step-3-vehicle-specifications.tsx"
   },
   "step3VehicleSpecifications.noVehiclesYetGoBackAnd": {
@@ -164,9 +559,104 @@
     "ka": "ტრანსპორტი ჯერ არ არის. დაბრუნდით უკან და მიუთითეთ რაოდენობა თითოეულ კომბინაციაში.",
     "_source": "src/components/fleet-onboarding/steps/step-3-vehicle-specifications.tsx"
   },
+  "step3VehicleSpecifications.payloadKg": {
+    "en": "{payload} kg",
+    "ka": "{payload} კგ",
+    "_source": "src/components/fleet-onboarding/steps/step-3-vehicle-specifications.tsx"
+  },
+  "step3VehicleSpecifications.ready": {
+    "en": "Ready",
+    "ka": "მზადაა",
+    "_source": "src/components/fleet-onboarding/steps/step-3-vehicle-specifications.tsx"
+  },
+  "step3VehicleSpecifications.specifiedCount": {
+    "en": "{ready} of {total} specified",
+    "ka": "შევსებულია {ready} / {total}",
+    "_source": "src/components/fleet-onboarding/steps/step-3-vehicle-specifications.tsx"
+  },
+  "step3VehicleSpecifications.specifyVehicleAria": {
+    "en": "Specify vehicle {number}, {className} {bodyLabel}",
+    "ka": "ავტომობილი {number}-ის შევსება, {className} {bodyLabel}",
+    "_source": "src/components/fleet-onboarding/steps/step-3-vehicle-specifications.tsx"
+  },
+  "step3VehicleSpecifications.vehicleProblem": {
+    "en": "Vehicle {number}: {message}",
+    "ka": "ავტომობილი {number}: {message}",
+    "_source": "src/components/fleet-onboarding/steps/step-3-vehicle-specifications.tsx"
+  },
+  "step3VehicleSpecifications.vehicleSaved": {
+    "en": "Vehicle {number} saved.",
+    "ka": "ავტომობილი {number} შენახულია.",
+    "_source": "src/components/fleet-onboarding/steps/step-3-vehicle-specifications.tsx"
+  },
+  "step4DriversAssignment.assign": {
+    "en": "Assign →",
+    "ka": "მიმაგრება →",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
+  "step4DriversAssignment.assignAria": {
+    "en": "Assign a driver to vehicle {number}, {className} {plate}",
+    "ka": "მძღოლის მიმაგრება ავტომობილ {number}-ზე, {className} {plate}",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
+  "step4DriversAssignment.assignBeforeContinuing": {
+    "en": "Vehicle {number}: assign a driver before continuing.",
+    "ka": "ავტომობილი {number}: გაგრძელებამდე მიამაგრეთ მძღოლი.",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
+  "step4DriversAssignment.assignedCount": {
+    "en": "{assigned} of {total} assigned",
+    "ka": "მიმაგრებულია {assigned} / {total}",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
+  "step4DriversAssignment.canSignIn": {
+    "en": "{name} can sign in with these details.",
+    "ka": "{name} შეძლებს შესვლას ამ მონაცემებით.",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
+  "step4DriversAssignment.categoryMismatch": {
+    "en": "This vehicle needs category {category}. Assign a different driver or vehicle.",
+    "ka": "ამ ავტომობილს სჭირდება {category} კატეგორია. მიამაგრეთ სხვა მძღოლი ან ავტომობილი.",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
   "step4DriversAssignment.copyCredentials": {
     "en": "Copy credentials",
     "ka": "ავტორიზაციის მონაცემების დაკოპირება",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
+  "step4DriversAssignment.copyFailed": {
+    "en": "Couldn't copy. Select the details and copy them by hand.",
+    "ka": "კოპირება ვერ მოხერხდა. მონიშნეთ მონაცემები და დააკოპირეთ ხელით.",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
+  "step4DriversAssignment.createDriverAccount": {
+    "en": "Create driver account",
+    "ka": "მძღოლის ანგარიშის შექმნა",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
+  "step4DriversAssignment.createError": {
+    "en": "We couldn't create this driver account. Please try again.",
+    "ka": "მძღოლის ანგარიშის შექმნა ვერ მოხერხდა. გთხოვთ, სცადოთ ხელახლა.",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
+  "step4DriversAssignment.creating": {
+    "en": "Creating…",
+    "ka": "იქმნება…",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
+  "step4DriversAssignment.credentialsClipboard": {
+    "en": "Email: {email}\nTemporary password: {password}",
+    "ka": "ელფოსტა: {email}\nდროებითი პაროლი: {password}",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
+  "step4DriversAssignment.credentialsCopied": {
+    "en": "Credentials copied.",
+    "ka": "მონაცემები დაკოპირდა.",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
+  "step4DriversAssignment.dialogTitle": {
+    "en": "Vehicle {index} — {label}",
+    "ka": "ავტომობილი {index} — {label}",
     "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
   },
   "step4DriversAssignment.driverAccountCreated": {
@@ -174,9 +664,39 @@
     "ka": "მძღოლის ანგარიში შეიქმნა",
     "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
   },
+  "step4DriversAssignment.driverRemoved": {
+    "en": "Driver removed from vehicle {number}.",
+    "ka": "მძღოლი მოიხსნა ავტომობილ {number}-დან.",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
   "step4DriversAssignment.emailAddress": {
     "en": "Email address",
     "ka": "ელფოსტის მისამართი",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
+  "step4DriversAssignment.enterEmail": {
+    "en": "Enter the driver's email address — they sign in with it.",
+    "ka": "შეიყვანეთ მძღოლის ელფოსტა — მისით შევა სისტემაში.",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
+  "step4DriversAssignment.enterFirstName": {
+    "en": "Enter the driver's first name.",
+    "ka": "შეიყვანეთ მძღოლის სახელი.",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
+  "step4DriversAssignment.enterLastName": {
+    "en": "Enter the driver's last name.",
+    "ka": "შეიყვანეთ მძღოლის გვარი.",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
+  "step4DriversAssignment.enterLicenceNumber": {
+    "en": "Enter the licence number.",
+    "ka": "შეიყვანეთ მართვის მოწმობის ნომერი.",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
+  "step4DriversAssignment.enterMobile": {
+    "en": "Enter a valid mobile number.",
+    "ka": "შეიყვანეთ სწორი მობილურის ნომერი.",
     "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
   },
   "step4DriversAssignment.everyVehicleNeedsANamedDriver": {
@@ -194,9 +714,99 @@
     "ka": "გვარი",
     "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
   },
+  "step4DriversAssignment.licenceExpired": {
+    "en": "Licence expired",
+    "ka": "მართვის მოწმობა ვადაგასულია",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
+  "step4DriversAssignment.licenceExpiredFuture": {
+    "en": "That licence has expired. Enter a future expiry date.",
+    "ka": "მართვის მოწმობა ვადაგასულია. მიუთითეთ მომავალი ვადის თარიღი.",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
+  "step4DriversAssignment.licenceExpiredOn": {
+    "en": "Licence expired {date}",
+    "ka": "მართვის მოწმობის ვადა გავიდა {date}",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
   "step4DriversAssignment.loadingYourRoster": {
     "en": "Loading your roster…",
     "ka": "თქვენი სია იტვირთება...",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
+  "step4DriversAssignment.months.apr": {
+    "en": "Apr",
+    "ka": "აპრ",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
+  "step4DriversAssignment.months.aug": {
+    "en": "Aug",
+    "ka": "აგვ",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
+  "step4DriversAssignment.months.dec": {
+    "en": "Dec",
+    "ka": "დეკ",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
+  "step4DriversAssignment.months.feb": {
+    "en": "Feb",
+    "ka": "თებ",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
+  "step4DriversAssignment.months.jan": {
+    "en": "Jan",
+    "ka": "იან",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
+  "step4DriversAssignment.months.jul": {
+    "en": "Jul",
+    "ka": "ივლ",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
+  "step4DriversAssignment.months.jun": {
+    "en": "Jun",
+    "ka": "ივნ",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
+  "step4DriversAssignment.months.mar": {
+    "en": "Mar",
+    "ka": "მარ",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
+  "step4DriversAssignment.months.may": {
+    "en": "May",
+    "ka": "მაი",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
+  "step4DriversAssignment.months.nov": {
+    "en": "Nov",
+    "ka": "ნოე",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
+  "step4DriversAssignment.months.oct": {
+    "en": "Oct",
+    "ka": "ოქტ",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
+  "step4DriversAssignment.months.sep": {
+    "en": "Sep",
+    "ka": "სექ",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
+  "step4DriversAssignment.needsCategory": {
+    "en": "needs category {category}",
+    "ka": "საჭიროა {category} კატეგორია",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
+  "step4DriversAssignment.needsLicenceCategory": {
+    "en": "{className} · needs licence category {category}",
+    "ka": "{className} · საჭიროა {category} კატეგორიის მართვის მოწმობა",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
+  "step4DriversAssignment.noCategory": {
+    "en": "No category {category}",
+    "ka": "{category} კატეგორია არ აქვს",
     "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
   },
   "step4DriversAssignment.noDriverOnYourRosterHolds": {
@@ -219,6 +829,16 @@
     "ka": "არ არის მინიჭებული",
     "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
   },
+  "step4DriversAssignment.onPlate": {
+    "en": "on {plate}",
+    "ka": "მიმაგრებულია {plate}-ზე",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
+  "step4DriversAssignment.onVehicle": {
+    "en": "on vehicle {index}",
+    "ka": "მიმაგრებულია ავტომობილ {index}-ზე",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
   "step4DriversAssignment.removeCurrentDriver": {
     "en": "Remove current driver",
     "ka": "მიმდინარე მძღოლის ამოღება / მოხსნა",
@@ -229,9 +849,24 @@
     "ka": "ხელახლა ცდა",
     "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
   },
+  "step4DriversAssignment.rosterLoadError": {
+    "en": "We couldn't load your drivers. Check your connection and try again.",
+    "ka": "მძღოლების ჩატვირთვა ვერ მოხერხდა. შეამოწმეთ კავშირი და სცადეთ ხელახლა.",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
   "step4DriversAssignment.selectACity": {
     "en": "Select a city",
     "ka": "აირჩიეთ ქალაქი",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
+  "step4DriversAssignment.selectCategory": {
+    "en": "Select at least one licence category.",
+    "ka": "აირჩიეთ მინიმუმ ერთი კატეგორია.",
+    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
+  },
+  "step4DriversAssignment.selectCity": {
+    "en": "Select the driver's city.",
+    "ka": "აირჩიეთ მძღოლის ქალაქი.",
     "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
   },
   "step4DriversAssignment.shownOnceWhenYouSaveFor": {
@@ -244,14 +879,169 @@
     "ka": "ეს პაროლი ჩნდება მხოლოდ ერთხელ. დააკოპირეთ დახურვამდე — ჩვენ მას ხელახლა ვერ ვაჩვენებთ.",
     "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
   },
+  "step5ReviewSubmit.assignedOf": {
+    "en": "{assigned} of {vehicles}",
+    "ka": "{assigned} / {vehicles}",
+    "_source": "src/components/fleet-onboarding/steps/step-5-review-submit.tsx"
+  },
+  "step5ReviewSubmit.editLabel.company": {
+    "en": "company",
+    "ka": "კომპანია",
+    "_source": "src/components/fleet-onboarding/steps/step-5-review-submit.tsx"
+  },
+  "step5ReviewSubmit.editLabel.drivers": {
+    "en": "drivers",
+    "ka": "მძღოლები",
+    "_source": "src/components/fleet-onboarding/steps/step-5-review-submit.tsx"
+  },
+  "step5ReviewSubmit.editLabel.fleet": {
+    "en": "fleet",
+    "ka": "ავტოპარკი",
+    "_source": "src/components/fleet-onboarding/steps/step-5-review-submit.tsx"
+  },
+  "step5ReviewSubmit.editLabel.vehicles": {
+    "en": "vehicles",
+    "ka": "ავტომობილები",
+    "_source": "src/components/fleet-onboarding/steps/step-5-review-submit.tsx"
+  },
+  "step5ReviewSubmit.submitApplication": {
+    "en": "Submit application",
+    "ka": "განაცხადის გაგზავნა",
+    "_source": "src/components/fleet-onboarding/steps/step-5-review-submit.tsx"
+  },
+  "step5ReviewSubmit.submitError": {
+    "en": "We couldn't submit your application. Check your connection and try again.",
+    "ka": "განაცხადის გაგზავნა ვერ მოხერხდა. შეამოწმეთ კავშირი და სცადეთ ხელახლა.",
+    "_source": "src/components/fleet-onboarding/steps/step-5-review-submit.tsx"
+  },
+  "step5ReviewSubmit.submitting": {
+    "en": "Submitting…",
+    "ka": "იგზავნება…",
+    "_source": "src/components/fleet-onboarding/steps/step-5-review-submit.tsx"
+  },
   "step5ReviewSubmit.theCompanyIsReviewedAsA": {
     "en": "The company is reviewed as a whole. Individual vehicles can be sent back without holding up the rest of the fleet.",
     "ka": "კომპანია მოწმდება მთლიანობაში. ცალკეული ტრანსპორტი შეიძლება უკან დაბრუნდეს ავტოპარკის დანარჩენი ნაწილის შეყოვნების გარეშე.",
     "_source": "src/components/fleet-onboarding/steps/step-5-review-submit.tsx"
   },
+  "step5ReviewSubmit.vehicleCount": {
+    "en": "{count, plural, one {# vehicle} other {# vehicles}}",
+    "ka": "{count, plural, one {# ავტომობილი} other {# ავტომობილი}}",
+    "_source": "src/components/fleet-onboarding/steps/step-5-review-submit.tsx"
+  },
+  "step5ReviewSubmit.vehicleN": {
+    "en": "Vehicle {number}",
+    "ka": "ავტომობილი {number}",
+    "_source": "src/components/fleet-onboarding/steps/step-5-review-submit.tsx"
+  },
+  "vehicleEditorDialog.bodyPhrase.dryBox": {
+    "en": "as a dry box",
+    "ka": "მშრალი ფურგონისთვის",
+    "_source": "src/components/fleet-onboarding/vehicle-editor-dialog.tsx"
+  },
+  "vehicleEditorDialog.bodyPhrase.openChassis": {
+    "en": "as an open chassis",
+    "ka": "ღია პლატფორმისთვის",
+    "_source": "src/components/fleet-onboarding/vehicle-editor-dialog.tsx"
+  },
+  "vehicleEditorDialog.bodyPhrase.refrigerated": {
+    "en": "as a refrigerated vehicle",
+    "ka": "მაცივარ-ფურგონისთვის",
+    "_source": "src/components/fleet-onboarding/vehicle-editor-dialog.tsx"
+  },
   "vehicleEditorDialog.booleanPromise": {
     "en": "boolean | Promise",
     "ka": "boolean | Promise",
+    "_source": "src/components/fleet-onboarding/vehicle-editor-dialog.tsx"
+  },
+  "vehicleEditorDialog.colours.beige": {
+    "en": "Beige",
+    "ka": "კრემისფერი",
+    "_source": "src/components/fleet-onboarding/vehicle-editor-dialog.tsx"
+  },
+  "vehicleEditorDialog.colours.black": {
+    "en": "Black",
+    "ka": "შავი",
+    "_source": "src/components/fleet-onboarding/vehicle-editor-dialog.tsx"
+  },
+  "vehicleEditorDialog.colours.blue": {
+    "en": "Blue",
+    "ka": "ლურჯი",
+    "_source": "src/components/fleet-onboarding/vehicle-editor-dialog.tsx"
+  },
+  "vehicleEditorDialog.colours.brown": {
+    "en": "Brown",
+    "ka": "ყავისფერი",
+    "_source": "src/components/fleet-onboarding/vehicle-editor-dialog.tsx"
+  },
+  "vehicleEditorDialog.colours.green": {
+    "en": "Green",
+    "ka": "მწვანე",
+    "_source": "src/components/fleet-onboarding/vehicle-editor-dialog.tsx"
+  },
+  "vehicleEditorDialog.colours.grey": {
+    "en": "Grey",
+    "ka": "ნაცრისფერი",
+    "_source": "src/components/fleet-onboarding/vehicle-editor-dialog.tsx"
+  },
+  "vehicleEditorDialog.colours.navy": {
+    "en": "Navy",
+    "ka": "მუქი ლურჯი",
+    "_source": "src/components/fleet-onboarding/vehicle-editor-dialog.tsx"
+  },
+  "vehicleEditorDialog.colours.orange": {
+    "en": "Orange",
+    "ka": "ნარინჯისფერი",
+    "_source": "src/components/fleet-onboarding/vehicle-editor-dialog.tsx"
+  },
+  "vehicleEditorDialog.colours.red": {
+    "en": "Red",
+    "ka": "წითელი",
+    "_source": "src/components/fleet-onboarding/vehicle-editor-dialog.tsx"
+  },
+  "vehicleEditorDialog.colours.silver": {
+    "en": "Silver",
+    "ka": "ვერცხლისფერი",
+    "_source": "src/components/fleet-onboarding/vehicle-editor-dialog.tsx"
+  },
+  "vehicleEditorDialog.colours.white": {
+    "en": "White",
+    "ka": "თეთრი",
+    "_source": "src/components/fleet-onboarding/vehicle-editor-dialog.tsx"
+  },
+  "vehicleEditorDialog.colours.yellow": {
+    "en": "Yellow",
+    "ka": "ყვითელი",
+    "_source": "src/components/fleet-onboarding/vehicle-editor-dialog.tsx"
+  },
+  "vehicleEditorDialog.dialogTitle": {
+    "en": "Vehicle {index} — {className}",
+    "ka": "ავტომობილი {index} — {className}",
+    "_source": "src/components/fleet-onboarding/vehicle-editor-dialog.tsx"
+  },
+  "vehicleEditorDialog.prefilledFrom": {
+    "en": "Prefilled from {source} {bodyPhrase}. Correct them to the real vehicle.",
+    "ka": "წინასწარ შევსებულია {source}-ის მიხედვით {bodyPhrase}. შეასწორეთ რეალური ავტომობილის მონაცემებით.",
+    "_source": "src/components/fleet-onboarding/vehicle-editor-dialog.tsx"
+  },
+  "vehicleEditorDialog.saveVehicle": {
+    "en": "Save vehicle",
+    "ka": "ავტომობილის შენახვა",
+    "_source": "src/components/fleet-onboarding/vehicle-editor-dialog.tsx"
+  },
+  "vehicleEditorDialog.saving": {
+    "en": "Saving…",
+    "ka": "ინახება…",
+    "_source": "src/components/fleet-onboarding/vehicle-editor-dialog.tsx"
+  },
+  "vehicleEditorDialog.searchModels": {
+    "en": "Search {className} models",
+    "ka": "{className} მოდელების ძიება",
+    "_source": "src/components/fleet-onboarding/vehicle-editor-dialog.tsx"
+  },
+  "vehicleEditorDialog.usableVolume": {
+    "en": "Usable volume {volume} m³ — used to match this vehicle with orders.",
+    "ka": "სასარგებლო მოცულობა {volume} მ³ — გამოიყენება ამ ავტომობილის შეკვეთებთან შესაბამისობისთვის.",
     "_source": "src/components/fleet-onboarding/vehicle-editor-dialog.tsx"
   }
 }
