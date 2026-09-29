@@ -193,8 +193,8 @@ export default async function RootLayout({
             landing page (`[data-hide-site-header]`) and the admin back office
             (`[data-admin-surface]`), both handled by rules in `globals.css`. So
             this instance covers /home, the account pages, orders, wallet and
-            checkout; every other surface mounts its own `ThemeToggle` in its own
-            header.
+            checkout; every other surface mounts its own `ThemeToggle` and
+            `LanguageToggle` in its own header.
           */}
             <div className="flex items-center gap-3">
               <AuthStatus />

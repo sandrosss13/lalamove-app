@@ -15,6 +15,7 @@ import {
 import { DriverHubMobileMenu } from "@/components/driver-hub/driver-hub-mobile-menu";
 import { DriverHubNotifications } from "@/components/driver-hub/driver-hub-notifications";
 import { HubOnlineToggle } from "@/components/driver-hub/hub-online-toggle";
+import { LanguageToggle } from "@/components/language-toggle";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import type { HubAccount, HubPersona } from "@/lib/dashboard/hub/account";
@@ -359,6 +360,14 @@ export function DriverHubTopNav({
               `--admin-muted`. Only the hover foreground is overridden, because
               the toggle's default `secondary-foreground` is a shade off the
               bell's `foreground`. */}
+          {/* The language switch, restyled to the same icon-button vocabulary
+              as the theme toggle below it (and for the same reasons): no
+              border, 10px radius, 44px tall below `lg` and 32px above it.
+              `min-w-*` rather than `size-*` because it holds a short text label
+              (`ქარ` / `EN`), so it may grow past square but never below the
+              touch-target floor. */}
+          <LanguageToggle className="h-11 min-w-11 cursor-pointer rounded-[10px] border-0 px-2 hover:text-foreground lg:h-8 lg:min-w-8 lg:rounded-lg" />
+
           <ThemeToggle className="size-11 cursor-pointer rounded-[10px] border-0 hover:text-foreground lg:size-8 lg:rounded-lg" />
 
           <div className="hidden min-w-0 items-center gap-3 lg:flex">

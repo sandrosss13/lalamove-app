@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ShieldCheck } from "lucide-react";
 
 import { useRouter } from "@/i18n/navigation";
+import { LanguageToggle } from "@/components/language-toggle";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -147,8 +148,9 @@ export default function AdminSignInPage() {
 
       {/*
         `data-admin-surface` hides the global site header (and with it the app's
-        only other `ThemeToggle`), so without this the two staff pages would be
-        the only screens with no way to switch themes.
+        only other `ThemeToggle` and `LanguageToggle`), so without these the two
+        staff pages would be the only screens with no way to switch themes or
+        languages.
 
         Parked in the page corner rather than added to the panel: the panel is
         the deliberate part of this design — lock mark, "Internal use only", a
@@ -164,7 +166,8 @@ export default function AdminSignInPage() {
         `accent` resolves to the neutral shadcn grey rather than the landing
         brand orange.
       */}
-      <div className="absolute top-5 right-5">
+      <div className="absolute top-5 right-5 flex items-center gap-2">
+        <LanguageToggle />
         <ThemeToggle />
       </div>
     </div>

@@ -340,6 +340,7 @@
     "onDemandDeliveryPlatformBookA": "On-demand delivery platform — book a vehicle and move your goods across the city."
   },
   "themeToggle": {
-    "darkTheme": "Dark theme"
+    "darkTheme": "Dark theme",
+    "lightTheme": "Light theme"
   }
 }

@@ -1,4 +1,4 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import createIntlMiddleware from "next-intl/middleware";
 
 import {
@@ -9,19 +9,53 @@ import {
   IS_HOST_SPLIT_ENABLED,
   merchantOrigin,
 } from "@/lib/host";
-import { routing, splitLocalePrefix, withLocalePrefix } from "@/i18n/routing";
+import {
+  DEFAULT_LOCALE,
+  routing,
+  splitLocalePrefix,
+  withLocalePrefix,
+} from "@/i18n/routing";
 
 /**
  * Locale negotiation: matches `/ka/**` and `/en/**`, redirects an unprefixed
- * path to the visitor's locale (cookie, then `Accept-Language`, then Georgian)
- * and writes the `NEXT_LOCALE` cookie so the choice sticks.
+ * path to the visitor's locale (the `NEXT_LOCALE` cookie, then Georgian) and
+ * writes the cookie so the choice sticks. `Accept-Language` is deliberately
+ * *not* consulted — see `withoutBrowserLanguage` below.
  *
  * It runs *after* the host gate below, never before. Both layers redirect, and
  * the host gate's decisions are the coarser of the two: bouncing to another
  * origin first means the locale is negotiated once, at the destination, instead
  * of being resolved on a host that is about to hand the request away anyway.
  */
-const intlMiddleware = createIntlMiddleware(routing);
+const handleLocale = createIntlMiddleware(routing);
+
+/**
+ * Georgian is the default for every first-time visitor, whatever their browser
+ * says. English is reached only by choosing it — the language toggle, or a
+ * `/en/...` link — after which the `NEXT_LOCALE` cookie remembers the choice.
+ *
+ * next-intl resolves an unprefixed path as prefix → cookie → `Accept-Language`
+ * → `defaultLocale`, and its only switch, `localeDetection: false`, turns off
+ * the cookie *and* the header together. We want to drop just the header, so the
+ * request is rebuilt with `Accept-Language` pinned to the default locale before
+ * next-intl sees it: the cookie still wins when present, and when it is absent
+ * the header now negotiates to Georgian.
+ *
+ * Only done for an unprefixed path. A prefixed one never negotiates (the prefix
+ * is the answer), and it is the only kind next-intl forwards to the page — so
+ * pages still receive the browser's real header, and the rewritten request only
+ * ever feeds a redirect.
+ */
+function withoutBrowserLanguage(request: NextRequest): NextRequest {
+  const headers = new Headers(request.headers);
+  headers.set("accept-language", DEFAULT_LOCALE);
+  return new NextRequest(request, { headers });
+}
+
+function intlMiddleware(request: NextRequest) {
+  const { locale } = splitLocalePrefix(request.nextUrl.pathname);
+  return handleLocale(locale ? request : withoutBrowserLanguage(request));
+}
 
 /**
  * Paths that only make sense on the merchant host, matched as a prefix (the
@@ -243,7 +277,8 @@ export function middleware(request: NextRequest) {
 
   // No host redirect applies, so the request is staying here: hand it to the
   // locale layer, which either serves the matched `/[locale]/**` route or
-  // redirects an unprefixed path to the reader's language.
+  // redirects an unprefixed path to the reader's language
+  // (their cookie, else Georgian).
   return intlMiddleware(request);
 }
 

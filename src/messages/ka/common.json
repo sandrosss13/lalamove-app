@@ -340,6 +340,7 @@
     "onDemandDeliveryPlatformBookA": "სწრაფი მიწოდების პლატფორმა — შეუკვეთეთ ტრანსპორტი და გადაზიდეთ ტვირთი ქალაქის მასშტაბით."
   },
   "themeToggle": {
-    "darkTheme": "მუქი თემა"
+    "darkTheme": "მუქი თემა",
+    "lightTheme": "ღია თემა"
   }
 }

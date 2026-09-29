@@ -7,6 +7,7 @@ import type { AdminRole } from "@prisma/client";
 
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import { ADMIN_NAV, type AdminNavSection } from "@/components/admin/admin-nav";
+import { LanguageToggle } from "@/components/language-toggle";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -181,6 +182,10 @@ export function AdminShell({ systemUser, children }: AdminShellProps) {
             with the bar it sits in.
           */}
           <div className="flex shrink-0 items-center gap-2">
+            {/* Same reasoning as the theme toggle: the global header's copy is
+                hidden here, so the back office mounts its own, at the same
+                `h-7` as its neighbours. */}
+            <LanguageToggle className="h-7 px-2.5" />
             <ThemeToggle className="h-7 w-7" />
 
             <Button

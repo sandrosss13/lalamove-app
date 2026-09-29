@@ -6,6 +6,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { Link } from "@/i18n/navigation";
 import { useSignOut } from "@/components/auth/use-sign-out";
 import { LandingThemeToggle } from "@/components/landing/landing-theme-toggle";
+import { LanguageToggle } from "@/components/language-toggle";
 import {
   DEFAULT_HOME_PAGE_CONTENT,
   type NavContent,
@@ -239,6 +240,13 @@ export function LandingNavPill({
         {/* Between the links and Sign up in the inline row; between the wordmark
             and the disclosure button once the links collapse. One instance in
             both cases — the toggle owns real state, so it is never duplicated. */}
+        {/* The language switch sits beside it in the same landing palette as
+            `LandingThemeToggle` (token classes, 36px tall), and cancels the
+            shared focus ring for the same reason: the landing page draws its
+            own `[data-landing-page] button:focus-visible` outline once for
+            every button, so the ring would indicate focus twice. */}
+        <LanguageToggle className="border-line text-subtle hover:bg-surface-raised hover:text-paper focus-visible:border-line focus-visible:ring-0" />
+
         <LandingThemeToggle />
 
         {/* Sign out takes the inverted slot Sign up occupies, carrying the same

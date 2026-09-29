@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 
 import { cn } from "@/lib/utils";
 
@@ -135,6 +136,8 @@ const THEME_TOGGLE_DEFAULT_CLASSES =
  *   caller that does.
  */
 export function ThemeToggle({ className }: { className?: string }) {
+  const t = useTranslations("common.themeToggle");
+
   // Starts at the light default on both the server and the first client render
   // so hydration matches, then syncs to whatever the pre-paint script actually
   // applied. Only `aria-pressed` depends on this; the icons are swapped by CSS,
@@ -192,7 +195,13 @@ export function ThemeToggle({ className }: { className?: string }) {
       type="button"
       onClick={handleClick}
       aria-pressed={theme === "dark"}
-      aria-label="Dark theme"
+      // A pressed-state toggle keeps one constant name ("Dark theme", on or
+      // off); the state is carried by `aria-pressed`, not by the label.
+      aria-label={t("darkTheme")}
+      // The hover hint names what a click does, which is the other half of the
+      // pair. Derived from `theme`, which is "light" on the server and on the
+      // first client render, so it cannot cause a hydration mismatch.
+      title={theme === "dark" ? t("lightTheme") : t("darkTheme")}
       className={cn(THEME_TOGGLE_DEFAULT_CLASSES, className)}
     >
       {/*
@@ -202,7 +211,7 @@ export function ThemeToggle({ className }: { className?: string }) {
       */}
       <MoonGlyph />
       <SunGlyph />
-      <span className="sr-only">Dark theme</span>
+      <span className="sr-only">{t("darkTheme")}</span>
     </button>
   );
 }

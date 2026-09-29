@@ -1598,5 +1598,10 @@
     "en": "Dark theme",
     "ka": "მუქი თემა",
     "_source": "src/components/theme-toggle.tsx"
+  },
+  "themeToggle.lightTheme": {
+    "en": "Light theme",
+    "ka": "ღია თემა",
+    "_source": "src/components/theme-toggle.tsx"
   }
 }
