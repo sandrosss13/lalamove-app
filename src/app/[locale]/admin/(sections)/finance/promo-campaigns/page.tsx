@@ -85,7 +85,7 @@ async function readErrorMessage(
   return fallback;
 }
 
-/** "25%" or "$15.00", depending on which kind of discount the code carries. */
+/** "25%" or "₾15.00", depending on which kind of discount the code carries. */
 /** The locale-aware formatter from `useFormatter()`, passed in from render. */
 type Formatter = ReturnType<typeof useFormatter>;
 
@@ -95,7 +95,7 @@ function formatDiscount(
 ): string {
   return campaign.discountType === "PERCENTAGE"
     ? `${format.number(campaign.discountValue, PERCENT_FORMAT)}%`
-    : `$${format.number(campaign.discountValue, AMOUNT_FORMAT)}`;
+    : `₾${format.number(campaign.discountValue, AMOUNT_FORMAT)}`;
 }
 
 /** "1 Jan 2026 – 31 Jan 2026", both ends inclusive. */
