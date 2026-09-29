@@ -1,4 +1,5 @@
 import { headers } from "next/headers";
+import { getTranslations } from "next-intl/server";
 
 import { Link } from "@/i18n/navigation";
 import { auth } from "@/lib/auth";
@@ -27,24 +28,26 @@ export default async function TrackOrderPage({
   params: Promise<{ id: string }>;
 }) {
   const session = await auth.api.getSession({ headers: await headers() });
+  const t = await getTranslations("orders.ordersTrack");
+  const tShared = await getTranslations("common.shared");
 
   if (!session) {
     return (
       <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-4 p-8 text-center">
-        <h1 className="text-3xl font-bold">Track delivery</h1>
-        <p className="opacity-70">Please sign in to track this delivery.</p>
+        <h1 className="text-3xl font-bold">{t("trackDelivery")}</h1>
+        <p className="opacity-70">{t("pleaseSignInToTrackThis")}</p>
         <div className="flex justify-center gap-3">
           <Link
             href="/sign-in"
             className="rounded border px-4 py-2 font-medium hover:opacity-70"
           >
-            Sign in
+            {tShared("signIn")}
           </Link>
           <Link
             href="/sign-up"
             className="rounded border px-4 py-2 font-medium hover:opacity-70"
           >
-            Sign up
+            {tShared("signUp")}
           </Link>
         </div>
       </main>
@@ -93,7 +96,7 @@ export default async function TrackOrderPage({
   if (!order || (order.clientId !== userId && order.driverId !== userId)) {
     return (
       <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-4 p-8 text-center">
-        <h1 className="text-3xl font-bold">Order not found.</h1>
+        <h1 className="text-3xl font-bold">{tShared("orderNotFound")}</h1>
         <Link href={backHref} className="text-sm font-medium hover:opacity-70">
           {backLabel}
         </Link>
@@ -104,7 +107,7 @@ export default async function TrackOrderPage({
   return (
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-6 p-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Track delivery</h1>
+        <h1 className="text-3xl font-bold">{t("trackDelivery")}</h1>
         <Link href={backHref} className="text-sm font-medium hover:opacity-70">
           {backLabel}
         </Link>
@@ -118,15 +121,15 @@ export default async function TrackOrderPage({
         </span>
 
         <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
-          <dt className="opacity-60">From</dt>
+          <dt className="opacity-60">{tShared("from")}</dt>
           <dd>{order.pickupAddress}</dd>
-          <dt className="opacity-60">To</dt>
+          <dt className="opacity-60">{tShared("to")}</dt>
           <dd>{order.dropoffAddress}</dd>
           {/* Only set once the delivery has been accepted or dispatched, and
               nulled again if that vehicle is later removed. */}
           {order.vehicle ? (
             <>
-              <dt className="opacity-60">Vehicle</dt>
+              <dt className="opacity-60">{tShared("vehicle")}</dt>
               <dd>
                 {order.vehicle.plateNumber} — {order.vehicle.make}{" "}
                 {order.vehicle.model} ({order.vehicle.vehicleTypeSpec.label})
@@ -135,7 +138,7 @@ export default async function TrackOrderPage({
           ) : null}
           {order.company ? (
             <>
-              <dt className="opacity-60">Carrier</dt>
+              <dt className="opacity-60">{t("carrier")}</dt>
               <dd>{order.company.companyName}</dd>
             </>
           ) : null}

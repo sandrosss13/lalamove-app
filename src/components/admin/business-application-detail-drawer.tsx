@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 
 // Type-only imports, so nothing of the server routes (Prisma, Better Auth) is
 // pulled into this client bundle — they are erased at compile time. Sharing the
@@ -53,15 +54,16 @@ const VEHICLE_FLAG_REASONS: readonly string[] = [
 ];
 
 /**
- * Display names for the three cargo body types. The short "Refrigerated" label
- * rather than the driver drawer's "Refrigerated Vehicle": this surface lists a
- * body type inside a one-line summary, which is where the design uses the short
- * form. Keyed loosely because the API sends `chassisType` as a plain string.
+ * Display names for the three cargo body types, as full message paths resolved
+ * where the card renders. The short "Refrigerated" label rather than the driver
+ * drawer's "Refrigerated Vehicle": this surface lists a body type inside a
+ * one-line summary, which is where the design uses the short form. Keyed loosely
+ * because the API sends `chassisType` as a plain string.
  */
-const CHASSIS_LABELS: Record<string, string> = {
-  DRY_BOX: "Dry Box",
-  REFRIGERATED: "Refrigerated",
-  OPEN_CHASSIS: "Open Chassis",
+const CHASSIS_LABEL_KEYS: Record<string, string> = {
+  DRY_BOX: "common.shared.dryBox",
+  REFRIGERATED: "home.bookingForm.refrigerated",
+  OPEN_CHASSIS: "common.shared.openChassis",
 };
 
 /**
@@ -259,6 +261,7 @@ export function BusinessApplicationDetailDrawer({
   onClose,
   onChanged,
 }: BusinessApplicationDetailDrawerProps) {
+  const t = useTranslations();
   const router = useRouter();
 
   const [data, setData] = useState<AdminBusinessApplicationDetail | null>(null);
@@ -752,24 +755,34 @@ export function BusinessApplicationDetailDrawer({
   // is never unexplained: the reason is surfaced as the hint, as the button's
   // `title`, and as `verdictError` if the server refuses anyway.
   const requestChangesBlockedReason = isReadOnly
-    ? "This fleet has already been activated."
+    ? t("common.shared.thisFleetHasAlreadyBeenActivated")
     : isAwaitingCompany
-      ? "Changes have already been requested on this application."
+      ? t(
+          "errors.adminBusinessApplicationsRequestChanges.changesHaveAlreadyBeenRequestedOn",
+        )
       : flaggedItemCount === 0
-        ? "Flag the company's details or at least one vehicle before requesting changes."
+        ? t(
+            "errors.adminBusinessApplicationsRequestChanges.flagTheCompanySDetailsOr",
+          )
         : null;
 
   // The activate endpoint's five refusal messages, verbatim and in its order.
   const activateBlockedReason = isReadOnly
-    ? "This fleet has already been activated."
+    ? t("common.shared.thisFleetHasAlreadyBeenActivated")
     : isAwaitingCompany
-      ? "This application is still waiting on the company to resubmit."
+      ? t(
+          "errors.adminBusinessApplicationsActivate.thisApplicationIsStillWaitingOn",
+        )
       : companyReviewStatus !== "VERIFIED"
-        ? "Verify the company's details before activating the fleet."
+        ? t(
+            "errors.adminBusinessApplicationsActivate.verifyTheCompanySDetailsBefore",
+          )
         : counts.pending > 0
           ? `${counts.pending} vehicle${counts.pending === 1 ? " is" : "s are"} still pending review. Decide every vehicle before activating the fleet.`
           : counts.approved === 0
-            ? "At least one vehicle must be approved before activating the fleet."
+            ? t(
+                "errors.adminBusinessApplicationsActivate.atLeastOneVehicleMustBe",
+              )
             : null;
 
   return (
@@ -812,7 +825,7 @@ export function BusinessApplicationDetailDrawer({
               {data?.reference ?? "Application"}
             </p>
             <h2 className="mt-[3px] truncate text-[17px] font-semibold tracking-[-0.01em]">
-              {data?.company.companyName ?? "Loading…"}
+              {data?.company.companyName ?? t("home.homeEntry.loading")}
             </h2>
             <p className="mt-[3px] text-[12.5px] text-muted-foreground">
               {data === null
@@ -826,7 +839,7 @@ export function BusinessApplicationDetailDrawer({
             size="icon-sm"
             onClick={onClose}
             disabled={isBusy}
-            aria-label="Close"
+            aria-label={t("common.shared.close")}
           >
             ×
           </Button>
@@ -835,7 +848,7 @@ export function BusinessApplicationDetailDrawer({
         <div className="flex-1 overflow-y-auto px-[22px] py-[18px]">
           {loading ? (
             <p className="text-sm text-muted-foreground">
-              Loading application…
+              {t("common.shared.loadingApplication")}
             </p>
           ) : loadError !== null ? (
             <div className="flex flex-col items-start gap-3">
@@ -848,7 +861,7 @@ export function BusinessApplicationDetailDrawer({
                 size="sm"
                 onClick={() => setReloadToken((token) => token + 1)}
               >
-                Try again
+                {t("common.shared.tryAgain")}
               </Button>
             </div>
           ) : data !== null ? (
@@ -878,8 +891,9 @@ export function BusinessApplicationDetailDrawer({
                       : approveAllLabel}
                   </Button>
                   <p className="mt-2 text-[11.5px] text-muted-foreground">
-                    Records every verdict at once. Activating the fleet stays a
-                    separate step.
+                    {t(
+                      "admin.businessApplicationDetailDrawer.recordsEveryVerdictAtOnceActivating",
+                    )}
                   </p>
                   {approveAllError !== null ? (
                     <p
@@ -920,7 +934,7 @@ export function BusinessApplicationDetailDrawer({
                 <div className="mt-[9px] flex flex-col gap-[9px]">
                   {data.vehicles.length === 0 ? (
                     <p className="text-[12.5px] text-muted-foreground">
-                      No vehicles on this application.
+                      {t("common.shared.noVehiclesOnThisApplication")}
                     </p>
                   ) : (
                     // In the order the endpoint returned them (`createdAt`
@@ -1078,21 +1092,26 @@ function CompanyBlock({
   onVerify: () => void;
   onPickReason: (reason: string) => void;
 }) {
+  const t = useTranslations();
   const fields: {
-    label: string;
+    /** Full message path for the field's caption. */
+    labelKey: string;
     value: string | null;
     wide?: boolean;
     mono?: boolean;
   }[] = [
-    { label: "VAT / tax ID", value: company.vatId },
-    { label: "Registered address", value: company.registeredAddress },
+    { labelKey: "common.shared.vatTaxId", value: company.vatId },
     {
-      label: "Cities of operation",
+      labelKey: "common.shared.registeredAddress",
+      value: company.registeredAddress,
+    },
+    {
+      labelKey: "common.shared.citiesOfOperation",
       value: company.citiesOfOperation.map(formatCity).join(", "),
       wide: true,
     },
     {
-      label: "Contact",
+      labelKey: "common.shared.contact",
       // Both halves are blank on a company row that predates this feature, in
       // which case the separator alone would render as a bare "·".
       value:
@@ -1100,9 +1119,13 @@ function CompanyBlock({
           ? ""
           : `${company.contactName} · ${company.contactRole}`,
     },
-    { label: "Phone", value: company.phone },
-    { label: "Email", value: company.email },
-    { label: "Payout account", value: company.bankAccountIban, mono: true },
+    { labelKey: "common.shared.phone", value: company.phone },
+    { labelKey: "common.shared.email", value: company.email },
+    {
+      labelKey: "common.shared.payoutAccount",
+      value: company.bankAccountIban,
+      mono: true,
+    },
   ];
 
   const stateLine = isCompanyVerified
@@ -1113,16 +1136,16 @@ function CompanyBlock({
 
   return (
     <section>
-      <SectionTitle>Company</SectionTitle>
+      <SectionTitle>{t("common.shared.company")}</SectionTitle>
 
       <dl className="mt-[9px] grid grid-cols-2 gap-x-[18px] gap-y-3">
         {fields.map((field) => (
           <div
-            key={field.label}
+            key={field.labelKey}
             className={field.wide === true ? "col-span-2 min-w-0" : "min-w-0"}
           >
             <dt className="text-[11px] font-semibold tracking-[0.04em] text-muted-foreground uppercase">
-              {field.label}
+              {t(field.labelKey)}
             </dt>
             <dd
               className={`mt-[3px] text-[13.5px] font-medium break-words ${
@@ -1166,7 +1189,7 @@ function CompanyBlock({
             aria-expanded={reasonsOpen}
             onClick={onToggleReasons}
           >
-            Flag company details
+            {t("admin.businessApplicationDetailDrawer.flagCompanyDetails")}
           </Button>
         </div>
       )}
@@ -1231,14 +1254,16 @@ function VehicleCard({
   onApprove: () => void;
   onPickReason: (reason: string) => void;
 }) {
+  const t = useTranslations();
   const isApproved = vehicle.status === "APPROVED";
   const isFlagged = vehicle.status === "FLAGGED";
   const isMissing = vehicle.vehicleId === null;
+  const chassisLabelKey = CHASSIS_LABEL_KEYS[vehicle.chassisType];
 
   // Body · model · year · payload, with absent parts dropped rather than
   // rendered as em-dashes inside a joined line.
   const specLine = [
-    CHASSIS_LABELS[vehicle.chassisType] ?? vehicle.chassisType,
+    chassisLabelKey === undefined ? vehicle.chassisType : t(chassisLabelKey),
     `${vehicle.make} ${vehicle.model}`.trim(),
     vehicle.year === null ? "" : String(vehicle.year),
     vehicle.payloadKg === null
@@ -1249,7 +1274,7 @@ function VehicleCard({
     .join(" · ");
 
   const stateLine = isApproved
-    ? "Approved"
+    ? t("common.shared.approved")
     : isFlagged
       ? `Flagged — ${orPlaceholder(vehicle.flagReason)}`
       : "Pending review";
@@ -1278,11 +1303,12 @@ function VehicleCard({
             // reads as missing data instead of a removed vehicle.
             <div className="rounded-[9px] border border-destructive/40 bg-destructive/5 p-[9px]">
               <p className="text-[13px] font-semibold text-destructive">
-                Vehicle no longer on file
+                {t("common.shared.vehicleNoLongerOnFile")}
               </p>
               <p className="mt-1 text-[12.5px] leading-[1.5] text-muted-foreground">
-                This vehicle was removed after the fleet was submitted. Flag it
-                so the company can correct the application.
+                {t(
+                  "admin.businessApplicationDetailDrawer.thisVehicleWasRemovedAfterThe",
+                )}
               </p>
             </div>
           ) : (
@@ -1317,7 +1343,7 @@ function VehicleCard({
             // does — and a vehicle nobody drives is a review finding, not a
             // blank line.
             <p className="mt-0.5 text-[11.5px] text-destructive">
-              No driver assigned
+              {t("admin.businessApplicationDetailDrawer.noDriverAssigned")}
             </p>
           ) : (
             <p className="mt-0.5 text-[11.5px] text-muted-foreground">
@@ -1351,7 +1377,7 @@ function VehicleCard({
               aria-expanded={reasonsOpen}
               onClick={onToggleReasons}
             >
-              Flag
+              {t("common.shared.flag")}
             </Button>
           </div>
         )}

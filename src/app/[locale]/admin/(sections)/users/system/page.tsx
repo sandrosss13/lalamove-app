@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 
 import {
   ADMIN_ROLE_LABELS,
@@ -65,6 +66,8 @@ export default async function SystemUsersPage() {
   }
 
   const canManage = hasAdminRole(systemUserProfile, ["SUPER_ADMIN"]);
+  const t = await getTranslations("admin.adminUsersSystem");
+  const tShared = await getTranslations("common.shared");
 
   // Read directly rather than through `GET /api/admin/users/system`: this is a
   // server component with the same database access the route has, and going
@@ -86,8 +89,7 @@ export default async function SystemUsersPage() {
     <div className="flex flex-col gap-4">
       <div className="flex items-start justify-between gap-4">
         <p className="text-sm text-muted-foreground">
-          Staff accounts with access to this back office. New accounts are
-          created with a temporary password that is shown once.
+          {t("staffAccountsWithAccessToThis")}
         </p>
         {canManage ? <CreateSystemUserDialog /> : null}
       </div>
@@ -96,13 +98,15 @@ export default async function SystemUsersPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Created</TableHead>
+              <TableHead>{tShared("name")}</TableHead>
+              <TableHead>{tShared("email")}</TableHead>
+              <TableHead>{tShared("role")}</TableHead>
+              <TableHead>{tShared("status")}</TableHead>
+              <TableHead>{t("created")}</TableHead>
               {canManage ? (
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="text-right">
+                  {tShared("actions")}
+                </TableHead>
               ) : null}
             </TableRow>
           </TableHeader>
@@ -113,7 +117,7 @@ export default async function SystemUsersPage() {
                   colSpan={canManage ? 6 : 5}
                   className="text-muted-foreground"
                 >
-                  No system users yet.
+                  {t("noSystemUsersYet")}
                 </TableCell>
               </TableRow>
             ) : (
@@ -128,7 +132,7 @@ export default async function SystemUsersPage() {
                   <TableCell>{ADMIN_ROLE_LABELS[entry.adminRole]}</TableCell>
                   <TableCell>
                     <Badge variant={entry.isActive ? "secondary" : "outline"}>
-                      {entry.isActive ? "Active" : "Deactivated"}
+                      {entry.isActive ? tShared("active") : "Deactivated"}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-muted-foreground">
@@ -141,7 +145,7 @@ export default async function SystemUsersPage() {
                           this spec has no way back from locking yourself out. */}
                       {entry.userId === systemUserProfile.userId ? (
                         <span className="text-xs text-muted-foreground">
-                          You
+                          {t("you")}
                         </span>
                       ) : (
                         <SystemUserStatusButton

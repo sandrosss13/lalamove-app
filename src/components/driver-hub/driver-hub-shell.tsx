@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 
 import {
   DriverHubHeader,
@@ -279,6 +280,8 @@ export function DriverHubShell({
   // into Performance, which every persona sees.
   const items = hubNavForAccount(account);
   const activeItem = hubNavItemForPath(pathname);
+  // Unscoped: nav copy is root-relative keys (see `HubNavItem.titleKey`).
+  const tRoot = useTranslations();
 
   return (
     <div
@@ -379,8 +382,14 @@ export function DriverHubShell({
               `container = viewport − 248 − 64 − 2`. */}
           <div className="flex min-w-0 max-w-[1800px] flex-col gap-5">
             <DriverHubPageHead
-              title={titleOverride ?? activeItem?.title ?? FALLBACK_TITLE}
-              subtitle={subtitleOverride ?? activeItem?.subtitle ?? ""}
+              title={
+                titleOverride ??
+                (activeItem ? tRoot(activeItem.titleKey) : FALLBACK_TITLE)
+              }
+              subtitle={
+                subtitleOverride ??
+                (activeItem ? tRoot(activeItem.subtitleKey) : "")
+              }
               vehiclePill={vehiclePillOverride}
             />
 

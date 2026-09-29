@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 
 import type { ContentLocale } from "@prisma/client";
 
@@ -43,9 +44,9 @@ import {
 const COLUMN_COUNT = 6;
 
 /** Locale tabs, in the order they are offered. */
-const LOCALE_TABS: { value: ContentLocale; label: string }[] = [
-  { value: "KA", label: "Georgian (KA)" },
-  { value: "EN", label: "English (EN)" },
+const LOCALE_TABS: { value: ContentLocale; labelKey: string }[] = [
+  { value: "KA", labelKey: "georgianKa" },
+  { value: "EN", labelKey: "englishEn" },
 ];
 
 /**
@@ -163,6 +164,8 @@ async function readErrorMessage(
  * which is the real boundary.
  */
 export default function AdminHomePageSectionsPage() {
+  const t = useTranslations("admin.adminContentHomePage");
+  const tShared = useTranslations("common.shared");
   const [locale, setLocale] = useState<ContentLocale>(DEFAULT_LOCALE);
   const [sections, setSections] = useState<AdminHomePageSectionRow[] | null>(
     null,
@@ -199,9 +202,7 @@ export default function AdminHomePageSectionsPage() {
         );
 
         if (!response.ok) {
-          setError(
-            await readErrorMessage(response, "Could not load sections."),
-          );
+          setError(await readErrorMessage(response, t("couldNotLoadSections")));
           setLoading(false);
           return;
         }
@@ -217,7 +218,7 @@ export default function AdminHomePageSectionsPage() {
           return;
         }
 
-        setError("Could not load sections.");
+        setError(t("couldNotLoadSections"));
         setLoading(false);
       }
     }
@@ -225,7 +226,7 @@ export default function AdminHomePageSectionsPage() {
     void load();
 
     return () => controller.abort();
-  }, [locale, reloadToken]);
+  }, [locale, reloadToken, t]);
 
   const items = sections ?? [];
 
@@ -266,7 +267,7 @@ export default function AdminHomePageSectionsPage() {
       setActionError(
         cause instanceof Error
           ? cause.message
-          : "Something went wrong. Please try again.",
+          : tShared("somethingWentWrongPleaseTryAgain"),
       );
     } finally {
       setBusy(false);
@@ -323,7 +324,7 @@ export default function AdminHomePageSectionsPage() {
       setActionError(
         cause instanceof Error
           ? cause.message
-          : "Something went wrong. Please try again.",
+          : tShared("somethingWentWrongPleaseTryAgain"),
       );
       // Reloaded even on failure: some rows may already have been renumbered,
       // so the table must not keep showing the order it started from.
@@ -353,7 +354,7 @@ export default function AdminHomePageSectionsPage() {
       setDeleteTarget(null);
       setReloadToken((token) => token + 1);
     } catch {
-      setActionError("Something went wrong. Please try again.");
+      setActionError(tShared("somethingWentWrongPleaseTryAgain"));
     } finally {
       setBusy(false);
     }
@@ -370,14 +371,10 @@ export default function AdminHomePageSectionsPage() {
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <p className="max-w-2xl text-sm text-muted-foreground">
-          The sections of the public landing page, in the order they render.
-          With no sections for a locale, the page falls back to its built-in
-          default composition. The navigation bar and the footer are page
-          chrome: they render at the top and the bottom whatever their position
-          in this list, so moving them changes nothing.
+          {t("theSectionsOfThePublicLanding")}
         </p>
         <Button size="sm" onClick={() => setFormTarget(null)}>
-          New Section
+          {t("newSection")}
         </Button>
       </div>
 
@@ -388,7 +385,7 @@ export default function AdminHomePageSectionsPage() {
         <TabsList>
           {LOCALE_TABS.map((tab) => (
             <TabsTrigger key={tab.value} value={tab.value}>
-              {tab.label}
+              {tShared(tab.labelKey)}
             </TabsTrigger>
           ))}
         </TabsList>
@@ -406,12 +403,12 @@ export default function AdminHomePageSectionsPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Order</TableHead>
-              <TableHead>Section</TableHead>
-              <TableHead>Content</TableHead>
-              <TableHead>Active</TableHead>
-              <TableHead>Move</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead>{tShared("order")}</TableHead>
+              <TableHead>{tShared("section")}</TableHead>
+              <TableHead>{t("content")}</TableHead>
+              <TableHead>{tShared("active")}</TableHead>
+              <TableHead>{t("move")}</TableHead>
+              <TableHead className="text-right">{tShared("actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -430,7 +427,7 @@ export default function AdminHomePageSectionsPage() {
                   colSpan={COLUMN_COUNT}
                   className="py-10 text-center text-muted-foreground"
                 >
-                  Loading sections…
+                  {t("loadingSections")}
                 </TableCell>
               </TableRow>
             ) : items.length === 0 ? (
@@ -439,8 +436,7 @@ export default function AdminHomePageSectionsPage() {
                   colSpan={COLUMN_COUNT}
                   className="py-10 text-center text-muted-foreground"
                 >
-                  No sections for this locale yet — the landing page is showing
-                  its default composition.
+                  {t("noSectionsForThisLocaleYet")}
                 </TableCell>
               </TableRow>
             ) : (
@@ -464,7 +460,7 @@ export default function AdminHomePageSectionsPage() {
                         <span className="font-medium">{typeLabel}</span>
                         {known ? null : (
                           <Badge variant="destructive" className="mt-1 w-fit">
-                            Unrecognized type
+                            {t("unrecognizedType")}
                           </Badge>
                         )}
                       </div>
@@ -472,7 +468,7 @@ export default function AdminHomePageSectionsPage() {
                     <TableCell className="max-w-xs">
                       {summary === null ? (
                         <span className="text-destructive">
-                          Content does not match this type
+                          {t("contentDoesNotMatchThisType")}
                         </span>
                       ) : (
                         <span className="line-clamp-2 text-muted-foreground">
@@ -496,7 +492,7 @@ export default function AdminHomePageSectionsPage() {
                           variant="outline"
                           size="sm"
                           disabled={busy || index === 0}
-                          aria-label="Move section up"
+                          aria-label={t("moveSectionUp")}
                           onClick={() => void handleMove(index, -1)}
                         >
                           ↑
@@ -505,7 +501,7 @@ export default function AdminHomePageSectionsPage() {
                           variant="outline"
                           size="sm"
                           disabled={busy || index === items.length - 1}
-                          aria-label="Move section down"
+                          aria-label={t("moveSectionDown")}
                           onClick={() => void handleMove(index, 1)}
                         >
                           ↓
@@ -519,7 +515,7 @@ export default function AdminHomePageSectionsPage() {
                           size="sm"
                           onClick={() => setFormTarget(section)}
                         >
-                          Edit
+                          {tShared("edit")}
                         </Button>
                         <Button
                           variant="destructive"
@@ -531,7 +527,7 @@ export default function AdminHomePageSectionsPage() {
                             setDeleteTarget(section);
                           }}
                         >
-                          Delete
+                          {tShared("delete")}
                         </Button>
                       </div>
                     </TableCell>
@@ -574,10 +570,9 @@ export default function AdminHomePageSectionsPage() {
         >
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Delete section</DialogTitle>
+              <DialogTitle>{t("deleteSection")}</DialogTitle>
               <DialogDescription>
-                This section will be removed from the landing page for good. To
-                take it off the page without deleting it, switch it off instead.
+                {t("thisSectionWillBeRemovedFrom")}
               </DialogDescription>
             </DialogHeader>
 
@@ -596,7 +591,7 @@ export default function AdminHomePageSectionsPage() {
                 onClick={() => setDeleteTarget(null)}
                 disabled={busy}
               >
-                Cancel
+                {tShared("cancel")}
               </Button>
               <Button
                 type="button"
@@ -604,7 +599,7 @@ export default function AdminHomePageSectionsPage() {
                 disabled={busy}
                 onClick={() => void handleDelete(deleteTarget)}
               >
-                {busy ? "Deleting…" : "Delete section"}
+                {busy ? "Deleting…" : t("deleteSection")}
               </Button>
             </DialogFooter>
           </DialogContent>

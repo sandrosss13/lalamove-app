@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 import type { ContentLocale } from "@prisma/client";
 
@@ -104,6 +105,7 @@ export function StaticPageFormDialog({
   onClose,
   onCompleted,
 }: StaticPageFormDialogProps) {
+  const t = useTranslations();
   const isEditing = target.mode === "edit";
   const existing = target.mode === "edit" ? target.page : null;
 
@@ -150,7 +152,7 @@ export function StaticPageFormDialog({
 
       onCompleted();
     } catch {
-      setError("Network error. Please check your connection and try again.");
+      setError(t("common.shared.networkErrorPleaseCheckYourConnection"));
     } finally {
       setPending(false);
     }
@@ -179,7 +181,9 @@ export function StaticPageFormDialog({
           <div className="flex flex-col gap-3">
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="static-page-slug">Slug</Label>
+                <Label htmlFor="static-page-slug">
+                  {t("common.shared.slug")}
+                </Label>
                 <Input
                   id="static-page-slug"
                   required
@@ -190,13 +194,17 @@ export function StaticPageFormDialog({
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="static-page-locale">Locale</Label>
+                <Label htmlFor="static-page-locale">
+                  {t("common.shared.locale")}
+                </Label>
                 <Select
                   value={locale}
                   onValueChange={(value) => setLocale(value as ContentLocale)}
                 >
                   <SelectTrigger id="static-page-locale" className="w-full">
-                    <SelectValue placeholder="Select a locale" />
+                    <SelectValue
+                      placeholder={t("common.shared.selectALocale")}
+                    />
                   </SelectTrigger>
                   <SelectContent>
                     {CONTENT_LOCALE_OPTIONS.map((option) => (
@@ -210,18 +218,22 @@ export function StaticPageFormDialog({
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="static-page-title">Title</Label>
+              <Label htmlFor="static-page-title">
+                {t("common.shared.title")}
+              </Label>
               <Input
                 id="static-page-title"
                 required
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
-                placeholder="Terms of Service"
+                placeholder={t("admin.staticPageFormDialog.termsOfService")}
               />
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="static-page-body">Body (HTML)</Label>
+              <Label htmlFor="static-page-body">
+                {t("admin.staticPageFormDialog.bodyHtml")}
+              </Label>
               <Textarea
                 id="static-page-body"
                 required
@@ -240,7 +252,7 @@ export function StaticPageFormDialog({
                 onCheckedChange={(checked) => setIsPublished(checked === true)}
               />
               <Label htmlFor="static-page-published">
-                Published — visible to visitors
+                {t("admin.staticPageFormDialog.publishedVisibleToVisitors")}
               </Label>
             </div>
 
@@ -249,7 +261,7 @@ export function StaticPageFormDialog({
 
           <DialogFooter showCloseButton={false}>
             <Button type="button" variant="outline" onClick={onClose}>
-              Cancel
+              {t("common.shared.cancel")}
             </Button>
             <Button type="submit" disabled={pending}>
               {pending ? "Saving…" : isEditing ? "Save changes" : "Create page"}

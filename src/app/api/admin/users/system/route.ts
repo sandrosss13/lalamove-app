@@ -5,6 +5,7 @@ import { NextResponse } from "next/server";
 import { AdminRole, UserRole } from "@prisma/client";
 import { APIError } from "better-auth/api";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { writeAuditLog } from "@/lib/admin/audit";
 import { hasAdminRole } from "@/lib/admin/roles";
 import { auth } from "@/lib/auth";
@@ -35,6 +36,12 @@ const ADMIN_ROLES = Object.values(AdminRole);
  */
 const TEMP_PASSWORD_BYTES = 12;
 
+/**
+ * The request-locale translator, passed into the synchronous body validator so
+ * its messages reach the admin in their own language.
+ */
+type RequestTranslator = Awaited<ReturnType<typeof getRequestTranslations>>;
+
 /** Validated shape of a create-system-user request body. */
 type CreateSystemUserInput = {
   name: string;
@@ -61,11 +68,15 @@ type CreateSystemUserInput = {
 async function authorizeSystemUserApi(
   allowed: readonly AdminRole[],
 ): Promise<{ actorId: string } | { response: NextResponse }> {
+  const t = await getRequestTranslations();
   const session = await auth.api.getSession({ headers: await headers() });
 
   if (!session || session.user.role !== "ADMIN") {
     return {
-      response: NextResponse.json({ error: "Unauthorized." }, { status: 401 }),
+      response: NextResponse.json(
+        { error: t("common.shared.unauthorized") },
+        { status: 401 },
+      ),
     };
   }
 
@@ -78,14 +89,17 @@ async function authorizeSystemUserApi(
 
   if (!profile || !profile.isActive) {
     return {
-      response: NextResponse.json({ error: "Unauthorized." }, { status: 401 }),
+      response: NextResponse.json(
+        { error: t("common.shared.unauthorized") },
+        { status: 401 },
+      ),
     };
   }
 
   if (!hasAdminRole(profile, allowed)) {
     return {
       response: NextResponse.json(
-        { error: "You do not have access to this action." },
+        { error: t("errors.adminUsersSystem.youDoNotHaveAccessTo") },
         { status: 403 },
       ),
     };
@@ -104,21 +118,22 @@ async function authorizeSystemUserApi(
  */
 function parseCreateSystemUserBody(
   body: unknown,
+  t: RequestTranslator,
 ): { data: CreateSystemUserInput } | { error: string } {
   if (typeof body !== "object" || body === null) {
-    return { error: "Request body must be a JSON object." };
+    return { error: t("common.shared.requestBodyMustBeAJson") };
   }
 
   const record = body as Record<string, unknown>;
 
   const { name } = record;
   if (typeof name !== "string" || name.trim() === "") {
-    return { error: "name is required and must be a non-empty string." };
+    return { error: t("errors.adminUsersSystem.nameIsRequiredAndMustBe") };
   }
 
   const { email } = record;
   if (typeof email !== "string" || email.trim() === "") {
-    return { error: "email is required and must be a non-empty string." };
+    return { error: t("common.shared.emailIsRequiredAndMustBe") };
   }
 
   const { adminRole } = record;
@@ -178,17 +193,19 @@ export async function POST(request: Request): Promise<NextResponse> {
     return authorized.response;
   }
 
+  const t = await getRequestTranslations();
+
   let rawBody: unknown;
   try {
     rawBody = await request.json();
   } catch {
     return NextResponse.json(
-      { error: "Request body must be valid JSON." },
+      { error: t("common.shared.requestBodyMustBeValidJson") },
       { status: 400 },
     );
   }
 
-  const parsed = parseCreateSystemUserBody(rawBody);
+  const parsed = parseCreateSystemUserBody(rawBody, t);
   if ("error" in parsed) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
@@ -206,7 +223,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   if (existingUser) {
     return NextResponse.json(
-      { error: "An account with that email address already exists." },
+      { error: t("common.shared.anAccountWithThatEmailAddress") },
       { status: 400 },
     );
   }
@@ -302,7 +319,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     return NextResponse.json(
-      { error: "Could not create this system user. Please try again." },
+      { error: t("errors.adminUsersSystem.couldNotCreateThisSystemUser") },
       { status: 500 },
     );
   }

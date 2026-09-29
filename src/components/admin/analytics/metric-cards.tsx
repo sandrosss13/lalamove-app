@@ -1,3 +1,5 @@
+import { useTranslations } from "next-intl";
+
 import type { SalesSummary } from "@/lib/admin/analytics";
 import {
   Card,
@@ -25,11 +27,15 @@ function formatCurrency(value: number): string {
   return `$${currencyFormatter.format(value)}`;
 }
 
+/**
+ * `labelKey` / `hintKey` are full message paths rather than copy: `metricsFor`
+ * is a plain function, so the text is resolved where the card renders.
+ */
 type Metric = {
-  label: string;
+  labelKey: string;
   value: string;
   /** One line under the number, saying what the number counts. */
-  hint: string;
+  hintKey: string;
 };
 
 function metricsFor(summary: SalesSummary): Metric[] {
@@ -42,34 +48,34 @@ function metricsFor(summary: SalesSummary): Metric[] {
       // "paid", not "all": `getSalesSummary` leaves out `INITIATED`, the
       // pre-payment state, so "all orders" would now name a set this figure
       // does not cover.
-      label: "Turnover (paid orders)",
+      labelKey: "admin.metricCards.turnoverPaidOrders",
       value: formatCurrency(summary.turnover),
-      hint: "Gross bookings placed in range",
+      hintKey: "admin.metricCards.grossBookingsPlacedInRange",
     },
     {
-      label: "Revenue (completed orders)",
+      labelKey: "admin.metricCards.revenueCompletedOrders",
       value: formatCurrency(summary.revenue),
-      hint: "Recognised on delivery",
+      hintKey: "admin.metricCards.recognisedOnDelivery",
     },
     {
-      label: "Completed",
+      labelKey: "common.shared.completed",
       value: countFormatter.format(summary.completedCount),
-      hint: "Delivered orders",
+      hintKey: "admin.metricCards.deliveredOrders",
     },
     {
-      label: "In process",
+      labelKey: "admin.metricCards.inProcess",
       value: countFormatter.format(summary.inProcessCount),
-      hint: "Claimed, accepted or in transit",
+      hintKey: "admin.metricCards.claimedAcceptedOrInTransit",
     },
     {
-      label: "Pending",
+      labelKey: "common.shared.pending",
       value: countFormatter.format(summary.pendingCount),
-      hint: "Awaiting a carrier",
+      hintKey: "admin.metricCards.awaitingACarrier",
     },
     {
-      label: "Cancelled",
+      labelKey: "common.shared.cancelled",
       value: countFormatter.format(summary.cancelledCount),
-      hint: "Called off before delivery",
+      hintKey: "admin.metricCards.calledOffBeforeDelivery",
     },
   ];
 }
@@ -89,18 +95,22 @@ function metricsFor(summary: SalesSummary): Metric[] {
  * `src/lib/admin/analytics.ts`.
  */
 export function MetricCards({ summary }: { summary: SalesSummary }) {
+  const t = useTranslations();
+
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
       {metricsFor(summary).map((metric) => (
-        <Card key={metric.label} size="sm">
+        <Card key={metric.labelKey} size="sm">
           <CardHeader>
             <CardDescription className="text-xs">
-              {metric.label}
+              {t(metric.labelKey)}
             </CardDescription>
             <CardTitle className="text-xl tabular-nums">
               {metric.value}
             </CardTitle>
-            <CardDescription className="text-xs">{metric.hint}</CardDescription>
+            <CardDescription className="text-xs">
+              {t(metric.hintKey)}
+            </CardDescription>
           </CardHeader>
         </Card>
       ))}

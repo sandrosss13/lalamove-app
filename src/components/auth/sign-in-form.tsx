@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 import { useRouter } from "@/i18n/navigation";
 import { AccountTypeStep } from "@/components/auth/account-type-step";
@@ -276,6 +277,8 @@ export function SignInForm({
   accountTypeQuery,
   stepQuery,
 }: SignInFormProps) {
+  const t = useTranslations("auth.signInForm");
+  const tShared = useTranslations("common.shared");
   const router = useRouter();
   const fieldId = React.useId();
 
@@ -534,16 +537,13 @@ export function SignInForm({
     return (
       <AuthShell maxWidth="420" className="gap-6">
         <BackLink
-          label="← Back to sign in"
+          label={t("backToSignIn")}
           onClick={() => goTo({ role, accountType })}
         />
 
         <div className="flex flex-col gap-2.5">
-          <AuthHeading>Reset your password</AuthHeading>
-          <AuthSubheading>
-            Enter the email on your account. We send a link that stays valid for
-            30 minutes.
-          </AuthSubheading>
+          <AuthHeading>{t("resetYourPassword")}</AuthHeading>
+          <AuthSubheading>{t("enterTheEmailOnYourAccount")}</AuthSubheading>
         </div>
 
         {/*
@@ -556,7 +556,7 @@ export function SignInForm({
           className="flex flex-col gap-4"
         >
           <div className="flex flex-col gap-2">
-            <Label htmlFor={`${fieldId}-reset-email`}>Email</Label>
+            <Label htmlFor={`${fieldId}-reset-email`}>{tShared("email")}</Label>
             {/* Shares the sign-in email state, so arriving here from a failed
                 attempt carries the address across instead of asking twice. */}
             <Input
@@ -564,7 +564,7 @@ export function SignInForm({
               type="email"
               inputMode="email"
               autoComplete="email"
-              placeholder="you@company.ge"
+              placeholder={tShared("youCompanyGe")}
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               aria-describedby={`${fieldId}-reset-note`}
@@ -583,24 +583,22 @@ export function SignInForm({
           <Button
             type="submit"
             disabled
-            title="Password reset is not available yet."
+            title={t("passwordResetIsNotAvailableYet2")}
             aria-describedby={`${fieldId}-reset-note`}
             className="h-11 w-full text-base"
           >
-            Send reset link
+            {t("sendResetLink")}
           </Button>
 
           <p
             id={`${fieldId}-reset-note`}
             className="text-[13px] leading-[1.5] text-[var(--landing-muted)]"
           >
-            Password reset is not available yet — contact support and we will
-            reset it for you.
+            {t("passwordResetIsNotAvailableYet")}
           </p>
 
           <p className="text-[13px] leading-[1.5] text-[var(--landing-muted)]">
-            Back-office accounts reset through your administrator, not this
-            form.
+            {t("backOfficeAccountsResetThroughYour")}
           </p>
         </form>
       </AuthShell>
@@ -683,7 +681,7 @@ export function SignInForm({
 
       <div className="flex flex-col gap-2.5">
         <ContextChip role={role} accountType={accountType} />
-        <AuthHeading>Sign in</AuthHeading>
+        <AuthHeading>{tShared("signIn")}</AuthHeading>
       </div>
 
       {/*
@@ -699,10 +697,10 @@ export function SignInForm({
       <Tabs defaultValue="email" className="w-full gap-0">
         <TabsList className="w-full">
           <TabsTrigger value="phone" className="flex-1">
-            Phone
+            {tShared("phone")}
           </TabsTrigger>
           <TabsTrigger value="email" className="flex-1">
-            Email
+            {tShared("email")}
           </TabsTrigger>
         </TabsList>
 
@@ -730,19 +728,18 @@ export function SignInForm({
             <Button
               type="button"
               disabled
-              title="Code sign-in is not available yet."
+              title={t("codeSignInIsNotAvailable2")}
               aria-describedby={phoneNoteId}
               className="h-11 w-full text-base"
             >
-              Send code
+              {t("sendCode")}
             </Button>
 
             <p
               id={phoneNoteId}
               className="text-[13px] leading-[1.5] text-[var(--landing-muted)]"
             >
-              Code sign-in is not available yet — use the Email tab to sign in
-              with your password.
+              {t("codeSignInIsNotAvailable")}
             </p>
           </div>
         </TabsContent>
@@ -764,14 +761,14 @@ export function SignInForm({
             ) : null}
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor={`${fieldId}-email`}>Email</Label>
+              <Label htmlFor={`${fieldId}-email`}>{tShared("email")}</Label>
               <Input
                 id={`${fieldId}-email`}
                 type="email"
                 inputMode="email"
                 autoComplete="email"
                 required
-                placeholder="you@company.ge"
+                placeholder={tShared("youCompanyGe")}
                 value={email}
                 onChange={(event) => {
                   setEmail(event.target.value);
@@ -790,7 +787,9 @@ export function SignInForm({
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor={`${fieldId}-password`}>Password</Label>
+              <Label htmlFor={`${fieldId}-password`}>
+                {tShared("password")}
+              </Label>
 
               <Input
                 id={`${fieldId}-password`}
@@ -843,7 +842,7 @@ export function SignInForm({
               disabled={loading}
               className="h-11 w-full text-base"
             >
-              {loading ? "Signing in…" : "Sign in"}
+              {loading ? "Signing in…" : tShared("signIn")}
             </Button>
           </form>
         </TabsContent>
@@ -861,7 +860,7 @@ export function SignInForm({
         <InlineLinkButton
           href={flowHref(MODE_PATHS.signup, { role, accountType })}
         >
-          Create an account
+          {t("createAnAccount")}
         </InlineLinkButton>
       </p>
     </AuthShell>

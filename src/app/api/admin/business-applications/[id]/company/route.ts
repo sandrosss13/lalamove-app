@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import type { AdminRole, CompanyReviewStatus } from "@prisma/client";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { authorizeAdminApi } from "@/lib/admin/api-auth";
 import { writeAuditLog } from "@/lib/admin/audit";
 import { prisma } from "@/lib/prisma";
@@ -48,9 +49,10 @@ export type AdminBusinessCompanyReviewResponse = {
  */
 function parseCompanyVerdictBody(
   body: unknown,
+  t: (key: string) => string,
 ): { value: CompanyVerdict } | { error: string } {
   if (typeof body !== "object" || body === null) {
-    return { error: "Request body must be a JSON object." };
+    return { error: t("common.shared.requestBodyMustBeAJson") };
   }
 
   const { verdict, reason } = body as Record<string, unknown>;
@@ -64,13 +66,19 @@ function parseCompanyVerdictBody(
   }
 
   if (typeof reason !== "string" || reason.trim() === "") {
-    return { error: "A reason is required to flag the company's details." };
+    return {
+      error: t(
+        "errors.adminBusinessApplicationsCompany.aReasonIsRequiredToFlag",
+      ),
+    };
   }
 
   const trimmedReason = reason.trim();
 
   if (!COMPANY_FLAG_REASONS.includes(trimmedReason)) {
-    return { error: "That is not one of the company flag reasons." };
+    return {
+      error: t("errors.adminBusinessApplicationsCompany.thatIsNotOneOfThe"),
+    };
   }
 
   return { value: { verdict: "FLAGGED", reason: trimmedReason } };
@@ -96,6 +104,8 @@ export async function PATCH(
     return authorized.response;
   }
 
+  const t = await getRequestTranslations();
+
   const { id } = await params;
 
   let rawBody: unknown;
@@ -103,12 +113,12 @@ export async function PATCH(
     rawBody = await request.json();
   } catch {
     return NextResponse.json(
-      { error: "Request body must be valid JSON." },
+      { error: t("common.shared.requestBodyMustBeValidJson") },
       { status: 400 },
     );
   }
 
-  const parsed = parseCompanyVerdictBody(rawBody);
+  const parsed = parseCompanyVerdictBody(rawBody, t);
   if ("error" in parsed) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
@@ -125,7 +135,7 @@ export async function PATCH(
   // in-progress draft.
   if (!application || application.status === "DRAFT") {
     return NextResponse.json(
-      { error: "Application not found." },
+      { error: t("common.shared.applicationNotFound") },
       { status: 404 },
     );
   }
@@ -134,7 +144,7 @@ export async function PATCH(
   // is a stale tab, not a 404 — say so.
   if (application.status === "APPROVED") {
     return NextResponse.json(
-      { error: "This fleet has already been activated." },
+      { error: t("common.shared.thisFleetHasAlreadyBeenActivated") },
       { status: 400 },
     );
   }

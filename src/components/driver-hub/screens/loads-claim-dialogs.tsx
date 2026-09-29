@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 
 import {
   useLoadsBoard,
@@ -326,6 +327,8 @@ export function LoadsConfirmDialog({ load }: LoadsConfirmDialogProps) {
     dismissClaimError,
   } = useLoadsBoard();
   const router = useRouter();
+  const t = useTranslations("driverHub.loadsClaimDialogs");
+  const tShared = useTranslations("common.shared");
 
   /**
    * Whether this session is a logistics company rather than an individual
@@ -507,31 +510,31 @@ export function LoadsConfirmDialog({ load }: LoadsConfirmDialogProps) {
    */
   const summaryRows: { label: string; value: React.ReactNode }[] = [
     {
-      label: "Load",
+      label: tShared("load"),
       value: <span className="font-price">{load.reference}</span>,
     },
     {
-      label: "Pick-up",
+      label: tShared("pickUp"),
       value: `${load.pickupCity ?? EM_DASH} · ${formatAbsoluteWindow(
         load.pickupWindowStart,
         load.pickupWindowEnd,
       )}`,
     },
     {
-      label: "Drop-off",
+      label: tShared("dropOff"),
       value: `${load.dropoffCity ?? EM_DASH} · by ${formatAbsoluteDateTime(
         load.deliveryDeadline,
       )}`,
     },
     {
-      label: "Cargo",
+      label: tShared("cargo"),
       value: `${cargoCategoryLabel(load.cargoCategory)} · ${
         load.packagingDescription ?? EM_DASH
       }`,
     },
-    { label: "Helpers", value: formatHelperRequest(load.helperCount) },
+    { label: tShared("helpers"), value: formatHelperRequest(load.helperCount) },
     {
-      label: "Weight",
+      label: t("weight"),
       value: `${formatWeightKg(load.cargoWeightKg)} · ${formatLoadDims({
         lengthM: load.cargoLengthM,
         widthM: load.cargoWidthM,
@@ -539,7 +542,7 @@ export function LoadsConfirmDialog({ load }: LoadsConfirmDialogProps) {
       })}`,
     },
     {
-      label: "Distance",
+      label: tShared("distance"),
       value: `${formatDistanceKm(load.distanceKm)} · ${STOP_COUNT_TEXT}`,
     },
   ];
@@ -576,11 +579,10 @@ export function LoadsConfirmDialog({ load }: LoadsConfirmDialogProps) {
       >
         <DialogHeader className="gap-1 px-5 pt-5">
           <DialogTitle className="text-base font-semibold tracking-[-0.01em]">
-            Confirm this shipment
+            {t("confirmThisShipment")}
           </DialogTitle>
           <DialogDescription className="text-[13px]">
-            First come, first served. Confirming claims the order and closes it
-            to other drivers.
+            {t("firstComeFirstServedConfirmingClaims")}
           </DialogDescription>
         </DialogHeader>
 
@@ -608,7 +610,7 @@ export function LoadsConfirmDialog({ load }: LoadsConfirmDialogProps) {
               the worst direction to be wrong in. */}
           <div className="flex items-baseline justify-between border-t border-border bg-muted px-[14px] py-3">
             <span className="text-[13px] text-muted-foreground">
-              You are paid
+              {t("youArePaid")}
             </span>
             <span className="font-price text-[20px] font-semibold tracking-[-0.02em] tabular-nums">
               {formatGelExact(load.driverPayout)}
@@ -629,7 +631,7 @@ export function LoadsConfirmDialog({ load }: LoadsConfirmDialogProps) {
             aria-describedby="loads-confirm-vehicle-note"
           >
             <legend className="mb-1.5 text-[13px] font-medium text-foreground">
-              Vehicle
+              {tShared("vehicle")}
             </legend>
             <p
               id="loads-confirm-vehicle-note"
@@ -686,7 +688,7 @@ export function LoadsConfirmDialog({ load }: LoadsConfirmDialogProps) {
                       // names the vehicle's shortfall, never the load's size:
                       // the load is what the client booked and is not wrong.
                       <span className="mt-0.5 block text-xs font-medium text-muted-foreground">
-                        Too small for this load
+                        {t("tooSmallForThisLoad")}
                       </span>
                     ) : null}
                   </span>
@@ -774,7 +776,7 @@ export function LoadsConfirmDialog({ load }: LoadsConfirmDialogProps) {
                   dismissClaimError();
                 }}
               >
-                Stay offline
+                {t("stayOffline")}
               </Button>
               <Button
                 type="button"
@@ -816,7 +818,7 @@ export function LoadsConfirmDialog({ load }: LoadsConfirmDialogProps) {
                 disabled={isBusy}
                 onClick={closeConfirm}
               >
-                Cancel
+                {tShared("cancel")}
               </Button>
               <Button
                 type="button"
@@ -879,6 +881,7 @@ export type LoadsLostRaceDialogProps = {
  */
 export function LoadsLostRaceDialog({ reference }: LoadsLostRaceDialogProps) {
   const { closeLost } = useLoadsBoard();
+  const t = useTranslations("driverHub.loadsClaimDialogs");
 
   // Below the hook, for the reason the confirm dialog's own guard states.
   if (reference === null) {
@@ -903,11 +906,11 @@ export function LoadsLostRaceDialog({ reference }: LoadsLostRaceDialogProps) {
       >
         <DialogHeader className="gap-1.5">
           <DialogTitle className="text-base font-semibold">
-            Just claimed by another driver
+            {t("justClaimedByAnotherDriver")}
           </DialogTitle>
           <DialogDescription className="text-[13px]">
-            <span className="font-price">{reference}</span> was confirmed a
-            moment before you. It has been removed from your available list.
+            <span className="font-price">{reference}</span>{" "}
+            {t("wasConfirmedAMomentBeforeYou")}
           </DialogDescription>
         </DialogHeader>
 
@@ -916,7 +919,7 @@ export function LoadsLostRaceDialog({ reference }: LoadsLostRaceDialogProps) {
           className="mt-4 h-10 w-full text-sm"
           onClick={closeLost}
         >
-          Back to dashboard
+          {t("backToDashboard")}
         </Button>
       </DialogContent>
     </Dialog>

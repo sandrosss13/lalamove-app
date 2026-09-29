@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 
 import { Link, usePathname } from "@/i18n/navigation";
 import { useSignOut } from "@/components/auth/use-sign-out";
@@ -144,6 +145,9 @@ export function DriverHubTopNav({
   const pathname = usePathname();
   const { signOut, signingOut } = useSignOut();
   const [openPanel, setOpenPanel] = React.useState<OpenPanel>(null);
+  const tShared = useTranslations("common.shared");
+  // Unscoped: nav labels are root-relative keys (see `HubNavItem.labelKey`).
+  const tRoot = useTranslations();
 
   // `/dashboard/account` is not a `HUB_NAV` entry — it has no rail link, page
   // title or subhead — so its active state is resolved here rather than by
@@ -251,11 +255,11 @@ export function DriverHubTopNav({
           href={HOME_HREF}
           className="text-[16px] font-bold tracking-[-0.015em] whitespace-nowrap"
         >
-          Lalamove Clone
+          {tShared("lalamoveClone")}
         </Link>
 
         <nav
-          aria-label="Driver"
+          aria-label={tShared("driver")}
           className="hidden items-center gap-4 text-sm lg:flex"
         >
           {topNavItems.map((item) => {
@@ -271,7 +275,7 @@ export function DriverHubTopNav({
                   active ? "text-foreground" : "text-muted-foreground",
                 )}
               >
-                {item.label}
+                {tRoot(item.labelKey)}
               </Link>
             );
           })}
@@ -394,7 +398,7 @@ export function DriverHubTopNav({
                 onAccount ? "text-foreground" : "text-muted-foreground",
               )}
             >
-              My account
+              {tShared("myAccount")}
             </Link>
 
             {/* The hub's only way out, and the reason it has to live in the

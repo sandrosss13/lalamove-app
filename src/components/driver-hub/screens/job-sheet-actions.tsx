@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 
 import { useRouter } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
@@ -293,6 +294,7 @@ export type JobSheetActionBarProps = {
  */
 export function JobSheetActionBar({ job, nowIso }: JobSheetActionBarProps) {
   const router = useRouter();
+  const t = useTranslations("driverHub.jobSheetActions");
 
   const [isConfirmOpen, setIsConfirmOpen] = React.useState(false);
   const [startError, setStartError] = React.useState<string | null>(null);
@@ -444,7 +446,7 @@ export function JobSheetActionBar({ job, nowIso }: JobSheetActionBarProps) {
             disabled={isPending}
             className={PRIMARY_ACTION_CLASSES}
           >
-            Mark delivered
+            {t("markDelivered")}
           </Button>
         )}
       </div>
@@ -542,6 +544,8 @@ export function JobSheetConfirmDialog({
   onCompleted,
 }: JobSheetConfirmDialogProps) {
   const router = useRouter();
+  const t = useTranslations("driverHub.jobSheetActions");
+  const tShared = useTranslations("common.shared");
 
   /**
    * The waiting figure as a **string**, not a number.
@@ -579,7 +583,7 @@ export function JobSheetConfirmDialog({
     const trimmed = waitingMinutes.trim();
 
     if (!WHOLE_MINUTES.test(trimmed)) {
-      setError("Enter the waiting time as a whole number of minutes, or 0.");
+      setError(t("enterTheWaitingTimeAsA"));
       return;
     }
 
@@ -661,10 +665,10 @@ export function JobSheetConfirmDialog({
       >
         <DialogHeader className="gap-1.5">
           <DialogTitle className="text-base font-semibold tracking-[-0.01em]">
-            Confirm delivery
+            {t("confirmDelivery")}
           </DialogTitle>
           <DialogDescription className="text-[13px] leading-[1.5]">
-            This ends the job and cannot be undone.
+            {t("thisEndsTheJobAndCannot")}
           </DialogDescription>
         </DialogHeader>
 
@@ -673,9 +677,9 @@ export function JobSheetConfirmDialog({
             rather than the city: two deliveries in one afternoon are routinely
             both "Tbilisi". */}
         <dl className="mt-4.5 grid grid-cols-[76px_1fr] gap-x-3 gap-y-2 rounded-lg border border-border bg-muted p-3.5 text-[13px]">
-          <dt className="text-muted-foreground">Load</dt>
+          <dt className="text-muted-foreground">{tShared("load")}</dt>
           <dd className="min-w-0 truncate font-price">{job.reference}</dd>
-          <dt className="text-muted-foreground">Drop-off</dt>
+          <dt className="text-muted-foreground">{tShared("dropOff")}</dt>
           <dd className="min-w-0 leading-[1.4] break-words">
             {job.dropoffAddress}
           </dd>
@@ -683,7 +687,7 @@ export function JobSheetConfirmDialog({
 
         <div className="mt-4.5 flex flex-col gap-[7px]">
           <Label htmlFor="job-sheet-waiting" className="text-[13px]">
-            Waiting time
+            {tShared("waitingTime")}
           </Label>
           <div className="flex items-center gap-2.5">
             <Input
@@ -720,7 +724,7 @@ export function JobSheetConfirmDialog({
             id="job-sheet-waiting-help"
             className="text-xs leading-[1.45] text-muted-foreground"
           >
-            Whole minutes spent waiting at either stop. Enter 0 if none.
+            {t("wholeMinutesSpentWaitingAtEither")}
           </p>
           {/* **That** it changes the driver's pay, never *by how much*.
               `complete` computes the overtime server-side from the vehicle
@@ -740,14 +744,13 @@ export function JobSheetConfirmDialog({
             id="job-sheet-waiting-pay"
             className="text-xs leading-[1.45] text-muted-foreground"
           >
-            Waiting time beyond the free allowance adds an overtime payout to
-            this job, so this figure affects what you are paid.
+            {t("waitingTimeBeyondTheFreeAllowance")}
           </p>
         </div>
 
         <div className="mt-4.5 flex flex-col gap-[7px]">
           <Label htmlFor="job-sheet-received-by" className="text-[13px]">
-            Received by (optional)
+            {t("receivedByOptional")}
           </Label>
           <Input
             id="job-sheet-received-by"
@@ -762,7 +765,7 @@ export function JobSheetConfirmDialog({
             // Matched to `MAX_RECEIVED_BY_LENGTH` in `complete/route.ts`; the
             // server check is the boundary and stays.
             maxLength={RECEIVED_BY_MAX_LENGTH}
-            placeholder="Name of whoever took the goods"
+            placeholder={t("nameOfWhoeverTookTheGoods")}
             className="h-11 text-sm"
           />
         </div>
@@ -789,7 +792,7 @@ export function JobSheetConfirmDialog({
             disabled={isBusy}
             onClick={onClose}
           >
-            Cancel
+            {tShared("cancel")}
           </Button>
           <Button
             type="button"
@@ -799,7 +802,7 @@ export function JobSheetConfirmDialog({
               void handleConfirm();
             }}
           >
-            {isBusy ? "Confirming…" : "Confirm delivery"}
+            {isBusy ? "Confirming…" : t("confirmDelivery")}
           </Button>
         </div>
       </DialogContent>

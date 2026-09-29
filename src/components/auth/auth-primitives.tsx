@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
@@ -244,9 +245,13 @@ export function ContextChip({
 /* Mode toggle                                                                */
 /* -------------------------------------------------------------------------- */
 
-const MODE_SEGMENTS: readonly { value: FlowMode; label: string }[] = [
-  { value: "signin", label: "Sign in" },
-  { value: "signup", label: "Create account" },
+/** `labelKey` is a `common.shared` key, translated at render. */
+const MODE_SEGMENTS: readonly {
+  value: FlowMode;
+  labelKey: "signIn" | "createAccount";
+}[] = [
+  { value: "signin", labelKey: "signIn" },
+  { value: "signup", labelKey: "createAccount" },
 ];
 
 export type ModeToggleProps = {
@@ -265,6 +270,8 @@ export type ModeToggleProps = {
  * change what the *next* screens are, not what is rendered beside them.
  */
 export function ModeToggle({ value, onChange, className }: ModeToggleProps) {
+  const tShared = useTranslations("common.shared");
+
   return (
     <div
       className={cn(
@@ -293,7 +300,7 @@ export function ModeToggle({ value, onChange, className }: ModeToggleProps) {
                 : "bg-transparent text-[var(--landing-muted)] hover:text-[var(--landing-paper)]",
             )}
           >
-            {segment.label}
+            {tShared(segment.labelKey)}
           </button>
         );
       })}
@@ -623,6 +630,7 @@ export type SocialBlockProps = {
  * state but not its reason.
  */
 export function SocialBlock({ className }: SocialBlockProps) {
+  const t = useTranslations("auth.authPrimitives");
   const noteId = React.useId();
 
   return (
@@ -633,7 +641,7 @@ export function SocialBlock({ className }: SocialBlockProps) {
           className="h-px flex-1 bg-[var(--landing-line)]"
         />
         <span className="text-xs text-[var(--landing-muted)]">
-          or continue with
+          {t("orContinueWith")}
         </span>
         <span
           aria-hidden="true"
@@ -648,7 +656,7 @@ export function SocialBlock({ className }: SocialBlockProps) {
             type="button"
             variant="outline"
             disabled
-            title="Social sign-in is coming soon."
+            title={t("socialSignInIsComingSoon")}
             aria-describedby={noteId}
             className="h-11 w-full"
           >
@@ -664,7 +672,7 @@ export function SocialBlock({ className }: SocialBlockProps) {
         another. Email and password is the one path that actually completes.
       */}
       <p id={noteId} className="text-[13px] text-[var(--landing-muted)]">
-        Social sign-in is not available yet — use your email and password.
+        {t("socialSignInIsNotAvailable")}
       </p>
     </div>
   );

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ShieldCheck } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { useRouter } from "@/i18n/navigation";
 import { LanguageToggle } from "@/components/language-toggle";
@@ -53,6 +54,8 @@ const GENERIC_ERROR = "Those credentials don't have back-office access.";
  * pages is the point.
  */
 export default function AdminSignInPage() {
+  const t = useTranslations("admin.adminSignIn");
+  const tShared = useTranslations("common.shared");
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -101,17 +104,16 @@ export default function AdminSignInPage() {
             <ShieldCheck className="size-4.5" />
           </span>
           <h1 className="text-xl font-semibold tracking-tight">
-            Back office sign-in
+            {t("backOfficeSignIn")}
           </h1>
           <p className="text-sm text-muted-foreground">
-            Internal use only. Customer and driver accounts sign in on the main
-            site.
+            {t("internalUseOnlyCustomerAndDriver")}
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
-            <Label htmlFor="admin-email">Work email</Label>
+            <Label htmlFor="admin-email">{tShared("workEmail")}</Label>
             <Input
               id="admin-email"
               type="email"
@@ -123,7 +125,7 @@ export default function AdminSignInPage() {
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="admin-password">Password</Label>
+            <Label htmlFor="admin-password">{tShared("password")}</Label>
             <Input
               id="admin-password"
               type="password"
@@ -141,7 +143,7 @@ export default function AdminSignInPage() {
           ) : null}
 
           <Button type="submit" disabled={loading}>
-            {loading ? "Signing in…" : "Sign in"}
+            {loading ? "Signing in…" : tShared("signIn")}
           </Button>
         </form>
       </div>

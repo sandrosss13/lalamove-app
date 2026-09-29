@@ -15,6 +15,7 @@
  */
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 import {
   ONBOARDING_SCREENS,
@@ -43,10 +44,11 @@ const EMPTY_VALUE = "—";
  * only other place that renders them, and a summary row must not depend on a
  * sibling *screen* staying mounted or keeping its internal constants exported.
  */
-const CHASSIS_LABELS: Record<string, string> = {
-  DRY_BOX: "Dry Box",
-  REFRIGERATED: "Refrigerated Vehicle",
-  OPEN_CHASSIS: "Open Chassis",
+// Keys in the `common.shared` namespace.
+const CHASSIS_LABEL_KEYS: Record<string, string> = {
+  DRY_BOX: "dryBox",
+  REFRIGERATED: "refrigeratedVehicle",
+  OPEN_CHASSIS: "openChassis",
 };
 
 /** Short month names, so dates format identically in every driver's browser. */
@@ -72,6 +74,14 @@ const LICENCE_DOCUMENT_TYPES: OnboardingDocumentType[] = [
 ];
 
 type SummaryRow = { label: string; value: string };
+
+/**
+ * A `next-intl` translator, passed into the row builders below: they are plain
+ * functions rather than components, so they cannot call `useTranslations`
+ * themselves. `tShared` is scoped to `common.shared`, `t` to this step's own
+ * `onboarding.step4ReviewSubmit` namespace, `tRoot` to the catalog root.
+ */
+type Translate = (key: string) => string;
 
 type SummaryCard = {
   title: string;
@@ -134,20 +144,24 @@ function hasDocument(
 function buildPersonalRows(
   draft: OnboardingDraftV1,
   documents: OnboardingDocument[],
+  tShared: Translate,
 ): SummaryRow[] {
   const personal = draft.personal ?? {};
 
   return [
-    { label: "Name", value: orPlaceholder(personal.fullName) },
-    { label: "ID number", value: orPlaceholder(personal.idNumber) },
+    { label: tShared("name"), value: orPlaceholder(personal.fullName) },
+    { label: tShared("idNumber"), value: orPlaceholder(personal.idNumber) },
     {
-      label: "Date of birth",
+      label: tShared("dateOfBirth"),
       value: orPlaceholder(formatDate(personal.dateOfBirth)),
     },
-    { label: "Mobile", value: orPlaceholder(personal.phone) },
-    { label: "City", value: orPlaceholder(formatCityValue(personal.city)) },
+    { label: tShared("mobile"), value: orPlaceholder(personal.phone) },
     {
-      label: "Profile photo",
+      label: tShared("city"),
+      value: orPlaceholder(formatCityValue(personal.city)),
+    },
+    {
+      label: tShared("profilePhoto"),
       value: hasDocument(documents, "PROFILE_PHOTO") ? "Uploaded" : "Missing",
     },
   ];
@@ -157,6 +171,8 @@ function buildPersonalRows(
 function buildLicenceRows(
   draft: OnboardingDraftV1,
   documents: OnboardingDocument[],
+  t: Translate,
+  tShared: Translate,
 ): SummaryRow[] {
   const licence = draft.licence ?? {};
   const uploadedCount = LICENCE_DOCUMENT_TYPES.filter((type) =>
@@ -164,27 +180,34 @@ function buildLicenceRows(
   ).length;
 
   return [
-    { label: "Number", value: orPlaceholder(licence.licenceNumber) },
-    { label: "Expires", value: orPlaceholder(formatDate(licence.expiresAt)) },
+    { label: t("number"), value: orPlaceholder(licence.licenceNumber) },
     {
-      label: "Categories",
+      label: tShared("expires"),
+      value: orPlaceholder(formatDate(licence.expiresAt)),
+    },
+    {
+      label: tShared("categories"),
       value: orPlaceholder(licence.categories?.join(", ")),
     },
     {
-      label: "Photos",
+      label: tShared("photos"),
       value: `${uploadedCount} of ${LICENCE_DOCUMENT_TYPES.length}`,
     },
   ];
 }
 
 /** The vehicle card's rows. */
-function buildVehicleRows(draft: OnboardingDraftV1): SummaryRow[] {
+function buildVehicleRows(
+  draft: OnboardingDraftV1,
+  tShared: Translate,
+  tRoot: Translate,
+): SummaryRow[] {
   const vehicle = draft.vehicle ?? {};
 
   // Guarded rather than called straight: `findVehicleClass` throws on an
   // unknown id, and a half-filled draft legitimately has no class yet.
   const className = vehicle.classId
-    ? findVehicleClass(vehicle.classId as VehicleClassId).name
+    ? tRoot(findVehicleClass(vehicle.classId as VehicleClassId).nameKey)
     : null;
 
   const makeModel = [vehicle.make, vehicle.model].filter(Boolean).join(" ");
@@ -199,48 +222,53 @@ function buildVehicleRows(draft: OnboardingDraftV1): SummaryRow[] {
       ? `${vehicle.cargoLengthM} × ${vehicle.cargoWidthM} × ${vehicle.cargoHeightM} m`
       : null;
 
+  const chassisLabelKey = vehicle.chassisType
+    ? CHASSIS_LABEL_KEYS[vehicle.chassisType]
+    : undefined;
+
   return [
-    { label: "Class", value: orPlaceholder(className) },
+    { label: tShared("class"), value: orPlaceholder(className) },
     {
-      label: "Body",
-      value: orPlaceholder(
-        vehicle.chassisType ? CHASSIS_LABELS[vehicle.chassisType] : null,
-      ),
+      label: tShared("body"),
+      value: orPlaceholder(chassisLabelKey ? tShared(chassisLabelKey) : null),
     },
-    { label: "Make / model", value: orPlaceholder(makeModel) },
-    { label: "Year / colour", value: orPlaceholder(yearColour) },
-    { label: "Plate", value: orPlaceholder(vehicle.plateNumber) },
+    { label: tShared("makeModel"), value: orPlaceholder(makeModel) },
+    { label: tShared("yearColour"), value: orPlaceholder(yearColour) },
+    { label: tShared("plate"), value: orPlaceholder(vehicle.plateNumber) },
     {
-      label: "Payload",
+      label: tShared("payload"),
       value: orPlaceholder(
         vehicle.payloadKg ? `${formatNumber(vehicle.payloadKg)} kg` : null,
       ),
     },
-    { label: "Cargo hold", value: orPlaceholder(cargoHold) },
+    { label: tShared("cargoHold"), value: orPlaceholder(cargoHold) },
   ];
 }
 
 export function Step4ReviewSubmit() {
   const { draft, documents, goToStep, refetch } = useOnboardingDraft();
+  const t = useTranslations("onboarding.step4ReviewSubmit");
+  const tShared = useTranslations("common.shared");
+  const tRoot = useTranslations();
 
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const cards: SummaryCard[] = [
     {
-      title: "Personal information",
+      title: t("personalInformation"),
       editStep: ONBOARDING_SCREENS.personal,
-      rows: buildPersonalRows(draft, documents),
+      rows: buildPersonalRows(draft, documents, tShared),
     },
     {
-      title: "Driver's licence",
+      title: t("driverSLicence"),
       editStep: ONBOARDING_SCREENS.licence,
-      rows: buildLicenceRows(draft, documents),
+      rows: buildLicenceRows(draft, documents, t, tShared),
     },
     {
-      title: "Vehicle",
+      title: tShared("vehicle"),
       editStep: ONBOARDING_SCREENS.vehicleBodyAndClass,
-      rows: buildVehicleRows(draft),
+      rows: buildVehicleRows(draft, tShared, tRoot),
     },
   ];
 
@@ -278,8 +306,7 @@ export function Step4ReviewSubmit() {
   return (
     <div className="flex flex-col gap-3">
       <p className="text-[13.5px] leading-[1.5] text-muted-foreground">
-        Check everything before it goes to the review team. Corrections after
-        submission cost you a day.
+        {t("checkEverythingBeforeItGoesTo")}
       </p>
 
       {cards.map((card) => (
@@ -303,7 +330,7 @@ export function Step4ReviewSubmit() {
               onClick={() => goToStep(card.editStep)}
               className="cursor-pointer text-xs font-semibold text-onboarding-accent transition-colors hover:text-onboarding-accent-hover focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
             >
-              Edit
+              {tShared("edit")}
               <span className="sr-only"> {card.title.toLowerCase()}</span>
             </button>
           </div>

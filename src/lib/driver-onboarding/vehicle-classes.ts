@@ -56,7 +56,13 @@ export type VehicleClassId =
 
 export type VehicleClass = {
   id: VehicleClassId;
+  /** English name — kept for server-side callers (admin routes, logs). */
   name: string;
+  /** Full `next-intl` message path of `name`, for anything a reader sees:
+   *  `useTranslations()(vehicleClass.nameKey)`. A path rather than a
+   *  translated string because this module is shared with server routes and
+   *  cannot call a hook. */
+  nameKey: string;
   /** Mono category chip shown on the card, e.g. "CAT B". */
   chip: string;
   requiredLicenceCategory: LicenceCategory;
@@ -74,6 +80,7 @@ export const VEHICLE_CLASSES: VehicleClass[] = [
   {
     id: "SMALL_VAN",
     name: "Small Van",
+    nameKey: "onboarding.vehicleClasses.smallVan",
     chip: "CAT B",
     requiredLicenceCategory: "B",
     capacityLine: "Up to 800 kg · 2 pallets",
@@ -92,6 +99,7 @@ export const VEHICLE_CLASSES: VehicleClass[] = [
   {
     id: "LARGE_VAN",
     name: "Large Van",
+    nameKey: "onboarding.vehicleClasses.largeVan",
     chip: "CAT B",
     requiredLicenceCategory: "B",
     capacityLine: "800–1,500 kg · 4 pallets",
@@ -108,6 +116,7 @@ export const VEHICLE_CLASSES: VehicleClass[] = [
   {
     id: "MEDIUM_TRUCK",
     name: "Medium Truck",
+    nameKey: "onboarding.vehicleClasses.mediumTruck",
     chip: "CAT C",
     requiredLicenceCategory: "C",
     capacityLine: "1.5–7 t · 8 pallets",
@@ -122,6 +131,7 @@ export const VEHICLE_CLASSES: VehicleClass[] = [
   {
     id: "HEAVY_FREIGHT_TRUCK",
     name: "Heavy Freight Truck",
+    nameKey: "onboarding.vehicleClasses.heavyFreightTruck",
     chip: "CAT C",
     // Moved from CE to C by the approved business design: a three-axle rigid
     // is a Category C vehicle in Georgia; CE is what an articulated
@@ -143,6 +153,7 @@ export const VEHICLE_CLASSES: VehicleClass[] = [
   {
     id: "TRAILER_TRUCK",
     name: "Trailer Truck",
+    nameKey: "onboarding.vehicleClasses.trailerTruck",
     chip: "CAT CE",
     requiredLicenceCategory: "CE",
     capacityLine: "18–24 t · 33 pallets · articulated",
@@ -200,6 +211,12 @@ export type BodyType = {
   shortLabel: string;
   /** One-line description shown under the panel heading. */
   description: string;
+  /** Full `next-intl` message paths of the three strings above. The English
+   *  fields stay for server callers; anything rendered should translate these
+   *  (see `VehicleClass.nameKey` for why they are paths). */
+  labelKey: string;
+  shortLabelKey: string;
+  descriptionKey: string;
 };
 
 /** The three cargo body types, in the design's panel order. Reuses the
@@ -211,6 +228,10 @@ export const BODY_TYPES: BodyType[] = [
     label: "Dry Box",
     shortLabel: "Dry Box",
     description: "Enclosed rigid body. General palletised and boxed cargo.",
+    labelKey: "common.shared.dryBox",
+    shortLabelKey: "common.shared.dryBox",
+    descriptionKey:
+      "onboarding.vehicleClasses.enclosedRigidBodyGeneralPalletisedAnd",
   },
   {
     id: "REFRIGERATED",
@@ -218,6 +239,9 @@ export const BODY_TYPES: BodyType[] = [
     shortLabel: "Refrigerated",
     description:
       "Temperature-controlled, −20 °C to +8 °C. Cooling unit service record required per vehicle.",
+    labelKey: "common.shared.refrigeratedVehicle",
+    shortLabelKey: "home.bookingForm.refrigerated",
+    descriptionKey: "onboarding.vehicleClasses.temperatureControlled20CTo8",
   },
   {
     id: "OPEN_CHASSIS",
@@ -225,6 +249,9 @@ export const BODY_TYPES: BodyType[] = [
     shortLabel: "Open Chassis",
     description:
       "Flatbed or curtain-side with drop sides. Oversized, construction and machinery loads.",
+    labelKey: "common.shared.openChassis",
+    shortLabelKey: "common.shared.openChassis",
+    descriptionKey: "common.shared.flatbedOrCurtainSideWithDrop",
   },
 ];
 

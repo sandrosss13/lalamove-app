@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 import { Link } from "@/i18n/navigation";
 import { useSignOut } from "@/components/auth/use-sign-out";
 import { useSession } from "@/lib/auth-client";
@@ -9,6 +11,7 @@ import { useSession } from "@/lib/auth-client";
  * sign-out button, or sign-in / sign-up links when there is no session.
  */
 export function AuthStatus() {
+  const t = useTranslations("common.shared");
   const { data: session, isPending } = useSession();
   // Hoisted above the `session` branch below because hooks cannot be called
   // conditionally — the control it drives only renders when there *is* a
@@ -40,7 +43,7 @@ export function AuthStatus() {
           href={isClient ? "/account" : "/dashboard"}
           className="font-medium hover:opacity-70"
         >
-          {isClient ? "My account" : "Dashboard"}
+          {isClient ? t("myAccount") : t("dashboard")}
         </Link>
         <button
           type="button"
@@ -57,10 +60,10 @@ export function AuthStatus() {
   return (
     <div className="flex items-center gap-3 text-sm">
       <Link href="/sign-in" className="font-medium hover:opacity-70">
-        Sign in
+        {t("signIn")}
       </Link>
       <Link href="/sign-up" className="font-medium hover:opacity-70">
-        Sign up
+        {t("signUp")}
       </Link>
     </div>
   );
@@ -84,6 +87,8 @@ export function AuthStatus() {
  *   so it keeps that simpler, canonical destination.
  */
 export function HeaderBrandLink() {
+  const t = useTranslations("common.shared");
+  const tAuthStatus = useTranslations("common.authStatus");
   const { data: session } = useSession();
   const isMerchantUser =
     session?.user.role === "DRIVER" || session?.user.role === "COMPANY";
@@ -94,19 +99,19 @@ export function HeaderBrandLink() {
   return (
     <div className="flex items-center gap-5">
       <Link href={brandHref} className="font-bold">
-        Lalamove Clone
+        {t("lalamoveClone")}
       </Link>
 
       {isClient ? (
         <nav className="flex items-center gap-4 text-sm">
           <Link href="/" className="font-medium hover:opacity-70">
-            Place order
+            {tAuthStatus("placeOrder")}
           </Link>
           <Link href="/orders" className="font-medium hover:opacity-70">
-            My orders
+            {t("myOrders")}
           </Link>
           <Link href="/wallet" className="font-medium hover:opacity-70">
-            Wallet
+            {t("wallet")}
           </Link>
         </nav>
       ) : null}

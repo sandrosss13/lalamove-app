@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { Workbook } from "exceljs";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import {
   AVAILABILITY_STATUS,
   AVAILABILITY_STATUS_ORDER,
@@ -584,6 +585,8 @@ function addAvailabilitySheet(
 }
 
 export async function GET(request: Request): Promise<NextResponse> {
+  const t = await getRequestTranslations();
+
   // Read directly rather than through `requireDashboardSession()`, which
   // `redirect()`s: the browser would follow the redirect and save the sign-in
   // page as a spreadsheet. The two conditions below are the ones that guard
@@ -593,14 +596,18 @@ export async function GET(request: Request): Promise<NextResponse> {
 
   if (!session) {
     return NextResponse.json<HubAvailabilityExportError>(
-      { error: "Unauthorized." },
+      { error: t("common.shared.unauthorized") },
       { status: 401 },
     );
   }
 
   if (session.user.mustChangePassword || session.user.role === "CLIENT") {
     return NextResponse.json<HubAvailabilityExportError>(
-      { error: "This account cannot export a fleet roster." },
+      {
+        error: t(
+          "errors.dashboardHubDriversAvailabilityExport.thisAccountCannotExportAFleet",
+        ),
+      },
       { status: 403 },
     );
   }
@@ -609,7 +616,7 @@ export async function GET(request: Request): Promise<NextResponse> {
 
   if (account === null) {
     return NextResponse.json<HubAvailabilityExportError>(
-      { error: "Your driver profile isn't set up yet." },
+      { error: t("common.shared.yourDriverProfileIsnTSet") },
       { status: 403 },
     );
   }
@@ -627,8 +634,7 @@ export async function GET(request: Request): Promise<NextResponse> {
   if (data === null) {
     return NextResponse.json<HubAvailabilityExportError>(
       {
-        error:
-          "Driver availability is a fleet screen — only a logistics company account has a roster to lay out.",
+        error: t("common.shared.driverAvailabilityIsAFleetScreen"),
       },
       { status: 403 },
     );

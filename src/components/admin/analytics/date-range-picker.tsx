@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import type { DateRange } from "react-day-picker";
 import { CalendarDays } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { usePathname, useRouter } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
@@ -76,22 +77,23 @@ function startOfMonth(date: Date): Date {
  */
 const SHORTCUTS: {
   id: string;
-  label: string;
+  /** Full message path; resolved at render, since this array is module-level. */
+  labelKey: string;
   resolve: (today: Date) => { from: Date; to: Date };
 }[] = [
   {
     id: "today",
-    label: "Today",
+    labelKey: "common.shared.today",
     resolve: (today) => ({ from: today, to: today }),
   },
   {
     id: "week",
-    label: "This Week",
+    labelKey: "admin.dateRangePicker.thisWeek",
     resolve: (today) => ({ from: startOfWeek(today), to: today }),
   },
   {
     id: "month",
-    label: "This Month",
+    labelKey: "admin.dateRangePicker.thisMonth",
     resolve: (today) => ({ from: startOfMonth(today), to: today }),
   },
 ];
@@ -127,6 +129,7 @@ export type DateRangePickerProps = {
  * while the server re-renders.
  */
 export function DateRangePicker({ from, to, today }: DateRangePickerProps) {
+  const t = useTranslations();
   const router = useRouter();
   const pathname = usePathname();
   const [isPending, startTransition] = useTransition();
@@ -207,7 +210,7 @@ export function DateRangePicker({ from, to, today }: DateRangePickerProps) {
             disabled={isPending}
             onClick={() => applyRange(range.from, range.to)}
           >
-            {shortcut.label}
+            {t(shortcut.labelKey)}
           </Button>
         );
       })}
@@ -227,7 +230,9 @@ export function DateRangePicker({ from, to, today }: DateRangePickerProps) {
 
         <PopoverContent align="end" className="w-auto">
           <PopoverHeader>
-            <PopoverTitle>Custom range</PopoverTitle>
+            <PopoverTitle>
+              {t("admin.dateRangePicker.customRange")}
+            </PopoverTitle>
             <PopoverDescription>{draftLabel}</PopoverDescription>
           </PopoverHeader>
 
@@ -250,7 +255,7 @@ export function DateRangePicker({ from, to, today }: DateRangePickerProps) {
             disabled={!draft?.from || !draft.to}
             onClick={handleApplyDraft}
           >
-            Apply
+            {t("admin.dateRangePicker.apply")}
           </Button>
         </PopoverContent>
       </Popover>

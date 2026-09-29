@@ -7,6 +7,7 @@ import {
   type Prisma,
 } from "@prisma/client";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { authorizeAdminApi } from "@/lib/admin/api-auth";
 import { writeAuditLog } from "@/lib/admin/audit";
 import { parseHomePageSection } from "@/lib/admin/home-page-content";
@@ -73,9 +74,10 @@ function toSectionRow(section: HomePageSection): AdminHomePageSectionRow {
 function parseUpdateBody(
   body: unknown,
   existing: HomePageSection,
+  t: (key: string) => string,
 ): { data: Prisma.HomePageSectionUpdateInput } | { error: string } {
   if (typeof body !== "object" || body === null) {
-    return { error: "Request body must be a JSON object." };
+    return { error: t("common.shared.requestBodyMustBeAJson") };
   }
 
   const record = body as Record<string, unknown>;
@@ -84,7 +86,9 @@ function parseUpdateBody(
   if ("type" in record || "content" in record) {
     const nextType = "type" in record ? record.type : existing.type;
     if (typeof nextType !== "string") {
-      return { error: "type must be a string." };
+      return {
+        error: t("errors.adminContentHomePageSections.typeMustBeAString"),
+      };
     }
 
     const nextContent = "content" in record ? record.content : existing.content;
@@ -132,7 +136,7 @@ function parseUpdateBody(
   if ("isActive" in record) {
     const { isActive } = record;
     if (typeof isActive !== "boolean") {
-      return { error: "isActive must be a boolean." };
+      return { error: t("common.shared.isactiveMustBeABoolean") };
     }
 
     data.isActive = isActive;
@@ -159,6 +163,8 @@ export async function PATCH(
     return authorized.response;
   }
 
+  const t = await getRequestTranslations();
+
   const { id } = await params;
 
   let rawBody: unknown;
@@ -166,7 +172,7 @@ export async function PATCH(
     rawBody = await request.json();
   } catch {
     return NextResponse.json(
-      { error: "Request body must be valid JSON." },
+      { error: t("common.shared.requestBodyMustBeValidJson") },
       { status: 400 },
     );
   }
@@ -178,12 +184,14 @@ export async function PATCH(
 
   if (!existing) {
     return NextResponse.json(
-      { error: "Home page section not found." },
+      {
+        error: t("errors.adminContentHomePageSections.homePageSectionNotFound"),
+      },
       { status: 404 },
     );
   }
 
-  const parsed = parseUpdateBody(rawBody, existing);
+  const parsed = parseUpdateBody(rawBody, existing, t);
   if ("error" in parsed) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
@@ -240,13 +248,17 @@ export async function DELETE(
     return authorized.response;
   }
 
+  const t = await getRequestTranslations();
+
   const { id } = await params;
 
   const existing = await prisma.homePageSection.findUnique({ where: { id } });
 
   if (!existing) {
     return NextResponse.json(
-      { error: "Home page section not found." },
+      {
+        error: t("errors.adminContentHomePageSections.homePageSectionNotFound"),
+      },
       { status: 404 },
     );
   }

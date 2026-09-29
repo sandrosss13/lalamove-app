@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 
 // Type-only imports, so nothing of the `server-only` storage module or of the
 // route's server dependencies is pulled into this client bundle — both are
@@ -126,6 +127,7 @@ export function AdminImageUpload({
   id,
   disabled = false,
 }: AdminImageUploadProps) {
+  const t = useTranslations();
   const [state, setState] = useState<"idle" | "uploading" | "failed">("idle");
   const [message, setMessage] = useState<string | null>(null);
   // The last file chosen, kept so the retry button can re-run the sequence.
@@ -223,7 +225,7 @@ export function AdminImageUpload({
         >
           {previewFailed ? (
             <span className="px-3 text-center text-xs text-muted-foreground">
-              No preview
+              {t("admin.adminImageUpload.noPreview")}
             </span>
           ) : (
             <>
@@ -286,7 +288,7 @@ export function AdminImageUpload({
             disabled={disabled}
             onClick={() => onChange("")}
           >
-            Remove
+            {t("common.shared.remove")}
           </Button>
         ) : null}
 
@@ -298,7 +300,7 @@ export function AdminImageUpload({
             disabled={disabled}
             onClick={() => void upload(pendingFile)}
           >
-            Try again
+            {t("common.shared.tryAgain")}
           </Button>
         ) : null}
 
@@ -317,7 +319,7 @@ export function AdminImageUpload({
         // any percentage shown here would be invented.
         <div
           role="status"
-          aria-label="Uploading image"
+          aria-label={t("admin.adminImageUpload.uploadingImage")}
           className="h-1 w-full overflow-hidden rounded-full bg-muted"
         >
           <div className="h-full w-1/3 animate-pulse rounded-full bg-primary" />
@@ -331,7 +333,7 @@ export function AdminImageUpload({
           onChange={(event) => onChange(event.target.value)}
           placeholder="https://example.com/banner.jpg"
           disabled={disabled}
-          aria-label="Image URL"
+          aria-label={t("common.shared.imageUrl")}
         />
       ) : null}
 

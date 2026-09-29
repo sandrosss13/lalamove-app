@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 import { useRouter } from "@/i18n/navigation";
 import { VehicleTypeSelect } from "@/components/vehicle-type-select";
@@ -24,6 +25,11 @@ const MIN_VEHICLE_YEAR = 1980;
  * renders this inside a drawer can close it and raise a toast.
  */
 export function CompanyVehicleForm({ onSuccess }: { onSuccess?: () => void }) {
+  const t = useTranslations("common.companyVehicleForm");
+  const tShared = useTranslations("common.shared");
+  // "Add vehicle" was extracted once, from the driver hub's vehicles screen;
+  // borrowed from there rather than duplicated so the two buttons agree.
+  const tVehicles = useTranslations("driverHub.vehiclesScreen");
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -76,7 +82,7 @@ export function CompanyVehicleForm({ onSuccess }: { onSuccess?: () => void }) {
         // ran, so surfacing a network error here would be a lie.
       }
     } catch {
-      setError("Network error. Please check your connection and try again.");
+      setError(tShared("networkErrorPleaseCheckYourConnection"));
     } finally {
       setSubmitting(false);
     }
@@ -85,40 +91,40 @@ export function CompanyVehicleForm({ onSuccess }: { onSuccess?: () => void }) {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       <label className="flex flex-col gap-1 text-sm">
-        Plate number
+        {t("plateNumber")}
         <input
           type="text"
           name="plateNumber"
           required
-          placeholder="e.g. AA-123-BB"
+          placeholder={t("eGAa123Bb")}
           className="rounded border px-3 py-2"
         />
       </label>
 
       <label className="flex flex-col gap-1 text-sm">
-        Make
+        {tShared("make")}
         <input
           type="text"
           name="make"
           required
-          placeholder="e.g. Mercedes-Benz"
+          placeholder={t("eGMercedesBenz")}
           className="rounded border px-3 py-2"
         />
       </label>
 
       <label className="flex flex-col gap-1 text-sm">
-        Model
+        {tShared("model")}
         <input
           type="text"
           name="model"
           required
-          placeholder="e.g. Actros"
+          placeholder={t("eGActros")}
           className="rounded border px-3 py-2"
         />
       </label>
 
       <label className="flex flex-col gap-1 text-sm">
-        Year
+        {tShared("year")}
         <input
           type="number"
           name="year"
@@ -136,7 +142,7 @@ export function CompanyVehicleForm({ onSuccess }: { onSuccess?: () => void }) {
       />
 
       <label className="flex flex-col gap-1 text-sm">
-        Photos
+        {tShared("photos")}
         <input
           type="file"
           name="photos"
@@ -146,13 +152,13 @@ export function CompanyVehicleForm({ onSuccess }: { onSuccess?: () => void }) {
           className="rounded border px-3 py-2"
         />
         <span className="text-xs opacity-60">
-          At least one photo is required. You can select several at once.
+          {t("atLeastOnePhotoIsRequired")}
         </span>
       </label>
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
       {success ? (
-        <p className="text-sm text-green-700">Vehicle added to your fleet.</p>
+        <p className="text-sm text-green-700">{t("vehicleAddedToYourFleet")}</p>
       ) : null}
 
       <button
@@ -160,7 +166,7 @@ export function CompanyVehicleForm({ onSuccess }: { onSuccess?: () => void }) {
         disabled={submitting}
         className="self-start rounded border px-4 py-2 font-medium hover:opacity-70 disabled:opacity-50"
       >
-        {submitting ? "Adding…" : "Add vehicle"}
+        {submitting ? "Adding…" : tVehicles("addVehicle")}
       </button>
     </form>
   );

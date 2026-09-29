@@ -3,6 +3,7 @@
 import type * as React from "react";
 import { useCallback, useEffect, useId, useState } from "react";
 import { X } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import {
   cardBrandChipClasses,
@@ -227,6 +228,8 @@ export function AddCardDialog({
   isFirstCard,
   onSubmit,
 }: AddCardDialogProps) {
+  const t = useTranslations("home.addCardDialog");
+  const tShared = useTranslations("common.shared");
   const [cardNumber, setCardNumber] = useState("");
   const [expiry, setExpiry] = useState("");
   const [cvc, setCvc] = useState("");
@@ -345,10 +348,10 @@ export function AddCardDialog({
               eyebrow, and its 13px/600/wide-tracking treatment assumes the body
               face. */}
           <DialogTitle className="font-sans text-[0.8125rem] font-semibold tracking-[0.1em] text-muted uppercase">
-            Add card
+            {t("addCard")}
           </DialogTitle>
           <DialogDescription className="text-[0.8125rem] leading-snug text-muted">
-            Credit or debit card. Nothing is charged until you book a delivery.
+            {t("creditOrDebitCardNothingIs")}
           </DialogDescription>
         </DialogHeader>
 
@@ -358,7 +361,7 @@ export function AddCardDialog({
             className="absolute top-4 right-4 flex size-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface hover:text-paper"
           >
             <X aria-hidden="true" className="size-4" />
-            <span className="sr-only">Close</span>
+            <span className="sr-only">{tShared("close")}</span>
           </button>
         </DialogClose>
 
@@ -372,9 +375,7 @@ export function AddCardDialog({
             remember the number in its card manager. That is the user's own
             browser and their own choice; nothing here transmits or stores it. */}
         <p className="mt-4 rounded-lg border border-line bg-surface p-3 text-xs leading-relaxed text-muted">
-          Gateway integration is pending. Your card details are not sent
-          anywhere and nothing is charged — only the brand and last four digits
-          are saved so you can recognise the card.
+          {t("gatewayIntegrationIsPendingYourCard")}
         </p>
 
         <form
@@ -395,7 +396,7 @@ export function AddCardDialog({
         >
           <div className="flex flex-col gap-1.5">
             <Label htmlFor={cardNumberId} className={FIELD_LABEL_CLASSES}>
-              Card number
+              {t("cardNumber")}
             </Label>
             <div className={CARD_NUMBER_BOX_CLASSES}>
               <input
@@ -424,14 +425,14 @@ export function AddCardDialog({
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor={expiryId} className={FIELD_LABEL_CLASSES}>
-                Expiry
+                {t("expiry")}
               </Label>
               <input
                 id={expiryId}
                 type="text"
                 inputMode="numeric"
                 autoComplete="cc-exp"
-                placeholder="MM/YY"
+                placeholder={t("mmYy")}
                 value={expiry}
                 onChange={(event) =>
                   setExpiry(formatExpiry(event.target.value))
@@ -442,7 +443,7 @@ export function AddCardDialog({
 
             <div className="flex flex-col gap-1.5">
               <Label htmlFor={cvcId} className={FIELD_LABEL_CLASSES}>
-                CVC
+                {t("cvc")}
               </Label>
               <input
                 id={cvcId}
@@ -461,13 +462,13 @@ export function AddCardDialog({
 
           <div className="flex flex-col gap-1.5">
             <Label htmlFor={holderNameId} className={FIELD_LABEL_CLASSES}>
-              Name on card
+              {t("nameOnCard")}
             </Label>
             <input
               id={holderNameId}
               type="text"
               autoComplete="cc-name"
-              placeholder="As printed on the card"
+              placeholder={t("asPrintedOnTheCard")}
               value={holderName}
               onChange={(event) => setHolderName(event.target.value)}
               className={FIELD_CLASSES}
@@ -489,7 +490,7 @@ export function AddCardDialog({
               htmlFor={defaultCheckboxId}
               className="text-[0.8125rem] font-normal text-paper"
             >
-              Set as default payment method
+              {t("setAsDefaultPaymentMethod")}
             </Label>
           </div>
 
@@ -503,7 +504,7 @@ export function AddCardDialog({
             <div className="flex items-center justify-end gap-2">
               <DialogClose asChild>
                 <button type="button" className={CANCEL_BUTTON_CLASSES}>
-                  Cancel
+                  {tShared("cancel")}
                 </button>
               </DialogClose>
               <button

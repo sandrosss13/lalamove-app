@@ -2,6 +2,7 @@
 
 import type { ReactElement } from "react";
 import type { CargoCategory } from "@prisma/client";
+import { useTranslations } from "next-intl";
 
 import {
   CARGO_CATEGORY_ALLOWED_VEHICLE_CATEGORIES,
@@ -237,6 +238,7 @@ export function LandingCategoryTiles({
 }: {
   content?: CategoryTilesContent;
 }) {
+  const t = useTranslations("landing.landingCategoryTiles");
   const { vehicleTypes } = useLandingVehicleTypes();
 
   return (
@@ -285,7 +287,7 @@ export function LandingCategoryTiles({
                         ? formatGel(fromPrice(vehicleType))
                         : EMPTY_FIGURE}
                     </span>
-                    <span className="sr-only"> — price your own route</span>
+                    <span className="sr-only"> {t("priceYourOwnRoute")}</span>
                   </span>
                 </a>
               </li>

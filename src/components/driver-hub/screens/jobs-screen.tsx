@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 
 import { useHubSubtitle } from "@/components/driver-hub/driver-hub-shell";
 import {
@@ -68,11 +69,14 @@ import { cn } from "@/lib/utils";
  * the counts cannot describe different sets.
  */
 const TABS = [
-  { value: "All", label: "All" },
-  { value: "Active", label: "Active" },
-  { value: "Completed", label: "Completed" },
-  { value: "Cancelled", label: "Cancelled" },
-] as const satisfies readonly FilterStripItem[];
+  { value: "All", labelKey: "all" },
+  { value: "Active", labelKey: "active" },
+  { value: "Completed", labelKey: "completed" },
+  { value: "Cancelled", labelKey: "cancelled" },
+] as const satisfies readonly (Omit<FilterStripItem, "label"> & {
+  /** A `common.shared` key, resolved at render so the pills follow the locale. */
+  labelKey: string;
+})[];
 
 type JobsTab = (typeof TABS)[number]["value"];
 
@@ -186,6 +190,13 @@ export type JobsScreenProps = {
 
 export function JobsScreen({ data, nowIso }: JobsScreenProps) {
   const { jobs, counts } = data;
+  const t = useTranslations("driverHub.jobsScreen");
+  const tShared = useTranslations("common.shared");
+
+  const tabItems: FilterStripItem[] = TABS.map((item) => ({
+    value: item.value,
+    label: tShared(item.labelKey),
+  }));
 
   const [tab, setTab] = React.useState<JobsTab>("All");
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
@@ -234,7 +245,7 @@ export function JobsScreen({ data, nowIso }: JobsScreenProps) {
           {hasJobs ? (
             <div className="mb-[18px] flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
               <FilterStrip
-                items={TABS}
+                items={tabItems}
                 value={tab}
                 onChange={(next) => {
                   if (isJobsTab(next)) {
@@ -268,25 +279,25 @@ export function JobsScreen({ data, nowIso }: JobsScreenProps) {
                     )}
                   >
                     <TableHead role="columnheader" className={HEAD_CLASSES}>
-                      Job
+                      {t("job")}
                     </TableHead>
                     <TableHead role="columnheader" className={HEAD_CLASSES}>
-                      Route
+                      {tShared("route")}
                     </TableHead>
                     <TableHead role="columnheader" className={HEAD_CLASSES}>
-                      Distance
+                      {tShared("distance")}
                     </TableHead>
                     <TableHead role="columnheader" className={HEAD_CLASSES}>
-                      Time
+                      {tShared("time")}
                     </TableHead>
                     <TableHead role="columnheader" className={HEAD_CLASSES}>
-                      Fare
+                      {t("fare")}
                     </TableHead>
                     <TableHead
                       role="columnheader"
                       className={cn(HEAD_CLASSES, "text-right")}
                     >
-                      Status
+                      {tShared("status")}
                     </TableHead>
                   </TableRow>
                 </TableHeader>
@@ -403,8 +414,7 @@ export function JobsScreen({ data, nowIso }: JobsScreenProps) {
           ) : (
             <HubEmptyState message="No jobs yet.">
               <p className="mt-1.5 text-[13px]">
-                Completed, scheduled and cancelled jobs all land here, with
-                their route, timeline and fare breakdown.
+                {t("completedScheduledAndCancelledJobsAll")}
               </p>
             </HubEmptyState>
           )}

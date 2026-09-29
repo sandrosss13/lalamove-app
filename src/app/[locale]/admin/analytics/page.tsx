@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { Download } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
 import { localeHref } from "@/i18n/server";
 import { adminNavSection } from "@/components/admin/admin-nav";
@@ -47,6 +48,7 @@ export default async function AnalyticsPage({
   const params = await searchParams;
   const range = resolveSalesRange({ from: params.from, to: params.to });
   const summary = await getSalesSummary(range);
+  const tShared = await getTranslations("common.shared");
 
   // Built from the *resolved* params rather than the raw query string, so a
   // partial or malformed URL exports the same range the cards are showing.
@@ -73,7 +75,7 @@ export default async function AnalyticsPage({
           <Button asChild variant="outline" size="sm">
             <a href={exportHref}>
               <Download data-icon="inline-start" />
-              Export to Excel
+              {tShared("exportToExcel")}
             </a>
           </Button>
         </div>

@@ -8,6 +8,7 @@ import {
   type MessagingTemplate,
 } from "@prisma/client";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { authorizeAdminApi } from "@/lib/admin/api-auth";
 import { writeAuditLog } from "@/lib/admin/audit";
 import { prisma } from "@/lib/prisma";
@@ -133,16 +134,17 @@ function isDuplicateTemplateError(error: unknown): boolean {
  */
 function parseCreateBody(
   body: unknown,
+  t: (key: string) => string,
 ): { data: CreateMessagingTemplateInput } | { error: string } {
   if (typeof body !== "object" || body === null) {
-    return { error: "Request body must be a JSON object." };
+    return { error: t("common.shared.requestBodyMustBeAJson") };
   }
 
   const record = body as Record<string, unknown>;
 
   const { key } = record;
   if (typeof key !== "string" || key.trim() === "") {
-    return { error: "key is required and must be a non-empty string." };
+    return { error: t("common.shared.keyIsRequiredAndMustBe") };
   }
   if (key.trim().length > MAX_KEY_LENGTH) {
     return { error: `key must be ${MAX_KEY_LENGTH} characters or fewer.` };
@@ -166,7 +168,11 @@ function parseCreateBody(
     subject !== null &&
     typeof subject !== "string"
   ) {
-    return { error: "subject must be a string when provided." };
+    return {
+      error: t(
+        "errors.adminContentMessagingTemplates.subjectMustBeAStringWhen",
+      ),
+    };
   }
   const trimmedSubject =
     typeof subject === "string" && subject.trim() !== ""
@@ -180,7 +186,9 @@ function parseCreateBody(
 
   const messageBody = record.body;
   if (typeof messageBody !== "string" || messageBody.trim() === "") {
-    return { error: "body is required and must be a non-empty string." };
+    return {
+      error: t("errors.adminContentMessagingTemplates.bodyIsRequiredAndMustBe"),
+    };
   }
   if (messageBody.length > MAX_BODY_LENGTH) {
     return { error: `body must be ${MAX_BODY_LENGTH} characters or fewer.` };
@@ -188,7 +196,11 @@ function parseCreateBody(
 
   const { isActive } = record;
   if (isActive !== undefined && typeof isActive !== "boolean") {
-    return { error: "isActive must be a boolean when provided." };
+    return {
+      error: t(
+        "errors.adminContentMessagingTemplates.isactiveMustBeABooleanWhen",
+      ),
+    };
   }
 
   return {
@@ -252,17 +264,19 @@ export async function POST(request: Request): Promise<NextResponse> {
     return authorized.response;
   }
 
+  const t = await getRequestTranslations();
+
   let rawBody: unknown;
   try {
     rawBody = await request.json();
   } catch {
     return NextResponse.json(
-      { error: "Request body must be valid JSON." },
+      { error: t("common.shared.requestBodyMustBeValidJson") },
       { status: 400 },
     );
   }
 
-  const parsed = parseCreateBody(rawBody);
+  const parsed = parseCreateBody(rawBody, t);
   if ("error" in parsed) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
@@ -276,8 +290,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     if (isDuplicateTemplateError(error)) {
       return NextResponse.json(
         {
-          error:
-            "A template with that key already exists for this channel and locale.",
+          error: t("common.shared.aTemplateWithThatKeyAlready"),
         },
         { status: 409 },
       );

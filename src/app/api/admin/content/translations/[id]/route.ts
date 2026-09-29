@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import type { AdminRole } from "@prisma/client";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { authorizeAdminApi } from "@/lib/admin/api-auth";
 import { writeAuditLog } from "@/lib/admin/audit";
 import { prisma } from "@/lib/prisma";
@@ -45,6 +46,8 @@ export async function PATCH(
     return authorized.response;
   }
 
+  const t = await getRequestTranslations();
+
   const { id } = await params;
 
   let rawBody: unknown;
@@ -52,14 +55,14 @@ export async function PATCH(
     rawBody = await request.json();
   } catch {
     return NextResponse.json(
-      { error: "Request body must be valid JSON." },
+      { error: t("common.shared.requestBodyMustBeValidJson") },
       { status: 400 },
     );
   }
 
   if (typeof rawBody !== "object" || rawBody === null) {
     return NextResponse.json(
-      { error: "Request body must be a JSON object." },
+      { error: t("common.shared.requestBodyMustBeAJson") },
       { status: 400 },
     );
   }
@@ -68,7 +71,9 @@ export async function PATCH(
 
   if (typeof value !== "string" || value.trim() === "") {
     return NextResponse.json(
-      { error: "value is required and must be a non-empty string." },
+      {
+        error: t("errors.adminContentTranslations.valueIsRequiredAndMustBe"),
+      },
       { status: 400 },
     );
   }
@@ -94,7 +99,9 @@ export async function PATCH(
 
   if (!existing) {
     return NextResponse.json(
-      { error: "Translation entry not found." },
+      {
+        error: t("errors.adminContentTranslations.translationEntryNotFound"),
+      },
       { status: 404 },
     );
   }
@@ -148,6 +155,8 @@ export async function DELETE(
     return authorized.response;
   }
 
+  const t = await getRequestTranslations();
+
   const { id } = await params;
 
   // Read before delete for the same reasons as the PATCH above: a clean 404 for
@@ -160,7 +169,9 @@ export async function DELETE(
 
   if (!existing) {
     return NextResponse.json(
-      { error: "Translation entry not found." },
+      {
+        error: t("errors.adminContentTranslations.translationEntryNotFound"),
+      },
       { status: 404 },
     );
   }

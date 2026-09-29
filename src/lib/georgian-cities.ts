@@ -1,3 +1,5 @@
+import { useTranslations } from "next-intl";
+
 /**
  * Selectable driver cities. Values mirror the `GeorgianCity` Prisma enum; they
  * are duplicated here (rather than imported from `@prisma/client`) to keep the
@@ -5,6 +7,11 @@
  * onboarding wizard's searchable city dropdown ("Batumi · Adjara") — existing
  * callers that only read `value`/`label` (the sign-up form, the company
  * dashboard's add-driver drawer) are unaffected by its addition.
+ *
+ * `label` and `region` stay English: they are the canonical names (search
+ * matching, admin exports, logs). Anything that *renders* a city should go
+ * through `useLocalizedCityOptions` / `localizeCityOptions` below, which swap
+ * both for the reader's language from the `cities` namespace.
  */
 export const GEORGIAN_CITY_OPTIONS = [
   { value: "TBILISI", label: "Tbilisi", region: "Tbilisi" },
@@ -71,3 +78,55 @@ export const GEORGIAN_CITY_OPTIONS = [
   { value: "KHULO", label: "Khulo", region: "Adjara" },
   { value: "SHUAKHEVI", label: "Shuakhevi", region: "Adjara" },
 ] as const;
+
+export type GeorgianCityOption = (typeof GEORGIAN_CITY_OPTIONS)[number];
+
+/** The message namespace the city and region names live in. */
+export const CITY_NAMES_NAMESPACE = "cities.georgianCities";
+
+/**
+ * The `cities.georgianCities` key for an English city or region name, derived
+ * the way `scripts/extract-translations.mjs` derived it: camelCase over the
+ * name's words ("Kvemo Kartli" → `kvemoKartli`, "Racha-Lechkhumi" →
+ * `rachaLechkhumi`). Every `label` and `region` above has a catalog entry under
+ * exactly this key.
+ */
+export function cityNameKey(englishName: string): string {
+  return englishName
+    .split(/[^A-Za-z]+/)
+    .filter(Boolean)
+    .map((word, index) =>
+      index === 0
+        ? word.toLowerCase()
+        : word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
+    )
+    .join("");
+}
+
+/** A translator bound to `CITY_NAMES_NAMESPACE`. */
+type CityNameTranslator = (key: string) => string;
+
+/**
+ * The options with `label` and `region` in the reader's language, `value`
+ * untouched. For server code that already holds a translator:
+ *
+ * ```ts
+ * const t = await getTranslations(CITY_NAMES_NAMESPACE);
+ * const cities = localizeCityOptions(t);
+ * ```
+ */
+export function localizeCityOptions(t: CityNameTranslator) {
+  return GEORGIAN_CITY_OPTIONS.map((option) => ({
+    value: option.value,
+    label: t(cityNameKey(option.label)),
+    region: t(cityNameKey(option.region)),
+  }));
+}
+
+/**
+ * Drop-in, localized replacement for `GEORGIAN_CITY_OPTIONS` in a component
+ * (client, or a non-async server component).
+ */
+export function useLocalizedCityOptions() {
+  return localizeCityOptions(useTranslations(CITY_NAMES_NAMESPACE));
+}

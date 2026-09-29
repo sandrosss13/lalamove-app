@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 import type { LicenceCategory } from "@prisma/client";
 
 import { Button } from "@/components/ui/button";
@@ -109,11 +110,12 @@ export type DriversAddPanelProps = {
  */
 const LICENCE_CATEGORY_OPTIONS: readonly {
   value: LicenceCategory;
-  note: string;
+  /** Key under `driverHub.driversAddPanel`, resolved at render time. */
+  noteKey: "carsAndSmallVans" | "rigidTrucks" | "articulatedCombinations";
 }[] = [
-  { value: "B", note: "Cars and small vans" },
-  { value: "C", note: "Rigid trucks" },
-  { value: "CE", note: "Articulated combinations" },
+  { value: "B", noteKey: "carsAndSmallVans" },
+  { value: "C", noteKey: "rigidTrucks" },
+  { value: "CE", noteKey: "articulatedCombinations" },
 ];
 
 /** The radio value that means "no vehicle yet" — the endpoint reads it as null. */
@@ -187,6 +189,8 @@ export function DriversAddPanel({
   onCancel,
   onRegistered,
 }: DriversAddPanelProps) {
+  const t = useTranslations("driverHub.driversAddPanel");
+  const tShared = useTranslations("common.shared");
   const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [phone, setPhone] = React.useState("");
@@ -325,7 +329,7 @@ export function DriversAddPanel({
       const created = (await response.json()) as RegisteredDriver;
       onRegistered(created);
     } catch {
-      setError("Network error. Check your connection and try again.");
+      setError(t("networkErrorCheckYourConnectionAnd"));
     } finally {
       setSubmitting(false);
     }
@@ -339,51 +343,50 @@ export function DriversAddPanel({
         {/* A heading element, like the sibling panels' titles — this is the
             heading of the rail `MasterDetailSplit` just opened, not a stray
             line of body copy. */}
-        <h2 className="text-base font-semibold">Register a driver</h2>
+        <h2 className="text-base font-semibold">{t("registerADriver")}</h2>
         <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
-          This creates their account. They sign in with the email below and the
-          one-time password shown after saving, then set their own.
+          {t("thisCreatesTheirAccountTheySign")}
         </p>
       </div>
 
       <form onSubmit={handleSubmit} className="mt-5 flex flex-col gap-3.5">
-        <PanelField label="Full name" htmlFor="hub-driver-name">
+        <PanelField label={tShared("fullName")} htmlFor="hub-driver-name">
           <Input
             id="hub-driver-name"
             value={name}
             onChange={(event) => setName(event.target.value)}
-            placeholder="e.g. Nika Kavtaradze"
+            placeholder={tShared("eGNikaKavtaradze")}
             autoComplete="off"
             className={INPUT_CLASSES}
           />
         </PanelField>
 
-        <PanelField label="Email" htmlFor="hub-driver-email">
+        <PanelField label={tShared("email")} htmlFor="hub-driver-email">
           <Input
             id="hub-driver-email"
             type="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            placeholder="driver@example.com"
+            placeholder={tShared("driverExampleCom")}
             autoComplete="off"
             className={INPUT_CLASSES}
           />
         </PanelField>
 
         <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3">
-          <PanelField label="Phone" htmlFor="hub-driver-phone">
+          <PanelField label={tShared("phone")} htmlFor="hub-driver-phone">
             <Input
               id="hub-driver-phone"
               type="tel"
               value={phone}
               onChange={(event) => setPhone(event.target.value)}
-              placeholder="+995 5XX XXX XXX"
+              placeholder={t("9955xxXxxXxx")}
               autoComplete="off"
               className={cn(INPUT_CLASSES, MONO_INPUT_CLASSES)}
             />
           </PanelField>
 
-          <PanelField label="Zone" htmlFor="hub-driver-zone">
+          <PanelField label={tShared("zone")} htmlFor="hub-driver-zone">
             <Select value={city} onValueChange={setCity}>
               <SelectTrigger
                 id="hub-driver-zone"
@@ -397,7 +400,7 @@ export function DriversAddPanel({
                   "w-full data-[size=default]:h-auto",
                 )}
               >
-                <SelectValue placeholder="Pick a city" />
+                <SelectValue placeholder={t("pickACity")} />
               </SelectTrigger>
               {/* Portalled out of the shell's subtree, so it has to carry
                   `data-admin-surface` itself or it renders in the site palette. */}
@@ -413,18 +416,24 @@ export function DriversAddPanel({
         </div>
 
         <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3">
-          <PanelField label="Licence number" htmlFor="hub-driver-licence">
+          <PanelField
+            label={tShared("licenceNumber")}
+            htmlFor="hub-driver-licence"
+          >
             <Input
               id="hub-driver-licence"
               value={licenceNumber}
               onChange={(event) => setLicenceNumber(event.target.value)}
-              placeholder="e.g. 01234567"
+              placeholder={t("eG01234567")}
               autoComplete="off"
               className={cn(INPUT_CLASSES, MONO_INPUT_CLASSES)}
             />
           </PanelField>
 
-          <PanelField label="Expires" htmlFor="hub-driver-licence-expiry">
+          <PanelField
+            label={tShared("expires")}
+            htmlFor="hub-driver-licence-expiry"
+          >
             <Input
               id="hub-driver-licence-expiry"
               type="date"
@@ -437,7 +446,7 @@ export function DriversAddPanel({
 
         <fieldset className="flex min-w-0 flex-col gap-2">
           <legend className="mb-1.5 text-xs font-medium text-muted-foreground">
-            Licence categories
+            {t("licenceCategories")}
           </legend>
           {LICENCE_CATEGORY_OPTIONS.map((option) => {
             const checked = categories.includes(option.value);
@@ -461,7 +470,7 @@ export function DriversAddPanel({
                 />
                 <span className="font-price font-semibold">{option.value}</span>
                 <span className="min-w-0 truncate text-muted-foreground">
-                  {option.note}
+                  {t(option.noteKey)}
                 </span>
               </Label>
             );
@@ -470,7 +479,7 @@ export function DriversAddPanel({
 
         <div className="flex min-w-0 flex-col gap-2">
           <span className="text-xs font-medium text-muted-foreground">
-            Assign a vehicle
+            {tShared("assignAVehicle")}
           </span>
 
           {/* Real radios in a visually styled row: keyboard users get arrow-key
@@ -485,7 +494,7 @@ export function DriversAddPanel({
               keeps a focused row's ring clear of the scroller's own clip. */}
           <div className="-m-0.5 flex max-h-[260px] min-w-0 flex-col gap-2 overflow-y-auto p-0.5">
             <VehicleRadioRow
-              label="Unassigned"
+              label={tShared("unassigned")}
               note="Assign later"
               selected={vehicleId === NO_VEHICLE}
               onSelect={() => setVehicleId(NO_VEHICLE)}
@@ -508,8 +517,7 @@ export function DriversAddPanel({
           </div>
           {vehicles.length === 0 ? (
             <p className="text-xs text-muted-foreground">
-              Every fleet vehicle is currently held by a driver. Register this
-              one unassigned and pair them from the Vehicles screen later.
+              {t("everyFleetVehicleIsCurrentlyHeld")}
             </p>
           ) : null}
         </div>
@@ -546,7 +554,7 @@ export function DriversAddPanel({
             onClick={onCancel}
             className="h-auto rounded-md px-[15px] py-[9px] text-[13px] font-medium"
           >
-            Cancel
+            {tShared("cancel")}
           </Button>
         </div>
 

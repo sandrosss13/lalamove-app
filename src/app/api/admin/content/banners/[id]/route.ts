@@ -7,6 +7,7 @@ import {
   type Prisma,
 } from "@prisma/client";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { authorizeAdminApi } from "@/lib/admin/api-auth";
 import { writeAuditLog } from "@/lib/admin/audit";
 import { prisma } from "@/lib/prisma";
@@ -149,9 +150,10 @@ type ParsedBannerUpdate = {
 function parseUpdateBannerBody(
   body: unknown,
   existing: Banner,
+  t: (key: string) => string,
 ): ParsedBannerUpdate | { error: string } {
   if (typeof body !== "object" || body === null) {
-    return { error: "Request body must be a JSON object." };
+    return { error: t("common.shared.requestBodyMustBeAJson") };
   }
 
   const record = body as Record<string, unknown>;
@@ -160,7 +162,7 @@ function parseUpdateBannerBody(
   if ("title" in record) {
     const { title } = record;
     if (typeof title !== "string" || title.trim() === "") {
-      return { error: "title must be a non-empty string." };
+      return { error: t("errors.adminContentBanners.titleMustBeANonEmpty") };
     }
     if (title.trim().length > MAX_TITLE_LENGTH) {
       return {
@@ -188,7 +190,9 @@ function parseUpdateBannerBody(
   if ("imageUrl" in record) {
     const { imageUrl } = record;
     if (typeof imageUrl !== "string" || imageUrl.trim() === "") {
-      return { error: "imageUrl must be a non-empty string." };
+      return {
+        error: t("errors.adminContentBanners.imageurlMustBeANonEmpty"),
+      };
     }
     if (imageUrl.trim().length > MAX_URL_LENGTH) {
       return {
@@ -197,7 +201,7 @@ function parseUpdateBannerBody(
     }
     if (!isUsableUrl(imageUrl.trim())) {
       return {
-        error: "imageUrl must be an http(s) URL or a path starting with /.",
+        error: t("common.shared.imageurlMustBeAnHttpS"),
       };
     }
 
@@ -225,7 +229,7 @@ function parseUpdateBannerBody(
         }
         if (!isUsableUrl(trimmedLinkUrl)) {
           return {
-            error: "linkUrl must be an http(s) URL or a path starting with /.",
+            error: t("common.shared.linkurlMustBeAnHttpS"),
           };
         }
 
@@ -238,7 +242,9 @@ function parseUpdateBannerBody(
   if ("placement" in record) {
     const { placement } = record;
     if (typeof placement !== "string" || placement.trim() === "") {
-      return { error: "placement must be a non-empty string." };
+      return {
+        error: t("errors.adminContentBanners.placementMustBeANonEmpty"),
+      };
     }
     if (placement.trim().length > MAX_PLACEMENT_LENGTH) {
       return {
@@ -270,7 +276,7 @@ function parseUpdateBannerBody(
   if ("isActive" in record) {
     const { isActive } = record;
     if (typeof isActive !== "boolean") {
-      return { error: "isActive must be a boolean." };
+      return { error: t("common.shared.isactiveMustBeABoolean") };
     }
 
     data.isActive = isActive;
@@ -308,7 +314,7 @@ function parseUpdateBannerBody(
     nextEndsAt !== null &&
     nextEndsAt.getTime() <= nextStartsAt.getTime()
   ) {
-    return { error: "endsAt must be after startsAt." };
+    return { error: t("common.shared.endsatMustBeAfterStartsat") };
   }
 
   return {
@@ -336,6 +342,8 @@ export async function PATCH(
     return authorized.response;
   }
 
+  const t = await getRequestTranslations();
+
   const { id } = await params;
 
   let rawBody: unknown;
@@ -343,7 +351,7 @@ export async function PATCH(
     rawBody = await request.json();
   } catch {
     return NextResponse.json(
-      { error: "Request body must be valid JSON." },
+      { error: t("common.shared.requestBodyMustBeValidJson") },
       { status: 400 },
     );
   }
@@ -354,10 +362,13 @@ export async function PATCH(
   const existing = await prisma.banner.findUnique({ where: { id } });
 
   if (!existing) {
-    return NextResponse.json({ error: "Banner not found." }, { status: 404 });
+    return NextResponse.json(
+      { error: t("errors.adminContentBanners.bannerNotFound") },
+      { status: 404 },
+    );
   }
 
-  const parsed = parseUpdateBannerBody(rawBody, existing);
+  const parsed = parseUpdateBannerBody(rawBody, existing, t);
   if ("error" in parsed) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
@@ -417,12 +428,17 @@ export async function DELETE(
     return authorized.response;
   }
 
+  const t = await getRequestTranslations();
+
   const { id } = await params;
 
   const existing = await prisma.banner.findUnique({ where: { id } });
 
   if (!existing) {
-    return NextResponse.json({ error: "Banner not found." }, { status: 404 });
+    return NextResponse.json(
+      { error: t("errors.adminContentBanners.bannerNotFound") },
+      { status: 404 },
+    );
   }
 
   await prisma.banner.delete({ where: { id } });

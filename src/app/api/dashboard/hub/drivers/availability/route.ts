@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
 import { resolveHubAccount } from "@/lib/dashboard/hub/account";
 import {
@@ -40,6 +41,8 @@ export type HubFleetAvailabilityError = { error: string };
 export type HubFleetAvailabilityResponse = HubFleetAvailability;
 
 export async function GET(request: Request): Promise<NextResponse> {
+  const t = await getRequestTranslations();
+
   // Read directly rather than through `requireDashboardSession()`, which
   // `redirect()`s: a fetch would follow the redirect and parse the sign-in page
   // as JSON. The two conditions below are the ones that guard would redirect
@@ -48,14 +51,18 @@ export async function GET(request: Request): Promise<NextResponse> {
 
   if (!session) {
     return NextResponse.json<HubFleetAvailabilityError>(
-      { error: "Unauthorized." },
+      { error: t("common.shared.unauthorized") },
       { status: 401 },
     );
   }
 
   if (session.user.mustChangePassword || session.user.role === "CLIENT") {
     return NextResponse.json<HubFleetAvailabilityError>(
-      { error: "This account cannot read a fleet roster." },
+      {
+        error: t(
+          "errors.dashboardHubDriversAvailability.thisAccountCannotReadAFleet",
+        ),
+      },
       { status: 403 },
     );
   }
@@ -64,7 +71,7 @@ export async function GET(request: Request): Promise<NextResponse> {
 
   if (account === null) {
     return NextResponse.json<HubFleetAvailabilityError>(
-      { error: "Your driver profile isn't set up yet." },
+      { error: t("common.shared.yourDriverProfileIsnTSet") },
       { status: 403 },
     );
   }
@@ -84,8 +91,7 @@ export async function GET(request: Request): Promise<NextResponse> {
   if (data === null) {
     return NextResponse.json<HubFleetAvailabilityError>(
       {
-        error:
-          "Driver availability is a fleet screen — only a logistics company account has a roster to lay out.",
+        error: t("common.shared.driverAvailabilityIsAFleetScreen"),
       },
       { status: 403 },
     );

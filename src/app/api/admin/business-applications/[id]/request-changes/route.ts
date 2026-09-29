@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import type { AdminRole } from "@prisma/client";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { authorizeAdminApi } from "@/lib/admin/api-auth";
 import { writeAuditLog } from "@/lib/admin/audit";
 import { prisma } from "@/lib/prisma";
@@ -44,6 +45,8 @@ export async function POST(
     return authorized.response;
   }
 
+  const t = await getRequestTranslations();
+
   const { id } = await params;
 
   const application = await prisma.businessApplication.findUnique({
@@ -64,7 +67,7 @@ export async function POST(
   // in-progress draft.
   if (!application || application.status === "DRAFT") {
     return NextResponse.json(
-      { error: "Application not found." },
+      { error: t("common.shared.applicationNotFound") },
       { status: 404 },
     );
   }
@@ -73,7 +76,7 @@ export async function POST(
   // dispatching and cannot be pulled back here.
   if (application.status === "APPROVED") {
     return NextResponse.json(
-      { error: "This fleet has already been activated." },
+      { error: t("common.shared.thisFleetHasAlreadyBeenActivated") },
       { status: 400 },
     );
   }
@@ -82,7 +85,11 @@ export async function POST(
   // allowed, but meaningless in this state — a 409, not a 400.
   if (application.status === "ACTION_REQUIRED") {
     return NextResponse.json(
-      { error: "Changes have already been requested on this application." },
+      {
+        error: t(
+          "errors.adminBusinessApplicationsRequestChanges.changesHaveAlreadyBeenRequestedOn",
+        ),
+      },
       { status: 409 },
     );
   }
@@ -100,8 +107,9 @@ export async function POST(
   if (!hasSomethingToFix) {
     return NextResponse.json(
       {
-        error:
-          "Flag the company's details or at least one vehicle before requesting changes.",
+        error: t(
+          "errors.adminBusinessApplicationsRequestChanges.flagTheCompanySDetailsOr",
+        ),
       },
       { status: 409 },
     );

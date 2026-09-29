@@ -1,3 +1,5 @@
+import { useTranslations } from "next-intl";
+
 import { HubCard } from "@/components/driver-hub/hub-primitives";
 import { EmployeePermissionPill } from "@/components/driver-hub/screens/employees-permission-pill";
 import type { EmployeeRoleDefinition } from "@/lib/dashboard/hub/sample";
@@ -29,9 +31,11 @@ export type EmployeeRoleDefinitionsProps = {
 export function EmployeeRoleDefinitions({
   roles,
 }: EmployeeRoleDefinitionsProps) {
+  const t = useTranslations("driverHub.employeesRoleDefinitions");
+
   return (
     <HubCard
-      title="Role definitions"
+      title={t("roleDefinitions")}
       action="Applies to every employee of this account"
     >
       <p className="max-w-[70ch] text-[13px] leading-normal text-muted-foreground">

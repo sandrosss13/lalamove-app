@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 import { useRouter } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,7 @@ export function SystemUserStatusButton({
   /** Current state; the button toggles to the opposite of it. */
   isActive: boolean;
 }) {
+  const t = useTranslations();
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,7 +69,7 @@ export function SystemUserStatusButton({
       // what reflects the new status — there is no client-side copy to patch.
       router.refresh();
     } catch {
-      setError("Network error. Please try again.");
+      setError(t("admin.systemUserStatusButton.networkErrorPleaseTryAgain"));
     } finally {
       setSubmitting(false);
     }
@@ -81,7 +83,9 @@ export function SystemUserStatusButton({
         onClick={handleClick}
         disabled={submitting}
       >
-        {isActive ? "Deactivate" : "Reactivate"}
+        {isActive
+          ? t("admin.adminFinancePromoCampaigns.deactivate")
+          : "Reactivate"}
       </Button>
       {error ? <span className="text-xs text-destructive">{error}</span> : null}
     </div>

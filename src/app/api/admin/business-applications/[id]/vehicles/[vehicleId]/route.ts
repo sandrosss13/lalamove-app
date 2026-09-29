@@ -5,6 +5,7 @@ import type {
   BusinessApplicationVehicleStatus,
 } from "@prisma/client";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { authorizeAdminApi } from "@/lib/admin/api-auth";
 import { writeAuditLog } from "@/lib/admin/audit";
 import { prisma } from "@/lib/prisma";
@@ -54,9 +55,10 @@ export type AdminBusinessVehicleReviewResponse = {
  */
 function parseVehicleVerdictBody(
   body: unknown,
+  t: (key: string) => string,
 ): { value: VehicleVerdict } | { error: string } {
   if (typeof body !== "object" || body === null) {
-    return { error: "Request body must be a JSON object." };
+    return { error: t("common.shared.requestBodyMustBeAJson") };
   }
 
   const { verdict, reason } = body as Record<string, unknown>;
@@ -70,13 +72,19 @@ function parseVehicleVerdictBody(
   }
 
   if (typeof reason !== "string" || reason.trim() === "") {
-    return { error: "A reason is required to flag a vehicle." };
+    return {
+      error: t(
+        "errors.adminBusinessApplicationsVehicles.aReasonIsRequiredToFlag",
+      ),
+    };
   }
 
   const trimmedReason = reason.trim();
 
   if (!VEHICLE_FLAG_REASONS.includes(trimmedReason)) {
-    return { error: "That is not one of the vehicle flag reasons." };
+    return {
+      error: t("errors.adminBusinessApplicationsVehicles.thatIsNotOneOfThe"),
+    };
   }
 
   return { value: { verdict: "FLAGGED", reason: trimmedReason } };
@@ -107,6 +115,8 @@ export async function PATCH(
     return authorized.response;
   }
 
+  const t = await getRequestTranslations();
+
   const { id, vehicleId } = await params;
 
   let rawBody: unknown;
@@ -114,12 +124,12 @@ export async function PATCH(
     rawBody = await request.json();
   } catch {
     return NextResponse.json(
-      { error: "Request body must be valid JSON." },
+      { error: t("common.shared.requestBodyMustBeValidJson") },
       { status: 400 },
     );
   }
 
-  const parsed = parseVehicleVerdictBody(rawBody);
+  const parsed = parseVehicleVerdictBody(rawBody, t);
   if ("error" in parsed) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
@@ -136,7 +146,7 @@ export async function PATCH(
   // in-progress draft.
   if (!application || application.status === "DRAFT") {
     return NextResponse.json(
-      { error: "Application not found." },
+      { error: t("common.shared.applicationNotFound") },
       { status: 404 },
     );
   }
@@ -145,7 +155,7 @@ export async function PATCH(
   // stale tab, not a 404 — say so.
   if (application.status === "APPROVED") {
     return NextResponse.json(
-      { error: "This fleet has already been activated." },
+      { error: t("common.shared.thisFleetHasAlreadyBeenActivated") },
       { status: 400 },
     );
   }
@@ -159,7 +169,11 @@ export async function PATCH(
 
   if (!applicationVehicle) {
     return NextResponse.json(
-      { error: "Vehicle not found on this application." },
+      {
+        error: t(
+          "errors.adminBusinessApplicationsVehicles.vehicleNotFoundOnThisApplication",
+        ),
+      },
       { status: 404 },
     );
   }

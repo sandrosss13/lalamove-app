@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { UploadIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -29,23 +30,26 @@ export type DocumentSlot = "selfie" | "licFront" | "licBack";
  */
 export const CAPTURE_META: Record<
   DocumentSlot,
-  { title: string; hint: string; guide: string; badge: string }
+  // `titleKey` / `hintKey` are full `next-intl` message paths, translated at
+  // render (no hook can run at module scope). `guide` and `badge` have no
+  // catalog entry yet.
+  { titleKey: string; hintKey: string; guide: string; badge: string }
 > = {
   selfie: {
-    title: "Upload your profile photo",
-    hint: "A recent photo of your face, matched against your ID by the review team.",
+    titleKey: "onboarding.documentUploadDialog.uploadYourProfilePhoto",
+    hintKey: "common.shared.aRecentPhotoOfYourFace",
     guide: "Face centred, no hat or sunglasses, plain background.",
     badge: "STEP 1 · PROFILE PHOTO",
   },
   licFront: {
-    title: "Upload the front of your licence",
-    hint: "The photo, name and licence number must be readable.",
+    titleKey: "onboarding.documentUploadDialog.uploadTheFrontOfYourLicence",
+    hintKey: "onboarding.documentUploadDialog.thePhotoNameAndLicenceNumber",
     guide: "All four corners visible, no glare across the card.",
     badge: "STEP 2 · LICENCE FRONT",
   },
   licBack: {
-    title: "Upload the back of your licence",
-    hint: "The category table is what the reviewer checks.",
+    titleKey: "onboarding.documentUploadDialog.uploadTheBackOfYourLicence",
+    hintKey: "onboarding.documentUploadDialog.theCategoryTableIsWhatThe",
     guide: "All four corners visible, category rows legible.",
     badge: "STEP 2 · LICENCE BACK",
   },
@@ -129,6 +133,8 @@ export function DocumentUploadDialog({
   onUploaded: (signedUrl: string) => void;
 }) {
   const { recordDocument, showToast } = useOnboardingDraft();
+  const t = useTranslations("onboarding.documentUploadDialog");
+  const tRoot = useTranslations();
 
   const [state, setState] = useState<"idle" | "uploading" | "failed">("idle");
   const [message, setMessage] = useState<string | null>(null);
@@ -285,10 +291,10 @@ export function DocumentUploadDialog({
             {meta.badge}
           </span>
           <DialogTitle className="text-[18px] leading-tight font-semibold tracking-[-0.01em]">
-            {meta.title}
+            {tRoot(meta.titleKey)}
           </DialogTitle>
           <DialogDescription className="text-[13px] leading-[1.5]">
-            {meta.hint}
+            {tRoot(meta.hintKey)}
           </DialogDescription>
         </DialogHeader>
 
@@ -355,7 +361,7 @@ export function DocumentUploadDialog({
               {meta.guide}
             </span>
             <span className="mt-0.5 font-price text-[11.5px] text-muted-foreground">
-              JPG or PNG · max 10 MB
+              {t("jpgOrPngMax10Mb")}
             </span>
           </button>
 
@@ -374,7 +380,7 @@ export function DocumentUploadDialog({
                   size="sm"
                   onClick={() => void upload(pendingFile)}
                 >
-                  Try again
+                  {tRoot("common.shared.tryAgain")}
                 </Button>
               ) : null}
             </div>
@@ -388,7 +394,7 @@ export function DocumentUploadDialog({
             40% the design asks for instead of the primitive's 50%. */}
         <DialogFooter className="mx-0 mb-0 flex-row items-center justify-between gap-3.5 rounded-b-xl border-t border-border bg-secondary/40 px-[22px] py-3.5 sm:justify-between">
           <p className="text-xs text-muted-foreground">
-            Files are checked by the review team, not automatically.
+            {t("filesAreCheckedByTheReview")}
           </p>
           <Button
             type="button"
@@ -397,7 +403,7 @@ export function DocumentUploadDialog({
             disabled={uploading}
             onClick={() => onOpenChange(false)}
           >
-            Cancel
+            {tRoot("common.shared.cancel")}
           </Button>
         </DialogFooter>
       </DialogContent>

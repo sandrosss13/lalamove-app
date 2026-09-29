@@ -20,6 +20,7 @@
  */
 
 import { useMemo, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 
 import {
   ONBOARDING_SCREENS,
@@ -321,6 +322,7 @@ function validate(values: FormValues, currentYear: number): FieldErrors {
 
 export function Step3cTechnicalDetails() {
   const { draft, updateDraft, goToStep, showToast } = useOnboardingDraft();
+  const tShared = useTranslations("common.shared");
 
   const [values, setValues] = useState<FormValues>(() =>
     initialValues(draft.vehicle),
@@ -474,7 +476,7 @@ export function Step3cTechnicalDetails() {
     >
       <div className="flex flex-col gap-1.5">
         <label htmlFor="vehicle-make-model" className={LABEL_CLASS}>
-          Make and model
+          {tShared("makeAndModel")}
         </label>
         <Popover open={modelsOpen} onOpenChange={setModelsOpen}>
           <PopoverAnchor asChild>
@@ -564,7 +566,7 @@ export function Step3cTechnicalDetails() {
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">
           <label htmlFor="vehicle-year" className={LABEL_CLASS}>
-            Year
+            {tShared("year")}
           </label>
           <Input
             id="vehicle-year"
@@ -588,7 +590,7 @@ export function Step3cTechnicalDetails() {
         </div>
         <div className="flex flex-col gap-1.5">
           <label htmlFor="vehicle-plate" className={LABEL_CLASS}>
-            Licence plate
+            {tShared("licencePlate")}
           </label>
           <Input
             id="vehicle-plate"
@@ -622,7 +624,7 @@ export function Step3cTechnicalDetails() {
       ) : null}
 
       <fieldset className="flex flex-col gap-2">
-        <legend className={LABEL_CLASS}>Colour</legend>
+        <legend className={LABEL_CLASS}>{tShared("colour")}</legend>
         <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
           {COLORS.map(([name, hex]) => {
             const selected = values.colour === name;
@@ -673,7 +675,7 @@ export function Step3cTechnicalDetails() {
 
       <div className="flex flex-col gap-1.5">
         <label htmlFor="vehicle-payload" className={LABEL_CLASS}>
-          Maximum payload (kg)
+          {tShared("maximumPayloadKg")}
         </label>
         <Input
           id="vehicle-payload"
@@ -697,7 +699,7 @@ export function Step3cTechnicalDetails() {
       </div>
 
       <div className="flex flex-col gap-2.5">
-        <span className={LABEL_CLASS}>Cargo hold (metres)</span>
+        <span className={LABEL_CLASS}>{tShared("cargoHoldMetres")}</span>
 
         <CargoDiagram flatbed={isFlatbed} />
 
@@ -705,7 +707,7 @@ export function Step3cTechnicalDetails() {
           <DimensionField
             id="vehicle-cargo-length"
             badge="1"
-            label="Length"
+            label={tShared("length")}
             placeholder="6.20"
             value={values.length}
             invalid={errors.dimensions !== undefined}
@@ -714,7 +716,7 @@ export function Step3cTechnicalDetails() {
           <DimensionField
             id="vehicle-cargo-width"
             badge="2"
-            label="Width"
+            label={tShared("width")}
             placeholder="2.40"
             value={values.width}
             invalid={errors.dimensions !== undefined}
@@ -723,7 +725,7 @@ export function Step3cTechnicalDetails() {
           <DimensionField
             id="vehicle-cargo-height"
             badge="3"
-            label="Height"
+            label={tShared("height")}
             placeholder="2.40"
             value={values.height}
             invalid={errors.dimensions !== undefined}
@@ -752,14 +754,14 @@ export function Step3cTechnicalDetails() {
           type="submit"
           className="h-12 cursor-pointer rounded-[11px] bg-onboarding-accent px-[30px] text-[15px] font-semibold tracking-[-0.01em] text-white transition-colors hover:bg-onboarding-accent-hover focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
         >
-          Continue
+          {tShared("continue")}
         </button>
         <button
           type="button"
           onClick={() => goToStep(ONBOARDING_SCREENS.vehicleBodyAndClass)}
           className="h-12 cursor-pointer rounded-[11px] border border-border bg-card px-5 text-[14.5px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
         >
-          Back
+          {tShared("back")}
         </button>
       </div>
     </form>
@@ -882,6 +884,9 @@ const TRUCK_PALETTE_CLASS_NAME = [
  * why the palette is CSS custom properties rather than literals on the shapes.
  */
 function CargoDiagram({ flatbed }: { flatbed: boolean }) {
+  const t = useTranslations("onboarding.step3cTechnicalDetails");
+  const tShared = useTranslations("common.shared");
+
   // Where the rear view's body starts: a flatbed's side panels are short, so its
   // rear outline is the same box drawn from lower down.
   const rearTop = flatbed ? 96 : 60;
@@ -892,14 +897,14 @@ function CargoDiagram({ flatbed }: { flatbed: boolean }) {
 
   const legend: [badge: string, label: string, note: string][] = flatbed
     ? [
-        ["1", "Length", "deck front to tail"],
-        ["2", "Width", "deck side to side"],
-        ["3", "Height", "deck to top of side panel"],
+        ["1", tShared("length"), "deck front to tail"],
+        ["2", tShared("width"), "deck side to side"],
+        ["3", tShared("height"), "deck to top of side panel"],
       ]
     : [
-        ["1", "Length", "front wall to doors"],
-        ["2", "Width", "wall to wall"],
-        ["3", "Height", "floor to ceiling"],
+        ["1", tShared("length"), "front wall to doors"],
+        ["2", tShared("width"), "wall to wall"],
+        ["3", tShared("height"), "floor to ceiling"],
       ];
 
   return (
@@ -1015,7 +1020,7 @@ function CargoDiagram({ flatbed }: { flatbed: boolean }) {
         viewBox="0 0 130 200"
         className="h-auto w-[82px] shrink-0"
         role="img"
-        aria-label="Rear view showing 2 body width"
+        aria-label={t("rearViewShowing2BodyWidth")}
       >
         <g
           stroke="var(--truck-outline)"

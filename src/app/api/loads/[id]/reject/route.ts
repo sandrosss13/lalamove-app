@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { OrderStatus, Prisma } from "@prisma/client";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -57,9 +58,14 @@ type RejectionOwner =
 async function resolveRejectionOwner(
   request: Request,
 ): Promise<RejectionOwner | NextResponse> {
+  const t = await getRequestTranslations();
+
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    return NextResponse.json(
+      { error: t("common.shared.unauthorized") },
+      { status: 401 },
+    );
   }
 
   // The same gate `GET /api/loads` applies before anything else, in the same
@@ -74,7 +80,7 @@ async function resolveRejectionOwner(
   if (session.user.mustChangePassword) {
     return NextResponse.json(
       {
-        error: "Change your temporary password before viewing the load board.",
+        error: t("common.shared.changeYourTemporaryPasswordBeforeViewing"),
       },
       { status: 403 },
     );
@@ -91,7 +97,7 @@ async function resolveRejectionOwner(
 
     if (!driverProfile) {
       return NextResponse.json(
-        { error: "Driver profile not found." },
+        { error: t("errors.loadsReject.driverProfileNotFound") },
         { status: 404 },
       );
     }
@@ -102,8 +108,7 @@ async function resolveRejectionOwner(
     if (driverProfile.activatedAt === null) {
       return NextResponse.json(
         {
-          error:
-            "Your account isn't approved yet. Finish onboarding to accept deliveries.",
+          error: t("common.shared.yourAccountIsnTApprovedYet"),
         },
         { status: 403 },
       );
@@ -120,7 +125,7 @@ async function resolveRejectionOwner(
 
     if (!company) {
       return NextResponse.json(
-        { error: "Complete your company profile before claiming deliveries." },
+        { error: t("common.shared.completeYourCompanyProfileBeforeClaiming") },
         { status: 400 },
       );
     }
@@ -128,8 +133,7 @@ async function resolveRejectionOwner(
     if (company.activatedAt === null) {
       return NextResponse.json(
         {
-          error:
-            "Your fleet is still under review. Operations must activate the company before you can claim deliveries.",
+          error: t("common.shared.yourFleetIsStillUnderReview"),
         },
         { status: 403 },
       );
@@ -139,7 +143,7 @@ async function resolveRejectionOwner(
   }
 
   return NextResponse.json(
-    { error: "Only drivers and logistics companies can use the load board." },
+    { error: t("errors.loadsReject.onlyDriversAndLogisticsCompaniesCan") },
     { status: 403 },
   );
 }
@@ -171,6 +175,8 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
+  const t = await getRequestTranslations();
+
   const owner = await resolveRejectionOwner(request);
   if (owner instanceof NextResponse) {
     return owner;
@@ -184,7 +190,10 @@ export async function POST(
   });
 
   if (!order) {
-    return NextResponse.json({ error: "Load not found." }, { status: 404 });
+    return NextResponse.json(
+      { error: t("errors.loadsReject.loadNotFound") },
+      { status: 404 },
+    );
   }
 
   // "Open" is defined here exactly as `GET /api/loads` defines it for its
@@ -209,7 +218,7 @@ export async function POST(
 
   if (!isOpen) {
     return NextResponse.json(
-      { error: "This load is no longer open." },
+      { error: t("errors.loadsReject.thisLoadIsNoLongerOpen") },
       { status: 409 },
     );
   }
@@ -266,6 +275,8 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
+  const t = await getRequestTranslations();
+
   const owner = await resolveRejectionOwner(request);
   if (owner instanceof NextResponse) {
     return owner;
@@ -279,7 +290,10 @@ export async function DELETE(
   });
 
   if (!order) {
-    return NextResponse.json({ error: "Load not found." }, { status: 404 });
+    return NextResponse.json(
+      { error: t("errors.loadsReject.loadNotFound") },
+      { status: 404 },
+    );
   }
 
   // Scoped to the owner's OWN column as well as the order, never by `orderId`

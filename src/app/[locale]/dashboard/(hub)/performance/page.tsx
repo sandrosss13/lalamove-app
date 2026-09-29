@@ -1,13 +1,17 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 
+import type { LocaleRouteParams } from "@/i18n/server";
 import { PerformanceScreen } from "@/components/driver-hub/screens/performance-screen";
 import { resolveHubAccount } from "@/lib/dashboard/hub/account";
 import {
-  HUB_EARNINGS_PRESETS,
+  HUB_EARNINGS_PRESET_NAMESPACE,
   getHubEarnings,
   resolveHubEarningsRange,
+  translateHubEarningsPresets,
 } from "@/lib/dashboard/hub/earnings";
 import { getHubPerformance } from "@/lib/dashboard/hub/performance";
+import { localizeSampleCopy } from "@/lib/dashboard/hub/sample";
 
 // Session + Prisma access can't be statically rendered. This page also reads
 // `searchParams`, which is dynamic in its own right — and being explicitly
@@ -15,9 +19,19 @@ import { getHubPerformance } from "@/lib/dashboard/hub/performance";
 // a Suspense boundary around it.
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Performance · Driver Hub",
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: LocaleRouteParams;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({
+    locale,
+    namespace: "dashboard.dashboardPerformance",
+  });
+
+  return { title: t("performanceDriverHub") };
+}
 
 /**
  * Performance — the money first, then how the week is going.
@@ -107,9 +121,11 @@ export default async function PerformancePage({
   const params = await searchParams;
   const range = resolveHubEarningsRange(params);
 
-  const [earnings, performance] = await Promise.all([
+  const [earnings, performance, tPresets, t] = await Promise.all([
     getHubEarnings(account, range),
     getHubPerformance(account),
+    getTranslations(HUB_EARNINGS_PRESET_NAMESPACE),
+    getTranslations(),
   ]);
 
   // The preset list crosses as a prop rather than being imported by the filter
@@ -118,9 +134,11 @@ export default async function PerformancePage({
   // fail the build. This page is the boundary that may read both sides.
   return (
     <PerformanceScreen
-      earnings={earnings}
-      earningsPresets={HUB_EARNINGS_PRESETS}
-      data={performance}
+      // Deltas, score notes and payout copy are sampled; see
+      // `SAMPLE_COPY_KEYS` for why they are translated here.
+      earnings={localizeSampleCopy(earnings, t)}
+      earningsPresets={translateHubEarningsPresets(tPresets)}
+      data={localizeSampleCopy(performance, t)}
     />
   );
 }

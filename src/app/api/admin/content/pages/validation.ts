@@ -36,6 +36,23 @@ const MAX_TITLE_LENGTH = 200;
 export const DUPLICATE_PAGE_ERROR =
   "A page with this slug already exists for this locale.";
 
+/**
+ * A root-scoped message lookup (`getRequestTranslations()` in a route handler).
+ *
+ * Optional on every parser below so a caller that has not been wired for the
+ * reader's locale yet still gets the English sentence: the fallback text is the
+ * same `en` value the catalog holds for each key.
+ */
+export type ValidationTranslator = (key: string) => string;
+
+function localized(
+  t: ValidationTranslator | undefined,
+  key: string,
+  english: string,
+): string {
+  return t ? t(key) : english;
+}
+
 /** One static page as the admin table and the form dialog read it. */
 export type AdminStaticPageRow = {
   id: string;
@@ -87,9 +104,16 @@ export function serializeStaticPage(page: {
  */
 export function parseSlug(
   value: unknown,
+  t?: ValidationTranslator,
 ): { value: string } | { error: string } {
   if (typeof value !== "string") {
-    return { error: "slug is required and must be a string." };
+    return {
+      error: localized(
+        t,
+        "errors.validation.slugIsRequiredAndMustBe",
+        "slug is required and must be a string.",
+      ),
+    };
   }
 
   // Lowercased rather than rejected on case alone: "Terms" is a typo, not a
@@ -102,8 +126,11 @@ export function parseSlug(
 
   if (!SLUG_PATTERN.test(slug)) {
     return {
-      error:
+      error: localized(
+        t,
+        "errors.validation.slugMustBeLowercaseLettersNumbers",
         "slug must be lowercase letters, numbers and single hyphens, e.g. “terms-of-service”.",
+      ),
     };
   }
 
@@ -125,9 +152,16 @@ export function parseLocale(
 
 export function parseTitle(
   value: unknown,
+  t?: ValidationTranslator,
 ): { value: string } | { error: string } {
   if (typeof value !== "string" || value.trim() === "") {
-    return { error: "title is required and must be a non-empty string." };
+    return {
+      error: localized(
+        t,
+        "common.shared.titleIsRequiredAndMustBe",
+        "title is required and must be a non-empty string.",
+      ),
+    };
   }
 
   const title = value.trim();
@@ -147,9 +181,16 @@ export function parseTitle(
  */
 export function parseBodyHtml(
   value: unknown,
+  t?: ValidationTranslator,
 ): { value: string } | { error: string } {
   if (typeof value !== "string" || value.trim() === "") {
-    return { error: "bodyHtml is required and must be a non-empty string." };
+    return {
+      error: localized(
+        t,
+        "errors.validation.bodyhtmlIsRequiredAndMustBe",
+        "bodyHtml is required and must be a non-empty string.",
+      ),
+    };
   }
 
   return { value };
@@ -157,9 +198,16 @@ export function parseBodyHtml(
 
 export function parseIsPublished(
   value: unknown,
+  t?: ValidationTranslator,
 ): { value: boolean } | { error: string } {
   if (typeof value !== "boolean") {
-    return { error: "isPublished must be a boolean." };
+    return {
+      error: localized(
+        t,
+        "errors.validation.ispublishedMustBeABoolean",
+        "isPublished must be a boolean.",
+      ),
+    };
   }
 
   return { value };

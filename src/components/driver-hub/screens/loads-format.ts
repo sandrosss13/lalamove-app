@@ -275,13 +275,31 @@ export function pluralise(count: number, singular: string): string {
  * client bundle nothing at runtime.
  */
 export const HANDLING_TAG_LABELS = [
-  { value: "FRAGILE", label: "Fragile" },
-  { value: "COLD_CHAIN", label: "Cold chain" },
-  { value: "HAZMAT", label: "Hazmat" },
-  { value: "TIME_CRITICAL", label: "Time critical" },
-  { value: "UPRIGHT_ONLY", label: "Upright only" },
-  { value: "HEAVY_ITEM", label: "Heavy item" },
-] as const satisfies readonly { value: CargoHandlingTag; label: string }[];
+  { value: "FRAGILE", label: "Fragile", labelKey: "fragile" },
+  { value: "COLD_CHAIN", label: "Cold chain", labelKey: "coldChain" },
+  { value: "HAZMAT", label: "Hazmat", labelKey: "hazmat" },
+  { value: "TIME_CRITICAL", label: "Time critical", labelKey: "timeCritical" },
+  { value: "UPRIGHT_ONLY", label: "Upright only", labelKey: "uprightOnly" },
+  { value: "HEAVY_ITEM", label: "Heavy item", labelKey: "heavyItem" },
+] as const satisfies readonly {
+  value: CargoHandlingTag;
+  label: string;
+  labelKey: string;
+}[];
+
+/**
+ * A handling tag's message key in the `driverHub.loadsFormat` namespace.
+ *
+ * `label` above stays as the English fallback so a caller that has not been
+ * given a translator still renders readable copy; a component resolves the
+ * reader's language by passing `useTranslations("driverHub.loadsFormat")` to
+ * `sortedHandlingTags` (or calling it on `labelKey` itself).
+ */
+export type HandlingTagLabelKey =
+  (typeof HANDLING_TAG_LABELS)[number]["labelKey"];
+
+/** Resolves a `HandlingTagLabelKey` to the reader's language. */
+export type HandlingTagTranslator = (key: HandlingTagLabelKey) => string;
 
 /**
  * One of the six `CargoHandlingTag` values, as a plain string union.
@@ -296,7 +314,8 @@ export type HandlingTag = (typeof HANDLING_TAG_LABELS)[number]["value"];
 /**
  * Sort a load's handling tags into `HANDLING_TAG_LABELS` order and pair each
  * with its label — the one function every surface that renders tag pills
- * should call.
+ * should call. Pass `translate` (`useTranslations("driverHub.loadsFormat")`)
+ * to get the reader's language; without it the English `label` is used.
  *
  * `GET /api/loads` types `handlingTags` as `string[]` (it crosses the wire as
  * JSON), so an unrecognised value is possible in principle — a tag added to the
@@ -307,9 +326,13 @@ export type HandlingTag = (typeof HANDLING_TAG_LABELS)[number]["value"];
  */
 export function sortedHandlingTags(
   tags: readonly string[],
+  translate?: HandlingTagTranslator,
 ): { value: HandlingTag; label: string }[] {
   return HANDLING_TAG_LABELS.filter((entry) => tags.includes(entry.value)).map(
-    (entry) => ({ value: entry.value, label: entry.label }),
+    (entry) => ({
+      value: entry.value,
+      label: translate ? translate(entry.labelKey) : entry.label,
+    }),
   );
 }
 

@@ -46,6 +46,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -84,7 +85,10 @@ import {
   type VehicleClassId,
 } from "@/lib/driver-onboarding/vehicle-classes";
 import type { FleetDraftVehicle } from "@/lib/fleet-onboarding/draft-schema";
-import { GEORGIAN_CITY_OPTIONS } from "@/lib/georgian-cities";
+import {
+  GEORGIAN_CITY_OPTIONS,
+  useLocalizedCityOptions,
+} from "@/lib/georgian-cities";
 
 const ROSTER_ENDPOINT = "/api/logistics-company/drivers";
 const REGISTER_ENDPOINT = "/api/logistics-company/drivers/register";
@@ -329,9 +333,10 @@ function evaluateEligibility(
   driver: RosterEntry,
   required: DriverLicenceCategory,
   takenInDraft: Map<string, DraftHolder>,
+  noLicenceNote: string,
 ): Eligibility {
   if (driver.licenceExpiresAt === null) {
-    return { eligible: false, note: "No licence on file" };
+    return { eligible: false, note: noLicenceNote };
   }
 
   if (!driver.categories.includes(required)) {
@@ -379,6 +384,9 @@ function evaluateEligibility(
  * draft where they would immediately go stale.
  */
 export function Step4DriversAssignment() {
+  const t = useTranslations("fleet.step4DriversAssignment");
+  const tShared = useTranslations("common.shared");
+  const tRoot = useTranslations();
   const { draft, updateDraft, goToStep, showToast } = useFleetDraft();
 
   const [drivers, setDrivers] = useState<RosterEntry[]>([]);
@@ -597,8 +605,7 @@ export function Step4DriversAssignment() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <p className="max-w-[560px] text-[13.5px] leading-[1.5] text-muted-foreground">
-          Every vehicle needs a named driver. Create the account yourself for
-          drivers already on staff, or pick one from your roster.
+          {t("everyVehicleNeedsANamedDriver")}
         </p>
         <p aria-live="polite" className={`shrink-0 font-price ${LABEL_CLASS}`}>
           {assignedCount} of {vehicles.length} assigned
@@ -618,14 +625,14 @@ export function Step4DriversAssignment() {
             size="lg"
             onClick={() => void loadRoster()}
           >
-            Retry
+            {t("retry")}
           </Button>
         </div>
       ) : null}
 
       {rosterError === null && rosterLoading ? (
         <p className="text-[12.5px] text-muted-foreground">
-          Loading your roster…
+          {t("loadingYourRoster")}
         </p>
       ) : null}
 
@@ -634,10 +641,12 @@ export function Step4DriversAssignment() {
           <TableHeader>
             <TableRow className="hover:bg-transparent">
               <TableHead className={`w-[52px] ${LABEL_CLASS}`}>#</TableHead>
-              <TableHead className={LABEL_CLASS}>Vehicle</TableHead>
-              <TableHead className={LABEL_CLASS}>Plate</TableHead>
-              <TableHead className={LABEL_CLASS}>Driver</TableHead>
-              <TableHead className={LABEL_CLASS}>Status</TableHead>
+              <TableHead className={LABEL_CLASS}>
+                {tShared("vehicle")}
+              </TableHead>
+              <TableHead className={LABEL_CLASS}>{tShared("plate")}</TableHead>
+              <TableHead className={LABEL_CLASS}>{tShared("driver")}</TableHead>
+              <TableHead className={LABEL_CLASS}>{tShared("status")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -647,7 +656,7 @@ export function Step4DriversAssignment() {
                   colSpan={5}
                   className="px-3 py-6 text-center text-[13px] text-muted-foreground"
                 >
-                  No vehicles yet — declare your fleet first.
+                  {t("noVehiclesYetDeclareYourFleet")}
                 </TableCell>
               </TableRow>
             ) : null}
@@ -657,6 +666,7 @@ export function Step4DriversAssignment() {
               // five-literal union, declared apart so the persisted draft shape
               // stays independent of the presentation taxonomy.
               const vehicleClass = findVehicleClass(vehicle.classId);
+              const vehicleClassName = tRoot(vehicleClass.nameKey);
               const driver = driverFor(vehicle);
               const rowNumber = index + 1;
               const plate = vehicle.plateNumber;
@@ -673,7 +683,7 @@ export function Step4DriversAssignment() {
                   key={vehicle.id}
                   role="button"
                   tabIndex={0}
-                  aria-label={`Assign a driver to vehicle ${rowNumber}, ${vehicleClass.name} ${plate ?? ""}`.trim()}
+                  aria-label={`Assign a driver to vehicle ${rowNumber}, ${vehicleClassName} ${plate ?? ""}`.trim()}
                   onClick={openDialog}
                   onKeyDown={(event) => {
                     if (event.key === "Enter") {
@@ -696,7 +706,7 @@ export function Step4DriversAssignment() {
                   </TableCell>
                   <TableCell className="px-3 py-3">
                     <span className="block text-[13.5px] font-semibold">
-                      {vehicleClass.name}
+                      {vehicleClassName}
                     </span>
                     <span className="mt-px block text-[12px] text-muted-foreground">
                       needs category {vehicleClass.requiredLicenceCategory}
@@ -708,7 +718,7 @@ export function Step4DriversAssignment() {
                   <TableCell className="px-3 py-3">
                     {driver === undefined ? (
                       <span className="text-[13.5px] text-muted-foreground">
-                        Not assigned
+                        {t("notAssigned")}
                       </span>
                     ) : (
                       <>
@@ -733,7 +743,9 @@ export function Step4DriversAssignment() {
                             : "border-transparent bg-muted text-muted-foreground"
                       }`}
                     >
-                      {driver !== undefined ? "Assigned" : "Unassigned"}
+                      {driver !== undefined
+                        ? tShared("assigned")
+                        : tShared("unassigned")}
                     </span>
                   </TableCell>
                 </TableRow>
@@ -759,14 +771,14 @@ export function Step4DriversAssignment() {
           onClick={handleContinue}
           className="h-12 cursor-pointer rounded-[11px] bg-onboarding-accent px-[30px] text-[15px] font-semibold tracking-[-0.01em] text-white transition-colors hover:bg-onboarding-accent-hover focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
         >
-          Continue
+          {tShared("continue")}
         </button>
         <button
           type="button"
           onClick={() => goToStep(FLEET_SCREENS.vehicles)}
           className="h-12 cursor-pointer rounded-[11px] border border-border bg-card px-5 text-[14.5px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
         >
-          Back
+          {tShared("back")}
         </button>
       </div>
 
@@ -864,16 +876,26 @@ function DriverAssignmentDialog({
   onCredentialsIssued: (credentials: IssuedCredentials) => void;
   showToast: (message: string, tone?: "default" | "error") => void;
 }) {
+  const t = useTranslations("fleet.step4DriversAssignment");
+  const tShared = useTranslations("common.shared");
+  const tRoot = useTranslations();
   const vehicleClass = findVehicleClass(classId);
+  const vehicleClassName = tRoot(vehicleClass.nameKey);
   const required: DriverLicenceCategory = vehicleClass.requiredLicenceCategory;
+  const noLicenceNote = t("noLicenceOnFile");
 
   const rows = useMemo(
     () =>
       drivers.map((driver) => ({
         driver,
-        eligibility: evaluateEligibility(driver, required, takenInDraft),
+        eligibility: evaluateEligibility(
+          driver,
+          required,
+          takenInDraft,
+          noLicenceNote,
+        ),
       })),
-    [drivers, required, takenInDraft],
+    [drivers, required, takenInDraft, noLicenceNote],
   );
 
   const hasEligible = rows.some((row) => row.eligibility.eligible);
@@ -924,10 +946,10 @@ function DriverAssignmentDialog({
             Vehicle {index} —{" "}
             {plateNumber !== undefined && plateNumber !== ""
               ? plateNumber
-              : vehicleClass.name}
+              : vehicleClassName}
           </DialogTitle>
           <DialogDescription className="text-[13px] leading-[1.5]">
-            {vehicleClass.name} · needs licence category {required}
+            {vehicleClassName} · needs licence category {required}
           </DialogDescription>
         </DialogHeader>
 
@@ -936,8 +958,10 @@ function DriverAssignmentDialog({
               tab, which `defaultValue` alone would only do on first mount. */}
           <Tabs key={`${index}:${open}`} value={tab} onValueChange={setTab}>
             <TabsList className="w-full">
-              <TabsTrigger value="existing">Existing driver</TabsTrigger>
-              <TabsTrigger value="create">Create account</TabsTrigger>
+              <TabsTrigger value="existing">{t("existingDriver")}</TabsTrigger>
+              <TabsTrigger value="create">
+                {tShared("createAccount")}
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="existing" className="pt-3">
@@ -951,8 +975,7 @@ function DriverAssignmentDialog({
               {!hasEligible ? (
                 <div className="flex flex-col items-start gap-3 rounded-[12px] border border-border bg-muted/40 p-[15px]">
                   <p className="text-[13px] leading-[1.5] text-muted-foreground">
-                    No driver on your roster holds the categories this vehicle
-                    needs. Create an account instead.
+                    {t("noDriverOnYourRosterHolds")}
                   </p>
                   <Button
                     type="button"
@@ -960,7 +983,7 @@ function DriverAssignmentDialog({
                     size="lg"
                     onClick={() => setTab("create")}
                   >
-                    Create account
+                    {tShared("createAccount")}
                   </Button>
                 </div>
               ) : null}
@@ -1035,7 +1058,7 @@ function DriverAssignmentDialog({
                                 : "text-muted-foreground"
                             }`}
                           >
-                            {isCurrent ? "Assigned" : "Assign →"}
+                            {isCurrent ? tShared("assigned") : "Assign →"}
                           </span>
                         ) : (
                           // Re-keyed on each flash so the animation replays
@@ -1085,7 +1108,7 @@ function DriverAssignmentDialog({
               size="lg"
               onClick={onRemove}
             >
-              Remove current driver
+              {t("removeCurrentDriver")}
             </Button>
           ) : (
             <span />
@@ -1096,7 +1119,7 @@ function DriverAssignmentDialog({
             size="lg"
             onClick={() => onOpenChange(false)}
           >
-            Cancel
+            {tShared("cancel")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -1217,6 +1240,9 @@ function CreateDriverForm({
   onCreated: (driver: RosterEntry, credentials: IssuedCredentials) => void;
   showToast: (message: string, tone?: "default" | "error") => void;
 }) {
+  const t = useTranslations("fleet.step4DriversAssignment");
+  const tShared = useTranslations("common.shared");
+  const cityOptions = useLocalizedCityOptions();
   const fieldId = useId();
 
   const [firstName, setFirstName] = useState("");
@@ -1252,9 +1278,15 @@ function CreateDriverForm({
   // A taken address comes back as a 400 naming the email, so it is mirrored
   // under that input as well as shown in the dialog's error line: that is the
   // one field the company actually has to change.
+  // Matched in English and in the reader's language: the register route may
+  // answer in either, depending on whether it has been localized.
   const emailError =
     errors.email ??
-    (serverError === DUPLICATE_EMAIL_ERROR ? DUPLICATE_EMAIL_ERROR : undefined);
+    (serverError !== null &&
+    (serverError === DUPLICATE_EMAIL_ERROR ||
+      serverError === tShared("anAccountWithThatEmailAddress"))
+      ? serverError
+      : undefined);
 
   function setCategorySelected(code: DriverLicenceCategory, selected: boolean) {
     // Set to an explicit value rather than toggled, so even a doubled
@@ -1347,7 +1379,7 @@ function CreateDriverForm({
       <div className="grid gap-4 sm:grid-cols-2">
         <FormField
           id={`${fieldId}-first-name`}
-          label="First name"
+          label={tShared("firstName")}
           error={errors.firstName}
         >
           {(controlProps) => (
@@ -1363,7 +1395,7 @@ function CreateDriverForm({
 
         <FormField
           id={`${fieldId}-last-name`}
-          label="Last name"
+          label={t("lastName")}
           error={errors.lastName}
         >
           {(controlProps) => (
@@ -1380,7 +1412,7 @@ function CreateDriverForm({
 
       <FormField
         id={`${fieldId}-email`}
-        label="Email address"
+        label={t("emailAddress")}
         error={emailError}
       >
         {(controlProps) => (
@@ -1390,7 +1422,7 @@ function CreateDriverForm({
             inputMode="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            placeholder="driver@example.com"
+            placeholder={tShared("driverExampleCom")}
             autoComplete="off"
             spellCheck={false}
             className={FIELD_CLASS}
@@ -1398,7 +1430,11 @@ function CreateDriverForm({
         )}
       </FormField>
 
-      <FormField id={`${fieldId}-phone`} label="Mobile" error={errors.phone}>
+      <FormField
+        id={`${fieldId}-phone`}
+        label={tShared("mobile")}
+        error={errors.phone}
+      >
         {(controlProps) => (
           <Input
             {...controlProps}
@@ -1412,18 +1448,22 @@ function CreateDriverForm({
         )}
       </FormField>
 
-      <FormField id={`${fieldId}-city`} label="City" error={errors.city}>
+      <FormField
+        id={`${fieldId}-city`}
+        label={tShared("city")}
+        error={errors.city}
+      >
         {(controlProps) => (
           <Select value={city} onValueChange={setCity}>
             <SelectTrigger
               {...controlProps}
               className={`w-full justify-between ${FIELD_CLASS}`}
             >
-              <SelectValue placeholder="Select a city" />
+              <SelectValue placeholder={t("selectACity")} />
             </SelectTrigger>
             {/* Portals to `document.body`, so it carries the marker itself. */}
             <SelectContent data-onboarding-surface="" className="max-h-[280px]">
-              {GEORGIAN_CITY_OPTIONS.map((option) => (
+              {cityOptions.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label} · {option.region}
                 </SelectItem>
@@ -1435,7 +1475,7 @@ function CreateDriverForm({
 
       <FormField
         id={`${fieldId}-licence-number`}
-        label="Licence number"
+        label={tShared("licenceNumber")}
         error={errors.licenceNumber}
       >
         {(controlProps) => (
@@ -1443,7 +1483,7 @@ function CreateDriverForm({
             {...controlProps}
             value={licenceNumber}
             onChange={(event) => setLicenceNumber(event.target.value)}
-            placeholder="D4419-88210"
+            placeholder={tShared("d441988210")}
             autoComplete="off"
             className={`${FIELD_CLASS} font-price tracking-[0.05em]`}
           />
@@ -1452,7 +1492,7 @@ function CreateDriverForm({
 
       <FormField
         id={`${fieldId}-expiry`}
-        label="Licence expiry"
+        label={tShared("licenceExpiry")}
         error={errors.expiry}
       >
         {(controlProps) => (
@@ -1467,7 +1507,7 @@ function CreateDriverForm({
       </FormField>
 
       <div className="flex flex-col gap-2">
-        <p className={LABEL_CLASS}>Categories held</p>
+        <p className={LABEL_CLASS}>{tShared("categoriesHeld")}</p>
         <div className="flex flex-wrap gap-2">
           {LICENCE_CATEGORIES.map((code) => {
             const checkboxId = `${fieldId}-category-${code}`;
@@ -1533,12 +1573,8 @@ function CreateDriverForm({
       </div>
 
       <div className="rounded-[12px] border border-border bg-muted/40 p-[13px] text-[12.5px] leading-[1.5] text-muted-foreground">
-        <p className={LABEL_CLASS}>Temporary password</p>
-        <p className="mt-1.5">
-          Shown once when you save, for you to pass on. The driver must change
-          it at first sign-in and upload their own licence photos before their
-          first order.
-        </p>
+        <p className={LABEL_CLASS}>{tShared("temporaryPassword")}</p>
+        <p className="mt-1.5">{t("shownOnceWhenYouSaveFor")}</p>
       </div>
 
       {serverError !== null ? (
@@ -1632,6 +1668,9 @@ function TempPasswordDialog({
   tempPassword: string;
   showToast: (message: string, tone?: "default" | "error") => void;
 }) {
+  const t = useTranslations("fleet.step4DriversAssignment");
+  const tShared = useTranslations("common.shared");
+
   async function handleCopy() {
     try {
       await navigator.clipboard.writeText(
@@ -1657,7 +1696,7 @@ function TempPasswordDialog({
       >
         <DialogHeader className="gap-1 border-b border-border px-[22px] pt-5 pb-4">
           <DialogTitle className="text-[18px] leading-tight font-semibold tracking-[-0.01em]">
-            Driver account created
+            {t("driverAccountCreated")}
           </DialogTitle>
           <DialogDescription className="text-[13px] leading-[1.5]">
             {driverName} can sign in with these details.
@@ -1667,13 +1706,13 @@ function TempPasswordDialog({
         <div className="flex flex-col gap-3 px-[22px] py-[18px]">
           <div className="flex flex-col gap-3 rounded-[12px] border border-border bg-card p-[15px]">
             <div className="flex flex-col gap-1">
-              <p className={LABEL_CLASS}>Email</p>
+              <p className={LABEL_CLASS}>{tShared("email")}</p>
               <p className="font-price text-[15px] font-semibold break-all select-all">
                 {email}
               </p>
             </div>
             <div className="flex flex-col gap-1">
-              <p className={LABEL_CLASS}>Temporary password</p>
+              <p className={LABEL_CLASS}>{tShared("temporaryPassword")}</p>
               <p className="font-price text-[15px] font-semibold break-all select-all">
                 {tempPassword}
               </p>
@@ -1681,8 +1720,7 @@ function TempPasswordDialog({
           </div>
 
           <p className="text-xs text-destructive">
-            This password is shown once. Copy it before closing — we cannot show
-            it again.
+            {t("thisPasswordIsShownOnceCopy")}
           </p>
         </div>
 
@@ -1692,7 +1730,7 @@ function TempPasswordDialog({
             onClick={() => void handleCopy()}
             className="h-11 cursor-pointer rounded-[11px] bg-onboarding-accent px-5 text-[14.5px] font-semibold text-white transition-colors hover:bg-onboarding-accent-hover focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
           >
-            Copy credentials
+            {t("copyCredentials")}
           </button>
           <Button
             type="button"
@@ -1700,7 +1738,7 @@ function TempPasswordDialog({
             size="lg"
             onClick={() => onOpenChange(false)}
           >
-            Done
+            {tShared("done")}
           </Button>
         </DialogFooter>
       </DialogContent>

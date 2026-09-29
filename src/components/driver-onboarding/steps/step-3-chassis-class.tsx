@@ -26,6 +26,7 @@
  */
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 
 import {
   ONBOARDING_SCREENS,
@@ -61,28 +62,29 @@ type ClassLock = {
  */
 const CHASSIS_OPTIONS: {
   id: OnboardingDraftChassisType;
-  name: string;
-  description: string;
+  /** Full `next-intl` message paths, translated at render. */
+  nameKey: string;
+  descriptionKey: string;
   Silhouette: () => React.ReactElement;
 }[] = [
   {
     id: "DRY_BOX",
-    name: "Dry Box",
-    description: "Enclosed rigid box. General palletised and boxed cargo.",
+    nameKey: "common.shared.dryBox",
+    descriptionKey:
+      "onboarding.step3ChassisClass.enclosedRigidBoxGeneralPalletisedAnd",
     Silhouette: DryBoxSilhouette,
   },
   {
     id: "REFRIGERATED",
-    name: "Refrigerated Vehicle",
-    description:
-      "Temperature-controlled body, −20 °C to +8 °C. Requires a valid cooling unit service record.",
+    nameKey: "common.shared.refrigeratedVehicle",
+    descriptionKey:
+      "onboarding.step3ChassisClass.temperatureControlledBody20CTo",
     Silhouette: RefrigeratedSilhouette,
   },
   {
     id: "OPEN_CHASSIS",
-    name: "Open Chassis",
-    description:
-      "Flatbed or curtain-side with drop sides. Oversized, construction and machinery loads.",
+    nameKey: "common.shared.openChassis",
+    descriptionKey: "common.shared.flatbedOrCurtainSideWithDrop",
     Silhouette: OpenChassisSilhouette,
   },
 ];
@@ -217,6 +219,8 @@ function resolveClassLock(
 export function Step3ChassisClass() {
   const { draft, updateDraft, goToStep, showToast } = useOnboardingDraft();
   const vehicleTypeDefaults = useVehicleTypeDefaults();
+  const t = useTranslations("onboarding.step3ChassisClass");
+  const tRoot = useTranslations();
 
   // Which of the two sub-screens is showing. Always starts at 3a: 3b's lock
   // states are computed from 3a's answer, so the body type has to be confirmed
@@ -333,13 +337,13 @@ export function Step3ChassisClass() {
     return (
       <div className="flex flex-col gap-3">
         <p className="text-[13.5px] leading-[1.5] text-muted-foreground">
-          What kind of cargo body does the vehicle have?
+          {t("whatKindOfCargoBodyDoes")}
         </p>
 
         <div
           className="flex flex-col gap-3"
           role="group"
-          aria-label="Cargo body type"
+          aria-label={t("cargoBodyType")}
         >
           {CHASSIS_OPTIONS.map((option) => {
             const selected = chassisType === option.id;
@@ -380,10 +384,10 @@ export function Step3ChassisClass() {
                 <option.Silhouette />
                 <span className="min-w-0 flex-1">
                   <span className="block text-[15px] font-semibold">
-                    {option.name}
+                    {tRoot(option.nameKey)}
                   </span>
                   <span className="mt-[3px] block text-[12.5px] leading-[1.45] text-muted-foreground">
-                    {option.description}
+                    {tRoot(option.descriptionKey)}
                   </span>
                 </span>
               </button>
@@ -467,14 +471,13 @@ export function Step3ChassisClass() {
   return (
     <div className="flex flex-col gap-3">
       <p className="text-[13.5px] leading-[1.5] text-muted-foreground">
-        Pick the class that matches your vehicle. Classes above your licence
-        categories, or not offered for the body type you chose, are locked.
+        {t("pickTheClassThatMatchesYour")}
       </p>
 
       <div
         className="flex flex-col gap-3"
         role="group"
-        aria-label="Vehicle class"
+        aria-label={t("vehicleClass")}
       >
         {classCards.map(({ vehicleClass, lock }) => {
           const locked = lock !== null;
@@ -504,7 +507,7 @@ export function Step3ChassisClass() {
             >
               <span className="flex w-full items-center justify-between gap-2.5">
                 <span className="text-[15px] font-semibold">
-                  {vehicleClass.name}
+                  {tRoot(vehicleClass.nameKey)}
                 </span>
                 <span
                   className={`rounded-[5px] px-[7px] py-[3px] font-price text-[10.5px] font-semibold tracking-[0.06em] whitespace-nowrap ${
@@ -551,7 +554,7 @@ export function Step3ChassisClass() {
           onClick={() => setPhase("body")}
           className="h-12 cursor-pointer rounded-[11px] border border-border bg-card px-5 text-[15px] font-semibold transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
         >
-          Body type
+          {tRoot("common.shared.bodyType")}
         </button>
       </div>
     </div>
@@ -560,6 +563,8 @@ export function Step3ChassisClass() {
 
 /** The design's primary CTA, shared by both sub-screens. */
 function ContinueButton({ onClick }: { onClick: () => void }) {
+  const tShared = useTranslations("common.shared");
+
   return (
     <button
       type="button"
@@ -568,7 +573,7 @@ function ContinueButton({ onClick }: { onClick: () => void }) {
       // failure that owes the driver an explanation, not a dead button.
       className="h-12 cursor-pointer rounded-[11px] bg-onboarding-accent px-[30px] text-[15px] font-semibold tracking-[-0.01em] text-white transition-colors hover:bg-onboarding-accent-hover focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
     >
-      Continue
+      {tShared("continue")}
     </button>
   );
 }

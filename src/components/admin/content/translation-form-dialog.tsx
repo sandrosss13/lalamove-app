@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 // Type-only import, so nothing of the server route (Prisma, Better Auth) is
 // pulled into this client bundle — it is erased at compile time. Sharing the
@@ -81,6 +82,7 @@ export function TranslationFormDialog({
   onClose,
   onCompleted,
 }: TranslationFormDialogProps) {
+  const t = useTranslations();
   const isEditing = target !== null;
 
   const [namespace, setNamespace] = useState(target?.namespace ?? "");
@@ -146,12 +148,12 @@ export function TranslationFormDialog({
     // Checked here as well as server-side purely for the faster feedback; the
     // routes are what actually enforce it.
     if (trimmedNamespace === "" || trimmedKey === "") {
-      setError("A namespace and a key are required.");
+      setError(t("admin.translationFormDialog.aNamespaceAndAKeyAre"));
       return;
     }
 
     if (trimmedKa === "" || trimmedEn === "") {
-      setError("Both the Georgian and the English value are required.");
+      setError(t("admin.translationFormDialog.bothTheGeorgianAndTheEnglish"));
       return;
     }
 
@@ -209,7 +211,7 @@ export function TranslationFormDialog({
       // the button must not flash back to its idle label in between.
       onCompleted();
     } catch {
-      setError("Something went wrong. Please try again.");
+      setError(t("common.shared.somethingWentWrongPleaseTryAgain"));
       setPending(false);
     }
   }
@@ -241,7 +243,9 @@ export function TranslationFormDialog({
           <div className="flex flex-col gap-3">
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="translation-namespace">Namespace</Label>
+                <Label htmlFor="translation-namespace">
+                  {t("common.shared.namespace")}
+                </Label>
                 <Input
                   id="translation-namespace"
                   value={namespace}
@@ -258,13 +262,15 @@ export function TranslationFormDialog({
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="translation-key">Key</Label>
+                <Label htmlFor="translation-key">
+                  {t("common.shared.key")}
+                </Label>
                 <Input
                   id="translation-key"
                   value={key}
                   onChange={(event) => setKey(event.target.value)}
                   maxLength={MAX_KEY_LENGTH}
-                  placeholder="hero.title"
+                  placeholder={t("admin.translationFormDialog.heroTitle")}
                   readOnly={isEditing}
                   disabled={pending}
                   required
@@ -273,7 +279,9 @@ export function TranslationFormDialog({
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="translation-value-ka">Georgian (KA)</Label>
+              <Label htmlFor="translation-value-ka">
+                {t("common.shared.georgianKa")}
+              </Label>
               <Textarea
                 id="translation-value-ka"
                 value={valueKa}
@@ -287,13 +295,15 @@ export function TranslationFormDialog({
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="translation-value-en">English (EN)</Label>
+              <Label htmlFor="translation-value-en">
+                {t("common.shared.englishEn")}
+              </Label>
               <Textarea
                 id="translation-value-en"
                 value={valueEn}
                 onChange={(event) => setValueEn(event.target.value)}
                 maxLength={MAX_VALUE_LENGTH}
-                placeholder="English text"
+                placeholder={t("admin.translationFormDialog.englishText")}
                 disabled={pending}
                 required
               />
@@ -313,7 +323,7 @@ export function TranslationFormDialog({
               onClick={onClose}
               disabled={pending}
             >
-              Cancel
+              {t("common.shared.cancel")}
             </Button>
             <Button type="submit" disabled={pending}>
               {pending

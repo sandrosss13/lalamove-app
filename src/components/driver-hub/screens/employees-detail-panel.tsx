@@ -1,3 +1,5 @@
+import { useTranslations } from "next-intl";
+
 import { HubCard, HubStatusBadge } from "@/components/driver-hub/hub-primitives";
 import {
   EmployeePermissionPill,
@@ -87,6 +89,8 @@ export type EmployeeDetailPanelProps = {
 };
 
 export function EmployeeDetailPanel({ person }: EmployeeDetailPanelProps) {
+  const t = useTranslations("driverHub.employeesDetailPanel");
+  const tShared = useTranslations("common.shared");
   const invited = person.status === "Invited";
 
   return (
@@ -120,7 +124,9 @@ export function EmployeeDetailPanel({ person }: EmployeeDetailPanelProps) {
       {/* Heading straight to the first row, as the design has it — there is no
           line between the two. What these rows come from is the role note
           already printed above them. */}
-      <h3 className="mt-5 mb-0.5 text-[13px] font-semibold">Permissions</h3>
+      <h3 className="mt-5 mb-0.5 text-[13px] font-semibold">
+        {t("permissions")}
+      </h3>
       <dl>
         {person.perms.map((permission) => (
           <div
@@ -135,7 +141,9 @@ export function EmployeeDetailPanel({ person }: EmployeeDetailPanelProps) {
         ))}
       </dl>
 
-      <h3 className="mt-5 mb-0.5 text-[13px] font-semibold">Assigned</h3>
+      <h3 className="mt-5 mb-0.5 text-[13px] font-semibold">
+        {tShared("assigned")}
+      </h3>
       <dl>
         {person.assigned.map((assignment) => (
           <div

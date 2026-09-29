@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 import {
   HubCard,
   HubEmptyState,
@@ -70,10 +72,16 @@ export type EarningsPayoutsCardProps = {
 };
 
 export function EarningsPayoutsCard({ payouts }: EarningsPayoutsCardProps) {
+  const t = useTranslations("driverHub.earningsPayoutsCard");
+  const tShared = useTranslations("common.shared");
+
   return (
-    <HubCard title="Payout history" action={<SampleNote note={PAYOUTS_NOTE} />}>
+    <HubCard
+      title={t("payoutHistory")}
+      action={<SampleNote note={PAYOUTS_NOTE} />}
+    >
       <p className="mb-4 text-[13px] text-muted-foreground">
-        Fixed weekly settlement windows — not filtered by the range above.
+        {t("fixedWeeklySettlementWindowsNotFiltered")}
       </p>
 
       {payouts.length === 0 ? (
@@ -89,22 +97,22 @@ export function EarningsPayoutsCard({ payouts }: EarningsPayoutsCardProps) {
               )}
             >
               <TableHead role="columnheader" className={HEAD_CLASSES}>
-                Period
+                {tShared("period")}
               </TableHead>
               <TableHead role="columnheader" className={HEAD_CLASSES}>
-                Jobs
+                {tShared("jobs")}
               </TableHead>
               <TableHead role="columnheader" className={HEAD_CLASSES}>
-                Incentives
+                {tShared("incentives")}
               </TableHead>
               <TableHead role="columnheader" className={HEAD_CLASSES}>
-                Amount
+                {t("amount")}
               </TableHead>
               <TableHead
                 role="columnheader"
                 className={cn(HEAD_CLASSES, "text-right")}
               >
-                Status
+                {tShared("status")}
               </TableHead>
             </TableRow>
           </TableHeader>

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { Workbook } from "exceljs";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
 import { resolveHubAccount } from "@/lib/dashboard/hub/account";
 import type { HubAccount } from "@/lib/dashboard/hub/account";
@@ -268,6 +269,8 @@ function addEarningsSheet(
 }
 
 export async function GET(request: Request): Promise<NextResponse> {
+  const t = await getRequestTranslations();
+
   // The session is read directly rather than through the page-side guard
   // because that guard `redirect()`s, and a redirect is the wrong answer to a
   // `fetch` for a file: the browser would follow it and save the sign-in page
@@ -279,14 +282,18 @@ export async function GET(request: Request): Promise<NextResponse> {
 
   if (!session) {
     return NextResponse.json<HubEarningsExportError>(
-      { error: "Unauthorized." },
+      { error: t("common.shared.unauthorized") },
       { status: 401 },
     );
   }
 
   if (session.user.mustChangePassword || session.user.role === "CLIENT") {
     return NextResponse.json<HubEarningsExportError>(
-      { error: "This account cannot export driver earnings." },
+      {
+        error: t(
+          "errors.dashboardHubEarningsExport.thisAccountCannotExportDriverEarnings",
+        ),
+      },
       { status: 403 },
     );
   }
@@ -295,7 +302,7 @@ export async function GET(request: Request): Promise<NextResponse> {
 
   if (account === null) {
     return NextResponse.json<HubEarningsExportError>(
-      { error: "Your driver profile isn't set up yet." },
+      { error: t("common.shared.yourDriverProfileIsnTSet") },
       { status: 403 },
     );
   }

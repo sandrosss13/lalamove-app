@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 
 import { useRouter } from "@/i18n/navigation";
 import { Badge } from "@/components/ui/badge";
@@ -223,6 +224,8 @@ function SpecBox({
   value: React.ReactNode;
   sampled?: boolean;
 }) {
+  const tShared = useTranslations("common.shared");
+
   return (
     <div className="min-w-0 rounded-[10px] border border-border p-3">
       <p className="text-[11px] tracking-[0.08em] uppercase text-muted-foreground">
@@ -234,7 +237,7 @@ function SpecBox({
       {sampled ? (
         <SampleNote
           note={SAMPLE_NOTES.specs}
-          label="Sample"
+          label={tShared("sample")}
           className="mt-1.5"
         />
       ) : null}
@@ -249,12 +252,14 @@ export function VehiclesDetailPanel({
   onArmedChange,
   onRemoved,
 }: VehiclesDetailPanelProps) {
+  const t = useTranslations("driverHub.vehiclesDetailPanel");
+  const tShared = useTranslations("common.shared");
   const router = useRouter();
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
   const title = `${vehicle.make} ${vehicle.model}`;
-  const assignedName = vehicle.assignment?.driverName ?? "Unassigned";
+  const assignedName = vehicle.assignment?.driverName ?? tShared("unassigned");
 
   // The declared payload is the owner's attestation for this specific vehicle
   // and the spec's is the class-level capacity pricing uses. The design shows
@@ -330,22 +335,25 @@ export function VehiclesDetailPanel({
       </div>
 
       <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3">
-        <SpecBox label="Payload" value={formatKilograms(payloadKg)} />
-        <SpecBox label="Fuel" value={vehicle.sampled.fuel} sampled />
         <SpecBox
-          label="Odometer"
+          label={tShared("payload")}
+          value={formatKilograms(payloadKg)}
+        />
+        <SpecBox label={tShared("fuel")} value={vehicle.sampled.fuel} sampled />
+        <SpecBox
+          label={tShared("odometer")}
           value={formatOdometer(vehicle.sampled.odometerKm)}
           sampled
         />
         <SpecBox
-          label="Jobs · week"
+          label={t("jobsWeek")}
           value={vehicle.sampled.jobsThisWeek}
           sampled
         />
       </div>
 
       <div className="mt-5 mb-2 flex flex-wrap items-center gap-2">
-        <h3 className="text-[13px] font-semibold">Operating cities</h3>
+        <h3 className="text-[13px] font-semibold">{t("operatingCities")}</h3>
         <SampleNote note={SAMPLE_NOTES.cities} />
       </div>
       <div className="flex flex-wrap gap-1.5">
@@ -368,7 +376,7 @@ export function VehiclesDetailPanel({
 
       <div className="mt-5 flex flex-wrap items-center gap-2">
         <h3 className="text-[13px] font-semibold">
-          Running costs · this month
+          {t("runningCostsThisMonth")}
         </h3>
         <SampleNote note={SAMPLE_NOTES.costs} />
       </div>
@@ -386,7 +394,7 @@ export function VehiclesDetailPanel({
         ))}
       </dl>
       <div className="mt-1.5 flex items-baseline justify-between gap-3 border-t border-border pt-3">
-        <span className="text-sm font-semibold">Cost per km</span>
+        <span className="text-sm font-semibold">{t("costPerKm")}</span>
         <span className="font-price text-lg font-semibold">
           {formatGel(vehicle.sampled.costPerKmGel)}
         </span>
@@ -419,8 +427,7 @@ export function VehiclesDetailPanel({
           </>
         ) : (
           <p className="text-xs leading-relaxed text-muted-foreground">
-            This vehicle belongs to the fleet you drive for, not to you. Only
-            its owner can remove it.
+            {t("thisVehicleBelongsToTheFleet")}
           </p>
         )}
 

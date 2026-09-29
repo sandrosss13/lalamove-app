@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { DriverAccountType, GeorgianCity } from "@prisma/client";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -9,6 +10,9 @@ const GEORGIAN_CITIES = Object.values(GeorgianCity);
 
 /** Valid `DriverAccountType` values, derived from the generated Prisma enum. */
 const DRIVER_ACCOUNT_TYPES = Object.values(DriverAccountType);
+
+/** The request-scoped translator the handlers pass into the sync parser below. */
+type RequestTranslator = Awaited<ReturnType<typeof getRequestTranslations>>;
 
 /** Validated shape of a driver-profile creation request body. */
 type CreateDriverProfileInput = {
@@ -38,9 +42,10 @@ function nonEmptyString(value: unknown): string | null {
  */
 function parseCreateDriverProfileBody(
   body: unknown,
+  t: RequestTranslator,
 ): { data: CreateDriverProfileInput } | { error: string } {
   if (typeof body !== "object" || body === null) {
-    return { error: "Request body must be a JSON object." };
+    return { error: t("common.shared.requestBodyMustBeAJson") };
   }
 
   const record = body as Record<string, unknown>;
@@ -66,20 +71,20 @@ function parseCreateDriverProfileBody(
 
   const phone = nonEmptyString(record.phone);
   if (phone === null) {
-    return { error: "phone is required and must be a non-empty string." };
+    return { error: t("common.shared.phoneIsRequiredAndMustBe") };
   }
 
   if (accountType === DriverAccountType.BUSINESS) {
     const companyName = nonEmptyString(record.companyName);
     if (companyName === null) {
       return {
-        error: "companyName is required and must be a non-empty string.",
+        error: t("common.shared.companynameIsRequiredAndMustBe"),
       };
     }
 
     const vatId = nonEmptyString(record.vatId);
     if (vatId === null) {
-      return { error: "vatId is required and must be a non-empty string." };
+      return { error: t("common.shared.vatidIsRequiredAndMustBe") };
     }
 
     return {
@@ -97,12 +102,12 @@ function parseCreateDriverProfileBody(
 
   const firstName = nonEmptyString(record.firstName);
   if (firstName === null) {
-    return { error: "firstName is required and must be a non-empty string." };
+    return { error: t("common.shared.firstnameIsRequiredAndMustBe") };
   }
 
   const lastName = nonEmptyString(record.lastName);
   if (lastName === null) {
-    return { error: "lastName is required and must be a non-empty string." };
+    return { error: t("common.shared.lastnameIsRequiredAndMustBe") };
   }
 
   return {
@@ -124,14 +129,18 @@ function parseCreateDriverProfileBody(
  * users may call this.
  */
 export async function GET(request: Request): Promise<NextResponse> {
+  const t = await getRequestTranslations();
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    return NextResponse.json(
+      { error: t("common.shared.unauthorized") },
+      { status: 401 },
+    );
   }
 
   if (session.user.role !== "DRIVER") {
     return NextResponse.json(
-      { error: "Only drivers have a driver profile." },
+      { error: t("errors.driverProfile.onlyDriversHaveADriverProfile") },
       { status: 403 },
     );
   }
@@ -149,14 +158,18 @@ export async function GET(request: Request): Promise<NextResponse> {
  * so retries and re-submits are idempotent rather than an error.
  */
 export async function POST(request: Request): Promise<NextResponse> {
+  const t = await getRequestTranslations();
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    return NextResponse.json(
+      { error: t("common.shared.unauthorized") },
+      { status: 401 },
+    );
   }
 
   if (session.user.role !== "DRIVER") {
     return NextResponse.json(
-      { error: "Only drivers can create a driver profile." },
+      { error: t("errors.driverProfile.onlyDriversCanCreateADriver") },
       { status: 403 },
     );
   }
@@ -166,12 +179,12 @@ export async function POST(request: Request): Promise<NextResponse> {
     rawBody = await request.json();
   } catch {
     return NextResponse.json(
-      { error: "Request body must be valid JSON." },
+      { error: t("common.shared.requestBodyMustBeValidJson") },
       { status: 400 },
     );
   }
 
-  const parsed = parseCreateDriverProfileBody(rawBody);
+  const parsed = parseCreateDriverProfileBody(rawBody, t);
   if ("error" in parsed) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
@@ -209,12 +222,9 @@ export async function POST(request: Request): Promise<NextResponse> {
   // the `update` branch never writing `accountType` at all (below), so even the
   // loser of that race can only patch the identity fields, never flip the type
   // an activation was just granted under.
-  if (
-    existingProfile !== null &&
-    existingProfile.accountType !== accountType
-  ) {
+  if (existingProfile !== null && existingProfile.accountType !== accountType) {
     return NextResponse.json(
-      { error: "Your account type can't be changed here." },
+      { error: t("errors.driverProfile.yourAccountTypeCanTBe") },
       { status: 400 },
     );
   }

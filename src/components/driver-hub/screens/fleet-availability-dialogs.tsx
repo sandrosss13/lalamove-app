@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 
 import {
   AVAILABILITY_STATUS,
@@ -163,6 +164,9 @@ export function HoldSlotDialog({
   pending,
   onConfirm,
 }: HoldSlotDialogProps): React.JSX.Element {
+  const t = useTranslations("driverHub.fleetAvailabilityDialogs");
+  const tFormat = useTranslations("driverHub.fleetAvailabilityFormat");
+  const tShared = useTranslations("common.shared");
   const booked = AVAILABILITY_STATUS.booked;
 
   return (
@@ -186,7 +190,7 @@ export function HoldSlotDialog({
           className="sm:max-w-[420px]"
         >
           <DialogHeader>
-            <DialogTitle>Hold this slot</DialogTitle>
+            <DialogTitle>{t("holdThisSlot")}</DialogTitle>
             <DialogDescription>
               {pending.driverName} ·{" "}
               <span className="font-price tabular-nums">
@@ -203,12 +207,12 @@ export function HoldSlotDialog({
               the two surfaces spell one window the same way. */}
           <div className="flex flex-col gap-2 text-[13px]">
             <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">Date</span>
+              <span className="text-muted-foreground">{tShared("date")}</span>
               <span className="font-price tabular-nums">{pending.dayKey}</span>
             </div>
 
             <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">Window</span>
+              <span className="text-muted-foreground">{tShared("window")}</span>
               {/* One string built from the shared formatters, never from a
                   local `toFixed`: the bar this confirms is drawn from the same
                   two numbers, and a dialog that rounded 09:07 to 09:00 on its
@@ -220,7 +224,7 @@ export function HoldSlotDialog({
             </div>
 
             <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">Status</span>
+              <span className="text-muted-foreground">{tShared("status")}</span>
               {/* The board's own `booked` treatment, not a restatement of it: fill,
                   ink and the 1.5px dashed border all come from
                   `AVAILABILITY_STATUS`, so this pill and the bar the confirm
@@ -235,7 +239,7 @@ export function HoldSlotDialog({
                   border: booked.border,
                 }}
               >
-                {booked.label}
+                {tFormat(booked.labelKey)}
               </span>
             </div>
           </div>
@@ -257,10 +261,10 @@ export function HoldSlotDialog({
                 onOpenChange(false);
               }}
             >
-              Discard
+              {t("discard")}
             </Button>
             <Button type="button" onClick={onConfirm}>
-              Hold slot
+              {t("holdSlot")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -361,6 +365,8 @@ function ExportAvailabilityDialogBody({
   spreadsheetRowCount,
   onDownload,
 }: ExportAvailabilityDialogProps): React.JSX.Element {
+  const t = useTranslations("driverHub.fleetAvailabilityDialogs");
+  const tShared = useTranslations("common.shared");
   const [isDownloading, setIsDownloading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -381,17 +387,17 @@ function ExportAvailabilityDialogBody({
   const scopeOptions: { id: ExportScope; label: string; hint: string }[] = [
     {
       id: "view",
-      label: "Current view",
+      label: t("currentView"),
       hint: `${filteredDriverCount} drivers · ${formatHour(fromHour)}–${formatHour(toHour)}`,
     },
     {
       id: "day",
-      label: "Filtered drivers, whole day",
+      label: t("filteredDriversWholeDay"),
       hint: `${filteredDriverCount} drivers · 00:00–24:00`,
     },
     {
       id: "all",
-      label: "All drivers, whole day",
+      label: t("allDriversWholeDay"),
       hint: `${totalDriverCount} drivers · filters ignored`,
     },
   ];
@@ -442,9 +448,9 @@ function ExportAvailabilityDialogBody({
   return (
     <>
       <DialogHeader>
-        <DialogTitle>Export availability</DialogTitle>
+        <DialogTitle>{t("exportAvailability")}</DialogTitle>
         <DialogDescription>
-          Choose what goes into the spreadsheet.
+          {t("chooseWhatGoesIntoTheSpreadsheet")}
         </DialogDescription>
       </DialogHeader>
 
@@ -458,7 +464,7 @@ function ExportAvailabilityDialogBody({
             and the accessibility tree while the dot beside it carries the
             state. */}
         <fieldset className="flex min-w-0 flex-col gap-2.5">
-          <legend className="sr-only">What to export</legend>
+          <legend className="sr-only">{t("whatToExport")}</legend>
 
           {scopeOptions.map((option) => {
             const selected = option.id === scope;
@@ -539,7 +545,7 @@ function ExportAvailabilityDialogBody({
               htmlFor="fleet-availability-export-gaps"
               className="cursor-pointer text-[13px]"
             >
-              Include free slots as Available rows
+              {t("includeFreeSlotsAsAvailableRows")}
             </Label>
           </div>
 
@@ -556,7 +562,7 @@ function ExportAvailabilityDialogBody({
               htmlFor="fleet-availability-export-phone"
               className="cursor-pointer text-[13px]"
             >
-              Include driver phone number
+              {t("includeDriverPhoneNumber")}
             </Label>
           </div>
         </div>
@@ -610,7 +616,7 @@ function ExportAvailabilityDialogBody({
             onOpenChange(false);
           }}
         >
-          Cancel
+          {tShared("cancel")}
         </Button>
         <Button
           type="button"

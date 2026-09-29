@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 
 import type { ContentLocale } from "@prisma/client";
 
@@ -148,6 +149,8 @@ async function readErrorMessage(
  * banner's position from silently rewriting every other row's.
  */
 export default function AdminBannersPage() {
+  const t = useTranslations("admin.adminContentBanners");
+  const tShared = useTranslations("common.shared");
   const [banners, setBanners] = useState<AdminBannerRow[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -178,7 +181,7 @@ export default function AdminBannersPage() {
         });
 
         if (!response.ok) {
-          setError(await readErrorMessage(response, "Could not load banners."));
+          setError(await readErrorMessage(response, t("couldNotLoadBanners")));
           setLoading(false);
           return;
         }
@@ -193,7 +196,7 @@ export default function AdminBannersPage() {
           return;
         }
 
-        setError("Could not load banners.");
+        setError(t("couldNotLoadBanners"));
         setLoading(false);
       }
     }
@@ -201,7 +204,7 @@ export default function AdminBannersPage() {
     void load();
 
     return () => controller.abort();
-  }, [reloadToken]);
+  }, [reloadToken, t]);
 
   /** Flips one banner's visibility straight from the table. */
   async function handleToggleActive(banner: AdminBannerRow) {
@@ -226,7 +229,7 @@ export default function AdminBannersPage() {
 
       setReloadToken((token) => token + 1);
     } catch {
-      setActionError("Something went wrong. Please try again.");
+      setActionError(tShared("somethingWentWrongPleaseTryAgain"));
     } finally {
       setPendingId(null);
     }
@@ -251,7 +254,7 @@ export default function AdminBannersPage() {
       setDeleteTarget(null);
       setReloadToken((token) => token + 1);
     } catch {
-      setActionError("Something went wrong. Please try again.");
+      setActionError(tShared("somethingWentWrongPleaseTryAgain"));
     } finally {
       setPendingId(null);
     }
@@ -265,8 +268,7 @@ export default function AdminBannersPage() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex flex-col gap-1.5">
           <p className="text-sm text-muted-foreground">
-            Promotional images on the public site. Each banner shows in one
-            placement and locale, ordered by its sort order.
+            {t("promotionalImagesOnThePublicSite")}
           </p>
 
           {/* Shown before anything is saved, so the cap is learned here rather
@@ -294,7 +296,7 @@ export default function AdminBannersPage() {
                       </span>{" "}
                       active
                     </span>
-                    {full ? <Badge variant="outline">Full</Badge> : null}
+                    {full ? <Badge variant="outline">{t("full")}</Badge> : null}
                   </li>
                 );
               })}
@@ -302,7 +304,7 @@ export default function AdminBannersPage() {
           ) : null}
         </div>
         <Button size="sm" onClick={() => setFormTarget(null)}>
-          New Banner
+          {t("newBanner")}
         </Button>
       </div>
 
@@ -318,13 +320,13 @@ export default function AdminBannersPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Banner</TableHead>
-              <TableHead>Locale</TableHead>
-              <TableHead>Placement</TableHead>
-              <TableHead>Order</TableHead>
-              <TableHead>Active window</TableHead>
-              <TableHead>Active</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead>{t("banner")}</TableHead>
+              <TableHead>{tShared("locale")}</TableHead>
+              <TableHead>{tShared("placement")}</TableHead>
+              <TableHead>{tShared("order")}</TableHead>
+              <TableHead>{tShared("activeWindow")}</TableHead>
+              <TableHead>{tShared("active")}</TableHead>
+              <TableHead className="text-right">{tShared("actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -343,7 +345,7 @@ export default function AdminBannersPage() {
                   colSpan={COLUMN_COUNT}
                   className="py-10 text-center text-muted-foreground"
                 >
-                  Loading banners…
+                  {t("loadingBanners")}
                 </TableCell>
               </TableRow>
             ) : items.length === 0 ? (
@@ -352,7 +354,7 @@ export default function AdminBannersPage() {
                   colSpan={COLUMN_COUNT}
                   className="py-10 text-center text-muted-foreground"
                 >
-                  No banners yet.
+                  {t("noBannersYet")}
                 </TableCell>
               </TableRow>
             ) : (
@@ -409,7 +411,7 @@ export default function AdminBannersPage() {
                         size="sm"
                         onClick={() => setFormTarget(banner)}
                       >
-                        Edit
+                        {tShared("edit")}
                       </Button>
                       <Button
                         variant="destructive"
@@ -421,7 +423,7 @@ export default function AdminBannersPage() {
                           setDeleteTarget(banner);
                         }}
                       >
-                        Delete
+                        {tShared("delete")}
                       </Button>
                     </div>
                   </TableCell>
@@ -460,7 +462,7 @@ export default function AdminBannersPage() {
         >
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Delete banner</DialogTitle>
+              <DialogTitle>{t("deleteBanner")}</DialogTitle>
               <DialogDescription>
                 “{deleteTarget.title}” will be removed from the{" "}
                 {deleteTarget.placement} placement for good. To take it down
@@ -483,7 +485,7 @@ export default function AdminBannersPage() {
                 onClick={() => setDeleteTarget(null)}
                 disabled={pendingId !== null}
               >
-                Cancel
+                {tShared("cancel")}
               </Button>
               <Button
                 type="button"
@@ -491,7 +493,9 @@ export default function AdminBannersPage() {
                 disabled={pendingId !== null}
                 onClick={() => void handleDelete(deleteTarget)}
               >
-                {pendingId === deleteTarget.id ? "Deleting…" : "Delete banner"}
+                {pendingId === deleteTarget.id
+                  ? "Deleting…"
+                  : t("deleteBanner")}
               </Button>
             </DialogFooter>
           </DialogContent>

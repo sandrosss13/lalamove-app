@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 
 import { useHubSubtitle } from "@/components/driver-hub/driver-hub-shell";
 import {
@@ -63,12 +64,17 @@ import { cn } from "@/lib/utils";
 /* Filters                                                                    */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * `labelKey` is a root-relative message key, resolved into `FilterStripItem`
+ * labels at render time; `value` stays English because it is compared against
+ * `SampleEmployee.status`, not shown.
+ */
 const EMPLOYEE_TABS = [
-  { value: "All", label: "All" },
-  { value: "Active", label: "Active" },
-  { value: "Invited", label: "Invited" },
-  { value: "Suspended", label: "Suspended" },
-] as const satisfies readonly FilterStripItem[];
+  { value: "All", labelKey: "common.shared.all" },
+  { value: "Active", labelKey: "common.shared.active" },
+  { value: "Invited", labelKey: "driverHub.employeesScreen.invited" },
+  { value: "Suspended", labelKey: "common.shared.suspended" },
+] as const;
 
 type EmployeesTab = (typeof EMPLOYEE_TABS)[number]["value"];
 
@@ -119,6 +125,13 @@ export type EmployeesScreenProps = {
 
 export function EmployeesScreen({ data }: EmployeesScreenProps) {
   const { subhead, roster, tiles, roleDefinitions } = data;
+  const t = useTranslations("driverHub.employeesScreen");
+  const tShared = useTranslations("common.shared");
+  const tRoot = useTranslations();
+  const tabItems: FilterStripItem[] = EMPLOYEE_TABS.map((item) => ({
+    value: item.value,
+    label: tRoot(item.labelKey),
+  }));
 
   const [tab, setTab] = React.useState<EmployeesTab>("All");
   const [selectedEmail, setSelectedEmail] = React.useState<string | null>(null);
@@ -180,33 +193,30 @@ export function EmployeesScreen({ data }: EmployeesScreenProps) {
         naming what *is* real — is the honest version.
       */}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-[10px] border border-border px-4 py-3.5">
-        <SampleNote label="Sample roster" note={ROSTER_SAMPLE_NOTE} />
+        <SampleNote label={t("sampleRoster")} note={ROSTER_SAMPLE_NOTE} />
         <p className="min-w-0 flex-1 text-[13px] leading-normal text-muted-foreground">
-          There is no employee record in the system yet, so the counts and the
-          people below are invented — nobody has been invited and nothing here
-          grants access. The role definitions further down are the real product
-          content.
+          {t("thereIsNoEmployeeRecordIn")}
         </p>
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
         <MetricTile
-          label="Employees"
+          label={tShared("employees")}
           value={tiles.employees.value}
           note={tiles.employees.note}
         />
         <MetricTile
-          label="Roles in use"
+          label={t("rolesInUse")}
           value={tiles.rolesInUse.value}
           note={tiles.rolesInUse.note}
         />
         <MetricTile
-          label="Can move money"
+          label={t("canMoveMoney")}
           value={tiles.canMoveMoney.value}
           note={tiles.canMoveMoney.note}
         />
         <MetricTile
-          label="Needs review"
+          label={tShared("needsReview")}
           value={tiles.needsReview.value}
           note={tiles.needsReview.note}
         />
@@ -220,7 +230,7 @@ export function EmployeesScreen({ data }: EmployeesScreenProps) {
           <HubCard>
             <div className="mb-[18px] flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
               <FilterStrip
-                items={EMPLOYEE_TABS}
+                items={tabItems}
                 value={tab}
                 onChange={(next) => {
                   if (isEmployeesTab(next)) {
@@ -250,7 +260,7 @@ export function EmployeesScreen({ data }: EmployeesScreenProps) {
                   }}
                   className="h-auto rounded-md px-[14px] py-2 text-[13px]"
                 >
-                  Invite employee
+                  {t("inviteEmployee")}
                 </Button>
               </div>
             </div>
@@ -267,18 +277,18 @@ export function EmployeesScreen({ data }: EmployeesScreenProps) {
                   )}
                 >
                   <TableHead role="columnheader" className={HEAD_CLASSES}>
-                    Person
+                    {t("person")}
                   </TableHead>
                   <TableHead role="columnheader" className={HEAD_CLASSES}>
-                    Role
+                    {tShared("role")}
                   </TableHead>
                   {split ? null : (
                     <>
                       <TableHead role="columnheader" className={HEAD_CLASSES}>
-                        Scope
+                        {tShared("scope")}
                       </TableHead>
                       <TableHead role="columnheader" className={HEAD_CLASSES}>
-                        Last active
+                        {t("lastActive")}
                       </TableHead>
                     </>
                   )}
@@ -286,7 +296,7 @@ export function EmployeesScreen({ data }: EmployeesScreenProps) {
                     role="columnheader"
                     className={cn(HEAD_CLASSES, "text-right")}
                   >
-                    Status
+                    {tShared("status")}
                   </TableHead>
                 </TableRow>
               </TableHeader>

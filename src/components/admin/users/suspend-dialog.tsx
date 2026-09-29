@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -80,6 +81,7 @@ export function SuspendDialog({
   onClose,
   onCompleted,
 }: SuspendDialogProps) {
+  const t = useTranslations();
   const [reason, setReason] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -94,7 +96,7 @@ export function SuspendDialog({
     // Checked here as well as server-side purely for the faster feedback; the
     // route is what actually enforces it.
     if (!isLifting && trimmedReason === "") {
-      setError("A reason is required to suspend an account.");
+      setError(t("common.shared.aReasonIsRequiredToSuspend"));
       return;
     }
 
@@ -133,7 +135,7 @@ export function SuspendDialog({
       // the button must not flash back to its idle label in between.
       onCompleted();
     } catch {
-      setError("Something went wrong. Please try again.");
+      setError(t("common.shared.somethingWentWrongPleaseTryAgain"));
       setPending(false);
     }
   }
@@ -173,13 +175,17 @@ export function SuspendDialog({
             ) : null
           ) : (
             <div className="flex flex-col gap-2">
-              <Label htmlFor="suspend-reason">Reason</Label>
+              <Label htmlFor="suspend-reason">
+                {t("common.shared.reason")}
+              </Label>
               <Textarea
                 id="suspend-reason"
                 value={reason}
                 onChange={(event) => setReason(event.target.value)}
                 maxLength={MAX_REASON_LENGTH}
-                placeholder="Why is this account being suspended?"
+                placeholder={t(
+                  "admin.suspendDialog.whyIsThisAccountBeingSuspended",
+                )}
                 disabled={pending}
                 autoFocus
                 required
@@ -200,7 +206,7 @@ export function SuspendDialog({
               onClick={onClose}
               disabled={pending}
             >
-              Cancel
+              {t("common.shared.cancel")}
             </Button>
             <Button
               type="submit"

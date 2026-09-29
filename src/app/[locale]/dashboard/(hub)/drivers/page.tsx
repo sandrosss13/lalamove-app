@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import type { LicenceCategory, VehicleClass } from "@prisma/client";
+import { getTranslations } from "next-intl/server";
 
-import { localeHref } from "@/i18n/server";
+import { localeHref, type LocaleRouteParams } from "@/i18n/server";
 import { DriversScreen } from "@/components/driver-hub/screens/drivers-screen";
 import type { DriversVehicleOption } from "@/components/driver-hub/screens/drivers-add-panel";
 import { resolveHubAccount } from "@/lib/dashboard/hub/account";
 import { getHubDrivers } from "@/lib/dashboard/hub/drivers";
 import { getHubFleetAvailability } from "@/lib/dashboard/hub/fleet-availability";
+import { localizeSampleCopy } from "@/lib/dashboard/hub/sample";
 import { toHubDayKey } from "@/lib/dashboard/hub/timezone";
 import { getHubVehicles } from "@/lib/dashboard/hub/vehicles";
 import type { HubVehicle } from "@/lib/dashboard/hub/vehicles";
@@ -16,9 +18,19 @@ import { VEHICLE_CLASSES } from "@/lib/driver-onboarding/vehicle-classes";
 // Session + Prisma access can't be statically rendered.
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Drivers · Driver Hub",
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: LocaleRouteParams;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({
+    locale,
+    namespace: "dashboard.dashboardDrivers",
+  });
+
+  return { title: t("driversDriverHub") };
+}
 
 /**
  * Where a non-business account is sent — the board, which the hub labels
@@ -112,10 +124,11 @@ export default async function DriversPage() {
   // and the only day its "now" marker can appear. Resolved here rather than
   // inside the loader so the board and every other hub screen on this request
   // agree on which day "today" is.
-  const [drivers, vehicles, availability] = await Promise.all([
+  const [drivers, vehicles, availability, t] = await Promise.all([
     getHubDrivers(account),
     getHubVehicles(account),
     getHubFleetAvailability(account, toHubDayKey(new Date())),
+    getTranslations(),
   ]);
 
   if (drivers === null) {
@@ -124,7 +137,8 @@ export default async function DriversPage() {
 
   return (
     <DriversScreen
-      data={drivers}
+      // Verification row labels are sampled copy; see `SAMPLE_COPY_KEYS`.
+      data={localizeSampleCopy(drivers, t)}
       vehicles={vehicleOptions(vehicles.vehicles)}
       availability={availability}
     />

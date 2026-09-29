@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 
 import type { PaymentMethodType } from "@prisma/client";
 
@@ -83,6 +84,8 @@ async function readErrorMessage(
  * why `CARD` carries a note saying so.
  */
 export default function AdminPaymentMethodsPage() {
+  const t = useTranslations("admin.adminFinancePaymentMethods");
+  const tShared = useTranslations("common.shared");
   const [items, setItems] = useState<AdminPaymentMethodRow[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -103,7 +106,7 @@ export default function AdminPaymentMethodsPage() {
 
         if (!response.ok) {
           setError(
-            await readErrorMessage(response, "Could not load payment methods."),
+            await readErrorMessage(response, t("couldNotLoadPaymentMethods")),
           );
           setLoading(false);
           return;
@@ -118,7 +121,7 @@ export default function AdminPaymentMethodsPage() {
           return;
         }
 
-        setError("Could not load payment methods.");
+        setError(t("couldNotLoadPaymentMethods"));
         setLoading(false);
       }
     }
@@ -126,7 +129,7 @@ export default function AdminPaymentMethodsPage() {
     void load();
 
     return () => controller.abort();
-  }, []);
+  }, [t]);
 
   async function handleToggle(method: AdminPaymentMethodRow) {
     setError(null);
@@ -146,7 +149,7 @@ export default function AdminPaymentMethodsPage() {
         setError(
           await readErrorMessage(
             response,
-            "Could not update this payment method.",
+            t("couldNotUpdateThisPaymentMethod"),
           ),
         );
         return;
@@ -164,7 +167,7 @@ export default function AdminPaymentMethodsPage() {
             ),
       );
     } catch {
-      setError("Could not update this payment method.");
+      setError(t("couldNotUpdateThisPaymentMethod"));
     } finally {
       setPendingType(null);
     }
@@ -173,16 +176,16 @@ export default function AdminPaymentMethodsPage() {
   return (
     <div className="flex flex-col gap-4">
       <p className="text-sm text-muted-foreground">
-        Payment methods offered at checkout, platform-wide.
+        {t("paymentMethodsOfferedAtCheckoutPlatform")}
       </p>
 
       <div className="overflow-hidden rounded-xl border border-border">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Method</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead>{t("method")}</TableHead>
+              <TableHead>{tShared("status")}</TableHead>
+              <TableHead className="text-right">{tShared("actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -192,7 +195,7 @@ export default function AdminPaymentMethodsPage() {
                   colSpan={COLUMN_COUNT}
                   className="py-10 text-center text-muted-foreground"
                 >
-                  Loading payment methods…
+                  {t("loadingPaymentMethods")}
                 </TableCell>
               </TableRow>
             ) : items === null ? (
@@ -202,7 +205,7 @@ export default function AdminPaymentMethodsPage() {
                   className="py-10 text-center text-destructive"
                 >
                   <span role="alert">
-                    {error ?? "Could not load payment methods."}
+                    {error ?? t("couldNotLoadPaymentMethods")}
                   </span>
                 </TableCell>
               </TableRow>
@@ -227,9 +230,9 @@ export default function AdminPaymentMethodsPage() {
                     </TableCell>
                     <TableCell>
                       {method.isEnabled ? (
-                        <Badge variant="secondary">Enabled</Badge>
+                        <Badge variant="secondary">{t("enabled")}</Badge>
                       ) : (
-                        <Badge variant="outline">Disabled</Badge>
+                        <Badge variant="outline">{t("disabled")}</Badge>
                       )}
                     </TableCell>
                     <TableCell className="text-right">

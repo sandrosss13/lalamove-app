@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { deleteDriverDocuments } from "@/lib/driver-document-storage";
@@ -17,14 +18,15 @@ import { ONBOARDING_FIRST_STEP } from "@/lib/driver-onboarding/draft-schema";
  * resubmitted in place. See `requirements.md`'s Assumptions.
  */
 export async function POST(request: Request): Promise<NextResponse> {
+  const t = await getRequestTranslations("common.shared");
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    return NextResponse.json({ error: t("unauthorized") }, { status: 401 });
   }
 
   if (session.user.role !== "DRIVER") {
     return NextResponse.json(
-      { error: "Only drivers have an onboarding application." },
+      { error: t("onlyDriversHaveAnOnboardingApplication") },
       { status: 403 },
     );
   }
@@ -36,7 +38,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   if (!profile) {
     return NextResponse.json(
-      { error: "Complete your driver profile before onboarding." },
+      { error: t("completeYourDriverProfileBeforeOnboarding") },
       { status: 404 },
     );
   }
@@ -44,14 +46,14 @@ export async function POST(request: Request): Promise<NextResponse> {
   const { application } = profile;
   if (!application) {
     return NextResponse.json(
-      { error: "No application to reset." },
+      { error: t("noApplicationToReset") },
       { status: 404 },
     );
   }
 
   if (application.status !== "DRAFT") {
     return NextResponse.json(
-      { error: "A submitted application cannot be reset." },
+      { error: t("aSubmittedApplicationCannotBeReset") },
       { status: 400 },
     );
   }

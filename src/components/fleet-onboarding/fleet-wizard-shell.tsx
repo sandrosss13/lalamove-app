@@ -33,6 +33,7 @@
 
 import { useState } from "react";
 import { ChevronLeftIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { FleetApplicationStatusScreen } from "@/components/fleet-onboarding/fleet-application-status-screen";
@@ -53,32 +54,46 @@ import { Step4DriversAssignment } from "@/components/fleet-onboarding/steps/step
 import { Step5ReviewSubmit } from "@/components/fleet-onboarding/steps/step-5-review-submit";
 import type { FleetDraftVehicle } from "@/lib/fleet-onboarding/draft-schema";
 
-/** The kicker/title pair above each screen, following the design's `STEPS` array. */
-const SCREEN_HEADERS: { screen: number; kicker: string; title: string }[] = [
+/**
+ * The kicker/title pair above each screen, following the design's `STEPS` array.
+ * `titleKey` is the title's `common.shared` message key — render that; `title`
+ * stays as the English source. The kickers have no catalog entry yet.
+ */
+const SCREEN_HEADERS: {
+  screen: number;
+  kicker: string;
+  title: string;
+  titleKey: string;
+}[] = [
   {
     screen: FLEET_SCREENS.company,
     kicker: "Step 1 of 5 · Company & authorisation",
     title: "Company details",
+    titleKey: "companyDetails",
   },
   {
     screen: FLEET_SCREENS.fleet,
     kicker: "Step 2 of 5 · Fleet",
     title: "Fleet composition",
+    titleKey: "fleetComposition",
   },
   {
     screen: FLEET_SCREENS.vehicles,
     kicker: "Step 3 of 5 · Vehicles",
     title: "Vehicle specifications",
+    titleKey: "vehicleSpecifications",
   },
   {
     screen: FLEET_SCREENS.drivers,
     kicker: "Step 4 of 5 · Drivers",
     title: "Drivers & assignment",
+    titleKey: "driversAssignment",
   },
   {
     screen: FLEET_SCREENS.review,
     kicker: "Step 5 of 5 · Review",
     title: "Check and submit",
+    titleKey: "checkAndSubmit",
   },
 ];
 
@@ -217,6 +232,9 @@ export function FleetWizardShell() {
     resetApplication,
     showToast,
   } = useFleetDraft();
+  const t = useTranslations("fleet.fleetWizardShell");
+  const tShared = useTranslations("common.shared");
+  const tRoot = useTranslations();
 
   const [phase, setPhase] = useState<"welcome" | "step">("welcome");
   // Held so "Start a new application" can show progress and can't be
@@ -300,7 +318,7 @@ export function FleetWizardShell() {
       <Surface>
         <div className="flex flex-1 items-center justify-center p-16">
           <p className="text-sm text-muted-foreground">
-            Loading your application…
+            {tShared("loadingYourApplication")}
           </p>
         </div>
       </Surface>
@@ -317,7 +335,7 @@ export function FleetWizardShell() {
             variant="outline"
             onClick={() => void refetch()}
           >
-            Try again
+            {tShared("tryAgain")}
           </Button>
         </div>
       </Surface>
@@ -370,12 +388,10 @@ export function FleetWizardShell() {
               className="mb-[30px] size-11 rounded-xl bg-onboarding-accent"
             />
             <h1 className="text-[42px] leading-[1.08] font-semibold tracking-[-0.03em]">
-              Register your fleet
+              {t("registerYourFleet")}
             </h1>
             <p className="mt-3.5 max-w-[540px] text-base leading-[1.55] text-muted-foreground">
-              For logistics companies running more than one vehicle. Register
-              the company once, declare the fleet by body type and class, then
-              put a driver behind every vehicle.
+              {t("forLogisticsCompaniesRunningMoreThan")}
             </p>
 
             <ol className="mt-[34px] overflow-hidden rounded-[14px] border border-border">
@@ -387,7 +403,9 @@ export function FleetWizardShell() {
                   <span className="flex size-[22px] shrink-0 items-center justify-center rounded-full bg-muted font-price text-[11px] font-semibold text-muted-foreground">
                     {entry.step}
                   </span>
-                  <span className="text-sm font-medium">{entry.label}</span>
+                  <span className="text-sm font-medium">
+                    {tRoot(entry.labelKey)}
+                  </span>
                 </li>
               ))}
             </ol>
@@ -396,7 +414,7 @@ export function FleetWizardShell() {
               <div className="mt-6 flex flex-wrap items-center gap-5 rounded-[14px] border border-onboarding-accent bg-onboarding-accent/6 px-[18px] py-4">
                 <div className="flex-1">
                   <p className="text-sm font-semibold">
-                    Unfinished application
+                    {tShared("unfinishedApplication")}
                   </p>
                   <p className="mt-[3px] text-[13px] text-muted-foreground">
                     {formatSavedAt(draftUpdatedAt)} · you left off at step{" "}
@@ -413,7 +431,7 @@ export function FleetWizardShell() {
                   onClick={() => setPhase("step")}
                   className="h-11 shrink-0 cursor-pointer rounded-[10px] bg-onboarding-accent px-5 text-[14.5px] font-semibold text-white transition-colors hover:bg-onboarding-accent-hover focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
                 >
-                  Resume
+                  {tShared("resume")}
                 </button>
               </div>
             ) : null}
@@ -455,7 +473,7 @@ export function FleetWizardShell() {
             <button
               type="button"
               onClick={handleBack}
-              aria-label="Back"
+              aria-label={tShared("back")}
               className="flex size-[34px] shrink-0 cursor-pointer items-center justify-center rounded-[9px] border border-border bg-card text-muted-foreground transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
             >
               <ChevronLeftIcon className="size-4" />
@@ -465,7 +483,7 @@ export function FleetWizardShell() {
                 {header?.kicker}
               </p>
               <h1 className="mt-0.5 text-[26px] font-semibold tracking-[-0.02em]">
-                {header?.title}
+                {header ? tShared(header.titleKey) : null}
               </h1>
             </div>
             {/* Save state, deliberately quiet: a working save is a footnote, a

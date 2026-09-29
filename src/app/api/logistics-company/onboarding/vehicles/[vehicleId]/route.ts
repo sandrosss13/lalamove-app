@@ -5,11 +5,15 @@ import type {
   VehicleClass,
 } from "@prisma/client";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isDuplicatePlateError } from "@/app/api/driver-profile/vehicles/validation";
 import { resolveVehicleTypeSpecCode } from "@/lib/driver-onboarding/vehicle-classes";
 import { validateVehicleInput } from "@/lib/fleet-onboarding/vehicle-validation";
+
+/** The request-locale translator the body parsers below phrase their errors with. */
+type RequestTranslator = Awaited<ReturnType<typeof getRequestTranslations>>;
 
 /**
  * PATCH /api/logistics-company/onboarding/vehicles/[vehicleId] — correct one
@@ -98,9 +102,10 @@ function isJsonObject(value: unknown): value is Record<string, unknown> {
  */
 function parseVehicleCorrectionBody(
   body: unknown,
+  t: RequestTranslator,
 ): { data: Record<string, unknown> } | { error: string } {
   if (!isJsonObject(body)) {
-    return { error: "Request body must be a JSON object." };
+    return { error: t("common.shared.requestBodyMustBeAJson") };
   }
 
   const data: Record<string, unknown> = {};
@@ -115,14 +120,19 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ vehicleId: string }> },
 ): Promise<NextResponse> {
+  const t = await getRequestTranslations();
+
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    return NextResponse.json(
+      { error: t("common.shared.unauthorized") },
+      { status: 401 },
+    );
   }
 
   if (session.user.role !== "COMPANY") {
     return NextResponse.json(
-      { error: "Only logistics companies have a fleet application." },
+      { error: t("common.shared.onlyLogisticsCompaniesHaveAFleet") },
       { status: 403 },
     );
   }
@@ -132,12 +142,12 @@ export async function PATCH(
     rawBody = await request.json();
   } catch {
     return NextResponse.json(
-      { error: "Request body must be valid JSON." },
+      { error: t("common.shared.requestBodyMustBeValidJson") },
       { status: 400 },
     );
   }
 
-  const parsed = parseVehicleCorrectionBody(rawBody);
+  const parsed = parseVehicleCorrectionBody(rawBody, t);
   if ("error" in parsed) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
@@ -152,7 +162,10 @@ export async function PATCH(
   // A caller with no company owns no vehicle, so this is the same 404 as an
   // unknown id — never a distinct message that would confirm the id exists.
   if (!company) {
-    return NextResponse.json({ error: "Vehicle not found." }, { status: 404 });
+    return NextResponse.json(
+      { error: t("common.shared.vehicleNotFound") },
+      { status: 404 },
+    );
   }
 
   // `vehicleId` is `@unique` on the review row, so this addresses exactly one.
@@ -196,19 +209,30 @@ export async function PATCH(
     !row.vehicle ||
     row.businessApplication.companyId !== company.id
   ) {
-    return NextResponse.json({ error: "Vehicle not found." }, { status: 404 });
+    return NextResponse.json(
+      { error: t("common.shared.vehicleNotFound") },
+      { status: 404 },
+    );
   }
 
   if (row.businessApplication.status !== "ACTION_REQUIRED") {
     return NextResponse.json(
-      { error: "This application isn't open for corrections." },
+      {
+        error: t(
+          "errors.logisticsCompanyOnboardingVehicles.thisApplicationIsnTOpenFor",
+        ),
+      },
       { status: 400 },
     );
   }
 
   if (row.status !== "FLAGGED") {
     return NextResponse.json(
-      { error: "This vehicle wasn't flagged for correction." },
+      {
+        error: t(
+          "errors.logisticsCompanyOnboardingVehicles.thisVehicleWasnTFlaggedFor",
+        ),
+      },
       { status: 400 },
     );
   }
@@ -258,7 +282,11 @@ export async function PATCH(
       `Vehicle type spec "${specCode}" is missing; cannot correct vehicle ${vehicleId}.`,
     );
     return NextResponse.json(
-      { error: "We couldn't save this vehicle. Please try again." },
+      {
+        error: t(
+          "errors.logisticsCompanyOnboardingVehicles.weCouldnTSaveThisVehicle",
+        ),
+      },
       { status: 500 },
     );
   }
@@ -313,7 +341,7 @@ export async function PATCH(
     if (isDuplicatePlateError(error)) {
       return NextResponse.json(
         {
-          error: "This plate number is already registered to another vehicle.",
+          error: t("common.shared.thisPlateNumberIsAlreadyRegistered2"),
         },
         { status: 409 },
       );
@@ -321,7 +349,11 @@ export async function PATCH(
 
     console.error("Failed to correct a business fleet vehicle:", error);
     return NextResponse.json(
-      { error: "We couldn't save this vehicle. Please try again." },
+      {
+        error: t(
+          "errors.logisticsCompanyOnboardingVehicles.weCouldnTSaveThisVehicle",
+        ),
+      },
       { status: 500 },
     );
   }

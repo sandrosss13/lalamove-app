@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { GeorgianCity, Prisma } from "@prisma/client";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isDuplicatePlateError } from "@/app/api/driver-profile/vehicles/validation";
@@ -131,17 +132,22 @@ type FleetSubmitContext =
 async function resolveFleetSubmitContext(
   request: Request,
 ): Promise<FleetSubmitContext> {
+  const t = await getRequestTranslations();
+
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {
     return {
-      response: NextResponse.json({ error: "Unauthorized." }, { status: 401 }),
+      response: NextResponse.json(
+        { error: t("common.shared.unauthorized") },
+        { status: 401 },
+      ),
     };
   }
 
   if (session.user.role !== "COMPANY") {
     return {
       response: NextResponse.json(
-        { error: "Only logistics companies have a fleet application." },
+        { error: t("common.shared.onlyLogisticsCompaniesHaveAFleet") },
         { status: 403 },
       ),
     };
@@ -155,7 +161,9 @@ async function resolveFleetSubmitContext(
   if (!company) {
     return {
       response: NextResponse.json(
-        { error: "Complete your company profile before onboarding." },
+        {
+          error: t("common.shared.completeYourCompanyProfileBeforeOnboarding"),
+        },
         { status: 404 },
       ),
     };
@@ -166,7 +174,7 @@ async function resolveFleetSubmitContext(
   if (!application) {
     return {
       response: NextResponse.json(
-        { error: "Start the application first." },
+        { error: t("common.shared.startTheApplicationFirst") },
         { status: 404 },
       ),
     };
@@ -175,7 +183,7 @@ async function resolveFleetSubmitContext(
   if (application.status === "PENDING") {
     return {
       response: NextResponse.json(
-        { error: "This application has already been submitted." },
+        { error: t("common.shared.thisApplicationHasAlreadyBeenSubmitted") },
         { status: 400 },
       ),
     };
@@ -184,7 +192,7 @@ async function resolveFleetSubmitContext(
   if (application.status === "APPROVED") {
     return {
       response: NextResponse.json(
-        { error: "This application has already been approved." },
+        { error: t("common.shared.thisApplicationHasAlreadyBeenApproved") },
         { status: 400 },
       ),
     };
@@ -320,6 +328,8 @@ async function resubmit(
   application: SubmittableApplication,
   now: Date,
 ): Promise<NextResponse> {
+  const t = await getRequestTranslations();
+
   const flaggedCount = application.vehicles.filter(
     (row) => row.status === "FLAGGED",
   ).length;
@@ -334,7 +344,11 @@ async function resubmit(
 
   if (application.companyFlagReason !== null) {
     return NextResponse.json(
-      { error: "Correct the flagged company details before resubmitting." },
+      {
+        error: t(
+          "errors.logisticsCompanyOnboardingSubmit.correctTheFlaggedCompanyDetailsBefore",
+        ),
+      },
       { status: 400 },
     );
   }
@@ -345,8 +359,7 @@ async function resubmit(
   if (application.vehicles.length === 0) {
     return NextResponse.json(
       {
-        error:
-          "Your application is incomplete — contact support so we can restore it.",
+        error: t("common.shared.yourApplicationIsIncompleteContactSupport"),
       },
       { status: 400 },
     );
@@ -397,7 +410,7 @@ async function resubmit(
     // for review: there is no vehicle left to review.
     if (!vehicle) {
       problems.push(
-        "Your application is incomplete — contact support so we can restore it.",
+        t("common.shared.yourApplicationIsIncompleteContactSupport"),
       );
       continue;
     }
@@ -475,6 +488,8 @@ async function resubmit(
 }
 
 export async function POST(request: Request): Promise<NextResponse> {
+  const t = await getRequestTranslations();
+
   const context = await resolveFleetSubmitContext(request);
   if ("response" in context) {
     return context.response;
@@ -495,7 +510,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     return NextResponse.json(
-      { error: "Fill in the wizard before submitting your application." },
+      { error: t("common.shared.fillInTheWizardBeforeSubmitting") },
       { status: 400 },
     );
   }
@@ -677,7 +692,7 @@ export async function POST(request: Request): Promise<NextResponse> {
         `Vehicle type spec "${vehicle.specCode}" is missing; cannot submit business application ${application.id}.`,
       );
       return NextResponse.json(
-        { error: "We couldn't submit your application. Please try again." },
+        { error: t("common.shared.weCouldnTSubmitYourApplication") },
         { status: 500 },
       );
     }
@@ -784,7 +799,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     if (isDuplicatePlateError(error)) {
       return NextResponse.json(
         {
-          error: "This plate number is already registered to another vehicle.",
+          error: t("common.shared.thisPlateNumberIsAlreadyRegistered2"),
         },
         { status: 409 },
       );
@@ -792,7 +807,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     console.error("Failed to submit a business fleet application:", error);
     return NextResponse.json(
-      { error: "We couldn't submit your application. Please try again." },
+      { error: t("common.shared.weCouldnTSubmitYourApplication") },
       { status: 500 },
     );
   }

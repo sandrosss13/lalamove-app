@@ -26,10 +26,25 @@ import type { CargoCategory } from "@prisma/client";
 
 import { CARGO_CATEGORY_LABELS } from "@/lib/cargo";
 
+/**
+ * A key under the `home.orderCargoOptions` catalog namespace. Stored in place of
+ * the English subtext because this is a plain module, not a component: it cannot
+ * call `useTranslations`, so the card that renders the option resolves the key
+ * against the active locale instead.
+ */
+export type CargoOptionDescriptionKey =
+  | "sofasBedsWardrobes"
+  | "fridgesWashersOfficeKit"
+  | "palletsCartonsShopFitOut"
+  | "stagingBoothsAvGear"
+  | "aWholeHomeOrOffice"
+  | "machineryPartsBulkGoods"
+  | "timberCementFixings";
+
 export type CargoOption = {
   category: CargoCategory;
   label: string;
-  description: string;
+  descriptionKey: CargoOptionDescriptionKey;
   Icon: LucideIcon;
 };
 
@@ -40,34 +55,34 @@ export type CargoOption = {
  */
 const CARGO_CATEGORY_CARDS: Record<
   CargoCategory,
-  { description: string; Icon: LucideIcon }
+  { descriptionKey: CargoOptionDescriptionKey; Icon: LucideIcon }
 > = {
   FURNITURE_FURNISHINGS: {
-    description: "Sofas, beds, wardrobes",
+    descriptionKey: "sofasBedsWardrobes",
     Icon: Sofa,
   },
   APPLIANCES: {
-    description: "Fridges, washers, office kit",
+    descriptionKey: "fridgesWashersOfficeKit",
     Icon: Refrigerator,
   },
   RETAIL_STOCK: {
-    description: "Pallets, cartons, shop fit-out",
+    descriptionKey: "palletsCartonsShopFitOut",
     Icon: Boxes,
   },
   EVENT_EQUIPMENT: {
-    description: "Staging, booths, AV gear",
+    descriptionKey: "stagingBoothsAvGear",
     Icon: PartyPopper,
   },
   FULL_RELOCATION: {
-    description: "A whole home or office",
+    descriptionKey: "aWholeHomeOrOffice",
     Icon: House,
   },
   INDUSTRIAL_SUPPLIES: {
-    description: "Machinery, parts, bulk goods",
+    descriptionKey: "machineryPartsBulkGoods",
     Icon: Factory,
   },
   CONSTRUCTION_MATERIALS: {
-    description: "Timber, cement, fixings",
+    descriptionKey: "timberCementFixings",
     Icon: HardHat,
   },
 };

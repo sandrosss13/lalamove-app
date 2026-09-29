@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 
 import type { ContentLocale } from "@prisma/client";
 
@@ -118,6 +119,7 @@ function DeleteEntryDialog({
   onClose: () => void;
   onCompleted: () => void;
 }) {
+  const tShared = useTranslations("common.shared");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -143,7 +145,7 @@ function DeleteEntryDialog({
       // the button must not flash back to its idle label in between.
       onCompleted();
     } catch {
-      setError("Something went wrong. Please try again.");
+      setError(tShared("somethingWentWrongPleaseTryAgain"));
       setPending(false);
     }
   }
@@ -183,14 +185,14 @@ function DeleteEntryDialog({
 
         <DialogFooter showCloseButton={false}>
           <Button variant="outline" onClick={onClose} disabled={pending}>
-            Cancel
+            {tShared("cancel")}
           </Button>
           <Button
             variant="destructive"
             onClick={handleDelete}
             disabled={pending}
           >
-            {pending ? "Deleting…" : "Delete"}
+            {pending ? "Deleting…" : tShared("delete")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -200,8 +202,10 @@ function DeleteEntryDialog({
 
 /** Renders one locale's cell — its text, or a placeholder when the row is gone. */
 function LocaleCell({ value }: { value: string | null }) {
+  const t = useTranslations("admin.adminContentTranslations");
+
   if (value === null) {
-    return <span className="text-sm text-muted-foreground">Not set</span>;
+    return <span className="text-sm text-muted-foreground">{t("notSet")}</span>;
   }
 
   return <span className="text-sm break-words">{value}</span>;
@@ -223,6 +227,8 @@ function LocaleCell({ value }: { value: string | null }) {
  * effort.
  */
 export default function AdminTranslationsPage() {
+  const t = useTranslations("admin.adminContentTranslations");
+  const tShared = useTranslations("common.shared");
   const [namespace, setNamespace] = useState(ALL_NAMESPACES);
   const [data, setData] = useState<AdminTranslationListResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -256,7 +262,7 @@ export default function AdminTranslationsPage() {
 
         if (!response.ok) {
           setError(
-            await readErrorMessage(response, "Could not load translations."),
+            await readErrorMessage(response, t("couldNotLoadTranslations")),
           );
           setLoading(false);
           return;
@@ -271,7 +277,7 @@ export default function AdminTranslationsPage() {
           return;
         }
 
-        setError("Could not load translations.");
+        setError(t("couldNotLoadTranslations"));
         setLoading(false);
       }
     }
@@ -279,7 +285,7 @@ export default function AdminTranslationsPage() {
     void load();
 
     return () => controller.abort();
-  }, [namespace, reloadToken]);
+  }, [namespace, reloadToken, t]);
 
   const items = data?.items ?? [];
   const namespaces = data?.namespaces ?? [];
@@ -296,7 +302,7 @@ export default function AdminTranslationsPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Select value={namespace} onValueChange={setNamespace}>
           <SelectTrigger
-            aria-label="Filter translations by namespace"
+            aria-label={t("filterTranslationsByNamespace")}
             className="w-full max-w-72"
           >
             <SelectValue placeholder="All namespaces" />
@@ -318,7 +324,7 @@ export default function AdminTranslationsPage() {
             </p>
           ) : null}
           <Button size="sm" onClick={() => setForm({ mode: "create" })}>
-            New Key
+            {t("newKey")}
           </Button>
         </div>
       </div>
@@ -327,11 +333,11 @@ export default function AdminTranslationsPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Namespace</TableHead>
-              <TableHead>Key</TableHead>
-              <TableHead>Georgian (KA)</TableHead>
-              <TableHead>English (EN)</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead>{tShared("namespace")}</TableHead>
+              <TableHead>{tShared("key")}</TableHead>
+              <TableHead>{tShared("georgianKa")}</TableHead>
+              <TableHead>{tShared("englishEn")}</TableHead>
+              <TableHead className="text-right">{tShared("actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -350,7 +356,7 @@ export default function AdminTranslationsPage() {
                   colSpan={COLUMN_COUNT}
                   className="py-10 text-center text-muted-foreground"
                 >
-                  Loading translations…
+                  {t("loadingTranslations")}
                 </TableCell>
               </TableRow>
             ) : items.length === 0 ? (
@@ -388,14 +394,14 @@ export default function AdminTranslationsPage() {
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="sm">
-                            Actions
+                            {tShared("actions")}
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem
                             onSelect={() => setForm({ mode: "edit", row })}
                           >
-                            Edit
+                            {tShared("edit")}
                           </DropdownMenuItem>
 
                           {/* Only the locales that actually have a row can be
@@ -415,7 +421,7 @@ export default function AdminTranslationsPage() {
                                 })
                               }
                             >
-                              Delete Georgian
+                              {t("deleteGeorgian")}
                             </DropdownMenuItem>
                           ) : null}
 
@@ -432,7 +438,7 @@ export default function AdminTranslationsPage() {
                                 })
                               }
                             >
-                              Delete English
+                              {t("deleteEnglish")}
                             </DropdownMenuItem>
                           ) : null}
                         </DropdownMenuContent>

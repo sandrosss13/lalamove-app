@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { CheckIcon } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
@@ -17,7 +18,7 @@ import {
   useFleetDraft,
 } from "@/components/fleet-onboarding/fleet-draft-context";
 import type { FleetDraftCompany } from "@/lib/fleet-onboarding/draft-schema";
-import { GEORGIAN_CITY_OPTIONS } from "@/lib/georgian-cities";
+import { useLocalizedCityOptions } from "@/lib/georgian-cities";
 
 /**
  * The `company` section of the fleet draft. Imported rather than restated: these
@@ -27,8 +28,8 @@ import { GEORGIAN_CITY_OPTIONS } from "@/lib/georgian-cities";
  */
 type CompanyDraft = FleetDraftCompany;
 
-/** One entry of `GEORGIAN_CITY_OPTIONS`. */
-type CityOption = (typeof GEORGIAN_CITY_OPTIONS)[number];
+/** One entry of the localized city list (`label`/`region` in the reader's language). */
+type CityOption = ReturnType<typeof useLocalizedCityOptions>[number];
 
 /**
  * Where this form's edits go, and what happens after a successful save.
@@ -111,7 +112,9 @@ const SAVE_FALLBACK =
 const VALIDATION_TOAST = "Fix the highlighted fields to continue.";
 const CORRECTION_SAVED_TOAST = "Company details updated.";
 
-const CITY_PLACEHOLDER_EMPTY = "Start typing — Tbilisi, Batumi, Kutaisi…";
+/** Full message path, translated at render. */
+const CITY_PLACEHOLDER_EMPTY_KEY =
+  "onboarding.step1AuthPersonal.startTypingTbilisiBatumiKutaisi";
 const CITY_PLACEHOLDER_MORE = "Add another city…";
 const IBAN_PLACEHOLDER = "GE29 NB00 0000 0101 9049 17";
 const PAYOUT_HINT =
@@ -425,6 +428,8 @@ export function Step1CompanyDetails() {
 
   const fieldId = useId();
   const emailInputId = `${fieldId}-contact-email`;
+  const t = useTranslations("fleet.step1CompanyDetails");
+  const tShared = useTranslations("common.shared");
 
   if (phase === "details") {
     return (
@@ -486,18 +491,20 @@ export function Step1CompanyDetails() {
   return (
     <div className="flex max-w-[520px] flex-col gap-[18px]">
       <p className="text-[13.5px] leading-[1.5] text-muted-foreground">
-        The address this account signs in with. It is also where review
-        decisions and order correspondence go — change it if a different inbox
-        should receive them.
+        {t("theAddressThisAccountSignsIn")}
       </p>
 
-      <Field label="Company email" htmlFor={emailInputId} error={emailError}>
+      <Field
+        label={tShared("companyEmail")}
+        htmlFor={emailInputId}
+        error={emailError}
+      >
         <Input
           id={emailInputId}
           type="email"
           inputMode="email"
           autoComplete="email"
-          placeholder="dispatch@company.ge"
+          placeholder={t("dispatchCompanyGe")}
           value={email}
           aria-invalid={emailError !== undefined}
           aria-describedby={
@@ -524,7 +531,7 @@ export function Step1CompanyDetails() {
           onClick={handleEmailContinue}
           className={PRIMARY_CTA_CLASS}
         >
-          Continue
+          {tShared("continue")}
         </button>
       </div>
     </div>
@@ -619,6 +626,10 @@ export function CompanyDetailsForm({
 
   const fieldId = useId();
   const cityListId = `${fieldId}-city-list`;
+  const t = useTranslations("fleet.step1CompanyDetails");
+  const tShared = useTranslations("common.shared");
+  const tRoot = useTranslations();
+  const cityOptions = useLocalizedCityOptions();
 
   /**
    * Fields that have been through a failed Continue. Not "has been edited" —
@@ -646,19 +657,17 @@ export function CompanyDetailsForm({
   const selectedCities = useMemo<CityOption[]>(() => {
     const values = company.citiesOfOperation ?? [];
     return values
-      .map((value) =>
-        GEORGIAN_CITY_OPTIONS.find((option) => option.value === value),
-      )
+      .map((value) => cityOptions.find((option) => option.value === value))
       .filter((option): option is CityOption => option !== undefined);
-  }, [company.citiesOfOperation]);
+  }, [company.citiesOfOperation, cityOptions]);
 
   const cityMatches = useMemo(() => {
     const needle = cityQuery.trim().toLowerCase();
-    if (!needle) return GEORGIAN_CITY_OPTIONS;
-    return GEORGIAN_CITY_OPTIONS.filter((option) =>
+    if (!needle) return cityOptions;
+    return cityOptions.filter((option) =>
       option.label.toLowerCase().includes(needle),
     );
-  }, [cityQuery]);
+  }, [cityQuery, cityOptions]);
 
   // Clamped rather than reset when the list shrinks under the cursor, so
   // narrowing a search never leaves the highlight pointing past the last row.
@@ -838,28 +847,30 @@ export function CompanyDetailsForm({
     onSaved();
   }
 
-  const registeredCity = GEORGIAN_CITY_OPTIONS.find(
+  const registeredCity = cityOptions.find(
     (option) => option.value === company.city,
   );
   const cityPlaceholder =
-    selectedCities.length > 0 ? CITY_PLACEHOLDER_MORE : CITY_PLACEHOLDER_EMPTY;
+    selectedCities.length > 0
+      ? CITY_PLACEHOLDER_MORE
+      : tRoot(CITY_PLACEHOLDER_EMPTY_KEY);
   const citiesError = errorFor("citiesOfOperation");
 
   return (
     <div className="flex max-w-[680px] flex-col gap-[22px]">
       <div className="flex flex-col gap-3.5">
-        <p className={GROUP_HEADING_CLASS}>Legal entity</p>
+        <p className={GROUP_HEADING_CLASS}>{t("legalEntity")}</p>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1.4fr_1fr]">
           <Field
-            label="Company name"
+            label={tShared("companyName")}
             htmlFor={idFor("companyName")}
             error={errorFor("companyName")}
           >
             <Input
               id={idFor("companyName")}
               autoComplete="organization"
-              placeholder="As registered"
+              placeholder={t("asRegistered")}
               value={company.companyName ?? ""}
               aria-invalid={errorFor("companyName") !== undefined}
               aria-describedby={describedBy("companyName")}
@@ -871,7 +882,7 @@ export function CompanyDetailsForm({
           </Field>
 
           <Field
-            label="VAT / tax ID"
+            label={tShared("vatTaxId")}
             htmlFor={idFor("vatId")}
             error={errorFor("vatId")}
           >
@@ -891,14 +902,14 @@ export function CompanyDetailsForm({
         </div>
 
         <Field
-          label="Registered address"
+          label={tShared("registeredAddress")}
           htmlFor={idFor("registeredAddress")}
           error={errorFor("registeredAddress")}
         >
           <Input
             id={idFor("registeredAddress")}
             autoComplete="street-address"
-            placeholder="Street, number, postcode"
+            placeholder={t("streetNumberPostcode")}
             value={company.registeredAddress ?? ""}
             aria-invalid={errorFor("registeredAddress") !== undefined}
             aria-describedby={describedBy("registeredAddress")}
@@ -916,20 +927,20 @@ export function CompanyDetailsForm({
             company may be registered in one city and operate out of others, so
             it is never derived from the selection below. */}
         <div className="flex flex-col gap-1.5">
-          <p className={FIELD_LABEL_CLASS}>Registered city</p>
+          <p className={FIELD_LABEL_CLASS}>{t("registeredCity")}</p>
           <p className="text-[15px]">
             {registeredCity?.label ?? company.city ?? "—"}
           </p>
           <p className="text-xs text-muted-foreground">
-            Set when the account was created. Contact operations to change it.
+            {t("setWhenTheAccountWasCreated")}
           </p>
         </div>
 
         <Field
-          label="Cities of operation"
+          label={tShared("citiesOfOperation")}
           htmlFor={idFor("citiesOfOperation")}
           error={citiesError}
-          hint="Where the fleet picks up. Orders outside these cities are not offered to your drivers."
+          hint={t("whereTheFleetPicksUpOrders")}
         >
           <div className="flex flex-col gap-2">
             {selectedCities.length > 0 ? (
@@ -939,7 +950,7 @@ export function CompanyDetailsForm({
                     key={option.value}
                     type="button"
                     onClick={() => toggleCity(option)}
-                    aria-label={`Remove ${option.label}`}
+                    aria-label={`${tShared("remove")} ${option.label}`}
                     className="flex cursor-pointer items-center gap-2 rounded-[20px] border border-onboarding-accent bg-onboarding-accent/6 py-1.5 pr-2.5 pl-3 transition-colors hover:bg-onboarding-accent/12 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
                   >
                     <span className="text-[13px] font-semibold">
@@ -1023,7 +1034,7 @@ export function CompanyDetailsForm({
                 >
                   {cityMatches.length === 0 ? (
                     <p className="px-[13px] py-[11px] text-[13px] text-muted-foreground">
-                      No city by that name. Check the spelling.
+                      {tShared("noCityByThatNameCheck")}
                     </p>
                   ) : (
                     cityMatches.map((option, index) => {
@@ -1111,18 +1122,18 @@ export function CompanyDetailsForm({
           since its first sub-screen owns the email and sign-up owns the
           number. */}
       <div className="flex flex-col gap-3.5 border-t border-border pt-5">
-        <p className={GROUP_HEADING_CLASS}>Contact person</p>
+        <p className={GROUP_HEADING_CLASS}>{t("contactPerson")}</p>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1.3fr_1fr]">
           <Field
-            label="Full name"
+            label={tShared("fullName")}
             htmlFor={idFor("contactName")}
             error={errorFor("contactName")}
           >
             <Input
               id={idFor("contactName")}
               autoComplete="name"
-              placeholder="Who we speak to"
+              placeholder={t("whoWeSpeakTo")}
               value={company.contactName ?? ""}
               aria-invalid={errorFor("contactName") !== undefined}
               aria-describedby={describedBy("contactName")}
@@ -1134,14 +1145,14 @@ export function CompanyDetailsForm({
           </Field>
 
           <Field
-            label="Role"
+            label={tShared("role")}
             htmlFor={idFor("contactRole")}
             error={errorFor("contactRole")}
           >
             <Input
               id={idFor("contactRole")}
               autoComplete="organization-title"
-              placeholder="Fleet manager"
+              placeholder={t("fleetManager")}
               value={company.contactRole ?? ""}
               aria-invalid={errorFor("contactRole") !== undefined}
               aria-describedby={describedBy("contactRole")}
@@ -1159,7 +1170,7 @@ export function CompanyDetailsForm({
         {mode === "correction" ? (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1.3fr_1fr]">
             <Field
-              label="Company email"
+              label={tShared("companyEmail")}
               htmlFor={idFor("contactEmail")}
               error={errorFor("contactEmail")}
             >
@@ -1167,7 +1178,7 @@ export function CompanyDetailsForm({
                 id={idFor("contactEmail")}
                 type="email"
                 autoComplete="email"
-                placeholder="dispatch@company.ge"
+                placeholder={t("dispatchCompanyGe")}
                 value={company.contactEmail ?? ""}
                 aria-invalid={errorFor("contactEmail") !== undefined}
                 aria-describedby={describedBy("contactEmail")}
@@ -1181,7 +1192,7 @@ export function CompanyDetailsForm({
             </Field>
 
             <Field
-              label="Company phone"
+              label={t("companyPhone")}
               htmlFor={idFor("phone")}
               error={errorFor("phone")}
             >
@@ -1203,10 +1214,10 @@ export function CompanyDetailsForm({
       </div>
 
       <div className="flex flex-col gap-3.5 border-t border-border pt-5">
-        <p className={GROUP_HEADING_CLASS}>Payouts</p>
+        <p className={GROUP_HEADING_CLASS}>{t("payouts")}</p>
 
         <Field
-          label="Bank account (IBAN)"
+          label={t("bankAccountIban")}
           htmlFor={idFor("bankAccountIban")}
           error={errorFor("bankAccountIban")}
           hint={
@@ -1246,7 +1257,7 @@ export function CompanyDetailsForm({
             }}
             className="h-12 cursor-pointer rounded-[11px] border border-border bg-card px-[22px] text-[15px] font-semibold hover:bg-muted"
           >
-            Back
+            {tShared("back")}
           </button>
         ) : null}
 
@@ -1256,7 +1267,7 @@ export function CompanyDetailsForm({
           disabled={submitting}
           className={PRIMARY_CTA_CLASS}
         >
-          {submitting ? "Saving…" : "Continue"}
+          {submitting ? "Saving…" : tShared("continue")}
         </button>
       </div>
     </div>

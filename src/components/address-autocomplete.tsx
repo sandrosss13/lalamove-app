@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { APIProvider, Map, Marker, useMap } from "@vis.gl/react-google-maps";
+import { useTranslations } from "next-intl";
 
 /** A single map coordinate. Mirrors `LatLng` from `@/lib/geo`, duplicated here
  * so this client component never imports the server-only geo module. */
@@ -116,6 +117,7 @@ function MapCameraController({ center }: { center: LatLng }) {
  * isn't required here.
  */
 function AddressMapPreview({ location }: { location: LatLng }) {
+  const t = useTranslations("common.addressAutocomplete");
   // Inlined at build time by Next because of the NEXT_PUBLIC_ prefix; must be
   // referenced as a full literal expression for that substitution to happen.
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -137,7 +139,7 @@ function AddressMapPreview({ location }: { location: LatLng }) {
           zoomControl
           style={{ width: "100%", height: "100%" }}
         >
-          <Marker position={location} title="Selected address" />
+          <Marker position={location} title={t("selectedAddress")} />
           <MapCameraController center={location} />
         </Map>
       </APIProvider>
@@ -169,6 +171,7 @@ export function AddressAutocomplete({
   placeholder,
   required,
 }: AddressAutocompleteProps) {
+  const t = useTranslations("common.addressAutocomplete");
   const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
   const [open, setOpen] = useState(false);
   // Null until a suggestion resolves: the preview only exists once there is a
@@ -402,7 +405,7 @@ export function AddressAutocomplete({
       </label>
 
       {detailsPending ? (
-        <p className="opacity-70">Loading address details…</p>
+        <p className="opacity-70">{t("loadingAddressDetails")}</p>
       ) : null}
 
       {/* Gated on the coordinates themselves rather than on a separate "a place

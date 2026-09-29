@@ -1,12 +1,16 @@
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
   deleteVehiclePhotos,
   uploadVehiclePhoto,
 } from "@/lib/supabase-storage";
+
+/** The request-locale translator the body parsers below phrase their errors with. */
+type RequestTranslator = Awaited<ReturnType<typeof getRequestTranslations>>;
 
 /**
  * Fleet vehicles: the company-owned half of `Vehicle`. This deliberately
@@ -45,10 +49,13 @@ function nonEmptyString(value: unknown): string | null {
  * Parses the manufacturing year. Bounded on both ends: next year is allowed
  * because dealers register model years ahead of the calendar.
  */
-function parseYear(value: unknown): { value: number } | { error: string } {
+function parseYear(
+  value: unknown,
+  t: RequestTranslator,
+): { value: number } | { error: string } {
   const raw = nonEmptyString(value);
   if (raw === null) {
-    return { error: "year is required." };
+    return { error: t("common.shared.yearIsRequired") };
   }
 
   const year = Number(raw);
@@ -93,13 +100,14 @@ function isDuplicatePlateError(error: unknown): boolean {
  */
 function parsePhotos(
   formData: FormData,
+  t: RequestTranslator,
 ): { value: File[] } | { error: string } {
   const photos = formData
     .getAll(PHOTO_FIELD)
     .filter((entry): entry is File => entry instanceof File && entry.size > 0);
 
   if (photos.length === 0) {
-    return { error: "At least one photo is required." };
+    return { error: t("common.shared.atLeastOnePhotoIsRequired") };
   }
 
   for (const photo of photos) {
@@ -131,33 +139,34 @@ function parsePhotos(
  */
 function parseCreateVehicleForm(
   formData: FormData,
+  t: RequestTranslator,
 ): { data: CreateVehicleInput } | { error: string } {
   const plateNumber = nonEmptyString(formData.get("plateNumber"));
   if (plateNumber === null) {
-    return { error: "plateNumber is required." };
+    return { error: t("common.shared.platenumberIsRequired") };
   }
 
   const make = nonEmptyString(formData.get("make"));
   if (make === null) {
-    return { error: "make is required." };
+    return { error: t("common.shared.makeIsRequired") };
   }
 
   const model = nonEmptyString(formData.get("model"));
   if (model === null) {
-    return { error: "model is required." };
+    return { error: t("common.shared.modelIsRequired") };
   }
 
-  const year = parseYear(formData.get("year"));
+  const year = parseYear(formData.get("year"), t);
   if ("error" in year) {
     return { error: year.error };
   }
 
   const vehicleTypeCode = nonEmptyString(formData.get("vehicleTypeCode"));
   if (vehicleTypeCode === null) {
-    return { error: "vehicleTypeCode is required." };
+    return { error: t("common.shared.vehicletypecodeIsRequired") };
   }
 
-  const photos = parsePhotos(formData);
+  const photos = parsePhotos(formData, t);
   if ("error" in photos) {
     return { error: photos.error };
   }
@@ -184,14 +193,23 @@ function parseCreateVehicleForm(
  * an error.
  */
 export async function GET(request: Request): Promise<NextResponse> {
+  const t = await getRequestTranslations();
+
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    return NextResponse.json(
+      { error: t("common.shared.unauthorized") },
+      { status: 401 },
+    );
   }
 
   if (session.user.role !== "COMPANY") {
     return NextResponse.json(
-      { error: "Only logistics companies have a fleet." },
+      {
+        error: t(
+          "errors.logisticsCompanyVehicles.onlyLogisticsCompaniesHaveAFleet",
+        ),
+      },
       { status: 403 },
     );
   }
@@ -259,14 +277,23 @@ export async function GET(request: Request): Promise<NextResponse> {
  * a rejected request doesn't leave orphaned objects behind.
  */
 export async function POST(request: Request): Promise<NextResponse> {
+  const t = await getRequestTranslations();
+
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    return NextResponse.json(
+      { error: t("common.shared.unauthorized") },
+      { status: 401 },
+    );
   }
 
   if (session.user.role !== "COMPANY") {
     return NextResponse.json(
-      { error: "Only logistics companies can add fleet vehicles." },
+      {
+        error: t(
+          "errors.logisticsCompanyVehicles.onlyLogisticsCompaniesCanAddFleet",
+        ),
+      },
       { status: 403 },
     );
   }
@@ -276,12 +303,12 @@ export async function POST(request: Request): Promise<NextResponse> {
     formData = await request.formData();
   } catch {
     return NextResponse.json(
-      { error: "Request body must be multipart/form-data." },
+      { error: t("common.shared.requestBodyMustBeMultipartForm") },
       { status: 400 },
     );
   }
 
-  const parsed = parseCreateVehicleForm(formData);
+  const parsed = parseCreateVehicleForm(formData, t);
   if ("error" in parsed) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
@@ -296,7 +323,11 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   if (!company) {
     return NextResponse.json(
-      { error: "Complete your company profile before adding a vehicle." },
+      {
+        error: t(
+          "errors.logisticsCompanyVehicles.completeYourCompanyProfileBeforeAdding",
+        ),
+      },
       { status: 400 },
     );
   }
@@ -310,7 +341,11 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   if (!vehicleTypeSpec) {
     return NextResponse.json(
-      { error: "vehicleTypeCode does not match a known vehicle type." },
+      {
+        error: t(
+          "errors.logisticsCompanyVehicles.vehicletypecodeDoesNotMatchAKnown",
+        ),
+      },
       { status: 400 },
     );
   }
@@ -328,7 +363,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     // fault, and neither should surface as an unhandled crash.
     console.error("Fleet vehicle photo upload failed:", error);
     return NextResponse.json(
-      { error: "Could not upload the vehicle photos. Please try again." },
+      { error: t("common.shared.couldNotUploadTheVehiclePhotos") },
       { status: 502 },
     );
   }
@@ -365,7 +400,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     // rather than swallowed.
     if (isDuplicatePlateError(error)) {
       return NextResponse.json(
-        { error: "This plate number is already registered." },
+        { error: t("common.shared.thisPlateNumberIsAlreadyRegistered") },
         { status: 409 },
       );
     }

@@ -1,36 +1,47 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 /**
  * The five steps, verbatim from the design's own `RAIL` array.
  *
  * Exported because the welcome screen's outline list is the same five entries;
  * it lives here rather than in the shell so the shell can import it without the
  * rail having to import back from the shell.
+ *
+ * `labelKey` is the label's full `next-intl` message path; render that, not
+ * `label`, which stays as the English source of truth. The `sub` lines have no
+ * catalog entry yet and still render in English.
  */
 export const FLEET_RAIL = [
   {
     step: 1,
     label: "Company & authorisation",
+    labelKey: "fleet.fleetStepRail.companyAuthorisation",
     sub: "Phone, legal entity, contact, payouts",
   },
   {
     step: 2,
     label: "Fleet composition",
+    labelKey: "common.shared.fleetComposition",
     sub: "How many of each body type and class",
   },
   {
     step: 3,
     label: "Vehicle specifications",
+    labelKey: "common.shared.vehicleSpecifications",
     sub: "Plate, model, capacity per vehicle",
   },
   {
     step: 4,
     label: "Drivers & assignment",
+    labelKey: "common.shared.driversAssignment",
     sub: "A named driver behind every vehicle",
   },
   {
     step: 5,
     label: "Review & status",
+    labelKey: "common.shared.reviewStatus",
     sub: "Submit, per-vehicle verdicts, activation",
   },
 ] as const;
@@ -78,13 +89,16 @@ export function FleetStepRail({
   onSelect: (step: number) => void;
   tally: FleetTallyRow[];
 }) {
+  const t = useTranslations("common.shared");
+  const tRoot = useTranslations();
+
   return (
     <nav
-      aria-label="Application progress"
+      aria-label={t("applicationProgress")}
       className="flex w-full flex-col gap-4 border-b border-border bg-card p-6 md:h-full md:w-[300px] md:shrink-0 md:border-r md:border-b-0 md:px-[22px] md:py-[26px]"
     >
       <h2 className="font-price text-[10.5px] font-semibold tracking-[0.09em] text-muted-foreground uppercase">
-        Application progress
+        {t("applicationProgress")}
       </h2>
 
       {FLEET_RAIL.map((entry) => {
@@ -130,7 +144,7 @@ export function FleetStepRail({
                   active ? "text-onboarding-accent" : "text-foreground"
                 }`}
               >
-                {entry.label}
+                {tRoot(entry.labelKey)}
               </span>
               <span className="mt-0.5 block text-[11.5px] leading-[1.45] text-muted-foreground">
                 {entry.sub}
@@ -145,7 +159,7 @@ export function FleetStepRail({
           keeping in view. */}
       <div className="mt-auto rounded-xl border border-border bg-muted/40 p-[13px]">
         <p className="font-price text-[10.5px] font-semibold tracking-[0.08em] text-muted-foreground uppercase">
-          Fleet
+          {t("fleet")}
         </p>
         <dl className="mt-[9px] flex flex-col gap-1.5">
           {tally.map((row) => (

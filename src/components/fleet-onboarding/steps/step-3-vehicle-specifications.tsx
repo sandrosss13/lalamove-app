@@ -19,6 +19,7 @@
  */
 
 import { Fragment, useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 
 import {
   FLEET_SCREENS,
@@ -43,7 +44,6 @@ import {
 import type { FleetDraftVehicle } from "@/lib/fleet-onboarding/draft-schema";
 import {
   firstVehicleMessage,
-  formatGroupLabel,
   otherPlatesExcluding,
   reconcileFleetVehicles,
   sameVehicleList,
@@ -96,6 +96,9 @@ function editorValuesFor(vehicle: FleetDraftVehicle): VehicleEditorValues {
 }
 
 export function Step3VehicleSpecifications() {
+  const t = useTranslations("fleet.step3VehicleSpecifications");
+  const tShared = useTranslations("common.shared");
+  const tRoot = useTranslations();
   const { draft, updateDraft, goToStep, showToast } = useFleetDraft();
 
   // `editingId` is kept while the dialog animates closed so its copy does not
@@ -202,14 +205,14 @@ export function Step3VehicleSpecifications() {
     return (
       <div className="rounded-[14px] border border-border bg-card px-5 py-6">
         <p className="text-sm text-muted-foreground">
-          No vehicles yet. Go back and set how many you run in each combination.
+          {t("noVehiclesYetGoBackAnd")}
         </p>
         <button
           type="button"
           onClick={() => goToStep(FLEET_SCREENS.fleet)}
           className="mt-4 h-11 cursor-pointer rounded-[10px] border border-border bg-card px-5 text-[14.5px] font-medium transition-colors hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
         >
-          Back to fleet composition
+          {t("backToFleetComposition")}
         </button>
       </div>
     );
@@ -230,10 +233,12 @@ export function Step3VehicleSpecifications() {
             <TableRow>
               <TableHead className="w-[52px] pl-4">#</TableHead>
               <TableHead>Class &amp; body</TableHead>
-              <TableHead>Make / model</TableHead>
-              <TableHead>Plate</TableHead>
-              <TableHead>Payload</TableHead>
-              <TableHead className="pr-4 text-right">Status</TableHead>
+              <TableHead>{tShared("makeModel")}</TableHead>
+              <TableHead>{tShared("plate")}</TableHead>
+              <TableHead>{tShared("payload")}</TableHead>
+              <TableHead className="pr-4 text-right">
+                {tShared("status")}
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -248,8 +253,12 @@ export function Step3VehicleSpecifications() {
                 previous.chassisType !== vehicle.chassisType ||
                 previous.classId !== vehicle.classId;
 
-              const className = findVehicleClass(vehicle.classId).name;
-              const bodyLabel = findBodyType(vehicle.chassisType).shortLabel;
+              const className = tRoot(
+                findVehicleClass(vehicle.classId).nameKey,
+              );
+              const bodyLabel = tRoot(
+                findBodyType(vehicle.chassisType).shortLabelKey,
+              );
               const ready = firstVehicleMessage(problemsFor(vehicle)) === null;
               const failing = !ready && showErrors;
               const number = index + 1;
@@ -262,7 +271,7 @@ export function Step3VehicleSpecifications() {
                         colSpan={6}
                         className="bg-muted/40 px-4 py-2 font-price text-[11px] font-semibold tracking-[0.08em] text-muted-foreground uppercase"
                       >
-                        {formatGroupLabel(vehicle.chassisType, vehicle.classId)}
+                        {`${bodyLabel} · ${className}`}
                       </TableCell>
                     </TableRow>
                   ) : null}
@@ -334,14 +343,14 @@ export function Step3VehicleSpecifications() {
           onClick={handleContinue}
           className="h-12 cursor-pointer rounded-[11px] bg-onboarding-accent px-[30px] text-[15px] font-semibold tracking-[-0.01em] text-white transition-colors hover:bg-onboarding-accent-hover focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
         >
-          Continue
+          {tShared("continue")}
         </button>
         <button
           type="button"
           onClick={() => goToStep(FLEET_SCREENS.fleet)}
           className="h-12 cursor-pointer rounded-[11px] border border-border bg-card px-5 text-[14.5px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
         >
-          Back
+          {tShared("back")}
         </button>
       </div>
 

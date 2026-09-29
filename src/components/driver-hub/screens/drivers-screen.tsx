@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 
 import { useRouter } from "@/i18n/navigation";
 import { useHubSubtitle } from "@/components/driver-hub/driver-hub-shell";
@@ -80,12 +81,17 @@ import { cn } from "@/lib/utils";
 /* Filters                                                                    */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * `labelKey` is a root-relative message key, resolved into `FilterStripItem`
+ * labels at render time; `value` stays English because it is compared against
+ * `HubDriver`'s presence and review-state words, not shown.
+ */
 const DRIVER_TABS = [
-  { value: "All", label: "All" },
-  { value: "Online", label: "Online" },
-  { value: "Offline", label: "Offline" },
-  { value: "Needs review", label: "Needs review" },
-] as const satisfies readonly FilterStripItem[];
+  { value: "All", labelKey: "common.shared.all" },
+  { value: "Online", labelKey: "driverHub.driversScreen.online" },
+  { value: "Offline", labelKey: "driverHub.driversScreen.offline" },
+  { value: "Needs review", labelKey: "common.shared.needsReview" },
+] as const;
 
 type DriversTab = (typeof DRIVER_TABS)[number]["value"];
 
@@ -179,6 +185,13 @@ export function DriversScreen({
 }: DriversScreenProps) {
   const { drivers, tiles } = data;
   const router = useRouter();
+  const t = useTranslations("driverHub.driversScreen");
+  const tShared = useTranslations("common.shared");
+  const tRoot = useTranslations();
+  const tabItems: FilterStripItem[] = DRIVER_TABS.map((item) => ({
+    value: item.value,
+    label: tRoot(item.labelKey),
+  }));
 
   const [tab, setTab] = React.useState<DriversTab>("All");
   const [selectedUserId, setSelectedUserId] = React.useState<string | null>(
@@ -332,7 +345,7 @@ export function DriversScreen({
 
       <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
         <MetricTile
-          label="Registered drivers"
+          label={t("registeredDrivers")}
           value={tiles.registeredDriversCount}
           note={
             addedThisMonthCount === 0
@@ -341,7 +354,7 @@ export function DriversScreen({
           }
         />
         <MetricTile
-          label="Online now"
+          label={t("onlineNow")}
           value={tiles.onlineNowCount}
           note={
             onlineCities.length === 0
@@ -352,14 +365,14 @@ export function DriversScreen({
           }
         />
         <MetricTile
-          label="Fleet avg rating"
+          label={t("fleetAvgRating")}
           value={tiles.sampled.fleetAvgRating.toFixed(2)}
           note={`From ${tiles.sampled.fleetRatedJobCount} rated jobs`}
         >
           <SampleNote note={RATING_SAMPLE_NOTE} className="mt-2.5" />
         </MetricTile>
         <MetricTile
-          label="Needs review"
+          label={tShared("needsReview")}
           value={tiles.needsReviewCount}
           note={
             tiles.needsReviewCount === 0
@@ -390,7 +403,7 @@ export function DriversScreen({
           <HubCard>
             <div className="mb-[18px] flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
               <FilterStrip
-                items={DRIVER_TABS}
+                items={tabItems}
                 value={tab}
                 onChange={(next) => {
                   if (isDriversTab(next)) {
@@ -402,7 +415,10 @@ export function DriversScreen({
               <div className="flex flex-wrap items-center gap-x-3.5 gap-y-2">
                 {/* The Rating column is the one invented figure in this table,
                     so the marker sits on the table's own toolbar. */}
-                <SampleNote label="Sample ratings" note={RATING_SAMPLE_NOTE} />
+                <SampleNote
+                  label={t("sampleRatings")}
+                  note={RATING_SAMPLE_NOTE}
+                />
                 {/* Body font, not mono: the design's `driverCountLabel` is a
                     plain 12px muted string, and the hub reserves mono for
                     values a reader might compare or copy. */}
@@ -415,7 +431,7 @@ export function DriversScreen({
                   onClick={startAdding}
                   className="h-auto rounded-md px-[14px] py-2 text-[13px]"
                 >
-                  Add driver
+                  {t("addDriver")}
                 </Button>
               </div>
             </div>
@@ -433,31 +449,31 @@ export function DriversScreen({
                   )}
                 >
                   <TableHead role="columnheader" className={HEAD_CLASSES}>
-                    Driver
+                    {tShared("driver")}
                   </TableHead>
                   {split ? null : (
                     <>
                       <TableHead role="columnheader" className={HEAD_CLASSES}>
-                        Zone
+                        {tShared("zone")}
                       </TableHead>
                       <TableHead role="columnheader" className={HEAD_CLASSES}>
-                        Jobs · wk
+                        {tShared("jobsWk")}
                       </TableHead>
                     </>
                   )}
                   <TableHead role="columnheader" className={HEAD_CLASSES}>
-                    Rating
+                    {tShared("rating")}
                   </TableHead>
                   {split ? null : (
                     <TableHead role="columnheader" className={HEAD_CLASSES}>
-                      Earned
+                      {tShared("earned")}
                     </TableHead>
                   )}
                   <TableHead
                     role="columnheader"
                     className={cn(HEAD_CLASSES, "text-right")}
                   >
-                    Status
+                    {tShared("status")}
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -507,7 +523,7 @@ export function DriversScreen({
                           >
                             {shortId(driver.driverProfileId)} ·{" "}
                             {driver.assignedVehicle?.vehicleTypeLabel ??
-                              "Unassigned"}
+                              tShared("unassigned")}
                           </span>
                         </button>
                       </TableCell>
@@ -584,7 +600,7 @@ export function DriversScreen({
               >
                 {drivers.length === 0 ? (
                   <p className="mt-1 text-[13px]">
-                    Register your first driver to start dispatching jobs.
+                    {t("registerYourFirstDriverToStart")}
                   </p>
                 ) : null}
               </HubEmptyState>
@@ -633,6 +649,9 @@ function CredentialsCard({
   driver: RegisteredDriver;
   onDismiss: () => void;
 }) {
+  const t = useTranslations("driverHub.driversScreen");
+  const tShared = useTranslations("common.shared");
+
   return (
     <HubCard
       // Announced as soon as it appears: the operator has to act on this before
@@ -647,15 +666,14 @@ function CredentialsCard({
       </p>
       <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
         Give them these sign-in details now. The password is shown{" "}
-        <strong className="font-semibold text-foreground">once</strong> — it is
-        not stored anywhere in readable form, and closing this card is the end
-        of it. They set their own password after signing in.
+        <strong className="font-semibold text-foreground">once</strong>{" "}
+        {t("itIsNotStoredAnywhereIn")}
       </p>
 
       <dl className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div className="min-w-0 rounded-[10px] border border-border p-3">
           <dt className="text-[11px] tracking-[0.08em] uppercase text-muted-foreground">
-            Email
+            {tShared("email")}
           </dt>
           <dd className="mt-1.5 truncate font-price text-[15px] font-semibold select-all">
             {driver.email}
@@ -663,7 +681,7 @@ function CredentialsCard({
         </div>
         <div className="min-w-0 rounded-[10px] border border-border p-3">
           <dt className="text-[11px] tracking-[0.08em] uppercase text-muted-foreground">
-            Temporary password
+            {tShared("temporaryPassword")}
           </dt>
           <dd className="mt-1.5 truncate font-price text-[15px] font-semibold select-all">
             {driver.tempPassword}
@@ -677,7 +695,7 @@ function CredentialsCard({
         onClick={onDismiss}
         className="mt-4 h-auto rounded-md px-[15px] py-[9px] text-[13px] font-medium"
       >
-        Done — I have shared it
+        {t("doneIHaveSharedIt")}
       </Button>
     </HubCard>
   );

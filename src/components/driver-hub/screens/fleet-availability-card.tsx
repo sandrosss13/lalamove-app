@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 
 import { HubCard, SampleNote } from "@/components/driver-hub/hub-primitives";
 import {
@@ -168,6 +169,9 @@ export type FleetAvailabilityCardProps = {
 /* -------------------------------------------------------------------------- */
 
 export function FleetAvailabilityCard({ initial }: FleetAvailabilityCardProps) {
+  const t = useTranslations("driverHub.fleetAvailabilityCard");
+  const tShared = useTranslations("common.shared");
+
   /* ---------------------------------------------------------------------- */
   /* State                                                                  */
   /* ---------------------------------------------------------------------- */
@@ -812,7 +816,7 @@ export function FleetAvailabilityCard({ initial }: FleetAvailabilityCardProps) {
 
   return (
     <HubCard
-      title="Fleet availability"
+      title={t("fleetAvailability")}
       action={
         <div className="flex items-center gap-2">
           <Button
@@ -821,7 +825,7 @@ export function FleetAvailabilityCard({ initial }: FleetAvailabilityCardProps) {
             size="sm"
             onClick={handleResetFilters}
           >
-            Reset filters
+            {t("resetFilters")}
           </Button>
           <Button
             type="button"
@@ -834,7 +838,7 @@ export function FleetAvailabilityCard({ initial }: FleetAvailabilityCardProps) {
             // broken download rather than an empty result.
             disabled={rows.length === 0}
           >
-            Export to Excel
+            {tShared("exportToExcel")}
           </Button>
         </div>
       }
@@ -903,9 +907,9 @@ export function FleetAvailabilityCard({ initial }: FleetAvailabilityCardProps) {
 
       <div className="flex flex-wrap items-center gap-2">
         <p className="text-xs text-muted-foreground">
-          Drag across an empty stretch of a row to hold it as a booking.
+          {t("dragAcrossAnEmptyStretchOf")}
         </p>
-        <SampleNote label="Not saved" note={HOLD_NOT_SAVED_NOTE} />
+        <SampleNote label={t("notSaved")} note={HOLD_NOT_SAVED_NOTE} />
       </div>
 
       <HoldSlotDialog

@@ -23,6 +23,7 @@
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { ChassisType } from "@prisma/client";
+import { useTranslations } from "next-intl";
 
 import {
   Dialog,
@@ -242,6 +243,8 @@ export function VehicleEditorDialog({
   saveError?: string | null;
   saving?: boolean;
 }): React.ReactElement {
+  const tShared = useTranslations("common.shared");
+  const tRoot = useTranslations();
   const fieldId = useId();
   const listId = `${fieldId}-model-list`;
 
@@ -355,7 +358,8 @@ export function VehicleEditorDialog({
   }, [listOpen]);
 
   const vehicleClass = findVehicleClass(classId);
-  const bodyLabel = findBodyType(chassisType).shortLabel;
+  const vehicleClassName = tRoot(vehicleClass.nameKey);
+  const bodyLabel = tRoot(findBodyType(chassisType).shortLabelKey);
   // The class/body default, shown as placeholder text so an empty field still
   // says what a vehicle of this kind usually measures.
   const placeholderSpec = defaultSpecForClass(chassisType, classId);
@@ -522,7 +526,7 @@ export function VehicleEditorDialog({
       >
         <DialogHeader className="gap-1 border-b border-border px-[22px] pt-5 pb-4">
           <DialogTitle className="text-[18px] leading-tight font-semibold tracking-[-0.01em]">
-            Vehicle {index} — {vehicleClass.name}
+            Vehicle {index} — {vehicleClassName}
           </DialogTitle>
           <DialogDescription className="text-[13px] leading-[1.5]">
             {bodyLabel} · needs licence category{" "}
@@ -541,7 +545,7 @@ export function VehicleEditorDialog({
           <div className="flex max-h-[calc(100dvh-6rem)] flex-col gap-4 overflow-y-auto px-[22px] py-5">
             <div className="flex flex-col gap-1.5">
               <label htmlFor={`${fieldId}-make-model`} className={LABEL_CLASS}>
-                Make and model
+                {tShared("makeAndModel")}
               </label>
               {/* Hand-rolled rather than a `Popover`: see the pointerdown effect
                   above for why a popover inside a dialog is the wrong layer. */}
@@ -560,7 +564,7 @@ export function VehicleEditorDialog({
                       : undefined
                   }
                   aria-invalid={errorFor("makeModel") !== undefined}
-                  placeholder={`Search ${vehicleClass.name} models`}
+                  placeholder={`Search ${vehicleClassName} models`}
                   value={query}
                   onChange={(event) => handleQueryChange(event.target.value)}
                   onFocus={() => setListOpen(true)}
@@ -634,7 +638,7 @@ export function VehicleEditorDialog({
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="flex flex-col gap-1.5">
                 <label htmlFor={`${fieldId}-year`} className={LABEL_CLASS}>
-                  Year
+                  {tShared("year")}
                 </label>
                 <Input
                   id={`${fieldId}-year`}
@@ -652,7 +656,7 @@ export function VehicleEditorDialog({
               </div>
               <div className="flex flex-col gap-1.5">
                 <label htmlFor={`${fieldId}-plate`} className={LABEL_CLASS}>
-                  Licence plate
+                  {tShared("licencePlate")}
                 </label>
                 <Input
                   id={`${fieldId}-plate`}
@@ -660,7 +664,7 @@ export function VehicleEditorDialog({
                   autoCapitalize="characters"
                   autoComplete="off"
                   spellCheck={false}
-                  placeholder="34 ABC 128"
+                  placeholder={tShared("34Abc128")}
                   value={plate}
                   // Uppercased in state, not merely via `text-transform`, so the
                   // value that reaches the draft is the one on screen.
@@ -681,7 +685,7 @@ export function VehicleEditorDialog({
             ) : null}
 
             <fieldset className="flex flex-col gap-2">
-              <legend className={LABEL_CLASS}>Colour</legend>
+              <legend className={LABEL_CLASS}>{tShared("colour")}</legend>
               <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {COLORS.map(([name, hex]) => {
                   const selected = colour === name;
@@ -741,7 +745,7 @@ export function VehicleEditorDialog({
 
             <div className="flex flex-col gap-1.5">
               <label htmlFor={`${fieldId}-payload`} className={LABEL_CLASS}>
-                Maximum payload (kg)
+                {tShared("maximumPayloadKg")}
               </label>
               <Input
                 id={`${fieldId}-payload`}
@@ -758,11 +762,11 @@ export function VehicleEditorDialog({
             </div>
 
             <div className="flex flex-col gap-2.5">
-              <span className={LABEL_CLASS}>Cargo hold (metres)</span>
+              <span className={LABEL_CLASS}>{tShared("cargoHoldMetres")}</span>
               <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
                 <DimensionField
                   id={`${fieldId}-length`}
-                  label="Length"
+                  label={tShared("length")}
                   placeholder={formatDimensionM(placeholderSpec.cargoLengthM)}
                   value={length}
                   invalid={errorFor("dimensions") !== undefined}
@@ -770,7 +774,7 @@ export function VehicleEditorDialog({
                 />
                 <DimensionField
                   id={`${fieldId}-width`}
-                  label="Width"
+                  label={tShared("width")}
                   placeholder={formatDimensionM(placeholderSpec.cargoWidthM)}
                   value={width}
                   invalid={errorFor("dimensions") !== undefined}
@@ -778,7 +782,7 @@ export function VehicleEditorDialog({
                 />
                 <DimensionField
                   id={`${fieldId}-height`}
-                  label="Height"
+                  label={tShared("height")}
                   placeholder={formatDimensionM(placeholderSpec.cargoHeightM)}
                   value={height}
                   invalid={errorFor("dimensions") !== undefined}
@@ -825,7 +829,7 @@ export function VehicleEditorDialog({
                 onClick={() => onOpenChange(false)}
                 className="h-12 cursor-pointer rounded-[11px] border border-border bg-card px-5 text-[14.5px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
               >
-                Cancel
+                {tShared("cancel")}
               </button>
             </div>
           </DialogFooter>

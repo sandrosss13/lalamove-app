@@ -25,6 +25,7 @@
  */
 
 import { useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 
 import {
   FLEET_SCREENS,
@@ -101,6 +102,7 @@ function vehicleCountLabel(count: number): string {
 }
 
 export function Step2FleetComposition() {
+  const tShared = useTranslations("common.shared");
   const { draft, updateDraft, goToStep, showToast } = useFleetDraft();
 
   /** The count map itself — nested one level inside the `fleet` section. */
@@ -205,7 +207,7 @@ export function Step2FleetComposition() {
           onClick={handleContinue}
           className="h-12 cursor-pointer rounded-[11px] bg-onboarding-accent px-[30px] text-[15px] font-semibold tracking-[-0.01em] text-white transition-colors hover:bg-onboarding-accent-hover focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
         >
-          Continue
+          {tShared("continue")}
         </button>
       </div>
     </div>
@@ -269,6 +271,8 @@ type BodyPanelProps = {
  * from the shared taxonomy and this file holds no copy of the three names.
  */
 function BodyPanel({ bodyId, counts, fleetTotal, onBump }: BodyPanelProps) {
+  const t = useTranslations("fleet.step2FleetComposition");
+  const tRoot = useTranslations();
   const body = findBodyType(bodyId);
   const SideView = SIDE_VIEWS[bodyId];
 
@@ -288,9 +292,9 @@ function BodyPanel({ bodyId, counts, fleetTotal, onBump }: BodyPanelProps) {
       <header className="flex items-center gap-3.5 border-b border-border bg-muted/40 px-4 py-3">
         <SideView />
         <div className="flex-1">
-          <h3 className="text-[15px] font-semibold">{body.label}</h3>
+          <h3 className="text-[15px] font-semibold">{tRoot(body.labelKey)}</h3>
           <p className="mt-0.5 text-[12.5px] text-muted-foreground">
-            {body.description}
+            {tRoot(body.descriptionKey)}
           </p>
         </div>
         <p className="font-price text-[12.5px] font-semibold text-muted-foreground">
@@ -319,7 +323,7 @@ function BodyPanel({ bodyId, counts, fleetTotal, onBump }: BodyPanelProps) {
             >
               <div className="min-w-0 flex-1">
                 <p className="text-[13.5px] font-semibold text-muted-foreground">
-                  {cls.name}
+                  {tRoot(cls.nameKey)}
                 </p>
                 <p className="mt-px text-[11.5px] text-muted-foreground">
                   {cls.capacityLine}
@@ -361,7 +365,7 @@ function BodyPanel({ bodyId, counts, fleetTotal, onBump }: BodyPanelProps) {
                   count > 0 ? "text-foreground" : "text-muted-foreground"
                 }`}
               >
-                {cls.name}
+                {tRoot(cls.nameKey)}
               </p>
               <p className="mt-px text-[11.5px] text-muted-foreground">
                 {cls.capacityLine}
@@ -372,12 +376,12 @@ function BodyPanel({ bodyId, counts, fleetTotal, onBump }: BodyPanelProps) {
             </span>
             <div
               role="group"
-              aria-label={`${cls.name} · ${body.label}`}
+              aria-label={`${tRoot(cls.nameKey)} · ${tRoot(body.labelKey)}`}
               className="flex shrink-0 items-center"
             >
               <button
                 type="button"
-                aria-label="Remove one"
+                aria-label={t("removeOne")}
                 disabled={count === 0}
                 onClick={() => onBump(bodyId, cls.id, -1)}
                 className={`${STEPPER_BUTTON_CLASS_NAME} rounded-l-lg`}
@@ -394,7 +398,7 @@ function BodyPanel({ bodyId, counts, fleetTotal, onBump }: BodyPanelProps) {
               </span>
               <button
                 type="button"
-                aria-label="Add one"
+                aria-label={t("addOne")}
                 disabled={
                   count === FLEET_MAX_PER_CELL ||
                   fleetTotal >= FLEET_MAX_VEHICLES
@@ -476,11 +480,12 @@ const CAB_SHELL_PATH =
 const CAB_WINDOW_PATH = "M251 63 L285 56 V78 H251 Z";
 
 function DryBoxSideView() {
+  const t = useTranslations("fleet.step2FleetComposition");
   return (
     <svg
       viewBox="0 0 360 150"
       role="img"
-      aria-label="Dry box truck"
+      aria-label={t("dryBoxTruck")}
       className={SIDE_VIEW_CLASS_NAME}
     >
       <g
@@ -512,11 +517,12 @@ function DryBoxSideView() {
 }
 
 function RefrigeratedSideView() {
+  const t = useTranslations("fleet.step2FleetComposition");
   return (
     <svg
       viewBox="0 0 360 150"
       role="img"
-      aria-label="Refrigerated truck"
+      aria-label={t("refrigeratedTruck")}
       className={SIDE_VIEW_CLASS_NAME}
     >
       <g
@@ -565,11 +571,12 @@ function RefrigeratedSideView() {
 }
 
 function OpenChassisSideView() {
+  const t = useTranslations("fleet.step2FleetComposition");
   return (
     <svg
       viewBox="0 0 360 150"
       role="img"
-      aria-label="Flatbed truck with drop sides"
+      aria-label={t("flatbedTruckWithDropSides")}
       className={SIDE_VIEW_CLASS_NAME}
     >
       <g

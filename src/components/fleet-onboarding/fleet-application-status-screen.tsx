@@ -34,6 +34,7 @@
  */
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 import {
   useFleetDraft,
@@ -67,7 +68,7 @@ import {
   VEHICLE_CLASSES,
 } from "@/lib/driver-onboarding/vehicle-classes";
 import type { FleetDraftCompany } from "@/lib/fleet-onboarding/draft-schema";
-import { GEORGIAN_CITY_OPTIONS } from "@/lib/georgian-cities";
+import { useLocalizedCityOptions } from "@/lib/georgian-cities";
 
 /** `POST` with no body; answers `{ status, reference }` or `{ error }`. */
 const SUBMIT_ENDPOINT = "/api/logistics-company/onboarding/submit";
@@ -83,8 +84,9 @@ const VEHICLES_ENDPOINT = "/api/logistics-company/onboarding/vehicles";
 
 const RESUBMIT_ERROR_FALLBACK =
   "We couldn't resubmit your application. Please try again.";
-const VEHICLE_SAVE_ERROR_FALLBACK =
-  "We couldn't save this vehicle. Please try again.";
+/** Full message path, translated inside the component (a hook cannot run here). */
+const VEHICLE_SAVE_ERROR_FALLBACK_KEY =
+  "errors.logisticsCompanyOnboardingVehicles.weCouldnTSaveThisVehicle";
 
 /** Raised after the server has cleared a vehicle's flag and we have re-read. */
 const VEHICLE_SAVED_TOAST =
@@ -154,18 +156,22 @@ const CHIP_TONE: Record<FleetVehicleVerdict["status"], string> = {
     "bg-[color-mix(in_oklch,var(--color-status-warning-solid)_14%,var(--card))] text-status-warning",
 };
 
-/** The human word for each verdict, as the design's chip reads it. */
-const CHIP_LABEL: Record<FleetVehicleVerdict["status"], string> = {
-  APPROVED: "Approved",
-  FLAGGED: "Flagged",
-  PENDING: "Pending",
+/**
+ * The human word for each verdict, as the design's chip reads it, as a
+ * `common.shared` key. "Flagged" has no catalog entry yet, so it stays English.
+ */
+const CHIP_LABEL_KEY: Record<FleetVehicleVerdict["status"], string | null> = {
+  APPROVED: "approved",
+  FLAGGED: null,
+  PENDING: "pending",
 };
+const FLAGGED_CHIP_LABEL = "Flagged";
 
 /** The design's placeholder for a cell the verdict has nothing for. */
 const EMPTY_VALUE = "—";
 
 /** Stands in for the plate of a vehicle that has left the fleet out of band. */
-const REMOVED_VEHICLE_LABEL = "Vehicle no longer on file";
+const REMOVED_VEHICLE_LABEL_KEY = "vehicleNoLongerOnFile";
 
 /**
  * Reads an `{ error }` body without letting a non-JSON response (an HTML error
@@ -184,6 +190,9 @@ async function readErrorMessage(
   return payload?.error ?? fallback;
 }
 
+/** A translator over full message paths (`useTranslations()` with no namespace). */
+type RootTranslator = (key: string) => string;
+
 /**
  * The class's display name, looked up rather than resolved through
  * `findVehicleClass`, which *throws* on an unknown id. A verdict's
@@ -191,19 +200,23 @@ async function readErrorMessage(
  * taxonomy change must degrade to its raw value rather than blanking the whole
  * status screen. Same reasoning for the body label below.
  */
-function classNameFor(id: string): string {
-  return VEHICLE_CLASSES.find((entry) => entry.id === id)?.name ?? id;
+function classNameFor(id: string, tRoot: RootTranslator): string {
+  const found = VEHICLE_CLASSES.find((entry) => entry.id === id);
+  return found ? tRoot(found.nameKey) : id;
 }
 
-function bodyLabelFor(id: string): string {
-  return BODY_TYPES.find((entry) => entry.id === id)?.shortLabel ?? id;
+function bodyLabelFor(id: string, tRoot: RootTranslator): string {
+  const found = BODY_TYPES.find((entry) => entry.id === id);
+  return found ? tRoot(found.shortLabelKey) : id;
 }
 
-/** "TBILISI" → "Tbilisi", via the same option list the city picker uses. */
-function formatCity(value: string): string {
-  return (
-    GEORGIAN_CITY_OPTIONS.find((entry) => entry.value === value)?.label ?? value
-  );
+/**
+ * A `countsByBodyType` key — the body's English short label, which is what the
+ * GET counts by — in the reader's language, or verbatim if it is unknown.
+ */
+function bodyShortLabelText(shortLabel: string, tRoot: RootTranslator): string {
+  const found = BODY_TYPES.find((entry) => entry.shortLabel === shortLabel);
+  return found ? tRoot(found.shortLabelKey) : shortLabel;
 }
 
 /** "2 vehicles", "1 vehicle". */
@@ -322,6 +335,10 @@ export function FleetApplicationStatusScreen() {
   } = useFleetDraft();
 
   const router = useRouter();
+  const t = useTranslations("fleet.fleetApplicationStatusScreen");
+  const tShared = useTranslations("common.shared");
+  const tRoot = useTranslations();
+  const vehicleSaveErrorFallback = tRoot(VEHICLE_SAVE_ERROR_FALLBACK_KEY);
 
   /**
    * Which review row the Fix editor is showing. The *id* rather than the row
@@ -398,7 +415,7 @@ export function FleetApplicationStatusScreen() {
     // Unreachable from the UI — a row with no vehicle renders no Fix button —
     // but there is nothing to address without it, so this never guesses an id.
     if (verdict.vehicleId === null) {
-      setVehicleSaveError(VEHICLE_SAVE_ERROR_FALLBACK);
+      setVehicleSaveError(vehicleSaveErrorFallback);
       return false;
     }
 
@@ -434,12 +451,12 @@ export function FleetApplicationStatusScreen() {
 
       if (!response.ok) {
         setVehicleSaveError(
-          await readErrorMessage(response, VEHICLE_SAVE_ERROR_FALLBACK),
+          await readErrorMessage(response, vehicleSaveErrorFallback),
         );
         return false;
       }
     } catch {
-      setVehicleSaveError(VEHICLE_SAVE_ERROR_FALLBACK);
+      setVehicleSaveError(vehicleSaveErrorFallback);
       return false;
     } finally {
       setVehicleSaving(false);
@@ -499,7 +516,7 @@ export function FleetApplicationStatusScreen() {
             <StatusCard
               tag="Pending verification"
               accent={STATUS_AMBER}
-              title="Fleet under review"
+              title={t("fleetUnderReview")}
               // The design splits this exactly here: the title is "Fleet under
               // review" and the body starts at "Our team…". The handoff README
               // prints the pair as one sentence, which is where the apparent
@@ -514,7 +531,7 @@ export function FleetApplicationStatusScreen() {
         {status === "ACTION_REQUIRED" ? (
           <>
             <StatusCard
-              tag="Action required"
+              tag={tShared("actionRequired")}
               accent="var(--destructive)"
               title={actionRequiredTitle(
                 flaggedVehicles.length,
@@ -526,7 +543,7 @@ export function FleetApplicationStatusScreen() {
             {companyFlagged ? (
               <section className="rounded-[14px] border border-destructive bg-destructive/4 p-[18px]">
                 <h2 className="text-[11.5px] font-semibold tracking-[0.04em] text-muted-foreground uppercase">
-                  Company details
+                  {tShared("companyDetails")}
                 </h2>
                 {companyFlagReason !== null ? (
                   <p className="mt-2 text-[13.5px] leading-[1.5] text-destructive">
@@ -550,7 +567,7 @@ export function FleetApplicationStatusScreen() {
                   onClick={openCompanyDialog}
                   className="mt-3.5 h-10 cursor-pointer rounded-[9px] bg-destructive px-4 text-[13.5px] font-semibold text-white transition-opacity hover:opacity-90 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
                 >
-                  Fix company details
+                  {t("fixCompanyDetails")}
                 </button>
               </section>
             ) : null}
@@ -560,9 +577,9 @@ export function FleetApplicationStatusScreen() {
         {status === "APPROVED" ? (
           <>
             <StatusCard
-              tag="Approved"
+              tag={tShared("approved")}
               accent={STATUS_GREEN}
-              title="Your fleet is live."
+              title={t("yourFleetIsLive")}
               body="The company account is active and every approved vehicle can be dispatched. Assign new vehicles or drivers any time from the dispatch dashboard."
             />
             {submittedSummary !== null ? (
@@ -587,8 +604,7 @@ export function FleetApplicationStatusScreen() {
           // approved, so a flagged vehicle can legitimately survive into a live
           // fleet — and it cannot be corrected from here any more.
           <p className="text-[12.5px] leading-[1.5] text-muted-foreground">
-            Flagged vehicles cannot be dispatched. Contact support to have one
-            re-reviewed.
+            {t("flaggedVehiclesCannotBeDispatchedContact")}
           </p>
         ) : null}
 
@@ -649,7 +665,7 @@ export function FleetApplicationStatusScreen() {
             // had that problem.
             className="h-[50px] w-fit cursor-pointer rounded-xl bg-status-success-solid px-[26px] text-[15.5px] font-semibold text-white transition-opacity hover:opacity-90 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
           >
-            Open the dispatch dashboard
+            {t("openTheDispatchDashboard")}
           </button>
         ) : null}
 
@@ -657,7 +673,9 @@ export function FleetApplicationStatusScreen() {
           {status === "PENDING"
             ? "Typical review time is 24–48 hours for a fleet this size."
             : status === "ACTION_REQUIRED"
-              ? "Resubmitted applications are usually reviewed within 4 hours."
+              ? tRoot(
+                  "onboarding.applicationStatusScreen.resubmittedApplicationsAreUsuallyReviewedWithin",
+                )
               : "Licences and cooling-unit records are re-checked 30 days before expiry."}
         </Footnote>
       </div>
@@ -696,7 +714,7 @@ export function FleetApplicationStatusScreen() {
           >
             <DialogHeader className="gap-1 border-b border-border px-[22px] pt-5 pb-4">
               <DialogTitle className="text-[18px] leading-tight font-semibold tracking-[-0.01em]">
-                Correct the company details
+                {t("correctTheCompanyDetails")}
               </DialogTitle>
               <DialogDescription className="text-[13px] leading-[1.5]">
                 {companyFlagReason ??
@@ -848,11 +866,14 @@ function FleetStatusTable({
   onFix: (verdict: FleetVehicleVerdict) => void;
 }) {
   const pending = verdicts.length - approved - flagged;
+  const t = useTranslations("fleet.fleetApplicationStatusScreen");
+  const tShared = useTranslations("common.shared");
+  const tRoot = useTranslations();
 
   return (
     <section className="overflow-hidden rounded-[14px] border border-border bg-card">
       <div className="flex items-center justify-between gap-3.5 border-b border-border bg-muted/40 px-4 py-3">
-        <h2 className="text-[12.5px] font-semibold">Fleet status</h2>
+        <h2 className="text-[12.5px] font-semibold">{t("fleetStatus")}</h2>
         <p className="font-price text-[11.5px] text-muted-foreground">
           {approved} approved · {flagged} flagged · {pending} pending
         </p>
@@ -862,13 +883,13 @@ function FleetStatusTable({
         <TableHeader>
           <TableRow>
             <TableHead className="w-[52px] pl-4">#</TableHead>
-            <TableHead>Vehicle</TableHead>
-            <TableHead>Plate</TableHead>
-            <TableHead>Driver</TableHead>
-            <TableHead>Reason</TableHead>
-            <TableHead>Status</TableHead>
+            <TableHead>{tShared("vehicle")}</TableHead>
+            <TableHead>{tShared("plate")}</TableHead>
+            <TableHead>{tShared("driver")}</TableHead>
+            <TableHead>{tShared("reason")}</TableHead>
+            <TableHead>{tShared("status")}</TableHead>
             <TableHead className="pr-4">
-              <span className="sr-only">Correct a flagged vehicle</span>
+              <span className="sr-only">{t("correctAFlaggedVehicle")}</span>
             </TableHead>
           </TableRow>
         </TableHeader>
@@ -879,7 +900,7 @@ function FleetStatusTable({
                 colSpan={7}
                 className="px-4 py-5 text-[13px] text-muted-foreground"
               >
-                No vehicles on this application.
+                {tShared("noVehiclesOnThisApplication")}
               </TableCell>
             </TableRow>
           ) : null}
@@ -903,10 +924,10 @@ function FleetStatusTable({
 
                 <TableCell>
                   <span className="block text-[13px] font-semibold">
-                    {classNameFor(verdict.vehicleClass)}
+                    {classNameFor(verdict.vehicleClass, tRoot)}
                   </span>
                   <span className="mt-px block text-[11.5px] text-muted-foreground">
-                    {bodyLabelFor(verdict.chassisType)}
+                    {bodyLabelFor(verdict.chassisType, tRoot)}
                   </span>
                 </TableCell>
 
@@ -918,7 +939,7 @@ function FleetStatusTable({
                   }
                 >
                   {removed
-                    ? REMOVED_VEHICLE_LABEL
+                    ? tShared(REMOVED_VEHICLE_LABEL_KEY)
                     : (verdict.plateNumber ?? EMPTY_VALUE)}
                 </TableCell>
 
@@ -946,7 +967,9 @@ function FleetStatusTable({
                   <span
                     className={`${CHIP_CLASS} ${CHIP_TONE[verdict.status]}`}
                   >
-                    {CHIP_LABEL[verdict.status]}
+                    {CHIP_LABEL_KEY[verdict.status] !== null
+                      ? tShared(CHIP_LABEL_KEY[verdict.status] as string)
+                      : FLAGGED_CHIP_LABEL}
                   </span>
                 </TableCell>
 
@@ -957,7 +980,7 @@ function FleetStatusTable({
                       onClick={() => onFix(verdict)}
                       className="cursor-pointer rounded-[7px] bg-destructive px-2.5 py-1.5 text-[11.5px] font-semibold text-white transition-opacity hover:opacity-90 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
                     >
-                      Fix
+                      {t("fix")}
                       <span className="sr-only">
                         {" "}
                         vehicle {verdict.position}
@@ -980,24 +1003,42 @@ function FleetStatusTable({
  * never re-derived here.
  */
 function ApprovedSummary({ summary }: { summary: FleetSubmittedSummary }) {
+  const tShared = useTranslations("common.shared");
+  const tRoot = useTranslations();
+  const cityOptions = useLocalizedCityOptions();
+
+  /** "TBILISI" → the city's localized name, via the city picker's own list. */
+  function formatCity(value: string): string {
+    return cityOptions.find((entry) => entry.value === value)?.label ?? value;
+  }
+
   const rows: { key: string; label: string; value: string; mono?: true }[] = [
-    { key: "companyName", label: "Company", value: summary.companyName },
-    { key: "vatId", label: "VAT / tax ID", value: summary.vatId, mono: true },
+    {
+      key: "companyName",
+      label: tShared("company"),
+      value: summary.companyName,
+    },
+    {
+      key: "vatId",
+      label: tShared("vatTaxId"),
+      value: summary.vatId,
+      mono: true,
+    },
     {
       key: "citiesOfOperation",
-      label: "Cities of operation",
+      label: tShared("citiesOfOperation"),
       value:
         summary.citiesOfOperation.map(formatCity).join(", ") || EMPTY_VALUE,
     },
     {
       key: "bankAccountIban",
-      label: "Payout account",
+      label: tShared("payoutAccount"),
       value: summary.bankAccountIban || EMPTY_VALUE,
       mono: true,
     },
     {
       key: "vehicleCount",
-      label: "Fleet",
+      label: tShared("fleet"),
       value: vehicleCountLabel(summary.vehicleCount),
       mono: true,
     },
@@ -1005,7 +1046,7 @@ function ApprovedSummary({ summary }: { summary: FleetSubmittedSummary }) {
     // the body's own short label — which is exactly what the GET counts by.
     ...Object.entries(summary.countsByBodyType).map(([label, count]) => ({
       key: `body-${label}`,
-      label,
+      label: bodyShortLabelText(label, tRoot),
       value: vehicleCountLabel(count),
       mono: true as const,
     })),
@@ -1014,7 +1055,7 @@ function ApprovedSummary({ summary }: { summary: FleetSubmittedSummary }) {
   return (
     <section className="rounded-[14px] border border-border bg-card p-[15px]">
       <h2 className="text-[11.5px] font-semibold tracking-[0.04em] text-muted-foreground uppercase">
-        Approved for dispatch
+        {tShared("approvedForDispatch")}
       </h2>
       <dl className="mt-[11px] flex flex-col gap-[9px]">
         {rows.map((row) => (

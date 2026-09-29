@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 import { Badge } from "@/components/ui/badge";
 import {
   HubCard,
@@ -332,6 +334,9 @@ export function JobsDetailPanel({
   nowIso,
   primaryAtIso,
 }: JobsDetailPanelProps) {
+  const t = useTranslations("driverHub.jobsDetailPanel");
+  const tShared = useTranslations("common.shared");
+
   // `HubJobStatus` has already collapsed PENDING/CLAIMED/ACCEPTED into
   // "Scheduled", which is lossless for the only question asked here: is the job
   // still going, so that its next unreached step should be painted as the one
@@ -460,7 +465,7 @@ export function JobsDetailPanel({
       </dl>
 
       <div className="mt-1.5 flex items-baseline justify-between gap-3 border-t border-border pt-3">
-        <span className="text-sm font-semibold">Paid to you</span>
+        <span className="text-sm font-semibold">{t("paidToYou")}</span>
         {/* `fare` is `driverPayout + overtimeDriverPayout` by construction (see
             `HubJob.fare`), so this total is the sum of the lines above it and
             "Paid to you" is now literally true. It is also the number the row's
@@ -508,13 +513,17 @@ export function JobsDetailPanel({
         <dl className="mt-5">
           {job.bodyType === null ? null : (
             <div className={DETAIL_ROW_CLASSES}>
-              <dt className="flex-none text-muted-foreground">Body type</dt>
+              <dt className="flex-none text-muted-foreground">
+                {tShared("bodyType")}
+              </dt>
               <dd className="min-w-0 truncate font-medium">{job.bodyType}</dd>
             </div>
           )}
           {job.vehiclePlate === null ? null : (
             <div className={DETAIL_ROW_CLASSES}>
-              <dt className="flex-none text-muted-foreground">Plate</dt>
+              <dt className="flex-none text-muted-foreground">
+                {tShared("plate")}
+              </dt>
               <dd className="min-w-0 truncate font-price font-medium">
                 {job.vehiclePlate}
               </dd>
@@ -526,10 +535,15 @@ export function JobsDetailPanel({
       {/* Below the money rather than above it: the fare lines and the total
           they add up to are one block closed by its own rule, and a row list
           wedged between them would read as another unlabelled fare line. */}
-      <h3 className="mt-5 mb-0.5 text-[13px] font-semibold">Contacts</h3>
+      <h3 className="mt-5 mb-0.5 text-[13px] font-semibold">
+        {tShared("contacts")}
+      </h3>
       <dl>
-        <StopContactRow label="Pickup" contact={job.pickupContact} />
-        <StopContactRow label="Dropoff" contact={job.dropoffContact} />
+        <StopContactRow label={tShared("pickup")} contact={job.pickupContact} />
+        <StopContactRow
+          label={tShared("dropoff")}
+          contact={job.dropoffContact}
+        />
       </dl>
 
       {/* Business clients only, and optional even for them, so most jobs carry
@@ -538,7 +552,9 @@ export function JobsDetailPanel({
       {job.purchaseOrderRef === null ? null : (
         <dl>
           <div className={DETAIL_ROW_CLASSES}>
-            <dt className="flex-none text-muted-foreground">PO reference</dt>
+            <dt className="flex-none text-muted-foreground">
+              {t("poReference")}
+            </dt>
             <dd className="min-w-0 truncate font-price font-medium">
               {job.purchaseOrderRef}
             </dd>

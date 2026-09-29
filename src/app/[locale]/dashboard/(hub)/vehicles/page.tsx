@@ -1,15 +1,28 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 
+import type { LocaleRouteParams } from "@/i18n/server";
 import { VehiclesScreen } from "@/components/driver-hub/screens/vehicles-screen";
 import { resolveHubAccount } from "@/lib/dashboard/hub/account";
 import { getHubVehicles } from "@/lib/dashboard/hub/vehicles";
+import { localizeSampleCopy } from "@/lib/dashboard/hub/sample";
 
 // Session + Prisma access can't be statically rendered.
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Vehicles · Driver Hub",
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: LocaleRouteParams;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({
+    locale,
+    namespace: "dashboard.dashboardVehicles",
+  });
+
+  return { title: t("vehiclesDriverHub") };
+}
 
 /**
  * The fleet a company owns, or the vehicle one driver drives — with its class,
@@ -49,7 +62,11 @@ export default async function VehiclesPage() {
     return null;
   }
 
-  const data = await getHubVehicles(account);
+  const [data, t] = await Promise.all([
+    getHubVehicles(account),
+    getTranslations(),
+  ]);
 
-  return <VehiclesScreen data={data} />;
+  // Running-cost labels are sampled copy; see `SAMPLE_COPY_KEYS`.
+  return <VehiclesScreen data={localizeSampleCopy(data, t)} />;
 }

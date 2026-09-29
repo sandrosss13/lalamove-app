@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import {
   DEFAULT_HOME_PAGE_CONTENT,
@@ -73,6 +74,7 @@ export function LandingHeroCarousel({
   // Sliced defensively even though the admin form and the loader both cap the
   // list: a row inserted straight into the database must not be able to produce
   // a seven-dot carousel.
+  const t = useTranslations("landing.landingHeroCarousel");
   const slides = banners.slice(0, MAX_HERO_BANNERS);
   const count = slides.length;
 
@@ -243,7 +245,7 @@ export function LandingHeroCarousel({
     <div
       role="region"
       aria-roledescription="carousel"
-      aria-label="Featured banners"
+      aria-label={t("featuredBanners")}
       className="relative mx-auto w-full max-w-[1200px]"
     >
       <div className="relative h-[clamp(260px,34vw,480px)] overflow-hidden rounded-[2rem] border border-line-strong bg-frame shadow-frame">
@@ -322,7 +324,7 @@ export function LandingHeroCarousel({
           <>
             <button
               type="button"
-              aria-label="Previous banner"
+              aria-label={t("previousBanner")}
               onClick={() => {
                 stopAutoAdvance();
                 goTo(indexRef.current - 1);
@@ -334,7 +336,7 @@ export function LandingHeroCarousel({
 
             <button
               type="button"
-              aria-label="Next banner"
+              aria-label={t("nextBanner")}
               onClick={() => {
                 stopAutoAdvance();
                 goTo(indexRef.current + 1);

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 
 import { useHubSubtitle } from "@/components/driver-hub/driver-hub-shell";
 import {
@@ -262,10 +263,12 @@ const DELTA_TONE_CLASSES: Record<MetricDeltaTone, string> = {
  * and a parenthetical in the legend on top of that badged the same fact twice.
  * The badge is the marker; do not delete it and re-add the parenthetical.
  */
-const CHART_SERIES: readonly HubBarSeries[] = [
-  { label: "Online hours", tone: "ink" },
-  { label: "Jobs completed", tone: "accent" },
-];
+const CHART_SERIES = [
+  { labelKey: "onlineHours", tone: "ink" },
+  { labelKey: "jobsCompleted", tone: "accent" },
+] as const satisfies readonly (Omit<HubBarSeries, "label"> & {
+  labelKey: string;
+})[];
 
 /**
  * The fleet chart's one series. A company has no online state to estimate hours
@@ -273,9 +276,11 @@ const CHART_SERIES: readonly HubBarSeries[] = [
  * precisely because a fleet has no toggle — so the sampled hours bars are
  * dropped rather than relabelled, and what remains is entirely real.
  */
-const FLEET_CHART_SERIES: readonly HubBarSeries[] = [
-  { label: "Jobs completed", tone: "ink" },
-];
+const FLEET_CHART_SERIES = [
+  { labelKey: "jobsCompleted", tone: "ink" },
+] as const satisfies readonly (Omit<HubBarSeries, "label"> & {
+  labelKey: string;
+})[];
 
 /* -------------------------------------------------------------------------- */
 /* Fleet table geometry                                                       */
@@ -361,6 +366,9 @@ function TileMarker({ label, note }: TileMarkerProps) {
  * when they took none.
  */
 function FleetTable({ rows }: { rows: readonly HubPerformanceDriverRow[] }) {
+  const t = useTranslations("driverHub.performanceScreen");
+  const tShared = useTranslations("common.shared");
+
   return (
     // `Table` brings its own `overflow-x-auto` wrapper — the min-width in the
     // column classes is what makes that wrapper scroll inside the card rather
@@ -375,27 +383,27 @@ function FleetTable({ rows }: { rows: readonly HubPerformanceDriverRow[] }) {
           )}
         >
           <TableHead role="columnheader" className={FLEET_HEAD_CLASSES}>
-            Driver
+            {tShared("driver")}
           </TableHead>
           <TableHead role="columnheader" className={FLEET_HEAD_CLASSES}>
-            Finished
+            {t("finished")}
           </TableHead>
           <TableHead role="columnheader" className={FLEET_HEAD_CLASSES}>
-            Completion
+            {t("completion")}
           </TableHead>
           <TableHead role="columnheader" className={FLEET_HEAD_CLASSES}>
-            Cancellations
+            {tShared("cancellations")}
           </TableHead>
           {/* The same abbreviation the Drivers roster uses for the same figure,
               so an operator moving between the two screens reads one header. */}
           <TableHead role="columnheader" className={FLEET_HEAD_CLASSES}>
-            Jobs · wk
+            {tShared("jobsWk")}
           </TableHead>
           <TableHead
             role="columnheader"
             className={cn(FLEET_HEAD_CLASSES, "text-right")}
           >
-            Jobs / day
+            {t("jobsDay")}
           </TableHead>
         </TableRow>
       </TableHeader>
@@ -475,6 +483,9 @@ type PerformanceSectionsProps = {
  * the only screen it belongs to is `PerformanceScreen` below.
  */
 function PerformanceSections({ data }: PerformanceSectionsProps) {
+  const t = useTranslations("driverHub.performanceScreen");
+  const tShared = useTranslations("common.shared");
+
   // `window` is the global's name; the alias keeps the two unambiguous in a
   // file that also does date formatting.
   const { window: hubWindow, sampled } = data;
@@ -539,8 +550,8 @@ function PerformanceSections({ data }: PerformanceSectionsProps) {
   // persona question.
   const futureDaysNote = hasFutureDays ? (
     <p className="mt-3.5 text-xs text-muted-foreground">
-      Days later this week show <Num>{EMPTY_VALUE}</Num> and a flat bar until
-      they happen.
+      {t("daysLaterThisWeekShow")} <Num>{EMPTY_VALUE}</Num>{" "}
+      {t("andAFlatBarUntilThey")}
     </p>
   ) : null;
 
@@ -557,7 +568,7 @@ function PerformanceSections({ data }: PerformanceSectionsProps) {
             handoff has no equivalent for and which is not optional here; see
             that component. */}
         <MetricTile
-          label="Acceptance"
+          label={tShared("acceptance")}
           value={`${formatDecimal(sampled.acceptanceRatePercent)}%`}
           delta={sampled.deltas.acceptance}
           progress={sampled.acceptanceRatePercent / 100}
@@ -567,7 +578,7 @@ function PerformanceSections({ data }: PerformanceSectionsProps) {
         </MetricTile>
 
         <MetricTile
-          label="Completion"
+          label={t("completion")}
           value={formatRate(data.completionRatePercent)}
           // Present only in the state the handoff never draws. `formatRate`
           // returns the em dash on `null` and on nothing else, so this is the
@@ -586,11 +597,11 @@ function PerformanceSections({ data }: PerformanceSectionsProps) {
           progress={(data.completionRatePercent ?? 0) / 100}
           progressTone={sampled.deltas.completion.tone}
         >
-          <TileMarker label="Estimated delta" note={DELTA_NOTE} />
+          <TileMarker label={t("estimatedDelta")} note={DELTA_NOTE} />
         </MetricTile>
 
         <MetricTile
-          label="Cancellations"
+          label={tShared("cancellations")}
           value={formatRate(data.cancellationRatePercent)}
           note={
             data.cancellationRatePercent === null
@@ -604,7 +615,7 @@ function PerformanceSections({ data }: PerformanceSectionsProps) {
           }
           progressTone={sampled.deltas.cancellations.tone}
         >
-          <TileMarker label="Estimated delta" note={DELTA_NOTE} />
+          <TileMarker label={t("estimatedDelta")} note={DELTA_NOTE} />
         </MetricTile>
 
         {/* A company is not rated, its drivers are — so a fleet reads the
@@ -623,22 +634,22 @@ function PerformanceSections({ data }: PerformanceSectionsProps) {
         </MetricTile>
 
         <MetricTile
-          label="Jobs per day"
+          label={t("jobsPerDay")}
           value={formatDecimal(data.jobsPerDay)}
           delta={sampled.deltas.jobsPerDay}
           progress={data.jobsPerDay / JOBS_PER_DAY_TRACK_CEILING}
           progressTone={sampled.deltas.jobsPerDay.tone}
         >
-          <TileMarker label="Estimated delta" note={DELTA_NOTE} />
+          <TileMarker label={t("estimatedDelta")} note={DELTA_NOTE} />
         </MetricTile>
       </div>
 
       {/* One line, not a banner: the two windows really are different sets of
           jobs, and a reader who never notices would quietly assume they match. */}
       <p className="text-xs text-muted-foreground">
-        This week, <Num>{weekRange}</Num>. The rates count jobs by when they
-        were <strong className="font-medium">booked</strong>; the chart counts
-        them by when they were{" "}
+        {t("thisWeek")} <Num>{weekRange}</Num>. The rates count jobs by when
+        they were <strong className="font-medium">booked</strong>; the chart
+        counts them by when they were{" "}
         <strong className="font-medium">completed</strong>, so the two need not
         describe the same jobs.
       </p>
@@ -658,17 +669,20 @@ function PerformanceSections({ data }: PerformanceSectionsProps) {
               fleet-owner Performance screen to quote a line from, so this one
               follows the driver chart by analogy rather than by transcription;
               two identical charts differing by 6px would be the odder result. */}
-          <HubCard title="Jobs completed by day" titleGap="chart">
+          <HubCard title={t("jobsCompletedByDay")} titleGap="chart">
             <HubBarChart
               columns={fleetColumns}
-              series={FLEET_CHART_SERIES}
+              series={FLEET_CHART_SERIES.map(({ labelKey, tone }) => ({
+                label: tShared(labelKey),
+                tone,
+              }))}
               ariaLabel="Jobs completed by day of this week"
             />
             {futureDaysNote}
           </HubCard>
 
           {fleet ? (
-            <HubCard title="How the week went, by driver">
+            <HubCard title={t("howTheWeekWentByDriver")}>
               {fleet.drivers.length === 0 ? (
                 // The one legitimately empty case: a company that has
                 // registered nobody. A roster that exists but had a quiet week
@@ -680,7 +694,7 @@ function PerformanceSections({ data }: PerformanceSectionsProps) {
                 // offer the register action and this one cannot.
                 <HubEmptyState message="No drivers on this roster yet.">
                   <p className="mt-1 text-[13px]">
-                    Register a driver and their week shows up here.
+                    {t("registerADriverAndTheirWeek")}
                   </p>
                 </HubEmptyState>
               ) : (
@@ -720,22 +734,28 @@ function PerformanceSections({ data }: PerformanceSectionsProps) {
               completed</div>`), against the 16px the score card beside it uses
               — so this one opts into the wider gap and that one does not. */}
           <HubCard
-            title="Online hours vs jobs completed"
+            title={t("onlineHoursVsJobsCompleted")}
             titleGap="chart"
             action={
-              <SampleNote label="Online hours" note={ONLINE_HOURS_NOTE} />
+              <SampleNote
+                label={tShared("onlineHours")}
+                note={ONLINE_HOURS_NOTE}
+              />
             }
           >
             <HubBarChart
               columns={driverColumns}
-              series={CHART_SERIES}
+              series={CHART_SERIES.map(({ labelKey, tone }) => ({
+                label: tShared(labelKey),
+                tone,
+              }))}
               ariaLabel="Online hours against jobs completed, by day of this week"
             />
             {futureDaysNote}
           </HubCard>
 
           <HubCard
-            title="What affects your score"
+            title={t("whatAffectsYourScore")}
             action={<SampleNote note={SCORE_NOTES_NOTE} />}
           >
             <ul className="flex flex-col">

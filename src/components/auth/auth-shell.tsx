@@ -1,3 +1,5 @@
+import { useTranslations } from "next-intl";
+
 import { Link } from "@/i18n/navigation";
 import { LanguageToggle } from "@/components/language-toggle";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -67,6 +69,9 @@ export type AuthShellProps = {
 };
 
 export function AuthShell({ maxWidth, className, children }: AuthShellProps) {
+  const t = useTranslations("auth.authShell");
+  const tShared = useTranslations("common.shared");
+
   return (
     <div
       data-admin-surface
@@ -84,7 +89,7 @@ export function AuthShell({ maxWidth, className, children }: AuthShellProps) {
             aria-hidden="true"
             className="size-[22px] flex-none rounded-[6px] bg-[var(--landing-accent)]"
           />
-          Lalamove Clone
+          {tShared("lalamoveClone")}
         </Link>
 
         <div className="flex items-center gap-[18px]">
@@ -92,7 +97,7 @@ export function AuthShell({ maxWidth, className, children }: AuthShellProps) {
               is worse than plain text — it lands keyboard focus on something
               that does nothing. Make it a `<Link>` the day `/support` exists. */}
           <span className="text-[13px] text-[var(--landing-muted)]">
-            Need help?
+            {t("needHelp")}
           </span>
           {/* The language switch, in the slot the static "EN" chip used to hold
               and drawn to the same measurements (32px tall, `px-2.5`, the

@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 import { SampleNote } from "@/components/driver-hub/hub-primitives";
 import {
   Popover,
@@ -75,6 +77,9 @@ export function DriverHubNotifications({
   open,
   onOpenChange,
 }: DriverHubNotificationsProps) {
+  const t = useTranslations("driverHub.driverHubNotifications");
+  const tShared = useTranslations("common.shared");
+
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
       <PopoverTrigger
@@ -123,7 +128,9 @@ export function DriverHubNotifications({
         className="w-[300px] gap-0 overflow-hidden rounded-xl border border-border p-0 shadow-[0_12px_32px_rgba(0,0,0,0.12)] ring-0"
       >
         <div className="flex items-center justify-between gap-2 border-b border-border px-3.5 py-[11px]">
-          <p className="text-[12px] font-semibold">Notifications</p>
+          <p className="text-[12px] font-semibold">
+            {tShared("notifications")}
+          </p>
           {/* The honesty marker, and the reason this component may ship at all.
               Beside the title rather than under the rows so it is read before
               the fiction it qualifies, in both the visual and the DOM order. */}
@@ -133,7 +140,7 @@ export function DriverHubNotifications({
         <div className="flex flex-col">
           {notifications.length === 0 ? (
             <p className="px-3.5 py-4 text-[12px] text-muted-foreground">
-              Nothing to catch up on.
+              {t("nothingToCatchUpOn")}
             </p>
           ) : (
             notifications.map((notification) => (

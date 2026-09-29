@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { OrderStatus } from "@prisma/client";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
 import { CARRIER_ORDER_PARTY_SELECT } from "@/lib/order-response-select";
 import {
@@ -10,6 +11,9 @@ import {
   type DispatchVerdict,
 } from "@/lib/orders/dispatch-fit";
 import { prisma } from "@/lib/prisma";
+
+/** The request-locale translator the body parsers below phrase their errors with. */
+type RequestTranslator = Awaited<ReturnType<typeof getRequestTranslations>>;
 
 /** Validated shape of a dispatch request body. */
 type DispatchInput = {
@@ -61,19 +65,20 @@ const DISPATCH_REFUSALS: Record<
  */
 function parseDispatchBody(
   body: unknown,
+  t: RequestTranslator,
 ): { data: DispatchInput } | { error: string } {
   if (typeof body !== "object" || body === null) {
-    return { error: "Request body must be a JSON object." };
+    return { error: t("common.shared.requestBodyMustBeAJson") };
   }
 
   const { driverUserId, vehicleId } = body as Record<string, unknown>;
 
   if (typeof driverUserId !== "string" || driverUserId.trim() === "") {
-    return { error: "driverUserId is required." };
+    return { error: t("common.shared.driveruseridIsRequired") };
   }
 
   if (typeof vehicleId !== "string" || vehicleId.trim() === "") {
-    return { error: "vehicleId is required." };
+    return { error: t("common.shared.vehicleidIsRequired") };
   }
 
   return {
@@ -113,14 +118,19 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
+  const t = await getRequestTranslations();
+
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    return NextResponse.json(
+      { error: t("common.shared.unauthorized") },
+      { status: 401 },
+    );
   }
 
   if (session.user.role !== "COMPANY") {
     return NextResponse.json(
-      { error: "Only logistics companies can dispatch deliveries." },
+      { error: t("common.shared.onlyLogisticsCompaniesCanDispatchDeliveries") },
       { status: 403 },
     );
   }
@@ -130,12 +140,12 @@ export async function POST(
     rawBody = await request.json();
   } catch {
     return NextResponse.json(
-      { error: "Request body must be valid JSON." },
+      { error: t("common.shared.requestBodyMustBeValidJson") },
       { status: 400 },
     );
   }
 
-  const parsed = parseDispatchBody(rawBody);
+  const parsed = parseDispatchBody(rawBody, t);
   if ("error" in parsed) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
@@ -149,7 +159,10 @@ export async function POST(
   });
 
   if (!company) {
-    return NextResponse.json({ error: "Order not found." }, { status: 404 });
+    return NextResponse.json(
+      { error: t("common.shared.orderNotFound") },
+      { status: 404 },
+    );
   }
 
   // The activation gate. `LogisticsCompany.activatedAt` is set only by the admin
@@ -166,8 +179,7 @@ export async function POST(
   if (company.activatedAt === null) {
     return NextResponse.json(
       {
-        error:
-          "Your fleet is still under review. Operations must activate the company before you can dispatch deliveries.",
+        error: t("common.shared.yourFleetIsStillUnderReview2"),
       },
       { status: 403 },
     );
@@ -208,7 +220,10 @@ export async function POST(
   });
 
   if (!order) {
-    return NextResponse.json({ error: "Order not found." }, { status: 404 });
+    return NextResponse.json(
+      { error: t("common.shared.orderNotFound") },
+      { status: 404 },
+    );
   }
 
   // Scoped by roster membership, so this returns nothing for an independent
@@ -219,7 +234,10 @@ export async function POST(
   });
 
   if (!driverProfile) {
-    return NextResponse.json({ error: "Driver not found." }, { status: 404 });
+    return NextResponse.json(
+      { error: t("common.shared.driverNotFound") },
+      { status: 404 },
+    );
   }
 
   // Scoped by owner, so this returns nothing for another company's vehicle or
@@ -266,7 +284,10 @@ export async function POST(
   });
 
   if (!vehicle) {
-    return NextResponse.json({ error: "Vehicle not found." }, { status: 404 });
+    return NextResponse.json(
+      { error: t("common.shared.vehicleNotFound") },
+      { status: 404 },
+    );
   }
 
   // **The four refusals, now asked as one question.** Approval, the booked-class

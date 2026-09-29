@@ -14,12 +14,23 @@
 
 import type { HubAccount, HubPersona } from "@/lib/dashboard/hub/account";
 
+/**
+ * A message key, written from the catalog root (`"common.shared.drivers"`,
+ * `"driverHub.driverHubNav.jobHistory"`), and resolved where it is rendered with
+ * `useTranslations()` / `getTranslations()` called without a namespace.
+ *
+ * Keys rather than English because this module is plain data read by both
+ * client and server components — it cannot call a translation hook itself, and
+ * resolving at render time is what lets the copy follow the active locale.
+ */
+export type HubNavMessageKey = string;
+
 /** One sidebar link, and the header copy for the screen behind it. */
 export type HubNavItem = {
   /** Stable identifier, so a layout can ask for its own entry by name. */
   id: HubNavItemId;
-  /** Sidebar label. */
-  label: string;
+  /** Sidebar label, as a message key. */
+  labelKey: HubNavMessageKey;
   href: string;
   /**
    * The personas this entry is withheld from. Empty means everyone sees it.
@@ -51,8 +62,8 @@ export type HubNavItem = {
    * since folded into Performance — which every persona sees.
    */
   hiddenFor: readonly HubPersona[];
-  /** The 20px page title in the sticky header. */
-  title: string;
+  /** The 20px page title in the sticky header, as a message key. */
+  titleKey: HubNavMessageKey;
   /**
    * The 13px muted subhead under the title — the design's copy for this
    * screen, used as the *fallback*.
@@ -64,8 +75,10 @@ export type HubNavItem = {
    * resolves. Dashboard is the one entry whose subhead really is a constant.
    * The strings are transcribed from the prototype's `pageSub` map so the
    * wording and separator style stay the design's, not ours.
+   *
+   * A message key, like the two fields above.
    */
-  subtitle: string;
+  subtitleKey: HubNavMessageKey;
 };
 
 /** Stable identifiers for the six screens. */
@@ -100,7 +113,7 @@ export const HUB_NAV: readonly HubNavItem[] = [
     // a link the router always lands on cannot sit third in the list of links
     // to it.
     //
-    // `title`/`subtitle` are transcribed from the design's header copy and are
+    // `titleKey`/`subtitleKey` are transcribed from the design's header copy and are
     // both genuinely static — unlike the four entries whose subheads are
     // counts — so the Loads screen registers no `useHubSubtitle()` override and
     // these literals are the whole story.
@@ -110,7 +123,7 @@ export const HUB_NAV: readonly HubNavItem[] = [
     // it occupies rather than for the one screen it holds. A label change and
     // nothing more — the id, the route and the files behind them all still say
     // `loads`, which is what the rest of this feature is called throughout.
-    label: "Dashboard",
+    labelKey: "common.shared.dashboard",
     href: "/dashboard/loads",
     // Shown to every persona. It used to be withheld from a ROSTER driver, on
     // the reading of `specs/driver-load-board/requirements.md`'s Assumptions
@@ -122,8 +135,8 @@ export const HUB_NAV: readonly HubNavItem[] = [
     // `src/app/dashboard/(hub)/loads/page.tsx` and the `GET /api/loads` 403)
     // are gone with it, so nothing is left for this list to mirror.
     hiddenFor: [],
-    title: "Dashboard",
-    subtitle: "Bookings open to drivers",
+    titleKey: "common.shared.dashboard",
+    subtitleKey: "driverHub.driverHubNav.bookingsOpenToDrivers",
   },
   {
     // "My orders" rather than "Jobs" per the header-alignment handoff
@@ -132,11 +145,11 @@ export const HUB_NAV: readonly HubNavItem[] = [
     // `/orders`, which hard-rejects any non-CLIENT role
     // (`src/app/orders/page.tsx`) and would simply bounce a driver.
     id: "jobs",
-    label: "My orders",
+    labelKey: "common.shared.myOrders",
     href: "/dashboard/jobs",
     hiddenFor: [],
-    title: "Job history",
-    subtitle: "182 jobs in the last 30 days",
+    titleKey: "driverHub.driverHubNav.jobHistory",
+    subtitleKey: "driverHub.driverHubNav.182JobsInTheLast30",
   },
   {
     // The hub's one money-and-numbers screen, and every persona's: the Wallet
@@ -144,10 +157,10 @@ export const HUB_NAV: readonly HubNavItem[] = [
     // what they earned and how they are driving in one place rather than
     // across two screens that shared a week.
     id: "performance",
-    label: "Performance",
+    labelKey: "driverHub.driverHubNav.performance",
     href: "/dashboard/performance",
     hiddenFor: [],
-    title: "Performance",
+    titleKey: "driverHub.driverHubNav.performance",
     // The fallback only. The screen carries the Wallet's range selector now
     // that the two are one, and names the range it actually resolved through
     // `useHubSubtitle()`; this literal is what the header shows for the frame
@@ -160,19 +173,19 @@ export const HUB_NAV: readonly HubNavItem[] = [
     // days was rejected (Thursday's jobs bar would sit under Monday's hours
     // bar). The prototype's literal would contradict the screen's own "This
     // week, 25–31 Aug" paragraph a few hundred pixels below it.
-    subtitle: "This Tbilisi week, Monday to Sunday",
+    subtitleKey: "driverHub.driverHubNav.thisTbilisiWeekMondayToSunday",
   },
   {
     id: "vehicles",
-    label: "Vehicles",
+    labelKey: "common.shared.vehicles",
     href: "/dashboard/vehicles",
     hiddenFor: [],
-    title: "Vehicles",
-    subtitle: "7 vehicles registered · 4 on the road, 1 unassigned",
+    titleKey: "common.shared.vehicles",
+    subtitleKey: "driverHub.driverHubNav.7VehiclesRegistered4OnThe",
   },
   {
     id: "drivers",
-    label: "Drivers",
+    labelKey: "common.shared.drivers",
     href: "/dashboard/drivers",
     // Business-only, spelled as the two personas it is withheld from rather
     // than as a "BUSINESS only" flag — one rule shape across all six entries
@@ -180,16 +193,16 @@ export const HUB_NAV: readonly HubNavItem[] = [
     // boundary is `drivers/page.tsx`'s own `kind !== "BUSINESS"` guard, which
     // this does not replace.
     hiddenFor: ["INDEPENDENT", "ROSTER"],
-    title: "Drivers",
-    subtitle: "7 registered drivers · 4 online in Tbilisi now",
+    titleKey: "common.shared.drivers",
+    subtitleKey: "driverHub.driverHubNav.7RegisteredDrivers4OnlineIn",
   },
   {
     id: "employees",
-    label: "Employees",
+    labelKey: "common.shared.employees",
     href: "/dashboard/employees",
     hiddenFor: ["INDEPENDENT", "ROSTER"],
-    title: "Employees & roles",
-    subtitle: "Gizo Cargo LLC · 6 people, 4 roles · 1 invite pending",
+    titleKey: "driverHub.driverHubNav.employeesRoles",
+    subtitleKey: "driverHub.driverHubNav.gizoCargoLlc6People4",
   },
 ];
 

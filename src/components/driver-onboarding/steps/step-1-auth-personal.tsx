@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { CheckIcon, UploadIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -201,6 +202,8 @@ function collectProblems(
 export function Step1AuthPersonal() {
   const { draft, documents, updateDraft, goToStep, showToast } =
     useOnboardingDraft();
+  const t = useTranslations("onboarding.step1AuthPersonal");
+  const tShared = useTranslations("common.shared");
 
   const personal = useMemo<PersonalDraft>(
     () => draft.personal ?? {},
@@ -366,12 +369,11 @@ export function Step1AuthPersonal() {
       {/* The design's own intro sentence with its OTP clause removed — this
           feature sends no SMS code, so promising one would be a lie. */}
       <p className="text-[13.5px] leading-[1.5] text-muted-foreground">
-        This is the number couriers and dispatch will call. Everything here is
-        checked against your ID by the review team.
+        {t("thisIsTheNumberCouriersAnd")}
       </p>
 
       <Field
-        label="Mobile number"
+        label={t("mobileNumber")}
         htmlFor={`${fieldId}-phone`}
         error={errorFor("phone")}
       >
@@ -389,14 +391,14 @@ export function Step1AuthPersonal() {
       </Field>
 
       <Field
-        label="Full name"
+        label={tShared("fullName")}
         htmlFor={`${fieldId}-name`}
         error={errorFor("fullName")}
       >
         <Input
           id={`${fieldId}-name`}
           autoComplete="name"
-          placeholder="Exactly as printed on your ID"
+          placeholder={t("exactlyAsPrintedOnYourId")}
           value={personal.fullName ?? ""}
           aria-invalid={errorFor("fullName") !== undefined}
           onChange={(event) => setPersonal({ fullName: event.target.value })}
@@ -405,7 +407,7 @@ export function Step1AuthPersonal() {
       </Field>
 
       <Field
-        label="ID or passport number"
+        label={t("idOrPassportNumber")}
         htmlFor={`${fieldId}-id-number`}
         error={errorFor("idNumber")}
       >
@@ -422,7 +424,7 @@ export function Step1AuthPersonal() {
       </Field>
 
       <Field
-        label="Date of birth"
+        label={tShared("dateOfBirth")}
         htmlFor={`${fieldId}-dob`}
         error={errorFor("dateOfBirth")}
       >
@@ -438,10 +440,10 @@ export function Step1AuthPersonal() {
       </Field>
 
       <Field
-        label="City"
+        label={tShared("city")}
         htmlFor={`${fieldId}-city`}
         error={errorFor("city")}
-        hint="Where you will mostly pick up orders. Georgia only for now."
+        hint={t("whereYouWillMostlyPickUp")}
       >
         {/* Hand-built combobox: this codebase has no such primitive, and the
             design needs a filtered, region-annotated list rather than the flat
@@ -461,7 +463,7 @@ export function Step1AuthPersonal() {
                   ? `${cityListId}-${activeIndex}`
                   : undefined
               }
-              placeholder="Start typing — Tbilisi, Batumi, Kutaisi…"
+              placeholder={t("startTypingTbilisiBatumiKutaisi")}
               value={cityQuery}
               aria-invalid={errorFor("city") !== undefined}
               onChange={(event) => handleCityQueryChange(event.target.value)}
@@ -498,7 +500,7 @@ export function Step1AuthPersonal() {
             <div ref={cityListRef} id={cityListId} role="listbox">
               {cityMatches.length === 0 ? (
                 <p className="px-[13px] py-[11px] text-[13px] text-muted-foreground">
-                  No city by that name. Check the spelling.
+                  {tShared("noCityByThatNameCheck")}
                 </p>
               ) : (
                 cityMatches.map((option, index) => {
@@ -556,11 +558,10 @@ export function Step1AuthPersonal() {
             that opens a dialog, and a label bound to it would only re-fire the
             click that opened the dialog in the first place. */}
         <p className="font-price text-[11.5px] font-semibold tracking-[0.04em] text-muted-foreground uppercase">
-          Profile photo
+          {tShared("profilePhoto")}
         </p>
         <p className="text-[12.5px] leading-[1.5] text-muted-foreground">
-          A recent photo of your face, matched against your ID by the review
-          team.
+          {tShared("aRecentPhotoOfYourFace")}
         </p>
 
         <button
@@ -642,7 +643,7 @@ export function Step1AuthPersonal() {
           // to near-black on orange the moment `.dark` is on.
           className="h-12 cursor-pointer rounded-[11px] bg-onboarding-accent px-[30px] text-[15px] font-semibold tracking-[-0.01em] text-white transition-colors hover:bg-onboarding-accent-hover focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
         >
-          Continue
+          {tShared("continue")}
         </button>
       </div>
 

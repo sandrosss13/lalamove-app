@@ -2,6 +2,8 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { OrderStatus } from "@prisma/client";
 import type { CargoCategory, ChassisType, ServiceLevel } from "@prisma/client";
+import { useTranslations } from "next-intl";
+import { getTranslations } from "next-intl/server";
 
 import { localeHref } from "@/i18n/server";
 import { auth } from "@/lib/auth";
@@ -134,6 +136,7 @@ export default async function CheckoutPage({
   // the browser is in a position to make. The pay endpoint re-checks all of
   // them anyway.
   const paymentOptions = await loadBookingPaymentOptions();
+  const t = await getTranslations("checkout.checkout");
 
   return (
     // The background is painted on `main` rather than on the centred column so
@@ -144,7 +147,7 @@ export default async function CheckoutPage({
       <div className="mx-auto flex max-w-5xl flex-col gap-6 px-5 pt-8 pb-16 sm:px-8">
         <CheckoutHeader
           eyebrow="Almost there"
-          title="Review and pay"
+          title={t("reviewAndPay")}
           backHref="/"
           backLabel="← Back to booking"
         />
@@ -196,6 +199,9 @@ type CheckoutOrder = {
 
 /** What was booked: the route, then everything that describes the job. */
 function OrderSummaryPanel({ order }: { order: CheckoutOrder }) {
+  const t = useTranslations("checkout.checkout");
+  const tShared = useTranslations("common.shared");
+
   return (
     <section
       aria-labelledby="checkout-summary-heading"
@@ -205,14 +211,18 @@ function OrderSummaryPanel({ order }: { order: CheckoutOrder }) {
         id="checkout-summary-heading"
         className="font-display text-base font-semibold text-paper"
       >
-        Your delivery
+        {t("yourDelivery")}
       </h2>
 
       <div className="mt-4 flex flex-col gap-2">
-        <RouteEndpoint badge="P" name="Pickup" address={order.pickupAddress} />
+        <RouteEndpoint
+          badge="P"
+          name={tShared("pickup")}
+          address={order.pickupAddress}
+        />
         <RouteEndpoint
           badge="D"
-          name="Dropoff"
+          name={tShared("dropoff")}
           address={order.dropoffAddress}
         />
       </div>
@@ -222,25 +232,28 @@ function OrderSummaryPanel({ order }: { order: CheckoutOrder }) {
             existed has none, and there is nothing to invent one from. */}
         {order.scheduledAt ? (
           <DetailRow
-            label="Scheduled"
+            label={tShared("scheduled")}
             value={formatScheduledAt(order.scheduledAt)}
           />
         ) : null}
-        <DetailRow label="Vehicle" value={order.vehicleTypeSpec.label} />
         <DetailRow
-          label="Goods"
+          label={tShared("vehicle")}
+          value={order.vehicleTypeSpec.label}
+        />
+        <DetailRow
+          label={t("goods")}
           value={CARGO_CATEGORY_LABELS[order.cargoCategory]}
         />
-        <DetailRow label="Crew" value={crewSizeLabel(order.helperCount)} />
+        <DetailRow label={t("crew")} value={crewSizeLabel(order.helperCount)} />
         {/* Also nullable, and for the same reason as the schedule. */}
         {order.bodyType ? (
           <DetailRow
-            label="Load space"
+            label={t("loadSpace")}
             value={BODY_TYPE_LABEL[order.bodyType]}
           />
         ) : null}
         <DetailRow
-          label="Service level"
+          label={tShared("serviceLevel")}
           value={SERVICE_LEVEL_LABEL[order.serviceLevel]}
         />
         {/* Full width, because it is the one free-text field here and a note
@@ -249,7 +262,7 @@ function OrderSummaryPanel({ order }: { order: CheckoutOrder }) {
             groups are `div`s may not nest a second `div` between them. */}
         {order.description ? (
           <DetailRow
-            label="Notes"
+            label={t("notes")}
             value={order.description}
             className="sm:col-span-2"
           />
@@ -274,6 +287,10 @@ function PriceBreakdownPanel({
   order: CheckoutOrder;
   total: number;
 }) {
+  const t = useTranslations("checkout.checkout");
+  const tShared = useTranslations("common.shared");
+  const tBooking = useTranslations("home.bookingForm");
+
   return (
     <section
       aria-labelledby="checkout-price-heading"
@@ -283,21 +300,24 @@ function PriceBreakdownPanel({
         id="checkout-price-heading"
         className="font-display text-base font-semibold text-paper"
       >
-        Price
+        {tShared("price")}
       </h2>
 
       <dl className="mt-4 flex flex-col gap-1.5">
         <BreakdownRow
-          label="Distance"
+          label={tShared("distance")}
           value={formatBookedDistanceKm(order.distanceKm)}
         />
         <BreakdownRow
-          label="Transportation cost"
+          label={tShared("transportationCost")}
           value={formatGel(transportationCost(order))}
         />
         {/* Only worth a line when at least one helper was actually requested. */}
         {order.helperFee > 0 ? (
-          <BreakdownRow label="Helper Fee" value={formatGel(order.helperFee)} />
+          <BreakdownRow
+            label={tShared("helperFee")}
+            value={formatGel(order.helperFee)}
+          />
         ) : null}
         {/* Exactly one of these, or neither: Regular is the tier the quote is
             already priced at, so it books at a zero adjustment and there is
@@ -306,8 +326,8 @@ function PriceBreakdownPanel({
           <BreakdownRow
             label={
               order.serviceLevel === "PRIORITY"
-                ? "Priority fee"
-                : "Pooling discount"
+                ? tBooking("priorityFee")
+                : tBooking("poolingDiscount")
             }
             value={
               order.serviceLevelAdjustment > 0
@@ -323,7 +343,9 @@ function PriceBreakdownPanel({
         {/* Not a `BreakdownRow`: that primitive gives every line the same
             weight, and this is the figure the button beside it commits to. */}
         <div className="mt-1.5 flex items-baseline justify-between gap-4 border-t border-line pt-3">
-          <dt className="text-sm font-semibold text-paper">Total</dt>
+          <dt className="text-sm font-semibold text-paper">
+            {tShared("total")}
+          </dt>
           <dd className="font-price text-lg font-semibold text-paper tabular-nums">
             {formatGel(total)}
           </dd>
@@ -331,8 +353,7 @@ function PriceBreakdownPanel({
       </dl>
 
       <p className="mt-3 text-xs leading-snug text-muted">
-        Loading and unloading time beyond the free allowance is settled after
-        the delivery and is not part of this total.
+        {t("loadingAndUnloadingTimeBeyondThe")}
       </p>
     </section>
   );

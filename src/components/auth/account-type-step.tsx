@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 
 import {
   AuthHeading,
@@ -54,6 +55,7 @@ export function AccountTypeStep({
   onBack,
   className,
 }: AccountTypeStepProps) {
+  const t = useTranslations("auth.accountTypeStep");
   const headingId = React.useId();
   const rows = accountTypeRowsForRole(role);
 
@@ -106,12 +108,9 @@ export function AccountTypeStep({
       <BackLink onClick={onBack} />
 
       <div className="flex flex-col gap-2.5">
-        <Eyebrow>Step 2 of 3 · Type</Eyebrow>
-        <AuthHeading id={headingId}>Which describes you?</AuthHeading>
-        <AuthSubheading>
-          This decides what we ask for next — personal details or company
-          documents.
-        </AuthSubheading>
+        <Eyebrow>{t("step2Of3Type")}</Eyebrow>
+        <AuthHeading id={headingId}>{t("whichDescribesYou")}</AuthHeading>
+        <AuthSubheading>{t("thisDecidesWhatWeAskFor")}</AuthSubheading>
       </div>
 
       <div

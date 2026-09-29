@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { type AdminRole, PaymentMethodType, type Prisma } from "@prisma/client";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import type { AdminPaymentMethodRow } from "@/app/api/admin/finance/payment-methods/route";
 import { authorizeAdminApi } from "@/lib/admin/api-auth";
 import { writeAuditLog } from "@/lib/admin/audit";
@@ -30,6 +31,12 @@ type UpdatePaymentMethodInput = {
 };
 
 /**
+ * The request-locale translator, passed into the synchronous body validator so
+ * its messages reach the admin in their own language.
+ */
+type RequestTranslator = Awaited<ReturnType<typeof getRequestTranslations>>;
+
+/**
  * Hand-rolled body validation, consistent with the rest of the API (the project
  * deliberately uses no validation library).
  *
@@ -40,16 +47,21 @@ type UpdatePaymentMethodInput = {
  */
 function parseUpdateBody(
   body: unknown,
+  t: RequestTranslator,
 ): { data: UpdatePaymentMethodInput } | { error: string } {
   if (typeof body !== "object" || body === null) {
-    return { error: "Request body must be a JSON object." };
+    return { error: t("common.shared.requestBodyMustBeAJson") };
   }
 
   const record = body as Record<string, unknown>;
 
   const { isEnabled } = record;
   if (typeof isEnabled !== "boolean") {
-    return { error: "isEnabled is required and must be a boolean." };
+    return {
+      error: t(
+        "errors.adminFinancePaymentMethods.isenabledIsRequiredAndMustBe",
+      ),
+    };
   }
 
   const { config } = record;
@@ -58,7 +70,9 @@ function parseUpdateBody(
   }
 
   if (typeof config !== "object" || config === null || Array.isArray(config)) {
-    return { error: "config must be a JSON object." };
+    return {
+      error: t("errors.adminFinancePaymentMethods.configMustBeAJsonObject"),
+    };
   }
 
   // Safe by construction: `config` came out of `request.json()`, so everything
@@ -88,13 +102,15 @@ export async function PATCH(
     return authorized.response;
   }
 
+  const t = await getRequestTranslations();
+
   const { type: rawType } = await params;
 
   // The segment names a resource, so an unknown one is a 404 rather than a
   // validation error: there is no such payment method to address.
   if (!PAYMENT_METHOD_TYPES.includes(rawType as PaymentMethodType)) {
     return NextResponse.json(
-      { error: "Unknown payment method." },
+      { error: t("errors.adminFinancePaymentMethods.unknownPaymentMethod") },
       { status: 404 },
     );
   }
@@ -106,12 +122,12 @@ export async function PATCH(
     rawBody = await request.json();
   } catch {
     return NextResponse.json(
-      { error: "Request body must be valid JSON." },
+      { error: t("common.shared.requestBodyMustBeValidJson") },
       { status: 400 },
     );
   }
 
-  const parsed = parseUpdateBody(rawBody);
+  const parsed = parseUpdateBody(rawBody, t);
   if ("error" in parsed) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }

@@ -7,6 +7,7 @@ import type {
   DriverApplicationStatus,
 } from "@prisma/client";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getDriverDocumentSignedUrls } from "@/lib/driver-document-storage";
@@ -143,17 +144,21 @@ type DriverContext =
  * fields (city, phone, account type) it does not have.
  */
 async function resolveDriverContext(request: Request): Promise<DriverContext> {
+  const tShared = await getRequestTranslations("common.shared");
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {
     return {
-      response: NextResponse.json({ error: "Unauthorized." }, { status: 401 }),
+      response: NextResponse.json(
+        { error: tShared("unauthorized") },
+        { status: 401 },
+      ),
     };
   }
 
   if (session.user.role !== "DRIVER") {
     return {
       response: NextResponse.json(
-        { error: "Only drivers have an onboarding application." },
+        { error: tShared("onlyDriversHaveAnOnboardingApplication") },
         { status: 403 },
       ),
     };
@@ -167,7 +172,7 @@ async function resolveDriverContext(request: Request): Promise<DriverContext> {
   if (!profile) {
     return {
       response: NextResponse.json(
-        { error: "Complete your driver profile before onboarding." },
+        { error: tShared("completeYourDriverProfileBeforeOnboarding") },
         { status: 404 },
       ),
     };
@@ -363,8 +368,9 @@ export async function GET(request: Request): Promise<NextResponse> {
       application = await createApplication(profile.id);
     } catch (error: unknown) {
       console.error("Failed to create a driver application:", error);
+      const tShared = await getRequestTranslations("common.shared");
       return NextResponse.json(
-        { error: "Could not start your application. Please try again." },
+        { error: tShared("couldNotStartYourApplicationPlease") },
         { status: 500 },
       );
     }
@@ -386,6 +392,9 @@ export async function GET(request: Request): Promise<NextResponse> {
 
   return NextResponse.json(body, { status: 200 });
 }
+
+/** The request-scoped translator the handlers pass into the sync parser below. */
+type RequestTranslator = Awaited<ReturnType<typeof getRequestTranslations>>;
 
 /** Validated shape of a draft-save request body. */
 type SaveDraftInput = {
@@ -410,9 +419,10 @@ function isJsonObject(value: unknown): value is Record<string, unknown> {
  */
 function parseSaveDraftBody(
   body: unknown,
+  t: RequestTranslator,
 ): { data: SaveDraftInput } | { error: string } {
   if (!isJsonObject(body)) {
-    return { error: "Request body must be a JSON object." };
+    return { error: t("common.shared.requestBodyMustBeAJson") };
   }
 
   const { draftStep, draft } = body;
@@ -430,7 +440,7 @@ function parseSaveDraftBody(
 
   const parsedDraft = parseOnboardingDraft(draft);
   if (!parsedDraft) {
-    return { error: "draft must be an object with version 1." };
+    return { error: t("common.shared.draftMustBeAnObjectWith") };
   }
 
   for (const section of ["personal", "licence", "vehicle"] as const) {
@@ -471,17 +481,23 @@ export async function PATCH(request: Request): Promise<NextResponse> {
     return context.response;
   }
 
+  const t = await getRequestTranslations();
+
   const { application } = context.profile;
   if (!application) {
     return NextResponse.json(
-      { error: "No application to save. Load your application first." },
+      { error: t("common.shared.noApplicationToSaveLoadYour") },
       { status: 404 },
     );
   }
 
   if (application.status !== "DRAFT") {
     return NextResponse.json(
-      { error: "A submitted application can no longer be edited." },
+      {
+        error: t(
+          "errors.driverProfileOnboarding.aSubmittedApplicationCanNoLonger",
+        ),
+      },
       { status: 400 },
     );
   }
@@ -491,12 +507,12 @@ export async function PATCH(request: Request): Promise<NextResponse> {
     rawBody = await request.json();
   } catch {
     return NextResponse.json(
-      { error: "Request body must be valid JSON." },
+      { error: t("common.shared.requestBodyMustBeValidJson") },
       { status: 400 },
     );
   }
 
-  const parsed = parseSaveDraftBody(rawBody);
+  const parsed = parseSaveDraftBody(rawBody, t);
   if ("error" in parsed) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }

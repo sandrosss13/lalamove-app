@@ -48,13 +48,15 @@ const MAX_FILE_NAME_LENGTH = 200;
 /**
  * Hand-rolled body validation, consistent with the rest of the API (the project
  * deliberately uses no validation library). Returns the cleaned input, or the
- * first failure as a sentence naming the field it is about.
+ * first failure as a sentence naming the field it is about, translated through
+ * `t` (a root-scoped translator for the reader's locale).
  */
 export function parseMediaUploadUrlBody(
   body: unknown,
+  t: (key: string) => string,
 ): { data: MediaUploadUrlInput } | { error: string } {
   if (typeof body !== "object" || body === null) {
-    return { error: "Request body must be a JSON object." };
+    return { error: t("common.shared.requestBodyMustBeAJson") };
   }
 
   const record = body as Record<string, unknown>;
@@ -71,7 +73,7 @@ export function parseMediaUploadUrlBody(
 
   const { fileName } = record;
   if (typeof fileName !== "string" || fileName.trim() === "") {
-    return { error: "fileName is required and must be a non-empty string." };
+    return { error: t("common.shared.filenameIsRequiredAndMustBe") };
   }
   if (fileName.trim().length > MAX_FILE_NAME_LENGTH) {
     return {
@@ -81,7 +83,7 @@ export function parseMediaUploadUrlBody(
 
   const { contentType } = record;
   if (typeof contentType !== "string" || contentType.trim() === "") {
-    return { error: "contentType is required and must be a non-empty string." };
+    return { error: t("common.shared.contenttypeIsRequiredAndMustBe") };
   }
   // The storage helper's own message, verbatim, so the browser shows the same
   // sentence its pre-flight check would have shown for the same file.

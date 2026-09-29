@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
+import { useTranslations } from "next-intl";
 
 import {
   AddCardDialog,
@@ -174,6 +175,8 @@ async function readErrorMessage(
 /* -------------------------------------------------------------------------- */
 
 export function SavedCardsPanel({ cards }: { cards: SavedCardView[] }) {
+  const t = useTranslations("wallet.savedCardsPanel");
+  const tShared = useTranslations("common.shared");
   const router = useRouter();
   const [addOpen, setAddOpen] = useState(false);
   const [armedCardId, setArmedCardId] = useState<string | null>(null);
@@ -285,7 +288,7 @@ export function SavedCardsPanel({ cards }: { cards: SavedCardView[] }) {
     <section aria-labelledby={headingId} className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 id={headingId} className={SECTION_HEADING_CLASSES}>
-          Saved cards
+          {t("savedCards")}
         </h2>
         <button
           type="button"
@@ -296,16 +299,13 @@ export function SavedCardsPanel({ cards }: { cards: SavedCardView[] }) {
           disabled={busy}
           className={ADD_CARD_BUTTON_CLASSES}
         >
-          + Add card
+          {tShared("addCard")}
         </button>
       </div>
 
       {cards.length === 0 ? (
         <div className="rounded-[14px] border border-dashed border-line bg-surface p-8 text-center">
-          <p className="text-[14px] text-muted">
-            No cards saved yet. Add a credit or debit card to pay for
-            deliveries.
-          </p>
+          <p className="text-[14px] text-muted">{t("noCardsSavedYetAddA")}</p>
         </div>
       ) : (
         <ul className="flex flex-col gap-3">
@@ -347,7 +347,7 @@ export function SavedCardsPanel({ cards }: { cards: SavedCardView[] }) {
                           {" · "}
                         </>
                       )}
-                      Expires{" "}
+                      {tShared("expires")}{" "}
                       <span className="font-price tabular-nums">
                         {formatExpiry(card.expMonth, card.expYear)}
                       </span>
@@ -356,7 +356,7 @@ export function SavedCardsPanel({ cards }: { cards: SavedCardView[] }) {
 
                   {card.isDefault ? (
                     <span className="rounded-full bg-accent/10 px-3 py-1 text-[11px] font-semibold tracking-[0.06em] text-accent uppercase">
-                      Default
+                      {t("default")}
                     </span>
                   ) : null}
 
@@ -402,7 +402,7 @@ export function SavedCardsPanel({ cards }: { cards: SavedCardView[] }) {
                         ? "Removing…"
                         : armed
                           ? "Confirm removal"
-                          : "Remove"}
+                          : tShared("remove")}
                     </button>
 
                     {/* The way out of an armed state. Interacting with another
@@ -416,7 +416,7 @@ export function SavedCardsPanel({ cards }: { cards: SavedCardView[] }) {
                         aria-label={`Cancel removal, ${cardDescription}`}
                         className={MAKE_DEFAULT_BUTTON_CLASSES}
                       >
-                        Cancel
+                        {tShared("cancel")}
                       </button>
                     ) : null}
                   </div>

@@ -10,6 +10,10 @@ import {
   type Prisma,
 } from "@prisma/client";
 
+import {
+  getRequestTranslations,
+  type RequestTranslator,
+} from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
 import {
   CARGO_MEASUREMENT_BOUNDS,
@@ -347,13 +351,14 @@ function parsePositiveMeasurement(
  */
 function parseHandlingTags(
   value: unknown,
+  t: RequestTranslator,
 ): { value: CargoHandlingTag[] } | { error: string } {
   if (value === undefined || value === null) {
     return { value: [] };
   }
 
   if (!Array.isArray(value)) {
-    return { error: "handlingTags must be an array when provided." };
+    return { error: t("errors.orders.handlingtagsMustBeAnArrayWhen") };
   }
 
   const isHandlingTag = (tag: unknown): tag is CargoHandlingTag =>
@@ -420,14 +425,15 @@ function parseOptionalDate(
  */
 function parseCreateOrderBody(
   body: unknown,
+  t: RequestTranslator,
 ): { data: CreateOrderInput } | { error: string } {
   if (typeof body !== "object" || body === null) {
-    return { error: "Request body must be a JSON object." };
+    return { error: t("common.shared.requestBodyMustBeAJson") };
   }
 
   const record = body as Record<string, unknown>;
 
-  const quote = parseQuoteFields(record);
+  const quote = parseQuoteFields(record, t);
   if ("error" in quote) {
     return quote;
   }
@@ -435,20 +441,20 @@ function parseCreateOrderBody(
   const { description, scheduledAt } = record;
 
   if (description !== undefined && typeof description !== "string") {
-    return { error: "description must be a string when provided." };
+    return { error: t("errors.orders.descriptionMustBeAStringWhen") };
   }
 
   if (typeof scheduledAt !== "string" || scheduledAt.trim().length === 0) {
-    return { error: "scheduledAt is required." };
+    return { error: t("errors.orders.scheduledatIsRequired") };
   }
 
   const scheduledAtDate = new Date(scheduledAt);
   if (Number.isNaN(scheduledAtDate.getTime())) {
-    return { error: "scheduledAt must be a valid date and time." };
+    return { error: t("errors.orders.scheduledatMustBeAValidDate") };
   }
 
   if (scheduledAtDate.getTime() < Date.now() - SCHEDULED_AT_PAST_GRACE_MS) {
-    return { error: "scheduledAt cannot be in the past." };
+    return { error: t("errors.orders.scheduledatCannotBeInThePast") };
   }
 
   const pickupContact = parseStopContact(record.pickupContact, "pickupContact");
@@ -502,7 +508,7 @@ function parseCreateOrderBody(
     savedCardId !== undefined &&
     (typeof savedCardId !== "string" || savedCardId.trim().length === 0)
   ) {
-    return { error: "savedCardId must be a non-empty string when provided." };
+    return { error: t("common.shared.savedcardidMustBeANonEmpty") };
   }
 
   const chosenCardId =
@@ -513,11 +519,13 @@ function parseCreateOrderBody(
   // means the client changed method without clearing its card — either way, say
   // which of the two to change rather than quietly picking one.
   if (paymentMethodType === PaymentMethodType.CARD && chosenCardId === null) {
-    return { error: "Choose a saved card to pay by card." };
+    return { error: t("common.shared.chooseASavedCardToPay") };
   }
 
   if (paymentMethodType !== PaymentMethodType.CARD && chosenCardId !== null) {
-    return { error: "Send savedCardId only when paymentMethodType is CARD." };
+    return {
+      error: t("common.shared.sendSavedcardidOnlyWhenPaymentmethodtypeIs"),
+    };
   }
 
   const purchaseOrderRef = parseOptionalText(
@@ -584,7 +592,7 @@ function parseCreateOrderBody(
     return itemQuantity;
   }
 
-  const handlingTags = parseHandlingTags(record.handlingTags);
+  const handlingTags = parseHandlingTags(record.handlingTags, t);
   if ("error" in handlingTags) {
     return handlingTags;
   }
@@ -622,7 +630,9 @@ function parseCreateOrderBody(
     pickupWindowEnd.value !== null &&
     pickupWindowEnd.value.getTime() <= pickupWindowStart.value.getTime()
   ) {
-    return { error: "pickupWindowEnd must be after pickupWindowStart." };
+    return {
+      error: t("errors.orders.pickupwindowendMustBeAfterPickupwindowstart"),
+    };
   }
 
   const deliveryDeadline = parseOptionalDate(
@@ -647,7 +657,9 @@ function parseCreateOrderBody(
     pickupWindowEnd.value !== null &&
     deliveryDeadline.value.getTime() <= pickupWindowEnd.value.getTime()
   ) {
-    return { error: "deliveryDeadline must be after pickupWindowEnd." };
+    return {
+      error: t("errors.orders.deliverydeadlineMustBeAfterPickupwindowend"),
+    };
   }
 
   return {
@@ -694,9 +706,14 @@ function parseCreateOrderBody(
  * so no figure the browser computed is ever booked.
  */
 export async function POST(request: Request): Promise<NextResponse> {
+  const t = await getRequestTranslations();
+
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    return NextResponse.json(
+      { error: t("common.shared.unauthorized") },
+      { status: 401 },
+    );
   }
 
   let rawBody: unknown;
@@ -704,12 +721,12 @@ export async function POST(request: Request): Promise<NextResponse> {
     rawBody = await request.json();
   } catch {
     return NextResponse.json(
-      { error: "Request body must be valid JSON." },
+      { error: t("common.shared.requestBodyMustBeValidJson") },
       { status: 400 },
     );
   }
 
-  const parsed = parseCreateOrderBody(rawBody);
+  const parsed = parseCreateOrderBody(rawBody, t);
   if ("error" in parsed) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
@@ -771,7 +788,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   // request can be edited after that filter ran.
   if (bodyType !== null && spec && !spec.bodyTypes.includes(bodyType)) {
     return NextResponse.json(
-      { error: "That vehicle does not offer the load space you selected." },
+      { error: t("errors.orders.thatVehicleDoesNotOfferThe") },
       { status: 400 },
     );
   }
@@ -872,7 +889,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     if (!paymentMethodConfig?.isEnabled) {
       return NextResponse.json(
-        { error: "That payment method is not available." },
+        { error: t("common.shared.thatPaymentMethodIsNotAvailable") },
         { status: 400 },
       );
     }
@@ -889,7 +906,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     if (!savedCard) {
       return NextResponse.json(
-        { error: "Choose a card saved to your own payment methods." },
+        { error: t("common.shared.chooseACardSavedToYour") },
         { status: 400 },
       );
     }
@@ -1310,9 +1327,14 @@ function canSeeStopContacts(
  * avoid. Two queries, two clean types.
  */
 export async function GET(request: Request): Promise<NextResponse> {
+  const t = await getRequestTranslations();
+
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    return NextResponse.json(
+      { error: t("common.shared.unauthorized") },
+      { status: 401 },
+    );
   }
 
   const { id: userId, role } = session.user;

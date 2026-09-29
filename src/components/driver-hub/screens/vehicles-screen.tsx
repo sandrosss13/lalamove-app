@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 
 import { useHubSubtitle } from "@/components/driver-hub/driver-hub-shell";
 import {
@@ -216,6 +217,8 @@ export type VehiclesScreenProps = {
 
 export function VehiclesScreen({ data }: VehiclesScreenProps) {
   const { kind, persona, canAddVehicle, vehicles, tiles } = data;
+  const t = useTranslations("driverHub.vehiclesScreen");
+  const tShared = useTranslations("common.shared");
 
   const [tab, setTab] = React.useState<VehiclesTab>("All");
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
@@ -252,10 +255,21 @@ export function VehiclesScreen({ data }: VehiclesScreenProps) {
   // A fifth pill only when it would have rows behind it. `useMemo` keeps the
   // array identity stable so `FilterStrip` is not handed a new list each
   // keystroke elsewhere on the page.
-  const tabs = React.useMemo<readonly FilterStripItem[]>(
-    () => (reviewPending ? [...BASE_TABS, REVIEW_TAB] : BASE_TABS),
-    [reviewPending],
-  );
+  //
+  // The tab `value`s stay English — they are compared against
+  // `HubVehicleStatus` below — and only the visible `label` is translated.
+  const tabs = React.useMemo<readonly FilterStripItem[]>(() => {
+    const labels: Record<VehiclesTab, string> = {
+      All: tShared("all"),
+      Active: tShared("active"),
+      Idle: t("idle"),
+      "Needs review": tShared("needsReview"),
+    };
+
+    return (reviewPending ? [...BASE_TABS, REVIEW_TAB] : BASE_TABS).map(
+      (item) => ({ ...item, label: labels[item.value] }),
+    );
+  }, [reviewPending, t, tShared]);
 
   // A refresh can remove the last flagged vehicle while its tab is selected,
   // which would otherwise leave the table filtered by a pill that no longer
@@ -381,12 +395,12 @@ export function VehiclesScreen({ data }: VehiclesScreenProps) {
     <>
       <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
         <MetricTile
-          label="Vehicles"
+          label={tShared("vehicles")}
           value={tiles.vehicleCount}
           note={classNote === "" ? undefined : classNote}
         />
         <MetricTile
-          label="On the road"
+          label={t("onTheRoad")}
           value={tiles.onTheRoadCount}
           // A fleet's operator reads this as a dispatch fact about somebody
           // else; a driver reads it as a fact about themselves, because the
@@ -398,7 +412,7 @@ export function VehiclesScreen({ data }: VehiclesScreenProps) {
           }
         />
         <MetricTile
-          label="Unassigned"
+          label={tShared("unassigned")}
           value={tiles.unassignedCount}
           // "Available to hand to a driver" is a move only a fleet manager can
           // make. For a single driver the honest reading of the same number is
@@ -416,7 +430,7 @@ export function VehiclesScreen({ data }: VehiclesScreenProps) {
             insurance). A solo driver reading "fleet" of their one van is the
             design's own wording, not a slip. */}
         <MetricTile
-          label="Fleet cost per km"
+          label={t("fleetCostPerKm")}
           value={formatGel(tiles.sampled.fleetCostPerKmGel)}
           note="Fuel, service, parking and tolls"
         >
@@ -465,7 +479,7 @@ export function VehiclesScreen({ data }: VehiclesScreenProps) {
                       columns, so it never explains a marker that is not shown. */}
                   {hasVehicles && !split ? (
                     <SampleNote
-                      label="Odometer · Cost/km"
+                      label={t("odometerCostKm")}
                       note={SAMPLED_COLUMNS_NOTE}
                     />
                   ) : null}
@@ -496,7 +510,7 @@ export function VehiclesScreen({ data }: VehiclesScreenProps) {
                       onClick={startAdding}
                       className="h-auto rounded-md px-[14px] py-2 text-[13px]"
                     >
-                      Add vehicle
+                      {t("addVehicle")}
                     </Button>
                   ) : null}
                 </div>
@@ -518,15 +532,15 @@ export function VehiclesScreen({ data }: VehiclesScreenProps) {
                       )}
                     >
                       <TableHead role="columnheader" className={HEAD_CLASSES}>
-                        Vehicle
+                        {tShared("vehicle")}
                       </TableHead>
                       {split ? null : (
                         <TableHead role="columnheader" className={HEAD_CLASSES}>
-                          Class
+                          {tShared("class")}
                         </TableHead>
                       )}
                       <TableHead role="columnheader" className={HEAD_CLASSES}>
-                        Assigned
+                        {tShared("assigned")}
                       </TableHead>
                       {split ? null : (
                         <>
@@ -534,13 +548,13 @@ export function VehiclesScreen({ data }: VehiclesScreenProps) {
                             role="columnheader"
                             className={HEAD_CLASSES}
                           >
-                            <SampledHead>Odometer</SampledHead>
+                            <SampledHead>{tShared("odometer")}</SampledHead>
                           </TableHead>
                           <TableHead
                             role="columnheader"
                             className={HEAD_CLASSES}
                           >
-                            <SampledHead>Cost/km</SampledHead>
+                            <SampledHead>{t("costKm")}</SampledHead>
                           </TableHead>
                         </>
                       )}
@@ -548,7 +562,7 @@ export function VehiclesScreen({ data }: VehiclesScreenProps) {
                         role="columnheader"
                         className={cn(HEAD_CLASSES, "text-right")}
                       >
-                        Status
+                        {tShared("status")}
                       </TableHead>
                     </TableRow>
                   </TableHeader>
@@ -557,7 +571,7 @@ export function VehiclesScreen({ data }: VehiclesScreenProps) {
                     {visible.map((vehicle) => {
                       const selected = vehicle.id === selectedVehicle?.id;
                       const assigned =
-                        vehicle.assignment?.driverName ?? "Unassigned";
+                        vehicle.assignment?.driverName ?? tShared("unassigned");
 
                       return (
                         <TableRow
@@ -690,8 +704,7 @@ export function VehiclesScreen({ data }: VehiclesScreenProps) {
                   </p>
                 ) : (
                   <p className="mt-1.5 text-[13px]">
-                    Add one to start taking jobs. It joins as idle until a
-                    driver is assigned to it.
+                    {t("addOneToStartTakingJobs")}
                   </p>
                 )}
               </HubEmptyState>

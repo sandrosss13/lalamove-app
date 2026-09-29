@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 
 import {
   ALL_CITIES,
@@ -75,6 +76,9 @@ export function LoadsFilters() {
     pickupCityOptions,
     dropCityOptions,
   } = useLoadsBoard();
+  const t = useTranslations("driverHub.loadsFilters");
+  const tShared = useTranslations("common.shared");
+  const tFormat = useTranslations("driverHub.loadsFormat");
 
   // `useId` rather than hardcoded strings: the panel is rendered once today,
   // but a duplicated id is the kind of thing that only breaks the label→control
@@ -84,14 +88,14 @@ export function LoadsFilters() {
   return (
     <div className="grid grid-cols-[repeat(3,minmax(180px,240px))_1fr_auto] items-end gap-4 rounded-lg border border-border bg-card p-3.5">
       <CityFilter
-        label="Pick-up city"
+        label={tShared("pickUpCity")}
         value={fPickup}
         onChange={setFPickup}
         options={pickupCityOptions}
       />
 
       <CityFilter
-        label="Drop-off city"
+        label={tShared("dropOffCity")}
         value={fDrop}
         onChange={setFDrop}
         options={dropCityOptions}
@@ -125,14 +129,14 @@ export function LoadsFilters() {
             label pointing at nothing is worse than no label. The group carries
             the name instead. */}
         <span className="text-xs text-muted-foreground" id={`${weightId}-tags`}>
-          Special handling
+          {t("specialHandling")}
         </span>
         <div
           role="group"
           aria-labelledby={`${weightId}-tags`}
           className="flex gap-1.5"
         >
-          {HANDLING_FILTER_CHIPS.map(({ value, label }) => {
+          {HANDLING_FILTER_CHIPS.map(({ value, labelKey }) => {
             const selected = fTags.includes(value);
 
             return (
@@ -151,7 +155,7 @@ export function LoadsFilters() {
                     : "border-border bg-background text-foreground hover:bg-muted",
                 )}
               >
-                {label}
+                {tFormat(labelKey)}
               </button>
             );
           })}
@@ -165,7 +169,7 @@ export function LoadsFilters() {
         onClick={resetFilters}
         className="h-[34px] text-muted-foreground"
       >
-        Reset
+        {t("reset")}
       </Button>
     </div>
   );
@@ -188,6 +192,8 @@ function CityFilter({
   options: readonly string[];
 }) {
   const id = React.useId();
+  // The sentinel value stays English; only its visible label is translated.
+  const tCities = useTranslations("driverHub.fleetAvailabilityFilters");
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -205,7 +211,7 @@ function CityFilter({
             palette instead of the hub's. Nothing errors; the colours are just
             quietly wrong. Same precedent as `drivers-add-panel.tsx`. */}
         <SelectContent data-admin-surface="" className="max-h-72">
-          <SelectItem value={ALL_CITIES}>{ALL_CITIES}</SelectItem>
+          <SelectItem value={ALL_CITIES}>{tCities("allCities")}</SelectItem>
           {options.map((city) => (
             <SelectItem key={city} value={city}>
               {city}

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 
 import {
   HUB_STATUS_TONE_CLASSES,
@@ -16,6 +17,7 @@ import {
   formatVolumeM3,
   formatWeightKg,
   sortedHandlingTags,
+  type HandlingTagTranslator,
 } from "@/components/driver-hub/screens/loads-format";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -304,8 +306,11 @@ export type CargoCompliance = {
  * There is no Body type row — the booked chassis appears only in the cold-chain
  * mismatch note below, where it is the point rather than a detail.
  */
-function cargoRows(load: CargoSpec): { key: string; value: string }[] {
-  const tags = sortedHandlingTags(load.handlingTags);
+function cargoRows(
+  load: CargoSpec,
+  translateTag: HandlingTagTranslator,
+): { key: string; value: string }[] {
+  const tags = sortedHandlingTags(load.handlingTags, translateTag);
   const dims = {
     lengthM: load.cargoLengthM,
     widthM: load.cargoWidthM,
@@ -334,9 +339,11 @@ function cargoRows(load: CargoSpec): { key: string; value: string }[] {
 
 /** The cargo specification, as a two-column definition list. */
 export function CargoSpecList({ load }: { load: CargoSpec }) {
+  const tFormat = useTranslations("driverHub.loadsFormat");
+
   return (
     <dl className="mt-2 grid grid-cols-[96px_1fr] gap-x-3 gap-y-2 text-[13px]">
-      {cargoRows(load).map((row) => (
+      {cargoRows(load, tFormat).map((row) => (
         <React.Fragment key={row.key}>
           <dt className="text-muted-foreground">{row.key}</dt>
           <dd className="min-w-0 break-words">{row.value}</dd>
@@ -363,7 +370,8 @@ export function HandlingTagPills({
 }: {
   load: Pick<CargoSpec, "handlingTags">;
 }) {
-  const tags = sortedHandlingTags(load.handlingTags);
+  const tFormat = useTranslations("driverHub.loadsFormat");
+  const tags = sortedHandlingTags(load.handlingTags, tFormat);
 
   if (tags.length === 0) {
     return null;
@@ -550,6 +558,8 @@ export function ClaimedElsewhereNote({
  * surface may promise proof-of-delivery capture.
  */
 export function ClaimedByYouNote() {
+  const t = useTranslations("driverHub.loadsDetailParts");
+
   return (
     <p
       className={cn(
@@ -558,7 +568,7 @@ export function ClaimedByYouNote() {
         HUB_STATUS_TONE_CLASSES.success,
       )}
     >
-      You claimed this load. Contact details are in your job sheet.
+      {t("youClaimedThisLoadContactDetails")}
     </p>
   );
 }

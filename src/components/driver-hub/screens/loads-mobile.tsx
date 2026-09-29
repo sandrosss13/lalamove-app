@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 
 import { Link } from "@/i18n/navigation";
 import { HubEmptyState } from "@/components/driver-hub/hub-primitives";
@@ -237,11 +238,12 @@ function FilterRow() {
     pickupCityOptions,
     dropCityOptions,
   } = useLoadsBoard();
+  const tShared = useTranslations("common.shared");
 
   return (
     <div className="flex items-center gap-2 border-b border-border px-3.5 py-2.5">
       <CitySelect
-        label="Pick-up city"
+        label={tShared("pickUpCity")}
         value={fPickup}
         onChange={setFPickup}
         options={pickupCityOptions}
@@ -252,7 +254,7 @@ function FilterRow() {
         →
       </span>
       <CitySelect
-        label="Drop-off city"
+        label={tShared("dropOffCity")}
         value={fDrop}
         onChange={setFDrop}
         options={dropCityOptions}
@@ -459,8 +461,11 @@ function CardField({
  */
 function LoadCard({ load, nowIso }: { load: HubLoad; nowIso: string }) {
   const { selectLoad } = useLoadsBoard();
+  const t = useTranslations("driverHub.loadsMobile");
+  const tShared = useTranslations("common.shared");
+  const tFormat = useTranslations("driverHub.loadsFormat");
 
-  const tags = sortedHandlingTags(load.handlingTags);
+  const tags = sortedHandlingTags(load.handlingTags, tFormat);
   const open = () => selectLoad(load.id);
 
   return (
@@ -506,32 +511,35 @@ function LoadCard({ load, nowIso }: { load: HubLoad; nowIso: string }) {
             long address would push past, defeating the `truncate` on it. */}
         <dl className="grid min-w-0 flex-1 grid-cols-[auto_minmax(0,1fr)] gap-x-2 text-xs">
           <CardField
-            label="Pick up address"
+            label={t("pickUpAddress")}
             value={load.pickupAddress}
             emphasis
             title={load.pickupAddress}
           />
-          <CardField label="Pick up city" value={load.pickupCity ?? EM_DASH} />
+          <CardField
+            label={tShared("pickUpCity2")}
+            value={load.pickupCity ?? EM_DASH}
+          />
           {/* Both from `scheduledAt`, dashing together when it is absent —
               exactly the desktop table's two columns. Never the pick-up window,
               which is a different and rarer fact; `HubLoad.scheduledAt` has the
               reasoning. */}
           <CardField
-            label="Pick up date"
+            label={tShared("pickUpDate")}
             value={formatLoadDayLabel(load.scheduledAt, nowIso)}
           />
           <CardField
-            label="Pick up time"
+            label={tShared("pickUpTime")}
             value={formatClock(load.scheduledAt)}
           />
           <CardField
-            label="Drop off address"
+            label={t("dropOffAddress")}
             value={load.dropoffAddress}
             emphasis
             title={load.dropoffAddress}
           />
           <CardField
-            label="Drop off city"
+            label={tShared("dropOffCity2")}
             value={load.dropoffCity ?? EM_DASH}
           />
         </dl>
@@ -614,6 +622,8 @@ function LoadCardActions({ load }: { load: HubLoad }) {
     canAccept,
     selectLoad,
   } = useLoadsBoard();
+  const t = useTranslations("driverHub.loadsMobile");
+  const tShared = useTranslations("common.shared");
 
   const isPending = pendingActionId === load.id;
   // Reject and Restore only. The state container refuses a second reject or
@@ -644,7 +654,7 @@ function LoadCardActions({ load }: { load: HubLoad }) {
             void restore(load.id);
           }}
         >
-          Restore to board
+          {t("restoreToBoard")}
         </Button>
       </div>
     );
@@ -658,7 +668,7 @@ function LoadCardActions({ load }: { load: HubLoad }) {
           HUB_STATUS_TONE_CLASSES.neutral,
         )}
       >
-        Claimed by another driver
+        {t("claimedByAnotherDriver")}
       </p>
     );
   }
@@ -703,7 +713,7 @@ function LoadCardActions({ load }: { load: HubLoad }) {
               openDispatch(load);
             }}
           >
-            Yours · assign a vehicle
+            {t("yoursAssignAVehicle")}
           </Button>
         </div>
       );
@@ -744,7 +754,7 @@ function LoadCardActions({ load }: { load: HubLoad }) {
             // driver just navigated to. Same rule as every other control here.
             onClick={stop}
           >
-            Yours · view job sheet
+            {t("yoursViewJobSheet")}
           </Link>
         </Button>
       </div>
@@ -764,7 +774,7 @@ function LoadCardActions({ load }: { load: HubLoad }) {
           void reject(load.id);
         }}
       >
-        Reject
+        {tShared("reject")}
       </Button>
       <Button
         type="button"

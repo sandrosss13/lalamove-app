@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 
-import type { AdminRole, DriverApplicationDocumentStatus } from "@prisma/client";
+import type {
+  AdminRole,
+  DriverApplicationDocumentStatus,
+} from "@prisma/client";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { authorizeAdminApi } from "@/lib/admin/api-auth";
 import { writeAuditLog } from "@/lib/admin/audit";
 import { prisma } from "@/lib/prisma";
@@ -22,7 +26,8 @@ const ALLOWED_ROLES: readonly AdminRole[] = ["SUPER_ADMIN", "USER_MANAGER"];
 const MAX_FLAG_REASON_LENGTH = 500;
 
 /** The reviewer's verdict on one document. */
-type DocumentReview = { action: "approve" } | { action: "flag"; reason: string };
+type DocumentReview =
+  { action: "approve" } | { action: "flag"; reason: string };
 
 /** Body this endpoint answers with, so the review drawer can update in place. */
 export type AdminDocumentReviewResponse = {
@@ -30,6 +35,12 @@ export type AdminDocumentReviewResponse = {
   status: DriverApplicationDocumentStatus;
   flagReason: string | null;
 };
+
+/**
+ * The request-locale translator, passed into the synchronous body validator so
+ * its messages reach the admin in their own language.
+ */
+type RequestTranslator = Awaited<ReturnType<typeof getRequestTranslations>>;
 
 /**
  * Hand-rolled body validation, consistent with the rest of the API (the project
@@ -41,9 +52,10 @@ export type AdminDocumentReviewResponse = {
  */
 function parseDocumentReviewBody(
   body: unknown,
+  t: RequestTranslator,
 ): { value: DocumentReview } | { error: string } {
   if (typeof body !== "object" || body === null) {
-    return { error: "Request body must be a JSON object." };
+    return { error: t("common.shared.requestBodyMustBeAJson") };
   }
 
   const { action, reason } = body as Record<string, unknown>;
@@ -57,7 +69,11 @@ function parseDocumentReviewBody(
   }
 
   if (typeof reason !== "string" || reason.trim() === "") {
-    return { error: "A reason is required to flag a document." };
+    return {
+      error: t(
+        "errors.adminDriverApplicationsDocuments.aReasonIsRequiredToFlag",
+      ),
+    };
   }
 
   const trimmedReason = reason.trim();
@@ -91,6 +107,8 @@ export async function PATCH(
     return authorized.response;
   }
 
+  const t = await getRequestTranslations();
+
   const { id, docId } = await params;
 
   let rawBody: unknown;
@@ -98,12 +116,12 @@ export async function PATCH(
     rawBody = await request.json();
   } catch {
     return NextResponse.json(
-      { error: "Request body must be valid JSON." },
+      { error: t("common.shared.requestBodyMustBeValidJson") },
       { status: 400 },
     );
   }
 
-  const parsed = parseDocumentReviewBody(rawBody);
+  const parsed = parseDocumentReviewBody(rawBody, t);
   if ("error" in parsed) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
@@ -118,7 +136,7 @@ export async function PATCH(
   // there is nothing here for a reviewer to have opened.
   if (!application || application.status === "DRAFT") {
     return NextResponse.json(
-      { error: "Application not found." },
+      { error: t("common.shared.applicationNotFound") },
       { status: 404 },
     );
   }
@@ -127,7 +145,7 @@ export async function PATCH(
   // doc), so re-reviewing its documents is a stale tab, not a 404 — say so.
   if (application.status === "APPROVED") {
     return NextResponse.json(
-      { error: "This application has already been approved." },
+      { error: t("common.shared.thisApplicationHasAlreadyBeenApproved") },
       { status: 400 },
     );
   }
@@ -141,7 +159,10 @@ export async function PATCH(
   });
 
   if (!document) {
-    return NextResponse.json({ error: "Document not found." }, { status: 404 });
+    return NextResponse.json(
+      { error: t("errors.adminDriverApplicationsDocuments.documentNotFound") },
+      { status: 404 },
+    );
   }
 
   const review = parsed.value;

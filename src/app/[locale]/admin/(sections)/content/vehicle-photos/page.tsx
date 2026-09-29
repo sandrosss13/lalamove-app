@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 
 import type { VehicleCategory } from "@prisma/client";
 
@@ -80,6 +81,8 @@ function VehiclePhotoCard({
   error,
   onSave,
 }: VehiclePhotoCardProps) {
+  const t = useTranslations("admin.adminContentVehiclePhotos");
+  const tShared = useTranslations("common.shared");
   const saved = vehicleType.imageUrl ?? "";
   const [draft, setDraft] = useState(saved);
   /** Second step of the two-click removal, so a stray click cannot clear a photo. */
@@ -105,7 +108,7 @@ function VehiclePhotoCard({
       <div className="flex h-[140px] w-full items-center justify-center overflow-hidden rounded-lg border border-border bg-muted">
         {vehicleType.imageUrl === null ? (
           <span className="px-3 text-center text-xs text-muted-foreground">
-            No photo — the public card falls back to its illustrated glyph.
+            {t("noPhotoThePublicCardFalls")}
           </span>
         ) : (
           <>
@@ -140,8 +143,7 @@ function VehiclePhotoCard({
       {confirmingRemove ? (
         <div className="flex flex-col gap-2">
           <p className="text-sm text-muted-foreground">
-            Remove this photo? The card falls back to its illustrated glyph on
-            the public homepage. The uploaded file itself is kept.
+            {t("removeThisPhotoTheCardFalls")}
           </p>
           <div className="flex flex-wrap gap-2">
             <Button
@@ -151,7 +153,7 @@ function VehiclePhotoCard({
               disabled={pending}
               onClick={() => setConfirmingRemove(false)}
             >
-              Cancel
+              {tShared("cancel")}
             </Button>
             <Button
               type="button"
@@ -163,7 +165,7 @@ function VehiclePhotoCard({
                 onSave(null);
               }}
             >
-              {pending ? "Removing…" : "Remove photo"}
+              {pending ? "Removing…" : t("removePhoto")}
             </Button>
           </div>
         </div>
@@ -186,13 +188,13 @@ function VehiclePhotoCard({
               disabled={pending}
               onClick={() => setConfirmingRemove(true)}
             >
-              Remove photo
+              {t("removePhoto")}
             </Button>
           ) : null}
 
           {hasUnsavedChange ? (
             <span className="text-xs text-muted-foreground">
-              Not saved yet.
+              {t("notSavedYet")}
             </span>
           ) : null}
         </div>
@@ -225,6 +227,8 @@ function VehiclePhotoCard({
  * that so much as mentions them.
  */
 export default function AdminVehiclePhotosPage() {
+  const t = useTranslations("admin.adminContentVehiclePhotos");
+  const tShared = useTranslations("common.shared");
   const [vehicleTypes, setVehicleTypes] = useState<
     AdminVehiclePhotoRow[] | null
   >(null);
@@ -252,7 +256,7 @@ export default function AdminVehiclePhotosPage() {
 
         if (!response.ok) {
           setError(
-            await readErrorMessage(response, "Could not load vehicle types."),
+            await readErrorMessage(response, t("couldNotLoadVehicleTypes")),
           );
           setLoading(false);
           return;
@@ -268,7 +272,7 @@ export default function AdminVehiclePhotosPage() {
           return;
         }
 
-        setError("Could not load vehicle types.");
+        setError(t("couldNotLoadVehicleTypes"));
         setLoading(false);
       }
     }
@@ -276,7 +280,7 @@ export default function AdminVehiclePhotosPage() {
     void load();
 
     return () => controller.abort();
-  }, [reloadToken]);
+  }, [reloadToken, t]);
 
   /** Writes one type's photo, or clears it when `imageUrl` is null. */
   async function handleSave(
@@ -313,7 +317,7 @@ export default function AdminVehiclePhotosPage() {
     } catch {
       setRowErrors((errors) => ({
         ...errors,
-        [vehicleType.id]: "Something went wrong. Please try again.",
+        [vehicleType.id]: tShared("somethingWentWrongPleaseTryAgain"),
       }));
     } finally {
       setPendingId(null);
@@ -326,15 +330,10 @@ export default function AdminVehiclePhotosPage() {
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-1">
         <p className="text-sm text-muted-foreground">
-          Photos for the vehicle catalogue on the public homepage. Only the
-          photo is editable here — payload ratings, cargo dimensions, loading
-          access and pricing drive order matching, so they are not content and
-          are changed through the seed.
+          {t("photosForTheVehicleCatalogueOn")}
         </p>
         <p className="text-sm text-muted-foreground">
-          A photo goes live as soon as it is saved. There is no draft state for
-          a vehicle type, so do not upload a work-in-progress crop expecting to
-          publish it later.
+          {t("aPhotoGoesLiveAsSoon")}
         </p>
       </div>
 
@@ -343,7 +342,9 @@ export default function AdminVehiclePhotosPage() {
           {error}
         </p>
       ) : loading && vehicleTypes === null ? (
-        <p className="text-sm text-muted-foreground">Loading vehicle types…</p>
+        <p className="text-sm text-muted-foreground">
+          {tShared("loadingVehicleTypes")}
+        </p>
       ) : items.length === 0 ? (
         <p className="text-sm text-muted-foreground">
           No vehicle types exist yet. They are created by the seed, not from the

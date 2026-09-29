@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { getPlaceDetails } from "@/lib/geo";
 import { checkRateLimit } from "@/lib/rate-limit";
 
@@ -43,10 +44,12 @@ function getCallerKey(request: Request): string {
  * a 400.
  */
 export async function GET(request: Request): Promise<NextResponse> {
+  const t = await getRequestTranslations();
+
   // Checked before parsing or geocoding so a flood costs almost nothing.
   if (!checkRateLimit(getCallerKey(request), RATE_LIMIT)) {
     return NextResponse.json(
-      { error: "Too many requests. Please wait a moment and try again." },
+      { error: t("common.shared.tooManyRequestsPleaseWaitA") },
       {
         status: 429,
         // Derived from the window rather than written out, so what a rejected

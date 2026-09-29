@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 
 import { useRouter } from "@/i18n/navigation";
 import { AccountTypeStep } from "@/components/auth/account-type-step";
@@ -346,6 +347,8 @@ export type SignUpFormProps = {
 };
 
 export function SignUpForm({ audience, role, accountType }: SignUpFormProps) {
+  const t = useTranslations("auth.signUpForm");
+  const tShared = useTranslations("common.shared");
   const router = useRouter();
   // One generated base per mount; every field id and every `aria-describedby`
   // target is derived from it, so nothing on the page can collide with it.
@@ -449,7 +452,7 @@ export function SignUpForm({ audience, role, accountType }: SignUpFormProps) {
     if (signUpError) {
       setLoading(false);
       setFormError(
-        signUpError.message ?? "Something went wrong. Please try again.",
+        signUpError.message ?? tShared("somethingWentWrongPleaseTryAgain"),
       );
       return;
     }
@@ -698,8 +701,8 @@ export function SignUpForm({ audience, role, accountType }: SignUpFormProps) {
       <BackLink onClick={() => router.push(flowHref("/sign-up", role, null))} />
 
       <div className="flex flex-col gap-2.5">
-        <Eyebrow>Step 3 of 3 · Details</Eyebrow>
-        <AuthHeading>Create your account</AuthHeading>
+        <Eyebrow>{t("step3Of3Details")}</Eyebrow>
+        <AuthHeading>{t("createYourAccount")}</AuthHeading>
         <AuthSubheading>
           {ROLE_LABELS[role]} · {accountTypeLabel(accountType)} · takes about a
           minute.
@@ -723,7 +726,7 @@ export function SignUpForm({ audience, role, accountType }: SignUpFormProps) {
           <>
             <TextField
               id={companyNameId}
-              label="Company name"
+              label={tShared("companyName")}
               value={companyName}
               onChange={(value) => {
                 setCompanyName(value);
@@ -734,7 +737,7 @@ export function SignUpForm({ audience, role, accountType }: SignUpFormProps) {
             />
             <TextField
               id={vatIdId}
-              label="VAT ID"
+              label={tShared("vatId")}
               value={vatId}
               onChange={(value) => {
                 setVatId(value);
@@ -750,7 +753,7 @@ export function SignUpForm({ audience, role, accountType }: SignUpFormProps) {
           <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-3">
             <TextField
               id={firstNameId}
-              label="First name"
+              label={tShared("firstName")}
               value={firstName}
               onChange={(value) => {
                 setFirstName(value);
@@ -761,7 +764,7 @@ export function SignUpForm({ audience, role, accountType }: SignUpFormProps) {
             />
             <TextField
               id={lastNameId}
-              label="Surname"
+              label={tShared("surname")}
               value={lastName}
               onChange={(value) => {
                 setLastName(value);
@@ -793,21 +796,21 @@ export function SignUpForm({ audience, role, accountType }: SignUpFormProps) {
 
         <TextField
           id={emailId}
-          label="Email"
+          label={tShared("email")}
           type="email"
           value={email}
           onChange={(value) => {
             setEmail(value);
             clearFieldError("email");
           }}
-          placeholder="you@company.ge"
+          placeholder={tShared("youCompanyGe")}
           autoComplete="email"
           error={fieldErrors.email}
         />
 
         <TextField
           id={passwordId}
-          label="Password"
+          label={tShared("password")}
           type="password"
           value={password}
           onChange={(value) => {
@@ -827,7 +830,7 @@ export function SignUpForm({ audience, role, accountType }: SignUpFormProps) {
             the handoff specifies. */}
         {role === "DRIVER" ? (
           <div className="flex flex-col gap-2">
-            <Label htmlFor={cityId}>City</Label>
+            <Label htmlFor={cityId}>{tShared("city")}</Label>
             <Select
               value={city}
               onValueChange={(value) => {
@@ -855,7 +858,7 @@ export function SignUpForm({ audience, role, accountType }: SignUpFormProps) {
                   fieldErrors.city && ERROR_INPUT_CLASS,
                 )}
               >
-                <SelectValue placeholder="Select a city…" />
+                <SelectValue placeholder={t("selectACity")} />
               </SelectTrigger>
               {/* Portalled out of the shell's subtree, so it has to carry
                   `data-admin-surface` itself or it renders in the site palette
@@ -921,11 +924,11 @@ export function SignUpForm({ audience, role, accountType }: SignUpFormProps) {
               <span>
                 I agree to the{" "}
                 <span className="underline decoration-[var(--landing-line-strong)] underline-offset-4">
-                  terms of service
+                  {t("termsOfService")}
                 </span>{" "}
                 and the{" "}
                 <span className="underline decoration-[var(--landing-line-strong)] underline-offset-4">
-                  privacy policy
+                  {t("privacyPolicy")}
                 </span>
                 .
               </span>
@@ -943,7 +946,7 @@ export function SignUpForm({ audience, role, accountType }: SignUpFormProps) {
           disabled={loading}
           className="h-11 w-full text-base"
         >
-          {loading ? "Creating account…" : "Create account"}
+          {loading ? "Creating account…" : tShared("createAccount")}
         </Button>
 
         <p className="text-sm text-[var(--landing-muted)]">
@@ -951,7 +954,7 @@ export function SignUpForm({ audience, role, accountType }: SignUpFormProps) {
           <InlineLinkButton
             href={flowHref(MODE_PATHS.signin, role, accountType)}
           >
-            Sign in
+            {tShared("signIn")}
           </InlineLinkButton>
         </p>
       </form>

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 
 import {
   formatDims,
@@ -524,6 +525,7 @@ export function LoadsDispatchDialog({
   onClose,
   onDispatched,
 }: LoadsDispatchDialogProps) {
+  const tShared = useTranslations("common.shared");
   const [options, setOptions] = React.useState<DispatchOptionsResponse | null>(
     null,
   );
@@ -771,7 +773,7 @@ export function LoadsDispatchDialog({
             positioned against the panel rather than flowed after the header. */}
         <DialogHeader className="gap-1 px-5 pt-5 pr-10">
           <DialogTitle className="text-base font-semibold tracking-[-0.01em]">
-            Assign a driver and vehicle
+            {tShared("assignADriverAndVehicle")}
           </DialogTitle>
           <DialogDescription className="text-[13px]">
             {reference === null ? (
@@ -791,7 +793,7 @@ export function LoadsDispatchDialog({
           aria-describedby="loads-dispatch-vehicle-note"
         >
           <legend className="mb-1.5 text-[13px] font-medium text-foreground">
-            Vehicle
+            {tShared("vehicle")}
           </legend>
           {/* Says the thing the removed Driver field used to say by existing:
               the driver is not a second question, it rides with the plate. */}
@@ -920,6 +922,7 @@ function DispatchVehicleRow({
   disabled: boolean;
   onSelect: () => void;
 }) {
+  const t = useTranslations("driverHub.loadsDispatchDialog");
   const dispatchable = isDispatchable(vehicle);
   const obstacle = dispatchObstacle(vehicle);
 
@@ -992,7 +995,9 @@ function DispatchVehicleRow({
                 a dispatcher routinely assigns work to someone who has not opened
                 the app yet — but it is worth knowing before pressing, so it is
                 shown and never enforced. */}
-            {vehicle.pairedDriver.isOnline ? null : <span> · Offline</span>}
+            {vehicle.pairedDriver.isOnline ? null : (
+              <span> {t("offline")}</span>
+            )}
           </span>
         ) : null}
       </span>
@@ -1049,12 +1054,14 @@ function DispatchVehicleRow({
  * entirely ordinary thing for a dispatcher to do.
  */
 function RecommendedTag() {
+  const t = useTranslations("driverHub.loadsDispatchDialog");
+
   return (
     <Badge
       variant="outline"
       className="ml-1.5 h-auto rounded-full border-border bg-transparent px-[7px] py-px align-middle text-[10px] font-semibold tracking-[0.06em] text-muted-foreground uppercase"
     >
-      Recommended
+      {t("recommended")}
     </Badge>
   );
 }
@@ -1123,6 +1130,8 @@ function DispatchListNote({
   vehicles: DispatchVehicle[];
   suppressed: boolean;
 }) {
+  const t = useTranslations("driverHub.loadsDispatchDialog");
+
   if (suppressed) {
     return null;
   }
@@ -1130,8 +1139,7 @@ function DispatchListNote({
   if (vehicles.length === 0) {
     return (
       <p className="text-[13px] text-muted-foreground">
-        Your fleet has no registered vehicles. Register one from the Vehicles
-        screen, then dispatch this delivery.
+        {t("yourFleetHasNoRegisteredVehicles")}
       </p>
     );
   }
@@ -1144,15 +1152,14 @@ function DispatchListNote({
   if (vehicles.some((vehicle) => vehicle.verdict.kind === "FITS")) {
     return (
       <p className="text-[13px] text-muted-foreground">
-        The vehicles that can take this delivery have no driver assigned. Assign
-        one from the Vehicles screen, then dispatch this delivery.
+        {t("theVehiclesThatCanTakeThis")}
       </p>
     );
   }
 
   return (
     <p className="text-[13px] text-muted-foreground">
-      None of your vehicles can take this delivery. Each one above says why.
+      {t("noneOfYourVehiclesCanTake")}
     </p>
   );
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { GeorgianCity, LicenceCategory } from "@prisma/client";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -104,14 +105,23 @@ function toRosterEntry(profile: RosterProfile): RosterEntry {
  * case is `[]`. Wrapping it would break them for no gain.
  */
 export async function GET(request: Request): Promise<NextResponse> {
+  const t = await getRequestTranslations();
+
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    return NextResponse.json(
+      { error: t("common.shared.unauthorized") },
+      { status: 401 },
+    );
   }
 
   if (session.user.role !== "COMPANY") {
     return NextResponse.json(
-      { error: "Only logistics companies have a driver roster." },
+      {
+        error: t(
+          "errors.logisticsCompanyDrivers.onlyLogisticsCompaniesHaveADriver",
+        ),
+      },
       { status: 403 },
     );
   }

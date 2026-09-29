@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 
 import {
   hubMinuteOfDay,
@@ -1119,6 +1120,8 @@ export function LoadsProvider({
   vehicleClasses,
   children,
 }: LoadsProviderProps) {
+  const t = useTranslations("driverHub.loadsContext");
+
   /* --- server state ------------------------------------------------------ */
 
   const [available, setAvailable] = React.useState<HubLoad[]>([]);
@@ -1398,7 +1401,7 @@ export function LoadsProvider({
           return;
         }
 
-        setLoadError("Couldn't reach the dashboard.");
+        setLoadError(t("couldnTReachTheDashboard"));
       } finally {
         if (!silent) {
           foregroundReads.current -= 1;
@@ -1413,7 +1416,7 @@ export function LoadsProvider({
         }
       }
     },
-    [applyBoard],
+    [applyBoard, t],
   );
 
   const refetch = React.useCallback(
@@ -2154,15 +2157,14 @@ export function LoadsProvider({
         });
       } catch {
         setClaimError({
-          message:
-            "Couldn't reach the server. Check your connection and retry.",
+          message: t("couldnTReachTheServerCheck"),
           code: null,
         });
       } finally {
         setIsClaiming(false);
       }
     },
-    [accountKind, claimCandidates, dialogLoad, isClaiming, refetch, setTab],
+    [accountKind, claimCandidates, dialogLoad, isClaiming, refetch, setTab, t],
   );
 
   /**
@@ -2208,14 +2210,12 @@ export function LoadsProvider({
         setSelectedId((current) => (current === id ? null : current));
         await refetch();
       } catch {
-        setActionError(
-          "Couldn't reach the server. Check your connection and retry.",
-        );
+        setActionError(t("couldnTReachTheServerCheck"));
       } finally {
         setPendingActionId(null);
       }
     },
-    [pendingActionId, refetch],
+    [pendingActionId, refetch, t],
   );
 
   const reject = React.useCallback(

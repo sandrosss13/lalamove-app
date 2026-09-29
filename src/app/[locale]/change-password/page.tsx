@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 
 import { useRouter } from "@/i18n/navigation";
 import { changePassword, useSession } from "@/lib/auth-client";
@@ -13,6 +14,8 @@ import { changePassword, useSession } from "@/lib/auth-client";
  * submit here is what actually releases the driver into the app.
  */
 export default function ChangePasswordPage() {
+  const t = useTranslations("auth.changePassword");
+  const tShared = useTranslations("common.shared");
   const router = useRouter();
   const { data: session, isPending } = useSession();
   const [currentPassword, setCurrentPassword] = useState("");
@@ -39,7 +42,7 @@ export default function ChangePasswordPage() {
     // Checked before the request so a typo costs nothing — the round trip would
     // otherwise succeed and lock the driver out with a password they mistyped.
     if (newPassword !== confirmPassword) {
-      setError("Passwords don't match.");
+      setError(tShared("passwordsDonTMatch"));
       return;
     }
 
@@ -96,16 +99,13 @@ export default function ChangePasswordPage() {
   return (
     <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 p-8">
       <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-bold">Set a new password</h1>
-        <p className="text-sm opacity-70">
-          Your account was created with a temporary password. Choose a new one
-          to continue.
-        </p>
+        <h1 className="text-2xl font-bold">{tShared("setANewPassword")}</h1>
+        <p className="text-sm opacity-70">{t("yourAccountWasCreatedWithA")}</p>
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <label className="flex flex-col gap-1 text-sm">
-          Temporary password
+          {tShared("temporaryPassword")}
           <input
             type="password"
             required
@@ -116,7 +116,7 @@ export default function ChangePasswordPage() {
         </label>
 
         <label className="flex flex-col gap-1 text-sm">
-          New password
+          {tShared("newPassword")}
           <input
             type="password"
             required
@@ -128,7 +128,7 @@ export default function ChangePasswordPage() {
         </label>
 
         <label className="flex flex-col gap-1 text-sm">
-          Confirm new password
+          {tShared("confirmNewPassword")}
           <input
             type="password"
             required

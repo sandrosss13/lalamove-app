@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 
 import {
   LoadsScreen,
@@ -12,6 +13,7 @@ import {
   resolveHubAccount,
   type HubAccount,
 } from "@/lib/dashboard/hub/account";
+import type { LocaleRouteParams } from "@/i18n/server";
 import { driverVehiclesWhere } from "@/lib/orders/driver-vehicles";
 import { capabilityOf, widestCapability } from "@/lib/orders/vehicle-fit";
 import { prisma } from "@/lib/prisma";
@@ -19,9 +21,19 @@ import { prisma } from "@/lib/prisma";
 // Session + Prisma access can't be statically rendered.
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Dashboard · Driver Hub",
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: LocaleRouteParams;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({
+    locale,
+    namespace: "dashboard.dashboardLoads",
+  });
+
+  return { title: t("dashboardDriverHub") };
+}
 
 /**
  * The capacity columns every vehicle read on this page needs, plus the class

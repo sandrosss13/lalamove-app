@@ -149,21 +149,48 @@ export type HubEarningsPresetId =
 
 export type HubEarningsPreset = {
   id: HubEarningsPresetId;
-  /** Tab copy, straight from the design. */
+  /** Tab copy, straight from the design, already in the reader's language. */
   label: string;
 };
+
+/**
+ * Where each preset's tab copy lives: a key under the `dashboard.earnings`
+ * message namespace. A key rather than the copy itself because this module is
+ * locale-agnostic — the page that renders the tabs knows the reader's language
+ * and resolves the key there (see `translateHubEarningsPresets`).
+ */
+export type HubEarningsPresetDefinition = {
+  id: HubEarningsPresetId;
+  labelKey: "thisWeek" | "lastWeek" | "thisMonth" | "last30Days";
+};
+
+/** The message namespace every `HubEarningsPresetDefinition.labelKey` is in. */
+export const HUB_EARNINGS_PRESET_NAMESPACE = "dashboard.earnings";
 
 /**
  * The four presets, in the order the design's tab strip shows them. Exported so
  * the filter bar renders from the same list this module resolves against and
  * cannot offer a tab that does not resolve.
  */
-export const HUB_EARNINGS_PRESETS: readonly HubEarningsPreset[] = [
-  { id: "this-week", label: "This week" },
-  { id: "last-week", label: "Last week" },
-  { id: "this-month", label: "This month" },
-  { id: "last-30-days", label: "Last 30 days" },
+export const HUB_EARNINGS_PRESETS: readonly HubEarningsPresetDefinition[] = [
+  { id: "this-week", labelKey: "thisWeek" },
+  { id: "last-week", labelKey: "lastWeek" },
+  { id: "this-month", labelKey: "thisMonth" },
+  { id: "last-30-days", labelKey: "last30Days" },
 ];
+
+/**
+ * The presets with their tab copy resolved, given a translator already bound
+ * to `HUB_EARNINGS_PRESET_NAMESPACE`.
+ */
+export function translateHubEarningsPresets(
+  t: (key: HubEarningsPresetDefinition["labelKey"]) => string,
+): HubEarningsPreset[] {
+  return HUB_EARNINGS_PRESETS.map(({ id, labelKey }) => ({
+    id,
+    label: t(labelKey),
+  }));
+}
 
 /** Where a visitor with no (or an unusable) range in the URL lands. */
 export const HUB_EARNINGS_DEFAULT_PRESET: HubEarningsPresetId = "this-week";
@@ -737,7 +764,8 @@ function toFleetBreakdown(
     // Largest earner first, then by name so two equal rows have a stable order
     // across renders rather than whatever the database returned.
     .sort(
-      (a, b) => b.grossFaresGel - a.grossFaresGel || a.name.localeCompare(b.name),
+      (a, b) =>
+        b.grossFaresGel - a.grossFaresGel || a.name.localeCompare(b.name),
     );
 
   const unassignedRow = rows.find((row) => row.driverId === null);

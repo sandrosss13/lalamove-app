@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 
 import { Link } from "@/i18n/navigation";
 import { localeHref } from "@/i18n/server";
@@ -29,29 +30,29 @@ const PANEL_LABEL_CLASSES =
  */
 export default async function AccountPage() {
   const session = await auth.api.getSession({ headers: await headers() });
+  const t = await getTranslations("account.account");
+  const tShared = await getTranslations("common.shared");
 
   if (!session) {
     return (
       <main className="min-h-screen bg-ink text-paper">
         <div className="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center gap-4 px-5 text-center">
           <h1 className="font-display text-3xl font-semibold tracking-[-0.025em]">
-            My account
+            {tShared("myAccount")}
           </h1>
-          <p className="text-sm text-muted">
-            Please sign in to view your account.
-          </p>
+          <p className="text-sm text-muted">{t("pleaseSignInToViewYour")}</p>
           <div className="flex justify-center gap-3">
             <Link
               href="/sign-in"
               className="rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-ink transition-transform hover:-translate-y-0.5"
             >
-              Sign in
+              {tShared("signIn")}
             </Link>
             <Link
               href="/sign-up"
               className="rounded-full border border-line px-5 py-2.5 text-sm font-semibold text-paper transition-colors hover:border-accent/40 hover:text-accent"
             >
-              Sign up
+              {tShared("signUp")}
             </Link>
           </div>
         </div>
@@ -102,19 +103,17 @@ export default async function AccountPage() {
         <div className="flex min-w-0 flex-1 flex-col gap-6">
           <header>
             <p className={PANEL_LABEL_CLASSES}>
-              Settings
+              {t("settings")}
               <span aria-hidden="true" className="px-1.5">
                 /
               </span>
-              <span className="text-accent">Profile</span>
+              <span className="text-accent">{tShared("profile")}</span>
             </p>
             <h1 className="mt-2 font-display text-[clamp(1.5rem,3vw,2rem)] leading-none font-semibold tracking-[-0.025em] text-paper">
-              Profile
+              {tShared("profile")}
             </h1>
             <p className="mt-2.5 max-w-xl text-[0.8125rem] leading-relaxed text-muted">
-              The details a driver sees when they turn up for one of your
-              pickups, and the credentials you sign in with. Keeping your phone
-              number current is what stops a delivery stalling at the kerb.
+              {t("theDetailsADriverSeesWhen")}
             </p>
           </header>
 

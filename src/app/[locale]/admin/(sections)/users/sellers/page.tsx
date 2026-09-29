@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 
 import type { DriverAccountType } from "@prisma/client";
 
@@ -41,9 +42,9 @@ const SEARCH_DEBOUNCE_MS = 300;
  * driver and a fleet operator. Both fulfil orders, which is why staff see them
  * as one "Sellers" list rather than two tabs.
  */
-const SELLER_TYPE_LABELS: Record<AdminSellerType, string> = {
-  DRIVER: "Driver",
-  COMPANY: "Company",
+const SELLER_TYPE_LABEL_KEYS: Record<AdminSellerType, string> = {
+  DRIVER: "driver",
+  COMPANY: "company",
 };
 
 const DRIVER_ACCOUNT_TYPE_LABELS: Record<DriverAccountType, string> = {
@@ -118,6 +119,8 @@ function DetailField({
  * Staff never edit a seller's own profile data on their behalf.
  */
 export default function AdminSellersPage() {
+  const t = useTranslations("admin.adminUsersSellers");
+  const tShared = useTranslations("common.shared");
   const [searchInput, setSearchInput] = useState("");
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
@@ -163,7 +166,7 @@ export default function AdminSellersPage() {
         );
 
         if (!response.ok) {
-          setError(await readErrorMessage(response, "Could not load sellers."));
+          setError(await readErrorMessage(response, t("couldNotLoadSellers")));
           setLoading(false);
           return;
         }
@@ -177,7 +180,7 @@ export default function AdminSellersPage() {
           return;
         }
 
-        setError("Could not load sellers.");
+        setError(t("couldNotLoadSellers"));
         setLoading(false);
       }
     }
@@ -185,7 +188,7 @@ export default function AdminSellersPage() {
     void load();
 
     return () => controller.abort();
-  }, [page, query, reloadToken]);
+  }, [page, query, reloadToken, t]);
 
   const items = data?.items ?? [];
 
@@ -195,8 +198,8 @@ export default function AdminSellersPage() {
         <Input
           value={searchInput}
           onChange={(event) => setSearchInput(event.target.value)}
-          placeholder="Search by name, email or phone…"
-          aria-label="Search sellers by name, email or phone"
+          placeholder={tShared("searchByNameEmailOrPhone")}
+          aria-label={t("searchSellersByNameEmailOr")}
           className="w-full max-w-72"
         />
         {data ? (
@@ -210,12 +213,12 @@ export default function AdminSellersPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Seller</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Contact</TableHead>
-              <TableHead>City</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead>{t("seller")}</TableHead>
+              <TableHead>{tShared("type")}</TableHead>
+              <TableHead>{tShared("contact")}</TableHead>
+              <TableHead>{tShared("city")}</TableHead>
+              <TableHead>{tShared("status")}</TableHead>
+              <TableHead className="text-right">{tShared("actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -234,7 +237,7 @@ export default function AdminSellersPage() {
                   colSpan={COLUMN_COUNT}
                   className="py-10 text-center text-muted-foreground"
                 >
-                  Loading sellers…
+                  {t("loadingSellers")}
                 </TableCell>
               </TableRow>
             ) : items.length === 0 ? (
@@ -275,7 +278,7 @@ export default function AdminSellersPage() {
                             seller.type === "COMPANY" ? "secondary" : "outline"
                           }
                         >
-                          {SELLER_TYPE_LABELS[seller.type]}
+                          {tShared(SELLER_TYPE_LABEL_KEYS[seller.type])}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -289,9 +292,11 @@ export default function AdminSellersPage() {
                       <TableCell>{formatCity(seller.city)}</TableCell>
                       <TableCell>
                         {seller.isSuspended ? (
-                          <Badge variant="destructive">Suspended</Badge>
+                          <Badge variant="destructive">
+                            {tShared("suspended")}
+                          </Badge>
                         ) : (
-                          <Badge variant="secondary">Active</Badge>
+                          <Badge variant="secondary">{tShared("active")}</Badge>
                         )}
                       </TableCell>
                       <TableCell className="text-right">
@@ -331,11 +336,13 @@ export default function AdminSellersPage() {
                         <TableCell colSpan={COLUMN_COUNT}>
                           <dl className="grid grid-cols-2 gap-4 py-1 sm:grid-cols-4">
                             <DetailField
-                              label="Account"
-                              value={SELLER_TYPE_LABELS[seller.type]}
+                              label={tShared("account")}
+                              value={tShared(
+                                SELLER_TYPE_LABEL_KEYS[seller.type],
+                              )}
                             />
                             <DetailField
-                              label="Registration"
+                              label={t("registration")}
                               value={
                                 seller.accountType === null
                                   ? // A logistics company has no
@@ -347,15 +354,18 @@ export default function AdminSellersPage() {
                                     ]
                               }
                             />
-                            <DetailField label="VAT ID" value={seller.vatId} />
                             <DetailField
-                              label="Joined"
+                              label={tShared("vatId")}
+                              value={seller.vatId}
+                            />
+                            <DetailField
+                              label={tShared("joined")}
                               value={formatDate(seller.createdAt)}
                             />
                             {seller.isSuspended ? (
                               <>
                                 <DetailField
-                                  label="Suspended on"
+                                  label={tShared("suspendedOn")}
                                   value={
                                     seller.suspendedAt
                                       ? formatDate(seller.suspendedAt)
@@ -363,7 +373,7 @@ export default function AdminSellersPage() {
                                   }
                                 />
                                 <DetailField
-                                  label="Suspension reason"
+                                  label={tShared("suspensionReason")}
                                   value={seller.suspendedReason}
                                 />
                               </>
@@ -391,7 +401,7 @@ export default function AdminSellersPage() {
             disabled={loading || data.page <= 1}
             onClick={() => setPage((current) => Math.max(1, current - 1))}
           >
-            Previous
+            {tShared("previous")}
           </Button>
           <Button
             variant="outline"
@@ -399,7 +409,7 @@ export default function AdminSellersPage() {
             disabled={loading || data.page >= data.pageCount}
             onClick={() => setPage((current) => current + 1)}
           >
-            Next
+            {tShared("next")}
           </Button>
         </div>
       ) : null}

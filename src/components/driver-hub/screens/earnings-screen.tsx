@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 import {
   HubBarChart,
   HubCard,
@@ -137,6 +139,10 @@ export type EarningsScreenProps = {
 
 export function EarningsScreen({ data, presets }: EarningsScreenProps) {
   const { range, grouping, buckets, sampled, fleet } = data;
+  const t = useTranslations("driverHub.earningsScreen");
+  const tShared = useTranslations("common.shared");
+  // "Fleet revenue" is catalogued once, under the fleet card that also shows it.
+  const tFleetCard = useTranslations("driverHub.earningsFleetCard");
 
   // A fleet owner is reading a *company's* takings, so the tiles' second-person
   // driver copy is wrong for them twice over: a company has no online hours (its
@@ -173,13 +179,13 @@ export function EarningsScreen({ data, presets }: EarningsScreenProps) {
             carrier's commissioned share, and "gross" has always meant before
             the sampled tips and incentives, never before commission. */}
         <MetricTile
-          label={isFleet ? "Fleet revenue" : "Gross earnings"}
+          label={isFleet ? tFleetCard("fleetRevenue") : "Gross earnings"}
           value={formatGel(data.grossFares)}
           note={`${pluralise(range.days, "day")} in range`}
         />
 
         <MetricTile
-          label="Jobs completed"
+          label={tShared("jobsCompleted")}
           value={data.jobsCompleted}
           // `fleet.drivers` holds only drivers who completed a job in range, so
           // its length is exactly "drivers who earned in range".
@@ -191,7 +197,7 @@ export function EarningsScreen({ data, presets }: EarningsScreenProps) {
         >
           {isFleet ? null : (
             <SampleNote
-              label="Online hours"
+              label={tShared("onlineHours")}
               note={ONLINE_HOURS_NOTE}
               className="mt-2.5"
             />
@@ -199,7 +205,7 @@ export function EarningsScreen({ data, presets }: EarningsScreenProps) {
         </MetricTile>
 
         <MetricTile
-          label="Incentives"
+          label={tShared("incentives")}
           value={formatGel(sampled.extras.incentivesGel)}
           note={sampled.incentivesNote}
         >
@@ -207,7 +213,7 @@ export function EarningsScreen({ data, presets }: EarningsScreenProps) {
         </MetricTile>
 
         <MetricTile
-          label="Avg per job"
+          label={tShared("avgPerJob")}
           value={formatGel(data.averagePerJob)}
           // `sampled.perOnlineHour` is doubly unfit for a fleet: it divides by
           // estimated online hours and its numerator folds in estimated tips and
@@ -226,7 +232,7 @@ export function EarningsScreen({ data, presets }: EarningsScreenProps) {
         >
           {isFleet ? null : (
             <SampleNote
-              label="Per online hour"
+              label={t("perOnlineHour")}
               note={PER_ONLINE_HOUR_NOTE}
               className="mt-2.5"
             />

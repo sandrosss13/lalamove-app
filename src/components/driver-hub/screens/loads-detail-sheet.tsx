@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 import { Link } from "@/i18n/navigation";
 import { useLoadsBoard } from "@/components/driver-hub/screens/loads-context";
 import {
@@ -204,6 +206,7 @@ export function LoadsDetailSheet({ nowIso }: LoadsDetailSheetProps) {
     actionError,
     isRejected,
   } = useLoadsBoard();
+  const tShared = useTranslations("common.shared");
 
   const load = selectedLoad;
 
@@ -336,7 +339,7 @@ export function LoadsDetailSheet({ nowIso }: LoadsDetailSheetProps) {
             <div className="border-b border-border p-4">
               <div className="flex flex-col gap-3">
                 <RouteStop
-                  label="Pick-up"
+                  label={tShared("pickUp")}
                   marker="filled"
                   city={load.pickupCity}
                   address={load.pickupAddress}
@@ -347,7 +350,7 @@ export function LoadsDetailSheet({ nowIso }: LoadsDetailSheetProps) {
                   )}
                 />
                 <RouteStop
-                  label="Drop-off"
+                  label={tShared("dropOff")}
                   marker="ring"
                   city={load.dropoffCity}
                   address={load.dropoffAddress}
@@ -375,7 +378,7 @@ export function LoadsDetailSheet({ nowIso }: LoadsDetailSheetProps) {
             {/* 3. Cargo                                                         */}
             {/* ---------------------------------------------------------------- */}
             <div className="border-b border-border p-4">
-              <h3 className={SECTION_LABEL_CLASSES}>Cargo</h3>
+              <h3 className={SECTION_LABEL_CLASSES}>{tShared("cargo")}</h3>
 
               <CargoSpecList load={load} />
               {/* The pills are the reason this sheet exists: on the design as
@@ -437,7 +440,7 @@ export function LoadsDetailSheet({ nowIso }: LoadsDetailSheetProps) {
                       onClick={() => openDispatch(load)}
                       className={TOUCH_TARGET_CLASSES}
                     >
-                      Assign a vehicle
+                      {tShared("assignAVehicle")}
                     </Button>
                   ) : null}
                   <Button
@@ -446,7 +449,7 @@ export function LoadsDetailSheet({ nowIso }: LoadsDetailSheetProps) {
                     className={TOUCH_TARGET_CLASSES}
                   >
                     <Link href={`/dashboard/jobs/${load.id}`}>
-                      Open job sheet
+                      {tShared("openJobSheet")}
                     </Link>
                   </Button>
                 </>
@@ -486,7 +489,7 @@ export function LoadsDetailSheet({ nowIso }: LoadsDetailSheetProps) {
                     disabled={!canAccept(load.id)}
                     className={TOUCH_TARGET_CLASSES}
                   >
-                    Accept this load
+                    {tShared("acceptThisLoad")}
                   </Button>
                   <Button
                     type="button"
@@ -506,8 +509,7 @@ export function LoadsDetailSheet({ nowIso }: LoadsDetailSheetProps) {
                       : "Reject this load"}
                   </Button>
                   <p className="text-center text-[11px] leading-relaxed text-muted-foreground">
-                    First driver to confirm claims the order. Rejecting only
-                    hides it from your board.
+                    {tShared("firstDriverToConfirmClaimsThe")}
                   </p>
                 </>
               )}

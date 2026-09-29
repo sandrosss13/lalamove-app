@@ -1,6 +1,7 @@
 "use client";
 
 import { LogOut } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { Link } from "@/i18n/navigation";
 import { useSignOut } from "@/components/auth/use-sign-out";
@@ -125,6 +126,8 @@ export function DriverAccountSidebar({
   activeSection,
 }: DriverAccountSidebarProps) {
   const { signOut, signingOut } = useSignOut();
+  // Unscoped: section labels are root-relative keys (see `labelKey`).
+  const tRoot = useTranslations();
 
   return (
     <aside className={cn("lg:sticky lg:w-52 lg:shrink-0", STICKY_TOP_CLASS)}>
@@ -155,7 +158,7 @@ export function DriverAccountSidebar({
                     : "border-border text-muted-foreground hover:text-foreground",
                 )}
               >
-                {section.label}
+                {tRoot(section.labelKey)}
               </Link>
             );
           })}

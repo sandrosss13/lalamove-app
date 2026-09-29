@@ -14,6 +14,8 @@
  * screens would silently reject valid accounts.
  */
 
+import { useTranslations } from "next-intl";
+
 import { ACCOUNT_TYPE_LABELS, type AccountType } from "@/lib/account-types";
 
 // Re-exported so a form can take its whole flow vocabulary from one module
@@ -205,6 +207,73 @@ export function accountTypeRowsForRole(
   return ACCOUNT_TYPE_ROWS.filter(
     (row) => !row.driverOnly || role === "DRIVER",
   );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Localised copy                                                             */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Message keys (full dotted paths) for the copy above that has a catalog entry.
+ * The English constants stay the source of truth for the extractor and for any
+ * non-React caller; components read the localised versions through the hooks
+ * below. Copy with no key here (the card benefits and footers) renders in
+ * English until catalog entries exist for it.
+ */
+const ROLE_LABEL_KEYS: Record<FlowRole, string> = {
+  CLIENT: "common.shared.client",
+  DRIVER: "common.shared.driver",
+};
+
+const ROLE_CARD_KEYS: Record<FlowRole, { title: string; subtitle: string }> = {
+  CLIENT: {
+    title: "common.shared.client",
+    subtitle: "auth.authFlow.bookDeliveriesForYourPackages",
+  },
+  DRIVER: {
+    title: "auth.authFlow.driverOrFleet",
+    subtitle: "auth.authFlow.deliverPackagesAndEarn",
+  },
+};
+
+const ACCOUNT_TYPE_DESCRIPTION_KEYS: Record<AccountType, string> = {
+  INDIVIDUAL: "auth.authFlow.aPrivatePersonNoRegistrationNumber",
+  INDIVIDUAL_ENTREPRENEUR: "auth.authFlow.registeredAsAnIndividualEntrepreneur",
+  BUSINESS: "auth.authFlow.aRegisteredCompanyWithAVat",
+};
+
+/** `ROLE_LABELS` in the reader's language. */
+export function useRoleLabels(): Record<FlowRole, string> {
+  const t = useTranslations();
+
+  return {
+    CLIENT: t(ROLE_LABEL_KEYS.CLIENT),
+    DRIVER: t(ROLE_LABEL_KEYS.DRIVER),
+  };
+}
+
+/** `ROLE_CARDS` with the title and subtitle in the reader's language. */
+export function useRoleCards(): Record<FlowRole, RoleCardContent> {
+  const t = useTranslations();
+  const localize = (role: FlowRole): RoleCardContent => ({
+    ...ROLE_CARDS[role],
+    title: t(ROLE_CARD_KEYS[role].title),
+    subtitle: t(ROLE_CARD_KEYS[role].subtitle),
+  });
+
+  return { CLIENT: localize("CLIENT"), DRIVER: localize("DRIVER") };
+}
+
+/** `accountTypeRowsForRole` with each row's description in the reader's language. */
+export function useAccountTypeRowsForRole(
+  role: FlowRole,
+): readonly AccountTypeRow[] {
+  const t = useTranslations();
+
+  return accountTypeRowsForRole(role).map((row) => ({
+    ...row,
+    description: t(ACCOUNT_TYPE_DESCRIPTION_KEYS[row.value]),
+  }));
 }
 
 /** Title for a row. A thin alias so step 2 never hard-codes a type's wording. */

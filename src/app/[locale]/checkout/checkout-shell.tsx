@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { useTranslations } from "next-intl";
+
 import { Link } from "@/i18n/navigation";
 
 /**
@@ -68,21 +70,24 @@ export function CheckoutNotice({
  * for, the other a confirmation to read.
  */
 export function CheckoutSignInNotice({ prompt }: { prompt: string }) {
+  const t = useTranslations("checkout.checkoutShell");
+  const tShared = useTranslations("common.shared");
+
   return (
-    <CheckoutNotice title="Checkout">
+    <CheckoutNotice title={t("checkout")}>
       <p className="mt-3 text-[14px] text-muted">{prompt}</p>
       <div className="mt-6 flex flex-wrap justify-center gap-3">
         <Link
           href="/sign-in"
           className="rounded-full bg-accent px-5 py-2.5 text-[14px] font-semibold text-ink transition-transform hover:-translate-y-0.5"
         >
-          Sign in
+          {tShared("signIn")}
         </Link>
         <Link
           href="/sign-up"
           className="rounded-full border border-line px-5 py-2.5 text-[14px] font-semibold text-paper transition-colors hover:border-accent/40 hover:text-accent"
         >
-          Sign up
+          {tShared("signUp")}
         </Link>
       </div>
     </CheckoutNotice>
@@ -96,8 +101,11 @@ export function CheckoutSignInNotice({ prompt }: { prompt: string }) {
  * it is.
  */
 export function CheckoutOrderNotFoundNotice() {
+  const t = useTranslations("checkout.checkoutShell");
+  const tShared = useTranslations("common.shared");
+
   return (
-    <CheckoutNotice title="Order not found.">
+    <CheckoutNotice title={tShared("orderNotFound")}>
       <p className="mt-3 text-[14px] text-muted">
         We couldn&rsquo;t find that delivery under your account.
       </p>
@@ -106,7 +114,7 @@ export function CheckoutOrderNotFoundNotice() {
           href="/orders"
           className="rounded-full border border-line px-5 py-2.5 text-[14px] font-semibold text-paper transition-colors hover:border-accent/40 hover:text-accent"
         >
-          Back to your orders
+          {t("backToYourOrders")}
         </Link>
       </div>
     </CheckoutNotice>

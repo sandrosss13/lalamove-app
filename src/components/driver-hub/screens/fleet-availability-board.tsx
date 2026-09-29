@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 
 import { HubEmptyState } from "@/components/driver-hub/hub-primitives";
 import {
@@ -195,6 +196,7 @@ export function FleetAvailabilityBoard({
   tooltip,
   onTooltipChange,
 }: FleetAvailabilityBoardProps) {
+  const tShared = useTranslations("common.shared");
   // Floored at one hour: `from`/`to` clamp against each other upstream, but a
   // zero span would divide every bar's width by zero and paint `NaN%`.
   const span = Math.max(1, toHour - fromHour);
@@ -255,7 +257,7 @@ export function FleetAvailabilityBoard({
             {error}
           </p>
           <Button type="button" variant="outline" size="sm" onClick={onRetry}>
-            Try again
+            {tShared("tryAgain")}
           </Button>
         </div>
       );
@@ -331,7 +333,7 @@ export function FleetAvailabilityBoard({
               disabled={!canPreviousPage}
               onClick={onPreviousPage}
             >
-              Previous
+              {tShared("previous")}
             </Button>
             <Button
               type="button"
@@ -340,7 +342,7 @@ export function FleetAvailabilityBoard({
               disabled={!canNextPage}
               onClick={onNextPage}
             >
-              Next
+              {tShared("next")}
             </Button>
           </div>
         </div>
@@ -377,13 +379,15 @@ function TimelineHeader({
   showNow: boolean;
   nowHour: number | null;
 }) {
+  const t = useTranslations("driverHub.fleetAvailabilityBoard");
+
   return (
     <div className="sticky top-0 z-[5] flex border-b border-border bg-card">
       <div
         className="sticky left-0 z-[6] flex-none border-r border-border bg-card px-[14px] py-[9px] text-[11px] font-semibold tracking-[0.04em] uppercase text-muted-foreground"
         style={{ width: "var(--hub-fa-label-w)" }}
       >
-        Driver · Vehicle
+        {t("driverVehicle")}
       </div>
       <div
         className="relative flex flex-none"
@@ -466,6 +470,7 @@ function BoardRow({
   ) => void;
   onTooltipChange: (tooltip: AvailabilityTooltip | null) => void;
 }) {
+  const tFormat = useTranslations("driverHub.fleetAvailabilityFormat");
   const visible = row.blocks.filter(
     (block) => block.end > fromHour && block.start < toHour,
   );
@@ -569,7 +574,7 @@ function BoardRow({
           {visible.map((block) => (
             <li key={block.id}>
               {`${row.name}: ${formatHour(block.start)} to ${formatHour(block.end)}, ` +
-                `${AVAILABILITY_STATUS[block.status].label}, ${block.reference}, ` +
+                `${tFormat(AVAILABILITY_STATUS[block.status].labelKey)}, ${block.reference}, ` +
                 `${block.route}, ${blockPlateLabel(block)}` +
                 (block.derivedEnd ? ", end time inferred" : "")}
             </li>
@@ -605,7 +610,19 @@ function Bar({
   pixelsPerHour: number;
   onTooltipChange: (tooltip: AvailabilityTooltip | null) => void;
 }) {
+  const tFormat = useTranslations("driverHub.fleetAvailabilityFormat");
+  const tShared = useTranslations("common.shared");
   const meta = AVAILABILITY_STATUS[block.status];
+  const statusLabel = tFormat(meta.labelKey);
+  // The bar's short word (blocks are never `available`). `assigned` and
+  // `booked` have shorter forms than the legend's; `assigned` has a catalog
+  // entry, `booked` does not yet and stays English until one is added.
+  const shortLabel =
+    block.status === "enroute"
+      ? tFormat("enRoute")
+      : block.status === "assigned"
+        ? tShared("assigned")
+        : meta.shortLabel;
 
   // Clipped to the window rather than hidden: a job that starts at 05:00 on an
   // 06:00–22:00 board is still running at 06:00, and the bar has to say so.
@@ -618,7 +635,7 @@ function Bar({
     onTooltipChange({
       x: event.clientX,
       y: event.clientY,
-      title: `${blockPlateLabel(block)} · ${meta.label}`,
+      title: `${blockPlateLabel(block)} · ${statusLabel}`,
       // The *uncut* hours, not the clipped ones the bar is drawn from: the
       // tooltip answers "when is this job", and a bar cropped by the visible
       // window must not report a shorter job than the one being run.
@@ -657,7 +674,7 @@ function Bar({
           : null),
       }}
     >
-      {barLabel(block.status, block.reference, widthPx)}
+      {barLabel(block.status, block.reference, widthPx, shortLabel)}
     </div>
   );
 }

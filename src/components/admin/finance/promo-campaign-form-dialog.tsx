@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 import type { DiscountType } from "@prisma/client";
 
@@ -141,6 +142,7 @@ export function PromoCampaignFormDialog({
   onClose,
   onSaved,
 }: PromoCampaignFormDialogProps) {
+  const t = useTranslations();
   const isEditing = campaign !== null;
 
   const [code, setCode] = useState(campaign?.code ?? "");
@@ -178,7 +180,7 @@ export function PromoCampaignFormDialog({
     const normalizedCode = code.trim().toUpperCase();
 
     if (!PROMO_CODE_PATTERN.test(normalizedCode)) {
-      return "A code must be 3–32 characters, letters and numbers only (e.g. SUMMER25).";
+      return t("common.shared.aCodeMustBe332");
     }
 
     const parsedValue = Number(discountValue);
@@ -271,7 +273,7 @@ export function PromoCampaignFormDialog({
       // the button must not flash back to its idle label in between.
       onSaved();
     } catch {
-      setError("Something went wrong. Please try again.");
+      setError(t("common.shared.somethingWentWrongPleaseTryAgain"));
       setPending(false);
     }
   }
@@ -302,7 +304,7 @@ export function PromoCampaignFormDialog({
 
           <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="promo-code">Code</Label>
+              <Label htmlFor="promo-code">{t("common.shared.code")}</Label>
               <Input
                 id="promo-code"
                 required
@@ -316,12 +318,14 @@ export function PromoCampaignFormDialog({
                 autoFocus
               />
               <p className="text-xs text-muted-foreground">
-                Letters and numbers only, 3–32 characters.
+                {t("admin.promoCampaignFormDialog.lettersAndNumbersOnly332")}
               </p>
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="promo-discount-type">Discount type</Label>
+              <Label htmlFor="promo-discount-type">
+                {t("admin.promoCampaignFormDialog.discountType")}
+              </Label>
               <Select
                 value={discountType}
                 onValueChange={(value) =>
@@ -371,7 +375,9 @@ export function PromoCampaignFormDialog({
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="promo-starts-at">Starts</Label>
+                <Label htmlFor="promo-starts-at">
+                  {t("admin.promoCampaignFormDialog.starts")}
+                </Label>
                 <Input
                   id="promo-starts-at"
                   type="date"
@@ -383,7 +389,9 @@ export function PromoCampaignFormDialog({
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="promo-ends-at">Ends</Label>
+                <Label htmlFor="promo-ends-at">
+                  {t("admin.promoCampaignFormDialog.ends")}
+                </Label>
                 <Input
                   id="promo-ends-at"
                   type="date"
@@ -396,7 +404,9 @@ export function PromoCampaignFormDialog({
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="promo-usage-limit">Usage limit (optional)</Label>
+              <Label htmlFor="promo-usage-limit">
+                {t("admin.promoCampaignFormDialog.usageLimitOptional")}
+              </Label>
               <Input
                 id="promo-usage-limit"
                 type="number"
@@ -404,11 +414,13 @@ export function PromoCampaignFormDialog({
                 step="1"
                 value={usageLimit}
                 onChange={(event) => setUsageLimit(event.target.value)}
-                placeholder="Unlimited"
+                placeholder={t("admin.promoCampaignFormDialog.unlimited")}
                 disabled={pending}
               />
               <p className="text-xs text-muted-foreground">
-                Leave blank for unlimited redemptions.
+                {t(
+                  "admin.promoCampaignFormDialog.leaveBlankForUnlimitedRedemptions",
+                )}
               </p>
             </div>
 
@@ -422,7 +434,9 @@ export function PromoCampaignFormDialog({
                 onCheckedChange={(checked) => setIsActive(checked === true)}
                 disabled={pending}
               />
-              <Label htmlFor="promo-is-active">Active</Label>
+              <Label htmlFor="promo-is-active">
+                {t("common.shared.active")}
+              </Label>
             </div>
 
             {error ? (
@@ -439,7 +453,7 @@ export function PromoCampaignFormDialog({
               onClick={onClose}
               disabled={pending}
             >
-              Cancel
+              {t("common.shared.cancel")}
             </Button>
             <Button type="submit" disabled={pending}>
               {pending

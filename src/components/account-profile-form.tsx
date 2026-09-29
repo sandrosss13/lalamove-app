@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
+import { useTranslations } from "next-intl";
 
 import {
   Card,
@@ -18,11 +19,14 @@ import { cn } from "@/lib/utils";
 /** Client account type; mirrors the `ClientAccountType` Prisma enum. */
 type AccountType = "INDIVIDUAL" | "BUSINESS";
 
-/** Gender options; values mirror the `ClientGender` Prisma enum. */
+/**
+ * Gender options; values mirror the `ClientGender` Prisma enum. `labelKey` is a
+ * key in the `account.accountProfileForm` namespace, translated at render.
+ */
 const GENDER_OPTIONS = [
-  { value: "MALE", label: "Male" },
-  { value: "FEMALE", label: "Female" },
-  { value: "OTHER", label: "Other" },
+  { value: "MALE", labelKey: "male" },
+  { value: "FEMALE", labelKey: "female" },
+  { value: "OTHER", labelKey: "other" },
 ] as const;
 
 /**
@@ -106,6 +110,8 @@ export function AccountProfileForm({
   email: string;
   initialValues: AccountProfileInitialValues;
 }) {
+  const t = useTranslations("account.accountProfileForm");
+  const tShared = useTranslations("common.shared");
   const router = useRouter();
   const fieldId = useId();
 
@@ -171,7 +177,7 @@ export function AccountProfileForm({
       // as it was before this save.
       router.refresh();
     } catch {
-      setError("Network error. Please check your connection and try again.");
+      setError(tShared("networkErrorPleaseCheckYourConnection"));
     } finally {
       setSaving(false);
     }
@@ -181,7 +187,7 @@ export function AccountProfileForm({
     <Card className="gap-4 bg-ink text-paper ring-line">
       <CardHeader>
         <CardTitle className="font-display text-base font-semibold text-paper">
-          Personal details
+          {t("personalDetails")}
         </CardTitle>
         <CardDescription className="text-[0.8125rem] leading-snug text-muted">
           {isBusiness
@@ -195,7 +201,7 @@ export function AccountProfileForm({
           <div className="grid gap-4 sm:grid-cols-2">
             {isBusiness ? (
               <>
-                <Field id={`${fieldId}-company`} label="Company name">
+                <Field id={`${fieldId}-company`} label={tShared("companyName")}>
                   <Input
                     id={`${fieldId}-company`}
                     type="text"
@@ -207,7 +213,7 @@ export function AccountProfileForm({
                   />
                 </Field>
 
-                <Field id={`${fieldId}-vat`} label="VAT ID">
+                <Field id={`${fieldId}-vat`} label={tShared("vatId")}>
                   <Input
                     id={`${fieldId}-vat`}
                     type="text"
@@ -220,7 +226,7 @@ export function AccountProfileForm({
               </>
             ) : (
               <>
-                <Field id={`${fieldId}-first-name`} label="Name">
+                <Field id={`${fieldId}-first-name`} label={tShared("name")}>
                   <Input
                     id={`${fieldId}-first-name`}
                     type="text"
@@ -232,7 +238,7 @@ export function AccountProfileForm({
                   />
                 </Field>
 
-                <Field id={`${fieldId}-last-name`} label="Surname">
+                <Field id={`${fieldId}-last-name`} label={tShared("surname")}>
                   <Input
                     id={`${fieldId}-last-name`}
                     type="text"
@@ -246,7 +252,7 @@ export function AccountProfileForm({
               </>
             )}
 
-            <Field id={`${fieldId}-phone`} label="Cell number">
+            <Field id={`${fieldId}-phone`} label={tShared("cellNumber")}>
               <Input
                 id={`${fieldId}-phone`}
                 type="tel"
@@ -260,7 +266,7 @@ export function AccountProfileForm({
 
             {/* Read-only: the email is the account's sign-in identity, owned by
                 Better Auth, not by this profile record. */}
-            <Field id={`${fieldId}-email`} label="Email">
+            <Field id={`${fieldId}-email`} label={tShared("email")}>
               <Input
                 id={`${fieldId}-email`}
                 type="email"
@@ -272,7 +278,7 @@ export function AccountProfileForm({
 
             {isBusiness ? null : (
               <>
-                <Field id={`${fieldId}-dob`} label="Date of birth">
+                <Field id={`${fieldId}-dob`} label={tShared("dateOfBirth")}>
                   <Input
                     id={`${fieldId}-dob`}
                     type="date"
@@ -285,23 +291,26 @@ export function AccountProfileForm({
                 {/* A native `<select>` rather than the shadcn one: its list is
                     three fixed options, and the Radix version portals its
                     content to `document.body`, outside this page's palette. */}
-                <Field id={`${fieldId}-gender`} label="Gender">
+                <Field id={`${fieldId}-gender`} label={t("gender")}>
                   <select
                     id={`${fieldId}-gender`}
                     value={gender}
                     onChange={(event) => setGender(event.target.value)}
                     className="h-10 w-full rounded-lg border border-line bg-ink px-2.5 text-sm text-paper transition-colors outline-none focus-visible:border-accent focus-visible:ring-3 focus-visible:ring-accent/20"
                   >
-                    <option value="">Prefer not to say</option>
+                    <option value="">{t("preferNotToSay")}</option>
                     {GENDER_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>
-                        {option.label}
+                        {t(option.labelKey)}
                       </option>
                     ))}
                   </select>
                 </Field>
 
-                <Field id={`${fieldId}-id-number`} label="ID / Passport">
+                <Field
+                  id={`${fieldId}-id-number`}
+                  label={tShared("idPassport")}
+                >
                   <Input
                     id={`${fieldId}-id-number`}
                     type="text"
@@ -339,7 +348,7 @@ export function AccountProfileForm({
                 "border-emerald-600/30 bg-emerald-50 text-emerald-800 dark:border-emerald-400/30 dark:bg-emerald-400/10 dark:text-emerald-300",
               )}
             >
-              Profile saved.
+              {tShared("profileSaved")}
             </p>
           ) : null}
 

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { KeyRound } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { useRouter } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,7 @@ import { changePassword } from "@/lib/auth-client";
  */
 export function AdminChangePasswordForm() {
   const router = useRouter();
+  const t = useTranslations();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -43,7 +45,7 @@ export function AdminChangePasswordForm() {
     // mistyped, which for a back-office account means another `SUPER_ADMIN` has
     // to intervene.
     if (newPassword !== confirmPassword) {
-      setError("Passwords don't match.");
+      setError(t("common.shared.passwordsDonTMatch"));
       return;
     }
 
@@ -90,17 +92,18 @@ export function AdminChangePasswordForm() {
             <KeyRound className="size-4.5" />
           </span>
           <h1 className="text-xl font-semibold tracking-tight">
-            Set a new password
+            {t("common.shared.setANewPassword")}
           </h1>
           <p className="text-sm text-muted-foreground">
-            Your back-office account was created with a temporary password.
-            Choose a new one to continue.
+            {t("admin.adminChangePasswordForm.yourBackOfficeAccountWasCreated")}
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
-            <Label htmlFor="admin-current-password">Temporary password</Label>
+            <Label htmlFor="admin-current-password">
+              {t("common.shared.temporaryPassword")}
+            </Label>
             <Input
               id="admin-current-password"
               type="password"
@@ -112,7 +115,9 @@ export function AdminChangePasswordForm() {
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="admin-new-password">New password</Label>
+            <Label htmlFor="admin-new-password">
+              {t("common.shared.newPassword")}
+            </Label>
             <Input
               id="admin-new-password"
               type="password"
@@ -125,7 +130,10 @@ export function AdminChangePasswordForm() {
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="admin-confirm-password">Confirm new password</Label>
+            <Label htmlFor="admin-confirm-password">
+              {t("common.shared.confirmNewPassword")}
+            </Label>
+
             <Input
               id="admin-confirm-password"
               type="password"

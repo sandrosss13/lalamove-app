@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { useTranslations } from "next-intl";
 
 import { useRouter } from "@/i18n/navigation";
 import { useSession } from "@/lib/auth-client";
@@ -18,9 +19,10 @@ import {
  * a page that is on its way somewhere — so both look the same.
  */
 function LoadingScreen() {
+  const t = useTranslations("home.homeEntry");
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center p-8">
-      <p className="text-center opacity-50">Loading…</p>
+      <p className="text-center opacity-50">{t("loading")}</p>
     </main>
   );
 }

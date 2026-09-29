@@ -25,11 +25,20 @@ import type { HubPersona } from "@/lib/dashboard/hub/account";
 export type DriverAccountSectionId =
   "profile" | "payout" | "notifications" | "language" | "support";
 
+/**
+ * A message key, written from the catalog root (`"common.shared.profile"`), and
+ * resolved where it is rendered with `useTranslations()` / `getTranslations()`
+ * called without a namespace. Keys rather than English because this module is
+ * plain data shared by a client rail and a server page — neither can have it
+ * translated for them here, and the copy must follow the active locale.
+ */
+export type DriverAccountMessageKey = string;
+
 /** One rail row, and the header copy for the panel behind it. */
 export type DriverAccountSection = {
   id: DriverAccountSectionId;
-  /** Rail label — the design's own wording. */
-  label: string;
+  /** Rail label — the design's own wording — as a message key. */
+  labelKey: DriverAccountMessageKey;
   /**
    * The personas this section is withheld from. Empty means everyone sees it.
    *
@@ -38,10 +47,10 @@ export type DriverAccountSection = {
    * `page.tsx`, which redirects a persona that asks for a section named here.
    */
   hiddenFor: readonly HubPersona[];
-  /** The panel's `<h1>`. */
-  title: string;
-  /** The lede under it. */
-  description: string;
+  /** The panel's `<h1>`, as a message key. */
+  titleKey: DriverAccountMessageKey;
+  /** The lede under it, as a message key. */
+  descriptionKey: DriverAccountMessageKey;
 };
 
 /** The query-string key the rail links with and the page reads. */
@@ -64,15 +73,14 @@ export const DEFAULT_DRIVER_ACCOUNT_SECTION: DriverAccountSectionId = "profile";
 export const DRIVER_ACCOUNT_SECTIONS: readonly DriverAccountSection[] = [
   {
     id: "profile",
-    label: "Profile",
+    labelKey: "common.shared.profile",
     hiddenFor: [],
-    title: "Profile",
-    description:
-      "The details a client sees when you turn up for a pickup, and the credentials you sign in with.",
+    titleKey: "common.shared.profile",
+    descriptionKey: "driverHub.driverAccountSections.theDetailsAClientSeesWhen",
   },
   {
     id: "payout",
-    label: "Payout & bank details",
+    labelKey: "driverHub.driverAccountSections.payoutBankDetails",
     // Withheld from a ROSTER driver: an employed driver's fares are settled to
     // their employer, so they have no payout account of their own and no
     // payout schedule of their own. Showing them one — even an empty one —
@@ -85,32 +93,32 @@ export const DRIVER_ACCOUNT_SECTIONS: readonly DriverAccountSection[] = [
     // deliberately stayed. `driver-account-payout-panel.tsx` carries the whole
     // of that argument; change the two together or not at all.
     hiddenFor: ["ROSTER"],
-    title: "Payout & bank details",
-    description:
-      "Where your fares are settled, and when. Changing a payout account is done through support so the change can be verified.",
+    titleKey: "driverHub.driverAccountSections.payoutBankDetails",
+    descriptionKey:
+      "driverHub.driverAccountSections.whereYourFaresAreSettledAnd",
   },
   {
     id: "notifications",
-    label: "Notifications",
+    labelKey: "common.shared.notifications",
     hiddenFor: [],
-    title: "Notifications",
-    description:
-      "Which job, payout and account events reach you, and how they reach you.",
+    titleKey: "common.shared.notifications",
+    descriptionKey:
+      "driverHub.driverAccountSections.whichJobPayoutAndAccountEvents",
   },
   {
     id: "language",
-    label: "Language",
+    labelKey: "common.shared.language",
     hiddenFor: [],
-    title: "Language",
-    description:
-      "The language this dashboard and your job alerts are written in.",
+    titleKey: "common.shared.language",
+    descriptionKey:
+      "driverHub.driverAccountSections.theLanguageThisDashboardAndYour",
   },
   {
     id: "support",
-    label: "Support",
+    labelKey: "common.shared.support",
     hiddenFor: [],
-    title: "Support",
-    description: "Getting a person to look at something that has gone wrong.",
+    titleKey: "common.shared.support",
+    descriptionKey: "driverHub.driverAccountSections.gettingAPersonToLookAt",
   },
 ];
 

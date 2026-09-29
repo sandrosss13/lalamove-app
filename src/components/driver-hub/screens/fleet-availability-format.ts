@@ -73,8 +73,13 @@ export function clampHour(hour: number, min: number, max: number): number {
  * `src/app/globals.css` next to every other token.
  */
 export type AvailabilityStatusMeta = {
-  /** The legend's and the export's word for it. */
+  /**
+   * The export's English word for it. The spreadsheet route has no locale of
+   * its own yet, so it keeps reading this; the screen reads `labelKey`.
+   */
   label: string;
+  /** `label` as a key in `driverHub.fleetAvailabilityFormat`, for the screen. */
+  labelKey: FleetAvailabilityFormatKey;
   /** The shorter word a bar prints when it has room for one but not two. */
   shortLabel: string;
   /** `var(--…)` fill, which may be a gradient. */
@@ -83,12 +88,29 @@ export type AvailabilityStatusMeta = {
   border: string;
 };
 
+/**
+ * A key in the `driverHub.fleetAvailabilityFormat` namespace. The constants
+ * below are module-scope, where no translator exists, so they carry keys and
+ * the components translate them at render time.
+ */
+export type FleetAvailabilityFormatKey =
+  | "available"
+  | "assignedOnOrder"
+  | "enRoute"
+  | "bookedFuture"
+  | "anyCapacity"
+  | "upTo2T"
+  | "28T"
+  | "818T"
+  | "18TAndAbove";
+
 export const AVAILABILITY_STATUS: Record<
   HubAvailabilityStatus,
   AvailabilityStatusMeta
 > = {
   available: {
     label: "Available",
+    labelKey: "available",
     shortLabel: "Available",
     background: "var(--hub-avail-available-bg)",
     color: "var(--hub-avail-available-fg)",
@@ -96,6 +118,7 @@ export const AVAILABILITY_STATUS: Record<
   },
   assigned: {
     label: "Assigned / on order",
+    labelKey: "assignedOnOrder",
     shortLabel: "Assigned",
     background: "var(--hub-avail-assigned-bg)",
     color: "var(--hub-avail-assigned-fg)",
@@ -103,6 +126,7 @@ export const AVAILABILITY_STATUS: Record<
   },
   enroute: {
     label: "En route",
+    labelKey: "enRoute",
     shortLabel: "En route",
     background: "var(--hub-avail-enroute-bg)",
     color: "var(--hub-avail-enroute-fg)",
@@ -110,6 +134,7 @@ export const AVAILABILITY_STATUS: Record<
   },
   booked: {
     label: "Booked (future)",
+    labelKey: "bookedFuture",
     shortLabel: "Booked",
     background: "var(--hub-avail-booked-bg)",
     color: "var(--hub-avail-booked-fg)",
@@ -170,6 +195,8 @@ export function hourLabelStep(pixelsPerHour: number): number {
 export type CapacityBucket = {
   value: string;
   label: string;
+  /** `label` as a key in `driverHub.fleetAvailabilityFormat`, for the screen. */
+  labelKey: FleetAvailabilityFormatKey;
   min: number;
   max: number;
 };
@@ -178,15 +205,17 @@ export const CAPACITY_BUCKETS: CapacityBucket[] = [
   {
     value: "ALL",
     label: "Any capacity",
+    labelKey: "anyCapacity",
     min: 0,
     max: Number.POSITIVE_INFINITY,
   },
-  { value: "S", label: "Up to 2 t", min: 0, max: 2000 },
-  { value: "M", label: "2 – 8 t", min: 2000, max: 8000 },
-  { value: "L", label: "8 – 18 t", min: 8000, max: 18000 },
+  { value: "S", label: "Up to 2 t", labelKey: "upTo2T", min: 0, max: 2000 },
+  { value: "M", label: "2 – 8 t", labelKey: "28T", min: 2000, max: 8000 },
+  { value: "L", label: "8 – 18 t", labelKey: "818T", min: 8000, max: 18000 },
   {
     value: "X",
     label: "18 t and above",
+    labelKey: "18TAndAbove",
     min: 18000,
     max: Number.POSITIVE_INFINITY,
   },
@@ -274,17 +303,19 @@ export function isBusyAt(
  * Degrades rather than ellipsising something unreadable: the reference joins the
  * status word only when there is room for both, and under ~74px the bar carries
  * no text at all and speaks through its colour and its tooltip.
+ *
+ * `shortLabel` lets the screen pass the status word already translated; it
+ * defaults to the English one.
  */
 export function barLabel(
   status: HubAvailabilityStatus,
   reference: string,
   widthPx: number,
+  shortLabel: string = AVAILABILITY_STATUS[status].shortLabel,
 ): string {
-  const meta = AVAILABILITY_STATUS[status];
-
   if (widthPx > 150) {
-    return `${meta.shortLabel} · ${reference}`;
+    return `${shortLabel} · ${reference}`;
   }
 
-  return widthPx > 74 ? meta.shortLabel : "";
+  return widthPx > 74 ? shortLabel : "";
 }

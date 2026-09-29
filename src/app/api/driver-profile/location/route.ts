@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -17,6 +18,12 @@ type LocationInput = {
 };
 
 /**
+ * Returned by `parseLocationBody` on any invalid coordinate; the handler turns
+ * it into the reader's language, since the parser itself is synchronous.
+ */
+const INVALID_COORDINATES = { error: "invalidCoordinates" } as const;
+
+/**
  * Hand-rolled body validation (the project has no validation library, and a
  * two-field payload does not warrant adding one). Rejects non-numbers, NaN and
  * ±Infinity via `Number.isFinite`, then anything outside real-world coordinate
@@ -24,8 +31,8 @@ type LocationInput = {
  */
 function parseLocationBody(
   body: unknown,
-): { data: LocationInput } | { error: string } {
-  const invalid = { error: "lat and lng must be valid coordinates." };
+): { data: LocationInput } | typeof INVALID_COORDINATES {
+  const invalid = INVALID_COORDINATES;
 
   if (typeof body !== "object" || body === null) {
     return invalid;
@@ -62,14 +69,18 @@ function parseLocationBody(
  * clock, so consumers can reliably judge how stale a position is.
  */
 export async function POST(request: Request): Promise<NextResponse> {
+  const t = await getRequestTranslations();
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    return NextResponse.json(
+      { error: t("common.shared.unauthorized") },
+      { status: 401 },
+    );
   }
 
   if (session.user.role !== "DRIVER") {
     return NextResponse.json(
-      { error: "Only drivers can update location." },
+      { error: t("errors.driverProfileLocation.onlyDriversCanUpdateLocation") },
       { status: 403 },
     );
   }
@@ -79,14 +90,17 @@ export async function POST(request: Request): Promise<NextResponse> {
     rawBody = await request.json();
   } catch {
     return NextResponse.json(
-      { error: "Request body must be valid JSON." },
+      { error: t("common.shared.requestBodyMustBeValidJson") },
       { status: 400 },
     );
   }
 
   const parsed = parseLocationBody(rawBody);
   if ("error" in parsed) {
-    return NextResponse.json({ error: parsed.error }, { status: 400 });
+    return NextResponse.json(
+      { error: t("errors.driverProfileLocation.latAndLngMustBeValid") },
+      { status: 400 },
+    );
   }
 
   const { lat, lng } = parsed.data;
@@ -99,7 +113,11 @@ export async function POST(request: Request): Promise<NextResponse> {
   });
   if (!existing) {
     return NextResponse.json(
-      { error: "Complete your driver profile before sharing location." },
+      {
+        error: t(
+          "errors.driverProfileLocation.completeYourDriverProfileBeforeSharing",
+        ),
+      },
       { status: 404 },
     );
   }

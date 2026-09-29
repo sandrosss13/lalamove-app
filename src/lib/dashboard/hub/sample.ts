@@ -44,6 +44,143 @@ export type SampleMetricDelta = {
 };
 
 /* ------------------------------------------------------------------------- */
+/* Translation                                                               */
+/* ------------------------------------------------------------------------- */
+
+/**
+ * The sampled copy that has a catalog entry, mapped from its English text to
+ * its full message key (namespace included).
+ *
+ * The constants below stay in English on purpose: several of their fields are
+ * identifiers as well as copy (`EmployeeRoleName`, `SamplePayoutStatus`, the
+ * compliance and verification statuses are switched on by the screens), and
+ * the free-text fields sit in shapes that half a dozen modules and screens pass
+ * through untouched. Rather than thread a translator through every one of
+ * those, the page that renders a hub screen hands its finished data to
+ * `localizeSampleCopy`, which swaps exactly these strings and nothing else.
+ *
+ * Only free-text copy belongs in this list. Adding an identifier here (a role
+ * name, a status) would translate a value some screen compares against an
+ * English literal, and silently break that comparison.
+ */
+const SAMPLE_COPY_KEYS: ReadonlyMap<string, string> = new Map([
+  [
+    "New job offer · Vake → Saburtalo",
+    "dashboard.sample.newJobOfferVakeSaburtalo",
+  ],
+  ["Payout of ₾142.60 sent", "dashboard.sample.payoutOf14260Sent"],
+  ["+3 pts vs last week", "dashboard.sample.3PtsVsLastWeek"],
+  ["+1 pt vs last week", "dashboard.sample.1PtVsLastWeek"],
+  ["Top 15% in Tbilisi", "dashboard.sample.top15InTbilisi"],
+  ["Acceptance rate", "dashboard.sample.acceptanceRate"],
+  [
+    "Declines counted over the last 100 offers. Staying above 90% keeps priority matching.",
+    "dashboard.sample.declinesCountedOverTheLast100",
+  ],
+  [
+    "Two cancellations this week, both before pickup. Above 5% pauses incentives.",
+    "dashboard.sample.twoCancellationsThisWeekBothBefore",
+  ],
+  [
+    "From 61 rated jobs. Ratings below 4.5 trigger a coaching review.",
+    "dashboard.sample.from61RatedJobsRatingsBelow",
+  ],
+  ["Idle time", "dashboard.sample.idleTime"],
+  [
+    "Highest in Gldani. Moving to Vake between 09:00 and 11:00 cuts it by about a third.",
+    "dashboard.sample.highestInGldaniMovingToVake",
+  ],
+  [
+    "3 more jobs by Sunday for a ₾40 bonus.",
+    "dashboard.sample.3MoreJobsBySundayFor",
+  ],
+  ["Service & parts", "dashboard.sample.serviceParts"],
+  ["Parking & tolls", "dashboard.sample.parkingTolls"],
+  ["Driver licence (GE)", "dashboard.sample.driverLicenceGe"],
+  ["Criminal record extract", "dashboard.sample.criminalRecordExtract"],
+  ["Vehicles and drivers", "dashboard.sample.vehiclesAndDrivers"],
+  [
+    "Assigns jobs inside their zones",
+    "dashboard.sample.assignsJobsInsideTheirZones",
+  ],
+  ["Payouts, invoices and tax", "dashboard.sample.payoutsInvoicesAndTax"],
+  ["Service log", "dashboard.sample.serviceLog"],
+  ["Own jobs and earnings only", "dashboard.sample.ownJobsAndEarningsOnly"],
+  ["Marika Dolidze", "dashboard.sample.marikaDolidze"],
+  ["Irakli Beruashvili", "dashboard.sample.irakliBeruashvili"],
+  ["Sopo Kiknadze", "dashboard.sample.sopoKiknadze"],
+  ["Vano Shengelia", "dashboard.sample.vanoShengelia"],
+  ["Elene Abashidze", "dashboard.sample.eleneAbashidze"],
+  ["Zurab Maisuradze", "dashboard.sample.zurabMaisuradze"],
+  ["Zones", "dashboard.sample.zones"],
+  ["Shift", "dashboard.sample.shift"],
+  ["Payout accounts", "dashboard.sample.payoutAccounts"],
+  ["Tax ID", "dashboard.sample.taxId"],
+  ["Open work orders", "dashboard.sample.openWorkOrders"],
+  ["Garage", "dashboard.sample.garage"],
+  ["Contract", "dashboard.sample.contract"],
+  ["1 invite pending", "dashboard.sample.1InvitePending"],
+  [
+    "Fleet manager, dispatcher, accountant, mechanic",
+    "dashboard.sample.fleetManagerDispatcherAccountantMechanic",
+  ],
+  ["Accountant only", "dashboard.sample.accountantOnly"],
+  ["1 invited, 1 suspended", "dashboard.sample.1Invited1Suspended"],
+  ["Cancellations", "common.shared.cancellations"],
+  ["Rating", "common.shared.rating"],
+  ["Fuel", "common.shared.fuel"],
+  ["Vehicle registration", "common.shared.vehicleRegistration"],
+]);
+
+/** A translator that resolves a full message key, namespace included. */
+export type SampleCopyTranslator = (key: string) => string;
+
+/**
+ * Returns a copy of `value` with every sampled string in `SAMPLE_COPY_KEYS`
+ * replaced by its translation, at any depth.
+ *
+ * Only arrays and plain objects are descended into and rebuilt; everything else
+ * — `Date`s, Prisma `Decimal`s, numbers — is passed through as is. The input is
+ * never mutated, which matters here more than usual: most of what reaches this
+ * function is a module-level constant shared by every request, and writing one
+ * reader's language into it would leak that language to the next reader.
+ */
+export function localizeSampleCopy<T>(value: T, t: SampleCopyTranslator): T {
+  return localizeValue(value, t) as T;
+}
+
+function localizeValue(value: unknown, t: SampleCopyTranslator): unknown {
+  if (typeof value === "string") {
+    const key = SAMPLE_COPY_KEYS.get(value);
+    return key === undefined ? value : t(key);
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => localizeValue(item, t));
+  }
+
+  if (isPlainObject(value)) {
+    return Object.fromEntries(
+      Object.entries(value).map(([field, item]) => [
+        field,
+        localizeValue(item, t),
+      ]),
+    );
+  }
+
+  return value;
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+
+  const prototype: unknown = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+}
+
+/* ------------------------------------------------------------------------- */
 /* Header notifications                                                      */
 /* ------------------------------------------------------------------------- */
 

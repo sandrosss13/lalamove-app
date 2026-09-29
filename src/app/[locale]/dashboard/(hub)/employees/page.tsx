@@ -1,17 +1,29 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 
-import { localeHref } from "@/i18n/server";
+import { localeHref, type LocaleRouteParams } from "@/i18n/server";
 import { EmployeesScreen } from "@/components/driver-hub/screens/employees-screen";
 import { resolveHubAccount } from "@/lib/dashboard/hub/account";
 import { getHubEmployees } from "@/lib/dashboard/hub/employees";
+import { localizeSampleCopy } from "@/lib/dashboard/hub/sample";
 
 // Session + Prisma access can't be statically rendered.
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Employees & roles · Driver Hub",
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: LocaleRouteParams;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({
+    locale,
+    namespace: "dashboard.dashboardEmployees",
+  });
+
+  return { title: t("employeesRolesDriverHub") };
+}
 
 /**
  * Where a non-business account is sent — the board, which the hub labels
@@ -55,5 +67,9 @@ export default async function EmployeesPage() {
     redirect(await localeHref(HUB_HOME));
   }
 
-  return <EmployeesScreen data={data} />;
+  // The roster, tiles and role summaries are sampled copy; see
+  // `SAMPLE_COPY_KEYS` for why they are translated here.
+  const t = await getTranslations();
+
+  return <EmployeesScreen data={localizeSampleCopy(data, t)} />;
 }

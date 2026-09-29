@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 
 // Type-only import, so nothing of the server route (Prisma, Better Auth) is
 // pulled into this client bundle — it is erased at compile time. Sharing the
@@ -59,22 +60,18 @@ const FILTER_ORDER: readonly ApplicationFilter[] = [
  */
 const FILTERS: Record<
   ApplicationFilter,
-  { label: string; emptyMessage: string }
+  { labelKey: string; emptyMessage: string }
 > = {
-  ALL: { label: "All", emptyMessage: "No fleet applications yet." },
-  PENDING: { label: "Pending", emptyMessage: "No pending fleet applications." },
+  ALL: { labelKey: "all", emptyMessage: "No fleet applications yet." },
+  PENDING: {
+    labelKey: "pending",
+    emptyMessage: "No pending fleet applications.",
+  },
   ACTION_REQUIRED: {
-    label: "Action required",
+    labelKey: "actionRequired",
     emptyMessage: "No action-required fleet applications.",
   },
-  APPROVED: { label: "Approved", emptyMessage: "No activated fleets." },
-};
-
-/** Label for a row's application status chip. */
-const STATUS_LABELS: Record<AdminBusinessApplicationStatus, string> = {
-  PENDING: "Pending",
-  ACTION_REQUIRED: "Action required",
-  APPROVED: "Fleet active",
+  APPROVED: { labelKey: "approved", emptyMessage: "No activated fleets." },
 };
 
 /**
@@ -89,15 +86,15 @@ const STATUS_LABELS: Record<AdminBusinessApplicationStatus, string> = {
  */
 const COMPANY_REVIEW_NOTES: Record<
   AdminBusinessApplicationRow["companyReviewStatus"],
-  { text: string; className: string } | null
+  { textKey: string; className: string } | null
 > = {
   VERIFIED: null,
   PENDING: {
-    text: "Company unverified",
+    textKey: "companyUnverified",
     className: "text-[11px] text-muted-foreground",
   },
   FLAGGED: {
-    text: "Company flagged",
+    textKey: "companyFlagged",
     className: "text-[11px] text-destructive",
   },
 };
@@ -154,6 +151,14 @@ function formatCityColumn(row: AdminBusinessApplicationRow): string {
  * the `adminRole` on every request, which is the real boundary.
  */
 export default function AdminBusinessApplicationsPage() {
+  const t = useTranslations("admin.adminBusinessApplications");
+  const tShared = useTranslations("common.shared");
+  /** Label for a row's application status chip. */
+  const statusLabels: Record<AdminBusinessApplicationStatus, string> = {
+    PENDING: tShared("pending"),
+    ACTION_REQUIRED: tShared("actionRequired"),
+    APPROVED: "Fleet active",
+  };
   const [filter, setFilter] = useState<ApplicationFilter>("ALL");
   const [page, setPage] = useState(1);
   const [data, setData] = useState<AdminBusinessApplicationListResponse | null>(
@@ -192,7 +197,7 @@ export default function AdminBusinessApplicationsPage() {
           setError(
             await readErrorMessage(
               response,
-              "Could not load fleet applications.",
+              t("couldNotLoadFleetApplications"),
             ),
           );
           setLoading(false);
@@ -210,7 +215,7 @@ export default function AdminBusinessApplicationsPage() {
           return;
         }
 
-        setError("Could not load fleet applications.");
+        setError(t("couldNotLoadFleetApplications"));
         setLoading(false);
       }
     }
@@ -218,7 +223,7 @@ export default function AdminBusinessApplicationsPage() {
     void load();
 
     return () => controller.abort();
-  }, [filter, page, reloadToken]);
+  }, [filter, page, reloadToken, t]);
 
   const items = data?.items ?? [];
 
@@ -242,7 +247,7 @@ export default function AdminBusinessApplicationsPage() {
                   setPage(1);
                 }}
               >
-                {FILTERS[candidate].label}
+                {tShared(FILTERS[candidate].labelKey)}
               </Button>
             );
           })}
@@ -258,11 +263,11 @@ export default function AdminBusinessApplicationsPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Company</TableHead>
-              <TableHead>City</TableHead>
-              <TableHead>Fleet</TableHead>
-              <TableHead>Drivers</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead>{tShared("company")}</TableHead>
+              <TableHead>{tShared("city")}</TableHead>
+              <TableHead>{tShared("fleet")}</TableHead>
+              <TableHead>{tShared("drivers")}</TableHead>
+              <TableHead>{tShared("status")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -281,7 +286,7 @@ export default function AdminBusinessApplicationsPage() {
                   colSpan={COLUMN_COUNT}
                   className="py-10 text-center text-muted-foreground"
                 >
-                  Loading fleet applications…
+                  {t("loadingFleetApplications")}
                 </TableCell>
               </TableRow>
             ) : items.length === 0 ? (
@@ -343,11 +348,11 @@ export default function AdminBusinessApplicationsPage() {
                             APPLICATION_STATUS_CHIP_CLASSES[application.status]
                           }
                         >
-                          {STATUS_LABELS[application.status]}
+                          {statusLabels[application.status]}
                         </Badge>
                         {companyNote ? (
                           <span className={companyNote.className}>
-                            {companyNote.text}
+                            {t(companyNote.textKey)}
                           </span>
                         ) : null}
                       </div>
@@ -371,7 +376,7 @@ export default function AdminBusinessApplicationsPage() {
             disabled={loading || data.page <= 1}
             onClick={() => setPage((current) => Math.max(1, current - 1))}
           >
-            Previous
+            {tShared("previous")}
           </Button>
           <Button
             variant="outline"
@@ -379,7 +384,7 @@ export default function AdminBusinessApplicationsPage() {
             disabled={loading || data.page >= data.pageCount}
             onClick={() => setPage((current) => current + 1)}
           >
-            Next
+            {tShared("next")}
           </Button>
         </div>
       ) : null}

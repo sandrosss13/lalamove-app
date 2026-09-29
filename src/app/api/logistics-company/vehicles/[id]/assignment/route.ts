@@ -5,9 +5,13 @@ import {
   type VehicleClass,
 } from "@prisma/client";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
 import { findVehicleClass } from "@/lib/driver-onboarding/vehicle-classes";
 import { prisma } from "@/lib/prisma";
+
+/** The request-locale translator the body parsers below phrase their errors with. */
+type RequestTranslator = Awaited<ReturnType<typeof getRequestTranslations>>;
 
 /**
  * The persistent driver↔vehicle pairing (`DriverVehicleAssignment`), managed on
@@ -128,15 +132,16 @@ const LIVE_ASSIGNMENT_CONFLICT_ERROR = {
  */
 function parseAssignBody(
   body: unknown,
+  t: RequestTranslator,
 ): { data: AssignInput } | { error: string } {
   if (typeof body !== "object" || body === null) {
-    return { error: "Request body must be a JSON object." };
+    return { error: t("common.shared.requestBodyMustBeAJson") };
   }
 
   const { driverUserId } = body as Record<string, unknown>;
 
   if (typeof driverUserId !== "string" || driverUserId.trim() === "") {
-    return { error: "driverUserId is required." };
+    return { error: t("common.shared.driveruseridIsRequired") };
   }
 
   return { data: { driverUserId: driverUserId.trim() } };
@@ -160,14 +165,23 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
+  const t = await getRequestTranslations();
+
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    return NextResponse.json(
+      { error: t("common.shared.unauthorized") },
+      { status: 401 },
+    );
   }
 
   if (session.user.role !== "COMPANY") {
     return NextResponse.json(
-      { error: "Only logistics companies can assign vehicles." },
+      {
+        error: t(
+          "errors.logisticsCompanyVehiclesAssignment.onlyLogisticsCompaniesCanAssignVehicles",
+        ),
+      },
       { status: 403 },
     );
   }
@@ -177,12 +191,12 @@ export async function POST(
     rawBody = await request.json();
   } catch {
     return NextResponse.json(
-      { error: "Request body must be valid JSON." },
+      { error: t("common.shared.requestBodyMustBeValidJson") },
       { status: 400 },
     );
   }
 
-  const parsed = parseAssignBody(rawBody);
+  const parsed = parseAssignBody(rawBody, t);
   if ("error" in parsed) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
@@ -196,7 +210,10 @@ export async function POST(
   });
 
   if (!company) {
-    return NextResponse.json({ error: "Vehicle not found." }, { status: 404 });
+    return NextResponse.json(
+      { error: t("common.shared.vehicleNotFound") },
+      { status: 404 },
+    );
   }
 
   // Both exclusivity checks and the write they guard run in one transaction —
@@ -226,7 +243,10 @@ export async function POST(
     });
 
     if (!vehicle) {
-      return { error: "Vehicle not found.", status: 404 } as const;
+      return {
+        error: t("common.shared.vehicleNotFound"),
+        status: 404,
+      } as const;
     }
 
     if (vehicle.assignments.length > 0) {
@@ -244,7 +264,7 @@ export async function POST(
     });
 
     if (!driverProfile) {
-      return { error: "Driver not found.", status: 404 } as const;
+      return { error: t("common.shared.driverNotFound"), status: 404 } as const;
     }
 
     // The licence-category gate, worded exactly as `drivers/register` words it
@@ -348,14 +368,23 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
+  const t = await getRequestTranslations();
+
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    return NextResponse.json(
+      { error: t("common.shared.unauthorized") },
+      { status: 401 },
+    );
   }
 
   if (session.user.role !== "COMPANY") {
     return NextResponse.json(
-      { error: "Only logistics companies can unassign vehicles." },
+      {
+        error: t(
+          "errors.logisticsCompanyVehiclesAssignment.onlyLogisticsCompaniesCanUnassignVehicles",
+        ),
+      },
       { status: 403 },
     );
   }
@@ -368,7 +397,10 @@ export async function DELETE(
   });
 
   if (!company) {
-    return NextResponse.json({ error: "Vehicle not found." }, { status: 404 });
+    return NextResponse.json(
+      { error: t("common.shared.vehicleNotFound") },
+      { status: 404 },
+    );
   }
 
   // Scoped by owner, so this returns nothing for another company's vehicle or
@@ -393,14 +425,21 @@ export async function DELETE(
   });
 
   if (!vehicle) {
-    return NextResponse.json({ error: "Vehicle not found." }, { status: 404 });
+    return NextResponse.json(
+      { error: t("common.shared.vehicleNotFound") },
+      { status: 404 },
+    );
   }
 
   const active = vehicle.assignments[0];
 
   if (!active) {
     return NextResponse.json(
-      { error: "This vehicle has no active assignment." },
+      {
+        error: t(
+          "errors.logisticsCompanyVehiclesAssignment.thisVehicleHasNoActiveAssignment",
+        ),
+      },
       { status: 404 },
     );
   }

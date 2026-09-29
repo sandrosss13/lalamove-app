@@ -1,3 +1,5 @@
+import { useTranslations } from "next-intl";
+
 import { HubCard } from "@/components/driver-hub/hub-primitives";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -55,15 +57,17 @@ export function EmployeeInviteForm({
   roles,
   onCancel,
 }: EmployeeInviteFormProps) {
+  const t = useTranslations("driverHub.employeesInviteForm");
+  const tShared = useTranslations("common.shared");
+
   return (
     <HubCard>
       {/* `pr-9` leaves the corner free for the ✕ `MasterDetailSplit` draws. */}
       <div className="pr-9">
-        <h2 className="text-base font-semibold">Invite an employee</h2>
+        <h2 className="text-base font-semibold">{t("inviteAnEmployee")}</h2>
       </div>
       <p className="text-[13px] leading-normal text-muted-foreground">
-        They get an email invite. Permissions come from the role and apply once
-        they accept.
+        {t("theyGetAnEmailInvitePermissions")}
       </p>
 
       {/*
@@ -77,11 +81,11 @@ export function EmployeeInviteForm({
         aria-describedby={HINT_ID}
         className="mt-5 flex min-w-0 flex-col gap-3.5"
       >
-        <legend className="sr-only">Invite an employee</legend>
+        <legend className="sr-only">{t("inviteAnEmployee")}</legend>
 
         <div className="flex min-w-0 flex-col gap-1.5">
           <Label htmlFor={NAME_ID} className={FIELD_LABEL_CLASSES}>
-            Full name
+            {tShared("fullName")}
           </Label>
           <Input
             id={NAME_ID}
@@ -90,14 +94,14 @@ export function EmployeeInviteForm({
             // in the markup rather than only in a handler: >2 characters.
             minLength={3}
             required
-            placeholder="e.g. Nika Kavtaradze"
+            placeholder={tShared("eGNikaKavtaradze")}
             className={FIELD_INPUT_CLASSES}
           />
         </div>
 
         <div className="flex min-w-0 flex-col gap-1.5">
           <Label htmlFor={EMAIL_ID} className={FIELD_LABEL_CLASSES}>
-            Work email
+            {tShared("workEmail")}
           </Label>
           <Input
             id={EMAIL_ID}
@@ -106,14 +110,14 @@ export function EmployeeInviteForm({
             // The design's own rule, kept verbatim next to `type="email"`.
             pattern=".+@.+\..+"
             required
-            placeholder="name@gizocargo.ge"
+            placeholder={t("nameGizocargoGe")}
             // An address is one of the values the hub always sets in mono.
             className={cn(FIELD_INPUT_CLASSES, "font-price text-[13px]")}
           />
         </div>
 
         <div className="flex min-w-0 flex-col gap-1.5">
-          <span className={FIELD_LABEL_CLASSES}>Role</span>
+          <span className={FIELD_LABEL_CLASSES}>{tShared("role")}</span>
           <div className="flex flex-col gap-2">
             {roles.map((definition) => {
               const selected = definition.role === DEFAULT_ROLE;
@@ -158,12 +162,12 @@ export function EmployeeInviteForm({
 
         <div className="flex min-w-0 flex-col gap-1.5">
           <Label htmlFor={SCOPE_ID} className={FIELD_LABEL_CLASSES}>
-            Scope
+            {tShared("scope")}
           </Label>
           <Input
             id={SCOPE_ID}
             name="scope"
-            placeholder="Zones or vehicles they cover"
+            placeholder={t("zonesOrVehiclesTheyCover")}
             className={FIELD_INPUT_CLASSES}
           />
         </div>
@@ -179,7 +183,7 @@ export function EmployeeInviteForm({
           aria-describedby={HINT_ID}
           className="h-auto rounded-md px-[15px] py-[9px] text-[13px]"
         >
-          Send invite
+          {t("sendInvite")}
         </Button>
         <Button
           type="button"
@@ -188,7 +192,7 @@ export function EmployeeInviteForm({
           onClick={onCancel}
           className="h-auto rounded-md px-[15px] py-[9px] text-[13px]"
         >
-          Cancel
+          {tShared("cancel")}
         </Button>
       </div>
       {/*
@@ -200,9 +204,7 @@ export function EmployeeInviteForm({
         id={HINT_ID}
         className="mt-2.5 text-xs leading-normal text-muted-foreground"
       >
-        Employee accounts are not connected to the backend yet, so this form
-        cannot send an invite. It is here so the screen is ready the day
-        employee records exist.
+        {t("employeeAccountsAreNotConnectedTo")}
       </p>
     </HubCard>
   );

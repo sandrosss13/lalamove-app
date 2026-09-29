@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslations } from "next-intl";
 
 import {
   HubCard,
@@ -203,6 +204,8 @@ function StatBox({
   /** Present only on a box fed by `driver.sampled`. */
   sampleNote?: string;
 }) {
+  const tShared = useTranslations("common.shared");
+
   return (
     <div className="min-w-0 rounded-[10px] border border-border p-3">
       <p className="text-[11px] tracking-[0.08em] uppercase text-muted-foreground">
@@ -212,7 +215,11 @@ function StatBox({
         {value}
       </p>
       {sampleNote === undefined ? null : (
-        <SampleNote note={sampleNote} label="Sample" className="mt-1.5" />
+        <SampleNote
+          note={sampleNote}
+          label={tShared("sample")}
+          className="mt-1.5"
+        />
       )}
     </div>
   );
@@ -225,6 +232,8 @@ export function DriversDetailPanel({
   onOffboarded,
 }: DriversDetailPanelProps) {
   const router = useRouter();
+  const t = useTranslations("driverHub.driversDetailPanel");
+  const tShared = useTranslations("common.shared");
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -316,24 +325,29 @@ export function DriversDetailPanel({
       </div>
 
       <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3 border-b border-border pb-5">
-        <StatBox label="Jobs this week" value={driver.jobsThisWeek} />
-        <StatBox label="Earned" value={formatGel(driver.totalEarnedGel)} />
+        <StatBox label={t("jobsThisWeek")} value={driver.jobsThisWeek} />
         <StatBox
-          label="Acceptance"
+          label={tShared("earned")}
+          value={formatGel(driver.totalEarnedGel)}
+        />
+        <StatBox
+          label={tShared("acceptance")}
           value={`${driver.sampled.acceptanceRatePercent}%`}
           sampleNote={SAMPLE_NOTES.acceptance}
         />
         <StatBox
-          label="Rating"
+          label={tShared("rating")}
           value={formatRating(driver.sampled.rating)}
           sampleNote={SAMPLE_NOTES.rating}
         />
       </div>
 
-      <h3 className="mt-[18px] mb-1 text-[13px] font-semibold">Recent jobs</h3>
+      <h3 className="mt-[18px] mb-1 text-[13px] font-semibold">
+        {t("recentJobs")}
+      </h3>
       {driver.recentJobs.length === 0 ? (
         <p className="border-t border-muted py-2.5 text-[13px] text-muted-foreground">
-          No completed jobs for this fleet yet.
+          {t("noCompletedJobsForThisFleet")}
         </p>
       ) : (
         <ul>
@@ -357,7 +371,7 @@ export function DriversDetailPanel({
       )}
 
       <div className="mt-[18px] mb-0.5 flex flex-wrap items-center gap-2">
-        <h3 className="text-[13px] font-semibold">Verification</h3>
+        <h3 className="text-[13px] font-semibold">{t("verification")}</h3>
         <SampleNote note={SAMPLE_NOTES.verification} />
       </div>
       <ul>

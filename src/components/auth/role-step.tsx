@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 import {
   AuthHeading,
   AuthSubheading,
@@ -90,14 +92,15 @@ export function RoleStep({
   backOfficeHref = DEFAULT_BACK_OFFICE_HREF,
   className,
 }: RoleStepProps) {
+  const t = useTranslations("auth.roleStep");
+
   return (
     <div className={cn("flex flex-col gap-7", className)}>
       <div className="flex flex-col gap-3">
-        <Eyebrow>Step 1 of 3 · Account</Eyebrow>
-        <AuthHeading size="lg">How will you use Lalamove?</AuthHeading>
+        <Eyebrow>{t("step1Of3Account")}</Eyebrow>
+        <AuthHeading size="lg">{t("howWillYouUseLalamove")}</AuthHeading>
         <AuthSubheading size="lg">
-          Pick the side of the delivery you are on. You can sign in or create an
-          account from either one.
+          {t("pickTheSideOfTheDelivery")}
         </AuthSubheading>
       </div>
 
@@ -172,7 +175,7 @@ export function RoleStep({
           href={backOfficeHref}
           className="font-medium text-[var(--landing-paper)] underline decoration-[var(--landing-line-strong)] underline-offset-4 transition-colors hover:decoration-[var(--landing-accent)]"
         >
-          Sign in to the back office
+          {t("signInToTheBackOffice")}
         </Link>
       </p>
     </div>

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { LogOut } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import type { AdminRole } from "@prisma/client";
 
@@ -72,6 +73,9 @@ export function AdminShell({ systemUser, children }: AdminShellProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [signingOut, setSigningOut] = useState(false);
+  // Un-namespaced: nav labels are full message paths spanning `admin` and
+  // `common` (see `labelKey` in `admin-nav.ts`).
+  const t = useTranslations();
 
   const sections = ADMIN_NAV.filter((section) =>
     hasAdminRole(systemUser, section.adminRoles),
@@ -97,9 +101,11 @@ export function AdminShell({ systemUser, children }: AdminShellProps) {
           className="flex flex-col gap-0.5 rounded-lg px-3 py-2.5 hover:bg-muted"
         >
           <span className="text-sm font-semibold tracking-tight">
-            Back Office
+            {t("admin.adminShell.backOffice")}
           </span>
-          <span className="text-xs text-muted-foreground">Internal tools</span>
+          <span className="text-xs text-muted-foreground">
+            {t("admin.adminShell.internalTools")}
+          </span>
         </Link>
 
         <div className="mt-2 flex flex-col gap-0.5">
@@ -123,7 +129,7 @@ export function AdminShell({ systemUser, children }: AdminShellProps) {
                   )}
                 >
                   <SectionIcon className="size-4 shrink-0" />
-                  {section.label}
+                  {t(section.labelKey)}
                 </Link>
 
                 {/* Sub-links expand only for the section being viewed, so the
@@ -144,7 +150,7 @@ export function AdminShell({ systemUser, children }: AdminShellProps) {
                             : "text-muted-foreground hover:text-foreground",
                         )}
                       >
-                        {item.label}
+                        {t(item.labelKey)}
                       </Link>
                     ))}
                   </div>

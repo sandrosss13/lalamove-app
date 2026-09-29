@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 import { HubCard, SampleNote } from "@/components/driver-hub/hub-primitives";
 import {
   formatGel,
@@ -115,28 +117,30 @@ export function EarningsBreakdownCard({
   extras,
   incentivesNote,
 }: EarningsBreakdownCardProps) {
+  const t = useTranslations("driverHub.earningsBreakdownCard");
+  const tShared = useTranslations("common.shared");
   const lines: readonly BreakdownLine[] = [
     {
-      label: "Trip fares",
+      label: t("tripFares"),
       note: pluralise(jobsCompleted, "completed job"),
       amountGel: grossFares,
       sampled: false,
     },
     {
-      label: "Tips",
+      label: t("tips"),
       note: pluralise(extras.tippingCustomers, "customer"),
       amountGel: extras.tipsGel,
       sampled: true,
     },
     {
-      label: "Incentives",
+      label: tShared("incentives"),
       note: incentivesNote,
       amountGel: extras.incentivesGel,
       sampled: true,
       valueClassName: POSITIVE_VALUE_CLASSES,
     },
     {
-      label: "Adjustments",
+      label: t("adjustments"),
       note: extras.adjustmentsNote,
       amountGel: extras.adjustmentsGel,
       sampled: true,
@@ -151,7 +155,7 @@ export function EarningsBreakdownCard({
 
   return (
     <HubCard
-      title="Breakdown"
+      title={t("breakdown")}
       // One legend for the three marked lines rather than three badges in a
       // narrow card: the marker belongs to the lines, and repeating it three
       // times would drown the one line that is real. It covers the footer as
@@ -159,7 +163,7 @@ export function EarningsBreakdownCard({
       // which is why the note says so and the label names only the sources.
       action={
         <SampleNote
-          label="Tips · Incentives · Adjustments"
+          label={t("tipsIncentivesAdjustments")}
           note={SAMPLED_LINES_NOTE}
         />
       }
@@ -202,7 +206,7 @@ export function EarningsBreakdownCard({
       </div>
 
       <div className="mt-1.5 flex items-center justify-between gap-3 border-t border-border pt-3.5">
-        <p className="text-sm font-semibold">Range total</p>
+        <p className="text-sm font-semibold">{t("rangeTotal")}</p>
         <p className="font-price text-xl font-semibold">
           {formatGel(rangeTotal)}
         </p>

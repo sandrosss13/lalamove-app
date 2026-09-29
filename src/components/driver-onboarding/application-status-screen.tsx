@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 import { useRouter } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
@@ -86,15 +87,30 @@ const STATUS_DESTRUCTIVE_ACCENT_CLASS = "[--status-accent:var(--destructive)]";
  */
 const DOCUMENT_META: Record<
   OnboardingDocumentType,
-  { label: string; slot: DocumentSlot }
+  // `labelKey` is a full `next-intl` message path, translated at render.
+  // `label` stays for the image alt text, which has no catalog entry yet.
+  { label: string; labelKey: string; slot: DocumentSlot }
 > = {
-  PROFILE_PHOTO: { label: "Profile photo", slot: "selfie" },
-  LICENCE_FRONT: { label: "Licence — front", slot: "licFront" },
-  LICENCE_BACK: { label: "Licence — back", slot: "licBack" },
+  PROFILE_PHOTO: {
+    label: "Profile photo",
+    labelKey: "common.shared.profilePhoto",
+    slot: "selfie",
+  },
+  LICENCE_FRONT: {
+    label: "Licence — front",
+    labelKey: "onboarding.applicationStatusScreen.licenceFront",
+    slot: "licFront",
+  },
+  LICENCE_BACK: {
+    label: "Licence — back",
+    labelKey: "onboarding.applicationStatusScreen.licenceBack",
+    slot: "licBack",
+  },
 };
 
-/** What the review team wrote when the admin left the reason blank. */
-const DEFAULT_FLAG_REASON = "Needs a new photo";
+/** What the review team wrote when the admin left the reason blank — a key in
+ *  the `onboarding.applicationStatusScreen` namespace. */
+const DEFAULT_FLAG_REASON_KEY = "needsANewPhoto";
 
 /**
  * `submittedSummary` reaches this component as `Record<string, unknown>` — the
@@ -278,12 +294,15 @@ export function ApplicationStatusScreen() {
 
 /** Under review: the amber card, the three-row timeline, and the footnote. */
 function PendingState() {
+  const t = useTranslations("onboarding.applicationStatusScreen");
+  const tShared = useTranslations("common.shared");
+
   return (
     <>
       <StatusCard
         tag="Pending verification"
         accentClass={STATUS_AMBER_ACCENT_CLASS}
-        title="Under review"
+        title={t("underReview")}
         // The design's copy promises an SMS. This feature ships no SMS
         // infrastructure at all (see the spec's non-goals, which drop the OTP
         // step for the same reason), so the sentence points at this page —
@@ -300,16 +319,24 @@ function PendingState() {
       />
 
       <ol className="mt-4 rounded-[14px] border border-border bg-card px-3.5">
-        <TimelineRow label="Application submitted" when="Done" tone="done" />
         <TimelineRow
-          label="Document review"
+          label={t("applicationSubmitted")}
+          when={tShared("done")}
+          tone="done"
+        />
+        <TimelineRow
+          label={t("documentReview")}
           when="In progress"
           tone="current"
         />
-        <TimelineRow label="Account activation" when="Waiting" tone="waiting" />
+        <TimelineRow
+          label={t("accountActivation")}
+          when="Waiting"
+          tone="waiting"
+        />
       </ol>
 
-      <Footnote>Typical review time is 12–24 hours on business days.</Footnote>
+      <Footnote>{t("typicalReviewTimeIs1224")}</Footnote>
     </>
   );
 }
@@ -341,11 +368,14 @@ function ActionRequiredState({
     (document) => document.status === "FLAGGED",
   );
   const outstanding = flaggedDocs.length;
+  const t = useTranslations("onboarding.applicationStatusScreen");
+  const tShared = useTranslations("common.shared");
+  const tRoot = useTranslations();
 
   return (
     <>
       <StatusCard
-        tag="Action required"
+        tag={tShared("actionRequired")}
         accentClass={STATUS_DESTRUCTIVE_ACCENT_CLASS}
         title={
           outstanding > 0
@@ -362,7 +392,7 @@ function ActionRequiredState({
       <div className="mt-4 flex flex-col gap-2.5">
         {outstanding > 0 ? (
           <h2 className="text-[11.5px] font-semibold tracking-[0.04em] text-muted-foreground uppercase">
-            Needs a new photo
+            {t("needsANewPhoto")}
           </h2>
         ) : null}
 
@@ -410,9 +440,11 @@ function ActionRequiredState({
               )}
 
               <div className="min-w-0 flex-1">
-                <p className="text-[13.5px] font-semibold">{meta.label}</p>
+                <p className="text-[13.5px] font-semibold">
+                  {tRoot(meta.labelKey)}
+                </p>
                 <p className="mt-[3px] text-[12.5px] leading-[1.45] text-destructive">
-                  {document.flagReason ?? DEFAULT_FLAG_REASON}
+                  {document.flagReason ?? t(DEFAULT_FLAG_REASON_KEY)}
                 </p>
               </div>
 
@@ -423,7 +455,7 @@ function ActionRequiredState({
                 className="shrink-0"
                 onClick={() => onRetake(meta.slot)}
               >
-                Retake
+                {t("retake")}
               </Button>
             </div>
           );
@@ -458,7 +490,7 @@ function ActionRequiredState({
       </div>
 
       <Footnote>
-        Resubmitted applications are usually reviewed within 4 hours.
+        {t("resubmittedApplicationsAreUsuallyReviewedWithin")}
       </Footnote>
     </>
   );
@@ -479,33 +511,38 @@ function ApprovedState({
   const make = readSummaryText(summary, "make");
   const model = readSummaryText(summary, "model");
   const categories = readSummaryList(summary, "categories");
+  const t = useTranslations("onboarding.applicationStatusScreen");
+  const tShared = useTranslations("common.shared");
 
   const rows: { label: string; value: string }[] = [
     {
-      label: "Class",
+      label: tShared("class"),
       value: readSummaryText(summary, "vehicleClassName") ?? "—",
     },
     {
-      label: "Vehicle",
+      label: tShared("vehicle"),
       value: [make, model].filter((part) => part !== null).join(" ") || "—",
     },
-    { label: "Plate", value: readSummaryText(summary, "plateNumber") ?? "—" },
-    { label: "Categories", value: categories?.join(", ") ?? "—" },
+    {
+      label: tShared("plate"),
+      value: readSummaryText(summary, "plateNumber") ?? "—",
+    },
+    { label: tShared("categories"), value: categories?.join(", ") ?? "—" },
   ];
 
   return (
     <>
       <StatusCard
-        tag="Approved"
+        tag={tShared("approved")}
         accentClass={STATUS_GREEN_ACCENT_CLASS}
-        title="You are cleared to drive"
+        title={t("youAreClearedToDrive")}
         body="Your account is active. Orders matching your vehicle class will start arriving as soon as you go online."
       />
 
       <div className="mt-4 flex flex-col gap-3">
         <div className="rounded-[14px] border border-border bg-card p-[15px]">
           <h2 className="text-[11.5px] font-semibold tracking-[0.04em] text-muted-foreground uppercase">
-            Approved for dispatch
+            {tShared("approvedForDispatch")}
           </h2>
           <dl className="mt-[11px] flex flex-col gap-[9px]">
             {rows.map((row) => (
@@ -552,10 +589,7 @@ function ApprovedState({
         ) : null}
       </div>
 
-      <Footnote>
-        Keep your licence and insurance current — we re-check 30 days before
-        expiry.
-      </Footnote>
+      <Footnote>{t("keepYourLicenceAndInsuranceCurrent")}</Footnote>
     </>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 
 import type { MessagingChannel } from "@prisma/client";
 
@@ -120,6 +121,8 @@ function DeleteTemplateDialog({
   onClose: () => void;
   onCompleted: () => void;
 }) {
+  const t = useTranslations("admin.adminContentMessagingTemplates");
+  const tShared = useTranslations("common.shared");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -145,7 +148,7 @@ function DeleteTemplateDialog({
       // the button must not flash back to its idle label in between.
       onCompleted();
     } catch {
-      setError("Something went wrong. Please try again.");
+      setError(tShared("somethingWentWrongPleaseTryAgain"));
       setPending(false);
     }
   }
@@ -162,7 +165,7 @@ function DeleteTemplateDialog({
     >
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Delete template</DialogTitle>
+          <DialogTitle>{t("deleteTemplate")}</DialogTitle>
           <DialogDescription>
             Removes the {MESSAGING_CHANNEL_LABELS[target.channel]} wording for{" "}
             <span className="text-foreground">{target.key}</span> in{" "}
@@ -183,14 +186,14 @@ function DeleteTemplateDialog({
 
         <DialogFooter showCloseButton={false}>
           <Button variant="outline" onClick={onClose} disabled={pending}>
-            Cancel
+            {tShared("cancel")}
           </Button>
           <Button
             variant="destructive"
             onClick={handleDelete}
             disabled={pending}
           >
-            {pending ? "Deleting…" : "Delete"}
+            {pending ? "Deleting…" : tShared("delete")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -215,6 +218,8 @@ function DeleteTemplateDialog({
  * which is the real boundary.
  */
 export default function AdminMessagingTemplatesPage() {
+  const t = useTranslations("admin.adminContentMessagingTemplates");
+  const tShared = useTranslations("common.shared");
   const [channel, setChannel] = useState<
     MessagingChannel | typeof ALL_CHANNELS
   >(ALL_CHANNELS);
@@ -253,7 +258,7 @@ export default function AdminMessagingTemplatesPage() {
 
         if (!response.ok) {
           setError(
-            await readErrorMessage(response, "Could not load templates."),
+            await readErrorMessage(response, t("couldNotLoadTemplates")),
           );
           setLoading(false);
           return;
@@ -268,7 +273,7 @@ export default function AdminMessagingTemplatesPage() {
           return;
         }
 
-        setError("Could not load templates.");
+        setError(t("couldNotLoadTemplates"));
         setLoading(false);
       }
     }
@@ -276,7 +281,7 @@ export default function AdminMessagingTemplatesPage() {
     void load();
 
     return () => controller.abort();
-  }, [channel, reloadToken]);
+  }, [channel, reloadToken, t]);
 
   const items = data?.items ?? [];
 
@@ -297,13 +302,13 @@ export default function AdminMessagingTemplatesPage() {
           }
         >
           <SelectTrigger
-            aria-label="Filter templates by channel"
+            aria-label={t("filterTemplatesByChannel")}
             className="w-full max-w-56"
           >
-            <SelectValue placeholder="All channels" />
+            <SelectValue placeholder={t("allChannels")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={ALL_CHANNELS}>All channels</SelectItem>
+            <SelectItem value={ALL_CHANNELS}>{t("allChannels")}</SelectItem>
             {CHANNEL_FILTER_OPTIONS.map((option) => (
               <SelectItem key={option} value={option}>
                 {MESSAGING_CHANNEL_LABELS[option]}
@@ -319,7 +324,7 @@ export default function AdminMessagingTemplatesPage() {
             </p>
           ) : null}
           <Button size="sm" onClick={() => setForm({ mode: "create" })}>
-            New Template
+            {t("newTemplate")}
           </Button>
         </div>
       </div>
@@ -328,12 +333,12 @@ export default function AdminMessagingTemplatesPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Event key</TableHead>
-              <TableHead>Channel</TableHead>
-              <TableHead>Language</TableHead>
-              <TableHead>Subject</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Updated</TableHead>
+              <TableHead>{tShared("eventKey")}</TableHead>
+              <TableHead>{tShared("channel")}</TableHead>
+              <TableHead>{tShared("language")}</TableHead>
+              <TableHead>{tShared("subject")}</TableHead>
+              <TableHead>{tShared("status")}</TableHead>
+              <TableHead className="text-right">{t("updated")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -352,7 +357,7 @@ export default function AdminMessagingTemplatesPage() {
                   colSpan={COLUMN_COUNT}
                   className="py-10 text-center text-muted-foreground"
                 >
-                  Loading templates…
+                  {t("loadingTemplates")}
                 </TableCell>
               </TableRow>
             ) : items.length === 0 ? (
@@ -389,9 +394,9 @@ export default function AdminMessagingTemplatesPage() {
                   </TableCell>
                   <TableCell className="align-top">
                     {row.isActive ? (
-                      <Badge variant="secondary">Active</Badge>
+                      <Badge variant="secondary">{tShared("active")}</Badge>
                     ) : (
-                      <Badge variant="outline">Inactive</Badge>
+                      <Badge variant="outline">{tShared("inactive")}</Badge>
                     )}
                   </TableCell>
                   <TableCell className="align-top text-right">
@@ -402,21 +407,21 @@ export default function AdminMessagingTemplatesPage() {
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="sm">
-                            Actions
+                            {tShared("actions")}
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem
                             onSelect={() => setForm({ mode: "edit", row })}
                           >
-                            Edit
+                            {tShared("edit")}
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
                             variant="destructive"
                             onSelect={() => setDeleteTarget(row)}
                           >
-                            Delete
+                            {tShared("delete")}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { ContentLocale, type AdminRole, type Banner } from "@prisma/client";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { authorizeAdminApi } from "@/lib/admin/api-auth";
 import { writeAuditLog } from "@/lib/admin/audit";
 import { prisma } from "@/lib/prisma";
@@ -169,16 +170,17 @@ function parseTimestamp(
  */
 function parseCreateBannerBody(
   body: unknown,
+  t: (key: string) => string,
 ): { data: CreateBannerInput } | { error: string } {
   if (typeof body !== "object" || body === null) {
-    return { error: "Request body must be a JSON object." };
+    return { error: t("common.shared.requestBodyMustBeAJson") };
   }
 
   const record = body as Record<string, unknown>;
 
   const { title } = record;
   if (typeof title !== "string" || title.trim() === "") {
-    return { error: "title is required and must be a non-empty string." };
+    return { error: t("common.shared.titleIsRequiredAndMustBe") };
   }
   if (title.trim().length > MAX_TITLE_LENGTH) {
     return { error: `title must be ${MAX_TITLE_LENGTH} characters or fewer.` };
@@ -194,14 +196,16 @@ function parseCreateBannerBody(
 
   const { imageUrl } = record;
   if (typeof imageUrl !== "string" || imageUrl.trim() === "") {
-    return { error: "imageUrl is required and must be a non-empty string." };
+    return {
+      error: t("errors.adminContentBanners.imageurlIsRequiredAndMustBe"),
+    };
   }
   if (imageUrl.trim().length > MAX_URL_LENGTH) {
     return { error: `imageUrl must be ${MAX_URL_LENGTH} characters or fewer.` };
   }
   if (!isUsableUrl(imageUrl.trim())) {
     return {
-      error: "imageUrl must be an http(s) URL or a path starting with /.",
+      error: t("common.shared.imageurlMustBeAnHttpS"),
     };
   }
 
@@ -223,7 +227,7 @@ function parseCreateBannerBody(
       }
       if (!isUsableUrl(trimmedLinkUrl)) {
         return {
-          error: "linkUrl must be an http(s) URL or a path starting with /.",
+          error: t("common.shared.linkurlMustBeAnHttpS"),
         };
       }
 
@@ -233,7 +237,9 @@ function parseCreateBannerBody(
 
   const { placement } = record;
   if (typeof placement !== "string" || placement.trim() === "") {
-    return { error: "placement is required and must be a non-empty string." };
+    return {
+      error: t("errors.adminContentBanners.placementIsRequiredAndMustBe"),
+    };
   }
   if (placement.trim().length > MAX_PLACEMENT_LENGTH) {
     return {
@@ -255,7 +261,7 @@ function parseCreateBannerBody(
 
   const { isActive } = record;
   if (typeof isActive !== "boolean") {
-    return { error: "isActive must be a boolean." };
+    return { error: t("common.shared.isactiveMustBeABoolean") };
   }
 
   const startsAt = parseTimestamp(record.startsAt, "startsAt");
@@ -275,7 +281,7 @@ function parseCreateBannerBody(
     endsAt.value !== null &&
     endsAt.value.getTime() <= startsAt.value.getTime()
   ) {
-    return { error: "endsAt must be after startsAt." };
+    return { error: t("common.shared.endsatMustBeAfterStartsat") };
   }
 
   return {
@@ -325,17 +331,19 @@ export async function POST(request: Request): Promise<NextResponse> {
     return authorized.response;
   }
 
+  const t = await getRequestTranslations();
+
   let rawBody: unknown;
   try {
     rawBody = await request.json();
   } catch {
     return NextResponse.json(
-      { error: "Request body must be valid JSON." },
+      { error: t("common.shared.requestBodyMustBeValidJson") },
       { status: 400 },
     );
   }
 
-  const parsed = parseCreateBannerBody(rawBody);
+  const parsed = parseCreateBannerBody(rawBody, t);
   if ("error" in parsed) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }

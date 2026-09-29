@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -30,14 +31,23 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ userId: string }> },
 ): Promise<NextResponse> {
+  const t = await getRequestTranslations();
+
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    return NextResponse.json(
+      { error: t("common.shared.unauthorized") },
+      { status: 401 },
+    );
   }
 
   if (session.user.role !== "COMPANY") {
     return NextResponse.json(
-      { error: "Only logistics companies can remove drivers." },
+      {
+        error: t(
+          "errors.logisticsCompanyDrivers.onlyLogisticsCompaniesCanRemoveDrivers",
+        ),
+      },
       { status: 403 },
     );
   }
@@ -50,7 +60,10 @@ export async function DELETE(
   });
 
   if (!company) {
-    return NextResponse.json({ error: "Driver not found." }, { status: 404 });
+    return NextResponse.json(
+      { error: t("common.shared.driverNotFound") },
+      { status: 404 },
+    );
   }
 
   // Scoped by roster membership, so this returns nothing for a driver who is
@@ -61,7 +74,10 @@ export async function DELETE(
   });
 
   if (!driverProfile) {
-    return NextResponse.json({ error: "Driver not found." }, { status: 404 });
+    return NextResponse.json(
+      { error: t("common.shared.driverNotFound") },
+      { status: 404 },
+    );
   }
 
   // One transaction, because the whole defect being fixed here is these two

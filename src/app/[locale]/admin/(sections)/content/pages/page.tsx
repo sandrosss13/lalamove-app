@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 
 // Type-only imports, so nothing of the server route (Prisma, Better Auth) is
 // pulled into this client bundle — they are erased at compile time. Sharing the
@@ -83,6 +84,8 @@ function DeletePageDialog({
   onClose: () => void;
   onCompleted: () => void;
 }) {
+  const t = useTranslations("admin.adminContentPages");
+  const tShared = useTranslations("common.shared");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -102,7 +105,7 @@ function DeletePageDialog({
 
       onCompleted();
     } catch {
-      setError("Network error. Please check your connection and try again.");
+      setError(tShared("networkErrorPleaseCheckYourConnection"));
     } finally {
       setPending(false);
     }
@@ -117,12 +120,12 @@ function DeletePageDialog({
     >
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Delete this page?</DialogTitle>
+          <DialogTitle>{t("deleteThisPage")}</DialogTitle>
           <DialogDescription>
             “{page.title}” ({CONTENT_LOCALE_LABELS[page.locale]}) will be
             removed permanently, and{" "}
-            <span className="font-mono">/pages/{page.slug}</span> will stop
-            resolving for that locale. This cannot be undone.
+            <span className="font-mono">/pages/{page.slug}</span>{" "}
+            {t("willStopResolvingForThatLocale")}
           </DialogDescription>
         </DialogHeader>
 
@@ -130,7 +133,7 @@ function DeletePageDialog({
 
         <DialogFooter showCloseButton={false}>
           <Button variant="outline" onClick={onClose}>
-            Cancel
+            {tShared("cancel")}
           </Button>
           <Button
             variant="destructive"
@@ -156,6 +159,8 @@ function DeletePageDialog({
  * `adminRole` on every request, which is the real boundary.
  */
 export default function AdminStaticPagesPage() {
+  const t = useTranslations("admin.adminContentPages");
+  const tShared = useTranslations("common.shared");
   const [items, setItems] = useState<AdminStaticPageRow[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -182,7 +187,7 @@ export default function AdminStaticPagesPage() {
         });
 
         if (!response.ok) {
-          setError(await readErrorMessage(response, "Could not load pages."));
+          setError(await readErrorMessage(response, t("couldNotLoadPages")));
           setLoading(false);
           return;
         }
@@ -197,7 +202,7 @@ export default function AdminStaticPagesPage() {
           return;
         }
 
-        setError("Could not load pages.");
+        setError(t("couldNotLoadPages"));
         setLoading(false);
       }
     }
@@ -205,7 +210,7 @@ export default function AdminStaticPagesPage() {
     void load();
 
     return () => controller.abort();
-  }, [reloadToken]);
+  }, [reloadToken, t]);
 
   /** Closes whichever dialog was open and re-reads the list. */
   const handleMutated = useCallback(() => {
@@ -224,7 +229,7 @@ export default function AdminStaticPagesPage() {
           <span className="font-mono">/pages/[slug]</span>.
         </p>
         <Button size="sm" onClick={() => setFormTarget({ mode: "create" })}>
-          New Page
+          {t("newPage")}
         </Button>
       </div>
 
@@ -232,11 +237,11 @@ export default function AdminStaticPagesPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Slug</TableHead>
-              <TableHead>Locale</TableHead>
-              <TableHead>Title</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead>{tShared("slug")}</TableHead>
+              <TableHead>{tShared("locale")}</TableHead>
+              <TableHead>{tShared("title")}</TableHead>
+              <TableHead>{tShared("status")}</TableHead>
+              <TableHead className="text-right">{tShared("actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -255,7 +260,7 @@ export default function AdminStaticPagesPage() {
                   colSpan={COLUMN_COUNT}
                   className="py-10 text-center text-muted-foreground"
                 >
-                  Loading pages…
+                  {t("loadingPages")}
                 </TableCell>
               </TableRow>
             ) : rows.length === 0 ? (
@@ -264,7 +269,7 @@ export default function AdminStaticPagesPage() {
                   colSpan={COLUMN_COUNT}
                   className="py-10 text-center text-muted-foreground"
                 >
-                  No static pages yet.
+                  {t("noStaticPagesYet")}
                 </TableCell>
               </TableRow>
             ) : (
@@ -288,9 +293,9 @@ export default function AdminStaticPagesPage() {
                   </TableCell>
                   <TableCell>
                     {page.isPublished ? (
-                      <Badge variant="secondary">Published</Badge>
+                      <Badge variant="secondary">{t("published")}</Badge>
                     ) : (
-                      <Badge variant="outline">Draft</Badge>
+                      <Badge variant="outline">{t("draft")}</Badge>
                     )}
                   </TableCell>
                   <TableCell className="text-right">
@@ -300,14 +305,14 @@ export default function AdminStaticPagesPage() {
                         size="sm"
                         onClick={() => setFormTarget({ mode: "edit", page })}
                       >
-                        Edit
+                        {tShared("edit")}
                       </Button>
                       <Button
                         variant="destructive"
                         size="sm"
                         onClick={() => setDeleteTarget(page)}
                       >
-                        Delete
+                        {tShared("delete")}
                       </Button>
                     </div>
                   </TableCell>

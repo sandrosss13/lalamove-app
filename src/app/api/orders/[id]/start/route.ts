@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { OrderStatus } from "@prisma/client";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
 import { CARRIER_ORDER_PARTY_SELECT } from "@/lib/order-response-select";
 import { prisma } from "@/lib/prisma";
@@ -22,9 +23,14 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
+  const t = await getRequestTranslations();
+
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    return NextResponse.json(
+      { error: t("common.shared.unauthorized") },
+      { status: 401 },
+    );
   }
 
   const { id } = await params;
@@ -35,19 +41,22 @@ export async function POST(
   });
 
   if (!order) {
-    return NextResponse.json({ error: "Order not found." }, { status: 404 });
+    return NextResponse.json(
+      { error: t("common.shared.orderNotFound") },
+      { status: 404 },
+    );
   }
 
   if (order.driverId !== session.user.id) {
     return NextResponse.json(
-      { error: "You are not assigned to this delivery." },
+      { error: t("common.shared.youAreNotAssignedToThis") },
       { status: 403 },
     );
   }
 
   if (order.status !== OrderStatus.ACCEPTED) {
     return NextResponse.json(
-      { error: "This delivery cannot be started right now." },
+      { error: t("errors.ordersStart.thisDeliveryCannotBeStartedRight") },
       { status: 409 },
     );
   }

@@ -8,6 +8,7 @@ import {
   Minus,
   Plus,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import {
   AVAILABILITY_STATUS,
@@ -249,6 +250,9 @@ export function FleetAvailabilityFilters({
   legend,
   nowHour,
 }: FleetAvailabilityFiltersProps) {
+  const t = useTranslations("driverHub.fleetAvailabilityFilters");
+  const tFormat = useTranslations("driverHub.fleetAvailabilityFormat");
+  const tShared = useTranslations("common.shared");
   // `useId` rather than literal ids: this card is rendered once today, but a
   // duplicated id breaks only the label→control association, and it breaks it
   // silently and only for screen readers. Same reasoning as `loads-filters.tsx`.
@@ -278,7 +282,7 @@ export function FleetAvailabilityFilters({
         {/* ---------------------------------------------------------------- */}
         <div className={FIELD_CLASSES}>
           <label className={FIELD_LABEL_CLASSES} htmlFor={`${fieldId}-date`}>
-            Date
+            {tShared("date")}
           </label>
           <div className="flex items-center gap-1.5">
             <Button
@@ -287,7 +291,7 @@ export function FleetAvailabilityFilters({
               size="icon-lg"
               // Spelled out rather than left to the glyph: a chevron announces
               // as nothing at all, and "previous" without a noun is a guess.
-              aria-label="Previous day"
+              aria-label={t("previousDay")}
               onClick={() => onDayKeyChange(shiftDayKey(dayKey, -1))}
             >
               <ChevronLeft aria-hidden="true" />
@@ -307,7 +311,7 @@ export function FleetAvailabilityFilters({
               type="button"
               variant="outline"
               size="icon-lg"
-              aria-label="Next day"
+              aria-label={t("nextDay")}
               onClick={() => onDayKeyChange(shiftDayKey(dayKey, 1))}
             >
               <ChevronRight aria-hidden="true" />
@@ -323,7 +327,7 @@ export function FleetAvailabilityFilters({
               // browser.
               onClick={() => onDayKeyChange(toHubDayKey(new Date()))}
             >
-              Today
+              {tShared("today")}
             </Button>
           </div>
         </div>
@@ -333,14 +337,14 @@ export function FleetAvailabilityFilters({
         {/* ---------------------------------------------------------------- */}
         <HourField
           id={`${fieldId}-from`}
-          label="From"
+          label={tShared("from")}
           value={fromHour}
           hours={FROM_HOURS}
           onChange={onFromHourChange}
         />
         <HourField
           id={`${fieldId}-to`}
-          label="To"
+          label={tShared("to")}
           value={toHour}
           hours={TO_HOURS}
           onChange={onToHourChange}
@@ -351,12 +355,12 @@ export function FleetAvailabilityFilters({
         {/* ---------------------------------------------------------------- */}
         <SelectField
           id={`${fieldId}-city`}
-          label="City"
+          label={tShared("city")}
           width="w-[148px]"
           value={city}
           onChange={onCityChange}
         >
-          <SelectItem value={ALL_FILTER_VALUE}>All cities</SelectItem>
+          <SelectItem value={ALL_FILTER_VALUE}>{t("allCities")}</SelectItem>
           {/* All 63 `GeorgianCity` values, not the handoff's 8. The eight in
               the prototype were its own generated mock fleet, not a shortlist:
               a driver registered in Akhalkalaki would otherwise be unreachable
@@ -370,12 +374,12 @@ export function FleetAvailabilityFilters({
 
         <SelectField
           id={`${fieldId}-class`}
-          label="Vehicle type"
+          label={t("vehicleType")}
           width="w-[176px]"
           value={vehicleClass}
           onChange={onVehicleClassChange}
         >
-          <SelectItem value={ALL_FILTER_VALUE}>All types</SelectItem>
+          <SelectItem value={ALL_FILTER_VALUE}>{t("allTypes")}</SelectItem>
           {VEHICLE_CLASSES.map((entry) => (
             <SelectItem key={entry.id} value={entry.id}>
               {entry.name}
@@ -385,7 +389,7 @@ export function FleetAvailabilityFilters({
 
         <SelectField
           id={`${fieldId}-capacity`}
-          label="Capacity"
+          label={t("capacity")}
           width="w-[150px]"
           value={capacity}
           onChange={onCapacityChange}
@@ -394,19 +398,19 @@ export function FleetAvailabilityFilters({
               the `ALL` bucket, so there is no separate sentinel to prepend. */}
           {CAPACITY_BUCKETS.map((bucket) => (
             <SelectItem key={bucket.value} value={bucket.value}>
-              {bucket.label}
+              {tFormat(bucket.labelKey)}
             </SelectItem>
           ))}
         </SelectField>
 
         <SelectField
           id={`${fieldId}-status`}
-          label="Status"
+          label={tShared("status")}
           width="w-[168px]"
           value={status}
           onChange={onStatusChange}
         >
-          <SelectItem value={ALL_FILTER_VALUE}>All statuses</SelectItem>
+          <SelectItem value={ALL_FILTER_VALUE}>{t("allStatuses")}</SelectItem>
           {/* Four statuses, not the handoff's five. `Unavailable` has no source
               in this schema — there is no shift, rest or unavailability model
               to derive one from — so offering it would be a filter that can
@@ -414,7 +418,7 @@ export function FleetAvailabilityFilters({
               `@/lib/dashboard/hub/fleet-availability`. */}
           {AVAILABILITY_STATUS_ORDER.map((entry) => (
             <SelectItem key={entry} value={entry}>
-              {AVAILABILITY_STATUS[entry].label}
+              {tFormat(AVAILABILITY_STATUS[entry].labelKey)}
             </SelectItem>
           ))}
         </SelectField>
@@ -424,7 +428,7 @@ export function FleetAvailabilityFilters({
         {/* ---------------------------------------------------------------- */}
         <div className={FIELD_CLASSES}>
           <span className={FIELD_LABEL_CLASSES} id={`${fieldId}-driver-label`}>
-            Driver
+            {tShared("driver")}
           </span>
           <div className="w-[200px] max-[720px]:w-full">
             <Popover open={driverOpen} onOpenChange={onDriverOpenChange}>
@@ -440,7 +444,7 @@ export function FleetAvailabilityFilters({
                 className="flex h-9 w-full items-center justify-between gap-2 rounded-md border border-input bg-card px-3 text-sm font-normal outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
               >
                 <span className="truncate">
-                  {selectedDriver?.name ?? "All drivers"}
+                  {selectedDriver?.name ?? t("allDrivers")}
                 </span>
                 <ChevronDown
                   aria-hidden="true"
@@ -464,12 +468,12 @@ export function FleetAvailabilityFilters({
                     onChange={(event) =>
                       onDriverQueryChange(event.target.value)
                     }
-                    placeholder="Type a driver name"
+                    placeholder={t("typeADriverName")}
                     // Radix moves focus to the first focusable child on open,
                     // which is this box — so the dispatcher can type
                     // immediately without a manual `autoFocus`.
                     className="h-8 w-full"
-                    aria-label="Search drivers by name"
+                    aria-label={t("searchDriversByName")}
                   />
                 </div>
                 <div
@@ -483,7 +487,7 @@ export function FleetAvailabilityFilters({
                       mistyped search with no way back to the full board except
                       clearing the box character by character. */}
                   <DriverOptionRow
-                    label="All drivers"
+                    label={t("allDrivers")}
                     meta={`${driverOptions.length} drivers`}
                     selected={driverId === ALL_FILTER_VALUE}
                     onSelect={() => onDriverIdChange(ALL_FILTER_VALUE)}
@@ -499,7 +503,7 @@ export function FleetAvailabilityFilters({
                   ))}
                   {driverMatches.length === 0 ? (
                     <p className="px-[10px] py-3 text-xs text-muted-foreground">
-                      No driver matches that name.
+                      {t("noDriverMatchesThatName")}
                     </p>
                   ) : null}
                 </div>
@@ -513,7 +517,7 @@ export function FleetAvailabilityFilters({
         {/* ---------------------------------------------------------------- */}
         <div className={FIELD_CLASSES}>
           <label className={FIELD_LABEL_CLASSES} htmlFor={`${fieldId}-plate`}>
-            Plate
+            {tShared("plate")}
           </label>
           <Input
             id={`${fieldId}-plate`}
@@ -525,7 +529,7 @@ export function FleetAvailabilityFilters({
             onChange={(event) =>
               onPlateChange(event.target.value.toUpperCase())
             }
-            placeholder="Search plate"
+            placeholder={t("searchPlate")}
             className="h-9 w-[150px] font-price text-[13px] tabular-nums max-[720px]:w-full md:text-[13px]"
           />
         </div>
@@ -534,13 +538,13 @@ export function FleetAvailabilityFilters({
         {/* Zoom                                                             */}
         {/* ---------------------------------------------------------------- */}
         <div className={FIELD_CLASSES}>
-          <span className={FIELD_LABEL_CLASSES}>Zoom</span>
+          <span className={FIELD_LABEL_CLASSES}>{t("zoom")}</span>
           <div className="flex items-center gap-1.5">
             <Button
               type="button"
               variant="outline"
               size="icon-lg"
-              aria-label="Zoom out"
+              aria-label={t("zoomOut")}
               disabled={zoomIndex <= 0}
               onClick={() => onZoomIndexChange(Math.max(0, zoomIndex - 1))}
             >
@@ -559,7 +563,7 @@ export function FleetAvailabilityFilters({
               type="button"
               variant="outline"
               size="icon-lg"
-              aria-label="Zoom in"
+              aria-label={t("zoomIn")}
               disabled={zoomIndex >= ZOOM_STEPS.length - 1}
               onClick={() =>
                 onZoomIndexChange(
@@ -592,7 +596,7 @@ export function FleetAvailabilityFilters({
                   border: meta.border,
                 }}
               />
-              <span className="text-xs">{meta.label}</span>
+              <span className="text-xs">{tFormat(meta.labelKey)}</span>
               <span className="font-price text-xs text-muted-foreground tabular-nums">
                 {entry.count}
               </span>

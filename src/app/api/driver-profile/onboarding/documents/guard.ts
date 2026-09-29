@@ -11,6 +11,7 @@ import {
   DriverApplicationStatus,
 } from "@prisma/client";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -58,14 +59,16 @@ export type OnboardingDocumentGuardResult =
 export async function resolveOnboardingDocumentContext(
   request: Request,
 ): Promise<OnboardingDocumentGuardResult> {
+  const t = await getRequestTranslations();
+
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {
-    return { error: "Unauthorized.", status: 401 };
+    return { error: t("common.shared.unauthorized"), status: 401 };
   }
 
   if (session.user.role !== "DRIVER") {
     return {
-      error: "Only drivers can upload onboarding documents.",
+      error: t("errors.guard.onlyDriversCanUploadOnboardingDocuments"),
       status: 403,
     };
   }
@@ -79,7 +82,7 @@ export async function resolveOnboardingDocumentContext(
   });
 
   if (!driverProfile?.application) {
-    return { error: "Start the application first.", status: 404 };
+    return { error: t("common.shared.startTheApplicationFirst"), status: 404 };
   }
 
   const { application } = driverProfile;
@@ -131,7 +134,8 @@ export async function readJsonBody(
   try {
     return { body: await request.json() };
   } catch {
-    return { error: "Request body must be valid JSON." };
+    const tShared = await getRequestTranslations("common.shared");
+    return { error: tShared("requestBodyMustBeValidJson") };
   }
 }
 

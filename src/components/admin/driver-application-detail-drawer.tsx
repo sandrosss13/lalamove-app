@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 
 import type { DriverApplicationDocumentType } from "@prisma/client";
 
@@ -36,11 +37,13 @@ const DOCUMENT_ORDER: readonly DriverApplicationDocumentType[] = [
 ];
 
 /** Labels matching the driver's own status screen, so both name the same photo
- *  the same way when a reviewer reads a flag reason back to a driver. */
-const DOCUMENT_LABELS: Record<DriverApplicationDocumentType, string> = {
-  PROFILE_PHOTO: "Profile photo",
-  LICENCE_FRONT: "Licence — front",
-  LICENCE_BACK: "Licence — back",
+ *  the same way when a reviewer reads a flag reason back to a driver. Full
+ *  message paths — the licence sides are the status screen's own keys — resolved
+ *  where each label is shown. */
+const DOCUMENT_LABEL_KEYS: Record<DriverApplicationDocumentType, string> = {
+  PROFILE_PHOTO: "common.shared.profilePhoto",
+  LICENCE_FRONT: "onboarding.applicationStatusScreen.licenceFront",
+  LICENCE_BACK: "onboarding.applicationStatusScreen.licenceBack",
 };
 
 /**
@@ -66,11 +69,28 @@ const FLAG_REASONS: readonly string[] = [
  * Keyed loosely because the API sends `chassisType` as a plain string (blank
  * for a vehicle registered before the field was collected).
  */
-const CHASSIS_LABELS: Record<string, string> = {
-  DRY_BOX: "Dry Box",
-  REFRIGERATED: "Refrigerated Vehicle",
-  OPEN_CHASSIS: "Open Chassis",
+const CHASSIS_LABEL_KEYS: Record<string, string> = {
+  DRY_BOX: "common.shared.dryBox",
+  REFRIGERATED: "common.shared.refrigeratedVehicle",
+  OPEN_CHASSIS: "common.shared.openChassis",
 };
+
+type Translator = ReturnType<typeof useTranslations>;
+
+/** A document type's display name, falling back to the raw enum value for a
+ *  type this build has no label for. */
+function documentLabel(t: Translator, type: DriverApplicationDocumentType) {
+  const key = DOCUMENT_LABEL_KEYS[type];
+
+  return key === undefined ? type : t(key);
+}
+
+/** A body type's display name, or undefined when it is blank or unknown. */
+function chassisLabel(t: Translator, chassisType: string): string | undefined {
+  const key = CHASSIS_LABEL_KEYS[chassisType];
+
+  return key === undefined ? undefined : t(key);
+}
 
 /** Short month names, so dates format identically in every reviewer's browser. */
 const MONTH_NAMES = [
@@ -237,6 +257,7 @@ export function DriverApplicationDetailDrawer({
   onClose,
   onChanged,
 }: DriverApplicationDetailDrawerProps) {
+  const t = useTranslations();
   const [data, setData] = useState<AdminDriverApplicationDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -476,7 +497,7 @@ export function DriverApplicationDetailDrawer({
         // The label is resolved here rather than at the failure site so the
         // message names the document even for a type this build has no label
         // for, matching how the card itself falls back.
-        const label = DOCUMENT_LABELS[target.type] ?? target.type;
+        const label = documentLabel(t, target.type);
 
         try {
           const response = await fetch(
@@ -637,10 +658,10 @@ export function DriverApplicationDetailDrawer({
               {data?.reference ?? "Application"}
             </p>
             <h2 className="mt-[3px] truncate text-[17px] font-semibold tracking-[-0.01em]">
-              {data?.driver.name ?? "Loading…"}
+              {data?.driver.name ?? t("home.homeEntry.loading")}
             </h2>
             <p className="mt-[3px] text-[12.5px] text-muted-foreground">
-              {data ? describeVehicle(data) : " "}
+              {data ? describeVehicle(t, data) : " "}
             </p>
           </div>
           <Button
@@ -649,7 +670,7 @@ export function DriverApplicationDetailDrawer({
             size="icon-sm"
             onClick={onClose}
             disabled={isBusy}
-            aria-label="Close"
+            aria-label={t("common.shared.close")}
           >
             ×
           </Button>
@@ -658,7 +679,7 @@ export function DriverApplicationDetailDrawer({
         <div className="flex-1 overflow-y-auto px-[22px] py-[18px]">
           {loading ? (
             <p className="text-sm text-muted-foreground">
-              Loading application…
+              {t("common.shared.loadingApplication")}
             </p>
           ) : loadError !== null ? (
             <div className="flex flex-col items-start gap-3">
@@ -671,34 +692,46 @@ export function DriverApplicationDetailDrawer({
                 size="sm"
                 onClick={() => setReloadToken((token) => token + 1)}
               >
-                Try again
+                {t("common.shared.tryAgain")}
               </Button>
             </div>
           ) : data !== null ? (
             <div className="flex flex-col gap-5">
               <FieldSection
-                title="Applicant"
+                title={t("common.shared.applicant")}
                 fields={[
-                  { label: "ID number", value: data.driver.idNumber },
                   {
-                    label: "Date of birth",
+                    label: t("common.shared.idNumber"),
+                    value: data.driver.idNumber,
+                  },
+                  {
+                    label: t("common.shared.dateOfBirth"),
                     value: formatDate(data.driver.dateOfBirth),
                   },
-                  { label: "Mobile", value: data.driver.mobile },
-                  { label: "City", value: formatCity(data.driver.city) },
+                  {
+                    label: t("common.shared.mobile"),
+                    value: data.driver.mobile,
+                  },
+                  {
+                    label: t("common.shared.city"),
+                    value: formatCity(data.driver.city),
+                  },
                 ]}
               />
 
               <FieldSection
-                title="Licence"
+                title={t("admin.driverApplicationDetailDrawer.licence")}
                 fields={[
-                  { label: "Licence no.", value: data.licence.number },
                   {
-                    label: "Licence expiry",
+                    label: t("admin.driverApplicationDetailDrawer.licenceNo"),
+                    value: data.licence.number,
+                  },
+                  {
+                    label: t("common.shared.licenceExpiry"),
                     value: formatDate(data.licence.expiresAt),
                   },
                   {
-                    label: "Categories",
+                    label: t("common.shared.categories"),
                     value: data.licence.categories.join(", "),
                   },
                 ]}
@@ -706,31 +739,37 @@ export function DriverApplicationDetailDrawer({
 
               {data.vehicle !== null ? (
                 <FieldSection
-                  title="Vehicle"
+                  title={t("common.shared.vehicle")}
                   fields={[
-                    { label: "Class", value: data.vehicle.vehicleClassName },
                     {
-                      label: "Body type",
-                      value: CHASSIS_LABELS[data.vehicle.chassisType] ?? null,
+                      label: t("common.shared.class"),
+                      value: data.vehicle.vehicleClassName,
                     },
                     {
-                      label: "Make / model",
+                      label: t("common.shared.bodyType"),
+                      value: chassisLabel(t, data.vehicle.chassisType) ?? null,
+                    },
+                    {
+                      label: t("common.shared.makeModel"),
                       value: `${data.vehicle.make} ${data.vehicle.model}`,
                     },
                     {
-                      label: "Year / colour",
+                      label: t("common.shared.yearColour"),
                       value: `${data.vehicle.year} · ${orPlaceholder(data.vehicle.colour)}`,
                     },
-                    { label: "Plate", value: data.vehicle.plateNumber },
                     {
-                      label: "Payload",
+                      label: t("common.shared.plate"),
+                      value: data.vehicle.plateNumber,
+                    },
+                    {
+                      label: t("common.shared.payload"),
                       value:
                         data.vehicle.payloadKg === null
                           ? null
                           : `${data.vehicle.payloadKg.toLocaleString("en-US")} kg`,
                     },
                     {
-                      label: "Cargo hold",
+                      label: t("common.shared.cargoHold"),
                       value: formatCargoHold(data.vehicle),
                     },
                   ]}
@@ -744,14 +783,15 @@ export function DriverApplicationDetailDrawer({
                 // removed vehicle — and it is also why the approve endpoint
                 // refuses this application.
                 <section>
-                  <SectionTitle>Vehicle</SectionTitle>
+                  <SectionTitle>{t("common.shared.vehicle")}</SectionTitle>
                   <div className="mt-[9px] rounded-[11px] border border-destructive/40 bg-destructive/5 p-[13px]">
                     <p className="text-[13px] font-semibold text-destructive">
-                      Vehicle no longer on file
+                      {t("common.shared.vehicleNoLongerOnFile")}
                     </p>
                     <p className="mt-1 text-[12.5px] leading-[1.5] text-muted-foreground">
-                      The driver removed this vehicle after submitting. They
-                      cannot be approved until a vehicle is registered again.
+                      {t(
+                        "admin.driverApplicationDetailDrawer.theDriverRemovedThisVehicleAfter",
+                      )}
                     </p>
                   </div>
                 </section>
@@ -786,7 +826,9 @@ export function DriverApplicationDetailDrawer({
                 <div className="mt-[9px] flex flex-col gap-[9px]">
                   {documents.length === 0 ? (
                     <p className="text-[12.5px] text-muted-foreground">
-                      No documents on this application.
+                      {t(
+                        "admin.driverApplicationDetailDrawer.noDocumentsOnThisApplication",
+                      )}
                     </p>
                   ) : (
                     documents.map((document) => (
@@ -897,14 +939,17 @@ export function DriverApplicationDetailDrawer({
 }
 
 /** The vehicle line under the driver's name in the header. */
-function describeVehicle(data: AdminDriverApplicationDetail): string {
+function describeVehicle(
+  t: Translator,
+  data: AdminDriverApplicationDetail,
+): string {
   if (data.vehicle === null) {
     return "No vehicle on file";
   }
 
   return [
     data.vehicle.vehicleClassName,
-    CHASSIS_LABELS[data.vehicle.chassisType],
+    chassisLabel(t, data.vehicle.chassisType),
     data.vehicle.plateNumber,
   ]
     .filter((part): part is string => part !== undefined && part !== "")
@@ -993,12 +1038,13 @@ function DocumentRow({
   onApprove: () => void;
   onPickReason: (reason: string) => void;
 }) {
-  const label = DOCUMENT_LABELS[document.type] ?? document.type;
+  const t = useTranslations();
+  const label = documentLabel(t, document.type);
   const isApproved = document.status === "APPROVED";
   const isFlagged = document.status === "FLAGGED";
 
   const stateLine = isApproved
-    ? "Approved"
+    ? t("common.shared.approved")
     : isFlagged
       ? `Flagged — ${orPlaceholder(document.flagReason)}`
       : "Pending review";
@@ -1082,7 +1128,7 @@ function DocumentRow({
               aria-expanded={reasonsOpen}
               onClick={onToggleReasons}
             >
-              Flag
+              {t("common.shared.flag")}
             </Button>
           </div>
         )}

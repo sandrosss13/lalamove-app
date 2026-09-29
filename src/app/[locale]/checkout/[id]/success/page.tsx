@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { OrderStatus, PaymentStatus } from "@prisma/client";
+import { getTranslations } from "next-intl/server";
 
 import { Link } from "@/i18n/navigation";
 import { localeHref } from "@/i18n/server";
@@ -94,6 +95,8 @@ export default async function CheckoutSuccessPage({
   }
 
   const total = order.price + order.serviceLevelAdjustment;
+  const t = await getTranslations("checkout.checkoutSuccess");
+  const tShared = await getTranslations("common.shared");
 
   // How they settled, named the way the client chose it. `paymentMethodType` is
   // nullable on the column — orders placed before the payment step existed have
@@ -126,7 +129,7 @@ export default async function CheckoutSuccessPage({
           eyebrow="Booking confirmed"
           // A literal typographic apostrophe rather than `&rsquo;`: this is a
           // string prop, not JSX text, so an entity would render as itself.
-          title="You’re all set"
+          title={t("youReAllSet")}
           backHref="/orders"
           backLabel="← Your orders"
         />
@@ -139,7 +142,7 @@ export default async function CheckoutSuccessPage({
             id="checkout-confirmation-heading"
             className="font-display text-lg font-semibold text-paper"
           >
-            Your delivery is booked
+            {t("yourDeliveryIsBooked")}
           </h2>
           <p className="mt-2 text-[14px] leading-relaxed text-muted">
             We&rsquo;re matching it with a driver now. You&rsquo;ll be able to
@@ -148,19 +151,28 @@ export default async function CheckoutSuccessPage({
 
           <dl className="mt-5 flex flex-col gap-3 border-t border-line pt-5">
             <ConfirmationRow
-              label="Total"
+              label={tShared("total")}
               value={formatGel(total)}
               emphasised
             />
-            <ConfirmationRow label="Payment method" value={methodLabel} />
+            <ConfirmationRow
+              label={tShared("paymentMethod")}
+              value={methodLabel}
+            />
             {order.scheduledAt ? (
               <ConfirmationRow
-                label="Scheduled"
+                label={tShared("scheduled")}
                 value={formatScheduledAt(order.scheduledAt)}
               />
             ) : null}
-            <ConfirmationRow label="Pickup" value={order.pickupAddress} />
-            <ConfirmationRow label="Dropoff" value={order.dropoffAddress} />
+            <ConfirmationRow
+              label={tShared("pickup")}
+              value={order.pickupAddress}
+            />
+            <ConfirmationRow
+              label={tShared("dropoff")}
+              value={order.dropoffAddress}
+            />
           </dl>
 
           {paymentNote ? (
@@ -174,7 +186,7 @@ export default async function CheckoutSuccessPage({
               href="/orders"
               className="rounded-full bg-accent px-5 py-2.5 text-[14px] font-semibold text-on-accent transition-colors hover:bg-accent-hover"
             >
-              View your orders
+              {t("viewYourOrders")}
             </Link>
             {/* Reachable straight away: the tracking page renders the route and
                 the current status, and fills in the driver's position once one
@@ -183,7 +195,7 @@ export default async function CheckoutSuccessPage({
               href={`/orders/${order.id}/track`}
               className="rounded-full border border-line px-5 py-2.5 text-[14px] font-semibold text-paper transition-colors hover:border-accent/40 hover:text-accent"
             >
-              Track this delivery
+              {t("trackThisDelivery")}
             </Link>
           </div>
         </section>

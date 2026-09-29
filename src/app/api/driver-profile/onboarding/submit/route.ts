@@ -7,6 +7,7 @@ import {
   LicenceCategory,
 } from "@prisma/client";
 
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isDuplicatePlateError } from "@/app/api/driver-profile/vehicles/validation";
@@ -150,14 +151,15 @@ type SubmitContext = {
 async function resolveSubmitContext(
   request: Request,
 ): Promise<{ context: SubmitContext } | SubmitFailure> {
+  const t = await getRequestTranslations("common.shared");
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {
-    return { error: "Unauthorized.", status: 401 };
+    return { error: t("unauthorized"), status: 401 };
   }
 
   if (session.user.role !== "DRIVER") {
     return {
-      error: "Only drivers have an onboarding application.",
+      error: t("onlyDriversHaveAnOnboardingApplication"),
       status: 403,
     };
   }
@@ -174,22 +176,28 @@ async function resolveSubmitContext(
 
   if (!profile) {
     return {
-      error: "Complete your driver profile before onboarding.",
+      error: t("completeYourDriverProfileBeforeOnboarding"),
       status: 404,
     };
   }
 
   const { application } = profile;
   if (!application) {
-    return { error: "Start the application first.", status: 404 };
+    return { error: t("startTheApplicationFirst"), status: 404 };
   }
 
   if (application.status === "PENDING") {
-    return { error: "This application has already been submitted.", status: 400 };
+    return {
+      error: t("thisApplicationHasAlreadyBeenSubmitted"),
+      status: 400,
+    };
   }
 
   if (application.status === "APPROVED") {
-    return { error: "This application has already been approved.", status: 400 };
+    return {
+      error: t("thisApplicationHasAlreadyBeenApproved"),
+      status: 400,
+    };
   }
 
   return {
@@ -375,7 +383,8 @@ function validateLicence(
   // Re-checked against `now`, not against when step 2 was filled in: a licence
   // that was valid when the draft was started can have expired since.
   const expiresAt = parseIsoDate(licence.expiresAt);
-  const isValidExpiry = expiresAt !== null && expiresAt.getTime() > now.getTime();
+  const isValidExpiry =
+    expiresAt !== null && expiresAt.getTime() > now.getTime();
   if (!isValidExpiry) {
     problems.push("This licence has expired. Renew it before applying.");
   }
@@ -528,8 +537,7 @@ function validateVehicle(
     cargoHeightM: finiteNumber(vehicle.cargoHeightM),
   };
   const hasValidDimensions = Object.values(dimensions).every(
-    (value) =>
-      value !== null && value > 0 && value <= MAX_CARGO_DIMENSION_M,
+    (value) => value !== null && value > 0 && value <= MAX_CARGO_DIMENSION_M,
   );
   if (!hasValidDimensions) {
     problems.push("Check the dimensions — metres, not centimetres.");
@@ -621,10 +629,9 @@ function validateDocuments(
  * repeated: their inputs are frozen. With no draft to edit and `PATCH` refusing
  * to create one, nothing in the flow can change them between submits.
  */
-async function resubmit(
-  context: SubmitContext,
-): Promise<NextResponse> {
+async function resubmit(context: SubmitContext): Promise<NextResponse> {
   const { application, dateOfBirth, licenceExpiresAt } = context;
+  const t = await getRequestTranslations("common.shared");
 
   // A resubmission with no draft *and* no vehicle never had a successful first
   // submit, so there is nothing to hand back to the reviewer. Rejecting beats
@@ -632,8 +639,7 @@ async function resubmit(
   if (application.vehicleId === null) {
     return NextResponse.json(
       {
-        error:
-          "Your application is incomplete — contact support so we can restore it.",
+        error: t("yourApplicationIsIncompleteContactSupport"),
       },
       { status: 400 },
     );
@@ -701,6 +707,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
   }
 
+  const t = await getRequestTranslations("common.shared");
   const { driverProfileId, application } = resolved.context;
   const draft = parseOnboardingDraft(application.draft);
 
@@ -710,7 +717,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     return NextResponse.json(
-      { error: "Fill in the wizard before submitting your application." },
+      { error: t("fillInTheWizardBeforeSubmitting") },
       { status: 400 },
     );
   }
@@ -753,7 +760,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       `Vehicle type spec "${validatedVehicle.specCode}" is missing; cannot submit application ${application.id}.`,
     );
     return NextResponse.json(
-      { error: "We couldn't submit your application. Please try again." },
+      { error: t("weCouldnTSubmitYourApplication") },
       { status: 500 },
     );
   }
@@ -824,14 +831,14 @@ export async function POST(request: Request): Promise<NextResponse> {
     // ours to fix.
     if (isDuplicatePlateError(error)) {
       return NextResponse.json(
-        { error: "This plate number is already registered to another vehicle." },
+        { error: t("thisPlateNumberIsAlreadyRegistered2") },
         { status: 409 },
       );
     }
 
     console.error("Failed to submit a driver onboarding application:", error);
     return NextResponse.json(
-      { error: "We couldn't submit your application. Please try again." },
+      { error: t("weCouldnTSubmitYourApplication") },
       { status: 500 },
     );
   }
