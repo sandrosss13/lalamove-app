@@ -124,6 +124,10 @@
     "onlyClientsCanCreateAClient": "კლიენტის პროფილის შექმნა მხოლოდ კლიენტებს შეუძლიათ.",
     "onlyClientsHaveAClientProfile": "კლიენტის პროფილი მხოლოდ კლიენტებს აქვთ."
   },
+  "dashboardHubApi": {
+    "changeYourTemporaryPasswordBeforeContinuing": "გასაგრძელებლად შეცვალეთ დროებითი პაროლი.",
+    "onlyDriversAndLogisticsCompaniesCan": "მძღოლის ჰაბით სარგებლობა მხოლოდ მძღოლებსა და ლოჯისტიკურ კომპანიებს შეუძლიათ."
+  },
   "dashboardHubDriversAvailability": {
     "thisAccountCannotReadAFleet": "ამ ანგარიშს არ შეუძლია ავტოპარკის განრიგის ნახვა."
   },

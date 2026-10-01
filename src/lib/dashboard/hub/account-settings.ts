@@ -120,12 +120,18 @@ function ibanLast4(iban: string | null): string | null {
  * The session is re-read for the email only; `requireDashboardSession()` is
  * React-`cache()`d and the layout above has already called it, so this costs no
  * second validation.
+ *
+ * A caller that has validated its own session passes `sessionEmail`, and then
+ * `requireDashboardSession()` is not called at all. That is for the hub's JSON
+ * read routes: the guard `redirect()`s, which a route handler must never do
+ * (see `loadHubAccount` in `./account`). It must be the email of the same
+ * session `account` was resolved from.
  */
 export async function getHubAccountSettings(
   account: HubAccount,
+  sessionEmail?: string,
 ): Promise<HubAccountSettings | null> {
-  const session = await requireDashboardSession();
-  const { email } = session.user;
+  const email = sessionEmail ?? (await requireDashboardSession()).user.email;
 
   if (account.kind === "BUSINESS") {
     const company = await prisma.logisticsCompany.findUnique({

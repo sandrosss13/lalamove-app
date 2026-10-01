@@ -9,22 +9,30 @@ datasource db {
 }
 
 model User {
-  id                 String    @id
-  name               String
-  email              String
-  emailVerified      Boolean   @default(false)
+  id                  String    @id
+  name                String
+  email               String
+  emailVerified       Boolean   @default(false)
   // True only for accounts a company admin created with a temp password (see the
   // company driver-registration flow). The app layer redirects to the forced
   // password-change screen while this is true, and clears it once the driver
   // successfully changes their password. Better Auth has no built-in "force
   // password change" primitive, so this is a custom application-layer field.
-  mustChangePassword Boolean   @default(false)
-  image              String?
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
-  role               UserRole  @default(CLIENT)
-  sessions           Session[]
-  accounts           Account[]
+  mustChangePassword  Boolean   @default(false)
+  image               String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  role                UserRole  @default(CLIENT)
+  // Sign-in number for the native driver app, in E.164 (`+995555123456`), owned
+  // by Better Auth's `phoneNumber` plugin (see `src/lib/phone-auth.ts`). Set
+  // only by verifying an SMS code, never by a profile edit. Null for every
+  // email/password account. Deliberately separate from `DriverProfile.phone`,
+  // which is a contact detail in whatever format it was typed and is not
+  // unique; nothing is backfilled from it.
+  phoneNumber         String?   @unique
+  phoneNumberVerified Boolean   @default(false)
+  sessions            Session[]
+  accounts            Account[]
 
   // Account moderation, set by an admin from the back office. `isSuspended`
   // alone gates login/API access; the other two are audit context, not logic.

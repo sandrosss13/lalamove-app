@@ -124,6 +124,10 @@
     "onlyClientsCanCreateAClient": "Only clients can create a client profile.",
     "onlyClientsHaveAClientProfile": "Only clients have a client profile."
   },
+  "dashboardHubApi": {
+    "changeYourTemporaryPasswordBeforeContinuing": "Change your temporary password before continuing.",
+    "onlyDriversAndLogisticsCompaniesCan": "Only drivers and logistics companies can use the driver hub."
+  },
   "dashboardHubDriversAvailability": {
     "thisAccountCannotReadAFleet": "This account cannot read a fleet roster."
   },
