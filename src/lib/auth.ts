@@ -83,6 +83,9 @@ const TRUSTED_ORIGINS = [
   "https://*-sandrosss13s-projects.vercel.app",
 ];
 
+/** Better Auth's built-in "update my own profile" endpoint. */
+const UPDATE_USER_PATH = "/update-user";
+
 /** Better Auth's built-in "change my own password" endpoint. */
 const CHANGE_PASSWORD_PATH = "/change-password";
 
@@ -267,6 +270,23 @@ export const auth = betterAuth({
      * registration would be rejected.
      */
     before: createAuthMiddleware(async (ctx) => {
+      // `role` is `input: true` so that sign-up can carry it, and Better Auth
+      // applies the same flag to `/update-user` — which, unguarded, let any
+      // signed-in account rewrite its own role, `ADMIN` included. No screen
+      // changes a role this way; roles are fixed at sign-up and changed only
+      // by trusted server code writing through Prisma.
+      if (
+        ctx.path === UPDATE_USER_PATH &&
+        typeof ctx.body === "object" &&
+        ctx.body !== null &&
+        "role" in ctx.body
+      ) {
+        throw new APIError("FORBIDDEN", {
+          message: "Role cannot be updated.",
+          code: "ROLE_CANNOT_BE_UPDATED",
+        });
+      }
+
       if (ctx.path !== SIGN_UP_EMAIL_PATH) {
         return;
       }
