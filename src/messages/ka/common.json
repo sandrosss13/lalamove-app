@@ -17,6 +17,12 @@
     "industrialSupplies": "სამრეწველო და კომერციული მასალები",
     "retailStock": "მაღაზიისა და საცალო მარაგი"
   },
+  "comingSoon": {
+    "body": "Zomo-ს გასაშვებად ვამზადებთ. მალე შევხვდებით.",
+    "chooseLanguage": "ენა",
+    "heading": "მალე",
+    "metaTitle": "Zomo — მალე"
+  },
   "companyVehicleForm": {
     "adding": "ემატება…",
     "atLeastOnePhotoIsRequired": "სავალდებულოა მინიმუმ ერთი ფოტო. შეგიძლიათ აირჩიოთ რამდენიმე ერთდროულად.",

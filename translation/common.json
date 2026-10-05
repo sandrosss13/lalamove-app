@@ -59,6 +59,26 @@
     "ka": "მაღაზიისა და საცალო მარაგი",
     "_source": "src/lib/cargo.ts"
   },
+  "comingSoon.body": {
+    "en": "We're getting Zomo ready for launch. See you soon.",
+    "ka": "Zomo-ს გასაშვებად ვამზადებთ. მალე შევხვდებით.",
+    "_source": "src/app/[locale]/coming-soon/page.tsx"
+  },
+  "comingSoon.chooseLanguage": {
+    "en": "Language",
+    "ka": "ენა",
+    "_source": "src/app/[locale]/coming-soon/page.tsx"
+  },
+  "comingSoon.heading": {
+    "en": "Coming soon",
+    "ka": "მალე",
+    "_source": "src/app/[locale]/coming-soon/page.tsx"
+  },
+  "comingSoon.metaTitle": {
+    "en": "Zomo — Coming soon",
+    "ka": "Zomo — მალე",
+    "_source": "src/app/[locale]/coming-soon/page.tsx"
+  },
   "companyVehicleForm.adding": {
     "en": "Adding…",
     "ka": "ემატება…",

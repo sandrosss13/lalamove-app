@@ -17,6 +17,12 @@
     "industrialSupplies": "Industrial & Commercial Supplies",
     "retailStock": "Store & Retail Stock"
   },
+  "comingSoon": {
+    "body": "We're getting Zomo ready for launch. See you soon.",
+    "chooseLanguage": "Language",
+    "heading": "Coming soon",
+    "metaTitle": "Zomo — Coming soon"
+  },
   "companyVehicleForm": {
     "adding": "Adding…",
     "atLeastOnePhotoIsRequired": "At least one photo is required. You can select several at once.",
