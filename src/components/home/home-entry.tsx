@@ -13,10 +13,8 @@ import {
 } from "@/components/landing/landing-page";
 
 /**
- * The holding screen `/` shows while it still doesn't know what to render:
- * either the session is loading, or it has resolved to a provider and the
- * redirect to `/dashboard` is in flight. Both are the same beat to a visitor —
- * a page that is on its way somewhere — so both look the same.
+ * The holding screen `/` shows while a provider's redirect to `/dashboard` is
+ * in flight — a page that is on its way somewhere.
  */
 function LoadingScreen() {
   const t = useTranslations("home.homeEntry");
@@ -84,13 +82,18 @@ export function HomeEntry({
   }, [isProvider, router]);
 
   // The redirect is asynchronous, so the provider branch keeps rendering until
-  // it lands: show the same holding screen as a loading session rather than
-  // the client booking form, which would flash the wrong page.
-  if (isPending || isProvider) {
+  // it lands: show the holding screen rather than the client booking form,
+  // which would flash the wrong page.
+  if (isProvider) {
     return <LoadingScreen />;
   }
 
-  if (!session) {
+  // A pending session renders the landing page, not a holding screen. This is
+  // also what the server sends (it has no session), so the signed-out visitor —
+  // the bulk of this route's traffic — gets the real page in the first paint
+  // instead of "Loading…" followed by the page. A signed-in visitor swaps to
+  // their booking form (or is redirected) once the session resolves.
+  if (isPending || !session) {
     return (
       <LandingPage
         sections={sections}
