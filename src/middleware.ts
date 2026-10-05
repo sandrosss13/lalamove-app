@@ -70,6 +70,13 @@ function intlMiddleware(request: NextRequest) {
 const MERCHANT_ONLY_PREFIXES = ["/dashboard"];
 
 /**
+ * Where the merchant host's bare root sends a visitor (unprefixed; the locale
+ * prefix is re-attached by the caller). See the root special case in
+ * `middleware` below.
+ */
+const MERCHANT_HOME = "/dashboard";
+
+/**
  * Paths that belong to the admin back office, matched as a prefix. `/admin`
  * covers the whole surface including its own sign-in page, which must stay
  * reachable on the admin host for staff to sign in there at all.
@@ -83,6 +90,11 @@ const ADMIN_ONLY_PREFIXES = ["/admin"];
  * `/orders/[id]/track` is genuinely shared — a client watches their delivery
  * and the assigned driver reports position from the same page — so a prefix
  * match would break tracking on the merchant host.
+ *
+ * `/` stays listed so the admin-host and client-host logic keeps treating the
+ * landing page as client-owned, but the merchant host never bounces it: its
+ * bare root is special-cased to the dashboard before this list is consulted
+ * (see `MERCHANT_HOME`).
  */
 const CLIENT_ONLY_EXACT = ["/", "/home", "/orders"];
 
@@ -293,6 +305,30 @@ export function middleware(request: NextRequest) {
     if (origin) {
       return crossHost(origin);
     }
+  }
+
+  // The merchant host's bare root (`/`, `/ka`, `/en`) is its front door, not a
+  // stray client link: it is the address drivers type and the one printed on
+  // anything that points them at the driver site. It used to fall through to
+  // the `isClientOnly` bounce below like every other client path, which sent
+  // drivers to the client host's landing page — and with
+  // `CLIENT_UNDER_CONSTRUCTION` on, that page is "coming soon", so the driver
+  // site looked down. Instead the root stays on this host and opens the
+  // dashboard, which already sends a signed-out visitor to sign-in.
+  //
+  // Same-host, so the request URL is reused rather than `merchantOrigin()`: the
+  // reader stays on exactly the hostname they typed. The prefix and query
+  // string carry through; an unprefixed `/` goes to an unprefixed `/dashboard`
+  // and the locale layer negotiates it on the next hop (cookie, else Georgian),
+  // exactly as for any other unprefixed path. Only the root is special-cased —
+  // `/home`, `/orders`, `/account` and `/checkout` are genuinely client pages
+  // and still take the cross-host bounce.
+  if (audience === "MERCHANT" && pathname === "/") {
+    const target = request.nextUrl.clone();
+    target.pathname = locale
+      ? withLocalePrefix(locale, MERCHANT_HOME)
+      : MERCHANT_HOME;
+    return NextResponse.redirect(target);
   }
 
   if (audience === "MERCHANT" && isClientOnly(pathname)) {

@@ -175,6 +175,62 @@ test.describe("middleware with CLIENT_UNDER_CONSTRUCTION on", () => {
     }
   });
 
+  test("sends the merchant host's root to its own dashboard", () => {
+    // Regression: the root used to bounce to the client host like any other
+    // client path, which with the gate on landed drivers on "coming soon".
+    const results = probe(env, [
+      { url: "https://merchant.zomo.ge/" },
+      { url: "https://merchant.zomo.ge/ka" },
+      { url: "https://merchant.zomo.ge/en" },
+      { url: "https://merchant.zomo.ge/en?ref=sms" },
+    ]);
+    const [bare, georgian, english, query] = results;
+
+    // Unprefixed: stays unprefixed, and the locale layer negotiates it on the
+    // next hop like any other bare path.
+    expect(bare).toMatchObject({
+      kind: "redirect",
+      location: "https://merchant.zomo.ge/dashboard",
+    });
+    expect(georgian).toMatchObject({
+      kind: "redirect",
+      location: "https://merchant.zomo.ge/ka/dashboard",
+    });
+    expect(english).toMatchObject({
+      kind: "redirect",
+      location: "https://merchant.zomo.ge/en/dashboard",
+    });
+    expect(query).toMatchObject({
+      kind: "redirect",
+      location: "https://merchant.zomo.ge/en/dashboard?ref=sms",
+    });
+
+    for (const result of results) {
+      expect(result.robots, result.url).toBeNull();
+    }
+  });
+
+  test("still bounces other client paths off the merchant host", () => {
+    const [home, account, orders] = probe(env, [
+      { url: "https://merchant.zomo.ge/home" },
+      { url: "https://merchant.zomo.ge/en/account/profile" },
+      { url: "https://merchant.zomo.ge/ka/orders" },
+    ]);
+
+    expect(home).toMatchObject({
+      kind: "redirect",
+      location: "https://zomo.ge/home",
+    });
+    expect(account).toMatchObject({
+      kind: "redirect",
+      location: "https://zomo.ge/en/account/profile",
+    });
+    expect(orders).toMatchObject({
+      kind: "redirect",
+      location: "https://zomo.ge/ka/orders",
+    });
+  });
+
   test("is inert while the merchant split is off", () => {
     // No separate client host exists then, and gating the one shared host
     // would hide driver sign-up along with the customer site.
