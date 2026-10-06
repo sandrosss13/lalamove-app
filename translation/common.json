@@ -76,7 +76,7 @@
   },
   "comingSoon.tagline": {
     "en": "Cargo delivery and moving services in Tbilisi and across Georgia.",
-    "ka": "ტვირთისა და ბინის გადაზიდვა თბილისში და მთელ საქართველოში.",
+    "ka": "ტვირთის გადაზიდვა თბილისში და მთელ საქართველოში.",
     "_source": "src/app/[locale]/coming-soon/page.tsx"
   },
   "companyVehicleForm.adding": {
@@ -166,17 +166,17 @@
   },
   "seo.comingSoon.description": {
     "en": "zomo is launching soon: on-demand cargo delivery and moving services in Tbilisi and across Georgia. Looking for driver jobs in Tbilisi? Sign up early.",
-    "ka": "ზომო მალე გაეშვება — ტვირთის გადაზიდვა და ბინის გადაზიდვა თბილისში და მთელ საქართველოში. ეძებთ მძღოლის ვაკანსიას? დარეგისტრირდით წინასწარ.",
+    "ka": "ზომო მალე გაეშვება — ტვირთის გადაზიდვა თბილისში და მთელ საქართველოში. ეძებთ მძღოლის ვაკანსიას? დარეგისტრირდით წინასწარ.",
     "_source": "src/app/[locale]/coming-soon/page.tsx"
   },
   "seo.comingSoon.title": {
     "en": "zomo — Cargo Delivery & Moving in Tbilisi | Coming Soon",
-    "ka": "zomo — ტვირთისა და ბინის გადაზიდვა თბილისში | მალე",
+    "ka": "zomo — ტვირთის გადაზიდვა თბილისში | მალე",
     "_source": "src/app/[locale]/coming-soon/page.tsx"
   },
   "seo.driverSignUp.description": {
     "en": "Looking for driver jobs in Tbilisi? Join zomo with your van or truck, take cargo delivery and moving jobs, and drive on your own schedule.",
-    "ka": "მძღოლის ვაკანსია თბილისში: შემოგვიერთდით საკუთარი ფურგონით ან სატვირთოთი, შეასრულეთ ტვირთისა და ბინის გადაზიდვის რეისები თქვენი გრაფიკით.",
+    "ka": "მძღოლის ვაკანსია თბილისში: შემოგვიერთდით საკუთარი ფურგონით ან სატვირთოთი, შეასრულეთ ტვირთის გადაზიდვის რეისები თქვენი გრაფიკით.",
     "_source": "src/app/[locale]/sign-up/page.tsx"
   },
   "seo.driverSignUp.title": {
@@ -191,7 +191,7 @@
   },
   "seo.home.title": {
     "en": "zomo — Cargo Delivery & Moving Services in Tbilisi",
-    "ka": "zomo — ტვირთის გადაზიდვა | ბინის გადაზიდვა თბილისში",
+    "ka": "zomo — ტვირთის გადაზიდვა თბილისში",
     "_source": "src/app/[locale]/layout.tsx"
   },
   "seo.services.cargo.description": {
