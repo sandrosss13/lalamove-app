@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 
 import { resolveRouteLocale, type LocaleRouteParams } from "@/i18n/server";
 import { LOCALE_LABELS, LOCALES, withLocalePrefix } from "@/i18n/routing";
+import { ZomoLockupThemed } from "@/components/brand/zomo-logo";
 import { cn } from "@/lib/utils";
 
 /**
@@ -63,9 +64,7 @@ export default async function ComingSoonPage({
       className="flex min-h-screen flex-col bg-ink font-body text-paper antialiased"
     >
       <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center gap-8 px-6 py-16">
-        <p className="font-display text-xl font-semibold tracking-tight">
-          Zomo<span className="text-accent">.</span>
-        </p>
+        <ZomoLockupThemed className="h-7 w-auto self-start" />
 
         <div className="flex flex-col gap-4">
           {/* `leading-[1.15]` rather than the size's default of 1: Mkhedruli's

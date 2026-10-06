@@ -60,8 +60,8 @@
     "_source": "src/lib/cargo.ts"
   },
   "comingSoon.body": {
-    "en": "We're getting Zomo ready for launch. See you soon.",
-    "ka": "Zomo-ს გასაშვებად ვამზადებთ. მალე შევხვდებით.",
+    "en": "We're getting zomo ready for launch. See you soon.",
+    "ka": "ზომოს გასაშვებად ვამზადებთ. მალე შევხვდებით.",
     "_source": "src/app/[locale]/coming-soon/page.tsx"
   },
   "comingSoon.chooseLanguage": {
@@ -75,8 +75,8 @@
     "_source": "src/app/[locale]/coming-soon/page.tsx"
   },
   "comingSoon.metaTitle": {
-    "en": "Zomo — Coming soon",
-    "ka": "Zomo — მალე",
+    "en": "zomo — Coming soon",
+    "ka": "ზომო — მალე",
     "_source": "src/app/[locale]/coming-soon/page.tsx"
   },
   "companyVehicleForm.adding": {
