@@ -17,6 +17,12 @@
     "industrialSupplies": "Industrial & Commercial Supplies",
     "retailStock": "Store & Retail Stock"
   },
+  "comingSoon": {
+    "body": "We're getting zomo ready for launch. See you soon.",
+    "chooseLanguage": "Language",
+    "heading": "Coming soon",
+    "metaTitle": "zomo — Coming soon"
+  },
   "companyVehicleForm": {
     "adding": "Adding…",
     "atLeastOnePhotoIsRequired": "At least one photo is required. You can select several at once.",
@@ -82,6 +88,7 @@
     "back": "Back",
     "body": "Body",
     "bodyType": "Body type",
+    "brandName": "zomo",
     "business": "Business",
     "cancel": "Cancel",
     "cancellations": "Cancellations",
@@ -198,7 +205,6 @@
     "joined": "Joined",
     "key": "Key",
     "keyIsRequiredAndMustBe": "key is required and must be a non-empty string.",
-    "lalamoveClone": "Lalamove Clone",
     "language": "Language",
     "lastnameIsRequiredAndMustBe": "lastName is required and must be a non-empty string.",
     "length": "Length",

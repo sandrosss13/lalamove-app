@@ -1,4 +1,8 @@
-import { type FooterContent } from "@/lib/admin/home-page-content";
+import { ZomoLockupThemed } from "@/components/brand/zomo-logo";
+import {
+  migrateLegacyBrandCopy,
+  type FooterContent,
+} from "@/lib/admin/home-page-content";
 import { Link } from "@/i18n/navigation";
 import { merchantOrigin } from "@/lib/host";
 
@@ -85,7 +89,7 @@ function FooterLink({ href, label }: { href: string; label: string }) {
  * is a render-time read that belongs on the server.
  */
 export function LandingFooter({ content }: { content: FooterContent }) {
-  const copyright = content.copyright.replaceAll(
+  const copyright = migrateLegacyBrandCopy(content.copyright).replaceAll(
     YEAR_TOKEN,
     String(new Date().getFullYear()),
   );
@@ -104,9 +108,14 @@ export function LandingFooter({ content }: { content: FooterContent }) {
         */}
         <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-7">
           <div className="col-span-full">
-            <p className="text-[18px] font-bold tracking-[-0.02em] text-paper">
-              {content.brandName}
-            </p>
+            {/* The lockup in place of `brandName` set in text, which becomes
+                its accessible name. This footer sits on the page ground
+                (`bg-ink`: white, or near-black under `html.dark`) rather than
+                a fixed dark panel, so it follows the theme like the nav. */}
+            <ZomoLockupThemed
+              className="h-7"
+              label={migrateLegacyBrandCopy(content.brandName)}
+            />
             <p className="mt-3 max-w-[30ch] text-[14px] leading-relaxed text-faint">
               {content.brandBlurb}
             </p>

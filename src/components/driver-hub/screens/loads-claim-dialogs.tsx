@@ -128,7 +128,7 @@ import { cn } from "@/lib/utils";
  * Radix portals its dialog content to the document body, outside the
  * `DriverHubShell` root that carries `data-admin-surface` — and with it the
  * light-scheme pin that makes `bg-muted` / `bg-card` / `border-border` resolve
- * to the Lalamove palette rather than the marketing one. Two dialogs, two
+ * to the zomo app palette rather than the marketing one. Two dialogs, two
  * attributes; there is no shared wrapper that can carry it for them. See the doc
  * comment on `src/components/driver-hub/driver-hub-shell.tsx`.
  *

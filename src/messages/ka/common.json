@@ -17,6 +17,12 @@
     "industrialSupplies": "სამრეწველო და კომერციული მასალები",
     "retailStock": "მაღაზიისა და საცალო მარაგი"
   },
+  "comingSoon": {
+    "body": "ზომოს გასაშვებად ვამზადებთ. მალე შევხვდებით.",
+    "chooseLanguage": "ენა",
+    "heading": "მალე",
+    "metaTitle": "ზომო — მალე"
+  },
   "companyVehicleForm": {
     "adding": "ემატება…",
     "atLeastOnePhotoIsRequired": "სავალდებულოა მინიმუმ ერთი ფოტო. შეგიძლიათ აირჩიოთ რამდენიმე ერთდროულად.",
@@ -82,6 +88,7 @@
     "back": "უკან",
     "body": "ძარა",
     "bodyType": "ძარის ტიპი",
+    "brandName": "zomo",
     "business": "იურიდიული პირი",
     "cancel": "გაუქმება",
     "cancellations": "გაუქმებები",
@@ -198,7 +205,6 @@
     "joined": "შემოერთების თარიღი",
     "key": "გასაღები",
     "keyIsRequiredAndMustBe": "key სავალდებულოა და არ უნდა იყოს ცარიელი ტექსტი.",
-    "lalamoveClone": "Lalamove-ის კლონი",
     "language": "ენა",
     "lastnameIsRequiredAndMustBe": "lastName სავალდებულოა და არ უნდა იყოს ცარიელი ტექსტი.",
     "length": "სიგრძე",

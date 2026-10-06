@@ -416,6 +416,11 @@ export type NavLink = {
  * one plain link and one filled button — not as part of the wrapping link row.
  */
 export type NavContent = {
+  /**
+   * The brand's accessible name. The pill draws the zomo lockup SVG, never
+   * this text (the brand book forbids setting the wordmark in a font), so this
+   * is what a screen reader announces for the logo link.
+   */
   wordmark: string;
   links: NavLink[];
   signInLabel: string;
@@ -439,6 +444,7 @@ export type FooterColumn = {
  * no special validation.
  */
 export type FooterContent = {
+  /** The logo's accessible name — the footer draws the lockup SVG, as the nav does. */
   brandName: string;
   brandBlurb: string;
   columns: FooterColumn[];
@@ -708,10 +714,10 @@ export const DEFAULT_HOME_PAGE_CONTENT: HomePageSectionContentByType = {
       "Pick the category your load falls under and the vehicle rated to carry it comes with it. Figures below are a starting point for a short cross-town run — your price is calculated on the route you enter.",
   },
   nav: {
-    // TODO(content): the brand name is unconfirmed. The design handoff is
-    // written for "Lalamove Georgia"; the code currently ships
-    // "Lalamove/Clone". See `action-required.md`.
-    wordmark: "Lalamove Georgia",
+    // The official brand (see `logo and brandbook/design_handoff_zomo_rebrand`).
+    // Rows seeded before the rebrand still hold the placeholder "Lalamove
+    // Georgia"; `migrateLegacyBrandCopy` maps those on render.
+    wordmark: "zomo",
     links: [
       { label: "How it works", href: "#how" },
       { label: "Vehicles", href: "#vehicles" },
@@ -725,8 +731,8 @@ export const DEFAULT_HOME_PAGE_CONTENT: HomePageSectionContentByType = {
     signUpHref: "/sign-up",
   },
   footer: {
-    // TODO(content): same unconfirmed brand name as `nav.wordmark`.
-    brandName: "Lalamove Georgia",
+    // Same brand name, and same legacy mapping, as `nav.wordmark`.
+    brandName: "zomo",
     brandBlurb:
       "Commercial freight and cargo across Georgia — vans to trailer trucks, priced before you book.",
     columns: [
@@ -768,7 +774,7 @@ export const DEFAULT_HOME_PAGE_CONTENT: HomePageSectionContentByType = {
       },
     ],
     // `{year}` is substituted by the renderer with the current year.
-    copyright: "© {year} Lalamove Georgia",
+    copyright: "© {year} zomo",
     // TODO(content): same `#` placeholder convention as the Company column.
     legalLinks: [
       { label: "Privacy", href: "#" },
@@ -990,17 +996,41 @@ const DEFAULT_COPY_MESSAGE_KEYS: Readonly<Record<string, string>> = {
 };
 
 /**
+ * Brand strings from before the zomo rebrand, mapped to their replacements.
+ *
+ * "Lalamove Georgia" was the placeholder brand the original design handoff was
+ * written for, and it is what `scripts/seed-home-page-content.ts` stored in
+ * every `nav` / `footer` row seeded before the rebrand. Those rows are
+ * authored content, so they are not rewritten in the database; the renderer
+ * passes the brand fields through `migrateLegacyBrandCopy` instead, so an
+ * untouched legacy row shows the new brand while anything an editor actually
+ * changed is printed as written. Keep the old values here for as long as such
+ * rows may exist.
+ */
+const LEGACY_BRAND_COPY: ReadonlyMap<string, string> = new Map([
+  ["Lalamove Georgia", "zomo"],
+  ["© {year} Lalamove Georgia", "© {year} zomo"],
+]);
+
+/** The current-brand equivalent of a legacy placeholder value, else `value`. */
+export function migrateLegacyBrandCopy(value: string): string {
+  return LEGACY_BRAND_COPY.get(value) ?? value;
+}
+
+/**
  * Default strings that are the same in every language, so have no catalog key.
  *
- * The brand is a mark, not a word (`src/messages/GLOSSARY.md`: "Lalamove" is
- * never translated), the copyright line is that mark plus the renderer's
- * `{year}` token, and the stat figures are numerals. Listed so a coverage
- * check over the defaults can tell a deliberate literal from a string someone
- * forgot to key.
+ * The brand is a mark, not a word (`src/messages/GLOSSARY.md`: "zomo" is
+ * never translated as a standalone name), the copyright line is that mark plus
+ * the renderer's `{year}` token, and the stat figures are numerals. Listed so a
+ * coverage check over the defaults can tell a deliberate literal from a string
+ * someone forgot to key. The legacy "Lalamove Georgia" pair stays listed so
+ * rows stored before the rebrand still read as deliberate literals too.
  */
 export const UNTRANSLATED_DEFAULT_COPY: ReadonlySet<string> = new Set([
-  "Lalamove Georgia",
-  "© {year} Lalamove Georgia",
+  "zomo",
+  "© {year} zomo",
+  ...LEGACY_BRAND_COPY.keys(),
   "25",
   "11",
   "24/7",

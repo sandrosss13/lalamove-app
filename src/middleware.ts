@@ -15,6 +15,12 @@ import {
   splitLocalePrefix,
   withLocalePrefix,
 } from "@/i18n/routing";
+import {
+  IS_CLIENT_UNDER_CONSTRUCTION,
+  looksLikeFileRequest,
+  UNDER_CONSTRUCTION_ROBOTS_HEADER,
+  underConstructionRewritePath,
+} from "@/lib/under-construction";
 
 /**
  * Locale negotiation: matches `/ka/**` and `/en/**`, redirects an unprefixed
@@ -64,6 +70,13 @@ function intlMiddleware(request: NextRequest) {
 const MERCHANT_ONLY_PREFIXES = ["/dashboard"];
 
 /**
+ * Where the merchant host's bare root sends a visitor (unprefixed; the locale
+ * prefix is re-attached by the caller). See the root special case in
+ * `middleware` below.
+ */
+const MERCHANT_HOME = "/dashboard";
+
+/**
  * Paths that belong to the admin back office, matched as a prefix. `/admin`
  * covers the whole surface including its own sign-in page, which must stay
  * reachable on the admin host for staff to sign in there at all.
@@ -77,6 +90,11 @@ const ADMIN_ONLY_PREFIXES = ["/admin"];
  * `/orders/[id]/track` is genuinely shared — a client watches their delivery
  * and the assigned driver reports position from the same page — so a prefix
  * match would break tracking on the merchant host.
+ *
+ * `/` stays listed so the admin-host and client-host logic keeps treating the
+ * landing page as client-owned, but the merchant host never bounces it: its
+ * bare root is special-cased to the dashboard before this list is consulted
+ * (see `MERCHANT_HOME`).
  */
 const CLIENT_ONLY_EXACT = ["/", "/home", "/orders"];
 
@@ -133,6 +151,15 @@ function isPassthrough(pathname: string): boolean {
   return PASSTHROUGH_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
 
+/**
+ * The cookie next-intl's middleware writes to remember a reader's language.
+ * `src/i18n/routing.ts` does not configure `localeCookie`, so this is the
+ * library's default name. Read here only by the under-construction gate, which
+ * answers an unprefixed path without handing it to next-intl and so has to
+ * honour the remembered choice itself.
+ */
+const LOCALE_COOKIE = "NEXT_LOCALE";
+
 function isClientOnly(pathname: string): boolean {
   return (
     CLIENT_ONLY_EXACT.includes(pathname) ||
@@ -163,7 +190,16 @@ function isClientOnly(pathname: string): boolean {
  *    plain unprefixed paths and still match `/ka/...` and `/en/...`.
  * 3. The host gate runs and may redirect to another origin, re-attaching the
  *    prefix so the reader keeps their language across the bounce.
- * 4. Whatever stays on this host is handed to `intlMiddleware`, which serves
+ * 4. While `CLIENT_UNDER_CONSTRUCTION` is on (see
+ *    `src/lib/under-construction.ts`), a page request that is staying on the
+ *    client host is rewritten to the "coming soon" page instead of being
+ *    served. This sits *after* step 3 on purpose: `/dashboard` and `/admin`
+ *    asked for on the client host still bounce to the merchant and admin
+ *    hosts, which are live, so a stale link to either self-heals rather than
+ *    dead-ending on a placeholder. It sits *after* step 1 for the reason step 1
+ *    exists — `/api/**` has to keep answering on the client origin (Better
+ *    Auth's `baseURL`, and the driver mobile app's API base).
+ * 5. Whatever stays on this host is handed to `intlMiddleware`, which serves
  *    the matched route or redirects an unprefixed path into a locale.
  *
  * Everything not classified below reaches the locale layer on both hosts —
@@ -271,8 +307,64 @@ export function middleware(request: NextRequest) {
     }
   }
 
+  // The merchant host's bare root (`/`, `/ka`, `/en`) is its front door, not a
+  // stray client link: it is the address drivers type and the one printed on
+  // anything that points them at the driver site. It used to fall through to
+  // the `isClientOnly` bounce below like every other client path, which sent
+  // drivers to the client host's landing page — and with
+  // `CLIENT_UNDER_CONSTRUCTION` on, that page is "coming soon", so the driver
+  // site looked down. Instead the root stays on this host and opens the
+  // dashboard, which already sends a signed-out visitor to sign-in.
+  //
+  // Same-host, so the request URL is reused rather than `merchantOrigin()`: the
+  // reader stays on exactly the hostname they typed. The prefix and query
+  // string carry through; an unprefixed `/` goes to an unprefixed `/dashboard`
+  // and the locale layer negotiates it on the next hop (cookie, else Georgian),
+  // exactly as for any other unprefixed path. Only the root is special-cased —
+  // `/home`, `/orders`, `/account` and `/checkout` are genuinely client pages
+  // and still take the cross-host bounce.
+  if (audience === "MERCHANT" && pathname === "/") {
+    const target = request.nextUrl.clone();
+    target.pathname = locale
+      ? withLocalePrefix(locale, MERCHANT_HOME)
+      : MERCHANT_HOME;
+    return NextResponse.redirect(target);
+  }
+
   if (audience === "MERCHANT" && isClientOnly(pathname)) {
     return crossHost(clientOrigin());
+  }
+
+  // Pre-launch gate (step 4 above). Only the client audience is gated: the
+  // merchant and admin hosts never reach this line with `"CLIENT"`, and while
+  // the merchant split is off `audienceForHost` returns `"BOTH"` — one shared
+  // host that the merchant side lives on too — so the flag is deliberately
+  // inert there rather than hiding driver sign-up along with the customer site.
+  //
+  // A rewrite, not a redirect: the visitor's URL is left exactly as typed, so
+  // lifting the flag later needs no cleanup and nothing gets indexed under a
+  // `/coming-soon` address. The locale prefix (or, for an unprefixed path, the
+  // remembered cookie, else Georgian) carries through so the page answers in
+  // the reader's language — see `underConstructionRewritePath`.
+  if (
+    IS_CLIENT_UNDER_CONSTRUCTION &&
+    audience === "CLIENT" &&
+    !looksLikeFileRequest(pathname)
+  ) {
+    const response = NextResponse.rewrite(
+      new URL(
+        underConstructionRewritePath(
+          locale,
+          request.cookies.get(LOCALE_COOKIE)?.value,
+        ),
+        request.url,
+      ),
+    );
+    response.headers.set(
+      UNDER_CONSTRUCTION_ROBOTS_HEADER.name,
+      UNDER_CONSTRUCTION_ROBOTS_HEADER.value,
+    );
+    return response;
   }
 
   // No host redirect applies, so the request is staying here: hand it to the
@@ -284,8 +376,12 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   // Skip Next's static asset paths so the gate doesn't run on every JS/CSS
-  // chunk and image request.
+  // chunk and image request. `.webmanifest` is here because the web manifest
+  // (`src/app/manifest.ts`) is one unprefixed file on every host: run through
+  // the locale layer it would be redirected to `/ka/manifest.webmanifest`,
+  // where nothing is mounted. The brand icons under `/brand/` are already
+  // covered by the svg/png extensions.
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|webmanifest)$).*)",
   ],
 };

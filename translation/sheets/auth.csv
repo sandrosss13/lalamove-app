@@ -18,7 +18,7 @@ authPrimitives.socialSignInIsNotAvailable,Social sign-in is not available yet â€
 authShell.en,EN,,src/components/auth/auth-shell.tsx
 authShell.needHelp,Need help?,,src/components/auth/auth-shell.tsx
 changePassword.yourAccountWasCreatedWithA,Your account was created with a temporary password. Choose a new one to continue.,,src/app/[locale]/change-password/page.tsx
-roleStep.howWillYouUseLalamove,How will you use Lalamove?,,src/components/auth/role-step.tsx
+roleStep.howWillYouUseZomo,How will you use zomo?,,src/components/auth/role-step.tsx
 roleStep.pickTheSideOfTheDelivery,Pick the side of the delivery you are on. You can sign in or create an account from either one.,,src/components/auth/role-step.tsx
 roleStep.signInToTheBackOffice,Sign in to the back office,,src/components/auth/role-step.tsx
 roleStep.step1Of3Account,Step 1 of 3 Â· Account,,src/components/auth/role-step.tsx

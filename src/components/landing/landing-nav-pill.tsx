@@ -8,7 +8,11 @@ import { Link } from "@/i18n/navigation";
 import { useSignOut } from "@/components/auth/use-sign-out";
 import { LandingThemeToggle } from "@/components/landing/landing-theme-toggle";
 import { LanguageToggle } from "@/components/language-toggle";
-import { type NavContent } from "@/lib/admin/home-page-content";
+import { ZomoLockupThemed } from "@/components/brand/zomo-logo";
+import {
+  migrateLegacyBrandCopy,
+  type NavContent,
+} from "@/lib/admin/home-page-content";
 import { useSession } from "@/lib/auth-client";
 
 /**
@@ -191,11 +195,15 @@ export function LandingNavPill({ content }: { content: NavContent }) {
       className="pointer-events-none fixed top-[var(--landing-nav-pill-top)] right-0 left-0 z-50 flex flex-col items-center px-4"
     >
       <div className="pointer-events-auto flex max-w-full flex-wrap items-center justify-center gap-1.5 rounded-full border border-line bg-glass py-2 pr-2 pl-[18px] shadow-pill backdrop-blur-glass backdrop-saturate-[1.4]">
-        <Link
-          href="/"
-          className="mr-3.5 text-[16px] leading-none font-bold tracking-[-0.035em] whitespace-nowrap text-paper"
-        >
-          {content.wordmark}
+        {/* The zomo lockup, never `content.wordmark` set in text (the brand
+            book forbids the wordmark in a font); the CMS field is the logo's
+            accessible name instead. Themed with the page: primary on the light
+            glass pill, the dark-panel variant under `html.dark`. */}
+        <Link href="/" className="mr-3.5 flex flex-none items-center">
+          <ZomoLockupThemed
+            className="h-6"
+            label={migrateLegacyBrandCopy(content.wordmark)}
+          />
         </Link>
 
         {/* Hidden rather than unmounted below `sm` so the links stay in the

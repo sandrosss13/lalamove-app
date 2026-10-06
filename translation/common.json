@@ -59,6 +59,26 @@
     "ka": "მაღაზიისა და საცალო მარაგი",
     "_source": "src/lib/cargo.ts"
   },
+  "comingSoon.body": {
+    "en": "We're getting zomo ready for launch. See you soon.",
+    "ka": "ზომოს გასაშვებად ვამზადებთ. მალე შევხვდებით.",
+    "_source": "src/app/[locale]/coming-soon/page.tsx"
+  },
+  "comingSoon.chooseLanguage": {
+    "en": "Language",
+    "ka": "ენა",
+    "_source": "src/app/[locale]/coming-soon/page.tsx"
+  },
+  "comingSoon.heading": {
+    "en": "Coming soon",
+    "ka": "მალე",
+    "_source": "src/app/[locale]/coming-soon/page.tsx"
+  },
+  "comingSoon.metaTitle": {
+    "en": "zomo — Coming soon",
+    "ka": "ზომო — მალე",
+    "_source": "src/app/[locale]/coming-soon/page.tsx"
+  },
   "companyVehicleForm.adding": {
     "en": "Adding…",
     "ka": "ემატება…",
@@ -313,6 +333,11 @@
     "en": "Body type",
     "ka": "ძარის ტიპი",
     "_source": "src/components/admin/driver-application-detail-drawer.tsx"
+  },
+  "shared.brandName": {
+    "en": "zomo",
+    "ka": "zomo",
+    "_source": "src/app/[locale]/layout.tsx"
   },
   "shared.business": {
     "en": "Business",
@@ -893,11 +918,6 @@
     "en": "key is required and must be a non-empty string.",
     "ka": "key სავალდებულოა და არ უნდა იყოს ცარიელი ტექსტი.",
     "_source": "src/app/api/admin/content/messaging-templates/route.ts"
-  },
-  "shared.lalamoveClone": {
-    "en": "Lalamove Clone",
-    "ka": "Lalamove-ის კლონი",
-    "_source": "src/app/[locale]/layout.tsx"
   },
   "shared.language": {
     "en": "Language",
