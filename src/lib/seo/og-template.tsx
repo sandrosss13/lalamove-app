@@ -37,7 +37,7 @@ const OG_COPY: Record<OgImageVariant, Record<AppLocale, OgCopy>> = {
   client: {
     ka: {
       headline: "ტვირთის გადაზიდვა თბილისში",
-      subline: "ბინის გადაზიდვა და მიწოდება მთელ საქართველოში",
+      subline: "ფურგონი ან სატვირთო რამდენიმე წუთში — მთელ საქართველოში",
       host: "zomo.ge",
     },
     en: {
