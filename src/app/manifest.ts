@@ -1,5 +1,7 @@
 import type { MetadataRoute } from "next";
+import { getTranslations } from "next-intl/server";
 
+import { DEFAULT_LOCALE } from "@/i18n/routing";
 import { BRAND_NAME, BRAND_THEME_COLOR } from "@/lib/brand";
 
 /**
@@ -11,12 +13,25 @@ import { BRAND_NAME, BRAND_THEME_COLOR } from "@/lib/brand";
  * Customer icons on every host: a manifest cannot vary per subdomain without
  * reading the request, and the driver hub's home-screen icon is already
  * overridden by its apple-touch-icon (`dashboard/layout.tsx`).
+ *
+ * One file for both languages means one language for its text: Georgian, the
+ * platform's default, declared in `lang` so the description is read as such.
+ * `id` pins the app's identity to `/` so it survives a later `start_url` change.
  */
-export default function manifest(): MetadataRoute.Manifest {
+export default async function manifest(): Promise<MetadataRoute.Manifest> {
+  const t = await getTranslations({
+    locale: DEFAULT_LOCALE,
+    namespace: "common.seo",
+  });
+
   return {
+    id: "/",
     name: BRAND_NAME,
     short_name: BRAND_NAME,
+    description: t("home.description"),
+    lang: DEFAULT_LOCALE,
     start_url: "/",
+    scope: "/",
     display: "standalone",
     background_color: "#ffffff",
     theme_color: BRAND_THEME_COLOR,

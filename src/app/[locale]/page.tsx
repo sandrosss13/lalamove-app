@@ -1,6 +1,12 @@
+import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
+
 import { HomeEntry } from "@/components/home/home-entry";
 import { resolveRouteLocale, type LocaleRouteParams } from "@/i18n/server";
 import { loadHomePageContent } from "@/lib/admin/home-page-data";
+import { clientOrigin } from "@/lib/host";
+import { JsonLd, siteJsonLdGraph } from "@/lib/seo/json-ld";
+import { alternatesFor } from "@/lib/seo/urls";
 
 /**
  * Content edits go live within a minute rather than at the next deploy.
@@ -20,6 +26,27 @@ import { loadHomePageContent } from "@/lib/admin/home-page-data";
  * language.
  */
 export const revalidate = 60;
+
+/**
+ * The landing page's search snippet. The title is absolute — it already leads
+ * with the brand, so the layout's `"%s | zomo"` template would only repeat it —
+ * and the canonical is the bare locale root on the client origin, the same URL
+ * the coming-soon page names while the gate is on, so launch does not move it.
+ */
+export async function generateMetadata({
+  params,
+}: {
+  params: LocaleRouteParams;
+}): Promise<Metadata> {
+  const locale = await resolveRouteLocale(params);
+  const t = await getTranslations({ locale, namespace: "common.seo" });
+
+  return {
+    title: { absolute: t("home.title") },
+    description: t("home.description"),
+    alternates: alternatesFor(clientOrigin(), "/", locale),
+  };
+}
 
 /**
  * `/` — what a visitor lands on.
@@ -55,14 +82,18 @@ export const revalidate = 60;
 export default async function Home({ params }: { params: LocaleRouteParams }) {
   const locale = await resolveRouteLocale(params);
 
-  const { sections, heroBanners, partnerBanners } =
-    await loadHomePageContent(locale);
+  const [{ sections, heroBanners, partnerBanners }, jsonLd] = await Promise.all(
+    [loadHomePageContent(locale), siteJsonLdGraph(clientOrigin(), locale)],
+  );
 
   return (
-    <HomeEntry
-      sections={sections}
-      heroBanners={heroBanners}
-      partnerBanners={partnerBanners}
-    />
+    <>
+      <JsonLd data={jsonLd} />
+      <HomeEntry
+        sections={sections}
+        heroBanners={heroBanners}
+        partnerBanners={partnerBanners}
+      />
+    </>
   );
 }

@@ -62,16 +62,14 @@ export const IS_CLIENT_UNDER_CONSTRUCTION = parseUnderConstructionFlag(
  */
 export const UNDER_CONSTRUCTION_PATH = "/coming-soon";
 
-/**
- * Header sent with every gated response. The page sets the same thing in its
- * `<meta name="robots">`, but the header also covers crawlers that never parse
- * the HTML, and — because it is attached to the rewrite rather than to the
- * page — it cannot be lost if the page's metadata is ever edited.
+/*
+ * Gated responses carry `X-Robots-Tag: noindex, nofollow` — except the root
+ * (`/`, `/ka`, `/en`), which is deliberately indexable while the gate is on so
+ * the brand can be found before launch. That decision lives with the rest of
+ * the indexing policy in `src/lib/seo/site.ts` (`isIndexablePath`), and the
+ * middleware applies it to the rewrite: attached there rather than to the page,
+ * it cannot be lost if the page's metadata is ever edited.
  */
-export const UNDER_CONSTRUCTION_ROBOTS_HEADER = {
-  name: "X-Robots-Tag",
-  value: "noindex, nofollow",
-} as const;
 
 /**
  * A final path segment with a file extension: `/robots.txt`, `/site.webmanifest`,
