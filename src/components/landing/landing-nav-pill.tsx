@@ -132,6 +132,12 @@ export function LandingNavPill({ content }: { content: NavContent }) {
   const accountHref = isClient ? "/account" : "/dashboard";
   const accountLabel = isClient ? tShared("myAccount") : tShared("dashboard");
 
+  // A page with nothing to sign in to (the pre-launch city landing pages)
+  // passes an empty `signInHref`, and the Sign in chip is dropped on both
+  // breakpoints rather than rendered as a link to nowhere. The main landing
+  // page always carries one, so it is unaffected.
+  const hasSignIn = content.signInHref.trim() !== "";
+
   const panelId = useId();
   const containerRef = useRef<HTMLDivElement>(null);
   const toggleButtonRef = useRef<HTMLButtonElement>(null);
@@ -232,14 +238,14 @@ export function LandingNavPill({ content }: { content: NavContent }) {
             >
               {accountLabel}
             </NavLinkElement>
-          ) : (
+          ) : hasSignIn ? (
             <NavLinkElement
               href={content.signInHref}
               className={`${CHIP_QUIET} ml-1.5 px-3.5 py-[9px]`}
             >
               {content.signInLabel}
             </NavLinkElement>
-          )}
+          ) : null}
         </div>
 
         {/* Between the links and Sign up in the inline row; between the wordmark
@@ -345,13 +351,15 @@ export function LandingNavPill({ content }: { content: NavContent }) {
               </>
             ) : (
               <>
-                <NavLinkElement
-                  href={content.signInHref}
-                  onSelect={closeMenu}
-                  className={`${CHIP_QUIET} flex min-h-11 items-center px-3.5`}
-                >
-                  {content.signInLabel}
-                </NavLinkElement>
+                {hasSignIn ? (
+                  <NavLinkElement
+                    href={content.signInHref}
+                    onSelect={closeMenu}
+                    className={`${CHIP_QUIET} flex min-h-11 items-center px-3.5`}
+                  >
+                    {content.signInLabel}
+                  </NavLinkElement>
+                ) : null}
 
                 <NavLinkElement
                   href={content.signUpHref}

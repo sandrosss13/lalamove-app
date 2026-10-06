@@ -19,6 +19,7 @@ import {
 } from "@/i18n/routing";
 import {
   IS_CLIENT_UNDER_CONSTRUCTION,
+  isUnderConstructionExempt,
   looksLikeFileRequest,
   underConstructionRewritePath,
 } from "@/lib/under-construction";
@@ -122,8 +123,12 @@ const CLIENT_ONLY_EXACT = ["/", "/home", "/orders"];
  * is one client-only flow — `/checkout/[id]` and `/checkout/[id]/success` are
  * only ever reached by the client who booked the order, so none of it has the
  * shared-audience problem that keeps `/orders` in `CLIENT_ONLY_EXACT`.
+ *
+ * `/gadazidva` is the city landing pages (`src/lib/seo/cities.ts`): customer
+ * marketing pages, so on the merchant host they bounce to the client host
+ * rather than being served (and indexed) twice.
  */
-const CLIENT_ONLY_PREFIXES = ["/account", "/checkout"];
+const CLIENT_ONLY_PREFIXES = ["/account", "/checkout", "/gadazidva"];
 
 function matchesPrefix(pathname: string, prefixes: string[]): boolean {
   return prefixes.some(
@@ -422,7 +427,15 @@ export function middleware(request: NextRequest) {
   // The root (`/`, `/ka`, `/en`) is the one gated URL left indexable, so the
   // brand is findable before launch; every other gated URL is a duplicate of
   // it and carries the noindex header (the decision is `isIndexablePath`'s).
-  if (gated && !looksLikeFileRequest(pathname)) {
+  //
+  // The city landing pages are exempt and fall through to the locale layer
+  // like any ungated request (an unprefixed one is redirected into its
+  // locale first). Only known slugs: `/gadazidva/<unknown>` is still gated.
+  if (
+    gated &&
+    !looksLikeFileRequest(pathname) &&
+    !isUnderConstructionExempt(pathname)
+  ) {
     const response = NextResponse.rewrite(
       new URL(
         underConstructionRewritePath(

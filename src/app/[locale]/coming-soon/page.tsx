@@ -5,6 +5,7 @@ import { resolveRouteLocale, type LocaleRouteParams } from "@/i18n/server";
 import { LOCALE_LABELS, LOCALES, withLocalePrefix } from "@/i18n/routing";
 import { ZomoLockupThemed } from "@/components/brand/zomo-logo";
 import { clientOrigin } from "@/lib/host";
+import { CITY_LANDING_SLUGS, cityLandingPath } from "@/lib/seo/cities";
 import { JsonLd, siteJsonLdGraph } from "@/lib/seo/json-ld";
 import { alternatesFor } from "@/lib/seo/urls";
 import { cn } from "@/lib/utils";
@@ -48,7 +49,8 @@ export async function generateMetadata({
  * It is a dead end by design. `data-hide-site-header` hides the global header
  * from `src/app/[locale]/layout.tsx` (the rule lives in `globals.css`), so
  * nothing here links into the app — every such link would only be rewritten
- * back to this page anyway. The one control is the language switch, written as
+ * back to this page anyway. The exception is the city landing pages, which
+ * are exempt from the gate and linked from the list under the copy. The one control is the language switch, written as
  * plain `<a>` tags to the bare prefix (`/ka`, `/en`) rather than the
  * `LanguageToggle` component: that component is a client-side navigation that
  * swaps the prefix on the current route, and on a rewritten request "the
@@ -66,8 +68,9 @@ export default async function ComingSoonPage({
   params: LocaleRouteParams;
 }) {
   const locale = await resolveRouteLocale(params);
-  const [t, jsonLd] = await Promise.all([
+  const [t, tCity, jsonLd] = await Promise.all([
     getTranslations({ locale, namespace: "common.comingSoon" }),
+    getTranslations({ locale, namespace: "cityLanding" }),
     siteJsonLdGraph(clientOrigin(), locale),
   ]);
 
@@ -95,6 +98,31 @@ export default async function ComingSoonPage({
         </div>
 
         <span aria-hidden className="h-1 w-16 rounded-full bg-accent" />
+
+        {/*
+          The one exception to "nothing here links into the app": the city
+          landing pages are exempt from the gate, so these links resolve to
+          real pages. They are the crawl path into those pages from the only
+          indexable page the gated site has, anchored with each city's keyword.
+          Plain `<a>` with the prefix written out, like the language switch.
+        */}
+        <nav aria-label={tCity("shared.footer.citiesTitle")}>
+          <h2 className="font-price text-[11px] tracking-[.18em] text-faint uppercase">
+            {tCity("shared.footer.citiesTitle")}
+          </h2>
+          <ul className="mt-3 flex flex-wrap gap-2">
+            {CITY_LANDING_SLUGS.map((slug) => (
+              <li key={slug}>
+                <a
+                  href={withLocalePrefix(locale, cityLandingPath(slug))}
+                  className="inline-flex rounded-full border border-line-hairline px-3 py-1.5 text-sm text-subtle transition-colors hover:border-line-stronger hover:text-paper"
+                >
+                  {tCity(`cities.${slug}.keyword`)}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
       </main>
 
       <footer className="mx-auto w-full max-w-2xl px-6 pb-10">

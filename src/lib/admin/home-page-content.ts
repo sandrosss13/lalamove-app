@@ -586,7 +586,7 @@ export const DEFAULT_HOME_PAGE_CONTENT: HomePageSectionContentByType = {
     steps: [
       {
         title: "Set the route",
-        body: "Type the pickup and the dropoff — addresses autocomplete as you go — then tell us what you're moving: furniture, appliances, retail stock, or a full relocation.",
+        body: "Type the pickup and the dropoff — addresses autocomplete as you go — then tell us what you're sending: furniture, appliances, retail stock or construction materials.",
       },
       {
         title: "Pick a vehicle",
@@ -675,7 +675,7 @@ export const DEFAULT_HOME_PAGE_CONTENT: HomePageSectionContentByType = {
       {
         question: "Which vehicle should I book?",
         answer:
-          "Vehicles come in two duty classes, medium-duty and heavy-duty, and each cargo category only offers the classes that can take it. Furniture, appliances, retail stock and event equipment go either way; a full relocation, industrial supplies and construction materials are heavy-duty only. Every type lists its maximum payload, so you can match the rating to the load.",
+          "Vehicles come in two duty classes, medium-duty and heavy-duty, and each cargo category only offers the classes that can take it. Furniture, appliances, retail stock and event equipment go either way; industrial supplies and construction materials are heavy-duty only. Every type lists its maximum payload, so you can match the rating to the load.",
       },
       {
         question: "What does adding a helper do?",
@@ -875,7 +875,7 @@ const DEFAULT_COPY_MESSAGE_KEYS: Readonly<Record<string, string>> = {
   "Built for the load that won't fit in a car boot — an office move, a pallet of stock, a machine that needs a tail lift.":
     "admin.homePageContent.builtForTheLoadThatWontFit",
   "Set the route": "admin.homePageContent.setTheRoute",
-  "Type the pickup and the dropoff — addresses autocomplete as you go — then tell us what you're moving: furniture, appliances, retail stock, or a full relocation.":
+  "Type the pickup and the dropoff — addresses autocomplete as you go — then tell us what you're sending: furniture, appliances, retail stock or construction materials.":
     "admin.homePageContent.typeThePickupAndTheDropoff",
   "Pick a vehicle": "admin.homePageContent.pickAVehicle",
   "Cargo van for a few boxes, trailer truck for pallets. Every type lists its payload rating and cargo dimensions, so you can match the vehicle to the load.":
@@ -942,7 +942,7 @@ const DEFAULT_COPY_MESSAGE_KEYS: Readonly<Record<string, string>> = {
     "admin.homePageContent.weGeocodeBothAddressesAndPrice",
   "Which vehicle should I book?":
     "admin.homePageContent.whichVehicleShouldIBook",
-  "Vehicles come in two duty classes, medium-duty and heavy-duty, and each cargo category only offers the classes that can take it. Furniture, appliances, retail stock and event equipment go either way; a full relocation, industrial supplies and construction materials are heavy-duty only. Every type lists its maximum payload, so you can match the rating to the load.":
+  "Vehicles come in two duty classes, medium-duty and heavy-duty, and each cargo category only offers the classes that can take it. Furniture, appliances, retail stock and event equipment go either way; industrial supplies and construction materials are heavy-duty only. Every type lists its maximum payload, so you can match the rating to the load.":
     "admin.homePageContent.vehiclesComeInTwoDutyClasses",
   "What does adding a helper do?":
     "admin.homePageContent.whatDoesAddingAHelperDo",

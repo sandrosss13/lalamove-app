@@ -2130,8 +2130,8 @@
     "_source": "src/lib/admin/home-page-content.ts"
   },
   "homePageContent.typeThePickupAndTheDropoff": {
-    "en": "Type the pickup and the dropoff — addresses autocomplete as you go — then tell us what you're moving: furniture, appliances, retail stock, or a full relocation.",
-    "ka": "მიუთითეთ აყვანისა და ჩაბარების მისამართები — მისამართები ავტომატურად შეივსება აკრეფისას — შემდეგ გვითხარით რა გადაგაქვთ: ავეჯი, ტექნიკა, საბითუმო საქონელი თუ სრული ბინის გადაზიდვა.",
+    "en": "Type the pickup and the dropoff — addresses autocomplete as you go — then tell us what you're sending: furniture, appliances, retail stock or construction materials.",
+    "ka": "მიუთითეთ აყვანისა და ჩაბარების მისამართები — მისამართები ავტომატურად შეივსება აკრეფისას — შემდეგ გვითხარით რა გადაგაქვთ: ავეჯი, ტექნიკა, საბითუმო საქონელი თუ სამშენებლო მასალები.",
     "_source": "src/lib/admin/home-page-content.ts"
   },
   "homePageContent.vansToTrailerTrucksPricedBefore": {
@@ -2155,8 +2155,8 @@
     "_source": "src/lib/admin/home-page-content.ts"
   },
   "homePageContent.vehiclesComeInTwoDutyClasses": {
-    "en": "Vehicles come in two duty classes, medium-duty and heavy-duty, and each cargo category only offers the classes that can take it. Furniture, appliances, retail stock and event equipment go either way; a full relocation, industrial supplies and construction materials are heavy-duty only. Every type lists its maximum payload, so you can match the rating to the load.",
-    "ka": "ავტომობილები ორ კლასად იყოფა — საშუალო და მძიმე ტვირთამწეობის — და ტვირთის თითოეული კატეგორია მხოლოდ იმ კლასებს გთავაზობთ, რომლებსაც მისი გადატანა შეუძლია. ავეჯი, საყოფაცხოვრებო ტექნიკა, სავაჭრო მარაგი და ღონისძიების აღჭურვილობა ორივე კლასით გადაიზიდება; სრული გადასვლა, სამრეწველო მასალები და სამშენებლო მასალები — მხოლოდ მძიმე ტვირთამწეობით. თითოეულ ტიპს მითითებული აქვს მაქსიმალური ტვირთამწეობა, ასე რომ მას ტვირთს მარტივად შეუსაბამებთ.",
+    "en": "Vehicles come in two duty classes, medium-duty and heavy-duty, and each cargo category only offers the classes that can take it. Furniture, appliances, retail stock and event equipment go either way; industrial supplies and construction materials are heavy-duty only. Every type lists its maximum payload, so you can match the rating to the load.",
+    "ka": "ავტომობილები ორ კლასად იყოფა — საშუალო და მძიმე ტვირთამწეობის — და ტვირთის თითოეული კატეგორია მხოლოდ იმ კლასებს გთავაზობთ, რომლებსაც მისი გადატანა შეუძლია. ავეჯი, საყოფაცხოვრებო ტექნიკა, სავაჭრო მარაგი და ღონისძიების აღჭურვილობა ორივე კლასით გადაიზიდება; სამრეწველო და სამშენებლო მასალები — მხოლოდ მძიმე ტვირთამწეობით. თითოეულ ტიპს მითითებული აქვს მაქსიმალური ტვირთამწეობა, ასე რომ მას ტვირთს მარტივად შეუსაბამებთ.",
     "_source": "src/lib/admin/home-page-content.ts"
   },
   "homePageContent.weGeocodeBothAddressesAndPrice": {
