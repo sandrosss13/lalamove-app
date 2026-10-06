@@ -9,7 +9,7 @@ import { localeUrl } from "./urls";
  * schema.org structured data for the client host's front door.
  *
  * Deliberately limited to what is true today and verifiable from the site
- * itself: the organisation, the website, and the two services it sells. No
+ * itself: the organisation, the website, and the service it sells. No
  * `LocalBusiness` (there is no public street address or opening hours to give
  * it), no `JobPosting` (driver sign-up is not a vacancy with a salary and a
  * closing date, and Google penalises job markup that is not one), and no
@@ -110,11 +110,6 @@ export async function siteJsonLdGraph(
           serviceType: "Cargo delivery",
           name: t("services.cargo.name"),
           description: t("services.cargo.description"),
-        },
-        {
-          serviceType: "House moving",
-          name: t("services.moving.name"),
-          description: t("services.moving.description"),
         },
       ]),
     ],

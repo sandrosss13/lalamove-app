@@ -70,10 +70,6 @@
       "cargo": {
         "description": "On-demand cargo delivery by van or truck in Tbilisi and across Georgia.",
         "name": "Cargo delivery"
-      },
-      "moving": {
-        "description": "Flat and house moving in Tbilisi — a vehicle and driver booked in minutes.",
-        "name": "House moving"
       }
     },
     "signIn": {

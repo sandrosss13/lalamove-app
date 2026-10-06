@@ -186,7 +186,7 @@
   },
   "seo.home.description": {
     "en": "Cargo delivery and moving services in Tbilisi and across Georgia. Book a van or truck in minutes — from a single parcel to a full flat move.",
-    "ka": "ტვირთის გადაზიდვა თბილისში და მთელ საქართველოში. შეუკვეთეთ ფურგონი ან სატვირთო რამდენიმე წუთში — ერთი ამანათიდან ბინის სრულ გადაზიდვამდე.",
+    "ka": "ტვირთის გადაზიდვა თბილისში და მთელ საქართველოში. შეუკვეთეთ ფურგონი ან სატვირთო რამდენიმე წუთში.",
     "_source": "src/app/[locale]/layout.tsx"
   },
   "seo.home.title": {
@@ -202,16 +202,6 @@
   "seo.services.cargo.name": {
     "en": "Cargo delivery",
     "ka": "ტვირთის გადაზიდვა",
-    "_source": "src/lib/seo/json-ld.tsx"
-  },
-  "seo.services.moving.description": {
-    "en": "Flat and house moving in Tbilisi — a vehicle and driver booked in minutes.",
-    "ka": "ბინისა და სახლის გადაზიდვა თბილისში — ავტომობილი და მძღოლი რამდენიმე წუთში.",
-    "_source": "src/lib/seo/json-ld.tsx"
-  },
-  "seo.services.moving.name": {
-    "en": "House moving",
-    "ka": "ბინის გადაზიდვა",
     "_source": "src/lib/seo/json-ld.tsx"
   },
   "seo.signIn.description": {
