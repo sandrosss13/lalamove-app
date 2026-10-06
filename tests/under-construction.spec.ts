@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { expect, test } from "@playwright/test";
 
 import {
+  isUnderConstructionExempt,
   looksLikeFileRequest,
   parseUnderConstructionFlag,
   underConstructionRewritePath,
@@ -61,6 +62,26 @@ test.describe("looksLikeFileRequest", () => {
     expect(looksLikeFileRequest("/.well-known/assetlinks.json")).toBe(true);
     expect(looksLikeFileRequest("/")).toBe(false);
     expect(looksLikeFileRequest("/orders/42/track")).toBe(false);
+  });
+});
+
+test.describe("isUnderConstructionExempt", () => {
+  test("exempts exactly the known city landing pages", () => {
+    for (const path of ["/gadazidva/tbilisi", "/gadazidva/zugdidi"]) {
+      expect(isUnderConstructionExempt(path), path).toBe(true);
+    }
+    for (const path of [
+      "/",
+      "/gadazidva",
+      "/gadazidva/",
+      "/gadazidva/atlantis",
+      "/gadazidva/tbilisi/",
+      "/gadazidva/tbilisi/extra",
+      "/gadazidva/Tbilisi",
+      "/ka/gadazidva/tbilisi",
+    ]) {
+      expect(isUnderConstructionExempt(path), path).toBe(false);
+    }
   });
 });
 
@@ -302,6 +323,43 @@ test.describe("middleware with CLIENT_UNDER_CONSTRUCTION on", () => {
     });
   });
 
+  test("serves the city landing pages live and indexable", () => {
+    const [georgian, english, bare, unknown, image] = probe(env, [
+      { url: "https://zomo.ge/ka/gadazidva/tbilisi" },
+      { url: "https://zomo.ge/en/gadazidva/zugdidi" },
+      { url: "https://zomo.ge/gadazidva/batumi" },
+      { url: "https://zomo.ge/en/gadazidva/atlantis" },
+      { url: "https://zomo.ge/ka/gadazidva/tbilisi/opengraph-image" },
+    ]);
+
+    // Exempt from the gate: served as themselves, with no noindex header.
+    expect(georgian).toMatchObject({ kind: "next", robots: null });
+    expect(english).toMatchObject({ kind: "next", robots: null });
+    // Unprefixed: the locale layer's usual redirect, not the gate.
+    expect(bare).toMatchObject({
+      kind: "redirect",
+      location: "https://zomo.ge/ka/gadazidva/batumi",
+    });
+    // Only known slugs are exempt; anything else is gated like any path.
+    expect(unknown).toMatchObject({
+      kind: "rewrite",
+      rewrite: "/en/coming-soon",
+      robots: "noindex, nofollow",
+    });
+    expect(image).toMatchObject({ kind: "next", robots: null });
+  });
+
+  test("bounces city landing pages off the merchant host", () => {
+    const [city] = probe(env, [
+      { url: "https://merchant.zomo.ge/en/gadazidva/kutaisi?ref=x" },
+    ]);
+
+    expect(city).toMatchObject({
+      kind: "redirect",
+      location: "https://zomo.ge/en/gadazidva/kutaisi?ref=x",
+    });
+  });
+
   test("is inert while the merchant split is off", () => {
     // No separate client host exists then, and gating the one shared host
     // would hide driver sign-up along with the customer site.
@@ -330,6 +388,15 @@ test.describe("middleware with CLIENT_UNDER_CONSTRUCTION unset", () => {
       robots: "noindex, nofollow",
     });
     expect(signIn).toMatchObject({ kind: "next", robots: "noindex, nofollow" });
+  });
+
+  test("indexes the city landing pages", () => {
+    for (const result of probe(PRODUCTION_HOSTS, [
+      { url: "https://zomo.ge/ka/gadazidva/gori" },
+      { url: "https://zomo.ge/en/gadazidva/rustavi" },
+    ])) {
+      expect(result, result.url).toMatchObject({ kind: "next", robots: null });
+    }
   });
 
   test("serves the client host normally", () => {

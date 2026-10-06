@@ -33,8 +33,21 @@ const CLIENT_DISALLOW = [
   "/*/sign-in",
 ];
 
-/** The merchant host's only indexable page: driver sign-up, both languages. */
-const MERCHANT_ALLOW = ["/ka/sign-up", "/en/sign-up"];
+/**
+ * The merchant host's only indexable page — driver sign-up, both languages —
+ * plus what crawlers need around it under the blanket `Disallow: /`: the
+ * sitemap itself (Search Console reports "Couldn't fetch" otherwise), and the
+ * build assets, icons and manifest Google loads to render the page.
+ */
+const MERCHANT_ALLOW = [
+  "/ka/sign-up",
+  "/en/sign-up",
+  "/sitemap.xml",
+  "/_next/",
+  "/brand/",
+  "/favicon.ico",
+  "/manifest.webmanifest",
+];
 
 const DISALLOW_EVERYTHING: MetadataRoute.Robots = {
   rules: { userAgent: "*", disallow: "/" },
@@ -67,7 +80,7 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
       }
       return {
         // Google and Bing resolve Allow/Disallow by the most specific match, so
-        // the two sign-up pages stay crawlable under the blanket Disallow.
+        // the allowed paths stay crawlable under the blanket Disallow.
         rules: { userAgent: "*", allow: MERCHANT_ALLOW, disallow: "/" },
         sitemap: sitemapUrl(origin),
       };

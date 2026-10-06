@@ -1,0 +1,488 @@
+{
+  "shared": {
+    "breadcrumbHome": "Home",
+    "hero": {
+      "chipGated": "Launching soon — drivers can sign up now",
+      "chipTag": "Soon"
+    },
+    "cta": {
+      "becomeDriver": "Become a driver",
+      "howItWorks": "How it works",
+      "book": "Book a vehicle"
+    },
+    "nav": {
+      "areas": "Areas",
+      "how": "How it works",
+      "vehicles": "Vehicles",
+      "faq": "FAQ",
+      "cities": "Cities"
+    },
+    "intro": {
+      "eyebrow": "About the service"
+    },
+    "areas": {
+      "eyebrow": "Service area"
+    },
+    "howItWorks": {
+      "eyebrow": "How it works",
+      "heading": "From pickup to drop-off",
+      "steps": {
+        "s1": {
+          "title": "Describe the cargo",
+          "body": "Enter the pickup and drop-off addresses, what you are sending and roughly how big and heavy it is."
+        },
+        "s2": {
+          "title": "Choose a vehicle",
+          "body": "Pick the class that fits the load, from a small van to a trailer truck. You see the price before you confirm."
+        },
+        "s3": {
+          "title": "A checked driver takes the job",
+          "body": "A driver whose documents and vehicle zomo has reviewed accepts the job and heads to the pickup address."
+        },
+        "s4": {
+          "title": "Follow it to drop-off",
+          "body": "Track the vehicle on the map until the cargo is handed over at the drop-off address."
+        }
+      }
+    },
+    "faq": {
+      "eyebrow": "Questions"
+    },
+    "otherCities": {
+      "eyebrow": "Other cities",
+      "heading": "Cargo delivery across Georgia"
+    },
+    "closing": {
+      "bodyGated": "zomo is getting ready to launch. If you drive a van or a truck, you can sign up as a driver now.",
+      "bodyLive": "Tell us what needs to go where, choose a vehicle and follow the cargo all the way to drop-off."
+    },
+    "footer": {
+      "citiesTitle": "Cities"
+    },
+    "og": {
+      "subline": "Vans and trucks for cargo across Georgia"
+    }
+  },
+  "cities": {
+    "tbilisi": {
+      "keyword": "Cargo delivery in Tbilisi",
+      "meta": {
+        "title": "Cargo delivery in Tbilisi — vans and trucks",
+        "description": "Cargo delivery in Tbilisi by van or truck, from Saburtalo and Vake to Gldani, Isani and the Eliava and Lilo markets. Checked drivers, tracked trips."
+      },
+      "hero": {
+        "subtext": "Verified drivers with vans and trucks for shop stock, building materials, equipment and pallets — from the steep lanes of Old Tbilisi to the wholesale markets on the edge of the city."
+      },
+      "intro": {
+        "heading": "The right vehicle, anywhere in the capital",
+        "p1": "Tbilisi stretches a long way along the Mtkvari, and a single order can start on a narrow street in Sololaki and end at a warehouse in Samgori. zomo matches each order with a vehicle sized to the cargo: a few boxes do not need a heavy freight truck, and a pallet load will not fit in a small van.",
+        "p2": "Shops restocking at the Eliava and Lilo markets, builders carrying materials between sites, online sellers sending orders to customers, offices shipping equipment — every order starts the same way: a pickup address, a drop-off address, a description of the cargo and a vehicle class."
+      },
+      "why": {
+        "w1": {
+          "title": "Sized to the cargo",
+          "body": "From a small van for a boutique in Vake to a trailer truck for wholesale stock out of Didube, you choose the class that matches what you send."
+        },
+        "w2": {
+          "title": "Drivers zomo has checked",
+          "body": "Every driver passes a review of their documents and vehicle before taking a job in the city."
+        },
+        "w3": {
+          "title": "Through the traffic, on the map",
+          "body": "Follow the vehicle across Tbilisi on the map, from pickup to drop-off."
+        }
+      },
+      "areas": {
+        "heading": "Tbilisi, on both banks of the Mtkvari",
+        "body": "The service area covers the whole city on both sides of the river, including:",
+        "list": {
+          "a1": "Saburtalo and Vake",
+          "a2": "Old Tbilisi and Sololaki",
+          "a3": "Didube and Digomi",
+          "a4": "Gldani and Nadzaladevi",
+          "a5": "Isani and Samgori",
+          "a6": "Eliava and Lilo markets"
+        }
+      },
+      "faq": {
+        "heading": "Cargo delivery in Tbilisi: questions",
+        "intro": "Common questions about sending cargo around Tbilisi.",
+        "items": {
+          "q1": {
+            "question": "Can the driver collect from the Eliava or Lilo market?",
+            "answer": "Yes. Set the market as the pickup address and add the stall or row to the order description, so the driver can find you in the crowd."
+          },
+          "q2": {
+            "question": "Which vehicle do I need for building materials?",
+            "answer": "Cement, tiles and timber are heavy for their size. A large van is enough for a few bags; for pallets or long lengths choose a medium or heavy freight truck, ideally with a tail lift or an open flatbed."
+          },
+          "q3": {
+            "question": "Can someone help with loading and unloading?",
+            "answer": "Yes. When you set up the order you can add helpers who come with the driver and help carry the cargo — useful for offices on upper floors in Saburtalo or Vake with no freight lift."
+          },
+          "q4": {
+            "question": "Can I send cargo from Tbilisi to another city?",
+            "answer": "Yes. The price is calculated from the route distance, so a drop-off in Rustavi, Gori or further away is set up the same way as one across town."
+          },
+          "q5": {
+            "question": "I drive a van in Tbilisi. Can I work with zomo?",
+            "answer": "Yes. Sign up as a driver and upload your documents and vehicle details. Once your application is approved, you take jobs in Tbilisi on your own schedule."
+          }
+        }
+      },
+      "closing": {
+        "heading": "Cargo to move in Tbilisi?"
+      }
+    },
+    "batumi": {
+      "keyword": "Cargo delivery in Batumi",
+      "meta": {
+        "title": "Cargo delivery in Batumi — port, city and coast",
+        "description": "Cargo delivery in Batumi by van, truck or refrigerated van: the port, Old Batumi, the boulevard, Makhinjauri and Gonio. Checked drivers, tracked trips."
+      },
+      "hero": {
+        "subtext": "Supplies for hotels, restaurants and shops along the Black Sea coast, and goods coming in through the port — carried across Batumi by verified drivers in vans and trucks."
+      },
+      "intro": {
+        "heading": "Made for a port city and its coast",
+        "p1": "Cargo in Batumi runs between two worlds: the port and the warehouses around it on one side, and the hotels, cafés and shops packed into Old Batumi and along the boulevard on the other. With zomo you pick the vehicle for each route — a heavy freight truck from the port side, a small van for the narrow streets around Europe Square.",
+        "p2": "The coast's humidity and summer heat matter for food and flowers, so you can choose a refrigerated van, and fragile cargo — glassware for a new restaurant, display stock for a shop — can be marked as such before the driver arrives."
+      },
+      "why": {
+        "w1": {
+          "title": "From the port to the shopfront",
+          "body": "Pick up near the port or at a warehouse on the edge of town and drop off in the old centre, without changing vehicles."
+        },
+        "w2": {
+          "title": "Cold chain for the coast",
+          "body": "Refrigerated vans for seafood, dairy and flowers on their way to hotels and restaurants."
+        },
+        "w3": {
+          "title": "Drivers checked by zomo",
+          "body": "Each driver's documents and vehicle are reviewed before they take a job in Batumi."
+        }
+      },
+      "areas": {
+        "heading": "From the port to Gonio",
+        "body": "The service area runs along the coast from Makhinjauri in the north to Gonio in the south, including:",
+        "list": {
+          "a1": "Port area",
+          "a2": "Old Batumi and Europe Square",
+          "a3": "Old and New Boulevard",
+          "a4": "Tamar settlement",
+          "a5": "Makhinjauri",
+          "a6": "Gonio"
+        }
+      },
+      "faq": {
+        "heading": "Cargo delivery in Batumi: questions",
+        "intro": "Common questions about sending cargo in Batumi and along the Adjara coast.",
+        "items": {
+          "q1": {
+            "question": "Can cargo be collected near Batumi port?",
+            "answer": "Yes. Use the address where the cargo is actually released — a warehouse or a terminal gate — and put any reference the driver needs at the gate in the order description. Customs clearance is not part of the service."
+          },
+          "q2": {
+            "question": "Can I send chilled food?",
+            "answer": "Choose a refrigerated van when you set up the order and mark the cargo as cold chain, so the job goes to a driver with a suitable vehicle."
+          },
+          "q3": {
+            "question": "Can the driver reach a hotel on the boulevard?",
+            "answer": "The driver goes to the address you give. For hotels and restaurants on pedestrian stretches, set the drop-off at the nearest service entrance or loading point and mention it in the description."
+          },
+          "q4": {
+            "question": "Can I send cargo from Batumi to Kobuleti or Tbilisi?",
+            "answer": "Yes. The price follows the route distance, so a drop-off further along the coast or in another city is set up just like one in town."
+          },
+          "q5": {
+            "question": "How do I start driving with zomo in Batumi?",
+            "answer": "Sign up as a driver and upload your documents and vehicle details. Once the application is approved, you take jobs in Batumi whenever it suits you."
+          }
+        }
+      },
+      "closing": {
+        "heading": "Cargo to move in Batumi?"
+      }
+    },
+    "kutaisi": {
+      "keyword": "Cargo delivery in Kutaisi",
+      "meta": {
+        "title": "Cargo delivery in Kutaisi — city and industry",
+        "description": "Cargo delivery in Kutaisi by van or truck: the centre and Green Bazaar, Avtokarkhana, Nikea, Sapichkhia and the Free Industrial Zone. Checked drivers."
+      },
+      "hero": {
+        "subtext": "Stock for the Green Bazaar and shops in the centre, parts and materials for workshops and the Free Industrial Zone — carried across Kutaisi by verified drivers in vans and trucks."
+      },
+      "intro": {
+        "heading": "Cargo on both banks of the Rioni",
+        "p1": "Kutaisi is the trading centre of Imereti. Produce and goods from the surrounding villages come together at the Green Bazaar, while workshops and plants around Avtokarkhana and the Free Industrial Zone need parts and materials carried between them. zomo puts a vehicle of the right class on each of those orders.",
+        "p2": "A small or large van suits the old centre and its bridges over the Rioni; open flatbeds and heavy freight trucks take building materials and pallets out towards Tskaltubo, Zestaponi and the rest of the region."
+      },
+      "why": {
+        "w1": {
+          "title": "From market to workshop",
+          "body": "Pickups from the Green Bazaar or from a supplier are set up the same way every time."
+        },
+        "w2": {
+          "title": "The right class for the load",
+          "body": "From a small van to a trailer truck, chosen by the size and weight of what you send."
+        },
+        "w3": {
+          "title": "Followed on the map",
+          "body": "Watch the vehicle cross the city, from pickup to drop-off."
+        }
+      },
+      "areas": {
+        "heading": "Kutaisi and its industrial districts",
+        "body": "The service area covers the city on both banks of the Rioni and its industrial districts, including:",
+        "list": {
+          "a1": "City centre and the Green Bazaar",
+          "a2": "Avtokarkhana",
+          "a3": "Nikea",
+          "a4": "Sapichkhia",
+          "a5": "Mtsvane Kvavila",
+          "a6": "Kutaisi Free Industrial Zone"
+        }
+      },
+      "faq": {
+        "heading": "Cargo delivery in Kutaisi: questions",
+        "intro": "Common questions about sending cargo in Kutaisi and around Imereti.",
+        "items": {
+          "q1": {
+            "question": "Can I send produce from the Green Bazaar?",
+            "answer": "Yes. Set the bazaar as the pickup address and describe the cargo — crates of fruit, sacks of nuts — so the driver comes with enough space. Mark anything perishable or fragile."
+          },
+          "q2": {
+            "question": "Can cargo be collected from the Free Industrial Zone?",
+            "answer": "Yes, as long as the cargo is handed to the driver at the gate or the loading area. Put the company name and any pass details in the order description. Customs formalities remain with you."
+          },
+          "q3": {
+            "question": "Which vehicle suits pallets?",
+            "answer": "A medium truck is enough for a few pallets; for a full load choose a heavy freight truck or a trailer truck. Where there is no loading ramp, a tail lift helps."
+          },
+          "q4": {
+            "question": "Can the drop-off be in Tskaltubo or Zestaponi?",
+            "answer": "Yes. Drop-offs in nearby towns are set up like any other order, and the price follows the route distance."
+          },
+          "q5": {
+            "question": "I have a truck in Imereti. Can I join?",
+            "answer": "Yes. Register as a driver, add your truck and upload your documents. After approval you take jobs in and around Kutaisi on your own schedule."
+          }
+        }
+      },
+      "closing": {
+        "heading": "Cargo to move in Kutaisi?"
+      }
+    },
+    "rustavi": {
+      "keyword": "Cargo delivery in Rustavi",
+      "meta": {
+        "title": "Cargo delivery in Rustavi — industry and city",
+        "description": "Cargo delivery in Rustavi by van, truck or flatbed: the industrial zone, Old and New Rustavi, the car market area and the Tbilisi road. Checked drivers."
+      },
+      "hero": {
+        "subtext": "Metal, parts, building materials and shop stock — carried between Rustavi's industrial zone, its neighbourhoods and Tbilisi by verified drivers in vans and trucks."
+      },
+      "intro": {
+        "heading": "An industrial city next to the capital",
+        "p1": "Rustavi grew up around its metallurgical plant, and industry still shapes how cargo moves here: heavy, awkward loads leave the industrial zone, and goods flow steadily along the road to Tbilisi. For that work zomo has open flatbeds and heavy freight trucks, and vans for everyday deliveries.",
+        "p2": "The car market on the edge of town draws buyers and parts sellers from across the region, and Old and New Rustavi are full of shops and workshops that restock from wholesalers in Tbilisi. A van can collect in the capital and drop off in Rustavi as a single order."
+      },
+      "why": {
+        "w1": {
+          "title": "Flatbeds for heavy loads",
+          "body": "Open flatbeds and heavy freight trucks for metal, pipes and long lengths coming out of the industrial zone."
+        },
+        "w2": {
+          "title": "Tbilisi and Rustavi in one order",
+          "body": "Pick up in one city and drop off in the other, with no second vehicle to arrange."
+        },
+        "w3": {
+          "title": "Checked drivers and vehicles",
+          "body": "Every driver and vehicle is reviewed before taking a job, and every order can be followed on the map."
+        }
+      },
+      "areas": {
+        "heading": "Rustavi, from the plant to the highway",
+        "body": "The service area covers the city and its industrial districts, including:",
+        "list": {
+          "a1": "Old Rustavi",
+          "a2": "New Rustavi",
+          "a3": "Industrial zone",
+          "a4": "Metallurgical plant area",
+          "a5": "Car market area",
+          "a6": "Tbilisi–Rustavi highway"
+        }
+      },
+      "faq": {
+        "heading": "Cargo delivery in Rustavi: questions",
+        "intro": "Common questions about sending cargo in Rustavi and between Rustavi and Tbilisi.",
+        "items": {
+          "q1": {
+            "question": "Can I send metal or long pipes?",
+            "answer": "Yes. Choose an open flatbed or a heavy freight truck and give the length and weight in the cargo description, so the job goes to a vehicle that can carry it safely."
+          },
+          "q2": {
+            "question": "Can the pickup be in Tbilisi and the drop-off in Rustavi?",
+            "answer": "Yes. Enter both addresses as usual; the price follows the route distance between them."
+          },
+          "q3": {
+            "question": "Can I send car parts from the car market?",
+            "answer": "Yes. Engines, gearboxes and body panels are heavy or awkward, so mark them as a heavy item and choose a large van or a truck with a tail lift."
+          },
+          "q4": {
+            "question": "Can I add helpers for loading at a warehouse?",
+            "answer": "Yes. You can add helpers to the order; they come with the driver and help carry the cargo. Loading by forklift is arranged on site by you."
+          },
+          "q5": {
+            "question": "I drive a truck in Rustavi. How do I join?",
+            "answer": "Register as a driver, add your vehicle and upload your documents. After approval you can take jobs in Rustavi, in Tbilisi and between the two."
+          }
+        }
+      },
+      "closing": {
+        "heading": "Cargo to move in Rustavi?"
+      }
+    },
+    "gori": {
+      "keyword": "Cargo delivery in Gori",
+      "meta": {
+        "title": "Cargo delivery in Gori — city and Shida Kartli",
+        "description": "Cargo delivery in Gori by van, truck or refrigerated van: the city centre, the market, Karaleti, Variani, Ateni and fruit from Shida Kartli orchards."
+      },
+      "hero": {
+        "subtext": "Fruit from Shida Kartli orchards, stock for shops in the centre and materials for builders — carried across Gori and its villages by verified drivers in vans and trucks."
+      },
+      "intro": {
+        "heading": "Where Shida Kartli's cargo meets the main road",
+        "p1": "Gori sits on Georgia's main east–west highway, below its fortress, at the heart of one of the country's main fruit-growing regions. Apples, peaches and other produce leave the orchards around Karaleti and Variani for packers, markets and buyers in other cities.",
+        "p2": "For that work zomo has refrigerated vans for produce and open flatbeds for crates and building materials, while small vans handle deliveries to shops and offices in the city centre."
+      },
+      "why": {
+        "w1": {
+          "title": "From orchard to buyer",
+          "body": "Collect produce straight from the orchard and deliver it to a packer, a market or a buyer in another city."
+        },
+        "w2": {
+          "title": "Kept cool on the road",
+          "body": "Refrigerated vans and a cold-chain tag for fruit and other perishables."
+        },
+        "w3": {
+          "title": "Villages included",
+          "body": "Pickups and drop-offs in the villages around Gori are set up the same way as in town."
+        }
+      },
+      "areas": {
+        "heading": "Gori and the villages around it",
+        "body": "The service area covers the city and the surrounding villages of Gori Municipality, including:",
+        "list": {
+          "a1": "City centre and the fortress area",
+          "a2": "Gori market",
+          "a3": "The main highway corridor",
+          "a4": "Karaleti",
+          "a5": "Variani",
+          "a6": "Ateni"
+        }
+      },
+      "faq": {
+        "heading": "Cargo delivery in Gori: questions",
+        "intro": "Common questions about sending cargo in Gori and across Shida Kartli.",
+        "items": {
+          "q1": {
+            "question": "Can I send fruit straight from the orchard?",
+            "answer": "Yes. Use the orchard's location as the pickup address and add directions to the order description if the access road is unmarked. For produce that has to stay cool, choose a refrigerated van."
+          },
+          "q2": {
+            "question": "Can I send cargo from Gori to Tbilisi?",
+            "answer": "Yes. The price is based on the route distance along the highway, and the order is set up like any other."
+          },
+          "q3": {
+            "question": "Which vehicle do I need for crates of produce?",
+            "answer": "A large van takes a small load of crates; for a full harvest load choose a medium or heavy freight truck, or an open flatbed if the crates can travel uncovered."
+          },
+          "q4": {
+            "question": "Can I mark cargo as fragile?",
+            "answer": "Yes. Tag it as fragile when you set up the order — worth doing for glass jars, preserves and bottled goods — so the driver knows before loading."
+          },
+          "q5": {
+            "question": "I have a van in Gori. Can I drive with zomo?",
+            "answer": "Yes. Sign up as a driver and upload your documents and vehicle details. After approval you take jobs in Gori and along the highway whenever it suits you."
+          }
+        }
+      },
+      "closing": {
+        "heading": "Cargo to move in Gori?"
+      }
+    },
+    "zugdidi": {
+      "keyword": "Cargo delivery in Zugdidi",
+      "meta": {
+        "title": "Cargo delivery in Zugdidi — city and Samegrelo",
+        "description": "Cargo delivery in Zugdidi by van or truck: the centre and Dadiani Palace area, the central market, Rukhi, Ingiri and the roads to Anaklia and Jvari."
+      },
+      "hero": {
+        "subtext": "Hazelnuts and produce from Samegrelo, stock for shops around the central market and materials for builders — carried across Zugdidi by verified drivers in vans and trucks."
+      },
+      "intro": {
+        "heading": "Samegrelo's market town",
+        "p1": "Zugdidi is where Samegrelo trades. Hazelnuts, citrus and other produce come in from the surrounding villages, and the shops around the central market and Rustaveli Street restock from wholesalers in Kutaisi and Tbilisi.",
+        "p2": "zomo covers both directions: sacks of hazelnuts from a farm in Ingiri to a buyer, or a van of shop stock from the capital to the city centre. The vehicle class follows the cargo, from a small van to a trailer truck."
+      },
+      "why": {
+        "w1": {
+          "title": "Harvest loads",
+          "body": "Trucks for sacks of hazelnuts and crates of citrus on their way to processors and buyers."
+        },
+        "w2": {
+          "title": "Town and villages alike",
+          "body": "A pickup in Rukhi, Ingiri or further out is set up the same way as one in the centre."
+        },
+        "w3": {
+          "title": "Checked drivers, tracked trips",
+          "body": "Drivers are reviewed before they take jobs, and you can follow every order on the map."
+        }
+      },
+      "areas": {
+        "heading": "Zugdidi and the roads out of it",
+        "body": "The service area covers the city and the nearby villages of Zugdidi Municipality, including:",
+        "list": {
+          "a1": "City centre and the Dadiani Palace area",
+          "a2": "Central market",
+          "a3": "Rukhi",
+          "a4": "Ingiri",
+          "a5": "Anaklia road",
+          "a6": "Jvari road"
+        }
+      },
+      "faq": {
+        "heading": "Cargo delivery in Zugdidi: questions",
+        "intro": "Common questions about sending cargo in Zugdidi and across Samegrelo.",
+        "items": {
+          "q1": {
+            "question": "Can I send hazelnuts from a farm to a buyer?",
+            "answer": "Yes. Set the farm as the pickup address, add directions if needed, and describe the load — the sacks and their approximate weight — so a driver with a suitable truck takes the job."
+          },
+          "q2": {
+            "question": "Can I send cargo from Zugdidi to Tbilisi or Batumi?",
+            "answer": "Yes. The price is based on the route distance, and the order is set up just like a delivery across town."
+          },
+          "q3": {
+            "question": "Can the drop-off be in Anaklia?",
+            "answer": "Yes. Anaklia is on the road from Zugdidi to the sea; enter the address as usual and the price reflects the extra distance."
+          },
+          "q4": {
+            "question": "Can someone help carry heavy sacks?",
+            "answer": "Yes. Add helpers when you set up the order; they come with the driver and help with loading and unloading."
+          },
+          "q5": {
+            "question": "I drive in Samegrelo. Can I work with zomo?",
+            "answer": "Yes. Register as a driver, add your vehicle and upload your documents. Once approved, you take jobs in and around Zugdidi on your own schedule."
+          }
+        }
+      },
+      "closing": {
+        "heading": "Cargo to move in Zugdidi?"
+      }
+    }
+  }
+}

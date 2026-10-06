@@ -17,6 +17,7 @@
  */
 
 import type { Audience } from "@/lib/host";
+import { isCityLandingPath } from "@/lib/seo/cities";
 
 /**
  * The hostname a request was made to. `x-forwarded-host` is what a proxy
@@ -88,9 +89,10 @@ const MERCHANT_INDEXABLE_PATHS = ["/sign-up"];
  *
  * - Client host (or the single shared host while the merchant split is off):
  *   while the pre-launch gate is on, only the root — which serves the "coming
- *   soon" page — so the brand and its keywords are findable before launch.
- *   Every other gated URL renders that same page and would be a duplicate.
- *   Ungated, the landing page plus the published static pages. Account,
+ *   soon" page — so the brand and its keywords are findable before launch,
+ *   and the city landing pages, which the gate exempts. Every other gated URL
+ *   renders the "coming soon" page and would be a duplicate. Ungated, the
+ *   landing page, the city pages and the published static pages. Account,
  *   checkout, orders and the rest sit behind sign-in and are never indexed.
  * - Merchant host: only driver sign-up. The dashboard is signed-in only.
  * - Admin host: nothing, ever.
@@ -103,7 +105,9 @@ export function isIndexablePath(
   switch (audience) {
     case "CLIENT":
     case "BOTH":
-      if (pathname === "/") {
+      // The city landing pages are exempt from the gate (see
+      // `isUnderConstructionExempt`), so they are real pages either way.
+      if (pathname === "/" || isCityLandingPath(pathname)) {
         return true;
       }
       return (
