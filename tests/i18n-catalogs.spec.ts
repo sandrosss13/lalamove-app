@@ -226,6 +226,7 @@ const IDENTICAL_BY_DESIGN = new Set([
   "admin.messagingTemplateFormDialog.orderConfirmed",
   "admin.translationFormDialog.heroTitle",
   "common.shared.34Abc128",
+  "common.shared.brandName",
   "common.shared.driverExampleCom",
   "common.shared.slug",
   "common.shared.vehicletypePricingruleBasefare",

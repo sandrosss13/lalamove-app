@@ -1,4 +1,6 @@
+import type { Metadata } from "next";
 import { headers } from "next/headers";
+import { getTranslations } from "next-intl/server";
 
 import { SignUpForm } from "@/components/auth/sign-up-form";
 import {
@@ -8,7 +10,9 @@ import {
   type AccountType,
   type FlowRole,
 } from "@/lib/auth-flow";
-import { audienceForHost, type Audience } from "@/lib/host";
+import { resolveRouteLocale, type LocaleRouteParams } from "@/i18n/server";
+import { audienceForHost, merchantOrigin, type Audience } from "@/lib/host";
+import { alternatesFor } from "@/lib/seo/urls";
 
 /**
  * Registration entry point.
@@ -99,14 +103,57 @@ function resolveAccountType(
     : null;
 }
 
+/** The requesting host's audience — see the module comment on the header. */
+async function requestAudience(): Promise<Audience> {
+  const headersList = await headers();
+  const host = headersList.get("x-forwarded-host") ?? headersList.get("host");
+
+  return audienceForHost(host);
+}
+
+/**
+ * On the merchant host this is the driver recruitment page — the one URL on
+ * driver.zomo.ge meant to be found through search ("driver jobs in Tbilisi") —
+ * so it is indexed, with a canonical and `metadataBase` on the merchant origin:
+ * the root layout's base is the client origin, and the driver variant of the
+ * Open Graph image is only meaningful under the driver host.
+ *
+ * Everywhere else (the client host's customer registration, or the
+ * split-disabled single host) it is a form, not a landing page: kept out of the
+ * index, but `follow` so the links on it still count.
+ */
+export async function generateMetadata({
+  params,
+}: {
+  params: LocaleRouteParams;
+}): Promise<Metadata> {
+  const [locale, audience] = await Promise.all([
+    resolveRouteLocale(params),
+    requestAudience(),
+  ]);
+  const origin = merchantOrigin();
+
+  if (audience !== "MERCHANT" || origin === null) {
+    return { robots: { index: false, follow: true } };
+  }
+
+  const t = await getTranslations({ locale, namespace: "common.seo" });
+
+  return {
+    metadataBase: new URL(origin),
+    title: t("driverSignUp.title"),
+    description: t("driverSignUp.description"),
+    alternates: alternatesFor(origin, "/sign-up", locale),
+    robots: { index: true, follow: true },
+  };
+}
+
 export default async function SignUpPage({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const headersList = await headers();
-  const host = headersList.get("x-forwarded-host") ?? headersList.get("host");
-  const audience = audienceForHost(host);
+  const audience = await requestAudience();
 
   const query = await searchParams;
   const role = resolveRole(query.role, audience);

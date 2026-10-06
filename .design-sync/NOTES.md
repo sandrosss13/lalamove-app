@@ -1,4 +1,4 @@
-# design-sync notes for lalamove-app
+# design-sync notes for zomo-app
 
 Scope: only `src/components/ui` (14 shadcn primitives), not the whole app.
 Chosen deliberately over the whole `src/components` tree (see conversation)
@@ -15,10 +15,10 @@ because `resolvePackage` needs `<node-modules>/<pkg>/package.json` to exist
 even in synth mode (`exportedNames(PKG_DIR, pkgJson)` reads it
 unconditionally before the synth fallback runs).
 
-**Do NOT fix this with a self-referencing `node_modules/lalamove-app`
+**Do NOT fix this with a self-referencing `node_modules/zomo-app`
 symlink pointing at the repo root.** I tried that first — it created a
-symlink cycle inside `node_modules` (`node_modules/lalamove-app` ->
-repo root -> `node_modules/lalamove-app` -> ...) and the build OOM'd
+symlink cycle inside `node_modules` (`node_modules/zomo-app` ->
+repo root -> `node_modules/zomo-app` -> ...) and the build OOM'd
 (`ts-morph`/TS module resolution walked the cycle and exhausted the heap
 building ever-longer path strings). I removed the symlink immediately.
 
@@ -27,7 +27,7 @@ non-symlinked barrel file at the **repo root** — `.ds-entry.mjs` (gitignored,
 regenerable). Passing `--entry` makes `package-build.mjs` walk up from the
 entry file's own directory to find the nearest real `package.json` — since
 the entry lives at repo root, that's the repo's own `package.json`
-(`name: "lalamove-app"`), no symlink needed, no cycle possible.
+(`name: "zomo-app"`), no symlink needed, no cycle possible.
 
 Because `.d.ts`-based export discovery then finds nothing (no
 `index.d.ts`), **`componentSrcMap` in config.json is the *only* source of

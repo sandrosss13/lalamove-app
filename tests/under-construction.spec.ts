@@ -96,6 +96,7 @@ function probe(
       ...process.env,
       // Cleared first so a value in the developer's shell cannot leak in.
       CLIENT_UNDER_CONSTRUCTION: "",
+      VERCEL_ENV: "",
       ...env,
       PROBE_REQUESTS: JSON.stringify(requests),
     },
@@ -111,7 +112,7 @@ function probe(
 test.describe("middleware with CLIENT_UNDER_CONSTRUCTION on", () => {
   const env = { ...PRODUCTION_HOSTS, CLIENT_UNDER_CONSTRUCTION: "true" };
 
-  test("rewrites client-host pages in place, with noindex", () => {
+  test("rewrites client-host pages in place", () => {
     const [root, english, deep, remembered] = probe(env, [
       { url: "https://zomo.ge/" },
       { url: "https://zomo.ge/en" },
@@ -119,11 +120,7 @@ test.describe("middleware with CLIENT_UNDER_CONSTRUCTION on", () => {
       { url: "https://zomo.ge/home", cookie: "NEXT_LOCALE=en" },
     ]);
 
-    expect(root).toMatchObject({
-      kind: "rewrite",
-      rewrite: "/ka/coming-soon",
-      robots: "noindex, nofollow",
-    });
+    expect(root).toMatchObject({ kind: "rewrite", rewrite: "/ka/coming-soon" });
     expect(english).toMatchObject({
       kind: "rewrite",
       rewrite: "/en/coming-soon",
@@ -133,6 +130,36 @@ test.describe("middleware with CLIENT_UNDER_CONSTRUCTION on", () => {
       kind: "rewrite",
       rewrite: "/en/coming-soon",
     });
+  });
+
+  test("leaves only the root indexable", () => {
+    // The root is how the brand is found before launch; every other gated URL
+    // renders the same page and would be a duplicate of it.
+    const results = probe(env, [
+      { url: "https://zomo.ge/" },
+      { url: "https://zomo.ge/ka" },
+      { url: "https://zomo.ge/en" },
+      { url: "https://zomo.ge/ka/orders/42/track" },
+      { url: "https://zomo.ge/en/coming-soon" },
+    ]);
+
+    for (const result of results.slice(0, 3)) {
+      expect(result.robots, result.url).toBeNull();
+    }
+    for (const result of results.slice(3)) {
+      expect(result.robots, result.url).toBe("noindex, nofollow");
+    }
+  });
+
+  test("lets metadata images through instead of rewriting them", () => {
+    // Rewritten to the HTML page, every link preview would break.
+    for (const result of probe(env, [
+      { url: "https://zomo.ge/ka/opengraph-image" },
+      { url: "https://zomo.ge/en/twitter-image" },
+      { url: "https://zomo.ge/sitemap.xml" },
+    ])) {
+      expect(result, result.url).toMatchObject({ kind: "next", robots: null });
+    }
   });
 
   test("leaves the API and files on the client host alone", () => {
@@ -164,20 +191,33 @@ test.describe("middleware with CLIENT_UNDER_CONSTRUCTION on", () => {
     });
   });
 
-  test("does not touch the merchant or admin hosts", () => {
+  test("does not gate the merchant or admin hosts", () => {
+    // Served, not rewritten — but noindexed, since none of these is a page
+    // search engines should list (see `isIndexablePath`).
     for (const result of probe(env, [
       { url: "https://merchant.zomo.ge/ka/sign-in" },
       { url: "https://merchant.zomo.ge/ka/dashboard" },
       { url: "https://admin.zomo.ge/ka/admin" },
     ])) {
       expect(result.kind, result.url).toBe("next");
-      expect(result.robots, result.url).toBeNull();
+      expect(result.robots, result.url).toBe("noindex, nofollow");
     }
   });
 
-  test("sends the merchant host's root to its own dashboard", () => {
+  test("leaves driver sign-up indexable on the merchant host", () => {
+    for (const result of probe(env, [
+      { url: "https://merchant.zomo.ge/ka/sign-up" },
+      { url: "https://merchant.zomo.ge/en/sign-up" },
+    ])) {
+      expect(result, result.url).toMatchObject({ kind: "next", robots: null });
+    }
+  });
+
+  test("sends a signed-out visitor at the merchant root to sign-up", () => {
     // Regression: the root used to bounce to the client host like any other
     // client path, which with the gate on landed drivers on "coming soon".
+    // A signed-out visitor is most likely a prospective driver, so the root
+    // opens recruitment rather than dashboard -> sign-in.
     const results = probe(env, [
       { url: "https://merchant.zomo.ge/" },
       { url: "https://merchant.zomo.ge/ka" },
@@ -190,24 +230,55 @@ test.describe("middleware with CLIENT_UNDER_CONSTRUCTION on", () => {
     // next hop like any other bare path.
     expect(bare).toMatchObject({
       kind: "redirect",
-      location: "https://merchant.zomo.ge/dashboard",
+      location: "https://merchant.zomo.ge/sign-up",
     });
     expect(georgian).toMatchObject({
       kind: "redirect",
-      location: "https://merchant.zomo.ge/ka/dashboard",
+      location: "https://merchant.zomo.ge/ka/sign-up",
     });
     expect(english).toMatchObject({
       kind: "redirect",
-      location: "https://merchant.zomo.ge/en/dashboard",
+      location: "https://merchant.zomo.ge/en/sign-up",
     });
     expect(query).toMatchObject({
       kind: "redirect",
-      location: "https://merchant.zomo.ge/en/dashboard?ref=sms",
+      location: "https://merchant.zomo.ge/en/sign-up?ref=sms",
     });
 
     for (const result of results) {
       expect(result.robots, result.url).toBeNull();
     }
+  });
+
+  test("sends a signed-in visitor at the merchant root to the dashboard", () => {
+    // Plain and `__Secure-` (HTTPS) cookie names, as Better Auth writes them.
+    const [plain, secure, bare] = probe(env, [
+      {
+        url: "https://merchant.zomo.ge/ka",
+        cookie: "better-auth.session_token=abc",
+      },
+      {
+        url: "https://merchant.zomo.ge/en?ref=sms",
+        cookie: "__Secure-better-auth.session_token=abc",
+      },
+      {
+        url: "https://merchant.zomo.ge/",
+        cookie: "__Secure-better-auth.session_token=abc",
+      },
+    ]);
+
+    expect(plain).toMatchObject({
+      kind: "redirect",
+      location: "https://merchant.zomo.ge/ka/dashboard",
+    });
+    expect(secure).toMatchObject({
+      kind: "redirect",
+      location: "https://merchant.zomo.ge/en/dashboard?ref=sms",
+    });
+    expect(bare).toMatchObject({
+      kind: "redirect",
+      location: "https://merchant.zomo.ge/dashboard",
+    });
   });
 
   test("still bounces other client paths off the merchant host", () => {
@@ -244,6 +315,23 @@ test.describe("middleware with CLIENT_UNDER_CONSTRUCTION on", () => {
 });
 
 test.describe("middleware with CLIENT_UNDER_CONSTRUCTION unset", () => {
+  test("indexes the landing and static pages, nothing signed-in", () => {
+    const [english, terms, account, signIn] = probe(PRODUCTION_HOSTS, [
+      { url: "https://zomo.ge/en" },
+      { url: "https://zomo.ge/ka/pages/terms" },
+      { url: "https://zomo.ge/ka/account" },
+      { url: "https://zomo.ge/en/sign-in" },
+    ]);
+
+    expect(english).toMatchObject({ kind: "next", robots: null });
+    expect(terms).toMatchObject({ kind: "next", robots: null });
+    expect(account).toMatchObject({
+      kind: "next",
+      robots: "noindex, nofollow",
+    });
+    expect(signIn).toMatchObject({ kind: "next", robots: "noindex, nofollow" });
+  });
+
   test("serves the client host normally", () => {
     const [home, bare] = probe(PRODUCTION_HOSTS, [
       { url: "https://zomo.ge/ka" },
@@ -256,5 +344,29 @@ test.describe("middleware with CLIENT_UNDER_CONSTRUCTION unset", () => {
       kind: "redirect",
       location: "https://zomo.ge/ka",
     });
+  });
+});
+
+test.describe("middleware on a non-public deployment", () => {
+  test("noindexes every page on preview deployments", () => {
+    // Staging (`test.zomo.ge`) and per-branch previews must never compete
+    // with production in search results.
+    for (const result of probe({ ...PRODUCTION_HOSTS, VERCEL_ENV: "preview" }, [
+      { url: "https://zomo.ge/ka" },
+      { url: "https://merchant.zomo.ge/ka/sign-up" },
+    ])) {
+      expect(result, result.url).toMatchObject({
+        kind: "next",
+        robots: "noindex, nofollow",
+      });
+    }
+  });
+
+  test("noindexes the vercel.app hostname even in production", () => {
+    const [root] = probe({ ...PRODUCTION_HOSTS, VERCEL_ENV: "production" }, [
+      { url: "https://lalamove-app.vercel.app/ka" },
+    ]);
+
+    expect(root).toMatchObject({ kind: "next", robots: "noindex, nofollow" });
   });
 });

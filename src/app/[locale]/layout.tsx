@@ -12,6 +12,9 @@ import { AuthStatus, HeaderBrandLink } from "@/components/auth-status";
 import { LanguageToggle } from "@/components/language-toggle";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { DEFAULT_LOCALE, LOCALES, routing } from "@/i18n/routing";
+import { BRAND_NAME, brandIcons } from "@/lib/brand";
+import { clientOrigin } from "@/lib/host";
+import { OPEN_GRAPH_LOCALE } from "@/lib/seo/urls";
 
 // Exposed as CSS variables only (never applied to `body`), so these are opt-in
 // per route via the `font-display` / `font-body` / `font-price` utilities. Both
@@ -109,25 +112,55 @@ const notoSansGeorgian = Noto_Sans_Georgian({
 const THEME_SCRIPT = `(function(){try{var s=localStorage.getItem("theme");var d=s==="dark"||(s!=="light"&&window.matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.classList.toggle("dark",d)}catch(e){try{if(window.matchMedia("(prefers-color-scheme: dark)").matches){document.documentElement.classList.add("dark")}}catch(e2){}}})();`;
 
 /**
- * The site-wide title and description, in the route's language. An unknown
- * segment falls back to the default locale here rather than 404ing — the
- * layout below is what answers that with `notFound()`, and metadata must not
- * be the thing that throws first.
+ * The site-wide metadata defaults, in the route's language. An unknown segment
+ * falls back to the default locale here rather than 404ing — the layout below
+ * is what answers that with `notFound()`, and metadata must not be the thing
+ * that throws first.
+ *
+ * `metadataBase` is the client origin, so every relative URL a child segment
+ * emits (canonicals, the file-based Open Graph images) resolves to the public
+ * domain rather than to whichever host rendered it. It is read from env, not
+ * from `headers()`: reading the request here would make every route under this
+ * layout dynamic and quietly drop the landing page's ISR window. The merchant
+ * host's one indexable page (`sign-up`) overrides it for itself.
+ *
+ * `openGraph` and `twitter` deliberately carry no title or description: Next
+ * fills both from each page's own `title`/`description` when they are absent,
+ * whereas a value set here would be inherited verbatim by every page. Pages in
+ * turn must not set `openGraph` themselves — a segment's `openGraph` replaces
+ * its parent's wholesale, which would drop the file-based `opengraph-image`.
  */
 export async function generateMetadata({
   params,
 }: {
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
-  const { locale } = await params;
-  const t = await getTranslations({
-    locale: hasLocale(routing.locales, locale) ? locale : DEFAULT_LOCALE,
-    namespace: "common",
-  });
+  const { locale: rawLocale } = await params;
+  const locale = hasLocale(routing.locales, rawLocale)
+    ? rawLocale
+    : DEFAULT_LOCALE;
+  const t = await getTranslations({ locale, namespace: "common.seo" });
 
   return {
-    title: t("shared.lalamoveClone"),
-    description: t("srcApp.onDemandDeliveryPlatformBookA"),
+    metadataBase: new URL(clientOrigin()),
+    title: {
+      default: t("home.title"),
+      template: `%s | ${BRAND_NAME}`,
+    },
+    description: t("home.description"),
+    applicationName: BRAND_NAME,
+    // The customer touch icon; the driver hub swaps in its own in
+    // `dashboard/layout.tsx`. The web manifest is `src/app/manifest.ts`.
+    icons: brandIcons("customer"),
+    openGraph: {
+      siteName: BRAND_NAME,
+      type: "website",
+      locale: OPEN_GRAPH_LOCALE[locale],
+      alternateLocale: LOCALES.filter((option) => option !== locale).map(
+        (option) => OPEN_GRAPH_LOCALE[option],
+      ),
+    },
+    twitter: { card: "summary_large_image" },
   };
 }
 

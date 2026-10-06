@@ -9,6 +9,7 @@ import type { AdminRole } from "@prisma/client";
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import { ADMIN_NAV, type AdminNavSection } from "@/components/admin/admin-nav";
 import { ADMIN_ROLE_LABEL_KEYS } from "@/components/admin/users/create-system-user-dialog";
+import { ZomoLockupThemed } from "@/components/brand/zomo-logo";
 import { LanguageToggle } from "@/components/language-toggle";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Badge } from "@/components/ui/badge";
@@ -85,10 +86,16 @@ export function AdminShell({ systemUser, children }: AdminShellProps) {
       <nav className="flex w-64 shrink-0 flex-col gap-1 border-r border-border bg-sidebar p-3">
         <Link
           href="/admin"
-          className="flex flex-col gap-0.5 rounded-lg px-3 py-2.5 hover:bg-muted"
+          className="flex flex-col gap-1.5 rounded-lg px-3 py-2.5 hover:bg-muted"
         >
-          <span className="text-sm font-semibold tracking-tight">
-            {t("admin.adminShell.backOffice")}
+          {/* The zomo lockup, with the surface name as a separate muted label
+              beside it — the brand book allows an "admin" label next to the
+              logo but never merged into it. */}
+          <span className="flex items-center gap-2">
+            <ZomoLockupThemed className="h-6" />
+            <span className="text-sm font-medium text-muted-foreground">
+              {t("admin.adminShell.backOffice")}
+            </span>
           </span>
           <span className="text-xs text-muted-foreground">
             {t("admin.adminShell.internalTools")}
