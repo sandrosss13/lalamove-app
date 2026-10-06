@@ -75,7 +75,7 @@
     "_source": "src/app/[locale]/coming-soon/page.tsx"
   },
   "comingSoon.tagline": {
-    "en": "Cargo delivery and moving services in Tbilisi and across Georgia.",
+    "en": "Cargo delivery in Tbilisi and across Georgia.",
     "ka": "ტვირთის გადაზიდვა თბილისში და მთელ საქართველოში.",
     "_source": "src/app/[locale]/coming-soon/page.tsx"
   },
@@ -165,17 +165,17 @@
     "_source": "src/lib/pricing.ts"
   },
   "seo.comingSoon.description": {
-    "en": "zomo is launching soon: on-demand cargo delivery and moving services in Tbilisi and across Georgia. Looking for driver jobs in Tbilisi? Sign up early.",
+    "en": "zomo is launching soon: on-demand cargo delivery in Tbilisi and across Georgia. Looking for driver jobs in Tbilisi? Sign up early.",
     "ka": "ზომო მალე გაეშვება — ტვირთის გადაზიდვა თბილისში და მთელ საქართველოში. ეძებთ მძღოლის ვაკანსიას? დარეგისტრირდით წინასწარ.",
     "_source": "src/app/[locale]/coming-soon/page.tsx"
   },
   "seo.comingSoon.title": {
-    "en": "zomo — Cargo Delivery & Moving in Tbilisi | Coming Soon",
+    "en": "zomo — Cargo Delivery in Tbilisi | Coming Soon",
     "ka": "zomo — ტვირთის გადაზიდვა თბილისში | მალე",
     "_source": "src/app/[locale]/coming-soon/page.tsx"
   },
   "seo.driverSignUp.description": {
-    "en": "Looking for driver jobs in Tbilisi? Join zomo with your van or truck, take cargo delivery and moving jobs, and drive on your own schedule.",
+    "en": "Looking for driver jobs in Tbilisi? Join zomo with your van or truck, take cargo delivery jobs, and drive on your own schedule.",
     "ka": "მძღოლის ვაკანსია თბილისში: შემოგვიერთდით საკუთარი ფურგონით ან სატვირთოთი, შეასრულეთ ტვირთის გადაზიდვის რეისები თქვენი გრაფიკით.",
     "_source": "src/app/[locale]/sign-up/page.tsx"
   },
@@ -185,12 +185,12 @@
     "_source": "src/app/[locale]/sign-up/page.tsx"
   },
   "seo.home.description": {
-    "en": "Cargo delivery and moving services in Tbilisi and across Georgia. Book a van or truck in minutes — from a single parcel to a full flat move.",
+    "en": "Cargo delivery in Tbilisi and across Georgia. Book a van or truck in minutes.",
     "ka": "ტვირთის გადაზიდვა თბილისში და მთელ საქართველოში. შეუკვეთეთ ფურგონი ან სატვირთო რამდენიმე წუთში.",
     "_source": "src/app/[locale]/layout.tsx"
   },
   "seo.home.title": {
-    "en": "zomo — Cargo Delivery & Moving Services in Tbilisi",
+    "en": "zomo — Cargo Delivery in Tbilisi",
     "ka": "zomo — ტვირთის გადაზიდვა თბილისში",
     "_source": "src/app/[locale]/layout.tsx"
   },
