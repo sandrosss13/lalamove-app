@@ -31,7 +31,8 @@ export const OG_IMAGE_CONTENT_TYPE = "image/png";
 
 export type OgImageVariant = "client" | "driver";
 
-type OgCopy = { headline: string; subline: string; host: string };
+/** The three lines of text on a card. */
+export type OgCopy = { headline: string; subline: string; host: string };
 
 const OG_COPY: Record<OgImageVariant, Record<AppLocale, OgCopy>> = {
   client: {
@@ -65,9 +66,12 @@ const OG_COPY: Record<OgImageVariant, Record<AppLocale, OgCopy>> = {
  * the image file (a per-locale alt would need `generateImageMetadata`, which
  * moves the image to `/opengraph-image/<id>`), so it carries both languages.
  */
-export const OG_IMAGE_ALT: Record<OgImageVariant, string> = {
+export const OG_IMAGE_ALT: Record<OgImageVariant | "city", string> = {
   client: "zomo — ტვირთის გადაზიდვა თბილისში · Cargo delivery in Tbilisi",
   driver: "zomo — მძღოლის ვაკანსია · Driver jobs in Tbilisi",
+  // The city landing pages share one static alt (see above), so it names the
+  // service rather than any one city.
+  city: "zomo — ტვირთის გადაზიდვა · Cargo delivery in Georgia",
 };
 
 const FONT_DIR = join(process.cwd(), "src/assets/fonts");
@@ -198,11 +202,21 @@ export function ogLocale(value: string): AppLocale {
   return isAppLocale(value) ? value : DEFAULT_LOCALE;
 }
 
-export async function renderOgImage(
+/** The card for one of the fixed variants, in the route's language. */
+export function renderOgImage(
   variant: OgImageVariant,
   locale: AppLocale,
 ): Promise<ImageResponse> {
-  const copy = OG_COPY[variant][locale];
+  return renderOgCard(OG_COPY[variant][locale]);
+}
+
+/**
+ * Renders a card with arbitrary copy — for pages whose headline comes from the
+ * message catalogs (the city landing pages) rather than `OG_COPY`. Keep the
+ * headline short: at 72px roughly 25 characters fit on a line, and two lines
+ * is the most the layout is designed for.
+ */
+export async function renderOgCard(copy: OgCopy): Promise<ImageResponse> {
   const fonts = await loadFonts();
 
   return new ImageResponse(

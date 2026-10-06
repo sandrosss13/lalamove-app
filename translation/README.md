@@ -99,23 +99,24 @@ enough to read correctly in every context.
 
 ## What is in each file
 
-| File | Strings | What it covers |
-| --- | --- | --- |
-| `admin.json` | 351 | The whole back office |
-| `common.json` | 318 | Shared strings, shadcn primitives, public pages |
-| `driverHub.json` | 241 | Driver and fleet hub |
-| `errors.json` | 163 | API error messages shown to users |
-| `home.json` | 94 | Booking form and home surfaces |
-| `onboarding.json` | 59 | Driver onboarding wizard |
-| `cities.json` | 74 | City and region names |
-| `fleet.json` | 51 | Fleet/company onboarding wizard |
-| `dashboard.json` | 49 | Merchant dashboard shell |
-| `auth.json` | 42 | Sign in, sign up, password change |
-| `checkout.json` | 22 | Checkout and payment |
-| `landing.json` | 13 | Marketing landing page |
-| `orders.json` | 11 | Order list, card and tracking |
-| `account.json` | 9 | Client account pages |
-| `wallet.json` | 6 | Wallet and saved cards |
+| File               | Strings | What it covers                                                                                   |
+| ------------------ | ------- | ------------------------------------------------------------------------------------------------ |
+| `admin.json`       | 351     | The whole back office                                                                            |
+| `common.json`      | 318     | Shared strings, shadcn primitives, public pages                                                  |
+| `driverHub.json`   | 241     | Driver and fleet hub                                                                             |
+| `errors.json`      | 163     | API error messages shown to users                                                                |
+| `home.json`        | 94      | Booking form and home surfaces                                                                   |
+| `cityLanding.json` | 234     | Per-city SEO landing pages (`/gadazidva/{city}`) — hand-written, see the glossary before editing |
+| `onboarding.json`  | 59      | Driver onboarding wizard                                                                         |
+| `cities.json`      | 74      | City and region names                                                                            |
+| `fleet.json`       | 51      | Fleet/company onboarding wizard                                                                  |
+| `dashboard.json`   | 49      | Merchant dashboard shell                                                                         |
+| `auth.json`        | 42      | Sign in, sign up, password change                                                                |
+| `checkout.json`    | 22      | Checkout and payment                                                                             |
+| `landing.json`     | 13      | Marketing landing page                                                                           |
+| `orders.json`      | 11      | Order list, card and tracking                                                                    |
+| `account.json`     | 9       | Client account pages                                                                             |
+| `wallet.json`      | 6       | Wallet and saved cards                                                                           |
 
 `cities.json` is city and region names — proper nouns with standard spellings — თბილისი, ბათუმი,
 ქუთაისი — not a judgement call. It is the fastest file to finish and a good one

@@ -6,7 +6,11 @@ import {
   Noto_Sans_Georgian,
 } from "next/font/google";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
-import { getTranslations, setRequestLocale } from "next-intl/server";
+import {
+  getMessages,
+  getTranslations,
+  setRequestLocale,
+} from "next-intl/server";
 import "../globals.css";
 import { AuthStatus, HeaderBrandLink } from "@/components/auth-status";
 import { LanguageToggle } from "@/components/language-toggle";
@@ -165,6 +169,26 @@ export async function generateMetadata({
 }
 
 /**
+ * Message namespaces that are only ever read on the server and so are not
+ * shipped to the browser. `cityLanding` is the city landing pages' long-form
+ * copy: those pages resolve it in server components and hand client sections
+ * plain props, so serialising it into every page's client payload would be
+ * pure weight.
+ */
+const SERVER_ONLY_NAMESPACES: ReadonlySet<string> = new Set(["cityLanding"]);
+
+/** The request's messages minus `SERVER_ONLY_NAMESPACES`. */
+function clientMessages(
+  messages: Awaited<ReturnType<typeof getMessages>>,
+): Awaited<ReturnType<typeof getMessages>> {
+  return Object.fromEntries(
+    Object.entries(messages).filter(
+      ([namespace]) => !SERVER_ONLY_NAMESPACES.has(namespace),
+    ),
+  );
+}
+
+/**
  * Both locales are known at build time and neither depends on request data, so
  * every route under this layout can stay statically rendered — including
  * `/[locale]` itself, which is `revalidate = 60`. Without this, the `[locale]`
@@ -196,6 +220,8 @@ export default async function RootLayout({
   // rendered server component rather than forcing it dynamic on first use.
   setRequestLocale(locale);
 
+  const messages = clientMessages(await getMessages());
+
   return (
     <html
       lang={locale}
@@ -223,9 +249,10 @@ export default async function RootLayout({
           handed to the client tree here, once. Two thirds of this app's
           components are `"use client"`, so passing the catalogs down from the
           root is the only arrangement that does not have every one of them
-          fetch its own.
+          fetch its own. Passed explicitly only to leave the server-only
+          namespaces out; locale, time zone and formats are still inherited.
         */}
-        <NextIntlClientProvider>
+        <NextIntlClientProvider messages={messages}>
           <header className="flex items-center justify-between border-b px-6 py-3">
             <HeaderBrandLink />
             {/*

@@ -88,6 +88,74 @@ export function servicesJsonLd(
 }
 
 /**
+ * The cargo service as offered in one city — the main entity of a city landing
+ * page. Unlike `servicesJsonLd`, it carries its own `@id` and `url` (the page
+ * it is described on) and serves exactly that city, placed in its country.
+ *
+ * `serviceType` stays English in both locales, as in `siteJsonLdGraph`.
+ */
+export function cityServiceJsonLd(
+  origin: string,
+  pageUrl: string,
+  service: {
+    name: string;
+    description: string;
+    cityName: string;
+    countryName: string;
+  },
+): JsonLdNode {
+  return {
+    "@type": "Service",
+    "@id": `${pageUrl}#service`,
+    serviceType: "Cargo delivery",
+    name: service.name,
+    description: service.description,
+    url: pageUrl,
+    provider: { "@id": organizationId(origin) },
+    areaServed: {
+      "@type": "City",
+      name: service.cityName,
+      containedInPlace: { "@type": "Country", name: service.countryName },
+    },
+  };
+}
+
+/** A `BreadcrumbList`, positions numbered from 1 in the order given. */
+export function breadcrumbJsonLd(
+  items: ReadonlyArray<{ name: string; url: string }>,
+): JsonLdNode {
+  return {
+    "@type": "BreadcrumbList",
+    itemListElement: items.map((item, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: item.name,
+      item: item.url,
+    })),
+  };
+}
+
+/**
+ * A `FAQPage` for questions and answers that are visible on the page itself —
+ * Google ignores (and may penalise) FAQ markup for content a reader cannot see.
+ */
+export function faqPageJsonLd(
+  pageUrl: string,
+  items: ReadonlyArray<{ question: string; answer: string }>,
+): JsonLdNode {
+  return {
+    "@type": "FAQPage",
+    "@id": `${pageUrl}#faq`,
+    url: pageUrl,
+    mainEntity: items.map((item) => ({
+      "@type": "Question",
+      name: item.question,
+      acceptedAnswer: { "@type": "Answer", text: item.answer },
+    })),
+  };
+}
+
+/**
  * The full graph for the client host's landing page (and the coming-soon page
  * that stands in for it), in the route's language.
  *
