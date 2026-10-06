@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 
 import { Link } from "@/i18n/navigation";
+import { ZomoLockupThemed } from "@/components/brand/zomo-logo";
 import { useSignOut } from "@/components/auth/use-sign-out";
 import { useSession } from "@/lib/auth-client";
 
@@ -71,7 +72,7 @@ export function AuthStatus() {
 }
 
 /**
- * The header wordmark, plus — for a signed-in client only — the client's
+ * The header logo (the zomo lockup), plus — for a signed-in client only — the client's
  * primary nav (Place order / My orders / Wallet), immediately to its right.
  *
  * The wordmark's destination depends on who's looking at it:
@@ -99,8 +100,10 @@ export function HeaderBrandLink() {
 
   return (
     <div className="flex items-center gap-5">
-      <Link href={brandHref} className="font-bold">
-        {t("lalamoveClone")}
+      {/* The lockup is the link's whole content, so the SVG carries the
+          accessible name ("zomo"). Themed: this header follows `html.dark`. */}
+      <Link href={brandHref} className="flex items-center hover:opacity-80">
+        <ZomoLockupThemed className="h-6" label={t("brandName")} />
       </Link>
 
       {isClient ? (

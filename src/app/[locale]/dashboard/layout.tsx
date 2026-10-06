@@ -1,7 +1,21 @@
+import type { Metadata } from "next";
+
+import { brandIcons } from "@/lib/brand";
 import { requireDashboardSession } from "@/lib/dashboard/auth";
 
 // Session access can't be statically rendered.
 export const dynamic = "force-dynamic";
+
+/**
+ * The driver hub (driver.zomo.ge — `/dashboard` is merchant-only, see
+ * `src/middleware.ts`) gets the driver app icon (dark panel, bright orange
+ * symbol) as its home-screen icon instead of the customer one. Set here, on
+ * the segment, rather than by reading the request host, so no page has to
+ * become dynamic just to choose an icon.
+ */
+export const metadata: Metadata = {
+  icons: brandIcons("driver"),
+};
 
 /**
  * The gate for the whole provider-side dashboard: everything under

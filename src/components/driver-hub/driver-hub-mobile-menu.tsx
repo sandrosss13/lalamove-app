@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 
 import { Link } from "@/i18n/navigation";
 import { useSignOut } from "@/components/auth/use-sign-out";
+import { ZomoLockupThemed } from "@/components/brand/zomo-logo";
 import type {
   HubNavItem,
   HubNavItemId,
@@ -182,11 +183,9 @@ export function DriverHubMobileMenu({
           {/* The dialog's accessible name says what the dialog *is*. The
               wordmark beside it is the design's visible content and is a poor
               name for a menu, so the two are separate: an `sr-only` title, and
-              an `aria-hidden`-free but unnamed brand line. */}
+              the zomo lockup (an `img` named "zomo"). */}
           <SheetTitle className="sr-only">{t("driverMenu")}</SheetTitle>
-          <span className="text-[15px] font-bold tracking-[-0.01em]">
-            {tShared("lalamoveClone")}
-          </span>
+          <ZomoLockupThemed className="h-6" label={tShared("brandName")} />
           <Button
             type="button"
             variant="ghost"

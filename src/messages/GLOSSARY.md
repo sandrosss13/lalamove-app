@@ -22,7 +22,8 @@ kept over their alternatives.
 | Buttons and actions | Verbal noun (masdar): **შენახვა**, **გაუქმება**, **დადასტურება** — not imperatives (შეინახე) | Standard Georgian UI register, and it keeps buttons short. |
 | Headings | Nominative noun phrases, no trailing colon | Matches the English source, which does the same. |
 | Errors | Full sentence, final period, no blame | English source says "Order not found." — Georgian keeps the shape. |
-| Never translated | `Lalamove` (brand), order/vehicle IDs, licence plates, `GEL`/`₾`, email addresses, `API`, `SMS` | Identifiers and marks, not words. |
+| Brand | **zomo** — always lowercase, even at the start of a sentence. In Georgian running text **ზომო**, declined like any noun (ზომოს, ზომოზე, ზომოთი). The standalone name (`shared.brandName`, page titles) stays Latin `zomo` in both locales. | The brand book's spelling. The logo itself is an SVG (`src/components/brand/zomo-logo.tsx`), never the word set in a font. |
+| Never translated | order/vehicle IDs, licence plates, `GEL`/`₾`, email addresses, `API`, `SMS` | Identifiers and marks, not words. |
 | Numbers and dates | Georgian locale formatting via `useFormatter`, never hand-built strings | `Intl` already knows; hand-formatting is how a date ends up American on one screen. |
 | Latin inside Georgian | Left as-is, not transliterated | A vehicle model or plate transliterated becomes unsearchable. |
 

@@ -122,7 +122,7 @@ export function RoleStep({
     <div className={cn("flex flex-col gap-7", className)}>
       <div className="flex flex-col gap-3">
         <Eyebrow>{t("step1Of3Account")}</Eyebrow>
-        <AuthHeading size="lg">{t("howWillYouUseLalamove")}</AuthHeading>
+        <AuthHeading size="lg">{t("howWillYouUseZomo")}</AuthHeading>
         <AuthSubheading size="lg">
           {t("pickTheSideOfTheDelivery")}
         </AuthSubheading>

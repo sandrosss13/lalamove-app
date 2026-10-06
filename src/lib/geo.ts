@@ -99,7 +99,7 @@ const GOOGLE_PLACE_DETAILS_FIELD_MASK =
 /** Minimum query length before a lookup is worthwhile (avoids noisy 1-2 char calls). */
 const AUTOCOMPLETE_MIN_QUERY_LENGTH = 3;
 /** Descriptive UA is optional for LocationIQ, but sent as good practice. */
-const GEOCODER_USER_AGENT = "lalamove-clone-app (contact: dev@example.com)";
+const GEOCODER_USER_AGENT = "zomo-app (contact: dev@example.com)";
 /** App operates only within Georgia; restrict results to avoid mismatches with international addresses that share a name. */
 const GEOCODER_COUNTRY_CODE = "ge";
 /** ISO 3166-1 alpha-2 form of the above, as Google's `includedRegionCodes` expects. */

@@ -1506,8 +1506,9 @@ export function LoadsProvider({
   // known tradeoff rather than an oversight. It puts the highest-paying load at
   // the top of every driver's board while a cheap, nearby job sits unclaimed at
   // the bottom: cherry-picking, encoded as the default view. Neither Uber nor
-  // Lalamove sorts an open-job list by pay, for exactly this reason. It is
-  // implemented as designed; flipping it to pickup proximity is a change to
+  // the big on-demand freight apps sort an open-job list by pay, for exactly
+  // this reason. zomo's board does it anyway because the design asks for it;
+  // flipping it to pickup proximity is a change to
   // these two lines and nothing else, and is tracked in
   // specs/driver-load-board/action-required.md ("Reconsider the default table
   // sort").

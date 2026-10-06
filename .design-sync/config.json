@@ -1,8 +1,8 @@
 {
   "projectId": "c2ab8214-d170-4eee-9314-d9d44f5fc5b9",
   "shape": "package",
-  "pkg": "lalamove-app",
-  "globalName": "LalamoveUI",
+  "pkg": "zomo-app",
+  "globalName": "ZomoUI",
   "srcDir": "src/components/ui",
   "tsconfig": "./tsconfig.json",
   "cssEntry": ".ds-sync/.compiled/globals.css",

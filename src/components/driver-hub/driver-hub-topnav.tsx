@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 
 import { Link, usePathname } from "@/i18n/navigation";
 import { useSignOut } from "@/components/auth/use-sign-out";
+import { ZomoLockupThemed } from "@/components/brand/zomo-logo";
 import type {
   HubNavItem,
   HubNavItemId,
@@ -255,11 +256,11 @@ export function DriverHubTopNav({
           must not grow with its contents; the phone bar is sized *by* its
           44px targets. */}
       <div className="flex items-center gap-3 border-b border-border bg-background px-4 py-3 lg:h-14 lg:gap-5 lg:px-6">
-        <Link
-          href={HOME_HREF}
-          className="text-[16px] font-bold tracking-[-0.015em] whitespace-nowrap"
-        >
-          {tShared("lalamoveClone")}
+        {/* The zomo lockup, themed with the hub: primary on the light bar,
+            the dark-panel variant under `html.dark`. 24px tall puts it at
+            92px wide, above the brand book's 80px minimum. */}
+        <Link href={HOME_HREF} className="flex flex-none items-center">
+          <ZomoLockupThemed className="h-6" label={tShared("brandName")} />
         </Link>
 
         <nav
