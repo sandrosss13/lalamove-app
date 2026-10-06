@@ -1,8 +1,10 @@
+import { getSessionCookie } from "better-auth/cookies";
 import { NextRequest, NextResponse } from "next/server";
 import createIntlMiddleware from "next-intl/middleware";
 
 import {
   adminOrigin,
+  type Audience,
   audienceForHost,
   clientOrigin,
   IS_ADMIN_HOST_ENABLED,
@@ -18,9 +20,15 @@ import {
 import {
   IS_CLIENT_UNDER_CONSTRUCTION,
   looksLikeFileRequest,
-  UNDER_CONSTRUCTION_ROBOTS_HEADER,
   underConstructionRewritePath,
 } from "@/lib/under-construction";
+import {
+  isIndexableDeployment,
+  isIndexablePath,
+  isMetadataAssetPath,
+  requestHost,
+  ROBOTS_NOINDEX,
+} from "@/lib/seo/site";
 
 /**
  * Locale negotiation: matches `/ka/**` and `/en/**`, redirects an unprefixed
@@ -70,11 +78,19 @@ function intlMiddleware(request: NextRequest) {
 const MERCHANT_ONLY_PREFIXES = ["/dashboard"];
 
 /**
- * Where the merchant host's bare root sends a visitor (unprefixed; the locale
- * prefix is re-attached by the caller). See the root special case in
- * `middleware` below.
+ * Where the merchant host's bare root sends a signed-in visitor (unprefixed;
+ * the locale prefix is re-attached by the caller). See the root special case
+ * in `middleware` below.
  */
 const MERCHANT_HOME = "/dashboard";
+
+/**
+ * Where the merchant host's bare root sends a signed-out visitor: the driver
+ * recruitment page, which is also the one merchant-host page search engines
+ * index. A prospective driver arriving from search or a printed address should
+ * meet "become a driver", not a sign-in form.
+ */
+const MERCHANT_SIGNED_OUT_HOME = "/sign-up";
 
 /**
  * Paths that belong to the admin back office, matched as a prefix. `/admin`
@@ -160,6 +176,37 @@ function isPassthrough(pathname: string): boolean {
  */
 const LOCALE_COOKIE = "NEXT_LOCALE";
 
+/**
+ * Stamps `X-Robots-Tag: noindex, nofollow` on a response the indexing policy
+ * (`src/lib/seo/site.ts`) does not allow — a non-public deployment, or a path
+ * that is not indexable on this host. It is the backstop under every page's
+ * own `<meta name="robots">`: it holds even where a page forgot to set one.
+ *
+ * Redirects are left alone. A crawler follows them and judges the destination,
+ * which gets its own header on the next hop; a header on the 3xx itself says
+ * nothing and would only make the probe output noisier.
+ */
+function withRobotsPolicy(
+  response: NextResponse,
+  host: string | null,
+  audience: Audience,
+  pathname: string,
+  gated: boolean,
+): NextResponse {
+  if (response.headers.has("location")) {
+    return response;
+  }
+
+  if (
+    !isIndexableDeployment(host) ||
+    !isIndexablePath(audience, pathname, gated)
+  ) {
+    response.headers.set("X-Robots-Tag", ROBOTS_NOINDEX);
+  }
+
+  return response;
+}
+
 function isClientOnly(pathname: string): boolean {
   return (
     CLIENT_ONLY_EXACT.includes(pathname) ||
@@ -235,8 +282,7 @@ export function middleware(request: NextRequest) {
   // Read before the `IS_HOST_SPLIT_ENABLED` bail-out below (which only gates
   // the merchant dimension) because the admin split is independent of it and
   // has to be evaluated either way.
-  const host =
-    request.headers.get("x-forwarded-host") ?? request.headers.get("host");
+  const host = requestHost(request.headers);
   const audience = audienceForHost(host);
   const { search } = request.nextUrl;
 
@@ -250,6 +296,16 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Metadata files and generated images (`/robots.txt`, `/sitemap.xml`,
+  // `/ka/opengraph-image`, …) are not pages: neither host gate, locale layer
+  // nor pre-launch gate has anything to say about them. Without this the gate
+  // would rewrite `/ka/opengraph-image` to the "coming soon" HTML and every
+  // link preview would break. `robots.txt`/`sitemap.xml` are also excluded by
+  // the matcher below; this is the in-code guarantee for the rest.
+  if (isMetadataAssetPath(request.nextUrl.pathname)) {
+    return NextResponse.next();
+  }
+
   // Everything from here down is classified on the *unprefixed* path, which is
   // what lets the lists above stay written the way they always were:
   // `CLIENT_ONLY_EXACT` is still `["/", "/home", "/orders"]` and still matches
@@ -257,6 +313,14 @@ export function middleware(request: NextRequest) {
   // negotiation yet — an external link, a bookmark from before this shipped —
   // and `intlMiddleware` is what redirects those.
   const { locale, pathname } = splitLocalePrefix(request.nextUrl.pathname);
+
+  // Whether the pre-launch gate applies to this request. Only the client
+  // audience is gated — see step 4 below for why `"BOTH"` is not.
+  const gated = IS_CLIENT_UNDER_CONSTRUCTION && audience === "CLIENT";
+
+  /** Every non-redirect response leaves through the indexing policy. */
+  const robots = (response: NextResponse) =>
+    withRobotsPolicy(response, host, audience, pathname, gated);
 
   /**
    * Re-attaches the prefix the request arrived with to a cross-host redirect,
@@ -280,7 +344,7 @@ export function middleware(request: NextRequest) {
   // "ADMIN" otherwise.
   if (audience === "ADMIN") {
     if (isAdminOnly(pathname)) {
-      return intlMiddleware(request);
+      return robots(intlMiddleware(request));
     }
 
     return crossHost(clientOrigin());
@@ -297,7 +361,7 @@ export function middleware(request: NextRequest) {
   }
 
   if (!IS_HOST_SPLIT_ENABLED) {
-    return intlMiddleware(request);
+    return robots(intlMiddleware(request));
   }
 
   if (audience === "CLIENT" && isMerchantOnly(pathname)) {
@@ -313,8 +377,15 @@ export function middleware(request: NextRequest) {
   // the `isClientOnly` bounce below like every other client path, which sent
   // drivers to the client host's landing page — and with
   // `CLIENT_UNDER_CONSTRUCTION` on, that page is "coming soon", so the driver
-  // site looked down. Instead the root stays on this host and opens the
-  // dashboard, which already sends a signed-out visitor to sign-in.
+  // site looked down. Instead the root stays on this host: a signed-in driver
+  // goes to the dashboard, and a signed-out visitor — most likely a prospective
+  // driver — goes to sign-up rather than being bounced dashboard -> sign-in.
+  //
+  // "Signed in" here is only the presence of Better Auth's session cookie
+  // (`getSessionCookie` reads it without touching the database, so it is
+  // Edge-safe). A stale or forged cookie just means the dashboard's own
+  // server-side session check sends the visitor to sign-in, exactly as before;
+  // this is a routing hint, never authorization.
   //
   // Same-host, so the request URL is reused rather than `merchantOrigin()`: the
   // reader stays on exactly the hostname they typed. The prefix and query
@@ -324,10 +395,11 @@ export function middleware(request: NextRequest) {
   // `/home`, `/orders`, `/account` and `/checkout` are genuinely client pages
   // and still take the cross-host bounce.
   if (audience === "MERCHANT" && pathname === "/") {
+    const home = getSessionCookie(request)
+      ? MERCHANT_HOME
+      : MERCHANT_SIGNED_OUT_HOME;
     const target = request.nextUrl.clone();
-    target.pathname = locale
-      ? withLocalePrefix(locale, MERCHANT_HOME)
-      : MERCHANT_HOME;
+    target.pathname = locale ? withLocalePrefix(locale, home) : home;
     return NextResponse.redirect(target);
   }
 
@@ -346,11 +418,11 @@ export function middleware(request: NextRequest) {
   // `/coming-soon` address. The locale prefix (or, for an unprefixed path, the
   // remembered cookie, else Georgian) carries through so the page answers in
   // the reader's language — see `underConstructionRewritePath`.
-  if (
-    IS_CLIENT_UNDER_CONSTRUCTION &&
-    audience === "CLIENT" &&
-    !looksLikeFileRequest(pathname)
-  ) {
+  //
+  // The root (`/`, `/ka`, `/en`) is the one gated URL left indexable, so the
+  // brand is findable before launch; every other gated URL is a duplicate of
+  // it and carries the noindex header (the decision is `isIndexablePath`'s).
+  if (gated && !looksLikeFileRequest(pathname)) {
     const response = NextResponse.rewrite(
       new URL(
         underConstructionRewritePath(
@@ -360,18 +432,14 @@ export function middleware(request: NextRequest) {
         request.url,
       ),
     );
-    response.headers.set(
-      UNDER_CONSTRUCTION_ROBOTS_HEADER.name,
-      UNDER_CONSTRUCTION_ROBOTS_HEADER.value,
-    );
-    return response;
+    return robots(response);
   }
 
   // No host redirect applies, so the request is staying here: hand it to the
   // locale layer, which either serves the matched `/[locale]/**` route or
   // redirects an unprefixed path to the reader's language
   // (their cookie, else Georgian).
-  return intlMiddleware(request);
+  return robots(intlMiddleware(request));
 }
 
 export const config = {
@@ -379,9 +447,11 @@ export const config = {
   // chunk and image request. `.webmanifest` is here because the web manifest
   // (`src/app/manifest.ts`) is one unprefixed file on every host: run through
   // the locale layer it would be redirected to `/ka/manifest.webmanifest`,
-  // where nothing is mounted. The brand icons under `/brand/` are already
-  // covered by the svg/png extensions.
+  // where nothing is mounted. `.txt`/`.xml` likewise keep `/robots.txt` and
+  // `/sitemap.xml` (`src/app/robots.ts`, `src/app/sitemap.ts`) out of both the
+  // locale layer and the pre-launch gate. The brand icons under `/brand/` are
+  // already covered by the svg/png extensions.
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|webmanifest)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|webmanifest|txt|xml)$).*)",
   ],
 };

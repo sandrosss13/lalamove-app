@@ -21,7 +21,7 @@ import { cn } from "@/lib/utils";
  */
 
 /** Fixed brand palette — see the handoff's "Design tokens". */
-const BRAND = {
+export const ZOMO_BRAND_COLOURS = {
   orange: "#ff5a1f",
   bright: "#f58220",
   ink: "#201f1c",
@@ -29,7 +29,48 @@ const BRAND = {
   white: "#ffffff",
 } as const;
 
+const BRAND = ZOMO_BRAND_COLOURS;
+
 type BrandColour = (typeof BRAND)[keyof typeof BRAND];
+
+/**
+ * The raw geometry behind the components below, exported for renderers that
+ * cannot use these React components — e.g. the Open Graph images, which Satori
+ * draws from plain `<svg>` elements (see `src/lib/seo/og-template.tsx`).
+ * Keep this the single source: the components read from it too.
+ */
+export const ZOMO_SYMBOL_GEOMETRY = {
+  /** Symbol space is 100×100. */
+  size: 100,
+  routePath: "M20,26 H70 L30,74 H50",
+  routeStrokeWidth: 18,
+  startDot: { cx: 20, cy: 26, r: 13 },
+  endDot: { cx: 80, cy: 74, r: 12 },
+} as const;
+
+export const ZOMO_WORDMARK_GEOMETRY = {
+  /** Wordmark space is 482×100. */
+  width: 482,
+  height: 100,
+  strokeWidth: 22,
+  zPath: "M11,11 H89 L11,89 H89",
+  firstO: { cx: 164, cy: 50, r: 39 },
+  mPath:
+    "M239,89 V39 A29.5,28 0 0 1 298,39 V89 M298,39 A29.5,28 0 0 1 357,39 V89",
+  secondO: { cx: 432, cy: 50, r: 39 },
+  /** The filled dot on the z's top-left terminal. */
+  zDot: { cx: 15, cy: 15, r: 15 },
+} as const;
+
+/** Horizontal lockup: viewBox 382×100, wordmark placed by this transform. */
+export const ZOMO_LOCKUP_GEOMETRY = {
+  width: 382,
+  height: 100,
+  wordmarkTransform: "translate(112 22) scale(.56)",
+} as const;
+
+const SYMBOL = ZOMO_SYMBOL_GEOMETRY;
+const WORDMARK = ZOMO_WORDMARK_GEOMETRY;
 
 /** symbol colour + wordmark colour, per handoff lockup file. */
 const LOCKUP_COLOURS = {
@@ -85,15 +126,15 @@ function SymbolShapes({ colour }: { colour: string }) {
   return (
     <>
       <path
-        d="M20,26 H70 L30,74 H50"
+        d={SYMBOL.routePath}
         fill="none"
         stroke={colour}
-        strokeWidth="18"
+        strokeWidth={SYMBOL.routeStrokeWidth}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <circle cx="20" cy="26" r="13" fill={colour} />
-      <circle cx="80" cy="74" r="12" fill={colour} />
+      <circle {...SYMBOL.startDot} fill={colour} />
+      <circle {...SYMBOL.endDot} fill={colour} />
     </>
   );
 }
@@ -105,16 +146,16 @@ function WordmarkShapes({ colour }: { colour: string }) {
       <g
         fill="none"
         stroke={colour}
-        strokeWidth="22"
+        strokeWidth={WORDMARK.strokeWidth}
         strokeLinecap="round"
         strokeLinejoin="round"
       >
-        <path d="M11,11 H89 L11,89 H89" />
-        <circle cx="164" cy="50" r="39" />
-        <path d="M239,89 V39 A29.5,28 0 0 1 298,39 V89 M298,39 A29.5,28 0 0 1 357,39 V89" />
-        <circle cx="432" cy="50" r="39" />
+        <path d={WORDMARK.zPath} />
+        <circle {...WORDMARK.firstO} />
+        <path d={WORDMARK.mPath} />
+        <circle {...WORDMARK.secondO} />
       </g>
-      <circle cx="15" cy="15" r="15" fill={colour} />
+      <circle {...WORDMARK.zDot} fill={colour} />
     </>
   );
 }
@@ -137,7 +178,7 @@ export function ZomoLockup({
       {...a11yAttributes(a11y)}
     >
       <SymbolShapes colour={colours.symbol} />
-      <g transform="translate(112 22) scale(.56)">
+      <g transform={ZOMO_LOCKUP_GEOMETRY.wordmarkTransform}>
         <WordmarkShapes colour={colours.wordmark} />
       </g>
     </svg>
