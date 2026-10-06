@@ -42,7 +42,7 @@ const OG_COPY: Record<OgImageVariant, Record<AppLocale, OgCopy>> = {
     },
     en: {
       headline: "Cargo delivery in Tbilisi",
-      subline: "House moving and deliveries across Georgia",
+      subline: "Book a van or truck in minutes — across Georgia",
       host: "zomo.ge",
     },
   },
@@ -66,8 +66,7 @@ const OG_COPY: Record<OgImageVariant, Record<AppLocale, OgCopy>> = {
  * moves the image to `/opengraph-image/<id>`), so it carries both languages.
  */
 export const OG_IMAGE_ALT: Record<OgImageVariant, string> = {
-  client:
-    "zomo — ტვირთის გადაზიდვა თბილისში · Cargo delivery and house moving in Tbilisi",
+  client: "zomo — ტვირთის გადაზიდვა თბილისში · Cargo delivery in Tbilisi",
   driver: "zomo — მძღოლის ვაკანსია · Driver jobs in Tbilisi",
 };
 
