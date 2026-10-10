@@ -3,6 +3,10 @@
 import { useId, useState } from "react";
 import { useTranslations } from "next-intl";
 
+import {
+  AddressAutocomplete,
+  type AddressAutocompleteClassNames,
+} from "@/components/address-autocomplete";
 import { HOME_CONTAINER } from "@/components/landing/landing-home-styles";
 import { LandingLink } from "@/components/landing/landing-link";
 import {
@@ -30,6 +34,23 @@ const FIELD_LABEL = "text-[12px] font-semibold text-home-muted";
 
 const FIELD_CONTROL =
   "h-[50px] w-full min-w-0 rounded-xl border border-home-line bg-home-field px-3.5 text-[15px] text-home-ink outline-none placeholder:text-home-muted/80 focus-visible:border-home-accent disabled:opacity-60";
+
+/**
+ * Dresses the shared address autocomplete in the card's own field styles. The
+ * suggestions list floats over the row (and the sections below) rather than
+ * stretching the grid, and uses the `home-*` surface tokens so it reads in both
+ * the light and dark landing themes.
+ */
+const ADDRESS_FIELD_CLASS_NAMES = {
+  root: "flex min-w-0 flex-col",
+  label: "flex min-w-0 flex-col gap-[7px]",
+  labelText: FIELD_LABEL,
+  input: FIELD_CONTROL,
+  listbox:
+    "max-h-60 overflow-y-auto rounded-xl border border-home-line bg-home-surface py-1 text-[14px] text-home-ink shadow-home-lift",
+  option:
+    "block w-full px-3.5 py-2.5 text-left hover:bg-home-chip focus-visible:bg-home-chip focus-visible:outline-none",
+} satisfies AddressAutocompleteClassNames;
 
 /**
  * The v4 "Book a Delivery" card, pinned directly under the hero carousel (see
@@ -71,43 +92,36 @@ export function LandingBookingCard({
           : "mt-[clamp(28px,4vw,48px)]",
       )}
     >
-      <div className="overflow-hidden rounded-[1.25rem] bg-home-surface shadow-home-card">
+      {/* No `overflow-hidden`: the address suggestions float out past the
+          card's bottom edge and must not be clipped. Nothing inside paints a
+          background into the rounded corners, so none is needed. */}
+      <div className="rounded-[1.25rem] bg-home-surface shadow-home-card">
         <div className="border-b border-home-line">
           <h2 className="m-0 px-[clamp(18px,2.2vw,26px)] py-5 text-[20px] font-semibold tracking-[-0.02em]">
             {content.heading}
           </h2>
         </div>
         <div className="grid items-end gap-3 p-[clamp(18px,2.2vw,26px)] [grid-template-columns:repeat(auto-fit,minmax(200px,1fr))]">
-          <label
-            htmlFor={`${fieldId}-pickup`}
-            className="flex min-w-0 flex-col gap-[7px]"
-          >
-            <span className={FIELD_LABEL}>{t("pickup")}</span>
-            <input
-              id={`${fieldId}-pickup`}
-              type="text"
-              autoComplete="off"
-              value={pickup}
-              onChange={(event) => setPickup(event.target.value)}
-              placeholder={t("pickupPlaceholder")}
-              className={FIELD_CONTROL}
-            />
-          </label>
-          <label
-            htmlFor={`${fieldId}-dropoff`}
-            className="flex min-w-0 flex-col gap-[7px]"
-          >
-            <span className={FIELD_LABEL}>{t("dropoff")}</span>
-            <input
-              id={`${fieldId}-dropoff`}
-              type="text"
-              autoComplete="off"
-              value={dropoff}
-              onChange={(event) => setDropoff(event.target.value)}
-              placeholder={t("dropoffPlaceholder")}
-              className={FIELD_CONTROL}
-            />
-          </label>
+          <AddressAutocomplete
+            id={`${fieldId}-pickup`}
+            label={t("pickup")}
+            value={pickup}
+            onChange={setPickup}
+            placeholder={t("pickupPlaceholder")}
+            classNames={ADDRESS_FIELD_CLASS_NAMES}
+            overlaySuggestions
+            showMapPreview={false}
+          />
+          <AddressAutocomplete
+            id={`${fieldId}-dropoff`}
+            label={t("dropoff")}
+            value={dropoff}
+            onChange={setDropoff}
+            placeholder={t("dropoffPlaceholder")}
+            classNames={ADDRESS_FIELD_CLASS_NAMES}
+            overlaySuggestions
+            showMapPreview={false}
+          />
           <label
             htmlFor={`${fieldId}-vehicle`}
             className="flex min-w-0 flex-col gap-[7px]"
