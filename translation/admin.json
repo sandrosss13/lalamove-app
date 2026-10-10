@@ -454,9 +454,19 @@
     "ka": "ტრანსპორტის ტიპები ვერ ჩაიტვირთა",
     "_source": "src/app/[locale]/admin/(sections)/content/vehicle-photos/page.tsx"
   },
+  "adminContentVehiclePhotos.couldNotReorder": {
+    "en": "Could not save the new order. The previous order has been restored.",
+    "ka": "ახალი თანმიმდევრობის შენახვა ვერ მოხერხდა. აღდგენილია წინა თანმიმდევრობა.",
+    "_source": "src/app/[locale]/admin/(sections)/content/vehicle-photos/page.tsx"
+  },
   "adminContentVehiclePhotos.couldNotUpdateThisPhoto": {
     "en": "Could not update this photo.",
     "ka": "ფოტოს განახლება ვერ მოხერხდა.",
+    "_source": "src/app/[locale]/admin/(sections)/content/vehicle-photos/page.tsx"
+  },
+  "adminContentVehiclePhotos.couldNotUpdateVisibility": {
+    "en": "Could not update homepage visibility.",
+    "ka": "მთავარ გვერდზე ხილვადობის განახლება ვერ მოხერხდა.",
     "_source": "src/app/[locale]/admin/(sections)/content/vehicle-photos/page.tsx"
   },
   "adminContentVehiclePhotos.heavyDuty": {
@@ -464,9 +474,29 @@
     "ka": "მძიმე ტვირთამწეობის",
     "_source": "src/app/[locale]/admin/(sections)/content/vehicle-photos/page.tsx"
   },
+  "adminContentVehiclePhotos.hiddenFromHomepage": {
+    "en": "Hidden from homepage",
+    "ka": "დამალულია მთავარ გვერდზე",
+    "_source": "src/app/[locale]/admin/(sections)/content/vehicle-photos/page.tsx"
+  },
+  "adminContentVehiclePhotos.homepageOrderHint": {
+    "en": "Use the arrows to set the order each duty class shows in on the homepage. Hiding a vehicle removes it from the homepage only — it can still be booked from the booking form.",
+    "ka": "ისრებით განსაზღვრეთ, რა თანმიმდევრობით გამოჩნდება თითოეული კლასის ტრანსპორტი მთავარ გვერდზე. დამალული ტრანსპორტი მხოლოდ მთავარი გვერდიდან ქრება — მისი დაჯავშნა კვლავ შესაძლებელია შეკვეთის ფორმიდან.",
+    "_source": "src/app/[locale]/admin/(sections)/content/vehicle-photos/page.tsx"
+  },
   "adminContentVehiclePhotos.mediumDuty": {
     "en": "Medium duty",
     "ka": "საშუალო ტვირთამწეობის",
+    "_source": "src/app/[locale]/admin/(sections)/content/vehicle-photos/page.tsx"
+  },
+  "adminContentVehiclePhotos.moveVehicleDown": {
+    "en": "Move {name} down",
+    "ka": "{name} — ქვემოთ გადატანა",
+    "_source": "src/app/[locale]/admin/(sections)/content/vehicle-photos/page.tsx"
+  },
+  "adminContentVehiclePhotos.moveVehicleUp": {
+    "en": "Move {name} up",
+    "ka": "{name} — ზემოთ გადატანა",
     "_source": "src/app/[locale]/admin/(sections)/content/vehicle-photos/page.tsx"
   },
   "adminContentVehiclePhotos.noPhotoThePublicCardFalls": {
@@ -485,8 +515,8 @@
     "_source": "src/app/[locale]/admin/(sections)/content/vehicle-photos/page.tsx"
   },
   "adminContentVehiclePhotos.photosForTheVehicleCatalogueOn": {
-    "en": "Photos for the vehicle catalogue on the public homepage. Only the photo is editable here — payload ratings, cargo dimensions, loading access and pricing drive order matching, so they are not content and are changed through the seed.",
-    "ka": "ფოტოები ტრანსპორტის კატალოგისთვის საჯარო მთავარ გვერდზე. აქ მხოლოდ ფოტოა რედაქტირებადი — ტვირთამწეობის მაჩვენებლები, ტვირთის ზომები, ჩატვირთვის წვდომა და ფასწარმოქმნა მართავს შეკვეთის მატჩინგს, ამიტომ ისინი არ წარმოადგენს კონტენტს და იცვლება seed-ის მეშვეობით.",
+    "en": "Photos, order and visibility for the vehicle catalogue on the public homepage. Only these are editable here — payload ratings, cargo dimensions, loading access and pricing drive order matching, so they are not content and are changed through the seed.",
+    "ka": "ფოტოები, თანმიმდევრობა და ხილვადობა ტრანსპორტის კატალოგისთვის საჯარო მთავარ გვერდზე. აქ მხოლოდ ეს არის რედაქტირებადი — ტვირთამწეობის მაჩვენებლები, ტვირთის ზომები, ჩატვირთვის წვდომა და ფასწარმოქმნა მართავს შეკვეთის მატჩინგს, ამიტომ ისინი არ წარმოადგენს კონტენტს და იცვლება seed-ის მეშვეობით.",
     "_source": "src/app/[locale]/admin/(sections)/content/vehicle-photos/page.tsx"
   },
   "adminContentVehiclePhotos.pnpmExecPrismaDbSeed": {
@@ -507,6 +537,11 @@
   "adminContentVehiclePhotos.savePhoto": {
     "en": "Save photo",
     "ka": "ფოტოს შენახვა",
+    "_source": "src/app/[locale]/admin/(sections)/content/vehicle-photos/page.tsx"
+  },
+  "adminContentVehiclePhotos.showOnHomepage": {
+    "en": "Show on homepage",
+    "ka": "მთავარ გვერდზე ჩვენება",
     "_source": "src/app/[locale]/admin/(sections)/content/vehicle-photos/page.tsx"
   },
   "adminContentVehiclePhotos.typeCount": {

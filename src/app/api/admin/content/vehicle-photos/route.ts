@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import type { AdminRole, VehicleCategory } from "@prisma/client";
 
 import { authorizeAdminApi } from "@/lib/admin/api-auth";
-import { prisma } from "@/lib/prisma";
+import { listAdminVehiclePhotoRows } from "@/lib/admin/vehicle-photos";
 
 /**
  * Staff who may read and change the marketing photo on a vehicle type. Stated
@@ -14,6 +14,9 @@ const ALLOWED_ROLES: readonly AdminRole[] = ["SUPER_ADMIN", "CONTENT_MANAGER"];
 
 /**
  * One vehicle type as the photo manager renders it.
+ *
+ * Carries the photo and the two homepage display settings — the only things a
+ * content manager may change on a vehicle type.
  *
  * Deliberately narrow: `maxPayloadKg`, the three cargo dimensions,
  * `loadingAccessType` and the 1-1 `PricingRule` are all absent, because this
@@ -29,6 +32,10 @@ export type AdminVehiclePhotoRow = {
   category: VehicleCategory;
   /** Public `site-media` URL, or null while the type has no photography. */
   imageUrl: string | null;
+  /** Whether the public marketing surfaces show this type. */
+  showOnHomepage: boolean;
+  /** Position within its category on the homepage, ascending. */
+  homepageSortOrder: number;
 };
 
 /** Body of `GET /api/admin/content/vehicle-photos`. */
@@ -38,7 +45,9 @@ export type AdminVehiclePhotoListResponse = {
 
 /**
  * GET /api/admin/content/vehicle-photos — every vehicle type with its current
- * photo, in the order the admin page groups them.
+ * photo and homepage display settings, in homepage order (category, then
+ * `homepageSortOrder`, then label). Hidden types are included — the admin page
+ * lists them, marked, so they can be shown again.
  *
  * Unpaginated and unfiltered: `prisma/seed.ts` creates exactly eleven rows, and
  * the whole point of the page is seeing every type's photo at once to spot the
@@ -50,24 +59,7 @@ export async function GET(): Promise<NextResponse> {
     return authorized.response;
   }
 
-  const vehicleTypes = await prisma.vehicleTypeSpec.findMany({
-    // Postgres sorts an enum column by its *declaration* order, not
-    // alphabetically, so `category: "asc"` yields MEDIUM_DUTY before
-    // HEAVY_DUTY — the same order the seed writes and the booking picker
-    // presents. Spelled out because it reads like alphabetical order by
-    // accident, and someone would otherwise "fix" it into the wrong order.
-    orderBy: [{ category: "asc" }, { label: "asc" }],
-    // Only the five columns the page renders. Widening this select is the
-    // first step towards widening what this surface can change; keep it as it
-    // is.
-    select: {
-      id: true,
-      code: true,
-      label: true,
-      category: true,
-      imageUrl: true,
-    },
-  });
+  const vehicleTypes = await listAdminVehiclePhotoRows();
 
   const body: AdminVehiclePhotoListResponse = { items: vehicleTypes };
 

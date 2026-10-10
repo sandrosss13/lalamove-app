@@ -219,14 +219,39 @@
     "ka": "valueKa სავალდებულოა და არ უნდა იყოს ცარიელი ტექსტი.",
     "_source": "src/app/api/admin/content/translations/route.ts"
   },
+  "adminContentVehiclePhotos.categoryInvalid": {
+    "en": "category must be MEDIUM_DUTY or HEAVY_DUTY.",
+    "ka": "category უნდა იყოს MEDIUM_DUTY ან HEAVY_DUTY.",
+    "_source": "src/app/api/admin/content/vehicle-photos/reorder/route.ts"
+  },
+  "adminContentVehiclePhotos.idsMustBeDistinctIds": {
+    "en": "ids must be a non-empty array of distinct vehicle type ids.",
+    "ka": "ids უნდა იყოს ტრანსპორტის ტიპების განსხვავებული id-ების არაცარიელი მასივი.",
+    "_source": "src/app/api/admin/content/vehicle-photos/reorder/route.ts"
+  },
+  "adminContentVehiclePhotos.idsMustBelongToCategory": {
+    "en": "Every id must be a vehicle type in this duty class. Reload the list and try again.",
+    "ka": "ყველა id უნდა იყოს ამ კლასის ტრანსპორტის ტიპი. განაახლეთ სია და სცადეთ თავიდან.",
+    "_source": "src/app/api/admin/content/vehicle-photos/reorder/route.ts"
+  },
   "adminContentVehiclePhotos.imageUrlNonEmptyOrNull": {
     "en": "imageUrl must be a non-empty string, or null to clear it.",
     "ka": "imageUrl უნდა იყოს არაცარიელი სტრიქონი, ან null მის გასასუფთავებლად.",
     "_source": "src/app/api/admin/content/vehicle-photos/[id]/route.ts"
   },
+  "adminContentVehiclePhotos.nothingToUpdate": {
+    "en": "Send imageUrl and/or showOnHomepage.",
+    "ka": "გამოგზავნეთ imageUrl და/ან showOnHomepage.",
+    "_source": "src/app/api/admin/content/vehicle-photos/[id]/route.ts"
+  },
+  "adminContentVehiclePhotos.showOnHomepageMustBeBoolean": {
+    "en": "showOnHomepage must be true or false.",
+    "ka": "showOnHomepage უნდა იყოს true ან false.",
+    "_source": "src/app/api/admin/content/vehicle-photos/[id]/route.ts"
+  },
   "adminContentVehiclePhotos.unexpectedFields": {
-    "en": "This endpoint only sets imageUrl. Unexpected field(s): {fields}. Vehicle specifications and pricing are changed through the seed, not the back office.",
-    "ka": "ეს endpoint მხოლოდ imageUrl-ს ცვლის. მოულოდნელი ველ(ებ)ი: {fields}. ავტომობილის მახასიათებლები და ფასები იცვლება seed-ის მეშვეობით და არა ბექ-ოფისიდან.",
+    "en": "This endpoint only sets imageUrl and showOnHomepage. Unexpected field(s): {fields}. Vehicle specifications and pricing are changed through the seed, not the back office.",
+    "ka": "ეს endpoint მხოლოდ imageUrl-ს და showOnHomepage-ს ცვლის. მოულოდნელი ველ(ებ)ი: {fields}. ავტომობილის მახასიათებლები და ფასები იცვლება seed-ის მეშვეობით და არა ბექ-ოფისიდან.",
     "_source": "src/app/api/admin/content/vehicle-photos/[id]/route.ts"
   },
   "adminContentVehiclePhotos.vehicleTypeNotFound": {

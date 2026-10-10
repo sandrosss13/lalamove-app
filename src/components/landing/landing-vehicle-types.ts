@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 
+import { orderForHomepage } from "@/lib/vehicle-homepage-display";
 import { vehicleTypeSpecLabel } from "@/lib/vehicle-type-spec-labels";
 
 /**
@@ -24,6 +25,15 @@ export type LandingVehicleType = {
   // cheapest eligible type for a cargo category is a `baseFare` comparison,
   // and `pricePerKm` lets the category tiles show a nominal "from" price.
   pricingRule: { baseFare: number; pricePerKm: number };
+  /**
+   * Homepage display settings from Admin → Content → Vehicle photos. Optional
+   * because a response from a deployment that predates them omits both; that
+   * reads as "shown, unordered" (see `orderForHomepage`). Consumed — and
+   * hidden types dropped — inside `useLandingVehicleTypes`, so no landing
+   * section needs to look at them.
+   */
+  showOnHomepage?: boolean;
+  homepageSortOrder?: number;
 };
 
 /**
@@ -57,6 +67,17 @@ function loadVehicleTypes(): Promise<LandingVehicleType[]> {
 
 /**
  * The seeded vehicle taxonomy, for the landing sections built from it.
+ *
+ * Already in homepage form: types an admin hid from the homepage are removed,
+ * and the rest are ordered by the admin's per-category homepage order (see
+ * `orderForHomepage`). Every consumer groups by `category` with a `filter`, so
+ * that order is the order each Medium / Heavy group renders in. This is
+ * marketing-only — the signed-in booking form reads `/api/vehicle-types`
+ * through its own hook and is unaffected.
+ *
+ * Admin changes show on the next page load: `GET /api/vehicle-types` is
+ * dynamic and uncached, and the request below is shared only for the lifetime
+ * of one loaded page.
  *
  * `loading` and `error` are there for the quote calculator, which has to keep
  * its picker disabled until it has real options; the purely decorative sections
@@ -102,9 +123,11 @@ export function useLandingVehicleTypes(): {
 
   // The API returns the English seed label; every landing section reads
   // `label`, so it is localized once here by `code` rather than per call site.
+  // Ordering runs first, on the English label, so the label tie-break matches
+  // the order the migration backfilled regardless of the reader's language.
   const localizedVehicleTypes = useMemo(
     () =>
-      vehicleTypes.map((vehicleType) => ({
+      orderForHomepage(vehicleTypes).map((vehicleType) => ({
         ...vehicleType,
         label: vehicleTypeSpecLabel(vehicleType.code, vehicleType.label, tRoot),
       })),
