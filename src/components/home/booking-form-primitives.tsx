@@ -25,7 +25,8 @@ import { cn } from "@/lib/utils";
  * than being copied into each new sibling component.
  *
  * Colour rule throughout: only the landing token utilities (`bg-ink`,
- * `bg-surface`, `text-paper`, `text-muted`, `border-line`, the accent) — never a
+ * `bg-surface`, `text-paper`, `text-muted`, `border-line`, the accent — plus the
+ * shadcn `destructive` token for a required step left empty) — never a
  * hex literal, and never a `dark:` variant. `dark:` *does* match here now (the
  * variant in `globals.css` is app-wide, and the `--landing-*` tokens flip under
  * `html.dark`); it stays unwanted because each of those utilities already
@@ -56,32 +57,19 @@ export type StepCardProps = {
   title: string;
   description?: string;
   /**
-   * Whether the step before this one is still unanswered. A disabled step stays
-   * fully readable — it is what the user is being asked to work towards — so it
-   * drops the badge's accent fill and mutes the title rather than fading the
-   * whole card out. Readable, but not answerable by any route: the content
-   * region goes `inert` with it (see the note on the component).
+   * DOM id for the card, so the form can scroll the first incomplete required
+   * step into view when Book is pressed.
    */
-  disabled?: boolean;
+  id?: string;
   /**
-   * Why this step cannot be answered yet — an imperative naming the fix wherever
-   * there is one to name. Rendered in the header while `disabled` and pointed at
-   * by the card's `aria-describedby`, so the reason travels with the step rather
-   * than living in a `title` attribute a keyboard or screen-reader user has no
-   * way to reach. The header sitting outside the inert region is what keeps that
-   * true: the reason is the one thing a disabled step still has to say, so it
-   * has to be the part that stays reachable. Ignored while the step is enabled,
-   * where there is nothing to explain.
-   *
-   * Never delegated to the content region on the grounds that a message down
-   * there already explains it: `inert` takes that message out of the
-   * accessibility tree along with the controls, so a step whose only
-   * explanation sits in its own `alert` reads as a titled card with no reason
-   * and no way forward. A step with something more accurate to say — the
-   * vehicle step while its type list failed to load — passes that text here
-   * instead of rendering it only below.
+   * Whether this required step was left unanswered on a booking attempt. Draws
+   * the card in the destructive colour and shows `invalidMessage` in its
+   * header; derived by the form from its own state, so it clears the moment
+   * the step is answered.
    */
-  disabledReason?: string;
+  invalid?: boolean;
+  /** The short line shown while `invalid` ("Required"). */
+  invalidMessage?: string;
   children: React.ReactNode;
 };
 
@@ -89,84 +77,49 @@ export type StepCardProps = {
  * One numbered step of the form. The number is a decoration — the title
  * carries the meaning — so the badge is hidden from assistive tech.
  *
- * A disabled step is disabled for real, by `inert` on the content region: one
- * attribute that takes every descendant out of the tab order, out of hit-testing
- * and out of the accessibility tree together. A `Card` is a `div` with no
- * disabled state of its own, and the controls inside a step are of several kinds
- * — native radios, a select, buttons, a text field — so there is no single
- * `disabled` to set and no call site that could thread one through them all.
+ * Every step is always answerable, in any order: there is no disabled state.
+ * A step that cannot offer options yet says so inside its own content instead.
  *
- * It replaces a lone `pointer-events-none`, which suppressed hit-testing and
- * nothing else. The `sr-only` radios each picker keeps stayed focusable under
- * it, so a keyboard user could Tab into a greyed-out step and set body type,
- * crew size, service level or payment method that a pointer user was blocked
- * from — while `aria-disabled` on the group announced the step as unanswerable.
- * The class stays next to `inert` only as the pointer half of that behaviour on
- * a browser too old for the attribute; on every current one it is redundant.
- *
- * What `inert` costs is reading ahead *within* a step that cannot be answered
- * yet — hearing its individual controls. The header is deliberately outside the
- * inert region, and pays for it: the number, title, description and
- * `disabledReason` all stay in the accessibility tree, so a screen-reader user
- * still learns the step is there, what it will ask for and what to go and do
- * first. Hearing the controls of a question that ignores every answer is exactly
- * what `aria-disabled` was already promising would not happen.
- *
- * `role="group"` is what makes that wiring carry: ARIA in HTML supports neither
- * `aria-disabled` nor `aria-describedby` on a role-less generic, so a plain
- * `div` drops both and only the visible reason line survives. The role is also
- * the thing that gives the card a boundary to announce, so it takes its name
- * from the step's own title via `aria-labelledby` rather than announcing as an
- * unnamed group. Purely semantic — nothing about it renders. The group is the
- * `Card`, not the content region, so it stays announced — named, disabled and
- * described — while nothing it wraps is reachable. The two agree now.
- *
- * Mounted dialogs are untouched: `inert` applies down the DOM tree, and Radix
- * portals `DialogContent` to `document.body`, so step 2's contact dialogs and
- * step 7's add-card dialog are not descendants of the content region. One
- * already open when its step disables underneath it stays fully operable.
- *
- * A step turned off this way always says why (`disabledReason`), because the
- * only thing on screen would otherwise be a control that nothing can reach —
- * and because the header is the one place that reason can be said, the content
- * region being inert underneath it.
+ * `role="group"` named by the title is what lets the invalid line be attached
+ * with `aria-describedby` — ARIA in HTML supports neither on a role-less
+ * generic `div`. `aria-invalid` is not valid on a group, so the state is
+ * conveyed by that described line, which is also visible to everyone.
  */
 export function StepCard({
   step,
   title,
   description,
-  disabled = false,
-  disabledReason,
+  id,
+  invalid = false,
+  invalidMessage,
   children,
 }: StepCardProps) {
   const titleId = useId();
-  const reasonId = useId();
-  // Only a disabled step has a reason to give: an enabled one carries neither
-  // the line nor the `aria-describedby` pointing at it.
-  const reason = disabled ? disabledReason : undefined;
+  const messageId = useId();
+  const message = invalid ? invalidMessage : undefined;
 
   return (
     <Card
+      id={id}
       role="group"
       aria-labelledby={titleId}
-      aria-disabled={disabled ? "true" : undefined}
-      aria-describedby={reason ? reasonId : undefined}
-      className="gap-4 bg-ink text-paper ring-line"
+      aria-describedby={message ? messageId : undefined}
+      className={cn(
+        "scroll-mt-6 gap-4 bg-ink text-paper transition-shadow",
+        invalid ? "ring-2 ring-destructive" : "ring-line",
+      )}
     >
       <CardHeader>
         <CardTitle
           id={titleId}
-          className={cn(
-            "flex items-center gap-3 font-display text-base font-semibold",
-            disabled ? "text-muted" : "text-paper",
-          )}
+          className="flex items-center gap-3 font-display text-base font-semibold text-paper"
         >
           {step === undefined ? null : (
             <span
               aria-hidden="true"
               className={cn(
                 "flex size-6 shrink-0 items-center justify-center rounded-full text-[0.6875rem] font-semibold",
-                disabled ? "bg-surface text-muted" : "bg-accent text-ink",
+                invalid ? "bg-destructive text-white" : "bg-accent text-ink",
               )}
             >
               {step}
@@ -179,25 +132,16 @@ export function StepCard({
             {description}
           </CardDescription>
         ) : null}
-        {/* Visible as well as referenced: `aria-describedby` on a plain region
-            is not announced by every screen reader, and a step that cannot be
-            answered yet has to say so to everyone reading the card. */}
-        {reason ? (
-          <p id={reasonId} className="text-[0.8125rem] leading-snug text-muted">
-            {reason}
+        {message ? (
+          <p
+            id={messageId}
+            className="text-[0.8125rem] leading-snug font-semibold text-destructive"
+          >
+            {message}
           </p>
         ) : null}
       </CardHeader>
-      {/* `inert` is the disabling mechanism; the class is its pointer-only
-          fallback for a browser without the attribute. React 19 renders `inert`
-          as the boolean attribute it is, so `false` emits nothing at all and an
-          enabled step carries neither. */}
-      <CardContent
-        inert={disabled}
-        className={cn(disabled && "pointer-events-none")}
-      >
-        {children}
-      </CardContent>
+      <CardContent>{children}</CardContent>
     </Card>
   );
 }

@@ -174,39 +174,38 @@ type CreateOrderInput = QuoteInput & {
   purchaseOrderRef: string | null;
 
   /**
-   * The load's physical description and its time constraints.
+   * The load's physical description and its time constraints. **Every field in
+   * this block is optional.**
    *
-   * **Weight and the three dimensions are required; everything else in this
-   * block is optional.** The line between them is not a matter of taste, and it
-   * is not "what the form happens to collect" — it is what the load board's fit
-   * filter reads. That filter compares weight and L×W×H against a vehicle's
-   * cargo hold and treats an unknown value as *not fitting*, so an order booked
-   * without them is invisible to every driver on the board: a silent failure,
-   * with no error anywhere and a client wondering why nobody takes their job.
-   * Those four are worth failing a request over. Nothing else here is.
+   * The four measurements used to be required, on the reasoning that the load
+   * board's fit filter treats an unknown value as *not fitting* and would hide
+   * an unmeasured order from every driver. That reasoning no longer holds:
+   * `classifyFit` (`src/lib/orders/vehicle-fit.ts`) separates a wholly
+   * undeclared envelope (`UNDECLARED`, offered on the board and claimable) from
+   * a partially declared one (`DOES_NOT_FIT`, hidden and refused). The booking
+   * form no longer asks for the measurements at all — it asks for the vehicle's
+   * weight bracket and, optionally, photos of the load — so the measurements
+   * are **all-or-nothing**: all four absent is a normal booking, all four
+   * present is bounds-checked exactly as before, and any other mix is a 400,
+   * because a partial envelope is precisely the shape that would strand a paid
+   * order off every board. See `parseCargoEnvelope`.
    *
    * A packaging note, an item count, a release window and a delivery deadline
    * are context a driver is glad to have and no filter consults. Requiring them
-   * would mean refusing to book a real, carryable load over a blank text box —
-   * which is precisely the bug this comment replaces. The previous version of
-   * this paragraph asserted that "the booking form collects all of these before
-   * it submits" and concluded that a body missing one was a broken client. That
-   * was simply false: the form presents all five as optional, `canSubmit` does
-   * not gate on any of them, and `JSON.stringify` drops the `undefined` keys
-   * outright, so a booking with no packaging note reached this parser with the
-   * key absent and came back `400 packagingDescription is required`. The form's
-   * own submit path was dead. The sentence caused the bug, so it is gone.
+   * would mean refusing to book a real, carryable load over a blank text box.
+   * The booking form once presented them as optional while this parser required
+   * them, and `JSON.stringify` drops `undefined` keys, so a booking with no
+   * packaging note came back `400 packagingDescription is required` — the form's
+   * own submit path was dead. They stay optional.
    *
-   * All nine columns are nullable in `prisma/schema.prisma`. For the five below
-   * that nullability is now load-bearing rather than historical: `null` means
-   * "the client did not say", which is a truthful thing for a row to record.
-   * (The four required ones stay nullable in the schema only so rows predating
-   * the load board can hold `null`; nothing this route writes ever does.)
+   * All nine columns are nullable in `prisma/schema.prisma`, and that
+   * nullability is load-bearing: `null` means "the client did not say", which is
+   * a truthful thing for a row to record.
    */
-  cargoWeightKg: number;
-  cargoLengthM: number;
-  cargoWidthM: number;
-  cargoHeightM: number;
+  cargoWeightKg: number | null;
+  cargoLengthM: number | null;
+  cargoWidthM: number | null;
+  cargoHeightM: number | null;
   packagingDescription: string | null;
   itemQuantity: string | null;
   /**
@@ -350,6 +349,71 @@ function parsePositiveMeasurement(
         unit: bounds.unit,
       }),
     };
+  }
+
+  return { value };
+}
+
+/** The four envelope measurements, each `null` when the client declared none. */
+type CargoEnvelope = Pick<
+  CreateOrderInput,
+  "cargoWeightKg" | "cargoLengthM" | "cargoWidthM" | "cargoHeightM"
+>;
+
+/** Body keys of the envelope, in the order their errors are reported. */
+const CARGO_ENVELOPE_FIELDS = [
+  "cargoWeightKg",
+  "cargoLengthM",
+  "cargoWidthM",
+  "cargoHeightM",
+] as const satisfies readonly (keyof CargoEnvelope)[];
+
+/**
+ * Validate the load's physical envelope as one all-or-nothing unit.
+ *
+ * Absent (`undefined` or `null`) on all four is a booking that simply does not
+ * describe its load — the normal case now the booking form no longer asks.
+ * Present on all four is validated field by field through
+ * `parsePositiveMeasurement`, unchanged. Any mix is refused: `classifyFit`
+ * reads a partial envelope as `DOES_NOT_FIT`, so the order would be paid for
+ * and then hidden from every driver's board and refused by every claim route.
+ * Present fields are bounds-checked *before* the completeness check so a client
+ * that sent one bad figure is told about the figure, not about its siblings.
+ */
+function parseCargoEnvelope(
+  record: Record<string, unknown>,
+  t: RequestTranslator,
+): { value: CargoEnvelope } | { error: string } {
+  const value: CargoEnvelope = {
+    cargoWeightKg: null,
+    cargoLengthM: null,
+    cargoWidthM: null,
+    cargoHeightM: null,
+  };
+
+  let declaredCount = 0;
+  for (const field of CARGO_ENVELOPE_FIELDS) {
+    const raw = record[field];
+    if (raw === undefined || raw === null) {
+      continue;
+    }
+
+    const parsed = parsePositiveMeasurement(
+      raw,
+      field,
+      CARGO_MEASUREMENT_BOUNDS[field],
+      t,
+    );
+    if ("error" in parsed) {
+      return parsed;
+    }
+
+    value[field] = parsed.value;
+    declaredCount += 1;
+  }
+
+  if (declaredCount > 0 && declaredCount < CARGO_ENVELOPE_FIELDS.length) {
+    return { error: t("errors.orders.cargoEnvelopeIncomplete") };
   }
 
   return { value };
@@ -579,48 +643,9 @@ function parseCreateOrderBody(
     return purchaseOrderRef;
   }
 
-  // The four required measurements. Required because the load board's fit
-  // filter reads them and treats an unknown value as not fitting — see the
-  // block comment on `CreateOrderInput` for why that, and only that, justifies
-  // refusing a booking.
-  const cargoWeightKg = parsePositiveMeasurement(
-    record.cargoWeightKg,
-    "cargoWeightKg",
-    CARGO_MEASUREMENT_BOUNDS.cargoWeightKg,
-    t,
-  );
-  if ("error" in cargoWeightKg) {
-    return cargoWeightKg;
-  }
-
-  const cargoLengthM = parsePositiveMeasurement(
-    record.cargoLengthM,
-    "cargoLengthM",
-    CARGO_MEASUREMENT_BOUNDS.cargoLengthM,
-    t,
-  );
-  if ("error" in cargoLengthM) {
-    return cargoLengthM;
-  }
-
-  const cargoWidthM = parsePositiveMeasurement(
-    record.cargoWidthM,
-    "cargoWidthM",
-    CARGO_MEASUREMENT_BOUNDS.cargoWidthM,
-    t,
-  );
-  if ("error" in cargoWidthM) {
-    return cargoWidthM;
-  }
-
-  const cargoHeightM = parsePositiveMeasurement(
-    record.cargoHeightM,
-    "cargoHeightM",
-    CARGO_MEASUREMENT_BOUNDS.cargoHeightM,
-    t,
-  );
-  if ("error" in cargoHeightM) {
-    return cargoHeightM;
+  const cargoEnvelope = parseCargoEnvelope(record, t);
+  if ("error" in cargoEnvelope) {
+    return cargoEnvelope;
   }
 
   // Optional from here down. `parseOptionalText` is the same helper
@@ -734,10 +759,7 @@ function parseCreateOrderBody(
         (paymentMethodType as PaymentMethodType | undefined) ?? null,
       savedCardId: chosenCardId,
       purchaseOrderRef: purchaseOrderRef.value,
-      cargoWeightKg: cargoWeightKg.value,
-      cargoLengthM: cargoLengthM.value,
-      cargoWidthM: cargoWidthM.value,
-      cargoHeightM: cargoHeightM.value,
+      ...cargoEnvelope.value,
       packagingDescription: packagingDescription.value,
       itemQuantity: itemQuantity.value,
       handlingTags: handlingTags.value,

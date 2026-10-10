@@ -1,4 +1,10 @@
 {
+  "orderPhotos": {
+    "cargoPhotos": "Cargo photos",
+    "photoAlt": "Cargo photo {number}",
+    "openFullSize": "Open cargo photo {number} full size",
+    "fullSizeTitle": "Cargo photo {number} of {total}"
+  },
   "orderStatus": {
     "accepted": "Accepted",
     "cancelled": "Cancelled",
