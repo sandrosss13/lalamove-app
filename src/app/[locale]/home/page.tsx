@@ -21,10 +21,11 @@ export const dynamic = "force-dynamic";
  * routes read the same content through `@/lib/admin/home-page-data`, so what
  * this route previews is what the front door serves.
  *
- * `showSiteHeader` is why this route checks for a session at all otherwise:
- * a signed-in visitor keeps the global header (their account nav, sign out)
- * above the marketing content, since the landing page's own nav pill has no
- * idea they're signed in and would otherwise leave them with no way back.
+ * `showSiteHeader` is why this route checks for a session at all: a
+ * signed-in visitor gets the global header (their account nav, sign out) in
+ * place of the landing page's own utility bar and header, so the app's
+ * navigation stays where it is on every other signed-in page and the two never
+ * stack. A signed-out visitor gets the landing header and no global one.
  */
 export default async function HomePage({
   params,

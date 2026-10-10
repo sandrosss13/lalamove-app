@@ -164,6 +164,10 @@ function pinUnderHero(sections: LandingSection[]): LandingSection[] {
  *   It hides the root layout's global `<header>`, which would otherwise stack
  *   a second navbar above this page's own.
  *
+ * Exactly one header renders either way: with `showSiteHeader` the page keeps
+ * the global header and drops its own utility bar and sticky header; without
+ * it, the page shows its own and hides the global one.
+ *
  * The body is composed from `HomePageSection` rows edited under
  * `/admin/content/home-page`: `sections` arrives already filtered to one
  * locale, to active rows, sorted by `sortOrder`, and with every section the
@@ -189,12 +193,13 @@ export function LandingPage({
   offerBanners?: LandingBanner[];
   /**
    * Keep the root layout's global site header (account nav, sign out) visible
-   * above this page, rather than hiding it.
+   * above this page *instead of* the page's own utility bar and sticky header.
    *
    * `/`'s signed-out visitor is the default case: there is no account nav to
-   * show, so the global header is pure clutter. `/home` passes `true` when a
-   * session exists, so a signed-in user previewing the marketing page still
-   * has the app's own header above this one (which is session-aware too).
+   * show, so the global header is pure clutter and the v4 header stands in for
+   * it. `/home` passes `true` when a session exists, so a signed-in user
+   * previewing the marketing page gets the app's own header — and only that
+   * one, since rendering both stacks two navbars with the same account links.
    */
   showSiteHeader?: boolean;
 }) {
@@ -271,7 +276,7 @@ export function LandingPage({
       className="flex min-h-screen flex-col overflow-x-clip bg-home-page font-body text-home-ink antialiased"
     >
       <LandingScrollReveal />
-      <LandingSiteHeader content={navContent} />
+      {showSiteHeader ? null : <LandingSiteHeader content={navContent} />}
       <main className="flex-1">
         {orderedSections.map((section) => (
           <LandingSectionRenderer

@@ -23,6 +23,7 @@ import {
   buildDefaultHomePageSections,
   createMessageLookup,
   isHomePageSectionType,
+  isRetiredHomePageSectionType,
   localizeDefaultHomePageContent,
   parseHomePageSection,
   withDefaultSections,
@@ -107,6 +108,13 @@ export async function getDefaultHomePageContent(
  * in the database — is possible, and one bad section must not take the whole
  * marketing page down. Its type is left out of `authoredTypes`, so the page
  * shows that section's default rather than a hole.
+ *
+ * Rows of a retired type (`RETIRED_HOME_PAGE_SECTION_TYPES`) are dropped
+ * whatever their `isActive`: v4 has no slot for them, and an old active `hero`
+ * row would otherwise render alongside the `hero_carousel` that replaced it.
+ * The bulk admin actions switch such rows off, but the public page must not
+ * depend on someone having run them. The admin listing reads the table
+ * directly, so it still shows these rows in its Retired group.
  */
 async function loadAuthoredHomePageSections(
   locale: ContentLocale,
@@ -123,6 +131,10 @@ async function loadAuthoredHomePageSections(
   const authoredTypes = new Set<string>();
 
   for (const row of rows) {
+    if (isRetiredHomePageSectionType(row.type)) {
+      continue;
+    }
+
     if (!row.isActive) {
       if (isHomePageSectionType(row.type)) {
         authoredTypes.add(row.type);

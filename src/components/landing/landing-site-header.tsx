@@ -45,9 +45,12 @@ const SOLID_BUTTON =
  * the prototype simply lets them wrap, which at phone width stacks the header
  * three rows deep and keeps it pinned over the content.
  *
- * Session-aware for the same reason the v3 nav pill is: on the signed-in
- * `/home` preview this can be the only chrome, so a signed-in visitor gets
- * their account link and Sign out instead of Sign in / Sign up.
+ * Rendered only when the global header is hidden (`LandingPage` drops it for
+ * a signed-in `/home` visitor, who gets the global header instead), so it is
+ * always the page's only chrome. It stays session-aware for the edge where
+ * the server saw no session but the client has one — a sign-in in another tab
+ * or a cached `/` — so that visitor still gets their account link and Sign
+ * out instead of Sign in / Sign up.
  */
 export function LandingSiteHeader({ content }: { content: NavContent }) {
   const t = useTranslations("landing.landingNavPill");
