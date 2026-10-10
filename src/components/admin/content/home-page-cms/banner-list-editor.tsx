@@ -57,6 +57,8 @@ type BannerListConfig = {
   purpose: SiteMediaPurpose;
   /** Preview box size, per the artboard: hero 220×92, card 160×100, logo 140×56. */
   imageClassName: string;
+  /** `admin.homePageCms` key of the recommended-image-size hint. */
+  imageHintKey: string;
   fields: BannerFieldSpec[];
   /** `admin.homePageCms` keys for the list heading and the add button. */
   labelKey: string;
@@ -71,6 +73,7 @@ const CONFIG: Record<BannerListKind, BannerListConfig> = {
     toggleLabelKey: "live",
     purpose: "banners",
     imageClassName: "sm:w-56",
+    imageHintKey: "imageHintHero",
     fields: [
       { key: "eyebrow", labelKey: "tag" },
       { key: "linkUrl", labelKey: "link" },
@@ -87,6 +90,7 @@ const CONFIG: Record<BannerListKind, BannerListConfig> = {
     toggleLabelKey: null,
     purpose: "banners",
     imageClassName: "sm:w-44",
+    imageHintKey: "imageHintOffer",
     fields: [
       { key: "eyebrow", labelKey: "tag" },
       { key: "ctaLabel", labelKey: "buttonLabel" },
@@ -104,6 +108,7 @@ const CONFIG: Record<BannerListKind, BannerListConfig> = {
     toggleLabelKey: "shown",
     purpose: "partner-logos",
     imageClassName: "sm:w-40",
+    imageHintKey: "imageHintLogo",
     fields: [{ key: "title", labelKey: "companyName", wide: true }],
     labelKey: "logos",
     addKey: "addLogo",
@@ -300,6 +305,9 @@ function BannerCard({
             onChange={(imageUrl) => setDraft({ ...draft, imageUrl })}
             disabled={pending}
           />
+          <p className="mt-1.5 text-xs text-muted-foreground">
+            {t(config.imageHintKey)}
+          </p>
         </div>
         <div className="min-w-0 flex-[1_1_20rem]">
           <FieldGrid>
