@@ -167,9 +167,9 @@
   },
   "adminImageUpload": {
     "chooseImage": "სურათის არჩევა",
-    "fileHint": "JPG, PNG ან WebP · მაქს. 8 MB.",
-    "fileHintLogos": "JPG, PNG ან WebP · მაქს. 8 MB. ლოგო უნდა იყოს გამჭვირვალე PNG — SVG არ მიიღება.",
-    "fileTooLarge": "ფაილი 8 MB-ზე დიდია. აირჩიეთ უფრო მცირე.",
+    "fileHint": "JPG, PNG ან WebP · მაქს. 12 MB.",
+    "fileHintLogos": "JPG, PNG ან WebP · მაქს. 12 MB. ლოგო უნდა იყოს გამჭვირვალე PNG — SVG არ მიიღება.",
+    "fileTooLarge": "ფაილი 12 MB-ზე დიდია. აირჩიეთ უფრო მცირე.",
     "hideUrlField": "URL ველის დამალვა",
     "noPreview": "წინასწარი გადახედვის გარეშე",
     "pasteAUrlInstead": "ან ჩასვით URL",
@@ -181,8 +181,8 @@
     "replaceVideo": "ვიდეოს შეცვლა",
     "uploadingVideo": "ვიდეო იტვირთება",
     "videoUrl": "ვიდეოს URL",
-    "videoFileHint": "MP4 (H.264) ან WebM, დაახლოებით 1920 × 826, 6–15 წმ, ხმის გარეშე, 8 MB-მდე. ზემოთ მოცემული სურათი გამოიყენება გარეკანად და სარეზერვოდ.",
-    "videoTooLarge": "ვიდეო 8 MB-ზე დიდია. შეამოკლეთ ან შეკუმშეთ და სცადეთ ხელახლა.",
+    "videoFileHint": "MP4 (H.264) ან WebM, დაახლოებით 1920 × 826, 6–15 წმ, ხმის გარეშე, 12 MB-მდე. ზემოთ მოცემული სურათი გამოიყენება გარეკანად და სარეზერვოდ.",
+    "videoTooLarge": "ვიდეო 12 MB-ზე დიდია. შეამოკლეთ ან შეკუმშეთ და სცადეთ ხელახლა.",
     "videoWrongFileType": "ეს ფაილი არ არის MP4 ან WebM ვიდეო. აირჩიეთ სხვა.",
     "videoPreviewFailed": "ვიდეოს ჩატვირთვა ვერ მოხერხდა. თუ ის ახლახან აიტვირთა, შეამოწმეთ, არის თუ არა site-media bucket საჯარო."
   },
