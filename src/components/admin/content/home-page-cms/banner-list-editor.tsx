@@ -80,7 +80,7 @@ const CONFIG: Record<BannerListKind, BannerListConfig> = {
     fields: [
       { key: "eyebrow", labelKey: "tag" },
       { key: "linkUrl", labelKey: "link" },
-      { key: "title", labelKey: "headline", wide: true },
+      { key: "title", labelKey: "headlineOptional", wide: true },
       { key: "body", labelKey: "text", area: true },
     ],
     labelKey: "banners",
@@ -98,7 +98,7 @@ const CONFIG: Record<BannerListKind, BannerListConfig> = {
     fields: [
       { key: "eyebrow", labelKey: "tag" },
       { key: "ctaLabel", labelKey: "buttonLabel" },
-      { key: "title", labelKey: "fieldTitle", wide: true },
+      { key: "title", labelKey: "titleOptional", wide: true },
       { key: "body", labelKey: "text", area: true },
       { key: "linkUrl", labelKey: "link", wide: true },
     ],
@@ -114,7 +114,7 @@ const CONFIG: Record<BannerListKind, BannerListConfig> = {
     imageClassName: "sm:w-40",
     imageHintKey: "imageHintLogo",
     allowsVideo: false,
-    fields: [{ key: "title", labelKey: "companyName", wide: true }],
+    fields: [{ key: "title", labelKey: "companyNameOptional", wide: true }],
     labelKey: "logos",
     addKey: "addLogo",
   },
@@ -228,10 +228,6 @@ function BannerCard({
       setError(tBanner("addAnImageBeforeSavingThis"));
       return;
     }
-    if (draft.title.trim() === "") {
-      setError(t("bannerTitleRequired"));
-      return;
-    }
 
     setPending(true);
     setError(null);
@@ -253,7 +249,8 @@ function BannerCard({
     setError(failure);
   }
 
-  const title = draft.title.trim() === "" ? t("untitled") : draft.title.trim();
+  // The headline is optional; a card without one shows a muted placeholder.
+  const title = draft.title.trim();
 
   return (
     <div
@@ -266,8 +263,13 @@ function BannerCard({
         <span className="font-mono text-[11px] text-muted-foreground">
           #{number}
         </span>
-        <span className="min-w-0 flex-[1_1_7.5rem] truncate text-sm font-medium">
-          {title}
+        <span
+          className={cn(
+            "min-w-0 flex-[1_1_7.5rem] truncate text-sm",
+            title ? "font-medium" : "text-muted-foreground italic",
+          )}
+        >
+          {title || t("untitled")}
         </span>
         {isNew ? <Badge variant="outline">{t("unsaved")}</Badge> : null}
         {config.toggleLabelKey === null && !isActive ? (

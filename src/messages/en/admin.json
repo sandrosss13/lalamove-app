@@ -29,6 +29,7 @@
     "noBannersYet": "No banners yet.",
     "promotionalImagesOnThePublicSite": "Promotional images on the public site. Each banner shows in one placement and locale, ordered by its sort order.",
     "toggleActiveLabel": "{isActive, select, true {Deactivate} other {Activate}} {title}",
+    "untitled": "Untitled",
     "windowFrom": "From {date}",
     "windowRange": "{start} – {end}",
     "windowUntil": "Until {date}"
@@ -380,7 +381,8 @@
     "placementHint": "{heroPlacement} feeds the homepage carousel (max {maxHero} active per locale), {partnerPlacement} feeds the partner marquee, {secondaryPlacement} feeds the offers row (max 6). Hero, offers and logos are easiest to manage from Content → Home Page.",
     "saveBanner": "Save banner",
     "startsOn": "Starts on",
-    "summerPromotion": "Summer promotion"
+    "summerPromotion": "Summer promotion",
+    "titleOptional": "Title (optional)"
   },
   "businessApplicationDetailDrawer": {
     "activateFleet": "Activate fleet",
@@ -489,7 +491,6 @@
     "appStoreUrl": "App Store link",
     "autoAdvanceHint": "Between {min} and {max}. Default {default}.",
     "autoAdvanceSeconds": "Auto-advance (seconds)",
-    "bannerTitleRequired": "Add a title before saving this banner.",
     "imageHintHero": "Recommended 2880 × 1240 px, JPG or WebP, under 500 KB. Keep the subject centred; the left side sits under the headline.",
     "imageHintOffer": "Recommended 800 × 360 px (about 20:9), JPG or WebP, under 200 KB. The image is cropped to fill the card.",
     "video": "Video (optional)",
@@ -506,6 +507,7 @@
     "columnTitle": "Column title",
     "columns": "Columns",
     "companyName": "Company name (alt text)",
+    "companyNameOptional": "Company name (alt text, optional)",
     "contentNeedsAttention": "Content needs attention",
     "contentRecovered": "The stored content of this section could not be read, so the editor opened on the defaults. Saving replaces the stored content.",
     "copyConfirm": "Copy and replace",
@@ -550,10 +552,11 @@
     "draft": "Draft",
     "edit": "Edit",
     "fallbackCaption": "Fallback caption",
-    "fallbackCaptionHint": "Optional. Used for a slide whose banner has no headline.",
+    "fallbackCaptionHint": "Optional. Not shown on the slides: screen readers hear it as the page heading when the first slide has no headline.",
     "fixed": "Fixed",
     "heading": "Heading",
     "headline": "Headline",
+    "headlineOptional": "Headline (optional)",
     "heroLiveFullNote": "{max} banners are live, the maximum. New banners are added as drafts; take one offline to publish another.",
     "heroLiveNote": "Up to {max} banners can be live at once. Drafts are kept but not shown.",
     "hidden": "Hidden",
@@ -619,6 +622,7 @@
       "vehicleTypes": "Vehicles"
     },
     "fieldTitle": "Title",
+    "titleOptional": "Title (optional)",
     "sections": "Sections",
     "showSection": "Show {name}",
     "showingDefaults": "Showing defaults",
