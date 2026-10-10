@@ -26,7 +26,6 @@
     "imageurlMustBeANonEmpty": "imageUrl არ უნდა იყოს ცარიელი ტექსტი.",
     "placementIsRequiredAndMustBe": "placement სავალდებულოა და არ უნდა იყოს ცარიელი ტექსტი.",
     "placementMustBeANonEmpty": "placement არ უნდა იყოს ცარიელი ტექსტი.",
-    "titleMustBeANonEmpty": "title არ უნდა იყოს ცარიელი ტექსტი.",
     "copyFieldMustBeStringOrNull": "{field} უნდა იყოს ტექსტი ან null.",
     "videoUrlMustBeStringOrNull": "videoUrl უნდა იყოს ტექსტი ან null.",
     "videoUrlMustBeHttps": "videoUrl უნდა იყოს https:// მისამართი ან ამ საიტის ბილიკი.",

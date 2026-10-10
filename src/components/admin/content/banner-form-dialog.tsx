@@ -313,14 +313,16 @@ export function BannerFormDialog({
 
           <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="banner-title">{t("common.shared.title")}</Label>
+              {/* Optional on every placement; an empty title is stored as "". */}
+              <Label htmlFor="banner-title">
+                {t("admin.bannerFormDialog.titleOptional")}
+              </Label>
               <Input
                 id="banner-title"
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
                 placeholder={t("admin.bannerFormDialog.summerPromotion")}
                 disabled={pending}
-                required
                 autoFocus
               />
             </div>

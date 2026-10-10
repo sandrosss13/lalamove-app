@@ -22,6 +22,7 @@
     "featuredBanners": "რჩეული ბანერები",
     "goToBanner": "ბანერზე გადასვლა: {index}",
     "nextBanner": "შემდეგი ბანერი",
+    "openBanner": "ბანერის გახსნა: {index}",
     "previousBanner": "წინა ბანერი",
     "slideOf": "{index} / {count}"
   },

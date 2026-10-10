@@ -22,6 +22,7 @@
     "featuredBanners": "Featured banners",
     "goToBanner": "Go to banner {index}",
     "nextBanner": "Next banner",
+    "openBanner": "Open banner {index}",
     "previousBanner": "Previous banner",
     "slideOf": "{index} of {count}"
   },

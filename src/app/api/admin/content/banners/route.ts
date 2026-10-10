@@ -13,6 +13,7 @@ import {
   checkBannerPlacementCapacity,
   checkBannerVideoPlacement,
   parseBannerCopyField,
+  parseBannerTitle,
   parseBannerVideoUrl,
 } from "./validation";
 
@@ -25,9 +26,6 @@ const ALLOWED_ROLES: readonly AdminRole[] = ["SUPER_ADMIN", "CONTENT_MANAGER"];
 
 /** Valid `ContentLocale` values, derived from the generated Prisma enum. */
 const CONTENT_LOCALES = Object.values(ContentLocale);
-
-/** Long enough for a headline, short enough that the column stays a title. */
-const MAX_TITLE_LENGTH = 200;
 
 /**
  * `placement` is a free-form key the admin and the public components agree on
@@ -193,8 +191,9 @@ function parseTimestamp(
  * Hand-rolled body validation, consistent with the rest of the API (the project
  * deliberately uses no validation library).
  *
- * Every field is required here: a create has no existing row to fall back on,
- * and the admin form always sends the complete set. The `PATCH` beside this
+ * Every core field is required here (a create has no existing row to fall back
+ * on, and the admin form always sends the complete set); the headline, card
+ * copy and video are optional. The `PATCH` beside this
  * one applies the same rules per field, but treats an absent key as "leave it".
  */
 function parseCreateBannerBody(
@@ -207,17 +206,10 @@ function parseCreateBannerBody(
 
   const record = body as Record<string, unknown>;
 
-  const { title } = record;
-  if (typeof title !== "string" || title.trim() === "") {
-    return { error: t("common.shared.titleIsRequiredAndMustBe") };
-  }
-  if (title.trim().length > MAX_TITLE_LENGTH) {
-    return {
-      error: t("common.shared.fieldMaxLength", {
-        field: "title",
-        max: MAX_TITLE_LENGTH,
-      }),
-    };
+  // Optional on every placement: absent, null and blank all store "".
+  const title = parseBannerTitle(record.title, t);
+  if ("error" in title) {
+    return { error: title.error };
   }
 
   const { locale } = record;
@@ -368,7 +360,7 @@ function parseCreateBannerBody(
 
   return {
     data: {
-      title: title.trim(),
+      title: title.value,
       locale: locale as ContentLocale,
       imageUrl: imageUrl.trim(),
       linkUrl: normalizedLinkUrl,
