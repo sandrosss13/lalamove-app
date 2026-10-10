@@ -181,6 +181,12 @@ export type HubLoad = {
   pickupWindowStart: string | null;
   pickupWindowEnd: string | null;
   deliveryDeadline: string | null;
+  /**
+   * How many cargo photos the client attached (0–3). A count only: the photos
+   * themselves are fetched per load from `GET /api/loads/[id]/photos` when the
+   * drawer or sheet opens — see `LoadCargoPhotos` in `loads-detail-parts.tsx`.
+   */
+  photoCount: number;
   /** The driver's 85% share, read from the stored column. Never `Order.price`. */
   driverPayout: number;
   /** `driverPayout` per kilometre; null when the trip has no distance. */

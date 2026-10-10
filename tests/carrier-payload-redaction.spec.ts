@@ -40,6 +40,7 @@
 
 import { expect, test } from "@playwright/test";
 
+import { LOADS_SELECT } from "@/lib/loads/select";
 import {
   CARRIER_ORDER_PARTY_SELECT,
   ORDER_PARTY_SELECT,
@@ -135,4 +136,46 @@ test.describe("ORDER_PARTY_SELECT", () => {
       expect(ORDER_PARTY_SELECT).toHaveProperty(column, true);
     });
   }
+});
+
+/**
+ * `GET /api/loads` — the load board, which also answers accounts that are not
+ * yet party to an order (the open market). Its select lives in an import-free
+ * module so it can be pinned here like the two above.
+ */
+test.describe("LOADS_SELECT", () => {
+  for (const column of CLIENT_MONEY_COLUMNS) {
+    test(`never asks the database for Order.${column}`, () => {
+      expect(LOADS_SELECT).not.toHaveProperty(column);
+    });
+  }
+
+  test("carries no client identity or payment reference", () => {
+    for (const column of [
+      "clientId",
+      "savedCardId",
+      "purchaseOrderRef",
+      "commissionRate",
+    ]) {
+      expect(LOADS_SELECT).not.toHaveProperty(column);
+    }
+  });
+
+  test("selects the driver's payout as its only money column", () => {
+    const moneyish = Object.keys(LOADS_SELECT).filter((key) =>
+      /fare|price|fee|payout|adjustment/i.test(key),
+    );
+
+    expect(moneyish).toEqual(["driverPayout"]);
+  });
+
+  test("reads cargo photos as a count only, never as rows", () => {
+    // The board is polled every ten seconds; signed photo URLs are served per
+    // load by `GET /api/loads/[id]/photos`, behind the same visibility rule.
+    // A `photos` relation here would put storage paths on the open market's
+    // payload, and `_count` reading anything but photos is a relation join this
+    // select does not otherwise make.
+    expect(LOADS_SELECT).not.toHaveProperty("photos");
+    expect(LOADS_SELECT._count).toEqual({ select: { photos: true } });
+  });
 });

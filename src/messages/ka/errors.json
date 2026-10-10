@@ -257,7 +257,8 @@
   },
   "loads": {
     "onlyDriversAndLogisticsCompaniesCan": "ტვირთების დაფის ნახვა მხოლოდ მძღოლებსა და ლოჯისტიკურ კომპანიებს შეუძლიათ.",
-    "yourCompanyProfileIsnTSetUp": "თქვენი კომპანიის პროფილი ჯერ არ არის შექმნილი."
+    "yourCompanyProfileIsnTSetUp": "თქვენი კომპანიის პროფილი ჯერ არ არის შექმნილი.",
+    "loadNotFound": "ტვირთი ვერ მოიძებნა."
   },
   "loadsReject": {
     "driverProfileNotFound": "მძღოლის პროფილი ვერ მოიძებნა.",
