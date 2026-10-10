@@ -489,7 +489,7 @@ export function Step5ReviewSubmit() {
         ) : null}
 
         {/* `text-white` on `bg-onboarding-accent` is right in both themes and
-            must not grow a `dark:` variant: the brand orange is
+            must not grow a `dark:` variant: the brand green is
             theme-independent by design, so its label is too. Everything else on
             this step is already a semantic token (`bg-card`, `bg-muted/40`,
             `border-border`, `text-muted-foreground`, `text-destructive`), which

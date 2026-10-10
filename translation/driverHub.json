@@ -1684,6 +1684,11 @@
     "ka": "ჩაბარებულია",
     "_source": "src/components/driver-hub/screens/job-sheet-parts.tsx"
   },
+  "jobSheetParts.deliveryPhoto": {
+    "en": "Delivery photo {n}",
+    "ka": "მიწოდების ფოტო {n}",
+    "_source": "src/components/driver-hub/screens/job-sheet-parts.tsx"
+  },
   "jobSheetParts.details": {
     "en": "Details",
     "ka": "დეტალები",
@@ -1739,9 +1744,24 @@
     "ka": "არ არის გადანაწილებული მძღოლზე",
     "_source": "src/components/driver-hub/screens/job-sheet-parts.tsx"
   },
+  "jobSheetParts.proofOfDelivery": {
+    "en": "Proof of delivery",
+    "ka": "მიწოდების დადასტურება",
+    "_source": "src/components/driver-hub/screens/job-sheet-parts.tsx"
+  },
+  "jobSheetParts.proofUnavailable": {
+    "en": "Some proof of delivery is on file but could not be loaded. Refresh to try again.",
+    "ka": "მიწოდების დადასტურების ნაწილი შენახულია, მაგრამ ვერ ჩაიტვირთა. სცადეთ გვერდის განახლება.",
+    "_source": "src/components/driver-hub/screens/job-sheet-parts.tsx"
+  },
   "jobSheetParts.receivedBy": {
     "en": "Received by",
     "ka": "მიიღო",
+    "_source": "src/components/driver-hub/screens/job-sheet-parts.tsx"
+  },
+  "jobSheetParts.recipientSignature": {
+    "en": "Recipient signature",
+    "ka": "მიმღების ხელმოწერა",
     "_source": "src/components/driver-hub/screens/job-sheet-parts.tsx"
   },
   "jobSheetParts.routeSummary": {
@@ -2674,6 +2694,16 @@
     "ka": "თქვენია",
     "_source": "src/components/driver-hub/screens/loads-table.tsx"
   },
+  "offerPush.body": {
+    "en": "Open the app to respond before it expires.",
+    "ka": "გახსენით აპლიკაცია და უპასუხეთ, სანამ ვადა ამოიწურება.",
+    "_source": "src/lib/push/offer-notification.ts"
+  },
+  "offerPush.title": {
+    "en": "New load offer",
+    "ka": "ახალი ტვირთის შეთავაზება",
+    "_source": "src/lib/push/offer-notification.ts"
+  },
   "performanceScreen.acceptanceNote": {
     "en": "A declined offer leaves no row — Order only ever stores the offer that was taken — so acceptance is unrecorded, not merely unaggregated. Retire with a JobOffer model holding every dispatch and its outcome.",
     "ka": "უარყოფილი შეთავაზება ჩანაწერს არ ტოვებს — Order მხოლოდ მიღებულ შეთავაზებას ინახავს — ამიტომ მიღების მაჩვენებელი საერთოდ არ ფიქსირდება. ჩანაცვლდება JobOffer მოდელით, რომელიც ყოველ დანიშვნასა და მის შედეგს შეინახავს.",
@@ -2808,6 +2838,16 @@
     "en": "This week, <num>{range}</num>. The rates count jobs by when they were <strong>booked</strong>; the chart counts them by when they were <strong>completed</strong>, so the two need not describe the same jobs.",
     "ka": "ეს კვირა, <num>{range}</num>. მაჩვენებლები რეისებს <strong>დაჯავშნის</strong> დროით ითვლის, დიაგრამა კი — <strong>დასრულების</strong> დროით, ამიტომ ისინი შეიძლება ერთსა და იმავე რეისებს არ ასახავდნენ.",
     "_source": "src/components/driver-hub/screens/performance-screen.tsx"
+  },
+  "routeAlertPush.body": {
+    "en": "A load matching one of your route alerts was just posted.",
+    "ka": "გამოქვეყნდა ტვირთი, რომელიც თქვენს შენახულ მარშრუტს ემთხვევა.",
+    "_source": "src/lib/route-alerts/dispatch.ts"
+  },
+  "routeAlertPush.title": {
+    "en": "New load on your route",
+    "ka": "ახალი ტვირთი თქვენს მარშრუტზე",
+    "_source": "src/lib/route-alerts/dispatch.ts"
   },
   "vehiclesAddForm.ab123Cd": {
     "en": "AB-123-CD",

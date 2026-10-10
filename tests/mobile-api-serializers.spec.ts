@@ -40,8 +40,21 @@ import {
   toHubJobSheetResponse,
   toHubJobsResponse,
   toHubMeResponse,
+  toHubOffer,
   toHubVehiclesResponse,
+  toOrderProofOfDelivery,
+  toSupportMessage,
+  toVehicleDocumentsResponse,
 } from "@/lib/mobile-api/serializers";
+import type { DriverOfferRecord } from "@/lib/offers/driver-offers";
+import type { SupportMessageRecord } from "@/lib/support/messages";
+import type { VehicleDocumentHistoryEntry } from "@/lib/vehicle-documents/driver-documents";
+import {
+  attentionForSlot,
+  summarizeVehicleDocuments,
+  toAttentionSummary,
+  type VehicleDocumentSlot,
+} from "@/lib/vehicle-documents/rules";
 
 /* ------------------------------------------------------------------------- */
 /* Helpers                                                                   */
@@ -134,6 +147,8 @@ const header: HubHeaderData = {
       shortId: "LM-1001",
       route: "Vake → Saburtalo",
       who: null,
+      driverName: null,
+      deliveryDeadline: "2026-09-01T12:00:00.000Z",
       eta: "42 min",
     },
   ],
@@ -151,6 +166,7 @@ const jobs: HubJobsData = {
     {
       id: "order_abcdef",
       shortId: "ABCDEF",
+      reference: "LM-1001",
       status: "Completed",
       pickupAddress: "1 Rustaveli Ave",
       dropoffAddress: "9 Chavchavadze Ave",
@@ -164,6 +180,11 @@ const jobs: HubJobsData = {
       scheduledAt: null,
       inTransitAt: "2026-09-01T09:00:00.000Z",
       completedAt: "2026-09-01T10:00:00.000Z",
+      pickupWindowStart: "2026-09-01T08:30:00.000Z",
+      pickupWindowEnd: "2026-09-01T09:30:00.000Z",
+      deliveryDeadline: "2026-09-01T12:00:00.000Z",
+      pickupCity: "Tbilisi",
+      dropoffCity: null,
       vehicleTypeLabel: "Cargo Van",
       vehiclePlate: "AA-123-BB",
       serviceLevel: "Regular",
@@ -218,7 +239,24 @@ const jobSheet: HubJobSheet = {
   overtimeDriverPayout: 0,
   waitingMinutes: null,
   receivedBy: null,
+  proofOfDelivery: {
+    photos: [
+      {
+        id: "pod_1",
+        url: "https://storage.example.test/sign/pod_1?token=t1",
+        takenAt: "2026-09-01T09:55:00.000Z",
+      },
+    ],
+    hasSignature: true,
+    signatureUrl: "https://storage.example.test/sign/sig?token=t2",
+  },
 };
+
+/** The same sheet as the app receives it when the assigned driver reads it. */
+const jobSheetForDriver = { ...jobSheet };
+
+/** …and when the company holding the job reads it: no proof of delivery. */
+const jobSheetForCompany = { ...jobSheet, proofOfDelivery: null };
 
 const vehicles: HubVehiclesData = {
   kind: "INDIVIDUAL",
@@ -241,6 +279,13 @@ const vehicles: HubVehiclesData = {
       category: "MEDIUM_DUTY",
       maxPayloadKg: 1200,
       declaredPayloadKg: 1300,
+      chassisType: "DRY_BOX",
+      cargoLengthM: 3.2,
+      cargoWidthM: 1.7,
+      cargoHeightM: 1.8,
+      declaredCargoLengthM: 3.4,
+      declaredCargoWidthM: 1.75,
+      declaredCargoHeightM: null,
       loadingAccessType: "REAR_DOOR",
       ownership: "DRIVER",
       status: "Active",
@@ -288,8 +333,16 @@ const driverSettings: HubAccountSettings = {
   vatId: null,
   phone: "+995555000002",
   city: "TBILISI",
+  emergencyContactName: "Ana Beridze",
+  emergencyContactPhone: "+995577301922",
   idNumber: "01000000000",
   dateOfBirth: "1990-05-04",
+  licenceExpiresAt: "2029-03-31",
+  documents: [
+    { type: "PROFILE_PHOTO", status: "APPROVED", flagReason: null },
+    { type: "LICENCE_FRONT", status: "FLAGGED", flagReason: "Blurry scan" },
+    { type: "LICENCE_BACK", status: "PENDING", flagReason: null },
+  ],
 };
 
 const companySettings: HubAccountSettings = {
@@ -306,12 +359,105 @@ const companySettings: HubAccountSettings = {
   payoutIbanLast4: "1234",
 };
 
+/* ------------------------------------------------------------------------- */
+/* Vehicle documents and support messages                                    */
+/* ------------------------------------------------------------------------- */
+
+const DOCUMENTS_TODAY = "2026-10-02";
+
+/** An insurance on file expiring in 20 days, and a flagged registration. */
+const documentSlots: VehicleDocumentSlot[] = summarizeVehicleDocuments(
+  [
+    {
+      id: "doc_insurance",
+      type: "INSURANCE",
+      status: "APPROVED",
+      flagReason: null,
+      expiresAt: "2026-10-22",
+      uploadedAt: "2026-09-01T08:00:00.000Z",
+      reviewedAt: "2026-09-02T08:00:00.000Z",
+    },
+    {
+      id: "doc_registration",
+      type: "REGISTRATION",
+      status: "FLAGGED",
+      flagReason: "Photo is blurry",
+      expiresAt: null,
+      uploadedAt: "2026-09-30T08:00:00.000Z",
+      reviewedAt: "2026-10-01T08:00:00.000Z",
+    },
+  ],
+  DOCUMENTS_TODAY,
+);
+
+/** Keyed by the fixture fleet's first vehicle — the one the driver "owns". */
+const ownedVehicleDocuments = new Map([
+  [vehicles.vehicles[0]?.id ?? "", documentSlots],
+]);
+
+const documentsAttention = toAttentionSummary(
+  documentSlots.flatMap((slot) => {
+    const item = attentionForSlot(slot, {
+      id: "veh_1",
+      plateNumber: "AA-001-AA",
+    });
+    return item === null ? [] : [item];
+  }),
+);
+
+const noAttention = toAttentionSummary([]);
+
+const documentHistory: VehicleDocumentHistoryEntry[] = [
+  {
+    id: "doc_registration",
+    type: "REGISTRATION",
+    status: "FLAGGED",
+    flagReason: "Photo is blurry",
+    expiresAt: null,
+    uploadedAt: "2026-09-30T08:00:00.000Z",
+    reviewedAt: "2026-10-01T08:00:00.000Z",
+    supersededAt: null,
+  },
+];
+
+const supportRecord: SupportMessageRecord = {
+  id: "msg_1",
+  topic: "CARGO_DAMAGED_OR_MISSING",
+  body: "Two pallets arrived crushed.",
+  status: "RESOLVED",
+  order: { id: "order_1", reference: "LM-1001" },
+  createdAt: "2026-10-01T09:00:00.000Z",
+  resolvedAt: "2026-10-01T10:00:00.000Z",
+};
+
 /** Every hub 200 body the app can receive, by route, built from the fixtures. */
 const BODIES: Record<string, unknown> = {
-  "GET /api/dashboard/hub/me": wire(toHubMeResponse(driverAccount, header)),
+  "GET /api/dashboard/hub/me": wire(
+    toHubMeResponse(driverAccount, header, "+995322000111", documentsAttention),
+  ),
+  "GET /api/driver-profile/vehicles/[id]/documents": wire(
+    toVehicleDocumentsResponse(
+      { vehicleId: "veh_1", plateNumber: "AA-001-AA" },
+      documentSlots,
+      documentHistory,
+    ),
+  ),
+  "GET /api/dashboard/hub/support/messages": wire({
+    messages: [toSupportMessage(supportRecord)],
+  }),
   "GET /api/dashboard/hub/jobs": wire(toHubJobsResponse(jobs)),
-  "GET /api/dashboard/hub/jobs/[id]": wire(toHubJobSheetResponse(jobSheet)),
-  "GET /api/dashboard/hub/vehicles": wire(toHubVehiclesResponse(vehicles)),
+  "GET /api/dashboard/hub/jobs/[id] (driver)": wire(
+    toHubJobSheetResponse(jobSheet, "DRIVER"),
+  ),
+  "GET /api/dashboard/hub/jobs/[id] (company)": wire(
+    toHubJobSheetResponse(jobSheet, "COMPANY"),
+  ),
+  "POST /api/orders/[id]/pod": wire(
+    toOrderProofOfDelivery(jobSheet.proofOfDelivery),
+  ),
+  "GET /api/dashboard/hub/vehicles": wire(
+    toHubVehiclesResponse(vehicles, ownedVehicleDocuments),
+  ),
   "GET /api/dashboard/hub/account (driver)": wire(
     toHubAccountResponse(driverSettings),
   ),
@@ -328,6 +474,14 @@ test.describe("every hub body", () => {
   for (const [route, body] of Object.entries(BODIES)) {
     test(`${route} carries no sampled key at any depth`, () => {
       expect([...allKeys(body)]).not.toContain("sampled");
+    });
+
+    test(`${route} carries no storage path, only expiring URLs`, () => {
+      // A path is a permanent handle to a private object; nothing the app is
+      // sent may name one, whether a proof image or an onboarding document.
+      const pathish = [...allKeys(body)].filter((key) => /path/i.test(key));
+
+      expect(pathish).toEqual([]);
     });
 
     test(`${route} carries no client-side money`, () => {
@@ -357,7 +511,7 @@ test.describe("every hub body", () => {
 });
 
 test.describe("toHubMeResponse", () => {
-  const body = toHubMeResponse(driverAccount, header);
+  const body = toHubMeResponse(driverAccount, header, null, noAttention);
 
   test("drops the header's invented notifications", () => {
     const text = JSON.stringify(body);
@@ -370,20 +524,206 @@ test.describe("toHubMeResponse", () => {
   test("keeps the account and the real in-progress jobs", () => {
     expect(body.account).toEqual(driverAccount);
     expect(body.jobsInProgressCount).toBe(1);
-    expect(body.jobsInProgress).toEqual(header.jobsInProgress);
+    expect(body.jobsInProgress).toEqual([
+      {
+        id: "order_1",
+        shortId: "LM-1001",
+        route: "Vake → Saburtalo",
+        driverName: null,
+        deliveryDeadline: "2026-09-01T12:00:00.000Z",
+      },
+    ]);
   });
 
-  test("has exactly the three top-level keys of the contract", () => {
+  test("sends the deadline itself, not the web's English countdown", () => {
+    // `eta` ("42 min", "Overdue") and `who` ("Giorgi · LM-1001") are English
+    // display strings the web pill renders; the app words its own.
+    const fleetHeader: HubHeaderData = {
+      ...header,
+      persona: "BUSINESS",
+      jobsInProgress: [
+        {
+          id: "order_2",
+          shortId: "LM-1002",
+          route: "Gldani → Isani",
+          who: "Giorgi · LM-1002",
+          driverName: "Giorgi",
+          deliveryDeadline: null,
+          eta: "Overdue",
+        },
+      ],
+    };
+    const [job] = toHubMeResponse(
+      driverAccount,
+      fleetHeader,
+      null,
+      noAttention,
+    ).jobsInProgress;
+
+    expect(job).toEqual({
+      id: "order_2",
+      shortId: "LM-1002",
+      route: "Gldani → Isani",
+      driverName: "Giorgi",
+      deliveryDeadline: null,
+    });
+    expect(job).not.toHaveProperty("eta");
+    expect(job).not.toHaveProperty("who");
+    expect(JSON.stringify(job)).not.toContain("Overdue");
+  });
+
+  test("passes the configured support phone through, or null", () => {
+    expect(body.supportPhone).toBeNull();
+    expect(
+      toHubMeResponse(driverAccount, header, "+995322000111", noAttention)
+        .supportPhone,
+    ).toBe("+995322000111");
+  });
+
+  test("has exactly the five top-level keys of the contract", () => {
     expect(Object.keys(body).sort()).toEqual([
       "account",
+      "documentsAttention",
       "jobsInProgress",
       "jobsInProgressCount",
+      "supportPhone",
+    ]);
+  });
+
+  test("reports nothing needing attention as an empty list, not an absence", () => {
+    expect(body.documentsAttention).toEqual({
+      expiryWarningDays: 30,
+      actionRequiredCount: 0,
+      items: [],
+    });
+  });
+
+  test("carries each attention item field by field", () => {
+    const { documentsAttention: attention } = toHubMeResponse(
+      driverAccount,
+      header,
+      null,
+      documentsAttention,
+    );
+
+    expect(attention.actionRequiredCount).toBe(2);
+    expect(attention.items).toEqual([
+      {
+        document: "VEHICLE_REGISTRATION",
+        reason: "FLAGGED",
+        vehicleId: "veh_1",
+        plateNumber: "AA-001-AA",
+        expiresAt: null,
+        daysUntilExpiry: null,
+        flagReason: "Photo is blurry",
+        underReview: false,
+      },
+      {
+        document: "VEHICLE_INSURANCE",
+        reason: "EXPIRING",
+        vehicleId: "veh_1",
+        plateNumber: "AA-001-AA",
+        expiresAt: "2026-10-22",
+        daysUntilExpiry: 20,
+        flagReason: null,
+        underReview: false,
+      },
     ]);
   });
 });
 
+test.describe("vehicle documents and support messages", () => {
+  test("a vehicle the driver owns carries both document slots, in order", () => {
+    const [owned] = toHubVehiclesResponse(
+      vehicles,
+      ownedVehicleDocuments,
+    ).vehicles;
+
+    expect(owned?.documents?.map((document) => document.type)).toEqual([
+      "REGISTRATION",
+      "INSURANCE",
+    ]);
+    expect(owned?.documents?.[0]).toEqual({
+      type: "REGISTRATION",
+      state: "FLAGGED",
+      onFile: null,
+      submission: {
+        id: "doc_registration",
+        status: "FLAGGED",
+        flagReason: "Photo is blurry",
+        uploadedAt: "2026-09-30T08:00:00.000Z",
+      },
+    });
+    expect(owned?.documents?.[1]).toEqual({
+      type: "INSURANCE",
+      state: "EXPIRING",
+      onFile: {
+        id: "doc_insurance",
+        expiresAt: "2026-10-22",
+        daysUntilExpiry: 20,
+        validity: "EXPIRING",
+        approvedAt: "2026-09-02T08:00:00.000Z",
+      },
+      submission: null,
+    });
+  });
+
+  test("a vehicle the driver does not own carries documents: null, not missing ones", () => {
+    const body = toHubVehiclesResponse(vehicles, new Map());
+
+    expect(body.vehicles.length).toBeGreaterThan(0);
+    for (const vehicle of body.vehicles) {
+      expect(vehicle.documents).toBeNull();
+    }
+  });
+
+  test("no document body carries a storage path or a signed URL", () => {
+    const text = JSON.stringify([
+      toHubVehiclesResponse(vehicles, ownedVehicleDocuments),
+      toVehicleDocumentsResponse(
+        { vehicleId: "veh_1", plateNumber: "AA-001-AA" },
+        documentSlots,
+        documentHistory,
+      ),
+    ]);
+
+    expect(text).not.toContain("storagePath");
+    expect(text).not.toContain("signedUrl");
+    expect(text).not.toContain("vehicles/veh_1");
+  });
+
+  test("a support message names its sender-visible fields and no staff ones", () => {
+    const message = toSupportMessage({
+      ...supportRecord,
+      // A loader that later grew staff-side columns must not leak them.
+      ...({ resolvedById: "admin_1", resolvedByName: "Nino" } as object),
+    });
+
+    expect(message).toEqual({
+      id: "msg_1",
+      topic: "CARGO_DAMAGED_OR_MISSING",
+      body: "Two pallets arrived crushed.",
+      status: "RESOLVED",
+      order: { id: "order_1", reference: "LM-1001" },
+      createdAt: "2026-10-01T09:00:00.000Z",
+      resolvedAt: "2026-10-01T10:00:00.000Z",
+    });
+  });
+
+  test("the contract promises no reply channel", () => {
+    const source = readFileSync(
+      join(process.cwd(), "src", "lib", "mobile-api", "contracts.ts"),
+      "utf8",
+    );
+
+    // The design's success line promises an SMS reply within 15 minutes. No
+    // such channel exists, so no field may suggest one.
+    expect(source).not.toMatch(/^\s*(reply|repliedAt|replyBy|sms)\w*\??:/im);
+  });
+});
+
 test.describe("toHubVehiclesResponse", () => {
-  const body = toHubVehiclesResponse(vehicles);
+  const body = toHubVehiclesResponse(vehicles, ownedVehicleDocuments);
 
   test("drops each vehicle's sampled facts", () => {
     const text = JSON.stringify(body);
@@ -421,11 +761,15 @@ test.describe("toHubVehiclesResponse", () => {
 
     if (source === undefined) throw new Error("fixture has no vehicle");
 
-    // The source minus `sampled` is exactly what the app receives.
+    // The source minus `sampled`, plus the documents handed in beside it, is
+    // exactly what the app receives.
     const real: Record<string, unknown> = { ...source };
     delete real.sampled;
 
-    expect(vehicle).toEqual(real);
+    expect(vehicle).toEqual({
+      ...real,
+      documents: ownedVehicleDocuments.get(source.id),
+    });
   });
 });
 
@@ -441,6 +785,18 @@ test.describe("toHubJobsResponse", () => {
       fare: 46.5,
       driverPayout: 42.5,
       overtimeDriverPayout: 4,
+    });
+  });
+
+  test("carries the calendar's windows and the search's city labels", () => {
+    const [job] = toHubJobsResponse(jobs).jobs;
+
+    expect(job).toMatchObject({
+      pickupWindowStart: "2026-09-01T08:30:00.000Z",
+      pickupWindowEnd: "2026-09-01T09:30:00.000Z",
+      deliveryDeadline: "2026-09-01T12:00:00.000Z",
+      pickupCity: "Tbilisi",
+      dropoffCity: null,
     });
   });
 
@@ -463,18 +819,64 @@ test.describe("toHubJobsResponse", () => {
 
 test.describe("toHubJobSheetResponse", () => {
   test("passes the loader's sheet through field for field", () => {
-    expect(toHubJobSheetResponse(jobSheet)).toEqual(jobSheet);
+    expect(toHubJobSheetResponse(jobSheet, "DRIVER")).toEqual(
+      jobSheetForDriver,
+    );
+  });
+
+  test("sends the proof of delivery to the assigned driver", () => {
+    expect(toHubJobSheetResponse(jobSheet, "DRIVER").proofOfDelivery).toEqual({
+      photos: [
+        {
+          id: "pod_1",
+          url: "https://storage.example.test/sign/pod_1?token=t1",
+          takenAt: "2026-09-01T09:55:00.000Z",
+        },
+      ],
+      hasSignature: true,
+      signatureUrl: "https://storage.example.test/sign/sig?token=t2",
+    });
+  });
+
+  test("withholds the proof of delivery from a company reader", () => {
+    const body = toHubJobSheetResponse(jobSheet, "COMPANY");
+
+    expect(body.proofOfDelivery).toBeNull();
+    // Not merely nulled at the top: no signed URL survives anywhere.
+    expect(JSON.stringify(body)).not.toContain("storage.example.test");
+    expect(body).toEqual(jobSheetForCompany);
+  });
+
+  test("does not pass on a storage path a proof row might carry", () => {
+    const [photo] = jobSheet.proofOfDelivery.photos;
+
+    if (photo === undefined) throw new Error("fixture has no photo");
+
+    const poisoned = {
+      ...jobSheet,
+      proofOfDelivery: {
+        ...jobSheet.proofOfDelivery,
+        podSignaturePath: "order_abcdef/signature/x.png",
+        photos: [{ ...photo, storagePath: "order_abcdef/photo/x.jpg" }],
+      },
+      // Through `unknown`: these keys are not on the loader's type, which is
+      // the point of the fixture.
+    } as unknown as HubJobSheet;
+    const text = JSON.stringify(toHubJobSheetResponse(poisoned, "DRIVER"));
+
+    expect(text).not.toContain("storagePath");
+    expect(text).not.toContain("podSignaturePath");
+    expect(text).not.toContain("order_abcdef/photo");
   });
 
   test("sends no payout figure for a cancelled job", () => {
     // The web sheet renders a cancelled job with `payout="none"` for every
     // reader; the stored columns are still populated, so the serializer is what
     // keeps them from the app.
-    const body = toHubJobSheetResponse({
-      ...jobSheet,
-      status: "CANCELLED",
-      overtimeDriverPayout: 4,
-    });
+    const body = toHubJobSheetResponse(
+      { ...jobSheet, status: "CANCELLED", overtimeDriverPayout: 4 },
+      "DRIVER",
+    );
 
     expect(body.status).toBe("CANCELLED");
     expect(body.driverPayout).toBeNull();
@@ -485,7 +887,7 @@ test.describe("toHubJobSheetResponse", () => {
   test("changes nothing else about a cancelled job's sheet", () => {
     const cancelled: HubJobSheet = { ...jobSheet, status: "CANCELLED" };
 
-    expect(toHubJobSheetResponse(cancelled)).toEqual({
+    expect(toHubJobSheetResponse(cancelled, "DRIVER")).toEqual({
       ...cancelled,
       driverPayout: null,
       overtimeDriverPayout: null,
@@ -501,7 +903,7 @@ test.describe("toHubJobSheetResponse", () => {
     "COMPLETED",
   ] as const) {
     test(`keeps the payout on a ${status} job`, () => {
-      const body = toHubJobSheetResponse({ ...jobSheet, status });
+      const body = toHubJobSheetResponse({ ...jobSheet, status }, "DRIVER");
 
       expect(body.driverPayout).toBe(42.5);
       expect(body.overtimeDriverPayout).toBe(0);
@@ -511,12 +913,14 @@ test.describe("toHubJobSheetResponse", () => {
   test("keeps the fleet block for a company reader", () => {
     const fleet = { driverName: "Giorgi", vehiclePlate: "AA-123-BB" };
 
-    expect(toHubJobSheetResponse({ ...jobSheet, fleet }).fleet).toEqual(fleet);
+    expect(
+      toHubJobSheetResponse({ ...jobSheet, fleet }, "COMPANY").fleet,
+    ).toEqual(fleet);
   });
 
   test("does not pass on a column the loader was never meant to return", () => {
     const poisoned: HubJobSheet = { ...jobSheet, ...LEAKED_COLUMNS };
-    const keys = allKeys(wire(toHubJobSheetResponse(poisoned)));
+    const keys = allKeys(wire(toHubJobSheetResponse(poisoned, "DRIVER")));
 
     for (const column of Object.keys(LEAKED_COLUMNS)) {
       expect(keys.has(column), `${column} must not ride along`).toBe(false);
@@ -524,7 +928,7 @@ test.describe("toHubJobSheetResponse", () => {
   });
 
   test("copies handlingTags rather than aliasing the loader's array", () => {
-    expect(toHubJobSheetResponse(jobSheet).handlingTags).not.toBe(
+    expect(toHubJobSheetResponse(jobSheet, "DRIVER").handlingTags).not.toBe(
       jobSheet.handlingTags,
     );
   });
@@ -536,6 +940,46 @@ test.describe("toHubAccountResponse", () => {
 
     expect(body).toEqual(driverSettings);
     expect(body).not.toHaveProperty("payoutIbanLast4");
+  });
+
+  test("gives a driver their emergency contact", () => {
+    expect(toHubAccountResponse(driverSettings)).toMatchObject({
+      emergencyContactName: "Ana Beridze",
+      emergencyContactPhone: "+995577301922",
+    });
+  });
+
+  test("gives a driver their licence expiry and document verdicts", () => {
+    const body = toHubAccountResponse(driverSettings);
+
+    expect(body).toMatchObject({
+      licenceExpiresAt: "2029-03-31",
+      documents: [
+        { type: "PROFILE_PHOTO", status: "APPROVED", flagReason: null },
+        { type: "LICENCE_FRONT", status: "FLAGGED", flagReason: "Blurry scan" },
+        { type: "LICENCE_BACK", status: "PENDING", flagReason: null },
+      ],
+    });
+  });
+
+  test("sends a document's verdict and never its file", () => {
+    const poisoned = {
+      ...driverSettings,
+      documents: [
+        {
+          type: "LICENCE_FRONT",
+          status: "PENDING",
+          flagReason: null,
+          storagePath: "dp_nino/abc-licence.jpg",
+          signedUrl: "https://storage.example.test/sign/licence?token=t",
+        },
+      ],
+    } as unknown as HubAccountSettings;
+    const text = JSON.stringify(toHubAccountResponse(poisoned));
+
+    expect(text).not.toContain("storagePath");
+    expect(text).not.toContain("signedUrl");
+    expect(text).not.toContain("dp_nino/abc-licence.jpg");
   });
 
   test("gives a company its details with the IBAN already truncated", () => {
@@ -554,6 +998,83 @@ test.describe("toHubAccountResponse", () => {
 
     expect(text).not.toContain("bankAccountIban");
     expect(text).not.toContain("GE29NB0000000101904917");
+  });
+});
+
+test.describe("toHubOffer", () => {
+  const record: DriverOfferRecord = {
+    id: "offer_1",
+    orderId: "order_1",
+    reference: "GE-48210",
+    createdAt: "2026-10-02T10:00:00.000Z",
+    expiresAt: "2026-10-02T10:00:30.000Z",
+    secondsRemaining: 24,
+    lifetimeSeconds: 30,
+    driverPayout: 51,
+    distanceKm: 6.4,
+    pickupDistanceKm: 1.2,
+    pickupAddress: "12 Rustaveli Ave, Tbilisi",
+    pickupCity: "Tbilisi",
+    pickupLat: 41.7,
+    pickupLng: 44.8,
+    dropoffAddress: "45 Vazha-Pshavela Ave, Tbilisi",
+    dropoffCity: "Tbilisi",
+    dropoffLat: 41.72,
+    dropoffLng: 44.75,
+    scheduledAt: null,
+    pickupWindowStart: "2026-10-02T11:00:00.000Z",
+    pickupWindowEnd: "2026-10-02T12:00:00.000Z",
+    deliveryDeadline: null,
+    cargoCategory: "FURNITURE_FURNISHINGS",
+    description: "Two wardrobes",
+    packagingDescription: "2 flat packs",
+    itemQuantity: null,
+    cargoWeightKg: 800,
+    cargoLengthM: 2,
+    cargoWidthM: 1,
+    cargoHeightM: 1,
+    bodyType: "DRY_BOX",
+    handlingTags: ["FRAGILE"],
+    helperCount: 0,
+    serviceLevel: "REGULAR",
+    fitVehicle: {
+      id: "vehicle_1",
+      plateNumber: "AA-001-AA",
+      make: "Ford",
+      model: "Transit",
+      typeLabel: "Cargo Van",
+    },
+  };
+
+  test("sends the record's fields and nothing else", () => {
+    // Extra properties stand in for a record that grew a field: an allowlist
+    // serializer must not pass them on.
+    const widened = {
+      ...record,
+      price: 60,
+      commissionRate: 0.15,
+      pickupContactPhone: "+995555000101",
+      fitVehicle: { ...record.fitVehicle, vin: "X" },
+    } as DriverOfferRecord;
+
+    expect(toHubOffer(widened)).toEqual(record);
+  });
+
+  test("carries the driver's payout and no client money", () => {
+    const body = toHubOffer(record);
+
+    expect(body.driverPayout).toBe(51);
+    for (const column of CLIENT_MONEY_KEYS) {
+      expect(Object.keys(body)).not.toContain(column);
+    }
+  });
+
+  test("carries no stop contact before the job is the driver's", () => {
+    expect(Object.keys(toHubOffer(record)).join(" ")).not.toMatch(/contact/i);
+  });
+
+  test("a removed fit vehicle is null, not an empty object", () => {
+    expect(toHubOffer({ ...record, fitVehicle: null }).fitVehicle).toBeNull();
   });
 });
 

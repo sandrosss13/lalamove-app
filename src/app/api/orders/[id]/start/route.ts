@@ -4,6 +4,10 @@ import { OrderStatus } from "@prisma/client";
 import { getRequestTranslations } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
 import { CARRIER_ORDER_PARTY_SELECT } from "@/lib/order-response-select";
+import {
+  orderActionError,
+  passwordChangeRefusal,
+} from "@/lib/orders/action-errors";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -18,6 +22,9 @@ import { prisma } from "@/lib/prisma";
  * Unlike accepting, this needs no conditional `updateMany`: exactly one driver
  * is assigned to an order, so there is no second caller to race with, and the
  * status check below is not subject to a lost update.
+ *
+ * Refusals carry a stable `code` beside the localised `error` — see
+ * `OrderActionErrorCode` in `src/lib/mobile-api/contracts.ts`.
  */
 export async function POST(
   request: Request,
@@ -27,10 +34,16 @@ export async function POST(
 
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {
-    return NextResponse.json(
-      { error: t("common.shared.unauthorized") },
-      { status: 401 },
+    return orderActionError(
+      t("common.shared.unauthorized"),
+      "UNAUTHENTICATED",
+      401,
     );
+  }
+
+  const passwordRefusal = passwordChangeRefusal(session.user, t);
+  if (passwordRefusal) {
+    return passwordRefusal;
   }
 
   const { id } = await params;
@@ -41,23 +54,22 @@ export async function POST(
   });
 
   if (!order) {
-    return NextResponse.json(
-      { error: t("common.shared.orderNotFound") },
-      { status: 404 },
-    );
+    return orderActionError(t("common.shared.orderNotFound"), "NOT_FOUND", 404);
   }
 
   if (order.driverId !== session.user.id) {
-    return NextResponse.json(
-      { error: t("common.shared.youAreNotAssignedToThis") },
-      { status: 403 },
+    return orderActionError(
+      t("common.shared.youAreNotAssignedToThis"),
+      "NOT_ASSIGNED",
+      403,
     );
   }
 
   if (order.status !== OrderStatus.ACCEPTED) {
-    return NextResponse.json(
-      { error: t("errors.ordersStart.thisDeliveryCannotBeStartedRight") },
-      { status: 409 },
+    return orderActionError(
+      t("errors.ordersStart.thisDeliveryCannotBeStartedRight"),
+      "INVALID_STATE",
+      409,
     );
   }
 

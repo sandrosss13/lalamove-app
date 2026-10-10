@@ -615,7 +615,7 @@ export function FleetApplicationStatusScreen() {
               </p>
             ) : null}
             {/* `text-white` on `bg-onboarding-accent` stays put in both themes:
-                the brand orange is theme-independent by design, so its label has
+                the brand green is theme-independent by design, so its label has
                 to be too, and the disabled pair below it (`bg-muted` /
                 `text-muted-foreground`) is already themed tokens. */}
             <button
@@ -649,7 +649,7 @@ export function FleetApplicationStatusScreen() {
             // and the label switched to `dark:text-primary-foreground` to stay
             // readable on it. That worked, but it made this the only solid
             // brand-coloured CTA in either wizard that changed colour with the
-            // theme — the orange "Add another vehicle" button a few lines up and
+            // theme — the green "Add another vehicle" button a few lines up and
             // the driver wizard's own green "Go online" CTA both stay put — so a
             // reviewer flipping the toggle saw one button move and the rest hold
             // still. The driver screen's approach is now the rule for both: a

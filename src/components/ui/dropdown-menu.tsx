@@ -16,8 +16,8 @@ import { CheckIcon, ChevronRightIcon } from "lucide-react";
  * Both current callers live in the back office, where the swap is a visual
  * no-op. It is applied anyway because a menu is portalled to `document.body`:
  * the first time one is opened from a client page, the fallback chain would
- * resolve `accent` to the landing palette's brand orange and drag a bright
- * orange bar down the list under the arrow keys.
+ * resolve `accent` to the landing palette's brand green and drag a bright
+ * green bar down the list under the arrow keys.
  */
 
 function DropdownMenu({

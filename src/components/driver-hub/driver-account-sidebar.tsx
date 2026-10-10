@@ -29,10 +29,10 @@ import { cn } from "@/lib/utils";
  *   account, so that row is absent for them. The client rail has no such axis.
  * - **Its accent is spelled out, not tokenised.** Inside `[data-admin-surface]`
  *   (see `driver-hub-shell.tsx`) `--color-accent` resolves to the shadcn
- *   neutral rather than the brand orange, so `text-accent` would paint the
- *   active row near-white on white. The literal `oklch(64% 0.19 48)` below is
- *   immune to that, and is the same call `driver-hub-job-pill.tsx` and
- *   `driver-hub-sidebar.tsx` already make.
+ *   neutral rather than the brand green, so `text-accent` would paint the
+ *   active row in a pale fill colour. `var(--landing-accent)` below is immune
+ *   to that, and is the same call `driver-hub-job-pill.tsx` and
+ *   `driver-hub-sidebar.tsx` make.
  *
  * What *is* reused is the part that matters most: `useSignOut`, unchanged. It
  * owns the destination and the in-flight flag, so this button cannot drift from
@@ -87,12 +87,12 @@ import { cn } from "@/lib/utils";
 const STICKY_TOP_CLASS = "lg:top-[140px]";
 
 /**
- * The brand orange, spelled as a literal for the reason in the note above. Both
+ * The brand green, read from the custom property for the reason above. Both
  * halves of the active row wear it — the rail's left border and the label — so
  * it is written once and composed in.
  */
-const ACCENT_BORDER = "border-[oklch(64%_0.19_48)]";
-const ACCENT_TEXT = "text-[oklch(64%_0.19_48)]";
+const ACCENT_BORDER = "border-[var(--landing-accent)]";
+const ACCENT_TEXT = "text-[var(--landing-accent)]";
 
 /**
  * The eyebrow over the nav. Flush with nothing — the design's rail indents its
@@ -151,7 +151,7 @@ export function DriverAccountSidebar({
                 key={section.id}
                 href={sectionHref(section.id)}
                 // `aria-current` is what tells assistive tech which panel is
-                // open; the orange border and label is the sighted half of the
+                // open; the accent border and label is the sighted half of the
                 // same signal. Same pairing as `driver-hub-sidebar.tsx`.
                 aria-current={active ? "page" : undefined}
                 className={cn(
@@ -180,14 +180,14 @@ export function DriverAccountSidebar({
           className={cn(
             // Bare text — no padding, no radius, no border — which is the
             // other half of that: it sits beside the rail rather than
-            // continuing it. Hover goes orange, matching the rows' active
+            // continuing it. Hover goes to the accent, matching the rows' active
             // state, since it is the one other thing here you can reach.
             "mt-7 inline-flex cursor-pointer items-center gap-2 self-start text-sm font-medium text-muted-foreground transition-colors disabled:opacity-50 lg:mt-auto",
             // Spelled out rather than `hover:${ACCENT_TEXT}`: Tailwind v4
             // extracts candidates from the source text, so a class assembled at
             // runtime is never generated and the hover would silently do
-            // nothing. Same literal as `ACCENT_TEXT`, kept in step by hand.
-            "hover:text-[oklch(64%_0.19_48)]",
+            // nothing. Same value as `ACCENT_TEXT`, kept in step by hand.
+            "hover:text-[var(--landing-accent)]",
           )}
         >
           <LogOut

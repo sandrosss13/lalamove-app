@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 
 import { getRequestTranslations } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
+import { runMatchingWithinBudget } from "@/lib/background/request-budget";
+import { dispatchOfferForDriver } from "@/lib/offers/dispatch";
+import { passwordChangeRefusal } from "@/lib/orders/action-errors";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -15,6 +18,9 @@ import { prisma } from "@/lib/prisma";
  *
  * Going online additionally requires an activated account (`activatedAt` set);
  * going offline never does.
+ *
+ * Going online is also when a load that has been waiting on the board can
+ * reach this driver as a pushed offer — see the call at the bottom.
  */
 export async function PATCH(request: Request): Promise<NextResponse> {
   const t = await getRequestTranslations();
@@ -24,6 +30,12 @@ export async function PATCH(request: Request): Promise<NextResponse> {
       { error: t("common.shared.unauthorized") },
       { status: 401 },
     );
+  }
+
+  // Before the role test, as everywhere — see `passwordChangeRefusal`.
+  const passwordRefusal = passwordChangeRefusal(session.user, t);
+  if (passwordRefusal) {
+    return passwordRefusal;
   }
 
   if (session.user.role !== "DRIVER") {
@@ -94,6 +106,20 @@ export async function PATCH(request: Request): Promise<NextResponse> {
     where: { userId: session.user.id },
     data: { isOnline },
   });
+
+  // A driver who has just come online is offered the best load already
+  // waiting, rather than only loads booked from now on. Never throws: the
+  // status change above has been made and is what this request reports.
+  //
+  // Waited for only within the matching budget — normally it finishes well
+  // inside it, so the offer exists by the time the app reads its offers; if it
+  // is slow, the toggle answers anyway and the offer is made after the
+  // response. See `runMatchingWithinBudget`.
+  if (updated.isOnline) {
+    const userId = session.user.id;
+
+    await runMatchingWithinBudget(() => dispatchOfferForDriver(userId));
+  }
 
   return NextResponse.json({ isOnline: updated.isOnline }, { status: 200 });
 }

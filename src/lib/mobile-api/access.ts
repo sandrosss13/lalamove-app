@@ -62,3 +62,37 @@ export function hubApiDenialFor(
 
   return null;
 }
+
+/**
+ * Whose forced password change a route's gate holds back.
+ *
+ * - `ANY_ROLE` — every account. Right for a route only a carrier can use
+ *   anyway (accept, start, complete, proof of delivery, the driver's own
+ *   location and online toggle): whoever is refused there would have been
+ *   refused a moment later for their role or for not being the assigned
+ *   driver, so checking the flag first costs nobody anything and lets no
+ *   account sidestep the reset by being refused for something else.
+ * - `DRIVER_ONLY` — only an account whose role is `DRIVER`. Required on a route
+ *   **shared with another party**, where "every account" would lock out people
+ *   the gate was never about. `GET /api/orders/[id]/location` is the one: the
+ *   ordering client polls it for the tracking map, and the rule — "a driver on
+ *   a temporary password does nothing in the account's name until it is
+ *   changed" — says nothing about a client following their own delivery.
+ */
+export type PasswordChangeGateAudience = "ANY_ROLE" | "DRIVER_ONLY";
+
+/**
+ * Whether the forced-password-change gate holds this account back on a route
+ * with the given audience. The route answers 403 `PASSWORD_CHANGE_REQUIRED`
+ * when it does (`passwordChangeRefusal` in `src/lib/orders/action-errors.ts`).
+ */
+export function passwordChangeGateApplies(
+  user: { role?: string | null; mustChangePassword?: boolean | null },
+  audience: PasswordChangeGateAudience,
+): boolean {
+  if (!user.mustChangePassword) {
+    return false;
+  }
+
+  return audience === "ANY_ROLE" || user.role === "DRIVER";
+}

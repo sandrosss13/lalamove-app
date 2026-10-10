@@ -47,6 +47,7 @@ import "server-only";
 
 import type {
   BusinessApplicationVehicleStatus,
+  ChassisType,
   LoadingAccessType,
   VehicleCategory,
   VehicleClass,
@@ -151,6 +152,28 @@ export type HubVehicle = {
    * was collected. An attestation for compliance review, never a pricing input.
    */
   declaredPayloadKg: number | null;
+  /**
+   * The cargo body declared for this vehicle, or null for one registered
+   * before the column existed. Null is "not declared", never a default.
+   */
+  chassisType: ChassisType | null;
+  /**
+   * The class's catalogue cargo hold in metres, from `VehicleTypeSpec` — the
+   * dimension counterpart of `maxPayloadKg`, and always present.
+   */
+  cargoLengthM: number;
+  cargoWidthM: number;
+  cargoHeightM: number;
+  /**
+   * The hold the owner declared for this specific vehicle, the counterpart of
+   * `declaredPayloadKg`. Each is null when it was never collected — every
+   * vehicle that predates the onboarding wizard, and most company-registered
+   * ones. Kept apart from the catalogue figures above so a reader can tell
+   * "this van" from "vans of this class" rather than being handed a blend.
+   */
+  declaredCargoLengthM: number | null;
+  declaredCargoWidthM: number | null;
+  declaredCargoHeightM: number | null;
   loadingAccessType: LoadingAccessType;
   ownership: HubVehicleOwnership;
   status: HubVehicleStatus;
@@ -458,6 +481,13 @@ export async function getHubVehicles(
       category: vehicle.vehicleTypeSpec.category,
       maxPayloadKg: vehicle.vehicleTypeSpec.maxPayloadKg,
       declaredPayloadKg: vehicle.payloadKg,
+      chassisType: vehicle.chassisType,
+      cargoLengthM: vehicle.vehicleTypeSpec.cargoLengthM,
+      cargoWidthM: vehicle.vehicleTypeSpec.cargoWidthM,
+      cargoHeightM: vehicle.vehicleTypeSpec.cargoHeightM,
+      declaredCargoLengthM: vehicle.cargoLengthM,
+      declaredCargoWidthM: vehicle.cargoWidthM,
+      declaredCargoHeightM: vehicle.cargoHeightM,
       loadingAccessType: vehicle.vehicleTypeSpec.loadingAccessType,
       ownership: vehicle.companyId === null ? "DRIVER" : "COMPANY",
       status: assignment ? "Active" : "Idle",

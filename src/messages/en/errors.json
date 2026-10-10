@@ -87,6 +87,10 @@
     "usageLimitWholeNumberOrNull": "usageLimit must be a whole number of 1 or more, or null.",
     "usagelimitMustBeAWholeNumber": "usageLimit must be a whole number of 1 or more, or omitted."
   },
+  "adminSupportMessages": {
+    "alreadyResolved": "This message has already been resolved.",
+    "messageNotFound": "Support message not found."
+  },
   "adminUsersSuspend": {
     "staffAccountsAreManagedUnderSystem": "Staff accounts are managed under System Users."
   },
@@ -102,6 +106,31 @@
   "adminUsersSystemReactivate": {
     "onlyASuperAdminCanReactivate": "Only a super admin can reactivate system users.",
     "youCannotChangeYourOwnAccount": "You cannot change your own account's status."
+  },
+  "adminVehicleDocuments": {
+    "cannotFlagDocumentOnFile": "An approved document cannot be flagged.",
+    "documentWasReplaced": "The driver has replaced this upload. Reload to review the new one.",
+    "expiryDateInPast": "That expiry date has already passed. Flag the document as expired instead.",
+    "expiryDateInvalid": "expiresAt must be a date in YYYY-MM-DD format.",
+    "expiryDateRequired": "An expiry date is required to approve an insurance document."
+  },
+  "adminWallet": {
+    "adjustmentAmountInvalid": "amountTetri must be a non-zero whole number of tetri.",
+    "adjustmentExceedsAvailable": "A debit can't be larger than the driver's available balance.",
+    "balanceTooLow": "The driver's balance no longer covers this withdrawal.",
+    "bankAccountActionInvalid": "action must be verify or reject.",
+    "bankAccountAlreadyInState": "This account already has that status. Reload to see it.",
+    "bankAccountHasPendingWithdrawal": "A withdrawal to this account is pending. Pay or reject it first.",
+    "bankAccountNotFound": "Bank account not found.",
+    "bankAccountRemoved": "The driver has removed this account.",
+    "bankReferenceRequired": "A bank reference of at most {max} characters is required.",
+    "driverHasNoWallet": "This driver is on a company roster and has no wallet.",
+    "driverNotFound": "Driver not found.",
+    "identityNotReviewed": "This driver is not activated yet, so there is no reviewed identity to verify the account against.",
+    "reasonRequired": "A reason of at most {max} characters is required.",
+    "withdrawalActionInvalid": "action must be pay, reject or reverse.",
+    "withdrawalAlreadyDecided": "This withdrawal is no longer in a state that allows this action. Reload to see its status.",
+    "withdrawalNotFound": "Withdrawal not found."
   },
   "cargoFit": {
     "doesNotFit": "Cargo does not fit a {vehicle}.",
@@ -249,6 +278,26 @@
   "driverProfileVehiclesValidation": {
     "yearRange": "year must be a whole number between {min} and {max}."
   },
+  "driverSettings": {
+    "citiesMustBeSupportedCities": "cities must be a list of supported cities.",
+    "daysMustBeWeekdays": "days must be a non-empty list of weekdays: {allowed}.",
+    "documentExpiryIsAlwaysOn": "Document expiry notifications cannot be switched off.",
+    "emergencyContactNameTooLong": "Enter an emergency contact name of {max} characters or fewer.",
+    "emergencyContactPhoneInvalid": "Enter a 9-digit Georgian number.",
+    "fieldMustBeASupportedCity": "{field} must be a supported city.",
+    "fieldMustBeATime": "{field} must be a time in 24-hour HH:MM format.",
+    "fieldMustBeTextOrNull": "{field} must be text or null.",
+    "fieldMustBeTrueOrFalse": "{field} must be true or false.",
+    "handlingTagsMustBeOneOf": "excludedHandlingTags must be a list of: {allowed}.",
+    "maxTripKmOutOfRange": "maxTripKm must be a whole number from 1 to {max}, or null.",
+    "minPayoutOutOfRange": "minPayout must be a number from 0 to {max}.",
+    "onlyDriversHaveTheseSettings": "Only drivers have these settings.",
+    "pickAtLeastOneArea": "Pick at least one area.",
+    "quietHoursCannotBeEmpty": "Quiet hours must start and end at different times.",
+    "routeAlertLimitReached": "You can save up to {max} route alerts. Remove one to add another.",
+    "routeAlertNotFound": "Route alert not found.",
+    "sendAtLeastOneField": "Send at least one field to change."
+  },
   "fleetVehicleValidation": {
     "labelled": "{label}: {message}",
     "tooManyVehicles": "An application can hold at most {max} vehicles."
@@ -372,6 +421,13 @@
     "thisVehicleHasNoActiveAssignment": "This vehicle has no active assignment.",
     "thisVehicleNeedsCategory": "This vehicle needs category {category}. Assign a different driver or vehicle."
   },
+  "offers": {
+    "offerAlreadyAccepted": "You have already accepted this offer.",
+    "offerAlreadyDeclined": "You declined this offer.",
+    "offerExpired": "This offer has expired.",
+    "offerNotFound": "Offer not found.",
+    "onlyDriversReceiveOffers": "Only drivers receive load offers."
+  },
   "orders": {
     "bodyTypeMustBeOneOf": "bodyType must be one of: {allowed}.",
     "deliverydeadlineMustBeAfterPickupwindowend": "deliveryDeadline must be after pickupWindowEnd.",
@@ -400,8 +456,10 @@
     "youReOfflineGoOnlineTo": "You're offline. Go online to claim loads."
   },
   "ordersComplete": {
+    "photoRequired": "Add at least one delivery photo before confirming.",
     "receivedByMustBeStringOrNull": "receivedBy must be a string or null.",
     "receivedByTooLong": "receivedBy must be {max} characters or fewer.",
+    "signatureRequired": "Add the recipient's signature before confirming.",
     "thisDeliveryCannotBeCompletedRight": "This delivery cannot be completed right now.",
     "thisDeliverySVehicleTypeHas": "This delivery's vehicle type has no pricing rule.",
     "waitingminutesIsRequiredAndMustBe": "waitingMinutes is required and must be a whole number of minutes."
@@ -415,8 +473,27 @@
     "paymentMethodTypeMustBeOneOf": "paymentMethodType must be one of: {allowed}.",
     "thisDeliveryHasAlreadyBeenPaid": "This delivery has already been paid for and is with our drivers."
   },
+  "ordersPod": {
+    "couldNotVerifyUpload": "We could not verify the upload. Please upload the file again.",
+    "kindMustBePhotoOrSignature": "kind must be PHOTO or SIGNATURE.",
+    "onlyWhileInTransit": "Proof of delivery can only be changed while the delivery is in transit.",
+    "pathIsRequired": "path is required and must be a non-empty string.",
+    "photoLimit": "A delivery can have at most {max} photos. Remove one first.",
+    "photoMustBeJpgOrPng": "Delivery photos must be JPG or PNG files.",
+    "photoNotFound": "Photo not found.",
+    "photoTooLarge": "Delivery photos must be {max} MB or smaller.",
+    "replacesPhotoIdInvalid": "replacesPhotoId must be a non-empty string.",
+    "signatureMustBePng": "The signature must be a PNG image.",
+    "signatureTooLarge": "The signature must be {max} MB or smaller.",
+    "takenAtInvalid": "takenAt must be an ISO date-time.",
+    "thatUploadDoesNotBelongTo": "That upload does not belong to this delivery."
+  },
   "ordersStart": {
     "thisDeliveryCannotBeStartedRight": "This delivery cannot be started right now."
+  },
+  "pushTokens": {
+    "platformMustBeIosOrAndroid": "platform must be ios or android.",
+    "tokenMustBeAnExpoPushToken": "token must be an Expo push token."
   },
   "savedCards": {
     "cardBrandTooLong": "Enter a card brand of {max} characters or fewer.",
@@ -433,11 +510,55 @@
     "onlyClientsHaveSavedCards": "Only clients have saved cards.",
     "thatCardHasExpiredAddA": "That card has expired. Add a card that is still valid."
   },
+  "supportMessages": {
+    "bodyIsRequired": "Describe what happened before sending.",
+    "bodyTooLong": "The message must be {max} characters or fewer.",
+    "onlyDriversCanContactSupport": "Only drivers can send support messages.",
+    "orderIdMustBeAString": "orderId must be a non-empty string or null.",
+    "tooManyMessages": "You have sent several messages in a short time. Please wait a few minutes before sending another.",
+    "topicMustBeOneOf": "topic must be one of: {topics}."
+  },
+  "uploads": {
+    "tooManyPendingUploads": "Too many uploads were started and not finished. Please try again in {minutes} min."
+  },
   "validation": {
     "bodyhtmlIsRequiredAndMustBe": "bodyHtml is required and must be a non-empty string.",
     "duplicatePage": "A page with this slug already exists for this locale.",
     "ispublishedMustBeABoolean": "isPublished must be a boolean.",
     "slugIsRequiredAndMustBe": "slug is required and must be a string.",
     "slugMustBeLowercaseLettersNumbers": "slug must be lowercase letters, numbers and single hyphens, e.g. “terms-of-service”."
+  },
+  "vehicleDocuments": {
+    "companyManagesThisVehicle": "This vehicle belongs to your company, which manages its documents.",
+    "fileTooLarge": "Vehicle documents must be {max} MB or smaller.",
+    "mustBeJpgOrPng": "Vehicle documents must be JPG or PNG files.",
+    "thatUploadDoesNotBelongTo": "That upload does not belong to this vehicle's document.",
+    "typeMustBeRegistrationOrInsurance": "type must be REGISTRATION or INSURANCE."
+  },
+  "wallet": {
+    "amountMustBeWholeTetri": "amountTetri must be a positive whole number of tetri.",
+    "bankAccountDuplicate": "This account is already added.",
+    "bankAccountHasPendingWithdrawal": "A withdrawal to this account is still pending. You can remove it once that is paid or rejected.",
+    "bankAccountIdMustBeString": "bankAccountId must be a non-empty string or null.",
+    "bankAccountLimitReached": "You can have up to {limit} bank accounts. Remove one to add another.",
+    "bankAccountNotFound": "Bank account not found.",
+    "bankAccountNotVerified": "This bank account is not verified yet and can't receive withdrawals.",
+    "bankMustBeOneOf": "bank must be one of: {banks}.",
+    "belowMinimum": "The minimum withdrawal is ₾{minimum}.",
+    "frozen": "Your account is suspended, so withdrawals are unavailable. Please contact support.",
+    "ibanBankMismatch": "This IBAN belongs to {ibanBank}, not {bank}.",
+    "ibanBelongsToAnotherBank": "This IBAN belongs to another bank, not {bank}.",
+    "ibanChecksumInvalid": "This IBAN is not valid. Check it for a typing mistake.",
+    "ibanInvalidFormat": "Enter a Georgian IBAN: GE, 2 digits, 2 letters, then 16 digits.",
+    "ibanMustBeString": "iban must be a string.",
+    "insufficientFunds": "That is more than your available balance.",
+    "isDefaultMustBeTrue": "isDefault must be true.",
+    "legalNameMissing": "Your profile has no legal name yet. Complete your registration before adding a bank account.",
+    "noVerifiedBankAccount": "Add a verified bank account first.",
+    "notAvailableForRosterDrivers": "Your earnings are paid to your company, so this account has no wallet.",
+    "onlyDriversHaveAWallet": "Only drivers have a wallet.",
+    "requestKeyInvalid": "requestKey must be a non-empty string of at most {max} characters.",
+    "requestKeyRequired": "requestKey is required: a non-empty string of at most {max} characters, the same one on every retry of this request.",
+    "unknownCursor": "cursor is not valid."
   }
 }

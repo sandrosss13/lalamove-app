@@ -267,7 +267,7 @@ export function DocumentUploadDialog({
         // two utilities whose tokens are var-chains
         // (`var(--admin-accent, var(--landing-accent))` and the `--admin-muted`
         // equivalent), so they are the two that would fall through to the
-        // landing palette's bright orange and dark brown-grey if that pin ever
+        // landing palette's bright green and dark brown-grey if that pin ever
         // failed to reach here. Nothing in this file uses either. Neutral
         // surfaces are `bg-secondary`, which reads `--secondary` directly and
         // carries the same value in both themes, and neutral ink is

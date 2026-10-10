@@ -1,6 +1,6 @@
-# Lalamove Clone — Next.js Delivery App
+# zomo — Next.js Delivery App
 
-An on-demand delivery app (Lalamove clone) built with Next.js (App Router), Tailwind CSS v4, and Prisma, with an agentic (Claude Code) workflow pre-configured.
+zomo, an on-demand delivery platform for Georgia (zomo.ge, driver.zomo.ge, admin.zomo.ge), built with Next.js (App Router), Tailwind CSS v4, and Prisma, with an agentic (Claude Code) workflow pre-configured.
 
 ## What's included
 

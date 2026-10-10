@@ -8,6 +8,7 @@ import type {
 } from "@/lib/mobile-api/contracts";
 import { hubApiOk, requireHubApiAccount } from "@/lib/mobile-api/hub-api-guard";
 import { toHubVehiclesResponse } from "@/lib/mobile-api/serializers";
+import { getOwnedVehicleDocumentSlots } from "@/lib/vehicle-documents/driver-documents";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +23,11 @@ export const dynamic = "force-dynamic";
  * `vehicleTypeLabel`) from the request's `NEXT_LOCALE` cookie, as the page does
  * from its route locale. Everything the web marks as sample data — per vehicle
  * and on the tiles — is not returned; see `toHubVehiclesResponse`.
+ *
+ * Each vehicle the reader owns as a driver also carries `documents`: its
+ * registration and insurance with status, expiry and flag reason. A company
+ * vehicle — a roster driver's, or any of a company account's — carries
+ * `documents: null`.
  */
 export async function GET(
   request: Request,
@@ -33,7 +39,16 @@ export async function GET(
     return guard.response;
   }
 
-  const data = await getHubVehicles(guard.account, t);
+  const { driverProfileId } = guard.account;
 
-  return hubApiOk<HubVehiclesResponse>(toHubVehiclesResponse(data));
+  const [data, ownedVehicleDocuments] = await Promise.all([
+    getHubVehicles(guard.account, t),
+    driverProfileId === null
+      ? new Map<string, never>()
+      : getOwnedVehicleDocumentSlots(driverProfileId, t),
+  ]);
+
+  return hubApiOk<HubVehiclesResponse>(
+    toHubVehiclesResponse(data, ownedVehicleDocuments),
+  );
 }

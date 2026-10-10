@@ -43,6 +43,20 @@ export const DOCUMENT_FLAG_REASONS: readonly string[] = [
   "Does not match the ID",
 ];
 
+/**
+ * The reasons offered for a vehicle document (registration, insurance) —
+ * every one already in the lists above, so each already has its translation.
+ * The server accepts any non-empty reason here too, as it does for a driver's
+ * onboarding documents; a typed one is shown to the driver as written.
+ */
+export const VEHICLE_DOCUMENT_FLAG_REASONS: readonly string[] = [
+  "Photo is blurry",
+  "Glare — details unreadable",
+  "Wrong document uploaded",
+  "Document expired",
+  "Plate does not match the documents",
+];
+
 /** Stored reason → message path. */
 const FLAG_REASON_KEY: Readonly<Record<string, string>> = {
   "VAT ID not found in the registry": "admin.flagReasons.vatIdNotFound",

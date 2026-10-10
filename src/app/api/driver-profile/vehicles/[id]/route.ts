@@ -4,6 +4,7 @@ import { getRequestTranslations } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { deleteVehiclePhotos } from "@/lib/supabase-storage";
+import { discardVehicleDocumentObjects } from "@/lib/vehicle-document-storage";
 import {
   findVehicleTypeSpecIdByCode,
   isDuplicatePlateError,
@@ -94,9 +95,40 @@ async function parseUpdateVehicleBody(
  * reported as 404 rather than 403: a 403 would confirm that the id exists,
  * letting a caller enumerate other drivers' vehicles.
  *
- * The database row is the source of truth, so the Storage objects are deleted
- * best-effort afterwards — a failure there is logged and the request still
- * succeeds, leaving at worst an orphaned file.
+ * ## What goes with it, and in what order
+ *
+ * A vehicle owns files in two buckets: its photos (public `vehicle-photos`)
+ * and its registration/insurance uploads (private `driver-documents`, under
+ * `vehicles/<id>/…`) — every `VehicleDocument` row's object, superseded ones
+ * included, plus any upload that was issued a URL and never registered
+ * (`PendingUpload`). The rows cascade with the vehicle; the objects do not,
+ * and used to be left behind for good because the only record of their paths
+ * was the rows just deleted.
+ *
+ * **The database goes first, the files after, and a Storage failure does not
+ * fail the request.** Deliberately:
+ *
+ * - The paths are read and the vehicle deleted in **one transaction**, under
+ *   the vehicle's row lock — the lock the document routes take — so no upload
+ *   can be registered or issued between "these are its files" and "it is
+ *   gone". The database is therefore never half-deleted: either the vehicle
+ *   and all its rows are gone, or nothing is.
+ * - Only after that commit are the objects removed, best-effort. The other
+ *   order is the dangerous one: files deleted and then a failed (or rolled
+ *   back) database delete would leave a live vehicle whose approved insurance
+ *   points at nothing. An object without a row is clutter; a row without its
+ *   object is a broken record.
+ * - If Storage fails, the request still answers 200 — the vehicle *is* removed,
+ *   and telling the driver otherwise would invite a retry that can only 404 —
+ *   and the paths are logged, which is what makes the leftovers findable now
+ *   that no row names them.
+ *
+ * ## What does not block a deletion
+ *
+ * Documents under review and past jobs do not, as before. A review is of a
+ * vehicle the driver has withdrawn, so its queue entry rightly disappears with
+ * it; and `Order.vehicleId` is `SetNull` precisely so that retiring a vehicle
+ * never erases the deliveries it made.
  */
 export async function DELETE(
   request: Request,
@@ -146,11 +178,61 @@ export async function DELETE(
     );
   }
 
-  await prisma.vehicle.delete({ where: { id: vehicle.id } });
+  const removed = await prisma.$transaction(async (tx) => {
+    // The lock the document routes take (`writeSubmission`, the upload-URL
+    // route), so the set of files read below cannot grow before the delete.
+    await tx.$queryRaw`SELECT "id" FROM "Vehicle" WHERE "id" = ${vehicle.id} FOR UPDATE`;
 
-  await deleteVehiclePhotos(vehicle.photoUrls).catch((error: unknown) => {
-    console.error("Failed to delete vehicle photos from Storage:", error);
+    // Re-read under the lock: the pre-check above was for a readable 404, and
+    // a second DELETE (a double tap) may have won since.
+    const locked = await tx.vehicle.findFirst({
+      where: { id: vehicle.id, driverProfileId: driverProfile.id },
+      select: {
+        photoUrls: true,
+        // Every row, not only the live ones: a superseded *approved* document
+        // keeps its object, and deleting a path that is already gone is a
+        // no-op.
+        documents: { select: { storagePath: true } },
+        pendingUploads: { select: { storagePath: true } },
+      },
+    });
+
+    if (locked === null) {
+      return null;
+    }
+
+    await tx.vehicle.delete({ where: { id: vehicle.id } });
+
+    return {
+      photoUrls: locked.photoUrls,
+      documentPaths: [
+        ...locked.documents.map((document) => document.storagePath),
+        ...locked.pendingUploads.map((upload) => upload.storagePath),
+      ],
+    };
   });
+
+  if (removed === null) {
+    return NextResponse.json(
+      { error: t("common.shared.vehicleNotFound") },
+      { status: 404 },
+    );
+  }
+
+  // Committed. From here on a failure can only leave a file behind, never a
+  // half-deleted vehicle — see the route's doc comment for why this order.
+  await deleteVehiclePhotos(removed.photoUrls).catch((error: unknown) => {
+    console.error(
+      `Failed to delete the photos of removed vehicle ${vehicle.id} from Storage; orphaned objects:`,
+      removed.photoUrls,
+      error,
+    );
+  });
+
+  await discardVehicleDocumentObjects(
+    removed.documentPaths,
+    `removed vehicle ${vehicle.id}`,
+  );
 
   return NextResponse.json({ id: vehicle.id }, { status: 200 });
 }

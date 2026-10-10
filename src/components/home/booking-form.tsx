@@ -2361,7 +2361,7 @@ export function BookingForm(): React.ReactElement {
                     >
                       {/* Retints the calendar's selected-day highlight from
                           shadcn's default near-black `--primary` to this app's
-                          orange accent, scoped to just this popover rather
+                          green accent, scoped to just this popover rather
                           than touching the token globally. */}
                       <div
                         style={
@@ -2905,7 +2905,7 @@ export function BookingForm(): React.ReactElement {
                                     selected ? "text-accent" : "text-muted"
                                   }`}
                                 />
-                                {/* Teal, never orange: "cheapest option" is a
+                                {/* Teal, never the accent green: "cheapest option" is a
                               different signal from "what you picked". The
                               badge sits in flow at the top right, where the
                               selection tick is absolutely positioned — so on

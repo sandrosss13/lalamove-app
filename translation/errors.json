@@ -279,6 +279,16 @@
     "ka": "usageLimit უნდა იყოს მთელი რიცხვი (1 ან მეტი) ან გამოტოვებული.",
     "_source": "src/app/api/admin/finance/promo-campaigns/route.ts"
   },
+  "adminSupportMessages.alreadyResolved": {
+    "en": "This message has already been resolved.",
+    "ka": "ეს შეტყობინება უკვე მოგვარებულია.",
+    "_source": "src/app/api/admin/support-messages/[id]/resolve/route.ts"
+  },
+  "adminSupportMessages.messageNotFound": {
+    "en": "Support message not found.",
+    "ka": "მხარდაჭერის შეტყობინება ვერ მოიძებნა.",
+    "_source": "src/app/api/admin/support-messages/[id]/resolve/route.ts"
+  },
   "adminUsersSuspend.staffAccountsAreManagedUnderSystem": {
     "en": "Staff accounts are managed under System Users.",
     "ka": "პერსონალის ანგარიშების მართვა ხდება „სისტემურ მომხმარებლებში“.",
@@ -318,6 +328,111 @@
     "en": "You cannot change your own account's status.",
     "ka": "საკუთარი ანგარიშის სტატუსის შეცვლა შეუძლებელია.",
     "_source": "src/app/api/admin/users/system/[userId]/reactivate/route.ts"
+  },
+  "adminVehicleDocuments.cannotFlagDocumentOnFile": {
+    "en": "An approved document cannot be flagged.",
+    "ka": "დამტკიცებული დოკუმენტის მონიშვნა შეუძლებელია.",
+    "_source": "src/app/api/admin/vehicle-documents/[id]/route.ts"
+  },
+  "adminVehicleDocuments.documentWasReplaced": {
+    "en": "The driver has replaced this upload. Reload to review the new one.",
+    "ka": "მძღოლმა ეს ფაილი ახლით ჩაანაცვლა. ახლის განსახილველად განაახლეთ გვერდი.",
+    "_source": "src/app/api/admin/vehicle-documents/[id]/route.ts"
+  },
+  "adminVehicleDocuments.expiryDateInPast": {
+    "en": "That expiry date has already passed. Flag the document as expired instead.",
+    "ka": "ამ დოკუმენტის ვადა უკვე გასულია. დამტკიცების ნაცვლად მონიშნეთ დოკუმენტი, როგორც ვადაგასული.",
+    "_source": "src/app/api/admin/vehicle-documents/[id]/route.ts"
+  },
+  "adminVehicleDocuments.expiryDateInvalid": {
+    "en": "expiresAt must be a date in YYYY-MM-DD format.",
+    "ka": "expiresAt უნდა იყოს თარიღი YYYY-MM-DD ფორმატში.",
+    "_source": "src/app/api/admin/vehicle-documents/[id]/route.ts"
+  },
+  "adminVehicleDocuments.expiryDateRequired": {
+    "en": "An expiry date is required to approve an insurance document.",
+    "ka": "დაზღვევის დოკუმენტის დასამტკიცებლად აუცილებელია ვადის გასვლის თარიღი.",
+    "_source": "src/app/api/admin/vehicle-documents/[id]/route.ts"
+  },
+  "adminWallet.adjustmentAmountInvalid": {
+    "en": "amountTetri must be a non-zero whole number of tetri.",
+    "ka": "amountTetri უნდა იყოს თეთრების ნულისგან განსხვავებული მთელი რაოდენობა.",
+    "_source": "src/app/api/admin/finance/withdrawals/[id]/route.ts"
+  },
+  "adminWallet.adjustmentExceedsAvailable": {
+    "en": "A debit can't be larger than the driver's available balance.",
+    "ka": "ჩამოსაწერი თანხა არ უნდა აღემატებოდეს მძღოლის ხელმისაწვდომ ბალანსს.",
+    "_source": "src/app/api/admin/finance/withdrawals/[id]/route.ts"
+  },
+  "adminWallet.balanceTooLow": {
+    "en": "The driver's balance no longer covers this withdrawal.",
+    "ka": "მძღოლის ბალანსი ამ თანხის გასატანად აღარ არის საკმარისი.",
+    "_source": "src/app/api/admin/finance/withdrawals/[id]/route.ts"
+  },
+  "adminWallet.bankAccountActionInvalid": {
+    "en": "action must be verify or reject.",
+    "ka": "action უნდა იყოს verify ან reject.",
+    "_source": "src/app/api/admin/finance/withdrawals/[id]/route.ts"
+  },
+  "adminWallet.bankAccountAlreadyInState": {
+    "en": "This account already has that status. Reload to see it.",
+    "ka": "ამ ანგარიშს უკვე აქვს ეს სტატუსი. სანახავად განაახლეთ გვერდი.",
+    "_source": "src/app/api/admin/finance/withdrawals/[id]/route.ts"
+  },
+  "adminWallet.bankAccountHasPendingWithdrawal": {
+    "en": "A withdrawal to this account is pending. Pay or reject it first.",
+    "ka": "ამ ანგარიშზე თანხის გატანის მოთხოვნა განხილვაშია. ჯერ გადაიხადეთ ან უარყავით ის.",
+    "_source": "src/app/api/admin/finance/withdrawals/[id]/route.ts"
+  },
+  "adminWallet.bankAccountNotFound": {
+    "en": "Bank account not found.",
+    "ka": "საბანკო ანგარიში ვერ მოიძებნა.",
+    "_source": "src/app/api/admin/finance/withdrawals/[id]/route.ts"
+  },
+  "adminWallet.bankAccountRemoved": {
+    "en": "The driver has removed this account.",
+    "ka": "მძღოლმა ეს ანგარიში წაშალა.",
+    "_source": "src/app/api/admin/finance/withdrawals/[id]/route.ts"
+  },
+  "adminWallet.bankReferenceRequired": {
+    "en": "A bank reference of at most {max} characters is required.",
+    "ka": "აუცილებელია ბანკის საგადახდო ნომრის მითითება, არაუმეტეს {max} სიმბოლოსი.",
+    "_source": "src/app/api/admin/finance/withdrawals/[id]/route.ts"
+  },
+  "adminWallet.driverHasNoWallet": {
+    "en": "This driver is on a company roster and has no wallet.",
+    "ka": "ეს მძღოლი კომპანიის შემადგენლობაშია და საფულე არ აქვს.",
+    "_source": "src/app/api/admin/finance/withdrawals/[id]/route.ts"
+  },
+  "adminWallet.driverNotFound": {
+    "en": "Driver not found.",
+    "ka": "მძღოლი ვერ მოიძებნა.",
+    "_source": "src/app/api/admin/finance/withdrawals/[id]/route.ts"
+  },
+  "adminWallet.identityNotReviewed": {
+    "en": "This driver is not activated yet, so there is no reviewed identity to verify the account against.",
+    "ka": "ეს მძღოლი ჯერ არ არის გააქტიურებული, ამიტომ ანგარიშის შესადარებლად შემოწმებული პირადობა არ არსებობს.",
+    "_source": "src/app/api/admin/finance/withdrawals/[id]/route.ts"
+  },
+  "adminWallet.reasonRequired": {
+    "en": "A reason of at most {max} characters is required.",
+    "ka": "აუცილებელია მიზეზის მითითება, არაუმეტეს {max} სიმბოლოსი.",
+    "_source": "src/app/api/admin/finance/withdrawals/[id]/route.ts"
+  },
+  "adminWallet.withdrawalActionInvalid": {
+    "en": "action must be pay, reject or reverse.",
+    "ka": "action უნდა იყოს pay, reject ან reverse.",
+    "_source": "src/app/api/admin/finance/withdrawals/[id]/route.ts"
+  },
+  "adminWallet.withdrawalAlreadyDecided": {
+    "en": "This withdrawal is no longer in a state that allows this action. Reload to see its status.",
+    "ka": "ეს მოთხოვნა აღარ არის იმ სტატუსში, რომელიც ამ მოქმედებას დაუშვებს. სტატუსის სანახავად განაახლეთ გვერდი.",
+    "_source": "src/app/api/admin/finance/withdrawals/[id]/route.ts"
+  },
+  "adminWallet.withdrawalNotFound": {
+    "en": "Withdrawal not found.",
+    "ka": "თანხის გატანის მოთხოვნა ვერ მოიძებნა.",
+    "_source": "src/app/api/admin/finance/withdrawals/[id]/route.ts"
   },
   "cargoFit.doesNotFit": {
     "en": "Cargo does not fit a {vehicle}.",
@@ -879,6 +994,96 @@
     "ka": "year უნდა იყოს მთელი რიცხვი {min}-დან {max}-მდე.",
     "_source": "src/app/api/driver-profile/vehicles/validation.ts"
   },
+  "driverSettings.citiesMustBeSupportedCities": {
+    "en": "cities must be a list of supported cities.",
+    "ka": "cities უნდა იყოს მხარდაჭერილი ქალაქების სია.",
+    "_source": "src/lib/mobile-api/driver-settings-api.ts"
+  },
+  "driverSettings.daysMustBeWeekdays": {
+    "en": "days must be a non-empty list of weekdays: {allowed}.",
+    "ka": "days უნდა იყოს კვირის დღეების არაცარიელი სია: {allowed}.",
+    "_source": "src/lib/mobile-api/driver-settings-api.ts"
+  },
+  "driverSettings.documentExpiryIsAlwaysOn": {
+    "en": "Document expiry notifications cannot be switched off.",
+    "ka": "დოკუმენტის ვადის ამოწურვის შეტყობინებების გამორთვა შეუძლებელია.",
+    "_source": "src/lib/mobile-api/driver-settings-api.ts"
+  },
+  "driverSettings.emergencyContactNameTooLong": {
+    "en": "Enter an emergency contact name of {max} characters or fewer.",
+    "ka": "საგანგებო კონტაქტის სახელი არ უნდა აღემატებოდეს {max} სიმბოლოს.",
+    "_source": "src/lib/mobile-api/driver-settings-api.ts"
+  },
+  "driverSettings.emergencyContactPhoneInvalid": {
+    "en": "Enter a 9-digit Georgian number.",
+    "ka": "შეიყვანეთ 9-ნიშნა ქართული ნომერი.",
+    "_source": "src/lib/mobile-api/driver-settings-api.ts"
+  },
+  "driverSettings.fieldMustBeASupportedCity": {
+    "en": "{field} must be a supported city.",
+    "ka": "{field} უნდა იყოს მხარდაჭერილი ქალაქი.",
+    "_source": "src/lib/mobile-api/driver-settings-api.ts"
+  },
+  "driverSettings.fieldMustBeATime": {
+    "en": "{field} must be a time in 24-hour HH:MM format.",
+    "ka": "{field} უნდა იყოს დრო 24-საათიან HH:MM ფორმატში.",
+    "_source": "src/lib/mobile-api/driver-settings-api.ts"
+  },
+  "driverSettings.fieldMustBeTextOrNull": {
+    "en": "{field} must be text or null.",
+    "ka": "{field} უნდა იყოს ტექსტი ან null.",
+    "_source": "src/lib/mobile-api/driver-settings-api.ts"
+  },
+  "driverSettings.fieldMustBeTrueOrFalse": {
+    "en": "{field} must be true or false.",
+    "ka": "{field} უნდა იყოს true ან false.",
+    "_source": "src/lib/mobile-api/driver-settings-api.ts"
+  },
+  "driverSettings.handlingTagsMustBeOneOf": {
+    "en": "excludedHandlingTags must be a list of: {allowed}.",
+    "ka": "excludedHandlingTags უნდა იყოს სია შემდეგი მნიშვნელობებიდან: {allowed}.",
+    "_source": "src/lib/mobile-api/driver-settings-api.ts"
+  },
+  "driverSettings.maxTripKmOutOfRange": {
+    "en": "maxTripKm must be a whole number from 1 to {max}, or null.",
+    "ka": "maxTripKm უნდა იყოს მთელი რიცხვი 1-დან {max}-მდე ან null.",
+    "_source": "src/lib/mobile-api/driver-settings-api.ts"
+  },
+  "driverSettings.minPayoutOutOfRange": {
+    "en": "minPayout must be a number from 0 to {max}.",
+    "ka": "minPayout უნდა იყოს რიცხვი 0-დან {max}-მდე.",
+    "_source": "src/lib/mobile-api/driver-settings-api.ts"
+  },
+  "driverSettings.onlyDriversHaveTheseSettings": {
+    "en": "Only drivers have these settings.",
+    "ka": "ეს პარამეტრები მხოლოდ მძღოლებს აქვთ.",
+    "_source": "src/lib/mobile-api/driver-settings-api.ts"
+  },
+  "driverSettings.pickAtLeastOneArea": {
+    "en": "Pick at least one area.",
+    "ka": "აირჩიეთ მინიმუმ ერთი ზონა.",
+    "_source": "src/lib/mobile-api/driver-settings-api.ts"
+  },
+  "driverSettings.quietHoursCannotBeEmpty": {
+    "en": "Quiet hours must start and end at different times.",
+    "ka": "მშვიდი საათების დაწყებისა და დასრულების დრო უნდა განსხვავდებოდეს.",
+    "_source": "src/lib/mobile-api/driver-settings-api.ts"
+  },
+  "driverSettings.routeAlertLimitReached": {
+    "en": "You can save up to {max} route alerts. Remove one to add another.",
+    "ka": "შეგიძლიათ შეინახოთ მაქსიმუმ {max} მარშრუტის შეტყობინება. ახლის დასამატებლად წაშალეთ ერთ-ერთი.",
+    "_source": "src/lib/mobile-api/driver-settings-api.ts"
+  },
+  "driverSettings.routeAlertNotFound": {
+    "en": "Route alert not found.",
+    "ka": "მარშრუტის შეტყობინება ვერ მოიძებნა.",
+    "_source": "src/lib/mobile-api/driver-settings-api.ts"
+  },
+  "driverSettings.sendAtLeastOneField": {
+    "en": "Send at least one field to change.",
+    "ka": "მიუთითეთ მინიმუმ ერთი შესაცვლელი ველი.",
+    "_source": "src/lib/mobile-api/driver-settings-api.ts"
+  },
   "fleetVehicleValidation.labelled": {
     "en": "{label}: {message}",
     "ka": "{label}: {message}",
@@ -1344,6 +1549,31 @@
     "ka": "ამ ავტომობილს {category} კატეგორია სჭირდება. მიამაგრეთ სხვა მძღოლი ან ავტომობილი.",
     "_source": "src/app/api/logistics-company/vehicles/[id]/assignment/route.ts"
   },
+  "offers.offerAlreadyAccepted": {
+    "en": "You have already accepted this offer.",
+    "ka": "ეს შეთავაზება უკვე მიღებული გაქვთ.",
+    "_source": "src/app/api/dashboard/hub/offers/[id]/accept/route.ts"
+  },
+  "offers.offerAlreadyDeclined": {
+    "en": "You declined this offer.",
+    "ka": "ეს შეთავაზება თქვენ უარყავით.",
+    "_source": "src/app/api/dashboard/hub/offers/[id]/accept/route.ts"
+  },
+  "offers.offerExpired": {
+    "en": "This offer has expired.",
+    "ka": "ამ შეთავაზების ვადა ამოიწურა.",
+    "_source": "src/app/api/dashboard/hub/offers/[id]/accept/route.ts"
+  },
+  "offers.offerNotFound": {
+    "en": "Offer not found.",
+    "ka": "შეთავაზება ვერ მოიძებნა.",
+    "_source": "src/app/api/dashboard/hub/offers/[id]/accept/route.ts"
+  },
+  "offers.onlyDriversReceiveOffers": {
+    "en": "Only drivers receive load offers.",
+    "ka": "ტვირთის შეთავაზებებს მხოლოდ მძღოლები იღებენ.",
+    "_source": "src/app/api/dashboard/hub/offers/[id]/accept/route.ts"
+  },
   "orders.bodyTypeMustBeOneOf": {
     "en": "bodyType must be one of: {allowed}.",
     "ka": "bodyType უნდა იყოს ერთ-ერთი შემდეგიდან: {allowed}.",
@@ -1459,6 +1689,11 @@
     "ka": "თქვენ ოფლაინში ხართ. გადაზიდვების ასაღებად გადადით ონლაინ რეჟიმში.",
     "_source": "src/app/api/orders/[id]/accept/route.ts"
   },
+  "ordersComplete.photoRequired": {
+    "en": "Add at least one delivery photo before confirming.",
+    "ka": "დადასტურებამდე დაამატეთ მიწოდების მინიმუმ ერთი ფოტო.",
+    "_source": "src/app/api/orders/[id]/complete/route.ts"
+  },
   "ordersComplete.receivedByMustBeStringOrNull": {
     "en": "receivedBy must be a string or null.",
     "ka": "receivedBy უნდა იყოს ტექსტი ან null.",
@@ -1467,6 +1702,11 @@
   "ordersComplete.receivedByTooLong": {
     "en": "receivedBy must be {max} characters or fewer.",
     "ka": "receivedBy არ უნდა აღემატებოდეს {max} სიმბოლოს.",
+    "_source": "src/app/api/orders/[id]/complete/route.ts"
+  },
+  "ordersComplete.signatureRequired": {
+    "en": "Add the recipient's signature before confirming.",
+    "ka": "დადასტურებამდე დაამატეთ მიმღების ხელმოწერა.",
     "_source": "src/app/api/orders/[id]/complete/route.ts"
   },
   "ordersComplete.thisDeliveryCannotBeCompletedRight": {
@@ -1509,10 +1749,85 @@
     "ka": "ამ მიწოდების საფასური უკვე გადახდილია და ის ჩვენს მძღოლებთანაა.",
     "_source": "src/app/api/orders/[id]/pay/route.ts"
   },
+  "ordersPod.couldNotVerifyUpload": {
+    "en": "We could not verify the upload. Please upload the file again.",
+    "ka": "ატვირთვის შემოწმება ვერ მოხერხდა. გთხოვთ, ფაილი ხელახლა ატვირთოთ.",
+    "_source": "src/app/api/orders/[id]/pod/route.ts"
+  },
+  "ordersPod.kindMustBePhotoOrSignature": {
+    "en": "kind must be PHOTO or SIGNATURE.",
+    "ka": "kind უნდა იყოს PHOTO ან SIGNATURE.",
+    "_source": "src/app/api/orders/[id]/pod/route.ts"
+  },
+  "ordersPod.onlyWhileInTransit": {
+    "en": "Proof of delivery can only be changed while the delivery is in transit.",
+    "ka": "მიწოდების დადასტურების შეცვლა შესაძლებელია მხოლოდ მაშინ, როცა მიწოდება გზაშია.",
+    "_source": "src/app/api/orders/[id]/pod/route.ts"
+  },
+  "ordersPod.pathIsRequired": {
+    "en": "path is required and must be a non-empty string.",
+    "ka": "path სავალდებულოა და არ უნდა იყოს ცარიელი.",
+    "_source": "src/app/api/orders/[id]/pod/route.ts"
+  },
+  "ordersPod.photoLimit": {
+    "en": "A delivery can have at most {max} photos. Remove one first.",
+    "ka": "მიწოდებას შეიძლება ჰქონდეს მაქსიმუმ {max} ფოტო. ჯერ ერთი წაშალეთ.",
+    "_source": "src/app/api/orders/[id]/pod/route.ts"
+  },
+  "ordersPod.photoMustBeJpgOrPng": {
+    "en": "Delivery photos must be JPG or PNG files.",
+    "ka": "მიწოდების ფოტოები უნდა იყოს JPG ან PNG ფაილები.",
+    "_source": "src/app/api/orders/[id]/pod/route.ts"
+  },
+  "ordersPod.photoNotFound": {
+    "en": "Photo not found.",
+    "ka": "ფოტო ვერ მოიძებნა.",
+    "_source": "src/app/api/orders/[id]/pod/route.ts"
+  },
+  "ordersPod.photoTooLarge": {
+    "en": "Delivery photos must be {max} MB or smaller.",
+    "ka": "მიწოდების ფოტო არ უნდა აღემატებოდეს {max} მბ-ს.",
+    "_source": "src/app/api/orders/[id]/pod/route.ts"
+  },
+  "ordersPod.replacesPhotoIdInvalid": {
+    "en": "replacesPhotoId must be a non-empty string.",
+    "ka": "replacesPhotoId არ უნდა იყოს ცარიელი.",
+    "_source": "src/app/api/orders/[id]/pod/route.ts"
+  },
+  "ordersPod.signatureMustBePng": {
+    "en": "The signature must be a PNG image.",
+    "ka": "ხელმოწერა უნდა იყოს PNG გამოსახულება.",
+    "_source": "src/app/api/orders/[id]/pod/route.ts"
+  },
+  "ordersPod.signatureTooLarge": {
+    "en": "The signature must be {max} MB or smaller.",
+    "ka": "ხელმოწერა არ უნდა აღემატებოდეს {max} მბ-ს.",
+    "_source": "src/app/api/orders/[id]/pod/route.ts"
+  },
+  "ordersPod.takenAtInvalid": {
+    "en": "takenAt must be an ISO date-time.",
+    "ka": "takenAt უნდა იყოს ISO თარიღი და დრო.",
+    "_source": "src/app/api/orders/[id]/pod/route.ts"
+  },
+  "ordersPod.thatUploadDoesNotBelongTo": {
+    "en": "That upload does not belong to this delivery.",
+    "ka": "ეს ატვირთვა ამ მიწოდებას არ ეკუთვნის.",
+    "_source": "src/app/api/orders/[id]/pod/route.ts"
+  },
   "ordersStart.thisDeliveryCannotBeStartedRight": {
     "en": "This delivery cannot be started right now.",
     "ka": "ამ მიწოდების დაწყება ახლა შეუძლებელია.",
     "_source": "src/app/api/orders/[id]/start/route.ts"
+  },
+  "pushTokens.platformMustBeIosOrAndroid": {
+    "en": "platform must be ios or android.",
+    "ka": "platform უნდა იყოს ios ან android.",
+    "_source": "src/app/api/dashboard/hub/push-tokens/route.ts"
+  },
+  "pushTokens.tokenMustBeAnExpoPushToken": {
+    "en": "token must be an Expo push token.",
+    "ka": "token უნდა იყოს Expo-ს push ტოკენი.",
+    "_source": "src/app/api/dashboard/hub/push-tokens/route.ts"
   },
   "savedCards.cardBrandTooLong": {
     "en": "Enter a card brand of {max} characters or fewer.",
@@ -1579,6 +1894,41 @@
     "ka": "ამ ბარათს ვადა გაუვიდა. დაამატეთ ბარათი, რომელიც ჯერ კიდევ მოქმედებს.",
     "_source": "src/app/api/saved-cards/route.ts"
   },
+  "supportMessages.bodyIsRequired": {
+    "en": "Describe what happened before sending.",
+    "ka": "გაგზავნამდე აღწერეთ, რა მოხდა.",
+    "_source": "src/app/api/dashboard/hub/support/messages/route.ts"
+  },
+  "supportMessages.bodyTooLong": {
+    "en": "The message must be {max} characters or fewer.",
+    "ka": "შეტყობინება არ უნდა აღემატებოდეს {max} სიმბოლოს.",
+    "_source": "src/app/api/dashboard/hub/support/messages/route.ts"
+  },
+  "supportMessages.onlyDriversCanContactSupport": {
+    "en": "Only drivers can send support messages.",
+    "ka": "მხარდაჭერისთვის შეტყობინების გაგზავნა მხოლოდ მძღოლებს შეუძლიათ.",
+    "_source": "src/app/api/dashboard/hub/support/messages/route.ts"
+  },
+  "supportMessages.orderIdMustBeAString": {
+    "en": "orderId must be a non-empty string or null.",
+    "ka": "orderId უნდა იყოს არაცარიელი ტექსტი ან null.",
+    "_source": "src/app/api/dashboard/hub/support/messages/route.ts"
+  },
+  "supportMessages.tooManyMessages": {
+    "en": "You have sent several messages in a short time. Please wait a few minutes before sending another.",
+    "ka": "მოკლე დროში რამდენიმე შეტყობინება გაგზავნეთ. გთხოვთ, შემდეგის გაგზავნამდე რამდენიმე წუთი დაიცადოთ.",
+    "_source": "src/app/api/dashboard/hub/support/messages/route.ts"
+  },
+  "supportMessages.topicMustBeOneOf": {
+    "en": "topic must be one of: {topics}.",
+    "ka": "topic უნდა იყოს ერთ-ერთი შემდეგიდან: {topics}.",
+    "_source": "src/app/api/dashboard/hub/support/messages/route.ts"
+  },
+  "uploads.tooManyPendingUploads": {
+    "en": "Too many uploads were started and not finished. Please try again in {minutes} min.",
+    "ka": "ძალიან ბევრი ატვირთვა დაიწყო და არ დასრულებულა. გთხოვთ, სცადოთ ხელახლა {minutes} წუთში.",
+    "_source": "src/app/api/orders/[id]/pod/upload-url/route.ts"
+  },
   "validation.bodyhtmlIsRequiredAndMustBe": {
     "en": "bodyHtml is required and must be a non-empty string.",
     "ka": "bodyHtml სავალდებულოა და არ უნდა იყოს ცარიელი ტექსტი.",
@@ -1603,5 +1953,150 @@
     "en": "slug must be lowercase letters, numbers and single hyphens, e.g. “terms-of-service”.",
     "ka": "slug უნდა შედგებოდეს მცირე ასოებისგან, ციფრებისგან და ცალკეული დეფისებისგან, მაგ. \"terms-of-service\".",
     "_source": "src/app/api/admin/content/pages/validation.ts"
+  },
+  "vehicleDocuments.companyManagesThisVehicle": {
+    "en": "This vehicle belongs to your company, which manages its documents.",
+    "ka": "ეს ავტომობილი თქვენს კომპანიას ეკუთვნის და მის დოკუმენტებს კომპანია მართავს.",
+    "_source": "src/app/api/driver-profile/vehicles/[id]/documents/route.ts"
+  },
+  "vehicleDocuments.fileTooLarge": {
+    "en": "Vehicle documents must be {max} MB or smaller.",
+    "ka": "ავტომობილის დოკუმენტი არ უნდა აღემატებოდეს {max} მბ-ს.",
+    "_source": "src/app/api/driver-profile/vehicles/[id]/documents/route.ts"
+  },
+  "vehicleDocuments.mustBeJpgOrPng": {
+    "en": "Vehicle documents must be JPG or PNG files.",
+    "ka": "ავტომობილის დოკუმენტები უნდა იყოს JPG ან PNG ფაილები.",
+    "_source": "src/app/api/driver-profile/vehicles/[id]/documents/route.ts"
+  },
+  "vehicleDocuments.thatUploadDoesNotBelongTo": {
+    "en": "That upload does not belong to this vehicle's document.",
+    "ka": "ეს ატვირთვა ამ ავტომობილის დოკუმენტს არ ეკუთვნის.",
+    "_source": "src/app/api/driver-profile/vehicles/[id]/documents/route.ts"
+  },
+  "vehicleDocuments.typeMustBeRegistrationOrInsurance": {
+    "en": "type must be REGISTRATION or INSURANCE.",
+    "ka": "type უნდა იყოს REGISTRATION ან INSURANCE.",
+    "_source": "src/app/api/driver-profile/vehicles/[id]/documents/route.ts"
+  },
+  "wallet.amountMustBeWholeTetri": {
+    "en": "amountTetri must be a positive whole number of tetri.",
+    "ka": "amountTetri უნდა იყოს თეთრების დადებითი მთელი რაოდენობა.",
+    "_source": "src/lib/mobile-api/wallet-api.ts"
+  },
+  "wallet.bankAccountDuplicate": {
+    "en": "This account is already added.",
+    "ka": "ეს ანგარიში უკვე დამატებულია.",
+    "_source": "src/lib/mobile-api/wallet-api.ts"
+  },
+  "wallet.bankAccountHasPendingWithdrawal": {
+    "en": "A withdrawal to this account is still pending. You can remove it once that is paid or rejected.",
+    "ka": "ამ ანგარიშზე თანხის გატანის მოთხოვნა ჯერ განხილვაშია. ანგარიშის წაშლას შეძლებთ მას შემდეგ, რაც თანხა გადაირიცხება ან მოთხოვნა უარყოფილი იქნება.",
+    "_source": "src/lib/mobile-api/wallet-api.ts"
+  },
+  "wallet.bankAccountIdMustBeString": {
+    "en": "bankAccountId must be a non-empty string or null.",
+    "ka": "bankAccountId უნდა იყოს არაცარიელი ტექსტი ან null.",
+    "_source": "src/lib/mobile-api/wallet-api.ts"
+  },
+  "wallet.bankAccountLimitReached": {
+    "en": "You can have up to {limit} bank accounts. Remove one to add another.",
+    "ka": "შეგიძლიათ გქონდეთ არაუმეტეს {limit} საბანკო ანგარიშისა. ახლის დასამატებლად წაშალეთ ერთ-ერთი.",
+    "_source": "src/lib/mobile-api/wallet-api.ts"
+  },
+  "wallet.bankAccountNotFound": {
+    "en": "Bank account not found.",
+    "ka": "საბანკო ანგარიში ვერ მოიძებნა.",
+    "_source": "src/lib/mobile-api/wallet-api.ts"
+  },
+  "wallet.bankAccountNotVerified": {
+    "en": "This bank account is not verified yet and can't receive withdrawals.",
+    "ka": "ეს საბანკო ანგარიში ჯერ არ არის ვერიფიცირებული და მასზე თანხის გატანა შეუძლებელია.",
+    "_source": "src/lib/mobile-api/wallet-api.ts"
+  },
+  "wallet.bankMustBeOneOf": {
+    "en": "bank must be one of: {banks}.",
+    "ka": "bank უნდა იყოს ერთ-ერთი შემდეგიდან: {banks}.",
+    "_source": "src/lib/mobile-api/wallet-api.ts"
+  },
+  "wallet.belowMinimum": {
+    "en": "The minimum withdrawal is ₾{minimum}.",
+    "ka": "გასატანი მინიმალური თანხაა ₾{minimum}.",
+    "_source": "src/lib/mobile-api/wallet-api.ts"
+  },
+  "wallet.frozen": {
+    "en": "Your account is suspended, so withdrawals are unavailable. Please contact support.",
+    "ka": "თქვენი ანგარიში შეჩერებულია, ამიტომ თანხის გატანა მიუწვდომელია. გთხოვთ, დაუკავშირდეთ მხარდაჭერას.",
+    "_source": "src/lib/mobile-api/wallet-api.ts"
+  },
+  "wallet.ibanBankMismatch": {
+    "en": "This IBAN belongs to {ibanBank}, not {bank}.",
+    "ka": "ეს IBAN ეკუთვნის ბანკს {ibanBank} და არა ბანკს {bank}.",
+    "_source": "src/lib/mobile-api/wallet-api.ts"
+  },
+  "wallet.ibanBelongsToAnotherBank": {
+    "en": "This IBAN belongs to another bank, not {bank}.",
+    "ka": "ეს IBAN სხვა ბანკს ეკუთვნის და არა ბანკს {bank}.",
+    "_source": "src/lib/mobile-api/wallet-api.ts"
+  },
+  "wallet.ibanChecksumInvalid": {
+    "en": "This IBAN is not valid. Check it for a typing mistake.",
+    "ka": "ეს IBAN არასწორია. შეამოწმეთ, ხომ არ არის შეცდომით აკრეფილი.",
+    "_source": "src/lib/mobile-api/wallet-api.ts"
+  },
+  "wallet.ibanInvalidFormat": {
+    "en": "Enter a Georgian IBAN: GE, 2 digits, 2 letters, then 16 digits.",
+    "ka": "შეიყვანეთ ქართული IBAN: GE, 2 ციფრი, 2 ასო და შემდეგ 16 ციფრი.",
+    "_source": "src/lib/mobile-api/wallet-api.ts"
+  },
+  "wallet.ibanMustBeString": {
+    "en": "iban must be a string.",
+    "ka": "iban უნდა იყოს ტექსტი.",
+    "_source": "src/lib/mobile-api/wallet-api.ts"
+  },
+  "wallet.insufficientFunds": {
+    "en": "That is more than your available balance.",
+    "ka": "ეს თანხა აღემატება თქვენს ხელმისაწვდომ ბალანსს.",
+    "_source": "src/lib/mobile-api/wallet-api.ts"
+  },
+  "wallet.isDefaultMustBeTrue": {
+    "en": "isDefault must be true.",
+    "ka": "isDefault უნდა იყოს true.",
+    "_source": "src/lib/mobile-api/wallet-api.ts"
+  },
+  "wallet.legalNameMissing": {
+    "en": "Your profile has no legal name yet. Complete your registration before adding a bank account.",
+    "ka": "თქვენს პროფილში სახელი და გვარი ჯერ არ არის მითითებული. საბანკო ანგარიშის დამატებამდე დაასრულეთ რეგისტრაცია.",
+    "_source": "src/lib/mobile-api/wallet-api.ts"
+  },
+  "wallet.noVerifiedBankAccount": {
+    "en": "Add a verified bank account first.",
+    "ka": "ჯერ დაამატეთ ვერიფიცირებული საბანკო ანგარიში.",
+    "_source": "src/lib/mobile-api/wallet-api.ts"
+  },
+  "wallet.notAvailableForRosterDrivers": {
+    "en": "Your earnings are paid to your company, so this account has no wallet.",
+    "ka": "თქვენი შემოსავალი თქვენს კომპანიას ერიცხება, ამიტომ ამ ანგარიშს საფულე არ აქვს.",
+    "_source": "src/lib/mobile-api/wallet-api.ts"
+  },
+  "wallet.onlyDriversHaveAWallet": {
+    "en": "Only drivers have a wallet.",
+    "ka": "საფულე მხოლოდ მძღოლებს აქვთ.",
+    "_source": "src/lib/mobile-api/wallet-api.ts"
+  },
+  "wallet.requestKeyInvalid": {
+    "en": "requestKey must be a non-empty string of at most {max} characters.",
+    "ka": "requestKey უნდა იყოს არაცარიელი ტექსტი, არაუმეტეს {max} სიმბოლოსი.",
+    "_source": "src/lib/mobile-api/wallet-api.ts"
+  },
+  "wallet.requestKeyRequired": {
+    "en": "requestKey is required: a non-empty string of at most {max} characters, the same one on every retry of this request.",
+    "ka": "requestKey სავალდებულოა: არაცარიელი ტექსტი, არაუმეტეს {max} სიმბოლოსი, ერთი და იგივე ამ მოთხოვნის ყოველი გამეორებისას.",
+    "_source": "src/app/api/dashboard/hub/wallet/withdrawals/route.ts"
+  },
+  "wallet.unknownCursor": {
+    "en": "cursor is not valid.",
+    "ka": "cursor არასწორია.",
+    "_source": "src/lib/mobile-api/wallet-api.ts"
   }
 }

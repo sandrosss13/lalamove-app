@@ -833,7 +833,7 @@ export function VehicleEditorDialog({
             ) : null}
             <div className="flex items-center gap-3.5">
               {/* `text-white` on `bg-onboarding-accent` is right in both themes
-                  and must not grow a `dark:` variant — the brand orange is
+                  and must not grow a `dark:` variant — the brand green is
                   theme-independent by design, so its label is too. The Cancel
                   button beside it is all semantic tokens and needs nothing. */}
               <button

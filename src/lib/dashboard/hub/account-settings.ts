@@ -18,6 +18,11 @@
  */
 import "server-only";
 
+import type {
+  DriverApplicationDocumentStatus,
+  DriverApplicationDocumentType,
+} from "@prisma/client";
+
 import type { HubAccount } from "@/lib/dashboard/hub/account";
 import { requireDashboardSession } from "@/lib/dashboard/auth";
 import { formatCity } from "@/lib/format-city";
@@ -49,6 +54,9 @@ export type HubDriverAccountSettings = {
   phone: string;
   /** `GeorgianCity` value — the `<select>`'s current selection. */
   city: string;
+  /** Who to call in an emergency; each null until the driver sets it. */
+  emergencyContactName: string | null;
+  emergencyContactPhone: string | null;
   /**
    * Both collected by the onboarding wizard and verified against an uploaded
    * document, and neither writable through any endpoint afterwards — so the
@@ -57,6 +65,31 @@ export type HubDriverAccountSettings = {
    */
   idNumber: string | null;
   dateOfBirth: string | null;
+  /**
+   * When the licence on file expires, reduced to "YYYY-MM-DD" like
+   * `dateOfBirth`. Null when there is no `DriverLicence` row — a driver a
+   * company registered onto its roster never went through the wizard that
+   * writes one.
+   */
+  licenceExpiresAt: string | null;
+  /**
+   * The driver's live (not superseded) onboarding documents and the back
+   * office's verdict on each, oldest first. Empty for a driver with no
+   * application. **No storage path and no URL**: this is a status list, and
+   * the images themselves are served by the onboarding route to the views that
+   * show them.
+   */
+  documents: HubDriverAccountDocument[];
+};
+
+/** One document on file, and where its review stands. */
+export type HubDriverAccountDocument = {
+  /** `DriverApplicationDocumentType` value. */
+  type: DriverApplicationDocumentType;
+  /** `DriverApplicationDocumentStatus` value. */
+  status: DriverApplicationDocumentStatus;
+  /** The reviewer's reason when `status` is `FLAGGED`; null otherwise. */
+  flagReason: string | null;
 };
 
 /**
@@ -178,8 +211,22 @@ export async function getHubAccountSettings(
       vatId: true,
       phone: true,
       city: true,
+      emergencyContactName: true,
+      emergencyContactPhone: true,
       idNumber: true,
       dateOfBirth: true,
+      licence: { select: { expiresAt: true } },
+      application: {
+        select: {
+          documents: {
+            // Live rows only: a superseded row is an earlier upload a retake
+            // replaced, and its verdict no longer describes anything on file.
+            where: { supersededAt: null },
+            select: { type: true, status: true, flagReason: true },
+            orderBy: { createdAt: "asc" },
+          },
+        },
+      },
     },
   });
 
@@ -197,9 +244,18 @@ export async function getHubAccountSettings(
     vatId: driverProfile.vatId,
     phone: driverProfile.phone,
     city: driverProfile.city,
+    emergencyContactName: driverProfile.emergencyContactName,
+    emergencyContactPhone: driverProfile.emergencyContactPhone,
     idNumber: driverProfile.idNumber,
     // `<input type="date">`'s value format, and the only part of the instant
     // this screen prints.
     dateOfBirth: driverProfile.dateOfBirth?.toISOString().slice(0, 10) ?? null,
+    licenceExpiresAt:
+      driverProfile.licence?.expiresAt.toISOString().slice(0, 10) ?? null,
+    documents: (driverProfile.application?.documents ?? []).map((document) => ({
+      type: document.type,
+      status: document.status,
+      flagReason: document.flagReason,
+    })),
   };
 }

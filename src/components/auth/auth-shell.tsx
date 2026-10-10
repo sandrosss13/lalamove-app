@@ -1,6 +1,7 @@
 import { useTranslations } from "next-intl";
 
 import { Link } from "@/i18n/navigation";
+import { ZomoLockupThemed } from "@/components/brand/zomo-logo";
 import { LanguageToggle } from "@/components/language-toggle";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/utils";
@@ -78,18 +79,12 @@ export function AuthShell({ maxWidth, className, children }: AuthShellProps) {
       className="flex min-h-screen flex-col bg-[var(--landing-surface)] font-body text-[var(--landing-paper)] antialiased"
     >
       <header className="flex h-16 flex-none items-center justify-between gap-4 border-b border-[var(--landing-line)] bg-[var(--landing-surface-raised)] px-[clamp(20px,5vw,48px)]">
-        <Link
-          href="/"
-          className="flex items-center gap-2.5 text-base font-semibold tracking-[-0.01em] text-[var(--landing-paper)]"
-        >
-          {/* Placeholder mark. The handoff ships no logo asset — see its
-              "Assets" section — so this is the 22px orange square it specifies,
-              to be swapped for the real mark when one exists. */}
-          <span
-            aria-hidden="true"
-            className="size-[22px] flex-none rounded-[6px] bg-[var(--landing-accent)]"
-          />
-          {tShared("lalamoveClone")}
+        {/* The zomo lockup replaces the handoff's placeholder (a 22px accent
+            square beside the name set in text). The bar is
+            `--landing-surface-raised`, which flips with `html.dark`, so the
+            lockup does too: primary on light, the dark-panel variant on dark. */}
+        <Link href="/" className="flex flex-none items-center">
+          <ZomoLockupThemed className="h-6" label={tShared("brandName")} />
         </Link>
 
         <div className="flex items-center gap-[18px]">
@@ -122,7 +117,7 @@ export function AuthShell({ maxWidth, className, children }: AuthShellProps) {
             draws a `ring-3` halo, and cancelling it in favour of this surface's
             `focus-visible:outline-2` idiom would mean fighting the base
             `outline-none`. Pointing the existing ring at the landing accent
-            gets the same orange focus language for two class names. Both carry
+            gets the same green focus language for two class names. Both carry
             the `focus-visible:` modifier themselves — twMerge keys its conflict
             groups on the modifier as well as the utility, so an unprefixed
             `border-*` would not override `focus-visible:border-ring`.

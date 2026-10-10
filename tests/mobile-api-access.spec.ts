@@ -12,7 +12,10 @@
 
 import { expect, test } from "@playwright/test";
 
-import { hubApiDenialFor } from "@/lib/mobile-api/access";
+import {
+  hubApiDenialFor,
+  passwordChangeGateApplies,
+} from "@/lib/mobile-api/access";
 
 test.describe("hubApiDenialFor", () => {
   test("answers a missing session with 401", () => {
@@ -66,5 +69,66 @@ test.describe("hubApiDenialFor", () => {
     expect(
       hubApiDenialFor({ role: "CLIENT", mustChangePassword: true }),
     ).toEqual({ status: 403, code: "PASSWORD_CHANGE_REQUIRED" });
+  });
+});
+
+test.describe("passwordChangeGateApplies", () => {
+  const ROLES = ["DRIVER", "CLIENT", "COMPANY", "ADMIN", "SUPER_ADMIN"];
+
+  test("holds nobody back who has no forced password change", () => {
+    for (const role of ROLES) {
+      for (const mustChangePassword of [false, null, undefined]) {
+        expect(
+          passwordChangeGateApplies({ role, mustChangePassword }, "ANY_ROLE"),
+        ).toBe(false);
+        expect(
+          passwordChangeGateApplies(
+            { role, mustChangePassword },
+            "DRIVER_ONLY",
+          ),
+        ).toBe(false);
+      }
+    }
+  });
+
+  test("on a carrier-only route, holds every flagged account back", () => {
+    // Accept, start, complete, proof of delivery, the driver's location and the
+    // online toggle: nobody but a carrier gets past them anyway, so no role may
+    // sidestep the reset by being refused for something else first.
+    for (const role of ROLES) {
+      expect(
+        passwordChangeGateApplies(
+          { role, mustChangePassword: true },
+          "ANY_ROLE",
+        ),
+      ).toBe(true);
+    }
+  });
+
+  test("on a shared route, holds back the flagged driver and nobody else", () => {
+    // `GET /api/orders/[id]/location` is polled by the ordering client. The
+    // gate is about a driver on a temporary password; a client following their
+    // own delivery must not be locked out by it.
+    expect(
+      passwordChangeGateApplies(
+        { role: "DRIVER", mustChangePassword: true },
+        "DRIVER_ONLY",
+      ),
+    ).toBe(true);
+
+    for (const role of ROLES.filter((value) => value !== "DRIVER")) {
+      expect(
+        passwordChangeGateApplies(
+          { role, mustChangePassword: true },
+          "DRIVER_ONLY",
+        ),
+      ).toBe(false);
+    }
+  });
+
+  test("a missing role is not a driver", () => {
+    expect(
+      passwordChangeGateApplies({ mustChangePassword: true }, "DRIVER_ONLY"),
+    ).toBe(false);
   });
 });

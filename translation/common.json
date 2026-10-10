@@ -314,6 +314,11 @@
     "ka": "ძარის ტიპი",
     "_source": "src/components/admin/driver-application-detail-drawer.tsx"
   },
+  "shared.brandName": {
+    "en": "zomo",
+    "ka": "zomo",
+    "_source": "src/app/[locale]/layout.tsx"
+  },
   "shared.business": {
     "en": "Business",
     "ka": "იურიდიული პირი",
@@ -893,11 +898,6 @@
     "en": "key is required and must be a non-empty string.",
     "ka": "key სავალდებულოა და არ უნდა იყოს ცარიელი ტექსტი.",
     "_source": "src/app/api/admin/content/messaging-templates/route.ts"
-  },
-  "shared.lalamoveClone": {
-    "en": "Lalamove Clone",
-    "ka": "Lalamove-ის კლონი",
-    "_source": "src/app/[locale]/layout.tsx"
   },
   "shared.language": {
     "en": "Language",

@@ -861,7 +861,7 @@ export function SignInForm({
         the phone tab, which cannot sign anyone in yet.
       */}
       <p className="text-sm text-[var(--landing-muted)]">
-        {t("newToLalamove")}{" "}
+        {t("newToZomo")}{" "}
         <InlineLinkButton
           href={flowHref(MODE_PATHS.signup, { role, accountType })}
         >

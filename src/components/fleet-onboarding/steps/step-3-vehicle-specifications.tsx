@@ -341,7 +341,7 @@ export function Step3VehicleSpecifications() {
 
       <div className="mt-2 flex items-center gap-3.5 border-t border-border pt-5">
         {/* `text-white` on `bg-onboarding-accent` is right in both themes and
-            must not grow a `dark:` variant: the brand orange is
+            must not grow a `dark:` variant: the brand green is
             theme-independent by design, so its label is too. */}
         <button
           type="button"

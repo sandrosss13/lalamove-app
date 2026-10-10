@@ -674,9 +674,9 @@ export function Step1AuthPersonal() {
           type="button"
           onClick={handleContinue}
           // `text-white` on `bg-onboarding-accent` is right in both themes and
-          // must stay literal: the brand orange is theme-independent by design,
+          // must stay literal: the brand green is theme-independent by design,
           // so its label has to be too. `text-primary-foreground` would invert
-          // to near-black on orange the moment `.dark` is on.
+          // to near-black on green the moment `.dark` is on.
           className="h-12 cursor-pointer rounded-[11px] bg-onboarding-accent px-[30px] text-[15px] font-semibold tracking-[-0.01em] text-white transition-colors hover:bg-onboarding-accent-hover focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
         >
           {tShared("continue")}
@@ -698,7 +698,7 @@ export function Step1AuthPersonal() {
 
 /**
  * The design's input treatment: 46px tall, 10px radius, card background, and an
- * orange focus ring. The focus colours are dropped while the field is invalid so
+ * green focus ring. The focus colours are dropped while the field is invalid so
  * they cannot compete with the primitive's own `aria-invalid` red border, which
  * carries the same specificity.
  *

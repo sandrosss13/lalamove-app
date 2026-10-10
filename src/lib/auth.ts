@@ -98,9 +98,9 @@ async function localizedSignUpRefusal(
 const TRUSTED_ORIGINS = [
   "http://localhost:3000",
   "https://template-blush-pi.vercel.app",
-  "https://lalamove-app-sandrosss13s-projects.vercel.app",
-  "https://lalamove-app-git-main-sandrosss13s-projects.vercel.app",
-  "https://lalamove-app-sandrosss13-sandrosss13s-projects.vercel.app",
+  "https://zomo-app-sandrosss13s-projects.vercel.app",
+  "https://zomo-app-git-main-sandrosss13s-projects.vercel.app",
+  "https://zomo-app-sandrosss13-sandrosss13s-projects.vercel.app",
   "https://*-sandrosss13s-projects.vercel.app",
 ];
 

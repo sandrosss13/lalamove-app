@@ -4,6 +4,7 @@ import {
   ChartColumn,
   CreditCard,
   FileText,
+  LifeBuoy,
   Megaphone,
   Truck,
   Users,
@@ -46,7 +47,7 @@ export type AdminNavItem = {
 };
 
 /**
- * Stable identifiers for the seven sections, so a section's `layout.tsx` can
+ * Stable identifiers for the eight sections, so a section's `layout.tsx` can
  * ask for its own tabs by name instead of restating them.
  */
 export type AdminNavSectionId =
@@ -56,7 +57,8 @@ export type AdminNavSectionId =
   | "finance"
   | "crm"
   | "drivers"
-  | "business";
+  | "business"
+  | "support";
 
 /** A top-level sidebar entry. */
 export type AdminNavSection = {
@@ -200,6 +202,28 @@ export const ADMIN_NAV: AdminNavSection[] = [
         href: "/admin/finance/promo-campaigns",
         adminRoles: ["SUPER_ADMIN", "FINANCE_MANAGER"],
       },
+      {
+        // The driver wallet's three back-office surfaces. Verifying where
+        // money is sent, sending it, and reading the ledger are all the
+        // finance role's work; the one narrower action — a manual adjustment —
+        // is gated to SUPER_ADMIN by its own API route, not by this list.
+        label: "Bank accounts",
+        labelKey: "admin.adminNav.bankAccounts",
+        href: "/admin/finance/bank-accounts",
+        adminRoles: ["SUPER_ADMIN", "FINANCE_MANAGER"],
+      },
+      {
+        label: "Withdrawals",
+        labelKey: "admin.adminNav.withdrawals",
+        href: "/admin/finance/withdrawals",
+        adminRoles: ["SUPER_ADMIN", "FINANCE_MANAGER"],
+      },
+      {
+        label: "Driver wallets",
+        labelKey: "admin.adminNav.driverWallets",
+        href: "/admin/finance/wallets",
+        adminRoles: ["SUPER_ADMIN", "FINANCE_MANAGER"],
+      },
     ],
   },
   {
@@ -248,6 +272,14 @@ export const ADMIN_NAV: AdminNavSection[] = [
         href: "/admin/drivers/applications",
         adminRoles: ["SUPER_ADMIN", "USER_MANAGER"],
       },
+      {
+        // Registration and insurance, uploaded and renewed after onboarding.
+        // The same reviewers as the application's own documents.
+        label: "Vehicle documents",
+        labelKey: "admin.adminNav.vehicleDocuments",
+        href: "/admin/drivers/documents",
+        adminRoles: ["SUPER_ADMIN", "USER_MANAGER"],
+      },
     ],
   },
   {
@@ -268,6 +300,28 @@ export const ADMIN_NAV: AdminNavSection[] = [
         labelKey: "admin.adminNav.applications",
         href: "/admin/business/applications",
         adminRoles: ["SUPER_ADMIN", "USER_MANAGER"],
+      },
+    ],
+  },
+  {
+    id: "support",
+    label: "Support",
+    labelKey: "admin.adminNav.support",
+    href: "/admin/support/messages",
+    icon: LifeBuoy,
+    // Its own section rather than a tab under Drivers: Drivers deliberately
+    // excludes `SUPPORT` (reviewing compliance documents is not answering a
+    // ticket), and a section's roles must be a superset of its items'. Reading
+    // and resolving a driver's message *is* the `SUPPORT` role's job, so it
+    // gets a section that role can open. `USER_MANAGER` is included because a
+    // message is often about the account or documents that role manages.
+    adminRoles: ["SUPER_ADMIN", "SUPPORT", "USER_MANAGER"],
+    items: [
+      {
+        label: "Driver messages",
+        labelKey: "admin.adminNav.driverMessages",
+        href: "/admin/support/messages",
+        adminRoles: ["SUPER_ADMIN", "SUPPORT", "USER_MANAGER"],
       },
     ],
   },

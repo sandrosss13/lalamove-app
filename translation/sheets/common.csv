@@ -147,7 +147,7 @@ shared.jobsWk,Jobs · wk,,src/components/driver-hub/screens/drivers-screen.tsx
 shared.joined,Joined,,src/app/[locale]/admin/(sections)/users/clients/page.tsx
 shared.key,Key,,src/app/[locale]/admin/(sections)/content/translations/page.tsx
 shared.keyIsRequiredAndMustBe,key is required and must be a non-empty string.,,src/app/api/admin/content/messaging-templates/route.ts
-shared.lalamoveClone,Lalamove Clone,,src/app/[locale]/layout.tsx
+shared.brandName,zomo,,src/app/[locale]/layout.tsx
 shared.language,Language,,src/app/[locale]/admin/(sections)/content/messaging-templates/page.tsx
 shared.lastnameIsRequiredAndMustBe,lastName is required and must be a non-empty string.,,src/app/api/client-profile/route.ts
 shared.length,Length,,src/components/driver-onboarding/steps/step-3c-technical-details.tsx

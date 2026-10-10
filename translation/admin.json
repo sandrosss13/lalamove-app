@@ -744,6 +744,11 @@
     "ka": "განაცხადები",
     "_source": "src/components/admin/admin-nav.ts"
   },
+  "adminNav.bankAccounts": {
+    "en": "Bank accounts",
+    "ka": "საბანკო ანგარიშები",
+    "_source": "src/components/admin/admin-nav.ts"
+  },
   "adminNav.banners": {
     "en": "Banners",
     "ka": "ბანერები",
@@ -772,6 +777,16 @@
   "adminNav.crm": {
     "en": "CRM",
     "ka": "CRM",
+    "_source": "src/components/admin/admin-nav.ts"
+  },
+  "adminNav.driverMessages": {
+    "en": "Driver messages",
+    "ka": "მძღოლების შეტყობინებები",
+    "_source": "src/components/admin/admin-nav.ts"
+  },
+  "adminNav.driverWallets": {
+    "en": "Driver wallets",
+    "ka": "მძღოლების საფულეები",
     "_source": "src/components/admin/admin-nav.ts"
   },
   "adminNav.finances": {
@@ -819,6 +834,11 @@
     "ka": "სტატიკური გვერდები",
     "_source": "src/components/admin/admin-nav.ts"
   },
+  "adminNav.support": {
+    "en": "Support",
+    "ka": "მხარდაჭერა",
+    "_source": "src/components/admin/admin-nav.ts"
+  },
   "adminNav.surveys": {
     "en": "Surveys",
     "ka": "გამოკითხვები",
@@ -839,9 +859,19 @@
     "ka": "მომხმარებელთა მართვა",
     "_source": "src/components/admin/admin-nav.ts"
   },
+  "adminNav.vehicleDocuments": {
+    "en": "Vehicle documents",
+    "ka": "ავტომობილის დოკუმენტები",
+    "_source": "src/components/admin/admin-nav.ts"
+  },
   "adminNav.vehiclePhotos": {
     "en": "Vehicle Photos",
     "ka": "ტრანსპორტის ფოტოები",
+    "_source": "src/components/admin/admin-nav.ts"
+  },
+  "adminNav.withdrawals": {
+    "en": "Withdrawals",
+    "ka": "თანხის გატანა",
     "_source": "src/components/admin/admin-nav.ts"
   },
   "adminRoles.analytics": {
@@ -908,6 +938,171 @@
     "en": "Signing in…",
     "ka": "შესვლა…",
     "_source": "src/app/[locale]/(admin-sign-in)/admin/sign-in/page.tsx"
+  },
+  "adminSupportMessages.callDriver": {
+    "en": "Call {phone}",
+    "ka": "დარეკვა: {phone}",
+    "_source": "src/app/[locale]/admin/(sections)/support/messages/page.tsx"
+  },
+  "adminSupportMessages.couldNotLoadMessage": {
+    "en": "Could not load this message.",
+    "ka": "შეტყობინების ჩატვირთვა ვერ მოხერხდა.",
+    "_source": "src/app/[locale]/admin/(sections)/support/messages/page.tsx"
+  },
+  "adminSupportMessages.couldNotLoadMessages": {
+    "en": "Could not load support messages.",
+    "ka": "მხარდაჭერის შეტყობინებების ჩატვირთვა ვერ მოხერხდა.",
+    "_source": "src/app/[locale]/admin/(sections)/support/messages/page.tsx"
+  },
+  "adminSupportMessages.couldNotResolve": {
+    "en": "Could not mark the message resolved.",
+    "ka": "შეტყობინების მოგვარებულად მონიშვნა ვერ მოხერხდა.",
+    "_source": "src/app/[locale]/admin/(sections)/support/messages/page.tsx"
+  },
+  "adminSupportMessages.emptyAll": {
+    "en": "No support messages yet.",
+    "ka": "მხარდაჭერის შეტყობინებები ჯერ არ არის.",
+    "_source": "src/app/[locale]/admin/(sections)/support/messages/page.tsx"
+  },
+  "adminSupportMessages.emptyOpen": {
+    "en": "No open messages.",
+    "ka": "ღია შეტყობინებები არ არის.",
+    "_source": "src/app/[locale]/admin/(sections)/support/messages/page.tsx"
+  },
+  "adminSupportMessages.emptyResolved": {
+    "en": "No resolved messages.",
+    "ka": "მოგვარებული შეტყობინებები არ არის.",
+    "_source": "src/app/[locale]/admin/(sections)/support/messages/page.tsx"
+  },
+  "adminSupportMessages.job": {
+    "en": "Job",
+    "ka": "რეისი",
+    "_source": "src/app/[locale]/admin/(sections)/support/messages/page.tsx"
+  },
+  "adminSupportMessages.loadingMessages": {
+    "en": "Loading messages…",
+    "ka": "შეტყობინებები იტვირთება...",
+    "_source": "src/app/[locale]/admin/(sections)/support/messages/page.tsx"
+  },
+  "adminSupportMessages.markResolved": {
+    "en": "Mark resolved",
+    "ka": "მოგვარებულად მონიშვნა",
+    "_source": "src/app/[locale]/admin/(sections)/support/messages/page.tsx"
+  },
+  "adminSupportMessages.message": {
+    "en": "Message",
+    "ka": "შეტყობინება",
+    "_source": "src/app/[locale]/admin/(sections)/support/messages/page.tsx"
+  },
+  "adminSupportMessages.messageCount": {
+    "en": "{count, plural, one {# message} other {# messages}}",
+    "ka": "{count, plural, one {# შეტყობინება} other {# შეტყობინება}}",
+    "_source": "src/app/[locale]/admin/(sections)/support/messages/page.tsx"
+  },
+  "adminSupportMessages.noJobAttached": {
+    "en": "No job attached",
+    "ka": "რეისი მითითებული არ არის",
+    "_source": "src/app/[locale]/admin/(sections)/support/messages/page.tsx"
+  },
+  "adminSupportMessages.noReplyChannel": {
+    "en": "There is no in-app or SMS reply. Call the driver, then mark the message resolved.",
+    "ka": "აპლიკაციაში ან SMS-ით პასუხის გაცემა შეუძლებელია. დაურეკეთ მძღოლს და შემდეგ მონიშნეთ შეტყობინება მოგვარებულად.",
+    "_source": "src/app/[locale]/admin/(sections)/support/messages/page.tsx"
+  },
+  "adminSupportMessages.openCount": {
+    "en": "{count} open",
+    "ka": "{count} ღია",
+    "_source": "src/app/[locale]/admin/(sections)/support/messages/page.tsx"
+  },
+  "adminSupportMessages.resolvedBy": {
+    "en": "Resolved by {name}",
+    "ka": "მოაგვარა: {name}",
+    "_source": "src/app/[locale]/admin/(sections)/support/messages/page.tsx"
+  },
+  "adminSupportMessages.resolving": {
+    "en": "Resolving…",
+    "ka": "ინახება…",
+    "_source": "src/app/[locale]/admin/(sections)/support/messages/page.tsx"
+  },
+  "adminSupportMessages.sent": {
+    "en": "Sent",
+    "ka": "გაგზავნილია",
+    "_source": "src/app/[locale]/admin/(sections)/support/messages/page.tsx"
+  },
+  "adminSupportMessages.statusOpen": {
+    "en": "Open",
+    "ka": "ღია",
+    "_source": "src/app/[locale]/admin/(sections)/support/messages/page.tsx"
+  },
+  "adminSupportMessages.statusResolved": {
+    "en": "Resolved",
+    "ka": "მოგვარებული",
+    "_source": "src/app/[locale]/admin/(sections)/support/messages/page.tsx"
+  },
+  "adminSupportMessages.supportMessage": {
+    "en": "Support message",
+    "ka": "მხარდაჭერის შეტყობინება",
+    "_source": "src/app/[locale]/admin/(sections)/support/messages/page.tsx"
+  },
+  "adminSupportMessages.topic": {
+    "en": "Topic",
+    "ka": "თემა",
+    "_source": "src/app/[locale]/admin/(sections)/support/messages/page.tsx"
+  },
+  "adminSupportMessages.topicAccident": {
+    "en": "Accident",
+    "ka": "ავარია",
+    "_source": "src/app/[locale]/admin/(sections)/support/messages/page.tsx"
+  },
+  "adminSupportMessages.topicAddressWrongOrInaccessible": {
+    "en": "Address is wrong or inaccessible",
+    "ka": "მისამართი არასწორია ან მიუწვდომელია",
+    "_source": "src/app/[locale]/admin/(sections)/support/messages/page.tsx"
+  },
+  "adminSupportMessages.topicCargoDamagedOrMissing": {
+    "en": "Cargo damaged or missing",
+    "ka": "ტვირთი დაზიანებულია ან აკლია",
+    "_source": "src/app/[locale]/admin/(sections)/support/messages/page.tsx"
+  },
+  "adminSupportMessages.topicCargoMismatch": {
+    "en": "Cargo doesn't match the listing",
+    "ka": "ტვირთი არ შეესაბამება აღწერას",
+    "_source": "src/app/[locale]/admin/(sections)/support/messages/page.tsx"
+  },
+  "adminSupportMessages.topicContactUnreachable": {
+    "en": "Can't reach the contact",
+    "ka": "საკონტაქტო პირთან დაკავშირება ვერ ხერხდება",
+    "_source": "src/app/[locale]/admin/(sections)/support/messages/page.tsx"
+  },
+  "adminSupportMessages.topicDocumentsAndAccount": {
+    "en": "Documents and account",
+    "ka": "დოკუმენტები და ანგარიში",
+    "_source": "src/app/[locale]/admin/(sections)/support/messages/page.tsx"
+  },
+  "adminSupportMessages.topicOther": {
+    "en": "Something else",
+    "ka": "სხვა",
+    "_source": "src/app/[locale]/admin/(sections)/support/messages/page.tsx"
+  },
+  "adminSupportMessages.topicPaymentOrWithdrawal": {
+    "en": "Payment or withdrawal",
+    "ka": "გადახდა ან თანხის გატანა",
+    "_source": "src/app/[locale]/admin/(sections)/support/messages/page.tsx"
+  },
+  "adminSupportMessages.topicPickupOrDropoff": {
+    "en": "Problem at pick-up or drop-off",
+    "ka": "პრობლემა აღებისას ან ჩაბარებისას",
+    "_source": "src/app/[locale]/admin/(sections)/support/messages/page.tsx"
+  },
+  "adminSupportMessages.topicVehicleBreakdown": {
+    "en": "Vehicle breakdown",
+    "ka": "ავტომობილის გაუმართაობა",
+    "_source": "src/app/[locale]/admin/(sections)/support/messages/page.tsx"
+  },
+  "adminSupportMessages.whatHappened": {
+    "en": "What happened",
+    "ka": "რა მოხდა",
+    "_source": "src/app/[locale]/admin/(sections)/support/messages/page.tsx"
   },
   "adminUsersClients.accountType": {
     "en": "Account type",
@@ -1018,6 +1213,626 @@
     "en": "You",
     "ka": "თქვენ",
     "_source": "src/app/[locale]/admin/(sections)/users/system/page.tsx"
+  },
+  "adminVehicleDocuments.approvingReplaces": {
+    "en": "Approving this upload replaces the document on file.",
+    "ka": "ამ ფაილის დამტკიცება ჩაანაცვლებს მოქმედ დოკუმენტს.",
+    "_source": "src/app/[locale]/admin/(sections)/drivers/documents/page.tsx"
+  },
+  "adminVehicleDocuments.companyVehicle": {
+    "en": "Company vehicle",
+    "ka": "კომპანიის ავტომობილი",
+    "_source": "src/app/[locale]/admin/(sections)/drivers/documents/page.tsx"
+  },
+  "adminVehicleDocuments.couldNotLoadDocument": {
+    "en": "Could not load this document.",
+    "ka": "დოკუმენტის ჩატვირთვა ვერ მოხერხდა.",
+    "_source": "src/app/[locale]/admin/(sections)/drivers/documents/page.tsx"
+  },
+  "adminVehicleDocuments.couldNotLoadDocuments": {
+    "en": "Could not load vehicle documents.",
+    "ka": "ავტომობილის დოკუმენტების ჩატვირთვა ვერ მოხერხდა.",
+    "_source": "src/app/[locale]/admin/(sections)/drivers/documents/page.tsx"
+  },
+  "adminVehicleDocuments.document": {
+    "en": "Document",
+    "ka": "დოკუმენტი",
+    "_source": "src/app/[locale]/admin/(sections)/drivers/documents/page.tsx"
+  },
+  "adminVehicleDocuments.documentCount": {
+    "en": "{count, plural, one {# document} other {# documents}}",
+    "ka": "{count, plural, one {# დოკუმენტი} other {# დოკუმენტი}}",
+    "_source": "src/app/[locale]/admin/(sections)/drivers/documents/page.tsx"
+  },
+  "adminVehicleDocuments.documentImageAlt": {
+    "en": "{type} for {plate}",
+    "ka": "{type} — {plate}",
+    "_source": "src/app/[locale]/admin/(sections)/drivers/documents/page.tsx"
+  },
+  "adminVehicleDocuments.documentOnFile": {
+    "en": "Document on file",
+    "ka": "მოქმედი დოკუმენტი",
+    "_source": "src/app/[locale]/admin/(sections)/drivers/documents/page.tsx"
+  },
+  "adminVehicleDocuments.earlierUploads": {
+    "en": "Earlier uploads",
+    "ka": "ადრინდელი ატვირთვები",
+    "_source": "src/app/[locale]/admin/(sections)/drivers/documents/page.tsx"
+  },
+  "adminVehicleDocuments.emptyAll": {
+    "en": "No vehicle documents have been uploaded yet.",
+    "ka": "ავტომობილის დოკუმენტები ჯერ არ ატვირთულა.",
+    "_source": "src/app/[locale]/admin/(sections)/drivers/documents/page.tsx"
+  },
+  "adminVehicleDocuments.emptyApproved": {
+    "en": "No approved documents.",
+    "ka": "დამტკიცებული დოკუმენტები არ არის.",
+    "_source": "src/app/[locale]/admin/(sections)/drivers/documents/page.tsx"
+  },
+  "adminVehicleDocuments.emptyFlagged": {
+    "en": "No flagged documents.",
+    "ka": "მონიშნული დოკუმენტები არ არის.",
+    "_source": "src/app/[locale]/admin/(sections)/drivers/documents/page.tsx"
+  },
+  "adminVehicleDocuments.emptyPending": {
+    "en": "No documents are waiting for review.",
+    "ka": "განსახილველი დოკუმენტები არ არის.",
+    "_source": "src/app/[locale]/admin/(sections)/drivers/documents/page.tsx"
+  },
+  "adminVehicleDocuments.expired": {
+    "en": "Expired",
+    "ka": "ვადაგასული",
+    "_source": "src/app/[locale]/admin/(sections)/drivers/documents/page.tsx"
+  },
+  "adminVehicleDocuments.expiringSoon": {
+    "en": "Expiring soon",
+    "ka": "ვადა მალე გადის",
+    "_source": "src/app/[locale]/admin/(sections)/drivers/documents/page.tsx"
+  },
+  "adminVehicleDocuments.expiryDate": {
+    "en": "Expiry date",
+    "ka": "ვადის გასვლის თარიღი",
+    "_source": "src/app/[locale]/admin/(sections)/drivers/documents/page.tsx"
+  },
+  "adminVehicleDocuments.expiryHintInsurance": {
+    "en": "Read the expiry date off the policy. Required for insurance.",
+    "ka": "ვადის გასვლის თარიღი ამოიკითხეთ პოლისიდან. დაზღვევისთვის სავალდებულოა.",
+    "_source": "src/app/[locale]/admin/(sections)/drivers/documents/page.tsx"
+  },
+  "adminVehicleDocuments.expiryHintRegistration": {
+    "en": "Optional. Leave empty if the certificate has no expiry date.",
+    "ka": "არასავალდებულოა. დატოვეთ ცარიელი, თუ მოწმობას ვადა არ აქვს.",
+    "_source": "src/app/[locale]/admin/(sections)/drivers/documents/page.tsx"
+  },
+  "adminVehicleDocuments.firstUpload": {
+    "en": "First upload",
+    "ka": "პირველი ატვირთვა",
+    "_source": "src/app/[locale]/admin/(sections)/drivers/documents/page.tsx"
+  },
+  "adminVehicleDocuments.flagWithThisReason": {
+    "en": "Flag with this reason",
+    "ka": "მონიშვნა ამ მიზეზით",
+    "_source": "src/app/[locale]/admin/(sections)/drivers/documents/page.tsx"
+  },
+  "adminVehicleDocuments.imageUnavailable": {
+    "en": "Image unavailable",
+    "ka": "გამოსახულება მიუწვდომელია",
+    "_source": "src/app/[locale]/admin/(sections)/drivers/documents/page.tsx"
+  },
+  "adminVehicleDocuments.loadingDocuments": {
+    "en": "Loading documents…",
+    "ka": "დოკუმენტები იტვირთება...",
+    "_source": "src/app/[locale]/admin/(sections)/drivers/documents/page.tsx"
+  },
+  "adminVehicleDocuments.noExpiry": {
+    "en": "No expiry",
+    "ka": "უვადო",
+    "_source": "src/app/[locale]/admin/(sections)/drivers/documents/page.tsx"
+  },
+  "adminVehicleDocuments.openFullSize": {
+    "en": "Open full size",
+    "ka": "სრული ზომით გახსნა",
+    "_source": "src/app/[locale]/admin/(sections)/drivers/documents/page.tsx"
+  },
+  "adminVehicleDocuments.otherReason": {
+    "en": "Other reason",
+    "ka": "სხვა მიზეზი",
+    "_source": "src/app/[locale]/admin/(sections)/drivers/documents/page.tsx"
+  },
+  "adminVehicleDocuments.otherReasonPlaceholder": {
+    "en": "Tell the driver what to fix",
+    "ka": "მიუთითეთ მძღოლს, რა უნდა გამოასწოროს",
+    "_source": "src/app/[locale]/admin/(sections)/drivers/documents/page.tsx"
+  },
+  "adminVehicleDocuments.renewal": {
+    "en": "Renewal",
+    "ka": "განახლება",
+    "_source": "src/app/[locale]/admin/(sections)/drivers/documents/page.tsx"
+  },
+  "adminVehicleDocuments.replaced": {
+    "en": "Replaced",
+    "ka": "ჩანაცვლებული",
+    "_source": "src/app/[locale]/admin/(sections)/drivers/documents/page.tsx"
+  },
+  "adminVehicleDocuments.reviewDocument": {
+    "en": "Review document",
+    "ka": "დოკუმენტის განხილვა",
+    "_source": "src/app/[locale]/admin/(sections)/drivers/documents/page.tsx"
+  },
+  "adminVehicleDocuments.reviewedBy": {
+    "en": "Reviewed by {name}",
+    "ka": "განიხილა: {name}",
+    "_source": "src/app/[locale]/admin/(sections)/drivers/documents/page.tsx"
+  },
+  "adminVehicleDocuments.statusFlagged": {
+    "en": "Flagged",
+    "ka": "მონიშნული",
+    "_source": "src/app/[locale]/admin/(sections)/drivers/documents/page.tsx"
+  },
+  "adminVehicleDocuments.thisUpload": {
+    "en": "This upload",
+    "ka": "ეს ფაილი",
+    "_source": "src/app/[locale]/admin/(sections)/drivers/documents/page.tsx"
+  },
+  "adminVehicleDocuments.typeInsurance": {
+    "en": "Insurance (MTPL)",
+    "ka": "დაზღვევა (MTPL)",
+    "_source": "src/app/[locale]/admin/(sections)/drivers/documents/page.tsx"
+  },
+  "adminVehicleDocuments.typeRegistration": {
+    "en": "Vehicle registration",
+    "ka": "ავტომობილის სარეგისტრაციო მოწმობა",
+    "_source": "src/app/[locale]/admin/(sections)/drivers/documents/page.tsx"
+  },
+  "adminVehicleDocuments.updateExpiryDate": {
+    "en": "Update expiry date",
+    "ka": "ვადის თარიღის განახლება",
+    "_source": "src/app/[locale]/admin/(sections)/drivers/documents/page.tsx"
+  },
+  "adminVehicleDocuments.uploaded": {
+    "en": "Uploaded",
+    "ka": "ატვირთულია",
+    "_source": "src/app/[locale]/admin/(sections)/drivers/documents/page.tsx"
+  },
+  "adminWallet.accountCount": {
+    "en": "{count, plural, one {# account} other {# accounts}}",
+    "ka": "{count, plural, one {# ანგარიში} other {# ანგარიში}}",
+    "_source": "src/app/[locale]/admin/(sections)/finance/bank-accounts/page.tsx"
+  },
+  "adminWallet.accountTypeBusiness": {
+    "en": "Business",
+    "ka": "იურიდიული პირი",
+    "_source": "src/app/[locale]/admin/(sections)/finance/bank-accounts/page.tsx"
+  },
+  "adminWallet.accountTypeIndividual": {
+    "en": "Individual",
+    "ka": "ფიზიკური პირი",
+    "_source": "src/app/[locale]/admin/(sections)/finance/bank-accounts/page.tsx"
+  },
+  "adminWallet.accountTypeIndividualEntrepreneur": {
+    "en": "Individual entrepreneur",
+    "ka": "ინდივიდუალური მეწარმე",
+    "_source": "src/app/[locale]/admin/(sections)/finance/bank-accounts/page.tsx"
+  },
+  "adminWallet.added": {
+    "en": "Added",
+    "ka": "დამატებულია",
+    "_source": "src/app/[locale]/admin/(sections)/finance/bank-accounts/page.tsx"
+  },
+  "adminWallet.adjustmentHint": {
+    "en": "Super admins only. The driver sees the reason on the entry.",
+    "ka": "მხოლოდ სუპერადმინისტრატორებისთვის. მიზეზს მძღოლი ჩანაწერში ხედავს.",
+    "_source": "src/app/[locale]/admin/(sections)/finance/wallets/page.tsx"
+  },
+  "adminWallet.adjustmentTitle": {
+    "en": "Manual adjustment",
+    "ka": "ხელით კორექტირება",
+    "_source": "src/app/[locale]/admin/(sections)/finance/wallets/page.tsx"
+  },
+  "adminWallet.amount": {
+    "en": "Amount",
+    "ka": "თანხა",
+    "_source": "src/app/[locale]/admin/(sections)/finance/withdrawals/page.tsx"
+  },
+  "adminWallet.amountLari": {
+    "en": "Amount (₾)",
+    "ka": "თანხა (₾)",
+    "_source": "src/app/[locale]/admin/(sections)/finance/wallets/page.tsx"
+  },
+  "adminWallet.available": {
+    "en": "Available",
+    "ka": "ხელმისაწვდომი",
+    "_source": "src/app/[locale]/admin/(sections)/finance/wallets/page.tsx"
+  },
+  "adminWallet.balance": {
+    "en": "Balance",
+    "ka": "ბალანსი",
+    "_source": "src/app/[locale]/admin/(sections)/finance/wallets/page.tsx"
+  },
+  "adminWallet.bankAccount": {
+    "en": "Bank account",
+    "ka": "საბანკო ანგარიში",
+    "_source": "src/app/[locale]/admin/(sections)/finance/bank-accounts/page.tsx"
+  },
+  "adminWallet.bankReference": {
+    "en": "Bank reference",
+    "ka": "ბანკის საგადახდო ნომერი",
+    "_source": "src/app/[locale]/admin/(sections)/finance/withdrawals/page.tsx"
+  },
+  "adminWallet.bankReferenceValue": {
+    "en": "Reference {reference}",
+    "ka": "საგადახდო ნომერი: {reference}",
+    "_source": "src/app/[locale]/admin/(sections)/finance/withdrawals/page.tsx"
+  },
+  "adminWallet.byActor": {
+    "en": "by {name}",
+    "ka": "შეასრულა: {name}",
+    "_source": "src/app/[locale]/admin/(sections)/finance/wallets/page.tsx"
+  },
+  "adminWallet.couldNotLoadBankAccounts": {
+    "en": "Could not load bank accounts.",
+    "ka": "საბანკო ანგარიშების ჩატვირთვა ვერ მოხერხდა.",
+    "_source": "src/app/[locale]/admin/(sections)/finance/bank-accounts/page.tsx"
+  },
+  "adminWallet.couldNotLoadLedger": {
+    "en": "Could not load this driver's ledger.",
+    "ka": "მძღოლის ტრანზაქციების ჩატვირთვა ვერ მოხერხდა.",
+    "_source": "src/app/[locale]/admin/(sections)/finance/wallets/page.tsx"
+  },
+  "adminWallet.couldNotLoadWallets": {
+    "en": "Could not load driver wallets.",
+    "ka": "მძღოლების საფულეების ჩატვირთვა ვერ მოხერხდა.",
+    "_source": "src/app/[locale]/admin/(sections)/finance/wallets/page.tsx"
+  },
+  "adminWallet.couldNotLoadWithdrawals": {
+    "en": "Could not load withdrawals.",
+    "ka": "თანხის გატანის მოთხოვნების ჩატვირთვა ვერ მოხერხდა.",
+    "_source": "src/app/[locale]/admin/(sections)/finance/withdrawals/page.tsx"
+  },
+  "adminWallet.couldNotPostAdjustment": {
+    "en": "Could not post the adjustment.",
+    "ka": "კორექტირების გატარება ვერ მოხერხდა.",
+    "_source": "src/app/[locale]/admin/(sections)/finance/wallets/page.tsx"
+  },
+  "adminWallet.couldNotSaveDecision": {
+    "en": "Could not save that decision.",
+    "ka": "გადაწყვეტილების შენახვა ვერ მოხერხდა.",
+    "_source": "src/app/[locale]/admin/(sections)/finance/bank-accounts/page.tsx"
+  },
+  "adminWallet.credit": {
+    "en": "Credit",
+    "ka": "ჩარიცხვა",
+    "_source": "src/app/[locale]/admin/(sections)/finance/wallets/page.tsx"
+  },
+  "adminWallet.debit": {
+    "en": "Debit",
+    "ka": "ჩამოწერა",
+    "_source": "src/app/[locale]/admin/(sections)/finance/wallets/page.tsx"
+  },
+  "adminWallet.defaultAccount": {
+    "en": "Default",
+    "ka": "ძირითადი",
+    "_source": "src/app/[locale]/admin/(sections)/finance/bank-accounts/page.tsx"
+  },
+  "adminWallet.destination": {
+    "en": "Destination",
+    "ka": "მიმღები ანგარიში",
+    "_source": "src/app/[locale]/admin/(sections)/finance/withdrawals/page.tsx"
+  },
+  "adminWallet.details": {
+    "en": "Details",
+    "ka": "დეტალები",
+    "_source": "src/app/[locale]/admin/(sections)/finance/wallets/page.tsx"
+  },
+  "adminWallet.driverCount": {
+    "en": "{count, plural, one {# driver} other {# drivers}}",
+    "ka": "{count, plural, one {# მძღოლი} other {# მძღოლი}}",
+    "_source": "src/app/[locale]/admin/(sections)/finance/wallets/page.tsx"
+  },
+  "adminWallet.emptyBankAll": {
+    "en": "No driver has added a bank account yet.",
+    "ka": "საბანკო ანგარიში ჯერ არც ერთ მძღოლს არ დაუმატებია.",
+    "_source": "src/app/[locale]/admin/(sections)/finance/bank-accounts/page.tsx"
+  },
+  "adminWallet.emptyBankPending": {
+    "en": "No bank accounts are waiting for verification.",
+    "ka": "ვერიფიკაციის მოლოდინში საბანკო ანგარიშები არ არის.",
+    "_source": "src/app/[locale]/admin/(sections)/finance/bank-accounts/page.tsx"
+  },
+  "adminWallet.emptyBankRejected": {
+    "en": "No rejected bank accounts.",
+    "ka": "უარყოფილი საბანკო ანგარიშები არ არის.",
+    "_source": "src/app/[locale]/admin/(sections)/finance/bank-accounts/page.tsx"
+  },
+  "adminWallet.emptyBankVerified": {
+    "en": "No verified bank accounts.",
+    "ka": "ვერიფიცირებული საბანკო ანგარიშები არ არის.",
+    "_source": "src/app/[locale]/admin/(sections)/finance/bank-accounts/page.tsx"
+  },
+  "adminWallet.emptyLedger": {
+    "en": "No ledger entries yet.",
+    "ka": "ტრანზაქციები ჯერ არ არის.",
+    "_source": "src/app/[locale]/admin/(sections)/finance/wallets/page.tsx"
+  },
+  "adminWallet.emptyWallets": {
+    "en": "No independent drivers match.",
+    "ka": "შესაბამისი დამოუკიდებელი მძღოლები ვერ მოიძებნა.",
+    "_source": "src/app/[locale]/admin/(sections)/finance/wallets/page.tsx"
+  },
+  "adminWallet.emptyWithdrawalsAll": {
+    "en": "No driver has requested a withdrawal yet.",
+    "ka": "თანხის გატანა ჯერ არც ერთ მძღოლს არ მოუთხოვია.",
+    "_source": "src/app/[locale]/admin/(sections)/finance/withdrawals/page.tsx"
+  },
+  "adminWallet.emptyWithdrawalsPaid": {
+    "en": "No paid withdrawals.",
+    "ka": "გადახდილი მოთხოვნები არ არის.",
+    "_source": "src/app/[locale]/admin/(sections)/finance/withdrawals/page.tsx"
+  },
+  "adminWallet.emptyWithdrawalsPending": {
+    "en": "No withdrawals are waiting to be paid.",
+    "ka": "გადასახდელი მოთხოვნები არ არის.",
+    "_source": "src/app/[locale]/admin/(sections)/finance/withdrawals/page.tsx"
+  },
+  "adminWallet.emptyWithdrawalsRejected": {
+    "en": "No rejected withdrawals.",
+    "ka": "უარყოფილი მოთხოვნები არ არის.",
+    "_source": "src/app/[locale]/admin/(sections)/finance/withdrawals/page.tsx"
+  },
+  "adminWallet.emptyWithdrawalsReversed": {
+    "en": "No reversed withdrawals.",
+    "ka": "დაბრუნებული გადარიცხვები არ არის.",
+    "_source": "src/app/[locale]/admin/(sections)/finance/withdrawals/page.tsx"
+  },
+  "adminWallet.entry": {
+    "en": "Entry",
+    "ka": "ჩანაწერი",
+    "_source": "src/app/[locale]/admin/(sections)/finance/wallets/page.tsx"
+  },
+  "adminWallet.entryAdjustment": {
+    "en": "Adjustment",
+    "ka": "კორექტირება",
+    "_source": "src/app/[locale]/admin/(sections)/finance/wallets/page.tsx"
+  },
+  "adminWallet.entryJobOvertime": {
+    "en": "Overtime",
+    "ka": "ზეგანაკვეთური",
+    "_source": "src/app/[locale]/admin/(sections)/finance/wallets/page.tsx"
+  },
+  "adminWallet.entryJobPayout": {
+    "en": "Job payout",
+    "ka": "რეისის ანაზღაურება",
+    "_source": "src/app/[locale]/admin/(sections)/finance/wallets/page.tsx"
+  },
+  "adminWallet.entryWithdrawal": {
+    "en": "Withdrawal",
+    "ka": "თანხის გატანა",
+    "_source": "src/app/[locale]/admin/(sections)/finance/wallets/page.tsx"
+  },
+  "adminWallet.entryWithdrawalReversal": {
+    "en": "Withdrawal reversal",
+    "ka": "გატანილი თანხის დაბრუნება",
+    "_source": "src/app/[locale]/admin/(sections)/finance/wallets/page.tsx"
+  },
+  "adminWallet.held": {
+    "en": "Held",
+    "ka": "შეჩერდა",
+    "_source": "src/app/[locale]/admin/(sections)/finance/wallets/page.tsx"
+  },
+  "adminWallet.heldJobsCount": {
+    "en": "{count} held",
+    "ka": "{count} შეჩერებული",
+    "_source": "src/app/[locale]/admin/(sections)/finance/wallets/page.tsx"
+  },
+  "adminWallet.heldJobsDescription": {
+    "en": "Completed jobs with a gateway-confirmed payment that a company's driver claimed on their own. They credit neither a wallet nor the company until it is decided who is paid.",
+    "ka": "დასრულებული რეისები გადახდის სისტემის მიერ დადასტურებული გადახდით, რომლებიც კომპანიის მძღოლმა დამოუკიდებლად აიღო. სანამ არ გადაწყდება, ვის ეკუთვნის ანაზღაურება, თანხა არც საფულეს ერიცხება და არც კომპანიას.",
+    "_source": "src/app/[locale]/admin/(sections)/finance/wallets/page.tsx"
+  },
+  "adminWallet.heldJobsEmpty": {
+    "en": "No held jobs.",
+    "ka": "შეჩერებული რეისები არ არის.",
+    "_source": "src/app/[locale]/admin/(sections)/finance/wallets/page.tsx"
+  },
+  "adminWallet.heldJobsTitle": {
+    "en": "Held roster jobs",
+    "ka": "შეჩერებული რეისები",
+    "_source": "src/app/[locale]/admin/(sections)/finance/wallets/page.tsx"
+  },
+  "adminWallet.idNumber": {
+    "en": "ID {idNumber}",
+    "ka": "პირადი ნომერი: {idNumber}",
+    "_source": "src/app/[locale]/admin/(sections)/finance/bank-accounts/page.tsx"
+  },
+  "adminWallet.identity": {
+    "en": "Identity",
+    "ka": "პირადობა",
+    "_source": "src/app/[locale]/admin/(sections)/finance/bank-accounts/page.tsx"
+  },
+  "adminWallet.job": {
+    "en": "Job",
+    "ka": "რეისი",
+    "_source": "src/app/[locale]/admin/(sections)/finance/wallets/page.tsx"
+  },
+  "adminWallet.ledger": {
+    "en": "Ledger",
+    "ka": "ტრანზაქციები",
+    "_source": "src/app/[locale]/admin/(sections)/finance/wallets/page.tsx"
+  },
+  "adminWallet.ledgerTitle": {
+    "en": "{name} — ledger",
+    "ka": "{name} — ტრანზაქციები",
+    "_source": "src/app/[locale]/admin/(sections)/finance/wallets/page.tsx"
+  },
+  "adminWallet.loadingBankAccounts": {
+    "en": "Loading bank accounts…",
+    "ka": "საბანკო ანგარიშები იტვირთება...",
+    "_source": "src/app/[locale]/admin/(sections)/finance/bank-accounts/page.tsx"
+  },
+  "adminWallet.loadingLedger": {
+    "en": "Loading ledger…",
+    "ka": "ტრანზაქციები იტვირთება...",
+    "_source": "src/app/[locale]/admin/(sections)/finance/wallets/page.tsx"
+  },
+  "adminWallet.loadingWallets": {
+    "en": "Loading wallets…",
+    "ka": "საფულეები იტვირთება...",
+    "_source": "src/app/[locale]/admin/(sections)/finance/wallets/page.tsx"
+  },
+  "adminWallet.loadingWithdrawals": {
+    "en": "Loading withdrawals…",
+    "ka": "მოთხოვნები იტვირთება...",
+    "_source": "src/app/[locale]/admin/(sections)/finance/withdrawals/page.tsx"
+  },
+  "adminWallet.markPaid": {
+    "en": "Mark as paid",
+    "ka": "გადახდილად მონიშვნა",
+    "_source": "src/app/[locale]/admin/(sections)/finance/withdrawals/page.tsx"
+  },
+  "adminWallet.markPaidDescription": {
+    "en": "First transfer {amount} to {holder} ({iban}) from the bank, then record the bank's reference here.",
+    "ka": "ჯერ ბანკიდან გადაურიცხეთ {amount} მიმღებს {holder} ({iban}), შემდეგ კი აქ მიუთითეთ ბანკის საგადახდო ნომერი.",
+    "_source": "src/app/[locale]/admin/(sections)/finance/withdrawals/page.tsx"
+  },
+  "adminWallet.markPaidTitle": {
+    "en": "Mark withdrawal as paid",
+    "ka": "მოთხოვნის გადახდილად მონიშვნა",
+    "_source": "src/app/[locale]/admin/(sections)/finance/withdrawals/page.tsx"
+  },
+  "adminWallet.noIdNumber": {
+    "en": "No ID number on file",
+    "ka": "პირადი ნომერი მითითებული არ არის",
+    "_source": "src/app/[locale]/admin/(sections)/finance/bank-accounts/page.tsx"
+  },
+  "adminWallet.noLegalName": {
+    "en": "No legal name on file",
+    "ka": "სახელი და გვარი მითითებული არ არის",
+    "_source": "src/app/[locale]/admin/(sections)/finance/bank-accounts/page.tsx"
+  },
+  "adminWallet.notActivated": {
+    "en": "Not activated — identity not reviewed",
+    "ka": "გააქტიურებული არ არის — პირადობა შემოწმებული არ არის",
+    "_source": "src/app/[locale]/admin/(sections)/finance/bank-accounts/page.tsx"
+  },
+  "adminWallet.pendingSummary": {
+    "en": "{count} pending · {total}",
+    "ka": "{count} მოლოდინში · {total}",
+    "_source": "src/app/[locale]/admin/(sections)/finance/withdrawals/page.tsx"
+  },
+  "adminWallet.postAdjustment": {
+    "en": "Post adjustment",
+    "ka": "კორექტირების გატარება",
+    "_source": "src/app/[locale]/admin/(sections)/finance/wallets/page.tsx"
+  },
+  "adminWallet.reasonShownToDriver": {
+    "en": "The driver sees this reason.",
+    "ka": "ამ მიზეზს მძღოლი ხედავს.",
+    "_source": "src/app/[locale]/admin/(sections)/finance/bank-accounts/page.tsx"
+  },
+  "adminWallet.rejectAccountTitle": {
+    "en": "Reject bank account",
+    "ka": "საბანკო ანგარიშის უარყოფა",
+    "_source": "src/app/[locale]/admin/(sections)/finance/bank-accounts/page.tsx"
+  },
+  "adminWallet.rejectWithdrawalDescription": {
+    "en": "{amount} to {holder} ({iban}) will not be paid and becomes available to the driver again.",
+    "ka": "{amount} მიმღებს {holder} ({iban}) არ გადაერიცხება და მძღოლისთვის კვლავ ხელმისაწვდომი გახდება.",
+    "_source": "src/app/[locale]/admin/(sections)/finance/withdrawals/page.tsx"
+  },
+  "adminWallet.rejectWithdrawalTitle": {
+    "en": "Reject withdrawal",
+    "ka": "მოთხოვნის უარყოფა",
+    "_source": "src/app/[locale]/admin/(sections)/finance/withdrawals/page.tsx"
+  },
+  "adminWallet.requested": {
+    "en": "Requested",
+    "ka": "მოთხოვნილია",
+    "_source": "src/app/[locale]/admin/(sections)/finance/withdrawals/page.tsx"
+  },
+  "adminWallet.reserved": {
+    "en": "Reserved",
+    "ka": "დარეზერვებული",
+    "_source": "src/app/[locale]/admin/(sections)/finance/wallets/page.tsx"
+  },
+  "adminWallet.reverse": {
+    "en": "Reverse",
+    "ka": "დაბრუნება",
+    "_source": "src/app/[locale]/admin/(sections)/finance/withdrawals/page.tsx"
+  },
+  "adminWallet.reverseDescription": {
+    "en": "Only when the bank returned the transfer of {amount} to {holder} ({iban}). The amount is credited back to the driver's balance.",
+    "ka": "მხოლოდ იმ შემთხვევაში, თუ ბანკმა უკან დააბრუნა {amount} გადარიცხვა მიმღებზე {holder} ({iban}). თანხა მძღოლის ბალანსს დაუბრუნდება.",
+    "_source": "src/app/[locale]/admin/(sections)/finance/withdrawals/page.tsx"
+  },
+  "adminWallet.reverseTitle": {
+    "en": "Reverse a paid withdrawal",
+    "ka": "გადახდილი მოთხოვნის დაბრუნება",
+    "_source": "src/app/[locale]/admin/(sections)/finance/withdrawals/page.tsx"
+  },
+  "adminWallet.rosterNoWallet": {
+    "en": "On a company roster — no wallet",
+    "ka": "კომპანიის შემადგენლობაშია — საფულე არ აქვს",
+    "_source": "src/app/[locale]/admin/(sections)/finance/bank-accounts/page.tsx"
+  },
+  "adminWallet.sameIbanWarning": {
+    "en": "{count, plural, one {Also added by # other driver} other {Also added by # other drivers}}",
+    "ka": "{count, plural, one {დამატებული აქვს კიდევ # მძღოლს} other {დამატებული აქვს კიდევ # მძღოლს}}",
+    "_source": "src/app/[locale]/admin/(sections)/finance/bank-accounts/page.tsx"
+  },
+  "adminWallet.searchPlaceholder": {
+    "en": "Search by name or phone",
+    "ka": "ძებნა სახელით ან ტელეფონით",
+    "_source": "src/app/[locale]/admin/(sections)/finance/wallets/page.tsx"
+  },
+  "adminWallet.statusPaid": {
+    "en": "Paid",
+    "ka": "გადახდილი",
+    "_source": "src/app/[locale]/admin/(sections)/finance/withdrawals/page.tsx"
+  },
+  "adminWallet.statusPending": {
+    "en": "Pending",
+    "ka": "მოლოდინში",
+    "_source": "src/app/[locale]/admin/(sections)/finance/bank-accounts/page.tsx"
+  },
+  "adminWallet.statusRejected": {
+    "en": "Rejected",
+    "ka": "უარყოფილი",
+    "_source": "src/app/[locale]/admin/(sections)/finance/bank-accounts/page.tsx"
+  },
+  "adminWallet.statusReversed": {
+    "en": "Reversed",
+    "ka": "დაბრუნებული",
+    "_source": "src/app/[locale]/admin/(sections)/finance/withdrawals/page.tsx"
+  },
+  "adminWallet.statusVerified": {
+    "en": "Verified",
+    "ka": "ვერიფიცირებული",
+    "_source": "src/app/[locale]/admin/(sections)/finance/bank-accounts/page.tsx"
+  },
+  "adminWallet.suspended": {
+    "en": "Suspended",
+    "ka": "შეჩერებული",
+    "_source": "src/app/[locale]/admin/(sections)/finance/withdrawals/page.tsx"
+  },
+  "adminWallet.verify": {
+    "en": "Verify",
+    "ka": "ვერიფიკაცია",
+    "_source": "src/app/[locale]/admin/(sections)/finance/bank-accounts/page.tsx"
+  },
+  "adminWallet.viewLedger": {
+    "en": "View ledger",
+    "ka": "ტრანზაქციების ნახვა",
+    "_source": "src/app/[locale]/admin/(sections)/finance/wallets/page.tsx"
+  },
+  "adminWallet.waitingCount": {
+    "en": "{count} waiting",
+    "ka": "{count} მოლოდინში",
+    "_source": "src/app/[locale]/admin/(sections)/finance/bank-accounts/page.tsx"
+  },
+  "adminWallet.withdrawalCount": {
+    "en": "{count, plural, one {# withdrawal} other {# withdrawals}}",
+    "ka": "{count, plural, one {# მოთხოვნა} other {# მოთხოვნა}}",
+    "_source": "src/app/[locale]/admin/(sections)/finance/withdrawals/page.tsx"
   },
   "analyticsExport.completedAtUtc": {
     "en": "Completed at (UTC)",

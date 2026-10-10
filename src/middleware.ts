@@ -284,8 +284,12 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   // Skip Next's static asset paths so the gate doesn't run on every JS/CSS
-  // chunk and image request.
+  // chunk and image request. `.webmanifest` is here because the web manifest
+  // (`src/app/manifest.ts`) is one unprefixed file on every host: run through
+  // the locale layer it would be redirected to `/ka/manifest.webmanifest`,
+  // where nothing is mounted. The brand icons under `/brand/` are already
+  // covered by the svg/png extensions.
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|webmanifest)$).*)",
   ],
 };

@@ -12,6 +12,7 @@ import { AuthStatus, HeaderBrandLink } from "@/components/auth-status";
 import { LanguageToggle } from "@/components/language-toggle";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { DEFAULT_LOCALE, LOCALES, routing } from "@/i18n/routing";
+import { BRAND_NAME, brandIcons } from "@/lib/brand";
 
 // Exposed as CSS variables only (never applied to `body`), so these are opt-in
 // per route via the `font-display` / `font-body` / `font-price` utilities. Both
@@ -125,9 +126,18 @@ export async function generateMetadata({
     namespace: "common",
   });
 
+  const title = t("shared.brandName");
+  const description = t("srcApp.onDemandDeliveryPlatformBookA");
+
   return {
-    title: t("shared.lalamoveClone"),
-    description: t("srcApp.onDemandDeliveryPlatformBookA"),
+    title,
+    description,
+    applicationName: BRAND_NAME,
+    // The customer touch icon; the driver hub swaps in its own in
+    // `dashboard/layout.tsx`. The web manifest is `src/app/manifest.ts`.
+    icons: brandIcons("customer"),
+    openGraph: { siteName: BRAND_NAME, title, description, type: "website" },
+    twitter: { card: "summary", title, description },
   };
 }
 

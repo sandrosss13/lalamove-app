@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getRequestTranslations } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
+import { passwordChangeRefusal } from "@/lib/orders/action-errors";
 import { prisma } from "@/lib/prisma";
 
 /** Inclusive latitude bounds of a real-world WGS84 coordinate. */
@@ -76,6 +77,12 @@ export async function POST(request: Request): Promise<NextResponse> {
       { error: t("common.shared.unauthorized") },
       { status: 401 },
     );
+  }
+
+  // Before the role test, as everywhere — see `passwordChangeRefusal`.
+  const passwordRefusal = passwordChangeRefusal(session.user, t);
+  if (passwordRefusal) {
+    return passwordRefusal;
   }
 
   if (session.user.role !== "DRIVER") {

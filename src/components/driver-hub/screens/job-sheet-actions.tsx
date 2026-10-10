@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { formatAbsoluteDateTime } from "@/components/driver-hub/screens/loads-format";
 import type { HubJobSheet } from "@/lib/dashboard/hub/job-sheet";
 import { differenceInHubDays } from "@/lib/dashboard/hub/timezone";
+import { POD_WAIVER_HEADER, POD_WAIVER_WEB_HUB } from "@/lib/orders/pod-rules";
 import { cn } from "@/lib/utils";
 
 /**
@@ -532,9 +533,10 @@ export type JobSheetConfirmDialogProps = {
  * `receivedBy` is genuinely optional at both ends: the route treats absent,
  * `null` and an empty string identically, and a driver who did not catch the
  * recipient's name must still be able to close the job. It is **not** proof of
- * delivery — v1 captures no photo and no signature, and the `COMPLETED`
- * transition is what proves the delivery. It is a record of what the driver
- * reported.
+ * delivery. Proof is the photos and signature the driver app registers before
+ * completing; this dialog captures neither and says so to the route with the
+ * `x-pod-waiver` header (see `handleConfirm`). It is a record of what the
+ * driver reported.
  *
  * ## `data-admin-surface` on `DialogContent`
  *
@@ -601,7 +603,16 @@ export function JobSheetConfirmDialog({
     try {
       response = await fetch(`/api/orders/${job.id}/complete`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          // The route requires proof of delivery (photos and a signature) by
+          // default, and this dialog cannot capture any — the design draws
+          // that step for the driver app only. This declares the web hub's
+          // exemption so completing from the browser keeps working; without it
+          // every web completion would be a 409 `POD_PHOTO_REQUIRED`. Remove
+          // it the day this dialog gains a capture step.
+          [POD_WAIVER_HEADER]: POD_WAIVER_WEB_HUB,
+        },
         body: JSON.stringify({
           waitingMinutes: Number(trimmed),
           // Sent as typed; the route trims it and collapses an empty string to

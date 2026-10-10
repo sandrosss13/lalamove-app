@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { APIProvider, Map, Marker, useMap } from "@vis.gl/react-google-maps";
 import { useTranslations } from "next-intl";
 
 /** A single map coordinate. Mirrors `LatLng` from `@/lib/geo`, duplicated here
@@ -80,86 +79,16 @@ const MIN_QUERY_LENGTH = 3;
 const DEBOUNCE_MS = 300;
 /** Delay closing the dropdown on blur so a suggestion click registers first. */
 const BLUR_CLOSE_DELAY_MS = 150;
-/** Street-level zoom for the preview — a picked address is a single building. */
-const MAP_PREVIEW_ZOOM = 16;
-
-/**
- * Keeps the preview centred on the currently selected place.
- *
- * Renders nothing — it only drives the imperative `google.maps.Map` handle from
- * `useMap()`, which is why it must live inside `<Map>`. Recentring this way
- * rather than passing a controlled `center` leaves the camera uncontrolled, so
- * the user can still pan and zoom the preview between selections.
- */
-function MapCameraController({ center }: { center: LatLng }) {
-  const map = useMap();
-
-  useEffect(() => {
-    if (!map) {
-      return;
-    }
-
-    map.setCenter(center);
-    map.setZoom(MAP_PREVIEW_ZOOM);
-  }, [map, center]);
-
-  return null;
-}
-
-/**
- * Small map preview pinning the selected address.
- *
- * Unlike the order tracking map, a missing API key renders nothing at all
- * rather than an explanatory box: the map is a confirmation aid here, and the
- * address input must keep working — and keep looking uncluttered — on a
- * deployment with no Maps key configured. No hooks run before that early
- * return, so the split into an outer/inner component the tracking map needs
- * isn't required here.
- */
-function AddressMapPreview({ location }: { location: LatLng }) {
-  const t = useTranslations("common.addressAutocomplete");
-  // Inlined at build time by Next because of the NEXT_PUBLIC_ prefix; must be
-  // referenced as a full literal expression for that substitution to happen.
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-
-  if (!apiKey) {
-    return null;
-  }
-
-  return (
-    <div className="h-48 w-full overflow-hidden rounded border">
-      <APIProvider apiKey={apiKey}>
-        <Map
-          // `default*` props leave the camera uncontrolled; recentring on a new
-          // selection is `MapCameraController`'s job.
-          defaultCenter={location}
-          defaultZoom={MAP_PREVIEW_ZOOM}
-          gestureHandling="cooperative"
-          disableDefaultUI
-          zoomControl
-          style={{ width: "100%", height: "100%" }}
-        >
-          <Marker position={location} title={t("selectedAddress")} />
-          <MapCameraController center={location} />
-        </Map>
-      </APIProvider>
-    </div>
-  );
-}
-
 /**
  * Address input with a live, debounced suggestions dropdown backed by
- * `/api/geocode/suggest`, plus a map preview of whatever the user picks.
+ * `/api/geocode/suggest`.
  *
  * The address the parent owns is always plain text: what the user typed, or the
  * suggestion they picked, verbatim. Selecting one also resolves it through
- * `/api/geocode/details`, but only to learn its coordinates — those drive the
- * preview pin and `onLocationChange`, and never the address string. That keeps
+ * `/api/geocode/details`, but only to learn its coordinates — those feed
+ * `onLocationChange`, and never the address string. That keeps
  * this a drop-in replacement for a plain controlled address field: the parent
  * owns a single string, notified through `onChange(value)`.
- *
- * The map only moves when a suggestion is selected — keystrokes go to the
- * server-side suggestions proxy, never to a client-side geocoder.
  */
 export function AddressAutocomplete({
   id,
@@ -174,9 +103,6 @@ export function AddressAutocomplete({
   const t = useTranslations("common.addressAutocomplete");
   const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
   const [open, setOpen] = useState(false);
-  // Null until a suggestion resolves: the preview only exists once there is a
-  // real place behind the free text in the input.
-  const [location, setLocation] = useState<LatLng | null>(null);
   const [detailsPending, setDetailsPending] = useState(false);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -276,7 +202,6 @@ export function AddressAutocomplete({
         return;
       }
 
-      setLocation(details.location);
       onLocationChange?.(details.location);
     } catch {
       // Aborted (superseded selection) or network/parse error — keep the
@@ -295,10 +220,9 @@ export function AddressAutocomplete({
     onChange(next);
     scheduleFetch(next);
 
-    // Typing over the input abandons the selected place: the map pin no longer
-    // describes what the field says.
+    // Typing over the input abandons the selected place: its coordinates no
+    // longer describe what the field says.
     detailsAbortRef.current?.abort();
-    setLocation(null);
     onLocationChange?.(null);
     setDetailsPending(false);
   }
@@ -408,10 +332,6 @@ export function AddressAutocomplete({
         <p className="opacity-70">{t("loadingAddressDetails")}</p>
       ) : null}
 
-      {/* Gated on the coordinates themselves rather than on a separate "a place
-          is selected" flag: they are the sole product of the details lookup, so
-          there is never a selected place worth framing without them. */}
-      {location ? <AddressMapPreview location={location} /> : null}
     </div>
   );
 }

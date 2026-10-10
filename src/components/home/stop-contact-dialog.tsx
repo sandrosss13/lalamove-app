@@ -92,7 +92,7 @@ const FIELD_BOX_CLASSES =
  * Focus treatment for a field: an accent border plus a 3px accent ring at 20%
  * opacity — the form's existing idiom (`NATIVE_FIELD_CLASSES` in
  * `booking-form.tsx`), expressed in tokens rather than the handoff's raw
- * `rgba(255, 90, 31, 0.2)`.
+ * accent-at-20% value.
  */
 const FIELD_FOCUS_CLASSES =
   "focus-visible:border-accent focus-visible:ring-3 focus-visible:ring-accent/20";
@@ -147,7 +147,7 @@ export function StopContactDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       {/* `showCloseButton={false}`: the design closes through Cancel, and the
           primitive's X is a shadcn `Button`, whose `hover:bg-accent` would
-          resolve to this palette's orange rather than a neutral hover.
+          resolve to this palette's green accent rather than a neutral hover.
           Escape and a backdrop click still close the dialog.
 
           `sm:max-w-full` and `ring-0` neutralise defaults rather than add

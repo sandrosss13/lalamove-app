@@ -101,10 +101,11 @@ import { cn } from "@/lib/utils";
  * *foreground* colour as a **background**, and `HUB_STATUS_TONE_CLASSES` only
  * offers the paired `bg-…`/`text-…` string, so spreading it would paint the dot
  * the pale ground instead of the green. The *current* dot is the brand accent,
- * which has no token at all: ten other hub files (`hub-primitives.tsx`,
- * `driver-hub-sidebar.tsx`, `jobs-detail-panel.tsx` and the rest) spell
- * `oklch(64% 0.19 48)` out exactly this way, so matching them is what keeps
- * this dot the same orange as the one Job history draws for the same step.
+ * which the hub reads as `var(--landing-accent)` (the `accent` utility is the
+ * shadcn neutral here): ten other hub files (`hub-primitives.tsx`,
+ * `driver-hub-sidebar.tsx`, `jobs-detail-panel.tsx` and the rest) spell it
+ * exactly this way, so matching them is what keeps this dot the same green as
+ * the one Job history draws for the same step.
  *
  * Anywhere else, a literal `oklch` in this file would be a colour no other hub
  * file knows to change.
@@ -1140,7 +1141,7 @@ export function JobSheetCargoCard({
  * Only `done` carries a `dark:` half, and the asymmetry is deliberate. The
  * other two dots are *hollow* — their visible part is a ring plus the card
  * showing through a `bg-background` centre, so both halves already flip on
- * their own, and the brand orange reads at 64% lightness on either ground.
+ * their own, and `--landing-accent` lifts for the dark ground by itself.
  * `done` is the one filled shape, and at 44.8% it is barely a step off
  * `--card`'s `oklch(0.205 0 0)` in dark: the completed steps of a job would
  * fade out precisely as the driver finished them, leaving the timeline looking
@@ -1154,7 +1155,7 @@ export function JobSheetCargoCard({
  */
 const TIMELINE_DOT_CLASSES: Record<HubTimelineStepState, string> = {
   done: "bg-[oklch(44.8%_0.119_151.328)] dark:bg-[oklch(59.6%_0.145_163.225)]",
-  current: "border-2 border-[oklch(64%_0.19_48)] bg-background",
+  current: "border-2 border-[var(--landing-accent)] bg-background",
   pending: "border-2 border-border bg-background",
 };
 
@@ -1303,9 +1304,8 @@ export function JobSheetTimelineCard({
         })}
       </ol>
 
-      {/* A record of what the driver reported — **not evidence**: v1 captures
-          no photo and no signature, and the `COMPLETED` transition is what
-          proves the delivery. The rows wear their own labels rather than
+      {/* A record of what the driver reported — the evidence is the proof of
+          delivery block below it. The rows wear their own labels rather than
           sitting under a heading that would come and go with them. */}
       {reported.length === 0 ? null : (
         <dl className={cn(SPEC_GRID_CLASSES, "border-t border-border pt-3")}>
@@ -1326,7 +1326,90 @@ export function JobSheetTimelineCard({
           ))}
         </dl>
       )}
+
+      <JobSheetProofOfDelivery proof={job.proofOfDelivery} />
     </HubCard>
+  );
+}
+
+/**
+ * The delivery's photos and the recipient's signature, read-only.
+ *
+ * Captured in the driver app, which requires them to close a job; the web
+ * sheet has no capture step of its own, so this renders nothing at all for a
+ * delivery closed here, for one completed before proof existed, and for any
+ * job not yet delivered — an empty "Proof of delivery" heading on those would
+ * read as proof gone missing.
+ *
+ * Shown to both carrier readers of the sheet, the driver and the company that
+ * holds the job. Every URL is a five-minute signed link minted for this
+ * render, so each image is also a link that opens it full-size in a new tab —
+ * and a tab left open past the expiry needs a refresh, which is the price of
+ * never storing a permanent URL to a private object.
+ *
+ * Plain `<img>` rather than `next/image`: the optimiser would fetch the signed
+ * URL server-side and cache the result under its own public path, which is
+ * exactly the permanent, unauthenticated copy a signed URL exists to avoid.
+ */
+function JobSheetProofOfDelivery({
+  proof,
+}: {
+  proof: HubJobSheet["proofOfDelivery"];
+}) {
+  const t = useTranslations("driverHub.jobSheetParts");
+
+  if (proof.photos.length === 0 && !proof.hasSignature) {
+    return null;
+  }
+
+  const images: { key: string; url: string | null; label: string }[] =
+    proof.photos.map((photo, index) => ({
+      key: photo.id,
+      url: photo.url,
+      label: t("deliveryPhoto", { n: index + 1 }),
+    }));
+
+  if (proof.hasSignature) {
+    images.push({
+      key: "signature",
+      url: proof.signatureUrl,
+      label: t("recipientSignature"),
+    });
+  }
+
+  // On file but unsignable — Storage was unreachable for this render. Said in
+  // words, because a missing thumbnail alone reads as missing proof.
+  const hasUnavailable = images.some((image) => image.url === null);
+
+  return (
+    <div className="flex flex-col gap-2 border-t border-border pt-3">
+      <p className="text-[13px] font-medium">{t("proofOfDelivery")}</p>
+      <ul className="flex flex-wrap gap-2">
+        {images.map((image) =>
+          image.url === null ? null : (
+            <li key={image.key}>
+              <a
+                href={image.url}
+                target="_blank"
+                rel="noreferrer"
+                className="block overflow-hidden rounded-md border border-border bg-background"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={image.url}
+                  alt={image.label}
+                  loading="lazy"
+                  className="size-20 object-cover"
+                />
+              </a>
+            </li>
+          ),
+        )}
+      </ul>
+      {hasUnavailable ? (
+        <p className="text-xs text-muted-foreground">{t("proofUnavailable")}</p>
+      ) : null}
+    </div>
   );
 }
 

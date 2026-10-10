@@ -458,10 +458,10 @@ export function Step2Licence() {
                 //
                 // `data-checked:text-white` on `data-checked:bg-onboarding-accent`
                 // is correct in both themes and must stay literal: the brand
-                // orange does not flip, so the tick that sits on it cannot
+                // green does not flip, so the tick that sits on it cannot
                 // either. `text-primary-foreground` — the primitive's own
                 // default, which this replaces — would turn the tick near-black
-                // on orange under `.dark`.
+                // on green under `.dark`.
                 className="size-[19px] rounded-[5px] border-[1.5px] data-checked:border-onboarding-accent data-checked:bg-onboarding-accent data-checked:text-white"
               />
               <span className="min-w-0 flex-1">
@@ -488,9 +488,9 @@ export function Step2Licence() {
           match the accent/outline pair the shell's own welcome screen uses.
 
           The primary's `text-white` on `bg-onboarding-accent` is deliberate in
-          both themes — the brand orange is theme-independent, so its label has
+          both themes — the brand green is theme-independent, so its label has
           to be too, and `text-primary-foreground` would invert to near-black on
-          orange under `.dark`. Everything on the secondary is a token and flips
+          green under `.dark`. Everything on the secondary is a token and flips
           on its own. */}
       <div className="mt-1 flex items-center gap-3.5 border-t border-border pt-[22px]">
         <button

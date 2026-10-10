@@ -61,15 +61,16 @@ const DEFAULT_BACK_OFFICE_HREF = "/admin/sign-in";
  * Per-role badge fill. Client gets the accent tint, Driver the neutral one.
  *
  * The neutral badge is tokens throughout, so it flips on its own. The accent
- * tint does not: `#fff1ea` is a ~6% orange wash mixed against white and there is
- * no `--landing-accent-soft` to hold its dark counterpart, so dark mode borrows
- * `--landing-line-accent` — the palette's existing low-alpha orange, which lays
- * the same wash over whatever ground is behind it instead of punching a pale
- * rectangle into the card. The orange glyph on top is a token and needs nothing.
+ * badge's light fill was a pale green wash; under the kraft palette it is the
+ * deeper kraft `--landing-frame` (`#e9e0ce`), which still separates from the
+ * kraft card. Dark mode borrows `--landing-line-accent` — the palette's
+ * low-alpha green, which lays a wash over whatever ground is behind it instead
+ * of punching a pale rectangle into the card. The green glyph on top is a
+ * token and needs nothing.
  */
 const BADGE_CLASSES: Record<FlowRole, string> = {
   CLIENT:
-    "bg-[#fff1ea] text-[var(--landing-accent)] dark:bg-[var(--landing-line-accent)]",
+    "bg-[var(--landing-frame)] text-[var(--landing-accent)] dark:bg-[var(--landing-line-accent)]",
   DRIVER: "bg-[var(--landing-frame)] text-[var(--landing-paper)]",
 };
 
@@ -122,7 +123,7 @@ export function RoleStep({
     <div className={cn("flex flex-col gap-7", className)}>
       <div className="flex flex-col gap-3">
         <Eyebrow>{t("step1Of3Account")}</Eyebrow>
-        <AuthHeading size="lg">{t("howWillYouUseLalamove")}</AuthHeading>
+        <AuthHeading size="lg">{t("howWillYouUseZomo")}</AuthHeading>
         <AuthSubheading size="lg">
           {t("pickTheSideOfTheDelivery")}
         </AuthSubheading>

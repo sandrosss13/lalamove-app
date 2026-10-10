@@ -988,8 +988,8 @@ function CargoDiagram({ flatbed }: { flatbed: boolean }) {
 
         {/* The numbered badges are the one part of these drawings that does not
             theme, and deliberately: `--onboarding-accent` is the fixed brand
-            orange (`globals.css` declares it at `:root` and `html.dark` never
-            redeclares it), and white on that orange is the correct pairing on a
+            green (`globals.css` declares it at `:root` and `html.dark` never
+            redeclares it), and white on that green is the correct pairing on a
             white page and on a near-black one alike. They are chrome tying the
             drawing to the three numbered inputs below it, not part of the
             vehicle, so they stay outside `TRUCK_PALETTE_CLASS_NAME` — leave the

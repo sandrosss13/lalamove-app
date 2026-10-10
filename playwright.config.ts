@@ -104,8 +104,8 @@ export default defineConfig({
    *
    * A local test database can be set up with:
    *
-   *   createdb lalamove_test
-   *   DATABASE_URL=postgresql://localhost:5432/lalamove_test \
+   *   createdb zomo_test
+   *   DATABASE_URL=postgresql://localhost:5432/zomo_test \
    *     npx prisma migrate deploy && npx prisma db seed
    *
    * Do not reintroduce this key without also giving `pnpm dev` a database URL

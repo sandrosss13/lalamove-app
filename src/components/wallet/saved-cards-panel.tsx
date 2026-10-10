@@ -97,7 +97,7 @@ const MAKE_DEFAULT_BUTTON_CLASSES =
  * - Armed is a filled red *plate* carrying white text, so it barely moves
  *   (`700` → `600`): a saturated red fill already separates from a dark page,
  *   and lightening it further would start to compete with the page's own
- *   brand orange. What does have to flip is the hover, which goes lighter
+ *   brand green. What does have to flip is the hover, which goes lighter
  *   rather than darker — on a dark ground "darker on hover" reads as the
  *   control receding, i.e. the opposite of the affordance intended.
  */

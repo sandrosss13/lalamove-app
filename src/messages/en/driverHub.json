@@ -408,6 +408,7 @@
     "callOn": "{name} on {phone}",
     "deadline": "Deadline",
     "delivered": "Delivered",
+    "deliveryPhoto": "Delivery photo {n}",
     "details": "Details",
     "inTransit": "In transit",
     "keptVisibleDispatcher": "Kept visible after delivery — a dispatcher may still need to call about a finished job.",
@@ -419,7 +420,10 @@
     "navigationUnavailableNote": "No map location for this stop — check the job details before setting off.",
     "noCoordinates": "No map coordinates were recorded for this stop, so Navigate opens a map search on the address text.",
     "notDispatchedToADriver": "Not dispatched to a driver",
+    "proofOfDelivery": "Proof of delivery",
+    "proofUnavailable": "Some proof of delivery is on file but could not be loaded. Refresh to try again.",
     "receivedBy": "Received by",
+    "recipientSignature": "Recipient signature",
     "routeSummary": "{from} → {to} · {distance} · 2 stops",
     "thisJobPaid": "This job paid",
     "thisJobPays": "This job pays",
@@ -641,6 +645,10 @@
     "widenTheWeightRangeOrClear": "Widen the weight range or clear a city to see more.",
     "yours": "Yours"
   },
+  "offerPush": {
+    "body": "Open the app to respond before it expires.",
+    "title": "New load offer"
+  },
   "performanceScreen": {
     "acceptanceNote": "A declined offer leaves no row — Order only ever stores the offer that was taken — so acceptance is unrecorded, not merely unaggregated. Retire with a JobOffer model holding every dispatch and its outcome.",
     "andAFlatBarUntilThey": "and a flat bar until they happen.",
@@ -669,6 +677,10 @@
     "whatAffectsYourScore": "What affects your score",
     "windowFootnote": "This week, {range}. The rates count jobs by when they were booked; the chart counts them by when they were completed, so the two need not describe the same jobs.",
     "windowFootnoteRich": "This week, <num>{range}</num>. The rates count jobs by when they were <strong>booked</strong>; the chart counts them by when they were <strong>completed</strong>, so the two need not describe the same jobs."
+  },
+  "routeAlertPush": {
+    "body": "A load matching one of your route alerts was just posted.",
+    "title": "New load on your route"
   },
   "vehiclesAddForm": {
     "ab123Cd": "AB-123-CD",

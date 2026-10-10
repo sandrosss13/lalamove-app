@@ -159,6 +159,23 @@ export type HubHeaderJob = {
    */
   who: string | null;
   /**
+   * The driver's name on its own — the structured half of `who`, for a reader
+   * that composes its own sub-line in its own language (the native app).
+   * Persona-gated exactly as `who` is: null for a single driver, and for a
+   * fleet null means the order is claimed but not yet dispatched to a person.
+   * `who` prints the English "Unassigned" for that case; this leaves the word
+   * to the reader.
+   */
+  driverName: string | null;
+  /**
+   * `Order.deliveryDeadline` itself, as an ISO string — the instant `eta`
+   * below is a pre-rendered English countdown of. This is the field that
+   * comment anticipated: a consumer that must tick, or print the countdown in
+   * Georgian, derives its own label from it. Null when the order names no
+   * deadline.
+   */
+  deliveryDeadline: string | null;
+  /**
    * How long until the load is due, e.g. "18 min" or "1 h 05", or "Overdue"
    * once the moment has passed. `null` when the order names no deadline.
    *
@@ -369,6 +386,8 @@ export async function getHubHeader(
       who: isBusiness
         ? `${order.driver?.name ?? UNASSIGNED_DRIVER_LABEL}${WHO_SEPARATOR}${order.reference}`
         : null,
+      driverName: isBusiness ? (order.driver?.name ?? null) : null,
+      deliveryDeadline: order.deliveryDeadline?.toISOString() ?? null,
       eta: formatEta(order.deliveryDeadline, now),
     }),
   );

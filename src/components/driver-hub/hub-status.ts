@@ -71,7 +71,7 @@ export const HUB_STATUS_TONE_CLASSES: Record<HubStatusTone, string> = {
     "dark:bg-[oklch(29%_0.05_85)] dark:text-[oklch(88%_0.12_85)]",
   // Scheduled / Offline / Idle / Defleeted / Offboarded
   neutral:
-    "bg-[oklch(96.7%_0.003_264.542)] text-[oklch(44.6%_0.03_256.802)] " +
+    "bg-[oklch(90.9%_0.026_84.6)] text-[oklch(44.6%_0.03_256.802)] " +
     "dark:bg-[oklch(27.5%_0.005_264.542)] dark:text-[oklch(80%_0.015_264.542)]",
 };
 

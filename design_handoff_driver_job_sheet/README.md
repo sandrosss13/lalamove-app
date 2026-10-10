@@ -25,8 +25,18 @@ Core rules the design must encode:
 Market: Georgia. Addresses are free text, often mixed Georgian/Latin script. Phone numbers are
 `+995`. Currency is GEL (`₾`). Locale `en-GB`, timezone `Asia/Tbilisi`.
 
-**Out of scope for v1:** no delivery photos, no signature, no captured media of any kind.
-Delivery is confirmed by a state transition, not by evidence.
+**Proof of delivery — superseded (October 2026).** This brief originally ruled it out: *"no
+delivery photos, no signature, no captured media of any kind. Delivery is confirmed by a state
+transition, not by evidence."* That no longer holds. The driver **app** now captures 1–3
+delivery photos and a recipient signature (design: `design_handoff_driver_hub`, screen H9), and
+`POST /api/orders/[id]/complete` **requires** them — 409 `POD_PHOTO_REQUIRED` /
+`POD_SIGNATURE_REQUIRED` otherwise. Storage: `PodPhoto` rows and `Order.podSignaturePath`, in
+the private `delivery-proofs` bucket; endpoints under `/api/orders/[id]/pod`.
+
+What is still true of **this** (web) sheet: it has no capture step. Its `Mark delivered` dialog
+completes without proof by sending the `x-pod-waiver: web-hub` request header, and a completed
+job shows the app-captured photos and signature read-only under Progress. Giving the web sheet
+its own capture step, and then removing the waiver, is open work.
 
 ## About the design files
 
@@ -347,8 +357,9 @@ Existing strings that must change when this ships (`loads-detail-parts.tsx`):
 - `ClaimedByYouNote` — *"You claimed this load. Contact details are in your job sheet."* →
   keep; it becomes true.
 
-Note the current copy promises "proof of delivery". Since v1 captures none, that phrase must not
-survive.
+Note the current copy promises "proof of delivery". When this brief was written v1 captured
+none, so the phrase was removed. Proof of delivery has since been built for the driver app —
+see the note under the overview.
 
 ## Schema and infrastructure gaps
 

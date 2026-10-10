@@ -54,5 +54,7 @@ export async function GET(
     return hubApiError(t, "NOT_FOUND", 404);
   }
 
-  return hubApiOk<HubJobSheetResponse>(toHubJobSheetResponse(job));
+  // `scope.kind` decides whether the proof of delivery is sent: the assigned
+  // driver gets it, a company reader does not — see `toHubJobSheetResponse`.
+  return hubApiOk<HubJobSheetResponse>(toHubJobSheetResponse(job, scope.kind));
 }

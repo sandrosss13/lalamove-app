@@ -3,7 +3,7 @@
 import { ONBOARDING_RAIL } from "@/components/driver-onboarding/onboarding-step-rail";
 
 /**
- * Four thin segments above the step heading, filled orange up to and including
+ * Four thin segments above the step heading, filled green up to and including
  * the current step. Each segment's fill animates its own width rather than the
  * track's, so advancing a step wipes the next segment in over 0.35s instead of
  * snapping — the design's specified transition.
@@ -50,7 +50,7 @@ export function OnboardingProgressBar({
           key={entry.step}
           className="h-[3px] flex-1 overflow-hidden rounded-sm bg-border dark:bg-foreground/15"
         >
-          {/* Brand orange, unthemed on purpose: `--onboarding-accent` is a
+          {/* Brand green, unthemed on purpose: `--onboarding-accent` is a
               fixed brand value, and it clears both the light track and the dark
               one comfortably, so the fill is the same colour in both themes. */}
           <div

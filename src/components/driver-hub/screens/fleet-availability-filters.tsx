@@ -459,7 +459,7 @@ export function FleetAvailabilityFilters({
                   subtree — which is where `data-admin-surface` normally sits.
                   Without the attribute here the popover's `--muted`/`--accent`
                   resolve to the *landing* palette and the selected row paints
-                  brand orange. Nothing errors; the colours are just quietly
+                  brand green. Nothing errors; the colours are just quietly
                   wrong. Same trap as `drivers-add-panel.tsx`. */}
               <PopoverContent
                 data-admin-surface=""
@@ -767,7 +767,7 @@ function DriverOptionRow({
         "flex w-full items-center justify-between gap-2.5 rounded-md px-[9px] py-[7px] text-left text-[13px] outline-none hover:bg-secondary focus-visible:bg-secondary",
         // `bg-secondary`, not `bg-muted` or `bg-accent`. Inside a portalled
         // surface those two resolve through the `--admin-*` fallback chain and
-        // can land on the landing palette's brand orange; `--secondary` has no
+        // can land on the landing palette's brand green; `--secondary` has no
         // chain and is declared to the same value as `--muted` in both themes.
         // The canonical note is at the top of `src/components/ui/button.tsx`.
         selected && "bg-secondary font-semibold",

@@ -418,10 +418,10 @@ function TimelineHeader({
               left: "var(--hub-fa-now-left)",
               transform: "translateX(-50%)",
               background: "var(--hub-avail-now)",
-              // The pill is the brand orange in both themes, so its text is
-              // pinned white rather than taken from a token that would flip to
-              // near-black on a dark build and vanish into the fill.
-              color: "#fff",
+              // The pill is `--landing-accent`, which flips between the deep
+              // brand green and a lifted green, so its text is the matching
+              // `--landing-on-accent` (white in light, near-black in dark).
+              color: "var(--landing-on-accent)",
             }}
           >
             {formatHour(nowHour)}
@@ -715,7 +715,7 @@ function BarTooltip({ tooltip }: { tooltip: AvailabilityTooltip }) {
           window.innerWidth - TOOLTIP_RIGHT_MARGIN,
         ),
         top: Math.max(TOOLTIP_TOP_MARGIN, tooltip.y + TOOLTIP_OFFSET_Y),
-        boxShadow: "0 8px 24px rgba(21,20,15,0.14)",
+        boxShadow: "0 8px 24px rgba(20,32,26,0.14)",
       }}
     >
       <div className="mb-0.5 text-xs font-semibold">{tooltip.title}</div>

@@ -379,10 +379,10 @@ export function Step3ChassisClass() {
                   // The selected dot's inset ring stays literal white in both
                   // themes, and is not `var(--card)` dressed up as a punched
                   // hole: it is drawn *inside* the accent fill, so it is
-                  // white-on-orange chrome like the numerals on the accent
+                  // white-on-green chrome like the numerals on the accent
                   // discs in 3c, and `--onboarding-accent` is a fixed brand
-                  // orange that `html.dark` never redeclares. Swapping it for a
-                  // card-coloured band would leave a dark ring on an orange dot
+                  // green that `html.dark` never redeclares. Swapping it for a
+                  // card-coloured band would leave a dark ring on an green dot
                   // in dark mode — a different mark, not the same one themed.
                   className={`size-[18px] shrink-0 rounded-full border-[1.5px] ${
                     selected

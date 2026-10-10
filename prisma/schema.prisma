@@ -8,6 +8,48 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+// ---------------------------------------------------------------------------
+// Constraints that exist ONLY in migration SQL
+// ---------------------------------------------------------------------------
+// Prisma's schema language has no partial index (`@@unique` takes no WHERE) and
+// no CHECK constraint, so the rules below are hand-written in the migrations
+// and are invisible to this file. Two consequences worth knowing before running
+// `prisma migrate dev`:
+//
+//   1. Its drift report may list these as "removed" or "changed" objects, and a
+//      generated migration may try to DROP them. That is the tool not being
+//      able to see them, not real drift — delete those statements from the
+//      generated SQL and keep the constraints.
+//   2. `prisma db push` and a database built from this file alone (rather than
+//      from the migration history) will NOT have them. Build databases with
+//      `prisma migrate deploy`.
+//
+// Partial unique indexes:
+//   driver_application_document_live_type_unique   DriverApplicationDocument (driverApplicationId, type) WHERE supersededAt IS NULL
+//                                                  — 20260828101406_add_driver_onboarding
+//   driver_vehicle_assignment_live_vehicle_unique  DriverVehicleAssignment (vehicleId) WHERE unassignedAt IS NULL
+//   driver_vehicle_assignment_live_driver_unique   DriverVehicleAssignment (driverProfileId) WHERE unassignedAt IS NULL
+//                                                  — 20260829121728_add_business_fleet_onboarding
+//   SavedCard_clientId_default_idx                 SavedCard (clientId) WHERE isDefault
+//                                                  — 20260903060000_saved_card_default_unique
+//   vehicle_document_live_approved_unique          VehicleDocument (vehicleId, type) WHERE supersededAt IS NULL AND status = 'APPROVED'
+//   vehicle_document_live_submission_unique        VehicleDocument (vehicleId, type) WHERE supersededAt IS NULL AND status <> 'APPROVED'
+//                                                  — 20261002130000_vehicle_documents
+//   LoadOffer_one_pending_per_driver               LoadOffer (driverProfileId) WHERE status = 'PENDING'
+//                                                  — 20261002150000_load_offers
+//
+// CHECK constraints:
+//   vehicle_single_owner_check             Vehicle: exactly one of driverProfileId / companyId
+//                                          — 20260803182055_freight_platform_pivot
+//   Withdrawal_amountTetri_positive        Withdrawal: amountTetri > 0
+//   WalletLedgerEntry_amountTetri_nonzero  WalletLedgerEntry: amountTetri <> 0
+//                                          — 20261002210000_driver_wallet
+//   PendingUpload_single_scope_check       PendingUpload: exactly one of orderId / vehicleId
+//                                          — 20261002220000_pending_uploads
+//
+// Each model's own doc comment says what its constraint is for. When a
+// migration adds another, add it to this list.
+
 model User {
   id                  String    @id
   name                String
@@ -70,6 +112,15 @@ model User {
   auditLogs          AuditLog[]
   crmSurveyResponses CrmSurveyResponse[]
 
+  // Staff-side back references for the two driver-support features. Both are
+  // `SetNull` on the other end, so removing a staff account never erases a
+  // review verdict or a resolved support message.
+  vehicleDocumentsReviewed VehicleDocument[] @relation("VehicleDocumentReviewer")
+  supportMessagesResolved  SupportMessage[]  @relation("SupportMessageResolver")
+
+  /// Devices this account receives push notifications on — see `DeviceToken`.
+  deviceTokens DeviceToken[]
+
   @@unique([email])
   @@map("user")
 }
@@ -84,6 +135,10 @@ model Session {
   userAgent String?
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Push tokens registered under this session. Cascade-deleted with it, which
+  /// is how sign-out stops pushes to the device — see `DeviceToken`.
+  deviceTokens DeviceToken[]
 
   @@unique([token])
   @@index([userId])
@@ -672,6 +727,12 @@ model DriverProfile {
   // retaken photo can never leave this pointing at a superseded object.
   profilePhotoPath String?
 
+  /// Who to call if something happens to the driver on a job. Both optional and
+  /// independent; the phone is stored in E.164 like every other number. Edited
+  /// by the driver through `PATCH /api/dashboard/hub/account/profile`.
+  emergencyContactName  String?
+  emergencyContactPhone String?
+
   // Set when the driver joins a fleet's roster; null means an independent driver.
   // `SetNull` (not `Cascade`) so removing a driver from a company — or deleting the
   // company outright — leaves the driver's account intact, just independent again.
@@ -705,6 +766,30 @@ model DriverProfile {
   /// Loads this driver has hidden from their own board. Never a cancellation —
   /// see `LoadRejection`.
   loadRejections LoadRejection[]
+
+  /// Messages this driver sent to support from the app.
+  supportMessages SupportMessage[]
+
+  /// Pushed load offers made to this driver — see `LoadOffer`.
+  loadOffers LoadOffer[]
+
+  /// Which push notifications this driver wants, and their quiet hours. Absent
+  /// until the driver first changes something — see `DriverNotificationSettings`.
+  notificationSettings DriverNotificationSettings?
+
+  /// Saved routes the driver wants to hear about — see `RouteAlert`.
+  routeAlerts     RouteAlert[]
+  routeAlertFires RouteAlertFire[]
+
+  /// What work the driver wants to be offered. Absent until first saved, and
+  /// absent means "offer me anything I am eligible for".
+  workPreferences DriverWorkPreferences?
+
+  /// The driver wallet — independent drivers only. See `WalletLedgerEntry`.
+  bankAccounts      DriverBankAccount[]
+  withdrawals       Withdrawal[]
+  walletEntries     WalletLedgerEntry[]
+  walletCreditHolds WalletCreditHold[]
 
   @@index([companyId])
 }
@@ -859,11 +944,92 @@ model Vehicle {
   /// which does not typecheck against an array.
   applicationVehicle BusinessApplicationVehicle?
 
+  /// Registration and insurance uploads, every round of them — see
+  /// `VehicleDocument` for which rows are live.
+  documents VehicleDocument[]
+
+  /// Offers that named this vehicle as the one the load fits — see `LoadOffer`.
+  loadOffers LoadOffer[]
+
+  /// Upload URLs issued for this vehicle's documents and not yet registered —
+  /// see `PendingUpload`.
+  pendingUploads PendingUpload[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([driverProfileId])
   @@index([companyId])
+}
+
+/// The compliance documents a vehicle carries after onboarding. Onboarding
+/// collects neither, so a vehicle with no row for a type is the ordinary
+/// starting state ("missing"), not a fault.
+enum VehicleDocumentType {
+  REGISTRATION
+  INSURANCE
+}
+
+/// The back office's verdict on one uploaded vehicle document. The same three
+/// values, with the same meaning, as `DriverApplicationDocumentStatus`.
+enum VehicleDocumentStatus {
+  PENDING
+  APPROVED
+  FLAGGED
+}
+
+/// One uploaded registration or insurance file for a vehicle — one row per
+/// upload, never overwritten, so a vehicle's rows are its document history.
+///
+/// A (vehicle, type) pair has up to two **live** rows (`supersededAt: null`):
+///
+/// * the document **on file** — the live `APPROVED` row, the one whose
+///   `expiresAt` says whether the vehicle is covered; and
+/// * the **submission** — the live `PENDING` or `FLAGGED` row, an upload the
+///   back office has not accepted (yet).
+///
+/// They are separate rows on purpose: a renewal must not displace the document
+/// on file until a reviewer has accepted it, or a driver who uploads next
+/// year's policy a week early would be left with no valid insurance for as long
+/// as the review queue is. Approving the submission supersedes the previous
+/// on-file row in the same transaction; uploading again supersedes the previous
+/// submission. Both "at most one" rules are partial unique indexes added by hand
+/// in the migration SQL (`vehicle_document_live_approved_unique`,
+/// `vehicle_document_live_submission_unique`) — the pattern
+/// `DriverApplicationDocument` uses for its own live row.
+///
+/// `expiresAt` is written by the reviewer at approval, never by the driver: the
+/// app's renew flow captures a photograph and nothing else, and the date that
+/// decides whether a vehicle is insured should be one a member of staff read
+/// off the document rather than one the interested party typed. Null means "no
+/// expiry" (a registration certificate has none) or "not reviewed yet". Stored
+/// at UTC midnight of the calendar date, like `DriverLicence.expiresAt`.
+///
+/// `storagePath` is an object path in the private `driver-documents` bucket —
+/// the bucket the onboarding documents already live in, under a `vehicles/`
+/// prefix no driver-profile id can collide with.
+model VehicleDocument {
+  id          String                @id @default(cuid())
+  vehicleId   String
+  vehicle     Vehicle               @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  type        VehicleDocumentType
+  storagePath String                @unique
+  status      VehicleDocumentStatus @default(PENDING)
+  flagReason  String?
+  expiresAt   DateTime?
+
+  // Who reviewed it and when — columns as well as `AuditLog` rows, because the
+  // review queue prints both and an audit log is not something a list joins to.
+  reviewedAt   DateTime?
+  reviewedById String?
+  reviewedBy   User?     @relation("VehicleDocumentReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  supersededAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([vehicleId, type])
+  @@index([status, supersededAt])
 }
 
 /// Persistent driver↔vehicle pairing, distinct from `Order.driverId`/
@@ -1148,6 +1314,32 @@ model Order {
   driverId String?
   driver   User?   @relation("DriverDeliveries", fields: [driverId], references: [id], onDelete: SetNull)
 
+  /// **Whose job this was when the driver took it** — written once, by the same
+  /// statement that claims the order (`claimOrderForDriver`), and never moved.
+  ///
+  /// The wallet needs this as a fact about the past. A driver's roster
+  /// membership (`DriverProfile.companyId`) is a fact about *now*, and the
+  /// credit can be decided weeks after the claim — when a gateway confirms the
+  /// payment. Reading the roster then let a driver who claimed a load while
+  /// employed, and was removed from the company before the confirmation, be
+  /// credited personally for a job that should have been held
+  /// (`WalletCreditHoldReason.ROSTER_SELF_CLAIM`).
+  ///
+  /// Recorded at the **claim**, not at completion: the claim is the moment the
+  /// driver commits themselves (and, for a roster driver, the company's
+  /// vehicle) to the job, and stamping it there closes the "removed between
+  /// claim and completion" window as well as the one after it.
+  ///
+  /// Null on every order claimed before this column existed, on orders nobody
+  /// has claimed, and on a company's own job (`companyId` set — dispatched, not
+  /// self-claimed). For a null the wallet falls back to the driver's roster
+  /// membership at credit time, which is what it read before.
+  driverClaimedAs      DriverClaimCapacity?
+  /// The company whose roster the driver was on at the claim; null unless
+  /// `driverClaimedAs` is `ROSTER`. A plain column, like
+  /// `WalletCreditHold.companyId`: it is a record, and must survive the company.
+  driverClaimCompanyId String?
+
   // The specific vehicle picked at accept/dispatch time. Nulled rather than
   // cascaded on vehicle deletion (same reasoning as `driverId`): retiring a
   // vehicle must not erase the delivery history it took part in.
@@ -1192,15 +1384,52 @@ model Order {
   /// before this column existed has none — there is nothing to derive one from,
   /// and inventing "Recipient" for those rows would be worse than an em dash.
   ///
-  /// **This is a record, not evidence.** v1 of the job sheet captures no photo
-  /// and no signature: the delivery is proved by the `COMPLETED` state
-  /// transition, and this column only says who the driver reported handing it
-  /// to. Do not build a proof-of-delivery claim on it.
+  /// **This is a record, not evidence — the evidence is beside it.** The name
+  /// is whatever the driver typed. Proof of delivery is the `podPhotos` rows and
+  /// `podSignaturePath` below, which the driver app must register before
+  /// `POST /api/orders/[id]/complete` will close the job. Do not build a
+  /// proof-of-delivery claim on this column alone.
   ///
   /// Free text rather than a relation to `User`: the person who signs for a
   /// load at a warehouse door is usually not the account that booked it, and
   /// very often has no account at all.
   receivedBy String?
+
+  /// Proof of delivery, part one: one to three photos of the delivered load,
+  /// taken by the assigned driver while the order is `IN_TRANSIT`. See
+  /// `PodPhoto`.
+  podPhotos PodPhoto[]
+
+  /// Pushed offers of this load to individual drivers — see `LoadOffer`.
+  loadOffers LoadOffer[]
+
+  /// Upload URLs issued for this order's proof of delivery and not yet
+  /// registered — see `PendingUpload`.
+  pendingUploads PendingUpload[]
+
+  /// Support messages a driver attached this order to.
+  supportMessages SupportMessage[]
+
+  /// Route alerts that fired for this load — see `RouteAlertFire`.
+  routeAlertFires RouteAlertFire[]
+
+  /// Wallet postings for this job — at most one `JOB_PAYOUT` and one
+  /// `JOB_OVERTIME` — and the hold written when it was deliberately skipped.
+  walletEntries    WalletLedgerEntry[]
+  walletCreditHold WalletCreditHold?
+
+  /// Proof of delivery, part two: the recipient's signature, as the object path
+  /// of a PNG in the **private** `delivery-proofs` Storage bucket — a path, not
+  /// a URL, for the reason `DriverApplicationDocument.storagePath` is one: the
+  /// bucket is private, so a short-lived signed URL is minted wherever the
+  /// image is shown and nothing permanent is ever stored or handed out.
+  ///
+  /// Null on every order completed before proof of delivery existed, on every
+  /// order not yet delivered, and on a delivery closed from the web hub, which
+  /// has no capture screen (see `POD_WAIVER_HEADER` in `src/lib/orders/pod-rules.ts`).
+  /// One column rather than a row because there is exactly one signature per
+  /// delivery; re-signing before completion replaces it.
+  podSignaturePath String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1223,6 +1452,94 @@ model Order {
   // own comment for why they exist rather than a `pickupAddress` substring match.
   @@index([pickupCity])
   @@index([dropoffCity])
+}
+
+/// In what capacity a driver claimed an open load — see `Order.driverClaimedAs`.
+enum DriverClaimCapacity {
+  /// On no company's roster at the claim: the job is the driver's own.
+  INDEPENDENT
+  /// On a company's roster at the claim, claiming for themselves.
+  ROSTER
+}
+
+/// A signed upload URL the server has issued and whose object has **not** been
+/// registered yet — the record that bounds how many such URLs can be
+/// outstanding for one order's proof of delivery or one vehicle's documents.
+///
+/// A signed upload URL is a bearer token for writing one object: Storage lets
+/// its holder PUT anything up to the bucket's own limits, and the type and size
+/// are only checked when the app *registers* the upload. Without this table an
+/// account could mint URLs without limit and fill the bucket with objects no
+/// row will ever reference. With it:
+///
+/// * issuing a URL inserts a row, under the order's / vehicle's row lock, and
+///   is refused once `MAX_PENDING_*_UPLOADS` live rows exist
+///   (`src/lib/uploads/rules.ts`);
+/// * registering the upload — or refusing and discarding it — deletes the row;
+/// * a row past `expiresAt` (the lifetime of the signed URL, after which it can
+///   no longer be written to) is swept on the next issue for the same order or
+///   vehicle, and **its object is removed from Storage** — which is what
+///   reclaims an upload that was made and then abandoned.
+///
+/// In the database rather than in memory because the deployment is serverless:
+/// a counter held by one instance bounds nothing.
+///
+/// Exactly one of `orderId` / `vehicleId` is set, which also names the bucket
+/// (`delivery-proofs` / `driver-documents`). Prisma has no XOR, so that is the
+/// `PendingUpload_single_scope_check` CHECK constraint in the migration SQL.
+/// Both are `Cascade`: the rows are bookkeeping for their parent, and
+/// `DELETE /api/driver-profile/vehicles/[id]` reads the paths before it deletes
+/// so the objects go too.
+model PendingUpload {
+  id String @id @default(cuid())
+
+  orderId String?
+  order   Order?  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  vehicleId String?
+  vehicle   Vehicle? @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  /// The object path the URL was issued for. Unique: a path is minted once.
+  storagePath String @unique
+
+  /// When the signed URL stops being usable; the row is swept after this.
+  expiresAt DateTime
+
+  createdAt DateTime @default(now())
+
+  @@index([orderId])
+  @@index([vehicleId])
+}
+
+/// One proof-of-delivery photo. A delivery carries one to three, registered by
+/// the assigned driver between `IN_TRANSIT` and `COMPLETED`; completing from the
+/// driver app is refused without at least one (and a signature — see
+/// `Order.podSignaturePath`).
+///
+/// `storagePath` is an object path in the **private** `delivery-proofs` bucket,
+/// never a URL; readers are handed a short-lived signed URL. Unique, so one
+/// uploaded object can never back two rows — deleting a photo may then always
+/// delete its object.
+///
+/// `takenAt` is when the driver's device says the picture was taken — kept only
+/// when that lies between the job being started and the server's "now" (clock
+/// skew allowed); otherwise, and when the app sends none, it is the server
+/// clock (`resolveTakenAt` in `src/lib/orders/pod-rules.ts`). `createdAt` is
+/// when the server recorded it. Both are kept because they answer different
+/// questions in a dispute, and only the second is beyond the driver's control.
+///
+/// Rows are frozen once the order is `COMPLETED`: every write path checks the
+/// status under a row lock, so the proof a client is shown cannot be edited
+/// after the fact.
+model PodPhoto {
+  id          String   @id @default(cuid())
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  storagePath String   @unique
+  takenAt     DateTime
+  createdAt   DateTime @default(now())
+
+  @@index([orderId])
 }
 
 /// One driver's (or one company's) decision to hide an open load from their own
@@ -1258,6 +1575,310 @@ model LoadRejection {
   @@unique([orderId, companyId])
   @@index([driverProfileId])
   @@index([companyId])
+}
+
+/// Where a pushed load offer stands. Only `PENDING` is ever "live", and only
+/// while `now < expiresAt` and the order is still open: the row is not flipped
+/// by a timer (there is none on this stack), so `PENDING` past its deadline
+/// means "expired, not yet swept". `deriveOfferState` in
+/// `src/lib/offers/rules.ts` is the one reading of these values.
+enum LoadOfferStatus {
+  PENDING
+  /// The driver accepted and won the claim; the order is theirs.
+  ACCEPTED
+  DECLINED
+  /// The offer's lifetime ran out with no answer.
+  EXPIRED
+  /// The load stopped being open while the offer was live — somebody else
+  /// claimed it.
+  WITHDRAWN
+}
+
+/// A time-boxed invitation for ONE driver to take ONE open load, pushed to the
+/// driver app while they are online. Non-exclusive: the load stays on the public
+/// board and may be offered to other drivers at the same time; accepting goes
+/// through the same atomic claim as `POST /api/orders/[id]/accept`.
+///
+/// `@@unique([orderId, driverProfileId])` is what makes "a driver who declined
+/// or ignored a load is never offered it again" true by construction: the row
+/// is kept, so a second offer cannot be inserted.
+///
+/// **A second constraint lives in the migration only**, because Prisma cannot
+/// express a partial index: `LoadOffer_one_pending_per_driver`, unique on
+/// `driverProfileId WHERE status = 'PENDING'`. A driver therefore has at most
+/// one unanswered offer, even when two loads open in the same instant; the
+/// dispatcher sweeps expired rows to `EXPIRED` before inserting.
+model LoadOffer {
+  id String @id @default(cuid())
+
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  driverProfileId String
+  driverProfile   DriverProfile @relation(fields: [driverProfileId], references: [id], onDelete: Cascade)
+
+  /// The driver's vehicle the matcher found this load fits — what the offer
+  /// screen's fit confirmation names and the app sends back on accept. Advisory:
+  /// accept re-checks whichever vehicle it is given.
+  vehicleId String?
+  vehicle   Vehicle? @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+
+  status LoadOfferStatus @default(PENDING)
+
+  /// Set once at creation (`createdAt` + the offer lifetime) and never moved.
+  expiresAt DateTime
+
+  /// When the driver accepted or declined; null for an expired or withdrawn
+  /// offer, which nobody answered.
+  respondedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([orderId, driverProfileId])
+  @@index([driverProfileId, status])
+  @@index([orderId, status, expiresAt])
+  @@index([status, expiresAt])
+  // Indexed because of `onDelete: SetNull`: without it Postgres sequentially
+  // scans every offer to find the referencing rows each time a vehicle is
+  // deleted (`DELETE /api/driver-profile/vehicles/[id]`).
+  @@index([vehicleId])
+}
+
+enum DevicePlatform {
+  IOS
+  ANDROID
+}
+
+/// One device's push token. Unique per token: a token re-registered by another
+/// account (a shared phone) moves to that account rather than duplicating.
+///
+/// Tied to the session that registered it and cascade-deleted with it, so
+/// signing out — which deletes the session row — stops pushes to that device
+/// without relying on the app to call the unregister endpoint first.
+model DeviceToken {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  sessionId String
+  session   Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  platform DevicePlatform
+  token    String         @unique
+
+  /// The language the app was showing when it registered — what a push to this
+  /// device is written in.
+  locale ContentLocale
+
+  /// Refreshed on every registration; the app registers on each launch.
+  lastSeenAt DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([sessionId])
+}
+
+/// What a support message is about. The first five are the Support screen's
+/// radio list, in the design's order; the last five were appended (enum values
+/// can only be added, and are added at the end) for the Orders screen's "Report
+/// a problem" flow, whose seven types are these five plus
+/// `CARGO_DAMAGED_OR_MISSING` and `OTHER`. `src/lib/support/rules.ts` holds
+/// both lists in their design order.
+enum SupportTopic {
+  PICKUP_OR_DROPOFF
+  CARGO_DAMAGED_OR_MISSING
+  PAYMENT_OR_WITHDRAWAL
+  DOCUMENTS_AND_ACCOUNT
+  OTHER
+  CONTACT_UNREACHABLE
+  ADDRESS_WRONG_OR_INACCESSIBLE
+  CARGO_MISMATCH
+  VEHICLE_BREAKDOWN
+  ACCIDENT
+}
+
+/// Whether staff still have to deal with a support message.
+enum SupportMessageStatus {
+  OPEN
+  RESOLVED
+}
+
+/// One message a driver sent to support from the app: a topic, what happened,
+/// and optionally the job it is about.
+///
+/// A message, not a conversation — there is no reply column because there is no
+/// reply channel (no SMS, no push, no in-app thread). Staff read it, contact the
+/// driver by phone, and mark it resolved; `resolvedAt`/`resolvedById` record
+/// that, and the `AuditLog` records it again as an admin action.
+///
+/// `orderId` is `SetNull`: a message outlives the order it mentions.
+model SupportMessage {
+  id              String        @id @default(cuid())
+  driverProfileId String
+  driverProfile   DriverProfile @relation(fields: [driverProfileId], references: [id], onDelete: Cascade)
+  topic           SupportTopic
+  body            String
+  orderId         String?
+  order           Order?        @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  status       SupportMessageStatus @default(OPEN)
+  resolvedAt   DateTime?
+  resolvedById String?
+  resolvedBy   User?                @relation("SupportMessageResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([driverProfileId, createdAt])
+  @@index([status, createdAt])
+  @@index([orderId])
+}
+
+/// A driver's push-notification choices: the Account → Notifications screen.
+///
+/// **No row means the defaults** (the column defaults below, which are the
+/// design's initial state); the row is created by the first `PATCH`. One
+/// definition of those defaults for code lives in
+/// `DEFAULT_NOTIFICATION_SETTINGS` in `src/lib/notifications/rules.ts`, and a
+/// spec pins the two against each other.
+///
+/// Two things the design shows are deliberately not columns:
+///
+/// - **Document expiry** is "Always on" in the design — a switch the driver
+///   cannot move — so there is nothing to store.
+/// - **The quiet-hours time zone** is `Asia/Tbilisi` for every driver; it is a
+///   constant, reported on the wire, not a per-row value.
+///
+/// Only `loadOffers` and `routeAlerts` have a sender today. The other three are
+/// stored preferences waiting for one.
+model DriverNotificationSettings {
+  driverProfileId String        @id
+  driverProfile   DriverProfile @relation(fields: [driverProfileId], references: [id], onDelete: Cascade)
+
+  loadOffers        Boolean @default(true)
+  routeAlerts       Boolean @default(true)
+  jobReminders      Boolean @default(true)
+  payouts           Boolean @default(true)
+  tipsAndPromotions Boolean @default(false)
+
+  /// Quiet hours: while on, non-urgent categories are not pushed between the
+  /// two minutes-of-day below (Tbilisi wall clock; the window may wrap past
+  /// midnight, and does by default: 23:00 → 07:00).
+  quietHoursEnabled     Boolean @default(false)
+  quietHoursStartMinute Int     @default(1380)
+  quietHoursEndMinute   Int     @default(420)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// Days of the week, for a route alert's days and a driver's working days.
+enum Weekday {
+  MON
+  TUE
+  WED
+  THU
+  FRI
+  SAT
+  SUN
+}
+
+/// A saved route a driver wants to be told about: "loads from `fromCity` to
+/// `toCity` paying at least `minPayout`, picked up on one of `days`".
+///
+/// `toCity` null is the design's "anywhere". `minPayout` is compared with the
+/// **driver's** payout (`Order.driverPayout`), never the client's price.
+/// `days` is the pick-up's weekday in Tbilisi time and is never empty.
+///
+/// At most `MAX_ROUTE_ALERTS_PER_DRIVER` per driver
+/// (`src/lib/route-alerts/rules.ts`), enforced by the create route.
+model RouteAlert {
+  id String @id @default(cuid())
+
+  driverProfileId String
+  driverProfile   DriverProfile @relation(fields: [driverProfileId], references: [id], onDelete: Cascade)
+
+  fromCity  GeorgianCity
+  toCity    GeorgianCity?
+  minPayout Float         @default(0)
+  days      Weekday[]
+  enabled   Boolean       @default(true)
+
+  fires RouteAlertFire[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([driverProfileId])
+  // The matcher's read: enabled alerts whose pick-up city is the new load's.
+  @@index([enabled, fromCity])
+}
+
+/// "This driver was alerted about this load." Written when a route alert is
+/// pushed, and what makes one push per driver per load true by construction:
+/// `@@unique([orderId, driverProfileId])` refuses the second row, whichever of
+/// the driver's alerts matched and however many times the trigger runs.
+///
+/// `alertId` names the alert that matched and is `SetNull`, so deleting an
+/// alert does not re-arm the loads it already fired for.
+model RouteAlertFire {
+  id String @id @default(cuid())
+
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  driverProfileId String
+  driverProfile   DriverProfile @relation(fields: [driverProfileId], references: [id], onDelete: Cascade)
+
+  alertId String?
+  alert   RouteAlert? @relation(fields: [alertId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@unique([orderId, driverProfileId])
+  @@index([driverProfileId])
+  @@index([alertId])
+}
+
+/// What work a driver wants to be **offered**: the Account → Work preferences
+/// screen. Read by the offer matcher only (`src/lib/offers/`); the public load
+/// board is never filtered by it.
+///
+/// **No row means no preferences**, and the matcher then behaves exactly as it
+/// did before this model existed. The rules themselves are
+/// `src/lib/work-preferences/rules.ts`.
+///
+/// - `cities` + `intercity` are the design's "Areas I work in" chips.
+/// - `maxTripKm` is "Longest trip I'll take" — the job's own route length
+///   (`Order.distanceKm`); null is the design's "Any".
+/// - `days` / `startMinute` / `endMinute` are when offers may be sent, on the
+///   Tbilisi wall clock. Equal start and end mean all day.
+/// - `excludedHandlingTags` is the inverse of "Cargo I'll carry": the
+///   `CargoHandlingTag`s the driver does not want. The design's "General" row
+///   has no counterpart on an order and is not stored.
+/// - `canBringHelper` false withholds loads that ask for helpers
+///   (`Order.helperCount > 0`).
+model DriverWorkPreferences {
+  driverProfileId String        @id
+  driverProfile   DriverProfile @relation(fields: [driverProfileId], references: [id], onDelete: Cascade)
+
+  cities    GeorgianCity[]
+  intercity Boolean        @default(false)
+  maxTripKm Int?
+
+  days        Weekday[]
+  startMinute Int       @default(0)
+  endMinute   Int       @default(0)
+
+  excludedHandlingTags CargoHandlingTag[] @default([])
+  canBringHelper       Boolean            @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // ---------------------------------------------------------------------------
@@ -1532,6 +2153,220 @@ model Payment {
   paidAt            DateTime?
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
+
+  /// **Funds confirmed received by a payment gateway** — the only fact that
+  /// lets a job credit a driver's wallet. Deliberately distinct from `status`
+  /// and `provider`: with no gateway integrated, `POST /api/orders/[id]/pay`
+  /// writes `PAID` for a card without charging anything and `provider: "none"`,
+  /// so neither proves money arrived. Null on every row until a real gateway
+  /// exists. Written by exactly one function, `confirmGatewayPayment`
+  /// (`src/lib/orders/payment-settlement.ts`), and never by a route.
+  gatewayConfirmedAt DateTime?
+  /// Which gateway confirmed, e.g. `"tbc-pay"`. Never `"none"`.
+  gatewayName        String?
+  /// That gateway's own id for the captured payment. Unique per gateway, so
+  /// one captured payment can never confirm two orders.
+  gatewayReference   String?
+
+  @@unique([gatewayName, gatewayReference])
+}
+
+/**
+ * --------------------------------------------------------------------------
+ */
+/**
+ * Driver wallet
+ */
+/**
+ * --------------------------------------------------------------------------
+ */
+
+/// The five banks the driver app offers. The two-letter code inside a Georgian
+/// IBAN for each is in `src/lib/wallet/rules.ts` (`GEORGIAN_BANKS`).
+enum GeorgianBank {
+  TBC
+  BANK_OF_GEORGIA
+  LIBERTY
+  PROCREDIT
+  BASISBANK
+}
+
+/// `PENDING` until an admin compares the account with the driver's reviewed
+/// identity; only a `VERIFIED` account can receive a withdrawal.
+enum BankAccountStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+/// A bank account an **independent** driver wants withdrawals paid to. The
+/// holder is always the driver's legal name — it is read from the profile, not
+/// stored here and not editable. Removal is soft (`removedAt`) because paid
+/// withdrawals keep pointing at the account they went to.
+model DriverBankAccount {
+  id              String        @id @default(cuid())
+  driverProfileId String
+  driverProfile   DriverProfile @relation(fields: [driverProfileId], references: [id], onDelete: Restrict)
+  bank            GeorgianBank
+  /// 22 characters, upper case, no spaces; validated (format, mod-97, bank
+  /// code) by `validateGeorgianIban` before it is stored.
+  iban            String
+
+  status          BankAccountStatus @default(PENDING)
+  /// Shown to the driver verbatim when `status` is `REJECTED`.
+  rejectionReason String?
+  /// At most one per driver, and only ever a `VERIFIED` account.
+  isDefault       Boolean           @default(false)
+  reviewedAt      DateTime?
+  /// `User.id` of the staff member; a plain column so removing a staff account
+  /// never touches a money record. The audit log names the actor too.
+  reviewedById    String?
+  removedAt       DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  withdrawals Withdrawal[]
+
+  @@index([driverProfileId])
+  @@index([status, createdAt])
+  @@index([iban])
+}
+
+/// `PENDING` reserves the amount. `PAID` (an admin made the bank transfer and
+/// recorded its reference) posts the debit to the ledger. `REJECTED` releases
+/// the reservation and posts nothing. `REVERSED` is a `PAID` withdrawal whose
+/// transfer came back; it posts a `WITHDRAWAL_REVERSAL` credit.
+enum WithdrawalStatus {
+  PENDING
+  PAID
+  REJECTED
+  REVERSED
+}
+
+/// A driver's request to be paid out, fulfilled by hand: staff transfer the
+/// money outside the system and record the result here.
+model Withdrawal {
+  id              String            @id @default(cuid())
+  driverProfileId String
+  driverProfile   DriverProfile     @relation(fields: [driverProfileId], references: [id], onDelete: Restrict)
+  bankAccountId   String
+  bankAccount     DriverBankAccount @relation(fields: [bankAccountId], references: [id], onDelete: Restrict)
+  /// Integer tetri, always positive.
+  amountTetri     Int
+  status          WithdrawalStatus  @default(PENDING)
+
+  /// The destination as it was when requested, so the record of where money
+  /// went survives a later change to the account or the driver's name.
+  bank              GeorgianBank
+  iban              String
+  accountHolderName String
+
+  /// The bank's reference for the transfer; set with `PAID`.
+  bankReference   String?
+  /// Shown to the driver verbatim; set with `REJECTED`.
+  rejectionReason String?
+  /// Why a paid withdrawal was reversed; set with `REVERSED`.
+  reversalReason  String?
+  decidedAt       DateTime?
+  /// `User.id` of the staff member who paid or rejected it.
+  decidedById     String?
+
+  /// Client-chosen key: repeating a request with the same key returns the
+  /// first withdrawal instead of reserving twice. **Required by the API**
+  /// (`POST /api/dashboard/hub/wallet/withdrawals` refuses a request without
+  /// one), so every row written from now on has it; the column stays nullable
+  /// only because rows requested before that rule may not.
+  requestKey String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  ledgerEntries WalletLedgerEntry[]
+
+  @@unique([driverProfileId, requestKey])
+  @@index([driverProfileId, createdAt])
+  @@index([status, createdAt])
+  @@index([bankAccountId])
+}
+
+enum WalletEntryType {
+  /// `Order.driverPayout` of a completed, gateway-confirmed job. Credit.
+  JOB_PAYOUT
+  /// `Order.overtimeDriverPayout` of the same job, when non-zero. Credit.
+  JOB_OVERTIME
+  /// A withdrawal marked `PAID`. Debit.
+  WITHDRAWAL
+  /// A paid withdrawal whose transfer was returned. Credit.
+  WITHDRAWAL_REVERSAL
+  /// A manual correction by staff, with a reason. Either sign.
+  ADJUSTMENT
+}
+
+/// The wallet's ledger. **Append-only**: no code path updates or deletes a
+/// row. A driver's balance is the sum of their rows' `amountTetri`; what they
+/// may withdraw is that minus their `PENDING` withdrawals.
+///
+/// The two unique constraints are what make posting idempotent: one job can
+/// hold at most one `JOB_PAYOUT` and one `JOB_OVERTIME`, one withdrawal at most
+/// one `WITHDRAWAL` and one `WITHDRAWAL_REVERSAL` — a repeated trigger collides
+/// instead of double-posting. (Rows with a null `orderId`/`withdrawalId` never
+/// collide: Postgres treats nulls as distinct.)
+model WalletLedgerEntry {
+  id              String          @id @default(cuid())
+  driverProfileId String
+  driverProfile   DriverProfile   @relation(fields: [driverProfileId], references: [id], onDelete: Restrict)
+  type            WalletEntryType
+  /// Signed integer tetri: positive credits the driver, negative debits.
+  amountTetri     Int
+
+  orderId      String?
+  order        Order?      @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  withdrawalId String?
+  withdrawal   Withdrawal? @relation(fields: [withdrawalId], references: [id], onDelete: Restrict)
+  /// `ADJUSTMENT` only: why. Shown to the driver verbatim.
+  reason       String?
+  /// `User.id` of the staff member, for entries a person caused.
+  createdById  String?
+
+  createdAt DateTime @default(now())
+
+  @@unique([orderId, type])
+  @@unique([withdrawalId, type])
+  @@index([driverProfileId, createdAt])
+}
+
+/// Why a completed, gateway-confirmed job was **not** credited although its
+/// driver exists — today only one reason.
+enum WalletCreditHoldReason {
+  /// A roster driver claimed an open load themselves: the order records only
+  /// `driverId`, so it is owed neither to their company (no `companyId`) nor to
+  /// a wallet (roster drivers have none). Who is paid is an open owner
+  /// decision; until then the job produces no ledger entry and this row.
+  ROSTER_SELF_CLAIM
+}
+
+/// One row per job the crediting function deliberately skipped, so the case is
+/// visible to finance staff instead of silently absent. Once a hold exists the
+/// order is never credited automatically, even if the driver later leaves the
+/// company — resolving it is a manual adjustment.
+model WalletCreditHold {
+  id              String                 @id @default(cuid())
+  orderId         String                 @unique
+  order           Order                  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  driverProfileId String
+  driverProfile   DriverProfile          @relation(fields: [driverProfileId], references: [id], onDelete: Cascade)
+  /// The company the job was claimed under (`Order.driverClaimCompanyId`), when
+  /// the claim recorded one; otherwise the driver's employer when the hold was
+  /// written.
+  companyId       String?
+  reason          WalletCreditHoldReason
+  /// What would have been credited (payout + overtime), integer tetri.
+  amountTetri     Int
+  createdAt       DateTime               @default(now())
+
+  @@index([driverProfileId])
+  @@index([createdAt])
 }
 
 enum DiscountType {

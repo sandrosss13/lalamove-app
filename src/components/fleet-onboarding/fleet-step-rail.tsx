@@ -119,10 +119,10 @@ export function FleetStepRail({
           >
             {/* Identical to the driver rail's disc, which carries the full
                 reasoning for all three states. In short: `active` keeps brand
-                orange with literal white text because `--onboarding-accent` is
+                green with literal white text because `--onboarding-accent` is
                 a fixed brand value that does not flip and white is the ink the
                 brand specifies on top of it — a token here would put near-black
-                text on orange in dark mode; `done` needs no variant because
+                text on green in dark mode; `done` needs no variant because
                 `bg-primary`/`text-primary-foreground` are a matched pair that
                 inverts on its own; `pending` gets a dark-only lift because
                 `bg-border` is `oklch(1 0 0 / 10%)` in dark and composites to a

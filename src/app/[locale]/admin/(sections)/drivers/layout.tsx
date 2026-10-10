@@ -4,8 +4,8 @@ import { AdminSectionLayout } from "@/components/admin/admin-section-layout";
 export const dynamic = "force-dynamic";
 
 /**
- * Drivers — currently a single Applications tab, reviewing self-serve driver
- * onboarding submissions. The tab list itself lives in
+ * Drivers — Applications (self-serve onboarding submissions) and Vehicle
+ * documents (registration and insurance, uploaded and renewed afterwards). The tab list itself lives in
  * `@/components/admin/admin-nav` so the sidebar and this strip can never
  * disagree; see `AdminSectionLayout` for the role gate it applies.
  */

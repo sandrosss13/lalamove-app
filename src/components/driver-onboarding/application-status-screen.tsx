@@ -462,10 +462,10 @@ function ActionRequiredState({
           disabled={outstanding > 0 || resubmitting}
           onClick={onResubmit}
           // `text-white` on `bg-onboarding-accent` is correct in both themes
-          // and is not an oversight: the brand orange is theme-independent by
+          // and is not an oversight: the brand green is theme-independent by
           // design, so the label that sits on it has to be too. Do not "fix"
           // it to `text-foreground` or `text-primary-foreground`, either of
-          // which inverts to near-black on orange in dark mode.
+          // which inverts to near-black on green in dark mode.
           className="mt-1 h-12 w-full cursor-pointer rounded-xl bg-onboarding-accent text-[15px] font-semibold text-white transition-colors hover:bg-onboarding-accent-hover focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:bg-secondary disabled:text-muted-foreground"
         >
           {outstanding > 0
@@ -572,7 +572,7 @@ function ApprovedState({
           // correct in both themes. The problem the lifted value solves never
           // arises here either — the fill is far brighter than the
           // `oklch(0.145 0 0)` page behind it (3.5:1, clear of the 3:1 a UI
-          // boundary needs). Same call the brand-orange CTAs make, and since
+          // boundary needs). Same call the brand-green CTAs make, and since
           // this comment was written the fleet wizard's approved CTA has been
           // brought onto it too.
           className="h-[50px] w-full cursor-pointer rounded-xl bg-status-success-solid text-[15.5px] font-semibold text-white transition-opacity hover:opacity-90 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"

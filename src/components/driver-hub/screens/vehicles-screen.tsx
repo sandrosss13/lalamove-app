@@ -178,12 +178,12 @@ const SAMPLED_COLUMNS_NOTE = "sampledColumnsNote";
 const FLEET_COST_NOTE = "fleetCostSampleNote";
 
 /**
- * The accent orange, spelled out rather than imported: `hub-primitives.tsx`
+ * The brand accent, spelled out rather than imported: `hub-primitives.tsx`
  * keeps its own copy private, and Tailwind scans source text, so a class built
  * from a shared variable would never be generated anyway.
  */
 const ACCENT_DOT_CLASSES =
-  "size-1.5 shrink-0 rounded-full bg-[oklch(64%_0.19_48)]";
+  "size-1.5 shrink-0 rounded-full bg-[var(--landing-accent)]";
 
 /**
  * A column header for a sampled column: the label, the accent dot that ties it

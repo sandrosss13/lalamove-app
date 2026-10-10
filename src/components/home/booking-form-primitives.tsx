@@ -206,7 +206,7 @@ export function StepCard({
 /* SelectedTick                                                               */
 /* -------------------------------------------------------------------------- */
 
-/** The orange tick that marks the selected card in either picker grid. */
+/** The green tick that marks the selected card in either picker grid. */
 export function SelectedTick() {
   return (
     <span

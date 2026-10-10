@@ -8,6 +8,8 @@ import type {
 } from "@/lib/mobile-api/contracts";
 import { hubApiOk, requireHubApiAccount } from "@/lib/mobile-api/hub-api-guard";
 import { toHubMeResponse } from "@/lib/mobile-api/serializers";
+import { getDriverSupportPhone } from "@/lib/support-contact";
+import { getDocumentsAttention } from "@/lib/vehicle-documents/driver-documents";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +18,12 @@ export const dynamic = "force-dynamic";
  *
  * The JSON counterpart of the hub shell (`(hub)/layout.tsx`): the resolved
  * account plus the header's in-progress jobs. The header's notifications are
- * sample data on the web and are not returned — see `toHubMeResponse`.
+ * sample data on the web and are not returned — see `toHubMeResponse`. Also
+ * carries `supportPhone`, the configured driver-support line, or null, and
+ * `documentsAttention`: the driver's missing, flagged, expiring and expired
+ * documents (their licence, and the registration and insurance of each vehicle
+ * they own). That summary is informational — nothing here or elsewhere refuses
+ * a driver because of it.
  *
  * Session, forced-password-change, suspension and role handling are
  * `requireHubApiAccount`'s, and answer as JSON status codes, never a redirect.
@@ -31,7 +38,17 @@ export async function GET(
     return guard.response;
   }
 
-  const header = await getHubHeader(guard.account);
+  const [header, documentsAttention] = await Promise.all([
+    getHubHeader(guard.account),
+    getDocumentsAttention(guard.account.driverProfileId, t),
+  ]);
 
-  return hubApiOk<HubMeResponse>(toHubMeResponse(guard.account, header));
+  return hubApiOk<HubMeResponse>(
+    toHubMeResponse(
+      guard.account,
+      header,
+      getDriverSupportPhone(),
+      documentsAttention,
+    ),
+  );
 }
