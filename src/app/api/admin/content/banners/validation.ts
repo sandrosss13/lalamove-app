@@ -79,6 +79,108 @@ export function parseBannerCopyField(
   return { value: trimmed };
 }
 
+/** Same cap the routes apply to `imageUrl` and `linkUrl`. */
+const MAX_VIDEO_URL_LENGTH = 2048;
+
+/**
+ * Path every public object in the `site-media` bucket is served under, for
+ * recognising an uploaded video's URL. Restated rather than imported because
+ * `@/lib/site-media-storage` keeps it private; it is Supabase's fixed public
+ * object URL shape, not something this app chooses.
+ */
+const SITE_MEDIA_PUBLIC_PATH = "/storage/v1/object/public/site-media/";
+
+/**
+ * Whether a string is a video source the public `<video>` may load.
+ *
+ * Mirrors the routes' `isUsableUrl` for `imageUrl` (a root-relative path on
+ * this site, or an absolute URL — never `javascript:`/`data:`), but stricter on
+ * the scheme: an off-site video must be `https:`, since a plain-`http:` source
+ * on the https homepage is mixed content the browser blocks. The one `http:`
+ * allowance is a `site-media` public URL, which is what a local Supabase stack
+ * hands back from an upload.
+ */
+function isUsableVideoUrl(value: string): boolean {
+  // A leading `//` is protocol-relative, i.e. off-site despite looking local.
+  if (value.startsWith("/")) {
+    return !value.startsWith("//");
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(value);
+  } catch {
+    return false;
+  }
+
+  if (parsed.protocol === "https:") {
+    return true;
+  }
+
+  return (
+    parsed.protocol === "http:" &&
+    parsed.pathname.startsWith(SITE_MEDIA_PUBLIC_PATH)
+  );
+}
+
+/**
+ * `videoUrl` → the value to store. `null`, `undefined` and a blank string all
+ * mean "no video" and become `null`, the same convention as the card copy.
+ */
+export function parseBannerVideoUrl(
+  raw: unknown,
+  t: Translate,
+): { value: string | null } | { error: string } {
+  if (raw === null || raw === undefined) {
+    return { value: null };
+  }
+
+  if (typeof raw !== "string") {
+    return {
+      error: t("errors.adminContentBanners.videoUrlMustBeStringOrNull"),
+    };
+  }
+
+  const trimmed = raw.trim();
+  if (trimmed === "") {
+    return { value: null };
+  }
+
+  if (trimmed.length > MAX_VIDEO_URL_LENGTH) {
+    return {
+      error: t("common.shared.fieldMaxLength", {
+        field: "videoUrl",
+        max: MAX_VIDEO_URL_LENGTH,
+      }),
+    };
+  }
+
+  if (!isUsableVideoUrl(trimmed)) {
+    return { error: t("errors.adminContentBanners.videoUrlMustBeHttps") };
+  }
+
+  return { value: trimmed };
+}
+
+/**
+ * Only the hero carousel renders a video, so a video on any other placement
+ * would be stored and silently never shown. Checked against the placement the
+ * row will *end up* with, so moving a banner with a video off `home_hero`
+ * without clearing it is refused too. Returns the message for a 400, or `null`.
+ */
+export function checkBannerVideoPlacement(
+  { placement, videoUrl }: { placement: string; videoUrl: string | null },
+  t: Translate,
+): string | null {
+  if (videoUrl === null || placement === HOME_HERO_BANNER_PLACEMENT) {
+    return null;
+  }
+
+  return t("errors.adminContentBanners.videoOnlyForHero", {
+    placement: HOME_HERO_BANNER_PLACEMENT,
+  });
+}
+
 /**
  * How many *active* banners each capped landing placement can show, and the
  * message to give when one more would not fit. Placements absent from this

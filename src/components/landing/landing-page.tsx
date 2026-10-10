@@ -42,6 +42,11 @@ export type LandingBanner = {
   eyebrow: string | null;
   body: string | null;
   ctaLabel: string | null;
+  /**
+   * Optional hero-slide video; `imageUrl` is its poster and fallback. Only
+   * the hero carousel reads it (the admin API rejects it elsewhere).
+   */
+  videoUrl: string | null;
 };
 
 /**

@@ -177,6 +177,7 @@ export async function loadHomePageBanners(
       eyebrow: true,
       body: true,
       ctaLabel: true,
+      videoUrl: true,
       placement: true,
     },
   });

@@ -1383,6 +1383,11 @@ model Banner {
   eyebrow   String?
   body      String?
   ctaLabel  String?
+  /// Optional looping video for `home_hero` slides, played over `imageUrl`,
+  /// which stays required as its poster and as the fallback when the video
+  /// cannot (or, under reduced motion, should not) play. The admin API
+  /// rejects it on every other placement.
+  videoUrl  String?
   placement String
   sortOrder Int           @default(0)
   isActive  Boolean       @default(true)

@@ -2,6 +2,7 @@ import {
   isSupportedSiteMediaContentType,
   SITE_MEDIA_PURPOSES,
   UNSUPPORTED_CONTENT_TYPE_ERROR_KEY,
+  UNSUPPORTED_VIDEO_CONTENT_TYPE_ERROR_KEY,
   type SiteMediaPurpose,
 } from "@/lib/site-media-storage";
 
@@ -92,9 +93,21 @@ export function parseMediaUploadUrlBody(
     return { error: t("common.shared.contenttypeIsRequiredAndMustBe") };
   }
   // The storage helper's own message (by key), so every rejection of the same
-  // file reads as the same sentence.
-  if (!isSupportedSiteMediaContentType(contentType.trim())) {
-    return { error: t(UNSUPPORTED_CONTENT_TYPE_ERROR_KEY) };
+  // file reads as the same sentence. A `video/*` type gets the video wording,
+  // since "images only" would be wrong for a hero banner.
+  if (
+    !isSupportedSiteMediaContentType(
+      contentType.trim(),
+      purpose as SiteMediaPurpose,
+    )
+  ) {
+    return {
+      error: t(
+        contentType.trim().startsWith("video/")
+          ? UNSUPPORTED_VIDEO_CONTENT_TYPE_ERROR_KEY
+          : UNSUPPORTED_CONTENT_TYPE_ERROR_KEY,
+      ),
+    };
   }
 
   return {

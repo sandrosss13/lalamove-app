@@ -11,7 +11,9 @@ import { prisma } from "@/lib/prisma";
 import {
   BANNER_COPY_FIELDS,
   checkBannerPlacementCapacity,
+  checkBannerVideoPlacement,
   parseBannerCopyField,
+  parseBannerVideoUrl,
 } from "./validation";
 
 /**
@@ -71,6 +73,11 @@ export type AdminBannerRow = {
   eyebrow: string | null;
   body: string | null;
   ctaLabel: string | null;
+  /**
+   * Optional hero-slide video (`home_hero` only), played over `imageUrl`,
+   * which doubles as its poster and fallback. `null` when unset.
+   */
+  videoUrl: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -99,6 +106,7 @@ type CreateBannerInput = {
   eyebrow: string | null;
   body: string | null;
   ctaLabel: string | null;
+  videoUrl: string | null;
 };
 
 /**
@@ -122,6 +130,7 @@ function toBannerRow(banner: Banner): AdminBannerRow {
     eyebrow: banner.eyebrow,
     body: banner.body,
     ctaLabel: banner.ctaLabel,
+    videoUrl: banner.videoUrl,
     createdAt: banner.createdAt.toISOString(),
     updatedAt: banner.updatedAt.toISOString(),
   };
@@ -343,6 +352,20 @@ function parseCreateBannerBody(
     copy[field] = parsedCopy.value;
   }
 
+  // Optional like the copy: absent, null and blank all mean "no video".
+  const videoUrl = parseBannerVideoUrl(record.videoUrl, t);
+  if ("error" in videoUrl) {
+    return { error: videoUrl.error };
+  }
+
+  const videoPlacementError = checkBannerVideoPlacement(
+    { placement: placement.trim(), videoUrl: videoUrl.value },
+    t,
+  );
+  if (videoPlacementError !== null) {
+    return { error: videoPlacementError };
+  }
+
   return {
     data: {
       title: title.trim(),
@@ -355,6 +378,7 @@ function parseCreateBannerBody(
       startsAt: startsAt.value,
       endsAt: endsAt.value,
       ...copy,
+      videoUrl: videoUrl.value,
     },
   };
 }

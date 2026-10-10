@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 
@@ -51,6 +51,31 @@ const SCROLL_MS = 420;
 const SCROLL_SYNC_MS = 90;
 
 /**
+ * Extra wait, on top of `intervalSec`, for a video slide's metadata before
+ * auto-advance gives up on its `ended` event and moves on as if it were an
+ * image — so a slow or stalled source cannot freeze the carousel.
+ */
+const VIDEO_METADATA_GRACE_MS = 3000;
+
+/** `HTMLMediaElement.HAVE_METADATA`, without needing a DOM global on the server. */
+const HAVE_METADATA = 1;
+
+/**
+ * The slide ids whose video source should be loaded: the active slide and its
+ * two neighbours (wrapping), so the next swipe or advance finds its video
+ * already buffering while slides further away fetch nothing but their poster.
+ */
+function idsAround(slides: LandingBanner[], center: number): string[] {
+  const count = slides.length;
+  if (count === 0) return [];
+
+  return [center - 1, center, center + 1].flatMap((position) => {
+    const slide = slides[((position % count) + count) % count];
+    return slide ? [slide.id] : [];
+  });
+}
+
+/**
  * `cubic-bezier(.16, 1, .3, 1)` — the design's single easing curve, shared with
  * the page-wide scroll reveal. This closed-form ease-out-expo tracks it closely
  * enough for a 420ms scroll; a real bezier solver is not worth the bytes.
@@ -94,12 +119,31 @@ export function LandingHeroCarousel({
   // list: a row inserted straight into the database must not be able to produce
   // a seven-dot carousel.
   const t = useTranslations("landing.landingHeroCarousel");
-  const slides = banners.slice(0, MAX_HERO_BANNERS);
+  // Memoised so its identity — and every callback and effect keyed on it — is
+  // stable across the carousel's own re-renders.
+  const slides = useMemo(() => banners.slice(0, MAX_HERO_BANNERS), [banners]);
   const count = slides.length;
   const intervalMs = autoAdvanceMs(content.intervalSec);
 
   const [index, setIndex] = useState(0);
   const [reducedMotion, setReducedMotion] = useState(false);
+  // False until the motion preference has been read on the client. Videos
+  // wait for it, so the server render (and a reduced-motion visitor) never
+  // starts one: until then every slide is its poster image.
+  const [motionChecked, setMotionChecked] = useState(false);
+  // Mirrors `interactedRef` for rendering: whether auto-advance has ended,
+  // which is what lets a video slide go back to looping.
+  const [interacted, setInteracted] = useState(false);
+  // Slides whose video errored or was refused autoplay; they fall back to
+  // their poster image and are timed like an image slide.
+  const [failedVideoIds, setFailedVideoIds] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
+  // Slides whose video source has been attached. Grows only, so swiping back
+  // to a slide never re-downloads its video.
+  const [primedVideoIds, setPrimedVideoIds] = useState<ReadonlySet<string>>(
+    () => new Set(idsAround(slides, 0)),
+  );
 
   const trackRef = useRef<HTMLDivElement | null>(null);
   // Mirrors `index` so the auto-advance interval and the click handlers can
@@ -108,15 +152,41 @@ export function LandingHeroCarousel({
   const indexRef = useRef(0);
   const tweenRef = useRef<number | null>(null);
   const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const autoAdvanceRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const autoAdvanceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Once true, auto-advance never runs again for this page view — including
   // across the re-runs of the effect below.
   const interactedRef = useRef(false);
+  const videoRefs = useRef(new Map<string, HTMLVideoElement>());
+
+  // Prime the neighbourhood of the current slide. Done during render (React's
+  // "adjust state when a prop changes" pattern) rather than in an effect, so
+  // the source is attached in the same commit the slide becomes active.
+  const wantedIds = idsAround(slides, index);
+  if (wantedIds.some((id) => !primedVideoIds.has(id))) {
+    setPrimedVideoIds(new Set([...primedVideoIds, ...wantedIds]));
+  }
+
+  /** Whether a slide renders (and is timed by) a video rather than its image. */
+  const playsVideo = useCallback(
+    (banner: LandingBanner) =>
+      Boolean(banner.videoUrl) &&
+      motionChecked &&
+      !reducedMotion &&
+      !failedVideoIds.has(banner.id),
+    [failedVideoIds, motionChecked, reducedMotion],
+  );
+
+  const markVideoFailed = useCallback((id: string) => {
+    setFailedVideoIds((current) =>
+      current.has(id) ? current : new Set([...current, id]),
+    );
+  }, []);
 
   // Read in an effect, never during render: there is no `window` on the server.
   useEffect(() => {
     const query = window.matchMedia("(prefers-reduced-motion: reduce)");
     setReducedMotion(query.matches);
+    setMotionChecked(true);
 
     const handleChange = () => setReducedMotion(query.matches);
     query.addEventListener("change", handleChange);
@@ -174,31 +244,83 @@ export function LandingHeroCarousel({
   /** The first arrow or dot press ends auto-advance for good. */
   const stopAutoAdvance = useCallback(() => {
     interactedRef.current = true;
+    setInteracted(true);
 
     if (autoAdvanceRef.current !== null) {
-      clearInterval(autoAdvanceRef.current);
+      clearTimeout(autoAdvanceRef.current);
       autoAdvanceRef.current = null;
     }
   }, []);
 
-  // Auto-advance. The dependencies change only when the banner list or the
-  // motion preference does — never on an advance — so the interval is created
-  // once and survives every slide change.
-  useEffect(() => {
-    if (count < 2 || reducedMotion || interactedRef.current) return;
+  const activeBanner = count > 0 ? slides[index] : undefined;
+  const activeIsVideo = activeBanner ? playsVideo(activeBanner) : false;
+  const autoAdvancing = count > 1 && !reducedMotion && !interacted;
 
-    const timer = setInterval(() => {
-      goTo(indexRef.current + 1);
-    }, intervalMs);
-    autoAdvanceRef.current = timer;
+  // Auto-advance, one slide at a time. An image slide waits `intervalSec`; a
+  // video slide waits for its `ended` event (it is not looping while this
+  // runs), falling back to `intervalSec` plus a grace period if its metadata
+  // never arrives. Re-armed on every slide change, so a swipe also restarts
+  // the clock for the slide it lands on.
+  useEffect(() => {
+    if (!autoAdvancing || interactedRef.current || !activeBanner) return;
+
+    const advance = () => {
+      if (!interactedRef.current) goTo(indexRef.current + 1);
+    };
+
+    if (!activeIsVideo) {
+      const timer = setTimeout(advance, intervalMs);
+      autoAdvanceRef.current = timer;
+      return () => {
+        clearTimeout(timer);
+        if (autoAdvanceRef.current === timer) autoAdvanceRef.current = null;
+      };
+    }
+
+    const video = videoRefs.current.get(activeBanner.id);
+    let fallback: ReturnType<typeof setTimeout> | null = null;
+    const clearFallback = () => {
+      if (fallback !== null) clearTimeout(fallback);
+      if (autoAdvanceRef.current === fallback) autoAdvanceRef.current = null;
+      fallback = null;
+    };
+
+    if (!video || video.readyState < HAVE_METADATA) {
+      fallback = setTimeout(advance, intervalMs + VIDEO_METADATA_GRACE_MS);
+      autoAdvanceRef.current = fallback;
+    }
+
+    video?.addEventListener("loadedmetadata", clearFallback);
+    video?.addEventListener("ended", advance);
 
     return () => {
-      clearInterval(timer);
-      if (autoAdvanceRef.current === timer) {
-        autoAdvanceRef.current = null;
-      }
+      clearFallback();
+      video?.removeEventListener("loadedmetadata", clearFallback);
+      video?.removeEventListener("ended", advance);
     };
-  }, [count, goTo, intervalMs, reducedMotion]);
+  }, [activeBanner, activeIsVideo, autoAdvancing, goTo, intervalMs]);
+
+  // Only the active slide's video plays; every other one is paused where it
+  // is. Autoplay can still be refused (data saver, some in-app browsers): that
+  // slide then falls back to its poster and is timed like an image.
+  useEffect(() => {
+    for (const [id, video] of videoRefs.current) {
+      if (activeBanner && id === activeBanner.id) {
+        video.play().catch((error: unknown) => {
+          // An `AbortError` only means a pause() overtook this play() — a
+          // quick navigation, not a broken video.
+          if (
+            error instanceof DOMException &&
+            error.name === "NotAllowedError"
+          ) {
+            markVideoFailed(id);
+          }
+        });
+      } else {
+        video.pause();
+      }
+    }
+  }, [activeBanner, markVideoFailed, primedVideoIds, failedVideoIds]);
 
   // Scroll sync: keeps the dots honest after a touch swipe. Debounced so it
   // reads the settled position rather than every frame of the gesture.
@@ -307,6 +429,39 @@ export function LandingHeroCarousel({
                   draggable={false}
                   className="absolute inset-0 h-full w-full object-cover"
                 />
+                {/*
+                  The video sits over the image, which stays as the slide's
+                  LCP element and as the fallback. It is mounted only once the
+                  slide is primed (active or adjacent), so distant slides
+                  fetch neither video nor a second copy of the poster.
+                */}
+                {playsVideo(banner) &&
+                banner.videoUrl &&
+                primedVideoIds.has(banner.id) ? (
+                  <video
+                    ref={(element) => {
+                      if (element) {
+                        videoRefs.current.set(banner.id, element);
+                      } else {
+                        videoRefs.current.delete(banner.id);
+                      }
+                    }}
+                    src={banner.videoUrl}
+                    poster={banner.imageUrl}
+                    muted
+                    // While auto-advance runs the slide ends and moves on;
+                    // after the visitor takes over, it loops in place.
+                    loop={!autoAdvancing}
+                    playsInline
+                    autoPlay={slideIndex === index}
+                    preload="metadata"
+                    aria-hidden="true"
+                    tabIndex={-1}
+                    disablePictureInPicture
+                    onError={() => markVideoFailed(banner.id)}
+                    className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+                  />
+                ) : null}
                 {/* Left-weighted scrim so the copy reads on any photo. */}
                 <div
                   aria-hidden="true"
