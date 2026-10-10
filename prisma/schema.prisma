@@ -1153,6 +1153,10 @@ model Order {
   /// Drivers and companies who have hidden this load from their own board.
   rejections LoadRejection[]
 
+  // Photos of the load the client attached at booking. Optional, at most three
+  // (enforced by `POST /api/orders/[id]/photos`, not by the schema).
+  photos OrderPhoto[]
+
   // How the client said they would settle, and which saved card they picked if
   // they chose one. Both nullable: orders placed before the payment step existed
   // have neither, and CASH and BANK_TRANSFER never name a card. No gateway is
@@ -1215,6 +1219,34 @@ model Order {
   // own comment for why they exist rather than a `pickupAddress` substring match.
   @@index([pickupCity])
   @@index([dropoffCity])
+}
+
+/// A photo of the load, attached by the client after the order is created and
+/// before it is paid for — the booking form's optional "Cargo photos" step. It
+/// replaces the measured cargo envelope as the way a client shows a carrier what
+/// they are moving.
+///
+/// The object lives in the PRIVATE `driver-documents` Supabase bucket under
+/// `order-photos/<orderId>/`, reused so no extra bucket has to be provisioned;
+/// see `src/lib/order-photo-storage.ts`. Only the path is stored — a read URL is
+/// signed on demand, short-lived, wherever a photo is shown.
+///
+/// Cascades with its order. Deleting the row does not delete the object; the
+/// route that removes a photo deletes both.
+model OrderPhoto {
+  id String @id @default(cuid())
+
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  storagePath String @unique
+  /// The type sniffed from the file's own bytes, never the client's header.
+  contentType String
+  sizeBytes   Int
+
+  createdAt DateTime @default(now())
+
+  @@index([orderId])
 }
 
 /// One driver's (or one company's) decision to hide an open load from their own

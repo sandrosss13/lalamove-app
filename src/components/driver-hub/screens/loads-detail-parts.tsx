@@ -306,11 +306,20 @@ export type CargoCompliance = {
 };
 
 /**
- * The eight cargo rows, in the design's order.
+ * The cargo rows, in the design's order.
  *
- * Built as data rather than as eight hand-written `<dt>`/`<dd>` pairs so the
- * grid's alignment cannot drift row to row, and so the order is one list to read
+ * Built as data rather than as hand-written `<dt>`/`<dd>` pairs so the grid's
+ * alignment cannot drift row to row, and so the order is one list to read
  * rather than eighty lines of markup to scan.
+ *
+ * **A row the client never filled in is left out, not printed as "—".** The
+ * booking form no longer asks for weight, dimensions, packaging, quantity or
+ * handling — it asks for a weight bracket (the vehicle) and, optionally,
+ * photos — so on a new order those rows would all be dashes, a table of
+ * nothing that reads as data having failed to load. Type and Helpers are always
+ * known and always shown. Volume follows Dimensions: both need all three axes.
+ * Handling is hidden at zero tags for the same reason — "None declared" claimed
+ * the client was asked and said nothing applied, which is no longer true.
  *
  * There is no Body type row — the booked chassis appears only in the cold-chain
  * mismatch note below, where it is the point rather than a detail.
@@ -333,8 +342,10 @@ function cargoRows(
     widthM: load.cargoWidthM,
     heightM: load.cargoHeightM,
   };
+  const hasFullDims =
+    dims.lengthM !== null && dims.widthM !== null && dims.heightM !== null;
 
-  return [
+  const rows: { key: string; label: string; value: string | null }[] = [
     {
       key: "type",
       label: t("rowType"),
@@ -343,33 +354,33 @@ function cargoRows(
     {
       key: "weight",
       label: t("rowWeight"),
-      value: formatWeightKg(load.cargoWeightKg),
+      value:
+        load.cargoWeightKg === null ? null : formatWeightKg(load.cargoWeightKg),
     },
     {
       key: "dimensions",
       label: t("rowDimensions"),
-      value: formatLoadDims(dims),
+      value: hasFullDims ? formatLoadDims(dims) : null,
     },
-    { key: "volume", label: t("rowVolume"), value: formatVolumeM3(dims) },
+    {
+      key: "volume",
+      label: t("rowVolume"),
+      value: hasFullDims ? formatVolumeM3(dims) : null,
+    },
     {
       key: "packaging",
       label: t("rowPackaging"),
-      value: load.packagingDescription ?? EM_DASH,
+      value: load.packagingDescription,
     },
     {
       key: "quantity",
       label: t("rowQuantity"),
-      value: load.itemQuantity ?? EM_DASH,
+      value: load.itemQuantity,
     },
     {
       key: "handling",
       label: t("rowHandling"),
-      // "None declared" rather than an em dash: the client was asked and said
-      // nothing applied, which is a different fact from a value being missing.
-      value:
-        tags.length === 0
-          ? t("noneDeclared")
-          : tags.map((tag) => tag.label).join(", "),
+      value: tags.length === 0 ? null : tags.map((tag) => tag.label).join(", "),
     },
     {
       key: "helpers",
@@ -377,6 +388,10 @@ function cargoRows(
       value: formatHelperRequest(load.helperCount, translateTag),
     },
   ];
+
+  return rows.flatMap((row) =>
+    row.value === null ? [] : [{ ...row, value: row.value }],
+  );
 }
 
 /** The cargo specification, as a two-column definition list. */

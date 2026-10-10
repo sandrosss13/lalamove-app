@@ -378,6 +378,7 @@
   "orders": {
     "bodyTypeMustBeOneOf": "bodyType უნდა იყოს ერთ-ერთი შემდეგიდან: {allowed}.",
     "deliverydeadlineMustBeAfterPickupwindowend": "deliveryDeadline უნდა იყოს pickupWindowEnd-ის შემდეგ.",
+    "cargoEnvelopeIncomplete": "მიუთითეთ cargoWeightKg, cargoLengthM, cargoWidthM და cargoHeightM ერთად, ან არცერთი.",
     "descriptionMustBeAStringWhen": "description მითითებისას უნდა იყოს ტექსტური ტიპი.",
     "failedToDrawAnOrderReference": "მიმდევრობიდან შეკვეთის ნომრის გენერირება ვერ მოხერხდა.",
     "fieldMeasurementOutOfRange": "{field} უნდა იყოს 0-ზე მეტი რიცხვი და არაუმეტეს {max} {unit}.",

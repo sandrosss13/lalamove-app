@@ -697,13 +697,17 @@ function LoadRow({ load, nowIso }: { load: HubLoad; nowIso: string }) {
   // Resolved once: the cargo cell renders it and also hands it to its own
   // `title`, and a lookup written twice is a lookup that can be changed once.
   const cargoLabel = cargoCategoryLabel(load.cargoCategory, tRoot);
-  const cargoDetail = `${load.packagingDescription ?? EM_DASH} · ${formatVolumeM3(
-    {
-      lengthM: load.cargoLengthM,
-      widthM: load.cargoWidthM,
-      heightM: load.cargoHeightM,
-    },
-  )}`;
+  // Either half may be undeclared — most orders now carry neither — so only
+  // the declared ones are joined, and a bare dash stands in for both.
+  const cargoVolume = formatVolumeM3({
+    lengthM: load.cargoLengthM,
+    widthM: load.cargoWidthM,
+    heightM: load.cargoHeightM,
+  });
+  const cargoDetail =
+    [load.packagingDescription, cargoVolume === EM_DASH ? null : cargoVolume]
+      .filter((part): part is string => part !== null)
+      .join(" · ") || EM_DASH;
 
   return (
     <TableRow

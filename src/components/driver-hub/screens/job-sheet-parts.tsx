@@ -41,6 +41,7 @@ import {
   type NavigationDestination,
 } from "@/components/driver-hub/screens/job-sheet-navigate";
 import { formatGel } from "@/components/driver-hub/screens/jobs-format";
+import { OrderPhotoGallery } from "@/components/order-photo-gallery";
 import { Button } from "@/components/ui/button";
 import type { HubJobSheet } from "@/lib/dashboard/hub/job-sheet";
 import { cn } from "@/lib/utils";
@@ -1097,9 +1098,10 @@ export function JobSheetPickedUpStrip({
  * arguably more load-bearing here than on the board they were written for: the
  * board's reader is deciding whether to accept a hazmat load, this one is about
  * to put it on a vehicle. `CargoPhotoTiles` is **not** included — they are
- * permanent dashed placeholders for a feature that does not exist, and v1 of
- * this screen captures no media of any kind, so three empty tiles here would
- * promise a proof-of-delivery affordance the product has explicitly refused.
+ * the board's dashed placeholders, and three empty tiles here would promise a
+ * proof-of-delivery affordance the product has explicitly refused. What *is*
+ * included is `OrderPhotoGallery`: the photos the client attached at booking,
+ * read-only, and absent entirely when there are none.
  */
 export function JobSheetCargoCard({
   job,
@@ -1120,6 +1122,7 @@ export function JobSheetCargoCard({
         <HandlingTagPills load={job} />
       </div>
       <LoadComplianceNotes load={job} />
+      <OrderPhotoGallery photos={job.photos} headingClassName={LABEL_CLASSES} />
     </HubCard>
   );
 }
