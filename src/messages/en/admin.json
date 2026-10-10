@@ -167,9 +167,9 @@
   },
   "adminImageUpload": {
     "chooseImage": "Choose image",
-    "fileHint": "JPG, PNG or WebP · max 8 MB.",
-    "fileHintLogos": "JPG, PNG or WebP · max 8 MB. Logos must be transparent PNG — SVG is not accepted.",
-    "fileTooLarge": "That file is larger than 8 MB. Choose a smaller one.",
+    "fileHint": "JPG, PNG or WebP · max 12 MB.",
+    "fileHintLogos": "JPG, PNG or WebP · max 12 MB. Logos must be transparent PNG — SVG is not accepted.",
+    "fileTooLarge": "That file is larger than 12 MB. Choose a smaller one.",
     "hideUrlField": "Hide URL field",
     "noPreview": "No preview",
     "pasteAUrlInstead": "Paste a URL instead",
@@ -181,8 +181,8 @@
     "replaceVideo": "Replace video",
     "uploadingVideo": "Uploading video",
     "videoUrl": "Video URL",
-    "videoFileHint": "MP4 (H.264) or WebM, about 1920 × 826, 6–15 s, no sound, under 8 MB. The image above is used as the cover and as the fallback.",
-    "videoTooLarge": "That video is larger than 8 MB. Shorten or compress it and try again.",
+    "videoFileHint": "MP4 (H.264) or WebM, about 1920 × 826, 6–15 s, no sound, under 12 MB. The image above is used as the cover and as the fallback.",
+    "videoTooLarge": "That video is larger than 12 MB. Shorten or compress it and try again.",
     "videoWrongFileType": "That file is not an MP4 or WebM video. Choose a different one.",
     "videoPreviewFailed": "This video could not be loaded. If it was just uploaded, check the site-media bucket is public."
   },

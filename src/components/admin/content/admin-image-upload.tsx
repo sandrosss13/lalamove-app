@@ -40,7 +40,7 @@ export type AdminMediaKind = "image" | "video";
  *
  * The size caps are enforced here purely to fail fast with a sentence the
  * content manager can act on; Storage enforces its own limit regardless, so
- * nothing depends on this check holding. 8 MB is comfortably above every image
+ * nothing depends on this check holding. 12 MB is comfortably above every image
  * the design calls for (the largest is a 2400×900 hero banner) and is the
  * budget for a 6–15 s muted hero loop.
  */
@@ -61,7 +61,7 @@ const KIND_CONFIG: Record<
 > = {
   image: {
     contentTypes: ["image/jpeg", "image/png", "image/webp"],
-    maxBytes: 8 * 1024 * 1024,
+    maxBytes: 12 * 1024 * 1024,
     chooseKey: "admin.adminImageUpload.chooseImage",
     replaceKey: "admin.adminImageUpload.replaceImage",
     uploadingKey: "admin.adminImageUpload.uploadingImage",
@@ -75,7 +75,7 @@ const KIND_CONFIG: Record<
   },
   video: {
     contentTypes: ["video/mp4", "video/webm"],
-    maxBytes: 8 * 1024 * 1024,
+    maxBytes: 12 * 1024 * 1024,
     chooseKey: "admin.adminImageUpload.chooseVideo",
     replaceKey: "admin.adminImageUpload.replaceVideo",
     uploadingKey: "admin.adminImageUpload.uploadingVideo",
