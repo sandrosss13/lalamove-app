@@ -94,6 +94,26 @@
     "ka": "title არ უნდა იყოს ცარიელი ტექსტი.",
     "_source": "src/app/api/admin/content/banners/[id]/route.ts"
   },
+  "adminContentBanners.copyFieldMustBeStringOrNull": {
+    "en": "{field} must be a string or null.",
+    "ka": "{field} უნდა იყოს ტექსტი ან null.",
+    "_source": "src/app/api/admin/content/banners/validation.ts"
+  },
+  "adminContentBanners.heroCarouselFull": {
+    "en": "The {locale} hero carousel already has {max} active banners, which is the most it can show. Switch one off before adding another.",
+    "ka": "{locale} ჰერო კარუსელს უკვე აქვს {max} აქტიური ბანერი, რაც მაქსიმუმია. ახლის დამატებამდე ერთ-ერთი გამორთეთ.",
+    "_source": "src/app/api/admin/content/banners/validation.ts"
+  },
+  "adminContentBanners.offersRowFull": {
+    "en": "The {locale} offers row already has {max} active banners, which is the most it can show. Switch one off before adding another.",
+    "ka": "{locale} შეთავაზებების ბლოკს უკვე აქვს {max} აქტიური ბანერი, რაც მაქსიმუმია. ახლის დამატებამდე ერთ-ერთი გამორთეთ.",
+    "_source": "src/app/api/admin/content/banners/validation.ts"
+  },
+  "adminContentBanners.partnerLogosFull": {
+    "en": "The {locale} partner marquee already has {max} active logos, which is the most it can show. Switch one off before adding another.",
+    "ka": "{locale} პარტნიორების ზოლს უკვე აქვს {max} აქტიური ლოგო, რაც მაქსიმუმია. ახლის დამატებამდე ერთ-ერთი გამორთეთ.",
+    "_source": "src/app/api/admin/content/banners/validation.ts"
+  },
   "adminContentHomePageSections.homePageSectionNotFound": {
     "en": "Home page section not found.",
     "ka": "მთავარი გვერდის სექცია ვერ მოიძებნა.",
@@ -108,6 +128,21 @@
     "en": "type must be a string.",
     "ka": "type უნდა იყოს ტექსტური ტიპი.",
     "_source": "src/app/api/admin/content/home-page-sections/[id]/route.ts"
+  },
+  "adminContentHomePageSections.idsMustBeDistinctIds": {
+    "en": "ids must be a non-empty array of distinct section ids.",
+    "ka": "ids უნდა იყოს სექციების განსხვავებული id-ების არაცარიელი მასივი.",
+    "_source": "src/app/api/admin/content/home-page-sections/bulk.ts"
+  },
+  "adminContentHomePageSections.idsMustBelongToLocale": {
+    "en": "Every id must be a section in the {locale} locale. Reload the list and try again.",
+    "ka": "ყველა id უნდა იყოს {locale} ენის სექცია. განაახლეთ სია და სცადეთ თავიდან.",
+    "_source": "src/app/api/admin/content/home-page-sections/bulk.ts"
+  },
+  "adminContentHomePageSections.localesMustDiffer": {
+    "en": "from and to must be different locales.",
+    "ka": "from და to განსხვავებული ენები უნდა იყოს.",
+    "_source": "src/app/api/admin/content/home-page-sections/bulk.ts"
   },
   "adminContentMedia.unsupportedContentType": {
     "en": "Only JPG, PNG and WebP images are accepted.",

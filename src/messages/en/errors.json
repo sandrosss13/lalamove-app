@@ -26,12 +26,19 @@
     "imageurlMustBeANonEmpty": "imageUrl must be a non-empty string.",
     "placementIsRequiredAndMustBe": "placement is required and must be a non-empty string.",
     "placementMustBeANonEmpty": "placement must be a non-empty string.",
-    "titleMustBeANonEmpty": "title must be a non-empty string."
+    "titleMustBeANonEmpty": "title must be a non-empty string.",
+    "copyFieldMustBeStringOrNull": "{field} must be a string or null.",
+    "heroCarouselFull": "The {locale} hero carousel already has {max} active banners, which is the most it can show. Switch one off before adding another.",
+    "offersRowFull": "The {locale} offers row already has {max} active banners, which is the most it can show. Switch one off before adding another.",
+    "partnerLogosFull": "The {locale} partner marquee already has {max} active logos, which is the most it can show. Switch one off before adding another."
   },
   "adminContentHomePageSections": {
     "homePageSectionNotFound": "Home page section not found.",
     "typeIsRequiredAndMustBe": "type is required and must be a string.",
-    "typeMustBeAString": "type must be a string."
+    "typeMustBeAString": "type must be a string.",
+    "idsMustBeDistinctIds": "ids must be a non-empty array of distinct section ids.",
+    "idsMustBelongToLocale": "Every id must be a section in the {locale} locale. Reload the list and try again.",
+    "localesMustDiffer": "from and to must be different locales."
   },
   "adminContentMedia": {
     "unsupportedContentType": "Only JPG, PNG and WebP images are accepted."

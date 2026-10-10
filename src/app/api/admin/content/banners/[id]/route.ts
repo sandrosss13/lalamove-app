@@ -10,9 +10,14 @@ import {
 import { getRequestTranslations } from "@/i18n/request-locale";
 import { authorizeAdminApi } from "@/lib/admin/api-auth";
 import { writeAuditLog } from "@/lib/admin/audit";
+import { revalidateHomePage } from "@/lib/admin/home-page-data";
 import { prisma } from "@/lib/prisma";
 
-import { checkHeroBannerCapacity } from "../validation";
+import {
+  BANNER_COPY_FIELDS,
+  checkBannerPlacementCapacity,
+  parseBannerCopyField,
+} from "../validation";
 
 /**
  * Staff who may read and write promotional banners. Stated per route rather
@@ -48,6 +53,9 @@ type AdminBannerRow = {
   isActive: boolean;
   startsAt: string | null;
   endsAt: string | null;
+  eyebrow: string | null;
+  body: string | null;
+  ctaLabel: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -64,6 +72,9 @@ function toBannerRow(banner: Banner): AdminBannerRow {
     isActive: banner.isActive,
     startsAt: banner.startsAt?.toISOString() ?? null,
     endsAt: banner.endsAt?.toISOString() ?? null,
+    eyebrow: banner.eyebrow,
+    body: banner.body,
+    ctaLabel: banner.ctaLabel,
     createdAt: banner.createdAt.toISOString(),
     updatedAt: banner.updatedAt.toISOString(),
   };
@@ -338,6 +349,18 @@ function parseUpdateBannerBody(
     return { error: t("common.shared.endsatMustBeAfterStartsat") };
   }
 
+  // The optional card copy: an absent key leaves the stored value alone, and
+  // `null` or a blank string clears it.
+  for (const field of BANNER_COPY_FIELDS) {
+    if (field in record) {
+      const parsedCopy = parseBannerCopyField(record[field], field, t);
+      if ("error" in parsedCopy) {
+        return { error: parsedCopy.error };
+      }
+      data[field] = parsedCopy.value;
+    }
+  }
+
   return {
     data,
     next: {
@@ -397,13 +420,16 @@ export async function PATCH(
   // Evaluated against the state the row will end up with, not the one it has:
   // the table's active toggle patches `isActive` on its own, and that is how a
   // seventh hero banner would otherwise get switched on. `ignoreId` keeps this
-  // banner from counting itself, so editing one of a full six still saves.
-  const overCapacity = await checkHeroBannerCapacity({
-    locale: parsed.next.locale,
-    placement: parsed.next.placement,
-    isActive: parsed.next.isActive,
-    ignoreId: id,
-  });
+  // banner from counting itself, so editing one of a full set still saves.
+  const overCapacity = await checkBannerPlacementCapacity(
+    {
+      locale: parsed.next.locale,
+      placement: parsed.next.placement,
+      isActive: parsed.next.isActive,
+      ignoreId: id,
+    },
+    t,
+  );
 
   if (overCapacity !== null) {
     return NextResponse.json({ error: overCapacity }, { status: 409 });
@@ -429,6 +455,8 @@ export async function PATCH(
       isActive: banner.isActive,
     },
   });
+
+  revalidateHomePage();
 
   return NextResponse.json({ banner: toBannerRow(banner) }, { status: 200 });
 }
@@ -479,6 +507,8 @@ export async function DELETE(
       sortOrder: existing.sortOrder,
     },
   });
+
+  revalidateHomePage();
 
   return NextResponse.json({ id }, { status: 200 });
 }

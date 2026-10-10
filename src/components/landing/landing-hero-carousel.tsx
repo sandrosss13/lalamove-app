@@ -4,19 +4,37 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useTranslations } from "next-intl";
 
+import { LandingLink } from "@/components/landing/landing-link";
 import {
+  HERO_INTERVAL_DEFAULT,
+  HERO_INTERVAL_MAX,
+  HERO_INTERVAL_MIN,
   MAX_HERO_BANNERS,
   type HeroCarouselContent,
 } from "@/lib/admin/home-page-content";
-import { Link } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 // Type-only, so nothing from the page module is pulled into the client bundle
 // and the import cycle (the page will render this component) is erased at
 // compile time. `LandingBanner` is declared once, there.
 import type { LandingBanner } from "@/components/landing/landing-page";
 
-/** Auto-advance cadence, from the design. */
-const AUTO_ADVANCE_MS = 6000;
+const ARROW_CLASSES =
+  "grid h-10 w-10 place-items-center rounded-full border border-white/18 bg-home-night/62 text-home-on-night backdrop-blur-glass-chip transition-colors hover:bg-home-night/80";
+
+/**
+ * Auto-advance cadence in milliseconds: the authored `intervalSec`, clamped
+ * into the contract's range so a stray value can neither strobe the slides nor
+ * leave the carousel looking stuck.
+ */
+function autoAdvanceMs(intervalSec: number | undefined): number {
+  const seconds =
+    typeof intervalSec === "number" && Number.isFinite(intervalSec)
+      ? intervalSec
+      : HERO_INTERVAL_DEFAULT;
+  return (
+    Math.min(HERO_INTERVAL_MAX, Math.max(HERO_INTERVAL_MIN, seconds)) * 1000
+  );
+}
 
 /**
  * Duration of the programmatic slide scroll.
@@ -43,8 +61,10 @@ function easeOutExpo(progress: number) {
 
 /**
  * The hero banner carousel: up to `MAX_HERO_BANNERS` CMS-managed slides in a
- * snap-scrolling frame with arrows, dots, native touch swipe and a 6-second
- * auto-advance that stops permanently on the first interaction.
+ * full-bleed snap-scrolling frame — photo, scrim, eyebrow tag, headline, body
+ * and an optional button per slide — with dots and arrows top-right, native
+ * touch swipe, and an auto-advance (`intervalSec`, default six seconds) that
+ * stops permanently on the first interaction.
  *
  * Three operations that must never be confused:
  *
@@ -76,6 +96,7 @@ export function LandingHeroCarousel({
   const t = useTranslations("landing.landingHeroCarousel");
   const slides = banners.slice(0, MAX_HERO_BANNERS);
   const count = slides.length;
+  const intervalMs = autoAdvanceMs(content.intervalSec);
 
   const [index, setIndex] = useState(0);
   const [reducedMotion, setReducedMotion] = useState(false);
@@ -168,7 +189,7 @@ export function LandingHeroCarousel({
 
     const timer = setInterval(() => {
       goTo(indexRef.current + 1);
-    }, AUTO_ADVANCE_MS);
+    }, intervalMs);
     autoAdvanceRef.current = timer;
 
     return () => {
@@ -177,7 +198,7 @@ export function LandingHeroCarousel({
         autoAdvanceRef.current = null;
       }
     };
-  }, [count, goTo, reducedMotion]);
+  }, [count, goTo, intervalMs, reducedMotion]);
 
   // Scroll sync: keeps the dots honest after a touch swipe. Debounced so it
   // reads the settled position rather than every frame of the gesture.
@@ -232,8 +253,8 @@ export function LandingHeroCarousel({
     };
   }, []);
 
-  // Nothing at all rather than an empty frame: with no banners authored — the
-  // state the CMS is in today — the page simply has no carousel.
+  // Nothing at all rather than an empty frame: with no banners authored the
+  // page simply has no carousel (and the booking card drops its overlap).
   if (count === 0) {
     return null;
   }
@@ -241,41 +262,24 @@ export function LandingHeroCarousel({
   const showControls = count > 1;
 
   return (
-    <div
-      role="region"
+    <section
       aria-roledescription="carousel"
       aria-label={t("featuredBanners")}
-      className="relative mx-auto w-full max-w-[1200px]"
+      className="relative bg-home-night"
     >
-      <div className="relative h-[clamp(260px,34vw,480px)] overflow-hidden rounded-[2rem] border border-line-strong bg-frame shadow-frame">
+      <div className="relative h-[clamp(460px,46vw,620px)] overflow-hidden">
         <div
           ref={trackRef}
           className="flex h-full w-full snap-x snap-mandatory overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {slides.map((banner, slideIndex) => {
-            const caption = banner.title.trim() || content.fallbackCaption;
-
-            /*
-              Plain <img> rather than next/image: the URL is typed in or
-              uploaded by a content editor and can point at any host, so it
-              can't be pinned in `remotePatterns` at build time. Same call the
-              admin banners table makes.
-            */
-            const image = (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={banner.imageUrl}
-                alt={banner.title}
-                // The first slide is above the fold; the rest are one swipe
-                // away at best.
-                loading={slideIndex === 0 ? "eager" : "lazy"}
-                fetchPriority={slideIndex === 0 ? "high" : undefined}
-                // Without this a swipe starting on the image begins a native
-                // image drag instead of scrolling the track.
-                draggable={false}
-                className="h-full w-full object-cover"
-              />
-            );
+            const title = banner.title.trim() || content.fallbackCaption || "";
+            const eyebrow = banner.eyebrow?.trim();
+            const body = banner.body?.trim();
+            const ctaLabel = banner.ctaLabel?.trim();
+            // Only the first slide is the page's `h1`; the rest are headings
+            // of their own slide, not of the page.
+            const Heading = slideIndex === 0 ? "h1" : "h2";
 
             return (
               <div
@@ -283,36 +287,73 @@ export function LandingHeroCarousel({
                 role="group"
                 aria-roledescription="slide"
                 aria-label={t("slideOf", { index: slideIndex + 1, count })}
-                className="relative h-full w-full shrink-0 grow-0 basis-full snap-start"
+                className="relative h-full w-full shrink-0 grow-0 basis-full snap-start bg-home-slide"
               >
-                {banner.linkUrl ? (
-                  <Link href={banner.linkUrl} className="block h-full w-full">
-                    {image}
-                  </Link>
-                ) : (
-                  image
-                )}
-
                 {/*
-                  The glass chips over the imagery — this caption, the arrows
-                  and the dots — are the one place the page does not flip with
-                  the theme: they sit on a photograph, which is dark-ish in
-                  either theme, so `glass-image*` keeps its dark scrim and the
-                  foreground comes from `on-strong` (the "text on a dark panel"
-                  token, near-white in both themes) rather than from `paper`,
-                  which would go dark-on-dark in the light theme.
-
-                  `pointer-events-none` so it can never swallow a swipe or a
-                  click on the slide's own link.
+                  Plain <img> rather than next/image: the URL is uploaded or
+                  typed in by a content editor and can point at any host, so it
+                  can't be pinned in `remotePatterns` at build time.
                 */}
-                {caption ? (
-                  <span className="pointer-events-none absolute bottom-[clamp(56px,6vw,70px)] left-[clamp(16px,3vw,32px)] inline-flex max-w-[calc(100%-64px)] items-center gap-[9px] rounded-full border border-on-strong/14 bg-glass-image-strong px-4 py-[9px] text-[13.5px] text-on-strong backdrop-blur-glass-chip">
-                    <span
-                      aria-hidden="true"
-                      className="h-[6px] w-[6px] flex-none rounded-full bg-accent"
-                    />
-                    {caption}
-                  </span>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={banner.imageUrl}
+                  alt=""
+                  // The first slide is above the fold; the rest are a swipe
+                  // away at best.
+                  loading={slideIndex === 0 ? "eager" : "lazy"}
+                  fetchPriority={slideIndex === 0 ? "high" : undefined}
+                  // Without this a swipe that starts on the photo begins a
+                  // native image drag instead of scrolling the track.
+                  draggable={false}
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
+                {/* Left-weighted scrim so the copy reads on any photo. */}
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(8,9,10,0.82)_0%,rgba(8,9,10,0.55)_38%,rgba(8,9,10,0)_66%)]"
+                />
+                <div className="absolute inset-0 flex items-center">
+                  {/* The bottom padding leaves room for the booking card,
+                      which overlaps the hero's lower edge; the top padding
+                      keeps the copy clear of the controls on narrow screens.
+                      Mkhedruli sets much wider than Plex Latin, so Georgian
+                      headlines get a smaller size and a wider measure. */}
+                  <div className="mx-auto w-full max-w-[1280px] px-[clamp(20px,4vw,40px)] pt-[clamp(64px,7vw,96px)] pb-[clamp(90px,9vw,120px)] text-home-on-night">
+                    {eyebrow ? (
+                      <p className="mb-5 inline-flex rounded-full bg-home-accent px-3 py-1.5 font-price text-[11px] tracking-[0.16em] text-home-night uppercase">
+                        {eyebrow}
+                      </p>
+                    ) : null}
+                    {title ? (
+                      <Heading className="m-0 mb-4 max-w-[14ch] text-[clamp(36px,5.4vw,72px)] leading-[0.98] font-semibold tracking-[-0.045em] text-balance [&:lang(ka)]:max-w-[18ch] [&:lang(ka)]:text-[clamp(30px,4.2vw,56px)] [&:lang(ka)]:leading-[1.08] [&:lang(ka)]:tracking-[-0.02em]">
+                        {title}
+                      </Heading>
+                    ) : null}
+                    {body ? (
+                      <p className="m-0 max-w-[42ch] text-[clamp(16px,1.5vw,19px)] leading-normal text-pretty text-home-on-night/78">
+                        {body}
+                      </p>
+                    ) : null}
+                    {banner.linkUrl && ctaLabel ? (
+                      <LandingLink
+                        href={banner.linkUrl}
+                        className="mt-7 inline-flex items-center rounded-full bg-home-accent px-[22px] py-3 text-[15px] font-semibold text-home-night transition-colors hover:bg-home-accent-hover"
+                      >
+                        {ctaLabel}
+                      </LandingLink>
+                    ) : null}
+                  </div>
+                </div>
+                {/* A banner with a link but no button label is still
+                    clickable as a whole, as it was before v4. */}
+                {banner.linkUrl && !ctaLabel ? (
+                  <LandingLink
+                    href={banner.linkUrl}
+                    ariaLabel={title || undefined}
+                    className="absolute inset-0"
+                  >
+                    <span className="sr-only">{title}</span>
+                  </LandingLink>
                 ) : null}
               </div>
             );
@@ -320,33 +361,8 @@ export function LandingHeroCarousel({
         </div>
 
         {showControls ? (
-          <>
-            <button
-              type="button"
-              aria-label={t("previousBanner")}
-              onClick={() => {
-                stopAutoAdvance();
-                goTo(indexRef.current - 1);
-              }}
-              className="absolute top-1/2 left-[clamp(10px,1.5vw,18px)] grid h-[42px] w-[42px] -translate-y-1/2 place-items-center rounded-full border border-on-strong/18 bg-glass-image text-on-strong backdrop-blur-glass-chip transition-colors hover:bg-glass-image-strong"
-            >
-              <ChevronLeft aria-hidden="true" className="h-[17px] w-[17px]" />
-            </button>
-
-            <button
-              type="button"
-              aria-label={t("nextBanner")}
-              onClick={() => {
-                stopAutoAdvance();
-                goTo(indexRef.current + 1);
-              }}
-              className="absolute top-1/2 right-[clamp(10px,1.5vw,18px)] grid h-[42px] w-[42px] -translate-y-1/2 place-items-center rounded-full border border-on-strong/18 bg-glass-image text-on-strong backdrop-blur-glass-chip transition-colors hover:bg-glass-image-strong"
-            >
-              <ChevronRight aria-hidden="true" className="h-[17px] w-[17px]" />
-            </button>
-
-            {/* Below the caption chip, not beside it. */}
-            <div className="absolute bottom-[clamp(16px,3vw,24px)] left-[clamp(16px,3vw,32px)] flex items-center gap-[7px] rounded-full border border-on-strong/14 bg-glass-image px-3 py-2 backdrop-blur-glass-chip">
+          <div className="absolute top-[clamp(20px,3vw,32px)] right-[clamp(20px,4vw,40px)] flex items-center gap-2">
+            <div className="flex items-center gap-[7px] rounded-full border border-white/14 bg-home-night/62 px-[13px] py-[9px] backdrop-blur-glass-chip">
               {slides.map((banner, dotIndex) => (
                 <button
                   key={banner.id}
@@ -358,21 +374,43 @@ export function LandingHeroCarousel({
                     goTo(dotIndex);
                   }}
                   className={cn(
-                    // The active dot stretches rather than swapping for a
-                    // different element, so width and colour can transition
-                    // together. `--landing-duration-dot` is flattened by the
-                    // reduced-motion block in `globals.css`.
+                    // The active dot stretches rather than swapping element,
+                    // so width and colour transition together;
+                    // `--landing-duration-dot` is flattened under reduced
+                    // motion in `globals.css`.
                     "h-2 flex-none rounded-full border-0 p-0 transition-[width,background-color] duration-[var(--landing-duration-dot)] ease-[var(--landing-ease)]",
                     dotIndex === index
-                      ? "w-6 bg-accent"
-                      : "w-2 bg-on-strong/55",
+                      ? "w-6 bg-home-accent"
+                      : "w-2 bg-home-on-night/55",
                   )}
                 />
               ))}
             </div>
-          </>
+            <button
+              type="button"
+              aria-label={t("previousBanner")}
+              onClick={() => {
+                stopAutoAdvance();
+                goTo(indexRef.current - 1);
+              }}
+              className={ARROW_CLASSES}
+            >
+              <ChevronLeft aria-hidden="true" className="h-[17px] w-[17px]" />
+            </button>
+            <button
+              type="button"
+              aria-label={t("nextBanner")}
+              onClick={() => {
+                stopAutoAdvance();
+                goTo(indexRef.current + 1);
+              }}
+              className={ARROW_CLASSES}
+            >
+              <ChevronRight aria-hidden="true" className="h-[17px] w-[17px]" />
+            </button>
+          </div>
         ) : null}
       </div>
-    </div>
+    </section>
   );
 }

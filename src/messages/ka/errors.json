@@ -26,12 +26,19 @@
     "imageurlMustBeANonEmpty": "imageUrl არ უნდა იყოს ცარიელი ტექსტი.",
     "placementIsRequiredAndMustBe": "placement სავალდებულოა და არ უნდა იყოს ცარიელი ტექსტი.",
     "placementMustBeANonEmpty": "placement არ უნდა იყოს ცარიელი ტექსტი.",
-    "titleMustBeANonEmpty": "title არ უნდა იყოს ცარიელი ტექსტი."
+    "titleMustBeANonEmpty": "title არ უნდა იყოს ცარიელი ტექსტი.",
+    "copyFieldMustBeStringOrNull": "{field} უნდა იყოს ტექსტი ან null.",
+    "heroCarouselFull": "{locale} ჰერო კარუსელს უკვე აქვს {max} აქტიური ბანერი, რაც მაქსიმუმია. ახლის დამატებამდე ერთ-ერთი გამორთეთ.",
+    "offersRowFull": "{locale} შეთავაზებების ბლოკს უკვე აქვს {max} აქტიური ბანერი, რაც მაქსიმუმია. ახლის დამატებამდე ერთ-ერთი გამორთეთ.",
+    "partnerLogosFull": "{locale} პარტნიორების ზოლს უკვე აქვს {max} აქტიური ლოგო, რაც მაქსიმუმია. ახლის დამატებამდე ერთ-ერთი გამორთეთ."
   },
   "adminContentHomePageSections": {
     "homePageSectionNotFound": "მთავარი გვერდის სექცია ვერ მოიძებნა.",
     "typeIsRequiredAndMustBe": "type სავალდებულოა და უნდა იყოს ტექსტური ტიპი.",
-    "typeMustBeAString": "type უნდა იყოს ტექსტური ტიპი."
+    "typeMustBeAString": "type უნდა იყოს ტექსტური ტიპი.",
+    "idsMustBeDistinctIds": "ids უნდა იყოს სექციების განსხვავებული id-ების არაცარიელი მასივი.",
+    "idsMustBelongToLocale": "ყველა id უნდა იყოს {locale} ენის სექცია. განაახლეთ სია და სცადეთ თავიდან.",
+    "localesMustDiffer": "from და to განსხვავებული ენები უნდა იყოს."
   },
   "adminContentMedia": {
     "unsupportedContentType": "მიიღება მხოლოდ JPG, PNG და WebP სურათები."

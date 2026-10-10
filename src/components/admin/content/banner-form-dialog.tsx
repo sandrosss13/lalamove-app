@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -66,6 +67,20 @@ const PLACEMENT_SUGGESTIONS = [
 
 /** `datalist` id, referenced by the placement input's `list` attribute. */
 const PLACEMENT_LIST_ID = "banner-placement-suggestions";
+
+/**
+ * Length caps on the optional card copy, matching what both banner routes
+ * enforce, so the inputs stop at the limit instead of the save failing.
+ */
+const MAX_EYEBROW_LENGTH = 60;
+const MAX_BODY_LENGTH = 280;
+const MAX_CTA_LABEL_LENGTH = 40;
+
+/** A trimmed optional copy field, or null when blank — the API's "unset". */
+function toOptionalCopy(value: string): string | null {
+  const trimmed = value.trim();
+  return trimmed === "" ? null : trimmed;
+}
 
 /** Matches the bounds both banner routes enforce, so the form fails first. */
 const MIN_SORT_ORDER = 0;
@@ -155,6 +170,11 @@ export function BannerFormDialog({
   const [locale, setLocale] = useState<ContentLocale>(banner?.locale ?? "KA");
   const [imageUrl, setImageUrl] = useState(banner?.imageUrl ?? "");
   const [linkUrl, setLinkUrl] = useState(banner?.linkUrl ?? "");
+  // Card copy, rendered by the home page's offer cards (and the hero slides'
+  // tag and text); other placements ignore it.
+  const [eyebrow, setEyebrow] = useState(banner?.eyebrow ?? "");
+  const [body, setBody] = useState(banner?.body ?? "");
+  const [ctaLabel, setCtaLabel] = useState(banner?.ctaLabel ?? "");
   const [placement, setPlacement] = useState(
     banner?.placement ?? DEFAULT_PLACEMENT,
   );
@@ -220,6 +240,9 @@ export function BannerFormDialog({
             locale,
             imageUrl: imageUrl.trim(),
             linkUrl: linkUrl.trim() === "" ? null : linkUrl.trim(),
+            eyebrow: toOptionalCopy(eyebrow),
+            body: toOptionalCopy(body),
+            ctaLabel: toOptionalCopy(ctaLabel),
             placement: placement.trim(),
             sortOrder: parsedSortOrder,
             isActive,
@@ -262,7 +285,7 @@ export function BannerFormDialog({
         }
       }}
     >
-      <DialogContent>
+      <DialogContent className="max-h-[85vh] overflow-y-auto">
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <DialogHeader>
             <DialogTitle>
@@ -374,6 +397,51 @@ export function BannerFormDialog({
                 placeholder={t("admin.bannerFormDialog.linkUrlPlaceholder")}
                 disabled={pending}
               />
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="banner-eyebrow">
+                  {t("admin.bannerFormDialog.eyebrow")}
+                </Label>
+                <Input
+                  id="banner-eyebrow"
+                  value={eyebrow}
+                  maxLength={MAX_EYEBROW_LENGTH}
+                  onChange={(event) => setEyebrow(event.target.value)}
+                  disabled={pending}
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="banner-cta-label">
+                  {t("admin.bannerFormDialog.ctaLabel")}
+                </Label>
+                <Input
+                  id="banner-cta-label"
+                  value={ctaLabel}
+                  maxLength={MAX_CTA_LABEL_LENGTH}
+                  onChange={(event) => setCtaLabel(event.target.value)}
+                  disabled={pending}
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="banner-body">
+                {t("admin.bannerFormDialog.body")}
+              </Label>
+              <Textarea
+                id="banner-body"
+                rows={2}
+                value={body}
+                maxLength={MAX_BODY_LENGTH}
+                onChange={(event) => setBody(event.target.value)}
+                disabled={pending}
+              />
+              <p className="text-xs text-muted-foreground">
+                {t("admin.bannerFormDialog.cardCopyHint")}
+              </p>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
