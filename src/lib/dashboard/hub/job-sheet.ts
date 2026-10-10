@@ -75,6 +75,10 @@ import {
   type HubJobSheetScope,
 } from "@/lib/dashboard/hub/job-sheet-access";
 import { formatCity } from "@/lib/format-city";
+import {
+  loadOrderPhotoViews,
+  type OrderPhotoView,
+} from "@/lib/order-photos/views";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -331,6 +335,14 @@ export type HubJobSheet = {
    * evidence of delivery — v1 captures no photo and no signature.
    */
   receivedBy: string | null;
+
+  /**
+   * The cargo photos the client attached at booking, each with a short-lived
+   * signed read URL minted for this render. Empty for an order without any,
+   * which is most of them. Loaded only after the tenancy check, like every
+   * other field here.
+   */
+  photos: OrderPhotoView[];
 };
 
 /**
@@ -488,5 +500,7 @@ export async function getHubJobSheet(
     overtimeDriverPayout: order.overtimeDriverPayout,
     waitingMinutes: order.waitingMinutes,
     receivedBy: textOrNull(order.receivedBy),
+
+    photos: await loadOrderPhotoViews(order.id),
   };
 }

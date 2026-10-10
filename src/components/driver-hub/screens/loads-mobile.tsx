@@ -567,14 +567,26 @@ function LoadCard({ load, nowIso }: { load: HubLoad; nowIso: string }) {
         </span>
       </div>
 
+      {/* Weight and dimensions only when declared: most orders no longer
+          carry them, and "Furniture · — · —" reads as a broken row. */}
       <p className="mt-1 text-xs text-muted-foreground">
-        {cargoCategoryLabel(load.cargoCategory, tRoot)} ·{" "}
-        {formatWeightKg(load.cargoWeightKg)} ·{" "}
-        {formatLoadDims({
-          lengthM: load.cargoLengthM,
-          widthM: load.cargoWidthM,
-          heightM: load.cargoHeightM,
-        })}
+        {[
+          cargoCategoryLabel(load.cargoCategory, tRoot),
+          load.cargoWeightKg === null
+            ? null
+            : formatWeightKg(load.cargoWeightKg),
+          load.cargoLengthM === null ||
+          load.cargoWidthM === null ||
+          load.cargoHeightM === null
+            ? null
+            : formatLoadDims({
+                lengthM: load.cargoLengthM,
+                widthM: load.cargoWidthM,
+                heightM: load.cargoHeightM,
+              }),
+        ]
+          .filter((part): part is string => part !== null)
+          .join(" · ")}
       </p>
 
       {/* The trip line. It used to open with the pick-up window; that fact moved

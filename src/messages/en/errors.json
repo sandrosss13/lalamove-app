@@ -371,6 +371,7 @@
   "orders": {
     "bodyTypeMustBeOneOf": "bodyType must be one of: {allowed}.",
     "deliverydeadlineMustBeAfterPickupwindowend": "deliveryDeadline must be after pickupWindowEnd.",
+    "cargoEnvelopeIncomplete": "Send cargoWeightKg, cargoLengthM, cargoWidthM and cargoHeightM together, or none of them.",
     "descriptionMustBeAStringWhen": "description must be a string when provided.",
     "failedToDrawAnOrderReference": "Failed to draw an order reference from the sequence.",
     "fieldMeasurementOutOfRange": "{field} must be a number greater than 0 and no more than {max} {unit}.",
