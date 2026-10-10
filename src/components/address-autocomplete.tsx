@@ -3,6 +3,8 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 
+import { cn } from "@/lib/utils";
+
 /** A single map coordinate. Mirrors `LatLng` from `@/lib/geo`, duplicated here
  * so this client component never imports the server-only geo module. */
 type LatLng = {
@@ -71,7 +73,54 @@ type AddressAutocompleteProps = {
   onPlaceSelected?: (label: string) => void;
   placeholder?: string;
   required?: boolean;
+  /**
+   * Per-part class overrides, for hosts that dress the field in their own
+   * design language (the v4 landing booking card). Each key *replaces* that
+   * part's default classes rather than merging with them, so a host gets
+   * exactly the look it asks for. Omitted keys keep the defaults, so existing
+   * callers render exactly as before.
+   */
+  classNames?: AddressAutocompleteClassNames;
+  /**
+   * Float the suggestions list over whatever follows the input instead of
+   * pushing it down. For hosts that lay fields out side by side (a grid row),
+   * where an in-flow list would stretch the whole row. Defaults to `false`,
+   * the in-flow behaviour the stacked booking form relies on.
+   */
+  overlaySuggestions?: boolean;
+  /**
+   * Render the "loading address details" notice and the map preview once a
+   * suggestion is picked. Defaults to `true`. With it off and no
+   * `onLocationChange` listener, the details lookup is skipped altogether: its
+   * coordinates would have nowhere to go.
+   */
+  showMapPreview?: boolean;
 };
+
+/** See `AddressAutocompleteProps.classNames`. */
+export type AddressAutocompleteClassNames = {
+  /** The outermost wrapper (field, pending notice, map preview). */
+  root?: string;
+  /** The `<label>` wrapping the label text and the input. */
+  label?: string;
+  /** The label text itself. */
+  labelText?: string;
+  /** The text input. */
+  input?: string;
+  /** The suggestions `<ul role="listbox">`. */
+  listbox?: string;
+  /** Each suggestion's button. */
+  option?: string;
+};
+
+const DEFAULT_CLASS_NAMES = {
+  root: "flex flex-col gap-2 text-sm",
+  label: "flex flex-col gap-1",
+  labelText: "",
+  input: "w-full rounded border px-3 py-2",
+  listbox: "max-h-60 overflow-y-auto rounded border bg-background shadow",
+  option: "block w-full px-3 py-2 text-left hover:opacity-70",
+} satisfies Required<AddressAutocompleteClassNames>;
 
 /** Minimum trimmed length before we fetch suggestions (matches the server). */
 const MIN_QUERY_LENGTH = 3;
@@ -99,8 +148,12 @@ export function AddressAutocomplete({
   onPlaceSelected,
   placeholder,
   required,
+  classNames,
+  overlaySuggestions = false,
+  showMapPreview = true,
 }: AddressAutocompleteProps) {
   const t = useTranslations("common.addressAutocomplete");
+  const classes = { ...DEFAULT_CLASS_NAMES, ...classNames };
   const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
   const [open, setOpen] = useState(false);
   const [detailsPending, setDetailsPending] = useState(false);
@@ -241,7 +294,11 @@ export function AddressAutocomplete({
     onPlaceSelected?.(suggestion.displayName);
     setSuggestions([]);
     setOpen(false);
-    void loadDetails(suggestion);
+    // Nobody would see or hear the coordinates, so don't spend a request on
+    // the rate-limited details endpoint for them.
+    if (showMapPreview || onLocationChange) {
+      void loadDetails(suggestion);
+    }
   }
 
   function handleBlur() {
@@ -266,13 +323,16 @@ export function AddressAutocomplete({
     // map preview are siblings of the labelled input, not part of what names it,
     // and folding an interactive map into a label's click target would let a
     // stray pan or zoom focus the input instead.
-    <div className="flex flex-col gap-2 text-sm">
-      <label htmlFor={id} className="flex flex-col gap-1">
-        {label}
-        {/* Groups the input with its suggestions list. Deliberately not
-            `relative`: the list sits in normal flow (see its comment below), so
-            there is nothing here left to anchor. */}
-        <div>
+    <div className={classes.root}>
+      <label htmlFor={id} className={classes.label}>
+        {/* A span with no classes lays out exactly like the bare text node it
+            replaced (both are a single flex item), so default callers are
+            unchanged. */}
+        <span className={classes.labelText || undefined}>{label}</span>
+        {/* Groups the input with its suggestions list. Only `relative` in
+            overlay mode, where it anchors the floating list; by default the
+            list sits in normal flow (see its comment below). */}
+        <div className={overlaySuggestions ? "relative" : undefined}>
           <input
             id={id}
             type="text"
@@ -288,7 +348,7 @@ export function AddressAutocomplete({
             aria-expanded={open}
             aria-controls={listboxId}
             aria-autocomplete="list"
-            className="w-full rounded border px-3 py-2"
+            className={classes.input}
           />
           {open && suggestions.length > 0 ? (
             // In normal flow rather than an absolute overlay: two of these
@@ -300,7 +360,14 @@ export function AddressAutocomplete({
             <ul
               id={listboxId}
               role="listbox"
-              className="mt-1 max-h-60 overflow-y-auto rounded border bg-background shadow"
+              // Overlay mode (opt-in, for side-by-side layouts) floats the list
+              // instead: z-50 keeps it above the content that follows.
+              className={cn(
+                classes.listbox,
+                overlaySuggestions
+                  ? "absolute inset-x-0 top-full z-50 mt-1"
+                  : "mt-1",
+              )}
             >
               {suggestions.map((suggestion, index) => (
                 <li
@@ -317,7 +384,7 @@ export function AddressAutocomplete({
                     // registers even though blur would otherwise close the list.
                     onMouseDown={(event) => event.preventDefault()}
                     onClick={() => handleSelect(suggestion)}
-                    className="block w-full px-3 py-2 text-left hover:opacity-70"
+                    className={classes.option}
                   >
                     {suggestion.displayName}
                   </button>
@@ -328,7 +395,7 @@ export function AddressAutocomplete({
         </div>
       </label>
 
-      {detailsPending ? (
+      {showMapPreview && detailsPending ? (
         <p className="opacity-70">{t("loadingAddressDetails")}</p>
       ) : null}
 
