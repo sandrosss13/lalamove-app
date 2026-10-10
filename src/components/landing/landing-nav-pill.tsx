@@ -110,12 +110,12 @@ export function LandingNavPill({ content }: { content: NavContent }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   /*
-    The pill has to know about the session because it is frequently the *only*
-    chrome on the page: `LandingPage` sets `data-hide-site-header` unless
-    `showSiteHeader` is passed, which hides the root layout's header — the one
+    The pill has to know about the session because it is the *only* chrome on
+    the page: the city landing pages that render it set
+    `data-hide-site-header`, which hides the root layout's header — the one
     place a signed-in user would otherwise find their account link and a sign
-    out. Without this branch a signed-in visitor to `/home` is offered "Sign in"
-    and "Sign up", and on every other landing render has no way out at all.
+    out. Without this branch a signed-in visitor is offered "Sign in" and
+    "Sign up" and has no way out at all.
 
     `isPending` keeps the signed-out pair rather than swapping in a skeleton:
     that is what the server-rendered markup already shows, so the common
