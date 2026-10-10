@@ -468,6 +468,21 @@ model VehicleTypeSpec {
   /// driver uploads of their own specific vehicle into the separate
   /// `vehicle-photos` bucket. This one is a picture of the *class*.
   imageUrl          String?
+  /// Whether this type appears on the public marketing surfaces built from
+  /// `useLandingVehicleTypes` (homepage vehicle catalogue, homepage booking
+  /// card, category tiles, city landing pages). Set by a content manager from
+  /// Admin → Content → Vehicle photos.
+  ///
+  /// Marketing-only, like `imageUrl`: the signed-in booking form, driver
+  /// onboarding, vehicle forms, pricing, orders and the load board never read
+  /// it, and it is unrelated to `visibleVehicleTypeWhere()`, which withholds a
+  /// type from *every* surface until the fleet can serve it.
+  showOnHomepage    Boolean           @default(true)
+  /// Position of this type among the homepage cards of its own `category`
+  /// (Medium / Heavy tab), ascending; ties fall back to `label`. Rewritten
+  /// densely to `0..n-1` per category by the admin reorder endpoint. Marketing
+  /// only — the booking form keeps its own cheapest-first order.
+  homepageSortOrder Int               @default(0)
   pricingRule       PricingRule?
   vehicles          Vehicle[]
   orders            Order[]

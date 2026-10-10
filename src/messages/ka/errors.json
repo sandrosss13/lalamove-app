@@ -64,8 +64,13 @@
     "valuekaIsRequiredAndMustBe": "valueKa სავალდებულოა და არ უნდა იყოს ცარიელი ტექსტი."
   },
   "adminContentVehiclePhotos": {
+    "categoryInvalid": "category უნდა იყოს MEDIUM_DUTY ან HEAVY_DUTY.",
+    "idsMustBeDistinctIds": "ids უნდა იყოს ტრანსპორტის ტიპების განსხვავებული id-ების არაცარიელი მასივი.",
+    "idsMustBelongToCategory": "ყველა id უნდა იყოს ამ კლასის ტრანსპორტის ტიპი. განაახლეთ სია და სცადეთ თავიდან.",
     "imageUrlNonEmptyOrNull": "imageUrl უნდა იყოს არაცარიელი სტრიქონი, ან null მის გასასუფთავებლად.",
-    "unexpectedFields": "ეს endpoint მხოლოდ imageUrl-ს ცვლის. მოულოდნელი ველ(ებ)ი: {fields}. ავტომობილის მახასიათებლები და ფასები იცვლება seed-ის მეშვეობით და არა ბექ-ოფისიდან.",
+    "nothingToUpdate": "გამოგზავნეთ imageUrl და/ან showOnHomepage.",
+    "showOnHomepageMustBeBoolean": "showOnHomepage უნდა იყოს true ან false.",
+    "unexpectedFields": "ეს endpoint მხოლოდ imageUrl-ს და showOnHomepage-ს ცვლის. მოულოდნელი ველ(ებ)ი: {fields}. ავტომობილის მახასიათებლები და ფასები იცვლება seed-ის მეშვეობით და არა ბექ-ოფისიდან.",
     "vehicleTypeNotFound": "ტრანსპორტის ტიპი ვერ მოიძებნა."
   },
   "adminDriverApplicationsApprove": {
