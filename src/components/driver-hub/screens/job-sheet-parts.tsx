@@ -1097,11 +1097,11 @@ export function JobSheetPickedUpStrip({
  * `HandlingTagPills` and `LoadComplianceNotes` come with it. The advisories are
  * arguably more load-bearing here than on the board they were written for: the
  * board's reader is deciding whether to accept a hazmat load, this one is about
- * to put it on a vehicle. `CargoPhotoTiles` is **not** included — they are
- * the board's dashed placeholders, and three empty tiles here would promise a
- * proof-of-delivery affordance the product has explicitly refused. What *is*
- * included is `OrderPhotoGallery`: the photos the client attached at booking,
- * read-only, and absent entirely when there are none.
+ * to put it on a vehicle. The photos are `OrderPhotoGallery` — the ones the
+ * client attached at booking, read-only, and absent entirely when there are
+ * none; the board's drawer shows the same gallery (`LoadCargoPhotos`). Nothing
+ * here captures a photo: proof-of-delivery capture is a feature the product
+ * has explicitly refused.
  */
 export function JobSheetCargoCard({
   job,

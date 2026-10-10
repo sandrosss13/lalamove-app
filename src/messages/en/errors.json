@@ -264,7 +264,8 @@
   },
   "loads": {
     "onlyDriversAndLogisticsCompaniesCan": "Only drivers and logistics companies can view the load board.",
-    "yourCompanyProfileIsnTSetUp": "Your company profile isn't set up yet."
+    "yourCompanyProfileIsnTSetUp": "Your company profile isn't set up yet.",
+    "loadNotFound": "Load not found."
   },
   "loadsReject": {
     "driverProfileNotFound": "Driver profile not found.",

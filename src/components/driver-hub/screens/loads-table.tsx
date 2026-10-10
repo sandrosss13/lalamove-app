@@ -8,6 +8,7 @@ import {
   type HubLoad,
   type LoadsSortKey,
 } from "@/components/driver-hub/screens/loads-context";
+import { LoadPhotoCount } from "@/components/driver-hub/screens/loads-detail-parts";
 import {
   EM_DASH,
   cargoCategoryLabel,
@@ -858,8 +859,14 @@ function LoadRow({ load, nowIso }: { load: HubLoad; nowIso: string }) {
             column. The `title` carries the whole label — the same bargain the
             addresses make, and the one the packaging line below already
             made. */}
-        <div className="truncate" title={cargoLabel}>
-          {cargoLabel}
+        <div className="flex min-w-0 items-center gap-1">
+          <span className="truncate" title={cargoLabel}>
+            {cargoLabel}
+          </span>
+          {/* Beside the label rather than on a line of its own: it is absent
+              on every row without photos, and a row that has them gains one
+              short mark rather than a taller cell. */}
+          <LoadPhotoCount count={load.photoCount} />
         </div>
         <div
           // Packaging is free text a client typed and occasionally runs to a
