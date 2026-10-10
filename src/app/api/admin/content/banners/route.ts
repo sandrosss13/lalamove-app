@@ -5,9 +5,14 @@ import { ContentLocale, type AdminRole, type Banner } from "@prisma/client";
 import { getRequestTranslations } from "@/i18n/request-locale";
 import { authorizeAdminApi } from "@/lib/admin/api-auth";
 import { writeAuditLog } from "@/lib/admin/audit";
+import { revalidateHomePage } from "@/lib/admin/home-page-data";
 import { prisma } from "@/lib/prisma";
 
-import { checkHeroBannerCapacity } from "./validation";
+import {
+  BANNER_COPY_FIELDS,
+  checkBannerPlacementCapacity,
+  parseBannerCopyField,
+} from "./validation";
 
 /**
  * Staff who may read and write promotional banners. Stated per route rather
@@ -58,6 +63,14 @@ export type AdminBannerRow = {
   startsAt: string | null;
   /** End of the display window, or null for "until it is switched off". */
   endsAt: string | null;
+  /**
+   * Optional card copy, rendered by the v4 offers row (`home_secondary`): a
+   * kicker above the title, a body sentence, and the label of the button that
+   * follows `linkUrl`. `null` when unset; other placements ignore all three.
+   */
+  eyebrow: string | null;
+  body: string | null;
+  ctaLabel: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -83,6 +96,9 @@ type CreateBannerInput = {
   isActive: boolean;
   startsAt: Date | null;
   endsAt: Date | null;
+  eyebrow: string | null;
+  body: string | null;
+  ctaLabel: string | null;
 };
 
 /**
@@ -103,6 +119,9 @@ function toBannerRow(banner: Banner): AdminBannerRow {
     isActive: banner.isActive,
     startsAt: banner.startsAt?.toISOString() ?? null,
     endsAt: banner.endsAt?.toISOString() ?? null,
+    eyebrow: banner.eyebrow,
+    body: banner.body,
+    ctaLabel: banner.ctaLabel,
     createdAt: banner.createdAt.toISOString(),
     updatedAt: banner.updatedAt.toISOString(),
   };
@@ -309,6 +328,21 @@ function parseCreateBannerBody(
     return { error: t("common.shared.endsatMustBeAfterStartsat") };
   }
 
+  // Optional, so absent is the same as null: a hero or partner-logo banner has
+  // no use for card copy and the form may simply not send it.
+  const copy: Record<(typeof BANNER_COPY_FIELDS)[number], string | null> = {
+    eyebrow: null,
+    body: null,
+    ctaLabel: null,
+  };
+  for (const field of BANNER_COPY_FIELDS) {
+    const parsedCopy = parseBannerCopyField(record[field], field, t);
+    if ("error" in parsedCopy) {
+      return { error: parsedCopy.error };
+    }
+    copy[field] = parsedCopy.value;
+  }
+
   return {
     data: {
       title: title.trim(),
@@ -320,6 +354,7 @@ function parseCreateBannerBody(
       isActive,
       startsAt: startsAt.value,
       endsAt: endsAt.value,
+      ...copy,
     },
   };
 }
@@ -374,12 +409,15 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 
   // A 409 rather than a 400: the body is well-formed and every field is valid,
-  // the conflict is with the other rows already in this locale's carousel.
-  const overCapacity = await checkHeroBannerCapacity({
-    locale: parsed.data.locale,
-    placement: parsed.data.placement,
-    isActive: parsed.data.isActive,
-  });
+  // the conflict is with the other rows already in this locale's placement.
+  const overCapacity = await checkBannerPlacementCapacity(
+    {
+      locale: parsed.data.locale,
+      placement: parsed.data.placement,
+      isActive: parsed.data.isActive,
+    },
+    t,
+  );
 
   if (overCapacity !== null) {
     return NextResponse.json({ error: overCapacity }, { status: 409 });
@@ -399,6 +437,8 @@ export async function POST(request: Request): Promise<NextResponse> {
       isActive: banner.isActive,
     },
   });
+
+  revalidateHomePage();
 
   const body: AdminBannerResponse = { banner: toBannerRow(banner) };
 

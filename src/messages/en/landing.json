@@ -1,4 +1,18 @@
 {
+  "landingAppBand": {
+    "appStoreKicker": "Download on the",
+    "playStoreKicker": "Get it on"
+  },
+  "landingBookingCard": {
+    "anyVehicle": "Any vehicle",
+    "defaultCta": "Book a delivery",
+    "dropoff": "Drop-off",
+    "dropoffPlaceholder": "Where is it going?",
+    "loadingVehicles": "Loading vehicles…",
+    "pickup": "Pickup",
+    "pickupPlaceholder": "Street, building or business",
+    "vehicle": "Vehicle"
+  },
   "landingCategoryTiles": {
     "fromPrice": "from {price}",
     "fromPriceEmphasised": "from <figure>{price}</figure>",
@@ -13,24 +27,12 @@
   },
   "landingNavPill": {
     "closeMenu": "Close menu",
-    "openMenu": "Open menu"
+    "openMenu": "Open menu",
+    "primaryNavigation": "Main navigation"
   },
-  "landingQuoteCalculator": {
-    "1IsTheDriverAloneEach": "1 is the driver alone. Each extra person helps load and unload, and adds a flat fee.",
-    "aghmashenebeliAve88Tbilisi": "Aghmashenebeli Ave 88, Tbilisi",
-    "calculatePrice": "Calculate price",
-    "calculating": "Calculating…",
-    "couldNotPriceThisLoadPlease": "Could not price this load. Please try again.",
-    "estimate": "Estimate",
-    "howManyPeople": "How many people",
-    "loading": "Loading…",
-    "minimumFareApplied": "Minimum fare applied",
-    "nPeople": "{count} people — the driver plus {helpers, plural, one {# helper} other {# helpers}}",
-    "onePerson": "1 person — the driver alone",
-    "rustaveliAve12Tbilisi": "Rustaveli Ave 12, Tbilisi",
-    "signUpToBookThisLoad": "Sign up to book this load",
-    "whatAreYouMoving": "What are you moving",
-    "yourEstimate": "Your estimate"
+  "landingVehicleCatalog": {
+    "book": "Book",
+    "bookVehicle": "Book a {vehicle}"
   },
   "landingVehicleTypes": {
     "couldNotLoadTheVehicleTypes": "Could not load the vehicle types. Please refresh and try again."

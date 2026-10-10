@@ -82,9 +82,11 @@ export async function generateMetadata({
 export default async function Home({ params }: { params: LocaleRouteParams }) {
   const locale = await resolveRouteLocale(params);
 
-  const [{ sections, heroBanners, partnerBanners }, jsonLd] = await Promise.all(
-    [loadHomePageContent(locale), siteJsonLdGraph(clientOrigin(), locale)],
-  );
+  const [{ sections, heroBanners, partnerBanners, offerBanners }, jsonLd] =
+    await Promise.all([
+      loadHomePageContent(locale),
+      siteJsonLdGraph(clientOrigin(), locale),
+    ]);
 
   return (
     <>
@@ -93,6 +95,7 @@ export default async function Home({ params }: { params: LocaleRouteParams }) {
         sections={sections}
         heroBanners={heroBanners}
         partnerBanners={partnerBanners}
+        offerBanners={offerBanners}
       />
     </>
   );

@@ -1939,6 +1939,21 @@
     "ka": "იცოდეთ ღირებულება, სანამ დაადასტურებთ.",
     "_source": "src/lib/admin/home-page-content.ts"
   },
+  "homePageContent.bookADelivery": {
+    "en": "Book a delivery",
+    "ka": "მიწოდების დაჯავშნა",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.help": {
+    "en": "Help",
+    "ka": "დახმარება",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
+  "homePageContent.sendADelivery": {
+    "en": "Send a delivery",
+    "ka": "ტვირთის გაგზავნა",
+    "_source": "src/lib/admin/home-page-content.ts"
+  },
   "homePageContent.liveTracking": {
     "en": "Live tracking",
     "ka": "თვალყურის დევნება რეალურ დროში",

@@ -177,6 +177,28 @@ export const DEFAULT_HOME_PAGE_SECTION_ORDER = [
 ] as const satisfies readonly HomePageSectionType[];
 
 /**
+ * Section types an earlier design rendered and v4 has no slot for. Their
+ * parsers stay (a stored row still validates and round-trips through the admin
+ * form), but the v4 bulk actions — "materialize defaults", "restore defaults"
+ * and the seed script — switch any such row *off* rather than deleting it: the
+ * copy someone wrote is kept, it just stops competing with the v4 sections that
+ * replaced it (an active `hero` row would otherwise render alongside the
+ * `hero_carousel`).
+ */
+export const RETIRED_HOME_PAGE_SECTION_TYPES = [
+  "hero",
+  "stats",
+  "bento",
+  "driver_cta",
+  "category_tiles",
+] as const satisfies readonly HomePageSectionType[];
+
+/** Whether a stored `HomePageSection.type` string is a retired type. */
+export function isRetiredHomePageSectionType(value: string): boolean {
+  return (RETIRED_HOME_PAGE_SECTION_TYPES as readonly string[]).includes(value);
+}
+
+/**
  * The hero's editable copy.
  *
  * Extended for the redesign: the status chip above the headline is new and its
@@ -291,9 +313,10 @@ export type BentoContent = {
 };
 
 /**
- * Framing copy for the quote calculator section. The widget itself is the
- * existing `LandingQuoteCalculator`, which owns its own labels and talks to
- * `/api/pricing/estimate`; nothing inside it is authored here.
+ * Copy for the v4 "Book a Delivery" card pinned under the hero
+ * (`landing-booking-card.tsx`; the type keeps its historical name). The card
+ * renders `heading` and the CTA; `eyebrow` and `intro` are kept so rows
+ * authored for the earlier quote calculator still parse.
  */
 export type QuoteCalculatorContent = {
   eyebrow: string;
@@ -638,9 +661,13 @@ export const DEFAULT_HOME_PAGE_CONTENT: HomePageSectionContentByType = {
   },
   quote_calculator: {
     eyebrow: "Price a load",
-    heading: "Know the fare before you commit.",
+    // A booking prompt, not a price promise: the v4 card collects the route and
+    // hands off to sign-up, it shows no fare.
+    heading: "Book a delivery",
     intro:
       "Enter a pickup and a dropoff, pick a vehicle rated for the load, and we quote base fare, distance and driving time in lari. No account needed to see the number.",
+    ctaLabel: "Book a delivery",
+    ctaHref: "/sign-up",
   },
   offers: {
     // linkLabel/linkHref are intentionally omitted: there is no "all offers"
@@ -774,7 +801,8 @@ export const DEFAULT_HOME_PAGE_CONTENT: HomePageSectionContentByType = {
     primaryCtaLabel: "Create an account",
     primaryCtaHref: "/sign-up",
     secondaryCtaLabel: "Drive with us",
-    secondaryCtaHref: "#drivers",
+    // Resolved by `landing-link.tsx` to this deployment's driver application.
+    secondaryCtaHref: "@driver-sign-up",
   },
   category_tiles: {
     eyebrow: "What we carry",
@@ -787,12 +815,15 @@ export const DEFAULT_HOME_PAGE_CONTENT: HomePageSectionContentByType = {
     // Rows seeded before the rebrand still hold the placeholder "Lalamove
     // Georgia"; `migrateLegacyBrandCopy` maps those on render.
     wordmark: "zomo",
+    // v4 order. Anchors are the ids the landing sections render (`how`,
+    // `vehicles`, `coverage`, `faq`); `@driver-sign-up` is resolved by
+    // `landing-link.tsx` to this deployment's driver application.
     links: [
       { label: "How it works", href: "#how" },
+      { label: "For drivers", href: "@driver-sign-up" },
       { label: "Vehicles", href: "#vehicles" },
-      { label: "For drivers", href: "#drivers" },
       { label: "Coverage", href: "#coverage" },
-      { label: "FAQ", href: "#faq" },
+      { label: "Help", href: "#faq" },
     ],
     signInLabel: "Sign in",
     signInHref: "/sign-in",
@@ -825,7 +856,7 @@ export const DEFAULT_HOME_PAGE_CONTENT: HomePageSectionContentByType = {
       {
         title: "Drivers",
         links: [
-          { label: "Become a driver", href: "#drivers" },
+          { label: "Become a driver", href: "@driver-sign-up" },
           { label: "Driver sign-up", href: "/sign-up" },
           { label: "Driver hub", href: "/dashboard" },
         ],
@@ -850,6 +881,8 @@ export const DEFAULT_HOME_PAGE_CONTENT: HomePageSectionContentByType = {
       { label: "Terms", href: "#" },
       { label: "Cookies", href: "#" },
     ],
+    ctaLabel: "Send a delivery",
+    ctaHref: "/sign-up",
   },
 };
 
@@ -934,8 +967,7 @@ const DEFAULT_COPY_MESSAGE_KEYS: Readonly<Record<string, string>> = {
   "Base fare, distance, driving time and any helper fee, listed separately — and the same calculation runs again when you place the order.":
     "admin.homePageContent.baseFareDistanceDrivingTimeAnd",
   // quote_calculator
-  "Know the fare before you commit.":
-    "admin.homePageContent.knowTheFareBeforeYouCommit",
+  "Book a delivery": "admin.homePageContent.bookADelivery",
   "Enter a pickup and a dropoff, pick a vehicle rated for the load, and we quote base fare, distance and driving time in lari. No account needed to see the number.":
     "admin.homePageContent.enterAPickupAndADropoffPick",
   // offers
@@ -1047,6 +1079,8 @@ const DEFAULT_COPY_MESSAGE_KEYS: Readonly<Record<string, string>> = {
   Vehicles: "common.shared.vehicles",
   "For drivers": "admin.homePageContent.forDrivers",
   FAQ: "admin.homePageContent.faq",
+  Help: "admin.homePageContent.help",
+  "Send a delivery": "admin.homePageContent.sendADelivery",
   "Sign in": "common.shared.signIn",
   "Sign up": "common.shared.signUp",
   "Commercial freight and cargo across Georgia — vans to trailer trucks, priced before you book.":
@@ -1285,8 +1319,12 @@ export function buildDefaultHomePageSections(
  * `DEFAULT_HOME_PAGE_SECTION_ORDER`, or first if none does. Authored sections
  * never move. Chrome is appended — the renderer finds it by type, so its
  * position is irrelevant.
+ *
+ * Only `type` is read, so that is the whole constraint: the public loader
+ * passes validated sections, and the admin "materialize defaults" endpoint
+ * passes raw rows (any `type` string) to work out where filled-in rows go.
  */
-export function withDefaultSections<Section extends HomePageSectionWithId>(
+export function withDefaultSections<Section extends { type: string }>(
   sections: readonly Section[],
   defaults: readonly Section[],
   authoredTypes: ReadonlySet<string>,
