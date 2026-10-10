@@ -28,6 +28,9 @@
     "placementMustBeANonEmpty": "placement must be a non-empty string.",
     "titleMustBeANonEmpty": "title must be a non-empty string.",
     "copyFieldMustBeStringOrNull": "{field} must be a string or null.",
+    "videoUrlMustBeStringOrNull": "videoUrl must be a string or null.",
+    "videoUrlMustBeHttps": "videoUrl must be an https:// URL or a path on this site.",
+    "videoOnlyForHero": "Only hero banners ({placement}) can have a video. Remove the video or change the placement.",
     "heroCarouselFull": "The {locale} hero carousel already has {max} active banners, which is the most it can show. Switch one off before adding another.",
     "offersRowFull": "The {locale} offers row already has {max} active banners, which is the most it can show. Switch one off before adding another.",
     "partnerLogosFull": "The {locale} partner marquee already has {max} active logos, which is the most it can show. Switch one off before adding another."
@@ -41,7 +44,8 @@
     "localesMustDiffer": "from and to must be different locales."
   },
   "adminContentMedia": {
-    "unsupportedContentType": "Only JPG, PNG and WebP images are accepted."
+    "unsupportedContentType": "Only JPG, PNG and WebP images are accepted.",
+    "unsupportedVideoContentType": "Only MP4 and WebM videos are accepted, and only for banners."
   },
   "adminContentMessagingTemplates": {
     "bodyIsRequiredAndMustBe": "body is required and must be a non-empty string.",

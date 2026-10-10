@@ -176,7 +176,15 @@
     "previewFailed": "This image could not be loaded. If it was just uploaded, check the site-media bucket is public.",
     "replaceImage": "Replace image",
     "uploadingImage": "Uploading image",
-    "wrongFileType": "That file is not a JPG, PNG or WebP image. Choose a different one."
+    "wrongFileType": "That file is not a JPG, PNG or WebP image. Choose a different one.",
+    "chooseVideo": "Choose video",
+    "replaceVideo": "Replace video",
+    "uploadingVideo": "Uploading video",
+    "videoUrl": "Video URL",
+    "videoFileHint": "MP4 (H.264) or WebM, about 1920 × 826, 6–15 s, no sound, under 8 MB. The image above is used as the cover and as the fallback.",
+    "videoTooLarge": "That video is larger than 8 MB. Shorten or compress it and try again.",
+    "videoWrongFileType": "That file is not an MP4 or WebM video. Choose a different one.",
+    "videoPreviewFailed": "This video could not be loaded. If it was just uploaded, check the site-media bucket is public."
   },
   "adminNav": {
     "applications": "Applications",
@@ -484,6 +492,7 @@
     "bannerTitleRequired": "Add a title before saving this banner.",
     "imageHintHero": "Recommended 2880 × 1240 px, JPG or WebP, under 500 KB. Keep the subject centred; the left side sits under the headline.",
     "imageHintOffer": "Recommended 800 × 360 px (about 20:9), JPG or WebP, under 200 KB. The image is cropped to fill the card.",
+    "video": "Video (optional)",
     "imageHintLogo": "Recommended about 300 × 90 px, transparent PNG. The logo is fitted inside its box without cropping.",
     "banners": "Banners",
     "bookingNote": "The booking card's fields and vehicle list come from the booking flow and are not edited here. No price is shown on the card.",
