@@ -816,12 +816,13 @@ body:has([data-hide-site-header]) > header {
   display: none;
 }
 
-/* The mirror case: the landing page rendered *with* the global header — the
-   signed-in `/home` preview, and the only state in which both exist. The nav
-   pill is `position: fixed`, so it takes no space in the flow and at its design
-   offset it floats across the header rather than under it. Pushing it to the
-   header's height plus the same 14px gap stacks the two cleanly instead.
-   49px is the global header's height (`px-6 py-3` plus its bottom border). */
+/* The mirror case: a landing page rendered *with* the global header. Today
+   that is only the signed-in `/home` preview, where `LandingPage` drops its own
+   header and renders no nav pill, so this is a guard rather than live layout:
+   should a fixed v3 nav pill ever share the page with the global header, it is
+   pushed to the header's height plus the same 14px gap instead of floating
+   across it. 49px is the global header's height (`px-6 py-3` plus its bottom
+   border). */
 body:has([data-landing-page]):not(:has([data-hide-site-header])) {
   --landing-nav-pill-top: 63px;
 }
