@@ -35,6 +35,10 @@ export type LandingBanner = {
   title: string;
   imageUrl: string;
   linkUrl: string | null;
+  /** Card copy, used by the offers row; `null` for image-only placements. */
+  eyebrow: string | null;
+  body: string | null;
+  ctaLabel: string | null;
 };
 
 /**
@@ -96,6 +100,10 @@ function LandingSectionRenderer({
       return <LandingFaq content={section.content} />;
     case "closing_cta":
       return <LandingClosingCta content={section.content} />;
+    // TODO(homepage-v4): the offers row (banner cards from `home_secondary`)
+    // has no landing component yet; it renders nothing until one lands.
+    case "offers":
+      return null;
     // Retired by the redesign and absent from the default composition, but kept
     // renderable: a row authored against the previous design must still render
     // rather than take the marketing page down.

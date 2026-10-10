@@ -16,6 +16,7 @@ import {
   HOME_HERO_BANNER_PLACEMENT,
   HOME_PARTNER_LOGO_BANNER_PLACEMENT,
   HOME_SECONDARY_BANNER_PLACEMENT,
+  MAX_OFFER_BANNERS,
   buildDefaultHomePageSections,
   createMessageLookup,
   isHomePageSectionType,
@@ -46,6 +47,11 @@ export type HomePageBanners = {
    * orphaned and a future section can pick them up without a schema change.
    */
   secondaryBanners: LandingBanner[];
+  /**
+   * The v4 offers row's cards: the same `home_secondary` rows as
+   * `secondaryBanners`, capped at `MAX_OFFER_BANNERS`.
+   */
+  offerBanners: LandingBanner[];
 };
 
 /** Everything `LandingPage` needs to compose itself for one locale. */
@@ -165,9 +171,16 @@ export async function loadHomePageBanners(
       title: true,
       imageUrl: true,
       linkUrl: true,
+      eyebrow: true,
+      body: true,
+      ctaLabel: true,
       placement: true,
     },
   });
+
+  const secondaryBanners = rows.filter(
+    (row) => row.placement === HOME_SECONDARY_BANNER_PLACEMENT,
+  );
 
   return {
     heroBanners: rows.filter(
@@ -176,9 +189,8 @@ export async function loadHomePageBanners(
     partnerBanners: rows.filter(
       (row) => row.placement === HOME_PARTNER_LOGO_BANNER_PLACEMENT,
     ),
-    secondaryBanners: rows.filter(
-      (row) => row.placement === HOME_SECONDARY_BANNER_PLACEMENT,
-    ),
+    secondaryBanners,
+    offerBanners: secondaryBanners.slice(0, MAX_OFFER_BANNERS),
   };
 }
 

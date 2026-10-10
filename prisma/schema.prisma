@@ -1330,6 +1330,12 @@ model Banner {
   locale    ContentLocale
   imageUrl  String
   linkUrl   String?
+  /// Optional copy for banners rendered as cards (the home page's offer
+  /// banners): a small kicker above `title`, a sentence below it, and the
+  /// label of the link to `linkUrl`. Unused by placements that render image only.
+  eyebrow   String?
+  body      String?
+  ctaLabel  String?
   placement String
   sortOrder Int           @default(0)
   isActive  Boolean       @default(true)

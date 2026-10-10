@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="fonts/fonts.css">
+<script src="./image-slot.js"></script>
+<style>
+  body { margin:0; background:#08090A; }
+  a { color:#F58220; text-decoration:none; }
+  a:hover { color:#FFA45C; }
+  * { box-sizing:border-box; }
+  @keyframes v3-marquee { from { transform:translateX(0); } to { transform:translateX(-50%); } }
+  @keyframes v3-pulse { 0%,100% { opacity:0.55; transform:scale(1); } 50% { opacity:1; transform:scale(1.35); } }
+</style>
+</helmet>
+<div style="font-family:'IBM Plex Sans',sans-serif; background:#08090A; color:#F4F4F2; -webkit-font-smoothing:antialiased; overflow-x:hidden;">
+
+  <div style="position:fixed; top:14px; left:0; right:0; z-index:50; display:flex; justify-content:center; padding:0 16px; pointer-events:none;">
+    <div style="pointer-events:auto; display:flex; align-items:center; gap:6px; flex-wrap:wrap; justify-content:center; padding:8px 8px 8px 18px; border-radius:999px; background:rgba(16,18,20,0.72); backdrop-filter:blur(18px) saturate(140%); border:1px solid rgba(255,255,255,0.09); box-shadow:0 8px 30px rgba(0,0,0,0.45);">
+      <span style="font-size:16px; font-weight:700; letter-spacing:-0.035em; margin-right:14px;">Lalamove</span>
+      <a href="#how" style="font-size:13.5px; color:rgba(244,244,242,0.66); padding:9px 14px; border-radius:999px;" style-hover="background:rgba(255,255,255,0.08); color:#F4F4F2;">How it works</a>
+      <a href="#drivers" style="font-size:13.5px; color:rgba(244,244,242,0.66); padding:9px 14px; border-radius:999px;" style-hover="background:rgba(255,255,255,0.08); color:#F4F4F2;">For Drivers</a>
+      <a href="#coverage" style="font-size:13.5px; color:rgba(244,244,242,0.66); padding:9px 14px; border-radius:999px;" style-hover="background:rgba(255,255,255,0.08); color:#F4F4F2;">Coverage</a>
+      <a href="#faq" style="font-size:13.5px; color:rgba(244,244,242,0.66); padding:9px 14px; border-radius:999px;" style-hover="background:rgba(255,255,255,0.08); color:#F4F4F2;">Help</a>
+      <a href="#signin" style="font-size:13.5px; color:rgba(244,244,242,0.66); padding:9px 14px; border-radius:999px; margin-left:6px;" style-hover="background:rgba(255,255,255,0.08); color:#F4F4F2;">Sign in</a>
+      <a href="#signup" style="font-size:13.5px; font-weight:600; color:#08090A; background:#F4F4F2; padding:10px 20px; border-radius:999px; margin-left:2px;">Sign up</a>
+    </div>
+  </div>
+
+  <section style="position:relative; padding:clamp(120px,14vw,190px) clamp(20px,4vw,48px) 0; overflow:hidden;">
+    <div style="position:absolute; top:-360px; left:50%; width:1100px; height:900px; margin-left:-550px; background:radial-gradient(closest-side, rgba(245,130,32,0.24), rgba(245,130,32,0.05) 55%, transparent 72%); pointer-events:none;"></div>
+    <div style="position:relative; max-width:1200px; margin:0 auto; text-align:center;">
+      <div data-reveal style="display:inline-flex; align-items:center; gap:10px; padding:7px 8px 7px 14px; border-radius:999px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); font-size:13px; color:rgba(244,244,242,0.72); margin-bottom:clamp(26px,3vw,38px);">
+        <span style="width:7px; height:7px; border-radius:999px; background:#F58220; animation:v3-pulse 2.4s ease-in-out infinite;"></span>
+        <span>Now live in 11 Georgian cities</span>
+        <span style="font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.1em; text-transform:uppercase; background:rgba(255,255,255,0.08); padding:5px 10px; border-radius:999px;">New</span>
+      </div>
+      <h1 data-reveal style="font-size:clamp(42px,7.4vw,104px); line-height:0.94; letter-spacing:-0.05em; font-weight:600; margin:0 auto clamp(22px,2.6vw,30px); max-width:19ch; text-wrap:balance;">Anything, anywhere in Georgia, today.</h1>
+      <p data-reveal style="font-size:clamp(16px,1.7vw,21px); line-height:1.55; color:rgba(244,244,242,0.62); margin:0 auto clamp(30px,3.4vw,42px); max-width:52ch; text-wrap:pretty;">Book a courier in twelve seconds. Vans to ten-tonne trucks, matched in under a minute, tracked door to door.</p>
+      <div data-reveal style="display:flex; flex-wrap:wrap; gap:12px; justify-content:center; margin-bottom:clamp(44px,5vw,68px);">
+        <a href="#signup" style="font-size:15px; font-weight:600; background:#F58220; color:#0A0B0A; padding:16px 32px; border-radius:999px; box-shadow:0 10px 30px rgba(245,130,32,0.28);">Send a delivery</a>
+        <a href="#business" style="font-size:15px; font-weight:600; color:#F4F4F2; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.14); padding:16px 32px; border-radius:999px;">For business</a>
+      </div>
+    </div>
+
+    <div data-reveal style="position:relative; max-width:1200px; margin:0 auto;">
+      <div style="position:relative; border-radius:2rem; overflow:hidden; border:1px solid rgba(255,255,255,0.12); background:#111315; height:clamp(260px,34vw,480px); box-shadow:0 40px 90px -30px rgba(0,0,0,0.9);">
+        <div data-hero-track style="display:flex; height:100%; overflow-x:auto; overflow-y:hidden; scroll-snap-type:x mandatory; scrollbar-width:none;">
+          <sc-for list="{{ banners }}" as="b" hint-placeholder-count="6">
+            <div style="position:relative; flex:0 0 100%; width:100%; height:100%; scroll-snap-align:start;">
+              <image-slot id="{{ b.id }}" shape="rect" fit="cover" radius="0" placeholder="{{ b.placeholder }}"></image-slot>
+              <div style="position:absolute; left:clamp(16px,3vw,32px); bottom:clamp(56px,6vw,70px); display:inline-flex; align-items:center; gap:9px; padding:9px 16px; border-radius:999px; background:rgba(8,9,10,0.66); backdrop-filter:blur(12px); border:1px solid rgba(255,255,255,0.14); font-size:13.5px; color:#F4F4F2; pointer-events:none; max-width:calc(100% - 64px);">
+                <span style="flex:0 0 auto; width:6px; height:6px; border-radius:999px; background:#F58220;"></span>
+                <span>{{ b.caption }}</span>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+
+        <button onClick="{{ prev }}" aria-label="Previous banner" style="position:absolute; top:50%; left:clamp(10px,1.5vw,18px); transform:translateY(-50%); width:42px; height:42px; border-radius:999px; border:1px solid rgba(255,255,255,0.18); background:rgba(8,9,10,0.6); backdrop-filter:blur(12px); color:#F4F4F2; font-size:17px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">‹</button>
+        <button onClick="{{ next }}" aria-label="Next banner" style="position:absolute; top:50%; right:clamp(10px,1.5vw,18px); transform:translateY(-50%); width:42px; height:42px; border-radius:999px; border:1px solid rgba(255,255,255,0.18); background:rgba(8,9,10,0.6); backdrop-filter:blur(12px); color:#F4F4F2; font-size:17px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">›</button>
+
+        <div style="position:absolute; left:clamp(16px,3vw,32px); bottom:clamp(16px,3vw,24px); display:flex; align-items:center; gap:7px; padding:8px 12px; border-radius:999px; background:rgba(8,9,10,0.62); backdrop-filter:blur(12px); border:1px solid rgba(255,255,255,0.14);">
+          <sc-for list="{{ dots }}" as="d" hint-placeholder-count="6">
+            <button onClick="{{ d.go }}" data-dot="{{ d.i }}" aria-label="Go to banner" style="flex:0 0 auto; width:8px; height:8px; border-radius:999px; border:0; padding:0; cursor:pointer; background:rgba(244,244,242,0.55);"></button>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding:clamp(44px,5vw,72px) 0 clamp(8px,1vw,16px);">
+    <div style="text-align:center; font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:0.18em; text-transform:uppercase; color:rgba(244,244,242,0.36); margin-bottom:26px;">Dispatching every day for</div>
+    <div style="overflow:hidden; mask-image:linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent); -webkit-mask-image:linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);">
+      <div style="display:flex; width:max-content; animation:v3-marquee 42s linear infinite;">
+        <sc-for list="{{ marquee }}" as="m" hint-placeholder-count="16">
+          <div style="width:180px; height:66px; margin:0 10px; border-radius:0.75rem; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.07); display:flex; align-items:center; justify-content:center; padding:14px 18px;">
+            <image-slot id="{{ m.id }}" shape="rect" fit="contain" radius="0" style="width:100%; height:38px;" placeholder="{{ m.label }}"></image-slot>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding:clamp(56px,7vw,104px) clamp(20px,4vw,48px);">
+    <div style="max-width:1200px; margin:0 auto;">
+      <div data-reveal style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px; margin-bottom:14px;">
+        <sc-for list="{{ stats }}" as="s" hint-placeholder-count="4">
+          <div style="min-width:0; border-radius:1.25rem; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); padding:26px 24px;">
+            <div style="font-size:clamp(30px,3.4vw,44px); font-weight:600; letter-spacing:-0.04em; line-height:1;">{{ s.v }}</div>
+            <div style="font-size:13.5px; line-height:1.45; color:rgba(244,244,242,0.52); margin-top:10px;">{{ s.k }}</div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div data-reveal style="display:flex; flex-wrap:wrap; gap:14px; margin-bottom:14px;">
+        <div style="flex:1 1 420px; min-width:0; border-radius:1.5rem; background:linear-gradient(160deg, rgba(245,130,32,0.14), rgba(255,255,255,0.03) 46%); border:1px solid rgba(245,130,32,0.22); padding:clamp(26px,3vw,38px); display:flex; flex-direction:column;">
+          <div style="font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:0.18em; text-transform:uppercase; color:#F58220; margin-bottom:18px;">Live tracking</div>
+          <h3 style="font-size:clamp(22px,2.5vw,32px); line-height:1.12; letter-spacing:-0.03em; font-weight:600; margin:0 0 12px; max-width:22ch;">See the courier move, not a status label.</h3>
+          <p style="font-size:15px; line-height:1.6; color:rgba(244,244,242,0.58); margin:0 0 26px; max-width:44ch;">Live map, direct phone line, and a proof-of-delivery photo the moment it lands.</p>
+          <div style="margin-top:auto; border-radius:1rem; background:rgba(8,9,10,0.55); border:1px solid rgba(255,255,255,0.1); padding:18px 20px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+              <span style="font-size:13px; color:rgba(244,244,242,0.6);">Order #A4821 · Van</span>
+              <span style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:#F58220;">19 min</span>
+            </div>
+            <div style="height:4px; border-radius:999px; background:rgba(255,255,255,0.1); overflow:hidden;">
+              <div style="width:68%; height:100%; border-radius:999px; background:#F58220;"></div>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:12px; color:rgba(244,244,242,0.44); margin-top:10px;">
+              <span>Kwun Tong St, Vake</span><span>Didube</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="flex:1 1 300px; min-width:0; display:flex; flex-direction:column; gap:14px;">
+          <div style="flex:1 1 auto; border-radius:1.5rem; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); padding:clamp(24px,2.6vw,32px);">
+            <div style="font-size:clamp(34px,3.8vw,48px); font-weight:600; letter-spacing:-0.04em; line-height:1; margin-bottom:12px;">20</div>
+            <h3 style="font-size:18px; font-weight:600; letter-spacing:-0.02em; margin:0 0 8px;">Stops per booking</h3>
+            <p style="font-size:14.5px; line-height:1.6; color:rgba(244,244,242,0.55); margin:0;">Drag to reorder, and the courier gets the optimised sequence.</p>
+          </div>
+          <div style="flex:1 1 auto; border-radius:1.5rem; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); padding:clamp(24px,2.6vw,32px);">
+            <div style="font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:0.18em; text-transform:uppercase; color:rgba(244,244,242,0.42); margin-bottom:14px;">Business API</div>
+            <h3 style="font-size:18px; font-weight:600; letter-spacing:-0.02em; margin:0 0 8px;">Dispatch from your own stack</h3>
+            <p style="font-size:14.5px; line-height:1.6; color:rgba(244,244,242,0.55); margin:0 0 18px;">REST endpoints, webhooks, monthly invoicing in lari.</p>
+            <a href="#business" style="font-size:14px; font-weight:600; color:#F58220;">Read the docs →</a>
+          </div>
+        </div>
+      </div>
+
+      <div data-reveal style="display:flex; flex-wrap:wrap; gap:14px;">
+        <sc-for list="{{ bentoSmall }}" as="b" hint-placeholder-count="3">
+          <div style="flex:1 1 240px; min-width:0; border-radius:1.5rem; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); padding:clamp(24px,2.6vw,32px);">
+            <div style="font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:0.18em; text-transform:uppercase; color:rgba(244,244,242,0.42); margin-bottom:14px;">{{ b.tag }}</div>
+            <h3 style="font-size:18px; font-weight:600; letter-spacing:-0.02em; margin:0 0 8px;">{{ b.title }}</h3>
+            <p style="font-size:14.5px; line-height:1.6; color:rgba(244,244,242,0.55); margin:0;">{{ b.body }}</p>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+
+  <section id="how" style="padding:clamp(56px,7vw,104px) clamp(20px,4vw,48px);">
+    <div style="max-width:1200px; margin:0 auto;">
+      <h2 data-reveal style="font-size:clamp(30px,4.6vw,62px); line-height:1; letter-spacing:-0.045em; font-weight:600; margin:0 0 clamp(36px,4vw,56px); max-width:20ch; text-wrap:balance;">Four taps, no phone calls.</h2>
+      <div style="display:flex; flex-direction:column;">
+        <sc-for list="{{ steps }}" as="s" hint-placeholder-count="4">
+          <div data-reveal style="display:flex; flex-wrap:wrap; gap:clamp(18px,3vw,44px); align-items:baseline; padding:clamp(24px,2.8vw,34px) 0; border-top:1px solid rgba(255,255,255,0.1);">
+            <span style="flex:0 0 auto; font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:0.1em; color:#F58220; width:44px;">{{ s.n }}</span>
+            <h3 style="flex:1 1 260px; font-size:clamp(21px,2.4vw,30px); line-height:1.15; letter-spacing:-0.03em; font-weight:600; margin:0;">{{ s.title }}</h3>
+            <p style="flex:1 1 320px; min-width:0; font-size:15.5px; line-height:1.65; color:rgba(244,244,242,0.55); margin:0; max-width:52ch; text-wrap:pretty;">{{ s.body }}</p>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+
+  <section id="vehicles" style="padding:clamp(56px,7vw,104px) clamp(20px,4vw,48px);">
+    <div style="max-width:1200px; margin:0 auto;">
+      <div data-reveal style="display:flex; flex-wrap:wrap; gap:28px; align-items:flex-end; justify-content:space-between; margin-bottom:clamp(30px,3.4vw,44px);">
+        <h2 style="flex:1 1 380px; font-size:clamp(30px,4.6vw,62px); line-height:1; letter-spacing:-0.045em; font-weight:600; margin:0; max-width:16ch;">Every size, one app.</h2>
+        <p style="flex:1 1 300px; font-size:16px; line-height:1.6; color:rgba(244,244,242,0.55); margin:0; max-width:44ch;">Pick the vehicle that fits the load. Nine types across three categories, available in every city we cover.</p>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:clamp(26px,3vw,40px);">
+        <sc-for list="{{ vehicleGroups }}" as="g" hint-placeholder-count="3">
+          <div data-reveal>
+            <div style="display:flex; align-items:center; gap:14px; margin-bottom:16px;">
+              <span style="font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.18em; text-transform:uppercase; color:#F58220;">{{ g.category }}</span>
+              <span style="flex:1; height:1px; background:rgba(255,255,255,0.1);"></span>
+            </div>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px;">
+              <sc-for list="{{ g.items }}" as="t" hint-placeholder-count="3">
+                <div style="min-width:0; border-radius:1.5rem; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); overflow:hidden; display:flex; flex-direction:column;">
+                  <div style="height:140px; background:rgba(255,255,255,0.03); border-bottom:1px solid rgba(255,255,255,0.07);">
+                    <image-slot id="{{ t.id }}" shape="rect" fit="cover" radius="0" placeholder="{{ t.slot }}"></image-slot>
+                  </div>
+                  <div style="padding:18px 22px 22px; font-size:17px; font-weight:600; letter-spacing:-0.02em;">{{ t.name }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+      <div data-reveal style="margin-top:14px; border-radius:1.5rem; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); padding:clamp(24px,2.8vw,34px); display:flex; flex-wrap:wrap; gap:22px; align-items:center; justify-content:space-between;">
+        <div style="flex:1 1 420px;">
+          <div style="font-size:18px; font-weight:600; letter-spacing:-0.02em; margin-bottom:6px;">Business account</div>
+          <div style="font-size:15px; line-height:1.6; color:rgba(244,244,242,0.55); max-width:64ch;">Monthly invoicing in lari, a multi-seat dispatch dashboard and a REST API. A specialist replies within one working day.</div>
+        </div>
+        <a href="#business" style="font-size:15px; font-weight:600; background:#F4F4F2; color:#0A0B0A; padding:15px 28px; border-radius:999px; white-space:nowrap;">Talk to sales</a>
+      </div>
+    </div>
+  </section>
+
+  <section id="drivers" style="padding:clamp(56px,7vw,104px) clamp(20px,4vw,48px);">
+    <div data-reveal style="max-width:1200px; margin:0 auto; border-radius:2rem; overflow:hidden; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.04); display:flex; flex-wrap:wrap;">
+      <div style="flex:1 1 320px; min-width:0; padding:clamp(30px,3.6vw,52px); display:flex; flex-direction:column;">
+        <div style="font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:0.18em; text-transform:uppercase; color:#F58220; margin-bottom:18px;">For drivers</div>
+        <h2 style="font-size:clamp(26px,3.4vw,46px); line-height:1.02; letter-spacing:-0.04em; font-weight:600; margin:0 0 16px; max-width:18ch; text-wrap:balance;">Your vehicle. Your hours. Paid weekly.</h2>
+        <p style="font-size:15.5px; line-height:1.65; color:rgba(244,244,242,0.58); margin:0 0 26px; max-width:44ch; text-wrap:pretty;">Bring a van or a truck. Accept the jobs you want, see the fare before you commit, and get paid every Wednesday.</p>
+        <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:30px;">
+          <sc-for list="{{ driverPoints }}" as="d" hint-placeholder-count="3">
+            <div style="display:flex; align-items:flex-start; gap:12px; font-size:15px; line-height:1.5; color:rgba(244,244,242,0.7);">
+              <span style="flex:0 0 auto; width:6px; height:6px; border-radius:999px; background:#F58220; margin-top:8px;"></span>
+              <span>{{ d }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display:flex; flex-wrap:wrap; gap:12px;">
+          <a href="#drive" style="font-size:15px; font-weight:600; background:#F58220; color:#0A0B0A; padding:15px 28px; border-radius:999px;">Start driving</a>
+          <a href="#requirements" style="font-size:15px; font-weight:600; color:#F4F4F2; background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.16); padding:15px 28px; border-radius:999px;">Check requirements</a>
+        </div>
+      </div>
+      <div style="flex:1 1 320px; min-width:0; min-height:340px; background:rgba(255,255,255,0.03);">
+        <image-slot id="v3-drivers" shape="rect" fit="cover" radius="0" placeholder="Drop a photo of a courier partner"></image-slot>
+      </div>
+    </div>
+  </section>
+
+  <section id="coverage" style="padding:clamp(56px,7vw,104px) clamp(20px,4vw,48px);">
+    <div style="max-width:1200px; margin:0 auto; display:flex; flex-wrap:wrap; gap:14px;">
+      <div data-reveal style="flex:1 1 340px; min-width:0; border-radius:1.5rem; background:linear-gradient(160deg, rgba(245,130,32,0.12), rgba(255,255,255,0.03) 50%); border:1px solid rgba(255,255,255,0.1); padding:clamp(28px,3.2vw,44px); display:flex; flex-direction:column;">
+        <div style="font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:0.18em; text-transform:uppercase; color:#F58220; margin-bottom:18px;">Coverage</div>
+        <h2 style="font-size:clamp(26px,3.4vw,44px); line-height:1.04; letter-spacing:-0.04em; font-weight:600; margin:0 0 16px; max-width:16ch; text-wrap:balance;">Eleven cities, one account.</h2>
+        <p style="font-size:15.5px; line-height:1.65; color:rgba(244,244,242,0.58); margin:0 0 28px; max-width:42ch; text-wrap:pretty;">Same-hour delivery in the four largest cities, scheduled and intercity routes everywhere else. Support in Georgian, English and Russian, around the clock.</p>
+        <a href="#signup" style="align-self:flex-start; font-size:15px; font-weight:600; background:#F58220; color:#0A0B0A; padding:15px 28px; border-radius:999px;">Check your address</a>
+      </div>
+      <div data-reveal style="flex:1 1 360px; min-width:0; display:flex; flex-wrap:wrap; gap:10px; align-content:flex-start;">
+        <sc-for list="{{ cities }}" as="c" hint-placeholder-count="12">
+          <div style="flex:1 1 150px; min-width:0; border-radius:1rem; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); padding:18px 20px;">
+            <div style="font-size:16px; font-weight:600; letter-spacing:-0.015em;">{{ c.name }}</div>
+            <div style="font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:0.1em; text-transform:uppercase; color:rgba(244,244,242,0.42); margin-top:6px;">{{ c.tier }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+
+  <section id="faq" style="padding:clamp(56px,7vw,104px) clamp(20px,4vw,48px);">
+    <div style="max-width:1200px; margin:0 auto; display:flex; flex-wrap:wrap; gap:clamp(28px,4vw,64px);">
+      <div data-reveal style="flex:1 1 280px;">
+        <h2 style="font-size:clamp(28px,4vw,52px); line-height:1.02; letter-spacing:-0.045em; font-weight:600; margin:0 0 16px;">Questions</h2>
+        <p style="font-size:15px; line-height:1.6; color:rgba(244,244,242,0.55); margin:0; max-width:32ch;">Still stuck? <a href="#support">Support is live 24/7</a> in Georgian, English and Russian.</p>
+      </div>
+      <div data-reveal style="flex:1 1 460px; min-width:0; display:flex; flex-direction:column; gap:10px;">
+        <sc-for list="{{ faqs }}" as="f" hint-placeholder-count="5">
+          <div style="border-radius:1rem; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); overflow:hidden;">
+            <button onClick="{{ f.toggle }}" style="width:100%; display:flex; align-items:center; justify-content:space-between; gap:20px; padding:20px 24px; background:none; border:0; cursor:pointer; text-align:left; font-family:inherit; color:inherit;">
+              <span style="font-size:16px; font-weight:600; letter-spacing:-0.02em;">{{ f.q }}</span>
+              <span style="font-family:'IBM Plex Mono',monospace; font-size:19px; color:#F58220; flex-shrink:0; line-height:1;">{{ f.sign }}</span>
+            </button>
+            <sc-if value="{{ f.open }}" hint-placeholder-val="{{ false }}">
+              <p style="font-size:15px; line-height:1.7; color:rgba(244,244,242,0.55); margin:0; padding:0 24px 22px; max-width:72ch; text-wrap:pretty;">{{ f.a }}</p>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding:clamp(20px,3vw,40px) clamp(20px,4vw,48px) clamp(56px,7vw,100px);">
+    <div data-reveal style="position:relative; max-width:1200px; margin:0 auto; border-radius:2rem; overflow:hidden; border:1px solid rgba(245,130,32,0.28); background:linear-gradient(150deg, rgba(245,130,32,0.2), rgba(255,255,255,0.03) 58%); padding:clamp(40px,6vw,88px) clamp(26px,4vw,64px); text-align:center;">
+      <h2 style="font-size:clamp(30px,5.2vw,72px); line-height:0.96; letter-spacing:-0.05em; font-weight:600; margin:0 auto 20px; max-width:20ch; text-wrap:balance;">Your first delivery is twelve seconds away.</h2>
+      <p style="font-size:16.5px; line-height:1.55; color:rgba(244,244,242,0.62); margin:0 auto 32px; max-width:44ch;">Half price on your first three. No card needed to get a quote.</p>
+      <div style="display:flex; flex-wrap:wrap; gap:12px; justify-content:center;">
+        <a href="#signup" style="font-size:15px; font-weight:600; background:#F58220; color:#0A0B0A; padding:16px 32px; border-radius:999px; box-shadow:0 10px 30px rgba(245,130,32,0.3);">Sign up free</a>
+        <a href="#drive" style="font-size:15px; font-weight:600; color:#F4F4F2; background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.16); padding:16px 32px; border-radius:999px;">Drive with us</a>
+      </div>
+    </div>
+  </section>
+
+  <footer style="border-top:1px solid rgba(255,255,255,0.08); padding:clamp(44px,5vw,72px) clamp(20px,4vw,48px) 36px;">
+    <div style="max-width:1200px; margin:0 auto;">
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:28px; padding-bottom:40px;">
+        <div style="grid-column:1 / -1; min-width:0; margin-bottom:8px;">
+          <div style="font-size:18px; font-weight:700; letter-spacing:-0.035em; margin-bottom:12px;">Lalamove Georgia</div>
+          <p style="font-size:14px; line-height:1.6; color:rgba(244,244,242,0.45); margin:0; max-width:30ch;">On-demand delivery in 11 cities, matched in under a minute.</p>
+        </div>
+        <sc-for list="{{ footerCols }}" as="c" hint-placeholder-count="4">
+          <div style="min-width:0;">
+            <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.18em; text-transform:uppercase; color:rgba(244,244,242,0.35); margin-bottom:16px;">{{ c.title }}</div>
+            <div style="display:flex; flex-direction:column; gap:11px;">
+              <sc-for list="{{ c.links }}" as="l" hint-placeholder-count="4">
+                <a href="#" style="font-size:14px; color:rgba(244,244,242,0.6);">{{ l }}</a>
+              </sc-for>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="padding-top:24px; border-top:1px solid rgba(255,255,255,0.08); display:flex; flex-wrap:wrap; gap:16px; justify-content:space-between; font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.08em; color:rgba(244,244,242,0.35);">
+        <span>© 2026 Lalamove Georgia</span>
+        <span>Privacy · Terms · Cookies</span>
+      </div>
+    </div>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280}}">
+class Component extends DCLogic {
+  state = { openFaq: 0, banner: 0 };
+
+  FAQ = [
+    { q: "How fast will a courier accept?", a: "Median match time in Tbilisi is 54 seconds. If nobody accepts within five minutes the booking cancels automatically and you are not charged." },
+    { q: "Which cities do you cover?", a: "Same-hour delivery in Tbilisi, Batumi, Kutaisi and Rustavi, with intercity routes between all four. Gori, Zugdidi, Telavi, Poti and others are served on scheduled bookings." },
+    { q: "What can I not send?", a: "Live animals, hazardous goods, cash and restricted items. The full list is in the terms. Everything else, from a bakery order to a pallet of tiles, is fair game." },
+    { q: "Is the price I see the price I pay?", a: "Yes for the route you booked. Waiting time beyond 15 minutes, stops added mid-trip and parking fees are added afterwards and itemised on the receipt." },
+    { q: "How do I get a business account?", a: "Request rates and a specialist replies within one working day. Business accounts get volume pricing, monthly invoicing in lari, seat-based access and a REST API." }
+  ];
+
+  BANNERS = [
+    { id: "v3-hero", caption: "Same-hour delivery across Tbilisi", placeholder: "Banner 1 — drop a wide photo (Tbilisi street, courier)" },
+    { id: "v3-hero-2", caption: "Tbilisi to Batumi, loaded overnight", placeholder: "Banner 2 — intercity route" },
+    { id: "v3-hero-3", caption: "Vans, trucks and specialised loads", placeholder: "Banner 3 — vehicle line-up" },
+    { id: "v3-hero-4", caption: "Twenty stops on one booking", placeholder: "Banner 4 — multi-stop run" },
+    { id: "v3-hero-5", caption: "6,400 courier partners in Georgia", placeholder: "Banner 5 — courier portrait" },
+    { id: "v3-hero-6", caption: "Business dispatch, one invoice", placeholder: "Banner 6 — business / warehouse" }
+  ];
+
+  track = null;
+
+  componentDidMount() {
+    this.wire();
+    [200, 700, 1600].forEach(t => setTimeout(() => this.wire(), t));
+    this.getTrack();
+    this.paintDots(0);
+    this.carousel = setInterval(() => this.goBanner(this.state.banner + 1), 6000);
+  }
+
+  getTrack() {
+    if (!this.track || !this.track.isConnected) {
+      this.track = document.querySelector("[data-hero-track]");
+      if (this.track && !this.track.dataset.wired) {
+        this.track.dataset.wired = "1";
+        this.track.addEventListener("scroll", this.onScroll, { passive: true });
+      }
+    }
+    return this.track;
+  }
+
+  goBanner(i) {
+    const t = this.getTrack();
+    if (!t || !t.clientWidth) return;
+    const n = this.BANNERS.length;
+    const idx = ((i % n) + n) % n;
+    // Neither behavior:'smooth' nor requestAnimationFrame runs in this
+    // renderer — assign scrollLeft directly. Touch swipe still uses snap.
+    t.scrollLeft = idx * t.clientWidth;
+    this.paintDots(idx);
+    this.setState({ banner: idx });
+  }
+
+  syncIndex = () => {
+    const t = this.getTrack();
+    if (!t || !t.clientWidth) return;
+    const idx = Math.round(t.scrollLeft / t.clientWidth);
+    this.paintDots(idx);
+    if (idx !== this.state.banner) this.setState({ banner: idx });
+  };
+  componentDidUpdate() { this.wire(); }
+  componentWillUnmount() {
+    if (this.io) this.io.disconnect();
+    clearInterval(this.carousel);
+    if (this.track) this.track.removeEventListener("scroll", this.onScroll);
+  }
+
+  paintDots(idx) {
+    document.querySelectorAll("[data-dot]").forEach(el => {
+      const on = Number(el.getAttribute("data-dot")) === idx;
+      el.style.width = on ? "24px" : "8px";
+      el.style.background = on ? "#F58220" : "rgba(244,244,242,0.55)";
+    });
+  }
+
+  onScroll = () => {
+    clearTimeout(this.scrollT);
+    this.scrollT = setTimeout(this.syncIndex, 90);
+  };
+
+  wire() {
+    if (typeof IntersectionObserver !== "function") return;
+    if (!this.io) {
+      this.io = new IntersectionObserver(entries => {
+        entries.forEach(e => {
+          if (e.isIntersecting) {
+            this.ioFired = true;
+            e.target.style.opacity = "1";
+            e.target.style.transform = "none";
+            this.io.unobserve(e.target);
+          }
+        });
+      }, { threshold: 0.08, rootMargin: "0px 0px -6% 0px" });
+    }
+    document.querySelectorAll("[data-reveal]").forEach(el => {
+      if (el.dataset.revealWired) return;
+      el.dataset.revealWired = "1";
+      el.style.transition = "opacity 750ms cubic-bezier(0.16,1,0.3,1), transform 750ms cubic-bezier(0.16,1,0.3,1)";
+      // Anything already on screen must never be hidden — only below-the-fold
+      // elements get the enter animation.
+      if (el.getBoundingClientRect().top < window.innerHeight * 0.95) return;
+      el.style.opacity = "0";
+      el.style.transform = "translateY(20px)";
+      this.io.observe(el);
+      // Safety net: if the observer never reports anything, show everything.
+      setTimeout(() => {
+        if (this.ioFired) return;
+        el.style.opacity = "1";
+        el.style.transform = "none";
+      }, 400);
+    });
+  }
+
+  renderVals() {
+    return {
+      banners: this.BANNERS,
+      prev: () => { clearInterval(this.carousel); this.goBanner(this.state.banner - 1); },
+      next: () => { clearInterval(this.carousel); this.goBanner(this.state.banner + 1); },
+      dots: this.BANNERS.map((b, i) => ({
+        i,
+        go: () => { clearInterval(this.carousel); this.goBanner(i); }
+      })),
+      marquee: Array.from({ length: 16 }, (_, i) => {
+        const n = (i % 8) + 1;
+        return { id: "v3-partner-" + n + (i > 7 ? "b" : ""), label: "Logo " + n };
+      }),
+      stats: [
+        { v: "54s", k: "Median match time in Tbilisi" },
+        { v: "11", k: "Cities across Georgia" },
+        { v: "6,400", k: "Courier partners" },
+        { v: "24/7", k: "Dispatch and support" }
+      ],
+      bentoSmall: [
+        { tag: "Scheduled", title: "Book it for Thursday, 08:00", body: "Lock a courier days ahead at a fixed fare, with no surge pricing." },
+        { tag: "Intercity", title: "Tbilisi to Batumi overnight", body: "Daily routes between the four largest cities, loaded in the evening." },
+        { tag: "Cover", title: "Insured up to ₾5,000", body: "Every booking carries cover as standard. Claims settled in five days." }
+      ],
+      steps: [
+        { n: "01", title: "Enter two addresses", body: "Pickup and drop-off anywhere in the city. Add up to twenty stops and reorder them by dragging." },
+        { n: "02", title: "Pick a vehicle", body: "Cargo van for a few boxes, ten-tonne truck for pallets. You see the fare before you confirm anything." },
+        { n: "03", title: "Get matched", body: "The nearest available courier accepts, usually inside a minute. No calling around." },
+        { n: "04", title: "Track to the door", body: "Live map, courier phone number, proof-of-delivery photo the moment it lands." }
+      ],
+      vehicleGroups: [
+        {
+          category: "Vans",
+          items: [
+            { id: "v3-veh-van-cargo", slot: "Cargo van photo", name: "Cargo Van" },
+            { id: "v3-veh-van-long", slot: "Extended van photo", name: "Extended Van" },
+            { id: "v3-veh-van-crew", slot: "Crew van photo", name: "Crew Van" }
+          ]
+        },
+        {
+          category: "Trucks",
+          items: [
+            { id: "v3-veh-truck-3t", slot: "3t truck photo", name: "Truck 3t" },
+            { id: "v3-veh-truck-5t", slot: "5t truck photo", name: "Truck 5t" },
+            { id: "v3-veh-truck-10t", slot: "10t truck photo", name: "Truck 10t" }
+          ]
+        },
+        {
+          category: "Specialised",
+          items: [
+            { id: "v3-veh-reefer", slot: "Refrigerated photo", name: "Refrigerated" },
+            { id: "v3-veh-flatbed", slot: "Flatbed photo", name: "Flatbed" },
+            { id: "v3-veh-crane", slot: "Crane truck photo", name: "Crane Truck" }
+          ]
+        }
+      ],
+      driverPoints: [
+        "No sign-up fee, and no minimum hours",
+        "See the fare and the route before you accept",
+        "Weekly payouts every Wednesday, straight to your account"
+      ],
+      cities: [
+        { name: "Tbilisi", tier: "Same hour" },
+        { name: "Batumi", tier: "Same hour" },
+        { name: "Kutaisi", tier: "Same hour" },
+        { name: "Rustavi", tier: "Same hour" },
+        { name: "Gori", tier: "Scheduled" },
+        { name: "Zugdidi", tier: "Scheduled" },
+        { name: "Telavi", tier: "Scheduled" },
+        { name: "Poti", tier: "Scheduled" },
+        { name: "Zestaponi", tier: "Scheduled" },
+        { name: "Marneuli", tier: "Scheduled" },
+        { name: "Akhaltsikhe", tier: "Scheduled" },
+        { name: "Intercity", tier: "Daily routes" }
+      ],
+      quotes: [
+        { id: "v3-face-1", text: "We moved the whole Saturday market run onto it. Four vans across Tbilisi, one dashboard, one invoice at month end.", who: "Nino Beridze", role: "Operations lead, Mtsvane Bazari" },
+        { id: "v3-face-2", text: "I clear eleven jobs before lunch. The app tells me where the next one is before I finish the last.", who: "Giorgi Kapanadze", role: "Courier partner, three years" },
+        { id: "v3-face-3", text: "Sent a forgotten passport from Vake to Didube in nineteen minutes. That was the whole onboarding.", who: "Tamar Chkheidze", role: "Individual customer" }
+      ],
+      faqs: this.FAQ.map((f, i) => ({
+        q: f.q, a: f.a,
+        open: this.state.openFaq === i,
+        sign: this.state.openFaq === i ? "–" : "+",
+        toggle: () => this.setState(s => ({ openFaq: s.openFaq === i ? -1 : i }))
+      })),
+      footerCols: [
+        { title: "Product", links: ["Instant delivery", "Scheduled", "Multi-stop", "Intercity", "API"] },
+        { title: "Business", links: ["Enterprise", "Enterprise enquiry", "Case studies", "Integrations"] },
+        { title: "Couriers", links: ["Become a courier", "Requirements", "Earnings", "Support"] },
+        { title: "Company", links: ["About", "Newsroom", "Careers", "Contact"] }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

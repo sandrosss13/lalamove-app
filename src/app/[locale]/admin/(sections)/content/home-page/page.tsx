@@ -58,6 +58,7 @@ const SECTION_TYPE_LABEL_KEYS: Record<HomePageSectionType, string> = {
   stats: "stats",
   bento: "bento",
   quote_calculator: "quoteCalculator",
+  offers: "offers",
   how_it_works: "howItWorks",
   vehicle_types: "vehicleTypes",
   driver_cta: "driverCta",
@@ -130,6 +131,8 @@ function summarize(
     case "bento":
       return parsed.data.content.heading;
     case "quote_calculator":
+      return parsed.data.content.heading;
+    case "offers":
       return parsed.data.content.heading;
     case "how_it_works":
       return parsed.data.content.heading;
