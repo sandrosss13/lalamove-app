@@ -14,6 +14,7 @@ import {
   parseHomePageSection,
   type HomePageSectionType,
 } from "@/lib/admin/home-page-content";
+import { revalidateHomePage } from "@/lib/admin/home-page-data";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -257,6 +258,8 @@ export async function POST(request: Request): Promise<NextResponse> {
       isActive: section.isActive,
     },
   });
+
+  revalidateHomePage();
 
   const body: AdminHomePageSectionResponse = { section: toSectionRow(section) };
 

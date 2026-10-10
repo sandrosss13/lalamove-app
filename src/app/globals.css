@@ -539,6 +539,34 @@ html.dark {
   --color-faint: var(--landing-faint);
   --color-faintest: var(--landing-faintest);
 
+  /* Home-Georgia-v4 palette (`bg-home-page`, `text-home-muted`, …). A separate
+     `home-` family rather than new values for the `--landing-*` names above:
+     the city landing pages still render the v3 components on those, and v4's
+     light theme is a warm off-white page with white cards — a different shape
+     from v3's, not a re-tint of it. The theme-following values live in the
+     `--home-*` blocks after the landing styles; the rest are fixed because the
+     design pins them in both themes (the near-black hero, how-it-works panel
+     and footer, and the one brand orange). */
+  --color-home-page: var(--home-page);
+  --color-home-surface: var(--home-surface);
+  --color-home-chip: var(--home-chip);
+  --color-home-ink: var(--home-ink);
+  --color-home-muted: var(--home-muted);
+  --color-home-line: var(--home-line);
+  --color-home-field: var(--home-field);
+  --color-home-slot: var(--home-slot);
+  --color-home-accent-ink: var(--home-accent-ink);
+  --color-home-btn-bg: var(--home-btn-bg);
+  --color-home-btn-fg: var(--home-btn-fg);
+  --color-home-night: #08090a;
+  --color-home-on-night: #f4f4f2;
+  --color-home-slide: #111315;
+  --color-home-city: #1b1e1a;
+  --color-home-accent: #f58220;
+  --color-home-accent-hover: #ffa45c;
+  --shadow-home-card: 0 24px 60px -20px rgba(8, 9, 10, 0.35);
+  --shadow-home-lift: 0 18px 40px -22px rgba(8, 9, 10, 0.4);
+
   /* `--shadow-*` and `--blur-*` are Tailwind namespaces, so these become the
      `shadow-frame` / `shadow-pill` / `shadow-cta` and `backdrop-blur-glass`
      utilities. Adding new names to a namespace is inert; overriding an existing
@@ -800,6 +828,45 @@ body:has([data-landing-page]):not(:has([data-hide-site-header])) {
 
 body:has([data-landing-page]) {
   background: var(--landing-ink);
+}
+
+/* Home-Georgia-v4 tokens, light then dark (`html.dark`, the app's one theme
+   switch — the prototype's `data-theme` attribute is not used). Exposed as the
+   `home-*` colour utilities in the `@theme inline` block above. */
+:root {
+  --home-page: #f4f4f2;
+  --home-surface: #ffffff;
+  --home-chip: #f4f4f2;
+  --home-ink: #08090a;
+  --home-muted: #62665f;
+  --home-line: #e4e4e1;
+  --home-field: #fafaf9;
+  --home-slot: #e9e9e6;
+  --home-accent-ink: #b4530f;
+  --home-btn-bg: #08090a;
+  --home-btn-fg: #f4f4f2;
+}
+
+html.dark {
+  --home-page: #0e0f10;
+  --home-surface: #17191a;
+  --home-chip: #222527;
+  --home-ink: #f4f4f2;
+  --home-muted: #a3a79f;
+  --home-line: #2a2d2f;
+  --home-field: #1d2022;
+  --home-slot: #222527;
+  --home-accent-ink: #f58220;
+  --home-btn-bg: #f4f4f2;
+  --home-btn-fg: #08090a;
+}
+
+/* The v4 homepage paints its own ground; this keeps the canvas behind it (the
+   overscroll area, and the gap before hydration) the same colour. Declared
+   after the `data-landing-page` rule above, which it overrides for this page
+   only. */
+body:has([data-home-page]) {
+  background: var(--home-page);
 }
 
 /* Every interactive element on the landing page is styled from scratch, so the

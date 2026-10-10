@@ -1,23 +1,26 @@
 import { useMessages } from "next-intl";
 
+import { LandingAppBand } from "@/components/landing/landing-app-band";
 import { LandingBento } from "@/components/landing/landing-bento";
+import { LandingBookingCard } from "@/components/landing/landing-booking-card";
 import { LandingCategoryTiles } from "@/components/landing/landing-category-tiles";
-import { LandingClosingCta } from "@/components/landing/landing-closing-cta";
-import { LandingCoverage } from "@/components/landing/landing-coverage";
 import { LandingDriversPanel } from "@/components/landing/landing-drivers-panel";
-import { LandingFaq } from "@/components/landing/landing-faq";
-import { LandingFooter } from "@/components/landing/landing-footer";
+import { LandingFaqAccordion } from "@/components/landing/landing-faq-accordion";
 import { LandingHero } from "@/components/landing/landing-hero";
 import { LandingHeroCarousel } from "@/components/landing/landing-hero-carousel";
-import { LandingHowItWorks } from "@/components/landing/landing-how-it-works";
-import { LandingNavPill } from "@/components/landing/landing-nav-pill";
+import { LandingOffers } from "@/components/landing/landing-offers";
 import { LandingPartnerMarquee } from "@/components/landing/landing-partner-marquee";
-import { LandingQuoteCalculator } from "@/components/landing/landing-quote-calculator";
 import { LandingScrollReveal } from "@/components/landing/landing-scroll-reveal";
+import { LandingSiteFooter } from "@/components/landing/landing-site-footer";
+import { LandingSiteHeader } from "@/components/landing/landing-site-header";
 import { LandingStats } from "@/components/landing/landing-stats";
-import { LandingVehicles } from "@/components/landing/landing-vehicles";
+import { LandingStepsPanel } from "@/components/landing/landing-steps-panel";
+import { LandingTopCities } from "@/components/landing/landing-top-cities";
+import { LandingVehicleCatalog } from "@/components/landing/landing-vehicle-catalog";
 import {
   MAX_HERO_BANNERS,
+  MAX_OFFER_BANNERS,
+  PINNED_UNDER_HERO,
   buildDefaultHomePageSections,
   createMessageLookup,
   isHomePageChromeSectionType,
@@ -35,6 +38,10 @@ export type LandingBanner = {
   title: string;
   imageUrl: string;
   linkUrl: string | null;
+  /** Card copy, used by the offers row; `null` for image-only placements. */
+  eyebrow: string | null;
+  body: string | null;
+  ctaLabel: string | null;
 };
 
 /**
@@ -48,27 +55,48 @@ export type LandingBanner = {
  * section type to the contract is meant to be a compile error here, so a new
  * type cannot ship as a silently blank strip of page.
  *
- * `heroBanners` and `partnerBanners` are the two things a section can need that
+ * The banner lists and `overlapsHero` are the things a section can need that
  * its own `content` does not carry. They are passed as props rather than read
- * from a context or a module-level variable: this component is called from one
- * place, and the explicit arguments keep the data flow readable.
+ * from a context: this component is called from one place, and explicit
+ * arguments keep the data flow readable.
+ *
+ * The v4 design has its own component for most types; the city landing pages
+ * keep rendering the v3 ones (`LandingCoverage`, `LandingFaq`, …), which is
+ * why those were left in place rather than restyled.
  */
 function LandingSectionRenderer({
   section,
   heroBanners,
   partnerBanners,
+  offerBanners,
+  overlapsHero,
 }: {
   section: LandingSection;
   heroBanners: LandingBanner[];
   partnerBanners: LandingBanner[];
+  offerBanners: LandingBanner[];
+  overlapsHero: boolean;
 }) {
   switch (section.type) {
-    case "hero":
-      return <LandingHero content={section.content} />;
     case "hero_carousel":
       return (
         <LandingHeroCarousel banners={heroBanners} content={section.content} />
       );
+    case "quote_calculator":
+      return (
+        <LandingBookingCard
+          content={section.content}
+          overlapsHero={overlapsHero}
+        />
+      );
+    case "offers":
+      return <LandingOffers content={section.content} offers={offerBanners} />;
+    case "vehicle_types":
+      return <LandingVehicleCatalog content={section.content} />;
+    case "how_it_works":
+      return <LandingStepsPanel content={section.content} />;
+    case "coverage":
+      return <LandingTopCities content={section.content} />;
     case "partner_marquee":
       return (
         <LandingPartnerMarquee
@@ -76,29 +104,23 @@ function LandingSectionRenderer({
           content={section.content}
         />
       );
+    case "closing_cta":
+      return <LandingAppBand content={section.content} />;
+    case "faq":
+      return <LandingFaqAccordion content={section.content} />;
+    // Retired by v4 and absent from the default composition, but kept
+    // renderable: a row authored against an earlier design must still render
+    // rather than take the marketing page down. They keep their v3 look.
+    case "hero":
+      return <LandingHero content={section.content} />;
     case "stats":
       return <LandingStats content={section.content} />;
     case "bento":
       return <LandingBento content={section.content} />;
-    case "quote_calculator":
-      return <LandingQuoteCalculator content={section.content} />;
-    case "how_it_works":
-      return <LandingHowItWorks content={section.content} />;
-    case "vehicle_types":
-      return <LandingVehicles content={section.content} />;
-    // The type key keeps its old name so existing rows and their admin form
-    // still work; the component behind it is the redesign's drivers panel.
+    // The type key keeps its old name so existing rows still work; the
+    // component behind it is the v3 drivers panel.
     case "driver_cta":
       return <LandingDriversPanel content={section.content} />;
-    case "coverage":
-      return <LandingCoverage content={section.content} />;
-    case "faq":
-      return <LandingFaq content={section.content} />;
-    case "closing_cta":
-      return <LandingClosingCta content={section.content} />;
-    // Retired by the redesign and absent from the default composition, but kept
-    // renderable: a row authored against the previous design must still render
-    // rather than take the marketing page down.
     case "category_tiles":
       return <LandingCategoryTiles content={section.content} />;
     // Chrome, handled outside the ordered loop (see `LandingPage`). These cases
@@ -111,20 +133,36 @@ function LandingSectionRenderer({
 }
 
 /**
+ * Moves the `PINNED_UNDER_HERO` section (the booking card) to directly after
+ * the hero carousel, whatever its `sortOrder`. With no carousel row it leads
+ * the page instead, which is where it would sit under an absent hero.
+ */
+function pinUnderHero(sections: LandingSection[]): LandingSection[] {
+  const pinned = sections.find((section) => section.type === PINNED_UNDER_HERO);
+  if (!pinned) return sections;
+
+  const rest = sections.filter((section) => section !== pinned);
+  const heroIndex = rest.findIndex(
+    (section) => section.type === "hero_carousel",
+  );
+  rest.splice(heroIndex + 1, 0, pinned);
+  return rest;
+}
+
+/**
  * Marketing page shown at `/` to visitors without a session, and at `/home` to
  * everyone.
  *
- * It brings all of its own chrome: the fixed glass nav pill at the top and the
- * footer at the bottom. Two data attributes on the wrapper are what tie it to
- * `globals.css`:
+ * The `Home-Georgia-v4` design. It brings all of its own chrome: the utility
+ * bar and sticky header at the top and the footer at the bottom. Three data
+ * attributes on the wrapper tie it to `globals.css`:
  *
- * - `data-landing-page` — always present. It is what owns the page background
- *   (`body:has([data-landing-page])`), scopes the landing focus ring and the
- *   reduced-motion block, and is the root the scroll-reveal observer looks for.
+ * - `data-landing-page` — scopes the landing focus ring and the reduced-motion
+ *   block, and is the root the scroll-reveal observer looks for.
+ * - `data-home-page` — paints the canvas behind the page with the v4 ground.
  * - `data-hide-site-header` — present unless `showSiteHeader` says otherwise.
- *   It hides the root layout's global `<header>`, and it is load-bearing: the
- *   nav pill is `position: fixed` at `top: 14px`, so a second, light-themed
- *   header underneath it does not read as clutter, it reads as broken.
+ *   It hides the root layout's global `<header>`, which would otherwise stack
+ *   a second navbar above this page's own.
  *
  * The body is composed from `HomePageSection` rows edited under
  * `/admin/content/home-page`: `sections` arrives already filtered to one
@@ -139,6 +177,7 @@ export function LandingPage({
   sections,
   heroBanners = [],
   partnerBanners = [],
+  offerBanners = [],
   showSiteHeader = false,
 }: {
   sections?: LandingSection[];
@@ -146,22 +185,16 @@ export function LandingPage({
   heroBanners?: LandingBanner[];
   /** Active banners placed at `home_partner_logo` — the marquee's logos. */
   partnerBanners?: LandingBanner[];
+  /** Active banners placed at `home_secondary` — the offers row's cards. */
+  offerBanners?: LandingBanner[];
   /**
    * Keep the root layout's global site header (account nav, sign out) visible
    * above this page, rather than hiding it.
    *
    * `/`'s signed-out visitor is the default case: there is no account nav to
-   * show, so the global header is pure clutter over the floating pill. `/home`
-   * passes `true` when a session exists, so a signed-in user previewing the
-   * marketing page still has a way back to their account.
-   *
-   * The nav pill renders either way. It carries the theme toggle and every
-   * section anchor on the page, which a signed-in previewer needs just as much
-   * as a visitor does — and unlike the old header it replaced, none of it is
-   * dead once signed in. So this is a deliberate two-bar state rather than an
-   * either/or: `globals.css` keys off this same attribute to drop the fixed
-   * pill below the global header (`--landing-nav-pill-top`), so the two stack
-   * rather than overlap.
+   * show, so the global header is pure clutter. `/home` passes `true` when a
+   * session exists, so a signed-in user previewing the marketing page still
+   * has the app's own header above this one (which is session-aware too).
    */
   showSiteHeader?: boolean;
 }) {
@@ -212,50 +245,46 @@ export function LandingPage({
       ? footerSection.content
       : defaults().footer;
 
-  const orderedSections = composedSections.filter(
-    (section) => !isHomePageChromeSectionType(section.type),
+  const orderedSections = pinUnderHero(
+    composedSections.filter(
+      (section) => !isHomePageChromeSectionType(section.type),
+    ),
   );
 
-  // Capped at render as well as on write: the admin form refuses a seventh
-  // active `home_hero` banner, but a scheduled display window or a direct
-  // database edit can still produce more, and the carousel's dots are generated
-  // from the slide count.
+  // Capped at render as well as on write: the admin form refuses more, but a
+  // scheduled display window or a direct database edit can still produce
+  // extra rows, and the carousel's dots and the offers grid follow the count.
   const carouselBanners = heroBanners.slice(0, MAX_HERO_BANNERS);
+  const offerCards = offerBanners.slice(0, MAX_OFFER_BANNERS);
+
+  // The booking card is pulled up over the hero's bottom edge only when the
+  // carousel actually renders above it — an empty carousel renders nothing.
+  const heroRenders =
+    carouselBanners.length > 0 &&
+    orderedSections.some((section) => section.type === "hero_carousel");
 
   return (
     <div
       data-landing-page=""
+      data-home-page=""
       data-hide-site-header={showSiteHeader ? undefined : ""}
-      className="min-h-screen bg-ink font-body text-paper antialiased"
+      className="flex min-h-screen flex-col overflow-x-clip bg-home-page font-body text-home-ink antialiased"
     >
       <LandingScrollReveal />
-      <LandingNavPill content={navContent} />
-      {/*
-        The nav pill is fixed, so it takes no space in the flow and whatever
-        renders first would slide underneath it. The design's clearance
-        (`clamp(120px, 14vw, 190px)`) is applied to `main`'s first rendered
-        child rather than to `main` itself, so it lands on the section's own box
-        — the hero's spotlight gradient is positioned against that box, and
-        padding on `main` would push the section down without moving the
-        gradient with it.
-
-        Targeting the first *child* rather than hard-coding the hero is what
-        keeps this correct for a CMS page that leads with something else, or one
-        whose leading section (an empty carousel or marquee) renders nothing at
-        all. The hero carries the same value itself; this rule wins on
-        specificity and sets it to the same thing.
-      */}
-      <main className="[&>*:first-child]:pt-[clamp(120px,14vw,190px)]">
+      <LandingSiteHeader content={navContent} />
+      <main className="flex-1">
         {orderedSections.map((section) => (
           <LandingSectionRenderer
             key={section.id}
             section={section}
             heroBanners={carouselBanners}
             partnerBanners={partnerBanners}
+            offerBanners={offerCards}
+            overlapsHero={heroRenders && section.type === PINNED_UNDER_HERO}
           />
         ))}
       </main>
-      <LandingFooter content={footerContent} />
+      <LandingSiteFooter content={footerContent} />
     </div>
   );
 }

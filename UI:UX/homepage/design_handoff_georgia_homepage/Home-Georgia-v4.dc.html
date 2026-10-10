@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="fonts/fonts.css">
+<script src="./image-slot.js"></script>
+<script src="./zomo-cms.js"></script>
+<style>
+  :root { --page:#F4F4F2; --surface:#FFFFFF; --chip:#F4F4F2; --ink:#08090A; --muted:#62665F; --line:#E4E4E1; --field:#FAFAF9; --slot:#E9E9E6; --accent-ink:#B4530F; --btn-bg:#08090A; --btn-fg:#F4F4F2; --logo-ink:block; --logo-light:none; color-scheme:light; }
+  [data-theme="dark"] { --page:#0E0F10; --surface:#17191A; --chip:#222527; --ink:#F4F4F2; --muted:#A3A79F; --line:#2A2D2F; --field:#1D2022; --slot:#222527; --accent-ink:#F58220; --btn-bg:#F4F4F2; --btn-fg:#08090A; --logo-ink:none; --logo-light:block; color-scheme:dark; }
+  body { margin:0; background:var(--page); transition:background .2s; }
+  a { color:var(--accent-ink); text-decoration:none; }
+  a:hover { color:#F58220; }
+  * { box-sizing:border-box; }
+  input, select, button { font-family:inherit; }
+  @keyframes v4-marquee { from { transform:translateX(0); } to { transform:translateX(-50%); } }
+</style>
+</helmet>
+<div style="font-family:'IBM Plex Sans',sans-serif; background:var(--page); color:var(--ink); -webkit-font-smoothing:antialiased; overflow-x:hidden; display:flex; flex-direction:column; min-height:100vh;">
+
+  <div style="order:-2; background:#08090A; color:rgba(244,244,242,0.62); font-size:12.5px;">
+    <div style="max-width:1280px; margin:0 auto; padding:8px clamp(20px,4vw,40px); display:flex; flex-wrap:wrap; gap:8px 22px; align-items:center; justify-content:space-between;">
+      <span>Same-hour delivery in Tbilisi, Batumi, Kutaisi and Rustavi</span>
+      <div style="display:flex; flex-wrap:wrap; gap:18px; align-items:center;">
+        <a href="#business" style="color:inherit;">For business</a>
+        <a href="#faq" style="color:inherit;">Help centre</a>
+        <div style="display:flex; gap:2px; font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.08em;">
+          <sc-for list="{{ langs }}" as="l" hint-placeholder-count="2">
+            <button onClick="{{ l.select }}" style="{{ l.style }}">{{ l.code }}</button>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <header style="order:-1; position:sticky; top:0; z-index:40; background:var(--surface); border-bottom:1px solid var(--line);">
+    <div style="max-width:1280px; margin:0 auto; padding:0 clamp(20px,4vw,40px); min-height:68px; display:flex; flex-wrap:wrap; gap:10px 20px; align-items:center;">
+      <a href="#" style="display:flex; align-items:center; margin-right:8px;"><img src="assets/zomo-logo-ink.svg" alt="Zomo" style="height:30px; width:auto; display:var(--logo-ink);"><img src="assets/zomo-logo-light.svg" alt="Zomo" style="height:30px; width:auto; display:var(--logo-light);"></a>
+      <nav style="display:flex; flex-wrap:wrap; gap:4px; flex:1 1 auto;">
+        <a href="#how" style="font-size:14.5px; font-weight:500; color:var(--ink); padding:10px 14px; border-radius:0.5rem;" style-hover="background:var(--chip);">How it works</a>
+        <a href="#drivers" style="font-size:14.5px; font-weight:500; color:var(--ink); padding:10px 14px; border-radius:0.5rem;" style-hover="background:var(--chip);">For Drivers</a>
+        <a href="#vehicles" style="font-size:14.5px; font-weight:500; color:var(--ink); padding:10px 14px; border-radius:0.5rem;" style-hover="background:var(--chip);">Vehicles</a>
+        <a href="#coverage" style="font-size:14.5px; font-weight:500; color:var(--ink); padding:10px 14px; border-radius:0.5rem;" style-hover="background:var(--chip);">Coverage</a>
+        <a href="#faq" style="font-size:14.5px; font-weight:500; color:var(--ink); padding:10px 14px; border-radius:0.5rem;" style-hover="background:var(--chip);">Help</a>
+      </nav>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <button onClick="{{ toggleTheme }}" aria-label="{{ themeLabel }}" title="{{ themeLabel }}" style="width:42px; height:42px; display:flex; align-items:center; justify-content:center; border-radius:999px; border:1px solid var(--line); background:var(--surface); color:var(--ink); cursor:pointer; font-size:17px; line-height:1;">{{ themeIcon }}</button>
+        <a href="#signin" style="font-size:14.5px; font-weight:600; color:var(--ink); padding:11px 18px; border:1px solid var(--line); border-radius:999px;">Sign in</a>
+        <a href="#signup" style="font-size:14.5px; font-weight:600; color:#fff; background:#08090A; padding:12px 20px; border-radius:999px;">Sign up</a>
+      </div>
+    </div>
+  </header>
+
+  <sc-if value="{{ show.hero }}" hint-placeholder-val="{{ true }}">
+  <section style="order:{{ ord.hero }}; position:relative; background:#08090A;">
+    <div style="position:relative; height:clamp(460px,46vw,620px); overflow:hidden;">
+      <div data-hero-track="" style="display:flex; height:100%; overflow-x:auto; overflow-y:hidden; scroll-snap-type:x mandatory; scrollbar-width:none;">
+        <sc-for list="{{ banners }}" as="b" hint-placeholder-count="6">
+          <div style="position:relative; flex:0 0 100%; width:100%; height:100%; scroll-snap-align:start; background:#111315;">
+            <image-slot id="{{ b.id }}" shape="rect" fit="cover" radius="0" placeholder="{{ b.placeholder }}"></image-slot>
+            <div style="position:absolute; inset:0; background:linear-gradient(90deg, rgba(8,9,10,0.82) 0%, rgba(8,9,10,0.55) 38%, rgba(8,9,10,0) 66%); pointer-events:none;"></div>
+            <div style="position:absolute; left:0; right:0; top:0; bottom:0; display:flex; align-items:center; pointer-events:none;">
+              <div style="width:100%; max-width:1280px; margin:0 auto; padding:0 clamp(20px,4vw,40px) clamp(90px,9vw,120px); color:#F4F4F2;">
+                <div style="display:inline-flex; font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.16em; text-transform:uppercase; color:#08090A; background:#F58220; padding:6px 12px; border-radius:999px; margin-bottom:20px;">{{ b.tag }}</div>
+                <h1 style="font-size:clamp(36px,5.4vw,72px); line-height:0.98; letter-spacing:-0.045em; font-weight:600; margin:0 0 16px; max-width:14ch; text-wrap:balance;">{{ b.title }}</h1>
+                <p style="font-size:clamp(16px,1.5vw,19px); line-height:1.5; color:rgba(244,244,242,0.78); margin:0; max-width:42ch; text-wrap:pretty;">{{ b.body }}</p>
+              </div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="position:absolute; right:clamp(20px,4vw,40px); top:clamp(20px,3vw,32px); display:flex; gap:8px; align-items:center;">
+        <div style="display:flex; align-items:center; gap:7px; padding:9px 13px; border-radius:999px; background:rgba(8,9,10,0.62); backdrop-filter:blur(12px); border:1px solid rgba(255,255,255,0.14);">
+          <sc-for list="{{ dots }}" as="d" hint-placeholder-count="6">
+            <button onClick="{{ d.go }}" data-dot="{{ d.i }}" aria-label="Go to banner" style="flex:0 0 auto; width:8px; height:8px; border-radius:999px; border:0; padding:0; cursor:pointer; background:rgba(244,244,242,0.55);"></button>
+          </sc-for>
+        </div>
+        <button onClick="{{ prev }}" aria-label="Previous banner" style="width:40px; height:40px; border-radius:999px; border:1px solid rgba(255,255,255,0.18); background:rgba(8,9,10,0.62); backdrop-filter:blur(12px); color:#F4F4F2; font-size:17px; cursor:pointer;">‹</button>
+        <button onClick="{{ next }}" aria-label="Next banner" style="width:40px; height:40px; border-radius:999px; border:1px solid rgba(255,255,255,0.18); background:rgba(8,9,10,0.62); backdrop-filter:blur(12px); color:#F4F4F2; font-size:17px; cursor:pointer;">›</button>
+      </div>
+    </div>
+  </section>
+  </sc-if>
+
+  <sc-if value="{{ show.booking }}" hint-placeholder-val="{{ true }}">
+  <section style="order:{{ ord.booking }}; position:relative; z-index:5; max-width:1280px; margin:0 auto 0; margin-top:{{ bookingMt }}; padding:0 clamp(20px,4vw,40px);">
+    <div style="background:var(--surface); border-radius:1.25rem; box-shadow:0 24px 60px -20px rgba(8,9,10,0.35); overflow:hidden;">
+      <div style="display:flex; flex-wrap:wrap; border-bottom:1px solid var(--line);">
+        <h2 style="margin:0; padding:20px clamp(18px,2.2vw,26px); font-size:20px; font-weight:600; letter-spacing:-0.02em;">{{ c.booking.heading }}</h2>
+      </div>
+      <div style="padding:clamp(18px,2.2vw,26px); display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px; align-items:end;">
+        <label style="display:flex; flex-direction:column; gap:7px; min-width:0;">
+          <span style="font-size:12px; font-weight:600; color:var(--muted);">Pickup</span>
+          <input value="{{ pickup }}" onChange="{{ onPickup }}" placeholder="Street, building or business" style="width:100%; font-size:15px; padding:14px 14px; border:1px solid var(--line); border-radius:0.75rem; background:var(--field); color:var(--ink); outline:none;">
+        </label>
+        <label style="display:flex; flex-direction:column; gap:7px; min-width:0;">
+          <span style="font-size:12px; font-weight:600; color:var(--muted);">Drop-off</span>
+          <input value="{{ dropoff }}" onChange="{{ onDropoff }}" placeholder="Where is it going?" style="width:100%; font-size:15px; padding:14px 14px; border:1px solid var(--line); border-radius:0.75rem; background:var(--field); color:var(--ink); outline:none;">
+        </label>
+        <label style="display:flex; flex-direction:column; gap:7px; min-width:0;">
+          <span style="font-size:12px; font-weight:600; color:var(--muted);">Vehicle</span>
+          <select value="{{ vehicle }}" onChange="{{ onVehicle }}" style="width:100%; font-size:15px; padding:14px 12px; border:1px solid var(--line); border-radius:0.75rem; background:var(--field); color:var(--ink); outline:none;">
+            <sc-for list="{{ vehicleOptions }}" as="o" hint-placeholder-count="9">
+              <option value="{{ o }}">{{ o }}</option>
+            </sc-for>
+          </select>
+        </label>
+        <a href="#signup" style="display:flex; align-items:center; justify-content:center; font-size:15.5px; font-weight:600; background:#F58220; color:#08090A; padding:15px 22px; border-radius:0.75rem; min-height:50px;">{{ c.booking.cta }}</a>
+      </div>
+    </div>
+  </section>
+  </sc-if>
+
+  
+
+  <sc-if value="{{ show.offers }}" hint-placeholder-val="{{ true }}">
+  <section style="order:{{ ord.offers }}; max-width:1280px; margin:0 auto; padding:clamp(48px,6vw,80px) clamp(20px,4vw,40px) 0;">
+    <div style="display:flex; flex-wrap:wrap; gap:16px; align-items:flex-end; justify-content:space-between; margin-bottom:24px;">
+      <h2 style="font-size:clamp(26px,3.2vw,40px); line-height:1.05; letter-spacing:-0.04em; font-weight:600; margin:0;">{{ c.offers.heading }}</h2>
+      <a href="#offers" style="font-size:14.5px; font-weight:600;">{{ c.offers.linkLabel }} →</a>
+    </div>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:16px;">
+      <sc-for list="{{ offers }}" as="o" hint-placeholder-count="3">
+        <a href="{{ o.link }}" style="display:flex; flex-direction:column; background:var(--surface); border-radius:1.25rem; overflow:hidden; color:var(--ink); border:1px solid var(--line);" style-hover="box-shadow:0 18px 40px -22px rgba(8,9,10,0.4);">
+          <div style="position:relative; height:180px; background:var(--slot);">
+            <image-slot id="{{ o.id }}" shape="rect" fit="cover" radius="0" placeholder="{{ o.slot }}"></image-slot>
+            <span style="position:absolute; top:14px; left:14px; font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:0.14em; text-transform:uppercase; background:var(--btn-bg); color:var(--btn-fg); padding:6px 10px; border-radius:999px; pointer-events:none;">{{ o.tag }}</span>
+          </div>
+          <div style="padding:20px 22px 22px; display:flex; flex-direction:column; gap:8px; flex:1;">
+            <span style="font-size:18px; font-weight:600; letter-spacing:-0.02em; line-height:1.25;">{{ o.title }}</span>
+            <span style="font-size:14px; line-height:1.55; color:var(--muted);">{{ o.body }}</span>
+            <span style="margin-top:auto; padding-top:10px; font-size:14px; font-weight:600; color:var(--accent-ink);">{{ o.cta }} →</span>
+          </div>
+        </a>
+      </sc-for>
+    </div>
+  </section>
+  </sc-if>
+
+  <sc-if value="{{ show.vehicles }}" hint-placeholder-val="{{ true }}">
+  <section id="vehicles" style="order:{{ ord.vehicles }}; max-width:1280px; margin:0 auto; padding:clamp(56px,7vw,96px) clamp(20px,4vw,40px) 0;">
+    <div style="display:flex; flex-wrap:wrap; gap:18px; align-items:flex-end; justify-content:space-between; margin-bottom:24px;">
+      <div>
+        <h2 style="font-size:clamp(26px,3.2vw,40px); line-height:1.05; letter-spacing:-0.04em; font-weight:600; margin:0 0 8px;">{{ c.vehicles.heading }}</h2>
+        <p style="font-size:15.5px; color:var(--muted); margin:0; max-width:52ch;">{{ c.vehicles.intro }}</p>
+      </div>
+      <div style="display:inline-flex; flex-wrap:wrap; padding:4px; background:var(--surface); border:1px solid var(--line); border-radius:999px;">
+        <sc-for list="{{ catTabs }}" as="c" hint-placeholder-count="3">
+          <button onClick="{{ c.select }}" style="{{ c.style }}">{{ c.label }}</button>
+        </sc-for>
+      </div>
+    </div>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px;">
+      <sc-for list="{{ activeVehicles }}" as="t" hint-placeholder-count="3">
+        <div style="background:var(--surface); border-radius:1.25rem; overflow:hidden; border:1px solid var(--line); display:flex; flex-direction:column;">
+          <div style="height:190px; background:var(--slot);">
+            <image-slot id="{{ t.id }}" shape="rect" fit="cover" radius="0" placeholder="{{ t.slot }}"></image-slot>
+          </div>
+          <div style="padding:18px 22px 20px; display:flex; align-items:center; justify-content:space-between; gap:12px;">
+            <span style="font-size:17px; font-weight:600; letter-spacing:-0.02em;">{{ t.name }}</span>
+            <a href="#signup" style="font-size:13.5px; font-weight:600; color:var(--ink); background:var(--chip); padding:9px 14px; border-radius:999px; white-space:nowrap;">Book</a>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+  </sc-if>
+
+  <sc-if value="{{ show.how }}" hint-placeholder-val="{{ true }}">
+  <section id="how" style="order:{{ ord.how }}; max-width:1280px; margin:0 auto; padding:clamp(56px,7vw,96px) clamp(20px,4vw,40px) 0;">
+    <div style="background:#08090A; color:#F4F4F2; border-radius:1.5rem; padding:clamp(32px,4.5vw,60px);">
+      <h2 style="font-size:clamp(26px,3.2vw,40px); line-height:1.05; letter-spacing:-0.04em; font-weight:600; margin:0 0 clamp(28px,3.5vw,44px);">{{ c.how.heading }}</h2>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:clamp(20px,2.5vw,32px);">
+        <sc-for list="{{ steps }}" as="s" hint-placeholder-count="4">
+          <div style="border-top:2px solid rgba(244,244,242,0.16); padding-top:20px;">
+            <div style="font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:0.1em; color:#F58220; margin-bottom:14px;">{{ s.n }}</div>
+            <h3 style="font-size:19px; font-weight:600; letter-spacing:-0.02em; margin:0 0 8px;">{{ s.title }}</h3>
+            <p style="font-size:14.5px; line-height:1.6; color:rgba(244,244,242,0.6); margin:0; text-wrap:pretty;">{{ s.body }}</p>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+  </sc-if>
+
+  <sc-if value="{{ show.coverage }}" hint-placeholder-val="{{ true }}">
+  <section id="coverage" style="order:{{ ord.coverage }}; max-width:1280px; margin:0 auto; padding:clamp(56px,7vw,96px) clamp(20px,4vw,40px) 0;">
+    <div style="display:flex; flex-wrap:wrap; gap:16px; align-items:flex-end; justify-content:space-between; margin-bottom:24px;">
+      <div>
+        <h2 style="font-size:clamp(26px,3.2vw,40px); line-height:1.05; letter-spacing:-0.04em; font-weight:600; margin:0 0 8px;">{{ c.coverage.heading }}</h2>
+        <p style="font-size:15.5px; color:var(--muted); margin:0; max-width:56ch;">{{ c.coverage.intro }}</p>
+      </div>
+      <a href="#signup" style="font-size:14.5px; font-weight:600;">{{ c.coverage.linkLabel }} →</a>
+    </div>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:16px;">
+      <sc-for list="{{ hubs }}" as="h" hint-placeholder-count="4">
+        <a href="#signup" style="position:relative; display:block; height:260px; border-radius:1.25rem; overflow:hidden; background:#1B1E1A; color:#F4F4F2;">
+          <image-slot id="{{ h.id }}" shape="rect" fit="cover" radius="0" placeholder="{{ h.slot }}"></image-slot>
+          <div style="position:absolute; inset:0; background:linear-gradient(to top, rgba(8,9,10,0.82), rgba(8,9,10,0) 58%); pointer-events:none;"></div>
+          <div style="position:absolute; left:20px; right:20px; bottom:18px; pointer-events:none;">
+            <div style="font-size:22px; font-weight:600; letter-spacing:-0.03em;">{{ h.name }}</div>
+            <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:#F58220; margin-top:6px;">{{ h.tag }}</div>
+          </div>
+        </a>
+      </sc-for>
+    </div>
+    
+  </section>
+  </sc-if>
+
+  <sc-if value="{{ show.partners }}" hint-placeholder-val="{{ true }}">
+  <section style="order:{{ ord.partners }}; padding:clamp(56px,7vw,96px) 0 0;">
+    <div style="max-width:1280px; margin:0 auto 20px; padding:0 clamp(20px,4vw,40px); font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted);">{{ c.partners.eyebrow }}</div>
+    <div style="overflow:hidden; border-top:1px solid var(--line); border-bottom:1px solid var(--line); background:var(--surface); mask-image:linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); -webkit-mask-image:linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);">
+      <div style="display:flex; width:max-content; animation:v4-marquee 42s linear infinite;">
+        <sc-for list="{{ marquee }}" as="m" hint-placeholder-count="16">
+          <div style="width:200px; height:96px; border-right:1px solid var(--line); display:flex; align-items:center; justify-content:center; padding:20px 26px;">
+            <image-slot id="{{ m.id }}" shape="rect" fit="contain" radius="0" style="width:100%; height:44px;" placeholder="{{ m.label }}"></image-slot>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+  </sc-if>
+
+  
+
+  <sc-if value="{{ show.app }}" hint-placeholder-val="{{ true }}">
+  <section style="order:{{ ord.app }}; max-width:1280px; margin:0 auto; padding:clamp(56px,7vw,96px) clamp(20px,4vw,40px) 0;">
+    <div style="background:#F58220; color:#08090A; border-radius:1.5rem; padding:clamp(28px,4vw,52px); display:flex; flex-wrap:wrap; gap:28px; align-items:center; justify-content:space-between;">
+      <div style="flex:1 1 380px;">
+        <h2 style="font-size:clamp(24px,3vw,38px); line-height:1.05; letter-spacing:-0.04em; font-weight:600; margin:0 0 10px; max-width:20ch;">{{ c.app.heading }}</h2>
+        <p style="font-size:15.5px; line-height:1.55; margin:0; max-width:46ch; color:rgba(8,9,10,0.78);">{{ c.app.body }}</p>
+      </div>
+      <div style="display:flex; flex-wrap:wrap; gap:10px;">
+        <a href="#ios" style="display:flex; flex-direction:column; background:var(--btn-bg); color:var(--btn-fg); padding:11px 22px; border-radius:0.75rem; min-width:160px;">
+          <span style="font-size:11px; color:rgba(244,244,242,0.6);">Download on the</span>
+          <span style="font-size:16px; font-weight:600; letter-spacing:-0.01em;">App Store</span>
+        </a>
+        <a href="#android" style="display:flex; flex-direction:column; background:var(--btn-bg); color:var(--btn-fg); padding:11px 22px; border-radius:0.75rem; min-width:160px;">
+          <span style="font-size:11px; color:rgba(244,244,242,0.6);">Get it on</span>
+          <span style="font-size:16px; font-weight:600; letter-spacing:-0.01em;">Google Play</span>
+        </a>
+      </div>
+    </div>
+  </section>
+  </sc-if>
+
+  <sc-if value="{{ show.faq }}" hint-placeholder-val="{{ true }}">
+  <section id="faq" style="order:{{ ord.faq }}; max-width:1280px; margin:0 auto; padding:clamp(56px,7vw,96px) clamp(20px,4vw,40px);">
+    <div style="display:flex; flex-wrap:wrap; gap:clamp(28px,4vw,64px);">
+      <div style="flex:1 1 280px;">
+        <h2 style="font-size:clamp(26px,3.2vw,40px); line-height:1.05; letter-spacing:-0.04em; font-weight:600; margin:0 0 12px;">{{ c.faq.heading }}</h2>
+        <p style="font-size:15px; line-height:1.6; color:var(--muted); margin:0; max-width:34ch;">{{ c.faq.intro }}</p>
+      </div>
+      <div style="flex:1 1 520px; min-width:0; background:var(--surface); border:1px solid var(--line); border-radius:1.25rem; overflow:hidden;">
+        <sc-for list="{{ faqs }}" as="f" hint-placeholder-count="5">
+          <div style="border-bottom:1px solid var(--line);">
+            <button onClick="{{ f.toggle }}" style="width:100%; display:flex; align-items:center; justify-content:space-between; gap:20px; padding:20px 24px; background:none; border:0; cursor:pointer; text-align:left; color:inherit;">
+              <span style="font-size:16px; font-weight:600; letter-spacing:-0.015em;">{{ f.q }}</span>
+              <span style="font-family:'IBM Plex Mono',monospace; font-size:19px; color:var(--accent-ink); flex-shrink:0; line-height:1;">{{ f.sign }}</span>
+            </button>
+            <sc-if value="{{ f.open }}" hint-placeholder-val="{{ false }}">
+              <p style="font-size:15px; line-height:1.7; color:var(--muted); margin:0; padding:0 24px 22px; max-width:72ch; text-wrap:pretty;">{{ f.a }}</p>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+  </sc-if>
+
+  <footer style="order:1000; margin-top:auto; background:#08090A; color:rgba(244,244,242,0.6);">
+    <div style="max-width:1280px; margin:0 auto; padding:clamp(44px,5vw,72px) clamp(20px,4vw,40px) 32px;">
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:28px; padding-bottom:40px;">
+        <div style="grid-column:1 / -1; display:flex; flex-wrap:wrap; gap:16px; align-items:center; justify-content:space-between; padding-bottom:28px; border-bottom:1px solid rgba(255,255,255,0.08); margin-bottom:8px;">
+          <img src="assets/zomo-logo-light.svg" alt="Zomo" style="height:32px; width:auto; display:block;">
+          <a href="#signup" style="font-size:14.5px; font-weight:600; background:#F58220; color:#08090A; padding:12px 22px; border-radius:999px;">Send a delivery</a>
+        </div>
+        <sc-for list="{{ footerCols }}" as="c" hint-placeholder-count="4">
+          <div style="min-width:0;">
+            <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.18em; text-transform:uppercase; color:rgba(244,244,242,0.4); margin-bottom:16px;">{{ c.title }}</div>
+            <div style="display:flex; flex-direction:column; gap:11px;">
+              <sc-for list="{{ c.links }}" as="l" hint-placeholder-count="4">
+                <a href="#" style="font-size:14px; color:rgba(244,244,242,0.66);">{{ l }}</a>
+              </sc-for>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="padding-top:22px; border-top:1px solid rgba(255,255,255,0.08); display:flex; flex-wrap:wrap; gap:16px; justify-content:space-between; font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.08em; color:rgba(244,244,242,0.4);">
+        <span>© 2026 Zomo</span>
+        <span>Privacy · Terms · Cookies</span>
+      </div>
+    </div>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280}}">
+class Component extends DCLogic {
+  state = { openFaq: 0, banner: 0, mode: 0, cat: 0, lang: 1, pickup: "", dropoff: "", vehicle: "Cargo Van", when: "" };
+
+  BANNERS = [
+    { id: "v3-hero", tag: "Same hour", title: "Anything across Tbilisi, today.", body: "Book a courier in twelve seconds. Matched in under a minute, tracked door to door.", placeholder: "Banner 1 — Tbilisi street with a courier" },
+    { id: "v3-hero-2", tag: "Intercity", title: "Tbilisi to Batumi, overnight.", body: "Daily routes between the four largest cities, loaded in the evening.", placeholder: "Banner 2 — intercity route" },
+    { id: "v3-hero-3", tag: "Every size", title: "Vans, trucks and specialised loads.", body: "From a few boxes to ten tonnes of pallets, in one app.", placeholder: "Banner 3 — vehicle line-up" },
+    { id: "v3-hero-4", tag: "Multi-stop", title: "Twenty stops on one booking.", body: "Drag to reorder and the courier gets the optimised sequence.", placeholder: "Banner 4 — multi-stop run" },
+    { id: "v3-hero-5", tag: "Drivers", title: "6,400 courier partners in Georgia.", body: "Your vehicle, your hours, paid every Wednesday.", placeholder: "Banner 5 — courier portrait" },
+    { id: "v3-hero-6", tag: "Business", title: "Business dispatch, one invoice.", body: "Monthly invoicing in lari and a dashboard for your whole team.", placeholder: "Banner 6 — warehouse" }
+  ];
+
+  CATS = [
+    { label: "Vans", items: [
+      { id: "v3-veh-van-cargo", slot: "Cargo van photo", name: "Cargo Van" },
+      { id: "v3-veh-van-long", slot: "Extended van photo", name: "Extended Van" },
+      { id: "v3-veh-van-crew", slot: "Crew van photo", name: "Crew Van" } ] },
+    { label: "Trucks", items: [
+      { id: "v3-veh-truck-3t", slot: "3t truck photo", name: "Truck 3t" },
+      { id: "v3-veh-truck-5t", slot: "5t truck photo", name: "Truck 5t" },
+      { id: "v3-veh-truck-10t", slot: "10t truck photo", name: "Truck 10t" } ] },
+    { label: "Specialised", items: [
+      { id: "v3-veh-reefer", slot: "Refrigerated photo", name: "Refrigerated" },
+      { id: "v3-veh-flatbed", slot: "Flatbed photo", name: "Flatbed" },
+      { id: "v3-veh-crane", slot: "Crane truck photo", name: "Crane Truck" } ] }
+  ];
+
+  FAQ = [
+    { q: "How fast will a courier accept?", a: "Median match time in Tbilisi is 54 seconds. If nobody accepts within five minutes the booking cancels automatically and you are not charged." },
+    { q: "Which cities do you cover?", a: "Same-hour delivery in Tbilisi, Batumi, Kutaisi and Rustavi, with intercity routes between all four. Gori, Zugdidi, Telavi, Poti and others are served on scheduled bookings." },
+    { q: "What can I not send?", a: "Live animals, hazardous goods, cash and restricted items. The full list is in the terms." },
+    { q: "When do I see the price?", a: "As soon as you enter pickup, drop-off and vehicle. Nothing is charged until a courier accepts." },
+    { q: "How do I get a business account?", a: "Talk to sales and a specialist replies within one working day. Business accounts get monthly invoicing in lari, seat-based access and a REST API." }
+  ];
+
+  applyTheme(t) {
+    document.documentElement.setAttribute("data-theme", t);
+    try { localStorage.setItem("zomo-theme", t); } catch (e) {}
+    this.setState({ theme: t });
+  }
+
+  cmsLocale() {
+    const d = this.state.cms || (window.ZomoCMS ? window.ZomoCMS.load() : null);
+    if (!d) return null;
+    return this.state.lang === 0 ? d.KA : d.EN;
+  }
+
+  componentDidMount() {
+    if (window.ZomoCMS) {
+      this.setState({ cms: window.ZomoCMS.load() });
+      this.unsubCms = window.ZomoCMS.subscribe(d => this.setState({ cms: d }));
+    }
+    let t = null;
+    try { t = localStorage.getItem("zomo-theme"); } catch (e) {}
+    if (!t) t = window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    this.applyTheme(t);
+    this.paintDots(0);
+    this.startAuto();
+  }
+  componentDidUpdate() {
+    if (this.carousel !== window.__lmHeroAuto4 || this.autoMs !== this.intervalMs()) this.startAuto();
+  }
+  componentWillUnmount() {
+    if (this.unsubCms) this.unsubCms();
+    clearInterval(this.carousel);
+    if (window.__lmHeroAuto4 === this.carousel) window.__lmHeroAuto4 = null;
+    if (this.track) this.track.removeEventListener("scroll", this.onScroll);
+  }
+
+  intervalMs() {
+    const c = this.cmsLocale();
+    const s = c && c.hero ? Number(c.hero.intervalSec) : 6;
+    return Math.max(2, Math.min(30, s || 6)) * 1000;
+  }
+
+  liveBanners() {
+    const c = this.cmsLocale();
+    const list = c ? c.banners.filter(b => b.live) : this.BANNERS;
+    return list.slice(0, 6).map((b, i) => ({ ...b, placeholder: "Banner " + (i + 1) + " — " + (b.tag || "hero image") }));
+  }
+
+  startAuto() {
+    clearInterval(window.__lmHeroAuto4);
+    clearInterval(this.carousel);
+    this.autoMs = this.intervalMs();
+    this.carousel = window.__lmHeroAuto4 = setInterval(() => this.goBanner(this.domIndex() + 1), this.autoMs);
+  }
+
+  getTrack() {
+    if (!this.track || !this.track.isConnected) {
+      this.track = document.querySelector("[data-hero-track]");
+      if (this.track && !this.track.dataset.wired) {
+        this.track.dataset.wired = "1";
+        this.track.addEventListener("scroll", this.onScroll, { passive: true });
+      }
+    }
+    return this.track;
+  }
+
+  domIndex() {
+    const t = this.getTrack();
+    return t && t.clientWidth ? Math.round(t.scrollLeft / t.clientWidth) : 0;
+  }
+
+  goBanner(i) {
+    const t = this.getTrack();
+    if (!t || !t.clientWidth) return;
+    const n = this.liveBanners().length || 1;
+    const idx = ((i % n) + n) % n;
+    t.scrollLeft = idx * t.clientWidth;
+    this.paintDots(idx);
+    this.setState({ banner: idx });
+  }
+
+  paintDots(idx) {
+    document.querySelectorAll("[data-dot]").forEach(el => {
+      const on = Number(el.getAttribute("data-dot")) === idx;
+      el.style.width = on ? "24px" : "8px";
+      el.style.background = on ? "#F58220" : "rgba(244,244,242,0.55)";
+    });
+  }
+
+  onScroll = () => {
+    clearTimeout(this.scrollT);
+    this.scrollT = setTimeout(() => {
+      const idx = this.domIndex();
+      this.paintDots(idx);
+      if (idx !== this.state.banner) this.setState({ banner: idx });
+    }, 90);
+  };
+
+  renderVals() {
+    const cat = this.CATS[this.state.cat];
+    const c = this.cmsLocale() || window.ZomoCMS?.defaults().EN;
+    const ord = {}, show = {};
+    (c ? c.sections : []).forEach((s, i) => { ord[s.key] = (i + 1) * 10; show[s.key] = !!s.active; });
+    ord.booking = (ord.hero || 0) + 5;
+    const banners = this.liveBanners();
+    if (!banners.length) show.hero = false;
+    const faqItems = c ? c.faq.items : this.FAQ;
+    const pill = (on, dark) => ({
+      fontSize: "14px", fontWeight: 600, cursor: "pointer", padding: "10px 18px",
+      borderRadius: "999px", border: 0,
+      background: on ? "var(--btn-bg)" : "transparent",
+      color: on ? "var(--btn-fg)" : "var(--muted)"
+    });
+    return {
+      langs: ["KA", "EN"].map((code, i) => ({
+        code,
+        select: () => this.setState({ lang: i }),
+        style: {
+          background: i === this.state.lang ? "rgba(244,244,242,0.14)" : "transparent",
+          color: i === this.state.lang ? "#F4F4F2" : "rgba(244,244,242,0.55)",
+          border: 0, padding: "4px 8px", borderRadius: "999px", cursor: "pointer",
+          fontFamily: "'IBM Plex Mono',monospace", fontSize: "11px", letterSpacing: "0.08em"
+        }
+      })),
+      toggleTheme: () => this.applyTheme(this.state.theme === "dark" ? "light" : "dark"),
+      themeIcon: this.state.theme === "dark" ? "☀" : "☾",
+      themeLabel: this.state.theme === "dark" ? "Switch to light mode" : "Switch to dark mode",
+      c, ord, show,
+      bookingMt: show.hero ? "clamp(-84px,-6vw,-60px)" : "clamp(28px,4vw,48px)",
+      banners,
+      dots: banners.map((b, i) => ({ i, go: () => { this.goBanner(i); this.startAuto(); } })),
+      prev: () => { this.goBanner(this.domIndex() - 1); this.startAuto(); },
+      next: () => { this.goBanner(this.domIndex() + 1); this.startAuto(); },
+      pickup: this.state.pickup,
+      dropoff: this.state.dropoff,
+      vehicle: this.state.vehicle,
+      when: this.state.when,
+      onPickup: e => this.setState({ pickup: e.target.value }),
+      onDropoff: e => this.setState({ dropoff: e.target.value }),
+      onVehicle: e => this.setState({ vehicle: e.target.value }),
+      onWhen: e => this.setState({ when: e.target.value }),
+      vehicleOptions: this.CATS.flatMap(c => c.items.map(it => it.name)),
+
+      benefits: [
+        { v: "54s", title: "Matched fast", body: "Median courier match time in Tbilisi." },
+        { v: "11", title: "Cities covered", body: "Same-hour in four, scheduled in the rest." },
+        { v: "₾5k", title: "Insured as standard", body: "Every booking carries cover." },
+        { v: "24/7", title: "Live support", body: "In Georgian, English and Russian." }
+      ],
+      offers: (c ? c.offers.items : []).map(o => ({ ...o, slot: "Offer image — " + o.tag })),
+      catTabs: this.CATS.map((c, i) => ({
+        label: c.label,
+        select: () => this.setState({ cat: i }),
+        style: pill(i === this.state.cat)
+      })),
+      activeVehicles: cat.items,
+      steps: (c ? c.how.items : []).map((s, i) => ({ ...s, n: String(i + 1).padStart(2, "0") })),
+      hubs: (c ? c.coverage.items : []).map(h => ({ ...h, slot: h.name + " photo" })),
+      scheduledCities: ["Gori", "Zugdidi", "Telavi", "Poti", "Zestaponi", "Marneuli", "Akhaltsikhe"],
+      marquee: (() => { const l = (c ? c.partners.items : []).filter(p => p.live); return l.concat(l).map((p, i) => ({ id: p.id + (i >= l.length ? "b" : ""), label: p.name })); })(),
+      faqs: faqItems.map((f, i) => ({
+        q: f.q, a: f.a,
+        open: this.state.openFaq === i,
+        sign: this.state.openFaq === i ? "–" : "+",
+        toggle: () => this.setState(s => ({ openFaq: s.openFaq === i ? -1 : i }))
+      })),
+      footerCols: [
+        { title: "Send", links: ["Instant delivery", "Scheduled", "Multi-stop", "Intercity"] },
+        { title: "Business", links: ["Enterprise", "API", "Integrations", "Talk to sales"] },
+        { title: "Drivers", links: ["Become a driver", "Requirements", "Earnings", "Driver support"] },
+        { title: "Company", links: ["About", "Newsroom", "Careers", "Contact"] }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

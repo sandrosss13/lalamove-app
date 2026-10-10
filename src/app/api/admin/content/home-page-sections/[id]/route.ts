@@ -11,6 +11,7 @@ import { getRequestTranslations } from "@/i18n/request-locale";
 import { authorizeAdminApi } from "@/lib/admin/api-auth";
 import { writeAuditLog } from "@/lib/admin/audit";
 import { parseHomePageSection } from "@/lib/admin/home-page-content";
+import { revalidateHomePage } from "@/lib/admin/home-page-data";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -234,6 +235,8 @@ export async function PATCH(
     },
   });
 
+  revalidateHomePage();
+
   return NextResponse.json({ section: toSectionRow(section) }, { status: 200 });
 }
 
@@ -288,6 +291,8 @@ export async function DELETE(
       content: existing.content ?? undefined,
     },
   });
+
+  revalidateHomePage();
 
   return NextResponse.json({ id }, { status: 200 });
 }

@@ -52,12 +52,15 @@ export function HomeEntry({
   sections,
   heroBanners,
   partnerBanners,
+  offerBanners,
 }: {
   sections?: LandingSection[];
   /** Active banners placed at `home_hero` — the hero carousel's slides. */
   heroBanners?: LandingBanner[];
   /** Active banners placed at `home_partner_logo` — the marquee's logos. */
   partnerBanners?: LandingBanner[];
+  /** Active banners placed at `home_secondary` — the offers row's cards. */
+  offerBanners?: LandingBanner[];
 }) {
   const { data: session, isPending } = useSession();
   const router = useRouter();
@@ -96,6 +99,7 @@ export function HomeEntry({
         sections={sections}
         heroBanners={heroBanners}
         partnerBanners={partnerBanners}
+        offerBanners={offerBanners}
       />
     );
   }

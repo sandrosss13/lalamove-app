@@ -87,6 +87,7 @@ import {
   DEFAULT_HOME_PAGE_CONTENT,
   DEFAULT_HOME_PAGE_SECTION_ORDER,
   HOME_PAGE_CHROME_SECTION_TYPES,
+  RETIRED_HOME_PAGE_SECTION_TYPES,
   createMessageLookup,
   listUnresolvedDefaultCopyKeys,
   localizeDefaultHomePageContent,
@@ -133,9 +134,12 @@ const DEFAULT_SEED_LOCALE: SeedLocaleFlag = "en";
  * the fallback already shows — the seed exists to reproduce exactly that, as
  * editable rows.
  *
- * `category_tiles` is absent because the contract's order omits it: it stays
- * renderable so a row authored against the previous design still works, but it
- * is not part of this design and is never created fresh.
+ * This is the v4 order. The retired types (`hero`, `stats`, `bento`,
+ * `driver_cta`, `category_tiles`) are absent because the contract's order omits
+ * them: they stay parseable so a row authored against an earlier design still
+ * round-trips, but they are never created fresh — and any *active* row of one
+ * is switched off by every run (see `deactivateRetiredSections`), so it stops
+ * rendering alongside the v4 section that replaced it.
  */
 const ORDERED_SECTION_TYPES: readonly HomePageSectionType[] =
   DEFAULT_HOME_PAGE_SECTION_ORDER;
@@ -177,6 +181,12 @@ type PlannedSection = {
   sortOrder: number;
   content: HomePageSectionContent;
 };
+
+/**
+ * The client's type, taken without evaluating `@/lib/prisma` (which must not
+ * load before the env files — see `main`). A type-level `import()` is erased.
+ */
+type PrismaClientLike = (typeof import("@/lib/prisma"))["prisma"];
 
 /** What happened to one planned row. */
 type SeedOutcome = "created" | "skipped" | "overwritten";
@@ -369,6 +379,44 @@ function formatOutcomeLine(
   }
 }
 
+/**
+ * Switches off every active row of a retired section type in `locale`, and
+ * reports each one. Never deletes: the copy someone wrote stays in the table
+ * and can be switched back on from the admin.
+ *
+ * Runs with and without `--force`. It is the one change a plain run makes to
+ * existing rows, and deliberately so: a v4 page with an active `hero` row
+ * would render the old hero on top of the new carousel, which is never a
+ * state anyone authored on purpose. Returns how many rows were switched off.
+ */
+async function deactivateRetiredSections(
+  prisma: PrismaClientLike,
+  locale: ContentLocale,
+  write: (line: string) => void,
+): Promise<number> {
+  const retired = await prisma.homePageSection.findMany({
+    where: {
+      locale,
+      isActive: true,
+      type: { in: [...RETIRED_HOME_PAGE_SECTION_TYPES] },
+    },
+    select: { id: true, type: true },
+  });
+
+  for (const row of retired) {
+    await prisma.homePageSection.update({
+      where: { id: row.id },
+      data: { isActive: false },
+      select: { id: true },
+    });
+    write(
+      `  retired  ${row.type.padEnd(TYPE_COLUMN_WIDTH)} switched off (not part of the v4 page; kept, not deleted)`,
+    );
+  }
+
+  return retired.length;
+}
+
 async function main(): Promise<void> {
   // Parsed before anything else so a typo costs nothing and opens no database
   // connection.
@@ -478,15 +526,22 @@ async function main(): Promise<void> {
       write(formatOutcomeLine("overwritten", section));
     }
 
+    const retiredOff = await deactivateRetiredSections(
+      prisma,
+      seedLocale,
+      write,
+    );
+
     const summary =
       `${ORDERED_SECTION_TYPES.length} sections + ${CHROME_SECTION_TYPES.length} chrome rows. ` +
       `${created} created, ` +
-      (force ? `${overwritten} overwritten.` : `${skipped} left as they were.`);
+      (force ? `${overwritten} overwritten` : `${skipped} left as they were`) +
+      `, ${retiredOff} retired section(s) switched off.`;
 
     write("");
     write(summary);
 
-    if (created === 0 && overwritten === 0) {
+    if (created === 0 && overwritten === 0 && retiredOff === 0) {
       write(
         "Nothing to do — every section already exists. This run changed nothing.",
       );

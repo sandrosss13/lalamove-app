@@ -1,4 +1,18 @@
 {
+  "landingAppBand": {
+    "appStoreKicker": "ჩამოტვირთეთ",
+    "playStoreKicker": "ჩამოტვირთეთ"
+  },
+  "landingBookingCard": {
+    "anyVehicle": "ნებისმიერი ავტომობილი",
+    "defaultCta": "მიწოდების დაჯავშნა",
+    "dropoff": "ჩაბარება",
+    "dropoffPlaceholder": "სად მიდის ტვირთი?",
+    "loadingVehicles": "ავტომობილები იტვირთება…",
+    "pickup": "აყვანა",
+    "pickupPlaceholder": "ქუჩა, შენობა ან ბიზნესი",
+    "vehicle": "ავტომობილი"
+  },
   "landingCategoryTiles": {
     "fromPrice": "{price}-დან",
     "fromPriceEmphasised": "<figure>{price}</figure>-დან",
@@ -13,24 +27,12 @@
   },
   "landingNavPill": {
     "closeMenu": "მენიუს დახურვა",
-    "openMenu": "მენიუს გახსნა"
+    "openMenu": "მენიუს გახსნა",
+    "primaryNavigation": "მთავარი ნავიგაცია"
   },
-  "landingQuoteCalculator": {
-    "1IsTheDriverAloneEach": "1 ნიშნავს, რომ მძღოლი მარტოა. ყოველი დამატებითი ადამიანი ეხმარება დატვირთვა-დაცლაში და ემატება ფიქსირებული საფასური.",
-    "aghmashenebeliAve88Tbilisi": "აღმაშენებლის გამზ. 88, თბილისი",
-    "calculatePrice": "ფასის გამოთვლა",
-    "calculating": "ითვლება…",
-    "couldNotPriceThisLoadPlease": "ამ ტვირთის ფასის გამოთვლა ვერ მოხერხდა. გთხოვთ, სცადოთ თავიდან.",
-    "estimate": "წინასწარი ფასი",
-    "howManyPeople": "რამდენი ადამიანი",
-    "loading": "იტვირთება…",
-    "minimumFareApplied": "მოქმედებს მინიმალური ტარიფი",
-    "nPeople": "{count} ადამიანი — მძღოლი და {helpers, plural, one {# დამხმარე} other {# დამხმარე}}",
-    "onePerson": "1 ადამიანი — მხოლოდ მძღოლი",
-    "rustaveliAve12Tbilisi": "რუსთაველის გამზ. 12, თბილისი",
-    "signUpToBookThisLoad": "გაიარეთ რეგისტრაცია ამ ტვირთის დაჯავშნისთვის",
-    "whatAreYouMoving": "რა გადაგაქვთ",
-    "yourEstimate": "თქვენი სავარაუდო ღირებულება"
+  "landingVehicleCatalog": {
+    "book": "დაჯავშნა",
+    "bookVehicle": "{vehicle} — დაჯავშნა"
   },
   "landingVehicleTypes": {
     "couldNotLoadTheVehicleTypes": "ავტომობილის ტიპების ჩატვირთვა ვერ მოხერხდა. განაახლეთ გვერდი და სცადეთ თავიდან."

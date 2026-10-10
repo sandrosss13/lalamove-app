@@ -33,7 +33,7 @@ export default async function HomePage({
 }) {
   const locale = await resolveRouteLocale(params);
 
-  const [{ sections, heroBanners, partnerBanners }, session] =
+  const [{ sections, heroBanners, partnerBanners, offerBanners }, session] =
     await Promise.all([
       loadHomePageContent(locale),
       auth.api.getSession({ headers: await headers() }),
@@ -44,6 +44,7 @@ export default async function HomePage({
       sections={sections}
       heroBanners={heroBanners}
       partnerBanners={partnerBanners}
+      offerBanners={offerBanners}
       showSiteHeader={session !== null}
     />
   );
