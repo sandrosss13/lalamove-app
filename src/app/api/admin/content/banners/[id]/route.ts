@@ -18,6 +18,7 @@ import {
   checkBannerPlacementCapacity,
   checkBannerVideoPlacement,
   parseBannerCopyField,
+  parseBannerTitle,
   parseBannerVideoUrl,
 } from "../validation";
 
@@ -32,7 +33,6 @@ const ALLOWED_ROLES: readonly AdminRole[] = ["SUPER_ADMIN", "CONTENT_MANAGER"];
 const CONTENT_LOCALES = Object.values(ContentLocale);
 
 /** The same bounds the create route enforces; see its constants for why. */
-const MAX_TITLE_LENGTH = 200;
 const MAX_PLACEMENT_LENGTH = 100;
 const MAX_URL_LENGTH = 2048;
 const MIN_SORT_ORDER = 0;
@@ -176,20 +176,13 @@ function parseUpdateBannerBody(
   const data: Prisma.BannerUpdateInput = {};
 
   if ("title" in record) {
-    const { title } = record;
-    if (typeof title !== "string" || title.trim() === "") {
-      return { error: t("errors.adminContentBanners.titleMustBeANonEmpty") };
-    }
-    if (title.trim().length > MAX_TITLE_LENGTH) {
-      return {
-        error: t("common.shared.fieldMaxLength", {
-          field: "title",
-          max: MAX_TITLE_LENGTH,
-        }),
-      };
+    // Optional on every placement: null and blank clear it to "".
+    const title = parseBannerTitle(record.title, t);
+    if ("error" in title) {
+      return { error: title.error };
     }
 
-    data.title = title.trim();
+    data.title = title.value;
   }
 
   let nextLocale = existing.locale;

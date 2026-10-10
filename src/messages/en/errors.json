@@ -26,7 +26,6 @@
     "imageurlMustBeANonEmpty": "imageUrl must be a non-empty string.",
     "placementIsRequiredAndMustBe": "placement is required and must be a non-empty string.",
     "placementMustBeANonEmpty": "placement must be a non-empty string.",
-    "titleMustBeANonEmpty": "title must be a non-empty string.",
     "copyFieldMustBeStringOrNull": "{field} must be a string or null.",
     "videoUrlMustBeStringOrNull": "videoUrl must be a string or null.",
     "videoUrlMustBeHttps": "videoUrl must be an https:// URL or a path on this site.",

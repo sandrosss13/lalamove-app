@@ -27,26 +27,34 @@ function PartnerMarqueeRun({
       aria-hidden={hidden ? "true" : undefined}
       className="flex shrink-0 items-center"
     >
-      {logos.map((logo) => (
-        <li
-          key={`${logo.id}-${runKey}`}
-          className="flex h-24 w-[200px] flex-none items-center justify-center border-r border-home-line px-[26px] py-5"
-        >
-          {/*
+      {logos.map((logo) => {
+        // The company name is the logo's only accessible text. Without one the
+        // logo is decorative: empty alt, and the item is hidden from assistive
+        // tech so it is not announced as a blank list entry.
+        const name = logo.title.trim();
+
+        return (
+          <li
+            key={`${logo.id}-${runKey}`}
+            aria-hidden={name ? undefined : "true"}
+            className="flex h-24 w-[200px] flex-none items-center justify-center border-r border-home-line px-[26px] py-5"
+          >
+            {/*
             Plain <img> rather than next/image: the URL is uploaded or typed in
             by a content editor and can point at any host, so it can't be pinned
             in `remotePatterns` at build time. Same call the admin banners
             table already makes.
           */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={logo.imageUrl}
-            alt={logo.title}
-            loading="lazy"
-            className="h-11 w-full object-contain"
-          />
-        </li>
-      ))}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={logo.imageUrl}
+              alt={name}
+              loading="lazy"
+              className="h-11 w-full object-contain"
+            />
+          </li>
+        );
+      })}
     </ul>
   );
 }

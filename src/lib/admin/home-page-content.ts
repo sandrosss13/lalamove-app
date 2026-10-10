@@ -232,13 +232,14 @@ export type HeroContent = {
 /**
  * The hero carousel has no copy of its own — the slides are `Banner` rows at
  * placement `home_hero` (capped at `MAX_HERO_BANNERS`), and each slide's
- * caption is that banner's `title`.
+ * caption is that banner's `title`, which is optional: a slide without one
+ * shows no headline.
  *
  * Whether the carousel shows at all is the section row's own
  * `HomePageSection.isActive` column, not a field in here: adding a second,
  * content-level active flag would give the same section two switches that can
- * disagree. The one field that remains is the caption used when a banner has no
- * usable title of its own.
+ * disagree. The one field that remains is the caption that stands in as the
+ * page's (visually hidden) `h1` when the first slide has no title of its own.
  */
 export type HeroCarouselContent = {
   fallbackCaption?: string;

@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 
 /** One offer card's inner layout, shared by the linked and unlinked forms. */
 function OfferCardBody({ offer }: { offer: LandingBanner }) {
+  const title = offer.title.trim();
   const eyebrow = offer.eyebrow?.trim();
   const body = offer.body?.trim();
   const ctaLabel = offer.ctaLabel?.trim();
@@ -25,7 +26,9 @@ function OfferCardBody({ offer }: { offer: LandingBanner }) {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={offer.imageUrl}
-          alt=""
+          // The headline is optional, so the alt falls back through the card's
+          // other copy; with none at all the image is decorative.
+          alt={title || eyebrow || body || ""}
           loading="lazy"
           className="h-full w-full object-cover"
         />
@@ -36,9 +39,13 @@ function OfferCardBody({ offer }: { offer: LandingBanner }) {
         ) : null}
       </div>
       <div className="flex flex-1 flex-col gap-2 px-[22px] pt-5 pb-[22px]">
-        <h3 className="m-0 text-[18px] leading-[1.25] font-semibold tracking-[-0.02em]">
-          {offer.title}
-        </h3>
+        {/* No headline, no heading element: an empty <h3> is a blank stop
+            for screen readers and leaves a gap above the body. */}
+        {title ? (
+          <h3 className="m-0 text-[18px] leading-[1.25] font-semibold tracking-[-0.02em]">
+            {title}
+          </h3>
+        ) : null}
         {body ? (
           <p className="m-0 text-[14px] leading-[1.55] text-home-muted">
             {body}

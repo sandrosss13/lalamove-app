@@ -79,6 +79,45 @@ export function parseBannerCopyField(
   return { value: trimmed };
 }
 
+/** Long enough for a headline, short enough that the column stays a title. */
+export const MAX_BANNER_TITLE_LENGTH = 200;
+
+/**
+ * `title` → the value to store. The headline is optional on every placement,
+ * but `Banner.title` stays a non-null column (no migration, so preview builds
+ * that skip migrations keep working), so "no headline" is stored as `""`
+ * rather than `null`. `null`, `undefined` and a blank string all mean that;
+ * anything else stored is trimmed. The public components treat `""` as absent.
+ */
+export function parseBannerTitle(
+  raw: unknown,
+  t: Translate,
+): { value: string } | { error: string } {
+  if (raw === null || raw === undefined) {
+    return { value: "" };
+  }
+
+  if (typeof raw !== "string") {
+    return {
+      error: t("errors.adminContentBanners.copyFieldMustBeStringOrNull", {
+        field: "title",
+      }),
+    };
+  }
+
+  const trimmed = raw.trim();
+  if (trimmed.length > MAX_BANNER_TITLE_LENGTH) {
+    return {
+      error: t("common.shared.fieldMaxLength", {
+        field: "title",
+        max: MAX_BANNER_TITLE_LENGTH,
+      }),
+    };
+  }
+
+  return { value: trimmed };
+}
+
 /** Same cap the routes apply to `imageUrl` and `linkUrl`. */
 const MAX_VIDEO_URL_LENGTH = 2048;
 

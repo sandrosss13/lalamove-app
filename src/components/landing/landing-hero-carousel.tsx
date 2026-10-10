@@ -382,6 +382,11 @@ export function LandingHeroCarousel({
   }
 
   const showControls = count > 1;
+  // The first slide's headline is the page's `h1`. When it has none, the
+  // section's fallback caption takes that role, visually hidden so the slide
+  // itself stays clean while the page keeps a top-level heading.
+  const firstSlideHasTitle = (slides[0]?.title.trim() ?? "") !== "";
+  const pageHeading = content.fallbackCaption?.trim();
 
   return (
     <section
@@ -389,16 +394,24 @@ export function LandingHeroCarousel({
       aria-label={t("featuredBanners")}
       className="relative bg-home-night"
     >
+      {!firstSlideHasTitle && pageHeading ? (
+        <h1 className="sr-only">{pageHeading}</h1>
+      ) : null}
       <div className="relative h-[clamp(460px,46vw,620px)] overflow-hidden">
         <div
           ref={trackRef}
           className="flex h-full w-full snap-x snap-mandatory overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {slides.map((banner, slideIndex) => {
-            const title = banner.title.trim() || content.fallbackCaption || "";
+            // The headline is optional: an empty one renders no heading at
+            // all, so an image- or video-only slide stays clean.
+            const title = banner.title.trim();
             const eyebrow = banner.eyebrow?.trim();
             const body = banner.body?.trim();
             const ctaLabel = banner.ctaLabel?.trim();
+            // The slide's best short description, for the image alt and the
+            // whole-slide link; empty means the photo is decorative.
+            const description = title || eyebrow || body || "";
             // Only the first slide is the page's `h1`; the rest are headings
             // of their own slide, not of the page.
             const Heading = slideIndex === 0 ? "h1" : "h2";
@@ -419,7 +432,7 @@ export function LandingHeroCarousel({
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={banner.imageUrl}
-                  alt=""
+                  alt={description}
                   // The first slide is above the fold; the rest are a swipe
                   // away at best.
                   loading={slideIndex === 0 ? "eager" : "lazy"}
@@ -504,10 +517,15 @@ export function LandingHeroCarousel({
                 {banner.linkUrl && !ctaLabel ? (
                   <LandingLink
                     href={banner.linkUrl}
-                    ariaLabel={title || undefined}
+                    ariaLabel={
+                      description || t("openBanner", { index: slideIndex + 1 })
+                    }
                     className="absolute inset-0"
                   >
-                    <span className="sr-only">{title}</span>
+                    <span className="sr-only">
+                      {description ||
+                        t("openBanner", { index: slideIndex + 1 })}
+                    </span>
                   </LandingLink>
                 ) : null}
               </div>
