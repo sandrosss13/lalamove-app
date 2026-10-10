@@ -65,6 +65,13 @@ const PLACEMENT_SUGGESTIONS = [
   HOME_PARTNER_LOGO_BANNER_PLACEMENT,
 ];
 
+/** Recommended-size hint per placement; other placements show none. */
+const IMAGE_HINT_KEYS: Record<string, string> = {
+  [HOME_HERO_BANNER_PLACEMENT]: "admin.homePageCms.imageHintHero",
+  [HOME_SECONDARY_BANNER_PLACEMENT]: "admin.homePageCms.imageHintOffer",
+  [HOME_PARTNER_LOGO_BANNER_PLACEMENT]: "admin.homePageCms.imageHintLogo",
+};
+
 /** `datalist` id, referenced by the placement input's `list` attribute. */
 const PLACEMENT_LIST_ID = "banner-placement-suggestions";
 
@@ -178,6 +185,7 @@ export function BannerFormDialog({
   const [placement, setPlacement] = useState(
     banner?.placement ?? DEFAULT_PLACEMENT,
   );
+  const imageHintKey = IMAGE_HINT_KEYS[placement.trim()] ?? null;
   // Kept as a string so the box can be cleared while typing; parsed on submit.
   const [sortOrder, setSortOrder] = useState(String(banner?.sortOrder ?? 0));
   const [isActive, setIsActive] = useState(banner?.isActive ?? true);
@@ -384,6 +392,11 @@ export function BannerFormDialog({
                 onChange={setImageUrl}
                 disabled={pending}
               />
+              {imageHintKey ? (
+                <p className="text-xs text-muted-foreground">
+                  {t(imageHintKey)}
+                </p>
+              ) : null}
             </div>
 
             <div className="flex flex-col gap-1.5">
