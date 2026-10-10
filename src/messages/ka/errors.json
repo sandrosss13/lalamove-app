@@ -28,6 +28,9 @@
     "placementMustBeANonEmpty": "placement არ უნდა იყოს ცარიელი ტექსტი.",
     "titleMustBeANonEmpty": "title არ უნდა იყოს ცარიელი ტექსტი.",
     "copyFieldMustBeStringOrNull": "{field} უნდა იყოს ტექსტი ან null.",
+    "videoUrlMustBeStringOrNull": "videoUrl უნდა იყოს ტექსტი ან null.",
+    "videoUrlMustBeHttps": "videoUrl უნდა იყოს https:// მისამართი ან ამ საიტის ბილიკი.",
+    "videoOnlyForHero": "ვიდეო შეიძლება ჰქონდეს მხოლოდ ჰერო ბანერს ({placement}). წაშალეთ ვიდეო ან შეცვალეთ განთავსება.",
     "heroCarouselFull": "{locale} ჰერო კარუსელს უკვე აქვს {max} აქტიური ბანერი, რაც მაქსიმუმია. ახლის დამატებამდე ერთ-ერთი გამორთეთ.",
     "offersRowFull": "{locale} შეთავაზებების ბლოკს უკვე აქვს {max} აქტიური ბანერი, რაც მაქსიმუმია. ახლის დამატებამდე ერთ-ერთი გამორთეთ.",
     "partnerLogosFull": "{locale} პარტნიორების ზოლს უკვე აქვს {max} აქტიური ლოგო, რაც მაქსიმუმია. ახლის დამატებამდე ერთ-ერთი გამორთეთ."
@@ -41,7 +44,8 @@
     "localesMustDiffer": "from და to განსხვავებული ენები უნდა იყოს."
   },
   "adminContentMedia": {
-    "unsupportedContentType": "მიიღება მხოლოდ JPG, PNG და WebP სურათები."
+    "unsupportedContentType": "მიიღება მხოლოდ JPG, PNG და WebP სურათები.",
+    "unsupportedVideoContentType": "მიიღება მხოლოდ MP4 და WebM ვიდეოები და მხოლოდ ბანერებისთვის."
   },
   "adminContentMessagingTemplates": {
     "bodyIsRequiredAndMustBe": "body სავალდებულოა და არ უნდა იყოს ცარიელი ტექსტი.",

@@ -57,6 +57,10 @@ type BannerListConfig = {
   purpose: SiteMediaPurpose;
   /** Preview box size, per the artboard: hero 220×92, card 160×100, logo 140×56. */
   imageClassName: string;
+  /** `admin.homePageCms` key of the recommended-image-size hint. */
+  imageHintKey: string;
+  /** Whether cards offer the optional video field (the hero carousel only). */
+  allowsVideo: boolean;
   fields: BannerFieldSpec[];
   /** `admin.homePageCms` keys for the list heading and the add button. */
   labelKey: string;
@@ -71,6 +75,8 @@ const CONFIG: Record<BannerListKind, BannerListConfig> = {
     toggleLabelKey: "live",
     purpose: "banners",
     imageClassName: "sm:w-56",
+    imageHintKey: "imageHintHero",
+    allowsVideo: true,
     fields: [
       { key: "eyebrow", labelKey: "tag" },
       { key: "linkUrl", labelKey: "link" },
@@ -87,6 +93,8 @@ const CONFIG: Record<BannerListKind, BannerListConfig> = {
     toggleLabelKey: null,
     purpose: "banners",
     imageClassName: "sm:w-44",
+    imageHintKey: "imageHintOffer",
+    allowsVideo: false,
     fields: [
       { key: "eyebrow", labelKey: "tag" },
       { key: "ctaLabel", labelKey: "buttonLabel" },
@@ -104,18 +112,27 @@ const CONFIG: Record<BannerListKind, BannerListConfig> = {
     toggleLabelKey: "shown",
     purpose: "partner-logos",
     imageClassName: "sm:w-40",
+    imageHintKey: "imageHintLogo",
+    allowsVideo: false,
     fields: [{ key: "title", labelKey: "companyName", wide: true }],
     labelKey: "logos",
     addKey: "addLogo",
   },
 };
 
-/** What a card edits: the image plus the text columns its kind uses. */
-type BannerDraft = { imageUrl: string } & Record<BannerTextField, string>;
+/**
+ * What a card edits: the image, the optional video (hero only) and the text
+ * columns its kind uses.
+ */
+type BannerDraft = { imageUrl: string; videoUrl: string } & Record<
+  BannerTextField,
+  string
+>;
 
 function toDraft(banner: CmsBanner | null): BannerDraft {
   return {
     imageUrl: banner?.imageUrl ?? "",
+    videoUrl: banner?.videoUrl ?? "",
     title: banner?.title ?? "",
     eyebrow: banner?.eyebrow ?? "",
     body: banner?.body ?? "",
@@ -136,6 +153,12 @@ function toPayload(
     imageUrl: draft.imageUrl.trim(),
     title: draft.title.trim(),
   };
+
+  // Sent only by kinds that show the field, so offers and logos never name it.
+  if (config.allowsVideo) {
+    const videoUrl = draft.videoUrl.trim();
+    payload.videoUrl = videoUrl === "" ? null : videoUrl;
+  }
 
   for (const field of config.fields) {
     if (field.key !== "title") {
@@ -300,6 +323,28 @@ function BannerCard({
             onChange={(imageUrl) => setDraft({ ...draft, imageUrl })}
             disabled={pending}
           />
+          <p className="mt-1.5 text-xs text-muted-foreground">
+            {t(config.imageHintKey)}
+          </p>
+          {config.allowsVideo ? (
+            <div className="mt-3 flex flex-col gap-1.5">
+              <Label
+                htmlFor={`banner-${banner?.id ?? `new-${number}`}-video`}
+                className="text-xs"
+              >
+                {t("video")}
+              </Label>
+              {/* Optional; the image above stays required as its poster. */}
+              <AdminImageUpload
+                id={`banner-${banner?.id ?? `new-${number}`}-video`}
+                kind="video"
+                purpose={config.purpose}
+                value={draft.videoUrl}
+                onChange={(videoUrl) => setDraft({ ...draft, videoUrl })}
+                disabled={pending}
+              />
+            </div>
+          ) : null}
         </div>
         <div className="min-w-0 flex-[1_1_20rem]">
           <FieldGrid>

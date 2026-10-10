@@ -27,31 +27,69 @@ const UPLOAD_URL_ENDPOINT = "/api/admin/content/media/upload-url";
  */
 const CACHE_CONTROL_SECONDS = "31536000";
 
-/**
- * The three formats the storage helper accepts. Kept as a literal for the same
- * reason as the cache lifetime above — `@/lib/site-media-storage` is
- * `server-only`, so its `ALLOWED_CONTENT_TYPES` cannot be imported here.
- */
-const ACCEPTED_CONTENT_TYPES = ["image/jpeg", "image/png", "image/webp"];
+/** What the field holds: a still image, or a hero banner's video loop. */
+export type AdminMediaKind = "image" | "video";
 
 /**
- * Cap enforced here purely to fail fast with a sentence the content manager can
- * act on. Comfortably above every asset the design calls for — the largest is a
- * 2400×900 hero banner — and Storage enforces its own limit regardless, so
- * nothing depends on this check holding.
+ * Everything that differs between the two kinds: accepted types, size cap and
+ * the `admin.adminImageUpload` keys for the wording.
+ *
+ * The content types are literals for the same reason as the cache lifetime
+ * above — `@/lib/site-media-storage` is `server-only`, so its allowlists cannot
+ * be imported here. They must stay a subset of what it accepts.
+ *
+ * The size caps are enforced here purely to fail fast with a sentence the
+ * content manager can act on; Storage enforces its own limit regardless, so
+ * nothing depends on this check holding. 8 MB is comfortably above every image
+ * the design calls for (the largest is a 2400×900 hero banner) and is the
+ * budget for a 6–15 s muted hero loop.
  */
-const MAX_FILE_BYTES = 8 * 1024 * 1024;
+const KIND_CONFIG: Record<
+  AdminMediaKind,
+  {
+    contentTypes: string[];
+    maxBytes: number;
+    chooseKey: string;
+    replaceKey: string;
+    uploadingKey: string;
+    wrongTypeKey: string;
+    tooLargeKey: string;
+    previewFailedKey: string;
+    urlLabelKey: string;
+    placeholder: string;
+  }
+> = {
+  image: {
+    contentTypes: ["image/jpeg", "image/png", "image/webp"],
+    maxBytes: 8 * 1024 * 1024,
+    chooseKey: "admin.adminImageUpload.chooseImage",
+    replaceKey: "admin.adminImageUpload.replaceImage",
+    uploadingKey: "admin.adminImageUpload.uploadingImage",
+    wrongTypeKey: "admin.adminImageUpload.wrongFileType",
+    tooLargeKey: "admin.adminImageUpload.fileTooLarge",
+    // By far the most common cause is a `site-media` bucket created *private*:
+    // uploads succeed against it and every resulting URL then renders broken.
+    previewFailedKey: "admin.adminImageUpload.previewFailed",
+    urlLabelKey: "common.shared.imageUrl",
+    placeholder: "https://example.com/banner.jpg",
+  },
+  video: {
+    contentTypes: ["video/mp4", "video/webm"],
+    maxBytes: 8 * 1024 * 1024,
+    chooseKey: "admin.adminImageUpload.chooseVideo",
+    replaceKey: "admin.adminImageUpload.replaceVideo",
+    uploadingKey: "admin.adminImageUpload.uploadingVideo",
+    wrongTypeKey: "admin.adminImageUpload.videoWrongFileType",
+    tooLargeKey: "admin.adminImageUpload.videoTooLarge",
+    previewFailedKey: "admin.adminImageUpload.videoPreviewFailed",
+    urlLabelKey: "admin.adminImageUpload.videoUrl",
+    placeholder: "https://example.com/hero.mp4",
+  },
+};
 
 /** Message paths — this module is plain constants, so text resolves at render. */
 const UPLOAD_FAILED_FALLBACK_KEY =
   "onboarding.documentUploadDialog.uploadFailed";
-
-/**
- * Shown when the preview `<img>` fails to load. By far the most common cause is
- * a `site-media` bucket created *private*: uploads succeed against it and every
- * resulting URL then renders broken.
- */
-const PREVIEW_FAILED_MESSAGE_KEY = "admin.adminImageUpload.previewFailed";
 
 /**
  * A neutral checkerboard behind the preview, so a transparent partner logo is
@@ -69,33 +107,52 @@ export type AdminImageUploadProps = {
   purpose: SiteMediaPurpose;
   /** The URL currently stored on the row, or "" when there is none. */
   value: string;
-  /** Called with the new public URL, or "" when the image is removed. */
-  onChange: (imageUrl: string) => void;
+  /** Called with the new public URL, or "" when the file is removed. */
+  onChange: (url: string) => void;
   /** Ties the field to its `<Label htmlFor>`, which the parent owns. */
   id: string;
   /** The parent form is submitting; the whole control goes inert. */
   disabled?: boolean;
+  /**
+   * `"video"` turns the field into the hero banner's video picker: MP4/WebM,
+   * a muted `<video>` preview, and the video size hint. Defaults to `"image"`.
+   */
+  kind?: AdminMediaKind;
 };
 
 /**
  * Rejects a file the endpoint would refuse anyway, before any request is made.
  * Returns the message path to show, or `null` when the file is fine.
  */
-function rejectFile(file: File): string | null {
-  if (!ACCEPTED_CONTENT_TYPES.includes(file.type)) {
-    return "admin.adminImageUpload.wrongFileType";
+function rejectFile(file: File, kind: AdminMediaKind): string | null {
+  const config = KIND_CONFIG[kind];
+
+  if (!config.contentTypes.includes(file.type)) {
+    return config.wrongTypeKey;
   }
 
-  if (file.size > MAX_FILE_BYTES) {
-    return "admin.adminImageUpload.fileTooLarge";
+  if (file.size > config.maxBytes) {
+    return config.tooLargeKey;
   }
 
   return null;
 }
 
+/** The size/format hint under the field, chosen by kind and purpose. */
+function hintKey(kind: AdminMediaKind, purpose: SiteMediaPurpose): string {
+  if (kind === "video") {
+    return "admin.adminImageUpload.videoFileHint";
+  }
+
+  return purpose === "partner-logos"
+    ? "admin.adminImageUpload.fileHintLogos"
+    : "admin.adminImageUpload.fileHint";
+}
+
 /**
- * The one image field the content admin uses, shared by every form that stores
- * an image URL (hero banners, partner logos, vehicle photos). Both consumers
+ * The one media field the content admin uses, shared by every form that stores
+ * an image URL (hero banners, partner logos, vehicle photos) and, with
+ * `kind="video"`, the hero banner's optional video. Both consumers
  * treat it as a controlled field over a single string: it never writes to the
  * database itself, it only hands back the URL its parent should save.
  *
@@ -126,8 +183,10 @@ export function AdminImageUpload({
   onChange,
   id,
   disabled = false,
+  kind = "image",
 }: AdminImageUploadProps) {
   const t = useTranslations();
+  const config = KIND_CONFIG[kind];
   const [state, setState] = useState<"idle" | "uploading" | "failed">("idle");
   const [message, setMessage] = useState<string | null>(null);
   // The last file chosen, kept so the retry button can re-run the sequence.
@@ -196,7 +255,7 @@ export function AdminImageUpload({
 
   const handleFile = useCallback(
     (file: File) => {
-      const rejection = rejectFile(file);
+      const rejection = rejectFile(file, kind);
       if (rejection) {
         // No request is made at all: the file is known-bad here. The URL field
         // stays as it was — a wrong file is the content manager's to replace,
@@ -210,7 +269,7 @@ export function AdminImageUpload({
       setPendingFile(file);
       void upload(file);
     },
-    [t, upload],
+    [kind, t, upload],
   );
 
   const uploading = state === "uploading";
@@ -227,6 +286,21 @@ export function AdminImageUpload({
             <span className="px-3 text-center text-xs text-muted-foreground">
               {t("admin.adminImageUpload.noPreview")}
             </span>
+          ) : kind === "video" ? (
+            // Muted and inline so it may autoplay as the public slide will;
+            // `key` restarts the element when the URL changes.
+            <video
+              key={value}
+              src={value}
+              muted
+              loop
+              playsInline
+              autoPlay
+              preload="metadata"
+              aria-hidden="true"
+              className="max-h-full max-w-full object-contain"
+              onError={() => setPreviewFailed(true)}
+            />
           ) : (
             <>
               {/*
@@ -251,7 +325,7 @@ export function AdminImageUpload({
         ref={inputRef}
         id={id}
         type="file"
-        accept={ACCEPTED_CONTENT_TYPES.join(",")}
+        accept={config.contentTypes.join(",")}
         className="sr-only"
         disabled={controlsDisabled}
         onChange={(event) => {
@@ -276,8 +350,8 @@ export function AdminImageUpload({
           {uploading
             ? t("onboarding.documentUploadDialog.uploading")
             : value !== ""
-              ? t("admin.adminImageUpload.replaceImage")
-              : t("admin.adminImageUpload.chooseImage")}
+              ? t(config.replaceKey)
+              : t(config.chooseKey)}
         </Button>
 
         {value !== "" && !uploading ? (
@@ -321,7 +395,7 @@ export function AdminImageUpload({
         // any percentage shown here would be invented.
         <div
           role="status"
-          aria-label={t("admin.adminImageUpload.uploadingImage")}
+          aria-label={t(config.uploadingKey)}
           className="h-1 w-full overflow-hidden rounded-full bg-muted"
         >
           <div className="h-full w-1/3 animate-pulse rounded-full bg-primary" />
@@ -333,16 +407,14 @@ export function AdminImageUpload({
           type="url"
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          placeholder="https://example.com/banner.jpg"
+          placeholder={config.placeholder}
           disabled={disabled}
-          aria-label={t("common.shared.imageUrl")}
+          aria-label={t(config.urlLabelKey)}
         />
       ) : null}
 
       <p className="text-xs text-muted-foreground">
-        {purpose === "partner-logos"
-          ? t("admin.adminImageUpload.fileHintLogos")
-          : t("admin.adminImageUpload.fileHint")}
+        {t(hintKey(kind, purpose))}
       </p>
 
       {message !== null ? (
@@ -353,7 +425,7 @@ export function AdminImageUpload({
 
       {previewFailed && value !== "" ? (
         <p role="alert" className="text-sm text-destructive">
-          {t(PREVIEW_FAILED_MESSAGE_KEY)}
+          {t(config.previewFailedKey)}
         </p>
       ) : null}
     </div>

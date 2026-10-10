@@ -65,6 +65,13 @@ const PLACEMENT_SUGGESTIONS = [
   HOME_PARTNER_LOGO_BANNER_PLACEMENT,
 ];
 
+/** Recommended-size hint per placement; other placements show none. */
+const IMAGE_HINT_KEYS: Record<string, string> = {
+  [HOME_HERO_BANNER_PLACEMENT]: "admin.homePageCms.imageHintHero",
+  [HOME_SECONDARY_BANNER_PLACEMENT]: "admin.homePageCms.imageHintOffer",
+  [HOME_PARTNER_LOGO_BANNER_PLACEMENT]: "admin.homePageCms.imageHintLogo",
+};
+
 /** `datalist` id, referenced by the placement input's `list` attribute. */
 const PLACEMENT_LIST_ID = "banner-placement-suggestions";
 
@@ -178,6 +185,11 @@ export function BannerFormDialog({
   const [placement, setPlacement] = useState(
     banner?.placement ?? DEFAULT_PLACEMENT,
   );
+  const imageHintKey = IMAGE_HINT_KEYS[placement.trim()] ?? null;
+  // Only the hero carousel plays a video; the field is hidden elsewhere and
+  // the value is sent as null, which is also what the API insists on.
+  const [videoUrl, setVideoUrl] = useState(banner?.videoUrl ?? "");
+  const isHeroPlacement = placement.trim() === HOME_HERO_BANNER_PLACEMENT;
   // Kept as a string so the box can be cleared while typing; parsed on submit.
   const [sortOrder, setSortOrder] = useState(String(banner?.sortOrder ?? 0));
   const [isActive, setIsActive] = useState(banner?.isActive ?? true);
@@ -243,6 +255,7 @@ export function BannerFormDialog({
             eyebrow: toOptionalCopy(eyebrow),
             body: toOptionalCopy(body),
             ctaLabel: toOptionalCopy(ctaLabel),
+            videoUrl: isHeroPlacement ? toOptionalCopy(videoUrl) : null,
             placement: placement.trim(),
             sortOrder: parsedSortOrder,
             isActive,
@@ -384,7 +397,30 @@ export function BannerFormDialog({
                 onChange={setImageUrl}
                 disabled={pending}
               />
+              {imageHintKey ? (
+                <p className="text-xs text-muted-foreground">
+                  {t(imageHintKey)}
+                </p>
+              ) : null}
             </div>
+
+            {isHeroPlacement ? (
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="banner-video-url">
+                  {t("admin.homePageCms.video")}
+                </Label>
+                {/* The image above stays required: it is the poster and the
+                    fallback whenever the video does not play. */}
+                <AdminImageUpload
+                  id="banner-video-url"
+                  kind="video"
+                  purpose="banners"
+                  value={videoUrl}
+                  onChange={setVideoUrl}
+                  disabled={pending}
+                />
+              </div>
+            ) : null}
 
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="banner-link-url">

@@ -16,7 +16,9 @@ import { prisma } from "@/lib/prisma";
 import {
   BANNER_COPY_FIELDS,
   checkBannerPlacementCapacity,
+  checkBannerVideoPlacement,
   parseBannerCopyField,
+  parseBannerVideoUrl,
 } from "../validation";
 
 /**
@@ -56,6 +58,7 @@ type AdminBannerRow = {
   eyebrow: string | null;
   body: string | null;
   ctaLabel: string | null;
+  videoUrl: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -75,6 +78,7 @@ function toBannerRow(banner: Banner): AdminBannerRow {
     eyebrow: banner.eyebrow,
     body: banner.body,
     ctaLabel: banner.ctaLabel,
+    videoUrl: banner.videoUrl,
     createdAt: banner.createdAt.toISOString(),
     updatedAt: banner.updatedAt.toISOString(),
   };
@@ -359,6 +363,28 @@ function parseUpdateBannerBody(
       }
       data[field] = parsedCopy.value;
     }
+  }
+
+  // An absent key leaves the stored video alone; `null` or blank clears it.
+  let nextVideoUrl = existing.videoUrl;
+  if ("videoUrl" in record) {
+    const videoUrl = parseBannerVideoUrl(record.videoUrl, t);
+    if ("error" in videoUrl) {
+      return { error: videoUrl.error };
+    }
+
+    data.videoUrl = videoUrl.value;
+    nextVideoUrl = videoUrl.value;
+  }
+
+  // Against the row's resulting state, so neither adding a video to a
+  // non-hero banner nor moving a hero banner that has one elsewhere slips by.
+  const videoPlacementError = checkBannerVideoPlacement(
+    { placement: nextPlacement, videoUrl: nextVideoUrl },
+    t,
+  );
+  if (videoPlacementError !== null) {
+    return { error: videoPlacementError };
   }
 
   return {
