@@ -6,11 +6,11 @@ import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { useLoadsBoard } from "@/components/driver-hub/screens/loads-context";
 import {
-  CargoPhotoTiles,
   CargoSpecList,
   ClaimedByYouNote,
   ClaimedElsewhereNote,
   HandlingTagPills,
+  LoadCargoPhotos,
   LoadComplianceNotes,
   LoadStatusPill,
   RouteStopHeading,
@@ -77,7 +77,7 @@ import { Button } from "@/components/ui/button";
  * ## What this file still owns, and what it no longer does
  *
  * Everything a driver *reads* about a load — the status pill's tone and label,
- * the cargo table, the handling pills, the photo tiles, the two compliance
+ * the cargo table, the handling pills, the cargo photos, the two compliance
  * advisories and the claimed/mine notes — lives in `loads-detail-parts.tsx` and
  * is rendered identically by the mobile sheet. That module exists because these
  * two files had already diverged twice in ways users could see, most seriously
@@ -469,7 +469,11 @@ export function LoadsDrawer() {
 
         <CargoSpecList load={load} />
         <HandlingTagPills load={load} />
-        <CargoPhotoTiles />
+        <LoadCargoPhotos
+          key={load.id}
+          loadId={load.id}
+          photoCount={load.photoCount}
+        />
       </div>
 
       {/* ---------------------------------------------------------------- */}

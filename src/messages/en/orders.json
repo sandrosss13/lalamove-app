@@ -3,7 +3,11 @@
     "cargoPhotos": "Cargo photos",
     "photoAlt": "Cargo photo {number}",
     "openFullSize": "Open cargo photo {number} full size",
-    "fullSizeTitle": "Cargo photo {number} of {total}"
+    "fullSizeTitle": "Cargo photo {number} of {total}",
+    "loading": "Loading cargo photos…",
+    "loadFailed": "Couldn't load the cargo photos.",
+    "retry": "Try again",
+    "count": "{count, plural, one {# cargo photo} other {# cargo photos}}"
   },
   "orderStatus": {
     "accepted": "Accepted",

@@ -515,7 +515,6 @@
     "coldChainMismatchNote": "This load needs cold-chain handling, but wasn't booked with a refrigerated body. Confirm your vehicle can keep it cold before accepting.",
     "hazmatNote": "Hazmat cargo. Confirm you and your vehicle hold a valid ADR certification before accepting — this isn't checked automatically.",
     "noneDeclared": "None declared",
-    "photoPlaceholder": "Photo {number}",
     "rowDimensions": "Dimensions",
     "rowHandling": "Handling",
     "rowHelpers": "Helpers",

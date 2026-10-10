@@ -16,7 +16,8 @@ export type OrderPhotoGalleryItem = {
 /**
  * An order's cargo photos as a row of thumbnails, each opening the photo full
  * size in a dialog. Shared by every surface that shows an order's details —
- * the client's tracking page and the carrier's job sheet — so the photos look
+ * the client's tracking page, the carrier's job sheet and the load board's
+ * drawer and mobile sheet (via `LoadCargoPhotos`) — so the photos look
  * and behave the same wherever an order is read.
  *
  * Renders nothing for an order without photos: they are optional, and an empty
@@ -31,11 +32,17 @@ export function OrderPhotoGallery({
   photos,
   className,
   headingClassName,
+  headingLevel = "h2",
 }: {
   photos: readonly OrderPhotoGalleryItem[];
   className?: string;
   /** Lets each surface match the heading style of the card around it. */
   headingClassName?: string;
+  /**
+   * The heading's element, so a surface that nests the gallery under its own
+   * section heading (the load board's "Cargo" `h3`) keeps the outline intact.
+   */
+  headingLevel?: "h2" | "h3" | "h4";
 }) {
   const t = useTranslations("orders.orderPhotos");
   const [openIndex, setOpenIndex] = useState<number | null>(null);
@@ -45,12 +52,13 @@ export function OrderPhotoGallery({
   }
 
   const openPhoto = openIndex === null ? null : (photos[openIndex] ?? null);
+  const Heading = headingLevel;
 
   return (
     <section className={cn("flex flex-col gap-2", className)}>
-      <h2 className={headingClassName ?? "text-sm font-medium opacity-60"}>
+      <Heading className={headingClassName ?? "text-sm font-medium opacity-60"}>
         {t("cargoPhotos")}
-      </h2>
+      </Heading>
 
       <ul className="grid grid-cols-3 gap-2">
         {photos.map((photo, index) => (
