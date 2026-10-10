@@ -94,6 +94,12 @@ export async function GET(): Promise<NextResponse> {
         // schema.
         bodyTypes: true,
         imageUrl: true,
+        // Homepage display settings (Admin → Content → Vehicle photos). Only
+        // the landing hook acts on them — it drops hidden types and reorders
+        // per category; the booking form ignores both, so hiding a type here
+        // never removes it from the bookable list.
+        showOnHomepage: true,
+        homepageSortOrder: true,
         pricingRule: {
           select: {
             baseFare: true,

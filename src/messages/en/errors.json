@@ -64,8 +64,13 @@
     "valuekaIsRequiredAndMustBe": "valueKa is required and must be a non-empty string."
   },
   "adminContentVehiclePhotos": {
+    "categoryInvalid": "category must be MEDIUM_DUTY or HEAVY_DUTY.",
+    "idsMustBeDistinctIds": "ids must be a non-empty array of distinct vehicle type ids.",
+    "idsMustBelongToCategory": "Every id must be a vehicle type in this duty class. Reload the list and try again.",
     "imageUrlNonEmptyOrNull": "imageUrl must be a non-empty string, or null to clear it.",
-    "unexpectedFields": "This endpoint only sets imageUrl. Unexpected field(s): {fields}. Vehicle specifications and pricing are changed through the seed, not the back office.",
+    "nothingToUpdate": "Send imageUrl and/or showOnHomepage.",
+    "showOnHomepageMustBeBoolean": "showOnHomepage must be true or false.",
+    "unexpectedFields": "This endpoint only sets imageUrl and showOnHomepage. Unexpected field(s): {fields}. Vehicle specifications and pricing are changed through the seed, not the back office.",
     "vehicleTypeNotFound": "Vehicle type not found."
   },
   "adminDriverApplicationsApprove": {
