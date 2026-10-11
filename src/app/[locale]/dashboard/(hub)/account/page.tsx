@@ -156,12 +156,12 @@ export default async function DriverAccountPage({
             <span aria-hidden="true" className="px-1.5">
               /
             </span>
-            {/* Orange, not `text-foreground`: the trailing crumb is the
+            {/* Accent, not `text-foreground`: the trailing crumb is the
                 section you are on, and it wears the same accent the rail's
-                active row does. Literal `oklch` for the reason
+                active row does. `var(--landing-accent)` for the reason
                 `driver-account-sidebar.tsx` gives — `text-accent` resolves to
                 a neutral inside `[data-admin-surface]`. */}
-            <span className="text-[oklch(64%_0.19_48)]">
+            <span className="text-[var(--landing-accent)]">
               {t(activeSection.titleKey)}
             </span>
           </p>

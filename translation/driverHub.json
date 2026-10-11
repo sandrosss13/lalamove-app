@@ -1684,6 +1684,11 @@
     "ka": "ჩაბარებულია",
     "_source": "src/components/driver-hub/screens/job-sheet-parts.tsx"
   },
+  "jobSheetParts.deliveryPhoto": {
+    "en": "Delivery photo {n}",
+    "ka": "მიწოდების ფოტო {n}",
+    "_source": "src/components/driver-hub/screens/job-sheet-parts.tsx"
+  },
   "jobSheetParts.details": {
     "en": "Details",
     "ka": "დეტალები",
@@ -1739,9 +1744,24 @@
     "ka": "არ არის გადანაწილებული მძღოლზე",
     "_source": "src/components/driver-hub/screens/job-sheet-parts.tsx"
   },
+  "jobSheetParts.proofOfDelivery": {
+    "en": "Proof of delivery",
+    "ka": "მიწოდების დადასტურება",
+    "_source": "src/components/driver-hub/screens/job-sheet-parts.tsx"
+  },
+  "jobSheetParts.proofUnavailable": {
+    "en": "Some proof of delivery is on file but could not be loaded. Refresh to try again.",
+    "ka": "მიწოდების დადასტურების ნაწილი შენახულია, მაგრამ ვერ ჩაიტვირთა. სცადეთ გვერდის განახლება.",
+    "_source": "src/components/driver-hub/screens/job-sheet-parts.tsx"
+  },
   "jobSheetParts.receivedBy": {
     "en": "Received by",
     "ka": "მიიღო",
+    "_source": "src/components/driver-hub/screens/job-sheet-parts.tsx"
+  },
+  "jobSheetParts.recipientSignature": {
+    "en": "Recipient signature",
+    "ka": "მიმღების ხელმოწერა",
     "_source": "src/components/driver-hub/screens/job-sheet-parts.tsx"
   },
   "jobSheetParts.routeSummary": {
@@ -2674,6 +2694,16 @@
     "ka": "თქვენია",
     "_source": "src/components/driver-hub/screens/loads-table.tsx"
   },
+  "offerPush.body": {
+    "en": "Open the app to respond before it expires.",
+    "ka": "გახსენით აპლიკაცია და უპასუხეთ, სანამ ვადა ამოიწურება.",
+    "_source": "src/lib/push/offer-notification.ts"
+  },
+  "offerPush.title": {
+    "en": "New load offer",
+    "ka": "ახალი ტვირთის შეთავაზება",
+    "_source": "src/lib/push/offer-notification.ts"
+  },
   "performanceScreen.acceptanceNote": {
     "en": "A declined offer leaves no row — Order only ever stores the offer that was taken — so acceptance is unrecorded, not merely unaggregated. Retire with a JobOffer model holding every dispatch and its outcome.",
     "ka": "უარყოფილი შეთავაზება ჩანაწერს არ ტოვებს — Order მხოლოდ მიღებულ შეთავაზებას ინახავს — ამიტომ მიღების მაჩვენებელი საერთოდ არ ფიქსირდება. ჩანაცვლდება JobOffer მოდელით, რომელიც ყოველ დანიშვნასა და მის შედეგს შეინახავს.",
@@ -2809,6 +2839,16 @@
     "ka": "ეს კვირა, <num>{range}</num>. მაჩვენებლები რეისებს <strong>დაჯავშნის</strong> დროით ითვლის, დიაგრამა კი — <strong>დასრულების</strong> დროით, ამიტომ ისინი შეიძლება ერთსა და იმავე რეისებს არ ასახავდნენ.",
     "_source": "src/components/driver-hub/screens/performance-screen.tsx"
   },
+  "routeAlertPush.body": {
+    "en": "A load matching one of your route alerts was just posted.",
+    "ka": "გამოქვეყნდა ტვირთი, რომელიც თქვენს შენახულ მარშრუტს ემთხვევა.",
+    "_source": "src/lib/route-alerts/dispatch.ts"
+  },
+  "routeAlertPush.title": {
+    "en": "New load on your route",
+    "ka": "ახალი ტვირთი თქვენს მარშრუტზე",
+    "_source": "src/lib/route-alerts/dispatch.ts"
+  },
   "vehiclesAddForm.ab123Cd": {
     "en": "AB-123-CD",
     "ka": "AB-123-CD",
@@ -2909,16 +2949,6 @@
     "ka": "ტრანსპორტის კლასები იტვირთება...",
     "_source": "src/components/driver-hub/screens/vehicles-add-form.tsx"
   },
-  "vehiclesAddForm.odometerIsDisabledVehicleHasNo": {
-    "en": "Odometer is disabled: `Vehicle` has no reading to store it in, so anything typed here would be thrown away. It arrives with `Vehicle.odometerKm`.",
-    "ka": "ოდომეტრი გათიშულია: „Vehicle“-ს არ აქვს ველი მონაცემის შესანახად, ამიტომ აქ აკრეფილი ნებისმიერი მონაცემი წაიშლება. ის მოდის `Vehicle.odometerKm`-ით.",
-    "_source": "src/components/driver-hub/screens/vehicles-add-form.tsx"
-  },
-  "vehiclesAddForm.odometerKm": {
-    "en": "Odometer (km)",
-    "ka": "ოდომეტრი (კმ)",
-    "_source": "src/components/driver-hub/screens/vehicles-add-form.tsx"
-  },
   "vehiclesAddForm.photoRequirementNote": {
     "en": "At least one photo is required — the endpoint rejects a vehicle without one. Up to 5 MB each.",
     "ka": "საჭიროა მინიმუმ ერთი ფოტო — ფოტოს გარეშე ავტომობილი არ დაემატება. თითო ფაილი 5 MB-მდე.",
@@ -2947,11 +2977,6 @@
   "vehiclesDetailPanel.confirmRemoval": {
     "en": "Confirm removal",
     "ka": "წაშლის დადასტურება",
-    "_source": "src/components/driver-hub/screens/vehicles-detail-panel.tsx"
-  },
-  "vehiclesDetailPanel.costPerKm": {
-    "en": "Cost per km",
-    "ka": "ღირებულება კმ-ზე",
     "_source": "src/components/driver-hub/screens/vehicles-detail-panel.tsx"
   },
   "vehiclesDetailPanel.couldNotRemove": {
@@ -2994,24 +3019,14 @@
     "ka": "იშლება…",
     "_source": "src/components/driver-hub/screens/vehicles-detail-panel.tsx"
   },
-  "vehiclesDetailPanel.runningCostsThisMonth": {
-    "en": "Running costs · this month",
-    "ka": "საექსპლუატაციო ხარჯები · ამ თვეში",
-    "_source": "src/components/driver-hub/screens/vehicles-detail-panel.tsx"
-  },
   "vehiclesDetailPanel.sampleNoteCities": {
     "en": "Vehicle has no operating-cities column; only the company's fleet-wide citiesOfOperation exists. Retire with Vehicle.operatingCities.",
     "ka": "ავტომობილს მომსახურების ქალაქების ველი არ აქვს; არსებობს მხოლოდ კომპანიის საერთო citiesOfOperation. ჩანაცვლდება Vehicle.operatingCities-ით.",
     "_source": "src/components/driver-hub/screens/vehicles-detail-panel.tsx"
   },
-  "vehiclesDetailPanel.sampleNoteCosts": {
-    "en": "Nothing records fuel, service, parking or toll charges against a vehicle. Retire with a VehicleExpense model.",
-    "ka": "ავტომობილზე საწვავის, მომსახურების, პარკირების ან გზის ხარჯები არ ფიქსირდება. ჩანაცვლდება VehicleExpense მოდელით.",
-    "_source": "src/components/driver-hub/screens/vehicles-detail-panel.tsx"
-  },
   "vehiclesDetailPanel.sampleNoteSpecs": {
-    "en": "Vehicle stores no odometer reading, fuel type or per-vehicle job count. Retire with Vehicle.odometerKm and a per-vehicle job rollup.",
-    "ka": "ავტომობილის ჩანაწერში არ ინახება ოდომეტრის ჩვენება, საწვავის ტიპი ან რეისების რაოდენობა. ჩანაცვლდება Vehicle.odometerKm-ით და რეისების ავტომობილის დონის შეჯამებით.",
+    "en": "Vehicle stores no per-vehicle job count. Retire with a per-vehicle job rollup.",
+    "ka": "ავტომობილის ჩანაწერში არ ინახება რეისების რაოდენობა. ჩანაცვლდება რეისების ავტომობილის დონის შეჯამებით.",
     "_source": "src/components/driver-hub/screens/vehicles-detail-panel.tsx"
   },
   "vehiclesDetailPanel.thisVehicleBelongsToTheFleet": {
@@ -3034,11 +3049,6 @@
     "ka": "შესაძლებელია მძღოლზე გადაცემა",
     "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
   },
-  "vehiclesScreen.costKm": {
-    "en": "Cost/km",
-    "ka": "ღირებულება/კმ",
-    "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
-  },
   "vehiclesScreen.detailLabelAddForm": {
     "en": "the add vehicle form",
     "ka": "ავტომობილის დამატების ფორმა",
@@ -3057,21 +3067,6 @@
   "vehiclesScreen.filterAria": {
     "en": "Filter vehicles by status",
     "ka": "ავტომობილების გაფილტვრა სტატუსით",
-    "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
-  },
-  "vehiclesScreen.fleetCostNote": {
-    "en": "Fuel, service, parking and tolls",
-    "ka": "საწვავი, მომსახურება, პარკირება და გზის საფასური",
-    "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
-  },
-  "vehiclesScreen.fleetCostPerKm": {
-    "en": "Fleet cost per km",
-    "ka": "ავტოპარკის ხარჯი კმ-ზე",
-    "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
-  },
-  "vehiclesScreen.fleetCostSampleNote": {
-    "en": "No fuel, service, parking or toll charge is recorded against any vehicle, so there is nothing to average. Retire with a VehicleExpense model.",
-    "ka": "არცერთ ავტომობილზე საწვავის, მომსახურების, პარკირების ან გზის ხარჯი არ ფიქსირდება, ამიტომ საშუალოს გამოსათვლელი არაფერია. ჩანაცვლდება VehicleExpense მოდელით.",
     "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
   },
   "vehiclesScreen.heldByDriver": {
@@ -3114,11 +3109,6 @@
     "ka": "ამჟამად არავისთანაა",
     "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
   },
-  "vehiclesScreen.odometerCostKm": {
-    "en": "Odometer · Cost/km",
-    "ka": "ოდომეტრი · ღირებულება/კმ",
-    "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
-  },
   "vehiclesScreen.onTheRoad": {
     "en": "On the road",
     "ka": "გზაში",
@@ -3127,16 +3117,6 @@
   "vehiclesScreen.rosterEmptyHint": {
     "en": "Your fleet manager assigns you a vehicle from the company's own. It appears here once they do.",
     "ka": "ავტოპარკის მენეჯერი კომპანიის ავტომობილებიდან ერთ-ერთს მოგამაგრებთ. ის აქ გამოჩნდება, როგორც კი ამას გააკეთებს.",
-    "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
-  },
-  "vehiclesScreen.sampleData": {
-    "en": " — sample data.",
-    "ka": " — სანიმუშო მონაცემები.",
-    "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
-  },
-  "vehiclesScreen.sampledColumnsNote": {
-    "en": "Odometer and cost per km are placeholders: nothing records a reading or a cost against a vehicle. Retire with Vehicle.odometerKm and a VehicleExpense model.",
-    "ka": "ოდომეტრი და ღირებულება კმ-ზე სანიმუშოა: ავტომობილზე არც ჩვენება და არც ხარჯი არ ფიქსირდება. ჩანაცვლდება Vehicle.odometerKm-ით და VehicleExpense მოდელით.",
     "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
   },
   "vehiclesScreen.shownCount": {

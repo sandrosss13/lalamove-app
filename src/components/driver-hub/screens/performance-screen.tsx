@@ -222,7 +222,7 @@ const RATING_SCALE_MAX = 5;
  * Delta text colours, matching `hub-primitives.tsx`'s own private map. Copied
  * rather than imported because Tailwind scans source text: a class assembled
  * from a shared import would never be generated. `vehicles-screen.tsx` repeats
- * the accent orange for the same reason.
+ * the brand accent for the same reason.
  *
  * Each tone is a light literal plus a `dark:` counterpart, because neither
  * green nor amber has a shadcn token to migrate to the way the hub's error

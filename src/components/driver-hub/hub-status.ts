@@ -4,7 +4,7 @@
  * Six screens show status words on `Badge` — job states, document validity,
  * vehicle and roster lifecycle — and the design gives all of them exactly five
  * colour pairs. Keeping the map here rather than per screen means a "Completed"
- * job and a "Valid" insurance policy cannot drift apart, and a new screen never
+ * job and a "Valid" registration cannot drift apart, and a new screen never
  * has to invent a sixth tone.
  *
  * The classes are Tailwind arbitrary values rather than global tokens, matching
@@ -71,7 +71,7 @@ export const HUB_STATUS_TONE_CLASSES: Record<HubStatusTone, string> = {
     "dark:bg-[oklch(29%_0.05_85)] dark:text-[oklch(88%_0.12_85)]",
   // Scheduled / Offline / Idle / Defleeted / Offboarded
   neutral:
-    "bg-[oklch(96.7%_0.003_264.542)] text-[oklch(44.6%_0.03_256.802)] " +
+    "bg-[oklch(90.9%_0.026_84.6)] text-[oklch(44.6%_0.03_256.802)] " +
     "dark:bg-[oklch(27.5%_0.005_264.542)] dark:text-[oklch(80%_0.015_264.542)]",
 };
 

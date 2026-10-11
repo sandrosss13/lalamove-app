@@ -6,9 +6,27 @@ import {
   type RequestTranslator,
 } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
+import { runMatchingWithinBudget } from "@/lib/background/request-budget";
+import { dispatchOfferForDriver } from "@/lib/offers/dispatch";
 import { CARRIER_ORDER_PARTY_SELECT } from "@/lib/order-response-select";
+import {
+  orderActionError,
+  passwordChangeRefusal,
+} from "@/lib/orders/action-errors";
 import { driverPayoutFor } from "@/lib/orders/payout";
+import {
+  isPodWaived,
+  podCompletionDenial,
+  type PodCompletionDenial,
+} from "@/lib/orders/pod-rules";
 import { prisma } from "@/lib/prisma";
+import { creditWalletForOrderSafely } from "@/lib/wallet/ledger";
+
+/** The message key each missing piece of proof is localised from. */
+const POD_DENIAL_MESSAGE_KEYS: Record<PodCompletionDenial, string> = {
+  POD_PHOTO_REQUIRED: "errors.ordersComplete.photoRequired",
+  POD_SIGNATURE_REQUIRED: "errors.ordersComplete.signatureRequired",
+};
 
 /**
  * How long a recipient's name may be.
@@ -122,8 +140,30 @@ function roundCurrency(value: number): number {
  * driver who did not catch a name must still be able to close the job, so a
  * missing `receivedBy` is a valid completion and never a 400. It changes no
  * money and no state — it is recorded exactly as given, trimmed — and it is not
- * proof of delivery: v1 captures no photo and no signature, and the `COMPLETED`
- * transition is what proves the delivery.
+ * itself proof of delivery.
+ *
+ * ## Proof of delivery
+ *
+ * The proof is one to three photos and the recipient's signature, registered
+ * beforehand through `POST /api/orders/[id]/pod` while the order is
+ * `IN_TRANSIT`. **This route refuses to complete without them** — 409
+ * `POD_PHOTO_REQUIRED`, then 409 `POD_SIGNATURE_REQUIRED` — and the body is
+ * unchanged: the proof is read from the database, never sent here.
+ *
+ * Required by default, for every caller, with one declared exemption: the web
+ * hub's job sheet has no capture step (the design draws the camera and the
+ * signature pad for the phone only), so its dialog sends the
+ * `x-pod-waiver: web-hub` header and completes as it always has. See
+ * `POD_WAIVER_HEADER` in `src/lib/orders/pod-rules.ts` for why that is an
+ * exemption and not a security boundary, and when it goes.
+ *
+ * The check and the status change share one transaction under the order's row
+ * lock — the same lock every POD write takes — so a photo cannot be deleted
+ * between "there is one" and "completed".
+ *
+ * Every refusal carries a stable `code` beside the localised `error` (see
+ * `OrderActionErrorCode`); the wording and statuses of the refusals that
+ * existed before are unchanged.
  *
  * It is deliberately absent from the response. `CARRIER_ORDER_PARTY_SELECT` is
  * the shape all six lifecycle endpoints answer with, and adding a column to it
@@ -140,25 +180,32 @@ export async function POST(
 
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {
-    return NextResponse.json(
-      { error: t("common.shared.unauthorized") },
-      { status: 401 },
+    return orderActionError(
+      t("common.shared.unauthorized"),
+      "UNAUTHENTICATED",
+      401,
     );
+  }
+
+  const passwordRefusal = passwordChangeRefusal(session.user, t);
+  if (passwordRefusal) {
+    return passwordRefusal;
   }
 
   let rawBody: unknown;
   try {
     rawBody = await request.json();
   } catch {
-    return NextResponse.json(
-      { error: t("common.shared.requestBodyMustBeValidJson") },
-      { status: 400 },
+    return orderActionError(
+      t("common.shared.requestBodyMustBeValidJson"),
+      "INVALID_REQUEST",
+      400,
     );
   }
 
   const parsed = parseCompleteOrderBody(rawBody, t);
   if ("error" in parsed) {
-    return NextResponse.json({ error: parsed.error }, { status: 400 });
+    return orderActionError(parsed.error, "INVALID_REQUEST", 400);
   }
 
   const { waitingMinutes, receivedBy } = parsed.data;
@@ -186,24 +233,26 @@ export async function POST(
   });
 
   if (!order) {
-    return NextResponse.json(
-      { error: t("common.shared.orderNotFound") },
-      { status: 404 },
-    );
+    return orderActionError(t("common.shared.orderNotFound"), "NOT_FOUND", 404);
   }
 
   if (order.driverId !== session.user.id) {
-    return NextResponse.json(
-      { error: t("common.shared.youAreNotAssignedToThis") },
-      { status: 403 },
+    return orderActionError(
+      t("common.shared.youAreNotAssignedToThis"),
+      "NOT_ASSIGNED",
+      403,
     );
   }
 
-  if (order.status !== OrderStatus.IN_TRANSIT) {
-    return NextResponse.json(
-      { error: t("errors.ordersComplete.thisDeliveryCannotBeCompletedRight") },
-      { status: 409 },
+  const invalidState = () =>
+    orderActionError(
+      t("errors.ordersComplete.thisDeliveryCannotBeCompletedRight"),
+      "INVALID_STATE",
+      409,
     );
+
+  if (order.status !== OrderStatus.IN_TRANSIT) {
+    return invalidState();
   }
 
   const pricingRule = order.vehicleTypeSpec.pricingRule;
@@ -211,9 +260,10 @@ export async function POST(
   // Every seeded vehicle type has a rule, so this only guards against
   // hand-edited data. Failing loudly beats silently waiving the overtime.
   if (!pricingRule) {
-    return NextResponse.json(
-      { error: t("errors.ordersComplete.thisDeliverySVehicleTypeHas") },
-      { status: 500 },
+    return orderActionError(
+      t("errors.ordersComplete.thisDeliverySVehicleTypeHas"),
+      "SERVER_ERROR",
+      500,
     );
   }
 
@@ -244,36 +294,105 @@ export async function POST(
     order.commissionRate,
   );
 
-  // Both figures in one update: an order can never carry a non-zero
-  // `overtimeFee` alongside a stale, default-`0` `overtimeDriverPayout`, whether
-  // from a crash between two writes or from a later refactor splitting them.
-  const updated = await prisma.order.update({
-    where: { id },
-    data: {
-      status: OrderStatus.COMPLETED,
-      completedAt: new Date(),
-      waitingMinutes,
-      overtimeFee,
-      overtimeDriverPayout,
-      // Written unconditionally, `null` included. This is the only write path
-      // for the column and it only ever runs once per order — the IN_TRANSIT
-      // guard above makes a second completion a 409 — so there is no earlier
-      // value a null here could erase.
-      receivedBy,
-    },
-    // Carrier-only response — see `CARRIER_ORDER_PARTY_SELECT`'s doc comment;
-    // never `ORDER_PARTY_SELECT` here. Only the order's assigned driver reaches
-    // this update, and this route was the worst of the six: it returned bare
-    // `ORDER_PARTY_SELECT`, handing the completing driver `price` and the
-    // `overtimeFee` this very call had just computed — the client's side of both
-    // halves of the job.
-    //
-    // The `data:` object above is untouched by this select. `overtimeFee` is
-    // still written (the client is billed it) and `overtimeDriverPayout` is
-    // still commissioned from it at the order's own stored rate; the response
-    // simply reports the second and not the first.
-    select: CARRIER_ORDER_PARTY_SELECT,
+  const proofWaived = isPodWaived(request.headers);
+
+  const outcome = await prisma.$transaction(async (tx) => {
+    // The lock every POD write also takes (`lockOrderForPod`): from here to the
+    // commit no photo can be added or removed and no second completion can run.
+    await tx.$queryRaw`SELECT "id" FROM "Order" WHERE "id" = ${id} FOR UPDATE`;
+
+    const locked = await tx.order.findUnique({
+      where: { id },
+      select: {
+        status: true,
+        podSignaturePath: true,
+        _count: { select: { podPhotos: true } },
+      },
+    });
+
+    // Re-checked under the lock: the read above was a pre-check for readable
+    // refusals, and a second device may have completed the job since.
+    if (!locked || locked.status !== OrderStatus.IN_TRANSIT) {
+      return { kind: "INVALID_STATE" } as const;
+    }
+
+    if (!proofWaived) {
+      const denial = podCompletionDenial({
+        photoCount: locked._count.podPhotos,
+        hasSignature: locked.podSignaturePath !== null,
+      });
+
+      if (denial !== null) {
+        return { kind: "PROOF_MISSING", denial } as const;
+      }
+    }
+
+    // Both figures in one update: an order can never carry a non-zero
+    // `overtimeFee` alongside a stale, default-`0` `overtimeDriverPayout`,
+    // whether from a crash between two writes or from a later refactor
+    // splitting them.
+    const updated = await tx.order.update({
+      where: { id },
+      data: {
+        status: OrderStatus.COMPLETED,
+        completedAt: new Date(),
+        waitingMinutes,
+        overtimeFee,
+        overtimeDriverPayout,
+        // Written unconditionally, `null` included. This is the only write path
+        // for the column and it only ever runs once per order — the IN_TRANSIT
+        // guard above makes a second completion a 409 — so there is no earlier
+        // value a null here could erase.
+        receivedBy,
+      },
+      // Carrier-only response — see `CARRIER_ORDER_PARTY_SELECT`'s doc comment;
+      // never `ORDER_PARTY_SELECT` here. Only the order's assigned driver reaches
+      // this update, and this route was the worst of the six: it returned bare
+      // `ORDER_PARTY_SELECT`, handing the completing driver `price` and the
+      // `overtimeFee` this very call had just computed — the client's side of both
+      // halves of the job.
+      //
+      // The `data:` object above is untouched by this select. `overtimeFee` is
+      // still written (the client is billed it) and `overtimeDriverPayout` is
+      // still commissioned from it at the order's own stored rate; the response
+      // simply reports the second and not the first.
+      select: CARRIER_ORDER_PARTY_SELECT,
+    });
+
+    return { kind: "COMPLETED", updated } as const;
   });
 
-  return NextResponse.json(updated, { status: 200 });
+  if (outcome.kind === "INVALID_STATE") {
+    return invalidState();
+  }
+
+  if (outcome.kind === "PROOF_MISSING") {
+    return orderActionError(
+      t(POD_DENIAL_MESSAGE_KEYS[outcome.denial]),
+      outcome.denial,
+      409,
+    );
+  }
+
+  // The job is done: credit the driver's wallet **if** a payment gateway has
+  // already confirmed the client's payment. No gateway is integrated, so today
+  // this credits nothing — see `walletCreditDecisionFor`. When the confirmation
+  // arrives after completion instead, `confirmGatewayPayment` makes the same
+  // call. Never throws: the completion has committed and is what this request
+  // reports, and the credit is idempotent, so a failure here is recoverable.
+  await creditWalletForOrderSafely(id);
+
+  // The driver is free again: offer them the best load waiting on the board.
+  // Never throws — the completion above has committed and is what this
+  // request reports. A driver who went offline meanwhile is offered nothing.
+  //
+  // Within the matching budget only: a slow match is finished after the
+  // response rather than holding "Delivered" open — see
+  // `runMatchingWithinBudget`. (The wallet credit above is *not* budgeted: it
+  // is the driver's money, one short transaction, and is worth the wait.)
+  const userId = session.user.id;
+
+  await runMatchingWithinBudget(() => dispatchOfferForDriver(userId));
+
+  return NextResponse.json(outcome.updated, { status: 200 });
 }

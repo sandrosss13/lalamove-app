@@ -4,7 +4,8 @@ import { AdminSectionLayout } from "@/components/admin/admin-section-layout";
 export const dynamic = "force-dynamic";
 
 /**
- * Finances — wraps its tabs (Payment Methods / Promo Campaigns) around
+ * Finances — wraps its tabs (Payment Methods, Promo Campaigns and the driver
+ * wallet's Bank accounts / Withdrawals / Driver wallets) around
  * whichever leaf page is being viewed. The tab list itself lives in
  * `@/components/admin/admin-nav` so the sidebar and this strip can never
  * disagree; see `AdminSectionLayout` for the role gate it applies.

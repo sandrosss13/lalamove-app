@@ -859,11 +859,6 @@
     "ka": "საიდან",
     "_source": "src/app/[locale]/orders/[id]/track/page.tsx"
   },
-  "shared.fuel": {
-    "en": "Fuel",
-    "ka": "საწვავი",
-    "_source": "src/components/driver-hub/screens/vehicles-detail-panel.tsx"
-  },
   "shared.fullName": {
     "en": "Full name",
     "ka": "სრული სახელი",
@@ -1163,11 +1158,6 @@
     "en": "Notifications",
     "ka": "შეტყობინებები",
     "_source": "src/components/driver-hub/driver-account-sections.ts"
-  },
-  "shared.odometer": {
-    "en": "Odometer",
-    "ka": "ოდომეტრი (პრობეგი)",
-    "_source": "src/components/driver-hub/screens/vehicles-detail-panel.tsx"
   },
   "shared.onlineHours": {
     "en": "Online hours",

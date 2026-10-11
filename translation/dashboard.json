@@ -194,11 +194,6 @@
     "ka": "დიდუბე",
     "_source": "src/lib/dashboard/hub/sample.ts"
   },
-  "sample.diesel": {
-    "en": "Diesel",
-    "ka": "დიზელი",
-    "_source": "src/lib/dashboard/hub/sample.ts"
-  },
   "sample.dispatcher": {
     "en": "Dispatcher",
     "ka": "დისპეტჩერი",
@@ -277,11 +272,6 @@
   "sample.highestInGldaniMovingToVake": {
     "en": "Highest in Gldani. Moving to Vake between 09:00 and 11:00 cuts it by about a third.",
     "ka": "ყველაზე მაღალია გლდანში. ვაკეში გადასვლა 09:00-დან 11:00-მდე ამცირებს მას დაახლოებით მესამედით.",
-    "_source": "src/lib/dashboard/hub/sample.ts"
-  },
-  "sample.hybrid": {
-    "en": "Hybrid",
-    "ka": "ჰიბრიდი",
     "_source": "src/lib/dashboard/hub/sample.ts"
   },
   "sample.idleTime": {
@@ -384,11 +374,6 @@
     "ka": "გადახდილი",
     "_source": "src/lib/dashboard/hub/sample.ts"
   },
-  "sample.parkingTolls": {
-    "en": "Parking & tolls",
-    "ka": "პარკინგი და მოსაკრებლები",
-    "_source": "src/lib/dashboard/hub/sample.ts"
-  },
   "sample.payoutAccounts": {
     "en": "Payout accounts",
     "ka": "ანაზღაურების ანგარიშები",
@@ -437,11 +422,6 @@
   "sample.serviceLog": {
     "en": "Service log",
     "ka": "სერვისის ჟურნალი",
-    "_source": "src/lib/dashboard/hub/sample.ts"
-  },
-  "sample.serviceParts": {
-    "en": "Service & parts",
-    "ka": "სერვისი და ნაწილები",
     "_source": "src/lib/dashboard/hub/sample.ts"
   },
   "sample.shift": {

@@ -94,8 +94,8 @@ function MoonGlyph() {
  * `var(--admin-accent, var(--landing-accent))`, and `--admin-accent` only
  * exists inside `[data-admin-surface]` / `[data-onboarding-surface]`. Anywhere
  * else — including the global site header this toggle's first home is —
- * `bg-accent` means the landing palette's brand orange, so the stock class
- * would give the button a bright orange hover disc. `secondary` has no such
+ * `bg-accent` means the landing palette's brand green, so the stock class
+ * would give the button a bright green hover disc. `secondary` has no such
  * collision: `--color-secondary` maps straight to `--secondary`, which is
  * neutral in both themes.
  *

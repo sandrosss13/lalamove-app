@@ -669,7 +669,7 @@ function CredentialsCard({
       // it goes, and it renders below the button that produced it.
       role="status"
       aria-live="polite"
-      className="border-[oklch(64%_0.19_48)]"
+      className="border-[var(--landing-accent)]"
     >
       <p className="text-base font-semibold">
         {driver.vehicleAssigned

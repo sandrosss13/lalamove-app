@@ -768,7 +768,7 @@ export function Step4DriversAssignment() {
           match the accent/outline pair the shell's own welcome screen uses.
 
           Both are theme-correct as written and neither should grow a `dark:`
-          variant. The accent one is `text-white` on the brand orange, which is
+          variant. The accent one is `text-white` on the brand green, which is
           theme-independent by design, so its label is too; the outline one is
           semantic tokens end to end (`border-border`, `bg-card`, `bg-muted` on
           hover), so it follows the theme on its own. The same pair appears on
@@ -1548,9 +1548,9 @@ function CreateDriverForm({
                 }`}
               >
                 {/* Only the checked state is overridden, and only to swap the
-                    primitive's `--primary` fill for the brand orange. The
+                    primitive's `--primary` fill for the brand green. The
                     `text-white` tick that rides on it is correct in both themes
-                    — the orange is theme-independent by design, so its tick has
+                    — the green is theme-independent by design, so its tick has
                     to be too, and the primitive's own `data-checked:
                     text-primary-foreground` would invert to near-black against
                     it in dark.

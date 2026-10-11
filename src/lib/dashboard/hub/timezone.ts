@@ -315,6 +315,16 @@ export function hubWeekdayIndex(instant: Date): number {
 }
 
 /**
+ * Minutes since midnight on the `HUB_TIME_ZONE` wall clock, `0`–`1439` — what a
+ * "23:00 to 07:00" style window is compared against.
+ */
+export function hubMinuteOfDay(instant: Date): number {
+  const { hour, minute } = civilPartsOf(instant);
+
+  return hour * 60 + minute;
+}
+
+/**
  * The instant the Monday of `instant`'s week began, in `HUB_TIME_ZONE`.
  *
  * Monday-first because that is where the design's week starts — the Performance

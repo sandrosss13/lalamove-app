@@ -23,8 +23,9 @@ import { vehicleTypeSpecLabel } from "@/lib/vehicle-type-spec-labels";
  * - Submitted, because `POST /api/{driver-profile,logistics-company}/vehicles`
  *   accepts them: `plateNumber`, `make`, `model`, `year`, `vehicleTypeCode`
  *   and one or more `photos`.
- * - Rendered disabled with a note, because `Vehicle` has no column for them:
- *   **Odometer** and **Operating cities**.
+ * - Rendered disabled with a note, because `Vehicle` has no column for it:
+ *   **Operating cities**. (The handoff's Odometer field is dropped outright:
+ *   the product does not track odometer readings or vehicle running costs.)
  * - Rendered disabled with a note, because it is a different resource with its
  *   own lifetime: **Assign to driver** (`DriverVehicleAssignment`, created by
  *   `POST /api/logistics-company/vehicles/[id]/assignment`, which also runs a
@@ -411,19 +412,7 @@ export function VehiclesAddForm({
                 className="h-auto rounded-md px-[11px] py-[9px] font-price text-[13px] md:text-[13px]"
               />
             </Field>
-            <Field label={t("odometerKm")} htmlFor="vehicle-odometer">
-              <Input
-                id="vehicle-odometer"
-                disabled
-                placeholder="96480"
-                aria-describedby="vehicle-odometer-note"
-                className="h-auto rounded-md px-[11px] py-[9px] font-price text-[13px] md:text-[13px]"
-              />
-            </Field>
           </div>
-          <p id="vehicle-odometer-note" className={NOT_STORED_NOTE_CLASSES}>
-            {t("odometerIsDisabledVehicleHasNo")}
-          </p>
 
           <fieldset className="flex min-w-0 flex-col gap-2">
             <legend className={cn(FIELD_LABEL_CLASSES, "mb-2")}>

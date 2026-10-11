@@ -79,6 +79,11 @@ import {
   loadOrderPhotoViews,
   type OrderPhotoView,
 } from "@/lib/order-photos/views";
+import {
+  ORDER_PROOF_SELECT,
+  toOrderProof,
+  type OrderProof,
+} from "@/lib/orders/pod";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -180,6 +185,11 @@ const JOB_SHEET_SELECT = {
   overtimeDriverPayout: true,
   waitingMinutes: true,
   receivedBy: true,
+
+  // Proof of delivery: the signature's object path and the photo rows. Paths
+  // are read here and never returned — `toOrderProof` exchanges them for
+  // short-lived signed URLs.
+  ...ORDER_PROOF_SELECT,
 } as const;
 
 /**
@@ -331,10 +341,30 @@ export type HubJobSheet = {
   /**
    * Who the driver handed the load to, optionally captured at completion. Null
    * on every order completed before the field existed and on every delivery
-   * confirmed without a name. A record of what the driver reported, not
-   * evidence of delivery — v1 captures no photo and no signature.
+   * confirmed without a name. A record of what the driver reported; the
+   * evidence is `proofOfDelivery` below.
    */
   receivedBy: string | null;
+
+  /* ---- Proof of delivery ---------------------------------------------- */
+
+  /**
+   * The delivery's photos and signature as **short-lived signed read URLs**
+   * (five minutes) — bearer tokens to private objects, so never cache or log
+   * them. Always an object: an order with nothing registered carries an empty
+   * `photos` and `hasSignature: false`, which is every order before delivery,
+   * every order completed before proof existed, and every one closed from the
+   * web hub.
+   *
+   * Populated for both carrier readers, because this loader answers both and
+   * the company holding a job is entitled to its proof. **Who is sent it is
+   * the caller's decision**: the web sheet shows it to the driver and the
+   * company alike, and the native JSON route sends it to the assigned driver
+   * only — see `toHubJobSheetResponse`.
+   */
+  proofOfDelivery: OrderProof;
+
+  /* ---- Client cargo photos -------------------------------------------- */
 
   /**
    * The cargo photos the client attached at booking, each with a short-lived
@@ -501,6 +531,10 @@ export async function getHubJobSheet(
     waitingMinutes: order.waitingMinutes,
     receivedBy: textOrNull(order.receivedBy),
 
+    // Signed after the tenancy check above, never before: a signed URL is a
+    // bearer token, and minting one for a row about to be discarded would be
+    // a secret created for nobody.
+    proofOfDelivery: await toOrderProof(order),
     photos: await loadOrderPhotoViews(order.id),
   };
 }

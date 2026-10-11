@@ -2,7 +2,7 @@
 applicationStatusScreen.accountActivation,Account activation,,src/components/driver-onboarding/application-status-screen.tsx
 applicationStatusScreen.applicationSubmitted,Application submitted,,src/components/driver-onboarding/application-status-screen.tsx
 applicationStatusScreen.documentReview,Document review,,src/components/driver-onboarding/application-status-screen.tsx
-applicationStatusScreen.keepYourLicenceAndInsuranceCurrent,Keep your licence and insurance current — we re-check 30 days before expiry.,,src/components/driver-onboarding/application-status-screen.tsx
+applicationStatusScreen.keepYourLicenceCurrent,Keep your licence current — we re-check 30 days before expiry.,,src/components/driver-onboarding/application-status-screen.tsx
 applicationStatusScreen.licenceBack,Licence — back,,src/components/driver-onboarding/application-status-screen.tsx
 applicationStatusScreen.licenceFront,Licence — front,,src/components/driver-onboarding/application-status-screen.tsx
 applicationStatusScreen.needsANewPhoto,Needs a new photo,,src/components/driver-onboarding/application-status-screen.tsx

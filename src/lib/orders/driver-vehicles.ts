@@ -91,3 +91,29 @@ export function driverVehiclesWhere(
     ],
   };
 }
+
+/**
+ * `driverVehiclesWhere` for several drivers at once — the same union (owned
+ * outright, or held on an open fleet assignment), kept beside the single-driver
+ * form so the rule has one home. The load offer matcher reads a whole
+ * candidate list's vehicles in one query with it.
+ *
+ * Which driver each returned vehicle belongs to is the caller's to work out,
+ * from `Vehicle.driverProfileId` and the open assignments it selects.
+ */
+export function driversVehiclesWhere(
+  driverProfileIds: readonly string[],
+): Prisma.VehicleWhereInput {
+  const ids = [...driverProfileIds];
+
+  return {
+    OR: [
+      { driverProfileId: { in: ids } },
+      {
+        assignments: {
+          some: { driverProfileId: { in: ids }, unassignedAt: null },
+        },
+      },
+    ],
+  };
+}

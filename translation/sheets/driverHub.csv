@@ -230,18 +230,11 @@ vehiclesAddForm.addAVehicle,Add a vehicle,,src/components/driver-hub/screens/veh
 vehiclesAddForm.ford,Ford,,src/components/driver-hub/screens/vehicles-add-form.tsx
 vehiclesAddForm.itJoinsTheFleetAsIdle,It joins the fleet as idle. Assign a driver to start taking jobs.,,src/components/driver-hub/screens/vehicles-add-form.tsx
 vehiclesAddForm.loadingVehicleClasses,Loading vehicle classes…,,src/components/driver-hub/screens/vehicles-add-form.tsx
-vehiclesAddForm.odometerIsDisabledVehicleHasNo,"Odometer is disabled: `Vehicle` has no reading to store it in, so anything typed here would be thrown away. It arrives with `Vehicle.odometerKm`.",,src/components/driver-hub/screens/vehicles-add-form.tsx
-vehiclesAddForm.odometerKm,Odometer (km),,src/components/driver-hub/screens/vehicles-add-form.tsx
 vehiclesAddForm.transitCustom,Transit Custom,,src/components/driver-hub/screens/vehicles-add-form.tsx
-vehiclesDetailPanel.costPerKm,Cost per km,,src/components/driver-hub/screens/vehicles-detail-panel.tsx
 vehiclesDetailPanel.jobsWeek,Jobs · week,,src/components/driver-hub/screens/vehicles-detail-panel.tsx
 vehiclesDetailPanel.operatingCities,Operating cities,,src/components/driver-hub/screens/vehicles-detail-panel.tsx
-vehiclesDetailPanel.runningCostsThisMonth,Running costs · this month,,src/components/driver-hub/screens/vehicles-detail-panel.tsx
 vehiclesDetailPanel.thisVehicleBelongsToTheFleet,"This vehicle belongs to the fleet you drive for, not to you. Only its owner can remove it.",,src/components/driver-hub/screens/vehicles-detail-panel.tsx
 vehiclesScreen.addOneToStartTakingJobs,Add one to start taking jobs. It joins as idle until a driver is assigned to it.,,src/components/driver-hub/screens/vehicles-screen.tsx
 vehiclesScreen.addVehicle,Add vehicle,,src/components/driver-hub/screens/vehicles-screen.tsx
-vehiclesScreen.costKm,Cost/km,,src/components/driver-hub/screens/vehicles-screen.tsx
-vehiclesScreen.fleetCostPerKm,Fleet cost per km,,src/components/driver-hub/screens/vehicles-screen.tsx
 vehiclesScreen.idle,Idle,,src/components/driver-hub/screens/vehicles-screen.tsx
-vehiclesScreen.odometerCostKm,Odometer · Cost/km,,src/components/driver-hub/screens/vehicles-screen.tsx
 vehiclesScreen.onTheRoad,On the road,,src/components/driver-hub/screens/vehicles-screen.tsx
