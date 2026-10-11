@@ -26,6 +26,7 @@ import {
   resolveFleet,
   VEHICLE_CAPABILITY_SELECT,
 } from "@/lib/orders/load-eligibility";
+import { recordOfferNotifications } from "@/lib/notifications/inbox";
 import { prisma } from "@/lib/prisma";
 import {
   notifyOffersCreated,
@@ -420,21 +421,31 @@ export async function offerWaitingLoadToDriver(
 }
 
 /**
- * Send the pushes once the response has gone out.
+ * Record each offer in its driver's notification inbox and send the pushes,
+ * once the response has gone out. Neither throws, and the inbox entry is
+ * written whether or not a push goes — `notifyOffersCreated` decides that on
+ * its own.
  *
- * `after` keeps the serverless invocation alive for the send without making
+ * `after` keeps the serverless invocation alive for the work without making
  * the caller wait for it. Outside a request (a script) there is no response to
- * wait for and `after` throws, so the send is simply started.
+ * wait for and `after` throws, so the work is simply started.
  */
 function pushAfterResponse(offers: readonly OfferToNotify[]): void {
   if (offers.length === 0) {
     return;
   }
 
+  const notify = async (): Promise<void> => {
+    await Promise.all([
+      recordOfferNotifications(offers),
+      notifyOffersCreated(offers),
+    ]);
+  };
+
   try {
-    after(() => notifyOffersCreated(offers));
+    after(notify);
   } catch {
-    void notifyOffersCreated(offers);
+    void notify();
   }
 }
 

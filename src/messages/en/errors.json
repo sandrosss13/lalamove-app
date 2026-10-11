@@ -440,6 +440,11 @@
     "thisVehicleHasNoActiveAssignment": "This vehicle has no active assignment.",
     "thisVehicleNeedsCategory": "This vehicle needs category {category}. Assign a different driver or vehicle."
   },
+  "notificationInbox": {
+    "cursorNotFound": "cursor is not one of your notifications.",
+    "idsMustBeAListOfIds": "ids must be a list of notification ids.",
+    "tooManyIds": "Name at most {max} notifications at a time."
+  },
   "offers": {
     "offerAlreadyAccepted": "You have already accepted this offer.",
     "offerAlreadyDeclined": "You declined this offer.",

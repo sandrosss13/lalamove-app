@@ -121,6 +121,9 @@ model User {
   /// Devices this account receives push notifications on — see `DeviceToken`.
   deviceTokens DeviceToken[]
 
+  /// The driver's in-app notification inbox — see `DriverNotification`.
+  driverNotifications DriverNotification[]
+
   @@unique([email])
   @@map("user")
 }
@@ -1728,6 +1731,42 @@ model DeviceToken {
 
   @@index([userId])
   @@index([sessionId])
+}
+
+/// What an inbox entry is about — the same vocabulary as a push's `data.type`.
+enum DriverNotificationType {
+  LOAD_OFFER
+  ROUTE_ALERT
+}
+
+/// One entry in a driver's in-app notification inbox
+/// (`GET /api/dashboard/hub/notifications`).
+///
+/// Written every time a load offer is made to the driver or one of their route
+/// alerts fires — whether or not a push went out: push is switched off, the
+/// driver turned the category off, or they have no device registered. The
+/// inbox is the record; the push is only the nudge.
+///
+/// `title` and `body` are the push's own wording, frozen in the driver's
+/// language at the moment of writing; `data` is the push's own `data` object
+/// (ids only, nothing about the load).
+model DriverNotification {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type  DriverNotificationType
+  title String
+  body  String
+  data  Json?
+
+  /// Null while unread.
+  readAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
 }
 
 /// What a support message is about. The first five are the Support screen's

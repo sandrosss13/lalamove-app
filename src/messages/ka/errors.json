@@ -440,6 +440,11 @@
     "thisVehicleHasNoActiveAssignment": "ამ ტრანსპორტს აქტიური მინიჭება არ აქვს.",
     "thisVehicleNeedsCategory": "ამ ავტომობილს {category} კატეგორია სჭირდება. მიამაგრეთ სხვა მძღოლი ან ავტომობილი."
   },
+  "notificationInbox": {
+    "cursorNotFound": "cursor არ არის თქვენი შეტყობინების იდენტიფიკატორი.",
+    "idsMustBeAListOfIds": "ids უნდა იყოს შეტყობინებების იდენტიფიკატორების სია.",
+    "tooManyIds": "ერთდროულად მიუთითეთ არაუმეტეს {max} შეტყობინება."
+  },
   "offers": {
     "offerAlreadyAccepted": "ეს შეთავაზება უკვე მიღებული გაქვთ.",
     "offerAlreadyDeclined": "ეს შეთავაზება თქვენ უარყავით.",
