@@ -31,9 +31,10 @@ import { cn } from "@/lib/utils";
  * persona for exactly this reason.
  */
 
-/** The brand orange. It has no `--color-*` token, so it is spelled out — the
- *  same call `hub-primitives.tsx` and `driver-hub-sidebar.tsx` already make. */
-const ACCENT_BG = "bg-[oklch(64%_0.19_48)]";
+/** The brand green, read from `--landing-accent` (not `bg-accent`, which is
+ *  the shadcn neutral on this surface) — the same call `hub-primitives.tsx`
+ *  and `driver-hub-sidebar.tsx` make. */
+const ACCENT_BG = "bg-[var(--landing-accent)]";
 
 /**
  * Where the dropdown's footer link and the phone bar point: the jobs list.
@@ -156,7 +157,7 @@ export function DriverHubJobPill({
           cluster around. See the dropdown row below for the same call. */}
       <PopoverTrigger
         type="button"
-        className="inline-flex max-w-[240px] cursor-pointer items-center gap-[7px] rounded-full border border-border py-[5px] pr-3 pl-2.5 text-[12px] font-semibold whitespace-nowrap transition-colors hover:border-[oklch(64%_0.19_48)] focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+        className="inline-flex max-w-[240px] cursor-pointer items-center gap-[7px] rounded-full border border-border py-[5px] pr-3 pl-2.5 text-[12px] font-semibold whitespace-nowrap transition-colors hover:border-[var(--landing-accent)] focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
       >
         <span
           aria-hidden="true"

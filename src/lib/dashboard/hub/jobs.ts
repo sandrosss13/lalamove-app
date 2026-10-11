@@ -39,6 +39,7 @@ import { ChassisType, OrderStatus, ServiceLevel } from "@prisma/client";
 import type { Prisma } from "@prisma/client";
 
 import type { HubAccount } from "@/lib/dashboard/hub/account";
+import { formatCity } from "@/lib/format-city";
 import { totalDriverEarnings } from "@/lib/orders/payout";
 import { prisma } from "@/lib/prisma";
 
@@ -114,6 +115,13 @@ export type HubJob = {
    * so never key or link on it.
    */
   shortId: string;
+  /**
+   * `Order.reference`, the stored human-readable "GE-48210" the load board and
+   * the job sheet both show. Carried beside `shortId` rather than replacing it:
+   * the web history table still prints the derived code, and the native app
+   * lists jobs by this one so a row and the sheet it opens name the job alike.
+   */
+  reference: string;
   status: HubJobStatus;
   pickupAddress: string;
   dropoffAddress: string;
@@ -179,6 +187,16 @@ export type HubJob = {
   scheduledAt: string | null;
   inTransitAt: string | null;
   completedAt: string | null;
+
+  /* The client's release window and arrival deadline, and the city at each end
+     as a display label. All null wherever the booking carries none — they are
+     what the driver app draws its Orders calendar and history search from, so
+     neither has to open every job. */
+  pickupWindowStart: string | null;
+  pickupWindowEnd: string | null;
+  deliveryDeadline: string | null;
+  pickupCity: string | null;
+  dropoffCity: string | null;
 
   /** Vehicle class the job was booked for, e.g. "Cargo Van". */
   vehicleTypeLabel: string;
@@ -411,6 +429,7 @@ export async function getHubJobs(account: HubAccount): Promise<HubJobsData> {
     where: hubOrderScope(account),
     select: {
       id: true,
+      reference: true,
       status: true,
       pickupAddress: true,
       dropoffAddress: true,
@@ -430,6 +449,11 @@ export async function getHubJobs(account: HubAccount): Promise<HubJobsData> {
       scheduledAt: true,
       inTransitAt: true,
       completedAt: true,
+      pickupWindowStart: true,
+      pickupWindowEnd: true,
+      deliveryDeadline: true,
+      pickupCity: true,
+      dropoffCity: true,
       serviceLevel: true,
       bodyType: true,
       pickupContactName: true,
@@ -490,6 +514,7 @@ export async function getHubJobs(account: HubAccount): Promise<HubJobsData> {
     jobs.push({
       id: order.id,
       shortId: order.id.slice(-SHORT_ID_LENGTH).toUpperCase(),
+      reference: order.reference,
       status,
       pickupAddress: order.pickupAddress,
       dropoffAddress: order.dropoffAddress,
@@ -509,6 +534,14 @@ export async function getHubJobs(account: HubAccount): Promise<HubJobsData> {
       scheduledAt: order.scheduledAt?.toISOString() ?? null,
       inTransitAt: order.inTransitAt?.toISOString() ?? null,
       completedAt: order.completedAt?.toISOString() ?? null,
+      pickupWindowStart: order.pickupWindowStart?.toISOString() ?? null,
+      pickupWindowEnd: order.pickupWindowEnd?.toISOString() ?? null,
+      deliveryDeadline: order.deliveryDeadline?.toISOString() ?? null,
+      // `formatCity` at the shaping step, as the job sheet does.
+      pickupCity:
+        order.pickupCity === null ? null : formatCity(order.pickupCity),
+      dropoffCity:
+        order.dropoffCity === null ? null : formatCity(order.dropoffCity),
       vehicleTypeLabel: order.vehicleTypeSpec.label,
       vehiclePlate: order.vehicle?.plateNumber ?? null,
       serviceLevel: toHubServiceLevel(order.serviceLevel),

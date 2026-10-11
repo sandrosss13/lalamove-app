@@ -15,9 +15,10 @@ import {
 } from "@/lib/dashboard/hub/sample";
 import { cn } from "@/lib/utils";
 
-/** The brand orange. It has no `--color-*` token, so it is spelled out — the
- *  same call `hub-primitives.tsx` and `hub-status.ts` already make. */
-const ACCENT_BG = "bg-[oklch(64%_0.19_48)]";
+/** The brand green, read from `--landing-accent` (not `bg-accent`, which is
+ *  the shadcn neutral on this surface) — the same call `hub-primitives.tsx`
+ *  makes. Text on it is `text-on-accent`, which flips with it. */
+const ACCENT_BG = "bg-[var(--landing-accent)]";
 
 export type DriverHubSidebarProps = {
   /** Already filtered for the persona by the shell. */
@@ -110,7 +111,7 @@ export function DriverHubSidebar({
               {count === undefined ? null : (
                 <span
                   className={cn(
-                    "min-w-5 rounded-full px-1.5 py-px text-center text-[11px] font-semibold text-white",
+                    "min-w-5 rounded-full px-1.5 py-px text-center text-[11px] font-semibold text-on-accent",
                     ACCENT_BG,
                   )}
                 >

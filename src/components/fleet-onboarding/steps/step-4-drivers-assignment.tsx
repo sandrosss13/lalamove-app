@@ -24,10 +24,9 @@
  *
  * The driver *account* is the exception: `POST /api/logistics-company/drivers/
  * register` creates a real `User` + `DriverProfile` + `DriverLicence`
- * immediately, and returns a temporary password generated server-side by
- * `node:crypto`. That password is rendered exactly once, is never generated in
- * the browser, is never written to the draft, and is unrecoverable once the
- * credentials dialog closes.
+ * immediately. The mobile number is the driver's sign-in: they open the driver
+ * app and sign in with it and an SMS code, so there is no password to hand
+ * over. The email is optional contact information.
  *
  * Client-side eligibility is a convenience, not a control: submit re-checks
  * every rule here against the database, and trusts nothing this file computed.
@@ -108,6 +107,10 @@ type DateFormatter = ReturnType<typeof useFormatter>["dateTime"];
  */
 const DUPLICATE_EMAIL_ERROR =
   "An account with that email address already exists.";
+
+/** The same, for a taken mobile number, mirrored under the phone input. */
+const DUPLICATE_PHONE_ERROR =
+  "An account with that mobile number already exists.";
 
 /** How long an ineligible row stays tinted after it is clicked. */
 const FLASH_DURATION_MS = 1400;
@@ -211,19 +214,12 @@ type RegisterDriverResult = {
   userId: string;
   driverProfileId: string;
   name: string;
-  email: string;
+  /** `null` when the company left the optional email blank. */
+  email: string | null;
+  /** E.164 — the number the driver signs in with. */
   phone: string;
   categories: DriverLicenceCategory[];
-  /** 12 characters, server-generated, returned exactly once. */
-  tempPassword: string;
   vehicleAssigned: boolean;
-};
-
-/** The credentials the temp-password dialog shows, held only in memory. */
-type IssuedCredentials = {
-  driverName: string;
-  email: string;
-  tempPassword: string;
 };
 
 /** Which other draft vehicle already holds a given driver. */
@@ -399,11 +395,6 @@ export function Step4DriversAssignment() {
   // Which row's dialog is open, as a 0-based index into `vehicles`, or null.
   // One piece of state rather than a boolean per row: the dialog is modal.
   const [openIndex, setOpenIndex] = useState<number | null>(null);
-  // The once-only credentials, held here rather than in the assignment dialog
-  // because that dialog closes the moment the account is created.
-  const [credentials, setCredentials] = useState<IssuedCredentials | null>(
-    null,
-  );
   // Messages stay hidden until the first failed Continue.
   const [showErrors, setShowErrors] = useState(false);
 
@@ -768,7 +759,7 @@ export function Step4DriversAssignment() {
           match the accent/outline pair the shell's own welcome screen uses.
 
           Both are theme-correct as written and neither should grow a `dark:`
-          variant. The accent one is `text-white` on the brand orange, which is
+          variant. The accent one is `text-white` on the brand green, which is
           theme-independent by design, so its label is too; the outline one is
           semantic tokens end to end (`border-border`, `bg-card`, `bg-muted` on
           hover), so it follows the theme on its own. The same pair appears on
@@ -817,20 +808,6 @@ export function Step4DriversAssignment() {
             showToast(t("driverRemoved", { number: vehicleNumber }));
           }}
           onDriverCreated={handleDriverCreated}
-          onCredentialsIssued={setCredentials}
-          showToast={showToast}
-        />
-      ) : null}
-
-      {credentials !== null ? (
-        <TempPasswordDialog
-          open
-          onOpenChange={(next) => {
-            if (!next) setCredentials(null);
-          }}
-          driverName={credentials.driverName}
-          email={credentials.email}
-          tempPassword={credentials.tempPassword}
           showToast={showToast}
         />
       ) : null}
@@ -842,10 +819,6 @@ export function Step4DriversAssignment() {
  * The 640px assignment dialog: pick a driver already on the roster, or create
  * the account there and then. Exactly two tabs — the design's third "Send
  * invitation" tab is an explicit non-goal and is not built.
- *
- * `onCredentialsIssued` is the one addition to the task's prop list: this
- * dialog closes the instant the account is created, so it cannot own a
- * credentials dialog that has to outlive it. The step renders that one.
  */
 function DriverAssignmentDialog({
   open,
@@ -860,7 +833,6 @@ function DriverAssignmentDialog({
   onAssign,
   onRemove,
   onDriverCreated,
-  onCredentialsIssued,
   showToast,
 }: {
   open: boolean;
@@ -880,8 +852,6 @@ function DriverAssignmentDialog({
   onRemove: () => void;
   /** Folds a newly created driver into the step's roster state. */
   onDriverCreated: (driver: RosterEntry) => void;
-  /** Hands the once-only credentials to the step, which shows them. */
-  onCredentialsIssued: (credentials: IssuedCredentials) => void;
   showToast: (message: string, tone?: "default" | "error") => void;
 }) {
   const t = useTranslations("fleet.step4DriversAssignment");
@@ -1102,10 +1072,15 @@ function DriverAssignmentDialog({
               <CreateDriverForm
                 required={required}
                 defaultCity={defaultCity}
-                onCreated={(driver, issued) => {
+                onCreated={(driver) => {
                   onDriverCreated(driver);
                   onAssign(driver.driverProfileId);
-                  onCredentialsIssued(issued);
+                  showToast(
+                    t("driverCreatedSignInByPhone", {
+                      name: driver.name,
+                      phone: driver.phone,
+                    }),
+                  );
                 }}
                 showToast={showToast}
               />
@@ -1199,7 +1174,9 @@ function validateCreateDriver(
     errors.lastName = t("enterLastName");
   }
 
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.email.trim())) {
+  // Optional: blank is fine, but anything typed has to look like an address.
+  const email = input.email.trim();
+  if (email !== "" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     errors.email = t("enterEmail");
   }
 
@@ -1244,8 +1221,8 @@ function validateCreateDriver(
  * First and last name are two inputs rather than one "Full name" box the client
  * splits: the endpoint takes `firstName` and `lastName`, `DriverProfile` stores
  * them apart, and a whitespace split mangles every two-word surname it meets.
- * The email is required and *is* the driver's login — there is no derived login
- * constructed anywhere in this feature.
+ * The mobile number is required and *is* the driver's login (an SMS code in the
+ * driver app); the email is optional.
  */
 function CreateDriverForm({
   required,
@@ -1255,11 +1232,14 @@ function CreateDriverForm({
 }: {
   required: DriverLicenceCategory;
   defaultCity: string | undefined;
-  onCreated: (driver: RosterEntry, credentials: IssuedCredentials) => void;
+  onCreated: (driver: RosterEntry) => void;
   showToast: (message: string, tone?: "default" | "error") => void;
 }) {
   const t = useTranslations("fleet.step4DriversAssignment");
   const tShared = useTranslations("common.shared");
+  const tRegisterErrors = useTranslations(
+    "errors.logisticsCompanyDriversRegister",
+  );
   const cityOptions = useLocalizedCityOptions();
   const fieldId = useId();
 
@@ -1309,6 +1289,15 @@ function CreateDriverForm({
       ? serverError
       : undefined);
 
+  // Likewise a taken mobile number, under the phone input.
+  const phoneError =
+    errors.phone ??
+    (serverError !== null &&
+    (serverError === DUPLICATE_PHONE_ERROR ||
+      serverError === tRegisterErrors("anAccountWithThatPhoneNumber"))
+      ? serverError
+      : undefined);
+
   function setCategorySelected(code: DriverLicenceCategory, selected: boolean) {
     // Set to an explicit value rather than toggled, so even a doubled
     // activation lands on the state the company asked for.
@@ -1347,7 +1336,8 @@ function CreateDriverForm({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email: email.trim(),
+          // Blank means "no email" to the endpoint.
+          email: email.trim() || null,
           firstName: firstName.trim(),
           lastName: lastName.trim(),
           phone: phone.trim(),
@@ -1365,29 +1355,22 @@ function CreateDriverForm({
 
       const body = (await response.json()) as RegisterDriverResult;
 
-      // The 201 is flat — no `driver` and no `credentials` wrapper. Folded
-      // straight into the roster rather than refetched.
-      onCreated(
-        {
-          userId: body.userId,
-          driverProfileId: body.driverProfileId,
-          name: body.name,
-          email: body.email,
-          phone: body.phone,
-          city,
-          isOnline: false,
-          categories: body.categories,
-          licenceExpiresAt: new Date(expiry).toISOString(),
-          currentAssignment: null,
-        },
-        {
-          driverName: body.name,
-          // Both values come straight off the response: the address the company
-          // typed and the server-generated password, passed through unchanged.
-          email: body.email,
-          tempPassword: body.tempPassword,
-        },
-      );
+      // The 201 is flat — no `driver` wrapper. Folded straight into the
+      // roster rather than refetched.
+      onCreated({
+        userId: body.userId,
+        driverProfileId: body.driverProfileId,
+        name: body.name,
+        // The roster carries the account's address, which for a driver
+        // registered without one is a placeholder nobody reads.
+        email: body.email ?? "",
+        phone: body.phone,
+        city,
+        isOnline: false,
+        categories: body.categories,
+        licenceExpiresAt: new Date(expiry).toISOString(),
+        currentAssignment: null,
+      });
     } catch {
       setServerError(t("createError"));
     } finally {
@@ -1433,7 +1416,7 @@ function CreateDriverForm({
 
       <FormField
         id={`${fieldId}-email`}
-        label={t("emailAddress")}
+        label={t("emailAddressOptional")}
         error={emailError}
       >
         {(controlProps) => (
@@ -1454,7 +1437,7 @@ function CreateDriverForm({
       <FormField
         id={`${fieldId}-phone`}
         label={tShared("mobile")}
-        error={errors.phone}
+        error={phoneError}
       >
         {(controlProps) => (
           <Input
@@ -1548,9 +1531,9 @@ function CreateDriverForm({
                 }`}
               >
                 {/* Only the checked state is overridden, and only to swap the
-                    primitive's `--primary` fill for the brand orange. The
+                    primitive's `--primary` fill for the brand green. The
                     `text-white` tick that rides on it is correct in both themes
-                    — the orange is theme-independent by design, so its tick has
+                    — the green is theme-independent by design, so its tick has
                     to be too, and the primitive's own `data-checked:
                     text-primary-foreground` would invert to near-black against
                     it in dark.
@@ -1594,8 +1577,8 @@ function CreateDriverForm({
       </div>
 
       <div className="rounded-[12px] border border-border bg-muted/40 p-[13px] text-[12.5px] leading-[1.5] text-muted-foreground">
-        <p className={LABEL_CLASS}>{tShared("temporaryPassword")}</p>
-        <p className="mt-1.5">{t("shownOnceWhenYouSaveFor")}</p>
+        <p className={LABEL_CLASS}>{t("signInLabel")}</p>
+        <p className="mt-1.5">{t("signInByPhoneNote")}</p>
       </div>
 
       {serverError !== null ? (
@@ -1655,111 +1638,5 @@ function FormField({
         </p>
       ) : null}
     </div>
-  );
-}
-
-/**
- * The shown-once credentials dialog.
- *
- * Both values come straight off the register response — its own `email` and
- * `tempPassword`, passed through unchanged. There is no `credentials` wrapper,
- * no `login` and no `temporaryPassword`: the driver signs in with the address
- * the company typed.
- *
- * The password is 12 characters from `node:crypto`'s `randomInt` over a
- * 56-character ambiguity-free charset. It is **never generated in the browser**
- * — the design prototype's 8-character `Math.random()` version is a placeholder
- * and must not be ported, because this value is a real credential until the
- * driver changes it. It lives in component state only, never reaches the draft,
- * is never sent back, and is unrecoverable once this dialog closes: the server
- * stores only Better Auth's hash.
- */
-function TempPasswordDialog({
-  open,
-  onOpenChange,
-  driverName,
-  email,
-  tempPassword,
-  showToast,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  driverName: string;
-  email: string;
-  tempPassword: string;
-  showToast: (message: string, tone?: "default" | "error") => void;
-}) {
-  const t = useTranslations("fleet.step4DriversAssignment");
-  const tShared = useTranslations("common.shared");
-
-  async function handleCopy() {
-    try {
-      await navigator.clipboard.writeText(
-        t("credentialsClipboard", { email, password: tempPassword }),
-      );
-      showToast(t("credentialsCopied"));
-    } catch {
-      // An insecure context, or a browser refusing without a user-gesture
-      // heuristic. The dialog stays open and the values are `select-all`
-      // precisely so copying by hand is workable.
-      showToast(t("copyFailed"), "error");
-    }
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        data-onboarding-surface=""
-        className="w-full gap-0 rounded-2xl p-0 sm:max-w-[440px]"
-      >
-        <DialogHeader className="gap-1 border-b border-border px-[22px] pt-5 pb-4">
-          <DialogTitle className="text-[18px] leading-tight font-semibold tracking-[-0.01em]">
-            {t("driverAccountCreated")}
-          </DialogTitle>
-          <DialogDescription className="text-[13px] leading-[1.5]">
-            {t("canSignIn", { name: driverName })}
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="flex flex-col gap-3 px-[22px] py-[18px]">
-          <div className="flex flex-col gap-3 rounded-[12px] border border-border bg-card p-[15px]">
-            <div className="flex flex-col gap-1">
-              <p className={LABEL_CLASS}>{tShared("email")}</p>
-              <p className="font-price text-[15px] font-semibold break-all select-all">
-                {email}
-              </p>
-            </div>
-            <div className="flex flex-col gap-1">
-              <p className={LABEL_CLASS}>{tShared("temporaryPassword")}</p>
-              <p className="font-price text-[15px] font-semibold break-all select-all">
-                {tempPassword}
-              </p>
-            </div>
-          </div>
-
-          <p className="text-xs text-destructive">
-            {t("thisPasswordIsShownOnceCopy")}
-          </p>
-        </div>
-
-        <DialogFooter className="mx-0 mb-0 flex-row items-center justify-end gap-3 rounded-b-2xl border-t border-border bg-muted/40 px-[22px] py-3.5">
-          <button
-            type="button"
-            onClick={() => void handleCopy()}
-            className="h-11 cursor-pointer rounded-[11px] bg-onboarding-accent px-5 text-[14.5px] font-semibold text-white transition-colors hover:bg-onboarding-accent-hover focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
-          >
-            {t("copyCredentials")}
-          </button>
-          <Button
-            type="button"
-            variant="outline"
-            size="lg"
-            onClick={() => onOpenChange(false)}
-          >
-            {tShared("done")}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
 }

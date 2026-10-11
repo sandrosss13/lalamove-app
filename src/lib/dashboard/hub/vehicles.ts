@@ -30,8 +30,7 @@
  * Everything at the top level of `HubVehicle` is read from the database.
  * Everything the schema cannot answer is quarantined under `sampled`, one
  * sub-object per vehicle, sourced entirely from `@/lib/dashboard/hub/sample`.
- * The same split applies to the tiles: `tiles.sampled` holds the one figure
- * that is invented. The screen renders a `<SampleNote />` beside anything it
+ * The tiles are all real. The screen renders a `<SampleNote />` beside anything it
  * reads out of a `sampled` object, and nothing else — which is why the boundary
  * is a nested object rather than a naming convention that a future edit could
  * quietly cross.
@@ -47,6 +46,7 @@ import "server-only";
 
 import type {
   BusinessApplicationVehicleStatus,
+  ChassisType,
   LoadingAccessType,
   VehicleCategory,
   VehicleClass,
@@ -57,15 +57,7 @@ import type {
   HubAccountKind,
   HubPersona,
 } from "@/lib/dashboard/hub/account";
-import type {
-  SampleComplianceStatus,
-  SampleRunningCost,
-} from "@/lib/dashboard/hub/sample";
-import {
-  SAMPLE_FLEET_COST_PER_KM_GEL,
-  sampleRunningCosts,
-  sampleVehicleFacts,
-} from "@/lib/dashboard/hub/sample";
+import { sampleVehicleFacts } from "@/lib/dashboard/hub/sample";
 import type { Translator } from "@/i18n/translator";
 import { VEHICLE_CLASSES } from "@/lib/driver-onboarding/vehicle-classes";
 import { vehicleTypeSpecLabel } from "@/lib/vehicle-type-spec-labels";
@@ -109,19 +101,11 @@ export type HubVehicleAssignment = {
  * invention — see `sampleVehicleFacts()`.
  */
 export type HubVehicleSampled = {
-  odometerKm: number;
-  costPerKmGel: number;
-  /** Fuel type, e.g. "Diesel". */
-  fuel: string;
   /** Cities this vehicle works, as display labels. */
   operatingCities: readonly string[];
   jobsThisWeek: number;
-  insuranceStatus: SampleComplianceStatus;
   /** Human date, e.g. "10 Sep 2026", or "not on file". */
-  insuranceDue: string;
   inspectionDue: string;
-  /** The detail panel's "Running costs · this month" lines. */
-  runningCosts: readonly SampleRunningCost[];
 };
 
 export type HubVehicle = {
@@ -151,6 +135,28 @@ export type HubVehicle = {
    * was collected. An attestation for compliance review, never a pricing input.
    */
   declaredPayloadKg: number | null;
+  /**
+   * The cargo body declared for this vehicle, or null for one registered
+   * before the column existed. Null is "not declared", never a default.
+   */
+  chassisType: ChassisType | null;
+  /**
+   * The class's catalogue cargo hold in metres, from `VehicleTypeSpec` — the
+   * dimension counterpart of `maxPayloadKg`, and always present.
+   */
+  cargoLengthM: number;
+  cargoWidthM: number;
+  cargoHeightM: number;
+  /**
+   * The hold the owner declared for this specific vehicle, the counterpart of
+   * `declaredPayloadKg`. Each is null when it was never collected — every
+   * vehicle that predates the onboarding wizard, and most company-registered
+   * ones. Kept apart from the catalogue figures above so a reader can tell
+   * "this van" from "vans of this class" rather than being handed a blend.
+   */
+  declaredCargoLengthM: number | null;
+  declaredCargoWidthM: number | null;
+  declaredCargoHeightM: number | null;
   loadingAccessType: LoadingAccessType;
   ownership: HubVehicleOwnership;
   status: HubVehicleStatus;
@@ -201,10 +207,10 @@ export type HubVehiclesData = {
    * `/api/logistics-company/vehicles`; `"INDIVIDUAL"` against
    * `/api/driver-profile/vehicles`.
    *
-   * Kept, and deliberately **not** replaced by `persona` below. The three
-   * places that read it — the "Fleet cost per km" / "Cost per km" tile label,
-   * the add form's route choice, and the detail panel's `removable` rule and
-   * `DELETE` endpoint — all ask a genuinely two-valued question about
+   * Kept, and deliberately **not** replaced by `persona` below. The places
+   * that read it — the "On the road" / "Unassigned" tile notes, the add form's
+   * route choice, and the detail panel's `removable` rule and `DELETE`
+   * endpoint — all ask a genuinely two-valued question about
    * *ownership*, and an INDEPENDENT and a ROSTER driver answer it identically.
    * Re-expressing them as `persona !== "BUSINESS"` would be a wider test
    * standing in for a narrower fact, and would make the detail panel's
@@ -248,9 +254,6 @@ export type HubVehiclesData = {
     onTheRoadCount: number;
     /** Vehicles nobody currently holds. */
     unassignedCount: number;
-    sampled: {
-      fleetCostPerKmGel: number;
-    };
   };
 };
 
@@ -393,7 +396,6 @@ export async function getHubVehicles(
         classBreakdown: [],
         onTheRoadCount: 0,
         unassignedCount: 0,
-        sampled: { fleetCostPerKmGel: SAMPLE_FLEET_COST_PER_KM_GEL },
       },
     };
   }
@@ -458,6 +460,13 @@ export async function getHubVehicles(
       category: vehicle.vehicleTypeSpec.category,
       maxPayloadKg: vehicle.vehicleTypeSpec.maxPayloadKg,
       declaredPayloadKg: vehicle.payloadKg,
+      chassisType: vehicle.chassisType,
+      cargoLengthM: vehicle.vehicleTypeSpec.cargoLengthM,
+      cargoWidthM: vehicle.vehicleTypeSpec.cargoWidthM,
+      cargoHeightM: vehicle.vehicleTypeSpec.cargoHeightM,
+      declaredCargoLengthM: vehicle.cargoLengthM,
+      declaredCargoWidthM: vehicle.cargoWidthM,
+      declaredCargoHeightM: vehicle.cargoHeightM,
       loadingAccessType: vehicle.vehicleTypeSpec.loadingAccessType,
       ownership: vehicle.companyId === null ? "DRIVER" : "COMPANY",
       status: assignment ? "Active" : "Idle",
@@ -474,15 +483,9 @@ export async function getHubVehicles(
       dispatchable: isDispatchApproved(vehicle.applicationVehicle),
       createdAt: vehicle.createdAt.toISOString(),
       sampled: {
-        odometerKm: facts.odometerKm,
-        costPerKmGel: facts.costPerKmGel,
-        fuel: facts.fuel,
         operatingCities: facts.operatingCities,
         jobsThisWeek: facts.jobsThisWeek,
-        insuranceStatus: facts.insuranceStatus,
-        insuranceDue: facts.insuranceDue,
         inspectionDue: facts.inspectionDue,
-        runningCosts: sampleRunningCosts(facts.costPerKmGel),
       },
     };
   });
@@ -504,7 +507,6 @@ export async function getHubVehicles(
       // queried so the two tiles can never sum to something other than the
       // fleet size the tile above them shows.
       unassignedCount: vehicles.length - onTheRoadCount,
-      sampled: { fleetCostPerKmGel: SAMPLE_FLEET_COST_PER_KM_GEL },
     },
   };
 }

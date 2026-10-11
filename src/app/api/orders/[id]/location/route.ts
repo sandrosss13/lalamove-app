@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getRequestTranslations } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
+import { passwordChangeRefusal } from "@/lib/orders/action-errors";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -28,6 +29,16 @@ export async function GET(
       { error: t("common.shared.unauthorized") },
       { status: 401 },
     );
+  }
+
+  // The forced-password-change gate, for the **driver** only. This route is
+  // shared: the ordering client polls it for the tracking map, and the gate is
+  // about a driver acting on a temporary password — it must not stop a client
+  // (or any other role) from following their own delivery. Every other gated
+  // route is carrier-only and gates every role; this is the one that cannot.
+  const passwordRefusal = passwordChangeRefusal(session.user, t, "DRIVER_ONLY");
+  if (passwordRefusal) {
+    return passwordRefusal;
   }
 
   const { id } = await params;

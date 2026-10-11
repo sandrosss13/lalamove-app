@@ -119,14 +119,13 @@ const DOT_DONE_CLASSES =
   "border-[oklch(59.6%_0.145_163.225)] bg-[oklch(59.6%_0.145_163.225)]";
 
 /**
- * Brand orange, hollow — the step the job is currently waiting on. Left
- * unpaired for the same reason as the green above: L=64% is legible on either
- * ground, and this is the brand's own orange, which is not a colour a theme gets
- * to restate. Its `bg-background` fill is what flips, so the dot stays hollow —
+ * Brand accent, hollow — the step the job is currently waiting on. No `dark:`
+ * pair: `--landing-accent` flips on its own (deep brand green in light, lifted
+ * green in dark). Its `bg-background` fill flips too, so the dot stays hollow —
  * a ring around the card's own surface — rather than becoming a white disc
  * floating on a dark panel.
  */
-const DOT_CURRENT_CLASSES = "border-[oklch(64%_0.19_48)] bg-background";
+const DOT_CURRENT_CLASSES = "border-[var(--landing-accent)] bg-background";
 
 /**
  * Border grey, hollow — a step that has not been reached.

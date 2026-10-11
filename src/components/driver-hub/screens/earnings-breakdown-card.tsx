@@ -46,19 +46,18 @@ const POSITIVE_VALUE_CLASSES =
   "text-[oklch(44.8%_0.119_151.328)] dark:text-[oklch(84%_0.13_156.743)]";
 
 /**
- * The accent orange, spelled out rather than imported: `hub-primitives.tsx`
+ * The brand accent, spelled out rather than imported: `hub-primitives.tsx`
  * keeps its own copy private, and Tailwind scans source text, so a class built
  * from a shared variable would never be generated. Same idiom as
  * `vehicles-screen.tsx`.
  *
- * No `dark:` pair, unlike the green above, and that is not an oversight: at
- * L=64% this orange carries against both the white artboard and the near-black
- * dark card, so inverting it would make the marker louder in dark mode than in
- * light and break it away from the ten other hub files that spell the same
- * literal.
+ * No `dark:` pair, unlike the green above, and that is not an oversight:
+ * `--landing-accent` already flips between the deep brand green on the light
+ * card and its lifted value on the dark one, matching every other hub file
+ * that reads it.
  */
 const ACCENT_DOT_CLASSES =
-  "size-1.5 shrink-0 rounded-full bg-[oklch(64%_0.19_48)]";
+  "size-1.5 shrink-0 rounded-full bg-[var(--landing-accent)]";
 
 type BreakdownLine = {
   label: string;

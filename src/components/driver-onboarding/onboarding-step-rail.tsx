@@ -80,11 +80,11 @@ export function OnboardingStepRail({
             {/* The three disc states, and why each one is written the way it
                 is now that the rail themes:
 
-                `active` stays brand orange with literal white text in both
+                `active` stays brand green with literal white text in both
                 themes on purpose. `--onboarding-accent` is a fixed brand value
                 that does not flip, and white is the ink the brand specifies on
                 top of it; swapping in `text-primary-foreground` or any other
-                token here would put near-black text on orange the moment the
+                token here would put near-black text on green the moment the
                 page went dark. Leave it alone.
 
                 `done` needs no variant: `bg-primary`/`text-primary-foreground`

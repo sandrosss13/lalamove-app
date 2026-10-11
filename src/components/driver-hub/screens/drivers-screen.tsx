@@ -201,13 +201,12 @@ export function DriversScreen({
    */
   const [armed, setArmed] = React.useState(false);
   /**
-   * The one-time temporary password the register endpoint just returned.
+   * The driver the register endpoint just created, for the confirmation card.
    *
    * It is held *here*, above the form that produced it, and rendered in its own
-   * card outside the master/detail rail. The endpoint hands this out exactly
-   * once and never stores it in readable form, so anything that unmounts the
+   * card outside the master/detail rail, so that anything that unmounts the
    * form — closing the panel, selecting a row, the `router.refresh()` this
-   * screen fires right after — must not be able to take it with it. Only the
+   * screen fires right after — does not take the confirmation with it. Only the
    * operator's own "Done" dismisses it.
    */
   const [registered, setRegistered] = React.useState<RegisteredDriver | null>(
@@ -333,7 +332,7 @@ export function DriversScreen({
   return (
     <>
       {registered === null ? null : (
-        <CredentialsCard
+        <RegisteredCard
           driver={registered}
           onDismiss={() => setRegistered(null)}
         />
@@ -636,24 +635,19 @@ export function DriversScreen({
 }
 
 /* -------------------------------------------------------------------------- */
-/* One-time credentials                                                       */
+/* Registration confirmation                                                  */
 /* -------------------------------------------------------------------------- */
 
 /**
- * The temporary password, shown once.
+ * Confirms the new driver and tells the operator how they sign in: the driver
+ * app, with the registered mobile number and an SMS code. There is no password
+ * to hand over.
  *
- * `POST /api/logistics-company/drivers/register` returns it in its 201 and
- * never stores it in readable form, so this card is the only place it will ever
- * exist. It therefore sits at the top of the page rather than inside the rail,
- * survives the `router.refresh()` that pulls the new driver into the roster,
- * and dismisses only on the operator's explicit "Done" — nothing about
- * selecting a row or closing a panel can take it away first.
- *
- * `select-all` makes one click select the whole value: no clipboard API is used
- * because it is unavailable outside a secure context and its rejection would be
- * a silent failure on the one value that cannot be recovered.
+ * It sits at the top of the page rather than inside the rail, survives the
+ * `router.refresh()` that pulls the new driver into the roster, and dismisses
+ * only on the operator's explicit "Done".
  */
-function CredentialsCard({
+function RegisteredCard({
   driver,
   onDismiss,
 }: {
@@ -665,11 +659,11 @@ function CredentialsCard({
 
   return (
     <HubCard
-      // Announced as soon as it appears: the operator has to act on this before
-      // it goes, and it renders below the button that produced it.
+      // Announced as soon as it appears: it renders below the button that
+      // produced it.
       role="status"
       aria-live="polite"
-      className="border-[oklch(64%_0.19_48)]"
+      className="border-[var(--landing-accent)]"
     >
       <p className="text-base font-semibold">
         {driver.vehicleAssigned
@@ -677,28 +671,28 @@ function CredentialsCard({
           : t("registered", { name: driver.name })}
       </p>
       <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
-        {t("giveThemDetails")}{" "}
-        <strong className="font-semibold text-foreground">{t("once")}</strong>{" "}
-        {t("itIsNotStoredAnywhereIn")}
+        {t("theySignInWithPhone")}
       </p>
 
       <dl className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div className="min-w-0 rounded-[10px] border border-border p-3">
           <dt className="text-[11px] tracking-[0.08em] uppercase text-muted-foreground">
-            {tShared("email")}
+            {tShared("phone")}
           </dt>
           <dd className="mt-1.5 truncate font-price text-[15px] font-semibold select-all">
-            {driver.email}
+            {driver.phone}
           </dd>
         </div>
-        <div className="min-w-0 rounded-[10px] border border-border p-3">
-          <dt className="text-[11px] tracking-[0.08em] uppercase text-muted-foreground">
-            {tShared("temporaryPassword")}
-          </dt>
-          <dd className="mt-1.5 truncate font-price text-[15px] font-semibold select-all">
-            {driver.tempPassword}
-          </dd>
-        </div>
+        {driver.email === null ? null : (
+          <div className="min-w-0 rounded-[10px] border border-border p-3">
+            <dt className="text-[11px] tracking-[0.08em] uppercase text-muted-foreground">
+              {tShared("email")}
+            </dt>
+            <dd className="mt-1.5 truncate font-price text-[15px] font-semibold select-all">
+              {driver.email}
+            </dd>
+          </div>
+        )}
       </dl>
 
       <Button
@@ -707,7 +701,7 @@ function CredentialsCard({
         onClick={onDismiss}
         className="mt-4 h-auto rounded-md px-[15px] py-[9px] text-[13px] font-medium"
       >
-        {t("doneIHaveSharedIt")}
+        {tShared("done")}
       </Button>
     </HubCard>
   );

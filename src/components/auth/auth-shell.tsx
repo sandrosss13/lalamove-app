@@ -117,7 +117,7 @@ export function AuthShell({ maxWidth, className, children }: AuthShellProps) {
             draws a `ring-3` halo, and cancelling it in favour of this surface's
             `focus-visible:outline-2` idiom would mean fighting the base
             `outline-none`. Pointing the existing ring at the landing accent
-            gets the same orange focus language for two class names. Both carry
+            gets the same green focus language for two class names. Both carry
             the `focus-visible:` modifier themselves — twMerge keys its conflict
             groups on the modifier as well as the utility, so an unprefixed
             `border-*` would not override `focus-visible:border-ring`.

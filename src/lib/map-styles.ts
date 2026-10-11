@@ -13,7 +13,7 @@
  * ## Why the light halves differ and the dark half does not
  *
  * The preview map is a *brand* surface: it carries a hand-authored mint-and-teal
- * restyle whose whole job is to leave the orange route line as the only
+ * restyle whose whole job is to leave the green route line as the only
  * saturated thing on the canvas. The tracking map is a *utility* surface and
  * ships Google's default basemap, which is what a customer watching a driver
  * move expects to see. That difference is deliberate and is preserved here:
@@ -63,7 +63,7 @@ export const DEFAULT_MAP_STYLES: MapTypeStyleEntry[] = [];
  *
  * The point is contrast: landcover, parks and water carry the whole surface in
  * low-saturation mint and teal, roads and labels are pushed back, and points of
- * interest are hidden entirely. That leaves the orange route line and its two
+ * interest are hidden entirely. That leaves the green route line and its two
  * markers as the only saturated things on the canvas, which is the one job this
  * map has.
  */

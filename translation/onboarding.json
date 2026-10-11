@@ -59,9 +59,9 @@
     "ka": "მიმდინარეობს",
     "_source": "src/components/driver-onboarding/application-status-screen.tsx"
   },
-  "applicationStatusScreen.keepYourLicenceAndInsuranceCurrent": {
-    "en": "Keep your licence and insurance current — we re-check 30 days before expiry.",
-    "ka": "მართვის მოწმობა და დაზღვევა შეინარჩუნეთ განახლებულ მდგომარეობაში — ჩვენ ხელახლა ვამოწმებთ ვადის გასვლამდე 30 დღით ადრე.",
+  "applicationStatusScreen.keepYourLicenceCurrent": {
+    "en": "Keep your licence current — we re-check 30 days before expiry.",
+    "ka": "მართვის მოწმობა შეინარჩუნეთ განახლებულ მდგომარეობაში — ჩვენ ხელახლა ვამოწმებთ ვადის გასვლამდე 30 დღით ადრე.",
     "_source": "src/components/driver-onboarding/application-status-screen.tsx"
   },
   "applicationStatusScreen.licenceBack": {

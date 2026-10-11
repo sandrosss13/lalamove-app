@@ -98,7 +98,7 @@ const FIELD_LABEL_CLASS =
  * The wizard's shared primary CTA.
  *
  * `text-white` on `bg-onboarding-accent` is correct in both themes and must not
- * grow a `dark:` variant: the brand orange is theme-independent by design — it
+ * grow a `dark:` variant: the brand green is theme-independent by design — it
  * is the one colour in this wizard that means the same thing on both grounds —
  * so the label riding on it has to be theme-independent too. The disabled state
  * carries no colour of its own, only opacity, so it inherits that correctness.
@@ -1078,8 +1078,8 @@ export function CompanyDetailsForm({
                         >
                           {/* The row's own `aria-selected` carries the state.
 
-                              Selected is brand orange with a white tick and
-                              stays that way in both themes: the orange is
+                              Selected is brand green with a white tick and
+                              stays that way in both themes: the green is
                               theme-independent by design, so its tick has to be
                               too.
 
@@ -1285,7 +1285,7 @@ export function CompanyDetailsForm({
 
 /**
  * The design's input treatment: 46px tall, 10px radius, card background, and an
- * orange focus ring. The focus colours are dropped while the field is invalid so
+ * green focus ring. The focus colours are dropped while the field is invalid so
  * they cannot compete with the primitive's own `aria-invalid` red border, which
  * carries the same specificity — no red border class is ever written by hand.
  */

@@ -23,7 +23,7 @@ import { cn } from "@/lib/utils";
  * That card is painted in the landing tokens — `bg-ink text-paper ring-line`,
  * with `bg-accent text-ink` on its submit button. Inside the driver hub, which
  * renders under `[data-admin-surface]`, `globals.css` resolves `--color-accent`
- * to the *shadcn* `--accent` rather than to the landing palette's brand orange,
+ * to the *shadcn* `--accent` rather than to the landing palette's brand green,
  * and `--accent` sits at the same end of the scale as `--color-ink` in
  * whichever theme is on: in light, a near-white `oklch(0.97 0 0)` against an
  * `--color-ink` of `#ffffff`; in dark, a near-black `oklch(0.269 0 0)` against

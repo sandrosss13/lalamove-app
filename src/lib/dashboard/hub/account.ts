@@ -201,14 +201,35 @@ function driverIdentifier(
  */
 export const resolveHubAccount = cache(async (): Promise<HubAccount | null> => {
   const session = await requireDashboardSession();
-  const { id: userId } = session.user;
 
+  return loadHubAccount(session.user.id, session.user.role);
+});
+
+/**
+ * The lookup half of `resolveHubAccount`, for a caller that has already
+ * validated its own session.
+ *
+ * `resolveHubAccount` reads the session through `requireDashboardSession()`,
+ * which `redirect()`s — the right answer for a page and the wrong one for a
+ * JSON route handler, where it becomes a 307 to an HTML sign-in page. The hub's
+ * JSON read routes (see `src/lib/mobile-api/hub-api-guard.ts`) answer a missing
+ * or unusable session with a status code instead and then call this directly,
+ * so no code path they take can redirect.
+ *
+ * **It performs no authorisation of its own.** `userId` and `role` must come
+ * from a session the caller has just validated, never from request input: this
+ * function trusts them, and returns that user's account.
+ */
+export async function loadHubAccount(
+  userId: string,
+  role: string,
+): Promise<HubAccount | null> {
   // CLIENT is already redirected away by the guard, so the only roles that
   // reach here are COMPANY, DRIVER and the back-office roles. Everything that
   // is not a COMPANY is resolved through the driver branch below, which
   // returns `null` for a user with no `DriverProfile` — the correct answer for
   // an admin who wandered in, and the same one the layout's fallback handles.
-  if (session.user.role === "COMPANY") {
+  if (role === "COMPANY") {
     const company = await prisma.logisticsCompany.findUnique({
       where: { userId },
       select: {
@@ -354,4 +375,4 @@ export const resolveHubAccount = cache(async (): Promise<HubAccount | null> => {
     driverProfileId: driverProfile.id,
     companyId: driverProfile.companyId,
   };
-});
+}
