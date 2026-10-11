@@ -587,7 +587,7 @@ function ApprovedState({
         ) : null}
       </div>
 
-      <Footnote>{t("keepYourLicenceAndInsuranceCurrent")}</Footnote>
+      <Footnote>{t("keepYourLicenceCurrent")}</Footnote>
     </>
   );
 }

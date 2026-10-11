@@ -44,7 +44,7 @@ export const DOCUMENT_FLAG_REASONS: readonly string[] = [
 ];
 
 /**
- * The reasons offered for a vehicle document (registration, insurance) —
+ * The reasons offered for a vehicle document (the registration) —
  * every one already in the lists above, so each already has its translation.
  * The server accepts any non-empty reason here too, as it does for a driver's
  * onboarding documents; a typed one is shown to the driver as written.

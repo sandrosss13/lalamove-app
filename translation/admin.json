@@ -1294,11 +1294,6 @@
     "ka": "ვადის გასვლის თარიღი",
     "_source": "src/app/[locale]/admin/(sections)/drivers/documents/page.tsx"
   },
-  "adminVehicleDocuments.expiryHintInsurance": {
-    "en": "Read the expiry date off the policy. Required for insurance.",
-    "ka": "ვადის გასვლის თარიღი ამოიკითხეთ პოლისიდან. დაზღვევისთვის სავალდებულოა.",
-    "_source": "src/app/[locale]/admin/(sections)/drivers/documents/page.tsx"
-  },
   "adminVehicleDocuments.expiryHintRegistration": {
     "en": "Optional. Leave empty if the certificate has no expiry date.",
     "ka": "არასავალდებულოა. დატოვეთ ცარიელი, თუ მოწმობას ვადა არ აქვს.",
@@ -1372,11 +1367,6 @@
   "adminVehicleDocuments.thisUpload": {
     "en": "This upload",
     "ka": "ეს ფაილი",
-    "_source": "src/app/[locale]/admin/(sections)/drivers/documents/page.tsx"
-  },
-  "adminVehicleDocuments.typeInsurance": {
-    "en": "Insurance (MTPL)",
-    "ka": "დაზღვევა (MTPL)",
     "_source": "src/app/[locale]/admin/(sections)/drivers/documents/page.tsx"
   },
   "adminVehicleDocuments.typeRegistration": {

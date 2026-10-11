@@ -1,6 +1,6 @@
 /**
- * The rules of vehicle documents — registration and insurance — with nothing
- * else attached: what may be uploaded, how a document's state is read off its
+ * The rules of vehicle documents — today only the registration certificate —
+ * with nothing else attached: what may be uploaded, how a document's state is read off its
  * rows, when an expiry date is acceptable, and what a driver should be warned
  * about.
  *
@@ -19,12 +19,14 @@
  * the end of that day, not the start.
  */
 
-/** The two documents a vehicle carries, in the order the app lists them. */
-export type VehicleDocumentType = "REGISTRATION" | "INSURANCE";
+/**
+ * The documents a vehicle carries, in the order the app lists them. Only the
+ * registration certificate: the product does not collect vehicle insurance.
+ */
+export type VehicleDocumentType = "REGISTRATION";
 
 export const VEHICLE_DOCUMENT_TYPES: readonly VehicleDocumentType[] = [
   "REGISTRATION",
-  "INSURANCE",
 ];
 
 /** A reviewer's verdict on one upload. */
@@ -36,7 +38,7 @@ export type VehicleDocumentReviewStatus = "PENDING" | "APPROVED" | "FLAGGED";
  * summary, the per-vehicle document state and the admin queue all read it.
  *
  * Thirty days: the design's own warning is shown at "in 21 days", and a month
- * is the notice an insurer's renewal reminder gives.
+ * leaves room to renew before the date passes.
  */
 export const DOCUMENT_EXPIRY_WARNING_DAYS = 30;
 
@@ -113,17 +115,22 @@ export function toSafeVehicleDocumentFileName(fileName: string): string {
     : FALLBACK_FILE_NAME;
 }
 
+/** The folder segment a document of each type lives under. */
+const TYPE_SEGMENT: Record<VehicleDocumentType, string> = {
+  REGISTRATION: "registration",
+};
+
 /** The folder segment a document of this type lives under. */
 function typeSegment(type: VehicleDocumentType): string {
-  return type === "REGISTRATION" ? "registration" : "insurance";
+  return TYPE_SEGMENT[type];
 }
 
 /**
  * The object path for one upload:
- * `vehicles/<vehicleId>/<registration|insurance>/<uuid>-<name>`.
+ * `vehicles/<vehicleId>/registration/<uuid>-<name>`.
  *
  * Namespaced by vehicle so its documents stay together, by type so a path
- * issued for a registration can never be registered as the insurance, and
+ * issued for one document type can never be registered as another, and
  * prefixed with a UUID so two uploads of `IMG_0001.jpg` never collide. The UUID
  * is passed in rather than generated here to keep this function pure.
  */
@@ -271,33 +278,25 @@ export function validityOf(
   return days <= DOCUMENT_EXPIRY_WARNING_DAYS ? "EXPIRING" : "VALID";
 }
 
-/**
- * Whether approving a document of this type needs an expiry date. An insurance
- * policy always has one; a registration certificate does not, so its date is
- * optional (a reviewer may still record one, e.g. for a temporary plate).
- */
-export function isExpiryRequired(type: VehicleDocumentType): boolean {
-  return type === "INSURANCE";
-}
-
 /** Why an approval's expiry date is not acceptable. */
-export type ExpiryRefusal = "EXPIRY_REQUIRED" | "EXPIRY_IN_PAST";
+export type ExpiryRefusal = "EXPIRY_IN_PAST";
 
 /**
  * Judges the expiry date a reviewer approves a document with, or returns null
  * when it is acceptable.
  *
- * A date already past is refused: approving a document that has expired is
+ * The date is always optional: a registration certificate has no expiry, and a
+ * reviewer records one only for the exception that does (e.g. a temporary
+ * plate). A date already past is refused: approving a document that has expired is
  * what flagging it as "Document expired" is for, and accepting the date would
  * put a document on file that is invalid the moment it is approved.
  */
 export function expiryRefusalFor(
-  type: VehicleDocumentType,
   expiresAt: string | null,
   today: string,
 ): ExpiryRefusal | null {
   if (expiresAt === null) {
-    return isExpiryRequired(type) ? "EXPIRY_REQUIRED" : null;
+    return null;
   }
 
   return daysUntilExpiry(expiresAt, today) < 0 ? "EXPIRY_IN_PAST" : null;
@@ -360,7 +359,7 @@ export type VehicleDocumentSlot = {
 
 /**
  * A vehicle's documents, one slot per type in `VEHICLE_DOCUMENT_TYPES` order —
- * always both, so "missing" is a state the reader is handed rather than an
+ * always every type, so "missing" is a state the reader is handed rather than an
  * absence it has to notice.
  *
  * `liveRows` are the vehicle's rows with `supersededAt: null`. The database
@@ -426,8 +425,7 @@ export function summarizeVehicleDocuments(
 /* ------------------------------------------------------------------------- */
 
 /** Which document an attention item is about. */
-export type AttentionDocument =
-  "DRIVING_LICENCE" | "VEHICLE_REGISTRATION" | "VEHICLE_INSURANCE";
+export type AttentionDocument = "DRIVING_LICENCE" | "VEHICLE_REGISTRATION";
 
 /**
  * Why a document needs attention:
@@ -463,7 +461,6 @@ const ATTENTION_DOCUMENT_BY_TYPE: Record<
   AttentionDocument
 > = {
   REGISTRATION: "VEHICLE_REGISTRATION",
-  INSURANCE: "VEHICLE_INSURANCE",
 };
 
 /**

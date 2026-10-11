@@ -33,7 +33,7 @@ export const dynamic = "force-dynamic";
 
 /**
  * POST /api/driver-profile/vehicles/[id]/documents/upload-url — issue a signed
- * upload URL for one registration or insurance file, first upload or renewal.
+ * upload URL for one registration file, first upload or renewal.
  *
  * The app uploads the bytes straight to Supabase Storage with the returned
  * `path`/`token`, then calls `POST …/documents` to record the result. The file
@@ -85,7 +85,7 @@ export async function POST(
   const { type } = fields;
   if (!isVehicleDocumentType(type)) {
     return vehicleDocumentError(
-      t("errors.vehicleDocuments.typeMustBeRegistrationOrInsurance"),
+      t("errors.vehicleDocuments.typeMustBeRegistration"),
       "INVALID_REQUEST",
       400,
     );

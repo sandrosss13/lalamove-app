@@ -28,10 +28,7 @@ import {
   VEHICLE_DOCUMENT_FLAG_REASONS,
   flagReasonLabel,
 } from "@/lib/review-flag-reasons";
-import {
-  isExpiryRequired,
-  type VehicleDocumentType,
-} from "@/lib/vehicle-documents/rules";
+import type { VehicleDocumentType } from "@/lib/vehicle-documents/rules";
 
 /** Matches the server's cap on a stored flag reason. */
 const MAX_FLAG_REASON_LENGTH = 500;
@@ -42,7 +39,6 @@ export const VEHICLE_DOCUMENT_TYPE_LABEL_KEYS: Record<
   string
 > = {
   REGISTRATION: "admin.adminVehicleDocuments.typeRegistration",
-  INSURANCE: "admin.adminVehicleDocuments.typeInsurance",
 };
 
 type Translator = ReturnType<typeof useTranslations>;
@@ -162,8 +158,8 @@ function EntryCard({
  * it would replace, the expiry date the reviewer records, and the two verdicts.
  *
  * The expiry field is the reviewer's to fill — the driver's app sends a
- * photograph and nothing else — and the server refuses an insurance approval
- * without one, so the Approve button is disabled until it is set.
+ * photograph and nothing else. It is optional: a registration certificate has
+ * no expiry, so a date is recorded only for the exception that does.
  */
 export function VehicleDocumentReviewDialog({
   documentId,
@@ -261,8 +257,6 @@ export function VehicleDocumentReviewDialog({
   const isApproved = data?.document.status === "APPROVED";
   // A superseded row is history: shown, never judged.
   const isReadOnly = data ? data.document.supersededAt !== null : true;
-  const expiryMissing =
-    data !== null && isExpiryRequired(data.type) && expiresAt === "";
 
   return (
     <Dialog
@@ -345,7 +339,7 @@ export function VehicleDocumentReviewDialog({
                     />
                     <Button
                       type="button"
-                      disabled={pending || expiryMissing}
+                      disabled={pending}
                       onClick={() =>
                         void submit({
                           action: "approve",
@@ -361,9 +355,7 @@ export function VehicleDocumentReviewDialog({
                     </Button>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    {isExpiryRequired(data.type)
-                      ? t("admin.adminVehicleDocuments.expiryHintInsurance")
-                      : t("admin.adminVehicleDocuments.expiryHintRegistration")}
+                    {t("admin.adminVehicleDocuments.expiryHintRegistration")}
                   </p>
                 </div>
 

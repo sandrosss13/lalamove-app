@@ -21,8 +21,7 @@ export const dynamic = "force-dynamic";
  * sample data on the web and are not returned — see `toHubMeResponse`. Also
  * carries `supportPhone`, the configured driver-support line, or null, and
  * `documentsAttention`: the driver's missing, flagged, expiring and expired
- * documents (their licence, and the registration and insurance of each vehicle
- * they own). That summary is informational — nothing here or elsewhere refuses
+ * documents (their licence, and the registration of each vehicle they own). That summary is informational — nothing here or elsewhere refuses
  * a driver because of it.
  *
  * Session, forced-password-change, suspension and role handling are

@@ -35,12 +35,10 @@ sample.marikaDolidze,Marika Dolidze,,src/lib/dashboard/hub/sample.ts
 sample.newJobOfferVakeSaburtalo,New job offer · Vake → Saburtalo,,src/lib/dashboard/hub/sample.ts
 sample.openWorkOrders,Open work orders,,src/lib/dashboard/hub/sample.ts
 sample.ownJobsAndEarningsOnly,Own jobs and earnings only,,src/lib/dashboard/hub/sample.ts
-sample.parkingTolls,Parking & tolls,,src/lib/dashboard/hub/sample.ts
 sample.payoutAccounts,Payout accounts,,src/lib/dashboard/hub/sample.ts
 sample.payoutOf14260Sent,Payout of ₾142.60 sent,,src/lib/dashboard/hub/sample.ts
 sample.payoutsInvoicesAndTax,"Payouts, invoices and tax",,src/lib/dashboard/hub/sample.ts
 sample.serviceLog,Service log,,src/lib/dashboard/hub/sample.ts
-sample.serviceParts,Service & parts,,src/lib/dashboard/hub/sample.ts
 sample.shift,Shift,,src/lib/dashboard/hub/sample.ts
 sample.sopoKiknadze,Sopo Kiknadze,,src/lib/dashboard/hub/sample.ts
 sample.taxId,Tax ID,,src/lib/dashboard/hub/sample.ts

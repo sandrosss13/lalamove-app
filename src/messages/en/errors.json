@@ -111,8 +111,7 @@
     "cannotFlagDocumentOnFile": "An approved document cannot be flagged.",
     "documentWasReplaced": "The driver has replaced this upload. Reload to review the new one.",
     "expiryDateInPast": "That expiry date has already passed. Flag the document as expired instead.",
-    "expiryDateInvalid": "expiresAt must be a date in YYYY-MM-DD format.",
-    "expiryDateRequired": "An expiry date is required to approve an insurance document."
+    "expiryDateInvalid": "expiresAt must be a date in YYYY-MM-DD format."
   },
   "adminWallet": {
     "adjustmentAmountInvalid": "amountTetri must be a non-zero whole number of tetri.",
@@ -533,7 +532,7 @@
     "fileTooLarge": "Vehicle documents must be {max} MB or smaller.",
     "mustBeJpgOrPng": "Vehicle documents must be JPG or PNG files.",
     "thatUploadDoesNotBelongTo": "That upload does not belong to this vehicle's document.",
-    "typeMustBeRegistrationOrInsurance": "type must be REGISTRATION or INSURANCE."
+    "typeMustBeRegistration": "type must be REGISTRATION."
   },
   "wallet": {
     "amountMustBeWholeTetri": "amountTetri must be a positive whole number of tetri.",

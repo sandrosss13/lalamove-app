@@ -1,5 +1,5 @@
 /**
- * The rules of vehicle documents (registration, insurance), pinned without a
+ * The rules of vehicle documents (the registration), pinned without a
  * server, a database or a bucket: what may be uploaded and where it may live,
  * how a document's state is read off its rows, which expiry dates a reviewer
  * may approve with, and what a driver is told needs attention.
@@ -25,7 +25,6 @@ import {
   expiryRefusalFor,
   instantToExpiryDate,
   isAllowedVehicleDocumentContentType,
-  isExpiryRequired,
   isVehicleDocumentObjectPath,
   isVehicleDocumentType,
   parseExpiryDate,
@@ -47,7 +46,7 @@ function row(
   overrides: Partial<LiveVehicleDocument> & Pick<LiveVehicleDocument, "id">,
 ): LiveVehicleDocument {
   return {
-    type: "INSURANCE",
+    type: "REGISTRATION",
     status: "PENDING",
     flagReason: null,
     expiresAt: null,
@@ -57,24 +56,25 @@ function row(
   };
 }
 
-/** The insurance slot of a summary. */
-function insuranceSlot(rows: LiveVehicleDocument[]) {
+/** The registration slot of a summary. */
+function registrationSlot(rows: LiveVehicleDocument[]) {
   const slot = summarizeVehicleDocuments(rows, TODAY).find(
-    (candidate) => candidate.type === "INSURANCE",
+    (candidate) => candidate.type === "REGISTRATION",
   );
 
   if (slot === undefined) {
-    throw new Error("summarizeVehicleDocuments returned no insurance slot");
+    throw new Error("summarizeVehicleDocuments returned no registration slot");
   }
 
   return slot;
 }
 
 test.describe("what may be uploaded", () => {
-  test("only the two document types are recognised", () => {
-    expect(VEHICLE_DOCUMENT_TYPES).toEqual(["REGISTRATION", "INSURANCE"]);
-    expect(isVehicleDocumentType("INSURANCE")).toBe(true);
-    expect(isVehicleDocumentType("insurance")).toBe(false);
+  test("the registration is the only document type recognised", () => {
+    expect(VEHICLE_DOCUMENT_TYPES).toEqual(["REGISTRATION"]);
+    expect(isVehicleDocumentType("REGISTRATION")).toBe(true);
+    expect(isVehicleDocumentType("INSURANCE")).toBe(false);
+    expect(isVehicleDocumentType("registration")).toBe(false);
     expect(isVehicleDocumentType("LICENCE_FRONT")).toBe(false);
     expect(isVehicleDocumentType(undefined)).toBe(false);
   });
@@ -101,8 +101,13 @@ test.describe("what may be uploaded", () => {
 test.describe("object paths", () => {
   test("a minted path is namespaced by vehicle and type", () => {
     expect(
-      vehicleDocumentObjectPath(VEHICLE_ID, "INSURANCE", UUID, "policy.jpg"),
-    ).toBe(`vehicles/${VEHICLE_ID}/insurance/${UUID}-policy.jpg`);
+      vehicleDocumentObjectPath(
+        VEHICLE_ID,
+        "REGISTRATION",
+        UUID,
+        "certificate.jpg",
+      ),
+    ).toBe(`vehicles/${VEHICLE_ID}/registration/${UUID}-certificate.jpg`);
   });
 
   test("a file name cannot escape its folder", () => {
@@ -116,56 +121,65 @@ test.describe("object paths", () => {
   test("a minted path is accepted for its own vehicle and type", () => {
     const path = vehicleDocumentObjectPath(
       VEHICLE_ID,
-      "INSURANCE",
+      "REGISTRATION",
       UUID,
-      "policy.jpg",
+      "certificate.jpg",
     );
 
-    expect(isVehicleDocumentObjectPath(path, VEHICLE_ID, "INSURANCE")).toBe(
+    expect(isVehicleDocumentObjectPath(path, VEHICLE_ID, "REGISTRATION")).toBe(
       true,
     );
   });
 
-  test("another vehicle's path, another type's, and an onboarding path are refused", () => {
+  test("another vehicle's path, another folder's, and an onboarding path are refused", () => {
     const path = vehicleDocumentObjectPath(
       VEHICLE_ID,
-      "INSURANCE",
+      "REGISTRATION",
       UUID,
-      "policy.jpg",
+      "certificate.jpg",
     );
 
-    expect(isVehicleDocumentObjectPath(path, "cmother", "INSURANCE")).toBe(
+    expect(isVehicleDocumentObjectPath(path, "cmother", "REGISTRATION")).toBe(
       false,
     );
-    expect(isVehicleDocumentObjectPath(path, VEHICLE_ID, "REGISTRATION")).toBe(
-      false,
-    );
+    // The folder of the retired insurance document is not a registration's.
+    expect(
+      isVehicleDocumentObjectPath(
+        `vehicles/${VEHICLE_ID}/insurance/${UUID}-policy.jpg`,
+        VEHICLE_ID,
+        "REGISTRATION",
+      ),
+    ).toBe(false);
     // An onboarding document: `<driverProfileId>/<uuid>-<name>`.
     expect(
       isVehicleDocumentObjectPath(
         `cmprofile0001/${UUID}-licence.jpg`,
         VEHICLE_ID,
-        "INSURANCE",
+        "REGISTRATION",
       ),
     ).toBe(false);
   });
 
   test("traversal, literal or percent-encoded, is refused", () => {
     for (const path of [
-      `vehicles/${VEHICLE_ID}/insurance/../../other/insurance/x.jpg`,
-      `vehicles/${VEHICLE_ID}/insurance/..`,
-      `vehicles/${VEHICLE_ID}/insurance/%2e%2e%2fx.jpg`,
-      `vehicles/${VEHICLE_ID}/insurance/a/b.jpg`,
-      `vehicles/${VEHICLE_ID}/insurance/`,
-      `vehicles//insurance/x.jpg`,
+      `vehicles/${VEHICLE_ID}/registration/../../other/registration/x.jpg`,
+      `vehicles/${VEHICLE_ID}/registration/..`,
+      `vehicles/${VEHICLE_ID}/registration/%2e%2e%2fx.jpg`,
+      `vehicles/${VEHICLE_ID}/registration/a/b.jpg`,
+      `vehicles/${VEHICLE_ID}/registration/`,
+      `vehicles//registration/x.jpg`,
     ]) {
-      expect(isVehicleDocumentObjectPath(path, VEHICLE_ID, "INSURANCE")).toBe(
-        false,
-      );
+      expect(
+        isVehicleDocumentObjectPath(path, VEHICLE_ID, "REGISTRATION"),
+      ).toBe(false);
     }
 
     expect(
-      isVehicleDocumentObjectPath("vehicles//insurance/x.jpg", "", "INSURANCE"),
+      isVehicleDocumentObjectPath(
+        "vehicles//registration/x.jpg",
+        "",
+        "REGISTRATION",
+      ),
     ).toBe(false);
   });
 });
@@ -208,27 +222,19 @@ test.describe("expiry dates", () => {
     expect(validityOf("2026-10-01", TODAY)).toBe("EXPIRED");
   });
 
-  test("insurance needs an expiry to be approved; a registration does not", () => {
-    expect(isExpiryRequired("INSURANCE")).toBe(true);
-    expect(isExpiryRequired("REGISTRATION")).toBe(false);
-    expect(expiryRefusalFor("INSURANCE", null, TODAY)).toBe("EXPIRY_REQUIRED");
-    expect(expiryRefusalFor("REGISTRATION", null, TODAY)).toBeNull();
-    expect(expiryRefusalFor("INSURANCE", "2027-10-01", TODAY)).toBeNull();
+  test("an expiry is optional at approval", () => {
+    expect(expiryRefusalFor(null, TODAY)).toBeNull();
+    expect(expiryRefusalFor("2027-10-01", TODAY)).toBeNull();
   });
 
   test("a date already past cannot be approved; today can", () => {
-    expect(expiryRefusalFor("INSURANCE", "2026-10-01", TODAY)).toBe(
-      "EXPIRY_IN_PAST",
-    );
-    expect(expiryRefusalFor("REGISTRATION", "2026-10-01", TODAY)).toBe(
-      "EXPIRY_IN_PAST",
-    );
-    expect(expiryRefusalFor("INSURANCE", TODAY, TODAY)).toBeNull();
+    expect(expiryRefusalFor("2026-10-01", TODAY)).toBe("EXPIRY_IN_PAST");
+    expect(expiryRefusalFor(TODAY, TODAY)).toBeNull();
   });
 });
 
 test.describe("summarizeVehicleDocuments", () => {
-  test("a vehicle with no rows has both slots, both MISSING", () => {
+  test("a vehicle with no rows has its registration slot, MISSING", () => {
     expect(summarizeVehicleDocuments([], TODAY)).toEqual([
       {
         type: "REGISTRATION",
@@ -236,12 +242,11 @@ test.describe("summarizeVehicleDocuments", () => {
         onFile: null,
         submission: null,
       },
-      { type: "INSURANCE", state: "MISSING", onFile: null, submission: null },
     ]);
   });
 
   test("a first upload is UNDER_REVIEW with nothing on file", () => {
-    const slot = insuranceSlot([row({ id: "new" })]);
+    const slot = registrationSlot([row({ id: "new" })]);
 
     expect(slot.state).toBe("UNDER_REVIEW");
     expect(slot.onFile).toBeNull();
@@ -250,7 +255,7 @@ test.describe("summarizeVehicleDocuments", () => {
 
   test("an approved document is read by the calendar", () => {
     const approved = (expiresAt: string | null) =>
-      insuranceSlot([
+      registrationSlot([
         row({
           id: "ok",
           status: "APPROVED",
@@ -268,7 +273,7 @@ test.describe("summarizeVehicleDocuments", () => {
   });
 
   test("a renewal under review does not displace the document on file", () => {
-    const slot = insuranceSlot([
+    const slot = registrationSlot([
       row({
         id: "old",
         status: "APPROVED",
@@ -286,7 +291,7 @@ test.describe("summarizeVehicleDocuments", () => {
   });
 
   test("a flagged upload reports FLAGGED and carries its reason", () => {
-    const slot = insuranceSlot([
+    const slot = registrationSlot([
       row({ id: "bad", status: "FLAGGED", flagReason: "Photo is blurry" }),
     ]);
 
@@ -296,23 +301,13 @@ test.describe("summarizeVehicleDocuments", () => {
       flagReason: "Photo is blurry",
     });
   });
-
-  test("one type's rows never bleed into the other's slot", () => {
-    const [registration, insurance] = summarizeVehicleDocuments(
-      [row({ id: "ins", type: "INSURANCE" })],
-      TODAY,
-    );
-
-    expect(registration?.state).toBe("MISSING");
-    expect(insurance?.state).toBe("UNDER_REVIEW");
-  });
 });
 
 test.describe("what needs attention", () => {
   test("missing → under review → approved → expiring → expired", () => {
-    const missing = attentionForSlot(insuranceSlot([]), VEHICLE);
+    const missing = attentionForSlot(registrationSlot([]), VEHICLE);
     expect(missing).toMatchObject({
-      document: "VEHICLE_INSURANCE",
+      document: "VEHICLE_REGISTRATION",
       reason: "MISSING",
       underReview: false,
       vehicleId: VEHICLE_ID,
@@ -320,14 +315,14 @@ test.describe("what needs attention", () => {
     });
 
     const underReview = attentionForSlot(
-      insuranceSlot([row({ id: "new" })]),
+      registrationSlot([row({ id: "new" })]),
       VEHICLE,
     );
     expect(underReview).toMatchObject({ reason: "MISSING", underReview: true });
 
     const approved = (expiresAt: string) =>
       attentionForSlot(
-        insuranceSlot([row({ id: "ok", status: "APPROVED", expiresAt })]),
+        registrationSlot([row({ id: "ok", status: "APPROVED", expiresAt })]),
         VEHICLE,
       );
 
@@ -346,7 +341,7 @@ test.describe("what needs attention", () => {
   test("a valid document with a renewal under review needs nothing", () => {
     expect(
       attentionForSlot(
-        insuranceSlot([
+        registrationSlot([
           row({ id: "ok", status: "APPROVED", expiresAt: "2027-06-01" }),
           row({ id: "renewal" }),
         ]),
@@ -358,7 +353,7 @@ test.describe("what needs attention", () => {
   test("an expiring document whose renewal is uploaded is marked underReview", () => {
     expect(
       attentionForSlot(
-        insuranceSlot([
+        registrationSlot([
           row({ id: "ok", status: "APPROVED", expiresAt: "2026-10-22" }),
           row({ id: "renewal" }),
         ]),
@@ -370,7 +365,7 @@ test.describe("what needs attention", () => {
   test("a flagged upload is reported even over a valid document on file", () => {
     expect(
       attentionForSlot(
-        insuranceSlot([
+        registrationSlot([
           row({ id: "ok", status: "APPROVED", expiresAt: "2027-06-01" }),
           row({ id: "bad", status: "FLAGGED", flagReason: "Document expired" }),
         ]),
@@ -398,7 +393,7 @@ test.describe("what needs attention", () => {
 
   test("the summary orders by urgency and counts only actionable items", () => {
     const item = (rows: LiveVehicleDocument[]) => {
-      const result = attentionForSlot(insuranceSlot(rows), VEHICLE);
+      const result = attentionForSlot(registrationSlot(rows), VEHICLE);
       if (result === null) throw new Error("expected an attention item");
       return result;
     };

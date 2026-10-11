@@ -37,7 +37,7 @@
  * `OrderActionErrorResponse`. `accept` answers `{ error }`, with a `code` only
  * for `PASSWORD_CHANGE_REQUIRED`.
  *
- * Vehicle documents (registration, insurance) and support messages (success
+ * Vehicle documents (the registration) and support messages (success
  * status in brackets where it is not 200):
  *
  * | Route                                                       | Request body                      | Success body                        |
@@ -244,8 +244,7 @@ export type HubMeResponse = {
 };
 
 /** Which document an attention item is about. */
-export type HubAttentionDocument =
-  "DRIVING_LICENCE" | "VEHICLE_REGISTRATION" | "VEHICLE_INSURANCE";
+export type HubAttentionDocument = "DRIVING_LICENCE" | "VEHICLE_REGISTRATION";
 
 /**
  * Why a document needs attention:
@@ -254,7 +253,7 @@ export type HubAttentionDocument =
  *   again. Reported whatever is on file.
  * - `EXPIRED` — the document on file has passed its expiry date.
  * - `MISSING` — no document has ever been accepted. The ordinary starting
- *   state: onboarding collects neither vehicle document.
+ *   state: onboarding does not collect the vehicle registration.
  * - `EXPIRING` — the document on file expires within `expiryWarningDays`.
  *
  * The driving licence is only ever `EXPIRING` or `EXPIRED`.
@@ -286,8 +285,8 @@ export type HubDocumentAttentionItem = {
 /**
  * The compact "documents needing attention" summary.
  *
- * Covers the driver's own licence and the registration and insurance of every
- * vehicle the driver **owns**. A `ROSTER` driver's company vehicle is not
+ * Covers the driver's own licence and the registration of every vehicle the
+ * driver **owns**. A `ROSTER` driver's company vehicle is not
  * covered — its documents are the company's, and the driver could not act on
  * them — so a roster driver only ever sees the licence here.
  *
@@ -717,8 +716,8 @@ export type HubVehiclesItem = {
   dispatchable: boolean;
   createdAt: string;
   /**
-   * This vehicle's registration and insurance — always both, in that order —
-   * for a vehicle the signed-in driver **owns**. Null for every other vehicle:
+   * This vehicle's documents — always one slot per `VehicleDocumentType`, today
+   * just the registration — for a vehicle the signed-in driver **owns**. Null for every other vehicle:
    * a `ROSTER` driver's company vehicle and a `BUSINESS` account's fleet, whose
    * documents are not collected on this surface. Null is "not shown here", not
    * "missing".
@@ -726,8 +725,8 @@ export type HubVehiclesItem = {
   documents: HubVehicleDocument[] | null;
 };
 
-/** The two documents a vehicle carries. */
-export type VehicleDocumentType = "REGISTRATION" | "INSURANCE";
+/** The documents a vehicle carries — only the registration certificate. */
+export type VehicleDocumentType = "REGISTRATION";
 
 /**
  * The one word for a vehicle document, for a status pill:
@@ -872,7 +871,10 @@ export type VehicleDocumentHistoryItem = {
 export type VehicleDocumentsResponse = {
   vehicleId: string;
   plateNumber: string;
-  /** Both types, registration first — the same value `hub/vehicles` carries. */
+  /**
+   * One slot per type (just the registration) — the same value `hub/vehicles`
+   * carries.
+   */
   documents: HubVehicleDocument[];
   /** Every upload ever registered for this vehicle, newest first. */
   history: VehicleDocumentHistoryItem[];

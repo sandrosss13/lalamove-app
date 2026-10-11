@@ -111,8 +111,7 @@
     "cannotFlagDocumentOnFile": "დამტკიცებული დოკუმენტის მონიშვნა შეუძლებელია.",
     "documentWasReplaced": "მძღოლმა ეს ფაილი ახლით ჩაანაცვლა. ახლის განსახილველად განაახლეთ გვერდი.",
     "expiryDateInPast": "ამ დოკუმენტის ვადა უკვე გასულია. დამტკიცების ნაცვლად მონიშნეთ დოკუმენტი, როგორც ვადაგასული.",
-    "expiryDateInvalid": "expiresAt უნდა იყოს თარიღი YYYY-MM-DD ფორმატში.",
-    "expiryDateRequired": "დაზღვევის დოკუმენტის დასამტკიცებლად აუცილებელია ვადის გასვლის თარიღი."
+    "expiryDateInvalid": "expiresAt უნდა იყოს თარიღი YYYY-MM-DD ფორმატში."
   },
   "adminWallet": {
     "adjustmentAmountInvalid": "amountTetri უნდა იყოს თეთრების ნულისგან განსხვავებული მთელი რაოდენობა.",
@@ -533,7 +532,7 @@
     "fileTooLarge": "ავტომობილის დოკუმენტი არ უნდა აღემატებოდეს {max} მბ-ს.",
     "mustBeJpgOrPng": "ავტომობილის დოკუმენტები უნდა იყოს JPG ან PNG ფაილები.",
     "thatUploadDoesNotBelongTo": "ეს ატვირთვა ამ ავტომობილის დოკუმენტს არ ეკუთვნის.",
-    "typeMustBeRegistrationOrInsurance": "type უნდა იყოს REGISTRATION ან INSURANCE."
+    "typeMustBeRegistration": "type უნდა იყოს REGISTRATION."
   },
   "wallet": {
     "amountMustBeWholeTetri": "amountTetri უნდა იყოს თეთრების დადებითი მთელი რაოდენობა.",

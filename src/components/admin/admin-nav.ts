@@ -273,7 +273,7 @@ export const ADMIN_NAV: AdminNavSection[] = [
         adminRoles: ["SUPER_ADMIN", "USER_MANAGER"],
       },
       {
-        // Registration and insurance, uploaded and renewed after onboarding.
+        // Vehicle registration, uploaded and renewed after onboarding.
         // The same reviewers as the application's own documents.
         label: "Vehicle documents",
         labelKey: "admin.adminNav.vehicleDocuments",

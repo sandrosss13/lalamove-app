@@ -2949,16 +2949,6 @@
     "ka": "ტრანსპორტის კლასები იტვირთება...",
     "_source": "src/components/driver-hub/screens/vehicles-add-form.tsx"
   },
-  "vehiclesAddForm.odometerIsDisabledVehicleHasNo": {
-    "en": "Odometer is disabled: `Vehicle` has no reading to store it in, so anything typed here would be thrown away. It arrives with `Vehicle.odometerKm`.",
-    "ka": "ოდომეტრი გათიშულია: „Vehicle“-ს არ აქვს ველი მონაცემის შესანახად, ამიტომ აქ აკრეფილი ნებისმიერი მონაცემი წაიშლება. ის მოდის `Vehicle.odometerKm`-ით.",
-    "_source": "src/components/driver-hub/screens/vehicles-add-form.tsx"
-  },
-  "vehiclesAddForm.odometerKm": {
-    "en": "Odometer (km)",
-    "ka": "ოდომეტრი (კმ)",
-    "_source": "src/components/driver-hub/screens/vehicles-add-form.tsx"
-  },
   "vehiclesAddForm.photoRequirementNote": {
     "en": "At least one photo is required — the endpoint rejects a vehicle without one. Up to 5 MB each.",
     "ka": "საჭიროა მინიმუმ ერთი ფოტო — ფოტოს გარეშე ავტომობილი არ დაემატება. თითო ფაილი 5 MB-მდე.",
@@ -2987,11 +2977,6 @@
   "vehiclesDetailPanel.confirmRemoval": {
     "en": "Confirm removal",
     "ka": "წაშლის დადასტურება",
-    "_source": "src/components/driver-hub/screens/vehicles-detail-panel.tsx"
-  },
-  "vehiclesDetailPanel.costPerKm": {
-    "en": "Cost per km",
-    "ka": "ღირებულება კმ-ზე",
     "_source": "src/components/driver-hub/screens/vehicles-detail-panel.tsx"
   },
   "vehiclesDetailPanel.couldNotRemove": {
@@ -3034,24 +3019,14 @@
     "ka": "იშლება…",
     "_source": "src/components/driver-hub/screens/vehicles-detail-panel.tsx"
   },
-  "vehiclesDetailPanel.runningCostsThisMonth": {
-    "en": "Running costs · this month",
-    "ka": "საექსპლუატაციო ხარჯები · ამ თვეში",
-    "_source": "src/components/driver-hub/screens/vehicles-detail-panel.tsx"
-  },
   "vehiclesDetailPanel.sampleNoteCities": {
     "en": "Vehicle has no operating-cities column; only the company's fleet-wide citiesOfOperation exists. Retire with Vehicle.operatingCities.",
     "ka": "ავტომობილს მომსახურების ქალაქების ველი არ აქვს; არსებობს მხოლოდ კომპანიის საერთო citiesOfOperation. ჩანაცვლდება Vehicle.operatingCities-ით.",
     "_source": "src/components/driver-hub/screens/vehicles-detail-panel.tsx"
   },
-  "vehiclesDetailPanel.sampleNoteCosts": {
-    "en": "Nothing records fuel, service, parking or toll charges against a vehicle. Retire with a VehicleExpense model.",
-    "ka": "ავტომობილზე საწვავის, მომსახურების, პარკირების ან გზის ხარჯები არ ფიქსირდება. ჩანაცვლდება VehicleExpense მოდელით.",
-    "_source": "src/components/driver-hub/screens/vehicles-detail-panel.tsx"
-  },
   "vehiclesDetailPanel.sampleNoteSpecs": {
-    "en": "Vehicle stores no odometer reading, fuel type or per-vehicle job count. Retire with Vehicle.odometerKm and a per-vehicle job rollup.",
-    "ka": "ავტომობილის ჩანაწერში არ ინახება ოდომეტრის ჩვენება, საწვავის ტიპი ან რეისების რაოდენობა. ჩანაცვლდება Vehicle.odometerKm-ით და რეისების ავტომობილის დონის შეჯამებით.",
+    "en": "Vehicle stores no per-vehicle job count. Retire with a per-vehicle job rollup.",
+    "ka": "ავტომობილის ჩანაწერში არ ინახება რეისების რაოდენობა. ჩანაცვლდება რეისების ავტომობილის დონის შეჯამებით.",
     "_source": "src/components/driver-hub/screens/vehicles-detail-panel.tsx"
   },
   "vehiclesDetailPanel.thisVehicleBelongsToTheFleet": {
@@ -3074,11 +3049,6 @@
     "ka": "შესაძლებელია მძღოლზე გადაცემა",
     "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
   },
-  "vehiclesScreen.costKm": {
-    "en": "Cost/km",
-    "ka": "ღირებულება/კმ",
-    "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
-  },
   "vehiclesScreen.detailLabelAddForm": {
     "en": "the add vehicle form",
     "ka": "ავტომობილის დამატების ფორმა",
@@ -3097,21 +3067,6 @@
   "vehiclesScreen.filterAria": {
     "en": "Filter vehicles by status",
     "ka": "ავტომობილების გაფილტვრა სტატუსით",
-    "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
-  },
-  "vehiclesScreen.fleetCostNote": {
-    "en": "Fuel, service, parking and tolls",
-    "ka": "საწვავი, მომსახურება, პარკირება და გზის საფასური",
-    "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
-  },
-  "vehiclesScreen.fleetCostPerKm": {
-    "en": "Fleet cost per km",
-    "ka": "ავტოპარკის ხარჯი კმ-ზე",
-    "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
-  },
-  "vehiclesScreen.fleetCostSampleNote": {
-    "en": "No fuel, service, parking or toll charge is recorded against any vehicle, so there is nothing to average. Retire with a VehicleExpense model.",
-    "ka": "არცერთ ავტომობილზე საწვავის, მომსახურების, პარკირების ან გზის ხარჯი არ ფიქსირდება, ამიტომ საშუალოს გამოსათვლელი არაფერია. ჩანაცვლდება VehicleExpense მოდელით.",
     "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
   },
   "vehiclesScreen.heldByDriver": {
@@ -3154,11 +3109,6 @@
     "ka": "ამჟამად არავისთანაა",
     "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
   },
-  "vehiclesScreen.odometerCostKm": {
-    "en": "Odometer · Cost/km",
-    "ka": "ოდომეტრი · ღირებულება/კმ",
-    "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
-  },
   "vehiclesScreen.onTheRoad": {
     "en": "On the road",
     "ka": "გზაში",
@@ -3167,16 +3117,6 @@
   "vehiclesScreen.rosterEmptyHint": {
     "en": "Your fleet manager assigns you a vehicle from the company's own. It appears here once they do.",
     "ka": "ავტოპარკის მენეჯერი კომპანიის ავტომობილებიდან ერთ-ერთს მოგამაგრებთ. ის აქ გამოჩნდება, როგორც კი ამას გააკეთებს.",
-    "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
-  },
-  "vehiclesScreen.sampleData": {
-    "en": " — sample data.",
-    "ka": " — სანიმუშო მონაცემები.",
-    "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
-  },
-  "vehiclesScreen.sampledColumnsNote": {
-    "en": "Odometer and cost per km are placeholders: nothing records a reading or a cost against a vehicle. Retire with Vehicle.odometerKm and a VehicleExpense model.",
-    "ka": "ოდომეტრი და ღირებულება კმ-ზე სანიმუშოა: ავტომობილზე არც ჩვენება და არც ხარჯი არ ფიქსირდება. ჩანაცვლდება Vehicle.odometerKm-ით და VehicleExpense მოდელით.",
     "_source": "src/components/driver-hub/screens/vehicles-screen.tsx"
   },
   "vehiclesScreen.shownCount": {

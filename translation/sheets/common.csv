@@ -128,7 +128,6 @@ shared.flatbedOrCurtainSideWithDrop,"Flatbed or curtain-side with drop sides. Ov
 shared.fleet,Fleet,,src/app/[locale]/admin/(sections)/business/applications/page.tsx
 shared.fleetComposition,Fleet composition,,src/components/fleet-onboarding/fleet-step-rail.tsx
 shared.from,From,,src/app/[locale]/orders/[id]/track/page.tsx
-shared.fuel,Fuel,,src/components/driver-hub/screens/vehicles-detail-panel.tsx
 shared.fullName,Full name,,src/components/driver-hub/screens/drivers-add-panel.tsx
 shared.georgianKa,Georgian (KA),,src/app/[locale]/admin/(sections)/content/home-page/page.tsx
 shared.height,Height,,src/components/driver-onboarding/steps/step-3c-technical-details.tsx
@@ -185,7 +184,6 @@ shared.noCityByThatNameCheck,No city by that name. Check the spelling.,,src/comp
 shared.noEditableFieldsWereProvided,No editable fields were provided.,,src/app/api/admin/content/messaging-templates/[id]/route.ts
 shared.notifications,Notifications,,src/components/driver-hub/driver-account-sections.ts
 shared.noVehiclesOnThisApplication,No vehicles on this application.,,src/components/admin/business-application-detail-drawer.tsx
-shared.odometer,Odometer,,src/components/driver-hub/screens/vehicles-detail-panel.tsx
 shared.onlineHours,Online hours,,src/components/driver-hub/screens/earnings-screen.tsx
 shared.onlyDriversHaveAnOnboardingApplication,Only drivers have an onboarding application.,,src/app/api/driver-profile/onboarding/reset/route.ts
 shared.onlyLogisticsCompaniesCanDispatchDeliveries,Only logistics companies can dispatch deliveries.,,src/app/api/logistics-company/orders/[id]/dispatch-options/route.ts

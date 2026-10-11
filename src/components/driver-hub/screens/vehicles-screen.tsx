@@ -11,15 +11,10 @@ import {
   HubStatusBadge,
   MasterDetailSplit,
   MetricTile,
-  SampleNote,
   type FilterStripItem,
 } from "@/components/driver-hub/hub-primitives";
 import { VehiclesAddForm } from "@/components/driver-hub/screens/vehicles-add-form";
 import { VehiclesDetailPanel } from "@/components/driver-hub/screens/vehicles-detail-panel";
-import {
-  formatGel,
-  formatOdometer,
-} from "@/components/driver-hub/screens/vehicles-format";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -77,13 +72,12 @@ import { cn } from "@/lib/utils";
  * tab stayed — if that tab is ever dropped, a flagged vehicle becomes
  * invisible on this screen.
  *
- * ## Sample data
+ * ## No vehicle running costs
  *
- * Two of the six columns — Odometer and Cost/km — and the fourth tile are
- * invented (see the `sampled` sub-object in `src/lib/dashboard/hub/vehicles.ts`).
- * The columns are marked **once, on their headers**, with a legend in the
- * toolbar: badging 40 identical cells would drown the table it is meant to
- * qualify, and the marker belongs to the column rather than to any one row.
+ * The handoff's Odometer and Cost/km columns and its "Fleet cost per km" tile
+ * are deliberately absent: the product does not track vehicle running costs
+ * (fuel, service, parking, tolls) or odometer readings at all, so every cell
+ * and the tile could only ever have been invented.
  *
  * ## Selection
  *
@@ -150,16 +144,14 @@ function isVehiclesTab(value: string): value is VehiclesTab {
  * Static class strings rather than an inline `gridTemplateColumns` so Tailwind
  * can see the tracks at build time. Widths are the handoff's, verbatim.
  */
-const COLUMNS_FULL =
-  "grid-cols-[1.4fr_100px_110px_90px_90px_120px] min-w-[780px]";
+const COLUMNS_FULL = "grid-cols-[1.4fr_100px_110px_120px] min-w-[600px]";
 const COLUMNS_SPLIT = "grid-cols-[1.6fr_1fr_120px] min-w-[420px]";
 
 /**
  * `font-normal`, stated rather than omitted. The design's `headStyle` sets a
  * size, a tracking, a transform and a colour and **no** `fontWeight`, under a
  * `body` that declares none either — so its column headers inherit 400, and the
- * only weights in that table are the ones the vehicle name and the Cost/km cell
- * opt into explicitly. `TableHead` bakes `font-medium` into its own base
+ * only weight in that table is the one the vehicle name opts into explicitly. `TableHead` bakes `font-medium` into its own base
  * classes (`src/components/ui/table.tsx:73`), so simply dropping a weight here
  * would leave that 500 standing: the override has to be spelled out. Same
  * reason `text-muted-foreground` is spelled out against the base `text-foreground`.
@@ -167,47 +159,6 @@ const COLUMNS_SPLIT = "grid-cols-[1.6fr_1fr_120px] min-w-[420px]";
 const HEAD_CLASSES =
   "h-auto px-0 pb-2.5 text-[11px] font-normal tracking-[0.08em] uppercase text-muted-foreground";
 const CELL_CLASSES = "min-w-0 px-0 py-3.5";
-
-/* -------------------------------------------------------------------------- */
-/* Honesty copy                                                               */
-/* -------------------------------------------------------------------------- */
-
-// Keys into `driverHub.vehiclesScreen`, translated where rendered.
-const SAMPLED_COLUMNS_NOTE = "sampledColumnsNote";
-
-const FLEET_COST_NOTE = "fleetCostSampleNote";
-
-/**
- * The brand accent, spelled out rather than imported: `hub-primitives.tsx`
- * keeps its own copy private, and Tailwind scans source text, so a class built
- * from a shared variable would never be generated anyway.
- */
-const ACCENT_DOT_CLASSES =
-  "size-1.5 shrink-0 rounded-full bg-[var(--landing-accent)]";
-
-/**
- * A column header for a sampled column: the label, the accent dot that ties it
- * to the toolbar's legend, and the explanation for assistive tech. Cheaper than
- * a `<SampleNote />` badge, which does not fit a 90px track — and correct,
- * because the placeholder is a property of the column, not of each cell.
- */
-function SampledHead({ children }: { children: React.ReactNode }) {
-  const t = useTranslations("driverHub.vehiclesScreen");
-
-  return (
-    <span className="inline-flex items-center gap-1">
-      {children}
-      <span
-        aria-hidden="true"
-        title={t(SAMPLED_COLUMNS_NOTE)}
-        className={ACCENT_DOT_CLASSES}
-      />
-      <span className="sr-only">
-        {t("sampleData")} {t(SAMPLED_COLUMNS_NOTE)}
-      </span>
-    </span>
-  );
-}
 
 export type VehiclesScreenProps = {
   data: HubVehiclesData;
@@ -396,7 +347,7 @@ export function VehiclesScreen({ data }: VehiclesScreenProps) {
 
   return (
     <>
-      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-5 sm:grid-cols-3">
         <MetricTile
           label={tShared("vehicles")}
           value={tiles.vehicleCount}
@@ -418,19 +369,6 @@ export function VehiclesScreen({ data }: VehiclesScreenProps) {
           // that nobody is currently holding it.
           note={kind === "BUSINESS" ? t("availableToHand") : t("notHeld")}
         />
-        {/* "Fleet cost per km" for everyone, as the design has it: its own
-            `fleetTiles` label is unconditional, and the note names the four
-            charge categories the detail panel's cost list actually shows
-            (`SAMPLE_FIXED_RUNNING_COSTS` is service and parking, never
-            insurance). A solo driver reading "fleet" of their one van is the
-            design's own wording, not a slip. */}
-        <MetricTile
-          label={t("fleetCostPerKm")}
-          value={formatGel(tiles.sampled.fleetCostPerKmGel)}
-          note={t("fleetCostNote")}
-        >
-          <SampleNote note={t(FLEET_COST_NOTE)} className="mt-2.5" />
-        </MetricTile>
       </div>
 
       <MasterDetailSplit
@@ -469,19 +407,10 @@ export function VehiclesScreen({ data }: VehiclesScreenProps) {
                 ) : null}
 
                 <div className="flex flex-wrap items-center gap-x-3.5 gap-y-2">
-                  {/* The legend for the accent dots on the Odometer and Cost/km
-                      headers. Dropped in the split state along with those two
-                      columns, so it never explains a marker that is not shown. */}
-                  {hasVehicles && !split ? (
-                    <SampleNote
-                      label={t("odometerCostKm")}
-                      note={t(SAMPLED_COLUMNS_NOTE)}
-                    />
-                  ) : null}
                   {/* Body font, not mono: the design's `fleetCountLabel` is one
                       plain 12px muted string, and mono here would set two row
-                      counts in the typeface this screen reserves for plates,
-                      odometers and money. */}
+                      counts in the typeface this screen reserves for plates
+                      and years. */}
                   {hasVehicles ? (
                     <span className="text-xs text-muted-foreground">
                       {t("shownCount", {
@@ -540,22 +469,6 @@ export function VehiclesScreen({ data }: VehiclesScreenProps) {
                       <TableHead role="columnheader" className={HEAD_CLASSES}>
                         {tShared("assigned")}
                       </TableHead>
-                      {split ? null : (
-                        <>
-                          <TableHead
-                            role="columnheader"
-                            className={HEAD_CLASSES}
-                          >
-                            <SampledHead>{tShared("odometer")}</SampledHead>
-                          </TableHead>
-                          <TableHead
-                            role="columnheader"
-                            className={HEAD_CLASSES}
-                          >
-                            <SampledHead>{t("costKm")}</SampledHead>
-                          </TableHead>
-                        </>
-                      )}
                       <TableHead
                         role="columnheader"
                         className={cn(HEAD_CLASSES, "text-right")}
@@ -624,33 +537,6 @@ export function VehiclesScreen({ data }: VehiclesScreenProps) {
                           >
                             {assigned}
                           </TableCell>
-
-                          {split ? null : (
-                            <>
-                              <TableCell
-                                role="cell"
-                                className={cn(
-                                  CELL_CLASSES,
-                                  "truncate font-price text-[13px]",
-                                )}
-                              >
-                                {formatOdometer(vehicle.sampled.odometerKm)}
-                              </TableCell>
-                              {/* No size of its own — the design sets only
-                                  family and weight here, so this cell inherits
-                                  the row's 14px and reads a shade larger than
-                                  the odometer beside it, which does carry 13px. */}
-                              <TableCell
-                                role="cell"
-                                className={cn(
-                                  CELL_CLASSES,
-                                  "truncate font-price font-semibold",
-                                )}
-                              >
-                                {formatGel(vehicle.sampled.costPerKmGel)}
-                              </TableCell>
-                            </>
-                          )}
 
                           {/* One pill, right-aligned — the design's status cell
                               is a single span. Text alignment rather than a

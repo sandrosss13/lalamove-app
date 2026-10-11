@@ -13,9 +13,7 @@ import {
 } from "@/components/driver-hub/hub-primitives";
 import {
   EMPTY_VALUE,
-  formatGel,
   formatKilograms,
-  formatOdometer,
 } from "@/components/driver-hub/screens/vehicles-format";
 import type { HubAccountKind } from "@/lib/dashboard/hub/account";
 import type { HubVehicle } from "@/lib/dashboard/hub/vehicles";
@@ -176,15 +174,13 @@ const REMOVE_UNARMED_NOTE = "removeUnarmedNote";
  */
 
 /**
- * Why the odometer, fuel, weekly job count, operating cities and running costs
- * are placeholders. Transcribed from the retirement notes in
- * `src/lib/dashboard/hub/sample.ts`, so each badge's tooltip names the schema
- * change that would make the figure real.
+ * Why the weekly job count and operating cities are placeholders. Transcribed
+ * from the retirement notes in `src/lib/dashboard/hub/sample.ts`, so each
+ * badge's tooltip names the schema change that would make the figure real.
  */
 const SAMPLE_NOTES = {
   specs: "sampleNoteSpecs",
   cities: "sampleNoteCities",
-  costs: "sampleNoteCosts",
 } as const;
 
 /** The grey pill the design uses for a class and for each operating city. */
@@ -203,7 +199,7 @@ export type VehiclesDetailPanelProps = {
   onRemoved: () => void;
 };
 
-/** One box of the 2×2 spec grid. */
+/** One box of the spec grid. */
 function SpecBox({
   label,
   value,
@@ -330,12 +326,6 @@ export function VehiclesDetailPanel({
           label={tShared("payload")}
           value={formatKilograms(payloadKg)}
         />
-        <SpecBox label={tShared("fuel")} value={vehicle.sampled.fuel} sampled />
-        <SpecBox
-          label={tShared("odometer")}
-          value={formatOdometer(vehicle.sampled.odometerKm)}
-          sampled
-        />
         <SpecBox
           label={t("jobsWeek")}
           value={vehicle.sampled.jobsThisWeek}
@@ -363,32 +353,6 @@ export function VehiclesDetailPanel({
             </Badge>
           ))
         )}
-      </div>
-
-      <div className="mt-5 flex flex-wrap items-center gap-2">
-        <h3 className="text-[13px] font-semibold">
-          {t("runningCostsThisMonth")}
-        </h3>
-        <SampleNote note={t(SAMPLE_NOTES.costs)} />
-      </div>
-      <dl className="mt-0.5">
-        {vehicle.sampled.runningCosts.map((cost) => (
-          <div
-            key={cost.label}
-            className="flex justify-between gap-3 border-t border-muted py-[9px] text-[13px]"
-          >
-            <dt className="text-muted-foreground">{cost.label}</dt>
-            <dd className="font-price font-medium">
-              {formatGel(cost.amountGel)}
-            </dd>
-          </div>
-        ))}
-      </dl>
-      <div className="mt-1.5 flex items-baseline justify-between gap-3 border-t border-border pt-3">
-        <span className="text-sm font-semibold">{t("costPerKm")}</span>
-        <span className="font-price text-lg font-semibold">
-          {formatGel(vehicle.sampled.costPerKmGel)}
-        </span>
       </div>
 
       <div className="mt-[22px] border-t border-border pt-[18px]">

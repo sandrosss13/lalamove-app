@@ -349,11 +349,6 @@
     "ka": "expiresAt უნდა იყოს თარიღი YYYY-MM-DD ფორმატში.",
     "_source": "src/app/api/admin/vehicle-documents/[id]/route.ts"
   },
-  "adminVehicleDocuments.expiryDateRequired": {
-    "en": "An expiry date is required to approve an insurance document.",
-    "ka": "დაზღვევის დოკუმენტის დასამტკიცებლად აუცილებელია ვადის გასვლის თარიღი.",
-    "_source": "src/app/api/admin/vehicle-documents/[id]/route.ts"
-  },
   "adminWallet.adjustmentAmountInvalid": {
     "en": "amountTetri must be a non-zero whole number of tetri.",
     "ka": "amountTetri უნდა იყოს თეთრების ნულისგან განსხვავებული მთელი რაოდენობა.",
@@ -1974,9 +1969,9 @@
     "ka": "ეს ატვირთვა ამ ავტომობილის დოკუმენტს არ ეკუთვნის.",
     "_source": "src/app/api/driver-profile/vehicles/[id]/documents/route.ts"
   },
-  "vehicleDocuments.typeMustBeRegistrationOrInsurance": {
-    "en": "type must be REGISTRATION or INSURANCE.",
-    "ka": "type უნდა იყოს REGISTRATION ან INSURANCE.",
+  "vehicleDocuments.typeMustBeRegistration": {
+    "en": "type must be REGISTRATION.",
+    "ka": "type უნდა იყოს REGISTRATION.",
     "_source": "src/app/api/driver-profile/vehicles/[id]/documents/route.ts"
   },
   "wallet.amountMustBeWholeTetri": {

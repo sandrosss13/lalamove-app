@@ -9,8 +9,8 @@
  * afterwards:
  *
  * - The web hub's `sampled` sub-objects — the header's invented notifications,
- *   each vehicle's invented odometer/insurance/running costs, the fleet
- *   cost-per-km tile — are placeholder figures the browser labels as samples
+ *   each vehicle's invented operating cities, weekly job count and inspection
+ *   date — are placeholder figures the browser labels as samples
  *   (`src/lib/dashboard/hub/sample.ts`). The app has no such label, so they
  *   must not reach it. They are absent here by never being copied, and a new
  *   sampled field added to a loader stays absent without anyone remembering to
@@ -439,11 +439,8 @@ function toVehiclesItem(
 /**
  * `GET /api/dashboard/hub/vehicles`.
  *
- * Two `sampled` blocks are dropped: each vehicle's (odometer, cost per km,
- * fuel, operating cities, jobs this week, insurance and inspection dates,
- * running costs — none of which has a column) and the tiles' fleet cost per km.
- * The sampled insurance date in particular must not be confused with the real
- * one, which arrives in `documents`.
+ * Each vehicle's `sampled` block is dropped (operating cities, jobs this week,
+ * inspection date — none of which has a column).
  *
  * `ownedVehicleDocuments` holds the document slots of the vehicles the reader
  * **owns as a driver**, keyed by vehicle id. A vehicle absent from it — a

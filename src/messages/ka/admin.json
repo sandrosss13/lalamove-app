@@ -299,7 +299,6 @@
     "expired": "ვადაგასული",
     "expiringSoon": "ვადა მალე გადის",
     "expiryDate": "ვადის გასვლის თარიღი",
-    "expiryHintInsurance": "ვადის გასვლის თარიღი ამოიკითხეთ პოლისიდან. დაზღვევისთვის სავალდებულოა.",
     "expiryHintRegistration": "არასავალდებულოა. დატოვეთ ცარიელი, თუ მოწმობას ვადა არ აქვს.",
     "firstUpload": "პირველი ატვირთვა",
     "flagWithThisReason": "მონიშვნა ამ მიზეზით",
@@ -315,7 +314,6 @@
     "reviewedBy": "განიხილა: {name}",
     "statusFlagged": "მონიშნული",
     "thisUpload": "ეს ფაილი",
-    "typeInsurance": "დაზღვევა (MTPL)",
     "typeRegistration": "ავტომობილის სარეგისტრაციო მოწმობა",
     "updateExpiryDate": "ვადის თარიღის განახლება",
     "uploaded": "ატვირთულია"

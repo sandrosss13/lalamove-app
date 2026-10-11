@@ -944,7 +944,7 @@ model Vehicle {
   /// which does not typecheck against an array.
   applicationVehicle BusinessApplicationVehicle?
 
-  /// Registration and insurance uploads, every round of them — see
+  /// Registration uploads, every round of them — see
   /// `VehicleDocument` for which rows are live.
   documents VehicleDocument[]
 
@@ -962,12 +962,12 @@ model Vehicle {
   @@index([companyId])
 }
 
-/// The compliance documents a vehicle carries after onboarding. Onboarding
-/// collects neither, so a vehicle with no row for a type is the ordinary
+/// The compliance documents a vehicle carries after onboarding — only the
+/// registration certificate (vehicle insurance is not collected). Onboarding
+/// does not collect it, so a vehicle with no row for a type is the ordinary
 /// starting state ("missing"), not a fault.
 enum VehicleDocumentType {
   REGISTRATION
-  INSURANCE
 }
 
 /// The back office's verdict on one uploaded vehicle document. The same three
@@ -978,7 +978,7 @@ enum VehicleDocumentStatus {
   FLAGGED
 }
 
-/// One uploaded registration or insurance file for a vehicle — one row per
+/// One uploaded registration file for a vehicle — one row per
 /// upload, never overwritten, so a vehicle's rows are its document history.
 ///
 /// A (vehicle, type) pair has up to two **live** rows (`supersededAt: null`):
@@ -989,8 +989,8 @@ enum VehicleDocumentStatus {
 ///   back office has not accepted (yet).
 ///
 /// They are separate rows on purpose: a renewal must not displace the document
-/// on file until a reviewer has accepted it, or a driver who uploads next
-/// year's policy a week early would be left with no valid insurance for as long
+/// on file until a reviewer has accepted it, or a driver who uploads a renewed
+/// certificate early would be left with no valid document on file for as long
 /// as the review queue is. Approving the submission supersedes the previous
 /// on-file row in the same transaction; uploading again supersedes the previous
 /// submission. Both "at most one" rules are partial unique indexes added by hand
@@ -1000,10 +1000,11 @@ enum VehicleDocumentStatus {
 ///
 /// `expiresAt` is written by the reviewer at approval, never by the driver: the
 /// app's renew flow captures a photograph and nothing else, and the date that
-/// decides whether a vehicle is insured should be one a member of staff read
-/// off the document rather than one the interested party typed. Null means "no
-/// expiry" (a registration certificate has none) or "not reviewed yet". Stored
-/// at UTC midnight of the calendar date, like `DriverLicence.expiresAt`.
+/// decides whether a document is still valid should be one a member of staff
+/// read off the document rather than one the interested party typed. Null
+/// means "no expiry" (a registration certificate has none) or "not reviewed
+/// yet". Stored at UTC midnight of the calendar date, like
+/// `DriverLicence.expiresAt`.
 ///
 /// `storagePath` is an object path in the private `driver-documents` bucket —
 /// the bucket the onboarding documents already live in, under a `vehicles/`

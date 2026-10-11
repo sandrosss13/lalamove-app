@@ -299,7 +299,6 @@
     "expired": "Expired",
     "expiringSoon": "Expiring soon",
     "expiryDate": "Expiry date",
-    "expiryHintInsurance": "Read the expiry date off the policy. Required for insurance.",
     "expiryHintRegistration": "Optional. Leave empty if the certificate has no expiry date.",
     "firstUpload": "First upload",
     "flagWithThisReason": "Flag with this reason",
@@ -315,7 +314,6 @@
     "reviewedBy": "Reviewed by {name}",
     "statusFlagged": "Flagged",
     "thisUpload": "This upload",
-    "typeInsurance": "Insurance (MTPL)",
     "typeRegistration": "Vehicle registration",
     "updateExpiryDate": "Update expiry date",
     "uploaded": "Uploaded"

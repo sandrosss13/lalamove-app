@@ -25,7 +25,7 @@ export const dynamic = "force-dynamic";
  * and on the tiles — is not returned; see `toHubVehiclesResponse`.
  *
  * Each vehicle the reader owns as a driver also carries `documents`: its
- * registration and insurance with status, expiry and flag reason. A company
+ * registration with status, expiry and flag reason. A company
  * vehicle — a roster driver's, or any of a company account's — carries
  * `documents: null`.
  */

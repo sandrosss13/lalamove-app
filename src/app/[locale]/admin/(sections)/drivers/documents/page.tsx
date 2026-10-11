@@ -82,8 +82,8 @@ const STATUS_CHIP_CLASSES: Record<VehicleDocumentStatus, string> = {
 };
 
 /**
- * `/admin/drivers/documents` — the review queue for vehicle registration and
- * insurance: every live upload, filterable by verdict, opening the panel that
+ * `/admin/drivers/documents` — the review queue for vehicle registration
+ * certificates: every live upload, filterable by verdict, opening the panel that
  * approves it with an expiry date or flags it with a reason.
  *
  * A client component reading the list endpoint, matching the other admin

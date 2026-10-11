@@ -242,7 +242,7 @@ type DocumentReview =
  * deliberately uses no validation library).
  *
  * `expiresAt` is `YYYY-MM-DD`, or null/absent/blank for "no expiry"; whether
- * that is acceptable for this document type is decided later, against the row.
+ * a date is acceptable (not in the past) is decided later, against "today".
  */
 function parseReviewBody(
   body: unknown,
@@ -312,9 +312,8 @@ type ReviewOutcome =
  * - `{ action: "approve", expiresAt? }` — accepts the upload **and records its
  *   expiry date**. The reviewer is who writes that date, not the driver: the
  *   app's renew flow captures a photograph and nothing else, and the date that
- *   decides whether a vehicle is insured should be read off the document by
- *   staff. Required for insurance, optional for a registration, never in the
- *   past. The slot's previous document on file is superseded in the same
+ *   decides whether a document is still valid should be read off it by staff.
+ *   Optional (a registration certificate has none), never in the past. The slot's previous document on file is superseded in the same
  *   transaction — that moment, not the upload, is when a renewal takes over.
  *   On a document that is already approved this corrects its expiry date.
  * - `{ action: "flag", reason }` — refuses the upload. The document on file,
@@ -445,18 +444,11 @@ export async function PATCH(
       };
     }
 
-    const refusal = expiryRefusalFor(
-      document.type,
-      review.expiresAt,
-      documentsToday(now),
-    );
+    const refusal = expiryRefusalFor(review.expiresAt, documentsToday(now));
 
     if (refusal !== null) {
       return {
-        error:
-          refusal === "EXPIRY_REQUIRED"
-            ? t("errors.adminVehicleDocuments.expiryDateRequired")
-            : t("errors.adminVehicleDocuments.expiryDateInPast"),
+        error: t("errors.adminVehicleDocuments.expiryDateInPast"),
         status: 400,
       };
     }

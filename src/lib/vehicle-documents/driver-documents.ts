@@ -1,6 +1,6 @@
 /**
  * A driver's view of their documents, read from the database: the
- * registration and insurance of each vehicle they own, and the attention
+ * registration of each vehicle they own, and the attention
  * summary the hub shows on Home.
  *
  * Server-only (Prisma). Every decision about what the rows *mean* is
@@ -180,7 +180,7 @@ export async function getVehicleDocuments(
 
 /**
  * The "documents needing attention" summary for a hub account: the driver's
- * licence, and the registration and insurance of each vehicle they own.
+ * licence, and the registration of each vehicle they own.
  *
  * Empty for a `BUSINESS` account (`driverProfileId: null`) — a company has no
  * driving licence and its fleet's documents are not collected here.

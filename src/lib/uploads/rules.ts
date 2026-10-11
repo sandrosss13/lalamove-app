@@ -44,10 +44,11 @@ export const SIGNED_UPLOAD_URL_TTL_MS = 2 * 60 * 60 * 1000;
 export const MAX_PENDING_POD_UPLOADS = 8;
 
 /**
- * Outstanding uploads allowed per vehicle. A vehicle has two documents; six is
- * each of them attempted three times inside one URL lifetime.
+ * Outstanding uploads allowed per vehicle. A vehicle has one document (its
+ * registration); three is that document attempted three times inside one URL
+ * lifetime.
  */
-export const MAX_PENDING_VEHICLE_DOCUMENT_UPLOADS = 6;
+export const MAX_PENDING_VEHICLE_DOCUMENT_UPLOADS = 3;
 
 /** When a URL issued at `now` stops being usable. */
 export function pendingUploadExpiresAt(now: Date): Date {

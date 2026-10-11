@@ -300,15 +300,9 @@ const vehicles: HubVehiclesData = {
       dispatchable: false,
       createdAt: "2026-07-01T00:00:00.000Z",
       sampled: {
-        odometerKm: 84210,
-        costPerKmGel: 0.42,
-        fuel: "Diesel",
         operatingCities: ["Tbilisi"],
         jobsThisWeek: 9,
-        insuranceStatus: "Valid",
-        insuranceDue: "2027-01-01",
         inspectionDue: "2027-02-01",
-        runningCosts: [{ label: "Fuel", amountGel: 672 }],
       },
     },
   ],
@@ -319,7 +313,6 @@ const vehicles: HubVehiclesData = {
     ],
     onTheRoadCount: 1,
     unassignedCount: 0,
-    sampled: { fleetCostPerKmGel: 0.4 },
   },
 };
 
@@ -365,12 +358,15 @@ const companySettings: HubAccountSettings = {
 
 const DOCUMENTS_TODAY = "2026-10-02";
 
-/** An insurance on file expiring in 20 days, and a flagged registration. */
+/**
+ * A registration on file expiring in 20 days, and a renewal of it the reviewer
+ * flagged.
+ */
 const documentSlots: VehicleDocumentSlot[] = summarizeVehicleDocuments(
   [
     {
-      id: "doc_insurance",
-      type: "INSURANCE",
+      id: "doc_registration_on_file",
+      type: "REGISTRATION",
       status: "APPROVED",
       flagReason: null,
       expiresAt: "2026-10-22",
@@ -606,26 +602,16 @@ test.describe("toHubMeResponse", () => {
       documentsAttention,
     );
 
-    expect(attention.actionRequiredCount).toBe(2);
+    expect(attention.actionRequiredCount).toBe(1);
     expect(attention.items).toEqual([
       {
         document: "VEHICLE_REGISTRATION",
         reason: "FLAGGED",
         vehicleId: "veh_1",
         plateNumber: "AA-001-AA",
-        expiresAt: null,
-        daysUntilExpiry: null,
-        flagReason: "Photo is blurry",
-        underReview: false,
-      },
-      {
-        document: "VEHICLE_INSURANCE",
-        reason: "EXPIRING",
-        vehicleId: "veh_1",
-        plateNumber: "AA-001-AA",
         expiresAt: "2026-10-22",
         daysUntilExpiry: 20,
-        flagReason: null,
+        flagReason: "Photo is blurry",
         underReview: false,
       },
     ]);
@@ -633,7 +619,7 @@ test.describe("toHubMeResponse", () => {
 });
 
 test.describe("vehicle documents and support messages", () => {
-  test("a vehicle the driver owns carries both document slots, in order", () => {
+  test("a vehicle the driver owns carries its registration slot", () => {
     const [owned] = toHubVehiclesResponse(
       vehicles,
       ownedVehicleDocuments,
@@ -641,30 +627,23 @@ test.describe("vehicle documents and support messages", () => {
 
     expect(owned?.documents?.map((document) => document.type)).toEqual([
       "REGISTRATION",
-      "INSURANCE",
     ]);
     expect(owned?.documents?.[0]).toEqual({
       type: "REGISTRATION",
       state: "FLAGGED",
-      onFile: null,
+      onFile: {
+        id: "doc_registration_on_file",
+        expiresAt: "2026-10-22",
+        daysUntilExpiry: 20,
+        validity: "EXPIRING",
+        approvedAt: "2026-09-02T08:00:00.000Z",
+      },
       submission: {
         id: "doc_registration",
         status: "FLAGGED",
         flagReason: "Photo is blurry",
         uploadedAt: "2026-09-30T08:00:00.000Z",
       },
-    });
-    expect(owned?.documents?.[1]).toEqual({
-      type: "INSURANCE",
-      state: "EXPIRING",
-      onFile: {
-        id: "doc_insurance",
-        expiresAt: "2026-10-22",
-        daysUntilExpiry: 20,
-        validity: "EXPIRING",
-        approvedAt: "2026-09-02T08:00:00.000Z",
-      },
-      submission: null,
     });
   });
 
@@ -729,21 +708,16 @@ test.describe("toHubVehiclesResponse", () => {
     const text = JSON.stringify(body);
 
     for (const invented of [
-      "odometerKm",
-      "costPerKmGel",
+      "sampled",
       "operatingCities",
       "jobsThisWeek",
-      "insuranceStatus",
-      "insuranceDue",
       "inspectionDue",
-      "runningCosts",
-      "84210",
     ]) {
       expect(text, `${invented} must be absent`).not.toContain(invented);
     }
   });
 
-  test("drops the tiles' sampled fleet cost per km", () => {
+  test("carries the real tiles only", () => {
     expect(body.tiles).toEqual({
       vehicleCount: 1,
       classBreakdown: [
@@ -752,7 +726,6 @@ test.describe("toHubVehiclesResponse", () => {
       onTheRoadCount: 1,
       unassignedCount: 0,
     });
-    expect(JSON.stringify(body)).not.toContain("fleetCostPerKmGel");
   });
 
   test("keeps every real vehicle field", () => {

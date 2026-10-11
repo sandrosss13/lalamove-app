@@ -98,7 +98,7 @@ async function parseUpdateVehicleBody(
  * ## What goes with it, and in what order
  *
  * A vehicle owns files in two buckets: its photos (public `vehicle-photos`)
- * and its registration/insurance uploads (private `driver-documents`, under
+ * and its registration uploads (private `driver-documents`, under
  * `vehicles/<id>/…`) — every `VehicleDocument` row's object, superseded ones
  * included, plus any upload that was issued a URL and never registered
  * (`PendingUpload`). The rows cascade with the vehicle; the objects do not,
@@ -115,8 +115,8 @@ async function parseUpdateVehicleBody(
  *   and all its rows are gone, or nothing is.
  * - Only after that commit are the objects removed, best-effort. The other
  *   order is the dangerous one: files deleted and then a failed (or rolled
- *   back) database delete would leave a live vehicle whose approved insurance
- *   points at nothing. An object without a row is clutter; a row without its
+ *   back) database delete would leave a live vehicle whose approved
+ *   registration points at nothing. An object without a row is clutter; a row without its
  *   object is a broken record.
  * - If Storage fails, the request still answers 200 — the vehicle *is* removed,
  *   and telling the driver otherwise would invite a retry that can only 404 —

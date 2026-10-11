@@ -1,6 +1,6 @@
 /**
- * Supabase Storage access for vehicle documents — the registration and
- * insurance files a driver uploads for a vehicle they own. Server-only: it
+ * Supabase Storage access for vehicle documents — the registration files a
+ * driver uploads for a vehicle they own. Server-only: it
  * authenticates with the service role key.
  *
  * These live in the **same private bucket as the onboarding documents**

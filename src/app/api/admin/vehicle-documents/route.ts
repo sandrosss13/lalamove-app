@@ -81,7 +81,7 @@ function parseStatusFilter(raw: string | null): VehicleDocumentStatus | null {
 
 /**
  * GET /api/admin/vehicle-documents?status=&page= — the paginated queue behind
- * `/admin/drivers/documents`: every **live** registration and insurance upload,
+ * `/admin/drivers/documents`: every **live** registration upload,
  * newest first.
  *
  * Superseded rows are history and are excluded unconditionally; they are shown

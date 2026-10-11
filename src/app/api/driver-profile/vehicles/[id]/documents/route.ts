@@ -65,12 +65,12 @@ async function documentsResponse(
 }
 
 /**
- * GET /api/driver-profile/vehicles/[id]/documents — the registration and
- * insurance of one vehicle the driver owns, with status, expiry and flag
- * reason, plus every upload ever registered for it.
+ * GET /api/driver-profile/vehicles/[id]/documents — the registration of one
+ * vehicle the driver owns, with status, expiry and flag reason, plus every
+ * upload ever registered for it.
  *
- * "Missing" is an ordinary answer here, not an error: onboarding collects
- * neither document, so every existing vehicle starts with both slots empty.
+ * "Missing" is an ordinary answer here, not an error: onboarding does not
+ * collect it, so every existing vehicle starts with its slot empty.
  */
 export async function GET(
   request: Request,
@@ -218,8 +218,8 @@ async function writeSubmission(
 }
 
 /**
- * POST /api/driver-profile/vehicles/[id]/documents — record a registration or
- * insurance file the app has just uploaded to Storage.
+ * POST /api/driver-profile/vehicles/[id]/documents — record a registration
+ * file the app has just uploaded to Storage.
  *
  * Body: `{ type, path }`, where `path` came from `POST …/documents/upload-url`.
  * The bytes never pass through here, and no expiry date is accepted: the
@@ -261,7 +261,7 @@ export async function POST(
   const { type } = fields;
   if (!isVehicleDocumentType(type)) {
     return vehicleDocumentError(
-      t("errors.vehicleDocuments.typeMustBeRegistrationOrInsurance"),
+      t("errors.vehicleDocuments.typeMustBeRegistration"),
       "INVALID_REQUEST",
       400,
     );

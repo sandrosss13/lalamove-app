@@ -4,7 +4,7 @@
  * Six screens show status words on `Badge` — job states, document validity,
  * vehicle and roster lifecycle — and the design gives all of them exactly five
  * colour pairs. Keeping the map here rather than per screen means a "Completed"
- * job and a "Valid" insurance policy cannot drift apart, and a new screen never
+ * job and a "Valid" registration cannot drift apart, and a new screen never
  * has to invent a sixth tone.
  *
  * The classes are Tailwind arbitrary values rather than global tokens, matching
