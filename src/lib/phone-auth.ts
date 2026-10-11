@@ -14,8 +14,10 @@
  * The plugin also registers a password-based sign-in and a password reset by
  * phone. Neither has a screen, so both are refused (`BLOCKED_PHONE_PLUGIN_PATHS`).
  *
- * How the code is delivered — a real SMS, the development test code, or not at
- * all — is decided by `@/lib/sms/otp-delivery`.
+ * How the code is delivered — a real SMS, the development test code, the
+ * staging test code for an allowlisted number, or not at all — is decided per
+ * number by `@/lib/sms/otp-delivery`. This module is the only reader of the
+ * environment variables behind that decision (`otpDeliveryEnvironment`).
  */
 
 import { APIError } from "better-auth/api";
@@ -29,8 +31,11 @@ import { isE164PhoneNumber, normalizePhoneNumber } from "@/lib/phone-number";
 import { checkRateLimit } from "@/lib/rate-limit";
 import {
   PHONE_OTP_LENGTH,
+  resolveDevOtpCode,
   resolveOtpDelivery,
+  resolveStagingOtpCode,
   type OtpDelivery,
+  type OtpDeliveryEnvironment,
 } from "@/lib/sms/otp-delivery";
 import { getSmsSender } from "@/lib/sms/sender";
 
@@ -198,16 +203,40 @@ export function isPhonePlaceholderEmail(email: unknown): boolean {
 }
 
 /**
- * Read per call rather than once at import, so the answer always reflects the
- * running process. `process.env.NODE_ENV` is inlined by Next at build time,
- * which makes the test-code branch dead code in a production bundle.
+ * `STAGING_PHONE_OTP_NUMBERS` as E.164 numbers: comma-separated, each
+ * normalised the same way a request body's number is, so `+995 555 12 34 56`
+ * in the variable matches `+995555123456` in a request. Entries that are not a
+ * phone number are dropped.
  */
-export function currentOtpDelivery(): OtpDelivery {
-  return resolveOtpDelivery({
+function parseStagingPhoneOtpNumbers(value: string | undefined): string[] {
+  return (value ?? "")
+    .split(",")
+    .map((entry) => normalizePhoneNumber(entry))
+    .filter((phoneNumber): phoneNumber is string => phoneNumber !== null);
+}
+
+/**
+ * The single reader of every variable the delivery decision depends on. Read
+ * per call rather than once at import, so the answer always reflects the
+ * running process. `process.env.NODE_ENV` is inlined by Next at build time,
+ * which makes the development-code branch dead code in a production bundle.
+ */
+function otpDeliveryEnvironment(): OtpDeliveryEnvironment {
+  return {
     nodeEnv: process.env.NODE_ENV,
     devPhoneOtpCode: process.env.DEV_PHONE_OTP_CODE,
+    vercelEnv: process.env.VERCEL_ENV,
+    stagingPhoneOtpCode: process.env.STAGING_PHONE_OTP_CODE,
+    stagingPhoneOtpNumbers: parseStagingPhoneOtpNumbers(
+      process.env.STAGING_PHONE_OTP_NUMBERS,
+    ),
     hasSmsProvider: getSmsSender() !== null,
-  });
+  };
+}
+
+/** How a code for this (already normalised) number is delivered right now. */
+export function currentOtpDelivery(phoneNumber: string): OtpDelivery {
+  return resolveOtpDelivery(otpDeliveryEnvironment(), phoneNumber);
 }
 
 function smsNotConfigured(): APIError {
@@ -217,9 +246,12 @@ function smsNotConfigured(): APIError {
   });
 }
 
-/** Refuses the request unless a code can actually be delivered. */
-export function assertOtpDeliveryConfigured(): void {
-  if (currentOtpDelivery().mode === "UNCONFIGURED") {
+/**
+ * Refuses the request unless a code can actually be delivered to this
+ * (already normalised) number.
+ */
+export function assertOtpDeliveryConfigured(phoneNumber: string): void {
+  if (currentOtpDelivery(phoneNumber).mode === "UNCONFIGURED") {
     throw smsNotConfigured();
   }
 }
@@ -390,21 +422,35 @@ export const PHONE_AUTH_RATE_LIMIT_RULES = {
 /* Plugin options                                                            */
 /* ------------------------------------------------------------------------- */
 
+/** Whether this delivery is one of the two fixed test codes (dev or staging). */
+function isFixedCodeDelivery(
+  delivery: OtpDelivery,
+): delivery is Extract<
+  OtpDelivery,
+  { mode: "DEV_FIXED_CODE" | "STAGING_TEST_CODE" }
+> {
+  return (
+    delivery.mode === "DEV_FIXED_CODE" || delivery.mode === "STAGING_TEST_CODE"
+  );
+}
+
 /**
- * Test-mode verification: the configured code is the only one accepted, and
+ * Fixed-code verification: the configured code is the only one accepted, and
  * only for a number that was sent a code which has not expired — so the app
  * exercises the same send-then-verify sequence it will in production.
  *
- * Re-resolves the delivery mode on every call instead of trusting that it was
- * installed: if this ever runs outside test mode it accepts nothing.
+ * Re-resolves the delivery mode for this number on every call instead of
+ * trusting that it was installed: for a number not in a fixed-code mode (an
+ * unlisted number on staging, any number once a provider exists) it accepts
+ * nothing.
  */
-const verifyDevOtp: NonNullable<PhoneNumberOptions["verifyOTP"]> = async (
+const verifyFixedOtp: NonNullable<PhoneNumberOptions["verifyOTP"]> = async (
   { phoneNumber, code },
   ctx,
 ) => {
-  const delivery = currentOtpDelivery();
+  const delivery = currentOtpDelivery(phoneNumber);
 
-  if (delivery.mode !== "DEV_FIXED_CODE" || !ctx) {
+  if (!isFixedCodeDelivery(delivery) || !ctx) {
     return false;
   }
 
@@ -419,9 +465,26 @@ const verifyDevOtp: NonNullable<PhoneNumberOptions["verifyOTP"]> = async (
 };
 
 /**
+ * Whether this process booted where a fixed code could apply to some number:
+ * development test mode, or staging with a well-formed code, a non-empty
+ * allowlist and no provider.
+ */
+function fixedCodeMayApply(): boolean {
+  const environment = otpDeliveryEnvironment();
+
+  return (
+    resolveDevOtpCode(environment) !== null ||
+    resolveStagingOtpCode(environment) !== null
+  );
+}
+
+/**
  * `verifyOTP` replaces the plugin's own check entirely, so it is installed
- * **only** when this process booted in test mode. In every other process the
- * option is absent and the plugin verifies against the random code it stored.
+ * **only** when this process booted where a fixed code could apply. In every
+ * other process the option is absent and the plugin verifies against the
+ * random code it stored. Where it is installed, every number not in a
+ * fixed-code mode is refused before reaching it (`assertOtpDeliveryConfigured`),
+ * and `verifyFixedOtp` refuses it again regardless.
  */
 export const phoneNumberPluginOptions: PhoneNumberOptions = {
   otpLength: PHONE_OTP_LENGTH,
@@ -437,13 +500,14 @@ export const phoneNumberPluginOptions: PhoneNumberOptions = {
   },
 
   /**
-   * The code is never logged, in any mode. In test mode it is simply dropped:
-   * the plugin has stored its random code, and `verifyDevOtp` ignores it.
+   * The code is never logged, in any mode. In either fixed-code mode it is
+   * simply dropped: the plugin has stored its random code, and
+   * `verifyFixedOtp` ignores it.
    */
   sendOTP: async ({ phoneNumber, code }) => {
-    const delivery = currentOtpDelivery();
+    const delivery = currentOtpDelivery(phoneNumber);
 
-    if (delivery.mode === "DEV_FIXED_CODE") {
+    if (isFixedCodeDelivery(delivery)) {
       return;
     }
 
@@ -459,7 +523,5 @@ export const phoneNumberPluginOptions: PhoneNumberOptions = {
     });
   },
 
-  ...(currentOtpDelivery().mode === "DEV_FIXED_CODE"
-    ? { verifyOTP: verifyDevOtp }
-    : {}),
+  ...(fixedCodeMayApply() ? { verifyOTP: verifyFixedOtp } : {}),
 };

@@ -2125,9 +2125,10 @@ export type PhoneVerifyResponse = {
  *   `code` is not six digits.
  * - `INVALID_PHONE_NUMBER` (400) — not a phone number.
  * - `INVALID_OTP` (400) — wrong code. On a backend running in development
- *   test mode (the fixed `DEV_PHONE_OTP_CODE`) this is also the answer to every
- *   case the next three codes describe — that mode never returns them — so
- *   treat an `INVALID_OTP` there as "wrong code, or send a new one".
+ *   test mode (the fixed `DEV_PHONE_OTP_CODE`), or for an allowlisted number on
+ *   staging (the fixed `STAGING_PHONE_OTP_CODE`), this is also the answer to
+ *   every case the next three codes describe — those modes never return them —
+ *   so treat an `INVALID_OTP` there as "wrong code, or send a new one".
  * - `OTP_NOT_FOUND` (400) — no code is pending for this number: none was sent,
  *   or it was already used (including by a refused sign-in). Send a new one.
  *   Real-SMS mode only.

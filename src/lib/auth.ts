@@ -564,14 +564,16 @@ export const auth = betterAuth({
       }
 
       if (ctx.path === PHONE_SEND_OTP_PATH || ctx.path === PHONE_VERIFY_PATH) {
-        // Fail closed first: with no way to deliver a code, nothing below is
-        // worth doing and nothing may be accepted.
-        assertOtpDeliveryConfigured();
-
         const { phoneNumber: phone, code } = parsePhoneAuthBody(
           ctx.path,
           ctx.body,
         );
+
+        // Fail closed before anything else touches the number: with no way to
+        // deliver a code to it, nothing below is worth doing and nothing may
+        // be accepted. Delivery is decided per number (the staging test code
+        // covers only an allowlist), hence after parsing.
+        assertOtpDeliveryConfigured(phone);
 
         enforcePhoneOtpLimits(ctx.path, phone, ctx.request);
 
