@@ -95,7 +95,6 @@ const SAMPLE_COPY_KEYS: ReadonlyMap<string, string> = new Map([
     "dashboard.sample.3MoreJobsBySundayFor",
   ],
   ["Driver licence (GE)", "dashboard.sample.driverLicenceGe"],
-  ["Criminal record extract", "dashboard.sample.criminalRecordExtract"],
   ["Vehicles and drivers", "dashboard.sample.vehiclesAndDrivers"],
   [
     "Assigns jobs inside their zones",
@@ -730,7 +729,6 @@ export const SAMPLE_DRIVER_VERIFICATION_FALLBACK: readonly SampleVerificationRow
   [
     { label: "Driver licence (GE)", status: "In review" },
     { label: "Vehicle registration", status: "In review" },
-    { label: "Criminal record extract", status: "In review" },
   ];
 
 /**
@@ -766,7 +764,6 @@ export const SAMPLE_DRIVER_FACTS: Record<string, SampleDriverFacts> = {
     verification: [
       { label: "Driver licence (GE)", status: "Verified" },
       { label: "Vehicle registration", status: "Verified" },
-      { label: "Criminal record extract", status: "Verified" },
     ],
   },
   "GE-88301": {
@@ -775,7 +772,6 @@ export const SAMPLE_DRIVER_FACTS: Record<string, SampleDriverFacts> = {
     verification: [
       { label: "Driver licence (GE)", status: "Verified" },
       { label: "Vehicle registration", status: "Verified" },
-      { label: "Criminal record extract", status: "Verified" },
     ],
   },
   "GE-87940": {
@@ -784,7 +780,6 @@ export const SAMPLE_DRIVER_FACTS: Record<string, SampleDriverFacts> = {
     verification: [
       { label: "Driver licence (GE)", status: "Verified" },
       { label: "Vehicle registration", status: "Verified" },
-      { label: "Criminal record extract", status: "Verified" },
     ],
   },
   "GE-88422": {
@@ -793,18 +788,16 @@ export const SAMPLE_DRIVER_FACTS: Record<string, SampleDriverFacts> = {
     verification: [
       { label: "Driver licence (GE)", status: "Verified" },
       { label: "Vehicle registration", status: "Verified" },
-      { label: "Criminal record extract", status: "Verified" },
     ],
   },
-  // A driver still being reviewed: the two documents checked after the licence
-  // have not cleared yet, which is what keeps them off the road.
+  // A driver still being reviewed: the vehicle registration checked after the
+  // licence has not cleared yet, which is what keeps them off the road.
   "GE-88510": {
     rating: null,
     acceptanceRatePercent: 93,
     verification: [
       { label: "Driver licence (GE)", status: "Verified" },
       { label: "Vehicle registration", status: "In review" },
-      { label: "Criminal record extract", status: "In review" },
     ],
   },
   "GE-87755": {
@@ -813,7 +806,6 @@ export const SAMPLE_DRIVER_FACTS: Record<string, SampleDriverFacts> = {
     verification: [
       { label: "Driver licence (GE)", status: "Verified" },
       { label: "Vehicle registration", status: "Verified" },
-      { label: "Criminal record extract", status: "Verified" },
     ],
   },
   // A suspended driver. Their documents are all in order: the suspension is an
@@ -824,7 +816,6 @@ export const SAMPLE_DRIVER_FACTS: Record<string, SampleDriverFacts> = {
     verification: [
       { label: "Driver licence (GE)", status: "Verified" },
       { label: "Vehicle registration", status: "Verified" },
-      { label: "Criminal record extract", status: "Verified" },
     ],
   },
 };

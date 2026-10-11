@@ -21,7 +21,6 @@ sample.acceptanceRate,Acceptance rate,,src/lib/dashboard/hub/sample.ts
 sample.accountantOnly,Accountant only,,src/lib/dashboard/hub/sample.ts
 sample.assignsJobsInsideTheirZones,Assigns jobs inside their zones,,src/lib/dashboard/hub/sample.ts
 sample.contract,Contract,,src/lib/dashboard/hub/sample.ts
-sample.criminalRecordExtract,Criminal record extract,,src/lib/dashboard/hub/sample.ts
 sample.declinesCountedOverTheLast100,Declines counted over the last 100 offers. Staying above 90% keeps priority matching.,,src/lib/dashboard/hub/sample.ts
 sample.driverLicenceGe,Driver licence (GE),,src/lib/dashboard/hub/sample.ts
 sample.eleneAbashidze,Elene Abashidze,,src/lib/dashboard/hub/sample.ts
