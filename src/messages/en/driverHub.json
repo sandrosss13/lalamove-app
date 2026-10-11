@@ -108,7 +108,7 @@
     "everyFleetVehicleIsCurrentlyHeld": "Every fleet vehicle is currently held by a driver. Register this one unassigned and pair them from the Vehicles screen later.",
     "hintCategories": "Tick at least one licence category.",
     "hintCity": "Pick the zone this driver works.",
-    "hintEmail": "Add the driver's email address — it is their login.",
+    "hintEmail": "Check the email address, or leave it blank — it is optional.",
     "hintExpiry": "Add a licence expiry date in the future.",
     "hintLicenceNumber": "Add the driver's licence number.",
     "hintName": "Add a first and last name to continue.",
@@ -124,7 +124,8 @@
     "registering": "Registering…",
     "rigidTrucks": "Rigid trucks",
     "thatVehicle": "That vehicle",
-    "thisCreatesTheirAccountTheySign": "This creates their account. They sign in with the email below and the one-time password shown after saving, then set their own."
+    "thisCreatesTheirAccountTheySign": "This creates their account. They sign in to the driver app with this phone number and a one-time SMS code.",
+    "emailOptional": "Email (optional)"
   },
   "driversDetailPanel": {
     "confirmOffboarding": "Confirm offboarding",
@@ -147,7 +148,6 @@
     "acrossCities": "Across {cities}",
     "addDriver": "Add driver",
     "addedThisMonth": "{count} added this month",
-    "doneIHaveSharedIt": "Done — I have shared it",
     "driverDetails": "{name} details",
     "driverFallback": "driver",
     "emptyAll": "No drivers on this roster yet.",
@@ -158,14 +158,11 @@
     "filterByStatus": "Filter drivers by status",
     "fleetAvgRating": "Fleet avg rating",
     "fromRatedJobs": "From {count} rated jobs",
-    "giveThemDetails": "Give them these sign-in details now. The password is shown",
     "inReviewCount": "{count} in review",
-    "itIsNotStoredAnywhereIn": "— it is not stored anywhere in readable form, and closing this card is the end of it. They set their own password after signing in.",
     "nobodyAddedThisMonth": "Nobody added this month",
     "nobodyTakingWork": "Nobody is taking work right now",
     "notActivatedCount": "{count} not activated",
     "offline": "Offline",
-    "once": "once",
     "online": "Online",
     "onlineNow": "Online now",
     "ratingSampleNote": "Nothing records a customer rating for an order, so every rating on this screen is a placeholder. Retire with an OrderRating model.",
@@ -179,7 +176,8 @@
     "subtitleNobodyOnline": "nobody online right now",
     "subtitleOnlineIn": "{count} online in {cities} now",
     "subtitleRegistered": "{count, plural, one {# registered driver} other {# registered drivers}}",
-    "suspendedCount": "{count} suspended"
+    "suspendedCount": "{count} suspended",
+    "theySignInWithPhone": "They sign in to the driver app with this phone number and a one-time SMS code — no password needed."
   },
   "earningsBreakdownCard": {
     "adjustments": "Adjustments",

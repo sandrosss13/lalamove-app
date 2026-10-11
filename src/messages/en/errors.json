@@ -365,7 +365,11 @@
     "theLicenceExpiryDateMustBe": "The licence expiry date must be in the future.",
     "thisVehicleIsAlreadyAssignedTo": "This vehicle is already assigned to another driver.",
     "thisVehicleNeedsCategory": "This vehicle needs category {category}. Assign a different driver or vehicle.",
-    "vehicleidMustBeAStringWhen": "vehicleId must be a string when provided."
+    "vehicleidMustBeAStringWhen": "vehicleId must be a string when provided.",
+    "emailMustBeAString": "email must be a string when provided.",
+    "thisEmailCannotBeUsed": "This email address cannot be used.",
+    "enterAValidMobileNumber": "Enter a valid mobile number, e.g. +995 555 12 34 56.",
+    "anAccountWithThatPhoneNumber": "An account with that mobile number already exists."
   },
   "logisticsCompanyOnboarding": {
     "anApplicationUnderReviewCanNo": "An application under review can no longer be edited.",

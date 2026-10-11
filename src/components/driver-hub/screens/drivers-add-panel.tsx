@@ -27,9 +27,10 @@ import { cn } from "@/lib/utils";
  *
  * The design asks for four fields (Full name, Phone, Zone, Assign a vehicle).
  * `POST /api/logistics-company/drivers/register` — the only endpoint that can
- * put a driver on a roster — requires four more: an `email` (it creates a real
- * Better Auth account, and the address is the driver's login), plus
- * `licenceNumber`, `licenceExpiresAt` and a non-empty `licenceCategories`.
+ * put a driver on a roster — requires three more: `licenceNumber`,
+ * `licenceExpiresAt` and a non-empty `licenceCategories`. It also accepts an
+ * optional `email`. The phone is the driver's login: they sign in to the driver
+ * app with it and an SMS code.
  * A company driver never walks the self-serve onboarding wizard, so this form
  * is the *only* moment the platform learns which licence categories they hold,
  * and without that the "a Category C vehicle needs a C driver" rule has nothing
@@ -42,9 +43,9 @@ import { cn } from "@/lib/utils";
  * `HubDriver.cityLabel`), and `city` is what the endpoint accepts, so the
  * design's free-text zone box becomes the real enum it stands in for.
  *
- * The temporary password the endpoint returns is **not** handled here: it is
- * handed to the parent through `onRegistered` and revealed by the screen, so a
- * re-render of this form can never be what loses it. See `drivers-screen.tsx`.
+ * The confirmation is **not** shown here: the result is handed to the parent
+ * through `onRegistered` and shown by the screen, which outlives this form. See
+ * `drivers-screen.tsx`.
  */
 
 /* -------------------------------------------------------------------------- */
@@ -86,9 +87,10 @@ export type RegisteredDriver = {
   /** `User.id` — what the roster rows and the removal endpoint key on. */
   userId: string;
   name: string;
-  email: string;
-  /** Returned exactly once, never persisted in readable form. */
-  tempPassword: string;
+  /** `null` when the operator left the optional email blank. */
+  email: string | null;
+  /** E.164 — the number the driver signs in to the driver app with. */
+  phone: string;
   vehicleAssigned: boolean;
 };
 
@@ -223,7 +225,8 @@ export function DriversAddPanel({
   const requiredCategory = selectedVehicle?.requiredLicenceCategory ?? null;
 
   const nameValid = name.trim().length > MIN_NAME_LENGTH && lastName.length > 0;
-  const emailValid = /.+@.+\..+/.test(email.trim());
+  // Optional: blank is fine, but anything typed has to look like an address.
+  const emailValid = email.trim() === "" || /.+@.+\..+/.test(email.trim());
   const phoneValid = phoneDigits.length >= MIN_PHONE_DIGITS;
   const cityValid = city !== "";
   const licenceNumberValid = licenceNumber.trim().length > 0;
@@ -309,7 +312,8 @@ export function DriversAddPanel({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email: email.trim(),
+          // Blank means "no email" to the endpoint.
+          email: email.trim() || null,
           firstName,
           lastName,
           phone: phone.trim(),
@@ -368,7 +372,7 @@ export function DriversAddPanel({
           />
         </PanelField>
 
-        <PanelField label={tShared("email")} htmlFor="hub-driver-email">
+        <PanelField label={t("emailOptional")} htmlFor="hub-driver-email">
           <Input
             id="hub-driver-email"
             type="email"

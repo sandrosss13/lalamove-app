@@ -365,7 +365,11 @@
     "theLicenceExpiryDateMustBe": "მართვის მოწმობის მოქმედების ვადა უნდა იყოს მომავალში.",
     "thisVehicleIsAlreadyAssignedTo": "ეს ტრანსპორტი უკვე მინიჭებულია სხვა მძღოლზე.",
     "thisVehicleNeedsCategory": "ამ ავტომობილს {category} კატეგორია სჭირდება. მიამაგრეთ სხვა მძღოლი ან ავტომობილი.",
-    "vehicleidMustBeAStringWhen": "vehicleId მითითებისას უნდა იყოს ტექსტური ტიპი."
+    "vehicleidMustBeAStringWhen": "vehicleId მითითებისას უნდა იყოს ტექსტური ტიპი.",
+    "emailMustBeAString": "email, თუ მითითებულია, უნდა იყოს ტექსტი.",
+    "thisEmailCannotBeUsed": "ამ ელფოსტის გამოყენება შეუძლებელია.",
+    "enterAValidMobileNumber": "შეიყვანეთ სწორი მობილურის ნომერი, მაგ. +995 555 12 34 56.",
+    "anAccountWithThatPhoneNumber": "ამ მობილურის ნომრით ანგარიში უკვე არსებობს."
   },
   "logisticsCompanyOnboarding": {
     "anApplicationUnderReviewCanNo": "განხილვის პროცესში მყოფი განაცხადის რედაქტირება უკვე შეუძლებელია.",
