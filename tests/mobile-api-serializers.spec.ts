@@ -250,13 +250,26 @@ const jobSheet: HubJobSheet = {
     hasSignature: true,
     signatureUrl: "https://storage.example.test/sign/sig?token=t2",
   },
+  // The client's cargo photos are a web job-sheet field only: the app's
+  // contract does not carry them, so the serializer must drop them.
+  photos: [
+    {
+      id: "cargo_1",
+      url: "https://storage.example.test/sign/cargo_1?token=t3",
+    },
+  ],
 };
 
+/** The sheet minus the web-only fields the mobile contract never carries. */
+const jobSheetWireFields: Omit<HubJobSheet, "photos"> = Object.fromEntries(
+  Object.entries(jobSheet).filter(([key]) => key !== "photos"),
+) as Omit<HubJobSheet, "photos">;
+
 /** The same sheet as the app receives it when the assigned driver reads it. */
-const jobSheetForDriver = { ...jobSheet };
+const jobSheetForDriver = { ...jobSheetWireFields };
 
 /** …and when the company holding the job reads it: no proof of delivery. */
-const jobSheetForCompany = { ...jobSheet, proofOfDelivery: null };
+const jobSheetForCompany = { ...jobSheetWireFields, proofOfDelivery: null };
 
 const vehicles: HubVehiclesData = {
   kind: "INDIVIDUAL",
@@ -861,7 +874,8 @@ test.describe("toHubJobSheetResponse", () => {
     const cancelled: HubJobSheet = { ...jobSheet, status: "CANCELLED" };
 
     expect(toHubJobSheetResponse(cancelled, "DRIVER")).toEqual({
-      ...cancelled,
+      ...jobSheetWireFields,
+      status: "CANCELLED",
       driverPayout: null,
       overtimeDriverPayout: null,
     });

@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/lalamove-ui-kit-c2ab8214-d170-4eee-9314-d9d44f5fc5b9/styles.css">
+<script src="_ds/lalamove-ui-kit-c2ab8214-d170-4eee-9314-d9d44f5fc5b9/_ds_bundle.js"></script>
+<script src="./image-slot.js"></script>
+<script src="./zomo-cms.js"></script>
+<style>
+  body { margin:0; background:#fff; }
+  a { color:inherit; text-decoration:none; }
+  a:hover { color:inherit; }
+  * { box-sizing:border-box; }
+</style>
+</helmet>
+<div data-admin-surface="" class="font-body" style="display:flex; min-height:100vh; background:var(--background); color:var(--foreground); font-family:'IBM Plex Sans',sans-serif;">
+
+  <nav style="width:248px; flex-shrink:0; display:flex; flex-direction:column; gap:4px; border-right:1px solid var(--border); background:var(--sidebar, #fafafa); padding:12px;">
+    <a href="#" style="display:flex; flex-direction:column; gap:6px; padding:10px 12px; border-radius:0.5rem;">
+      <span style="display:flex; align-items:center; gap:8px;">
+        <img src="assets/zomo-logo-ink.svg" alt="Zomo" style="height:22px; width:auto; display:block;">
+        <span style="font-size:13px; font-weight:500; color:var(--muted-foreground);">Back office</span>
+      </span>
+      <span style="font-size:12px; color:var(--muted-foreground);">Internal tools</span>
+    </a>
+    <div style="display:flex; flex-direction:column; gap:2px; margin-top:8px; font-size:14px;">
+      <a href="#" style="padding:8px 12px; border-radius:0.5rem; font-weight:500; color:var(--muted-foreground);" style-hover="background:var(--muted);">Sales Analytics</a>
+      <a href="#" style="padding:8px 12px; border-radius:0.5rem; font-weight:500; color:var(--muted-foreground);" style-hover="background:var(--muted);">User Management</a>
+      <a href="#" style="padding:8px 12px; border-radius:0.5rem; font-weight:500; background:var(--muted); color:var(--foreground);">Content Management</a>
+      <div style="display:flex; flex-direction:column; gap:2px; margin:2px 0 6px 22px; padding-left:12px; border-left:1px solid var(--border); font-size:13px;">
+        <a href="#" style="padding:6px 8px; border-radius:0.375rem; color:var(--muted-foreground);">Banners</a>
+        <a href="#" style="padding:6px 8px; border-radius:0.375rem; color:var(--muted-foreground);">Static Pages</a>
+        <a href="#" style="padding:6px 8px; border-radius:0.375rem; color:var(--muted-foreground);">Translations</a>
+        <a href="#" style="padding:6px 8px; border-radius:0.375rem; color:var(--muted-foreground);">Messaging Templates</a>
+        <a href="#" style="padding:6px 8px; border-radius:0.375rem; font-weight:500; color:var(--foreground);">Home Page</a>
+        <a href="#" style="padding:6px 8px; border-radius:0.375rem; color:var(--muted-foreground);">Vehicle Photos</a>
+      </div>
+      <a href="#" style="padding:8px 12px; border-radius:0.5rem; font-weight:500; color:var(--muted-foreground);" style-hover="background:var(--muted);">Finances</a>
+      <a href="#" style="padding:8px 12px; border-radius:0.5rem; font-weight:500; color:var(--muted-foreground);" style-hover="background:var(--muted);">CRM</a>
+      <a href="#" style="padding:8px 12px; border-radius:0.5rem; font-weight:500; color:var(--muted-foreground);" style-hover="background:var(--muted);">Drivers</a>
+      <a href="#" style="padding:8px 12px; border-radius:0.5rem; font-weight:500; color:var(--muted-foreground);" style-hover="background:var(--muted);">Business applications</a>
+      <a href="#" style="padding:8px 12px; border-radius:0.5rem; font-weight:500; color:var(--muted-foreground);" style-hover="background:var(--muted);">Support</a>
+    </div>
+  </nav>
+
+  <div style="flex:1; min-width:0; display:flex; flex-direction:column;">
+    <header style="display:flex; align-items:center; justify-content:space-between; gap:16px; border-bottom:1px solid var(--border); padding:12px 24px;">
+      <div style="display:flex; align-items:center; gap:10px; min-width:0;">
+        <span style="font-size:14px; font-weight:500;">Nino Beridze</span>
+        <x-import component-from-global-scope="LalamoveUI.Badge" variant="secondary" hint-size="auto,20px">Content manager</x-import>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <x-import component-from-global-scope="LalamoveUI.Button" variant="outline" size="sm" hint-size="auto,28px">KA / EN</x-import>
+        <x-import component-from-global-scope="LalamoveUI.Button" variant="outline" size="sm" hint-size="auto,28px">Sign out</x-import>
+      </div>
+    </header>
+
+    <main style="flex:1; min-width:0; padding:24px; max-width:1800px; width:100%; margin:0 auto; display:flex; flex-direction:column; gap:16px;">
+      <div style="display:flex; flex-wrap:wrap; gap:4px; border-bottom:1px solid var(--border); font-size:14px;">
+        <a href="#" style="padding:8px 12px; color:var(--muted-foreground);">Banners</a>
+        <a href="#" style="padding:8px 12px; color:var(--muted-foreground);">Static Pages</a>
+        <a href="#" style="padding:8px 12px; color:var(--muted-foreground);">Translations</a>
+        <a href="#" style="padding:8px 12px; color:var(--muted-foreground);">Messaging Templates</a>
+        <a href="#" style="padding:8px 12px; font-weight:500; color:var(--foreground); box-shadow:inset 0 -2px 0 var(--foreground);">Home Page</a>
+        <a href="#" style="padding:8px 12px; color:var(--muted-foreground);">Vehicle Photos</a>
+      </div>
+
+      <div style="display:flex; flex-wrap:wrap; align-items:flex-start; justify-content:space-between; gap:12px;">
+        <div style="display:flex; flex-direction:column; gap:4px;">
+          <h1 style="margin:0; font-size:20px; font-weight:600; letter-spacing:-0.01em;">Home page</h1>
+          <p style="margin:0; max-width:640px; font-size:14px; color:var(--muted-foreground);">Turn sections on or off, change their order and edit their content. Every change is saved and published to the public home page straight away.</p>
+        </div>
+        <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
+          <span style="font-size:12px; color:var(--muted-foreground);">{{ savedLabel }}</span>
+          <sc-if value="{{ isKA }}" hint-placeholder-val="{{ false }}">
+            <x-import component-from-global-scope="LalamoveUI.Button" variant="outline" size="sm" onClick="{{ copyFromEN }}" hint-size="auto,28px">Copy content from EN</x-import>
+          </sc-if>
+          <x-import component-from-global-scope="LalamoveUI.Button" variant="ghost" size="sm" onClick="{{ resetLocale }}" hint-size="auto,28px">Restore defaults</x-import>
+          <a href="Home-Georgia-v4.dc.html" target="_blank">
+            <x-import component-from-global-scope="LalamoveUI.Button" size="sm" hint-size="auto,28px">Open home page ↗</x-import>
+          </a>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between;">
+        <div style="display:inline-flex; padding:3px; border-radius:0.5rem; background:var(--muted); gap:2px;">
+          <sc-for list="{{ localeTabs }}" as="t" hint-placeholder-count="2">
+            <button onClick="{{ t.select }}" style="{{ t.style }}">{{ t.label }}</button>
+          </sc-for>
+        </div>
+        <div style="display:inline-flex; padding:3px; border-radius:0.5rem; background:var(--muted); gap:2px;">
+          <sc-for list="{{ viewTabs }}" as="t" hint-placeholder-count="2">
+            <button onClick="{{ t.select }}" style="{{ t.style }}">{{ t.label }}</button>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-wrap:wrap; gap:16px; align-items:flex-start;">
+
+        <div style="flex:1 1 320px; max-width:420px; min-width:0; border:1px solid var(--border); border-radius:0.75rem; overflow:hidden; background:var(--card, #fff);">
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 16px; border-bottom:1px solid var(--border); background:var(--muted);">
+            <span style="font-size:13px; font-weight:600;">Sections</span>
+            <span style="font-size:12px; color:var(--muted-foreground);">{{ activeCount }}</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:10px; padding:10px 16px; border-bottom:1px solid var(--border); font-size:13px; color:var(--muted-foreground);">
+            <span style="width:22px; font-family:'IBM Plex Mono',monospace; font-size:11px;">—</span>
+            <span style="flex:1;">Header and navigation</span>
+            <x-import component-from-global-scope="LalamoveUI.Badge" variant="outline" hint-size="auto,20px">Fixed</x-import>
+          </div>
+          <sc-for list="{{ sectionRows }}" as="s" hint-placeholder-count="9">
+            <div onClick="{{ s.select }}" style="{{ s.rowStyle }}">
+              <span style="width:22px; flex-shrink:0; font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--muted-foreground);">{{ s.n }}</span>
+              <div onClick="{{ s.stop }}" style="display:flex; align-items:center;">
+                <x-import component-from-global-scope="LalamoveUI.Checkbox" checked="{{ s.active }}" onCheckedChange="{{ s.toggle }}" aria-label="{{ s.toggleLabel }}" hint-size="16px,16px"></x-import>
+              </div>
+              <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:2px;">
+                <span style="{{ s.labelStyle }}">{{ s.label }}</span>
+                <span style="font-size:12px; color:var(--muted-foreground); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ s.summary }}</span>
+              </div>
+              <sc-if value="{{ s.pinned }}" hint-placeholder-val="{{ false }}">
+                <span style="font-size:11px; color:var(--muted-foreground);">Under hero</span>
+              </sc-if>
+              <sc-if value="{{ s.movable }}" hint-placeholder-val="{{ true }}">
+                <div onClick="{{ s.stop }}" style="display:flex; gap:4px;">
+                  <x-import component-from-global-scope="LalamoveUI.Button" variant="outline" size="icon-sm" disabled="{{ s.upDisabled }}" onClick="{{ s.up }}" aria-label="Move up" hint-size="28px,28px">↑</x-import>
+                  <x-import component-from-global-scope="LalamoveUI.Button" variant="outline" size="icon-sm" disabled="{{ s.downDisabled }}" onClick="{{ s.down }}" aria-label="Move down" hint-size="28px,28px">↓</x-import>
+                </div>
+              </sc-if>
+            </div>
+          </sc-for>
+          <div style="display:flex; align-items:center; gap:10px; padding:10px 16px; font-size:13px; color:var(--muted-foreground);">
+            <span style="width:22px; font-family:'IBM Plex Mono',monospace; font-size:11px;">—</span>
+            <span style="flex:1;">Footer</span>
+            <x-import component-from-global-scope="LalamoveUI.Badge" variant="outline" hint-size="auto,20px">Fixed</x-import>
+          </div>
+        </div>
+
+        <sc-if value="{{ isEditView }}" hint-placeholder-val="{{ true }}">
+          <div style="flex:999 1 480px; min-width:0; border:1px solid var(--border); border-radius:0.75rem; background:var(--card, #fff);">
+            <div style="display:flex; flex-wrap:wrap; align-items:flex-start; justify-content:space-between; gap:12px; padding:18px 20px; border-bottom:1px solid var(--border);">
+              <div style="display:flex; flex-direction:column; gap:4px; min-width:0;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <h2 style="margin:0; font-size:16px; font-weight:600;">{{ ed.label }}</h2>
+                  <x-import component-from-global-scope="LalamoveUI.Badge" variant="{{ ed.badgeVariant }}" hint-size="auto,20px">{{ ed.badge }}</x-import>
+                </div>
+                <p style="margin:0; font-size:13px; color:var(--muted-foreground); max-width:620px;">{{ ed.desc }}</p>
+              </div>
+              <span style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--muted-foreground);">{{ ed.type }}</span>
+            </div>
+
+            <div style="padding:20px; display:flex; flex-direction:column; gap:20px;">
+              <sc-if value="{{ ed.hasFields }}" hint-placeholder-val="{{ true }}">
+                <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr)); gap:14px;">
+                  <sc-for list="{{ ed.fields }}" as="f" hint-placeholder-count="2">
+                    <label style="{{ f.wrapStyle }}">
+                      <span style="font-size:13px; font-weight:500;">{{ f.label }}</span>
+                      <sc-if value="{{ f.isInput }}" hint-placeholder-val="{{ true }}">
+                        <x-import component-from-global-scope="LalamoveUI.Input" type="{{ f.inputType }}" value="{{ f.value }}" onChange="{{ f.onChange }}" hint-size="100%,32px"></x-import>
+                      </sc-if>
+                      <sc-if value="{{ f.isArea }}" hint-placeholder-val="{{ false }}">
+                        <x-import component-from-global-scope="LalamoveUI.Textarea" value="{{ f.value }}" onChange="{{ f.onChange }}" rows="3" hint-size="100%,72px"></x-import>
+                      </sc-if>
+                      <sc-if value="{{ f.hint }}" hint-placeholder-val="{{ false }}">
+                        <span style="font-size:12px; color:var(--muted-foreground);">{{ f.hint }}</span>
+                      </sc-if>
+                    </label>
+                  </sc-for>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ ed.note }}" hint-placeholder-val="{{ false }}">
+                <div style="padding:12px 14px; border-radius:0.5rem; background:var(--muted); font-size:13px; color:var(--muted-foreground);">{{ ed.note }}</div>
+              </sc-if>
+
+              <sc-if value="{{ ed.hasList }}" hint-placeholder-val="{{ true }}">
+                <div style="display:flex; flex-direction:column; gap:12px;">
+                  <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                      <span style="font-size:14px; font-weight:600;">{{ ed.listLabel }}</span>
+                      <x-import component-from-global-scope="LalamoveUI.Badge" variant="{{ ed.countVariant }}" hint-size="auto,20px">{{ ed.countLabel }}</x-import>
+                    </div>
+                    <x-import component-from-global-scope="LalamoveUI.Button" variant="outline" size="sm" disabled="{{ ed.addDisabled }}" onClick="{{ ed.add }}" hint-size="auto,28px">{{ ed.addLabel }}</x-import>
+                  </div>
+                  <sc-if value="{{ ed.limitNote }}" hint-placeholder-val="{{ false }}">
+                    <p style="margin:0; font-size:12px; color:var(--muted-foreground);">{{ ed.limitNote }}</p>
+                  </sc-if>
+
+                  <sc-for list="{{ ed.items }}" as="it" hint-placeholder-count="3">
+                    <div style="{{ it.cardStyle }}">
+                      <div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px 10px; padding:10px 14px; border-bottom:1px solid var(--border);">
+                        <span style="font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--muted-foreground);">{{ it.n }}</span>
+                        <span style="flex:1 1 120px; min-width:0; font-size:13px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ it.title }}</span>
+                        <sc-if value="{{ it.hasToggle }}" hint-placeholder-val="{{ false }}">
+                          <label style="display:flex; align-items:center; gap:6px; font-size:12px; color:var(--muted-foreground);">
+                            <x-import component-from-global-scope="LalamoveUI.Checkbox" checked="{{ it.on }}" disabled="{{ it.toggleDisabled }}" onCheckedChange="{{ it.toggle }}" hint-size="16px,16px"></x-import>
+                            {{ it.toggleLabel }}
+                          </label>
+                        </sc-if>
+                        <x-import component-from-global-scope="LalamoveUI.Button" variant="ghost" size="icon-sm" disabled="{{ it.upDisabled }}" onClick="{{ it.up }}" aria-label="Move up" hint-size="28px,28px">↑</x-import>
+                        <x-import component-from-global-scope="LalamoveUI.Button" variant="ghost" size="icon-sm" disabled="{{ it.downDisabled }}" onClick="{{ it.down }}" aria-label="Move down" hint-size="28px,28px">↓</x-import>
+                        <x-import component-from-global-scope="LalamoveUI.Button" variant="destructive" size="sm" onClick="{{ it.remove }}" hint-size="auto,28px">Remove</x-import>
+                      </div>
+                      <div style="display:flex; flex-wrap:wrap; gap:14px; padding:14px;">
+                        <sc-if value="{{ it.hasImage }}" hint-placeholder-val="{{ false }}">
+                          <div style="{{ it.imageBox }}">
+                            <image-slot id="{{ it.id }}" shape="rect" fit="{{ it.fit }}" radius="6" placeholder="{{ it.imageHint }}"></image-slot>
+                          </div>
+                        </sc-if>
+                        <div style="flex:1 1 min(320px,100%); min-width:0; display:grid; grid-template-columns:repeat(auto-fit,minmax(min(200px,100%),1fr)); gap:10px;">
+                          <sc-for list="{{ it.fields }}" as="f" hint-placeholder-count="3">
+                            <label style="{{ f.wrapStyle }}">
+                              <span style="font-size:12px; font-weight:500; color:var(--muted-foreground);">{{ f.label }}</span>
+                              <sc-if value="{{ f.isInput }}" hint-placeholder-val="{{ true }}">
+                                <x-import component-from-global-scope="LalamoveUI.Input" value="{{ f.value }}" onChange="{{ f.onChange }}" hint-size="100%,32px"></x-import>
+                              </sc-if>
+                              <sc-if value="{{ f.isArea }}" hint-placeholder-val="{{ false }}">
+                                <x-import component-from-global-scope="LalamoveUI.Textarea" value="{{ f.value }}" onChange="{{ f.onChange }}" rows="2" hint-size="100%,60px"></x-import>
+                              </sc-if>
+                            </label>
+                          </sc-for>
+                        </div>
+                      </div>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-if>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isPreviewView }}" hint-placeholder-val="{{ false }}">
+          <div style="flex:999 1 480px; min-width:0; border:1px solid var(--border); border-radius:0.75rem; overflow:hidden; background:var(--muted);">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; padding:10px 14px; border-bottom:1px solid var(--border); background:var(--card, #fff); font-size:12px; color:var(--muted-foreground);">
+              <span>Live preview — updates as you edit. Switch KA / EN on the page to see each locale.</span>
+              <span style="font-family:'IBM Plex Mono',monospace; white-space:nowrap;">1280px · 50%</span>
+            </div>
+            <div style="height:760px; overflow:auto;">
+              <div style="width:640px; height:1700px; margin:0 auto; overflow:hidden;">
+                <iframe src="Home-Georgia-v4.dc.html" title="Home page preview" style="width:1280px; height:3400px; border:0; transform:scale(0.5); transform-origin:0 0; background:#fff;"></iframe>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440}}">
+class Component extends DCLogic {
+  state = { cms: null, locale: "EN", selected: "hero", view: "edit" };
+
+  SCHEMA = {
+    hero: {
+      desc: "Full-width slides at the top of the page. Slides rotate automatically; visitors can also swipe or use the arrows.",
+      fields: [{ k: "hero.intervalSec", label: "Auto-advance (seconds)", type: "number", hint: "Between 2 and 30. Default 6." }],
+      list: { path: "banners", label: "Banners", max: 6, maxLive: true, image: "hero", toggle: "live", toggleLabel: "Live", titleKey: "title",
+        fields: [{ k: "tag", label: "Tag" }, { k: "link", label: "Link" }, { k: "title", label: "Headline", wide: true }, { k: "body", label: "Text", area: true, wide: true }],
+        blank: () => ({ live: false, tag: "New", title: "New banner", body: "", link: "/" }) }
+    },
+    booking: {
+      desc: "The booking card that overlaps the bottom of the hero. Its fields and vehicle list come from the booking flow and are not edited here.",
+      fields: [{ k: "booking.heading", label: "Heading" }, { k: "booking.cta", label: "Button label" }]
+    },
+    offers: {
+      desc: "Promotional cards under the booking card.",
+      fields: [{ k: "offers.heading", label: "Heading" }, { k: "offers.linkLabel", label: "Link label" }],
+      list: { path: "offers.items", label: "Offers", max: 6, image: "card", titleKey: "title",
+        fields: [{ k: "tag", label: "Tag" }, { k: "cta", label: "Button label" }, { k: "title", label: "Title", wide: true }, { k: "body", label: "Text", area: true, wide: true }, { k: "link", label: "Link", wide: true }],
+        blank: () => ({ tag: "Offer", title: "New offer", body: "", cta: "Learn more", link: "/" }) }
+    },
+    vehicles: {
+      desc: "Category tabs and vehicle type cards.",
+      fields: [{ k: "vehicles.heading", label: "Heading" }, { k: "vehicles.intro", label: "Intro", area: true }],
+      note: "Categories and types are read from the vehicle taxonomy, so they always match what can be booked. Photos are managed in Content Management → Vehicle Photos."
+    },
+    how: {
+      desc: "Numbered steps on a dark panel. Numbers are added automatically.",
+      fields: [{ k: "how.heading", label: "Heading" }],
+      list: { path: "how.items", label: "Steps", max: 6, titleKey: "title",
+        fields: [{ k: "title", label: "Title" }, { k: "body", label: "Text", area: true, wide: true }],
+        blank: () => ({ title: "New step", body: "" }) }
+    },
+    coverage: {
+      desc: "City photo cards.",
+      fields: [{ k: "coverage.heading", label: "Heading" }, { k: "coverage.linkLabel", label: "Link label" }, { k: "coverage.intro", label: "Intro", area: true, wide: true }],
+      list: { path: "coverage.items", label: "Cities", max: 8, image: "card", titleKey: "name",
+        fields: [{ k: "name", label: "City" }, { k: "tag", label: "Label" }],
+        blank: () => ({ name: "New city", tag: "Scheduled" }) }
+    },
+    partners: {
+      desc: "Scrolling strip of partner company logos. Use transparent PNG or SVG.",
+      fields: [{ k: "partners.eyebrow", label: "Label above the strip" }],
+      list: { path: "partners.items", label: "Logos", max: 24, image: "logo", toggle: "live", toggleLabel: "Shown", titleKey: "name",
+        fields: [{ k: "name", label: "Company name (alt text)" }],
+        blank: () => ({ name: "New partner", live: true }) }
+    },
+    app: {
+      desc: "Orange band with the App Store and Google Play buttons.",
+      fields: [{ k: "app.heading", label: "Heading" }, { k: "app.body", label: "Text", area: true }]
+    },
+    faq: {
+      desc: "Accordion of questions. The first one opens by default.",
+      fields: [{ k: "faq.heading", label: "Heading" }, { k: "faq.intro", label: "Intro", area: true }],
+      list: { path: "faq.items", label: "Questions", max: 12, titleKey: "q",
+        fields: [{ k: "q", label: "Question", wide: true }, { k: "a", label: "Answer", area: true, wide: true }],
+        blank: () => ({ q: "New question", a: "" }) }
+    }
+  };
+
+  componentDidMount() {
+    if (!window.ZomoCMS) return;
+    this.setState({ cms: window.ZomoCMS.load() });
+    this.unsub = window.ZomoCMS.subscribe(d => this.setState({ cms: d }));
+  }
+  componentWillUnmount() { if (this.unsub) this.unsub(); }
+
+  get(o, path) { return path.split(".").reduce((a, k) => (a == null ? a : a[k]), o); }
+
+  commit(mutate) {
+    const d = JSON.parse(JSON.stringify(this.state.cms || window.ZomoCMS.load()));
+    mutate(d[this.state.locale], d);
+    window.ZomoCMS.save(d);
+    this.setState({ cms: d });
+  }
+
+  setPath(path, value) {
+    this.commit(c => {
+      const keys = path.split(".");
+      const last = keys.pop();
+      const tgt = keys.reduce((a, k) => a[k], c);
+      tgt[last] = value;
+    });
+  }
+
+  listOp(path, fn) {
+    this.commit(c => {
+      const arr = this.get(c, path);
+      fn(arr);
+    });
+  }
+
+  moveSection(key, dir) {
+    this.commit(c => {
+      const booking = c.sections.find(s => s.key === "booking");
+      const rest = c.sections.filter(s => s.key !== "booking");
+      const i = rest.findIndex(s => s.key === key);
+      const j = i + dir;
+      if (j < 0 || j >= rest.length) return;
+      [rest[i], rest[j]] = [rest[j], rest[i]];
+      const h = rest.findIndex(s => s.key === "hero");
+      if (booking) rest.splice(h + 1, 0, booking);
+      c.sections = rest;
+    });
+  }
+
+  summary(c, key) {
+    switch (key) {
+      case "hero": {
+        const live = c.banners.filter(b => b.live).length;
+        return live + " live of " + c.banners.length + " · every " + (c.hero.intervalSec || 6) + "s";
+      }
+      case "booking": return c.booking.heading;
+      case "offers": return c.offers.items.length + " offers";
+      case "vehicles": return c.vehicles.heading;
+      case "how": return c.how.items.length + " steps";
+      case "coverage": return c.coverage.items.map(i => i.name).join(", ");
+      case "partners": return c.partners.items.filter(p => p.live).length + " logos shown";
+      case "app": return c.app.heading;
+      case "faq": return c.faq.items.length + " questions";
+      default: return "";
+    }
+  }
+
+  fieldVals(spec, getVal, setVal) {
+    return spec.map(f => ({
+      label: f.label,
+      value: String(getVal(f.k) ?? ""),
+      inputType: f.type === "number" ? "number" : "text",
+      isInput: !f.area,
+      isArea: !!f.area,
+      hint: f.hint || "",
+      wrapStyle: { display: "flex", flexDirection: "column", gap: "6px", minWidth: 0, gridColumn: f.wide ? "1 / -1" : "auto" },
+      onChange: e => setVal(f.k, f.type === "number" ? Number(e.target.value) : e.target.value)
+    }));
+  }
+
+  renderVals() {
+    const data = this.state.cms || (window.ZomoCMS ? window.ZomoCMS.load() : null);
+    const loc = this.state.locale;
+    const tab = (on) => ({
+      fontSize: "13px", fontWeight: 500, padding: "5px 12px", borderRadius: "0.375rem", border: 0, cursor: "pointer",
+      background: on ? "var(--background)" : "transparent", color: on ? "var(--foreground)" : "var(--muted-foreground)",
+      boxShadow: on ? "0 1px 2px rgba(0,0,0,0.08)" : "none", fontFamily: "inherit"
+    });
+    const base = {
+      localeTabs: [["KA", "Georgian (KA)"], ["EN", "English (EN)"]].map(([v, l]) => ({ label: l, select: () => this.setState({ locale: v }), style: tab(loc === v) })),
+      viewTabs: [["edit", "Edit"], ["preview", "Live preview"]].map(([v, l]) => ({ label: l, select: () => this.setState({ view: v }), style: tab(this.state.view === v) })),
+      isEditView: this.state.view === "edit",
+      isPreviewView: this.state.view === "preview",
+      isKA: loc === "KA"
+    };
+    if (!data) return { ...base, sectionRows: [], ed: {}, savedLabel: "", activeCount: "" };
+    const c = data[loc];
+
+    const movable = c.sections.filter(s => s.key !== "booking");
+    const sectionRows = c.sections.map((s, i) => {
+      const sel = s.key === this.state.selected;
+      const mi = movable.findIndex(m => m.key === s.key);
+      const pinned = s.key === "booking";
+      return {
+        n: String(i + 1).padStart(2, "0"),
+        label: s.label,
+        summary: this.summary(c, s.key),
+        active: !!s.active,
+        toggleLabel: (s.active ? "Hide " : "Show ") + s.label,
+        toggle: () => this.commit(cc => { const t = cc.sections.find(x => x.key === s.key); t.active = !t.active; }),
+        select: () => this.setState({ selected: s.key }),
+        stop: e => e.stopPropagation(),
+        pinned, movable: !pinned,
+        upDisabled: mi <= 0, downDisabled: mi === movable.length - 1,
+        up: () => this.moveSection(s.key, -1), down: () => this.moveSection(s.key, 1),
+        rowStyle: {
+          display: "flex", alignItems: "center", gap: "10px", padding: pinned ? "10px 16px 10px 34px" : "10px 16px",
+          borderBottom: "1px solid var(--border)", cursor: "pointer",
+          background: sel ? "var(--accent)" : "transparent",
+          boxShadow: sel ? "inset 3px 0 0 var(--foreground)" : "none"
+        },
+        labelStyle: { fontSize: "14px", fontWeight: sel ? 600 : 500, color: s.active ? "var(--foreground)" : "var(--muted-foreground)", textDecoration: s.active ? "none" : "line-through" }
+      };
+    });
+
+    const key = this.state.selected;
+    const sec = c.sections.find(s => s.key === key) || c.sections[0];
+    const sch = this.SCHEMA[sec.key];
+    const ed = {
+      label: sec.label, desc: sch.desc, type: sec.type,
+      badge: sec.active ? "Visible" : "Hidden", badgeVariant: sec.active ? "default" : "outline",
+      fields: this.fieldVals(sch.fields || [], k => this.get(c, k), (k, v) => this.setPath(k, v)),
+      hasFields: !!(sch.fields && sch.fields.length),
+      note: sch.note || "",
+      hasList: !!sch.list
+    };
+    if (sch.list) {
+      const L = sch.list;
+      const arr = this.get(c, L.path) || [];
+      const liveCount = L.toggle ? arr.filter(x => x[L.toggle]).length : arr.length;
+      const capReached = L.maxLive ? false : arr.length >= L.max;
+      ed.listLabel = L.label;
+      ed.countLabel = L.maxLive ? liveCount + " / " + L.max + " live" : arr.length + " / " + L.max;
+      ed.countVariant = (L.maxLive ? liveCount >= L.max : capReached) ? "secondary" : "outline";
+      ed.addLabel = "Add " + L.label.toLowerCase().replace(/s$/, "");
+      ed.addDisabled = capReached;
+      ed.limitNote = L.maxLive
+        ? (liveCount >= L.max ? "6 banners are live, the maximum. New banners are added as drafts; take one offline to publish another." : "Up to 6 banners can be live at once. Drafts are kept but not shown.")
+        : "";
+      ed.add = () => this.listOp(L.path, a => a.push({ id: "cms-" + sec.key + "-" + Date.now().toString(36), ...L.blank() }));
+      ed.items = arr.map((it, i) => {
+        const on = L.toggle ? !!it[L.toggle] : true;
+        return {
+          id: it.id,
+          n: "#" + (i + 1),
+          title: it[L.titleKey] || "Untitled",
+          hasToggle: !!L.toggle, on,
+          toggleLabel: L.toggleLabel,
+          toggleDisabled: !!(L.maxLive && !on && liveCount >= L.max),
+          toggle: () => this.listOp(L.path, a => { a[i][L.toggle] = !a[i][L.toggle]; }),
+          up: () => this.listOp(L.path, a => { if (i > 0) [a[i - 1], a[i]] = [a[i], a[i - 1]]; }),
+          down: () => this.listOp(L.path, a => { if (i < a.length - 1) [a[i + 1], a[i]] = [a[i], a[i + 1]]; }),
+          upDisabled: i === 0, downDisabled: i === arr.length - 1,
+          remove: () => this.listOp(L.path, a => a.splice(i, 1)),
+          hasImage: !!L.image,
+          fit: L.image === "logo" ? "contain" : "cover",
+          imageHint: L.image === "hero" ? "Drop hero image (1920×800)" : L.image === "logo" ? "Drop logo" : "Drop image",
+          imageBox: L.image === "hero"
+            ? { width: "220px", height: "92px", maxWidth: "100%", flexShrink: 0, borderRadius: "6px", background: "var(--muted)", overflow: "hidden" }
+            : L.image === "logo"
+              ? { width: "140px", height: "56px", flexShrink: 0, borderRadius: "6px", background: "var(--muted)", overflow: "hidden" }
+              : { width: "160px", height: "100px", flexShrink: 0, borderRadius: "6px", background: "var(--muted)", overflow: "hidden" },
+          cardStyle: { border: "1px solid var(--border)", borderRadius: "0.625rem", background: "var(--background)", opacity: on ? 1 : 0.62 },
+          fields: this.fieldVals(L.fields, k => it[k], (k, v) => this.listOp(L.path, a => { a[i][k] = v; }))
+        };
+      });
+    }
+
+    const t = data.updatedAt ? new Date(data.updatedAt) : null;
+    return {
+      ...base,
+      sectionRows, ed,
+      activeCount: c.sections.filter(s => s.active).length + " of " + c.sections.length + " visible",
+      savedLabel: t ? "Published · " + t.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "Showing defaults",
+      copyFromEN: () => this.commit((cc, d) => { d.KA = JSON.parse(JSON.stringify(d.EN)); }),
+      resetLocale: () => this.commit((cc, d) => { d[loc] = window.ZomoCMS.defaults()[loc]; })
+    };
+  }
+}
+</script>
+</body>
+</html>

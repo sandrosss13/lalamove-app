@@ -17,8 +17,8 @@
  *   needs a test database before it can be written.
  * - **`estimateDelivery` end to end.** It reads `PricingRule` rows through
  *   Prisma and spends LocationIQ geocoding calls, so it needs a test database
- *   and a fixture key. `tests/landing-quote-calculator.spec.ts` covers the
- *   endpoint's observable behaviour instead, through the public calculator.
+ *   and a fixture key. (The public landing calculator that used to exercise
+ *   it end to end was removed with the v4 homepage.)
  */
 
 import { expect, test } from "@playwright/test";

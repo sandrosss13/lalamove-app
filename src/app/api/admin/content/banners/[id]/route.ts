@@ -10,9 +10,17 @@ import {
 import { getRequestTranslations } from "@/i18n/request-locale";
 import { authorizeAdminApi } from "@/lib/admin/api-auth";
 import { writeAuditLog } from "@/lib/admin/audit";
+import { revalidateHomePage } from "@/lib/admin/home-page-data";
 import { prisma } from "@/lib/prisma";
 
-import { checkHeroBannerCapacity } from "../validation";
+import {
+  BANNER_COPY_FIELDS,
+  checkBannerPlacementCapacity,
+  checkBannerVideoPlacement,
+  parseBannerCopyField,
+  parseBannerTitle,
+  parseBannerVideoUrl,
+} from "../validation";
 
 /**
  * Staff who may read and write promotional banners. Stated per route rather
@@ -25,7 +33,6 @@ const ALLOWED_ROLES: readonly AdminRole[] = ["SUPER_ADMIN", "CONTENT_MANAGER"];
 const CONTENT_LOCALES = Object.values(ContentLocale);
 
 /** The same bounds the create route enforces; see its constants for why. */
-const MAX_TITLE_LENGTH = 200;
 const MAX_PLACEMENT_LENGTH = 100;
 const MAX_URL_LENGTH = 2048;
 const MIN_SORT_ORDER = 0;
@@ -48,6 +55,10 @@ type AdminBannerRow = {
   isActive: boolean;
   startsAt: string | null;
   endsAt: string | null;
+  eyebrow: string | null;
+  body: string | null;
+  ctaLabel: string | null;
+  videoUrl: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -64,6 +75,10 @@ function toBannerRow(banner: Banner): AdminBannerRow {
     isActive: banner.isActive,
     startsAt: banner.startsAt?.toISOString() ?? null,
     endsAt: banner.endsAt?.toISOString() ?? null,
+    eyebrow: banner.eyebrow,
+    body: banner.body,
+    ctaLabel: banner.ctaLabel,
+    videoUrl: banner.videoUrl,
     createdAt: banner.createdAt.toISOString(),
     updatedAt: banner.updatedAt.toISOString(),
   };
@@ -161,20 +176,13 @@ function parseUpdateBannerBody(
   const data: Prisma.BannerUpdateInput = {};
 
   if ("title" in record) {
-    const { title } = record;
-    if (typeof title !== "string" || title.trim() === "") {
-      return { error: t("errors.adminContentBanners.titleMustBeANonEmpty") };
-    }
-    if (title.trim().length > MAX_TITLE_LENGTH) {
-      return {
-        error: t("common.shared.fieldMaxLength", {
-          field: "title",
-          max: MAX_TITLE_LENGTH,
-        }),
-      };
+    // Optional on every placement: null and blank clear it to "".
+    const title = parseBannerTitle(record.title, t);
+    if ("error" in title) {
+      return { error: title.error };
     }
 
-    data.title = title.trim();
+    data.title = title.value;
   }
 
   let nextLocale = existing.locale;
@@ -338,6 +346,40 @@ function parseUpdateBannerBody(
     return { error: t("common.shared.endsatMustBeAfterStartsat") };
   }
 
+  // The optional card copy: an absent key leaves the stored value alone, and
+  // `null` or a blank string clears it.
+  for (const field of BANNER_COPY_FIELDS) {
+    if (field in record) {
+      const parsedCopy = parseBannerCopyField(record[field], field, t);
+      if ("error" in parsedCopy) {
+        return { error: parsedCopy.error };
+      }
+      data[field] = parsedCopy.value;
+    }
+  }
+
+  // An absent key leaves the stored video alone; `null` or blank clears it.
+  let nextVideoUrl = existing.videoUrl;
+  if ("videoUrl" in record) {
+    const videoUrl = parseBannerVideoUrl(record.videoUrl, t);
+    if ("error" in videoUrl) {
+      return { error: videoUrl.error };
+    }
+
+    data.videoUrl = videoUrl.value;
+    nextVideoUrl = videoUrl.value;
+  }
+
+  // Against the row's resulting state, so neither adding a video to a
+  // non-hero banner nor moving a hero banner that has one elsewhere slips by.
+  const videoPlacementError = checkBannerVideoPlacement(
+    { placement: nextPlacement, videoUrl: nextVideoUrl },
+    t,
+  );
+  if (videoPlacementError !== null) {
+    return { error: videoPlacementError };
+  }
+
   return {
     data,
     next: {
@@ -397,13 +439,16 @@ export async function PATCH(
   // Evaluated against the state the row will end up with, not the one it has:
   // the table's active toggle patches `isActive` on its own, and that is how a
   // seventh hero banner would otherwise get switched on. `ignoreId` keeps this
-  // banner from counting itself, so editing one of a full six still saves.
-  const overCapacity = await checkHeroBannerCapacity({
-    locale: parsed.next.locale,
-    placement: parsed.next.placement,
-    isActive: parsed.next.isActive,
-    ignoreId: id,
-  });
+  // banner from counting itself, so editing one of a full set still saves.
+  const overCapacity = await checkBannerPlacementCapacity(
+    {
+      locale: parsed.next.locale,
+      placement: parsed.next.placement,
+      isActive: parsed.next.isActive,
+      ignoreId: id,
+    },
+    t,
+  );
 
   if (overCapacity !== null) {
     return NextResponse.json({ error: overCapacity }, { status: 409 });
@@ -429,6 +474,8 @@ export async function PATCH(
       isActive: banner.isActive,
     },
   });
+
+  revalidateHomePage();
 
   return NextResponse.json({ banner: toBannerRow(banner) }, { status: 200 });
 }
@@ -479,6 +526,8 @@ export async function DELETE(
       sortOrder: existing.sortOrder,
     },
   });
+
+  revalidateHomePage();
 
   return NextResponse.json({ id }, { status: 200 });
 }

@@ -531,6 +531,21 @@ model VehicleTypeSpec {
   /// driver uploads of their own specific vehicle into the separate
   /// `vehicle-photos` bucket. This one is a picture of the *class*.
   imageUrl          String?
+  /// Whether this type appears on the public marketing surfaces built from
+  /// `useLandingVehicleTypes` (homepage vehicle catalogue, homepage booking
+  /// card, category tiles, city landing pages). Set by a content manager from
+  /// Admin → Content → Vehicle photos.
+  ///
+  /// Marketing-only, like `imageUrl`: the signed-in booking form, driver
+  /// onboarding, vehicle forms, pricing, orders and the load board never read
+  /// it, and it is unrelated to `visibleVehicleTypeWhere()`, which withholds a
+  /// type from *every* surface until the fleet can serve it.
+  showOnHomepage    Boolean           @default(true)
+  /// Position of this type among the homepage cards of its own `category`
+  /// (Medium / Heavy tab), ascending; ties fall back to `label`. Rewritten
+  /// densely to `0..n-1` per category by the admin reorder endpoint. Marketing
+  /// only — the booking form keeps its own cheapest-first order.
+  homepageSortOrder Int               @default(0)
   pricingRule       PricingRule?
   vehicles          Vehicle[]
   orders            Order[]
@@ -1354,6 +1369,10 @@ model Order {
   /// Drivers and companies who have hidden this load from their own board.
   rejections LoadRejection[]
 
+  // Photos of the load the client attached at booking. Optional, at most three
+  // (enforced by `POST /api/orders/[id]/photos`, not by the schema).
+  photos OrderPhoto[]
+
   // How the client said they would settle, and which saved card they picked if
   // they chose one. Both nullable: orders placed before the payment step existed
   // have neither, and CASH and BANK_TRANSFER never name a card. No gateway is
@@ -1539,6 +1558,34 @@ model PodPhoto {
   storagePath String   @unique
   takenAt     DateTime
   createdAt   DateTime @default(now())
+
+  @@index([orderId])
+}
+
+/// A photo of the load, attached by the client after the order is created and
+/// before it is paid for — the booking form's optional "Cargo photos" step. It
+/// replaces the measured cargo envelope as the way a client shows a carrier what
+/// they are moving.
+///
+/// The object lives in the PRIVATE `driver-documents` Supabase bucket under
+/// `order-photos/<orderId>/`, reused so no extra bucket has to be provisioned;
+/// see `src/lib/order-photo-storage.ts`. Only the path is stored — a read URL is
+/// signed on demand, short-lived, wherever a photo is shown.
+///
+/// Cascades with its order. Deleting the row does not delete the object; the
+/// route that removes a photo deletes both.
+model OrderPhoto {
+  id String @id @default(cuid())
+
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  storagePath String @unique
+  /// The type sniffed from the file's own bytes, never the client's header.
+  contentType String
+  sizeBytes   Int
+
+  createdAt DateTime @default(now())
 
   @@index([orderId])
 }
@@ -1960,6 +2007,17 @@ model Banner {
   locale    ContentLocale
   imageUrl  String
   linkUrl   String?
+  /// Optional copy for banners rendered as cards (the home page's offer
+  /// banners): a small kicker above `title`, a sentence below it, and the
+  /// label of the link to `linkUrl`. Unused by placements that render image only.
+  eyebrow   String?
+  body      String?
+  ctaLabel  String?
+  /// Optional looping video for `home_hero` slides, played over `imageUrl`,
+  /// which stays required as its poster and as the fallback when the video
+  /// cannot (or, under reduced motion, should not) play. The admin API
+  /// rejects it on every other placement.
+  videoUrl  String?
   placement String
   sortOrder Int           @default(0)
   isActive  Boolean       @default(true)

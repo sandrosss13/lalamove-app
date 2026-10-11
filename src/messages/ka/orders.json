@@ -1,4 +1,14 @@
 {
+  "orderPhotos": {
+    "cargoPhotos": "ტვირთის ფოტოები",
+    "photoAlt": "ტვირთის ფოტო {number}",
+    "openFullSize": "ტვირთის ფოტო {number}-ის სრული ზომით გახსნა",
+    "fullSizeTitle": "ტვირთის ფოტო {number} / {total}",
+    "loading": "ტვირთის ფოტოები იტვირთება…",
+    "loadFailed": "ტვირთის ფოტოების ჩატვირთვა ვერ მოხერხდა.",
+    "retry": "თავიდან ცდა",
+    "count": "{count, plural, one {# ტვირთის ფოტო} other {# ტვირთის ფოტო}}"
+  },
   "orderStatus": {
     "accepted": "დადასტურებული",
     "cancelled": "გაუქმებული",

@@ -27,6 +27,12 @@
  * `<img>`, by both the admin preview and the public page, and an `<img>`
  * executes no script for any content type. The mitigation here is therefore the
  * render site rather than a second Storage round trip.
+ *
+ * **Hero videos.** `home_hero` banners may also carry a short MP4/WebM loop,
+ * which is rendered inside a `<video>` — like `<img>`, a media element that
+ * executes no script whatever bytes it is handed. Video types are accepted for
+ * the `banners` prefix only (see `ALLOWED_VIDEO_CONTENT_TYPES`), so a partner
+ * logo or vehicle photo can never be filed as one.
  */
 
 import "server-only";
@@ -89,6 +95,18 @@ const ALLOWED_CONTENT_TYPES = new Set([
 ]);
 
 /**
+ * Video types, accepted only for the `banners` prefix (hero slide loops). Kept
+ * as its own closed set rather than merged into `ALLOWED_CONTENT_TYPES` so the
+ * purpose restriction cannot be lost by accident. Both are container formats a
+ * `<video>` element plays and that carry no script; anything document-like
+ * (HTML, SVG, XML) stays out for the reasons given above.
+ */
+const ALLOWED_VIDEO_CONTENT_TYPES = new Set(["video/mp4", "video/webm"]);
+
+/** The only prefix whose objects may be videos. */
+const VIDEO_PURPOSES: ReadonlySet<SiteMediaPurpose> = new Set(["banners"]);
+
+/**
  * The single message shown for anything outside `ALLOWED_CONTENT_TYPES`, so the
  * route's 400 and the uploader's own pre-flight rejection word it identically
  * to the content manager.
@@ -102,6 +120,14 @@ export const UNSUPPORTED_CONTENT_TYPE_ERROR =
  */
 export const UNSUPPORTED_CONTENT_TYPE_ERROR_KEY =
   "errors.adminContentMedia.unsupportedContentType";
+
+/**
+ * Catalog key for a rejected `video/*` type, or a video filed under a prefix
+ * other than `banners`, so the content manager is not told "images only" about
+ * what was plainly meant to be a video.
+ */
+export const UNSUPPORTED_VIDEO_CONTENT_TYPE_ERROR_KEY =
+  "errors.adminContentMedia.unsupportedVideoContentType";
 
 /**
  * Cache lifetime for an uploaded object. Exported because the *browser* is what
@@ -160,17 +186,27 @@ function toSafeFileName(fileName: string): string {
 }
 
 /**
- * Whether Storage should hold an object of this content type at all. Exported
- * so a route handler can reject a bad request with a readable 400 *before*
- * touching Storage, consulting the same one list rather than a second copy of
- * it that could drift.
+ * Whether Storage should hold an object of this content type under this
+ * prefix. Images are accepted for every purpose; videos only for `banners`.
+ * Exported so a route handler can reject a bad request with a readable 400
+ * *before* touching Storage, consulting the same lists rather than a second
+ * copy of them that could drift.
  */
-export function isSupportedSiteMediaContentType(contentType: string): boolean {
-  return ALLOWED_CONTENT_TYPES.has(contentType);
+export function isSupportedSiteMediaContentType(
+  contentType: string,
+  purpose: SiteMediaPurpose,
+): boolean {
+  if (ALLOWED_CONTENT_TYPES.has(contentType)) {
+    return true;
+  }
+
+  return (
+    ALLOWED_VIDEO_CONTENT_TYPES.has(contentType) && VIDEO_PURPOSES.has(purpose)
+  );
 }
 
 /**
- * Issues a signed upload URL + token for one image, plus the public URL the
+ * Issues a signed upload URL + token for one image (or hero video), plus the public URL the
  * object will answer on once the bytes land.
  *
  * The browser uploads directly to Supabase with the returned `path`/`token`
@@ -195,7 +231,7 @@ export async function createSiteMediaUploadUrl(
   token: string;
   publicUrl: string;
 }> {
-  if (!ALLOWED_CONTENT_TYPES.has(contentType)) {
+  if (!isSupportedSiteMediaContentType(contentType, purpose)) {
     throw new Error(
       `Unsupported file type: ${contentType}. ${UNSUPPORTED_CONTENT_TYPE_ERROR}`,
     );

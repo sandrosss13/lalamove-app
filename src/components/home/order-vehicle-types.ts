@@ -168,3 +168,45 @@ export function formatVehicleDimensions(
 ): string {
   return `${lengthM} x ${widthM} x ${heightM} m`;
 }
+
+/**
+ * Vehicle classes an INDIVIDUAL client is not offered for a dry-box load.
+ *
+ * A private customer moving a dry load is served by the vans and box trucks;
+ * the reefers, the curtainsider and the large freight truck are freight
+ * equipment, and offering them for a sofa only invites a booking priced far
+ * above what the job needs. Business accounts keep the full catalogue, and the
+ * refrigerated / open-chassis load spaces are untouched — a reefer is still
+ * offered to anyone who actually asks for a refrigerated body.
+ *
+ * Codes, not labels: they are `VehicleTypeSpec.code`, stable across locales and
+ * seeds (see `prisma/seed.ts`).
+ */
+export const INDIVIDUAL_DRY_BOX_EXCLUDED_VEHICLE_CODES: readonly string[] = [
+  "REFRIGERATED_VAN",
+  "REFRIGERATED_TRUCK",
+  "CURTAINSIDER_TRUCK",
+  "LARGE_FREIGHT_TRUCK",
+];
+
+/** The client account kinds the booking form distinguishes between. */
+export type BookingClientAccountType = "INDIVIDUAL" | "BUSINESS";
+
+/**
+ * May this client be offered this vehicle for this load space?
+ *
+ * Only narrows INDIVIDUAL clients booking a DRY_BOX body; every other pairing
+ * is allowed. Applied on top of — never instead of — `vehicleOffersBody` and
+ * the cargo-category filter, so it can only ever remove a class from the list.
+ */
+export function vehicleOfferedToClient(
+  vehicle: OrderVehicleType,
+  body: ChassisType,
+  accountType: BookingClientAccountType,
+): boolean {
+  if (accountType !== "INDIVIDUAL" || body !== "DRY_BOX") {
+    return true;
+  }
+
+  return !INDIVIDUAL_DRY_BOX_EXCLUDED_VEHICLE_CODES.includes(vehicle.code);
+}

@@ -8,6 +8,7 @@ import {
   type HubLoad,
   type LoadsSortKey,
 } from "@/components/driver-hub/screens/loads-context";
+import { LoadPhotoCount } from "@/components/driver-hub/screens/loads-detail-parts";
 import {
   EM_DASH,
   cargoCategoryLabel,
@@ -697,13 +698,17 @@ function LoadRow({ load, nowIso }: { load: HubLoad; nowIso: string }) {
   // Resolved once: the cargo cell renders it and also hands it to its own
   // `title`, and a lookup written twice is a lookup that can be changed once.
   const cargoLabel = cargoCategoryLabel(load.cargoCategory, tRoot);
-  const cargoDetail = `${load.packagingDescription ?? EM_DASH} · ${formatVolumeM3(
-    {
-      lengthM: load.cargoLengthM,
-      widthM: load.cargoWidthM,
-      heightM: load.cargoHeightM,
-    },
-  )}`;
+  // Either half may be undeclared — most orders now carry neither — so only
+  // the declared ones are joined, and a bare dash stands in for both.
+  const cargoVolume = formatVolumeM3({
+    lengthM: load.cargoLengthM,
+    widthM: load.cargoWidthM,
+    heightM: load.cargoHeightM,
+  });
+  const cargoDetail =
+    [load.packagingDescription, cargoVolume === EM_DASH ? null : cargoVolume]
+      .filter((part): part is string => part !== null)
+      .join(" · ") || EM_DASH;
 
   return (
     <TableRow
@@ -854,8 +859,14 @@ function LoadRow({ load, nowIso }: { load: HubLoad; nowIso: string }) {
             column. The `title` carries the whole label — the same bargain the
             addresses make, and the one the packaging line below already
             made. */}
-        <div className="truncate" title={cargoLabel}>
-          {cargoLabel}
+        <div className="flex min-w-0 items-center gap-1">
+          <span className="truncate" title={cargoLabel}>
+            {cargoLabel}
+          </span>
+          {/* Beside the label rather than on a line of its own: it is absent
+              on every row without photos, and a row that has them gains one
+              short mark rather than a taller cell. */}
+          <LoadPhotoCount count={load.photoCount} />
         </div>
         <div
           // Packaging is free text a client typed and occasionally runs to a

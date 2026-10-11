@@ -17,6 +17,12 @@
     "industrialSupplies": "Industrial & Commercial Supplies",
     "retailStock": "Store & Retail Stock"
   },
+  "comingSoon": {
+    "body": "We're getting zomo ready for launch. See you soon.",
+    "chooseLanguage": "Language",
+    "heading": "Coming soon",
+    "tagline": "Cargo delivery in Tbilisi and across Georgia."
+  },
   "companyVehicleForm": {
     "adding": "Adding…",
     "atLeastOnePhotoIsRequired": "At least one photo is required. You can select several at once.",
@@ -46,6 +52,30 @@
     "helperCountOutOfRange": "helperCount must be a whole number between 0 and {max}.",
     "pickupaddressIsRequired": "pickupAddress is required.",
     "vehicleTypeCodeMustBeKnown": "vehicleTypeCode must be a known vehicle type."
+  },
+  "seo": {
+    "comingSoon": {
+      "description": "zomo is launching soon: on-demand cargo delivery in Tbilisi and across Georgia. Looking for driver jobs in Tbilisi? Sign up early.",
+      "title": "zomo — Cargo Delivery in Tbilisi | Coming Soon"
+    },
+    "driverSignUp": {
+      "description": "Looking for driver jobs in Tbilisi? Join zomo with your van or truck, take cargo delivery jobs, and drive on your own schedule.",
+      "title": "Driver Jobs in Tbilisi — Earn on Your Schedule"
+    },
+    "home": {
+      "description": "Cargo delivery in Tbilisi and across Georgia. Book a van or truck in minutes.",
+      "title": "zomo — Cargo Delivery in Tbilisi"
+    },
+    "services": {
+      "cargo": {
+        "description": "On-demand cargo delivery by van or truck in Tbilisi and across Georgia.",
+        "name": "Cargo delivery"
+      }
+    },
+    "signIn": {
+      "description": "Sign in to your zomo account to book a delivery and follow your orders.",
+      "title": "Sign in"
+    }
   },
   "shared": {
     "34Abc128": "34 ABC 128",
@@ -377,9 +407,6 @@
     "yourFleetIsStillUnderReview": "Your fleet is still under review. Operations must activate the company before you can claim deliveries.",
     "yourFleetIsStillUnderReview2": "Your fleet is still under review. Operations must activate the company before you can dispatch deliveries.",
     "zone": "Zone"
-  },
-  "srcApp": {
-    "onDemandDeliveryPlatformBookA": "On-demand delivery platform — book a vehicle and move your goods across the city."
   },
   "themeToggle": {
     "darkTheme": "Dark theme",

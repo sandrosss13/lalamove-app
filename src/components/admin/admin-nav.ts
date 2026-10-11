@@ -6,6 +6,7 @@ import {
   FileText,
   LifeBuoy,
   Megaphone,
+  Package,
   Truck,
   Users,
 } from "lucide-react";
@@ -52,6 +53,7 @@ export type AdminNavItem = {
  */
 export type AdminNavSectionId =
   | "analytics"
+  | "orders"
   | "users"
   | "content"
   | "finance"
@@ -98,6 +100,25 @@ export const ADMIN_NAV: AdminNavSection[] = [
     icon: ChartColumn,
     adminRoles: ["SUPER_ADMIN", "ANALYTICS"],
     // A single page rather than a tab group, so it has no sub-navigation.
+    items: [],
+  },
+  {
+    id: "orders",
+    label: "Orders",
+    labelKey: "admin.adminNav.orders",
+    href: "/admin/orders",
+    icon: Package,
+    // Read-only oversight of every order on the platform: its client, route,
+    // cargo photos and payment. SUPPORT is here because "where is my order?"
+    // is the ticket it answers most; USER_MANAGER because it already reads the
+    // client and driver accounts an order ties together. Neither gets anything
+    // to change — the section has no write actions at all. FINANCE_MANAGER and
+    // ANALYTICS are deliberately absent: the detail page carries client contact
+    // details and cargo photos, which their aggregate work does not need.
+    adminRoles: ["SUPER_ADMIN", "SUPPORT", "USER_MANAGER"],
+    // A list and its detail page rather than a tab group. The section gates
+    // itself in `src/app/[locale]/admin/orders/layout.tsx`, as Sales
+    // Analytics does, since it sits outside the `(sections)` group.
     items: [],
   },
   {

@@ -393,7 +393,13 @@ export default function AdminBannersPage() {
                         className="h-10 w-16 shrink-0 rounded border border-border object-cover"
                       />
                       <div className="flex min-w-0 flex-col">
-                        <span className="font-medium">{banner.title}</span>
+                        {banner.title ? (
+                          <span className="font-medium">{banner.title}</span>
+                        ) : (
+                          <span className="text-muted-foreground italic">
+                            {t("untitled")}
+                          </span>
+                        )}
                         {banner.linkUrl ? (
                           <span className="truncate text-xs text-muted-foreground">
                             {banner.linkUrl}
@@ -420,7 +426,7 @@ export default function AdminBannersPage() {
                       disabled={pendingId === banner.id}
                       aria-label={t("toggleActiveLabel", {
                         isActive: String(banner.isActive),
-                        title: banner.title,
+                        title: banner.title || t("untitled"),
                       })}
                       onCheckedChange={() => void handleToggleActive(banner)}
                     />
@@ -486,7 +492,7 @@ export default function AdminBannersPage() {
               <DialogTitle>{t("deleteBanner")}</DialogTitle>
               <DialogDescription>
                 {t("deleteBannerDescription", {
-                  title: deleteTarget.title,
+                  title: deleteTarget.title || t("untitled"),
                   placement: deleteTarget.placement,
                 })}
               </DialogDescription>

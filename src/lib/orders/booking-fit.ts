@@ -213,9 +213,9 @@ export function specCapability(spec: SpecCapacitySlice): VehicleCapability {
  * height" is not evidence that the cargo is too tall — refusing on it would
  * reject a load nobody has any reason to think oversized, with a message
  * claiming something untrue about it. Only axes the client actually declared are
- * compared. (`POST /api/orders` requires all four today, so the partial case is a
- * floor rather than a live path; it is the booking form, validating a
- * half-filled set of fields as the client types, that reaches it constantly.)
+ * compared. (`POST /api/orders` accepts all four or none, so on that path the
+ * partial case is a floor rather than a live one, and the all-null case simply
+ * reports nothing.)
  *
  * An axis whose capability is `Infinity` is never reported either. Arithmetically
  * that is already true — nothing is greater than `Infinity` — but it is stated

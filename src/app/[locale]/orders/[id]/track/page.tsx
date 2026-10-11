@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 
 import { Link } from "@/i18n/navigation";
 import { auth } from "@/lib/auth";
+import { loadOrderPhotoViews } from "@/lib/order-photos/views";
 import { prisma } from "@/lib/prisma";
 import { vehicleTypeSpecLabel } from "@/lib/vehicle-type-spec-labels";
 import {
@@ -10,6 +11,7 @@ import {
   ORDER_STATUS_PILL_BASE,
   orderStatusLabel,
 } from "@/components/orders-format";
+import { OrderPhotoGallery } from "@/components/order-photo-gallery";
 import { OrderTrackingMap } from "@/components/order-tracking-map";
 
 // Session + Prisma access can't be statically rendered.
@@ -106,6 +108,9 @@ export default async function TrackOrderPage({
     );
   }
 
+  // Only after the ownership check above: these are readable URLs.
+  const photos = await loadOrderPhotoViews(order.id);
+
   return (
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-6 p-8">
       <div className="flex items-center justify-between">
@@ -151,6 +156,8 @@ export default async function TrackOrderPage({
             </>
           ) : null}
         </dl>
+
+        <OrderPhotoGallery photos={photos} className="mt-4" />
       </div>
 
       <OrderTrackingMap

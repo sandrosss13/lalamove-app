@@ -576,7 +576,8 @@ test.describe("one claim path", () => {
   });
 
   test("the board and the matcher share one eligibility module", () => {
-    const board = read("src", "app", "api", "loads", "route.ts");
+    // `GET /api/loads` delegates to `readLoadBoard`, which is the board.
+    const board = read("src", "lib", "loads", "board.ts");
     const rules = read("src", "lib", "offers", "rules.ts");
 
     for (const source of [board, rules]) {

@@ -26,15 +26,25 @@
     "imageurlMustBeANonEmpty": "imageUrl must be a non-empty string.",
     "placementIsRequiredAndMustBe": "placement is required and must be a non-empty string.",
     "placementMustBeANonEmpty": "placement must be a non-empty string.",
-    "titleMustBeANonEmpty": "title must be a non-empty string."
+    "copyFieldMustBeStringOrNull": "{field} must be a string or null.",
+    "videoUrlMustBeStringOrNull": "videoUrl must be a string or null.",
+    "videoUrlMustBeHttps": "videoUrl must be an https:// URL or a path on this site.",
+    "videoOnlyForHero": "Only hero banners ({placement}) can have a video. Remove the video or change the placement.",
+    "heroCarouselFull": "The {locale} hero carousel already has {max} active banners, which is the most it can show. Switch one off before adding another.",
+    "offersRowFull": "The {locale} offers row already has {max} active banners, which is the most it can show. Switch one off before adding another.",
+    "partnerLogosFull": "The {locale} partner marquee already has {max} active logos, which is the most it can show. Switch one off before adding another."
   },
   "adminContentHomePageSections": {
     "homePageSectionNotFound": "Home page section not found.",
     "typeIsRequiredAndMustBe": "type is required and must be a string.",
-    "typeMustBeAString": "type must be a string."
+    "typeMustBeAString": "type must be a string.",
+    "idsMustBeDistinctIds": "ids must be a non-empty array of distinct section ids.",
+    "idsMustBelongToLocale": "Every id must be a section in the {locale} locale. Reload the list and try again.",
+    "localesMustDiffer": "from and to must be different locales."
   },
   "adminContentMedia": {
-    "unsupportedContentType": "Only JPG, PNG and WebP images are accepted."
+    "unsupportedContentType": "Only JPG, PNG and WebP images are accepted.",
+    "unsupportedVideoContentType": "Only MP4 and WebM videos are accepted, and only for banners."
   },
   "adminContentMessagingTemplates": {
     "bodyIsRequiredAndMustBe": "body is required and must be a non-empty string.",
@@ -57,8 +67,13 @@
     "valuekaIsRequiredAndMustBe": "valueKa is required and must be a non-empty string."
   },
   "adminContentVehiclePhotos": {
+    "categoryInvalid": "category must be MEDIUM_DUTY or HEAVY_DUTY.",
+    "idsMustBeDistinctIds": "ids must be a non-empty array of distinct vehicle type ids.",
+    "idsMustBelongToCategory": "Every id must be a vehicle type in this duty class. Reload the list and try again.",
     "imageUrlNonEmptyOrNull": "imageUrl must be a non-empty string, or null to clear it.",
-    "unexpectedFields": "This endpoint only sets imageUrl. Unexpected field(s): {fields}. Vehicle specifications and pricing are changed through the seed, not the back office.",
+    "nothingToUpdate": "Send imageUrl and/or showOnHomepage.",
+    "showOnHomepageMustBeBoolean": "showOnHomepage must be true or false.",
+    "unexpectedFields": "This endpoint only sets imageUrl and showOnHomepage. Unexpected field(s): {fields}. Vehicle specifications and pricing are changed through the seed, not the back office.",
     "vehicleTypeNotFound": "Vehicle type not found."
   },
   "adminDriverApplicationsApprove": {
@@ -309,7 +324,8 @@
   },
   "loads": {
     "onlyDriversAndLogisticsCompaniesCan": "Only drivers and logistics companies can view the load board.",
-    "yourCompanyProfileIsnTSetUp": "Your company profile isn't set up yet."
+    "yourCompanyProfileIsnTSetUp": "Your company profile isn't set up yet.",
+    "loadNotFound": "Load not found."
   },
   "loadsReject": {
     "driverProfileNotFound": "Driver profile not found.",
@@ -430,6 +446,7 @@
   "orders": {
     "bodyTypeMustBeOneOf": "bodyType must be one of: {allowed}.",
     "deliverydeadlineMustBeAfterPickupwindowend": "deliveryDeadline must be after pickupWindowEnd.",
+    "cargoEnvelopeIncomplete": "Send cargoWeightKg, cargoLengthM, cargoWidthM and cargoHeightM together, or none of them.",
     "descriptionMustBeAStringWhen": "description must be a string when provided.",
     "failedToDrawAnOrderReference": "Failed to draw an order reference from the sequence.",
     "fieldMeasurementOutOfRange": "{field} must be a number greater than 0 and no more than {max} {unit}.",

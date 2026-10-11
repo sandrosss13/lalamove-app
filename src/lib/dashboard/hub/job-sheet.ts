@@ -76,6 +76,10 @@ import {
 } from "@/lib/dashboard/hub/job-sheet-access";
 import { formatCity } from "@/lib/format-city";
 import {
+  loadOrderPhotoViews,
+  type OrderPhotoView,
+} from "@/lib/order-photos/views";
+import {
   ORDER_PROOF_SELECT,
   toOrderProof,
   type OrderProof,
@@ -359,6 +363,16 @@ export type HubJobSheet = {
    * only — see `toHubJobSheetResponse`.
    */
   proofOfDelivery: OrderProof;
+
+  /* ---- Client cargo photos -------------------------------------------- */
+
+  /**
+   * The cargo photos the client attached at booking, each with a short-lived
+   * signed read URL minted for this render. Empty for an order without any,
+   * which is most of them. Loaded only after the tenancy check, like every
+   * other field here.
+   */
+  photos: OrderPhotoView[];
 };
 
 /**
@@ -521,5 +535,6 @@ export async function getHubJobSheet(
     // bearer token, and minting one for a row about to be discarded would be
     // a secret created for nobody.
     proofOfDelivery: await toOrderProof(order),
+    photos: await loadOrderPhotoViews(order.id),
   };
 }

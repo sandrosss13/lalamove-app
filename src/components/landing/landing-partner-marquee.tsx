@@ -1,5 +1,7 @@
 import type { LandingBanner } from "@/components/landing/landing-page";
+import { HOME_CONTAINER } from "@/components/landing/landing-home-styles";
 import { type PartnerMarqueeContent } from "@/lib/admin/home-page-content";
+import { cn } from "@/lib/utils";
 
 /**
  * One pass of the logo list.
@@ -25,32 +27,41 @@ function PartnerMarqueeRun({
       aria-hidden={hidden ? "true" : undefined}
       className="flex shrink-0 items-center"
     >
-      {logos.map((logo) => (
-        <li
-          key={`${logo.id}-${runKey}`}
-          className="mx-[10px] flex h-[66px] w-[180px] flex-none items-center justify-center rounded-xl border border-line-hairline bg-surface px-[18px] py-[14px]"
-        >
-          {/*
+      {logos.map((logo) => {
+        // The company name is the logo's only accessible text. Without one the
+        // logo is decorative: empty alt, and the item is hidden from assistive
+        // tech so it is not announced as a blank list entry.
+        const name = logo.title.trim();
+
+        return (
+          <li
+            key={`${logo.id}-${runKey}`}
+            aria-hidden={name ? undefined : "true"}
+            className="flex h-24 w-[200px] flex-none items-center justify-center border-r border-home-line px-[26px] py-5"
+          >
+            {/*
             Plain <img> rather than next/image: the URL is uploaded or typed in
             by a content editor and can point at any host, so it can't be pinned
             in `remotePatterns` at build time. Same call the admin banners
             table already makes.
           */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={logo.imageUrl}
-            alt={logo.title}
-            loading="lazy"
-            className="h-[38px] w-full object-contain"
-          />
-        </li>
-      ))}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={logo.imageUrl}
+              alt={name}
+              loading="lazy"
+              className="h-11 w-full object-contain"
+            />
+          </li>
+        );
+      })}
     </ul>
   );
 }
 
 /**
- * The partner logo band: a full-bleed, CSS-only marquee of the active `Banner`
+ * The partner logo band (v4): an eyebrow over a full-bleed, bordered,
+ * CSS-only (42s linear) marquee of the active `Banner`
  * rows at `HOME_PARTNER_LOGO_BANNER_PLACEMENT`, behind an edge fade.
  *
  * The logos are never duplicated as content — one source list is drawn twice
@@ -71,16 +82,19 @@ export function LandingPartnerMarquee({
   }
 
   return (
-    <section className="pt-[clamp(44px,5vw,72px)] pb-[clamp(8px,1vw,16px)]">
-      <p className="mb-[26px] text-center font-price text-[10.5px] tracking-[0.18em] text-faintest uppercase">
+    <section className="pt-[clamp(56px,7vw,96px)]">
+      <p
+        className={cn(
+          HOME_CONTAINER,
+          "mb-5 font-price text-[11px] tracking-[0.16em] text-home-muted uppercase",
+        )}
+      >
         {content.eyebrow}
       </p>
 
-      {/* The band is deliberately full-bleed (no horizontal padding on the
-          section) so the logos run off both edges under the mask rather than
-          stopping at a content gutter. The `#000` in the gradient is a mask
-          alpha channel, not a theme colour, so it is correct in both themes. */}
-      <div className="overflow-hidden [-webkit-mask-image:linear-gradient(90deg,transparent,#000_12%,#000_88%,transparent)] [mask-image:linear-gradient(90deg,transparent,#000_12%,#000_88%,transparent)]">
+      {/* Full-bleed on purpose, so the logos run off both edges under the
+          mask. The `#000` in the gradient is a mask alpha, not a theme colour. */}
+      <div className="overflow-hidden border-y border-home-line bg-home-surface [-webkit-mask-image:linear-gradient(90deg,transparent,#000_8%,#000_92%,transparent)] [mask-image:linear-gradient(90deg,transparent,#000_8%,#000_92%,transparent)]">
         <div className="flex w-max animate-marquee hover:[animation-play-state:paused] motion-reduce:animate-none">
           <PartnerMarqueeRun logos={logos} runKey="a" />
           <PartnerMarqueeRun logos={logos} runKey="b" hidden />

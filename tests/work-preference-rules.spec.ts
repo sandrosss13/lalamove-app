@@ -391,7 +391,8 @@ test.describe("applyWorkPreferencesUpdate", () => {
 
 test("the load board does not read work preferences", () => {
   const board = readFileSync(
-    join(REPO, "src", "app", "api", "loads", "route.ts"),
+    // `GET /api/loads` delegates to `readLoadBoard`, which is the board.
+    join(REPO, "src", "lib", "loads", "board.ts"),
     "utf8",
   );
 

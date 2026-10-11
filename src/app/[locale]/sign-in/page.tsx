@@ -1,7 +1,29 @@
+import type { Metadata } from "next";
 import { headers } from "next/headers";
+import { getTranslations } from "next-intl/server";
 
 import { SignInForm } from "@/components/auth/sign-in-form";
+import { resolveRouteLocale, type LocaleRouteParams } from "@/i18n/server";
 import { audienceForHost } from "@/lib/host";
+
+/**
+ * A sign-in form has nothing a searcher is looking for, so it stays out of the
+ * index on every host — but `follow`, so the links on it are still crawled.
+ */
+export async function generateMetadata({
+  params,
+}: {
+  params: LocaleRouteParams;
+}): Promise<Metadata> {
+  const locale = await resolveRouteLocale(params);
+  const t = await getTranslations({ locale, namespace: "common.seo" });
+
+  return {
+    title: t("signIn.title"),
+    description: t("signIn.description"),
+    robots: { index: false, follow: true },
+  };
+}
 
 /**
  * Sign-in entry point. The host decides which audience the page serves: the
