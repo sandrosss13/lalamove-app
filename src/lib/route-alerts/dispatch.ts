@@ -2,10 +2,9 @@
 import "server-only";
 
 import { after } from "next/server";
-import { OrderStatus, type ContentLocale } from "@prisma/client";
+import { OrderStatus } from "@prisma/client";
 
-import enDriverHub from "@/messages/en/driverHub.json";
-import kaDriverHub from "@/messages/ka/driverHub.json";
+import { recordRouteAlertNotifications } from "@/lib/notifications/inbox";
 import { usersAcceptingPush } from "@/lib/notifications/settings";
 import { specCapability } from "@/lib/orders/booking-fit";
 import { driversVehiclesWhere } from "@/lib/orders/driver-vehicles";
@@ -17,6 +16,7 @@ import {
   type FleetVehicle,
 } from "@/lib/orders/load-eligibility";
 import { prisma } from "@/lib/prisma";
+import { ROUTE_ALERT_PUSH_COPY } from "@/lib/push/copy";
 import { buildRouteAlertPushMessage } from "@/lib/push/rules";
 import { getPushSender } from "@/lib/push/sender";
 import {
@@ -39,23 +39,18 @@ import {
  * route the newest are not told. It is five indexed queries and one push
  * request per hundred devices, and `dispatchRouteAlertsForLoad` can never fail
  * the request it rides on.
+ *
+ * A fired alert is recorded in the driver's notification inbox whether or not
+ * it is pushed: the push is gated on the driver's notification settings (and
+ * on push being configured at all), the inbox entry is not.
  */
 
-/** A route alert that fired, reduced to what its push needs. */
+/** A route alert that fired, reduced to what its push and inbox entry need. */
 type AlertToNotify = {
   alertId: string;
   orderId: string;
   /** The driver's `User.id` — device tokens are registered per account. */
   userId: string;
-};
-
-/** The notification's wording per language — generic, like an offer's. */
-const ROUTE_ALERT_PUSH_COPY: Record<
-  ContentLocale,
-  { title: string; body: string }
-> = {
-  EN: enDriverHub.routeAlertPush,
-  KA: kaDriverHub.routeAlertPush,
 };
 
 /** The order columns an alert is matched on. No address, no client price. */
@@ -87,7 +82,7 @@ const ALERT_ORDER_SELECT = {
 
 /**
  * Record which drivers are alerted about a newly open load, and return those
- * alerts for pushing. Returns nothing — and writes nothing — when the load is
+ * alerts for the inbox and the push. Returns nothing — and writes nothing — when the load is
  * not open, has no resolved pick-up city, or matches nobody.
  *
  * A driver is alerted when
@@ -98,12 +93,14 @@ const ALERT_ORDER_SELECT = {
  *    holding a temporary password — and have not hidden this load;
  * 3. one of their vehicles can take it, by the load board's own rule
  *    (`permittedVehicles` then a fit — what `GET /api/loads` lists);
- * 4. their notification settings allow a route alert right now
- *    (`shouldSendPush`: the category is on, and it is not their quiet hours);
- * 5. they have not been alerted about this load already, and are not holding
+ * 4. they have not been alerted about this load already, and are not holding
  *    an offer of it — the offer is the stronger signal for the same load.
  *
- * Rule 5's first half is `RouteAlertFire`'s unique index: the insert skips a
+ * Their notification settings are not a rule here: they decide whether the
+ * alert is *pushed* (`notifyRouteAlertsFired`), not whether it lands in the
+ * inbox.
+ *
+ * Rule 4's first half is `RouteAlertFire`'s unique index: the insert skips a
  * driver already recorded, so a second trigger for the same load — or two at
  * once — pushes nothing twice.
  *
@@ -127,8 +124,6 @@ export async function fireRouteAlertsForLoad(
   ) {
     return [];
   }
-
-  const now = new Date();
 
   // City and payout narrow the read in the database; `alertMatchesLoad` then
   // decides, so the rule is stated once and pinned by its spec.
@@ -174,20 +169,7 @@ export async function fireRouteAlertsForLoad(
     return [];
   }
 
-  // Rule 4 before rule 3: one query, and it spares the vehicle read for
-  // drivers who would not be pushed anyway.
-  const accepting = await usersAcceptingPush(
-    "ROUTE_ALERTS",
-    [...matched.values()].map((alert) => alert.driverProfile.userId),
-    now,
-  );
-  const driverIds = [...matched.values()]
-    .filter((alert) => accepting.has(alert.driverProfile.userId))
-    .map((alert) => alert.driverProfileId);
-
-  if (driverIds.length === 0) {
-    return [];
-  }
+  const driverIds = [...matched.values()].map((alert) => alert.driverProfileId);
 
   const vehicles = await prisma.vehicle.findMany({
     where: driversVehiclesWhere(driverIds),
@@ -279,7 +261,12 @@ export async function fireRouteAlertsForLoad(
 }
 
 /**
- * Push each fired alert to its driver's devices. **Never throws.**
+ * Push each fired alert to its driver's devices. **Never throws.** With push
+ * unconfigured it returns before touching the database.
+ *
+ * A driver whose notification settings refuse a route alert right now
+ * (`shouldSendPush`: the category is off, or it is their quiet hours) is not
+ * pushed — the alert is still in their inbox.
  *
  * Only devices whose session is still valid are sent to; tokens the push
  * service reports dead are deleted — both as an offer push does.
@@ -289,12 +276,28 @@ async function notifyRouteAlertsFired(
 ): Promise<void> {
   try {
     const sender = getPushSender();
+
+    if (!sender.enabled) {
+      return;
+    }
+
+    const now = new Date();
     const alertByUserId = new Map(alerts.map((alert) => [alert.userId, alert]));
+
+    const recipients = await usersAcceptingPush(
+      "ROUTE_ALERTS",
+      [...alertByUserId.keys()],
+      now,
+    );
+
+    if (recipients.size === 0) {
+      return;
+    }
 
     const devices = await prisma.deviceToken.findMany({
       where: {
-        userId: { in: [...alertByUserId.keys()] },
-        session: { expiresAt: { gt: new Date() } },
+        userId: { in: [...recipients] },
+        session: { expiresAt: { gt: now } },
       },
       select: { userId: true, token: true, locale: true },
     });
@@ -332,35 +335,39 @@ async function notifyRouteAlertsFired(
 }
 
 /**
- * The request-path form: match, record and push, and **never throw**. Whatever
- * goes wrong is logged and swallowed — the request this rides on has already
- * put the load on the market and must report that, not this.
+ * The request-path form: match, record, write the inbox and push, and **never
+ * throw**. Whatever goes wrong is logged and swallowed — the request this
+ * rides on has already put the load on the market and must report that, not
+ * this.
  *
- * With push unconfigured it returns before touching the database: an alert is
- * nothing but its push, so with no sender there is nothing to match for, and
- * no "fired" row is written for a notification that was never sent.
+ * Matching runs with push unconfigured too: the inbox entry is the alert's
+ * in-app record, and the push only its nudge.
  *
- * The send itself waits until the response has gone out (`after`); outside a
- * request there is no response and `after` throws, so it is simply started.
+ * The inbox write and the send wait until the response has gone out
+ * (`after`); outside a request there is no response and `after` throws, so
+ * they are simply started. Neither throws.
  */
 export async function dispatchRouteAlertsForLoad(
   orderId: string,
 ): Promise<void> {
   try {
-    if (!getPushSender().enabled) {
-      return;
-    }
-
     const alerts = await fireRouteAlertsForLoad(orderId);
 
     if (alerts.length === 0) {
       return;
     }
 
+    const notify = async (): Promise<void> => {
+      await Promise.all([
+        recordRouteAlertNotifications(alerts),
+        notifyRouteAlertsFired(alerts),
+      ]);
+    };
+
     try {
-      after(() => notifyRouteAlertsFired(alerts));
+      after(notify);
     } catch {
-      void notifyRouteAlertsFired(alerts);
+      void notify();
     }
   } catch (error) {
     console.error("Failed to fire route alerts for a load:", error);

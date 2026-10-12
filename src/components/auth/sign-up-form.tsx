@@ -47,6 +47,10 @@ import {
   type FlowMode,
   type FlowRole,
 } from "@/lib/auth-flow";
+import {
+  LEGAL_ADDRESS_MAX_LENGTH,
+  parseLegalAddress,
+} from "@/lib/client-profile/legal-address";
 import { useLocalizedCityOptions } from "@/lib/georgian-cities";
 import { merchantOrigin, type Audience } from "@/lib/host";
 import { cn } from "@/lib/utils";
@@ -149,6 +153,7 @@ type SignUpFieldKey =
   | "lastName"
   | "companyName"
   | "vatId"
+  | "legalAddress"
   | "phone"
   | "email"
   | "password"
@@ -163,6 +168,8 @@ type SignUpValues = {
   lastName: string;
   companyName: string;
   vatId: string;
+  /** Optional; only shown to, and only checked for, a BUSINESS client. */
+  legalAddress: string;
   phone: string;
   email: string;
   password: string;
@@ -206,6 +213,17 @@ function validateSignUp(
     }
     if (values.vatId.trim().length === 0) {
       errors.vatId = t("enterVatId");
+    }
+    // Optional, and a client's field only — a DRIVER + BUSINESS sign-up is a
+    // logistics company, which never sees it. Blank is fine; only a value
+    // past the column's limit is refused, mirroring `POST /api/client-profile`.
+    if (
+      role === "CLIENT" &&
+      "error" in parseLegalAddress(values.legalAddress)
+    ) {
+      errors.legalAddress = t("legalAddressTooLong", {
+        max: LEGAL_ADDRESS_MAX_LENGTH,
+      });
     }
   } else {
     if (values.firstName.trim().length === 0) {
@@ -289,13 +307,19 @@ type TextFieldProps = {
   error?: string;
   /** Rendered between the input and its helper — the strength meter. */
   children?: React.ReactNode;
+  /**
+   * Drops `aria-required`. Only the business client's legal address uses it:
+   * it is the one field on this form a visitor may leave empty.
+   */
+  optional?: boolean;
 };
 
 /**
  * One labelled text field in the handoff's shape: `Label`, a 44px `Input`, and
  * the helper/error lines beneath it.
  *
- * Every field on this form is required, so `aria-required` is unconditional —
+ * Every field on this form is required unless it says `optional` (only the
+ * business client's legal address does), so `aria-required` is the default —
  * and it is `aria-required` rather than the HTML `required` attribute for the
  * reason `job-sheet-actions.tsx` gives at its waiting-minutes field: the form
  * validates in `handleSubmit` so the messages are the ones this design
@@ -314,6 +338,7 @@ function TextField({
   helper,
   error,
   children,
+  optional = false,
 }: TextFieldProps) {
   const hasHelper = helper !== undefined;
 
@@ -327,7 +352,7 @@ function TextField({
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
         autoComplete={autoComplete}
-        aria-required="true"
+        aria-required={optional ? undefined : "true"}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy(id, hasHelper, Boolean(error))}
         className={cn("h-11 text-base", error && ERROR_INPUT_CLASS)}
@@ -374,6 +399,7 @@ export function SignUpForm({ audience, role, accountType }: SignUpFormProps) {
   const [lastName, setLastName] = React.useState("");
   const [companyName, setCompanyName] = React.useState("");
   const [vatId, setVatId] = React.useState("");
+  const [legalAddress, setLegalAddress] = React.useState("");
   const [phone, setPhone] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
@@ -423,6 +449,7 @@ export function SignUpForm({ audience, role, accountType }: SignUpFormProps) {
         lastName,
         companyName,
         vatId,
+        legalAddress,
         phone,
         email,
         password,
@@ -551,7 +578,7 @@ export function SignUpForm({ audience, role, accountType }: SignUpFormProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(
           accountType === "BUSINESS"
-            ? { accountType, companyName, vatId, phone }
+            ? { accountType, companyName, vatId, legalAddress, phone }
             : { accountType, firstName, lastName, phone },
         ),
       });
@@ -703,6 +730,7 @@ export function SignUpForm({ audience, role, accountType }: SignUpFormProps) {
   const lastNameId = `${fieldId}-last-name`;
   const companyNameId = `${fieldId}-company-name`;
   const vatIdId = `${fieldId}-vat-id`;
+  const legalAddressId = `${fieldId}-legal-address`;
   const phoneId = `${fieldId}-phone`;
   const emailId = `${fieldId}-email`;
   const passwordId = `${fieldId}-password`;
@@ -761,6 +789,24 @@ export function SignUpForm({ audience, role, accountType }: SignUpFormProps) {
               autoComplete="off"
               error={fieldErrors.vatId}
             />
+            {/* A client's company only: printed as the CLIENT block on its
+                order documents. A logistics company (DRIVER + BUSINESS) has no
+                such document, and `/api/logistics-company` no such column. */}
+            {role === "CLIENT" ? (
+              <TextField
+                id={legalAddressId}
+                label={t("legalAddress")}
+                value={legalAddress}
+                onChange={(value) => {
+                  setLegalAddress(value);
+                  clearFieldError("legalAddress");
+                }}
+                autoComplete="street-address"
+                helper={t("legalAddressHelper")}
+                error={fieldErrors.legalAddress}
+                optional
+              />
+            ) : null}
           </>
         ) : (
           /* `auto-fit` with a 150px floor is what drops the pair to one column

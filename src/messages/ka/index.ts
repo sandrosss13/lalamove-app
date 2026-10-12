@@ -22,6 +22,7 @@ import fleet from "./fleet.json";
 import home from "./home.json";
 import landing from "./landing.json";
 import onboarding from "./onboarding.json";
+import orderDocument from "./orderDocument.json";
 import orders from "./orders.json";
 import wallet from "./wallet.json";
 
@@ -41,6 +42,7 @@ const messages = {
   home,
   landing,
   onboarding,
+  orderDocument,
   orders,
   wallet,
 };

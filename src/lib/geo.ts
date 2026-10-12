@@ -161,6 +161,24 @@ const LOCATIONIQ_RETRYABLE_STATUSES = new Set([429]);
 
 const EARTH_RADIUS_KM = 6371;
 
+/**
+ * Assumed average door-to-door driving speed, in km/h, used *only* when no real
+ * route is available and a travel time has to be derived from the straight-line
+ * `haversineDistanceKm` instead.
+ *
+ * LocationIQ's directions endpoint (`getRoute`) normally reports a real driving
+ * time; this flat rate is the shared fallback for when it cannot — no key,
+ * endpoint down, rate-limited, no route found. It lives here, beside the
+ * distance function it is paired with, so every server-side fallback reads one
+ * number: the fare's time component (`estimateDelivery` in `src/lib/pricing.ts`)
+ * and the tracking page's arrival estimate (`src/lib/orders/delivery-eta.ts`).
+ *
+ * `src/components/home/route-preview-map.tsx` keeps a client-side copy because
+ * this module reads env vars and must stay out of client bundles; keep the two
+ * in step.
+ */
+export const AVERAGE_SPEED_KMH = 30;
+
 /** Directions reports distance in metres and duration in seconds; both are
  *  converted at the boundary so `Route` speaks the units the app quotes in. */
 const METRES_PER_KM = 1000;

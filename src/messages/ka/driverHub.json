@@ -128,7 +128,10 @@
     "thisCreatesTheirAccountTheySign": "ეს ქმნის მძღოლის ანგარიშს. მძღოლი აპლიკაციაში შედის ამ ტელეფონის ნომრით და SMS-ით მიღებული ერთჯერადი კოდით.",
     "emailOptional": "ელფოსტა (არასავალდებულო)",
     "drivingLicenceOptional": "მართვის მოწმობა (არასავალდებულო)",
-    "drivingLicenceOptionalNote": "დატოვეთ ცარიელი ან მიუთითეთ ნომერი, ვადის ამოწურვის თარიღი და მინიმუმ ერთი კატეგორია."
+    "drivingLicenceOptionalNote": "დატოვეთ ცარიელი ან მიუთითეთ ნომერი, ვადის ამოწურვის თარიღი და მინიმუმ ერთი კატეგორია.",
+    "personalId": "პირადი ნომერი",
+    "personalIdHint": "მიუთითეთ მძღოლის 11-ნიშნა პირადი ნომერი.",
+    "personalIdPlaceholder": "11 ციფრი"
   },
   "driversDetailPanel": {
     "confirmOffboarding": "გათიშვის დადასტურება",
@@ -143,7 +146,16 @@
     "offboarding": "მიმდინარეობს გათიშვა…",
     "recentJobs": "ბოლო შეკვეთები",
     "sampleAcceptanceNote": "არსად ფიქსირდება შეთავაზება, რომელიც მძღოლმა ნახა, მაგრამ არ მიიღო, ამიტომ მიღების მაჩვენებლის გამოთვლა შეუძლებელია. ჩანაცვლდება JobOffer მოდელით.",
-    "sampleRatingNote": "შეკვეთის კლიენტის შეფასება არსად ფიქსირდება. ჩანაცვლდება OrderRating მოდელით."
+    "sampleRatingNote": "შეკვეთის კლიენტის შეფასება არსად ფიქსირდება. ჩანაცვლდება OrderRating მოდელით.",
+    "personalId": "პირადი ნომერი",
+    "personalIdMissing": "არ არის მითითებული",
+    "editPersonalId": "რედაქტირება",
+    "savePersonalId": "შენახვა",
+    "cancelPersonalId": "გაუქმება",
+    "savingPersonalId": "ინახება…",
+    "personalIdHint": "მიუთითეთ მძღოლის 11-ნიშნა პირადი ნომერი.",
+    "personalIdLockedNote": "დადასტურებულია მძღოლის დამტკიცებული განაცხადით. შესაცვლელად დაუკავშირდით მხარდაჭერის გუნდს.",
+    "couldNotSavePersonalId": "პირადი ნომრის შენახვა ვერ მოხერხდა."
   },
   "driversScreen": {
     "acrossCities": "{cities}",
@@ -705,7 +717,10 @@
     "transitCustom": "Transit Custom",
     "typesError": "ავტომობილის ტიპების ჩატვირთვა ვერ მოხერხდა. განაახლეთ გვერდი და სცადეთ ხელახლა.",
     "upTo": "{weight}-მდე",
-    "upToRich": "<num>{weight}</num>-მდე"
+    "upToRich": "<num>{weight}</num>-მდე",
+    "trailerPlate": "მისაბმელის სახელმწიფო ნომერი (არასავალდებულო)",
+    "trailerPlateHint": "მხოლოდ იმ შემთხვევაში, თუ ავტომობილს მისაბმელი აქვს: 2–15 ასო, ციფრი, ჰარი ან დეფისი.",
+    "trailerPlatePlaceholder": "AB-123-CD"
   },
   "vehiclesDetailPanel": {
     "confirmRemoval": "წაშლის დადასტურება",
@@ -719,7 +734,15 @@
     "removing": "იშლება…",
     "sampleNoteCities": "ავტომობილს მომსახურების ქალაქების ველი არ აქვს; არსებობს მხოლოდ კომპანიის საერთო citiesOfOperation. ჩანაცვლდება Vehicle.operatingCities-ით.",
     "sampleNoteSpecs": "ავტომობილის ჩანაწერში არ ინახება რეისების რაოდენობა. ჩანაცვლდება რეისების ავტომობილის დონის შეჯამებით.",
-    "thisVehicleBelongsToTheFleet": "ეს ტრანსპორტი ეკუთვნის ავტოპარკს, რომელზეც მუშაობთ და არა თქვენ. მისი წაშლა მხოლოდ მფლობელს შეუძლია."
+    "thisVehicleBelongsToTheFleet": "ეს ტრანსპორტი ეკუთვნის ავტოპარკს, რომელზეც მუშაობთ და არა თქვენ. მისი წაშლა მხოლოდ მფლობელს შეუძლია.",
+    "trailerPlate": "მისაბმელის სახელმწიფო ნომერი",
+    "trailerPlateNone": "მისაბმელი არ არის",
+    "editTrailerPlate": "რედაქტირება",
+    "saveTrailerPlate": "შენახვა",
+    "cancelTrailerPlate": "გაუქმება",
+    "savingTrailerPlate": "ინახება…",
+    "trailerPlateHint": "2–15 ასო, ციფრი, ჰარი ან დეფისი. წასაშლელად დატოვეთ ცარიელი.",
+    "couldNotSaveTrailerPlate": "მისაბმელის სახელმწიფო ნომრის შენახვა ვერ მოხერხდა."
   },
   "vehiclesScreen": {
     "addOneToStartTakingJobs": "დაამატეთ ტრანსპორტი შეკვეთების მისაღებად. ის ემატება უქმად დგომის სტატუსით, სანამ მძღოლი არ მიენიჭება.",

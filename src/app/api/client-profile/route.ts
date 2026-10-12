@@ -6,6 +6,10 @@ import {
   type RequestTranslator,
 } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
+import {
+  LEGAL_ADDRESS_MAX_LENGTH,
+  parseLegalAddress,
+} from "@/lib/client-profile/legal-address";
 import { prisma } from "@/lib/prisma";
 
 /** Valid `ClientAccountType` values, derived from the generated Prisma enum. */
@@ -21,6 +25,13 @@ type CreateClientProfileInput = {
   lastName: string | null;
   companyName: string | null;
   vatId: string | null;
+  /**
+   * BUSINESS only. `undefined` means "the request did not mention it", which
+   * Prisma reads as "leave the column alone" on the upsert's update branch —
+   * so a caller that predates the field cannot wipe an address it never
+   * showed. `null` clears it; INDIVIDUAL accounts always get `null`.
+   */
+  legalAddress: string | null | undefined;
   phone: string;
   // Verification details — only ever populated for INDIVIDUAL accounts.
   dateOfBirth: Date | null;
@@ -96,7 +107,10 @@ function parseOptionalGender(
  *
  * INDIVIDUAL accounts require first name, last name, and phone; company fields
  * are stored as null. BUSINESS accounts require company name, VAT id, and
- * phone; the personal name fields are stored as null.
+ * phone; the personal name fields are stored as null. A BUSINESS account may
+ * also send an optional `legalAddress` (trimmed, blank → null, at most
+ * `LEGAL_ADDRESS_MAX_LENGTH` characters — see `parseLegalAddress`); it is
+ * ignored and cleared for INDIVIDUAL accounts.
  */
 function parseCreateClientProfileBody(
   body: unknown,
@@ -157,6 +171,9 @@ function parseCreateClientProfileBody(
         lastName,
         companyName: null,
         vatId: null,
+        // A legal address is a company's registered address; an individual
+        // has none, so it is cleared even if the request sends one.
+        legalAddress: null,
         phone,
         dateOfBirth: dateOfBirth.value,
         gender: gender.value,
@@ -177,6 +194,25 @@ function parseCreateClientProfileBody(
     return { error: t("common.shared.vatidIsRequiredAndMustBe") };
   }
 
+  // Optional. Only parsed when the key is present: an absent key leaves the
+  // stored address untouched (see `CreateClientProfileInput.legalAddress`),
+  // while a present-but-blank one clears it.
+  let legalAddress: string | null | undefined;
+  if ("legalAddress" in record) {
+    const parsedLegalAddress = parseLegalAddress(record.legalAddress);
+    if ("error" in parsedLegalAddress) {
+      return {
+        error:
+          parsedLegalAddress.error === "tooLong"
+            ? t("errors.clientProfile.legalAddressIsTooLong", {
+                max: LEGAL_ADDRESS_MAX_LENGTH,
+              })
+            : t("errors.clientProfile.legalAddressMustBeText"),
+      };
+    }
+    legalAddress = parsedLegalAddress.legalAddress;
+  }
+
   // Verification details don't apply to a company; store them as null even if
   // the request happens to include them.
   return {
@@ -186,6 +222,7 @@ function parseCreateClientProfileBody(
       lastName: null,
       companyName,
       vatId,
+      legalAddress,
       phone,
       dateOfBirth: null,
       gender: null,
@@ -292,6 +329,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     lastName,
     companyName,
     vatId,
+    legalAddress,
     phone,
     dateOfBirth,
     gender,
@@ -309,6 +347,7 @@ export async function POST(request: Request): Promise<NextResponse> {
         lastName,
         companyName,
         vatId,
+        legalAddress,
         phone,
         dateOfBirth,
         gender,
@@ -320,6 +359,7 @@ export async function POST(request: Request): Promise<NextResponse> {
         lastName,
         companyName,
         vatId,
+        legalAddress,
         phone,
         dateOfBirth,
         gender,

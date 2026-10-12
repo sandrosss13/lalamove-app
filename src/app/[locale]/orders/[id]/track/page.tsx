@@ -4,6 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { auth } from "@/lib/auth";
 import { loadOrderPhotoViews } from "@/lib/order-photos/views";
+import { isServiceDocumentAvailable } from "@/lib/orders/service-document-server";
 import { prisma } from "@/lib/prisma";
 import { vehicleTypeSpecLabel } from "@/lib/vehicle-type-spec-labels";
 import {
@@ -84,6 +85,11 @@ export default async function TrackOrderPage({
         },
       },
       company: { select: { companyName: true } },
+      // Whether the order-details document can be offered, nothing more —
+      // and it is only offered to the client below. The assigned driver also
+      // reaches this page, and the document is never theirs to read (the PDF
+      // route answers them 404 regardless).
+      client: { select: { clientProfile: { select: { accountType: true } } } },
     },
   });
 
@@ -110,6 +116,11 @@ export default async function TrackOrderPage({
 
   // Only after the ownership check above: these are readable URLs.
   const photos = await loadOrderPhotoViews(order.id);
+  const tDocument = await getTranslations("orderDocument.section");
+  const offerDocument =
+    order.clientId === userId &&
+    order.client.clientProfile?.accountType === "BUSINESS" &&
+    isServiceDocumentAvailable(order.status);
 
   return (
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-6 p-8">
@@ -158,6 +169,17 @@ export default async function TrackOrderPage({
         </dl>
 
         <OrderPhotoGallery photos={photos} className="mt-4" />
+
+        {offerDocument ? (
+          // A plain link: the server sends the PDF as an attachment.
+          <a
+            href={`/api/orders/${encodeURIComponent(order.id)}/waybill/pdf`}
+            download
+            className="mt-4 inline-block text-sm font-medium underline-offset-4 hover:underline hover:opacity-70"
+          >
+            {tDocument("downloadTrack")}
+          </a>
+        ) : null}
       </div>
 
       <OrderTrackingMap

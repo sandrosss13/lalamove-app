@@ -115,6 +115,11 @@ export type HubVehicle = {
   model: string;
   year: number;
   colour: string | null;
+  /**
+   * Registration of the trailer this vehicle pulls, upper-cased, or null when
+   * it pulls none. Printed on the order-details document at trip start.
+   */
+  trailerPlateNumber: string | null;
   photoUrls: string[];
   /**
    * The class the owner declared at onboarding, or null for a vehicle that
@@ -451,6 +456,7 @@ export async function getHubVehicles(
       model: vehicle.model,
       year: vehicle.year,
       colour: vehicle.colour,
+      trailerPlateNumber: vehicle.trailerPlateNumber,
       photoUrls: vehicle.photoUrls,
       vehicleClass: vehicle.vehicleClass,
       vehicleClassLabel: declaredClassName ?? specLabel,

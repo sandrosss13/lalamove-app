@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import { HubCard } from "@/components/driver-hub/hub-primitives";
 import { useLocalizedCityOptions } from "@/lib/georgian-cities";
+import { isGeorgianPersonalNumber } from "@/lib/orders/service-document";
 import { cn } from "@/lib/utils";
 
 /**
@@ -36,6 +37,12 @@ import { cn } from "@/lib/utils";
  * a future expiry and at least one category. When one is entered the endpoint
  * holds it to the "a Category C vehicle needs a C driver" rule, so the form
  * does too; with none, any vehicle may be picked.
+ *
+ * The driver's personal ID number is required: the endpoint refuses anything
+ * but exactly 11 digits, because a client's order-details PDF prints it as the
+ * carrying driver's ID. The box only accepts what the endpoint accepts — 11
+ * characters, a numeric keypad on touch devices — and says so under itself as
+ * soon as what is typed cannot be valid, rather than waiting for the submit.
  *
  * "Zone" is the city picker. There is no zone model in the schema (see
  * `HubDriver.cityLabel`), and `city` is what the endpoint accepts, so the
@@ -124,6 +131,9 @@ const NO_VEHICLE = "";
 /** Minimum digits in a phone number, matching the handoff's own rule. */
 const MIN_PHONE_DIGITS = 9;
 
+/** A Georgian personal number: exactly 11 digits, as the endpoint requires. */
+const PERSONAL_ID_LENGTH = 11;
+
 /** The design's "Full name (>2 chars)". */
 const MIN_NAME_LENGTH = 2;
 
@@ -195,6 +205,7 @@ export function DriversAddPanel({
   const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [phone, setPhone] = React.useState("");
+  const [idNumber, setIdNumber] = React.useState("");
   const [city, setCity] = React.useState("");
   const [licenceNumber, setLicenceNumber] = React.useState("");
   const [licenceExpiry, setLicenceExpiry] = React.useState("");
@@ -223,6 +234,18 @@ export function DriversAddPanel({
   const requiredCategory = selectedVehicle?.requiredLicenceCategory ?? null;
 
   const nameValid = name.trim().length > MIN_NAME_LENGTH && lastName.length > 0;
+  // Trimmed, exactly 11 digits — the very predicate `parseDriverPersonalId`
+  // applies server-side, imported from the pure module that owns it.
+  const trimmedIdNumber = idNumber.trim();
+  const idNumberValid = isGeorgianPersonalNumber(trimmedIdNumber);
+  // Flag it inline only once what is typed can no longer become valid by
+  // typing more: a non-digit, or a full-length box that still fails. A
+  // half-typed number is not an error yet; the hint line below covers it.
+  const idNumberShowError =
+    trimmedIdNumber !== "" &&
+    !idNumberValid &&
+    (/\D/.test(trimmedIdNumber) ||
+      trimmedIdNumber.length >= PERSONAL_ID_LENGTH);
   // Optional: blank is fine, but anything typed has to look like an address.
   const emailValid = email.trim() === "" || /.+@.+\..+/.test(email.trim());
   const phoneValid = phoneDigits.length >= MIN_PHONE_DIGITS;
@@ -252,6 +275,7 @@ export function DriversAddPanel({
 
   const canSubmit =
     nameValid &&
+    idNumberValid &&
     emailValid &&
     phoneValid &&
     cityValid &&
@@ -277,22 +301,25 @@ export function DriversAddPanel({
       })
     : !nameValid
       ? t("hintName")
-      : !emailValid
-        ? t("hintEmail")
-        : !phoneValid
-          ? t("hintPhone", { minDigits: MIN_PHONE_DIGITS })
-          : !cityValid
-            ? t("hintCity")
-            : !licenceNumberValid
-              ? t("hintLicenceNumber")
-              : !expiryValid
-                ? t("hintExpiry")
-                : !categoriesValid
-                  ? t("hintCategories")
-                  : t("hintVehicleCategory", {
-                      vehicle: selectedVehicle?.plateNumber ?? t("thatVehicle"),
-                      category: requiredCategory ?? "",
-                    });
+      : !idNumberValid
+        ? t("personalIdHint")
+        : !emailValid
+          ? t("hintEmail")
+          : !phoneValid
+            ? t("hintPhone", { minDigits: MIN_PHONE_DIGITS })
+            : !cityValid
+              ? t("hintCity")
+              : !licenceNumberValid
+                ? t("hintLicenceNumber")
+                : !expiryValid
+                  ? t("hintExpiry")
+                  : !categoriesValid
+                    ? t("hintCategories")
+                    : t("hintVehicleCategory", {
+                        vehicle:
+                          selectedVehicle?.plateNumber ?? t("thatVehicle"),
+                        category: requiredCategory ?? "",
+                      });
 
   function toggleCategory(category: LicenceCategory, checked: boolean): void {
     setCategories((current) =>
@@ -326,6 +353,8 @@ export function DriversAddPanel({
           firstName,
           lastName,
           phone: phone.trim(),
+          // Required by the endpoint; already checked to be 11 digits above.
+          idNumber: trimmedIdNumber,
           city,
           // Absent, null and "" all mean "no vehicle yet" to the endpoint.
           vehicleId: vehicleId === NO_VEHICLE ? null : vehicleId,
@@ -385,6 +414,32 @@ export function DriversAddPanel({
             autoComplete="off"
             className={INPUT_CLASSES}
           />
+        </PanelField>
+
+        <PanelField label={t("personalId")} htmlFor="hub-driver-personal-id">
+          <Input
+            id="hub-driver-personal-id"
+            value={idNumber}
+            onChange={(event) => setIdNumber(event.target.value)}
+            placeholder={t("personalIdPlaceholder")}
+            inputMode="numeric"
+            maxLength={PERSONAL_ID_LENGTH}
+            autoComplete="off"
+            required
+            aria-invalid={idNumberShowError || undefined}
+            aria-describedby={
+              idNumberShowError ? "hub-driver-personal-id-error" : undefined
+            }
+            className={cn(INPUT_CLASSES, MONO_INPUT_CLASSES)}
+          />
+          {idNumberShowError ? (
+            <p
+              id="hub-driver-personal-id-error"
+              className="text-xs text-destructive"
+            >
+              {t("personalIdHint")}
+            </p>
+          ) : null}
         </PanelField>
 
         <PanelField label={t("emailOptional")} htmlFor="hub-driver-email">

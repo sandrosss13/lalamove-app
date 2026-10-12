@@ -104,6 +104,19 @@ export type PushData =
   | { type: typeof LOAD_OFFER_PUSH_TYPE; offerId: string }
   | { type: typeof ROUTE_ALERT_PUSH_TYPE; alertId: string; orderId: string };
 
+/**
+ * The `data` of an offer push. Its own function because the inbox entry for
+ * the same offer (`DriverNotification.data`) carries exactly this object.
+ */
+export function offerPushData(offerId: string): PushData {
+  return { type: LOAD_OFFER_PUSH_TYPE, offerId };
+}
+
+/** The `data` of a route-alert push — and of its inbox entry. */
+export function routeAlertPushData(alertId: string, orderId: string): PushData {
+  return { type: ROUTE_ALERT_PUSH_TYPE, alertId, orderId };
+}
+
 /** One message in Expo's format. Only the fields this backend sets. */
 export type PushMessage = {
   to: string;
@@ -142,7 +155,7 @@ export function buildOfferPushMessage(input: {
     sound: "default",
     priority: "high",
     ttl: Math.max(1, Math.ceil(input.ttlSeconds)),
-    data: { type: LOAD_OFFER_PUSH_TYPE, offerId: input.offerId },
+    data: offerPushData(input.offerId),
   };
 }
 
@@ -170,11 +183,7 @@ export function buildRouteAlertPushMessage(input: {
     sound: "default",
     priority: "default",
     ttl: Math.max(1, Math.ceil(input.ttlSeconds)),
-    data: {
-      type: ROUTE_ALERT_PUSH_TYPE,
-      alertId: input.alertId,
-      orderId: input.orderId,
-    },
+    data: routeAlertPushData(input.alertId, input.orderId),
   };
 }
 

@@ -266,8 +266,10 @@ test("both push senders ask the one rule, through one gate", () => {
   expect(read("push", "offer-notification.ts")).toContain(
     'usersAcceptingPush(\n      "LOAD_OFFERS"',
   );
+  // Inside `notifyRouteAlertsFired`: the settings gate the push, not the
+  // firing — a fired alert reaches the inbox either way.
   expect(read("route-alerts", "dispatch.ts")).toContain(
-    'usersAcceptingPush(\n    "ROUTE_ALERTS"',
+    'usersAcceptingPush(\n      "ROUTE_ALERTS"',
   );
   expect(read("notifications", "settings.ts")).toContain("shouldSendPush(");
 });

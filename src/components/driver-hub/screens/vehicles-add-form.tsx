@@ -159,6 +159,8 @@ export function VehiclesAddForm({
   const [model, setModel] = React.useState("");
   const [year, setYear] = React.useState("");
   const [vehicleTypeCode, setVehicleTypeCode] = React.useState("");
+  // Optional; blank is "no trailer". The route validates and upper-cases.
+  const [trailerPlate, setTrailerPlate] = React.useState("");
   // The file input stays uncontrolled — a `<input type="file">` cannot be
   // controlled — so its count is mirrored here purely to drive validation.
   const [photoCount, setPhotoCount] = React.useState(0);
@@ -285,6 +287,9 @@ export function VehiclesAddForm({
     body.set("model", model.trim());
     body.set("year", String(parsedYear));
     body.set("vehicleTypeCode", selectedType.code);
+    if (trailerPlate.trim() !== "") {
+      body.set("trailerPlateNumber", trailerPlate.trim());
+    }
 
     for (const photo of Array.from(photoInputRef.current?.files ?? [])) {
       body.append("photos", photo);
@@ -400,6 +405,25 @@ export function VehiclesAddForm({
               />
             </div>
           </div>
+
+          <Field label={t("trailerPlate")} htmlFor="vehicle-trailer-plate">
+            <Input
+              id="vehicle-trailer-plate"
+              value={trailerPlate}
+              onChange={(event) =>
+                setTrailerPlate(event.target.value.toUpperCase())
+              }
+              placeholder={t("trailerPlatePlaceholder")}
+              maxLength={15}
+              autoComplete="off"
+              spellCheck={false}
+              aria-describedby="vehicle-trailer-plate-hint"
+              className="h-auto rounded-md px-[11px] py-[9px] font-price text-[13px] md:text-[13px]"
+            />
+            <p id="vehicle-trailer-plate-hint" className={NOT_STORED_NOTE_CLASSES}>
+              {t("trailerPlateHint")}
+            </p>
+          </Field>
 
           <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3">
             <Field label={tShared("year")} htmlFor="vehicle-year">

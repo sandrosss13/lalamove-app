@@ -283,6 +283,7 @@ const vehicles: HubVehiclesData = {
       model: "Transit",
       year: 2019,
       colour: "White",
+      trailerPlateNumber: null,
       photoUrls: ["https://example.test/veh_1.jpg"],
       vehicleClass: "LARGE_VAN",
       vehicleClassLabel: "Large van",
@@ -751,6 +752,10 @@ test.describe("toHubVehiclesResponse", () => {
     // exactly what the app receives.
     const real: Record<string, unknown> = { ...source };
     delete real.sampled;
+    // Web-only for now: the trailer plate feeds the client's order-details PDF,
+    // and the mobile contract was deliberately left unchanged (adding it means
+    // a `contracts.ts` change and a `sync:contracts` run in the driver app).
+    delete real.trailerPlateNumber;
 
     expect(vehicle).toEqual({
       ...real,
