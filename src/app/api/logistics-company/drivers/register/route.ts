@@ -12,6 +12,10 @@ import { getRequestTranslations } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
 import { findVehicleClass } from "@/lib/driver-onboarding/vehicle-classes";
 import {
+  parseOptionalLicence,
+  type RegisterDriverLicence,
+} from "@/lib/driver-registration/licence";
+import {
   isPhonePlaceholderEmail,
   placeholderEmailForPhone,
 } from "@/lib/phone-auth";
@@ -33,12 +37,12 @@ type RequestTranslator = Awaited<ReturnType<typeof getRequestTranslations>>;
  * driver. `GET /api/logistics-company/drivers` (the roster list) is unrelated
  * and untouched.
  *
- * The licence details are captured here and nowhere else. A company driver
- * never walks the self-serve onboarding wizard, so this is the only moment the
- * platform learns which categories they hold — and without that, the rule
- * "a Category CE vehicle needs a CE driver" has nothing to evaluate. The
- * `DriverLicence` row is written in the same transaction as the profile so a
- * driver can never reach the roster unassignable for want of a licence record.
+ * The driving licence is optional. The company vouches for its own drivers,
+ * so they need no verification, and vehicles are registered separately in the
+ * company's Vehicles section. When a licence is given it is written in the
+ * same transaction as the profile, and the rule "a Category CE vehicle needs a
+ * CE driver" is applied against it so the recorded licence never contradicts
+ * the vehicle; a driver with no licence on file can drive any fleet vehicle.
  *
  * What is *not* enforced anywhere: licence **photographs**. Company vehicle and
  * licence document upload is an explicit v1 non-goal, so no code blocks a first
@@ -75,11 +79,8 @@ type RegisterDriverInput = {
   city: GeorgianCity;
   /** `null` when the admin chose not to assign a vehicle yet. */
   vehicleId: string | null;
-  licenceNumber: string;
-  /** Parsed and already known to be in the future. */
-  licenceExpiresAt: Date;
-  /** Already de-duplicated, and every entry a valid `LicenceCategory`. */
-  licenceCategories: LicenceCategory[];
+  /** `null` when the admin left every licence field blank. */
+  licence: RegisterDriverLicence | null;
 };
 
 /** Trims a value and returns it only if it is a non-empty string, else null. */
@@ -183,9 +184,9 @@ function isDuplicatePhoneNumberError(error: unknown): boolean {
  * vehicle yet". Its existence and ownership need a database read and so are
  * checked in the handler.
  *
- * The licence fields are all required. Whether the categories actually cover
- * the chosen vehicle is a separate question needing the vehicle row, so it is
- * answered in the handler too.
+ * The licence is all-or-nothing (`parseOptionalLicence`). Whether its
+ * categories cover the chosen vehicle needs the vehicle row, so it is answered
+ * in the handler too.
  *
  * The phone is required and normalised to E.164, because it is the driver's
  * sign-in number. The email is optional — absent, `null`, or blank all mean
@@ -256,76 +257,10 @@ function parseRegisterDriverBody(
     };
   }
 
-  const licenceNumber = nonEmptyString(record.licenceNumber);
-  if (licenceNumber === null) {
-    return {
-      error: t(
-        "errors.logisticsCompanyDriversRegister.licencenumberIsRequiredAndMustBe",
-      ),
-    };
+  const parsedLicence = parseOptionalLicence(record, t, LICENCE_CATEGORIES);
+  if ("error" in parsedLicence) {
+    return parsedLicence;
   }
-
-  const { licenceExpiresAt: rawLicenceExpiresAt } = record;
-  if (typeof rawLicenceExpiresAt !== "string") {
-    return {
-      error: t(
-        "errors.logisticsCompanyDriversRegister.licenceexpiresatMustBeAValidIso",
-      ),
-    };
-  }
-
-  const licenceExpiresAt = new Date(rawLicenceExpiresAt);
-  if (Number.isNaN(licenceExpiresAt.getTime())) {
-    return {
-      error: t(
-        "errors.logisticsCompanyDriversRegister.licenceexpiresatMustBeAValidIso",
-      ),
-    };
-  }
-
-  // Strictly after "now": a licence expiring today has already stopped being
-  // usable by the time the driver takes their first order.
-  if (licenceExpiresAt.getTime() <= Date.now()) {
-    return {
-      error: t(
-        "errors.logisticsCompanyDriversRegister.theLicenceExpiryDateMustBe",
-      ),
-    };
-  }
-
-  const { licenceCategories: rawLicenceCategories } = record;
-  if (
-    !Array.isArray(rawLicenceCategories) ||
-    rawLicenceCategories.length === 0
-  ) {
-    return {
-      error: t(
-        "errors.logisticsCompanyDriversRegister.licencecategoriesMustBeAnArrayWith",
-      ),
-    };
-  }
-
-  if (
-    !rawLicenceCategories.every(
-      (category): category is LicenceCategory =>
-        typeof category === "string" &&
-        LICENCE_CATEGORIES.includes(category as LicenceCategory),
-    )
-  ) {
-    return {
-      error: t(
-        "errors.logisticsCompanyDriversRegister.licenceCategoriesMustContainOnly",
-        {
-          categories: LICENCE_CATEGORIES.join(", "),
-        },
-      ),
-    };
-  }
-
-  // De-duplicated rather than rejected: a repeated "C" is a slip in whatever
-  // built the payload, not something the admin can act on, and the stored
-  // array is a set either way.
-  const licenceCategories = [...new Set(rawLicenceCategories)];
 
   const { vehicleId: rawVehicleId } = record;
   if (
@@ -348,9 +283,7 @@ function parseRegisterDriverBody(
       phone,
       city: city as GeorgianCity,
       vehicleId: nonEmptyString(rawVehicleId),
-      licenceNumber,
-      licenceExpiresAt,
-      licenceCategories,
+      licence: parsedLicence.licence,
     },
   };
 }
@@ -402,17 +335,8 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
 
-  const {
-    email,
-    firstName,
-    lastName,
-    phone,
-    city,
-    vehicleId,
-    licenceNumber,
-    licenceExpiresAt,
-    licenceCategories,
-  } = parsed.data;
+  const { email, firstName, lastName, phone, city, vehicleId, licence } =
+    parsed.data;
 
   const company = await prisma.logisticsCompany.findUnique({
     where: { userId: session.user.id },
@@ -517,13 +441,19 @@ export async function POST(request: Request): Promise<NextResponse> {
       );
     }
 
-    // The licence-category gate, checked here rather than after `signUpEmail`
-    // so a mismatch never leaves a half-created account behind — the same
-    // reasoning as the ownership and availability checks above. The identical
-    // string is produced by `vehicles/[id]/assignment`, so a company sees one
-    // message for one rule regardless of which door it came through.
+    // The licence-category gate, checked here rather than after the account is
+    // created so a mismatch never leaves a half-created account behind — the
+    // same reasoning as the ownership and availability checks above. Only a
+    // licence that was given is held to it; with none, any fleet vehicle is
+    // fine. The identical string is produced by `vehicles/[id]/assignment`, so
+    // a company sees one message for one rule regardless of which door it came
+    // through.
     const required = requiredCategoryForVehicle(vehicle);
-    if (required !== null && !licenceCategories.includes(required)) {
+    if (
+      required !== null &&
+      licence !== null &&
+      !licence.categories.includes(required)
+    ) {
       return NextResponse.json(
         {
           error: t(
@@ -571,11 +501,9 @@ export async function POST(request: Request): Promise<NextResponse> {
     throw error;
   }
 
-  // One transaction so a driver never ends up on the roster without their
-  // licence or their vehicle, or with a sign-in number but no profile to log in
-  // to. The licence in particular is what makes the driver assignable at all,
-  // so a profile without one would be a roster entry no classed vehicle could
-  // ever be given to.
+  // One transaction so a driver never ends up on the roster without the
+  // licence or vehicle the admin gave, or with a sign-in number but no profile
+  // to log in to.
   let driverProfileId: string;
   try {
     driverProfileId = await prisma.$transaction(async (tx) => {
@@ -623,17 +551,18 @@ export async function POST(request: Request): Promise<NextResponse> {
         select: { id: true },
       });
 
-      // Written in the same transaction as the profile, so neither can exist
-      // without the other. This row is the whole reason the category gate can
-      // be enforced at all.
-      await tx.driverLicence.create({
-        data: {
-          driverProfileId: profile.id,
-          licenceNumber,
-          expiresAt: licenceExpiresAt,
-          categories: licenceCategories,
-        },
-      });
+      // Only when one was given: "no licence" is no row, since every column
+      // of `DriverLicence` is required.
+      if (licence !== null) {
+        await tx.driverLicence.create({
+          data: {
+            driverProfileId: profile.id,
+            licenceNumber: licence.number,
+            expiresAt: licence.expiresAt,
+            categories: licence.categories,
+          },
+        });
+      }
 
       if (vehicleId !== null) {
         await tx.driverVehicleAssignment.create({
@@ -720,7 +649,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       name,
       email,
       phone,
-      categories: licenceCategories,
+      categories: licence?.categories ?? [],
       vehicleAssigned: vehicleId !== null,
     },
     { status: 201 },

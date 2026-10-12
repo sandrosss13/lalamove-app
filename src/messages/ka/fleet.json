@@ -172,10 +172,9 @@
       "sep": "სექ"
     },
     "needsCategory": "საჭიროა {category} კატეგორია",
-    "needsLicenceCategory": "{className} · საჭიროა {category} კატეგორიის მართვის მოწმობა",
+    "needsLicenceCategory": "{className} · დამატებული მართვის მოწმობა უნდა მოიცავდეს {category} კატეგორიას",
     "noCategory": "{category} კატეგორია არ აქვს",
-    "noDriverOnYourRosterHolds": "თქვენს სიაში არცერთ მძღოლს არ აქვს ამ ტრანსპორტისთვის საჭირო კატეგორიები. ამის სანაცვლოდ შექმენით ანგარიში.",
-    "noLicenceOnFile": "მართვის მოწმობა არ არის ბაზაში",
+    "noDriverOnYourRosterHolds": "ამჟამად თქვენი სიიდან არცერთი მძღოლის მიმაგრება ამ ტრანსპორტზე შეუძლებელია. ამის სანაცვლოდ შექმენით ანგარიში.",
     "noVehiclesYetDeclareYourFleet": "ტრანსპორტი ჯერ არ არის — ჯერ მიუთითეთ თქვენი ავტოპარკი.",
     "notAssigned": "არ არის მინიჭებული",
     "onPlate": "მიმაგრებულია {plate}-ზე",
@@ -189,7 +188,9 @@
     "emailAddressOptional": "ელფოსტის მისამართი (არასავალდებულო)",
     "driverCreatedSignInByPhone": "{name}-ის ანგარიში შეიქმნა. მძღოლი აპლიკაციაში შედის ნომრით {phone} და SMS კოდით.",
     "signInLabel": "შესვლა",
-    "signInByPhoneNote": "მძღოლი აპლიკაციაში შედის ამ მობილურის ნომრით და SMS-ით მიღებული ერთჯერადი კოდით. პაროლი საჭირო არ არის."
+    "signInByPhoneNote": "მძღოლი აპლიკაციაში შედის ამ მობილურის ნომრით და SMS-ით მიღებული ერთჯერადი კოდით. პაროლი საჭირო არ არის.",
+    "drivingLicenceOptional": "მართვის მოწმობა (არასავალდებულო)",
+    "drivingLicenceOptionalNote": "დატოვეთ ცარიელი ან მიუთითეთ ნომერი, ვადის ამოწურვის თარიღი და მინიმუმ ერთი კატეგორია."
   },
   "step5ReviewSubmit": {
     "assignedOf": "{assigned} / {vehicles}",

@@ -27,17 +27,15 @@ import { cn } from "@/lib/utils";
  *
  * The design asks for four fields (Full name, Phone, Zone, Assign a vehicle).
  * `POST /api/logistics-company/drivers/register` — the only endpoint that can
- * put a driver on a roster — requires three more: `licenceNumber`,
- * `licenceExpiresAt` and a non-empty `licenceCategories`. It also accepts an
- * optional `email`. The phone is the driver's login: they sign in to the driver
+ * put a driver on a roster — also accepts an optional `email` and an optional
+ * driving licence. The phone is the driver's login: they sign in to the driver
  * app with it and an SMS code.
- * A company driver never walks the self-serve onboarding wizard, so this form
- * is the *only* moment the platform learns which licence categories they hold,
- * and without that the "a Category C vehicle needs a C driver" rule has nothing
- * to evaluate. Shipping the design's four fields alone would mean every submit
- * returned 400 — a control that silently drops the operator's input, which is
- * exactly what the hub's honesty rule forbids. The extra fields are therefore
- * additions to the design, not deviations from the endpoint.
+ *
+ * The licence is optional because the company vouches for its own drivers, but
+ * it is all-or-nothing: leave every licence field blank, or fill in the number,
+ * a future expiry and at least one category. When one is entered the endpoint
+ * holds it to the "a Category C vehicle needs a C driver" rule, so the form
+ * does too; with none, any vehicle may be picked.
  *
  * "Zone" is the city picker. There is no zone model in the schema (see
  * `HubDriver.cityLabel`), and `city` is what the endpoint accepts, so the
@@ -70,7 +68,7 @@ export type DriversVehicleOption = {
    * with no declared class. Null means the endpoint's category gate does not
    * apply — matching `requiredCategoryForVehicle()` in the register route,
    * which lets pre-class vehicles through rather than making them permanently
-   * unassignable.
+   * unassignable. The gate only applies when a licence is entered at all.
    */
   requiredLicenceCategory: LicenceCategory | null;
 };
@@ -229,17 +227,28 @@ export function DriversAddPanel({
   const emailValid = email.trim() === "" || /.+@.+\..+/.test(email.trim());
   const phoneValid = phoneDigits.length >= MIN_PHONE_DIGITS;
   const cityValid = city !== "";
-  const licenceNumberValid = licenceNumber.trim().length > 0;
+  // The licence is optional but all-or-nothing, as the endpoint reads it: once
+  // any of its fields is touched, all three are required.
+  const licenceEntered =
+    licenceNumber.trim() !== "" ||
+    licenceExpiry !== "" ||
+    categories.length > 0;
+  const licenceNumberValid = !licenceEntered || licenceNumber.trim().length > 0;
   // Strictly in the future, mirroring the endpoint: a licence expiring today
   // has already stopped being usable by the driver's first order. `Date.parse`
   // of a `type="date"` value is UTC midnight, which is the same instant the
   // server compares against.
   const expiryTimestamp = Date.parse(licenceExpiry);
   const expiryValid =
-    Number.isFinite(expiryTimestamp) && expiryTimestamp > Date.now();
-  const categoriesValid = categories.length > 0;
+    !licenceEntered ||
+    (Number.isFinite(expiryTimestamp) && expiryTimestamp > Date.now());
+  const categoriesValid = !licenceEntered || categories.length > 0;
+  // Only an entered licence has to cover the vehicle; with none, any fleet
+  // vehicle may be assigned.
   const vehicleCategoryValid =
-    requiredCategory === null || categories.includes(requiredCategory);
+    !licenceEntered ||
+    requiredCategory === null ||
+    categories.includes(requiredCategory);
 
   const canSubmit =
     nameValid &&
@@ -320,9 +329,15 @@ export function DriversAddPanel({
           city,
           // Absent, null and "" all mean "no vehicle yet" to the endpoint.
           vehicleId: vehicleId === NO_VEHICLE ? null : vehicleId,
-          licenceNumber: licenceNumber.trim(),
-          licenceExpiresAt: new Date(expiryTimestamp).toISOString(),
-          licenceCategories: categories,
+          // Left out entirely when no licence was entered, which the endpoint
+          // reads as "no licence".
+          ...(licenceEntered
+            ? {
+                licenceNumber: licenceNumber.trim(),
+                licenceExpiresAt: new Date(expiryTimestamp).toISOString(),
+                licenceCategories: categories,
+              }
+            : {}),
         }),
       });
 
@@ -424,6 +439,15 @@ export function DriversAddPanel({
               </SelectContent>
             </Select>
           </PanelField>
+        </div>
+
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <span className="text-xs font-medium text-muted-foreground">
+            {t("drivingLicenceOptional")}
+          </span>
+          <p className="text-xs text-muted-foreground">
+            {t("drivingLicenceOptionalNote")}
+          </p>
         </div>
 
         <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3">

@@ -194,11 +194,6 @@
     "ka": "დისპეტჩერი",
     "_source": "src/lib/dashboard/hub/sample.ts"
   },
-  "sample.driverLicenceGe": {
-    "en": "Driver licence (GE)",
-    "ka": "მართვის მოწმობა (GE)",
-    "_source": "src/lib/dashboard/hub/sample.ts"
-  },
   "sample.earningsPayouts": {
     "en": "Earnings & payouts",
     "ka": "შემოსავალი და ანაზღაურება",

@@ -39,8 +39,6 @@ step4DriversAssignment.everyVehicleNeedsANamedDriver,"Every vehicle needs a name
 step4DriversAssignment.existingDriver,Existing driver,,src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx
 step4DriversAssignment.lastName,Last name,,src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx
 step4DriversAssignment.loadingYourRoster,Loading your roster…,,src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx
-step4DriversAssignment.noDriverOnYourRosterHolds,No driver on your roster holds the categories this vehicle needs. Create an account instead.,,src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx
-step4DriversAssignment.noLicenceOnFile,No licence on file,,src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx
 step4DriversAssignment.notAssigned,Not assigned,,src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx
 step4DriversAssignment.noVehiclesYetDeclareYourFleet,No vehicles yet — declare your fleet first.,,src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx
 step4DriversAssignment.removeCurrentDriver,Remove current driver,,src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx

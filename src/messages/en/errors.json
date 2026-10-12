@@ -395,7 +395,6 @@
     "fixTheFlaggedVehiclesBefore": "Fix the {count, plural, one {# flagged vehicle} other {# flagged vehicles}} before resubmitting.",
     "licenceHasExpired": "{name}'s licence has expired. Renew it before submitting.",
     "licenceMissingCategory": "{name}'s licence does not list category {category}, which the {vehicleClass} class requires.",
-    "noLicenceOnFile": "{name} has no licence on file. Add it before submitting.",
     "theVatOrTaxIdMust": "The VAT or tax ID must be exactly 9 digits.",
     "thisDriver": "This driver",
     "vehicleIndexHasNoDriver": "Vehicle {index} has no driver. Every vehicle needs a named driver.",

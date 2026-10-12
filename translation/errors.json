@@ -1444,11 +1444,6 @@
     "ka": "{name}-ის მართვის მოწმობაში არ არის {category} კატეგორია, რომელსაც {vehicleClass} კლასი მოითხოვს.",
     "_source": "src/app/api/logistics-company/onboarding/submit/route.ts"
   },
-  "logisticsCompanyOnboardingSubmit.noLicenceOnFile": {
-    "en": "{name} has no licence on file. Add it before submitting.",
-    "ka": "{name}-ის მართვის მოწმობა არ არის დამატებული. დაამატეთ იგი გაგზავნამდე.",
-    "_source": "src/app/api/logistics-company/onboarding/submit/route.ts"
-  },
   "logisticsCompanyOnboardingSubmit.theVatOrTaxIdMust": {
     "en": "The VAT or tax ID must be exactly 9 digits.",
     "ka": "საიდენტიფიკაციო კოდი ზუსტად 9 ციფრისგან უნდა შედგებოდეს.",

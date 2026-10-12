@@ -23,8 +23,8 @@
  * assignment rows.
  *
  * The driver *account* is the exception: `POST /api/logistics-company/drivers/
- * register` creates a real `User` + `DriverProfile` + `DriverLicence`
- * immediately. The mobile number is the driver's sign-in: they open the driver
+ * register` creates a real `User` + `DriverProfile` (+ `DriverLicence`, when
+ * one is given — it is optional for a company driver) immediately. The mobile number is the driver's sign-in: they open the driver
  * app and sign in with it and an SMS code, so there is no password to hand
  * over. The email is optional contact information.
  *
@@ -190,8 +190,8 @@ type DriverLicenceCategory = "B" | "C" | "CE";
  * The response body is a **bare array**, not `{ drivers: [...] }`, and the
  * licence facts are flat siblings — there is no nested `licence` object and no
  * `assignedVehicle`. "Has no licence on file" is `licenceExpiresAt === null`
- * (equivalently `categories.length === 0`), which happens for an older
- * company-created account predating licence capture.
+ * (equivalently `categories.length === 0`), which is normal: the licence is
+ * optional for a company driver.
  */
 type RosterEntry = {
   userId: string;
@@ -319,6 +319,10 @@ function initialsOf(name: string): string {
  * "Licence expired" is an addition to the design's two notes: submit rejects an
  * expired licence outright, and finding that out on the submit button — after
  * every other vehicle is assigned — is a worse failure than seeing it here.
+ *
+ * The licence checks only apply to a driver with a licence on file. The
+ * licence is optional for a company driver, and one without it may hold any
+ * vehicle — matching submit, which only checks a licence that exists.
  */
 function evaluateEligibility(
   driver: RosterEntry,
@@ -327,24 +331,28 @@ function evaluateEligibility(
   t: Step4Translator,
   formatDateTime: DateFormatter,
 ): Eligibility {
-  if (driver.licenceExpiresAt === null) {
-    return { eligible: false, note: t("noLicenceOnFile") };
-  }
+  if (driver.licenceExpiresAt !== null) {
+    if (!driver.categories.includes(required)) {
+      return {
+        eligible: false,
+        note: t("noCategory", { category: required }),
+      };
+    }
 
-  if (!driver.categories.includes(required)) {
-    return { eligible: false, note: t("noCategory", { category: required }) };
-  }
-
-  const expiresAt = new Date(driver.licenceExpiresAt);
-  if (!Number.isNaN(expiresAt.getTime()) && expiresAt.getTime() <= Date.now()) {
-    const formatted = formatIsoDate(driver.licenceExpiresAt, formatDateTime);
-    return {
-      eligible: false,
-      note:
-        formatted === null
-          ? t("licenceExpired")
-          : t("licenceExpiredOn", { date: formatted }),
-    };
+    const expiresAt = new Date(driver.licenceExpiresAt);
+    if (
+      !Number.isNaN(expiresAt.getTime()) &&
+      expiresAt.getTime() <= Date.now()
+    ) {
+      const formatted = formatIsoDate(driver.licenceExpiresAt, formatDateTime);
+      return {
+        eligible: false,
+        note:
+          formatted === null
+            ? t("licenceExpired")
+            : t("licenceExpiredOn", { date: formatted }),
+      };
+    }
   }
 
   if (driver.currentAssignment !== null) {
@@ -1142,10 +1150,27 @@ const CREATE_FIELD_ORDER: CreateFieldName[] = [
   "categories",
 ];
 
+/** Whether any licence field was filled in — the licence is all-or-nothing. */
+function isLicenceEntered(input: {
+  licenceNumber: string;
+  expiry: string;
+  categories: DriverLicenceCategory[];
+}): boolean {
+  return (
+    input.licenceNumber.trim() !== "" ||
+    input.expiry !== "" ||
+    input.categories.length > 0
+  );
+}
+
 /**
  * Every rule the create-account form enforces. Pure, and evaluated on every
  * render so the messages correct themselves as the company types rather than
  * staying stale until the next Save.
+ *
+ * The licence is optional but all-or-nothing, as the register route reads it:
+ * every licence field blank is "no licence", and touching any of them makes all
+ * three required. Only an entered licence has to cover this vehicle.
  *
  * The expiry rule is a convenience only: the register route re-parses the date
  * and re-checks it against its own clock, and is the authoritative one.
@@ -1189,6 +1214,10 @@ function validateCreateDriver(
     errors.city = t("selectCity");
   }
 
+  if (!isLicenceEntered(input)) {
+    return errors;
+  }
+
   if (input.licenceNumber.trim().length < MIN_LICENCE_NUMBER_LENGTH) {
     errors.licenceNumber = t("enterLicenceNumber");
   }
@@ -1206,8 +1235,7 @@ function validateCreateDriver(
   if (input.categories.length === 0) {
     errors.categories = t("selectCategory");
   } else if (!input.categories.includes(input.required)) {
-    // The design's exact message, and the reason the vehicle's required
-    // category is prechecked but still uncheckable.
+    // The design's exact message: a licence on file must cover the vehicle.
     errors.categories = t("categoryMismatch", { category: input.required });
   }
 
@@ -1250,11 +1278,9 @@ function CreateDriverForm({
   const [city, setCity] = useState<string>(defaultCity ?? "");
   const [licenceNumber, setLicenceNumber] = useState("");
   const [expiry, setExpiry] = useState("");
-  // Prechecked with the vehicle's requirement. Unchecking it is allowed — that
-  // is what surfaces the "This vehicle needs category CE." message.
-  const [categories, setCategories] = useState<DriverLicenceCategory[]>([
-    required,
-  ]);
+  // Not prechecked: a ticked category would count as a partly entered licence
+  // and make the optional licence look required.
+  const [categories, setCategories] = useState<DriverLicenceCategory[]>([]);
 
   const [showErrors, setShowErrors] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -1275,6 +1301,11 @@ function CreateDriverForm({
     t,
   );
   const errors: CreateFieldErrors = showErrors ? problems : {};
+  const licenceEntered = isLicenceEntered({
+    licenceNumber,
+    expiry,
+    categories,
+  });
 
   // A taken address comes back as a 400 naming the email, so it is mirrored
   // under that input as well as shown in the dialog's error line: that is the
@@ -1342,9 +1373,15 @@ function CreateDriverForm({
           lastName: lastName.trim(),
           phone: phone.trim(),
           city,
-          licenceNumber: licenceNumber.trim(),
-          licenceExpiresAt: expiry,
-          licenceCategories: categories,
+          // Left out entirely when no licence was entered, which the endpoint
+          // reads as "no licence".
+          ...(licenceEntered
+            ? {
+                licenceNumber: licenceNumber.trim(),
+                licenceExpiresAt: expiry,
+                licenceCategories: categories,
+              }
+            : {}),
         }),
       });
 
@@ -1368,7 +1405,9 @@ function CreateDriverForm({
         city,
         isOnline: false,
         categories: body.categories,
-        licenceExpiresAt: new Date(expiry).toISOString(),
+        licenceExpiresAt: licenceEntered
+          ? new Date(expiry).toISOString()
+          : null,
         currentAssignment: null,
       });
     } catch {
@@ -1476,6 +1515,13 @@ function CreateDriverForm({
           </Select>
         )}
       </FormField>
+
+      <div className="flex flex-col gap-1">
+        <p className={LABEL_CLASS}>{t("drivingLicenceOptional")}</p>
+        <p className="text-[12.5px] leading-[1.5] text-muted-foreground">
+          {t("drivingLicenceOptionalNote")}
+        </p>
+      </div>
 
       <FormField
         id={`${fieldId}-licence-number`}
