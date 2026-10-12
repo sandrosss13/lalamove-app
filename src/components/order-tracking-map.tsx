@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { APIProvider, Map, Marker, useMap } from "@vis.gl/react-google-maps";
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 
 import { useTheme } from "@/hooks/use-theme";
 import { DEFAULT_MAP_STYLES, MAP_STYLES_DARK } from "@/lib/map-styles";
@@ -26,9 +26,29 @@ type DriverLocation = {
   isOnline: boolean;
 };
 
-/** Response body of the tracking endpoint; `driver` is null until one is assigned. */
+/**
+ * Expected arrival as returned by `GET /api/orders/[id]/location`. Mirrors
+ * `DeliveryEta` from `@/lib/orders/delivery-eta`, duplicated for the same reason
+ * `LatLng` is: that module imports the server-only geo module. `arrivesAt` is an
+ * ISO string so the clock time is formatted here, in the viewer's locale and
+ * timezone, rather than in the server's.
+ */
+type DeliveryEta = {
+  target: "PICKUP" | "DROPOFF";
+  minutes: number;
+  arrivesAt: string;
+  basis: "ROUTE" | "ESTIMATE";
+};
+
+/**
+ * Response body of the tracking endpoint; `driver` is null until one is
+ * assigned, and `eta` is null whenever no arrival estimate applies (see the
+ * route's doc comment). `eta` is optional only so a response from a server
+ * that predates it still parses.
+ */
 type LocationResponse = {
   driver: DriverLocation | null;
+  eta?: DeliveryEta | null;
 };
 
 type OrderTrackingMapProps = {
@@ -110,6 +130,7 @@ function TrackingMap({
 }: OrderTrackingMapProps & { apiKey: string }) {
   const t = useTranslations("orders.orderTrackingMap");
   const tShared = useTranslations("common.shared");
+  const format = useFormatter();
   // The basemap is painted by the Maps SDK into its own canvas, so no `dark:`
   // utility reaches it and the style array has to be picked here. `useTheme`
   // tracks the `dark` class on `<html>` — the same source of truth the `dark:`
@@ -133,6 +154,7 @@ function TrackingMap({
     useTheme() === "dark" ? MAP_STYLES_DARK : DEFAULT_MAP_STYLES;
 
   const [driver, setDriver] = useState<DriverLocation | null>(null);
+  const [eta, setEta] = useState<DeliveryEta | null>(null);
   // Refreshed on every tick so the staleness check re-evaluates even when the
   // driver's reported position stops changing.
   const [now, setNow] = useState(() => Date.now());
@@ -155,6 +177,7 @@ function TrackingMap({
           return;
         }
         setDriver(payload.driver ?? null);
+        setEta(payload.eta ?? null);
       } catch {
         // Network error, malformed JSON, or an abort on unmount — skip this
         // tick and keep the last known position rather than tearing down the map.
@@ -201,8 +224,25 @@ function TrackingMap({
     !Number.isNaN(updatedAtMs) &&
     now - updatedAtMs > STALE_LOCATION_MS;
 
+  // The clock time is formatted with the page's locale via `useFormatter`, per
+  // the glossary's "never hand-built strings" rule; an unparseable instant
+  // drops the whole line rather than printing "Invalid Date".
+  const etaArrivesAt = eta ? new Date(eta.arrivesAt) : null;
+  const etaLine =
+    eta && etaArrivesAt && !Number.isNaN(etaArrivesAt.getTime())
+      ? t(eta.target === "PICKUP" ? "etaToPickup" : "etaToDropoff", {
+          minutes: eta.minutes,
+          time: format.dateTime(etaArrivesAt, {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+        })
+      : null;
+
   return (
     <div className="flex flex-col gap-2">
+      {etaLine ? <p className="text-sm font-medium">{etaLine}</p> : null}
+
       <div className="h-96 w-full overflow-hidden rounded border">
         <APIProvider apiKey={apiKey}>
           <Map

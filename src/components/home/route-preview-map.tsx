@@ -66,10 +66,10 @@ const FIT_BOUNDS_PADDING_PX = 64;
  * estimate has resolved, and when the server itself could not route and priced
  * on straight-line distance (see `estimateDelivery` in `src/lib/pricing.ts`).
  *
- * It intentionally mirrors `AVERAGE_SPEED_KMH` in `src/lib/pricing.ts`, which is
- * the same flat assumption that file falls back to for the time component of the
- * fare. It is duplicated rather than imported because that module is
- * server-only — it reads env vars and pulls in Prisma and the geocoding module —
+ * It intentionally mirrors `AVERAGE_SPEED_KMH` in `src/lib/geo.ts`, which is
+ * the same flat assumption `src/lib/pricing.ts` falls back to for the time
+ * component of the fare. It is duplicated rather than imported because those
+ * modules are server-only — they read env vars, and pricing pulls in Prisma —
  * exactly the reasoning `order-tracking-map.tsx` and `address-autocomplete.tsx`
  * already give for duplicating their types instead of importing from the server.
  *

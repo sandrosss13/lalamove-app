@@ -19,6 +19,8 @@
   },
   "orderTrackingMap": {
     "driverLocationMayBeStale": "მძღოლის მდებარეობა შესაძლოა მოძველებული იყოს",
+    "etaToDropoff": "მძღოლი ჩაბარების ადგილზე მივა ~{minutes} წუთში ({time})",
+    "etaToPickup": "მძღოლი აყვანის ადგილზე მივა ~{minutes} წუთში ({time})",
     "waitingForADriverToShare": "ველოდებით მძღოლის მიერ მდებარეობის გაზიარებას..."
   },
   "orders": {
