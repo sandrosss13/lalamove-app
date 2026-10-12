@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
+import { DriverApplicationStatus } from "@prisma/client";
 
 import { getRequestTranslations } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
+import { parseDriverPersonalId } from "@/lib/logistics-company/register-driver-input";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -147,4 +149,142 @@ export async function DELETE(
   ]);
 
   return NextResponse.json({ userId }, { status: 200 });
+}
+
+/**
+ * PATCH /api/logistics-company/drivers/[userId] — set the personal ID number of
+ * a driver on the signed-in company's roster. Body: `{ idNumber: string }`.
+ * Answers `{ userId, idNumber }`.
+ *
+ * Exists for drivers registered before `drivers/register` required the number
+ * (and for correcting a typo in one that did): a client's order-details PDF
+ * prints the carrying driver's personal number, so a company needs a way to
+ * fill it in without re-registering anyone. The number is validated exactly
+ * as registration validates it — trimmed, exactly 11 digits
+ * (`parseDriverPersonalId`) — and written to `DriverProfile.idNumber`, the
+ * same column the self-serve onboarding wizard writes.
+ *
+ * ## Refusals
+ *
+ * - 401 without a session; 403 for anyone but a COMPANY user.
+ * - 404 `common.shared.driverNotFound` for a driver who is not on **this**
+ *   company's roster — independent, on another fleet, or no such user — for
+ *   the same membership-oracle reason `DELETE` gives above.
+ * - 400 for a missing or malformed number. Blank is not a way to clear it:
+ *   the field is required at registration, so there is no "remove" path.
+ * - 409 `personalIdLockedVerified` once the driver has an `APPROVED`
+ *   `DriverApplication`. That application is operations' verdict on the
+ *   number the driver submitted with their own documents; letting the company
+ *   overwrite it would quietly unpick a review nobody re-runs. The roster's
+ *   `HubDriver.canEditIdNumber` mirrors this rule so the panel never offers an
+ *   edit that ends here.
+ *
+ * Not gated on `mustChangePassword`, matching `DELETE` and `drivers/register`
+ * beside it: no `logistics-company` mutation route checks that flag, and the
+ * dashboard pages that host the panel already redirect such a session away.
+ *
+ * The check-then-write is not wrapped in a transaction: the only competing
+ * write is an admin approving an application, which never touches `idNumber`,
+ * so the worst a race can produce is a company edit landing a moment before
+ * an approval — exactly the order the two would have taken had they been a
+ * second apart.
+ */
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ userId: string }> },
+): Promise<NextResponse> {
+  const t = await getRequestTranslations();
+
+  const session = await auth.api.getSession({ headers: request.headers });
+  if (!session) {
+    return NextResponse.json(
+      { error: t("common.shared.unauthorized") },
+      { status: 401 },
+    );
+  }
+
+  if (session.user.role !== "COMPANY") {
+    return NextResponse.json(
+      {
+        error: t(
+          "errors.logisticsCompanyDrivers.onlyLogisticsCompaniesCanEditDrivers",
+        ),
+      },
+      { status: 403 },
+    );
+  }
+
+  let rawBody: unknown;
+  try {
+    rawBody = await request.json();
+  } catch {
+    return NextResponse.json(
+      { error: t("common.shared.requestBodyMustBeValidJson") },
+      { status: 400 },
+    );
+  }
+
+  if (typeof rawBody !== "object" || rawBody === null) {
+    return NextResponse.json(
+      { error: t("common.shared.requestBodyMustBeAJson") },
+      { status: 400 },
+    );
+  }
+
+  // One message for both "required" and "invalid": there is no clearing path,
+  // so a blank submission is just another number that is not 11 digits.
+  const parsed = parseDriverPersonalId(
+    (rawBody as Record<string, unknown>).idNumber,
+  );
+  if ("error" in parsed) {
+    return NextResponse.json(
+      { error: t("errors.logisticsCompanyDrivers.personalIdInvalid") },
+      { status: 400 },
+    );
+  }
+
+  const { userId } = await params;
+
+  const company = await prisma.logisticsCompany.findUnique({
+    where: { userId: session.user.id },
+    select: { id: true },
+  });
+
+  if (!company) {
+    return NextResponse.json(
+      { error: t("common.shared.driverNotFound") },
+      { status: 404 },
+    );
+  }
+
+  // Scoped by roster membership, exactly as in `DELETE`.
+  const driverProfile = await prisma.driverProfile.findFirst({
+    where: { userId, companyId: company.id },
+    select: { id: true, application: { select: { status: true } } },
+  });
+
+  if (!driverProfile) {
+    return NextResponse.json(
+      { error: t("common.shared.driverNotFound") },
+      { status: 404 },
+    );
+  }
+
+  if (driverProfile.application?.status === DriverApplicationStatus.APPROVED) {
+    return NextResponse.json(
+      { error: t("errors.logisticsCompanyDrivers.personalIdLockedVerified") },
+      { status: 409 },
+    );
+  }
+
+  const updated = await prisma.driverProfile.update({
+    where: { id: driverProfile.id },
+    data: { idNumber: parsed.idNumber },
+    select: { idNumber: true },
+  });
+
+  return NextResponse.json(
+    { userId, idNumber: updated.idNumber },
+    { status: 200 },
+  );
 }

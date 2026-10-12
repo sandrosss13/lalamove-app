@@ -352,7 +352,10 @@
   },
   "logisticsCompanyDrivers": {
     "onlyLogisticsCompaniesCanRemoveDrivers": "Only logistics companies can remove drivers.",
-    "onlyLogisticsCompaniesHaveADriver": "Only logistics companies have a driver roster."
+    "onlyLogisticsCompaniesHaveADriver": "Only logistics companies have a driver roster.",
+    "onlyLogisticsCompaniesCanEditDrivers": "Only logistics companies can edit drivers.",
+    "personalIdInvalid": "The personal ID number must be exactly 11 digits.",
+    "personalIdLockedVerified": "This driver's personal ID number was confirmed by their approved application and can no longer be changed here. Contact support."
   },
   "logisticsCompanyDriversRegister": {
     "cityMustBeOneOf": "city must be one of: {cities}.",
@@ -371,7 +374,9 @@
     "emailMustBeAString": "email must be a string when provided.",
     "thisEmailCannotBeUsed": "This email address cannot be used.",
     "enterAValidMobileNumber": "Enter a valid mobile number, e.g. +995 555 12 34 56.",
-    "anAccountWithThatPhoneNumber": "An account with that mobile number already exists."
+    "anAccountWithThatPhoneNumber": "An account with that mobile number already exists.",
+    "personalIdRequired": "Enter the driver's personal ID number.",
+    "personalIdInvalid": "The personal ID number must be exactly 11 digits."
   },
   "logisticsCompanyOnboarding": {
     "anApplicationUnderReviewCanNo": "An application under review can no longer be edited.",

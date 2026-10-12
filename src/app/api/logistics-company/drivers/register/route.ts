@@ -11,6 +11,7 @@ import { APIError } from "better-auth/api";
 import { getRequestTranslations } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
 import { findVehicleClass } from "@/lib/driver-onboarding/vehicle-classes";
+import { parseDriverPersonalId } from "@/lib/logistics-company/register-driver-input";
 import {
   parseOptionalLicence,
   type RegisterDriverLicence,
@@ -51,6 +52,19 @@ type RequestTranslator = Awaited<ReturnType<typeof getRequestTranslations>>;
  * server-side gate. The gap is deliberate; do not assume an enforcement path
  * exists behind it.
  *
+ * ## The personal ID is required
+ *
+ * `idNumber` — the driver's 11-digit Georgian personal number (პირადი ნომერი)
+ * — must be given, trimmed, and exactly 11 digits
+ * (`parseDriverPersonalId` in `src/lib/logistics-company/register-driver-input.ts`).
+ * It is stored on `DriverProfile.idNumber`, the same column the self-serve
+ * onboarding wizard writes, and is what a client's order-details PDF prints as
+ * the carrying driver's ID. Unlike the licence it is not optional: the company
+ * vouches for its drivers, and this is the one identity fact that document
+ * needs. Drivers registered before it was required are filled in afterwards
+ * through `PATCH /api/logistics-company/drivers/[userId]`. Nothing blocks
+ * dispatch on it — the PDF prints a blank line when it is missing.
+ *
  * ## Sign-in is by phone
  *
  * The driver app signs drivers in with their mobile number and an SMS code
@@ -76,6 +90,8 @@ type RegisterDriverInput = {
   lastName: string;
   /** E.164 (`+995555123456`) — the driver's sign-in number. */
   phone: string;
+  /** Exactly 11 digits — the driver's Georgian personal number. */
+  idNumber: string;
   city: GeorgianCity;
   /** `null` when the admin chose not to assign a vehicle yet. */
   vehicleId: string | null;
@@ -191,6 +207,9 @@ function isDuplicatePhoneNumberError(error: unknown): boolean {
  * The phone is required and normalised to E.164, because it is the driver's
  * sign-in number. The email is optional — absent, `null`, or blank all mean
  * "none".
+ *
+ * The personal ID is required: trimmed, exactly 11 digits. Absent or blank is
+ * `personalIdRequired`, anything else malformed is `personalIdInvalid`.
  */
 function parseRegisterDriverBody(
   body: unknown,
@@ -245,6 +264,16 @@ function parseRegisterDriverBody(
     };
   }
 
+  const parsedIdNumber = parseDriverPersonalId(record.idNumber);
+  if ("error" in parsedIdNumber) {
+    return {
+      error:
+        parsedIdNumber.error === "required"
+          ? t("errors.logisticsCompanyDriversRegister.personalIdRequired")
+          : t("errors.logisticsCompanyDriversRegister.personalIdInvalid"),
+    };
+  }
+
   const { city } = record;
   if (
     typeof city !== "string" ||
@@ -281,6 +310,7 @@ function parseRegisterDriverBody(
       firstName,
       lastName,
       phone,
+      idNumber: parsedIdNumber.idNumber,
       city: city as GeorgianCity,
       vehicleId: nonEmptyString(rawVehicleId),
       licence: parsedLicence.licence,
@@ -335,8 +365,16 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
 
-  const { email, firstName, lastName, phone, city, vehicleId, licence } =
-    parsed.data;
+  const {
+    email,
+    firstName,
+    lastName,
+    phone,
+    idNumber,
+    city,
+    vehicleId,
+    licence,
+  } = parsed.data;
 
   const company = await prisma.logisticsCompany.findUnique({
     where: { userId: session.user.id },
@@ -530,6 +568,7 @@ export async function POST(request: Request): Promise<NextResponse> {
           companyName: null,
           vatId: null,
           phone,
+          idNumber,
           city,
           // A company-created driver never sees the self-serve onboarding
           // wizard, so no application will ever exist for an admin to approve.

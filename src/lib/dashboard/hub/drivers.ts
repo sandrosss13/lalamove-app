@@ -140,6 +140,22 @@ export type HubDriver = {
   phone: string;
   city: GeorgianCity;
   /**
+   * `DriverProfile.idNumber` — the driver's 11-digit Georgian personal number,
+   * or null when none is on file. Printed on a client's order-details PDF as
+   * the carrying driver's ID, so the company is asked for it at registration
+   * and can fill it in afterwards for drivers added before it was required.
+   */
+  idNumber: string | null;
+  /**
+   * Whether the company may still edit `idNumber`. False once the driver has an
+   * `APPROVED` `DriverApplication`: operations verified that number against
+   * the driver's own documents, and the company overwriting it would silently
+   * undo the review. `PATCH /api/logistics-company/drivers/[userId]` enforces
+   * the same rule (409); this flag only spares the panel offering an edit the
+   * server would refuse.
+   */
+  canEditIdNumber: boolean;
+  /**
    * Humanised city, which is what the design's **Zone** column shows.
    *
    * City is the honest proxy: there is no zone model. `GeorgianCity` stops at
@@ -407,6 +423,8 @@ export async function getHubDrivers(
       email: driver.user.email,
       phone: driver.phone,
       city: driver.city,
+      idNumber: driver.idNumber,
+      canEditIdNumber: driver.application?.status !== "APPROVED",
       cityLabel: formatCity(driver.city),
       isOnline: driver.isOnline,
       presence: driver.isOnline ? "Online" : "Offline",

@@ -128,7 +128,10 @@
     "thisCreatesTheirAccountTheySign": "This creates their account. They sign in to the driver app with this phone number and a one-time SMS code.",
     "emailOptional": "Email (optional)",
     "drivingLicenceOptional": "Driving licence (optional)",
-    "drivingLicenceOptionalNote": "Leave it blank, or fill in the number, the expiry date and at least one category."
+    "drivingLicenceOptionalNote": "Leave it blank, or fill in the number, the expiry date and at least one category.",
+    "personalId": "Personal ID number",
+    "personalIdHint": "Add the driver's 11-digit personal ID number.",
+    "personalIdPlaceholder": "11 digits"
   },
   "driversDetailPanel": {
     "confirmOffboarding": "Confirm offboarding",
@@ -143,7 +146,16 @@
     "offboarding": "Offboarding…",
     "recentJobs": "Recent jobs",
     "sampleAcceptanceNote": "Nothing records an offer a driver was shown but did not take, so an acceptance rate cannot be computed. Retire with a JobOffer model.",
-    "sampleRatingNote": "Nothing records a customer rating for an order. Retire with an OrderRating model."
+    "sampleRatingNote": "Nothing records a customer rating for an order. Retire with an OrderRating model.",
+    "personalId": "Personal ID number",
+    "personalIdMissing": "Not provided",
+    "editPersonalId": "Edit",
+    "savePersonalId": "Save",
+    "cancelPersonalId": "Cancel",
+    "savingPersonalId": "Saving…",
+    "personalIdHint": "Add the driver's 11-digit personal ID number.",
+    "personalIdLockedNote": "Confirmed by the driver's approved application. Contact support to change it.",
+    "couldNotSavePersonalId": "Could not save the personal ID number."
   },
   "driversScreen": {
     "acrossCities": "Across {cities}",

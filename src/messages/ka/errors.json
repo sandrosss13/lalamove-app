@@ -352,7 +352,10 @@
   },
   "logisticsCompanyDrivers": {
     "onlyLogisticsCompaniesCanRemoveDrivers": "მძღოლების წაშლა მხოლოდ ლოჯისტიკურ კომპანიებს შეუძლიათ.",
-    "onlyLogisticsCompaniesHaveADriver": "მძღოლების განრიგი მხოლოდ ლოჯისტიკურ კომპანიებს აქვთ."
+    "onlyLogisticsCompaniesHaveADriver": "მძღოლების განრიგი მხოლოდ ლოჯისტიკურ კომპანიებს აქვთ.",
+    "onlyLogisticsCompaniesCanEditDrivers": "მძღოლების რედაქტირება მხოლოდ ლოჯისტიკურ კომპანიებს შეუძლიათ.",
+    "personalIdInvalid": "პირადი ნომერი უნდა შედგებოდეს ზუსტად 11 ციფრისგან.",
+    "personalIdLockedVerified": "ამ მძღოლის პირადი ნომერი დადასტურებულია დამტკიცებული განაცხადით და აქ მისი შეცვლა აღარ შეიძლება. დაუკავშირდით მხარდაჭერის გუნდს."
   },
   "logisticsCompanyDriversRegister": {
     "cityMustBeOneOf": "city უნდა იყოს ერთ-ერთი შემდეგიდან: {cities}.",
@@ -371,7 +374,9 @@
     "emailMustBeAString": "email, თუ მითითებულია, უნდა იყოს ტექსტი.",
     "thisEmailCannotBeUsed": "ამ ელფოსტის გამოყენება შეუძლებელია.",
     "enterAValidMobileNumber": "შეიყვანეთ სწორი მობილურის ნომერი, მაგ. +995 555 12 34 56.",
-    "anAccountWithThatPhoneNumber": "ამ მობილურის ნომრით ანგარიში უკვე არსებობს."
+    "anAccountWithThatPhoneNumber": "ამ მობილურის ნომრით ანგარიში უკვე არსებობს.",
+    "personalIdRequired": "მიუთითეთ მძღოლის პირადი ნომერი.",
+    "personalIdInvalid": "პირადი ნომერი უნდა შედგებოდეს ზუსტად 11 ციფრისგან."
   },
   "logisticsCompanyOnboarding": {
     "anApplicationUnderReviewCanNo": "განხილვის პროცესში მყოფი განაცხადის რედაქტირება უკვე შეუძლებელია.",
