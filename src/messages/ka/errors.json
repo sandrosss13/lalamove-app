@@ -289,7 +289,8 @@
     "onlyDriversCanEditVehicles": "ტრანსპორტის რედაქტირება მხოლოდ მძღოლებს შეუძლიათ.",
     "onlyDriversCanRemoveVehicles": "ტრანსპორტის წაშლა მხოლოდ მძღოლებს შეუძლიათ.",
     "onlyDriversHaveVehicles": "ტრანსპორტი მხოლოდ მძღოლებს აქვთ.",
-    "photoTooLarge": "{name} აღემატება {mb} MB-ს."
+    "photoTooLarge": "{name} აღემატება {mb} MB-ს.",
+    "trailerPlateInvalid": "მისაბმელის სახელმწიფო ნომერი უნდა შედგებოდეს 2–15 ასოს, ციფრის, ჰარის ან დეფისისგან."
   },
   "driverProfileVehiclesValidation": {
     "yearRange": "year უნდა იყოს მთელი რიცხვი {min}-დან {max}-მდე."
@@ -436,7 +437,9 @@
     "onlyLogisticsCompaniesCanRemoveFleet": "ავტოპარკის ტრანსპორტის წაშლა მხოლოდ ლოჯისტიკურ კომპანიებს შეუძლიათ.",
     "onlyLogisticsCompaniesHaveAFleet": "ავტოპარკი მხოლოდ ლოჯისტიკურ კომპანიებს აქვთ.",
     "vehicletypecodeDoesNotMatchAKnown": "vehicleTypeCode არ შეესაბამება ტრანსპორტის ცნობილ ტიპს.",
-    "yearMustBeAWholeNumber": "year უნდა იყოს მთელი რიცხვი {min}-დან {max}-მდე."
+    "yearMustBeAWholeNumber": "year უნდა იყოს მთელი რიცხვი {min}-დან {max}-მდე.",
+    "onlyLogisticsCompaniesCanEditFleet": "ავტოპარკის ტრანსპორტის რედაქტირება მხოლოდ ლოჯისტიკურ კომპანიებს შეუძლიათ.",
+    "trailerPlateInvalid": "მისაბმელის სახელმწიფო ნომერი უნდა შედგებოდეს 2–15 ასოს, ციფრის, ჰარის ან დეფისისგან."
   },
   "logisticsCompanyVehiclesAssignment": {
     "onlyLogisticsCompaniesCanAssignVehicles": "ტრანსპორტის მინიჭება მხოლოდ ლოჯისტიკურ კომპანიებს შეუძლიათ.",

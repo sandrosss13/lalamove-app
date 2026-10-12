@@ -717,7 +717,10 @@
     "transitCustom": "Transit Custom",
     "typesError": "Could not load the vehicle types. Refresh and try again.",
     "upTo": "Up to {weight}",
-    "upToRich": "Up to <num>{weight}</num>"
+    "upToRich": "Up to <num>{weight}</num>",
+    "trailerPlate": "Trailer plate (optional)",
+    "trailerPlateHint": "Only if this vehicle pulls a trailer: 2–15 letters, digits, spaces or hyphens.",
+    "trailerPlatePlaceholder": "AB-123-CD"
   },
   "vehiclesDetailPanel": {
     "confirmRemoval": "Confirm removal",
@@ -731,7 +734,15 @@
     "removing": "Removing…",
     "sampleNoteCities": "Vehicle has no operating-cities column; only the company's fleet-wide citiesOfOperation exists. Retire with Vehicle.operatingCities.",
     "sampleNoteSpecs": "Vehicle stores no per-vehicle job count. Retire with a per-vehicle job rollup.",
-    "thisVehicleBelongsToTheFleet": "This vehicle belongs to the fleet you drive for, not to you. Only its owner can remove it."
+    "thisVehicleBelongsToTheFleet": "This vehicle belongs to the fleet you drive for, not to you. Only its owner can remove it.",
+    "trailerPlate": "Trailer plate",
+    "trailerPlateNone": "No trailer",
+    "editTrailerPlate": "Edit",
+    "saveTrailerPlate": "Save",
+    "cancelTrailerPlate": "Cancel",
+    "savingTrailerPlate": "Saving…",
+    "trailerPlateHint": "2–15 letters, digits, spaces or hyphens. Leave blank to remove it.",
+    "couldNotSaveTrailerPlate": "Could not save the trailer plate."
   },
   "vehiclesScreen": {
     "addOneToStartTakingJobs": "Add one to start taking jobs. It joins as idle until a driver is assigned to it.",

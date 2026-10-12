@@ -289,7 +289,8 @@
     "onlyDriversCanEditVehicles": "Only drivers can edit vehicles.",
     "onlyDriversCanRemoveVehicles": "Only drivers can remove vehicles.",
     "onlyDriversHaveVehicles": "Only drivers have vehicles.",
-    "photoTooLarge": "{name} is larger than {mb} MB."
+    "photoTooLarge": "{name} is larger than {mb} MB.",
+    "trailerPlateInvalid": "The trailer plate must be 2–15 letters, digits, spaces or hyphens."
   },
   "driverProfileVehiclesValidation": {
     "yearRange": "year must be a whole number between {min} and {max}."
@@ -436,7 +437,9 @@
     "onlyLogisticsCompaniesCanRemoveFleet": "Only logistics companies can remove fleet vehicles.",
     "onlyLogisticsCompaniesHaveAFleet": "Only logistics companies have a fleet.",
     "vehicletypecodeDoesNotMatchAKnown": "vehicleTypeCode does not match a known vehicle type.",
-    "yearMustBeAWholeNumber": "year must be a whole number between {min} and {max}."
+    "yearMustBeAWholeNumber": "year must be a whole number between {min} and {max}.",
+    "onlyLogisticsCompaniesCanEditFleet": "Only logistics companies can edit fleet vehicles.",
+    "trailerPlateInvalid": "The trailer plate must be 2–15 letters, digits, spaces or hyphens."
   },
   "logisticsCompanyVehiclesAssignment": {
     "onlyLogisticsCompaniesCanAssignVehicles": "Only logistics companies can assign vehicles.",
