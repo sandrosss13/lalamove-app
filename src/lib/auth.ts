@@ -435,7 +435,9 @@ export const auth = betterAuth({
          * endpoint has just checked a code for it. `hooks.before` refuses both
          * keys on `/update-user`; this covers every other Better Auth write to
          * the user row. Trusted server code that writes through Prisma does
-         * not pass through here, and none of it touches these columns.
+         * not pass through here; the only such code touching these columns is
+         * company driver registration (`api/logistics-company/drivers/register`),
+         * which sets the number the company registered the driver with.
          */
         before: async (data, context) => {
           if (
@@ -562,14 +564,16 @@ export const auth = betterAuth({
       }
 
       if (ctx.path === PHONE_SEND_OTP_PATH || ctx.path === PHONE_VERIFY_PATH) {
-        // Fail closed first: with no way to deliver a code, nothing below is
-        // worth doing and nothing may be accepted.
-        assertOtpDeliveryConfigured();
-
         const { phoneNumber: phone, code } = parsePhoneAuthBody(
           ctx.path,
           ctx.body,
         );
+
+        // Fail closed before anything else touches the number: with no way to
+        // deliver a code to it, nothing below is worth doing and nothing may
+        // be accepted. Delivery is decided per number (the staging test code
+        // covers only an allowlist), hence after parsing.
+        assertOtpDeliveryConfigured(phone);
 
         enforcePhoneOtpLimits(ctx.path, phone, ctx.request);
 

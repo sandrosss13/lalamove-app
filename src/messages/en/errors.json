@@ -164,6 +164,8 @@
     "dateofbirthMustBeAValidDate": "dateOfBirth must be a valid date.",
     "dateofbirthMustBeAnIsoDate": "dateOfBirth must be an ISO date string.",
     "genderMustBeOneOf": "gender must be one of: {allowed}.",
+    "legalAddressIsTooLong": "Legal address must be at most {max} characters.",
+    "legalAddressMustBeText": "Legal address must be text.",
     "onlyClientsCanCreateAClient": "Only clients can create a client profile.",
     "onlyClientsHaveAClientProfile": "Only clients have a client profile."
   },
@@ -287,7 +289,8 @@
     "onlyDriversCanEditVehicles": "Only drivers can edit vehicles.",
     "onlyDriversCanRemoveVehicles": "Only drivers can remove vehicles.",
     "onlyDriversHaveVehicles": "Only drivers have vehicles.",
-    "photoTooLarge": "{name} is larger than {mb} MB."
+    "photoTooLarge": "{name} is larger than {mb} MB.",
+    "trailerPlateInvalid": "The trailer plate must be 2–15 letters, digits, spaces or hyphens."
   },
   "driverProfileVehiclesValidation": {
     "yearRange": "year must be a whole number between {min} and {max}."
@@ -350,7 +353,10 @@
   },
   "logisticsCompanyDrivers": {
     "onlyLogisticsCompaniesCanRemoveDrivers": "Only logistics companies can remove drivers.",
-    "onlyLogisticsCompaniesHaveADriver": "Only logistics companies have a driver roster."
+    "onlyLogisticsCompaniesHaveADriver": "Only logistics companies have a driver roster.",
+    "onlyLogisticsCompaniesCanEditDrivers": "Only logistics companies can edit drivers.",
+    "personalIdInvalid": "The personal ID number must be exactly 11 digits.",
+    "personalIdLockedVerified": "This driver's personal ID number was confirmed by their approved application and can no longer be changed here. Contact support."
   },
   "logisticsCompanyDriversRegister": {
     "cityMustBeOneOf": "city must be one of: {cities}.",
@@ -365,7 +371,13 @@
     "theLicenceExpiryDateMustBe": "The licence expiry date must be in the future.",
     "thisVehicleIsAlreadyAssignedTo": "This vehicle is already assigned to another driver.",
     "thisVehicleNeedsCategory": "This vehicle needs category {category}. Assign a different driver or vehicle.",
-    "vehicleidMustBeAStringWhen": "vehicleId must be a string when provided."
+    "vehicleidMustBeAStringWhen": "vehicleId must be a string when provided.",
+    "emailMustBeAString": "email must be a string when provided.",
+    "thisEmailCannotBeUsed": "This email address cannot be used.",
+    "enterAValidMobileNumber": "Enter a valid mobile number, e.g. +995 555 12 34 56.",
+    "anAccountWithThatPhoneNumber": "An account with that mobile number already exists.",
+    "personalIdRequired": "Enter the driver's personal ID number.",
+    "personalIdInvalid": "The personal ID number must be exactly 11 digits."
   },
   "logisticsCompanyOnboarding": {
     "anApplicationUnderReviewCanNo": "An application under review can no longer be edited.",
@@ -391,7 +403,6 @@
     "fixTheFlaggedVehiclesBefore": "Fix the {count, plural, one {# flagged vehicle} other {# flagged vehicles}} before resubmitting.",
     "licenceHasExpired": "{name}'s licence has expired. Renew it before submitting.",
     "licenceMissingCategory": "{name}'s licence does not list category {category}, which the {vehicleClass} class requires.",
-    "noLicenceOnFile": "{name} has no licence on file. Add it before submitting.",
     "theVatOrTaxIdMust": "The VAT or tax ID must be exactly 9 digits.",
     "thisDriver": "This driver",
     "vehicleIndexHasNoDriver": "Vehicle {index} has no driver. Every vehicle needs a named driver.",
@@ -426,7 +437,9 @@
     "onlyLogisticsCompaniesCanRemoveFleet": "Only logistics companies can remove fleet vehicles.",
     "onlyLogisticsCompaniesHaveAFleet": "Only logistics companies have a fleet.",
     "vehicletypecodeDoesNotMatchAKnown": "vehicleTypeCode does not match a known vehicle type.",
-    "yearMustBeAWholeNumber": "year must be a whole number between {min} and {max}."
+    "yearMustBeAWholeNumber": "year must be a whole number between {min} and {max}.",
+    "onlyLogisticsCompaniesCanEditFleet": "Only logistics companies can edit fleet vehicles.",
+    "trailerPlateInvalid": "The trailer plate must be 2–15 letters, digits, spaces or hyphens."
   },
   "logisticsCompanyVehiclesAssignment": {
     "onlyLogisticsCompaniesCanAssignVehicles": "Only logistics companies can assign vehicles.",
@@ -435,6 +448,11 @@
     "thisVehicleAlreadyHasAnActive": "This vehicle already has an active assignment. Unassign it first.",
     "thisVehicleHasNoActiveAssignment": "This vehicle has no active assignment.",
     "thisVehicleNeedsCategory": "This vehicle needs category {category}. Assign a different driver or vehicle."
+  },
+  "notificationInbox": {
+    "cursorNotFound": "cursor is not one of your notifications.",
+    "idsMustBeAListOfIds": "ids must be a list of notification ids.",
+    "tooManyIds": "Name at most {max} notifications at a time."
   },
   "offers": {
     "offerAlreadyAccepted": "You have already accepted this offer.",

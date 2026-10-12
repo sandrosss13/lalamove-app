@@ -26,11 +26,9 @@ type RosterEntry = {
   city: GeorgianCity;
   isOnline: boolean;
   /**
-   * Empty when the driver has no licence on file — an older company-created
-   * account, predating licence capture at registration. Such a driver is
-   * ineligible for every classed vehicle, which is the correct answer to "does
-   * this licence cover Category C?" when no licence exists, not a bug to work
-   * around. The company fixes it by supplying the licence details.
+   * Empty when the driver has no licence on file, which is normal: the licence
+   * is optional for a company driver, and one without it may be assigned any
+   * fleet vehicle.
    */
   categories: LicenceCategory[];
   /** ISO, or null when there is no licence row. */

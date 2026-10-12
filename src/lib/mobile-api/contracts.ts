@@ -63,6 +63,16 @@
  *
  * Failures: `HubOfferErrorResponse` and `PushTokenErrorResponse`.
  *
+ * The notification inbox — every offer and route alert the driver was sent,
+ * pushed or not:
+ *
+ * | Route                                          | Request body                  | Success body                    |
+ * | ---------------------------------------------- | ----------------------------- | ------------------------------- |
+ * | `GET /api/dashboard/hub/notifications`         | —                             | `HubNotificationsResponse`      |
+ * | `POST /api/dashboard/hub/notifications/read`   | `HubNotificationsReadRequest` | `HubNotificationsReadResponse`  |
+ *
+ * Failures: `HubNotificationsErrorResponse`.
+ *
  * A driver's own settings (success status in brackets where it is not 200):
  *
  * | Route                                              | Request body                       | Success body                          |
@@ -2125,9 +2135,10 @@ export type PhoneVerifyResponse = {
  *   `code` is not six digits.
  * - `INVALID_PHONE_NUMBER` (400) — not a phone number.
  * - `INVALID_OTP` (400) — wrong code. On a backend running in development
- *   test mode (the fixed `DEV_PHONE_OTP_CODE`) this is also the answer to every
- *   case the next three codes describe — that mode never returns them — so
- *   treat an `INVALID_OTP` there as "wrong code, or send a new one".
+ *   test mode (the fixed `DEV_PHONE_OTP_CODE`), or for an allowlisted number on
+ *   staging (the fixed `STAGING_PHONE_OTP_CODE`), this is also the answer to
+ *   every case the next three codes describe — those modes never return them —
+ *   so treat an `INVALID_OTP` there as "wrong code, or send a new one".
  * - `OTP_NOT_FOUND` (400) — no code is pending for this number: none was sent,
  *   or it was already used (including by a refused sign-in). Send a new one.
  *   Real-SMS mode only.
@@ -2401,6 +2412,91 @@ export type PushTokenErrorResponse = {
   /** Human-readable, localised from the `NEXT_LOCALE` cookie (ka by default). */
   error: string;
   code: PushTokenErrorCode;
+};
+
+/* ------------------------------------------------------------------------- */
+/* /api/dashboard/hub/notifications                                          */
+/* ------------------------------------------------------------------------- */
+
+/** What an inbox entry is about — the same values as a push's `data.type`. */
+export type HubDriverNotificationType = "LOAD_OFFER" | "ROUTE_ALERT";
+
+/**
+ * One entry in the driver's notification inbox: a load offer made to them, or
+ * one of their route alerts firing.
+ *
+ * Written whenever either happens, **whether or not a push went out** (push
+ * switched off, the category turned off in notification settings, quiet
+ * hours, no device registered). `title` and `body` are the push's own generic
+ * wording, in the language of the driver's most recently registered device
+ * (Georgian with none), fixed when the entry was written.
+ *
+ * `data` is the push's own `data` object, so one tap handler serves both:
+ *
+ * - `LOAD_OFFER` → `LoadOfferPushData` (`{ type, offerId }`). The offer may
+ *   long have expired or been answered — read it with
+ *   `GET /api/dashboard/hub/offers/[id]` before showing a countdown.
+ * - `ROUTE_ALERT` → `RouteAlertPushData` (`{ type, alertId, orderId }`). Open
+ *   the load board (`GET /api/loads`) on `orderId`; it may be taken already.
+ *
+ * Null `data` is never written; it is typed for safety.
+ */
+export type HubDriverNotification = {
+  id: string;
+  type: HubDriverNotificationType;
+  title: string;
+  body: string;
+  data: Record<string, unknown> | null;
+  createdAt: string;
+  /** Null while unread. */
+  readAt: string | null;
+};
+
+/**
+ * `GET /api/dashboard/hub/notifications?cursor=<id>&limit=<1..50>` — newest
+ * first, `limit` (default 20; out-of-range values are clamped) at a time.
+ * Pass the previous page's `nextCursor` as `cursor` for the next page; it is
+ * null on the last one. A `cursor` that is not one of this account's entries
+ * is a 400 `INVALID_REQUEST`.
+ *
+ * Open to drivers and logistics companies alike; a company's list is empty.
+ */
+export type HubNotificationsResponse = {
+  notifications: HubDriverNotification[];
+  nextCursor: string | null;
+  /** Every unread entry the account has, not only those on this page. */
+  unreadCount: number;
+};
+
+/**
+ * `POST /api/dashboard/hub/notifications/read`. `ids` names the entries to
+ * mark read (at most 200); left out, null or empty, it is **all** of them.
+ * Ids that are not this account's, or are already read, are ignored. An empty
+ * request body counts as `{}`.
+ */
+export type HubNotificationsReadRequest = {
+  ids?: string[];
+};
+
+export type HubNotificationsReadResponse = {
+  /** What is left unread afterwards — the badge. */
+  unreadCount: number;
+};
+
+/**
+ * Why an inbox request was refused.
+ *
+ * - `UNAUTHENTICATED` (401), `PASSWORD_CHANGE_REQUIRED` (403),
+ *   `ROLE_NOT_ALLOWED` (403), `PROFILE_MISSING` (403) — as on every hub route.
+ * - `INVALID_REQUEST` (400) — the body is not a JSON object, `ids` is not a
+ *   list of ids or names more than 200, or `cursor` is unknown.
+ */
+export type HubNotificationsErrorCode = HubApiErrorCode | "INVALID_REQUEST";
+
+export type HubNotificationsErrorResponse = {
+  /** Human-readable, localised from the `NEXT_LOCALE` cookie (ka by default). */
+  error: string;
+  code: HubNotificationsErrorCode;
 };
 
 /* ------------------------------------------------------------------------- */

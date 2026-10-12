@@ -15,6 +15,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import {
+  LEGAL_ADDRESS_MAX_LENGTH,
+  parseLegalAddress,
+} from "@/lib/client-profile/legal-address";
 
 /** Client account type; mirrors the `ClientAccountType` Prisma enum. */
 type AccountType = "INDIVIDUAL" | "BUSINESS";
@@ -62,6 +66,8 @@ export type AccountProfileInitialValues = {
   lastName: string | null;
   companyName: string | null;
   vatId: string | null;
+  /** BUSINESS only, optional — the company's registered address. */
+  legalAddress: string | null;
   phone: string | null;
   dateOfBirth: string | null;
   gender: string | null;
@@ -121,6 +127,9 @@ export function AccountProfileForm({
     initialValues.companyName ?? "",
   );
   const [vatId, setVatId] = useState(initialValues.vatId ?? "");
+  const [legalAddress, setLegalAddress] = useState(
+    initialValues.legalAddress ?? "",
+  );
   const [phone, setPhone] = useState(initialValues.phone ?? "");
   const [dateOfBirth, setDateOfBirth] = useState(
     initialValues.dateOfBirth ?? "",
@@ -138,12 +147,25 @@ export function AccountProfileForm({
     event.preventDefault();
     setError(null);
     setSuccess(false);
+
+    // The route refuses an over-long legal address too; checking here first
+    // just says so without a round trip. Blank is fine — it clears the field.
+    if (
+      isBusiness &&
+      "error" in parseLegalAddress(legalAddress) // only "tooLong" for a string
+    ) {
+      setError(t("legalAddressTooLong", { max: LEGAL_ADDRESS_MAX_LENGTH }));
+      return;
+    }
+
     setSaving(true);
 
     // Re-send the full field set for the account type, mirroring the sign-up
-    // follow-up call's shape.
+    // follow-up call's shape. `legalAddress` is always sent for a business,
+    // blank included: the route reads a present-but-blank value as "clear it",
+    // which is what emptying the field here means.
     const body = isBusiness
-      ? { accountType: "BUSINESS", companyName, vatId, phone }
+      ? { accountType: "BUSINESS", companyName, vatId, legalAddress, phone }
       : {
           accountType: "INDIVIDUAL",
           firstName,
@@ -218,6 +240,30 @@ export function AccountProfileForm({
                     onChange={(event) => setVatId(event.target.value)}
                     className={FIELD_INPUT_CLASSES}
                   />
+                </Field>
+
+                {/* Optional, so no `required`. Full width: an address is the
+                    one free-text value here that routinely runs long. */}
+                <Field
+                  id={`${fieldId}-legal-address`}
+                  label={t("legalAddress")}
+                  className="sm:col-span-2"
+                >
+                  <Input
+                    id={`${fieldId}-legal-address`}
+                    type="text"
+                    autoComplete="street-address"
+                    value={legalAddress}
+                    onChange={(event) => setLegalAddress(event.target.value)}
+                    aria-describedby={`${fieldId}-legal-address-helper`}
+                    className={FIELD_INPUT_CLASSES}
+                  />
+                  <span
+                    id={`${fieldId}-legal-address-helper`}
+                    className="text-xs text-muted"
+                  >
+                    {t("legalAddressHelper")}
+                  </span>
                 </Field>
               </>
             ) : (

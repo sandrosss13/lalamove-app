@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import { HubCard } from "@/components/driver-hub/hub-primitives";
 import { useLocalizedCityOptions } from "@/lib/georgian-cities";
+import { isGeorgianPersonalNumber } from "@/lib/orders/service-document";
 import { cn } from "@/lib/utils";
 
 /**
@@ -27,24 +28,29 @@ import { cn } from "@/lib/utils";
  *
  * The design asks for four fields (Full name, Phone, Zone, Assign a vehicle).
  * `POST /api/logistics-company/drivers/register` — the only endpoint that can
- * put a driver on a roster — requires four more: an `email` (it creates a real
- * Better Auth account, and the address is the driver's login), plus
- * `licenceNumber`, `licenceExpiresAt` and a non-empty `licenceCategories`.
- * A company driver never walks the self-serve onboarding wizard, so this form
- * is the *only* moment the platform learns which licence categories they hold,
- * and without that the "a Category C vehicle needs a C driver" rule has nothing
- * to evaluate. Shipping the design's four fields alone would mean every submit
- * returned 400 — a control that silently drops the operator's input, which is
- * exactly what the hub's honesty rule forbids. The extra fields are therefore
- * additions to the design, not deviations from the endpoint.
+ * put a driver on a roster — also accepts an optional `email` and an optional
+ * driving licence. The phone is the driver's login: they sign in to the driver
+ * app with it and an SMS code.
+ *
+ * The licence is optional because the company vouches for its own drivers, but
+ * it is all-or-nothing: leave every licence field blank, or fill in the number,
+ * a future expiry and at least one category. When one is entered the endpoint
+ * holds it to the "a Category C vehicle needs a C driver" rule, so the form
+ * does too; with none, any vehicle may be picked.
+ *
+ * The driver's personal ID number is required: the endpoint refuses anything
+ * but exactly 11 digits, because a client's order-details PDF prints it as the
+ * carrying driver's ID. The box only accepts what the endpoint accepts — 11
+ * characters, a numeric keypad on touch devices — and says so under itself as
+ * soon as what is typed cannot be valid, rather than waiting for the submit.
  *
  * "Zone" is the city picker. There is no zone model in the schema (see
  * `HubDriver.cityLabel`), and `city` is what the endpoint accepts, so the
  * design's free-text zone box becomes the real enum it stands in for.
  *
- * The temporary password the endpoint returns is **not** handled here: it is
- * handed to the parent through `onRegistered` and revealed by the screen, so a
- * re-render of this form can never be what loses it. See `drivers-screen.tsx`.
+ * The confirmation is **not** shown here: the result is handed to the parent
+ * through `onRegistered` and shown by the screen, which outlives this form. See
+ * `drivers-screen.tsx`.
  */
 
 /* -------------------------------------------------------------------------- */
@@ -69,7 +75,7 @@ export type DriversVehicleOption = {
    * with no declared class. Null means the endpoint's category gate does not
    * apply — matching `requiredCategoryForVehicle()` in the register route,
    * which lets pre-class vehicles through rather than making them permanently
-   * unassignable.
+   * unassignable. The gate only applies when a licence is entered at all.
    */
   requiredLicenceCategory: LicenceCategory | null;
 };
@@ -86,9 +92,10 @@ export type RegisteredDriver = {
   /** `User.id` — what the roster rows and the removal endpoint key on. */
   userId: string;
   name: string;
-  email: string;
-  /** Returned exactly once, never persisted in readable form. */
-  tempPassword: string;
+  /** `null` when the operator left the optional email blank. */
+  email: string | null;
+  /** E.164 — the number the driver signs in to the driver app with. */
+  phone: string;
   vehicleAssigned: boolean;
 };
 
@@ -123,6 +130,9 @@ const NO_VEHICLE = "";
 
 /** Minimum digits in a phone number, matching the handoff's own rule. */
 const MIN_PHONE_DIGITS = 9;
+
+/** A Georgian personal number: exactly 11 digits, as the endpoint requires. */
+const PERSONAL_ID_LENGTH = 11;
 
 /** The design's "Full name (>2 chars)". */
 const MIN_NAME_LENGTH = 2;
@@ -195,6 +205,7 @@ export function DriversAddPanel({
   const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [phone, setPhone] = React.useState("");
+  const [idNumber, setIdNumber] = React.useState("");
   const [city, setCity] = React.useState("");
   const [licenceNumber, setLicenceNumber] = React.useState("");
   const [licenceExpiry, setLicenceExpiry] = React.useState("");
@@ -223,23 +234,48 @@ export function DriversAddPanel({
   const requiredCategory = selectedVehicle?.requiredLicenceCategory ?? null;
 
   const nameValid = name.trim().length > MIN_NAME_LENGTH && lastName.length > 0;
-  const emailValid = /.+@.+\..+/.test(email.trim());
+  // Trimmed, exactly 11 digits — the very predicate `parseDriverPersonalId`
+  // applies server-side, imported from the pure module that owns it.
+  const trimmedIdNumber = idNumber.trim();
+  const idNumberValid = isGeorgianPersonalNumber(trimmedIdNumber);
+  // Flag it inline only once what is typed can no longer become valid by
+  // typing more: a non-digit, or a full-length box that still fails. A
+  // half-typed number is not an error yet; the hint line below covers it.
+  const idNumberShowError =
+    trimmedIdNumber !== "" &&
+    !idNumberValid &&
+    (/\D/.test(trimmedIdNumber) ||
+      trimmedIdNumber.length >= PERSONAL_ID_LENGTH);
+  // Optional: blank is fine, but anything typed has to look like an address.
+  const emailValid = email.trim() === "" || /.+@.+\..+/.test(email.trim());
   const phoneValid = phoneDigits.length >= MIN_PHONE_DIGITS;
   const cityValid = city !== "";
-  const licenceNumberValid = licenceNumber.trim().length > 0;
+  // The licence is optional but all-or-nothing, as the endpoint reads it: once
+  // any of its fields is touched, all three are required.
+  const licenceEntered =
+    licenceNumber.trim() !== "" ||
+    licenceExpiry !== "" ||
+    categories.length > 0;
+  const licenceNumberValid = !licenceEntered || licenceNumber.trim().length > 0;
   // Strictly in the future, mirroring the endpoint: a licence expiring today
   // has already stopped being usable by the driver's first order. `Date.parse`
   // of a `type="date"` value is UTC midnight, which is the same instant the
   // server compares against.
   const expiryTimestamp = Date.parse(licenceExpiry);
   const expiryValid =
-    Number.isFinite(expiryTimestamp) && expiryTimestamp > Date.now();
-  const categoriesValid = categories.length > 0;
+    !licenceEntered ||
+    (Number.isFinite(expiryTimestamp) && expiryTimestamp > Date.now());
+  const categoriesValid = !licenceEntered || categories.length > 0;
+  // Only an entered licence has to cover the vehicle; with none, any fleet
+  // vehicle may be assigned.
   const vehicleCategoryValid =
-    requiredCategory === null || categories.includes(requiredCategory);
+    !licenceEntered ||
+    requiredCategory === null ||
+    categories.includes(requiredCategory);
 
   const canSubmit =
     nameValid &&
+    idNumberValid &&
     emailValid &&
     phoneValid &&
     cityValid &&
@@ -265,22 +301,25 @@ export function DriversAddPanel({
       })
     : !nameValid
       ? t("hintName")
-      : !emailValid
-        ? t("hintEmail")
-        : !phoneValid
-          ? t("hintPhone", { minDigits: MIN_PHONE_DIGITS })
-          : !cityValid
-            ? t("hintCity")
-            : !licenceNumberValid
-              ? t("hintLicenceNumber")
-              : !expiryValid
-                ? t("hintExpiry")
-                : !categoriesValid
-                  ? t("hintCategories")
-                  : t("hintVehicleCategory", {
-                      vehicle: selectedVehicle?.plateNumber ?? t("thatVehicle"),
-                      category: requiredCategory ?? "",
-                    });
+      : !idNumberValid
+        ? t("personalIdHint")
+        : !emailValid
+          ? t("hintEmail")
+          : !phoneValid
+            ? t("hintPhone", { minDigits: MIN_PHONE_DIGITS })
+            : !cityValid
+              ? t("hintCity")
+              : !licenceNumberValid
+                ? t("hintLicenceNumber")
+                : !expiryValid
+                  ? t("hintExpiry")
+                  : !categoriesValid
+                    ? t("hintCategories")
+                    : t("hintVehicleCategory", {
+                        vehicle:
+                          selectedVehicle?.plateNumber ?? t("thatVehicle"),
+                        category: requiredCategory ?? "",
+                      });
 
   function toggleCategory(category: LicenceCategory, checked: boolean): void {
     setCategories((current) =>
@@ -309,16 +348,25 @@ export function DriversAddPanel({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email: email.trim(),
+          // Blank means "no email" to the endpoint.
+          email: email.trim() || null,
           firstName,
           lastName,
           phone: phone.trim(),
+          // Required by the endpoint; already checked to be 11 digits above.
+          idNumber: trimmedIdNumber,
           city,
           // Absent, null and "" all mean "no vehicle yet" to the endpoint.
           vehicleId: vehicleId === NO_VEHICLE ? null : vehicleId,
-          licenceNumber: licenceNumber.trim(),
-          licenceExpiresAt: new Date(expiryTimestamp).toISOString(),
-          licenceCategories: categories,
+          // Left out entirely when no licence was entered, which the endpoint
+          // reads as "no licence".
+          ...(licenceEntered
+            ? {
+                licenceNumber: licenceNumber.trim(),
+                licenceExpiresAt: new Date(expiryTimestamp).toISOString(),
+                licenceCategories: categories,
+              }
+            : {}),
         }),
       });
 
@@ -368,7 +416,33 @@ export function DriversAddPanel({
           />
         </PanelField>
 
-        <PanelField label={tShared("email")} htmlFor="hub-driver-email">
+        <PanelField label={t("personalId")} htmlFor="hub-driver-personal-id">
+          <Input
+            id="hub-driver-personal-id"
+            value={idNumber}
+            onChange={(event) => setIdNumber(event.target.value)}
+            placeholder={t("personalIdPlaceholder")}
+            inputMode="numeric"
+            maxLength={PERSONAL_ID_LENGTH}
+            autoComplete="off"
+            required
+            aria-invalid={idNumberShowError || undefined}
+            aria-describedby={
+              idNumberShowError ? "hub-driver-personal-id-error" : undefined
+            }
+            className={cn(INPUT_CLASSES, MONO_INPUT_CLASSES)}
+          />
+          {idNumberShowError ? (
+            <p
+              id="hub-driver-personal-id-error"
+              className="text-xs text-destructive"
+            >
+              {t("personalIdHint")}
+            </p>
+          ) : null}
+        </PanelField>
+
+        <PanelField label={t("emailOptional")} htmlFor="hub-driver-email">
           <Input
             id="hub-driver-email"
             type="email"
@@ -420,6 +494,15 @@ export function DriversAddPanel({
               </SelectContent>
             </Select>
           </PanelField>
+        </div>
+
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <span className="text-xs font-medium text-muted-foreground">
+            {t("drivingLicenceOptional")}
+          </span>
+          <p className="text-xs text-muted-foreground">
+            {t("drivingLicenceOptionalNote")}
+          </p>
         </div>
 
         <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3">

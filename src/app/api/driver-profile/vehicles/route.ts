@@ -7,6 +7,7 @@ import {
   deleteVehiclePhotos,
   uploadVehiclePhoto,
 } from "@/lib/supabase-storage";
+import { parseTrailerPlate } from "@/lib/vehicles/trailer-plate";
 import {
   findVehicleTypeSpecIdByCode,
   isDuplicatePlateError,
@@ -28,6 +29,8 @@ type CreateVehicleInput = {
   model: string;
   year: number;
   vehicleTypeCode: string;
+  /** Optional trailer registration, upper-cased; null when none was sent. */
+  trailerPlateNumber: string | null;
   photos: File[];
 };
 
@@ -111,6 +114,14 @@ async function parseCreateVehicleForm(
     return { error: tShared("vehicletypecodeIsRequired") };
   }
 
+  const trailerPlate = parseTrailerPlate(formData.get("trailerPlateNumber"));
+  if ("error" in trailerPlate) {
+    const tErrors = await getRequestTranslations(
+      "errors.driverProfileVehicles",
+    );
+    return { error: tErrors("trailerPlateInvalid") };
+  }
+
   const photos = await parsePhotos(formData);
   if ("error" in photos) {
     return { error: photos.error };
@@ -126,6 +137,7 @@ async function parseCreateVehicleForm(
       model,
       year: year.value,
       vehicleTypeCode,
+      trailerPlateNumber: trailerPlate.value,
       photos: photos.value,
     },
   };
@@ -240,8 +252,15 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
 
-  const { plateNumber, make, model, year, vehicleTypeCode, photos } =
-    parsed.data;
+  const {
+    plateNumber,
+    make,
+    model,
+    year,
+    vehicleTypeCode,
+    trailerPlateNumber,
+    photos,
+  } = parsed.data;
 
   const driverProfile = await prisma.driverProfile.findUnique({
     where: { userId: session.user.id },
@@ -333,6 +352,7 @@ export async function POST(request: Request): Promise<NextResponse> {
         make,
         model,
         year,
+        trailerPlateNumber,
         photoUrls,
       },
       include: { vehicleTypeSpec: true },

@@ -1,5 +1,3 @@
-import { randomInt } from "node:crypto";
-
 import { NextResponse } from "next/server";
 import {
   DriverAccountType,
@@ -13,6 +11,16 @@ import { APIError } from "better-auth/api";
 import { getRequestTranslations } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
 import { findVehicleClass } from "@/lib/driver-onboarding/vehicle-classes";
+import { parseDriverPersonalId } from "@/lib/logistics-company/register-driver-input";
+import {
+  parseOptionalLicence,
+  type RegisterDriverLicence,
+} from "@/lib/driver-registration/licence";
+import {
+  isPhonePlaceholderEmail,
+  placeholderEmailForPhone,
+} from "@/lib/phone-auth";
+import { normalizePhoneNumber } from "@/lib/phone-number";
 import { prisma } from "@/lib/prisma";
 
 /** The request-locale translator the body parsers below phrase their errors with. */
@@ -30,12 +38,12 @@ type RequestTranslator = Awaited<ReturnType<typeof getRequestTranslations>>;
  * driver. `GET /api/logistics-company/drivers` (the roster list) is unrelated
  * and untouched.
  *
- * The licence details are captured here and nowhere else. A company driver
- * never walks the self-serve onboarding wizard, so this is the only moment the
- * platform learns which categories they hold — and without that, the rule
- * "a Category CE vehicle needs a CE driver" has nothing to evaluate. The
- * `DriverLicence` row is written in the same transaction as the profile so a
- * driver can never reach the roster unassignable for want of a licence record.
+ * The driving licence is optional. The company vouches for its own drivers,
+ * so they need no verification, and vehicles are registered separately in the
+ * company's Vehicles section. When a licence is given it is written in the
+ * same transaction as the profile, and the rule "a Category CE vehicle needs a
+ * CE driver" is applied against it so the recorded licence never contradicts
+ * the vehicle; a driver with no licence on file can drive any fleet vehicle.
  *
  * What is *not* enforced anywhere: licence **photographs**. Company vehicle and
  * licence document upload is an explicit v1 non-goal, so no code blocks a first
@@ -43,6 +51,29 @@ type RequestTranslator = Awaited<ReturnType<typeof getRequestTranslations>>;
  * photos before their first order" note is a message to the driver, not a
  * server-side gate. The gap is deliberate; do not assume an enforcement path
  * exists behind it.
+ *
+ * ## The personal ID is required
+ *
+ * `idNumber` — the driver's 11-digit Georgian personal number (პირადი ნომერი)
+ * — must be given, trimmed, and exactly 11 digits
+ * (`parseDriverPersonalId` in `src/lib/logistics-company/register-driver-input.ts`).
+ * It is stored on `DriverProfile.idNumber`, the same column the self-serve
+ * onboarding wizard writes, and is what a client's order-details PDF prints as
+ * the carrying driver's ID. Unlike the licence it is not optional: the company
+ * vouches for its drivers, and this is the one identity fact that document
+ * needs. Drivers registered before it was required are filled in afterwards
+ * through `PATCH /api/logistics-company/drivers/[userId]`. Nothing blocks
+ * dispatch on it — the PDF prints a blank line when it is missing.
+ *
+ * ## Sign-in is by phone
+ *
+ * The driver app signs drivers in with their mobile number and an SMS code
+ * (`src/lib/phone-auth.ts`), so the phone number is required and becomes the
+ * account's verified `User.phoneNumber` — the column the phone plugin looks
+ * the driver up by. The email is optional contact information: when none is
+ * given the account gets the same placeholder address a self-registered phone
+ * account gets (`placeholderEmailForPhone`). No password is issued; the account
+ * has no credential row at all, exactly like an app sign-up.
  */
 
 /** Valid `GeorgianCity` values, derived from the generated Prisma enum. */
@@ -51,34 +82,21 @@ const GEORGIAN_CITIES = Object.values(GeorgianCity);
 /** Valid `LicenceCategory` values, derived from the generated Prisma enum. */
 const LICENCE_CATEGORIES = Object.values(LicenceCategory);
 
-/**
- * Alphabet the temporary password is drawn from. Excludes visually ambiguous
- * characters (0/O, 1/l/I) because an admin typically reads this off-screen to
- * the driver over the phone, where "zero or oh?" costs a second attempt.
- */
-const TEMP_PASSWORD_CHARSET =
-  "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
-
-/**
- * Long enough to stay well clear of Better Auth's minimum password length while
- * remaining short enough to dictate out loud.
- */
-const TEMP_PASSWORD_LENGTH = 12;
-
 /** Validated shape of a driver-registration request body. */
 type RegisterDriverInput = {
-  email: string;
+  /** `null` when the admin left the optional email blank. */
+  email: string | null;
   firstName: string;
   lastName: string;
+  /** E.164 (`+995555123456`) — the driver's sign-in number. */
   phone: string;
+  /** Exactly 11 digits — the driver's Georgian personal number. */
+  idNumber: string;
   city: GeorgianCity;
   /** `null` when the admin chose not to assign a vehicle yet. */
   vehicleId: string | null;
-  licenceNumber: string;
-  /** Parsed and already known to be in the future. */
-  licenceExpiresAt: Date;
-  /** Already de-duplicated, and every entry a valid `LicenceCategory`. */
-  licenceCategories: LicenceCategory[];
+  /** `null` when the admin left every licence field blank. */
+  licence: RegisterDriverLicence | null;
 };
 
 /** Trims a value and returns it only if it is a non-empty string, else null. */
@@ -151,15 +169,22 @@ function isLiveVehicleAssignmentConflict(error: unknown): boolean {
 }
 
 /**
- * Builds a temporary password from cryptographically strong randomness.
- * `randomInt` is used rather than `Math.random` because this value is a real
- * credential until the driver changes it on first login.
+ * Whether an error is the database refusing a second account with the same
+ * sign-in number (`User.phoneNumber @unique`) — the losing side of a race past
+ * the pre-check in the handler.
  */
-function generateTempPassword(): string {
-  return Array.from(
-    { length: TEMP_PASSWORD_LENGTH },
-    () => TEMP_PASSWORD_CHARSET[randomInt(TEMP_PASSWORD_CHARSET.length)],
-  ).join("");
+function isDuplicatePhoneNumberError(error: unknown): boolean {
+  if (
+    !(error instanceof Prisma.PrismaClientKnownRequestError) ||
+    error.code !== "P2002"
+  ) {
+    return false;
+  }
+
+  const target = error.meta?.target;
+  return Array.isArray(target)
+    ? target.includes("phoneNumber")
+    : typeof target === "string" && target.includes("phoneNumber");
 }
 
 /**
@@ -175,9 +200,16 @@ function generateTempPassword(): string {
  * vehicle yet". Its existence and ownership need a database read and so are
  * checked in the handler.
  *
- * The licence fields are all required. Whether the categories actually cover
- * the chosen vehicle is a separate question needing the vehicle row, so it is
- * answered in the handler too.
+ * The licence is all-or-nothing (`parseOptionalLicence`). Whether its
+ * categories cover the chosen vehicle needs the vehicle row, so it is answered
+ * in the handler too.
+ *
+ * The phone is required and normalised to E.164, because it is the driver's
+ * sign-in number. The email is optional — absent, `null`, or blank all mean
+ * "none".
+ *
+ * The personal ID is required: trimmed, exactly 11 digits. Absent or blank is
+ * `personalIdRequired`, anything else malformed is `personalIdInvalid`.
  */
 function parseRegisterDriverBody(
   body: unknown,
@@ -189,9 +221,24 @@ function parseRegisterDriverBody(
 
   const record = body as Record<string, unknown>;
 
-  const email = nonEmptyString(record.email);
-  if (email === null) {
-    return { error: t("common.shared.emailIsRequiredAndMustBe") };
+  const { email: rawEmail } = record;
+  if (
+    rawEmail !== undefined &&
+    rawEmail !== null &&
+    typeof rawEmail !== "string"
+  ) {
+    return {
+      error: t("errors.logisticsCompanyDriversRegister.emailMustBeAString"),
+    };
+  }
+
+  const email = nonEmptyString(rawEmail);
+  // Placeholder addresses belong to phone accounts and are derived from the
+  // number; letting one be typed in would let it collide with that account.
+  if (email !== null && isPhonePlaceholderEmail(email)) {
+    return {
+      error: t("errors.logisticsCompanyDriversRegister.thisEmailCannotBeUsed"),
+    };
   }
 
   const firstName = nonEmptyString(record.firstName);
@@ -204,9 +251,27 @@ function parseRegisterDriverBody(
     return { error: t("common.shared.lastnameIsRequiredAndMustBe") };
   }
 
-  const phone = nonEmptyString(record.phone);
-  if (phone === null) {
+  if (nonEmptyString(record.phone) === null) {
     return { error: t("common.shared.phoneIsRequiredAndMustBe") };
+  }
+
+  const phone = normalizePhoneNumber(record.phone);
+  if (phone === null) {
+    return {
+      error: t(
+        "errors.logisticsCompanyDriversRegister.enterAValidMobileNumber",
+      ),
+    };
+  }
+
+  const parsedIdNumber = parseDriverPersonalId(record.idNumber);
+  if ("error" in parsedIdNumber) {
+    return {
+      error:
+        parsedIdNumber.error === "required"
+          ? t("errors.logisticsCompanyDriversRegister.personalIdRequired")
+          : t("errors.logisticsCompanyDriversRegister.personalIdInvalid"),
+    };
   }
 
   const { city } = record;
@@ -221,76 +286,10 @@ function parseRegisterDriverBody(
     };
   }
 
-  const licenceNumber = nonEmptyString(record.licenceNumber);
-  if (licenceNumber === null) {
-    return {
-      error: t(
-        "errors.logisticsCompanyDriversRegister.licencenumberIsRequiredAndMustBe",
-      ),
-    };
+  const parsedLicence = parseOptionalLicence(record, t, LICENCE_CATEGORIES);
+  if ("error" in parsedLicence) {
+    return parsedLicence;
   }
-
-  const { licenceExpiresAt: rawLicenceExpiresAt } = record;
-  if (typeof rawLicenceExpiresAt !== "string") {
-    return {
-      error: t(
-        "errors.logisticsCompanyDriversRegister.licenceexpiresatMustBeAValidIso",
-      ),
-    };
-  }
-
-  const licenceExpiresAt = new Date(rawLicenceExpiresAt);
-  if (Number.isNaN(licenceExpiresAt.getTime())) {
-    return {
-      error: t(
-        "errors.logisticsCompanyDriversRegister.licenceexpiresatMustBeAValidIso",
-      ),
-    };
-  }
-
-  // Strictly after "now": a licence expiring today has already stopped being
-  // usable by the time the driver takes their first order.
-  if (licenceExpiresAt.getTime() <= Date.now()) {
-    return {
-      error: t(
-        "errors.logisticsCompanyDriversRegister.theLicenceExpiryDateMustBe",
-      ),
-    };
-  }
-
-  const { licenceCategories: rawLicenceCategories } = record;
-  if (
-    !Array.isArray(rawLicenceCategories) ||
-    rawLicenceCategories.length === 0
-  ) {
-    return {
-      error: t(
-        "errors.logisticsCompanyDriversRegister.licencecategoriesMustBeAnArrayWith",
-      ),
-    };
-  }
-
-  if (
-    !rawLicenceCategories.every(
-      (category): category is LicenceCategory =>
-        typeof category === "string" &&
-        LICENCE_CATEGORIES.includes(category as LicenceCategory),
-    )
-  ) {
-    return {
-      error: t(
-        "errors.logisticsCompanyDriversRegister.licenceCategoriesMustContainOnly",
-        {
-          categories: LICENCE_CATEGORIES.join(", "),
-        },
-      ),
-    };
-  }
-
-  // De-duplicated rather than rejected: a repeated "C" is a slip in whatever
-  // built the payload, not something the admin can act on, and the stored
-  // array is a set either way.
-  const licenceCategories = [...new Set(rawLicenceCategories)];
 
   const { vehicleId: rawVehicleId } = record;
   if (
@@ -311,19 +310,18 @@ function parseRegisterDriverBody(
       firstName,
       lastName,
       phone,
+      idNumber: parsedIdNumber.idNumber,
       city: city as GeorgianCity,
       vehicleId: nonEmptyString(rawVehicleId),
-      licenceNumber,
-      licenceExpiresAt,
-      licenceCategories,
+      licence: parsedLicence.licence,
     },
   };
 }
 
 /**
  * POST /api/logistics-company/drivers/register — create a brand-new driver
- * account on the signed-in company's roster, with a temporary password returned
- * once so the admin can relay it to the driver. Only COMPANY users may call
+ * account on the signed-in company's roster. The driver signs in to the app
+ * with the registered phone number and an SMS code. Only COMPANY users may call
  * this, and only once their company profile exists (the driver is attached to
  * it at creation, so there is nothing to attach to before then).
  *
@@ -372,11 +370,10 @@ export async function POST(request: Request): Promise<NextResponse> {
     firstName,
     lastName,
     phone,
+    idNumber,
     city,
     vehicleId,
-    licenceNumber,
-    licenceExpiresAt,
-    licenceCategories,
+    licence,
   } = parsed.data;
 
   const company = await prisma.logisticsCompany.findUnique({
@@ -395,20 +392,40 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
   }
 
-  // Checked up front so a taken address produces a specific, actionable message
-  // instead of whatever `signUpEmail` happens to throw. Case-insensitive
-  // because the admin types the address the way the driver wrote it to them;
-  // `email` is unique, so at most one row can match either way.
-  const existingUser = await prisma.user.findFirst({
-    where: { email: { equals: email, mode: "insensitive" } },
+  // Checked up front so a taken number produces a specific, actionable
+  // message. The number is the driver's sign-in identity, so a second account
+  // holding it could never be signed in to.
+  const existingPhoneUser = await prisma.user.findUnique({
+    where: { phoneNumber: phone },
     select: { id: true },
   });
 
-  if (existingUser) {
+  if (existingPhoneUser) {
     return NextResponse.json(
-      { error: t("common.shared.anAccountWithThatEmailAddress") },
+      {
+        error: t(
+          "errors.logisticsCompanyDriversRegister.anAccountWithThatPhoneNumber",
+        ),
+      },
       { status: 400 },
     );
+  }
+
+  // The same for the email, when one was given. Case-insensitive because the
+  // admin types the address the way the driver wrote it to them; `email` is
+  // unique, so at most one row can match either way.
+  if (email !== null) {
+    const existingEmailUser = await prisma.user.findFirst({
+      where: { email: { equals: email, mode: "insensitive" } },
+      select: { id: true },
+    });
+
+    if (existingEmailUser) {
+      return NextResponse.json(
+        { error: t("common.shared.anAccountWithThatEmailAddress") },
+        { status: 400 },
+      );
+    }
   }
 
   // Ownership, availability and licence category are all verified before
@@ -462,13 +479,19 @@ export async function POST(request: Request): Promise<NextResponse> {
       );
     }
 
-    // The licence-category gate, checked here rather than after `signUpEmail`
-    // so a mismatch never leaves a half-created account behind — the same
-    // reasoning as the ownership and availability checks above. The identical
-    // string is produced by `vehicles/[id]/assignment`, so a company sees one
-    // message for one rule regardless of which door it came through.
+    // The licence-category gate, checked here rather than after the account is
+    // created so a mismatch never leaves a half-created account behind — the
+    // same reasoning as the ownership and availability checks above. Only a
+    // licence that was given is held to it; with none, any fleet vehicle is
+    // fine. The identical string is produced by `vehicles/[id]/assignment`, so
+    // a company sees one message for one rule regardless of which door it came
+    // through.
     const required = requiredCategoryForVehicle(vehicle);
-    if (required !== null && !licenceCategories.includes(required)) {
+    if (
+      required !== null &&
+      licence !== null &&
+      !licence.categories.includes(required)
+    ) {
       return NextResponse.json(
         {
           error: t(
@@ -482,32 +505,30 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 
   const name = `${firstName} ${lastName}`.trim();
-  const tempPassword = generateTempPassword();
+  const accountEmail = email ?? placeholderEmailForPhone(phone);
 
-  // The account is created through Better Auth's own sign-up logic rather than a
-  // raw Prisma insert, so the password is hashed with the same algorithm the
-  // sign-in path verifies against — a hand-rolled `Account` row would not
-  // actually let the driver log in.
+  // The user is created through Better Auth's internal adapter rather than a
+  // raw Prisma insert, so it gets Better Auth's own id and runs the
+  // `databaseHooks.user.create` checks in `src/lib/auth.ts`. Not through
+  // `signUpEmail`: that endpoint insists on a password, and refuses the
+  // placeholder domain a phone-only account needs.
   //
-  // The incoming request's headers are deliberately *not* forwarded: doing so
-  // would make Better Auth issue a session for the new driver and set its cookie
-  // on this response, silently signing the admin out of their own account.
+  // No session is created, so the admin's own session is untouched.
   let createdUserId: string;
   try {
-    const signUpResult = await auth.api.signUpEmail({
-      body: {
-        email,
-        name,
-        password: tempPassword,
-        role: "DRIVER",
-      },
+    const authContext = await auth.$context;
+    const createdUser = await authContext.internalAdapter.createUser({
+      email: accountEmail,
+      name,
+      emailVerified: false,
+      role: "DRIVER",
     });
-    createdUserId = signUpResult.user.id;
+    createdUserId = createdUser.id;
   } catch (error) {
     // Better Auth rejects with its own message for cases this handler doesn't
-    // pre-check (a password policy, a race on the email uniqueness check);
-    // surfacing that verbatim is more useful than a generic failure. Anything
-    // that is not an `APIError` is a genuine fault and is rethrown.
+    // pre-check (a race on the email uniqueness check); surfacing that
+    // verbatim is more useful than a generic failure. Anything that is not an
+    // `APIError` is a genuine fault and is rethrown.
     if (error instanceof APIError) {
       return NextResponse.json(
         { error: error.message },
@@ -518,17 +539,19 @@ export async function POST(request: Request): Promise<NextResponse> {
     throw error;
   }
 
-  // One transaction so a driver never ends up on the roster without their
-  // licence or their vehicle, or flagged for a password change without a
-  // profile to log in to. The licence in particular is what makes the driver
-  // assignable at all, so a profile without one would be a roster entry no
-  // classed vehicle could ever be given to.
+  // One transaction so a driver never ends up on the roster without the
+  // licence or vehicle the admin gave, or with a sign-in number but no profile
+  // to log in to.
   let driverProfileId: string;
   try {
     driverProfileId = await prisma.$transaction(async (tx) => {
+      // The sign-in number, set through Prisma because Better Auth's own
+      // writes refuse it outside the SMS verify endpoint. Marked verified on
+      // the company's word: whoever holds this phone is who can sign in, so
+      // a wrong number locks out nobody but the driver the company meant.
       await tx.user.update({
         where: { id: createdUserId },
-        data: { mustChangePassword: true },
+        data: { phoneNumber: phone, phoneNumberVerified: true },
       });
 
       const profile = await tx.driverProfile.create({
@@ -545,6 +568,7 @@ export async function POST(request: Request): Promise<NextResponse> {
           companyName: null,
           vatId: null,
           phone,
+          idNumber,
           city,
           // A company-created driver never sees the self-serve onboarding
           // wizard, so no application will ever exist for an admin to approve.
@@ -566,17 +590,18 @@ export async function POST(request: Request): Promise<NextResponse> {
         select: { id: true },
       });
 
-      // Written in the same transaction as the profile, so neither can exist
-      // without the other. This row is the whole reason the category gate can
-      // be enforced at all.
-      await tx.driverLicence.create({
-        data: {
-          driverProfileId: profile.id,
-          licenceNumber,
-          expiresAt: licenceExpiresAt,
-          categories: licenceCategories,
-        },
-      });
+      // Only when one was given: "no licence" is no row, since every column
+      // of `DriverLicence` is required.
+      if (licence !== null) {
+        await tx.driverLicence.create({
+          data: {
+            driverProfileId: profile.id,
+            licenceNumber: licence.number,
+            expiresAt: licence.expiresAt,
+            categories: licence.categories,
+          },
+        });
+      }
 
       if (vehicleId !== null) {
         await tx.driverVehicleAssignment.create({
@@ -599,18 +624,34 @@ export async function POST(request: Request): Promise<NextResponse> {
     // happened in would be a worse API.
     //
     // Logged first, so the race stays observable and does not depend on anyone
-    // noticing a status code change. The temp password is never included —
-    // `error` only.
+    // noticing a status code change.
+    // Another request registered the same number between the pre-check and
+    // this write. The `User` row created above survives, as below.
+    if (isDuplicatePhoneNumberError(error)) {
+      console.error(
+        "Driver registration lost a race for the sign-in phone number:",
+        error,
+      );
+      return NextResponse.json(
+        {
+          error: t(
+            "errors.logisticsCompanyDriversRegister.anAccountWithThatPhoneNumber",
+          ),
+        },
+        { status: 400 },
+      );
+    }
+
     if (isLiveVehicleAssignmentConflict(error)) {
       console.error(
         "Driver registration lost a race for the vehicle's live assignment:",
         error,
       );
-      // The transaction rolled back, so no profile, licence or assignment was
-      // written — but the `User`/`Account` rows created by `signUpEmail` are
-      // outside it and survive. Retrying with the same email will therefore hit
-      // "An account with that email address already exists.", which is the same
-      // interrupted state the 500 branch below describes.
+      // The transaction rolled back, so no profile, licence, assignment or
+      // sign-in number was written — but the `User` row created above is
+      // outside it and survives. Retrying with the same email will therefore
+      // hit "An account with that email address already exists.", which is the
+      // same interrupted state the 500 branch below describes.
       return NextResponse.json(
         {
           error: t(
@@ -621,7 +662,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       );
     }
 
-    // The `User`/`Account` rows already exist at this point and cannot be rolled
+    // The `User` row already exists at this point and cannot be rolled
     // back by the transaction, leaving an account with no profile — the same
     // interrupted state the public `/sign-up` flow can reach when its follow-up
     // profile call fails. Say so explicitly so the admin doesn't retry with the
@@ -640,8 +681,6 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
   }
 
-  // `tempPassword` is returned exactly once, here. It is never persisted in
-  // readable form and must not be logged by callers.
   return NextResponse.json(
     {
       userId: createdUserId,
@@ -649,8 +688,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       name,
       email,
       phone,
-      categories: licenceCategories,
-      tempPassword,
+      categories: licence?.categories ?? [],
       vehicleAssigned: vehicleId !== null,
     },
     { status: 201 },

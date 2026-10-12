@@ -18,8 +18,10 @@ import { useRouter } from "@/i18n/navigation";
 import { useHubStatusLabel } from "@/components/driver-hub/use-hub-status-label";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import type { HubDriver } from "@/lib/dashboard/hub/drivers";
 import { HUB_TIME_ZONE } from "@/lib/dashboard/hub/timezone";
+import { isGeorgianPersonalNumber } from "@/lib/orders/service-document";
 import { cn } from "@/lib/utils";
 
 /**
@@ -36,9 +38,12 @@ import { cn } from "@/lib/utils";
  *
  * Honesty rule: the identity lines, the status pill, the zone pill, the two
  * left-hand stat boxes and every "Recent jobs" row are read from the database.
- * Acceptance, Rating and the whole Verification list come from
- * `driver.sampled`, and each carries a `<SampleNote />` naming the schema
- * change that would make it real.
+ * Acceptance and Rating come from `driver.sampled`, and each carries a
+ * `<SampleNote />` naming the schema change that would make it real. There is
+ * no verification list: a company vouches for its own drivers.
+ *
+ * The personal ID number is real too (`DriverProfile.idNumber`), and is the
+ * panel's one editable fact: see `PersonalIdRow` below.
  *
  * Colours go through a token wherever one already carries the handoff's value —
  * `--destructive` is the handoff's BAD exactly, and a token is what makes a
@@ -202,6 +207,200 @@ function StatBox({
   );
 }
 
+/** A Georgian personal number: exactly 11 digits, as the endpoint requires. */
+const PERSONAL_ID_LENGTH = 11;
+
+/**
+ * The driver's personal ID number, with an inline edit.
+ *
+ * A client's order-details PDF prints the carrying driver's personal number,
+ * and drivers registered before the add form required it have none — so the
+ * panel shows the number (or "Not provided") and lets the company fill it in
+ * through `PATCH /api/logistics-company/drivers/[userId]`.
+ *
+ * The edit is offered only while `driver.canEditIdNumber` holds. Once the
+ * driver has an approved application the number is operations' verified one,
+ * the endpoint answers 409, and the row says why instead of showing a button
+ * that cannot work.
+ *
+ * Its own component, mounted with `key={driver.userId}` by the panel, so a
+ * half-typed number or a stale error never follows the operator to the next
+ * driver they select. On success it `router.refresh()`es, which re-reads the
+ * roster on the server: the value shown afterwards is the stored one, not a
+ * local echo of what was typed.
+ */
+function PersonalIdRow({ driver }: { driver: HubDriver }) {
+  const router = useRouter();
+  const t = useTranslations("driverHub.driversDetailPanel");
+  const [editing, setEditing] = React.useState(false);
+  const [value, setValue] = React.useState(driver.idNumber ?? "");
+  const [saving, setSaving] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+
+  const trimmed = value.trim();
+  const valid = isGeorgianPersonalNumber(trimmed);
+  // Flagged only once what is typed can no longer become valid by typing more,
+  // the same rule as the add panel's box.
+  const showInvalid =
+    trimmed !== "" &&
+    !valid &&
+    (/\D/.test(trimmed) || trimmed.length >= PERSONAL_ID_LENGTH);
+  const inputId = `hub-driver-personal-id-${driver.userId}`;
+  const messageId = `${inputId}-message`;
+
+  function startEditing(): void {
+    setValue(driver.idNumber ?? "");
+    setError(null);
+    setEditing(true);
+  }
+
+  function cancelEditing(): void {
+    setEditing(false);
+    setError(null);
+  }
+
+  async function handleSave(
+    event: React.FormEvent<HTMLFormElement>,
+  ): Promise<void> {
+    event.preventDefault();
+
+    if (!valid || saving) {
+      return;
+    }
+
+    setError(null);
+    setSaving(true);
+
+    try {
+      const response = await fetch(
+        `/api/logistics-company/drivers/${driver.userId}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ idNumber: trimmed }),
+        },
+      );
+
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        // The route's own sentence — "must be exactly 11 digits", "confirmed by
+        // their approved application" — says more than ours could.
+        setError(payload?.error ?? t("couldNotSavePersonalId"));
+        return;
+      }
+
+      setEditing(false);
+      router.refresh();
+    } catch {
+      setError(t("networkError"));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="mb-5 min-w-0 rounded-[10px] border border-border p-3">
+      <div className="flex min-w-0 items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p
+            id={`${inputId}-label`}
+            className="text-[11px] tracking-[0.08em] uppercase text-muted-foreground"
+          >
+            {t("personalId")}
+          </p>
+          {editing ? null : (
+            <p
+              className={cn(
+                "mt-1.5 truncate text-[13px]",
+                driver.idNumber === null
+                  ? "text-muted-foreground"
+                  : "font-price font-semibold",
+              )}
+            >
+              {driver.idNumber ?? t("personalIdMissing")}
+            </p>
+          )}
+        </div>
+        {!editing && driver.canEditIdNumber ? (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={startEditing}
+            className="h-auto flex-none rounded-md px-[11px] py-[5px] text-xs font-medium"
+          >
+            {t("editPersonalId")}
+          </Button>
+        ) : null}
+      </div>
+
+      {editing ? (
+        <form
+          onSubmit={handleSave}
+          className="mt-2 flex min-w-0 flex-col gap-2"
+        >
+          <Input
+            id={inputId}
+            aria-labelledby={`${inputId}-label`}
+            aria-describedby={messageId}
+            aria-invalid={showInvalid || undefined}
+            value={value}
+            onChange={(event) => setValue(event.target.value)}
+            inputMode="numeric"
+            maxLength={PERSONAL_ID_LENGTH}
+            autoComplete="off"
+            autoFocus
+            disabled={saving}
+            // The add panel's mono input metrics, so the same number looks the
+            // same in both rails.
+            className="h-auto rounded-md px-[11px] py-[9px] font-price text-[13px] md:text-[13px]"
+          />
+          <p
+            id={messageId}
+            className={cn(
+              "text-xs",
+              showInvalid ? "text-destructive" : "text-muted-foreground",
+            )}
+          >
+            {t("personalIdHint")}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="submit"
+              disabled={!valid || saving}
+              className="h-auto rounded-md px-[13px] py-[7px] text-xs font-medium disabled:pointer-events-auto disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100"
+            >
+              {saving ? t("savingPersonalId") : t("savePersonalId")}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={saving}
+              onClick={cancelEditing}
+              className="h-auto rounded-md px-[13px] py-[7px] text-xs font-medium"
+            >
+              {t("cancelPersonalId")}
+            </Button>
+          </div>
+        </form>
+      ) : null}
+
+      {driver.canEditIdNumber ? null : (
+        <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+          {t("personalIdLockedNote")}
+        </p>
+      )}
+
+      {error === null ? null : (
+        <p role="alert" className="mt-2 text-xs text-destructive">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
 export function DriversDetailPanel({
   driver,
   armed,
@@ -314,6 +513,8 @@ export function DriversDetailPanel({
         </Badge>
       </div>
 
+      <PersonalIdRow key={driver.userId} driver={driver} />
+
       <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-3 border-b border-border pb-5">
         <StatBox label={t("jobsThisWeek")} value={driver.jobsThisWeek} />
         <StatBox
@@ -359,25 +560,6 @@ export function DriversDetailPanel({
           ))}
         </ul>
       )}
-
-      <div className="mt-[18px] mb-0.5 flex flex-wrap items-center gap-2">
-        <h3 className="text-[13px] font-semibold">{t("verification")}</h3>
-        <SampleNote note={t("sampleVerificationNote")} />
-      </div>
-      <ul>
-        {driver.sampled.verification.map((row) => (
-          <li
-            key={row.label}
-            className="flex items-center justify-between gap-3 border-t border-muted py-[9px] text-[13px]"
-          >
-            <span className="min-w-0 truncate">{row.label}</span>
-            <HubStatusBadge
-              status={row.status}
-              label={statusLabel(row.status)}
-            />
-          </li>
-        ))}
-      </ul>
 
       <div className="mt-[22px] border-t border-border pt-[18px]">
         <Button

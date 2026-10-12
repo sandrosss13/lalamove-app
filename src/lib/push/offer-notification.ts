@@ -2,13 +2,10 @@
 // server code only.
 import "server-only";
 
-import type { ContentLocale } from "@prisma/client";
-
-import enDriverHub from "@/messages/en/driverHub.json";
-import kaDriverHub from "@/messages/ka/driverHub.json";
 import { usersAcceptingPush } from "@/lib/notifications/settings";
 import { secondsRemaining } from "@/lib/offers/rules";
 import { prisma } from "@/lib/prisma";
+import { OFFER_PUSH_COPY } from "@/lib/push/copy";
 import { buildOfferPushMessage } from "@/lib/push/rules";
 import { getPushSender } from "@/lib/push/sender";
 
@@ -19,17 +16,6 @@ export type OfferToNotify = {
   userId: string;
   expiresAt: Date;
 };
-
-/**
- * The notification's wording per language, read straight from the catalogs:
- * a push is written in the language of the device it goes to, not of whichever
- * request happened to create the offer, so the request translator is no use.
- */
-const OFFER_PUSH_COPY: Record<ContentLocale, { title: string; body: string }> =
-  {
-    EN: enDriverHub.offerPush,
-    KA: kaDriverHub.offerPush,
-  };
 
 /**
  * Push each new offer to its driver's devices.

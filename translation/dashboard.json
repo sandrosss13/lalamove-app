@@ -179,11 +179,6 @@
     "ka": "ხელშეკრულება",
     "_source": "src/lib/dashboard/hub/sample.ts"
   },
-  "sample.criminalRecordExtract": {
-    "en": "Criminal record extract",
-    "ka": "ნასამართლობის ცნობა",
-    "_source": "src/lib/dashboard/hub/sample.ts"
-  },
   "sample.declinesCountedOverTheLast100": {
     "en": "Declines counted over the last 100 offers. Staying above 90% keeps priority matching.",
     "ka": "უარყოფები ითვლება ბოლო 100 შეთავაზებიდან. 90%-ზე მაღალი მაჩვენებელი ინარჩუნებს პრიორიტეტულ მატჩინგს.",
@@ -197,11 +192,6 @@
   "sample.dispatcher": {
     "en": "Dispatcher",
     "ka": "დისპეტჩერი",
-    "_source": "src/lib/dashboard/hub/sample.ts"
-  },
-  "sample.driverLicenceGe": {
-    "en": "Driver licence (GE)",
-    "ka": "მართვის მოწმობა (GE)",
     "_source": "src/lib/dashboard/hub/sample.ts"
   },
   "sample.earningsPayouts": {

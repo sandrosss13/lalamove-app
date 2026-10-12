@@ -19,6 +19,8 @@
   },
   "orderTrackingMap": {
     "driverLocationMayBeStale": "Driver location may be stale.",
+    "etaToDropoff": "Arriving in ~{minutes} min ({time})",
+    "etaToPickup": "Arriving at pickup in ~{minutes} min ({time})",
     "waitingForADriverToShare": "Waiting for a driver to share their location…"
   },
   "orders": {
