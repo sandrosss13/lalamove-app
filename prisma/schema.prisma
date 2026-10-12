@@ -950,6 +950,13 @@ model Vehicle {
   cargoWidthM       Float?
   cargoHeightM      Float?
 
+  /// The trailer's own registration plate, for a tractor unit that pulls one.
+  /// Optional and per vehicle (upper-cased, 2–15 of `[A-Z0-9- ]`); printed on
+  /// the client's order-details document and snapshotted onto
+  /// `OrderServiceSnapshot.trailerPlate` when the trip starts, so a later
+  /// change here never rewrites an issued document.
+  trailerPlateNumber String?
+
   photoUrls          String[]
   orders             Order[]
   assignments        DriverVehicleAssignment[]
@@ -1081,21 +1088,24 @@ model DriverVehicleAssignment {
 /// and is unique across all clients: a phone number identifies a real person or
 /// business, so it is what enforces "one account per client" at the DB level.
 model ClientProfile {
-  id          String            @id @default(cuid())
-  userId      String            @unique
-  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  accountType ClientAccountType
-  firstName   String?
-  lastName    String?
-  companyName String?
-  vatId       String?
-  phone       String            @unique
+  id           String            @id @default(cuid())
+  userId       String            @unique
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accountType  ClientAccountType
+  firstName    String?
+  lastName     String?
+  companyName  String?
+  vatId        String?
+  /// The company's registered (legal) address, printed as the CLIENT block on
+  /// the order-details document. Optional, BUSINESS accounts only, ≤ 300 chars.
+  legalAddress String?
+  phone        String            @unique
   // Verification details, individual accounts only (nullable for business).
-  dateOfBirth DateTime?
-  gender      ClientGender?
-  idNumber    String?
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
+  dateOfBirth  DateTime?
+  gender       ClientGender?
+  idNumber     String?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
 }
 
 /// A single freight job placed by a client and fulfilled either by an independent
@@ -1454,6 +1464,12 @@ model Order {
   /// delivery; re-signing before completion replaces it.
   podSignaturePath String?
 
+  /// Who carried this order, frozen when the trip starts — the service
+  /// provider, driver and vehicle printed on the client's order-details
+  /// document. See `OrderServiceSnapshot`. Client-owner only: never selected
+  /// into a carrier, driver or load-board payload.
+  serviceSnapshot OrderServiceSnapshot?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -1475,6 +1491,54 @@ model Order {
   // own comment for why they exist rather than a `pickupAddress` substring match.
   @@index([pickupCity])
   @@index([dropoffCity])
+}
+
+/// Who provided the transportation service on an order-details document:
+/// the carrier company the order was dispatched through, or an independent
+/// driver working on their own account.
+enum ServiceProviderKind {
+  COMPANY
+  DRIVER
+}
+
+/// The transport side of a BUSINESS client's order-details document
+/// ("შეკვეთის დეტალები / Invoice / Order details"), frozen when the trip starts.
+///
+/// On zomo the client buys one thing — the transportation service — so the
+/// document has no goods, buyer or recipient. Its parties are the client
+/// (read live from `ClientProfile`), zomo as seller (server env), and the
+/// service provider below; its amount is what the client was charged for the
+/// order. Only the provider, driver and vehicle can change under an order (a
+/// reassignment, a renamed company, a re-plated vehicle), so only they are
+/// snapshotted: `POST /api/orders/[id]/start` writes this row in the same
+/// transaction that flips the order to `IN_TRANSIT`. Until then the document
+/// reads the live values and is marked preliminary.
+///
+/// **Access is client-owner only.** Nothing here may be selected into a
+/// carrier, driver or load-board payload.
+model OrderServiceSnapshot {
+  id      String @id @default(cuid())
+  orderId String @unique
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  providerKind    ServiceProviderKind
+  providerName    String?
+  /// Company tax ID, or the independent driver's personal ID when the driver
+  /// is not a BUSINESS account.
+  providerTaxId   String?
+  providerAddress String?
+
+  driverFirstName  String?
+  driverLastName   String?
+  driverPersonalId String?
+
+  vehicleMake  String?
+  vehicleModel String?
+  vehiclePlate String?
+  trailerPlate String?
+
+  lockedAt  DateTime @default(now())
+  createdAt DateTime @default(now())
 }
 
 /// In what capacity a driver claimed an open load — see `Order.driverClaimedAs`.

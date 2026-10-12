@@ -164,6 +164,8 @@
     "dateofbirthMustBeAValidDate": "dateOfBirth must be a valid date.",
     "dateofbirthMustBeAnIsoDate": "dateOfBirth must be an ISO date string.",
     "genderMustBeOneOf": "gender must be one of: {allowed}.",
+    "legalAddressIsTooLong": "Legal address must be at most {max} characters.",
+    "legalAddressMustBeText": "Legal address must be text.",
     "onlyClientsCanCreateAClient": "Only clients can create a client profile.",
     "onlyClientsHaveAClientProfile": "Only clients have a client profile."
   },

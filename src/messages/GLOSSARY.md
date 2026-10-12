@@ -51,39 +51,44 @@ in the Georgian.
 
 ## People and organisations
 
-| English                 | Georgian              |
-| ----------------------- | --------------------- |
-| Client                  | კლიენტი               |
-| Driver                  | მძღოლი                |
-| Dispatcher              | დისპეტჩერი            |
-| Fleet manager           | ავტოპარკის მენეჯერი   |
-| Logistics company       | ლოჯისტიკური კომპანია  |
-| Seller                  | გამყიდველი            |
-| Employee                | თანამშრომელი          |
-| System user (admin)     | სისტემის მომხმარებელი |
-| Individual              | ფიზიკური პირი         |
-| Individual entrepreneur | ინდივიდუალური მეწარმე |
-| Business                | იურიდიული პირი        |
+| English                 | Georgian                 |
+| ----------------------- | ------------------------ |
+| Client                  | კლიენტი                  |
+| Driver                  | მძღოლი                   |
+| Dispatcher              | დისპეტჩერი               |
+| Fleet manager           | ავტოპარკის მენეჯერი      |
+| Logistics company       | ლოჯისტიკური კომპანია     |
+| Seller                  | გამყიდველი               |
+| Service provider        | მომსახურების მიმწოდებელი |
+| Employee                | თანამშრომელი             |
+| System user (admin)     | სისტემის მომხმარებელი    |
+| Individual              | ფიზიკური პირი            |
+| Individual entrepreneur | ინდივიდუალური მეწარმე    |
+| Business                | იურიდიული პირი           |
 
 ## Core objects
 
-| English               | Georgian            |
-| --------------------- | ------------------- |
-| Fleet                 | ავტოპარკი           |
-| Vehicle               | ავტომობილი          |
-| Wallet                | საფულე              |
-| Booking (the act)     | დაჯავშნა            |
-| Quote / estimate      | წინასწარი ფასი      |
-| Job sheet             | რეისის ფურცელი      |
-| Waybill               | ზედნადები           |
-| Application (to join) | განაცხადი           |
-| Document              | დოკუმენტი           |
-| Pickup                | აღება               |
-| Pickup address        | აღების მისამართი    |
-| Drop-off              | ჩაბარება            |
-| Drop-off address      | ჩაბარების მისამართი |
-| Route                 | მარშრუტი            |
-| Distance              | მანძილი             |
+| English               | Georgian             |
+| --------------------- | -------------------- |
+| Fleet                 | ავტოპარკი            |
+| Vehicle               | ავტომობილი           |
+| Wallet                | საფულე               |
+| Booking (the act)     | დაჯავშნა             |
+| Quote / estimate      | წინასწარი ფასი       |
+| Job sheet             | რეისის ფურცელი       |
+| Waybill               | ზედნადები            |
+| Tax ID                | საიდენტიფიკაციო კოდი |
+| Personal ID number    | პირადი ნომერი        |
+| Trailer               | მისაბმელი            |
+| Legal address         | იურიდიული მისამართი  |
+| Application (to join) | განაცხადი            |
+| Document              | დოკუმენტი            |
+| Pickup                | აღება                |
+| Pickup address        | აღების მისამართი     |
+| Drop-off              | ჩაბარება             |
+| Drop-off address      | ჩაბარების მისამართი  |
+| Route                 | მარშრუტი             |
+| Distance              | მანძილი              |
 
 ## Actions
 
@@ -188,18 +193,25 @@ genuinely different meanings — the catalogs must not share a key for them.
 
 ## Money
 
-| English          | Georgian            |
-| ---------------- | ------------------- |
-| Price            | ფასი                |
-| Fare             | ღირებულება          |
-| Total            | ჯამი                |
-| Payout           | ანაზღაურება         |
-| Earnings         | შემოსავალი          |
-| Discount         | ფასდაკლება          |
-| Promo code       | პრომო კოდი          |
-| Payment method   | გადახდის მეთოდი     |
-| Cash on delivery | გადახდა ჩაბარებისას |
-| Bank transfer    | საბანკო გადარიცხვა  |
+| English                | Georgian                    |
+| ---------------------- | --------------------------- |
+| Price                  | ფასი                        |
+| Fare                   | ღირებულება                  |
+| Total                  | ჯამი                        |
+| Transportation service | ტრანსპორტირების მომსახურება |
+| VAT                    | დღგ                         |
+| Payout                 | ანაზღაურება                 |
+| Earnings               | შემოსავალი                  |
+| Discount               | ფასდაკლება                  |
+| Promo code             | პრომო კოდი                  |
+| Payment method         | გადახდის მეთოდი             |
+| Cash on delivery       | გადახდა ჩაბარებისას         |
+| Bank transfer          | საბანკო გადარიცხვა          |
+
+The client's printed order-details document is titled **შეკვეთის დეტალები**
+("Invoice / Order details"), never **სასაქონლო ზედნადები** — it must not read
+as the official RS.GE e-waybill. It documents the transportation service only
+(client, seller, service provider, amount); there is no buyer and no goods list.
 
 Currency is always the lari sign `₾`, placed by the existing `formatGel` helper.
 Do not write `ლარი` in a price string — the symbol is what every price column is

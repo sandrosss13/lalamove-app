@@ -127,6 +127,27 @@ test.describe("CARRIER_ORDER_PARTY_SELECT", () => {
   });
 });
 
+/**
+ * The order-details document is client-owner-only data: the client's own
+ * company block and the amount they paid, and — after the trip starts — the
+ * `serviceSnapshot` with the driver's personal number. No shared select may
+ * join it, not even the client-facing `ORDER_PARTY_SELECT`, which several
+ * carrier-side readers have historically borrowed. It is served by
+ * `/api/orders/[id]/waybill` alone, behind `resolveServiceDocumentAccess`.
+ */
+test.describe("the order-details snapshot stays out of every shared order select", () => {
+  for (const [name, select] of [
+    ["CARRIER_ORDER_PARTY_SELECT", CARRIER_ORDER_PARTY_SELECT],
+    ["ORDER_PARTY_SELECT", ORDER_PARTY_SELECT],
+    ["LOADS_SELECT", LOADS_SELECT],
+  ] as const) {
+    test(`${name} never joins Order.serviceSnapshot`, () => {
+      expect(select).not.toHaveProperty("serviceSnapshot");
+      expect(JSON.stringify(select)).not.toMatch(/serviceSnapshot|waybill/i);
+    });
+  }
+});
+
 test.describe("ORDER_PARTY_SELECT", () => {
   for (const column of CLIENT_MONEY_COLUMNS) {
     test(`still carries Order.${column} for the client`, () => {

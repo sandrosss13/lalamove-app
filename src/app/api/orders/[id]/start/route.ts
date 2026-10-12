@@ -8,6 +8,7 @@ import {
   orderActionError,
   passwordChangeRefusal,
 } from "@/lib/orders/action-errors";
+import { snapshotOrderService } from "@/lib/orders/service-document-server";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -20,8 +21,17 @@ import { prisma } from "@/lib/prisma";
  * supply side.
  *
  * Unlike accepting, this needs no conditional `updateMany`: exactly one driver
- * is assigned to an order, so there is no second caller to race with, and the
- * status check below is not subject to a lost update.
+ * is assigned to an order, so there is no second caller to race with. The
+ * transition still runs under the order's row lock (`SELECT … FOR UPDATE`),
+ * with the status re-read beneath it, because starting the trip also freezes
+ * who is carrying it — service provider, driver and vehicle — for the
+ * client's order-details document (`snapshotOrderService`,
+ * `src/lib/orders/service-document-server.ts`). A double tap therefore writes the
+ * snapshot once, for the trip that actually started.
+ *
+ * The response body and every refusal `code` are unchanged by the snapshot:
+ * the driver app reads them (`src/lib/mobile-api/contracts.ts`), and the
+ * document is client-owner-only data that never appears in this response.
  *
  * Refusals carry a stable `code` beside the localised `error` — see
  * `OrderActionErrorCode` in `src/lib/mobile-api/contracts.ts`.
@@ -78,11 +88,45 @@ export async function POST(
   // the `order.driverId !== session.user.id` guard a few lines above means the
   // assigned driver is the only account that ever reaches this update, so the
   // audience is a carrier by construction rather than by a role test.
-  const updated = await prisma.order.update({
-    where: { id },
-    data: { status: OrderStatus.IN_TRANSIT, inTransitAt: new Date() },
-    select: CARRIER_ORDER_PARTY_SELECT,
+  const updated = await prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT "id" FROM "Order" WHERE "id" = ${id} FOR UPDATE`;
+
+    // Re-checked under the lock: the read above was a pre-check for readable
+    // refusals, and a second tap may have started the trip since.
+    const locked = await tx.order.findUnique({
+      where: { id },
+      select: { status: true, driverId: true },
+    });
+
+    if (
+      !locked ||
+      locked.driverId !== session.user.id ||
+      locked.status !== OrderStatus.ACCEPTED
+    ) {
+      return null;
+    }
+
+    const started = await tx.order.update({
+      where: { id },
+      data: { status: OrderStatus.IN_TRANSIT, inTransitAt: new Date() },
+      select: CARRIER_ORDER_PARTY_SELECT,
+    });
+
+    // Freeze the service provider, driver and vehicle that just set off, for
+    // the client's order-details document. Missing values are stored as
+    // `null`; nothing here can refuse the start.
+    await snapshotOrderService(tx, id);
+
+    return started;
   });
+
+  if (!updated) {
+    return orderActionError(
+      t("errors.ordersStart.thisDeliveryCannotBeStartedRight"),
+      "INVALID_STATE",
+      409,
+    );
+  }
 
   return NextResponse.json(updated, { status: 200 });
 }
