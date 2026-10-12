@@ -172,10 +172,9 @@
       "sep": "Sep"
     },
     "needsCategory": "needs category {category}",
-    "needsLicenceCategory": "{className} · needs licence category {category}",
+    "needsLicenceCategory": "{className} · a licence on file must include category {category}",
     "noCategory": "No category {category}",
-    "noDriverOnYourRosterHolds": "No driver on your roster holds the categories this vehicle needs. Create an account instead.",
-    "noLicenceOnFile": "No licence on file",
+    "noDriverOnYourRosterHolds": "No driver on your roster can take this vehicle right now. Create an account instead.",
     "noVehiclesYetDeclareYourFleet": "No vehicles yet — declare your fleet first.",
     "notAssigned": "Not assigned",
     "onPlate": "on {plate}",
@@ -189,7 +188,9 @@
     "emailAddressOptional": "Email address (optional)",
     "driverCreatedSignInByPhone": "{name}'s account is created. They sign in to the driver app with {phone} and an SMS code.",
     "signInLabel": "Sign-in",
-    "signInByPhoneNote": "The driver signs in to the driver app with this mobile number and a one-time SMS code. No password is needed."
+    "signInByPhoneNote": "The driver signs in to the driver app with this mobile number and a one-time SMS code. No password is needed.",
+    "drivingLicenceOptional": "Driving licence (optional)",
+    "drivingLicenceOptionalNote": "Leave it blank, or fill in the number, the expiry date and at least one category."
   },
   "step5ReviewSubmit": {
     "assignedOf": "{assigned} of {vehicles}",

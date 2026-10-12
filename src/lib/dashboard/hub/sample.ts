@@ -52,12 +52,12 @@ export type SampleMetricDelta = {
  * its full message key (namespace included).
  *
  * The constants below stay in English on purpose: several of their fields are
- * identifiers as well as copy (`EmployeeRoleName`, `SamplePayoutStatus`, the
- * compliance and verification statuses are switched on by the screens), and
- * the free-text fields sit in shapes that half a dozen modules and screens pass
- * through untouched. Rather than thread a translator through every one of
- * those, the page that renders a hub screen hands its finished data to
- * `localizeSampleCopy`, which swaps exactly these strings and nothing else.
+ * identifiers as well as copy (`EmployeeRoleName` and `SamplePayoutStatus` are
+ * switched on by the screens), and the free-text fields sit in shapes that half
+ * a dozen modules and screens pass through untouched. Rather than thread a
+ * translator through every one of those, the page that renders a hub screen
+ * hands its finished data to `localizeSampleCopy`, which swaps exactly these
+ * strings and nothing else.
  *
  * Only free-text copy belongs in this list. Adding an identifier here (a role
  * name, a status) would translate a value some screen compares against an
@@ -94,7 +94,6 @@ const SAMPLE_COPY_KEYS: ReadonlyMap<string, string> = new Map([
     "3 more jobs by Sunday for a ₾40 bonus.",
     "dashboard.sample.3MoreJobsBySundayFor",
   ],
-  ["Driver licence (GE)", "dashboard.sample.driverLicenceGe"],
   ["Vehicles and drivers", "dashboard.sample.vehiclesAndDrivers"],
   [
     "Assigns jobs inside their zones",
@@ -125,7 +124,6 @@ const SAMPLE_COPY_KEYS: ReadonlyMap<string, string> = new Map([
   ["1 invited, 1 suspended", "dashboard.sample.1Invited1Suspended"],
   ["Cancellations", "common.shared.cancellations"],
   ["Rating", "common.shared.rating"],
-  ["Vehicle registration", "common.shared.vehicleRegistration"],
   ["2 minutes ago", "dashboard.sample.2MinutesAgo"],
   ["Yesterday", "dashboard.sample.yesterday"],
   ["Mon", "dashboard.sample.mon"],
@@ -694,42 +692,11 @@ export function sampleVehicleFacts(plateNumber: string): SampleVehicleFacts {
 /* Per-driver facts                                                          */
 /* ------------------------------------------------------------------------- */
 
-/** Status of one row in the driver detail panel's Verification list. */
-export type SampleVerificationStatus =
-  "Verified" | "In review" | "Valid" | "Expired";
-
-export type SampleVerificationRow = {
-  label: string;
-  status: SampleVerificationStatus;
-};
-
 export type SampleDriverFacts = {
   /** Average customer rating, or `null` for a driver with no rated jobs. */
   rating: number | null;
   acceptanceRatePercent: number;
-  verification: readonly SampleVerificationRow[];
 };
-
-/**
- * The verification rows shown for a driver with no entry in
- * `SAMPLE_DRIVER_FACTS`.
- *
- * "In review" throughout rather than "Verified": claiming a document has been
- * checked when nothing checked it is the one placeholder on these screens that
- * could actually mislead an operator into dispatching a non-compliant driver.
- *
- * Note that only the *status* is fictional — `DriverLicence.expiresAt` is real,
- * which is why the Today screen's licence-expiry alert is not in this module.
- *
- * Retire once a `DriverDocument` model tracks each required document's review
- * state (the admin application flow verifies them once at onboarding, but
- * `DriverApplication` does not model ongoing validity).
- */
-export const SAMPLE_DRIVER_VERIFICATION_FALLBACK: readonly SampleVerificationRow[] =
-  [
-    { label: "Driver licence (GE)", status: "In review" },
-    { label: "Vehicle registration", status: "In review" },
-  ];
 
 /**
  * What a driver with no row in `SAMPLE_DRIVER_FACTS` shows.
@@ -743,7 +710,6 @@ export const SAMPLE_DRIVER_VERIFICATION_FALLBACK: readonly SampleVerificationRow
 export const SAMPLE_DRIVER_FACTS_FALLBACK: SampleDriverFacts = {
   rating: null,
   acceptanceRatePercent: 0,
-  verification: SAMPLE_DRIVER_VERIFICATION_FALLBACK,
 };
 
 /**
@@ -761,62 +727,32 @@ export const SAMPLE_DRIVER_FACTS: Record<string, SampleDriverFacts> = {
   "GE-88214": {
     rating: 4.86,
     acceptanceRatePercent: 93,
-    verification: [
-      { label: "Driver licence (GE)", status: "Verified" },
-      { label: "Vehicle registration", status: "Verified" },
-    ],
   },
   "GE-88301": {
     rating: 4.92,
     acceptanceRatePercent: 93,
-    verification: [
-      { label: "Driver licence (GE)", status: "Verified" },
-      { label: "Vehicle registration", status: "Verified" },
-    ],
   },
   "GE-87940": {
     rating: 4.71,
     acceptanceRatePercent: 93,
-    verification: [
-      { label: "Driver licence (GE)", status: "Verified" },
-      { label: "Vehicle registration", status: "Verified" },
-    ],
   },
   "GE-88422": {
     rating: 4.88,
     acceptanceRatePercent: 93,
-    verification: [
-      { label: "Driver licence (GE)", status: "Verified" },
-      { label: "Vehicle registration", status: "Verified" },
-    ],
   },
-  // A driver still being reviewed: the vehicle registration checked after the
-  // licence has not cleared yet, which is what keeps them off the road.
+  // A driver with no rated jobs yet.
   "GE-88510": {
     rating: null,
     acceptanceRatePercent: 93,
-    verification: [
-      { label: "Driver licence (GE)", status: "Verified" },
-      { label: "Vehicle registration", status: "In review" },
-    ],
   },
   "GE-87755": {
     rating: 4.79,
     acceptanceRatePercent: 93,
-    verification: [
-      { label: "Driver licence (GE)", status: "Verified" },
-      { label: "Vehicle registration", status: "Verified" },
-    ],
   },
-  // A suspended driver. Their documents are all in order: the suspension is an
-  // account decision under review, not a compliance failure.
+  // A suspended driver.
   "GE-86903": {
     rating: 4.42,
     acceptanceRatePercent: 61,
-    verification: [
-      { label: "Driver licence (GE)", status: "Verified" },
-      { label: "Vehicle registration", status: "Verified" },
-    ],
   },
 };
 

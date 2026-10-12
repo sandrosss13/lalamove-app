@@ -271,14 +271,13 @@ export async function POST(
 
     // The licence-category gate, worded exactly as `drivers/register` words it
     // so a company sees one message for one rule regardless of which door it
-    // came through. A driver with no licence row at all holds no categories and
-    // so fails this for every classed vehicle — which is the correct answer to
-    // "does this licence cover Category C?" when no licence is on file, and the
-    // reason licence capture at registration had to come first.
+    // came through. It only applies when a licence is on file: the company
+    // vouches for its own drivers and the licence is optional, so a driver with
+    // no licence row can take any fleet vehicle. One that is on file must still
+    // cover the vehicle, so the recorded data never contradicts the assignment.
     const required = requiredCategoryForVehicle(vehicle);
-    if (required !== null) {
-      const held = driverProfile.licence?.categories ?? [];
-      if (!held.includes(required)) {
+    if (required !== null && driverProfile.licence) {
+      if (!driverProfile.licence.categories.includes(required)) {
         return {
           error: t(
             "errors.logisticsCompanyVehiclesAssignment.thisVehicleNeedsCategory",

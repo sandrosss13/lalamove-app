@@ -101,6 +101,7 @@
   },
   "driversAddPanel": {
     "9955xxXxxXxx": "+995 5XX XXX XXX",
+    "articulatedCombinations": "Articulated combinations",
     "assignLater": "Assign later",
     "carsAndSmallVans": "Cars and small vans",
     "couldNotRegister": "Could not register this driver.",
@@ -113,7 +114,7 @@
     "hintLicenceNumber": "Add the driver's licence number.",
     "hintName": "Add a first and last name to continue.",
     "hintPhone": "Add a phone number with at least {minDigits} digits.",
-    "hintReady": "Registers {name} in {city} with {vehicle}. A temporary password is shown once, here.",
+    "hintReady": "Registers {name} in {city} with {vehicle}. They sign in with their phone number.",
     "hintVehicleCategory": "{vehicle} needs category {category}. Tick it, or assign a different vehicle.",
     "licenceCategories": "Licence categories",
     "networkErrorCheckYourConnectionAnd": "Network error. Check your connection and try again.",
@@ -125,7 +126,9 @@
     "rigidTrucks": "Rigid trucks",
     "thatVehicle": "That vehicle",
     "thisCreatesTheirAccountTheySign": "This creates their account. They sign in to the driver app with this phone number and a one-time SMS code.",
-    "emailOptional": "Email (optional)"
+    "emailOptional": "Email (optional)",
+    "drivingLicenceOptional": "Driving licence (optional)",
+    "drivingLicenceOptionalNote": "Leave it blank, or fill in the number, the expiry date and at least one category."
   },
   "driversDetailPanel": {
     "confirmOffboarding": "Confirm offboarding",
@@ -140,9 +143,7 @@
     "offboarding": "Offboarding…",
     "recentJobs": "Recent jobs",
     "sampleAcceptanceNote": "Nothing records an offer a driver was shown but did not take, so an acceptance rate cannot be computed. Retire with a JobOffer model.",
-    "sampleRatingNote": "Nothing records a customer rating for an order. Retire with an OrderRating model.",
-    "sampleVerificationNote": "DriverApplication verifies documents once at onboarding and models no ongoing validity, so these verdicts are placeholders. Retire with a DriverDocument model. The licence expiry date itself is real.",
-    "verification": "Verification"
+    "sampleRatingNote": "Nothing records a customer rating for an order. Retire with an OrderRating model."
   },
   "driversScreen": {
     "acrossCities": "Across {cities}",

@@ -17,7 +17,7 @@
  *
  * Everything at the top level of `HubDriver` is read from the database,
  * including the three recent jobs the detail panel lists. Everything the schema
- * cannot answer — the rating and the four verification rows — is quarantined
+ * cannot answer — the rating and the acceptance rate — is quarantined
  * under `sampled`, one sub-object per driver, sourced entirely from
  * `@/lib/dashboard/hub/sample`. The tiles split the same way. The screen renders
  * a `<SampleNote />` beside anything read out of a `sampled` object and nothing
@@ -47,7 +47,6 @@ import type {
 } from "@prisma/client";
 
 import type { HubAccount } from "@/lib/dashboard/hub/account";
-import type { SampleVerificationRow } from "@/lib/dashboard/hub/sample";
 import {
   SAMPLE_FLEET_AVG_RATING,
   SAMPLE_FLEET_RATED_JOB_COUNT,
@@ -123,15 +122,13 @@ export type HubDriverRecentJob = {
  * The per-driver figures the schema cannot source. **Nothing in here is real.**
  *
  * Keyed off `DriverProfile.id`, which in any database but a seeded demo misses
- * and falls through to a neutral fallback (`rating: null`, every document "In
- * review") rather than a plausible-looking invention about a real person — see
- * `sampleDriverFacts()`.
+ * and falls through to a neutral fallback (`rating: null`) rather than a
+ * plausible-looking invention about a real person — see `sampleDriverFacts()`.
  */
 export type HubDriverSampled = {
   /** null for a driver with no rated jobs; the roster prints "—". */
   rating: number | null;
   acceptanceRatePercent: number;
-  verification: readonly SampleVerificationRow[];
 };
 
 export type HubDriver = {
@@ -441,7 +438,6 @@ export async function getHubDrivers(
       sampled: {
         rating: facts.rating,
         acceptanceRatePercent: facts.acceptanceRatePercent,
-        verification: facts.verification,
       },
     };
   });

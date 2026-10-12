@@ -386,7 +386,7 @@
   },
   "driversAddPanel.articulatedCombinations": {
     "en": "Articulated combinations",
-    "ka": "",
+    "ka": "მისაბმელიანი სატვირთოები",
     "_source": "src/components/driver-hub/screens/drivers-add-panel.tsx"
   },
   "driversAddPanel.assignLater": {
@@ -450,8 +450,8 @@
     "_source": "src/components/driver-hub/screens/drivers-add-panel.tsx"
   },
   "driversAddPanel.hintReady": {
-    "en": "Registers {name} in {city} with {vehicle}. A temporary password is shown once, here.",
-    "ka": "დარეგისტრირდება {name} ქალაქში {city}, ავტომობილი: {vehicle}. დროებითი პაროლი ერთხელ, აქვე გამოჩნდება.",
+    "en": "Registers {name} in {city} with {vehicle}. They sign in with their phone number.",
+    "ka": "დარეგისტრირდება {name} ქალაქში {city}, ავტომობილი: {vehicle}. მძღოლი აპლიკაციაში შევა თავისი ტელეფონის ნომრით.",
     "_source": "src/components/driver-hub/screens/drivers-add-panel.tsx"
   },
   "driversAddPanel.hintVehicleCategory": {
@@ -572,16 +572,6 @@
   "driversDetailPanel.sampleRatingNote": {
     "en": "Nothing records a customer rating for an order. Retire with an OrderRating model.",
     "ka": "შეკვეთის კლიენტის შეფასება არსად ფიქსირდება. ჩანაცვლდება OrderRating მოდელით.",
-    "_source": "src/components/driver-hub/screens/drivers-detail-panel.tsx"
-  },
-  "driversDetailPanel.sampleVerificationNote": {
-    "en": "DriverApplication verifies documents once at onboarding and models no ongoing validity, so these verdicts are placeholders. Retire with a DriverDocument model. The licence expiry date itself is real.",
-    "ka": "DriverApplication დოკუმენტებს მხოლოდ ერთხელ, რეგისტრაციისას ამოწმებს და მათ მიმდინარე ვალიდურობას არ აღრიცხავს, ამიტომ ეს შედეგები სანიმუშოა. ჩანაცვლდება DriverDocument მოდელით. მართვის მოწმობის ვადის თარიღი რეალურია.",
-    "_source": "src/components/driver-hub/screens/drivers-detail-panel.tsx"
-  },
-  "driversDetailPanel.verification": {
-    "en": "Verification",
-    "ka": "ვერიფიკაცია",
     "_source": "src/components/driver-hub/screens/drivers-detail-panel.tsx"
   },
   "driversScreen.acrossCities": {

@@ -396,8 +396,8 @@ function toVehicleVerdict(
           driverProfileId: driverProfile.id,
           name: driverProfile.user.name,
           phone: driverProfile.phone,
-          // Empty when the driver has no licence on file — an older
-          // company-created account predating licence capture.
+          // Empty when the driver has no licence on file (it is optional
+          // for a company driver).
           categories: driverProfile.licence?.categories ?? [],
         }
       : null,

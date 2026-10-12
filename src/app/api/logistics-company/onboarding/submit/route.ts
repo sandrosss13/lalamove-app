@@ -350,7 +350,9 @@ type VehicleWrite = {
  * round trip can span days, and nothing downstream would catch it, because the
  * admin's approve path reads vehicle verdicts only — an expired licence would
  * otherwise ride all the way to `APPROVED` and activate a driver who may not
- * legally drive.
+ * legally drive. The licence itself is optional for a company driver (the
+ * company vouches for them), so a driver with none on file passes; only one
+ * that is on file is checked.
  *
  * **No `BusinessApplicationVehicle` row is touched.** An `APPROVED` vehicle
  * keeps its verdict and its `decidedAt` across a resubmission; sweeping every
@@ -464,16 +466,15 @@ async function resubmit(
     const fullName = driverFullName(driverProfile, t);
     const { licence } = driverProfile;
 
-    // A missing licence row is treated as an expired one rather than waved
-    // through: with no licence on file there is nothing attesting the driver may
-    // drive at all, which is strictly worse than an expired one.
-    if (licence === null || licence.expiresAt.getTime() <= now.getTime()) {
+    // No licence on file is fine — it is optional for a company driver. One
+    // that is on file must still be current and cover the vehicle.
+    if (licence !== null && licence.expiresAt.getTime() <= now.getTime()) {
       problems.push(
         t("errors.logisticsCompanyOnboardingSubmit.licenceHasExpired", {
           name: fullName,
         }),
       );
-    } else {
+    } else if (licence !== null) {
       // Read from the `Vehicle` row, which the correction `PATCH` writes, and
       // which is therefore the fresher of the two after a class correction.
       // `Vehicle.vehicleClass` is nullable for rows that predate this feature,
@@ -685,14 +686,9 @@ export async function POST(request: Request): Promise<NextResponse> {
     const fullName = driverFullName(driver, t);
     const { licence } = driver;
 
-    if (licence === null) {
-      problems.push(
-        t("errors.logisticsCompanyOnboardingSubmit.noLicenceOnFile", {
-          name: fullName,
-        }),
-      );
-      return;
-    }
+    // The licence is optional for a company driver; only one on file is
+    // held to the expiry and category rules below.
+    if (licence === null) return;
 
     // Checked as of submit time, not as of when step 4 was filled in: a draft
     // can sit for weeks.

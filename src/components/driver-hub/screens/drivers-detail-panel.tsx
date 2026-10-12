@@ -36,9 +36,9 @@ import { cn } from "@/lib/utils";
  *
  * Honesty rule: the identity lines, the status pill, the zone pill, the two
  * left-hand stat boxes and every "Recent jobs" row are read from the database.
- * Acceptance, Rating and the whole Verification list come from
- * `driver.sampled`, and each carries a `<SampleNote />` naming the schema
- * change that would make it real.
+ * Acceptance and Rating come from `driver.sampled`, and each carries a
+ * `<SampleNote />` naming the schema change that would make it real. There is
+ * no verification list: a company vouches for its own drivers.
  *
  * Colours go through a token wherever one already carries the handoff's value —
  * `--destructive` is the handoff's BAD exactly, and a token is what makes a
@@ -359,25 +359,6 @@ export function DriversDetailPanel({
           ))}
         </ul>
       )}
-
-      <div className="mt-[18px] mb-0.5 flex flex-wrap items-center gap-2">
-        <h3 className="text-[13px] font-semibold">{t("verification")}</h3>
-        <SampleNote note={t("sampleVerificationNote")} />
-      </div>
-      <ul>
-        {driver.sampled.verification.map((row) => (
-          <li
-            key={row.label}
-            className="flex items-center justify-between gap-3 border-t border-muted py-[9px] text-[13px]"
-          >
-            <span className="min-w-0 truncate">{row.label}</span>
-            <HubStatusBadge
-              status={row.status}
-              label={statusLabel(row.status)}
-            />
-          </li>
-        ))}
-      </ul>
 
       <div className="mt-[22px] border-t border-border pt-[18px]">
         <Button

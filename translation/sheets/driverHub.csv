@@ -37,7 +37,6 @@ driverHubNotifications.nothingToCatchUpOn,Nothing to catch up on.,,src/component
 driverHubSidebar.jobsTowardsThisWeekSBonus,Jobs towards this week's bonus,,src/components/driver-hub/driver-hub-sidebar.tsx
 driverHubSidebar.weeklyIncentive,Weekly incentive,,src/components/driver-hub/driver-hub-sidebar.tsx
 driversAddPanel.9955xxXxxXxx,+995 5XX XXX XXX,,src/components/driver-hub/screens/drivers-add-panel.tsx
-driversAddPanel.articulatedCombinations,Articulated combinations,,src/components/driver-hub/screens/drivers-add-panel.tsx
 driversAddPanel.carsAndSmallVans,Cars and small vans,,src/components/driver-hub/screens/drivers-add-panel.tsx
 driversAddPanel.eG01234567,e.g. 01234567,,src/components/driver-hub/screens/drivers-add-panel.tsx
 driversAddPanel.everyFleetVehicleIsCurrentlyHeld,Every fleet vehicle is currently held by a driver. Register this one unassigned and pair them from the Vehicles screen later.,,src/components/driver-hub/screens/drivers-add-panel.tsx
@@ -50,7 +49,6 @@ driversAddPanel.thisCreatesTheirAccountTheySign,"This creates their account. The
 driversDetailPanel.jobsThisWeek,Jobs this week,,src/components/driver-hub/screens/drivers-detail-panel.tsx
 driversDetailPanel.noCompletedJobsForThisFleet,No completed jobs for this fleet yet.,,src/components/driver-hub/screens/drivers-detail-panel.tsx
 driversDetailPanel.recentJobs,Recent jobs,,src/components/driver-hub/screens/drivers-detail-panel.tsx
-driversDetailPanel.verification,Verification,,src/components/driver-hub/screens/drivers-detail-panel.tsx
 driversScreen.addDriver,Add driver,,src/components/driver-hub/screens/drivers-screen.tsx
 driversScreen.doneIHaveSharedIt,Done — I have shared it,,src/components/driver-hub/screens/drivers-screen.tsx
 driversScreen.fleetAvgRating,Fleet avg rating,,src/components/driver-hub/screens/drivers-screen.tsx

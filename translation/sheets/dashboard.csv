@@ -22,7 +22,6 @@ sample.accountantOnly,Accountant only,,src/lib/dashboard/hub/sample.ts
 sample.assignsJobsInsideTheirZones,Assigns jobs inside their zones,,src/lib/dashboard/hub/sample.ts
 sample.contract,Contract,,src/lib/dashboard/hub/sample.ts
 sample.declinesCountedOverTheLast100,Declines counted over the last 100 offers. Staying above 90% keeps priority matching.,,src/lib/dashboard/hub/sample.ts
-sample.driverLicenceGe,Driver licence (GE),,src/lib/dashboard/hub/sample.ts
 sample.eleneAbashidze,Elene Abashidze,,src/lib/dashboard/hub/sample.ts
 sample.fleetManagerDispatcherAccountantMechanic,"Fleet manager, dispatcher, accountant, mechanic",,src/lib/dashboard/hub/sample.ts
 sample.from61RatedJobsRatingsBelow,From 61 rated jobs. Ratings below 4.5 trigger a coaching review.,,src/lib/dashboard/hub/sample.ts

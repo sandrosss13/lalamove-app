@@ -1,5 +1,7 @@
 # Driver Registration and Vehicle Assignment
 
+> **Updated 2026-10-12: the driving licence is now optional for company drivers.** The company vouches for the drivers it adds, so they need no verification, and vehicles are registered separately in the company's Vehicles section. Licence input is all-or-nothing (every field blank → no `DriverLicence` row; any field filled → number, future expiry and ≥1 category all required), and the licence-category vs vehicle-class rule applies only when a licence is on file. Where the documents below say the licence is mandatory, this note supersedes them. Sign-in is by phone number and SMS code; there is no temp password.
+
 ## Overview
 
 Lets a logistics company admin register a brand-new driver account and assign them an existing fleet vehicle in one flow, directly from the company dashboard — replacing the requirement to send the driver to the public sign-up page and then link them by email afterward. The admin sets a temp password shown once on screen; the driver is forced to change it on first login.

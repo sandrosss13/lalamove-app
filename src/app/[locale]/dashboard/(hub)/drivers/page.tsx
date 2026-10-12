@@ -9,7 +9,6 @@ import type { DriversVehicleOption } from "@/components/driver-hub/screens/drive
 import { resolveHubAccount } from "@/lib/dashboard/hub/account";
 import { getHubDrivers } from "@/lib/dashboard/hub/drivers";
 import { getHubFleetAvailability } from "@/lib/dashboard/hub/fleet-availability";
-import { localizeSampleCopy } from "@/lib/dashboard/hub/sample";
 import { toHubDayKey } from "@/lib/dashboard/hub/timezone";
 import { getHubVehicles } from "@/lib/dashboard/hub/vehicles";
 import type { HubVehicle } from "@/lib/dashboard/hub/vehicles";
@@ -139,8 +138,7 @@ export default async function DriversPage() {
 
   return (
     <DriversScreen
-      // Verification row labels are sampled copy; see `SAMPLE_COPY_KEYS`.
-      data={localizeSampleCopy(drivers, t)}
+      data={drivers}
       vehicles={vehicleOptions(vehicles.vehicles)}
       availability={availability}
     />

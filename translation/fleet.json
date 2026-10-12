@@ -815,8 +815,8 @@
     "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
   },
   "step4DriversAssignment.needsLicenceCategory": {
-    "en": "{className} · needs licence category {category}",
-    "ka": "{className} · საჭიროა {category} კატეგორიის მართვის მოწმობა",
+    "en": "{className} · a licence on file must include category {category}",
+    "ka": "{className} · დამატებული მართვის მოწმობა უნდა მოიცავდეს {category} კატეგორიას",
     "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
   },
   "step4DriversAssignment.noCategory": {
@@ -825,13 +825,8 @@
     "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
   },
   "step4DriversAssignment.noDriverOnYourRosterHolds": {
-    "en": "No driver on your roster holds the categories this vehicle needs. Create an account instead.",
-    "ka": "თქვენს სიაში არცერთ მძღოლს არ აქვს ამ ტრანსპორტისთვის საჭირო კატეგორიები. ამის სანაცვლოდ შექმენით ანგარიში.",
-    "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
-  },
-  "step4DriversAssignment.noLicenceOnFile": {
-    "en": "No licence on file",
-    "ka": "მართვის მოწმობა არ არის ბაზაში",
+    "en": "No driver on your roster can take this vehicle right now. Create an account instead.",
+    "ka": "ამჟამად თქვენი სიიდან არცერთი მძღოლის მიმაგრება ამ ტრანსპორტზე შეუძლებელია. ამის სანაცვლოდ შექმენით ანგარიში.",
     "_source": "src/components/fleet-onboarding/steps/step-4-drivers-assignment.tsx"
   },
   "step4DriversAssignment.noVehiclesYetDeclareYourFleet": {
