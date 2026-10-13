@@ -14,6 +14,7 @@ import {
 import "../globals.css";
 import { AuthStatus, HeaderBrandLink } from "@/components/auth-status";
 import { LanguageToggle } from "@/components/language-toggle";
+import { ThemeRestore } from "@/components/theme-restore";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { DEFAULT_LOCALE, LOCALES, routing } from "@/i18n/routing";
 import { BRAND_NAME, brandIcons } from "@/lib/brand";
@@ -244,6 +245,7 @@ export default async function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
       <body>
+        <ThemeRestore />
         {/*
           Messages are read from the request config (`src/i18n/request.ts`) and
           handed to the client tree here, once. Two thirds of this app's
