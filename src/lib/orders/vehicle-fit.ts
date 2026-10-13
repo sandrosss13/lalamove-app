@@ -303,8 +303,8 @@ export function hasDeclaredEnvelope(load: LoadDimensions): boolean {
  * four cargo columns as plain nullable and backfills `driverPayout` and
  * `reference` but not the envelope, so **every order already open at cutover has
  * all four null** — the entire live PENDING book, hidden on day one behind a
- * false explanation. New orders are unaffected: `POST /api/orders` requires all
- * four.
+ * false explanation. It is the live shape of new orders too: `POST /api/orders`
+ * no longer asks for the envelope, so most bookings arrive with all four null.
  *
  * **A partially declared load counts as `DOES_NOT_FIT`, deliberately.** It is
  * not literally over capacity; it is unmeasurable, and `loadFits` refuses it
@@ -314,8 +314,8 @@ export function hasDeclaredEnvelope(load: LoadDimensions): boolean {
  * it — they refuse it too, so listing it would recreate the divergence in the
  * other direction, which is the worse one (a wasted trip rather than an
  * unoffered load). No write path can currently produce such a row anyway: the
- * booking API requires all four figures and the migration backfills none, so a
- * real envelope is all-present or all-null. Should partial capture ever ship,
+ * booking API accepts all four figures or none (a mix is a 400) and the
+ * migration backfills none, so a real envelope is all-present or all-null. Should partial capture ever ship,
  * this is the decision to revisit first, and a fourth verdict is the shape to
  * revisit it with — not a quiet reclassification of this one.
  */

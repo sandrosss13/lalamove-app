@@ -114,9 +114,10 @@ Explicitly out of scope. A well-meaning agent might otherwise build these:
   are declared data; they do not feed the quote.
 - **No multi-stop.** The prototype shows a `stops: 3` load; the schema supports
   exactly one pickup and one dropoff. Render the stop count as a constant 2.
-- **No cargo photos.** The drawer's three dashed tiles stay dashed placeholders —
-  there is no cargo photo upload anywhere in the client booking flow to feed
-  them. Do not add one.
+- ~~**No cargo photos.**~~ *Superseded:* clients can now attach up to three
+  cargo photos at booking, and the drawer and mobile sheet show them before the
+  claim (owner decision). The board carries `photoCount`; the signed URLs come
+  from `GET /api/loads/[id]/photos` on open. The dashed placeholders are gone.
 - **No changes to `GET /api/orders`.** It backs the existing driver hub and the
   client's own order list. The board gets its own endpoint.
 - **No roster-driver access.** A driver employed by a logistics company stays on

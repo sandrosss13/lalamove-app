@@ -88,7 +88,7 @@ export type EyebrowProps = {
   className?: string;
 };
 
-/** The orange step marker above each heading — "Step 1 of 3 · Account". */
+/** The green step marker above each heading — "Step 1 of 3 · Account". */
 export function Eyebrow({ children, className }: EyebrowProps) {
   return (
     <span
@@ -313,7 +313,7 @@ export function ModeToggle({ value, onChange, className }: ModeToggleProps) {
               // shadow stays light-only by nature — it simply stops registering
               // against a dark ground, where the lift is carried by the fill.
               active
-                ? "bg-[var(--landing-surface-raised)] text-[var(--landing-paper)] shadow-[0_1px_2px_rgba(21,20,15,.08)]"
+                ? "bg-[var(--landing-surface-raised)] text-[var(--landing-paper)] shadow-[0_1px_2px_rgba(20,32,26,.08)]"
                 : "bg-transparent text-[var(--landing-muted)] hover:text-[var(--landing-paper)]",
             )}
           >

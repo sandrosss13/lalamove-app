@@ -14,9 +14,17 @@ import type {
   AdminVehiclePhotoRow,
 } from "@/app/api/admin/content/vehicle-photos/route";
 import { AdminImageUpload } from "@/components/admin/content/admin-image-upload";
+import { moveAt } from "@/components/admin/content/home-page-cms/shared";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 
 const LIST_ENDPOINT = "/api/admin/content/vehicle-photos";
+
+/** `PUT` target that rewrites one duty class's homepage order. */
+const REORDER_ENDPOINT = `${LIST_ENDPOINT}/reorder`;
 
 /**
  * The two duty classes, in the order the seed declares them and the public page
@@ -65,6 +73,15 @@ type VehiclePhotoCardProps = {
   error: string | null;
   /** `null` clears the photo; a string sets it. */
   onSave: (imageUrl: string | null) => void;
+  /** Already first / last in its duty class, so that arrow is disabled. */
+  isFirst: boolean;
+  isLast: boolean;
+  /** A reorder of this card's duty class is in flight; both arrows go inert. */
+  moveDisabled: boolean;
+  /** Moves this type one place up (`-1`) or down (`1`) on the homepage. */
+  onMove: (direction: -1 | 1) => void;
+  /** Shows (`true`) or hides (`false`) this type on the homepage. */
+  onToggleVisibility: (showOnHomepage: boolean) => void;
 };
 
 /**
@@ -81,6 +98,11 @@ function VehiclePhotoCard({
   pending,
   error,
   onSave,
+  isFirst,
+  isLast,
+  moveDisabled,
+  onMove,
+  onToggleVisibility,
 }: VehiclePhotoCardProps) {
   const t = useTranslations("admin.adminContentVehiclePhotos");
   const tShared = useTranslations("common.shared");
@@ -91,22 +113,85 @@ function VehiclePhotoCard({
 
   const trimmedDraft = draft.trim();
   const hasUnsavedChange = trimmedDraft !== saved;
+  const hidden = !vehicleType.showOnHomepage;
+  const visibilityId = `vehicle-visibility-${vehicleType.id}`;
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-border p-4">
-      <div className="flex flex-col">
-        <span className="font-medium">{vehicleType.label}</span>
-        {/* The code is what appears in the API payload and in `prisma/seed.ts`,
-            so showing it is what makes a row identifiable outside this page. */}
-        <span className="font-mono text-xs text-muted-foreground">
-          {vehicleType.code}
-        </span>
+    <div
+      className={cn(
+        "flex flex-col gap-3 rounded-xl border p-4",
+        // Dashed and muted rather than removed: a hidden type stays here so it
+        // can be shown again, but must not read as live at a glance.
+        hidden ? "border-dashed border-border bg-muted/40" : "border-border",
+      )}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex min-w-0 flex-col">
+          <span
+            className={cn(
+              "font-medium",
+              hidden ? "text-muted-foreground" : undefined,
+            )}
+          >
+            {vehicleType.label}
+          </span>
+          {/* The code is what appears in the API payload and in `prisma/seed.ts`,
+              so showing it is what makes a row identifiable outside this page. */}
+          <span className="font-mono text-xs text-muted-foreground">
+            {vehicleType.code}
+          </span>
+        </div>
+
+        {/* Same up/down pattern as the home page section list. Each press
+            saves at once, so there is no separate "save order" step. */}
+        <div className="flex shrink-0 gap-1">
+          <Button
+            type="button"
+            variant="outline"
+            size="icon-sm"
+            disabled={moveDisabled || isFirst}
+            aria-label={t("moveVehicleUp", { name: vehicleType.label })}
+            onClick={() => onMove(-1)}
+          >
+            ↑
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon-sm"
+            disabled={moveDisabled || isLast}
+            aria-label={t("moveVehicleDown", { name: vehicleType.label })}
+            onClick={() => onMove(1)}
+          >
+            ↓
+          </Button>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id={visibilityId}
+            checked={vehicleType.showOnHomepage}
+            disabled={pending}
+            onCheckedChange={(checked) => onToggleVisibility(checked === true)}
+          />
+          <Label htmlFor={visibilityId}>{t("showOnHomepage")}</Label>
+        </div>
+        {hidden ? (
+          <Badge variant="outline">{t("hiddenFromHomepage")}</Badge>
+        ) : null}
       </div>
 
       {/* 140px tall to match the image area on the public vehicle card, so this
           shows the crop a visitor actually sees rather than a
           differently-proportioned thumbnail. */}
-      <div className="flex h-[140px] w-full items-center justify-center overflow-hidden rounded-lg border border-border bg-muted">
+      <div
+        className={cn(
+          "flex h-[140px] w-full items-center justify-center overflow-hidden rounded-lg border border-border bg-muted",
+          hidden ? "opacity-60" : undefined,
+        )}
+      >
         {vehicleType.imageUrl === null ? (
           <span className="px-3 text-center text-xs text-muted-foreground">
             {t("noPhotoThePublicCardFalls")}
@@ -213,7 +298,19 @@ function VehiclePhotoCard({
 }
 
 /**
- * `/admin/content/vehicle-photos` — the marketing photo on each vehicle type.
+ * `/admin/content/vehicle-photos` — how each vehicle type is presented on the
+ * public homepage: its marketing photo, its position within its duty class
+ * (Medium / Heavy), and whether the homepage shows it at all.
+ *
+ * Order and visibility save immediately and optimistically: each arrow press
+ * sends the duty class's whole new order to
+ * `PUT /api/admin/content/vehicle-photos/reorder`, and each checkbox sends
+ * `PATCH { showOnHomepage }`; a failure restores the previous state and says
+ * so. Both are **homepage only** — the homepage catalogue, the homepage
+ * booking card, the category tiles and the city landing pages (everything
+ * built on `useLandingVehicleTypes`). A hidden type stays bookable from the
+ * signed-in booking form, which also keeps its own cheapest-first order.
+ * Hidden types stay listed here, marked, so they can be shown again.
  *
  * A client component reading the list endpoint rather than a server component
  * querying Prisma directly, matching every other page in this section: the page
@@ -222,10 +319,11 @@ function VehiclePhotoCard({
  * endpoints re-check the `adminRole` on every request, which is the real
  * boundary.
  *
- * **Only the photo is editable here, by design.** Payload ratings, cargo
+ * **Only presentation is editable here, by design.** Payload ratings, cargo
  * dimensions, loading access and pricing all drive order matching and are not
  * content; `PATCH /api/admin/content/vehicle-photos/[id]` refuses a request
- * that so much as mentions them.
+ * that so much as mentions them. Vehicle types are never created or deleted
+ * here either — they come from the seed.
  */
 export default function AdminVehiclePhotosPage() {
   const t = useTranslations("admin.adminContentVehiclePhotos");
@@ -239,6 +337,13 @@ export default function AdminVehiclePhotosPage() {
   const [pendingId, setPendingId] = useState<string | null>(null);
   /** Last failure per row id, cleared when that row is retried. */
   const [rowErrors, setRowErrors] = useState<Record<string, string>>({});
+  /** The duty class whose reorder is in flight; its arrows go inert. */
+  const [reorderingCategory, setReorderingCategory] =
+    useState<VehicleCategory | null>(null);
+  /** Last reorder failure per duty class, cleared on its next move. */
+  const [reorderErrors, setReorderErrors] = useState<
+    Partial<Record<VehicleCategory, string>>
+  >({});
   // Bumped after any mutation, purely to re-run the fetch below so the page
   // shows the state the database now holds rather than a patched copy.
   const [reloadToken, setReloadToken] = useState(0);
@@ -301,7 +406,7 @@ export default function AdminVehiclePhotosPage() {
       const response = await fetch(`${LIST_ENDPOINT}/${vehicleType.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        // Exactly one field, which is all the endpoint will accept.
+        // Only the photo: visibility saves through its own checkbox.
         body: JSON.stringify({ imageUrl }),
       });
 
@@ -325,6 +430,128 @@ export default function AdminVehiclePhotosPage() {
     }
   }
 
+  /** Drops one row's previous failure, leaving every other row's message. */
+  function clearRowError(id: string) {
+    setRowErrors((errors) =>
+      Object.fromEntries(
+        Object.entries(errors).filter(([errorId]) => errorId !== id),
+      ),
+    );
+  }
+
+  /**
+   * Shows or hides one type on the homepage. Optimistic: the checkbox flips at
+   * once, and flips back with a message if the save is refused.
+   */
+  async function handleToggleVisibility(
+    vehicleType: AdminVehiclePhotoRow,
+    showOnHomepage: boolean,
+  ) {
+    const setRowVisibility = (value: boolean) =>
+      setVehicleTypes((rows) =>
+        rows === null
+          ? rows
+          : rows.map((row) =>
+              row.id === vehicleType.id
+                ? { ...row, showOnHomepage: value }
+                : row,
+            ),
+      );
+
+    setPendingId(vehicleType.id);
+    clearRowError(vehicleType.id);
+    setRowVisibility(showOnHomepage);
+
+    let failure: string | null = null;
+    try {
+      const response = await fetch(`${LIST_ENDPOINT}/${vehicleType.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ showOnHomepage }),
+      });
+
+      if (!response.ok) {
+        failure = await readErrorMessage(
+          response,
+          t("couldNotUpdateVisibility"),
+        );
+      }
+    } catch {
+      failure = tShared("somethingWentWrongPleaseTryAgain");
+    } finally {
+      setPendingId(null);
+    }
+
+    if (failure !== null) {
+      // Restored to the value the row held before this click, which is what
+      // the database still holds.
+      setRowVisibility(vehicleType.showOnHomepage);
+      const message = failure;
+      setRowErrors((errors) => ({ ...errors, [vehicleType.id]: message }));
+    }
+  }
+
+  /**
+   * Moves one type a place up or down within its duty class and saves the
+   * class's whole new order at once. Optimistic: the card moves immediately;
+   * on failure the previous list is restored and the class shows why.
+   */
+  async function handleMove(
+    category: VehicleCategory,
+    index: number,
+    direction: -1 | 1,
+  ) {
+    if (vehicleTypes === null) {
+      return;
+    }
+
+    const previous = vehicleTypes;
+    const group = previous.filter((row) => row.category === category);
+    const reordered = moveAt(group, index, direction);
+
+    // Rebuilt category by category so the other class keeps its rows and
+    // order exactly as they are.
+    setVehicleTypes(
+      CATEGORY_ORDER.flatMap((entry) =>
+        entry === category
+          ? reordered
+          : previous.filter((row) => row.category === entry),
+      ),
+    );
+    setReorderingCategory(category);
+    setReorderErrors((errors) => ({ ...errors, [category]: undefined }));
+
+    let failure: string | null = null;
+    try {
+      const response = await fetch(REORDER_ENDPOINT, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          category,
+          ids: reordered.map((row) => row.id),
+        }),
+      });
+
+      if (response.ok) {
+        // Adopt the server's list: it is the dense order now stored.
+        const body = (await response.json()) as AdminVehiclePhotoListResponse;
+        setVehicleTypes(body.items);
+      } else {
+        failure = await readErrorMessage(response, t("couldNotReorder"));
+      }
+    } catch {
+      failure = t("couldNotReorder");
+    } finally {
+      setReorderingCategory(null);
+    }
+
+    if (failure !== null) {
+      setVehicleTypes(previous);
+      const message = failure;
+      setReorderErrors((errors) => ({ ...errors, [category]: message }));
+    }
+  }
+
   const items = vehicleTypes ?? [];
 
   return (
@@ -335,6 +562,9 @@ export default function AdminVehiclePhotosPage() {
         </p>
         <p className="text-sm text-muted-foreground">
           {t("aPhotoGoesLiveAsSoon")}
+        </p>
+        <p className="text-sm text-muted-foreground">
+          {t("homepageOrderHint")}
         </p>
       </div>
 
@@ -364,6 +594,8 @@ export default function AdminVehiclePhotosPage() {
             return null;
           }
 
+          const reorderError = reorderErrors[category];
+
           return (
             <section key={category} className="flex flex-col gap-3">
               <h2 className="text-sm font-semibold">
@@ -373,8 +605,16 @@ export default function AdminVehiclePhotosPage() {
                 </span>
               </h2>
 
+              {reorderError !== undefined ? (
+                <p role="alert" className="text-sm text-destructive">
+                  {reorderError}
+                </p>
+              ) : null}
+
+              {/* Cards run in homepage order, left to right then down, so the
+                  grid reads the way the homepage tab will. */}
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                {group.map((vehicleType) => (
+                {group.map((vehicleType, index) => (
                   <VehiclePhotoCard
                     // Keyed by the saved photo as well as the id, so a
                     // successful save remounts the card and its draft restarts
@@ -385,6 +625,15 @@ export default function AdminVehiclePhotosPage() {
                     error={rowErrors[vehicleType.id] ?? null}
                     onSave={(imageUrl) =>
                       void handleSave(vehicleType, imageUrl)
+                    }
+                    isFirst={index === 0}
+                    isLast={index === group.length - 1}
+                    moveDisabled={reorderingCategory === category}
+                    onMove={(direction) =>
+                      void handleMove(category, index, direction)
+                    }
+                    onToggleVisibility={(showOnHomepage) =>
+                      void handleToggleVisibility(vehicleType, showOnHomepage)
                     }
                   />
                 ))}

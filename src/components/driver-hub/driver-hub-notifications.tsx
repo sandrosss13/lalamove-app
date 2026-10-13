@@ -32,8 +32,9 @@ import { cn } from "@/lib/utils";
  * never opens the panel — see `bellLabel` below.
  */
 
-/** The brand orange. It has no `--color-*` token, so it is spelled out. */
-const ACCENT_BG = "bg-[oklch(64%_0.19_48)]";
+/** The brand green, read from `--landing-accent` (not `bg-accent`, which is
+ *  the shadcn neutral on this surface). Text on it is `text-on-accent`. */
+const ACCENT_BG = "bg-[var(--landing-accent)]";
 
 /*
  * The panel's `SampleNote` (catalog key `sampleNote`) says what would make this
@@ -100,7 +101,7 @@ export function DriverHubNotifications({
           <span
             aria-hidden="true"
             className={cn(
-              "absolute top-1.5 right-[7px] min-w-[15px] translate-x-[35%] -translate-y-[35%] rounded-full px-[3px] text-center font-price text-[10px] leading-[15px] font-semibold text-white lg:top-px lg:right-px",
+              "absolute top-1.5 right-[7px] min-w-[15px] translate-x-[35%] -translate-y-[35%] rounded-full px-[3px] text-center font-price text-[10px] leading-[15px] font-semibold text-on-accent lg:top-px lg:right-px",
               ACCENT_BG,
             )}
           >

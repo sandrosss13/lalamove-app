@@ -42,15 +42,20 @@ import {
   customLine,
   MAX_LINE_QUANTITY,
   MAX_PALLET_COUNT,
+  PALLET_CONTENTS,
   PALLET_DEFAULT_HEIGHT_M,
+  PALLET_TYPES,
   PALLET_WEIGHT_PRESETS,
   palletLine,
+  type CargoCategoryKey,
+  type ChassisTypeKey,
   type CustomSizePreset,
   type LoadLine,
   type PalletContents,
   type PalletType,
 } from "@/lib/orders/load-plan";
 import {
+  CUSTOM_LABEL_MAX_LENGTH,
   MAX_ITEM_LINES,
   type OrderItemRequest,
 } from "@/lib/orders/parse-items";
@@ -427,4 +432,129 @@ export function toLoadLines(
   }
 
   return loads;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Re-opening a booked order (edit mode)                                      */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * One stored `OrderItem` row, as `/orders/[id]/edit` reads it for the form.
+ *
+ * `catalogueCode` is the code of the catalogue entry the line was picked from,
+ * and only while that entry is still *active*; `null` for a custom or pallet
+ * line, and for a catalogue line whose entry has since been deactivated or
+ * deleted (`OrderItem.catalogEntryId` is nulled on delete).
+ */
+export type StoredOrderItem = {
+  kind: "CATALOGUE" | "CUSTOM" | "PALLET";
+  catalogueCode: string | null;
+  label: string;
+  quantity: number;
+  unitWeightKg: number;
+  lengthM: number;
+  widthM: number;
+  heightM: number;
+  palletType: string | null;
+};
+
+/**
+ * What a pallet line of a booked order held. `OrderItem` does not snapshot a
+ * pallet line's `contents`, so it is inferred from what the contents decided
+ * on the order: a refrigerated body means chilled goods; otherwise the order's
+ * cargo category names the contents that carry it (construction materials ⇒
+ * building, industrial supplies ⇒ industrial); anything else is general goods.
+ *
+ * Exact for an order whose pallets all held one kind of goods, which is the
+ * ordinary case. For mixed pallet contents every line takes the most
+ * restrictive kind — the client can change any line before saving.
+ */
+export function inferPalletContents(
+  cargoCategory: CargoCategoryKey,
+  bodyType: ChassisTypeKey | null,
+): PalletContents {
+  if (bodyType === "REFRIGERATED") {
+    return "CHILLED";
+  }
+  const match = (Object.keys(PALLET_CONTENTS) as PalletContents[]).find(
+    (contents) =>
+      contents !== "CHILLED" &&
+      PALLET_CONTENTS[contents].cargoCategory === cargoCategory,
+  );
+  return match ?? "GENERAL";
+}
+
+/**
+ * The picker lines and mode a booked order re-opens with, built from its
+ * stored `OrderItem` rows.
+ *
+ * - A catalogue line whose entry is still active is re-listed by its code, so
+ *   it is re-planned (and re-submitted) against today's catalogue figures —
+ *   an edit is a re-booking.
+ * - A catalogue line whose entry is no longer bookable becomes a custom line
+ *   carrying the snapshot's label and figures, so the client's goods are not
+ *   silently dropped and the order can still be saved.
+ * - Custom lines come back with their snapshot figures and no size preset.
+ * - Pallet lines come back with their type, count, height and weight (the
+ *   weight preset re-selected when the figure is one), and the contents from
+ *   `inferPalletContents`.
+ *
+ * The mode is Pallets exactly when every line is a pallet line — the route
+ * refuses a list mixing the two, so a stored order is one or the other.
+ */
+export function linesFromOrderItems(
+  items: readonly StoredOrderItem[],
+  palletContents: PalletContents,
+): { lines: PickerLine[]; mode: PickerMode } {
+  const lines: PickerLine[] = [];
+
+  for (const item of items) {
+    const id = nextLineId(lines);
+    if (item.kind === "CATALOGUE" && item.catalogueCode !== null) {
+      lines.push({
+        id,
+        kind: "CATALOGUE",
+        code: item.catalogueCode,
+        quantity: clampQuantity(item.quantity, MAX_LINE_QUANTITY),
+      });
+    } else if (item.kind === "PALLET") {
+      const palletType: PalletType =
+        item.palletType !== null && item.palletType in PALLET_TYPES
+          ? (item.palletType as PalletType)
+          : "EUR";
+      const weightPreset =
+        (Object.keys(PALLET_WEIGHT_PRESETS) as PalletWeightPreset[]).find(
+          (preset) => PALLET_WEIGHT_PRESETS[preset] === item.unitWeightKg,
+        ) ?? null;
+      lines.push({
+        id,
+        kind: "PALLET",
+        palletType,
+        contents: palletContents,
+        quantity: clampQuantity(item.quantity, MAX_PALLET_COUNT),
+        heightM: item.heightM,
+        weightPreset,
+        weightKg: item.unitWeightKg,
+      });
+    } else {
+      lines.push({
+        id,
+        kind: "CUSTOM",
+        label: item.label.trim().slice(0, CUSTOM_LABEL_MAX_LENGTH),
+        quantity: clampQuantity(item.quantity, MAX_LINE_QUANTITY),
+        preset: null,
+        lengthM: item.lengthM,
+        widthM: item.widthM,
+        heightM: item.heightM,
+        weightKg: item.unitWeightKg,
+      });
+    }
+  }
+
+  const mode: PickerMode =
+    lines.length > 0 && lines.every((line) => line.kind === "PALLET")
+      ? "pallets"
+      : "items";
+
+  return { lines, mode };
 }

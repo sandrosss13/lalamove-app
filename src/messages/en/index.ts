@@ -13,6 +13,7 @@ import auth from "./auth.json";
 import booking from "./booking.json";
 import checkout from "./checkout.json";
 import cities from "./cities.json";
+import cityLanding from "./cityLanding.json";
 import common from "./common.json";
 import dashboard from "./dashboard.json";
 import driverHub from "./driverHub.json";
@@ -21,6 +22,8 @@ import fleet from "./fleet.json";
 import home from "./home.json";
 import landing from "./landing.json";
 import onboarding from "./onboarding.json";
+import orderDocument from "./orderDocument.json";
+import orderTracking from "./orderTracking.json";
 import orders from "./orders.json";
 import wallet from "./wallet.json";
 
@@ -31,6 +34,7 @@ const messages = {
   booking,
   checkout,
   cities,
+  cityLanding,
   common,
   dashboard,
   driverHub,
@@ -39,6 +43,8 @@ const messages = {
   home,
   landing,
   onboarding,
+  orderDocument,
+  orderTracking,
   orders,
   wallet,
 };

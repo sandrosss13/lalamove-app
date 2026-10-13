@@ -5,9 +5,17 @@ import { ContentLocale, type AdminRole, type Banner } from "@prisma/client";
 import { getRequestTranslations } from "@/i18n/request-locale";
 import { authorizeAdminApi } from "@/lib/admin/api-auth";
 import { writeAuditLog } from "@/lib/admin/audit";
+import { revalidateHomePage } from "@/lib/admin/home-page-data";
 import { prisma } from "@/lib/prisma";
 
-import { checkHeroBannerCapacity } from "./validation";
+import {
+  BANNER_COPY_FIELDS,
+  checkBannerPlacementCapacity,
+  checkBannerVideoPlacement,
+  parseBannerCopyField,
+  parseBannerTitle,
+  parseBannerVideoUrl,
+} from "./validation";
 
 /**
  * Staff who may read and write promotional banners. Stated per route rather
@@ -18,9 +26,6 @@ const ALLOWED_ROLES: readonly AdminRole[] = ["SUPER_ADMIN", "CONTENT_MANAGER"];
 
 /** Valid `ContentLocale` values, derived from the generated Prisma enum. */
 const CONTENT_LOCALES = Object.values(ContentLocale);
-
-/** Long enough for a headline, short enough that the column stays a title. */
-const MAX_TITLE_LENGTH = 200;
 
 /**
  * `placement` is a free-form key the admin and the public components agree on
@@ -58,6 +63,19 @@ export type AdminBannerRow = {
   startsAt: string | null;
   /** End of the display window, or null for "until it is switched off". */
   endsAt: string | null;
+  /**
+   * Optional card copy, rendered by the v4 offers row (`home_secondary`): a
+   * kicker above the title, a body sentence, and the label of the button that
+   * follows `linkUrl`. `null` when unset; other placements ignore all three.
+   */
+  eyebrow: string | null;
+  body: string | null;
+  ctaLabel: string | null;
+  /**
+   * Optional hero-slide video (`home_hero` only), played over `imageUrl`,
+   * which doubles as its poster and fallback. `null` when unset.
+   */
+  videoUrl: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -83,6 +101,10 @@ type CreateBannerInput = {
   isActive: boolean;
   startsAt: Date | null;
   endsAt: Date | null;
+  eyebrow: string | null;
+  body: string | null;
+  ctaLabel: string | null;
+  videoUrl: string | null;
 };
 
 /**
@@ -103,6 +125,10 @@ function toBannerRow(banner: Banner): AdminBannerRow {
     isActive: banner.isActive,
     startsAt: banner.startsAt?.toISOString() ?? null,
     endsAt: banner.endsAt?.toISOString() ?? null,
+    eyebrow: banner.eyebrow,
+    body: banner.body,
+    ctaLabel: banner.ctaLabel,
+    videoUrl: banner.videoUrl,
     createdAt: banner.createdAt.toISOString(),
     updatedAt: banner.updatedAt.toISOString(),
   };
@@ -165,8 +191,9 @@ function parseTimestamp(
  * Hand-rolled body validation, consistent with the rest of the API (the project
  * deliberately uses no validation library).
  *
- * Every field is required here: a create has no existing row to fall back on,
- * and the admin form always sends the complete set. The `PATCH` beside this
+ * Every core field is required here (a create has no existing row to fall back
+ * on, and the admin form always sends the complete set); the headline, card
+ * copy and video are optional. The `PATCH` beside this
  * one applies the same rules per field, but treats an absent key as "leave it".
  */
 function parseCreateBannerBody(
@@ -179,17 +206,10 @@ function parseCreateBannerBody(
 
   const record = body as Record<string, unknown>;
 
-  const { title } = record;
-  if (typeof title !== "string" || title.trim() === "") {
-    return { error: t("common.shared.titleIsRequiredAndMustBe") };
-  }
-  if (title.trim().length > MAX_TITLE_LENGTH) {
-    return {
-      error: t("common.shared.fieldMaxLength", {
-        field: "title",
-        max: MAX_TITLE_LENGTH,
-      }),
-    };
+  // Optional on every placement: absent, null and blank all store "".
+  const title = parseBannerTitle(record.title, t);
+  if ("error" in title) {
+    return { error: title.error };
   }
 
   const { locale } = record;
@@ -309,9 +329,38 @@ function parseCreateBannerBody(
     return { error: t("common.shared.endsatMustBeAfterStartsat") };
   }
 
+  // Optional, so absent is the same as null: a hero or partner-logo banner has
+  // no use for card copy and the form may simply not send it.
+  const copy: Record<(typeof BANNER_COPY_FIELDS)[number], string | null> = {
+    eyebrow: null,
+    body: null,
+    ctaLabel: null,
+  };
+  for (const field of BANNER_COPY_FIELDS) {
+    const parsedCopy = parseBannerCopyField(record[field], field, t);
+    if ("error" in parsedCopy) {
+      return { error: parsedCopy.error };
+    }
+    copy[field] = parsedCopy.value;
+  }
+
+  // Optional like the copy: absent, null and blank all mean "no video".
+  const videoUrl = parseBannerVideoUrl(record.videoUrl, t);
+  if ("error" in videoUrl) {
+    return { error: videoUrl.error };
+  }
+
+  const videoPlacementError = checkBannerVideoPlacement(
+    { placement: placement.trim(), videoUrl: videoUrl.value },
+    t,
+  );
+  if (videoPlacementError !== null) {
+    return { error: videoPlacementError };
+  }
+
   return {
     data: {
-      title: title.trim(),
+      title: title.value,
       locale: locale as ContentLocale,
       imageUrl: imageUrl.trim(),
       linkUrl: normalizedLinkUrl,
@@ -320,6 +369,8 @@ function parseCreateBannerBody(
       isActive,
       startsAt: startsAt.value,
       endsAt: endsAt.value,
+      ...copy,
+      videoUrl: videoUrl.value,
     },
   };
 }
@@ -374,12 +425,15 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 
   // A 409 rather than a 400: the body is well-formed and every field is valid,
-  // the conflict is with the other rows already in this locale's carousel.
-  const overCapacity = await checkHeroBannerCapacity({
-    locale: parsed.data.locale,
-    placement: parsed.data.placement,
-    isActive: parsed.data.isActive,
-  });
+  // the conflict is with the other rows already in this locale's placement.
+  const overCapacity = await checkBannerPlacementCapacity(
+    {
+      locale: parsed.data.locale,
+      placement: parsed.data.placement,
+      isActive: parsed.data.isActive,
+    },
+    t,
+  );
 
   if (overCapacity !== null) {
     return NextResponse.json({ error: overCapacity }, { status: 409 });
@@ -399,6 +453,8 @@ export async function POST(request: Request): Promise<NextResponse> {
       isActive: banner.isActive,
     },
   });
+
+  revalidateHomePage();
 
   const body: AdminBannerResponse = { banner: toBannerRow(banner) };
 

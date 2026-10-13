@@ -78,6 +78,7 @@ export default async function AccountPage() {
     lastName: clientProfile?.lastName ?? null,
     companyName: clientProfile?.companyName ?? null,
     vatId: clientProfile?.vatId ?? null,
+    legalAddress: clientProfile?.legalAddress ?? null,
     phone: clientProfile?.phone ?? null,
     // `<input type="date">` expects a bare "YYYY-MM-DD" value.
     dateOfBirth: clientProfile?.dateOfBirth?.toISOString().slice(0, 10) ?? null,

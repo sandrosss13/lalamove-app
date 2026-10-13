@@ -5,6 +5,7 @@
 import "server-only";
 
 import type { ContentLocale } from "@prisma/client";
+import { revalidatePath } from "next/cache";
 import { getMessages } from "next-intl/server";
 
 import type {
@@ -16,9 +17,13 @@ import {
   HOME_HERO_BANNER_PLACEMENT,
   HOME_PARTNER_LOGO_BANNER_PLACEMENT,
   HOME_SECONDARY_BANNER_PLACEMENT,
+  MAX_HERO_BANNERS,
+  MAX_OFFER_BANNERS,
+  MAX_PARTNER_LOGOS,
   buildDefaultHomePageSections,
   createMessageLookup,
   isHomePageSectionType,
+  isRetiredHomePageSectionType,
   localizeDefaultHomePageContent,
   parseHomePageSection,
   withDefaultSections,
@@ -46,6 +51,11 @@ export type HomePageBanners = {
    * orphaned and a future section can pick them up without a schema change.
    */
   secondaryBanners: LandingBanner[];
+  /**
+   * The v4 offers row's cards: the same `home_secondary` rows as
+   * `secondaryBanners`, capped at `MAX_OFFER_BANNERS`.
+   */
+  offerBanners: LandingBanner[];
 };
 
 /** Everything `LandingPage` needs to compose itself for one locale. */
@@ -98,6 +108,13 @@ export async function getDefaultHomePageContent(
  * in the database — is possible, and one bad section must not take the whole
  * marketing page down. Its type is left out of `authoredTypes`, so the page
  * shows that section's default rather than a hole.
+ *
+ * Rows of a retired type (`RETIRED_HOME_PAGE_SECTION_TYPES`) are dropped
+ * whatever their `isActive`: v4 has no slot for them, and an old active `hero`
+ * row would otherwise render alongside the `hero_carousel` that replaced it.
+ * The bulk admin actions switch such rows off, but the public page must not
+ * depend on someone having run them. The admin listing reads the table
+ * directly, so it still shows these rows in its Retired group.
  */
 async function loadAuthoredHomePageSections(
   locale: ContentLocale,
@@ -114,6 +131,10 @@ async function loadAuthoredHomePageSections(
   const authoredTypes = new Set<string>();
 
   for (const row of rows) {
+    if (isRetiredHomePageSectionType(row.type)) {
+      continue;
+    }
+
     if (!row.isActive) {
       if (isHomePageSectionType(row.type)) {
         authoredTypes.add(row.type);
@@ -165,20 +186,30 @@ export async function loadHomePageBanners(
       title: true,
       imageUrl: true,
       linkUrl: true,
+      eyebrow: true,
+      body: true,
+      ctaLabel: true,
+      videoUrl: true,
       placement: true,
     },
   });
 
+  const secondaryBanners = rows.filter(
+    (row) => row.placement === HOME_SECONDARY_BANNER_PLACEMENT,
+  );
+
+  // Every list is capped here as well as at the admin API, so a row inserted
+  // straight into the database (or an over-full placement left from before a
+  // cap existed) can never overflow a component on the public page.
   return {
-    heroBanners: rows.filter(
-      (row) => row.placement === HOME_HERO_BANNER_PLACEMENT,
-    ),
-    partnerBanners: rows.filter(
-      (row) => row.placement === HOME_PARTNER_LOGO_BANNER_PLACEMENT,
-    ),
-    secondaryBanners: rows.filter(
-      (row) => row.placement === HOME_SECONDARY_BANNER_PLACEMENT,
-    ),
+    heroBanners: rows
+      .filter((row) => row.placement === HOME_HERO_BANNER_PLACEMENT)
+      .slice(0, MAX_HERO_BANNERS),
+    partnerBanners: rows
+      .filter((row) => row.placement === HOME_PARTNER_LOGO_BANNER_PLACEMENT)
+      .slice(0, MAX_PARTNER_LOGOS),
+    secondaryBanners,
+    offerBanners: secondaryBanners.slice(0, MAX_OFFER_BANNERS),
   };
 }
 
@@ -214,4 +245,24 @@ export async function loadHomePageContent(
     ),
     ...banners,
   };
+}
+
+/**
+ * Drops the cached landing page so a back-office edit shows on the next visit
+ * instead of after the 60-second ISR window.
+ *
+ * The landing composition renders at two routes, both under the `[locale]`
+ * segment: `/[locale]` (ISR, `revalidate = 60`) and `/[locale]/home`
+ * (`force-dynamic`, listed anyway so it stays correct if that route ever
+ * becomes cached). Passing the route *pattern* with `"page"` revalidates every
+ * locale's document at once — deliberately not per-locale: edits are rare, a
+ * regeneration costs one render per locale, and it spares every caller from
+ * mapping `ContentLocale` back to a URL segment.
+ *
+ * Called by every mutating `HomePageSection` and `Banner` admin route after its
+ * write commits.
+ */
+export function revalidateHomePage(): void {
+  revalidatePath("/[locale]", "page");
+  revalidatePath("/[locale]/home", "page");
 }

@@ -17,6 +17,8 @@ import {
   addPalletLine,
   canAddLine,
   effectiveMode,
+  inferPalletContents,
+  linesFromOrderItems,
   nextLineId,
   removeLine,
   setLineQuantity,
@@ -24,6 +26,7 @@ import {
   toLoadLines,
   updatePalletLine,
   type PickerLine,
+  type StoredOrderItem,
 } from "@/components/home/item-list-lines";
 import type { Translator } from "@/i18n/translator";
 import type { CatalogueItem } from "@/lib/item-catalogue";
@@ -313,5 +316,118 @@ test.describe("plan", () => {
     expect(toLoadLines(lines, "items", catalogue)).toHaveLength(1);
     expect(toLoadLines(lines, "items", [])).toEqual([]);
     expect(planLoad(toLoadLines(lines, "items", []))).toBeNull();
+  });
+});
+
+/**
+ * Edit mode: an unpaid order re-opens on the item lines it was booked with.
+ * The rows are `OrderItem` snapshots, so what comes back must be a list the
+ * route would accept again.
+ */
+test.describe("re-opening a booked order", () => {
+  const stored = (overrides: Partial<StoredOrderItem>): StoredOrderItem => ({
+    kind: "CATALOGUE",
+    catalogueCode: "SOFA_3_SEAT",
+    label: "Sofa, 3-seat",
+    quantity: 2,
+    unitWeightKg: 60,
+    lengthM: 2.1,
+    widthM: 0.9,
+    heightM: 0.85,
+    palletType: null,
+    ...overrides,
+  });
+
+  test("an active catalogue line comes back by code", () => {
+    const { lines, mode } = linesFromOrderItems([stored({})], "GENERAL");
+    expect(mode).toBe("items");
+    expect(lines).toEqual([
+      { id: "line-1", kind: "CATALOGUE", code: "SOFA_3_SEAT", quantity: 2 },
+    ]);
+  });
+
+  test("a catalogue line no longer bookable comes back as a custom line with its snapshot", () => {
+    const { lines } = linesFromOrderItems(
+      [stored({ catalogueCode: null })],
+      "GENERAL",
+    );
+    expect(lines).toEqual([
+      {
+        id: "line-1",
+        kind: "CUSTOM",
+        label: "Sofa, 3-seat",
+        quantity: 2,
+        preset: null,
+        lengthM: 2.1,
+        widthM: 0.9,
+        heightM: 0.85,
+        weightKg: 60,
+      },
+    ]);
+  });
+
+  test("pallet lines come back in pallets mode, with the preset re-selected", () => {
+    const { lines, mode } = linesFromOrderItems(
+      [
+        stored({
+          kind: "PALLET",
+          catalogueCode: null,
+          label: "EUR pallet",
+          quantity: 4,
+          unitWeightKg: PALLET_WEIGHT_PRESETS.HEAVY,
+          lengthM: 1.2,
+          widthM: 0.8,
+          heightM: 1.5,
+          palletType: "EUR",
+        }),
+        stored({
+          kind: "PALLET",
+          catalogueCode: null,
+          quantity: 1,
+          unitWeightKg: 333,
+          palletType: "SOMETHING_NEW",
+        }),
+      ],
+      "BUILDING",
+    );
+    expect(mode).toBe("pallets");
+    expect(lines[0]).toMatchObject({
+      kind: "PALLET",
+      palletType: "EUR",
+      contents: "BUILDING",
+      quantity: 4,
+      heightM: 1.5,
+      weightPreset: "HEAVY",
+      weightKg: PALLET_WEIGHT_PRESETS.HEAVY,
+    });
+    // An unknown pallet type falls back to EUR; an exact weight keeps no preset.
+    expect(lines[1]).toMatchObject({
+      palletType: "EUR",
+      weightPreset: null,
+      weightKg: 333,
+    });
+  });
+
+  test("the re-opened list round-trips through the route's parser", () => {
+    const { lines, mode } = linesFromOrderItems(
+      [stored({}), stored({ catalogueCode: null, label: "Old lamp" })],
+      "GENERAL",
+    );
+    const parsed = parseOrderItems(toItemsPayload(lines, mode), t);
+    expect("error" in parsed).toBe(false);
+  });
+
+  test("pallet contents are inferred from the order's body and category", () => {
+    expect(inferPalletContents("RETAIL_STOCK", "REFRIGERATED")).toBe("CHILLED");
+    expect(inferPalletContents("CONSTRUCTION_MATERIALS", "DRY_BOX")).toBe(
+      "BUILDING",
+    );
+    expect(inferPalletContents("INDUSTRIAL_SUPPLIES", "OPEN_CHASSIS")).toBe(
+      "INDUSTRIAL",
+    );
+    expect(inferPalletContents("RETAIL_STOCK", null)).toBe("GENERAL");
+    expect(inferPalletContents("FURNITURE_FURNISHINGS", "DRY_BOX")).toBe(
+      "GENERAL",
+    );
   });
 });

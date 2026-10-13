@@ -26,15 +26,25 @@
     "imageurlMustBeANonEmpty": "imageUrl არ უნდა იყოს ცარიელი ტექსტი.",
     "placementIsRequiredAndMustBe": "placement სავალდებულოა და არ უნდა იყოს ცარიელი ტექსტი.",
     "placementMustBeANonEmpty": "placement არ უნდა იყოს ცარიელი ტექსტი.",
-    "titleMustBeANonEmpty": "title არ უნდა იყოს ცარიელი ტექსტი."
+    "copyFieldMustBeStringOrNull": "{field} უნდა იყოს ტექსტი ან null.",
+    "videoUrlMustBeStringOrNull": "videoUrl უნდა იყოს ტექსტი ან null.",
+    "videoUrlMustBeHttps": "videoUrl უნდა იყოს https:// მისამართი ან ამ საიტის ბილიკი.",
+    "videoOnlyForHero": "ვიდეო შეიძლება ჰქონდეს მხოლოდ ჰერო ბანერს ({placement}). წაშალეთ ვიდეო ან შეცვალეთ განთავსება.",
+    "heroCarouselFull": "{locale} ჰერო კარუსელს უკვე აქვს {max} აქტიური ბანერი, რაც მაქსიმუმია. ახლის დამატებამდე ერთ-ერთი გამორთეთ.",
+    "offersRowFull": "{locale} შეთავაზებების ბლოკს უკვე აქვს {max} აქტიური ბანერი, რაც მაქსიმუმია. ახლის დამატებამდე ერთ-ერთი გამორთეთ.",
+    "partnerLogosFull": "{locale} პარტნიორების ზოლს უკვე აქვს {max} აქტიური ლოგო, რაც მაქსიმუმია. ახლის დამატებამდე ერთ-ერთი გამორთეთ."
   },
   "adminContentHomePageSections": {
     "homePageSectionNotFound": "მთავარი გვერდის სექცია ვერ მოიძებნა.",
     "typeIsRequiredAndMustBe": "type სავალდებულოა და უნდა იყოს ტექსტური ტიპი.",
-    "typeMustBeAString": "type უნდა იყოს ტექსტური ტიპი."
+    "typeMustBeAString": "type უნდა იყოს ტექსტური ტიპი.",
+    "idsMustBeDistinctIds": "ids უნდა იყოს სექციების განსხვავებული id-ების არაცარიელი მასივი.",
+    "idsMustBelongToLocale": "ყველა id უნდა იყოს {locale} ენის სექცია. განაახლეთ სია და სცადეთ თავიდან.",
+    "localesMustDiffer": "from და to განსხვავებული ენები უნდა იყოს."
   },
   "adminContentMedia": {
-    "unsupportedContentType": "მიიღება მხოლოდ JPG, PNG და WebP სურათები."
+    "unsupportedContentType": "მიიღება მხოლოდ JPG, PNG და WebP სურათები.",
+    "unsupportedVideoContentType": "მიიღება მხოლოდ MP4 და WebM ვიდეოები და მხოლოდ ბანერებისთვის."
   },
   "adminContentMessagingTemplates": {
     "bodyIsRequiredAndMustBe": "body სავალდებულოა და არ უნდა იყოს ცარიელი ტექსტი.",
@@ -57,8 +67,13 @@
     "valuekaIsRequiredAndMustBe": "valueKa სავალდებულოა და არ უნდა იყოს ცარიელი ტექსტი."
   },
   "adminContentVehiclePhotos": {
+    "categoryInvalid": "category უნდა იყოს MEDIUM_DUTY ან HEAVY_DUTY.",
+    "idsMustBeDistinctIds": "ids უნდა იყოს ტრანსპორტის ტიპების განსხვავებული id-ების არაცარიელი მასივი.",
+    "idsMustBelongToCategory": "ყველა id უნდა იყოს ამ კლასის ტრანსპორტის ტიპი. განაახლეთ სია და სცადეთ თავიდან.",
     "imageUrlNonEmptyOrNull": "imageUrl უნდა იყოს არაცარიელი სტრიქონი, ან null მის გასასუფთავებლად.",
-    "unexpectedFields": "ეს endpoint მხოლოდ imageUrl-ს ცვლის. მოულოდნელი ველ(ებ)ი: {fields}. ავტომობილის მახასიათებლები და ფასები იცვლება seed-ის მეშვეობით და არა ბექ-ოფისიდან.",
+    "nothingToUpdate": "გამოგზავნეთ imageUrl და/ან showOnHomepage.",
+    "showOnHomepageMustBeBoolean": "showOnHomepage უნდა იყოს true ან false.",
+    "unexpectedFields": "ეს endpoint მხოლოდ imageUrl-ს და showOnHomepage-ს ცვლის. მოულოდნელი ველ(ებ)ი: {fields}. ავტომობილის მახასიათებლები და ფასები იცვლება seed-ის მეშვეობით და არა ბექ-ოფისიდან.",
     "vehicleTypeNotFound": "ტრანსპორტის ტიპი ვერ მოიძებნა."
   },
   "adminDriverApplicationsApprove": {
@@ -87,6 +102,10 @@
     "usageLimitWholeNumberOrNull": "usageLimit უნდა იყოს 1 ან მეტი მთელი რიცხვი, ან null.",
     "usagelimitMustBeAWholeNumber": "usageLimit უნდა იყოს მთელი რიცხვი (1 ან მეტი) ან გამოტოვებული."
   },
+  "adminSupportMessages": {
+    "alreadyResolved": "ეს შეტყობინება უკვე მოგვარებულია.",
+    "messageNotFound": "მხარდაჭერის შეტყობინება ვერ მოიძებნა."
+  },
   "adminUsersSuspend": {
     "staffAccountsAreManagedUnderSystem": "პერსონალის ანგარიშების მართვა ხდება „სისტემურ მომხმარებლებში“."
   },
@@ -102,6 +121,30 @@
   "adminUsersSystemReactivate": {
     "onlyASuperAdminCanReactivate": "სისტემური მომხმარებლების ხელახლა გააქტიურება მხოლოდ სუპერ ადმინისტრატორს შეუძლია.",
     "youCannotChangeYourOwnAccount": "საკუთარი ანგარიშის სტატუსის შეცვლა შეუძლებელია."
+  },
+  "adminVehicleDocuments": {
+    "cannotFlagDocumentOnFile": "დამტკიცებული დოკუმენტის მონიშვნა შეუძლებელია.",
+    "documentWasReplaced": "მძღოლმა ეს ფაილი ახლით ჩაანაცვლა. ახლის განსახილველად განაახლეთ გვერდი.",
+    "expiryDateInPast": "ამ დოკუმენტის ვადა უკვე გასულია. დამტკიცების ნაცვლად მონიშნეთ დოკუმენტი, როგორც ვადაგასული.",
+    "expiryDateInvalid": "expiresAt უნდა იყოს თარიღი YYYY-MM-DD ფორმატში."
+  },
+  "adminWallet": {
+    "adjustmentAmountInvalid": "amountTetri უნდა იყოს თეთრების ნულისგან განსხვავებული მთელი რაოდენობა.",
+    "adjustmentExceedsAvailable": "ჩამოსაწერი თანხა არ უნდა აღემატებოდეს მძღოლის ხელმისაწვდომ ბალანსს.",
+    "balanceTooLow": "მძღოლის ბალანსი ამ თანხის გასატანად აღარ არის საკმარისი.",
+    "bankAccountActionInvalid": "action უნდა იყოს verify ან reject.",
+    "bankAccountAlreadyInState": "ამ ანგარიშს უკვე აქვს ეს სტატუსი. სანახავად განაახლეთ გვერდი.",
+    "bankAccountHasPendingWithdrawal": "ამ ანგარიშზე თანხის გატანის მოთხოვნა განხილვაშია. ჯერ გადაიხადეთ ან უარყავით ის.",
+    "bankAccountNotFound": "საბანკო ანგარიში ვერ მოიძებნა.",
+    "bankAccountRemoved": "მძღოლმა ეს ანგარიში წაშალა.",
+    "bankReferenceRequired": "აუცილებელია ბანკის საგადახდო ნომრის მითითება, არაუმეტეს {max} სიმბოლოსი.",
+    "driverHasNoWallet": "ეს მძღოლი კომპანიის შემადგენლობაშია და საფულე არ აქვს.",
+    "driverNotFound": "მძღოლი ვერ მოიძებნა.",
+    "identityNotReviewed": "ეს მძღოლი ჯერ არ არის გააქტიურებული, ამიტომ ანგარიშის შესადარებლად შემოწმებული პირადობა არ არსებობს.",
+    "reasonRequired": "აუცილებელია მიზეზის მითითება, არაუმეტეს {max} სიმბოლოსი.",
+    "withdrawalActionInvalid": "action უნდა იყოს pay, reject ან reverse.",
+    "withdrawalAlreadyDecided": "ეს მოთხოვნა აღარ არის იმ სტატუსში, რომელიც ამ მოქმედებას დაუშვებს. სტატუსის სანახავად განაახლეთ გვერდი.",
+    "withdrawalNotFound": "თანხის გატანის მოთხოვნა ვერ მოიძებნა."
   },
   "cargoFit": {
     "doesNotFit": "ტვირთი არ ეტევა კლასში „{vehicle}“.",
@@ -121,8 +164,14 @@
     "dateofbirthMustBeAValidDate": "dateOfBirth უნდა იყოს ვალიდური თარიღი.",
     "dateofbirthMustBeAnIsoDate": "dateOfBirth უნდა იყოს ISO თარიღის ფორმატის ტექსტი.",
     "genderMustBeOneOf": "gender უნდა იყოს ერთ-ერთი შემდეგიდან: {allowed}.",
+    "legalAddressIsTooLong": "იურიდიული მისამართი არ უნდა აღემატებოდეს {max} სიმბოლოს.",
+    "legalAddressMustBeText": "იურიდიული მისამართი უნდა იყოს ტექსტი.",
     "onlyClientsCanCreateAClient": "კლიენტის პროფილის შექმნა მხოლოდ კლიენტებს შეუძლიათ.",
     "onlyClientsHaveAClientProfile": "კლიენტის პროფილი მხოლოდ კლიენტებს აქვთ."
+  },
+  "dashboardHubApi": {
+    "changeYourTemporaryPasswordBeforeContinuing": "გასაგრძელებლად შეცვალეთ დროებითი პაროლი.",
+    "onlyDriversAndLogisticsCompaniesCan": "მძღოლის ჰაბით სარგებლობა მხოლოდ მძღოლებსა და ლოჯისტიკურ კომპანიებს შეუძლიათ."
   },
   "dashboardHubDriversAvailability": {
     "thisAccountCannotReadAFleet": "ამ ანგარიშს არ შეუძლია ავტოპარკის განრიგის ნახვა."
@@ -240,10 +289,31 @@
     "onlyDriversCanEditVehicles": "ტრანსპორტის რედაქტირება მხოლოდ მძღოლებს შეუძლიათ.",
     "onlyDriversCanRemoveVehicles": "ტრანსპორტის წაშლა მხოლოდ მძღოლებს შეუძლიათ.",
     "onlyDriversHaveVehicles": "ტრანსპორტი მხოლოდ მძღოლებს აქვთ.",
-    "photoTooLarge": "{name} აღემატება {mb} MB-ს."
+    "photoTooLarge": "{name} აღემატება {mb} MB-ს.",
+    "trailerPlateInvalid": "მისაბმელის სახელმწიფო ნომერი უნდა შედგებოდეს 2–15 ასოს, ციფრის, ჰარის ან დეფისისგან."
   },
   "driverProfileVehiclesValidation": {
     "yearRange": "year უნდა იყოს მთელი რიცხვი {min}-დან {max}-მდე."
+  },
+  "driverSettings": {
+    "citiesMustBeSupportedCities": "cities უნდა იყოს მხარდაჭერილი ქალაქების სია.",
+    "daysMustBeWeekdays": "days უნდა იყოს კვირის დღეების არაცარიელი სია: {allowed}.",
+    "documentExpiryIsAlwaysOn": "დოკუმენტის ვადის ამოწურვის შეტყობინებების გამორთვა შეუძლებელია.",
+    "emergencyContactNameTooLong": "საგანგებო კონტაქტის სახელი არ უნდა აღემატებოდეს {max} სიმბოლოს.",
+    "emergencyContactPhoneInvalid": "შეიყვანეთ 9-ნიშნა ქართული ნომერი.",
+    "fieldMustBeASupportedCity": "{field} უნდა იყოს მხარდაჭერილი ქალაქი.",
+    "fieldMustBeATime": "{field} უნდა იყოს დრო 24-საათიან HH:MM ფორმატში.",
+    "fieldMustBeTextOrNull": "{field} უნდა იყოს ტექსტი ან null.",
+    "fieldMustBeTrueOrFalse": "{field} უნდა იყოს true ან false.",
+    "handlingTagsMustBeOneOf": "excludedHandlingTags უნდა იყოს სია შემდეგი მნიშვნელობებიდან: {allowed}.",
+    "maxTripKmOutOfRange": "maxTripKm უნდა იყოს მთელი რიცხვი 1-დან {max}-მდე ან null.",
+    "minPayoutOutOfRange": "minPayout უნდა იყოს რიცხვი 0-დან {max}-მდე.",
+    "onlyDriversHaveTheseSettings": "ეს პარამეტრები მხოლოდ მძღოლებს აქვთ.",
+    "pickAtLeastOneArea": "აირჩიეთ მინიმუმ ერთი ზონა.",
+    "quietHoursCannotBeEmpty": "მშვიდი საათების დაწყებისა და დასრულების დრო უნდა განსხვავდებოდეს.",
+    "routeAlertLimitReached": "შეგიძლიათ შეინახოთ მაქსიმუმ {max} მარშრუტის შეტყობინება. ახლის დასამატებლად წაშალეთ ერთ-ერთი.",
+    "routeAlertNotFound": "მარშრუტის შეტყობინება ვერ მოიძებნა.",
+    "sendAtLeastOneField": "მიუთითეთ მინიმუმ ერთი შესაცვლელი ველი."
   },
   "fleetVehicleValidation": {
     "labelled": "{label}: {message}",
@@ -257,7 +327,8 @@
   },
   "loads": {
     "onlyDriversAndLogisticsCompaniesCan": "ტვირთების დაფის ნახვა მხოლოდ მძღოლებსა და ლოჯისტიკურ კომპანიებს შეუძლიათ.",
-    "yourCompanyProfileIsnTSetUp": "თქვენი კომპანიის პროფილი ჯერ არ არის შექმნილი."
+    "yourCompanyProfileIsnTSetUp": "თქვენი კომპანიის პროფილი ჯერ არ არის შექმნილი.",
+    "loadNotFound": "ტვირთი ვერ მოიძებნა."
   },
   "loadsReject": {
     "driverProfileNotFound": "მძღოლის პროფილი ვერ მოიძებნა.",
@@ -282,7 +353,10 @@
   },
   "logisticsCompanyDrivers": {
     "onlyLogisticsCompaniesCanRemoveDrivers": "მძღოლების წაშლა მხოლოდ ლოჯისტიკურ კომპანიებს შეუძლიათ.",
-    "onlyLogisticsCompaniesHaveADriver": "მძღოლების განრიგი მხოლოდ ლოჯისტიკურ კომპანიებს აქვთ."
+    "onlyLogisticsCompaniesHaveADriver": "მძღოლების განრიგი მხოლოდ ლოჯისტიკურ კომპანიებს აქვთ.",
+    "onlyLogisticsCompaniesCanEditDrivers": "მძღოლების რედაქტირება მხოლოდ ლოჯისტიკურ კომპანიებს შეუძლიათ.",
+    "personalIdInvalid": "პირადი ნომერი უნდა შედგებოდეს ზუსტად 11 ციფრისგან.",
+    "personalIdLockedVerified": "ამ მძღოლის პირადი ნომერი დადასტურებულია დამტკიცებული განაცხადით და აქ მისი შეცვლა აღარ შეიძლება. დაუკავშირდით მხარდაჭერის გუნდს."
   },
   "logisticsCompanyDriversRegister": {
     "cityMustBeOneOf": "city უნდა იყოს ერთ-ერთი შემდეგიდან: {cities}.",
@@ -297,7 +371,13 @@
     "theLicenceExpiryDateMustBe": "მართვის მოწმობის მოქმედების ვადა უნდა იყოს მომავალში.",
     "thisVehicleIsAlreadyAssignedTo": "ეს ტრანსპორტი უკვე მინიჭებულია სხვა მძღოლზე.",
     "thisVehicleNeedsCategory": "ამ ავტომობილს {category} კატეგორია სჭირდება. მიამაგრეთ სხვა მძღოლი ან ავტომობილი.",
-    "vehicleidMustBeAStringWhen": "vehicleId მითითებისას უნდა იყოს ტექსტური ტიპი."
+    "vehicleidMustBeAStringWhen": "vehicleId მითითებისას უნდა იყოს ტექსტური ტიპი.",
+    "emailMustBeAString": "email, თუ მითითებულია, უნდა იყოს ტექსტი.",
+    "thisEmailCannotBeUsed": "ამ ელფოსტის გამოყენება შეუძლებელია.",
+    "enterAValidMobileNumber": "შეიყვანეთ სწორი მობილურის ნომერი, მაგ. +995 555 12 34 56.",
+    "anAccountWithThatPhoneNumber": "ამ მობილურის ნომრით ანგარიში უკვე არსებობს.",
+    "personalIdRequired": "მიუთითეთ მძღოლის პირადი ნომერი.",
+    "personalIdInvalid": "პირადი ნომერი უნდა შედგებოდეს ზუსტად 11 ციფრისგან."
   },
   "logisticsCompanyOnboarding": {
     "anApplicationUnderReviewCanNo": "განხილვის პროცესში მყოფი განაცხადის რედაქტირება უკვე შეუძლებელია.",
@@ -323,7 +403,6 @@
     "fixTheFlaggedVehiclesBefore": "ხელახლა გაგზავნამდე გაასწორეთ {count, plural, one {# მონიშნული ავტომობილი} other {# მონიშნული ავტომობილი}}.",
     "licenceHasExpired": "{name}-ის მართვის მოწმობას ვადა გაუვიდა. განაახლეთ იგი გაგზავნამდე.",
     "licenceMissingCategory": "{name}-ის მართვის მოწმობაში არ არის {category} კატეგორია, რომელსაც {vehicleClass} კლასი მოითხოვს.",
-    "noLicenceOnFile": "{name}-ის მართვის მოწმობა არ არის დამატებული. დაამატეთ იგი გაგზავნამდე.",
     "theVatOrTaxIdMust": "საიდენტიფიკაციო კოდი ზუსტად 9 ციფრისგან უნდა შედგებოდეს.",
     "thisDriver": "ეს მძღოლი",
     "vehicleIndexHasNoDriver": "ავტომობილს №{index} მძღოლი არ ჰყავს. ყველა ავტომობილს დასახელებული მძღოლი სჭირდება.",
@@ -358,7 +437,9 @@
     "onlyLogisticsCompaniesCanRemoveFleet": "ავტოპარკის ტრანსპორტის წაშლა მხოლოდ ლოჯისტიკურ კომპანიებს შეუძლიათ.",
     "onlyLogisticsCompaniesHaveAFleet": "ავტოპარკი მხოლოდ ლოჯისტიკურ კომპანიებს აქვთ.",
     "vehicletypecodeDoesNotMatchAKnown": "vehicleTypeCode არ შეესაბამება ტრანსპორტის ცნობილ ტიპს.",
-    "yearMustBeAWholeNumber": "year უნდა იყოს მთელი რიცხვი {min}-დან {max}-მდე."
+    "yearMustBeAWholeNumber": "year უნდა იყოს მთელი რიცხვი {min}-დან {max}-მდე.",
+    "onlyLogisticsCompaniesCanEditFleet": "ავტოპარკის ტრანსპორტის რედაქტირება მხოლოდ ლოჯისტიკურ კომპანიებს შეუძლიათ.",
+    "trailerPlateInvalid": "მისაბმელის სახელმწიფო ნომერი უნდა შედგებოდეს 2–15 ასოს, ციფრის, ჰარის ან დეფისისგან."
   },
   "logisticsCompanyVehiclesAssignment": {
     "onlyLogisticsCompaniesCanAssignVehicles": "ტრანსპორტის მინიჭება მხოლოდ ლოჯისტიკურ კომპანიებს შეუძლიათ.",
@@ -368,9 +449,22 @@
     "thisVehicleHasNoActiveAssignment": "ამ ტრანსპორტს აქტიური მინიჭება არ აქვს.",
     "thisVehicleNeedsCategory": "ამ ავტომობილს {category} კატეგორია სჭირდება. მიამაგრეთ სხვა მძღოლი ან ავტომობილი."
   },
+  "notificationInbox": {
+    "cursorNotFound": "cursor არ არის თქვენი შეტყობინების იდენტიფიკატორი.",
+    "idsMustBeAListOfIds": "ids უნდა იყოს შეტყობინებების იდენტიფიკატორების სია.",
+    "tooManyIds": "ერთდროულად მიუთითეთ არაუმეტეს {max} შეტყობინება."
+  },
+  "offers": {
+    "offerAlreadyAccepted": "ეს შეთავაზება უკვე მიღებული გაქვთ.",
+    "offerAlreadyDeclined": "ეს შეთავაზება თქვენ უარყავით.",
+    "offerExpired": "ამ შეთავაზების ვადა ამოიწურა.",
+    "offerNotFound": "შეთავაზება ვერ მოიძებნა.",
+    "onlyDriversReceiveOffers": "ტვირთის შეთავაზებებს მხოლოდ მძღოლები იღებენ."
+  },
   "orders": {
     "bodyTypeMustBeOneOf": "bodyType უნდა იყოს ერთ-ერთი შემდეგიდან: {allowed}.",
     "deliverydeadlineMustBeAfterPickupwindowend": "deliveryDeadline უნდა იყოს pickupWindowEnd-ის შემდეგ.",
+    "cargoEnvelopeIncomplete": "მიუთითეთ cargoWeightKg, cargoLengthM, cargoWidthM და cargoHeightM ერთად, ან არცერთი.",
     "descriptionMustBeAStringWhen": "description მითითებისას უნდა იყოს ტექსტური ტიპი.",
     "failedToDrawAnOrderReference": "მიმდევრობიდან შეკვეთის ნომრის გენერირება ვერ მოხერხდა.",
     "fieldMeasurementOutOfRange": "{field} უნდა იყოს 0-ზე მეტი რიცხვი და არაუმეტეს {max} {unit}.",
@@ -419,12 +513,20 @@
     "thisVehicleIsSmallerThanThe": "ეს ტრანსპორტი უფრო პატარაა, ვიდრე ტრანსპორტის ის კლასი, რომლითაც დაჯავშნილი იყო ეს მიწოდება. გამოიყენეთ ტრანსპორტი, რომელიც შეესაბამება ან აღემატება მას ტვირთამწეობით, სიგრძით, სიგანითა და სიმაღლით.",
     "youReOfflineGoOnlineTo": "თქვენ ოფლაინში ხართ. გადაზიდვების ასაღებად გადადით ონლაინ რეჟიმში."
   },
+  "ordersCancel": {
+    "onlyUnpaidOrdersCanBeCancelled": "გაუქმება შესაძლებელია მხოლოდ გადაუხდელი შეკვეთის. თუ ეს შეკვეთა უკვე გადახდილია, მის გასაუქმებლად დაუკავშირდით მხარდაჭერის გუნდს."
+  },
   "ordersComplete": {
+    "photoRequired": "დადასტურებამდე დაამატეთ მიწოდების მინიმუმ ერთი ფოტო.",
     "receivedByMustBeStringOrNull": "receivedBy უნდა იყოს ტექსტი ან null.",
     "receivedByTooLong": "receivedBy არ უნდა აღემატებოდეს {max} სიმბოლოს.",
+    "signatureRequired": "დადასტურებამდე დაამატეთ მიმღების ხელმოწერა.",
     "thisDeliveryCannotBeCompletedRight": "ამ მიწოდების დასრულება ახლა შეუძლებელია.",
     "thisDeliverySVehicleTypeHas": "ამ მიწოდების ავტომობილის ტიპს ფასწარმოქმნის წესი არ აქვს.",
     "waitingminutesIsRequiredAndMustBe": "waitingMinutes სავალდებულოა და უნდა იყოს წუთების მთელი რიცხვი."
+  },
+  "ordersEdit": {
+    "onlyUnpaidOrdersCanBeEdited": "რედაქტირება შესაძლებელია მხოლოდ გადაუხდელი შეკვეთის. თუ ეს შეკვეთა უკვე გადახდილია, მის შესაცვლელად დაუკავშირდით მხარდაჭერის გუნდს."
   },
   "ordersLocation": {
     "youDoNotHaveAccessTo": "თქვენ არ გაქვთ წვდომა ამ შეკვეთაზე."
@@ -435,8 +537,27 @@
     "paymentMethodTypeMustBeOneOf": "paymentMethodType უნდა იყოს ერთ-ერთი შემდეგიდან: {allowed}.",
     "thisDeliveryHasAlreadyBeenPaid": "ამ მიწოდების საფასური უკვე გადახდილია და ის ჩვენს მძღოლებთანაა."
   },
+  "ordersPod": {
+    "couldNotVerifyUpload": "ატვირთვის შემოწმება ვერ მოხერხდა. გთხოვთ, ფაილი ხელახლა ატვირთოთ.",
+    "kindMustBePhotoOrSignature": "kind უნდა იყოს PHOTO ან SIGNATURE.",
+    "onlyWhileInTransit": "მიწოდების დადასტურების შეცვლა შესაძლებელია მხოლოდ მაშინ, როცა მიწოდება გზაშია.",
+    "pathIsRequired": "path სავალდებულოა და არ უნდა იყოს ცარიელი.",
+    "photoLimit": "მიწოდებას შეიძლება ჰქონდეს მაქსიმუმ {max} ფოტო. ჯერ ერთი წაშალეთ.",
+    "photoMustBeJpgOrPng": "მიწოდების ფოტოები უნდა იყოს JPG ან PNG ფაილები.",
+    "photoNotFound": "ფოტო ვერ მოიძებნა.",
+    "photoTooLarge": "მიწოდების ფოტო არ უნდა აღემატებოდეს {max} მბ-ს.",
+    "replacesPhotoIdInvalid": "replacesPhotoId არ უნდა იყოს ცარიელი.",
+    "signatureMustBePng": "ხელმოწერა უნდა იყოს PNG გამოსახულება.",
+    "signatureTooLarge": "ხელმოწერა არ უნდა აღემატებოდეს {max} მბ-ს.",
+    "takenAtInvalid": "takenAt უნდა იყოს ISO თარიღი და დრო.",
+    "thatUploadDoesNotBelongTo": "ეს ატვირთვა ამ მიწოდებას არ ეკუთვნის."
+  },
   "ordersStart": {
     "thisDeliveryCannotBeStartedRight": "ამ მიწოდების დაწყება ახლა შეუძლებელია."
+  },
+  "pushTokens": {
+    "platformMustBeIosOrAndroid": "platform უნდა იყოს ios ან android.",
+    "tokenMustBeAnExpoPushToken": "token უნდა იყოს Expo-ს push ტოკენი."
   },
   "savedCards": {
     "cardBrandTooLong": "მიუთითეთ ბარათის ბრენდი არაუმეტეს {max} სიმბოლოსი.",
@@ -453,11 +574,55 @@
     "onlyClientsHaveSavedCards": "შენახული ბარათები მხოლოდ კლიენტებს აქვთ.",
     "thatCardHasExpiredAddA": "ამ ბარათს ვადა გაუვიდა. დაამატეთ ბარათი, რომელიც ჯერ კიდევ მოქმედებს."
   },
+  "supportMessages": {
+    "bodyIsRequired": "გაგზავნამდე აღწერეთ, რა მოხდა.",
+    "bodyTooLong": "შეტყობინება არ უნდა აღემატებოდეს {max} სიმბოლოს.",
+    "onlyDriversCanContactSupport": "მხარდაჭერისთვის შეტყობინების გაგზავნა მხოლოდ მძღოლებს შეუძლიათ.",
+    "orderIdMustBeAString": "orderId უნდა იყოს არაცარიელი ტექსტი ან null.",
+    "tooManyMessages": "მოკლე დროში რამდენიმე შეტყობინება გაგზავნეთ. გთხოვთ, შემდეგის გაგზავნამდე რამდენიმე წუთი დაიცადოთ.",
+    "topicMustBeOneOf": "topic უნდა იყოს ერთ-ერთი შემდეგიდან: {topics}."
+  },
+  "uploads": {
+    "tooManyPendingUploads": "ძალიან ბევრი ატვირთვა დაიწყო და არ დასრულებულა. გთხოვთ, სცადოთ ხელახლა {minutes} წუთში."
+  },
   "validation": {
     "bodyhtmlIsRequiredAndMustBe": "bodyHtml სავალდებულოა და არ უნდა იყოს ცარიელი ტექსტი.",
     "duplicatePage": "ამ ლოკალისთვის ამ slug-ით გვერდი უკვე არსებობს.",
     "ispublishedMustBeABoolean": "isPublished უნდა იყოს ლოგიკური ტიპი.",
     "slugIsRequiredAndMustBe": "slug სავალდებულოა და უნდა იყოს ტექსტური ტიპი.",
     "slugMustBeLowercaseLettersNumbers": "slug უნდა შედგებოდეს მცირე ასოებისგან, ციფრებისგან და ცალკეული დეფისებისგან, მაგ. \"terms-of-service\"."
+  },
+  "vehicleDocuments": {
+    "companyManagesThisVehicle": "ეს ავტომობილი თქვენს კომპანიას ეკუთვნის და მის დოკუმენტებს კომპანია მართავს.",
+    "fileTooLarge": "ავტომობილის დოკუმენტი არ უნდა აღემატებოდეს {max} მბ-ს.",
+    "mustBeJpgOrPng": "ავტომობილის დოკუმენტები უნდა იყოს JPG ან PNG ფაილები.",
+    "thatUploadDoesNotBelongTo": "ეს ატვირთვა ამ ავტომობილის დოკუმენტს არ ეკუთვნის.",
+    "typeMustBeRegistration": "type უნდა იყოს REGISTRATION."
+  },
+  "wallet": {
+    "amountMustBeWholeTetri": "amountTetri უნდა იყოს თეთრების დადებითი მთელი რაოდენობა.",
+    "bankAccountDuplicate": "ეს ანგარიში უკვე დამატებულია.",
+    "bankAccountHasPendingWithdrawal": "ამ ანგარიშზე თანხის გატანის მოთხოვნა ჯერ განხილვაშია. ანგარიშის წაშლას შეძლებთ მას შემდეგ, რაც თანხა გადაირიცხება ან მოთხოვნა უარყოფილი იქნება.",
+    "bankAccountIdMustBeString": "bankAccountId უნდა იყოს არაცარიელი ტექსტი ან null.",
+    "bankAccountLimitReached": "შეგიძლიათ გქონდეთ არაუმეტეს {limit} საბანკო ანგარიშისა. ახლის დასამატებლად წაშალეთ ერთ-ერთი.",
+    "bankAccountNotFound": "საბანკო ანგარიში ვერ მოიძებნა.",
+    "bankAccountNotVerified": "ეს საბანკო ანგარიში ჯერ არ არის ვერიფიცირებული და მასზე თანხის გატანა შეუძლებელია.",
+    "bankMustBeOneOf": "bank უნდა იყოს ერთ-ერთი შემდეგიდან: {banks}.",
+    "belowMinimum": "გასატანი მინიმალური თანხაა ₾{minimum}.",
+    "frozen": "თქვენი ანგარიში შეჩერებულია, ამიტომ თანხის გატანა მიუწვდომელია. გთხოვთ, დაუკავშირდეთ მხარდაჭერას.",
+    "ibanBankMismatch": "ეს IBAN ეკუთვნის ბანკს {ibanBank} და არა ბანკს {bank}.",
+    "ibanBelongsToAnotherBank": "ეს IBAN სხვა ბანკს ეკუთვნის და არა ბანკს {bank}.",
+    "ibanChecksumInvalid": "ეს IBAN არასწორია. შეამოწმეთ, ხომ არ არის შეცდომით აკრეფილი.",
+    "ibanInvalidFormat": "შეიყვანეთ ქართული IBAN: GE, 2 ციფრი, 2 ასო და შემდეგ 16 ციფრი.",
+    "ibanMustBeString": "iban უნდა იყოს ტექსტი.",
+    "insufficientFunds": "ეს თანხა აღემატება თქვენს ხელმისაწვდომ ბალანსს.",
+    "isDefaultMustBeTrue": "isDefault უნდა იყოს true.",
+    "legalNameMissing": "თქვენს პროფილში სახელი და გვარი ჯერ არ არის მითითებული. საბანკო ანგარიშის დამატებამდე დაასრულეთ რეგისტრაცია.",
+    "noVerifiedBankAccount": "ჯერ დაამატეთ ვერიფიცირებული საბანკო ანგარიში.",
+    "notAvailableForRosterDrivers": "თქვენი შემოსავალი თქვენს კომპანიას ერიცხება, ამიტომ ამ ანგარიშს საფულე არ აქვს.",
+    "onlyDriversHaveAWallet": "საფულე მხოლოდ მძღოლებს აქვთ.",
+    "requestKeyInvalid": "requestKey უნდა იყოს არაცარიელი ტექსტი, არაუმეტეს {max} სიმბოლოსი.",
+    "requestKeyRequired": "requestKey სავალდებულოა: არაცარიელი ტექსტი, არაუმეტეს {max} სიმბოლოსი, ერთი და იგივე ამ მოთხოვნის ყოველი გამეორებისას.",
+    "unknownCursor": "cursor არასწორია."
   }
 }

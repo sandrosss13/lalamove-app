@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { localeHref } from "@/i18n/server";
@@ -9,6 +10,15 @@ import {
 
 // Session + Prisma access can't be statically rendered.
 export const dynamic = "force-dynamic";
+
+/**
+ * The back office is never indexed. The middleware also sends
+ * `X-Robots-Tag: noindex` for the admin host; this covers `/admin` when it is
+ * served path-based on the main host, where that header does not apply.
+ */
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 /**
  * The gate for the whole back office: everything under `src/app/admin/**` runs

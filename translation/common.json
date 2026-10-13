@@ -74,9 +74,9 @@
     "ka": "მალე",
     "_source": "src/app/[locale]/coming-soon/page.tsx"
   },
-  "comingSoon.metaTitle": {
-    "en": "zomo — Coming soon",
-    "ka": "ზომო — მალე",
+  "comingSoon.tagline": {
+    "en": "Cargo delivery in Tbilisi and across Georgia.",
+    "ka": "ტვირთის გადაზიდვა თბილისში და მთელ საქართველოში.",
     "_source": "src/app/[locale]/coming-soon/page.tsx"
   },
   "companyVehicleForm.adding": {
@@ -163,6 +163,56 @@
     "en": "vehicleTypeCode must be a known vehicle type.",
     "ka": "vehicleTypeCode უნდა იყოს ცნობილი ავტომობილის ტიპი.",
     "_source": "src/lib/pricing.ts"
+  },
+  "seo.comingSoon.description": {
+    "en": "zomo is launching soon: on-demand cargo delivery in Tbilisi and across Georgia. Looking for driver jobs in Tbilisi? Sign up early.",
+    "ka": "ზომო მალე გაეშვება — ტვირთის გადაზიდვა თბილისში და მთელ საქართველოში. ეძებთ მძღოლის ვაკანსიას? დარეგისტრირდით წინასწარ.",
+    "_source": "src/app/[locale]/coming-soon/page.tsx"
+  },
+  "seo.comingSoon.title": {
+    "en": "zomo — Cargo Delivery in Tbilisi | Coming Soon",
+    "ka": "zomo — ტვირთის გადაზიდვა თბილისში | მალე",
+    "_source": "src/app/[locale]/coming-soon/page.tsx"
+  },
+  "seo.driverSignUp.description": {
+    "en": "Looking for driver jobs in Tbilisi? Join zomo with your van or truck, take cargo delivery jobs, and drive on your own schedule.",
+    "ka": "მძღოლის ვაკანსია თბილისში: შემოგვიერთდით საკუთარი ფურგონით ან სატვირთოთი, შეასრულეთ ტვირთის გადაზიდვის რეისები თქვენი გრაფიკით.",
+    "_source": "src/app/[locale]/sign-up/page.tsx"
+  },
+  "seo.driverSignUp.title": {
+    "en": "Driver Jobs in Tbilisi — Earn on Your Schedule",
+    "ka": "მძღოლის ვაკანსია თბილისში — საკუთარი გრაფიკით",
+    "_source": "src/app/[locale]/sign-up/page.tsx"
+  },
+  "seo.home.description": {
+    "en": "Cargo delivery in Tbilisi and across Georgia. Book a van or truck in minutes.",
+    "ka": "ტვირთის გადაზიდვა თბილისში და მთელ საქართველოში. შეუკვეთეთ ფურგონი ან სატვირთო რამდენიმე წუთში.",
+    "_source": "src/app/[locale]/layout.tsx"
+  },
+  "seo.home.title": {
+    "en": "zomo — Cargo Delivery in Tbilisi",
+    "ka": "zomo — ტვირთის გადაზიდვა თბილისში",
+    "_source": "src/app/[locale]/layout.tsx"
+  },
+  "seo.services.cargo.description": {
+    "en": "On-demand cargo delivery by van or truck in Tbilisi and across Georgia.",
+    "ka": "ტვირთის გადაზიდვა ფურგონით ან სატვირთოთი — თბილისში და მთელ საქართველოში.",
+    "_source": "src/lib/seo/json-ld.tsx"
+  },
+  "seo.services.cargo.name": {
+    "en": "Cargo delivery",
+    "ka": "ტვირთის გადაზიდვა",
+    "_source": "src/lib/seo/json-ld.tsx"
+  },
+  "seo.signIn.description": {
+    "en": "Sign in to your zomo account to book a delivery and follow your orders.",
+    "ka": "შედით ზომოს ანგარიშში, რათა გააფორმოთ შეკვეთა და თვალი ადევნოთ მის მიმდინარეობას.",
+    "_source": "src/app/[locale]/sign-in/page.tsx"
+  },
+  "seo.signIn.title": {
+    "en": "Sign in",
+    "ka": "შესვლა",
+    "_source": "src/app/[locale]/sign-in/page.tsx"
   },
   "shared.34Abc128": {
     "en": "34 ABC 128",
@@ -809,11 +859,6 @@
     "ka": "საიდან",
     "_source": "src/app/[locale]/orders/[id]/track/page.tsx"
   },
-  "shared.fuel": {
-    "en": "Fuel",
-    "ka": "საწვავი",
-    "_source": "src/components/driver-hub/screens/vehicles-detail-panel.tsx"
-  },
   "shared.fullName": {
     "en": "Full name",
     "ka": "სრული სახელი",
@@ -1113,11 +1158,6 @@
     "en": "Notifications",
     "ka": "შეტყობინებები",
     "_source": "src/components/driver-hub/driver-account-sections.ts"
-  },
-  "shared.odometer": {
-    "en": "Odometer",
-    "ka": "ოდომეტრი (პრობეგი)",
-    "_source": "src/components/driver-hub/screens/vehicles-detail-panel.tsx"
   },
   "shared.onlineHours": {
     "en": "Online hours",
@@ -1818,11 +1858,6 @@
     "en": "Zone",
     "ka": "ზონა",
     "_source": "src/components/driver-hub/screens/drivers-add-panel.tsx"
-  },
-  "srcApp.onDemandDeliveryPlatformBookA": {
-    "en": "On-demand delivery platform — book a vehicle and move your goods across the city.",
-    "ka": "სწრაფი მიწოდების პლატფორმა — შეუკვეთეთ ტრანსპორტი და გადაზიდეთ ტვირთი ქალაქის მასშტაბით.",
-    "_source": "src/app/[locale]/layout.tsx"
   },
   "themeToggle.darkTheme": {
     "en": "Dark theme",

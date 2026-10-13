@@ -9,7 +9,7 @@ import {
   LANDING_GOODS_SHORTCUTS,
   SHORTCUT_ESTIMATE_CARGO_CATEGORY,
   preselectLandingGoods,
-} from "@/components/landing/landing-quote-calculator";
+} from "@/components/landing/landing-goods";
 import {
   useLandingVehicleTypes,
   type LandingVehicleType,
@@ -67,13 +67,12 @@ function fromPrice(vehicleType: LandingVehicleType): number {
 /**
  * The goods shortcuts as a shop window: what a visitor might be moving, the
  * lightest vehicle typically rated for it, and what it starts at. Each tile is
- * an anchor to the quote calculator that also selects its shortcut there
+ * an anchor to the booking card that also selects its shortcut there
  * (`preselectLandingGoods`), so the visitor lands on a card already asking
  * about the right goods and only has to type the route.
  *
- * The vehicle and "from" figure are priced on the same stand-in cargo category
- * the calculator estimates with (`SHORTCUT_ESTIMATE_CARGO_CATEGORY`), so a tile
- * and the quote it leads to can never disagree; the order's real category is
+ * The vehicle and "from" figure are priced on a stand-in cargo category per
+ * shortcut (`SHORTCUT_ESTIMATE_CARGO_CATEGORY`); the order's real category is
  * still derived from the items at booking time.
  *
  * Not part of the default page (`DEFAULT_HOME_PAGE_SECTION_ORDER`) — this only
@@ -120,7 +119,7 @@ export function LandingCategoryTiles({
                 <a
                   href="#price-a-load"
                   // The default action still runs: the anchor scrolls to the
-                  // calculator, which has just been told which tile to select.
+                  // booking card, which has just been told which tile to select.
                   onClick={() => preselectLandingGoods(code)}
                   className="group flex h-full flex-col gap-2 rounded-xl border border-line bg-surface p-5 transition-transform hover:-translate-y-1"
                 >

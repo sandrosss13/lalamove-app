@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { Camera } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 import {
@@ -20,7 +21,12 @@ import {
   type HandlingTagTranslator,
 } from "@/components/driver-hub/screens/loads-format";
 import type { Translator } from "@/i18n/translator";
+import {
+  OrderPhotoGallery,
+  type OrderPhotoGalleryItem,
+} from "@/components/order-photo-gallery";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 /**
@@ -306,11 +312,20 @@ export type CargoCompliance = {
 };
 
 /**
- * The eight cargo rows, in the design's order.
+ * The cargo rows, in the design's order.
  *
- * Built as data rather than as eight hand-written `<dt>`/`<dd>` pairs so the
- * grid's alignment cannot drift row to row, and so the order is one list to read
+ * Built as data rather than as hand-written `<dt>`/`<dd>` pairs so the grid's
+ * alignment cannot drift row to row, and so the order is one list to read
  * rather than eighty lines of markup to scan.
+ *
+ * **A row the client never filled in is left out, not printed as "—".** The
+ * booking form no longer asks for weight, dimensions, packaging, quantity or
+ * handling — it asks for a weight bracket (the vehicle) and, optionally,
+ * photos — so on a new order those rows would all be dashes, a table of
+ * nothing that reads as data having failed to load. Type and Helpers are always
+ * known and always shown. Volume follows Dimensions: both need all three axes.
+ * Handling is hidden at zero tags for the same reason — "None declared" claimed
+ * the client was asked and said nothing applied, which is no longer true.
  *
  * There is no Body type row — the booked chassis appears only in the cold-chain
  * mismatch note below, where it is the point rather than a detail.
@@ -333,8 +348,10 @@ function cargoRows(
     widthM: load.cargoWidthM,
     heightM: load.cargoHeightM,
   };
+  const hasFullDims =
+    dims.lengthM !== null && dims.widthM !== null && dims.heightM !== null;
 
-  return [
+  const rows: { key: string; label: string; value: string | null }[] = [
     {
       key: "type",
       label: t("rowType"),
@@ -343,33 +360,33 @@ function cargoRows(
     {
       key: "weight",
       label: t("rowWeight"),
-      value: formatWeightKg(load.cargoWeightKg),
+      value:
+        load.cargoWeightKg === null ? null : formatWeightKg(load.cargoWeightKg),
     },
     {
       key: "dimensions",
       label: t("rowDimensions"),
-      value: formatLoadDims(dims),
+      value: hasFullDims ? formatLoadDims(dims) : null,
     },
-    { key: "volume", label: t("rowVolume"), value: formatVolumeM3(dims) },
+    {
+      key: "volume",
+      label: t("rowVolume"),
+      value: hasFullDims ? formatVolumeM3(dims) : null,
+    },
     {
       key: "packaging",
       label: t("rowPackaging"),
-      value: load.packagingDescription ?? EM_DASH,
+      value: load.packagingDescription,
     },
     {
       key: "quantity",
       label: t("rowQuantity"),
-      value: load.itemQuantity ?? EM_DASH,
+      value: load.itemQuantity,
     },
     {
       key: "handling",
       label: t("rowHandling"),
-      // "None declared" rather than an em dash: the client was asked and said
-      // nothing applied, which is a different fact from a value being missing.
-      value:
-        tags.length === 0
-          ? t("noneDeclared")
-          : tags.map((tag) => tag.label).join(", "),
+      value: tags.length === 0 ? null : tags.map((tag) => tag.label).join(", "),
     },
     {
       key: "helpers",
@@ -377,6 +394,10 @@ function cargoRows(
       value: formatHelperRequest(load.helperCount, translateTag),
     },
   ];
+
+  return rows.flatMap((row) =>
+    row.value === null ? [] : [{ ...row, value: row.value }],
+  );
 }
 
 /** The cargo specification, as a two-column definition list. */
@@ -439,32 +460,192 @@ export function HandlingTagPills({
 }
 
 /**
- * The three cargo-photo tiles.
+ * A load's cargo photos in the drawer and the mobile sheet: real thumbnails,
+ * each opening full size, through the same `OrderPhotoGallery` the job sheet
+ * and the client's tracking page render.
  *
- * **Permanent dashed placeholders.** There is no cargo photo upload anywhere in
- * the client booking flow to feed them and `GET /api/loads` carries no photo
- * field at all, so the count is a constant and no field on the row is consulted
- * to decide it. `specs/driver-load-board/requirements.md`'s Non-Goals: "No cargo
- * photos… Do not add one." Do not build an upload control here, and do not
- * remove the tiles for a load with no photos — every load has no photos, and
- * that is the permanent state of this feature.
+ * **Fetched on open, never carried on the board.** `GET /api/loads` returns
+ * only `photoCount`; the signed URLs come from `GET /api/loads/[id]/photos`
+ * when this mounts, because the board is polled every ten seconds and signing
+ * URLs for every row on every tick would be almost entirely wasted. That
+ * endpoint applies the board's own visibility rule, so a photo is only ever
+ * served for a load this account is already shown. Photos are shown before the
+ * claim on purpose: they describe the cargo, not the client.
+ *
+ * **A load without photos renders nothing.** These used to be three permanent
+ * dashed placeholders, from when no booking could attach a photo; now that
+ * photos are optional and real, an empty tile would read as one that failed to
+ * load. The board's 10-second poll replaces the `HubLoad` object without
+ * changing `loadId` or `photoCount`, so it does not refetch.
+ *
+ * The request key folds in a retry counter, and the state remembers which key
+ * it answers: a state whose key is not the current one *is* the loading state,
+ * so the effect never has to reset state synchronously when the load changes.
  */
-const PHOTO_TILE_NUMBERS = [1, 2, 3];
+export function LoadCargoPhotos({
+  loadId,
+  photoCount,
+}: {
+  loadId: string;
+  photoCount: number;
+}) {
+  const t = useTranslations("orders.orderPhotos");
+  const [attempt, setAttempt] = React.useState(0);
+  const [result, setResult] = React.useState<CargoPhotosResult | null>(null);
+  const requestKey = `${loadId}:${photoCount}:${attempt}`;
 
-export function CargoPhotoTiles() {
-  const t = useTranslations("driverHub.loadsDetailParts");
+  React.useEffect(() => {
+    if (photoCount === 0) {
+      return;
+    }
+
+    const controller = new AbortController();
+
+    void fetchLoadPhotos(loadId, controller.signal).then((photos) => {
+      if (!controller.signal.aborted) {
+        setResult({ key: requestKey, photos });
+      }
+    });
+
+    return () => controller.abort();
+  }, [loadId, photoCount, requestKey]);
+
+  if (photoCount === 0) {
+    return null;
+  }
+
+  const current = result?.key === requestKey ? result : null;
+
+  if (current !== null && current.photos !== null) {
+    return (
+      <OrderPhotoGallery
+        photos={current.photos}
+        className="mt-3"
+        headingClassName={PHOTO_HEADING_CLASSES}
+        headingLevel="h4"
+      />
+    );
+  }
 
   return (
-    <div className="mt-3 grid grid-cols-3 gap-2">
-      {PHOTO_TILE_NUMBERS.map((number) => (
+    <section className="mt-3 flex flex-col gap-2">
+      <h4 className={PHOTO_HEADING_CLASSES}>{t("cargoPhotos")}</h4>
+
+      {current === null ? (
+        // One tile per photo the board counted, so the section does not
+        // change height when the thumbnails arrive.
         <div
-          key={number}
-          className="flex aspect-[4/3] items-center justify-center rounded-md border border-dashed border-border bg-muted text-[10px] text-muted-foreground"
+          role="status"
+          aria-live="polite"
+          className="grid grid-cols-3 gap-2"
         >
-          {t("photoPlaceholder", { number })}
+          <span className="sr-only">{t("loading")}</span>
+          {Array.from({ length: photoCount }, (_, index) => (
+            <div
+              key={index}
+              aria-hidden
+              className="aspect-[4/3] animate-pulse rounded-md border border-border bg-muted"
+            />
+          ))}
         </div>
-      ))}
-    </div>
+      ) : (
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+          <p role="alert">{t("loadFailed")}</p>
+          <Button
+            type="button"
+            variant="link"
+            size="sm"
+            className="h-auto p-0 text-xs"
+            onClick={() => setAttempt((value) => value + 1)}
+          >
+            {t("retry")}
+          </Button>
+        </div>
+      )}
+    </section>
+  );
+}
+
+/** Quieter than the section label above it: a sub-part of "Cargo". */
+const PHOTO_HEADING_CLASSES = "text-xs font-medium text-muted-foreground";
+
+/**
+ * One answered request. `photos: null` is a failure; the key ties the answer to
+ * the request that produced it, so a stale answer reads as "still loading".
+ */
+type CargoPhotosResult = {
+  key: string;
+  photos: OrderPhotoGalleryItem[] | null;
+};
+
+/**
+ * `GET /api/loads/[id]/photos`, reduced to the photos or `null` on any failure.
+ *
+ * An empty list is a failure here, not a success: this is only called for a
+ * load the board counted photos on, and the endpoint answers an empty list
+ * when Storage could not sign the URLs (it degrades rather than erroring), so
+ * "no photos" from it means "could not get them" and earns the retry.
+ */
+async function fetchLoadPhotos(
+  loadId: string,
+  signal: AbortSignal,
+): Promise<OrderPhotoGalleryItem[] | null> {
+  try {
+    const response = await fetch(
+      `/api/loads/${encodeURIComponent(loadId)}/photos`,
+      { signal, cache: "no-store" },
+    );
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const body = (await response.json()) as {
+      photos?: OrderPhotoGalleryItem[];
+    };
+
+    return Array.isArray(body.photos) && body.photos.length > 0
+      ? body.photos
+      : null;
+  } catch {
+    // Aborted on unmount, or the network failed: either way there is nothing
+    // to show, and the caller ignores an aborted answer.
+    return null;
+  }
+}
+
+/**
+ * "📷 2" — how many photos a load carries, for the table row and the mobile
+ * card. Renders nothing for a load without photos, so the many rows that have
+ * none carry no extra mark.
+ */
+export function LoadPhotoCount({
+  count,
+  className,
+}: {
+  count: number;
+  className?: string;
+}) {
+  const t = useTranslations("orders.orderPhotos");
+
+  if (count === 0) {
+    return null;
+  }
+
+  const label = t("count", { count });
+
+  return (
+    <span
+      title={label}
+      className={cn(
+        "inline-flex flex-none items-center gap-0.5 text-[11px] text-muted-foreground tabular-nums",
+        className,
+      )}
+    >
+      <Camera aria-hidden className="size-3" />
+      <span aria-hidden>{count}</span>
+      <span className="sr-only">{label}</span>
+    </span>
   );
 }
 
@@ -598,9 +779,10 @@ export function ClaimedElsewhereNote({
  * would tell the driver less than one naming what they will find there.
  *
  * **Contact details is the whole of the claim.** The job sheet captures no
- * photos and no signature — an explicit product decision, the same one behind
- * `CargoPhotoTiles`' permanent placeholders — so nothing here or on either
- * surface may promise proof-of-delivery capture.
+ * photos and no signature — an explicit product decision; the only photos
+ * anywhere on a job are the client's own cargo photos from booking, shown
+ * read-only — so nothing here or on either surface may promise
+ * proof-of-delivery capture.
  */
 export function ClaimedByYouNote() {
   const t = useTranslations("driverHub.loadsDetailParts");

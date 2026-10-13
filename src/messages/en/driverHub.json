@@ -101,6 +101,7 @@
   },
   "driversAddPanel": {
     "9955xxXxxXxx": "+995 5XX XXX XXX",
+    "articulatedCombinations": "Articulated combinations",
     "assignLater": "Assign later",
     "carsAndSmallVans": "Cars and small vans",
     "couldNotRegister": "Could not register this driver.",
@@ -108,12 +109,12 @@
     "everyFleetVehicleIsCurrentlyHeld": "Every fleet vehicle is currently held by a driver. Register this one unassigned and pair them from the Vehicles screen later.",
     "hintCategories": "Tick at least one licence category.",
     "hintCity": "Pick the zone this driver works.",
-    "hintEmail": "Add the driver's email address — it is their login.",
+    "hintEmail": "Check the email address, or leave it blank — it is optional.",
     "hintExpiry": "Add a licence expiry date in the future.",
     "hintLicenceNumber": "Add the driver's licence number.",
     "hintName": "Add a first and last name to continue.",
     "hintPhone": "Add a phone number with at least {minDigits} digits.",
-    "hintReady": "Registers {name} in {city} with {vehicle}. A temporary password is shown once, here.",
+    "hintReady": "Registers {name} in {city} with {vehicle}. They sign in with their phone number.",
     "hintVehicleCategory": "{vehicle} needs category {category}. Tick it, or assign a different vehicle.",
     "licenceCategories": "Licence categories",
     "networkErrorCheckYourConnectionAnd": "Network error. Check your connection and try again.",
@@ -124,7 +125,13 @@
     "registering": "Registering…",
     "rigidTrucks": "Rigid trucks",
     "thatVehicle": "That vehicle",
-    "thisCreatesTheirAccountTheySign": "This creates their account. They sign in with the email below and the one-time password shown after saving, then set their own."
+    "thisCreatesTheirAccountTheySign": "This creates their account. They sign in to the driver app with this phone number and a one-time SMS code.",
+    "emailOptional": "Email (optional)",
+    "drivingLicenceOptional": "Driving licence (optional)",
+    "drivingLicenceOptionalNote": "Leave it blank, or fill in the number, the expiry date and at least one category.",
+    "personalId": "Personal ID number",
+    "personalIdHint": "Add the driver's 11-digit personal ID number.",
+    "personalIdPlaceholder": "11 digits"
   },
   "driversDetailPanel": {
     "confirmOffboarding": "Confirm offboarding",
@@ -140,14 +147,20 @@
     "recentJobs": "Recent jobs",
     "sampleAcceptanceNote": "Nothing records an offer a driver was shown but did not take, so an acceptance rate cannot be computed. Retire with a JobOffer model.",
     "sampleRatingNote": "Nothing records a customer rating for an order. Retire with an OrderRating model.",
-    "sampleVerificationNote": "DriverApplication verifies documents once at onboarding and models no ongoing validity, so these verdicts are placeholders. Retire with a DriverDocument model. The licence expiry date itself is real.",
-    "verification": "Verification"
+    "personalId": "Personal ID number",
+    "personalIdMissing": "Not provided",
+    "editPersonalId": "Edit",
+    "savePersonalId": "Save",
+    "cancelPersonalId": "Cancel",
+    "savingPersonalId": "Saving…",
+    "personalIdHint": "Add the driver's 11-digit personal ID number.",
+    "personalIdLockedNote": "Confirmed by the driver's approved application. Contact support to change it.",
+    "couldNotSavePersonalId": "Could not save the personal ID number."
   },
   "driversScreen": {
     "acrossCities": "Across {cities}",
     "addDriver": "Add driver",
     "addedThisMonth": "{count} added this month",
-    "doneIHaveSharedIt": "Done — I have shared it",
     "driverDetails": "{name} details",
     "driverFallback": "driver",
     "emptyAll": "No drivers on this roster yet.",
@@ -158,14 +171,11 @@
     "filterByStatus": "Filter drivers by status",
     "fleetAvgRating": "Fleet avg rating",
     "fromRatedJobs": "From {count} rated jobs",
-    "giveThemDetails": "Give them these sign-in details now. The password is shown",
     "inReviewCount": "{count} in review",
-    "itIsNotStoredAnywhereIn": "— it is not stored anywhere in readable form, and closing this card is the end of it. They set their own password after signing in.",
     "nobodyAddedThisMonth": "Nobody added this month",
     "nobodyTakingWork": "Nobody is taking work right now",
     "notActivatedCount": "{count} not activated",
     "offline": "Offline",
-    "once": "once",
     "online": "Online",
     "onlineNow": "Online now",
     "ratingSampleNote": "Nothing records a customer rating for an order, so every rating on this screen is a placeholder. Retire with an OrderRating model.",
@@ -179,7 +189,8 @@
     "subtitleNobodyOnline": "nobody online right now",
     "subtitleOnlineIn": "{count} online in {cities} now",
     "subtitleRegistered": "{count, plural, one {# registered driver} other {# registered drivers}}",
-    "suspendedCount": "{count} suspended"
+    "suspendedCount": "{count} suspended",
+    "theySignInWithPhone": "They sign in to the driver app with this phone number and a one-time SMS code — no password needed."
   },
   "earningsBreakdownCard": {
     "adjustments": "Adjustments",
@@ -408,6 +419,7 @@
     "callOn": "{name} on {phone}",
     "deadline": "Deadline",
     "delivered": "Delivered",
+    "deliveryPhoto": "Delivery photo {n}",
     "details": "Details",
     "inTransit": "In transit",
     "keptVisibleDispatcher": "Kept visible after delivery — a dispatcher may still need to call about a finished job.",
@@ -419,7 +431,10 @@
     "navigationUnavailableNote": "No map location for this stop — check the job details before setting off.",
     "noCoordinates": "No map coordinates were recorded for this stop, so Navigate opens a map search on the address text.",
     "notDispatchedToADriver": "Not dispatched to a driver",
+    "proofOfDelivery": "Proof of delivery",
+    "proofUnavailable": "Some proof of delivery is on file but could not be loaded. Refresh to try again.",
     "receivedBy": "Received by",
+    "recipientSignature": "Recipient signature",
     "routeSummary": "{from} → {to} · {distance} · 2 stops",
     "thisJobPaid": "This job paid",
     "thisJobPays": "This job pays",
@@ -515,7 +530,6 @@
     "coldChainMismatchNote": "This load needs cold-chain handling, but wasn't booked with a refrigerated body. Confirm your vehicle can keep it cold before accepting.",
     "hazmatNote": "Hazmat cargo. Confirm you and your vehicle hold a valid ADR certification before accepting — this isn't checked automatically.",
     "noneDeclared": "None declared",
-    "photoPlaceholder": "Photo {number}",
     "rowDimensions": "Dimensions",
     "rowHandling": "Handling",
     "rowHelpers": "Helpers",
@@ -570,6 +584,7 @@
     "loadAria": "Load {reference}"
   },
   "loadsFilters": {
+    "cargoWeightAny": "Cargo weight: any",
     "cargoWeightUpTo": "Cargo weight up to {weight} kg",
     "reset": "Reset",
     "specialHandling": "Special handling"
@@ -641,6 +656,10 @@
     "widenTheWeightRangeOrClear": "Widen the weight range or clear a city to see more.",
     "yours": "Yours"
   },
+  "offerPush": {
+    "body": "Open the app to respond before it expires.",
+    "title": "New load offer"
+  },
   "performanceScreen": {
     "acceptanceNote": "A declined offer leaves no row — Order only ever stores the offer that was taken — so acceptance is unrecorded, not merely unaggregated. Retire with a JobOffer model holding every dispatch and its outcome.",
     "andAFlatBarUntilThey": "and a flat bar until they happen.",
@@ -670,6 +689,10 @@
     "windowFootnote": "This week, {range}. The rates count jobs by when they were booked; the chart counts them by when they were completed, so the two need not describe the same jobs.",
     "windowFootnoteRich": "This week, <num>{range}</num>. The rates count jobs by when they were <strong>booked</strong>; the chart counts them by when they were <strong>completed</strong>, so the two need not describe the same jobs."
   },
+  "routeAlertPush": {
+    "body": "A load matching one of your route alerts was just posted.",
+    "title": "New load on your route"
+  },
   "vehiclesAddForm": {
     "ab123Cd": "AB-123-CD",
     "addAVehicle": "Add a vehicle",
@@ -691,17 +714,17 @@
     "hintYear": "Add a manufacturing year between {min} and {max}.",
     "itJoinsTheFleetAsIdle": "It joins the fleet as idle. Assign a driver to start taking jobs.",
     "loadingVehicleClasses": "Loading vehicle classes…",
-    "odometerIsDisabledVehicleHasNo": "Odometer is disabled: `Vehicle` has no reading to store it in, so anything typed here would be thrown away. It arrives with `Vehicle.odometerKm`.",
-    "odometerKm": "Odometer (km)",
     "photoRequirementNote": "At least one photo is required — the endpoint rejects a vehicle without one. Up to 5 MB each.",
     "transitCustom": "Transit Custom",
     "typesError": "Could not load the vehicle types. Refresh and try again.",
     "upTo": "Up to {weight}",
-    "upToRich": "Up to <num>{weight}</num>"
+    "upToRich": "Up to <num>{weight}</num>",
+    "trailerPlate": "Trailer plate (optional)",
+    "trailerPlateHint": "Only if this vehicle pulls a trailer: 2–15 letters, digits, spaces or hyphens.",
+    "trailerPlatePlaceholder": "AB-123-CD"
   },
   "vehiclesDetailPanel": {
     "confirmRemoval": "Confirm removal",
-    "costPerKm": "Cost per km",
     "couldNotRemove": "Could not remove this vehicle.",
     "jobsWeek": "Jobs · week",
     "networkError": "Network error. Please check your connection.",
@@ -710,24 +733,26 @@
     "removeUnarmedNote": "Deletes the vehicle record outright. There is no defleeted state to bring it back from, so putting it back on the road means registering it again.",
     "removeVehicle": "Remove vehicle",
     "removing": "Removing…",
-    "runningCostsThisMonth": "Running costs · this month",
     "sampleNoteCities": "Vehicle has no operating-cities column; only the company's fleet-wide citiesOfOperation exists. Retire with Vehicle.operatingCities.",
-    "sampleNoteCosts": "Nothing records fuel, service, parking or toll charges against a vehicle. Retire with a VehicleExpense model.",
-    "sampleNoteSpecs": "Vehicle stores no odometer reading, fuel type or per-vehicle job count. Retire with Vehicle.odometerKm and a per-vehicle job rollup.",
-    "thisVehicleBelongsToTheFleet": "This vehicle belongs to the fleet you drive for, not to you. Only its owner can remove it."
+    "sampleNoteSpecs": "Vehicle stores no per-vehicle job count. Retire with a per-vehicle job rollup.",
+    "thisVehicleBelongsToTheFleet": "This vehicle belongs to the fleet you drive for, not to you. Only its owner can remove it.",
+    "trailerPlate": "Trailer plate",
+    "trailerPlateNone": "No trailer",
+    "editTrailerPlate": "Edit",
+    "saveTrailerPlate": "Save",
+    "cancelTrailerPlate": "Cancel",
+    "savingTrailerPlate": "Saving…",
+    "trailerPlateHint": "2–15 letters, digits, spaces or hyphens. Leave blank to remove it.",
+    "couldNotSaveTrailerPlate": "Could not save the trailer plate."
   },
   "vehiclesScreen": {
     "addOneToStartTakingJobs": "Add one to start taking jobs. It joins as idle until a driver is assigned to it.",
     "addVehicle": "Add vehicle",
     "availableToHand": "Available to hand to a driver",
-    "costKm": "Cost/km",
     "detailLabelAddForm": "the add vehicle form",
     "detailLabelDefault": "vehicle details",
     "detailLabelVehicle": "{make} {model} details",
     "filterAria": "Filter vehicles by status",
-    "fleetCostNote": "Fuel, service, parking and tolls",
-    "fleetCostPerKm": "Fleet cost per km",
-    "fleetCostSampleNote": "No fuel, service, parking or toll charge is recorded against any vehicle, so there is nothing to average. Retire with a VehicleExpense model.",
     "heldByDriver": "Held by a driver right now",
     "idle": "Idle",
     "inYourHands": "In your hands right now",
@@ -736,11 +761,8 @@
     "noVehicleRegistered": "You have no vehicle registered yet.",
     "noVehiclesFleet": "No vehicles in the fleet yet.",
     "notHeld": "Not held by anyone right now",
-    "odometerCostKm": "Odometer · Cost/km",
     "onTheRoad": "On the road",
     "rosterEmptyHint": "Your fleet manager assigns you a vehicle from the company's own. It appears here once they do.",
-    "sampleData": " — sample data.",
-    "sampledColumnsNote": "Odometer and cost per km are placeholders: nothing records a reading or a cost against a vehicle. Retire with Vehicle.odometerKm and a VehicleExpense model.",
     "shownCount": "{visible} of {total} shown",
     "subtitleFleet": "{count, plural, one {# vehicle registered} other {# vehicles registered}} · {onRoad} on the road, {unassigned} unassigned",
     "subtitleNone": "No vehicles yet",

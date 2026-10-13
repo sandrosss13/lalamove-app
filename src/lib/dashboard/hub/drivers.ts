@@ -17,7 +17,7 @@
  *
  * Everything at the top level of `HubDriver` is read from the database,
  * including the three recent jobs the detail panel lists. Everything the schema
- * cannot answer — the rating and the four verification rows — is quarantined
+ * cannot answer — the rating and the acceptance rate — is quarantined
  * under `sampled`, one sub-object per driver, sourced entirely from
  * `@/lib/dashboard/hub/sample`. The tiles split the same way. The screen renders
  * a `<SampleNote />` beside anything read out of a `sampled` object and nothing
@@ -47,7 +47,6 @@ import type {
 } from "@prisma/client";
 
 import type { HubAccount } from "@/lib/dashboard/hub/account";
-import type { SampleVerificationRow } from "@/lib/dashboard/hub/sample";
 import {
   SAMPLE_FLEET_AVG_RATING,
   SAMPLE_FLEET_RATED_JOB_COUNT,
@@ -123,15 +122,13 @@ export type HubDriverRecentJob = {
  * The per-driver figures the schema cannot source. **Nothing in here is real.**
  *
  * Keyed off `DriverProfile.id`, which in any database but a seeded demo misses
- * and falls through to a neutral fallback (`rating: null`, every document "In
- * review") rather than a plausible-looking invention about a real person — see
- * `sampleDriverFacts()`.
+ * and falls through to a neutral fallback (`rating: null`) rather than a
+ * plausible-looking invention about a real person — see `sampleDriverFacts()`.
  */
 export type HubDriverSampled = {
   /** null for a driver with no rated jobs; the roster prints "—". */
   rating: number | null;
   acceptanceRatePercent: number;
-  verification: readonly SampleVerificationRow[];
 };
 
 export type HubDriver = {
@@ -142,6 +139,22 @@ export type HubDriver = {
   email: string;
   phone: string;
   city: GeorgianCity;
+  /**
+   * `DriverProfile.idNumber` — the driver's 11-digit Georgian personal number,
+   * or null when none is on file. Printed on a client's order-details PDF as
+   * the carrying driver's ID, so the company is asked for it at registration
+   * and can fill it in afterwards for drivers added before it was required.
+   */
+  idNumber: string | null;
+  /**
+   * Whether the company may still edit `idNumber`. False once the driver has an
+   * `APPROVED` `DriverApplication`: operations verified that number against
+   * the driver's own documents, and the company overwriting it would silently
+   * undo the review. `PATCH /api/logistics-company/drivers/[userId]` enforces
+   * the same rule (409); this flag only spares the panel offering an edit the
+   * server would refuse.
+   */
+  canEditIdNumber: boolean;
   /**
    * Humanised city, which is what the design's **Zone** column shows.
    *
@@ -410,6 +423,8 @@ export async function getHubDrivers(
       email: driver.user.email,
       phone: driver.phone,
       city: driver.city,
+      idNumber: driver.idNumber,
+      canEditIdNumber: driver.application?.status !== "APPROVED",
       cityLabel: formatCity(driver.city),
       isOnline: driver.isOnline,
       presence: driver.isOnline ? "Online" : "Offline",
@@ -441,7 +456,6 @@ export async function getHubDrivers(
       sampled: {
         rating: facts.rating,
         acceptanceRatePercent: facts.acceptanceRatePercent,
-        verification: facts.verification,
       },
     };
   });

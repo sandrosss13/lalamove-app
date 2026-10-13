@@ -409,9 +409,9 @@ export function Step4ReviewSubmit() {
           onClick={() => void handleSubmit()}
           disabled={submitting}
           // `text-white` on `bg-onboarding-accent` is deliberate in both themes:
-          // the brand orange is theme-independent by design, so the label on it
+          // the brand green is theme-independent by design, so the label on it
           // has to be too. `text-primary-foreground` would flip to near-black on
-          // orange under `.dark`. Leave the pair as it is.
+          // green under `.dark`. Leave the pair as it is.
           className="h-12 cursor-pointer rounded-[11px] bg-onboarding-accent px-[30px] text-[15px] font-semibold tracking-[-0.01em] text-white transition-colors hover:bg-onboarding-accent-hover focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
         >
           {submitting ? t("submitting") : t("submitApplication")}

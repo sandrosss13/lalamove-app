@@ -1,6 +1,5 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { OrderStatus } from "@prisma/client";
 import { getTranslations } from "next-intl/server";
 
 import { Link } from "@/i18n/navigation";
@@ -9,6 +8,10 @@ import { auth } from "@/lib/auth";
 import { DATA_SCREEN_WIDTH_CLASSES } from "@/lib/layout";
 import { prisma } from "@/lib/prisma";
 import { OrderCard } from "@/components/order-card";
+import {
+  orderIsEditableByClient,
+  orderIsTrackable,
+} from "@/components/orders-format";
 
 // Session + Prisma access can't be statically rendered.
 export const dynamic = "force-dynamic";
@@ -135,17 +138,30 @@ export default async function OrdersPage() {
         ) : (
           <ul className="flex flex-col gap-3.5">
             {orders.map((order) => (
+              // Every card opens `/orders/<id>`, where the full order and its
+              // actions (pay, edit, cancel while unpaid) live. The links below
+              // are shortcuts to the two that are worth skipping a page for;
+              // the card lifts them above its stretched link.
               <OrderCard key={order.id} order={order}>
                 {/* Tracking only means something once someone is on their way to
                     the pickup, so the link waits for an assigned driver. */}
-                {order.driverId !== null &&
-                (order.status === OrderStatus.ACCEPTED ||
-                  order.status === OrderStatus.IN_TRANSIT) ? (
+                {orderIsTrackable(order) ? (
                   <Link
                     href={`/orders/${order.id}/track`}
                     className="mt-3.5 inline-block text-[14px] font-semibold text-accent transition-colors hover:text-accent-hover"
                   >
                     {t("trackDelivery")}
+                  </Link>
+                ) : null}
+                {/* An unpaid order is not on the open market yet, and checkout
+                    is the only way to put it there: without this link a client
+                    who left checkout before paying had no way back to it. */}
+                {orderIsEditableByClient(order) ? (
+                  <Link
+                    href={`/checkout/${order.id}`}
+                    className="mt-3.5 inline-block text-[14px] font-semibold text-accent transition-colors hover:text-accent-hover"
+                  >
+                    {t("completePayment")}
                   </Link>
                 ) : null}
               </OrderCard>

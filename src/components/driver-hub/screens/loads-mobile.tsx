@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { HubEmptyState } from "@/components/driver-hub/hub-primitives";
 import { HUB_STATUS_TONE_CLASSES } from "@/components/driver-hub/hub-status";
+import { LoadPhotoCount } from "@/components/driver-hub/screens/loads-detail-parts";
 import { LoadsDetailSheet } from "@/components/driver-hub/screens/loads-detail-sheet";
 import {
   ALL_CITIES,
@@ -332,6 +333,7 @@ function CitySelect({
 function WeightRow() {
   const { fWeight, setFWeight, visibleLoads } = useLoadsBoard();
   const tBoard = useTranslations("driverHub.loadsBoard");
+  const tFilters = useTranslations("driverHub.loadsFilters");
 
   // A generated id rather than a literal: a label→control association is the
   // kind of thing that breaks silently, and only for screen-reader users, if
@@ -344,7 +346,9 @@ function WeightRow() {
         htmlFor={weightId}
         className="flex-none text-[11px] text-muted-foreground tabular-nums"
       >
-        ≤ {formatWeightKg(fWeight)}
+        {fWeight === MAX_WEIGHT_FILTER_KG
+          ? tFilters("cargoWeightAny")
+          : `≤ ${formatWeightKg(fWeight)}`}
       </label>
       <input
         id={weightId}
@@ -567,14 +571,30 @@ function LoadCard({ load, nowIso }: { load: HubLoad; nowIso: string }) {
         </span>
       </div>
 
-      <p className="mt-1 text-xs text-muted-foreground">
-        {cargoCategoryLabel(load.cargoCategory, tRoot)} ·{" "}
-        {formatWeightKg(load.cargoWeightKg)} ·{" "}
-        {formatLoadDims({
-          lengthM: load.cargoLengthM,
-          widthM: load.cargoWidthM,
-          heightM: load.cargoHeightM,
-        })}
+      {/* Weight and dimensions only when declared: most orders no longer
+          carry them, and "Furniture · — · —" reads as a broken row. The photo
+          count trails the line and is absent on a load without photos. */}
+      <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+        <span className="min-w-0">
+          {[
+            cargoCategoryLabel(load.cargoCategory, tRoot),
+            load.cargoWeightKg === null
+              ? null
+              : formatWeightKg(load.cargoWeightKg),
+            load.cargoLengthM === null ||
+            load.cargoWidthM === null ||
+            load.cargoHeightM === null
+              ? null
+              : formatLoadDims({
+                  lengthM: load.cargoLengthM,
+                  widthM: load.cargoWidthM,
+                  heightM: load.cargoHeightM,
+                }),
+          ]
+            .filter((part): part is string => part !== null)
+            .join(" · ")}
+        </span>
+        <LoadPhotoCount count={load.photoCount} className="text-xs" />
       </p>
 
       {/* The trip line. It used to open with the pick-up window; that fact moved

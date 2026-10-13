@@ -21,9 +21,7 @@ sample.acceptanceRate,Acceptance rate,,src/lib/dashboard/hub/sample.ts
 sample.accountantOnly,Accountant only,,src/lib/dashboard/hub/sample.ts
 sample.assignsJobsInsideTheirZones,Assigns jobs inside their zones,,src/lib/dashboard/hub/sample.ts
 sample.contract,Contract,,src/lib/dashboard/hub/sample.ts
-sample.criminalRecordExtract,Criminal record extract,,src/lib/dashboard/hub/sample.ts
 sample.declinesCountedOverTheLast100,Declines counted over the last 100 offers. Staying above 90% keeps priority matching.,,src/lib/dashboard/hub/sample.ts
-sample.driverLicenceGe,Driver licence (GE),,src/lib/dashboard/hub/sample.ts
 sample.eleneAbashidze,Elene Abashidze,,src/lib/dashboard/hub/sample.ts
 sample.fleetManagerDispatcherAccountantMechanic,"Fleet manager, dispatcher, accountant, mechanic",,src/lib/dashboard/hub/sample.ts
 sample.from61RatedJobsRatingsBelow,From 61 rated jobs. Ratings below 4.5 trigger a coaching review.,,src/lib/dashboard/hub/sample.ts
@@ -35,12 +33,10 @@ sample.marikaDolidze,Marika Dolidze,,src/lib/dashboard/hub/sample.ts
 sample.newJobOfferVakeSaburtalo,New job offer · Vake → Saburtalo,,src/lib/dashboard/hub/sample.ts
 sample.openWorkOrders,Open work orders,,src/lib/dashboard/hub/sample.ts
 sample.ownJobsAndEarningsOnly,Own jobs and earnings only,,src/lib/dashboard/hub/sample.ts
-sample.parkingTolls,Parking & tolls,,src/lib/dashboard/hub/sample.ts
 sample.payoutAccounts,Payout accounts,,src/lib/dashboard/hub/sample.ts
 sample.payoutOf14260Sent,Payout of ₾142.60 sent,,src/lib/dashboard/hub/sample.ts
 sample.payoutsInvoicesAndTax,"Payouts, invoices and tax",,src/lib/dashboard/hub/sample.ts
 sample.serviceLog,Service log,,src/lib/dashboard/hub/sample.ts
-sample.serviceParts,Service & parts,,src/lib/dashboard/hub/sample.ts
 sample.shift,Shift,,src/lib/dashboard/hub/sample.ts
 sample.sopoKiknadze,Sopo Kiknadze,,src/lib/dashboard/hub/sample.ts
 sample.taxId,Tax ID,,src/lib/dashboard/hub/sample.ts

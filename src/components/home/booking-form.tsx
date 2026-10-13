@@ -3,11 +3,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { ArrowRight, CalendarDays } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
-import type {
-  CargoHandlingTag,
-  ChassisType,
-  ServiceLevel,
-} from "@prisma/client";
+import type { CargoCategory, ChassisType, ServiceLevel } from "@prisma/client";
 
 import { Link, useRouter } from "@/i18n/navigation";
 import { AddressAutocomplete } from "@/components/address-autocomplete";
@@ -23,13 +19,21 @@ import {
   VanGlyph,
 } from "@/components/home/booking-form-primitives";
 import {
+  CargoPhotosField,
+  MAX_CARGO_PHOTOS,
+  useCargoPhotos,
+} from "@/components/home/cargo-photos-field";
+import {
   addPalletLine,
   activeLines,
   effectiveMode,
+  inferPalletContents,
+  linesFromOrderItems,
   toItemsPayload,
   toLoadLines,
   type PickerLine,
   type PickerMode,
+  type StoredOrderItem,
 } from "@/components/home/item-list-lines";
 import { ItemListPicker } from "@/components/home/item-list-picker";
 import {
@@ -40,23 +44,24 @@ import {
   formatVehicleDimensions,
   formatVehiclePayload,
   useOrderVehicleTypes,
+  vehicleOfferedToClient,
   vehicleOffersBody,
   type OrderVehicleType,
 } from "@/components/home/order-vehicle-types";
 import { RoutePreviewMap } from "@/components/home/route-preview-map";
+import {
+  StopContactDialog,
+  type StopContact,
+} from "@/components/home/stop-contact-dialog";
+import { useClientAccountType } from "@/components/home/use-client-account-type";
 import { VehicleRecommendation } from "@/components/home/vehicle-recommendation";
 import {
   reconcileVehicleSelection,
   selectionOutsideRecommendation,
   type VehicleReleaseReason,
 } from "@/components/home/vehicle-selection";
-import {
-  StopContactDialog,
-  type StopContact,
-} from "@/components/home/stop-contact-dialog";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Popover,
@@ -64,10 +69,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  CARGO_CATEGORY_ALLOWED_VEHICLE_CATEGORIES,
-  useCargoHandlingTagLabel,
-} from "@/lib/cargo";
+import { CARGO_CATEGORY_ALLOWED_VEHICLE_CATEGORIES } from "@/lib/cargo";
 import type { CargoAxis } from "@/lib/orders/booking-fit";
 // The one fit vocabulary this form and `POST /api/orders` share. Imported, never
 // re-implemented here: a client-side copy of these comparisons is exactly how the
@@ -88,7 +90,6 @@ import {
   type LoadPlan,
 } from "@/lib/orders/load-plan";
 import { vehicleTypeSpecLabel } from "@/lib/vehicle-type-spec-labels";
-import type { AccountType } from "@/lib/account-types";
 import {
   GOODS_SHORTCUTS,
   isGoodsShortcutCode,
@@ -179,6 +180,68 @@ type Estimate = Quote & { serviceLevels: ServiceLevelPrices };
 type CreatedOrder = { id: string };
 
 /**
+ * An unpaid order to re-open in this form, as `/orders/[id]/edit` loads it.
+ *
+ * Passing one puts the form in edit mode: every input below starts from the
+ * order rather than from a blank booking, and Save sends the same payload Book
+ * would have sent, as `PATCH /api/orders/<id>` instead of `POST /api/orders`.
+ * The endpoint re-prices it from scratch, exactly as it priced the original —
+ * nothing on this type is a figure, because no figure the form was handed
+ * could be trusted to still be the price.
+ *
+ * Plain JSON on purpose (`scheduledAt` is an ISO string, not a `Date`): it
+ * crosses the server → client component boundary as a prop, and a string is
+ * the one shape that is serialised the same way by every version of that
+ * boundary.
+ *
+ * What is *not* here, and why:
+ *
+ * - Weight, dimensions and cargo category. Goods-first booking derives all of
+ *   them from the item list, so the order re-opens on its stored item lines
+ *   (`items`) and the plan is re-run from those — `cargoCategory` below is
+ *   only what seeds a pallet line's contents (`inferPalletContents`).
+ * - Cargo photos. Those already on the order stay on it, untouched by Save;
+ *   any added here are uploaded alongside them through the same
+ *   `POST /api/orders/<id>/photos` a new booking uses.
+ * - Payment. Edit mode, like booking, ends at checkout.
+ */
+export type BookingFormInitialOrder = {
+  id: string;
+  /** `GE-48210` — shown in the header so the client knows which order is open. */
+  reference: string;
+  /** ISO 8601, or `null` for an order placed before the date step existed. */
+  scheduledAt: string | null;
+  pickupAddress: string;
+  /** Null when the address was typed rather than picked from autocomplete. */
+  pickupLocation: LatLng | null;
+  dropoffAddress: string;
+  dropoffLocation: LatLng | null;
+  /** Null where no contact was recorded for that stop. */
+  pickupContact: StopContact | null;
+  dropoffContact: StopContact | null;
+  cargoCategory: CargoCategory;
+  vehicleTypeCode: string;
+  /** Null for an order placed before the load-space filter existed. */
+  bodyType: ChassisType | null;
+  /** Extra helpers beyond the driver, 0–3 — the column, not the crew size. */
+  helperCount: number;
+  serviceLevel: ServiceLevel;
+  description: string | null;
+  /**
+   * The order's `OrderItem` rows (goods-first booking), seeded into the item
+   * list through `linesFromOrderItems`. Empty for an order booked before the
+   * item list existed: the client lists its goods again, since a save is a
+   * re-booking and `PATCH /api/orders/[id]` re-derives the load from them.
+   */
+  items: StoredOrderItem[];
+  /**
+   * The client's account type, read server-side by the edit route, so the
+   * vehicle list is right from the first render — see `useClientAccountType`.
+   */
+  accountType: "INDIVIDUAL" | "BUSINESS";
+};
+
+/**
  * The two ends of the route, in the order they are travelled — which is also
  * the order the delivery-info dialog numbers its badge by (`1` for the pickup,
  * `2` for the dropoff, from `stop`).
@@ -224,6 +287,52 @@ function stopContactPayload(
 }
 
 /**
+ * The crew size an order's stored `helperCount` stands for, clamped onto the
+ * picker's four cells. The column is 0–3 by validation, so the clamp is a
+ * guard rather than a path: a row outside it is shown at the nearest size the
+ * picker can draw instead of with no cell selected.
+ */
+function crewSizeFromHelperCount(helperCount: number): CrewSize {
+  const size = Math.min(Math.max(Math.round(helperCount) + 1, 1), 4);
+  return size as CrewSize;
+}
+
+/**
+ * Split a stored `scheduledAt` back into the two inputs it was built from: the
+ * local calendar day and the "HH:MM" slot.
+ *
+ * Either half comes back empty when the form could not have offered it, rather
+ * than being forced into the form: a day already in the past (the calendar
+ * disables those, and a past pickup would be refused on save anyway), or a time
+ * that is not one of `TIME_SLOTS` (an order written by something other than
+ * this form). The schedule step then reads as unanswered, which is what it is.
+ * A slot earlier today that has since passed is dropped by the form's own
+ * stranded-slot effect, on the same terms as a client re-picking today.
+ */
+function scheduleFromIso(scheduledAt: string | null): {
+  date: Date | null;
+  time: string;
+} {
+  if (scheduledAt === null) {
+    return { date: null, time: "" };
+  }
+
+  const at = new Date(scheduledAt);
+  if (Number.isNaN(at.getTime()) || at < startOfDay(new Date())) {
+    return { date: null, time: "" };
+  }
+
+  const time = `${String(at.getHours()).padStart(2, "0")}:${String(
+    at.getMinutes(),
+  ).padStart(2, "0")}`;
+
+  return {
+    date: startOfDay(at),
+    time: TIME_SLOTS.some((slot) => slot.value === time) ? time : "",
+  };
+}
+
+/**
  * The goods shortcut a code names, or `null` for none (or for a code that is
  * not in the table, which `HomeEntry`'s validation already rules out).
  */
@@ -247,7 +356,6 @@ function goodsShortcutByCode(
 function initialItemLines(shortcut: GoodsShortcut | null): PickerLine[] {
   return shortcut?.mode === "pallets" ? addPalletLine([]) : [];
 }
-
 /**
  * Tolerance, in currency units, for comparing a total against the sum of its
  * parts: half a cent absorbs floating-point drift without ever masking a real
@@ -460,15 +568,15 @@ const DEFAULT_SERVICE_LEVEL: ServiceLevel = "REGULAR";
 const SERVICE_LEVEL_OPTION_CLASSES = `${PICK_CARD_BASE_CLASSES} min-h-32 cursor-pointer gap-1 has-[:focus-visible]:border-accent has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-accent/20`;
 
 /* -------------------------------------------------------------------------- */
-/* Load fit (step 5) and handling (step 6)                                    */
+/* Load fit (step 5)                                                          */
 /* -------------------------------------------------------------------------- */
 
 /**
  * The load as one complete set of four figures: the total weight and the
  * largest item's envelope, read off the load plan.
  *
- * These used to be four required number fields in step 6, typed by the
- * client. Goods-first booking replaced them with the item list (step 4): the
+ * These used to be four required number fields in the old cargo-details
+ * step, typed by the client. Goods-first booking replaced them with the item list (step 4): the
  * same four figures are now *derived* by `planLoad`, here for the vehicle
  * cards and again by `POST /api/orders` from the items it is sent, so the
  * form and the route can never be measuring two different loads.
@@ -552,39 +660,37 @@ function cargoFitCardReason(
     .map((axis) => CARGO_AXIS_CARD_REASONS[axis](envelope, t))
     .join(" · ");
 }
-
 /**
- * The step-5 badge for a class no carrier on the platform operates with the
- * load space being booked.
+ * The step-5 badge for a class no carrier on the platform operates: a short
+ * verdict that fits one line beside the card's spec line. The full explanation,
+ * with something to go and do about it, is the alert above the grid.
  *
- * Cut to the same measure as the cargo-fit badges above — "Too short for 2.2
- * m", "Can't carry 3 t" — because it shares their slot on the card: a short
- * verdict that fits one line beside a spec line, not a sentence. The full
- * explanation, with something to go and do about it, is the alert above the
- * grid.
- *
- * "Carriers" and not "drivers" deliberately. What is missing is the *vehicle*
- * from the fleet, and a client told "no drivers" would reasonably read it as a
- * queue and try the same class again in an hour. "Class" rather than "vehicle"
- * for the same reason the rest of this file says class: the card names a
- * category in the taxonomy, not the particular truck that would turn up.
- *
- * A flat string where the cargo reason is a builder, because there is exactly
- * one way to be unserviceable and nothing of the client's own to quote back at
- * them.
+ * "Carriers" and not "drivers" deliberately: what is missing is the vehicle
+ * from the fleet, and "no drivers" would read as a queue to wait out.
  */
 const NO_CARRIERS_CARD_REASON_KEY = "noCarriersRunThisClass";
 
 /**
  * The same fact said once, with the fix attached, when it is true of *every*
- * card in the grid that could otherwise take the load.
- *
- * Needed because the badges alone leave that state unexplained where it is
- * acted on: a grid of uniformly disabled cards says what has happened but not
- * what to do, and the client's next move is elsewhere — the item list above,
- * or (for a business) the load space.
+ * card in the grid — a grid of uniformly disabled cards says what has happened
+ * but not what to do.
  */
 const NO_SERVICEABLE_VEHICLES_MESSAGE_KEY = "noServiceableVehicles";
+
+/**
+ * The fill state of a step-5 vehicle card no carrier runs. Deliberately *not*
+ * `PICK_CARD_IDLE_CLASSES` plus an opacity: those carry hover styles, and a
+ * card that lights up under the cursor and then refuses the click reads as a
+ * broken button rather than an unavailable option.
+ */
+const PICK_CARD_UNAVAILABLE_CLASSES = "border-line opacity-60";
+
+/** The reason badge inside such a card. */
+const PICK_CARD_UNAVAILABLE_REASON_CLASSES =
+  "mt-1.5 text-[0.6875rem] leading-snug font-semibold text-accent";
+
+/** A short, neutral line inside a step that cannot list its options yet. */
+const STEP_HINT_CLASSES = "text-[0.8125rem] leading-snug text-muted";
 
 /**
  * The grid-wide line for the other way a grid can end up with nothing
@@ -595,96 +701,9 @@ const NO_SERVICEABLE_VEHICLES_MESSAGE_KEY = "noServiceableVehicles";
  */
 const NO_VEHICLE_FITS_MESSAGE_KEY = "noVehicleFitsTheseItems";
 
-/**
- * The six handling requirements, in the order `CargoHandlingTag` declares them.
- *
- * A literal list rather than `Object.keys` over the label table, matching how
- * `BODY_TYPE_OPTIONS` and `SERVICE_LEVEL_OPTIONS` write their own orders out:
- * render order is an editorial decision and deserves to be readable as one.
- * `satisfies` keeps every member a real enum value, and the label table's own
- * `Record<CargoHandlingTag, string>` keying (see `src/lib/cargo.ts`) is what
- * keeps the *copy* exhaustive — a new tag fails typecheck there.
- */
-const HANDLING_TAG_OPTIONS = [
-  "FRAGILE",
-  "COLD_CHAIN",
-  "HAZMAT",
-  "TIME_CRITICAL",
-  "UPRIGHT_ONLY",
-  "HEAVY_ITEM",
-] as const satisfies readonly CargoHandlingTag[];
-
-/**
- * Geometry for one handling-requirement chip, and its two fill states.
- *
- * The driver-side load board specifies this control too, in near-black and
- * white oklch literals — and those are deliberately not copied here. They belong
- * to that surface's `data-admin-surface` palette; this page is the landing
- * theme, where the rule (stated in `booking-form-primitives.tsx`) is landing
- * token utilities only, never a raw colour literal and never a `dark:` variant —
- * not because `dark:` cannot match (it matches app-wide now), but because the
- * landing tokens already carry both themes.
- * What carries across is the *pattern*: a filled, inverted-text selected state
- * against an outlined idle one, expressed in this page's accent exactly as
- * `PICK_CARD_SELECTED_CLASSES`/`PICK_CARD_IDLE_CLASSES` already do for the
- * goods and vehicle grids.
- *
- * Local to this file rather than lifted into `booking-form-primitives.tsx`, on
- * the same grounds as `CREW_OPTION_CLASSES` and `BODY_OPTION_CLASSES` beside it:
- * this is the geometry of one control on one page, not shared vocabulary.
- */
-const HANDLING_TAG_CLASSES =
-  "inline-flex h-8 items-center rounded-full border px-3 text-xs font-medium transition-colors";
-const HANDLING_TAG_SELECTED_CLASSES = "border-accent bg-accent text-ink";
-const HANDLING_TAG_IDLE_CLASSES =
-  "border-line bg-transparent text-paper hover:border-accent/40";
-
-/**
- * The hazmat notice, verbatim and permanent.
- *
- * Not dismissible, and not a gate either: `DriverLicence` carries no ADR
- * certification field, so nothing in this feature — not this form, not the
- * board's claim endpoint — can actually restrict a hazmat load to an
- * appropriately licensed driver. Telling the client plainly is the whole of what
- * this form can honestly do; the gap itself is tracked as follow-up work.
- */
-const HAZMAT_NOTICE_KEY = "hazmatNotice";
-
-/** Shared treatment for an inline field error on this page. */
-const FIELD_ERROR_CLASSES = "text-xs leading-snug text-accent";
-
 /** Shared treatment for a non-blocking advisory line on this page. */
 const FIELD_NOTICE_CLASSES =
   "rounded-lg border border-line bg-surface px-3 py-2 text-xs leading-snug text-muted";
-
-/**
- * The third fill state of a step-5 vehicle card: on offer for these items and
- * this body, but unable to take the *listed* load (or run by no carrier).
- *
- * A local constant rather than a fourth `PICK_CARD_*` export in
- * `booking-form-primitives.tsx`, on the same grounds that file gives for keeping
- * `BODY_OPTION_CLASSES` here: the goods grid, the body grid and the service-level
- * grid have no such state — only the vehicle grid is ever measured against
- * something — so this is the geometry of one control on one page and not shared
- * vocabulary.
- *
- * Deliberately *not* `PICK_CARD_IDLE_CLASSES` plus an opacity. Those classes
- * carry `hover:border-accent/40 hover:bg-surface`, and a card that lights up
- * under the cursor and then refuses the click is worse than one that never
- * offered: it reads as a broken button rather than an unavailable option. The
- * border stays `border-line` so the card keeps its place in the grid — the point
- * is to leave the class visible and explained, not to hide it (see the note on
- * the grid itself for why annotating beats filtering).
- */
-const PICK_CARD_UNAVAILABLE_CLASSES = "border-line opacity-60";
-
-/**
- * The reason badge inside such a card. Accent, matching every other line on this
- * page that says "this cannot proceed" (`FIELD_ERROR_CLASSES`), against the
- * muted grey the spec figures use for neutral description.
- */
-const PICK_CARD_UNAVAILABLE_REASON_CLASSES =
-  "mt-1.5 text-[0.6875rem] leading-snug font-semibold text-accent";
 
 /**
  * The soft-fit line inside a card that *can* take the load but may be tight on
@@ -697,20 +716,6 @@ const PICK_CARD_SOFT_FIT_CLASSES =
   "mt-1.5 text-[0.6875rem] leading-snug font-medium text-muted";
 
 /**
- * Why a step is not answerable yet — one line per gate, each naming the thing to
- * go and do rather than the thing that is missing.
- *
- * Each is worded for the state its card is actually in, which is not always the
- * step directly above: the goods and items cards share `ENTER_ADDRESSES_FIRST`
- * because they share a gate (`itemsStepEnabled` *is* `goodsStepEnabled`), so
- * naming the goods step on the items card would point a client at a step that
- * is itself still shut. A disabled step that merely stopped responding would
- * leave a client with nothing to act on, so the reason is rendered in the card
- * and referenced by its `aria-describedby` (see `StepCard`).
- */
-const CHOOSE_DATE_FIRST_KEY = "chooseDateFirst";
-const ENTER_ADDRESSES_FIRST_KEY = "enterAddressesFirst";
-/**
  * The vehicle step's two lines. It opens once the item list adds up to a load
  * one vehicle could take: "List at least one item first" while the list is
  * empty, and "Fix the item list first" while it holds a load the route would
@@ -720,13 +725,35 @@ const ENTER_ADDRESSES_FIRST_KEY = "enterAddressesFirst";
  */
 const LIST_ITEMS_FIRST_KEY = "listItemsFirst";
 const FIX_ITEM_LIST_FIRST_KEY = "fixItemListFirst";
-const CHOOSE_VEHICLE_FIRST_KEY = "chooseVehicleFirst";
 /**
  * Steps 6, 7 and the service level, for a business that has not chosen a load
  * space: there is no vehicle until there is a body, so "Choose a vehicle
  * first" would point at a choice step 5 cannot offer yet.
  */
 const CHOOSE_LOAD_SPACE_FIRST_KEY = "chooseLoadSpaceFirst";
+
+/**
+ * How long the pricing inputs must sit still before the estimate is requested
+ * automatically. Long enough that typing an address does not spend a request
+ * (three geocoder lookups) per keystroke, short enough to feel immediate once
+ * the client stops.
+ */
+const AUTO_ESTIMATE_DELAY_MS = 700;
+
+/**
+ * The sections a booking cannot be placed without, in the order they appear
+ * on the page — which is also the order the first missing one is scrolled to.
+ * Everything else (goods shortcut, photos, crew, description, service level)
+ * is optional or carries a default.
+ *
+ * Goods-first booking: staging's "cargo" (category) and "weight" (bracket)
+ * sections are replaced by "items" — the item list, which must add up to a
+ * load the route would accept on some vehicle (`planBookable`). The vehicle
+ * section also covers a business's load space: no body, no vehicle.
+ */
+const REQUIRED_SECTIONS = ["schedule", "route", "items", "vehicle"] as const;
+
+type RequiredSection = (typeof REQUIRED_SECTIONS)[number];
 
 /** Shared geometry for a native `<select>`/date-trigger styled to match the
  *  rest of this form's fields — the same treatment `account-profile-form.tsx`
@@ -876,16 +903,16 @@ const VEHICLE_CATEGORY_GLYPHS: Record<
 
 /**
  * The client booking form: route, goods, vehicle and extras on the left, a
- * route preview on the right. Priced on demand — the user presses Calculate to
- * quote against `/api/pricing/estimate`, and any further edit to the route,
- * goods, load space, vehicle or crew size invalidates that quote until it's
- * recalculated — then booked through `POST /api/orders`.
+ * route preview on the right. Every step is editable at any time and in any
+ * order. The price is quoted automatically against `/api/pricing/estimate` once
+ * the pricing inputs are present (and again after any of them changes), and
+ * the booking is placed through `POST /api/orders`. Pressing Book validates the
+ * required sections (`REQUIRED_SECTIONS`) first and marks any that are missing.
  *
  * Booking is where this surface ends. It owns every piece of state it renders
- * from except one input, `initialGoods` — the landing-page shortcut the visitor
- * arrived through (`?goods=`), already validated by `HomeEntry` — because
- * nothing else about it is decided elsewhere: the order it creates is unpaid, and the client is sent straight to
- * `/checkout/<id>` to settle it. Payment methods, saved cards and the business
+ * from (`initialOrder`, below, only seeds it), because nothing about it is
+ * decided elsewhere: the order it creates is unpaid, and the client is sent
+ * straight to `/checkout/<id>` to settle it. Payment methods, saved cards and the business
  * purchase-order field are that page's, not this one's — a form that both
  * priced a job and collected payment for it made the client answer for the
  * money before there was an order to attach it to.
@@ -896,9 +923,21 @@ const VEHICLE_CATEGORY_GLYPHS: Record<
  *
  * Multi-stop routes are deliberately absent, because the backend has no concept
  * of them — an `Order` has exactly one pickup and one dropoff.
+ *
+ * `initialGoods` is the landing-page shortcut the visitor arrived through
+ * (`?goods=`), already validated by `HomeEntry`; it only decides where the
+ * goods step starts.
+ *
+ * `initialOrder` is optional: `/` renders this form with none and gets a
+ * blank booking, exactly as before the prop existed. Given an
+ * unpaid order (from `/orders/[id]/edit`), the form opens pre-filled from it and
+ * Save re-prices that order in place — see `BookingFormInitialOrder` for what is
+ * and is not carried over. Every input is still the form's own state; the prop
+ * only decides where that state starts, and is read once, on mount.
  */
 export function BookingForm({
-  initialGoods,
+  initialGoods = null,
+  initialOrder,
 }: {
   /**
    * The goods shortcut to open on, or `null` for none. Validated against
@@ -906,19 +945,18 @@ export function BookingForm({
    * an *initial* value: the form seeds its own state from it and never follows
    * it again.
    */
-  initialGoods: GoodsShortcutCode | null;
-}): React.ReactElement {
+  initialGoods?: GoodsShortcutCode | null;
+  initialOrder?: BookingFormInitialOrder;
+} = {}): React.ReactElement {
+  const isEditing = initialOrder !== undefined;
   const t = useTranslations("home.bookingForm");
   const locale = useLocale();
-  // Root-scoped, for shared helpers that take full keys (`vehicleTypeSpecLabel`).
+  // Root-scoped, for shared helpers that take full keys.
   const tRoot = useTranslations();
   // A catalogue class's name in the reader's language, by its stable code; the
   // API's `label` is the seeded English and the fallback for an unknown code.
   const vehicleTypeLabel = (vehicleType: { code: string; label: string }) =>
     vehicleTypeSpecLabel(vehicleType.code, vehicleType.label, tRoot);
-  // The shared cargo taxonomy's labels in the reader's language; the English
-  // maps in `@/lib/cargo` stay as the source for non-UI callers.
-  const cargoHandlingTagLabel = useCargoHandlingTagLabel();
   // Built per locale rather than at module scope, so the date and time labels
   // follow the language toggle. No `timeZone`: see `SCHEDULED_DATE_FORMAT`.
   const scheduledDateFormatter = useMemo(
@@ -952,72 +990,91 @@ export function BookingForm({
   const formId = useId();
   const dateTriggerId = useId();
   const timeSelectId = useId();
+  // Prefix for the required steps' card ids — see `sectionId`.
+  const sectionIdPrefix = useId();
 
-  // Step 6's fields.
-  const packagingFieldId = useId();
-  const itemQuantityFieldId = useId();
-  const pickupWindowStartId = useId();
-  const pickupWindowEndId = useId();
-  const deadlineTriggerId = useId();
-  const deadlineTimeSelectId = useId();
+  // The order's schedule split back into its two inputs, computed once — the
+  // two `useState` initialisers below each take their half. `null` outside
+  // edit mode, and `useState` ignores it after the first render either way.
+  const [initialSchedule] = useState(() =>
+    scheduleFromIso(initialOrder?.scheduledAt ?? null),
+  );
+
+  // Null until both a day and a time slot are chosen — see `scheduledDateTime`,
+  // the combined value everything downstream (submission, validation) reads.
+  const [scheduledDate, setScheduledDate] = useState<Date | null>(
+    initialSchedule.date,
+  );
+  const [scheduledTime, setScheduledTime] = useState(initialSchedule.time);
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
+
+  // In edit mode both addresses start as the order's own text, which is all the
+  // estimate needs: `/api/pricing/estimate` geocodes the string server-side, so
+  // a pre-filled route prices itself through the automatic estimate below
+  // without the client re-picking either address from the autocomplete.
+  const [pickupAddress, setPickupAddress] = useState(
+    initialOrder?.pickupAddress ?? "",
+  );
+  const [dropoffAddress, setDropoffAddress] = useState(
+    initialOrder?.dropoffAddress ?? "",
+  );
+  // Null until the matching address is *selected* from the autocomplete: these
+  // gate the live estimate, so typing alone never spends a request. An edited
+  // order seeds them from the coordinates stored on it, so the preview map has
+  // its pins before the first estimate lands; `AddressAutocomplete` only ever
+  // clears them on a keystroke, never on mount.
+  const [pickupLocation, setPickupLocation] = useState<LatLng | null>(
+    initialOrder?.pickupLocation ?? null,
+  );
+  const [dropoffLocation, setDropoffLocation] = useState<LatLng | null>(
+    initialOrder?.dropoffLocation ?? null,
+  );
 
   /**
-   * Whether the client books as an individual or a business — `null` until the
-   * profile read below settles, which every reader must treat as "not known
-   * yet": show neither the business-only goods (pallets) nor the load-space
-   * picker, and gate nothing on them.
+   * Who the driver asks for at each end, and where in the building to find
+   * them. Only *saved* contacts live here: the dialog owns its own draft, so a
+   * cancelled edit never reaches this state and a re-opened stop shows whatever
+   * was last saved for it.
    *
-   * Fetched in the browser rather than handed down from `/`, because `/` is an
-   * ISR page that deliberately reads no session (see `src/app/[locale]/page.tsx`)
-   * — resolving a client's account type there would either make the front door
-   * dynamic or put one client's answer in everyone's cached copy. Hiding a
-   * business-only control here is a convenience, not the guarantee:
-   * `POST /api/orders` re-checks the account type itself.
+   * Nothing in the Route step renders from this — the card looks the same
+   * before and after a contact is captured, by design.
    */
-  const [accountType, setAccountType] = useState<Extract<
-    AccountType,
-    "INDIVIDUAL" | "BUSINESS"
-  > | null>(null);
-
-  // Once, on mount. `GET /api/client-profile` answers `null` for a client who
-  // has not completed a profile, 403 for an admin viewing this surface, and may
-  // simply fail; all three settle on INDIVIDUAL — the safe default, which hides
-  // the business-only controls rather than offering what the server would
-  // refuse. Only an explicit BUSINESS on a stored profile unlocks them.
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadAccountType() {
-      let resolved: "INDIVIDUAL" | "BUSINESS" = "INDIVIDUAL";
-      try {
-        const response = await fetch("/api/client-profile");
-        if (response.ok) {
-          const profile: unknown = await response.json();
-          if (
-            typeof profile === "object" &&
-            profile !== null &&
-            "accountType" in profile &&
-            profile.accountType === "BUSINESS"
-          ) {
-            resolved = "BUSINESS";
-          }
+  const [contacts, setContacts] = useState<StopContacts>(() =>
+    initialOrder
+      ? {
+          pickup: initialOrder.pickupContact,
+          dropoff: initialOrder.dropoffContact,
         }
-      } catch {
-        // Network failure or a non-JSON body: keep the safe default.
-      }
-      if (!cancelled) {
-        setAccountType(resolved);
-      }
-    }
+      : NO_STOP_CONTACTS,
+  );
 
-    void loadAccountType();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  /** Which stop's delivery-info dialog is open, or `null` when none is. */
+  const [contactModalFor, setContactModalFor] = useState<StopField | null>(
+    null,
+  );
+
+  // INDIVIDUAL until the profile says BUSINESS — see the hook. Edit mode knows
+  // the answer already and starts from it.
+  const accountType = useClientAccountType(initialOrder?.accountType);
 
   /** Only an explicit BUSINESS unlocks the business-only controls; see above. */
   const isBusiness = accountType === "BUSINESS";
+
+  /**
+   * Edit mode: the order's stored item lines as picker lines, computed once.
+   * `null` outside edit mode — see `BookingFormInitialOrder.items`.
+   */
+  const [initialItems] = useState(() =>
+    initialOrder
+      ? linesFromOrderItems(
+          initialOrder.items,
+          inferPalletContents(
+            initialOrder.cargoCategory,
+            initialOrder.bodyType,
+          ),
+        )
+      : null,
+  );
 
   /**
    * Goods-first booking: what the client is moving, as a list of items rather
@@ -1044,10 +1101,13 @@ export function BookingForm({
     initialGoods,
   );
   const [loadMode, setLoadMode] = useState<PickerMode>(
-    () => goodsShortcutByCode(initialGoods)?.mode ?? "items",
+    () =>
+      initialItems?.mode ?? goodsShortcutByCode(initialGoods)?.mode ?? "items",
   );
-  const [itemLines, setItemLines] = useState<PickerLine[]>(() =>
-    initialItemLines(goodsShortcutByCode(initialGoods)),
+  const [itemLines, setItemLines] = useState<PickerLine[]>(
+    () =>
+      initialItems?.lines ??
+      initialItemLines(goodsShortcutByCode(initialGoods)),
   );
   const activeMode = effectiveMode(loadMode, accountType);
   const selectedGoodsShortcut = goodsShortcutByCode(goodsShortcut);
@@ -1129,35 +1189,6 @@ export function BookingForm({
     }
   }
 
-  // Null until both a day and a time slot are chosen — see `scheduledDateTime`,
-  // the combined value everything downstream (submission, validation) reads.
-  const [scheduledDate, setScheduledDate] = useState<Date | null>(null);
-  const [scheduledTime, setScheduledTime] = useState("");
-  const [datePickerOpen, setDatePickerOpen] = useState(false);
-
-  const [pickupAddress, setPickupAddress] = useState("");
-  const [dropoffAddress, setDropoffAddress] = useState("");
-  // Null until the matching address is *selected* from the autocomplete: these
-  // gate the live estimate, so typing alone never spends a request.
-  const [pickupLocation, setPickupLocation] = useState<LatLng | null>(null);
-  const [dropoffLocation, setDropoffLocation] = useState<LatLng | null>(null);
-
-  /**
-   * Who the driver asks for at each end, and where in the building to find
-   * them. Only *saved* contacts live here: the dialog owns its own draft, so a
-   * cancelled edit never reaches this state and a re-opened stop shows whatever
-   * was last saved for it.
-   *
-   * Nothing in the Route step renders from this — the card looks the same
-   * before and after a contact is captured, by design.
-   */
-  const [contacts, setContacts] = useState<StopContacts>(NO_STOP_CONTACTS);
-
-  /** Which stop's delivery-info dialog is open, or `null` when none is. */
-  const [contactModalFor, setContactModalFor] = useState<StopField | null>(
-    null,
-  );
-
   /**
    * The load space being booked. A filter on the vehicle list and nothing
    * more: it moves no price, because the catalogue already charges for the body
@@ -1189,8 +1220,11 @@ export function BookingForm({
    * while a business has not chosen; every reader below treats that as "no
    * vehicle can be judged yet".
    */
+  //
+  // Edit mode starts a business on the order's stored body: it was the
+  // client's own choice, and the route re-checks it against the items on save.
   const [chosenBodyType, setChosenBodyType] = useState<ChassisType | null>(
-    null,
+    initialOrder?.bodyType ?? null,
   );
   const derivedBodyType: ChassisType =
     plan?.body.kind === "derived" ? plan.body.body : DEFAULT_BODY_TYPE;
@@ -1213,7 +1247,10 @@ export function BookingForm({
     }
   }, [isBusiness, unambiguousForcedBody]);
 
-  const [vehicleTypeCode, setVehicleTypeCode] = useState("");
+  // The booked class, in edit mode.
+  const [vehicleTypeCode, setVehicleTypeCode] = useState(
+    initialOrder?.vehicleTypeCode ?? "",
+  );
   /**
    * Whether the client picked `vehicleTypeCode` themselves. `false` — where a
    * booking starts, and where "Use recommended" returns it — means the form
@@ -1221,7 +1258,13 @@ export function BookingForm({
    * `true`, set by any click on a vehicle card in either view, means no plan
    * change moves it. The full rule, and why, is `vehicle-selection.ts`.
    */
-  const [vehicleChosenByClient, setVehicleChosenByClient] = useState(false);
+  //
+  // Edit mode opens as chosen: the booked class was the client's decision, so
+  // it stays put while the list is unchanged and is let go only if it can no
+  // longer take the load (the same rule as any hand pick).
+  const [vehicleChosenByClient, setVehicleChosenByClient] = useState(
+    initialOrder !== undefined,
+  );
   /**
    * The hand-picked class the form last had to let go, and why — shown as one
    * line in step 5 so the switch to the recommendation is never silent.
@@ -1235,77 +1278,20 @@ export function BookingForm({
   const [vehicleGridOpen, setVehicleGridOpen] = useState(false);
   // Total people for loading and unloading, driver included — see
   // `helperCount` below for the figure the API is actually told.
-  const [crewSize, setCrewSize] = useState<CrewSize>(DEFAULT_CREW_SIZE);
+  const [crewSize, setCrewSize] = useState<CrewSize>(() =>
+    initialOrder
+      ? crewSizeFromHelperCount(initialOrder.helperCount)
+      : DEFAULT_CREW_SIZE,
+  );
   // The tier the displayed price is for. Alone among the form's inputs it never
   // invalidates the quote — see the invalidation effect below — because every
   // tier's price is arithmetic on the one fare the server already quoted.
   const [serviceLevel, setServiceLevel] = useState<ServiceLevel>(
-    DEFAULT_SERVICE_LEVEL,
+    initialOrder?.serviceLevel ?? DEFAULT_SERVICE_LEVEL,
   );
-  const [description, setDescription] = useState("");
-
-  // Free text, both optional, both carried to the driver rather than read by
-  // anything: "shrink-wrapped" and "96 cartons" are context for loading, not
-  // data the fit filter or the fare has any use for. The route fills whichever
-  // one the client is not asked for — the item summary into `itemQuantity` in
-  // items mode, the pallet summary into `packagingDescription` in pallets mode
-  // (`describeLoad`) — so step 6 shows only the other one in each mode.
-  const [packagingDescription, setPackagingDescription] = useState("");
-  const [itemQuantity, setItemQuantity] = useState("");
-
-  /**
-   * How the load has to be handled. Independent toggles rather than a choice —
-   * a fragile, upright-only, time-critical load is an ordinary thing to book —
-   * so the empty selection is a complete answer and never a missing one.
-   *
-   * Two sources, kept apart so neither can overwrite the other:
-   *
-   * - **Implied by the items** (`plan.handlingTags`): a fridge is upright-only,
-   *   chilled food is cold-chain. These arrive pre-selected.
-   * - **The client's own choices** (`handlingTagChoices`): a tag the client
-   *   has toggled, either way. Only tags they have touched appear in it.
-   *
-   * The selection is derived from the two: a tag the client has touched is
-   * whatever they set it to; any other tag is on exactly while the items imply
-   * it. So a newly implied tag is added without disturbing anything the client
-   * chose, a tag the client switched off stays off however many fridges are
-   * added, and removing the one item that implied a tag drops it again —
-   * unless the client toggled it, in which case it stays as they left it.
-   * Derived rather than synchronised by an effect, so there is no frame in
-   * which the chips and the items disagree.
-   */
-  const [handlingTagChoices, setHandlingTagChoices] = useState<
-    Partial<Record<CargoHandlingTag, boolean>>
-  >({});
-  const impliedHandlingTags = plan?.handlingTags ?? [];
-  const handlingTags: CargoHandlingTag[] = HANDLING_TAG_OPTIONS.filter(
-    (tag) => handlingTagChoices[tag] ?? impliedHandlingTags.includes(tag),
+  const [description, setDescription] = useState(
+    initialOrder?.description ?? "",
   );
-
-  /**
-   * The window the client will release the load in, as two `TIME_SLOTS` values
-   * on the *already-chosen* delivery day.
-   *
-   * No date picker of its own, deliberately: the window is when the load can be
-   * collected on the day the job is scheduled for, so a second date would only
-   * offer the client a way to contradict step 1. Both must be set or both left
-   * blank — half a window says nothing a driver can plan against.
-   */
-  const [pickupWindowStartTime, setPickupWindowStartTime] = useState("");
-  const [pickupWindowEndTime, setPickupWindowEndTime] = useState("");
-
-  /**
-   * Must arrive by — and unlike the pickup window, this one does need its own
-   * date, because a deadline is routinely the day after collection.
-   *
-   * Its calendar is disabled before the scheduled day rather than before today:
-   * a deadline that falls before the job is even collected is not a deadline.
-   */
-  const [deliveryDeadlineDate, setDeliveryDeadlineDate] = useState<Date | null>(
-    null,
-  );
-  const [deliveryDeadlineTime, setDeliveryDeadlineTime] = useState("");
-  const [deadlinePickerOpen, setDeadlinePickerOpen] = useState(false);
 
   const [estimate, setEstimate] = useState<Estimate | null>(null);
   const [estimating, setEstimating] = useState(false);
@@ -1318,7 +1304,25 @@ export function BookingForm({
    * client on this page.
    */
   const [submitting, setSubmitting] = useState(false);
+  /**
+   * Which part of the booking is in flight, for the Book button's label:
+   * pricing (when Book was pressed before an estimate existed), creating the
+   * order, or uploading its photos.
+   */
+  const [submitPhase, setSubmitPhase] = useState<
+    "pricing" | "booking" | "uploading"
+  >("booking");
   const [error, setError] = useState<string | null>(null);
+
+  /**
+   * Set by the first press of Book. Until then no step is marked as missing,
+   * so the form does not open pre-scolded; after it, a required step is red
+   * for exactly as long as it stays unanswered (see `missingSections`).
+   */
+  const [submitAttempted, setSubmitAttempted] = useState(false);
+
+  // Optional step-6 photos, uploaded to the order once it exists.
+  const cargoPhotos = useCargoPhotos();
 
   /**
    * Extra helpers beyond the driver — the crew size the user picked, minus the
@@ -1326,6 +1330,12 @@ export function BookingForm({
    * pricing and the orders endpoint take: the driver is not a line item.
    */
   const helperCount = crewSize - 1;
+
+  // The map is a companion to the form on desktop and an opt-in panel on
+  // mobile. This only drives a `hidden`/`block` swap — the map is never
+  // conditionally unmounted, or it would re-mount (and re-bill) the Google Maps
+  // script every time it was toggled.
+  const [mapVisible, setMapVisible] = useState(false);
 
   /**
    * The first listed item that needs two people to carry, by its catalogue
@@ -1353,12 +1363,6 @@ export function BookingForm({
     }
     return null;
   }, [plan, catalogue, itemLines, activeMode]);
-
-  // The map is a companion to the form on desktop and an opt-in panel on
-  // mobile. This only drives a `hidden`/`block` swap — the map is never
-  // conditionally unmounted, or it would re-mount (and re-bill) the Google Maps
-  // script every time it was toggled.
-  const [mapVisible, setMapVisible] = useState(false);
 
   const {
     vehicleTypes,
@@ -1403,11 +1407,13 @@ export function BookingForm({
     () =>
       BODY_TYPE_OPTIONS.map((option) => ({
         ...option,
-        vehicleCount: cargoEligibleVehicleTypes.filter((vehicleType) =>
-          vehicleOffersBody(vehicleType, option.body),
+        vehicleCount: cargoEligibleVehicleTypes.filter(
+          (vehicleType) =>
+            vehicleOffersBody(vehicleType, option.body) &&
+            vehicleOfferedToClient(vehicleType, option.body, accountType),
         ).length,
       })),
-    [cargoEligibleVehicleTypes],
+    [cargoEligibleVehicleTypes, accountType],
   );
 
   /**
@@ -1420,15 +1426,22 @@ export function BookingForm({
    * list, and is judged per card by `assessFit` (below) — annotated on the
    * grid, never filtered out of it.
    */
+  //
+  // Also narrowed by `vehicleOfferedToClient`: an individual booking a dry box
+  // is not offered the freight classes (reefers, curtainsider, large freight)
+  // — a staging product rule, applied on top of the body filter so it can only
+  // ever remove a class.
   const eligibleVehicleTypes = useMemo(
     () =>
       // No body (a business that has not chosen) offers no vehicle at all.
       bodyType === null
         ? []
-        : cargoEligibleVehicleTypes.filter((vehicleType) =>
-            vehicleOffersBody(vehicleType, bodyType),
+        : cargoEligibleVehicleTypes.filter(
+            (vehicleType) =>
+              vehicleOffersBody(vehicleType, bodyType) &&
+              vehicleOfferedToClient(vehicleType, bodyType, accountType),
           ),
-    [cargoEligibleVehicleTypes, bodyType],
+    [cargoEligibleVehicleTypes, bodyType, accountType],
   );
 
   /**
@@ -1544,7 +1557,7 @@ export function BookingForm({
    * - **Following** (the form picked): the selection moves to the
    *   recommendation whenever it moves. With nothing bookable it stays where
    *   it is rather than emptying — the card it sits on explains itself, the
-   *   alert at the top of step 5 says what to change, and `canSubmit` refuses
+   *   alert at the top of step 5 says what to change, and `handleSubmit` refuses
    *   it.
    * - **Chosen** (the client picked): a plan change re-annotates the cards but
    *   never moves the selection. That is the old grid argument made exact —
@@ -1666,26 +1679,16 @@ export function BookingForm({
     setReleasedVehicle(null);
   }
 
-  /**
-   * Toggle one handling requirement, recording it as the client's own choice
-   * so the items never override it again (see `handlingTagChoices`). Only the
-   * toggled tag is recorded; every other tag keeps following the items.
-   */
-  function toggleHandlingTag(tag: CargoHandlingTag) {
-    const selected = handlingTags.includes(tag);
-    setHandlingTagChoices((current) => ({ ...current, [tag]: !selected }));
-  }
-
   // The in-flight estimate request, if any — kept in a ref (not state) since
   // it's only ever read from event handlers and cleanup, never rendered.
   const estimateAbortRef = useRef<AbortController | null>(null);
 
   /**
    * A quote is only ever valid for the exact inputs it was computed from.
-   * Rather than let a stale price sit under a since-changed route, item list,
+   * Rather than let a stale price sit under a since-changed route, goods,
    * load space, vehicle or crew size, any change to one of them invalidates it —
-   * dropping any in-flight request too — so "Book delivery" disappears and
-   * "Recalculate" is the only way back to a price.
+   * dropping any in-flight request too — and the automatic estimate below
+   * prices the new inputs.
    *
    * `serviceLevel` is the one input deliberately missing from the dependency
    * list below, and its absence is not an oversight: a tier is a percentage of
@@ -1766,110 +1769,24 @@ export function BookingForm({
       : null;
 
   /**
-   * Progressive gating: a step opens only once every step above it is answered.
-   *
-   * Each flag is built on the one before it rather than testing its own input
-   * alone, so a step can never light up over a gap in the chain — the vehicle
-   * card is not answerable just because an item was listed, if no address has
-   * been typed yet.
-   *
-   * Every flag reads the state the rest of the form already reads. There is no
-   * separate record of which steps have been "completed", deliberately: a second
-   * copy of that would be free to disagree with the values the order is actually
-   * built from. It follows that a step whose input carries a default (the
-   * vehicle settles itself on the recommendation) opens as soon as the chain reaches
-   * it, because by then it genuinely is answered.
-   *
-   * This is presentation and nothing else. `canCalculate` and `canSubmit` below
-   * are untouched: what a quote and a booking actually require already lives
-   * there, and restating any of it here would be two predicates free to drift
-   * apart.
+   * The vehicle the booking would be priced and placed against, as a code —
+   * `""` while none is resolved. Read off `selectedVehicleType` rather than the
+   * raw `vehicleTypeCode` state, which can hold a stale code for a moment after
+   * a goods or weight change empties the eligible list.
    */
-  const routeStepEnabled = scheduledDateTime !== null;
+  const pricedVehicleTypeCode = selectedVehicleType?.code ?? "";
 
   /**
-   * Both addresses *typed*, not both resolved to coordinates.
+   * Is the class this booking is pointed at one a carrier actually operates,
+   * with the load space being booked? True when nothing is selected: a missing
+   * vehicle is reported as the vehicle step being required, not as this.
    *
-   * The same call `canCalculate` makes just below, for the same reason:
-   * `pickupLocation`/`dropoffLocation` only populate when a suggestion is picked
-   * from the browser-side Places autocomplete, and pricing does not need them —
-   * `/api/pricing/estimate` geocodes the address text itself, server-side,
-   * through a different provider. Gating on the resolved points would strand
-   * every step below this one for a client who typed a full address without
-   * taking a suggestion, and strand them permanently on a deployment where the
-   * Places key is not configured.
+   * Per body (`serviceableBodies`), because that is what the route checks
+   * (`serviceableSpecIds(bodyType)`): a class run dry by some carrier but
+   * refrigerated by none must not pass here and fail there.
    */
-  const goodsStepEnabled =
-    routeStepEnabled &&
-    pickupAddress.trim().length > 0 &&
-    dropoffAddress.trim().length > 0;
-
-  // No condition of its own: a goods shortcut is an entry point into the list,
-  // not an answer the list depends on — a client can go straight to the search
-  // without picking one — so the items step follows the goods step directly.
-  const itemsStepEnabled = goodsStepEnabled;
-
-  /**
-   * The vehicle step opens once the item list adds up to a load the route
-   * would accept on *some* vehicle: a plan exists (at least one item listed,
-   * and resolved against the catalogue) with one body every line can travel in
-   * (`plan.body.kind === "derived"`) and within the biggest class's payload.
-   * Anything less has no vehicle to recommend.
-   *
-   * Not gated on the vehicle types having loaded: the step shows its own
-   * loading line in that state. A failed fetch does shut it, with the error as
-   * the reason — see the card.
-   */
-  const vehicleStepEnabled =
-    itemsStepEnabled && planBookable && vehicleTypesError === null;
-
-  /**
-   * Steps 6 and 7 and the service-level card, which open together on the one
-   * condition: a vehicle is settled. None is a successor to the others — they
-   * are siblings describing the job the chosen vehicle will do, and each
-   * carries an answer from the moment it opens (step 6's fields are all
-   * optional now that the load's figures come from the item list).
-   *
-   * Still its own flag rather than folded into `vehicleStepEnabled`, because
-   * the two conditions are genuinely different: the vehicle *step* opens once
-   * there is a load to recommend for, and these open only once the grid has
-   * a vehicle standing in it.
-   *
-   * The eligible list rather than `selectedVehicleType`: the selection effect
-   * keeps a vehicle picked whenever one is bookable, so an empty list is the
-   * state in which none is — a business with no load space chosen yet, or the
-   * vehicle card showing its "no vehicle matches" alert. `canSubmit` still
-   * reads the resolved vehicle itself, which is the check that has to be
-   * exact.
-   */
-  const vehicleChosenStepsEnabled =
-    vehicleStepEnabled && eligibleVehicleTypes.length > 0;
-
-  /**
-   * The disabled line for the steps that wait on a vehicle: the load space
-   * first, for a business that has not chosen one, since that is the choice
-   * step 5 is actually waiting on.
-   */
-  const vehicleChosenStepsDisabledReason =
-    vehicleStepEnabled && bodyType === null
-      ? t(CHOOSE_LOAD_SPACE_FIRST_KEY)
-      : t(CHOOSE_VEHICLE_FIRST_KEY);
-
-  /**
-   * The cargo step's gate is exactly the vehicle-chosen gate, aliased rather
-   * than re-derived.
-   *
-   * A load's handling and timing are siblings of "how the job is handled", not
-   * successors to it, so a predicate of its own would be a second copy of one
-   * condition free to drift from the original. The alias exists only so the
-   * `StepCard` below reads in its own terms.
-   */
-  const cargoStepEnabled = vehicleChosenStepsEnabled;
-
-  /** The vehicle step's disabled line: the first unmet condition, named. */
-  const vehicleStepDisabledReason =
-    vehicleTypesError ??
-    (plan === null ? t(LIST_ITEMS_FIRST_KEY) : t(FIX_ITEM_LIST_FIRST_KEY));
+  const selectedVehicleIsServiceable =
+    selectedVehicleType === null || servesBody(selectedVehicleType);
 
   /**
    * The listed load as the four figures the card badges quote, or `null`
@@ -1879,146 +1796,64 @@ export function BookingForm({
 
   /**
    * Does the listed load fit the vehicle the booking would actually be placed
-   * against? True whenever nothing is selected — `selectedVehicleType !== null`
-   * is its own conjunct in `canSubmit`, and this one has no business saying the
-   * same no a second time about a different thing.
-   *
-   * The hard axes only (`assessFit`'s `hardAxes`, i.e. `oversizeAxes` — the
-   * route's own refusal). A soft-fit warning never blocks: it is an estimate,
-   * and refusing on it would refuse loads that fit.
+   * against? True whenever nothing is selected. The hard axes only
+   * (`assessFit`'s `hardAxes`, i.e. `oversizeAxes` — the route's own refusal);
+   * a soft-fit warning never blocks.
    */
   const cargoFitsVehicle =
     selectedVehicleFit === null || selectedVehicleFit.hardAxes.length === 0;
 
   /**
-   * The declared pickup window as two moments on the scheduled day, or `null`
-   * at either end that was left blank.
+   * The required sections that are still unanswered, in page order. Derived on
+   * every render from the same state the order is built from, so a section's
+   * red marking clears the moment it is filled in.
    *
-   * `scheduledDate` is guaranteed non-null while this step is open — the gate
-   * chain runs through `routeStepEnabled`, which is `scheduledDateTime !== null`
-   * — so the guard here is for the render *before* that, not for a state the
-   * client can reach with the fields on screen.
+   * The route counts as answered once both addresses are *typed*: pricing and
+   * the order endpoint geocode the text server-side, so a client who never
+   * takes an autocomplete suggestion (or a deployment without a Places key)
+   * can still book.
    */
-  const pickupWindowStartDateTime =
-    scheduledDate && pickupWindowStartTime
-      ? combineDateAndTime(scheduledDate, pickupWindowStartTime)
-      : null;
-  const pickupWindowEndDateTime =
-    scheduledDate && pickupWindowEndTime
-      ? combineDateAndTime(scheduledDate, pickupWindowEndTime)
-      : null;
-
-  /**
-   * Both ends or neither, and the end strictly after the start.
-   *
-   * Written as plain booleans, matching how the rest of this form's optional
-   * inputs validate (`availableTimeSlots`, `canCalculate`): nothing has to come
-   * back out of the check — the two moments are already derived above.
-   *
-   * Strictly after, not merely different: a zero-length window is a start time
-   * wearing an end time's label, and a driver planning against it learns
-   * nothing they did not already know from the start alone.
-   */
-  const pickupWindowValid =
-    (pickupWindowStartDateTime === null && pickupWindowEndDateTime === null) ||
-    (pickupWindowStartDateTime !== null &&
-      pickupWindowEndDateTime !== null &&
-      pickupWindowEndDateTime.getTime() > pickupWindowStartDateTime.getTime());
-
-  /**
-   * Whether exactly one end of the window is filled in, which is the half of
-   * `pickupWindowValid` worth a different sentence: "finish the window" and
-   * "the window ends before it starts" are two different mistakes.
-   */
-  const pickupWindowHalfDeclared =
-    (pickupWindowStartTime === "") !== (pickupWindowEndTime === "");
-
-  const deliveryDeadlineDateTime =
-    deliveryDeadlineDate && deliveryDeadlineTime
-      ? combineDateAndTime(deliveryDeadlineDate, deliveryDeadlineTime)
-      : null;
-
-  /**
-   * What a deadline has to beat: the end of the release window if one was
-   * declared, and otherwise the scheduled delivery moment itself.
-   *
-   * The window takes precedence because it is the later and more specific of
-   * the two — a deadline before the load has even been released is impossible in
-   * a way a deadline merely close to the scheduled time is not.
-   */
-  const deadlineFloor = pickupWindowEndDateTime ?? scheduledDateTime;
-
-  /**
-   * A deadline is optional, so "unset" is valid; a set one has to be strictly
-   * after the floor above. The `deadlineFloor !== null` conjunct only bites
-   * before a date and time have been chosen in step 1, which is a state this
-   * step is gated shut in.
-   */
-  const deliveryDeadlineValid =
-    deliveryDeadlineDateTime === null ||
-    (deadlineFloor !== null &&
-      deliveryDeadlineDateTime.getTime() > deadlineFloor.getTime());
-
-  /**
-   * The load space being booked, spelled the way step 5's picker spells it —
-   * read out of `BODY_TYPE_OPTIONS` rather than written again here, so the
-   * cold-chain warning can never name a body by a word the picker does not
-   * use.
-   */
-  const selectedBodyTypeOption = BODY_TYPE_OPTIONS.find(
-    (option) => option.body === bodyType,
+  const sectionAnswered: Record<RequiredSection, boolean> = {
+    schedule: scheduledDateTime !== null,
+    route: pickupAddress.trim().length > 0 && dropoffAddress.trim().length > 0,
+    items: planBookable,
+    vehicle: selectedVehicleType !== null,
+  };
+  const missingSections = REQUIRED_SECTIONS.filter(
+    (section) => !sectionAnswered[section],
   );
 
-  /**
-   * Cold-chain cargo booked into a body that is not refrigerated.
-   *
-   * Advisory and nothing more: the tag is not cleared, the body is not changed
-   * and the booking is not blocked, because a short hop in a well-packed cool
-   * box is a real thing a client may knowingly be doing. All this does is make
-   * sure they are not doing it by accident.
-   */
-  const coldChainBodyMismatch =
-    handlingTags.includes("COLD_CHAIN") &&
-    bodyType !== null &&
-    bodyType !== "REFRIGERATED";
+  /** Whether a step should be drawn as missing right now. */
+  function sectionInvalid(section: RequiredSection): boolean {
+    return submitAttempted && !sectionAnswered[section];
+  }
 
-  // Deliberately keyed off the raw address *text*, not `pickupLocation`/
-  // `dropoffLocation`: those only populate once a suggestion is picked from
-  // the browser-side Google Places autocomplete, but `/api/pricing/estimate`
-  // geocodes whatever address string it's given itself, server-side, through
-  // a separate provider (LocationIQ) — it needs no client-side resolution at
-  // all. Gating on the resolved location would leave Calculate permanently
-  // disabled on any deployment where the Places key isn't configured, even
-  // though pricing works fine. (Requiring resolved coordinates made sense for
-  // the old *automatic* per-keystroke estimate, to avoid spending a request
-  // per character typed — it doesn't apply to an explicit button click.)
-  //
-  // A plan is required too, because the estimate is sent the plan's derived
-  // cargo category and there is none for an empty list. `vehicleTypeCode` alone
-  // would not say so: it is left as it was when the last item is removed.
-  //
-  // And a load space. The estimate is not told the body (it moves no price),
-  // but a business without one has nothing it could book — the route refuses
-  // a business order with no body — and a price for a booking that cannot be
-  // placed only invites the attempt. The selection effect already empties the
-  // vehicle in that state; this says the rule rather than leaning on that.
-  const canCalculate =
-    !estimating &&
-    pickupAddress.trim().length > 0 &&
-    dropoffAddress.trim().length > 0 &&
+  /** DOM id of a required step's card, for scrolling to it. */
+  const sectionId = (section: RequiredSection) =>
+    `${sectionIdPrefix}-${section}`;
+
+  // Keyed off the raw address *text*, not `pickupLocation`/`dropoffLocation`:
+  // those only populate once a suggestion is picked from the browser-side
+  // Google Places autocomplete, but `/api/pricing/estimate` geocodes whatever
+  // address string it's given itself, server-side — it needs no client-side
+  // resolution at all. The automatic estimate below is debounced instead, so
+  // typing an address does not spend a request per keystroke.
+  const pricingInputsReady =
+    sectionAnswered.route &&
     cargoCategory !== null &&
-    bodyType !== null &&
-    vehicleTypeCode !== "";
+    pricedVehicleTypeCode !== "";
+
+  const canCalculate = !estimating && pricingInputsReady;
 
   /**
-   * Quote the current inputs on demand. The `AbortController` guards against
-   * the input changing (and so invalidating this very request, see above)
-   * while it's in flight — the same pattern `address-autocomplete.tsx` uses
-   * for its suggestion lookups.
+   * Quote the current inputs. Resolves with the estimate, or `null` when it
+   * failed (the reason is in `estimateError`) or was superseded. The
+   * `AbortController` guards against the input changing — and so invalidating
+   * this very request, see above — while it's in flight.
    */
-  async function handleCalculate() {
-    if (!canCalculate) {
-      return;
+  async function handleCalculate(): Promise<Estimate | null> {
+    if (!pricingInputsReady || cargoCategory === null) {
+      return null;
     }
 
     estimateAbortRef.current?.abort();
@@ -2035,9 +1870,7 @@ export function BookingForm({
         body: JSON.stringify({
           pickupAddress,
           dropoffAddress,
-          vehicleTypeCode,
-          // The plan's derived category: what the route will write and price
-          // the `cargo_vehicle_mismatch` rule against on the items path.
+          vehicleTypeCode: pricedVehicleTypeCode,
           cargoCategory,
           helperCount,
         }),
@@ -2049,7 +1882,7 @@ export function BookingForm({
       // Superseded by an input change (and so already invalidated above) or
       // by a newer calculation — either way, this result has nothing to add.
       if (controller.signal.aborted) {
-        return;
+        return null;
       }
 
       if (!response.ok) {
@@ -2058,14 +1891,17 @@ export function BookingForm({
             ? payload.error
             : t("couldNotPriceThisLoad"),
         );
-        return;
+        return null;
       }
 
-      setEstimate(payload as Estimate);
+      const quoted = payload as Estimate;
+      setEstimate(quoted);
+      return quoted;
     } catch {
       if (!controller.signal.aborted) {
         setEstimateError(tShared("networkErrorPleaseCheckYourConnection"));
       }
+      return null;
     } finally {
       if (!controller.signal.aborted) {
         setEstimating(false);
@@ -2073,127 +1909,209 @@ export function BookingForm({
     }
   }
 
+  // The latest `handleCalculate`, for the debounced effect below to call
+  // without listing a function that is re-created on every render.
+  const calculateRef = useRef(handleCalculate);
+  useEffect(() => {
+    calculateRef.current = handleCalculate;
+  });
+
   /**
-   * Place the order, then hand the client off to its checkout page.
+   * Price automatically: once every pricing input is present and nothing is
+   * quoted for them yet, request an estimate after the inputs have sat still
+   * for `AUTO_ESTIMATE_DELAY_MS`.
+   *
+   * Runs once per set of inputs. A failed estimate leaves `estimateError` set,
+   * which stops this re-firing in a loop; the invalidation effect clears it on
+   * the next input change, and the Recalculate button retries by hand. Paused
+   * while a booking is in flight, which prices for itself if it has to.
+   */
+  useEffect(() => {
+    if (
+      !pricingInputsReady ||
+      submitting ||
+      estimating ||
+      estimate !== null ||
+      estimateError !== null
+    ) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      void calculateRef.current();
+    }, AUTO_ESTIMATE_DELAY_MS);
+
+    return () => window.clearTimeout(timer);
+  }, [
+    pricingInputsReady,
+    submitting,
+    estimating,
+    estimate,
+    estimateError,
+    // The pricing inputs themselves, so every edit restarts the debounce.
+    pickupAddress,
+    dropoffAddress,
+    pricedVehicleTypeCode,
+    cargoCategory,
+    helperCount,
+  ]);
+
+  /** Bring a step into view, centred, as the place to act next. */
+  function scrollToSection(section: RequiredSection) {
+    document
+      .getElementById(sectionId(section))
+      ?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  /**
+   * Upload the step-6 photos to the order just created, one request each and
+   * one after another. Never throws: photos are optional, and a failed upload
+   * must not strand a booking that already exists.
+   *
+   * Resolves with how many uploads failed.
+   */
+  async function uploadCargoPhotos(orderId: string): Promise<number> {
+    const photos = await cargoPhotos.settledPhotos();
+    let failed = 0;
+
+    for (const [index, photo] of photos.entries()) {
+      const body = new FormData();
+      body.append("file", photo.blob, `cargo-photo-${index + 1}.jpg`);
+
+      try {
+        const response = await fetch(
+          `/api/orders/${encodeURIComponent(orderId)}/photos`,
+          { method: "POST", body },
+        );
+        if (!response.ok) {
+          failed += 1;
+        }
+      } catch {
+        failed += 1;
+      }
+    }
+
+    return failed;
+  }
+
+  /**
+   * Validate, price if needed, place the order, upload its photos, then hand
+   * the client off to its checkout page.
    *
    * Nothing about money is decided here. `POST /api/orders` writes an unpaid
    * order from the inputs above, and `/checkout/<id>` is where the method, the
    * card and — for a business — the purchase-order reference are collected,
-   * against an order that by then exists and has a total. That is the whole
-   * reason this form has no payment step: a choice made before the order was
-   * created had nothing to be attached to, and had to be carried through the
-   * submit to acquire one.
+   * against an order that by then exists and has a total.
    */
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submitting) {
+      return;
+    }
+
     setError(null);
+    setSubmitAttempted(true);
 
-    // Guards the type, not the UX: "Book delivery" is disabled without a
-    // scheduled time (see `canSubmit`), so this only ever fires if that
-    // somehow raced — same defensive shape as the vehicle-type check the
-    // landing page's calculator uses before its own submit.
-    if (!scheduledDateTime) {
-      setError(t("pleaseChooseADeliveryDateAnd"));
+    const firstMissing = missingSections[0];
+    if (firstMissing !== undefined || !scheduledDateTime || !cargoCategory) {
+      // The `scheduledDateTime`/`cargoCategory` tests only narrow the types:
+      // both are covered by `missingSections`.
+      if (firstMissing !== undefined) {
+        scrollToSection(firstMissing);
+      }
       return;
     }
 
-    // The same kind of guard, for the list: `canSubmit` already requires a
-    // plan, and without one there is no cargo category to send.
-    if (cargoCategory === null) {
-      setError(t("listItemsFirst"));
+    // Not a required-field miss but a class nobody can fulfil with this load
+    // space, or one the listed load does not fit. The selection effect never
+    // picks either, so these are guards rather than paths — and they say so
+    // out loud instead of failing at the endpoint. Step 5 explains both on the
+    // selected card in the "Change vehicle" grid.
+    if (!selectedVehicleIsServiceable) {
+      setError(t("selectedVehicleNotServiceable"));
+      scrollToSection("vehicle");
       return;
     }
-
-    // And for the load space: `canSubmit` requires one (through
-    // `bodyType !== null`), and the route refuses a business order without it.
-    if (bodyType === null) {
-      setError(t(CHOOSE_LOAD_SPACE_FIRST_KEY));
+    if (!cargoFitsVehicle) {
+      setError(t(NO_VEHICLE_FITS_MESSAGE_KEY));
+      scrollToSection("vehicle");
       return;
     }
 
     setSubmitting(true);
 
+    // Book was pressed before the automatic estimate landed (or after it
+    // failed): price now rather than asking for a second click. The order
+    // endpoint re-prices on its own, so this is about the client having seen
+    // a figure the checkout page will confirm, not about trusting this one.
+    if (estimate === null) {
+      setSubmitPhase("pricing");
+      const quoted = await handleCalculate();
+      if (quoted === null) {
+        // `estimateError` already says why, in the price panel.
+        setSubmitting(false);
+        return;
+      }
+    }
+
+    setSubmitPhase("booking");
+
     try {
-      const response = await fetch("/api/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          scheduledAt: scheduledDateTime.toISOString(),
-          pickupAddress,
-          dropoffAddress,
-          // The delivery-info captured at each end. `JSON.stringify` drops an
-          // `undefined` value entirely, which is exactly the "no contact for
-          // this stop" the endpoint reads as an empty block.
-          pickupContact: stopContactPayload(contacts.pickup),
-          dropoffContact: stopContactPayload(contacts.dropoff),
-          // The goods, as the list the client built: the active mode's lines
-          // only, in exactly the shape `parseOrderItems` accepts. The route
-          // resolves them against the catalogue, re-runs `planLoad` and writes
-          // the derived weight, envelope, volume, category and body itself —
-          // which is why no cargo figure is sent any more. The four typed
-          // numbers this replaced (`cargoWeightKg`/`LengthM`/`WidthM`/
-          // `HeightM`) are ignored by the items path, and sending them would
-          // only invite a reader to think they were trusted.
-          items: toItemsPayload(itemLines, activeMode),
-          // Still required by the shared `parseQuoteFields` the route parses
-          // with, so still sent — as the plan's derivation, which the route
-          // overwrites with its own from the same function.
-          cargoCategory,
-          vehicleTypeCode,
-          // Recorded on the order, not priced from: `/api/orders` re-checks it
-          // against the chosen vehicle's own `bodyTypes` and stores it so the
-          // driver knows which body the load was booked for. The estimate
-          // endpoint is deliberately not told — body type moves no price. For
-          // an individual it is the plan's body, and the route ignores it in
-          // favour of the same derivation; a business's is its own choice.
-          bodyType,
-          helperCount,
-          // The tier, never its price: `/api/orders` re-derives the adjustment
-          // from the quote it computes itself, so a figure sent from here would
-          // be ignored at best and trusted at worst.
-          serviceLevel,
-          // No `paymentMethodType`, no `savedCardId` and no `purchaseOrderRef`:
-          // all three are checkout's to send, and every one is optional on the
-          // endpoint. An order created here is simply one nobody has said how
-          // they will settle yet.
-          description: description.trim() || undefined,
-          // Optional, and omitted rather than blanked when unfilled —
-          // `JSON.stringify` drops an `undefined` value outright, the same
-          // convention `stopContactPayload` above relies on. An absent key says
-          // "not declared"; an empty string would say "declared as nothing".
-          //
-          // The endpoint reads these five with its optional parsers and stores
-          // `null` for an absent key, which is the half of this contract that
-          // used to be missing: it required all five, so a booking with no
-          // packaging note — the ordinary case, since nothing on this page asks
-          // the client to write one — was answered with a 400 naming a field
-          // they were never shown as mandatory. Both sides now agree that
-          // unfilled is a valid answer. Keep them agreeing.
-          //
-          // Each is sent only in the mode that asks for it. In items mode the
-          // route writes the item summary into `itemQuantity`; in pallets mode
-          // it writes the pallet summary into `packagingDescription`
-          // (`describeLoad`). Step 6 hides the field the server fills, and the
-          // payload leaves it out to match, so text left in a field from the
-          // other mode is never sent to be silently overwritten.
-          packagingDescription:
-            activeMode === "items"
-              ? packagingDescription.trim() || undefined
-              : undefined,
-          itemQuantity:
-            activeMode === "pallets"
-              ? itemQuantity.trim() || undefined
-              : undefined,
-          // Always sent, `[]` included: the column is `NOT NULL` with an empty
-          // default, so "no special handling" is a real answer rather than a
-          // missing one. The selection as shown: the tags the items imply,
-          // overridden wherever the client toggled one (`handlingTagChoices`).
-          handlingTags,
-          pickupWindowStart: pickupWindowStartDateTime?.toISOString(),
-          pickupWindowEnd: pickupWindowEndDateTime?.toISOString(),
-          deliveryDeadline: deliveryDeadlineDateTime?.toISOString(),
-        }),
-      });
+      // The same body either way. Edit mode sends it to the order it is
+      // editing, and `PATCH /api/orders/<id>` takes exactly what the create
+      // endpoint takes, re-prices it the same way and answers with the same
+      // shape — so nothing below this call knows which of the two it made.
+      const response = await fetch(
+        initialOrder
+          ? `/api/orders/${encodeURIComponent(initialOrder.id)}`
+          : "/api/orders",
+        {
+          method: initialOrder ? "PATCH" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            scheduledAt: scheduledDateTime.toISOString(),
+            pickupAddress,
+            dropoffAddress,
+            // The delivery-info captured at each end. `JSON.stringify` drops an
+            // `undefined` value entirely, which is exactly the "no contact for
+            // this stop" the endpoint reads as an empty block.
+            pickupContact: stopContactPayload(contacts.pickup),
+            dropoffContact: stopContactPayload(contacts.dropoff),
+            // The goods, as the list the client built: the active mode's lines
+            // only, in exactly the shape `parseOrderItems` accepts. The route
+            // resolves them against the catalogue, re-runs `planLoad` and
+            // writes the derived weight, envelope, volume, category and body
+            // itself — which is why no cargo figure is sent.
+            items: toItemsPayload(itemLines, activeMode),
+            // Still required by the shared `parseQuoteFields` the route parses
+            // with, so still sent — as the plan's derivation, which the route
+            // overwrites with its own from the same function.
+            cargoCategory,
+            vehicleTypeCode: pricedVehicleTypeCode,
+            // Recorded on the order, not priced from: `/api/orders` re-checks it
+            // against the chosen vehicle's own `bodyTypes` and stores it so the
+            // driver knows which body the load was booked for. For an
+            // individual it is the plan's body, and the route ignores it in
+            // favour of the same derivation; a business's is its own choice.
+            bodyType,
+            helperCount,
+            // The tier, never its price: `/api/orders` re-derives the adjustment
+            // from the quote it computes itself.
+            serviceLevel,
+            // No payment fields: they are checkout's to send.
+            description: description.trim() || undefined,
+            // The handling the listed items imply (a fridge is upright-only,
+            // chilled goods are cold-chain), so the load board and job sheet
+            // show them. The form has no step to edit them any more — the
+            // cargo-details step was removed — so these are the plan's alone.
+            handlingTags: plan?.handlingTags ?? [],
+            // No cargo measurements, packaging, pickup window or delivery
+            // deadline: the form no longer asks for them, and the endpoint
+            // treats every one as optional. (On the items path it fills
+            // `itemQuantity`/`packagingDescription` with its own summary.)
+          }),
+        },
+      );
 
       const payload = (await response.json()) as
         CreatedOrder | { error?: string };
@@ -2202,23 +2120,33 @@ export function BookingForm({
         const message =
           "error" in payload && payload.error
             ? payload.error
-            : t("orderFailed");
+            : isEditing
+              ? t("couldNotSaveChanges")
+              : t("orderFailed");
         setError(message);
-        // Cleared here rather than in a `finally`, so that the one path that
-        // does not clear it — the successful one below — keeps the button
-        // disabled and reading "Booking…" for the whole of the navigation.
+        // Cleared here rather than in a `finally`, so that the successful path
+        // below keeps the button disabled for the whole of the navigation.
         setSubmitting(false);
         return;
       }
 
       const order = payload as CreatedOrder;
 
-      // The form is not reset in place, because it does not survive this call:
-      // the client leaves for checkout and every input above is unmounted with
-      // it. `submitting` is deliberately left set — `router.push` resolves long
+      // The order exists from here on, so nothing below may send the client
+      // back to this form: a failed photo upload is logged and the booking
+      // proceeds to checkout regardless. The project has no toast surface
+      // that would survive the navigation, so the failure is not shown here.
+      setSubmitPhase("uploading");
+      const failedUploads = await uploadCargoPhotos(order.id);
+      if (failedUploads > 0) {
+        console.warn(
+          `${failedUploads} cargo photo upload(s) failed for order ${order.id}`,
+        );
+      }
+
+      // `submitting` is deliberately left set — `router.push` resolves long
       // before the new route paints, and clearing it here would flick "Book
-      // delivery" back to enabled over an order that has already been placed,
-      // which is an invitation to book the same job twice.
+      // delivery" back to enabled over an order that has already been placed.
       router.push(`/checkout/${order.id}`);
     } catch {
       setError(tShared("networkErrorPleaseCheckYourConnection"));
@@ -2227,30 +2155,11 @@ export function BookingForm({
   }
 
   /**
-   * Enter, pressed anywhere in the form other than the multi-line
-   * description, Calculates, the same as clicking the accent button in the
-   * bottom bar would. Never Book: see the closing comment.
-   *
-   * It stops short of the button in one place: with a quote already on screen
-   * it does nothing at all, rather than Recalculating. The invalidation effect
-   * above drops the estimate on any change to a pricing input, so a quote that
-   * is still showing is a quote for exactly the inputs currently entered, and
-   * quoting them again spends a request — three LocationIQ lookups — to arrive
-   * back at the number already being read. Enter is cheap to press and easy to
-   * press twice, and each one used to cost that. Pressing "Recalculate" still
-   * does, deliberately: reaching for the button is someone asking for a fresh
-   * quote, where a keypress is mostly someone moving through fields.
-   *
-   * Without this, the browser's own implicit-submission behavior takes over:
-   * a lone text `<input>` inside a `<form>` submits that form on Enter even
-   * with no visible submit button on screen, because "Book delivery" is still
-   * form-associated (via `form={formId}`) the moment it exists at all. Before
-   * a quote exists it isn't rendered — so that implicit submit had nothing to
-   * click, and Chrome fell back to just running constraint validation, which
-   * surfaces as a confusing "Please fill in this field" bubble on whichever
-   * required field is empty, for someone who never touched a submit button.
-   * Explicitly handling Enter here — and always calling `preventDefault()` —
-   * removes that native behavior entirely rather than trying to out-guess it.
+   * Enter, pressed anywhere in the form other than the multi-line description,
+   * prices the current inputs if nothing is quoted for them yet — and never
+   * books: placing a real order isn't a side effect a stray Enter keypress
+   * should be able to trigger. Handling it here (and always calling
+   * `preventDefault()`) also removes the browser's implicit form submission.
    */
   function handleFormKeyDown(event: React.KeyboardEvent<HTMLFormElement>) {
     if (event.key !== "Enter") {
@@ -2264,25 +2173,17 @@ export function BookingForm({
 
     // Already handled by the control it was pressed in — the item picker's
     // search adds the highlighted item on Enter, and its other fields swallow
-    // it — and that control has already stopped the implicit submit. Quoting
-    // here as well would spend a request on the list as it was *before* the
-    // item went in, which the invalidation effect would then throw away.
+    // it. Quoting here as well would spend a request on the list as it was
+    // *before* the item went in.
     if (event.defaultPrevented) {
       return;
     }
 
     event.preventDefault();
 
-    // `null` is precisely "nothing on screen is quoted for these inputs" —
-    // the effect above nulls it the moment a pricing input changes — so this
-    // quotes what has not been quoted and skips what has.
-    if (estimate === null) {
+    if (estimate === null && canCalculate) {
       void handleCalculate();
     }
-
-    // Never the submit, at any quote state: placing a real order isn't a side
-    // effect a stray Enter keypress should be able to trigger — that stays a
-    // deliberate click on "Book delivery".
   }
 
   /**
@@ -2346,99 +2247,28 @@ export function BookingForm({
     .filter((part): part is string => Boolean(part))
     .join(" · ");
 
-  /**
-   * Is the class this booking is pointed at one a carrier actually operates,
-   * with the load space being booked?
-   *
-   * True when nothing is selected, on exactly the principle `cargoFitsVehicle`
-   * states above: `selectedVehicleType !== null` is a conjunct in its own right
-   * and this one has no business saying the same no a second time, in different
-   * words, about a different thing.
-   *
-   * Per body (`serviceableBodies`), because that is what the route checks
-   * (`serviceableSpecIds(bodyType)`): a class run dry by some carrier but
-   * refrigerated by none must not pass here and fail there.
-   */
-  const selectedVehicleIsServiceable =
-    selectedVehicleType === null || servesBody(selectedVehicleType);
-
-  // Booking requires a calculated price for the exact inputs being booked —
-  // the whole point of the Calculate step — plus a valid vehicle type and a
-  // chosen delivery time, so the submit cannot race the fetch that supplies
-  // the vehicle, or reach the server with nothing scheduled. The address
-  // fields keep their own native `required` validation, which still runs
-  // whenever the button is clickable at all.
-  //
-  // `planBookable` replaces the four typed cargo numbers that used to gate
-  // this button. The load is now the item list, and the conditions on it are
-  // the route's: something listed, one body every line can travel in, and no
-  // more than one vehicle can carry. Each failure is explained where it is
-  // fixed — the picker's alerts under the list — and the vehicle step stays
-  // shut with a line pointing back at it, so this conjunct is never a dead
-  // button with nothing on screen saying why. (In practice `estimate !== null`
-  // already implies a plan, since Calculate needs one; this states the rule
-  // rather than leaning on that.)
-  //
-  // `cargoFitsVehicle` stops the order whose load does not fit its own booked
-  // vehicle — priced, paid, and then hidden from every driver by
-  // `GET /api/loads` and refused by all three claim routes, so it can neither
-  // be carried nor found. It can only be false in one state: every eligible
-  // class is too small, so the selection effect had nothing bookable to move
-  // to (a hand-picked class that stops fitting is otherwise let go to the
-  // recommendation). That state is explained twice in step 5 — the selected
-  // card's own "Too short for …" badge in the "Change vehicle" grid, which
-  // opens by itself because no recommendation shows that card, and the alert
-  // at the top of the step naming the fix (change the list, or split the
-  // booking). The step-6 blocking line that
-  // used to say this sat under the four typed numbers it was about; with the
-  // numbers gone, the fix is the item list, and step 5 is where it is said.
-  // If this conjunct is ever changed, change what says so.
-  //
-  // It joins `canSubmit` and pointedly not `canCalculate`: the fare is the
-  // vehicle class's alone and no cargo figure moves it, so a client must still
-  // be able to price a job — and seeing the quote is often what tells them the
-  // class is wrong.
-  //
-  // `selectedVehicleIsServiceable` stops the same order by the other door: a
-  // class no carrier operates with this body produces a booking that is
-  // priced, paid and then never seen by a driver — not because its load is too
-  // big for the truck, but because there is no truck. Every such card is
-  // disabled with "No carriers run this class" on it, including the selected
-  // one, and when *no* eligible class is bookable the alert at the top of
-  // step 5 says what to change. If this conjunct is ever changed, change what says so.
-  //
-  // `bodyType !== null` is implied by `selectedVehicleType !== null` (no body,
-  // no eligible class) and stated anyway: a business order without a load space
-  // is refused by the route, and step 5 says "Choose a load space first."
-  const canSubmit =
-    !submitting &&
-    bodyType !== null &&
-    selectedVehicleType !== null &&
-    estimate !== null &&
-    scheduledDateTime !== null &&
-    planBookable &&
-    cargoFitsVehicle &&
-    selectedVehicleIsServiceable &&
-    pickupWindowValid &&
-    deliveryDeadlineValid;
-
   return (
     <main className="min-h-screen bg-ink text-paper">
       <div className="mx-auto max-w-7xl px-5 pt-8 pb-28 sm:px-8">
         <header className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-[0.6875rem] font-semibold tracking-[0.24em] text-accent uppercase">
-              {t("newDelivery")}
+              {initialOrder
+                ? t("editingOrder", { reference: initialOrder.reference })
+                : t("newDelivery")}
             </p>
             <h1 className="mt-2 font-display text-[clamp(1.75rem,3.5vw,2.5rem)] leading-none font-semibold tracking-[-0.025em] text-paper">
-              {t("bookADelivery")}
+              {isEditing ? t("editYourDelivery") : t("bookADelivery")}
             </h1>
           </div>
+          {/* Back to the order being edited rather than to the whole list:
+              that page is where the client chose Edit, and where they would
+              look to see the order unchanged if they leave without saving. */}
           <Link
-            href="/orders"
+            href={initialOrder ? `/orders/${initialOrder.id}` : "/orders"}
             className="group inline-flex items-center gap-2 text-sm font-semibold text-paper transition-colors hover:text-accent"
           >
-            {tShared("myOrders")}
+            {isEditing ? t("backToOrder") : tShared("myOrders")}
             <span
               aria-hidden="true"
               className="transition-transform group-hover:translate-x-1"
@@ -2455,16 +2285,23 @@ export function BookingForm({
             same order, and only one of them looking at the row. */}
 
         <div className="mt-6 grid items-start gap-6 lg:grid-cols-[minmax(0,40rem)_minmax(0,1fr)]">
+          {/* `noValidate`: the required steps are checked by `handleSubmit`,
+              which marks every missing one, rather than by the browser's
+              one-field-at-a-time bubbles. */}
           <form
             id={formId}
+            noValidate
             onSubmit={handleSubmit}
             onKeyDown={handleFormKeyDown}
             className="flex flex-col gap-5"
           >
             <StepCard
               step={1}
+              id={sectionId("schedule")}
               title={t("deliveryDateTime")}
               description={t("whenShouldTheDriverComeBy")}
+              invalid={sectionInvalid("schedule")}
+              invalidMessage={t("required")}
             >
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="flex flex-col gap-1.5">
@@ -2506,7 +2343,7 @@ export function BookingForm({
                     >
                       {/* Retints the calendar's selected-day highlight from
                           shadcn's default near-black `--primary` to this app's
-                          orange accent, scoped to just this popover rather
+                          green accent, scoped to just this popover rather
                           than touching the token globally. */}
                       <div
                         style={
@@ -2563,23 +2400,12 @@ export function BookingForm({
               </div>
             </StepCard>
 
-            {/* Disabling this card mutes its two address fields, not the pair
-                of dialogs mounted below them: Radix portals a `DialogContent` to
-                `document.body`, so it is nowhere inside the `pointer-events-none`
-                content region and stays fully operable. The only route into
-                either dialog is selecting a suggestion in a field that is itself
-                inside that region, so a disabled step cannot open one; and the
-                step cannot shut under one that is already open either, since
-                everything that gates it — the date and the time — sits behind
-                the modal's overlay for as long as it is up. The portal is what
-                keeps the second half of that from mattering: even reached some
-                other way, an open dialog stays saveable and cancellable rather
-                than trapping the client. */}
             <StepCard
               step={2}
+              id={sectionId("route")}
               title={tShared("route")}
-              disabled={!routeStepEnabled}
-              disabledReason={t(CHOOSE_DATE_FIRST_KEY)}
+              invalid={sectionInvalid("route")}
+              invalidMessage={t("required")}
             >
               <div className="flex flex-col gap-4">
                 {/* No remount key on either field any more. Each one owns
@@ -2671,8 +2497,6 @@ export function BookingForm({
               step={3}
               title={t("whatAreYouMoving")}
               description={t("pickTheClosestMatchYoullList")}
-              disabled={!goodsStepEnabled}
-              disabledReason={t(ENTER_ADDRESSES_FIRST_KEY)}
             >
               <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
                 {shortcutsFor(accountType).map((shortcut) => {
@@ -2712,11 +2536,11 @@ export function BookingForm({
               step={4}
               title={t("listYourItems")}
               description={t("roughIsFineWeUseIt")}
-              disabled={!itemsStepEnabled}
-              // The addresses, not the goods step: this card and the goods card
-              // open on the identical predicate, so the goods step is never a
-              // thing to go and do while this line is on screen.
-              disabledReason={t(ENTER_ADDRESSES_FIRST_KEY)}
+              id={sectionId("items")}
+              invalid={sectionInvalid("items")}
+              invalidMessage={
+                plan === null ? t("required") : t(FIX_ITEM_LIST_FIRST_KEY)
+              }
             >
               {/* Fully controlled: the form owns the mode and the lines,
                   because it plans them, invalidates the quote on them and
@@ -2744,24 +2568,33 @@ export function BookingForm({
               step={5}
               title={t("yourVehicle")}
               description={t("pickedToFitYourItems")}
-              disabled={!vehicleStepEnabled}
-              // The fetch error is the reason *and* is given in the header,
-              // because the header is the only part of a disabled step that
-              // stays reachable: the content region goes `inert`. And it always
-              // coincides — a failed fetch shuts this step
-              // (`vehicleStepEnabled`) every time.
-              disabledReason={vehicleStepDisabledReason}
+              id={sectionId("vehicle")}
+              invalid={sectionInvalid("vehicle")}
+              invalidMessage={
+                bodyType === null
+                  ? t(CHOOSE_LOAD_SPACE_FIRST_KEY)
+                  : t("required")
+              }
             >
-              {/* Nothing at all while the step is shut. The disabled reason in
-                  the header is the whole story then — "List at least one item
-                  first.", "Fix the item list above first." or the fetch error —
-                  and anything rendered under it would be judging a load that
-                  does not exist yet: with no items the cargo-eligible list is
-                  empty and read as "no vehicle is available"; with a body
-                  conflict the plan's dry-box fallback was judged and read as
-                  "no carrier runs these classes", on top of the picker's own
-                  conflict alert. Neither was true, and both were alerts. */}
-              {!vehicleStepEnabled ? null : loadingVehicleTypes ? (
+              {/* Every step is open at any time (staging's unlocked steps), so
+                  until the item list adds up to a load the route would accept
+                  this step shows one muted line pointing back at the list
+                  rather than judging a load that does not exist yet: with no
+                  items the cargo-eligible list is empty and would read as "no
+                  vehicle is available"; with a body conflict the plan's dry-box
+                  fallback would be judged and read as "no carrier runs these
+                  classes", on top of the picker's own conflict alert. */}
+              {vehicleTypesError ? (
+                <p role="alert" className="text-[0.8125rem] text-accent">
+                  {vehicleTypesError}
+                </p>
+              ) : !planBookable ? (
+                <p className={STEP_HINT_CLASSES}>
+                  {plan === null
+                    ? t(LIST_ITEMS_FIRST_KEY)
+                    : t(FIX_ITEM_LIST_FIRST_KEY)}
+                </p>
+              ) : loadingVehicleTypes ? (
                 <p aria-busy="true" className="text-[0.8125rem] text-muted">
                   {tShared("loadingVehicleTypes")}
                 </p>
@@ -3138,7 +2971,7 @@ export function BookingForm({
                                   // Really disabled, not `aria-disabled` with a no-op
                                   // handler: there is nothing here for a click to
                                   // achieve or for a keyboard user to reconsider, and
-                                  // `canSubmit` refuses this pairing regardless of
+                                  // `handleSubmit` refuses this pairing regardless of
                                   // which control set it. The reason is rendered as
                                   // text *inside* the button rather than hung off an
                                   // `aria-describedby`, which is what keeps it
@@ -3259,355 +3092,23 @@ export function BookingForm({
               )}
             </StepCard>
 
-            {/* Placed here, and not folded into step 4 above or step 7 below,
-                because it reads the load space settled directly above it — the
-                cold-chain warning compares `handlingTags` against `bodyType` —
-                so its two inputs stay adjacent in the form's reading order.
-
-                It used to open on four required number fields: the load's
-                weight and its largest item's size, typed by the client. Those
-                are gone. The item list in step 4 is the load now, and the
-                route derives all four figures from it (`planLoad`), so what is
-                left here is what the list cannot know: how it is packed, how it
-                must be handled, and when it can be collected. */}
+            {/* Optional. Held in memory until the order exists, then uploaded
+                to it in `handleSubmit` — see `uploadCargoPhotos`. */}
             <StepCard
               step={6}
-              title={t("cargoDetails")}
-              description={t("howItsPackedHandledAndCollected")}
-              disabled={!cargoStepEnabled}
-              disabledReason={vehicleChosenStepsDisabledReason}
+              title={t("cargoPhotos")}
+              description={
+                isEditing
+                  ? t("cargoPhotosEditDescription")
+                  : t("cargoPhotosDescription", {
+                      max: MAX_CARGO_PHOTOS,
+                    })
+              }
             >
-              <div className="flex flex-col gap-5">
-                {/* One free-text field per mode, never both: the route fills
-                    the other column itself (`describeLoad`). In items mode it
-                    writes the item summary into `itemQuantity`, so only the
-                    packaging is asked; in pallets mode it writes the pallet
-                    summary into `packagingDescription`, so only what is on the
-                    pallets is asked — the thing a business actually knows
-                    ("96 cartons"). Asking for a field the server overwrites
-                    would discard what the client typed without saying so. */}
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {activeMode === "items" ? (
-                    <div className="flex flex-col gap-1.5">
-                      <Label
-                        htmlFor={packagingFieldId}
-                        className="text-[0.8125rem] font-medium text-paper"
-                      >
-                        {t("packagingOptional")}
-                      </Label>
-                      <Input
-                        id={packagingFieldId}
-                        value={packagingDescription}
-                        onChange={(event) =>
-                          setPackagingDescription(event.target.value)
-                        }
-                        placeholder={t("eGShrinkWrapped")}
-                        className="border-line text-sm focus-visible:border-accent focus-visible:ring-accent/20"
-                      />
-                    </div>
-                  ) : (
-                    <div className="flex flex-col gap-1.5">
-                      <Label
-                        htmlFor={itemQuantityFieldId}
-                        className="text-[0.8125rem] font-medium text-paper"
-                      >
-                        {t("whatsInsideOptional")}
-                      </Label>
-                      <Input
-                        id={itemQuantityFieldId}
-                        value={itemQuantity}
-                        onChange={(event) =>
-                          setItemQuantity(event.target.value)
-                        }
-                        placeholder={t("eG96Cartons")}
-                        className="border-line text-sm focus-visible:border-accent focus-visible:ring-accent/20"
-                      />
-                    </div>
-                  )}
-                </div>
-
-                {/* Toggle buttons with `aria-pressed`, not an `sr-only` radio
-                    group: these six are independent switches and any
-                    combination of them is a real answer, which is precisely
-                    what a radio group cannot express. The same pattern the
-                    goods grid in step 3 uses. */}
-                <fieldset>
-                  <legend className="mb-2.5 text-[0.8125rem] font-medium text-paper">
-                    {t("specialHandlingOptional")}
-                  </legend>
-
-                  <div className="flex flex-wrap gap-2">
-                    {HANDLING_TAG_OPTIONS.map((tag) => {
-                      const selected = handlingTags.includes(tag);
-
-                      return (
-                        <button
-                          key={tag}
-                          type="button"
-                          aria-pressed={selected}
-                          onClick={() => toggleHandlingTag(tag)}
-                          className={`${HANDLING_TAG_CLASSES} ${
-                            selected
-                              ? HANDLING_TAG_SELECTED_CLASSES
-                              : HANDLING_TAG_IDLE_CLASSES
-                          }`}
-                        >
-                          {cargoHandlingTagLabel(tag)}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {/* Said once the items have implied anything, so a chip
-                      that arrived switched on reads as a suggestion to check
-                      rather than as something the client did by accident. */}
-                  {impliedHandlingTags.length > 0 ? (
-                    <p className="mt-2 text-xs leading-snug text-muted">
-                      {t("handlingTagsFromItems")}
-                    </p>
-                  ) : null}
-
-                  {/* `status`, never `alert`: both lines are advice about a
-                      choice the client is allowed to make, and neither blocks
-                      the booking, changes `bodyType` or clears the tag that
-                      raised it. An `alert` would interrupt to say something the
-                      client may already have decided on purpose. */}
-                  {coldChainBodyMismatch ? (
-                    <p
-                      role="status"
-                      className={`mt-2.5 ${FIELD_NOTICE_CLASSES}`}
-                    >
-                      {/* A business chose its body in step 5 and can go back
-                          and change it; an individual never saw that question
-                          — their body follows the items — so their sentence
-                          points at the list instead. */}
-                      {t(
-                        isBusiness
-                          ? "coldChainNotice"
-                          : "coldChainNoticeFromItems",
-                        {
-                          body: selectedBodyTypeOption
-                            ? t(selectedBodyTypeOption.titleKey)
-                            : t("anotherBody"),
-                        },
-                      )}
-                    </p>
-                  ) : null}
-
-                  {handlingTags.includes("HAZMAT") ? (
-                    <p
-                      role="status"
-                      className={`mt-2.5 ${FIELD_NOTICE_CLASSES}`}
-                    >
-                      {t(HAZMAT_NOTICE_KEY)}
-                    </p>
-                  ) : null}
-                </fieldset>
-
-                {/* Two `TIME_SLOTS` selects on the day already chosen in step 1,
-                    with no date of their own — the window is when the load can
-                    be collected on the scheduled day, so a second date field
-                    could only contradict the first. The full slot list rather
-                    than `availableTimeSlots`: that one narrows to slots still
-                    ahead of the clock for a same-day booking, which is step 1's
-                    concern and already settled by the time this card opens. */}
-                <fieldset>
-                  <legend className="mb-2.5 text-[0.8125rem] font-medium text-paper">
-                    {t("pickupWindowOptional")}
-                  </legend>
-
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="flex flex-col gap-1.5">
-                      <Label
-                        htmlFor={pickupWindowStartId}
-                        className="text-[0.8125rem] font-medium text-paper"
-                      >
-                        {tShared("from")}
-                      </Label>
-                      <select
-                        id={pickupWindowStartId}
-                        value={pickupWindowStartTime}
-                        onChange={(event) =>
-                          setPickupWindowStartTime(event.target.value)
-                        }
-                        className={NATIVE_FIELD_CLASSES}
-                      >
-                        {/* Selectable, not `disabled`: clearing the window
-                            again is how a client undoes declaring one. */}
-                        <option value="">{t("anyTime")}</option>
-                        {TIME_SLOTS.map((slot) => (
-                          <option key={slot.value} value={slot.value}>
-                            {formatTimeSlot(slot)}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="flex flex-col gap-1.5">
-                      <Label
-                        htmlFor={pickupWindowEndId}
-                        className="text-[0.8125rem] font-medium text-paper"
-                      >
-                        {t("until")}
-                      </Label>
-                      <select
-                        id={pickupWindowEndId}
-                        value={pickupWindowEndTime}
-                        onChange={(event) =>
-                          setPickupWindowEndTime(event.target.value)
-                        }
-                        className={NATIVE_FIELD_CLASSES}
-                      >
-                        <option value="">{t("anyTime")}</option>
-                        {TIME_SLOTS.map((slot) => (
-                          <option key={slot.value} value={slot.value}>
-                            {formatTimeSlot(slot)}
-                          </option>
-                        ))}
-                      </select>
-                      {/* Under the second of the two controls, because neither
-                          end is wrong on its own — it is the pair that is. Two
-                          separate sentences, because "finish the window" and
-                          "the window ends before it starts" are two different
-                          mistakes with two different fixes. */}
-                      {pickupWindowHalfDeclared ? (
-                        <p className={FIELD_ERROR_CLASSES}>
-                          {t("setBothEndsOfThePickup")}
-                        </p>
-                      ) : pickupWindowValid ? null : (
-                        <p className={FIELD_ERROR_CLASSES}>
-                          {t("thePickupWindowHasToEnd")}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </fieldset>
-
-                {/* A deadline routinely falls on a later day than collection,
-                    so unlike the window above this one carries its own date —
-                    step 1's field, rebuilt with its own state and its own
-                    calendar floor. */}
-                <fieldset>
-                  <legend className="mb-2.5 text-[0.8125rem] font-medium text-paper">
-                    {t("deliveryDeadlineOptional")}
-                  </legend>
-
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="flex flex-col gap-1.5">
-                      <Label
-                        htmlFor={deadlineTriggerId}
-                        className="text-[0.8125rem] font-medium text-paper"
-                      >
-                        {tShared("date")}
-                      </Label>
-                      <Popover
-                        open={deadlinePickerOpen}
-                        onOpenChange={setDeadlinePickerOpen}
-                      >
-                        <PopoverTrigger asChild>
-                          <button
-                            id={deadlineTriggerId}
-                            type="button"
-                            className={`flex items-center gap-2 ${NATIVE_FIELD_CLASSES}`}
-                          >
-                            <CalendarDays
-                              aria-hidden="true"
-                              className="size-4 shrink-0 text-muted"
-                            />
-                            <span
-                              className={
-                                deliveryDeadlineDate
-                                  ? "text-paper"
-                                  : "text-muted"
-                              }
-                            >
-                              {deliveryDeadlineDate
-                                ? scheduledDateFormatter.format(
-                                    deliveryDeadlineDate,
-                                  )
-                                : t("noDeadline")}
-                            </span>
-                          </button>
-                        </PopoverTrigger>
-
-                        <PopoverContent
-                          align="start"
-                          className="w-auto border-line bg-ink p-0 text-paper ring-line"
-                        >
-                          {/* The same local retint step 1's calendar applies,
-                              and for the same reason: a portalled popover sits
-                              outside this page's palette, so shadcn's default
-                              near-black `--primary` would otherwise draw the
-                              selected day. */}
-                          <div
-                            style={
-                              {
-                                "--primary": "var(--landing-accent)",
-                                "--primary-foreground": "var(--landing-ink)",
-                              } as React.CSSProperties
-                            }
-                          >
-                            <Calendar
-                              mode="single"
-                              selected={deliveryDeadlineDate ?? undefined}
-                              onSelect={(date) => {
-                                setDeliveryDeadlineDate(date ?? null);
-                                setDeadlinePickerOpen(false);
-                              }}
-                              // The scheduled day, not today: a deadline before
-                              // the job is even collected is not a deadline.
-                              // `todayStart` only stands in for the render
-                              // before step 1 is answered, which this card is
-                              // gated shut for.
-                              disabled={{ before: scheduledDate ?? todayStart }}
-                              autoFocus
-                            />
-                          </div>
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-
-                    <div className="flex flex-col gap-1.5">
-                      <Label
-                        htmlFor={deadlineTimeSelectId}
-                        className="text-[0.8125rem] font-medium text-paper"
-                      >
-                        {tShared("time")}
-                      </Label>
-                      <select
-                        id={deadlineTimeSelectId}
-                        value={deliveryDeadlineTime}
-                        onChange={(event) =>
-                          setDeliveryDeadlineTime(event.target.value)
-                        }
-                        className={NATIVE_FIELD_CLASSES}
-                      >
-                        <option value="">{t("noDeadline")}</option>
-                        {TIME_SLOTS.map((slot) => (
-                          <option key={slot.value} value={slot.value}>
-                            {formatTimeSlot(slot)}
-                          </option>
-                        ))}
-                      </select>
-                      {deliveryDeadlineValid ? null : (
-                        <p className={FIELD_ERROR_CLASSES}>
-                          {pickupWindowEndDateTime
-                            ? t("deadlineAfterWindow")
-                            : t("deadlineAfterScheduled")}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </fieldset>
-              </div>
+              <CargoPhotosField state={cargoPhotos} disabled={submitting} />
             </StepCard>
 
-            <StepCard
-              step={7}
-              title={t("additionalDetails")}
-              disabled={!vehicleChosenStepsEnabled}
-              disabledReason={vehicleChosenStepsDisabledReason}
-            >
+            <StepCard step={7} title={t("additionalDetails")}>
               <div className="flex flex-col gap-4">
                 {/* Native radios, one per crew size, each visually replaced by
                     the cell wrapping it. Keeping the real inputs — `sr-only`
@@ -3693,13 +3194,8 @@ export function BookingForm({
               description={
                 estimate
                   ? t("pricesBelowForRoute")
-                  : t("pricesAppearAfterCalculate")
+                  : t("pricesAppearOncePriced")
               }
-              // The third sibling of the vehicle choice, and never a gate on the
-              // quote: the tier it opens on is the one the fare is quoted at, so
-              // a client who never reaches this card still books at Regular.
-              disabled={!vehicleChosenStepsEnabled}
-              disabledReason={vehicleChosenStepsDisabledReason}
             >
               {/* Native radios again, for the third time in this form and for
                   the same reasons as the load-space and crew-size pickers:
@@ -3871,7 +3367,11 @@ export function BookingForm({
                 </>
               ) : (
                 <p className="mt-2 text-[0.8125rem] leading-snug text-muted">
-                  {canCalculate ? t("pressCalculate") : t("fillInBoth")}
+                  {pricingInputsReady
+                    ? estimating
+                      ? t("calculating")
+                      : t("priceUpdatesAutomatically")
+                    : t("fillInBoth")}
                 </p>
               )}
 
@@ -3971,35 +3471,46 @@ export function BookingForm({
               ) : null}
             </div>
 
-            {/* Once a quote exists the two actions coexist rather than swap:
-                the tier cards invite comparison, and every comparison that ends
-                in a changed vehicle or crew size needs the price back. Booking
-                takes the outline treatment and recalculating keeps the accent
-                fill, per the handoff. */}
+            {/* Book is always available (bar an in-flight booking): pressing it
+                validates the required steps and prices on the spot if no
+                estimate exists yet. Recalculate stays beside it for a client
+                who wants a fresh quote by hand, and only appears once there is
+                something to price. */}
             <div className="flex shrink-0 items-center gap-2.5">
-              {estimate ? (
+              {pricingInputsReady ? (
                 <Button
-                  type="submit"
-                  form={formId}
-                  disabled={!canSubmit}
-                  className="h-12 gap-2 rounded-full border-paper bg-transparent px-6 text-[0.9375rem] font-semibold text-paper transition-colors hover:bg-surface hover:text-paper"
+                  type="button"
+                  onClick={() => void handleCalculate()}
+                  disabled={!canCalculate || submitting}
+                  className="h-12 gap-2 rounded-full border-paper bg-transparent px-5 text-[0.9375rem] font-semibold text-paper transition-colors hover:bg-surface hover:text-paper"
                 >
-                  {submitting ? t("booking") : t("bookDelivery")}
-                  <ArrowRight aria-hidden="true" />
+                  {estimating && !submitting
+                    ? t("calculating")
+                    : estimate
+                      ? t("recalculate")
+                      : t("calculate")}
                 </Button>
               ) : null}
 
               <Button
-                type="button"
-                onClick={() => void handleCalculate()}
-                disabled={!canCalculate}
+                type="submit"
+                form={formId}
+                disabled={submitting}
+                aria-busy={submitting}
                 className="h-12 gap-2 rounded-full bg-accent px-6 text-[0.9375rem] font-semibold text-ink transition-transform hover:bg-accent hover:-translate-y-0.5 disabled:translate-y-0"
               >
-                {estimating
-                  ? t("calculating")
-                  : estimate
-                    ? t("recalculate")
-                    : t("calculate")}
+                {submitting
+                  ? submitPhase === "pricing"
+                    ? t("calculating")
+                    : submitPhase === "uploading"
+                      ? t("uploadingPhotos")
+                      : isEditing
+                        ? t("saving")
+                        : t("booking")
+                  : isEditing
+                    ? t("saveChanges")
+                    : t("bookDelivery")}
+                <ArrowRight aria-hidden="true" />
               </Button>
             </div>
           </div>

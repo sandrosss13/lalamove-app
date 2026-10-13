@@ -163,10 +163,10 @@ export default function AdminSignInPage() {
         order, behind the credentials a visitor came here to type.
 
         No `className`: `ThemeToggle`'s defaults are shadcn tokens, which is
-        exactly this page's palette. The orange-hover trap does not apply — the
+        exactly this page's palette. The green-hover trap does not apply — the
         shared button already avoids `bg-accent` — and even inside this subtree
         `accent` resolves to the neutral shadcn grey rather than the landing
-        brand orange.
+        brand green.
       */}
       <div className="absolute top-5 right-5 flex items-center gap-2">
         <LanguageToggle />

@@ -1,0 +1,1172 @@
+{
+  "shared.breadcrumbHome": {
+    "en": "Home",
+    "ka": "მთავარი",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "shared.hero.chipGated": {
+    "en": "Launching soon — drivers can sign up now",
+    "ka": "მალე ვიწყებთ — მძღოლებს რეგისტრაცია უკვე შეუძლიათ",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "shared.hero.chipTag": {
+    "en": "Soon",
+    "ka": "მალე",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "shared.cta.becomeDriver": {
+    "en": "Become a driver",
+    "ka": "გახდით მძღოლი",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "shared.cta.howItWorks": {
+    "en": "How it works",
+    "ka": "როგორ მუშაობს",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "shared.cta.book": {
+    "en": "Book a vehicle",
+    "ka": "ავტომობილის დაჯავშნა",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "shared.nav.areas": {
+    "en": "Areas",
+    "ka": "არეალი",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "shared.nav.how": {
+    "en": "How it works",
+    "ka": "როგორ მუშაობს",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "shared.nav.vehicles": {
+    "en": "Vehicles",
+    "ka": "ავტომობილები",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "shared.nav.faq": {
+    "en": "FAQ",
+    "ka": "კითხვები",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "shared.nav.cities": {
+    "en": "Cities",
+    "ka": "ქალაქები",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "shared.intro.eyebrow": {
+    "en": "About the service",
+    "ka": "სერვისის შესახებ",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "shared.areas.eyebrow": {
+    "en": "Service area",
+    "ka": "მომსახურების არეალი",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "shared.howItWorks.eyebrow": {
+    "en": "How it works",
+    "ka": "როგორ მუშაობს",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "shared.howItWorks.heading": {
+    "en": "From pickup to drop-off",
+    "ka": "აღებიდან ჩაბარებამდე",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "shared.howItWorks.steps.s1.title": {
+    "en": "Describe the cargo",
+    "ka": "ტვირთის აღწერა",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "shared.howItWorks.steps.s1.body": {
+    "en": "Enter the pickup and drop-off addresses, what you are sending and roughly how big and heavy it is.",
+    "ka": "მიუთითეთ აღებისა და ჩაბარების მისამართები, რას აგზავნით და დაახლოებით რა ზომისა და წონისაა.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "shared.howItWorks.steps.s2.title": {
+    "en": "Choose a vehicle",
+    "ka": "ავტომობილის არჩევა",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "shared.howItWorks.steps.s2.body": {
+    "en": "Pick the class that fits the load, from a small van to a trailer truck. You see the price before you confirm.",
+    "ka": "აირჩიეთ ტვირთის შესაფერისი კლასი — მცირე ფურგონიდან მისაბმელიან სატვირთომდე. ფასს დადასტურებამდე ხედავთ.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "shared.howItWorks.steps.s3.title": {
+    "en": "A checked driver takes the job",
+    "ka": "რეისს შემოწმებული მძღოლი იღებს",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "shared.howItWorks.steps.s3.body": {
+    "en": "A driver whose documents and vehicle zomo has reviewed accepts the job and heads to the pickup address.",
+    "ka": "მძღოლი, რომლის დოკუმენტები და ავტომობილიც ზომომ გადაამოწმა, რეისს იღებს და აღების მისამართისკენ მიემართება.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "shared.howItWorks.steps.s4.title": {
+    "en": "Follow it to drop-off",
+    "ka": "თვალყური ჩაბარებამდე",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "shared.howItWorks.steps.s4.body": {
+    "en": "Track the vehicle on the map until the cargo is handed over at the drop-off address.",
+    "ka": "ადევნეთ თვალი ავტომობილს რუკაზე, სანამ ტვირთი ჩაბარების მისამართზე არ გადაეცემა.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "shared.faq.eyebrow": {
+    "en": "Questions",
+    "ka": "კითხვები",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "shared.otherCities.eyebrow": {
+    "en": "Other cities",
+    "ka": "სხვა ქალაქები",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "shared.otherCities.heading": {
+    "en": "Cargo delivery across Georgia",
+    "ka": "ტვირთის გადაზიდვა მთელ საქართველოში",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "shared.closing.bodyGated": {
+    "en": "zomo is getting ready to launch. If you drive a van or a truck, you can sign up as a driver now.",
+    "ka": "ზომო გასაშვებად ემზადება. თუ ფურგონით ან სატვირთოთი მუშაობთ, მძღოლად რეგისტრაცია უკვე შეგიძლიათ.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "shared.closing.bodyLive": {
+    "en": "Tell us what needs to go where, choose a vehicle and follow the cargo all the way to drop-off.",
+    "ka": "მიუთითეთ, რა სად უნდა მივიდეს, აირჩიეთ ავტომობილი და ადევნეთ თვალი ტვირთს ჩაბარებამდე.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "shared.footer.citiesTitle": {
+    "en": "Cities",
+    "ka": "ქალაქები",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "shared.og.subline": {
+    "en": "Vans and trucks for cargo across Georgia",
+    "ka": "ფურგონები და სატვირთოები ტვირთისთვის მთელ საქართველოში",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.tbilisi.keyword": {
+    "en": "Cargo delivery in Tbilisi",
+    "ka": "ტვირთის გადაზიდვა თბილისში",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.tbilisi.meta.title": {
+    "en": "Cargo delivery in Tbilisi — vans and trucks",
+    "ka": "ტვირთის გადაზიდვა თბილისში — ფურგონები და სატვირთოები",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.tbilisi.meta.description": {
+    "en": "Cargo delivery in Tbilisi by van or truck, from Saburtalo and Vake to Gldani, Isani and the Eliava and Lilo markets. Checked drivers, tracked trips.",
+    "ka": "ტვირთის გადაზიდვა თბილისში ფურგონით ან სატვირთოთი — საბურთალოდან და ვაკიდან გლდანამდე, ისნამდე, ელიავასა და ლილოს ბაზრობებამდე. შემოწმებული მძღოლები.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.tbilisi.hero.subtext": {
+    "en": "Verified drivers with vans and trucks for shop stock, building materials, equipment and pallets — from the steep lanes of Old Tbilisi to the wholesale markets on the edge of the city.",
+    "ka": "ვერიფიცირებული მძღოლები ფურგონებითა და სატვირთოებით — მაღაზიის მარაგისთვის, სამშენებლო მასალისთვის, ტექნიკისა და პალეტებისთვის, ძველი თბილისის ციცაბო ქუჩებიდან ქალაქის განაპირა საბითუმო ბაზრობებამდე.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.tbilisi.intro.heading": {
+    "en": "The right vehicle, anywhere in the capital",
+    "ka": "შესაფერისი ავტომობილი დედაქალაქის ნებისმიერ წერტილში",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.tbilisi.intro.p1": {
+    "en": "Tbilisi stretches a long way along the Mtkvari, and a single order can start on a narrow street in Sololaki and end at a warehouse in Samgori. zomo matches each order with a vehicle sized to the cargo: a few boxes do not need a heavy freight truck, and a pallet load will not fit in a small van.",
+    "ka": "თბილისი მტკვრის გასწვრივ შორს არის გადაჭიმული და ერთი შეკვეთა შეიძლება სოლოლაკის ვიწრო ქუჩაზე დაიწყოს და სამგორის საწყობთან დასრულდეს. ზომო ყოველ შეკვეთას ტვირთის ზომის შესაფერის ავტომობილს უთავსებს: რამდენიმე ყუთს მძიმე სატვირთო არ სჭირდება, პალეტებით სავსე ტვირთი კი მცირე ფურგონში ვერ ჩაეტევა.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.tbilisi.intro.p2": {
+    "en": "Shops restocking at the Eliava and Lilo markets, builders carrying materials between sites, online sellers sending orders to customers, offices shipping equipment — every order starts the same way: a pickup address, a drop-off address, a description of the cargo and a vehicle class.",
+    "ka": "მაღაზიები, რომლებიც მარაგს ელიავასა და ლილოს ბაზრობებზე ავსებენ, მშენებლები, რომლებსაც მასალა ერთი ობიექტიდან მეორეზე გადააქვთ, ონლაინ გამყიდველები, რომლებიც კლიენტებს შეკვეთებს უგზავნიან, ოფისები, რომლებიც ტექნიკას აგზავნიან — ყველა შეკვეთა ერთნაირად იწყება: აღების მისამართი, ჩაბარების მისამართი, ტვირთის აღწერა და ავტომობილის კლასი.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.tbilisi.why.w1.title": {
+    "en": "Sized to the cargo",
+    "ka": "ტვირთის ზომაზე მორგებული",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.tbilisi.why.w1.body": {
+    "en": "From a small van for a boutique in Vake to a trailer truck for wholesale stock out of Didube, you choose the class that matches what you send.",
+    "ka": "მცირე ფურგონიდან ვაკის ბუტიკისთვის მისაბმელიან სატვირთომდე დიდუბიდან გამოსატანი საბითუმო მარაგისთვის — კლასს იმის მიხედვით ირჩევთ, რასაც აგზავნით.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.tbilisi.why.w2.title": {
+    "en": "Drivers zomo has checked",
+    "ka": "ზომოს მიერ შემოწმებული მძღოლები",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.tbilisi.why.w2.body": {
+    "en": "Every driver passes a review of their documents and vehicle before taking a job in the city.",
+    "ka": "ქალაქში რეისის აღებამდე ყოველი მძღოლი დოკუმენტებისა და ავტომობილის შემოწმებას გადის.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.tbilisi.why.w3.title": {
+    "en": "Through the traffic, on the map",
+    "ka": "თბილისის მოძრაობაში — რუკაზე",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.tbilisi.why.w3.body": {
+    "en": "Follow the vehicle across Tbilisi on the map, from pickup to drop-off.",
+    "ka": "ადევნეთ თვალი ავტომობილს რუკაზე მთელ თბილისში, აღებიდან ჩაბარებამდე.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.tbilisi.areas.heading": {
+    "en": "Tbilisi, on both banks of the Mtkvari",
+    "ka": "თბილისი — მტკვრის ორივე ნაპირზე",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.tbilisi.areas.body": {
+    "en": "The service area covers the whole city on both sides of the river, including:",
+    "ka": "მომსახურების არეალი მთელ ქალაქს მოიცავს მდინარის ორივე მხარეს, მათ შორის:",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.tbilisi.areas.list.a1": {
+    "en": "Saburtalo and Vake",
+    "ka": "საბურთალო და ვაკე",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.tbilisi.areas.list.a2": {
+    "en": "Old Tbilisi and Sololaki",
+    "ka": "ძველი თბილისი და სოლოლაკი",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.tbilisi.areas.list.a3": {
+    "en": "Didube and Digomi",
+    "ka": "დიდუბე და დიღომი",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.tbilisi.areas.list.a4": {
+    "en": "Gldani and Nadzaladevi",
+    "ka": "გლდანი და ნაძალადევი",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.tbilisi.areas.list.a5": {
+    "en": "Isani and Samgori",
+    "ka": "ისანი და სამგორი",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.tbilisi.areas.list.a6": {
+    "en": "Eliava and Lilo markets",
+    "ka": "ელიავასა და ლილოს ბაზრობები",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.tbilisi.faq.heading": {
+    "en": "Cargo delivery in Tbilisi: questions",
+    "ka": "ტვირთის გადაზიდვა თბილისში — კითხვები",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.tbilisi.faq.intro": {
+    "en": "Common questions about sending cargo around Tbilisi.",
+    "ka": "ხშირი კითხვები თბილისში ტვირთის გაგზავნის შესახებ.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.tbilisi.faq.items.q1.question": {
+    "en": "Can the driver collect from the Eliava or Lilo market?",
+    "ka": "შეუძლია მძღოლს ტვირთის აღება ელიავას ან ლილოს ბაზრობიდან?",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.tbilisi.faq.items.q1.answer": {
+    "en": "Yes. Set the market as the pickup address and add the stall or row to the order description, so the driver can find you in the crowd.",
+    "ka": "დიახ. აღების მისამართად მიუთითეთ ბაზრობა, ხოლო შეკვეთის აღწერაში ჩაწერეთ დახლი ან რიგი, რომ მძღოლმა ხალხმრავლობაში ადვილად გიპოვოთ.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.tbilisi.faq.items.q2.question": {
+    "en": "Which vehicle do I need for building materials?",
+    "ka": "რომელი ავტომობილი მჭირდება სამშენებლო მასალისთვის?",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.tbilisi.faq.items.q2.answer": {
+    "en": "Cement, tiles and timber are heavy for their size. A large van is enough for a few bags; for pallets or long lengths choose a medium or heavy freight truck, ideally with a tail lift or an open flatbed.",
+    "ka": "ცემენტი, ფილები და ხე-ტყე თავისი ზომისთვის მძიმეა. რამდენიმე ტომრისთვის დიდი ფურგონიც საკმარისია, პალეტებისა და გრძელი მასალისთვის კი აირჩიეთ საშუალო ან მძიმე სატვირთო — სასურველია ჰიდრავლიკური ბაქნით ან ღია პლატფორმით.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.tbilisi.faq.items.q3.question": {
+    "en": "Can someone help with loading and unloading?",
+    "ka": "შეიძლება დატვირთვა-დაცლაში დახმარება?",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.tbilisi.faq.items.q3.answer": {
+    "en": "Yes. When you set up the order you can add helpers who come with the driver and help carry the cargo — useful for offices on upper floors in Saburtalo or Vake with no freight lift.",
+    "ka": "დიახ. შეკვეთისას შეგიძლიათ დაამატოთ დამხმარეები, რომლებიც მძღოლთან ერთად მოდიან და ტვირთის ტარებაში ეხმარებიან — მოსახერხებელია საბურთალოსა და ვაკის ოფისებისთვის ზედა სართულებზე, სადაც სატვირთო ლიფტი არ არის.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.tbilisi.faq.items.q4.question": {
+    "en": "Can I send cargo from Tbilisi to another city?",
+    "ka": "შემიძლია ტვირთის გაგზავნა თბილისიდან სხვა ქალაქში?",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.tbilisi.faq.items.q4.answer": {
+    "en": "Yes. The price is calculated from the route distance, so a drop-off in Rustavi, Gori or further away is set up the same way as one across town.",
+    "ka": "დიახ. ფასი მარშრუტის მანძილის მიხედვით გამოითვლება, ამიტომ რუსთავში, გორში თუ უფრო შორს ჩაბარება ისევე ფორმდება, როგორც ქალაქის შიგნით.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.tbilisi.faq.items.q5.question": {
+    "en": "I drive a van in Tbilisi. Can I work with zomo?",
+    "ka": "თბილისში ფურგონით ვმუშაობ. შემიძლია ზომოსთან თანამშრომლობა?",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.tbilisi.faq.items.q5.answer": {
+    "en": "Yes. Sign up as a driver and upload your documents and vehicle details. Once your application is approved, you take jobs in Tbilisi on your own schedule.",
+    "ka": "დიახ. დარეგისტრირდით მძღოლად და ატვირთეთ დოკუმენტები და ავტომობილის მონაცემები. განაცხადის დამტკიცების შემდეგ თბილისში რეისებს საკუთარი გრაფიკით შეასრულებთ.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.tbilisi.closing.heading": {
+    "en": "Cargo to move in Tbilisi?",
+    "ka": "თბილისში ტვირთი გაქვთ გადასაზიდი?",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.batumi.keyword": {
+    "en": "Cargo delivery in Batumi",
+    "ka": "ტვირთის გადაზიდვა ბათუმში",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.batumi.meta.title": {
+    "en": "Cargo delivery in Batumi — port, city and coast",
+    "ka": "ტვირთის გადაზიდვა ბათუმში — პორტი, ქალაქი, სანაპირო",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.batumi.meta.description": {
+    "en": "Cargo delivery in Batumi by van, truck or refrigerated van: the port, Old Batumi, the boulevard, Makhinjauri and Gonio. Checked drivers, tracked trips.",
+    "ka": "ტვირთის გადაზიდვა ბათუმში ფურგონით, სატვირთოთი ან მაცივარ-ფურგონით: პორტი, ძველი ბათუმი, ბულვარი, მახინჯაური და გონიო. შემოწმებული მძღოლები.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.batumi.hero.subtext": {
+    "en": "Supplies for hotels, restaurants and shops along the Black Sea coast, and goods coming in through the port — carried across Batumi by verified drivers in vans and trucks.",
+    "ka": "სასტუმროების, რესტორნებისა და მაღაზიების მარაგი შავი ზღვის სანაპიროზე და პორტიდან შემოსული საქონელი — ვერიფიცირებული მძღოლები ფურგონებითა და სატვირთოებით მთელ ბათუმში.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.batumi.intro.heading": {
+    "en": "Made for a port city and its coast",
+    "ka": "პორტისა და სანაპიროს ქალაქისთვის",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.batumi.intro.p1": {
+    "en": "Cargo in Batumi runs between two worlds: the port and the warehouses around it on one side, and the hotels, cafés and shops packed into Old Batumi and along the boulevard on the other. With zomo you pick the vehicle for each route — a heavy freight truck from the port side, a small van for the narrow streets around Europe Square.",
+    "ka": "ბათუმში ტვირთი ორ სამყაროს შორის მოძრაობს: ერთ მხარეს პორტი და მის გარშემო არსებული საწყობებია, მეორეზე — ძველ ბათუმსა და ბულვარის გასწვრივ განლაგებული სასტუმროები, კაფეები და მაღაზიები. ზომოში ავტომობილს თითოეული მარშრუტისთვის ირჩევთ: მძიმე სატვირთოს — პორტის მხრიდან, მცირე ფურგონს — ევროპის მოედნის მიმდებარე ვიწრო ქუჩებისთვის.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.batumi.intro.p2": {
+    "en": "The coast's humidity and summer heat matter for food and flowers, so you can choose a refrigerated van, and fragile cargo — glassware for a new restaurant, display stock for a shop — can be marked as such before the driver arrives.",
+    "ka": "სანაპიროს ტენიანობა და ზაფხულის სიცხე საკვებისა და ყვავილებისთვის მნიშვნელოვანია, ამიტომ შეგიძლიათ მაცივარ-ფურგონი აირჩიოთ, მსხვრევადი ტვირთი კი — ახალი რესტორნის ჭურჭელი თუ მაღაზიის ვიტრინის საქონელი — მძღოლის მოსვლამდე შესაბამისად მონიშნოთ.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.batumi.why.w1.title": {
+    "en": "From the port to the shopfront",
+    "ka": "პორტიდან ვიტრინამდე",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.batumi.why.w1.body": {
+    "en": "Pick up near the port or at a warehouse on the edge of town and drop off in the old centre, without changing vehicles.",
+    "ka": "აიღეთ ტვირთი პორტთან ან ქალაქის განაპირა საწყობში და ჩააბარეთ ძველ ცენტრში — ავტომობილის შეცვლის გარეშე.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.batumi.why.w2.title": {
+    "en": "Cold chain for the coast",
+    "ka": "ცივი ჯაჭვი სანაპიროსთვის",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.batumi.why.w2.body": {
+    "en": "Refrigerated vans for seafood, dairy and flowers on their way to hotels and restaurants.",
+    "ka": "მაცივარ-ფურგონები ზღვის პროდუქტების, რძის ნაწარმისა და ყვავილებისთვის, რომლებიც სასტუმროებსა და რესტორნებში მიდის.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.batumi.why.w3.title": {
+    "en": "Drivers checked by zomo",
+    "ka": "ზომოს მიერ შემოწმებული მძღოლები",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.batumi.why.w3.body": {
+    "en": "Each driver's documents and vehicle are reviewed before they take a job in Batumi.",
+    "ka": "ბათუმში რეისის აღებამდე ყოველი მძღოლის დოკუმენტები და ავტომობილი მოწმდება.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.batumi.areas.heading": {
+    "en": "From the port to Gonio",
+    "ka": "პორტიდან გონიომდე",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.batumi.areas.body": {
+    "en": "The service area runs along the coast from Makhinjauri in the north to Gonio in the south, including:",
+    "ka": "მომსახურების არეალი სანაპიროს გასწვრივ ვრცელდება — ჩრდილოეთით მახინჯაურიდან სამხრეთით გონიომდე, მათ შორის:",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.batumi.areas.list.a1": {
+    "en": "Port area",
+    "ka": "პორტის მიმდებარე ტერიტორია",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.batumi.areas.list.a2": {
+    "en": "Old Batumi and Europe Square",
+    "ka": "ძველი ბათუმი და ევროპის მოედანი",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.batumi.areas.list.a3": {
+    "en": "Old and New Boulevard",
+    "ka": "ძველი და ახალი ბულვარი",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.batumi.areas.list.a4": {
+    "en": "Tamar settlement",
+    "ka": "თამარის დასახლება",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.batumi.areas.list.a5": {
+    "en": "Makhinjauri",
+    "ka": "მახინჯაური",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.batumi.areas.list.a6": {
+    "en": "Gonio",
+    "ka": "გონიო",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.batumi.faq.heading": {
+    "en": "Cargo delivery in Batumi: questions",
+    "ka": "ტვირთის გადაზიდვა ბათუმში — კითხვები",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.batumi.faq.intro": {
+    "en": "Common questions about sending cargo in Batumi and along the Adjara coast.",
+    "ka": "ხშირი კითხვები ბათუმსა და აჭარის სანაპიროზე ტვირთის გაგზავნის შესახებ.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.batumi.faq.items.q1.question": {
+    "en": "Can cargo be collected near Batumi port?",
+    "ka": "შესაძლებელია ტვირთის აღება ბათუმის პორტის მიდამოებიდან?",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.batumi.faq.items.q1.answer": {
+    "en": "Yes. Use the address where the cargo is actually released — a warehouse or a terminal gate — and put any reference the driver needs at the gate in the order description. Customs clearance is not part of the service.",
+    "ka": "დიახ. მიუთითეთ მისამართი, სადაც ტვირთი რეალურად გაიცემა — საწყობი ან ტერმინალის შესასვლელი — და შეკვეთის აღწერაში ჩაწერეთ ყველა მონაცემი, რომელიც მძღოლს შესასვლელთან დასჭირდება. საბაჟო გაფორმება სერვისში არ შედის.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.batumi.faq.items.q2.question": {
+    "en": "Can I send chilled food?",
+    "ka": "შემიძლია გაციებული პროდუქტის გაგზავნა?",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.batumi.faq.items.q2.answer": {
+    "en": "Choose a refrigerated van when you set up the order and mark the cargo as cold chain, so the job goes to a driver with a suitable vehicle.",
+    "ka": "შეკვეთისას აირჩიეთ მაცივარ-ფურგონი და ტვირთი მონიშნეთ როგორც ცივი ჯაჭვი — ასე რეისს შესაფერისი ავტომობილის მქონე მძღოლი მიიღებს.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.batumi.faq.items.q3.question": {
+    "en": "Can the driver reach a hotel on the boulevard?",
+    "ka": "მძღოლი ბულვარზე მდებარე სასტუმრომდე მივა?",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.batumi.faq.items.q3.answer": {
+    "en": "The driver goes to the address you give. For hotels and restaurants on pedestrian stretches, set the drop-off at the nearest service entrance or loading point and mention it in the description.",
+    "ka": "მძღოლი თქვენ მიერ მითითებულ მისამართზე მიდის. ფეხით მოსიარულეთა ზონაში მდებარე სასტუმროებისა და რესტორნებისთვის ჩაბარების მისამართად მიუთითეთ უახლოესი სამეურნეო შესასვლელი ან დატვირთვის ადგილი და აღწერაშიც აღნიშნეთ.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.batumi.faq.items.q4.question": {
+    "en": "Can I send cargo from Batumi to Kobuleti or Tbilisi?",
+    "ka": "შემიძლია ტვირთის გაგზავნა ბათუმიდან ქობულეთში ან თბილისში?",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.batumi.faq.items.q4.answer": {
+    "en": "Yes. The price follows the route distance, so a drop-off further along the coast or in another city is set up just like one in town.",
+    "ka": "დიახ. ფასი მარშრუტის მანძილზეა დამოკიდებული, ამიტომ სანაპიროს გაყოლებით ან სხვა ქალაქში ჩაბარება ზუსტად ისე ფორმდება, როგორც ქალაქის შიგნით.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.batumi.faq.items.q5.question": {
+    "en": "How do I start driving with zomo in Batumi?",
+    "ka": "როგორ დავიწყო ზომოსთან მძღოლად მუშაობა ბათუმში?",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.batumi.faq.items.q5.answer": {
+    "en": "Sign up as a driver and upload your documents and vehicle details. Once the application is approved, you take jobs in Batumi whenever it suits you.",
+    "ka": "დარეგისტრირდით მძღოლად და ატვირთეთ დოკუმენტები და ავტომობილის მონაცემები. განაცხადის დამტკიცების შემდეგ ბათუმში რეისებს თქვენთვის მოსახერხებელ დროს შეასრულებთ.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.batumi.closing.heading": {
+    "en": "Cargo to move in Batumi?",
+    "ka": "ბათუმში ტვირთი გაქვთ გადასაზიდი?",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.kutaisi.keyword": {
+    "en": "Cargo delivery in Kutaisi",
+    "ka": "ტვირთის გადაზიდვა ქუთაისში",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.kutaisi.meta.title": {
+    "en": "Cargo delivery in Kutaisi — city and industry",
+    "ka": "ტვირთის გადაზიდვა ქუთაისში — ქალაქი და მრეწველობა",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.kutaisi.meta.description": {
+    "en": "Cargo delivery in Kutaisi by van or truck: the centre and Green Bazaar, Avtokarkhana, Nikea, Sapichkhia and the Free Industrial Zone. Checked drivers.",
+    "ka": "ტვირთის გადაზიდვა ქუთაისში ფურგონით ან სატვირთოთი: ცენტრი და მწვანე ბაზარი, ავტოქარხანა, ნიკეა, საფიჩხია და თავისუფალი ინდუსტრიული ზონა.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.kutaisi.hero.subtext": {
+    "en": "Stock for the Green Bazaar and shops in the centre, parts and materials for workshops and the Free Industrial Zone — carried across Kutaisi by verified drivers in vans and trucks.",
+    "ka": "მწვანე ბაზრისა და ცენტრის მაღაზიების მარაგი, სახელოსნოებისა და თავისუფალი ინდუსტრიული ზონის ნაწილები და მასალა — ვერიფიცირებული მძღოლები ფურგონებითა და სატვირთოებით მთელ ქუთაისში.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.kutaisi.intro.heading": {
+    "en": "Cargo on both banks of the Rioni",
+    "ka": "ტვირთი რიონის ორივე ნაპირზე",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.kutaisi.intro.p1": {
+    "en": "Kutaisi is the trading centre of Imereti. Produce and goods from the surrounding villages come together at the Green Bazaar, while workshops and plants around Avtokarkhana and the Free Industrial Zone need parts and materials carried between them. zomo puts a vehicle of the right class on each of those orders.",
+    "ka": "ქუთაისი იმერეთის სავაჭრო ცენტრია. მიმდებარე სოფლების პროდუქცია და საქონელი მწვანე ბაზარზე იყრის თავს, ავტოქარხნისა და თავისუფალი ინდუსტრიული ზონის სახელოსნოებსა და საწარმოებს კი ნაწილებისა და მასალის ერთმანეთს შორის გადატანა სჭირდებათ. ზომო თითოეულ ასეთ შეკვეთას შესაფერისი კლასის ავტომობილს უთავსებს.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.kutaisi.intro.p2": {
+    "en": "A small or large van suits the old centre and its bridges over the Rioni; open flatbeds and heavy freight trucks take building materials and pallets out towards Tskaltubo, Zestaponi and the rest of the region.",
+    "ka": "ძველი ცენტრისა და რიონზე გადებული ხიდებისთვის მცირე ან დიდი ფურგონი გამოდგება, ხოლო ღია პლატფორმები და მძიმე სატვირთოები სამშენებლო მასალასა და პალეტებს წყალტუბოს, ზესტაფონისა და რეგიონის სხვა მიმართულებით გადაზიდავენ.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.kutaisi.why.w1.title": {
+    "en": "From market to workshop",
+    "ka": "ბაზრიდან სახელოსნომდე",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.kutaisi.why.w1.body": {
+    "en": "Pickups from the Green Bazaar or from a supplier are set up the same way every time.",
+    "ka": "ტვირთის აღება მწვანე ბაზრიდან ან მომწოდებლისგან ყოველ ჯერზე ერთნაირად ფორმდება.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.kutaisi.why.w2.title": {
+    "en": "The right class for the load",
+    "ka": "ტვირთის შესაფერისი კლასი",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.kutaisi.why.w2.body": {
+    "en": "From a small van to a trailer truck, chosen by the size and weight of what you send.",
+    "ka": "მცირე ფურგონიდან მისაბმელიან სატვირთომდე — იმის ზომისა და წონის მიხედვით, რასაც აგზავნით.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.kutaisi.why.w3.title": {
+    "en": "Followed on the map",
+    "ka": "გადაადგილება რუკაზე",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.kutaisi.why.w3.body": {
+    "en": "Watch the vehicle cross the city, from pickup to drop-off.",
+    "ka": "ადევნეთ თვალი, როგორ კვეთს ავტომობილი ქალაქს — აღებიდან ჩაბარებამდე.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.kutaisi.areas.heading": {
+    "en": "Kutaisi and its industrial districts",
+    "ka": "ქუთაისი და მისი სამრეწველო უბნები",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.kutaisi.areas.body": {
+    "en": "The service area covers the city on both banks of the Rioni and its industrial districts, including:",
+    "ka": "მომსახურების არეალი რიონის ორივე ნაპირზე მდებარე ქალაქსა და მის სამრეწველო უბნებს მოიცავს, მათ შორის:",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.kutaisi.areas.list.a1": {
+    "en": "City centre and the Green Bazaar",
+    "ka": "ცენტრი და მწვანე ბაზარი",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.kutaisi.areas.list.a2": {
+    "en": "Avtokarkhana",
+    "ka": "ავტოქარხანა",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.kutaisi.areas.list.a3": {
+    "en": "Nikea",
+    "ka": "ნიკეა",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.kutaisi.areas.list.a4": {
+    "en": "Sapichkhia",
+    "ka": "საფიჩხია",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.kutaisi.areas.list.a5": {
+    "en": "Mtsvane Kvavila",
+    "ka": "მწვანე ყვავილა",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.kutaisi.areas.list.a6": {
+    "en": "Kutaisi Free Industrial Zone",
+    "ka": "ქუთაისის თავისუფალი ინდუსტრიული ზონა",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.kutaisi.faq.heading": {
+    "en": "Cargo delivery in Kutaisi: questions",
+    "ka": "ტვირთის გადაზიდვა ქუთაისში — კითხვები",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.kutaisi.faq.intro": {
+    "en": "Common questions about sending cargo in Kutaisi and around Imereti.",
+    "ka": "ხშირი კითხვები ქუთაისსა და იმერეთში ტვირთის გაგზავნის შესახებ.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.kutaisi.faq.items.q1.question": {
+    "en": "Can I send produce from the Green Bazaar?",
+    "ka": "შემიძლია მწვანე ბაზრიდან პროდუქციის გაგზავნა?",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.kutaisi.faq.items.q1.answer": {
+    "en": "Yes. Set the bazaar as the pickup address and describe the cargo — crates of fruit, sacks of nuts — so the driver comes with enough space. Mark anything perishable or fragile.",
+    "ka": "დიახ. აღების მისამართად მიუთითეთ ბაზარი და აღწერეთ ტვირთი — ხილის ყუთები, თხილის ტომრები — რომ მძღოლი საკმარისი ადგილით მოვიდეს. მალფუჭებადი ან მსხვრევადი ტვირთი შესაბამისად მონიშნეთ.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.kutaisi.faq.items.q2.question": {
+    "en": "Can cargo be collected from the Free Industrial Zone?",
+    "ka": "შესაძლებელია ტვირთის აღება თავისუფალი ინდუსტრიული ზონიდან?",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.kutaisi.faq.items.q2.answer": {
+    "en": "Yes, as long as the cargo is handed to the driver at the gate or the loading area. Put the company name and any pass details in the order description. Customs formalities remain with you.",
+    "ka": "დიახ, თუ ტვირთი მძღოლს შესასვლელთან ან დატვირთვის ადგილზე გადაეცემა. შეკვეთის აღწერაში მიუთითეთ კომპანიის სახელი და საშვის მონაცემები. საბაჟო ფორმალობები თქვენზეა.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.kutaisi.faq.items.q3.question": {
+    "en": "Which vehicle suits pallets?",
+    "ka": "რომელი ავტომობილი გამოდგება პალეტებისთვის?",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.kutaisi.faq.items.q3.answer": {
+    "en": "A medium truck is enough for a few pallets; for a full load choose a heavy freight truck or a trailer truck. Where there is no loading ramp, a tail lift helps.",
+    "ka": "რამდენიმე პალეტისთვის საშუალო სატვირთო საკმარისია, სრული ტვირთისთვის კი აირჩიეთ მძიმე ან მისაბმელიანი სატვირთო. თუ დატვირთვის რამპა არ არის, ჰიდრავლიკური ბაქანი დაგეხმარებათ.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.kutaisi.faq.items.q4.question": {
+    "en": "Can the drop-off be in Tskaltubo or Zestaponi?",
+    "ka": "შეიძლება ჩაბარება წყალტუბოში ან ზესტაფონში იყოს?",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.kutaisi.faq.items.q4.answer": {
+    "en": "Yes. Drop-offs in nearby towns are set up like any other order, and the price follows the route distance.",
+    "ka": "დიახ. ახლომდებარე ქალაქებში ჩაბარება ისევე ფორმდება, როგორც ნებისმიერი სხვა შეკვეთა, ფასი კი მარშრუტის მანძილის მიხედვით გამოითვლება.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.kutaisi.faq.items.q5.question": {
+    "en": "I have a truck in Imereti. Can I join?",
+    "ka": "იმერეთში სატვირთო მაქვს. შემიძლია შემოგიერთდეთ?",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.kutaisi.faq.items.q5.answer": {
+    "en": "Yes. Register as a driver, add your truck and upload your documents. After approval you take jobs in and around Kutaisi on your own schedule.",
+    "ka": "დიახ. დარეგისტრირდით მძღოლად, დაამატეთ სატვირთო და ატვირთეთ დოკუმენტები. დამტკიცების შემდეგ ქუთაისსა და მის შემოგარენში რეისებს საკუთარი გრაფიკით შეასრულებთ.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.kutaisi.closing.heading": {
+    "en": "Cargo to move in Kutaisi?",
+    "ka": "ქუთაისში ტვირთი გაქვთ გადასაზიდი?",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.rustavi.keyword": {
+    "en": "Cargo delivery in Rustavi",
+    "ka": "ტვირთის გადაზიდვა რუსთავში",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.rustavi.meta.title": {
+    "en": "Cargo delivery in Rustavi — industry and city",
+    "ka": "ტვირთის გადაზიდვა რუსთავში — მრეწველობა და ქალაქი",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.rustavi.meta.description": {
+    "en": "Cargo delivery in Rustavi by van, truck or flatbed: the industrial zone, Old and New Rustavi, the car market area and the Tbilisi road. Checked drivers.",
+    "ka": "ტვირთის გადაზიდვა რუსთავში ფურგონით, სატვირთოთი ან ღია პლატფორმით: სამრეწველო ზონა, ძველი და ახალი რუსთავი, ავტობაზრობა და თბილისის გზა.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.rustavi.hero.subtext": {
+    "en": "Metal, parts, building materials and shop stock — carried between Rustavi's industrial zone, its neighbourhoods and Tbilisi by verified drivers in vans and trucks.",
+    "ka": "ლითონი, ნაწილები, სამშენებლო მასალა და მაღაზიების მარაგი — ვერიფიცირებული მძღოლები ფურგონებითა და სატვირთოებით რუსთავის სამრეწველო ზონას, ქალაქის უბნებსა და თბილისს შორის.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.rustavi.intro.heading": {
+    "en": "An industrial city next to the capital",
+    "ka": "სამრეწველო ქალაქი დედაქალაქის გვერდით",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.rustavi.intro.p1": {
+    "en": "Rustavi grew up around its metallurgical plant, and industry still shapes how cargo moves here: heavy, awkward loads leave the industrial zone, and goods flow steadily along the road to Tbilisi. For that work zomo has open flatbeds and heavy freight trucks, and vans for everyday deliveries.",
+    "ka": "რუსთავი მეტალურგიული ქარხნის გარშემო გაიზარდა და მრეწველობა დღესაც განსაზღვრავს, როგორ მოძრაობს აქ ტვირთი: სამრეწველო ზონიდან მძიმე და მოუხერხებელი ტვირთი გამოდის, თბილისის გზაზე კი საქონლის ნაკადი არ წყდება. ასეთი სამუშაოსთვის ზომოში ღია პლატფორმები და მძიმე სატვირთოებია, ყოველდღიური მიწოდებისთვის კი — ფურგონები.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.rustavi.intro.p2": {
+    "en": "The car market on the edge of town draws buyers and parts sellers from across the region, and Old and New Rustavi are full of shops and workshops that restock from wholesalers in Tbilisi. A van can collect in the capital and drop off in Rustavi as a single order.",
+    "ka": "ქალაქის განაპირას მდებარე ავტობაზრობაზე მთელი რეგიონიდან ჩამოდიან მყიდველები და ნაწილების გამყიდველები, ძველ და ახალ რუსთავში კი ბევრი მაღაზია და სახელოსნოა, რომლებიც მარაგს თბილისის საბითუმო მოვაჭრეებისგან ავსებენ. ფურგონს შეუძლია ტვირთი დედაქალაქში აიღოს და რუსთავში ჩააბაროს — ერთი შეკვეთით.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.rustavi.why.w1.title": {
+    "en": "Flatbeds for heavy loads",
+    "ka": "ღია პლატფორმა მძიმე ტვირთისთვის",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.rustavi.why.w1.body": {
+    "en": "Open flatbeds and heavy freight trucks for metal, pipes and long lengths coming out of the industrial zone.",
+    "ka": "ღია პლატფორმები და მძიმე სატვირთოები ლითონისთვის, მილებისა და გრძელი მასალისთვის, რომლებიც სამრეწველო ზონიდან გამოდის.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.rustavi.why.w2.title": {
+    "en": "Tbilisi and Rustavi in one order",
+    "ka": "თბილისი და რუსთავი ერთი შეკვეთით",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.rustavi.why.w2.body": {
+    "en": "Pick up in one city and drop off in the other, with no second vehicle to arrange.",
+    "ka": "აიღეთ ტვირთი ერთ ქალაქში და ჩააბარეთ მეორეში — მეორე ავტომობილის ძებნის გარეშე.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.rustavi.why.w3.title": {
+    "en": "Checked drivers and vehicles",
+    "ka": "შემოწმებული მძღოლები და ავტომობილები",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.rustavi.why.w3.body": {
+    "en": "Every driver and vehicle is reviewed before taking a job, and every order can be followed on the map.",
+    "ka": "ყოველი მძღოლი და ავტომობილი რეისის აღებამდე მოწმდება, ყოველ შეკვეთას კი რუკაზე ადევნებთ თვალს.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.rustavi.areas.heading": {
+    "en": "Rustavi, from the plant to the highway",
+    "ka": "რუსთავი — ქარხნიდან გზატკეცილამდე",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.rustavi.areas.body": {
+    "en": "The service area covers the city and its industrial districts, including:",
+    "ka": "მომსახურების არეალი ქალაქსა და მის სამრეწველო უბნებს მოიცავს, მათ შორის:",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.rustavi.areas.list.a1": {
+    "en": "Old Rustavi",
+    "ka": "ძველი რუსთავი",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.rustavi.areas.list.a2": {
+    "en": "New Rustavi",
+    "ka": "ახალი რუსთავი",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.rustavi.areas.list.a3": {
+    "en": "Industrial zone",
+    "ka": "სამრეწველო ზონა",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.rustavi.areas.list.a4": {
+    "en": "Metallurgical plant area",
+    "ka": "მეტალურგიული ქარხნის მიდამოები",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.rustavi.areas.list.a5": {
+    "en": "Car market area",
+    "ka": "ავტობაზრობის მიდამოები",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.rustavi.areas.list.a6": {
+    "en": "Tbilisi–Rustavi highway",
+    "ka": "თბილისი–რუსთავის გზატკეცილი",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.rustavi.faq.heading": {
+    "en": "Cargo delivery in Rustavi: questions",
+    "ka": "ტვირთის გადაზიდვა რუსთავში — კითხვები",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.rustavi.faq.intro": {
+    "en": "Common questions about sending cargo in Rustavi and between Rustavi and Tbilisi.",
+    "ka": "ხშირი კითხვები რუსთავში, ასევე რუსთავსა და თბილისს შორის ტვირთის გაგზავნის შესახებ.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.rustavi.faq.items.q1.question": {
+    "en": "Can I send metal or long pipes?",
+    "ka": "შემიძლია ლითონის ან გრძელი მილების გაგზავნა?",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.rustavi.faq.items.q1.answer": {
+    "en": "Yes. Choose an open flatbed or a heavy freight truck and give the length and weight in the cargo description, so the job goes to a vehicle that can carry it safely.",
+    "ka": "დიახ. აირჩიეთ ღია პლატფორმა ან მძიმე სატვირთო და ტვირთის აღწერაში მიუთითეთ სიგრძე და წონა, რომ რეისი იმ ავტომობილს მიეცეს, რომელიც მას უსაფრთხოდ გადაზიდავს.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.rustavi.faq.items.q2.question": {
+    "en": "Can the pickup be in Tbilisi and the drop-off in Rustavi?",
+    "ka": "შეიძლება აღება თბილისში იყოს, ჩაბარება კი რუსთავში?",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.rustavi.faq.items.q2.answer": {
+    "en": "Yes. Enter both addresses as usual; the price follows the route distance between them.",
+    "ka": "დიახ. ორივე მისამართი ჩვეულებრივ მიუთითეთ — ფასი მათ შორის მარშრუტის მანძილის მიხედვით გამოითვლება.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.rustavi.faq.items.q3.question": {
+    "en": "Can I send car parts from the car market?",
+    "ka": "შემიძლია ავტობაზრობიდან ავტონაწილების გაგზავნა?",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.rustavi.faq.items.q3.answer": {
+    "en": "Yes. Engines, gearboxes and body panels are heavy or awkward, so mark them as a heavy item and choose a large van or a truck with a tail lift.",
+    "ka": "დიახ. ძრავები, გადაცემათა კოლოფები და ძარის დეტალები მძიმე ან მოუხერხებელია, ამიტომ მონიშნეთ ისინი როგორც მძიმე ნივთი და აირჩიეთ დიდი ფურგონი ან სატვირთო ჰიდრავლიკური ბაქნით.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.rustavi.faq.items.q4.question": {
+    "en": "Can I add helpers for loading at a warehouse?",
+    "ka": "შემიძლია საწყობში დასატვირთად დამხმარეები დავამატო?",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.rustavi.faq.items.q4.answer": {
+    "en": "Yes. You can add helpers to the order; they come with the driver and help carry the cargo. Loading by forklift is arranged on site by you.",
+    "ka": "დიახ. შეკვეთას შეგიძლიათ დაამატოთ დამხმარეები, რომლებიც მძღოლთან ერთად მოდიან და ტვირთის ტარებაში ეხმარებიან. ჩანგლიანი დამტვირთველით დატვირთვას ადგილზე თქვენ უზრუნველყოფთ.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.rustavi.faq.items.q5.question": {
+    "en": "I drive a truck in Rustavi. How do I join?",
+    "ka": "რუსთავში სატვირთოთი ვმუშაობ. როგორ შემოგიერთდეთ?",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.rustavi.faq.items.q5.answer": {
+    "en": "Register as a driver, add your vehicle and upload your documents. After approval you can take jobs in Rustavi, in Tbilisi and between the two.",
+    "ka": "დარეგისტრირდით მძღოლად, დაამატეთ ავტომობილი და ატვირთეთ დოკუმენტები. დამტკიცების შემდეგ შეძლებთ რეისების შესრულებას რუსთავში, თბილისში და მათ შორის.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.rustavi.closing.heading": {
+    "en": "Cargo to move in Rustavi?",
+    "ka": "რუსთავში ტვირთი გაქვთ გადასაზიდი?",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.gori.keyword": {
+    "en": "Cargo delivery in Gori",
+    "ka": "ტვირთის გადაზიდვა გორში",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.gori.meta.title": {
+    "en": "Cargo delivery in Gori — city and Shida Kartli",
+    "ka": "ტვირთის გადაზიდვა გორში — ქალაქი და შიდა ქართლი",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.gori.meta.description": {
+    "en": "Cargo delivery in Gori by van, truck or refrigerated van: the city centre, the market, Karaleti, Variani, Ateni and fruit from Shida Kartli orchards.",
+    "ka": "ტვირთის გადაზიდვა გორში ფურგონით, სატვირთოთი ან მაცივარ-ფურგონით: ქალაქის ცენტრი, ბაზარი, ქარალეთი, ვარიანი, ატენი და შიდა ქართლის ბაღების ხილი.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.gori.hero.subtext": {
+    "en": "Fruit from Shida Kartli orchards, stock for shops in the centre and materials for builders — carried across Gori and its villages by verified drivers in vans and trucks.",
+    "ka": "შიდა ქართლის ბაღების ხილი, ცენტრის მაღაზიების მარაგი და მშენებლებისთვის მასალა — ვერიფიცირებული მძღოლები ფურგონებითა და სატვირთოებით გორსა და მის სოფლებში.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.gori.intro.heading": {
+    "en": "Where Shida Kartli's cargo meets the main road",
+    "ka": "სადაც შიდა ქართლის ტვირთი მთავარ გზას ხვდება",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.gori.intro.p1": {
+    "en": "Gori sits on Georgia's main east–west highway, below its fortress, at the heart of one of the country's main fruit-growing regions. Apples, peaches and other produce leave the orchards around Karaleti and Variani for packers, markets and buyers in other cities.",
+    "ka": "გორი საქართველოს აღმოსავლეთ-დასავლეთის მთავარ გზატკეცილზე, თავისი ციხის ძირას, ქვეყნის ერთ-ერთი მთავარი მეხილეობის რეგიონის გულში მდებარეობს. ვაშლი, ატამი და სხვა პროდუქცია ქარალეთისა და ვარიანის ბაღებიდან დამფასოებლებთან, ბაზრებსა და სხვა ქალაქების მყიდველებთან მიდის.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.gori.intro.p2": {
+    "en": "For that work zomo has refrigerated vans for produce and open flatbeds for crates and building materials, while small vans handle deliveries to shops and offices in the city centre.",
+    "ka": "ასეთი სამუშაოსთვის ზომოში მაცივარ-ფურგონებია პროდუქციისთვის და ღია პლატფორმები ყუთებისა და სამშენებლო მასალისთვის, ქალაქის ცენტრის მაღაზიებსა და ოფისებში მიწოდებას კი მცირე ფურგონები ართმევს თავს.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.gori.why.w1.title": {
+    "en": "From orchard to buyer",
+    "ka": "ბაღიდან მყიდველამდე",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.gori.why.w1.body": {
+    "en": "Collect produce straight from the orchard and deliver it to a packer, a market or a buyer in another city.",
+    "ka": "აიღეთ პროდუქცია პირდაპირ ბაღიდან და ჩააბარეთ დამფასოებელს, ბაზარს ან სხვა ქალაქში მყიდველს.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.gori.why.w2.title": {
+    "en": "Kept cool on the road",
+    "ka": "სიგრილე მთელ გზაზე",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.gori.why.w2.body": {
+    "en": "Refrigerated vans and a cold-chain tag for fruit and other perishables.",
+    "ka": "მაცივარ-ფურგონები და ცივი ჯაჭვის მონიშვნა ხილისა და სხვა მალფუჭებადი პროდუქციისთვის.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.gori.why.w3.title": {
+    "en": "Villages included",
+    "ka": "სოფლებიც არეალშია",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.gori.why.w3.body": {
+    "en": "Pickups and drop-offs in the villages around Gori are set up the same way as in town.",
+    "ka": "გორის მიმდებარე სოფლებში აღება და ჩაბარება ისევე ფორმდება, როგორც ქალაქში.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.gori.areas.heading": {
+    "en": "Gori and the villages around it",
+    "ka": "გორი და მისი შემოგარენი",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.gori.areas.body": {
+    "en": "The service area covers the city and the surrounding villages of Gori Municipality, including:",
+    "ka": "მომსახურების არეალი ქალაქსა და გორის მუნიციპალიტეტის მიმდებარე სოფლებს მოიცავს, მათ შორის:",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.gori.areas.list.a1": {
+    "en": "City centre and the fortress area",
+    "ka": "ქალაქის ცენტრი და ციხის მიდამოები",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.gori.areas.list.a2": {
+    "en": "Gori market",
+    "ka": "გორის ბაზარი",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.gori.areas.list.a3": {
+    "en": "The main highway corridor",
+    "ka": "მთავარი გზატკეცილის მონაკვეთი",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.gori.areas.list.a4": {
+    "en": "Karaleti",
+    "ka": "ქარალეთი",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.gori.areas.list.a5": {
+    "en": "Variani",
+    "ka": "ვარიანი",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.gori.areas.list.a6": {
+    "en": "Ateni",
+    "ka": "ატენი",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.gori.faq.heading": {
+    "en": "Cargo delivery in Gori: questions",
+    "ka": "ტვირთის გადაზიდვა გორში — კითხვები",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.gori.faq.intro": {
+    "en": "Common questions about sending cargo in Gori and across Shida Kartli.",
+    "ka": "ხშირი კითხვები გორსა და შიდა ქართლში ტვირთის გაგზავნის შესახებ.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.gori.faq.items.q1.question": {
+    "en": "Can I send fruit straight from the orchard?",
+    "ka": "შემიძლია ხილის გაგზავნა პირდაპირ ბაღიდან?",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.gori.faq.items.q1.answer": {
+    "en": "Yes. Use the orchard's location as the pickup address and add directions to the order description if the access road is unmarked. For produce that has to stay cool, choose a refrigerated van.",
+    "ka": "დიახ. აღების მისამართად მიუთითეთ ბაღის მდებარეობა, ხოლო თუ მისასვლელი გზა მონიშნული არ არის, გზის აღწერა შეკვეთის აღწერაში დაამატეთ. პროდუქციისთვის, რომელსაც სიგრილე სჭირდება, აირჩიეთ მაცივარ-ფურგონი.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.gori.faq.items.q2.question": {
+    "en": "Can I send cargo from Gori to Tbilisi?",
+    "ka": "შემიძლია ტვირთის გაგზავნა გორიდან თბილისში?",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.gori.faq.items.q2.answer": {
+    "en": "Yes. The price is based on the route distance along the highway, and the order is set up like any other.",
+    "ka": "დიახ. ფასი გზატკეცილზე მარშრუტის მანძილის მიხედვით გამოითვლება, შეკვეთა კი ჩვეულებრივ ფორმდება.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.gori.faq.items.q3.question": {
+    "en": "Which vehicle do I need for crates of produce?",
+    "ka": "რომელი ავტომობილი მჭირდება ხილის ყუთებისთვის?",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.gori.faq.items.q3.answer": {
+    "en": "A large van takes a small load of crates; for a full harvest load choose a medium or heavy freight truck, or an open flatbed if the crates can travel uncovered.",
+    "ka": "ყუთების მცირე რაოდენობისთვის დიდი ფურგონი საკმარისია, მოსავლის სრული ტვირთისთვის კი აირჩიეთ საშუალო ან მძიმე სატვირთო, ან ღია პლატფორმა, თუ ყუთებს გადახურვა არ სჭირდება.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.gori.faq.items.q4.question": {
+    "en": "Can I mark cargo as fragile?",
+    "ka": "შემიძლია ტვირთის მსხვრევადად მონიშვნა?",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.gori.faq.items.q4.answer": {
+    "en": "Yes. Tag it as fragile when you set up the order — worth doing for glass jars, preserves and bottled goods — so the driver knows before loading.",
+    "ka": "დიახ. შეკვეთისას მონიშნეთ ის როგორც მსხვრევადი — ეს განსაკუთრებით მნიშვნელოვანია მინის ქილებისთვის, მურაბისა და ბოთლებში ჩამოსხმული პროდუქციისთვის — რომ მძღოლმა დატვირთვამდე იცოდეს.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.gori.faq.items.q5.question": {
+    "en": "I have a van in Gori. Can I drive with zomo?",
+    "ka": "გორში ფურგონი მაქვს. შემიძლია ზომოსთან ვიმუშაო?",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.gori.faq.items.q5.answer": {
+    "en": "Yes. Sign up as a driver and upload your documents and vehicle details. After approval you take jobs in Gori and along the highway whenever it suits you.",
+    "ka": "დიახ. დარეგისტრირდით მძღოლად და ატვირთეთ დოკუმენტები და ავტომობილის მონაცემები. დამტკიცების შემდეგ რეისებს გორსა და გზატკეცილის გასწვრივ თქვენთვის მოსახერხებელ დროს შეასრულებთ.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.gori.closing.heading": {
+    "en": "Cargo to move in Gori?",
+    "ka": "გორში ტვირთი გაქვთ გადასაზიდი?",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.zugdidi.keyword": {
+    "en": "Cargo delivery in Zugdidi",
+    "ka": "ტვირთის გადაზიდვა ზუგდიდში",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.zugdidi.meta.title": {
+    "en": "Cargo delivery in Zugdidi — city and Samegrelo",
+    "ka": "ტვირთის გადაზიდვა ზუგდიდში — ქალაქი და სამეგრელო",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.zugdidi.meta.description": {
+    "en": "Cargo delivery in Zugdidi by van or truck: the centre and Dadiani Palace area, the central market, Rukhi, Ingiri and the roads to Anaklia and Jvari.",
+    "ka": "ტვირთის გადაზიდვა ზუგდიდში ფურგონით ან სატვირთოთი: ცენტრი და დადიანების სასახლის მიდამოები, ცენტრალური ბაზარი, რუხი, ინგირი, ანაკლიისა და ჯვრის გზები.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.zugdidi.hero.subtext": {
+    "en": "Hazelnuts and produce from Samegrelo, stock for shops around the central market and materials for builders — carried across Zugdidi by verified drivers in vans and trucks.",
+    "ka": "სამეგრელოს თხილი და პროდუქცია, ცენტრალური ბაზრის მიმდებარე მაღაზიების მარაგი და მშენებლებისთვის მასალა — ვერიფიცირებული მძღოლები ფურგონებითა და სატვირთოებით მთელ ზუგდიდში.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.zugdidi.intro.heading": {
+    "en": "Samegrelo's market town",
+    "ka": "სამეგრელოს სავაჭრო ქალაქი",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.zugdidi.intro.p1": {
+    "en": "Zugdidi is where Samegrelo trades. Hazelnuts, citrus and other produce come in from the surrounding villages, and the shops around the central market and Rustaveli Street restock from wholesalers in Kutaisi and Tbilisi.",
+    "ka": "ზუგდიდი სამეგრელოს სავაჭრო ცენტრია. თხილი, ციტრუსი და სხვა პროდუქცია მიმდებარე სოფლებიდან შემოდის, ცენტრალური ბაზრისა და რუსთაველის ქუჩის მაღაზიები კი მარაგს ქუთაისისა და თბილისის საბითუმო მოვაჭრეებისგან ავსებენ.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.zugdidi.intro.p2": {
+    "en": "zomo covers both directions: sacks of hazelnuts from a farm in Ingiri to a buyer, or a van of shop stock from the capital to the city centre. The vehicle class follows the cargo, from a small van to a trailer truck.",
+    "ka": "ზომო ორივე მიმართულებას ფარავს: თხილის ტომრებს ინგირის მეურნეობიდან მყიდველამდე თუ მაღაზიის მარაგს დედაქალაქიდან ქალაქის ცენტრამდე. ავტომობილის კლასი ტვირთზეა დამოკიდებული — მცირე ფურგონიდან მისაბმელიან სატვირთომდე.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.zugdidi.why.w1.title": {
+    "en": "Harvest loads",
+    "ka": "მოსავლის ტვირთი",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.zugdidi.why.w1.body": {
+    "en": "Trucks for sacks of hazelnuts and crates of citrus on their way to processors and buyers.",
+    "ka": "სატვირთოები თხილის ტომრებისა და ციტრუსის ყუთებისთვის, რომლებიც გადამამუშავებლებთან და მყიდველებთან მიდის.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.zugdidi.why.w2.title": {
+    "en": "Town and villages alike",
+    "ka": "ქალაქიც და სოფლებიც",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.zugdidi.why.w2.body": {
+    "en": "A pickup in Rukhi, Ingiri or further out is set up the same way as one in the centre.",
+    "ka": "რუხში, ინგირში თუ უფრო შორს აღება ისევე ფორმდება, როგორც ცენტრში.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.zugdidi.why.w3.title": {
+    "en": "Checked drivers, tracked trips",
+    "ka": "შემოწმებული მძღოლები, მარშრუტი რუკაზე",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.zugdidi.why.w3.body": {
+    "en": "Drivers are reviewed before they take jobs, and you can follow every order on the map.",
+    "ka": "მძღოლები რეისების აღებამდე მოწმდებიან, ყოველ შეკვეთას კი რუკაზე ადევნებთ თვალს.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.zugdidi.areas.heading": {
+    "en": "Zugdidi and the roads out of it",
+    "ka": "ზუგდიდი და მისი გზები",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.zugdidi.areas.body": {
+    "en": "The service area covers the city and the nearby villages of Zugdidi Municipality, including:",
+    "ka": "მომსახურების არეალი ქალაქსა და ზუგდიდის მუნიციპალიტეტის მიმდებარე სოფლებს მოიცავს, მათ შორის:",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.zugdidi.areas.list.a1": {
+    "en": "City centre and the Dadiani Palace area",
+    "ka": "ცენტრი და დადიანების სასახლის მიდამოები",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.zugdidi.areas.list.a2": {
+    "en": "Central market",
+    "ka": "ცენტრალური ბაზარი",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.zugdidi.areas.list.a3": {
+    "en": "Rukhi",
+    "ka": "რუხი",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.zugdidi.areas.list.a4": {
+    "en": "Ingiri",
+    "ka": "ინგირი",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.zugdidi.areas.list.a5": {
+    "en": "Anaklia road",
+    "ka": "ანაკლიის გზა",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.zugdidi.areas.list.a6": {
+    "en": "Jvari road",
+    "ka": "ჯვრის გზა",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.zugdidi.faq.heading": {
+    "en": "Cargo delivery in Zugdidi: questions",
+    "ka": "ტვირთის გადაზიდვა ზუგდიდში — კითხვები",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.zugdidi.faq.intro": {
+    "en": "Common questions about sending cargo in Zugdidi and across Samegrelo.",
+    "ka": "ხშირი კითხვები ზუგდიდსა და სამეგრელოში ტვირთის გაგზავნის შესახებ.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.zugdidi.faq.items.q1.question": {
+    "en": "Can I send hazelnuts from a farm to a buyer?",
+    "ka": "შემიძლია თხილის გაგზავნა მეურნეობიდან მყიდველთან?",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.zugdidi.faq.items.q1.answer": {
+    "en": "Yes. Set the farm as the pickup address, add directions if needed, and describe the load — the sacks and their approximate weight — so a driver with a suitable truck takes the job.",
+    "ka": "დიახ. აღების მისამართად მიუთითეთ მეურნეობა, საჭიროების შემთხვევაში დაამატეთ გზის აღწერა და აღწერეთ ტვირთი — ტომრები და მათი მიახლოებითი წონა — რომ რეისი შესაფერისი სატვირთოს მძღოლმა აიღოს.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.zugdidi.faq.items.q2.question": {
+    "en": "Can I send cargo from Zugdidi to Tbilisi or Batumi?",
+    "ka": "შემიძლია ტვირთის გაგზავნა ზუგდიდიდან თბილისში ან ბათუმში?",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.zugdidi.faq.items.q2.answer": {
+    "en": "Yes. The price is based on the route distance, and the order is set up just like a delivery across town.",
+    "ka": "დიახ. ფასი მარშრუტის მანძილის მიხედვით გამოითვლება, შეკვეთა კი ისევე ფორმდება, როგორც ქალაქის შიგნით.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.zugdidi.faq.items.q3.question": {
+    "en": "Can the drop-off be in Anaklia?",
+    "ka": "შეიძლება ჩაბარება ანაკლიაში იყოს?",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.zugdidi.faq.items.q3.answer": {
+    "en": "Yes. Anaklia is on the road from Zugdidi to the sea; enter the address as usual and the price reflects the extra distance.",
+    "ka": "დიახ. ანაკლია ზუგდიდიდან ზღვისკენ მიმავალ გზაზეა — მისამართი ჩვეულებრივ მიუთითეთ, ფასში კი დამატებითი მანძილი აისახება.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.zugdidi.faq.items.q4.question": {
+    "en": "Can someone help carry heavy sacks?",
+    "ka": "ვინმე დამეხმარება მძიმე ტომრების ტარებაში?",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.zugdidi.faq.items.q4.answer": {
+    "en": "Yes. Add helpers when you set up the order; they come with the driver and help with loading and unloading.",
+    "ka": "დიახ. შეკვეთისას დაამატეთ დამხმარეები — ისინი მძღოლთან ერთად მოდიან და დატვირთვა-დაცლაში ეხმარებიან.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.zugdidi.faq.items.q5.question": {
+    "en": "I drive in Samegrelo. Can I work with zomo?",
+    "ka": "სამეგრელოში მძღოლად ვმუშაობ. შემიძლია ზომოსთან თანამშრომლობა?",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.zugdidi.faq.items.q5.answer": {
+    "en": "Yes. Register as a driver, add your vehicle and upload your documents. Once approved, you take jobs in and around Zugdidi on your own schedule.",
+    "ka": "დიახ. დარეგისტრირდით მძღოლად, დაამატეთ ავტომობილი და ატვირთეთ დოკუმენტები. დამტკიცების შემდეგ ზუგდიდსა და მის შემოგარენში რეისებს საკუთარი გრაფიკით შეასრულებთ.",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  },
+  "cities.zugdidi.closing.heading": {
+    "en": "Cargo to move in Zugdidi?",
+    "ka": "ზუგდიდში ტვირთი გაქვთ გადასაზიდი?",
+    "_source": "src/components/city-landing/city-landing-page.tsx"
+  }
+}

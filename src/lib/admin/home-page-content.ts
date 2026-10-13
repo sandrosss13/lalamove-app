@@ -42,6 +42,7 @@ export const HOME_PAGE_SECTION_TYPES = [
   "stats",
   "bento",
   "quote_calculator",
+  "offers",
   "how_it_works",
   "vehicle_types",
   "driver_cta",
@@ -66,6 +67,7 @@ export const HOME_PAGE_SECTION_TYPE_LABELS: Record<
   stats: "Stats row",
   bento: "Feature grid (bento)",
   quote_calculator: "Quote calculator",
+  offers: "Offers and news (banner cards)",
   how_it_works: "How it works",
   vehicle_types: "The fleet (vehicle types)",
   driver_cta: "Driver CTA",
@@ -103,6 +105,35 @@ export const HOME_PARTNER_LOGO_BANNER_PLACEMENT = "home_partner_logo";
 export const MAX_HERO_BANNERS = 6;
 
 /**
+ * The offers row renders at most this many `home_secondary` banner cards. Same
+ * two-sided enforcement as `MAX_HERO_BANNERS`: the admin form refuses more, and
+ * the loader slices, so a row inserted straight into the database cannot
+ * overflow the grid.
+ */
+export const MAX_OFFER_BANNERS = 6;
+
+/** The partner marquee renders at most this many `home_partner_logo` banners. */
+export const MAX_PARTNER_LOGOS = 24;
+
+/**
+ * Bounds and default for the hero carousel's auto-advance, in seconds. Below
+ * two seconds a slide cannot be read; above thirty the carousel reads as stuck.
+ * The parser clamps into this range rather than rejecting, so a typo in the
+ * admin form degrades to the nearest sensible value.
+ */
+export const HERO_INTERVAL_MIN = 2;
+export const HERO_INTERVAL_MAX = 30;
+export const HERO_INTERVAL_DEFAULT = 6;
+
+/**
+ * The section the v4 design pins directly under the hero carousel ("Book a
+ * Delivery" card). The renderer places it there regardless of `sortOrder`, and
+ * the admin list shows it as fixed rather than draggable.
+ */
+export const PINNED_UNDER_HERO =
+  "quote_calculator" as const satisfies HomePageSectionType;
+
+/**
  * Section types that are page chrome rather than page body. The composer pulls
  * these out of the section list *by type* and renders them at the top and
  * bottom of the page, instead of letting them fall wherever `sortOrder` puts
@@ -122,37 +153,50 @@ export function isHomePageChromeSectionType(
 }
 
 /**
- * The body sections a page with no `HomePageSection` rows renders, in order.
+ * The body sections a page with no `HomePageSection` rows renders, in order —
+ * the v4 design's narrative (`design_handoff_georgia_homepage`, "Latest
+ * version").
  *
- * `category_tiles` is deliberately absent: its content type and parser are kept
- * so a row authored against the previous design still renders instead of
- * vanishing, but the redesign has no slot for it, so it is never added to a
- * fresh page. `nav` and `footer` are absent because they are chrome.
- *
- * The quote calculator sits between the bento grid and "how it works": the
- * design handoff has no calculator at all (§6 bento is followed directly by §7
- * how-it-works), and this is the slot the redesign spec places it in.
- *
- * `vehicle_types` is absent for the same reason as `category_tiles`, since
- * goods-first booking (specs/goods-first-booking, task 07): the landing page
- * leads with what the visitor is moving, not with the fleet, and the vehicle is
- * derived from their items at booking time. The type, its parser and its
- * component are kept so an existing CMS row still renders; retiring those rows
- * is tracked in specs/goods-first-booking/action-required.md.
+ * The retired types — `hero`, `stats`, `bento`, `driver_cta` and
+ * `category_tiles` — are deliberately absent: their content types and parsers
+ * are kept so a row authored against an earlier design still renders instead
+ * of vanishing, but v4 has no slot for them, so they are never added to a fresh
+ * page or filled in by `withDefaultSections`. `nav` and `footer` are absent
+ * because they are chrome.
  */
 export const DEFAULT_HOME_PAGE_SECTION_ORDER = [
-  "hero",
   "hero_carousel",
+  "quote_calculator",
+  "offers",
+  "vehicle_types",
+  "how_it_works",
+  "coverage",
   "partner_marquee",
+  "closing_cta",
+  "faq",
+] as const satisfies readonly HomePageSectionType[];
+
+/**
+ * Section types an earlier design rendered and v4 has no slot for. Their
+ * parsers stay (a stored row still validates and round-trips through the admin
+ * form), but the v4 bulk actions — "materialize defaults", "restore defaults"
+ * and the seed script — switch any such row *off* rather than deleting it: the
+ * copy someone wrote is kept, it just stops competing with the v4 sections that
+ * replaced it (an active `hero` row would otherwise render alongside the
+ * `hero_carousel`).
+ */
+export const RETIRED_HOME_PAGE_SECTION_TYPES = [
+  "hero",
   "stats",
   "bento",
-  "quote_calculator",
-  "how_it_works",
   "driver_cta",
-  "coverage",
-  "faq",
-  "closing_cta",
+  "category_tiles",
 ] as const satisfies readonly HomePageSectionType[];
+
+/** Whether a stored `HomePageSection.type` string is a retired type. */
+export function isRetiredHomePageSectionType(value: string): boolean {
+  return (RETIRED_HOME_PAGE_SECTION_TYPES as readonly string[]).includes(value);
+}
 
 /**
  * The hero's editable copy.
@@ -188,16 +232,23 @@ export type HeroContent = {
 /**
  * The hero carousel has no copy of its own — the slides are `Banner` rows at
  * placement `home_hero` (capped at `MAX_HERO_BANNERS`), and each slide's
- * caption is that banner's `title`.
+ * caption is that banner's `title`, which is optional: a slide without one
+ * shows no headline.
  *
  * Whether the carousel shows at all is the section row's own
  * `HomePageSection.isActive` column, not a field in here: adding a second,
  * content-level active flag would give the same section two switches that can
- * disagree. The one field that remains is the caption used when a banner has no
- * usable title of its own.
+ * disagree. The one field that remains is the caption that stands in as the
+ * page's (visually hidden) `h1` when the first slide has no title of its own.
  */
 export type HeroCarouselContent = {
   fallbackCaption?: string;
+  /**
+   * Seconds between auto-advances, clamped to
+   * `HERO_INTERVAL_MIN`..`HERO_INTERVAL_MAX`. Absent means
+   * `HERO_INTERVAL_DEFAULT`.
+   */
+  intervalSec?: number;
 };
 
 /**
@@ -263,14 +314,30 @@ export type BentoContent = {
 };
 
 /**
- * Framing copy for the quote calculator section. The widget itself is the
- * existing `LandingQuoteCalculator`, which owns its own labels and talks to
- * `/api/pricing/estimate`; nothing inside it is authored here.
+ * Copy for the v4 "Book a Delivery" card pinned under the hero
+ * (`landing-booking-card.tsx`; the type keeps its historical name). The card
+ * renders `heading` and the CTA; `eyebrow` and `intro` are kept so rows
+ * authored for the earlier quote calculator still parse.
  */
 export type QuoteCalculatorContent = {
   eyebrow: string;
   heading: string;
   intro: string;
+  /** v4 "Book a Delivery" card button. A matched pair, like every link here. */
+  ctaLabel?: string;
+  ctaHref?: string;
+};
+
+/**
+ * Framing copy for the offers row. The cards themselves are `Banner` rows at
+ * placement `home_secondary` (capped at `MAX_OFFER_BANNERS`), each carrying its
+ * own `eyebrow` / `title` / `body` / `ctaLabel` / `linkUrl`. The "see all" link
+ * is optional and shown only when both halves are present.
+ */
+export type OffersContent = {
+  heading: string;
+  linkLabel?: string;
+  linkHref?: string;
 };
 
 /**
@@ -371,6 +438,10 @@ export type DriverCtaContent = {
 export type CoverageCity = {
   name: string;
   tier: string;
+  /** v4 city card photo. Optional; the card renders without one. */
+  imageUrl?: string;
+  /** Where the city card links, e.g. its `/cities/<slug>` landing page. */
+  href?: string;
 };
 
 export type CoverageContent = {
@@ -409,6 +480,9 @@ export type ClosingCtaContent = {
   primaryCtaHref: string;
   secondaryCtaLabel: string;
   secondaryCtaHref: string;
+  /** v4 app-download band store badges. Each renders only when present. */
+  appStoreUrl?: string;
+  playStoreUrl?: string;
 };
 
 export type NavLink = {
@@ -433,6 +507,9 @@ export type NavContent = {
   signInHref: string;
   signUpLabel: string;
   signUpHref: string;
+  /** v4 utility bar above the nav: a line of text plus a few small links. */
+  utilityText?: string;
+  utilityLinks?: NavLink[];
 };
 
 export type FooterColumn = {
@@ -456,6 +533,9 @@ export type FooterContent = {
   columns: FooterColumn[];
   copyright: string;
   legalLinks: NavLink[];
+  /** v4 footer CTA button. A matched pair: shown only when both are present. */
+  ctaLabel?: string;
+  ctaHref?: string;
 };
 
 /** Maps each section type to the shape of its `content` column. */
@@ -466,6 +546,7 @@ export type HomePageSectionContentByType = {
   stats: StatsContent;
   bento: BentoContent;
   quote_calculator: QuoteCalculatorContent;
+  offers: OffersContent;
   how_it_works: HowItWorksContent;
   vehicle_types: VehicleTypesContent;
   driver_cta: DriverCtaContent;
@@ -520,6 +601,7 @@ export const DEFAULT_HOME_PAGE_CONTENT: HomePageSectionContentByType = {
   },
   hero_carousel: {
     fallbackCaption: "Freight moving across Georgia",
+    intervalSec: HERO_INTERVAL_DEFAULT,
   },
   partner_marquee: {
     eyebrow: "Dispatching every day for",
@@ -580,9 +662,18 @@ export const DEFAULT_HOME_PAGE_CONTENT: HomePageSectionContentByType = {
   },
   quote_calculator: {
     eyebrow: "Price a load",
-    heading: "Know the fare before you commit.",
+    // A booking prompt, not a price promise: the v4 card collects the route and
+    // hands off to sign-up, it shows no fare.
+    heading: "Book a delivery",
     intro:
       "Enter a pickup and a dropoff, pick a vehicle rated for the load, and we quote base fare, distance and driving time in lari. No account needed to see the number.",
+    ctaLabel: "Book a delivery",
+    ctaHref: "/sign-up",
+  },
+  offers: {
+    // linkLabel/linkHref are intentionally omitted: there is no "all offers"
+    // page yet, and the renderer shows the link only when both are present.
+    heading: "Offers and news",
   },
   how_it_works: {
     eyebrow: "How it works",
@@ -592,7 +683,7 @@ export const DEFAULT_HOME_PAGE_CONTENT: HomePageSectionContentByType = {
     steps: [
       {
         title: "Set the route",
-        body: "Type the pickup and the dropoff — addresses autocomplete as you go — then tell us what you're moving: furniture, appliances, retail stock, or a full relocation.",
+        body: "Type the pickup and the dropoff — addresses autocomplete as you go — then tell us what you're sending: furniture, appliances, retail stock or construction materials.",
       },
       {
         title: "Pick a vehicle",
@@ -681,7 +772,7 @@ export const DEFAULT_HOME_PAGE_CONTENT: HomePageSectionContentByType = {
       {
         question: "Which vehicle should I book?",
         answer:
-          "Vehicles come in two duty classes, medium-duty and heavy-duty, and each cargo category only offers the classes that can take it. Furniture, appliances, retail stock and event equipment go either way; a full relocation, industrial supplies and construction materials are heavy-duty only. Every type lists its maximum payload, so you can match the rating to the load.",
+          "Vehicles come in two duty classes, medium-duty and heavy-duty, and each cargo category only offers the classes that can take it. Furniture, appliances, retail stock and event equipment go either way; industrial supplies and construction materials are heavy-duty only. Every type lists its maximum payload, so you can match the rating to the load.",
       },
       {
         question: "What does adding a helper do?",
@@ -711,7 +802,8 @@ export const DEFAULT_HOME_PAGE_CONTENT: HomePageSectionContentByType = {
     primaryCtaLabel: "Create an account",
     primaryCtaHref: "/sign-up",
     secondaryCtaLabel: "Drive with us",
-    secondaryCtaHref: "#drivers",
+    // Resolved by `landing-link.tsx` to this deployment's driver application.
+    secondaryCtaHref: "@driver-sign-up",
   },
   category_tiles: {
     eyebrow: "What we carry",
@@ -724,12 +816,15 @@ export const DEFAULT_HOME_PAGE_CONTENT: HomePageSectionContentByType = {
     // Rows seeded before the rebrand still hold the placeholder "Lalamove
     // Georgia"; `migrateLegacyBrandCopy` maps those on render.
     wordmark: "zomo",
+    // v4 order. Anchors are the ids the landing sections render (`how`,
+    // `vehicles`, `coverage`, `faq`); `@driver-sign-up` is resolved by
+    // `landing-link.tsx` to this deployment's driver application.
     links: [
       { label: "How it works", href: "#how" },
+      { label: "For drivers", href: "@driver-sign-up" },
       { label: "Vehicles", href: "#vehicles" },
-      { label: "For drivers", href: "#drivers" },
       { label: "Coverage", href: "#coverage" },
-      { label: "FAQ", href: "#faq" },
+      { label: "Help", href: "#faq" },
     ],
     signInLabel: "Sign in",
     signInHref: "/sign-in",
@@ -762,7 +857,7 @@ export const DEFAULT_HOME_PAGE_CONTENT: HomePageSectionContentByType = {
       {
         title: "Drivers",
         links: [
-          { label: "Become a driver", href: "#drivers" },
+          { label: "Become a driver", href: "@driver-sign-up" },
           { label: "Driver sign-up", href: "/sign-up" },
           { label: "Driver hub", href: "/dashboard" },
         ],
@@ -787,6 +882,8 @@ export const DEFAULT_HOME_PAGE_CONTENT: HomePageSectionContentByType = {
       { label: "Terms", href: "#" },
       { label: "Cookies", href: "#" },
     ],
+    ctaLabel: "Send a delivery",
+    ctaHref: "/sign-up",
   },
 };
 
@@ -871,17 +968,18 @@ const DEFAULT_COPY_MESSAGE_KEYS: Readonly<Record<string, string>> = {
   "Base fare, distance, driving time and any helper fee, listed separately — and the same calculation runs again when you place the order.":
     "admin.homePageContent.baseFareDistanceDrivingTimeAnd",
   // quote_calculator
-  "Know the fare before you commit.":
-    "admin.homePageContent.knowTheFareBeforeYouCommit",
+  "Book a delivery": "admin.homePageContent.bookADelivery",
   "Enter a pickup and a dropoff, pick a vehicle rated for the load, and we quote base fare, distance and driving time in lari. No account needed to see the number.":
     "admin.homePageContent.enterAPickupAndADropoffPick",
+  // offers
+  "Offers and news": "admin.homePageContent.offersAndNews",
   // how_it_works
   "How it works": "admin.homePageContent.howItWorks",
   "Four steps, no phone calls.": "admin.homePageContent.fourStepsNoPhoneCalls",
   "Built for the load that won't fit in a car boot — an office move, a pallet of stock, a machine that needs a tail lift.":
     "admin.homePageContent.builtForTheLoadThatWontFit",
   "Set the route": "admin.homePageContent.setTheRoute",
-  "Type the pickup and the dropoff — addresses autocomplete as you go — then tell us what you're moving: furniture, appliances, retail stock, or a full relocation.":
+  "Type the pickup and the dropoff — addresses autocomplete as you go — then tell us what you're sending: furniture, appliances, retail stock or construction materials.":
     "admin.homePageContent.typeThePickupAndTheDropoff",
   "Pick a vehicle": "admin.homePageContent.pickAVehicle",
   "Cargo van for a few boxes, trailer truck for pallets. Every type lists its payload rating and cargo dimensions, so you can match the vehicle to the load.":
@@ -948,7 +1046,7 @@ const DEFAULT_COPY_MESSAGE_KEYS: Readonly<Record<string, string>> = {
     "admin.homePageContent.weGeocodeBothAddressesAndPrice",
   "Which vehicle should I book?":
     "admin.homePageContent.whichVehicleShouldIBook",
-  "Vehicles come in two duty classes, medium-duty and heavy-duty, and each cargo category only offers the classes that can take it. Furniture, appliances, retail stock and event equipment go either way; a full relocation, industrial supplies and construction materials are heavy-duty only. Every type lists its maximum payload, so you can match the rating to the load.":
+  "Vehicles come in two duty classes, medium-duty and heavy-duty, and each cargo category only offers the classes that can take it. Furniture, appliances, retail stock and event equipment go either way; industrial supplies and construction materials are heavy-duty only. Every type lists its maximum payload, so you can match the rating to the load.":
     "admin.homePageContent.vehiclesComeInTwoDutyClasses",
   "What does adding a helper do?":
     "admin.homePageContent.whatDoesAddingAHelperDo",
@@ -982,6 +1080,8 @@ const DEFAULT_COPY_MESSAGE_KEYS: Readonly<Record<string, string>> = {
   Vehicles: "common.shared.vehicles",
   "For drivers": "admin.homePageContent.forDrivers",
   FAQ: "admin.homePageContent.faq",
+  Help: "admin.homePageContent.help",
+  "Send a delivery": "admin.homePageContent.sendADelivery",
   "Sign in": "common.shared.signIn",
   "Sign up": "common.shared.signUp",
   "Commercial freight and cargo across Georgia — vans to trailer trucks, priced before you book.":
@@ -1161,53 +1261,46 @@ export type HomePageSectionWithId = HomePageSectionData & { id: string };
  *
  * Written out literally rather than mapped from the order constant so each
  * entry's `content` is checked against the shape its own `type` demands; the
- * order here is that constant's, and the two are meant to stay in step.
- * `category_tiles` is absent for the same reason it is absent there.
+ * order here is that constant's, and the two are meant to stay in step. The
+ * retired types are absent for the same reason they are absent there.
  */
 export function buildDefaultHomePageSections(
   content: HomePageSectionContentByType,
 ): HomePageSectionWithId[] {
   return [
-    { id: "default-hero", type: "hero", content: content.hero },
     {
       id: "default-hero_carousel",
       type: "hero_carousel",
       content: content.hero_carousel,
     },
     {
-      id: "default-partner_marquee",
-      type: "partner_marquee",
-      content: content.partner_marquee,
-    },
-    { id: "default-stats", type: "stats", content: content.stats },
-    { id: "default-bento", type: "bento", content: content.bento },
-    {
       id: "default-quote_calculator",
       type: "quote_calculator",
       content: content.quote_calculator,
     },
-    {
-      id: "default-how_it_works",
-      type: "how_it_works",
-      content: content.how_it_works,
-    },
+    { id: "default-offers", type: "offers", content: content.offers },
     {
       id: "default-vehicle_types",
       type: "vehicle_types",
       content: content.vehicle_types,
     },
     {
-      id: "default-driver_cta",
-      type: "driver_cta",
-      content: content.driver_cta,
+      id: "default-how_it_works",
+      type: "how_it_works",
+      content: content.how_it_works,
     },
     { id: "default-coverage", type: "coverage", content: content.coverage },
-    { id: "default-faq", type: "faq", content: content.faq },
+    {
+      id: "default-partner_marquee",
+      type: "partner_marquee",
+      content: content.partner_marquee,
+    },
     {
       id: "default-closing_cta",
       type: "closing_cta",
       content: content.closing_cta,
     },
+    { id: "default-faq", type: "faq", content: content.faq },
     { id: "default-nav", type: "nav", content: content.nav },
     { id: "default-footer", type: "footer", content: content.footer },
   ];
@@ -1227,8 +1320,12 @@ export function buildDefaultHomePageSections(
  * `DEFAULT_HOME_PAGE_SECTION_ORDER`, or first if none does. Authored sections
  * never move. Chrome is appended — the renderer finds it by type, so its
  * position is irrelevant.
+ *
+ * Only `type` is read, so that is the whole constraint: the public loader
+ * passes validated sections, and the admin "materialize defaults" endpoint
+ * passes raw rows (any `type` string) to work out where filled-in rows go.
  */
-export function withDefaultSections<Section extends HomePageSectionWithId>(
+export function withDefaultSections<Section extends { type: string }>(
   sections: readonly Section[],
   defaults: readonly Section[],
   authoredTypes: ReadonlySet<string>,
@@ -1369,6 +1466,52 @@ function readPercent(
 }
 
 /**
+ * Reads an optional integer and clamps it into `[min, max]`. Absent / `null` /
+ * blank is left off the result (an older row); a numeric string is coerced for
+ * the same reason as `readPercent`; anything non-numeric is a shape mismatch.
+ */
+function readOptionalClampedInteger(
+  record: Record<string, unknown>,
+  key: string,
+  min: number,
+  max: number,
+  context: string,
+): Parsed<number | undefined> {
+  const raw = record[key];
+
+  if (raw === undefined || raw === null) {
+    return { data: undefined };
+  }
+  if (typeof raw === "string" && raw.trim() === "") {
+    return { data: undefined };
+  }
+
+  const value = typeof raw === "string" ? Number(raw.trim()) : raw;
+
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return { error: `${context}.${key} must be a number when present.` };
+  }
+
+  return { data: Math.min(max, Math.max(min, Math.round(value))) };
+}
+
+/**
+ * Reads an optional array of `{ label, href }` links. Absent / `null` is left
+ * off the result, the same tolerance `readOptionalStrings` gives a scalar.
+ */
+function readOptionalLinkArray(
+  record: Record<string, unknown>,
+  key: string,
+  context: string,
+): Parsed<NavLink[] | undefined> {
+  if (record[key] === undefined || record[key] === null) {
+    return { data: undefined };
+  }
+
+  return readEntryArray(record, key, ["label", "href"], context);
+}
+
+/**
  * Reads an array of repeated sub-entries (FAQ items, how-it-works steps), each
  * validated with the same string rules as a top-level field.
  *
@@ -1493,7 +1636,32 @@ function parseHeroCarouselContent(value: unknown): Parsed<HeroCarouselContent> {
     return { error: "hero_carousel content must be an object." };
   }
 
-  return readOptionalStrings(record, ["fallbackCaption"], "hero_carousel");
+  const text = readOptionalStrings(
+    record,
+    ["fallbackCaption"],
+    "hero_carousel",
+  );
+  if ("error" in text) {
+    return { error: text.error };
+  }
+
+  const interval = readOptionalClampedInteger(
+    record,
+    "intervalSec",
+    HERO_INTERVAL_MIN,
+    HERO_INTERVAL_MAX,
+    "hero_carousel",
+  );
+  if ("error" in interval) {
+    return { error: interval.error };
+  }
+
+  return {
+    data: {
+      ...text.data,
+      ...(interval.data === undefined ? {} : { intervalSec: interval.data }),
+    },
+  };
 }
 
 function parsePartnerMarqueeContent(
@@ -1611,11 +1779,48 @@ function parseQuoteCalculatorContent(
     return { error: "quote_calculator content must be an object." };
   }
 
-  return readStrings(
+  const text = readStrings(
     record,
     ["eyebrow", "heading", "intro"],
     "quote_calculator",
   );
+  if ("error" in text) {
+    return { error: text.error };
+  }
+
+  const optional = readOptionalStrings(
+    record,
+    ["ctaLabel", "ctaHref"],
+    "quote_calculator",
+  );
+  if ("error" in optional) {
+    return { error: optional.error };
+  }
+
+  return { data: { ...text.data, ...optional.data } };
+}
+
+function parseOffersContent(value: unknown): Parsed<OffersContent> {
+  const record = asRecord(value);
+  if (!record) {
+    return { error: "offers content must be an object." };
+  }
+
+  const text = readStrings(record, ["heading"], "offers");
+  if ("error" in text) {
+    return { error: text.error };
+  }
+
+  const optional = readOptionalStrings(
+    record,
+    ["linkLabel", "linkHref"],
+    "offers",
+  );
+  if ("error" in optional) {
+    return { error: optional.error };
+  }
+
+  return { data: { ...text.data, ...optional.data } };
 }
 
 function parseCategoryTilesContent(
@@ -1753,7 +1958,13 @@ function parseCoverageContent(value: unknown): Parsed<CoverageContent> {
     return { error: text.error };
   }
 
-  const cities = readEntryArray(record, "cities", ["name", "tier"], "coverage");
+  const cities = readEntryArray(
+    record,
+    "cities",
+    ["name", "tier"],
+    "coverage",
+    ["imageUrl", "href"],
+  );
   if ("error" in cities) {
     return { error: cities.error };
   }
@@ -1795,7 +2006,7 @@ function parseClosingCtaContent(value: unknown): Parsed<ClosingCtaContent> {
     return { error: "closing_cta content must be an object." };
   }
 
-  return readStrings(
+  const text = readStrings(
     record,
     [
       "heading",
@@ -1807,6 +2018,20 @@ function parseClosingCtaContent(value: unknown): Parsed<ClosingCtaContent> {
     ],
     "closing_cta",
   );
+  if ("error" in text) {
+    return { error: text.error };
+  }
+
+  const optional = readOptionalStrings(
+    record,
+    ["appStoreUrl", "playStoreUrl"],
+    "closing_cta",
+  );
+  if ("error" in optional) {
+    return { error: optional.error };
+  }
+
+  return { data: { ...text.data, ...optional.data } };
 }
 
 function parseNavContent(value: unknown): Parsed<NavContent> {
@@ -1829,7 +2054,26 @@ function parseNavContent(value: unknown): Parsed<NavContent> {
     return { error: links.error };
   }
 
-  return { data: { ...text.data, links: links.data } };
+  const optional = readOptionalStrings(record, ["utilityText"], "nav");
+  if ("error" in optional) {
+    return { error: optional.error };
+  }
+
+  const utilityLinks = readOptionalLinkArray(record, "utilityLinks", "nav");
+  if ("error" in utilityLinks) {
+    return { error: utilityLinks.error };
+  }
+
+  return {
+    data: {
+      ...text.data,
+      ...optional.data,
+      links: links.data,
+      ...(utilityLinks.data === undefined
+        ? {}
+        : { utilityLinks: utilityLinks.data }),
+    },
+  };
 }
 
 /**
@@ -1912,9 +2156,19 @@ function parseFooterContent(value: unknown): Parsed<FooterContent> {
     return { error: legalLinks.error };
   }
 
+  const optional = readOptionalStrings(
+    record,
+    ["ctaLabel", "ctaHref"],
+    "footer",
+  );
+  if ("error" in optional) {
+    return { error: optional.error };
+  }
+
   return {
     data: {
       ...text.data,
+      ...optional.data,
       columns: columns.data,
       legalLinks: legalLinks.data,
     },
@@ -1976,6 +2230,12 @@ export function parseHomePageSection(
     }
     case "quote_calculator": {
       const parsed = parseQuoteCalculatorContent(content);
+      return "error" in parsed
+        ? parsed
+        : { data: { type, content: parsed.data } };
+    }
+    case "offers": {
+      const parsed = parseOffersContent(content);
       return "error" in parsed
         ? parsed
         : { data: { type, content: parsed.data } };

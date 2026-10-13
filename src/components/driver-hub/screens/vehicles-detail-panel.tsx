@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   HubCard,
   HubStatusBadge,
@@ -13,9 +14,7 @@ import {
 } from "@/components/driver-hub/hub-primitives";
 import {
   EMPTY_VALUE,
-  formatGel,
   formatKilograms,
-  formatOdometer,
 } from "@/components/driver-hub/screens/vehicles-format";
 import type { HubAccountKind } from "@/lib/dashboard/hub/account";
 import type { HubVehicle } from "@/lib/dashboard/hub/vehicles";
@@ -176,15 +175,13 @@ const REMOVE_UNARMED_NOTE = "removeUnarmedNote";
  */
 
 /**
- * Why the odometer, fuel, weekly job count, operating cities and running costs
- * are placeholders. Transcribed from the retirement notes in
- * `src/lib/dashboard/hub/sample.ts`, so each badge's tooltip names the schema
- * change that would make the figure real.
+ * Why the weekly job count and operating cities are placeholders. Transcribed
+ * from the retirement notes in `src/lib/dashboard/hub/sample.ts`, so each
+ * badge's tooltip names the schema change that would make the figure real.
  */
 const SAMPLE_NOTES = {
   specs: "sampleNoteSpecs",
   cities: "sampleNoteCities",
-  costs: "sampleNoteCosts",
 } as const;
 
 /** The grey pill the design uses for a class and for each operating city. */
@@ -203,7 +200,7 @@ export type VehiclesDetailPanelProps = {
   onRemoved: () => void;
 };
 
-/** One box of the 2×2 spec grid. */
+/** One box of the spec grid. */
 function SpecBox({
   label,
   value,
@@ -230,6 +227,140 @@ function SpecBox({
           label={tShared("sample")}
           className="mt-1.5"
         />
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * The trailer-plate line: shows the plate (or "No trailer") and, for company
+ * vehicles only, edits it inline through
+ * `PATCH /api/logistics-company/vehicles/[id]`. Driver-owned vehicles are
+ * read-only here — their trailer is entered when the vehicle is registered.
+ *
+ * Rendered with `key={vehicle.id}` by the panel so the draft resets when
+ * another vehicle is selected.
+ */
+function TrailerPlateRow({
+  vehicle,
+  editable,
+}: {
+  vehicle: HubVehicle;
+  editable: boolean;
+}) {
+  const t = useTranslations("driverHub.vehiclesDetailPanel");
+  const router = useRouter();
+  const [editing, setEditing] = React.useState(false);
+  const [draft, setDraft] = React.useState(vehicle.trailerPlateNumber ?? "");
+  const [saving, setSaving] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+
+  async function handleSave() {
+    setError(null);
+    setSaving(true);
+
+    try {
+      const response = await fetch(
+        `/api/logistics-company/vehicles/${vehicle.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            trailerPlateNumber: draft.trim() === "" ? null : draft.trim(),
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        setError(payload?.error ?? t("couldNotSaveTrailerPlate"));
+        return;
+      }
+
+      setEditing(false);
+      router.refresh();
+    } catch {
+      setError(t("networkError"));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="mt-5">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="text-[13px] font-semibold">{t("trailerPlate")}</h3>
+        {editable && !editing ? (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              setDraft(vehicle.trailerPlateNumber ?? "");
+              setEditing(true);
+            }}
+            className="h-auto rounded-md px-[11px] py-[5px] text-xs font-medium"
+          >
+            {t("editTrailerPlate")}
+          </Button>
+        ) : null}
+      </div>
+
+      {editing ? (
+        <div className="mt-2">
+          <Input
+            aria-label={t("trailerPlate")}
+            value={draft}
+            onChange={(event) => setDraft(event.target.value.toUpperCase())}
+            maxLength={15}
+            autoComplete="off"
+            spellCheck={false}
+            disabled={saving}
+            className="h-auto rounded-md px-[11px] py-[9px] font-price text-[13px] md:text-[13px]"
+          />
+          <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+            {t("trailerPlateHint")}
+          </p>
+          <div className="mt-2.5 flex flex-wrap gap-2">
+            <Button
+              type="button"
+              disabled={saving}
+              onClick={() => {
+                void handleSave();
+              }}
+              className="h-auto rounded-md bg-foreground px-[15px] py-[9px] text-[13px] font-medium text-background hover:bg-foreground/90"
+            >
+              {saving ? t("savingTrailerPlate") : t("saveTrailerPlate")}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={saving}
+              onClick={() => {
+                setEditing(false);
+                setError(null);
+              }}
+              className="h-auto rounded-md px-[15px] py-[9px] text-[13px] font-medium"
+            >
+              {t("cancelTrailerPlate")}
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <p className="mt-1.5 font-price text-[13px]">
+          {vehicle.trailerPlateNumber ?? (
+            <span className="font-sans text-muted-foreground">
+              {t("trailerPlateNone")}
+            </span>
+          )}
+        </p>
+      )}
+
+      {error ? (
+        <p role="alert" className="mt-2 text-xs text-destructive">
+          {error}
+        </p>
       ) : null}
     </div>
   );
@@ -330,12 +461,6 @@ export function VehiclesDetailPanel({
           label={tShared("payload")}
           value={formatKilograms(payloadKg)}
         />
-        <SpecBox label={tShared("fuel")} value={vehicle.sampled.fuel} sampled />
-        <SpecBox
-          label={tShared("odometer")}
-          value={formatOdometer(vehicle.sampled.odometerKm)}
-          sampled
-        />
         <SpecBox
           label={t("jobsWeek")}
           value={vehicle.sampled.jobsThisWeek}
@@ -365,31 +490,11 @@ export function VehiclesDetailPanel({
         )}
       </div>
 
-      <div className="mt-5 flex flex-wrap items-center gap-2">
-        <h3 className="text-[13px] font-semibold">
-          {t("runningCostsThisMonth")}
-        </h3>
-        <SampleNote note={t(SAMPLE_NOTES.costs)} />
-      </div>
-      <dl className="mt-0.5">
-        {vehicle.sampled.runningCosts.map((cost) => (
-          <div
-            key={cost.label}
-            className="flex justify-between gap-3 border-t border-muted py-[9px] text-[13px]"
-          >
-            <dt className="text-muted-foreground">{cost.label}</dt>
-            <dd className="font-price font-medium">
-              {formatGel(cost.amountGel)}
-            </dd>
-          </div>
-        ))}
-      </dl>
-      <div className="mt-1.5 flex items-baseline justify-between gap-3 border-t border-border pt-3">
-        <span className="text-sm font-semibold">{t("costPerKm")}</span>
-        <span className="font-price text-lg font-semibold">
-          {formatGel(vehicle.sampled.costPerKmGel)}
-        </span>
-      </div>
+      <TrailerPlateRow
+        key={vehicle.id}
+        vehicle={vehicle}
+        editable={kind === "BUSINESS" && vehicle.ownership === "COMPANY"}
+      />
 
       <div className="mt-[22px] border-t border-border pt-[18px]">
         {removable ? (

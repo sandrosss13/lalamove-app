@@ -31,6 +31,7 @@
  */
 
 import { DEFAULT_LOCALE, isAppLocale, withLocalePrefix } from "@/i18n/routing";
+import { isCityLandingPath } from "@/lib/seo/cities";
 
 /**
  * The one value that turns the gate on. Compared case-insensitively after
@@ -63,15 +64,30 @@ export const IS_CLIENT_UNDER_CONSTRUCTION = parseUnderConstructionFlag(
 export const UNDER_CONSTRUCTION_PATH = "/coming-soon";
 
 /**
- * Header sent with every gated response. The page sets the same thing in its
- * `<meta name="robots">`, but the header also covers crawlers that never parse
- * the HTML, and — because it is attached to the rewrite rather than to the
- * page — it cannot be lost if the page's metadata is ever edited.
+ * Pages that stay live on the client host while the gate is on — served as
+ * themselves instead of being rewritten to the "coming soon" page.
+ *
+ * Today that is exactly the city landing pages (`src/lib/seo/cities.ts`):
+ * their copy describes the service without promising it can be booked yet, so
+ * they read correctly before and after launch, and they need time in the index
+ * to rank by the day the gate lifts. Only known slugs are exempt — an unknown
+ * `/gadazidva/<x>` is gated like any other path.
+ *
+ * `pathname` is *unprefixed* (what `splitLocalePrefix` leaves).
  */
-export const UNDER_CONSTRUCTION_ROBOTS_HEADER = {
-  name: "X-Robots-Tag",
-  value: "noindex, nofollow",
-} as const;
+export function isUnderConstructionExempt(pathname: string): boolean {
+  return isCityLandingPath(pathname);
+}
+
+/*
+ * Gated responses carry `X-Robots-Tag: noindex, nofollow` — except the root
+ * (`/`, `/ka`, `/en`), which is deliberately indexable while the gate is on so
+ * the brand can be found before launch, and the exempt city pages above, which
+ * are not gated at all. That decision lives with the rest of
+ * the indexing policy in `src/lib/seo/site.ts` (`isIndexablePath`), and the
+ * middleware applies it to the rewrite: attached there rather than to the page,
+ * it cannot be lost if the page's metadata is ever edited.
+ */
 
 /**
  * A final path segment with a file extension: `/robots.txt`, `/site.webmanifest`,

@@ -40,6 +40,7 @@
 
 import { expect, test } from "@playwright/test";
 
+import { LOADS_SELECT } from "@/lib/loads/select";
 import {
   CARRIER_ORDER_PARTY_SELECT,
   ORDER_PARTY_SELECT,
@@ -126,6 +127,27 @@ test.describe("CARRIER_ORDER_PARTY_SELECT", () => {
   });
 });
 
+/**
+ * The order-details document is client-owner-only data: the client's own
+ * company block and the amount they paid, and — after the trip starts — the
+ * `serviceSnapshot` with the driver's personal number. No shared select may
+ * join it, not even the client-facing `ORDER_PARTY_SELECT`, which several
+ * carrier-side readers have historically borrowed. It is served by
+ * `/api/orders/[id]/waybill` alone, behind `resolveServiceDocumentAccess`.
+ */
+test.describe("the order-details snapshot stays out of every shared order select", () => {
+  for (const [name, select] of [
+    ["CARRIER_ORDER_PARTY_SELECT", CARRIER_ORDER_PARTY_SELECT],
+    ["ORDER_PARTY_SELECT", ORDER_PARTY_SELECT],
+    ["LOADS_SELECT", LOADS_SELECT],
+  ] as const) {
+    test(`${name} never joins Order.serviceSnapshot`, () => {
+      expect(select).not.toHaveProperty("serviceSnapshot");
+      expect(JSON.stringify(select)).not.toMatch(/serviceSnapshot|waybill/i);
+    });
+  }
+});
+
 test.describe("ORDER_PARTY_SELECT", () => {
   for (const column of CLIENT_MONEY_COLUMNS) {
     test(`still carries Order.${column} for the client`, () => {
@@ -135,4 +157,46 @@ test.describe("ORDER_PARTY_SELECT", () => {
       expect(ORDER_PARTY_SELECT).toHaveProperty(column, true);
     });
   }
+});
+
+/**
+ * `GET /api/loads` — the load board, which also answers accounts that are not
+ * yet party to an order (the open market). Its select lives in an import-free
+ * module so it can be pinned here like the two above.
+ */
+test.describe("LOADS_SELECT", () => {
+  for (const column of CLIENT_MONEY_COLUMNS) {
+    test(`never asks the database for Order.${column}`, () => {
+      expect(LOADS_SELECT).not.toHaveProperty(column);
+    });
+  }
+
+  test("carries no client identity or payment reference", () => {
+    for (const column of [
+      "clientId",
+      "savedCardId",
+      "purchaseOrderRef",
+      "commissionRate",
+    ]) {
+      expect(LOADS_SELECT).not.toHaveProperty(column);
+    }
+  });
+
+  test("selects the driver's payout as its only money column", () => {
+    const moneyish = Object.keys(LOADS_SELECT).filter((key) =>
+      /fare|price|fee|payout|adjustment/i.test(key),
+    );
+
+    expect(moneyish).toEqual(["driverPayout"]);
+  });
+
+  test("reads cargo photos as a count only, never as rows", () => {
+    // The board is polled every ten seconds; signed photo URLs are served per
+    // load by `GET /api/loads/[id]/photos`, behind the same visibility rule.
+    // A `photos` relation here would put storage paths on the open market's
+    // payload, and `_count` reading anything but photos is a relation join this
+    // select does not otherwise make.
+    expect(LOADS_SELECT).not.toHaveProperty("photos");
+    expect(LOADS_SELECT._count).toEqual({ select: { photos: true } });
+  });
 });

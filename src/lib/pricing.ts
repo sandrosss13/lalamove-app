@@ -23,6 +23,7 @@ import {
   CARGO_CATEGORY_LABELS,
 } from "@/lib/cargo";
 import {
+  AVERAGE_SPEED_KMH,
   geocodeAddress,
   getRoute,
   haversineDistanceKm,
@@ -33,16 +34,6 @@ import { prisma } from "@/lib/prisma";
 
 /** Valid `CargoCategory` values — the label table is keyed by every one of them. */
 const CARGO_CATEGORIES = Object.keys(CARGO_CATEGORY_LABELS) as CargoCategory[];
-
-/**
- * Assumed average door-to-door speed, in km/h, used *only* on the fallback path.
- *
- * Distance and duration normally come from LocationIQ's directions endpoint,
- * which reports a real driving time for the real road route. This flat rate is
- * what a fare's time component is derived from when routing is unavailable and
- * the quote falls back to straight-line distance — see `estimateDelivery`.
- */
-const AVERAGE_SPEED_KMH = 30;
 
 const MINUTES_PER_HOUR = 60;
 

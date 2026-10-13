@@ -5,11 +5,11 @@ import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { useLoadsBoard } from "@/components/driver-hub/screens/loads-context";
 import {
-  CargoPhotoTiles,
   CargoSpecList,
   ClaimedByYouNote,
   ClaimedElsewhereNote,
   HandlingTagPills,
+  LoadCargoPhotos,
   LoadComplianceNotes,
   LoadStatusPill,
   RouteStopHeading,
@@ -395,7 +395,11 @@ export function LoadsDetailSheet({ nowIso }: LoadsDetailSheetProps) {
                   drawn, a `HAZMAT` or `COLD_CHAIN` tag was never rendered
                   anywhere a driver on a phone would see it before accepting. */}
               <HandlingTagPills load={load} />
-              <CargoPhotoTiles />
+              <LoadCargoPhotos
+                key={load.id}
+                loadId={load.id}
+                photoCount={load.photoCount}
+              />
             </div>
 
             {/* ---------------------------------------------------------------- */}

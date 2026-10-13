@@ -52,12 +52,12 @@ export type SampleMetricDelta = {
  * its full message key (namespace included).
  *
  * The constants below stay in English on purpose: several of their fields are
- * identifiers as well as copy (`EmployeeRoleName`, `SamplePayoutStatus`, the
- * compliance and verification statuses are switched on by the screens), and
- * the free-text fields sit in shapes that half a dozen modules and screens pass
- * through untouched. Rather than thread a translator through every one of
- * those, the page that renders a hub screen hands its finished data to
- * `localizeSampleCopy`, which swaps exactly these strings and nothing else.
+ * identifiers as well as copy (`EmployeeRoleName` and `SamplePayoutStatus` are
+ * switched on by the screens), and the free-text fields sit in shapes that half
+ * a dozen modules and screens pass through untouched. Rather than thread a
+ * translator through every one of those, the page that renders a hub screen
+ * hands its finished data to `localizeSampleCopy`, which swaps exactly these
+ * strings and nothing else.
  *
  * Only free-text copy belongs in this list. Adding an identifier here (a role
  * name, a status) would translate a value some screen compares against an
@@ -94,10 +94,6 @@ const SAMPLE_COPY_KEYS: ReadonlyMap<string, string> = new Map([
     "3 more jobs by Sunday for a ₾40 bonus.",
     "dashboard.sample.3MoreJobsBySundayFor",
   ],
-  ["Service & parts", "dashboard.sample.serviceParts"],
-  ["Parking & tolls", "dashboard.sample.parkingTolls"],
-  ["Driver licence (GE)", "dashboard.sample.driverLicenceGe"],
-  ["Criminal record extract", "dashboard.sample.criminalRecordExtract"],
   ["Vehicles and drivers", "dashboard.sample.vehiclesAndDrivers"],
   [
     "Assigns jobs inside their zones",
@@ -128,8 +124,6 @@ const SAMPLE_COPY_KEYS: ReadonlyMap<string, string> = new Map([
   ["1 invited, 1 suspended", "dashboard.sample.1Invited1Suspended"],
   ["Cancellations", "common.shared.cancellations"],
   ["Rating", "common.shared.rating"],
-  ["Fuel", "common.shared.fuel"],
-  ["Vehicle registration", "common.shared.vehicleRegistration"],
   ["2 minutes ago", "dashboard.sample.2MinutesAgo"],
   ["Yesterday", "dashboard.sample.yesterday"],
   ["Mon", "dashboard.sample.mon"],
@@ -144,8 +138,6 @@ const SAMPLE_COPY_KEYS: ReadonlyMap<string, string> = new Map([
   ["38 min/h", "dashboard.sample.38MinH"],
   ["None in range", "dashboard.sample.noneInRange"],
   ["Weekend surge + streak", "dashboard.sample.weekendSurgeStreak"],
-  ["Diesel", "dashboard.sample.diesel"],
-  ["Hybrid", "dashboard.sample.hybrid"],
   ["not on file", "dashboard.sample.notOnFile"],
   ["Earnings & payouts", "dashboard.sample.earningsPayouts"],
   ["Invoices & tax", "dashboard.sample.invoicesTax"],
@@ -604,18 +596,7 @@ export const SAMPLE_WEEKLY_INCENTIVE = {
 /* Per-vehicle facts                                                         */
 /* ------------------------------------------------------------------------- */
 
-/** Compliance state of a document the schema does not store dates for. */
-export type SampleComplianceStatus =
-  "Valid" | "Expiring soon" | "Expired" | "Pending";
-
-/** One line of the vehicle detail panel's "Running costs · this month". */
-export type SampleRunningCost = { label: string; amountGel: number };
-
 export type SampleVehicleFacts = {
-  odometerKm: number;
-  costPerKmGel: number;
-  /** Fuel type, e.g. "Diesel". */
-  fuel: string;
   /**
    * Cities this vehicle works. Distinct from
    * `LogisticsCompany.citiesOfOperation`, which is fleet-wide.
@@ -623,9 +604,7 @@ export type SampleVehicleFacts = {
   operatingCities: readonly string[];
   /** Jobs completed this week in this vehicle. */
   jobsThisWeek: number;
-  insuranceStatus: SampleComplianceStatus;
   /** Human date, e.g. "10 Sep 2026", or "not on file". */
-  insuranceDue: string;
   inspectionDue: string;
 };
 
@@ -634,21 +613,16 @@ export type SampleVehicleFacts = {
  *
  * Every one of these fields is missing from `Vehicle`, so a real fleet of any
  * size lands here — the keyed map below only matches the handoff's own seeded
- * plates. The fallback is deliberately neutral (zero odometer, fleet-average
- * cost, nothing on file) rather than plausible-looking, so an un-mapped vehicle
- * reads as "we do not track this yet" instead of as a real reading.
+ * plates. The fallback is deliberately neutral (no jobs, nothing on file)
+ * rather than plausible-looking, so an un-mapped vehicle reads as "we do not
+ * track this yet" instead of as a real reading.
  *
- * Retire once `Vehicle` gains `odometerKm`, an `operatingCities` enum array and
- * a `VehicleCompliance` model holding insurance and inspection dates.
+ * Retire once `Vehicle` gains an `operatingCities` enum array, a per-vehicle
+ * job rollup and a record of inspection dates.
  */
 export const SAMPLE_VEHICLE_FACTS_FALLBACK: SampleVehicleFacts = {
-  odometerKm: 0,
-  costPerKmGel: 0.4,
-  fuel: "Diesel",
   operatingCities: ["Tbilisi"],
   jobsThisWeek: 0,
-  insuranceStatus: "Pending",
-  insuranceDue: "not on file",
   inspectionDue: "not on file",
 };
 
@@ -665,73 +639,38 @@ export const SAMPLE_VEHICLE_FACTS_FALLBACK: SampleVehicleFacts = {
  */
 export const SAMPLE_VEHICLE_FACTS: Record<string, SampleVehicleFacts> = {
   "AB-482-QM": {
-    odometerKm: 184210,
-    costPerKmGel: 0.42,
-    fuel: "Diesel",
     operatingCities: ["Tbilisi", "Rustavi"],
     jobsThisWeek: 46,
-    insuranceStatus: "Expiring soon",
-    insuranceDue: "10 Sep 2026",
     inspectionDue: "21 Oct 2026",
   },
   "CD-107-TB": {
-    odometerKm: 96480,
-    costPerKmGel: 0.38,
-    fuel: "Diesel",
     operatingCities: ["Tbilisi"],
     jobsThisWeek: 46,
-    insuranceStatus: "Valid",
-    insuranceDue: "14 Mar 2027",
     inspectionDue: "14 Mar 2027",
   },
   "EF-556-GG": {
-    odometerKm: 231900,
-    costPerKmGel: 0.19,
-    fuel: "Hybrid",
     operatingCities: ["Tbilisi", "Mtskheta"],
     jobsThisWeek: 46,
-    insuranceStatus: "Valid",
-    insuranceDue: "2 Feb 2027",
     inspectionDue: "2 Feb 2027",
   },
   "GH-903-KA": {
-    odometerKm: 318640,
-    costPerKmGel: 0.61,
-    fuel: "Diesel",
     operatingCities: ["Kutaisi", "Batumi"],
     jobsThisWeek: 0,
-    insuranceStatus: "Valid",
-    insuranceDue: "9 Sep 2026",
     inspectionDue: "9 Sep 2026",
   },
   "IJ-221-QW": {
-    odometerKm: 142050,
-    costPerKmGel: 0.31,
-    fuel: "Diesel",
     operatingCities: ["Tbilisi", "Gori"],
     jobsThisWeek: 46,
-    insuranceStatus: "Valid",
-    insuranceDue: "30 Nov 2026",
     inspectionDue: "30 Nov 2026",
   },
   "KL-640-BS": {
-    odometerKm: 276330,
-    costPerKmGel: 0.47,
-    fuel: "Diesel",
     operatingCities: ["Batumi"],
     jobsThisWeek: 0,
-    insuranceStatus: "Expired",
-    insuranceDue: "4 Aug 2026",
     inspectionDue: "4 Aug 2026",
   },
   "MN-318-RS": {
-    odometerKm: 61420,
-    costPerKmGel: 0.44,
-    fuel: "Diesel",
     operatingCities: ["Tbilisi", "Kutaisi", "Batumi"],
     jobsThisWeek: 0,
-    insuranceStatus: "Valid",
-    insuranceDue: "18 Jan 2027",
     inspectionDue: "18 Jan 2027",
   },
 };
@@ -749,94 +688,15 @@ export function sampleVehicleFacts(plateNumber: string): SampleVehicleFacts {
   return SAMPLE_VEHICLE_FACTS[plateNumber] ?? SAMPLE_VEHICLE_FACTS_FALLBACK;
 }
 
-/**
- * Assumed kilometres driven per month, the multiplier turning a cost-per-km
- * into the running-costs card's fuel line.
- *
- * Retire with `Vehicle.odometerKm`: real monthly distance is the difference
- * between two odometer readings, not a constant.
- */
-export const SAMPLE_MONTHLY_KM = 1600;
-
-/**
- * Fixed monthly running costs, identical for every vehicle because nothing
- * records them per vehicle.
- *
- * Retire once a `VehicleExpense` model records service and toll charges
- * against a vehicle and a date.
- */
-export const SAMPLE_FIXED_RUNNING_COSTS: readonly SampleRunningCost[] = [
-  { label: "Service & parts", amountGel: 280.0 },
-  { label: "Parking & tolls", amountGel: 64.5 },
-];
-
-/**
- * The vehicle detail panel's "Running costs · this month" lines: an estimated
- * fuel line derived from the vehicle's cost-per-km, then the fixed lines.
- *
- * Retire with `SAMPLE_FIXED_RUNNING_COSTS`.
- */
-export function sampleRunningCosts(
-  costPerKmGel: number,
-): readonly SampleRunningCost[] {
-  return [
-    {
-      label: "Fuel",
-      amountGel: Number((costPerKmGel * SAMPLE_MONTHLY_KM).toFixed(2)),
-    },
-    ...SAMPLE_FIXED_RUNNING_COSTS,
-  ];
-}
-
-/**
- * Fleet-wide cost per kilometre, for the Vehicles screen's fourth tile.
- *
- * Retire with `VehicleExpense`; the real figure is total expenses over total
- * distance, both of which the schema is missing.
- */
-export const SAMPLE_FLEET_COST_PER_KM_GEL = 0.4;
-
 /* ------------------------------------------------------------------------- */
 /* Per-driver facts                                                          */
 /* ------------------------------------------------------------------------- */
-
-/** Status of one row in the driver detail panel's Verification list. */
-export type SampleVerificationStatus =
-  "Verified" | "In review" | "Valid" | "Expired";
-
-export type SampleVerificationRow = {
-  label: string;
-  status: SampleVerificationStatus;
-};
 
 export type SampleDriverFacts = {
   /** Average customer rating, or `null` for a driver with no rated jobs. */
   rating: number | null;
   acceptanceRatePercent: number;
-  verification: readonly SampleVerificationRow[];
 };
-
-/**
- * The verification rows shown for a driver with no entry in
- * `SAMPLE_DRIVER_FACTS`.
- *
- * "In review" throughout rather than "Verified": claiming a document has been
- * checked when nothing checked it is the one placeholder on these screens that
- * could actually mislead an operator into dispatching a non-compliant driver.
- *
- * Note that only the *status* is fictional — `DriverLicence.expiresAt` is real,
- * which is why the Today screen's licence-expiry alert is not in this module.
- *
- * Retire once a `DriverDocument` model tracks each required document's review
- * state (the admin application flow verifies them once at onboarding, but
- * `DriverApplication` does not model ongoing validity).
- */
-export const SAMPLE_DRIVER_VERIFICATION_FALLBACK: readonly SampleVerificationRow[] =
-  [
-    { label: "Driver licence (GE)", status: "In review" },
-    { label: "Vehicle registration", status: "In review" },
-    { label: "Criminal record extract", status: "In review" },
-  ];
 
 /**
  * What a driver with no row in `SAMPLE_DRIVER_FACTS` shows.
@@ -850,7 +710,6 @@ export const SAMPLE_DRIVER_VERIFICATION_FALLBACK: readonly SampleVerificationRow
 export const SAMPLE_DRIVER_FACTS_FALLBACK: SampleDriverFacts = {
   rating: null,
   acceptanceRatePercent: 0,
-  verification: SAMPLE_DRIVER_VERIFICATION_FALLBACK,
 };
 
 /**
@@ -868,69 +727,32 @@ export const SAMPLE_DRIVER_FACTS: Record<string, SampleDriverFacts> = {
   "GE-88214": {
     rating: 4.86,
     acceptanceRatePercent: 93,
-    verification: [
-      { label: "Driver licence (GE)", status: "Verified" },
-      { label: "Vehicle registration", status: "Verified" },
-      { label: "Criminal record extract", status: "Verified" },
-    ],
   },
   "GE-88301": {
     rating: 4.92,
     acceptanceRatePercent: 93,
-    verification: [
-      { label: "Driver licence (GE)", status: "Verified" },
-      { label: "Vehicle registration", status: "Verified" },
-      { label: "Criminal record extract", status: "Verified" },
-    ],
   },
   "GE-87940": {
     rating: 4.71,
     acceptanceRatePercent: 93,
-    verification: [
-      { label: "Driver licence (GE)", status: "Verified" },
-      { label: "Vehicle registration", status: "Verified" },
-      { label: "Criminal record extract", status: "Verified" },
-    ],
   },
   "GE-88422": {
     rating: 4.88,
     acceptanceRatePercent: 93,
-    verification: [
-      { label: "Driver licence (GE)", status: "Verified" },
-      { label: "Vehicle registration", status: "Verified" },
-      { label: "Criminal record extract", status: "Verified" },
-    ],
   },
-  // A driver still being reviewed: the two documents checked after the licence
-  // have not cleared yet, which is what keeps them off the road.
+  // A driver with no rated jobs yet.
   "GE-88510": {
     rating: null,
     acceptanceRatePercent: 93,
-    verification: [
-      { label: "Driver licence (GE)", status: "Verified" },
-      { label: "Vehicle registration", status: "In review" },
-      { label: "Criminal record extract", status: "In review" },
-    ],
   },
   "GE-87755": {
     rating: 4.79,
     acceptanceRatePercent: 93,
-    verification: [
-      { label: "Driver licence (GE)", status: "Verified" },
-      { label: "Vehicle registration", status: "Verified" },
-      { label: "Criminal record extract", status: "Verified" },
-    ],
   },
-  // A suspended driver. Their documents are all in order: the suspension is an
-  // account decision under review, not a compliance failure.
+  // A suspended driver.
   "GE-86903": {
     rating: 4.42,
     acceptanceRatePercent: 61,
-    verification: [
-      { label: "Driver licence (GE)", status: "Verified" },
-      { label: "Vehicle registration", status: "Verified" },
-      { label: "Criminal record extract", status: "Verified" },
-    ],
   },
 };
 

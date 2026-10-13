@@ -121,8 +121,8 @@ function SelectItem({
         // upstream shadcn writes `bg-accent`/`text-accent-foreground` — see
         // the `accent`/`muted` trap note above `buttonVariants` in
         // `button.tsx`. `accent` is the worse half of that trap: off a marked
-        // surface it is the brand ORANGE, so keyboard-arrowing down a list
-        // dragged a bright orange bar through it. `sign-up-form.tsx:863`
+        // surface it is the brand GREEN, so keyboard-arrowing down a list
+        // dragged a bright green bar through it. `sign-up-form.tsx:863`
         // carries a `data-admin-surface` attribute on its `SelectContent` as a
         // local workaround for precisely this; that attribute is now redundant
         // (harmless, and not ours to remove — another agent owns `auth/`).

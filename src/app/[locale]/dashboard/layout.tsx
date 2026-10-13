@@ -12,9 +12,12 @@ export const dynamic = "force-dynamic";
  * symbol) as its home-screen icon instead of the customer one. Set here, on
  * the segment, rather than by reading the request host, so no page has to
  * become dynamic just to choose an icon.
+ *
+ * Never indexed: every page under here sits behind a session.
  */
 export const metadata: Metadata = {
   icons: brandIcons("driver"),
+  robots: { index: false, follow: false },
 };
 
 /**
