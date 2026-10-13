@@ -584,6 +584,7 @@
     "loadAria": "გადაზიდვა {reference}"
   },
   "loadsFilters": {
+    "cargoWeightAny": "ტვირთის წონა: ნებისმიერი",
     "cargoWeightUpTo": "ტვირთის წონა {weight} კგ-მდე",
     "reset": "ჩამოყრა",
     "specialHandling": "სპეციალური დამუშავება"

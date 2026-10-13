@@ -333,6 +333,7 @@ function CitySelect({
 function WeightRow() {
   const { fWeight, setFWeight, visibleLoads } = useLoadsBoard();
   const tBoard = useTranslations("driverHub.loadsBoard");
+  const tFilters = useTranslations("driverHub.loadsFilters");
 
   // A generated id rather than a literal: a label→control association is the
   // kind of thing that breaks silently, and only for screen-reader users, if
@@ -345,7 +346,9 @@ function WeightRow() {
         htmlFor={weightId}
         className="flex-none text-[11px] text-muted-foreground tabular-nums"
       >
-        ≤ {formatWeightKg(fWeight)}
+        {fWeight === MAX_WEIGHT_FILTER_KG
+          ? tFilters("cargoWeightAny")
+          : `≤ ${formatWeightKg(fWeight)}`}
       </label>
       <input
         id={weightId}

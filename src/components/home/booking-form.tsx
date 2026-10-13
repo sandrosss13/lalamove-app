@@ -135,6 +135,61 @@ type Estimate = Quote & { serviceLevels: ServiceLevelPrices };
 type CreatedOrder = { id: string };
 
 /**
+ * An unpaid order to re-open in this form, as `/orders/[id]/edit` loads it.
+ *
+ * Passing one puts the form in edit mode: every input below starts from the
+ * order rather than from a blank booking, and Save sends the same payload Book
+ * would have sent, as `PATCH /api/orders/<id>` instead of `POST /api/orders`.
+ * The endpoint re-prices it from scratch, exactly as it priced the original —
+ * nothing on this type is a figure, because no figure the form was handed
+ * could be trusted to still be the price.
+ *
+ * Plain JSON on purpose (`scheduledAt` is an ISO string, not a `Date`): it
+ * crosses the server → client component boundary as a prop, and a string is
+ * the one shape that is serialised the same way by every version of that
+ * boundary.
+ *
+ * What is *not* here, and why:
+ *
+ * - The weight bracket. `Order` has no column for it — the form asks for the
+ *   bracket only to filter the vehicle list, and never sends it. The form
+ *   re-derives it from the booked vehicle's payload once the catalogue has
+ *   loaded; see the seeding effect in `BookingForm`.
+ * - Cargo photos. Those already on the order stay on it, untouched by Save;
+ *   any added here are uploaded alongside them through the same
+ *   `POST /api/orders/<id>/photos` a new booking uses.
+ * - Payment. Edit mode, like booking, ends at checkout.
+ */
+export type BookingFormInitialOrder = {
+  id: string;
+  /** `GE-48210` — shown in the header so the client knows which order is open. */
+  reference: string;
+  /** ISO 8601, or `null` for an order placed before the date step existed. */
+  scheduledAt: string | null;
+  pickupAddress: string;
+  /** Null when the address was typed rather than picked from autocomplete. */
+  pickupLocation: LatLng | null;
+  dropoffAddress: string;
+  dropoffLocation: LatLng | null;
+  /** Null where no contact was recorded for that stop. */
+  pickupContact: StopContact | null;
+  dropoffContact: StopContact | null;
+  cargoCategory: CargoCategory;
+  vehicleTypeCode: string;
+  /** Null for an order placed before the load-space filter existed. */
+  bodyType: ChassisType | null;
+  /** Extra helpers beyond the driver, 0–3 — the column, not the crew size. */
+  helperCount: number;
+  serviceLevel: ServiceLevel;
+  description: string | null;
+  /**
+   * The client's account type, read server-side by the edit route, so the
+   * vehicle list is right from the first render — see `useClientAccountType`.
+   */
+  accountType: "INDIVIDUAL" | "BUSINESS";
+};
+
+/**
  * The two ends of the route, in the order they are travelled — which is also
  * the order the delivery-info dialog numbers its badge by (`1` for the pickup,
  * `2` for the dropoff, from `stop`).
@@ -177,6 +232,52 @@ function stopContactPayload(
   // Trimming and length-capping are the server's, not this form's — sending the
   // draft as typed keeps one place responsible for what is actually stored.
   return anythingFilled ? contact : undefined;
+}
+
+/**
+ * The crew size an order's stored `helperCount` stands for, clamped onto the
+ * picker's four cells. The column is 0–3 by validation, so the clamp is a
+ * guard rather than a path: a row outside it is shown at the nearest size the
+ * picker can draw instead of with no cell selected.
+ */
+function crewSizeFromHelperCount(helperCount: number): CrewSize {
+  const size = Math.min(Math.max(Math.round(helperCount) + 1, 1), 4);
+  return size as CrewSize;
+}
+
+/**
+ * Split a stored `scheduledAt` back into the two inputs it was built from: the
+ * local calendar day and the "HH:MM" slot.
+ *
+ * Either half comes back empty when the form could not have offered it, rather
+ * than being forced into the form: a day already in the past (the calendar
+ * disables those, and a past pickup would be refused on save anyway), or a time
+ * that is not one of `TIME_SLOTS` (an order written by something other than
+ * this form). The schedule step then reads as unanswered, which is what it is.
+ * A slot earlier today that has since passed is dropped by the form's own
+ * stranded-slot effect, on the same terms as a client re-picking today.
+ */
+function scheduleFromIso(scheduledAt: string | null): {
+  date: Date | null;
+  time: string;
+} {
+  if (scheduledAt === null) {
+    return { date: null, time: "" };
+  }
+
+  const at = new Date(scheduledAt);
+  if (Number.isNaN(at.getTime()) || at < startOfDay(new Date())) {
+    return { date: null, time: "" };
+  }
+
+  const time = `${String(at.getHours()).padStart(2, "0")}:${String(
+    at.getMinutes(),
+  ).padStart(2, "0")}`;
+
+  return {
+    date: startOfDay(at),
+    time: TIME_SLOTS.some((slot) => slot.value === time) ? time : "",
+  };
 }
 
 /**
@@ -549,10 +650,10 @@ const VEHICLE_CATEGORY_GLYPHS: Record<
  * the booking is placed through `POST /api/orders`. Pressing Book validates the
  * required sections (`REQUIRED_SECTIONS`) first and marks any that are missing.
  *
- * Booking is where this surface ends. It takes no props and owns every piece of
- * state it renders from, because nothing about it is decided elsewhere: the
- * order it creates is unpaid, and the client is sent straight to
- * `/checkout/<id>` to settle it. Payment methods, saved cards and the business
+ * Booking is where this surface ends. It owns every piece of state it renders
+ * from (`initialOrder`, below, only seeds it), because nothing about it is
+ * decided elsewhere: the order it creates is unpaid, and the client is sent
+ * straight to `/checkout/<id>` to settle it. Payment methods, saved cards and the business
  * purchase-order field are that page's, not this one's — a form that both
  * priced a job and collected payment for it made the client answer for the
  * money before there was an order to attach it to.
@@ -563,8 +664,20 @@ const VEHICLE_CATEGORY_GLYPHS: Record<
  *
  * Multi-stop routes are deliberately absent, because the backend has no concept
  * of them — an `Order` has exactly one pickup and one dropoff.
+ *
+ * `initialOrder` is the one prop, and it is optional: `/` renders this form with
+ * none and gets a blank booking, exactly as before the prop existed. Given an
+ * unpaid order (from `/orders/[id]/edit`), the form opens pre-filled from it and
+ * Save re-prices that order in place — see `BookingFormInitialOrder` for what is
+ * and is not carried over. Every input is still the form's own state; the prop
+ * only decides where that state starts, and is read once, on mount.
  */
-export function BookingForm(): React.ReactElement {
+export function BookingForm({
+  initialOrder,
+}: {
+  initialOrder?: BookingFormInitialOrder;
+} = {}): React.ReactElement {
+  const isEditing = initialOrder !== undefined;
   const t = useTranslations("home.bookingForm");
   const locale = useLocale();
   // Root-scoped, for shared helpers that take full keys.
@@ -609,22 +722,46 @@ export function BookingForm(): React.ReactElement {
   // Prefix for the required steps' card ids — see `sectionId`.
   const sectionIdPrefix = useId();
 
+  // The order's schedule split back into its two inputs, computed once — the
+  // two `useState` initialisers below each take their half. `null` outside
+  // edit mode, and `useState` ignores it after the first render either way.
+  const [initialSchedule] = useState(() =>
+    scheduleFromIso(initialOrder?.scheduledAt ?? null),
+  );
+
   // Null until both a day and a time slot are chosen — see `scheduledDateTime`,
   // the combined value everything downstream (submission, validation) reads.
-  const [scheduledDate, setScheduledDate] = useState<Date | null>(null);
-  const [scheduledTime, setScheduledTime] = useState("");
+  const [scheduledDate, setScheduledDate] = useState<Date | null>(
+    initialSchedule.date,
+  );
+  const [scheduledTime, setScheduledTime] = useState(initialSchedule.time);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
 
   // Null until the client picks a bracket — required to book, and what the
   // vehicle list is filtered by. See `weightOptions`.
   const [maxWeightKg, setMaxWeightKg] = useState<number | null>(null);
 
-  const [pickupAddress, setPickupAddress] = useState("");
-  const [dropoffAddress, setDropoffAddress] = useState("");
+  // In edit mode both addresses start as the order's own text, which is all the
+  // estimate needs: `/api/pricing/estimate` geocodes the string server-side, so
+  // a pre-filled route prices itself through the automatic estimate below
+  // without the client re-picking either address from the autocomplete.
+  const [pickupAddress, setPickupAddress] = useState(
+    initialOrder?.pickupAddress ?? "",
+  );
+  const [dropoffAddress, setDropoffAddress] = useState(
+    initialOrder?.dropoffAddress ?? "",
+  );
   // Null until the matching address is *selected* from the autocomplete: these
-  // gate the live estimate, so typing alone never spends a request.
-  const [pickupLocation, setPickupLocation] = useState<LatLng | null>(null);
-  const [dropoffLocation, setDropoffLocation] = useState<LatLng | null>(null);
+  // gate the live estimate, so typing alone never spends a request. An edited
+  // order seeds them from the coordinates stored on it, so the preview map has
+  // its pins before the first estimate lands; `AddressAutocomplete` only ever
+  // clears them on a keystroke, never on mount.
+  const [pickupLocation, setPickupLocation] = useState<LatLng | null>(
+    initialOrder?.pickupLocation ?? null,
+  );
+  const [dropoffLocation, setDropoffLocation] = useState<LatLng | null>(
+    initialOrder?.dropoffLocation ?? null,
+  );
 
   /**
    * Who the driver asks for at each end, and where in the building to find
@@ -635,7 +772,14 @@ export function BookingForm(): React.ReactElement {
    * Nothing in the Route step renders from this — the card looks the same
    * before and after a contact is captured, by design.
    */
-  const [contacts, setContacts] = useState<StopContacts>(NO_STOP_CONTACTS);
+  const [contacts, setContacts] = useState<StopContacts>(() =>
+    initialOrder
+      ? {
+          pickup: initialOrder.pickupContact,
+          dropoff: initialOrder.dropoffContact,
+        }
+      : NO_STOP_CONTACTS,
+  );
 
   /** Which stop's delivery-info dialog is open, or `null` when none is. */
   const [contactModalFor, setContactModalFor] = useState<StopField | null>(
@@ -645,24 +789,40 @@ export function BookingForm(): React.ReactElement {
   // Null until the client picks one — required to book, and what both the
   // weight brackets and the vehicle list are derived from.
   const [cargoCategory, setCargoCategory] = useState<CargoCategory | null>(
-    null,
+    initialOrder?.cargoCategory ?? null,
   );
   // The load space the goods need. A filter on the vehicle list and nothing
   // more: it moves no price, because the catalogue already charges for the body
   // through each type's own pricing rule (a Refrigerated Van is priced above a
   // Closed Box Van), so a surcharge here would bill the same premium twice.
-  const [bodyType, setBodyType] = useState<ChassisType>(DEFAULT_BODY_TYPE);
-  const [vehicleTypeCode, setVehicleTypeCode] = useState("");
+  // An order placed before the filter existed has no body; it starts on the
+  // default, and the seeding effect below moves it to one the booked vehicle
+  // actually offers if the default is not one of them.
+  const [bodyType, setBodyType] = useState<ChassisType>(
+    initialOrder?.bodyType ?? DEFAULT_BODY_TYPE,
+  );
+  // The booked class, in edit mode. It survives the vehicle step's auto-select
+  // only once the weight bracket is seeded — until then the eligible list is
+  // empty and that effect leaves the code alone (see both effects).
+  const [vehicleTypeCode, setVehicleTypeCode] = useState(
+    initialOrder?.vehicleTypeCode ?? "",
+  );
   // Total people for loading and unloading, driver included — see
   // `helperCount` below for the figure the API is actually told.
-  const [crewSize, setCrewSize] = useState<CrewSize>(DEFAULT_CREW_SIZE);
+  const [crewSize, setCrewSize] = useState<CrewSize>(() =>
+    initialOrder
+      ? crewSizeFromHelperCount(initialOrder.helperCount)
+      : DEFAULT_CREW_SIZE,
+  );
   // The tier the displayed price is for. Alone among the form's inputs it never
   // invalidates the quote — see the invalidation effect below — because every
   // tier's price is arithmetic on the one fare the server already quoted.
   const [serviceLevel, setServiceLevel] = useState<ServiceLevel>(
-    DEFAULT_SERVICE_LEVEL,
+    initialOrder?.serviceLevel ?? DEFAULT_SERVICE_LEVEL,
   );
-  const [description, setDescription] = useState("");
+  const [description, setDescription] = useState(
+    initialOrder?.description ?? "",
+  );
 
   const [estimate, setEstimate] = useState<Estimate | null>(null);
   const [estimating, setEstimating] = useState(false);
@@ -695,8 +855,9 @@ export function BookingForm(): React.ReactElement {
   // Optional step-6 photos, uploaded to the order once it exists.
   const cargoPhotos = useCargoPhotos();
 
-  // INDIVIDUAL until the profile says BUSINESS — see the hook.
-  const accountType = useClientAccountType();
+  // INDIVIDUAL until the profile says BUSINESS — see the hook. Edit mode knows
+  // the answer already and starts from it.
+  const accountType = useClientAccountType(initialOrder?.accountType);
 
   /**
    * Extra helpers beyond the driver — the crew size the user picked, minus the
@@ -773,6 +934,63 @@ export function BookingForm(): React.ReactElement {
       setMaxWeightKg(null);
     }
   }, [weightOptions, maxWeightKg, loadingVehicleTypes]);
+
+  /**
+   * Edit mode only, and once: put the weight step back on the bracket the
+   * booked vehicle answers to, so the vehicle step can show — and keep — the
+   * class the order was booked against.
+   *
+   * The bracket is not stored on `Order` (see `BookingFormInitialOrder`), so it
+   * is re-derived: the booked class's own payload is a bracket the weight
+   * dropdown offers by construction (every option *is* some class's payload),
+   * and it is the one bracket guaranteed to leave that class eligible, since
+   * the list keeps every class whose payload is at least the bracket. A heavier
+   * class may still be cheaper for the same load, but the auto-select effect
+   * only replaces a selection that is no longer selectable, so it leaves the
+   * booked class where it is.
+   *
+   * Waits for the catalogue, which is what the payload is read from. Until it
+   * lands the eligible list is empty and the auto-select effect returns
+   * without touching the code — which is why the code survives to be seeded.
+   *
+   * An order with no stored body starts on the default load space; if the
+   * booked class does not offer it, the body moves to the first one the class
+   * does, so the default does not filter the booked class out of the grid. A
+   * stored body is never second-guessed.
+   *
+   * When the booked class is no longer in the cargo-eligible catalogue at all
+   * (retired, or no longer allowed for this cargo), nothing is seeded: the
+   * weight step reads as unanswered and the client picks again, as for any
+   * other input the catalogue has since taken away.
+   */
+  const weightSeededRef = useRef(!isEditing);
+  useEffect(() => {
+    if (weightSeededRef.current || loadingVehicleTypes || !initialOrder) {
+      return;
+    }
+    weightSeededRef.current = true;
+
+    const booked = cargoEligibleVehicleTypes.find(
+      (vehicleType) => vehicleType.code === initialOrder.vehicleTypeCode,
+    );
+    if (!booked) {
+      return;
+    }
+
+    if (
+      initialOrder.bodyType === null &&
+      !vehicleOffersBody(booked, bodyType)
+    ) {
+      const bookedBody = booked.bodyTypes[0];
+      if (bookedBody !== undefined) {
+        // `setBodyType` and not `handleBodyTypeChange`: that one clears the
+        // vehicle, which is the very selection this effect exists to keep.
+        setBodyType(bookedBody);
+      }
+    }
+
+    setMaxWeightKg(booked.maxPayloadKg);
+  }, [loadingVehicleTypes, cargoEligibleVehicleTypes, initialOrder, bodyType]);
 
   /**
    * The three load-space cards, each carrying how many vehicles would be left
@@ -1262,35 +1480,44 @@ export function BookingForm(): React.ReactElement {
     setSubmitPhase("booking");
 
     try {
-      const response = await fetch("/api/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          scheduledAt: scheduledDateTime.toISOString(),
-          pickupAddress,
-          dropoffAddress,
-          // The delivery-info captured at each end. `JSON.stringify` drops an
-          // `undefined` value entirely, which is exactly the "no contact for
-          // this stop" the endpoint reads as an empty block.
-          pickupContact: stopContactPayload(contacts.pickup),
-          dropoffContact: stopContactPayload(contacts.dropoff),
-          cargoCategory,
-          vehicleTypeCode: pricedVehicleTypeCode,
-          // Recorded on the order, not priced from: `/api/orders` re-checks it
-          // against the chosen vehicle's own `bodyTypes` and stores it so the
-          // driver knows which body the load was booked for.
-          bodyType,
-          helperCount,
-          // The tier, never its price: `/api/orders` re-derives the adjustment
-          // from the quote it computes itself.
-          serviceLevel,
-          // No payment fields: they are checkout's to send.
-          description: description.trim() || undefined,
-          // No cargo measurements, packaging, handling tags, pickup window or
-          // delivery deadline: the form no longer asks for them, and the
-          // endpoint treats every one as optional.
-        }),
-      });
+      // The same body either way. Edit mode sends it to the order it is
+      // editing, and `PATCH /api/orders/<id>` takes exactly what the create
+      // endpoint takes, re-prices it the same way and answers with the same
+      // shape — so nothing below this call knows which of the two it made.
+      const response = await fetch(
+        initialOrder
+          ? `/api/orders/${encodeURIComponent(initialOrder.id)}`
+          : "/api/orders",
+        {
+          method: initialOrder ? "PATCH" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            scheduledAt: scheduledDateTime.toISOString(),
+            pickupAddress,
+            dropoffAddress,
+            // The delivery-info captured at each end. `JSON.stringify` drops an
+            // `undefined` value entirely, which is exactly the "no contact for
+            // this stop" the endpoint reads as an empty block.
+            pickupContact: stopContactPayload(contacts.pickup),
+            dropoffContact: stopContactPayload(contacts.dropoff),
+            cargoCategory,
+            vehicleTypeCode: pricedVehicleTypeCode,
+            // Recorded on the order, not priced from: `/api/orders` re-checks it
+            // against the chosen vehicle's own `bodyTypes` and stores it so the
+            // driver knows which body the load was booked for.
+            bodyType,
+            helperCount,
+            // The tier, never its price: `/api/orders` re-derives the adjustment
+            // from the quote it computes itself.
+            serviceLevel,
+            // No payment fields: they are checkout's to send.
+            description: description.trim() || undefined,
+            // No cargo measurements, packaging, handling tags, pickup window or
+            // delivery deadline: the form no longer asks for them, and the
+            // endpoint treats every one as optional.
+          }),
+        },
+      );
 
       const payload = (await response.json()) as
         CreatedOrder | { error?: string };
@@ -1299,7 +1526,9 @@ export function BookingForm(): React.ReactElement {
         const message =
           "error" in payload && payload.error
             ? payload.error
-            : t("orderFailed");
+            : isEditing
+              ? t("couldNotSaveChanges")
+              : t("orderFailed");
         setError(message);
         // Cleared here rather than in a `finally`, so that the successful path
         // below keeps the button disabled for the whole of the navigation.
@@ -1422,17 +1651,22 @@ export function BookingForm(): React.ReactElement {
         <header className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-[0.6875rem] font-semibold tracking-[0.24em] text-accent uppercase">
-              {t("newDelivery")}
+              {initialOrder
+                ? t("editingOrder", { reference: initialOrder.reference })
+                : t("newDelivery")}
             </p>
             <h1 className="mt-2 font-display text-[clamp(1.75rem,3.5vw,2.5rem)] leading-none font-semibold tracking-[-0.025em] text-paper">
-              {t("bookADelivery")}
+              {isEditing ? t("editYourDelivery") : t("bookADelivery")}
             </h1>
           </div>
+          {/* Back to the order being edited rather than to the whole list:
+              that page is where the client chose Edit, and where they would
+              look to see the order unchanged if they leave without saving. */}
           <Link
-            href="/orders"
+            href={initialOrder ? `/orders/${initialOrder.id}` : "/orders"}
             className="group inline-flex items-center gap-2 text-sm font-semibold text-paper transition-colors hover:text-accent"
           >
-            {tShared("myOrders")}
+            {isEditing ? t("backToOrder") : tShared("myOrders")}
             <span
               aria-hidden="true"
               className="transition-transform group-hover:translate-x-1"
@@ -1990,9 +2224,13 @@ export function BookingForm(): React.ReactElement {
             <StepCard
               step={6}
               title={t("cargoPhotos")}
-              description={t("cargoPhotosDescription", {
-                max: MAX_CARGO_PHOTOS,
-              })}
+              description={
+                isEditing
+                  ? t("cargoPhotosEditDescription")
+                  : t("cargoPhotosDescription", {
+                      max: MAX_CARGO_PHOTOS,
+                    })
+              }
             >
               <CargoPhotosField state={cargoPhotos} disabled={submitting} />
             </StepCard>
@@ -2384,8 +2622,12 @@ export function BookingForm(): React.ReactElement {
                     ? t("calculating")
                     : submitPhase === "uploading"
                       ? t("uploadingPhotos")
-                      : t("booking")
-                  : t("bookDelivery")}
+                      : isEditing
+                        ? t("saving")
+                        : t("booking")
+                  : isEditing
+                    ? t("saveChanges")
+                    : t("bookDelivery")}
                 <ArrowRight aria-hidden="true" />
               </Button>
             </div>

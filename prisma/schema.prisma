@@ -1174,6 +1174,22 @@ model Order {
   packagingDescription String?
   itemQuantity         String?
 
+  /// The client's item list from the booking form's "what's in the load" step:
+  /// `[{ itemId, quantity }]`, plus `name` and `size` on a custom line — the
+  /// shape `CargoItemLine` in `src/lib/cargo-items.ts` defines and
+  /// `parseCreateOrderBody` validates. Stored so the edit form can put the list
+  /// back exactly as the client wrote it; the four `cargo*` figures above are
+  /// what the form derived from it, and `packagingDescription` carries the same
+  /// list as one readable line for the driver.
+  ///
+  /// Lines only, never figures: what a sofa weighs is the catalogue's estimate,
+  /// which is allowed to improve without rewriting old orders, and the server
+  /// does not recompute the envelope from it. Nullable for the usual backfill
+  /// reason — every order booked before the list existed has none — and `Json`
+  /// rather than a child table because nothing queries inside it: it is read
+  /// whole, by one page, for one order.
+  cargoItems Json?
+
   /// Handling requirements. Empty array, never null — an order with no special
   /// requirements has `[]`, which reads the same at every call site. The
   /// `@default([])` is what puts that guarantee in the database rather than only

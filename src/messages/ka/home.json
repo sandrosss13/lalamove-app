@@ -102,7 +102,14 @@
     "whatKindOfLoadSpaceDo": "როგორი სატვირთო სივრცე გჭირდებათ?",
     "whenShouldTheDriverComeBy": "როდის უნდა მოვიდეს მძღოლი?",
     "widthM": "სიგანე (მ)",
-    "youAcceptAWiderCollectionAnd": "თქვენ ეთანხმებით აყვანისა და მიწოდების უფრო ფართო დროის ინტერვალს."
+    "youAcceptAWiderCollectionAnd": "თქვენ ეთანხმებით აყვანისა და მიწოდების უფრო ფართო დროის ინტერვალს.",
+    "editingOrder": "შეკვეთის რედაქტირება · {reference}",
+    "editYourDelivery": "მიწოდების რედაქტირება",
+    "backToOrder": "შეკვეთაზე დაბრუნება",
+    "cargoPhotosEditDescription": "შეკვეთაზე უკვე დამატებული ფოტოები შენარჩუნდება. აქ დამატებული ფოტოები მათ დაემატება.",
+    "saveChanges": "ცვლილებების შენახვა",
+    "saving": "ინახება…",
+    "couldNotSaveChanges": "ცვლილებების შენახვა ვერ მოხერხდა. გთხოვთ, სცადოთ ხელახლა."
   },
   "homeEntry": {
     "loading": "იტვირთება..."

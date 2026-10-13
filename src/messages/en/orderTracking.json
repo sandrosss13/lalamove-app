@@ -1,0 +1,34 @@
+{
+  "page": {
+    "eyebrow": "Order {reference}",
+    "titleLive": "Track delivery",
+    "titleWaiting": "Waiting for a driver",
+    "titleDelivered": "Delivered",
+    "titleCancelled": "Order cancelled",
+    "route": "Route",
+    "scheduledFor": "Scheduled for {time}",
+    "onTheWaySince": "On the way since {time}",
+    "deliveredAt": "Delivered {time}",
+    "vehicle": "Vehicle",
+    "carrier": "Carrier",
+    "liveTracking": "Live tracking",
+    "waitingNotice": "Live tracking starts as soon as a driver accepts your order.",
+    "cancelledNotice": "This order was cancelled, so there is nothing to track.",
+    "deliveredHeading": "Delivery complete",
+    "deliveredBody": "The driver handed over the cargo and closed this delivery on {time}."
+  },
+  "proof": {
+    "title": "Proof of delivery",
+    "description": "Recorded by the driver at the drop-off address.",
+    "none": "No signature or photos were recorded for this delivery.",
+    "signature": "Recipient signature",
+    "photo": "Delivery photo {number}",
+    "takenAt": "Taken {time}",
+    "openSignature": "Open the recipient signature full size",
+    "openPhoto": "Open delivery photo {number} full size",
+    "openInNewTab": "Open in a new tab",
+    "unavailable": "This image could not be loaded. Refresh the page to try again.",
+    "summary": "{photos, plural, =0 {Signature} one {Signature and # photo} other {Signature and # photos}}",
+    "summaryNoSignature": "{photos, plural, one {# photo} other {# photos}}"
+  }
+}
