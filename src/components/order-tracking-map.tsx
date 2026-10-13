@@ -241,9 +241,11 @@ function TrackingMap({
 
   return (
     <div className="flex flex-col gap-2">
-      {etaLine ? <p className="text-sm font-medium">{etaLine}</p> : null}
+      {etaLine ? (
+        <p className="text-[14px] font-semibold text-paper">{etaLine}</p>
+      ) : null}
 
-      <div className="h-96 w-full overflow-hidden rounded border">
+      <div className="h-72 w-full overflow-hidden rounded-[10px] border border-line sm:h-96">
         <APIProvider apiKey={apiKey}>
           <Map
             // `default*` props leave the camera uncontrolled, so the user can
@@ -276,7 +278,9 @@ function TrackingMap({
       </div>
 
       {hasDriverPosition ? null : (
-        <p className="text-sm opacity-70">{t("waitingForADriverToShare")}</p>
+        <p className="text-[13px] text-muted">
+          {t("waitingForADriverToShare")}
+        </p>
       )}
 
       {isStale ? (
@@ -315,7 +319,7 @@ export function OrderTrackingMap({
   // console errors, so state the reason instead.
   if (!apiKey) {
     return (
-      <p className="rounded border p-4 text-sm opacity-70">
+      <p className="rounded-[10px] border border-line p-4 text-[13px] text-muted">
         {tShared("mapUnavailableMissingGoogleMapsApi")}
       </p>
     );

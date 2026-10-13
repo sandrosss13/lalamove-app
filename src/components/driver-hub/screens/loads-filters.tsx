@@ -110,7 +110,9 @@ export function LoadsFilters() {
           htmlFor={weightId}
           className="text-xs text-muted-foreground tabular-nums"
         >
-          {t("cargoWeightUpTo", { weight: format.number(fWeight) })}
+          {fWeight === MAX_WEIGHT_FILTER_KG
+            ? t("cargoWeightAny")
+            : t("cargoWeightUpTo", { weight: format.number(fWeight) })}
         </label>
         <input
           id={weightId}

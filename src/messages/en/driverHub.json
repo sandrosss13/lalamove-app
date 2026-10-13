@@ -584,6 +584,7 @@
     "loadAria": "Load {reference}"
   },
   "loadsFilters": {
+    "cargoWeightAny": "Cargo weight: any",
     "cargoWeightUpTo": "Cargo weight up to {weight} kg",
     "reset": "Reset",
     "specialHandling": "Special handling"

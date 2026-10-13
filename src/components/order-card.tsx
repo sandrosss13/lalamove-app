@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import type { CargoCategory, OrderStatus, ServiceLevel } from "@prisma/client";
 import { useTranslations } from "next-intl";
 
+import { Link } from "@/i18n/navigation";
 import { cargoCategoryLabel } from "@/lib/cargo";
 import {
   ORDER_STATUS_PILL,
@@ -13,6 +14,10 @@ import {
 
 /** The subset of `Order` fields an order card needs to render. */
 type OrderCardOrder = {
+  /** Where the card links to — `/orders/<id>`. */
+  id: string;
+  /** `GE-48210`: the card's visible name, and the text of its link. */
+  reference: string;
   status: OrderStatus;
   /**
    * The quoted fare *before* the tier moved it — not what the client owes. The
@@ -45,10 +50,24 @@ type OrderCardOrder = {
  * dropoff endpoints, and a meta row of cargo, distance and (once assigned)
  * vehicle.
  *
- * Used by exactly one consumer, `src/app/orders/page.tsx`. `children` renders
- * after the meta row — today that is the tracking link, whose visibility
- * condition belongs to the page rather than to the card, since it depends on
- * fields the card never asks for.
+ * The whole card opens the order's page, `/orders/<id>`, through a *stretched
+ * link* rather than by wrapping the card in an `<a>`: the link is the order's
+ * reference at the top of the card, and its `::after` box is stretched over the
+ * entire `<li>`, so a click anywhere on the card lands on it. Wrapping the card
+ * instead would nest the page's own links (Track, Complete payment) inside
+ * another link — invalid HTML, and a screen reader would announce the whole
+ * card's text as one link name. This way the card is exactly one link whose
+ * name is "View order GE-48210", reachable with one Tab, and `children` are
+ * lifted above the stretched box (`relative z-10`) so they stay separately
+ * clickable and focusable.
+ *
+ * Used by exactly one consumer, `src/app/[locale]/orders/page.tsx`. `children`
+ * renders after the meta row — the tracking and payment links, whose
+ * visibility conditions belong to the page rather than to the card.
+ *
+ * A cancelled order is drawn quieter — muted ground, struck-through total —
+ * so it reads as history rather than as something owed, while still opening
+ * its page like any other.
  */
 export function OrderCard({
   order,
@@ -58,12 +77,31 @@ export function OrderCard({
   children?: ReactNode;
 }) {
   const t = useTranslations();
+  const cancelled = order.status === "CANCELLED";
 
   return (
-    <li className="rounded-[14px] border border-line bg-ink p-[22px]">
+    // `relative` anchors the stretched link's `::after`. Hover is drawn on the
+    // card, since the pointer is over the card wherever it is; the focus ring
+    // is drawn by the link's own stretched box, so it outlines the whole card
+    // exactly when the link — the card's one Tab stop — has focus.
+    <li
+      className={`relative rounded-[14px] border border-line p-[22px] transition-colors hover:border-accent/40 ${
+        cancelled ? "bg-surface" : "bg-ink"
+      }`}
+    >
+      <Link
+        href={`/orders/${order.id}`}
+        aria-label={t("orders.orders.viewOrder", {
+          reference: order.reference,
+        })}
+        className="font-price text-[12px] font-semibold tracking-[0.06em] text-muted tabular-nums outline-none after:absolute after:inset-0 after:rounded-[14px] after:content-[''] focus-visible:after:ring-3 focus-visible:after:ring-accent/40"
+      >
+        {order.reference}
+      </Link>
+
       {/* `items-start` rather than centred: the price side is two lines, and
           centring would float the status pill between them. */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="mt-2.5 flex items-start justify-between gap-4">
         <span
           className={`${ORDER_STATUS_PILL_BASE} ${ORDER_STATUS_PILL[order.status]}`}
         >
@@ -74,7 +112,11 @@ export function OrderCard({
               figure here has to be the one the booking form's confirmation
               showed them. `formatGel` rounds to the cent, which also absorbs
               the binary-fraction dust of adding two `Float` columns. */}
-          <span className="font-price text-[20px] font-semibold tracking-[-0.01em] text-paper tabular-nums">
+          <span
+            className={`font-price text-[20px] font-semibold tracking-[-0.01em] tabular-nums ${
+              cancelled ? "text-muted line-through" : "text-paper"
+            }`}
+          >
             {formatGel(order.price + order.serviceLevelAdjustment)}
           </span>
           <OrderServiceLevel order={order} />
@@ -114,7 +156,8 @@ export function OrderCard({
         ) : null}
       </dl>
 
-      {children}
+      {/* Above the stretched link, so these stay their own click targets. */}
+      {children ? <div className="relative z-10">{children}</div> : null}
     </li>
   );
 }

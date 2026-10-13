@@ -489,6 +489,9 @@
     "thisVehicleIsSmallerThanThe": "This vehicle is smaller than the vehicle class this delivery was booked as. Use a vehicle that matches or beats it on payload, length, width and height.",
     "youReOfflineGoOnlineTo": "You're offline. Go online to claim loads."
   },
+  "ordersCancel": {
+    "onlyUnpaidOrdersCanBeCancelled": "Only unpaid orders can be cancelled. If this order has already been paid, please contact support to cancel it."
+  },
   "ordersComplete": {
     "photoRequired": "Add at least one delivery photo before confirming.",
     "receivedByMustBeStringOrNull": "receivedBy must be a string or null.",
@@ -497,6 +500,9 @@
     "thisDeliveryCannotBeCompletedRight": "This delivery cannot be completed right now.",
     "thisDeliverySVehicleTypeHas": "This delivery's vehicle type has no pricing rule.",
     "waitingminutesIsRequiredAndMustBe": "waitingMinutes is required and must be a whole number of minutes."
+  },
+  "ordersEdit": {
+    "onlyUnpaidOrdersCanBeEdited": "Only unpaid orders can be edited. If this order has already been paid, please contact support to change it."
   },
   "ordersLocation": {
     "youDoNotHaveAccessTo": "You do not have access to this order."

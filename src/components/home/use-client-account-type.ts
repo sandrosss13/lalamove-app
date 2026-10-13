@@ -16,10 +16,22 @@ import type { BookingClientAccountType } from "@/components/home/order-vehicle-t
  * no profile row yet, an unexpected body — resolves to `INDIVIDUAL`. That is
  * the narrower vehicle list, so an unknown account type can never widen what
  * is offered; a business client merely sees the full list a moment later.
+ *
+ * `initial` is for a caller that already knows the answer server-side — the
+ * edit route, `/orders/[id]/edit`, which is per-session and uncached, so the
+ * reasoning above does not apply to it. It only seeds the first render: the
+ * fetch below still runs and has the last word. It exists because "a moment
+ * later" is not harmless when the form opens on an order a business client
+ * already booked: for that first moment the narrower list would not contain
+ * the class they booked, and the vehicle step's auto-select would replace it
+ * before the real account type arrived. Omitted, the hook behaves exactly as
+ * it always has.
  */
-export function useClientAccountType(): BookingClientAccountType {
+export function useClientAccountType(
+  initial: BookingClientAccountType = "INDIVIDUAL",
+): BookingClientAccountType {
   const [accountType, setAccountType] =
-    useState<BookingClientAccountType>("INDIVIDUAL");
+    useState<BookingClientAccountType>(initial);
 
   useEffect(() => {
     // Dropped rather than aborted on unmount, so a strict-mode double mount

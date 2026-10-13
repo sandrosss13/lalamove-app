@@ -1671,7 +1671,14 @@ export function LoadsProvider({
       // decides what the weight slider does with them. Passing is the right
       // answer: excluding them would mean a slider at its maximum, nominally
       // "no filter", silently removing rows.
-      if (load.cargoWeightKg !== null && load.cargoWeightKg > fWeight) {
+      // The slider's ceiling is "no filter", not "up to 1,200 kg": a fleet
+      // truck carries far more than the slider's range, and its loads must
+      // not vanish while the slider sits untouched at its maximum.
+      if (
+        fWeight !== MAX_WEIGHT_FILTER_KG &&
+        load.cargoWeightKg !== null &&
+        load.cargoWeightKg > fWeight
+      ) {
         return false;
       }
 
