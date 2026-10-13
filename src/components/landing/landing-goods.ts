@@ -36,7 +36,6 @@ export const SHORTCUT_ESTIMATE_CARGO_CATEGORY: Record<
   CargoCategory
 > = {
   // LIVING_ROOM opens on SOFA_2_SEAT.
-  "moving-home": "FURNITURE_FURNISHINGS",
   furniture: "FURNITURE_FURNISHINGS",
   // KITCHEN_APPLIANCES opens on FRIDGE_SINGLE.
   appliances: "APPLIANCES",

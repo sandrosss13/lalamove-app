@@ -73,7 +73,9 @@ export function AuthStatus() {
 
 /**
  * The header logo (the zomo lockup), plus — for a signed-in client only — the client's
- * primary nav (Place order / My orders / Wallet), immediately to its right.
+ * primary nav (Place order / My orders), immediately to its right. The wallet
+ * (saved payment cards) is not a top-level item: it is a section of My account,
+ * `/account/wallet`, reached from the account rail.
  *
  * The wordmark's destination depends on who's looking at it:
  * - A signed-in CLIENT goes to `/home`, the always-marketing route — `/`
@@ -113,9 +115,6 @@ export function HeaderBrandLink() {
           </Link>
           <Link href="/orders" className="font-medium hover:opacity-70">
             {t("myOrders")}
-          </Link>
-          <Link href="/wallet" className="font-medium hover:opacity-70">
-            {t("wallet")}
           </Link>
         </nav>
       ) : null}

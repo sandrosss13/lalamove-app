@@ -10,17 +10,24 @@ import { cn } from "@/lib/utils";
 /**
  * The settings rail's nav.
  *
- * Deliberately just these two: "Profile" is this page, and "Orders" is the
- * client's real order list at `/orders`. Nothing else in this app has a
- * per-client settings surface behind it — there is no notification-preference
- * model, no per-user locale, and the business-vs-individual split is a branch
- * of the one profile form below, not a separate destination — so inventing rows
- * for them would only promise screens that don't exist.
+ * Deliberately just these three: "Profile" is `/account`, "Wallet" is the
+ * client's saved cards at `/account/wallet` (moved in from the global header,
+ * where it used to be a top-level item), and "Orders" is the client's real
+ * order list at `/orders`. Nothing else in this app has a per-client settings
+ * surface behind it — there is no notification-preference model, no per-user
+ * locale, and the business-vs-individual split is a branch of the one profile
+ * form, not a separate destination — so inventing rows for them would only
+ * promise screens that don't exist.
+ *
+ * `exact` marks a row whose own subpaths belong to its siblings: everything
+ * under `/account/` is another account section, so "Profile" must not stay lit
+ * on `/account/wallet`.
  */
 const NAV_ITEMS = [
   // `labelKey` is a key in `common.shared`, translated at render.
-  { href: "/account", labelKey: "profile" },
-  { href: "/orders", labelKey: "orders" },
+  { href: "/account", labelKey: "profile", exact: true },
+  { href: "/account/wallet", labelKey: "wallet", exact: false },
+  { href: "/orders", labelKey: "orders", exact: false },
 ] as const;
 
 const SECTION_LABEL_CLASSES =
@@ -28,10 +35,15 @@ const SECTION_LABEL_CLASSES =
 
 /**
  * Whether `pathname` is inside the route `href` points at — an exact match, or
- * a descendant of it (`/orders/abc/track` keeps "Orders" highlighted).
+ * (unless `exact`) a descendant of it (`/orders/abc/track` keeps "Orders"
+ * highlighted).
  */
-function isNavItemActive(pathname: string, href: string): boolean {
-  return pathname === href || pathname.startsWith(`${href}/`);
+function isNavItemActive(
+  pathname: string,
+  href: string,
+  exact: boolean,
+): boolean {
+  return pathname === href || (!exact && pathname.startsWith(`${href}/`));
 }
 
 /**
@@ -59,7 +71,7 @@ export function AccountSidebar() {
 
         <nav aria-label={t("accountSettings")} className="mt-3 flex flex-col">
           {NAV_ITEMS.map((item) => {
-            const active = isNavItemActive(pathname, item.href);
+            const active = isNavItemActive(pathname, item.href, item.exact);
 
             return (
               <Link

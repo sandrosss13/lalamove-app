@@ -37,9 +37,10 @@ const SOLID_BUTTON =
   "inline-flex items-center justify-center rounded-full bg-home-btn-bg px-5 py-3 text-[14.5px] font-semibold whitespace-nowrap text-home-btn-fg transition-opacity hover:opacity-90 disabled:opacity-60";
 
 /**
- * The v4 page chrome: a slim near-black utility bar (authored line, a few
- * small links, the KA/EN switch) above a sticky white header with the logo,
- * the section links, the theme toggle and the account actions.
+ * The v4 page chrome: a slim near-black utility bar (authored line and a few
+ * small links, only when any are authored) above a sticky white header with
+ * the logo, the section links, the KA/EN switch and theme toggle side by side,
+ * and the account actions.
  *
  * Below `xl` the links and account actions collapse into a disclosure panel —
  * the prototype simply lets them wrap, which at phone width stacks the header
@@ -162,30 +163,34 @@ export function LandingSiteHeader({ content }: { content: NavContent }) {
 
   return (
     <>
-      <div className="bg-home-night text-[12.5px] text-home-on-night/62">
-        <div
-          className={cn(
-            HOME_CONTAINER,
-            "flex flex-wrap items-center justify-between gap-x-[22px] gap-y-2 py-2",
-          )}
-        >
-          {/* An empty span keeps the switch right-aligned when no line is
-              authored. */}
-          <span>{utilityText}</span>
-          <div className="flex flex-wrap items-center gap-[18px]">
-            {utilityLinks.map((link) => (
-              <LandingLink
-                key={`${link.label}-${link.href}`}
-                href={link.href}
-                className="text-inherit transition-colors hover:text-home-on-night"
-              >
-                {link.label}
-              </LandingLink>
-            ))}
-            <LanguageToggle className="h-7 border-home-on-night/20 px-2.5 font-price text-[11px] tracking-[0.08em] text-home-on-night/80 hover:bg-home-on-night/14 hover:text-home-on-night focus-visible:border-home-on-night/20 focus-visible:ring-0" />
+      {/* The bar holds only authored content now that the KA/EN switch sits
+          beside the theme toggle, so with nothing authored it is left out
+          rather than painted as an empty black strip. */}
+      {utilityText !== "" || utilityLinks.length > 0 ? (
+        <div className="bg-home-night text-[12.5px] text-home-on-night/62">
+          <div
+            className={cn(
+              HOME_CONTAINER,
+              "flex flex-wrap items-center justify-between gap-x-[22px] gap-y-2 py-2",
+            )}
+          >
+            {/* An empty span keeps the links right-aligned when no line is
+                authored. */}
+            <span>{utilityText}</span>
+            <div className="flex flex-wrap items-center gap-[18px]">
+              {utilityLinks.map((link) => (
+                <LandingLink
+                  key={`${link.label}-${link.href}`}
+                  href={link.href}
+                  className="text-inherit transition-colors hover:text-home-on-night"
+                >
+                  {link.label}
+                </LandingLink>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
+      ) : null}
 
       <header
         ref={headerRef}
@@ -224,6 +229,10 @@ export function LandingSiteHeader({ content }: { content: NavContent }) {
           </nav>
 
           <div className="ml-auto flex items-center gap-2">
+            {/* The language switch sits immediately left of the theme toggle,
+                the same pair in the same order as every other header in the
+                app, and drawn to the toggle's 42px round outline beside it. */}
+            <LanguageToggle className="h-[42px] min-w-[42px] border-home-line bg-home-surface px-3 font-price text-[12px] tracking-[0.08em] text-home-ink hover:bg-home-chip hover:text-home-ink focus-visible:border-home-line" />
             <LandingThemeToggle className="h-[42px] w-[42px] border-home-line bg-home-surface text-home-ink hover:bg-home-chip hover:text-home-ink focus-visible:border-home-line" />
             <div className="hidden items-center gap-2 xl:flex">
               {accountActions("inline")}

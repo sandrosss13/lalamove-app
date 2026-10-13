@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronDown } from "lucide-react";
 import { useEffect, useId, useState } from "react";
 import { useTranslations } from "next-intl";
 
@@ -16,7 +17,10 @@ import {
 } from "@/components/landing/landing-goods";
 import { type QuoteCalculatorContent } from "@/lib/admin/home-page-content";
 import { withGoodsParam } from "@/lib/goods-param-threading";
-import type { GoodsShortcut, GoodsShortcutCode } from "@/lib/goods-shortcuts";
+import {
+  isGoodsShortcutCode,
+  type GoodsShortcutCode,
+} from "@/lib/goods-shortcuts";
 import { cn } from "@/lib/utils";
 
 /** Where the card's button goes when the section row names no target. */
@@ -100,9 +104,6 @@ export function LandingBookingCard({
   // the booking form at step 3, as before.
   const [goods, setGoods] = useState<GoodsShortcutCode | null>(null);
   const fieldId = useId();
-  // Radios are grouped by `name`, not by id, so the group has to be unique to
-  // this instance.
-  const goodsGroupName = useId();
 
   // A category tile elsewhere on the page (a legacy CMS row) picked a
   // shortcut: select it here, as if the visitor had clicked it in this card.
@@ -158,25 +159,12 @@ export function LandingBookingCard({
             {content.heading}
           </h2>
         </div>
-        <div className="grid items-end gap-3 p-[clamp(18px,2.2vw,26px)] [grid-template-columns:repeat(auto-fit,minmax(200px,1fr))]">
-          {/* The goods shortcuts, as a radio group spanning the whole card:
-              each tile names what is being moved. Picking one only decides
-              which shortcut the CTA carries. */}
-          <fieldset className="col-span-full min-w-0">
-            <legend className={FIELD_LABEL}>{t("whatAreYouMoving")}</legend>
-            <div className="mt-[7px] grid gap-2 [grid-template-columns:repeat(auto-fill,minmax(150px,1fr))]">
-              {LANDING_GOODS_SHORTCUTS.map((shortcut) => (
-                <GoodsTile
-                  key={shortcut.code}
-                  shortcut={shortcut}
-                  name={goodsGroupName}
-                  title={tGoods(`${shortcut.code as GoodsShortcutCode}.title`)}
-                  selected={shortcut.code === goods}
-                  onSelect={setGoods}
-                />
-              ))}
-            </div>
-          </fieldset>
+        {/* One row on wide screens — Pickup, Drop-off, what is being moved,
+            then the button — two columns on a tablet and a single stack on a
+            phone. The button column is `auto` so its label never wraps; the
+            goods select takes a little less than an address, since its longest
+            option is a couple of words. */}
+        <div className="grid grid-cols-1 items-end gap-3 p-[clamp(18px,2.2vw,26px)] sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.8fr)_auto]">
           <AddressAutocomplete
             id={`${fieldId}-pickup`}
             label={t("pickup")}
@@ -199,59 +187,56 @@ export function LandingBookingCard({
             overlaySuggestions
             showMapPreview={false}
           />
+          {/* The goods shortcuts as a native select: a short fixed list, so
+              the shadcn `Select` portal is not worth it, and the native popup
+              follows the theme through the global `color-scheme` on
+              `html.dark`. The placeholder stays choosable, so a visitor can
+              go back to "nothing chosen" — the CTA then carries no shortcut.
+              Picking one only decides which shortcut the CTA carries. */}
+          <div className="flex min-w-0 flex-col gap-[7px]">
+            <label htmlFor={`${fieldId}-goods`} className={FIELD_LABEL}>
+              {t("whatAreYouMoving")}
+            </label>
+            <div className="relative">
+              <select
+                id={`${fieldId}-goods`}
+                value={goods ?? ""}
+                onChange={(event) => {
+                  const { value } = event.target;
+                  setGoods(isGoodsShortcutCode(value) ? value : null);
+                }}
+                className={cn(
+                  FIELD_CONTROL,
+                  "cursor-pointer appearance-none pr-10",
+                  goods === null && "text-home-muted",
+                )}
+              >
+                <option value="">{t("goodsPlaceholder")}</option>
+                {LANDING_GOODS_SHORTCUTS.map((shortcut) => (
+                  <option
+                    key={shortcut.code}
+                    value={shortcut.code}
+                    className="text-home-ink"
+                  >
+                    {tGoods(`${shortcut.code as GoodsShortcutCode}.title`)}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown
+                aria-hidden="true"
+                className="pointer-events-none absolute top-1/2 right-3.5 h-4 w-4 -translate-y-1/2 text-home-muted"
+              />
+            </div>
+          </div>
           <LandingLink
             href={ctaHref}
             onClick={handleCtaClick}
-            className="flex min-h-[50px] items-center justify-center rounded-xl bg-home-accent px-[22px] py-[15px] text-center text-[15.5px] font-semibold text-home-night transition-colors hover:bg-home-accent-hover"
+            className="flex min-h-[50px] items-center justify-center rounded-xl bg-home-accent px-[22px] py-[15px] text-center text-[15.5px] font-semibold whitespace-nowrap text-home-night transition-colors hover:bg-home-accent-hover"
           >
             {ctaLabel}
           </LandingLink>
         </div>
       </div>
     </section>
-  );
-}
-
-/**
- * One goods shortcut in the card's picker: a visually hidden radio inside a
- * visible tile. `relative` keeps the `sr-only` radio positioned inside the
- * tile, and the tile borrows the radio's focus ring through `:has()`.
- */
-function GoodsTile({
-  shortcut,
-  name,
-  title,
-  selected,
-  onSelect,
-}: {
-  shortcut: GoodsShortcut;
-  name: string;
-  title: string;
-  selected: boolean;
-  onSelect: (code: GoodsShortcutCode) => void;
-}) {
-  const { Icon } = shortcut;
-
-  return (
-    <label
-      className={cn(
-        "relative flex min-h-[50px] cursor-pointer items-center gap-2.5 rounded-xl border px-3.5 py-2.5 text-[14px] leading-tight font-medium transition-colors",
-        "has-[:focus-visible]:border-home-accent",
-        selected
-          ? "border-home-accent bg-home-chip text-home-ink"
-          : "border-home-line bg-home-field text-home-muted hover:text-home-ink",
-      )}
-    >
-      <input
-        type="radio"
-        name={name}
-        value={shortcut.code}
-        checked={selected}
-        onChange={() => onSelect(shortcut.code as GoodsShortcutCode)}
-        className="sr-only"
-      />
-      <Icon aria-hidden="true" className="h-4 w-4 shrink-0" />
-      <span className="min-w-0">{title}</span>
-    </label>
   );
 }

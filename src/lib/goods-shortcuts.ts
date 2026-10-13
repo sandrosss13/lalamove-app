@@ -13,7 +13,6 @@
 import {
   Boxes,
   HardHat,
-  House,
   PartyPopper,
   Package,
   Snowflake,
@@ -47,8 +46,6 @@ export type GoodsShortcut = {
   mode: GoodsShortcutMode;
   /** "business" hides the shortcut from individual accounts. */
   audience: "all" | "business";
-  /** Expand every group in the picker rather than filtering to `group`. */
-  expandAllGroups?: boolean;
   Icon: LucideIcon;
 };
 
@@ -58,14 +55,6 @@ export type GoodsShortcut = {
  * `useTranslations`).
  */
 export const GOODS_SHORTCUTS = [
-  {
-    code: "moving-home",
-    group: "LIVING_ROOM",
-    mode: "items",
-    audience: "all",
-    expandAllGroups: true,
-    Icon: House,
-  },
   {
     code: "furniture",
     group: "LIVING_ROOM",
