@@ -51,7 +51,11 @@
   --landing-surface: #faf9f6;
   --landing-paper: #201f1c;
   --landing-muted: #6b675f;
-  --landing-accent: #ff5a1f;
+  /* Deepened from the brand #ff5a1f, which measured 3.1:1 under white button
+     text and as small label text on light grounds. #c03d09 is >= 4.5:1 for
+     white on it and for it on #ffffff/#faf9f6/#f1efe9. The logo, favicon
+     theme colour and map route keep the brand #ff5a1f. */
+  --landing-accent: #c03d09;
   --landing-line: #e7e4de;
   --landing-ink-strong: #15140f;
   --landing-on-strong: #f5f2ea;
@@ -64,7 +68,7 @@
      the handoff become "translucent ink over a light page" here; the two that
      sit on top of photography (`glass-image*`) stay dark in both themes, because
      a caption pill over a banner needs to be legible either way. */
-  --landing-accent-hover: #b4530f; /* handoff's "accent on light bg" */
+  --landing-accent-hover: #a03207; /* darker than the accent, for hover on light bg */
   --landing-on-accent: #ffffff;
   --landing-frame: #f1efe9;
   --landing-surface-raised: #ffffff;
@@ -138,7 +142,7 @@
      opts into that set via `[data-onboarding-surface]` near the bottom of this
      file. Fixed values rather than theme-dependent ones, matching how the
      landing page and the two consoles each pin their own palette. */
-  --onboarding-accent: #ff5a1f;
+  --onboarding-accent: #c03d09; /* matches --landing-accent; see the note there */
   --onboarding-accent-hover: #e04a13;
 
   /* --- Status palette: success and warning -----------------------------------
