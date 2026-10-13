@@ -65,12 +65,15 @@ const DEFAULT_BACK_OFFICE_HREF = "/admin/sign-in";
  * deeper kraft `--landing-frame` (`#e9e0ce`), which still separates from the
  * kraft card. Dark mode borrows `--landing-line-accent` — the palette's
  * low-alpha green, which lays a wash over whatever ground is behind it instead
- * of punching a pale rectangle into the card. The green glyph on top is a
- * token and needs nothing.
+ * of punching a pale rectangle into the card.
+ *
+ * On the dark-grey ground (#3a3a3a raised card) the brand orange on a 22% orange
+ * wash measured 3.2:1, so dark mode uses a lighter 14% wash and the lighter
+ * `--landing-accent-hover` orange for the numeral: 4.7:1, still orange.
  */
 const BADGE_CLASSES: Record<FlowRole, string> = {
   CLIENT:
-    "bg-[var(--landing-frame)] text-[var(--landing-accent)] dark:bg-[var(--landing-line-accent)]",
+    "bg-[var(--landing-frame)] text-[var(--landing-accent)] dark:bg-[rgba(245,130,32,0.14)] dark:text-[var(--landing-accent-hover)]",
   DRIVER: "bg-[var(--landing-frame)] text-[var(--landing-paper)]",
 };
 

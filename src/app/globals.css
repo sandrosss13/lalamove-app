@@ -335,17 +335,32 @@ html.dark {
      harmless fallback: it matched on a system-dark machine even when the
      visitor had explicitly chosen light, overriding that choice with dark
      `--background`/`--foreground` while everything else stayed light. One
-     source of truth — the class — is the whole point of the pre-paint script. */
-  --background: #0a0a0a;
-  --foreground: #ededed;
+     source of truth — the class — is the whole point of the pre-paint script.
+
+     NEUTRAL DARK GREY, not near-black. The theme used to sit on `#0a0a0a` /
+     `#08090a` with cards at `oklch(0.205 0 0)`, and product review found it far
+     too dark: secondary text at 36–62% white was hard to read. Every ground in
+     this block is now a hue-free grey on one ladder — sunken `#222222`, page
+     `#2a2a2a`, frame/bookend `#303030`, card/surface `#333333`, raised
+     `#3a3a3a`, muted/secondary `#3d3d3d` — and every text alpha was lifted so
+     the faintest step still clears 4.5:1 on the raised surface. Keep new dark
+     values on that ladder (no blue tint, no near-black) or the surface that
+     takes them will read as a hole in the page. Light mode is unaffected. */
+  --background: #2a2a2a;
+  --foreground: #f5f5f5;
 
   /* --- shadcn/ui token set, dark half ---------------------------------------
-     The counterpart to the light set in `:root`. shadcn's canonical neutral
-     dark values, with two deliberate deviations, both to keep this project's
-     monochrome treatment of the light set intact:
+     The counterpart to the light set in `:root`. Started from shadcn's
+     canonical neutral dark values; the grounds, borders, `--muted-foreground`
+     and `--ring` have since been lifted onto the grey ladder above (the ring to
+     `oklch(0.708)` so a focus ring still clears 3:1 on a `#2a2a2a` page, and
+     `--destructive` to `oklch(0.78 0.16 22)` so destructive text clears 4.5:1
+     on `--card`). Two further deliberate deviations, both to keep this
+     project's monochrome treatment of the light set intact:
 
      - `--chart-1..5` mirror the light set's greyscale ramp inverted for a dark
-       ground, rather than shadcn's five saturated hues. The light set here was
+       ground, rather than shadcn's five saturated hues (starting at
+       `oklch(0.439)` so the first series is not darker than the grey page). The light set here was
        already customised to greyscale; importing colour in one theme only would
        make charts change hue with the toggle. (Nothing renders charts yet —
        these exist so the set is complete, not because anything reads them.)
@@ -354,71 +369,71 @@ html.dark {
        canonical dark values there are blue, and this project's light values are
        neutral. `bg-sidebar` (admin-shell.tsx) is the only sidebar utility in
        use, and that one does take the canonical value. */
-  --card: oklch(0.205 0 0);
+  --card: #333333;
   --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
+  --popover: #333333;
   --popover-foreground: oklch(0.985 0 0);
   --primary: oklch(0.922 0 0);
   --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
+  --secondary: #3d3d3d;
   --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
+  --muted: #3d3d3d;
+  --muted-foreground: #cfcfcf;
+  --accent: #3d3d3d;
   --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.269 0 0);
-  --chart-2: oklch(0.439 0 0);
-  --chart-3: oklch(0.556 0 0);
-  --chart-4: oklch(0.708 0 0);
+  --destructive: oklch(0.78 0.16 22.216);
+  --border: rgba(255, 255, 255, 0.16);
+  --input: rgba(255, 255, 255, 0.22);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.439 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.708 0 0);
+  --chart-4: oklch(0.8 0 0);
   --chart-5: oklch(0.87 0 0);
-  --sidebar: oklch(0.205 0 0);
+  --sidebar: #333333;
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0.922 0 0);
   --sidebar-primary-foreground: oklch(0.205 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent: #3d3d3d;
   --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar-border: rgba(255, 255, 255, 0.16);
+  --sidebar-ring: oklch(0.708 0 0);
 
   /* --- Landing palette, dark half -------------------------------------------
      The `Home-Georgia-v3` palette from
      `UI:UX/homepage/design_handoff_georgia_homepage/README.md`. Named for the
      landing page it was drawn for, but — see the block comment above — these
      names back several other surfaces too, and they all take these values now. */
-  --landing-ink: #08090a;
+  --landing-ink: #2a2a2a;
   --landing-paper: #f4f4f2;
   --landing-accent: #f58220;
   --landing-accent-hover: #ffa45c;
   --landing-on-accent: #0a0b0a;
-  --landing-frame: #111315;
-  --landing-surface: rgba(255, 255, 255, 0.04);
-  --landing-surface-raised: rgba(255, 255, 255, 0.06);
-  --landing-surface-sunken: rgba(8, 9, 10, 0.55);
-  --landing-glass: rgba(16, 18, 20, 0.72);
+  --landing-frame: #303030;
+  --landing-surface: #333333;
+  --landing-surface-raised: #3a3a3a;
+  --landing-surface-sunken: #222222;
+  --landing-glass: rgba(48, 48, 48, 0.86);
   /* These two deliberately do NOT flip — they sit on top of photography, where
      a caption pill has to stay legible in either theme. Restated rather than
      omitted so the pair reads as one set; keep them equal to `:root`. */
   --landing-glass-image: rgba(8, 9, 10, 0.62);
   --landing-glass-image-strong: rgba(8, 9, 10, 0.66);
-  --landing-line-hairline: rgba(255, 255, 255, 0.07);
-  --landing-line: rgba(255, 255, 255, 0.08);
-  --landing-line-strong: rgba(255, 255, 255, 0.12);
-  --landing-line-stronger: rgba(255, 255, 255, 0.18);
+  --landing-line-hairline: rgba(255, 255, 255, 0.11);
+  --landing-line: rgba(255, 255, 255, 0.15);
+  --landing-line-strong: rgba(255, 255, 255, 0.2);
+  --landing-line-stronger: rgba(255, 255, 255, 0.28);
   --landing-line-accent: rgba(245, 130, 32, 0.22);
   --landing-line-accent-strong: rgba(245, 130, 32, 0.28);
-  --landing-subtle: rgba(244, 244, 242, 0.62);
-  --landing-muted: rgba(244, 244, 242, 0.55);
-  --landing-faint: rgba(244, 244, 242, 0.42);
-  --landing-faintest: rgba(244, 244, 242, 0.36);
+  --landing-subtle: rgba(244, 244, 242, 0.88);
+  --landing-muted: rgba(244, 244, 242, 0.82);
+  --landing-faint: rgba(244, 244, 242, 0.74);
+  --landing-faintest: rgba(244, 244, 242, 0.68);
 
   /* The dark bookend pair. In light mode these are a genuinely dark panel that
      closes the page; in dark mode they are one step *up* from the page so the
      footer and driver panel still separate from the background. */
-  --landing-ink-strong: #111315;
+  --landing-ink-strong: #303030;
   --landing-on-strong: #f4f4f2;
 
   --landing-gradient-spotlight: radial-gradient(
@@ -443,8 +458,8 @@ html.dark {
     rgba(255, 255, 255, 0.03) 58%
   );
 
-  --landing-shadow-frame: 0 40px 90px -30px rgba(0, 0, 0, 0.9);
-  --landing-shadow-pill: 0 8px 30px rgba(0, 0, 0, 0.45);
+  --landing-shadow-frame: 0 40px 90px -30px rgba(0, 0, 0, 0.55);
+  --landing-shadow-pill: 0 8px 30px rgba(0, 0, 0, 0.3);
   --landing-shadow-cta: 0 10px 30px rgba(245, 130, 32, 0.28);
 
   /* --- Status palette, dark half ---------------------------------------------
@@ -453,19 +468,24 @@ html.dark {
      other AND recognisable as the same code in either theme, so lightness is the
      only axis allowed to move.
 
+     The green ink lifts a further step on the grey theme (`0.77` rather than
+     `0.72`) so it still clears 4.5:1 on `--muted` (`#3d3d3d`); amber already
+     does at `0.78`.
+
      The two `-solid` values deliberately do NOT lift — same treatment, and the
      same reasoning, as the `--landing-glass-image` pair above: a value that is
      already correct in both themes. They are restated here rather than left to
      `:root` so the non-lift reads as a decision instead of an oversight. */
-  --status-success: oklch(0.72 0.15 145);
+  --status-success: oklch(0.77 0.15 145);
   --status-success-solid: oklch(0.5 0.13 145);
   --status-warning: oklch(0.78 0.15 70);
   --status-warning-solid: oklch(0.62 0.15 70);
 
   /* --- Fleet Availability board, dark half ----------------------------------
      Derived, not quoted — the handoff has no dark artboard. One rule, applied
-     to each pale pair: the fill lands at 27–29% lightness, one step up from
-     `--card`'s `oklch(0.205 0 0)`, and the text at 83–88%, which clears WCAG AA
+     to each pale pair: the fill lands at 27–29% lightness (written against the
+     old near-black `oklch(0.205 0 0)` card; on today's `#333333` card the fills
+     sit a step *below* it, which still separates), and the text at 83–88%, which clears WCAG AA
      against that fill. The same arithmetic `hub-status.ts` uses for its six
      tones, so a status bar and a status pill agree in both themes.
 
@@ -558,6 +578,7 @@ html.dark {
   --color-home-accent-ink: var(--home-accent-ink);
   --color-home-btn-bg: var(--home-btn-bg);
   --color-home-btn-fg: var(--home-btn-fg);
+  --color-home-panel: var(--home-panel);
   --color-home-night: #08090a;
   --color-home-on-night: #f4f4f2;
   --color-home-slide: #111315;
@@ -846,20 +867,33 @@ body:has([data-landing-page]) {
   --home-accent-ink: #b4530f;
   --home-btn-bg: #08090a;
   --home-btn-fg: #f4f4f2;
+  /* The footer and the how-it-works panel. Near-black in light, where they are
+     the dark bookends of a light page; in dark they take the surface grey, one
+     step up from `--home-page`, because a `#08090a` slab on a `#2a2a2a` page reads as a
+     hole rather than a panel. Deliberately NOT `--color-home-night`, which also
+     backs the photo scrims, the always-dark utility bar and the black text on
+     the orange CTAs — all of which must stay dark in both themes. */
+  --home-panel: #08090a;
 }
 
+/* The dark half sits on the same neutral grey ladder as the `html.dark` block
+   above (page `#2a2a2a`, surface `#333333`, field `#3a3a3a`, chip/slot
+   `#3d3d3d`) rather than the handoff's blue-black `#0e0f10`/`#17191a`, which
+   product review found far too dark. `--home-muted` at `#cfcfcf` clears 4.5:1
+   on every one of those grounds. */
 html.dark {
-  --home-page: #0e0f10;
-  --home-surface: #17191a;
-  --home-chip: #222527;
+  --home-page: #2a2a2a;
+  --home-surface: #333333;
+  --home-chip: #3d3d3d;
   --home-ink: #f4f4f2;
-  --home-muted: #a3a79f;
-  --home-line: #2a2d2f;
-  --home-field: #1d2022;
-  --home-slot: #222527;
+  --home-muted: #cfcfcf;
+  --home-line: #4d4d4d;
+  --home-field: #3a3a3a;
+  --home-slot: #3d3d3d;
   --home-accent-ink: #f58220;
   --home-btn-bg: #f4f4f2;
   --home-btn-fg: #08090a;
+  --home-panel: #333333;
 }
 
 /* The v4 homepage paints its own ground; this keeps the canvas behind it (the
@@ -937,8 +971,8 @@ body:has([data-home-page]) {
 
    These two blocks restate `--background`/`--foreground` as the shadcn
    primitives' own values rather than this project's `#ffffff`/`#171717` and
-   `#0a0a0a`/`#ededed`. A shadcn `Card` is `bg-card` (`oklch(1 0 0)` light,
-   `oklch(0.205 0 0)` dark) and the page behind it has to be the token set's
+   `#2a2a2a`/`#f5f5f5`. A shadcn `Card` is `bg-card` (`oklch(1 0 0)` light,
+   `#333333` dark) and the page behind it has to be the token set's
    matching ground, not a near-but-not-quite hex from the pre-shadcn palette,
    or every card edge shows a faint seam against the page.
 
@@ -987,8 +1021,8 @@ body:has([data-onboarding-surface]) {
    var-chain onto `--accent`/`--muted`, which `html.dark` already flipped. */
 html.dark body:has([data-admin-surface]),
 html.dark body:has([data-onboarding-surface]) {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
+  --background: #2a2a2a;
+  --foreground: #f5f5f5;
 }
 
 /* The back office ships its own top bar and owns the full viewport, so the
@@ -1032,14 +1066,14 @@ body:has([data-hub-surface]) {
    Invite employee, Send invite) would be a black rectangle carrying
    `--primary-foreground`, which is itself near-black in dark mode.
 
-   The values are shadcn's canonical dark `--muted-foreground`/`--primary`, i.e.
-   exactly what `html.dark` declares — the handoff has no dark artboard to take
+   The values are exactly what `html.dark` declares for
+   `--muted-foreground`/`--primary` — the handoff has no dark artboard to take
    hue-tinted equivalents from, so the hub falls back to the neutral dark set
    rather than to an invented one. Specificity (0,2,2) beats the (0,1,1) pin
    above; source order keeps it ahead of nothing else, so the pair reads as one
    unit with the light block. */
 html.dark body:has([data-hub-surface]) {
-  --muted-foreground: oklch(0.708 0 0);
+  --muted-foreground: #cfcfcf;
   --primary: oklch(0.922 0 0);
 }
 
