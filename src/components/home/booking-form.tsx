@@ -8,6 +8,11 @@ import type { CargoCategory, ChassisType, ServiceLevel } from "@prisma/client";
 import { Link, useRouter } from "@/i18n/navigation";
 import { AddressAutocomplete } from "@/components/address-autocomplete";
 import { takeBookingDraft } from "@/components/home/booking-draft";
+import {
+  bookButtonLabelKey,
+  uploadCargoPhotoBlobs,
+  type SubmitPhase,
+} from "@/components/home/booking-submit";
 import { formatDistanceKm, formatGel } from "@/components/home/booking-format";
 import {
   BreakdownRow,
@@ -1325,13 +1330,19 @@ export function BookingForm({
    */
   const [submitting, setSubmitting] = useState(false);
   /**
+   * The synchronous twin of `submitting`, for `handleSubmit`'s re-entry guard.
+   * State only reaches the handler on the next render, so two submits landing
+   * before it (a double tap on a slow phone, Enter plus click) could both read
+   * `false` and place two orders, each with its own copy of the photos.
+   */
+  const submitLockRef = useRef(false);
+  /**
    * Which part of the booking is in flight, for the Book button's label:
    * pricing (when Book was pressed before an estimate existed), creating the
-   * order, or uploading its photos.
+   * order, or uploading its photos — the last only while there are photos
+   * actually being sent (see `booking-submit.ts`).
    */
-  const [submitPhase, setSubmitPhase] = useState<
-    "pricing" | "booking" | "uploading"
-  >("booking");
+  const [submitPhase, setSubmitPhase] = useState<SubmitPhase>("booking");
   const [error, setError] = useState<string | null>(null);
 
   /**
@@ -2014,33 +2025,24 @@ export function BookingForm({
   }
 
   /**
-   * Upload the step-6 photos to the order just created, one request each and
-   * one after another. Never throws: photos are optional, and a failed upload
-   * must not strand a booking that already exists.
+   * Upload the step-6 photos to the order just created, each exactly once, one
+   * after another (see `uploadCargoPhotoBlobs`). Switches the Book button to
+   * "Uploading photos…" only when there is a photo to send, and back to
+   * "Booking…"/"Saving…" once they are sent, for the hand-off to checkout.
+   * Never throws: photos are optional, and a failed upload must not strand a
+   * booking that already exists.
    *
    * Resolves with how many uploads failed.
    */
   async function uploadCargoPhotos(orderId: string): Promise<number> {
     const photos = await cargoPhotos.settledPhotos();
-    let failed = 0;
-
-    for (const [index, photo] of photos.entries()) {
-      const body = new FormData();
-      body.append("file", photo.blob, `cargo-photo-${index + 1}.jpg`);
-
-      try {
-        const response = await fetch(
-          `/api/orders/${encodeURIComponent(orderId)}/photos`,
-          { method: "POST", body },
-        );
-        if (!response.ok) {
-          failed += 1;
-        }
-      } catch {
-        failed += 1;
-      }
-    }
-
+    const failed = await uploadCargoPhotoBlobs(
+      orderId,
+      photos.map((photo) => photo.blob),
+      (input, init) => fetch(input, init),
+      () => setSubmitPhase("uploading"),
+    );
+    setSubmitPhase("booking");
     return failed;
   }
 
@@ -2055,7 +2057,7 @@ export function BookingForm({
    */
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (submitting) {
+    if (submitting || submitLockRef.current) {
       return;
     }
 
@@ -2088,6 +2090,7 @@ export function BookingForm({
       return;
     }
 
+    submitLockRef.current = true;
     setSubmitting(true);
 
     // Book was pressed before the automatic estimate landed (or after it
@@ -2099,6 +2102,7 @@ export function BookingForm({
       const quoted = await handleCalculate();
       if (quoted === null) {
         // `estimateError` already says why, in the price panel.
+        submitLockRef.current = false;
         setSubmitting(false);
         return;
       }
@@ -2176,6 +2180,7 @@ export function BookingForm({
         setError(message);
         // Cleared here rather than in a `finally`, so that the successful path
         // below keeps the button disabled for the whole of the navigation.
+        submitLockRef.current = false;
         setSubmitting(false);
         return;
       }
@@ -2186,7 +2191,8 @@ export function BookingForm({
       // back to this form: a failed photo upload is logged and the booking
       // proceeds to checkout regardless. The project has no toast surface
       // that would survive the navigation, so the failure is not shown here.
-      setSubmitPhase("uploading");
+      // No phase change here: `uploadCargoPhotos` says "Uploading photos…"
+      // only if there are photos, and only while they are being sent.
       const failedUploads = await uploadCargoPhotos(order.id);
       if (failedUploads > 0) {
         console.warn(
@@ -2200,6 +2206,7 @@ export function BookingForm({
       router.push(`/checkout/${order.id}`);
     } catch {
       setError(tShared("networkErrorPleaseCheckYourConnection"));
+      submitLockRef.current = false;
       setSubmitting(false);
     }
   }
@@ -2607,13 +2614,7 @@ export function BookingForm({
                   submits them. The picker keeps only presentation state. */}
               <ItemListPicker
                 accountType={accountType}
-                initialGroup={
-                  selectedGoodsShortcut === null
-                    ? null
-                    : selectedGoodsShortcut.expandAllGroups
-                      ? "ALL"
-                      : selectedGoodsShortcut.group
-                }
+                initialGroup={selectedGoodsShortcut?.group ?? null}
                 mode={loadMode}
                 onModeChange={setLoadMode}
                 lines={itemLines}
@@ -3559,17 +3560,13 @@ export function BookingForm({
                 aria-busy={submitting}
                 className="h-12 gap-2 rounded-full bg-accent px-6 text-[0.9375rem] font-semibold text-ink transition-transform hover:bg-accent hover:-translate-y-0.5 disabled:translate-y-0"
               >
-                {submitting
-                  ? submitPhase === "pricing"
-                    ? t("calculating")
-                    : submitPhase === "uploading"
-                      ? t("uploadingPhotos")
-                      : isEditing
-                        ? t("saving")
-                        : t("booking")
-                  : isEditing
-                    ? t("saveChanges")
-                    : t("bookDelivery")}
+                {t(
+                  bookButtonLabelKey({
+                    submitting,
+                    phase: submitPhase,
+                    isEditing,
+                  }),
+                )}
                 <ArrowRight aria-hidden="true" />
               </Button>
             </div>

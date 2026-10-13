@@ -62,6 +62,13 @@ test.describe("parseGoodsParam", () => {
     }
   });
 
+  test("drops the retired moving-home shortcut", () => {
+    // "Moving home" left the shortcut list; an old link carrying it opens the
+    // booking form with nothing preselected rather than failing.
+    expect(parseGoodsParam("moving-home")).toBeNull();
+    expect(withGoodsParam("/book", "moving-home")).toBe("/book");
+  });
+
   test("treats a missing or repeated key as no answer", () => {
     expect(parseGoodsParam(null)).toBeNull();
     expect(parseGoodsParam(undefined)).toBeNull();
@@ -107,7 +114,7 @@ test.describe("withGoodsParam", () => {
     expect(withGoodsParam("/sign-up", "furniture")).toBe(
       "/sign-up?goods=furniture",
     );
-    expect(withGoodsParam("/", "moving-home")).toBe("/?goods=moving-home");
+    expect(withGoodsParam("/", "boxes")).toBe("/?goods=boxes");
   });
 
   test("joins with & when the path already has a query", () => {

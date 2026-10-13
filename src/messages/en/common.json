@@ -34,10 +34,6 @@
     "vehicleAddedToYourFleet": "Vehicle added to your fleet."
   },
   "goodsShortcut": {
-    "moving-home": {
-      "title": "Moving home",
-      "description": "Furniture, appliances and boxes"
-    },
     "furniture": {
       "title": "Furniture",
       "description": "Sofas, beds, wardrobes, tables"
