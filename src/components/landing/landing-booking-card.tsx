@@ -2,11 +2,13 @@
 
 import { useId, useState } from "react";
 import { useTranslations } from "next-intl";
+import type { CargoCategory } from "@prisma/client";
 
 import {
   AddressAutocomplete,
   type AddressAutocompleteClassNames,
 } from "@/components/address-autocomplete";
+import { writeBookingDraft } from "@/components/home/booking-draft";
 import { HOME_CONTAINER } from "@/components/landing/landing-home-styles";
 import { LandingLink } from "@/components/landing/landing-link";
 import {
@@ -14,10 +16,25 @@ import {
   type LandingVehicleType,
 } from "@/components/landing/landing-vehicle-types";
 import { type QuoteCalculatorContent } from "@/lib/admin/home-page-content";
+import { CARGO_CATEGORY_LABELS, useCargoCategoryLabel } from "@/lib/cargo";
 import { cn } from "@/lib/utils";
 
 /** Where the card's button goes when the section row names no target. */
-const DEFAULT_CTA_HREF = "/sign-up";
+const DEFAULT_CTA_HREF = "/book";
+
+/**
+ * The target the card used to send everyone to, before signed-out visitors
+ * could book. A section row authored back then still stores it; it is read as
+ * the booking page so the hand-off works without an admin edit.
+ */
+const LEGACY_CTA_HREF = "/sign-up";
+
+/** Cargo categories in the order the taxonomy declares them. */
+const CARGO_CATEGORY_OPTIONS = Object.keys(
+  CARGO_CATEGORY_LABELS,
+) as CargoCategory[];
+
+type LatLng = { lat: number; lng: number };
 
 /**
  * The anchor id older authored links use to reach this section ("Price your
@@ -59,8 +76,10 @@ const ADDRESS_FIELD_CLASS_NAMES = {
  *
  * Deliberately shows no price. The v3 widget called `/api/pricing/estimate`;
  * v4 removes rates from the homepage entirely, so the card only collects the
- * route and vehicle as a prompt and hands the visitor to sign-up (or wherever
- * `ctaHref` points).
+ * route, the cargo category and the vehicle, and hands them to the booking
+ * form on `/book` through a `sessionStorage` draft (see `booking-draft.ts`).
+ * The draft is written only when the button actually leads to `/book`; a
+ * section row pointing somewhere else just navigates there.
  */
 export function LandingBookingCard({
   content,
@@ -73,13 +92,37 @@ export function LandingBookingCard({
   const t = useTranslations("landing.landingBookingCard");
   const tDuty = useTranslations("admin.adminContentVehiclePhotos");
   const { vehicleTypes, loading } = useLandingVehicleTypes();
+  const cargoCategoryLabel = useCargoCategoryLabel();
   const [pickup, setPickup] = useState("");
+  const [pickupLocation, setPickupLocation] = useState<LatLng | null>(null);
   const [dropoff, setDropoff] = useState("");
+  const [dropoffLocation, setDropoffLocation] = useState<LatLng | null>(null);
+  const [cargoCategory, setCargoCategory] = useState<CargoCategory | "">("");
   const [vehicle, setVehicle] = useState("");
   const fieldId = useId();
 
   const ctaLabel = content.ctaLabel?.trim() || t("defaultCta");
-  const ctaHref = content.ctaHref?.trim() || DEFAULT_CTA_HREF;
+  const authoredHref = content.ctaHref?.trim() || DEFAULT_CTA_HREF;
+  const ctaHref =
+    authoredHref === LEGACY_CTA_HREF ? DEFAULT_CTA_HREF : authoredHref;
+  const leadsToBooking =
+    ctaHref === DEFAULT_CTA_HREF || ctaHref.startsWith(`${DEFAULT_CTA_HREF}?`);
+
+  // Runs on click, before the client-side navigation the link performs, so the
+  // booking form finds the draft on its first mount.
+  function handleCtaClick() {
+    if (!leadsToBooking) {
+      return;
+    }
+    writeBookingDraft({
+      pickupAddress: pickup.trim(),
+      pickupLocation,
+      dropoffAddress: dropoff.trim(),
+      dropoffLocation,
+      vehicleTypeCode: vehicle,
+      cargoCategory: cargoCategory === "" ? null : cargoCategory,
+    });
+  }
 
   return (
     <section
@@ -107,6 +150,7 @@ export function LandingBookingCard({
             label={t("pickup")}
             value={pickup}
             onChange={setPickup}
+            onLocationChange={setPickupLocation}
             placeholder={t("pickupPlaceholder")}
             classNames={ADDRESS_FIELD_CLASS_NAMES}
             overlaySuggestions
@@ -117,11 +161,33 @@ export function LandingBookingCard({
             label={t("dropoff")}
             value={dropoff}
             onChange={setDropoff}
+            onLocationChange={setDropoffLocation}
             placeholder={t("dropoffPlaceholder")}
             classNames={ADDRESS_FIELD_CLASS_NAMES}
             overlaySuggestions
             showMapPreview={false}
           />
+          <label
+            htmlFor={`${fieldId}-cargo`}
+            className="flex min-w-0 flex-col gap-[7px]"
+          >
+            <span className={FIELD_LABEL}>{t("cargo")}</span>
+            <select
+              id={`${fieldId}-cargo`}
+              value={cargoCategory}
+              onChange={(event) =>
+                setCargoCategory(event.target.value as CargoCategory | "")
+              }
+              className={cn(FIELD_CONTROL, "px-3")}
+            >
+              <option value="">{t("anyCargo")}</option>
+              {CARGO_CATEGORY_OPTIONS.map((category) => (
+                <option key={category} value={category}>
+                  {cargoCategoryLabel(category)}
+                </option>
+              ))}
+            </select>
+          </label>
           <label
             htmlFor={`${fieldId}-vehicle`}
             className="flex min-w-0 flex-col gap-[7px]"
@@ -163,6 +229,7 @@ export function LandingBookingCard({
           </label>
           <LandingLink
             href={ctaHref}
+            onClick={handleCtaClick}
             className="flex min-h-[50px] items-center justify-center rounded-xl bg-home-accent px-[22px] py-[15px] text-center text-[15.5px] font-semibold text-home-night transition-colors hover:bg-home-accent-hover"
           >
             {ctaLabel}

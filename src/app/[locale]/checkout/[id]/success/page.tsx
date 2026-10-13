@@ -6,7 +6,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { localeHref } from "@/i18n/server";
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { loadAccessibleOrder } from "@/lib/orders/load-accessible-order";
 import { maskedCardNumber } from "@/components/home/payment-methods";
 import { formatGel } from "@/components/orders-format";
 import { formatScheduledAt, paymentMethodLabel } from "../../checkout-format";
@@ -15,6 +15,7 @@ import {
   CheckoutOrderNotFoundNotice,
   CheckoutSignInNotice,
 } from "../../checkout-shell";
+import { GuestTrackingLink } from "../../guest-tracking-link";
 
 // Session + Prisma access can't be statically rendered.
 export const dynamic = "force-dynamic";
@@ -35,6 +36,7 @@ export const dynamic = "force-dynamic";
  */
 const SUCCESS_ORDER_SELECT = {
   id: true,
+  reference: true,
   status: true,
   scheduledAt: true,
   pickupAddress: true,
@@ -43,7 +45,11 @@ const SUCCESS_ORDER_SELECT = {
   serviceLevelAdjustment: true,
   paymentMethodType: true,
   savedCard: { select: { brand: true, last4: true } },
-  payment: { select: { status: true, paidAt: true } },
+  // `cardBrand`/`cardLast4` are a guest's one-off card: there is no saved card
+  // to read them from on a guest order.
+  payment: {
+    select: { status: true, paidAt: true, cardBrand: true, cardLast4: true },
+  },
 } as const;
 
 /**
@@ -68,25 +74,32 @@ export default async function CheckoutSuccessPage({
   const session = await auth.api.getSession({ headers: await headers() });
   const t = await getTranslations("checkout.checkoutSuccess");
 
-  if (!session) {
-    return <CheckoutSignInNotice prompt={t("signInToSeeConfirmation")} />;
-  }
-
-  if (session.user.role !== "CLIENT") {
+  if (session && session.user.role !== "CLIENT") {
     redirect(await localeHref("/dashboard"));
   }
 
   const { id } = await params;
 
-  // Scoped to the caller, which is what collapses "not yours" into "not found".
-  const order = await prisma.order.findFirst({
-    where: { id, clientId: session.user.id },
-    select: SUCCESS_ORDER_SELECT,
-  });
+  // Scoped to the caller — their account, or the guest cookie for this order —
+  // which is what collapses "not yours" into "not found".
+  const accessible = await loadAccessibleOrder(
+    id,
+    session,
+    SUCCESS_ORDER_SELECT,
+  );
 
-  if (!order) {
+  if (!accessible) {
+    if (!session) {
+      return <CheckoutSignInNotice prompt={t("signInToSeeConfirmation")} />;
+    }
     return <CheckoutOrderNotFoundNotice />;
   }
+
+  const { order, access } = accessible;
+  // The raw token this browser proved access with — the same value
+  // `readGuestOrderToken` reads from the order's cookie — becomes the guest's
+  // private tracking link.
+  const guestToken = access.kind === "guest" ? access.token : null;
 
   // Unpaid, so there is nothing to confirm. Back to the page that can fix that.
   if (order.status === OrderStatus.INITIATED) {
@@ -96,6 +109,7 @@ export default async function CheckoutSuccessPage({
   const total = order.price + order.serviceLevelAdjustment;
   const tShared = await getTranslations("common.shared");
   const tRoot = await getTranslations();
+  const tGuest = await getTranslations("checkout.guestCheckoutSuccess");
   const locale = await getLocale();
 
   // How they settled, named the way the client chose it. `paymentMethodType` is
@@ -106,7 +120,11 @@ export default async function CheckoutSuccessPage({
       ? t("notRecorded")
       : order.savedCard && order.paymentMethodType === "CARD"
         ? `${order.savedCard.brand} ${maskedCardNumber(order.savedCard.last4)}`
-        : paymentMethodLabel(order.paymentMethodType, tRoot);
+        : order.payment?.cardBrand &&
+            order.payment.cardLast4 &&
+            order.paymentMethodType === "CARD"
+          ? `${order.payment.cardBrand} ${maskedCardNumber(order.payment.cardLast4)}`
+          : paymentMethodLabel(order.paymentMethodType, tRoot);
 
   // Honest about what has and has not happened. A `PAID` payment row still means
   // only that nothing is left to collect up front — no gateway is integrated, so
@@ -130,8 +148,8 @@ export default async function CheckoutSuccessPage({
           // A literal typographic apostrophe rather than `&rsquo;`: this is a
           // string prop, not JSX text, so an entity would render as itself.
           title={t("youReAllSet")}
-          backHref="/orders"
-          backLabel={t("backToYourOrders")}
+          backHref={guestToken ? "/" : "/orders"}
+          backLabel={guestToken ? tGuest("backToHome") : t("backToYourOrders")}
         />
 
         <section
@@ -145,10 +163,22 @@ export default async function CheckoutSuccessPage({
             {t("yourDeliveryIsBooked")}
           </h2>
           <p className="mt-2 text-[14px] leading-relaxed text-muted">
-            {t("matchingWithDriver")}
+            {guestToken
+              ? tGuest("matchingWithDriver")
+              : t("matchingWithDriver")}
           </p>
 
+          {guestToken ? (
+            <GuestTrackingLink
+              path={`/${locale}/track/${encodeURIComponent(guestToken)}`}
+            />
+          ) : null}
+
           <dl className="mt-5 flex flex-col gap-3 border-t border-line pt-5">
+            <ConfirmationRow
+              label={tGuest("reference")}
+              value={order.reference}
+            />
             <ConfirmationRow
               label={tShared("total")}
               value={formatGel(total)}
@@ -180,23 +210,40 @@ export default async function CheckoutSuccessPage({
             </p>
           ) : null}
 
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Link
-              href="/orders"
-              className="rounded-full bg-accent px-5 py-2.5 text-[14px] font-semibold text-on-accent transition-colors hover:bg-accent-hover"
-            >
-              {t("viewYourOrders")}
-            </Link>
-            {/* Reachable straight away: the tracking page renders the route and
+          {guestToken ? (
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link
+                href={`/track/${encodeURIComponent(guestToken)}`}
+                className="rounded-full bg-accent px-5 py-2.5 text-[14px] font-semibold text-on-accent transition-colors hover:bg-accent-hover"
+              >
+                {t("trackThisDelivery")}
+              </Link>
+              <Link
+                href="/sign-up"
+                className="rounded-full border border-line px-5 py-2.5 text-[14px] font-semibold text-paper transition-colors hover:border-accent/40 hover:text-accent"
+              >
+                {tGuest("createAnAccount")}
+              </Link>
+            </div>
+          ) : (
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link
+                href="/orders"
+                className="rounded-full bg-accent px-5 py-2.5 text-[14px] font-semibold text-on-accent transition-colors hover:bg-accent-hover"
+              >
+                {t("viewYourOrders")}
+              </Link>
+              {/* Reachable straight away: the tracking page renders the route and
                 the current status, and fills in the driver's position once one
                 is assigned. */}
-            <Link
-              href={`/orders/${order.id}/track`}
-              className="rounded-full border border-line px-5 py-2.5 text-[14px] font-semibold text-paper transition-colors hover:border-accent/40 hover:text-accent"
-            >
-              {t("trackThisDelivery")}
-            </Link>
-          </div>
+              <Link
+                href={`/orders/${order.id}/track`}
+                className="rounded-full border border-line px-5 py-2.5 text-[14px] font-semibold text-paper transition-colors hover:border-accent/40 hover:text-accent"
+              >
+                {t("trackThisDelivery")}
+              </Link>
+            </div>
+          )}
         </section>
       </div>
     </main>

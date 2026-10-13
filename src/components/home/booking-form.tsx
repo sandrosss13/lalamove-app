@@ -7,6 +7,7 @@ import type { CargoCategory, ChassisType, ServiceLevel } from "@prisma/client";
 
 import { Link, useRouter } from "@/i18n/navigation";
 import { AddressAutocomplete } from "@/components/address-autocomplete";
+import { takeBookingDraft } from "@/components/home/booking-draft";
 import { formatDistanceKm, formatGel } from "@/components/home/booking-format";
 import {
   BreakdownRow,
@@ -178,7 +179,7 @@ export type BookingFormInitialOrder = {
   vehicleTypeCode: string;
   /** Null for an order placed before the load-space filter existed. */
   bodyType: ChassisType | null;
-  /** Extra helpers beyond the driver, 0–3 — the column, not the crew size. */
+  /** Extra helpers beyond the driver, 0–4. */
   helperCount: number;
   serviceLevel: ServiceLevel;
   description: string | null;
@@ -235,14 +236,14 @@ function stopContactPayload(
 }
 
 /**
- * The crew size an order's stored `helperCount` stands for, clamped onto the
- * picker's four cells. The column is 0–3 by validation, so the clamp is a
- * guard rather than a path: a row outside it is shown at the nearest size the
- * picker can draw instead of with no cell selected.
+ * An order's stored `helperCount`, clamped onto the picker's five cells. The
+ * column is 0–4 by validation, so the clamp is a guard rather than a path: a
+ * row outside it is shown at the nearest count the picker can draw instead of
+ * with no cell selected.
  */
-function crewSizeFromHelperCount(helperCount: number): CrewSize {
-  const size = Math.min(Math.max(Math.round(helperCount) + 1, 1), 4);
-  return size as CrewSize;
+function helperCountOption(helperCount: number): HelperCountOption {
+  const count = Math.min(Math.max(Math.round(helperCount), 0), 4);
+  return count as HelperCountOption;
 }
 
 /**
@@ -304,7 +305,7 @@ const PANEL_LABEL_CLASSES =
   "text-[0.6875rem] font-semibold tracking-[0.1em] text-muted uppercase";
 
 /**
- * Geometry for one cell of the crew-size row. Narrower than a pick card — it
+ * Geometry for one cell of the helper-count row. Narrower than a pick card — it
  * holds a single numeral — but borrows that grid's border and fill states so
  * the two pickers read as the same control at different sizes.
  *
@@ -312,21 +313,20 @@ const PANEL_LABEL_CLASSES =
  * has to draw the focus ring on its behalf — the same `has-[:focus-visible]:`
  * stand-in the driver hub's radio rows use, in this palette's accent.
  */
-const CREW_OPTION_CLASSES =
+const HELPER_OPTION_CLASSES =
   "relative flex h-11 cursor-pointer items-center justify-center rounded-xl border font-price text-sm font-semibold transition-colors has-[:focus-visible]:border-accent has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-accent/20";
 
 /**
- * Total people on the job, the driver included: 1 is the driver working alone
- * and 4 is the driver plus the three helpers pricing allows. Written out as a
- * literal tuple rather than derived from a range so `CrewSize` stays a union of
- * exactly these four numbers.
+ * Extra helpers on top of the driver: 0 is the driver working alone and 4 is
+ * the most pricing allows. Written out as a literal tuple rather than derived
+ * from a range so `HelperCountOption` stays a union of exactly these numbers.
  */
-const CREW_SIZE_OPTIONS = [1, 2, 3, 4] as const;
+const HELPER_COUNT_OPTIONS = [0, 1, 2, 3, 4] as const;
 
-type CrewSize = (typeof CREW_SIZE_OPTIONS)[number];
+type HelperCountOption = (typeof HELPER_COUNT_OPTIONS)[number];
 
 /** Every booking starts with nobody but the driver. */
-const DEFAULT_CREW_SIZE: CrewSize = 1;
+const DEFAULT_HELPER_COUNT: HelperCountOption = 0;
 
 /**
  * The three load spaces a client can ask for, in the order they are offered.
@@ -370,7 +370,7 @@ const DEFAULT_BODY_TYPE: ChassisType = "DRY_BOX";
  * grids use, plus the two things a `<label>` wrapping an `sr-only` radio has to
  * add for itself: the pointer affordance the `<button>`s get natively, and a
  * focus ring drawn on the hidden input's behalf (the same
- * `has-[:focus-visible]:` stand-in as the crew-size row below).
+ * `has-[:focus-visible]:` stand-in as the helper-count row below).
  */
 const BODY_OPTION_CLASSES = `${PICK_CARD_BASE_CLASSES} cursor-pointer gap-1 has-[:focus-visible]:border-accent has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-accent/20`;
 
@@ -483,7 +483,7 @@ const AUTO_ESTIMATE_DELAY_MS = 700;
 /**
  * The sections a booking cannot be placed without, in the order they appear
  * on the page — which is also the order the first missing one is scrolled to.
- * Everything else (photos, crew, description, service level) is optional or
+ * Everything else (photos, helpers, description, service level) is optional or
  * carries a default.
  */
 const REQUIRED_SECTIONS = [
@@ -593,22 +593,25 @@ function combineDateAndTime(date: Date, time: string): Date | null {
 }
 
 /**
- * What a crew size means, spelled out for assistive tech: the picker shows a
- * bare numeral, which on its own never says what is being counted — or that
- * the first of those people is the driver rather than a helper.
+ * What a helper count means, spelled out for assistive tech: the picker shows
+ * a bare numeral, which on its own never says what is being counted — or that
+ * the driver comes on top of it.
  */
-function crewSizeDescription(size: CrewSize, t: BookingFormTranslate): string {
-  if (size === 1) {
-    return t("crewSizeOne");
+function helperCountDescription(
+  count: HelperCountOption,
+  t: BookingFormTranslate,
+): string {
+  if (count === 0) {
+    return t("helperCountNone");
   }
 
-  return t("crewSizeMany", { size, helpers: size - 1 });
+  return t("helperCountSome", { count });
 }
 
 /**
  * How many vehicles a load space would leave the client to choose from.
  * Pluralised rather than printed as a bare "1 vehicles", the same reflex as
- * `crewSizeDescription` above.
+ * `helperCountDescription` above.
  */
 function vehicleCountLabel(count: number, t: BookingFormTranslate): string {
   return t("vehicleCount", { count });
@@ -671,11 +674,24 @@ const VEHICLE_CATEGORY_GLYPHS: Record<
  * Save re-prices that order in place — see `BookingFormInitialOrder` for what is
  * and is not carried over. Every input is still the form's own state; the prop
  * only decides where that state starts, and is read once, on mount.
+ *
+ * `guest` is set by `/book` for a signed-out visitor. The form is the same; it
+ * only skips the reads that need an account (`/api/client-profile` — a guest is
+ * booked as INDIVIDUAL, exactly as the order endpoint treats them) and swaps the
+ * "My orders" link for sign-in. `POST /api/orders` answers a guest booking with
+ * a cookie scoped to that order, which is what lets the photo upload and the
+ * checkout page that follow recognise the same browser.
+ *
+ * Outside edit mode the form also picks up the homepage card's draft (route,
+ * cargo, vehicle — see `booking-draft.ts`) once, on mount.
  */
 export function BookingForm({
   initialOrder,
+  guest = false,
 }: {
   initialOrder?: BookingFormInitialOrder;
+  /** A signed-out visitor booking without an account. */
+  guest?: boolean;
 } = {}): React.ReactElement {
   const isEditing = initialOrder !== undefined;
   const t = useTranslations("home.bookingForm");
@@ -707,9 +723,9 @@ export function BookingForm({
   const tCargo = useTranslations("home.orderCargoOptions");
   const router = useRouter();
 
-  // Not an element id but a shared radio `name`: it is what binds the four
-  // crew-size inputs into one group for the browser's own arrow-key handling.
-  const crewSizeName = useId();
+  // Not an element id but a shared radio `name`: it is what binds the five
+  // helper-count inputs into one group for the browser's own arrow-key handling.
+  const helperCountName = useId();
   // Likewise the shared `name` binding the three load-space radios together.
   const bodyTypeName = useId();
   // And the one binding the three service-level radios.
@@ -807,12 +823,12 @@ export function BookingForm({
   const [vehicleTypeCode, setVehicleTypeCode] = useState(
     initialOrder?.vehicleTypeCode ?? "",
   );
-  // Total people for loading and unloading, driver included — see
-  // `helperCount` below for the figure the API is actually told.
-  const [crewSize, setCrewSize] = useState<CrewSize>(() =>
+  // Extra helpers beyond the driver — the very figure both the pricing and
+  // the orders endpoint take: the driver is not a line item.
+  const [helperCount, setHelperCount] = useState<HelperCountOption>(() =>
     initialOrder
-      ? crewSizeFromHelperCount(initialOrder.helperCount)
-      : DEFAULT_CREW_SIZE,
+      ? helperCountOption(initialOrder.helperCount)
+      : DEFAULT_HELPER_COUNT,
   );
   // The tier the displayed price is for. Alone among the form's inputs it never
   // invalidates the quote — see the invalidation effect below — because every
@@ -857,14 +873,57 @@ export function BookingForm({
 
   // INDIVIDUAL until the profile says BUSINESS — see the hook. Edit mode knows
   // the answer already and starts from it.
-  const accountType = useClientAccountType(initialOrder?.accountType);
+  // A guest has no profile to read, so the request is skipped rather than left to
+  // fail closed with a 401.
+  const accountType = useClientAccountType(initialOrder?.accountType, {
+    enabled: !guest,
+  });
 
   /**
-   * Extra helpers beyond the driver — the crew size the user picked, minus the
-   * driver who is always there. This, not the crew size, is what both the
-   * pricing and the orders endpoint take: the driver is not a line item.
+   * The vehicle class the homepage card asked for, waiting to be applied.
+   *
+   * It cannot be set straight into `vehicleTypeCode`: the vehicle list is empty
+   * until the cargo and the weight steps are answered, and the auto-select
+   * effect below would replace any code that is not in the bookable list. So it
+   * is parked here and offered to that effect, which applies it the first time
+   * the bookable list is non-empty — if the class is in it — and otherwise drops
+   * it and keeps its own best fit. One-shot either way, so a later change of
+   * weight never snaps the selection back to a class picked on the homepage.
    */
-  const helperCount = crewSize - 1;
+  const draftVehicleCodeRef = useRef<string | null>(null);
+
+  /**
+   * The homepage card's draft, read once on mount and removed from storage as
+   * it is read (see `takeBookingDraft`). An effect rather than a `useState`
+   * initialiser because storage only exists in the browser: reading it during
+   * render would make the server and the first client render disagree.
+   * Edit mode never reads it — the order being edited is the prefill there.
+   */
+  useEffect(() => {
+    if (isEditing) {
+      return;
+    }
+    const draft = takeBookingDraft();
+    if (!draft) {
+      return;
+    }
+    if (draft.pickupAddress) {
+      setPickupAddress(draft.pickupAddress);
+      setPickupLocation(draft.pickupLocation);
+    }
+    if (draft.dropoffAddress) {
+      setDropoffAddress(draft.dropoffAddress);
+      setDropoffLocation(draft.dropoffLocation);
+    }
+    if (draft.cargoCategory) {
+      setCargoCategory(draft.cargoCategory);
+    }
+    if (draft.vehicleTypeCode) {
+      draftVehicleCodeRef.current = draft.vehicleTypeCode;
+    }
+    // Mount only: `isEditing` cannot change for the life of the form.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // The map is a companion to the form on desktop and an opt-in panel on
   // mobile. This only drives a `hidden`/`block` swap — the map is never
@@ -1112,6 +1171,21 @@ export function BookingForm({
       return;
     }
 
+    // The homepage card's vehicle, offered exactly once — the first time there
+    // is a bookable list to check it against (see `draftVehicleCodeRef`).
+    const draftCode = draftVehicleCodeRef.current;
+    if (draftCode !== null) {
+      draftVehicleCodeRef.current = null;
+      if (
+        bookableVehicleTypes.some(
+          (vehicleType) => vehicleType.code === draftCode,
+        )
+      ) {
+        setVehicleTypeCode(draftCode);
+        return;
+      }
+    }
+
     const stillSelectable = bookableVehicleTypes.some(
       (vehicleType) => vehicleType.code === vehicleTypeCode,
     );
@@ -1141,7 +1215,7 @@ export function BookingForm({
   /**
    * A quote is only ever valid for the exact inputs it was computed from.
    * Rather than let a stale price sit under a since-changed route, goods,
-   * load space, vehicle or crew size, any change to one of them invalidates it —
+   * load space, vehicle or helper count, any change to one of them invalidates it —
    * dropping any in-flight request too — and the automatic estimate below
    * prices the new inputs.
    *
@@ -1663,10 +1737,20 @@ export function BookingForm({
               that page is where the client chose Edit, and where they would
               look to see the order unchanged if they leave without saving. */}
           <Link
-            href={initialOrder ? `/orders/${initialOrder.id}` : "/orders"}
+            href={
+              initialOrder
+                ? `/orders/${initialOrder.id}`
+                : guest
+                  ? "/sign-in"
+                  : "/orders"
+            }
             className="group inline-flex items-center gap-2 text-sm font-semibold text-paper transition-colors hover:text-accent"
           >
-            {isEditing ? t("backToOrder") : tShared("myOrders")}
+            {isEditing
+              ? t("backToOrder")
+              : guest
+                ? t("haveAnAccountSignIn")
+                : tShared("myOrders")}
             <span
               aria-hidden="true"
               className="transition-transform group-hover:translate-x-1"
@@ -2005,7 +2089,7 @@ export function BookingForm({
                 <>
                   {/* Native radios again, one per load space, each visually
                       replaced by the card wrapping it — the same trade the
-                      crew-size picker in step 7 makes, and for the same
+                      helper-count picker in step 7 makes, and for the same
                       reasons: arrow-key navigation of the group and the "2 of
                       3" announcement, both free. (The goods and vehicle grids
                       above and below are older `aria-pressed` buttons; they
@@ -2237,24 +2321,24 @@ export function BookingForm({
 
             <StepCard step={7} title={t("additionalDetails")}>
               <div className="flex flex-col gap-4">
-                {/* Native radios, one per crew size, each visually replaced by
+                {/* Native radios, one per helper count, each visually replaced by
                     the cell wrapping it. Keeping the real inputs — `sr-only`
                     rather than removed — is what gives the group its arrow-key
-                    handling and its "3 of 4" announcement for free, the same
+                    handling and its "3 of 5" announcement for free, the same
                     trade the driver hub's radio rows make. */}
                 <fieldset className="flex flex-col gap-2">
                   <legend className="mb-2 text-[0.8125rem] font-medium text-paper">
-                    {t("peopleForLoadingUnloading")}
+                    {t("helpers")}
                   </legend>
 
-                  <div className="grid grid-cols-4 gap-2 sm:max-w-[17rem]">
-                    {CREW_SIZE_OPTIONS.map((size) => {
-                      const selected = size === crewSize;
+                  <div className="grid grid-cols-5 gap-2 sm:max-w-[21.375rem]">
+                    {HELPER_COUNT_OPTIONS.map((count) => {
+                      const selected = count === helperCount;
 
                       return (
                         <label
-                          key={size}
-                          className={`${CREW_OPTION_CLASSES} ${
+                          key={count}
+                          className={`${HELPER_OPTION_CLASSES} ${
                             selected
                               ? `${PICK_CARD_SELECTED_CLASSES} text-accent`
                               : `${PICK_CARD_IDLE_CLASSES} text-paper`
@@ -2262,21 +2346,21 @@ export function BookingForm({
                         >
                           <input
                             type="radio"
-                            name={crewSizeName}
-                            value={size}
+                            name={helperCountName}
+                            value={count}
                             checked={selected}
-                            onChange={() => setCrewSize(size)}
-                            aria-label={crewSizeDescription(size, t)}
+                            onChange={() => setHelperCount(count)}
+                            aria-label={helperCountDescription(count, t)}
                             className="sr-only"
                           />
-                          <span aria-hidden="true">{size}</span>
+                          <span aria-hidden="true">{count}</span>
                         </label>
                       );
                     })}
                   </div>
 
                   <p className="text-xs leading-snug text-muted">
-                    {t("1IsTheDriverOnTheir")}
+                    {t("helpersHint")}
                   </p>
                 </fieldset>
 
@@ -2316,7 +2400,7 @@ export function BookingForm({
               }
             >
               {/* Native radios again, for the third time in this form and for
-                  the same reasons as the load-space and crew-size pickers:
+                  the same reasons as the load-space and helper-count pickers:
                   three mutually exclusive options are what a radio group is
                   for, and the group's arrow-key navigation and its "1 of 3"
                   announcement both come free with the real inputs. */}

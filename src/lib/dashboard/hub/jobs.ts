@@ -172,7 +172,7 @@ export type HubJob = {
    */
   overtimeDriverPayout: number;
   /**
-   * Extra helpers booked *beyond* the driver, 0-3. Kept even though the
+   * Extra helpers booked *beyond* the driver, 0-4. Kept even though the
    * per-helper fee itself is gone from this type: a headcount is operational
    * context, not money, and a job booked with a crew should say so.
    */

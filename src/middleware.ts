@@ -127,8 +127,19 @@ const CLIENT_ONLY_EXACT = ["/", "/home", "/orders"];
  * `/gadazidva` is the city landing pages (`src/lib/seo/cities.ts`): customer
  * marketing pages, so on the merchant host they bounce to the client host
  * rather than being served (and indexed) twice.
+ *
+ * `/book` (the booking form, guest or signed in) and `/track` (a guest's
+ * private tracking link, `/track/<token>`) are customer flows too. `/track` is
+ * a different path from the shared `/orders/[id]/track`, which stays reachable
+ * on the merchant host for drivers.
  */
-const CLIENT_ONLY_PREFIXES = ["/account", "/checkout", "/gadazidva"];
+const CLIENT_ONLY_PREFIXES = [
+  "/account",
+  "/book",
+  "/checkout",
+  "/gadazidva",
+  "/track",
+];
 
 function matchesPrefix(pathname: string, prefixes: string[]): boolean {
   return prefixes.some(

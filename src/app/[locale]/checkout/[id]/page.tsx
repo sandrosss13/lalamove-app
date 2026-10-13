@@ -9,7 +9,7 @@ import { localeHref } from "@/i18n/server";
 import { auth } from "@/lib/auth";
 import { useCargoCategoryLabel } from "@/lib/cargo";
 import { loadBookingPaymentOptions } from "@/lib/home/booking-payment-options";
-import { prisma } from "@/lib/prisma";
+import { loadAccessibleOrder } from "@/lib/orders/load-accessible-order";
 import { vehicleTypeSpecLabel } from "@/lib/vehicle-type-spec-labels";
 import { BreakdownRow } from "@/components/home/booking-form-primitives";
 import { formatGel, useServiceLevelLabel } from "@/components/orders-format";
@@ -44,8 +44,9 @@ export const dynamic = "force-dynamic";
  * the browser to be shown back.
  *
  * `clientId` is not selected either, because it is never compared here: the
- * query below is *scoped* by it, which is what makes somebody else's order
- * indistinguishable from a nonexistent one.
+ * query below is *scoped* by it (or, for a guest order, by the guest cookie's
+ * token hash — see `loadAccessibleOrder`), which is what makes somebody else's
+ * order indistinguishable from a nonexistent one.
  */
 const CHECKOUT_ORDER_SELECT = {
   id: true,
@@ -91,30 +92,37 @@ export default async function CheckoutPage({
   const session = await auth.api.getSession({ headers: await headers() });
   const t = await getTranslations("checkout.checkout");
 
-  if (!session) {
-    return <CheckoutSignInNotice prompt={t("signInToReviewAndPay")} />;
-  }
-
   // Checkout is a client's own step. Drivers and logistics companies take and
   // dispatch deliveries on /dashboard instead — the same redirect `/orders` and
   // the wallet make.
-  if (session.user.role !== "CLIENT") {
+  if (session && session.user.role !== "CLIENT") {
     redirect(await localeHref("/dashboard"));
   }
 
   const { id } = await params;
 
-  // Scoped to the caller, which is what collapses "not yours" into "not found".
-  // The two must stay indistinguishable, or this page becomes a way to probe
-  // which order ids exist — see `CheckoutOrderNotFoundNotice`.
-  const order = await prisma.order.findFirst({
-    where: { id, clientId: session.user.id },
-    select: CHECKOUT_ORDER_SELECT,
-  });
+  // The signed-in client's own order first, then a guest order this browser
+  // holds the cookie for (see `loadAccessibleOrder`). Scoped either way, which
+  // is what collapses "not yours" into "not found". The two must stay
+  // indistinguishable, or this page becomes a way to probe which order ids
+  // exist — see `CheckoutOrderNotFoundNotice`.
+  const accessible = await loadAccessibleOrder(
+    id,
+    session,
+    CHECKOUT_ORDER_SELECT,
+  );
 
-  if (!order) {
+  if (!accessible) {
+    // Signed out with no guest cookie for this order: it may well be theirs,
+    // booked on their account, so offer sign-in rather than "not found".
+    if (!session) {
+      return <CheckoutSignInNotice prompt={t("signInToReviewAndPay")} />;
+    }
     return <CheckoutOrderNotFoundNotice />;
   }
+
+  const { order } = accessible;
+  const isGuestOrder = accessible.access.kind === "guest";
 
   // Anything past `INITIATED` has already been paid for, so there is nothing to
   // check out: send the client to the confirmation rather than re-offering a
@@ -134,7 +142,21 @@ export default async function CheckoutPage({
   // account type — all three resolved server-side, because none is a decision
   // the browser is in a position to make. The pay endpoint re-checks all of
   // them anyway.
-  const paymentOptions = await loadBookingPaymentOptions();
+  const loadedPaymentOptions = await loadBookingPaymentOptions();
+  // A guest order is paid as a guest even when the browser also holds a
+  // session (someone who booked signed out, then signed in): card only, no
+  // saved cards, treated as an individual — what the pay endpoint enforces for
+  // an order with no client.
+  const paymentOptions = isGuestOrder
+    ? {
+        enabledPaymentMethods:
+          loadedPaymentOptions.enabledPaymentMethods.filter(
+            (method) => method === "CARD",
+          ),
+        savedCards: [],
+        accountType: "INDIVIDUAL" as const,
+      }
+    : loadedPaymentOptions;
 
   return (
     // The background is painted on `main` rather than on the centred column so
@@ -146,7 +168,7 @@ export default async function CheckoutPage({
         <CheckoutHeader
           eyebrow={t("almostThere")}
           title={t("reviewAndPay")}
-          backHref="/"
+          backHref={isGuestOrder ? "/book" : "/"}
           backLabel={t("backToBooking")}
         />
 
@@ -163,9 +185,10 @@ export default async function CheckoutPage({
 
           {/* Sticky only where there is room for it to be: on a tall column the
               Pay button should not scroll away while the summary is read. */}
-          <div className="lg:sticky lg:top-8">
+          <div className={isGuestOrder ? undefined : "lg:sticky lg:top-8"}>
             <CheckoutPaymentPanel
               orderId={order.id}
+              guest={isGuestOrder}
               totalGel={total}
               enabledPaymentMethods={paymentOptions.enabledPaymentMethods}
               savedCards={paymentOptions.savedCards}
@@ -252,8 +275,8 @@ function OrderSummaryPanel({ order }: { order: CheckoutOrder }) {
           value={cargoCategoryLabel(order.cargoCategory)}
         />
         <DetailRow
-          label={t("crew")}
-          value={labels.crewSize(order.helperCount)}
+          label={t("helpers")}
+          value={labels.helperCount(order.helperCount)}
         />
         {/* Also nullable, and for the same reason as the schedule. */}
         {order.bodyType ? (

@@ -109,7 +109,7 @@ const ORDER_DETAIL_SELECT = {
  *
  * The checkout screen's shell and label helpers are imported across the screen
  * boundary on purpose: this page prints the same order in the same vocabulary
- * (load space, crew, schedule), and a client who reads "Load space" on one
+ * (load space, helpers, schedule), and a client who reads "Load space" on one
  * page and something else on the next has been shown two words for one thing.
  */
 export default async function OrderDetailPage({
@@ -392,8 +392,8 @@ function DetailsPanel({ order }: { order: OrderDetail }) {
           />
         ) : null}
         <DetailRow
-          label={tCheckout("crew")}
-          value={labels.crewSize(order.helperCount)}
+          label={tCheckout("helpers")}
+          value={labels.helperCount(order.helperCount)}
         />
         <DetailRow
           label={tShared("serviceLevel")}

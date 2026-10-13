@@ -19,6 +19,10 @@ import { Badge } from "@/components/ui/badge";
 import { adminOrderTotalGel } from "@/lib/admin/orders-filters";
 import { cargoCategoryLabel, cargoHandlingTagLabel } from "@/lib/cargo";
 import { loadOrderPhotoViews } from "@/lib/order-photos/views";
+import {
+  ORDER_GUEST_CONTACT_SELECT,
+  orderClientDisplay,
+} from "@/lib/orders/order-client-display";
 import { prisma } from "@/lib/prisma";
 import { vehicleTypeSpecLabel } from "@/lib/vehicle-type-spec-labels";
 
@@ -134,6 +138,7 @@ export default async function AdminOrderDetailPage({
       purchaseOrderRef: true,
       receivedBy: true,
       vehicleTypeSpec: { select: { code: true, label: true } },
+      ...ORDER_GUEST_CONTACT_SELECT,
       client: {
         select: {
           name: true,
@@ -197,7 +202,10 @@ export default async function AdminOrderDetailPage({
       ? `${formatDateTime(order.pickupWindowStart)} – ${formatDateTime(order.pickupWindowEnd)}`
       : formatDateTime(order.pickupWindowStart ?? order.pickupWindowEnd);
 
-  const clientProfile = order.client.clientProfile;
+  // Null on a guest order, which has no account and so no profile; its
+  // contact comes from `orderClientDisplay` instead.
+  const clientProfile = order.client?.clientProfile ?? null;
+  const clientDisplay = orderClientDisplay(order);
   const profileName =
     joinName(clientProfile?.firstName, clientProfile?.lastName) ??
     clientProfile?.companyName?.trim() ??
@@ -281,22 +289,37 @@ export default async function AdminOrderDetailPage({
 
         <Section title={tShared("client")}>
           <dl className="divide-y divide-border">
-            <Field label={tShared("name")} value={order.client.name} />
-            {profileName && profileName !== order.client.name ? (
+            {clientDisplay.isGuest ? (
+              <Field
+                label={t("accountType")}
+                value={
+                  clientDisplay.name
+                    ? t("guestClient")
+                    : t("guestContactPending")
+                }
+              />
+            ) : null}
+            <Field label={tShared("name")} value={clientDisplay.name} />
+            {profileName && profileName !== clientDisplay.name ? (
               <Field label={t("profileName")} value={profileName} />
             ) : null}
             <Field
               label={tShared("email")}
               value={
-                <a
-                  href={`mailto:${order.client.email}`}
-                  className="underline-offset-4 hover:underline"
-                >
-                  {order.client.email}
-                </a>
+                clientDisplay.email ? (
+                  <a
+                    href={`mailto:${clientDisplay.email}`}
+                    className="underline-offset-4 hover:underline"
+                  >
+                    {clientDisplay.email}
+                  </a>
+                ) : null
               }
             />
-            <Field label={tShared("phone")} value={clientProfile?.phone} />
+            <Field
+              label={tShared("phone")}
+              value={clientProfile?.phone ?? clientDisplay.phone}
+            />
             <Field
               label={t("accountType")}
               value={

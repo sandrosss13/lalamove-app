@@ -23,6 +23,9 @@ import { isIndexableDeployment, requestHost } from "@/lib/seo/site";
 const CLIENT_DISALLOW = [
   "/api/",
   "/*/account",
+  // Anchored: `*` spans slashes, so a bare `/*/book` would also block any
+  // static page whose slug merely starts with "book".
+  "/*/book$",
   "/*/checkout",
   "/*/orders",
   "/*/wallet",
@@ -31,6 +34,9 @@ const CLIENT_DISALLOW = [
   "/*/dashboard",
   "/*/admin",
   "/*/sign-in",
+  // The guest tracking links, `/{locale}/track/<token>`. Trailing slash for
+  // the same reason `/*/book` is anchored.
+  "/*/track/",
 ];
 
 /**

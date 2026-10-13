@@ -73,6 +73,14 @@ export type AddCardDialogProps = {
    * shown inline; resolving closes the dialog and clears every field.
    */
   onSubmit: (card: NewCardInput) => Promise<void> | void;
+  /**
+   * A card for this one payment, not one to keep — guest checkout, where there
+   * is no wallet to save into. Hides the "set as default" control (the
+   * submitted `isDefault` is always `false`) and words the dialog as "use this
+   * card" rather than "save card". The security rule is unchanged: only display
+   * metadata leaves the dialog.
+   */
+  oneOff?: boolean;
 };
 
 /* -------------------------------------------------------------------------- */
@@ -238,6 +246,7 @@ export function AddCardDialog({
   onOpenChange,
   isFirstCard,
   onSubmit,
+  oneOff = false,
 }: AddCardDialogProps) {
   const t = useTranslations("home.addCardDialog");
   const tShared = useTranslations("common.shared");
@@ -308,7 +317,7 @@ export function AddCardDialog({
       expMonth: parsedExpiry.month,
       expYear: parsedExpiry.year,
       holderName: holderName.trim(),
-      isDefault,
+      isDefault: oneOff ? false : isDefault,
     };
 
     setSubmitting(true);
@@ -359,10 +368,12 @@ export function AddCardDialog({
               eyebrow, and its 13px/600/wide-tracking treatment assumes the body
               face. */}
           <DialogTitle className="font-sans text-[0.8125rem] font-semibold tracking-[0.1em] text-muted uppercase">
-            {t("addCard")}
+            {oneOff ? t("payByCard") : t("addCard")}
           </DialogTitle>
           <DialogDescription className="text-[0.8125rem] leading-snug text-muted">
-            {t("creditOrDebitCardNothingIs")}
+            {oneOff
+              ? t("oneOffCardDescription")
+              : t("creditOrDebitCardNothingIs")}
           </DialogDescription>
         </DialogHeader>
 
@@ -386,7 +397,9 @@ export function AddCardDialog({
             remember the number in its card manager. That is the user's own
             browser and their own choice; nothing here transmits or stores it. */}
         <p className="mt-4 rounded-lg border border-line bg-surface p-3 text-xs leading-relaxed text-muted">
-          {t("gatewayIntegrationIsPendingYourCard")}
+          {oneOff
+            ? t("gatewayIntegrationIsPendingOneOff")
+            : t("gatewayIntegrationIsPendingYourCard")}
         </p>
 
         <form
@@ -486,24 +499,26 @@ export function AddCardDialog({
             />
           </div>
 
-          <div className="flex items-center gap-2.5">
-            <input
-              id={defaultCheckboxId}
-              type="checkbox"
-              checked={isDefault}
-              onChange={(event) => setIsDefault(event.target.checked)}
-              // `accent-accent` tints the native control with the landing
-              // accent, which is enough here: a bespoke checkbox would be a
-              // fourth focus-ring implementation on this surface.
-              className="size-4 shrink-0 accent-accent"
-            />
-            <Label
-              htmlFor={defaultCheckboxId}
-              className="text-[0.8125rem] font-normal text-paper"
-            >
-              {t("setAsDefaultPaymentMethod")}
-            </Label>
-          </div>
+          {oneOff ? null : (
+            <div className="flex items-center gap-2.5">
+              <input
+                id={defaultCheckboxId}
+                type="checkbox"
+                checked={isDefault}
+                onChange={(event) => setIsDefault(event.target.checked)}
+                // `accent-accent` tints the native control with the landing
+                // accent, which is enough here: a bespoke checkbox would be a
+                // fourth focus-ring implementation on this surface.
+                className="size-4 shrink-0 accent-accent"
+              />
+              <Label
+                htmlFor={defaultCheckboxId}
+                className="text-[0.8125rem] font-normal text-paper"
+              >
+                {t("setAsDefaultPaymentMethod")}
+              </Label>
+            </div>
+          )}
 
           {error === null ? null : (
             <p role="alert" className="text-[0.8125rem] text-accent">
@@ -529,7 +544,11 @@ export function AddCardDialog({
                 }
                 className={SAVE_BUTTON_CLASSES}
               >
-                {submitting ? tShared("saving") : t("saveCard")}
+                {submitting
+                  ? tShared("saving")
+                  : oneOff
+                    ? t("useThisCard")
+                    : t("saveCard")}
               </button>
             </div>
             {missingRequirement === null ? null : (

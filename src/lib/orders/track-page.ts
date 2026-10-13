@@ -36,7 +36,7 @@ export type TrackPageViewer = "CLIENT" | "DRIVER";
  * superset — nothing on it is withheld from the person who paid.
  */
 export function resolveTrackPageViewer(
-  order: { clientId: string; driverId: string | null },
+  order: { clientId: string | null; driverId: string | null },
   userId: string,
 ): TrackPageViewer | null {
   if (order.clientId === userId) {

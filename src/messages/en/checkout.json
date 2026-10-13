@@ -7,8 +7,8 @@
   "checkout": {
     "almostThere": "Almost there",
     "backToBooking": "← Back to booking",
-    "crew": "Crew",
     "goods": "Goods",
+    "helpers": "Helpers",
     "loadSpace": "Load space",
     "loadingAndUnloadingTimeBeyondThe": "Loading and unloading time beyond the free allowance is settled after the delivery and is not part of this total.",
     "notes": "Notes",
@@ -24,7 +24,11 @@
     "couldNotSaveCard": "Could not save the card. Try again.",
     "defaultSuffix": " · Default",
     "eGPo20260184": "e.g. PO-2026-0184",
+    "enterCardDetails": "Enter card details",
+    "enterCardDetailsToContinue": "Enter your card details to continue.",
+    "fillInYourContactDetailsToContinue": "Fill in your contact details to continue.",
     "noPaymentMethodAvailable": "No payment method is available at the moment, so this delivery can’t be paid for yet. Your booking is saved — come back and pay once a method is switched on.",
+    "notSavedSuffix": " · Not saved",
     "nothingIsChargedNowNoPayment": "Nothing is charged now — no payment provider is connected yet.",
     "optionalAppearsOnYourOrderRecord": "Optional. Appears on your order record for your own finance team.",
     "payAmount": "Pay {amount}",
@@ -32,7 +36,8 @@
     "payLaterSettleAfterTheDelivery": "Pay later — settle after the delivery",
     "paying": "Paying…",
     "poOrCostCentreReference": "PO or cost-centre reference",
-    "settleAfterTheDelivery": "Settle after the delivery"
+    "settleAfterTheDelivery": "Settle after the delivery",
+    "useADifferentCard": "Use a different card"
   },
   "checkoutShell": {
     "backToYourOrders": "Back to your orders",
@@ -52,7 +57,39 @@
     "youReAllSet": "You’re all set",
     "yourDeliveryIsBooked": "Your delivery is booked"
   },
-  "crewSize": "{count, plural, one {# person} other {# people}}",
+  "guestCheckoutSuccess": {
+    "backToHome": "← Home",
+    "createAnAccount": "Create an account",
+    "matchingWithDriver": "We’re matching it with a driver now. Follow the job with the tracking link below — this browser also keeps access to it.",
+    "reference": "Reference"
+  },
+  "guestContactCard": {
+    "countryCodeSr": ", Georgian number, +995 is added for you",
+    "email": "Email",
+    "emailInvalid": "Enter a valid email address, or leave it blank.",
+    "firstName": "First name",
+    "firstNameRequired": "Enter your first name.",
+    "lastName": "Last name",
+    "lastNameRequired": "Enter your last name.",
+    "nameTooLong": "Use 100 characters or fewer.",
+    "optional": "(optional)",
+    "phone": "Phone number",
+    "phoneInvalid": "Enter a valid phone number, e.g. 555 12 34 56.",
+    "phoneRequired": "Enter your phone number.",
+    "weUseTheseToReachYou": "We use these to reach you about this delivery. No account is created.",
+    "yourContactDetails": "Your contact details"
+  },
+  "guestTrack": {
+    "backToHome": "Back to home",
+    "linkNotRecognised": "This tracking link isn’t recognised. Check that it was copied in full."
+  },
+  "guestTrackingLink": {
+    "copied": "Copied",
+    "copyLink": "Copy link",
+    "keepThisLink": "Keep this link — it is the only way to follow this delivery from another device. Anyone with the link can see the delivery's status and route.",
+    "yourTrackingLink": "Your private tracking link"
+  },
+  "helperCount": "{count, plural, =0 {No helpers} one {# helper} other {# helpers}}",
   "paymentMethod": {
     "bankTransfer": "Bank transfer",
     "card": "Card",

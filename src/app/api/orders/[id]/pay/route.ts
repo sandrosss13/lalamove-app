@@ -6,36 +6,12 @@ import {
   PaymentStatus,
 } from "@prisma/client";
 
-import {
-  getRequestTranslations,
-  type RequestTranslator,
-} from "@/i18n/request-locale";
+import { getRequestTranslations } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
+import { ownedOrderWhere } from "@/lib/orders/load-accessible-order";
+import { parsePayOrderBody, type PayerKind } from "@/lib/orders/pay-input";
 import { settleOrderPayment } from "@/lib/orders/payment-settlement";
 import { prisma } from "@/lib/prisma";
-
-/**
- * Longest accepted purchase-order reference, mirroring the cap
- * `POST /api/orders` applies to the same column. Held route-locally rather than
- * imported, by the same convention the rest of this API follows: each handler
- * owns its own hand-rolled register.
- */
-const FREE_TEXT_MAX_LENGTH = 200;
-
-/**
- * The methods checkout may record. Deliberately narrower than
- * `PaymentMethodType`: the checkout page offers exactly two rows — a saved card
- * and "Pay later", which *is* `CASH` under a friendlier label — so accepting
- * `BANK_TRANSFER` here would let a hand-made request stamp an order with a
- * method that has no UI, no instructions to the client and no flow behind it.
- * Admin's own `PaymentMethodConfig` switch is checked separately below and can
- * still refuse either of these two; this list only bounds what the register
- * will parse at all.
- */
-const CHECKOUT_PAYMENT_METHODS: PaymentMethodType[] = [
-  PaymentMethodType.CARD,
-  PaymentMethodType.CASH,
-];
 
 /**
  * What goes in `Payment.provider` while no gateway exists.
@@ -47,138 +23,12 @@ const CHECKOUT_PAYMENT_METHODS: PaymentMethodType[] = [
  */
 const NO_PAYMENT_PROVIDER = "none";
 
-/** Validated shape of a pay request body. */
-type PayOrderInput = {
-  paymentMethodType: PaymentMethodType;
-  /** Required for `CARD`, and refused for anything else. */
-  savedCardId: string | null;
-  /** Kept only for BUSINESS clients — see the account-type check in `POST`. */
-  purchaseOrderRef: string | null;
-};
-
 /** Round a currency amount to whole cents, as `POST /api/orders/[id]/complete`
  *  does before storing one: `price` and `serviceLevelAdjustment` are two `Float`
  *  columns, and their sum carries binary-fraction dust that has no business
  *  being written into a payment record. */
 function roundCurrency(value: number): number {
   return Math.round(value * 100) / 100;
-}
-
-/**
- * Trim an optional free-text field to its stored form: `null` when absent or
- * blank, the trimmed string otherwise, or an error when it is the wrong type or
- * over length. A route-local copy of the helper in `POST /api/orders`, matching
- * that handler's messages so the same field is rejected the same way whichever
- * endpoint receives it.
- */
-function parseOptionalText(
-  value: unknown,
-  fieldName: string,
-  t: RequestTranslator,
-): { value: string | null } | { error: string } {
-  if (value === undefined || value === null) {
-    return { value: null };
-  }
-
-  if (typeof value !== "string") {
-    return {
-      error: t("errors.ordersPay.fieldMustBeStringWhenProvided", {
-        field: fieldName,
-      }),
-    };
-  }
-
-  const trimmed = value.trim();
-  if (trimmed.length === 0) {
-    return { value: null };
-  }
-
-  if (trimmed.length > FREE_TEXT_MAX_LENGTH) {
-    return {
-      error: t("errors.ordersPay.fieldTooLong", {
-        field: fieldName,
-        max: FREE_TEXT_MAX_LENGTH,
-      }),
-    };
-  }
-
-  return { value: trimmed };
-}
-
-/**
- * Hand-rolled body validation, consistent with the rest of the API (the project
- * deliberately uses no validation library). The card/method register mirrors
- * `parseCreateOrderBody` in `POST /api/orders`, with one difference: there, the
- * whole payment block is optional, because a client could book without settling.
- * Here the method *is* the request, so an absent one is an error rather than a
- * `null` to store.
- */
-function parsePayOrderBody(
-  body: unknown,
-  t: RequestTranslator,
-): { data: PayOrderInput } | { error: string } {
-  if (typeof body !== "object" || body === null) {
-    return { error: t("common.shared.requestBodyMustBeAJson") };
-  }
-
-  const record = body as Record<string, unknown>;
-
-  const { paymentMethodType } = record;
-  if (
-    typeof paymentMethodType !== "string" ||
-    !CHECKOUT_PAYMENT_METHODS.includes(paymentMethodType as PaymentMethodType)
-  ) {
-    return {
-      error: t("errors.ordersPay.paymentMethodTypeMustBeOneOf", {
-        allowed: CHECKOUT_PAYMENT_METHODS.join(", "),
-      }),
-    };
-  }
-
-  const method = paymentMethodType as PaymentMethodType;
-
-  const { savedCardId } = record;
-  if (
-    savedCardId !== undefined &&
-    (typeof savedCardId !== "string" || savedCardId.trim().length === 0)
-  ) {
-    return { error: t("common.shared.savedcardidMustBeANonEmpty") };
-  }
-
-  const chosenCardId =
-    typeof savedCardId === "string" ? savedCardId.trim() : null;
-
-  // A card and the method it pays with have to agree — the same two messages
-  // `POST /api/orders` gives, for the same reason: paying by card without
-  // naming one is unpayable, and a card sent alongside Pay later means the
-  // client changed method without clearing its card. Say which of the two to
-  // change rather than quietly picking one.
-  if (method === PaymentMethodType.CARD && chosenCardId === null) {
-    return { error: t("common.shared.chooseASavedCardToPay") };
-  }
-
-  if (method !== PaymentMethodType.CARD && chosenCardId !== null) {
-    return {
-      error: t("common.shared.sendSavedcardidOnlyWhenPaymentmethodtypeIs"),
-    };
-  }
-
-  const purchaseOrderRef = parseOptionalText(
-    record.purchaseOrderRef,
-    "purchaseOrderRef",
-    t,
-  );
-  if ("error" in purchaseOrderRef) {
-    return purchaseOrderRef;
-  }
-
-  return {
-    data: {
-      paymentMethodType: method,
-      savedCardId: chosenCardId,
-      purchaseOrderRef: purchaseOrderRef.value,
-    },
-  };
 }
 
 /**
@@ -195,11 +45,20 @@ function parsePayOrderBody(
  * belongs in `settleOrderPayment` — the named seam this handler calls — and the
  * hop to `PENDING` becomes conditional on it succeeding.
  *
- * Ownership: the order is looked up scoped to the caller's own `clientId`, so
- * somebody else's order and a nonexistent one produce the identical 404. That is
- * deliberate and must stay — a 403 on a real id would confirm the id exists and
- * let order ids be probed, which is the same reasoning
- * `src/app/orders/[id]/track/page.tsx` records for its own not-found branch.
+ * Ownership: the order is looked up scoped to the caller's own `clientId` —
+ * or, for a **guest order**, to the guest cookie `POST /api/orders` set (see
+ * `ownedOrderWhere`) — so somebody else's order and a nonexistent one produce
+ * the identical 404. That is deliberate and must stay — a 403 on a real id
+ * would confirm the id exists and let order ids be probed, which is the same
+ * reasoning `src/app/orders/[id]/track/page.tsx` records for its own not-found
+ * branch.
+ *
+ * Who pays decides the rules (`parsePayOrderBody`,
+ * `src/lib/orders/pay-input.ts`): a BUSINESS client keeps "Pay later"; an
+ * INDIVIDUAL client and a guest pay by card only. A guest also has to leave
+ * their contact (`guestContact`, refused with per-field `fieldErrors`) and pays
+ * with a one-off `card` whose brand and last four are recorded on the
+ * `Payment` — both written in the same transaction that claims the order.
  *
  * Every field the browser sends is re-checked here rather than trusted, exactly
  * as order creation re-checks the same three: the method against admin's
@@ -213,7 +72,12 @@ export async function POST(
   const t = await getRequestTranslations();
 
   const session = await auth.api.getSession({ headers: request.headers });
-  if (!session) {
+  const { id } = await params;
+
+  // The order's client, or the guest holding its cookie. Neither proof is an
+  // unauthenticated request.
+  const ownership = await ownedOrderWhere(id, session);
+  if (!ownership) {
     return NextResponse.json(
       { error: t("common.shared.unauthorized") },
       { status: 401 },
@@ -230,22 +94,15 @@ export async function POST(
     );
   }
 
-  const parsed = parsePayOrderBody(rawBody, t);
-  if ("error" in parsed) {
-    return NextResponse.json({ error: parsed.error }, { status: 400 });
-  }
-
-  const { paymentMethodType, savedCardId, purchaseOrderRef } = parsed.data;
-  const { id } = await params;
-  const clientId = session.user.id;
-
   // Scoped to the caller, which is what collapses "not yours" into "not found".
   // No role check is needed on top of it: `clientId` is the user who booked the
-  // order, so a driver or a company can never match a row here.
+  // order, so a driver or a company can never match a row here, and a guest
+  // clause pins `clientId: null` beside the token hash.
   const order = await prisma.order.findFirst({
-    where: { id, clientId },
+    where: ownership,
     select: {
       id: true,
+      clientId: true,
       status: true,
       price: true,
       serviceLevelAdjustment: true,
@@ -258,6 +115,41 @@ export async function POST(
       { status: 404 },
     );
   }
+
+  // Who pays decides the rules. An account with no profile row reads as an
+  // individual: an account type that cannot be read is not a business one,
+  // so the narrower rules — no "pay later", no PO reference — apply.
+  const { clientId } = order;
+  let payer: PayerKind = "GUEST";
+  if (clientId !== null) {
+    const clientProfile = await prisma.clientProfile.findUnique({
+      where: { userId: clientId },
+      select: { accountType: true },
+    });
+
+    payer =
+      clientProfile?.accountType === ClientAccountType.BUSINESS
+        ? "BUSINESS"
+        : "INDIVIDUAL";
+  }
+
+  const parsed = parsePayOrderBody(rawBody, payer, t);
+  if ("error" in parsed) {
+    return NextResponse.json(
+      parsed.fieldErrors
+        ? { error: parsed.error, fieldErrors: parsed.fieldErrors }
+        : { error: parsed.error },
+      { status: 400 },
+    );
+  }
+
+  const {
+    paymentMethodType,
+    savedCardId,
+    purchaseOrderRef,
+    guestContact,
+    card,
+  } = parsed.data;
 
   // Checked before the payment-method work below so a client who double-submits,
   // or who reopens a stale checkout tab, reads why rather than a validation
@@ -292,34 +184,23 @@ export async function POST(
   }
 
   // A card belonging to somebody else is not a card this client may pay with;
-  // scoping the lookup to the session makes "not yours" and "does not exist" the
-  // same answer, which is the one worth giving either way.
+  // scoping the lookup to the order's client makes "not yours" and "does not
+  // exist" the same answer, which is the one worth giving either way. (A guest
+  // never reaches this: the parser refuses a `savedCardId` from one.)
   if (savedCardId !== null) {
-    const savedCard = await prisma.savedCard.findFirst({
-      where: { id: savedCardId, clientId },
-      select: { id: true },
-    });
+    const savedCard =
+      clientId === null
+        ? null
+        : await prisma.savedCard.findFirst({
+            where: { id: savedCardId, clientId },
+            select: { id: true },
+          });
 
     if (!savedCard) {
       return NextResponse.json(
         { error: t("common.shared.chooseACardSavedToYour") },
         { status: 400 },
       );
-    }
-  }
-
-  // The PO / cost-centre reference is a BUSINESS-only field: an individual
-  // client's checkout never renders it, so a value arriving from one is a stale
-  // client rather than an attack. Drop it instead of failing the payment.
-  let businessPurchaseOrderRef: string | null = null;
-  if (purchaseOrderRef !== null) {
-    const clientProfile = await prisma.clientProfile.findUnique({
-      where: { userId: clientId },
-      select: { accountType: true },
-    });
-
-    if (clientProfile?.accountType === ClientAccountType.BUSINESS) {
-      businessPurchaseOrderRef = purchaseOrderRef;
     }
   }
 
@@ -341,7 +222,7 @@ export async function POST(
   // order can never carry a payment method with no `Payment` row beside it.
   //
   // The `updateMany` is conditional on the order still being `INITIATED` and
-  // still being this client's, which is what makes a double-submit safe: two
+  // still being this caller's, which is what makes a double-submit safe: two
   // requests racing produce exactly one update, and the loser is told the order
   // is already paid rather than overwriting the winner's method. The upsert
   // covers the other half of the same problem — a first attempt that wrote the
@@ -349,11 +230,23 @@ export async function POST(
   // has to be able to finish rather than collide with the unique `orderId`.
   const claimed = await prisma.$transaction(async (tx) => {
     const { count } = await tx.order.updateMany({
-      where: { id, clientId, status: OrderStatus.INITIATED },
+      where: { AND: [ownership, { status: OrderStatus.INITIATED }] },
       data: {
         paymentMethodType,
         savedCardId,
-        purchaseOrderRef: businessPurchaseOrderRef,
+        // Already reduced to BUSINESS-only by the parser.
+        purchaseOrderRef,
+        // A guest's contact lands with the payment or not at all, so a paid
+        // guest order always says who to call. Account orders write nothing
+        // here: their contact is the client's account.
+        ...(guestContact
+          ? {
+              guestFirstName: guestContact.firstName,
+              guestLastName: guestContact.lastName,
+              guestPhone: guestContact.phone,
+              guestEmail: guestContact.email,
+            }
+          : {}),
       },
     });
 
@@ -363,18 +256,24 @@ export async function POST(
 
     await tx.payment.upsert({
       where: { orderId: id },
+      // The one-off card's display metadata, or null — written on update
+      // too, so a retry that changed method cannot leave a stale ending.
       create: {
-        orderId: id,
+        orderId: order.id,
         provider: NO_PAYMENT_PROVIDER,
         amount,
         status: paymentStatus,
         paidAt,
+        cardBrand: card?.brand ?? null,
+        cardLast4: card?.last4 ?? null,
       },
       update: {
         provider: NO_PAYMENT_PROVIDER,
         amount,
         status: paymentStatus,
         paidAt,
+        cardBrand: card?.brand ?? null,
+        cardLast4: card?.last4 ?? null,
       },
     });
 

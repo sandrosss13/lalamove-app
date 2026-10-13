@@ -3,6 +3,10 @@ import { OrderStatus, type Prisma } from "@prisma/client";
 
 import { getRequestTranslations } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
+import {
+  createGuestAccessToken,
+  setGuestOrderCookie,
+} from "@/lib/orders/guest-access";
 import { parseCreateOrderBody } from "@/lib/orders/order-input";
 import { prepareOrderWrite } from "@/lib/orders/order-write";
 import {
@@ -10,9 +14,32 @@ import {
   ORDER_REFERENCE_SEQUENCE,
 } from "@/lib/orders/reference";
 import { prisma } from "@/lib/prisma";
+import { checkRateLimit, rateLimitCallerKey } from "@/lib/rate-limit";
 
 /**
- * POST /api/orders — create a freight order for the signed-in client.
+ * Per-IP budget for **guest** bookings — creating an order without a session.
+ * A signed-in client is already accountable through their account and is not
+ * limited here; a guest is anonymous, and every booking spends three
+ * LocationIQ requests on the quote and leaves a row in the database. Ten in
+ * ten minutes is several attempts' worth for one person correcting a booking,
+ * and nowhere near enough to fill the orders table from a script.
+ */
+const GUEST_ORDER_RATE_LIMIT = { limit: 10, windowMs: 10 * 60_000 };
+
+/**
+ * POST /api/orders — create a freight order for the signed-in client, or for a
+ * **guest** when there is no session.
+ *
+ * A guest order is the same booking with a different owner: `clientId` stays
+ * null, and ownership is a bearer token instead — minted here, stored only as
+ * its hash (`guestAccessTokenHash`), and handed to the booking browser as an
+ * httpOnly cookie (see `src/lib/orders/guest-access.ts`). That cookie is what
+ * lets the guest attach photos and reach checkout, where the contact details
+ * and the card are collected. A guest is held to INDIVIDUAL rules by
+ * `prepareOrderWrite`: no saved card, no PO reference, no "pay later". Guest
+ * creation is rate limited per caller, the same way the public estimate is.
+ * The response body is identical either way; the token travels only in the
+ * cookie, never in JSON.
  *
  * Quoting goes through the same `estimateDelivery` the public estimate endpoint
  * uses, so the price booked here is the price that was quoted. The itemised
@@ -38,10 +65,24 @@ export async function POST(request: Request): Promise<NextResponse> {
   const t = await getRequestTranslations();
 
   const session = await auth.api.getSession({ headers: request.headers });
-  if (!session) {
+
+  // Checked before parsing or quoting so a flood of anonymous bookings costs
+  // almost nothing. Namespaced so it never shares a bucket with the estimate.
+  if (
+    !session &&
+    !checkRateLimit(
+      `guest-order:${rateLimitCallerKey(request)}`,
+      GUEST_ORDER_RATE_LIMIT,
+    )
+  ) {
     return NextResponse.json(
-      { error: t("common.shared.unauthorized") },
-      { status: 401 },
+      { error: t("common.shared.tooManyRequestsPleaseWaitA") },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(GUEST_ORDER_RATE_LIMIT.windowMs / 1000),
+        },
+      },
     );
   }
 
@@ -60,7 +101,11 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
 
-  const prepared = await prepareOrderWrite(parsed.data, session.user.id, t);
+  // `null` is the guest. Any signed-in role keeps the behaviour it always had:
+  // the order is booked against the session user.
+  const clientId = session?.user.id ?? null;
+
+  const prepared = await prepareOrderWrite(parsed.data, clientId, t);
   if (!prepared.ok) {
     return NextResponse.json(
       { error: prepared.error },
@@ -69,6 +114,10 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 
   const { details, payment } = prepared.write;
+
+  // Minted only for a guest. The raw token leaves this handler in the cookie
+  // below and nowhere else; the row keeps its hash.
+  const guestAccess = clientId === null ? createGuestAccessToken() : null;
 
   // Created `INITIATED` — off-market and unpaid — rather than letting the column
   // default supply a status. An order's opening state is a decision this path
@@ -123,8 +172,13 @@ export async function POST(request: Request): Promise<NextResponse> {
         paymentMethodType: payment.paymentMethodType,
         savedCardId: payment.savedCardId,
         purchaseOrderRef: payment.purchaseOrderRef,
-        clientId: session.user.id,
+        clientId,
+        guestAccessTokenHash: guestAccess?.hash ?? null,
       },
+      // The created row is returned as it always was, minus the token hash.
+      // A hash cannot be turned back into a working link, but no consumer of
+      // this response has any use for it either.
+      omit: { guestAccessTokenHash: true },
     });
   });
 
@@ -145,7 +199,13 @@ export async function POST(request: Request): Promise<NextResponse> {
   // rule someone has to remember. Do not relax either into a `not`/`notIn`
   // filter: that would start listing unpaid work the moment a new status is
   // added.
-  return NextResponse.json(created, { status: 201 });
+  const response = NextResponse.json(created, { status: 201 });
+
+  if (guestAccess) {
+    setGuestOrderCookie(response, created.id, guestAccess.token);
+  }
+
+  return response;
 }
 
 /**
@@ -334,7 +394,7 @@ const DRIVER_ORDER_LIST_SELECT = {
  * what it pays — the contacts become theirs when the job does.
  */
 function canSeeStopContacts(
-  order: { clientId: string; driverId: string | null },
+  order: { clientId: string | null; driverId: string | null },
   userId: string,
 ): boolean {
   return order.clientId === userId || order.driverId === userId;

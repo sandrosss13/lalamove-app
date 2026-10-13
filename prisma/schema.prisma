@@ -1348,8 +1348,31 @@ model Order {
   // not the mechanism any current code depends on.
   status OrderStatus @default(INITIATED)
 
-  clientId String
-  client   User   @relation("ClientOrders", fields: [clientId], references: [id], onDelete: Cascade)
+  /// The account that booked the order — null on a **guest order**, one placed
+  /// from the public booking page without signing in. Invariant (enforced by
+  /// `POST /api/orders`, the only writer): every order has either a `clientId`
+  /// or a `guestAccessTokenHash`, never neither. Code that shows "the client"
+  /// falls back to the `guest*` contact columns below when this is null.
+  clientId String?
+  client   User?   @relation("ClientOrders", fields: [clientId], references: [id], onDelete: Cascade)
+
+  /// A guest order's contact, written by `POST /api/orders/[id]/pay` in the same
+  /// transaction that records the payment (a guest cannot pay without it, see
+  /// `parseGuestContact` in `src/lib/orders/guest-contact.ts`). Null on every
+  /// account order — those read the contact from `client`. `guestPhone` is
+  /// E.164, normalised by `normalizePhoneNumber`; no OTP proves the guest owns
+  /// it, so treat it as "what the guest typed", not a verified number.
+  guestFirstName String?
+  guestLastName  String?
+  guestPhone     String?
+  guestEmail     String?
+
+  /// sha256 hex of the guest's private tracking token (see
+  /// `src/lib/orders/guest-access.ts`). The raw token lives only in the guest's
+  /// cookie and the `/track/<token>` link — never in the database — so a leaked
+  /// row cannot be turned back into a working link. Unique because the token
+  /// is the lookup key of the public track page.
+  guestAccessTokenHash String? @unique
 
   // Set when a company claims the order; the assigned driver/vehicle follow at
   // dispatch time. Nulled rather than cascaded for the same reason as `driverId`.
@@ -2345,6 +2368,15 @@ model Payment {
   /// That gateway's own id for the captured payment. Unique per gateway, so
   /// one captured payment can never confirm two orders.
   gatewayReference   String?
+
+  /// Display metadata of a **one-off** card a guest paid with — brand and last
+  /// four digits only, validated like `/api/saved-cards` validates a saved
+  /// card's metadata. Never a PAN, never a token: no gateway is integrated, so
+  /// this is what the receipt shows, not something that can be charged. Null
+  /// for saved-card and cash payments (a saved card's metadata lives on
+  /// `SavedCard`).
+  cardBrand String?
+  cardLast4 String?
 
   @@unique([gatewayName, gatewayReference])
 }

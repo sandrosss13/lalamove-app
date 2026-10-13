@@ -4,7 +4,9 @@
     "playStoreKicker": "Get it on"
   },
   "landingBookingCard": {
+    "anyCargo": "What are you moving?",
     "anyVehicle": "Any vehicle",
+    "cargo": "Cargo",
     "defaultCta": "Book a delivery",
     "dropoff": "Drop-off",
     "dropoffPlaceholder": "Where is it going?",

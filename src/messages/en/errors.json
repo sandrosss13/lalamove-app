@@ -508,8 +508,11 @@
     "youDoNotHaveAccessTo": "You do not have access to this order."
   },
   "ordersPay": {
+    "enterTheCardYouArePaying": "Enter the card you are paying with.",
+    "enterYourContactDetails": "Enter your first name, last name and phone number to pay.",
     "fieldMustBeStringWhenProvided": "{field} must be a string when provided.",
     "fieldTooLong": "{field} must be {max} characters or fewer.",
+    "payLaterIsNotAvailable": "Pay later is only available to business accounts. Please pay by card.",
     "paymentMethodTypeMustBeOneOf": "paymentMethodType must be one of: {allowed}.",
     "thisDeliveryHasAlreadyBeenPaid": "This delivery has already been paid for and is with our drivers."
   },

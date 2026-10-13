@@ -11,15 +11,19 @@
     "enterFutureExpiry": "Enter an expiry date in the future.",
     "enterHolderName": "Enter the name printed on the card.",
     "expiry": "Expiry",
+    "gatewayIntegrationIsPendingOneOff": "Gateway integration is pending. Your card details are not sent anywhere and nothing is charged — only the brand and last four digits are recorded with this payment. The card is not saved.",
     "gatewayIntegrationIsPendingYourCard": "Gateway integration is pending. Your card details are not sent anywhere and nothing is charged — only the brand and last four digits are saved so you can recognise the card.",
     "mmYy": "MM/YY",
     "nameOnCard": "Name on card",
+    "oneOffCardDescription": "Credit or debit card, used for this delivery only.",
+    "payByCard": "Pay by card",
     "saveCard": "Save card",
     "saveFailed": "Could not save the card. Try again.",
-    "setAsDefaultPaymentMethod": "Set as default payment method"
+    "setAsDefaultPaymentMethod": "Set as default payment method",
+    "useThisCard": "Use this card"
   },
   "bookingForm": {
-    "1IsTheDriverOnTheir": "1 is the driver on their own. Every person after that is a helper for loading and unloading, charged as a flat fee on top of the fare.",
+    "helpersHint": "0 means the driver works alone. Each helper is charged as a flat fee on top of the fare.",
     "additionalDetails": "Additional details",
     "anythingTheDriverShouldKnow": "Anything the driver should know",
     "best": "Best",
@@ -37,8 +41,8 @@
     "cargoPhotosLimit": "You can add up to {max} photos.",
     "chooseGoodsAndWeightForVehicles": "Choose what you're moving and a total weight to see recommended vehicles.",
     "couldNotPriceThisLoad": "Could not price this load. Please try again.",
-    "crewSizeMany": "{size} people — the driver and {helpers, plural, one {# helper} other {# helpers}}",
-    "crewSizeOne": "1 person — the driver alone",
+    "helperCountSome": "{count, plural, one {# helper} other {# helpers}} on top of the driver",
+    "helperCountNone": "No helpers — the driver alone",
     "deliveryDateTime": "Delivery date & time",
     "descriptionOptional": "Description (optional)",
     "dropoffAddress": "Dropoff address",
@@ -63,7 +67,7 @@
     "onlyVehiclesClearedForYourGoods": "Only vehicles cleared for your goods, load space and weight are shown, cheapest first.",
     "openChassis": "Open chassis",
     "orderFailed": "Could not create the order. Please try again.",
-    "peopleForLoadingUnloading": "People for loading / unloading",
+    "helpers": "Helpers",
     "pickADateFirst": "Pick a date first",
     "pickTheClosestMatchItDecides": "Pick the closest match — it decides which vehicles can take the job.",
     "pickWhatYoureMovingFirst": "Pick what you're moving first — weight options depend on the vehicles cleared for it.",
@@ -109,7 +113,8 @@
     "cargoPhotosEditDescription": "Photos already on this order are kept. Any you add here are added to them.",
     "saveChanges": "Save changes",
     "saving": "Saving…",
-    "couldNotSaveChanges": "Could not save your changes. Please try again."
+    "couldNotSaveChanges": "Could not save your changes. Please try again.",
+    "haveAnAccountSignIn": "Have an account? Sign in"
   },
   "homeEntry": {
     "loading": "Loading…"

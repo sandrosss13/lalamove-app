@@ -97,7 +97,8 @@ export function parseAdminOrderFilters(
 /**
  * A filter → the `where` clause. The search covers the three things staff
  * actually have to hand when a ticket comes in: the order reference read out
- * over the phone, and the client's account name or email. `insensitive` so
+ * over the phone, and the client's account name or email — or, for a guest
+ * order, the name, email or phone the guest left at checkout. `insensitive` so
  * "ge-48210" finds "GE-48210", `contains` so a partial reference works.
  */
 export function buildAdminOrderWhere(
@@ -114,6 +115,12 @@ export function buildAdminOrderWhere(
       { reference: { contains: filters.query, mode: "insensitive" } },
       { client: { email: { contains: filters.query, mode: "insensitive" } } },
       { client: { name: { contains: filters.query, mode: "insensitive" } } },
+      // A guest order has no account to search; its booker is in the contact
+      // columns written at checkout.
+      { guestFirstName: { contains: filters.query, mode: "insensitive" } },
+      { guestLastName: { contains: filters.query, mode: "insensitive" } },
+      { guestEmail: { contains: filters.query, mode: "insensitive" } },
+      { guestPhone: { contains: filters.query } },
     ];
   }
 

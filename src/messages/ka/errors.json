@@ -508,8 +508,11 @@
     "youDoNotHaveAccessTo": "თქვენ არ გაქვთ წვდომა ამ შეკვეთაზე."
   },
   "ordersPay": {
+    "enterTheCardYouArePaying": "მიუთითეთ ბარათი, რომლითაც იხდით.",
+    "enterYourContactDetails": "გადასახდელად მიუთითეთ სახელი, გვარი და ტელეფონის ნომერი.",
     "fieldMustBeStringWhenProvided": "{field} მითითების შემთხვევაში უნდა იყოს ტექსტი.",
     "fieldTooLong": "{field} არ უნდა აღემატებოდეს {max} სიმბოლოს.",
+    "payLaterIsNotAvailable": "მოგვიანებით გადახდა მხოლოდ ბიზნეს ანგარიშებისთვისაა ხელმისაწვდომი. გთხოვთ, გადაიხადოთ ბარათით.",
     "paymentMethodTypeMustBeOneOf": "paymentMethodType უნდა იყოს ერთ-ერთი შემდეგიდან: {allowed}.",
     "thisDeliveryHasAlreadyBeenPaid": "ამ მიწოდების საფასური უკვე გადახდილია და ის ჩვენს მძღოლებთანაა."
   },

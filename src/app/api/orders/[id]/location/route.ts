@@ -4,7 +4,17 @@ import { getRequestTranslations } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
 import { passwordChangeRefusal } from "@/lib/orders/action-errors";
 import { getDeliveryEta } from "@/lib/orders/delivery-eta";
+import {
+  hashGuestAccessToken,
+  isGuestAccessTokenShape,
+  readGuestOrderToken,
+} from "@/lib/orders/guest-access";
 import { prisma } from "@/lib/prisma";
+
+/** A `?token=` value, if it is shaped like a guest token; else `null`. */
+function guestTokenFromQuery(value: string | null): string | null {
+  return value && isGuestAccessTokenShape(value) ? value : null;
+}
 
 /**
  * GET /api/orders/[id]/location — the assigned driver's last known position for
@@ -16,7 +26,9 @@ import { prisma } from "@/lib/prisma";
  *
  * Only the two parties to the delivery — the ordering client and the assigned
  * driver — may read it, so a driver's whereabouts are never exposed to an
- * unrelated signed-in user.
+ * unrelated signed-in user. For a **guest order** the ordering party is
+ * whoever holds the order's guest token (cookie, or `?token=` from the
+ * private tracking link) — see `src/lib/orders/guest-access.ts`.
  *
  * Alongside the position it carries `eta` — where the driver is heading next
  * (the pickup while `ACCEPTED`, the dropoff while `IN_TRANSIT`) and roughly when
@@ -33,7 +45,19 @@ export async function GET(
   const t = await getRequestTranslations();
 
   const session = await auth.api.getSession({ headers: request.headers });
-  if (!session) {
+  const { id } = await params;
+
+  // A guest order's booker has no session. Their proof is the order's token:
+  // the httpOnly cookie on the browser that booked, or — on any other device,
+  // following the private `/track/<token>` link — the same token passed as
+  // `?token=`. Read only when there is no session, and only ever matched
+  // against a guest order (see `guestHash` below).
+  const guestToken = session
+    ? null
+    : ((await readGuestOrderToken(id)) ??
+      guestTokenFromQuery(new URL(request.url).searchParams.get("token")));
+
+  if (!session && !guestToken) {
     return NextResponse.json(
       { error: t("common.shared.unauthorized") },
       { status: 401 },
@@ -45,12 +69,16 @@ export async function GET(
   // about a driver acting on a temporary password — it must not stop a client
   // (or any other role) from following their own delivery. Every other gated
   // route is carrier-only and gates every role; this is the one that cannot.
-  const passwordRefusal = passwordChangeRefusal(session.user, t, "DRIVER_ONLY");
-  if (passwordRefusal) {
-    return passwordRefusal;
+  if (session) {
+    const passwordRefusal = passwordChangeRefusal(
+      session.user,
+      t,
+      "DRIVER_ONLY",
+    );
+    if (passwordRefusal) {
+      return passwordRefusal;
+    }
   }
-
-  const { id } = await params;
 
   const order = await prisma.order.findUnique({
     where: { id },
@@ -58,6 +86,7 @@ export async function GET(
       status: true,
       clientId: true,
       driverId: true,
+      guestAccessTokenHash: true,
       pickupLat: true,
       pickupLng: true,
       dropoffLat: true,
@@ -84,8 +113,14 @@ export async function GET(
     );
   }
 
-  const userId = session.user.id;
-  if (order.clientId !== userId && order.driverId !== userId) {
+  const isParty = session
+    ? order.clientId === session.user.id || order.driverId === session.user.id
+    : order.clientId === null &&
+      order.guestAccessTokenHash !== null &&
+      guestToken !== null &&
+      order.guestAccessTokenHash === hashGuestAccessToken(guestToken);
+
+  if (!isParty) {
     return NextResponse.json(
       { error: t("errors.ordersLocation.youDoNotHaveAccessTo") },
       { status: 403 },

@@ -285,7 +285,7 @@ export type HubJobSheet = {
    * never in array order.
    */
   handlingTags: string[];
-  /** Extra helpers booked *beyond* the driver, 0-3. */
+  /** Extra helpers booked *beyond* the driver, 0-4. */
   helperCount: number;
   /** Raw `ChassisType`, or null on any order placed before the filter existed. */
   bodyType: string | null;

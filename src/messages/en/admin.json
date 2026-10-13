@@ -289,7 +289,9 @@
       "paid": "Paid",
       "failed": "Failed",
       "refunded": "Refunded"
-    }
+    },
+    "guestClient": "Guest (no account)",
+    "guestContactPending": "Guest — contact not given yet"
   },
   "adminRoles": {
     "analytics": "Analytics",

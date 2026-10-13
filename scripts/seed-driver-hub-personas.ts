@@ -1274,7 +1274,7 @@ async function main(): Promise<void> {
       select: { id: true, clientId: true, client: { select: { email: true } } },
     });
     for (const order of existingOrders) {
-      if (!isSeedEmail(order.client.email)) {
+      if (!order.client || !isSeedEmail(order.client.email)) {
         collisions.push(
           `Order ${order.id} exists but was placed by ${order.clientId}, which is not a seed client.`,
         );

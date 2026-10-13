@@ -38,7 +38,7 @@ const CARGO_CATEGORIES = Object.keys(CARGO_CATEGORY_LABELS) as CargoCategory[];
 const MINUTES_PER_HOUR = 60;
 
 /** The most extra helpers a single booking may request beyond the driver. */
-const MAX_HELPER_COUNT = 3;
+const MAX_HELPER_COUNT = 4;
 
 /** The fields every freight quote is computed from. */
 export type QuoteInput = {
@@ -48,10 +48,9 @@ export type QuoteInput = {
   vehicleTypeCode: string;
   cargoCategory: CargoCategory;
   /**
-   * Extra helpers requested *beyond* the driver, 0-3. The booking form asks for
-   * a total crew size of 1-4 people, where 1 is the driver working alone, so the
-   * number the client picks is always this one plus one — the wire carries the
-   * extras, because that is what the per-helper fee multiplies.
+   * Extra helpers requested *beyond* the driver, 0-4. The booking form asks for
+   * exactly this number, where 0 is the driver working alone — the driver is
+   * never counted, because the per-helper fee multiplies only the extras.
    */
   helperCount: number;
 };
@@ -263,7 +262,7 @@ export function parseQuoteFields(
 
   // Optional: an omitted helper count means "driver alone", but a present value
   // outside the bookable range is a client bug worth reporting rather than
-  // clamping — a silently reduced crew would quote a price nobody asked for.
+  // clamping — a silently reduced helper count would quote a price nobody asked for.
   if (
     helperCount !== undefined &&
     (typeof helperCount !== "number" ||

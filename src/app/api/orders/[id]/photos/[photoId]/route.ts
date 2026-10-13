@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { auth } from "@/lib/auth";
+import { ownedOrderWhere } from "@/lib/orders/load-accessible-order";
 import { deleteOrderPhotos } from "@/lib/order-photo-storage";
 import {
   isOrderPhotoEditableStatus,
@@ -37,15 +38,17 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string; photoId: string }> },
 ): Promise<NextResponse> {
   const session = await auth.api.getSession({ headers: request.headers });
-  if (!session) {
+  const { id, photoId } = await params;
+
+  // The order's client, or the guest holding its cookie.
+  const ownership = await ownedOrderWhere(id, session);
+  if (!ownership) {
     return photoError("UNAUTHORIZED", 401);
   }
 
-  const { id, photoId } = await params;
-
-  // Scoped through the order's `clientId`, which is the ownership check.
+  // Scoped through the order's ownership, which is the ownership check.
   const photo = await prisma.orderPhoto.findFirst({
-    where: { id: photoId, orderId: id, order: { clientId: session.user.id } },
+    where: { id: photoId, orderId: id, order: ownership },
     select: {
       id: true,
       storagePath: true,

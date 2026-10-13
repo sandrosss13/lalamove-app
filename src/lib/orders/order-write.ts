@@ -34,7 +34,7 @@
 
 import "server-only";
 
-import { ClientAccountType } from "@prisma/client";
+import { ClientAccountType, PaymentMethodType } from "@prisma/client";
 
 import {
   getRequestLocale,
@@ -173,6 +173,13 @@ export type PrepareOrderWriteResult =
  * both callers. It scopes the saved-card lookup and decides the account type
  * the PO reference is kept for.
  *
+ * `null` is a **guest** booking (`POST /api/orders` with no session). A guest
+ * is held to INDIVIDUAL rules: there is no wallet, so a `savedCardId` is
+ * refused exactly as somebody else's card would be; there is no business
+ * account, so a PO reference is dropped the way an individual's is; and the
+ * "pay later" option (`CASH`) does not exist for individuals, so naming it is
+ * refused like a method admin has switched off.
+ *
  * Quoting goes through the same `estimateDelivery` the public estimate endpoint
  * uses, so the price booked here is the price that was quoted. The itemised
  * breakdown is returned alongside the total: the order keeps showing how its
@@ -184,7 +191,7 @@ export type PrepareOrderWriteResult =
  */
 export async function prepareOrderWrite(
   input: CreateOrderInput,
-  clientId: string,
+  clientId: string | null,
   t: RequestTranslator,
 ): Promise<PrepareOrderWriteResult> {
   const {
@@ -350,6 +357,20 @@ export async function prepareOrderWrite(
   // has never been switched on — the admin endpoints seed new rows disabled and
   // treat turning one on as a deliberate act — so a missing row is a disabled
   // one, and both are refused here.
+  // A guest is an individual, and individuals have no "pay later". Refused
+  // with the switched-off wording rather than a bespoke one: from where the
+  // guest stands the method simply is not available. (Signed-in INDIVIDUAL
+  // clients are held to the same rule at checkout, where the method is
+  // actually chosen — `POST /api/orders/[id]/pay`. The booking form sends no
+  // method at all.)
+  if (clientId === null && paymentMethodType === PaymentMethodType.CASH) {
+    return {
+      ok: false,
+      status: 400,
+      error: t("common.shared.thatPaymentMethodIsNotAvailable"),
+    };
+  }
+
   if (paymentMethodType !== null) {
     const paymentMethodConfig = await prisma.paymentMethodConfig.findUnique({
       where: { type: paymentMethodType },
@@ -368,11 +389,17 @@ export async function prepareOrderWrite(
   // A card belonging to somebody else is not a card this client may book
   // against; scoping the lookup to the session makes "not yours" and "does not
   // exist" the same answer, which is the one worth giving either way.
+  //
+  // A guest has no wallet at all, so any card id from one is answered the same
+  // way without a query.
   if (savedCardId !== null) {
-    const savedCard = await prisma.savedCard.findFirst({
-      where: { id: savedCardId, clientId },
-      select: { id: true },
-    });
+    const savedCard =
+      clientId === null
+        ? null
+        : await prisma.savedCard.findFirst({
+            where: { id: savedCardId, clientId },
+            select: { id: true },
+          });
 
     if (!savedCard) {
       return {
@@ -387,7 +414,8 @@ export async function prepareOrderWrite(
   // client's booking form never renders it, so a value arriving from one is a
   // stale client rather than an attack. Drop it instead of failing the booking.
   let businessPurchaseOrderRef: string | null = null;
-  if (purchaseOrderRef !== null) {
+  // A guest has no account type and is treated as an individual.
+  if (purchaseOrderRef !== null && clientId !== null) {
     const clientProfile = await prisma.clientProfile.findUnique({
       where: { userId: clientId },
       select: { accountType: true },

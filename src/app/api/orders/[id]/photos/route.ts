@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { OrderStatus } from "@prisma/client";
 
 import { auth } from "@/lib/auth";
+import { ownedOrderWhere } from "@/lib/orders/load-accessible-order";
 import {
   deleteOrderPhotos,
   getOrderPhotoSignedUrl,
@@ -61,8 +62,9 @@ class PhotoRefusal extends Error {
  * what a carrier was shown is frozen. See `src/lib/order-photos/rules.ts` for
  * every rule a file has to pass.
  *
- * Ownership is the `clientId` scope on the lookup, exactly as
- * `POST /api/orders/[id]/pay` does it: somebody else's order and a missing one
+ * Ownership is the `clientId` scope on the lookup — or, for a guest order, the
+ * guest cookie (`ownedOrderWhere`) — exactly as `POST /api/orders/[id]/pay`
+ * does it: somebody else's order and a missing one
  * are the same `404`, so this endpoint cannot be used to probe which ids exist.
  *
  * ## Order of operations
@@ -80,11 +82,15 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
   const session = await auth.api.getSession({ headers: request.headers });
-  if (!session) {
+  const { id } = await params;
+
+  // The order's client, or the guest holding its cookie — a guest's booking
+  // form uploads photos between creating the order and checkout, exactly as a
+  // signed-in client's does.
+  const ownership = await ownedOrderWhere(id, session);
+  if (!ownership) {
     return photoError("UNAUTHORIZED", 401);
   }
-
-  const { id } = await params;
 
   // Refuse an obviously oversized body before buffering any of it. Only a
   // cheap first line — `Content-Length` can be absent or wrong — so the parsed
@@ -99,7 +105,7 @@ export async function POST(
   }
 
   const order = await prisma.order.findFirst({
-    where: { id, clientId: session.user.id },
+    where: ownership,
     select: { id: true, status: true, _count: { select: { photos: true } } },
   });
 

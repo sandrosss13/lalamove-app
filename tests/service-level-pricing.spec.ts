@@ -24,6 +24,7 @@
 import { expect, test } from "@playwright/test";
 
 import {
+  parseQuoteFields,
   POOLING_DISCOUNT,
   PRIORITY_UPLIFT,
   priceForServiceLevel,
@@ -173,6 +174,43 @@ test.describe("Service level adjustments", () => {
             `${displayedFare} + ${displayedAdjustment} should read as ${displayedTotal}`,
         ).toBe(displayedCents(displayedTotal));
       }
+    }
+  });
+});
+
+/**
+ * The helper range the booking form's "Helpers" picker offers, 0–4. The parser
+ * refuses anything outside it rather than clamping, so the bounds are pinned
+ * here: a cap that drifted below the picker's top cell would turn a valid
+ * booking into a "helperCount must be…" error.
+ */
+test.describe("Helper count range", () => {
+  const quote = (helperCount: unknown) =>
+    parseQuoteFields({
+      pickupAddress: "Rustaveli Ave 12, Tbilisi",
+      dropoffAddress: "Aghmashenebeli Ave 88, Tbilisi",
+      vehicleTypeCode: "BOX_TRUCK",
+      cargoCategory: "FURNITURE_FURNISHINGS",
+      helperCount,
+    });
+
+  test("accepts every count the picker offers, 0 through 4", () => {
+    for (const helperCount of [0, 1, 2, 3, 4]) {
+      const result = quote(helperCount);
+      expect("data" in result && result.data.helperCount).toBe(helperCount);
+    }
+  });
+
+  test("treats an omitted count as the driver alone", () => {
+    const result = quote(undefined);
+    expect("data" in result && result.data.helperCount).toBe(0);
+  });
+
+  test("refuses counts outside 0–4 and fractional ones", () => {
+    for (const helperCount of [-1, 5, 1.5, "2"]) {
+      expect(quote(helperCount)).toEqual({
+        error: "helperCount must be a whole number between 0 and 4.",
+      });
     }
   });
 });

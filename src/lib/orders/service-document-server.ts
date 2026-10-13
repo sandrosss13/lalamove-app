@@ -96,7 +96,7 @@ export async function resolveServiceDocumentAccess(
   if (!order) {
     return { kind: "NOT_FOUND" };
   }
-  if (order.client.clientProfile?.accountType !== ClientAccountType.BUSINESS) {
+  if (order.client?.clientProfile?.accountType !== ClientAccountType.BUSINESS) {
     return { kind: "NOT_BUSINESS" };
   }
   if (!isServiceDocumentAvailable(order.status)) {
@@ -310,7 +310,9 @@ export async function buildServiceDocumentView(
   // Snapshot first; the live value only while nothing is frozen yet. A frozen
   // `null` stays `null` — the document records what was true at the start.
   const service = order.serviceSnapshot ?? liveServiceColumns(order);
-  const profile = order.client.clientProfile;
+  // Business-only document, so always an account order; `?? null` only
+  // satisfies the nullable relation a guest order introduced.
+  const profile = order.client?.clientProfile ?? null;
   const documentDate =
     order.completedAt ??
     order.inTransitAt ??

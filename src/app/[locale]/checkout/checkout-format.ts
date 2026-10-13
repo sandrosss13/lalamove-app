@@ -116,13 +116,14 @@ export const PAYMENT_METHOD_LABEL: Record<PaymentMethodType, string> = {
 };
 
 /**
- * The crew, counted the way the client chose it: the booking form asks for a
- * total of 1–4 people where the first is the driver, while the column stores the
- * *extra* helpers. Pluralised rather than printed as a bare "1 people".
+ * The helpers booked on top of the driver, counted the way the booking form
+ * asks for them (0–4). Pluralised rather than printed as a bare "1 helpers".
  */
-export function crewSizeLabel(helperCount: number): string {
-  const size = helperCount + 1;
-  return `${size} ${size === 1 ? "person" : "people"}`;
+export function helperCountLabel(helperCount: number): string {
+  if (helperCount === 0) {
+    return "No helpers";
+  }
+  return `${helperCount} ${helperCount === 1 ? "helper" : "helpers"}`;
 }
 
 /**
@@ -175,21 +176,22 @@ export function paymentMethodLabel(
   return t(PAYMENT_METHOD_KEY[method]);
 }
 
-/** `crewSizeLabel` in the reader's language (ICU plural), given a root `t`. */
-export function localizedCrewSizeLabel(
+/** `helperCountLabel` in the reader's language (ICU plural), given a root `t`. */
+export function localizedHelperCountLabel(
   helperCount: number,
   t: Translator,
 ): string {
-  return t("checkout.crewSize", { count: helperCount + 1 });
+  return t("checkout.helperCount", { count: helperCount });
 }
 
-/** Component hook: localised `bodyTypeLabel`, `paymentMethodLabel` and crew size. */
+/** Component hook: localised `bodyTypeLabel`, `paymentMethodLabel` and helper count. */
 export function useCheckoutLabels() {
   const t = useTranslations();
 
   return {
     bodyType: (bodyType: ChassisType) => bodyTypeLabel(bodyType, t),
     paymentMethod: (method: PaymentMethodType) => paymentMethodLabel(method, t),
-    crewSize: (helperCount: number) => localizedCrewSizeLabel(helperCount, t),
+    helperCount: (helperCount: number) =>
+      localizedHelperCountLabel(helperCount, t),
   };
 }

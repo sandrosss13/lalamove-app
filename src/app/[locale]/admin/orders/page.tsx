@@ -32,6 +32,10 @@ import {
   parseAdminOrderFilters,
   type AdminOrderFilters,
 } from "@/lib/admin/orders-filters";
+import {
+  ORDER_GUEST_CONTACT_SELECT,
+  orderClientDisplay,
+} from "@/lib/orders/order-client-display";
 import { prisma } from "@/lib/prisma";
 import { cn } from "@/lib/utils";
 import { vehicleTypeSpecLabel } from "@/lib/vehicle-type-spec-labels";
@@ -88,6 +92,7 @@ export default async function AdminOrdersPage({
         serviceLevelAdjustment: true,
         overtimeFee: true,
         client: { select: { name: true, email: true } },
+        ...ORDER_GUEST_CONTACT_SELECT,
         vehicleTypeSpec: { select: { code: true, label: true } },
         _count: { select: { photos: true } },
       },
@@ -102,6 +107,24 @@ export default async function AdminOrdersPage({
   const format = await getFormatter();
   const formAction = await localeHref("/admin/orders");
   const hasFilters = filters.query !== "" || filters.status !== null;
+
+  // An account order shows the account; a guest order shows what the guest
+  // left at checkout — or says it is a guest order still waiting for it.
+  const clientCell = (
+    order: (typeof orders)[number],
+  ): { name: string; detail: string | null } => {
+    const display = orderClientDisplay(order);
+    if (!display.isGuest) {
+      return { name: display.name ?? "", detail: display.email };
+    }
+
+    return display.name
+      ? {
+          name: display.name,
+          detail: [t("guestClient"), display.phone].filter(Boolean).join(" · "),
+        }
+      : { name: t("guestContactPending"), detail: null };
+  };
 
   const pageHref = (page: number): string =>
     `/admin/orders${adminOrdersQueryString({ ...filters, page } satisfies AdminOrderFilters)}`;
@@ -215,7 +238,7 @@ export default async function AdminOrdersPage({
                           {created}
                         </span>
                         <span className="max-w-48 truncate text-xs text-muted-foreground md:hidden">
-                          {order.client.name}
+                          {clientCell(order).name}
                         </span>
                       </div>
                     </TableCell>
@@ -224,9 +247,11 @@ export default async function AdminOrdersPage({
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
                       <div className="flex max-w-48 flex-col">
-                        <span className="truncate">{order.client.name}</span>
+                        <span className="truncate">
+                          {clientCell(order).name}
+                        </span>
                         <span className="truncate text-xs text-muted-foreground">
-                          {order.client.email}
+                          {clientCell(order).detail}
                         </span>
                       </div>
                     </TableCell>
