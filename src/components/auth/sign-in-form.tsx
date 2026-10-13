@@ -40,6 +40,11 @@ import {
 } from "@/lib/auth-flow";
 import { signIn, signOut, authClient } from "@/lib/auth-client";
 import { merchantOrigin, type Audience } from "@/lib/host";
+import {
+  appendGoodsParam,
+  postAuthDestination,
+} from "@/lib/goods-param-threading";
+import type { GoodsShortcutCode } from "@/lib/goods-shortcuts";
 import { cn } from "@/lib/utils";
 
 /**
@@ -83,6 +88,10 @@ const PORTAL_LABEL_KEYS = {
  * Keyed by audience only: for the one role that still reads it, the destination
  * depends on which host the user is on, not on which of that host's portals
  * they picked.
+ *
+ * A landing-page goods shortcut is appended to the CLIENT destination at the
+ * point of use (`postAuthDestination`), never stored in this table: `/` is the
+ * only destination that reads `?goods=`, and only a validated code is added.
  */
 const POST_SIGN_IN_PATH: Record<Audience, string> = {
   CLIENT: "/",
@@ -117,6 +126,12 @@ type FlowLocation = {
   role?: FlowRole | null;
   accountType?: AccountType | null;
   step?: string | null;
+  /**
+   * The landing page's goods shortcut. Not a wizard position — it is carried
+   * unchanged across every hop, including the toggle to `/sign-up`, so the
+   * booking form opens on it once the visitor is signed in.
+   */
+  goods?: GoodsShortcutCode | null;
 };
 
 /**
@@ -125,7 +140,10 @@ type FlowLocation = {
  * URL shortens as the user walks back through the wizard and every step has
  * exactly one canonical address.
  */
-function flowHref(path: string, { role, accountType, step }: FlowLocation) {
+function flowHref(
+  path: string,
+  { role, accountType, step, goods }: FlowLocation,
+) {
   const query = new URLSearchParams();
 
   if (role) {
@@ -137,6 +155,8 @@ function flowHref(path: string, { role, accountType, step }: FlowLocation) {
   if (step) {
     query.set("step", step);
   }
+  // Re-validated inside: only an exact shortcut code is ever appended.
+  appendGoodsParam(query, goods);
 
   const search = query.toString();
 
@@ -243,6 +263,12 @@ type SignInFormProps = {
   accountTypeQuery: string | null;
   /** Raw `?step=`. */
   stepQuery: string | null;
+  /**
+   * `?goods=`, already narrowed to an exact shortcut code by the page — the
+   * one query value that leaves this flow, so it is validated at the trust
+   * boundary rather than here.
+   */
+  goods: GoodsShortcutCode | null;
 };
 
 /**
@@ -277,6 +303,7 @@ export function SignInForm({
   roleQuery,
   accountTypeQuery,
   stepQuery,
+  goods,
 }: SignInFormProps) {
   const t = useTranslations("auth.signInForm");
   const tShared = useTranslations("common.shared");
@@ -355,7 +382,7 @@ export function SignInForm({
   /* --- Navigation ------------------------------------------------------- */
 
   function goTo(location: FlowLocation) {
-    router.push(flowHref(MODE_PATHS.signin, location));
+    router.push(flowHref(MODE_PATHS.signin, { ...location, goods }));
   }
 
   function handleModeChange(nextMode: FlowMode) {
@@ -367,7 +394,7 @@ export function SignInForm({
       return;
     }
 
-    router.push(flowHref(MODE_PATHS[nextMode], { role, accountType }));
+    router.push(flowHref(MODE_PATHS[nextMode], { role, accountType, goods }));
   }
 
   /* --- Sign in ---------------------------------------------------------- */
@@ -528,10 +555,17 @@ export function SignInForm({
     // application status screen or the ops dashboard — is decided there, from
     // the application row this form has not read, so nothing further is pushed
     // here.
+    //
+    // A client who arrived with a landing-page goods shortcut lands on
+    // `/?goods=<code>`; `postAuthDestination` decorates `/` only, with a
+    // validated code only.
     router.push(
-      resolvedRole === "DRIVER" || resolvedRole === "COMPANY"
-        ? "/dashboard"
-        : POST_SIGN_IN_PATH[audience],
+      postAuthDestination(
+        resolvedRole === "DRIVER" || resolvedRole === "COMPANY"
+          ? "/dashboard"
+          : POST_SIGN_IN_PATH[audience],
+        goods,
+      ),
     );
     router.refresh();
   }
@@ -863,7 +897,7 @@ export function SignInForm({
       <p className="text-sm text-[var(--landing-muted)]">
         {t("newToZomo")}{" "}
         <InlineLinkButton
-          href={flowHref(MODE_PATHS.signup, { role, accountType })}
+          href={flowHref(MODE_PATHS.signup, { role, accountType, goods })}
         >
           {t("createAnAccount")}
         </InlineLinkButton>

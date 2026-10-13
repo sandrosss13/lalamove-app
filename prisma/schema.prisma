@@ -426,6 +426,31 @@ enum CargoHandlingTag {
   HEAVY_ITEM
 }
 
+/// Browse groups of the item catalogue (`ItemCatalogEntry`). Purely a
+/// presentation grouping for the booking form's item list and the goods
+/// shortcuts that open it; it decides nothing about pricing or fit. The cargo
+/// category an item feeds is held per entry, not per group, because a group
+/// mixes them (a TV in the living room is `APPLIANCES`).
+enum ItemGroup {
+  LIVING_ROOM
+  BEDROOM
+  KITCHEN_APPLIANCES
+  OFFICE
+  BOXES_PARCELS
+  OUTDOOR_SPORTS
+  CHILLED_FOOD
+  BUILDING_MATERIALS
+  EVENT_EQUIPMENT
+}
+
+/// Where an `OrderItem` line came from: picked from the catalogue, typed by the
+/// client as an "Other item", or described as pallets (business clients only).
+enum OrderItemKind {
+  CATALOGUE
+  CUSTOM
+  PALLET
+}
+
 /// Cities a driver or logistics company can be based in.
 enum GeorgianCity {
   TBILISI
@@ -554,6 +579,105 @@ model VehicleTypeSpec {
   orders            Order[]
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
+}
+
+/// The admin-editable catalogue of everyday items a client picks from in the
+/// booking form's item list ("Sofa, 3-seat", "Box, medium"). Each entry carries
+/// typical figures from which the load plan (`src/lib/orders/load-plan.ts`)
+/// derives an order's weight, envelope, volume, cargo category and body type.
+///
+/// Data, not code, so ops can tune figures and add items from the back office
+/// without a deploy. The initial rows are installed by an **insert-only**
+/// migration (`*_seed_item_catalogue`), never by `prisma/seed.ts`, so an edit
+/// made in place is never overwritten. Rows are deactivated, never deleted:
+/// `OrderItem` snapshots its figures, but keeps the link for reporting.
+model ItemCatalogEntry {
+  id             String             @id @default(cuid())
+  /// Stable `UPPER_SNAKE` key, used by goods shortcuts and reporting. Never
+  /// reused for a different item, even after the entry is deactivated.
+  code           String             @unique
+  group          ItemGroup
+  /// Labels are held in the database rather than the message catalogues
+  /// because admins edit them alongside the figures.
+  labelEn        String
+  labelKa        String
+  /// Extra search terms matched by the item search, per locale.
+  synonymsEn     String[]           @default([])
+  synonymsKa     String[]           @default([])
+  /// Typical weight of one unit, in kilograms.
+  weightKg       Float
+  /// Typical size of one unit **as transported** (lying down or dismantled
+  /// where that is how it travels), in metres, stored with length ≥ width. The
+  /// fit check never rotates an item, so upright-only items carry their
+  /// standing height. Every figure sits inside `CARGO_MEASUREMENT_BOUNDS`.
+  lengthM        Float
+  widthM         Float
+  heightM        Float
+  /// `false` means nothing can go on top, so the item counts towards the
+  /// vehicle's floor area rather than only its volume.
+  stackable      Boolean            @default(true)
+  /// Drives the step-7 hint suggesting a crew of two. A hint, never forced.
+  needsTwoPeople Boolean            @default(false)
+  /// Set only where the load space is genuinely forced (chilled goods need a
+  /// reefer, forklift-loaded bulk needs an open chassis). Null means any body.
+  requiredBody   ChassisType?
+  /// Handling tags pre-selected in step 6 when this item is listed. The client
+  /// can still change them.
+  handlingTags   CargoHandlingTag[] @default([])
+  /// Feeds the order's derived cargo category, which takes the most
+  /// restrictive category across the listed items.
+  cargoCategory  CargoCategory
+  /// Position within its group in the browse view.
+  sortOrder      Int                @default(0)
+  /// Inactive entries are hidden from the booking form. Deactivate, never
+  /// delete.
+  active         Boolean            @default(true)
+  orderItems     OrderItem[]
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  @@index([group, active, sortOrder])
+}
+
+/// One line of what a client listed on an order: a catalogue item, a custom
+/// "Other item", or a pallet line, with its quantity.
+///
+/// A **snapshot**, not a live reference. Catalogue figures will be tuned as
+/// real orders come in, and a completed order must still show the label,
+/// weight and dimensions its load plan and vehicle were computed from. So the
+/// figures are copied here at booking and never re-read from the catalogue.
+model OrderItem {
+  id             String            @id @default(cuid())
+  orderId        String
+  order          Order             @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  kind           OrderItemKind
+  /// The catalogue entry this line was picked from. Null for CUSTOM and PALLET
+  /// lines, and nulled rather than cascaded if the entry is ever deleted: the
+  /// snapshot below still describes the line.
+  catalogEntryId String?
+  catalogEntry   ItemCatalogEntry? @relation(fields: [catalogEntryId], references: [id], onDelete: SetNull)
+  /// Snapshot of the label, in the client's locale at booking.
+  label          String
+  /// 1–99 per line (1–33 for pallet lines). Enforced by the API, not the
+  /// database.
+  quantity       Int
+  /// Snapshot of the per-unit figures the load plan was computed from, in
+  /// kilograms and metres.
+  unitWeightKg   Float
+  lengthM        Float
+  widthM         Float
+  heightM        Float
+  /// Snapshot of whether the unit could be stacked.
+  stackable      Boolean
+  /// `EUR` or `INDUSTRIAL` for PALLET lines; null for every other kind. Plain
+  /// text rather than an enum so a new pallet size needs no migration.
+  palletType     String?
+
+  @@index([orderId])
+  // Indexed because of `onDelete: SetNull`, for the same reason as
+  // `Order.savedCardId`: without it, deleting a catalogue entry scans every
+  // order item.
+  @@index([catalogEntryId])
 }
 
 /// One pricing rule per vehicle type. `freeLoadingMinutes` is the buffer before
@@ -1151,9 +1275,14 @@ model Order {
   // body surcharge would double-charge the catalogue.
   bodyType ChassisType?
 
-  /// The load's physical description, declared by the client at booking on top
-  /// of the vehicle class they picked. All nullable: every order placed before
+  /// The load's physical description. All nullable: every order placed before
   /// the load board existed has none, and there is nothing to derive them from.
+  ///
+  /// Since goods-first booking these four are **derived server-side from the
+  /// order's `OrderItem` rows** (total weight, and the largest item's envelope)
+  /// and are never typed by the client; any totals the client sends are
+  /// ignored. Orders placed before the item list existed still hold the values
+  /// the client typed, and have no `items`.
   ///
   /// These do **not** feed the quote — `src/lib/pricing.ts` prices a vehicle
   /// class, a distance and a helper count, and continues to. They exist so the
@@ -1165,6 +1294,15 @@ model Order {
   cargoLengthM  Float?
   cargoWidthM   Float?
   cargoHeightM  Float?
+
+  /// Sum of the listed items' volumes (unit L×W×H × quantity), before any packing
+  /// factor. Null for orders placed before the item list existed.
+  cargoVolumeM3 Float?
+
+  /// What the client listed, one row per line, snapshotted at booking. The
+  /// cargo columns above are derived from these. Empty for orders placed before
+  /// the item list existed.
+  items OrderItem[]
 
   /// Free text, shown on the board's Cargo column and in the detail drawer.
   /// `packagingDescription` is the form the load takes ("4 pallets"),
@@ -1188,6 +1326,9 @@ model Order {
   /// reason — every order booked before the list existed has none — and `Json`
   /// rather than a child table because nothing queries inside it: it is read
   /// whole, by one page, for one order.
+  ///
+  /// UNUSED: goods-first booking stores the item list in `OrderItem` (`items`)
+  /// and nothing reads or writes this column; it is pending removal.
   cargoItems Json?
 
   /// Handling requirements. Empty array, never null — an order with no special

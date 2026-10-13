@@ -23,6 +23,13 @@
  * 5. the quote itself, and the tier adjustment, commission and driver payout
  *    derived from it.
  *
+ * Goods-first booking adds a step 0: when the body listed `items`, the goods
+ * are resolved against the active catalogue and planned, and the plan's
+ * weight, envelope, cargo category and (for individuals) body overwrite what
+ * the client sent before any of the checks above read them — see
+ * `deriveItemsLoad`. A body with no `items` skips it entirely and is checked
+ * exactly as before.
+ *
  * What it does **not** do is write. The caller owns the write because the two
  * writes differ in what makes them safe: a create draws a reference inside a
  * transaction, while an edit is a conditional update keyed on the order still
@@ -49,10 +56,20 @@ import {
   serviceableSpecIds,
   unserviceableClassMessage,
 } from "@/lib/orders/class-serviceability";
+import { planLoad } from "@/lib/orders/load-plan";
 import {
+  FREE_TEXT_MAX_LENGTH,
   resolveGeorgianCity,
   type CreateOrderInput,
 } from "@/lib/orders/order-input";
+import {
+  decideItemsBooking,
+  describeLoad,
+  itemsError,
+  parseOrderItems,
+  resolveOrderItems,
+  type ResolvedOrderItem,
+} from "@/lib/orders/parse-items";
 import { driverPayoutFor, PLATFORM_COMMISSION_RATE } from "@/lib/orders/payout";
 import { prisma } from "@/lib/prisma";
 import {
@@ -127,6 +144,13 @@ export type OrderDetailColumns = {
   cargoLengthM: number | null;
   cargoWidthM: number | null;
   cargoHeightM: number | null;
+  /**
+   * Goods-first booking: the summed volume of the listed goods, unpacked, in
+   * m³. `null` on the legacy path (no `items`), which is also what an edit
+   * writes when it re-books an order without items — an edit is a full
+   * replacement, so a stale volume must not outlive the items it described.
+   */
+  cargoVolumeM3: number | null;
   packagingDescription: string | null;
   itemQuantity: string | null;
   handlingTags: CreateOrderInput["handlingTags"];
@@ -135,9 +159,19 @@ export type OrderDetailColumns = {
   deliveryDeadline: Date | null;
 };
 
+/** One `OrderItem` row to write, minus its `orderId`. */
+export type OrderItemSnapshot = ResolvedOrderItem["snapshot"];
+
 /** A booking body that passed every check, turned into the columns it writes. */
 export type PreparedOrderWrite = {
   details: OrderDetailColumns;
+  /**
+   * Goods-first booking: the `OrderItem` rows to write with the order, one per
+   * listed line, snapshotting label, unit weight and dimensions. `null` on the
+   * legacy path. The caller writes them in the same transaction as the order
+   * (a create nests them; an edit replaces the order's existing rows).
+   */
+  items: OrderItemSnapshot[] | null;
   /**
    * The payment choice the body carried, already checked — the method against
    * `PaymentMethodConfig`, the card against the caller's own wallet, and the PO
@@ -165,6 +199,147 @@ export type PrepareOrderWriteResult =
   | { ok: true; write: PreparedOrderWrite }
   | { ok: false; status: 400 | 422; error: string };
 
+/** What the items path adds to a booking. */
+type DerivedLoad = {
+  /** The parsed body with the derived figures, category and body written in. */
+  input: CreateOrderInput;
+  cargoVolumeM3: number;
+  itemSnapshots: OrderItemSnapshot[];
+};
+
+/**
+ * The items path: resolve the listed goods, plan the load and write what the
+ * plan says over everything the client was not trusted to state.
+ *
+ * Every figure comes from `src/lib/orders/load-plan.ts` through
+ * `src/lib/orders/parse-items.ts`; nothing about fit, category or body is
+ * restated here. What this adds is the two reads the pure modules cannot make
+ * — the active catalogue rows and the client's account type — and the
+ * overwrite itself:
+ *
+ * - `cargoWeightKg` and the three dimensions become the plan's total weight
+ *   and largest-item envelope, so the existing `oversizeAxes` guard in
+ *   `prepareOrderWrite`, unchanged, is the hard fit check on the goods actually
+ *   listed. No soft-fit refusal is added (requirements §Assumptions).
+ * - `cargoCategory` becomes the plan's. The shared `parseQuoteFields` still
+ *   requires the client to send one — that parser also serves the public
+ *   estimate and is not loosened — but it is overwritten here before the quote
+ *   or any check reads it, so `cargo_vehicle_mismatch` judges the goods.
+ * - `bodyType` becomes the body `decideItemsBooking` settles on, so the
+ *   existing body check and `serviceableSpecIds(bodyType)` judge it.
+ * - `itemQuantity` (items mode) or `packagingDescription` (pallets mode) gets
+ *   the server-built summary; the other stays as typed. See `describeLoad`.
+ *
+ * `handlingTags` stay client-supplied: they are the client's own statement,
+ * and the form pre-fills them from the items.
+ *
+ * Runs before the spec lookup, so every refusal here costs at most two
+ * indexed reads and never a geocoding lookup.
+ */
+async function deriveItemsLoad(
+  rawItems: unknown,
+  data: CreateOrderInput,
+  clientId: string,
+  t: RequestTranslator,
+): Promise<{ value: DerivedLoad } | { error: string }> {
+  const items = parseOrderItems(rawItems, t);
+  if ("error" in items) {
+    return items;
+  }
+
+  const codes = [
+    ...new Set(
+      items.value.flatMap((item) =>
+        item.kind === "CATALOGUE" ? [item.code] : [],
+      ),
+    ),
+  ];
+
+  const [catalogue, clientProfile, locale] = await Promise.all([
+    codes.length > 0
+      ? prisma.itemCatalogEntry.findMany({
+          where: { code: { in: codes }, active: true },
+          select: {
+            id: true,
+            code: true,
+            labelEn: true,
+            labelKa: true,
+            weightKg: true,
+            lengthM: true,
+            widthM: true,
+            heightM: true,
+            stackable: true,
+            needsTwoPeople: true,
+            requiredBody: true,
+            handlingTags: true,
+            cargoCategory: true,
+          },
+        })
+      : Promise.resolve([]),
+    prisma.clientProfile.findUnique({
+      where: { userId: clientId },
+      select: { accountType: true },
+    }),
+    getRequestLocale(),
+  ]);
+
+  const resolved = resolveOrderItems(items.value, catalogue, locale, t);
+  if ("error" in resolved) {
+    return resolved;
+  }
+
+  const plan = planLoad(resolved.value.map(({ load }) => load));
+  // Unreachable: `parseOrderItems` refuses an empty list, and a non-empty plan
+  // always has every envelope axis. Guarded because `planLoad` types an empty
+  // plan as `null` and the envelope as the nullable `LoadDimensions`, and an
+  // order booked without its figures would be invisible on the load board.
+  if (plan === null) {
+    return { error: itemsError(t, "itemsEmpty") };
+  }
+  const { lengthM, widthM, heightM } = plan.envelope;
+  if (lengthM === null || widthM === null || heightM === null) {
+    return { error: itemsError(t, "itemsEmpty") };
+  }
+
+  const body = decideItemsBooking({
+    resolved: resolved.value,
+    plan,
+    accountType: clientProfile?.accountType ?? null,
+    requestedBody: data.bodyType,
+    t,
+  });
+  if ("error" in body) {
+    return body;
+  }
+
+  const description = describeLoad(
+    resolved.value,
+    {
+      packagingDescription: data.packagingDescription,
+      itemQuantity: data.itemQuantity,
+    },
+    FREE_TEXT_MAX_LENGTH,
+  );
+
+  return {
+    value: {
+      input: {
+        ...data,
+        cargoCategory: plan.cargoCategory,
+        bodyType: body.value,
+        cargoWeightKg: plan.totalWeightKg,
+        cargoLengthM: lengthM,
+        cargoWidthM: widthM,
+        cargoHeightM: heightM,
+        packagingDescription: description.packagingDescription,
+        itemQuantity: description.itemQuantity,
+      },
+      cargoVolumeM3: plan.itemVolumeM3,
+      itemSnapshots: resolved.value.map(({ snapshot }) => snapshot),
+    },
+  };
+}
+
 /**
  * Check a parsed booking body against the catalogue, the fleet, the payment
  * switchboard and the caller's own account, then price it.
@@ -181,12 +356,32 @@ export type PrepareOrderWriteResult =
  * The service-level tier is the same story one step on: the client picks a tier
  * and the fare effect of that tier is derived here from the server's own quote,
  * so no figure the browser computed is ever booked.
+ *
+ * `rawItems` is the body's unvalidated `items` list (`ParsedBooking.rawItems`
+ * from `parseBookingBody`), or `null` for a body without one. When present, the
+ * goods are planned first and the plan's figures replace the parsed ones for
+ * every check below — see `deriveItemsLoad`.
  */
 export async function prepareOrderWrite(
-  input: CreateOrderInput,
+  parsedInput: CreateOrderInput,
   clientId: string,
   t: RequestTranslator,
+  rawItems: unknown = null,
 ): Promise<PrepareOrderWriteResult> {
+  // Goods-first booking. LEGACY(goods-first): a body with no `items` takes the
+  // path below with every value it sent — `input` is `parsedInput` itself and
+  // `derivedLoad` stays `null`, so nothing downstream reads anything new.
+  let input = parsedInput;
+  let derivedLoad: DerivedLoad | null = null;
+  if (rawItems !== null) {
+    const derived = await deriveItemsLoad(rawItems, parsedInput, clientId, t);
+    if ("error" in derived) {
+      return { ok: false, status: 400, error: derived.error };
+    }
+    derivedLoad = derived.value;
+    input = derivedLoad.input;
+  }
+
   const {
     pickupAddress,
     dropoffAddress,
@@ -497,6 +692,7 @@ export async function prepareOrderWrite(
         cargoLengthM,
         cargoWidthM,
         cargoHeightM,
+        cargoVolumeM3: derivedLoad?.cargoVolumeM3 ?? null,
         packagingDescription,
         itemQuantity,
         handlingTags,
@@ -504,6 +700,7 @@ export async function prepareOrderWrite(
         pickupWindowEnd,
         deliveryDeadline,
       },
+      items: derivedLoad?.itemSnapshots ?? null,
       payment: {
         paymentMethodType,
         savedCardId,

@@ -53,6 +53,25 @@ const EDIT_ORDER_SELECT = {
   description: true,
   // The form picks a vehicle by its stable code, never by row id.
   vehicleTypeSpec: { select: { code: true } },
+  // Goods-first booking: the item lines the order was booked with, so the
+  // form re-opens on the same list (`linesFromOrderItems`). The catalogue
+  // entry's code and `active` flag decide whether a catalogue line is re-listed
+  // by code or carried as a custom line with its snapshot figures. Ordered by
+  // id (a cuid, so close to creation order) to keep the order stable.
+  items: {
+    orderBy: { id: "asc" },
+    select: {
+      kind: true,
+      label: true,
+      quantity: true,
+      unitWeightKg: true,
+      lengthM: true,
+      widthM: true,
+      heightM: true,
+      palletType: true,
+      catalogEntry: { select: { code: true, active: true } },
+    },
+  },
 } as const;
 
 /** A stored coordinate pair, or `null` when either half is missing. */
@@ -181,6 +200,20 @@ export default async function EditOrderPage({
     helperCount: order.helperCount,
     serviceLevel: order.serviceLevel,
     description: order.description,
+    items: order.items.map((item) => ({
+      kind: item.kind,
+      catalogueCode:
+        item.catalogEntry !== null && item.catalogEntry.active
+          ? item.catalogEntry.code
+          : null,
+      label: item.label,
+      quantity: item.quantity,
+      unitWeightKg: item.unitWeightKg,
+      lengthM: item.lengthM,
+      widthM: item.widthM,
+      heightM: item.heightM,
+      palletType: item.palletType,
+    })),
     // Anything but an explicit BUSINESS is the narrower list, as in the hook.
     accountType: isBusiness ? "BUSINESS" : "INDIVIDUAL",
   };

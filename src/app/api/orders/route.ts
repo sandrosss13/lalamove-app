@@ -3,7 +3,7 @@ import { OrderStatus, type Prisma } from "@prisma/client";
 
 import { getRequestTranslations } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
-import { parseCreateOrderBody } from "@/lib/orders/order-input";
+import { parseBookingBody } from "@/lib/orders/order-input";
 import { prepareOrderWrite } from "@/lib/orders/order-write";
 import {
   formatOrderReference,
@@ -33,6 +33,12 @@ import { prisma } from "@/lib/prisma";
  * rules a booking is held to; this handler still answers every request with the
  * same status and the same message it always did. What stays here is what only
  * a *create* does: the status it opens in, and the reference it draws.
+ *
+ * Goods-first booking: a body that lists `items` has its weight, dimensions,
+ * category and (for individuals) body re-derived from the goods themselves
+ * (`parseBookingBody` drops the typed envelope; `prepareOrderWrite` plans the
+ * goods), and the order is written with one `OrderItem` snapshot per line. A
+ * body without `items` is booked exactly as before.
  */
 export async function POST(request: Request): Promise<NextResponse> {
   const t = await getRequestTranslations();
@@ -55,12 +61,17 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
   }
 
-  const parsed = parseCreateOrderBody(rawBody, t);
+  const parsed = parseBookingBody(rawBody, t);
   if ("error" in parsed) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
 
-  const prepared = await prepareOrderWrite(parsed.data, session.user.id, t);
+  const prepared = await prepareOrderWrite(
+    parsed.data.data,
+    session.user.id,
+    t,
+    parsed.data.rawItems,
+  );
   if (!prepared.ok) {
     return NextResponse.json(
       { error: prepared.error },
@@ -68,7 +79,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
   }
 
-  const { details, payment } = prepared.write;
+  const { details, payment, items } = prepared.write;
 
   // Created `INITIATED` — off-market and unpaid — rather than letting the column
   // default supply a status. An order's opening state is a decision this path
@@ -124,6 +135,10 @@ export async function POST(request: Request): Promise<NextResponse> {
         savedCardId: payment.savedCardId,
         purchaseOrderRef: payment.purchaseOrderRef,
         clientId: session.user.id,
+        // Items path only. One nested create, so the lines are written in the
+        // same statement as the order and can never exist without it (or it
+        // without them). The legacy path adds nothing here.
+        ...(items !== null ? { items: { create: items } } : {}),
       },
     });
   });

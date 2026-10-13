@@ -4,14 +4,12 @@
     "playStoreKicker": "Get it on"
   },
   "landingBookingCard": {
-    "anyVehicle": "Any vehicle",
     "defaultCta": "Book a delivery",
     "dropoff": "Drop-off",
     "dropoffPlaceholder": "Where is it going?",
-    "loadingVehicles": "Loading vehicles…",
     "pickup": "Pickup",
     "pickupPlaceholder": "Street, building or business",
-    "vehicle": "Vehicle"
+    "whatAreYouMoving": "What are you moving"
   },
   "landingCategoryTiles": {
     "fromPrice": "from {price}",
