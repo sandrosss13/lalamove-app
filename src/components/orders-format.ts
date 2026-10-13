@@ -1,6 +1,7 @@
 /**
  * Presentation helpers for the client's own order surfaces: the order list
- * (`/orders`) and the single-order tracking page (`/orders/[id]/track`).
+ * (`/orders`), the order page (`/orders/[id]`) and its tracking page
+ * (`/orders/[id]/track`).
  *
  * Per-screen by convention rather than shared app-wide —
  * `driver-hub/screens/earnings-format.ts` records the reason: a cross-screen
@@ -186,4 +187,44 @@ export function useServiceLevelLabel(): (level: ServiceLevel) => string {
   const t = useTranslations();
 
   return (level) => serviceLevelLabel(level, t);
+}
+
+/* -------------------------------------------------------------------------- */
+/* What the client can do with an order                                       */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Whether the tracking page has anything to show for this order: someone is
+ * assigned and on their way to the pickup, or already carrying the load.
+ *
+ * Shared by the order list and the order page so the two offer the Track link
+ * on exactly the same orders. Written with string literals for the reason the
+ * module header gives for its `Record` keys.
+ */
+export function orderIsTrackable(order: {
+  driverId: string | null;
+  status: OrderStatus;
+}): boolean {
+  return (
+    order.driverId !== null &&
+    (order.status === "ACCEPTED" || order.status === "IN_TRANSIT")
+  );
+}
+
+/**
+ * Whether the client may still change or cancel this order themselves: only
+ * while it is unpaid. `INITIATED` is the one state in which no driver or
+ * company can see the order, so it is the one state in which changing it
+ * under them is impossible. Paying is what publishes it, and from then on the
+ * order page shows details only.
+ *
+ * The UI gate, not the rule: `PATCH /api/orders/[id]` and
+ * `POST /api/orders/[id]/cancel` enforce the same condition themselves, and
+ * answer 409 when the order has moved on between this page rendering and the
+ * click.
+ */
+export function orderIsEditableByClient(order: {
+  status: OrderStatus;
+}): boolean {
+  return order.status === "INITIATED";
 }

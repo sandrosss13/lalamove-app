@@ -24,6 +24,7 @@
     "waitingForADriverToShare": "Waiting for a driver to share their location…"
   },
   "orders": {
+    "completePayment": "Complete payment →",
     "above": "above.",
     "bookFirstDelivery": "Book your first delivery with <b>New order</b> above.",
     "newOrder2": "New order",
@@ -31,7 +32,8 @@
     "signInToViewYourOrders": "Sign in to view your orders.",
     "trackDelivery": "Track delivery →",
     "yourDeliveries": "Your deliveries",
-    "yourOrders": "Your orders"
+    "yourOrders": "Your orders",
+    "viewOrder": "View order {reference}"
   },
   "ordersTrack": {
     "backToDashboard": "← Back to dashboard",
@@ -44,5 +46,29 @@
     "pooling": "Pooling",
     "priority": "Priority",
     "regular": "Regular"
+  },
+  "orderDetail": {
+    "eyebrow": "Order {reference}",
+    "title": "Order details",
+    "backToOrders": "← Back to orders",
+    "signInToViewThisOrder": "Sign in to view this order.",
+    "details": "Details",
+    "reference": "Reference",
+    "vehicleClass": "Vehicle class",
+    "assignedVehicle": "Assigned vehicle",
+    "noContact": "No contact given",
+    "status": "Status and actions",
+    "unpaidNote": "This order isn’t paid yet, so no driver can see it. Pay to send it out — or change or cancel it first.",
+    "paidNote": "This order is paid, so it can no longer be changed or cancelled here.",
+    "cancelledNote": "This order was cancelled.",
+    "completePayment": "Complete payment",
+    "editOrder": "Edit order",
+    "cancelOrder": "Cancel order",
+    "cancelConfirmTitle": "Cancel this order?",
+    "cancelConfirmBody": "It hasn’t been paid for, so nothing is charged. This can’t be undone.",
+    "confirmCancel": "Yes, cancel it",
+    "keepOrder": "Keep order",
+    "cancelling": "Cancelling…",
+    "couldNotCancel": "Could not cancel the order. Please try again."
   }
 }

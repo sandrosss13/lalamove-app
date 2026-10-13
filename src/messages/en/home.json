@@ -102,7 +102,14 @@
     "whatKindOfLoadSpaceDo": "What kind of load space do you need?",
     "whenShouldTheDriverComeBy": "When should the driver come by?",
     "widthM": "Width (m)",
-    "youAcceptAWiderCollectionAnd": "You accept a wider collection and delivery window."
+    "youAcceptAWiderCollectionAnd": "You accept a wider collection and delivery window.",
+    "editingOrder": "Editing order {reference}",
+    "editYourDelivery": "Edit your delivery",
+    "backToOrder": "Back to order",
+    "cargoPhotosEditDescription": "Photos already on this order are kept. Any you add here are added to them.",
+    "saveChanges": "Save changes",
+    "saving": "Saving…",
+    "couldNotSaveChanges": "Could not save your changes. Please try again."
   },
   "homeEntry": {
     "loading": "Loading…"
