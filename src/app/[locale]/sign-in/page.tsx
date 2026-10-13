@@ -4,6 +4,7 @@ import { getTranslations } from "next-intl/server";
 
 import { SignInForm } from "@/components/auth/sign-in-form";
 import { resolveRouteLocale, type LocaleRouteParams } from "@/i18n/server";
+import { parseGoodsParam } from "@/lib/goods-param-threading";
 import { audienceForHost } from "@/lib/host";
 
 /**
@@ -84,6 +85,11 @@ export default async function SignInPage({
       roleQuery={singleParam(params.role)}
       accountTypeQuery={singleParam(params.type)}
       stepQuery={singleParam(params.step)}
+      // Unlike the wizard params, validated here rather than in the form: the
+      // shortcut code is the one value that leaves this flow (it is appended
+      // to the post-sign-in destination), so it is narrowed to an exact
+      // `GOODS_SHORTCUTS` code at the trust boundary. Never a path.
+      goods={parseGoodsParam(params.goods)}
     />
   );
 }

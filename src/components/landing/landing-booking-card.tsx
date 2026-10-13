@@ -1,8 +1,7 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { useTranslations } from "next-intl";
-import type { CargoCategory } from "@prisma/client";
 
 import {
   AddressAutocomplete,
@@ -12,11 +11,12 @@ import { writeBookingDraft } from "@/components/home/booking-draft";
 import { HOME_CONTAINER } from "@/components/landing/landing-home-styles";
 import { LandingLink } from "@/components/landing/landing-link";
 import {
-  useLandingVehicleTypes,
-  type LandingVehicleType,
-} from "@/components/landing/landing-vehicle-types";
+  LANDING_GOODS_SHORTCUTS,
+  subscribeLandingGoods,
+} from "@/components/landing/landing-goods";
 import { type QuoteCalculatorContent } from "@/lib/admin/home-page-content";
-import { CARGO_CATEGORY_LABELS, useCargoCategoryLabel } from "@/lib/cargo";
+import { withGoodsParam } from "@/lib/goods-param-threading";
+import type { GoodsShortcut, GoodsShortcutCode } from "@/lib/goods-shortcuts";
 import { cn } from "@/lib/utils";
 
 /** Where the card's button goes when the section row names no target. */
@@ -29,11 +29,6 @@ const DEFAULT_CTA_HREF = "/book";
  */
 const LEGACY_CTA_HREF = "/sign-up";
 
-/** Cargo categories in the order the taxonomy declares them. */
-const CARGO_CATEGORY_OPTIONS = Object.keys(
-  CARGO_CATEGORY_LABELS,
-) as CargoCategory[];
-
 type LatLng = { lat: number; lng: number };
 
 /**
@@ -41,11 +36,6 @@ type LatLng = { lat: number; lng: number };
  * route" → `#price-a-load`). Kept so those links still land somewhere.
  */
 const SECTION_ANCHOR_ID = "price-a-load";
-
-const CATEGORY_ORDER: LandingVehicleType["category"][] = [
-  "MEDIUM_DUTY",
-  "HEAVY_DUTY",
-];
 
 const FIELD_LABEL = "text-[12px] font-semibold text-home-muted";
 
@@ -76,10 +66,21 @@ const ADDRESS_FIELD_CLASS_NAMES = {
  *
  * Deliberately shows no price. The v3 widget called `/api/pricing/estimate`;
  * v4 removes rates from the homepage entirely, so the card only collects the
- * route, the cargo category and the vehicle, and hands them to the booking
- * form on `/book` through a `sessionStorage` draft (see `booking-draft.ts`).
- * The draft is written only when the button actually leads to `/book`; a
- * section row pointing somewhere else just navigates there.
+ * route and what is being moved, and hands them on.
+ *
+ * Goods-first booking (specs/goods-first-booking, task 07): the card asks what
+ * the visitor is moving — the goods shortcuts — rather than which vehicle they
+ * want, because the vehicle is recommended from their items at booking time.
+ * The chosen shortcut rides on the CTA as `?goods=<code>` (only a validated
+ * code travels, `goods-param-threading.ts`), which survives sign-up and sign-in
+ * when a section row still points there.
+ *
+ * Guest checkout: the CTA leads to `/book` by default (a stored legacy
+ * `/sign-up` is read as `/book`), and on the way the card also writes the
+ * addresses, their coordinates and the shortcut to a `sessionStorage` draft
+ * (see `booking-draft.ts`) so the booking form opens with them prefilled. The
+ * draft is written only when the button actually leads to `/book`; a section
+ * row pointing somewhere else just navigates there.
  */
 export function LandingBookingCard({
   content,
@@ -90,23 +91,37 @@ export function LandingBookingCard({
   overlapsHero: boolean;
 }) {
   const t = useTranslations("landing.landingBookingCard");
-  const tDuty = useTranslations("admin.adminContentVehiclePhotos");
-  const { vehicleTypes, loading } = useLandingVehicleTypes();
-  const cargoCategoryLabel = useCargoCategoryLabel();
+  const tGoods = useTranslations("common.goodsShortcut");
   const [pickup, setPickup] = useState("");
   const [pickupLocation, setPickupLocation] = useState<LatLng | null>(null);
   const [dropoff, setDropoff] = useState("");
   const [dropoffLocation, setDropoffLocation] = useState<LatLng | null>(null);
-  const [cargoCategory, setCargoCategory] = useState<CargoCategory | "">("");
-  const [vehicle, setVehicle] = useState("");
+  // No default: a visitor who picks nothing books without a shortcut and starts
+  // the booking form at step 3, as before.
+  const [goods, setGoods] = useState<GoodsShortcutCode | null>(null);
   const fieldId = useId();
+  // Radios are grouped by `name`, not by id, so the group has to be unique to
+  // this instance.
+  const goodsGroupName = useId();
+
+  // A category tile elsewhere on the page (a legacy CMS row) picked a
+  // shortcut: select it here, as if the visitor had clicked it in this card.
+  useEffect(() => subscribeLandingGoods(setGoods), []);
 
   const ctaLabel = content.ctaLabel?.trim() || t("defaultCta");
   const authoredHref = content.ctaHref?.trim() || DEFAULT_CTA_HREF;
-  const ctaHref =
+  const baseHref =
     authoredHref === LEGACY_CTA_HREF ? DEFAULT_CTA_HREF : authoredHref;
   const leadsToBooking =
-    ctaHref === DEFAULT_CTA_HREF || ctaHref.startsWith(`${DEFAULT_CTA_HREF}?`);
+    baseHref === DEFAULT_CTA_HREF ||
+    baseHref.startsWith(`${DEFAULT_CTA_HREF}?`);
+  // `withGoodsParam` already leaves anything that is not a root-relative app
+  // path untouched (and drops a code that fails validation). A path carrying a
+  // fragment is left alone too, since a query appended after `#` would be
+  // part of the fragment, not the query.
+  const ctaHref = baseHref.includes("#")
+    ? baseHref
+    : withGoodsParam(baseHref, goods);
 
   // Runs on click, before the client-side navigation the link performs, so the
   // booking form finds the draft on its first mount.
@@ -119,8 +134,7 @@ export function LandingBookingCard({
       pickupLocation,
       dropoffAddress: dropoff.trim(),
       dropoffLocation,
-      vehicleTypeCode: vehicle,
-      cargoCategory: cargoCategory === "" ? null : cargoCategory,
+      goods,
     });
   }
 
@@ -145,6 +159,24 @@ export function LandingBookingCard({
           </h2>
         </div>
         <div className="grid items-end gap-3 p-[clamp(18px,2.2vw,26px)] [grid-template-columns:repeat(auto-fit,minmax(200px,1fr))]">
+          {/* The goods shortcuts, as a radio group spanning the whole card:
+              each tile names what is being moved. Picking one only decides
+              which shortcut the CTA carries. */}
+          <fieldset className="col-span-full min-w-0">
+            <legend className={FIELD_LABEL}>{t("whatAreYouMoving")}</legend>
+            <div className="mt-[7px] grid gap-2 [grid-template-columns:repeat(auto-fill,minmax(150px,1fr))]">
+              {LANDING_GOODS_SHORTCUTS.map((shortcut) => (
+                <GoodsTile
+                  key={shortcut.code}
+                  shortcut={shortcut}
+                  name={goodsGroupName}
+                  title={tGoods(`${shortcut.code as GoodsShortcutCode}.title`)}
+                  selected={shortcut.code === goods}
+                  onSelect={setGoods}
+                />
+              ))}
+            </div>
+          </fieldset>
           <AddressAutocomplete
             id={`${fieldId}-pickup`}
             label={t("pickup")}
@@ -167,66 +199,6 @@ export function LandingBookingCard({
             overlaySuggestions
             showMapPreview={false}
           />
-          <label
-            htmlFor={`${fieldId}-cargo`}
-            className="flex min-w-0 flex-col gap-[7px]"
-          >
-            <span className={FIELD_LABEL}>{t("cargo")}</span>
-            <select
-              id={`${fieldId}-cargo`}
-              value={cargoCategory}
-              onChange={(event) =>
-                setCargoCategory(event.target.value as CargoCategory | "")
-              }
-              className={cn(FIELD_CONTROL, "px-3")}
-            >
-              <option value="">{t("anyCargo")}</option>
-              {CARGO_CATEGORY_OPTIONS.map((category) => (
-                <option key={category} value={category}>
-                  {cargoCategoryLabel(category)}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label
-            htmlFor={`${fieldId}-vehicle`}
-            className="flex min-w-0 flex-col gap-[7px]"
-          >
-            <span className={FIELD_LABEL}>{t("vehicle")}</span>
-            <select
-              id={`${fieldId}-vehicle`}
-              value={vehicle}
-              disabled={loading}
-              onChange={(event) => setVehicle(event.target.value)}
-              className={cn(FIELD_CONTROL, "px-3")}
-            >
-              <option value="">
-                {loading ? t("loadingVehicles") : t("anyVehicle")}
-              </option>
-              {/* Grouped by the real duty classes, the same two the
-                  vehicles section tabs over. */}
-              {CATEGORY_ORDER.map((category) => {
-                const group = vehicleTypes.filter(
-                  (vehicleType) => vehicleType.category === category,
-                );
-                if (group.length === 0) return null;
-                return (
-                  <optgroup
-                    key={category}
-                    label={tDuty(
-                      category === "MEDIUM_DUTY" ? "mediumDuty" : "heavyDuty",
-                    )}
-                  >
-                    {group.map((vehicleType) => (
-                      <option key={vehicleType.code} value={vehicleType.code}>
-                        {vehicleType.label}
-                      </option>
-                    ))}
-                  </optgroup>
-                );
-              })}
-            </select>
-          </label>
           <LandingLink
             href={ctaHref}
             onClick={handleCtaClick}
@@ -237,5 +209,49 @@ export function LandingBookingCard({
         </div>
       </div>
     </section>
+  );
+}
+
+/**
+ * One goods shortcut in the card's picker: a visually hidden radio inside a
+ * visible tile. `relative` keeps the `sr-only` radio positioned inside the
+ * tile, and the tile borrows the radio's focus ring through `:has()`.
+ */
+function GoodsTile({
+  shortcut,
+  name,
+  title,
+  selected,
+  onSelect,
+}: {
+  shortcut: GoodsShortcut;
+  name: string;
+  title: string;
+  selected: boolean;
+  onSelect: (code: GoodsShortcutCode) => void;
+}) {
+  const { Icon } = shortcut;
+
+  return (
+    <label
+      className={cn(
+        "relative flex min-h-[50px] cursor-pointer items-center gap-2.5 rounded-xl border px-3.5 py-2.5 text-[14px] leading-tight font-medium transition-colors",
+        "has-[:focus-visible]:border-home-accent",
+        selected
+          ? "border-home-accent bg-home-chip text-home-ink"
+          : "border-home-line bg-home-field text-home-muted hover:text-home-ink",
+      )}
+    >
+      <input
+        type="radio"
+        name={name}
+        value={shortcut.code}
+        checked={selected}
+        onChange={() => onSelect(shortcut.code as GoodsShortcutCode)}
+        className="sr-only"
+      />
+      <Icon aria-hidden="true" className="h-4 w-4 shrink-0" />
+      <span className="min-w-0">{title}</span>
+    </label>
   );
 }

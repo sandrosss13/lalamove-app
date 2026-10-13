@@ -9,6 +9,7 @@ import {
   type LocaleRouteParams,
 } from "@/i18n/server";
 import { auth } from "@/lib/auth";
+import { parseGoodsParam, GOODS_PARAM } from "@/lib/goods-param-threading";
 import { BookingForm } from "@/components/home/booking-form";
 
 // Per-session: the same URL renders a guest form or an account form.
@@ -39,9 +40,16 @@ export async function generateMetadata({
  * a logistics company is sent to `/dashboard`, as `/` does for them.
  *
  * The form reads the card's draft from `sessionStorage` on mount — see
- * `booking-draft.ts` — so nothing about the route travels in the URL.
+ * `booking-draft.ts` — so nothing about the route travels in the URL. The one
+ * thing that does is the goods shortcut (`?goods=<code>`, validated by
+ * `parseGoodsParam`), which the card's CTA appends exactly as it does for
+ * sign-up, so a shared or reloaded link still opens on that shortcut.
  */
-export default async function BookPage() {
+export default async function BookPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const session = await auth.api.getSession({ headers: await headers() });
   const role = session?.user.role;
 
@@ -49,5 +57,7 @@ export default async function BookPage() {
     redirect(await localeHref("/dashboard"));
   }
 
-  return <BookingForm guest={!session} />;
+  const initialGoods = parseGoodsParam((await searchParams)[GOODS_PARAM]);
+
+  return <BookingForm guest={!session} initialGoods={initialGoods} />;
 }

@@ -201,6 +201,16 @@ export const ADMIN_NAV: AdminNavSection[] = [
         href: "/admin/content/vehicle-photos",
         adminRoles: ["SUPER_ADMIN", "CONTENT_MANAGER"],
       },
+      {
+        // The goods-first booking item list (`ItemCatalogEntry`): labels,
+        // synonyms and the typical figures each item feeds into the load plan.
+        // Content, like the vehicle photos above, because it is curated by
+        // the same editors; entries are deactivated, never deleted.
+        label: "Item Catalogue",
+        labelKey: "admin.adminNav.itemCatalogue",
+        href: "/admin/content/item-catalogue",
+        adminRoles: ["SUPER_ADMIN", "CONTENT_MANAGER"],
+      },
     ],
   },
   {

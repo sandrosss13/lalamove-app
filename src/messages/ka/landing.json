@@ -4,16 +4,12 @@
     "playStoreKicker": "ჩამოტვირთეთ"
   },
   "landingBookingCard": {
-    "anyCargo": "რას გადაზიდავთ?",
-    "anyVehicle": "ნებისმიერი ავტომობილი",
-    "cargo": "ტვირთი",
     "defaultCta": "მიწოდების დაჯავშნა",
     "dropoff": "ჩაბარება",
     "dropoffPlaceholder": "სად მიდის ტვირთი?",
-    "loadingVehicles": "ავტომობილები იტვირთება…",
     "pickup": "აყვანა",
     "pickupPlaceholder": "ქუჩა, შენობა ან ბიზნესი",
-    "vehicle": "ავტომობილი"
+    "whatAreYouMoving": "რა გადაგაქვთ"
   },
   "landingCategoryTiles": {
     "fromPrice": "{price}-დან",

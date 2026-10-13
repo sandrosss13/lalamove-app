@@ -3,7 +3,7 @@ import { OrderStatus } from "@prisma/client";
 
 import { getRequestTranslations } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
-import { parseCreateOrderBody } from "@/lib/orders/order-input";
+import { parseBookingBody } from "@/lib/orders/order-input";
 import { prepareOrderWrite } from "@/lib/orders/order-write";
 import { prisma } from "@/lib/prisma";
 
@@ -51,6 +51,17 @@ import { prisma } from "@/lib/prisma";
  * - **Cargo photos** — they are a separate resource
  *   (`/api/orders/[id]/photos`) with their own upload path; the form manages
  *   them there.
+ *
+ * **Goods-first booking (`OrderItem` rows).** The body may list `items`, as a
+ * booking does, and is then re-derived from them by the same
+ * `prepareOrderWrite`. Being a full replacement, the edit *replaces* the
+ * order's `OrderItem` rows in the same transaction as the update: the old rows
+ * are deleted and the new snapshots written, so the rows, `cargoVolumeM3` and
+ * the derived weight/envelope/category/body always describe the same goods.
+ * A body with no `items` (a stale pre-goods-first bundle) re-books the order
+ * on the legacy path, and so deletes any `OrderItem` rows and clears
+ * `cargoVolumeM3` — leaving them would describe goods the order's figures no
+ * longer come from.
  */
 export async function PATCH(
   request: Request,
@@ -78,7 +89,7 @@ export async function PATCH(
 
   // Parsed before the ownership read, in the order `pay` uses: a malformed body
   // is answered without touching the database at all.
-  const parsed = parseCreateOrderBody(rawBody, t);
+  const parsed = parseBookingBody(rawBody, t);
   if ("error" in parsed) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
@@ -110,7 +121,12 @@ export async function PATCH(
     );
   }
 
-  const prepared = await prepareOrderWrite(parsed.data, clientId, t);
+  const prepared = await prepareOrderWrite(
+    parsed.data.data,
+    clientId,
+    t,
+    parsed.data.rawItems,
+  );
   if (!prepared.ok) {
     return NextResponse.json(
       { error: prepared.error },
@@ -118,7 +134,7 @@ export async function PATCH(
     );
   }
 
-  const { details } = prepared.write;
+  const { details, items } = prepared.write;
 
   // Conditional on the order *still* being `INITIATED` and still this client's.
   // The quote above takes long enough (geocoding, routing) that a `pay` or a
@@ -126,16 +142,35 @@ export async function PATCH(
   // first wins, and the loser gets `count === 0`. A client who paid in one tab
   // can therefore never have the job re-priced from under the payment by an
   // edit still in flight in another.
-  const { count } = await prisma.order.updateMany({
-    where: { id, clientId, status: OrderStatus.INITIATED },
-    data: {
-      ...details,
-      // The parser yields `undefined` for a blank description, which a create
-      // leaves as the column's `null`. To an update `undefined` means "leave
-      // the column alone", so a client clearing their description would
-      // otherwise never see it cleared.
-      description: details.description ?? null,
-    },
+  //
+  // One transaction with the item replacement, so a refused update (`count`
+  // 0) leaves the order's `OrderItem` rows untouched, and a successful one can
+  // never be observed with the old rows beside the new figures.
+  const count = await prisma.$transaction(async (tx) => {
+    const updated = await tx.order.updateMany({
+      where: { id, clientId, status: OrderStatus.INITIATED },
+      data: {
+        ...details,
+        // The parser yields `undefined` for a blank description, which a
+        // create leaves as the column's `null`. To an update `undefined` means
+        // "leave the column alone", so a client clearing their description
+        // would otherwise never see it cleared.
+        description: details.description ?? null,
+      },
+    });
+
+    if (updated.count === 0) {
+      return 0;
+    }
+
+    await tx.orderItem.deleteMany({ where: { orderId: id } });
+    if (items !== null) {
+      await tx.orderItem.createMany({
+        data: items.map((item) => ({ ...item, orderId: id })),
+      });
+    }
+
+    return updated.count;
   });
 
   if (count === 0) {

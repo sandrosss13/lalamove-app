@@ -30,6 +30,8 @@ import { expect, test } from "@playwright/test";
 
 import type { RequestTranslator } from "@/i18n/request-locale";
 import {
+  hasItemsField,
+  parseBookingBody,
   parseCreateOrderBody,
   resolveGeorgianCity,
 } from "@/lib/orders/order-input";
@@ -305,5 +307,77 @@ test.describe("resolveGeorgianCity", () => {
 
   test("resolves an address naming no listed city to null", () => {
     expect(resolveGeorgianCity("Sarpi border crossing")).toBeNull();
+  });
+});
+
+/**
+ * Goods-first booking's `items` key, as both order-writing routes read it.
+ * Without `items` the body must parse exactly as `parseCreateOrderBody` parses
+ * it (the legacy path); with `items` the four typed envelope figures are
+ * dropped, because the server re-derives them from the goods.
+ */
+test.describe("parseBookingBody", () => {
+  test.afterEach(() => {
+    for (const key of requestedKeys) {
+      expect(catalogHas(key), `missing catalog key ${key}`).toBe(true);
+    }
+    requestedKeys.clear();
+  });
+
+  test("an items key is present whatever its value, except undefined", () => {
+    expect(hasItemsField(validBody())).toBe(false);
+    expect(hasItemsField(validBody({ items: undefined }))).toBe(false);
+    expect(hasItemsField(validBody({ items: [] }))).toBe(true);
+    expect(hasItemsField(validBody({ items: null }))).toBe(true);
+    expect(hasItemsField(null)).toBe(false);
+  });
+
+  test("without items it is parseCreateOrderBody, unchanged", () => {
+    const body = validBody({
+      cargoWeightKg: 120,
+      cargoLengthM: 2,
+      cargoWidthM: 1,
+      cargoHeightM: 1,
+    });
+    const legacy = parseCreateOrderBody(body, fakeT);
+    const booking = parseBookingBody(body, fakeT);
+    if ("error" in legacy || "error" in booking) {
+      throw new Error("expected both to accept the body");
+    }
+    expect(booking.data.rawItems).toBeNull();
+    expect(booking.data.data).toEqual(legacy.data);
+  });
+
+  test("without items a half-declared envelope is still refused", () => {
+    const result = parseBookingBody(validBody({ cargoWeightKg: 120 }), fakeT);
+    expect(result).toEqual({
+      error: "errors.orders.cargoEnvelopeIncomplete",
+    });
+  });
+
+  test("with items the typed envelope is dropped, never trusted or refused on", () => {
+    const items = [{ kind: "CATALOGUE", code: "SOFA_3_SEAT", quantity: 1 }];
+    const result = parseBookingBody(
+      validBody({ items, cargoWeightKg: 120, cargoLengthM: 99 }),
+      fakeT,
+    );
+    if ("error" in result) throw new Error(result.error);
+    expect(result.data.rawItems).toEqual(items);
+    expect(result.data.data).toMatchObject({
+      cargoWeightKg: null,
+      cargoLengthM: null,
+      cargoWidthM: null,
+      cargoHeightM: null,
+    });
+  });
+
+  test("with items every other field is still validated", () => {
+    const result = parseBookingBody(
+      validBody({ items: [], scheduledAt: "not a date" }),
+      fakeT,
+    );
+    expect(result).toEqual({
+      error: "errors.orders.scheduledatMustBeAValidDate",
+    });
   });
 });

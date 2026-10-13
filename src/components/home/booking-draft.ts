@@ -2,8 +2,9 @@
  * The hand-off between the homepage's "Book a delivery" card and the booking
  * form on `/book` (or on `/` for a signed-in client).
  *
- * The card collects the route, the cargo category and, optionally, a vehicle
- * class, then navigates. Rather than threading those through the URL (where
+ * The card collects the route (addresses and their coordinates) and, optionally,
+ * a goods shortcut — what is being moved — then navigates. The vehicle is not
+ * part of the draft: goods-first booking recommends it from the items. Rather than threading those through the URL (where
  * addresses would land in history, logs and analytics), it writes them once to
  * `sessionStorage` under one versioned key, and the form reads — and removes —
  * that draft on mount. One tab, one read: a reload of `/book` afterwards opens
@@ -13,14 +14,22 @@
  * modes and when site data is blocked, and a draft that cannot be saved or read
  * must cost the visitor nothing but the prefill.
  *
- * No runtime imports beyond types, so this is safe in any client component.
+ * The shortcut also rides on the CTA as `?goods=` (`goods-param-threading.ts`)
+ * so the URL path keeps working on its own; the draft carries it too so a
+ * single read restores everything the card collected.
+ *
+ * Only pure imports, so this is safe in any client component.
+ *
+ * v2: the vehicle code and cargo category of v1 are replaced by `goods`. A v1
+ * draft left in a tab is simply never read.
  */
 
-import type { CargoCategory } from "@prisma/client";
+import {
+  isGoodsShortcutCode,
+  type GoodsShortcutCode,
+} from "@/lib/goods-shortcuts";
 
-import { CARGO_CATEGORY_LABELS } from "@/lib/cargo";
-
-export const BOOKING_DRAFT_STORAGE_KEY = "zomo.bookingDraft.v1";
+export const BOOKING_DRAFT_STORAGE_KEY = "zomo.bookingDraft.v2";
 
 /**
  * A draft older than this is ignored: it belongs to a visit the client has
@@ -35,9 +44,8 @@ export type BookingDraft = {
   pickupLocation: LatLng | null;
   dropoffAddress: string;
   dropoffLocation: LatLng | null;
-  /** Empty when the visitor left the vehicle on "Any vehicle". */
-  vehicleTypeCode: string;
-  cargoCategory: CargoCategory | null;
+  /** The goods shortcut tile the visitor picked, or `null` for none. */
+  goods: GoodsShortcutCode | null;
   /** `Date.now()` when the card wrote it. */
   savedAt: number;
 };
@@ -70,10 +78,10 @@ function readString(value: unknown, maxLength: number): string {
   return typeof value === "string" ? value.slice(0, maxLength) : "";
 }
 
-function isCargoCategory(value: unknown): value is CargoCategory {
-  return (
-    typeof value === "string" && Object.hasOwn(CARGO_CATEGORY_LABELS, value)
-  );
+function readGoods(value: unknown): GoodsShortcutCode | null {
+  return typeof value === "string" && isGoodsShortcutCode(value)
+    ? value
+    : null;
 }
 
 /**
@@ -121,10 +129,7 @@ export function takeBookingDraft(): BookingDraft | null {
     pickupLocation: pickupAddress ? readLatLng(record.pickupLocation) : null,
     dropoffAddress,
     dropoffLocation: dropoffAddress ? readLatLng(record.dropoffLocation) : null,
-    vehicleTypeCode: readString(record.vehicleTypeCode, 100),
-    cargoCategory: isCargoCategory(record.cargoCategory)
-      ? record.cargoCategory
-      : null,
+    goods: readGoods(record.goods),
     savedAt,
   };
 }

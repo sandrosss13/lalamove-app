@@ -7,7 +7,7 @@ import {
   createGuestAccessToken,
   setGuestOrderCookie,
 } from "@/lib/orders/guest-access";
-import { parseCreateOrderBody } from "@/lib/orders/order-input";
+import { parseBookingBody } from "@/lib/orders/order-input";
 import { prepareOrderWrite } from "@/lib/orders/order-write";
 import {
   formatOrderReference,
@@ -60,6 +60,12 @@ const GUEST_ORDER_RATE_LIMIT = { limit: 10, windowMs: 10 * 60_000 };
  * rules a booking is held to; this handler still answers every request with the
  * same status and the same message it always did. What stays here is what only
  * a *create* does: the status it opens in, and the reference it draws.
+ *
+ * Goods-first booking: a body that lists `items` has its weight, dimensions,
+ * category and (for individuals) body re-derived from the goods themselves
+ * (`parseBookingBody` drops the typed envelope; `prepareOrderWrite` plans the
+ * goods), and the order is written with one `OrderItem` snapshot per line. A
+ * body without `items` is booked exactly as before.
  */
 export async function POST(request: Request): Promise<NextResponse> {
   const t = await getRequestTranslations();
@@ -96,7 +102,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
   }
 
-  const parsed = parseCreateOrderBody(rawBody, t);
+  const parsed = parseBookingBody(rawBody, t);
   if ("error" in parsed) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
@@ -105,7 +111,12 @@ export async function POST(request: Request): Promise<NextResponse> {
   // the order is booked against the session user.
   const clientId = session?.user.id ?? null;
 
-  const prepared = await prepareOrderWrite(parsed.data, clientId, t);
+  const prepared = await prepareOrderWrite(
+    parsed.data.data,
+    clientId,
+    t,
+    parsed.data.rawItems,
+  );
   if (!prepared.ok) {
     return NextResponse.json(
       { error: prepared.error },
@@ -113,7 +124,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
   }
 
-  const { details, payment } = prepared.write;
+  const { details, payment, items } = prepared.write;
 
   // Minted only for a guest. The raw token leaves this handler in the cookie
   // below and nowhere else; the row keeps its hash.
@@ -174,6 +185,10 @@ export async function POST(request: Request): Promise<NextResponse> {
         purchaseOrderRef: payment.purchaseOrderRef,
         clientId,
         guestAccessTokenHash: guestAccess?.hash ?? null,
+        // Items path only. One nested create, so the lines are written in the
+        // same statement as the order and can never exist without it (or it
+        // without them). The legacy path adds nothing here.
+        ...(items !== null ? { items: { create: items } } : {}),
       },
       // The created row is returned as it always was, minus the token hash.
       // A hash cannot be turned back into a working link, but no consumer of

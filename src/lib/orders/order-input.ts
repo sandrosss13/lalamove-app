@@ -130,7 +130,7 @@ export function resolveGeorgianCity(address: string): GeorgianCity | null {
  * reference — so the only thing worth checking is that a booking cannot smuggle
  * an essay into a column the driver hub renders on one line.
  */
-const FREE_TEXT_MAX_LENGTH = 200;
+export const FREE_TEXT_MAX_LENGTH = 200;
 
 /**
  * A contact at one end of the job. Every field is optional and unvalidated in
@@ -755,4 +755,78 @@ export function parseCreateOrderBody(
       deliveryDeadline: deliveryDeadline.value,
     },
   };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Goods-first booking: the `items` key                                       */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * A booking body, parsed, plus the raw `items` list when the request carried
+ * one. `rawItems` is `null` on the legacy path (no `items` key) and is handed,
+ * still unvalidated, to `prepareOrderWrite` — validating it needs the active
+ * catalogue and the client's account type, which only the database-bound half
+ * can read (`src/lib/orders/parse-items.ts` holds the pure rules).
+ */
+export type ParsedBooking = {
+  data: CreateOrderInput;
+  rawItems: unknown;
+};
+
+/**
+ * Does this request list its goods? `true` as soon as an `items` key is
+ * present with any value other than `undefined` — a malformed list is then the
+ * items parser's 400 to give, not a reason to fall back to the legacy path.
+ */
+export function hasItemsField(body: unknown): boolean {
+  return (
+    typeof body === "object" &&
+    body !== null &&
+    (body as Record<string, unknown>).items !== undefined
+  );
+}
+
+/**
+ * `parseCreateOrderBody`, plus goods-first booking's `items` key, for both
+ * order-writing routes (`POST /api/orders`, `PATCH /api/orders/[id]`).
+ *
+ * - **No `items` key (legacy path):** the body is parsed exactly as
+ *   `parseCreateOrderBody` always parsed it, and `rawItems` is `null`, so
+ *   nothing downstream reads anything new.
+ * - **`items` present:** the four typed envelope figures are dropped before
+ *   parsing. The server re-derives all four from the listed goods
+ *   (`prepareOrderWrite` → `deriveItemsLoad`), so a figure the client sent is
+ *   never trusted — and must not be able to refuse the booking either, which a
+ *   half-sent envelope would (`cargoEnvelopeIncomplete`). Every other field is
+ *   validated by the one parser, unchanged.
+ *
+ * LEGACY(goods-first): when the legacy path is removed, `items` becomes
+ * required here and the envelope figures leave the request shape.
+ */
+export function parseBookingBody(
+  body: unknown,
+  t: RequestTranslator,
+): { data: ParsedBooking } | { error: string } {
+  if (!hasItemsField(body)) {
+    const parsed = parseCreateOrderBody(body, t);
+    return "error" in parsed
+      ? parsed
+      : { data: { data: parsed.data, rawItems: null } };
+  }
+
+  const record = body as Record<string, unknown>;
+  const parsed = parseCreateOrderBody(
+    {
+      ...record,
+      cargoWeightKg: undefined,
+      cargoLengthM: undefined,
+      cargoWidthM: undefined,
+      cargoHeightM: undefined,
+    },
+    t,
+  );
+
+  return "error" in parsed
+    ? parsed
+    : { data: { data: parsed.data, rawItems: record.items } };
 }
