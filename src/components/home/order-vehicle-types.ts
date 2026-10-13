@@ -45,6 +45,21 @@ export type OrderVehicleType = {
    * and is never the looser of the two — see `GET /api/vehicle-types`.
    */
   serviceable: boolean;
+  /**
+   * The load spaces under which a booking against this type would actually be
+   * accepted: for each body, the same `serviceableSpecIds(body)` answer
+   * `POST /api/orders` gives a booking naming that body. The body-aware
+   * counterpart of `serviceable`, so the form can recommend only a class the
+   * server will take — `serviceableBodies.includes(bodyType)`.
+   *
+   * Not narrowed to `bodyTypes`: a bigger vehicle can serve this class under
+   * upgrade substitution with a body the class itself does not list, and the
+   * route checks "does this class offer the body" separately. So a booking
+   * needs both `bodyTypes` and `serviceableBodies` to include the body, which
+   * is the pair of checks the route runs. Always empty when `serviceable` is
+   * false.
+   */
+  serviceableBodies: ChassisType[];
   // The one field the picker needs from the pricing rule: highlighting the
   // best-fit (cheapest eligible) type is a `baseFare` comparison.
   pricingRule: { baseFare: number };
@@ -53,21 +68,15 @@ export type OrderVehicleType = {
 /**
  * Does this vehicle type offer the given load space?
  *
- * Lives here, beside the data, rather than in the booking form: the mapping is
- * the taxonomy's, so a new vehicle type becomes filterable the moment it is
- * seeded and no component holds a vehicle-name-to-body table.
- *
- * A type with an empty `bodyTypes` offers nothing and drops out of every body's
- * grid. That is correct, not a bug — the column defaults to empty, so a type
- * seeded before the column existed (or seeded without it) is hidden from the
- * filter until its bodies are recorded.
+ * Re-exported, not defined, here. The predicate is the taxonomy's, not the
+ * booking form's, so a new vehicle type becomes filterable the moment it is
+ * seeded and no component holds a vehicle-name-to-body table. It moved to
+ * `src/lib/vehicle-body.ts` because this module is `"use client"` and imports
+ * React, and `src/lib/orders/load-plan.ts` — which `POST /api/orders` also
+ * imports — needs the same predicate. See that module for the full reasoning.
+ * Existing callers keep importing it from here.
  */
-export function vehicleOffersBody(
-  vehicle: OrderVehicleType,
-  body: ChassisType,
-): boolean {
-  return vehicle.bodyTypes.includes(body);
-}
+export { vehicleOffersBody } from "@/lib/vehicle-body";
 
 export const ORDER_VEHICLE_TYPES_ERROR_MESSAGE =
   "Could not load the vehicle types. Please refresh and try again.";

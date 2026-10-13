@@ -4,7 +4,6 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { ArrowRight, CalendarDays } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import type {
-  CargoCategory,
   CargoHandlingTag,
   ChassisType,
   ServiceLevel,
@@ -23,7 +22,20 @@ import {
   TruckGlyph,
   VanGlyph,
 } from "@/components/home/booking-form-primitives";
-import { CARGO_OPTIONS } from "@/components/home/order-cargo-options";
+import {
+  addPalletLine,
+  activeLines,
+  effectiveMode,
+  toItemsPayload,
+  toLoadLines,
+  type PickerLine,
+  type PickerMode,
+} from "@/components/home/item-list-lines";
+import { ItemListPicker } from "@/components/home/item-list-picker";
+import {
+  parseCatalogueLocale,
+  useItemCatalogue,
+} from "@/components/home/order-item-catalogue";
 import {
   formatVehicleDimensions,
   formatVehiclePayload,
@@ -32,6 +44,12 @@ import {
   type OrderVehicleType,
 } from "@/components/home/order-vehicle-types";
 import { RoutePreviewMap } from "@/components/home/route-preview-map";
+import { VehicleRecommendation } from "@/components/home/vehicle-recommendation";
+import {
+  reconcileVehicleSelection,
+  selectionOutsideRecommendation,
+  type VehicleReleaseReason,
+} from "@/components/home/vehicle-selection";
 import {
   StopContactDialog,
   type StopContact,
@@ -48,27 +66,36 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import {
   CARGO_CATEGORY_ALLOWED_VEHICLE_CATEGORIES,
-  CARGO_MEASUREMENT_BOUNDS,
-  type CargoMeasurementBounds,
-  useCargoCategoryLabel,
   useCargoHandlingTagLabel,
 } from "@/lib/cargo";
+import type { CargoAxis } from "@/lib/orders/booking-fit";
 // The one fit vocabulary this form and `POST /api/orders` share. Imported, never
 // re-implemented here: a client-side copy of these comparisons is exactly how the
 // form came to light a submit button for 15 m of cargo in a 4.5 m Box Truck while
-// every server-side path went on refusing it. In particular `specCapability` is
-// the only sanctioned way to read a spec's four figures — it routes through
+// every server-side path went on refusing it. `planLoad` is the function the
+// route re-runs on the items it is sent, and `assessFit` judges a class through
+// `oversizeAxes(…, specCapability(spec))` — the route's own hard check, and the
+// only sanctioned way to read a spec's four figures: it routes through
 // `capabilityOf`, which translates `VehicleTypeSpec.cargoHeightM: 0` ("open bed,
 // no height limit", seeded that way for FLATBED_TRUCK) into `Infinity`. Comparing
 // against `vehicleType.cargoHeightM` directly would read that sentinel literally
 // and block every flatbed booking on this page.
 import {
-  cargoFitMessage,
-  oversizeAxes,
-  specCapability,
-  type CargoAxis,
-} from "@/lib/orders/booking-fit";
+  assessFit,
+  planLoad,
+  recommendVehicles,
+  type FitAssessment,
+  type LoadPlan,
+} from "@/lib/orders/load-plan";
 import { vehicleTypeSpecLabel } from "@/lib/vehicle-type-spec-labels";
+import type { AccountType } from "@/lib/account-types";
+import {
+  GOODS_SHORTCUTS,
+  isGoodsShortcutCode,
+  shortcutsFor,
+  type GoodsShortcut,
+  type GoodsShortcutCode,
+} from "@/lib/goods-shortcuts";
 
 /** A single map coordinate, as `AddressAutocomplete` reports it. Mirrors
  *  `LatLng` from `@/lib/geo`, duplicated here so this client component never
@@ -197,17 +224,29 @@ function stopContactPayload(
 }
 
 /**
- * The first cargo category the taxonomy declares, used as the initial
- * selection so the vehicle step always has something to filter against.
- *
- * The `??` is not dead code to TypeScript: `noUncheckedIndexedAccess` types an
- * indexed read as possibly `undefined`, and there is no type-level guarantee
- * that `CARGO_OPTIONS` is non-empty. The fallback names the category the form
- * defaulted to before this rewrite, so an (impossible) empty taxonomy degrades
- * to the previous behavior rather than to a crash.
+ * The goods shortcut a code names, or `null` for none (or for a code that is
+ * not in the table, which `HomeEntry`'s validation already rules out).
  */
-const DEFAULT_CARGO_CATEGORY: CargoCategory =
-  CARGO_OPTIONS[0]?.category ?? "FURNITURE_FURNISHINGS";
+function goodsShortcutByCode(
+  code: GoodsShortcutCode | null,
+): GoodsShortcut | null {
+  return GOODS_SHORTCUTS.find((shortcut) => shortcut.code === code) ?? null;
+}
+
+/**
+ * The item list the form opens with. Empty, except behind the business-only
+ * Pallets shortcut, which opens on one pallet group to fill in — the same
+ * first group the picker adds when a business flips to Pallets by hand, so the
+ * two ways into pallets mode land on the same screen.
+ *
+ * Seeded before the account type is known. That is safe: an individual's
+ * effective mode is always Items (`effectiveMode`), so a seeded pallet line is
+ * never shown, planned or sent for them — it simply sits in state, inactive,
+ * exactly as the picker's parent contract allows.
+ */
+function initialItemLines(shortcut: GoodsShortcut | null): PickerLine[] {
+  return shortcut?.mode === "pallets" ? addPalletLine([]) : [];
+}
 
 /**
  * Tolerance, in currency units, for comparing a total against the sum of its
@@ -291,8 +330,59 @@ const BODY_TYPE_OPTIONS: {
   },
 ];
 
-/** The load space most goods travel in, and so what the picker starts on. */
+/**
+ * The load space most goods travel in: an individual's body while nothing is
+ * listed yet (`planLoad`'s own fallback once something is). Not where a
+ * business starts — a business starts on no load space at all and has to
+ * choose one (see `chosenBodyType`).
+ */
 const DEFAULT_BODY_TYPE: ChassisType = "DRY_BOX";
+
+/**
+ * Why a load-space card is disabled for a business, keyed by the body the
+ * listed items *force* (every other card is then incompatible). Worded from
+ * the items' side — the card is not wrong in general, only for this list.
+ * A `Record` so a new body fails typecheck until it has a reason.
+ */
+const FORCED_BODY_CARD_REASON_KEYS: Record<
+  ChassisType,
+  | "bodyItemsNeedDryBox"
+  | "bodyNotSuitableForChilled"
+  | "bodyItemsNeedOpenChassis"
+> = {
+  DRY_BOX: "bodyItemsNeedDryBox",
+  REFRIGERATED: "bodyNotSuitableForChilled",
+  OPEN_CHASSIS: "bodyItemsNeedOpenChassis",
+};
+
+/**
+ * The body an individual's items were given, in plain words, for the one
+ * muted line under the recommendation. Individuals are never asked for a load
+ * space, so this is what lets them see why a refrigerated van was suggested.
+ * Plainer than the business picker's "Dry box" / "Open chassis": an individual
+ * has not been taught the taxonomy and should not need to be.
+ */
+const DERIVED_BODY_LABEL_KEYS: Record<
+  ChassisType,
+  "derivedBodyDryBox" | "derivedBodyRefrigerated" | "derivedBodyOpenChassis"
+> = {
+  DRY_BOX: "derivedBodyDryBox",
+  REFRIGERATED: "derivedBodyRefrigerated",
+  OPEN_CHASSIS: "derivedBodyOpenChassis",
+};
+
+/**
+ * The line shown when a vehicle the client picked by hand had to be let go
+ * (`reconcileVehicleSelection`), by reason. Names the class, and says the form
+ * moved to the recommendation, so the change is never silent.
+ */
+const VEHICLE_RELEASE_MESSAGE_KEYS: Record<
+  VehicleReleaseReason,
+  "vehicleReleasedCannotFit" | "vehicleReleasedUnavailable"
+> = {
+  cannot_fit: "vehicleReleasedCannotFit",
+  unavailable: "vehicleReleasedUnavailable",
+};
 
 /**
  * One card of the load-space row. The pick-card geometry the goods and vehicle
@@ -370,197 +460,63 @@ const DEFAULT_SERVICE_LEVEL: ServiceLevel = "REGULAR";
 const SERVICE_LEVEL_OPTION_CLASSES = `${PICK_CARD_BASE_CLASSES} min-h-32 cursor-pointer gap-1 has-[:focus-visible]:border-accent has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-accent/20`;
 
 /* -------------------------------------------------------------------------- */
-/* Cargo declaration (step 6)                                                 */
+/* Load fit (step 5) and handling (step 6)                                    */
 /* -------------------------------------------------------------------------- */
 
 /**
- * The hand-rolled result shape this codebase parses with, client-side and
- * server-side alike: a value or a reason, never both, and never a thrown error.
+ * The load as one complete set of four figures: the total weight and the
+ * largest item's envelope, read off the load plan.
  *
- * The same shape `parseCreateOrderBody` in `src/app/api/orders/route.ts` returns
- * — deliberately, because no validation library is a dependency here and adding
- * one for four number fields would be the first. Written out locally rather than
- * imported from that route: it is a server module, and the two copies are a
- * shared *convention* rather than a shared contract.
+ * These used to be four required number fields in step 6, typed by the
+ * client. Goods-first booking replaced them with the item list (step 4): the
+ * same four figures are now *derived* by `planLoad`, here for the vehicle
+ * cards and again by `POST /api/orders` from the items it is sent, so the
+ * form and the route can never be measuring two different loads.
+ *
+ * `planLoad`'s envelope types its axes as nullable (it is a `LoadDimensions`,
+ * shared with the vehicle-fit module), though a plan of at least one line
+ * always fills all four; the `?? 0` in `loadEnvelope` only satisfies the type.
  */
-type ParseResult<T> = { data: T } | { error: string };
-
-/**
- * Parses one of the four required cargo numbers out of its raw string state.
- *
- * Client-side convenience only, and it matters that this is said out loud: the
- * order endpoint re-validates every one of these bounds itself and is the
- * authority on what is stored. A bug in here can produce a confusing inline
- * message under a field; it cannot produce a bad row, because nothing
- * downstream of this form trusts what it computed.
- *
- * Bounds arrive as an argument rather than being read from a table inside this
- * function, so the four call sites can name their own limits once — see the
- * `CARGO_*_FIELD` descriptors below, which are what every call actually passes.
- * Those descriptors no longer *hold* their limits either: they point at
- * `CARGO_MEASUREMENT_BOUNDS`, which `POST /api/orders` reads too.
- */
-function parseCargoNumber(
-  raw: string,
-  {
-    bounds,
-    label,
-    t,
-  }: {
-    bounds: CargoMeasurementBounds;
-    label: string;
-    t: BookingFormTranslate;
-  },
-): ParseResult<number> {
-  const trimmed = raw.trim();
-  if (trimmed === "") {
-    return { error: t("enterA", { label }) };
-  }
-
-  const value = Number(trimmed);
-  if (!Number.isFinite(value)) {
-    return { error: t("enterAValid", { label }) };
-  }
-  // No unit in this sentence: `label` is the on-screen field label and already
-  // carries one ("Width (m)"), so appending `bounds.unit` would read "Width (m)
-  // must be between 0.1 and 2.5 m." The unit does appear in `cargoRangeHelper`
-  // below, where the sentence has no label to lean on.
-  if (value < bounds.min || value > bounds.max) {
-    return {
-      error: t("mustBeBetween", { label, min: bounds.min, max: bounds.max }),
-    };
-  }
-
-  return { data: value };
-}
-
-/**
- * One of the four required cargo numbers, as the render loop and the touched
- * map both key by. A union rather than a bare string so a typo in either is a
- * typecheck failure and not a silently dead lookup.
- */
-type CargoNumberFieldKey = "weight" | "length" | "width" | "height";
-
-/**
- * Everything about one required cargo number that does not change between
- * renders: its bounds, the words its errors are built from, and the copy under
- * it.
- *
- * `parseLabel` and `label` are deliberately two different strings. `parseLabel`
- * is what `parseCargoNumber` interpolates into a sentence ("Enter a total
- * weight."), so it is lowercase and article-friendly; `label` is what the client
- * reads above the input, so it is capitalised and carries its unit. Collapsing
- * them would force one of the two to read badly.
- *
- * `emptyErrorKey` overrides the parser's own terse empty-field message for the one
- * case the client is most likely to hit, because being required is not
- * self-explaining: an unanswered weight does not merely fail a rule, it makes
- * the finished order invisible to the entire driver pool (the load board's fit
- * filter treats unknown weight or dimensions as *not fitting*, by design). The
- * error has to say that, or the requirement reads as an arbitrary blocker.
- */
-type CargoNumberField = {
-  key: CargoNumberFieldKey;
-  /** Key under `home.bookingForm` for the on-screen label, resolved at render. */
-  labelKey: "totalWeightKg" | "lengthM" | "widthM" | "heightM";
-  parseLabel: string;
-  /**
-   * The accepted range, pointed at rather than restated.
-   *
-   * These four numbers were written out here once, and they drifted: this form
-   * allowed 15 m of width and height while `POST /api/orders` capped them at 3 m
-   * and 4 m, so a 5 m width passed every check on this page, lit the submit
-   * button, and came back a 400 the client could not act on. The bounds now have
-   * one home in `src/lib/cargo.ts`, which both sides read. Do not copy a figure
-   * out of that table into this file — a copy is how the last one started.
-   */
-  bounds: CargoMeasurementBounds;
-  /** The `step` attribute, and so the precision the spinner offers. */
-  step: string;
-  /** Key under `home.bookingForm` for the placeholder, resolved at render. */
-  placeholderKey: "eG850" | "eG12" | "eG08" | "eG11";
-  /** Key under `home.bookingForm` for the empty-field error, resolved at render. */
-  emptyErrorKey:
-    "enterTotalWeight" | "enterLength" | "enterWidth" | "enterHeight";
-};
-
-/**
- * Why the dimensions are wanted, said once per field and left on screen.
- *
- * A persistent description rather than a tooltip or a popup: it is announced
- * through the field's own `aria-describedby` exactly like any other field hint,
- * and it is as true before the client touches the field as after.
- */
-
-/**
- * The accepted range, spelled out under the field rather than left for the
- * client to discover by being told off.
- *
- * Derived from the same `bounds` the parser checks and the endpoint enforces, so
- * the sentence on screen cannot promise a range that either would refuse — the
- * failure this whole shared table exists to prevent, in its mildest form: copy
- * that says 15 m over a field that rejects 5.
- */
-function cargoRangeHelper(
-  bounds: CargoMeasurementBounds,
-  t: BookingFormTranslate,
-): string {
-  return t("acceptedRange", {
-    min: bounds.min,
-    max: bounds.max,
-    unit: bounds.unit,
-  });
-}
-
-/**
- * The four cargo figures once all four have parsed — the shape the fit check
- * needs and the four `ParseResult`s cannot supply on their own.
- *
- * Structurally a `LoadDimensions` with the nullability resolved away, so it
- * passes straight to `oversizeAxes` without a cast: `number` is assignable to
- * `number | null`, and going the other way is precisely what this type refuses.
- * That refusal is the point. `oversizeAxes` compares axis by axis, so a partial
- * envelope would be silently answered on the axes it happens to declare and
- * would let a booking through on the strength of three numbers out of four —
- * the same "clears three limits, unknown on the fourth" case
- * `src/lib/orders/vehicle-fit.ts` refuses all-or-nothing, and for the same
- * reason: it is the one that strands a driver at a pickup. Building this only
- * behind `cargoDimensionsValid` makes that unrepresentable rather than
- * remembered.
- */
-type DeclaredCargoEnvelope = {
+type LoadEnvelope = {
   weightKg: number;
   lengthM: number;
   widthM: number;
   heightM: number;
 };
 
+function loadEnvelope(plan: LoadPlan): LoadEnvelope {
+  return {
+    weightKg: plan.totalWeightKg,
+    lengthM: plan.envelope.lengthM ?? 0,
+    widthM: plan.envelope.widthM ?? 0,
+    heightM: plan.envelope.heightM ?? 0,
+  };
+}
+
 /**
- * The badge on a step-5 vehicle card that cannot take the declared load: one
+ * The badge on a step-5 vehicle card that cannot take the listed load: one
  * short phrase per offending axis, written from the *vehicle's* point of view
- * because the card is a vehicle ("Too short for 15 m", not "Your cargo is 15 m
- * long" — the client already knows what they typed; what the card has to say is
- * what this class does with it).
+ * because the card is a vehicle ("Too short for 2.2 m", not "Your wardrobe is
+ * 2.2 m long" — what the card has to say is what this class does with the
+ * load).
  *
  * Separate copy from `cargoFitMessage`, deliberately, and the two are not
- * redundant. `cargoFitMessage` is the shared blocking sentence — it names the
- * class, the axis and the limit, and step 6 and `POST /api/orders` both speak
- * through it so the two can never word the same refusal differently. It is a
- * sentence, and a sentence does not fit inside a 2-up picker card without
- * wrapping to four lines and shoving the grid around. This is the label form of
- * the same fact, and it names only the client's own figure — no limit, no class
- * name (the card is already the class, and its figures are printed two lines
- * below) — so there is nothing here for the shared sentence to contradict.
+ * redundant. `cargoFitMessage` is the shared blocking sentence `POST
+ * /api/orders` refuses with — it names the class, the axis and the limit. It
+ * is a sentence, and a sentence does not fit inside a 2-up picker card without
+ * wrapping to four lines and shoving the grid around. This is the label form
+ * of the same fact, and it names only the load's own figure — no limit, no
+ * class name (the card is already the class, and its figures are printed two
+ * lines below) — so there is nothing here for the shared sentence to
+ * contradict.
  *
  * **Figures go through the same formatters the card's own spec line uses.**
  * `formatVehiclePayload` for the weight, so a badge reading "Can't carry 3 t"
  * sits above a spec line reading "up to 1.5 t" in the same unit rather than
- * pairing "3000 kg" with "1.5 t" on one card and making the client do the
- * conversion. The three dimensions are written as a bare number and " m" for the
- * same reason: that is exactly how `formatVehicleDimensions` renders each of its
- * own three figures, so an unrounded "4.5 m" here and "4.5 x 2.1 x 2.1 m" below
- * agree digit for digit. No `toFixed` — rounding one of the two would be the
- * whole contradiction reintroduced.
+ * pairing "3000 kg" with "1.5 t" on one card. The three dimensions are written
+ * as a bare number and " m" because that is exactly how
+ * `formatVehicleDimensions` renders each of its own three figures. No
+ * `toFixed` — rounding one of the two would reintroduce the contradiction.
  *
  * A `Record` keyed by `CargoAxis` rather than a `switch`: a fifth axis added to
  * the shared module fails typecheck here instead of falling through to a card
@@ -568,7 +524,7 @@ type DeclaredCargoEnvelope = {
  */
 const CARGO_AXIS_CARD_REASONS: Record<
   CargoAxis,
-  (envelope: DeclaredCargoEnvelope, t: BookingFormTranslate) => string
+  (envelope: LoadEnvelope, t: BookingFormTranslate) => string
 > = {
   weight: (envelope, t) =>
     t("cantCarry", { weight: formatVehiclePayload(envelope.weightKg) }),
@@ -581,15 +537,15 @@ const CARGO_AXIS_CARD_REASONS: Record<
  * Every offending axis on one card, not just the first.
  *
  * A load can be over on more than one axis at once, and a card that named only
- * the length would send a client to a longer truck that is still too narrow —
- * one avoidable round trip through steps 5 and 6 per axis. Middot-joined in the
- * order `oversizeAxes` reports, which is the fixed weight/length/width/height
- * order the shared module compares in, so two cards over on the same pair of
- * axes always read the same way round.
+ * the length would send a client to a longer truck that is still too narrow.
+ * Middot-joined in the order `oversizeAxes` reports (through `assessFit`'s
+ * `hardAxes`), which is the fixed weight/length/width/height order the shared
+ * module compares in, so two cards over on the same pair of axes always read
+ * the same way round.
  */
 function cargoFitCardReason(
   axes: CargoAxis[],
-  envelope: DeclaredCargoEnvelope,
+  envelope: LoadEnvelope,
   t: BookingFormTranslate,
 ): string {
   return axes
@@ -598,12 +554,14 @@ function cargoFitCardReason(
 }
 
 /**
- * The step-5 badge for a class no carrier on the platform operates.
+ * The step-5 badge for a class no carrier on the platform operates with the
+ * load space being booked.
  *
- * Cut to the same measure as the cargo-fit badges above — "Too short for 15 m",
- * "Can't carry 3 t" — because it shares their slot on the card: a short verdict
- * that fits one line beside a spec line, not a sentence. The full explanation,
- * with something to go and do about it, is the alert above the grid.
+ * Cut to the same measure as the cargo-fit badges above — "Too short for 2.2
+ * m", "Can't carry 3 t" — because it shares their slot on the card: a short
+ * verdict that fits one line beside a spec line, not a sentence. The full
+ * explanation, with something to go and do about it, is the alert above the
+ * grid.
  *
  * "Carriers" and not "drivers" deliberately. What is missing is the *vehicle*
  * from the fleet, and a client told "no drivers" would reasonably read it as a
@@ -619,95 +577,23 @@ const NO_CARRIERS_CARD_REASON_KEY = "noCarriersRunThisClass";
 
 /**
  * The same fact said once, with the fix attached, when it is true of *every*
- * card in the grid.
+ * card in the grid that could otherwise take the load.
  *
  * Needed because the badges alone leave that state unexplained where it is
  * acted on: a grid of uniformly disabled cards says what has happened but not
- * what to do, and the client's next move is at the bottom of the form, against
- * a Book button whose `canSubmit` refuses a selection they cannot change from
- * here. Both levers named because either can reach a serviceable class — the
- * eligible set is the intersection of goods, load space and weight bracket, and
- * only the last two are still adjustable at this point in the form (a goods
- * change would re-default both, which is a bigger instruction than it sounds).
+ * what to do, and the client's next move is elsewhere — the item list above,
+ * or (for a business) the load space.
  */
 const NO_SERVICEABLE_VEHICLES_MESSAGE_KEY = "noServiceableVehicles";
 
 /**
- * The ceiling comes from `CARGO_MEASUREMENT_BOUNDS`: the heaviest thing the
- * catalogue can currently carry, exactly (`prisma/seed.ts`'s `TRAILER_TRUCK`
- * tops out at 24 000 kg, and there is deliberately no headroom above it — seed a
- * heavier type and that table has to be raised with it, or the new vehicle is
- * unbookable at its own limit). The floor is 1 kg rather than 0 because a
- * zero-weight load is a typo, not a booking.
+ * The grid-wide line for the other way a grid can end up with nothing
+ * bookable: every class on offer is too small for the listed load. Named
+ * separately from the serviceability alert because the fix is different —
+ * there is no carrier to wait for, the list itself has to change (or the
+ * booking be split).
  */
-const CARGO_WEIGHT_FIELD: CargoNumberField = {
-  key: "weight",
-  labelKey: "totalWeightKg",
-  emptyErrorKey: "enterTotalWeight",
-  parseLabel: "total weight",
-  bounds: CARGO_MEASUREMENT_BOUNDS.cargoWeightKg,
-  step: "0.1",
-  placeholderKey: "eG850",
-};
-
-/**
- * The three dimensions describe the *largest single item*, not the footprint of
- * the whole consignment — that is what the load board compares against a
- * vehicle's cargo hold.
- *
- * Their ceilings are not the same as each other and deliberately so: length and
- * width stop exactly where the catalogue does — 13.6 m from `TRAILER_TRUCK` and
- * 2.5 m from `LARGE_FREIGHT_TRUCK`, no room to spare — while height alone stays
- * at 4 m, because `FLATBED_TRUCK`'s open bed genuinely has no height ceiling and
- * a fleet-derived one would refuse loads it could carry. See
- * `CARGO_MEASUREMENT_BOUNDS` in `src/lib/cargo.ts` for the full reasoning. The
- * previous 15 m allowance on all three was not generosity, it was a hole: a
- * mis-keyed 1.5 became 15, sailed through this form, and died at the endpoint.
- */
-const CARGO_LENGTH_FIELD: CargoNumberField = {
-  key: "length",
-  labelKey: "lengthM",
-  emptyErrorKey: "enterLength",
-  parseLabel: "length",
-  bounds: CARGO_MEASUREMENT_BOUNDS.cargoLengthM,
-  step: "0.01",
-  placeholderKey: "eG12",
-};
-
-const CARGO_WIDTH_FIELD: CargoNumberField = {
-  key: "width",
-  labelKey: "widthM",
-  emptyErrorKey: "enterWidth",
-  parseLabel: "width",
-  bounds: CARGO_MEASUREMENT_BOUNDS.cargoWidthM,
-  step: "0.01",
-  placeholderKey: "eG08",
-};
-
-const CARGO_HEIGHT_FIELD: CargoNumberField = {
-  key: "height",
-  labelKey: "heightM",
-  emptyErrorKey: "enterHeight",
-  parseLabel: "height",
-  bounds: CARGO_MEASUREMENT_BOUNDS.cargoHeightM,
-  step: "0.01",
-  placeholderKey: "eG11",
-};
-
-/** Which of the four the client has already left, and so may be told off. */
-type CargoFieldsTouched = Record<CargoNumberFieldKey, boolean>;
-
-/**
- * Nothing touched yet — where the step starts. Named rather than written inline
- * at the `useState` call for the same reason as `NO_STOP_CONTACTS` above: the
- * pristine state is a state the form has, not four incidental falses.
- */
-const NO_CARGO_FIELDS_TOUCHED: CargoFieldsTouched = {
-  weight: false,
-  length: false,
-  width: false,
-  height: false,
-};
+const NO_VEHICLE_FITS_MESSAGE_KEY = "noVehicleFitsTheseItems";
 
 /**
  * The six handling requirements, in the order `CargoHandlingTag` declares them.
@@ -772,8 +658,8 @@ const FIELD_NOTICE_CLASSES =
   "rounded-lg border border-line bg-surface px-3 py-2 text-xs leading-snug text-muted";
 
 /**
- * The third fill state of a step-5 vehicle card: on offer for these goods, this
- * body and this weight bracket, but unable to take the *declared* load.
+ * The third fill state of a step-5 vehicle card: on offer for these items and
+ * this body, but unable to take the *listed* load (or run by no carrier).
  *
  * A local constant rather than a fourth `PICK_CARD_*` export in
  * `booking-form-primitives.tsx`, on the same grounds that file gives for keeping
@@ -801,13 +687,23 @@ const PICK_CARD_UNAVAILABLE_REASON_CLASSES =
   "mt-1.5 text-[0.6875rem] leading-snug font-semibold text-accent";
 
 /**
+ * The soft-fit line inside a card that *can* take the load but may be tight on
+ * it — over its weight margin, its packed volume or its floor area
+ * (`assessFit`'s `soft` reasons). Muted, not accent, and the card stays fully
+ * selectable: these are estimates of estimates (`load-plan.ts`), so they warn
+ * and never refuse, here or on the server.
+ */
+const PICK_CARD_SOFT_FIT_CLASSES =
+  "mt-1.5 text-[0.6875rem] leading-snug font-medium text-muted";
+
+/**
  * Why a step is not answerable yet — one line per gate, each naming the thing to
  * go and do rather than the thing that is missing.
  *
  * Each is worded for the state its card is actually in, which is not always the
- * step directly above: the goods and weight cards share `ENTER_ADDRESSES_FIRST`
- * because they share a gate (`weightStepEnabled` *is* `goodsStepEnabled`), so
- * naming the goods step on the weight card would point a client at a step that
+ * step directly above: the goods and items cards share `ENTER_ADDRESSES_FIRST`
+ * because they share a gate (`itemsStepEnabled` *is* `goodsStepEnabled`), so
+ * naming the goods step on the items card would point a client at a step that
  * is itself still shut. A disabled step that merely stopped responding would
  * leave a client with nothing to act on, so the reason is rendered in the card
  * and referenced by its `aria-describedby` (see `StepCard`).
@@ -815,15 +711,22 @@ const PICK_CARD_UNAVAILABLE_REASON_CLASSES =
 const CHOOSE_DATE_FIRST_KEY = "chooseDateFirst";
 const ENTER_ADDRESSES_FIRST_KEY = "enterAddressesFirst";
 /**
- * The vehicle step's line, and the one gate with no action behind it: the weight
- * effect settles on a capacity the moment any exists, so this card is shut only
- * while the weight step is shut too or while there is no capacity to settle on
- * at all (the vehicle types are still loading, their fetch failed, or the chosen
- * goods clear no vehicle). "Choose a total weight first" would name a choice
- * that is not on offer in any of them.
+ * The vehicle step's two lines. It opens once the item list adds up to a load
+ * one vehicle could take: "List at least one item first" while the list is
+ * empty, and "Fix the item list first" while it holds a load the route would
+ * refuse whatever vehicle were chosen — chilled goods with an open-chassis
+ * item, or more than any class can carry. The picker already says which, in an
+ * alert under the list; this line only points back at it.
  */
-const WEIGHT_UNAVAILABLE_KEY = "weightUnavailable";
+const LIST_ITEMS_FIRST_KEY = "listItemsFirst";
+const FIX_ITEM_LIST_FIRST_KEY = "fixItemListFirst";
 const CHOOSE_VEHICLE_FIRST_KEY = "chooseVehicleFirst";
+/**
+ * Steps 6, 7 and the service level, for a business that has not chosen a load
+ * space: there is no vehicle until there is a body, so "Choose a vehicle
+ * first" would point at a choice step 5 cannot offer yet.
+ */
+const CHOOSE_LOAD_SPACE_FIRST_KEY = "chooseLoadSpaceFirst";
 
 /** Shared geometry for a native `<select>`/date-trigger styled to match the
  *  rest of this form's fields — the same treatment `account-profile-form.tsx`
@@ -978,9 +881,10 @@ const VEHICLE_CATEGORY_GLYPHS: Record<
  * goods, load space, vehicle or crew size invalidates that quote until it's
  * recalculated — then booked through `POST /api/orders`.
  *
- * Booking is where this surface ends. It takes no props and owns every piece of
- * state it renders from, because nothing about it is decided elsewhere: the
- * order it creates is unpaid, and the client is sent straight to
+ * Booking is where this surface ends. It owns every piece of state it renders
+ * from except one input, `initialGoods` — the landing-page shortcut the visitor
+ * arrived through (`?goods=`), already validated by `HomeEntry` — because
+ * nothing else about it is decided elsewhere: the order it creates is unpaid, and the client is sent straight to
  * `/checkout/<id>` to settle it. Payment methods, saved cards and the business
  * purchase-order field are that page's, not this one's — a form that both
  * priced a job and collected payment for it made the client answer for the
@@ -993,10 +897,20 @@ const VEHICLE_CATEGORY_GLYPHS: Record<
  * Multi-stop routes are deliberately absent, because the backend has no concept
  * of them — an `Order` has exactly one pickup and one dropoff.
  */
-export function BookingForm(): React.ReactElement {
+export function BookingForm({
+  initialGoods,
+}: {
+  /**
+   * The goods shortcut to open on, or `null` for none. Validated against
+   * `GOODS_SHORTCUTS` before it gets here, so it is always a real code. It is
+   * an *initial* value: the form seeds its own state from it and never follows
+   * it again.
+   */
+  initialGoods: GoodsShortcutCode | null;
+}): React.ReactElement {
   const t = useTranslations("home.bookingForm");
   const locale = useLocale();
-  // Root-scoped, for shared helpers that take full keys (`cargoFitMessage`).
+  // Root-scoped, for shared helpers that take full keys (`vehicleTypeSpecLabel`).
   const tRoot = useTranslations();
   // A catalogue class's name in the reader's language, by its stable code; the
   // API's `label` is the seeded English and the fallback for an unknown code.
@@ -1004,7 +918,6 @@ export function BookingForm(): React.ReactElement {
     vehicleTypeSpecLabel(vehicleType.code, vehicleType.label, tRoot);
   // The shared cargo taxonomy's labels in the reader's language; the English
   // maps in `@/lib/cargo` stay as the source for non-UI callers.
-  const cargoCategoryLabel = useCargoCategoryLabel();
   const cargoHandlingTagLabel = useCargoHandlingTagLabel();
   // Built per locale rather than at module scope, so the date and time labels
   // follow the language toggle. No `timeZone`: see `SCHEDULED_DATE_FORMAT`.
@@ -1021,7 +934,9 @@ export function BookingForm(): React.ReactElement {
     // local zone the `Date` is constructed in.
     timeSlotFormatter.format(new Date(2000, 0, 1, slot.hour, slot.minute));
   const tShared = useTranslations("common.shared");
-  const tCargo = useTranslations("home.orderCargoOptions");
+  // The goods shortcuts' titles and descriptions, shared with the landing
+  // page's tiles — one wording for the same shortcut wherever it appears.
+  const tGoods = useTranslations("common.goodsShortcut");
   const router = useRouter();
 
   // Not an element id but a shared radio `name`: it is what binds the four
@@ -1031,22 +946,14 @@ export function BookingForm(): React.ReactElement {
   const bodyTypeName = useId();
   // And the one binding the three service-level radios.
   const serviceLevelName = useId();
+  // The "Change vehicle" grid, for its disclosure button's `aria-controls`.
+  const vehicleGridId = useId();
   const descriptionId = useId();
   const formId = useId();
   const dateTriggerId = useId();
   const timeSelectId = useId();
-  const weightSelectId = useId();
 
-  // Step 6's fields. One id per control plus one per helper line: the helper
-  // and any error are both pointed at by the input's `aria-describedby`, so
-  // each needs an id of its own rather than sharing the field's.
-  const cargoWeightFieldId = useId();
-  const cargoLengthFieldId = useId();
-  const cargoWidthFieldId = useId();
-  const cargoHeightFieldId = useId();
-  // The step-6 blocking line. Needs an id of its own because the four inputs
-  // point at it through `aria-describedby` when it is showing — see the alert.
-  const cargoFitAlertId = useId();
+  // Step 6's fields.
   const packagingFieldId = useId();
   const itemQuantityFieldId = useId();
   const pickupWindowStartId = useId();
@@ -1054,15 +961,179 @@ export function BookingForm(): React.ReactElement {
   const deadlineTriggerId = useId();
   const deadlineTimeSelectId = useId();
 
+  /**
+   * Whether the client books as an individual or a business — `null` until the
+   * profile read below settles, which every reader must treat as "not known
+   * yet": show neither the business-only goods (pallets) nor the load-space
+   * picker, and gate nothing on them.
+   *
+   * Fetched in the browser rather than handed down from `/`, because `/` is an
+   * ISR page that deliberately reads no session (see `src/app/[locale]/page.tsx`)
+   * — resolving a client's account type there would either make the front door
+   * dynamic or put one client's answer in everyone's cached copy. Hiding a
+   * business-only control here is a convenience, not the guarantee:
+   * `POST /api/orders` re-checks the account type itself.
+   */
+  const [accountType, setAccountType] = useState<Extract<
+    AccountType,
+    "INDIVIDUAL" | "BUSINESS"
+  > | null>(null);
+
+  // Once, on mount. `GET /api/client-profile` answers `null` for a client who
+  // has not completed a profile, 403 for an admin viewing this surface, and may
+  // simply fail; all three settle on INDIVIDUAL — the safe default, which hides
+  // the business-only controls rather than offering what the server would
+  // refuse. Only an explicit BUSINESS on a stored profile unlocks them.
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadAccountType() {
+      let resolved: "INDIVIDUAL" | "BUSINESS" = "INDIVIDUAL";
+      try {
+        const response = await fetch("/api/client-profile");
+        if (response.ok) {
+          const profile: unknown = await response.json();
+          if (
+            typeof profile === "object" &&
+            profile !== null &&
+            "accountType" in profile &&
+            profile.accountType === "BUSINESS"
+          ) {
+            resolved = "BUSINESS";
+          }
+        }
+      } catch {
+        // Network failure or a non-JSON body: keep the safe default.
+      }
+      if (!cancelled) {
+        setAccountType(resolved);
+      }
+    }
+
+    void loadAccountType();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  /** Only an explicit BUSINESS unlocks the business-only controls; see above. */
+  const isBusiness = accountType === "BUSINESS";
+
+  /**
+   * Goods-first booking: what the client is moving, as a list of items rather
+   * than a cargo category and four typed figures.
+   *
+   * - `goodsShortcut` is the step-3 card last picked (seeded from
+   *   `initialGoods`, the landing shortcut the visitor arrived through). It is
+   *   an entry point and nothing more — which catalogue group the picker opens
+   *   on and, for Pallets, which mode. It never fixes the order's cargo
+   *   category; that is derived from the items (`plan.cargoCategory`).
+   * - `loadMode` is the picker's Items/Pallets switch, as the client left it.
+   *   What applies is `activeMode` below: pallets are business-only, so for
+   *   anyone else (or while the account type is still loading) it reads as
+   *   Items whatever this says.
+   * - `itemLines` holds *both* modes' lines at once, per the picker's parent
+   *   contract (`item-list-picker.tsx`): flipping to Pallets and back never
+   *   loses the sofa. Only the active mode's lines are planned or sent.
+   *
+   * Picking a shortcut never clears the list. Switching from Furniture to
+   * Appliances moves the picker to another catalogue group; the sofa already
+   * listed stays listed.
+   */
+  const [goodsShortcut, setGoodsShortcut] = useState<GoodsShortcutCode | null>(
+    initialGoods,
+  );
+  const [loadMode, setLoadMode] = useState<PickerMode>(
+    () => goodsShortcutByCode(initialGoods)?.mode ?? "items",
+  );
+  const [itemLines, setItemLines] = useState<PickerLine[]>(() =>
+    initialItemLines(goodsShortcutByCode(initialGoods)),
+  );
+  const activeMode = effectiveMode(loadMode, accountType);
+  const selectedGoodsShortcut = goodsShortcutByCode(goodsShortcut);
+
+  /** The item catalogue in the UI language, fetched once per page load. */
+  const {
+    items: catalogue,
+    loading: catalogueLoading,
+    error: catalogueError,
+  } = useItemCatalogue(parseCatalogueLocale(locale));
+
+  /**
+   * The active lines as the load plan's input, built through exactly the
+   * functions the route resolves each kind with (`toLoadLines`).
+   */
+  const loadLines = useMemo(
+    () => toLoadLines(itemLines, activeMode, catalogue),
+    [itemLines, activeMode, catalogue],
+  );
+
+  /**
+   * What the list adds up to — total weight, largest item, cargo category,
+   * body, implied handling tags — or `null` for an empty list.
+   *
+   * The same `planLoad` `POST /api/orders` re-runs on the items it is sent, so
+   * every figure this form steers by (which classes are on offer, which cards
+   * are too small, which body an individual books) is the figure the server
+   * will write. Nothing the client typed is trusted in its place.
+   */
+  const plan = useMemo(() => planLoad(loadLines), [loadLines]);
+
+  /**
+   * A plan the route would accept on *some* vehicle: one body every line can
+   * travel in, and no heavier than the biggest class on the platform. Either
+   * failure is refused by `POST /api/orders` whatever vehicle is picked, and
+   * the picker says which in an alert under the list, so the steps below stay
+   * shut until it is fixed.
+   */
+  const planBookable =
+    plan !== null && plan.body.kind === "derived" && !plan.overMaximum;
+
+  /**
+   * The order's cargo category, derived — never chosen. Still sent with the
+   * estimate and the booking because the shared `parseQuoteFields` requires
+   * it; on the items path the route overwrites it with its own derivation from
+   * the same function, so the two agree.
+   */
+  const cargoCategory = plan?.cargoCategory ?? null;
+
+  /**
+   * The body some listed line *forces* (chilled goods ⇒ refrigerated), or
+   * `null` when none does. Asked of the lines, not read off `plan.body`, for
+   * the reason `decideItemsBooking` gives on the server: `plan.body` falls back
+   * to a dry box when nothing is forced, and that fallback must not overrule a
+   * business that chose an open chassis for ordinary goods.
+   */
+  const forcedBody = useMemo(
+    () =>
+      loadLines.find((line) => line.requiredBody !== null)?.requiredBody ??
+      null,
+    [loadLines],
+  );
+
+  /** A step-3 card: open the picker on its group, and on its mode. */
+  function handleGoodsShortcut(shortcut: GoodsShortcut) {
+    // Always true — every card is drawn from `GOODS_SHORTCUTS` — but
+    // `GoodsShortcut` types its code as a plain string.
+    if (isGoodsShortcutCode(shortcut.code)) {
+      setGoodsShortcut(shortcut.code);
+    }
+    setLoadMode(shortcut.mode);
+    // Pallets opens on one group to fill in, exactly as flipping the picker's
+    // own switch does (`ItemListPicker`'s `handleModeChange`).
+    if (
+      shortcut.mode === "pallets" &&
+      activeLines(itemLines, "pallets").length === 0
+    ) {
+      setItemLines(addPalletLine(itemLines));
+    }
+  }
+
   // Null until both a day and a time slot are chosen — see `scheduledDateTime`,
   // the combined value everything downstream (submission, validation) reads.
   const [scheduledDate, setScheduledDate] = useState<Date | null>(null);
   const [scheduledTime, setScheduledTime] = useState("");
   const [datePickerOpen, setDatePickerOpen] = useState(false);
-
-  // Null until the taxonomy hands back at least one eligible vehicle to size
-  // this against — see `weightOptions`.
-  const [maxWeightKg, setMaxWeightKg] = useState<number | null>(null);
 
   const [pickupAddress, setPickupAddress] = useState("");
   const [dropoffAddress, setDropoffAddress] = useState("");
@@ -1087,15 +1158,81 @@ export function BookingForm(): React.ReactElement {
     null,
   );
 
-  const [cargoCategory, setCargoCategory] = useState<CargoCategory>(
-    DEFAULT_CARGO_CATEGORY,
+  /**
+   * The load space being booked. A filter on the vehicle list and nothing
+   * more: it moves no price, because the catalogue already charges for the body
+   * through each type's own pricing rule (a Refrigerated Van is priced above a
+   * Closed Box Van), so a surcharge here would bill the same premium twice.
+   *
+   * Two sources, by account type, mirroring what `POST /api/orders` does with
+   * it (`decideItemsBooking`):
+   *
+   * - **Individuals are never asked.** Their body is the plan's — a dry box,
+   *   or the refrigerated body a chilled item forces — and the route ignores
+   *   any body they send in favour of that same derivation. The load-space
+   *   question is not rendered for them at all.
+   * - **Businesses choose** (`chosenBodyType`, from the step-5 fieldset), since
+   *   an open chassis for ordinary goods is a real business choice. There is
+   *   no default: it starts `null`, step 5 offers no vehicle until a body is
+   *   chosen, and the steps after it say "Choose a load space first." —
+   *   `POST /api/orders` refuses a business order without one, so a default
+   *   would only have been a choice the client never made, sent as theirs.
+   *   The one exception is a body the items *force*: when every forcing line
+   *   agrees (one forced body and no conflict), the effect below moves the
+   *   choice there whenever that body changes — the route requires the match,
+   *   and the step-5 picker disables every other card with the reason. When
+   *   lines force different bodies nothing moves: that list is refused
+   *   whatever is chosen, and step 5 is shut until the list is fixed.
+   *
+   * `accountType` still loading (`null`) reads as an individual — the same
+   * reading `effectiveMode` and the route take. `bodyType` is `null` exactly
+   * while a business has not chosen; every reader below treats that as "no
+   * vehicle can be judged yet".
+   */
+  const [chosenBodyType, setChosenBodyType] = useState<ChassisType | null>(
+    null,
   );
-  // The load space the goods need. A filter on the vehicle list and nothing
-  // more: it moves no price, because the catalogue already charges for the body
-  // through each type's own pricing rule (a Refrigerated Van is priced above a
-  // Closed Box Van), so a surcharge here would bill the same premium twice.
-  const [bodyType, setBodyType] = useState<ChassisType>(DEFAULT_BODY_TYPE);
+  const derivedBodyType: ChassisType =
+    plan?.body.kind === "derived" ? plan.body.body : DEFAULT_BODY_TYPE;
+  const bodyType: ChassisType | null = isBusiness
+    ? chosenBodyType
+    : derivedBodyType;
+
+  /**
+   * The body the items force, only when that is unambiguous: one forcing body
+   * across every line (`plan.body` derived, not in conflict). `forcedBody`
+   * alone is the *first* forcing line's, which in a conflict is an arbitrary
+   * pick between two bodies neither of which can take the whole list.
+   */
+  const unambiguousForcedBody =
+    plan?.body.kind === "derived" ? forcedBody : null;
+
+  useEffect(() => {
+    if (isBusiness && unambiguousForcedBody !== null) {
+      setChosenBodyType(unambiguousForcedBody);
+    }
+  }, [isBusiness, unambiguousForcedBody]);
+
   const [vehicleTypeCode, setVehicleTypeCode] = useState("");
+  /**
+   * Whether the client picked `vehicleTypeCode` themselves. `false` — where a
+   * booking starts, and where "Use recommended" returns it — means the form
+   * picked it and keeps it on the recommendation as the item list changes;
+   * `true`, set by any click on a vehicle card in either view, means no plan
+   * change moves it. The full rule, and why, is `vehicle-selection.ts`.
+   */
+  const [vehicleChosenByClient, setVehicleChosenByClient] = useState(false);
+  /**
+   * The hand-picked class the form last had to let go, and why — shown as one
+   * line in step 5 so the switch to the recommendation is never silent.
+   * Cleared by the client's next vehicle or load-space choice.
+   */
+  const [releasedVehicle, setReleasedVehicle] = useState<{
+    code: string;
+    reason: VehicleReleaseReason;
+  } | null>(null);
+  /** The "Change vehicle" disclosure: the full annotated grid. Collapsed. */
+  const [vehicleGridOpen, setVehicleGridOpen] = useState(false);
   // Total people for loading and unloading, driver included — see
   // `helperCount` below for the figure the API is actually told.
   const [crewSize, setCrewSize] = useState<CrewSize>(DEFAULT_CREW_SIZE);
@@ -1107,50 +1244,43 @@ export function BookingForm(): React.ReactElement {
   );
   const [description, setDescription] = useState("");
 
-  /**
-   * The declared physical load — step 6, and the half of this form the driver
-   * load board's fit filter actually reads.
-   *
-   * None of it reaches `/api/pricing/estimate` and none of it moves the fare:
-   * the vehicle class picked in step 5 is still what the job is priced on. These
-   * are a *declaration* carried alongside that choice, so a driver can be shown
-   * only the loads their vehicle can physically take.
-   *
-   * The four numbers are held as raw strings, not numbers, and the suffix says
-   * so. A field mid-edit is a perfectly ordinary state — "12." on the way to
-   * "12.5", "0" on the way to "0.8" — and storing a parsed number would let the
-   * value snap under the client's cursor between keystrokes. They are parsed on
-   * demand instead (see `parseCargoNumber`), once per render, for both the
-   * inline errors and `canSubmit`.
-   */
-  const [cargoWeightKgInput, setCargoWeightKgInput] = useState("");
-  const [cargoLengthMInput, setCargoLengthMInput] = useState("");
-  const [cargoWidthMInput, setCargoWidthMInput] = useState("");
-  const [cargoHeightMInput, setCargoHeightMInput] = useState("");
-
-  /**
-   * Which of the four required numbers the client has already left.
-   *
-   * Errors are withheld until a field has been visited, so the step does not
-   * open pre-scolded on four empty inputs the client has not reached yet. It has
-   * no bearing on whether the form submits — that is `canSubmit`'s, and it reads
-   * the parse results directly.
-   */
-  const [cargoFieldsTouched, setCargoFieldsTouched] =
-    useState<CargoFieldsTouched>(NO_CARGO_FIELDS_TOUCHED);
-
   // Free text, both optional, both carried to the driver rather than read by
-  // anything: "4 pallets" and "96 cartons" are context for loading, not data
-  // the fit filter or the fare has any use for.
+  // anything: "shrink-wrapped" and "96 cartons" are context for loading, not
+  // data the fit filter or the fare has any use for. The route fills whichever
+  // one the client is not asked for — the item summary into `itemQuantity` in
+  // items mode, the pallet summary into `packagingDescription` in pallets mode
+  // (`describeLoad`) — so step 6 shows only the other one in each mode.
   const [packagingDescription, setPackagingDescription] = useState("");
   const [itemQuantity, setItemQuantity] = useState("");
 
   /**
    * How the load has to be handled. Independent toggles rather than a choice —
    * a fragile, upright-only, time-critical load is an ordinary thing to book —
-   * so the empty array is a complete answer and never a missing one.
+   * so the empty selection is a complete answer and never a missing one.
+   *
+   * Two sources, kept apart so neither can overwrite the other:
+   *
+   * - **Implied by the items** (`plan.handlingTags`): a fridge is upright-only,
+   *   chilled food is cold-chain. These arrive pre-selected.
+   * - **The client's own choices** (`handlingTagChoices`): a tag the client
+   *   has toggled, either way. Only tags they have touched appear in it.
+   *
+   * The selection is derived from the two: a tag the client has touched is
+   * whatever they set it to; any other tag is on exactly while the items imply
+   * it. So a newly implied tag is added without disturbing anything the client
+   * chose, a tag the client switched off stays off however many fridges are
+   * added, and removing the one item that implied a tag drops it again —
+   * unless the client toggled it, in which case it stays as they left it.
+   * Derived rather than synchronised by an effect, so there is no frame in
+   * which the chips and the items disagree.
    */
-  const [handlingTags, setHandlingTags] = useState<CargoHandlingTag[]>([]);
+  const [handlingTagChoices, setHandlingTagChoices] = useState<
+    Partial<Record<CargoHandlingTag, boolean>>
+  >({});
+  const impliedHandlingTags = plan?.handlingTags ?? [];
+  const handlingTags: CargoHandlingTag[] = HANDLING_TAG_OPTIONS.filter(
+    (tag) => handlingTagChoices[tag] ?? impliedHandlingTags.includes(tag),
+  );
 
   /**
    * The window the client will release the load in, as two `TIME_SLOTS` values
@@ -1197,6 +1327,33 @@ export function BookingForm(): React.ReactElement {
    */
   const helperCount = crewSize - 1;
 
+  /**
+   * The first listed item that needs two people to carry, by its catalogue
+   * name, or `null` when the plan suggests a crew of one. Only catalogue lines
+   * can say so (`needsTwoPeople` is a catalogue field; custom and pallet lines
+   * never set it), so only they are searched, in list order — the same
+   * `planLoad` `suggestedCrew` reads, asked one line at a time.
+   *
+   * Feeds a hint under the crew picker and nothing else: the crew size is the
+   * client's to set, priced per helper, and the form never changes it for
+   * them.
+   */
+  const twoPersonItemLabel = useMemo(() => {
+    if (plan?.suggestedCrew !== 2) {
+      return null;
+    }
+    const byCode = new Map(catalogue.map((item) => [item.code, item]));
+    for (const line of activeLines(itemLines, activeMode)) {
+      if (line.kind === "CATALOGUE") {
+        const item = byCode.get(line.code);
+        if (item?.needsTwoPeople) {
+          return item.label;
+        }
+      }
+    }
+    return null;
+  }, [plan, catalogue, itemLines, activeMode]);
+
   // The map is a companion to the form on desktop and an opt-in panel on
   // mobile. This only drives a `hidden`/`block` swap — the map is never
   // conditionally unmounted, or it would re-mount (and re-bill) the Google Maps
@@ -1210,14 +1367,23 @@ export function BookingForm(): React.ReactElement {
   } = useOrderVehicleTypes();
 
   /**
-   * The vehicle types this cargo may legally travel in, cheapest first.
+   * The vehicle types this load may legally travel in, cheapest first — or
+   * none at all while there is no plan, which keeps the vehicle step shut until
+   * something is listed.
    *
-   * Cheapest-first is what makes `[0]` the best fit — the same heuristic the
-   * landing page's quote calculator already uses to pick a vehicle on the
-   * visitor's behalf. This is the *cargo*-eligible set; `eligibleVehicleTypes`
-   * below narrows it further by the weight step.
+   * Filtered by the plan's *derived* cargo category, the narrowest one any
+   * listed line carries (`load-plan.ts`): one bag of cement among a home move
+   * still needs a heavy-duty vehicle, which is the `cargo_vehicle_mismatch`
+   * rule `POST /api/orders` applies to the same derivation.
+   *
+   * Cheapest-first is what makes `[0]` the cheapest candidate — the same
+   * heuristic the landing page's quote calculator uses to pick a vehicle on the
+   * visitor's behalf. `eligibleVehicleTypes` below narrows this by body.
    */
   const cargoEligibleVehicleTypes = useMemo(() => {
+    if (cargoCategory === null) {
+      return [];
+    }
     const allowed = CARGO_CATEGORY_ALLOWED_VEHICLE_CATEGORIES[cargoCategory];
 
     return vehicleTypes
@@ -1226,47 +1392,12 @@ export function BookingForm(): React.ReactElement {
   }, [vehicleTypes, cargoCategory]);
 
   /**
-   * The weight dropdown's options: every payload capacity actually present
-   * among the cargo-eligible vehicles, smallest first — so each option reads
-   * as "up to what this vehicle can carry" and every option is guaranteed to
-   * leave at least one vehicle standing once picked.
-   */
-  const weightOptions = useMemo(() => {
-    const capacities = cargoEligibleVehicleTypes.map(
-      (vehicleType) => vehicleType.maxPayloadKg,
-    );
-    return [...new Set(capacities)].sort((a, b) => a - b);
-  }, [cargoEligibleVehicleTypes]);
-
-  /**
-   * Default (and re-default, on a goods change) to the smallest capacity —
-   * the least restrictive option, so an untouched weight step never hides a
-   * vehicle the goods step alone would have shown. Mirrors the vehicle
-   * auto-select effect below: replace a selection that's no longer one of the
-   * current options rather than clear it to empty.
-   */
-  useEffect(() => {
-    const smallest = weightOptions[0];
-    if (smallest === undefined) {
-      return;
-    }
-
-    if (maxWeightKg === null || !weightOptions.includes(maxWeightKg)) {
-      setMaxWeightKg(smallest);
-    }
-  }, [weightOptions, maxWeightKg]);
-
-  /**
    * The three load-space cards, each carrying how many vehicles would be left
-   * to choose from if it were picked.
+   * to choose from if it were picked. Business accounts only — see `bodyType`.
    *
    * Counted against the cargo-eligible set, not the fully filtered one: a card
    * has to say what picking it *would* give you, so the body currently selected
-   * must not be allowed to shrink the other two cards' figures. The weight step
-   * is left out of the count for the same reason it is left out of the cards
-   * themselves — it re-defaults on a body change (see `handleBodyTypeChange`),
-   * so a figure narrowed by it would be describing a weight about to be
-   * discarded.
+   * must not be allowed to shrink the other two cards' figures.
    */
   const bodyTypeCards = useMemo(
     () =>
@@ -1280,150 +1411,269 @@ export function BookingForm(): React.ReactElement {
   );
 
   /**
-   * Cargo-eligible vehicles that also offer the chosen load space and can carry
-   * the declared weight — the three filters of the vehicle step, applied
-   * together. The body predicate is the taxonomy's own (`vehicleOffersBody`);
-   * this file holds no vehicle-to-body table.
+   * Cargo-eligible vehicles that also offer the load space being booked. The
+   * body predicate is the taxonomy's own (`vehicleOffersBody`); this file holds
+   * no vehicle-to-body table.
+   *
+   * There is no weight filter any more. The weight bracket that used to sit in
+   * step 4 is gone: how heavy and how big the load is now comes from the item
+   * list, and is judged per card by `assessFit` (below) — annotated on the
+   * grid, never filtered out of it.
    */
-  const eligibleVehicleTypes = useMemo(() => {
-    return cargoEligibleVehicleTypes.filter(
-      (vehicleType) =>
-        vehicleOffersBody(vehicleType, bodyType) &&
-        (maxWeightKg === null || vehicleType.maxPayloadKg >= maxWeightKg),
-    );
-  }, [cargoEligibleVehicleTypes, bodyType, maxWeightKg]);
+  const eligibleVehicleTypes = useMemo(
+    () =>
+      // No body (a business that has not chosen) offers no vehicle at all.
+      bodyType === null
+        ? []
+        : cargoEligibleVehicleTypes.filter((vehicleType) =>
+            vehicleOffersBody(vehicleType, bodyType),
+          ),
+    [cargoEligibleVehicleTypes, bodyType],
+  );
 
   /**
-   * The eligible classes a carrier on this platform actually operates.
+   * How well the listed load fits each eligible class, by code: the hard axes
+   * the route would refuse on, the soft reasons it may be tight, and the
+   * verdict. Judged against the body being booked, explicitly, so a business's
+   * open chassis is judged as an open chassis rather than as the plan's
+   * dry-box fallback. Empty while there is no plan to judge.
+   */
+  const vehicleFit = useMemo(() => {
+    const fits = new Map<string, FitAssessment>();
+    if (plan === null || bodyType === null) {
+      return fits;
+    }
+    for (const vehicleType of eligibleVehicleTypes) {
+      fits.set(vehicleType.code, assessFit(plan, vehicleType, bodyType));
+    }
+    return fits;
+  }, [plan, eligibleVehicleTypes, bodyType]);
+
+  /**
+   * Is this class one a carrier on this platform actually operates *with the
+   * load space being booked*?
+   *
+   * Per body, through `serviceableBodies`, not the body-agnostic `serviceable`
+   * flag: `POST /api/orders` judges serviceability with
+   * `serviceableSpecIds(bodyType)`, so a class a carrier runs dry but nobody
+   * runs refrigerated is refused for a chilled load — and a form reading the
+   * looser flag would recommend exactly the class the server then turns down.
+   */
+  const servesBody = (vehicleType: OrderVehicleType) =>
+    bodyType !== null && vehicleType.serviceableBodies.includes(bodyType);
+
+  /**
+   * The eligible classes this booking could actually be *placed* against: a
+   * carrier runs them with this body, and the listed load physically goes in.
    *
    * Four of the eleven seeded classes have nobody running them, and an order
    * booked against one is created, priced, charged for — and then invisible to
-   * every driver on the load board forever. That is the same signal-free
-   * failure the cargo-fit work above exists to stop, arriving through a
-   * different door, so it is stopped the same way.
+   * every driver on the load board forever. A class the load cannot fit is the
+   * same failure by another door: the route refuses it outright on the hard
+   * axes (`oversizeAxes`). So both are kept out of this list.
    *
    * A *derived* list and pointedly not a narrower `eligibleVehicleTypes`: the
-   * grid keeps rendering the full eligible set and disables the unserviceable
-   * cards in place, for the reasons set out on the grid itself — a class
-   * removed from that list takes the client's selection with it and reprices
-   * the booking under their cursor. What this list is for is the two places
-   * that put a class on the client's *behalf*, the `Best` pill and the
-   * auto-select effect, neither of which is a click anyone made.
+   * grid keeps rendering the full eligible set and disables these cards in
+   * place, for the reasons set out on the grid itself. What this list is for is
+   * the places that put a class on the client's *behalf* — the recommendation
+   * (and with it the `Best` pill) and the selection effect, none of which is a
+   * click anyone made — and the test of whether a hand-picked class can stay.
+   * `may_not_fit` classes stay in it: a soft-fit warning steers and never
+   * refuses, here or on the server.
    *
    * Order is inherited, so `[0]` is still the cheapest.
    */
   const bookableVehicleTypes = useMemo(
-    () => eligibleVehicleTypes.filter((vehicleType) => vehicleType.serviceable),
-    [eligibleVehicleTypes],
+    () =>
+      eligibleVehicleTypes.filter(
+        (vehicleType) =>
+          bodyType !== null &&
+          vehicleType.serviceableBodies.includes(bodyType) &&
+          vehicleFit.get(vehicleType.code)?.verdict !== "cannot_fit",
+      ),
+    [eligibleVehicleTypes, bodyType, vehicleFit],
   );
 
   /**
-   * The `Best` pill: the cheapest class this booking could actually be *placed*
-   * against, not merely the cheapest one on offer.
+   * Step 5's recommendation: the cheapest bookable class the load comfortably
+   * `fits` — or, when every bookable class is only `may_not_fit`, the cheapest
+   * of those — and the next strictly bigger class that also fits. Both are
+   * `recommendVehicles`' answer, the same function the route's load plan comes
+   * from, over `bookableVehicleTypes` (already cheapest-first and filtered to
+   * what a carrier runs with this body and the load can physically take, as
+   * that function requires). `null` choices when nothing is bookable.
    *
-   * Serviceability is allowed to move this pill where the declared cargo
-   * envelope deliberately is not (see the grid's note on `Best` landing on a
-   * cargo-disabled card), because the two are different kinds of fact. The
-   * envelope changes on every keystroke in step 6, so ranking around it would
-   * have the pill hopping between cards while a client types; serviceability is
-   * a property of the fleet, fixed for the life of the page, so ranking around
-   * it moves nothing after first paint.
+   * It is measured against the item list from the first paint: the load is
+   * listed in step 4, before this step opens, so the recommendation moves only
+   * when the list (or a business's load space) does — the client going back up
+   * the form on purpose.
    *
-   * The stronger reason is that this is the rule the auto-select effect below
-   * picks by. Leaving the pill on the cheapest *eligible* class would put `Best`
-   * on one card while the form quietly selected another — the form
-   * contradicting its own recommendation, which is worse than no pill at all.
-   * When nothing is bookable no card wears it, which is correct: nothing here
-   * is best when nothing here can be had.
+   * The grid's `Best` pill is the recommended class, and the selection effect
+   * below follows it while the client has not picked by hand. One rule for
+   * both, so the form never wears `Best` on one card while standing on
+   * another of its own choosing. When nothing is bookable no card wears it:
+   * nothing here is best when nothing here can be had.
    */
-  const bestFitVehicleType = bookableVehicleTypes[0] ?? null;
+  const recommendation = useMemo(
+    () =>
+      plan === null || bodyType === null
+        ? { recommended: null, oneSizeUp: null }
+        : recommendVehicles(plan, bookableVehicleTypes, bodyType),
+    [plan, bookableVehicleTypes, bodyType],
+  );
+  const recommendedCode = recommendation.recommended?.spec.code ?? null;
+  const oneSizeUpCode = recommendation.oneSizeUp?.spec.code ?? null;
 
   const selectedVehicleType =
     eligibleVehicleTypes.find(
       (vehicleType) => vehicleType.code === vehicleTypeCode,
     ) ?? null;
 
-  /**
-   * Keep the picker on a vehicle the current cargo is actually allowed in.
-   *
-   * Runs on mount (once the taxonomy lands) and whenever the cargo category
-   * changes. A selection that is no longer eligible is replaced by the best fit
-   * rather than cleared: an empty picker would just be a dead end the user has
-   * to resolve, and the cheapest eligible type is the one they would be offered
-   * anyway. Setting the code makes the selection valid, so this settles after
-   * one extra render rather than looping.
-   *
-   * It picks from `bookableVehicleTypes`, never from the full eligible list.
-   * Auto-selecting a class no carrier runs would be the worst kind of default —
-   * chosen by the form, not the client, on a step they may never scroll back
-   * to, and unbookable from the moment it lands. Only the *source* narrows: the
-   * grid still renders every eligible class, so nothing disappears from view.
-   *
-   * Membership is tested against the bookable list too, so a selection that is
-   * merely unserviceable is replaced on the same terms as one that has become
-   * ineligible. Nothing can put an unserviceable code in this state today — the
-   * cards are `disabled`, this effect skips them, and the initial value is `""`
-   * — so that arm is a guard rather than a path, and it is written this way so
-   * the invariant survives whatever sets the code next.
-   *
-   * When nothing at all is bookable the effect returns and leaves the selection
-   * where it is, rather than clearing it: clearing would trade a selection the
-   * client can see explained on its own card for an empty picker explaining
-   * nothing. That state is refused by `canSubmit` and named by the alert above
-   * the grid — see both before changing this.
-   */
-  useEffect(() => {
-    const bestFit = bookableVehicleTypes[0];
-    if (!bestFit) {
-      return;
-    }
+  /** The selected class's fit, or `null` while nothing is selected. */
+  const selectedVehicleFit = selectedVehicleType
+    ? (vehicleFit.get(selectedVehicleType.code) ?? null)
+    : null;
 
-    const stillSelectable = bookableVehicleTypes.some(
-      (vehicleType) => vehicleType.code === vehicleTypeCode,
+  /**
+   * Keep the selection where `vehicleChosenByClient` says it belongs, as the
+   * load, the body or the taxonomy changes. The decision is
+   * `reconcileVehicleSelection` (`vehicle-selection.ts`, specced in
+   * `tests/vehicle-selection.spec.ts`); this only gathers its inputs and
+   * applies the answer.
+   *
+   * - **Following** (the form picked): the selection moves to the
+   *   recommendation whenever it moves. With nothing bookable it stays where
+   *   it is rather than emptying — the card it sits on explains itself, the
+   *   alert at the top of step 5 says what to change, and `canSubmit` refuses
+   *   it.
+   * - **Chosen** (the client picked): a plan change re-annotates the cards but
+   *   never moves the selection. That is the old grid argument made exact —
+   *   never move a selection the client made, in a step they are not looking
+   *   at (they are usually in step 4 when the plan changes). It is let go only
+   *   when it cannot be booked at all: `cannot_fit`, or no longer on offer for
+   *   this body and load. Then the form goes back to following, moves to the
+   *   recommendation, and `releasedVehicle` says which class went and why.
+   *
+   * Nothing is judged while there is no settled load (`judged`): an emptied
+   * list, a body conflict, an over-maximum load or a fetch in flight is a state
+   * the client is passing through, not a verdict on what they picked. Every
+   * source of a code is `bookableVehicleTypes` — never a class no carrier runs
+   * or the load cannot fit — and the reconciler is idempotent, so this settles
+   * after one extra render rather than looping.
+   */
+  const selectionJudged =
+    planBookable &&
+    bodyType !== null &&
+    !loadingVehicleTypes &&
+    !catalogueLoading;
+
+  useEffect(() => {
+    const next = reconcileVehicleSelection({
+      code: vehicleTypeCode,
+      chosenByClient: vehicleChosenByClient,
+      judged: selectionJudged,
+      bodyChosen: bodyType !== null,
+      recommendedCode,
+      bookableCodes: bookableVehicleTypes.map(
+        (vehicleType) => vehicleType.code,
+      ),
+      cannotFitCodes: eligibleVehicleTypes
+        .filter(
+          (vehicleType) =>
+            vehicleFit.get(vehicleType.code)?.verdict === "cannot_fit",
+        )
+        .map((vehicleType) => vehicleType.code),
+    });
+
+    if (next.code !== vehicleTypeCode) {
+      setVehicleTypeCode(next.code);
+    }
+    if (next.chosenByClient !== vehicleChosenByClient) {
+      setVehicleChosenByClient(next.chosenByClient);
+    }
+    if (next.released !== null) {
+      setReleasedVehicle(next.released);
+    }
+  }, [
+    vehicleTypeCode,
+    vehicleChosenByClient,
+    selectionJudged,
+    bodyType,
+    recommendedCode,
+    bookableVehicleTypes,
+    eligibleVehicleTypes,
+    vehicleFit,
+  ]);
+
+  /**
+   * Whether the selection sits on a class the two recommendation cards do not
+   * show. Turning true opens the "Change vehicle" grid, so the selected card is
+   * always on screen: a hand pick from the grid that the recommendation then
+   * moved away from, or a selection left standing when nothing is bookable
+   * (whose card carries the reason). The client can collapse it again.
+   *
+   * A *following* selection is excluded while a recommendation exists. When
+   * the plan changes, `recommendedCode` moves one render before the
+   * reconciling effect above moves the selection after it, so for that one
+   * render a following selection sits "outside" both cards — and without this
+   * guard every item added would throw the grid open under the client (seen in
+   * the wave-5 end-to-end run: adding a fridge to one box opened it).
+   */
+  const selectionOutside =
+    selectionJudged &&
+    (vehicleChosenByClient || recommendedCode === null) &&
+    selectionOutsideRecommendation(
+      vehicleTypeCode,
+      recommendedCode,
+      oneSizeUpCode,
     );
 
-    if (!stillSelectable) {
-      setVehicleTypeCode(bestFit.code);
+  useEffect(() => {
+    if (selectionOutside) {
+      setVehicleGridOpen(true);
     }
-  }, [bookableVehicleTypes, vehicleTypeCode]);
+  }, [selectionOutside]);
 
   /**
-   * Pick a load space, and clear the two steps that hang off it.
-   *
-   * A goods change performs this same reset without being asked to: it rebuilds
-   * `weightOptions`, which re-defaults the weight, and shrinks the eligible
-   * list, which re-picks the vehicle. A body change reaches neither — the
-   * weight options are deliberately cargo-derived (see `weightOptions`), so
-   * they do not move — hence doing it here by hand. Clearing rather than
-   * choosing: both effects then settle on their first-render defaults, the
-   * smallest capacity and the cheapest eligible vehicle.
+   * Any click on a vehicle card, in either view: the client has chosen, and
+   * from here the plan re-annotates the cards without moving this one.
+   */
+  function handleVehicleChoice(code: string) {
+    setVehicleTypeCode(code);
+    setVehicleChosenByClient(true);
+    setReleasedVehicle(null);
+  }
+
+  /** "Use recommended": back to following the recommendation. */
+  function handleUseRecommended() {
+    if (recommendedCode !== null) {
+      setVehicleTypeCode(recommendedCode);
+    }
+    setVehicleChosenByClient(false);
+    setReleasedVehicle(null);
+  }
+
+  /**
+   * A business picks a load space, which clears the vehicle that hung off it.
+   * Clearing rather than choosing, and back to following: no vehicle was ever
+   * picked for this body, so the selection effect settles on the new body's
+   * recommendation exactly as on first render.
    */
   function handleBodyTypeChange(body: ChassisType) {
-    setBodyType(body);
-    setMaxWeightKg(null);
+    setChosenBodyType(body);
     setVehicleTypeCode("");
+    setVehicleChosenByClient(false);
+    setReleasedVehicle(null);
   }
 
   /**
-   * Add or remove one handling requirement, leaving the rest alone.
-   *
-   * Rebuilt rather than mutated, as every other setter in this form is: the
-   * array is state, and a spliced copy is what tells React the selection moved.
-   * Insertion order is not preserved on purpose — the chips render from
-   * `HANDLING_TAG_OPTIONS`, so what the client sees is always enum order however
-   * this array happens to be sorted.
+   * Toggle one handling requirement, recording it as the client's own choice
+   * so the items never override it again (see `handlingTagChoices`). Only the
+   * toggled tag is recorded; every other tag keeps following the items.
    */
   function toggleHandlingTag(tag: CargoHandlingTag) {
-    setHandlingTags((current) =>
-      current.includes(tag)
-        ? current.filter((existing) => existing !== tag)
-        : [...current, tag],
-    );
-  }
-
-  /** Mark one required cargo number as visited, so its error may now show. */
-  function markCargoFieldTouched(key: CargoNumberFieldKey) {
-    setCargoFieldsTouched((current) => ({ ...current, [key]: true }));
+    const selected = handlingTags.includes(tag);
+    setHandlingTagChoices((current) => ({ ...current, [tag]: !selected }));
   }
 
   // The in-flight estimate request, if any — kept in a ref (not state) since
@@ -1432,7 +1682,7 @@ export function BookingForm(): React.ReactElement {
 
   /**
    * A quote is only ever valid for the exact inputs it was computed from.
-   * Rather than let a stale price sit under a since-changed route, goods,
+   * Rather than let a stale price sit under a since-changed route, item list,
    * load space, vehicle or crew size, any change to one of them invalidates it —
    * dropping any in-flight request too — so "Book delivery" disappears and
    * "Recalculate" is the only way back to a price.
@@ -1454,6 +1704,16 @@ export function BookingForm(): React.ReactElement {
     pickupLocation,
     dropoffLocation,
     vehicleTypeCode,
+    // The goods: the list itself, which half of the picker is in use, and the
+    // shortcut that opened it. The estimate reads only the derived cargo
+    // category from these, but a quote shown under a list it was not computed
+    // for reads as a price for that list — so any edit to it drops the quote,
+    // the same rule every other input here follows. `itemLines` is replaced,
+    // never mutated, by every picker edit, so its identity is a faithful
+    // "the list changed".
+    itemLines,
+    loadMode,
+    goodsShortcut,
     cargoCategory,
     // Listed even though a body change always clears the vehicle code above
     // it: the quote must be invalidated by the input the user actually
@@ -1510,15 +1770,15 @@ export function BookingForm(): React.ReactElement {
    *
    * Each flag is built on the one before it rather than testing its own input
    * alone, so a step can never light up over a gap in the chain — the vehicle
-   * card is not answerable just because a weight defaulted, if no address has
+   * card is not answerable just because an item was listed, if no address has
    * been typed yet.
    *
    * Every flag reads the state the rest of the form already reads. There is no
    * separate record of which steps have been "completed", deliberately: a second
    * copy of that would be free to disagree with the values the order is actually
-   * built from. It follows that a step whose input carries a default (the goods
-   * category, the weight, the vehicle — all three settle themselves) opens as
-   * soon as the chain reaches it, because by then it genuinely is answered.
+   * built from. It follows that a step whose input carries a default (the
+   * vehicle settles itself on the recommendation) opens as soon as the chain reaches
+   * it, because by then it genuinely is answered.
    *
    * This is presentation and nothing else. `canCalculate` and `canSubmit` below
    * are untouched: what a quote and a booking actually require already lives
@@ -1544,241 +1804,91 @@ export function BookingForm(): React.ReactElement {
     pickupAddress.trim().length > 0 &&
     dropoffAddress.trim().length > 0;
 
-  // No condition of its own: the goods grid opens on `DEFAULT_CARGO_CATEGORY`
-  // and there is no way to deselect a category, so a cargo category is chosen
-  // from the first render onwards and this step follows the one above it
-  // directly.
-  const weightStepEnabled = goodsStepEnabled;
+  // No condition of its own: a goods shortcut is an entry point into the list,
+  // not an answer the list depends on — a client can go straight to the search
+  // without picking one — so the items step follows the goods step directly.
+  const itemsStepEnabled = goodsStepEnabled;
 
   /**
-   * A weight is answered the moment there is one to answer with: the weight
-   * effect selects the smallest capacity as soon as the options exist, and
-   * re-selects it whenever a goods or load-space change clears the old one.
+   * The vehicle step opens once the item list adds up to a load the route
+   * would accept on *some* vehicle: a plan exists (at least one item listed,
+   * and resolved against the catalogue) with one body every line can travel in
+   * (`plan.body.kind === "derived"`) and within the biggest class's payload.
+   * Anything less has no vehicle to recommend.
    *
-   * Reading `maxWeightKg` directly would say the same thing in the steady state
-   * and blink this step off in between — `handleBodyTypeChange` clears the
-   * weight, and the effect that puts one back runs after the browser has
-   * painted, so a client changing the load space would watch this very card grey
-   * out under their cursor for a frame.
+   * Not gated on the vehicle types having loaded: the step shows its own
+   * loading line in that state. A failed fetch does shut it, with the error as
+   * the reason — see the card.
    */
-  const vehicleStepEnabled = weightStepEnabled && weightOptions.length > 0;
+  const vehicleStepEnabled =
+    itemsStepEnabled && planBookable && vehicleTypesError === null;
 
   /**
    * Steps 6 and 7 and the service-level card, which open together on the one
    * condition: a vehicle is settled. None is a successor to the others — they
-   * are siblings describing the job the chosen vehicle will do.
-   *
-   * Step 6 is the one of the three that *does* gate the booking, and it is the
-   * exception that proves the shape rather than a break from it: what it gates
-   * on is its own four required numbers, through `canSubmit`, not through this
-   * flag. Steps 7 and the service level carry an answer from the moment they
-   * open and gate nothing.
+   * are siblings describing the job the chosen vehicle will do, and each
+   * carries an answer from the moment it opens (step 6's fields are all
+   * optional now that the load's figures come from the item list).
    *
    * Still its own flag rather than folded into `vehicleStepEnabled`, because
    * the two conditions are genuinely different: the vehicle *step* opens once
-   * there is a weight to filter by, and these two open only once that filtering
-   * has left a vehicle standing.
+   * there is a load to recommend for, and these open only once the grid has
+   * a vehicle standing in it.
    *
-   * The eligible list rather than `selectedVehicleType`, for the same reason and
-   * on the same guarantee as the weight above: the auto-select effect keeps a
-   * vehicle picked whenever one is on offer, so an empty list is the only state
-   * in which none is — and it is exactly the state where the vehicle card is
-   * showing its "no vehicle matches" alert. `canSubmit` still reads the resolved
-   * vehicle itself, which is the check that has to be exact.
+   * The eligible list rather than `selectedVehicleType`: the selection effect
+   * keeps a vehicle picked whenever one is bookable, so an empty list is the
+   * state in which none is — a business with no load space chosen yet, or the
+   * vehicle card showing its "no vehicle matches" alert. `canSubmit` still
+   * reads the resolved vehicle itself, which is the check that has to be
+   * exact.
    */
   const vehicleChosenStepsEnabled =
     vehicleStepEnabled && eligibleVehicleTypes.length > 0;
 
   /**
+   * The disabled line for the steps that wait on a vehicle: the load space
+   * first, for a business that has not chosen one, since that is the choice
+   * step 5 is actually waiting on.
+   */
+  const vehicleChosenStepsDisabledReason =
+    vehicleStepEnabled && bodyType === null
+      ? t(CHOOSE_LOAD_SPACE_FIRST_KEY)
+      : t(CHOOSE_VEHICLE_FIRST_KEY);
+
+  /**
    * The cargo step's gate is exactly the vehicle-chosen gate, aliased rather
    * than re-derived.
    *
-   * A load's physical description is a sibling of "how the job is handled", not
-   * a successor to it, so a predicate of its own would be a second copy of one
+   * A load's handling and timing are siblings of "how the job is handled", not
+   * successors to it, so a predicate of its own would be a second copy of one
    * condition free to drift from the original. The alias exists only so the
    * `StepCard` below reads in its own terms.
    */
   const cargoStepEnabled = vehicleChosenStepsEnabled;
 
-  /**
-   * The four required cargo numbers, parsed once each per render.
-   *
-   * Parsed here rather than inside the fields' own handlers so there is exactly
-   * one evaluation of each bound feeding both consumers — the inline error under
-   * the field and the `canSubmit` conjunct below. Two evaluations would be two
-   * chances for the message and the button to disagree about the same value.
-   */
-  const cargoWeightResult = parseCargoNumber(cargoWeightKgInput, {
-    bounds: CARGO_WEIGHT_FIELD.bounds,
-    // Translated here: the parser interpolates the label and has no locale.
-    label: t(CARGO_WEIGHT_FIELD.labelKey),
-    t,
-  });
-  const cargoLengthResult = parseCargoNumber(cargoLengthMInput, {
-    bounds: CARGO_LENGTH_FIELD.bounds,
-    // Translated here: the parser interpolates the label and has no locale.
-    label: t(CARGO_LENGTH_FIELD.labelKey),
-    t,
-  });
-  const cargoWidthResult = parseCargoNumber(cargoWidthMInput, {
-    bounds: CARGO_WIDTH_FIELD.bounds,
-    // Translated here: the parser interpolates the label and has no locale.
-    label: t(CARGO_WIDTH_FIELD.labelKey),
-    t,
-  });
-  const cargoHeightResult = parseCargoNumber(cargoHeightMInput, {
-    bounds: CARGO_HEIGHT_FIELD.bounds,
-    // Translated here: the parser interpolates the label and has no locale.
-    label: t(CARGO_HEIGHT_FIELD.labelKey),
-    t,
-  });
+  /** The vehicle step's disabled line: the first unmet condition, named. */
+  const vehicleStepDisabledReason =
+    vehicleTypesError ??
+    (plan === null ? t(LIST_ITEMS_FIRST_KEY) : t(FIX_ITEM_LIST_FIRST_KEY));
 
   /**
-   * The four fields as the render loop takes them: static descriptor, live
-   * value, its setter, its id and its parse result, in the order they appear.
-   *
-   * Built here rather than at module scope because half of each entry is state.
-   * A literal array of four named entries rather than an indexed lookup keeps
-   * every field's wiring visible in one place and avoids the possibly-undefined
-   * reads `noUncheckedIndexedAccess` would give an index-based pairing.
+   * The listed load as the four figures the card badges quote, or `null`
+   * while nothing is listed.
    */
-  const cargoNumberFields: {
-    field: CargoNumberField;
-    id: string;
-    value: string;
-    onChange: (value: string) => void;
-    result: ParseResult<number>;
-  }[] = [
-    {
-      field: CARGO_WEIGHT_FIELD,
-      id: cargoWeightFieldId,
-      value: cargoWeightKgInput,
-      onChange: setCargoWeightKgInput,
-      result: cargoWeightResult,
-    },
-    {
-      field: CARGO_LENGTH_FIELD,
-      id: cargoLengthFieldId,
-      value: cargoLengthMInput,
-      onChange: setCargoLengthMInput,
-      result: cargoLengthResult,
-    },
-    {
-      field: CARGO_WIDTH_FIELD,
-      id: cargoWidthFieldId,
-      value: cargoWidthMInput,
-      onChange: setCargoWidthMInput,
-      result: cargoWidthResult,
-    },
-    {
-      field: CARGO_HEIGHT_FIELD,
-      id: cargoHeightFieldId,
-      value: cargoHeightMInput,
-      onChange: setCargoHeightMInput,
-      result: cargoHeightResult,
-    },
-  ];
+  const plannedEnvelope = plan === null ? null : loadEnvelope(plan);
 
   /**
-   * The declared load as one object, or `null` while any of the four is still
-   * missing or out of bounds.
+   * Does the listed load fit the vehicle the booking would actually be placed
+   * against? True whenever nothing is selected — `selectedVehicleType !== null`
+   * is its own conjunct in `canSubmit`, and this one has no business saying the
+   * same no a second time about a different thing.
    *
-   * This used to be the boolean `cargoDimensionsValid` alone, and the boolean is
-   * still here — but derived from this rather than beside it. The four
-   * `"data" in …` tests are written once because a `boolean` carries no type
-   * information back to the results it was computed from, so a second consumer
-   * that needs the *values* (the fit check below does) has no way to narrow
-   * through the flag and would have to repeat all four tests. Two copies of the
-   * same four-way test is two chances for a later edit to update one of them.
-   *
-   * `CARGO_MEASUREMENT_BOUNDS` has already had its say by this point and is a
-   * different question: it is the global envelope the *catalogue* could ever
-   * carry (length ≤ 13.6 m, `TRAILER_TRUCK`'s reach), and clearing it means the
-   * figures are sane, not that the vehicle on screen can take them. Believing
-   * otherwise is the whole of the incident the fit check below exists to
-   * prevent — 15 m of cargo cleared a 20 m bound, lit the submit button, priced
-   * and booked against a 4.5 m Box Truck, and produced an order
-   * `GET /api/loads` hides from every driver and all three claim routes refuse.
-   * The order is unclaimable and the client has been charged.
+   * The hard axes only (`assessFit`'s `hardAxes`, i.e. `oversizeAxes` — the
+   * route's own refusal). A soft-fit warning never blocks: it is an estimate,
+   * and refusing on it would refuse loads that fit.
    */
-  const declaredCargoEnvelope: DeclaredCargoEnvelope | null =
-    "data" in cargoWeightResult &&
-    "data" in cargoLengthResult &&
-    "data" in cargoWidthResult &&
-    "data" in cargoHeightResult
-      ? {
-          weightKg: cargoWeightResult.data,
-          lengthM: cargoLengthResult.data,
-          widthM: cargoWidthResult.data,
-          heightM: cargoHeightResult.data,
-        }
-      : null;
-
-  /** All four required numbers present and within bounds. */
-  const cargoDimensionsValid = declaredCargoEnvelope !== null;
-
-  /**
-   * Which axes of the declared load the *chosen* vehicle class cannot take —
-   * empty when it takes all four, and empty while there is nothing to compare.
-   *
-   * Both sides are already in scope and neither costs a fetch or a piece of
-   * state: `selectedVehicleType` resolves `vehicleTypeCode` against the
-   * taxonomy well above this line and carries the class's four catalogue
-   * figures on it, and `declaredCargoEnvelope` sits directly above. The
-   * comparison is the shared module's, through `specCapability` — never against
-   * `selectedVehicleType.cargoHeightM` directly, which for FLATBED_TRUCK is the
-   * seeded `0` sentinel meaning "open bed, no height limit" and would refuse
-   * every flatbed booking on the page if read as a literal ceiling.
-   *
-   * The envelope guard comes first and is not merely defensive ordering: an
-   * envelope with three figures and a blank is not a load that is too big, and
-   * `oversizeAxes` compares axis by axis with no opinion about the blank. Only
-   * a complete envelope is ever handed to it, so this list means "measured, and
-   * over" and nothing else — which is what lets the message below state a fact
-   * about the client's own numbers rather than a guess.
-   *
-   * Empty for the two "nothing to compare" cases on purpose, because neither is
-   * this predicate's to refuse: an incomplete envelope is already blocked by
-   * `cargoDimensionsValid`, and an unresolved vehicle by
-   * `selectedVehicleType !== null`. Both conjuncts sit beside this one in
-   * `canSubmit`, so folding either failure in here would be a second voice
-   * saying the same no, and step 6 would explain a block that step 5 or the
-   * four fields had actually caused.
-   */
-  const cargoOversizeAxes: CargoAxis[] =
-    declaredCargoEnvelope !== null && selectedVehicleType !== null
-      ? oversizeAxes(declaredCargoEnvelope, specCapability(selectedVehicleType))
-      : [];
-
-  /**
-   * Does the declared load fit the vehicle the booking would actually be placed
-   * against? True whenever there is no measured overage — including the two
-   * cases above where there was nothing to measure, which other conjuncts own.
-   */
-  const cargoFitsVehicle = cargoOversizeAxes.length === 0;
-
-  /**
-   * The blocking sentence, or `null` when nothing is blocked.
-   *
-   * Built by `cargoFitMessage` rather than written here, so this form and
-   * `POST /api/orders` refuse the same booking in the same words. A client who
-   * gets past this page by any route — an older tab, a slow taxonomy fetch, a
-   * hand-made request — meets the identical sentence from the endpoint instead
-   * of a second, differently-worded refusal that reads like a different problem.
-   *
-   * The capability is passed rather than the spec so the message quotes the
-   * *resolved* limit: an open flatbed's height is `Infinity` here, and it can
-   * never appear in this sentence because an axis that fits is never in `axes`.
-   */
-  const cargoFitBlockingMessage =
-    selectedVehicleType !== null && cargoOversizeAxes.length > 0
-      ? cargoFitMessage(
-          vehicleTypeLabel(selectedVehicleType),
-          cargoOversizeAxes,
-          specCapability(selectedVehicleType),
-          { t: tRoot, locale },
-        )
-      : null;
+  const cargoFitsVehicle =
+    selectedVehicleFit === null || selectedVehicleFit.hardAxes.length === 0;
 
   /**
    * The declared pickup window as two moments on the scheduled day, or `null`
@@ -1801,11 +1911,9 @@ export function BookingForm(): React.ReactElement {
   /**
    * Both ends or neither, and the end strictly after the start.
    *
-   * Written as plain booleans rather than through `parseCargoNumber`'s
-   * result shape, matching how the rest of this form's optional inputs validate
-   * (`availableTimeSlots`, `canCalculate`): the parse shape earns its keep where
-   * a *value* has to come back out, and here nothing does — the two moments are
-   * already derived above.
+   * Written as plain booleans, matching how the rest of this form's optional
+   * inputs validate (`availableTimeSlots`, `canCalculate`): nothing has to come
+   * back out of the check — the two moments are already derived above.
    *
    * Strictly after, not merely different: a zero-length window is a start time
    * wearing an end time's label, and a driver planning against it learns
@@ -1852,10 +1960,10 @@ export function BookingForm(): React.ReactElement {
       deliveryDeadlineDateTime.getTime() > deadlineFloor.getTime());
 
   /**
-   * The load space the client actually picked, spelled the way step 5 spelled
-   * it — read out of `BODY_TYPE_OPTIONS` rather than written again here, so the
-   * cold-chain warning can never name a body by a word the picker above it does
-   * not use.
+   * The load space being booked, spelled the way step 5's picker spells it —
+   * read out of `BODY_TYPE_OPTIONS` rather than written again here, so the
+   * cold-chain warning can never name a body by a word the picker does not
+   * use.
    */
   const selectedBodyTypeOption = BODY_TYPE_OPTIONS.find(
     (option) => option.body === bodyType,
@@ -1870,7 +1978,9 @@ export function BookingForm(): React.ReactElement {
    * sure they are not doing it by accident.
    */
   const coldChainBodyMismatch =
-    handlingTags.includes("COLD_CHAIN") && bodyType !== "REFRIGERATED";
+    handlingTags.includes("COLD_CHAIN") &&
+    bodyType !== null &&
+    bodyType !== "REFRIGERATED";
 
   // Deliberately keyed off the raw address *text*, not `pickupLocation`/
   // `dropoffLocation`: those only populate once a suggestion is picked from
@@ -1882,10 +1992,22 @@ export function BookingForm(): React.ReactElement {
   // though pricing works fine. (Requiring resolved coordinates made sense for
   // the old *automatic* per-keystroke estimate, to avoid spending a request
   // per character typed — it doesn't apply to an explicit button click.)
+  //
+  // A plan is required too, because the estimate is sent the plan's derived
+  // cargo category and there is none for an empty list. `vehicleTypeCode` alone
+  // would not say so: it is left as it was when the last item is removed.
+  //
+  // And a load space. The estimate is not told the body (it moves no price),
+  // but a business without one has nothing it could book — the route refuses
+  // a business order with no body — and a price for a booking that cannot be
+  // placed only invites the attempt. The selection effect already empties the
+  // vehicle in that state; this says the rule rather than leaning on that.
   const canCalculate =
     !estimating &&
     pickupAddress.trim().length > 0 &&
     dropoffAddress.trim().length > 0 &&
+    cargoCategory !== null &&
+    bodyType !== null &&
     vehicleTypeCode !== "";
 
   /**
@@ -1914,6 +2036,8 @@ export function BookingForm(): React.ReactElement {
           pickupAddress,
           dropoffAddress,
           vehicleTypeCode,
+          // The plan's derived category: what the route will write and price
+          // the `cargo_vehicle_mismatch` rule against on the items path.
           cargoCategory,
           helperCount,
         }),
@@ -1973,6 +2097,20 @@ export function BookingForm(): React.ReactElement {
       return;
     }
 
+    // The same kind of guard, for the list: `canSubmit` already requires a
+    // plan, and without one there is no cargo category to send.
+    if (cargoCategory === null) {
+      setError(t("listItemsFirst"));
+      return;
+    }
+
+    // And for the load space: `canSubmit` requires one (through
+    // `bodyType !== null`), and the route refuses a business order without it.
+    if (bodyType === null) {
+      setError(t(CHOOSE_LOAD_SPACE_FIRST_KEY));
+      return;
+    }
+
     setSubmitting(true);
 
     try {
@@ -1988,12 +2126,26 @@ export function BookingForm(): React.ReactElement {
           // this stop" the endpoint reads as an empty block.
           pickupContact: stopContactPayload(contacts.pickup),
           dropoffContact: stopContactPayload(contacts.dropoff),
+          // The goods, as the list the client built: the active mode's lines
+          // only, in exactly the shape `parseOrderItems` accepts. The route
+          // resolves them against the catalogue, re-runs `planLoad` and writes
+          // the derived weight, envelope, volume, category and body itself —
+          // which is why no cargo figure is sent any more. The four typed
+          // numbers this replaced (`cargoWeightKg`/`LengthM`/`WidthM`/
+          // `HeightM`) are ignored by the items path, and sending them would
+          // only invite a reader to think they were trusted.
+          items: toItemsPayload(itemLines, activeMode),
+          // Still required by the shared `parseQuoteFields` the route parses
+          // with, so still sent — as the plan's derivation, which the route
+          // overwrites with its own from the same function.
           cargoCategory,
           vehicleTypeCode,
           // Recorded on the order, not priced from: `/api/orders` re-checks it
           // against the chosen vehicle's own `bodyTypes` and stores it so the
           // driver knows which body the load was booked for. The estimate
-          // endpoint is deliberately not told — body type moves no price.
+          // endpoint is deliberately not told — body type moves no price. For
+          // an individual it is the plan's body, and the route ignores it in
+          // favour of the same derivation; a business's is its own choice.
           bodyType,
           helperCount,
           // The tier, never its price: `/api/orders` re-derives the adjustment
@@ -2005,25 +2157,6 @@ export function BookingForm(): React.ReactElement {
           // endpoint. An order created here is simply one nobody has said how
           // they will settle yet.
           description: description.trim() || undefined,
-          // The declared load. Re-derived from the parse results rather than
-          // trusting the render-time `cargoDimensionsValid` that disabled the
-          // button, the same defensive shape as the `scheduledDateTime` guard
-          // at the top of this function: on the normal path `canSubmit` has
-          // already established all four are `"data"`, and on any path where it
-          // somehow has not, an explicit `null` is a truthful "not declared"
-          // that the endpoint rejects rather than a number invented here.
-          //
-          // None of these were sent to `/api/pricing/estimate` and none of them
-          // may be: the fare is the vehicle class's, and this block is the
-          // physical description the load board filters on.
-          cargoWeightKg:
-            "data" in cargoWeightResult ? cargoWeightResult.data : null,
-          cargoLengthM:
-            "data" in cargoLengthResult ? cargoLengthResult.data : null,
-          cargoWidthM:
-            "data" in cargoWidthResult ? cargoWidthResult.data : null,
-          cargoHeightM:
-            "data" in cargoHeightResult ? cargoHeightResult.data : null,
           // Optional, and omitted rather than blanked when unfilled —
           // `JSON.stringify` drops an `undefined` value outright, the same
           // convention `stopContactPayload` above relies on. An absent key says
@@ -2036,11 +2169,25 @@ export function BookingForm(): React.ReactElement {
           // the client to write one — was answered with a 400 naming a field
           // they were never shown as mandatory. Both sides now agree that
           // unfilled is a valid answer. Keep them agreeing.
-          packagingDescription: packagingDescription.trim() || undefined,
-          itemQuantity: itemQuantity.trim() || undefined,
+          //
+          // Each is sent only in the mode that asks for it. In items mode the
+          // route writes the item summary into `itemQuantity`; in pallets mode
+          // it writes the pallet summary into `packagingDescription`
+          // (`describeLoad`). Step 6 hides the field the server fills, and the
+          // payload leaves it out to match, so text left in a field from the
+          // other mode is never sent to be silently overwritten.
+          packagingDescription:
+            activeMode === "items"
+              ? packagingDescription.trim() || undefined
+              : undefined,
+          itemQuantity:
+            activeMode === "pallets"
+              ? itemQuantity.trim() || undefined
+              : undefined,
           // Always sent, `[]` included: the column is `NOT NULL` with an empty
           // default, so "no special handling" is a real answer rather than a
-          // missing one.
+          // missing one. The selection as shown: the tags the items imply,
+          // overridden wherever the client toggled one (`handlingTagChoices`).
           handlingTags,
           pickupWindowStart: pickupWindowStartDateTime?.toISOString(),
           pickupWindowEnd: pickupWindowEndDateTime?.toISOString(),
@@ -2112,6 +2259,15 @@ export function BookingForm(): React.ReactElement {
 
     // Enter inserts a newline in the description field; let it.
     if (event.target instanceof HTMLTextAreaElement) {
+      return;
+    }
+
+    // Already handled by the control it was pressed in — the item picker's
+    // search adds the highlighted item on Enter, and its other fields swallow
+    // it — and that control has already stopped the implicit submit. Quoting
+    // here as well would spend a request on the list as it was *before* the
+    // item went in, which the invalidation effect would then throw away.
+    if (event.defaultPrevented) {
       return;
     }
 
@@ -2191,22 +2347,20 @@ export function BookingForm(): React.ReactElement {
     .join(" · ");
 
   /**
-   * Is the class this booking is pointed at one a carrier actually operates?
+   * Is the class this booking is pointed at one a carrier actually operates,
+   * with the load space being booked?
    *
    * True when nothing is selected, on exactly the principle `cargoFitsVehicle`
    * states above: `selectedVehicleType !== null` is a conjunct in its own right
    * and this one has no business saying the same no a second time, in different
    * words, about a different thing.
    *
-   * Read off the selected class rather than tested as
-   * `bookableVehicleTypes.includes(...)` — the two agree, because
-   * `selectedVehicleType` is resolved against `eligibleVehicleTypes` and the
-   * bookable list is that list filtered, but only one of them keeps saying the
-   * right thing if the sets are ever rearranged. The question is about the class
-   * being booked, so it is asked of that class.
+   * Per body (`serviceableBodies`), because that is what the route checks
+   * (`serviceableSpecIds(bodyType)`): a class run dry by some carrier but
+   * refrigerated by none must not pass here and fail there.
    */
   const selectedVehicleIsServiceable =
-    selectedVehicleType === null || selectedVehicleType.serviceable;
+    selectedVehicleType === null || servesBody(selectedVehicleType);
 
   // Booking requires a calculated price for the exact inputs being booked —
   // the whole point of the Calculate step — plus a valid vehicle type and a
@@ -2215,63 +2369,54 @@ export function BookingForm(): React.ReactElement {
   // fields keep their own native `required` validation, which still runs
   // whenever the button is clickable at all.
   //
-  // That last part used to be free — every conjunct was something the client
-  // could not fix by typing — and the cargo conjuncts below are the first that
-  // is. So step 6 does the explaining the disabled button no longer can: each
-  // required field carries a persistent line saying why it is wanted and, once
-  // visited and left invalid, an inline error naming the fix.
+  // `planBookable` replaces the four typed cargo numbers that used to gate
+  // this button. The load is now the item list, and the conditions on it are
+  // the route's: something listed, one body every line can travel in, and no
+  // more than one vehicle can carry. Each failure is explained where it is
+  // fixed — the picker's alerts under the list — and the vehicle step stays
+  // shut with a line pointing back at it, so this conjunct is never a dead
+  // button with nothing on screen saying why. (In practice `estimate !== null`
+  // already implies a plan, since Calculate needs one; this states the rule
+  // rather than leaning on that.)
   //
-  // The three cargo conjuncts join `canSubmit` and pointedly not `canCalculate`:
-  // weight, dimensions, handling and timing move no part of the fare, so a
-  // client must still be able to price a job before describing the load. What
-  // they gate is booking one, because an order with no declared weight or
-  // dimensions is invisible to every driver on the load board — a failure with
-  // no error and no signal, which is worth four fields of friction to avoid.
-  // Client-side only, and not the guard that matters: `POST /api/orders`
-  // re-validates all of it.
-  //
-  // `cargoFitsVehicle` is the second conjunct a client can fix by typing, and it
-  // carries the same obligation the three before it do — it is the *only* one
-  // that can be true of four individually valid numbers, so without an
-  // explanation on screen it is the worst version of the dead button: every
-  // field green, every helper line satisfied, and nothing anywhere saying why
-  // the booking will not go. Step 6's `role="alert"` line is that explanation
-  // and is rendered on exactly this condition; step 5's card badges are the
-  // same fact said early, next to the choice that would fix it. Neither is
-  // optional garnish. If this conjunct is ever changed, change what says so.
-  //
-  // It joins `canSubmit` and pointedly not `canCalculate`, for the same reason
-  // the three above it do: the fare is the vehicle class's alone and no cargo
-  // figure moves it, so a client must still be able to price a job whose load
-  // they have described wrongly — and seeing the quote is often what tells them
-  // the class is wrong. What it gates is *booking* one, because an order whose
-  // cargo does not fit its own booked vehicle is worse than one that is merely
-  // undeclared: it is priced, paid, and then hidden from every driver by
-  // `GET /api/loads` and refused by all three claim routes, so it can neither be
-  // carried nor found. That is the order this conjunct exists to stop existing.
-  //
-  // `selectedVehicleIsServiceable` is the last of the fixable conjuncts and it
-  // stops the same order by the other door: a class no carrier operates produces
-  // a booking that is priced, paid and then never seen by a driver — not because
-  // its load is too big for the truck, but because there is no truck. It carries
-  // the same obligation as the two above, and it is discharged in two places in
-  // step 5. Every unserviceable card is disabled with "No carriers run this
-  // class" on it, including the selected one, so the class this conjunct is
-  // refusing says so itself; and when *no* eligible class is serviceable —
-  // which is the only state a client can actually reach this conjunct in, since
-  // the cards are disabled and the auto-select effect picks only from
-  // `bookableVehicleTypes` — the alert above the grid names the two filters to
-  // move. There is deliberately no step 6 line to match `cargoFitBlockingMessage`:
-  // that one exists because the cargo conjunct is tripped by typing four numbers
-  // two steps below where the fix is, whereas serviceability is fixed for the
-  // life of the page and cannot turn true under a client who has walked past it.
+  // `cargoFitsVehicle` stops the order whose load does not fit its own booked
+  // vehicle — priced, paid, and then hidden from every driver by
+  // `GET /api/loads` and refused by all three claim routes, so it can neither
+  // be carried nor found. It can only be false in one state: every eligible
+  // class is too small, so the selection effect had nothing bookable to move
+  // to (a hand-picked class that stops fitting is otherwise let go to the
+  // recommendation). That state is explained twice in step 5 — the selected
+  // card's own "Too short for …" badge in the "Change vehicle" grid, which
+  // opens by itself because no recommendation shows that card, and the alert
+  // at the top of the step naming the fix (change the list, or split the
+  // booking). The step-6 blocking line that
+  // used to say this sat under the four typed numbers it was about; with the
+  // numbers gone, the fix is the item list, and step 5 is where it is said.
   // If this conjunct is ever changed, change what says so.
+  //
+  // It joins `canSubmit` and pointedly not `canCalculate`: the fare is the
+  // vehicle class's alone and no cargo figure moves it, so a client must still
+  // be able to price a job — and seeing the quote is often what tells them the
+  // class is wrong.
+  //
+  // `selectedVehicleIsServiceable` stops the same order by the other door: a
+  // class no carrier operates with this body produces a booking that is
+  // priced, paid and then never seen by a driver — not because its load is too
+  // big for the truck, but because there is no truck. Every such card is
+  // disabled with "No carriers run this class" on it, including the selected
+  // one, and when *no* eligible class is bookable the alert at the top of
+  // step 5 says what to change. If this conjunct is ever changed, change what says so.
+  //
+  // `bodyType !== null` is implied by `selectedVehicleType !== null` (no body,
+  // no eligible class) and stated anyway: a business order without a load space
+  // is refused by the route, and step 5 says "Choose a load space first."
   const canSubmit =
     !submitting &&
+    bodyType !== null &&
     selectedVehicleType !== null &&
     estimate !== null &&
     scheduledDateTime !== null &&
-    cargoDimensionsValid &&
+    planBookable &&
     cargoFitsVehicle &&
     selectedVehicleIsServiceable &&
     pickupWindowValid &&
@@ -2515,24 +2660,31 @@ export function BookingForm(): React.ReactElement {
               ))}
             </StepCard>
 
+            {/* Goods shortcuts: the entry points into the item list below,
+                the same table the landing page's tiles read
+                (`GOODS_SHORTCUTS`). Picking one opens the picker on its
+                catalogue group (or, for a business, on Pallets) and decides
+                nothing else — the cargo category is derived from the items.
+                `aria-pressed` buttons, matching the cargo-category grid this
+                replaced and the vehicle grid below. */}
             <StepCard
               step={3}
               title={t("whatAreYouMoving")}
-              description={t("pickTheClosestMatchItDecides")}
+              description={t("pickTheClosestMatchYoullList")}
               disabled={!goodsStepEnabled}
               disabledReason={t(ENTER_ADDRESSES_FIRST_KEY)}
             >
               <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
-                {CARGO_OPTIONS.map((option) => {
-                  const { category, Icon } = option;
-                  const selected = category === cargoCategory;
+                {shortcutsFor(accountType).map((shortcut) => {
+                  const { code, Icon } = shortcut;
+                  const selected = code === goodsShortcut;
 
                   return (
                     <button
-                      key={category}
+                      key={code}
                       type="button"
                       aria-pressed={selected}
-                      onClick={() => setCargoCategory(category)}
+                      onClick={() => handleGoodsShortcut(shortcut)}
                       className={`${PICK_CARD_BASE_CLASSES} gap-1.5 ${
                         selected
                           ? PICK_CARD_SELECTED_CLASSES
@@ -2544,10 +2696,10 @@ export function BookingForm(): React.ReactElement {
                         className={`size-5 ${selected ? "text-accent" : "text-muted"}`}
                       />
                       <span className="pr-4 text-[0.8125rem] leading-snug font-semibold text-paper">
-                        {cargoCategoryLabel(category)}
+                        {tGoods(`${code}.title`)}
                       </span>
                       <span className="text-xs leading-snug text-muted">
-                        {tCargo(option.descriptionKey)}
+                        {tGoods(`${code}.description`)}
                       </span>
                       {selected ? <SelectedTick /> : null}
                     </button>
@@ -2558,67 +2710,58 @@ export function BookingForm(): React.ReactElement {
 
             <StepCard
               step={4}
-              title={t("totalWeight")}
-              description={t("roughlyHowMuchIsBeingMoved")}
-              disabled={!weightStepEnabled}
+              title={t("listYourItems")}
+              description={t("roughIsFineWeUseIt")}
+              disabled={!itemsStepEnabled}
               // The addresses, not the goods step: this card and the goods card
               // open on the identical predicate, so the goods step is never a
               // thing to go and do while this line is on screen.
               disabledReason={t(ENTER_ADDRESSES_FIRST_KEY)}
             >
-              {weightOptions.length === 0 ? (
-                <p className="text-[0.8125rem] text-muted">
-                  Pick what you&rsquo;re moving first — weight options depend on
-                  the vehicles cleared for it.
-                </p>
-              ) : (
-                <div className="flex flex-col gap-1.5 sm:max-w-xs">
-                  <Label
-                    htmlFor={weightSelectId}
-                    className="text-[0.8125rem] font-medium text-paper"
-                  >
-                    {t("totalWeight")}
-                  </Label>
-                  <select
-                    id={weightSelectId}
-                    value={maxWeightKg ?? ""}
-                    onChange={(event) =>
-                      setMaxWeightKg(Number(event.target.value))
-                    }
-                    className={NATIVE_FIELD_CLASSES}
-                  >
-                    {weightOptions.map((capacity) => (
-                      <option key={capacity} value={capacity}>
-                        {t("upToWeight", {
-                          weight: formatVehiclePayload(capacity),
-                        })}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
+              {/* Fully controlled: the form owns the mode and the lines,
+                  because it plans them, invalidates the quote on them and
+                  submits them. The picker keeps only presentation state. */}
+              <ItemListPicker
+                accountType={accountType}
+                initialGroup={
+                  selectedGoodsShortcut === null
+                    ? null
+                    : selectedGoodsShortcut.expandAllGroups
+                      ? "ALL"
+                      : selectedGoodsShortcut.group
+                }
+                mode={loadMode}
+                onModeChange={setLoadMode}
+                lines={itemLines}
+                onLinesChange={setItemLines}
+                catalogue={catalogue}
+                catalogueLoading={catalogueLoading}
+                catalogueError={catalogueError}
+              />
             </StepCard>
 
             <StepCard
               step={5}
-              title={t("recommendedVehicle")}
-              description={t("onlyVehiclesClearedForYourGoods")}
+              title={t("yourVehicle")}
+              description={t("pickedToFitYourItems")}
               disabled={!vehicleStepEnabled}
               // The fetch error is the reason *and* is given in the header,
               // because the header is the only part of a disabled step that
-              // stays reachable: the content region goes `inert`, so the
-              // `alert` below is out of the accessibility tree exactly when it
-              // has something to say. And it always coincides — `weightOptions`
-              // derives from the fetched types, so a failed fetch empties it and
-              // shuts this step every time. Nothing competes with anything: one
-              // string, in the one place a screen reader can still reach.
-              disabledReason={vehicleTypesError ?? t(WEIGHT_UNAVAILABLE_KEY)}
+              // stays reachable: the content region goes `inert`. And it always
+              // coincides — a failed fetch shuts this step
+              // (`vehicleStepEnabled`) every time.
+              disabledReason={vehicleStepDisabledReason}
             >
-              {vehicleTypesError ? (
-                <p role="alert" className="text-[0.8125rem] text-accent">
-                  {vehicleTypesError}
-                </p>
-              ) : loadingVehicleTypes ? (
+              {/* Nothing at all while the step is shut. The disabled reason in
+                  the header is the whole story then — "List at least one item
+                  first.", "Fix the item list above first." or the fetch error —
+                  and anything rendered under it would be judging a load that
+                  does not exist yet: with no items the cargo-eligible list is
+                  empty and read as "no vehicle is available"; with a body
+                  conflict the plan's dry-box fallback was judged and read as
+                  "no carrier runs these classes", on top of the picker's own
+                  conflict alert. Neither was true, and both were alerts. */}
+              {!vehicleStepEnabled ? null : loadingVehicleTypes ? (
                 <p aria-busy="true" className="text-[0.8125rem] text-muted">
                   {tShared("loadingVehicleTypes")}
                 </p>
@@ -2628,604 +2771,559 @@ export function BookingForm(): React.ReactElement {
                       replaced by the card wrapping it — the same trade the
                       crew-size picker in step 7 makes, and for the same
                       reasons: arrow-key navigation of the group and the "2 of
-                      3" announcement, both free. (The goods and vehicle grids
-                      above and below are older `aria-pressed` buttons; they
-                      are left alone.) */}
-                  <fieldset className="mb-[18px]">
-                    <legend className="mb-2.5 text-[0.8125rem] font-medium text-paper">
-                      {t("whatKindOfLoadSpaceDo")}
-                    </legend>
+                      3" announcement, both free.
 
-                    <div className="grid grid-cols-3 gap-2.5">
-                      {bodyTypeCards.map((option) => {
-                        const selected = option.body === bodyType;
-                        const countLabel = vehicleCountLabel(
-                          option.vehicleCount,
-                          t,
-                        );
+                      Business accounts only, and with no default: nothing is
+                      checked until the client picks (see `chosenBodyType`).
+                      An individual is never asked: the body is the one their
+                      items need (see `bodyType`), named in one line under the
+                      recommendation, and the route derives it the same way
+                      whatever is sent.
 
-                        return (
-                          <label
-                            key={option.body}
-                            className={`${BODY_OPTION_CLASSES} ${
-                              selected
-                                ? PICK_CARD_SELECTED_CLASSES
-                                : PICK_CARD_IDLE_CLASSES
-                            }`}
-                          >
-                            <input
-                              type="radio"
-                              name={bodyTypeName}
-                              value={option.body}
-                              checked={selected}
-                              onChange={() => handleBodyTypeChange(option.body)}
-                              // The card's own text is hidden from assistive
-                              // tech (below) and spoken from here instead, so
-                              // the three lines arrive as one name in one
-                              // reading order rather than as loose text beside
-                              // an unnamed radio.
-                              aria-label={`${t(option.titleKey)} — ${t(option.descriptionKey)} · ${countLabel}`}
-                              className="sr-only"
-                            />
-                            <span
-                              aria-hidden="true"
-                              className="pr-4 text-[0.8125rem] leading-snug font-semibold text-paper"
-                            >
-                              {t(option.titleKey)}
-                            </span>
-                            <span
-                              aria-hidden="true"
-                              className="text-xs leading-snug text-muted"
-                            >
-                              {t(option.descriptionKey)}
-                            </span>
-                            <span
-                              aria-hidden="true"
-                              className="font-price text-[0.6875rem] text-muted tabular-nums"
-                            >
-                              {countLabel}
-                            </span>
-                            {selected ? <SelectedTick /> : null}
-                          </label>
-                        );
-                      })}
-                    </div>
-                  </fieldset>
+                      A card the items rule out — every card but the one an
+                      item forces — is disabled in place with the reason, the
+                      vehicle grid's own treatment. Per-card vehicle counts stay
+                      on every card, disabled ones included. */}
+                  {isBusiness ? (
+                    <fieldset className="mb-[18px]">
+                      <legend className="mb-2.5 text-[0.8125rem] font-medium text-paper">
+                        {t("whatKindOfLoadSpaceDo")}
+                      </legend>
 
-                  {cargoEligibleVehicleTypes.length === 0 ? (
+                      <div className="grid grid-cols-3 gap-2.5">
+                        {bodyTypeCards.map((option) => {
+                          const selected = option.body === bodyType;
+                          const countLabel = vehicleCountLabel(
+                            option.vehicleCount,
+                            t,
+                          );
+                          const incompatibleReason =
+                            unambiguousForcedBody !== null &&
+                            option.body !== unambiguousForcedBody
+                              ? t(
+                                  FORCED_BODY_CARD_REASON_KEYS[
+                                    unambiguousForcedBody
+                                  ],
+                                )
+                              : null;
+
+                          return (
+                            <label
+                              key={option.body}
+                              className={`${BODY_OPTION_CLASSES} ${
+                                selected
+                                  ? PICK_CARD_SELECTED_CLASSES
+                                  : incompatibleReason !== null
+                                    ? `${PICK_CARD_UNAVAILABLE_CLASSES} cursor-not-allowed`
+                                    : PICK_CARD_IDLE_CLASSES
+                              }`}
+                            >
+                              <input
+                                type="radio"
+                                name={bodyTypeName}
+                                value={option.body}
+                                checked={selected}
+                                disabled={incompatibleReason !== null}
+                                onChange={() =>
+                                  handleBodyTypeChange(option.body)
+                                }
+                                // The card's own text is hidden from assistive
+                                // tech (below) and spoken from here instead, so
+                                // the lines arrive as one name in one reading
+                                // order rather than as loose text beside an
+                                // unnamed radio.
+                                aria-label={[
+                                  `${t(option.titleKey)} — ${t(option.descriptionKey)}`,
+                                  countLabel,
+                                  incompatibleReason,
+                                ]
+                                  .filter((part): part is string =>
+                                    Boolean(part),
+                                  )
+                                  .join(" · ")}
+                                className="sr-only"
+                              />
+                              <span
+                                aria-hidden="true"
+                                className="pr-4 text-[0.8125rem] leading-snug font-semibold text-paper"
+                              >
+                                {t(option.titleKey)}
+                              </span>
+                              <span
+                                aria-hidden="true"
+                                className="text-xs leading-snug text-muted"
+                              >
+                                {t(option.descriptionKey)}
+                              </span>
+                              <span
+                                aria-hidden="true"
+                                className="font-price text-[0.6875rem] text-muted tabular-nums"
+                              >
+                                {countLabel}
+                              </span>
+                              {incompatibleReason !== null ? (
+                                <span
+                                  aria-hidden="true"
+                                  className={
+                                    PICK_CARD_UNAVAILABLE_REASON_CLASSES
+                                  }
+                                >
+                                  {incompatibleReason}
+                                </span>
+                              ) : null}
+                              {selected ? <SelectedTick /> : null}
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </fieldset>
+                  ) : null}
+
+                  {bodyType === null ? (
+                    // A business that has not chosen: there is no vehicle to
+                    // recommend until there is a body. Muted, not an alert —
+                    // nothing has gone wrong, a question is simply unanswered.
+                    <p className="text-[0.8125rem] leading-snug text-muted">
+                      {t(CHOOSE_LOAD_SPACE_FIRST_KEY)}
+                    </p>
+                  ) : cargoEligibleVehicleTypes.length === 0 ? (
                     <p role="alert" className="text-[0.8125rem] text-accent">
                       {t("noVehicleIsCurrentlyAvailableFor")}
                     </p>
                   ) : eligibleVehicleTypes.length === 0 ? (
-                    // On the catalogue as seeded, this branch is the body
-                    // filter's: every weight option is a capacity some
-                    // cargo-eligible vehicle actually has (see
-                    // `weightOptions`), so goods and weight alone do not empty
-                    // the list. Two caveats keep that an observation rather
-                    // than a guarantee.
+                    // The body filter's branch: the item list cleared some
+                    // class (the list above is not empty) but none of them
+                    // offers the load space being booked. For a business that
+                    // is the load-space choice, which the copy names; for an
+                    // individual it means no class of the duty their items
+                    // need offers the body those items force — nothing they
+                    // can choose here fixes that, so their copy points at the
+                    // list instead.
                     //
-                    // One: the weight re-default is an effect, so the render
-                    // immediately after a goods change still holds the previous
-                    // `maxWeightKg` against the new `weightOptions`. This alert
-                    // can therefore flash for a frame with the body filter
-                    // blameless.
-                    //
-                    // Two: the copy can misattribute. If the heaviest weight
-                    // option belongs only to a vehicle outside the selected
-                    // body, lowering the weight would work as well as changing
-                    // the load space, but only the load space is offered. That
-                    // depends on the catalogue, not on the structure — it does
-                    // not arise on the current seed for the default DRY_BOX.
-                    //
-                    // The structure itself is exhaustive: no state reaches the
-                    // grid with nothing in it and no alert.
+                    // The structure is exhaustive: no state reaches the
+                    // recommendation with nothing in it and no message.
                     <p
                       role="alert"
                       className="rounded-lg border border-accent/30 bg-accent/[0.08] px-3.5 py-3 text-[0.8125rem] leading-snug text-accent"
                     >
-                      {t("noVehicleMatchesThisBodyType")}
+                      {isBusiness
+                        ? t("noVehicleMatchesThisBodyType")
+                        : t("noVehicleOffersTheBodyYourItemsNeed")}
                     </p>
                   ) : (
-                    /* Once the four cargo numbers in step 6 are valid, every
-                       card here is measured against them and the ones that
-                       cannot take the load are disabled *in place*, with the
-                       reason printed on the card.
+                    <div className="flex flex-col gap-2.5">
+                      {/* The grid-wide line for when nothing at all can be
+                          booked, in place of a recommendation there is nothing
+                          to make. Above everything else in the step because it
+                          is about all of it: the client's next move is
+                          elsewhere — the item list or the load space — which
+                          is a sentence no single card can carry.
 
-                       A class no carrier operates is disabled in the same way
-                       and in the same slot, and is the one reason that is true
-                       before a single cargo digit is typed — see `cardReason`
-                       below for which of the two speaks when both apply.
-
-                       Annotated, never filtered — the classes stay in
-                       `eligibleVehicleTypes`, whichever reason disables them.
-                       (What the unserviceable ones are kept out of is
-                       `bookableVehicleTypes`, which is only what the form picks
-                       *for* the client: the `Best` pill and the auto-select
-                       effect. Nothing leaves this grid.) The ordering is what
-                       forces this for the cargo reason: step
-                       5 comes *before* step 6, so by the time a cargo figure
-                       exists to filter on, the client has already chosen a
-                       vehicle here and, in the ordinary flow, already pressed
-                       Calculate against it. Dropping the newly-unfit class from
-                       the list would fire the auto-select effect — the selection
-                       would move to `eligibleVehicleTypes[0]` on its own, under
-                       the client's cursor, in a step they are not looking at,
-                       and the booking would silently reprice against a class
-                       nobody picked. A card that stays where it was put and says
-                       "Too short for 15 m" costs one deliberate click; a card
-                       that vanishes costs a wrong booking at a wrong price, and
-                       the *selection* moving is precisely the harm that made a
-                       15 m load in a 4.5 m Box Truck worth fixing in the first
-                       place.
-
-                       The `Best` pill is left on its own rule as far as the
-                       cargo envelope is concerned (cheapest bookable by class,
-                       unranked by the declared load) and can therefore land on a
-                       cargo-disabled card. That
-                       is honest rather than untidy: it still is the cheapest
-                       class this body and weight bracket offer, and its badge
-                       says on the same card why this particular load cannot use
-                       it. Re-ranking `Best` around the declared envelope would
-                       make the pill move whenever a cargo digit changes, which
-                       is a different feature and a noisier one. */
-                    <>
-                      {/* Sits above the grid rather than inside it because it is
-                          about the grid as a whole: every card is disabled and
-                          the client's next move is a *different filter*, which
-                          is a sentence no single card can carry. It appears only
-                          in that all-or-nothing case — a mixed grid needs no
-                          summary, since the badge on each dead card is beside a
-                          live card that can be clicked instead.
-
-                          `role="alert"` here where the card badges pointedly
-                          have none, and the two do not double up: the badges are
-                          static content of buttons that are already announced as
-                          disabled, this fires once, and it can only fire on a
-                          load-space or weight change the client just made. It is
-                          the same treatment, in the same words' spirit, as the
-                          "No vehicle matches this body type" alert directly
-                          above — the two are mutually exclusive branches of the
-                          same question, "why can I not book anything here". */}
-                      {bookableVehicleTypes.length === 0 ? (
+                          `role="alert"` where the card badges pointedly have
+                          none, and the two do not double up: the badges are
+                          static content of buttons already announced as
+                          disabled, this fires once, and only on an item-list or
+                          load-space change the client just made. */}
+                      {recommendation.recommended === null ? (
                         <p
                           role="alert"
-                          className="mb-2.5 rounded-lg border border-accent/30 bg-accent/[0.08] px-3.5 py-3 text-[0.8125rem] leading-snug text-accent"
+                          className="rounded-lg border border-accent/30 bg-accent/[0.08] px-3.5 py-3 text-[0.8125rem] leading-snug text-accent"
                         >
-                          {t(NO_SERVICEABLE_VEHICLES_MESSAGE_KEY)}
+                          {/* Which of the two ways the list emptied: every
+                              class too small for the list, or every class that
+                              fits run by no carrier with this body. */}
+                          {eligibleVehicleTypes.every(
+                            (vehicleType) =>
+                              vehicleFit.get(vehicleType.code)?.verdict ===
+                              "cannot_fit",
+                          )
+                            ? t(NO_VEHICLE_FITS_MESSAGE_KEY)
+                            : t(NO_SERVICEABLE_VEHICLES_MESSAGE_KEY)}
+                        </p>
+                      ) : (
+                        <VehicleRecommendation
+                          recommended={recommendation.recommended}
+                          oneSizeUp={recommendation.oneSizeUp}
+                          selectedCode={vehicleTypeCode}
+                          quotedPrice={serviceLevelPrice}
+                          vehicleLabel={vehicleTypeLabel}
+                          onSelect={handleVehicleChoice}
+                        />
+                      )}
+
+                      {/* The hand-picked class the selection effect had to let
+                          go, named, with why — a status rather than an alert:
+                          it reports a change already made, and the client is
+                          most likely in step 4 making the edit that caused it.
+                          Hidden once the client is back on that class. */}
+                      {releasedVehicle !== null &&
+                      releasedVehicle.code !== vehicleTypeCode ? (
+                        <p role="status" className={FIELD_NOTICE_CLASSES}>
+                          {t(
+                            VEHICLE_RELEASE_MESSAGE_KEYS[
+                              releasedVehicle.reason
+                            ],
+                            {
+                              vehicle: (() => {
+                                const released = vehicleTypes.find(
+                                  (vehicleType) =>
+                                    vehicleType.code === releasedVehicle.code,
+                                );
+                                return released
+                                  ? vehicleTypeLabel(released)
+                                  : releasedVehicle.code;
+                              })(),
+                            },
+                          )}
                         </p>
                       ) : null}
 
-                      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-                        {eligibleVehicleTypes.map((vehicleType) => {
-                          const selected = vehicleType.code === vehicleTypeCode;
-                          const isBestFit =
-                            bestFitVehicleType?.code === vehicleType.code;
-                          const Glyph =
-                            VEHICLE_CATEGORY_GLYPHS[vehicleType.category];
+                      {/* Why an individual's vehicle has the body it has —
+                          they are never asked, so this one line is where a
+                          refrigerated van stops being a surprise. */}
+                      {!isBusiness ? (
+                        <p className="text-xs leading-snug text-muted">
+                          {t("derivedLoadSpace", {
+                            body: t(DERIVED_BODY_LABEL_KEYS[bodyType]),
+                          })}
+                        </p>
+                      ) : null}
 
-                          // Per card, not memoised: four numeric comparisons
-                          // across a catalogue of a handful of classes, against a
-                          // `useMemo` whose dependency would have to be the
-                          // envelope object this render just rebuilt. The
-                          // arithmetic is cheaper than the cache.
-                          //
-                          // `specCapability`, never the spec's raw `cargoHeightM`
-                          // — FLATBED_TRUCK is seeded with `0` for "open bed, no
-                          // height limit", and a literal reading would disable the
-                          // flatbed card for every load with any height at all.
-                          const unfitAxes: CargoAxis[] =
-                            declaredCargoEnvelope !== null
-                              ? oversizeAxes(
-                                  declaredCargoEnvelope,
-                                  specCapability(vehicleType),
-                                )
-                              : [];
-                          const unfitReason =
-                            declaredCargoEnvelope !== null &&
-                            unfitAxes.length > 0
-                              ? cargoFitCardReason(
-                                  unfitAxes,
-                                  declaredCargoEnvelope,
-                                  t,
-                                )
-                              : null;
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                        {/* A disclosure, not a tab: the grid below is the same
+                            choice in more detail, and stays mounted only while
+                            open. Opens by itself when the selection sits on a
+                            class the two cards above do not show. */}
+                        <button
+                          type="button"
+                          aria-expanded={vehicleGridOpen}
+                          aria-controls={vehicleGridId}
+                          onClick={() => setVehicleGridOpen((open) => !open)}
+                          className="inline-flex items-center gap-1.5 text-[0.8125rem] font-semibold text-paper underline-offset-4 transition-colors hover:text-accent hover:underline"
+                        >
+                          {t("changeVehicle")}
+                          <span
+                            aria-hidden="true"
+                            className={`text-muted transition-transform ${
+                              vehicleGridOpen ? "rotate-180" : ""
+                            }`}
+                          >
+                            ▾
+                          </span>
+                        </button>
 
-                          // One badge, never two, and the same one slot for both
-                          // states — this is a second reason for a card to be
-                          // unavailable, not a second kind of unavailable.
-                          //
-                          // Unserviceable wins when both are true, and the
-                          // precedence is not arbitrary. "No carriers run this
-                          // class" is a fact about the fleet that nothing the
-                          // client can type will change, while "Too short for
-                          // 15 m" names an edit they could go and make. Leading
-                          // with the cargo reason would send them back to step 6
-                          // to shave 20 cm off a declaration in order to unlock a
-                          // card that stays unbookable at the end of it — work
-                          // done, no vehicle gained, and the real answer still
-                          // unsaid. Told the other way round nothing is lost: a
-                          // client who moves to a class someone does drive is
-                          // measured against their cargo there, on that card, at
-                          // the moment it can matter.
-                          //
-                          // Stacking both was considered and rejected on the same
-                          // grounds these badges are terse for. Two lines of
-                          // accent text per card, across a grid of them, buries
-                          // the one line the client needs — and the second line
-                          // would be advice about a hypothetical truck.
-                          const cardReason = !vehicleType.serviceable
-                            ? t(NO_CARRIERS_CARD_REASON_KEY)
-                            : unfitReason;
+                        {/* Only while the client has picked away from a
+                            recommendation that exists: in following mode the
+                            selection already is the recommendation, and this
+                            would be a button that does nothing. */}
+                        {vehicleChosenByClient &&
+                        recommendedCode !== null &&
+                        vehicleTypeCode !== recommendedCode ? (
+                          <button
+                            type="button"
+                            onClick={handleUseRecommended}
+                            className="text-[0.8125rem] font-semibold text-accent underline-offset-4 hover:underline"
+                          >
+                            {t("useRecommended")}
+                          </button>
+                        ) : null}
+                      </div>
 
-                          return (
-                            <button
-                              key={vehicleType.code}
-                              type="button"
-                              aria-pressed={selected}
-                              // Really disabled, not `aria-disabled` with a no-op
-                              // handler: there is nothing here for a click to
-                              // achieve or for a keyboard user to reconsider, and
-                              // `canSubmit` refuses this pairing regardless of
-                              // which control set it. The reason is rendered as
-                              // text *inside* the button rather than hung off an
-                              // `aria-describedby`, which is what keeps it
-                              // reachable — a disabled button is out of the tab
-                              // order, so a description attached to it is one a
-                              // screen-reader user would have to focus the button
-                              // to hear. Its own content is read in browse mode
-                              // along with the disabled state, so the badge
-                              // announces with the card exactly as it renders
-                              // with it. Both reasons travel this one route, so
-                              // an unserviceable class is announced as disabled
-                              // and reads out why on the same terms a cargo-unfit
-                              // one does.
-                              disabled={cardReason !== null}
-                              onClick={() =>
-                                setVehicleTypeCode(vehicleType.code)
-                              }
-                              // A card that is both selected and unfit keeps the
-                              // selected fill and its tick rather than dimming:
-                              // it is still the class this booking is pointed at,
-                              // which is the first thing the client needs to see,
-                              // and the accent badge below is what says it cannot
-                              // stay that way. Dimming it would leave the client
-                              // hunting for which card was theirs at the moment
-                              // they most need to know.
-                              className={`${PICK_CARD_BASE_CLASSES} ${
-                                selected
-                                  ? PICK_CARD_SELECTED_CLASSES
-                                  : cardReason !== null
-                                    ? PICK_CARD_UNAVAILABLE_CLASSES
-                                    : PICK_CARD_IDLE_CLASSES
-                              }${cardReason !== null ? " cursor-not-allowed" : ""}`}
-                            >
-                              <span className="flex items-start justify-between gap-2">
-                                <Glyph
-                                  className={`h-6 w-12 shrink-0 ${
-                                    selected ? "text-accent" : "text-muted"
-                                  }`}
-                                />
-                                {/* Teal, never orange: "cheapest option" is a
+                      {/* The full grid, as task-10 left it. Every card here is
+                          measured against the listed load (`assessFit`,
+                          through `vehicleFit`), and the ones that cannot take
+                          it are disabled *in place*, with the reason printed
+                          on the card. A card that can take it but may be tight
+                          — over its weight margin, packed volume or floor area
+                          — stays selectable with a muted warning line: soft
+                          fit steers, it never refuses.
+
+                          A class no carrier operates with this body is
+                          disabled in the same way and in the same slot — see
+                          `cardReason` below for which of the two speaks when
+                          both apply.
+
+                          Annotated, never filtered — the classes stay in
+                          `eligibleVehicleTypes`, whichever reason disables
+                          them. (What they are kept out of is
+                          `bookableVehicleTypes`, which is only what the form
+                          picks *for* the client: the recommendation, the
+                          `Best` pill and the selection effect. Nothing leaves
+                          this grid.) A card that stays where it is and says
+                          "Too short for 2.2 m" tells the client what this
+                          class cannot do and why the bigger one was
+                          recommended, where a card that silently vanished
+                          would leave them wondering where the cheap van went.
+
+                          The grid used to have a second reason to annotate
+                          rather than filter: dropping a newly unfit class would
+                          have moved the client's selection under them, in a
+                          step they were not looking at. That argument now has
+                          its own mechanism, `vehicleChosenByClient`: a class
+                          the client clicked — here or on the two cards above —
+                          is never moved by a plan change while it can still be
+                          booked. It is let go only when it becomes
+                          `cannot_fit` or unavailable for the body, and then
+                          the line above says which class went and why. A class
+                          the form picked follows the recommendation instead. */}
+                      {vehicleGridOpen ? (
+                        <div id={vehicleGridId}>
+                          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                            {eligibleVehicleTypes.map((vehicleType) => {
+                              const selected =
+                                vehicleType.code === vehicleTypeCode;
+                              const isBestFit =
+                                recommendedCode === vehicleType.code;
+                              const Glyph =
+                                VEHICLE_CATEGORY_GLYPHS[vehicleType.category];
+
+                              // Read from `vehicleFit`, judged once per plan by
+                              // `assessFit` — whose hard axes are `oversizeAxes`
+                              // through `specCapability`, never the spec's raw
+                              // `cargoHeightM`: FLATBED_TRUCK is seeded with `0` for
+                              // "open bed, no height limit", and a literal reading
+                              // would disable the flatbed card for every load.
+                              const fit =
+                                vehicleFit.get(vehicleType.code) ?? null;
+                              const unfitAxes: CargoAxis[] =
+                                fit?.hardAxes ?? [];
+                              const unfitReason =
+                                plannedEnvelope !== null && unfitAxes.length > 0
+                                  ? cargoFitCardReason(
+                                      unfitAxes,
+                                      plannedEnvelope,
+                                      t,
+                                    )
+                                  : null;
+                              // Soft fit: selectable, with one muted line. Never
+                              // alongside a hard reason — a card that cannot take
+                              // the load says that and only that.
+                              const softFitWarning =
+                                fit?.verdict === "may_not_fit"
+                                  ? t("mayNotFitItems")
+                                  : null;
+
+                              // One badge, never two, and the same one slot for both
+                              // states — this is a second reason for a card to be
+                              // unavailable, not a second kind of unavailable.
+                              //
+                              // Unserviceable wins when both are true, and the
+                              // precedence is not arbitrary. "No carriers run this
+                              // class" is a fact about the fleet that nothing the
+                              // client can do will change, while "Too short for
+                              // 2.2 m" names an edit they could go and make. Leading
+                              // with the cargo reason would send them back to step 4
+                              // to drop an item in order to unlock a card that
+                              // stays unbookable at the end of it — work
+                              // done, no vehicle gained, and the real answer still
+                              // unsaid. Told the other way round nothing is lost: a
+                              // client who moves to a class someone does drive is
+                              // measured against their cargo there, on that card, at
+                              // the moment it can matter.
+                              //
+                              // Stacking both was considered and rejected on the same
+                              // grounds these badges are terse for. Two lines of
+                              // accent text per card, across a grid of them, buries
+                              // the one line the client needs — and the second line
+                              // would be advice about a hypothetical truck.
+                              const cardReason = !servesBody(vehicleType)
+                                ? t(NO_CARRIERS_CARD_REASON_KEY)
+                                : unfitReason;
+
+                              return (
+                                <button
+                                  key={vehicleType.code}
+                                  type="button"
+                                  aria-pressed={selected}
+                                  // Really disabled, not `aria-disabled` with a no-op
+                                  // handler: there is nothing here for a click to
+                                  // achieve or for a keyboard user to reconsider, and
+                                  // `canSubmit` refuses this pairing regardless of
+                                  // which control set it. The reason is rendered as
+                                  // text *inside* the button rather than hung off an
+                                  // `aria-describedby`, which is what keeps it
+                                  // reachable — a disabled button is out of the tab
+                                  // order, so a description attached to it is one a
+                                  // screen-reader user would have to focus the button
+                                  // to hear. Its own content is read in browse mode
+                                  // along with the disabled state, so the badge
+                                  // announces with the card exactly as it renders
+                                  // with it. Both reasons travel this one route, so
+                                  // an unserviceable class is announced as disabled
+                                  // and reads out why on the same terms a cargo-unfit
+                                  // one does.
+                                  disabled={cardReason !== null}
+                                  onClick={() =>
+                                    handleVehicleChoice(vehicleType.code)
+                                  }
+                                  // A card that is both selected and unfit keeps the
+                                  // selected fill and its tick rather than dimming:
+                                  // it is still the class this booking is pointed at,
+                                  // which is the first thing the client needs to see,
+                                  // and the accent badge below is what says it cannot
+                                  // stay that way. Dimming it would leave the client
+                                  // hunting for which card was theirs at the moment
+                                  // they most need to know.
+                                  className={`${PICK_CARD_BASE_CLASSES} ${
+                                    selected
+                                      ? PICK_CARD_SELECTED_CLASSES
+                                      : cardReason !== null
+                                        ? PICK_CARD_UNAVAILABLE_CLASSES
+                                        : PICK_CARD_IDLE_CLASSES
+                                  }${cardReason !== null ? " cursor-not-allowed" : ""}`}
+                                >
+                                  <span className="flex items-start justify-between gap-2">
+                                    <Glyph
+                                      className={`h-6 w-12 shrink-0 ${
+                                        selected ? "text-accent" : "text-muted"
+                                      }`}
+                                    />
+                                    {/* Teal, never orange: "recommended" is a
                               different signal from "what you picked". The
+                              same class as the "Recommended" card above. The
                               badge sits in flow at the top right, where the
                               selection tick is absolutely positioned — so on
                               a selected card it steps aside by the tick's
                               width plus its inset rather than sitting under
                               it. */}
-                                {isBestFit ? (
-                                  <span
-                                    className={`rounded-full bg-emerald-600/10 px-2 py-0.5 text-[0.5625rem] font-semibold tracking-[0.1em] text-emerald-700 uppercase dark:bg-emerald-400/15 dark:text-emerald-300 ${
-                                      selected ? "mr-5" : ""
-                                    }`}
-                                  >
-                                    {t("best")}
+                                    {isBestFit ? (
+                                      <span
+                                        className={`rounded-full bg-emerald-600/10 px-2 py-0.5 text-[0.5625rem] font-semibold tracking-[0.1em] text-emerald-700 uppercase dark:bg-emerald-400/15 dark:text-emerald-300 ${
+                                          selected ? "mr-5" : ""
+                                        }`}
+                                      >
+                                        {t("best")}
+                                      </span>
+                                    ) : null}
                                   </span>
-                                ) : null}
-                              </span>
 
-                              <span className="mt-2.5 pr-4 text-[0.8125rem] leading-snug font-semibold text-paper">
-                                {vehicleTypeLabel(vehicleType)}
-                              </span>
-                              <span className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-0.5 font-price text-[0.6875rem] text-muted">
-                                <span>
-                                  {formatVehicleDimensions(
-                                    vehicleType.cargoLengthM,
-                                    vehicleType.cargoWidthM,
-                                    vehicleType.cargoHeightM,
-                                  )}
-                                </span>
-                                <span>
-                                  {t("specUpTo", {
-                                    weight: formatVehiclePayload(
-                                      vehicleType.maxPayloadKg,
-                                    ),
-                                  })}
-                                </span>
-                              </span>
+                                  <span className="mt-2.5 pr-4 text-[0.8125rem] leading-snug font-semibold text-paper">
+                                    {vehicleTypeLabel(vehicleType)}
+                                  </span>
+                                  <span className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-0.5 font-price text-[0.6875rem] text-muted">
+                                    <span>
+                                      {formatVehicleDimensions(
+                                        vehicleType.cargoLengthM,
+                                        vehicleType.cargoWidthM,
+                                        vehicleType.cargoHeightM,
+                                      )}
+                                    </span>
+                                    <span>
+                                      {t("specUpTo", {
+                                        weight: formatVehiclePayload(
+                                          vehicleType.maxPayloadKg,
+                                        ),
+                                      })}
+                                    </span>
+                                  </span>
 
-                              {/* Below the spec line, not above it: the figures
+                                  {/* Below the spec line, not above it: the figures
                                 are what the badge is a verdict on, so a client
                                 reading top to bottom gets the class, its
                                 capacity, and only then why their load exceeds
                                 it. No `role` — this is static content of a
                                 button that is already announced as disabled,
                                 and an `alert` here would fire once per unfit
-                                card the moment the last cargo digit lands. The
-                                one interruption this deserves belongs to step
-                                6's single blocking line. */}
-                              {cardReason !== null ? (
-                                <span
-                                  className={
-                                    PICK_CARD_UNAVAILABLE_REASON_CLASSES
-                                  }
-                                >
-                                  {cardReason}
-                                </span>
-                              ) : null}
+                                card every time an item is added. The one
+                                interruption this deserves is the grid-wide
+                                alert above, when nothing is left to book. */}
+                                  {cardReason !== null ? (
+                                    <span
+                                      className={
+                                        PICK_CARD_UNAVAILABLE_REASON_CLASSES
+                                      }
+                                    >
+                                      {cardReason}
+                                    </span>
+                                  ) : null}
 
-                              {selected ? <SelectedTick /> : null}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </>
+                                  {cardReason === null &&
+                                  softFitWarning !== null ? (
+                                    <span
+                                      className={PICK_CARD_SOFT_FIT_CLASSES}
+                                    >
+                                      {softFitWarning}
+                                    </span>
+                                  ) : null}
+
+                                  {selected ? <SelectedTick /> : null}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
                   )}
                 </>
               )}
             </StepCard>
 
-            {/* Placed here, and not folded into steps 3/4 above or step 7
-                below, for two reasons that both point at this slot. It reads
-                the load space chosen directly above it — the cold-chain warning
-                compares `handlingTags` against `bodyType` — so its two inputs
-                stay adjacent in the form's reading order. And it is a
-                *declaration* about the load rather than an input to choosing a
-                vehicle: step 4's "Total weight" is a capacity bracket that
-                filters the vehicle list and is never stored, while the weight
-                asked for here is the actual load, stored on the order and read
-                by the driver load board's fit filter. Same word, two different
-                jobs — worth four lines apart rather than four lines together. */}
+            {/* Placed here, and not folded into step 4 above or step 7 below,
+                because it reads the load space settled directly above it — the
+                cold-chain warning compares `handlingTags` against `bodyType` —
+                so its two inputs stay adjacent in the form's reading order.
+
+                It used to open on four required number fields: the load's
+                weight and its largest item's size, typed by the client. Those
+                are gone. The item list in step 4 is the load now, and the
+                route derives all four figures from it (`planLoad`), so what is
+                left here is what the list cannot know: how it is packed, how it
+                must be handled, and when it can be collected. */}
             <StepCard
               step={6}
               title={t("cargoDetails")}
-              description={t("whatIsActuallyBeingMovedWeight")}
+              description={t("howItsPackedHandledAndCollected")}
               disabled={!cargoStepEnabled}
-              disabledReason={t(CHOOSE_VEHICLE_FIRST_KEY)}
+              disabledReason={vehicleChosenStepsDisabledReason}
             >
               <div className="flex flex-col gap-5">
-                <fieldset>
-                  <legend className="mb-2.5 text-[0.8125rem] font-medium text-paper">
-                    {t("weightAndSizeOfTheLargest")}
-                  </legend>
-
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    {cargoNumberFields.map(
-                      ({ field, id, value, onChange, result }) => {
-                        // The parser's own message, or — for the empty case,
-                        // which is the one a client is most likely to hit — the
-                        // field's longer one, which says why the answer is
-                        // needed rather than only that it is missing.
-                        const parseError =
-                          "error" in result ? result.error : null;
-                        const errorMessage =
-                          cargoFieldsTouched[field.key] && parseError !== null
-                            ? value.trim() === ""
-                              ? t(field.emptyErrorKey)
-                              : parseError
-                            : null;
-
-                        // Is *this* field one of the axes the chosen vehicle
-                        // cannot take? Only the offending fields get the invalid
-                        // ring and point at the blocking line below; a load 15 m
-                        // long in a wide-enough truck must not put a red border
-                        // on a width the client got right.
-                        //
-                        // `CargoAxis` and `CargoNumberFieldKey` are separately
-                        // declared unions that happen to spell the same four
-                        // words, and this comparison is what holds them to it —
-                        // no cast, so the day the shared module renames an axis
-                        // this line stops compiling instead of quietly matching
-                        // nothing and dropping the wiring for every field.
-                        const oversizeOnThisAxis = cargoOversizeAxes.includes(
-                          field.key,
-                        );
-
-                        return (
-                          <div
-                            key={field.key}
-                            className="flex flex-col gap-1.5"
-                          >
-                            <Label
-                              htmlFor={id}
-                              className="text-[0.8125rem] font-medium text-paper"
-                            >
-                              {t(field.labelKey)}
-                            </Label>
-                            <Input
-                              id={id}
-                              type="number"
-                              inputMode="decimal"
-                              min={field.bounds.min}
-                              max={field.bounds.max}
-                              step={field.step}
-                              value={value}
-                              onChange={(event) => onChange(event.target.value)}
-                              // Errors wait for the client to leave the field:
-                              // a step that opened already telling them off on
-                              // four inputs they have not reached yet reads as
-                              // broken rather than as helpful.
-                              onBlur={() => markCargoFieldTouched(field.key)}
-                              placeholder={t(field.placeholderKey)}
-                              // A figure inside `CARGO_MEASUREMENT_BOUNDS` but
-                              // outside the booked vehicle is invalid too — it
-                              // is the reason the submit button will not go —
-                              // so it earns the same ring the parse errors get.
-                              aria-invalid={
-                                errorMessage !== null || oversizeOnThisAxis
-                              }
-                              // Three sources, appended in reading order:
-                              // always the helper, the field's own error when it
-                              // has one, and the shared fit line when this axis
-                              // is what breaks it. The fit line is one element
-                              // referenced by up to four fields, which is the
-                              // point of giving it an id at all — one sentence
-                              // naming the class and the limit reads better from
-                              // any of them than four copies would.
-                              aria-describedby={[
-                                `${id}-helper`,
-                                errorMessage ? `${id}-error` : null,
-                                cargoFitBlockingMessage !== null &&
-                                oversizeOnThisAxis
-                                  ? cargoFitAlertId
-                                  : null,
-                              ]
-                                .filter((token): token is string =>
-                                  Boolean(token),
-                                )
-                                .join(" ")}
-                              // The `Textarea` treatment step 7 already uses,
-                              // not `NATIVE_FIELD_CLASSES`, which this file
-                              // reserves for fixed-option `<select>`s. `Input`
-                              // is `bg-transparent` and sets no text colour, so
-                              // it inherits this card's palette unaided.
-                              className="border-line text-sm focus-visible:border-accent focus-visible:ring-accent/20"
-                            />
-                            <p
-                              id={`${id}-helper`}
-                              className="text-xs leading-snug text-muted"
-                            >
-                              {t("cargoFieldHelper")}{" "}
-                              {cargoRangeHelper(field.bounds, t)}
-                            </p>
-                            {errorMessage ? (
-                              <p
-                                id={`${id}-error`}
-                                className={FIELD_ERROR_CLASSES}
-                              >
-                                {errorMessage}
-                              </p>
-                            ) : null}
-                          </div>
-                        );
-                      },
-                    )}
-                  </div>
-
-                  {/* The blocking line: this load does not fit the vehicle the
-                      booking is pointed at.
-
-                      `role="alert"`, unlike the two `role="status"` notes in the
-                      handling fieldset below. That pair is advice about choices
-                      the client is allowed to make — a cool box on a short hop
-                      is a real thing to book on purpose — so they neither clear
-                      a tag nor stop the booking, and interrupting to repeat a
-                      decision already taken would be rude. This one is not
-                      advice. It is a conjunct of `canSubmit`, the submit button
-                      is dead while it is on screen, and there is no version of
-                      the booking that proceeds past it. That is what an alert is
-                      for, and the vehicle grid's "No vehicle matches this body
-                      type" line above already sets the precedent for a blocking
-                      one on this page.
-
-                      **Not blur-gated, deliberately — and this is the one place
-                      in step 6 that departs from `cargoFieldsTouched`.** The
-                      convention exists to stop the step opening pre-scolded on
-                      four inputs the client has not reached yet, and that
-                      concern cannot arise here: this message needs all four
-                      figures present *and* in bounds before it can be computed
-                      at all, so by the time it can appear the client has already
-                      filled in every field it talks about. Withholding it until
-                      a blur would be strictly worse than useless — `canSubmit`
-                      does not consult `cargoFieldsTouched` and never has, so the
-                      button would go dead the instant the last digit landed
-                      while the only sentence explaining why waited for a blur
-                      that a client who then reaches straight for Book may never
-                      perform. That is precisely the dead unexplained button the
-                      note above `canSubmit` was written to forbid. The per-field
-                      errors keep their blur gate untouched: they can fire on a
-                      half-typed value, which is the case the gate is for.
-
-                      Placed inside the fieldset, under the grid, so it sits with
-                      the four numbers it is about and inside the group the
-                      legend names. */}
-                  {cargoFitBlockingMessage !== null ? (
-                    <div
-                      id={cargoFitAlertId}
-                      role="alert"
-                      className="mt-4 rounded-lg border border-accent/30 bg-accent/[0.08] px-3.5 py-3 text-[0.8125rem] leading-snug text-accent"
-                    >
-                      {/* The shared sentence, alone in its own paragraph and
-                          not re-punctuated, wrapped or interpolated into: it is
-                          `POST /api/orders`' refusal verbatim, and anything this
-                          file adds around it is what would let the two drift. */}
-                      <p>{cargoFitBlockingMessage}</p>
-
-                      {/* The chosen class's own spec line and the way out,
-                          second and visually subordinate. Not prose restating
-                          the sentence above — it is deliberately the *same three
-                          figures in the same two formatters* the card in step 5
-                          prints, so a client comparing the alert against the
-                          card they picked reads one set of numbers in one set of
-                          units rather than two renderings they have to reconcile.
-                          Nothing here is written out by hand, so nothing here can
-                          contradict the catalogue. */}
-                      {selectedVehicleType !== null ? (
-                        <p className="mt-1.5 text-accent/85">
-                          <span className="font-price">
-                            {vehicleTypeLabel(selectedVehicleType)}:{" "}
-                            {formatVehicleDimensions(
-                              selectedVehicleType.cargoLengthM,
-                              selectedVehicleType.cargoWidthM,
-                              selectedVehicleType.cargoHeightM,
-                            )}
-                            ,{" "}
-                            {t("specUpTo", {
-                              weight: formatVehiclePayload(
-                                selectedVehicleType.maxPayloadKg,
-                              ),
-                            })}
-                          </span>
-                          . {t("pickBiggerVehicle")}
-                        </p>
-                      ) : null}
-                    </div>
-                  ) : null}
-                </fieldset>
-
+                {/* One free-text field per mode, never both: the route fills
+                    the other column itself (`describeLoad`). In items mode it
+                    writes the item summary into `itemQuantity`, so only the
+                    packaging is asked; in pallets mode it writes the pallet
+                    summary into `packagingDescription`, so only what is on the
+                    pallets is asked — the thing a business actually knows
+                    ("96 cartons"). Asking for a field the server overwrites
+                    would discard what the client typed without saying so. */}
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="flex flex-col gap-1.5">
-                    <Label
-                      htmlFor={packagingFieldId}
-                      className="text-[0.8125rem] font-medium text-paper"
-                    >
-                      {t("packagingOptional")}
-                    </Label>
-                    <Input
-                      id={packagingFieldId}
-                      value={packagingDescription}
-                      onChange={(event) =>
-                        setPackagingDescription(event.target.value)
-                      }
-                      placeholder={t("eG4Pallets")}
-                      className="border-line text-sm focus-visible:border-accent focus-visible:ring-accent/20"
-                    />
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <Label
-                      htmlFor={itemQuantityFieldId}
-                      className="text-[0.8125rem] font-medium text-paper"
-                    >
-                      {t("quantityOptional")}
-                    </Label>
-                    <Input
-                      id={itemQuantityFieldId}
-                      value={itemQuantity}
-                      onChange={(event) => setItemQuantity(event.target.value)}
-                      placeholder={t("eG96Cartons")}
-                      className="border-line text-sm focus-visible:border-accent focus-visible:ring-accent/20"
-                    />
-                  </div>
+                  {activeMode === "items" ? (
+                    <div className="flex flex-col gap-1.5">
+                      <Label
+                        htmlFor={packagingFieldId}
+                        className="text-[0.8125rem] font-medium text-paper"
+                      >
+                        {t("packagingOptional")}
+                      </Label>
+                      <Input
+                        id={packagingFieldId}
+                        value={packagingDescription}
+                        onChange={(event) =>
+                          setPackagingDescription(event.target.value)
+                        }
+                        placeholder={t("eGShrinkWrapped")}
+                        className="border-line text-sm focus-visible:border-accent focus-visible:ring-accent/20"
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-1.5">
+                      <Label
+                        htmlFor={itemQuantityFieldId}
+                        className="text-[0.8125rem] font-medium text-paper"
+                      >
+                        {t("whatsInsideOptional")}
+                      </Label>
+                      <Input
+                        id={itemQuantityFieldId}
+                        value={itemQuantity}
+                        onChange={(event) =>
+                          setItemQuantity(event.target.value)
+                        }
+                        placeholder={t("eG96Cartons")}
+                        className="border-line text-sm focus-visible:border-accent focus-visible:ring-accent/20"
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {/* Toggle buttons with `aria-pressed`, not an `sr-only` radio
@@ -3260,6 +3358,15 @@ export function BookingForm(): React.ReactElement {
                     })}
                   </div>
 
+                  {/* Said once the items have implied anything, so a chip
+                      that arrived switched on reads as a suggestion to check
+                      rather than as something the client did by accident. */}
+                  {impliedHandlingTags.length > 0 ? (
+                    <p className="mt-2 text-xs leading-snug text-muted">
+                      {t("handlingTagsFromItems")}
+                    </p>
+                  ) : null}
+
                   {/* `status`, never `alert`: both lines are advice about a
                       choice the client is allowed to make, and neither blocks
                       the booking, changes `bodyType` or clears the tag that
@@ -3270,11 +3377,20 @@ export function BookingForm(): React.ReactElement {
                       role="status"
                       className={`mt-2.5 ${FIELD_NOTICE_CLASSES}`}
                     >
-                      {t("coldChainNotice", {
-                        body: selectedBodyTypeOption
-                          ? t(selectedBodyTypeOption.titleKey)
-                          : t("anotherBody"),
-                      })}
+                      {/* A business chose its body in step 5 and can go back
+                          and change it; an individual never saw that question
+                          — their body follows the items — so their sentence
+                          points at the list instead. */}
+                      {t(
+                        isBusiness
+                          ? "coldChainNotice"
+                          : "coldChainNoticeFromItems",
+                        {
+                          body: selectedBodyTypeOption
+                            ? t(selectedBodyTypeOption.titleKey)
+                            : t("anotherBody"),
+                        },
+                      )}
                     </p>
                   ) : null}
 
@@ -3490,7 +3606,7 @@ export function BookingForm(): React.ReactElement {
               step={7}
               title={t("additionalDetails")}
               disabled={!vehicleChosenStepsEnabled}
-              disabledReason={t(CHOOSE_VEHICLE_FIRST_KEY)}
+              disabledReason={vehicleChosenStepsDisabledReason}
             >
               <div className="flex flex-col gap-4">
                 {/* Native radios, one per crew size, each visually replaced by
@@ -3534,6 +3650,15 @@ export function BookingForm(): React.ReactElement {
                   <p className="text-xs leading-snug text-muted">
                     {t("1IsTheDriverOnTheir")}
                   </p>
+
+                  {/* A suggestion, never a change: the selection stays where
+                      the client left it, and the line goes as soon as they
+                      add a second person (or remove the item). */}
+                  {crewSize === 1 && twoPersonItemLabel !== null ? (
+                    <p className="text-xs leading-snug text-muted">
+                      {t("twoPeopleRecommended", { item: twoPersonItemLabel })}
+                    </p>
+                  ) : null}
                 </fieldset>
 
                 <div className="flex flex-col gap-1.5">
@@ -3574,7 +3699,7 @@ export function BookingForm(): React.ReactElement {
               // quote: the tier it opens on is the one the fare is quoted at, so
               // a client who never reaches this card still books at Regular.
               disabled={!vehicleChosenStepsEnabled}
-              disabledReason={t(CHOOSE_VEHICLE_FIRST_KEY)}
+              disabledReason={vehicleChosenStepsDisabledReason}
             >
               {/* Native radios again, for the third time in this form and for
                   the same reasons as the load-space and crew-size pickers:

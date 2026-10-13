@@ -8,6 +8,7 @@ import {
   type AccountType,
   type FlowRole,
 } from "@/lib/auth-flow";
+import { parseGoodsParam } from "@/lib/goods-param-threading";
 import { audienceForHost, type Audience } from "@/lib/host";
 
 /**
@@ -114,8 +115,17 @@ export default async function SignUpPage({
   // are on offer — so an unanswered step 1 discards step 2's answer too.
   const accountType =
     role === null ? null : resolveAccountType(query.type, role);
+  // The landing page's goods shortcut, carried to the booking form after
+  // sign-up. Only an exact shortcut code survives `parseGoodsParam` — never a
+  // path — so this cannot be turned into an open redirect.
+  const goods = parseGoodsParam(query.goods);
 
   return (
-    <SignUpForm audience={audience} role={role} accountType={accountType} />
+    <SignUpForm
+      audience={audience}
+      role={role}
+      accountType={accountType}
+      goods={goods}
+    />
   );
 }

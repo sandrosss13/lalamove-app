@@ -1,30 +1,98 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import type { CargoCategory } from "@prisma/client";
 import { useTranslations } from "next-intl";
 
-import {
-  CARGO_CATEGORY_ALLOWED_VEHICLE_CATEGORIES,
-  CARGO_CATEGORY_LABELS,
-  useCargoCategoryLabel,
-} from "@/lib/cargo";
+import { CARGO_CATEGORY_ALLOWED_VEHICLE_CATEGORIES } from "@/lib/cargo";
 import { Link } from "@/i18n/navigation";
 import { formatGel } from "@/components/landing/landing-format";
 import { useLandingVehicleTypes } from "@/components/landing/landing-vehicle-types";
 import { type QuoteCalculatorContent } from "@/lib/admin/home-page-content";
+import { withGoodsParam } from "@/lib/goods-param-threading";
+import {
+  shortcutsFor,
+  type GoodsShortcut,
+  type GoodsShortcutCode,
+} from "@/lib/goods-shortcuts";
 import { cn } from "@/lib/utils";
 
 /**
- * Cargo categories in the order the taxonomy declares them. Only the keys are
- * taken from the English label table — the labels themselves are rendered in
- * the reader's language through `useCargoCategoryLabel`.
+ * The goods shortcuts a landing visitor is offered. The visitor is signed out,
+ * so their account type is unknown and they get the individual set — no
+ * pallets, which are business-only and have no catalogue group to price from.
  */
-const CARGO_CATEGORY_OPTIONS = Object.keys(
-  CARGO_CATEGORY_LABELS,
-) as CargoCategory[];
+export const LANDING_GOODS_SHORTCUTS = shortcutsFor("INDIVIDUAL");
 
-const DEFAULT_CARGO_CATEGORY: CargoCategory = "FURNITURE_FURNISHINGS";
+/**
+ * The cargo category each shortcut is *estimated* as: the category of the first
+ * entry (lowest `sortOrder`) in that shortcut's catalogue group, as seeded by
+ * `20261013090100_seed_item_catalogue`.
+ *
+ * This is a stand-in for the price estimate only. The booking form never reads
+ * it — once the visitor lists their items, the order's real cargo category is
+ * derived from those items (`src/lib/orders/load-plan.ts`), and a sofa with a
+ * TV in it can come out differently from what this table guesses. That is also
+ * why the result panel says "Typical vehicle" rather than promising one.
+ *
+ * Keyed by every code, pallets included, so a new shortcut fails typecheck here
+ * rather than quoting as `undefined`; the pallets row is unreachable from the
+ * landing page (see `LANDING_GOODS_SHORTCUTS`) and is filled in only to keep
+ * the record exhaustive.
+ */
+export const SHORTCUT_ESTIMATE_CARGO_CATEGORY: Record<
+  GoodsShortcutCode,
+  CargoCategory
+> = {
+  // LIVING_ROOM opens on SOFA_2_SEAT.
+  "moving-home": "FURNITURE_FURNISHINGS",
+  furniture: "FURNITURE_FURNISHINGS",
+  // KITCHEN_APPLIANCES opens on FRIDGE_SINGLE.
+  appliances: "APPLIANCES",
+  // BOXES_PARCELS opens on BOX_SMALL.
+  boxes: "RETAIL_STOCK",
+  // CHILLED_FOOD opens on CHILLED_CRATE. The cold chain is a body requirement
+  // the landing taxonomy does not carry, so the typical vehicle shown for this
+  // one is the cheapest by category alone; the booking form applies the body.
+  chilled: "RETAIL_STOCK",
+  // BUILDING_MATERIALS opens on CEMENT_BAG_25.
+  building: "CONSTRUCTION_MATERIALS",
+  // EVENT_EQUIPMENT opens on FOLDING_TABLE.
+  event: "EVENT_EQUIPMENT",
+  pallets: "INDUSTRIAL_SUPPLIES",
+};
+
+/**
+ * The calculator opens on furniture, the closest shortcut to the cargo
+ * category the old dropdown defaulted to, so a visitor who only types two
+ * addresses still gets a quote.
+ */
+const DEFAULT_GOODS: GoodsShortcutCode = "furniture";
+
+/* -------------------------------------------------------------------------- */
+/* Preselection from other sections                                           */
+/* -------------------------------------------------------------------------- */
+
+type GoodsListener = (code: GoodsShortcutCode) => void;
+
+/**
+ * Calculators currently mounted on the page. A module-level set rather than a
+ * context provider because the landing sections are composed from CMS rows
+ * (`landing-page.tsx`) and are siblings with no shared parent to hold state —
+ * and the only message that ever crosses between them is "pick this shortcut".
+ */
+const goodsListeners = new Set<GoodsListener>();
+
+/**
+ * Selects a shortcut in every mounted quote calculator. Called by the category
+ * tiles, whose anchors then scroll to `#price-a-load`; with no calculator on
+ * the page (a CMS layout without one) it is a harmless no-op.
+ */
+export function preselectLandingGoods(code: GoodsShortcutCode): void {
+  for (const listener of goodsListeners) {
+    listener(code);
+  }
+}
 
 /**
  * Crew sizes the visitor may price, counted as **total people including the
@@ -41,7 +109,10 @@ const DEFAULT_CREW_SIZE = 1;
 /** Placeholder shown in the price panel before the first estimate. */
 const EMPTY_STAT = "—";
 
-/** A finished estimate, with the vehicle label captured alongside it. */
+/**
+ * A finished estimate, with the vehicle label and the shortcut it was priced
+ * for captured alongside it.
+ */
 type Estimate = {
   distanceKm: number;
   baseFare: number;
@@ -50,6 +121,7 @@ type Estimate = {
   helperFee: number;
   price: number;
   vehicleLabel: string;
+  goods: GoodsShortcutCode;
 };
 
 /** Shape of a successful `/api/pricing/estimate` response. */
@@ -73,13 +145,6 @@ const FIELD_CLASSES =
   "w-full rounded-xl border border-line bg-surface-sunken px-3.5 py-2.5 text-sm text-paper " +
   "transition-colors placeholder:text-faint focus:border-accent focus:outline-none " +
   "focus:ring-2 focus:ring-accent/25";
-
-/** The native dropdown list is painted by the browser, not by us: `color-scheme`
- *  (set per theme in `globals.css`) gives it the right base, and the `option`
- *  rules pin an opaque ground on the platforms that paint each row with the
- *  element's own colours instead — `surface-sunken` is translucent, which is
- *  exactly the case that comes out unreadable there. */
-const SELECT_CLASSES = `${FIELD_CLASSES} appearance-none pr-10 [&>option]:bg-ink [&>option]:text-paper`;
 
 const FIELD_LABEL_CLASSES =
   "flex items-center gap-2 text-[0.8125rem] font-medium text-paper";
@@ -123,14 +188,14 @@ export function LandingQuoteCalculator({
 }) {
   const t = useTranslations("landing.landingQuoteCalculator");
   const tShared = useTranslations("common.shared");
-  const cargoCategoryLabel = useCargoCategoryLabel();
+  const tGoods = useTranslations("common.goodsShortcut");
   const pickupId = useId();
   const dropoffId = useId();
-  const cargoCategoryId = useId();
   // Radios are grouped by `name`, not by id, and the group has to be unique to
   // this instance — two calculators on one page would otherwise share a single
   // selection between them.
   const crewSizeGroupName = useId();
+  const goodsGroupName = useId();
 
   const {
     vehicleTypes,
@@ -140,15 +205,31 @@ export function LandingQuoteCalculator({
 
   const [pickupAddress, setPickupAddress] = useState("");
   const [dropoffAddress, setDropoffAddress] = useState("");
-  const [cargoCategory, setCargoCategory] = useState<CargoCategory>(
-    DEFAULT_CARGO_CATEGORY,
-  );
+  const [goods, setGoods] = useState<GoodsShortcutCode>(DEFAULT_GOODS);
   // Total people on the job, 1-4 — see `CREW_SIZE_OPTIONS`.
   const [crewSize, setCrewSize] = useState<number>(DEFAULT_CREW_SIZE);
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [estimate, setEstimate] = useState<Estimate | null>(null);
+
+  // A category tile elsewhere on the page picked a shortcut: select it here, as
+  // if the visitor had clicked the matching tile in this card.
+  useEffect(() => {
+    // Clears the quote inline rather than through `clearQuote`, which is
+    // redeclared every render and would otherwise be an effect dependency.
+    const listener: GoodsListener = (code) => {
+      setGoods(code);
+      setEstimate(null);
+      setError(null);
+    };
+    goodsListeners.add(listener);
+    return () => {
+      goodsListeners.delete(listener);
+    };
+  }, []);
+
+  const cargoCategory = SHORTCUT_ESTIMATE_CARGO_CATEGORY[goods];
 
   // Only the vehicles this cargo may legally travel in are offered, so the
   // server's mismatch rejection is unreachable from this form.
@@ -187,8 +268,8 @@ export function LandingQuoteCalculator({
     clearQuote();
   }
 
-  function updateCargoCategory(value: string) {
-    setCargoCategory(value as CargoCategory);
+  function updateGoods(value: GoodsShortcutCode) {
+    setGoods(value);
     clearQuote();
   }
 
@@ -243,6 +324,7 @@ export function LandingQuoteCalculator({
         // Captured now so the panel keeps matching the quote even if the
         // visitor edits the form afterwards.
         vehicleLabel: cheapestVehicleType.label,
+        goods,
       });
     } catch {
       setError(tShared("networkErrorPleaseCheckYourConnection"));
@@ -348,48 +430,31 @@ export function LandingQuoteCalculator({
                 />
               </div>
 
-              <div className="flex flex-col gap-1.5">
-                <label
-                  htmlFor={cargoCategoryId}
-                  className={FIELD_LABEL_CLASSES}
-                >
+              {/* The goods shortcuts, as a radio group for the same reasons
+                  as the crew-size row below. Each tile names what is being
+                  moved, not a cargo category: the category the estimate is
+                  priced on is looked up behind it
+                  (`SHORTCUT_ESTIMATE_CARGO_CATEGORY`), and the booking form
+                  works out the real one from the visitor's items. */}
+              <fieldset>
+                <legend className="text-[0.8125rem] font-medium text-paper">
                   {t("whatAreYouMoving")}
-                </label>
-                {/* `appearance-none` drops the platform arrow, so the wrapper
-                    draws the replacement as an inline SVG — a token stroke,
-                    which a `background-image` data URI could not be. */}
-                <div className="relative">
-                  <select
-                    id={cargoCategoryId}
-                    value={cargoCategory}
-                    onChange={(event) =>
-                      updateCargoCategory(event.target.value)
-                    }
-                    required
-                    className={SELECT_CLASSES}
-                  >
-                    {CARGO_CATEGORY_OPTIONS.map((value) => (
-                      <option key={value} value={value}>
-                        {cargoCategoryLabel(value)}
-                      </option>
-                    ))}
-                  </select>
-                  <svg
-                    aria-hidden="true"
-                    viewBox="0 0 12 12"
-                    className="pointer-events-none absolute top-1/2 right-3.5 h-3 w-3 -translate-y-1/2 text-faint"
-                  >
-                    <path
-                      d="M2.5 4.5 6 8l3.5-3.5"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
+                </legend>
+                <div className="mt-1.5 grid gap-1.5 rounded-xl border border-line bg-surface-sunken p-1.5 [grid-template-columns:repeat(auto-fill,minmax(132px,1fr))]">
+                  {LANDING_GOODS_SHORTCUTS.map((shortcut) => (
+                    <GoodsTile
+                      key={shortcut.code}
+                      shortcut={shortcut}
+                      name={goodsGroupName}
+                      title={tGoods(
+                        `${shortcut.code as GoodsShortcutCode}.title`,
+                      )}
+                      selected={shortcut.code === goods}
+                      onSelect={updateGoods}
                     />
-                  </svg>
+                  ))}
                 </div>
-              </div>
+              </fieldset>
 
               {/* A `fieldset`/`legend` rather than a `label`, because the
                   control is four inputs answering one question: the legend is
@@ -493,8 +558,11 @@ export function LandingQuoteCalculator({
                     </dd>
                   </div>
                   <div>
+                    {/* "Typical", because it is: the cheapest vehicle for a
+                        stand-in cargo category, not the one the order will
+                        get. The helper line says who decides that, and when. */}
                     <dt className={PANEL_LABEL_CLASSES}>
-                      {tShared("vehicle")}
+                      {t("typicalVehicle")}
                     </dt>
                     <dd className="mt-1 text-[0.8125rem] font-medium text-paper">
                       {estimate ? estimate.vehicleLabel : EMPTY_STAT}
@@ -502,6 +570,10 @@ export function LandingQuoteCalculator({
                   </div>
                 </div>
               </dl>
+
+              <p className="mt-3 text-xs leading-snug text-faint">
+                {t("weConfirmTheVehicleOnceYouList")}
+              </p>
 
               {estimate ? (
                 <>
@@ -558,7 +630,10 @@ export function LandingQuoteCalculator({
 
             {estimate ? (
               <Link
-                href="/sign-up"
+                // Only the shortcut code travels through sign-up, never a
+                // path: the auth pages validate it again and append it to
+                // their own fixed destination (`goods-param-threading.ts`).
+                href={withGoodsParam("/sign-up", estimate.goods)}
                 className="group mt-4 inline-flex items-center gap-2 text-sm font-semibold text-paper transition-colors hover:text-accent"
               >
                 {t("signUpToBookThisLoad")}
@@ -574,5 +649,47 @@ export function LandingQuoteCalculator({
         </div>
       </div>
     </section>
+  );
+}
+
+/**
+ * One goods shortcut in the calculator's picker: a visually hidden radio inside
+ * a visible tile, the same construction as the crew-size row (see the notes
+ * there on `relative` and the borrowed focus ring).
+ */
+function GoodsTile({
+  shortcut,
+  name,
+  title,
+  selected,
+  onSelect,
+}: {
+  shortcut: GoodsShortcut;
+  name: string;
+  title: string;
+  selected: boolean;
+  onSelect: (code: GoodsShortcutCode) => void;
+}) {
+  const { Icon } = shortcut;
+
+  return (
+    <label
+      className={cn(
+        "relative flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-[0.8125rem] leading-tight font-medium transition-colors",
+        "has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent/50",
+        selected ? "bg-accent text-on-accent" : "text-muted hover:text-paper",
+      )}
+    >
+      <input
+        type="radio"
+        name={name}
+        value={shortcut.code}
+        checked={selected}
+        onChange={() => onSelect(shortcut.code as GoodsShortcutCode)}
+        className="sr-only"
+      />
+      <Icon aria-hidden="true" className="h-4 w-4 shrink-0" />
+      <span className="min-w-0">{title}</span>
+    </label>
   );
 }

@@ -21,7 +21,10 @@
  * The whole file shares one page and one quote. Each quote costs three
  * LocationIQ lookups against a six-per-minute budget
  * (`src/app/api/pricing/estimate/route.ts`), so a quote per test would spend
- * the endpoint's rate limit on repetition rather than on coverage.
+ * the endpoint's rate limit on repetition rather than on coverage. The one
+ * exception is the last test, which re-quotes after picking a different goods
+ * shortcut — that is the behaviour under test, so it cannot reuse the first
+ * quote. Two quotes per run stay well inside the budget.
  */
 
 import { expect, test, type Page } from "@playwright/test";
@@ -37,7 +40,8 @@ type EstimatePayload = {
 };
 
 /**
- * A short central-Tbilisi hop, on the calculator's default cargo type. Short
+ * A short central-Tbilisi hop, on the calculator's default goods shortcut
+ * ("Furniture"). Short
  * because a two-kilometre route on the cheapest eligible vehicle is the case
  * that reaches the vehicle's minimum fare — but nothing below asserts that it
  * does; whether the floor applied is read out of the quote itself.
@@ -71,6 +75,17 @@ const GEL_FORMAT = new Intl.NumberFormat("en-GB", {
  */
 const FLOOR_MARGIN_GEL = 0.005;
 
+/**
+ * The shortcut the tile test switches to, and the cargo category the
+ * calculator should estimate it as (`SHORTCUT_ESTIMATE_CARGO_CATEGORY` in
+ * `landing-quote-calculator.tsx`). Appliances because it prices on a different
+ * category from the default Furniture tile, so a tile that changed the
+ * selection but not the request would be caught.
+ */
+const OTHER_SHORTCUT_TITLE = "Appliances";
+const OTHER_SHORTCUT_CODE = "appliances";
+const OTHER_SHORTCUT_CATEGORY = "APPLIANCES";
+
 test.describe.serial("Landing quote calculator", () => {
   let page: Page;
   let quote: EstimatePayload;
@@ -81,7 +96,10 @@ test.describe.serial("Landing quote calculator", () => {
     // `baseURL` handed to it explicitly, which the fixture would have applied.
     page = await browser.newPage({ baseURL: testInfo.project.use.baseURL });
 
-    await page.goto("/#price-a-load");
+    // `/en` explicitly: every path is locale-prefixed and the default locale is
+    // Georgian (`src/i18n/routing.ts`), so a bare `/` lands on `/ka` and the
+    // English labels this spec reads would never be found.
+    await page.goto("/en#price-a-load");
 
     const section = page.locator("#price-a-load");
     await section.getByLabel("Pickup").fill(PICKUP_ADDRESS);
@@ -177,14 +195,83 @@ test.describe.serial("Landing quote calculator", () => {
     }
   });
 
+  test("labels the vehicle as typical, pending the item list", async () => {
+    const panel = quotePanel();
+
+    // The vehicle is the cheapest one for a stand-in category, not the one the
+    // order will get, and the panel must not promise otherwise.
+    await expect(panel).toContainText("Typical vehicle");
+    await expect(panel).toContainText(
+      "We confirm the vehicle once you list your items.",
+    );
+  });
+
+  test("asks what is being moved with goods tiles, not a dropdown", async () => {
+    const section = page.locator("#price-a-load");
+
+    // The cargo-category `<select>` is gone; the goods shortcuts replace it.
+    await expect(section.getByRole("combobox")).toHaveCount(0);
+    const goods = section.getByRole("group", { name: "What are you moving" });
+    await expect(goods.getByRole("radio", { name: "Furniture" })).toBeChecked();
+    // Signed out, so the individual set: no business-only pallets tile.
+    await expect(goods.getByRole("radio", { name: "Pallets" })).toHaveCount(0);
+  });
+
   test("offers signing up as the only way on from a quote", async () => {
     // The calculator estimates and stops. Nothing on this surface creates an
     // order, which is the property that keeps this whole spec safe to run
     // against production.
+    const signUp = page.locator("#price-a-load").getByRole("link", {
+      name: "Sign up to book this load",
+    });
+    await expect(signUp).toBeVisible();
+    // The shortcut the quote was priced for rides along, so the booking form
+    // opens on it after sign-up. Only the code — never a path.
+    await expect(signUp).toHaveAttribute("href", /\/sign-up\?goods=furniture$/);
+  });
+
+  // Last, because it replaces the shared quote the tests above read.
+  test("a goods tile click produces an estimate for that shortcut", async () => {
+    const section = page.locator("#price-a-load");
+    const goods = section.getByRole("group", { name: "What are you moving" });
+
+    // The radio itself is visually hidden; the tile is its visible label.
+    await goods.getByText(OTHER_SHORTCUT_TITLE, { exact: true }).click();
     await expect(
-      page.locator("#price-a-load").getByRole("link", {
-        name: "Sign up to book this load",
-      }),
-    ).toBeVisible();
+      goods.getByRole("radio", { name: OTHER_SHORTCUT_TITLE }),
+    ).toBeChecked();
+
+    // Changing the goods invalidates the quote on screen.
+    await expect(
+      section.getByRole("link", { name: "Sign up to book this load" }),
+    ).toHaveCount(0);
+
+    const estimateRequest = page.waitForRequest((request) =>
+      request.url().includes("/api/pricing/estimate"),
+    );
+    const estimateResponse = page.waitForResponse((response) =>
+      response.url().includes("/api/pricing/estimate"),
+    );
+    await section.getByRole("button", { name: "Calculate price" }).click();
+
+    const request = await estimateRequest;
+    expect(request.postDataJSON()).toMatchObject({
+      cargoCategory: OTHER_SHORTCUT_CATEGORY,
+    });
+
+    const response = await estimateResponse;
+    const body = await response.text();
+    expect(response.status(), `estimate rejected: ${body}`).toBe(200);
+    const tileQuote = JSON.parse(body) as EstimatePayload;
+
+    await expect(quotePanel().locator("dd").first()).toHaveText(
+      `₾${GEL_FORMAT.format(tileQuote.price)}`,
+    );
+    await expect(
+      section.getByRole("link", { name: "Sign up to book this load" }),
+    ).toHaveAttribute(
+      "href",
+      new RegExp(`/sign-up\\?goods=${OTHER_SHORTCUT_CODE}$`),
+    );
   });
 });

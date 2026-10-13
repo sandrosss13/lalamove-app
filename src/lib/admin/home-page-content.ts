@@ -132,6 +132,13 @@ export function isHomePageChromeSectionType(
  * The quote calculator sits between the bento grid and "how it works": the
  * design handoff has no calculator at all (§6 bento is followed directly by §7
  * how-it-works), and this is the slot the redesign spec places it in.
+ *
+ * `vehicle_types` is absent for the same reason as `category_tiles`, since
+ * goods-first booking (specs/goods-first-booking, task 07): the landing page
+ * leads with what the visitor is moving, not with the fleet, and the vehicle is
+ * derived from their items at booking time. The type, its parser and its
+ * component are kept so an existing CMS row still renders; retiring those rows
+ * is tracked in specs/goods-first-booking/action-required.md.
  */
 export const DEFAULT_HOME_PAGE_SECTION_ORDER = [
   "hero",
@@ -141,7 +148,6 @@ export const DEFAULT_HOME_PAGE_SECTION_ORDER = [
   "bento",
   "quote_calculator",
   "how_it_works",
-  "vehicle_types",
   "driver_cta",
   "coverage",
   "faq",

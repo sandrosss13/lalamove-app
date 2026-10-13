@@ -33,6 +33,40 @@
     "plateNumber": "Plate number",
     "vehicleAddedToYourFleet": "Vehicle added to your fleet."
   },
+  "goodsShortcut": {
+    "moving-home": {
+      "title": "Moving home",
+      "description": "Furniture, appliances and boxes"
+    },
+    "furniture": {
+      "title": "Furniture",
+      "description": "Sofas, beds, wardrobes, tables"
+    },
+    "appliances": {
+      "title": "Appliances",
+      "description": "Fridges, washing machines, TVs"
+    },
+    "boxes": {
+      "title": "Boxes and parcels",
+      "description": "Boxes, suitcases, bags"
+    },
+    "chilled": {
+      "title": "Chilled and frozen",
+      "description": "Food that must stay cold"
+    },
+    "building": {
+      "title": "Building materials",
+      "description": "Cement, boards, tiles, timber"
+    },
+    "event": {
+      "title": "Event equipment",
+      "description": "Tables, staging, sound"
+    },
+    "pallets": {
+      "title": "Pallets",
+      "description": "EUR or industrial pallets"
+    }
+  },
   "languageToggle": {
     "short": {
       "en": "EN",

@@ -48,6 +48,11 @@ import {
   type FlowRole,
 } from "@/lib/auth-flow";
 import { useLocalizedCityOptions } from "@/lib/georgian-cities";
+import {
+  appendGoodsParam,
+  postAuthDestination,
+} from "@/lib/goods-param-threading";
+import type { GoodsShortcutCode } from "@/lib/goods-shortcuts";
 import { merchantOrigin, type Audience } from "@/lib/host";
 import { cn } from "@/lib/utils";
 
@@ -120,11 +125,18 @@ type SignUpRole = FlowRole | "COMPANY";
  * only ever emit lowercase, which is what the parsers round-trip exactly).
  * A `null` is simply omitted, which is how "not answered yet" is spelled — the
  * absence of `type` is what puts the wizard on step 2.
+ *
+ * `goods` is the landing page's shortcut, if the visitor arrived with one. It
+ * rides along on every hop — including the toggle across to `/sign-in`, whose
+ * own `flowHref` carries it back — so that wherever the visitor finishes, the
+ * booking form opens on what they picked. Only a validated shortcut code is
+ * ever appended (`appendGoodsParam` re-checks it), never a path.
  */
 function flowHref(
   path: string,
   role: FlowRole | null,
   accountType: AccountType | null,
+  goods: GoodsShortcutCode | null,
 ): string {
   const params = new URLSearchParams();
 
@@ -134,6 +146,7 @@ function flowHref(
   if (accountType !== null) {
     params.set("type", accountTypeParam(accountType));
   }
+  appendGoodsParam(params, goods);
 
   const query = params.toString();
   return query.length > 0 ? `${path}?${query}` : path;
@@ -356,9 +369,20 @@ export type SignUpFormProps = {
   role: FlowRole | null;
   /** Step 2's answer, already checked against the role by the page. */
   accountType: AccountType | null;
+  /**
+   * The landing page's goods shortcut, already narrowed to an exact
+   * `GOODS_SHORTCUTS` code by the page. Carried through every step and onto
+   * the post-sign-up destination; `null` when the visitor came without one.
+   */
+  goods: GoodsShortcutCode | null;
 };
 
-export function SignUpForm({ audience, role, accountType }: SignUpFormProps) {
+export function SignUpForm({
+  audience,
+  role,
+  accountType,
+  goods,
+}: SignUpFormProps) {
   const t = useTranslations("auth.signUpForm");
   const tShared = useTranslations("common.shared");
   const tSignIn = useTranslations("auth.signInForm");
@@ -593,15 +617,22 @@ export function SignUpForm({ audience, role, accountType }: SignUpFormProps) {
     // The navigation itself (`router.push` then `router.refresh`) now happens
     // in `SignUpSuccess`, once its progress bar has run — same destination,
     // same pair of calls, just after the beat screen 8 asks for.
+    //
+    // A new client with a landing-page goods shortcut lands on `/?goods=<code>`
+    // so the booking form opens on it; `postAuthDestination` only ever decorates
+    // `/`, and only with a validated code, so `SignUpSuccess` needs no
+    // knowledge of the shortcut and still pushes a destination this form chose.
     setCreated({
       role,
       accountType,
-      destination:
+      destination: postAuthDestination(
         resolvedRole === "DRIVER" || resolvedRole === "COMPANY"
           ? "/dashboard"
           : audience === "MERCHANT"
             ? "/dashboard"
             : "/",
+        goods,
+      ),
     });
   }
 
@@ -654,7 +685,7 @@ export function SignUpForm({ audience, role, accountType }: SignUpFormProps) {
      */
     const handleModeChange = (mode: FlowMode) => {
       if (mode === "signup") return;
-      router.push(flowHref(MODE_PATHS[mode], role, accountType));
+      router.push(flowHref(MODE_PATHS[mode], role, accountType, goods));
     };
 
     return (
@@ -663,7 +694,7 @@ export function SignUpForm({ audience, role, accountType }: SignUpFormProps) {
           mode="signup"
           onModeChange={handleModeChange}
           onSelectRole={(picked) =>
-            router.push(flowHref("/sign-up", picked, null))
+            router.push(flowHref("/sign-up", picked, null, goods))
           }
           roles={roles}
           hrefs={hrefs}
@@ -688,8 +719,10 @@ export function SignUpForm({ audience, role, accountType }: SignUpFormProps) {
           // `AccountTypeStep`'s selected styling is still live for the sign-in
           // flow; this branch just cannot reach it.
           value={null}
-          onSelect={(picked) => router.push(flowHref("/sign-up", role, picked))}
-          onBack={() => router.push(flowHref("/sign-up", null, null))}
+          onSelect={(picked) =>
+            router.push(flowHref("/sign-up", role, picked, goods))
+          }
+          onBack={() => router.push(flowHref("/sign-up", null, null, goods))}
         />
       </AuthShell>
     );
@@ -711,7 +744,9 @@ export function SignUpForm({ audience, role, accountType }: SignUpFormProps) {
 
   return (
     <AuthShell maxWidth="420" className="gap-6">
-      <BackLink onClick={() => router.push(flowHref("/sign-up", role, null))} />
+      <BackLink
+        onClick={() => router.push(flowHref("/sign-up", role, null, goods))}
+      />
 
       <div className="flex flex-col gap-2.5">
         <Eyebrow>{t("step3Of3Details")}</Eyebrow>
@@ -970,7 +1005,7 @@ export function SignUpForm({ audience, role, accountType }: SignUpFormProps) {
         <p className="text-sm text-[var(--landing-muted)]">
           {t("alreadyRegistered")}{" "}
           <InlineLinkButton
-            href={flowHref(MODE_PATHS.signin, role, accountType)}
+            href={flowHref(MODE_PATHS.signin, role, accountType, goods)}
           >
             {tShared("signIn")}
           </InlineLinkButton>

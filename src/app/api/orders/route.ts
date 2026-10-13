@@ -30,6 +30,15 @@ import {
   serviceableSpecIds,
   unserviceableClassMessage,
 } from "@/lib/orders/class-serviceability";
+import { planLoad } from "@/lib/orders/load-plan";
+import {
+  decideItemsBooking,
+  describeLoad,
+  itemsError,
+  parseOrderItems,
+  resolveOrderItems,
+  type ResolvedOrderItem,
+} from "@/lib/orders/parse-items";
 import { driverPayoutFor, PLATFORM_COMMISSION_RATE } from "@/lib/orders/payout";
 import {
   formatOrderReference,
@@ -749,6 +758,189 @@ function parseCreateOrderBody(
 }
 
 /**
+ * Does this request list its goods? `true` as soon as an `items` key is
+ * present with any value other than `undefined` — a malformed list is then the
+ * items parser's 400 to give, not a reason to fall back to typed figures.
+ */
+function hasItemsField(body: unknown): boolean {
+  return (
+    typeof body === "object" &&
+    body !== null &&
+    (body as Record<string, unknown>).items !== undefined
+  );
+}
+
+/**
+ * The request body with the four typed cargo figures replaced by valid
+ * stand-ins, for the items path only.
+ *
+ * `parseCreateOrderBody` requires those four figures, and it is deliberately
+ * left exactly as it is so the legacy path cannot change. On the items path
+ * the client's figures are not trusted and may well be absent, so they are
+ * swapped for each bound's floor before parsing, which keeps every other field
+ * validated by the one parser. The stand-ins never reach a check or a row:
+ * `deriveItemsLoad` overwrites all four with the plan's figures before
+ * anything downstream reads them.
+ *
+ * LEGACY(goods-first): when the legacy path is removed, the four figures move
+ * out of `parseCreateOrderBody` and this goes with them.
+ */
+function withPlaceholderCargoFigures(body: unknown): Record<string, unknown> {
+  return {
+    ...(body as Record<string, unknown>),
+    cargoWeightKg: CARGO_MEASUREMENT_BOUNDS.cargoWeightKg.min,
+    cargoLengthM: CARGO_MEASUREMENT_BOUNDS.cargoLengthM.min,
+    cargoWidthM: CARGO_MEASUREMENT_BOUNDS.cargoWidthM.min,
+    cargoHeightM: CARGO_MEASUREMENT_BOUNDS.cargoHeightM.min,
+  };
+}
+
+/** What the items path adds to a booking. */
+type DerivedLoad = {
+  /** `parsed.data` with the derived figures, category and body written in. */
+  input: CreateOrderInput;
+  /** Read unconditionally on this path; reused by the PO-reference check. */
+  accountType: ClientAccountType | null;
+  cargoVolumeM3: number;
+  itemSnapshots: ResolvedOrderItem["snapshot"][];
+};
+
+/**
+ * The items path: resolve the listed goods, plan the load and write what the
+ * plan says over everything the client was not trusted to state.
+ *
+ * Every figure comes from `src/lib/orders/load-plan.ts` through
+ * `src/lib/orders/parse-items.ts`; nothing about fit, category or body is
+ * restated here. What this adds is the two reads the pure modules cannot make
+ * — the active catalogue rows and the client's account type — and the
+ * overwrite itself:
+ *
+ * - `cargoWeightKg` and the three dimensions become the plan's total weight
+ *   and largest-item envelope, so the route's existing `oversizeAxes` guard,
+ *   unchanged, is the hard fit check on the goods actually listed. No soft-fit
+ *   refusal is added (requirements §Assumptions).
+ * - `cargoCategory` becomes the plan's. The shared `parseQuoteFields` still
+ *   requires the client to send one — that parser also serves the public
+ *   estimate and is not loosened — but it is overwritten here before the quote
+ *   or any check reads it.
+ * - `bodyType` becomes the body `decideItemsBooking` settles on, so the
+ *   existing body check and `serviceableSpecIds(bodyType)` judge it.
+ * - `itemQuantity` (items mode) or `packagingDescription` (pallets mode) gets
+ *   the server-built summary; the other stays as typed. See `describeLoad`.
+ *
+ * `handlingTags` stay client-supplied: they are the client's own statement,
+ * and the form pre-fills them from the items.
+ *
+ * Runs before the spec lookup, so every refusal here costs at most two
+ * indexed reads and never a geocoding lookup.
+ */
+async function deriveItemsLoad(
+  rawItems: unknown,
+  data: CreateOrderInput,
+  userId: string,
+  t: RequestTranslator,
+): Promise<{ value: DerivedLoad } | { error: string }> {
+  const items = parseOrderItems(rawItems, t);
+  if ("error" in items) {
+    return items;
+  }
+
+  const codes = [
+    ...new Set(
+      items.value.flatMap((item) =>
+        item.kind === "CATALOGUE" ? [item.code] : [],
+      ),
+    ),
+  ];
+
+  const [catalogue, clientProfile, locale] = await Promise.all([
+    codes.length > 0
+      ? prisma.itemCatalogEntry.findMany({
+          where: { code: { in: codes }, active: true },
+          select: {
+            id: true,
+            code: true,
+            labelEn: true,
+            labelKa: true,
+            weightKg: true,
+            lengthM: true,
+            widthM: true,
+            heightM: true,
+            stackable: true,
+            needsTwoPeople: true,
+            requiredBody: true,
+            handlingTags: true,
+            cargoCategory: true,
+          },
+        })
+      : Promise.resolve([]),
+    prisma.clientProfile.findUnique({
+      where: { userId },
+      select: { accountType: true },
+    }),
+    getRequestLocale(),
+  ]);
+
+  const resolved = resolveOrderItems(items.value, catalogue, locale, t);
+  if ("error" in resolved) {
+    return resolved;
+  }
+
+  const plan = planLoad(resolved.value.map(({ load }) => load));
+  // Unreachable: `parseOrderItems` refuses an empty list, and a non-empty plan
+  // always has every envelope axis. Guarded because `planLoad` types an empty
+  // plan as `null` and the envelope as the nullable `LoadDimensions`, and an
+  // order booked without its figures would be invisible on the load board.
+  if (plan === null) {
+    return { error: itemsError(t, "itemsEmpty") };
+  }
+  const { lengthM, widthM, heightM } = plan.envelope;
+  if (lengthM === null || widthM === null || heightM === null) {
+    return { error: itemsError(t, "itemsEmpty") };
+  }
+
+  const accountType = clientProfile?.accountType ?? null;
+  const body = decideItemsBooking({
+    resolved: resolved.value,
+    plan,
+    accountType,
+    requestedBody: data.bodyType,
+    t,
+  });
+  if ("error" in body) {
+    return body;
+  }
+
+  const description = describeLoad(
+    resolved.value,
+    {
+      packagingDescription: data.packagingDescription,
+      itemQuantity: data.itemQuantity,
+    },
+    FREE_TEXT_MAX_LENGTH,
+  );
+
+  return {
+    value: {
+      input: {
+        ...data,
+        cargoCategory: plan.cargoCategory,
+        bodyType: body.value,
+        cargoWeightKg: plan.totalWeightKg,
+        cargoLengthM: lengthM,
+        cargoWidthM: widthM,
+        cargoHeightM: heightM,
+        packagingDescription: description.packagingDescription,
+        itemQuantity: description.itemQuantity,
+      },
+      accountType,
+      cargoVolumeM3: plan.itemVolumeM3,
+      itemSnapshots: resolved.value.map(({ snapshot }) => snapshot),
+    },
+  };
+}
+
+/**
  * POST /api/orders — create a freight order for the signed-in client.
  *
  * Quoting goes through the same `estimateDelivery` the public estimate endpoint
@@ -781,9 +973,41 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
   }
 
-  const parsed = parseCreateOrderBody(rawBody, t);
+  // Goods-first booking: a request that lists `items` has its weight,
+  // dimensions, category and (for individuals) body re-derived here from the
+  // goods themselves; one that does not is booked exactly as before. See
+  // `deriveItemsLoad`.
+  //
+  // LEGACY(goods-first): remove after the last cached booking-form bundle
+  // that predates `items` has aged out (tracked in
+  // specs/goods-first-booking/action-required.md). Until then a request with
+  // no `items` key takes the path below with every value it sent: `rawBody` is
+  // parsed as is, `input` is `parsed.data` itself, and `derivedLoad` stays
+  // `null`, so nothing downstream reads anything new.
+  const itemsRequested = hasItemsField(rawBody);
+
+  const parsed = parseCreateOrderBody(
+    itemsRequested ? withPlaceholderCargoFigures(rawBody) : rawBody,
+    t,
+  );
   if ("error" in parsed) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
+  }
+
+  let input: CreateOrderInput = parsed.data;
+  let derivedLoad: DerivedLoad | null = null;
+  if (itemsRequested) {
+    const derived = await deriveItemsLoad(
+      (rawBody as Record<string, unknown>).items,
+      parsed.data,
+      session.user.id,
+      t,
+    );
+    if ("error" in derived) {
+      return NextResponse.json({ error: derived.error }, { status: 400 });
+    }
+    derivedLoad = derived.value;
+    input = derivedLoad.input;
   }
 
   const {
@@ -811,7 +1035,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     pickupWindowStart,
     pickupWindowEnd,
     deliveryDeadline,
-  } = parsed.data;
+  } = input;
 
   // Everything below is a cheap local query, so all of it runs before
   // `estimateDelivery` spends geocoding lookups on a request that cannot be
@@ -982,19 +1206,30 @@ export async function POST(request: Request): Promise<NextResponse> {
   // The PO / cost-centre reference is a BUSINESS-only field: an Individual
   // client's booking form never renders it, so a value arriving from one is a
   // stale client rather than an attack. Drop it instead of failing the booking.
+  //
+  // The items path has already read the account type (unconditionally — it
+  // decides the body), so it is reused rather than read twice.
   let businessPurchaseOrderRef: string | null = null;
   if (purchaseOrderRef !== null) {
-    const clientProfile = await prisma.clientProfile.findUnique({
-      where: { userId: session.user.id },
-      select: { accountType: true },
-    });
+    const accountType =
+      derivedLoad !== null
+        ? derivedLoad.accountType
+        : (
+            await prisma.clientProfile.findUnique({
+              where: { userId: session.user.id },
+              select: { accountType: true },
+            })
+          )?.accountType;
 
-    if (clientProfile?.accountType === ClientAccountType.BUSINESS) {
+    if (accountType === ClientAccountType.BUSINESS) {
       businessPurchaseOrderRef = purchaseOrderRef;
     }
   }
 
-  const result = await estimateDelivery(parsed.data);
+  // `input` rather than the request's own figures: on the items path its
+  // `cargoCategory` is the plan's, so the `cargo_vehicle_mismatch` rule judges
+  // the goods actually listed, not the client's guess at a category.
+  const result = await estimateDelivery(input);
 
   if (!result.ok) {
     // An address the geocoder cannot place is well-formed input the server
@@ -1146,6 +1381,15 @@ export async function POST(request: Request): Promise<NextResponse> {
         pickupWindowEnd,
         deliveryDeadline,
         clientId: session.user.id,
+        // Items path only. One nested create, so the lines are written in the
+        // same statement as the order and can never exist without it (or it
+        // without them). The legacy path adds nothing here.
+        ...(derivedLoad !== null
+          ? {
+              cargoVolumeM3: derivedLoad.cargoVolumeM3,
+              items: { create: derivedLoad.itemSnapshots },
+            }
+          : {}),
       },
     });
   });
