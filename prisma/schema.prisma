@@ -103,6 +103,7 @@ model User {
   orders           Order[]           @relation("ClientOrders")
   deliveries       Order[]           @relation("DriverDeliveries")
   savedCards       SavedCard[]
+  savedAddresses   SavedAddress[]
 
   // Admin back-office relations. `systemUserProfile` exists only for internal
   // staff (role ADMIN); the other two exist for any user — `auditLogs` records
@@ -2656,6 +2657,57 @@ model SavedCard {
   orders Order[]
 
   @@index([clientId])
+}
+
+/// One end of a past booking that a client chose to keep — the place plus that
+/// stop's Contact Info and access details — so the booking form can refill a
+/// pickup or dropoff in one tap. Read and written only by `/api/saved-addresses`;
+/// the wire shape is `SavedAddressDto` in `src/lib/saved-addresses/contract.ts`.
+///
+/// A copy, never a reference: an order keeps its own stop columns, so editing or
+/// deleting a saved address never rewrites a booking already made from it.
+///
+/// At most `SAVED_ADDRESS_LIMIT` rows per client, enforced by the POST route
+/// rather than the database. The text columns are `NOT NULL DEFAULT ''` rather
+/// than nullable: "no entrance" is an empty field in the form either way, and
+/// one representation of it is one fewer case for every reader.
+model SavedAddress {
+  id       String @id @default(cuid())
+  clientId String
+  client   User   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  /// The client's own name for it ("Home", "Office"). Defaults to the address
+  /// when left blank, so it is never empty.
+  label   String
+  /// The geocoded address string exactly as the booking form submitted it.
+  /// Duplicates are detected on a trimmed, whitespace-collapsed, lower-cased
+  /// copy of this, in application code — there is no unique index on it.
+  address String
+  /// Null when the form had no coordinates for the address (typed, not picked).
+  lat     Float?
+  lng     Float?
+
+  /// The stop's "Contact Info", mirroring the order's per-stop columns
+  /// (`pickupContactName`, `pickupBuildingName`, …).
+  contactName       String  @default("")
+  contactPhone      String  @default("")
+  buildingName      String  @default("")
+  entrance          String  @default("")
+  /// 0 = ground floor.
+  floor             Int     @default(0)
+  passengerElevator Boolean @default(false)
+  cargoElevator     Boolean @default(false)
+  /// Note for the driver. Always "" for a BUSINESS client, matching how
+  /// `prepareOrderWrite` drops a business client's stop comments.
+  comment           String  @default("")
+
+  /// Bumped when the address is picked in the booking form; the list is ordered
+  /// by this, most recent first.
+  lastUsedAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([clientId, lastUsedAt])
 }
 
 enum PaymentStatus {

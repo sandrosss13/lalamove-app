@@ -1,0 +1,66 @@
+{
+  "contactSummary": {
+    "cargoElevator": "Cargo elevator",
+    "comment": "“{comment}”",
+    "entrance": "Entrance {entrance}",
+    "floor": "Floor {floor}",
+    "passengerElevator": "Passenger elevator"
+  },
+  "editDialog": {
+    "buildingName": "Building name",
+    "cargoElevator": "Cargo elevator",
+    "comment": "Comment for the driver",
+    "commentPlaceholder": "Door code, lift code, where to park…",
+    "contactName": "Contact name",
+    "contactPhone": "Contact phone",
+    "entrance": "Entrance / staircase",
+    "floor": "Floor",
+    "floorPlaceholder": "0 = Ground floor",
+    "label": "Label",
+    "networkError": "Network error. Check your connection and try again.",
+    "passengerElevator": "Passenger elevator",
+    "save": "Save changes",
+    "saveFailed": "Could not save your changes.",
+    "title": "Edit saved address"
+  },
+  "labels": {
+    "home": "Home",
+    "office": "Office",
+    "placeholder": "Label, e.g. Mum’s place (optional)",
+    "warehouse": "Warehouse"
+  },
+  "manager": {
+    "armedNote": "Click again to remove this address for good. There is no undo.",
+    "confirmRemoval": "Confirm removal",
+    "confirmRemovalAria": "Confirm removal, {label}",
+    "editAria": "Edit, {label}",
+    "emptyBody": "After you book a delivery, the confirmation page offers to save its pickup and drop-off addresses, with their contact details, so you can fill them in with one tap next time.",
+    "emptyTitle": "No saved addresses yet",
+    "heading": "Your addresses",
+    "loadFailed": "Could not load your saved addresses.",
+    "loading": "Loading your addresses…",
+    "networkError": "Network error. Check your connection and try again.",
+    "removeAria": "Remove, {label}",
+    "removeFailed": "Could not remove this address.",
+    "removing": "Removing…"
+  },
+  "page": {
+    "intro": "Places from your past bookings, with the contact and access details the driver needs. Pick one in the booking form to fill everything in at once.",
+    "pleaseSignIn": "Please sign in to see your saved addresses.",
+    "title": "Saved addresses"
+  },
+  "prompt": {
+    "description": "Keep the addresses and contact details from this booking, and fill them in with one tap next time.",
+    "dropoff": "Drop-off",
+    "labelHeading": "Label",
+    "manageLink": "Manage saved addresses",
+    "networkError": "Network error. Check your connection and try again.",
+    "notNow": "Not now",
+    "pickup": "Pickup",
+    "save": "Save",
+    "saveFailed": "Could not save these addresses.",
+    "savedTitle": "Saved — you’ll find them when you book next time.",
+    "saving": "Saving…",
+    "title": "Save these addresses for next time?"
+  }
+}

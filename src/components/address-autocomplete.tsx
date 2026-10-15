@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { useTranslations } from "next-intl";
 
 import { cn } from "@/lib/utils";
@@ -35,6 +35,22 @@ type AddressSuggestion = {
  */
 type PlaceDetails = {
   location: LatLng;
+};
+
+/**
+ * An address the host already knows — a client's saved address, say — offered
+ * above the search suggestions. Picking one fills the field without any lookup:
+ * `location` stands in for what `/api/geocode/details` would have resolved.
+ */
+export type AddressAutocompleteSavedItem = {
+  /** Stable identity, handed back through `onSavedItemPicked`. */
+  id: string;
+  /** Short name shown first ("Home", "Office"). */
+  label: string;
+  /** The address text the field is set to, verbatim. */
+  address: string;
+  /** Its coordinates, or `null` when the host has none for it. */
+  location: LatLng | null;
 };
 
 type AddressAutocompleteProps = {
@@ -95,6 +111,33 @@ type AddressAutocompleteProps = {
    * coordinates would have nowhere to go.
    */
   showMapPreview?: boolean;
+  /**
+   * Known addresses to offer as their own group above the search suggestions,
+   * already in the order to show them. The field shows them on focus — when
+   * empty as well, which is the point — narrowed by the typed text against
+   * label and address and capped at `MAX_SAVED_ITEMS`.
+   *
+   * Picking one sets the address through `onChange` and its coordinates through
+   * `onLocationChange`, exactly as a resolved suggestion would, then calls
+   * `onSavedItemPicked`. It does NOT call `onPlaceSelected`: that announces a
+   * place the host knows nothing more about, and a host typically reacts by
+   * asking for the rest — a saved item is one it already has the rest of.
+   *
+   * Omitted or empty, the field behaves exactly as it always has.
+   */
+  savedItems?: readonly AddressAutocompleteSavedItem[];
+  /** Called with the picked saved item's `id`, after the field is updated. */
+  onSavedItemPicked?: (id: string) => void;
+  /**
+   * The saved group's visible heading, which also names the group for
+   * assistive tech. Required in practice whenever `savedItems` is non-empty.
+   */
+  savedItemsLabel?: string;
+  /**
+   * Optional trailing content for the saved group's header — a "Manage" link.
+   * Kept as a node so this component stays unaware of routes and locales.
+   */
+  savedItemsAction?: ReactNode;
 };
 
 /** See `AddressAutocompleteProps.classNames`. */
@@ -129,6 +172,33 @@ const DEBOUNCE_MS = 300;
 /** Delay closing the dropdown on blur so a suggestion click registers first. */
 const BLUR_CLOSE_DELAY_MS = 150;
 /**
+ * At most this many saved items show at once. The group sits above the search
+ * results, so an uncapped list would push them out of the capped dropdown.
+ */
+const MAX_SAVED_ITEMS = 5;
+
+/**
+ * The saved items to show for the field's current text: all of them (capped)
+ * while it is blank, otherwise those whose label or address contains the text,
+ * ignoring case and surrounding whitespace. The host's order is kept — it is
+ * the order it chose (most recently used first, for saved addresses).
+ */
+function matchingSavedItems(
+  items: readonly AddressAutocompleteSavedItem[],
+  text: string,
+): AddressAutocompleteSavedItem[] {
+  const query = text.trim().toLocaleLowerCase();
+  const matches =
+    query === ""
+      ? items
+      : items.filter(
+          (item) =>
+            item.label.toLocaleLowerCase().includes(query) ||
+            item.address.toLocaleLowerCase().includes(query),
+        );
+  return matches.slice(0, MAX_SAVED_ITEMS);
+}
+/**
  * Address input with a live, debounced suggestions dropdown backed by
  * `/api/geocode/suggest`.
  *
@@ -151,6 +221,10 @@ export function AddressAutocomplete({
   classNames,
   overlaySuggestions = false,
   showMapPreview = true,
+  savedItems,
+  onSavedItemPicked,
+  savedItemsLabel,
+  savedItemsAction,
 }: AddressAutocompleteProps) {
   const t = useTranslations("common.addressAutocomplete");
   const classes = { ...DEFAULT_CLASS_NAMES, ...classNames };
@@ -164,6 +238,16 @@ export function AddressAutocomplete({
   const detailsAbortRef = useRef<AbortController | null>(null);
 
   const listboxId = useId();
+  const savedHeadingId = useId();
+
+  const visibleSavedItems = matchingSavedItems(savedItems ?? [], value);
+  // `open` is "the client is engaged with this field" (focused, typing, not
+  // dismissed); whether anything is actually drawn also needs something to
+  // draw. Splitting the two is what lets the saved group show on focus of an
+  // empty field, while a field with neither group still renders — and announces
+  // through `aria-expanded` — exactly what it did before saved items existed.
+  const listVisible =
+    open && (visibleSavedItems.length > 0 || suggestions.length > 0);
 
   // Clean up any pending timers / in-flight requests on unmount.
   useEffect(() => {
@@ -183,8 +267,10 @@ export function AddressAutocomplete({
 
     if (query.trim().length < MIN_QUERY_LENGTH) {
       abortRef.current?.abort();
+      // No `setOpen(false)`: with no suggestions the list draws nothing anyway
+      // (see `listVisible`), and leaving `open` alone keeps the saved group up
+      // while a short query is still narrowing it.
       setSuggestions([]);
-      setOpen(false);
       return;
     }
 
@@ -212,7 +298,12 @@ export function AddressAutocomplete({
           };
           const next = payload.suggestions ?? [];
           setSuggestions(next);
-          setOpen(next.length > 0);
+          // Results reopen a dismissed list, as they always did; no results
+          // leave `open` alone, since an empty suggestions group draws nothing
+          // and the saved group may still have matches to show.
+          if (next.length > 0) {
+            setOpen(true);
+          }
         } catch {
           // Aborted (superseded query) or network/parse error — leave the
           // current suggestions untouched and stay quiet.
@@ -272,6 +363,12 @@ export function AddressAutocomplete({
     const next = event.target.value;
     onChange(next);
     scheduleFetch(next);
+    // Typing is engagement: if the saved group has matches for the new text,
+    // show them now rather than after the suggest debounce (and even after an
+    // Escape, as a fresh result list would).
+    if (matchingSavedItems(savedItems ?? [], next).length > 0) {
+      setOpen(true);
+    }
 
     // Typing over the input abandons the selected place: its coordinates no
     // longer describe what the field says.
@@ -301,13 +398,40 @@ export function AddressAutocomplete({
     }
   }
 
+  /**
+   * Fill the field from a saved item. Mirrors `handleSelect` up to the point
+   * where that one goes looking for coordinates: a saved item already carries
+   * them, so they go straight to `onLocationChange` — the same call a resolved
+   * details lookup makes — and nothing is fetched.
+   */
+  function handleSavedSelect(item: AddressAutocompleteSavedItem) {
+    if (blurRef.current) {
+      clearTimeout(blurRef.current);
+    }
+    // A pending suggest lookup (debounced or in flight) would otherwise land
+    // after this and reopen the list over the address just chosen; a pending
+    // details lookup for an earlier pick would overwrite these coordinates.
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    abortRef.current?.abort();
+    detailsAbortRef.current?.abort();
+    setDetailsPending(false);
+
+    onChange(item.address);
+    onLocationChange?.(item.location);
+    setSuggestions([]);
+    setOpen(false);
+    onSavedItemPicked?.(item.id);
+  }
+
   function handleBlur() {
     // Delay so a mousedown on a suggestion resolves before the list closes.
     blurRef.current = setTimeout(() => setOpen(false), BLUR_CLOSE_DELAY_MS);
   }
 
   function handleFocus() {
-    if (suggestions.length > 0) {
+    if (suggestions.length > 0 || visibleSavedItems.length > 0) {
       setOpen(true);
     }
   }
@@ -345,12 +469,12 @@ export function AddressAutocomplete({
             placeholder={placeholder}
             autoComplete="off"
             role="combobox"
-            aria-expanded={open}
+            aria-expanded={listVisible}
             aria-controls={listboxId}
             aria-autocomplete="list"
             className={classes.input}
           />
-          {open && suggestions.length > 0 ? (
+          {listVisible ? (
             // In normal flow rather than an absolute overlay: two of these
             // fields stack a short gap apart in the booking form, and an
             // overlaid list buried the next field's label and input entirely.
@@ -369,6 +493,53 @@ export function AddressAutocomplete({
                   : "mt-1",
               )}
             >
+              {visibleSavedItems.length > 0 ? (
+                // One listbox, two groups: the saved items sit in a labelled
+                // `role="group"` so a screen reader announces them as their
+                // own set, and the search results that follow stay plain
+                // options exactly as before. The wrapping item is
+                // presentational — the group is what the listbox owns.
+                <li role="presentation">
+                  <div className="flex items-center justify-between gap-2 px-3 pb-1 pt-2 text-xs font-semibold opacity-70">
+                    <span id={savedHeadingId}>{savedItemsLabel}</span>
+                    {savedItemsAction ? (
+                      // Same mousedown guard as the options: without it the
+                      // input's blur could start closing the list first.
+                      <span onMouseDown={(event) => event.preventDefault()}>
+                        {savedItemsAction}
+                      </span>
+                    ) : null}
+                  </div>
+                  <ul role="group" aria-labelledby={savedHeadingId}>
+                    {visibleSavedItems.map((item) => (
+                      <li key={item.id} role="option" aria-selected={false}>
+                        <button
+                          type="button"
+                          // See the suggestion buttons below.
+                          onMouseDown={(event) => event.preventDefault()}
+                          onClick={() => handleSavedSelect(item)}
+                          className={classes.option}
+                        >
+                          <span className="block font-medium">
+                            {item.label}
+                          </span>
+                          {/* Skipped when the label IS the address (the
+                              server's default for an unlabelled save), so
+                              the item does not read the same line twice. */}
+                          {item.label.trim() !== item.address.trim() ? (
+                            <span className="block truncate text-xs opacity-70">
+                              {item.address}
+                            </span>
+                          ) : null}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                  {suggestions.length > 0 ? (
+                    <div role="separator" className="my-1 border-t" />
+                  ) : null}
+                </li>
+              ) : null}
               {suggestions.map((suggestion, index) => (
                 <li
                   // The list is replaced wholesale on each fetch and never
@@ -398,7 +569,6 @@ export function AddressAutocomplete({
       {showMapPreview && detailsPending ? (
         <p className="opacity-70">{t("loadingAddressDetails")}</p>
       ) : null}
-
     </div>
   );
 }

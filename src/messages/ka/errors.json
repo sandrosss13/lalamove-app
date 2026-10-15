@@ -566,6 +566,19 @@
     "platformMustBeIosOrAndroid": "platform უნდა იყოს ios ან android.",
     "tokenMustBeAnExpoPushToken": "token უნდა იყოს Expo-ს push ტოკენი."
   },
+  "savedAddresses": {
+    "addressAlreadySaved": "ეს მისამართი უკვე შენახული გაქვთ.",
+    "addressIsRequired": "შეიყვანეთ შესანახი მისამართი.",
+    "addressNotFound": "შენახული მისამართი ვერ მოიძებნა.",
+    "addressTooLong": "მისამართი არ უნდა აღემატებოდეს {max} სიმბოლოს.",
+    "bodyMustBeAnObject": "მოთხოვნის ტანი უნდა იყოს JSON ობიექტი.",
+    "coordinatesInvalid": "lat და lng უნდა იყოს სწორი კოორდინატები ან null.",
+    "fieldMustBeString": "{field} მითითებისას უნდა იყოს ტექსტი.",
+    "fieldMustBeTrueOrFalse": "{field} მითითებისას უნდა იყოს true ან false.",
+    "floorMustBeANumber": "floor უნდა იყოს რიცხვი.",
+    "limitReached": "შეგიძლიათ შეინახოთ არაუმეტეს {max} მისამართი. ახლის შესანახად წაშალეთ ერთ-ერთი.",
+    "onlyClientsHaveSavedAddresses": "შენახული მისამართები მხოლოდ კლიენტებს აქვთ."
+  },
   "savedCards": {
     "cardBrandTooLong": "მიუთითეთ ბარათის ბრენდი არაუმეტეს {max} სიმბოლოსი.",
     "cardDetailsMustNotBeSent": "ბარათის მონაცემები სერვერზე არ უნდა გაიგზავნოს.",

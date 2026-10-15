@@ -9,6 +9,10 @@ import { auth } from "@/lib/auth";
 import { loadAccessibleOrder } from "@/lib/orders/load-accessible-order";
 import { maskedCardNumber } from "@/components/home/payment-methods";
 import { formatGel } from "@/components/orders-format";
+import {
+  SaveAddressesPrompt,
+  type SaveAddressesPromptEnd,
+} from "@/components/saved-addresses/save-addresses-prompt";
 import { formatScheduledAt, paymentMethodLabel } from "../../checkout-format";
 import {
   CheckoutHeader,
@@ -50,6 +54,29 @@ const SUCCESS_ORDER_SELECT = {
   payment: {
     select: { status: true, paidAt: true, cardBrand: true, cardLast4: true },
   },
+  // Each end's position and Contact Info, read only to seed the "save these
+  // addresses?" prompt for an account order. Never rendered for a guest, and
+  // only ever passed on as the plain `SaveAddressesPromptEnd` shape.
+  pickupLat: true,
+  pickupLng: true,
+  pickupContactName: true,
+  pickupContactPhone: true,
+  pickupBuildingName: true,
+  pickupEntrance: true,
+  pickupFloor: true,
+  pickupPassengerElevator: true,
+  pickupCargoElevator: true,
+  pickupComment: true,
+  dropoffLat: true,
+  dropoffLng: true,
+  dropoffContactName: true,
+  dropoffContactPhone: true,
+  dropoffBuildingName: true,
+  dropoffEntrance: true,
+  dropoffFloor: true,
+  dropoffPassengerElevator: true,
+  dropoffCargoElevator: true,
+  dropoffComment: true,
 } as const;
 
 /**
@@ -245,9 +272,80 @@ export default async function CheckoutSuccessPage({
             </div>
           )}
         </section>
+
+        {/* Account orders only: a guest has no address book to save into, and
+            the prompt's own `GET /api/saved-addresses` would 401 anyway. */}
+        {access.kind === "client" ? (
+          <SaveAddressesPrompt ends={saveAddressesPromptEnds(order)} />
+        ) : null}
       </div>
     </main>
   );
+}
+
+/**
+ * The order's two ends as the save-addresses prompt takes them: the address,
+ * its coordinates and the Contact Info the client typed at booking, with the
+ * nullable contact columns read as empty strings.
+ */
+function saveAddressesPromptEnds(order: {
+  pickupAddress: string;
+  pickupLat: number | null;
+  pickupLng: number | null;
+  pickupContactName: string | null;
+  pickupContactPhone: string | null;
+  pickupBuildingName: string | null;
+  pickupEntrance: string | null;
+  pickupFloor: number;
+  pickupPassengerElevator: boolean;
+  pickupCargoElevator: boolean;
+  pickupComment: string | null;
+  dropoffAddress: string;
+  dropoffLat: number | null;
+  dropoffLng: number | null;
+  dropoffContactName: string | null;
+  dropoffContactPhone: string | null;
+  dropoffBuildingName: string | null;
+  dropoffEntrance: string | null;
+  dropoffFloor: number;
+  dropoffPassengerElevator: boolean;
+  dropoffCargoElevator: boolean;
+  dropoffComment: string | null;
+}): SaveAddressesPromptEnd[] {
+  return [
+    {
+      end: "pickup",
+      input: {
+        address: order.pickupAddress,
+        lat: order.pickupLat,
+        lng: order.pickupLng,
+        contactName: order.pickupContactName ?? "",
+        contactPhone: order.pickupContactPhone ?? "",
+        buildingName: order.pickupBuildingName ?? "",
+        entrance: order.pickupEntrance ?? "",
+        floor: order.pickupFloor,
+        passengerElevator: order.pickupPassengerElevator,
+        cargoElevator: order.pickupCargoElevator,
+        comment: order.pickupComment ?? "",
+      },
+    },
+    {
+      end: "dropoff",
+      input: {
+        address: order.dropoffAddress,
+        lat: order.dropoffLat,
+        lng: order.dropoffLng,
+        contactName: order.dropoffContactName ?? "",
+        contactPhone: order.dropoffContactPhone ?? "",
+        buildingName: order.dropoffBuildingName ?? "",
+        entrance: order.dropoffEntrance ?? "",
+        floor: order.dropoffFloor,
+        passengerElevator: order.dropoffPassengerElevator,
+        cargoElevator: order.dropoffCargoElevator,
+        comment: order.dropoffComment ?? "",
+      },
+    },
+  ];
 }
 
 /** One `dt`/`dd` pair of the confirmation. */

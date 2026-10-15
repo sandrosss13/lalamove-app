@@ -6,7 +6,10 @@ import { useLocale, useTranslations } from "next-intl";
 import type { CargoCategory, ChassisType, ServiceLevel } from "@prisma/client";
 
 import { Link, useRouter } from "@/i18n/navigation";
-import { AddressAutocomplete } from "@/components/address-autocomplete";
+import {
+  AddressAutocomplete,
+  type AddressAutocompleteSavedItem,
+} from "@/components/address-autocomplete";
 import { takeBookingDraft } from "@/components/home/booking-draft";
 import {
   bookButtonLabelKey,
@@ -22,6 +25,7 @@ import {
   locationHelpBody,
   locationHelpFromOrder,
   minimumFareApplied,
+  normaliseLocationHelp,
   pricingRefusalOf,
   quotedTotalChanged,
   transportCharge,
@@ -78,8 +82,12 @@ import {
   StopContactSummaryButton,
   type StopContact,
 } from "@/components/home/stop-contact-dialog";
-import { stopContactPayload } from "@/components/home/stop-contact";
+import {
+  readStopContact,
+  stopContactPayload,
+} from "@/components/home/stop-contact";
 import { useClientAccountType } from "@/components/home/use-client-account-type";
+import { useSavedAddresses } from "@/components/home/use-saved-addresses";
 import { VehicleRecommendation } from "@/components/home/vehicle-recommendation";
 import {
   reconcileVehicleSelection,
@@ -1051,6 +1059,29 @@ export function BookingForm({
   /** Only an explicit BUSINESS unlocks the business-only controls; see above. */
   const isBusiness = accountType === "BUSINESS";
 
+  // The signed-in client's saved addresses, offered above the search results
+  // in both route fields. A guest has none, so — like the profile read above —
+  // the request is skipped rather than left to fail with a 401. `/book` sends
+  // drivers and companies away before this renders and the edit route admits
+  // only clients, so a non-guest here is a client (an admin would get a silent
+  // 403 and an empty list).
+  const tSaved = useTranslations("booking.savedAddresses");
+  const { addresses: savedAddresses, markUsed: markSavedAddressUsed } =
+    useSavedAddresses({ enabled: !guest });
+  const savedAddressItems = useMemo<AddressAutocompleteSavedItem[]>(
+    () =>
+      savedAddresses.map((saved) => ({
+        id: saved.id,
+        label: saved.label,
+        address: saved.address,
+        location:
+          saved.lat !== null && saved.lng !== null
+            ? { lat: saved.lat, lng: saved.lng }
+            : null,
+      })),
+    [savedAddresses],
+  );
+
   /**
    * Edit mode: the order's stored item lines as picker lines, computed once.
    * `null` outside edit mode — see `BookingFormInitialOrder.items`.
@@ -1294,6 +1325,74 @@ export function BookingForm({
       setDropoffHelp(next);
     }
   }
+
+  /**
+   * A saved address was picked in one of the route fields. By now the field has
+   * already set the address text and its coordinates through the very setters a
+   * resolved search suggestion reaches (`setPickupAddress` /
+   * `setPickupLocation` and their drop-off twins), so the route, the map pins
+   * and the estimate's invalidation and debounced re-quote all follow from that
+   * alone. What is left is the part a search result cannot carry: the stop's
+   * Contact Info and its access details.
+   *
+   * Both are REPLACED rather than merged. Picking a saved address is an
+   * explicit "this place, with these people", so a name typed earlier for a
+   * different place must not survive under it. That includes the legacy
+   * `details` line, which belonged to whatever address was there before.
+   */
+  function applySavedAddress(stop: StopField, id: string) {
+    const saved = savedAddresses.find((entry) => entry.id === id);
+    if (!saved) {
+      return;
+    }
+
+    setContacts((current) => ({
+      ...current,
+      // Through `readStopContact` for its length caps and its "nothing filled
+      // in is no contact at all" rule, so a bare saved address leaves the stop
+      // looking exactly like one nobody has filled in. The comment is an
+      // individual's only — a business has no field to see or clear it in.
+      [stop]: readStopContact({
+        name: saved.contactName,
+        phone: saved.contactPhone,
+        buildingName: saved.buildingName,
+        entrance: saved.entrance,
+        comment: accountType === "INDIVIDUAL" ? saved.comment : "",
+        details: "",
+      }),
+    }));
+
+    // The helper count is the booking's, not the place's, so it stays; the
+    // floor and the elevators are the place's. Normalised so a floor out of
+    // the bookable range is clamped as everywhere else. Only a CHANGED help
+    // object is set — a new identity re-quotes (as the dialog's `onSave`).
+    const current = stop === "pickup" ? pickupHelp : dropoffHelp;
+    const next = normaliseLocationHelp({
+      ...current,
+      floor: saved.floor,
+      passengerElevator: saved.passengerElevator,
+      cargoElevator: saved.cargoElevator,
+    });
+    if (
+      next.floor !== current.floor ||
+      next.passengerElevator !== current.passengerElevator ||
+      next.cargoElevator !== current.cargoElevator
+    ) {
+      handleHelpChange(stop, next);
+    }
+
+    markSavedAddressUsed(saved.id);
+  }
+
+  /** The saved group's header link, shared by both route fields. */
+  const manageSavedAddressesLink = (
+    <Link
+      href="/account/saved-addresses"
+      className="font-medium text-accent underline-offset-2 hover:underline"
+    >
+      {tSaved("manage")}
+    </Link>
+  );
   // The tier the displayed price is for. Alone among the form's inputs it never
   // invalidates the quote — see the invalidation effect below — because every
   // tier's price is arithmetic on the one fare the server already quoted.
@@ -2563,6 +2662,11 @@ export function BookingForm({
                   // details lookup that is allowed to fail quietly — either
                   // would open this dialog at the wrong moment, or never.
                   onPlaceSelected={() => setContactModalFor("pickup")}
+                  // No dialog for a saved pick: it brings its own Contact Info.
+                  savedItems={savedAddressItems}
+                  onSavedItemPicked={(id) => applySavedAddress("pickup", id)}
+                  savedItemsLabel={tSaved("heading")}
+                  savedItemsAction={manageSavedAddressesLink}
                   placeholder={t("eGRustaveliAve12Tbilisi")}
                   required
                 />
@@ -2583,6 +2687,10 @@ export function BookingForm({
                   onChange={setDropoffAddress}
                   onLocationChange={setDropoffLocation}
                   onPlaceSelected={() => setContactModalFor("dropoff")}
+                  savedItems={savedAddressItems}
+                  onSavedItemPicked={(id) => applySavedAddress("dropoff", id)}
+                  savedItemsLabel={tSaved("heading")}
+                  savedItemsAction={manageSavedAddressesLink}
                   placeholder={t("eGAghmashenebeliAve88Tbilisi")}
                   required
                 />

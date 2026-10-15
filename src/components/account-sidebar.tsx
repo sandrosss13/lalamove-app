@@ -10,10 +10,11 @@ import { cn } from "@/lib/utils";
 /**
  * The settings rail's nav.
  *
- * Deliberately just these three: "Profile" is `/account`, "Wallet" is the
+ * Deliberately just these four: "Profile" is `/account`, "Wallet" is the
  * client's saved cards at `/account/wallet` (moved in from the global header,
- * where it used to be a top-level item), and "Orders" is the client's real
- * order list at `/orders`. Nothing else in this app has a per-client settings
+ * where it used to be a top-level item), "Saved addresses" is the address book
+ * the after-booking prompt fills, at `/account/saved-addresses`, and "Orders"
+ * is the client's real order list at `/orders`. Nothing else in this app has a per-client settings
  * surface behind it — there is no notification-preference model, no per-user
  * locale, and the business-vs-individual split is a branch of the one profile
  * form, not a separate destination — so inventing rows for them would only
@@ -24,10 +25,15 @@ import { cn } from "@/lib/utils";
  * on `/account/wallet`.
  */
 const NAV_ITEMS = [
-  // `labelKey` is a key in `common.shared`, translated at render.
-  { href: "/account", labelKey: "profile", exact: true },
-  { href: "/account/wallet", labelKey: "wallet", exact: false },
-  { href: "/orders", labelKey: "orders", exact: false },
+  // `labelKey` is a full key from the catalog root, translated at render.
+  { href: "/account", labelKey: "common.shared.profile", exact: true },
+  { href: "/account/wallet", labelKey: "common.shared.wallet", exact: false },
+  {
+    href: "/account/saved-addresses",
+    labelKey: "savedAddresses.page.title",
+    exact: false,
+  },
+  { href: "/orders", labelKey: "common.shared.orders", exact: false },
 ] as const;
 
 const SECTION_LABEL_CLASSES =
@@ -57,6 +63,7 @@ function isNavItemActive(
  */
 export function AccountSidebar() {
   const t = useTranslations("common.shared");
+  const tRoot = useTranslations();
   const tSidebar = useTranslations("account.accountSidebar");
   const pathname = usePathname();
   // Shared with every other sign-out control in the app; `useSignOut` owns both
@@ -85,7 +92,7 @@ export function AccountSidebar() {
                     : "border-line text-muted hover:text-paper",
                 )}
               >
-                {t(item.labelKey)}
+                {tRoot(item.labelKey)}
               </Link>
             );
           })}

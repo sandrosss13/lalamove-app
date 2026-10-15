@@ -566,6 +566,19 @@
     "platformMustBeIosOrAndroid": "platform must be ios or android.",
     "tokenMustBeAnExpoPushToken": "token must be an Expo push token."
   },
+  "savedAddresses": {
+    "addressAlreadySaved": "You already have this address saved.",
+    "addressIsRequired": "Enter the address to save.",
+    "addressNotFound": "Saved address not found.",
+    "addressTooLong": "Enter an address of {max} characters or fewer.",
+    "bodyMustBeAnObject": "Request body must be a JSON object.",
+    "coordinatesInvalid": "lat and lng must be valid coordinates or null.",
+    "fieldMustBeString": "{field} must be text when provided.",
+    "fieldMustBeTrueOrFalse": "{field} must be true or false when provided.",
+    "floorMustBeANumber": "floor must be a number.",
+    "limitReached": "You can keep up to {max} saved addresses. Delete one to save another.",
+    "onlyClientsHaveSavedAddresses": "Only clients have saved addresses."
+  },
   "savedCards": {
     "cardBrandTooLong": "Enter a card brand of {max} characters or fewer.",
     "cardDetailsMustNotBeSent": "Card details must not be sent to the server.",
