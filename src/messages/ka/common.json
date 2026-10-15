@@ -444,6 +444,18 @@
     "yourFleetIsStillUnderReview2": "თქვენი ავტოპარკი გადამოწმების პროცესშია. შეკვეთების გადანაწილებამდე ოპერაციების გუნდმა უნდა გაააქტიუროს კომპანია.",
     "zone": "ზონა"
   },
+  "stopInfo": {
+    "building": "შენობა",
+    "cargoElevator": "სატვირთო",
+    "comment": "კომენტარი",
+    "details": "დეტალები",
+    "elevator": "ლიფტი",
+    "entrance": "სადარბაზო",
+    "floor": "სართული",
+    "floorValue": "სართული {floor}",
+    "groundFloor": "მიწის დონე",
+    "passengerElevator": "სამგზავრო"
+  },
   "themeToggle": {
     "darkTheme": "მუქი თემა",
     "lightTheme": "ღია თემა"

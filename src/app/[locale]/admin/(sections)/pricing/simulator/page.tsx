@@ -60,13 +60,19 @@ const ANY_PAIR = "ANY";
 const CITY_STAND_IN: GeorgianCity = "TBILISI";
 const OTHER_STAND_IN: GeorgianCity = "BATUMI";
 
-type HelpDraft = { helpers: string; floor: string; cargoElevator: boolean };
+type HelpDraft = {
+  helpers: string;
+  floor: string;
+  cargoElevator: boolean;
+  passengerElevator: boolean;
+};
 
 function toHelp(draft: HelpDraft): LocationHelp {
   return {
     helpers: Math.max(0, Math.floor(numberFromInput(draft.helpers) || 0)),
     floor: Math.max(0, Math.floor(numberFromInput(draft.floor) || 0)),
     cargoElevator: draft.cargoElevator,
+    passengerElevator: draft.passengerElevator,
   };
 }
 
@@ -127,6 +133,15 @@ function HelpInputs({
           />
           {tp("simCargoElevator")}
         </label>
+        <label className="flex h-8 items-center gap-2 text-sm">
+          <Checkbox
+            checked={value.passengerElevator}
+            onCheckedChange={(checked) =>
+              onChange({ ...value, passengerElevator: checked === true })
+            }
+          />
+          {tp("simPassengerElevator")}
+        </label>
       </div>
     </fieldset>
   );
@@ -156,11 +171,13 @@ function QuoteSimulator({ snapshot }: { snapshot: AdminPricingResponse }) {
     helpers: "2",
     floor: "3",
     cargoElevator: false,
+    passengerElevator: false,
   });
   const [dropoff, setDropoff] = useState<HelpDraft>({
     helpers: "2",
     floor: "6",
     cargoElevator: false,
+    passengerElevator: false,
   });
 
   const vehicle = priced.find((entry) => entry.vehicleTypeSpecId === vehicleId);

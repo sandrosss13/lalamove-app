@@ -40,19 +40,49 @@ const BASE_QUOTE_BODY = {
 };
 
 test.describe("location help normalisation", () => {
-  test("no helpers means ground floor and no elevator, whatever was typed", () => {
+  test("with no helpers the floor and elevators are kept (Contact Info)", () => {
     expect(
-      normaliseLocationHelp({ helpers: 0, floor: 7, cargoElevator: true }),
-    ).toEqual({ helpers: 0, floor: 0, cargoElevator: false });
+      normaliseLocationHelp({
+        helpers: 0,
+        floor: 7,
+        cargoElevator: true,
+        passengerElevator: true,
+      }),
+    ).toEqual({
+      helpers: 0,
+      floor: 7,
+      cargoElevator: true,
+      passengerElevator: true,
+    });
   });
 
   test("helpers and floor are clamped to whole numbers in range", () => {
     expect(
-      normaliseLocationHelp({ helpers: 9, floor: 250, cargoElevator: true }),
-    ).toEqual({ helpers: 4, floor: MAX_BOOKING_FLOOR, cargoElevator: true });
+      normaliseLocationHelp({
+        helpers: 9,
+        floor: 250,
+        cargoElevator: true,
+        passengerElevator: false,
+      }),
+    ).toEqual({
+      helpers: 4,
+      floor: MAX_BOOKING_FLOOR,
+      cargoElevator: true,
+      passengerElevator: false,
+    });
     expect(
-      normaliseLocationHelp({ helpers: 1.6, floor: -3, cargoElevator: false }),
-    ).toEqual({ helpers: 2, floor: 0, cargoElevator: false });
+      normaliseLocationHelp({
+        helpers: 1.6,
+        floor: -3,
+        cargoElevator: false,
+        passengerElevator: true,
+      }),
+    ).toEqual({
+      helpers: 2,
+      floor: 0,
+      cargoElevator: false,
+      passengerElevator: true,
+    });
   });
 
   test("the form's floor bound matches the server's", () => {
@@ -66,18 +96,20 @@ test.describe("location help normalisation", () => {
     expect(parseFloorInput("999")).toBe(MAX_BOOKING_FLOOR);
   });
 
-  test("the body is the six fields parseQuoteFields accepts", () => {
+  test("the body is the eight fields parseQuoteFields accepts", () => {
     const body = locationHelpBody(
-      { helpers: 2, floor: 3, cargoElevator: false },
-      { helpers: 0, floor: 6, cargoElevator: true },
+      { helpers: 2, floor: 3, cargoElevator: false, passengerElevator: true },
+      { helpers: 0, floor: 6, cargoElevator: true, passengerElevator: false },
     );
     expect(body).toEqual({
       pickupHelpers: 2,
       pickupFloor: 3,
       pickupCargoElevator: false,
+      pickupPassengerElevator: true,
       dropoffHelpers: 0,
-      dropoffFloor: 0,
-      dropoffCargoElevator: false,
+      dropoffFloor: 6,
+      dropoffCargoElevator: true,
+      dropoffPassengerElevator: false,
     });
 
     const parsed = parseQuoteFields({
@@ -90,8 +122,14 @@ test.describe("location help normalisation", () => {
       helpers: 2,
       floor: 3,
       cargoElevator: false,
+      passengerElevator: true,
     });
-    expect(parsed.data.dropoffHelp).toEqual(NO_LOCATION_HELP);
+    expect(parsed.data.dropoffHelp).toEqual({
+      helpers: 0,
+      floor: 6,
+      cargoElevator: true,
+      passengerElevator: false,
+    });
     expect(parsed.data.tariffVersion).toBe(3);
   });
 });
@@ -102,15 +140,22 @@ test.describe("re-opening an order", () => {
     pickupHelpers: 2,
     pickupFloor: 3,
     pickupCargoElevator: true,
+    pickupPassengerElevator: true,
     dropoffHelpers: 0,
     dropoffFloor: 0,
     dropoffCargoElevator: false,
+    dropoffPassengerElevator: false,
     tariffVersion: 1,
   };
 
   test("a v1 order re-opens with its own per-location values", () => {
     expect(locationHelpFromOrder(v1)).toEqual({
-      pickup: { helpers: 2, floor: 3, cargoElevator: true },
+      pickup: {
+        helpers: 2,
+        floor: 3,
+        cargoElevator: true,
+        passengerElevator: true,
+      },
       dropoff: NO_LOCATION_HELP,
     });
   });
@@ -122,26 +167,34 @@ test.describe("re-opening an order", () => {
         pickupHelpers: 0,
         pickupFloor: 0,
         pickupCargoElevator: false,
+        pickupPassengerElevator: false,
         tariffVersion: null,
       }),
     ).toEqual({
-      pickup: { helpers: 2, floor: 0, cargoElevator: false },
-      dropoff: { helpers: 2, floor: 0, cargoElevator: false },
+      pickup: { ...NO_LOCATION_HELP, helpers: 2 },
+      dropoff: { ...NO_LOCATION_HELP, helpers: 2 },
     });
   });
 
   test("a draft location is parsed, not trusted", () => {
     expect(
-      readLocationHelp({ helpers: 3, floor: 12, cargoElevator: true }),
+      readLocationHelp({
+        helpers: 3,
+        floor: 12,
+        cargoElevator: true,
+        passengerElevator: true,
+      }),
     ).toEqual({
       helpers: 3,
       floor: 12,
       cargoElevator: true,
+      passengerElevator: true,
     });
     expect(readLocationHelp({ helpers: 7, floor: 2 })).toEqual({
       helpers: 4,
       floor: 2,
       cargoElevator: false,
+      passengerElevator: false,
     });
     expect(readLocationHelp("2 helpers")).toBeNull();
     expect(readLocationHelp({ helpers: "2", floor: 0 })).toBeNull();
@@ -273,16 +326,18 @@ test.describe("checkout helper wording", () => {
         pickupHelpers: 2,
         pickupFloor: 3,
         pickupCargoElevator: true,
+        pickupPassengerElevator: true,
         dropoffHelpers: 0,
-        dropoffFloor: 0,
+        dropoffFloor: 4,
         dropoffCargoElevator: false,
+        dropoffPassengerElevator: true,
         tariffVersion: 1,
       },
       t,
     );
     expect(labels).toEqual({
       pickup:
-        'checkout.helperCount{"count":2} · checkout.helperFloor{"floor":3} · checkout.cargoElevator',
+        'checkout.helperCount{"count":2} · checkout.helperFloor{"floor":3} · checkout.passengerElevator · checkout.cargoElevator',
       dropoff: 'checkout.helperCount{"count":0}',
     });
   });
@@ -295,9 +350,11 @@ test.describe("checkout helper wording", () => {
           pickupHelpers: 0,
           pickupFloor: 0,
           pickupCargoElevator: false,
+          pickupPassengerElevator: false,
           dropoffHelpers: 0,
           dropoffFloor: 0,
           dropoffCargoElevator: false,
+          dropoffPassengerElevator: false,
           tariffVersion: null,
         },
         t,

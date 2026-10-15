@@ -74,9 +74,11 @@ const CURRENT_OFFER_SELECT = {
       pickupHelpers: true,
       pickupFloor: true,
       pickupCargoElevator: true,
+      pickupPassengerElevator: true,
       dropoffHelpers: true,
       dropoffFloor: true,
       dropoffCargoElevator: true,
+      dropoffPassengerElevator: true,
       // Read only to derive `StopWork.helperMinutesRequired` (`stopWorkOf`);
       // the shaped output never carries it.
       tariffVersion: true,

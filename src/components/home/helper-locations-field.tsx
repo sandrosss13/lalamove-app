@@ -16,19 +16,22 @@ import {
 } from "@/components/home/booking-pricing";
 
 /**
- * Pricing model v1's helper step: the crew, the floor and the cargo elevator,
+ * Pricing model v1's helper step: the crew, the floor and the elevators,
  * asked separately at the pickup and at the drop-off — the two ends are priced
  * separately (`helperStandardFee` per location), and "two helpers to load on
  * the ground floor, nobody to unload" is an ordinary job.
  *
  * Each end is a row of five numeral cells (0 = the driver alone) — the same
  * native-radio-behind-a-cell control the single helper picker used to be, so
- * the group keeps its arrow-key handling and its "3 of 5" announcement — and,
- * only once at least one helper is booked there, a floor field and a "cargo
- * elevator available" checkbox. Those two only price helpers, so with nobody
- * to carry they are hidden rather than left to be filled in for nothing; the
- * form keeps whatever was typed (re-adding a helper brings it back) and
- * `normaliseLocationHelp` sends ground floor / no elevator for an empty end.
+ * the group keeps its arrow-key handling and its "3 of 5" announcement — then
+ * the floor and two checkboxes, "Passenger elevator" and "Cargo elevator".
+ *
+ * The elevators are always shown (default unticked): they are useful to the
+ * driver whatever the crew, and either one earns the elevator discount when
+ * helpers are booked there. The floor depends on the account type: a business
+ * types it here; an individual types it in the stop's Contact Info dialog
+ * (`floorInContactInfo`), so this step only echoes it, as a button that opens
+ * that dialog (`onEditContactInfo`).
  */
 
 /** One numeral cell — see the comment on the old `HELPER_OPTION_CLASSES`. */
@@ -46,11 +49,20 @@ export function HelperLocationsField({
   disabled = false,
   suggestion = null,
   timeNote = HELPER_TIME_NOTE_VALUES,
+  floorInContactInfo = false,
+  onEditContactInfo,
 }: {
   pickup: LocationHelp;
   dropoff: LocationHelp;
   onChange: (end: HelperEnd, next: LocationHelp) => void;
   disabled?: boolean;
+  /**
+   * True for an individual: the floor is asked in the Contact Info dialog,
+   * so this step shows it read-only instead of a floor field.
+   */
+  floorInContactInfo?: boolean;
+  /** Opens the stop's Contact Info dialog (individuals' floor). */
+  onEditContactInfo?: (end: HelperEnd) => void;
   /** A "2 people recommended for…" hint, shown while no end has a helper. */
   suggestion?: string | null;
   /**
@@ -72,6 +84,10 @@ export function HelperLocationsField({
           value={pickup}
           onChange={(next) => onChange("pickup", next)}
           disabled={disabled}
+          floorInContactInfo={floorInContactInfo}
+          onEditContactInfo={
+            onEditContactInfo ? () => onEditContactInfo("pickup") : undefined
+          }
         />
         <HelperLocation
           end="dropoff"
@@ -79,6 +95,10 @@ export function HelperLocationsField({
           value={dropoff}
           onChange={(next) => onChange("dropoff", next)}
           disabled={disabled}
+          floorInContactInfo={floorInContactInfo}
+          onEditContactInfo={
+            onEditContactInfo ? () => onEditContactInfo("dropoff") : undefined
+          }
         />
       </div>
 
@@ -105,18 +125,27 @@ function HelperLocation({
   value,
   onChange,
   disabled,
+  floorInContactInfo,
+  onEditContactInfo,
 }: {
   end: HelperEnd;
   title: string;
   value: LocationHelp;
   onChange: (next: LocationHelp) => void;
   disabled: boolean;
+  floorInContactInfo: boolean;
+  onEditContactInfo?: () => void;
 }) {
   const t = useTranslations("home.bookingForm");
   // The shared radio `name` binding this end's five cells into one group.
   const groupName = useId();
   const floorId = useId();
   const elevatorId = useId();
+  const passengerElevatorId = useId();
+  const floorEcho =
+    value.floor === 0
+      ? t("groundFloorFromContactInfo")
+      : t("floorFromContactInfo", { floor: value.floor });
 
   return (
     <fieldset
@@ -162,8 +191,20 @@ function HelperLocation({
         })}
       </div>
 
-      {value.helpers > 0 ? (
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+      <div className="flex flex-col gap-2">
+        {floorInContactInfo ? (
+          onEditContactInfo ? (
+            <button
+              type="button"
+              onClick={onEditContactInfo}
+              className="w-fit text-left text-xs text-muted underline decoration-dotted underline-offset-2 transition-colors hover:text-paper"
+            >
+              {floorEcho}
+            </button>
+          ) : (
+            <p className="text-xs text-muted">{floorEcho}</p>
+          )
+        ) : (
           <div className="flex items-center gap-2">
             <label htmlFor={floorId} className={FIELD_LABEL_CLASSES}>
               {t("floorLabel")}
@@ -190,6 +231,26 @@ function HelperLocation({
               {t("floorHint")}
             </span>
           </div>
+        )}
+
+        {/* Always shown, default unticked: the driver reads them whatever the
+            crew, and either one discounts the helpers booked here. */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <label
+            htmlFor={passengerElevatorId}
+            className={`${FIELD_LABEL_CLASSES} flex cursor-pointer items-center gap-2`}
+          >
+            <input
+              id={passengerElevatorId}
+              type="checkbox"
+              checked={value.passengerElevator}
+              onChange={(event) =>
+                onChange({ ...value, passengerElevator: event.target.checked })
+              }
+              className="size-4 cursor-pointer accent-accent"
+            />
+            {t("passengerElevatorAvailable")}
+          </label>
 
           <label
             htmlFor={elevatorId}
@@ -207,7 +268,7 @@ function HelperLocation({
             {t("cargoElevatorAvailable")}
           </label>
         </div>
-      ) : null}
+      </div>
     </fieldset>
   );
 }

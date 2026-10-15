@@ -630,6 +630,7 @@
     "stopWorkGroundFloor": "Ground floor",
     "stopWorkHelpers": "{count, plural, one {# helper} other {# helpers}}",
     "stopWorkNoHelpers": "No helpers",
+    "stopWorkPassengerElevator": "Passenger elevator",
     "timeCritical": "Time critical",
     "today": "Today",
     "tomorrow": "Tomorrow",

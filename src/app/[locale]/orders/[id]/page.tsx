@@ -40,6 +40,8 @@ import {
   isServiceDocumentAvailable,
 } from "@/lib/orders/service-document-server";
 import { CancelOrderButton } from "./cancel-order-button";
+import { StopContactLines } from "@/components/orders/stop-contact-lines";
+import { stopInfoOf, type StopInfo } from "@/lib/orders/stop-info";
 import { ServiceDocumentSection } from "@/components/orders/service-document-section";
 
 // Session + Prisma access can't be statically rendered.
@@ -68,10 +70,16 @@ const ORDER_DETAIL_SELECT = {
   pickupContactName: true,
   pickupContactPhone: true,
   pickupContactDetails: true,
+  pickupBuildingName: true,
+  pickupEntrance: true,
+  pickupComment: true,
   dropoffAddress: true,
   dropoffContactName: true,
   dropoffContactPhone: true,
   dropoffContactDetails: true,
+  dropoffBuildingName: true,
+  dropoffEntrance: true,
+  dropoffComment: true,
   cargoCategory: true,
   bodyType: true,
   helperCount: true,
@@ -80,9 +88,11 @@ const ORDER_DETAIL_SELECT = {
   pickupHelpers: true,
   pickupFloor: true,
   pickupCargoElevator: true,
+  pickupPassengerElevator: true,
   dropoffHelpers: true,
   dropoffFloor: true,
   dropoffCargoElevator: true,
+  dropoffPassengerElevator: true,
   tariffVersion: true,
   // The helper charge, split by end on a v1 order — see `helperFeeSplit`.
   helperFee: true,
@@ -237,19 +247,27 @@ type OrderDetail = {
   pickupContactName: string | null;
   pickupContactPhone: string | null;
   pickupContactDetails: string | null;
+  pickupBuildingName: string | null;
+  pickupEntrance: string | null;
+  pickupComment: string | null;
   dropoffAddress: string;
   dropoffContactName: string | null;
   dropoffContactPhone: string | null;
   dropoffContactDetails: string | null;
+  dropoffBuildingName: string | null;
+  dropoffEntrance: string | null;
+  dropoffComment: string | null;
   cargoCategory: CargoCategory;
   bodyType: ChassisType | null;
   helperCount: number;
   pickupHelpers: number;
   pickupFloor: number;
   pickupCargoElevator: boolean;
+  pickupPassengerElevator: boolean;
   dropoffHelpers: number;
   dropoffFloor: number;
   dropoffCargoElevator: boolean;
+  dropoffPassengerElevator: boolean;
   tariffVersion: number | null;
   helperFee: number;
   pickupHelperFee: number;
@@ -284,21 +302,17 @@ function RoutePanel({ order }: { order: OrderDetail }) {
           badge="P"
           name={tShared("pickup")}
           address={order.pickupAddress}
-          contact={{
-            name: order.pickupContactName,
-            phone: order.pickupContactPhone,
-            details: order.pickupContactDetails,
-          }}
+          contactName={order.pickupContactName}
+          contactPhone={order.pickupContactPhone}
+          info={stopInfoOf(order, "pickup")}
         />
         <RouteStop
           badge="D"
           name={tShared("dropoff")}
           address={order.dropoffAddress}
-          contact={{
-            name: order.dropoffContactName,
-            phone: order.dropoffContactPhone,
-            details: order.dropoffContactDetails,
-          }}
+          contactName={order.dropoffContactName}
+          contactPhone={order.dropoffContactPhone}
+          info={stopInfoOf(order, "dropoff")}
         />
       </div>
     </section>
@@ -315,19 +329,18 @@ function RouteStop({
   badge,
   name,
   address,
-  contact,
+  contactName,
+  contactPhone,
+  info,
 }: {
   badge: string;
   name: string;
   address: string;
-  contact: {
-    name: string | null;
-    phone: string | null;
-    details: string | null;
-  };
+  contactName: string | null;
+  contactPhone: string | null;
+  info: StopInfo;
 }) {
   const t = useTranslations("orders.orderDetail");
-  const hasContact = Boolean(contact.name || contact.phone || contact.details);
 
   return (
     <div className="flex min-w-0 items-start gap-2.5">
@@ -344,21 +357,12 @@ function RouteStop({
           <span className="sr-only">{name}: </span>
           {address}
         </p>
-        {hasContact ? (
-          <p className="mt-1 text-[13px] leading-snug text-muted">
-            {[contact.name, contact.phone].filter(Boolean).join(" · ")}
-            {contact.details ? (
-              <>
-                {contact.name || contact.phone ? <br /> : null}
-                {contact.details}
-              </>
-            ) : null}
-          </p>
-        ) : (
-          <p className="mt-1 text-[13px] leading-snug text-muted">
-            {t("noContact")}
-          </p>
-        )}
+        <StopContactLines
+          name={contactName}
+          phone={contactPhone}
+          info={info}
+          emptyLabel={t("noContact")}
+        />
       </div>
     </div>
   );

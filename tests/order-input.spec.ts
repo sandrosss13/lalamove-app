@@ -119,8 +119,22 @@ test.describe("parseCreateOrderBody", () => {
       savedCardId: null,
       purchaseOrderRef: null,
       // A skipped contact dialog is an empty contact, not an error.
-      pickupContact: { name: null, phone: null, details: null },
-      dropoffContact: { name: null, phone: null, details: null },
+      pickupContact: {
+        name: null,
+        phone: null,
+        details: null,
+        buildingName: null,
+        entrance: null,
+        comment: null,
+      },
+      dropoffContact: {
+        name: null,
+        phone: null,
+        details: null,
+        buildingName: null,
+        entrance: null,
+        comment: null,
+      },
       // The envelope is all-or-nothing, and nothing is the normal case.
       cargoWeightKg: null,
       cargoLengthM: null,
@@ -150,7 +164,57 @@ test.describe("parseCreateOrderBody", () => {
       name: "Nino",
       phone: "555 12 34 56",
       details: null,
+      buildingName: null,
+      entrance: null,
+      comment: null,
     });
+  });
+
+  test("keeps the structured Contact Info, trimmed, comment line breaks intact", () => {
+    const result = parseCreateOrderBody(
+      validBody({
+        dropoffContact: {
+          buildingName: "  Tower B ",
+          entrance: " 2 ",
+          comment: " Door code 1234\nLift code 99 ",
+        },
+      }),
+      fakeT,
+    );
+    if ("error" in result) throw new Error(result.error);
+
+    expect(result.data.dropoffContact).toEqual({
+      name: null,
+      phone: null,
+      details: null,
+      buildingName: "Tower B",
+      entrance: "2",
+      comment: "Door code 1234\nLift code 99",
+    });
+  });
+
+  test("bounds each Contact Info field by its own length", () => {
+    for (const [field, max] of [
+      ["buildingName", 120],
+      ["entrance", 40],
+      ["comment", 500],
+    ] as const) {
+      expect(
+        refusal(validBody({ pickupContact: { [field]: "x".repeat(max + 1) } })),
+        field,
+      ).toBe("errors.orders.fieldTooLong");
+      expect(
+        "error" in
+          parseCreateOrderBody(
+            validBody({ pickupContact: { [field]: "x".repeat(max) } }),
+            fakeT,
+          ),
+        field,
+      ).toBe(false);
+    }
+    expect(refusal(validBody({ pickupContact: { comment: 12 } }))).toBe(
+      "errors.orders.fieldMustBeStringWhenProvided",
+    );
   });
 
   test("refuses a body that is not a JSON object", () => {

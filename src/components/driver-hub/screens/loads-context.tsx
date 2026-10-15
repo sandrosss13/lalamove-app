@@ -150,9 +150,15 @@ export type HubLoad = {
   pickupContactName: string | null;
   pickupContactPhone: string | null;
   pickupContactDetails: string | null;
+  pickupBuildingName: string | null;
+  pickupEntrance: string | null;
+  pickupComment: string | null;
   dropoffContactName: string | null;
   dropoffContactPhone: string | null;
   dropoffContactDetails: string | null;
+  dropoffBuildingName: string | null;
+  dropoffEntrance: string | null;
+  dropoffComment: string | null;
   distanceKm: number;
   /**
    * How far the driver is from the pickup. Null whenever it cannot be measured

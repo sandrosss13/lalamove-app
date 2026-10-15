@@ -75,8 +75,10 @@ import {
 import { RoutePreviewMap } from "@/components/home/route-preview-map";
 import {
   StopContactDialog,
+  StopContactSummaryButton,
   type StopContact,
 } from "@/components/home/stop-contact-dialog";
+import { stopContactPayload } from "@/components/home/stop-contact";
 import { useClientAccountType } from "@/components/home/use-client-account-type";
 import { VehicleRecommendation } from "@/components/home/vehicle-recommendation";
 import {
@@ -283,13 +285,18 @@ export type BookingFormInitialOrder = {
    * `locationHelpFromOrder`.
    */
   helperCount: number;
-  /** Pricing model v1: helpers, floor and cargo elevator at each end. */
+  /**
+   * Pricing model v1: helpers, floor and elevators at each end. The floor is
+   * also the individual's Contact Info floor.
+   */
   pickupHelpers: number;
   pickupFloor: number;
   pickupCargoElevator: boolean;
+  pickupPassengerElevator: boolean;
   dropoffHelpers: number;
   dropoffFloor: number;
   dropoffCargoElevator: boolean;
+  dropoffPassengerElevator: boolean;
   /** Null for an order priced before pricing model v1. */
   tariffVersion: number | null;
   serviceLevel: ServiceLevel;
@@ -326,32 +333,6 @@ type StopContacts = Record<StopField, StopContact | null>;
  * rather than as two incidental nulls; never mutated, only ever replaced.
  */
 const NO_STOP_CONTACTS: StopContacts = { pickup: null, dropoff: null };
-
-/**
- * One stop's contact block as `POST /api/orders` takes it, or `undefined` when
- * there is nothing to record for that stop.
- *
- * Every field of the dialog is optional, so "saved" and "filled in" are not the
- * same thing: a client can open the dialog on selecting an address and press
- * Save without typing. That is a stop with no contact, and it is sent as an
- * omitted key rather than as three empty strings — the endpoint would store the
- * same three nulls either way, but only one of those shapes says what happened.
- */
-function stopContactPayload(
-  contact: StopContact | null,
-): StopContact | undefined {
-  if (!contact) {
-    return undefined;
-  }
-
-  const anythingFilled = [contact.name, contact.phone, contact.details].some(
-    (field) => field.trim().length > 0,
-  );
-
-  // Trimming and length-capping are the server's, not this form's — sending the
-  // draft as typed keeps one place responsible for what is actually stored.
-  return anythingFilled ? contact : undefined;
-}
 
 /**
  * Split a stored `scheduledAt` back into the two inputs it was built from: the
@@ -1042,8 +1023,8 @@ export function BookingForm({
    * cancelled edit never reaches this state and a re-opened stop shows whatever
    * was last saved for it.
    *
-   * Nothing in the Route step renders from this — the card looks the same
-   * before and after a contact is captured, by design.
+   * The Route step shows a one-line summary under each address
+   * (`StopContactSummaryButton`), which is also the way back into the dialog.
    */
   const [contacts, setContacts] = useState<StopContacts>(() =>
     initialOrder
@@ -1286,11 +1267,13 @@ export function BookingForm({
   } | null>(null);
   /** The "Change vehicle" disclosure: the full annotated grid. Collapsed. */
   const [vehicleGridOpen, setVehicleGridOpen] = useState(false);
-  // Pricing model v1: helpers beyond the driver, the floor and the cargo
-  // elevator, asked separately at each end — exactly the six fields both the
-  // pricing and the orders endpoint take (`locationHelpBody`). Kept as typed:
-  // a floor entered and then hidden by going back to 0 helpers comes back
-  // with the helper, and is sent as the ground floor meanwhile.
+  // Pricing model v1: helpers beyond the driver, the floor and the passenger /
+  // cargo elevators, asked separately at each end — exactly the eight fields
+  // both the pricing and the orders endpoint take (`locationHelpBody`). The
+  // floor and elevators are sent even with no helper booked (they are the
+  // stop's Contact Info for the driver); they only price helpers. An
+  // individual's floor is typed in the Contact Info dialog, a business's in
+  // step 7.
   const [initialPickupHelp, initialDropoffHelp] = useMemo(() => {
     if (!initialOrder) {
       return [NO_LOCATION_HELP, NO_LOCATION_HELP] as const;
@@ -1415,6 +1398,12 @@ export function BookingForm({
     }
     if (draft.dropoffHelp) {
       setDropoffHelp(draft.dropoffHelp);
+    }
+    if (draft.pickupContact || draft.dropoffContact) {
+      setContacts({
+        pickup: draft.pickupContact ?? null,
+        dropoff: draft.dropoffContact ?? null,
+      });
     }
     const draftShortcut =
       initialGoods === null ? goodsShortcutByCode(draft.goods) : null;
@@ -1823,8 +1812,10 @@ export function BookingForm({
     pickupHelp,
     dropoffHelp,
     // `serviceLevel` is absent on purpose — see above. So are the two stop
-    // contacts: a name and a floor number are operational detail carried to the
-    // driver, and no part of the fare reads them.
+    // contacts: a name, a building or a comment is operational detail carried
+    // to the driver, and no part of the fare reads them. (An individual's
+    // Contact Info floor is the exception, and it lives in `pickupHelp` /
+    // `dropoffHelp` above for exactly that reason.)
   ]);
 
   /** Local midnight today — the calendar's disabled-before boundary. */
@@ -2207,8 +2198,8 @@ export function BookingForm({
             // The delivery-info captured at each end. `JSON.stringify` drops an
             // `undefined` value entirely, which is exactly the "no contact for
             // this stop" the endpoint reads as an empty block.
-            pickupContact: stopContactPayload(contacts.pickup),
-            dropoffContact: stopContactPayload(contacts.dropoff),
+            pickupContact: stopContactPayload(contacts.pickup, accountType),
+            dropoffContact: stopContactPayload(contacts.dropoff, accountType),
             // The goods, as the list the client built: the active mode's lines
             // only, in exactly the shape `parseOrderItems` accepts. The route
             // resolves them against the catalogue, re-runs `planLoad` and
@@ -2575,6 +2566,15 @@ export function BookingForm({
                   placeholder={t("eGRustaveliAve12Tbilisi")}
                   required
                 />
+                {pickupAddress.trim() !== "" ? (
+                  <StopContactSummaryButton
+                    contact={contacts.pickup}
+                    floor={pickupHelp.floor}
+                    accountType={accountType}
+                    onClick={() => setContactModalFor("pickup")}
+                    disabled={submitting}
+                  />
+                ) : null}
 
                 <AddressAutocomplete
                   id="dropoff-address"
@@ -2586,6 +2586,15 @@ export function BookingForm({
                   placeholder={t("eGAghmashenebeliAve88Tbilisi")}
                   required
                 />
+                {dropoffAddress.trim() !== "" ? (
+                  <StopContactSummaryButton
+                    contact={contacts.dropoff}
+                    floor={dropoffHelp.floor}
+                    accountType={accountType}
+                    onClick={() => setContactModalFor("dropoff")}
+                    disabled={submitting}
+                  />
+                ) : null}
               </div>
 
               {/* One dialog per stop, both mounted for the life of the form
@@ -2623,10 +2632,24 @@ export function BookingForm({
                   // reading it keeps the dialog's address line in step with the
                   // input behind it.
                   address={stop === "pickup" ? pickupAddress : dropoffAddress}
+                  accountType={accountType}
                   initialValue={contacts[stop]}
-                  onSave={(contact) =>
-                    setContacts((current) => ({ ...current, [stop]: contact }))
+                  initialFloor={
+                    stop === "pickup" ? pickupHelp.floor : dropoffHelp.floor
                   }
+                  onSave={(contact, floor) => {
+                    setContacts((current) => ({ ...current, [stop]: contact }));
+                    // An individual's floor is typed here and is the floor its
+                    // helpers are priced at. Only a CHANGED floor replaces the
+                    // help object — a new identity re-quotes.
+                    if (floor !== null) {
+                      const current =
+                        stop === "pickup" ? pickupHelp : dropoffHelp;
+                      if (current.floor !== floor) {
+                        handleHelpChange(stop, { ...current, floor });
+                      }
+                    }
+                  }}
                 />
               ))}
             </StepCard>
@@ -3254,6 +3277,10 @@ export function BookingForm({
                   dropoff={dropoffHelp}
                   onChange={handleHelpChange}
                   disabled={submitting}
+                  // An individual's floor is asked in Contact Info (step 2);
+                  // a business keeps typing it here.
+                  floorInContactInfo={!isBusiness}
+                  onEditContactInfo={(end) => setContactModalFor(end)}
                   timeNote={helperNote}
                   suggestion={
                     twoPersonItemLabel !== null

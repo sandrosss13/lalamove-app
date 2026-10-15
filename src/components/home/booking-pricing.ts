@@ -1,7 +1,7 @@
 /**
  * The booking form's pricing-model-v1 logic that does not need React: the
- * per-location helper inputs (helpers, floor, cargo elevator at the pickup and
- * at the drop-off), how they are sent to `/api/pricing/estimate` and
+ * per-location helper inputs (helpers, floor, passenger and cargo elevator at
+ * the pickup and at the drop-off), how they are sent to `/api/pricing/estimate` and
  * `/api/orders`, how a quote's breakdown is read back for display, and how the
  * form tells a "contact support for a quote" refusal or a "prices changed"
  * refusal apart from an ordinary error.
@@ -101,24 +101,23 @@ function clampWhole(value: unknown, max: number): number {
 }
 
 /**
- * A location's inputs as they are sent: whole numbers in range, and — when no
- * helper is booked there — ground floor without an elevator. The floor and the
- * elevator only price helpers, so with nobody to carry they are meaningless;
- * sending them as typed would store a "7th floor" on a stop nobody climbs.
+ * A location's inputs as they are sent: whole numbers in range and real
+ * booleans. The floor and the elevators are kept even when no helper is booked
+ * there: they are also the stop's Contact Info (an individual's floor is typed
+ * in the Contact Info dialog, the elevator ticks are always shown) and the
+ * driver reads them. They only PRICE helpers — `helperStandardFee` is 0 for a
+ * stop with none — so keeping them never changes a quote.
  */
 export function normaliseLocationHelp(help: LocationHelp): LocationHelp {
-  const helpers = clampWhole(help.helpers, HELPER_COUNT_OPTIONS.length - 1);
-  if (helpers === 0) {
-    return { ...NO_HELP };
-  }
   return {
-    helpers,
+    helpers: clampWhole(help.helpers, HELPER_COUNT_OPTIONS.length - 1),
     floor: clampWhole(help.floor, MAX_BOOKING_FLOOR),
     cargoElevator: help.cargoElevator === true,
+    passengerElevator: help.passengerElevator === true,
   };
 }
 
-/** The six body fields `parseQuoteFields` reads, from the two locations. */
+/** The eight body fields `parseQuoteFields` reads, from the two locations. */
 export function locationHelpBody(
   pickup: LocationHelp,
   dropoff: LocationHelp,
@@ -126,9 +125,11 @@ export function locationHelpBody(
   pickupHelpers: number;
   pickupFloor: number;
   pickupCargoElevator: boolean;
+  pickupPassengerElevator: boolean;
   dropoffHelpers: number;
   dropoffFloor: number;
   dropoffCargoElevator: boolean;
+  dropoffPassengerElevator: boolean;
 } {
   const p = normaliseLocationHelp(pickup);
   const d = normaliseLocationHelp(dropoff);
@@ -136,9 +137,11 @@ export function locationHelpBody(
     pickupHelpers: p.helpers,
     pickupFloor: p.floor,
     pickupCargoElevator: p.cargoElevator,
+    pickupPassengerElevator: p.passengerElevator,
     dropoffHelpers: d.helpers,
     dropoffFloor: d.floor,
     dropoffCargoElevator: d.cargoElevator,
+    dropoffPassengerElevator: d.passengerElevator,
   };
 }
 
@@ -165,9 +168,11 @@ export function locationHelpFromOrder(order: {
   pickupHelpers: number;
   pickupFloor: number;
   pickupCargoElevator: boolean;
+  pickupPassengerElevator: boolean;
   dropoffHelpers: number;
   dropoffFloor: number;
   dropoffCargoElevator: boolean;
+  dropoffPassengerElevator: boolean;
   tariffVersion: number | null;
 }): { pickup: LocationHelp; dropoff: LocationHelp } {
   if (
@@ -177,9 +182,8 @@ export function locationHelpFromOrder(order: {
     order.helperCount > 0
   ) {
     const legacy = normaliseLocationHelp({
+      ...NO_HELP,
       helpers: order.helperCount,
-      floor: 0,
-      cargoElevator: false,
     });
     return { pickup: legacy, dropoff: { ...legacy } };
   }
@@ -188,11 +192,13 @@ export function locationHelpFromOrder(order: {
       helpers: order.pickupHelpers,
       floor: order.pickupFloor,
       cargoElevator: order.pickupCargoElevator,
+      passengerElevator: order.pickupPassengerElevator,
     }),
     dropoff: normaliseLocationHelp({
       helpers: order.dropoffHelpers,
       floor: order.dropoffFloor,
       cargoElevator: order.dropoffCargoElevator,
+      passengerElevator: order.dropoffPassengerElevator,
     }),
   };
 }
@@ -205,7 +211,10 @@ export function readLocationHelp(value: unknown): LocationHelp | null {
   if (typeof value !== "object" || value === null) {
     return null;
   }
-  const { helpers, floor, cargoElevator } = value as Record<string, unknown>;
+  const { helpers, floor, cargoElevator, passengerElevator } = value as Record<
+    string,
+    unknown
+  >;
   if (typeof helpers !== "number" || typeof floor !== "number") {
     return null;
   }
@@ -213,6 +222,7 @@ export function readLocationHelp(value: unknown): LocationHelp | null {
     helpers,
     floor,
     cargoElevator: cargoElevator === true,
+    passengerElevator: passengerElevator === true,
   });
 }
 

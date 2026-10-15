@@ -630,6 +630,7 @@
     "stopWorkGroundFloor": "მიწის დონე",
     "stopWorkHelpers": "{count, plural, one {# დამხმარე} other {# დამხმარე}}",
     "stopWorkNoHelpers": "დამხმარეების გარეშე",
+    "stopWorkPassengerElevator": "სამგზავრო ლიფტი",
     "timeCritical": "სასწრაფო",
     "today": "დღეს",
     "tomorrow": "ხვალ",

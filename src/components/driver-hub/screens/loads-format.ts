@@ -447,7 +447,7 @@ export function formatHelperRequest(
 
 /**
  * The work at one stop in a line (pricing model v1): `"2 helpers · Floor 3 ·
- * Cargo elevator"`, `"No helpers · Ground floor"`. What the driver will do
+ * Passenger elevator · Cargo elevator"`, `"No helpers · Ground floor"`. What the driver will do
  * there, never what it pays — the helpers' money is `helperPayout`.
  */
 export function formatStopWork(
@@ -463,6 +463,9 @@ export function formatStopWork(
       ? t("stopWorkGroundFloor")
       : t("stopWorkFloor", { floor: work.floor }),
   ];
+  if (work.passengerElevator) {
+    parts.push(t("stopWorkPassengerElevator"));
+  }
   if (work.cargoElevator) {
     parts.push(t("stopWorkCargoElevator"));
   }

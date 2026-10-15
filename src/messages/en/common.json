@@ -444,6 +444,18 @@
     "yourFleetIsStillUnderReview2": "Your fleet is still under review. Operations must activate the company before you can dispatch deliveries.",
     "zone": "Zone"
   },
+  "stopInfo": {
+    "building": "Building",
+    "cargoElevator": "Cargo",
+    "comment": "Comment",
+    "details": "Details",
+    "elevator": "Elevator",
+    "entrance": "Entrance",
+    "floor": "Floor",
+    "floorValue": "Floor {floor}",
+    "groundFloor": "Ground floor",
+    "passengerElevator": "Passenger"
+  },
   "themeToggle": {
     "darkTheme": "Dark theme",
     "lightTheme": "Light theme"

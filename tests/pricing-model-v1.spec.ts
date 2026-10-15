@@ -80,8 +80,18 @@ test.describe("the sheet's verification case", () => {
       // An unlisted pair, so the default 0.35 applies.
       pickupCity: "TBILISI",
       dropoffCity: "AKHALTSIKHE",
-      pickupHelp: { helpers: 2, floor: 3, cargoElevator: false },
-      dropoffHelp: { helpers: 2, floor: 6, cargoElevator: false },
+      pickupHelp: {
+        helpers: 2,
+        floor: 3,
+        cargoElevator: false,
+        passengerElevator: false,
+      },
+      dropoffHelp: {
+        helpers: 2,
+        floor: 6,
+        cargoElevator: false,
+        passengerElevator: false,
+      },
     },
     { rates: MINIVAN, routes: ROUTES },
   );
@@ -366,30 +376,89 @@ test.describe("helpers", () => {
 
   test("standard fee is helpers x floor rate", () => {
     expect(
-      helperStandardFee({ helpers: 3, floor: 8, cargoElevator: false }),
+      helperStandardFee({
+        helpers: 3,
+        floor: 8,
+        cargoElevator: false,
+        passengerElevator: false,
+      }),
     ).toBe(105);
     expect(helperStandardFee(NO_HELP)).toBe(0);
     expect(
-      helperStandardFee({ helpers: 0, floor: 12, cargoElevator: true }),
+      helperStandardFee({
+        helpers: 0,
+        floor: 12,
+        cargoElevator: true,
+        passengerElevator: false,
+      }),
     ).toBe(0);
   });
 
   test("a cargo elevator takes 30% off", () => {
     // 2 * 50 * 0.7 = 70
     expect(
-      helperStandardFee({ helpers: 2, floor: 10, cargoElevator: true }),
+      helperStandardFee({
+        helpers: 2,
+        floor: 10,
+        cargoElevator: true,
+        passengerElevator: false,
+      }),
     ).toBe(70);
     // 1 * 15 * 0.7 = 10.5
     expect(
-      helperStandardFee({ helpers: 1, floor: 0, cargoElevator: true }),
+      helperStandardFee({
+        helpers: 1,
+        floor: 0,
+        cargoElevator: true,
+        passengerElevator: false,
+      }),
     ).toBe(10.5);
+  });
+
+  test("a passenger elevator earns the same discount; both do not stack", () => {
+    // 2 * 50 * 0.7 = 70, either elevator
+    expect(
+      helperStandardFee({
+        helpers: 2,
+        floor: 10,
+        cargoElevator: false,
+        passengerElevator: true,
+      }),
+    ).toBe(70);
+    expect(
+      helperStandardFee({
+        helpers: 2,
+        floor: 10,
+        cargoElevator: true,
+        passengerElevator: true,
+      }),
+    ).toBe(70);
+    // No helpers: the ticks are information only.
+    expect(
+      helperStandardFee({
+        helpers: 0,
+        floor: 10,
+        cargoElevator: false,
+        passengerElevator: true,
+      }),
+    ).toBe(0);
   });
 
   test("helperCount is the larger crew of the two ends", () => {
     expect(
       crewHelperCount(
-        { helpers: 1, floor: 0, cargoElevator: false },
-        { helpers: 3, floor: 0, cargoElevator: false },
+        {
+          helpers: 1,
+          floor: 0,
+          cargoElevator: false,
+          passengerElevator: false,
+        },
+        {
+          helpers: 3,
+          floor: 0,
+          cargoElevator: false,
+          passengerElevator: false,
+        },
       ),
     ).toBe(3);
   });
@@ -547,6 +616,7 @@ test.describe("parseQuoteFields helper fields", () => {
       helpers: 2,
       floor: 0,
       cargoElevator: false,
+      passengerElevator: false,
     });
     expect(result.data.dropoffHelp).toEqual(result.data.pickupHelp);
     expect(result.data.helperCount).toBe(2);
@@ -560,6 +630,7 @@ test.describe("parseQuoteFields helper fields", () => {
       pickupHelpers: 1,
       pickupFloor: 5,
       dropoffHelpers: 3,
+      pickupPassengerElevator: true,
       dropoffCargoElevator: true,
       tariffVersion: 7,
     });
@@ -569,11 +640,13 @@ test.describe("parseQuoteFields helper fields", () => {
       helpers: 1,
       floor: 5,
       cargoElevator: false,
+      passengerElevator: true,
     });
     expect(result.data.dropoffHelp).toEqual({
       helpers: 3,
       floor: 0,
       cargoElevator: true,
+      passengerElevator: false,
     });
     expect(result.data.helperCount).toBe(3);
     expect(result.data.tariffVersion).toBe(7);
@@ -587,6 +660,7 @@ test.describe("parseQuoteFields helper fields", () => {
       { pickupFloor: -1 },
       { dropoffFloor: 101 },
       { pickupCargoElevator: "yes" },
+      { dropoffPassengerElevator: 1 },
       { tariffVersion: 0 },
       { tariffVersion: "3" },
     ];

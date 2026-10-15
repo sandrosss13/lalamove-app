@@ -10,7 +10,7 @@ import {
   BookingForm,
   type BookingFormInitialOrder,
 } from "@/components/home/booking-form";
-import type { StopContact } from "@/components/home/stop-contact-dialog";
+import { stopContactFromOrder } from "@/components/home/stop-contact";
 import { orderIsEditableByClient } from "@/components/orders-format";
 import {
   CheckoutNotice,
@@ -40,12 +40,18 @@ const EDIT_ORDER_SELECT = {
   pickupContactName: true,
   pickupContactPhone: true,
   pickupContactDetails: true,
+  pickupBuildingName: true,
+  pickupEntrance: true,
+  pickupComment: true,
   dropoffAddress: true,
   dropoffLat: true,
   dropoffLng: true,
   dropoffContactName: true,
   dropoffContactPhone: true,
   dropoffContactDetails: true,
+  dropoffBuildingName: true,
+  dropoffEntrance: true,
+  dropoffComment: true,
   cargoCategory: true,
   bodyType: true,
   helperCount: true,
@@ -55,9 +61,11 @@ const EDIT_ORDER_SELECT = {
   pickupHelpers: true,
   pickupFloor: true,
   pickupCargoElevator: true,
+  pickupPassengerElevator: true,
   dropoffHelpers: true,
   dropoffFloor: true,
   dropoffCargoElevator: true,
+  dropoffPassengerElevator: true,
   tariffVersion: true,
   serviceLevel: true,
   description: true,
@@ -90,23 +98,6 @@ function toLatLng(
   lng: number | null,
 ): { lat: number; lng: number } | null {
   return lat !== null && lng !== null ? { lat, lng } : null;
-}
-
-/**
- * A stop's three contact columns as the booking form's dialog holds them, or
- * `null` when none was recorded — the same "no contact for this stop" the form
- * starts a new booking with.
- */
-function toStopContact(
-  name: string | null,
-  phone: string | null,
-  details: string | null,
-): StopContact | null {
-  if (!name && !phone && !details) {
-    return null;
-  }
-
-  return { name: name ?? "", phone: phone ?? "", details: details ?? "" };
 }
 
 /**
@@ -194,16 +185,22 @@ export default async function EditOrderPage({
     pickupLocation: toLatLng(order.pickupLat, order.pickupLng),
     dropoffAddress: order.dropoffAddress,
     dropoffLocation: toLatLng(order.dropoffLat, order.dropoffLng),
-    pickupContact: toStopContact(
-      order.pickupContactName,
-      order.pickupContactPhone,
-      order.pickupContactDetails,
-    ),
-    dropoffContact: toStopContact(
-      order.dropoffContactName,
-      order.dropoffContactPhone,
-      order.dropoffContactDetails,
-    ),
+    pickupContact: stopContactFromOrder({
+      name: order.pickupContactName,
+      phone: order.pickupContactPhone,
+      buildingName: order.pickupBuildingName,
+      entrance: order.pickupEntrance,
+      comment: order.pickupComment,
+      details: order.pickupContactDetails,
+    }),
+    dropoffContact: stopContactFromOrder({
+      name: order.dropoffContactName,
+      phone: order.dropoffContactPhone,
+      buildingName: order.dropoffBuildingName,
+      entrance: order.dropoffEntrance,
+      comment: order.dropoffComment,
+      details: order.dropoffContactDetails,
+    }),
     cargoCategory: order.cargoCategory,
     vehicleTypeCode: order.vehicleTypeSpec.code,
     bodyType: order.bodyType,
@@ -211,9 +208,11 @@ export default async function EditOrderPage({
     pickupHelpers: order.pickupHelpers,
     pickupFloor: order.pickupFloor,
     pickupCargoElevator: order.pickupCargoElevator,
+    pickupPassengerElevator: order.pickupPassengerElevator,
     dropoffHelpers: order.dropoffHelpers,
     dropoffFloor: order.dropoffFloor,
     dropoffCargoElevator: order.dropoffCargoElevator,
+    dropoffPassengerElevator: order.dropoffPassengerElevator,
     tariffVersion: order.tariffVersion,
     serviceLevel: order.serviceLevel,
     description: order.description,

@@ -29,6 +29,10 @@ import {
   type LocationHelp,
 } from "@/components/home/booking-pricing";
 import {
+  readStopContact,
+  type StopContact,
+} from "@/components/home/stop-contact";
+import {
   isGoodsShortcutCode,
   type GoodsShortcutCode,
 } from "@/lib/goods-shortcuts";
@@ -59,6 +63,14 @@ export type BookingDraft = {
    */
   pickupHelp?: LocationHelp | null;
   dropoffHelp?: LocationHelp | null;
+  /**
+   * Each stop's Contact Info, when the writer collected it. Optional, like the
+   * helpers; read back through `readStopContact` (each part length-capped).
+   * An individual's floor is NOT here — it is `pickupHelp.floor` /
+   * `dropoffHelp.floor`.
+   */
+  pickupContact?: StopContact | null;
+  dropoffContact?: StopContact | null;
   /** `Date.now()` when the card wrote it. */
   savedAt: number;
 };
@@ -143,6 +155,8 @@ export function takeBookingDraft(): BookingDraft | null {
     goods: readGoods(record.goods),
     pickupHelp: readLocationHelp(record.pickupHelp),
     dropoffHelp: readLocationHelp(record.dropoffHelp),
+    pickupContact: readStopContact(record.pickupContact),
+    dropoffContact: readStopContact(record.dropoffContact),
     savedAt,
   };
 }

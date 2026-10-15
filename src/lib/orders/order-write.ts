@@ -108,6 +108,9 @@ export type OrderDetailColumns = {
   pickupContactName: string | null;
   pickupContactPhone: string | null;
   pickupContactDetails: string | null;
+  pickupBuildingName: string | null;
+  pickupEntrance: string | null;
+  pickupComment: string | null;
   dropoffAddress: string;
   dropoffLat: number;
   dropoffLng: number;
@@ -115,6 +118,9 @@ export type OrderDetailColumns = {
   dropoffContactName: string | null;
   dropoffContactPhone: string | null;
   dropoffContactDetails: string | null;
+  dropoffBuildingName: string | null;
+  dropoffEntrance: string | null;
+  dropoffComment: string | null;
   distanceKm: number;
   vehicleTypeSpecId: string;
   baseFare: number;
@@ -137,9 +143,11 @@ export type OrderDetailColumns = {
   pickupHelpers: number;
   pickupFloor: number;
   pickupCargoElevator: boolean;
+  pickupPassengerElevator: boolean;
   dropoffHelpers: number;
   dropoffFloor: number;
   dropoffCargoElevator: boolean;
+  dropoffPassengerElevator: boolean;
   tariffVersion: number;
   quotedAt: Date;
   cargoWeightKg: number | null;
@@ -627,9 +635,20 @@ export async function prepareOrderWrite(
   // The PO / cost-centre reference is a BUSINESS-only field: an Individual
   // client's booking form never renders it, so a value arriving from one is a
   // stale client rather than an attack. Drop it instead of failing the booking.
+  //
+  // The stop comment is the reverse: the BUSINESS Contact Info dialog has no
+  // comment field (an Individual's has), so a comment from a business client
+  // is equally stale and is dropped the same way.
   let businessPurchaseOrderRef: string | null = null;
+  let pickupComment = pickupContact.comment;
+  let dropoffComment = dropoffContact.comment;
   // A guest has no account type and is treated as an individual.
-  if (purchaseOrderRef !== null && clientId !== null) {
+  if (
+    clientId !== null &&
+    (purchaseOrderRef !== null ||
+      pickupComment !== null ||
+      dropoffComment !== null)
+  ) {
     const clientProfile = await prisma.clientProfile.findUnique({
       where: { userId: clientId },
       select: { accountType: true },
@@ -637,6 +656,8 @@ export async function prepareOrderWrite(
 
     if (clientProfile?.accountType === ClientAccountType.BUSINESS) {
       businessPurchaseOrderRef = purchaseOrderRef;
+      pickupComment = null;
+      dropoffComment = null;
     }
   }
 
@@ -725,6 +746,9 @@ export async function prepareOrderWrite(
         pickupContactName: pickupContact.name,
         pickupContactPhone: pickupContact.phone,
         pickupContactDetails: pickupContact.details,
+        pickupBuildingName: pickupContact.buildingName,
+        pickupEntrance: pickupContact.entrance,
+        pickupComment,
         dropoffAddress,
         dropoffLat: dropoff.lat,
         dropoffLng: dropoff.lng,
@@ -732,6 +756,9 @@ export async function prepareOrderWrite(
         dropoffContactName: dropoffContact.name,
         dropoffContactPhone: dropoffContact.phone,
         dropoffContactDetails: dropoffContact.details,
+        dropoffBuildingName: dropoffContact.buildingName,
+        dropoffEntrance: dropoffContact.entrance,
+        dropoffComment,
         distanceKm,
         vehicleTypeSpecId,
         baseFare: breakdown.baseFare,
@@ -753,9 +780,11 @@ export async function prepareOrderWrite(
         pickupHelpers: pickupHelp.helpers,
         pickupFloor: pickupHelp.floor,
         pickupCargoElevator: pickupHelp.cargoElevator,
+        pickupPassengerElevator: pickupHelp.passengerElevator,
         dropoffHelpers: dropoffHelp.helpers,
         dropoffFloor: dropoffHelp.floor,
         dropoffCargoElevator: dropoffHelp.cargoElevator,
+        dropoffPassengerElevator: dropoffHelp.passengerElevator,
         tariffVersion,
         quotedAt,
         cargoWeightKg,

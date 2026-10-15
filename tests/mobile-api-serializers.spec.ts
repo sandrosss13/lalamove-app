@@ -199,12 +199,14 @@ const jobs: HubJobsData = {
         helpers: 1,
         floor: 2,
         cargoElevator: false,
+        passengerElevator: false,
         helperMinutesRequired: true,
       },
       dropoffWork: {
         helpers: 0,
         floor: 0,
         cargoElevator: false,
+        passengerElevator: false,
         helperMinutesRequired: false,
       },
       waitingMinutes: 12,
@@ -221,7 +223,14 @@ const jobs: HubJobsData = {
       vehiclePlate: "AA-123-BB",
       serviceLevel: "Regular",
       bodyType: "Dry box",
-      pickupContact: { name: "Giorgi", phone: "+995555000001", details: null },
+      pickupContact: {
+        name: "Giorgi",
+        phone: "+995555000001",
+        details: null,
+        buildingName: "Tower B",
+        entrance: "2",
+        comment: "Door code 1234",
+      },
       dropoffContact: null,
       purchaseOrderRef: "PO-77",
     },
@@ -241,6 +250,9 @@ const jobSheet: HubJobSheet = {
   pickupContactName: "Giorgi",
   pickupContactPhone: "+995555000001",
   pickupContactDetails: null,
+  pickupBuildingName: "Tower B",
+  pickupEntrance: "2",
+  pickupComment: "Door code 1234\nLift to 3",
   dropoffAddress: "9 Chavchavadze Ave",
   dropoffLat: 41.71,
   dropoffLng: 44.77,
@@ -248,6 +260,9 @@ const jobSheet: HubJobSheet = {
   dropoffContactName: null,
   dropoffContactPhone: null,
   dropoffContactDetails: null,
+  dropoffBuildingName: null,
+  dropoffEntrance: null,
+  dropoffComment: null,
   distanceKm: 7.4,
   cargoCategory: "FURNITURE",
   description: "Two wardrobes",
@@ -264,12 +279,14 @@ const jobSheet: HubJobSheet = {
     helpers: 1,
     floor: 3,
     cargoElevator: false,
+    passengerElevator: true,
     helperMinutesRequired: true,
   },
   dropoffWork: {
     helpers: 0,
     floor: 0,
     cargoElevator: false,
+    passengerElevator: false,
     helperMinutesRequired: false,
   },
   createdAt: "2026-09-01T08:00:00.000Z",
@@ -838,6 +855,28 @@ test.describe("toHubJobsResponse", () => {
     });
   });
 
+  test("gives the job holder each stop's Contact Info, money-free", () => {
+    const [job] = toHubJobsResponse(jobs).jobs;
+
+    expect(job?.pickupContact).toEqual({
+      name: "Giorgi",
+      phone: "+995555000001",
+      details: null,
+      buildingName: "Tower B",
+      entrance: "2",
+      comment: "Door code 1234",
+    });
+    expect(job?.pickupWork).toMatchObject({
+      floor: 2,
+      cargoElevator: false,
+      passengerElevator: false,
+    });
+    const keys = allKeys(wire(job));
+    for (const column of CLIENT_MONEY_KEYS) {
+      expect(keys.has(column), `${column} must be absent`).toBe(false);
+    }
+  });
+
   test("does not pass on a column the loader was never meant to return", () => {
     const [row] = jobs.jobs;
 
@@ -860,6 +899,31 @@ test.describe("toHubJobSheetResponse", () => {
     expect(toHubJobSheetResponse(jobSheet, "DRIVER")).toEqual(
       jobSheetForDriver,
     );
+  });
+
+  test("gives the job holder building, entrance, floor, elevators and comment", () => {
+    for (const reader of ["DRIVER", "COMPANY"] as const) {
+      const sheet = toHubJobSheetResponse(jobSheet, reader);
+
+      expect(sheet).toMatchObject({
+        pickupBuildingName: "Tower B",
+        pickupEntrance: "2",
+        pickupComment: "Door code 1234\nLift to 3",
+        dropoffBuildingName: null,
+        dropoffEntrance: null,
+        dropoffComment: null,
+      });
+      expect(sheet.pickupWork).toMatchObject({
+        floor: 3,
+        cargoElevator: false,
+        passengerElevator: true,
+      });
+      expect(sheet.dropoffWork.passengerElevator).toBe(false);
+      const keys = allKeys(wire(sheet));
+      for (const column of CLIENT_MONEY_KEYS) {
+        expect(keys.has(column), `${column} must be absent`).toBe(false);
+      }
+    }
   });
 
   test("sends the proof of delivery to the assigned driver", () => {
@@ -1082,12 +1146,14 @@ test.describe("toHubOffer", () => {
       helpers: 0,
       floor: 2,
       cargoElevator: true,
+      passengerElevator: false,
       helperMinutesRequired: false,
     },
     dropoffWork: {
       helpers: 0,
       floor: 0,
       cargoElevator: false,
+      passengerElevator: false,
       helperMinutesRequired: false,
     },
     serviceLevel: "REGULAR",

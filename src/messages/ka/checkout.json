@@ -100,5 +100,6 @@
   },
   "helperFloor": "სართული {floor}",
   "groundFloor": "მიწის დონე",
-  "cargoElevator": "სატვირთო ლიფტი"
+  "cargoElevator": "სატვირთო ლიფტი",
+  "passengerElevator": "სამგზავრო ლიფტი"
 }

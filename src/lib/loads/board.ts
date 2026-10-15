@@ -297,9 +297,15 @@ function toLoadBoardItem(
     pickupContactName: showContacts ? order.pickupContactName : null,
     pickupContactPhone: showContacts ? order.pickupContactPhone : null,
     pickupContactDetails: showContacts ? order.pickupContactDetails : null,
+    pickupBuildingName: showContacts ? order.pickupBuildingName : null,
+    pickupEntrance: showContacts ? order.pickupEntrance : null,
+    pickupComment: showContacts ? order.pickupComment : null,
     dropoffContactName: showContacts ? order.dropoffContactName : null,
     dropoffContactPhone: showContacts ? order.dropoffContactPhone : null,
     dropoffContactDetails: showContacts ? order.dropoffContactDetails : null,
+    dropoffBuildingName: showContacts ? order.dropoffBuildingName : null,
+    dropoffEntrance: showContacts ? order.dropoffEntrance : null,
+    dropoffComment: showContacts ? order.dropoffComment : null,
     distanceKm: order.distanceKm,
     // Degrades to null rather than to a wrong number: `currentLat`/`currentLng`
     // are frequently stale or absent, and an order booked against an address

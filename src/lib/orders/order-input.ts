@@ -43,6 +43,7 @@ import {
   CARGO_MEASUREMENT_BOUNDS,
   type CargoMeasurementBounds,
 } from "@/lib/cargo";
+import { STOP_CONTACT_MAX_LENGTHS } from "@/lib/orders/stop-contact-limits";
 import { parseQuoteFields, type QuoteInput } from "@/lib/pricing";
 
 /** Valid values for each enum field, derived from the generated Prisma enums. */
@@ -95,7 +96,17 @@ export const FREE_TEXT_MAX_LENGTH = 200;
 export type StopContact = {
   name: string | null;
   phone: string | null;
+  /**
+   * LEGACY free-text "block, floor or room". The current form no longer asks
+   * for it (the structured fields below replace it) but still sends back what
+   * an order being edited already had, so it is still accepted.
+   */
   details: string | null;
+  /** Structured "Contact Info" (see `Order.pickupBuildingName`). */
+  buildingName: string | null;
+  entrance: string | null;
+  /** Note for the driver. Dropped for BUSINESS clients in `prepareOrderWrite`. */
+  comment: string | null;
 };
 
 /** Validated shape of an order-creation request body. */
@@ -181,6 +192,7 @@ function parseOptionalText(
   value: unknown,
   fieldName: string,
   t: RequestTranslator,
+  maxLength: number = FREE_TEXT_MAX_LENGTH,
 ): { value: string | null } | { error: string } {
   if (value === undefined || value === null) {
     return { value: null };
@@ -199,11 +211,11 @@ function parseOptionalText(
     return { value: null };
   }
 
-  if (trimmed.length > FREE_TEXT_MAX_LENGTH) {
+  if (trimmed.length > maxLength) {
     return {
       error: t("errors.orders.fieldTooLong", {
         field: fieldName,
-        max: FREE_TEXT_MAX_LENGTH,
+        max: maxLength,
       }),
     };
   }
@@ -220,7 +232,14 @@ function parseStopContact(
   fieldName: string,
   t: RequestTranslator,
 ): { data: StopContact } | { error: string } {
-  const empty: StopContact = { name: null, phone: null, details: null };
+  const empty: StopContact = {
+    name: null,
+    phone: null,
+    details: null,
+    buildingName: null,
+    entrance: null,
+    comment: null,
+  };
 
   if (value === undefined || value === null) {
     return { data: empty };
@@ -236,12 +255,22 @@ function parseStopContact(
 
   const record = value as Record<string, unknown>;
 
-  const name = parseOptionalText(record.name, `${fieldName}.name`, t);
+  const name = parseOptionalText(
+    record.name,
+    `${fieldName}.name`,
+    t,
+    STOP_CONTACT_MAX_LENGTHS.name,
+  );
   if ("error" in name) {
     return name;
   }
 
-  const phone = parseOptionalText(record.phone, `${fieldName}.phone`, t);
+  const phone = parseOptionalText(
+    record.phone,
+    `${fieldName}.phone`,
+    t,
+    STOP_CONTACT_MAX_LENGTHS.phone,
+  );
   if ("error" in phone) {
     return phone;
   }
@@ -251,8 +280,45 @@ function parseStopContact(
     return details;
   }
 
+  const buildingName = parseOptionalText(
+    record.buildingName,
+    `${fieldName}.buildingName`,
+    t,
+    STOP_CONTACT_MAX_LENGTHS.buildingName,
+  );
+  if ("error" in buildingName) {
+    return buildingName;
+  }
+
+  const entrance = parseOptionalText(
+    record.entrance,
+    `${fieldName}.entrance`,
+    t,
+    STOP_CONTACT_MAX_LENGTHS.entrance,
+  );
+  if ("error" in entrance) {
+    return entrance;
+  }
+
+  const comment = parseOptionalText(
+    record.comment,
+    `${fieldName}.comment`,
+    t,
+    STOP_CONTACT_MAX_LENGTHS.comment,
+  );
+  if ("error" in comment) {
+    return comment;
+  }
+
   return {
-    data: { name: name.value, phone: phone.value, details: details.value },
+    data: {
+      name: name.value,
+      phone: phone.value,
+      details: details.value,
+      buildingName: buildingName.value,
+      entrance: entrance.value,
+      comment: comment.value,
+    },
   };
 }
 

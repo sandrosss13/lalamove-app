@@ -100,5 +100,6 @@
   },
   "helperFloor": "Floor {floor}",
   "groundFloor": "Ground floor",
-  "cargoElevator": "Cargo elevator"
+  "cargoElevator": "Cargo elevator",
+  "passengerElevator": "Passenger elevator"
 }

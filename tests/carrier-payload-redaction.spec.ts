@@ -93,9 +93,28 @@ const STOP_WORK_COLUMNS = [
   "pickupHelpers",
   "pickupFloor",
   "pickupCargoElevator",
+  "pickupPassengerElevator",
   "dropoffHelpers",
   "dropoffFloor",
   "dropoffCargoElevator",
+  "dropoffPassengerElevator",
+] as const;
+
+/**
+ * Each stop's structured Contact Info. Non-money; contact-redacted per row by
+ * the listing routes (`canSeeStopContacts`), so only the job holder reads it.
+ */
+const STOP_CONTACT_INFO_COLUMNS = [
+  "pickupContactName",
+  "pickupContactPhone",
+  "pickupBuildingName",
+  "pickupEntrance",
+  "pickupComment",
+  "dropoffContactName",
+  "dropoffContactPhone",
+  "dropoffBuildingName",
+  "dropoffEntrance",
+  "dropoffComment",
 ] as const;
 
 test.describe("CARRIER_ORDER_PARTY_SELECT", () => {
@@ -121,6 +140,12 @@ test.describe("CARRIER_ORDER_PARTY_SELECT", () => {
       "pickupHelperMinutes",
       "dropoffHelperMinutes",
     ]) {
+      expect(CARRIER_ORDER_PARTY_SELECT).toHaveProperty(column, true);
+    }
+  });
+
+  test("carries each stop's Contact Info for the job holder", () => {
+    for (const column of STOP_CONTACT_INFO_COLUMNS) {
       expect(CARRIER_ORDER_PARTY_SELECT).toHaveProperty(column, true);
     }
   });
@@ -255,6 +280,12 @@ test.describe("LOADS_SELECT", () => {
 
   test("carries the work at each stop", () => {
     for (const column of STOP_WORK_COLUMNS) {
+      expect(LOADS_SELECT).toHaveProperty(column, true);
+    }
+  });
+
+  test("carries each stop's Contact Info (redacted per row by the board)", () => {
+    for (const column of STOP_CONTACT_INFO_COLUMNS) {
       expect(LOADS_SELECT).toHaveProperty(column, true);
     }
   });

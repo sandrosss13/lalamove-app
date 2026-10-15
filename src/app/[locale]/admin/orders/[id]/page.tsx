@@ -24,6 +24,7 @@ import {
   ORDER_GUEST_CONTACT_SELECT,
   orderClientDisplay,
 } from "@/lib/orders/order-client-display";
+import { stopInfoOf, stopInfoRows } from "@/lib/orders/stop-info";
 import { prisma } from "@/lib/prisma";
 import { vehicleTypeSpecLabel } from "@/lib/vehicle-type-spec-labels";
 
@@ -109,9 +110,15 @@ export default async function AdminOrderDetailPage({
       pickupContactName: true,
       pickupContactPhone: true,
       pickupContactDetails: true,
+      pickupBuildingName: true,
+      pickupEntrance: true,
+      pickupComment: true,
       dropoffContactName: true,
       dropoffContactPhone: true,
       dropoffContactDetails: true,
+      dropoffBuildingName: true,
+      dropoffEntrance: true,
+      dropoffComment: true,
       distanceKm: true,
       cargoCategory: true,
       bodyType: true,
@@ -121,10 +128,12 @@ export default async function AdminOrderDetailPage({
       pickupHelpers: true,
       pickupFloor: true,
       pickupCargoElevator: true,
+      pickupPassengerElevator: true,
       pickupHelperMinutes: true,
       dropoffHelpers: true,
       dropoffFloor: true,
       dropoffCargoElevator: true,
+      dropoffPassengerElevator: true,
       dropoffHelperMinutes: true,
       tripType: true,
       tariffVersion: true,
@@ -246,7 +255,12 @@ export default async function AdminOrderDetailPage({
   // A v1 order records helpers per stop; a pre-v1 one, one crew size.
   const isV1 = order.tariffVersion !== null;
   const stopHelpLabel = (
-    help: { helpers: number; floor: number; cargoElevator: boolean },
+    help: {
+      helpers: number;
+      floor: number;
+      cargoElevator: boolean;
+      passengerElevator: boolean;
+    },
     minutes: number | null,
   ): string =>
     [
@@ -259,14 +273,37 @@ export default async function AdminOrderDetailPage({
     isV1 &&
     Math.abs(order.pickupHelperFee + order.dropoffHelperFee - order.helperFee) <
       0.005;
-  const hasStopContacts = [
-    order.pickupContactName,
-    order.pickupContactPhone,
-    order.pickupContactDetails,
-    order.dropoffContactName,
-    order.dropoffContactPhone,
-    order.dropoffContactDetails,
-  ].some((value) => value !== null && value !== "");
+  // Each stop's Contact Info (building, entrance, floor, elevators, comment,
+  // legacy details) as stacked lines, or null when the stop has none.
+  const tStopInfo = (key: string, values?: Record<string, string | number>) =>
+    tRoot(`common.stopInfo.${key}`, values);
+  const stopInfoValue = (stop: "pickup" | "dropoff"): React.ReactNode => {
+    const rows = stopInfoRows(stopInfoOf(order, stop), tStopInfo);
+    return rows.length === 0 ? null : (
+      <>
+        {rows.map((row) => (
+          <span
+            key={row.key}
+            className={row.multiline ? "block whitespace-pre-line" : "block"}
+          >
+            <span className="text-muted-foreground">{row.label}:</span>{" "}
+            {row.value}
+          </span>
+        ))}
+      </>
+    );
+  };
+  const pickupInfo = stopInfoValue("pickup");
+  const dropoffInfo = stopInfoValue("dropoff");
+  const hasStopContacts =
+    pickupInfo !== null ||
+    dropoffInfo !== null ||
+    [
+      order.pickupContactName,
+      order.pickupContactPhone,
+      order.dropoffContactName,
+      order.dropoffContactPhone,
+    ].some((value) => value !== null && value !== "");
 
   return (
     <div className="flex flex-col gap-5">
@@ -395,20 +432,14 @@ export default async function AdminOrderDetailPage({
                     .filter(Boolean)
                     .join(" · ")}
                 />
-                <Field
-                  label={t("pickupDetails")}
-                  value={order.pickupContactDetails}
-                />
+                <Field label={t("pickupDetails")} value={pickupInfo} />
                 <Field
                   label={t("dropoffContact")}
                   value={[order.dropoffContactName, order.dropoffContactPhone]
                     .filter(Boolean)
                     .join(" · ")}
                 />
-                <Field
-                  label={t("dropoffDetails")}
-                  value={order.dropoffContactDetails}
-                />
+                <Field label={t("dropoffDetails")} value={dropoffInfo} />
               </>
             ) : null}
           </dl>
@@ -443,6 +474,7 @@ export default async function AdminOrderDetailPage({
                       helpers: order.pickupHelpers,
                       floor: order.pickupFloor,
                       cargoElevator: order.pickupCargoElevator,
+                      passengerElevator: order.pickupPassengerElevator,
                     },
                     order.pickupHelperMinutes,
                   )}
@@ -454,6 +486,7 @@ export default async function AdminOrderDetailPage({
                       helpers: order.dropoffHelpers,
                       floor: order.dropoffFloor,
                       cargoElevator: order.dropoffCargoElevator,
+                      passengerElevator: order.dropoffPassengerElevator,
                     },
                     order.dropoffHelperMinutes,
                   )}

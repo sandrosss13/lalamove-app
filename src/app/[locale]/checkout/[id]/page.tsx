@@ -24,6 +24,8 @@ import {
   type HelperTimeNoteValues,
 } from "@/components/home/booking-pricing";
 import { formatGel, useServiceLevelLabel } from "@/components/orders-format";
+import { StopContactLines } from "@/components/orders/stop-contact-lines";
+import { stopInfoOf, type StopInfo } from "@/lib/orders/stop-info";
 import { CheckoutPaymentPanel } from "../checkout-payment-panel";
 import {
   formatBookedDistanceKm,
@@ -65,6 +67,20 @@ const CHECKOUT_ORDER_SELECT = {
   status: true,
   pickupAddress: true,
   dropoffAddress: true,
+  // Each stop's Contact Info, shown under its address for the client to
+  // review before paying (the client's own booking — never a carrier's view).
+  pickupContactName: true,
+  pickupContactPhone: true,
+  pickupContactDetails: true,
+  pickupBuildingName: true,
+  pickupEntrance: true,
+  pickupComment: true,
+  dropoffContactName: true,
+  dropoffContactPhone: true,
+  dropoffContactDetails: true,
+  dropoffBuildingName: true,
+  dropoffEntrance: true,
+  dropoffComment: true,
   scheduledAt: true,
   cargoCategory: true,
   bodyType: true,
@@ -92,9 +108,11 @@ const CHECKOUT_ORDER_SELECT = {
   pickupHelpers: true,
   pickupFloor: true,
   pickupCargoElevator: true,
+  pickupPassengerElevator: true,
   dropoffHelpers: true,
   dropoffFloor: true,
   dropoffCargoElevator: true,
+  dropoffPassengerElevator: true,
   tariffVersion: true,
   // A relation, so it is not returned unless it is asked for — and only the one
   // column the summary prints.
@@ -249,6 +267,18 @@ export default async function CheckoutPage({
 type CheckoutOrder = {
   pickupAddress: string;
   dropoffAddress: string;
+  pickupContactName: string | null;
+  pickupContactPhone: string | null;
+  pickupContactDetails: string | null;
+  pickupBuildingName: string | null;
+  pickupEntrance: string | null;
+  pickupComment: string | null;
+  dropoffContactName: string | null;
+  dropoffContactPhone: string | null;
+  dropoffContactDetails: string | null;
+  dropoffBuildingName: string | null;
+  dropoffEntrance: string | null;
+  dropoffComment: string | null;
   scheduledAt: Date | null;
   cargoCategory: CargoCategory;
   bodyType: ChassisType | null;
@@ -271,9 +301,11 @@ type CheckoutOrder = {
   pickupHelpers: number;
   pickupFloor: number;
   pickupCargoElevator: boolean;
+  pickupPassengerElevator: boolean;
   dropoffHelpers: number;
   dropoffFloor: number;
   dropoffCargoElevator: boolean;
+  dropoffPassengerElevator: boolean;
   tariffVersion: number | null;
 };
 
@@ -305,11 +337,17 @@ function OrderSummaryPanel({ order }: { order: CheckoutOrder }) {
           badge="P"
           name={tShared("pickup")}
           address={order.pickupAddress}
+          contactName={order.pickupContactName}
+          contactPhone={order.pickupContactPhone}
+          info={stopInfoOf(order, "pickup")}
         />
         <RouteEndpoint
           badge="D"
           name={tShared("dropoff")}
           address={order.dropoffAddress}
+          contactName={order.dropoffContactName}
+          contactPhone={order.dropoffContactPhone}
+          info={stopInfoOf(order, "dropoff")}
         />
       </div>
 
@@ -532,10 +570,16 @@ function RouteEndpoint({
   badge,
   name,
   address,
+  contactName,
+  contactPhone,
+  info,
 }: {
   badge: string;
   name: string;
   address: string;
+  contactName: string | null;
+  contactPhone: string | null;
+  info: StopInfo;
 }) {
   return (
     <div className="flex min-w-0 items-start gap-2.5">
@@ -546,7 +590,12 @@ function RouteEndpoint({
         {badge}
       </span>
       <span className="sr-only">{name}</span>
-      <span className="text-[14px] leading-snug text-paper">{address}</span>
+      <div className="min-w-0">
+        <span className="text-[14px] leading-snug text-paper">{address}</span>
+        {/* Nothing at all for a stop with no Contact Info: it is optional,
+            and the review step has no use for a "none given" line. */}
+        <StopContactLines name={contactName} phone={contactPhone} info={info} />
+      </div>
     </div>
   );
 }

@@ -8,7 +8,7 @@
  * read beside it, and a client component can use this module freely.
  */
 
-/** Helpers, floor and cargo elevator at one stop. */
+/** Helpers, floor and elevators at one stop. */
 export type StopWork = {
   /** Helpers booked at this stop (0–4). */
   helpers: number;
@@ -16,6 +16,8 @@ export type StopWork = {
   floor: number;
   /** Whether a cargo elevator can be used there. */
   cargoElevator: boolean;
+  /** Whether a passenger elevator can be used there. */
+  passengerElevator: boolean;
   /**
    * Whether completing the job must report the helpers' actual minutes at this
    * stop — see `helperMinutesRequired`. A boolean, not the tariff version it
@@ -45,9 +47,11 @@ export type StopWorkColumns = {
   pickupHelpers: number;
   pickupFloor: number;
   pickupCargoElevator: boolean;
+  pickupPassengerElevator: boolean;
   dropoffHelpers: number;
   dropoffFloor: number;
   dropoffCargoElevator: boolean;
+  dropoffPassengerElevator: boolean;
   /** Read only to derive `helperMinutesRequired`; never passed on. */
   tariffVersion: number | null;
 };
@@ -62,6 +66,7 @@ export function stopWorkOf(order: StopWorkColumns): {
       helpers: order.pickupHelpers,
       floor: order.pickupFloor,
       cargoElevator: order.pickupCargoElevator,
+      passengerElevator: order.pickupPassengerElevator,
       helperMinutesRequired: helperMinutesRequired(
         order.tariffVersion,
         order.pickupHelpers,
@@ -71,6 +76,7 @@ export function stopWorkOf(order: StopWorkColumns): {
       helpers: order.dropoffHelpers,
       floor: order.dropoffFloor,
       cargoElevator: order.dropoffCargoElevator,
+      passengerElevator: order.dropoffPassengerElevator,
       helperMinutesRequired: helperMinutesRequired(
         order.tariffVersion,
         order.dropoffHelpers,
@@ -86,5 +92,10 @@ export function stopWorkOf(order: StopWorkColumns): {
  * falls back to that when neither stop says anything.
  */
 export function hasStopWork(work: StopWork): boolean {
-  return work.helpers > 0 || work.floor > 0 || work.cargoElevator;
+  return (
+    work.helpers > 0 ||
+    work.floor > 0 ||
+    work.cargoElevator ||
+    work.passengerElevator
+  );
 }

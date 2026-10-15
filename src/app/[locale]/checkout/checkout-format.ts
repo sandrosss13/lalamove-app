@@ -184,20 +184,28 @@ export type OrderHelperLocations = {
   pickupHelpers: number;
   pickupFloor: number;
   pickupCargoElevator: boolean;
+  pickupPassengerElevator: boolean;
   dropoffHelpers: number;
   dropoffFloor: number;
   dropoffCargoElevator: boolean;
+  dropoffPassengerElevator: boolean;
   /** Null on an order priced before pricing model v1. */
   tariffVersion: number | null;
 };
 
 /**
  * One end's helpers in words — `2 helpers · floor 3 · cargo elevator`, or
- * `No helpers` — given a root `t`. The floor and the elevator are only named
- * when someone is there to use them.
+ * `No helpers` — given a root `t`. The floor and the elevators are only named
+ * when someone is there to use them (the stop's Contact Info shows them
+ * regardless).
  */
 export function helperLocationLabel(
-  help: { helpers: number; floor: number; cargoElevator: boolean },
+  help: {
+    helpers: number;
+    floor: number;
+    cargoElevator: boolean;
+    passengerElevator?: boolean;
+  },
   t: Translator,
 ): string {
   const parts = [t("checkout.helperCount", { count: help.helpers })];
@@ -207,6 +215,9 @@ export function helperLocationLabel(
         ? t("checkout.groundFloor")
         : t("checkout.helperFloor", { floor: help.floor }),
     );
+    if (help.passengerElevator) {
+      parts.push(t("checkout.passengerElevator"));
+    }
     if (help.cargoElevator) {
       parts.push(t("checkout.cargoElevator"));
     }
@@ -232,6 +243,7 @@ export function helperLocationLabels(
         helpers: order.pickupHelpers,
         floor: order.pickupFloor,
         cargoElevator: order.pickupCargoElevator,
+        passengerElevator: order.pickupPassengerElevator,
       },
       t,
     ),
@@ -240,6 +252,7 @@ export function helperLocationLabels(
         helpers: order.dropoffHelpers,
         floor: order.dropoffFloor,
         cargoElevator: order.dropoffCargoElevator,
+        passengerElevator: order.dropoffPassengerElevator,
       },
       t,
     ),

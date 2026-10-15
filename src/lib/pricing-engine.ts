@@ -28,7 +28,7 @@
  * return        RouteAllowance for the unordered city pair, else the config
  *               default (0.35); 0 for a CITY trip.
  * helpers       per location: helpers * floorRate(floor) * (1 - elevatorDiscount
- *               if a cargo elevator is available); helperFee = pickup + dropoff
+ *               if a cargo or passenger elevator is available); helperFee = pickup + dropoff
  * floor bands   0-3 -> 15, 4-6 -> 25, 7-9 -> 35, 10+ -> 50 (HelperFloorBand)
  * price         transport + helperFee  (the quoted total BEFORE the tier)
  * tier          serviceLevelAdjustment = tier% * transport (helpers excluded)
@@ -153,6 +153,11 @@ export type LocationHelp = {
   floor: number;
   /** A cargo elevator can be used at this location. */
   cargoElevator: boolean;
+  /**
+   * A passenger elevator can be used at this location. Earns the same
+   * elevator discount as a cargo one; either is enough.
+   */
+  passengerElevator: boolean;
 };
 
 /** No helpers, ground floor — the value an omitted location resolves to. */
@@ -160,6 +165,7 @@ export const NO_HELP: Readonly<LocationHelp> = Object.freeze({
   helpers: 0,
   floor: 0,
   cargoElevator: false,
+  passengerElevator: false,
 });
 
 /* ------------------------------------------------------------------------- */
@@ -367,8 +373,8 @@ export function helperFloorRate(
 
 /**
  * The quoted (standard, first `helperIncludedMinutes`) helper charge at one
- * location: helpers * floorRate * (1 - elevatorDiscount when a cargo elevator
- * is available).
+ * location: helpers * floorRate * (1 - elevatorDiscount when a cargo or a
+ * passenger elevator is available).
  */
 export function helperStandardFee(
   location: LocationHelp,
@@ -378,7 +384,8 @@ export function helperStandardFee(
   if (location.helpers <= 0) {
     return 0;
   }
-  const discount = location.cargoElevator ? elevatorDiscount : 0;
+  const discount =
+    location.cargoElevator || location.passengerElevator ? elevatorDiscount : 0;
   return roundCurrency(
     location.helpers * helperFloorRate(location.floor, bands) * (1 - discount),
   );

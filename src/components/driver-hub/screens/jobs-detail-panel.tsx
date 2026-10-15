@@ -39,6 +39,7 @@ import {
   formatLoadStopWork,
 } from "@/components/driver-hub/screens/loads-format";
 import type { HubJob, HubStopContact } from "@/lib/dashboard/hub/jobs";
+import { stopInfoFromParts, stopInfoRows } from "@/lib/orders/stop-info";
 import { cn } from "@/lib/utils";
 
 /**
@@ -296,7 +297,15 @@ type StopContactRowProps = {
  * sheet lays the same two facts out as a 96px definition grid inside a stop
  * card with Call and Navigate under it.
  */
+/** Floor and elevators are not read when `includeWork` is false. */
+const NO_STOP_WORK_INFO = {
+  floor: 0,
+  cargoElevator: false,
+  passengerElevator: false,
+} as const;
+
 function StopContactRow({ label, contact }: StopContactRowProps) {
+  const tStopInfo = useTranslations("common.stopInfo");
   return (
     <div className={DETAIL_ROW_CLASSES}>
       <dt className="flex-none text-muted-foreground">{label}</dt>
@@ -316,11 +325,24 @@ function StopContactRow({ label, contact }: StopContactRowProps) {
                 className="block truncate font-price text-muted-foreground"
               />
             )}
-            {contact.details === null ? null : (
-              <span className="block truncate text-xs text-muted-foreground">
-                {contact.details}
+            {/* Building, entrance, comment, legacy details. The floor and
+                elevators are on the panel's helper-work row already. */}
+            {stopInfoRows(
+              stopInfoFromParts(contact, NO_STOP_WORK_INFO),
+              tStopInfo,
+              { includeWork: false },
+            ).map((row) => (
+              <span
+                key={row.key}
+                className={
+                  row.multiline
+                    ? "block text-xs break-words whitespace-pre-line text-muted-foreground"
+                    : "block truncate text-xs text-muted-foreground"
+                }
+              >
+                {`${row.label}: ${row.value}`}
               </span>
-            )}
+            ))}
           </>
         )}
       </dd>

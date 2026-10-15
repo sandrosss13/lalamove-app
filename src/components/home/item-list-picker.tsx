@@ -181,12 +181,9 @@ const MAX_SEARCH_RESULTS = 8;
 /** A `label` around an `sr-only` radio, drawn as a pick card. */
 const RADIO_CARD_CLASSES = `${PICK_CARD_BASE_CLASSES} cursor-pointer gap-0.5 has-[:focus-visible]:border-accent has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-accent/20`;
 
-/** A `label` around an `sr-only` radio, drawn as a pill. */
-const RADIO_CHIP_CLASSES =
-  "inline-flex h-8 shrink-0 cursor-pointer items-center rounded-full border px-3 text-xs font-medium whitespace-nowrap transition-colors has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-accent/20";
-const RADIO_CHIP_SELECTED_CLASSES = "border-accent bg-accent text-ink";
-const RADIO_CHIP_IDLE_CLASSES =
-  "border-line bg-transparent text-paper hover:border-accent/40";
+/** The browse-by-room dropdown — the booking form's native select look. */
+const BROWSE_SELECT_CLASSES =
+  "h-10 w-full rounded-lg border border-line bg-ink px-2.5 text-left text-sm text-paper transition-colors outline-none focus-visible:border-accent focus-visible:ring-3 focus-visible:ring-accent/20";
 
 const LEGEND_CLASSES = "mb-2.5 text-[0.8125rem] font-medium text-paper";
 
@@ -719,15 +716,17 @@ function ItemSearch({
 /* -------------------------------------------------------------------------- */
 
 /**
- * Group chips under the search, then the chosen group's items as buttons that
- * add one each. The chips are a native radio group; the row scrolls sideways
- * on a phone, and is scrolled once, when the catalogue first arrives, to the
- * group the goods shortcut asked for — only the row, never the page.
+ * A room/group dropdown under the search ("All" first, then every group the
+ * catalogue has), then the chosen group's items as buttons that add one each.
+ * A native `<select>`: one compact control instead of a sideways-scrolling
+ * chip row, with the platform's own picker on a phone. Each group option
+ * carries a count of the items already listed from it, the dropdown's version
+ * of the chip badge.
  *
  * A new `initialGroup` (the client picked another goods shortcut in the step
  * above, with this picker already on screen) is a new request: it replaces
- * whatever chip was picked by hand and scrolls the row to it again. Only the
- * browse group moves — the listed lines are the parent's and are untouched.
+ * whatever group was picked by hand. Only the browse group moves — the listed
+ * lines are the parent's and are untouched.
  */
 function BrowseGroups({
   catalogue,
@@ -741,14 +740,7 @@ function BrowseGroups({
   onPick: (code: string) => void;
 }) {
   const t = useTranslations("home.itemListPicker");
-  const groupName = useId();
-  const rowRef = useRef<HTMLDivElement>(null);
-  const selectedChipRef = useRef<HTMLLabelElement>(null);
-  // The `initialGroup` the row was last scrolled to; `undefined` before the
-  // first scroll (no value of the prop is `undefined`, so it never matches).
-  const scrolledForRef = useRef<ItemGroupCode | "ALL" | null | undefined>(
-    undefined,
-  );
+  const selectId = useId();
   const [chosen, setChosen] = useState<ItemGroupCode | "ALL" | null>(null);
   // Adjusted during render rather than in an effect, so the chip and the items
   // under it switch in the same paint as the shortcut that asked for them.
@@ -769,60 +761,56 @@ function BrowseGroups({
       ? requested
       : (groups[0] ?? "ALL");
 
-  useEffect(() => {
-    if (scrolledForRef.current === initialGroup || groups.length === 0) return;
-    scrolledForRef.current = initialGroup;
-    const row = rowRef.current;
-    const chip = selectedChipRef.current;
-    if (row && chip) {
-      row.scrollLeft = Math.max(0, chip.offsetLeft - 8);
-    }
-  }, [groups.length, initialGroup]);
-
   if (groups.length === 0) {
     return null;
   }
 
   const shownGroups = selected === "ALL" ? groups : [selected];
-  const chipOptions: (ItemGroupCode | "ALL")[] = ["ALL", ...groups];
+  const groupOptions: (ItemGroupCode | "ALL")[] = ["ALL", ...groups];
+  // Units already listed from each group, for the option badges.
+  const listedPerGroup = new Map<string, number>();
+  for (const item of catalogue) {
+    const listed = listedByCode.get(item.code) ?? 0;
+    if (listed > 0) {
+      listedPerGroup.set(
+        item.group,
+        (listedPerGroup.get(item.group) ?? 0) + listed,
+      );
+    }
+  }
+  const listedTotal = [...listedPerGroup.values()].reduce(
+    (sum, count) => sum + count,
+    0,
+  );
+  const optionLabel = (option: ItemGroupCode | "ALL"): string => {
+    const label =
+      option === "ALL" ? t("browseAll") : t(`groups.${GROUP_KEYS[option]}`);
+    const count =
+      option === "ALL" ? listedTotal : (listedPerGroup.get(option) ?? 0);
+    return count > 0 ? `${label} (${count})` : label;
+  };
 
   return (
     <div className="flex flex-col gap-3">
-      <fieldset className="min-w-0">
-        <legend className={LEGEND_CLASSES}>{t("browseLegend")}</legend>
-        <div
-          ref={rowRef}
-          className="relative -mx-1 flex gap-2 overflow-x-auto px-1 pb-1"
+      <div className="flex min-w-0 flex-col">
+        <label htmlFor={selectId} className={LEGEND_CLASSES}>
+          {t("browseLegend")}
+        </label>
+        <select
+          id={selectId}
+          value={selected}
+          onChange={(event) =>
+            setChosen(event.target.value as ItemGroupCode | "ALL")
+          }
+          className={BROWSE_SELECT_CLASSES}
         >
-          {chipOptions.map((option) => {
-            const isSelected = option === selected;
-            return (
-              <label
-                key={option}
-                ref={isSelected ? selectedChipRef : undefined}
-                className={cn(
-                  RADIO_CHIP_CLASSES,
-                  isSelected
-                    ? RADIO_CHIP_SELECTED_CLASSES
-                    : RADIO_CHIP_IDLE_CLASSES,
-                )}
-              >
-                <input
-                  type="radio"
-                  name={groupName}
-                  value={option}
-                  checked={isSelected}
-                  onChange={() => setChosen(option)}
-                  className="sr-only"
-                />
-                {option === "ALL"
-                  ? t("browseAll")
-                  : t(`groups.${GROUP_KEYS[option]}`)}
-              </label>
-            );
-          })}
-        </div>
-      </fieldset>
+          {groupOptions.map((option) => (
+            <option key={option} value={option}>
+              {optionLabel(option)}
+            </option>
+          ))}
+        </select>
+      </div>
 
       {shownGroups.map((group) => (
         <section key={group} className="flex flex-col gap-2">

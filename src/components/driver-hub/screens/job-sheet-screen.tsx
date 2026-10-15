@@ -24,6 +24,7 @@ import {
 } from "@/components/driver-hub/screens/job-sheet-parts";
 import { LoadsDispatchDialog } from "@/components/driver-hub/screens/loads-dispatch-dialog";
 import type { HubJobSheet } from "@/lib/dashboard/hub/job-sheet";
+import { stopInfoFromParts } from "@/lib/orders/stop-info";
 
 /**
  * The driver's Job sheet: `/dashboard/jobs/[id]`.
@@ -326,7 +327,15 @@ export function JobSheetScreen({ job, nowIso, viewer }: JobSheetScreenProps) {
           address={job.pickupAddress}
           contactName={job.pickupContactName}
           contactPhone={job.pickupContactPhone}
-          contactDetails={job.pickupContactDetails}
+          info={stopInfoFromParts(
+            {
+              buildingName: job.pickupBuildingName,
+              entrance: job.pickupEntrance,
+              comment: job.pickupComment,
+              details: job.pickupContactDetails,
+            },
+            job.pickupWork,
+          )}
           lat={job.pickupLat}
           lng={job.pickupLng}
           prominent
@@ -340,7 +349,15 @@ export function JobSheetScreen({ job, nowIso, viewer }: JobSheetScreenProps) {
         address={job.dropoffAddress}
         contactName={job.dropoffContactName}
         contactPhone={job.dropoffContactPhone}
-        contactDetails={job.dropoffContactDetails}
+        info={stopInfoFromParts(
+          {
+            buildingName: job.dropoffBuildingName,
+            entrance: job.dropoffEntrance,
+            comment: job.dropoffComment,
+            details: job.dropoffContactDetails,
+          },
+          job.dropoffWork,
+        )}
         lat={job.dropoffLat}
         lng={job.dropoffLng}
         // Subordinate while the driver is still heading for the pick-up —

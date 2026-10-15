@@ -326,23 +326,40 @@ export type HubJobServiceLevel = "Priority" | "Regular" | "Pooling";
 
 export type HubJobBodyType = "Dry box" | "Refrigerated" | "Open chassis";
 
-/** A named person at a stop. Each part is null when the client left it out. */
+/**
+ * Who to ask for at a stop, and where in the building ("Contact Info"). Each
+ * part is null when the client left it out.
+ *
+ * `details` is the LEGACY free-text "block, floor or room" — only orders
+ * booked before the structured fields existed carry it; show it when present.
+ * New orders carry `buildingName`, `entrance` and `comment` instead (the
+ * floor and the elevators are in `HubStopWork`). `comment` is a multi-line
+ * note for the driver (door code, lift code…); business bookings have none.
+ */
 export type HubJobStopContact = {
   name: string | null;
   phone: string | null;
   details: string | null;
+  buildingName: string | null;
+  /** Entrance / staircase, as the client typed it. */
+  entrance: string | null;
+  comment: string | null;
 };
 
 /**
  * The hands-on work at one stop, as the client booked it (pricing model v1):
  * how many helpers the driver brings there, which floor the load is on and
- * whether a cargo elevator can be used. No money — what the helpers pay the
- * driver is `helperPayout`, already inside `driverPayout`.
+ * whether a cargo and/or passenger elevator can be used. The floor and the
+ * elevators are recorded even when no helper is booked (they are the stop's
+ * "Contact Info" too), so show them whenever they say something. No money —
+ * what the helpers pay the driver is `helperPayout`, already inside
+ * `driverPayout`.
  *
  * Orders booked before v1 carry `{ helpers: 0, floor: 0, cargoElevator:
- * false }` at both ends and describe their crew with `helperCount` alone, so
- * show the per-stop work only when it says something (a helper, a floor above
- * ground or an elevator) and fall back to `helperCount` otherwise.
+ * false, passengerElevator: false }` at both ends and describe their crew
+ * with `helperCount` alone, so show the per-stop work only when it says
+ * something (a helper, a floor above ground or an elevator) and fall back to
+ * `helperCount` otherwise.
  */
 export type HubStopWork = {
   /** Helpers booked at this stop, 0–4. */
@@ -351,6 +368,8 @@ export type HubStopWork = {
   floor: number;
   /** Whether a cargo elevator can be used at this stop. */
   cargoElevator: boolean;
+  /** Whether a passenger elevator can be used at this stop. */
+  passengerElevator: boolean;
   /**
    * Whether marking the job delivered must report the helpers' actual minutes
    * at this stop: true only on a pricing-model-v1 order with helpers booked
@@ -445,6 +464,9 @@ export type HubJobSheetResponse = {
   pickupContactName: string | null;
   pickupContactPhone: string | null;
   pickupContactDetails: string | null;
+  pickupBuildingName: string | null;
+  pickupEntrance: string | null;
+  pickupComment: string | null;
   dropoffAddress: string;
   dropoffLat: number | null;
   dropoffLng: number | null;
@@ -453,6 +475,9 @@ export type HubJobSheetResponse = {
   dropoffContactName: string | null;
   dropoffContactPhone: string | null;
   dropoffContactDetails: string | null;
+  dropoffBuildingName: string | null;
+  dropoffEntrance: string | null;
+  dropoffComment: string | null;
   distanceKm: number;
   cargoCategory: string;
   description: string | null;
@@ -1475,9 +1500,15 @@ export type LoadBoardItem = {
   pickupContactName: string | null;
   pickupContactPhone: string | null;
   pickupContactDetails: string | null;
+  pickupBuildingName: string | null;
+  pickupEntrance: string | null;
+  pickupComment: string | null;
   dropoffContactName: string | null;
   dropoffContactPhone: string | null;
   dropoffContactDetails: string | null;
+  dropoffBuildingName: string | null;
+  dropoffEntrance: string | null;
+  dropoffComment: string | null;
   distanceKm: number;
   /**
    * NOT in the approved design — see the `GET /api/loads` handler's doc comment.

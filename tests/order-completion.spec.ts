@@ -226,9 +226,11 @@ test.describe("stop work", () => {
     pickupHelpers: 2,
     pickupFloor: 3,
     pickupCargoElevator: false,
+    pickupPassengerElevator: true,
     dropoffHelpers: 0,
     dropoffFloor: 0,
     dropoffCargoElevator: false,
+    dropoffPassengerElevator: false,
     tariffVersion: 1,
   };
 
@@ -238,12 +240,14 @@ test.describe("stop work", () => {
         helpers: 2,
         floor: 3,
         cargoElevator: false,
+        passengerElevator: true,
         helperMinutesRequired: true,
       },
       dropoffWork: {
         helpers: 0,
         floor: 0,
         cargoElevator: false,
+        passengerElevator: false,
         helperMinutesRequired: false,
       },
     });
@@ -269,6 +273,16 @@ test.describe("stop work", () => {
         helpers: 0,
         floor: 0,
         cargoElevator: true,
+        passengerElevator: false,
+        helperMinutesRequired: false,
+      }),
+    ).toBe(true);
+    expect(
+      hasStopWork({
+        helpers: 0,
+        floor: 0,
+        cargoElevator: false,
+        passengerElevator: true,
         helperMinutesRequired: false,
       }),
     ).toBe(true);

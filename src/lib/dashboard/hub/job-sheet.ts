@@ -146,6 +146,9 @@ const JOB_SHEET_SELECT = {
   pickupContactName: true,
   pickupContactPhone: true,
   pickupContactDetails: true,
+  pickupBuildingName: true,
+  pickupEntrance: true,
+  pickupComment: true,
   dropoffAddress: true,
   dropoffLat: true,
   dropoffLng: true,
@@ -153,6 +156,9 @@ const JOB_SHEET_SELECT = {
   dropoffContactName: true,
   dropoffContactPhone: true,
   dropoffContactDetails: true,
+  dropoffBuildingName: true,
+  dropoffEntrance: true,
+  dropoffComment: true,
   // The load's own pickup-to-dropoff trip, which the route section prints under
   // the two stops. Not a money column and not derived from one.
   distanceKm: true,
@@ -173,9 +179,11 @@ const JOB_SHEET_SELECT = {
   pickupHelpers: true,
   pickupFloor: true,
   pickupCargoElevator: true,
+  pickupPassengerElevator: true,
   dropoffHelpers: true,
   dropoffFloor: true,
   dropoffCargoElevator: true,
+  dropoffPassengerElevator: true,
   // Read only to derive `StopWork.helperMinutesRequired` (`stopWorkOf`);
   // the shaped output never carries it.
   tariffVersion: true,
@@ -261,8 +269,11 @@ export type HubJobSheet = {
   pickupCity: string | null;
   pickupContactName: string | null;
   pickupContactPhone: string | null;
-  /** Block, floor or room — free text, as the schema stores it. */
+  /** LEGACY block, floor or room — free text, older orders only. */
   pickupContactDetails: string | null;
+  pickupBuildingName: string | null;
+  pickupEntrance: string | null;
+  pickupComment: string | null;
   dropoffAddress: string;
   dropoffLat: number | null;
   dropoffLng: number | null;
@@ -271,6 +282,9 @@ export type HubJobSheet = {
   dropoffContactName: string | null;
   dropoffContactPhone: string | null;
   dropoffContactDetails: string | null;
+  dropoffBuildingName: string | null;
+  dropoffEntrance: string | null;
+  dropoffComment: string | null;
   /**
    * The job's own pickup-to-dropoff distance in km — never how far the driver
    * currently is from the pickup, which this loader does not measure.
@@ -527,6 +541,9 @@ export async function getHubJobSheet(
     pickupContactName: textOrNull(order.pickupContactName),
     pickupContactPhone: textOrNull(order.pickupContactPhone),
     pickupContactDetails: textOrNull(order.pickupContactDetails),
+    pickupBuildingName: textOrNull(order.pickupBuildingName),
+    pickupEntrance: textOrNull(order.pickupEntrance),
+    pickupComment: textOrNull(order.pickupComment),
     dropoffAddress: order.dropoffAddress,
     dropoffLat: order.dropoffLat,
     dropoffLng: order.dropoffLng,
@@ -535,6 +552,9 @@ export async function getHubJobSheet(
     dropoffContactName: textOrNull(order.dropoffContactName),
     dropoffContactPhone: textOrNull(order.dropoffContactPhone),
     dropoffContactDetails: textOrNull(order.dropoffContactDetails),
+    dropoffBuildingName: textOrNull(order.dropoffBuildingName),
+    dropoffEntrance: textOrNull(order.dropoffEntrance),
+    dropoffComment: textOrNull(order.dropoffComment),
     distanceKm: order.distanceKm,
 
     cargoCategory: order.cargoCategory,

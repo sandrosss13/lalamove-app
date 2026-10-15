@@ -290,9 +290,11 @@ const LOCATION_FIELDS = [
   "pickupHelpers",
   "pickupFloor",
   "pickupCargoElevator",
+  "pickupPassengerElevator",
   "dropoffHelpers",
   "dropoffFloor",
   "dropoffCargoElevator",
+  "dropoffPassengerElevator",
 ] as const;
 
 /**
@@ -303,8 +305,9 @@ const LOCATION_FIELDS = [
  *
  * Helper fields (pricing model v1), all optional:
  * `pickupHelpers`/`dropoffHelpers` (whole 0-4), `pickupFloor`/`dropoffFloor`
- * (whole 0-`MAX_FLOOR`), `pickupCargoElevator`/`dropoffCargoElevator`
- * (boolean). When NONE of the six is sent, the legacy `helperCount` (0-4) is
+ * (whole 0-`MAX_FLOOR`), `pickupCargoElevator`/`dropoffCargoElevator` and
+ * `pickupPassengerElevator`/`dropoffPassengerElevator` (boolean; either
+ * elevator earns the discount). When NONE of the eight is sent, the legacy `helperCount` (0-4) is
  * mapped to that many helpers at both ends, ground floor, no elevator, so old
  * clients keep working. When any is sent, `helperCount` is still validated but
  * ignored, and an omitted field is 0 / false.
@@ -415,6 +418,7 @@ export function parseQuoteFields(
       const helpers = record[`${end}Helpers`];
       const floor = record[`${end}Floor`];
       const elevator = record[`${end}CargoElevator`];
+      const passengerElevator = record[`${end}PassengerElevator`];
 
       if (helpers !== undefined && !isWholeInRange(helpers, MAX_HELPER_COUNT)) {
         return {
@@ -444,10 +448,24 @@ export function parseQuoteFields(
         };
       }
 
+      if (
+        passengerElevator !== undefined &&
+        typeof passengerElevator !== "boolean"
+      ) {
+        return {
+          error: message(
+            "common.pricing.cargoElevatorMustBeBoolean",
+            `${end}PassengerElevator must be true or false.`,
+            { field: `${end}PassengerElevator` },
+          ),
+        };
+      }
+
       parsed[end] = {
         helpers: helpers ?? 0,
         floor: floor ?? 0,
         cargoElevator: elevator ?? false,
+        passengerElevator: passengerElevator ?? false,
       };
     }
     pickupHelp = parsed.pickup ?? NO_HELP;

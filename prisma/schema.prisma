@@ -1500,6 +1500,18 @@ model Order {
   /// Block, floor or room at the dropoff.
   dropoffContactDetails String?
 
+  // Structured "Contact Info" per stop (booking form). Supersedes the free-text
+  // `*ContactDetails` above for new orders, which stop writing them; older
+  // orders keep displaying theirs. The floor lives in `pickupFloor` /
+  // `dropoffFloor` below (shared with helper pricing). All optional.
+  pickupBuildingName  String?
+  pickupEntrance      String?
+  /// Free-text note for the driver (door code, lift code…). Individuals only.
+  pickupComment       String?
+  dropoffBuildingName String?
+  dropoffEntrance     String?
+  dropoffComment      String?
+
   // Itemised quote, kept alongside the total so a completed order still shows how
   // its price was reached even after the underlying PricingRule is retuned.
   // `price` is the up-front quoted total (base + distance + time + helper, floored
@@ -1609,12 +1621,16 @@ model Order {
   /// load is on (0 = ground) and whether a cargo elevator can be used there.
   /// `helperCount` above is kept = max(pickupHelpers, dropoffHelpers) so
   /// dispatch and work-preference filtering keep working.
-  pickupHelpers        Int     @default(0)
-  pickupFloor          Int     @default(0)
-  pickupCargoElevator  Boolean @default(false)
-  dropoffHelpers       Int     @default(0)
-  dropoffFloor         Int     @default(0)
-  dropoffCargoElevator Boolean @default(false)
+  /// A passenger elevator at a stop earns the same helper discount as a cargo
+  /// one (either is enough); both are also shown to the driver.
+  pickupHelpers            Int     @default(0)
+  pickupFloor              Int     @default(0)
+  pickupCargoElevator      Boolean @default(false)
+  pickupPassengerElevator  Boolean @default(false)
+  dropoffHelpers           Int     @default(0)
+  dropoffFloor             Int     @default(0)
+  dropoffCargoElevator     Boolean @default(false)
+  dropoffPassengerElevator Boolean @default(false)
 
   /// Actual helper minutes worked at each end, reported at completion. Null
   /// until then (and on every pre-v1 order).

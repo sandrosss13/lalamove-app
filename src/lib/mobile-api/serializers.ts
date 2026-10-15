@@ -180,7 +180,14 @@ function toStopContact(
 ): HubJobStopContact | null {
   return contact === null
     ? null
-    : { name: contact.name, phone: contact.phone, details: contact.details };
+    : {
+        name: contact.name,
+        phone: contact.phone,
+        details: contact.details,
+        buildingName: contact.buildingName,
+        entrance: contact.entrance,
+        comment: contact.comment,
+      };
 }
 
 function toJobsItem(job: HubJob): HubJobsItem {
@@ -277,6 +284,9 @@ export function toHubJobSheetResponse(
     pickupContactName: job.pickupContactName,
     pickupContactPhone: job.pickupContactPhone,
     pickupContactDetails: job.pickupContactDetails,
+    pickupBuildingName: job.pickupBuildingName,
+    pickupEntrance: job.pickupEntrance,
+    pickupComment: job.pickupComment,
     dropoffAddress: job.dropoffAddress,
     dropoffLat: job.dropoffLat,
     dropoffLng: job.dropoffLng,
@@ -284,6 +294,9 @@ export function toHubJobSheetResponse(
     dropoffContactName: job.dropoffContactName,
     dropoffContactPhone: job.dropoffContactPhone,
     dropoffContactDetails: job.dropoffContactDetails,
+    dropoffBuildingName: job.dropoffBuildingName,
+    dropoffEntrance: job.dropoffEntrance,
+    dropoffComment: job.dropoffComment,
     distanceKm: job.distanceKm,
     cargoCategory: job.cargoCategory,
     description: job.description,

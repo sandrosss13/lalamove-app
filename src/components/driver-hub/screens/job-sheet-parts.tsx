@@ -44,6 +44,7 @@ import { formatGel } from "@/components/driver-hub/screens/jobs-format";
 import { OrderPhotoGallery } from "@/components/order-photo-gallery";
 import { Button } from "@/components/ui/button";
 import type { HubJobSheet } from "@/lib/dashboard/hub/job-sheet";
+import { stopInfoRows, type StopInfo } from "@/lib/orders/stop-info";
 import { cn } from "@/lib/utils";
 
 /**
@@ -825,8 +826,11 @@ export type JobSheetStopCardProps = {
   address: string;
   contactName: string | null;
   contactPhone: string | null;
-  /** Block, floor or room — free text, as the schema stores it. */
-  contactDetails: string | null;
+  /**
+   * The stop's Contact Info — building, entrance, floor, elevators, comment
+   * and the legacy free-text details (`stopInfoRows`). Never money.
+   */
+  info: StopInfo;
   lat: number | null;
   lng: number | null;
   /**
@@ -873,7 +877,7 @@ export function JobSheetStopCard({
   address,
   contactName,
   contactPhone,
-  contactDetails,
+  info,
   lat,
   lng,
   prominent,
@@ -886,6 +890,8 @@ export function JobSheetStopCard({
   const callHref = contactPhone === null ? null : toTelHref(contactPhone);
   const t = useTranslations("driverHub.jobSheetParts");
   const tShared = useTranslations("common.shared");
+  const tStopInfo = useTranslations("common.stopInfo");
+  const infoRows = stopInfoRows(info, tStopInfo);
 
   return (
     <HubCard
@@ -931,15 +937,23 @@ export function JobSheetStopCard({
             <StopPhoneLink phone={contactPhone} className="font-price" />
           )}
         </dd>
-        {/* Block, floor, buzzer code — absent on most orders, and a labelled
-            em dash for it would be a third row of nothing on a card that
-            already shows two. Omitted rather than emptied. */}
-        {contactDetails === null ? null : (
-          <>
-            <dt className="text-muted-foreground">{t("details")}</dt>
-            <dd className="min-w-0 break-words">{contactDetails}</dd>
-          </>
-        )}
+        {/* Building, entrance, floor, elevators, the client's comment (and
+            an older order's free-text details) — each omitted rather than
+            emptied when absent: a labelled em dash per missing part would bury
+            the two rows that are always there. */}
+        {infoRows.map((row) => (
+          <React.Fragment key={row.key}>
+            <dt className="text-muted-foreground">{row.label}</dt>
+            <dd
+              className={cn(
+                "min-w-0 break-words",
+                row.multiline && "whitespace-pre-line",
+              )}
+            >
+              {row.value}
+            </dd>
+          </React.Fragment>
+        ))}
       </dl>
 
       {/* `mt-auto` pins the action row to the bottom of the card, so two stop
