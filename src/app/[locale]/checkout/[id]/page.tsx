@@ -1,7 +1,12 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { OrderStatus } from "@prisma/client";
-import type { CargoCategory, ChassisType, ServiceLevel } from "@prisma/client";
+import type {
+  CargoCategory,
+  ChassisType,
+  ServiceLevel,
+  TripType,
+} from "@prisma/client";
 import { useLocale, useTranslations } from "next-intl";
 import { getTranslations } from "next-intl/server";
 
@@ -10,13 +15,20 @@ import { auth } from "@/lib/auth";
 import { useCargoCategoryLabel } from "@/lib/cargo";
 import { loadBookingPaymentOptions } from "@/lib/home/booking-payment-options";
 import { loadAccessibleOrder } from "@/lib/orders/load-accessible-order";
+import { helperTimeRulesOf, loadPricingConfig } from "@/lib/pricing";
 import { vehicleTypeSpecLabel } from "@/lib/vehicle-type-spec-labels";
 import { BreakdownRow } from "@/components/home/booking-form-primitives";
+import {
+  helperTimeNoteValues,
+  minimumFareApplied,
+  type HelperTimeNoteValues,
+} from "@/components/home/booking-pricing";
 import { formatGel, useServiceLevelLabel } from "@/components/orders-format";
 import { CheckoutPaymentPanel } from "../checkout-payment-panel";
 import {
   formatBookedDistanceKm,
   formatScheduledAt,
+  helperFeeSplit,
   transportationCost,
   useCheckoutLabels,
 } from "../checkout-format";
@@ -60,9 +72,30 @@ const CHECKOUT_ORDER_SELECT = {
   description: true,
   distanceKm: true,
   helperFee: true,
+  // Pricing model v1: the helper charge split by end (0 on a pre-v1 order,
+  // which keeps its one helper line — see `helperFeeSplit`).
+  pickupHelperFee: true,
+  dropoffHelperFee: true,
   price: true,
   serviceLevel: true,
   serviceLevelAdjustment: true,
+  // Pricing model v1: the transport charge and its trip type (intercity
+  // carries the return-trip allowance), the fare components the minimum-fare
+  // note is judged from, and the helpers/floor/elevator at each end. All the
+  // client's own quote. `tariffVersion` is null on a pre-v1 order.
+  baseFare: true,
+  distanceFare: true,
+  timeFare: true,
+  returnFare: true,
+  transportFare: true,
+  tripType: true,
+  pickupHelpers: true,
+  pickupFloor: true,
+  pickupCargoElevator: true,
+  dropoffHelpers: true,
+  dropoffFloor: true,
+  dropoffCargoElevator: true,
+  tariffVersion: true,
   // A relation, so it is not returned unless it is asked for — and only the one
   // column the summary prints.
   vehicleTypeSpec: { select: { code: true, label: true } },
@@ -158,6 +191,13 @@ export default async function CheckoutPage({
       }
     : loadedPaymentOptions;
 
+  // The helper-time note quotes the LIVE rules (what completion will bill),
+  // not a copy of the defaults. Only read when the note will be shown.
+  const helperNote =
+    order.tariffVersion !== null && order.helperFee > 0
+      ? helperTimeNoteValues(helperTimeRulesOf(await loadPricingConfig()))
+      : null;
+
   return (
     // The background is painted on `main` rather than on the centred column so
     // it covers the full viewport: `body` still resolves `--background`, which is
@@ -180,7 +220,11 @@ export default async function CheckoutPage({
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)] lg:items-start">
           <div className="flex flex-col gap-6">
             <OrderSummaryPanel order={order} />
-            <PriceBreakdownPanel order={order} total={total} />
+            <PriceBreakdownPanel
+              order={order}
+              total={total}
+              helperNote={helperNote}
+            />
           </div>
 
           {/* Sticky only where there is room for it to be: on a tall column the
@@ -212,10 +256,25 @@ type CheckoutOrder = {
   description: string | null;
   distanceKm: number;
   helperFee: number;
+  pickupHelperFee: number;
+  dropoffHelperFee: number;
   price: number;
   serviceLevel: ServiceLevel;
   serviceLevelAdjustment: number;
   vehicleTypeSpec: { code: string; label: string };
+  baseFare: number;
+  distanceFare: number;
+  timeFare: number;
+  returnFare: number;
+  transportFare: number | null;
+  tripType: TripType | null;
+  pickupHelpers: number;
+  pickupFloor: number;
+  pickupCargoElevator: boolean;
+  dropoffHelpers: number;
+  dropoffFloor: number;
+  dropoffCargoElevator: boolean;
+  tariffVersion: number | null;
 };
 
 /** What was booked: the route, then everything that describes the job. */
@@ -227,6 +286,7 @@ function OrderSummaryPanel({ order }: { order: CheckoutOrder }) {
   const cargoCategoryLabel = useCargoCategoryLabel();
   const serviceLevelLabel = useServiceLevelLabel();
   const labels = useCheckoutLabels();
+  const helperLocations = labels.helperLocations(order);
 
   return (
     <section
@@ -274,10 +334,25 @@ function OrderSummaryPanel({ order }: { order: CheckoutOrder }) {
           label={t("goods")}
           value={cargoCategoryLabel(order.cargoCategory)}
         />
-        <DetailRow
-          label={t("helpers")}
-          value={labels.helperCount(order.helperCount)}
-        />
+        {/* Pricing model v1 asks per end; a pre-v1 order keeps its one crew
+            size (`helperLocations` returns null for it). */}
+        {helperLocations ? (
+          <>
+            <DetailRow
+              label={t("helpersAtPickup")}
+              value={helperLocations.pickup}
+            />
+            <DetailRow
+              label={t("helpersAtDropoff")}
+              value={helperLocations.dropoff}
+            />
+          </>
+        ) : (
+          <DetailRow
+            label={t("helpers")}
+            value={labels.helperCount(order.helperCount)}
+          />
+        )}
         {/* Also nullable, and for the same reason as the schedule. */}
         {order.bodyType ? (
           <DetailRow
@@ -316,10 +391,14 @@ function OrderSummaryPanel({ order }: { order: CheckoutOrder }) {
 function PriceBreakdownPanel({
   order,
   total,
+  helperNote,
 }: {
   order: CheckoutOrder;
   total: number;
+  /** The live helper-time rules, or null when the note is not shown. */
+  helperNote: HelperTimeNoteValues | null;
 }) {
+  const helperSplit = helperFeeSplit(order);
   const t = useTranslations("checkout.checkout");
   const tShared = useTranslations("common.shared");
   const tBooking = useTranslations("home.bookingForm");
@@ -341,14 +420,43 @@ function PriceBreakdownPanel({
           label={tShared("distance")}
           value={formatBookedDistanceKm(order.distanceKm)}
         />
+        {/* A v1 order names it "Transport" (base, distance, time and, for an
+            intercity trip, the return allowance); a pre-v1 one keeps the
+            wording it was booked under. */}
         <BreakdownRow
-          label={tShared("transportationCost")}
+          label={
+            order.tariffVersion === null
+              ? tShared("transportationCost")
+              : tBooking("transport")
+          }
           value={formatGel(transportationCost(order))}
         />
-        {/* Only worth a line when at least one helper was actually requested. */}
-        {order.helperFee > 0 ? (
+        {/* Only worth a line when at least one helper was actually requested.
+            A v1 order itemises the charge per end ("Helpers at pickup" /
+            "Helpers at drop-off", each only when it costs something); a
+            pre-v1 order stored one total and keeps one line. */}
+        {helperSplit ? (
+          <>
+            {helperSplit.pickup > 0 ? (
+              <BreakdownRow
+                label={t("helpersAtPickup")}
+                value={formatGel(helperSplit.pickup)}
+              />
+            ) : null}
+            {helperSplit.dropoff > 0 ? (
+              <BreakdownRow
+                label={t("helpersAtDropoff")}
+                value={formatGel(helperSplit.dropoff)}
+              />
+            ) : null}
+          </>
+        ) : order.helperFee > 0 ? (
           <BreakdownRow
-            label={tShared("helperFee")}
+            label={
+              order.tariffVersion === null
+                ? tShared("helperFee")
+                : t("helperServices")
+            }
             value={formatGel(order.helperFee)}
           />
         ) : null}
@@ -385,6 +493,29 @@ function PriceBreakdownPanel({
         </div>
       </dl>
 
+      {order.tripType === "INTERCITY" ? (
+        <p className="mt-3 text-xs leading-snug text-muted">
+          {tBooking("intercityIncludesReturn")}
+        </p>
+      ) : minimumFareApplied(order) ? (
+        <p className="mt-3 text-xs leading-snug text-muted">
+          {tBooking("minimumFareAppliedForThisVehicle")}
+        </p>
+      ) : null}
+      {order.tariffVersion !== null && order.serviceLevelAdjustment !== 0 ? (
+        <p className="mt-1.5 text-xs leading-snug text-muted">
+          {tBooking("tierAppliesToTransport")}
+        </p>
+      ) : null}
+      {helperNote ? (
+        <p className="mt-1.5 text-xs leading-snug text-muted">
+          {tBooking("helperOvertimeNote", {
+            minutes: helperNote.includedMinutes,
+            fee: helperNote.fee,
+            increment: helperNote.incrementMinutes,
+          })}
+        </p>
+      ) : null}
       <p className="mt-3 text-xs leading-snug text-muted">
         {t("loadingAndUnloadingTimeBeyondThe")}
       </p>

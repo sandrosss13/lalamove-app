@@ -14,7 +14,10 @@
     "notes": "Notes",
     "reviewAndPay": "Review and pay",
     "signInToReviewAndPay": "Sign in to review and pay for this delivery.",
-    "yourDelivery": "Your delivery"
+    "yourDelivery": "Your delivery",
+    "helpersAtPickup": "Helpers at pickup",
+    "helpersAtDropoff": "Helpers at drop-off",
+    "helperServices": "Helper services"
   },
   "checkoutPaymentPanel": {
     "cardAriaLabel": "{brand} card ending {last4} — expires {expiry}",
@@ -94,5 +97,8 @@
     "bankTransfer": "Bank transfer",
     "card": "Card",
     "cash": "Pay later"
-  }
+  },
+  "helperFloor": "Floor {floor}",
+  "groundFloor": "Ground floor",
+  "cargoElevator": "Cargo elevator"
 }

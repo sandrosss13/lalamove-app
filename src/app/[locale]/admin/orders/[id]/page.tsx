@@ -14,6 +14,7 @@ import {
   formatGel,
 } from "@/components/admin/orders/order-format";
 import { serviceLevelLabel } from "@/components/orders-format";
+import { helperLocationLabel } from "@/app/[locale]/checkout/checkout-format";
 import { OrderPhotoGallery } from "@/components/order-photo-gallery";
 import { Badge } from "@/components/ui/badge";
 import { adminOrderTotalGel } from "@/lib/admin/orders-filters";
@@ -115,6 +116,18 @@ export default async function AdminOrderDetailPage({
       cargoCategory: true,
       bodyType: true,
       helperCount: true,
+      // Pricing model v1: the work at each stop, and the helper minutes
+      // actually reported at completion (null until then).
+      pickupHelpers: true,
+      pickupFloor: true,
+      pickupCargoElevator: true,
+      pickupHelperMinutes: true,
+      dropoffHelpers: true,
+      dropoffFloor: true,
+      dropoffCargoElevator: true,
+      dropoffHelperMinutes: true,
+      tripType: true,
+      tariffVersion: true,
       description: true,
       serviceLevel: true,
       cargoWeightKg: true,
@@ -129,6 +142,13 @@ export default async function AdminOrderDetailPage({
       timeFare: true,
       helperFee: true,
       overtimeFee: true,
+      // Pricing model v1's itemisation; 0/null on a pre-v1 order.
+      returnFare: true,
+      returnAllowance: true,
+      transportFare: true,
+      pickupHelperFee: true,
+      dropoffHelperFee: true,
+      helperOvertimeFee: true,
       price: true,
       serviceLevelAdjustment: true,
       commissionRate: true,
@@ -223,6 +243,22 @@ export default async function AdminOrderDetailPage({
   // `price` already includes `helperFee`; the tier adjustment and any overtime
   // are settled on top — see `adminOrderTotalGel`.
   const total = adminOrderTotalGel(order);
+  // A v1 order records helpers per stop; a pre-v1 one, one crew size.
+  const isV1 = order.tariffVersion !== null;
+  const stopHelpLabel = (
+    help: { helpers: number; floor: number; cargoElevator: boolean },
+    minutes: number | null,
+  ): string =>
+    [
+      helperLocationLabel(help, tRoot),
+      ...(minutes !== null
+        ? [t("helperMinutesWorked", { minutes: format.number(minutes) })]
+        : []),
+    ].join(" · ");
+  const helperSplit =
+    isV1 &&
+    Math.abs(order.pickupHelperFee + order.dropoffHelperFee - order.helperFee) <
+      0.005;
   const hasStopContacts = [
     order.pickupContactName,
     order.pickupContactPhone,
@@ -343,6 +379,14 @@ export default async function AdminOrderDetailPage({
               label={t("distance")}
               value={formatNumber(order.distanceKm, t("kmUnit"))}
             />
+            <Field
+              label={tRoot("admin.adminPricing.simTripType")}
+              value={
+                order.tripType
+                  ? tRoot(`admin.adminPricing.tripTypes.${order.tripType}`)
+                  : null
+              }
+            />
             {hasStopContacts ? (
               <>
                 <Field
@@ -390,10 +434,37 @@ export default async function AdminOrderDetailPage({
                 tRoot,
               )}
             />
-            <Field
-              label={tShared("helpers")}
-              value={String(order.helperCount)}
-            />
+            {isV1 ? (
+              <>
+                <Field
+                  label={tRoot("checkout.checkout.helpersAtPickup")}
+                  value={stopHelpLabel(
+                    {
+                      helpers: order.pickupHelpers,
+                      floor: order.pickupFloor,
+                      cargoElevator: order.pickupCargoElevator,
+                    },
+                    order.pickupHelperMinutes,
+                  )}
+                />
+                <Field
+                  label={tRoot("checkout.checkout.helpersAtDropoff")}
+                  value={stopHelpLabel(
+                    {
+                      helpers: order.dropoffHelpers,
+                      floor: order.dropoffFloor,
+                      cargoElevator: order.dropoffCargoElevator,
+                    },
+                    order.dropoffHelperMinutes,
+                  )}
+                />
+              </>
+            ) : (
+              <Field
+                label={tShared("helpers")}
+                value={String(order.helperCount)}
+              />
+            )}
             <Field
               label={tShared("serviceLevel")}
               value={serviceLevelLabel(order.serviceLevel, tRoot)}
@@ -490,7 +561,38 @@ export default async function AdminOrderDetailPage({
               value={formatGel(order.distanceFare)}
             />
             <Field label={t("timeFare")} value={formatGel(order.timeFare)} />
-            {order.helperFee !== 0 ? (
+            {order.returnFare !== 0 ? (
+              <Field
+                label={tRoot("admin.adminPricing.simReturnFare", {
+                  percent: format.number(order.returnAllowance * 100, {
+                    maximumFractionDigits: 1,
+                  }),
+                })}
+                value={formatGel(order.returnFare)}
+              />
+            ) : null}
+            {order.transportFare !== null ? (
+              <Field
+                label={tRoot("admin.adminPricing.simTransport")}
+                value={formatGel(order.transportFare)}
+              />
+            ) : null}
+            {helperSplit ? (
+              <>
+                {order.pickupHelperFee !== 0 ? (
+                  <Field
+                    label={tRoot("checkout.checkout.helpersAtPickup")}
+                    value={formatGel(order.pickupHelperFee)}
+                  />
+                ) : null}
+                {order.dropoffHelperFee !== 0 ? (
+                  <Field
+                    label={tRoot("checkout.checkout.helpersAtDropoff")}
+                    value={formatGel(order.dropoffHelperFee)}
+                  />
+                ) : null}
+              </>
+            ) : order.helperFee !== 0 ? (
               <Field
                 label={tShared("helperFee")}
                 value={formatGel(order.helperFee)}
@@ -507,6 +609,12 @@ export default async function AdminOrderDetailPage({
               <Field
                 label={t("overtimeFee")}
                 value={formatGel(order.overtimeFee)}
+              />
+            ) : null}
+            {order.helperOvertimeFee !== 0 ? (
+              <Field
+                label={t("helperOvertimeFee")}
+                value={formatGel(order.helperOvertimeFee)}
               />
             ) : null}
             <Field

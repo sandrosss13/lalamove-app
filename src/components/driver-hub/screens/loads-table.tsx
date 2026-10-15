@@ -19,6 +19,7 @@ import {
   formatGelPerKm,
   formatLoadDayLabel,
   formatLoadDims,
+  formatLoadStopWork,
   formatPostedAgo,
   formatVolumeM3,
   formatWeightKg,
@@ -540,11 +541,27 @@ function SortableHead({
  * this job need a second pair of hands", and a zero in a filled badge reads as
  * a quantity somebody chose rather than the absence of a request.
  */
-function HelpersBadge({ helperCount }: { helperCount: number }) {
+function HelpersBadge({
+  helperCount,
+  stopWork,
+}: {
+  helperCount: number;
+  /**
+   * Pricing model v1: the work at each stop (`formatLoadStopWork`), shown as
+   * the badge's tooltip and accessible name so the per-stop crew, floor and
+   * elevator are one hover away; null on a pre-v1 order.
+   */
+  stopWork: { pickup: string; dropoff: string } | null;
+}) {
   const requested = helperCount > 0;
+  const description = stopWork
+    ? `${stopWork.pickup}\n${stopWork.dropoff}`
+    : undefined;
 
   return (
     <span
+      title={description}
+      aria-label={description}
       className={cn(
         "inline-flex h-6 min-w-6 items-center justify-center rounded-full px-1.5 text-xs font-semibold tabular-nums",
         requested
@@ -687,6 +704,7 @@ function LoadRow({ load, nowIso }: { load: HubLoad; nowIso: string }) {
   const { selectedId, selectLoad } = useLoadsBoard();
   const t = useTranslations("driverHub.loadsTable");
   const tRoot = useTranslations();
+  const tFormat = useTranslations("driverHub.loadsFormat");
   const timeFormat = useLoadsTimeFormat();
   const isSelected = load.id === selectedId;
 
@@ -888,7 +906,10 @@ function LoadRow({ load, nowIso }: { load: HubLoad; nowIso: string }) {
       <TableCell
         className={cn(CELL_CLASSES, COLUMN_CLASSES.helpers, "text-center")}
       >
-        <HelpersBadge helperCount={load.helperCount} />
+        <HelpersBadge
+          helperCount={load.helperCount}
+          stopWork={formatLoadStopWork(load, tFormat)}
+        />
       </TableCell>
 
       {/* 10 — Weight / dims. */}

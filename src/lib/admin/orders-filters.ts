@@ -158,16 +158,28 @@ export function adminOrdersPageCount(total: number): number {
 /**
  * What the client is charged for an order, in GEL: the quoted `price`, the
  * service tier's `serviceLevelAdjustment` (stored beside `price`, not folded
- * into it — see the schema) and any `overtimeFee` settled at completion.
- * Rounded to whole tetri so the binary dust of adding three `Float` columns
- * never reaches the screen.
+ * into it — see the schema) and the overtime settled at completion — the
+ * vehicle waiting `overtimeFee` and, since pricing model v1, the
+ * `helperOvertimeFee` (`src/lib/orders/completion.ts`). Both overtimes are
+ * billed the same way: on top of the quoted total, after the fact.
+ * Rounded to whole tetri so the binary dust of adding `Float` columns never
+ * reaches the screen.
+ *
+ * `helperOvertimeFee` is optional only so a caller that has not selected it
+ * yet still compiles; select it wherever a client's total is shown (it is 0 on
+ * every pre-v1 order and on every job whose helpers stayed within the hour).
  */
 export function adminOrderTotalGel(order: {
   price: number;
   serviceLevelAdjustment: number;
   overtimeFee: number;
+  helperOvertimeFee?: number;
 }): number {
-  const sum = order.price + order.serviceLevelAdjustment + order.overtimeFee;
+  const sum =
+    order.price +
+    order.serviceLevelAdjustment +
+    order.overtimeFee +
+    (order.helperOvertimeFee ?? 0);
 
   return Math.round(sum * 100) / 100;
 }

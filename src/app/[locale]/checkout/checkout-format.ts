@@ -141,8 +141,109 @@ export function helperCountLabel(helperCount: number): string {
 export function transportationCost(order: {
   price: number;
   helperFee: number;
+  /**
+   * Pricing model v1's stored transport charge (base + distance + time +
+   * return allowance, floored for a city trip). Null on a pre-v1 order, which
+   * falls back to the subtraction above.
+   */
+  transportFare?: number | null;
 }): number {
+  if (typeof order.transportFare === "number") {
+    return order.transportFare;
+  }
   return order.price - order.helperFee;
+}
+
+/**
+ * The quoted helper charge split by end — `pickupHelperFee` and
+ * `dropoffHelperFee`, stamped at booking since pricing model v1 — or `null`
+ * when the order should keep ONE helper line: a pre-v1 order (one crew size,
+ * one `helperFee`), or a row whose split does not add up to its `helperFee`
+ * (never expected; printing two lines that fail to reconcile against the
+ * total would be worse than one line that does).
+ */
+export function helperFeeSplit(order: {
+  tariffVersion: number | null;
+  helperFee: number;
+  pickupHelperFee: number;
+  dropoffHelperFee: number;
+}): { pickup: number; dropoff: number } | null {
+  if (order.tariffVersion === null || order.helperFee <= 0) {
+    return null;
+  }
+  const sum = order.pickupHelperFee + order.dropoffHelperFee;
+  if (Math.abs(sum - order.helperFee) > 0.005) {
+    return null;
+  }
+  return { pickup: order.pickupHelperFee, dropoff: order.dropoffHelperFee };
+}
+
+/** The per-location helper columns an order carries (pricing model v1). */
+export type OrderHelperLocations = {
+  helperCount: number;
+  pickupHelpers: number;
+  pickupFloor: number;
+  pickupCargoElevator: boolean;
+  dropoffHelpers: number;
+  dropoffFloor: number;
+  dropoffCargoElevator: boolean;
+  /** Null on an order priced before pricing model v1. */
+  tariffVersion: number | null;
+};
+
+/**
+ * One end's helpers in words — `2 helpers · floor 3 · cargo elevator`, or
+ * `No helpers` — given a root `t`. The floor and the elevator are only named
+ * when someone is there to use them.
+ */
+export function helperLocationLabel(
+  help: { helpers: number; floor: number; cargoElevator: boolean },
+  t: Translator,
+): string {
+  const parts = [t("checkout.helperCount", { count: help.helpers })];
+  if (help.helpers > 0) {
+    parts.push(
+      help.floor === 0
+        ? t("checkout.groundFloor")
+        : t("checkout.helperFloor", { floor: help.floor }),
+    );
+    if (help.cargoElevator) {
+      parts.push(t("checkout.cargoElevator"));
+    }
+  }
+  return parts.join(" · ");
+}
+
+/**
+ * The pickup and drop-off helper lines for an order, or `null` for a pre-v1
+ * order, which recorded one crew size (`helperCount`) and keeps its single
+ * "Helpers" row.
+ */
+export function helperLocationLabels(
+  order: OrderHelperLocations,
+  t: Translator,
+): { pickup: string; dropoff: string } | null {
+  if (order.tariffVersion === null) {
+    return null;
+  }
+  return {
+    pickup: helperLocationLabel(
+      {
+        helpers: order.pickupHelpers,
+        floor: order.pickupFloor,
+        cargoElevator: order.pickupCargoElevator,
+      },
+      t,
+    ),
+    dropoff: helperLocationLabel(
+      {
+        helpers: order.dropoffHelpers,
+        floor: order.dropoffFloor,
+        cargoElevator: order.dropoffCargoElevator,
+      },
+      t,
+    ),
+  };
 }
 
 /* -------------------------------------------------------------------------- */
@@ -193,5 +294,7 @@ export function useCheckoutLabels() {
     paymentMethod: (method: PaymentMethodType) => paymentMethodLabel(method, t),
     helperCount: (helperCount: number) =>
       localizedHelperCountLabel(helperCount, t),
+    helperLocations: (order: OrderHelperLocations) =>
+      helperLocationLabels(order, t),
   };
 }

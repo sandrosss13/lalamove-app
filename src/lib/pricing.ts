@@ -2,20 +2,23 @@
  * Shared freight-quote logic: the fields a price depends on, how they are
  * validated, and how they turn into a distance and an itemised price.
  *
- * Both the public estimate endpoint and authenticated order creation go through
- * here so a quote a visitor is shown matches the order they later book.
+ * Both the public estimate endpoint and order creation go through here so a
+ * quote a visitor is shown matches the order they later book.
  *
- * Rates are not hardcoded: every component comes from the `PricingRule` seeded
- * alongside the booked `VehicleTypeSpec`, so retuning prices is a data change.
+ * Pricing model v1: the formulas are pure functions in
+ * `src/lib/pricing-engine.ts` (re-exported below where callers already
+ * imported them from here). This module is the Prisma-reading half: it loads
+ * the vehicle's `PricingRule`, the `PricingConfig` singleton, the
+ * `HelperFloorBand` rows and the `RouteAllowance` for the trip's city pair,
+ * geocodes and routes, then hands everything to `computeQuote`.
  *
- * Server-only — it reads pricing data through Prisma and pulls in the geocoding
- * module, which reads env vars.
+ * Server-only in practice — it reads pricing data through Prisma and pulls in
+ * the geocoding module, which reads env vars. (Importing it without querying,
+ * as the pure specs do for `parseQuoteFields`, touches no database.)
  */
 
-// `ServiceLevel` is imported as a value, not just a type: the exhaustive switch
-// in `serviceLevelAdjustment` matches on its enum members.
-import { ServiceLevel } from "@prisma/client";
 import type { CargoCategory, VehicleCategory } from "@prisma/client";
+import type { GeorgianCity, TripType } from "@prisma/client";
 
 import type { RequestTranslator } from "@/i18n/request-locale";
 import {
@@ -30,15 +33,51 @@ import {
   type LatLng,
   type Route,
 } from "@/lib/geo";
+import { resolveGeorgianCity } from "@/lib/orders/resolve-city";
+import {
+  commissionRateFor,
+  computeQuote,
+  crewHelperCount,
+  DEFAULT_HELPER_FLOOR_BANDS,
+  DEFAULT_PRICING_CONFIG,
+  hasUsableRates,
+  isManualQuoteRequired,
+  normaliseCityPair,
+  NO_HELP,
+  quoteExpiresAt,
+  roundCurrency,
+  serviceLevelAdjustment,
+  type HelperFloorBandValues,
+  type LocationHelp,
+  type PriceBreakdown,
+  type PricingConfigValues,
+  type RouteAllowanceValues,
+} from "@/lib/pricing-engine";
 import { prisma } from "@/lib/prisma";
+
+export {
+  clientTotalForServiceLevel,
+  POOLING_DISCOUNT,
+  PRIORITY_UPLIFT,
+  serviceLevelAdjustment,
+  type LocationHelp,
+  type PriceBreakdown,
+} from "@/lib/pricing-engine";
 
 /** Valid `CargoCategory` values — the label table is keyed by every one of them. */
 const CARGO_CATEGORIES = Object.keys(CARGO_CATEGORY_LABELS) as CargoCategory[];
 
 const MINUTES_PER_HOUR = 60;
 
-/** The most extra helpers a single booking may request beyond the driver. */
+/**
+ * The most helpers bookable at ONE location that the parser accepts. The
+ * admin-editable `PricingConfig.maxHelpers` may be lower and is enforced by
+ * `estimateDelivery` (`helpers_out_of_range`); this is the hard bound.
+ */
 const MAX_HELPER_COUNT = 4;
+
+/** A sanity bound on a location's floor (0 = ground floor). */
+export const MAX_FLOOR = 100;
 
 /** The fields every freight quote is computed from. */
 export type QuoteInput = {
@@ -47,27 +86,39 @@ export type QuoteInput = {
   /** `VehicleTypeSpec.code`, e.g. "BOX_TRUCK". */
   vehicleTypeCode: string;
   cargoCategory: CargoCategory;
+  /** Helpers, floor and cargo elevator at the pickup. */
+  pickupHelp: LocationHelp;
+  /** Helpers, floor and cargo elevator at the dropoff. */
+  dropoffHelp: LocationHelp;
   /**
-   * Extra helpers requested *beyond* the driver, 0-4. The booking form asks for
-   * exactly this number, where 0 is the driver working alone — the driver is
-   * never counted, because the per-helper fee multiplies only the extras.
+   * `max(pickupHelp.helpers, dropoffHelp.helpers)` — derived, kept so
+   * `Order.helperCount` (dispatch, work preferences) stays populated. A legacy
+   * client that sends only `helperCount` gets that many helpers at BOTH ends,
+   * ground floor, no elevator.
    */
   helperCount: number;
+  /**
+   * The `tariffVersion` the client was shown with its quote, when it sent one.
+   * Order creation refuses a stale one (`tariff_changed`); the estimate
+   * endpoint ignores it.
+   */
+  tariffVersion: number | null;
 };
 
+/** Re-exported tier type: an alias of the generated `ServiceLevel` enum. */
+export type ServiceLevelKey = import("@prisma/client").ServiceLevel;
+
 /**
- * The itemised quote. Kept itemised (rather than a single total) so an order can
- * store how its price was reached, and still show that after the underlying
- * `PricingRule` is retuned.
+ * `amount` plus its tier adjustment. Under pricing model v1 the tier applies to
+ * the TRANSPORT charge only, so pass `transportFare` and add helpers yourself —
+ * or use `clientTotalForServiceLevel`, which does both.
  */
-export type PriceBreakdown = {
-  baseFare: number;
-  distanceFare: number;
-  timeFare: number;
-  helperFee: number;
-  /** Sum of the components above, floored at the rule's `minimumFare`. */
-  price: number;
-};
+export function priceForServiceLevel(
+  level: ServiceLevelKey,
+  amount: number,
+): number {
+  return roundCurrency(amount + serviceLevelAdjustment(level, amount));
+}
 
 /** A resolved quote: both endpoints located, plus the derived numbers. */
 export type DeliveryEstimate = {
@@ -79,19 +130,58 @@ export type DeliveryEstimate = {
   durationMinutes: number;
   /**
    * The road geometry to draw for this route, or `null` when routing was
-   * unavailable and the quote fell back to straight-line distance — callers
-   * draw a direct line between the endpoints in that case.
+   * unavailable and the quote fell back to straight-line distance.
    */
   routePath: LatLng[] | null;
   /** Resolved from `vehicleTypeCode`, so order creation need not look it up again. */
   vehicleTypeSpecId: string;
+  /** The cities the two addresses resolved to (null when none matched). */
+  pickupCity: GeorgianCity | null;
+  dropoffCity: GeorgianCity | null;
+  /** Client-facing itemised quote — carries no commission figure. */
   breakdown: PriceBreakdown;
+  /**
+   * The platform's rate for this vehicle and trip type. INTERNAL: never put it
+   * in a client or driver response; order creation stamps it on the order.
+   */
+  commissionRate: number;
+  /** `PricingConfig.tariffVersion` the quote was computed at. */
+  tariffVersion: number;
+  quotedAt: Date;
+  /** `quotedAt + quoteValidityMinutes`. */
+  quoteExpiresAt: Date;
+  /**
+   * The live helper-time rules (`PricingConfig`), so the booking form's
+   * "extra helper time" note quotes what completion will actually bill.
+   * Client-facing: they are published rates, not internal figures.
+   */
+  helperRules: HelperTimeRules;
 };
+
+/** The helper overtime rules a client is told about, from `PricingConfig`. */
+export type HelperTimeRules = {
+  /** Helper minutes per location included in the quoted helper fee. */
+  includedMinutes: number;
+  /** Overtime is charged per started increment of this many minutes... */
+  overtimeIncrementMinutes: number;
+  /** ...at this many GEL per helper per increment. */
+  overtimeFeePerIncrement: number;
+};
+
+/** `HelperTimeRules` off a config row (or the engine defaults). */
+export function helperTimeRulesOf(
+  config: PricingConfigValues,
+): HelperTimeRules {
+  return {
+    includedMinutes: config.helperIncludedMinutes,
+    overtimeIncrementMinutes: config.helperOvertimeIncrementMinutes,
+    overtimeFeePerIncrement: config.helperOvertimeFeePerIncrement,
+  };
+}
 
 /**
  * Either a resolved estimate, or why one could not be produced — so every caller
- * can render the same errors without repeating the checks. The mismatch case
- * carries both sides of the conflict so callers can name them in the message.
+ * can render the same errors without repeating the checks.
  */
 export type DeliveryEstimateResult =
   | { ok: true; estimate: DeliveryEstimate }
@@ -102,99 +192,128 @@ export type DeliveryEstimateResult =
       reason: "cargo_vehicle_mismatch";
       vehicleCategory: VehicleCategory;
       allowedVehicleCategories: VehicleCategory[];
+    }
+  | { ok: false; reason: "helpers_out_of_range"; maxHelpers: number }
+  | {
+      ok: false;
+      reason: "manual_quote_required";
+      distanceKm: number;
+      thresholdKm: number;
     };
 
-/** Round a currency amount to whole cents. */
-function roundCurrency(value: number): number {
-  return Math.round(value * 100) / 100;
+/** The HTTP status for a failed quote — shared by the estimate and order routes. */
+export function quoteFailureStatus(
+  failure: Extract<DeliveryEstimateResult, { ok: false }>,
+): 400 | 422 {
+  // An address the geocoder cannot place, or a route too long to price
+  // automatically, is well-formed input the server could not act on (422);
+  // everything else is bad input (400).
+  return failure.reason === "unresolved_address" ||
+    failure.reason === "manual_quote_required"
+    ? 422
+    : 400;
 }
 
-// Service-level tiers.
-//
-// The design prototype used a flat +25 for Priority. A flat fee is wrong across this
-// catalogue: +25 is a 200% uplift on an MPV (GEL 12 minimum fare) and 28% on a trailer
-// truck (GEL 90). Percentages scale with the job, which is what the tier is actually
-// pricing.
-//
-// These are the rate owner's rule, recorded 2026-09-04: Priority adds a quarter
-// of the quoted fare, Pooling takes a tenth off it. Percentages rather than flat
-// amounts for the reason above, and they are deliberately asymmetric — a premium
-// has to be worth charging for, whereas the discount only has to be worth
-// accepting a wider window for.
-//
-// Who the adjustment reaches was once open here; it is settled. The driver
-// receives 85% of it, exactly as they do of everything else the client pays, and
-// a Pooling discount reduces their payout by the same 85%. The platform's cut is
-// taken from `price + serviceLevelAdjustment` — the whole client-facing total —
-// so the tier is not a separate pot anybody splits differently.
-//
-// Nothing in this file depends on that answer: the client is charged the same
-// either way, and the adjustment is still stored beside `price` rather than
-// folded into it. The commission itself lives in src/lib/orders/payout.ts, and
-// POST /api/orders resolves and stamps `Order.commissionRate`/`driverPayout` at
-// creation from the rounded sum of the two columns.
-export const PRIORITY_UPLIFT = 0.25; // +25% of the quoted fare
-export const POOLING_DISCOUNT = 0.1; // −10% of the quoted fare
+/* ------------------------------------------------------------------------- */
+/* Tariff data                                                               */
+/* ------------------------------------------------------------------------- */
+
+/** The platform-wide tariff: config singleton plus helper floor bands. */
+export type PricingTariff = {
+  config: PricingConfigValues;
+  bands: HelperFloorBandValues[];
+};
 
 /**
- * The tier a fare is priced at. An alias of the generated `ServiceLevel` enum
- * rather than a hand-written union: a fourth tier added to the schema must fail
- * the exhaustiveness checks here rather than drift silently past them.
+ * Read the `PricingConfig` singleton, falling back to `DEFAULT_PRICING_CONFIG`
+ * when the row is missing (so an unseeded database still quotes).
  */
-export type ServiceLevelKey = ServiceLevel;
-
-/**
- * The tier's effect on an already-quoted fare, as a signed amount in GEL.
- *
- * Applied to the final fare — i.e. after the minimum-fare floor — so a Pooling
- * discount can take a job below the vehicle's minimum. That is intended: the client
- * is being paid to accept a wider window, and the floor exists to protect against
- * short-route underpricing, not against a deliberate discount.
- */
-export function serviceLevelAdjustment(
-  level: ServiceLevelKey,
-  quotedPrice: number,
-): number {
-  switch (level) {
-    case ServiceLevel.PRIORITY:
-      return roundCurrency(quotedPrice * PRIORITY_UPLIFT);
-    case ServiceLevel.POOLING:
-      return roundCurrency(-quotedPrice * POOLING_DISCOUNT);
-    case ServiceLevel.REGULAR:
-      // Regular is the tier the quote is already priced at, so it adjusts by
-      // nothing. Spelled out as its own case rather than left to the default,
-      // which exists to catch tiers that do not yet have a rate.
-      return 0;
-    default: {
-      // The whole point of this branch: a fourth tier added to the schema fails
-      // to assign to `never` and breaks the build here, so nobody can ship a
-      // service level that silently prices at no adjustment at all.
-      const exhaustive: never = level;
-      throw new Error(`Unhandled service level: ${String(exhaustive)}`);
-    }
+export async function loadPricingConfig(): Promise<PricingConfigValues> {
+  const row = await prisma.pricingConfig.findUnique({ where: { id: 1 } });
+  if (!row) {
+    return { ...DEFAULT_PRICING_CONFIG };
   }
+  return {
+    intercityThresholdKm: row.intercityThresholdKm,
+    manualQuoteThresholdKm: row.manualQuoteThresholdKm,
+    defaultReturnAllowance: row.defaultReturnAllowance,
+    quoteValidityMinutes: row.quoteValidityMinutes,
+    tariffVersion: row.tariffVersion,
+    maxHelpers: row.maxHelpers,
+    helperIncludedMinutes: row.helperIncludedMinutes,
+    helperOvertimeIncrementMinutes: row.helperOvertimeIncrementMinutes,
+    helperOvertimeFeePerIncrement: row.helperOvertimeFeePerIncrement,
+    elevatorDiscount: row.elevatorDiscount,
+  };
 }
 
-/** The fare a client pays at `level`, given the fare quoted for Regular. */
-export function priceForServiceLevel(
-  level: ServiceLevelKey,
-  quotedPrice: number,
-): number {
-  return roundCurrency(
-    quotedPrice + serviceLevelAdjustment(level, quotedPrice),
-  );
+/** Config plus floor bands (defaults when the band table is empty). */
+export async function loadPricingTariff(): Promise<PricingTariff> {
+  const [config, bandRows] = await Promise.all([
+    loadPricingConfig(),
+    prisma.helperFloorBand.findMany({
+      select: { minFloor: true, ratePerHelper: true },
+      orderBy: { minFloor: "asc" },
+    }),
+  ]);
+  return {
+    config,
+    bands: bandRows.length > 0 ? bandRows : [...DEFAULT_HELPER_FLOOR_BANDS],
+  };
 }
+
+/** The `RouteAllowance` rows that could apply to a pair (0 or 1 of them). */
+async function loadRouteAllowances(
+  pickupCity: GeorgianCity | null,
+  dropoffCity: GeorgianCity | null,
+): Promise<RouteAllowanceValues[]> {
+  if (
+    pickupCity === null ||
+    dropoffCity === null ||
+    pickupCity === dropoffCity
+  ) {
+    return [];
+  }
+  const [cityA, cityB] = normaliseCityPair(pickupCity, dropoffCity);
+  const row = await prisma.routeAllowance.findUnique({
+    where: { cityA_cityB: { cityA, cityB } },
+    select: { cityA: true, cityB: true, allowance: true },
+  });
+  return row ? [row] : [];
+}
+
+/* ------------------------------------------------------------------------- */
+/* Parsing                                                                   */
+/* ------------------------------------------------------------------------- */
+
+const LOCATION_FIELDS = [
+  "pickupHelpers",
+  "pickupFloor",
+  "pickupCargoElevator",
+  "dropoffHelpers",
+  "dropoffFloor",
+  "dropoffCargoElevator",
+] as const;
 
 /**
  * Hand-rolled validation of the quote fields (the project has no validation
- * library, and this stage does not warrant adding one). Returns the trimmed,
- * typed input or an error message describing the first problem encountered.
- * Shared so the public and authenticated endpoints reject bad input
- * identically.
+ * library). Returns the trimmed, typed input or an error message describing the
+ * first problem encountered. Shared so the public and authenticated endpoints
+ * reject bad input identically.
  *
- * `t` localises the messages into the caller's request locale. It is optional
- * so a caller that has not been wired to `getRequestTranslations` yet keeps
- * getting the English it always did, rather than failing to compile.
+ * Helper fields (pricing model v1), all optional:
+ * `pickupHelpers`/`dropoffHelpers` (whole 0-4), `pickupFloor`/`dropoffFloor`
+ * (whole 0-`MAX_FLOOR`), `pickupCargoElevator`/`dropoffCargoElevator`
+ * (boolean). When NONE of the six is sent, the legacy `helperCount` (0-4) is
+ * mapped to that many helpers at both ends, ground floor, no elevator, so old
+ * clients keep working. When any is sent, `helperCount` is still validated but
+ * ignored, and an omitted field is 0 / false.
+ *
+ * `tariffVersion` (optional positive integer) is the version the client was
+ * quoted at; see `QuoteInput.tariffVersion`.
+ *
+ * `t` localises the messages into the caller's request locale; without it the
+ * English original is returned.
  */
 export function parseQuoteFields(
   record: Record<string, unknown>,
@@ -212,6 +331,7 @@ export function parseQuoteFields(
     vehicleTypeCode,
     cargoCategory,
     helperCount,
+    tariffVersion,
   } = record;
 
   if (typeof pickupAddress !== "string" || pickupAddress.trim().length === 0) {
@@ -260,15 +380,18 @@ export function parseQuoteFields(
     };
   }
 
-  // Optional: an omitted helper count means "driver alone", but a present value
-  // outside the bookable range is a client bug worth reporting rather than
-  // clamping — a silently reduced helper count would quote a price nobody asked for.
+  // A present value outside the bookable range is a client bug worth
+  // reporting rather than clamping — a silently reduced count would quote a
+  // price nobody asked for.
+  const isWholeInRange = (value: unknown, max: number): value is number =>
+    typeof value === "number" &&
+    Number.isInteger(value) &&
+    value >= 0 &&
+    value <= max;
+
   if (
     helperCount !== undefined &&
-    (typeof helperCount !== "number" ||
-      !Number.isInteger(helperCount) ||
-      helperCount < 0 ||
-      helperCount > MAX_HELPER_COUNT)
+    !isWholeInRange(helperCount, MAX_HELPER_COUNT)
   ) {
     return {
       error: message(
@@ -279,50 +402,142 @@ export function parseQuoteFields(
     };
   }
 
+  const usesLocationFields = LOCATION_FIELDS.some(
+    (field) => record[field] !== undefined,
+  );
+
+  let pickupHelp: LocationHelp;
+  let dropoffHelp: LocationHelp;
+
+  if (usesLocationFields) {
+    const parsed: Partial<Record<"pickup" | "dropoff", LocationHelp>> = {};
+    for (const end of ["pickup", "dropoff"] as const) {
+      const helpers = record[`${end}Helpers`];
+      const floor = record[`${end}Floor`];
+      const elevator = record[`${end}CargoElevator`];
+
+      if (helpers !== undefined && !isWholeInRange(helpers, MAX_HELPER_COUNT)) {
+        return {
+          error: message(
+            "common.pricing.locationHelpersOutOfRange",
+            `${end}Helpers must be a whole number between 0 and ${MAX_HELPER_COUNT}.`,
+            { field: `${end}Helpers`, max: MAX_HELPER_COUNT },
+          ),
+        };
+      }
+      if (floor !== undefined && !isWholeInRange(floor, MAX_FLOOR)) {
+        return {
+          error: message(
+            "common.pricing.floorOutOfRange",
+            `${end}Floor must be a whole number between 0 and ${MAX_FLOOR}.`,
+            { field: `${end}Floor`, max: MAX_FLOOR },
+          ),
+        };
+      }
+      if (elevator !== undefined && typeof elevator !== "boolean") {
+        return {
+          error: message(
+            "common.pricing.cargoElevatorMustBeBoolean",
+            `${end}CargoElevator must be true or false.`,
+            { field: `${end}CargoElevator` },
+          ),
+        };
+      }
+
+      parsed[end] = {
+        helpers: helpers ?? 0,
+        floor: floor ?? 0,
+        cargoElevator: elevator ?? false,
+      };
+    }
+    pickupHelp = parsed.pickup ?? NO_HELP;
+    dropoffHelp = parsed.dropoff ?? NO_HELP;
+  } else {
+    // LEGACY: one crew size, applied at both ends, ground floor, no elevator.
+    const legacy = helperCount ?? 0;
+    pickupHelp = { ...NO_HELP, helpers: legacy };
+    dropoffHelp = { ...NO_HELP, helpers: legacy };
+  }
+
+  if (
+    tariffVersion !== undefined &&
+    tariffVersion !== null &&
+    !(
+      typeof tariffVersion === "number" &&
+      Number.isInteger(tariffVersion) &&
+      tariffVersion > 0
+    )
+  ) {
+    return {
+      error: message(
+        "common.pricing.tariffVersionInvalid",
+        "tariffVersion must be a positive whole number.",
+      ),
+    };
+  }
+
   return {
     data: {
       pickupAddress: pickupAddress.trim(),
       dropoffAddress: dropoffAddress.trim(),
       vehicleTypeCode: vehicleTypeCode.trim(),
       cargoCategory: cargoCategory as CargoCategory,
-      helperCount: helperCount ?? 0,
+      pickupHelp,
+      dropoffHelp,
+      helperCount: crewHelperCount(pickupHelp, dropoffHelp),
+      tariffVersion: typeof tariffVersion === "number" ? tariffVersion : null,
     },
   };
 }
 
+/* ------------------------------------------------------------------------- */
+/* Estimate                                                                  */
+/* ------------------------------------------------------------------------- */
+
 /**
  * Resolve the vehicle type and its rates, check the cargo may travel in it,
- * geocode both addresses, route between them, then derive the itemised price.
+ * check the helper counts against the config, geocode both addresses, route
+ * between them, then derive the itemised price with `computeQuote`.
  *
- * The vehicle and cargo checks come first because they are a cheap local
- * query — no point spending LocationIQ lookups on a request that cannot be
- * quoted anyway. Both geocode lookups are then issued together; pickup is
- * reported first when neither resolves, matching the order the user filled the
- * form in. Routing can only follow them, since it needs both coordinates.
+ * Cheap local checks come first so no LocationIQ lookup is spent on a request
+ * that cannot be quoted. Distance and duration come from the real driving
+ * route where possible, degrading to `haversineDistanceKm` at
+ * `AVERAGE_SPEED_KMH` when routing is unavailable.
  *
- * Distance and duration come from the real driving route where possible: road
- * distance in Tbilisi runs meaningfully longer than the straight line, so
- * quoting on great-circle distance systematically underprices. When routing is
- * unavailable — no key, endpoint down, rate-limited, no route found — the quote
- * degrades to `haversineDistanceKm` at `AVERAGE_SPEED_KMH` rather than failing:
- * an approximate price the customer can act on beats no price at all, and unlike
- * an address that cannot be geocoded, nothing here is missing that a fare needs.
+ * A route longer than `PricingConfig.manualQuoteThresholdKm` (600 km) is not
+ * priced: it fails with `manual_quote_required`.
+ *
+ * The trip's cities are resolved from the address strings with
+ * `resolveGeorgianCity` — the same resolution order creation writes into
+ * `Order.pickupCity`/`dropoffCity`.
+ *
+ * `now` is injectable for tests; it stamps `quotedAt`.
  */
-export async function estimateDelivery({
-  pickupAddress,
-  dropoffAddress,
-  vehicleTypeCode,
-  cargoCategory,
-  helperCount,
-}: QuoteInput): Promise<DeliveryEstimateResult> {
-  const spec = await prisma.vehicleTypeSpec.findUnique({
-    where: { code: vehicleTypeCode },
-    include: { pricingRule: true },
-  });
+export async function estimateDelivery(
+  {
+    pickupAddress,
+    dropoffAddress,
+    vehicleTypeCode,
+    cargoCategory,
+    pickupHelp,
+    dropoffHelp,
+  }: QuoteInput,
+  now: Date = new Date(),
+): Promise<DeliveryEstimateResult> {
+  const [spec, tariff] = await Promise.all([
+    prisma.vehicleTypeSpec.findUnique({
+      where: { code: vehicleTypeCode },
+      include: { pricingRule: true },
+    }),
+    loadPricingTariff(),
+  ]);
 
   // A type with no pricing rule cannot be quoted at all. The seed always creates
-  // one, so this only guards against hand-edited data.
-  if (!spec?.pricingRule) {
+  // one, so this only guards against hand-edited data. Nor can one whose v1
+  // rate columns were never filled (they default to 0): an intercity per-km or
+  // a city minimum of 0 would quote a haul at next to nothing — see
+  // `hasUsableRates`.
+  if (!spec?.pricingRule || !hasUsableRates(spec.pricingRule)) {
     return { ok: false, reason: "invalid_vehicle_type" };
   }
 
@@ -334,6 +549,18 @@ export async function estimateDelivery({
       reason: "cargo_vehicle_mismatch",
       vehicleCategory: spec.category,
       allowedVehicleCategories,
+    };
+  }
+
+  const { config, bands } = tariff;
+  if (
+    pickupHelp.helpers > config.maxHelpers ||
+    dropoffHelp.helpers > config.maxHelpers
+  ) {
+    return {
+      ok: false,
+      reason: "helpers_out_of_range",
+      maxHelpers: config.maxHelpers,
     };
   }
 
@@ -360,29 +587,47 @@ export async function estimateDelivery({
 
   const route: Route | null = await getRoute(pickup, dropoff);
 
-  // Both branches produce the same three figures, so the pricing below is
-  // written once against them and never has to know which basis it got.
   const distanceKm = route
     ? route.distanceKm
     : haversineDistanceKm(pickup, dropoff);
-  const estimatedMinutes = route
+  const durationMinutes = route
     ? route.durationMinutes
     : (distanceKm / AVERAGE_SPEED_KMH) * MINUTES_PER_HOUR;
   const routePath = route?.path ?? null;
 
-  const rule = spec.pricingRule;
-  const baseFare = roundCurrency(rule.baseFare);
-  const distanceFare = roundCurrency(distanceKm * rule.pricePerKm);
-  const timeFare = roundCurrency(estimatedMinutes * rule.pricePerMinute);
-  // `rule.helperFee` is a *per-helper* rate, not a one-off flat fee: a booking
-  // that asks for three helpers pays it three times. A count of 0 (the driver
-  // working alone) therefore costs nothing, with no branch needed.
-  const helperFee = roundCurrency(rule.helperFee * helperCount);
+  // On the straight-line fallback (no road route) the distance understates the
+  // drive, so the manual-quote check scales it by `ROAD_DETOUR_FACTOR`: a
+  // routing outage must not auto-quote a haul over the threshold.
+  if (
+    isManualQuoteRequired(distanceKm, config.manualQuoteThresholdKm, {
+      straightLine: route === null,
+    })
+  ) {
+    return {
+      ok: false,
+      reason: "manual_quote_required",
+      distanceKm,
+      thresholdKm: config.manualQuoteThresholdKm,
+    };
+  }
 
-  // The floor keeps very short trips worth driving; loading/unloading overtime
-  // is settled separately when the order is completed.
-  const rawTotal = baseFare + distanceFare + timeFare + helperFee;
-  const price = roundCurrency(Math.max(rawTotal, rule.minimumFare));
+  const pickupCity = resolveGeorgianCity(pickupAddress);
+  const dropoffCity = resolveGeorgianCity(dropoffAddress);
+  const routes = await loadRouteAllowances(pickupCity, dropoffCity);
+
+  const rule = spec.pricingRule;
+  const breakdown = computeQuote(
+    {
+      distanceKm,
+      durationMinutes,
+      pickupCity,
+      dropoffCity,
+      pickupHelp,
+      dropoffHelp,
+    },
+    { rates: rule, config, bands, routes },
+  );
+  const tripType: TripType = breakdown.tripType;
 
   return {
     ok: true,
@@ -390,21 +635,28 @@ export async function estimateDelivery({
       pickup,
       dropoff,
       distanceKm,
-      durationMinutes: estimatedMinutes,
+      durationMinutes,
       routePath,
       vehicleTypeSpecId: spec.id,
-      breakdown: { baseFare, distanceFare, timeFare, helperFee, price },
+      pickupCity,
+      dropoffCity,
+      breakdown,
+      commissionRate: commissionRateFor(rule, tripType),
+      tariffVersion: config.tariffVersion,
+      quotedAt: now,
+      quoteExpiresAt: quoteExpiresAt(now, config.quoteValidityMinutes),
+      helperRules: helperTimeRulesOf(config),
     },
   };
 }
 
 /**
  * The user-facing message for a failed quote. Shared so the public estimate
- * endpoint and authenticated order creation report the same problem in the same
- * words; the HTTP status differs per case and stays with each caller.
+ * endpoint and order creation report the same problem in the same words; the
+ * HTTP status is `quoteFailureStatus`.
  *
- * `t` localises it into the request locale, as for `parseQuoteFields`; without
- * one the English original is returned.
+ * `t` localises it into the request locale; without one the English original
+ * is returned.
  */
 export function quoteFailureMessage(
   failure: Extract<DeliveryEstimateResult, { ok: false }>,
@@ -429,5 +681,19 @@ export function quoteFailureMessage(
           })
         : `This cargo category cannot be booked with a ${failure.vehicleCategory} ` +
             `vehicle; it requires ${failure.allowedVehicleCategories.join(" or ")}.`;
+    case "helpers_out_of_range":
+      return t
+        ? t("common.pricing.locationHelpersOutOfRange", {
+            field: "helpers",
+            max: failure.maxHelpers,
+          })
+        : `helpers must be a whole number between 0 and ${failure.maxHelpers}.`;
+    case "manual_quote_required":
+      return t
+        ? t("common.pricing.manualQuoteRequired", {
+            km: failure.thresholdKm,
+          })
+        : `This route is longer than ${failure.thresholdKm} km, so it cannot be ` +
+            "priced automatically. Please contact support for a quote.";
   }
 }

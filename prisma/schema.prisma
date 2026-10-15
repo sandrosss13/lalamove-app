@@ -680,23 +680,127 @@ model OrderItem {
   @@index([catalogEntryId])
 }
 
-/// One pricing rule per vehicle type. `freeLoadingMinutes` is the buffer before
-/// `overtimeRatePerMinute` kicks in; `minimumFare` is a floor applied after all other
-/// components are summed. `helperFee` is a per-helper rate, charged once for each
-/// helper in an order's `helperCount` — not a one-off fee for the whole booking.
+/// One pricing rule per vehicle type (pricing model v1, `src/lib/pricing-engine.ts`).
+///
+/// The shared production database serves BOTH the pre-v1 code (main) and the v1
+/// code while v1 is staged, so the two read disjoint rate columns:
+///
+/// - `baseFare`, `pricePerKm`, `pricePerMinute`, `minimumFare` and `helperFee`
+///   are the **LEGACY pre-v1 rates**. The v1 engine never reads them and the v1
+///   migration/admin never write them; they stay exactly as the old code
+///   expects until the legacy pricing is retired.
+/// - `cityBaseFare`, `cityPricePerKm`, `cityPricePerMinute`, `cityMinimumFare`
+///   price a v1 **CITY** trip: `max(cityMinimumFare, cityBaseFare +
+///   km*cityPricePerKm + drivingMin*cityPricePerMinute)`.
+/// - `intercityBaseFare` and `intercityPricePerKm` price an **INTERCITY** trip:
+///   `intercityBaseFare + km*intercityPricePerKm*(1 + returnAllowance)` — no time
+///   charge and no minimum.
+/// - `cityCommissionRate` / `intercityCommissionRate` are the platform's cut of
+///   the TRANSPORT charge (+ tier adjustment) for that trip type. Helpers are
+///   passed through to the driver uncommissioned.
+/// - `freeLoadingMinutes` / `overtimeRatePerMinute` are the vehicle waiting
+///   overtime, shared by both code paths with unchanged meaning and values:
+///   settled at completion into `Order.overtimeFee`.
+///
+/// The v1 engine refuses a rule whose `intercityPricePerKm` or
+/// `cityMinimumFare` is not positive (`invalid_vehicle_type`), so an unfilled
+/// v1 column can never quote at 0.
 model PricingRule {
-  id                    String          @id @default(cuid())
-  vehicleTypeSpecId     String          @unique
-  vehicleTypeSpec       VehicleTypeSpec @relation(fields: [vehicleTypeSpecId], references: [id], onDelete: Cascade)
-  baseFare              Float
-  pricePerKm            Float
-  pricePerMinute        Float
-  freeLoadingMinutes    Int
-  overtimeRatePerMinute Float
-  helperFee             Float
-  minimumFare           Float
-  createdAt             DateTime        @default(now())
-  updatedAt             DateTime        @updatedAt
+  id                      String          @id @default(cuid())
+  vehicleTypeSpecId       String          @unique
+  vehicleTypeSpec         VehicleTypeSpec @relation(fields: [vehicleTypeSpecId], references: [id], onDelete: Cascade)
+  baseFare                Float
+  pricePerKm              Float
+  pricePerMinute          Float
+  freeLoadingMinutes      Int
+  overtimeRatePerMinute   Float
+  helperFee               Float
+  minimumFare             Float
+  cityBaseFare            Float           @default(0)
+  cityPricePerKm          Float           @default(0)
+  cityPricePerMinute      Float           @default(0)
+  cityMinimumFare         Float           @default(0)
+  intercityBaseFare       Float           @default(0)
+  intercityPricePerKm     Float           @default(0)
+  cityCommissionRate      Float           @default(0.15)
+  intercityCommissionRate Float           @default(0.12)
+  createdAt               DateTime        @default(now())
+  updatedAt               DateTime        @updatedAt
+}
+
+/// Whether a job runs inside one city or between two — decides which rates of
+/// the vehicle's `PricingRule` apply and which commission rate is stamped. See
+/// `classifyTrip` in `src/lib/pricing-engine.ts` for the rule (resolved cities
+/// first, distance threshold as the fallback).
+enum TripType {
+  CITY
+  INTERCITY
+}
+
+/// Platform-wide pricing knobs (pricing model v1). A **singleton**: the only row
+/// has `id = 1` (a CHECK constraint in the migration enforces it). Read through
+/// `loadPricingConfig` in `src/lib/pricing.ts`, which falls back to
+/// `DEFAULT_PRICING_CONFIG` when the row is missing, so an unseeded database
+/// still quotes.
+///
+/// `tariffVersion` is bumped on EVERY admin edit of any tariff (this row,
+/// `PricingRule`, `HelperFloorBand`, `RouteAllowance`). A quote carries the
+/// version it was computed at, and order creation refuses a booking whose
+/// quoted version is stale so the client re-quotes instead of being silently
+/// charged a different price.
+model PricingConfig {
+  id                             Int      @id @default(1)
+  /// Fallback when a city cannot be resolved: below this many km is CITY.
+  intercityThresholdKm           Float    @default(40)
+  /// Above this many km no automatic quote is given (`manual_quote_required`).
+  manualQuoteThresholdKm         Float    @default(600)
+  /// Return allowance for an intercity pair with no `RouteAllowance` row.
+  defaultReturnAllowance         Float    @default(0.35)
+  /// How long a quote is honoured — the estimate's `quoteExpiresAt`.
+  quoteValidityMinutes           Int      @default(20)
+  tariffVersion                  Int      @default(1)
+  /// Most helpers bookable at ONE location (pickup or dropoff).
+  maxHelpers                     Int      @default(4)
+  /// Helper minutes per location included in the quoted helper fee.
+  helperIncludedMinutes          Int      @default(60)
+  /// Helper overtime is charged per started increment of this many minutes...
+  helperOvertimeIncrementMinutes Int      @default(30)
+  /// ...at this many GEL per helper per increment. Never elevator-discounted.
+  helperOvertimeFeePerIncrement  Float    @default(10)
+  /// Fraction off the helper floor rate when a cargo elevator is available.
+  elevatorDiscount               Float    @default(0.3)
+  createdAt                      DateTime @default(now())
+  updatedAt                      DateTime @updatedAt
+}
+
+/// The per-helper, per-location rate by floor. A band covers floors from its
+/// `minFloor` up to the next band's `minFloor - 1`; the highest band is open
+/// ended. Seeded 0 -> 15, 4 -> 25, 7 -> 35, 10 -> 50 GEL. There must always be
+/// a band at floor 0 (the engine falls back to the defaults when the table is
+/// empty).
+model HelperFloorBand {
+  id            String   @id @default(cuid())
+  minFloor      Int      @unique
+  ratePerHelper Float
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+/// Return allowance for one unordered city pair: the fraction of the intercity
+/// distance charge added because the truck likely drives back empty. Stored
+/// normalised so `cityA < cityB` by enum NAME (string comparison — a CHECK
+/// constraint in the migration enforces it; `normaliseCityPair` in
+/// `src/lib/pricing-engine.ts` produces it). A pair with no row uses
+/// `PricingConfig.defaultReturnAllowance`. `allowance` is 0..1.
+model RouteAllowance {
+  id        String       @id @default(cuid())
+  cityA     GeorgianCity
+  cityB     GeorgianCity
+  allowance Float
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@unique([cityA, cityB])
 }
 
 /// A fleet operator: its own login (role COMPANY), owns vehicles directly, and manages a
@@ -1471,6 +1575,72 @@ model Order {
   /// Commissioned at the same `commissionRate` stored above, so a rate change
   /// between booking and completion cannot apply two different rates to one job.
   overtimeDriverPayout Float @default(0)
+
+  // ---------------------------------------------------------------------------
+  // Pricing model v1 (`src/lib/pricing-engine.ts`). Every column below is
+  // nullable or defaulted: orders booked before v1 keep their old meaning and
+  // carry `tariffVersion = null`, which is how readers tell the two apart.
+  //
+  // v1 meaning of the existing columns:
+  //   baseFare/distanceFare/timeFare  transport components (timeFare 0 intercity)
+  //   helperFee     pickup + dropoff helper standard charge (pass-through)
+  //   price         transportFare + helperFee  (quoted total BEFORE the tier)
+  //   serviceLevelAdjustment  tier % of transportFare ONLY
+  //   commissionRate  per vehicle & trip type (PricingRule.city/intercityCommissionRate)
+  //   driverPayout  round(transportFare + adj) * (1 - commissionRate) + helperPayout
+  //   overtimeDriverPayout  vehicle-waiting overtime share (commissioned) PLUS
+  //                 100% of `helperOvertimeFee` — helper overtime is folded in
+  //                 here (not a separate column) so every earnings surface and
+  //                 the wallet's JOB_OVERTIME posting pick it up unchanged.
+  // ---------------------------------------------------------------------------
+
+  /// CITY or INTERCITY, decided at quote time. Null on pre-v1 orders.
+  tripType        TripType?
+  /// Fraction of the distance charge added for the empty return (intercity
+  /// only; 0 for a city trip).
+  returnAllowance Float     @default(0)
+  /// `distanceFare * returnAllowance`, itemised. 0 for a city trip.
+  returnFare      Float     @default(0)
+  /// The transport charge: base + distance + time + return, floored at the
+  /// city minimum for a city trip. Null on pre-v1 orders.
+  transportFare   Float?
+
+  /// Helpers asked for at each end (0..PricingConfig.maxHelpers), the floor the
+  /// load is on (0 = ground) and whether a cargo elevator can be used there.
+  /// `helperCount` above is kept = max(pickupHelpers, dropoffHelpers) so
+  /// dispatch and work-preference filtering keep working.
+  pickupHelpers        Int     @default(0)
+  pickupFloor          Int     @default(0)
+  pickupCargoElevator  Boolean @default(false)
+  dropoffHelpers       Int     @default(0)
+  dropoffFloor         Int     @default(0)
+  dropoffCargoElevator Boolean @default(false)
+
+  /// Actual helper minutes worked at each end, reported at completion. Null
+  /// until then (and on every pre-v1 order).
+  pickupHelperMinutes  Int?
+  dropoffHelperMinutes Int?
+
+  /// The quoted helper charge at each end (helpers x floor-band rate, less the
+  /// elevator discount), itemised so the client sees the two separately.
+  /// `helperFee` = `pickupHelperFee + dropoffHelperFee`. 0 on pre-v1 orders,
+  /// whose single `helperFee` is shown as one line.
+  pickupHelperFee  Float @default(0)
+  dropoffHelperFee Float @default(0)
+
+  /// The driver's helper money: equal to `helperFee`, passed through
+  /// uncommissioned. Already INCLUDED in `driverPayout`; stored so a driver
+  /// surface can show the split (transport = driverPayout - helperPayout).
+  helperPayout      Float @default(0)
+  /// Helper overtime charged to the client at completion (see
+  /// `helperOvertimeFeeFor`). Its driver share (100%) is folded into
+  /// `overtimeDriverPayout`.
+  helperOvertimeFee Float @default(0)
+
+  /// `PricingConfig.tariffVersion` the order was priced at, and when the quote
+  /// was computed. Null on pre-v1 orders.
+  tariffVersion Int?
+  quotedAt      DateTime?
 
   vehicleTypeSpecId String
   vehicleTypeSpec   VehicleTypeSpec @relation(fields: [vehicleTypeSpecId], references: [id])

@@ -7,6 +7,7 @@ import { Link } from "@/i18n/navigation";
 import { useLoadsBoard } from "@/components/driver-hub/screens/loads-context";
 import {
   CargoSpecList,
+  PayoutSplitLine,
   ClaimedByYouNote,
   ClaimedElsewhereNote,
   HandlingTagPills,
@@ -402,6 +403,10 @@ export function LoadsDrawer() {
         <p className="mt-2 font-price text-[26px] leading-none font-semibold tracking-[-0.02em] tabular-nums">
           {formatGelExact(load.driverPayout)}
         </p>
+        <PayoutSplitLine
+          driverPayout={load.driverPayout}
+          helperPayout={load.helperPayout}
+        />
       </div>
 
       {/* ---------------------------------------------------------------- */}

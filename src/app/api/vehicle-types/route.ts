@@ -114,15 +114,26 @@ export async function GET(): Promise<NextResponse> {
         // never removes it from the bookable list.
         showOnHomepage: true,
         homepageSortOrder: true,
+        // Pricing model v1: the CITY rates are read from the v1 columns and
+        // returned under the response's existing keys (`baseFare`,
+        // `pricePerKm`, `pricePerMinute`, `minimumFare` — see the mapping
+        // below), so the landing tiles and the booking form's ordering show
+        // the rates this code actually quotes. The legacy columns of the same
+        // names belong to the pre-v1 code and are not read here.
         pricingRule: {
           select: {
-            baseFare: true,
-            pricePerKm: true,
-            pricePerMinute: true,
+            cityBaseFare: true,
+            cityPricePerKm: true,
+            cityPricePerMinute: true,
+            cityMinimumFare: true,
             freeLoadingMinutes: true,
             overtimeRatePerMinute: true,
+            // LEGACY: unused by the v1 engine; kept in the response shape.
             helperFee: true,
-            minimumFare: true,
+            // Pricing model v1 intercity rates. The commission rates are
+            // internal and deliberately not projected.
+            intercityBaseFare: true,
+            intercityPricePerKm: true,
           },
         },
       },
@@ -141,13 +152,28 @@ export async function GET(): Promise<NextResponse> {
   // `id` is destructured out rather than deleted, so it never reaches the
   // response object at all: this projection is public, and the id it is looked
   // up by is internal.
-  const withServiceability = vehicleTypes.map(({ id, ...vehicleType }) => ({
-    ...vehicleType,
-    serviceable: serviceable.has(id),
-    serviceableBodies: bodies.filter((_, index) =>
-      serviceableByBody[index]?.has(id),
-    ),
-  }));
+  const withServiceability = vehicleTypes.map(
+    ({ id, pricingRule, ...vehicleType }) => ({
+      ...vehicleType,
+      pricingRule: pricingRule
+        ? {
+            baseFare: pricingRule.cityBaseFare,
+            pricePerKm: pricingRule.cityPricePerKm,
+            pricePerMinute: pricingRule.cityPricePerMinute,
+            minimumFare: pricingRule.cityMinimumFare,
+            freeLoadingMinutes: pricingRule.freeLoadingMinutes,
+            overtimeRatePerMinute: pricingRule.overtimeRatePerMinute,
+            helperFee: pricingRule.helperFee,
+            intercityBaseFare: pricingRule.intercityBaseFare,
+            intercityPricePerKm: pricingRule.intercityPricePerKm,
+          }
+        : null,
+      serviceable: serviceable.has(id),
+      serviceableBodies: bodies.filter((_, index) =>
+        serviceableByBody[index]?.has(id),
+      ),
+    }),
+  );
 
   return NextResponse.json(withServiceability, { status: 200 });
 }

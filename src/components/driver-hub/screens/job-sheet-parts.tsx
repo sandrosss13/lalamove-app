@@ -709,10 +709,13 @@ export function JobSheetHeaderCard({
       )}
 
       {/* One line on a job that finished inside the free loading allowance, two
-          when the waiting minutes earned something. Suppressed entirely at a
+          when the waiting minutes earned something — and the payout itself in
+          two (transport / helpers) whenever helpers were booked, quoted or
+          final. Before completion the overtime line cannot appear (it is 0),
+          so a quoted sheet shows only that split. Suppressed entirely at a
           single line: a "Payout" row restating the headline immediately above
           it is a rule and a repetition, not a breakdown. */}
-      {isFinal && lines.length > 1 ? (
+      {lines.length > 1 ? (
         <dl className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-[7px] border-t border-border pt-3 text-[13px]">
           {lines.map((line) => (
             <React.Fragment key={line.label}>
@@ -1246,6 +1249,26 @@ export function JobSheetTimelineCard({
           {
             label: tShared("waitingTime"),
             value: t("minutesShort", { n: job.waitingMinutes }),
+            numeric: true,
+          },
+        ]),
+    // Pricing model v1: the helper minutes reported per stop, when there were
+    // helpers there. Null otherwise, and the row is left out.
+    ...(job.pickupHelperMinutes === null
+      ? []
+      : [
+          {
+            label: t("helperTimeAtPickup"),
+            value: t("minutesShort", { n: job.pickupHelperMinutes }),
+            numeric: true,
+          },
+        ]),
+    ...(job.dropoffHelperMinutes === null
+      ? []
+      : [
+          {
+            label: t("helperTimeAtDropoff"),
+            value: t("minutesShort", { n: job.dropoffHelperMinutes }),
             numeric: true,
           },
         ]),

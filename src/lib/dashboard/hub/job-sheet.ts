@@ -84,6 +84,7 @@ import {
   toOrderProof,
   type OrderProof,
 } from "@/lib/orders/pod";
+import { stopWorkOf, type StopWork } from "@/lib/orders/stop-work";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -168,6 +169,16 @@ const JOB_SHEET_SELECT = {
   handlingTags: true,
   helperCount: true,
   bodyType: true,
+  // Pricing model v1: the work at each stop (helpers, floor, elevator).
+  pickupHelpers: true,
+  pickupFloor: true,
+  pickupCargoElevator: true,
+  dropoffHelpers: true,
+  dropoffFloor: true,
+  dropoffCargoElevator: true,
+  // Read only to derive `StopWork.helperMinutesRequired` (`stopWorkOf`);
+  // the shaped output never carries it.
+  tariffVersion: true,
 
   // Timing. `createdAt`, `inTransitAt` and `completedAt` are the timeline; the
   // other three are the client's requested slot and its refinements.
@@ -182,8 +193,12 @@ const JOB_SHEET_SELECT = {
   // Money — the carrier's two columns, and the two facts recorded at completion
   // that explain the second of them.
   driverPayout: true,
+  // The helpers' part of `driverPayout` (pricing model v1) — included in it.
+  helperPayout: true,
   overtimeDriverPayout: true,
   waitingMinutes: true,
+  pickupHelperMinutes: true,
+  dropoffHelperMinutes: true,
   receivedBy: true,
 
   // Proof of delivery: the signature's object path and the photo rows. Paths
@@ -289,6 +304,12 @@ export type HubJobSheet = {
   helperCount: number;
   /** Raw `ChassisType`, or null on any order placed before the filter existed. */
   bodyType: string | null;
+  /**
+   * Pricing model v1: helpers, floor and cargo elevator at each stop. The
+   * column defaults (0, 0, false) on every pre-v1 order — see `hasStopWork`.
+   */
+  pickupWork: StopWork;
+  dropoffWork: StopWork;
 
   /* ---- Timing --------------------------------------------------------- */
 
@@ -320,9 +341,16 @@ export type HubJobSheet = {
    */
   driverPayout: number;
   /**
+   * The helpers' part of `driverPayout` — included in it, never added to it:
+   * the transport part is `driverPayout - helperPayout`. 0 when no helpers
+   * were booked and on every pre-v1 order.
+   */
+  helperPayout: number;
+  /**
    * The carrier's share of `Order.overtimeFee`, written at completion at the
-   * order's own stored rate. Zero on every job that finished inside the free
-   * loading allowance, and on every job not yet completed.
+   * order's own stored rate — plus, on a pricing model v1 order, all of the
+   * helper overtime. Zero on every job that finished inside the free
+   * allowances, and on every job not yet completed.
    *
    * Deliberately *not* summed with `driverPayout` into a single `fare` the way
    * `HubJob` does. This screen shows a job in progress, where the two figures
@@ -338,6 +366,12 @@ export type HubJobSheet = {
    * waiting figure to print at all.
    */
   waitingMinutes: number | null;
+  /**
+   * Helper minutes reported at each stop at completion (pricing model v1).
+   * Null until then and at a stop without helpers.
+   */
+  pickupHelperMinutes: number | null;
+  dropoffHelperMinutes: number | null;
   /**
    * Who the driver handed the load to, optionally captured at completion. Null
    * on every order completed before the field existed and on every delivery
@@ -517,6 +551,7 @@ export async function getHubJobSheet(
     handlingTags: [...order.handlingTags],
     helperCount: order.helperCount,
     bodyType: order.bodyType,
+    ...stopWorkOf(order),
 
     createdAt: order.createdAt.toISOString(),
     scheduledAt: order.scheduledAt?.toISOString() ?? null,
@@ -527,8 +562,11 @@ export async function getHubJobSheet(
     completedAt: order.completedAt?.toISOString() ?? null,
 
     driverPayout: order.driverPayout,
+    helperPayout: order.helperPayout,
     overtimeDriverPayout: order.overtimeDriverPayout,
     waitingMinutes: order.waitingMinutes,
+    pickupHelperMinutes: order.pickupHelperMinutes,
+    dropoffHelperMinutes: order.dropoffHelperMinutes,
     receivedBy: textOrNull(order.receivedBy),
 
     // Signed after the tenancy check above, never before: a signed URL is a

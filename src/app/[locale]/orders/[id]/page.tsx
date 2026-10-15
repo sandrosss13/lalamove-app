@@ -32,6 +32,7 @@ import {
 import {
   formatBookedDistanceKm,
   formatScheduledAt,
+  helperFeeSplit,
   useCheckoutLabels,
 } from "../../checkout/checkout-format";
 import {
@@ -74,6 +75,19 @@ const ORDER_DETAIL_SELECT = {
   cargoCategory: true,
   bodyType: true,
   helperCount: true,
+  // Pricing model v1: helpers, floor and cargo elevator at each end;
+  // `tariffVersion` is null on a pre-v1 order, which keeps its one crew size.
+  pickupHelpers: true,
+  pickupFloor: true,
+  pickupCargoElevator: true,
+  dropoffHelpers: true,
+  dropoffFloor: true,
+  dropoffCargoElevator: true,
+  tariffVersion: true,
+  // The helper charge, split by end on a v1 order — see `helperFeeSplit`.
+  helperFee: true,
+  pickupHelperFee: true,
+  dropoffHelperFee: true,
   description: true,
   distanceKm: true,
   price: true,
@@ -230,6 +244,16 @@ type OrderDetail = {
   cargoCategory: CargoCategory;
   bodyType: ChassisType | null;
   helperCount: number;
+  pickupHelpers: number;
+  pickupFloor: number;
+  pickupCargoElevator: boolean;
+  dropoffHelpers: number;
+  dropoffFloor: number;
+  dropoffCargoElevator: boolean;
+  tariffVersion: number | null;
+  helperFee: number;
+  pickupHelperFee: number;
+  dropoffHelperFee: number;
   description: string | null;
   distanceKm: number;
   price: number;
@@ -350,6 +374,12 @@ function DetailsPanel({ order }: { order: OrderDetail }) {
   const cargoCategoryLabel = useCargoCategoryLabel();
   const serviceLevelLabel = useServiceLevelLabel();
   const labels = useCheckoutLabels();
+  const helperLocations = labels.helperLocations(order);
+  // Each end's quoted helper charge beside its crew, so the client reads what
+  // the pickup and the drop-off helpers cost separately (v1 orders only).
+  const helperSplit = helperFeeSplit(order);
+  const withFee = (label: string, fee: number | undefined): string =>
+    fee !== undefined && fee > 0 ? `${label} · ${formatGel(fee)}` : label;
 
   return (
     <section
@@ -391,10 +421,23 @@ function DetailsPanel({ order }: { order: OrderDetail }) {
             value={labels.bodyType(order.bodyType)}
           />
         ) : null}
-        <DetailRow
-          label={tCheckout("helpers")}
-          value={labels.helperCount(order.helperCount)}
-        />
+        {helperLocations ? (
+          <>
+            <DetailRow
+              label={tCheckout("helpersAtPickup")}
+              value={withFee(helperLocations.pickup, helperSplit?.pickup)}
+            />
+            <DetailRow
+              label={tCheckout("helpersAtDropoff")}
+              value={withFee(helperLocations.dropoff, helperSplit?.dropoff)}
+            />
+          </>
+        ) : (
+          <DetailRow
+            label={tCheckout("helpers")}
+            value={labels.helperCount(order.helperCount)}
+          />
+        )}
         <DetailRow
           label={tShared("serviceLevel")}
           value={serviceLevelLabel(order.serviceLevel)}

@@ -60,6 +60,7 @@ import {
   hubCivilDate,
   hubDayNumber,
 } from "@/lib/dashboard/hub/timezone";
+import { hasStopWork, type StopWork } from "@/lib/orders/stop-work";
 import type { VehicleCapability } from "@/lib/orders/vehicle-fit";
 
 /**
@@ -442,6 +443,55 @@ export function formatHelperRequest(
   return helperCount === 0
     ? "No helpers requested"
     : `${pluralise(helperCount, "helper")} requested`;
+}
+
+/**
+ * The work at one stop in a line (pricing model v1): `"2 helpers · Floor 3 ·
+ * Cargo elevator"`, `"No helpers · Ground floor"`. What the driver will do
+ * there, never what it pays — the helpers' money is `helperPayout`.
+ */
+export function formatStopWork(
+  work: StopWork,
+  /** `useTranslations("driverHub.loadsFormat")`. */
+  t: Translator,
+): string {
+  const parts = [
+    work.helpers === 0
+      ? t("stopWorkNoHelpers")
+      : t("stopWorkHelpers", { count: work.helpers }),
+    work.floor === 0
+      ? t("stopWorkGroundFloor")
+      : t("stopWorkFloor", { floor: work.floor }),
+  ];
+  if (work.cargoElevator) {
+    parts.push(t("stopWorkCargoElevator"));
+  }
+  return parts.join(" · ");
+}
+
+/**
+ * A load's helper work as the carrier lists read it (pricing model v1): one
+ * `formatStopWork` line per stop, labelled — `"At pickup: 2 helpers · Floor 3"`
+ * — or `null` when neither stop says anything, which is every pre-v1 order
+ * (`hasStopWork`). A `null` caller falls back to `formatHelperRequest` on the
+ * single `helperCount`. Work only, never money.
+ */
+export function formatLoadStopWork(
+  load: { pickupWork: StopWork; dropoffWork: StopWork },
+  /** `useTranslations("driverHub.loadsFormat")`. */
+  t: Translator,
+): { pickup: string; dropoff: string } | null {
+  if (!hasStopWork(load.pickupWork) && !hasStopWork(load.dropoffWork)) {
+    return null;
+  }
+  return {
+    pickup: t("stopWorkAtPickup", {
+      work: formatStopWork(load.pickupWork, t),
+    }),
+    dropoff: t("stopWorkAtDropoff", {
+      work: formatStopWork(load.dropoffWork, t),
+    }),
+  };
 }
 
 /* -------------------------------------------------------------------------- */

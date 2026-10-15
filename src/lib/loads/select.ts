@@ -16,7 +16,9 @@
  * lifecycle-endpoint list does).
  *
  * `price`, `baseFare`, `distanceFare`, `timeFare`, `helperFee`, `overtimeFee`
- * and `serviceLevelAdjustment` are ALL deliberately absent. `price` is what the
+ * and `serviceLevelAdjustment` — and the pricing model v1 columns
+ * `transportFare`, `returnFare`, `returnAllowance`, `helperOvertimeFee` and
+ * `tripType` — are ALL deliberately absent. `price` is what the
  * client pays; every other field in that list is a component that sums toward
  * it. None of them may reach a driver — see the GET handler's own doc comment
  * for why this is the single most important rule in this file.
@@ -74,7 +76,21 @@ export const LOADS_SELECT = {
   pickupWindowStart: true,
   pickupWindowEnd: true,
   deliveryDeadline: true,
+  // Pricing model v1: the work at each stop — what the driver brings and
+  // where. No money; the helpers' pay is `helperPayout` below.
+  pickupHelpers: true,
+  pickupFloor: true,
+  pickupCargoElevator: true,
+  dropoffHelpers: true,
+  dropoffFloor: true,
+  dropoffCargoElevator: true,
+  // Read only to derive `StopWork.helperMinutesRequired` (`stopWorkOf`);
+  // the shaped output never carries it.
+  tariffVersion: true,
   driverPayout: true,
+  // The helpers' part of `driverPayout` (included in it) — the driver's own
+  // money, shown as the transport / helpers split. Never `helperFee`.
+  helperPayout: true,
   serviceLevel: true,
   vehicleTypeSpecId: true,
   status: true,

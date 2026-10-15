@@ -15,6 +15,24 @@ import {
 } from "@/components/home/booking-submit";
 import { formatDistanceKm, formatGel } from "@/components/home/booking-format";
 import {
+  HELPER_TIME_NOTE_VALUES,
+  NO_LOCATION_HELP,
+  helperTimeNoteValues,
+  isQuoteExpired,
+  locationHelpBody,
+  locationHelpFromOrder,
+  minimumFareApplied,
+  pricingRefusalOf,
+  quotedTotalChanged,
+  transportCharge,
+  type HelperTimeNoteValues,
+  type LocationHelp,
+} from "@/components/home/booking-pricing";
+import {
+  HelperLocationsField,
+  type HelperEnd,
+} from "@/components/home/helper-locations-field";
+import {
   BreakdownRow,
   PICK_CARD_BASE_CLASSES,
   PICK_CARD_IDLE_CLASSES,
@@ -147,8 +165,38 @@ type Quote = {
   baseFare: number;
   distanceFare: number;
   timeFare: number;
+  /**
+   * Pricing model v1: the intercity return-leg charge. Optional because an
+   * order row booked before v1 has 0 and older responses may omit it.
+   */
+  returnFare?: number;
+  /**
+   * Pricing model v1, all from `/api/pricing/estimate`: whether the trip is
+   * priced as city or intercity, the transport charge as one figure (floored
+   * at the city minimum), and the helper charge split by location.
+   */
+  tripType?: "CITY" | "INTERCITY";
+  transportFare?: number;
+  pickupHelperFee?: number;
+  dropoffHelperFee?: number;
   helperFee: number;
   price: number;
+  /**
+   * The tariff version this quote was computed at — sent back with the
+   * booking so the order endpoint can refuse it (409, `tariff_changed`) if an
+   * admin retuned prices in between — and when the quote stops being honoured.
+   */
+  tariffVersion?: number;
+  quoteExpiresAt?: string;
+  /**
+   * The live helper-time rules (`PricingConfig`) the "extra helper time" note
+   * quotes — see `helperTimeNoteValues`. Absent on an older response.
+   */
+  helperRules?: {
+    includedMinutes: number;
+    overtimeIncrementMinutes: number;
+    overtimeFeePerIncrement: number;
+  };
 };
 
 /**
@@ -229,8 +277,21 @@ export type BookingFormInitialOrder = {
   vehicleTypeCode: string;
   /** Null for an order placed before the load-space filter existed. */
   bodyType: ChassisType | null;
-  /** Extra helpers beyond the driver, 0–4. */
+  /**
+   * Legacy single crew size (pre pricing model v1), 0–4. Only read when the
+   * per-location fields below are empty on a pre-v1 order — see
+   * `locationHelpFromOrder`.
+   */
   helperCount: number;
+  /** Pricing model v1: helpers, floor and cargo elevator at each end. */
+  pickupHelpers: number;
+  pickupFloor: number;
+  pickupCargoElevator: boolean;
+  dropoffHelpers: number;
+  dropoffFloor: number;
+  dropoffCargoElevator: boolean;
+  /** Null for an order priced before pricing model v1. */
+  tariffVersion: number | null;
   serviceLevel: ServiceLevel;
   description: string | null;
   /**
@@ -293,17 +354,6 @@ function stopContactPayload(
 }
 
 /**
- * An order's stored `helperCount`, clamped onto the picker's five cells. The
- * column is 0–4 by validation, so the clamp is a guard rather than a path: a
- * row outside it is shown at the nearest count the picker can draw instead of
- * with no cell selected.
- */
-function helperCountOption(helperCount: number): HelperCountOption {
-  const count = Math.min(Math.max(Math.round(helperCount), 0), 4);
-  return count as HelperCountOption;
-}
-
-/**
  * Split a stored `scheduledAt` back into the two inputs it was built from: the
  * local calendar day and the "HH:MM" slot.
  *
@@ -362,13 +412,6 @@ function goodsShortcutByCode(
 function initialItemLines(shortcut: GoodsShortcut | null): PickerLine[] {
   return shortcut?.mode === "pallets" ? addPalletLine([]) : [];
 }
-/**
- * Tolerance, in currency units, for comparing a total against the sum of its
- * parts: half a cent absorbs floating-point drift without ever masking a real
- * difference, which is at least one whole cent.
- */
-const CURRENCY_EPSILON = 0.005;
-
 /** Placeholder for a figure that isn't known yet. */
 const EMPTY_STAT = "—";
 
@@ -384,30 +427,6 @@ type BookingFormTranslate = (
 
 const PANEL_LABEL_CLASSES =
   "text-[0.6875rem] font-semibold tracking-[0.1em] text-muted uppercase";
-
-/**
- * Geometry for one cell of the helper-count row. Narrower than a pick card — it
- * holds a single numeral — but borrows that grid's border and fill states so
- * the two pickers read as the same control at different sizes.
- *
- * The radio inside each cell is `sr-only` (see the picker itself), so the cell
- * has to draw the focus ring on its behalf — the same `has-[:focus-visible]:`
- * stand-in the driver hub's radio rows use, in this palette's accent.
- */
-const HELPER_OPTION_CLASSES =
-  "relative flex h-11 cursor-pointer items-center justify-center rounded-xl border font-price text-sm font-semibold transition-colors has-[:focus-visible]:border-accent has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-accent/20";
-
-/**
- * Extra helpers on top of the driver: 0 is the driver working alone and 4 is
- * the most pricing allows. Written out as a literal tuple rather than derived
- * from a range so `HelperCountOption` stays a union of exactly these numbers.
- */
-const HELPER_COUNT_OPTIONS = [0, 1, 2, 3, 4] as const;
-
-type HelperCountOption = (typeof HELPER_COUNT_OPTIONS)[number];
-
-/** Every booking starts with nobody but the driver. */
-const DEFAULT_HELPER_COUNT: HelperCountOption = 0;
 
 /**
  * The three load spaces a client can ask for, in the order they are offered.
@@ -857,43 +876,11 @@ function combineDateAndTime(date: Date, time: string): Date | null {
 }
 
 /**
- * What a helper count means, spelled out for assistive tech: the picker shows
- * a bare numeral, which on its own never says what is being counted — or that
- * the driver comes on top of it.
- */
-function helperCountDescription(
-  count: HelperCountOption,
-  t: BookingFormTranslate,
-): string {
-  if (count === 0) {
-    return t("helperCountNone");
-  }
-
-  return t("helperCountSome", { count });
-}
-
-/**
  * How many vehicles a load space would leave the client to choose from.
- * Pluralised rather than printed as a bare "1 vehicles", the same reflex as
- * `helperCountDescription` above.
+ * Pluralised rather than printed as a bare "1 vehicles".
  */
 function vehicleCountLabel(count: number, t: BookingFormTranslate): string {
   return t("vehicleCount", { count });
-}
-
-/**
- * Everything the customer is charged for moving the load, as one figure: the
- * single line that stands in for the old base / distance / time itemisation.
- *
- * Derived by subtracting the helper fee from the quoted total rather than by
- * adding the three components it replaces, and the difference is not academic:
- * `price` is floored at the pricing rule's minimum fare, so on a short hop
- * those components sum to *less* than the total. Adding them would print two
- * lines that visibly fail to reach the total shown alongside them; subtracting
- * makes the breakdown reconcile at every distance.
- */
-function transportationCost(quote: Quote): number {
-  return quote.price - quote.helperFee;
 }
 
 /**
@@ -998,10 +985,8 @@ export function BookingForm({
   const tGoods = useTranslations("common.goodsShortcut");
   const router = useRouter();
 
-  // Not an element id but a shared radio `name`: it is what binds the five
-  // helper-count inputs into one group for the browser's own arrow-key handling.
-  const helperCountName = useId();
-  // Likewise the shared `name` binding the three load-space radios together.
+  // The shared radio `name` binding the three load-space radios together, for
+  // the browser's own arrow-key handling.
   const bodyTypeName = useId();
   // And the one binding the three service-level radios.
   const serviceLevelName = useId();
@@ -1301,13 +1286,31 @@ export function BookingForm({
   } | null>(null);
   /** The "Change vehicle" disclosure: the full annotated grid. Collapsed. */
   const [vehicleGridOpen, setVehicleGridOpen] = useState(false);
-  // Extra helpers beyond the driver — the very figure both the pricing and
-  // the orders endpoint take: the driver is not a line item.
-  const [helperCount, setHelperCount] = useState<HelperCountOption>(() =>
-    initialOrder
-      ? helperCountOption(initialOrder.helperCount)
-      : DEFAULT_HELPER_COUNT,
-  );
+  // Pricing model v1: helpers beyond the driver, the floor and the cargo
+  // elevator, asked separately at each end — exactly the six fields both the
+  // pricing and the orders endpoint take (`locationHelpBody`). Kept as typed:
+  // a floor entered and then hidden by going back to 0 helpers comes back
+  // with the helper, and is sent as the ground floor meanwhile.
+  const [initialPickupHelp, initialDropoffHelp] = useMemo(() => {
+    if (!initialOrder) {
+      return [NO_LOCATION_HELP, NO_LOCATION_HELP] as const;
+    }
+    const help = locationHelpFromOrder(initialOrder);
+    return [help.pickup, help.dropoff] as const;
+    // Read once, on mount, like every other `initialOrder` field.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const [pickupHelp, setPickupHelp] = useState<LocationHelp>(initialPickupHelp);
+  const [dropoffHelp, setDropoffHelp] =
+    useState<LocationHelp>(initialDropoffHelp);
+
+  function handleHelpChange(end: HelperEnd, next: LocationHelp) {
+    if (end === "pickup") {
+      setPickupHelp(next);
+    } else {
+      setDropoffHelp(next);
+    }
+  }
   // The tier the displayed price is for. Alone among the form's inputs it never
   // invalidates the quote — see the invalidation effect below — because every
   // tier's price is arithmetic on the one fare the server already quoted.
@@ -1319,8 +1322,33 @@ export function BookingForm({
   );
 
   const [estimate, setEstimate] = useState<Estimate | null>(null);
+  /**
+   * The helper-time note's figures: the engine defaults until a quote lands,
+   * then the live rules that quote carried. Kept apart from `estimate` (which
+   * any input change clears) so the note under the helper inputs does not
+   * flicker back to the defaults while the next quote is on its way.
+   */
+  const [helperNote, setHelperNote] = useState<HelperTimeNoteValues>(
+    HELPER_TIME_NOTE_VALUES,
+  );
   const [estimating, setEstimating] = useState(false);
   const [estimateError, setEstimateError] = useState<string | null>(null);
+  /**
+   * Set when the route is over the manual-quote distance
+   * (`manual_quote_required`): there is no price to show and nothing to book,
+   * only support to contact — with their number when one is configured.
+   * Cleared, like `estimateError`, by any change to the pricing inputs.
+   */
+  const [manualQuote, setManualQuote] = useState<{
+    supportPhone: string | null;
+  } | null>(null);
+  /**
+   * A note above the breakdown saying the price just changed under the client
+   * — after the order endpoint refused a stale tariff, or a re-quote of an
+   * expired quote came back different — so they review the new figure and
+   * press Book again rather than being charged it unseen.
+   */
+  const [priceNotice, setPriceNotice] = useState<string | null>(null);
 
   /**
    * Whether a booking is in flight — and it stays `true` once one succeeds,
@@ -1382,6 +1410,12 @@ export function BookingForm({
     // the URL already named a shortcut (`?goods=`, which the card's CTA carries
     // too), which seeded the form at mount and wins. No vehicle travels: it is
     // recommended from the item list (step 5).
+    if (draft.pickupHelp) {
+      setPickupHelp(draft.pickupHelp);
+    }
+    if (draft.dropoffHelp) {
+      setDropoffHelp(draft.dropoffHelp);
+    }
     const draftShortcut =
       initialGoods === null ? goodsShortcutByCode(draft.goods) : null;
     if (draftShortcut) {
@@ -1761,6 +1795,8 @@ export function BookingForm({
     estimateAbortRef.current?.abort();
     setEstimate(null);
     setEstimateError(null);
+    setManualQuote(null);
+    setPriceNotice(null);
     setEstimating(false);
   }, [
     pickupAddress,
@@ -1783,7 +1819,9 @@ export function BookingForm({
     // it: the quote must be invalidated by the input the user actually
     // changed, not as a side effect of how that change happens to cascade.
     bodyType,
-    helperCount,
+    // Replaced, never mutated, by `handleHelpChange`, so identity is "changed".
+    pickupHelp,
+    dropoffHelp,
     // `serviceLevel` is absent on purpose — see above. So are the two stop
     // contacts: a name and a floor number are operational detail carried to the
     // driver, and no part of the fare reads them.
@@ -1923,6 +1961,7 @@ export function BookingForm({
 
     setEstimating(true);
     setEstimateError(null);
+    setManualQuote(null);
 
     try {
       const response = await fetch("/api/pricing/estimate", {
@@ -1933,12 +1972,14 @@ export function BookingForm({
           dropoffAddress,
           vehicleTypeCode: pricedVehicleTypeCode,
           cargoCategory,
-          helperCount,
+          ...locationHelpBody(pickupHelp, dropoffHelp),
         }),
         signal: controller.signal,
       });
 
-      const payload = (await response.json()) as Estimate | { error?: string };
+      const payload = (await response.json()) as
+        | Estimate
+        | { error?: string; reason?: string; supportPhone?: string | null };
 
       // Superseded by an input change (and so already invalidated above) or
       // by a newer calculation — either way, this result has nothing to add.
@@ -1947,6 +1988,15 @@ export function BookingForm({
       }
 
       if (!response.ok) {
+        if (pricingRefusalOf(payload) === "manual_quote") {
+          setManualQuote({
+            supportPhone:
+              "supportPhone" in payload &&
+              typeof payload.supportPhone === "string"
+                ? payload.supportPhone
+                : null,
+          });
+        }
         setEstimateError(
           "error" in payload && payload.error
             ? payload.error
@@ -1957,6 +2007,7 @@ export function BookingForm({
 
       const quoted = payload as Estimate;
       setEstimate(quoted);
+      setHelperNote(helperTimeNoteValues(quoted.helperRules));
       return quoted;
     } catch {
       if (!controller.signal.aborted) {
@@ -2014,7 +2065,8 @@ export function BookingForm({
     dropoffAddress,
     pricedVehicleTypeCode,
     cargoCategory,
-    helperCount,
+    pickupHelp,
+    dropoffHelp,
   ]);
 
   /** Bring a step into view, centred, as the place to act next. */
@@ -2062,7 +2114,14 @@ export function BookingForm({
     }
 
     setError(null);
+    setPriceNotice(null);
     setSubmitAttempted(true);
+
+    // A route over the manual-quote distance has no price to book at; the
+    // price panel already says so and how to reach support.
+    if (manualQuote !== null) {
+      return;
+    }
 
     const firstMissing = missingSections[0];
     if (firstMissing !== undefined || !scheduledDateTime || !cargoCategory) {
@@ -2097,11 +2156,30 @@ export function BookingForm({
     // failed): price now rather than asking for a second click. The order
     // endpoint re-prices on its own, so this is about the client having seen
     // a figure the checkout page will confirm, not about trusting this one.
-    if (estimate === null) {
+    let quote: Estimate | null = estimate;
+    if (quote === null) {
       setSubmitPhase("pricing");
-      const quoted = await handleCalculate();
-      if (quoted === null) {
+      quote = await handleCalculate();
+      if (quote === null) {
         // `estimateError` already says why, in the price panel.
+        submitLockRef.current = false;
+        setSubmitting(false);
+        return;
+      }
+    } else if (isQuoteExpired(quote.quoteExpiresAt, Date.now())) {
+      // The quote in hand has outlived its validity (`quoteExpiresAt`):
+      // re-quote before sending. Silent when the price is unchanged; when it
+      // moved, stop and show the new figure instead of booking it unseen.
+      const shownTotal = quote.serviceLevels[serviceLevel];
+      setSubmitPhase("pricing");
+      quote = await handleCalculate();
+      if (quote === null) {
+        submitLockRef.current = false;
+        setSubmitting(false);
+        return;
+      }
+      if (quotedTotalChanged(shownTotal, quote.serviceLevels[serviceLevel])) {
+        setPriceNotice(t("priceUpdatedReviewAndBook"));
         submitLockRef.current = false;
         setSubmitting(false);
         return;
@@ -2148,7 +2226,12 @@ export function BookingForm({
             // individual it is the plan's body, and the route ignores it in
             // favour of the same derivation; a business's is its own choice.
             bodyType,
-            helperCount,
+            // Helpers, floor and elevator at each end — priced by the route
+            // itself, never by a figure from here.
+            ...locationHelpBody(pickupHelp, dropoffHelp),
+            // The tariff the client was shown. A stale one is refused (409,
+            // `tariff_changed`) so they never book a price they did not see.
+            tariffVersion: quote.tariffVersion,
             // The tier, never its price: `/api/orders` re-derives the adjustment
             // from the quote it computes itself.
             serviceLevel,
@@ -2168,7 +2251,24 @@ export function BookingForm({
       );
 
       const payload = (await response.json()) as
-        CreatedOrder | { error?: string };
+        CreatedOrder | { error?: string; reason?: string };
+
+      const refusal = response.ok ? null : pricingRefusalOf(payload);
+      if (refusal === "tariff_changed") {
+        // Prices were retuned since this quote: fetch the new one, show it,
+        // and let the client press Book again on a figure they have seen.
+        setSubmitPhase("pricing");
+        await handleCalculate();
+        setPriceNotice(t("priceUpdatedReviewAndBook"));
+        submitLockRef.current = false;
+        setSubmitting(false);
+        return;
+      }
+      if (refusal === "manual_quote") {
+        // Only reachable without a quote on screen (it would have refused
+        // already), so there is no support number in hand to show.
+        setManualQuote({ supportPhone: null });
+      }
 
       if (!response.ok) {
         const message =
@@ -2241,28 +2341,6 @@ export function BookingForm({
     if (estimate === null && canCalculate) {
       void handleCalculate();
     }
-  }
-
-  /**
-   * Whether the quoted total came out above the sum of the fare components,
-   * which only happens when the vehicle type's minimum fare floored it. The
-   * breakdown no longer prints those components — `transportationCost` is
-   * derived from the total, so the lines always add up — but the floor is
-   * still worth naming: it is why a two-block hop costs what a longer one
-   * does. The half-cent margin keeps floating-point dust from reading as a
-   * floor.
-   *
-   * Always the quoted fare, never the tier-adjusted total: the floor is a
-   * property of the quote, and a Pooling discount is applied after it (see
-   * `serviceLevelAdjustment`). Testing the adjusted figure would hide the note
-   * on a discounted job that was floored, and invent it on a Priority one that
-   * was not.
-   */
-  function minimumFareApplied(quote: Quote): boolean {
-    return (
-      quote.price - CURRENCY_EPSILON >
-      quote.baseFare + quote.distanceFare + quote.timeFare + quote.helperFee
-    );
   }
 
   /** The card copy for the tier in hand — the title the bottom bar names. */
@@ -3171,57 +3249,18 @@ export function BookingForm({
 
             <StepCard step={7} title={t("additionalDetails")}>
               <div className="flex flex-col gap-4">
-                {/* Native radios, one per helper count, each visually replaced by
-                    the cell wrapping it. Keeping the real inputs — `sr-only`
-                    rather than removed — is what gives the group its arrow-key
-                    handling and its "3 of 5" announcement for free, the same
-                    trade the driver hub's radio rows make. */}
-                <fieldset className="flex flex-col gap-2">
-                  <legend className="mb-2 text-[0.8125rem] font-medium text-paper">
-                    {t("helpers")}
-                  </legend>
-
-                  <div className="grid grid-cols-5 gap-2 sm:max-w-[21.375rem]">
-                    {HELPER_COUNT_OPTIONS.map((count) => {
-                      const selected = count === helperCount;
-
-                      return (
-                        <label
-                          key={count}
-                          className={`${HELPER_OPTION_CLASSES} ${
-                            selected
-                              ? `${PICK_CARD_SELECTED_CLASSES} text-accent`
-                              : `${PICK_CARD_IDLE_CLASSES} text-paper`
-                          }`}
-                        >
-                          <input
-                            type="radio"
-                            name={helperCountName}
-                            value={count}
-                            checked={selected}
-                            onChange={() => setHelperCount(count)}
-                            aria-label={helperCountDescription(count, t)}
-                            className="sr-only"
-                          />
-                          <span aria-hidden="true">{count}</span>
-                        </label>
-                      );
-                    })}
-                  </div>
-
-                  <p className="text-xs leading-snug text-muted">
-                    {t("helpersHint")}
-                  </p>
-
-                  {/* A suggestion, never a change: the selection stays where
-                      the client left it, and the line goes as soon as they
-                      add a second person (or remove the item). */}
-                  {helperCount === 0 && twoPersonItemLabel !== null ? (
-                    <p className="text-xs leading-snug text-muted">
-                      {t("twoPeopleRecommended", { item: twoPersonItemLabel })}
-                    </p>
-                  ) : null}
-                </fieldset>
+                <HelperLocationsField
+                  pickup={pickupHelp}
+                  dropoff={dropoffHelp}
+                  onChange={handleHelpChange}
+                  disabled={submitting}
+                  timeNote={helperNote}
+                  suggestion={
+                    twoPersonItemLabel !== null
+                      ? t("twoPeopleRecommended", { item: twoPersonItemLabel })
+                      : null
+                  }
+                />
 
                 <div className="flex flex-col gap-1.5">
                   <Label
@@ -3361,6 +3400,15 @@ export function BookingForm({
                 </p>
               </div>
 
+              {priceNotice ? (
+                <p
+                  role="status"
+                  className="mt-3 rounded-lg border border-accent/30 bg-accent/10 px-3.5 py-2.5 text-[0.8125rem] leading-snug text-accent"
+                >
+                  {priceNotice}
+                </p>
+              ) : null}
+
               {estimate ? (
                 <>
                   <dl className="mt-3 flex flex-col gap-1.5">
@@ -3368,18 +3416,45 @@ export function BookingForm({
                       label={tShared("distance")}
                       value={formatDistanceKm(estimate.distanceKm)}
                     />
+                    {/* Transport — base, distance, time and (intercity) the
+                        return-trip allowance as the one figure the server
+                        calls `transportFare`. The tier below applies to this
+                        line only. */}
                     <BreakdownRow
-                      label={tShared("transportationCost")}
-                      value={formatGel(transportationCost(estimate))}
+                      label={t("transport")}
+                      value={formatGel(transportCharge(estimate))}
                     />
-                    {/* Only worth a line when at least one was actually
-                        requested. */}
-                    {estimate.helperFee > 0 ? (
-                      <BreakdownRow
-                        label={tShared("helperFee")}
-                        value={formatGel(estimate.helperFee)}
-                      />
-                    ) : null}
+                    {/* Helpers, split by the end they work at, each only
+                        when booked there. A response without the split (an
+                        older server) falls back to the one combined line. */}
+                    {estimate.pickupHelperFee === undefined ||
+                    estimate.dropoffHelperFee === undefined ? (
+                      estimate.helperFee > 0 ? (
+                        <BreakdownRow
+                          label={tShared("helperFee")}
+                          value={formatGel(estimate.helperFee)}
+                        />
+                      ) : null
+                    ) : (
+                      <>
+                        {estimate.pickupHelperFee > 0 ? (
+                          <BreakdownRow
+                            label={t("helpersAtPickupFee", {
+                              count: pickupHelp.helpers,
+                            })}
+                            value={formatGel(estimate.pickupHelperFee)}
+                          />
+                        ) : null}
+                        {estimate.dropoffHelperFee > 0 ? (
+                          <BreakdownRow
+                            label={t("helpersAtDropoffFee", {
+                              count: dropoffHelp.helpers,
+                            })}
+                            value={formatGel(estimate.dropoffHelperFee)}
+                          />
+                        ) : null}
+                      </>
+                    )}
                     {/* What those lines add up to, and then what the chosen
                         tier does to it. The quoted fare has to be named before
                         an uplift or a discount can be shown against it, and the
@@ -3420,9 +3495,27 @@ export function BookingForm({
                     />
                   </dl>
 
-                  {minimumFareApplied(estimate) ? (
+                  {estimate.tripType === "INTERCITY" ? (
+                    <p className="mt-2.5 text-xs text-muted">
+                      {t("intercityIncludesReturn")}
+                    </p>
+                  ) : minimumFareApplied(estimate) ? (
                     <p className="mt-2.5 text-xs text-accent">
                       {t("minimumFareAppliedForThisVehicle")}
+                    </p>
+                  ) : null}
+                  {serviceLevelDelta !== 0 ? (
+                    <p className="mt-1.5 text-xs text-muted">
+                      {t("tierAppliesToTransport")}
+                    </p>
+                  ) : null}
+                  {estimate.helperFee > 0 ? (
+                    <p className="mt-1.5 text-xs text-muted">
+                      {t("helperOvertimeNote", {
+                        minutes: helperNote.includedMinutes,
+                        fee: helperNote.fee,
+                        increment: helperNote.incrementMinutes,
+                      })}
                     </p>
                   ) : null}
                 </>
@@ -3436,7 +3529,33 @@ export function BookingForm({
                 </p>
               )}
 
-              {estimateError ? (
+              {manualQuote ? (
+                // Not an error to retry but a job priced by hand: the route
+                // is over the online-quote distance. Book is disabled below.
+                <div
+                  role="alert"
+                  className="mt-3 rounded-lg border border-accent/30 bg-accent/10 px-3.5 py-2.5 text-[0.8125rem] leading-snug text-paper"
+                >
+                  <p className="font-semibold text-accent">
+                    {t("manualQuoteTitle")}
+                  </p>
+                  {/* The server's own sentence: names the distance limit and
+                      says to contact support. */}
+                  <p className="mt-1">
+                    {estimateError ?? t("manualQuoteFallback")}
+                  </p>
+                  {manualQuote.supportPhone ? (
+                    <a
+                      href={`tel:${manualQuote.supportPhone.replace(/[^\d+]/g, "")}`}
+                      className="mt-2 inline-block font-semibold text-accent underline underline-offset-2"
+                    >
+                      {t("manualQuoteCall", {
+                        phone: manualQuote.supportPhone,
+                      })}
+                    </a>
+                  ) : null}
+                </div>
+              ) : estimateError ? (
                 <p
                   role="alert"
                   className="mt-3 rounded-lg border border-accent/30 bg-accent/10 px-3.5 py-2.5 text-[0.8125rem] leading-snug text-accent"
@@ -3556,7 +3675,8 @@ export function BookingForm({
               <Button
                 type="submit"
                 form={formId}
-                disabled={submitting}
+                // A manual-quote route has no price to book at.
+                disabled={submitting || manualQuote !== null}
                 aria-busy={submitting}
                 className="h-12 gap-2 rounded-full bg-accent px-6 text-[0.9375rem] font-semibold text-ink transition-transform hover:bg-accent hover:-translate-y-0.5 disabled:translate-y-0"
               >

@@ -121,7 +121,9 @@
  *   **carrier's** side: `driverPayout`, `overtimeDriverPayout` and figures
  *   derived from them. What the client paid (`price`, `baseFare`,
  *   `distanceFare`, `timeFare`, `helperFee`, `overtimeFee`,
- *   `serviceLevelAdjustment`) and `commissionRate` appear nowhere in this file
+ *   `serviceLevelAdjustment`, and since pricing model v1 `transportFare`,
+ *   `returnFare`, `returnAllowance`, `helperOvertimeFee`, `tripType`) and
+ *   `commissionRate` appear nowhere in this file
  *   and must never be added — see `tests/carrier-payload-redaction.spec.ts`.
  * - Nothing here is placeholder data. The web hub decorates several screens
  *   with clearly-labelled sample figures (its `sampled` sub-objects); the JSON
@@ -331,6 +333,34 @@ export type HubJobStopContact = {
   details: string | null;
 };
 
+/**
+ * The hands-on work at one stop, as the client booked it (pricing model v1):
+ * how many helpers the driver brings there, which floor the load is on and
+ * whether a cargo elevator can be used. No money — what the helpers pay the
+ * driver is `helperPayout`, already inside `driverPayout`.
+ *
+ * Orders booked before v1 carry `{ helpers: 0, floor: 0, cargoElevator:
+ * false }` at both ends and describe their crew with `helperCount` alone, so
+ * show the per-stop work only when it says something (a helper, a floor above
+ * ground or an elevator) and fall back to `helperCount` otherwise.
+ */
+export type HubStopWork = {
+  /** Helpers booked at this stop, 0–4. */
+  helpers: number;
+  /** The floor the load is on; 0 is the ground floor. */
+  floor: number;
+  /** Whether a cargo elevator can be used at this stop. */
+  cargoElevator: boolean;
+  /**
+   * Whether marking the job delivered must report the helpers' actual minutes
+   * at this stop: true only on a pricing-model-v1 order with helpers booked
+   * here. Older orders (whose per-stop helpers were backfilled from
+   * `helperCount`) are false — the server would discard the figure. Gate the
+   * minutes input on this, never on `helpers > 0`.
+   */
+  helperMinutesRequired: boolean;
+};
+
 export type HubJobsItem = {
   id: string;
   /** The last six characters of `id`, upper-cased. Prefer `reference`. */
@@ -346,6 +376,9 @@ export type HubJobsItem = {
   driverPayout: number;
   overtimeDriverPayout: number;
   helperCount: number;
+  /** The work at each stop — see `HubStopWork`. */
+  pickupWork: HubStopWork;
+  dropoffWork: HubStopWork;
   waitingMinutes: number | null;
   createdAt: string;
   scheduledAt: string | null;
@@ -431,6 +464,9 @@ export type HubJobSheetResponse = {
   cargoHeightM: number | null;
   handlingTags: string[]; // CargoHandlingTag[]
   helperCount: number;
+  /** The work at each stop — see `HubStopWork`. */
+  pickupWork: HubStopWork;
+  dropoffWork: HubStopWork;
   bodyType: string | null; // ChassisType
   createdAt: string;
   scheduledAt: string | null;
@@ -445,9 +481,26 @@ export type HubJobSheetResponse = {
    * none may be shown. The web job sheet applies the same rule.
    */
   driverPayout: number | null;
-  /** Null when `status` is `CANCELLED` — see `driverPayout`. */
+  /**
+   * The helpers' part of `driverPayout` (already included in it, never on top
+   * of it): the transport part is `driverPayout - helperPayout`. 0 on a job
+   * with no helpers and on every order booked before pricing model v1. Null
+   * when `status` is `CANCELLED` — see `driverPayout`.
+   */
+  helperPayout: number | null;
+  /**
+   * Null when `status` is `CANCELLED` — see `driverPayout`. Includes the
+   * driver's share of the vehicle waiting overtime AND all of the helper
+   * overtime, both settled at completion.
+   */
   overtimeDriverPayout: number | null;
   waitingMinutes: number | null;
+  /**
+   * The helper minutes reported at each stop at completion. Null until then,
+   * and at a stop that had no helpers.
+   */
+  pickupHelperMinutes: number | null;
+  dropoffHelperMinutes: number | null;
   /** Who signed for the delivery, once completed. */
   receivedBy: string | null;
   /**
@@ -648,6 +701,16 @@ export type PodPhotoDeleteResponse = OrderProofOfDelivery;
 export type OrderCompleteRequest = {
   /** Whole minutes spent loading and unloading, 0 or more. Required. */
   waitingMinutes: number;
+  /**
+   * Whole minutes the helpers worked at each stop, 0 to 1440. **Required for a
+   * stop whose `HubStopWork.helpers` is above 0** (else 400
+   * `INVALID_REQUEST`); ignored — and may be omitted or null — for a stop with
+   * no helpers. Helper overtime is computed server-side from these and paid
+   * to the driver in full inside `overtimeDriverPayout`; the included minutes
+   * and the rate are not on the wire.
+   */
+  pickupHelperMinutes?: number | null;
+  dropoffHelperMinutes?: number | null;
   /** Who took delivery. Optional; trimmed; 200 characters at most. */
   receivedBy?: string | null;
 };
@@ -1432,11 +1495,19 @@ export type LoadBoardItem = {
   packagingDescription: string | null;
   itemQuantity: string | null;
   handlingTags: string[]; // CargoHandlingTag[]
+  /** The work at each stop — see `HubStopWork`. */
+  pickupWork: HubStopWork;
+  dropoffWork: HubStopWork;
   pickupWindowStart: string | null;
   pickupWindowEnd: string | null;
   deliveryDeadline: string | null;
   /** The driver's own share, read from the stored column. Never `Order.price`. */
   driverPayout: number;
+  /**
+   * The helpers' part of `driverPayout` (included in it, not on top): the
+   * transport part is `driverPayout - helperPayout`. 0 when no helpers.
+   */
+  helperPayout: number;
   /** `driverPayout` per kilometre, or null when the trip has no distance. */
   ratePerKm: number | null;
   serviceLevel: string;
@@ -2238,6 +2309,11 @@ export type HubOffer = {
   lifetimeSeconds: number;
   /** What the job pays this driver. */
   driverPayout: number;
+  /**
+   * The helpers' part of `driverPayout` (included in it, not on top): the
+   * transport part is `driverPayout - helperPayout`. 0 when no helpers.
+   */
+  helperPayout: number;
   /** The route's length, pickup to drop-off. */
   distanceKm: number;
   /** How far the driver is from the pickup; null when either is unknown. */
@@ -2265,6 +2341,9 @@ export type HubOffer = {
   bodyType: string | null; // ChassisType
   handlingTags: string[]; // CargoHandlingTag[]
   helperCount: number;
+  /** The work at each stop — see `HubStopWork`. */
+  pickupWork: HubStopWork;
+  dropoffWork: HubStopWork;
   serviceLevel: string; // ServiceLevel
   /**
    * The vehicle the server matched this load to. Null only if that vehicle

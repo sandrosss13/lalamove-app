@@ -99,9 +99,57 @@ export const ORDER_PARTY_SELECT = {
   waitingMinutes: true,
   createdAt: true,
   updatedAt: true,
+  // Pricing model v1 — the client's own quote, itemised (see the `Order`
+  // model). Client money: never in a carrier select.
+  tripType: true,
+  returnAllowance: true,
+  returnFare: true,
+  transportFare: true,
+  pickupHelperFee: true,
+  dropoffHelperFee: true,
+  helperOvertimeFee: true,
+  pickupHelpers: true,
+  pickupFloor: true,
+  pickupCargoElevator: true,
+  dropoffHelpers: true,
+  dropoffFloor: true,
+  dropoffCargoElevator: true,
+  pickupHelperMinutes: true,
+  dropoffHelperMinutes: true,
+  tariffVersion: true,
+  quotedAt: true,
   reference: true,
   driverPayout: true,
 } as const;
+
+/**
+ * What `POST /api/orders` and `PATCH /api/orders/[id]` answer the booking
+ * client with: `ORDER_PARTY_SELECT` minus the carrier's money. The client is
+ * party to every line of their own quote, but not to what the carrier is paid
+ * out of it — `driverPayout`, `helperPayout`, `overtimeDriverPayout` — nor to
+ * the platform's `commissionRate` (neither of the last three is in
+ * `ORDER_PARTY_SELECT` to begin with; `driverPayout` is removed here). Before
+ * this, both endpoints returned the whole row.
+ *
+ * Built by omission so a column added to `ORDER_PARTY_SELECT` for the client
+ * reaches these two responses too; `tests/carrier-payload-redaction.spec.ts`
+ * pins that none of the four ever does.
+ */
+export const CLIENT_ORDER_RESPONSE_SELECT = omitColumns(ORDER_PARTY_SELECT, [
+  "driverPayout",
+]);
+
+/** A copy of a select object without the named columns. */
+function omitColumns<T extends Record<string, true>, K extends keyof T>(
+  select: T,
+  columns: readonly K[],
+): Omit<T, K> {
+  const copy: Record<string, true> = { ...select };
+  for (const column of columns) {
+    delete copy[column as string];
+  }
+  return copy as Omit<T, K>;
+}
 
 /**
  * The `Order` columns an endpoint may return to the *carrier* on an order —
@@ -111,7 +159,10 @@ export const ORDER_PARTY_SELECT = {
  * *"Driver should see only its net, not total paid."* `Order.price` and
  * `Order.overtimeFee` are what the CLIENT pays; `Order.driverPayout` and
  * `Order.overtimeDriverPayout` are what the carrier earns. Only the second pair
- * may cross this boundary.
+ * may cross this boundary — plus, since pricing model v1, `helperPayout`, the
+ * helpers' part of `driverPayout` (so a driver can see transport vs helpers).
+ * The v1 client-side columns (`transportFare`, `returnFare`,
+ * `returnAllowance`, `helperOvertimeFee`, `tripType`) never may.
  *
  * **Why a separate object rather than `ORDER_PARTY_SELECT` with fields removed
  * at each call site.** The removal-at-the-call-site version was tried and
@@ -201,9 +252,24 @@ export const CARRIER_ORDER_PARTY_SELECT = {
   inTransitAt: true,
   completedAt: true,
   waitingMinutes: true,
+  // Pricing model v1: the work at each stop — what the driver brings and
+  // where. No money; the helpers' pay is `helperPayout` below.
+  pickupHelpers: true,
+  pickupFloor: true,
+  pickupCargoElevator: true,
+  dropoffHelpers: true,
+  dropoffFloor: true,
+  dropoffCargoElevator: true,
+  // The helper minutes the driver reported at completion.
+  pickupHelperMinutes: true,
+  dropoffHelperMinutes: true,
   createdAt: true,
   updatedAt: true,
   reference: true,
   driverPayout: true,
+  // The helpers' part of `driverPayout` (included in it, not on top) — a
+  // carrier figure, uncommissioned pass-through of `helperFee`. Never select
+  // `helperFee` itself here: equal in value today, it is the client's line.
+  helperPayout: true,
   overtimeDriverPayout: true,
 } as const;

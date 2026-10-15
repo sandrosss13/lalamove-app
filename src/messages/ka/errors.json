@@ -517,7 +517,11 @@
     "onlyUnpaidOrdersCanBeCancelled": "გაუქმება შესაძლებელია მხოლოდ გადაუხდელი შეკვეთის. თუ ეს შეკვეთა უკვე გადახდილია, მის გასაუქმებლად დაუკავშირდით მხარდაჭერის გუნდს."
   },
   "ordersComplete": {
+    "dropoffHelperMinutesInvalid": "ჩაბარების ადგილზე დამხმარეების წუთები უნდა იყოს მთელი რიცხვი 0-დან {max}-მდე.",
+    "dropoffHelperMinutesRequired": "მიუთითეთ, რამდენი წუთი იმუშავეს დამხმარეებმა ჩაბარების ადგილზე.",
     "photoRequired": "დადასტურებამდე დაამატეთ მიწოდების მინიმუმ ერთი ფოტო.",
+    "pickupHelperMinutesInvalid": "აყვანის ადგილზე დამხმარეების წუთები უნდა იყოს მთელი რიცხვი 0-დან {max}-მდე.",
+    "pickupHelperMinutesRequired": "მიუთითეთ, რამდენი წუთი იმუშავეს დამხმარეებმა აყვანის ადგილზე.",
     "receivedByMustBeStringOrNull": "receivedBy უნდა იყოს ტექსტი ან null.",
     "receivedByTooLong": "receivedBy არ უნდა აღემატებოდეს {max} სიმბოლოს.",
     "signatureRequired": "დადასტურებამდე დაამატეთ მიმღების ხელმოწერა.",

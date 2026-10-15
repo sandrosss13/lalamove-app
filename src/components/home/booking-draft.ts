@@ -25,6 +25,10 @@
  */
 
 import {
+  readLocationHelp,
+  type LocationHelp,
+} from "@/components/home/booking-pricing";
+import {
   isGoodsShortcutCode,
   type GoodsShortcutCode,
 } from "@/lib/goods-shortcuts";
@@ -46,6 +50,15 @@ export type BookingDraft = {
   dropoffLocation: LatLng | null;
   /** The goods shortcut tile the visitor picked, or `null` for none. */
   goods: GoodsShortcutCode | null;
+  /**
+   * Pricing model v1: the helpers, floor and cargo elevator at each end, when
+   * the writer collected them. Optional — the homepage card asks only for the
+   * route and the goods, and a draft without them opens the form with nobody
+   * but the driver at either end. Read back through `readLocationHelp`, so a
+   * value outside the bookable range is clamped rather than trusted.
+   */
+  pickupHelp?: LocationHelp | null;
+  dropoffHelp?: LocationHelp | null;
   /** `Date.now()` when the card wrote it. */
   savedAt: number;
 };
@@ -79,9 +92,7 @@ function readString(value: unknown, maxLength: number): string {
 }
 
 function readGoods(value: unknown): GoodsShortcutCode | null {
-  return typeof value === "string" && isGoodsShortcutCode(value)
-    ? value
-    : null;
+  return typeof value === "string" && isGoodsShortcutCode(value) ? value : null;
 }
 
 /**
@@ -130,6 +141,8 @@ export function takeBookingDraft(): BookingDraft | null {
     dropoffAddress,
     dropoffLocation: dropoffAddress ? readLatLng(record.dropoffLocation) : null,
     goods: readGoods(record.goods),
+    pickupHelp: readLocationHelp(record.pickupHelp),
+    dropoffHelp: readLocationHelp(record.dropoffHelp),
     savedAt,
   };
 }

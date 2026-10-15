@@ -12,6 +12,7 @@ import {
   secondsRemaining,
   type OfferState,
 } from "@/lib/offers/rules";
+import { stopWorkOf, type StopWork } from "@/lib/orders/stop-work";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -43,6 +44,8 @@ const CURRENT_OFFER_SELECT = {
       driverId: true,
       companyId: true,
       driverPayout: true,
+      // The helpers' part of `driverPayout` (pricing model v1), included in it.
+      helperPayout: true,
       distanceKm: true,
       pickupAddress: true,
       pickupCity: true,
@@ -67,6 +70,16 @@ const CURRENT_OFFER_SELECT = {
       bodyType: true,
       handlingTags: true,
       helperCount: true,
+      // Pricing model v1: the work at each stop. No money.
+      pickupHelpers: true,
+      pickupFloor: true,
+      pickupCargoElevator: true,
+      dropoffHelpers: true,
+      dropoffFloor: true,
+      dropoffCargoElevator: true,
+      // Read only to derive `StopWork.helperMinutesRequired` (`stopWorkOf`);
+      // the shaped output never carries it.
+      tariffVersion: true,
       serviceLevel: true,
     },
   },
@@ -86,6 +99,8 @@ export type DriverOfferRecord = {
   secondsRemaining: number;
   lifetimeSeconds: number;
   driverPayout: number;
+  /** The helpers' part of `driverPayout` — included in it, not on top. */
+  helperPayout: number;
   distanceKm: number;
   pickupDistanceKm: number | null;
   pickupAddress: string;
@@ -111,6 +126,8 @@ export type DriverOfferRecord = {
   bodyType: string | null;
   handlingTags: string[];
   helperCount: number;
+  pickupWork: StopWork;
+  dropoffWork: StopWork;
   serviceLevel: string;
   fitVehicle: {
     id: string;
@@ -148,6 +165,7 @@ function toDriverOfferRecord(
     secondsRemaining: secondsRemaining(row.expiresAt, now),
     lifetimeSeconds: OFFER_LIFETIME_SECONDS,
     driverPayout: order.driverPayout,
+    helperPayout: order.helperPayout,
     distanceKm: order.distanceKm,
     pickupDistanceKm,
     pickupAddress: order.pickupAddress,
@@ -174,6 +192,7 @@ function toDriverOfferRecord(
     bodyType: order.bodyType,
     handlingTags: order.handlingTags,
     helperCount: order.helperCount,
+    ...stopWorkOf(order),
     serviceLevel: order.serviceLevel,
     fitVehicle:
       vehicle === null

@@ -43,6 +43,7 @@ import { expect, test } from "@playwright/test";
 import { LOADS_SELECT } from "@/lib/loads/select";
 import {
   CARRIER_ORDER_PARTY_SELECT,
+  CLIENT_ORDER_RESPONSE_SELECT,
   ORDER_PARTY_SELECT,
 } from "@/lib/order-response-select";
 
@@ -64,10 +65,38 @@ const CLIENT_MONEY_COLUMNS = [
   "helperFee",
   "overtimeFee",
   "serviceLevelAdjustment",
+  // Pricing model v1: the transport charge and its itemised parts, and the
+  // helper overtime charged to the client. (`helperPayout` is the driver's.)
+  "transportFare",
+  "returnFare",
+  "returnAllowance",
+  "pickupHelperFee",
+  "dropoffHelperFee",
+  "helperOvertimeFee",
+  // Not money, but it says which tariff the client was charged at.
+  "tripType",
 ] as const;
 
-/** The only two money columns a carrier-facing response may ever carry. */
-const CARRIER_MONEY_COLUMNS = ["driverPayout", "overtimeDriverPayout"] as const;
+/**
+ * The only money columns a carrier-facing response may ever carry: the
+ * carrier's own payout, its overtime share and (pricing model v1) the helpers'
+ * part of the payout, which is included in `driverPayout`.
+ */
+const CARRIER_MONEY_COLUMNS = [
+  "driverPayout",
+  "helperPayout",
+  "overtimeDriverPayout",
+] as const;
+
+/** Pricing model v1: the per-stop work a carrier needs to plan the job. */
+const STOP_WORK_COLUMNS = [
+  "pickupHelpers",
+  "pickupFloor",
+  "pickupCargoElevator",
+  "dropoffHelpers",
+  "dropoffFloor",
+  "dropoffCargoElevator",
+] as const;
 
 test.describe("CARRIER_ORDER_PARTY_SELECT", () => {
   for (const column of CLIENT_MONEY_COLUMNS) {
@@ -86,7 +115,17 @@ test.describe("CARRIER_ORDER_PARTY_SELECT", () => {
     });
   }
 
-  test("carries no money column beyond the carrier's own two", () => {
+  test("carries the work at each stop and the reported helper minutes", () => {
+    for (const column of [
+      ...STOP_WORK_COLUMNS,
+      "pickupHelperMinutes",
+      "dropoffHelperMinutes",
+    ]) {
+      expect(CARRIER_ORDER_PARTY_SELECT).toHaveProperty(column, true);
+    }
+  });
+
+  test("carries no money column beyond the carrier's own three", () => {
     // A positive assertion over the whole shape, so a money column added to
     // `Order` and copied in here later is caught even though this file has
     // never heard of its name. Anything ending in a fare/price/fee word that is
@@ -160,6 +199,30 @@ test.describe("ORDER_PARTY_SELECT", () => {
 });
 
 /**
+ * `POST /api/orders` and `PATCH /api/orders/[id]` answer the booking client:
+ * their own quote, never what the carrier is paid out of it.
+ */
+test.describe("CLIENT_ORDER_RESPONSE_SELECT", () => {
+  for (const column of [
+    "commissionRate",
+    "driverPayout",
+    "helperPayout",
+    "overtimeDriverPayout",
+  ]) {
+    test(`never answers the client with Order.${column}`, () => {
+      expect(CLIENT_ORDER_RESPONSE_SELECT).not.toHaveProperty(column);
+    });
+  }
+
+  test("keeps the id the booking form navigates with, and the client's quote", () => {
+    expect(CLIENT_ORDER_RESPONSE_SELECT).toHaveProperty("id", true);
+    for (const column of CLIENT_MONEY_COLUMNS) {
+      expect(CLIENT_ORDER_RESPONSE_SELECT).toHaveProperty(column, true);
+    }
+  });
+});
+
+/**
  * `GET /api/loads` — the load board, which also answers accounts that are not
  * yet party to an order (the open market). Its select lives in an import-free
  * module so it can be pinned here like the two above.
@@ -182,12 +245,18 @@ test.describe("LOADS_SELECT", () => {
     }
   });
 
-  test("selects the driver's payout as its only money column", () => {
+  test("selects the driver's payout (and its helpers' part) as its only money", () => {
     const moneyish = Object.keys(LOADS_SELECT).filter((key) =>
       /fare|price|fee|payout|adjustment/i.test(key),
     );
 
-    expect(moneyish).toEqual(["driverPayout"]);
+    expect(moneyish.sort()).toEqual(["driverPayout", "helperPayout"]);
+  });
+
+  test("carries the work at each stop", () => {
+    for (const column of STOP_WORK_COLUMNS) {
+      expect(LOADS_SELECT).toHaveProperty(column, true);
+    }
   });
 
   test("reads cargo photos as a count only, never as rows", () => {

@@ -74,11 +74,29 @@ const CLIENT_MONEY_KEYS = [
   "helperFee",
   "overtimeFee",
   "serviceLevelAdjustment",
+  // Pricing model v1: the transport charge and its itemised parts, and the
+  // helper overtime charged to the client. (`helperPayout` is the driver's.)
+  "transportFare",
+  "returnFare",
+  "returnAllowance",
+  "pickupHelperFee",
+  "dropoffHelperFee",
+  "helperOvertimeFee",
+  // Not money, but it says which tariff the client was charged at.
+  "tripType",
   "commissionRate",
 ] as const;
 
-/** The only money keys any hub body may carry — all three are the carrier's. */
-const CARRIER_MONEY_KEYS = ["driverPayout", "fare", "overtimeDriverPayout"];
+/**
+ * The only money keys any hub body may carry — all the carrier's. `helperPayout`
+ * (pricing model v1) is the helpers' part of `driverPayout`, included in it.
+ */
+const CARRIER_MONEY_KEYS = [
+  "driverPayout",
+  "fare",
+  "helperPayout",
+  "overtimeDriverPayout",
+];
 
 /** Every object key anywhere inside `value`, however deeply nested. */
 function allKeys(value: unknown, out = new Set<string>()): Set<string> {
@@ -110,6 +128,8 @@ const LEAKED_COLUMNS: Record<string, unknown> = {
   distanceFare: 60,
   timeFare: 20,
   helperFee: 10,
+  pickupHelperFee: 4,
+  dropoffHelperFee: 6,
   overtimeFee: 5,
   serviceLevelAdjustment: 0,
   commissionRate: 0.15,
@@ -175,6 +195,18 @@ const jobs: HubJobsData = {
       driverPayout: 42.5,
       overtimeDriverPayout: 4,
       helperCount: 1,
+      pickupWork: {
+        helpers: 1,
+        floor: 2,
+        cargoElevator: false,
+        helperMinutesRequired: true,
+      },
+      dropoffWork: {
+        helpers: 0,
+        floor: 0,
+        cargoElevator: false,
+        helperMinutesRequired: false,
+      },
       waitingMinutes: 12,
       createdAt: "2026-09-01T08:00:00.000Z",
       scheduledAt: null,
@@ -228,6 +260,18 @@ const jobSheet: HubJobSheet = {
   handlingTags: ["FRAGILE"],
   helperCount: 1,
   bodyType: "DRY_BOX",
+  pickupWork: {
+    helpers: 1,
+    floor: 3,
+    cargoElevator: false,
+    helperMinutesRequired: true,
+  },
+  dropoffWork: {
+    helpers: 0,
+    floor: 0,
+    cargoElevator: false,
+    helperMinutesRequired: false,
+  },
   createdAt: "2026-09-01T08:00:00.000Z",
   scheduledAt: null,
   pickupWindowStart: null,
@@ -236,8 +280,11 @@ const jobSheet: HubJobSheet = {
   inTransitAt: "2026-09-01T09:00:00.000Z",
   completedAt: null,
   driverPayout: 42.5,
+  helperPayout: 15,
   overtimeDriverPayout: 0,
   waitingMinutes: null,
+  pickupHelperMinutes: null,
+  dropoffHelperMinutes: null,
   receivedBy: null,
   proofOfDelivery: {
     photos: [
@@ -871,6 +918,7 @@ test.describe("toHubJobSheetResponse", () => {
 
     expect(body.status).toBe("CANCELLED");
     expect(body.driverPayout).toBeNull();
+    expect(body.helperPayout).toBeNull();
     expect(body.overtimeDriverPayout).toBeNull();
     expect(JSON.stringify(body)).not.toContain("42.5");
   });
@@ -882,6 +930,7 @@ test.describe("toHubJobSheetResponse", () => {
       ...jobSheetWireFields,
       status: "CANCELLED",
       driverPayout: null,
+      helperPayout: null,
       overtimeDriverPayout: null,
     });
   });
@@ -1003,6 +1052,7 @@ test.describe("toHubOffer", () => {
     secondsRemaining: 24,
     lifetimeSeconds: 30,
     driverPayout: 51,
+    helperPayout: 0,
     distanceKm: 6.4,
     pickupDistanceKm: 1.2,
     pickupAddress: "12 Rustaveli Ave, Tbilisi",
@@ -1028,6 +1078,18 @@ test.describe("toHubOffer", () => {
     bodyType: "DRY_BOX",
     handlingTags: ["FRAGILE"],
     helperCount: 0,
+    pickupWork: {
+      helpers: 0,
+      floor: 2,
+      cargoElevator: true,
+      helperMinutesRequired: false,
+    },
+    dropoffWork: {
+      helpers: 0,
+      floor: 0,
+      cargoElevator: false,
+      helperMinutesRequired: false,
+    },
     serviceLevel: "REGULAR",
     fitVehicle: {
       id: "vehicle_1",

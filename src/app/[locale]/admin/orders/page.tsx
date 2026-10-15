@@ -91,6 +91,7 @@ export default async function AdminOrdersPage({
         price: true,
         serviceLevelAdjustment: true,
         overtimeFee: true,
+        helperOvertimeFee: true,
         client: { select: { name: true, email: true } },
         ...ORDER_GUEST_CONTACT_SELECT,
         vehicleTypeSpec: { select: { code: true, label: true } },

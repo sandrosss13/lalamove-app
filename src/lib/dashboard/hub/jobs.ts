@@ -41,6 +41,7 @@ import type { Prisma } from "@prisma/client";
 import type { HubAccount } from "@/lib/dashboard/hub/account";
 import { formatCity } from "@/lib/format-city";
 import { totalDriverEarnings } from "@/lib/orders/payout";
+import { stopWorkOf, type StopWork } from "@/lib/orders/stop-work";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -177,6 +178,13 @@ export type HubJob = {
    * context, not money, and a job booked with a crew should say so.
    */
   helperCount: number;
+  /**
+   * Pricing model v1: the work at each stop — helpers, floor, cargo elevator
+   * (`stopWorkOf`). No money. Pre-v1 orders carry the column defaults at both
+   * ends and fall back to `helperCount` (see `hasStopWork`).
+   */
+  pickupWork: StopWork;
+  dropoffWork: StopWork;
   /** Why `overtimeDriverPayout` is non-zero; null until the job is completed. */
   waitingMinutes: number | null;
 
@@ -444,6 +452,15 @@ export async function getHubJobs(account: HubAccount): Promise<HubJobsData> {
       driverPayout: true,
       overtimeDriverPayout: true,
       helperCount: true,
+      pickupHelpers: true,
+      pickupFloor: true,
+      pickupCargoElevator: true,
+      dropoffHelpers: true,
+      dropoffFloor: true,
+      dropoffCargoElevator: true,
+      // Read only to derive `StopWork.helperMinutesRequired` (`stopWorkOf`);
+      // the shaped output never carries it.
+      tariffVersion: true,
       waitingMinutes: true,
       createdAt: true,
       scheduledAt: true,
@@ -529,6 +546,7 @@ export async function getHubJobs(account: HubAccount): Promise<HubJobsData> {
       driverPayout: order.driverPayout,
       overtimeDriverPayout: order.overtimeDriverPayout,
       helperCount: order.helperCount,
+      ...stopWorkOf(order),
       waitingMinutes: order.waitingMinutes,
       createdAt: order.createdAt.toISOString(),
       scheduledAt: order.scheduledAt?.toISOString() ?? null,

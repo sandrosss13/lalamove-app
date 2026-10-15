@@ -76,11 +76,17 @@
   },
   "pricing": {
     "cargoCategoryMustBeOneOf": "cargoCategory must be one of: {allowed}.",
+    "cargoElevatorMustBeBoolean": "{field} must be true or false.",
     "cargoVehicleMismatch": "This cargo category cannot be booked with a {vehicleCategory} vehicle; it requires {allowedCategories}.",
     "couldNotLocateAddress": "Could not locate address: {address}",
     "dropoffaddressIsRequired": "dropoffAddress is required.",
+    "floorOutOfRange": "{field} must be a whole number between 0 and {max}.",
     "helperCountOutOfRange": "helperCount must be a whole number between 0 and {max}.",
+    "locationHelpersOutOfRange": "{field} must be a whole number between 0 and {max}.",
+    "manualQuoteRequired": "This route is longer than {km} km, so it cannot be priced automatically. Please contact support for a quote.",
     "pickupaddressIsRequired": "pickupAddress is required.",
+    "tariffChanged": "Prices were updated since you were quoted. Please review the new quote and book again.",
+    "tariffVersionInvalid": "tariffVersion must be a positive whole number.",
     "vehicleTypeCodeMustBeKnown": "vehicleTypeCode must be a known vehicle type."
   },
   "seo": {

@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import {
   Building2,
+  Calculator,
   ChartColumn,
   CreditCard,
   FileText,
@@ -48,7 +49,7 @@ export type AdminNavItem = {
 };
 
 /**
- * Stable identifiers for the eight sections, so a section's `layout.tsx` can
+ * Stable identifiers for the sections, so a section's `layout.tsx` can
  * ask for its own tabs by name instead of restating them.
  */
 export type AdminNavSectionId =
@@ -57,6 +58,7 @@ export type AdminNavSectionId =
   | "users"
   | "content"
   | "finance"
+  | "pricing"
   | "crm"
   | "drivers"
   | "business"
@@ -194,8 +196,9 @@ export const ADMIN_NAV: AdminNavSection[] = [
       },
       {
         // The marketing photo on each `VehicleTypeSpec`, and nothing else about
-        // one: payload, dimensions and pricing are operational data that drives
-        // order matching, so they stay out of the back office entirely.
+        // one: payload and dimensions are operational data that drives order
+        // matching, so they stay out of the back office entirely. Its tariff
+        // is edited under Pricing, by the finance role, not here.
         label: "Vehicle Photos",
         labelKey: "admin.adminNav.vehiclePhotos",
         href: "/admin/content/vehicle-photos",
@@ -253,6 +256,52 @@ export const ADMIN_NAV: AdminNavSection[] = [
         label: "Driver wallets",
         labelKey: "admin.adminNav.driverWallets",
         href: "/admin/finance/wallets",
+        adminRoles: ["SUPER_ADMIN", "FINANCE_MANAGER"],
+      },
+    ],
+  },
+  {
+    // Pricing model v1's tariff: per-vehicle rates and commission, helper
+    // floor bands and rules, per-city-pair return allowances, and the
+    // platform-wide thresholds — plus a read-only quote simulator. The same
+    // roles as Finances, since the tariff decides what clients pay and what
+    // the platform keeps. Every save bumps `PricingConfig.tariffVersion` and
+    // is audit-logged; see `src/app/api/admin/pricing/`.
+    id: "pricing",
+    label: "Pricing",
+    labelKey: "admin.adminNav.pricing",
+    href: "/admin/pricing/vehicles",
+    icon: Calculator,
+    adminRoles: ["SUPER_ADMIN", "FINANCE_MANAGER"],
+    items: [
+      {
+        label: "Vehicle tariffs",
+        labelKey: "admin.adminNav.vehicleTariffs",
+        href: "/admin/pricing/vehicles",
+        adminRoles: ["SUPER_ADMIN", "FINANCE_MANAGER"],
+      },
+      {
+        label: "Helper tariffs",
+        labelKey: "admin.adminNav.helperTariffs",
+        href: "/admin/pricing/helpers",
+        adminRoles: ["SUPER_ADMIN", "FINANCE_MANAGER"],
+      },
+      {
+        label: "Route allowances",
+        labelKey: "admin.adminNav.routeAllowances",
+        href: "/admin/pricing/routes",
+        adminRoles: ["SUPER_ADMIN", "FINANCE_MANAGER"],
+      },
+      {
+        label: "General",
+        labelKey: "admin.adminNav.pricingGeneral",
+        href: "/admin/pricing/general",
+        adminRoles: ["SUPER_ADMIN", "FINANCE_MANAGER"],
+      },
+      {
+        label: "Quote simulator",
+        labelKey: "admin.adminNav.quoteSimulator",
+        href: "/admin/pricing/simulator",
         adminRoles: ["SUPER_ADMIN", "FINANCE_MANAGER"],
       },
     ],

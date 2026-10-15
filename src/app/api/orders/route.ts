@@ -8,6 +8,7 @@ import {
   setGuestOrderCookie,
 } from "@/lib/orders/guest-access";
 import { parseBookingBody } from "@/lib/orders/order-input";
+import { CLIENT_ORDER_RESPONSE_SELECT } from "@/lib/order-response-select";
 import { prepareOrderWrite } from "@/lib/orders/order-write";
 import {
   formatOrderReference,
@@ -119,7 +120,9 @@ export async function POST(request: Request): Promise<NextResponse> {
   );
   if (!prepared.ok) {
     return NextResponse.json(
-      { error: prepared.error },
+      // `reason` (when set) lets the booking form tell a tariff change or a
+      // manual-quote route apart from an ordinary refusal.
+      { error: prepared.error, reason: prepared.reason },
       { status: prepared.status },
     );
   }
@@ -190,10 +193,11 @@ export async function POST(request: Request): Promise<NextResponse> {
         // without them). The legacy path adds nothing here.
         ...(items !== null ? { items: { create: items } } : {}),
       },
-      // The created row is returned as it always was, minus the token hash.
-      // A hash cannot be turned back into a working link, but no consumer of
-      // this response has any use for it either.
-      omit: { guestAccessTokenHash: true },
+      // The client's own view of the created row (`CLIENT_ORDER_RESPONSE_SELECT`):
+      // their quote, but never the carrier's payout or the platform's
+      // commission rate — and never the guest token hash, which no consumer
+      // has any use for. The booking form reads only `id` off it.
+      select: CLIENT_ORDER_RESPONSE_SELECT,
     });
   });
 
@@ -294,6 +298,25 @@ const ORDER_LIST_SELECT = {
   handlingTags: true,
   pickupWindowStart: true,
   pickupWindowEnd: true,
+  // Pricing model v1 — the client's own quote, itemised (see the `Order`
+  // model). Client money: never in a carrier select.
+  tripType: true,
+  returnAllowance: true,
+  returnFare: true,
+  transportFare: true,
+  pickupHelperFee: true,
+  dropoffHelperFee: true,
+  helperOvertimeFee: true,
+  pickupHelpers: true,
+  pickupFloor: true,
+  pickupCargoElevator: true,
+  dropoffHelpers: true,
+  dropoffFloor: true,
+  dropoffCargoElevator: true,
+  pickupHelperMinutes: true,
+  dropoffHelperMinutes: true,
+  tariffVersion: true,
+  quotedAt: true,
   deliveryDeadline: true,
   driverPayout: true,
   // `commissionRate` deliberately excluded, and must stay excluded: it is an

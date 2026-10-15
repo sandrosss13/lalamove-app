@@ -49,6 +49,16 @@ const EDIT_ORDER_SELECT = {
   cargoCategory: true,
   bodyType: true,
   helperCount: true,
+  // Pricing model v1: helpers, floor and cargo elevator at each end, plus the
+  // tariff version — null on a pre-v1 order, which tells the form to read the
+  // legacy `helperCount` instead (`locationHelpFromOrder`).
+  pickupHelpers: true,
+  pickupFloor: true,
+  pickupCargoElevator: true,
+  dropoffHelpers: true,
+  dropoffFloor: true,
+  dropoffCargoElevator: true,
+  tariffVersion: true,
   serviceLevel: true,
   description: true,
   // The form picks a vehicle by its stable code, never by row id.
@@ -198,6 +208,13 @@ export default async function EditOrderPage({
     vehicleTypeCode: order.vehicleTypeSpec.code,
     bodyType: order.bodyType,
     helperCount: order.helperCount,
+    pickupHelpers: order.pickupHelpers,
+    pickupFloor: order.pickupFloor,
+    pickupCargoElevator: order.pickupCargoElevator,
+    dropoffHelpers: order.dropoffHelpers,
+    dropoffFloor: order.dropoffFloor,
+    dropoffCargoElevator: order.dropoffCargoElevator,
+    tariffVersion: order.tariffVersion,
     serviceLevel: order.serviceLevel,
     description: order.description,
     items: order.items.map((item) => ({

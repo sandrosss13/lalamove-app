@@ -23,7 +23,6 @@
     "useThisCard": "Use this card"
   },
   "bookingForm": {
-    "helpersHint": "0 means the driver works alone. Each helper is charged as a flat fee on top of the fare.",
     "additionalDetails": "Additional details",
     "anotherBody": "another body",
     "anythingTheDriverShouldKnow": "Anything the driver should know",
@@ -172,7 +171,23 @@
     "saving": "Saving…",
     "couldNotSaveChanges": "Could not save your changes. Please try again.",
     "haveAnAccountSignIn": "Have an account? Sign in",
-    "yourVehicle": "Your vehicle"
+    "yourVehicle": "Your vehicle",
+    "helpersAtPickup": "At pickup",
+    "helpersAtDropoff": "At drop-off",
+    "helpersPerLocationHint": "0 means the driver works alone. Helpers are priced per location by floor; a cargo elevator lowers the price. Up to {minutes} minutes of helper time per location is included.",
+    "floorLabel": "Floor",
+    "floorHint": "0 = Ground floor",
+    "cargoElevatorAvailable": "Cargo elevator available",
+    "transport": "Transport",
+    "helpersAtPickupFee": "Helpers at pickup ({count})",
+    "helpersAtDropoffFee": "Helpers at drop-off ({count})",
+    "intercityIncludesReturn": "Intercity · includes return trip allowance.",
+    "tierAppliesToTransport": "The service level adjusts the transport charge only.",
+    "helperOvertimeNote": "Helper time over {minutes} minutes per location is charged after completion: {fee} GEL per helper for every {increment} minutes started.",
+    "manualQuoteTitle": "This route needs a personal quote",
+    "manualQuoteFallback": "This route is too long to price online. Please contact our support team for a quote.",
+    "manualQuoteCall": "Call support: {phone}",
+    "priceUpdatedReviewAndBook": "The price has been updated. Please review the new total and press Book again."
   },
   "homeEntry": {
     "loading": "Loading…"

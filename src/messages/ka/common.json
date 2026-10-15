@@ -76,11 +76,17 @@
   },
   "pricing": {
     "cargoCategoryMustBeOneOf": "cargoCategory უნდა იყოს ერთ-ერთი შემდეგიდან: {allowed}.",
+    "cargoElevatorMustBeBoolean": "{field} უნდა იყოს true ან false.",
     "cargoVehicleMismatch": "ამ კატეგორიის ტვირთის დაჯავშნა ავტომობილის ტიპით {vehicleCategory} შეუძლებელია; საჭიროა {allowedCategories}.",
     "couldNotLocateAddress": "მისამართი ვერ მოიძებნა: {address}",
     "dropoffaddressIsRequired": "ჩაბარების მისამართი სავალდებულოა.",
+    "floorOutOfRange": "{field} უნდა იყოს მთელი რიცხვი 0-დან {max}-მდე.",
     "helperCountOutOfRange": "helperCount უნდა იყოს მთელი რიცხვი 0-დან {max}-მდე.",
+    "locationHelpersOutOfRange": "{field} უნდა იყოს მთელი რიცხვი 0-დან {max}-მდე.",
+    "manualQuoteRequired": "ეს მარშრუტი {km} კმ-ზე გრძელია, ამიტომ ფასის ავტომატური გამოთვლა შეუძლებელია. ფასის მისაღებად დაუკავშირდით მხარდაჭერის სამსახურს.",
     "pickupaddressIsRequired": "აყვანის მისამართი სავალდებულოა.",
+    "tariffChanged": "ფასები განახლდა მას შემდეგ, რაც შეთავაზება მიიღეთ. გთხოვთ, გადახედოთ ახალ ფასს და ხელახლა დაჯავშნოთ.",
+    "tariffVersionInvalid": "tariffVersion უნდა იყოს დადებითი მთელი რიცხვი.",
     "vehicleTypeCodeMustBeKnown": "vehicleTypeCode უნდა იყოს ცნობილი ავტომობილის ტიპი."
   },
   "seo": {

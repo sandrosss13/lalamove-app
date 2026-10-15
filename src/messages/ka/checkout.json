@@ -14,7 +14,10 @@
     "notes": "შენიშვნები",
     "reviewAndPay": "გადამოწმება და გადახდა",
     "signInToReviewAndPay": "შედით სისტემაში, რომ გადახედოთ ამ მიწოდებას და გადაიხადოთ.",
-    "yourDelivery": "თქვენი მიწოდება"
+    "yourDelivery": "თქვენი მიწოდება",
+    "helpersAtPickup": "დამხმარეები აყვანისას",
+    "helpersAtDropoff": "დამხმარეები ჩაბარებისას",
+    "helperServices": "დამხმარეების მომსახურება"
   },
   "checkoutPaymentPanel": {
     "cardAriaLabel": "{brand} ბარათი, ბოლო ციფრები {last4} — მოქმედების ვადა {expiry}",
@@ -94,5 +97,8 @@
     "bankTransfer": "საბანკო გადარიცხვა",
     "card": "ბარათი",
     "cash": "მოგვიანებით გადახდა"
-  }
+  },
+  "helperFloor": "სართული {floor}",
+  "groundFloor": "მიწის დონე",
+  "cargoElevator": "სატვირთო ლიფტი"
 }

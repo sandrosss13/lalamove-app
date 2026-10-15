@@ -64,6 +64,14 @@ const COMPANY_ORDER_LIST_SELECT = {
   description: true,
   bodyType: true,
   helperCount: true,
+  // Pricing model v1: the work at each stop (helpers, floor, cargo elevator).
+  // Operational, not money — the helpers' pay stays out of this list.
+  pickupHelpers: true,
+  pickupFloor: true,
+  pickupCargoElevator: true,
+  dropoffHelpers: true,
+  dropoffFloor: true,
+  dropoffCargoElevator: true,
   scheduledAt: true,
   pickupAddress: true,
   pickupLat: true,

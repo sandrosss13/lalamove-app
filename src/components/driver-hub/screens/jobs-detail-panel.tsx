@@ -34,6 +34,10 @@ import {
   type HubTimelineStep,
   type HubTimelineStepState,
 } from "@/components/driver-hub/hub-job-parts";
+import {
+  formatHelperRequest,
+  formatLoadStopWork,
+} from "@/components/driver-hub/screens/loads-format";
 import type { HubJob, HubStopContact } from "@/lib/dashboard/hub/jobs";
 import { cn } from "@/lib/utils";
 
@@ -346,7 +350,9 @@ export function JobsDetailPanel({
 }: JobsDetailPanelProps) {
   const t = useTranslations("driverHub.jobsDetailPanel");
   const tShared = useTranslations("common.shared");
+  const tFormat = useTranslations("driverHub.loadsFormat");
   const timeFormat = useJobsTimeFormat();
+  const stopWork = formatLoadStopWork(job, tFormat);
 
   // `HubJobStatus` has already collapsed PENDING/CLAIMED/ACCEPTED into
   // "Scheduled", which is lossless for the only question asked here: is the job
@@ -529,6 +535,30 @@ export function JobsDetailPanel({
           was actually dispatched, so an unstarted job carries neither row.
           Labelled rows rather than pills because that is what they are — a
           value with a name — and because the handoff's header is two pills. */}
+      {/* The crew's work: per stop on a pricing-model-v1 order (helpers, floor,
+          cargo elevator — `formatLoadStopWork`), the single crew size on an
+          older one, nothing when no helper was ever booked. Work, not money:
+          the helpers' pay is already inside the payout above. */}
+      {stopWork !== null || job.helperCount > 0 ? (
+        <dl className="mt-5">
+          <div className={DETAIL_ROW_CLASSES}>
+            <dt className="flex-none text-muted-foreground">
+              {tShared("helpers")}
+            </dt>
+            <dd className="min-w-0 text-right font-medium">
+              {stopWork ? (
+                <>
+                  <span className="block">{stopWork.pickup}</span>
+                  <span className="block">{stopWork.dropoff}</span>
+                </>
+              ) : (
+                formatHelperRequest(job.helperCount, tFormat)
+              )}
+            </dd>
+          </div>
+        </dl>
+      ) : null}
+
       {job.bodyType === null && job.vehiclePlate === null ? null : (
         <dl className="mt-5">
           {job.bodyType === null ? null : (

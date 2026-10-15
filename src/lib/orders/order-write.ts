@@ -20,8 +20,9 @@
  * 3. whether anybody on the platform could serve the class at all;
  * 4. the payment method against admin's switchboard, the card against the
  *    caller's wallet, the PO reference against the caller's account type;
- * 5. the quote itself, and the tier adjustment, commission and driver payout
- *    derived from it.
+ * 5. the quote itself (pricing model v1 — `src/lib/pricing-engine.ts`), the
+ *    tariff-version check (409 when the client was quoted at a stale tariff),
+ *    and the tier adjustment, commission and driver payout derived from it.
  *
  * Goods-first booking adds a step 0: when the body listed `items`, the goods
  * are resolved against the active catalogue and planned, and the plan's
@@ -70,30 +71,15 @@ import {
   resolveOrderItems,
   type ResolvedOrderItem,
 } from "@/lib/orders/parse-items";
-import { driverPayoutFor, PLATFORM_COMMISSION_RATE } from "@/lib/orders/payout";
+import { quotedOrderPayout } from "@/lib/orders/payout";
 import { prisma } from "@/lib/prisma";
 import {
   estimateDelivery,
   quoteFailureMessage,
+  quoteFailureStatus,
   serviceLevelAdjustment,
 } from "@/lib/pricing";
 import { vehicleTypeSpecLabel } from "@/lib/vehicle-type-spec-labels";
-
-/**
- * Round a currency amount to whole tetri.
- *
- * A module-local copy of the helper in `POST /api/orders/[id]/pay`, which is
- * module-private there — as is the one in `src/lib/pricing.ts` and the one in
- * `src/lib/orders/payout.ts`. The arithmetic is identical on purpose so every
- * money figure in the codebase lands on the same value.
- *
- * It exists here for one job: pre-rounding `price + serviceLevelAdjustment`
- * before that sum is commissioned into `driverPayout`. See the stamping block in
- * `prepareOrderWrite` for why the raw float sum is the wrong basis.
- */
-function roundCurrency(value: number): number {
-  return Math.round(value * 100) / 100;
-}
 
 /**
  * The order columns a booking body determines — the booked details and every
@@ -140,6 +126,22 @@ export type OrderDetailColumns = {
   serviceLevelAdjustment: number;
   commissionRate: number;
   driverPayout: number;
+  /** Pricing model v1 columns — see the `Order` model. */
+  tripType: "CITY" | "INTERCITY";
+  returnAllowance: number;
+  returnFare: number;
+  transportFare: number;
+  pickupHelperFee: number;
+  dropoffHelperFee: number;
+  helperPayout: number;
+  pickupHelpers: number;
+  pickupFloor: number;
+  pickupCargoElevator: boolean;
+  dropoffHelpers: number;
+  dropoffFloor: number;
+  dropoffCargoElevator: boolean;
+  tariffVersion: number;
+  quotedAt: Date;
   cargoWeightKg: number | null;
   cargoLengthM: number | null;
   cargoWidthM: number | null;
@@ -197,7 +199,17 @@ export type PreparedOrderWrite = {
  */
 export type PrepareOrderWriteResult =
   | { ok: true; write: PreparedOrderWrite }
-  | { ok: false; status: 400 | 422; error: string };
+  | {
+      ok: false;
+      status: 400 | 409 | 422;
+      error: string;
+      /**
+       * Machine-readable cause, for the two refusals the booking form handles
+       * on their own: `manual_quote_required` (no price; contact support) and
+       * `tariff_changed` (re-quote and show the new price). Absent otherwise.
+       */
+      reason?: "manual_quote_required" | "tariff_changed";
+    };
 
 /** What the items path adds to a booking. */
 type DerivedLoad = {
@@ -399,6 +411,9 @@ export async function prepareOrderWrite(
     vehicleTypeCode,
     cargoCategory,
     helperCount,
+    pickupHelp,
+    dropoffHelp,
+    tariffVersion: quotedTariffVersion,
     description,
     scheduledAt,
     pickupContact,
@@ -625,64 +640,71 @@ export async function prepareOrderWrite(
     }
   }
 
+  // Always recomputed here, never trusted from the browser.
   const result = await estimateDelivery(input);
 
   if (!result.ok) {
-    // An address the geocoder cannot place is well-formed input the server
-    // could not act on (422); an unknown vehicle type or an ineligible
-    // cargo/vehicle pairing is bad input (400).
-    const status = result.reason === "unresolved_address" ? 422 : 400;
-    return { ok: false, status, error: quoteFailureMessage(result, t) };
+    // 422: an address the geocoder cannot place, or a route over the manual
+    // quote threshold; 400: an unknown vehicle type, an ineligible
+    // cargo/vehicle pairing or too many helpers.
+    return {
+      ok: false,
+      status: quoteFailureStatus(result),
+      error: quoteFailureMessage(result, t),
+      ...(result.reason === "manual_quote_required"
+        ? { reason: "manual_quote_required" as const }
+        : {}),
+    };
   }
 
-  const { pickup, dropoff, distanceKm, vehicleTypeSpecId, breakdown } =
-    result.estimate;
-
-  // Derived from the server's own quote, never from a figure the browser sent:
-  // the client chooses a tier, not a price. Stored beside `price` rather than
-  // folded into it, so the itemised breakdown still reconciles against its own
-  // total and the minimum-fare floor keeps meaning what it says.
-  const adjustment = serviceLevelAdjustment(serviceLevel, breakdown.price);
-
-  // The platform's cut and the driver's resulting share of the amount this
-  // client is actually billed. `Order.driverPayout` is the ONLY money figure a
-  // driver may ever be shown, and this is the single place it is computed — get
-  // it wrong here and it is wrong for the lifetime of the order, because every
-  // read path displays the stored column rather than recomputing.
-  //
-  // Two traps, both deliberate:
-  //
-  // 1. **The basis is `price + serviceLevelAdjustment`, not `price`.** The tier
-  //    adjustment is itemised in its own column rather than folded into `price`
-  //    (see the comment above), and `POST /api/orders/[id]/pay` charges the
-  //    client the sum of the two. Commissioning `price` alone would hand the
-  //    platform the whole Priority uplift: a GEL 100 fare at PRIORITY bills 125,
-  //    so a price-only payout leaves the driver 85 against a 40 platform take —
-  //    32%, not 15%. On the sum the driver gets 106.25 and the platform 18.75.
-  // 2. **The basis is rounded before it is commissioned.** `roundCurrency` here
-  //    is the same arithmetic `POST /api/orders/[id]/pay` applies before
-  //    billing, so the driver's 85% is 85% of the figure actually charged. Both
-  //    columns are individually clean to two decimals, so their exact decimal
-  //    sum is too — but 85% of a whole number of tetri lands on an exact
-  //    half-tetri every 20 tetri, and at those tie-breaks the IEEE-754 dust in
-  //    the float addition decides which way `Math.round` falls. The two
-  //    orderings disagree by a tetri on thousands of ordinary amounts (a `price`
-  //    of 0.83 with a 0.07 uplift pays 0.76 unrounded and 0.77 rounded), and the
-  //    rounded form is the correct one because it matches the transaction.
-  //    task-01's migration backfilled `driverPayout` the same way in SQL.
-  //
-  // The rate is named explicitly rather than left to the column's `@default`:
-  // the schema is explicit that the default is a safety net for writes that
-  // forget a rate, not something a write path may lean on. Stamping it also
-  // means retuning `PLATFORM_COMMISSION_RATE` can never rewrite what a
-  // historical job promised a driver. (An *edit* re-stamps it, deliberately: an
-  // unpaid order has promised no driver anything yet, so it is priced at today's
-  // rate exactly as a fresh booking of the same job would be.)
-  const commissionRate = PLATFORM_COMMISSION_RATE;
-  const driverPayout = driverPayoutFor(
-    roundCurrency(breakdown.price + adjustment),
+  const {
+    pickup,
+    dropoff,
+    distanceKm,
+    vehicleTypeSpecId,
+    breakdown,
     commissionRate,
+    tariffVersion,
+    quotedAt,
+  } = result.estimate;
+
+  // The client was shown a quote at `quotedTariffVersion`; if an admin has
+  // retuned any tariff since, the price we just computed may differ from what
+  // they saw. Refuse rather than silently charge a different figure — the form
+  // re-quotes and shows the new price. A client that sends no version (older
+  // clients) is priced at today's tariff, as before.
+  if (quotedTariffVersion !== null && quotedTariffVersion !== tariffVersion) {
+    return {
+      ok: false,
+      status: 409,
+      error: t("common.pricing.tariffChanged"),
+      reason: "tariff_changed",
+    };
+  }
+
+  // Pricing model v1. The tier applies to the TRANSPORT charge only (helpers
+  // are flat pass-through services), and is derived from the server's own
+  // quote — the client chooses a tier, not a price. Stored beside `price`
+  // rather than folded into it, so `price` keeps meaning "quoted total before
+  // the tier" and `POST /api/orders/[id]/pay` bills `price + adjustment`.
+  const adjustment = serviceLevelAdjustment(
+    serviceLevel,
+    breakdown.transportFare,
   );
+
+  // The platform's cut and the driver's share — see `quotedOrderPayout` in
+  // `src/lib/orders/payout.ts`: commission on round(transport + adjustment) at
+  // the per-vehicle, per-trip-type rate; helpers passed through in full.
+  // `Order.driverPayout` is the ONLY money figure a driver may be shown, and
+  // this is the single place it is computed — every read path displays the
+  // stored column. (An *edit* re-stamps it, deliberately: an unpaid order has
+  // promised no driver anything yet.)
+  const payout = quotedOrderPayout({
+    transportFare: breakdown.transportFare,
+    serviceLevelAdjustment: adjustment,
+    helperFee: breakdown.helperFee,
+    commissionRate,
+  });
 
   return {
     ok: true,
@@ -697,7 +719,8 @@ export async function prepareOrderWrite(
         pickupLat: pickup.lat,
         pickupLng: pickup.lng,
         // Resolved from the address the geocode lookup produced, never from a
-        // city the request body named — see `resolveGeorgianCity`.
+        // city the request body named — see `resolveGeorgianCity`. The quote
+        // classified the trip from the same resolution.
         pickupCity: resolveGeorgianCity(pickupAddress),
         pickupContactName: pickupContact.name,
         pickupContactPhone: pickupContact.phone,
@@ -719,7 +742,22 @@ export async function prepareOrderWrite(
         serviceLevel,
         serviceLevelAdjustment: adjustment,
         commissionRate,
-        driverPayout,
+        driverPayout: payout.driverPayout,
+        tripType: breakdown.tripType,
+        returnAllowance: breakdown.returnAllowance,
+        returnFare: breakdown.returnFare,
+        transportFare: breakdown.transportFare,
+        pickupHelperFee: breakdown.pickupHelperFee,
+        dropoffHelperFee: breakdown.dropoffHelperFee,
+        helperPayout: payout.helperPayout,
+        pickupHelpers: pickupHelp.helpers,
+        pickupFloor: pickupHelp.floor,
+        pickupCargoElevator: pickupHelp.cargoElevator,
+        dropoffHelpers: dropoffHelp.helpers,
+        dropoffFloor: dropoffHelp.floor,
+        dropoffCargoElevator: dropoffHelp.cargoElevator,
+        tariffVersion,
+        quotedAt,
         cargoWeightKg,
         cargoLengthM,
         cargoWidthM,

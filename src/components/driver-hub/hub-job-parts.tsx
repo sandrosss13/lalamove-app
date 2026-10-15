@@ -262,15 +262,28 @@ export type HubPayoutLine = { label: string; amountGel: number };
 export type HubPayoutInput = {
   /** `Order.driverPayout` — the carrier's share, commissioned at booking. */
   driverPayout: number;
-  /** `Order.overtimeDriverPayout` — their share of the waiting charge. */
+  /**
+   * `Order.overtimeDriverPayout` — their share of the waiting charge, plus (on
+   * a pricing model v1 job) all of the helper overtime.
+   */
   overtimeDriverPayout: number;
   /** `Order.waitingMinutes` — null until the delivery is completed. */
   waitingMinutes: number | null;
+  /**
+   * `Order.helperPayout` — the helpers' part of `driverPayout`, included in
+   * it. Optional: a surface whose loader does not carry it gets the single
+   * payout line it always had.
+   */
+  helperPayout?: number;
 };
 
 /** The payout line labels; `overtime` receives the recorded waiting minutes. */
 export type HubPayoutLabels = {
   payout: string;
+  /** The transport part of the payout, when helpers split it. */
+  transport: string;
+  /** The helpers' part of the payout. */
+  helpers: string;
   overtime: (waitingMinutes: number | null) => string;
 };
 
@@ -283,6 +296,8 @@ function englishOvertimeLabel(waitingMinutes: number | null): string {
 
 const ENGLISH_PAYOUT_LABELS: HubPayoutLabels = {
   payout: "Payout",
+  transport: "Transport",
+  helpers: "Helpers",
   overtime: englishOvertimeLabel,
 };
 
@@ -292,6 +307,8 @@ export function useHubPayoutLabels(): HubPayoutLabels {
 
   return {
     payout: t("payout"),
+    transport: t("transportPayout"),
+    helpers: t("helpersPayout"),
     overtime: (waitingMinutes) =>
       waitingMinutes === null
         ? t("overtimePayout")
@@ -313,6 +330,13 @@ export function useHubPayoutLabels(): HubPayoutLabels {
  * every figure is a column on `Order`. Those columns are what the **client**
  * pays and neither screen's loader selects them.
  *
+ * **The one split that is stored: helpers** (pricing model v1). Helpers are a
+ * pass-through the platform does not commission, and `Order.helperPayout`
+ * records the driver's helper money at booking. When it is above zero the
+ * payout line becomes two — "Transport" (`driverPayout - helperPayout`) and
+ * "Helpers" (`helperPayout`) — both of which are carrier columns, so the
+ * discipline above holds.
+ *
  * The overtime line is conditional on the *amount*, not on `waitingMinutes`: a
  * job that waited but stayed inside the vehicle type's free loading allowance
  * earns nothing extra, and a zero line would invite the reader to look for a
@@ -332,12 +356,25 @@ export function useHubPayoutLabels(): HubPayoutLabels {
  * column: **waiting**.
  */
 export function buildHubPayoutLines(
-  { driverPayout, overtimeDriverPayout, waitingMinutes }: HubPayoutInput,
+  {
+    driverPayout,
+    overtimeDriverPayout,
+    waitingMinutes,
+    helperPayout = 0,
+  }: HubPayoutInput,
   labels: HubPayoutLabels = ENGLISH_PAYOUT_LABELS,
 ): HubPayoutLine[] {
-  const lines: HubPayoutLine[] = [
-    { label: labels.payout, amountGel: driverPayout },
-  ];
+  const lines: HubPayoutLine[] =
+    helperPayout > 0
+      ? [
+          {
+            label: labels.transport,
+            // Rounded to tetri: two stored 2-decimal figures, subtracted.
+            amountGel: Math.round((driverPayout - helperPayout) * 100) / 100,
+          },
+          { label: labels.helpers, amountGel: helperPayout },
+        ]
+      : [{ label: labels.payout, amountGel: driverPayout }];
 
   if (overtimeDriverPayout !== 0) {
     lines.push({

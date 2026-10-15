@@ -32,7 +32,7 @@ import { cn } from "@/lib/utils";
  * | Action | Endpoint | Body | Refuses |
  * |---|---|---|---|
  * | Start delivery | `POST /api/orders/[id]/start` | none | 409 unless `ACCEPTED`; 403 unless assigned |
- * | Mark delivered | `POST /api/orders/[id]/complete` | `{ waitingMinutes, receivedBy? }` | 409 unless `IN_TRANSIT`; 400 on a bad figure |
+ * | Mark delivered | `POST /api/orders/[id]/complete` | `{ waitingMinutes, pickupHelperMinutes?, dropoffHelperMinutes?, receivedBy? }` | 409 unless `IN_TRANSIT`; 400 on a bad figure |
  *
  * ## The server's status is the only status
  *
@@ -112,6 +112,33 @@ const PRIMARY_ACTION_CLASSES =
  * exact about before it is sent rather than after.
  */
 const WHOLE_MINUTES = /^\d+$/;
+
+/**
+ * The most helper minutes one stop may report — `MAX_HELPER_MINUTES` in
+ * `src/lib/orders/completion.ts`, restated rather than imported so this client
+ * bundle pulls in none of the pricing engine. The server check is the boundary.
+ */
+const MAX_HELPER_MINUTES = 24 * 60;
+
+/**
+ * The stops whose helper minutes must be reported, in route order. Gated on
+ * `helperMinutesRequired` (v1 orders with helpers there), never on
+ * `helpers > 0`: an order booked before v1 carries per-stop helpers backfilled
+ * from `helperCount`, and asking for minutes there would collect a figure the
+ * server discards (`resolveHelperMinutes` applies the same rule).
+ */
+function stopsWithHelpers(
+  job: HubJobSheet,
+): { stop: "pickup" | "dropoff"; helpers: number }[] {
+  const stops: { stop: "pickup" | "dropoff"; helpers: number }[] = [];
+  if (job.pickupWork.helperMinutesRequired) {
+    stops.push({ stop: "pickup", helpers: job.pickupWork.helpers });
+  }
+  if (job.dropoffWork.helperMinutesRequired) {
+    stops.push({ stop: "dropoff", helpers: job.dropoffWork.helpers });
+  }
+  return stops;
+}
 
 /**
  * How long a recipient's name may be, mirroring `MAX_RECEIVED_BY_LENGTH` in
@@ -530,6 +557,15 @@ export type JobSheetConfirmDialogProps = {
  * an arrival timestamp, and `Order` has no column for one. The field is the
  * option that does not require inventing data.
  *
+ * **Helper minutes** (pricing model v1): for each stop where the client booked
+ * helpers, the route also requires the minutes they worked there and charges
+ * the started half hours beyond the booked hour as helper overtime, paid to the
+ * driver in full inside `overtimeDriverPayout`. The fields appear only for
+ * those stops, start empty (unlike waiting time, there is no answer true of
+ * most jobs to prefill) and are validated here before the request, like the
+ * waiting figure. No rate or allowance is printed, for the reason the waiting
+ * field's comment gives.
+ *
  * `receivedBy` is genuinely optional at both ends: the route treats absent,
  * `null` and an empty string identically, and a driver who did not catch the
  * recipient's name must still be able to close the job. It is **not** proof of
@@ -569,6 +605,11 @@ export function JobSheetConfirmDialog({
    */
   const [waitingMinutes, setWaitingMinutes] = React.useState("0");
   const [receivedBy, setReceivedBy] = React.useState("");
+  /** Helper minutes per stop, as typed — strings for the reason above. */
+  const helperStops = stopsWithHelpers(job);
+  const [helperMinutes, setHelperMinutes] = React.useState<
+    Record<"pickup" | "dropoff", string>
+  >({ pickup: "", dropoff: "" });
   const [error, setError] = React.useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   /**
@@ -595,6 +636,29 @@ export function JobSheetConfirmDialog({
       return;
     }
 
+    // Only the stops that had helpers are sent; the route ignores the others.
+    const helperBody: {
+      pickupHelperMinutes?: number;
+      dropoffHelperMinutes?: number;
+    } = {};
+    for (const { stop } of helperStops) {
+      const typed = helperMinutes[stop].trim();
+      if (!WHOLE_MINUTES.test(typed) || Number(typed) > MAX_HELPER_MINUTES) {
+        setError(
+          t(
+            stop === "pickup"
+              ? "enterHelperMinutesPickup"
+              : "enterHelperMinutesDropoff",
+            { max: MAX_HELPER_MINUTES },
+          ),
+        );
+        return;
+      }
+      helperBody[
+        stop === "pickup" ? "pickupHelperMinutes" : "dropoffHelperMinutes"
+      ] = Number(typed);
+    }
+
     setError(null);
     setIsSubmitting(true);
 
@@ -615,6 +679,7 @@ export function JobSheetConfirmDialog({
         },
         body: JSON.stringify({
           waitingMinutes: Number(trimmed),
+          ...helperBody,
           // Sent as typed; the route trims it and collapses an empty string to
           // `null`, so an untouched box records "not captured" rather than an
           // empty name. Sending it unconditionally — rather than omitting the
@@ -766,6 +831,52 @@ export function JobSheetConfirmDialog({
             {t("waitingTimeBeyondTheFreeAllowance")}
           </p>
         </div>
+
+        {helperStops.map(({ stop, helpers }) => (
+          <div key={stop} className="mt-4.5 flex flex-col gap-[7px]">
+            <Label
+              htmlFor={`job-sheet-helper-minutes-${stop}`}
+              className="text-[13px]"
+            >
+              {t(
+                stop === "pickup"
+                  ? "helperTimeAtPickup"
+                  : "helperTimeAtDropoff",
+              )}
+            </Label>
+            <div className="flex items-center gap-2.5">
+              {/* Same input shape as the waiting field, for the same reasons. */}
+              <Input
+                id={`job-sheet-helper-minutes-${stop}`}
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                autoComplete="off"
+                value={helperMinutes[stop]}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  setHelperMinutes((current) => ({
+                    ...current,
+                    [stop]: value,
+                  }));
+                }}
+                disabled={isBusy}
+                aria-required="true"
+                aria-describedby={`job-sheet-helper-minutes-${stop}-help`}
+                className="h-11 w-22 font-price text-[15px] tabular-nums"
+              />
+              <span className="text-[13px] text-muted-foreground">
+                {t("minutes")}
+              </span>
+            </div>
+            <p
+              id={`job-sheet-helper-minutes-${stop}-help`}
+              className="text-xs leading-[1.45] text-muted-foreground"
+            >
+              {t("helperTimeHelp", { count: helpers })}
+            </p>
+          </div>
+        ))}
 
         <div className="mt-4.5 flex flex-col gap-[7px]">
           <Label htmlFor="job-sheet-received-by" className="text-[13px]">

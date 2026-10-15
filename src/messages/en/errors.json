@@ -517,7 +517,11 @@
     "onlyUnpaidOrdersCanBeCancelled": "Only unpaid orders can be cancelled. If this order has already been paid, please contact support to cancel it."
   },
   "ordersComplete": {
+    "dropoffHelperMinutesInvalid": "Helper minutes at drop-off must be a whole number from 0 to {max}.",
+    "dropoffHelperMinutesRequired": "Enter how many minutes the helpers worked at drop-off.",
     "photoRequired": "Add at least one delivery photo before confirming.",
+    "pickupHelperMinutesInvalid": "Helper minutes at pickup must be a whole number from 0 to {max}.",
+    "pickupHelperMinutesRequired": "Enter how many minutes the helpers worked at pickup.",
     "receivedByMustBeStringOrNull": "receivedBy must be a string or null.",
     "receivedByTooLong": "receivedBy must be {max} characters or fewer.",
     "signatureRequired": "Add the recipient's signature before confirming.",

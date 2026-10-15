@@ -37,6 +37,7 @@ import type {
 import { specCapability } from "@/lib/orders/booking-fit";
 import type { BookedClass } from "@/lib/orders/class-substitution";
 import { driverVehiclesWhere } from "@/lib/orders/driver-vehicles";
+import { stopWorkOf } from "@/lib/orders/stop-work";
 import {
   driverLoadEligibility,
   permittedVehicles,
@@ -315,6 +316,8 @@ function toLoadBoardItem(
     packagingDescription: order.packagingDescription,
     itemQuantity: order.itemQuantity,
     handlingTags: order.handlingTags,
+    // Pricing model v1: helpers, floor and elevator at each stop. No money.
+    ...stopWorkOf(order),
     pickupWindowStart: order.pickupWindowStart?.toISOString() ?? null,
     pickupWindowEnd: order.pickupWindowEnd?.toISOString() ?? null,
     deliveryDeadline: order.deliveryDeadline?.toISOString() ?? null,
@@ -323,6 +326,9 @@ function toLoadBoardItem(
     // response does not even select. The rate that applied is kept per order so
     // retuning the commission cannot rewrite what a historical job paid.
     driverPayout: order.driverPayout,
+    // The helpers' part of `driverPayout` (pricing model v1) — included in it,
+    // so `ratePerKm` below stays the whole payout per km as before.
+    helperPayout: order.helperPayout,
     // Guarded: `distanceKm` should always be positive in practice, but a stray
     // zero must not put `Infinity` into a JSON response.
     ratePerKm:

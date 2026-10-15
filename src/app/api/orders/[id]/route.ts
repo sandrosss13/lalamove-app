@@ -4,6 +4,7 @@ import { OrderStatus } from "@prisma/client";
 import { getRequestTranslations } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
 import { parseBookingBody } from "@/lib/orders/order-input";
+import { CLIENT_ORDER_RESPONSE_SELECT } from "@/lib/order-response-select";
 import { prepareOrderWrite } from "@/lib/orders/order-write";
 import { prisma } from "@/lib/prisma";
 
@@ -129,7 +130,9 @@ export async function PATCH(
   );
   if (!prepared.ok) {
     return NextResponse.json(
-      { error: prepared.error },
+      // `reason` (when set) lets the booking form tell a tariff change or a
+      // manual-quote route apart from an ordinary refusal.
+      { error: prepared.error, reason: prepared.reason },
       { status: prepared.status },
     );
   }
@@ -180,11 +183,14 @@ export async function PATCH(
     );
   }
 
-  // The same shape `POST /api/orders` answers with — the whole row, read back
-  // after the write — so the booking form handles a booking and an edit with
-  // one response type. It is the client's own order, every column of which
-  // they are party to; the creation response has always been the full row too.
-  const updated = await prisma.order.findUniqueOrThrow({ where: { id } });
+  // The same shape `POST /api/orders` answers with (`CLIENT_ORDER_RESPONSE_SELECT`),
+  // read back after the write, so the booking form handles a booking and an
+  // edit with one response type. The client's own quote — never the carrier's
+  // payout or the platform's commission rate.
+  const updated = await prisma.order.findUniqueOrThrow({
+    where: { id },
+    select: CLIENT_ORDER_RESPONSE_SELECT,
+  });
 
   return NextResponse.json(updated, { status: 200 });
 }

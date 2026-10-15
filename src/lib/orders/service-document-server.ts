@@ -255,8 +255,8 @@ export async function snapshotOrderService(
  * vanished in between.
  *
  * The amount is `adminOrderTotalGel` — the quoted price, the service tier's
- * adjustment and any overtime settled at completion: everything the client is
- * charged for the order — split into net / VAT by `computeServiceAmounts`.
+ * adjustment and any overtime settled at completion (vehicle waiting and
+ * helper overtime alike): everything the client is charged for the order — split into net / VAT by `computeServiceAmounts`.
  */
 export async function buildServiceDocumentView(
   orderId: string,
@@ -273,6 +273,8 @@ export async function buildServiceDocumentView(
       price: true,
       serviceLevelAdjustment: true,
       overtimeFee: true,
+      // Pricing model v1: helper overtime is billed exactly like `overtimeFee`.
+      helperOvertimeFee: true,
       completedAt: true,
       inTransitAt: true,
       scheduledAt: true,
