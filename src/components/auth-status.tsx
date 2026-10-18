@@ -32,11 +32,11 @@ export function AuthStatus() {
     const isClient = role === "CLIENT";
 
     return (
-      <div className="flex items-center gap-3 text-sm">
+      <div className="flex items-center gap-2 whitespace-nowrap text-sm sm:gap-3">
         {/* The name alone: that the header offers "Sign out" already says the
             visitor is signed in, and the role is a fact about the account they
             cannot act on from here — both were noise beside their own name. */}
-        <span>{name}</span>
+        <span className="hidden max-w-40 truncate md:inline">{name}</span>
         {/*
           A client's own route to the marketing page is the wordmark now (see
           `HeaderBrandLink`), not a link here — this used to duplicate that.
@@ -60,7 +60,7 @@ export function AuthStatus() {
   }
 
   return (
-    <div className="flex items-center gap-3 text-sm">
+    <div className="flex items-center gap-2 whitespace-nowrap text-sm sm:gap-3">
       <Link href="/sign-in" className="font-medium hover:opacity-70">
         {t("signIn")}
       </Link>
@@ -101,7 +101,7 @@ export function HeaderBrandLink() {
   const brandHref = isMerchantUser ? "/dashboard" : isClient ? "/home" : "/";
 
   return (
-    <div className="flex items-center gap-5">
+    <div className="flex items-center gap-5 max-sm:contents">
       {/* The lockup is the link's whole content, so the SVG carries the
           accessible name ("zomo"). Themed: this header follows `html.dark`. */}
       <Link href={brandHref} className="flex items-center hover:opacity-80">
@@ -109,7 +109,7 @@ export function HeaderBrandLink() {
       </Link>
 
       {isClient ? (
-        <nav className="flex items-center gap-4 text-sm">
+        <nav className="flex items-center gap-4 whitespace-nowrap text-sm max-sm:order-last max-sm:w-full">
           <Link href="/" className="font-medium hover:opacity-70">
             {tAuthStatus("placeOrder")}
           </Link>

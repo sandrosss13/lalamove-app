@@ -255,7 +255,7 @@ export default async function RootLayout({
           namespaces out; locale, time zone and formats are still inherited.
         */}
         <NextIntlClientProvider messages={messages}>
-          <header className="flex items-center justify-between border-b px-6 py-3">
+          <header className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b px-4 py-3 sm:px-6">
             <HeaderBrandLink />
             {/*
             `AuthStatus` renders its own flex row, so the toggle gets a wrapper
@@ -275,7 +275,7 @@ export default async function RootLayout({
             checkout; every other surface mounts its own `ThemeToggle` and
             `LanguageToggle` in its own header.
           */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               <AuthStatus />
               <LanguageToggle />
               <ThemeToggle />
