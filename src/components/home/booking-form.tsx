@@ -578,7 +578,7 @@ const DEFAULT_SERVICE_LEVEL: ServiceLevel = "REGULAR";
  * wraps to two lines or three, plus the pointer affordance and focus ring a
  * `<label>` around an `sr-only` radio has to draw for itself.
  */
-const SERVICE_LEVEL_OPTION_CLASSES = `${PICK_CARD_BASE_CLASSES} min-h-32 cursor-pointer gap-1 has-[:focus-visible]:border-accent has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-accent/20`;
+const SERVICE_LEVEL_OPTION_CLASSES = `${PICK_CARD_BASE_CLASSES} cursor-pointer sm:min-h-32 gap-1 has-[:focus-visible]:border-accent has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-accent/20`;
 
 /* -------------------------------------------------------------------------- */
 /* Load fit (step 5)                                                          */
@@ -2893,7 +2893,7 @@ export function BookingForm({
                         {t("whatKindOfLoadSpaceDo")}
                       </legend>
 
-                      <div className="grid grid-cols-3 gap-2.5">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                         {bodyTypeCards.map((option) => {
                           const selected = option.body === bodyType;
                           const countLabel = vehicleCountLabel(
@@ -3443,7 +3443,7 @@ export function BookingForm({
                     again rather than leaving the group unnamed. */}
                 <legend className="sr-only">{tShared("serviceLevel")}</legend>
 
-                <div className="grid grid-cols-3 gap-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                   {SERVICE_LEVEL_OPTIONS.map((option) => {
                     const selected = option.level === serviceLevel;
                     // Every tier prices off the same quote, so all three
