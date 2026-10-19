@@ -31,6 +31,7 @@ const CLIENT_DISALLOW = [
   "/*/wallet",
   "/*/home",
   "/*/change-password",
+  "/*/reset-password",
   "/*/dashboard",
   "/*/admin",
   "/*/sign-in",

@@ -4,6 +4,7 @@ import { getTranslations } from "next-intl/server";
 
 import { SignInForm } from "@/components/auth/sign-in-form";
 import { resolveRouteLocale, type LocaleRouteParams } from "@/i18n/server";
+import { isPasswordResetAvailable } from "@/lib/email/send-password-reset";
 import { parseGoodsParam } from "@/lib/goods-param-threading";
 import { audienceForHost } from "@/lib/host";
 
@@ -44,6 +45,15 @@ export async function generateMetadata({
  * the form is the only place that knows both the audience *and* the role→type
  * rules, and it has to re-derive the step on every client navigation anyway.
  *
+ * `?reset=done` is the one value from outside the wizard: `/reset-password`
+ * sends the user here with it after a successful reset, and the form shows a
+ * one-time confirmation. Only that exact value counts.
+ *
+ * `passwordResetAvailable` is decided here, on the server, from the mail
+ * configuration (`@/lib/email/delivery`) and passed down as a bare boolean, so
+ * the forgot-password screen can enable its button without the browser ever
+ * seeing a key, a sender address, or which of them is missing.
+ *
  * Passing the params down as props rather than reading `useSearchParams()` in
  * the form keeps one source of truth and means a deep link renders the correct
  * step on the server, in its first paint. The cost is that advancing a step
@@ -68,6 +78,9 @@ function singleParam(value: string | string[] | undefined): string | null {
   return typeof value === "string" ? value : null;
 }
 
+/** `?reset=` value `/reset-password` hands back after a successful reset. */
+const RESET_DONE_PARAM = "done";
+
 export default async function SignInPage({
   searchParams,
 }: {
@@ -90,6 +103,8 @@ export default async function SignInPage({
       // to the post-sign-in destination), so it is narrowed to an exact
       // `GOODS_SHORTCUTS` code at the trust boundary. Never a path.
       goods={parseGoodsParam(params.goods)}
+      passwordResetAvailable={isPasswordResetAvailable()}
+      passwordResetDone={singleParam(params.reset) === RESET_DONE_PARAM}
     />
   );
 }

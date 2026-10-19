@@ -52,8 +52,12 @@ const NS_RULES = [
   [/^src\/components\/home\//, "home"],
   [/^src\/lib\/home\//, "home"],
   [/^src\/components\/auth\//, "auth"],
-  [/^src\/app\/\[locale\]\/(sign-in|sign-up|change-password)\//, "auth"],
+  [
+    /^src\/app\/\[locale\]\/(sign-in|sign-up|change-password|reset-password)\//,
+    "auth",
+  ],
   [/^src\/lib\/auth/, "auth"],
+  [/^src\/lib\/email\//, "auth"],
   [/^src\/components\/fleet-onboarding\//, "fleet"],
   [/^src\/lib\/fleet-onboarding\//, "fleet"],
   [/^src\/components\/driver-onboarding\//, "onboarding"],

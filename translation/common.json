@@ -194,6 +194,16 @@
     "ka": "zomo — ტვირთის გადაზიდვა თბილისში",
     "_source": "src/app/[locale]/layout.tsx"
   },
+  "seo.resetPassword.description": {
+    "en": "Choose a new password for your zomo account.",
+    "ka": "აირჩიეთ ახალი პაროლი თქვენი ზომოს ანგარიშისთვის.",
+    "_source": "src/app/[locale]/reset-password/page.tsx"
+  },
+  "seo.resetPassword.title": {
+    "en": "Reset password",
+    "ka": "პაროლის აღდგენა",
+    "_source": "src/app/[locale]/reset-password/page.tsx"
+  },
   "seo.services.cargo.description": {
     "en": "On-demand cargo delivery by van or truck in Tbilisi and across Georgia.",
     "ka": "ტვირთის გადაზიდვა ფურგონით ან სატვირთოთი — თბილისში და მთელ საქართველოში.",
