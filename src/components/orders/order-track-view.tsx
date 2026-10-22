@@ -18,7 +18,7 @@ import {
   orderStatusLabel,
 } from "@/components/orders-format";
 import { OrderPhotoGallery } from "@/components/order-photo-gallery";
-import { OrderTrackingMap } from "@/components/order-tracking-map";
+import { LiveTrackingPanel } from "@/components/orders/live-tracking-panel";
 import { ProofOfDeliverySection } from "@/components/orders/proof-of-delivery-section";
 import {
   OrderDocumentDownload,
@@ -105,14 +105,6 @@ export type TrackViewOrder = {
   } | null;
   company: { companyName: string } | null;
 };
-
-/** Pair a nullable lat/lng into a coordinate, or null when geocoding failed. */
-function toLatLng(
-  lat: number | null,
-  lng: number | null,
-): { lat: number; lng: number } | null {
-  return lat !== null && lng !== null ? { lat, lng } : null;
-}
 
 export async function OrderTrackView({
   order,
@@ -291,26 +283,12 @@ export async function OrderTrackView({
         </section>
 
         {sections.liveMap ? (
-          <section
-            aria-labelledby="live-tracking-heading"
+          <LiveTrackingPanel
+            order={order}
+            guestToken={guestToken}
             className={PANEL_CLASSES}
-          >
-            <h2 id="live-tracking-heading" className={PANEL_HEADING_CLASSES}>
-              <span className="relative mr-2 inline-flex size-2.5 align-middle">
-                <span className="absolute inline-flex size-full animate-ping rounded-full bg-orange-500/60 motion-reduce:animate-none" />
-                <span className="relative inline-flex size-2.5 rounded-full bg-orange-500" />
-              </span>
-              {tPage("liveTracking")}
-            </h2>
-            <div className="mt-4">
-              <OrderTrackingMap
-                orderId={order.id}
-                pickup={toLatLng(order.pickupLat, order.pickupLng)}
-                dropoff={toLatLng(order.dropoffLat, order.dropoffLng)}
-                guestToken={guestToken}
-              />
-            </div>
-          </section>
+            headingClassName={PANEL_HEADING_CLASSES}
+          />
         ) : null}
 
         {sections.waitingNotice || sections.cancelledNotice ? (

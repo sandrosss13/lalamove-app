@@ -39,6 +39,7 @@ import { CancelOrderButton } from "./cancel-order-button";
 import { StopContactLines } from "@/components/orders/stop-contact-lines";
 import { stopInfoOf, type StopInfo } from "@/lib/orders/stop-info";
 import { OrderDocumentDownload } from "@/components/orders/order-document-download";
+import { LiveTrackingPanel } from "@/components/orders/live-tracking-panel";
 
 // Session + Prisma access can't be statically rendered.
 export const dynamic = "force-dynamic";
@@ -51,8 +52,9 @@ export const dynamic = "force-dynamic";
  * payload. Every row here is the reader's own, but the payout, commission and
  * payment columns are still nothing the client is shown, so they are not read.
  *
- * `driverId` is selected only to decide whether the Track link applies (see
- * `orderIsTrackable`); it is compared on the server and never rendered.
+ * `driverId` is selected only to decide whether the live-tracking panel
+ * applies (see `orderIsTrackable`); it is compared on the server and never
+ * rendered. The four coordinates are that panel's map markers.
  * `clientId` is not selected at all — the lookup is *scoped* by it, which is
  * what makes somebody else's order indistinguishable from a missing one.
  */
@@ -63,6 +65,8 @@ const ORDER_DETAIL_SELECT = {
   driverId: true,
   scheduledAt: true,
   pickupAddress: true,
+  pickupLat: true,
+  pickupLng: true,
   pickupContactName: true,
   pickupContactPhone: true,
   pickupContactDetails: true,
@@ -70,6 +74,8 @@ const ORDER_DETAIL_SELECT = {
   pickupEntrance: true,
   pickupComment: true,
   dropoffAddress: true,
+  dropoffLat: true,
+  dropoffLng: true,
   dropoffContactName: true,
   dropoffContactPhone: true,
   dropoffContactDetails: true,
@@ -114,7 +120,8 @@ const ORDER_DETAIL_SELECT = {
  * `status: PENDING`), so it is still the client's to change — they can pay for
  * it, edit it or cancel it. From the moment checkout settles it, someone may
  * already be planning around it, and this page shows details only (plus the
- * Track link once a driver is on the way). `orderIsEditableByClient` is that
+ * live map once a driver is on the way — the same panel `/orders/[id]/track`
+ * shows, rendered inline so the client never has to leave this page). `orderIsEditableByClient` is that
  * rule; the endpoints behind the buttons enforce it again.
  *
  * Figures are read off the persisted row, as checkout reads them: the total is
@@ -183,6 +190,9 @@ export default async function OrderDetailPage({
     return <CheckoutOrderNotFoundNotice />;
   }
 
+  // Driver assigned and on the job: the live map is shown below the status.
+  const trackable = orderIsTrackable(order);
+
   return (
     // Painted on `main` so the ground covers the viewport — see the note on
     // `CheckoutNotice`.
@@ -204,8 +214,20 @@ export default async function OrderDetailPage({
             <DetailsPanel order={order} />
           </div>
 
-          <div className="flex flex-col gap-6 lg:sticky lg:top-8">
+          {/* Sticky only while the column is short: with the live map in it the
+              column can outgrow the viewport, and a sticky column taller than
+              the screen has its bottom cut off. */}
+          <div
+            className={`flex flex-col gap-6 ${trackable ? "" : "lg:sticky lg:top-8"}`}
+          >
             <ActionsPanel order={order} />
+            {trackable ? (
+              <LiveTrackingPanel
+                order={order}
+                className="rounded-xl border border-line bg-surface p-5"
+                headingClassName="font-display text-base font-semibold text-paper"
+              />
+            ) : null}
             {/* Every client's, business or individual, once the order is
                 paid and not cancelled. */}
             <OrderDocumentDownload orderId={order.id} status={order.status} />
@@ -224,6 +246,8 @@ type OrderDetail = {
   driverId: string | null;
   scheduledAt: Date | null;
   pickupAddress: string;
+  pickupLat: number | null;
+  pickupLng: number | null;
   pickupContactName: string | null;
   pickupContactPhone: string | null;
   pickupContactDetails: string | null;
@@ -231,6 +255,8 @@ type OrderDetail = {
   pickupEntrance: string | null;
   pickupComment: string | null;
   dropoffAddress: string;
+  dropoffLat: number | null;
+  dropoffLng: number | null;
   dropoffContactName: string | null;
   dropoffContactPhone: string | null;
   dropoffContactDetails: string | null;
@@ -461,7 +487,6 @@ function DetailsPanel({ order }: { order: OrderDetail }) {
  */
 function ActionsPanel({ order }: { order: OrderDetail }) {
   const t = useTranslations("orders.orderDetail");
-  const tOrders = useTranslations("orders.orders");
   const tShared = useTranslations("common.shared");
   const statusLabel = useOrderStatusLabel();
   const serviceLevelLabel = useServiceLevelLabel();
@@ -527,15 +552,6 @@ function ActionsPanel({ order }: { order: OrderDetail }) {
           </Link>
           <CancelOrderButton orderId={order.id} />
         </div>
-      ) : null}
-
-      {orderIsTrackable(order) ? (
-        <Link
-          href={`/orders/${order.id}/track`}
-          className="mt-4 inline-block text-[14px] font-semibold text-accent transition-colors hover:text-accent-hover"
-        >
-          {tOrders("trackDelivery")}
-        </Link>
       ) : null}
     </section>
   );
