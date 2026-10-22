@@ -4,28 +4,19 @@ import { useTranslations } from "next-intl";
 
 import { Link } from "@/i18n/navigation";
 import { ZomoLockupThemed } from "@/components/brand/zomo-logo";
-import { useSignOut } from "@/components/auth/use-sign-out";
 import { useSession } from "@/lib/auth-client";
 
 /**
  * Header widget reflecting the current session: the signed-in user's way into
  * their own area, or sign-in / sign-up links when there is no session.
  *
- * A client gets no sign out here — theirs is the last row of the account rail
- * (`AccountSidebar`), one click away behind "My account". Drivers, companies
- * and admins keep it: this header is their only sign out on the screens that
- * render it (the two onboarding wizards and `/change-password`, which they
- * cannot leave for the hub), since the hub and the back office hide this
- * header and ship their own.
+ * No sign out here for any role: clients sign out from the last row of the
+ * account rail (`AccountSidebar`), drivers and companies from the hub, staff
+ * from the back-office shell.
  */
 export function AuthStatus() {
   const t = useTranslations("common.shared");
-  const tAuthStatus = useTranslations("common.authStatus");
   const { data: session, isPending } = useSession();
-  // Hoisted above the `session` branch below because hooks cannot be called
-  // conditionally — the control it drives only renders when there *is* a
-  // session, but the hook has to run on every render either way.
-  const { signOut, signingOut } = useSignOut();
 
   if (isPending) {
     return <span className="text-sm opacity-50">…</span>;
@@ -48,16 +39,6 @@ export function AuthStatus() {
         >
           {isClient ? t("myAccount") : t("dashboard")}
         </Link>
-        {isClient ? null : (
-          <button
-            type="button"
-            onClick={() => void signOut()}
-            disabled={signingOut}
-            className="rounded border px-2 py-1 font-medium hover:opacity-70 disabled:opacity-50"
-          >
-            {signingOut ? tAuthStatus("signingOut") : tAuthStatus("signOut")}
-          </button>
-        )}
       </div>
     );
   }

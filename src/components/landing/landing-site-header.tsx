@@ -4,7 +4,6 @@ import { Menu, X } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 
-import { useSignOut } from "@/components/auth/use-sign-out";
 import { ZomoLockupThemed } from "@/components/brand/zomo-logo";
 import { LandingLink } from "@/components/landing/landing-link";
 import { HOME_CONTAINER } from "@/components/landing/landing-home-styles";
@@ -56,10 +55,8 @@ const SOLID_BUTTON =
 export function LandingSiteHeader({ content }: { content: NavContent }) {
   const t = useTranslations("landing.landingNavPill");
   const tShared = useTranslations("common.shared");
-  const tAuth = useTranslations("common.authStatus");
 
   const { data: session, isPending } = useSession();
-  const { signOut, signingOut } = useSignOut();
   const sessionUser = isPending ? undefined : session?.user;
   const isClient = sessionUser?.role === "CLIENT";
   const accountHref = isClient ? "/account" : "/dashboard";
@@ -124,21 +121,6 @@ export function LandingSiteHeader({ content }: { content: NavContent }) {
           >
             {accountLabel}
           </LandingLink>
-          {/* Clients sign out from the account rail (`AccountSidebar`), as
-              in the global header; other roles keep the button here. */}
-          {isClient ? null : (
-            <button
-              type="button"
-              disabled={signingOut}
-              onClick={() => {
-                onSelect?.();
-                void signOut();
-              }}
-              className={cn(SOLID_BUTTON, panelSize)}
-            >
-              {signingOut ? tAuth("signingOut") : tAuth("signOut")}
-            </button>
-          )}
         </>
       );
     }

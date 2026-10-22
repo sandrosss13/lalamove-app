@@ -5,7 +5,6 @@ import { useEffect, useId, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 
 import { Link } from "@/i18n/navigation";
-import { useSignOut } from "@/components/auth/use-sign-out";
 import { LandingThemeToggle } from "@/components/landing/landing-theme-toggle";
 import { LanguageToggle } from "@/components/language-toggle";
 import { ZomoLockupThemed } from "@/components/brand/zomo-logo";
@@ -106,7 +105,6 @@ export function LandingNavPill({ content }: { content: NavContent }) {
   // disclosure instead.
   const t = useTranslations("landing.landingNavPill");
   const tShared = useTranslations("common.shared");
-  const tAuth = useTranslations("common.authStatus");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   /*
@@ -123,7 +121,6 @@ export function LandingNavPill({ content }: { content: NavContent }) {
     settles in a single swap.
   */
   const { data: session, isPending } = useSession();
-  const { signOut, signingOut } = useSignOut();
   const sessionUser = isPending ? undefined : session?.user;
 
   // Same split as `AuthStatus`: clients live on /account, while drivers and
@@ -260,23 +257,10 @@ export function LandingNavPill({ content }: { content: NavContent }) {
 
         <LandingThemeToggle />
 
-        {/* Sign out takes the inverted slot Sign up occupies, carrying the same
-            padding and `sm:inline-block` so the pill's proportions and its
-            single point of visual weight are unchanged by the session.
-            Clients sign out from the account rail instead, as in the global
-            header, so the slot stays empty for them. */}
-        {sessionUser ? (
-          isClient ? null : (
-            <button
-              type="button"
-              onClick={signOut}
-              disabled={signingOut}
-              className={`${CHIP_INVERTED} ml-0.5 hidden px-5 py-2.5 sm:inline-block`}
-            >
-              {signingOut ? tAuth("signingOut") : tAuth("signOut")}
-            </button>
-          )
-        ) : (
+        {/* Signed in, the inverted slot stays empty: sign out lives in the
+            account rail (clients) and the dashboards. Signed out it is Sign
+            up. */}
+        {sessionUser ? null : (
           <NavLinkElement
             href={content.signUpHref}
             className={`${CHIP_INVERTED} ml-0.5 hidden px-5 py-2.5 sm:inline-block`}
@@ -336,24 +320,6 @@ export function LandingNavPill({ content }: { content: NavContent }) {
                 >
                   {accountLabel}
                 </NavLinkElement>
-
-                {isClient ? null : (
-                  <button
-                    type="button"
-                    // Closes the panel exactly as a link does before the sign-out
-                    // runs: the visitor is done with the menu either way, and the
-                    // hook navigates the whole document away on success, so
-                    // leaving the panel open would only flash it during unload.
-                    onClick={() => {
-                      closeMenu();
-                      void signOut();
-                    }}
-                    disabled={signingOut}
-                    className={`${CHIP_INVERTED} mt-1 flex min-h-11 items-center justify-center px-5`}
-                  >
-                    {signingOut ? tAuth("signingOut") : tAuth("signOut")}
-                  </button>
-                )}
               </>
             ) : (
               <>
