@@ -101,6 +101,13 @@ const MERCHANT_SIGNED_OUT_HOME = "/sign-up";
 const ADMIN_ONLY_PREFIXES = ["/admin"];
 
 /**
+ * Where the admin host sends any path outside the back office, its bare root
+ * included (unprefixed; the locale prefix is re-attached by the caller). The
+ * admin layout sends a signed-out visitor on to the admin sign-in page.
+ */
+const ADMIN_HOME = "/admin";
+
+/**
  * Paths that only make sense on the client host, matched *exactly*.
  *
  * `/orders` is deliberately here rather than in `CLIENT_ONLY_PREFIXES`:
@@ -342,17 +349,25 @@ export function middleware(request: NextRequest) {
       ),
     );
 
-  // The admin host serves the back office and nothing else: anything that
-  // isn't `/admin/**` goes back to the client host, so a stray link never
-  // renders the customer-facing app on an internal hostname. Only reachable
-  // when `NEXT_PUBLIC_ADMIN_HOST` is set — `audienceForHost` cannot return
-  // "ADMIN" otherwise.
+  // The admin host serves the back office and nothing else, and it is a
+  // self-contained workspace: anything that isn't `/admin/**` (the bare root
+  // included) goes to the back office's home on this same host, never to the
+  // client site, so a stray link never renders the customer-facing app on an
+  // internal hostname and never sends staff out of the admin area. The prefix
+  // carries through; an unprefixed path is negotiated into a locale on the next
+  // hop. Only reachable when `NEXT_PUBLIC_ADMIN_HOST` is set —
+  // `audienceForHost` cannot return "ADMIN" otherwise.
   if (audience === "ADMIN") {
     if (isAdminOnly(pathname)) {
       return robots(intlMiddleware(request));
     }
 
-    return crossHost(clientOrigin());
+    const target = request.nextUrl.clone();
+    target.pathname = locale
+      ? withLocalePrefix(locale, ADMIN_HOME)
+      : ADMIN_HOME;
+    target.search = "";
+    return NextResponse.redirect(target);
   }
 
   // Mirror image: `/admin` asked for on the client or merchant host while the
