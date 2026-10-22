@@ -125,6 +125,8 @@ export default async function AccountPage() {
             initialValues={profileInitialValues}
           />
 
+          <AccountPasswordCard />
+
           {/* Only with a profile to store the answer on — its route answers
               404 without one, and sign-up always creates one. */}
           {clientProfile ? (
@@ -132,8 +134,6 @@ export default async function AccountPage() {
               initialConsent={clientProfile.marketingConsent}
             />
           ) : null}
-
-          <AccountPasswordCard />
         </div>
       </div>
     </main>
