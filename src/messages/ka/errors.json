@@ -160,12 +160,14 @@
   },
   "clientProfile": {
     "accountTypeMustBeOneOf": "accountType უნდა იყოს ერთ-ერთი შემდეგიდან: {allowed}.",
+    "clientProfileNotFound": "კლიენტის პროფილი ვერ მოიძებნა.",
     "dateofbirthCannotBeInTheFuture": "dateOfBirth არ შეიძლება იყოს მომავალში.",
     "dateofbirthMustBeAValidDate": "dateOfBirth უნდა იყოს ვალიდური თარიღი.",
     "dateofbirthMustBeAnIsoDate": "dateOfBirth უნდა იყოს ISO თარიღის ფორმატის ტექსტი.",
     "genderMustBeOneOf": "gender უნდა იყოს ერთ-ერთი შემდეგიდან: {allowed}.",
     "legalAddressIsTooLong": "იურიდიული მისამართი არ უნდა აღემატებოდეს {max} სიმბოლოს.",
     "legalAddressMustBeText": "იურიდიული მისამართი უნდა იყოს ტექსტი.",
+    "marketingConsentMustBeABoolean": "მარკეტინგულ შეთავაზებებზე პასუხი უნდა იყოს „ვეთანხმები“ ან „არ ვეთანხმები“.",
     "onlyClientsCanCreateAClient": "კლიენტის პროფილის შექმნა მხოლოდ კლიენტებს შეუძლიათ.",
     "onlyClientsHaveAClientProfile": "კლიენტის პროფილი მხოლოდ კლიენტებს აქვთ."
   },

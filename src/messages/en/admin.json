@@ -396,6 +396,7 @@
     "accountType": "Account type",
     "clientCount": "{count, plural, one {# client} other {# clients}}",
     "couldNotLoadClients": "Could not load clients.",
+    "deleted": "Deleted",
     "loadingClients": "Loading clients…",
     "noClientAccountsYet": "No client accounts yet.",
     "noClientsMatchThatSearch": "No clients match that search.",

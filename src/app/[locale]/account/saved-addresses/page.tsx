@@ -17,20 +17,23 @@ const PANEL_LABEL_CLASSES =
   "text-[0.6875rem] font-semibold tracking-[0.1em] text-muted uppercase";
 
 /**
- * The client's saved addresses — places from past bookings, with the contact
- * and access details for each — as a section of My account, beside Profile and
- * Wallet in the account rail.
+ * The client's saved addresses — places from past bookings or added by hand,
+ * with the contact and access details for each — as a section of My account,
+ * beside Profile, Orders and Wallet in the account rail.
  *
- * Addresses are only ever *added* from the after-booking prompt on
+ * Addresses are added two ways: from the after-booking prompt on
  * `/checkout/[id]/success`, where the address has just been geocoded and its
- * Contact Info typed; this page edits and removes them. That is why the
- * address itself and its coordinates are read-only in the edit dialog.
+ * Contact Info typed, and from this page's "Add address" dialog, which only
+ * accepts a picked autocomplete suggestion with coordinates. This page also
+ * edits and removes them; the address itself and its coordinates stay
+ * read-only in the edit dialog, so a row never drifts from the position the
+ * driver is routed to.
  *
  * Unlike the wallet, the list is loaded client-side from
  * `GET /api/saved-addresses` (see `SavedAddressesManager`), so this page and
  * the booking form read addresses through the one endpoint and its one
  * ordering. The server half only guards the route and reads the account type,
- * which decides whether the edit dialog asks for a driver comment.
+ * which decides whether the add and edit dialogs ask for a driver comment.
  */
 export default async function AccountSavedAddressesPage() {
   const session = await auth.api.getSession({ headers: await headers() });

@@ -70,6 +70,11 @@
     },
     "switchTo": "Switch to {language}"
   },
+  "marketingConsent": {
+    "agree": "Agree",
+    "disagree": "Disagree",
+    "statement": "I agree to receive personalized marketing offers. For more information, please see: <policy>Marketing Privacy Policy</policy>."
+  },
   "notFound": {
     "pageNotFound": "Page not found",
     "pickALanguageToHeadBack": "Pick a language to head back to the home page:"

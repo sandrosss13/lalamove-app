@@ -30,6 +30,7 @@ import {
   phoneNumberPluginOptions,
   resolvePhoneAuthIntent,
 } from "@/lib/phone-auth";
+import { isDeletedAccountPlaceholderEmail } from "@/lib/account-deletion/rules";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -251,6 +252,30 @@ const SUSPENDED_ACCOUNT_MESSAGE =
 const SUSPENDED_ACCOUNT_CODE = "ACCOUNT_SUSPENDED";
 
 /**
+ * The refusal for an account its owner deleted (`User.deactivatedAt`, see
+ * `@/lib/account-deletion/rules`). Rarely reachable in practice — deletion
+ * removes the password and replaces the email and number, so no sign-in form
+ * can name the account any more — but it is what the session gates below
+ * answer if anything ever does reach it.
+ */
+const DEACTIVATED_ACCOUNT_MESSAGE = "This account has been deleted.";
+const DEACTIVATED_ACCOUNT_CODE = "ACCOUNT_DEACTIVATED";
+
+/**
+ * Whether a session user is locked out — suspended by staff, or deleted by its
+ * owner. The `/get-session` gate asks this one question, so the second lockout
+ * reason rides the exact path the first was built on rather than a parallel
+ * copy of it. (The session-creation gate checks the two separately only
+ * because it answers each with its own message.)
+ */
+function isLockedOut(user: {
+  isSuspended?: boolean | null;
+  deactivatedAt?: Date | string | null;
+}): boolean {
+  return Boolean(user.isSuspended) || Boolean(user.deactivatedAt);
+}
+
+/**
  * Better Auth server instance.
  *
  * `secret` and `baseURL` are intentionally omitted — they are read from the
@@ -354,6 +379,14 @@ export const auth = betterAuth({
         required: false,
         input: false,
         defaultValue: false,
+      },
+      // Declared for the same reason as `isSuspended` — so the `/get-session`
+      // gate can read it off the session user without a query — and
+      // `input: false` for the same, sharper reason: it is a permanent lockout.
+      deactivatedAt: {
+        type: "date",
+        required: false,
+        input: false,
       },
     },
   },
@@ -480,8 +513,18 @@ export const auth = betterAuth({
         before: async (session) => {
           const user = await prisma.user.findUnique({
             where: { id: session.userId },
-            select: { isSuspended: true },
+            select: { isSuspended: true, deactivatedAt: true },
           });
+
+          // A deleted account is checked first: it is permanent, and telling
+          // its (former) owner to contact support about a suspension would be
+          // the wrong answer.
+          if (user?.deactivatedAt) {
+            throw new APIError("FORBIDDEN", {
+              message: DEACTIVATED_ACCOUNT_MESSAGE,
+              code: DEACTIVATED_ACCOUNT_CODE,
+            });
+          }
 
           if (user?.isSuspended) {
             throw new APIError("FORBIDDEN", {
@@ -645,7 +688,14 @@ export const auth = betterAuth({
 
       // A phone account's placeholder address is derived from its number, so
       // letting email sign-up claim one would lock that number's owner out.
-      if (isPhonePlaceholderEmail((ctx.body as { email?: unknown })?.email)) {
+      // The same for a deleted account's placeholder (`deleted+<id>@…`): it is
+      // derived from the user id and must be free when that account is
+      // deleted, so no live account may hold one.
+      const signUpEmail = (ctx.body as { email?: unknown })?.email;
+      if (
+        isPhonePlaceholderEmail(signUpEmail) ||
+        isDeletedAccountPlaceholderEmail(signUpEmail)
+      ) {
         throw new APIError("BAD_REQUEST", {
           message: "This email address cannot be used.",
         });
@@ -705,10 +755,12 @@ export const auth = betterAuth({
         // covers every shape this endpoint can return.
         const returned = ctx.context.returned as {
           session?: { token?: string };
-          user?: { isSuspended?: boolean };
+          user?: { isSuspended?: boolean; deactivatedAt?: Date | null };
         } | null;
 
-        if (returned?.user?.isSuspended) {
+        // `isLockedOut` also covers a deleted account (`deactivatedAt`), whose
+        // sessions deletion already removed — this catches any that survived.
+        if (returned?.user && isLockedOut(returned.user)) {
           const token = returned.session?.token;
           if (token) {
             await ctx.context.internalAdapter.deleteSession(token);

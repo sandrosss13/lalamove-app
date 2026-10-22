@@ -396,6 +396,7 @@
     "accountType": "ანგარიშის ტიპი",
     "clientCount": "{count, plural, one {# კლიენტი} other {# კლიენტი}}",
     "couldNotLoadClients": "კლიენტების ჩატვირთვა ვერ მოხერხდა.",
+    "deleted": "წაშლილი",
     "loadingClients": "კლიენტები იტვირთება...",
     "noClientAccountsYet": "კლიენტის ანგარიშები ჯერ არ არის.",
     "noClientsMatchThatSearch": "ძიების შედეგად კლიენტი ვერ მოიძებნა.",

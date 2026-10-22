@@ -5,7 +5,8 @@
  * `{ error }` wording is read back out of a failed response.
  *
  * Only pure imports, so this is safe in client components and in the
- * Playwright pure specs (`tests/saved-addresses-prompt-rules.spec.ts`).
+ * Playwright pure specs (`tests/saved-addresses-prompt-rules.spec.ts`,
+ * `tests/saved-addresses-manual-add.spec.ts`).
  */
 
 import type { SavedAddressInput } from "@/lib/saved-addresses/contract";
@@ -85,6 +86,46 @@ export function unsavedEnds<E extends { input: { address: string } }>(
   }
 
   return result;
+}
+
+/** Why a manually added address cannot be saved yet; keys in `savedAddresses.addDialog`. */
+export type ManualAddressProblem =
+  "addressRequired" | "pickSuggestion" | "alreadySaved";
+
+/**
+ * Whether the add dialog's address may be sent, or why not.
+ *
+ * The API accepts an address without coordinates (the after-booking prompt
+ * saves a typed stop as it was booked), but a hand-added one must come from a
+ * picked suggestion that resolved to a real position: an address the booking
+ * form cannot pin is one the driver cannot be routed to. Typing over a picked
+ * suggestion clears its coordinates (see `AddressAutocomplete`), so free text
+ * never carries them. A place already saved is refused rather than sent — the
+ * API would fold it into that row and overwrite its contact details.
+ */
+export function manualAddressProblem(
+  address: string,
+  location: { lat: number; lng: number } | null,
+  savedAddresses: string[],
+): ManualAddressProblem | null {
+  if (address.trim() === "") return "addressRequired";
+
+  if (
+    location === null ||
+    !Number.isFinite(location.lat) ||
+    !Number.isFinite(location.lng) ||
+    Math.abs(location.lat) > 90 ||
+    Math.abs(location.lng) > 180
+  ) {
+    return "pickSuggestion";
+  }
+
+  const key = addressKey(address);
+  if (savedAddresses.some((saved) => addressKey(saved) === key)) {
+    return "alreadySaved";
+  }
+
+  return null;
 }
 
 /**

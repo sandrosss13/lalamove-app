@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
-import { ClientAccountType, ClientGender, Prisma } from "@prisma/client";
+import {
+  ClientAccountType,
+  ClientGender,
+  MarketingConsentSource,
+  Prisma,
+} from "@prisma/client";
 
 import {
   getRequestTranslations,
@@ -10,6 +15,10 @@ import {
   LEGAL_ADDRESS_MAX_LENGTH,
   parseLegalAddress,
 } from "@/lib/client-profile/legal-address";
+import {
+  parseMarketingConsent,
+  shouldRecordMarketingConsent,
+} from "@/lib/client-profile/marketing-consent";
 import { prisma } from "@/lib/prisma";
 
 /** Valid `ClientAccountType` values, derived from the generated Prisma enum. */
@@ -289,6 +298,13 @@ export async function GET(request: Request): Promise<NextResponse> {
  * POST /api/client-profile — create or update the signed-in client's profile.
  * Only CLIENT users may call this. The write is an upsert keyed on the user id
  * so retries and re-submits are idempotent rather than an error.
+ *
+ * An optional boolean `marketingConsent` is the sign-up form's Agree / Disagree
+ * answer. Only that form sends it, so it is recorded with source `SIGN_UP` —
+ * on the profile and as a `MarketingConsentEvent` — when the profile is
+ * created, or on a re-submit that changes it. Absent, the stored answer is left
+ * alone (the `/account` and driver-hub profile forms never send it; the
+ * `/account` card has its own route, `./marketing-consent`).
  */
 export async function POST(request: Request): Promise<NextResponse> {
   const t = await getRequestTranslations();
@@ -323,6 +339,18 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
 
+  // Validated apart from the profile fields: it applies to either account type.
+  const consent = parseMarketingConsent(
+    (rawBody as Record<string, unknown>).marketingConsent,
+  );
+  if ("error" in consent) {
+    return NextResponse.json(
+      { error: t("errors.clientProfile.marketingConsentMustBeABoolean") },
+      { status: 400 },
+    );
+  }
+  const { marketingConsent } = consent;
+
   const {
     accountType,
     firstName,
@@ -336,35 +364,74 @@ export async function POST(request: Request): Promise<NextResponse> {
     idNumber,
   } = parsed.data;
 
+  const userId = session.user.id;
+
   let clientProfile;
   try {
-    clientProfile = await prisma.clientProfile.upsert({
-      where: { userId: session.user.id },
-      create: {
-        userId: session.user.id,
-        accountType,
-        firstName,
-        lastName,
-        companyName,
-        vatId,
-        legalAddress,
-        phone,
-        dateOfBirth,
-        gender,
-        idNumber,
-      },
-      update: {
-        accountType,
-        firstName,
-        lastName,
-        companyName,
-        vatId,
-        legalAddress,
-        phone,
-        dateOfBirth,
-        gender,
-        idNumber,
-      },
+    // One transaction so the profile's answer and its audit event can never
+    // disagree: either both are written or neither is.
+    clientProfile = await prisma.$transaction(async (tx) => {
+      // Empty unless the answer is being recorded, so spreading it into the
+      // upsert leaves both columns alone otherwise.
+      let consentData: {
+        marketingConsent?: boolean;
+        marketingConsentAt?: Date;
+      } = {};
+      if (marketingConsent !== undefined) {
+        const existing = await tx.clientProfile.findUnique({
+          where: { userId },
+          select: { marketingConsent: true },
+        });
+
+        if (
+          shouldRecordMarketingConsent(
+            existing?.marketingConsent ?? null,
+            marketingConsent,
+          )
+        ) {
+          const now = new Date();
+          consentData = { marketingConsent, marketingConsentAt: now };
+          await tx.marketingConsentEvent.create({
+            data: {
+              userId,
+              granted: marketingConsent,
+              source: MarketingConsentSource.SIGN_UP,
+              createdAt: now,
+            },
+          });
+        }
+      }
+
+      return tx.clientProfile.upsert({
+        where: { userId },
+        create: {
+          userId,
+          accountType,
+          firstName,
+          lastName,
+          companyName,
+          vatId,
+          legalAddress,
+          phone,
+          dateOfBirth,
+          gender,
+          idNumber,
+          ...consentData,
+        },
+        update: {
+          accountType,
+          firstName,
+          lastName,
+          companyName,
+          vatId,
+          legalAddress,
+          phone,
+          dateOfBirth,
+          gender,
+          idNumber,
+          ...consentData,
+        },
+      });
     });
   } catch (error) {
     // `ClientProfile.phone` is unique — one account per client. Anything else

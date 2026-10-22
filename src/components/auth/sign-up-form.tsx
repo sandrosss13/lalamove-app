@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { MarketingConsentChoice } from "@/components/marketing-consent-choice";
 import {
   Select,
   SelectContent,
@@ -51,6 +52,7 @@ import {
   LEGAL_ADDRESS_MAX_LENGTH,
   parseLegalAddress,
 } from "@/lib/client-profile/legal-address";
+import { DEFAULT_MARKETING_CONSENT } from "@/lib/client-profile/marketing-consent";
 import { useLocalizedCityOptions } from "@/lib/georgian-cities";
 import {
   appendGoodsParam,
@@ -429,6 +431,10 @@ export function SignUpForm({
   const [password, setPassword] = React.useState("");
   const [city, setCity] = React.useState("");
   const [termsAccepted, setTermsAccepted] = React.useState(false);
+  /** Clients only. Agree is pre-selected — the product owner's decision. */
+  const [marketingConsent, setMarketingConsent] = React.useState(
+    DEFAULT_MARKETING_CONSENT,
+  );
 
   const [fieldErrors, setFieldErrors] = React.useState<FieldErrors>({});
   /** Server- and API-level failures. Rendered as the alert above the fields. */
@@ -602,8 +608,15 @@ export function SignUpForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(
           accountType === "BUSINESS"
-            ? { accountType, companyName, vatId, legalAddress, phone }
-            : { accountType, firstName, lastName, phone },
+            ? {
+                accountType,
+                companyName,
+                vatId,
+                legalAddress,
+                phone,
+                marketingConsent,
+              }
+            : { accountType, firstName, lastName, phone, marketingConsent },
         ),
       });
 
@@ -973,6 +986,19 @@ export function SignUpForm({
               </FieldError>
             ) : null}
           </div>
+        ) : null}
+
+        {/* Clients only: drivers and companies are not marketed to. Recorded
+            with the profile by `POST /api/client-profile`. The policy opens in
+            a new tab so following it does not throw away the form. */}
+        {role === "CLIENT" ? (
+          <MarketingConsentChoice
+            tone="auth"
+            value={marketingConsent}
+            onChange={setMarketingConsent}
+            disabled={loading}
+            policyInNewTab
+          />
         ) : null}
 
         <div className="flex flex-col gap-2">

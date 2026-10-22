@@ -274,7 +274,11 @@ export default function AdminClientsPage() {
                       </TableCell>
                       <TableCell>{client.orderCount}</TableCell>
                       <TableCell>
-                        {client.isSuspended ? (
+                        {/* Deleted outranks suspended: it is permanent, and the
+                            row's name and contact are already placeholders. */}
+                        {client.deactivatedAt ? (
+                          <Badge variant="outline">{t("deleted")}</Badge>
+                        ) : client.isSuspended ? (
                           <Badge variant="destructive">
                             {tShared("suspended")}
                           </Badge>
@@ -296,24 +300,28 @@ export default function AdminClientsPage() {
                               ? tShared("hideDetails")
                               : tShared("details")}
                           </Button>
-                          <Button
-                            variant={
-                              client.isSuspended ? "outline" : "destructive"
-                            }
-                            size="sm"
-                            onClick={() =>
-                              setSuspendTarget({
-                                userId: client.userId,
-                                name: client.name,
-                                isSuspended: client.isSuspended,
-                                suspendedReason: client.suspendedReason,
-                              })
-                            }
-                          >
-                            {client.isSuspended
-                              ? tShared("unsuspend")
-                              : tShared("suspend")}
-                          </Button>
+                          {/* Nothing to moderate on a deleted account: it can
+                              never sign in again either way. */}
+                          {client.deactivatedAt ? null : (
+                            <Button
+                              variant={
+                                client.isSuspended ? "outline" : "destructive"
+                              }
+                              size="sm"
+                              onClick={() =>
+                                setSuspendTarget({
+                                  userId: client.userId,
+                                  name: client.name,
+                                  isSuspended: client.isSuspended,
+                                  suspendedReason: client.suspendedReason,
+                                })
+                              }
+                            >
+                              {client.isSuspended
+                                ? tShared("unsuspend")
+                                : tShared("suspend")}
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>

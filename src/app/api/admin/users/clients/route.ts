@@ -53,6 +53,12 @@ export type AdminClientRow = {
   isSuspended: boolean;
   suspendedAt: string | null;
   suspendedReason: string | null;
+  /**
+   * When the client deleted their own account (`User.deactivatedAt`), or null.
+   * A deleted row is already anonymised — name, email and phone above are the
+   * placeholders — and suspension no longer means anything for it.
+   */
+  deactivatedAt: string | null;
   createdAt: string;
 };
 
@@ -163,6 +169,7 @@ export async function GET(request: Request): Promise<NextResponse> {
             isSuspended: true,
             suspendedAt: true,
             suspendedReason: true,
+            deactivatedAt: true,
           },
         },
       },
@@ -201,6 +208,7 @@ export async function GET(request: Request): Promise<NextResponse> {
     isSuspended: profile.user.isSuspended,
     suspendedAt: profile.user.suspendedAt?.toISOString() ?? null,
     suspendedReason: profile.user.suspendedReason,
+    deactivatedAt: profile.user.deactivatedAt?.toISOString() ?? null,
     createdAt: profile.createdAt.toISOString(),
   }));
 

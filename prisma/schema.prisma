@@ -95,6 +95,16 @@ model User {
   suspendedAt     DateTime?
   suspendedReason String?
 
+  // Self-service account deletion ("Delete account" on `/account`). Set once,
+  // by `deactivateClientAccount` (`src/lib/account-deletion/server.ts`), in the
+  // same transaction that anonymises the row — the account is never hard-
+  // deleted, because `Order.client` cascades and a real delete would take the
+  // client's orders, and drivers' earnings history with them. Non-null means
+  // permanently closed: the same two gates in `src/lib/auth.ts` that enforce
+  // `isSuspended` refuse it, and unlike a suspension nothing un-sets it — the
+  // unsuspend route does not touch this column.
+  deactivatedAt   DateTime?
+
   // Delivery-domain relations. Named relations are required because `User`
   // participates in the `Order` model twice (as client and as driver).
   driverProfile    DriverProfile?
@@ -104,6 +114,10 @@ model User {
   deliveries       Order[]           @relation("DriverDeliveries")
   savedCards       SavedCard[]
   savedAddresses   SavedAddress[]
+
+  /// Every marketing-consent decision this client has made — see
+  /// `MarketingConsentEvent`. The current answer lives on `ClientProfile`.
+  marketingConsentEvents MarketingConsentEvent[]
 
   // Admin back-office relations. `systemUserProfile` exists only for internal
   // staff (role ADMIN); the other two exist for any user — `auditLogs` records
@@ -1317,24 +1331,57 @@ model DriverVehicleAssignment {
 /// and is unique across all clients: a phone number identifies a real person or
 /// business, so it is what enforces "one account per client" at the DB level.
 model ClientProfile {
-  id           String            @id @default(cuid())
-  userId       String            @unique
-  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  accountType  ClientAccountType
-  firstName    String?
-  lastName     String?
-  companyName  String?
-  vatId        String?
+  id                 String            @id @default(cuid())
+  userId             String            @unique
+  user               User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accountType        ClientAccountType
+  firstName          String?
+  lastName           String?
+  companyName        String?
+  vatId              String?
   /// The company's registered (legal) address, printed as the CLIENT block on
   /// the order-details document. Optional, BUSINESS accounts only, ≤ 300 chars.
-  legalAddress String?
-  phone        String            @unique
+  legalAddress       String?
+  phone              String            @unique
   // Verification details, individual accounts only (nullable for business).
-  dateOfBirth  DateTime?
-  gender       ClientGender?
-  idNumber     String?
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
+  dateOfBirth        DateTime?
+  gender             ClientGender?
+  idNumber           String?
+  /// Whether this client agreed to receive personalized marketing offers. Asked
+  /// at sign-up and changeable on `/account`, with "Agree" pre-selected in both
+  /// places — so the column defaults to `true`, which is also what every client
+  /// that predates the question was given by its migration. CRM audiences
+  /// exclude `false` (see `src/lib/crm/marketing-audience.ts`).
+  marketingConsent   Boolean           @default(true)
+  /// When the client last answered the question themselves. `null` for a
+  /// client who has only ever had the column default.
+  marketingConsentAt DateTime?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+}
+
+/// Where a `MarketingConsentEvent` was recorded.
+enum MarketingConsentSource {
+  /// The client sign-up form, when the account is created.
+  SIGN_UP
+  /// The marketing-consent card on `/account`.
+  ACCOUNT
+}
+
+/// Append-only audit trail of a client's marketing-consent decisions: one row
+/// per answer (the one given at sign-up, then each change on `/account`), never
+/// updated or deleted by the app. `ClientProfile.marketingConsent` holds the
+/// current answer; this table is the timestamped record of how it got there.
+/// Cascades with the user, like every other per-user row.
+model MarketingConsentEvent {
+  id        String                 @id @default(cuid())
+  userId    String
+  user      User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  granted   Boolean
+  source    MarketingConsentSource
+  createdAt DateTime               @default(now())
+
+  @@index([userId, createdAt])
 }
 
 /// A single freight job placed by a client and fulfilled either by an independent
@@ -3006,7 +3053,10 @@ model PromoCampaign {
 
 /// A saved audience filter. `criteria` is a small, admin-authored JSON filter
 /// (e.g. `{"role": "CLIENT", "minOrders": 5}`) interpreted by a later task's
-/// segment-preview logic — not a rules engine or query builder.
+/// segment-preview logic — not a rules engine or query builder. Whatever
+/// resolves it must start from `marketingAudienceWhere`
+/// (`src/lib/crm/marketing-audience.ts`), which drops every client who
+/// declined marketing (`ClientProfile.marketingConsent = false`).
 model CrmSegment {
   id          String   @id @default(cuid())
   name        String

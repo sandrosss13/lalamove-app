@@ -10,11 +10,12 @@ import { cn } from "@/lib/utils";
 /**
  * The settings rail's nav.
  *
- * Deliberately just these four: "Profile" is `/account`, "Wallet" is the
- * client's saved cards at `/account/wallet` (moved in from the global header,
- * where it used to be a top-level item), "Saved addresses" is the address book
- * the after-booking prompt fills, at `/account/saved-addresses`, and "Orders"
- * is the client's real order list at `/orders`. Nothing else in this app has a per-client settings
+ * Deliberately just these four, in this order: "Profile" is `/account`,
+ * "Orders" is the client's real order list at `/orders`, "Saved addresses" is
+ * the address book at `/account/saved-addresses` (filled by the after-booking
+ * prompt or by hand), and "Wallet" is the client's saved cards at
+ * `/account/wallet` (moved in from the global header, where it used to be a
+ * top-level item); "Log out" closes the rail. Nothing else in this app has a per-client settings
  * surface behind it — there is no notification-preference model, no per-user
  * locale, and the business-vs-individual split is a branch of the one profile
  * form, not a separate destination — so inventing rows for them would only
@@ -27,13 +28,13 @@ import { cn } from "@/lib/utils";
 const NAV_ITEMS = [
   // `labelKey` is a full key from the catalog root, translated at render.
   { href: "/account", labelKey: "common.shared.profile", exact: true },
-  { href: "/account/wallet", labelKey: "common.shared.wallet", exact: false },
+  { href: "/orders", labelKey: "common.shared.orders", exact: false },
   {
     href: "/account/saved-addresses",
     labelKey: "savedAddresses.page.title",
     exact: false,
   },
-  { href: "/orders", labelKey: "common.shared.orders", exact: false },
+  { href: "/account/wallet", labelKey: "common.shared.wallet", exact: false },
 ] as const;
 
 const SECTION_LABEL_CLASSES =

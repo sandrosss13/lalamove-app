@@ -3,20 +3,25 @@
 import { useEffect, useId, useState } from "react";
 import { useTranslations } from "next-intl";
 
-import type { SavedAddressDto } from "@/lib/saved-addresses/contract";
+import {
+  SAVED_ADDRESS_LIMIT,
+  type SavedAddressDto,
+} from "@/lib/saved-addresses/contract";
 
+import { AddSavedAddressDialog } from "./add-saved-address-dialog";
 import { SavedAddressContactSummary } from "./contact-summary";
 import { EditSavedAddressDialog } from "./edit-saved-address-dialog";
 import { readErrorMessage } from "./saved-address-format";
 
 /**
  * The list on `/account/saved-addresses`: every saved address with its label
- * and contact summary, an Edit that opens `EditSavedAddressDialog`, and a
- * two-step Remove.
+ * and contact summary, an Edit that opens `EditSavedAddressDialog`, a
+ * two-step Remove, and an "Add address" that opens `AddSavedAddressDialog`
+ * (switched off at `SAVED_ADDRESS_LIMIT`, which the API enforces anyway).
  *
  * Owns its own copy of the list, read from `GET /api/saved-addresses` on mount
  * and patched in place from each mutation's response — the API returns the
- * updated row on PATCH and nothing to re-read on DELETE, so there is no
+ * updated row on PATCH and POST and nothing to re-read on DELETE, so there is no
  * `router.refresh()` round trip as on the wallet page.
  *
  * Colour rule as on the wallet: landing token utilities, with the destructive
@@ -34,6 +39,9 @@ type RowError = { id: string; message: string };
 
 const SECTION_HEADING_CLASSES =
   "text-[11px] font-semibold tracking-[0.1em] text-muted uppercase";
+
+const ADD_BUTTON_CLASSES =
+  "rounded-lg bg-accent px-4 py-2.5 text-[13px] font-semibold text-on-accent transition-colors hover:bg-accent-hover disabled:pointer-events-auto disabled:cursor-not-allowed disabled:opacity-60";
 
 const ROW_BUTTON_CLASSES =
   "rounded-lg px-2 py-1.5 text-[13px] font-semibold text-paper transition-colors hover:text-accent disabled:pointer-events-auto disabled:cursor-not-allowed disabled:opacity-60";
@@ -71,6 +79,7 @@ export function SavedAddressesManager({
   const noteId = `${headingId}-remove-note`;
   const [state, setState] = useState<LoadState>({ kind: "loading" });
   const [editing, setEditing] = useState<SavedAddressDto | null>(null);
+  const [adding, setAdding] = useState(false);
   const [armedId, setArmedId] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [rowError, setRowError] = useState<RowError | null>(null);
@@ -121,6 +130,25 @@ export function SavedAddressesManager({
             addresses: current.addresses.map((row) =>
               row.id === updated.id ? updated : row,
             ),
+          }
+        : current,
+    );
+  }
+
+  /**
+   * Puts an added row at the top — it is the most recently used, which is the
+   * list's order. A duplicate (the API folded it into an existing row, e.g. one
+   * saved in another tab since this list loaded) replaces that row instead.
+   */
+  function handleAdded(added: SavedAddressDto) {
+    setState((current) =>
+      current.kind === "ready"
+        ? {
+            kind: "ready",
+            addresses: [
+              added,
+              ...current.addresses.filter((row) => row.id !== added.id),
+            ],
           }
         : current,
     );
@@ -190,12 +218,37 @@ export function SavedAddressesManager({
 
   const { addresses } = state;
   const busy = removingId !== null;
+  const atLimit = addresses.length >= SAVED_ADDRESS_LIMIT;
 
   return (
     <section aria-labelledby={headingId} className="flex flex-col gap-4">
-      <h2 id={headingId} className={SECTION_HEADING_CLASSES}>
-        {t("heading")}
-      </h2>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 id={headingId} className={SECTION_HEADING_CLASSES}>
+          {t("heading")}
+        </h2>
+        <button
+          type="button"
+          onClick={() => {
+            setArmedId(null);
+            setRowError(null);
+            setAdding(true);
+          }}
+          disabled={busy || atLimit}
+          aria-describedby={atLimit ? `${headingId}-limit` : undefined}
+          className={ADD_BUTTON_CLASSES}
+        >
+          {t("addAddress")}
+        </button>
+      </div>
+
+      {atLimit ? (
+        <p
+          id={`${headingId}-limit`}
+          className="-mt-1 text-[12px] leading-relaxed text-muted"
+        >
+          {t("limitReached", { max: SAVED_ADDRESS_LIMIT })}
+        </p>
+      ) : null}
 
       {addresses.length === 0 ? (
         <div className="rounded-[14px] border border-dashed border-line bg-surface p-8 text-center">
@@ -316,6 +369,14 @@ export function SavedAddressesManager({
           if (!open) setEditing(null);
         }}
         onSaved={handleSaved}
+      />
+
+      <AddSavedAddressDialog
+        open={adding}
+        accountType={accountType}
+        savedAddresses={addresses.map((row) => row.address)}
+        onOpenChange={setAdding}
+        onSaved={handleAdded}
       />
     </section>
   );

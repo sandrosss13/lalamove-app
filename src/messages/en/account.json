@@ -4,6 +4,33 @@
     "settings": "Settings",
     "theDetailsADriverSeesWhen": "The details a driver sees when they turn up for one of your pickups, and the credentials you sign in with. Keeping your phone number current is what stops a delivery stalling at the kerb."
   },
+  "accountDeleteCard": {
+    "blockedActiveOrders": "You have an order that is still in progress. Wait until it is delivered, or contact support to cancel it, before deleting your account.",
+    "blockedWalletBalance": "Your account still holds a balance. Contact support to settle it before deleting your account.",
+    "confirmDelete": "Delete my account",
+    "confirmationMismatch": "Type the confirmation word exactly as shown to delete your account.",
+    "couldNotDelete": "Could not delete your account. Please try again.",
+    "deleteAccount": "Delete account",
+    "deletedRedirecting": "Your account has been deleted. Taking you to the home page…",
+    "deleting": "Deleting…",
+    "description": "Close your zomo account for good.",
+    "dialogDescription": "Your account will be closed and your personal details removed. You will be signed out on every device.",
+    "dialogTitle": "Delete your account?",
+    "onlyClientsCanDelete": "Only client accounts can be deleted here. Please contact support to close this account.",
+    "title": "Delete account",
+    "typeToConfirm": "Type {word} to confirm",
+    "whatHappensCannotBeUndone": "This cannot be undone. A deleted account cannot be restored, even by support.",
+    "whatHappensDataRemoved": "Your name, email, phone number, ID and company details, saved addresses and saved cards are removed.",
+    "whatHappensOrdersKept": "Your past orders are kept for the drivers and companies who carried them, but no longer show who you are.",
+    "whatHappensPhoneFree": "Your phone number and email address can be used to sign up again."
+  },
+  "accountMarketingConsentCard": {
+    "couldNotSave": "Could not save your choice. Please try again.",
+    "description": "Whether zomo may send you offers tailored to how you use it. You can change this at any time.",
+    "save": "Save choice",
+    "saved": "Your choice has been saved.",
+    "title": "Marketing offers"
+  },
   "accountPasswordCard": {
     "changePassword": "Change password",
     "couldNotChangePassword": "Could not change your password. Please try again.",
