@@ -212,6 +212,9 @@ export default async function OrderDetailPage({
           <div className="flex flex-col gap-6">
             <RoutePanel order={order} />
             <DetailsPanel order={order} />
+            {/* Under the details it documents. Every client's, business or
+                individual, once the order is paid and not cancelled. */}
+            <OrderDocumentDownload orderId={order.id} status={order.status} />
           </div>
 
           {/* Sticky only while the column is short: with the live map in it the
@@ -228,9 +231,6 @@ export default async function OrderDetailPage({
                 headingClassName="font-display text-base font-semibold text-paper"
               />
             ) : null}
-            {/* Every client's, business or individual, once the order is
-                paid and not cancelled. */}
-            <OrderDocumentDownload orderId={order.id} status={order.status} />
           </div>
         </div>
       </div>
