@@ -217,6 +217,11 @@
     "vehiclePhotos": "Vehicle Photos",
     "withdrawals": "Withdrawals"
   },
+  "adminNotFound": {
+    "title": "This section isn't available yet",
+    "description": "The page you opened doesn't exist or hasn't been built yet. Pick another section from the menu.",
+    "backHome": "Back to the admin home"
+  },
   "adminOrders": {
     "searchPlaceholder": "Search by reference, client name or email",
     "filterByStatus": "Filter by status",
