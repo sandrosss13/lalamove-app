@@ -7,6 +7,7 @@ import {
   deleteVehiclePhotos,
   uploadVehiclePhoto,
 } from "@/lib/supabase-storage";
+import { normalizePlate } from "@/lib/vehicles/plate";
 import { parseTrailerPlate } from "@/lib/vehicles/trailer-plate";
 import {
   findVehicleTypeSpecIdByCode,
@@ -89,8 +90,9 @@ async function parseCreateVehicleForm(
 ): Promise<{ data: CreateVehicleInput } | { error: string }> {
   const tShared = await getRequestTranslations("common.shared");
 
-  const plateNumber = nonEmptyString(formData.get("plateNumber"));
-  if (plateNumber === null) {
+  const rawPlate = nonEmptyString(formData.get("plateNumber"));
+  const plateNumber = rawPlate === null ? "" : normalizePlate(rawPlate);
+  if (plateNumber === "") {
     return { error: tShared("platenumberIsRequired") };
   }
 
@@ -129,10 +131,10 @@ async function parseCreateVehicleForm(
 
   return {
     data: {
-      // Plates are conventionally written in upper case; normalising here is
-      // what makes the unique constraint meaningful, since Postgres would
-      // otherwise treat "ab123cd" and "AB123CD" as two different vehicles.
-      plateNumber: plateNumber.toUpperCase(),
+      // Normalised (no hyphens or spaces, upper case) so the unique
+      // constraint is meaningful: Postgres would otherwise treat "ab-123-cd"
+      // and "AB123CD" as two different vehicles.
+      plateNumber,
       make,
       model,
       year: year.value,

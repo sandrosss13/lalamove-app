@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getRequestTranslations } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { normalizePlate } from "@/lib/vehicles/plate";
 import { deleteVehiclePhotos } from "@/lib/supabase-storage";
 import { discardVehicleDocumentObjects } from "@/lib/vehicle-document-storage";
 import {
@@ -43,8 +44,9 @@ async function parseUpdateVehicleBody(
 
   const fields = body as Record<string, unknown>;
 
-  const plateNumber = nonEmptyString(fields.plateNumber);
-  if (plateNumber === null) {
+  const rawPlate = nonEmptyString(fields.plateNumber);
+  const plateNumber = rawPlate === null ? "" : normalizePlate(rawPlate);
+  if (plateNumber === "") {
     return { error: tShared("platenumberIsRequired") };
   }
 
@@ -76,9 +78,9 @@ async function parseUpdateVehicleBody(
   return {
     data: {
       // Normalised for the same reason `POST` normalises it: the unique
-      // constraint would otherwise treat "ab123cd" and "AB123CD" as two
+      // constraint would otherwise treat "ab-123-cd" and "AB123CD" as two
       // different vehicles.
-      plateNumber: plateNumber.toUpperCase(),
+      plateNumber,
       make,
       model,
       year: year.value,

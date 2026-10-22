@@ -26,6 +26,7 @@
 import type { ChassisType } from "@prisma/client";
 
 import type { Translator } from "@/i18n/translator";
+import { normalizePlate } from "@/lib/vehicles/plate";
 import {
   BODY_TYPES,
   VEHICLE_CLASSES,
@@ -288,10 +289,11 @@ export function validateVehicleInput(
     );
   }
 
-  // Uppercased *before* the length check and before the write, so the globally
+  // Normalised *before* the length check and before the write, so the globally
   // unique `plateNumber` index only ever sees one canonical spelling of a plate
-  // and "aa 123 bb" cannot claim a second row beside "AA 123 BB".
-  const plateNumber = trimmed(record.plateNumber)?.toUpperCase() ?? null;
+  // and "aa-123-bb" cannot claim a second row beside "AA123BB".
+  const rawPlate = trimmed(record.plateNumber);
+  const plateNumber = rawPlate === null ? null : normalizePlate(rawPlate);
   const isValidPlate =
     plateNumber !== null && plateNumber.length >= MIN_PLATE_LENGTH;
   if (!isValidPlate) {
