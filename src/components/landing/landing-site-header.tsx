@@ -124,17 +124,21 @@ export function LandingSiteHeader({ content }: { content: NavContent }) {
           >
             {accountLabel}
           </LandingLink>
-          <button
-            type="button"
-            disabled={signingOut}
-            onClick={() => {
-              onSelect?.();
-              void signOut();
-            }}
-            className={cn(SOLID_BUTTON, panelSize)}
-          >
-            {signingOut ? tAuth("signingOut") : tAuth("signOut")}
-          </button>
+          {/* Clients sign out from the account rail (`AccountSidebar`), as
+              in the global header; other roles keep the button here. */}
+          {isClient ? null : (
+            <button
+              type="button"
+              disabled={signingOut}
+              onClick={() => {
+                onSelect?.();
+                void signOut();
+              }}
+              className={cn(SOLID_BUTTON, panelSize)}
+            >
+              {signingOut ? tAuth("signingOut") : tAuth("signOut")}
+            </button>
+          )}
         </>
       );
     }

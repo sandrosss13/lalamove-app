@@ -262,16 +262,20 @@ export function LandingNavPill({ content }: { content: NavContent }) {
 
         {/* Sign out takes the inverted slot Sign up occupies, carrying the same
             padding and `sm:inline-block` so the pill's proportions and its
-            single point of visual weight are unchanged by the session. */}
+            single point of visual weight are unchanged by the session.
+            Clients sign out from the account rail instead, as in the global
+            header, so the slot stays empty for them. */}
         {sessionUser ? (
-          <button
-            type="button"
-            onClick={signOut}
-            disabled={signingOut}
-            className={`${CHIP_INVERTED} ml-0.5 hidden px-5 py-2.5 sm:inline-block`}
-          >
-            {signingOut ? tAuth("signingOut") : tAuth("signOut")}
-          </button>
+          isClient ? null : (
+            <button
+              type="button"
+              onClick={signOut}
+              disabled={signingOut}
+              className={`${CHIP_INVERTED} ml-0.5 hidden px-5 py-2.5 sm:inline-block`}
+            >
+              {signingOut ? tAuth("signingOut") : tAuth("signOut")}
+            </button>
+          )
         ) : (
           <NavLinkElement
             href={content.signUpHref}
@@ -333,21 +337,23 @@ export function LandingNavPill({ content }: { content: NavContent }) {
                   {accountLabel}
                 </NavLinkElement>
 
-                <button
-                  type="button"
-                  // Closes the panel exactly as a link does before the sign-out
-                  // runs: the visitor is done with the menu either way, and the
-                  // hook navigates the whole document away on success, so
-                  // leaving the panel open would only flash it during unload.
-                  onClick={() => {
-                    closeMenu();
-                    void signOut();
-                  }}
-                  disabled={signingOut}
-                  className={`${CHIP_INVERTED} mt-1 flex min-h-11 items-center justify-center px-5`}
-                >
-                  {signingOut ? tAuth("signingOut") : tAuth("signOut")}
-                </button>
+                {isClient ? null : (
+                  <button
+                    type="button"
+                    // Closes the panel exactly as a link does before the sign-out
+                    // runs: the visitor is done with the menu either way, and the
+                    // hook navigates the whole document away on success, so
+                    // leaving the panel open would only flash it during unload.
+                    onClick={() => {
+                      closeMenu();
+                      void signOut();
+                    }}
+                    disabled={signingOut}
+                    className={`${CHIP_INVERTED} mt-1 flex min-h-11 items-center justify-center px-5`}
+                  >
+                    {signingOut ? tAuth("signingOut") : tAuth("signOut")}
+                  </button>
+                )}
               </>
             ) : (
               <>
