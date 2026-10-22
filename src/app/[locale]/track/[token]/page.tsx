@@ -71,7 +71,6 @@ export default async function GuestTrackPage({
     <OrderTrackView
       order={order}
       viewer="CLIENT"
-      isBusinessClient={false}
       backHref="/"
       backLabel={t("backToHome")}
       guestToken={token}

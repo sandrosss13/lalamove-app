@@ -35,14 +35,10 @@ import {
   helperFeeSplit,
   useCheckoutLabels,
 } from "../../checkout/checkout-format";
-import {
-  buildServiceDocumentView,
-  isServiceDocumentAvailable,
-} from "@/lib/orders/service-document-server";
 import { CancelOrderButton } from "./cancel-order-button";
 import { StopContactLines } from "@/components/orders/stop-contact-lines";
 import { stopInfoOf, type StopInfo } from "@/lib/orders/stop-info";
-import { ServiceDocumentSection } from "@/components/orders/service-document-section";
+import { OrderDocumentDownload } from "@/components/orders/order-document-download";
 
 // Session + Prisma access can't be statically rendered.
 export const dynamic = "force-dynamic";
@@ -187,19 +183,6 @@ export default async function OrderDetailPage({
     return <CheckoutOrderNotFoundNotice />;
   }
 
-  // Only after the scoped lookup above: the order-details document is the
-  // owner's alone, for BUSINESS clients, once the order is paid and not
-  // cancelled — the same gate `GET /api/orders/[id]/waybill` applies.
-  const clientProfile = await prisma.clientProfile.findUnique({
-    where: { userId: session.user.id },
-    select: { accountType: true },
-  });
-  const serviceDocument =
-    clientProfile?.accountType === "BUSINESS" &&
-    isServiceDocumentAvailable(order.status)
-      ? await buildServiceDocumentView(order.id)
-      : null;
-
   return (
     // Painted on `main` so the ground covers the viewport — see the note on
     // `CheckoutNotice`.
@@ -219,16 +202,13 @@ export default async function OrderDetailPage({
           <div className="flex flex-col gap-6">
             <RoutePanel order={order} />
             <DetailsPanel order={order} />
-            {serviceDocument ? (
-              <ServiceDocumentSection
-                orderId={order.id}
-                document={serviceDocument}
-              />
-            ) : null}
           </div>
 
-          <div className="lg:sticky lg:top-8">
+          <div className="flex flex-col gap-6 lg:sticky lg:top-8">
             <ActionsPanel order={order} />
+            {/* Every client's, business or individual, once the order is
+                paid and not cancelled. */}
+            <OrderDocumentDownload orderId={order.id} status={order.status} />
           </div>
         </div>
       </div>

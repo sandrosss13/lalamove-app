@@ -7,10 +7,6 @@ import { Link } from "@/i18n/navigation";
 import { loadOrderPhotoViews } from "@/lib/order-photos/views";
 import { ORDER_PROOF_SELECT, toOrderProof } from "@/lib/orders/pod";
 import {
-  buildServiceDocumentView,
-  isServiceDocumentAvailable,
-} from "@/lib/orders/service-document-server";
-import {
   trackPageSections,
   type TrackPageViewer,
 } from "@/lib/orders/track-page";
@@ -24,7 +20,10 @@ import {
 import { OrderPhotoGallery } from "@/components/order-photo-gallery";
 import { OrderTrackingMap } from "@/components/order-tracking-map";
 import { ProofOfDeliverySection } from "@/components/orders/proof-of-delivery-section";
-import { ServiceDocumentSection } from "@/components/orders/service-document-section";
+import {
+  OrderDocumentDownload,
+  isOrderDocumentAvailable,
+} from "@/components/orders/order-document-download";
 
 /**
  * The body of an order's tracking page, shared by the two routes that show it:
@@ -37,8 +36,8 @@ import { ServiceDocumentSection } from "@/components/orders/service-document-sec
  * Each route does its own access check and query (with
  * `TRACK_VIEW_ORDER_SELECT`), and hands this component an order it has already
  * decided the reader may see. Everything readable beyond that row — the proof
- * URLs, the cargo photos, the order-details document — is loaded here, after
- * that check, and only for the viewer `trackPageSections` allows it for.
+ * URLs and the cargo photos — is loaded here, after that check, and only for
+ * the viewer `trackPageSections` allows it for.
  */
 
 /** Every panel on the page: the landing-token card the order page uses. */
@@ -118,19 +117,17 @@ function toLatLng(
 export async function OrderTrackView({
   order,
   viewer,
-  isBusinessClient,
   backHref,
   backLabel,
   guestToken,
 }: {
   order: TrackViewOrder;
   viewer: TrackPageViewer;
-  /** Whether the order-details document may be offered (client viewer only). */
-  isBusinessClient: boolean;
   backHref: string;
   backLabel: string;
   /** The guest route's token, so the live map can poll the driver's position
-   *  without a session or the order's cookie. */
+   *  (and the order-details PDF can be downloaded) without a session or the
+   *  order's cookie. */
   guestToken?: string;
 }) {
   const tPage = await getTranslations("orderTracking.page");
@@ -158,14 +155,12 @@ export async function OrderTrackView({
     viewer,
     status: order.status,
     hasProof,
-    isBusinessClient,
-    documentAvailable: isServiceDocumentAvailable(order.status),
+    documentAvailable: isOrderDocumentAvailable(order.status),
   });
 
-  const [photos, proof, serviceDocument] = await Promise.all([
+  const [photos, proof] = await Promise.all([
     loadOrderPhotoViews(order.id),
     sections.proofOfDelivery && proofRows ? toOrderProof(proofRows) : null,
-    sections.serviceDocument ? buildServiceDocumentView(order.id) : null,
   ]);
 
   const formatDateTime = (date: Date) =>
@@ -369,10 +364,12 @@ export async function OrderTrackView({
           />
         ) : null}
 
-        {serviceDocument ? (
-          <ServiceDocumentSection
+        {sections.serviceDocument ? (
+          <OrderDocumentDownload
             orderId={order.id}
-            document={serviceDocument}
+            status={order.status}
+            guestToken={guestToken}
+            className={PANEL_CLASSES}
           />
         ) : null}
 

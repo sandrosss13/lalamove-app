@@ -192,11 +192,11 @@ test.describe("CARRIER_ORDER_PARTY_SELECT", () => {
 });
 
 /**
- * The order-details document is client-owner-only data: the client's own
- * company block and the amount they paid, and — after the trip starts — the
- * `serviceSnapshot` with the driver's personal number. No shared select may
- * join it, not even the client-facing `ORDER_PARTY_SELECT`, which several
- * carrier-side readers have historically borrowed. It is served by
+ * The order-details document is the booker's data (and staff's): the
+ * customer's own block and the amount they paid, and — after the trip starts —
+ * the `serviceSnapshot` with the driver's personal number and phone. No shared
+ * select may join it, not even the client-facing `ORDER_PARTY_SELECT`, which
+ * several carrier-side readers have historically borrowed. It is served by
  * `/api/orders/[id]/waybill` alone, behind `resolveServiceDocumentAccess`.
  */
 test.describe("the order-details snapshot stays out of every shared order select", () => {

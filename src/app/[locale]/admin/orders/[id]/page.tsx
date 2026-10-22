@@ -16,6 +16,7 @@ import {
 import { serviceLevelLabel } from "@/components/orders-format";
 import { helperLocationLabel } from "@/app/[locale]/checkout/checkout-format";
 import { OrderPhotoGallery } from "@/components/order-photo-gallery";
+import { OrderDocumentDownload } from "@/components/orders/order-document-download";
 import { Badge } from "@/components/ui/badge";
 import { adminOrderTotalGel } from "@/lib/admin/orders-filters";
 import { cargoCategoryLabel, cargoHandlingTagLabel } from "@/lib/cargo";
@@ -326,6 +327,13 @@ export default async function AdminOrderDetailPage({
           {tRoot(ADMIN_ORDER_STATUS_KEYS[order.status])}
         </Badge>
       </div>
+
+      {/* The client's order-details PDF, as they would download it. */}
+      <OrderDocumentDownload
+        orderId={order.id}
+        status={order.status}
+        surface="admin"
+      />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Section title={t("summary")}>

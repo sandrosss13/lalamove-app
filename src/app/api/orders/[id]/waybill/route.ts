@@ -6,14 +6,17 @@ import { buildServiceDocumentView } from "@/lib/orders/service-document-server";
 import { authoriseServiceDocument } from "./access";
 
 /**
- * GET /api/orders/[id]/waybill — the client's order-details document for one
- * order, as JSON: `{ document: ServiceDocumentView }` (see
+ * GET /api/orders/[id]/waybill — the order-details document for one order, as
+ * JSON: `{ document: ServiceDocumentView }` (see
  * `src/lib/orders/service-document.ts`). The same view the PDF at
- * `/api/orders/[id]/waybill/pdf` prints. Read-only: the client enters nothing,
- * so there is no PUT or DELETE.
+ * `/api/orders/[id]/waybill/pdf` prints. Read-only: nobody enters anything,
+ * so there is no PUT or DELETE — though the first read assigns the order its
+ * document number (`buildServiceDocumentView`).
  *
- * 401 signed out · 404 not the order's client (or no such order) · 403 not a
- * BUSINESS account · 409 order unpaid (`INITIATED`) or `CANCELLED`.
+ * Open to staff, the order's own client (business or individual) and the guest
+ * holding its token (cookie or `?token=`) — see `./access.ts`.
+ * 401 no session and no guest token · 404 none of those (or no such order) ·
+ * 409 order unpaid (`INITIATED`) or `CANCELLED`.
  *
  * The URL keeps its historical `waybill` segment so existing links work.
  */

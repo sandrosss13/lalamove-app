@@ -1370,6 +1370,21 @@ model Order {
   /// this is the same expression after the database has had its say.
   reference String @unique @default(dbgenerated("('GE-'::text || nextval('order_reference_seq'::regclass))"))
 
+  /// The order-details document's number, `INV-2026-0012489`: the Tbilisi
+  /// year it was assigned in and a value of `order_document_number_seq`,
+  /// zero-padded to 7 digits (`formatDocumentNumber`,
+  /// `src/lib/orders/service-document.ts`).
+  ///
+  /// Assigned lazily, the first time the document is built for the order
+  /// (`buildServiceDocumentView`), by a write conditioned on this column still
+  /// being null — so two first downloads racing each other agree on one
+  /// number, and a number never changes once printed. Null on every order
+  /// nobody has opened the document of yet; there is no backfill and no
+  /// column default, because an order that never has a document should not
+  /// consume a number. The sequence is not modelled here (Prisma has no
+  /// syntax for a free-standing one); its migration creates it.
+  documentNumber String? @unique
+
   cargoCategory CargoCategory
   description   String?
 
@@ -1898,6 +1913,10 @@ model OrderServiceSnapshot {
   driverFirstName  String?
   driverLastName   String?
   driverPersonalId String?
+  /// The driver's contact number at the start: `DriverProfile.phone`,
+  /// falling back to the account's `User.phoneNumber`. Null on every snapshot
+  /// taken before this column existed.
+  driverPhone      String?
 
   vehicleMake  String?
   vehicleModel String?

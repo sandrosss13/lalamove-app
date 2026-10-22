@@ -40,14 +40,14 @@ export const dynamic = "force-dynamic";
  *    outlives the render. The proof rows are not even queried for a driver,
  *    so a driver's render cannot carry the client's URLs; the driver and the
  *    carrier company keep reading their proof on the job sheet, unchanged.
- * 4. **Order-details document** — BUSINESS clients, paid and uncancelled
- *    orders, the same card and the same gate as the order page.
+ * 4. **Order-details PDF** — the client (never the driver), paid and
+ *    uncancelled orders, the same download block as the order page.
  * 5. **Cargo photos** the client attached when booking, as before.
  *
- * Everything readable — the cargo-photo URLs, the proof URLs, the document —
- * is loaded only *after* the ownership check below, and someone else's order
- * is reported exactly like a missing one, so this page cannot be used to probe
- * which order ids exist.
+ * Everything readable — the cargo-photo URLs and the proof URLs — is loaded
+ * only *after* the ownership check below, and someone else's order is reported
+ * exactly like a missing one, so this page cannot be used to probe which order
+ * ids exist.
  */
 export default async function TrackOrderPage({
   params,
@@ -90,11 +90,6 @@ export default async function TrackOrderPage({
       ...TRACK_VIEW_ORDER_SELECT,
       clientId: true,
       driverId: true,
-      // Whether the order-details document can be offered, nothing more —
-      // and it is only offered to the client below. The assigned driver also
-      // reaches this page, and the document is never theirs to read (the PDF
-      // route answers them 404 regardless).
-      client: { select: { clientProfile: { select: { accountType: true } } } },
     },
   });
 
@@ -129,7 +124,6 @@ export default async function TrackOrderPage({
     <OrderTrackView
       order={order}
       viewer={viewer}
-      isBusinessClient={order.client?.clientProfile?.accountType === "BUSINESS"}
       backHref={backHref}
       backLabel={backLabel}
     />

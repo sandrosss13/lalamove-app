@@ -78,10 +78,10 @@ export function isLiveTrackingStatus(status: OrderStatus): boolean {
  *   as soon as any proof exists (a driver can register photos before closing
  *   the job). A driver reaching this page never gets the client's signed
  *   proof URLs: the page does not even query the proof rows for them.
- * - `serviceDocument` — the **client only**, and only when the caller has
- *   established that the client is a BUSINESS account and the order has a
- *   document at all (`isServiceDocumentAvailable`) — the same gate the PDF
- *   route applies, so the card never offers a download that answers 404.
+ * - `serviceDocument` — the **client only** (business or individual, or the
+ *   guest who booked), and only when the order has a document at all
+ *   (`isOrderDocumentAvailable`) — the same gate the PDF route applies, so
+ *   the card never offers a download that answers 404.
  */
 export type TrackPageSections = {
   liveMap: boolean;
@@ -97,13 +97,10 @@ export function trackPageSections(input: {
   status: OrderStatus;
   /** A signature or at least one delivery photo is on file. */
   hasProof: boolean;
-  /** The client's account is BUSINESS. Ignored for a driver. */
-  isBusinessClient: boolean;
-  /** `isServiceDocumentAvailable(status)`, computed by the caller. */
+  /** `isOrderDocumentAvailable(status)`, computed by the caller. */
   documentAvailable: boolean;
 }): TrackPageSections {
-  const { viewer, status, hasProof, isBusinessClient, documentAvailable } =
-    input;
+  const { viewer, status, hasProof, documentAvailable } = input;
   const isClient = viewer === "CLIENT";
 
   return {
@@ -112,6 +109,6 @@ export function trackPageSections(input: {
     cancelledNotice: status === "CANCELLED",
     delivered: status === "COMPLETED",
     proofOfDelivery: isClient && (status === "COMPLETED" || hasProof),
-    serviceDocument: isClient && isBusinessClient && documentAvailable,
+    serviceDocument: isClient && documentAvailable,
   };
 }

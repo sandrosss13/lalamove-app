@@ -208,10 +208,26 @@ genuinely different meanings — the catalogs must not share a key for them.
 | Cash on delivery       | გადახდა ჩაბარებისას         |
 | Bank transfer          | საბანკო გადარიცხვა          |
 
-The client's printed order-details document is titled **შეკვეთის დეტალები**
-("Invoice / Order details"), never **სასაქონლო ზედნადები** — it must not read
-as the official RS.GE e-waybill. It documents the transportation service only
-(client, seller, service provider, amount); there is no buyer and no goods list.
+The printed order-details document is titled **შეკვეთის დეტალები / ინვოისი**
+("Order Details / Invoice"), never **სასაქონლო ზედნადები** — it must not read
+as the official RS.GE e-waybill. Its own vocabulary (`orderDocument.pdf.*`,
+from the design reference):
+
+| English                         | Georgian                            |
+| ------------------------------- | ----------------------------------- |
+| Delivery (address, estimated …) | მიწოდება                            |
+| Delivered (order status)        | მიწოდებულია                         |
+| Carrier                         | გადამზიდი                           |
+| Individual carrier              | ინდ. გადამზიდი                      |
+| Company ID / VAT number         | საიდენტიფიკაციო კოდი / დღგ-ს ნომერი |
+| Helpers                         | მტვირთავები                         |
+| Additional services             | დამატებითი სერვისები                |
+| Total customer payment          | სულ გადასახდელი                     |
+| incl. VAT 18%                   | მ.შ. დღგ 18%                        |
+| Paid (payment status)           | გადახდილია                          |
+
+"Delivery" here is the document's word for the destination stop; elsewhere the
+drop-off stays **ჩაბარება**.
 
 Currency is always the lari sign `₾`, placed by the existing `formatGel` helper.
 Do not write `ლარი` in a price string — the symbol is what every price column is
