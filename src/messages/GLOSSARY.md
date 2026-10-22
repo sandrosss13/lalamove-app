@@ -223,7 +223,7 @@ from the design reference):
 | Helpers                         | მტვირთავები                         |
 | Additional services             | დამატებითი სერვისები                |
 | Total customer payment          | სულ გადასახდელი                     |
-| incl. VAT 18%                   | მ.შ. დღგ 18%                        |
+| Amount excl. VAT                | თანხა დღგ-ს გარეშე                  |
 | Paid (payment status)           | გადახდილია                          |
 
 "Delivery" here is the document's word for the destination stop; elsewhere the

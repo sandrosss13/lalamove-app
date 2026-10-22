@@ -83,7 +83,8 @@
     "discount": "Discount",
     "pooling": "Pooling",
     "total": "Total customer payment",
-    "vatIncluded": "incl. VAT {rate}%: {amount}",
+    "amountExclVat": "Amount excl. VAT",
+    "vat": "VAT {rate}%",
     "paymentStatus": "Payment status",
     "paymentStatuses": {
       "paid": "Paid",

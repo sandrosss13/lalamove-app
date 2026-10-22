@@ -41,7 +41,7 @@ import {
   serviceDocumentPdfFilename,
   serviceDocumentPdfLabels,
   serviceFields,
-  vatNote,
+  vatLines,
   type PdfLocale,
   type ServiceDocumentPdfLabels,
 } from "@/lib/waybill/render-pdf";
@@ -363,6 +363,28 @@ function pdfPageTexts(pdf: Buffer): string[] {
   return pages;
 }
 
+/** `"200.85 ₾"` → 200.85. */
+function money(text: string): number {
+  return Number(text.replace("\u2212", "-").replace(/[^\d.-]/g, ""));
+}
+
+/** The VAT split `computeDocumentFinance` would store for a total. */
+function vatOf(total: number) {
+  const { vat } = computeDocumentFinance({
+    price: total,
+    serviceLevelAdjustment: 0,
+    overtimeFee: 0,
+    helperOvertimeFee: 0,
+    helperFee: 0,
+    pickupHelperFee: 0,
+    dropoffHelperFee: 0,
+    transportFare: total,
+    tariffVersion: 1,
+    paymentStatus: "PAID",
+  });
+  return { vat };
+}
+
 function count(haystack: string, needle: string): number {
   return haystack.split(needle).length - 1;
 }
@@ -470,7 +492,7 @@ test.describe("order-details PDF formatting", () => {
     expect(paymentStatusTone("REFUNDED")).toBe("neutral");
   });
 
-  test("finance lines: transport, services, POOLING discount; VAT note", () => {
+  test("finance lines: transport, services, POOLING discount", () => {
     const view = businessView();
     const lines = financeLines(view, LABELS.en);
     expect(lines.map((l) => l.kind)).toEqual([
@@ -489,8 +511,24 @@ test.describe("order-details PDF formatting", () => {
     expect(lines[2]!.amount).toBe("−18.00 ₾");
     expect(lines[2]!.note).toBe("Pooling · 10%");
     expect(formatPdfMoney(view.finance.total)).toBe("237.00 ₾");
-    expect(vatNote(view.finance, LABELS.en)).toBe("incl. VAT 18%: 36.15 ₾");
-    expect(vatNote(view.finance, LABELS.ka)).toBe("მ.შ. დღგ 18%: 36.15 ₾");
+  });
+
+  test("VAT breakdown: amount excl. VAT + VAT add up to the total", () => {
+    const view = businessView();
+    expect(vatLines(view.finance, LABELS.en)).toEqual([
+      { kind: "net", label: "Amount excl. VAT", amount: "200.85 ₾" },
+      { kind: "vat", label: "VAT 18%", amount: "36.15 ₾" },
+    ]);
+    expect(vatLines(view.finance, LABELS.ka).map((l) => l.label)).toEqual([
+      "თანხა დღგ-ს გარეშე",
+      "დღგ 18%",
+    ]);
+    // Reconciles to the tetri for awkward totals too.
+    for (const total of [0.01, 1.01, 99.99, 150, 237, 1234.57, 9999.99]) {
+      const finance = { ...view.finance, total, ...vatOf(total) };
+      const [net, vat] = vatLines(finance, LABELS.en);
+      expect(money(net!.amount) + money(vat!.amount)).toBeCloseTo(total, 6);
+    }
   });
 
   test("no discount → no discount line", () => {
@@ -561,7 +599,8 @@ test.describe("order-details PDF rendering", () => {
       "Pooling · 10%",
       "−18.00 ₾",
       "237.00 ₾",
-      "incl. VAT 18%: 36.15 ₾",
+      "Amount excl. VAT 200.85 ₾",
+      "VAT 18% 36.15 ₾",
       "Paid",
     ]) {
       expectText(text, needle);
@@ -596,7 +635,8 @@ test.describe("order-details PDF rendering", () => {
       "14.2 კმ",
       "345 კგ",
       "გაერთიანებული · 10%",
-      "მ.შ. დღგ 18%: 36.15 ₾",
+      "თანხა დღგ-ს გარეშე 200.85 ₾",
+      "დღგ 18% 36.15 ₾",
       "გადახდილია",
       "დოკუმენტი ავტომატურად შეიქმნა შეკვეთის მონაცემებით",
     ]) {
@@ -637,13 +677,13 @@ test.describe("order-details PDF rendering", () => {
       for (const page of pages) {
         expectText(page, "ZOMO · GE-104857");
       }
-      // Section 07 is kept whole: total, VAT note and payment status share a page.
+      // Section 07 is kept whole: VAT lines, total and payment status share a
+      // page; 127.12 + 22.88 = 150.00.
       const financePage = pages.find((page) => page.includes(squash(L.total)))!;
       expectText(financePage, L.paymentStatus);
-      expectText(
-        financePage,
-        L.vatIncluded(18, formatPdfMoney(individualView().finance.vat)),
-      );
+      expectText(financePage, `${L.amountExclVat} 127.12 ₾`);
+      expectText(financePage, `${L.vat(18)} 22.88 ₾`);
+      expectText(financePage, `${L.total} 150.00 ₾`);
     }
   });
 

@@ -10,7 +10,8 @@
  * then seven numbered sections: 01 order information, 02 customer, 03 carrier
  * with driver and vehicle, 04 route (A/B stop cards + schedule), 05 cargo table,
  * 06 additional services, 07 money (transport + services − POOLING discount =
- * total, VAT-inclusive, with the payment-status badge). A running footer
+ * total, VAT-inclusive, broken down into amount excl. VAT + VAT, with the
+ * payment-status badge). A running footer
  * (`ZOMO · {reference}` | "generated automatically …") is on every page. No
  * seller block, no client legal address, no payment method — removed on
  * purpose.
@@ -175,8 +176,9 @@ export type ServiceDocumentPdfLabels = {
   /** `orderDocument.pdf.noteHelpers` — `amount` is formatted money. */
   noteHelpers: (amount: string) => string;
   noteOvertime: (amount: string) => string;
-  /** `orderDocument.pdf.vatIncluded` — `rate` is a percentage, e.g. 18. */
-  vatIncluded: (rate: number, amount: string) => string;
+  amountExclVat: string;
+  /** `orderDocument.pdf.vat` — `rate` is a percentage, e.g. 18. */
+  vat: (rate: number) => string;
   /** `orderDocument.pdf.generated`. */
   generated: (timestamp: string) => string;
   /** `orderDocument.pdf.page`. */
@@ -303,7 +305,8 @@ export function serviceDocumentPdfLabels(
     minutes: (value) => p("minutes", { value }),
     noteHelpers: (amount) => p("noteHelpers", { amount }),
     noteOvertime: (amount) => p("noteOvertime", { amount }),
-    vatIncluded: (rate, amount) => p("vatIncluded", { rate, amount }),
+    amountExclVat: p("amountExclVat"),
+    vat: (rate) => p("vat", { rate }),
     generated: (timestamp) => p("generated", { timestamp }),
     page: (page, pages) => p("page", { page, pages }),
   };
@@ -446,15 +449,34 @@ export function financeLines(
   return lines;
 }
 
-/** The "incl. VAT 18%: 45.00 ₾" note under the total. */
-export function vatNote(
-  finance: Pick<DocumentFinance, "vat" | "vatRate">,
+/** One line of the VAT breakdown under the price lines. */
+export type VatLine = {
+  kind: "net" | "vat";
+  label: string;
+  amount: string;
+};
+
+/**
+ * "Amount excl. VAT" and "VAT 18%": a breakdown of the VAT-inclusive total, not
+ * extra charges. Net is `total − vat` (both from `view.finance`), so the two
+ * printed lines add up to the printed total to the tetri.
+ */
+export function vatLines(
+  finance: Pick<DocumentFinance, "total" | "vat" | "vatRate">,
   labels: ServiceDocumentPdfLabels,
-): string {
-  return labels.vatIncluded(
-    vatPercent(finance.vatRate),
-    formatPdfMoney(finance.vat),
-  );
+): VatLine[] {
+  return [
+    {
+      kind: "net",
+      label: labels.amountExclVat,
+      amount: formatPdfMoney(roundCurrency(finance.total - finance.vat)),
+    },
+    {
+      kind: "vat",
+      label: labels.vat(vatPercent(finance.vatRate)),
+      amount: formatPdfMoney(finance.vat),
+    },
+  ];
 }
 
 /** Colours of a pill badge. */
@@ -1704,17 +1726,26 @@ function drawServices(ctx: Ctx, view: ServiceDocumentView): void {
 const TOTAL_LABEL: TextStyle = { size: 16, weight: 600 };
 const TOTAL_AMOUNT: TextStyle = { size: 24, weight: 700 };
 
+/** The VAT breakdown rows: 7px padding, muted labels and amounts. */
+const VAT_ROW_PAD = 7;
+const VAT_ROW_STYLE: TextStyle = { size: 14, color: COLORS.muted };
+
 /**
- * Section 07, kept whole (`break-inside: avoid`): line items (label + muted
- * note left, amount right, 1px rule), the 2px-ruled total row with the
- * 24px/700 amount on the label's baseline and the VAT note under it, then the
- * grey payment-status box.
+ * Section 07, kept whole (`break-inside: avoid`): price line items (label +
+ * muted note left, amount right, 1px rule), then — under a 1px ink rule that
+ * closes the prices — the VAT breakdown ("Amount excl. VAT", "VAT 18%") in
+ * muted type so it reads as a split of the total rather than further charges,
+ * then the 2px-ruled total row with the 24px/700 amount on the label's
+ * baseline, then the grey payment-status box.
  */
 function drawFinance(ctx: Ctx, view: ServiceDocumentView): void {
   const { labels } = ctx;
   const lines = financeLines(view, labels);
+  const vatRows = vatLines(view.finance, labels);
   const amountW = Math.max(
-    ...lines.map((line) => textWidth(ctx, line.amount, STYLE.value)),
+    ...[...lines, ...vatRows].map((line) =>
+      textWidth(ctx, line.amount, STYLE.value),
+    ),
   );
   const labelW = CONTENT_WIDTH - amountW - 24;
   const lineHeights = lines.map(
@@ -1737,8 +1768,11 @@ function drawFinance(ctx: Ctx, view: ServiceDocumentView): void {
     amountLine,
     labelShift + totalLabelLines.length * linePitch(TOTAL_LABEL),
   );
-  const vat = vatNote(view.finance, labels);
-  const vatH = measureText(ctx, vat, CONTENT_WIDTH, STYLE.note);
+  const vatHeights = vatRows.map(
+    (row) =>
+      VAT_ROW_PAD * 2 + measureText(ctx, row.label, labelW, VAT_ROW_STYLE),
+  );
+  const vatH = 1 + vatHeights.reduce((a, b) => a + b, 0);
   const statusBoxH =
     14 +
     measureText(ctx, labels.paymentStatus, CONTENT_WIDTH - 28, STYLE.label) +
@@ -1751,9 +1785,8 @@ function drawFinance(ctx: Ctx, view: ServiceDocumentView): void {
     2 +
     2 +
     14 +
-    totalRowH +
-    2 +
     vatH +
+    totalRowH +
     SECTION_GAP +
     statusBoxH;
   drawSectionHeading(ctx, 7, labels.sections.finance, bodyH);
@@ -1769,18 +1802,30 @@ function drawFinance(ctx: Ctx, view: ServiceDocumentView): void {
     if (line.note) {
       drawText(ctx, line.note, LEFT, y + 2, labelW, STYLE.note);
     }
+    // The last price line is closed by the ink rule below instead.
     ctx.y = top + lineHeights[index]! - 1;
-    rule(ctx, ctx.y);
+    if (index < lines.length - 1) {
+      rule(ctx, ctx.y);
+    }
     ctx.y += 1;
+  });
+
+  ctx.y -= 1;
+  rule(ctx, ctx.y, 1, COLORS.ink);
+  ctx.y += 1;
+  vatRows.forEach((row, index) => {
+    const y = ctx.y + VAT_ROW_PAD;
+    drawText(ctx, row.label, LEFT, y, labelW, VAT_ROW_STYLE);
+    drawText(ctx, row.amount, RIGHT - amountW, y, amountW, {
+      ...VAT_ROW_STYLE,
+      align: "right",
+    });
+    ctx.y += vatHeights[index]!;
   });
 
   ctx.y += 2;
   rule(ctx, ctx.y, 2, COLORS.ink);
   ctx.y += 2 + 14;
-  drawText(ctx, totalAmount, RIGHT - totalAmountW, ctx.y, totalAmountW, {
-    ...TOTAL_AMOUNT,
-    align: "right",
-  });
   drawText(
     ctx,
     labels.total,
@@ -1789,12 +1834,11 @@ function drawFinance(ctx: Ctx, view: ServiceDocumentView): void {
     totalLabelW,
     TOTAL_LABEL,
   );
-  ctx.y += totalRowH + 2;
-  drawText(ctx, vat, LEFT, ctx.y, CONTENT_WIDTH, {
-    ...STYLE.note,
+  drawText(ctx, totalAmount, RIGHT - totalAmountW, ctx.y, totalAmountW, {
+    ...TOTAL_AMOUNT,
     align: "right",
   });
-  ctx.y += vatH + SECTION_GAP;
+  ctx.y += totalRowH + SECTION_GAP;
 
   box(ctx, LEFT, ctx.y, CONTENT_WIDTH, statusBoxH, 8, COLORS.fill, null);
   let y = ctx.y + 14;

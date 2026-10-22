@@ -83,7 +83,8 @@
     "discount": "ფასდაკლება",
     "pooling": "გაერთიანებული",
     "total": "სულ გადასახდელი",
-    "vatIncluded": "მ.შ. დღგ {rate}%: {amount}",
+    "amountExclVat": "თანხა დღგ-ს გარეშე",
+    "vat": "დღგ {rate}%",
     "paymentStatus": "გადახდის სტატუსი",
     "paymentStatuses": {
       "paid": "გადახდილია",
