@@ -41,7 +41,8 @@ export const dynamic = "force-dynamic";
  *    so a driver's render cannot carry the client's URLs; the driver and the
  *    carrier company keep reading their proof on the job sheet, unchanged.
  * 4. **Order-details PDF** — the client (never the driver), paid and
- *    uncancelled orders, the same download block as the order page.
+ *    uncancelled orders, the same download block as the order page. Drawn
+ *    right under the header and summary (1), above the live map.
  * 5. **Cargo photos** the client attached when booking, as before.
  *
  * Everything readable — the cargo-photo URLs and the proof URLs — is loaded

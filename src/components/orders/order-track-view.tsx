@@ -282,6 +282,16 @@ export async function OrderTrackView({
           ) : null}
         </section>
 
+        {/* Under the details it documents, above the live map. */}
+        {sections.serviceDocument ? (
+          <OrderDocumentDownload
+            orderId={order.id}
+            status={order.status}
+            guestToken={guestToken}
+            className={PANEL_CLASSES}
+          />
+        ) : null}
+
         {sections.liveMap ? (
           <LiveTrackingPanel
             order={order}
@@ -339,15 +349,6 @@ export async function OrderTrackView({
             completedLabel={
               order.completedAt ? formatDateTime(order.completedAt) : null
             }
-          />
-        ) : null}
-
-        {sections.serviceDocument ? (
-          <OrderDocumentDownload
-            orderId={order.id}
-            status={order.status}
-            guestToken={guestToken}
-            className={PANEL_CLASSES}
           />
         ) : null}
 
