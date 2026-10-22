@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from "next/server";
 import createIntlMiddleware from "next-intl/middleware";
 
 import {
-  adminOrigin,
   type Audience,
   audienceForHost,
   clientOrigin,
@@ -106,6 +105,12 @@ const ADMIN_ONLY_PREFIXES = ["/admin"];
  * admin layout sends a signed-out visitor on to the admin sign-in page.
  */
 const ADMIN_HOME = "/admin";
+
+/**
+ * A path no route matches, used to answer `/admin` on the client and merchant
+ * hosts with the app's 404 page (see the admin branch in `middleware`).
+ */
+const NOT_FOUND_PATH = "/__not-found";
 
 /**
  * Paths that only make sense on the client host, matched *exactly*.
@@ -252,10 +257,10 @@ function isClientOnly(pathname: string): boolean {
  * 4. While `CLIENT_UNDER_CONSTRUCTION` is on (see
  *    `src/lib/under-construction.ts`), a page request that is staying on the
  *    client host is rewritten to the "coming soon" page instead of being
- *    served. This sits *after* step 3 on purpose: `/dashboard` and `/admin`
- *    asked for on the client host still bounce to the merchant and admin
- *    hosts, which are live, so a stale link to either self-heals rather than
- *    dead-ending on a placeholder. It sits *after* step 1 for the reason step 1
+ *    served. This sits *after* step 3 on purpose: `/dashboard` asked for on
+ *    the client host still bounces to the merchant host, which is live, so a
+ *    stale link self-heals rather than dead-ending on a placeholder (and
+ *    `/admin` there is a 404 rather than the placeholder). It sits *after* step 1 for the reason step 1
  *    exists — `/api/**` has to keep answering on the client origin (Better
  *    Auth's `baseURL`, and the driver mobile app's API base).
  * 5. Whatever stays on this host is handed to `intlMiddleware`, which serves
@@ -370,14 +375,20 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(target);
   }
 
-  // Mirror image: `/admin` asked for on the client or merchant host while the
-  // admin split is configured belongs on the admin host instead. Same shape as
-  // the merchant-only-path redirect below.
+  // `/admin` asked for on the client or merchant host while the admin split is
+  // configured does not exist there: the back office lives only on the admin
+  // host, and these hosts do not even point to it. Rewritten to a path no route
+  // matches, so Next renders its ordinary 404 page with a 404 status and the
+  // visitor's URL is left as typed.
   if (IS_ADMIN_HOST_ENABLED && isAdminOnly(pathname)) {
-    const origin = adminOrigin();
-    if (origin) {
-      return crossHost(origin);
-    }
+    const response = NextResponse.rewrite(
+      new URL(
+        withLocalePrefix(locale ?? DEFAULT_LOCALE, NOT_FOUND_PATH),
+        request.url,
+      ),
+    );
+    response.headers.set("X-Robots-Tag", ROBOTS_NOINDEX);
+    return response;
   }
 
   if (!IS_HOST_SPLIT_ENABLED) {
