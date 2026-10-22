@@ -60,7 +60,7 @@ test.describe("shouldRecordMarketingConsent", () => {
   });
 });
 
-test("Agree is the default, matching the column default", () => {
+test("consent is on by default, matching the column default", () => {
   expect(DEFAULT_MARKETING_CONSENT).toBe(true);
 
   const schema = readFileSync(
@@ -120,12 +120,8 @@ test("the policy page is seeded, published, in both content locales", () => {
 
 test("every catalog key the feature renders exists in both locales", () => {
   const keys: [file: string, path: string[]][] = [
-    ["common", ["marketingConsent", "agree"]],
-    ["common", ["marketingConsent", "disagree"]],
     ["common", ["marketingConsent", "statement"]],
     ["account", ["accountMarketingConsentCard", "title"]],
-    ["account", ["accountMarketingConsentCard", "description"]],
-    ["account", ["accountMarketingConsentCard", "save"]],
     ["account", ["accountMarketingConsentCard", "saved"]],
     ["account", ["accountMarketingConsentCard", "couldNotSave"]],
     ["errors", ["clientProfile", "marketingConsentMustBeABoolean"]],

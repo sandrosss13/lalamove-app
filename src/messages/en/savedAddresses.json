@@ -60,7 +60,7 @@
   "page": {
     "intro": "Places you book to often, with the contact and access details the driver needs. Pick one in the booking form to fill everything in at once.",
     "pleaseSignIn": "Please sign in to see your saved addresses.",
-    "title": "Saved addresses"
+    "title": "Addresses"
   },
   "prompt": {
     "description": "Keep the addresses and contact details from this booking, and fill them in with one tap next time.",

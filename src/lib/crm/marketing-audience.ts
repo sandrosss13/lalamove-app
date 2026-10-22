@@ -18,9 +18,8 @@ import type { Prisma } from "@prisma/client";
 
 /**
  * Users a marketing send may reach: clients whose profile records consent and
- * who have not deleted their account (`User.deactivatedAt`, see
- * `src/lib/account-deletion`). A client with no `ClientProfile` row is
- * excluded too — there is no recorded answer to rely on.
+ * whose account is not deactivated (`User.deactivatedAt`). A client with no
+ * `ClientProfile` row is excluded too — there is no recorded answer to rely on.
  */
 export const MARKETABLE_CLIENT_WHERE = {
   role: "CLIENT",

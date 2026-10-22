@@ -95,14 +95,13 @@ model User {
   suspendedAt     DateTime?
   suspendedReason String?
 
-  // Self-service account deletion ("Delete account" on `/account`). Set once,
-  // by `deactivateClientAccount` (`src/lib/account-deletion/server.ts`), in the
-  // same transaction that anonymises the row — the account is never hard-
-  // deleted, because `Order.client` cascades and a real delete would take the
-  // client's orders, and drivers' earnings history with them. Non-null means
-  // permanently closed: the same two gates in `src/lib/auth.ts` that enforce
-  // `isSuspended` refuse it, and unlike a suspension nothing un-sets it — the
-  // unsuspend route does not touch this column.
+  // Permanently closed account. Stamped by the self-service "Delete account"
+  // flow that briefly shipped on `/account` (since withdrawn — nothing in the
+  // app sets it now), which anonymised the row rather than hard-deleting it,
+  // because `Order.client` cascades. Non-null means closed for good: the same
+  // two gates in `src/lib/auth.ts` that enforce `isSuspended` refuse it, and
+  // unlike a suspension nothing un-sets it — the unsuspend route does not
+  // touch this column.
   deactivatedAt   DateTime?
 
   // Delivery-domain relations. Named relations are required because `User`

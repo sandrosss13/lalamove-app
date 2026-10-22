@@ -11,12 +11,12 @@ import { cn } from "@/lib/utils";
  * The settings rail's nav.
  *
  * Deliberately just these four, in this order: "Profile" is `/account`,
- * "Orders" is the client's real order list at `/orders`, "Saved addresses" is
+ * "Orders" is the client's real order list at `/orders`, "Addresses" is
  * the address book at `/account/saved-addresses` (filled by the after-booking
  * prompt or by hand), and "Wallet" is the client's saved cards at
  * `/account/wallet` (moved in from the global header, where it used to be a
- * top-level item); "Log out" closes the rail. Nothing else in this app has a per-client settings
- * surface behind it — there is no notification-preference model, no per-user
+ * top-level item); "Log out" is the list's last row, directly under "Wallet".
+ * Nothing else in this app has a per-client settings surface behind it — there is no notification-preference model, no per-user
  * locale, and the business-vs-individual split is a branch of the one profile
  * form, not a separate destination — so inventing rows for them would only
  * promise screens that don't exist.
@@ -54,13 +54,12 @@ function isNavItemActive(
 }
 
 /**
- * Left rail of the client account settings screen: the section nav, plus a way
- * out pinned to the bottom of the rail on desktop.
+ * Left rail of the client account settings screen: the section nav, ending in
+ * the way out.
  *
  * A client component because signing out is a browser-side Better Auth call.
- * This sits *below* the global site header (see `src/app/layout.tsx`) and
- * replaces none of it — the wordmark, the client nav and the header's own sign
- * out stay exactly where they were.
+ * This sits *below* the global site header (see `src/app/layout.tsx`), which
+ * offers a client no sign out of its own — this row is the client's sign out.
  */
 export function AccountSidebar() {
   const t = useTranslations("common.shared");
@@ -73,8 +72,8 @@ export function AccountSidebar() {
   const { signOut, signingOut } = useSignOut();
 
   return (
-    <aside className="lg:sticky lg:top-8 lg:h-[calc(100vh-6rem)] lg:w-56 lg:shrink-0">
-      <div className="flex h-full flex-col">
+    <aside className="lg:sticky lg:top-8 lg:w-56 lg:shrink-0">
+      <div className="flex flex-col">
         <p className={SECTION_LABEL_CLASSES}>{t("account")}</p>
 
         <nav aria-label={t("accountSettings")} className="mt-3 flex flex-col">
@@ -97,19 +96,20 @@ export function AccountSidebar() {
               </Link>
             );
           })}
-        </nav>
 
-        {/* `mt-auto` only once the rail has a height to push against — on
-            mobile it is a plain block that follows the nav. */}
-        <button
-          type="button"
-          onClick={() => void signOut()}
-          disabled={signingOut}
-          className="mt-8 inline-flex items-center gap-2 self-start text-sm font-medium text-muted transition-colors hover:text-accent disabled:opacity-50 lg:mt-auto"
-        >
-          <LogOut aria-hidden="true" className="size-4" />
-          {signingOut ? tSidebar("loggingOut") : tSidebar("logOut")}
-        </button>
+          {/* The list's last row, styled as one, rather than pinned to the
+              foot of the rail: right under "Wallet" is where it is looked
+              for. A button, not a link — signing out is an action. */}
+          <button
+            type="button"
+            onClick={() => void signOut()}
+            disabled={signingOut}
+            className="inline-flex items-center gap-2 border-l-2 border-line py-2 pl-3.5 text-left text-sm font-medium text-muted transition-colors hover:text-paper disabled:opacity-50"
+          >
+            <LogOut aria-hidden="true" className="size-4" />
+            {signingOut ? tSidebar("loggingOut") : tSidebar("logOut")}
+          </button>
+        </nav>
       </div>
     </aside>
   );

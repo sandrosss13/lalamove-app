@@ -10,8 +10,8 @@ import {
 import { prisma } from "@/lib/prisma";
 
 /**
- * POST /api/client-profile/marketing-consent — the `/account` card's Agree /
- * Disagree change. Body: `{ marketingConsent: boolean }`, required.
+ * POST /api/client-profile/marketing-consent — the `/account` card's switch,
+ * saved on every flip. Body: `{ marketingConsent: boolean }`, required.
  *
  * A route of its own rather than a field on `POST /api/client-profile`: that
  * one takes the whole profile, and changing a yes/no answer should not have to

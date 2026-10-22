@@ -431,7 +431,7 @@ export function SignUpForm({
   const [password, setPassword] = React.useState("");
   const [city, setCity] = React.useState("");
   const [termsAccepted, setTermsAccepted] = React.useState(false);
-  /** Clients only. Agree is pre-selected — the product owner's decision. */
+  /** Clients only. Starts switched on — the product owner's decision. */
   const [marketingConsent, setMarketingConsent] = React.useState(
     DEFAULT_MARKETING_CONSENT,
   );

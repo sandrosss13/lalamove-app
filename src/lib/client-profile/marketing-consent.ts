@@ -1,7 +1,7 @@
 /**
  * The rules for a client's marketing consent (`ClientProfile.marketingConsent`)
- * — "I agree to receive personalized marketing offers", answered Agree or
- * Disagree at sign-up and changeable on `/account`.
+ * — "I agree to receive personalized marketing offers", answered with an on /
+ * off switch at sign-up and changeable on `/account`.
  *
  * Shared by its callers so they cannot drift apart:
  *
@@ -9,7 +9,7 @@
  *   when the profile is created.
  * - `POST /api/client-profile/marketing-consent` — the `/account` card's
  *   change.
- * - `MarketingConsentChoice` — the Agree / Disagree control both forms render,
+ * - `MarketingConsentChoice` — the on / off switch both forms render,
  *   which links to the policy page named here.
  *
  * Pure and dependency-free on purpose: the forms are client components, and
@@ -17,8 +17,8 @@
  */
 
 /**
- * The answer pre-selected on both forms, and the column default. The product
- * owner's explicit decision: Agree is the default choice.
+ * The switch's starting position on sign-up, and the column default. The
+ * product owner's explicit decision: consent is on by default.
  */
 export const DEFAULT_MARKETING_CONSENT = true;
 

@@ -265,8 +265,9 @@ export default async function RootLayout({
             toggle reads as one more item in the same run of controls.
 
             The toggle is deliberately last: it is the least-used control here,
-            and putting it after the sign-out/dashboard links keeps those two in
-            the position returning visitors already reach for.
+            and putting it after the account/dashboard link (and a provider's
+            sign out) keeps those in the position returning visitors already
+            reach for.
 
             This header is hidden on the surfaces that ship their own — the
             landing page (`[data-hide-site-header]`) and the admin back office

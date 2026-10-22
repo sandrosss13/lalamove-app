@@ -8,8 +8,15 @@ import { useSignOut } from "@/components/auth/use-sign-out";
 import { useSession } from "@/lib/auth-client";
 
 /**
- * Header widget reflecting the current session. Shows the signed-in user with a
- * sign-out button, or sign-in / sign-up links when there is no session.
+ * Header widget reflecting the current session: the signed-in user's way into
+ * their own area, or sign-in / sign-up links when there is no session.
+ *
+ * A client gets no sign out here — theirs is the last row of the account rail
+ * (`AccountSidebar`), one click away behind "My account". Drivers, companies
+ * and admins keep it: this header is their only sign out on the screens that
+ * render it (the two onboarding wizards and `/change-password`, which they
+ * cannot leave for the hub), since the hub and the back office hide this
+ * header and ship their own.
  */
 export function AuthStatus() {
   const t = useTranslations("common.shared");
@@ -25,18 +32,12 @@ export function AuthStatus() {
   }
 
   if (session) {
-    const { name, role } = session.user;
-
     // Clients live on /account; drivers and logistics companies manage their
     // fleet, roster and bookings on /dashboard.
-    const isClient = role === "CLIENT";
+    const isClient = session.user.role === "CLIENT";
 
     return (
       <div className="flex items-center gap-2 whitespace-nowrap text-sm sm:gap-3">
-        {/* The name alone: that the header offers "Sign out" already says the
-            visitor is signed in, and the role is a fact about the account they
-            cannot act on from here — both were noise beside their own name. */}
-        <span className="hidden max-w-40 truncate md:inline">{name}</span>
         {/*
           A client's own route to the marketing page is the wordmark now (see
           `HeaderBrandLink`), not a link here — this used to duplicate that.
@@ -47,14 +48,16 @@ export function AuthStatus() {
         >
           {isClient ? t("myAccount") : t("dashboard")}
         </Link>
-        <button
-          type="button"
-          onClick={() => void signOut()}
-          disabled={signingOut}
-          className="rounded border px-2 py-1 font-medium hover:opacity-70 disabled:opacity-50"
-        >
-          {signingOut ? tAuthStatus("signingOut") : tAuthStatus("signOut")}
-        </button>
+        {isClient ? null : (
+          <button
+            type="button"
+            onClick={() => void signOut()}
+            disabled={signingOut}
+            className="rounded border px-2 py-1 font-medium hover:opacity-70 disabled:opacity-50"
+          >
+            {signingOut ? tAuthStatus("signingOut") : tAuthStatus("signOut")}
+          </button>
+        )}
       </div>
     );
   }

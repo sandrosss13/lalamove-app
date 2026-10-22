@@ -37,10 +37,9 @@ const MIN_PASSWORD_LENGTH = 8;
  * The "Account access" card on `/account`: one row per credential the client
  * can manage themselves, which today is exactly one — their password.
  *
- * Deliberately no passkey row (the plugin isn't configured in `@/lib/auth`),
- * rather than a control that would look real and do nothing. Deleting the
- * account is its own card below this one (`account-delete-card.tsx`), kept
- * apart so the irreversible action never sits beside a routine one.
+ * Deliberately no passkey row (the plugin isn't configured in `@/lib/auth`) and
+ * no delete-account row (self-service deletion is not offered), rather than
+ * controls that would look real and do nothing.
  *
  * This is the *voluntary* change, distinct from `/change-password`: that page
  * is the forced reset a driver is bounced into while holding a temporary

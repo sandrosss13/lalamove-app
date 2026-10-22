@@ -30,7 +30,6 @@ import {
   phoneNumberPluginOptions,
   resolvePhoneAuthIntent,
 } from "@/lib/phone-auth";
-import { isDeletedAccountPlaceholderEmail } from "@/lib/account-deletion/rules";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -252,18 +251,17 @@ const SUSPENDED_ACCOUNT_MESSAGE =
 const SUSPENDED_ACCOUNT_CODE = "ACCOUNT_SUSPENDED";
 
 /**
- * The refusal for an account its owner deleted (`User.deactivatedAt`, see
- * `@/lib/account-deletion/rules`). Rarely reachable in practice — deletion
- * removes the password and replaces the email and number, so no sign-in form
- * can name the account any more — but it is what the session gates below
- * answer if anything ever does reach it.
+ * The refusal for a deactivated account (`User.deactivatedAt`). Nothing in the
+ * app sets the column any more — self-service deletion was withdrawn — but
+ * rows it already stamped stay closed, and this is what the session gates
+ * below answer if one is ever reached.
  */
 const DEACTIVATED_ACCOUNT_MESSAGE = "This account has been deleted.";
 const DEACTIVATED_ACCOUNT_CODE = "ACCOUNT_DEACTIVATED";
 
 /**
- * Whether a session user is locked out — suspended by staff, or deleted by its
- * owner. The `/get-session` gate asks this one question, so the second lockout
+ * Whether a session user is locked out — suspended by staff, or deactivated
+ * (`deactivatedAt`). The `/get-session` gate asks this one question, so the second lockout
  * reason rides the exact path the first was built on rather than a parallel
  * copy of it. (The session-creation gate checks the two separately only
  * because it answers each with its own message.)
@@ -516,9 +514,9 @@ export const auth = betterAuth({
             select: { isSuspended: true, deactivatedAt: true },
           });
 
-          // A deleted account is checked first: it is permanent, and telling
-          // its (former) owner to contact support about a suspension would be
-          // the wrong answer.
+          // A deactivated account is checked first: it is permanent, and
+          // telling its (former) owner to contact support about a suspension
+          // would be the wrong answer.
           if (user?.deactivatedAt) {
             throw new APIError("FORBIDDEN", {
               message: DEACTIVATED_ACCOUNT_MESSAGE,
@@ -688,14 +686,7 @@ export const auth = betterAuth({
 
       // A phone account's placeholder address is derived from its number, so
       // letting email sign-up claim one would lock that number's owner out.
-      // The same for a deleted account's placeholder (`deleted+<id>@…`): it is
-      // derived from the user id and must be free when that account is
-      // deleted, so no live account may hold one.
-      const signUpEmail = (ctx.body as { email?: unknown })?.email;
-      if (
-        isPhonePlaceholderEmail(signUpEmail) ||
-        isDeletedAccountPlaceholderEmail(signUpEmail)
-      ) {
+      if (isPhonePlaceholderEmail((ctx.body as { email?: unknown })?.email)) {
         throw new APIError("BAD_REQUEST", {
           message: "This email address cannot be used.",
         });
@@ -758,8 +749,7 @@ export const auth = betterAuth({
           user?: { isSuspended?: boolean; deactivatedAt?: Date | null };
         } | null;
 
-        // `isLockedOut` also covers a deleted account (`deactivatedAt`), whose
-        // sessions deletion already removed — this catches any that survived.
+        // `isLockedOut` also covers a deactivated account (`deactivatedAt`).
         if (returned?.user && isLockedOut(returned.user)) {
           const token = returned.session?.token;
           if (token) {

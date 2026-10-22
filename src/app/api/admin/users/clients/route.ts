@@ -54,8 +54,8 @@ export type AdminClientRow = {
   suspendedAt: string | null;
   suspendedReason: string | null;
   /**
-   * When the client deleted their own account (`User.deactivatedAt`), or null.
-   * A deleted row is already anonymised — name, email and phone above are the
+   * When the account was closed (`User.deactivatedAt`), or null. A closed row
+   * was anonymised when it was closed — name, email and phone above are
    * placeholders — and suspension no longer means anything for it.
    */
   deactivatedAt: string | null;

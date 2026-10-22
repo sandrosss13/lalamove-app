@@ -7,8 +7,6 @@ import { localeHref } from "@/i18n/server";
 import { auth } from "@/lib/auth";
 import { DATA_SCREEN_WIDTH_CLASSES } from "@/lib/layout";
 import { prisma } from "@/lib/prisma";
-import { getAccountDeletionRefusal } from "@/lib/account-deletion/server";
-import { AccountDeleteCard } from "@/components/account-delete-card";
 import { AccountMarketingConsentCard } from "@/components/account-marketing-consent-card";
 import { AccountPasswordCard } from "@/components/account-password-card";
 import { AccountSidebar } from "@/components/account-sidebar";
@@ -25,7 +23,8 @@ const PANEL_LABEL_CLASSES =
 
 /**
  * The client's account settings screen: a nav rail beside the settings this
- * client can actually change — their profile, and their password.
+ * client can actually change — their profile, their marketing-offers choice
+ * and their password.
  *
  * Not an order list. Orders live on `/orders`, one click away from both the
  * rail here and the global header's own client nav, so duplicating the whole
@@ -69,14 +68,9 @@ export default async function AccountPage() {
     redirect(await localeHref("/dashboard"));
   }
 
-  const [clientProfile, deletionRefusal] = await Promise.all([
-    prisma.clientProfile.findUnique({
-      where: { userId: session.user.id },
-    }),
-    // Read up front so the delete card can explain a refusal (an order still
-    // in progress) before the client goes through its confirmation.
-    getAccountDeletionRefusal(session.user.id),
-  ]);
+  const clientProfile = await prisma.clientProfile.findUnique({
+    where: { userId: session.user.id },
+  });
 
   // Defensive: sign-up always creates a profile, but an account without one is
   // still editable — default to an empty individual profile.
@@ -140,10 +134,6 @@ export default async function AccountPage() {
           ) : null}
 
           <AccountPasswordCard />
-
-          {/* Last on the page, below everything the client can change: the
-              one action here that cannot be taken back. */}
-          <AccountDeleteCard refusal={deletionRefusal} />
         </div>
       </div>
     </main>

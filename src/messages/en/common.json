@@ -71,8 +71,6 @@
     "switchTo": "Switch to {language}"
   },
   "marketingConsent": {
-    "agree": "Agree",
-    "disagree": "Disagree",
     "statement": "I agree to receive personalized marketing offers. For more information, please see: <policy>Marketing Privacy Policy</policy>."
   },
   "notFound": {

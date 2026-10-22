@@ -299,8 +299,8 @@ export async function GET(request: Request): Promise<NextResponse> {
  * Only CLIENT users may call this. The write is an upsert keyed on the user id
  * so retries and re-submits are idempotent rather than an error.
  *
- * An optional boolean `marketingConsent` is the sign-up form's Agree / Disagree
- * answer. Only that form sends it, so it is recorded with source `SIGN_UP` —
+ * An optional boolean `marketingConsent` is the sign-up form's marketing-offers
+ * switch. Only that form sends it, so it is recorded with source `SIGN_UP` —
  * on the profile and as a `MarketingConsentEvent` — when the profile is
  * created, or on a re-submit that changes it. Absent, the stored answer is left
  * alone (the `/account` and driver-hub profile forms never send it; the
