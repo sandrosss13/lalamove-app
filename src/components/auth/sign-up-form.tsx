@@ -19,6 +19,26 @@ import {
   useAccountTypeLabels,
 } from "@/components/auth/auth-primitives";
 import { AuthShell } from "@/components/auth/auth-shell";
+import {
+  defaultAuthMethod,
+  parseAuthMethod,
+  type AuthMethod,
+  type PhoneAuthFailure,
+  type PhoneAuthRecovery,
+} from "@/components/auth/phone-auth-flow";
+import {
+  ChooseMethodHint,
+  PhoneCodeStep,
+  useResendCooldown,
+} from "@/components/auth/phone-code-step";
+import {
+  sendPhoneCode,
+  verifyPhoneCode,
+} from "@/components/auth/phone-otp-client";
+import {
+  fetchOwnProfile,
+  readSessionRole,
+} from "@/components/auth/portal-check";
 import { RoleStep } from "@/components/auth/role-step";
 import { SignUpSuccess } from "@/components/auth/sign-up-success";
 import { Button } from "@/components/ui/button";
@@ -33,7 +53,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { signUp } from "@/lib/auth-client";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { authClient, signOut, signUp } from "@/lib/auth-client";
 import {
   accountTypeParam,
   isValidEmail,
@@ -60,6 +81,7 @@ import {
 } from "@/lib/goods-param-threading";
 import type { GoodsShortcutCode } from "@/lib/goods-shortcuts";
 import { merchantOrigin, type Audience } from "@/lib/host";
+import { normalizePhoneNumber } from "@/lib/phone-number";
 import { cn } from "@/lib/utils";
 
 /**
@@ -177,6 +199,16 @@ type SignUpFieldKey =
 
 type FieldErrors = Partial<Record<SignUpFieldKey, string>>;
 
+/**
+ * The link a form-level alert offers alongside its message: the phone
+ * refusals' own recoveries, plus `signIn` for a verified number that already
+ * has an account (see `handleVerify`).
+ */
+type FormRecovery = PhoneAuthRecovery | "signIn";
+
+/** The phone path's two screens: the details form, then the code. */
+type PhoneStage = "details" | "code";
+
 /** The raw field values, exactly as typed. */
 type SignUpValues = {
   firstName: string;
@@ -202,6 +234,11 @@ type SignUpValues = {
  * Client-side validation is a courtesy, never the authority: `src/lib/auth.ts`
  * and the three profile routes enforce their own requirements, and anything
  * that gets past this still fails there and surfaces through `FormAlert`.
+ *
+ * `method` changes exactly two rules. The phone path has no password, and its
+ * email is optional — checked for shape only when something was typed, and
+ * never verified. Everything else (identity, phone, city, terms) is the same
+ * on both paths, because both end in the same profile write.
  */
 /**
  * A `next-intl` translator, narrowed to what `validateSignUp` needs. Passed in
@@ -212,6 +249,7 @@ type Translate = (key: string, values?: Record<string, number>) => string;
 function validateSignUp(
   role: FlowRole,
   accountType: AccountType,
+  method: AuthMethod,
   values: SignUpValues,
   /** Bound to `auth.signUpForm`. */
   t: Translate,
@@ -253,11 +291,15 @@ function validateSignUp(
     errors.phone = t("enterPhoneDigits");
   }
 
-  if (!isValidEmail(values.email)) {
+  const emailOptional = method === "phone";
+  if (
+    !(emailOptional && values.email.trim().length === 0) &&
+    !isValidEmail(values.email)
+  ) {
     errors.email = tSignIn("enterAValidEmailAddress");
   }
 
-  if (values.password.length < MIN_PASSWORD_LENGTH) {
+  if (method === "email" && values.password.length < MIN_PASSWORD_LENGTH) {
     errors.password = t("useAtLeastCharacters", {
       min: MIN_PASSWORD_LENGTH,
     });
@@ -411,6 +453,7 @@ export function SignUpForm({
   goods,
 }: SignUpFormProps) {
   const t = useTranslations("auth.signUpForm");
+  const tPhone = useTranslations("auth.phoneAuth");
   const tShared = useTranslations("common.shared");
   const tSignIn = useTranslations("auth.signInForm");
   const roleLabels = useRoleLabels();
@@ -439,7 +482,39 @@ export function SignUpForm({
   const [fieldErrors, setFieldErrors] = React.useState<FieldErrors>({});
   /** Server- and API-level failures. Rendered as the alert above the fields. */
   const [formError, setFormError] = React.useState<string | null>(null);
+  /** The link shown inside the form-level alert, if any. */
+  const [formRecovery, setFormRecovery] = React.useState<FormRecovery>("none");
   const [loading, setLoading] = React.useState(false);
+
+  const [phoneStage, setPhoneStage] = React.useState<PhoneStage>("details");
+  /** The E.164 number the current code was sent to. */
+  const [sentPhone, setSentPhone] = React.useState("");
+  const [code, setCode] = React.useState("");
+  const [codeError, setCodeError] = React.useState<string | null>(null);
+  const [resending, setResending] = React.useState(false);
+  const cooldown = useResendCooldown();
+
+  /*
+   * Phone | Email. Opens on the account type's default (`defaultAuthMethod`),
+   * which is `null` — nothing picked, no fields — for an individual client.
+   * Re-derived when the type changes: stepping back to step 2 and picking
+   * another type keeps this component mounted, so a `useState` initialiser
+   * alone would keep the first type's default. Adjusted during render, the
+   * same "adjust state when a prop changes" pattern the sign-in form uses.
+   */
+  const defaultMethod =
+    role !== null && accountType !== null
+      ? defaultAuthMethod(role, accountType)
+      : null;
+  const [method, setMethod] = React.useState<AuthMethod | null>(defaultMethod);
+  const methodKey = `${role ?? ""}:${accountType ?? ""}`;
+  const [renderedMethodKey, setRenderedMethodKey] = React.useState(methodKey);
+  if (methodKey !== renderedMethodKey) {
+    setRenderedMethodKey(methodKey);
+    setMethod(defaultMethod);
+    setPhoneStage("details");
+    setFormError(null);
+  }
   /**
    * Set once the account and its profile row both exist. Holds the picks and
    * the destination rather than reading them back from props, because the
@@ -462,18 +537,54 @@ export function SignUpForm({
     });
   }
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    // The form only renders in step 3, which every role reaches by way of
-    // steps 1 and 2, so both `role` and `accountType` are always set here.
-    // These guards narrow the nullable props and are a defensive no-op in
-    // practice.
-    if (!role) return;
-    if (!accountType) return;
+  /** Sets the form-level alert, with its recovery link (none by default). */
+  function showFormError(message: string, recovery: FormRecovery = "none") {
+    setFormError(message);
+    setFormRecovery(recovery);
+  }
 
+  /**
+   * The role actually written to `User.role`. The Driver card plus the
+   * Business account type is a logistics company, not a driver. No audience
+   * branch is needed: the client host renders its Driver card as a
+   * cross-origin link rather than a role it can create, so this combination is
+   * only reachable on the merchant host and on "BOTH", where COMPANY is
+   * legitimate. `src/lib/auth.ts`'s `before` hook is the server-side backstop
+   * either way.
+   */
+  function resolveSignUpRole(
+    pickedRole: FlowRole,
+    pickedType: AccountType,
+  ): SignUpRole {
+    return pickedRole === "DRIVER" && pickedType === "BUSINESS"
+      ? "COMPANY"
+      : pickedRole;
+  }
+
+  /**
+   * Better Auth requires a `name`, but the form never shows a bare name field
+   * — the identity fields are identical across roles, so the name is derived
+   * uniformly: the company name for a business account, the full name
+   * otherwise. Both paths use it: email sign-up sends it with the account, the
+   * phone path writes it afterwards (a phone account is born named after its
+   * number).
+   */
+  function resolveDisplayName(pickedType: AccountType): string {
+    return pickedType === "BUSINESS"
+      ? companyName
+      : `${firstName} ${lastName}`.trim();
+  }
+
+  /** Runs `validateSignUp` and shows the result. True when the form is clean. */
+  function validate(
+    pickedRole: FlowRole,
+    pickedType: AccountType,
+    pickedMethod: AuthMethod,
+  ): boolean {
     const nextErrors = validateSignUp(
-      role,
-      accountType,
+      pickedRole,
+      pickedType,
+      pickedMethod,
       {
         firstName,
         lastName,
@@ -491,180 +602,133 @@ export function SignUpForm({
     );
 
     setFieldErrors(nextErrors);
-
-    if (Object.keys(nextErrors).length > 0) {
-      // Each message is already rendered against its own field and reachable
-      // through that field's `aria-describedby`, so the form-level alert is
-      // cleared rather than restating them in a second place.
-      setFormError(null);
-      return;
-    }
-
+    // Each message is already rendered against its own field and reachable
+    // through that field's `aria-describedby`, so the form-level alert is
+    // cleared rather than restating them in a second place.
     setFormError(null);
-    setLoading(true);
 
-    // Better Auth requires a `name`, but the form never shows a bare name
-    // field — the identity fields are now identical across roles, so we derive
-    // the name uniformly: the company name for a business account, the full
-    // name otherwise.
-    const resolvedName =
-      accountType === "BUSINESS"
-        ? companyName
-        : `${firstName} ${lastName}`.trim();
+    return Object.keys(nextErrors).length === 0;
+  }
 
-    // The Driver card plus the Business account type is a logistics company,
-    // not a driver. No audience branch is needed: the client host renders its
-    // Driver card as a cross-origin link rather than a role it can create, so
-    // this combination is only reachable on the merchant host and on "BOTH",
-    // where COMPANY is legitimate. `src/lib/auth.ts`'s `before` hook is the
-    // server-side backstop either way.
-    const isCompanySignUp = role === "DRIVER" && accountType === "BUSINESS";
-    const resolvedRole: SignUpRole = isCompanySignUp ? "COMPANY" : role;
+  /**
+   * The follow-up profile write both paths make once the account and its
+   * session exist. Returns the message to show on failure, or `null`.
+   *
+   * `profilePhone` is the number as typed on the email path (unverified, as
+   * it always was) and the verified E.164 number on the phone path — the one
+   * the code was actually sent to.
+   *
+   * A company creates a LogisticsCompany row instead of a DriverProfile — the
+   * two are mutually exclusive. Each body is exactly the fields the route
+   * requires: the six fields step 1 of the onboarding wizard collects are
+   * optional on that endpoint and are deliberately not sent from here — a
+   * registration form that demanded an IBAN before the account existed would
+   * be a worse funnel, and the upsert is keyed on the user id, so the wizard
+   * fills them in later on the very same row.
+   *
+   * On failure the account exists by now, so the server's own message is
+   * surfaced and the form stays put rather than navigating away as if
+   * everything succeeded. A duplicate phone arrives as a 409 whose message is
+   * the useful one, so it is rendered verbatim from `payload.error` rather
+   * than restated as a constant here.
+   */
+  async function saveProfile(
+    pickedRole: FlowRole,
+    pickedType: AccountType,
+    profilePhone: string,
+  ): Promise<string | null> {
+    let endpoint: string;
+    let body: Record<string, unknown>;
+    let fallback: string;
 
-    const { error: signUpError } = await signUp.email({
-      name: resolvedName,
-      email,
-      password,
-      role: resolvedRole,
-    });
-
-    if (signUpError) {
-      setLoading(false);
-      setFormError(
-        signUpError.message ?? tShared("somethingWentWrongPleaseTryAgain"),
-      );
-      return;
+    if (resolveSignUpRole(pickedRole, pickedType) === "COMPANY") {
+      endpoint = "/api/logistics-company";
+      body = { companyName, vatId, phone: profilePhone, city };
+      fallback = t("couldNotSaveCompany");
+    } else if (pickedRole === "DRIVER") {
+      // Only Individual and Individual Entrepreneur reach here: DRIVER +
+      // BUSINESS is a company (above) on every audience, so this branch never
+      // sees a BUSINESS account type and sends no company-shaped body.
+      endpoint = "/api/driver-profile";
+      body = {
+        accountType: pickedType,
+        firstName,
+        lastName,
+        phone: profilePhone,
+        city,
+      };
+      fallback = t("couldNotSaveDriver");
+    } else {
+      // Clients send only the fields relevant to the chosen account type.
+      endpoint = "/api/client-profile";
+      body =
+        pickedType === "BUSINESS"
+          ? {
+              accountType: pickedType,
+              companyName,
+              vatId,
+              legalAddress,
+              phone: profilePhone,
+              marketingConsent,
+            }
+          : {
+              accountType: pickedType,
+              firstName,
+              lastName,
+              phone: profilePhone,
+              marketingConsent,
+            };
+      fallback = t("couldNotSaveAccount");
     }
 
-    // Better Auth has created the account and a session by this point. A
-    // company creates a LogisticsCompany row instead of a DriverProfile — the
-    // two are mutually exclusive, hence the `else if` below.
-    //
-    // The body is exactly the four fields the route requires. The six fields
-    // step 1 of the onboarding wizard collects are optional on this endpoint
-    // and are deliberately not sent from here: a registration form that
-    // demanded an IBAN before the account existed would be a worse funnel, and
-    // the upsert is keyed on the user id, so the wizard fills them in later on
-    // the very same row.
-    //
-    // Same failure handling as the two branches below: the account exists by
-    // now, so surface the server's own message and stay put rather than
-    // navigating away as if everything succeeded. A duplicate phone arrives as
-    // a 409 whose message is the useful one, so it is rendered verbatim from
-    // `payload.error` rather than restated as a constant here.
-    if (isCompanySignUp) {
-      const response = await fetch("/api/logistics-company", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ companyName, vatId, phone, city }),
-      });
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }).catch(() => null);
 
-      if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as {
-          error?: string;
-        } | null;
-        setFormError(payload?.error ?? t("couldNotSaveCompany"));
-        setLoading(false);
-        return;
-      }
-    } else if (role === "DRIVER") {
-      // Drivers must additionally create a DriverProfile with their identity
-      // details and city.
-      //
-      // Only Individual and Individual Entrepreneur reach here: `isCompanySignUp`
-      // above captures DRIVER + BUSINESS on every audience and routes it to a
-      // COMPANY account with a `LogisticsCompany` instead, so this branch never
-      // sees a BUSINESS account type. The company-shaped body this used to send
-      // (`companyName`/`vatId`) would therefore be dead code, and is gone.
-      const response = await fetch("/api/driver-profile", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          accountType,
-          firstName,
-          lastName,
-          phone,
-          city,
-        }),
-      });
-
-      if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as {
-          error?: string;
-        } | null;
-        setFormError(payload?.error ?? t("couldNotSaveDriver"));
-        setLoading(false);
-        return;
-      }
+    if (response?.ok) {
+      return null;
     }
 
-    // Clients likewise get a follow-up ClientProfile with their account-type
-    // details. Same failure handling as drivers: the account already exists,
-    // so we surface the error and stay put rather than navigating away. Only
-    // the fields relevant to the chosen account type are sent.
-    if (role === "CLIENT") {
-      const response = await fetch("/api/client-profile", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(
-          accountType === "BUSINESS"
-            ? {
-                accountType,
-                companyName,
-                vatId,
-                legalAddress,
-                phone,
-                marketingConsent,
-              }
-            : { accountType, firstName, lastName, phone, marketingConsent },
-        ),
-      });
+    const payload = (await response?.json().catch(() => null)) as {
+      error?: string;
+    } | null;
+    return payload?.error ?? fallback;
+  }
 
-      if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as {
-          error?: string;
-        } | null;
-        setFormError(payload?.error ?? t("couldNotSaveAccount"));
-        setLoading(false);
-        return;
-      }
-    }
+  /**
+   * Hands over to screen 8 once the account and its profile both exist.
+   *
+   * `/` is the client landing page, and neither provider role has anything
+   * there: a new driver and a new company both land on `/dashboard` whatever
+   * the audience. Sending a driver to `/` first was what made `/` flash a
+   * dead-end "you're signed in as a driver" screen before bouncing them on,
+   * and on the merchant host — which doesn't serve `/` at all — it bounced
+   * them straight off the host they had just signed up on. Only a new client
+   * still goes to `/`.
+   *
+   * `/dashboard` is the end of this form's responsibility. Deciding where a
+   * COMPANY session goes from there — the onboarding wizard, the application
+   * status screen or the ops dashboard — needs the application row, which
+   * this form has not read, so no onboarding path is pushed here and no
+   * second redirect is chained.
+   *
+   * The navigation itself (`router.push` then `router.refresh`) happens in
+   * `SignUpSuccess`, once its progress bar has run.
+   *
+   * A new client with a landing-page goods shortcut lands on `/?goods=<code>`
+   * so the booking form opens on it; `postAuthDestination` only ever decorates
+   * `/`, and only with a validated code, so `SignUpSuccess` needs no knowledge
+   * of the shortcut and still pushes a destination this form chose.
+   */
+  function finish(pickedRole: FlowRole, pickedType: AccountType) {
+    const resolvedRole = resolveSignUpRole(pickedRole, pickedType);
 
     setLoading(false);
-
-    // TODO: phone verification slots in here, between the profile write and the
-    // success screen — the number is collected above and the handoff draws an
-    // OTP screen for it (section 4), but `src/lib/auth.ts` configures only
-    // `emailAndPassword` with no `phoneNumber` / `emailOTP` plugin, so there is
-    // no endpoint to send or check a code against. Until one exists, sending
-    // the user to an OTP screen the way the prototype does would be a dead end,
-    // so the flow completes here.
-
-    // `/` is the client landing page, and neither provider role has anything
-    // there: a new driver and a new company both land on `/dashboard` whatever
-    // the audience. Sending a driver to `/` first was what made `/` flash a
-    // dead-end "you're signed in as a driver" screen before bouncing them on,
-    // and on the merchant host — which doesn't serve `/` at all — it bounced
-    // them straight off the host they had just signed up on. Only a new client
-    // still goes to `/`.
-    //
-    // `/dashboard` is the end of this form's responsibility. Deciding where a
-    // COMPANY session goes from there — the onboarding wizard, the application
-    // status screen or the ops dashboard — needs the application row, which
-    // this form has not read, so no onboarding path is pushed here and no
-    // second redirect is chained.
-    //
-    // The navigation itself (`router.push` then `router.refresh`) now happens
-    // in `SignUpSuccess`, once its progress bar has run — same destination,
-    // same pair of calls, just after the beat screen 8 asks for.
-    //
-    // A new client with a landing-page goods shortcut lands on `/?goods=<code>`
-    // so the booking form opens on it; `postAuthDestination` only ever decorates
-    // `/`, and only with a validated code, so `SignUpSuccess` needs no
-    // knowledge of the shortcut and still pushes a destination this form chose.
     setCreated({
-      role,
-      accountType,
+      role: pickedRole,
+      accountType: pickedType,
       destination: postAuthDestination(
         resolvedRole === "DRIVER" || resolvedRole === "COMPANY"
           ? "/dashboard"
@@ -674,6 +738,223 @@ export function SignUpForm({
         goods,
       ),
     });
+  }
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    // The form only renders in step 3, which every role reaches by way of
+    // steps 1 and 2, so both `role` and `accountType` are always set here —
+    // and only once a method is picked. These guards narrow the nullable
+    // values and are a defensive no-op in practice.
+    if (!role) return;
+    if (!accountType) return;
+    if (!method) return;
+
+    if (!validate(role, accountType, method)) return;
+
+    if (method === "phone") {
+      await sendCode(role, accountType);
+      return;
+    }
+
+    setLoading(true);
+
+    const { error: signUpError } = await signUp.email({
+      name: resolveDisplayName(accountType),
+      email,
+      password,
+      role: resolveSignUpRole(role, accountType),
+    });
+
+    if (signUpError) {
+      setLoading(false);
+      showFormError(
+        signUpError.message ?? tShared("somethingWentWrongPleaseTryAgain"),
+      );
+      return;
+    }
+
+    // Better Auth has created the account and a session by this point.
+    const profileError = await saveProfile(role, accountType, phone);
+    if (profileError !== null) {
+      setLoading(false);
+      showFormError(profileError);
+      return;
+    }
+
+    finish(role, accountType);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* The phone path                                                     */
+  /* ------------------------------------------------------------------ */
+
+  /**
+   * Routes a phone refusal to where it belongs: under the number or the
+   * email (and back to the details screen, where those fields are), under
+   * the code, or in the form-level alert with its recovery link. A spent
+   * code is cleared so the input is ready for the next one.
+   */
+  function showPhoneFailure(failure: PhoneAuthFailure) {
+    const message = tPhone(failure.messageKey);
+
+    if (failure.recovery === "resend") {
+      setCode("");
+    }
+
+    if (failure.target === "phone" || failure.target === "email") {
+      setPhoneStage("details");
+      setFieldErrors((previous) => ({
+        ...previous,
+        [failure.target]: message,
+      }));
+    } else if (failure.target === "code") {
+      setCodeError(message);
+    } else {
+      showFormError(message, failure.recovery);
+    }
+  }
+
+  /**
+   * The phone path's submit: the number (already shape-checked by
+   * `validateSignUp`) is normalised to E.164 and a code is sent.
+   *
+   * The optional email rides along on the send, not only on the verify, so
+   * the server can refuse a malformed or taken address *before* an SMS is
+   * paid for. The role header is the role the account will be created with.
+   */
+  async function sendCode(pickedRole: FlowRole, pickedType: AccountType) {
+    // Nine digits that are not a Georgian *mobile* number (a landline, say)
+    // pass the shape check but cannot receive an SMS.
+    const phoneNumber = normalizePhoneNumber(phoneDigits(phone));
+    if (phoneNumber === null) {
+      setFieldErrors((previous) => ({
+        ...previous,
+        phone: tPhone("errorInvalidPhone"),
+      }));
+      return;
+    }
+
+    setLoading(true);
+    const result = await sendPhoneCode(
+      phoneNumber,
+      resolveSignUpRole(pickedRole, pickedType),
+      email,
+    );
+    setLoading(false);
+
+    if (!result.ok) {
+      showPhoneFailure(result);
+      return;
+    }
+
+    setSentPhone(phoneNumber);
+    setCode("");
+    setCodeError(null);
+    setPhoneStage("code");
+    cooldown.start();
+  }
+
+  /** "Resend code", once the cooldown allows it. Same number, same headers. */
+  async function handleResend() {
+    if (!role || !accountType) return;
+
+    setFormError(null);
+    setCodeError(null);
+    setResending(true);
+    const result = await sendPhoneCode(
+      sentPhone,
+      resolveSignUpRole(role, accountType),
+      email,
+    );
+    setResending(false);
+
+    if (!result.ok) {
+      showPhoneFailure(result);
+      return;
+    }
+
+    setCode("");
+    cooldown.start();
+  }
+
+  /**
+   * Verify with the sign-up intent, then finish the account the way the
+   * email path does.
+   *
+   * 1. The verify creates the user — with the role and the optional email
+   *    from the headers, named after its number — and signs it in. It creates
+   *    no profile row.
+   * 2. A number that *already* has an account is simply signed in to it by
+   *    the server, whatever the intent. That is not a registration, and
+   *    writing this form's details over that account's profile would be
+   *    worse than refusing, so: a session of another role, or one whose
+   *    profile row already exists, is signed back out and pointed at sign-in.
+   *    An account with no profile yet (a registration interrupted after this
+   *    very step) carries on and is completed — the recovery the email path
+   *    has no equivalent for. If the profile cannot be read at all, the
+   *    upsert below proceeds, as the email path would.
+   * 3. The same profile write the email path makes, with the verified number.
+   * 4. The real display name, through Better Auth's `update-user` (which
+   *    accepts `name`; `role` and the phone columns are refused there). A
+   *    failure here is not worth stranding a finished account over — the
+   *    name is cosmetic and editable later — so it does not block.
+   */
+  async function handleVerify(enteredCode: string) {
+    if (!role || !accountType) return;
+    const resolvedRole = resolveSignUpRole(role, accountType);
+
+    setFormError(null);
+    setCodeError(null);
+    setLoading(true);
+
+    const result = await verifyPhoneCode(
+      sentPhone,
+      enteredCode,
+      "sign-up",
+      resolvedRole,
+      email,
+    );
+
+    if (!result.ok) {
+      setLoading(false);
+      showPhoneFailure(result);
+      return;
+    }
+
+    const sessionRole = await readSessionRole();
+    const existingProfile =
+      sessionRole === resolvedRole
+        ? await fetchOwnProfile(resolvedRole)
+        : undefined;
+
+    if (
+      (sessionRole !== undefined && sessionRole !== resolvedRole) ||
+      (existingProfile !== null && existingProfile !== undefined)
+    ) {
+      await signOut();
+      setLoading(false);
+      setPhoneStage("details");
+      setCode("");
+      showFormError(tPhone("numberAlreadyRegistered"), "signIn");
+      return;
+    }
+
+    const profileError = await saveProfile(role, accountType, sentPhone);
+    if (profileError !== null) {
+      // The account exists and is signed in; the code screen has nothing left
+      // to offer, so the alert goes back over the details where the fix is.
+      setLoading(false);
+      setPhoneStage("details");
+      showFormError(profileError);
+      return;
+    }
+
+    await authClient
+      .updateUser({ name: resolveDisplayName(accountType) })
+      .catch(() => null);
+
+    finish(role, accountType);
   }
 
   /* ------------------------------------------------------------------ */
@@ -782,6 +1063,36 @@ export function SignUpForm({
   const passwordId = `${fieldId}-password`;
   const cityId = `${fieldId}-city`;
   const termsId = `${fieldId}-terms`;
+  const methodHintId = `${fieldId}-method-hint`;
+  const isPhone = method === "phone";
+
+  // The form-level alert, shared by the details form and the code screen. Its
+  // recovery link sits inside it, so "this number is already registered" and
+  // "sign in" are read as one thing.
+  const alert = formError ? (
+    <FormAlert title={formError}>
+      {formRecovery === "signIn" ? (
+        <InlineLinkButton
+          href={flowHref(MODE_PATHS.signin, role, accountType, goods)}
+        >
+          {tShared("signIn")}
+        </InlineLinkButton>
+      ) : formRecovery === "signUp" ? (
+        <InlineLinkButton
+          href={flowHref(MODE_PATHS.signup, role, accountType, goods)}
+        >
+          {tShared("createAccount")}
+        </InlineLinkButton>
+      ) : formRecovery === "driverSite" ? (
+        // Drivers and companies are created on the merchant host only; this
+        // host refused to create one. `merchantOrigin()` is only null while
+        // the split is off, in which case this host *is* that site.
+        <InlineLinkButton href={`${merchantOrigin() ?? ""}/sign-up`} external>
+          {tPhone("goToDriverSite")}
+        </InlineLinkButton>
+      ) : null}
+    </FormAlert>
+  ) : null;
 
   return (
     <AuthShell maxWidth="420" className="gap-6">
@@ -800,11 +1111,87 @@ export function SignUpForm({
         </AuthSubheading>
       </div>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        {formError ? <FormAlert title={formError} /> : null}
+      {/* Phone | Email. The design system's `Tabs`, as on sign-in, but only
+          the strip is a switch: both methods share one form (the identity,
+          city, marketing and terms fields are the same either way, and what
+          has been typed survives a switch), so there is a single panel whose
+          value is the current method. `value=""` — the individual client's
+          neutral start — selects neither trigger and renders no panel, only
+          the hint, so a method has to be picked before there is anything to
+          submit. `activationMode="manual"` keeps that true for keyboard users,
+          who would otherwise select Phone just by tabbing into the strip.
 
-        {accountType === "BUSINESS" ? (
-          /*
+          `gap-0` cancels the DS root's own 8px gap, so the 20px between the
+          strip and the panel is the `pt-5` below and nothing else. */}
+      <Tabs
+        value={method ?? ""}
+        onValueChange={(value) => {
+          const next = parseAuthMethod(value);
+          if (next === null) return;
+          setMethod(next);
+          // A code sent for the phone path is no use to the email path, and
+          // a password error is no use to the phone one.
+          setPhoneStage("details");
+          setFormError(null);
+          setFieldErrors({});
+        }}
+        activationMode="manual"
+        className="w-full gap-0"
+      >
+        <TabsList
+          className="w-full"
+          aria-describedby={method === null ? methodHintId : undefined}
+        >
+          <TabsTrigger value="phone" className="flex-1">
+            {tShared("phone")}
+          </TabsTrigger>
+          <TabsTrigger value="email" className="flex-1">
+            {tShared("email")}
+          </TabsTrigger>
+        </TabsList>
+
+        {method === null ? (
+          <ChooseMethodHint
+            id={methodHintId}
+            text={tPhone("chooseSignUpMethod")}
+          />
+        ) : (
+          <TabsContent value={method}>
+            <div className="pt-5">
+              {isPhone && phoneStage === "code" ? (
+                <PhoneCodeStep
+                  id={`${fieldId}-otp`}
+                  phoneNumber={sentPhone}
+                  code={code}
+                  onCodeChange={(next) => {
+                    setCode(next);
+                    setCodeError(null);
+                  }}
+                  codeError={codeError}
+                  alert={alert}
+                  onVerify={handleVerify}
+                  onResend={handleResend}
+                  onChangeNumber={() => {
+                    setPhoneStage("details");
+                    setCode("");
+                    setCodeError(null);
+                    setFormError(null);
+                  }}
+                  verifying={loading}
+                  resending={resending}
+                  resendSecondsLeft={cooldown.secondsLeft}
+                  submitLabel={tPhone("verifyAndCreateAccount")}
+                />
+              ) : (
+                <form
+                  onSubmit={handleSubmit}
+                  noValidate
+                  className="flex flex-col gap-4"
+                >
+                  {alert}
+
+                  {accountType === "BUSINESS" ? (
+                    /*
             The handoff never designed the business identity fields — its
             section 7 says "not designed yet, follow the same field pattern or
             ask before building". This is that fallback: the same `Label` + 44px
@@ -814,226 +1201,241 @@ export function SignUpForm({
             company name and a VAT ID, so a business account cannot be completed
             without them.
           */
-          <>
-            <TextField
-              id={companyNameId}
-              label={tShared("companyName")}
-              value={companyName}
-              onChange={(value) => {
-                setCompanyName(value);
-                clearFieldError("companyName");
-              }}
-              autoComplete="organization"
-              error={fieldErrors.companyName}
-            />
-            <TextField
-              id={vatIdId}
-              label={tShared("vatId")}
-              value={vatId}
-              onChange={(value) => {
-                setVatId(value);
-                clearFieldError("vatId");
-              }}
-              autoComplete="off"
-              error={fieldErrors.vatId}
-            />
-            {/* A client's company only: printed as the CLIENT block on its
+                    <>
+                      <TextField
+                        id={companyNameId}
+                        label={tShared("companyName")}
+                        value={companyName}
+                        onChange={(value) => {
+                          setCompanyName(value);
+                          clearFieldError("companyName");
+                        }}
+                        autoComplete="organization"
+                        error={fieldErrors.companyName}
+                      />
+                      <TextField
+                        id={vatIdId}
+                        label={tShared("vatId")}
+                        value={vatId}
+                        onChange={(value) => {
+                          setVatId(value);
+                          clearFieldError("vatId");
+                        }}
+                        autoComplete="off"
+                        error={fieldErrors.vatId}
+                      />
+                      {/* A client's company only: printed as the CLIENT block on its
                 order documents. A logistics company (DRIVER + BUSINESS) has no
                 such document, and `/api/logistics-company` no such column. */}
-            {role === "CLIENT" ? (
-              <TextField
-                id={legalAddressId}
-                label={t("legalAddress")}
-                value={legalAddress}
-                onChange={(value) => {
-                  setLegalAddress(value);
-                  clearFieldError("legalAddress");
-                }}
-                autoComplete="street-address"
-                helper={t("legalAddressHelper")}
-                error={fieldErrors.legalAddress}
-                optional
-              />
-            ) : null}
-          </>
-        ) : (
-          /* `auto-fit` with a 150px floor is what drops the pair to one column
+                      {role === "CLIENT" ? (
+                        <TextField
+                          id={legalAddressId}
+                          label={t("legalAddress")}
+                          value={legalAddress}
+                          onChange={(value) => {
+                            setLegalAddress(value);
+                            clearFieldError("legalAddress");
+                          }}
+                          autoComplete="street-address"
+                          helper={t("legalAddressHelper")}
+                          error={fieldErrors.legalAddress}
+                          optional
+                        />
+                      ) : null}
+                    </>
+                  ) : (
+                    /* `auto-fit` with a 150px floor is what drops the pair to one column
              under ~330px — no breakpoint to keep in sync with the content. */
-          <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-3">
-            <TextField
-              id={firstNameId}
-              label={tShared("firstName")}
-              value={firstName}
-              onChange={(value) => {
-                setFirstName(value);
-                clearFieldError("firstName");
-              }}
-              autoComplete="given-name"
-              error={fieldErrors.firstName}
-            />
-            <TextField
-              id={lastNameId}
-              label={tShared("surname")}
-              value={lastName}
-              onChange={(value) => {
-                setLastName(value);
-                clearFieldError("lastName");
-              }}
-              autoComplete="family-name"
-              error={fieldErrors.lastName}
-            />
-          </div>
-        )}
+                    <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-3">
+                      <TextField
+                        id={firstNameId}
+                        label={tShared("firstName")}
+                        value={firstName}
+                        onChange={(value) => {
+                          setFirstName(value);
+                          clearFieldError("firstName");
+                        }}
+                        autoComplete="given-name"
+                        error={fieldErrors.firstName}
+                      />
+                      <TextField
+                        id={lastNameId}
+                        label={tShared("surname")}
+                        value={lastName}
+                        onChange={(value) => {
+                          setLastName(value);
+                          clearFieldError("lastName");
+                        }}
+                        autoComplete="family-name"
+                        error={fieldErrors.lastName}
+                      />
+                    </div>
+                  )}
 
-        <PhoneField
-          id={phoneId}
-          value={phone}
-          onChange={(value) => {
-            setPhone(value);
-            clearFieldError("phone");
-          }}
-          helper={t("phoneHelper")}
-          error={fieldErrors.phone}
-          // `PhoneField` now maps `required` to `aria-required`, not to the HTML
-          // attribute, so this announces the obligation the way every other
-          // field on this form does without letting a browser bubble fire ahead
-          // of `validateSignUp`'s message. The validation itself is unchanged
-          // and still lives in `handleSubmit`: an empty or malformed number
-          // fails `isValidGeorgianPhone` there and blocks the submit.
-          required
-        />
+                  <PhoneField
+                    id={phoneId}
+                    value={phone}
+                    onChange={(value) => {
+                      setPhone(value);
+                      clearFieldError("phone");
+                    }}
+                    helper={
+                      isPhone ? tPhone("phoneHelperSignUp") : t("phoneHelper")
+                    }
+                    error={fieldErrors.phone}
+                    // `PhoneField` now maps `required` to `aria-required`, not to the HTML
+                    // attribute, so this announces the obligation the way every other
+                    // field on this form does without letting a browser bubble fire ahead
+                    // of `validateSignUp`'s message. The validation itself is unchanged
+                    // and still lives in `handleSubmit`: an empty or malformed number
+                    // fails `isValidGeorgianPhone` there and blocks the submit.
+                    required
+                  />
 
-        <TextField
-          id={emailId}
-          label={tShared("email")}
-          type="email"
-          value={email}
-          onChange={(value) => {
-            setEmail(value);
-            clearFieldError("email");
-          }}
-          placeholder={tShared("youCompanyGe")}
-          autoComplete="email"
-          error={fieldErrors.email}
-        />
+                  {/* Required on the email path, where it is the sign-in. Optional on the
+            phone path and never verified — no code goes to it — which the
+            label and helper both say, and `optional` drops `aria-required`. */}
+                  <TextField
+                    id={emailId}
+                    label={isPhone ? tPhone("emailOptional") : tShared("email")}
+                    helper={isPhone ? tPhone("emailOptionalHelper") : undefined}
+                    optional={isPhone}
+                    type="email"
+                    value={email}
+                    onChange={(value) => {
+                      setEmail(value);
+                      clearFieldError("email");
+                    }}
+                    placeholder={tShared("youCompanyGe")}
+                    autoComplete="email"
+                    error={fieldErrors.email}
+                  />
 
-        <TextField
-          id={passwordId}
-          label={tShared("password")}
-          type="password"
-          value={password}
-          onChange={(value) => {
-            setPassword(value);
-            clearFieldError("password");
-          }}
-          autoComplete="new-password"
-          helper={t("passwordHelper")}
-          error={fieldErrors.password}
-        >
-          <PasswordStrengthMeter strength={passwordStrength(password)} />
-        </TextField>
+                  {/* The email path only: a phone account has no password at all. */}
+                  {isPhone ? null : (
+                    <TextField
+                      id={passwordId}
+                      label={tShared("password")}
+                      type="password"
+                      value={password}
+                      onChange={(value) => {
+                        setPassword(value);
+                        clearFieldError("password");
+                      }}
+                      autoComplete="new-password"
+                      helper={t("passwordHelper")}
+                      error={fieldErrors.password}
+                    >
+                      <PasswordStrengthMeter
+                        strength={passwordStrength(password)}
+                      />
+                    </TextField>
+                  )}
 
-        {/* Drivers only, exactly as before the redesign: a `DriverProfile` and a
+                  {/* Drivers only, exactly as before the redesign: a `DriverProfile` and a
             `LogisticsCompany` both require a city, and a client is never asked
             for one. Migrated from the old native `<select>` to the DS `Select`
             the handoff specifies. */}
-        {role === "DRIVER" ? (
-          <div className="flex flex-col gap-2">
-            <Label htmlFor={cityId}>{tShared("city")}</Label>
-            <Select
-              value={city}
-              onValueChange={(value) => {
-                setCity(value);
-                clearFieldError("city");
-              }}
-            >
-              <SelectTrigger
-                id={cityId}
-                aria-required="true"
-                aria-invalid={fieldErrors.city ? true : undefined}
-                aria-describedby={describedBy(
-                  cityId,
-                  false,
-                  Boolean(fieldErrors.city),
-                )}
-                // `data-[size=default]:h-11` alongside the plain `h-11` the
-                // handoff asks for: `SelectTrigger` writes its own height as
-                // `data-[size=default]:h-8`, and an attribute selector
-                // out-specifies a bare class — without this the trigger would
-                // keep its 32px and sit a step shorter than every input above
-                // it. Same fix `drivers-add-panel.tsx` makes.
-                className={cn(
-                  "h-11 w-full text-base data-[size=default]:h-11",
-                  fieldErrors.city && ERROR_INPUT_CLASS,
-                )}
-              >
-                <SelectValue placeholder={t("selectACity")} />
-              </SelectTrigger>
-              {/* Portalled out of the shell's subtree, so it has to carry
+                  {role === "DRIVER" ? (
+                    <div className="flex flex-col gap-2">
+                      <Label htmlFor={cityId}>{tShared("city")}</Label>
+                      <Select
+                        value={city}
+                        onValueChange={(value) => {
+                          setCity(value);
+                          clearFieldError("city");
+                        }}
+                      >
+                        <SelectTrigger
+                          id={cityId}
+                          aria-required="true"
+                          aria-invalid={fieldErrors.city ? true : undefined}
+                          aria-describedby={describedBy(
+                            cityId,
+                            false,
+                            Boolean(fieldErrors.city),
+                          )}
+                          // `data-[size=default]:h-11` alongside the plain `h-11` the
+                          // handoff asks for: `SelectTrigger` writes its own height as
+                          // `data-[size=default]:h-8`, and an attribute selector
+                          // out-specifies a bare class — without this the trigger would
+                          // keep its 32px and sit a step shorter than every input above
+                          // it. Same fix `drivers-add-panel.tsx` makes.
+                          className={cn(
+                            "h-11 w-full text-base data-[size=default]:h-11",
+                            fieldErrors.city && ERROR_INPUT_CLASS,
+                          )}
+                        >
+                          <SelectValue placeholder={t("selectACity")} />
+                        </SelectTrigger>
+                        {/* Portalled out of the shell's subtree, so it has to carry
                   `data-admin-surface` itself or it renders in the site palette
                   (and, for a visitor in dark mode, in the dark one). */}
-              <SelectContent data-admin-surface="" className="max-h-72">
-                {cityOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {fieldErrors.city ? (
-              <FieldError id={errorIdFor(cityId)}>
-                {fieldErrors.city}
-              </FieldError>
-            ) : null}
-          </div>
-        ) : null}
+                        <SelectContent
+                          data-admin-surface=""
+                          className="max-h-72"
+                        >
+                          {cityOptions.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {fieldErrors.city ? (
+                        <FieldError id={errorIdFor(cityId)}>
+                          {fieldErrors.city}
+                        </FieldError>
+                      ) : null}
+                    </div>
+                  ) : null}
 
-        {/* Clients only: drivers and companies are not marketed to. Recorded
+                  {/* Clients only: drivers and companies are not marketed to. Recorded
             with the profile by `POST /api/client-profile`. The policy opens in
             a new tab so following it does not throw away the form. */}
-        {role === "CLIENT" ? (
-          <MarketingConsentChoice
-            tone="auth"
-            value={marketingConsent}
-            onChange={setMarketingConsent}
-            disabled={loading}
-            policyInNewTab
-          />
-        ) : null}
+                  {role === "CLIENT" ? (
+                    <MarketingConsentChoice
+                      tone="auth"
+                      value={marketingConsent}
+                      onChange={setMarketingConsent}
+                      disabled={loading}
+                      policyInNewTab
+                    />
+                  ) : null}
 
-        <div className="flex flex-col gap-2">
-          {/* Checkbox and label as siblings tied by `htmlFor`, the pairing the
+                  <div className="flex flex-col gap-2">
+                    {/* Checkbox and label as siblings tied by `htmlFor`, the pairing the
               rest of the app uses (`static-page-form-dialog.tsx` and friends)
               rather than nesting the control inside the `<label>`: Radix's
               checkbox is a `<button>`, and a labelable control inside its own
               label is the one arrangement where a stray second activation is
               even possible. */}
-          <div className="flex items-start gap-2.5">
-            <Checkbox
-              id={termsId}
-              checked={termsAccepted}
-              // Radix models a third, indeterminate state; this box has only
-              // two, so anything that is not literally `true` is unchecked.
-              onCheckedChange={(checked) => {
-                setTermsAccepted(checked === true);
-                clearFieldError("terms");
-              }}
-              aria-required="true"
-              aria-invalid={fieldErrors.terms ? true : undefined}
-              aria-describedby={describedBy(
-                termsId,
-                false,
-                Boolean(fieldErrors.terms),
-              )}
-              // The box is 16px against a 19.5px line, so it needs a nudge to
-              // sit on the text's first line rather than above it.
-              className="mt-0.5"
-            />
-            <Label
-              htmlFor={termsId}
-              className="text-[13px] leading-[1.5] font-normal text-[var(--landing-subtle)]"
-            >
-              {/*
+                    <div className="flex items-start gap-2.5">
+                      <Checkbox
+                        id={termsId}
+                        checked={termsAccepted}
+                        // Radix models a third, indeterminate state; this box has only
+                        // two, so anything that is not literally `true` is unchecked.
+                        onCheckedChange={(checked) => {
+                          setTermsAccepted(checked === true);
+                          clearFieldError("terms");
+                        }}
+                        aria-required="true"
+                        aria-invalid={fieldErrors.terms ? true : undefined}
+                        aria-describedby={describedBy(
+                          termsId,
+                          false,
+                          Boolean(fieldErrors.terms),
+                        )}
+                        // The box is 16px against a 19.5px line, so it needs a nudge to
+                        // sit on the text's first line rather than above it.
+                        className="mt-0.5"
+                      />
+                      <Label
+                        htmlFor={termsId}
+                        className="text-[13px] leading-[1.5] font-normal text-[var(--landing-subtle)]"
+                      >
+                        {/*
                 TODO: link these two phrases once the pages exist. The route is
                 already there — `/pages/[slug]` in `src/app/(public)` serves the
                 back office's Static Pages section — but nothing seeds a `terms`
@@ -1043,46 +1445,57 @@ export function SignUpForm({
                 keyboard focus on something that does nothing, which is the same
                 call `auth-shell.tsx` makes for its "Need help?" link.
               */}
-              <span>
-                {t.rich("iAgreeToTerms", {
-                  terms: (chunks) => (
-                    <span className="underline decoration-[var(--landing-line-strong)] underline-offset-4">
-                      {chunks}
-                    </span>
-                  ),
-                  privacy: (chunks) => (
-                    <span className="underline decoration-[var(--landing-line-strong)] underline-offset-4">
-                      {chunks}
-                    </span>
-                  ),
-                })}
-              </span>
-            </Label>
-          </div>
-          {fieldErrors.terms ? (
-            <FieldError id={errorIdFor(termsId)}>
-              {fieldErrors.terms}
-            </FieldError>
-          ) : null}
-        </div>
+                        <span>
+                          {t.rich("iAgreeToTerms", {
+                            terms: (chunks) => (
+                              <span className="underline decoration-[var(--landing-line-strong)] underline-offset-4">
+                                {chunks}
+                              </span>
+                            ),
+                            privacy: (chunks) => (
+                              <span className="underline decoration-[var(--landing-line-strong)] underline-offset-4">
+                                {chunks}
+                              </span>
+                            ),
+                          })}
+                        </span>
+                      </Label>
+                    </div>
+                    {fieldErrors.terms ? (
+                      <FieldError id={errorIdFor(termsId)}>
+                        {fieldErrors.terms}
+                      </FieldError>
+                    ) : null}
+                  </div>
 
-        <Button
-          type="submit"
-          disabled={loading}
-          className="h-11 w-full text-base"
+                  <Button
+                    type="submit"
+                    disabled={loading}
+                    className="h-11 w-full text-base"
+                  >
+                    {isPhone
+                      ? loading
+                        ? tPhone("sendingCode")
+                        : tSignIn("sendCode")
+                      : loading
+                        ? t("creatingAccount")
+                        : tShared("createAccount")}
+                  </Button>
+                </form>
+              )}
+            </div>
+          </TabsContent>
+        )}
+      </Tabs>
+
+      <p className="text-sm text-[var(--landing-muted)]">
+        {t("alreadyRegistered")}{" "}
+        <InlineLinkButton
+          href={flowHref(MODE_PATHS.signin, role, accountType, goods)}
         >
-          {loading ? t("creatingAccount") : tShared("createAccount")}
-        </Button>
-
-        <p className="text-sm text-[var(--landing-muted)]">
-          {t("alreadyRegistered")}{" "}
-          <InlineLinkButton
-            href={flowHref(MODE_PATHS.signin, role, accountType, goods)}
-          >
-            {tShared("signIn")}
-          </InlineLinkButton>
-        </p>
-      </form>
+          {tShared("signIn")}
+        </InlineLinkButton>
+      </p>
     </AuthShell>
   );
 }

@@ -92,7 +92,7 @@ export default async function AdminOrdersPage({
         serviceLevelAdjustment: true,
         overtimeFee: true,
         helperOvertimeFee: true,
-        client: { select: { name: true, email: true } },
+        client: { select: { name: true, email: true, phoneNumber: true } },
         ...ORDER_GUEST_CONTACT_SELECT,
         vehicleTypeSpec: { select: { code: true, label: true } },
         _count: { select: { photos: true } },
@@ -116,7 +116,11 @@ export default async function AdminOrdersPage({
   ): { name: string; detail: string | null } => {
     const display = orderClientDisplay(order);
     if (!display.isGuest) {
-      return { name: display.name ?? "", detail: display.email };
+      // A phone-only account has no real email: its number instead.
+      return {
+        name: display.name ?? "",
+        detail: display.email ?? display.phone,
+      };
     }
 
     return display.name

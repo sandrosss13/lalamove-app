@@ -198,7 +198,8 @@ type RosterEntry = {
   driverProfileId: string;
   /** "Nino Abashidze" — already joined server-side. There is no `fullName`. */
   name: string;
-  email: string;
+  /** `null` when the driver has no real address. */
+  email: string | null;
   phone: string;
   city: string;
   isOnline: boolean;
@@ -1398,9 +1399,9 @@ function CreateDriverForm({
         userId: body.userId,
         driverProfileId: body.driverProfileId,
         name: body.name,
-        // The roster carries the account's address, which for a driver
-        // registered without one is a placeholder nobody reads.
-        email: body.email ?? "",
+        // `null` when registered without an address, as the roster GET
+        // reports it.
+        email: body.email,
         phone: body.phone,
         city,
         isOnline: false,

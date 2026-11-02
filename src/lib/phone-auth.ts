@@ -11,6 +11,13 @@
  *   `x-phone-auth-intent` header saying which of the app's two entries the
  *   driver used. Only `sign-up` may create an account (`resolvePhoneAuthIntent`).
  *
+ * The website's phone sign-up uses the same two endpoints and adds two headers
+ * to both: `x-phone-auth-role` (the role a new account gets — `DRIVER` when
+ * absent, which is all the driver app ever relies on; `resolvePhoneAuthRole`)
+ * and the optional `x-phone-auth-email` (a real address for the new account in
+ * place of the placeholder; `resolvePhoneAuthEmail`). Neither touches an
+ * account that already exists.
+ *
  * The plugin also registers a password-based sign-in and a password reset by
  * phone. Neither has a screen, so both are refused (`BLOCKED_PHONE_PLUGIN_PATHS`).
  *
@@ -23,9 +30,12 @@
 import { APIError } from "better-auth/api";
 import type { PhoneNumberOptions } from "better-auth/plugins/phone-number";
 
-import type {
-  PhoneAuthIntent,
-  PhoneAuthIntentHeader,
+import {
+  PHONE_AUTH_EMAIL_HEADER,
+  PHONE_AUTH_ROLE_HEADER,
+  type PhoneAuthIntent,
+  type PhoneAuthIntentHeader,
+  type PhoneAuthRole,
 } from "@/lib/mobile-api/contracts";
 import { isE164PhoneNumber, normalizePhoneNumber } from "@/lib/phone-number";
 import { checkRateLimit } from "@/lib/rate-limit";
@@ -38,6 +48,10 @@ import {
   type OtpDeliveryEnvironment,
 } from "@/lib/sms/otp-delivery";
 import { getSmsSender } from "@/lib/sms/sender";
+import {
+  isPhonePlaceholderEmail,
+  PHONE_PLACEHOLDER_EMAIL_DOMAIN,
+} from "@/lib/phone-placeholder-email";
 
 export const PHONE_SEND_OTP_PATH = "/phone-number/send-otp";
 export const PHONE_VERIFY_PATH = "/phone-number/verify";
@@ -63,6 +77,8 @@ export const PHONE_AUTH_ERROR = {
   SMS_NOT_CONFIGURED: "SMS_NOT_CONFIGURED",
   INVALID_PHONE_NUMBER: "INVALID_PHONE_NUMBER",
   INVALID_REQUEST: "INVALID_REQUEST",
+  INVALID_EMAIL: "INVALID_EMAIL",
+  EMAIL_TAKEN: "EMAIL_TAKEN",
   RATE_LIMITED: "RATE_LIMITED",
   SIGN_UP_HOST_NOT_ALLOWED: "SIGN_UP_HOST_NOT_ALLOWED",
   PHONE_ACCOUNT_NOT_FOUND: "PHONE_ACCOUNT_NOT_FOUND",
@@ -153,6 +169,136 @@ export function resolvePhoneAuthIntent(
   return declared === "sign-up" ? "sign-up" : DEFAULT_PHONE_AUTH_INTENT;
 }
 
+/* ------------------------------------------------------------------------- */
+/* Sign-up details: the new account's role and email                         */
+/* ------------------------------------------------------------------------- */
+
+/**
+ * The two sign-up headers, re-exported from the contract (where the website's
+ * forms import them from) so server code has one place to read them.
+ */
+export { PHONE_AUTH_EMAIL_HEADER, PHONE_AUTH_ROLE_HEADER };
+
+/**
+ * The role an account created without an `x-phone-auth-role` header gets. The
+ * native driver app predates the header and sends none; it must keep creating
+ * driver accounts exactly as before.
+ */
+export const DEFAULT_PHONE_AUTH_ROLE: PhoneAuthRole = "DRIVER";
+
+/**
+ * Every role a phone sign-up may ask for. `ADMIN` is deliberately absent: a
+ * back-office account is only ever created by trusted server code, and since
+ * this list is the whole of what `resolvePhoneAuthRole` can return, no header
+ * value can reach user creation as `ADMIN`.
+ */
+const PHONE_AUTH_ROLES: readonly PhoneAuthRole[] = [
+  "CLIENT",
+  "DRIVER",
+  "COMPANY",
+];
+
+function isPhoneAuthRole(value: string): value is PhoneAuthRole {
+  return (PHONE_AUTH_ROLES as readonly string[]).includes(value);
+}
+
+/**
+ * The role a new phone account would get, from `x-phone-auth-role`.
+ *
+ * Unlike the intent, an unrecognised value is refused (400 `INVALID_REQUEST`)
+ * rather than defaulted. Defaulting is safe for the intent because its default
+ * creates nothing; here the default *is* a role, and silently turning a typo'd
+ * `COMPNAY` (or a probing `ADMIN`) into a driver account would hand the person
+ * the wrong kind of account. Exact case only, for the same reason — the
+ * values are the `UserRole` enum's own spelling. Only a header that is absent
+ * altogether falls back to `DRIVER`; an empty one is a malformed request.
+ *
+ * It is checked on every send and verify, including for a number that already
+ * has an account (where the role is then not used), so a client bug shows up
+ * the same way whichever number it is tried with.
+ */
+export function resolvePhoneAuthRole(
+  headers: Headers | null | undefined,
+): PhoneAuthRole {
+  const declared = headers?.get(PHONE_AUTH_ROLE_HEADER) ?? null;
+
+  if (declared === null) {
+    return DEFAULT_PHONE_AUTH_ROLE;
+  }
+
+  if (!isPhoneAuthRole(declared)) {
+    throw new APIError("BAD_REQUEST", {
+      message: `${PHONE_AUTH_ROLE_HEADER} must be one of: ${PHONE_AUTH_ROLES.join(", ")}.`,
+      code: PHONE_AUTH_ERROR.INVALID_REQUEST,
+    });
+  }
+
+  return declared;
+}
+
+/** RFC 5321's limit on a forward path, which is what an address must fit in. */
+const MAX_EMAIL_LENGTH = 254;
+
+/**
+ * A deliberately plain shape check — something, `@`, a domain with a dot, no
+ * whitespace — matching what a browser's `type="email"` input lets through
+ * closely enough. Nothing is ever sent to the address here (it is stored
+ * unverified), so the check only has to stop obvious mistakes, not prove
+ * deliverability.
+ */
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function invalidEmail(): APIError {
+  return new APIError("BAD_REQUEST", {
+    message: "Enter a valid email address.",
+    code: PHONE_AUTH_ERROR.INVALID_EMAIL,
+  });
+}
+
+/**
+ * The real email address a new phone account should carry, from
+ * `x-phone-auth-email`, trimmed and lowercased — or `null` when the header is
+ * absent or blank, in which case the account gets its placeholder as before.
+ *
+ * Refused (400 `INVALID_EMAIL`): anything that is not a plausible address,
+ * anything over 254 characters, and any address on the placeholder domain —
+ * the same reason email sign-up refuses those: a number's placeholder must
+ * stay free for that number's own account.
+ *
+ * Whether the address is already taken needs the database, so it is checked by
+ * the caller (`src/lib/auth.ts`), not here.
+ */
+export function resolvePhoneAuthEmail(
+  headers: Headers | null | undefined,
+): string | null {
+  const email = headers?.get(PHONE_AUTH_EMAIL_HEADER)?.trim().toLowerCase();
+
+  if (!email) {
+    return null;
+  }
+
+  if (
+    email.length > MAX_EMAIL_LENGTH ||
+    !EMAIL_PATTERN.test(email) ||
+    isPhonePlaceholderEmail(email)
+  ) {
+    throw invalidEmail();
+  }
+
+  return email;
+}
+
+/**
+ * The refusal for an `x-phone-auth-email` address another account already has.
+ * A 409 rather than a 400: the request is well-formed, it just collides.
+ */
+export function phoneAuthEmailTaken(): APIError {
+  return new APIError("CONFLICT", {
+    message: "An account with this email address already exists.",
+    code: PHONE_AUTH_ERROR.EMAIL_TAKEN,
+  });
+}
+
 /** English text of the refusal below; the localised one is keyed in `auth.auth`. */
 export const PHONE_ACCOUNT_NOT_FOUND_MESSAGE =
   "No account is registered with this mobile number. Sign up to create one.";
@@ -183,23 +329,20 @@ const OTP_ALLOWED_ATTEMPTS = 3;
  * The domain of the placeholder address a phone account is created with.
  *
  * Better Auth requires every user to have a unique email and the driver app
- * collects none, so one is derived from the number. `.invalid` is reserved by
+ * collects none, so one is derived from the number (unless the sign-up sent a
+ * real one in `x-phone-auth-email`). `.invalid` is reserved by
  * RFC 2606 and can never resolve, which guarantees nothing is ever delivered to
  * it. Email sign-up refuses addresses on this domain (see `src/lib/auth.ts`) so
  * nobody can pre-register a number's placeholder and block its owner.
  */
-export const PHONE_PLACEHOLDER_EMAIL_DOMAIN = "phone.driver-app.invalid";
+export {
+  isPhonePlaceholderEmail,
+  PHONE_PLACEHOLDER_EMAIL_DOMAIN,
+} from "@/lib/phone-placeholder-email";
 
 /** `+995555123456` → `995555123456@phone.driver-app.invalid`. */
 export function placeholderEmailForPhone(phoneNumber: string): string {
   return `${phoneNumber.replace(/^\+/, "")}@${PHONE_PLACEHOLDER_EMAIL_DOMAIN}`;
-}
-
-export function isPhonePlaceholderEmail(email: unknown): boolean {
-  return (
-    typeof email === "string" &&
-    email.trim().toLowerCase().endsWith(`@${PHONE_PLACEHOLDER_EMAIL_DOMAIN}`)
-  );
 }
 
 /**
@@ -495,6 +638,9 @@ export const phoneNumberPluginOptions: PhoneNumberOptions = {
   // this refuses anything that reached the plugin without passing through it.
   phoneNumberValidator: isE164PhoneNumber,
 
+  // The plugin only hands this the number. When the sign-up sent a real
+  // address in `x-phone-auth-email`, `databaseHooks.user.create.before` in
+  // `src/lib/auth.ts` swaps it in for the placeholder before the row is written.
   signUpOnVerification: {
     getTempEmail: placeholderEmailForPhone,
   },

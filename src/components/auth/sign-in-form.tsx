@@ -26,19 +26,44 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ACCOUNT_TYPE_LABELS, type AccountType } from "@/lib/account-types";
+import {
+  ChooseMethodHint,
+  PhoneCodeStep,
+  useResendCooldown,
+} from "@/components/auth/phone-code-step";
+import {
+  defaultAuthMethod,
+  parseAuthMethod,
+  resolvePortalRole,
+  type AuthMethod,
+  type PhoneAuthFailure,
+  type PhoneAuthRecovery,
+  type PortalRole,
+} from "@/components/auth/phone-auth-flow";
+import {
+  sendPhoneCode,
+  verifyPhoneCode,
+} from "@/components/auth/phone-otp-client";
+import {
+  checkSignedInPortal,
+  type SessionRole,
+} from "@/components/auth/portal-check";
+import type { AccountType } from "@/lib/account-types";
 import {
   accountTypeParam,
   accountTypeRowsForRole,
   isValidEmail,
+  isValidGeorgianPhone,
   MODE_PATHS,
   parseAccountType,
   parseRole,
+  phoneDigits,
   roleParam,
   type FlowMode,
   type FlowRole,
 } from "@/lib/auth-flow";
-import { signIn, signOut, authClient } from "@/lib/auth-client";
+import { signIn } from "@/lib/auth-client";
+import { normalizePhoneNumber } from "@/lib/phone-number";
 import { merchantOrigin, type Audience } from "@/lib/host";
 import {
   appendGoodsParam,
@@ -56,10 +81,7 @@ import { cn } from "@/lib/utils";
  * `FlowRole` (from `@/lib/auth-flow`) is the narrower set that step 1 offers as
  * a card, and is what the URL's `role` param can hold.
  */
-type Role = FlowRole | "COMPANY";
-
-/** Every value the schema's `UserRole` can hold. ADMIN has no portal here. */
-type SessionRole = Role | "ADMIN";
+type Role = PortalRole;
 
 /**
  * Human-readable label for a resolvable portal, used in the mismatch messaging.
@@ -195,51 +217,6 @@ function roleCardsForAudience(audience: Audience): {
 }
 
 /* -------------------------------------------------------------------------- */
-/* Account-type lookup                                                        */
-/* -------------------------------------------------------------------------- */
-
-/** True when `value` is one of the known account types. */
-function isAccountType(value: unknown): value is AccountType {
-  return typeof value === "string" && value in ACCOUNT_TYPE_LABELS;
-}
-
-/**
- * Reads the account type stored on the signed-in account's own profile, or
- * `null` when it cannot be determined.
- *
- * `null` covers every unverifiable case — the request failed, the profile row
- * doesn't exist yet (a registration interrupted between account creation and
- * the profile write), or the body isn't shaped as expected — and callers must
- * treat it as "don't block". This lookup is a secondary safety net on top of
- * the role check, so an incomplete profile has to fail open rather than lock a
- * legitimate account out of a portal it belongs to.
- *
- * Only the two card roles have a profile endpoint to ask. A `LogisticsCompany`
- * has no account-type column, so a company session is never passed here — the
- * parameter type says so, and the caller skips the check outright.
- */
-async function fetchStoredAccountType(
-  sessionRole: FlowRole,
-): Promise<AccountType | null> {
-  const endpoint =
-    sessionRole === "CLIENT" ? "/api/client-profile" : "/api/driver-profile";
-
-  // Both endpoints answer for the *signed-in* user only, so the session cookie
-  // (sent by default on same-origin requests) is the whole input.
-  const response = await fetch(endpoint).catch(() => null);
-  if (!response?.ok) {
-    return null;
-  }
-
-  // The route returns the profile row, or a bare `null` when there is none.
-  const profile = (await response.json().catch(() => null)) as {
-    accountType?: unknown;
-  } | null;
-
-  return isAccountType(profile?.accountType) ? profile.accountType : null;
-}
-
-/* -------------------------------------------------------------------------- */
 /* Form                                                                       */
 /* -------------------------------------------------------------------------- */
 
@@ -253,6 +230,20 @@ type FormError = {
   message: string;
   kind: "credentials" | "portal";
 };
+
+/**
+ * The phone tab's form-level failure. Separate from `FormError` because the
+ * two tabs are two forms, and an alert about a code must not appear over the
+ * password field (or survive a switch back to it). `recovery` decides which
+ * link, if any, rides inside the alert — see `PhoneAuthRecovery`.
+ */
+type PhoneFormError = {
+  message: string;
+  recovery: PhoneAuthRecovery;
+};
+
+/** The phone tab's two screens: type the number, then type the code. */
+type PhoneStage = "number" | "code";
 
 type SignInFormProps = {
   /** Audience served by the host this page was requested on. */
@@ -286,10 +277,14 @@ type SignInFormProps = {
  * whole component is role-driven rather than host-driven; the host only decides
  * which cards exist and where success lands.
  *
- * Both checks necessarily run *after* `signIn.email` succeeds: checking
- * beforehand would require an email → role lookup, which is an account
- * enumeration oracle. A rejected account is signed straight back out, and
- * `src/lib/auth.ts` enforces the same boundary server-side as a backstop.
+ * Two ways in, one gate: the Email tab (`signIn.email`) and the Phone tab (an
+ * SMS code through Better Auth's phone plugin) both end in `completeSignIn`,
+ * which runs the role and account-type checks in `./portal-check` *after* the
+ * session exists — checking beforehand would require an email/number → role
+ * lookup, which is an account enumeration oracle. A rejected account is signed
+ * straight back out, and `src/lib/auth.ts` enforces the same boundary
+ * server-side as a backstop. Which tab opens first depends on the account type
+ * (`defaultAuthMethod`).
  *
  * The wizard's position is read from the query string rather than held in
  * state, so back/forward and refresh behave. The query string is user input,
@@ -306,6 +301,7 @@ export function SignInForm({
   goods,
 }: SignInFormProps) {
   const t = useTranslations("auth.signInForm");
+  const tPhone = useTranslations("auth.phoneAuth");
   const tShared = useTranslations("common.shared");
   const accountTypeLabels = useAccountTypeLabels();
   const router = useRouter();
@@ -317,6 +313,22 @@ export function SignInForm({
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [formError, setFormError] = useState<FormError | null>(null);
   const [loading, setLoading] = useState(false);
+
+  /* --- Phone tab state --------------------------------------------------- */
+
+  const [phone, setPhone] = useState("");
+  const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [phoneStage, setPhoneStage] = useState<PhoneStage>("number");
+  /** The E.164 number the current code was sent to. */
+  const [sentPhone, setSentPhone] = useState("");
+  const [code, setCode] = useState("");
+  const [codeError, setCodeError] = useState<string | null>(null);
+  const [phoneFormError, setPhoneFormError] = useState<PhoneFormError | null>(
+    null,
+  );
+  const [phoneLoading, setPhoneLoading] = useState(false);
+  const [resending, setResending] = useState(false);
+  const cooldown = useResendCooldown();
 
   /* --- URL → step ------------------------------------------------------- */
 
@@ -370,13 +382,29 @@ export function SignInForm({
   // Adjusted during render rather than in an effect on purpose: an effect would
   // paint one frame of the previous screen's alert before clearing it. This is
   // React's documented "adjust state when a prop changes" pattern.
+  //
+  // The opening tab is reset alongside, for the same reason and by the same
+  // pattern: it depends on the account type, and stepping back to step 2 and
+  // picking another type keeps this component mounted — a `useState`
+  // initialiser alone would keep the first type's default.
   const stepKey = `${step}:${role ?? ""}:${accountType ?? ""}`;
+  const defaultMethod =
+    role !== null && accountType !== null
+      ? defaultAuthMethod(role, accountType)
+      : null;
+  const [method, setMethod] = useState<AuthMethod | null>(defaultMethod);
   const [renderedStepKey, setRenderedStepKey] = useState(stepKey);
   if (stepKey !== renderedStepKey) {
     setRenderedStepKey(stepKey);
     setFormError(null);
     setEmailError(null);
     setPasswordError(null);
+    setMethod(defaultMethod);
+    setPhoneStage("number");
+    setPhoneError(null);
+    setCode("");
+    setCodeError(null);
+    setPhoneFormError(null);
   }
 
   /* --- Navigation ------------------------------------------------------- */
@@ -398,20 +426,6 @@ export function SignInForm({
   }
 
   /* --- Sign in ---------------------------------------------------------- */
-
-  // The portal the two picks resolve to: the Driver card with the Business
-  // account type is a logistics company, mirroring sign-up.
-  const resolvedRole: Role | null =
-    role === null
-      ? null
-      : role === "DRIVER" && accountType === "BUSINESS"
-        ? "COMPANY"
-        : role;
-
-  // The resolved portal is the only role allowed through, on every host. Typed
-  // as `SessionRole[]` so it can be compared against the account's actual role,
-  // which ranges wider than the portals this form can resolve to.
-  const allowedRoles: SessionRole[] = resolvedRole ? [resolvedRole] : [];
 
   /** Message shown when the account's real role isn't the one that was picked. */
   function mismatchMessage(actualRole: SessionRole): string {
@@ -493,57 +507,41 @@ export function SignInForm({
       return;
     }
 
-    // Sign-in succeeded and a session now exists. Read the account's actual
-    // role and enforce that it matches the portal the two picks resolved to — a
-    // driver can't sign in through the client portal, a company can't sign in
-    // through the individual-driver one, and an admin account can't sign in here
-    // at all. `getSession` returns the custom `role` field, typed via
-    // `inferAdditionalFields` in auth-client.
-    const { data: session } = await authClient.getSession();
-    const actualRole = session?.user.role as SessionRole | undefined;
+    // Sign-in succeeded and a session now exists; the shared gate decides
+    // whether it may stay.
+    const rejection = await completeSignIn(role, accountType);
 
-    if (actualRole && !allowedRoles.includes(actualRole)) {
-      // Wrong portal: undo the session so the user isn't left signed in, then
-      // point them at the correct one without navigating away.
-      await signOut();
+    if (rejection !== null) {
       setLoading(false);
-      setFormError({ kind: "portal", message: mismatchMessage(actualRole) });
-      return;
+      setFormError({ kind: "portal", message: rejection });
+    }
+  }
+
+  /**
+   * The one exit from both tabs once a session exists: the portal checks
+   * (`checkSignedInPortal`, which signs a rejected session back out itself),
+   * then the redirect. Returns the message to show when the account belongs
+   * somewhere else, or `null` after navigating away.
+   */
+  async function completeSignIn(
+    pickedRole: FlowRole,
+    pickedAccountType: AccountType,
+  ): Promise<string | null> {
+    const portal = resolvePortalRole(pickedRole, pickedAccountType);
+    const check = await checkSignedInPortal(
+      portal,
+      pickedRole,
+      pickedAccountType,
+    );
+
+    if (!check.ok) {
+      return check.reason === "role"
+        ? mismatchMessage(check.actualRole)
+        : t("registeredAsType", {
+            type: accountTypeLabels[check.storedAccountType],
+          });
     }
 
-    // The role check passed, so the account's role is the resolved one. For a
-    // client or driver its profile endpoint is the authority on which account
-    // type was chosen at registration; compare that against the step-2 pick so
-    // a business account can't be signed into through the Individual card.
-    //
-    // A company is skipped entirely: `LogisticsCompany` has no account-type
-    // column, so there is nothing to compare against and the role check above
-    // is the whole gate. Asking `/api/driver-profile` on its behalf is a
-    // request that could only ever 403.
-    //
-    // `fetchStoredAccountType` returns null whenever the stored value is
-    // unknowable, and null must not block: this is a secondary net on top of
-    // the role check above, not the primary gate, so an interrupted
-    // registration is never a reason to lock someone out of their own account.
-    // The skipped company case takes the same null path for the same reason.
-    const storedAccountType =
-      resolvedRole === "COMPANY" ? null : await fetchStoredAccountType(role);
-
-    if (storedAccountType !== null && storedAccountType !== accountType) {
-      // Same treatment as a role mismatch: sign back out rather than leaving a
-      // half-accepted session behind, and stay on the form.
-      await signOut();
-      setLoading(false);
-      setFormError({
-        kind: "portal",
-        message: t("registeredAsType", {
-          type: accountTypeLabels[storedAccountType],
-        }),
-      });
-      return;
-    }
-
-    setLoading(false);
     // Both provider roles land on `/dashboard` whatever the host: `/` is the
     // client landing page and neither a driver nor a company has anything
     // there. Routing them through `/` first is what used to make `/` flash a
@@ -561,13 +559,153 @@ export function SignInForm({
     // validated code only.
     router.push(
       postAuthDestination(
-        resolvedRole === "DRIVER" || resolvedRole === "COMPANY"
+        portal === "DRIVER" || portal === "COMPANY"
           ? "/dashboard"
           : POST_SIGN_IN_PATH[audience],
         goods,
       ),
     );
     router.refresh();
+    return null;
+  }
+
+  /* --- Sign in by phone -------------------------------------------------- */
+
+  /**
+   * Routes a phone refusal to where it belongs on screen: under the number,
+   * under the code, or in the alert (with its recovery link). A spent code is
+   * also cleared, so the input is ready for the next one.
+   */
+  function showPhoneFailure(failure: PhoneAuthFailure) {
+    const message = tPhone(failure.messageKey);
+
+    if (failure.recovery === "resend") {
+      setCode("");
+    }
+
+    if (failure.target === "phone") {
+      setPhoneError(message);
+    } else if (failure.target === "code") {
+      setCodeError(message);
+    } else {
+      setPhoneFormError({ message, recovery: failure.recovery });
+    }
+  }
+
+  /**
+   * Step one of the phone tab. The number is checked here first — the same
+   * nine-digits-after-+995 rule the sign-up form applies — then normalised to
+   * the E.164 form the plugin keys everything on.
+   *
+   * The role header is the portal steps 1 and 2 resolved to. For a number that
+   * has an account it changes nothing (an existing number signs in whatever
+   * its role, and `completeSignIn` then judges the portal); it is sent always
+   * because the server reads it for unknown numbers.
+   */
+  async function handleSendCode(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!role || !accountType) return;
+
+    setPhoneFormError(null);
+    const digits = phoneDigits(phone);
+
+    if (!isValidGeorgianPhone(digits)) {
+      setPhoneError(tPhone("enterPhoneDigits"));
+      return;
+    }
+
+    // Nine digits that are not a Georgian *mobile* number (a landline, say)
+    // pass the shape check but cannot receive an SMS.
+    const phoneNumber = normalizePhoneNumber(digits);
+    if (phoneNumber === null) {
+      setPhoneError(tPhone("errorInvalidPhone"));
+      return;
+    }
+
+    setPhoneError(null);
+    setPhoneLoading(true);
+    const result = await sendPhoneCode(
+      phoneNumber,
+      resolvePortalRole(role, accountType),
+    );
+    setPhoneLoading(false);
+
+    if (!result.ok) {
+      showPhoneFailure(result);
+      return;
+    }
+
+    setSentPhone(phoneNumber);
+    setCode("");
+    setCodeError(null);
+    setPhoneStage("code");
+    cooldown.start();
+  }
+
+  /** "Resend code", once the cooldown allows it. Same number, same headers. */
+  async function handleResend() {
+    if (!role || !accountType) return;
+
+    setPhoneFormError(null);
+    setCodeError(null);
+    setResending(true);
+    const result = await sendPhoneCode(
+      sentPhone,
+      resolvePortalRole(role, accountType),
+    );
+    setResending(false);
+
+    if (!result.ok) {
+      showPhoneFailure(result);
+      return;
+    }
+
+    setCode("");
+    cooldown.start();
+  }
+
+  /**
+   * Step two: verify with the sign-in intent, so an unknown number is refused
+   * (`PHONE_ACCOUNT_NOT_FOUND`, with a link to sign up) rather than handed a
+   * new, empty account. On success the session exists and the shared gate
+   * takes over.
+   */
+  async function handleVerify(enteredCode: string) {
+    if (!role || !accountType) return;
+
+    setPhoneFormError(null);
+    setCodeError(null);
+    setPhoneLoading(true);
+
+    const result = await verifyPhoneCode(
+      sentPhone,
+      enteredCode,
+      "sign-in",
+      resolvePortalRole(role, accountType),
+    );
+
+    if (!result.ok) {
+      setPhoneLoading(false);
+      showPhoneFailure(result);
+      // A refusal that spends the code for good outside the code's own
+      // lifetime — no account for the number — has nothing left to type on
+      // this screen; the alert and its link belong over the number.
+      if (result.recovery === "signUp") {
+        setPhoneStage("number");
+      }
+      return;
+    }
+
+    const rejection = await completeSignIn(role, accountType);
+
+    if (rejection !== null) {
+      // The session is already gone and the code with it, so the code screen
+      // has nothing left to offer; the alert goes over the number instead.
+      setPhoneLoading(false);
+      setPhoneStage("number");
+      setCode("");
+      setPhoneFormError({ message: rejection, recovery: "none" });
+    }
   }
 
   /* --- Screen 6: forgot password ---------------------------------------- */
@@ -691,8 +829,31 @@ export function SignInForm({
 
   const emailErrorId = `${fieldId}-email-error`;
   const passwordErrorId = `${fieldId}-password-error`;
-  const phoneNoteId = `${fieldId}-phone-note`;
   const formErrorId = `${fieldId}-form-error`;
+  const phoneFormErrorId = `${fieldId}-phone-form-error`;
+  const methodHintId = `${fieldId}-method-hint`;
+
+  // The phone tab's alert, shared by its two screens. The recovery link sits
+  // inside the alert it answers, so "no account for this number" and "sign up
+  // instead" are read as one thing.
+  const phoneAlert = phoneFormError ? (
+    <FormAlert id={phoneFormErrorId} title={phoneFormError.message}>
+      {phoneFormError.recovery === "signUp" ? (
+        <InlineLinkButton
+          href={flowHref(MODE_PATHS.signup, { role, accountType, goods })}
+        >
+          {tPhone("signUpWithThisNumber")}
+        </InlineLinkButton>
+      ) : phoneFormError.recovery === "driverSite" ? (
+        // Unreachable on sign-in in practice — the sign-in intent never
+        // creates an account, so the host check never fires — but the
+        // mapping is shared with sign-up and costs nothing to honour.
+        <InlineLinkButton href={`${merchantOrigin() ?? ""}/sign-up`} external>
+          {tPhone("goToDriverSite")}
+        </InlineLinkButton>
+      ) : null}
+    </FormAlert>
+  ) : null;
 
   // A rejected credential puts the password field into the handoff's error
   // styling (screen 5); a portal mismatch does not, because nothing about what
@@ -723,18 +884,31 @@ export function SignInForm({
         <AuthHeading>{tShared("signIn")}</AuthHeading>
       </div>
 
-      {/*
-        The handoff defaults this to `phone`, but the phone tab cannot complete
-        a sign-in: `src/lib/auth.ts` registers neither the `phoneNumber` nor the
-        `emailOTP` plugin, so there is no endpoint to send a code from. Email is
-        the default until one lands, at which point `defaultValue` becomes
-        "phone" and the disabled state below comes off.
-      */}
       {/* `gap-0` cancels the DS root's own 8px gap, so the 20px the handoff
           specifies between the tab strip and its panel is the `pt-5` below and
-          nothing else. */}
-      <Tabs defaultValue="email" className="w-full gap-0">
-        <TabsList className="w-full">
+          nothing else.
+
+          Controlled, because the opening tab is the account type's default
+          (`defaultAuthMethod`) and must follow a change of type without a
+          remount. An individual client gets no default: `value` is then "",
+          which matches neither trigger, so the strip renders with nothing
+          selected and nothing beneath it but the hint — the owner's neutral
+          choice. `activationMode="manual"` keeps it neutral for keyboard users
+          too: with automatic activation, merely tabbing into the strip would
+          focus — and so select — Phone. */}
+      <Tabs
+        value={method ?? ""}
+        onValueChange={(value) => {
+          const next = parseAuthMethod(value);
+          if (next !== null) setMethod(next);
+        }}
+        activationMode="manual"
+        className="w-full gap-0"
+      >
+        <TabsList
+          className="w-full"
+          aria-describedby={method === null ? methodHintId : undefined}
+        >
           <TabsTrigger value="phone" className="flex-1">
             {tShared("phone")}
           </TabsTrigger>
@@ -743,43 +917,68 @@ export function SignInForm({
           </TabsTrigger>
         </TabsList>
 
+        {method === null ? (
+          <ChooseMethodHint
+            id={methodHintId}
+            text={tPhone("chooseSignInMethod")}
+          />
+        ) : null}
+
         <TabsContent value="phone">
-          <div className="flex flex-col gap-4 pt-5">
-            {/*
-              Rendered exactly as designed, disabled rather than removed: the
-              tab is part of the shipped design and the plugin is the only thing
-              missing, so hiding it would misrepresent the roadmap while a live
-              button would dead-end. No fake success path, and nothing navigates
-              to an OTP screen that has no code to verify.
-            */}
-            <PhoneField
-              id={`${fieldId}-phone`}
-              value=""
-              onChange={() => {}}
-              disabled
-              helper={t("weTextACode")}
-              // Same `aria-describedby` note the Send code button carries, so
-              // the field itself also names the reason it is greyed out rather
-              // than leaving its helper text describing a flow that cannot run.
-              describedBy={phoneNoteId}
-            />
+          <div className="pt-5">
+            {phoneStage === "code" ? (
+              <PhoneCodeStep
+                id={`${fieldId}-otp`}
+                phoneNumber={sentPhone}
+                code={code}
+                onCodeChange={(next) => {
+                  setCode(next);
+                  setCodeError(null);
+                }}
+                codeError={codeError}
+                alert={phoneAlert}
+                onVerify={handleVerify}
+                onResend={handleResend}
+                onChangeNumber={() => {
+                  setPhoneStage("number");
+                  setCode("");
+                  setCodeError(null);
+                  setPhoneFormError(null);
+                }}
+                verifying={phoneLoading}
+                resending={resending}
+                resendSecondsLeft={cooldown.secondsLeft}
+                submitLabel={tPhone("verifyAndSignIn")}
+              />
+            ) : (
+              <form
+                onSubmit={handleSendCode}
+                noValidate
+                className="flex flex-col gap-4"
+              >
+                {phoneAlert}
 
-            <Button
-              type="button"
-              disabled
-              title={t("codeSignInIsNotAvailable2")}
-              aria-describedby={phoneNoteId}
-              className="h-11 w-full text-base"
-            >
-              {t("sendCode")}
-            </Button>
+                <PhoneField
+                  id={`${fieldId}-phone`}
+                  value={phone}
+                  onChange={(value) => {
+                    setPhone(value);
+                    setPhoneError(null);
+                  }}
+                  helper={t("weTextACode")}
+                  error={phoneError ?? undefined}
+                  required
+                />
 
-            <p
-              id={phoneNoteId}
-              className="text-[13px] leading-[1.5] text-[var(--landing-muted)]"
-            >
-              {t("codeSignInIsNotAvailable")}
-            </p>
+                <Button
+                  type="submit"
+                  disabled={phoneLoading}
+                  className="h-11 w-full text-base"
+                >
+                  {phoneLoading ? tPhone("sendingCode") : t("sendCode")}
+                </Button>
+              </form>
+            )}
           </div>
         </TabsContent>
 
@@ -889,11 +1088,17 @@ export function SignInForm({
 
       <SocialBlock />
 
-      {/*
-        The handoff's screen 5 also offers "Signed up with a phone number
-        instead? Use a code". It is not shipped: the only place it could lead is
-        the phone tab, which cannot sign anyone in yet.
-      */}
+      {/* The handoff's screen 5: after a rejected password, offer the phone
+          tab to someone who may have registered with a number instead. */}
+      {method === "email" && formError?.kind === "credentials" ? (
+        <p className="text-sm text-[var(--landing-muted)]">
+          {tPhone("signedUpWithPhone")}{" "}
+          <InlineLinkButton onClick={() => setMethod("phone")}>
+            {tPhone("useACode")}
+          </InlineLinkButton>
+        </p>
+      ) : null}
+
       <p className="text-sm text-[var(--landing-muted)]">
         {t("newToZomo")}{" "}
         <InlineLinkButton

@@ -25,10 +25,13 @@ import {
   PHONE_SEND_OTP_PATH,
   PHONE_VERIFY_PATH,
   phoneAccountNotFound,
+  phoneAuthEmailTaken,
   phoneNumberCannotBeSet,
   phoneNumberCannotBeUpdated,
   phoneNumberPluginOptions,
+  resolvePhoneAuthEmail,
   resolvePhoneAuthIntent,
+  resolvePhoneAuthRole,
 } from "@/lib/phone-auth";
 import { prisma } from "@/lib/prisma";
 
@@ -209,9 +212,6 @@ async function assertRoleMayBeCreatedFromHost(
 /** Better Auth's built-in "update my own profile" endpoint. */
 const UPDATE_USER_PATH = "/update-user";
 
-/** The only role an account created by phone verification may hold. */
-const PHONE_SIGN_UP_ROLE = "DRIVER";
-
 /** Better Auth's built-in "change my own password" endpoint. */
 const CHANGE_PASSWORD_PATH = "/change-password";
 
@@ -229,6 +229,23 @@ const SIGN_UP_EMAIL_PATH = "/sign-up/email";
  * remember to make.
  */
 const GET_SESSION_PATH = "/get-session";
+
+/**
+ * Refuses a phone sign-up's `x-phone-auth-email` address when another account
+ * already holds it. Compared case-insensitively because rows written before
+ * Better Auth lowercased addresses may not be; the header value itself is
+ * already lowercased by `resolvePhoneAuthEmail`.
+ */
+async function assertPhoneSignUpEmailFree(email: string): Promise<void> {
+  const holder = await prisma.user.findFirst({
+    where: { email: { equals: email, mode: "insensitive" } },
+    select: { id: true },
+  });
+
+  if (holder) {
+    throw phoneAuthEmailTaken();
+  }
+}
 
 /**
  * What a suspended account is told when it tries to sign in.
@@ -340,9 +357,11 @@ export const auth = betterAuth({
    * is ever enabled.
    */
   /**
-   * `phoneNumber()` is the driver app's sign-in: a mobile number and a
-   * six-digit SMS code. An unknown number gets an account only when the app
-   * declares the `sign-up` intent (see `databaseHooks.user.create`). Its options
+   * `phoneNumber()` is the driver app's sign-in — and the website's phone
+   * sign-up/sign-in: a mobile number and a six-digit SMS code. An unknown
+   * number gets an account only when the client declares the `sign-up` intent
+   * (see `databaseHooks.user.create`), with the role and optional email its
+   * `x-phone-auth-role` / `x-phone-auth-email` headers name. Its options
    * and the checks in front of its endpoints live in `@/lib/phone-auth`; the
    * `hooks.before` below is where those checks run.
    */
@@ -392,7 +411,7 @@ export const auth = betterAuth({
     user: {
       create: {
         /**
-         * Three rules for an account that is born with a phone number — which
+         * Four rules for an account that is born with a phone number — which
          * is what the phone plugin's verify endpoint creates for an unknown
          * number, and what nothing else may create.
          *
@@ -421,8 +440,19 @@ export const auth = betterAuth({
          *
          * 2. Backstop for the role rule: the verify endpoint builds the new
          *    user from the request body. The `hooks.before` below already
-         *    forces the role; this holds even if a future change lets a body
-         *    reach the plugin without passing through it.
+         *    replaces the body's role with the one `x-phone-auth-role` names
+         *    (`DRIVER` when absent); this re-derives it from the header and
+         *    holds even if a future change lets a body reach the plugin
+         *    without passing through it. `resolvePhoneAuthRole` can only ever
+         *    return CLIENT, DRIVER or COMPANY, so `ADMIN` stays impossible.
+         *
+         * 3. The real email, if the sign-up gave one. The plugin builds the
+         *    address from the number alone (`getTempEmail`), so this is the
+         *    only place `x-phone-auth-email` can be applied. Whether it is
+         *    free was checked on send and in `hooks.before`; it is checked
+         *    once more here, right before the write, so two sign-ups racing
+         *    for one address end in `EMAIL_TAKEN` rather than a unique-index
+         *    500. It is stored unverified and nothing is sent to it.
          */
         before: async (user, context) => {
           const candidate = user as {
@@ -452,11 +482,26 @@ export const auth = betterAuth({
             }
           }
 
-          if (candidate.phoneNumber && candidate.role !== PHONE_SIGN_UP_ROLE) {
-            return { data: { ...user, role: PHONE_SIGN_UP_ROLE } };
+          if (!candidate.phoneNumber) {
+            return undefined;
           }
 
-          return undefined;
+          // Only the verify path reaches here (rule 0), so `context` is set.
+          const headers = context?.request?.headers ?? context?.headers;
+          const role = resolvePhoneAuthRole(headers);
+          const email = resolvePhoneAuthEmail(headers);
+
+          if (email) {
+            await assertPhoneSignUpEmailFree(email);
+          }
+
+          return {
+            data: {
+              ...user,
+              role,
+              ...(email ? { email, emailVerified: false } : {}),
+            },
+          };
         },
       },
       update: {
@@ -618,13 +663,24 @@ export const auth = betterAuth({
 
         enforcePhoneOtpLimits(ctx.path, phone, ctx.request);
 
+        // The role a new account would get: `x-phone-auth-role`, or `DRIVER`
+        // when the header is absent (the native driver app sends none). A
+        // malformed value is refused whatever the number, before any lookup.
+        const headers = ctx.request?.headers ?? ctx.headers;
+        const role = resolvePhoneAuthRole(headers);
+
         // Verification signs an existing account in and — under the `sign-up`
         // intent — creates a missing one, so the sign-up rules apply exactly
         // when the number is unknown. The intent is deliberately not consulted
         // here: refusing a sign-in for an unknown number before the code has
         // been checked would tell anyone which numbers are registered. They
-        // are applied to the send as well, so a host that could never complete
-        // the sign-up does not spend an SMS finding that out.
+        // are applied to the send as well, so a sign-up that could never
+        // complete (wrong host for the role, unusable or taken email) does not
+        // spend an SMS finding that out.
+        //
+        // For a number that already has an account, the role and email
+        // headers are ignored: it is a sign-in, the account is left as it is,
+        // and the website checks the signed-in role itself.
         const existing = await prisma.user.findUnique({
           where: { phoneNumber: phone },
           select: { id: true },
@@ -633,15 +689,22 @@ export const auth = betterAuth({
         if (!existing) {
           await assertRoleMayBeCreatedFromHost(
             ctx.request,
-            PHONE_SIGN_UP_ROLE,
+            role,
             PHONE_AUTH_ERROR.SIGN_UP_HOST_NOT_ALLOWED,
           );
+
+          const email = resolvePhoneAuthEmail(headers);
+
+          if (email) {
+            await assertPhoneSignUpEmailFree(email);
+          }
         }
 
         // The plugin keys the stored code and the user lookup on the exact
         // string in the body, so it is handed the normalised number. `role` is
-        // forced because the plugin passes extra body keys to user creation;
-        // the two flags are pinned off for the reasons in `parsePhoneAuthBody`.
+        // set server-side because the plugin passes extra body keys to user
+        // creation (and `databaseHooks.user.create.before` sets it again); the
+        // two flags are pinned off for the reasons in `parsePhoneAuthBody`.
         return {
           context: {
             body:
@@ -650,7 +713,7 @@ export const auth = betterAuth({
                 : {
                     phoneNumber: phone,
                     code,
-                    role: PHONE_SIGN_UP_ROLE,
+                    role,
                     disableSession: false,
                     updatePhoneNumber: false,
                   },

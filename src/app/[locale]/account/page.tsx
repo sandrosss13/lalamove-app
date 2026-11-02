@@ -4,8 +4,10 @@ import { getTranslations } from "next-intl/server";
 
 import { Link } from "@/i18n/navigation";
 import { localeHref } from "@/i18n/server";
+import { userHasPassword } from "@/lib/account-password";
 import { auth } from "@/lib/auth";
 import { DATA_SCREEN_WIDTH_CLASSES } from "@/lib/layout";
+import { displayEmail } from "@/lib/phone-placeholder-email";
 import { prisma } from "@/lib/prisma";
 import { AccountMarketingConsentCard } from "@/components/account-marketing-consent-card";
 import { AccountPasswordCard } from "@/components/account-password-card";
@@ -68,9 +70,14 @@ export default async function AccountPage() {
     redirect(await localeHref("/dashboard"));
   }
 
-  const clientProfile = await prisma.clientProfile.findUnique({
-    where: { userId: session.user.id },
-  });
+  // `hasPassword`: a phone-number account has no password to change, so the
+  // password card is left out for it (see `userHasPassword`).
+  const [clientProfile, hasPassword] = await Promise.all([
+    prisma.clientProfile.findUnique({
+      where: { userId: session.user.id },
+    }),
+    userHasPassword(session.user.id),
+  ]);
 
   // Defensive: sign-up always creates a profile, but an account without one is
   // still editable — default to an empty individual profile.
@@ -121,11 +128,11 @@ export default async function AccountPage() {
           </header>
 
           <AccountProfileForm
-            email={session.user.email}
+            email={displayEmail(session.user.email)}
             initialValues={profileInitialValues}
           />
 
-          <AccountPasswordCard />
+          {hasPassword ? <AccountPasswordCard /> : null}
 
           {/* Only with a profile to store the answer on — its route answers
               404 without one, and sign-up always creates one. */}

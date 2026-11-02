@@ -3,6 +3,7 @@ import { useTranslations } from "next-intl";
 import { HubCard } from "@/components/driver-hub/hub-primitives";
 import { DriverAccountDetailList } from "@/components/driver-hub/driver-account-detail-list";
 import type { HubCompanyAccountSettings } from "@/lib/dashboard/hub/account-settings";
+import { displayEmail } from "@/lib/phone-placeholder-email";
 
 /**
  * "Profile details" for a fleet-owner session — the same slot the driver's
@@ -44,6 +45,7 @@ export function DriverAccountCompanyCard({
 }) {
   const t = useTranslations("driverHub.driverAccountCompanyCard");
   const tShared = useTranslations("common.shared");
+  const signInEmail = displayEmail(settings.email);
 
   return (
     <HubCard>
@@ -61,11 +63,17 @@ export function DriverAccountCompanyCard({
           { label: tShared("vatId"), value: settings.vatId, mono: true },
           { label: tShared("phone"), value: settings.phone, mono: true },
           { label: tShared("city"), value: settings.city },
-          {
-            label: tShared("email"),
-            value: settings.email,
-            note: t("theAddressYouSignInWith"),
-          },
+          // A phone account signs in with its number (the phone row above);
+          // its placeholder address is not shown.
+          ...(signInEmail === null
+            ? []
+            : [
+                {
+                  label: tShared("email"),
+                  value: signInEmail,
+                  note: t("theAddressYouSignInWith"),
+                },
+              ]),
           {
             label: tShared("registeredAddress"),
             value: settings.registeredAddress,

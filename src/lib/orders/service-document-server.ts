@@ -59,7 +59,7 @@ import {
   type DocumentCargoRow,
   type ServiceDocumentView,
 } from "@/lib/orders/service-document";
-import { isPhonePlaceholderEmail } from "@/lib/phone-auth";
+import { displayEmail } from "@/lib/phone-placeholder-email";
 import { prisma } from "@/lib/prisma";
 
 type Tx = Prisma.TransactionClient;
@@ -544,9 +544,6 @@ export async function buildServiceDocumentView(
   if (order.client) {
     const profile = order.client.clientProfile;
     const business = profile?.accountType === ClientAccountType.BUSINESS;
-    // Phone-number accounts carry a synthetic address Better Auth needs
-    // (`placeholderEmailForPhone`); it reaches nobody, so it is not printed.
-    const email = clean(order.client.email);
     customer = {
       type: business ? "BUSINESS" : "INDIVIDUAL",
       name: business
@@ -555,7 +552,9 @@ export async function buildServiceDocumentView(
           clean(order.client.name)),
       idNumber: business ? clean(profile?.vatId) : clean(profile?.idNumber),
       phone: clean(profile?.phone) ?? clean(order.client.phoneNumber),
-      email: email && !isPhonePlaceholderEmail(email) ? email : null,
+      // Phone-number accounts carry a synthetic address Better Auth needs
+      // (`placeholderEmailForPhone`); it reaches nobody, so it is not printed.
+      email: displayEmail(order.client.email),
     };
   } else {
     // A guest booking: the details typed at checkout, and no ID on file.

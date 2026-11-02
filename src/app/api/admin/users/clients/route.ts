@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import type { AdminRole, ClientAccountType, Prisma } from "@prisma/client";
 
 import { authorizeAdminApi } from "@/lib/admin/api-auth";
+import { displayEmail } from "@/lib/phone-placeholder-email";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -38,7 +39,9 @@ export type AdminClientRow = {
   userId: string;
   /** The account name from Better Auth. */
   name: string;
-  email: string;
+  /** `null` for a phone-only account — its placeholder address is never
+   *  shown (`src/lib/phone-placeholder-email.ts`). */
+  email: string | null;
   phone: string;
   accountType: ClientAccountType;
   /**
@@ -198,7 +201,7 @@ export async function GET(request: Request): Promise<NextResponse> {
   const items: AdminClientRow[] = profiles.map((profile) => ({
     userId: profile.userId,
     name: profile.user.name,
-    email: profile.user.email,
+    email: displayEmail(profile.user.email),
     phone: profile.phone,
     accountType: profile.accountType,
     profileName: profileDisplayName(profile),

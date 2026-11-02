@@ -26,6 +26,7 @@ import {
   orderClientDisplay,
 } from "@/lib/orders/order-client-display";
 import { stopInfoOf, stopInfoRows } from "@/lib/orders/stop-info";
+import { displayEmail } from "@/lib/phone-placeholder-email";
 import { prisma } from "@/lib/prisma";
 import { vehicleTypeSpecLabel } from "@/lib/vehicle-type-spec-labels";
 
@@ -173,6 +174,7 @@ export default async function AdminOrderDetailPage({
         select: {
           name: true,
           email: true,
+          phoneNumber: true,
           clientProfile: {
             select: {
               accountType: true,
@@ -569,7 +571,10 @@ export default async function AdminOrderDetailPage({
                 label={tShared("phone")}
                 value={order.driver?.driverProfile?.phone}
               />
-              <Field label={tShared("email")} value={order.driver?.email} />
+              <Field
+                label={tShared("email")}
+                value={displayEmail(order.driver?.email)}
+              />
               <Field
                 label={tShared("vehicle")}
                 value={
