@@ -10,19 +10,22 @@
  * Pure: no server-only imports, so Playwright specs can load it directly.
  */
 
-/** Shortest and longest accepted trailer plate, after trimming. */
+import { normalizePlate } from "./plate";
+
+/** Shortest and longest accepted trailer plate, after normalising. */
 export const TRAILER_PLATE_MIN_LENGTH = 2;
 export const TRAILER_PLATE_MAX_LENGTH = 15;
 
-const TRAILER_PLATE_PATTERN = /^[A-Za-z0-9\- ]+$/;
+const TRAILER_PLATE_PATTERN = /^[A-Z0-9]+$/;
 
 /**
  * Normalises a raw trailer-plate value.
  *
  * - `undefined`, `null`, or a blank/whitespace-only string → `{ value: null }`
  *   (no trailer; this is also how PATCH clears one).
- * - A trimmed string of 2–15 characters from `[A-Za-z0-9- ]` →
- *   `{ value: <upper-cased> }`, the same normalisation `plateNumber` gets.
+ * - A string that, after `normalizePlate` drops hyphens and spaces, is 2–15
+ *   characters from `[A-Z0-9]` → `{ value: <normalised> }`, the same
+ *   normalisation `plateNumber` gets.
  * - Anything else (wrong type, too short/long, other characters) →
  *   `{ error: true }`; the caller phrases the message.
  */
@@ -37,18 +40,18 @@ export function parseTrailerPlate(
     return { error: true };
   }
 
-  const trimmed = raw.trim();
-  if (trimmed === "") {
+  const plate = normalizePlate(raw);
+  if (plate === "") {
     return { value: null };
   }
 
   if (
-    trimmed.length < TRAILER_PLATE_MIN_LENGTH ||
-    trimmed.length > TRAILER_PLATE_MAX_LENGTH ||
-    !TRAILER_PLATE_PATTERN.test(trimmed)
+    plate.length < TRAILER_PLATE_MIN_LENGTH ||
+    plate.length > TRAILER_PLATE_MAX_LENGTH ||
+    !TRAILER_PLATE_PATTERN.test(plate)
   ) {
     return { error: true };
   }
 
-  return { value: trimmed.toUpperCase() };
+  return { value: plate };
 }

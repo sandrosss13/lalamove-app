@@ -10,6 +10,7 @@ import {
 import { getRequestTranslations } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { normalizePlate } from "@/lib/vehicles/plate";
 import { isDuplicatePlateError } from "@/app/api/driver-profile/vehicles/validation";
 import {
   parseOnboardingDraft,
@@ -532,9 +533,11 @@ function validateVehicle(
     );
   }
 
-  // Uppercased before the length check and before the write, so the globally
-  // unique `plateNumber` index sees one canonical spelling of a plate.
-  const plateNumber = trimmed(vehicle.plateNumber)?.toUpperCase() ?? null;
+  // Normalised (no hyphens or spaces, upper case) before the length check and
+  // before the write, so the globally unique `plateNumber` index sees one
+  // canonical spelling of a plate.
+  const rawPlate = trimmed(vehicle.plateNumber);
+  const plateNumber = rawPlate === null ? null : normalizePlate(rawPlate);
   const isValidPlate =
     plateNumber !== null && plateNumber.length >= MIN_PLATE_LENGTH;
   if (!isValidPlate) {

@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 
 import { useRouter } from "@/i18n/navigation";
 import { useSession } from "@/lib/auth-client";
 import { BookingForm } from "@/components/home/booking-form";
+import { isGoodsShortcutCode } from "@/lib/goods-shortcuts";
 import {
   LandingPage,
   type LandingBanner,
@@ -26,6 +28,34 @@ function LoadingScreen() {
 }
 
 /**
+ * The booking form, opened on the goods shortcut the visitor picked on the
+ * landing page (`?goods=<code>`), if any.
+ *
+ * The query is read here, on the client, and not by `src/app/[locale]/page.tsx`:
+ * `searchParams` is a dynamic API, and reading it there would turn the site's
+ * ISR front door back into a per-request render (the page's own comment records
+ * how long that stopgap cost it). Anything that is not a known shortcut code —
+ * a typo, a retired code, a hand-edited URL — opens the form on nothing rather
+ * than erroring, so a stale link still lands somewhere useful.
+ *
+ * `useSearchParams` lives in this component, behind the `<Suspense>` boundary
+ * `HomeEntry` puts around it, rather than in `HomeEntry` itself. In a
+ * statically rendered route the hook opts everything up to the nearest
+ * boundary out of prerendering (`next build` refuses an unbounded one — see the
+ * note in `LanguageToggle`), and the nearest boundary would otherwise be the
+ * route: the landing page's server-rendered HTML would go with it. Bounded
+ * here, the only thing that bails out is this signed-in branch, which the
+ * server never renders anyway — it has no session, so it always sends the
+ * landing page.
+ */
+function BookingEntry() {
+  const goods = useSearchParams().get("goods");
+  const initialGoods =
+    goods !== null && isGoodsShortcutCode(goods) ? goods : null;
+  return <BookingForm initialGoods={initialGoods} />;
+}
+
+/**
  * Everything `/` renders, chosen from the visitor's session.
  *
  * The session is resolved client-side (`useSession`) rather than on the server,
@@ -42,7 +72,7 @@ function LoadingScreen() {
  *
  * This component is only the branch: the client booking flow — its state, its
  * pricing calls and its layout — lives in `BookingForm`, which needs nothing
- * from here. Booking ends in a redirect to the order's own checkout page, so
+ * from here but the landing-page shortcut it opens on (see `BookingEntry`). Booking ends in a redirect to the order's own checkout page, so
  * the payment options that used to be threaded down through this component are
  * loaded by that page instead, where the money is actually taken.
  */
@@ -108,6 +138,12 @@ export function HomeEntry({
   }
 
   // Everything left is a signed-in client: the two provider roles were sent to
-  // `/dashboard` above and never reach here.
-  return <BookingForm />;
+  // `/dashboard` above and never reach here. The fallback is the holding screen,
+  // but it should never paint: on the client `useSearchParams` reads the URL
+  // synchronously and does not suspend.
+  return (
+    <Suspense fallback={<LoadingScreen />}>
+      <BookingEntry />
+    </Suspense>
+  );
 }

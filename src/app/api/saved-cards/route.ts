@@ -5,139 +5,27 @@ import {
   type RequestTranslator,
 } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
+import {
+  CARD_DETAILS_REJECTED_KEY,
+  containsCardDetails,
+  parseCardMetadata,
+  type CardMetadataInput,
+} from "@/lib/payments/card-metadata";
 import { prisma } from "@/lib/prisma";
 
 import { CARD_SELECT } from "./card-select";
 
-/** Longest accepted card brand — "Mastercard" and friends are far shorter. */
-const MAX_BRAND_LENGTH = 32;
-
-/** Longest accepted cardholder name, matching what an embossed card holds. */
-const MAX_HOLDER_NAME_LENGTH = 120;
-
-/**
- * Body keys that would carry a full card number or a security code, normalised
- * to lower case with separators stripped so `card_number`, `card-number` and
- * `cardNumber` all collapse onto the same entry.
- */
-const FORBIDDEN_CARD_KEYS = new Set([
-  "number",
-  "cardnumber",
-  "pan",
-  "cvc",
-  "cvv",
-  "securitycode",
-]);
-
-/**
- * A run of digits long enough to be a card number, in any script. The shortest
- * PAN in issue is twelve digits (Maestro), so twelve is the threshold: no
- * legitimate field on this route — a four-digit ending, a two-digit month, a
- * four-digit year — comes anywhere near it.
- *
- * `\p{Nd}` rather than `[0-9]` because a PAN keyed on an Arabic-Indic or
- * fullwidth keypad is still a PAN, and an ASCII-only class would wave it past.
- */
-const PAN_LIKE_DIGITS = /\p{Nd}{12,}/u;
-
-/**
- * The key of the single message every tripwire rejection answers with. It names the rule
- * rather than the field, because the fix is always the same: derive the brand
- * and the last four in the browser and send only those.
- */
-const CARD_DETAILS_REJECTED_KEY = "errors.savedCards.cardDetailsMustNotBeSent";
-
-/** Normalises a body key for comparison against `FORBIDDEN_CARD_KEYS`. */
-function normaliseKey(key: string): string {
-  return key.toLowerCase().replace(/[^a-z0-9]/g, "");
-}
-
-/**
- * True when a string could be carrying a card number. Every non-digit is
- * stripped before the run test, rather than a named few, so a PAN typed as
- * "4111 1111 1111 1111", "4111-1111-1111-1111" or "4111.1111.1111.1111" is
- * caught as readily as an unbroken one — the separator a caller reaches for is
- * not something this tripwire can afford to enumerate.
- */
-function looksLikeCardNumber(value: string): boolean {
-  const digits = value.replace(/[^\p{Nd}]/gu, "");
-
-  return PAN_LIKE_DIGITS.test(digits);
-}
-
-/**
- * Walks a decoded JSON body looking for anything resembling a full card number
- * or a security code — a forbidden key at any depth, or a long digit run in any
- * string or number.
- *
- * This is a tripwire, not a validator. No gateway exists, so a PAN reaching
- * this server would be a PAN nobody meant to accept and nobody can protect. A
- * caller that forgets the rule should fail loudly on its first request rather
- * than quietly persist cardholder data, so the whole request is refused instead
- * of the offending field being dropped.
- */
-function containsCardDetails(value: unknown): boolean {
-  if (typeof value === "string") {
-    return looksLikeCardNumber(value);
-  }
-
-  // A PAN sent as a JSON number loses precision but is still a PAN, so numbers
-  // are checked through the same digit-run test.
-  if (typeof value === "number") {
-    return looksLikeCardNumber(String(value));
-  }
-
-  if (Array.isArray(value)) {
-    return value.some(containsCardDetails);
-  }
-
-  if (typeof value === "object" && value !== null) {
-    return Object.entries(value as Record<string, unknown>).some(
-      ([key, entry]) =>
-        FORBIDDEN_CARD_KEYS.has(normaliseKey(key)) ||
-        containsCardDetails(entry),
-    );
-  }
-
-  return false;
-}
-
 /** Validated shape of a saved-card creation request body. */
-type CreateSavedCardInput = {
-  brand: string;
-  last4: string;
-  expMonth: number;
-  expYear: number;
-  holderName: string | null;
+type CreateSavedCardInput = CardMetadataInput & {
   /** Whether the caller explicitly asked for this card to become the default. */
   isDefault: boolean;
 };
 
-/** True for a whole number safely representable as a JavaScript integer. */
-function isInteger(value: unknown): value is number {
-  return typeof value === "number" && Number.isSafeInteger(value);
-}
-
-/**
- * True when an expiry has already passed. A card is valid to the last day of
- * its expiry month, so the comparison is month-granular rather than day-exact.
- */
-function hasExpired(expMonth: number, expYear: number): boolean {
-  const now = new Date();
-  const currentYear = now.getFullYear();
-  // `getMonth()` is zero-based; the stored month is one-based.
-  const currentMonth = now.getMonth() + 1;
-
-  return (
-    expYear < currentYear ||
-    (expYear === currentYear && expMonth < currentMonth)
-  );
-}
-
 /**
  * Hand-rolled body validation (the project has no validation library, and this
- * stage does not warrant adding one). Returns the typed input or an error
- * message describing the first problem encountered.
+ * stage does not warrant adding one). The card's display metadata is checked by
+ * `parseCardMetadata` (`src/lib/payments/card-metadata.ts`), shared with the
+ * one-off guest card at checkout; only `isDefault` is this route's own.
  *
  * Every field is read by name — the body is never spread into the write — so
  * only these six values can ever reach the database.
@@ -146,77 +34,17 @@ function parseCreateSavedCardBody(
   body: unknown,
   t: RequestTranslator,
 ): { data: CreateSavedCardInput } | { error: string } {
-  // A JSON body of `null`, `[]` or a scalar has no fields to read.
-  if (typeof body !== "object" || body === null || Array.isArray(body)) {
-    return { error: t("common.shared.requestBodyMustBeAJson") };
+  const metadata = parseCardMetadata(body, t);
+  if ("error" in metadata) {
+    return metadata;
   }
 
-  const fields = body as Record<string, unknown>;
-
-  const brand = typeof fields.brand === "string" ? fields.brand.trim() : "";
-  if (brand === "") {
-    return { error: t("errors.savedCards.enterTheCardBrand") };
-  }
-
-  if (brand.length > MAX_BRAND_LENGTH) {
-    return {
-      error: t("errors.savedCards.cardBrandTooLong", { max: MAX_BRAND_LENGTH }),
-    };
-  }
-
-  const last4 = typeof fields.last4 === "string" ? fields.last4.trim() : "";
-  if (!/^[0-9]{4}$/.test(last4)) {
-    return { error: t("errors.savedCards.enterAFourDigitCardEnding") };
-  }
-
-  const { expMonth, expYear } = fields;
-
-  if (!isInteger(expMonth) || expMonth < 1 || expMonth > 12) {
-    return { error: t("errors.savedCards.enterAnExpiryMonthBetween1") };
-  }
-
-  if (!isInteger(expYear) || expYear < 1000 || expYear > 9999) {
-    return { error: t("errors.savedCards.enterAFourDigitExpiryYear") };
-  }
-
-  if (hasExpired(expMonth, expYear)) {
-    return { error: t("errors.savedCards.thatCardHasExpiredAddA") };
-  }
-
-  const { holderName } = fields;
-  if (
-    holderName !== undefined &&
-    holderName !== null &&
-    typeof holderName !== "string"
-  ) {
-    return { error: t("errors.savedCards.enterTheCardholderNameAsIt") };
-  }
-
-  const trimmedHolderName =
-    typeof holderName === "string" ? holderName.trim() : "";
-  if (trimmedHolderName.length > MAX_HOLDER_NAME_LENGTH) {
-    return {
-      error: t("errors.savedCards.cardholderNameTooLong", {
-        max: MAX_HOLDER_NAME_LENGTH,
-      }),
-    };
-  }
-
-  const { isDefault } = fields;
+  const { isDefault } = body as Record<string, unknown>;
   if (isDefault !== undefined && typeof isDefault !== "boolean") {
     return { error: t("errors.savedCards.isdefaultMustBeTrueOrFalse") };
   }
 
-  return {
-    data: {
-      brand,
-      last4,
-      expMonth,
-      expYear,
-      holderName: trimmedHolderName === "" ? null : trimmedHolderName,
-      isDefault: isDefault === true,
-    },
-  };
+  return { data: { ...metadata.data, isDefault: isDefault === true } };
 }
 
 /**

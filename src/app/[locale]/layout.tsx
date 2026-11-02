@@ -14,6 +14,7 @@ import {
 import "../globals.css";
 import { AuthStatus, HeaderBrandLink } from "@/components/auth-status";
 import { LanguageToggle } from "@/components/language-toggle";
+import { ThemeRestore } from "@/components/theme-restore";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { DEFAULT_LOCALE, LOCALES, routing } from "@/i18n/routing";
 import { BRAND_NAME, brandIcons } from "@/lib/brand";
@@ -244,6 +245,7 @@ export default async function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
       <body>
+        <ThemeRestore />
         {/*
           Messages are read from the request config (`src/i18n/request.ts`) and
           handed to the client tree here, once. Two thirds of this app's
@@ -253,7 +255,7 @@ export default async function RootLayout({
           namespaces out; locale, time zone and formats are still inherited.
         */}
         <NextIntlClientProvider messages={messages}>
-          <header className="flex items-center justify-between border-b px-6 py-3">
+          <header className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b px-4 py-3 sm:px-6">
             <HeaderBrandLink />
             {/*
             `AuthStatus` renders its own flex row, so the toggle gets a wrapper
@@ -263,8 +265,9 @@ export default async function RootLayout({
             toggle reads as one more item in the same run of controls.
 
             The toggle is deliberately last: it is the least-used control here,
-            and putting it after the sign-out/dashboard links keeps those two in
-            the position returning visitors already reach for.
+            and putting it after the account/dashboard link (and a provider's
+            sign out) keeps those in the position returning visitors already
+            reach for.
 
             This header is hidden on the surfaces that ship their own — the
             landing page (`[data-hide-site-header]`) and the admin back office
@@ -273,7 +276,7 @@ export default async function RootLayout({
             checkout; every other surface mounts its own `ThemeToggle` and
             `LanguageToggle` in its own header.
           */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               <AuthStatus />
               <LanguageToggle />
               <ThemeToggle />

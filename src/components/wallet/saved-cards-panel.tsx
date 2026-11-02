@@ -14,7 +14,7 @@ import {
 import { useRouter } from "@/i18n/navigation";
 
 /**
- * The saved-card list on `/wallet`, and the only interactive part of that page.
+ * The saved-card list on `/account/wallet`, and the only interactive part of that page.
  *
  * The page itself stays a server component and loads the initial list, so every
  * mutation here is a fetch followed by `router.refresh()` rather than a second
@@ -28,7 +28,7 @@ import { useRouter } from "@/i18n/navigation";
  * only, which is posted verbatim.
  *
  * Colour rule: landing token utilities, never a hex literal and never a `dark:`
- * variant. `dark:` *does* match on `/wallet` now (the variant in `globals.css`
+ * variant. `dark:` *does* match on the wallet page now (the variant in `globals.css`
  * is app-wide, and the `--landing-*` tokens flip under `html.dark`); it stays
  * unwanted because each of those utilities already resolves to both themes on
  * its own. The two exceptions are semantic:

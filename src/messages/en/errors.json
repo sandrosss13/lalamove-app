@@ -160,12 +160,14 @@
   },
   "clientProfile": {
     "accountTypeMustBeOneOf": "accountType must be one of: {allowed}.",
+    "clientProfileNotFound": "Client profile not found.",
     "dateofbirthCannotBeInTheFuture": "dateOfBirth cannot be in the future.",
     "dateofbirthMustBeAValidDate": "dateOfBirth must be a valid date.",
     "dateofbirthMustBeAnIsoDate": "dateOfBirth must be an ISO date string.",
     "genderMustBeOneOf": "gender must be one of: {allowed}.",
     "legalAddressIsTooLong": "Legal address must be at most {max} characters.",
     "legalAddressMustBeText": "Legal address must be text.",
+    "marketingConsentMustBeABoolean": "marketingConsent must be true or false.",
     "onlyClientsCanCreateAClient": "Only clients can create a client profile.",
     "onlyClientsHaveAClientProfile": "Only clients have a client profile."
   },
@@ -474,6 +476,30 @@
     "fieldTooLong": "{field} must be {max} characters or fewer.",
     "handlingTagsMustContainOnly": "handlingTags must contain only: {allowed}.",
     "handlingtagsMustBeAnArrayWhen": "handlingTags must be an array when provided.",
+    "orderItems": {
+      "itemsMustBeList": "items must be a list of the goods you are sending.",
+      "itemsEmpty": "List at least one item.",
+      "itemsTooMany": "List no more than 60 items. Split a larger load into separate bookings.",
+      "unknownKind": "{field} must be one of: CATALOGUE, CUSTOM, PALLET.",
+      "lineMustBeObject": "{field} must be a JSON object.",
+      "quantityOutOfRange": "{field} must be a whole number from 1 to {max}.",
+      "codeRequired": "{field} is required.",
+      "labelRequired": "{field} is required.",
+      "palletTypeInvalid": "{field} must be one of: {allowed}.",
+      "palletContentsInvalid": "{field} must be one of: {allowed}.",
+      "mixedModes": "List your load either as pallets or as items, not both in one booking.",
+      "catalogueUnavailable": "An item you listed is no longer available. Remove it and try again.",
+      "palletsBusinessOnly": "Pallet loads are available to business accounts. List your items instead.",
+      "bodyConflict": "Chilled goods and open-chassis items cannot travel together. Book them separately.",
+      "bodyRequired": "Choose a load space.",
+      "bodyMismatch": "The goods you listed need a {body} load space. Choose that load space and try again.",
+      "overMaximum": "This is more than one vehicle can carry. Split it into separate bookings.",
+      "bodyPhrase": {
+        "dryBox": "dry box",
+        "refrigerated": "refrigerated",
+        "openChassis": "open chassis"
+      }
+    },
     "paymentMethodTypeMustBeOneOf": "paymentMethodType must be one of: {allowed}.",
     "pickupwindowendMustBeAfterPickupwindowstart": "pickupWindowEnd must be after pickupWindowStart.",
     "scheduledatCannotBeInThePast": "scheduledAt cannot be in the past.",
@@ -493,7 +519,11 @@
     "onlyUnpaidOrdersCanBeCancelled": "Only unpaid orders can be cancelled. If this order has already been paid, please contact support to cancel it."
   },
   "ordersComplete": {
+    "dropoffHelperMinutesInvalid": "Helper minutes at drop-off must be a whole number from 0 to {max}.",
+    "dropoffHelperMinutesRequired": "Enter how many minutes the helpers worked at drop-off.",
     "photoRequired": "Add at least one delivery photo before confirming.",
+    "pickupHelperMinutesInvalid": "Helper minutes at pickup must be a whole number from 0 to {max}.",
+    "pickupHelperMinutesRequired": "Enter how many minutes the helpers worked at pickup.",
     "receivedByMustBeStringOrNull": "receivedBy must be a string or null.",
     "receivedByTooLong": "receivedBy must be {max} characters or fewer.",
     "signatureRequired": "Add the recipient's signature before confirming.",
@@ -508,8 +538,11 @@
     "youDoNotHaveAccessTo": "You do not have access to this order."
   },
   "ordersPay": {
+    "enterTheCardYouArePaying": "Enter the card you are paying with.",
+    "enterYourContactDetails": "Enter your first name, last name and phone number to pay.",
     "fieldMustBeStringWhenProvided": "{field} must be a string when provided.",
     "fieldTooLong": "{field} must be {max} characters or fewer.",
+    "payLaterIsNotAvailable": "Pay later is only available to business accounts. Please pay by card.",
     "paymentMethodTypeMustBeOneOf": "paymentMethodType must be one of: {allowed}.",
     "thisDeliveryHasAlreadyBeenPaid": "This delivery has already been paid for and is with our drivers."
   },
@@ -534,6 +567,19 @@
   "pushTokens": {
     "platformMustBeIosOrAndroid": "platform must be ios or android.",
     "tokenMustBeAnExpoPushToken": "token must be an Expo push token."
+  },
+  "savedAddresses": {
+    "addressAlreadySaved": "You already have this address saved.",
+    "addressIsRequired": "Enter the address to save.",
+    "addressNotFound": "Saved address not found.",
+    "addressTooLong": "Enter an address of {max} characters or fewer.",
+    "bodyMustBeAnObject": "Request body must be a JSON object.",
+    "coordinatesInvalid": "lat and lng must be valid coordinates or null.",
+    "fieldMustBeString": "{field} must be text when provided.",
+    "fieldMustBeTrueOrFalse": "{field} must be true or false when provided.",
+    "floorMustBeANumber": "floor must be a number.",
+    "limitReached": "You can keep up to {max} saved addresses. Delete one to save another.",
+    "onlyClientsHaveSavedAddresses": "Only clients have saved addresses."
   },
   "savedCards": {
     "cardBrandTooLong": "Enter a card brand of {max} characters or fewer.",

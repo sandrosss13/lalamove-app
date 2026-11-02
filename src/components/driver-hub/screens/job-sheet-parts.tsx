@@ -44,6 +44,7 @@ import { formatGel } from "@/components/driver-hub/screens/jobs-format";
 import { OrderPhotoGallery } from "@/components/order-photo-gallery";
 import { Button } from "@/components/ui/button";
 import type { HubJobSheet } from "@/lib/dashboard/hub/job-sheet";
+import { stopInfoRows, type StopInfo } from "@/lib/orders/stop-info";
 import { cn } from "@/lib/utils";
 
 /**
@@ -709,10 +710,13 @@ export function JobSheetHeaderCard({
       )}
 
       {/* One line on a job that finished inside the free loading allowance, two
-          when the waiting minutes earned something. Suppressed entirely at a
+          when the waiting minutes earned something — and the payout itself in
+          two (transport / helpers) whenever helpers were booked, quoted or
+          final. Before completion the overtime line cannot appear (it is 0),
+          so a quoted sheet shows only that split. Suppressed entirely at a
           single line: a "Payout" row restating the headline immediately above
           it is a rule and a repetition, not a breakdown. */}
-      {isFinal && lines.length > 1 ? (
+      {lines.length > 1 ? (
         <dl className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-[7px] border-t border-border pt-3 text-[13px]">
           {lines.map((line) => (
             <React.Fragment key={line.label}>
@@ -822,8 +826,11 @@ export type JobSheetStopCardProps = {
   address: string;
   contactName: string | null;
   contactPhone: string | null;
-  /** Block, floor or room — free text, as the schema stores it. */
-  contactDetails: string | null;
+  /**
+   * The stop's Contact Info — building, entrance, floor, elevators, comment
+   * and the legacy free-text details (`stopInfoRows`). Never money.
+   */
+  info: StopInfo;
   lat: number | null;
   lng: number | null;
   /**
@@ -870,7 +877,7 @@ export function JobSheetStopCard({
   address,
   contactName,
   contactPhone,
-  contactDetails,
+  info,
   lat,
   lng,
   prominent,
@@ -883,6 +890,8 @@ export function JobSheetStopCard({
   const callHref = contactPhone === null ? null : toTelHref(contactPhone);
   const t = useTranslations("driverHub.jobSheetParts");
   const tShared = useTranslations("common.shared");
+  const tStopInfo = useTranslations("common.stopInfo");
+  const infoRows = stopInfoRows(info, tStopInfo);
 
   return (
     <HubCard
@@ -928,15 +937,23 @@ export function JobSheetStopCard({
             <StopPhoneLink phone={contactPhone} className="font-price" />
           )}
         </dd>
-        {/* Block, floor, buzzer code — absent on most orders, and a labelled
-            em dash for it would be a third row of nothing on a card that
-            already shows two. Omitted rather than emptied. */}
-        {contactDetails === null ? null : (
-          <>
-            <dt className="text-muted-foreground">{t("details")}</dt>
-            <dd className="min-w-0 break-words">{contactDetails}</dd>
-          </>
-        )}
+        {/* Building, entrance, floor, elevators, the client's comment (and
+            an older order's free-text details) — each omitted rather than
+            emptied when absent: a labelled em dash per missing part would bury
+            the two rows that are always there. */}
+        {infoRows.map((row) => (
+          <React.Fragment key={row.key}>
+            <dt className="text-muted-foreground">{row.label}</dt>
+            <dd
+              className={cn(
+                "min-w-0 break-words",
+                row.multiline && "whitespace-pre-line",
+              )}
+            >
+              {row.value}
+            </dd>
+          </React.Fragment>
+        ))}
       </dl>
 
       {/* `mt-auto` pins the action row to the bottom of the card, so two stop
@@ -1246,6 +1263,26 @@ export function JobSheetTimelineCard({
           {
             label: tShared("waitingTime"),
             value: t("minutesShort", { n: job.waitingMinutes }),
+            numeric: true,
+          },
+        ]),
+    // Pricing model v1: the helper minutes reported per stop, when there were
+    // helpers there. Null otherwise, and the row is left out.
+    ...(job.pickupHelperMinutes === null
+      ? []
+      : [
+          {
+            label: t("helperTimeAtPickup"),
+            value: t("minutesShort", { n: job.pickupHelperMinutes }),
+            numeric: true,
+          },
+        ]),
+    ...(job.dropoffHelperMinutes === null
+      ? []
+      : [
+          {
+            label: t("helperTimeAtDropoff"),
+            value: t("minutesShort", { n: job.dropoffHelperMinutes }),
             numeric: true,
           },
         ]),

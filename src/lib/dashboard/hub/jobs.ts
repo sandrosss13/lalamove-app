@@ -41,6 +41,7 @@ import type { Prisma } from "@prisma/client";
 import type { HubAccount } from "@/lib/dashboard/hub/account";
 import { formatCity } from "@/lib/format-city";
 import { totalDriverEarnings } from "@/lib/orders/payout";
+import { stopWorkOf, type StopWork } from "@/lib/orders/stop-work";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -100,8 +101,13 @@ export type HubBodyType = "Dry box" | "Refrigerated" | "Open chassis";
 export type HubStopContact = {
   name: string | null;
   phone: string | null;
-  /** Block, floor or room — free text, as the schema stores it. */
+  /** LEGACY block, floor or room — free text, older orders only. */
   details: string | null;
+  /** Structured Contact Info (newer orders). */
+  buildingName: string | null;
+  entrance: string | null;
+  /** Note for the driver (door code, lift code…). */
+  comment: string | null;
 };
 
 /** One row of the job table, carrying everything its detail panel also needs. */
@@ -172,11 +178,18 @@ export type HubJob = {
    */
   overtimeDriverPayout: number;
   /**
-   * Extra helpers booked *beyond* the driver, 0-3. Kept even though the
+   * Extra helpers booked *beyond* the driver, 0-4. Kept even though the
    * per-helper fee itself is gone from this type: a headcount is operational
    * context, not money, and a job booked with a crew should say so.
    */
   helperCount: number;
+  /**
+   * Pricing model v1: the work at each stop — helpers, floor, cargo elevator
+   * (`stopWorkOf`). No money. Pre-v1 orders carry the column defaults at both
+   * ends and fall back to `helperCount` (see `hasStopWork`).
+   */
+  pickupWork: StopWork;
+  dropoffWork: StopWork;
   /** Why `overtimeDriverPayout` is non-zero; null until the job is completed. */
   waitingMinutes: number | null;
 
@@ -399,22 +412,24 @@ function textOrNull(value: string | null): string | null {
  * the only way the panel can tell "no contact here" from "a contact whose name
  * we do not have", and it is what stops an all-empty row being drawn.
  */
-function toStopContact(
-  name: string | null,
-  phone: string | null,
-  details: string | null,
-): HubStopContact | null {
+function toStopContact(stop: {
+  name: string | null;
+  phone: string | null;
+  details: string | null;
+  buildingName: string | null;
+  entrance: string | null;
+  comment: string | null;
+}): HubStopContact | null {
   const contact: HubStopContact = {
-    name: textOrNull(name),
-    phone: textOrNull(phone),
-    details: textOrNull(details),
+    name: textOrNull(stop.name),
+    phone: textOrNull(stop.phone),
+    details: textOrNull(stop.details),
+    buildingName: textOrNull(stop.buildingName),
+    entrance: textOrNull(stop.entrance),
+    comment: textOrNull(stop.comment),
   };
 
-  return contact.name === null &&
-    contact.phone === null &&
-    contact.details === null
-    ? null
-    : contact;
+  return Object.values(contact).every((part) => part === null) ? null : contact;
 }
 
 /**
@@ -444,6 +459,17 @@ export async function getHubJobs(account: HubAccount): Promise<HubJobsData> {
       driverPayout: true,
       overtimeDriverPayout: true,
       helperCount: true,
+      pickupHelpers: true,
+      pickupFloor: true,
+      pickupCargoElevator: true,
+      pickupPassengerElevator: true,
+      dropoffHelpers: true,
+      dropoffFloor: true,
+      dropoffCargoElevator: true,
+      dropoffPassengerElevator: true,
+      // Read only to derive `StopWork.helperMinutesRequired` (`stopWorkOf`);
+      // the shaped output never carries it.
+      tariffVersion: true,
       waitingMinutes: true,
       createdAt: true,
       scheduledAt: true,
@@ -459,9 +485,15 @@ export async function getHubJobs(account: HubAccount): Promise<HubJobsData> {
       pickupContactName: true,
       pickupContactPhone: true,
       pickupContactDetails: true,
+      pickupBuildingName: true,
+      pickupEntrance: true,
+      pickupComment: true,
       dropoffContactName: true,
       dropoffContactPhone: true,
       dropoffContactDetails: true,
+      dropoffBuildingName: true,
+      dropoffEntrance: true,
+      dropoffComment: true,
       purchaseOrderRef: true,
       vehicleTypeSpec: { select: { label: true } },
       vehicle: { select: { plateNumber: true } },
@@ -529,6 +561,7 @@ export async function getHubJobs(account: HubAccount): Promise<HubJobsData> {
       driverPayout: order.driverPayout,
       overtimeDriverPayout: order.overtimeDriverPayout,
       helperCount: order.helperCount,
+      ...stopWorkOf(order),
       waitingMinutes: order.waitingMinutes,
       createdAt: order.createdAt.toISOString(),
       scheduledAt: order.scheduledAt?.toISOString() ?? null,
@@ -546,16 +579,22 @@ export async function getHubJobs(account: HubAccount): Promise<HubJobsData> {
       vehiclePlate: order.vehicle?.plateNumber ?? null,
       serviceLevel: toHubServiceLevel(order.serviceLevel),
       bodyType: toHubBodyType(order.bodyType),
-      pickupContact: toStopContact(
-        order.pickupContactName,
-        order.pickupContactPhone,
-        order.pickupContactDetails,
-      ),
-      dropoffContact: toStopContact(
-        order.dropoffContactName,
-        order.dropoffContactPhone,
-        order.dropoffContactDetails,
-      ),
+      pickupContact: toStopContact({
+        name: order.pickupContactName,
+        phone: order.pickupContactPhone,
+        details: order.pickupContactDetails,
+        buildingName: order.pickupBuildingName,
+        entrance: order.pickupEntrance,
+        comment: order.pickupComment,
+      }),
+      dropoffContact: toStopContact({
+        name: order.dropoffContactName,
+        phone: order.dropoffContactPhone,
+        details: order.dropoffContactDetails,
+        buildingName: order.dropoffBuildingName,
+        entrance: order.dropoffEntrance,
+        comment: order.dropoffComment,
+      }),
       purchaseOrderRef: textOrNull(order.purchaseOrderRef),
     });
   }

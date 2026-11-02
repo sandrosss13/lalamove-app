@@ -11,6 +11,7 @@ import type {
 
 import { getRequestTranslations } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
+import { displayEmail } from "@/lib/phone-placeholder-email";
 import { prisma } from "@/lib/prisma";
 import { findBodyType } from "@/lib/driver-onboarding/vehicle-classes";
 import {
@@ -137,7 +138,8 @@ type FleetCompanyOnRecord = {
   citiesOfOperation: string[];
   contactName: string;
   contactRole: string;
-  /** The saved contact email, or the account's own address as the seed for it. */
+  /** The saved contact email, or the account's own address as the seed for
+   *  it — empty for a phone account, whose placeholder is never a seed. */
   contactEmail: string;
   /**
    * The real account number, **not** masked — the one asymmetry with
@@ -505,7 +507,10 @@ function buildCompanyOnRecord(
 ): FleetCompanyOnRecord {
   return {
     ...companyDetailColumns(company),
-    contactEmail: company.contactEmail ?? company.user.email,
+    // Never seeded with a phone account's placeholder address: the field
+    // starts empty instead, for the company to fill in.
+    contactEmail:
+      company.contactEmail ?? displayEmail(company.user.email) ?? "",
     bankAccountIban: company.bankAccountIban ?? "",
   };
 }

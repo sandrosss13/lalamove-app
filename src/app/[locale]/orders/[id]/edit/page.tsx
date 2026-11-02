@@ -10,7 +10,7 @@ import {
   BookingForm,
   type BookingFormInitialOrder,
 } from "@/components/home/booking-form";
-import type { StopContact } from "@/components/home/stop-contact-dialog";
+import { stopContactFromOrder } from "@/components/home/stop-contact";
 import { orderIsEditableByClient } from "@/components/orders-format";
 import {
   CheckoutNotice,
@@ -40,19 +40,56 @@ const EDIT_ORDER_SELECT = {
   pickupContactName: true,
   pickupContactPhone: true,
   pickupContactDetails: true,
+  pickupBuildingName: true,
+  pickupEntrance: true,
+  pickupComment: true,
   dropoffAddress: true,
   dropoffLat: true,
   dropoffLng: true,
   dropoffContactName: true,
   dropoffContactPhone: true,
   dropoffContactDetails: true,
+  dropoffBuildingName: true,
+  dropoffEntrance: true,
+  dropoffComment: true,
   cargoCategory: true,
   bodyType: true,
   helperCount: true,
+  // Pricing model v1: helpers, floor and cargo elevator at each end, plus the
+  // tariff version — null on a pre-v1 order, which tells the form to read the
+  // legacy `helperCount` instead (`locationHelpFromOrder`).
+  pickupHelpers: true,
+  pickupFloor: true,
+  pickupCargoElevator: true,
+  pickupPassengerElevator: true,
+  dropoffHelpers: true,
+  dropoffFloor: true,
+  dropoffCargoElevator: true,
+  dropoffPassengerElevator: true,
+  tariffVersion: true,
   serviceLevel: true,
   description: true,
   // The form picks a vehicle by its stable code, never by row id.
   vehicleTypeSpec: { select: { code: true } },
+  // Goods-first booking: the item lines the order was booked with, so the
+  // form re-opens on the same list (`linesFromOrderItems`). The catalogue
+  // entry's code and `active` flag decide whether a catalogue line is re-listed
+  // by code or carried as a custom line with its snapshot figures. Ordered by
+  // id (a cuid, so close to creation order) to keep the order stable.
+  items: {
+    orderBy: { id: "asc" },
+    select: {
+      kind: true,
+      label: true,
+      quantity: true,
+      unitWeightKg: true,
+      lengthM: true,
+      widthM: true,
+      heightM: true,
+      palletType: true,
+      catalogEntry: { select: { code: true, active: true } },
+    },
+  },
 } as const;
 
 /** A stored coordinate pair, or `null` when either half is missing. */
@@ -61,23 +98,6 @@ function toLatLng(
   lng: number | null,
 ): { lat: number; lng: number } | null {
   return lat !== null && lng !== null ? { lat, lng } : null;
-}
-
-/**
- * A stop's three contact columns as the booking form's dialog holds them, or
- * `null` when none was recorded — the same "no contact for this stop" the form
- * starts a new booking with.
- */
-function toStopContact(
-  name: string | null,
-  phone: string | null,
-  details: string | null,
-): StopContact | null {
-  if (!name && !phone && !details) {
-    return null;
-  }
-
-  return { name: name ?? "", phone: phone ?? "", details: details ?? "" };
 }
 
 /**
@@ -165,22 +185,51 @@ export default async function EditOrderPage({
     pickupLocation: toLatLng(order.pickupLat, order.pickupLng),
     dropoffAddress: order.dropoffAddress,
     dropoffLocation: toLatLng(order.dropoffLat, order.dropoffLng),
-    pickupContact: toStopContact(
-      order.pickupContactName,
-      order.pickupContactPhone,
-      order.pickupContactDetails,
-    ),
-    dropoffContact: toStopContact(
-      order.dropoffContactName,
-      order.dropoffContactPhone,
-      order.dropoffContactDetails,
-    ),
+    pickupContact: stopContactFromOrder({
+      name: order.pickupContactName,
+      phone: order.pickupContactPhone,
+      buildingName: order.pickupBuildingName,
+      entrance: order.pickupEntrance,
+      comment: order.pickupComment,
+      details: order.pickupContactDetails,
+    }),
+    dropoffContact: stopContactFromOrder({
+      name: order.dropoffContactName,
+      phone: order.dropoffContactPhone,
+      buildingName: order.dropoffBuildingName,
+      entrance: order.dropoffEntrance,
+      comment: order.dropoffComment,
+      details: order.dropoffContactDetails,
+    }),
     cargoCategory: order.cargoCategory,
     vehicleTypeCode: order.vehicleTypeSpec.code,
     bodyType: order.bodyType,
     helperCount: order.helperCount,
+    pickupHelpers: order.pickupHelpers,
+    pickupFloor: order.pickupFloor,
+    pickupCargoElevator: order.pickupCargoElevator,
+    pickupPassengerElevator: order.pickupPassengerElevator,
+    dropoffHelpers: order.dropoffHelpers,
+    dropoffFloor: order.dropoffFloor,
+    dropoffCargoElevator: order.dropoffCargoElevator,
+    dropoffPassengerElevator: order.dropoffPassengerElevator,
+    tariffVersion: order.tariffVersion,
     serviceLevel: order.serviceLevel,
     description: order.description,
+    items: order.items.map((item) => ({
+      kind: item.kind,
+      catalogueCode:
+        item.catalogEntry !== null && item.catalogEntry.active
+          ? item.catalogEntry.code
+          : null,
+      label: item.label,
+      quantity: item.quantity,
+      unitWeightKg: item.unitWeightKg,
+      lengthM: item.lengthM,
+      widthM: item.widthM,
+      heightM: item.heightM,
+      palletType: item.palletType,
+    })),
     // Anything but an explicit BUSINESS is the narrower list, as in the hook.
     accountType: isBusiness ? "BUSINESS" : "INDIVIDUAL",
   };

@@ -4,6 +4,11 @@
     "settings": "Settings",
     "theDetailsADriverSeesWhen": "The details a driver sees when they turn up for one of your pickups, and the credentials you sign in with. Keeping your phone number current is what stops a delivery stalling at the kerb."
   },
+  "accountMarketingConsentCard": {
+    "couldNotSave": "Could not save your choice. Please try again.",
+    "saved": "Saved",
+    "title": "Marketing offers"
+  },
   "accountPasswordCard": {
     "changePassword": "Change password",
     "couldNotChangePassword": "Could not change your password. Please try again.",

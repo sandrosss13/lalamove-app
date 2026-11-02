@@ -668,7 +668,7 @@ export const DEFAULT_HOME_PAGE_CONTENT: HomePageSectionContentByType = {
     intro:
       "Enter a pickup and a dropoff, pick a vehicle rated for the load, and we quote base fare, distance and driving time in lari. No account needed to see the number.",
     ctaLabel: "Book a delivery",
-    ctaHref: "/sign-up",
+    ctaHref: "/book",
   },
   offers: {
     // linkLabel/linkHref are intentionally omitted: there is no "all offers"

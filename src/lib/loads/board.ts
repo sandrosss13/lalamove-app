@@ -37,6 +37,7 @@ import type {
 import { specCapability } from "@/lib/orders/booking-fit";
 import type { BookedClass } from "@/lib/orders/class-substitution";
 import { driverVehiclesWhere } from "@/lib/orders/driver-vehicles";
+import { stopWorkOf } from "@/lib/orders/stop-work";
 import {
   driverLoadEligibility,
   permittedVehicles,
@@ -296,9 +297,15 @@ function toLoadBoardItem(
     pickupContactName: showContacts ? order.pickupContactName : null,
     pickupContactPhone: showContacts ? order.pickupContactPhone : null,
     pickupContactDetails: showContacts ? order.pickupContactDetails : null,
+    pickupBuildingName: showContacts ? order.pickupBuildingName : null,
+    pickupEntrance: showContacts ? order.pickupEntrance : null,
+    pickupComment: showContacts ? order.pickupComment : null,
     dropoffContactName: showContacts ? order.dropoffContactName : null,
     dropoffContactPhone: showContacts ? order.dropoffContactPhone : null,
     dropoffContactDetails: showContacts ? order.dropoffContactDetails : null,
+    dropoffBuildingName: showContacts ? order.dropoffBuildingName : null,
+    dropoffEntrance: showContacts ? order.dropoffEntrance : null,
+    dropoffComment: showContacts ? order.dropoffComment : null,
     distanceKm: order.distanceKm,
     // Degrades to null rather than to a wrong number: `currentLat`/`currentLng`
     // are frequently stale or absent, and an order booked against an address
@@ -315,6 +322,8 @@ function toLoadBoardItem(
     packagingDescription: order.packagingDescription,
     itemQuantity: order.itemQuantity,
     handlingTags: order.handlingTags,
+    // Pricing model v1: helpers, floor and elevator at each stop. No money.
+    ...stopWorkOf(order),
     pickupWindowStart: order.pickupWindowStart?.toISOString() ?? null,
     pickupWindowEnd: order.pickupWindowEnd?.toISOString() ?? null,
     deliveryDeadline: order.deliveryDeadline?.toISOString() ?? null,
@@ -323,6 +332,9 @@ function toLoadBoardItem(
     // response does not even select. The rate that applied is kept per order so
     // retuning the commission cannot rewrite what a historical job paid.
     driverPayout: order.driverPayout,
+    // The helpers' part of `driverPayout` (pricing model v1) — included in it,
+    // so `ratePerKm` below stays the whole payout per km as before.
+    helperPayout: order.helperPayout,
     // Guarded: `distanceKm` should always be positive in practice, but a stray
     // zero must not put `Infinity` into a JSON response.
     ratePerKm:

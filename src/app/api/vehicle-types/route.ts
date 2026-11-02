@@ -1,3 +1,4 @@
+import { ChassisType } from "@prisma/client";
 import { NextResponse } from "next/server";
 
 import { serviceableSpecIds } from "@/lib/orders/class-serviceability";
@@ -64,6 +65,19 @@ import { visibleVehicleTypeWhere } from "@/lib/vehicle-type-visibility";
  * the cargo check: the server is the authority and is never the looser of the
  * two. Making it body-aware would mean a query parameter and one fetch per body
  * type, replacing a single cached request with several.
+ *
+ * **`serviceableBodies` is the body-aware answer, carried alongside it.** For
+ * each type, the load spaces under which `POST /api/orders` would accept a
+ * booking against it — computed with the very `serviceableSpecIds(bodyType)`
+ * call that route makes, once per `ChassisType`. Goods-first booking
+ * recommends a class for the client rather than letting them pick one, and a
+ * recommendation the server then refuses for a Refrigerated or Open-chassis
+ * load is exactly the gap the paragraph above accepted; the form reads
+ * `serviceableBodies.includes(bodyType)` instead. Still one request and no
+ * query parameter: the per-body answers are computed here, in parallel, rather
+ * than fetched by the browser one body at a time. The cost is one more fleet
+ * scan per body on top of the cost note above, and the same caching follow-up
+ * covers it. `serviceable` stays as it was for existing readers.
  */
 export async function GET(): Promise<NextResponse> {
   // Both reads are independent, so they go out together rather than in series —
@@ -100,15 +114,26 @@ export async function GET(): Promise<NextResponse> {
         // never removes it from the bookable list.
         showOnHomepage: true,
         homepageSortOrder: true,
+        // Pricing model v1: the CITY rates are read from the v1 columns and
+        // returned under the response's existing keys (`baseFare`,
+        // `pricePerKm`, `pricePerMinute`, `minimumFare` — see the mapping
+        // below), so the landing tiles and the booking form's ordering show
+        // the rates this code actually quotes. The legacy columns of the same
+        // names belong to the pre-v1 code and are not read here.
         pricingRule: {
           select: {
-            baseFare: true,
-            pricePerKm: true,
-            pricePerMinute: true,
+            cityBaseFare: true,
+            cityPricePerKm: true,
+            cityPricePerMinute: true,
+            cityMinimumFare: true,
             freeLoadingMinutes: true,
             overtimeRatePerMinute: true,
+            // LEGACY: unused by the v1 engine; kept in the response shape.
             helperFee: true,
-            minimumFare: true,
+            // Pricing model v1 intercity rates. The commission rates are
+            // internal and deliberately not projected.
+            intercityBaseFare: true,
+            intercityPricePerKm: true,
           },
         },
       },
@@ -116,13 +141,39 @@ export async function GET(): Promise<NextResponse> {
     serviceableSpecIds(),
   ]);
 
+  // The same fleet question asked once per body, as `POST /api/orders` asks it
+  // for a booking's own body. In enum order, so `serviceableBodies` lists
+  // bodies in a stable order.
+  const bodies = Object.values(ChassisType);
+  const serviceableByBody = await Promise.all(
+    bodies.map((body) => serviceableSpecIds(body)),
+  );
+
   // `id` is destructured out rather than deleted, so it never reaches the
   // response object at all: this projection is public, and the id it is looked
   // up by is internal.
-  const withServiceability = vehicleTypes.map(({ id, ...vehicleType }) => ({
-    ...vehicleType,
-    serviceable: serviceable.has(id),
-  }));
+  const withServiceability = vehicleTypes.map(
+    ({ id, pricingRule, ...vehicleType }) => ({
+      ...vehicleType,
+      pricingRule: pricingRule
+        ? {
+            baseFare: pricingRule.cityBaseFare,
+            pricePerKm: pricingRule.cityPricePerKm,
+            pricePerMinute: pricingRule.cityPricePerMinute,
+            minimumFare: pricingRule.cityMinimumFare,
+            freeLoadingMinutes: pricingRule.freeLoadingMinutes,
+            overtimeRatePerMinute: pricingRule.overtimeRatePerMinute,
+            helperFee: pricingRule.helperFee,
+            intercityBaseFare: pricingRule.intercityBaseFare,
+            intercityPricePerKm: pricingRule.intercityPricePerKm,
+          }
+        : null,
+      serviceable: serviceable.has(id),
+      serviceableBodies: bodies.filter((_, index) =>
+        serviceableByBody[index]?.has(id),
+      ),
+    }),
+  );
 
   return NextResponse.json(withServiceability, { status: 200 });
 }

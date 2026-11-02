@@ -3,16 +3,44 @@ import { OrderStatus, type Prisma } from "@prisma/client";
 
 import { getRequestTranslations } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
-import { parseCreateOrderBody } from "@/lib/orders/order-input";
+import {
+  createGuestAccessToken,
+  setGuestOrderCookie,
+} from "@/lib/orders/guest-access";
+import { parseBookingBody } from "@/lib/orders/order-input";
+import { CLIENT_ORDER_RESPONSE_SELECT } from "@/lib/order-response-select";
 import { prepareOrderWrite } from "@/lib/orders/order-write";
 import {
   formatOrderReference,
   ORDER_REFERENCE_SEQUENCE,
 } from "@/lib/orders/reference";
 import { prisma } from "@/lib/prisma";
+import { checkRateLimit, rateLimitCallerKey } from "@/lib/rate-limit";
 
 /**
- * POST /api/orders — create a freight order for the signed-in client.
+ * Per-IP budget for **guest** bookings — creating an order without a session.
+ * A signed-in client is already accountable through their account and is not
+ * limited here; a guest is anonymous, and every booking spends three
+ * LocationIQ requests on the quote and leaves a row in the database. Ten in
+ * ten minutes is several attempts' worth for one person correcting a booking,
+ * and nowhere near enough to fill the orders table from a script.
+ */
+const GUEST_ORDER_RATE_LIMIT = { limit: 10, windowMs: 10 * 60_000 };
+
+/**
+ * POST /api/orders — create a freight order for the signed-in client, or for a
+ * **guest** when there is no session.
+ *
+ * A guest order is the same booking with a different owner: `clientId` stays
+ * null, and ownership is a bearer token instead — minted here, stored only as
+ * its hash (`guestAccessTokenHash`), and handed to the booking browser as an
+ * httpOnly cookie (see `src/lib/orders/guest-access.ts`). That cookie is what
+ * lets the guest attach photos and reach checkout, where the contact details
+ * and the card are collected. A guest is held to INDIVIDUAL rules by
+ * `prepareOrderWrite`: no saved card, no PO reference, no "pay later". Guest
+ * creation is rate limited per caller, the same way the public estimate is.
+ * The response body is identical either way; the token travels only in the
+ * cookie, never in JSON.
  *
  * Quoting goes through the same `estimateDelivery` the public estimate endpoint
  * uses, so the price booked here is the price that was quoted. The itemised
@@ -33,15 +61,35 @@ import { prisma } from "@/lib/prisma";
  * rules a booking is held to; this handler still answers every request with the
  * same status and the same message it always did. What stays here is what only
  * a *create* does: the status it opens in, and the reference it draws.
+ *
+ * Goods-first booking: a body that lists `items` has its weight, dimensions,
+ * category and (for individuals) body re-derived from the goods themselves
+ * (`parseBookingBody` drops the typed envelope; `prepareOrderWrite` plans the
+ * goods), and the order is written with one `OrderItem` snapshot per line. A
+ * body without `items` is booked exactly as before.
  */
 export async function POST(request: Request): Promise<NextResponse> {
   const t = await getRequestTranslations();
 
   const session = await auth.api.getSession({ headers: request.headers });
-  if (!session) {
+
+  // Checked before parsing or quoting so a flood of anonymous bookings costs
+  // almost nothing. Namespaced so it never shares a bucket with the estimate.
+  if (
+    !session &&
+    !checkRateLimit(
+      `guest-order:${rateLimitCallerKey(request)}`,
+      GUEST_ORDER_RATE_LIMIT,
+    )
+  ) {
     return NextResponse.json(
-      { error: t("common.shared.unauthorized") },
-      { status: 401 },
+      { error: t("common.shared.tooManyRequestsPleaseWaitA") },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(GUEST_ORDER_RATE_LIMIT.windowMs / 1000),
+        },
+      },
     );
   }
 
@@ -55,20 +103,35 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
   }
 
-  const parsed = parseCreateOrderBody(rawBody, t);
+  const parsed = parseBookingBody(rawBody, t);
   if ("error" in parsed) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
 
-  const prepared = await prepareOrderWrite(parsed.data, session.user.id, t);
+  // `null` is the guest. Any signed-in role keeps the behaviour it always had:
+  // the order is booked against the session user.
+  const clientId = session?.user.id ?? null;
+
+  const prepared = await prepareOrderWrite(
+    parsed.data.data,
+    clientId,
+    t,
+    parsed.data.rawItems,
+  );
   if (!prepared.ok) {
     return NextResponse.json(
-      { error: prepared.error },
+      // `reason` (when set) lets the booking form tell a tariff change or a
+      // manual-quote route apart from an ordinary refusal.
+      { error: prepared.error, reason: prepared.reason },
       { status: prepared.status },
     );
   }
 
-  const { details, payment } = prepared.write;
+  const { details, payment, items } = prepared.write;
+
+  // Minted only for a guest. The raw token leaves this handler in the cookie
+  // below and nowhere else; the row keeps its hash.
+  const guestAccess = clientId === null ? createGuestAccessToken() : null;
 
   // Created `INITIATED` — off-market and unpaid — rather than letting the column
   // default supply a status. An order's opening state is a decision this path
@@ -123,8 +186,18 @@ export async function POST(request: Request): Promise<NextResponse> {
         paymentMethodType: payment.paymentMethodType,
         savedCardId: payment.savedCardId,
         purchaseOrderRef: payment.purchaseOrderRef,
-        clientId: session.user.id,
+        clientId,
+        guestAccessTokenHash: guestAccess?.hash ?? null,
+        // Items path only. One nested create, so the lines are written in the
+        // same statement as the order and can never exist without it (or it
+        // without them). The legacy path adds nothing here.
+        ...(items !== null ? { items: { create: items } } : {}),
       },
+      // The client's own view of the created row (`CLIENT_ORDER_RESPONSE_SELECT`):
+      // their quote, but never the carrier's payout or the platform's
+      // commission rate — and never the guest token hash, which no consumer
+      // has any use for. The booking form reads only `id` off it.
+      select: CLIENT_ORDER_RESPONSE_SELECT,
     });
   });
 
@@ -145,7 +218,13 @@ export async function POST(request: Request): Promise<NextResponse> {
   // rule someone has to remember. Do not relax either into a `not`/`notIn`
   // filter: that would start listing unpaid work the moment a new status is
   // added.
-  return NextResponse.json(created, { status: 201 });
+  const response = NextResponse.json(created, { status: 201 });
+
+  if (guestAccess) {
+    setGuestOrderCookie(response, created.id, guestAccess.token);
+  }
+
+  return response;
 }
 
 /**
@@ -185,9 +264,15 @@ const ORDER_LIST_SELECT = {
   pickupContactName: true,
   pickupContactPhone: true,
   pickupContactDetails: true,
+  pickupBuildingName: true,
+  pickupEntrance: true,
+  pickupComment: true,
   dropoffContactName: true,
   dropoffContactPhone: true,
   dropoffContactDetails: true,
+  dropoffBuildingName: true,
+  dropoffEntrance: true,
+  dropoffComment: true,
   distanceKm: true,
   baseFare: true,
   distanceFare: true,
@@ -219,6 +304,27 @@ const ORDER_LIST_SELECT = {
   handlingTags: true,
   pickupWindowStart: true,
   pickupWindowEnd: true,
+  // Pricing model v1 — the client's own quote, itemised (see the `Order`
+  // model). Client money: never in a carrier select.
+  tripType: true,
+  returnAllowance: true,
+  returnFare: true,
+  transportFare: true,
+  pickupHelperFee: true,
+  dropoffHelperFee: true,
+  helperOvertimeFee: true,
+  pickupHelpers: true,
+  pickupFloor: true,
+  pickupCargoElevator: true,
+  pickupPassengerElevator: true,
+  dropoffHelpers: true,
+  dropoffFloor: true,
+  dropoffCargoElevator: true,
+  dropoffPassengerElevator: true,
+  pickupHelperMinutes: true,
+  dropoffHelperMinutes: true,
+  tariffVersion: true,
+  quotedAt: true,
   deliveryDeadline: true,
   driverPayout: true,
   // `commissionRate` deliberately excluded, and must stay excluded: it is an
@@ -291,9 +397,15 @@ const DRIVER_ORDER_LIST_SELECT = {
   pickupContactName: true,
   pickupContactPhone: true,
   pickupContactDetails: true,
+  pickupBuildingName: true,
+  pickupEntrance: true,
+  pickupComment: true,
   dropoffContactName: true,
   dropoffContactPhone: true,
   dropoffContactDetails: true,
+  dropoffBuildingName: true,
+  dropoffEntrance: true,
+  dropoffComment: true,
   distanceKm: true,
   serviceLevel: true,
   vehicleTypeSpecId: true,
@@ -334,7 +446,7 @@ const DRIVER_ORDER_LIST_SELECT = {
  * what it pays — the contacts become theirs when the job does.
  */
 function canSeeStopContacts(
-  order: { clientId: string; driverId: string | null },
+  order: { clientId: string | null; driverId: string | null },
   userId: string,
 ): boolean {
   return order.clientId === userId || order.driverId === userId;
@@ -445,9 +557,15 @@ export async function GET(request: Request): Promise<NextResponse> {
             pickupContactName: null,
             pickupContactPhone: null,
             pickupContactDetails: null,
+            pickupBuildingName: null,
+            pickupEntrance: null,
+            pickupComment: null,
             dropoffContactName: null,
             dropoffContactPhone: null,
             dropoffContactDetails: null,
+            dropoffBuildingName: null,
+            dropoffEntrance: null,
+            dropoffComment: null,
           },
     );
 
@@ -479,9 +597,15 @@ export async function GET(request: Request): Promise<NextResponse> {
           pickupContactName: null,
           pickupContactPhone: null,
           pickupContactDetails: null,
+          pickupBuildingName: null,
+          pickupEntrance: null,
+          pickupComment: null,
           dropoffContactName: null,
           dropoffContactPhone: null,
           dropoffContactDetails: null,
+          dropoffBuildingName: null,
+          dropoffEntrance: null,
+          dropoffComment: null,
         },
   );
 

@@ -4,39 +4,31 @@ import { useTranslations } from "next-intl";
 
 import { Link } from "@/i18n/navigation";
 import { ZomoLockupThemed } from "@/components/brand/zomo-logo";
-import { useSignOut } from "@/components/auth/use-sign-out";
 import { useSession } from "@/lib/auth-client";
 
 /**
- * Header widget reflecting the current session. Shows the signed-in user with a
- * sign-out button, or sign-in / sign-up links when there is no session.
+ * Header widget reflecting the current session: the signed-in user's way into
+ * their own area, or sign-in / sign-up links when there is no session.
+ *
+ * No sign out here for any role: clients sign out from the last row of the
+ * account rail (`AccountSidebar`), drivers and companies from the hub, staff
+ * from the back-office shell.
  */
 export function AuthStatus() {
   const t = useTranslations("common.shared");
-  const tAuthStatus = useTranslations("common.authStatus");
   const { data: session, isPending } = useSession();
-  // Hoisted above the `session` branch below because hooks cannot be called
-  // conditionally — the control it drives only renders when there *is* a
-  // session, but the hook has to run on every render either way.
-  const { signOut, signingOut } = useSignOut();
 
   if (isPending) {
     return <span className="text-sm opacity-50">…</span>;
   }
 
   if (session) {
-    const { name, role } = session.user;
-
     // Clients live on /account; drivers and logistics companies manage their
     // fleet, roster and bookings on /dashboard.
-    const isClient = role === "CLIENT";
+    const isClient = session.user.role === "CLIENT";
 
     return (
-      <div className="flex items-center gap-3 text-sm">
-        {/* The name alone: that the header offers "Sign out" already says the
-            visitor is signed in, and the role is a fact about the account they
-            cannot act on from here — both were noise beside their own name. */}
-        <span>{name}</span>
+      <div className="flex items-center gap-2 whitespace-nowrap text-sm sm:gap-3">
         {/*
           A client's own route to the marketing page is the wordmark now (see
           `HeaderBrandLink`), not a link here — this used to duplicate that.
@@ -47,20 +39,12 @@ export function AuthStatus() {
         >
           {isClient ? t("myAccount") : t("dashboard")}
         </Link>
-        <button
-          type="button"
-          onClick={() => void signOut()}
-          disabled={signingOut}
-          className="rounded border px-2 py-1 font-medium hover:opacity-70 disabled:opacity-50"
-        >
-          {signingOut ? tAuthStatus("signingOut") : tAuthStatus("signOut")}
-        </button>
       </div>
     );
   }
 
   return (
-    <div className="flex items-center gap-3 text-sm">
+    <div className="flex items-center gap-2 whitespace-nowrap text-sm sm:gap-3">
       <Link href="/sign-in" className="font-medium hover:opacity-70">
         {t("signIn")}
       </Link>
@@ -73,7 +57,9 @@ export function AuthStatus() {
 
 /**
  * The header logo (the zomo lockup), plus — for a signed-in client only — the client's
- * primary nav (Place order / My orders / Wallet), immediately to its right.
+ * primary nav (Place order / My orders), immediately to its right. The wallet
+ * (saved payment cards) is not a top-level item: it is a section of My account,
+ * `/account/wallet`, reached from the account rail.
  *
  * The wordmark's destination depends on who's looking at it:
  * - A signed-in CLIENT goes to `/home`, the always-marketing route — `/`
@@ -99,7 +85,7 @@ export function HeaderBrandLink() {
   const brandHref = isMerchantUser ? "/dashboard" : isClient ? "/home" : "/";
 
   return (
-    <div className="flex items-center gap-5">
+    <div className="flex items-center gap-5 max-sm:contents">
       {/* The lockup is the link's whole content, so the SVG carries the
           accessible name ("zomo"). Themed: this header follows `html.dark`. */}
       <Link href={brandHref} className="flex items-center hover:opacity-80">
@@ -107,15 +93,12 @@ export function HeaderBrandLink() {
       </Link>
 
       {isClient ? (
-        <nav className="flex items-center gap-4 text-sm">
+        <nav className="flex items-center gap-4 whitespace-nowrap text-sm max-sm:order-last max-sm:w-full">
           <Link href="/" className="font-medium hover:opacity-70">
             {tAuthStatus("placeOrder")}
           </Link>
           <Link href="/orders" className="font-medium hover:opacity-70">
             {t("myOrders")}
-          </Link>
-          <Link href="/wallet" className="font-medium hover:opacity-70">
-            {t("wallet")}
           </Link>
         </nav>
       ) : null}

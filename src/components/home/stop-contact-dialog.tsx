@@ -1,7 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useTranslations } from "next-intl";
+
+import { parseFloorInput } from "@/components/home/booking-pricing";
+import {
+  EMPTY_STOP_CONTACT,
+  type StopContact,
+} from "@/components/home/stop-contact";
+import { STOP_CONTACT_MAX_LENGTHS } from "@/lib/orders/stop-contact-limits";
 
 import {
   Dialog,
@@ -11,8 +18,11 @@ import {
 } from "@/components/ui/dialog";
 
 /**
- * The delivery-info popup: who the driver should ask for at one end of the
- * route, and where in the building to find them.
+ * The "Contact Info" popup: who the driver should ask for at one end of the
+ * route, and where in the building to find them. What it asks depends on the
+ * account type (see `stop-contact.ts`): an individual also gives the floor —
+ * which is the floor the stop's helpers are priced at — and a comment; a
+ * business gives name, phone, building and entrance only.
  *
  * Built on the shadcn `Dialog` (Radix) rather than the hand-rolled fixed-inset
  * overlay the design handoff prescribes. The handoff warns against
@@ -41,13 +51,7 @@ import {
  * whatever was last saved for it.
  */
 
-/** The contact captured at one end of the route. Every part is optional. */
-export type StopContact = {
-  name: string;
-  phone: string;
-  /** Block, floor or room — where in the building the driver is going. */
-  details: string;
-};
+export type { StopContact };
 
 export type StopContactDialogProps = {
   open: boolean;
@@ -56,16 +60,18 @@ export type StopContactDialogProps = {
   stop: "pickup" | "dropoff";
   /** The selected address, shown so the client knows which stop this is. */
   address: string;
+  /** INDIVIDUAL also gets the floor and comment fields; BUSINESS does not. */
+  accountType: "INDIVIDUAL" | "BUSINESS";
   /** Seeds the draft each time the dialog opens. */
   initialValue: StopContact | null;
-  onSave: (contact: StopContact) => void;
-};
-
-/** A contact with nothing filled in — the draft a fresh stop starts from. */
-export const EMPTY_STOP_CONTACT: StopContact = {
-  name: "",
-  phone: "",
-  details: "",
+  /** The stop's current floor (0 = ground), seeding the individual's field. */
+  initialFloor: number;
+  /**
+   * Reports the saved contact and — for an individual — the floor typed
+   * (empty = 0, the ground floor); `null` for a business, whose floor is
+   * not asked here.
+   */
+  onSave: (contact: StopContact, floor: number | null) => void;
 };
 
 /** Georgian country code, fixed: the app books journeys within Georgia. */
@@ -76,12 +82,12 @@ const PHONE_COUNTRY_CODE = "+995";
  * `accessibleNameKey` is a key in `home.stopContactDialog`, translated at render.
  */
 const STOP_COPY = {
-  pickup: { accessibleNameKey: "deliveryInfoForPickup", badge: "1" },
-  dropoff: { accessibleNameKey: "deliveryInfoForDropoff", badge: "2" },
+  pickup: { accessibleNameKey: "contactInfoForPickup", badge: "1" },
+  dropoff: { accessibleNameKey: "contactInfoForDropoff", badge: "2" },
 } as const;
 
 /**
- * The shared box geometry of the three fields. Applied to the input itself for
+ * The shared box geometry of the single-line fields. Applied to the input itself for
  * the two plain fields, and to the *container* of the phone field, which holds
  * a static dialling code beside a borderless input.
  */
@@ -107,19 +113,29 @@ const FIELD_FOCUS_WITHIN_CLASSES =
 
 const PLACEHOLDER_CLASSES = "placeholder:text-muted";
 
+/** The floor field's text for a stored floor: empty for the ground floor. */
+function floorText(floor: number): string {
+  return floor > 0 ? String(floor) : "";
+}
+
 export function StopContactDialog({
   open,
   onOpenChange,
   stop,
   address,
+  accountType,
   initialValue,
+  initialFloor,
   onSave,
 }: StopContactDialogProps) {
   const t = useTranslations("home.stopContactDialog");
   const tShared = useTranslations("common.shared");
+  const isIndividual = accountType === "INDIVIDUAL";
+  const floorHintId = useId();
   const [draft, setDraft] = useState<StopContact>(
     initialValue ?? EMPTY_STOP_CONTACT,
   );
+  const [floorDraft, setFloorDraft] = useState(() => floorText(initialFloor));
 
   /* Re-seed the draft on the closed → open transition, adjusting state during
      render rather than in an effect. An effect depending on `initialValue`
@@ -133,14 +149,19 @@ export function StopContactDialog({
 
     if (open) {
       setDraft(initialValue ?? EMPTY_STOP_CONTACT);
+      setFloorDraft(floorText(initialFloor));
     }
   }
 
   const { accessibleNameKey, badge } = STOP_COPY[stop];
 
   function handleSave() {
-    onSave(draft);
+    onSave(draft, isIndividual ? parseFloorInput(floorDraft) : null);
     onOpenChange(false);
+  }
+
+  function setField(field: keyof StopContact, value: string) {
+    setDraft((current) => ({ ...current, [field]: value }));
   }
 
   return (
@@ -181,7 +202,11 @@ export function StopContactDialog({
 
           event.stopPropagation();
 
-          if (event.target instanceof HTMLButtonElement) {
+          // A newline in the comment, not a save.
+          if (
+            event.target instanceof HTMLButtonElement ||
+            event.target instanceof HTMLTextAreaElement
+          ) {
             return;
           }
 
@@ -208,7 +233,7 @@ export function StopContactDialog({
             aria-hidden="true"
             className="text-[13px] font-semibold tracking-[0.1em] text-muted uppercase"
           >
-            {t("deliveryInfo")}
+            {t("contactInfo")}
           </span>
         </div>
 
@@ -231,12 +256,11 @@ export function StopContactDialog({
           <input
             type="text"
             value={draft.name}
-            onChange={(event) =>
-              setDraft((current) => ({ ...current, name: event.target.value }))
-            }
+            onChange={(event) => setField("name", event.target.value)}
             placeholder={tShared("name")}
             aria-label={tShared("name")}
             autoComplete="off"
+            maxLength={STOP_CONTACT_MAX_LENGTHS.name}
             className={`${FIELD_BOX_CLASSES} ${PLACEHOLDER_CLASSES} ${FIELD_FOCUS_CLASSES}`}
           />
 
@@ -252,33 +276,76 @@ export function StopContactDialog({
               type="text"
               inputMode="tel"
               value={draft.phone}
-              onChange={(event) =>
-                setDraft((current) => ({
-                  ...current,
-                  phone: event.target.value,
-                }))
-              }
+              onChange={(event) => setField("phone", event.target.value)}
               placeholder={t("phoneNumber")}
               aria-label={t("phoneNumber")}
               autoComplete="off"
+              maxLength={STOP_CONTACT_MAX_LENGTHS.phone}
               className={`${PLACEHOLDER_CLASSES} h-full w-full min-w-0 border-0 bg-transparent pl-3 text-[15px] text-paper outline-none`}
             />
           </div>
 
           <input
             type="text"
-            value={draft.details}
-            onChange={(event) =>
-              setDraft((current) => ({
-                ...current,
-                details: event.target.value,
-              }))
-            }
-            placeholder={t("blockFloorRoom")}
-            aria-label={t("blockFloorOrRoom")}
+            value={draft.buildingName}
+            onChange={(event) => setField("buildingName", event.target.value)}
+            placeholder={t("buildingName")}
+            aria-label={t("buildingName")}
             autoComplete="off"
+            maxLength={STOP_CONTACT_MAX_LENGTHS.buildingName}
             className={`${FIELD_BOX_CLASSES} ${PLACEHOLDER_CLASSES} ${FIELD_FOCUS_CLASSES}`}
           />
+
+          {/* Entrance and floor share a row for an individual — both short —
+              and the entrance takes the full width for a business, which is
+              not asked the floor here (its floor is on the helper step). */}
+          <div className={isIndividual ? "grid grid-cols-2 gap-3" : "contents"}>
+            <input
+              type="text"
+              value={draft.entrance}
+              onChange={(event) => setField("entrance", event.target.value)}
+              placeholder={t("entrance")}
+              aria-label={t("entrance")}
+              autoComplete="off"
+              maxLength={STOP_CONTACT_MAX_LENGTHS.entrance}
+              className={`${FIELD_BOX_CLASSES} ${PLACEHOLDER_CLASSES} ${FIELD_FOCUS_CLASSES} min-w-0`}
+            />
+            {isIndividual ? (
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={3}
+                value={floorDraft}
+                onChange={(event) =>
+                  setFloorDraft(event.target.value.replace(/\D/g, ""))
+                }
+                placeholder={t("floorPlaceholder")}
+                aria-label={t("floor")}
+                aria-describedby={floorHintId}
+                autoComplete="off"
+                className={`${FIELD_BOX_CLASSES} ${PLACEHOLDER_CLASSES} ${FIELD_FOCUS_CLASSES} min-w-0 font-price tabular-nums`}
+              />
+            ) : null}
+          </div>
+          {isIndividual ? (
+            <span id={floorHintId} className="sr-only">
+              {t("floorPlaceholder")}
+            </span>
+          ) : null}
+
+          {isIndividual ? (
+            <textarea
+              value={draft.comment}
+              onChange={(event) => setField("comment", event.target.value)}
+              placeholder={t("commentPlaceholder")}
+              aria-label={t("comment")}
+              autoComplete="off"
+              rows={3}
+              maxLength={STOP_CONTACT_MAX_LENGTHS.comment}
+              className={`${PLACEHOLDER_CLASSES} ${FIELD_FOCUS_CLASSES} min-h-[84px] w-full resize-y rounded-lg border border-line bg-ink px-3.5 py-3 text-[15px] leading-snug text-paper transition-colors outline-none`}
+            />
+          ) : null}
         </div>
 
         <p className="mt-3 text-[12px] text-muted">
@@ -295,8 +362,9 @@ export function StopContactDialog({
           >
             {tShared("cancel")}
           </button>
-          {/* Never disabled: all three fields are optional and none is
-              validated, so there is no state in which saving is refused. */}
+          {/* Never disabled: every field is optional and none is validated
+              beyond its length, so there is no state in which saving is
+              refused. */}
           <button
             type="button"
             onClick={handleSave}
@@ -307,5 +375,51 @@ export function StopContactDialog({
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/**
+ * The way back into a stop's Contact Info after the dialog has closed (it
+ * opens by itself only when an address suggestion is picked). A quiet text
+ * button under the address field: "Add contact info" until something is
+ * saved, then a one-line summary of it. For an individual the summary also
+ * names the floor, since that floor prices the stop's helpers.
+ */
+export function StopContactSummaryButton({
+  contact,
+  floor,
+  accountType,
+  onClick,
+  disabled = false,
+}: {
+  contact: StopContact | null;
+  floor: number;
+  accountType: "INDIVIDUAL" | "BUSINESS";
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  const t = useTranslations("home.stopContactDialog");
+  const tStopInfo = useTranslations("common.stopInfo");
+  const parts = contact
+    ? [contact.name, contact.phone, contact.buildingName, contact.entrance]
+        .map((part) => part.trim())
+        .filter((part) => part !== "")
+    : [];
+  if (accountType === "INDIVIDUAL" && floor > 0) {
+    parts.push(tStopInfo("floorValue", { floor }));
+  }
+  const summary = parts.join(" · ");
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="-mt-2 w-fit max-w-full truncate text-left text-xs font-medium text-accent transition-colors hover:text-accent-hover disabled:opacity-60"
+    >
+      {summary === ""
+        ? t("addContactInfo")
+        : t("contactInfoSummary", { summary })}
+    </button>
   );
 }

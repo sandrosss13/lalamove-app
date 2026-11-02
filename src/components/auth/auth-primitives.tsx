@@ -586,7 +586,19 @@ const INLINE_LINK_CLASS =
 export type InlineLinkButtonProps = {
   children: React.ReactNode;
   className?: string;
-} & ({ href: string; onClick?: never } | { href?: never; onClick: () => void });
+} & (
+  | {
+      href: string;
+      onClick?: never;
+      /**
+       * A different origin — the merchant host's sign-up, offered when a phone
+       * sign-up lands on the wrong host. Rendered as a plain `<a>`: the locale
+       * `<Link>` would prefix the path and treat it as a same-app route.
+       */
+      external?: boolean;
+    }
+  | { href?: never; onClick: () => void; external?: never }
+);
 
 /**
  * The underlined inline affordances in the footers — "Create an account",
@@ -602,7 +614,16 @@ export function InlineLinkButton({
   className,
   href,
   onClick,
+  external = false,
 }: InlineLinkButtonProps) {
+  if (href !== undefined && external) {
+    return (
+      <a href={href} className={cn(INLINE_LINK_CLASS, className)}>
+        {children}
+      </a>
+    );
+  }
+
   if (href !== undefined) {
     return (
       <Link href={href} className={cn(INLINE_LINK_CLASS, className)}>

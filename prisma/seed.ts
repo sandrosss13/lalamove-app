@@ -1,7 +1,14 @@
 /**
  * Seeds the data a database needs before the app is usable: the vehicle
- * taxonomy (`VehicleTypeSpec`) with its pricing rules, and the payment methods
- * the platform accepts (`PaymentMethodConfig`).
+ * taxonomy (`VehicleTypeSpec`) with its pricing rules, the pricing model v1
+ * tariff (`PricingConfig`, `HelperFloorBand`, `RouteAllowance`), and the
+ * payment methods the platform accepts (`PaymentMethodConfig`).
+ *
+ * The v1 pricing figures (`city*`, `intercity*`, commission rates, bands,
+ * corridors) match `prisma/migrations/20261016120000_pricing_model_v1` exactly
+ * (the rate table approved for pricing model v1); keep the two in step. The
+ * legacy `baseFare`/`pricePerKm`/`pricePerMinute`/`minimumFare` keep their
+ * pre-v1 values: the code on main still prices with them.
  *
  * IMPORTANT: every rate and spec below is an ILLUSTRATIVE PLACEHOLDER, not a real
  * business figure. They exist so the pricing engine and booking UI have coherent
@@ -15,6 +22,7 @@
  */
 import {
   ChassisType,
+  GeorgianCity,
   LoadingAccessType,
   PaymentMethodType,
   PrismaClient,
@@ -24,13 +32,9 @@ import {
 const prisma = new PrismaClient();
 
 /**
- * Flat fee in Georgian Lari for ONE extra helper beyond the driver, charged per
- * helper: `src/lib/pricing.ts` multiplies it by the order's `helperCount`.
- *
- * Unlike every other money figure in this file it does not vary by vehicle
- * type — a pair of hands costs the same whether they are loading a minivan or a
- * trailer truck — so it is written once here and shared by every rule below,
- * rather than repeated as eleven independent numbers that could drift apart.
+ * LEGACY: the pre-v1 flat per-helper fee. `PricingRule.helperFee` is NOT NULL
+ * and kept (migrations are additive), but the v1 engine ignores it — helpers
+ * are priced per location from `HELPER_FLOOR_BAND_SEEDS` below.
  */
 const HELPER_FEE_PER_HELPER = 40;
 
@@ -71,10 +75,18 @@ type VehicleTypeSeed = {
     pricePerMinute: number;
     freeLoadingMinutes: number;
     overtimeRatePerMinute: number;
-    /// Charged once per helper on the booking, not once per order — always
-    /// `HELPER_FEE_PER_HELPER`, which is the same for every vehicle type.
+    /// LEGACY, unused by the v1 engine — always `HELPER_FEE_PER_HELPER`.
     helperFee: number;
     minimumFare: number;
+    /// Pricing model v1 CITY rates (the v1 engine reads only these).
+    cityBaseFare: number;
+    cityPricePerKm: number;
+    cityPricePerMinute: number;
+    cityMinimumFare: number;
+    intercityBaseFare: number;
+    intercityPricePerKm: number;
+    cityCommissionRate: number;
+    intercityCommissionRate: number;
   };
 };
 
@@ -90,12 +102,23 @@ const VEHICLE_TYPE_SEEDS: VehicleTypeSeed[] = [
     loadingAccessType: LoadingAccessType.REAR_DOOR,
     bodyTypes: [ChassisType.DRY_BOX],
     pricing: {
-      baseFare: 8,
-      pricePerKm: 1.2,
-      pricePerMinute: 0.15,
+      // City rates (pricing model v1).
+      cityBaseFare: 15,
+      cityPricePerKm: 0.9,
+      cityPricePerMinute: 0.2,
+      cityMinimumFare: 25,
+      intercityBaseFare: 15,
+      intercityPricePerKm: 1.1,
+      cityCommissionRate: 0.15,
+      intercityCommissionRate: 0.12,
       freeLoadingMinutes: 15,
       overtimeRatePerMinute: 0.3,
       helperFee: HELPER_FEE_PER_HELPER,
+      // LEGACY pre-v1 rates — what the code on main still prices with.
+      // Never changed by v1 (the shared production database serves both).
+      baseFare: 8,
+      pricePerKm: 1.2,
+      pricePerMinute: 0.15,
       minimumFare: 15,
     },
   },
@@ -110,12 +133,23 @@ const VEHICLE_TYPE_SEEDS: VehicleTypeSeed[] = [
     loadingAccessType: LoadingAccessType.REAR_DOOR,
     bodyTypes: [ChassisType.DRY_BOX],
     pricing: {
-      baseFare: 7,
-      pricePerKm: 1.1,
-      pricePerMinute: 0.13,
+      // City rates (pricing model v1).
+      cityBaseFare: 12,
+      cityPricePerKm: 0.8,
+      cityPricePerMinute: 0.18,
+      cityMinimumFare: 20,
+      intercityBaseFare: 12,
+      intercityPricePerKm: 1.0,
+      cityCommissionRate: 0.15,
+      intercityCommissionRate: 0.12,
       freeLoadingMinutes: 15,
       overtimeRatePerMinute: 0.25,
       helperFee: HELPER_FEE_PER_HELPER,
+      // LEGACY pre-v1 rates — what the code on main still prices with.
+      // Never changed by v1 (the shared production database serves both).
+      baseFare: 7,
+      pricePerKm: 1.1,
+      pricePerMinute: 0.13,
       minimumFare: 12,
     },
   },
@@ -130,12 +164,23 @@ const VEHICLE_TYPE_SEEDS: VehicleTypeSeed[] = [
     loadingAccessType: LoadingAccessType.REAR_DOOR,
     bodyTypes: [ChassisType.DRY_BOX],
     pricing: {
-      baseFare: 10,
-      pricePerKm: 1.4,
-      pricePerMinute: 0.18,
+      // City rates (pricing model v1).
+      cityBaseFare: 20,
+      cityPricePerKm: 1.2,
+      cityPricePerMinute: 0.25,
+      cityMinimumFare: 35,
+      intercityBaseFare: 20,
+      intercityPricePerKm: 1.4,
+      cityCommissionRate: 0.15,
+      intercityCommissionRate: 0.12,
       freeLoadingMinutes: 20,
       overtimeRatePerMinute: 0.35,
       helperFee: HELPER_FEE_PER_HELPER,
+      // LEGACY pre-v1 rates — what the code on main still prices with.
+      // Never changed by v1 (the shared production database serves both).
+      baseFare: 10,
+      pricePerKm: 1.4,
+      pricePerMinute: 0.18,
       minimumFare: 18,
     },
   },
@@ -150,12 +195,23 @@ const VEHICLE_TYPE_SEEDS: VehicleTypeSeed[] = [
     loadingAccessType: LoadingAccessType.SIDE_DOOR,
     bodyTypes: [ChassisType.DRY_BOX],
     pricing: {
-      baseFare: 12,
-      pricePerKm: 1.6,
-      pricePerMinute: 0.2,
+      // City rates (pricing model v1).
+      cityBaseFare: 30,
+      cityPricePerKm: 1.6,
+      cityPricePerMinute: 0.3,
+      cityMinimumFare: 50,
+      intercityBaseFare: 30,
+      intercityPricePerKm: 1.8,
+      cityCommissionRate: 0.15,
+      intercityCommissionRate: 0.12,
       freeLoadingMinutes: 20,
       overtimeRatePerMinute: 0.4,
       helperFee: HELPER_FEE_PER_HELPER,
+      // LEGACY pre-v1 rates — what the code on main still prices with.
+      // Never changed by v1 (the shared production database serves both).
+      baseFare: 12,
+      pricePerKm: 1.6,
+      pricePerMinute: 0.2,
       minimumFare: 20,
     },
   },
@@ -170,12 +226,23 @@ const VEHICLE_TYPE_SEEDS: VehicleTypeSeed[] = [
     loadingAccessType: LoadingAccessType.REAR_DOOR,
     bodyTypes: [ChassisType.REFRIGERATED, ChassisType.DRY_BOX],
     pricing: {
-      baseFare: 14,
-      pricePerKm: 1.8,
-      pricePerMinute: 0.22,
+      // City rates (pricing model v1).
+      cityBaseFare: 35,
+      cityPricePerKm: 1.9,
+      cityPricePerMinute: 0.35,
+      cityMinimumFare: 60,
+      intercityBaseFare: 35,
+      intercityPricePerKm: 2.2,
+      cityCommissionRate: 0.15,
+      intercityCommissionRate: 0.12,
       freeLoadingMinutes: 20,
       overtimeRatePerMinute: 0.4,
       helperFee: HELPER_FEE_PER_HELPER,
+      // LEGACY pre-v1 rates — what the code on main still prices with.
+      // Never changed by v1 (the shared production database serves both).
+      baseFare: 14,
+      pricePerKm: 1.8,
+      pricePerMinute: 0.22,
       minimumFare: 22,
     },
   },
@@ -190,12 +257,23 @@ const VEHICLE_TYPE_SEEDS: VehicleTypeSeed[] = [
     loadingAccessType: LoadingAccessType.TAIL_LIFT,
     bodyTypes: [ChassisType.DRY_BOX],
     pricing: {
-      baseFare: 25,
-      pricePerKm: 2.4,
-      pricePerMinute: 0.35,
+      // City rates (pricing model v1).
+      cityBaseFare: 45,
+      cityPricePerKm: 2.2,
+      cityPricePerMinute: 0.4,
+      cityMinimumFare: 70,
+      intercityBaseFare: 45,
+      intercityPricePerKm: 2.5,
+      cityCommissionRate: 0.12,
+      intercityCommissionRate: 0.1,
       freeLoadingMinutes: 25,
       overtimeRatePerMinute: 0.6,
       helperFee: HELPER_FEE_PER_HELPER,
+      // LEGACY pre-v1 rates — what the code on main still prices with.
+      // Never changed by v1 (the shared production database serves both).
+      baseFare: 25,
+      pricePerKm: 2.4,
+      pricePerMinute: 0.35,
       minimumFare: 35,
     },
   },
@@ -211,12 +289,23 @@ const VEHICLE_TYPE_SEEDS: VehicleTypeSeed[] = [
     loadingAccessType: LoadingAccessType.OPEN_FLATBED,
     bodyTypes: [ChassisType.OPEN_CHASSIS],
     pricing: {
-      baseFare: 28,
-      pricePerKm: 2.6,
-      pricePerMinute: 0.38,
+      // City rates (pricing model v1).
+      cityBaseFare: 50,
+      cityPricePerKm: 2.5,
+      cityPricePerMinute: 0.45,
+      cityMinimumFare: 80,
+      intercityBaseFare: 50,
+      intercityPricePerKm: 2.8,
+      cityCommissionRate: 0.12,
+      intercityCommissionRate: 0.1,
       freeLoadingMinutes: 25,
       overtimeRatePerMinute: 0.65,
       helperFee: HELPER_FEE_PER_HELPER,
+      // LEGACY pre-v1 rates — what the code on main still prices with.
+      // Never changed by v1 (the shared production database serves both).
+      baseFare: 28,
+      pricePerKm: 2.6,
+      pricePerMinute: 0.38,
       minimumFare: 40,
     },
   },
@@ -231,12 +320,23 @@ const VEHICLE_TYPE_SEEDS: VehicleTypeSeed[] = [
     loadingAccessType: LoadingAccessType.SIDE_DOOR,
     bodyTypes: [ChassisType.DRY_BOX, ChassisType.OPEN_CHASSIS],
     pricing: {
-      baseFare: 32,
-      pricePerKm: 2.9,
-      pricePerMinute: 0.4,
+      // City rates (pricing model v1).
+      cityBaseFare: 55,
+      cityPricePerKm: 2.7,
+      cityPricePerMinute: 0.48,
+      cityMinimumFare: 85,
+      intercityBaseFare: 55,
+      intercityPricePerKm: 3.0,
+      cityCommissionRate: 0.12,
+      intercityCommissionRate: 0.1,
       freeLoadingMinutes: 25,
       overtimeRatePerMinute: 0.7,
       helperFee: HELPER_FEE_PER_HELPER,
+      // LEGACY pre-v1 rates — what the code on main still prices with.
+      // Never changed by v1 (the shared production database serves both).
+      baseFare: 32,
+      pricePerKm: 2.9,
+      pricePerMinute: 0.4,
       minimumFare: 45,
     },
   },
@@ -251,12 +351,23 @@ const VEHICLE_TYPE_SEEDS: VehicleTypeSeed[] = [
     loadingAccessType: LoadingAccessType.TAIL_LIFT,
     bodyTypes: [ChassisType.REFRIGERATED, ChassisType.DRY_BOX],
     pricing: {
-      baseFare: 30,
-      pricePerKm: 2.8,
-      pricePerMinute: 0.4,
+      // City rates (pricing model v1).
+      cityBaseFare: 55,
+      cityPricePerKm: 2.8,
+      cityPricePerMinute: 0.5,
+      cityMinimumFare: 90,
+      intercityBaseFare: 55,
+      intercityPricePerKm: 3.2,
+      cityCommissionRate: 0.12,
+      intercityCommissionRate: 0.1,
       freeLoadingMinutes: 25,
       overtimeRatePerMinute: 0.68,
       helperFee: HELPER_FEE_PER_HELPER,
+      // LEGACY pre-v1 rates — what the code on main still prices with.
+      // Never changed by v1 (the shared production database serves both).
+      baseFare: 30,
+      pricePerKm: 2.8,
+      pricePerMinute: 0.4,
       minimumFare: 42,
     },
   },
@@ -271,25 +382,31 @@ const VEHICLE_TYPE_SEEDS: VehicleTypeSeed[] = [
     loadingAccessType: LoadingAccessType.TAIL_LIFT,
     bodyTypes: [ChassisType.DRY_BOX],
     pricing: {
-      baseFare: 45,
-      pricePerKm: 3.5,
-      pricePerMinute: 0.5,
+      // City rates (pricing model v1).
+      cityBaseFare: 70,
+      cityPricePerKm: 3.2,
+      cityPricePerMinute: 0.55,
+      cityMinimumFare: 110,
+      intercityBaseFare: 70,
+      intercityPricePerKm: 3.6,
+      cityCommissionRate: 0.12,
+      intercityCommissionRate: 0.1,
       freeLoadingMinutes: 30,
       overtimeRatePerMinute: 0.9,
       helperFee: HELPER_FEE_PER_HELPER,
+      // LEGACY pre-v1 rates — what the code on main still prices with.
+      // Never changed by v1 (the shared production database serves both).
+      baseFare: 45,
+      pricePerKm: 3.5,
+      pricePerMinute: 0.5,
       minimumFare: 60,
     },
   },
   {
     // The physical spec (24 t, 13.60 x 2.48 x 2.70 m, HEAVY_DUTY) comes from the
-    // approved design handoff. The `pricing` figures are the rate owner's rule,
-    // recorded 2026-08-29: every vehicle-specific money figure is exactly 1.5x
-    // `LARGE_FREIGHT_TRUCK`'s, the largest vehicle in the catalogue. Keep them
-    // derived from that row — if `LARGE_FREIGHT_TRUCK` is ever retuned, re-apply
-    // the multiplier here rather than editing these numbers independently.
-    // `helperFee` is outside that rule: it is the platform-wide flat rate every
-    // vehicle type charges (see `HELPER_FEE_PER_HELPER`), and a helper's hour is
-    // not worth more for arriving on a bigger truck.
+    // approved design handoff. The money figures are the pricing model v1 rate
+    // table (approved 2026-10), which supersedes the earlier "1.5x
+    // LARGE_FREIGHT_TRUCK" rule; the overtime rate below still follows it.
     //
     // This matters more here than the file header implies: there is no draft or
     // feature-flag state for a `VehicleTypeSpec`. `GET /api/vehicle-types` is a
@@ -318,12 +435,15 @@ const VEHICLE_TYPE_SEEDS: VehicleTypeSeed[] = [
     loadingAccessType: LoadingAccessType.REAR_DOOR,
     bodyTypes: [ChassisType.DRY_BOX],
     pricing: {
-      // Exactly 1.5x `LARGE_FREIGHT_TRUCK` — the largest vehicle in the
-      // catalogue — on every vehicle-specific money figure, per the rate
-      // owner's rule. Derived, not invented: 45/3.5/0.5/0.9/60 x 1.5.
-      baseFare: 67.5,
-      pricePerKm: 5.25,
-      pricePerMinute: 0.75,
+      // City rates (pricing model v1).
+      cityBaseFare: 90,
+      cityPricePerKm: 3.8,
+      cityPricePerMinute: 0.65,
+      cityMinimumFare: 140,
+      intercityBaseFare: 90,
+      intercityPricePerKm: 4.2,
+      cityCommissionRate: 0.12,
+      intercityCommissionRate: 0.1,
       // NOT scaled. This is a time allowance, not a price, so the 1.5x rule
       // does not apply to it. Held at 40 rather than `LARGE_FREIGHT_TRUCK`'s 30
       // because a 24 t semi-trailer genuinely takes longer to load, and this is
@@ -331,9 +451,57 @@ const VEHICLE_TYPE_SEEDS: VehicleTypeSeed[] = [
       freeLoadingMinutes: 40,
       overtimeRatePerMinute: 1.35,
       helperFee: HELPER_FEE_PER_HELPER,
+      // LEGACY pre-v1 rates — what the code on main still prices with.
+      // Never changed by v1 (the shared production database serves both).
+      baseFare: 67.5,
+      pricePerKm: 5.25,
+      pricePerMinute: 0.75,
       minimumFare: 90,
     },
   },
+];
+
+/**
+ * Pricing model v1: the per-helper, per-location rate by floor band (a band
+ * runs from its `minFloor` to the next band's `minFloor - 1`). Same rows as the
+ * migration.
+ */
+const HELPER_FLOOR_BAND_SEEDS = [
+  { minFloor: 0, ratePerHelper: 15 },
+  { minFloor: 4, ratePerHelper: 25 },
+  { minFloor: 7, ratePerHelper: 35 },
+  { minFloor: 10, ratePerHelper: 50 },
+] as const;
+
+/** Major corridors: a return load is easy to find. */
+const MAJOR_CORRIDOR_ALLOWANCE = 0.15;
+/** Remote mountain destinations: the truck returns empty. */
+const REMOTE_ROUTE_ALLOWANCE = 0.65;
+
+/**
+ * Pricing model v1: return allowance per unordered city pair. Every other
+ * intercity pair uses `PricingConfig.defaultReturnAllowance` (0.35). Same rows
+ * as the migration; normalised (cityA < cityB by name) at write time below.
+ */
+const ROUTE_ALLOWANCE_SEEDS: [GeorgianCity, GeorgianCity, number][] = [
+  [GeorgianCity.TBILISI, GeorgianCity.RUSTAVI, MAJOR_CORRIDOR_ALLOWANCE],
+  [GeorgianCity.TBILISI, GeorgianCity.BATUMI, MAJOR_CORRIDOR_ALLOWANCE],
+  [GeorgianCity.TBILISI, GeorgianCity.KUTAISI, MAJOR_CORRIDOR_ALLOWANCE],
+  [GeorgianCity.TBILISI, GeorgianCity.GORI, MAJOR_CORRIDOR_ALLOWANCE],
+  [GeorgianCity.KUTAISI, GeorgianCity.BATUMI, MAJOR_CORRIDOR_ALLOWANCE],
+  [GeorgianCity.TBILISI, GeorgianCity.ZUGDIDI, MAJOR_CORRIDOR_ALLOWANCE],
+  [GeorgianCity.TBILISI, GeorgianCity.POTI, MAJOR_CORRIDOR_ALLOWANCE],
+  [GeorgianCity.BATUMI, GeorgianCity.POTI, MAJOR_CORRIDOR_ALLOWANCE],
+  [GeorgianCity.TBILISI, GeorgianCity.MESTIA, REMOTE_ROUTE_ALLOWANCE],
+  [GeorgianCity.TBILISI, GeorgianCity.ONI, REMOTE_ROUTE_ALLOWANCE],
+  [GeorgianCity.TBILISI, GeorgianCity.AMBROLAURI, REMOTE_ROUTE_ALLOWANCE],
+  [GeorgianCity.TBILISI, GeorgianCity.TSAGERI, REMOTE_ROUTE_ALLOWANCE],
+  [GeorgianCity.TBILISI, GeorgianCity.KHULO, REMOTE_ROUTE_ALLOWANCE],
+  [GeorgianCity.TBILISI, GeorgianCity.SHUAKHEVI, REMOTE_ROUTE_ALLOWANCE],
+  [GeorgianCity.TBILISI, GeorgianCity.NINOTSMINDA, REMOTE_ROUTE_ALLOWANCE],
+  [GeorgianCity.KUTAISI, GeorgianCity.MESTIA, REMOTE_ROUTE_ALLOWANCE],
+  [GeorgianCity.BATUMI, GeorgianCity.MESTIA, REMOTE_ROUTE_ALLOWANCE],
+  [GeorgianCity.ZUGDIDI, GeorgianCity.MESTIA, REMOTE_ROUTE_ALLOWANCE],
 ];
 
 /** How one payment method is seeded. See `PAYMENT_METHOD_SEEDS`. */
@@ -407,6 +575,37 @@ async function main(): Promise<void> {
         ...spec,
         pricingRule: { upsert: { create: pricing, update: pricing } },
       },
+    });
+  }
+
+  // Pricing model v1 tariff. The config singleton is created at its column
+  // defaults; its knobs are admin-owned and never overwritten by a re-run.
+  // But a re-run has just re-written every vehicle's rates above (and
+  // re-asserts the bands and corridors below), so it is a tariff edit like
+  // any admin save: `tariffVersion` moves forward, and a client holding a
+  // quote from before the re-seed gets the 409 `tariff_changed` re-quote
+  // instead of being booked at figures it was never shown.
+  await prisma.pricingConfig.upsert({
+    where: { id: 1 },
+    create: { id: 1 },
+    update: { tariffVersion: { increment: 1 } },
+  });
+
+  for (const band of HELPER_FLOOR_BAND_SEEDS) {
+    await prisma.helperFloorBand.upsert({
+      where: { minFloor: band.minFloor },
+      create: band,
+      update: { ratePerHelper: band.ratePerHelper },
+    });
+  }
+
+  for (const [first, second, allowance] of ROUTE_ALLOWANCE_SEEDS) {
+    // Stored normalised: cityA < cityB by enum name (the migration's CHECK).
+    const [cityA, cityB] = first < second ? [first, second] : [second, first];
+    await prisma.routeAllowance.upsert({
+      where: { cityA_cityB: { cityA, cityB } },
+      create: { cityA, cityB, allowance },
+      update: { allowance },
     });
   }
 

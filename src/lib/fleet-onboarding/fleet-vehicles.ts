@@ -18,6 +18,8 @@
  */
 import type { ChassisType } from "@prisma/client";
 
+import { normalizePlate } from "@/lib/vehicles/plate";
+
 import {
   FLEET_MAX_PER_CELL,
   type FleetDraftVehicle,
@@ -343,7 +345,7 @@ export function validateFleetVehicle(
   } else if (plate.length < MIN_PLATE_LENGTH) {
     errors.plate = vehicleMessage("plateShort", translate);
   } else {
-    const duplicateOf = otherPlates.get(plate.toUpperCase());
+    const duplicateOf = otherPlates.get(normalizePlate(plate));
     if (duplicateOf !== undefined) {
       errors.plate = vehicleMessage("plateDuplicate", translate, {
         number: duplicateOf,
@@ -438,7 +440,7 @@ export function otherPlatesExcluding(
 
   vehicles.forEach((vehicle, index) => {
     if (vehicle.id === excludedId) return;
-    const plate = vehicle.plateNumber?.trim().toUpperCase();
+    const plate = normalizePlate(vehicle.plateNumber ?? "");
     // A later duplicate must not overwrite the earlier holder: the company is
     // told which row *already* had the plate, which is the earlier one.
     if (plate && !plates.has(plate)) plates.set(plate, index + 1);

@@ -31,21 +31,39 @@ import {
  *
  * Nothing here can charge anybody. No gateway is integrated, so a card is
  * display metadata and a chosen method is an intention recorded on the order.
+ *
+ * **"Pay later" (`CASH`) is a business arrangement.** An INDIVIDUAL client —
+ * and a client whose profile row cannot be read, who is treated as one — never
+ * gets it, and neither does a **guest** (a signed-out visitor checking out an
+ * order they booked without an account), who is offered a one-off card and
+ * nothing else. `POST /api/orders/[id]/pay` refuses `CASH` from both, so this
+ * is the list matching what the server will take, not the guarantee.
  */
 export async function loadBookingPaymentOptions(): Promise<BookingPaymentOptions> {
   const session = await auth.api.getSession({ headers: await headers() });
 
-  // A signed-out visitor gets the marketing page, and a driver or a logistics
-  // company gets the provider prompt — none of the three ever renders the
-  // booking form, so none of them is worth a query. The branch mirrors
-  // `HomeEntry`'s own: whoever is left (a client, or an admin looking at the
-  // client surface) is who the form is rendered for.
-  if (
-    !session ||
-    session.user.role === "DRIVER" ||
-    session.user.role === "COMPANY"
-  ) {
+  // A driver or a logistics company gets the provider prompt and never renders
+  // the booking form or checkout, so neither is worth a query. Whoever is left
+  // (a client, a guest, or an admin looking at the client surface) is who the
+  // payment step is rendered for.
+  if (session?.user.role === "DRIVER" || session?.user.role === "COMPANY") {
     return NO_BOOKING_PAYMENT_OPTIONS;
+  }
+
+  // A guest: card only — a one-off card typed at checkout, never saved, so
+  // there are no saved cards to list — and treated as an individual, which is
+  // what keeps the BUSINESS-only purchase-order field hidden.
+  if (!session) {
+    const cardConfig = await prisma.paymentMethodConfig.findUnique({
+      where: { type: "CARD" },
+      select: { isEnabled: true },
+    });
+
+    return {
+      enabledPaymentMethods: cardConfig?.isEnabled ? ["CARD"] : [],
+      savedCards: [],
+      accountType: "INDIVIDUAL",
+    };
   }
 
   const enabledConfigs = await prisma.paymentMethodConfig.findMany({
@@ -86,12 +104,19 @@ export async function loadBookingPaymentOptions(): Promise<BookingPaymentOptions
     }),
   ]);
 
+  const accountType = clientProfile?.accountType ?? null;
+
   return {
-    enabledPaymentMethods,
+    // "Pay later" is for business accounts only — see this loader's doc
+    // comment. An unreadable account type is not a business one.
+    enabledPaymentMethods:
+      accountType === "BUSINESS"
+        ? enabledPaymentMethods
+        : enabledPaymentMethods.filter((method) => method !== "CASH"),
     savedCards,
     // Absent for a client who has somehow no profile row: an account type that
     // cannot be read is not a business one, and the purchase-order field stays
     // hidden rather than being shown on a guess.
-    accountType: clientProfile?.accountType ?? null,
+    accountType,
   };
 }

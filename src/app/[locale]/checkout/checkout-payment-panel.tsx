@@ -29,6 +29,13 @@ import {
 import { useRouter } from "@/i18n/navigation";
 import { formatGel } from "@/components/orders-format";
 import { Label } from "@/components/ui/label";
+import { parseGuestContact } from "@/lib/orders/guest-contact";
+import {
+  GuestContactCard,
+  type GuestContactDraft,
+  type GuestContactField,
+  type GuestContactVisibleErrors,
+} from "./guest-contact-card";
 
 /**
  * The payment half of the checkout page: the method the client settles with,
@@ -80,6 +87,13 @@ type PaymentChoice =
 export type CheckoutPaymentPanelProps = BookingPaymentOptions & {
   orderId: string;
   /**
+   * The order is a guest order (booked without an account, reached through its
+   * cookie). The panel then also collects the guest's contact details, pays
+   * with a one-off card that is never saved, and never offers Pay later — the
+   * pay endpoint refuses all three otherwise.
+   */
+  guest?: boolean;
+  /**
    * What the client owes, in GEL — `price + serviceLevelAdjustment`, computed by
    * the page from the persisted order row. Named on the Pay button so the figure
    * on the control matches the total in the breakdown beside it. The server
@@ -101,6 +115,54 @@ export type CheckoutPaymentPanelProps = BookingPaymentOptions & {
  */
 const PAYMENT_OPTION_CLASSES =
   "flex cursor-pointer items-center gap-3.5 rounded-xl border p-[14px_16px] transition-colors has-[:focus-visible]:border-accent has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-accent/20";
+
+const GUEST_CONTACT_FIELDS: GuestContactField[] = [
+  "firstName",
+  "lastName",
+  "phone",
+  "email",
+];
+
+const EMPTY_GUEST_CONTACT: GuestContactDraft = {
+  firstName: "",
+  lastName: "",
+  phone: "",
+  email: "",
+};
+
+/**
+ * Reads `{ error, fieldErrors }` off a refused payment. `fieldErrors` is the
+ * pay endpoint's per-field verdict on the guest contact; its keys are the
+ * contact's own (`firstName`, …), possibly prefixed `guestContact.`, and its
+ * values either a `parseGuestContact` code or a sentence.
+ */
+async function readPayFailure(
+  response: Response,
+  fallback: string,
+): Promise<{ message: string; fieldErrors: GuestContactVisibleErrors }> {
+  const body: unknown = await response.json().catch(() => null);
+  const record =
+    typeof body === "object" && body !== null
+      ? (body as { error?: unknown; fieldErrors?: unknown })
+      : {};
+
+  const message =
+    typeof record.error === "string" && record.error !== ""
+      ? record.error
+      : fallback;
+
+  const fieldErrors: GuestContactVisibleErrors = {};
+  if (typeof record.fieldErrors === "object" && record.fieldErrors !== null) {
+    for (const [key, value] of Object.entries(record.fieldErrors)) {
+      const field = key.replace(/^guestContact\./, "") as GuestContactField;
+      if (GUEST_CONTACT_FIELDS.includes(field) && typeof value === "string") {
+        fieldErrors[field] = value;
+      }
+    }
+  }
+
+  return { message, fieldErrors };
+}
 
 /** The dashed full-width control that opens the add-card dialog. */
 const ADD_CARD_BUTTON_CLASSES =
@@ -207,6 +269,7 @@ export function CheckoutPaymentPanel({
   enabledPaymentMethods,
   savedCards,
   accountType,
+  guest = false,
 }: CheckoutPaymentPanelProps): React.ReactElement {
   const t = useTranslations("checkout.checkoutPaymentPanel");
   const tShared = useTranslations("common.shared");
@@ -230,14 +293,20 @@ export function CheckoutPaymentPanel({
    * form gave it none: checkout is a card-or-later choice, and the endpoint's
    * own register refuses anything else.
    */
-  const cardPaymentEnabled = enabledPaymentMethods.includes("CARD");
-  const payLaterEnabled = enabledPaymentMethods.includes("CASH");
-  const anyMethodEnabled = cardPaymentEnabled || payLaterEnabled;
-
   // The account type is the server's answer, never a guess made here: it is read
   // from the client's own `ClientProfile` by `loadBookingPaymentOptions`. An
-  // individual client is never sent the purchase-order field at all.
-  const isBusinessClient = accountType === "BUSINESS";
+  // individual client is never sent the purchase-order field at all. A guest is
+  // always treated as an individual.
+  const isBusinessClient = !guest && accountType === "BUSINESS";
+
+  const cardPaymentEnabled = enabledPaymentMethods.includes("CARD");
+  // Pay later is a business arrangement: individuals (and guests) pay by card
+  // up front. The loader already drops CASH for them and the pay endpoint
+  // refuses it; this keeps the row off the page even if a stale list says
+  // otherwise.
+  const payLaterEnabled =
+    isBusinessClient && enabledPaymentMethods.includes("CASH");
+  const anyMethodEnabled = cardPaymentEnabled || payLaterEnabled;
 
   const [cards, setCards] = useState<SavedCardSummary[]>(savedCards);
   const [paymentChoice, setPaymentChoice] = useState<PaymentChoice | null>(() =>
@@ -247,6 +316,67 @@ export function CheckoutPaymentPanel({
   const [addCardOpen, setAddCardOpen] = useState(false);
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Guest checkout only. The card is held for this one payment — display
+  // metadata, exactly what the add-card dialog hands over — and never saved.
+  const [oneOffCard, setOneOffCard] = useState<NewCardInput | null>(null);
+  const [guestContact, setGuestContact] =
+    useState<GuestContactDraft>(EMPTY_GUEST_CONTACT);
+  // Fields the guest has left at least once: their own errors show from then
+  // on, so the form does not open covered in "required".
+  const [touchedFields, setTouchedFields] = useState<
+    ReadonlySet<GuestContactField>
+  >(() => new Set());
+  // The pay endpoint's verdict per field, shown until that field is edited.
+  const [serverFieldErrors, setServerFieldErrors] =
+    useState<GuestContactVisibleErrors>({});
+
+  // The same parser the pay endpoint runs, so "valid here" and "accepted
+  // there" cannot disagree.
+  const guestContactResult = guest ? parseGuestContact(guestContact) : null;
+  const guestContactValid =
+    guestContactResult !== null && "data" in guestContactResult;
+  const guestContactErrors =
+    guestContactResult !== null && "errors" in guestContactResult
+      ? guestContactResult.errors
+      : {};
+
+  const visibleGuestErrors: GuestContactVisibleErrors = {};
+  for (const field of GUEST_CONTACT_FIELDS) {
+    const serverError = serverFieldErrors[field];
+    const ownError = touchedFields.has(field)
+      ? guestContactErrors[field]
+      : undefined;
+    const shown = serverError ?? ownError;
+    if (shown) {
+      visibleGuestErrors[field] = shown;
+    }
+  }
+
+  function handleGuestContactChange(next: GuestContactDraft) {
+    // An edited field's server error no longer describes what is in it.
+    setServerFieldErrors((current) => {
+      const remaining = { ...current };
+      for (const field of GUEST_CONTACT_FIELDS) {
+        if (next[field] !== guestContact[field]) {
+          delete remaining[field];
+        }
+      }
+      return remaining;
+    });
+    setGuestContact(next);
+  }
+
+  function handleGuestFieldBlur(field: GuestContactField) {
+    setTouchedFields((current) =>
+      current.has(field) ? current : new Set([...current, field]),
+    );
+  }
+
+  /** Whether everything Pay needs is in place. */
+  const readyToPay = guest
+    ? cardPaymentEnabled && oneOffCard !== null && guestContactValid
+    : paymentChoice !== null;
 
   /**
    * Save a card typed into the add-card dialog, then select it.
@@ -299,7 +429,16 @@ export function CheckoutPaymentPanel({
    * would refuse the second press, but showing it at all is the wrong answer.
    */
   async function handlePay() {
-    if (!paymentChoice || paying) {
+    if (!readyToPay || paying) {
+      return;
+    }
+
+    if (guest) {
+      await handleGuestPay();
+      return;
+    }
+
+    if (!paymentChoice) {
       return;
     }
 
@@ -340,7 +479,59 @@ export function CheckoutPaymentPanel({
     }
   }
 
-  return (
+  /**
+   * Guest checkout's pay: the contact (as the shared parser normalised it) and
+   * the one-off card's display metadata, always as CARD. The endpoint validates
+   * both again; a refused contact comes back as `fieldErrors`, shown under the
+   * fields, beside the one-line `error`.
+   */
+  async function handleGuestPay() {
+    if (!oneOffCard || guestContactResult === null) {
+      return;
+    }
+    if (!("data" in guestContactResult)) {
+      return;
+    }
+
+    setPaying(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/orders/${orderId}/pay`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          paymentMethodType: "CARD",
+          guestContact: guestContactResult.data,
+          card: {
+            brand: oneOffCard.brand,
+            last4: oneOffCard.last4,
+            expMonth: oneOffCard.expMonth,
+            expYear: oneOffCard.expYear,
+            holderName: oneOffCard.holderName || undefined,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const failure = await readPayFailure(
+          response,
+          t("couldNotCompletePayment"),
+        );
+        setServerFieldErrors(failure.fieldErrors);
+        setError(failure.message);
+        setPaying(false);
+        return;
+      }
+
+      router.push(`/checkout/${orderId}/success`);
+    } catch {
+      setError(t("couldNotCompletePayment"));
+      setPaying(false);
+    }
+  }
+
+  const paymentSection = (
     <section
       aria-labelledby={headingId}
       className="rounded-xl border border-line bg-surface p-5"
@@ -367,7 +558,55 @@ export function CheckoutPaymentPanel({
             <legend className="sr-only">{tShared("paymentMethod")}</legend>
 
             <div className="flex flex-col gap-2.5">
-              {cardPaymentEnabled
+              {guest && cardPaymentEnabled && oneOffCard ? (
+                <label
+                  className={`${PAYMENT_OPTION_CLASSES} ${PICK_CARD_SELECTED_CLASSES}`}
+                >
+                  <input
+                    type="radio"
+                    name={paymentMethodName}
+                    value="one-off-card"
+                    checked
+                    readOnly
+                    aria-label={t("cardAriaLabel", {
+                      brand: oneOffCard.brand,
+                      last4: oneOffCard.last4,
+                      expiry: formatCardExpiry(
+                        oneOffCard.expMonth,
+                        oneOffCard.expYear,
+                      ),
+                    })}
+                    className="sr-only"
+                  />
+                  <span
+                    aria-hidden="true"
+                    className={cardBrandChipClasses(oneOffCard.brand)}
+                  >
+                    {cardBrandChipLabel(oneOffCard.brand)}
+                  </span>
+                  <span aria-hidden="true" className="min-w-0">
+                    <span className="block truncate text-sm font-medium text-paper">
+                      {oneOffCard.brand}{" "}
+                      <span className="font-price tabular-nums">
+                        {maskedCardNumber(oneOffCard.last4)}
+                      </span>
+                    </span>
+                    <span className="mt-0.5 block text-xs text-muted">
+                      {tShared("expires")}{" "}
+                      <span className="font-price tabular-nums">
+                        {formatCardExpiry(
+                          oneOffCard.expMonth,
+                          oneOffCard.expYear,
+                        )}
+                      </span>
+                      {t("notSavedSuffix")}
+                    </span>
+                  </span>
+                  <PaymentSelectedTick />
+                </label>
+              ) : null}
+
+              {cardPaymentEnabled && !guest
                 ? cards.map((card) => {
                     const selected =
                       paymentChoice?.method === "CARD" &&
@@ -490,7 +729,11 @@ export function CheckoutPaymentPanel({
               onClick={() => setAddCardOpen(true)}
               className={ADD_CARD_BUTTON_CLASSES}
             >
-              {tShared("addCard")}
+              {guest
+                ? oneOffCard
+                  ? t("useADifferentCard")
+                  : t("enterCardDetails")
+                : tShared("addCard")}
             </button>
           ) : null}
         </>
@@ -548,8 +791,8 @@ export function CheckoutPaymentPanel({
           <button
             type="button"
             onClick={handlePay}
-            disabled={paymentChoice === null || paying}
-            aria-describedby={paymentChoice === null ? payHintId : undefined}
+            disabled={!readyToPay || paying}
+            aria-describedby={!readyToPay ? payHintId : undefined}
             className={PAY_BUTTON_CLASSES}
           >
             {paying
@@ -559,12 +802,16 @@ export function CheckoutPaymentPanel({
 
           {/* Named rather than left to the client to infer from a greyed-out
               button — the same reflex `StepCard` applies to a disabled step. */}
-          {paymentChoice === null ? (
+          {!readyToPay ? (
             <p
               id={payHintId}
               className="mt-2 text-center text-xs leading-snug text-muted"
             >
-              {t("chooseAPaymentMethodToContinue")}
+              {guest && !guestContactValid
+                ? t("fillInYourContactDetailsToContinue")
+                : guest
+                  ? t("enterCardDetailsToContinue")
+                  : t("chooseAPaymentMethodToContinue")}
             </p>
           ) : (
             <p className="mt-2 text-center text-xs leading-snug text-muted">
@@ -584,9 +831,27 @@ export function CheckoutPaymentPanel({
           open={addCardOpen}
           onOpenChange={setAddCardOpen}
           isFirstCard={cards.length === 0}
-          onSubmit={handleAddCard}
+          oneOff={guest}
+          onSubmit={guest ? (card) => setOneOffCard(card) : handleAddCard}
         />
       ) : null}
     </section>
+  );
+
+  if (!guest) {
+    return paymentSection;
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      <GuestContactCard
+        value={guestContact}
+        onChange={handleGuestContactChange}
+        onBlurField={handleGuestFieldBlur}
+        errors={visibleGuestErrors}
+        disabled={paying}
+      />
+      {paymentSection}
+    </div>
   );
 }

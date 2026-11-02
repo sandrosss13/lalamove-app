@@ -1,7 +1,12 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { OrderStatus } from "@prisma/client";
-import type { CargoCategory, ChassisType, ServiceLevel } from "@prisma/client";
+import type {
+  CargoCategory,
+  ChassisType,
+  ServiceLevel,
+  TripType,
+} from "@prisma/client";
 import { useLocale, useTranslations } from "next-intl";
 import { getTranslations } from "next-intl/server";
 
@@ -9,14 +14,23 @@ import { localeHref } from "@/i18n/server";
 import { auth } from "@/lib/auth";
 import { useCargoCategoryLabel } from "@/lib/cargo";
 import { loadBookingPaymentOptions } from "@/lib/home/booking-payment-options";
-import { prisma } from "@/lib/prisma";
+import { loadAccessibleOrder } from "@/lib/orders/load-accessible-order";
+import { helperTimeRulesOf, loadPricingConfig } from "@/lib/pricing";
 import { vehicleTypeSpecLabel } from "@/lib/vehicle-type-spec-labels";
 import { BreakdownRow } from "@/components/home/booking-form-primitives";
+import {
+  helperTimeNoteValues,
+  minimumFareApplied,
+  type HelperTimeNoteValues,
+} from "@/components/home/booking-pricing";
 import { formatGel, useServiceLevelLabel } from "@/components/orders-format";
+import { StopContactLines } from "@/components/orders/stop-contact-lines";
+import { stopInfoOf, type StopInfo } from "@/lib/orders/stop-info";
 import { CheckoutPaymentPanel } from "../checkout-payment-panel";
 import {
   formatBookedDistanceKm,
   formatScheduledAt,
+  helperFeeSplit,
   transportationCost,
   useCheckoutLabels,
 } from "../checkout-format";
@@ -44,14 +58,29 @@ export const dynamic = "force-dynamic";
  * the browser to be shown back.
  *
  * `clientId` is not selected either, because it is never compared here: the
- * query below is *scoped* by it, which is what makes somebody else's order
- * indistinguishable from a nonexistent one.
+ * query below is *scoped* by it (or, for a guest order, by the guest cookie's
+ * token hash — see `loadAccessibleOrder`), which is what makes somebody else's
+ * order indistinguishable from a nonexistent one.
  */
 const CHECKOUT_ORDER_SELECT = {
   id: true,
   status: true,
   pickupAddress: true,
   dropoffAddress: true,
+  // Each stop's Contact Info, shown under its address for the client to
+  // review before paying (the client's own booking — never a carrier's view).
+  pickupContactName: true,
+  pickupContactPhone: true,
+  pickupContactDetails: true,
+  pickupBuildingName: true,
+  pickupEntrance: true,
+  pickupComment: true,
+  dropoffContactName: true,
+  dropoffContactPhone: true,
+  dropoffContactDetails: true,
+  dropoffBuildingName: true,
+  dropoffEntrance: true,
+  dropoffComment: true,
   scheduledAt: true,
   cargoCategory: true,
   bodyType: true,
@@ -59,9 +88,32 @@ const CHECKOUT_ORDER_SELECT = {
   description: true,
   distanceKm: true,
   helperFee: true,
+  // Pricing model v1: the helper charge split by end (0 on a pre-v1 order,
+  // which keeps its one helper line — see `helperFeeSplit`).
+  pickupHelperFee: true,
+  dropoffHelperFee: true,
   price: true,
   serviceLevel: true,
   serviceLevelAdjustment: true,
+  // Pricing model v1: the transport charge and its trip type (intercity
+  // carries the return-trip allowance), the fare components the minimum-fare
+  // note is judged from, and the helpers/floor/elevator at each end. All the
+  // client's own quote. `tariffVersion` is null on a pre-v1 order.
+  baseFare: true,
+  distanceFare: true,
+  timeFare: true,
+  returnFare: true,
+  transportFare: true,
+  tripType: true,
+  pickupHelpers: true,
+  pickupFloor: true,
+  pickupCargoElevator: true,
+  pickupPassengerElevator: true,
+  dropoffHelpers: true,
+  dropoffFloor: true,
+  dropoffCargoElevator: true,
+  dropoffPassengerElevator: true,
+  tariffVersion: true,
   // A relation, so it is not returned unless it is asked for — and only the one
   // column the summary prints.
   vehicleTypeSpec: { select: { code: true, label: true } },
@@ -91,30 +143,37 @@ export default async function CheckoutPage({
   const session = await auth.api.getSession({ headers: await headers() });
   const t = await getTranslations("checkout.checkout");
 
-  if (!session) {
-    return <CheckoutSignInNotice prompt={t("signInToReviewAndPay")} />;
-  }
-
   // Checkout is a client's own step. Drivers and logistics companies take and
   // dispatch deliveries on /dashboard instead — the same redirect `/orders` and
   // the wallet make.
-  if (session.user.role !== "CLIENT") {
+  if (session && session.user.role !== "CLIENT") {
     redirect(await localeHref("/dashboard"));
   }
 
   const { id } = await params;
 
-  // Scoped to the caller, which is what collapses "not yours" into "not found".
-  // The two must stay indistinguishable, or this page becomes a way to probe
-  // which order ids exist — see `CheckoutOrderNotFoundNotice`.
-  const order = await prisma.order.findFirst({
-    where: { id, clientId: session.user.id },
-    select: CHECKOUT_ORDER_SELECT,
-  });
+  // The signed-in client's own order first, then a guest order this browser
+  // holds the cookie for (see `loadAccessibleOrder`). Scoped either way, which
+  // is what collapses "not yours" into "not found". The two must stay
+  // indistinguishable, or this page becomes a way to probe which order ids
+  // exist — see `CheckoutOrderNotFoundNotice`.
+  const accessible = await loadAccessibleOrder(
+    id,
+    session,
+    CHECKOUT_ORDER_SELECT,
+  );
 
-  if (!order) {
+  if (!accessible) {
+    // Signed out with no guest cookie for this order: it may well be theirs,
+    // booked on their account, so offer sign-in rather than "not found".
+    if (!session) {
+      return <CheckoutSignInNotice prompt={t("signInToReviewAndPay")} />;
+    }
     return <CheckoutOrderNotFoundNotice />;
   }
+
+  const { order } = accessible;
+  const isGuestOrder = accessible.access.kind === "guest";
 
   // Anything past `INITIATED` has already been paid for, so there is nothing to
   // check out: send the client to the confirmation rather than re-offering a
@@ -134,7 +193,28 @@ export default async function CheckoutPage({
   // account type — all three resolved server-side, because none is a decision
   // the browser is in a position to make. The pay endpoint re-checks all of
   // them anyway.
-  const paymentOptions = await loadBookingPaymentOptions();
+  const loadedPaymentOptions = await loadBookingPaymentOptions();
+  // A guest order is paid as a guest even when the browser also holds a
+  // session (someone who booked signed out, then signed in): card only, no
+  // saved cards, treated as an individual — what the pay endpoint enforces for
+  // an order with no client.
+  const paymentOptions = isGuestOrder
+    ? {
+        enabledPaymentMethods:
+          loadedPaymentOptions.enabledPaymentMethods.filter(
+            (method) => method === "CARD",
+          ),
+        savedCards: [],
+        accountType: "INDIVIDUAL" as const,
+      }
+    : loadedPaymentOptions;
+
+  // The helper-time note quotes the LIVE rules (what completion will bill),
+  // not a copy of the defaults. Only read when the note will be shown.
+  const helperNote =
+    order.tariffVersion !== null && order.helperFee > 0
+      ? helperTimeNoteValues(helperTimeRulesOf(await loadPricingConfig()))
+      : null;
 
   return (
     // The background is painted on `main` rather than on the centred column so
@@ -146,7 +226,7 @@ export default async function CheckoutPage({
         <CheckoutHeader
           eyebrow={t("almostThere")}
           title={t("reviewAndPay")}
-          backHref="/"
+          backHref={isGuestOrder ? "/book" : "/"}
           backLabel={t("backToBooking")}
         />
 
@@ -158,14 +238,19 @@ export default async function CheckoutPage({
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)] lg:items-start">
           <div className="flex flex-col gap-6">
             <OrderSummaryPanel order={order} />
-            <PriceBreakdownPanel order={order} total={total} />
+            <PriceBreakdownPanel
+              order={order}
+              total={total}
+              helperNote={helperNote}
+            />
           </div>
 
           {/* Sticky only where there is room for it to be: on a tall column the
               Pay button should not scroll away while the summary is read. */}
-          <div className="lg:sticky lg:top-8">
+          <div className={isGuestOrder ? undefined : "lg:sticky lg:top-8"}>
             <CheckoutPaymentPanel
               orderId={order.id}
+              guest={isGuestOrder}
               totalGel={total}
               enabledPaymentMethods={paymentOptions.enabledPaymentMethods}
               savedCards={paymentOptions.savedCards}
@@ -182,6 +267,18 @@ export default async function CheckoutPage({
 type CheckoutOrder = {
   pickupAddress: string;
   dropoffAddress: string;
+  pickupContactName: string | null;
+  pickupContactPhone: string | null;
+  pickupContactDetails: string | null;
+  pickupBuildingName: string | null;
+  pickupEntrance: string | null;
+  pickupComment: string | null;
+  dropoffContactName: string | null;
+  dropoffContactPhone: string | null;
+  dropoffContactDetails: string | null;
+  dropoffBuildingName: string | null;
+  dropoffEntrance: string | null;
+  dropoffComment: string | null;
   scheduledAt: Date | null;
   cargoCategory: CargoCategory;
   bodyType: ChassisType | null;
@@ -189,10 +286,27 @@ type CheckoutOrder = {
   description: string | null;
   distanceKm: number;
   helperFee: number;
+  pickupHelperFee: number;
+  dropoffHelperFee: number;
   price: number;
   serviceLevel: ServiceLevel;
   serviceLevelAdjustment: number;
   vehicleTypeSpec: { code: string; label: string };
+  baseFare: number;
+  distanceFare: number;
+  timeFare: number;
+  returnFare: number;
+  transportFare: number | null;
+  tripType: TripType | null;
+  pickupHelpers: number;
+  pickupFloor: number;
+  pickupCargoElevator: boolean;
+  pickupPassengerElevator: boolean;
+  dropoffHelpers: number;
+  dropoffFloor: number;
+  dropoffCargoElevator: boolean;
+  dropoffPassengerElevator: boolean;
+  tariffVersion: number | null;
 };
 
 /** What was booked: the route, then everything that describes the job. */
@@ -204,6 +318,7 @@ function OrderSummaryPanel({ order }: { order: CheckoutOrder }) {
   const cargoCategoryLabel = useCargoCategoryLabel();
   const serviceLevelLabel = useServiceLevelLabel();
   const labels = useCheckoutLabels();
+  const helperLocations = labels.helperLocations(order);
 
   return (
     <section
@@ -222,11 +337,17 @@ function OrderSummaryPanel({ order }: { order: CheckoutOrder }) {
           badge="P"
           name={tShared("pickup")}
           address={order.pickupAddress}
+          contactName={order.pickupContactName}
+          contactPhone={order.pickupContactPhone}
+          info={stopInfoOf(order, "pickup")}
         />
         <RouteEndpoint
           badge="D"
           name={tShared("dropoff")}
           address={order.dropoffAddress}
+          contactName={order.dropoffContactName}
+          contactPhone={order.dropoffContactPhone}
+          info={stopInfoOf(order, "dropoff")}
         />
       </div>
 
@@ -251,10 +372,25 @@ function OrderSummaryPanel({ order }: { order: CheckoutOrder }) {
           label={t("goods")}
           value={cargoCategoryLabel(order.cargoCategory)}
         />
-        <DetailRow
-          label={t("crew")}
-          value={labels.crewSize(order.helperCount)}
-        />
+        {/* Pricing model v1 asks per end; a pre-v1 order keeps its one crew
+            size (`helperLocations` returns null for it). */}
+        {helperLocations ? (
+          <>
+            <DetailRow
+              label={t("helpersAtPickup")}
+              value={helperLocations.pickup}
+            />
+            <DetailRow
+              label={t("helpersAtDropoff")}
+              value={helperLocations.dropoff}
+            />
+          </>
+        ) : (
+          <DetailRow
+            label={t("helpers")}
+            value={labels.helperCount(order.helperCount)}
+          />
+        )}
         {/* Also nullable, and for the same reason as the schedule. */}
         {order.bodyType ? (
           <DetailRow
@@ -293,10 +429,14 @@ function OrderSummaryPanel({ order }: { order: CheckoutOrder }) {
 function PriceBreakdownPanel({
   order,
   total,
+  helperNote,
 }: {
   order: CheckoutOrder;
   total: number;
+  /** The live helper-time rules, or null when the note is not shown. */
+  helperNote: HelperTimeNoteValues | null;
 }) {
+  const helperSplit = helperFeeSplit(order);
   const t = useTranslations("checkout.checkout");
   const tShared = useTranslations("common.shared");
   const tBooking = useTranslations("home.bookingForm");
@@ -318,14 +458,43 @@ function PriceBreakdownPanel({
           label={tShared("distance")}
           value={formatBookedDistanceKm(order.distanceKm)}
         />
+        {/* A v1 order names it "Transport" (base, distance, time and, for an
+            intercity trip, the return allowance); a pre-v1 one keeps the
+            wording it was booked under. */}
         <BreakdownRow
-          label={tShared("transportationCost")}
+          label={
+            order.tariffVersion === null
+              ? tShared("transportationCost")
+              : tBooking("transport")
+          }
           value={formatGel(transportationCost(order))}
         />
-        {/* Only worth a line when at least one helper was actually requested. */}
-        {order.helperFee > 0 ? (
+        {/* Only worth a line when at least one helper was actually requested.
+            A v1 order itemises the charge per end ("Helpers at pickup" /
+            "Helpers at drop-off", each only when it costs something); a
+            pre-v1 order stored one total and keeps one line. */}
+        {helperSplit ? (
+          <>
+            {helperSplit.pickup > 0 ? (
+              <BreakdownRow
+                label={t("helpersAtPickup")}
+                value={formatGel(helperSplit.pickup)}
+              />
+            ) : null}
+            {helperSplit.dropoff > 0 ? (
+              <BreakdownRow
+                label={t("helpersAtDropoff")}
+                value={formatGel(helperSplit.dropoff)}
+              />
+            ) : null}
+          </>
+        ) : order.helperFee > 0 ? (
           <BreakdownRow
-            label={tShared("helperFee")}
+            label={
+              order.tariffVersion === null
+                ? tShared("helperFee")
+                : t("helperServices")
+            }
             value={formatGel(order.helperFee)}
           />
         ) : null}
@@ -362,6 +531,29 @@ function PriceBreakdownPanel({
         </div>
       </dl>
 
+      {order.tripType === "INTERCITY" ? (
+        <p className="mt-3 text-xs leading-snug text-muted">
+          {tBooking("intercityIncludesReturn")}
+        </p>
+      ) : minimumFareApplied(order) ? (
+        <p className="mt-3 text-xs leading-snug text-muted">
+          {tBooking("minimumFareAppliedForThisVehicle")}
+        </p>
+      ) : null}
+      {order.tariffVersion !== null && order.serviceLevelAdjustment !== 0 ? (
+        <p className="mt-1.5 text-xs leading-snug text-muted">
+          {tBooking("tierAppliesToTransport")}
+        </p>
+      ) : null}
+      {helperNote ? (
+        <p className="mt-1.5 text-xs leading-snug text-muted">
+          {tBooking("helperOvertimeNote", {
+            minutes: helperNote.includedMinutes,
+            fee: helperNote.fee,
+            increment: helperNote.incrementMinutes,
+          })}
+        </p>
+      ) : null}
       <p className="mt-3 text-xs leading-snug text-muted">
         {t("loadingAndUnloadingTimeBeyondThe")}
       </p>
@@ -378,10 +570,16 @@ function RouteEndpoint({
   badge,
   name,
   address,
+  contactName,
+  contactPhone,
+  info,
 }: {
   badge: string;
   name: string;
   address: string;
+  contactName: string | null;
+  contactPhone: string | null;
+  info: StopInfo;
 }) {
   return (
     <div className="flex min-w-0 items-start gap-2.5">
@@ -392,7 +590,12 @@ function RouteEndpoint({
         {badge}
       </span>
       <span className="sr-only">{name}</span>
-      <span className="text-[14px] leading-snug text-paper">{address}</span>
+      <div className="min-w-0">
+        <span className="text-[14px] leading-snug text-paper">{address}</span>
+        {/* Nothing at all for a stop with no Contact Info: it is optional,
+            and the review step has no use for a "none given" line. */}
+        <StopContactLines name={contactName} phone={contactPhone} info={info} />
+      </div>
     </div>
   );
 }

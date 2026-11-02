@@ -55,6 +55,7 @@ import {
 import { startOfHubWeek } from "@/lib/dashboard/hub/timezone";
 import { formatCity } from "@/lib/format-city";
 import { totalDriverEarnings } from "@/lib/orders/payout";
+import { displayEmail } from "@/lib/phone-placeholder-email";
 import { prisma } from "@/lib/prisma";
 
 /** How many recent jobs the driver detail panel lists. */
@@ -136,7 +137,8 @@ export type HubDriver = {
   /** `User.id` — what the mutation endpoints key on, e.g. driver removal. */
   userId: string;
   name: string;
-  email: string;
+  /** `null` for a phone account — its placeholder address is never shown. */
+  email: string | null;
   phone: string;
   city: GeorgianCity;
   /**
@@ -420,7 +422,7 @@ export async function getHubDrivers(
       driverProfileId: driver.id,
       userId: driver.userId,
       name: driver.user.name,
-      email: driver.user.email,
+      email: displayEmail(driver.user.email),
       phone: driver.phone,
       city: driver.city,
       idNumber: driver.idNumber,

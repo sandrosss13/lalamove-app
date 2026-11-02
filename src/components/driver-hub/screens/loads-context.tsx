@@ -17,6 +17,7 @@ import {
   offersBodyType,
   type BookedClass,
 } from "@/lib/orders/class-substitution";
+import type { StopWork } from "@/lib/orders/stop-work";
 import {
   capabilityOf,
   hasDeclaredEnvelope,
@@ -149,9 +150,15 @@ export type HubLoad = {
   pickupContactName: string | null;
   pickupContactPhone: string | null;
   pickupContactDetails: string | null;
+  pickupBuildingName: string | null;
+  pickupEntrance: string | null;
+  pickupComment: string | null;
   dropoffContactName: string | null;
   dropoffContactPhone: string | null;
   dropoffContactDetails: string | null;
+  dropoffBuildingName: string | null;
+  dropoffEntrance: string | null;
+  dropoffComment: string | null;
   distanceKm: number;
   /**
    * How far the driver is from the pickup. Null whenever it cannot be measured
@@ -189,6 +196,14 @@ export type HubLoad = {
   photoCount: number;
   /** The driver's 85% share, read from the stored column. Never `Order.price`. */
   driverPayout: number;
+  /**
+   * Pricing model v1: the helpers' part of `driverPayout` (included in it, not
+   * on top). 0 when no helpers were booked.
+   */
+  helperPayout: number;
+  /** Pricing model v1: helpers, floor and cargo elevator at each stop. */
+  pickupWork: StopWork;
+  dropoffWork: StopWork;
   /** `driverPayout` per kilometre; null when the trip has no distance. */
   ratePerKm: number | null;
   serviceLevel: string;
