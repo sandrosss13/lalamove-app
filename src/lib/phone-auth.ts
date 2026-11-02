@@ -322,6 +322,17 @@ export function phoneAccountNotFound(message: string): APIError {
 /** How long a code stays valid, in seconds. */
 const OTP_EXPIRES_IN_SECONDS = 300;
 
+/**
+ * The sign-in code SMS, in Georgian, the language of every number it goes
+ * to (smsoffice.ge delivers to Georgian numbers only). Georgian script is
+ * sent as Unicode, where one SMS holds 70 characters, so the text is kept
+ * under that to stay a single (single-priced) message. "დადასტურების კოდი"
+ * matches the code field's label on the website.
+ */
+export function phoneOtpSmsBody(code: string, minutes: number): string {
+  return `ZOMO: თქვენი დადასტურების კოდია ${code}. მოქმედებს ${minutes} წუთი.`;
+}
+
 /** Wrong guesses allowed per issued code. Counted by the plugin, in the database. */
 const OTP_ALLOWED_ATTEMPTS = 3;
 
@@ -665,7 +676,7 @@ export const phoneNumberPluginOptions: PhoneNumberOptions = {
 
     await sender.send({
       to: phoneNumber,
-      body: `Your verification code is ${code}. It expires in ${OTP_EXPIRES_IN_SECONDS / 60} minutes.`,
+      body: phoneOtpSmsBody(code, OTP_EXPIRES_IN_SECONDS / 60),
     });
   },
 
