@@ -79,6 +79,7 @@ in the Georgian.
 | Waybill               | ზედნადები            |
 | Tax ID                | საიდენტიფიკაციო კოდი |
 | Personal ID number    | პირადი ნომერი        |
+| Verification code     | დასტურის კოდი        |
 | Trailer               | მისაბმელი            |
 | Legal address         | იურიდიული მისამართი  |
 | Application (to join) | განაცხადი            |
