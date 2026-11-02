@@ -329,8 +329,8 @@ const OTP_EXPIRES_IN_SECONDS = 300;
  * under that to stay a single (single-priced) message. "დასტურის კოდი"
  * matches the code field's label on the website.
  */
-export function phoneOtpSmsBody(code: string, minutes: number): string {
-  return `ZOMO: თქვენი დასტურის კოდია ${code}. მოქმედებს ${minutes} წუთი.`;
+export function phoneOtpSmsBody(code: string): string {
+  return `ZOMO: თქვენი დასტურის კოდია ${code}.`;
 }
 
 /** Wrong guesses allowed per issued code. Counted by the plugin, in the database. */
@@ -676,7 +676,7 @@ export const phoneNumberPluginOptions: PhoneNumberOptions = {
 
     await sender.send({
       to: phoneNumber,
-      body: phoneOtpSmsBody(code, OTP_EXPIRES_IN_SECONDS / 60),
+      body: phoneOtpSmsBody(code),
     });
   },
 
