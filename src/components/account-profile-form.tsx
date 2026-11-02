@@ -113,7 +113,9 @@ export function AccountProfileForm({
   email,
   initialValues,
 }: {
-  email: string;
+  /** The sign-in address, or `null` for a phone account (whose placeholder
+   *  address is never shown) — the read-only field is then left out. */
+  email: string | null;
   initialValues: AccountProfileInitialValues;
 }) {
   const t = useTranslations("account.accountProfileForm");
@@ -307,16 +309,19 @@ export function AccountProfileForm({
             </Field>
 
             {/* Read-only: the email is the account's sign-in identity, owned by
-                Better Auth, not by this profile record. */}
-            <Field id={`${fieldId}-email`} label={tShared("email")}>
-              <Input
-                id={`${fieldId}-email`}
-                type="email"
-                readOnly
-                value={email}
-                className={cn(FIELD_INPUT_CLASSES, FIELD_READONLY_CLASSES)}
-              />
-            </Field>
+                Better Auth, not by this profile record. Absent for a phone
+                account, which signs in with its number. */}
+            {email === null ? null : (
+              <Field id={`${fieldId}-email`} label={tShared("email")}>
+                <Input
+                  id={`${fieldId}-email`}
+                  type="email"
+                  readOnly
+                  value={email}
+                  className={cn(FIELD_INPUT_CLASSES, FIELD_READONLY_CLASSES)}
+                />
+              </Field>
+            )}
 
             {isBusiness ? null : (
               <>

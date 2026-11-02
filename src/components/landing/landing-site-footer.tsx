@@ -13,12 +13,20 @@ import { cn } from "@/lib/utils";
 const YEAR_TOKEN = "{year}";
 
 const FOOTER_LINK =
-  "text-home-on-night/66 transition-colors hover:text-home-on-night";
+  "text-home-on-night/80 transition-colors hover:text-home-on-night";
 
 /**
- * The v4 footer: near-black in both themes. A top row with the light lockup
- * (and the authored blurb) and the optional CTA button, the authored link
- * columns, then the copyright line and legal links.
+ * The v4 footer: near-black in light, the surface grey in dark (`--home-panel`;
+ * a `#08090a` slab under the grey dark page read as a hole).
+ *
+ * Text alphas are set against the lighter of the two grounds. The column
+ * headings and copyright line used to be `on-night/40` and measured 3.5:1;
+ * nothing here goes below `/70` now, which is 6.5:1 on the dark theme's
+ * `#333333` and 9.1:1 on light's `#08090a`.
+ *
+ * Layout: a top row with the light lockup (and the authored blurb) and the
+ * optional CTA button, the authored link columns, then the copyright line and
+ * legal links.
  */
 export function LandingSiteFooter({ content }: { content: FooterContent }) {
   const copyright = migrateLegacyBrandCopy(content.copyright).replaceAll(
@@ -27,13 +35,13 @@ export function LandingSiteFooter({ content }: { content: FooterContent }) {
   );
 
   return (
-    <footer className="mt-auto bg-home-night text-home-on-night/60">
+    <footer className="mt-auto bg-home-panel text-home-on-night/70">
       <div className={cn(HOME_CONTAINER, "pt-[clamp(44px,5vw,72px)] pb-8")}>
         {/* One grid for the top row and the link columns, the top row spanning
             every track, so the columns resolve into equal tracks instead of
             orphaning the last one. */}
         <div className="grid gap-7 pb-10 [grid-template-columns:repeat(auto-fit,minmax(160px,1fr))]">
-          <div className="col-span-full mb-2 flex flex-wrap items-center justify-between gap-4 border-b border-white/8 pb-7">
+          <div className="col-span-full mb-2 flex flex-wrap items-center justify-between gap-4 border-b border-white/12 pb-7">
             <div className="flex flex-col gap-3">
               <ZomoLockup
                 variant="dark"
@@ -41,7 +49,7 @@ export function LandingSiteFooter({ content }: { content: FooterContent }) {
                 label={migrateLegacyBrandCopy(content.brandName)}
               />
               {content.brandBlurb ? (
-                <p className="m-0 max-w-[44ch] text-[14px] leading-relaxed text-home-on-night/50">
+                <p className="m-0 max-w-[44ch] text-[14px] leading-relaxed text-home-on-night/72">
                   {content.brandBlurb}
                 </p>
               ) : null}
@@ -62,7 +70,7 @@ export function LandingSiteFooter({ content }: { content: FooterContent }) {
               aria-label={column.title}
               className="min-w-0"
             >
-              <h2 className="m-0 mb-4 font-price text-[10px] tracking-[0.18em] text-home-on-night/40 uppercase">
+              <h2 className="m-0 mb-4 font-price text-[10px] tracking-[0.18em] text-home-on-night/72 uppercase">
                 {column.title}
               </h2>
               <ul className="m-0 flex list-none flex-col gap-[11px] p-0 text-[14px]">
@@ -78,7 +86,7 @@ export function LandingSiteFooter({ content }: { content: FooterContent }) {
           ))}
         </div>
 
-        <div className="flex flex-wrap justify-between gap-4 border-t border-white/8 pt-[22px] font-price text-[11px] tracking-[0.08em] text-home-on-night/40">
+        <div className="flex flex-wrap justify-between gap-4 border-t border-white/12 pt-[22px] font-price text-[11px] tracking-[0.08em] text-home-on-night/72">
           <p className="m-0">{copyright}</p>
           <ul className="m-0 flex list-none flex-wrap items-center gap-x-2 gap-y-1 p-0">
             {content.legalLinks.map((link, index) => (

@@ -71,12 +71,16 @@ test.describe("buildAdminOrderWhere", () => {
     expect(buildAdminOrderWhere({ query: "", status: null })).toEqual({});
   });
 
-  test("searches reference, client email and client name, case-insensitively", () => {
+  test("searches reference, client email/name and guest contact, case-insensitively", () => {
     expect(buildAdminOrderWhere({ query: "giorgi", status: null })).toEqual({
       OR: [
         { reference: { contains: "giorgi", mode: "insensitive" } },
         { client: { email: { contains: "giorgi", mode: "insensitive" } } },
         { client: { name: { contains: "giorgi", mode: "insensitive" } } },
+        { guestFirstName: { contains: "giorgi", mode: "insensitive" } },
+        { guestLastName: { contains: "giorgi", mode: "insensitive" } },
+        { guestEmail: { contains: "giorgi", mode: "insensitive" } },
+        { guestPhone: { contains: "giorgi" } },
       ],
     });
   });
@@ -84,7 +88,7 @@ test.describe("buildAdminOrderWhere", () => {
   test("combines the status with the search", () => {
     const where = buildAdminOrderWhere({ query: "GE-1", status: "PENDING" });
     expect(where.status).toBe("PENDING");
-    expect(where.OR).toHaveLength(3);
+    expect(where.OR).toHaveLength(7);
   });
 });
 

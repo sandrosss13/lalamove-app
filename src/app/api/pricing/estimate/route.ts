@@ -2,12 +2,14 @@ import { NextResponse } from "next/server";
 
 import { getRequestTranslations } from "@/i18n/request-locale";
 import {
+  clientTotalForServiceLevel,
   estimateDelivery,
   parseQuoteFields,
-  priceForServiceLevel,
   quoteFailureMessage,
+  quoteFailureStatus,
 } from "@/lib/pricing";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { getClientSupportPhone } from "@/lib/support-contact";
 
 /**
  * Per-IP budget for the endpoint. Pitched at how one visitor actually prices a
@@ -59,7 +61,13 @@ function getCallerKey(request: Request): string {
  * street to a different point along it than LocationIQ does).
  *
  * It also returns the price at each of the three service levels, so the booking
- * form can show the tiers side by side without re-quoting per tier.
+ * form can show the tiers side by side without re-quoting per tier, plus the
+ * pricing model v1 fields: `tripType`, `returnAllowance`, `returnFare`,
+ * `transportFare`, `pickupHelperFee`/`dropoffHelperFee`, the resolved cities,
+ * `tariffVersion`, `quoteExpiresAt` and the live `helperRules`
+ * (`includedMinutes`, `overtimeIncrementMinutes`, `overtimeFeePerIncrement`).
+ * A route over the manual-quote
+ * threshold fails 422 with `reason: "manual_quote_required"`.
  */
 export async function POST(request: Request): Promise<NextResponse> {
   const t = await getRequestTranslations();
@@ -101,30 +109,50 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   const result = await estimateDelivery(parsed.data);
   if (!result.ok) {
-    // An address the geocoder cannot place is well-formed input the server
-    // could not act on (422); an unknown vehicle type or an ineligible
-    // cargo/vehicle pairing is bad input (400).
-    const status = result.reason === "unresolved_address" ? 422 : 400;
+    // 422 for an unplaceable address or a route over the manual-quote
+    // threshold (`manual_quote_required`); 400 for bad input.
     return NextResponse.json(
-      { error: quoteFailureMessage(result, t) },
-      { status },
+      {
+        error: quoteFailureMessage(result, t),
+        // Machine-readable, so the booking form can switch to a
+        // "contact support for a quote" state rather than parse the message.
+        reason: result.reason,
+        // Who to call for that hand-made quote; `null` when no support line
+        // is configured (the form then names support without a number).
+        ...(result.reason === "manual_quote_required"
+          ? { supportPhone: getClientSupportPhone() }
+          : {}),
+      },
+      { status: quoteFailureStatus(result) },
     );
   }
 
-  const { pickup, dropoff, distanceKm, durationMinutes, routePath, breakdown } =
-    result.estimate;
+  const {
+    pickup,
+    dropoff,
+    distanceKm,
+    durationMinutes,
+    routePath,
+    breakdown,
+    pickupCity,
+    dropoffCity,
+    tariffVersion,
+    quoteExpiresAt,
+    helperRules,
+  } = result.estimate;
 
-  // The booking form shows all three service-level prices side by side, so they
-  // are derived here rather than over three more round trips: the tiers are
-  // arithmetic on `breakdown.price`, and only the quote itself costs geocoding.
-  // `REGULAR` is the quoted fare unadjusted, and is repeated here so the caller
-  // can read every tier out of one object rather than special-casing one of them.
+  // The booking form shows all three service-level totals side by side, so
+  // they are derived here rather than over three more round trips. Pricing
+  // model v1: the tier applies to the transport charge only, and helpers are
+  // added on top — each figure is exactly what checkout will bill.
   const serviceLevels = {
-    PRIORITY: priceForServiceLevel("PRIORITY", breakdown.price),
-    REGULAR: breakdown.price,
-    POOLING: priceForServiceLevel("POOLING", breakdown.price),
+    PRIORITY: clientTotalForServiceLevel("PRIORITY", breakdown),
+    REGULAR: clientTotalForServiceLevel("REGULAR", breakdown),
+    POOLING: clientTotalForServiceLevel("POOLING", breakdown),
   };
 
+  // `commissionRate` is deliberately NOT returned: it is internal. Everything
+  // in `breakdown` is the client's own quote.
   return NextResponse.json(
     {
       pickup,
@@ -134,6 +162,15 @@ export async function POST(request: Request): Promise<NextResponse> {
       routePath,
       ...breakdown,
       serviceLevels,
+      pickupCity,
+      dropoffCity,
+      // Send `tariffVersion` back with the booking; a stale one is refused so
+      // the client re-quotes. `quoteExpiresAt` is when the form should re-quote.
+      tariffVersion,
+      quoteExpiresAt: quoteExpiresAt.toISOString(),
+      // The live helper-time rules (included minutes, overtime increment and
+      // fee), so the form's "extra helper time" note is never a stale copy.
+      helperRules,
     },
     { status: 200 },
   );

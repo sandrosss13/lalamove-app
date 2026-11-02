@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { HubCard } from "@/components/driver-hub/hub-primitives";
 import { useLocalizedCityOptions } from "@/lib/georgian-cities";
 import type { HubDriverAccountSettings } from "@/lib/dashboard/hub/account-settings";
+import { displayEmail } from "@/lib/phone-placeholder-email";
 import { cn } from "@/lib/utils";
 
 /**
@@ -140,6 +141,7 @@ export function DriverAccountProfileForm({
   const tShared = useTranslations("common.shared");
   // Same sentence as the fleet's read-only card; one catalog entry serves both.
   const tCompanyCard = useTranslations("driverHub.driverAccountCompanyCard");
+  const signInEmail = displayEmail(settings.email);
   const cityOptions = useLocalizedCityOptions();
 
   /** Shown under a field the record holds but nothing in the app can rewrite. */
@@ -325,19 +327,23 @@ export function DriverAccountProfileForm({
             </select>
           </Field>
 
-          <Field
-            label={tShared("email")}
-            htmlFor="driver-account-email"
-            note={tCompanyCard("theAddressYouSignInWith")}
-          >
-            <Input
-              id="driver-account-email"
-              type="email"
-              disabled
-              value={settings.email}
-              className={cn(CONTROL_CLASSES, READONLY_CLASSES)}
-            />
-          </Field>
+          {/* A phone account signs in with its number; its placeholder
+              address is not shown. Read-only either way. */}
+          {signInEmail === null ? null : (
+            <Field
+              label={tShared("email")}
+              htmlFor="driver-account-email"
+              note={tCompanyCard("theAddressYouSignInWith")}
+            >
+              <Input
+                id="driver-account-email"
+                type="email"
+                disabled
+                value={signInEmail}
+                className={cn(CONTROL_CLASSES, READONLY_CLASSES)}
+              />
+            </Field>
+          )}
 
           {isBusiness ? null : (
             <>

@@ -18,6 +18,7 @@ import {
   formatDistanceKm,
   formatGelExact,
   formatHelperRequest,
+  formatLoadStopWork,
   formatLoadDims,
   formatWeightKg,
 } from "@/components/driver-hub/screens/loads-format";
@@ -513,6 +514,7 @@ export function LoadsConfirmDialog({ load }: LoadsConfirmDialogProps) {
    * anywhere" property of this card is readable in one place. Every value here
    * is descriptive; the only money on this dialog is the footer strip below.
    */
+  const stopWork = formatLoadStopWork(load, tFormat);
   const summaryRows: { label: string; value: React.ReactNode }[] = [
     {
       label: tShared("load"),
@@ -539,9 +541,18 @@ export function LoadsConfirmDialog({ load }: LoadsConfirmDialogProps) {
         load.packagingDescription ?? EM_DASH
       }`,
     },
+    // Pricing model v1: what the crew does at each stop; a pre-v1 order keeps
+    // its one crew-size line.
     {
       label: tShared("helpers"),
-      value: formatHelperRequest(load.helperCount, tFormat),
+      value: stopWork ? (
+        <>
+          <span className="block">{stopWork.pickup}</span>
+          <span className="block">{stopWork.dropoff}</span>
+        </>
+      ) : (
+        formatHelperRequest(load.helperCount, tFormat)
+      ),
     },
     {
       label: t("weight"),

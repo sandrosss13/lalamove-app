@@ -66,7 +66,6 @@ test.describe("resolveTrackPageViewer", () => {
 
 test.describe("trackPageSections — proof of delivery", () => {
   const base = {
-    isBusinessClient: true,
     documentAvailable: true,
   };
 
@@ -115,24 +114,21 @@ test.describe("trackPageSections — proof of delivery", () => {
 });
 
 test.describe("trackPageSections — order-details document", () => {
-  test("only a BUSINESS client, only when a document exists", () => {
+  test("any client, never the driver, only when a document exists", () => {
     const sections = (
       viewer: "CLIENT" | "DRIVER",
-      isBusinessClient: boolean,
       documentAvailable: boolean,
     ) =>
       trackPageSections({
         viewer,
         status: "COMPLETED",
         hasProof: true,
-        isBusinessClient,
         documentAvailable,
       }).serviceDocument;
 
-    expect(sections("CLIENT", true, true)).toBe(true);
-    expect(sections("CLIENT", false, true)).toBe(false);
-    expect(sections("CLIENT", true, false)).toBe(false);
-    expect(sections("DRIVER", true, true)).toBe(false);
+    expect(sections("CLIENT", true)).toBe(true);
+    expect(sections("CLIENT", false)).toBe(false);
+    expect(sections("DRIVER", true)).toBe(false);
   });
 });
 
@@ -150,7 +146,6 @@ test.describe("trackPageSections — map and status panels", () => {
         viewer: "CLIENT",
         status,
         hasProof: false,
-        isBusinessClient: false,
         documentAvailable: false,
       });
       const shown = [

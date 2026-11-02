@@ -7,8 +7,9 @@ import { type HowItWorksContent } from "@/lib/admin/home-page-content";
 import { cn } from "@/lib/utils";
 
 /**
- * The v4 "How it works" panel: a near-black rounded block (in both themes, per
- * the design) with the heading and a row of numbered steps. The number is the
+ * The v4 "How it works" panel: a near-black rounded block in light (per the
+ * design) that becomes the surface grey in dark via `--home-panel` — a `#08090a`
+ * slab on the grey dark page read as a hole, not a panel — with the heading and a row of numbered steps. The number is the
  * step's position, not authored. Renders nothing without steps.
  */
 export function LandingStepsPanel({ content }: { content: HowItWorksContent }) {
@@ -23,7 +24,7 @@ export function LandingStepsPanel({ content }: { content: HowItWorksContent }) {
     >
       <div
         data-reveal
-        className="rounded-3xl bg-home-night p-[clamp(32px,4.5vw,60px)] text-home-on-night"
+        className="rounded-3xl bg-home-panel p-[clamp(32px,4.5vw,60px)] text-home-on-night"
       >
         <h2 className={cn(HOME_SECTION_HEADING, "mb-[clamp(28px,3.5vw,44px)]")}>
           {content.heading}

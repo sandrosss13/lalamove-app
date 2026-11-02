@@ -34,7 +34,6 @@
 import {
   CargoHandlingTag,
   ChassisType,
-  GeorgianCity,
   PaymentMethodType,
   ServiceLevel,
 } from "@prisma/client";
@@ -44,7 +43,7 @@ import {
   CARGO_MEASUREMENT_BOUNDS,
   type CargoMeasurementBounds,
 } from "@/lib/cargo";
-import { GEORGIAN_CITY_OPTIONS } from "@/lib/georgian-cities";
+import { STOP_CONTACT_MAX_LENGTHS } from "@/lib/orders/stop-contact-limits";
 import { parseQuoteFields, type QuoteInput } from "@/lib/pricing";
 
 /** Valid values for each enum field, derived from the generated Prisma enums. */
@@ -73,54 +72,11 @@ const CARGO_HANDLING_TAGS = Object.values(CargoHandlingTag);
  */
 
 /**
- * Every `GeorgianCity` keyed by its lower-cased display label, built once at
- * module load rather than scanned per request.
- *
- * `GEORGIAN_CITY_OPTIONS` mirrors the `GeorgianCity` enum exactly — its `value`
- * strings *are* the enum members — and is read here rather than
- * `Object.values(GeorgianCity)` because only the option list carries the human
- * label ("Tskaltubo"), which is the form an address actually spells the city in.
+ * `resolveGeorgianCity` moved to `src/lib/orders/resolve-city.ts` so the
+ * pricing engine (which this module imports) can classify a trip by city
+ * without an import cycle. Re-exported here so existing callers keep working.
  */
-const GEORGIAN_CITY_BY_LABEL = new Map<string, GeorgianCity>(
-  GEORGIAN_CITY_OPTIONS.map((option) => [
-    option.label.toLowerCase(),
-    option.value,
-  ]),
-);
-
-/**
- * The `GeorgianCity` an address names, or `null` when it names none.
- *
- * Resolved server-side from the address the geocode lookup produced, never read
- * from the request body — `Order.pickupCity`/`dropoffCity` back the load board's
- * city filter, and a city a client could choose freely would let a booking
- * advertise itself into a market it is not in.
- *
- * Matched against whole comma-delimited components of the address rather than by
- * substring, which is the entire reason these columns exist instead of a
- * `LIKE '%Tbilisi%'` over `pickupAddress`: "Tbilisi Highway 4, Rustavi" is a
- * Rustavi address, and a substring match would file it under Tbilisi. Comparing
- * a trimmed component for equality cannot make that mistake — "Tbilisi Highway
- * 4" is not "Tbilisi". The first matching component wins because Google formats
- * an address most-specific-first ("Street, City, Region, Country").
- *
- * An address matching nothing resolves to `null`, and that is a correct answer
- * rather than a failure: a village, a roadside depot or a border crossing is not
- * in the 63-value enum, and forcing it to the nearest city would show the load
- * to drivers filtering for a city it is not in. A null simply never matches a
- * city filter while still appearing on the unfiltered board. Order creation
- * therefore never fails over an unresolvable city.
- */
-export function resolveGeorgianCity(address: string): GeorgianCity | null {
-  for (const component of address.split(",")) {
-    const city = GEORGIAN_CITY_BY_LABEL.get(component.trim().toLowerCase());
-    if (city) {
-      return city;
-    }
-  }
-
-  return null;
-}
+export { resolveGeorgianCity } from "@/lib/orders/resolve-city";
 
 /**
  * Longest accepted stop-contact field and purchase-order reference.
@@ -130,7 +86,7 @@ export function resolveGeorgianCity(address: string): GeorgianCity | null {
  * reference — so the only thing worth checking is that a booking cannot smuggle
  * an essay into a column the driver hub renders on one line.
  */
-const FREE_TEXT_MAX_LENGTH = 200;
+export const FREE_TEXT_MAX_LENGTH = 200;
 
 /**
  * A contact at one end of the job. Every field is optional and unvalidated in
@@ -140,7 +96,17 @@ const FREE_TEXT_MAX_LENGTH = 200;
 export type StopContact = {
   name: string | null;
   phone: string | null;
+  /**
+   * LEGACY free-text "block, floor or room". The current form no longer asks
+   * for it (the structured fields below replace it) but still sends back what
+   * an order being edited already had, so it is still accepted.
+   */
   details: string | null;
+  /** Structured "Contact Info" (see `Order.pickupBuildingName`). */
+  buildingName: string | null;
+  entrance: string | null;
+  /** Note for the driver. Dropped for BUSINESS clients in `prepareOrderWrite`. */
+  comment: string | null;
 };
 
 /** Validated shape of an order-creation request body. */
@@ -226,6 +192,7 @@ function parseOptionalText(
   value: unknown,
   fieldName: string,
   t: RequestTranslator,
+  maxLength: number = FREE_TEXT_MAX_LENGTH,
 ): { value: string | null } | { error: string } {
   if (value === undefined || value === null) {
     return { value: null };
@@ -244,11 +211,11 @@ function parseOptionalText(
     return { value: null };
   }
 
-  if (trimmed.length > FREE_TEXT_MAX_LENGTH) {
+  if (trimmed.length > maxLength) {
     return {
       error: t("errors.orders.fieldTooLong", {
         field: fieldName,
-        max: FREE_TEXT_MAX_LENGTH,
+        max: maxLength,
       }),
     };
   }
@@ -265,7 +232,14 @@ function parseStopContact(
   fieldName: string,
   t: RequestTranslator,
 ): { data: StopContact } | { error: string } {
-  const empty: StopContact = { name: null, phone: null, details: null };
+  const empty: StopContact = {
+    name: null,
+    phone: null,
+    details: null,
+    buildingName: null,
+    entrance: null,
+    comment: null,
+  };
 
   if (value === undefined || value === null) {
     return { data: empty };
@@ -281,12 +255,22 @@ function parseStopContact(
 
   const record = value as Record<string, unknown>;
 
-  const name = parseOptionalText(record.name, `${fieldName}.name`, t);
+  const name = parseOptionalText(
+    record.name,
+    `${fieldName}.name`,
+    t,
+    STOP_CONTACT_MAX_LENGTHS.name,
+  );
   if ("error" in name) {
     return name;
   }
 
-  const phone = parseOptionalText(record.phone, `${fieldName}.phone`, t);
+  const phone = parseOptionalText(
+    record.phone,
+    `${fieldName}.phone`,
+    t,
+    STOP_CONTACT_MAX_LENGTHS.phone,
+  );
   if ("error" in phone) {
     return phone;
   }
@@ -296,8 +280,45 @@ function parseStopContact(
     return details;
   }
 
+  const buildingName = parseOptionalText(
+    record.buildingName,
+    `${fieldName}.buildingName`,
+    t,
+    STOP_CONTACT_MAX_LENGTHS.buildingName,
+  );
+  if ("error" in buildingName) {
+    return buildingName;
+  }
+
+  const entrance = parseOptionalText(
+    record.entrance,
+    `${fieldName}.entrance`,
+    t,
+    STOP_CONTACT_MAX_LENGTHS.entrance,
+  );
+  if ("error" in entrance) {
+    return entrance;
+  }
+
+  const comment = parseOptionalText(
+    record.comment,
+    `${fieldName}.comment`,
+    t,
+    STOP_CONTACT_MAX_LENGTHS.comment,
+  );
+  if ("error" in comment) {
+    return comment;
+  }
+
   return {
-    data: { name: name.value, phone: phone.value, details: details.value },
+    data: {
+      name: name.value,
+      phone: phone.value,
+      details: details.value,
+      buildingName: buildingName.value,
+      entrance: entrance.value,
+      comment: comment.value,
+    },
   };
 }
 
@@ -755,4 +776,78 @@ export function parseCreateOrderBody(
       deliveryDeadline: deliveryDeadline.value,
     },
   };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Goods-first booking: the `items` key                                       */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * A booking body, parsed, plus the raw `items` list when the request carried
+ * one. `rawItems` is `null` on the legacy path (no `items` key) and is handed,
+ * still unvalidated, to `prepareOrderWrite` — validating it needs the active
+ * catalogue and the client's account type, which only the database-bound half
+ * can read (`src/lib/orders/parse-items.ts` holds the pure rules).
+ */
+export type ParsedBooking = {
+  data: CreateOrderInput;
+  rawItems: unknown;
+};
+
+/**
+ * Does this request list its goods? `true` as soon as an `items` key is
+ * present with any value other than `undefined` — a malformed list is then the
+ * items parser's 400 to give, not a reason to fall back to the legacy path.
+ */
+export function hasItemsField(body: unknown): boolean {
+  return (
+    typeof body === "object" &&
+    body !== null &&
+    (body as Record<string, unknown>).items !== undefined
+  );
+}
+
+/**
+ * `parseCreateOrderBody`, plus goods-first booking's `items` key, for both
+ * order-writing routes (`POST /api/orders`, `PATCH /api/orders/[id]`).
+ *
+ * - **No `items` key (legacy path):** the body is parsed exactly as
+ *   `parseCreateOrderBody` always parsed it, and `rawItems` is `null`, so
+ *   nothing downstream reads anything new.
+ * - **`items` present:** the four typed envelope figures are dropped before
+ *   parsing. The server re-derives all four from the listed goods
+ *   (`prepareOrderWrite` → `deriveItemsLoad`), so a figure the client sent is
+ *   never trusted — and must not be able to refuse the booking either, which a
+ *   half-sent envelope would (`cargoEnvelopeIncomplete`). Every other field is
+ *   validated by the one parser, unchanged.
+ *
+ * LEGACY(goods-first): when the legacy path is removed, `items` becomes
+ * required here and the envelope figures leave the request shape.
+ */
+export function parseBookingBody(
+  body: unknown,
+  t: RequestTranslator,
+): { data: ParsedBooking } | { error: string } {
+  if (!hasItemsField(body)) {
+    const parsed = parseCreateOrderBody(body, t);
+    return "error" in parsed
+      ? parsed
+      : { data: { data: parsed.data, rawItems: null } };
+  }
+
+  const record = body as Record<string, unknown>;
+  const parsed = parseCreateOrderBody(
+    {
+      ...record,
+      cargoWeightKg: undefined,
+      cargoLengthM: undefined,
+      cargoWidthM: undefined,
+      cargoHeightM: undefined,
+    },
+    t,
+  );
+
+  return "error" in parsed
+    ? parsed
+    : { data: { data: parsed.data, rawItems: record.items } };
 }

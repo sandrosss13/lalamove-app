@@ -26,14 +26,22 @@ import type { BookingClientAccountType } from "@/components/home/order-vehicle-t
  * the class they booked, and the vehicle step's auto-select would replace it
  * before the real account type arrived. Omitted, the hook behaves exactly as
  * it always has.
+ *
+ * `enabled: false` skips the request entirely and keeps `initial` — for a guest
+ * booking, who has no profile and is always booked as INDIVIDUAL.
  */
 export function useClientAccountType(
   initial: BookingClientAccountType = "INDIVIDUAL",
+  { enabled = true }: { enabled?: boolean } = {},
 ): BookingClientAccountType {
   const [accountType, setAccountType] =
     useState<BookingClientAccountType>(initial);
 
   useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+
     // Dropped rather than aborted on unmount, so a strict-mode double mount
     // never logs an aborted request as a failure.
     let active = true;
@@ -59,7 +67,7 @@ export function useClientAccountType(
     return () => {
       active = false;
     };
-  }, []);
+  }, [enabled]);
 
   return accountType;
 }

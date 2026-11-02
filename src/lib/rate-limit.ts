@@ -80,3 +80,28 @@ export function checkRateLimit(
 
   return allowed;
 }
+
+/** Bucket used when no proxy header identifies the caller (e.g. local dev). */
+const UNKNOWN_CALLER_KEY = "unknown-caller";
+
+/**
+ * Best-effort caller identity from proxy headers, for keying `checkRateLimit`.
+ * `x-forwarded-for` may list several hops, and the first entry is the original
+ * client. Behind a trusted proxy this is the caller's IP; without one every
+ * caller shares a single bucket, which is acceptable for a coarse abuse guard.
+ *
+ * The same rule `POST /api/pricing/estimate` keeps a route-local copy of.
+ * Callers sharing this helper should prefix the key with their own scope
+ * (`"guest-order:" + rateLimitCallerKey(request)`), since the limiter's `Map`
+ * is process-wide and one route's budget must not spend another's.
+ */
+export function rateLimitCallerKey(request: Request): string {
+  const forwarded = request.headers.get("x-forwarded-for");
+  const firstHop = forwarded?.split(",")[0]?.trim();
+  if (firstHop) {
+    return firstHop;
+  }
+
+  const realIp = request.headers.get("x-real-ip")?.trim();
+  return realIp && realIp.length > 0 ? realIp : UNKNOWN_CALLER_KEY;
+}

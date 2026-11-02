@@ -160,12 +160,14 @@
   },
   "clientProfile": {
     "accountTypeMustBeOneOf": "accountType უნდა იყოს ერთ-ერთი შემდეგიდან: {allowed}.",
+    "clientProfileNotFound": "კლიენტის პროფილი ვერ მოიძებნა.",
     "dateofbirthCannotBeInTheFuture": "dateOfBirth არ შეიძლება იყოს მომავალში.",
     "dateofbirthMustBeAValidDate": "dateOfBirth უნდა იყოს ვალიდური თარიღი.",
     "dateofbirthMustBeAnIsoDate": "dateOfBirth უნდა იყოს ISO თარიღის ფორმატის ტექსტი.",
     "genderMustBeOneOf": "gender უნდა იყოს ერთ-ერთი შემდეგიდან: {allowed}.",
     "legalAddressIsTooLong": "იურიდიული მისამართი არ უნდა აღემატებოდეს {max} სიმბოლოს.",
     "legalAddressMustBeText": "იურიდიული მისამართი უნდა იყოს ტექსტი.",
+    "marketingConsentMustBeABoolean": "მარკეტინგულ შეთავაზებებზე პასუხი უნდა იყოს „ვეთანხმები“ ან „არ ვეთანხმები“.",
     "onlyClientsCanCreateAClient": "კლიენტის პროფილის შექმნა მხოლოდ კლიენტებს შეუძლიათ.",
     "onlyClientsHaveAClientProfile": "კლიენტის პროფილი მხოლოდ კლიენტებს აქვთ."
   },
@@ -474,6 +476,30 @@
     "fieldTooLong": "{field} არ უნდა აღემატებოდეს {max} სიმბოლოს.",
     "handlingTagsMustContainOnly": "handlingTags შეიძლება შეიცავდეს მხოლოდ: {allowed}.",
     "handlingtagsMustBeAnArrayWhen": "handlingTags მითითებისას უნდა იყოს მასივი.",
+    "orderItems": {
+      "itemsMustBeList": "items უნდა იყოს გასაგზავნი ტვირთის სია.",
+      "itemsEmpty": "მიუთითეთ მინიმუმ ერთი ნივთი.",
+      "itemsTooMany": "მიუთითეთ არაუმეტეს 60 ნივთისა. უფრო დიდი ტვირთი დაყავით ცალკე დაკვეთებად.",
+      "unknownKind": "{field} უნდა იყოს ერთ-ერთი: CATALOGUE, CUSTOM, PALLET.",
+      "lineMustBeObject": "{field} უნდა იყოს JSON ობიექტი.",
+      "quantityOutOfRange": "{field} უნდა იყოს მთელი რიცხვი 1-დან {max}-მდე.",
+      "codeRequired": "{field} სავალდებულოა.",
+      "labelRequired": "{field} სავალდებულოა.",
+      "palletTypeInvalid": "{field} უნდა იყოს ერთ-ერთი: {allowed}.",
+      "palletContentsInvalid": "{field} უნდა იყოს ერთ-ერთი: {allowed}.",
+      "mixedModes": "ტვირთი მიუთითეთ ან პალეტებად, ან ნივთებად — ერთ დაკვეთაში ორივე არ შეიძლება.",
+      "catalogueUnavailable": "თქვენ მიერ მითითებული ნივთი აღარ არის ხელმისაწვდომი. ამოშალეთ და სცადეთ ხელახლა.",
+      "palletsBusinessOnly": "პალეტებით ტვირთი ხელმისაწვდომია ბიზნეს ანგარიშებისთვის. მიუთითეთ ნივთები.",
+      "bodyConflict": "გაგრილებული ტვირთი და ღია შასიის ნივთები ერთად ვერ გადაიზიდება. დაჯავშნეთ ცალ-ცალკე.",
+      "bodyRequired": "აირჩიეთ ტვირთის სივრცე.",
+      "bodyMismatch": "თქვენ მიერ მითითებულ ტვირთს სჭირდება {body} ტვირთის სივრცე. აირჩიეთ ეს ტვირთის სივრცე და სცადეთ ხელახლა.",
+      "overMaximum": "ეს ერთ ავტომობილს არ ერგება. დაყავით ცალკე დაკვეთებად.",
+      "bodyPhrase": {
+        "dryBox": "მშრალი",
+        "refrigerated": "გაგრილებადი",
+        "openChassis": "ღია შასიის"
+      }
+    },
     "paymentMethodTypeMustBeOneOf": "paymentMethodType უნდა იყოს ერთ-ერთი შემდეგიდან: {allowed}.",
     "pickupwindowendMustBeAfterPickupwindowstart": "pickupWindowEnd უნდა იყოს pickupWindowStart-ის შემდეგ.",
     "scheduledatCannotBeInThePast": "scheduledAt არ შეიძლება იყოს წარსულში.",
@@ -493,7 +519,11 @@
     "onlyUnpaidOrdersCanBeCancelled": "გაუქმება შესაძლებელია მხოლოდ გადაუხდელი შეკვეთის. თუ ეს შეკვეთა უკვე გადახდილია, მის გასაუქმებლად დაუკავშირდით მხარდაჭერის გუნდს."
   },
   "ordersComplete": {
+    "dropoffHelperMinutesInvalid": "ჩაბარების ადგილზე დამხმარეების წუთები უნდა იყოს მთელი რიცხვი 0-დან {max}-მდე.",
+    "dropoffHelperMinutesRequired": "მიუთითეთ, რამდენი წუთი იმუშავეს დამხმარეებმა ჩაბარების ადგილზე.",
     "photoRequired": "დადასტურებამდე დაამატეთ მიწოდების მინიმუმ ერთი ფოტო.",
+    "pickupHelperMinutesInvalid": "აყვანის ადგილზე დამხმარეების წუთები უნდა იყოს მთელი რიცხვი 0-დან {max}-მდე.",
+    "pickupHelperMinutesRequired": "მიუთითეთ, რამდენი წუთი იმუშავეს დამხმარეებმა აყვანის ადგილზე.",
     "receivedByMustBeStringOrNull": "receivedBy უნდა იყოს ტექსტი ან null.",
     "receivedByTooLong": "receivedBy არ უნდა აღემატებოდეს {max} სიმბოლოს.",
     "signatureRequired": "დადასტურებამდე დაამატეთ მიმღების ხელმოწერა.",
@@ -508,8 +538,11 @@
     "youDoNotHaveAccessTo": "თქვენ არ გაქვთ წვდომა ამ შეკვეთაზე."
   },
   "ordersPay": {
+    "enterTheCardYouArePaying": "მიუთითეთ ბარათი, რომლითაც იხდით.",
+    "enterYourContactDetails": "გადასახდელად მიუთითეთ სახელი, გვარი და ტელეფონის ნომერი.",
     "fieldMustBeStringWhenProvided": "{field} მითითების შემთხვევაში უნდა იყოს ტექსტი.",
     "fieldTooLong": "{field} არ უნდა აღემატებოდეს {max} სიმბოლოს.",
+    "payLaterIsNotAvailable": "მოგვიანებით გადახდა მხოლოდ ბიზნეს ანგარიშებისთვისაა ხელმისაწვდომი. გთხოვთ, გადაიხადოთ ბარათით.",
     "paymentMethodTypeMustBeOneOf": "paymentMethodType უნდა იყოს ერთ-ერთი შემდეგიდან: {allowed}.",
     "thisDeliveryHasAlreadyBeenPaid": "ამ მიწოდების საფასური უკვე გადახდილია და ის ჩვენს მძღოლებთანაა."
   },
@@ -534,6 +567,19 @@
   "pushTokens": {
     "platformMustBeIosOrAndroid": "platform უნდა იყოს ios ან android.",
     "tokenMustBeAnExpoPushToken": "token უნდა იყოს Expo-ს push ტოკენი."
+  },
+  "savedAddresses": {
+    "addressAlreadySaved": "ეს მისამართი უკვე შენახული გაქვთ.",
+    "addressIsRequired": "შეიყვანეთ შესანახი მისამართი.",
+    "addressNotFound": "შენახული მისამართი ვერ მოიძებნა.",
+    "addressTooLong": "მისამართი არ უნდა აღემატებოდეს {max} სიმბოლოს.",
+    "bodyMustBeAnObject": "მოთხოვნის ტანი უნდა იყოს JSON ობიექტი.",
+    "coordinatesInvalid": "lat და lng უნდა იყოს სწორი კოორდინატები ან null.",
+    "fieldMustBeString": "{field} მითითებისას უნდა იყოს ტექსტი.",
+    "fieldMustBeTrueOrFalse": "{field} მითითებისას უნდა იყოს true ან false.",
+    "floorMustBeANumber": "floor უნდა იყოს რიცხვი.",
+    "limitReached": "შეგიძლიათ შეინახოთ არაუმეტეს {max} მისამართი. ახლის შესანახად წაშალეთ ერთ-ერთი.",
+    "onlyClientsHaveSavedAddresses": "შენახული მისამართები მხოლოდ კლიენტებს აქვთ."
   },
   "savedCards": {
     "cardBrandTooLong": "მიუთითეთ ბარათის ბრენდი არაუმეტეს {max} სიმბოლოსი.",

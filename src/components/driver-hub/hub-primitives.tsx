@@ -379,12 +379,14 @@ export function FilterStrip({
             // track. Both halves of that — `bg-background` and the 6%-black
             // drop shadow — are light-mode statements of one idea, "this pill
             // is raised", and neither survives the flip: in dark, `background`
-            // is `oklch(0.145 0 0)` and `muted` is `oklch(0.269 0 0)`, so the
-            // token pair *inverts* and the selected pill sinks into a hole,
-            // while a black shadow on a near-black track is invisible.
+            // is `#2a2a2a` and `muted` is `#3d3d3d`, so the token pair
+            // *inverts* and the selected pill sinks into a hole, while a black
+            // shadow on a dark track is invisible.
             //
-            // `dark:bg-[oklch(0.37_0_0)]` restores the direction rather than
-            // the literal: one step lighter than the track, which is how a dark
+            // `dark:bg-[oklch(0.45_0_0)]` restores the direction rather than
+            // the literal: one step lighter than the `#3d3d3d` (≈`oklch(0.37)`)
+            // track — it was `0.37` itself when the track was `oklch(0.269)`,
+            // and would vanish into today's grey track — which is how a dark
             // UI says "raised" at all — elevation there is lightness, not
             // shadow. The shadow is left in place unconditionally because it
             // costs nothing and simply stops being perceptible; deleting it
@@ -392,7 +394,7 @@ export function FilterStrip({
             className={cn(
               "h-auto flex-none rounded-md px-[13px] py-1.5 text-[13px] whitespace-nowrap",
               active
-                ? "bg-background font-semibold text-foreground shadow-[0_1px_2px_rgba(0,0,0,0.06)] hover:bg-background hover:text-foreground dark:bg-[oklch(0.37_0_0)] dark:hover:bg-[oklch(0.37_0_0)]"
+                ? "bg-background font-semibold text-foreground shadow-[0_1px_2px_rgba(0,0,0,0.06)] hover:bg-background hover:text-foreground dark:bg-[oklch(0.45_0_0)] dark:hover:bg-[oklch(0.45_0_0)]"
                 : "bg-transparent font-normal text-muted-foreground hover:bg-transparent hover:text-foreground",
             )}
           >

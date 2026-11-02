@@ -55,6 +55,12 @@ type OrderTrackingMapProps = {
   orderId: string;
   pickup: LatLng | null;
   dropoff: LatLng | null;
+  /**
+   * A guest's tracking token, from the private `/track/<token>` link. Sent as
+   * `?token=` on the location poll, which is how a guest on a device without
+   * the order's cookie proves they may see the driver.
+   */
+  guestToken?: string;
 };
 
 /** How often the driver's position is re-fetched, in milliseconds. */
@@ -127,6 +133,7 @@ function TrackingMap({
   orderId,
   pickup,
   dropoff,
+  guestToken,
 }: OrderTrackingMapProps & { apiKey: string }) {
   const t = useTranslations("orders.orderTrackingMap");
   const tShared = useTranslations("common.shared");
@@ -165,9 +172,13 @@ function TrackingMap({
 
     async function fetchDriverLocation(): Promise<void> {
       try {
-        const response = await fetch(`/api/orders/${orderId}/location`, {
-          signal: controller.signal,
-        });
+        const query = guestToken
+          ? `?token=${encodeURIComponent(guestToken)}`
+          : "";
+        const response = await fetch(
+          `/api/orders/${orderId}/location${query}`,
+          { signal: controller.signal },
+        );
         if (!response.ok) {
           return;
         }
@@ -195,7 +206,7 @@ function TrackingMap({
       controller.abort();
       clearInterval(timer);
     };
-  }, [orderId]);
+  }, [orderId, guestToken]);
 
   const driverLat = driver?.lat ?? null;
   const driverLng = driver?.lng ?? null;
@@ -309,6 +320,7 @@ export function OrderTrackingMap({
   orderId,
   pickup,
   dropoff,
+  guestToken,
 }: OrderTrackingMapProps) {
   const tShared = useTranslations("common.shared");
   // Inlined at build time by Next because of the NEXT_PUBLIC_ prefix; must be
@@ -331,6 +343,7 @@ export function OrderTrackingMap({
       orderId={orderId}
       pickup={pickup}
       dropoff={dropoff}
+      guestToken={guestToken}
     />
   );
 }

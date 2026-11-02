@@ -197,8 +197,8 @@ export function useServiceLevelLabel(): (level: ServiceLevel) => string {
  * Whether the tracking page has anything to show for this order: someone is
  * assigned and on their way to the pickup, or already carrying the load.
  *
- * Shared by the order list and the order page so the two offer the Track link
- * on exactly the same orders. Written with string literals for the reason the
+ * Shared by the order list (its Track link) and the order page (its inline
+ * live-tracking map) so both offer tracking on exactly the same orders. Written with string literals for the reason the
  * module header gives for its `Record` keys.
  */
 export function orderIsTrackable(order: {

@@ -180,7 +180,14 @@ function toStopContact(
 ): HubJobStopContact | null {
   return contact === null
     ? null
-    : { name: contact.name, phone: contact.phone, details: contact.details };
+    : {
+        name: contact.name,
+        phone: contact.phone,
+        details: contact.details,
+        buildingName: contact.buildingName,
+        entrance: contact.entrance,
+        comment: contact.comment,
+      };
 }
 
 function toJobsItem(job: HubJob): HubJobsItem {
@@ -196,6 +203,8 @@ function toJobsItem(job: HubJob): HubJobsItem {
     driverPayout: job.driverPayout,
     overtimeDriverPayout: job.overtimeDriverPayout,
     helperCount: job.helperCount,
+    pickupWork: { ...job.pickupWork },
+    dropoffWork: { ...job.dropoffWork },
     waitingMinutes: job.waitingMinutes,
     createdAt: job.createdAt,
     scheduledAt: job.scheduledAt,
@@ -236,8 +245,8 @@ export function toHubJobsResponse(data: HubJobsData): HubJobsResponse {
  * `GET /api/dashboard/hub/jobs/[id]`. Tenancy is not decided here: the sheet
  * handed in has already passed `canViewJobSheet` inside `getHubJobSheet`.
  *
- * **A cancelled job carries no payout figure** — `driverPayout` and
- * `overtimeDriverPayout` are both null. The stored columns still hold what the
+ * **A cancelled job carries no payout figure** — `driverPayout`,
+ * `helperPayout` and `overtimeDriverPayout` are all null. The stored columns still hold what the
  * job was commissioned at, but a cancelled job is not going to pay it, and the
  * web sheet refuses to print it for every reader (`JobSheetCancelled` in
  * `job-sheet-screen.tsx`, `payout="none"`). Nulling it here rather than
@@ -275,6 +284,9 @@ export function toHubJobSheetResponse(
     pickupContactName: job.pickupContactName,
     pickupContactPhone: job.pickupContactPhone,
     pickupContactDetails: job.pickupContactDetails,
+    pickupBuildingName: job.pickupBuildingName,
+    pickupEntrance: job.pickupEntrance,
+    pickupComment: job.pickupComment,
     dropoffAddress: job.dropoffAddress,
     dropoffLat: job.dropoffLat,
     dropoffLng: job.dropoffLng,
@@ -282,6 +294,9 @@ export function toHubJobSheetResponse(
     dropoffContactName: job.dropoffContactName,
     dropoffContactPhone: job.dropoffContactPhone,
     dropoffContactDetails: job.dropoffContactDetails,
+    dropoffBuildingName: job.dropoffBuildingName,
+    dropoffEntrance: job.dropoffEntrance,
+    dropoffComment: job.dropoffComment,
     distanceKm: job.distanceKm,
     cargoCategory: job.cargoCategory,
     description: job.description,
@@ -293,6 +308,8 @@ export function toHubJobSheetResponse(
     cargoHeightM: job.cargoHeightM,
     handlingTags: [...job.handlingTags],
     helperCount: job.helperCount,
+    pickupWork: { ...job.pickupWork },
+    dropoffWork: { ...job.dropoffWork },
     bodyType: job.bodyType,
     createdAt: job.createdAt,
     scheduledAt: job.scheduledAt,
@@ -302,8 +319,11 @@ export function toHubJobSheetResponse(
     inTransitAt: job.inTransitAt,
     completedAt: job.completedAt,
     driverPayout: isCancelled ? null : job.driverPayout,
+    helperPayout: isCancelled ? null : job.helperPayout,
     overtimeDriverPayout: isCancelled ? null : job.overtimeDriverPayout,
     waitingMinutes: job.waitingMinutes,
+    pickupHelperMinutes: job.pickupHelperMinutes,
+    dropoffHelperMinutes: job.dropoffHelperMinutes,
     receivedBy: job.receivedBy,
     proofOfDelivery:
       reader === "DRIVER" ? toOrderProofOfDelivery(job.proofOfDelivery) : null,
@@ -535,6 +555,7 @@ export function toHubOffer(record: DriverOfferRecord): HubOffer {
     secondsRemaining: record.secondsRemaining,
     lifetimeSeconds: record.lifetimeSeconds,
     driverPayout: record.driverPayout,
+    helperPayout: record.helperPayout,
     distanceKm: record.distanceKm,
     pickupDistanceKm: record.pickupDistanceKm,
     pickupAddress: record.pickupAddress,
@@ -560,6 +581,8 @@ export function toHubOffer(record: DriverOfferRecord): HubOffer {
     bodyType: record.bodyType,
     handlingTags: [...record.handlingTags],
     helperCount: record.helperCount,
+    pickupWork: { ...record.pickupWork },
+    dropoffWork: { ...record.dropoffWork },
     serviceLevel: record.serviceLevel,
     fitVehicle:
       record.fitVehicle === null

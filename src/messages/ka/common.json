@@ -33,6 +33,36 @@
     "plateNumber": "სახელმწიფო ნომერი",
     "vehicleAddedToYourFleet": "ტრანსპორტი დაემატა თქვენს ავტოპარკს."
   },
+  "goodsShortcut": {
+    "furniture": {
+      "title": "ავეჯი",
+      "description": "დივნები, საწოლები, კარადები, მაგიდები"
+    },
+    "appliances": {
+      "title": "საყოფაცხოვრებო ტექნიკა",
+      "description": "მაცივრები, სარეცხი მანქანები, ტელევიზორები"
+    },
+    "boxes": {
+      "title": "ყუთები დაამანათები",
+      "description": "ყუთები, ჩემოდნები, ჩანთები"
+    },
+    "chilled": {
+      "title": "გაცივებული და გაყინული",
+      "description": "საკვები, რომელიც ცივად უნდა იყოს"
+    },
+    "building": {
+      "title": "სამშენებლო მასალები",
+      "description": "ცემენტი, ფილები, ფიცრები, ხე-ტყე"
+    },
+    "event": {
+      "title": "ღონისძიების აღჭურვილობა",
+      "description": "მაგიდები, სცენა, ხმის სისტემა"
+    },
+    "pallets": {
+      "title": "პალეტები",
+      "description": "ევრო ან სამრეწველო პალეტები"
+    }
+  },
   "languageToggle": {
     "short": {
       "en": "EN",
@@ -40,17 +70,26 @@
     },
     "switchTo": "ენის შეცვლა: {language}"
   },
+  "marketingConsent": {
+    "statement": "ვეთანხმები პერსონალიზებული მარკეტინგული შეთავაზებების მიღებას. დამატებითი ინფორმაციისთვის იხილეთ: <policy>მარკეტინგის კონფიდენციალურობის პოლიტიკა</policy>."
+  },
   "notFound": {
     "pageNotFound": "გვერდი ვერ მოიძებნა",
     "pickALanguageToHeadBack": "მთავარ გვერდზე დასაბრუნებლად აირჩიეთ ენა:"
   },
   "pricing": {
     "cargoCategoryMustBeOneOf": "cargoCategory უნდა იყოს ერთ-ერთი შემდეგიდან: {allowed}.",
+    "cargoElevatorMustBeBoolean": "{field} უნდა იყოს true ან false.",
     "cargoVehicleMismatch": "ამ კატეგორიის ტვირთის დაჯავშნა ავტომობილის ტიპით {vehicleCategory} შეუძლებელია; საჭიროა {allowedCategories}.",
     "couldNotLocateAddress": "მისამართი ვერ მოიძებნა: {address}",
     "dropoffaddressIsRequired": "ჩაბარების მისამართი სავალდებულოა.",
+    "floorOutOfRange": "{field} უნდა იყოს მთელი რიცხვი 0-დან {max}-მდე.",
     "helperCountOutOfRange": "helperCount უნდა იყოს მთელი რიცხვი 0-დან {max}-მდე.",
+    "locationHelpersOutOfRange": "{field} უნდა იყოს მთელი რიცხვი 0-დან {max}-მდე.",
+    "manualQuoteRequired": "ეს მარშრუტი {km} კმ-ზე გრძელია, ამიტომ ფასის ავტომატური გამოთვლა შეუძლებელია. ფასის მისაღებად დაუკავშირდით მხარდაჭერის სამსახურს.",
     "pickupaddressIsRequired": "აყვანის მისამართი სავალდებულოა.",
+    "tariffChanged": "ფასები განახლდა მას შემდეგ, რაც შეთავაზება მიიღეთ. გთხოვთ, გადახედოთ ახალ ფასს და ხელახლა დაჯავშნოთ.",
+    "tariffVersionInvalid": "tariffVersion უნდა იყოს დადებითი მთელი რიცხვი.",
     "vehicleTypeCodeMustBeKnown": "vehicleTypeCode უნდა იყოს ცნობილი ავტომობილის ტიპი."
   },
   "seo": {
@@ -407,6 +446,18 @@
     "yourFleetIsStillUnderReview": "თქვენი ავტოპარკი გადამოწმების პროცესშია. შეკვეთების აღებამდე ოპერაციების გუნდმა უნდა გაააქტიუროს კომპანია.",
     "yourFleetIsStillUnderReview2": "თქვენი ავტოპარკი გადამოწმების პროცესშია. შეკვეთების გადანაწილებამდე ოპერაციების გუნდმა უნდა გაააქტიუროს კომპანია.",
     "zone": "ზონა"
+  },
+  "stopInfo": {
+    "building": "შენობა",
+    "cargoElevator": "სატვირთო",
+    "comment": "კომენტარი",
+    "details": "დეტალები",
+    "elevator": "ლიფტი",
+    "entrance": "სადარბაზო",
+    "floor": "სართული",
+    "floorValue": "სართული {floor}",
+    "groundFloor": "მიწის დონე",
+    "passengerElevator": "სამგზავრო"
   },
   "themeToggle": {
     "darkTheme": "მუქი თემა",

@@ -16,6 +16,7 @@ import {
   parseDriverAccountSection,
   type DriverAccountSectionId,
 } from "@/components/driver-hub/driver-account-sections";
+import { userHasPassword } from "@/lib/account-password";
 import { resolveHubAccount } from "@/lib/dashboard/hub/account";
 import {
   getHubAccountSettings,
@@ -117,7 +118,14 @@ export default async function DriverAccountPage({
     redirect(await localeHref(HUB_ACCOUNT_PATH));
   }
 
-  const settings = await getHubAccountSettings(account);
+  // `hasPassword` only matters to the profile section, the one that renders
+  // the password card; a phone-number account has no password to change.
+  const [settings, hasPassword] = await Promise.all([
+    getHubAccountSettings(account),
+    section === "profile"
+      ? userHasPassword(account.userId)
+      : Promise.resolve(false),
+  ]);
 
   // Same `null` as `resolveHubAccount()`'s and for the same cause — an
   // interrupted sign-up. Unreachable in practice: the layout resolved a
@@ -178,7 +186,11 @@ export default async function DriverAccountPage({
           </p>
         </header>
 
-        <SectionPanel section={section} settings={settings} />
+        <SectionPanel
+          section={section}
+          settings={settings}
+          hasPassword={hasPassword}
+        />
       </div>
     </div>
   );
@@ -195,9 +207,13 @@ export default async function DriverAccountPage({
 function SectionPanel({
   section,
   settings,
+  hasPassword,
 }: {
   section: DriverAccountSectionId;
   settings: HubAccountSettings;
+  /** False for an account with no password credential (a phone account):
+   *  `changePassword` cannot work for it, so the card is left out. */
+  hasPassword: boolean;
 }) {
   switch (section) {
     case "profile":
@@ -214,8 +230,8 @@ function SectionPanel({
           )}
           {/* Better Auth's `changePassword` is role-agnostic, so this is the
               one panel on the screen that is identical for all three
-              personas. */}
-          <DriverAccountPasswordCard />
+              personas — shown to any account that has a password. */}
+          {hasPassword ? <DriverAccountPasswordCard /> : null}
         </>
       );
 

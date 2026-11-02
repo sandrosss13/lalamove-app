@@ -8,6 +8,7 @@ import type {
 } from "@prisma/client";
 
 import { authorizeAdminApi } from "@/lib/admin/api-auth";
+import { displayEmail } from "@/lib/phone-placeholder-email";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -47,7 +48,9 @@ export type AdminSellerRow = {
   type: AdminSellerType;
   /** The account name from Better Auth. */
   name: string;
-  email: string;
+  /** `null` for a phone-only account — its placeholder address is never
+   *  shown (`src/lib/phone-placeholder-email.ts`). */
+  email: string | null;
   phone: string;
   city: GeorgianCity;
   /**
@@ -184,7 +187,7 @@ export async function GET(request: Request): Promise<NextResponse> {
     userId: driver.userId,
     type: "DRIVER",
     name: driver.user.name,
-    email: driver.user.email,
+    email: displayEmail(driver.user.email),
     phone: driver.phone,
     city: driver.city,
     companyName: driver.companyName,
@@ -200,7 +203,7 @@ export async function GET(request: Request): Promise<NextResponse> {
     userId: company.userId,
     type: "COMPANY",
     name: company.user.name,
-    email: company.user.email,
+    email: displayEmail(company.user.email),
     phone: company.phone,
     city: company.city,
     companyName: company.companyName,

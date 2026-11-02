@@ -288,7 +288,7 @@ export default function AdminSellersPage() {
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-col">
-                          <span>{seller.email}</span>
+                          {seller.email ? <span>{seller.email}</span> : null}
                           <span className="text-xs text-muted-foreground">
                             {seller.phone}
                           </span>

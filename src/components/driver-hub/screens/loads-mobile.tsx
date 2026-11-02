@@ -23,6 +23,7 @@ import {
   formatDistanceKm,
   formatGel,
   formatHelperRequest,
+  formatLoadStopWork,
   formatLoadDayLabel,
   formatLoadDims,
   formatWeightKg,
@@ -483,6 +484,7 @@ function LoadCard({ load, nowIso }: { load: HubLoad; nowIso: string }) {
   const tShared = useTranslations("common.shared");
   const tFormat = useTranslations("driverHub.loadsFormat");
   const tRoot = useTranslations();
+  const stopWork = formatLoadStopWork(load, tFormat);
   const timeFormat = useLoadsTimeFormat();
 
   const tags = sortedHandlingTags(load.handlingTags, tFormat);
@@ -604,9 +606,19 @@ function LoadCard({ load, nowIso }: { load: HubLoad; nowIso: string }) {
           figure the table's Distance column shows, and never
           `pickupDistanceKm`. */}
       <p className="mt-1 text-xs text-muted-foreground tabular-nums">
-        {formatDistanceKm(load.distanceKm)} ·{" "}
-        {formatHelperRequest(load.helperCount, tFormat)}
+        {formatDistanceKm(load.distanceKm)}
+        {stopWork ? null : (
+          <> · {formatHelperRequest(load.helperCount, tFormat)}</>
+        )}
       </p>
+      {/* Pricing model v1: the crew's work at each stop, one line each; a
+          pre-v1 order keeps its crew size on the trip line above. */}
+      {stopWork ? (
+        <p className="mt-0.5 text-xs text-muted-foreground tabular-nums">
+          <span className="block">{stopWork.pickup}</span>
+          <span className="block">{stopWork.dropoff}</span>
+        </p>
+      ) : null}
 
       {/* Declaration order via `sortedHandlingTags`, never the stored array's
           order — that is the sequence the client happened to tap the chips in

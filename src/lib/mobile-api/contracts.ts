@@ -121,7 +121,9 @@
  *   **carrier's** side: `driverPayout`, `overtimeDriverPayout` and figures
  *   derived from them. What the client paid (`price`, `baseFare`,
  *   `distanceFare`, `timeFare`, `helperFee`, `overtimeFee`,
- *   `serviceLevelAdjustment`) and `commissionRate` appear nowhere in this file
+ *   `serviceLevelAdjustment`, and since pricing model v1 `transportFare`,
+ *   `returnFare`, `returnAllowance`, `helperOvertimeFee`, `tripType`) and
+ *   `commissionRate` appear nowhere in this file
  *   and must never be added — see `tests/carrier-payload-redaction.spec.ts`.
  * - Nothing here is placeholder data. The web hub decorates several screens
  *   with clearly-labelled sample figures (its `sampled` sub-objects); the JSON
@@ -324,11 +326,58 @@ export type HubJobServiceLevel = "Priority" | "Regular" | "Pooling";
 
 export type HubJobBodyType = "Dry box" | "Refrigerated" | "Open chassis";
 
-/** A named person at a stop. Each part is null when the client left it out. */
+/**
+ * Who to ask for at a stop, and where in the building ("Contact Info"). Each
+ * part is null when the client left it out.
+ *
+ * `details` is the LEGACY free-text "block, floor or room" — only orders
+ * booked before the structured fields existed carry it; show it when present.
+ * New orders carry `buildingName`, `entrance` and `comment` instead (the
+ * floor and the elevators are in `HubStopWork`). `comment` is a multi-line
+ * note for the driver (door code, lift code…); business bookings have none.
+ */
 export type HubJobStopContact = {
   name: string | null;
   phone: string | null;
   details: string | null;
+  buildingName: string | null;
+  /** Entrance / staircase, as the client typed it. */
+  entrance: string | null;
+  comment: string | null;
+};
+
+/**
+ * The hands-on work at one stop, as the client booked it (pricing model v1):
+ * how many helpers the driver brings there, which floor the load is on and
+ * whether a cargo and/or passenger elevator can be used. The floor and the
+ * elevators are recorded even when no helper is booked (they are the stop's
+ * "Contact Info" too), so show them whenever they say something. No money —
+ * what the helpers pay the driver is `helperPayout`, already inside
+ * `driverPayout`.
+ *
+ * Orders booked before v1 carry `{ helpers: 0, floor: 0, cargoElevator:
+ * false, passengerElevator: false }` at both ends and describe their crew
+ * with `helperCount` alone, so show the per-stop work only when it says
+ * something (a helper, a floor above ground or an elevator) and fall back to
+ * `helperCount` otherwise.
+ */
+export type HubStopWork = {
+  /** Helpers booked at this stop, 0–4. */
+  helpers: number;
+  /** The floor the load is on; 0 is the ground floor. */
+  floor: number;
+  /** Whether a cargo elevator can be used at this stop. */
+  cargoElevator: boolean;
+  /** Whether a passenger elevator can be used at this stop. */
+  passengerElevator: boolean;
+  /**
+   * Whether marking the job delivered must report the helpers' actual minutes
+   * at this stop: true only on a pricing-model-v1 order with helpers booked
+   * here. Older orders (whose per-stop helpers were backfilled from
+   * `helperCount`) are false — the server would discard the figure. Gate the
+   * minutes input on this, never on `helpers > 0`.
+   */
+  helperMinutesRequired: boolean;
 };
 
 export type HubJobsItem = {
@@ -346,6 +395,9 @@ export type HubJobsItem = {
   driverPayout: number;
   overtimeDriverPayout: number;
   helperCount: number;
+  /** The work at each stop — see `HubStopWork`. */
+  pickupWork: HubStopWork;
+  dropoffWork: HubStopWork;
   waitingMinutes: number | null;
   createdAt: string;
   scheduledAt: string | null;
@@ -412,6 +464,9 @@ export type HubJobSheetResponse = {
   pickupContactName: string | null;
   pickupContactPhone: string | null;
   pickupContactDetails: string | null;
+  pickupBuildingName: string | null;
+  pickupEntrance: string | null;
+  pickupComment: string | null;
   dropoffAddress: string;
   dropoffLat: number | null;
   dropoffLng: number | null;
@@ -420,6 +475,9 @@ export type HubJobSheetResponse = {
   dropoffContactName: string | null;
   dropoffContactPhone: string | null;
   dropoffContactDetails: string | null;
+  dropoffBuildingName: string | null;
+  dropoffEntrance: string | null;
+  dropoffComment: string | null;
   distanceKm: number;
   cargoCategory: string;
   description: string | null;
@@ -431,6 +489,9 @@ export type HubJobSheetResponse = {
   cargoHeightM: number | null;
   handlingTags: string[]; // CargoHandlingTag[]
   helperCount: number;
+  /** The work at each stop — see `HubStopWork`. */
+  pickupWork: HubStopWork;
+  dropoffWork: HubStopWork;
   bodyType: string | null; // ChassisType
   createdAt: string;
   scheduledAt: string | null;
@@ -445,9 +506,26 @@ export type HubJobSheetResponse = {
    * none may be shown. The web job sheet applies the same rule.
    */
   driverPayout: number | null;
-  /** Null when `status` is `CANCELLED` — see `driverPayout`. */
+  /**
+   * The helpers' part of `driverPayout` (already included in it, never on top
+   * of it): the transport part is `driverPayout - helperPayout`. 0 on a job
+   * with no helpers and on every order booked before pricing model v1. Null
+   * when `status` is `CANCELLED` — see `driverPayout`.
+   */
+  helperPayout: number | null;
+  /**
+   * Null when `status` is `CANCELLED` — see `driverPayout`. Includes the
+   * driver's share of the vehicle waiting overtime AND all of the helper
+   * overtime, both settled at completion.
+   */
   overtimeDriverPayout: number | null;
   waitingMinutes: number | null;
+  /**
+   * The helper minutes reported at each stop at completion. Null until then,
+   * and at a stop that had no helpers.
+   */
+  pickupHelperMinutes: number | null;
+  dropoffHelperMinutes: number | null;
   /** Who signed for the delivery, once completed. */
   receivedBy: string | null;
   /**
@@ -648,6 +726,16 @@ export type PodPhotoDeleteResponse = OrderProofOfDelivery;
 export type OrderCompleteRequest = {
   /** Whole minutes spent loading and unloading, 0 or more. Required. */
   waitingMinutes: number;
+  /**
+   * Whole minutes the helpers worked at each stop, 0 to 1440. **Required for a
+   * stop whose `HubStopWork.helpers` is above 0** (else 400
+   * `INVALID_REQUEST`); ignored — and may be omitted or null — for a stop with
+   * no helpers. Helper overtime is computed server-side from these and paid
+   * to the driver in full inside `overtimeDriverPayout`; the included minutes
+   * and the rate are not on the wire.
+   */
+  pickupHelperMinutes?: number | null;
+  dropoffHelperMinutes?: number | null;
   /** Who took delivery. Optional; trimmed; 200 characters at most. */
   receivedBy?: string | null;
 };
@@ -1412,9 +1500,15 @@ export type LoadBoardItem = {
   pickupContactName: string | null;
   pickupContactPhone: string | null;
   pickupContactDetails: string | null;
+  pickupBuildingName: string | null;
+  pickupEntrance: string | null;
+  pickupComment: string | null;
   dropoffContactName: string | null;
   dropoffContactPhone: string | null;
   dropoffContactDetails: string | null;
+  dropoffBuildingName: string | null;
+  dropoffEntrance: string | null;
+  dropoffComment: string | null;
   distanceKm: number;
   /**
    * NOT in the approved design — see the `GET /api/loads` handler's doc comment.
@@ -1432,11 +1526,19 @@ export type LoadBoardItem = {
   packagingDescription: string | null;
   itemQuantity: string | null;
   handlingTags: string[]; // CargoHandlingTag[]
+  /** The work at each stop — see `HubStopWork`. */
+  pickupWork: HubStopWork;
+  dropoffWork: HubStopWork;
   pickupWindowStart: string | null;
   pickupWindowEnd: string | null;
   deliveryDeadline: string | null;
   /** The driver's own share, read from the stored column. Never `Order.price`. */
   driverPayout: number;
+  /**
+   * The helpers' part of `driverPayout` (included in it, not on top): the
+   * transport part is `driverPayout - helperPayout`. 0 when no helpers.
+   */
+  helperPayout: number;
   /** `driverPayout` per kilometre, or null when the trip has no distance. */
   ratePerKm: number | null;
   serviceLevel: string;
@@ -2073,8 +2175,8 @@ export type PhoneVerifyRequest = { phoneNumber: string; code: string };
 /**
  * Request header on `POST /api/auth/phone-number/verify` naming the screen the
  * driver came from. It is a header, not a body key, because the body is closed
- * to extra keys. `send-otp` ignores it. Spelled as a literal type because this
- * file declares no runtime values; the app writes the string itself.
+ * to extra keys. `send-otp` ignores it. Spelled as a literal type; the app
+ * writes the string itself.
  */
 export type PhoneAuthIntentHeader = "x-phone-auth-intent";
 
@@ -2085,7 +2187,7 @@ export type PhoneAuthIntentHeader = "x-phone-auth-intent";
  *   number with **no** account is refused with `PHONE_ACCOUNT_NOT_FOUND` (404)
  *   and nothing is created; offer the "Sign up" entry.
  * - `sign-up` — the "Sign up" entry. A number with no account gets a new
- *   `DRIVER` account. A number that already has one is simply signed in to it.
+ *   account with the `PhoneAuthRoleHeader` role (`DRIVER` by default). A number that already has one is simply signed in to it.
  *
  * A missing header, or any other value, is treated as `sign-in`: the server
  * never creates an account unless `sign-up` is stated.
@@ -2097,18 +2199,72 @@ export type PhoneAuthIntentHeader = "x-phone-auth-intent";
  */
 export type PhoneAuthIntent = "sign-in" | "sign-up";
 
+/**
+ * Request header on `send-otp` **and** `verify` naming the role a new account
+ * should get when the number has none. A header for the same reason as
+ * `PhoneAuthIntentHeader`: both bodies are closed to extra keys.
+ *
+ * - Missing — `DRIVER`, which is what the native driver app gets without
+ *   sending anything.
+ * - `CLIENT` / `DRIVER` / `COMPANY` (exact case) — that role. The website's
+ *   phone sign-up sends it. The host rules are the email sign-up ones: `CLIENT`
+ *   only from the main host, `DRIVER` / `COMPANY` only from the merchant host
+ *   (any role anywhere while the host split is off); a mismatch is
+ *   `SIGN_UP_HOST_NOT_ALLOWED`.
+ * - Anything else, `ADMIN` and an empty value included — `INVALID_REQUEST`
+ *   (400), whether or not the number already has an account.
+ *
+ * For a number that already has an account the role is not applied: the
+ * request signs in to that account, whatever its role. Check `user.role` in
+ * the verify response.
+ */
+export type PhoneAuthRoleHeader = "x-phone-auth-role";
+
+/** The values of the `PhoneAuthRoleHeader` header. `ADMIN` is never one. */
+export type PhoneAuthRole = "CLIENT" | "DRIVER" | "COMPANY";
+
+/**
+ * Optional request header on `send-otp` and `verify`: the real email address a
+ * new account should carry instead of the `.invalid` placeholder. Only used
+ * when the number has no account and verify creates one; for a number that
+ * already has an account it is ignored entirely (neither checked nor applied).
+ *
+ * Trimmed and lowercased server-side. Missing or blank — the placeholder, as
+ * before. Not a plausible address (or longer than 254 characters, or on the
+ * placeholder domain) — `INVALID_EMAIL` (400). Already used by another account
+ * — `EMAIL_TAKEN` (409), answered on `send-otp` before any SMS is sent and
+ * again on `verify`. The address is stored unverified (`emailVerified: false`)
+ * and nothing is emailed to it.
+ */
+export type PhoneAuthEmailHeader = "x-phone-auth-email";
+
+/*
+ * The two header names above as runtime values, for the website's forms. They
+ * are the only runtime values in this file and import nothing, so it stays
+ * safe to copy verbatim and to import from the browser.
+ */
+export const PHONE_AUTH_ROLE_HEADER: PhoneAuthRoleHeader = "x-phone-auth-role";
+export const PHONE_AUTH_EMAIL_HEADER: PhoneAuthEmailHeader =
+  "x-phone-auth-email";
+
 /** The signed-in user as the verify endpoint returns it. */
 export type PhoneAuthUser = {
   id: string;
   /** The phone number until the driver's profile supplies a real name. */
   name: string;
-  /** A placeholder on the `.invalid` TLD for a phone account — never show it. */
+  /**
+   * For a phone account: a placeholder on the `.invalid` TLD — never show it —
+   * unless a `PhoneAuthEmailHeader` address was given at sign-up.
+   */
   email: string;
   emailVerified: boolean;
   image: string | null;
   createdAt: string;
   updatedAt: string;
-  /** Always `DRIVER` for an account created by phone verification. */
+  /**
+   * For an account created by phone verification: the `PhoneAuthRoleHeader`
+   * role (`DRIVER` when the header was absent). Never `ADMIN` for such an account.
+   */
   role: "CLIENT" | "DRIVER" | "COMPANY" | "ADMIN";
   mustChangePassword: boolean;
   isSuspended: boolean;
@@ -2131,8 +2287,13 @@ export type PhoneVerifyResponse = {
 /**
  * Why a phone sign-in request was refused.
  *
- * - `INVALID_REQUEST` (400) — body is not exactly the documented keys, or
- *   `code` is not six digits.
+ * - `INVALID_REQUEST` (400) — body is not exactly the documented keys,
+ *   `code` is not six digits, or `PhoneAuthRoleHeader` has a value other than
+ *   `CLIENT`, `DRIVER` or `COMPANY`.
+ * - `INVALID_EMAIL` (400) — the number has no account and
+ *   `PhoneAuthEmailHeader` is not a usable address.
+ * - `EMAIL_TAKEN` (409) — the number has no account and the
+ *   `PhoneAuthEmailHeader` address already belongs to another account.
  * - `INVALID_PHONE_NUMBER` (400) — not a phone number.
  * - `INVALID_OTP` (400) — wrong code. On a backend running in development
  *   test mode (the fixed `DEV_PHONE_OTP_CODE`), or for an allowlisted number on
@@ -2152,8 +2313,9 @@ export type PhoneVerifyResponse = {
  * - `ACCOUNT_SUSPENDED` (403) — the code was right but the account is
  *   suspended; no session is issued.
  * - `SIGN_UP_HOST_NOT_ALLOWED` (403) — the number has no account and this
- *   hostname may not create driver accounts. The app is pointed at the wrong
- *   host: use the merchant host.
+ *   hostname may not create accounts of the requested role (`DRIVER` unless
+ *   `PhoneAuthRoleHeader` says otherwise). The driver app is pointed at the
+ *   wrong host: use the merchant host.
  * - `RATE_LIMITED` (429) — too many sends or attempts for this number or
  *   caller. Better Auth's own limiter also answers 429, with a `message` and an
  *   `X-Retry-After` header but **no `code`** — branch on the status.
@@ -2163,6 +2325,8 @@ export type PhoneVerifyResponse = {
 export type PhoneAuthErrorCode =
   | "INVALID_REQUEST"
   | "INVALID_PHONE_NUMBER"
+  | "INVALID_EMAIL"
+  | "EMAIL_TAKEN"
   | "INVALID_OTP"
   | "OTP_NOT_FOUND"
   | "OTP_EXPIRED"
@@ -2238,6 +2402,11 @@ export type HubOffer = {
   lifetimeSeconds: number;
   /** What the job pays this driver. */
   driverPayout: number;
+  /**
+   * The helpers' part of `driverPayout` (included in it, not on top): the
+   * transport part is `driverPayout - helperPayout`. 0 when no helpers.
+   */
+  helperPayout: number;
   /** The route's length, pickup to drop-off. */
   distanceKm: number;
   /** How far the driver is from the pickup; null when either is unknown. */
@@ -2265,6 +2434,9 @@ export type HubOffer = {
   bodyType: string | null; // ChassisType
   handlingTags: string[]; // CargoHandlingTag[]
   helperCount: number;
+  /** The work at each stop — see `HubStopWork`. */
+  pickupWork: HubStopWork;
+  dropoffWork: HubStopWork;
   serviceLevel: string; // ServiceLevel
   /**
    * The vehicle the server matched this load to. Null only if that vehicle

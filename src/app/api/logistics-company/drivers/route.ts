@@ -3,6 +3,7 @@ import type { GeorgianCity, LicenceCategory } from "@prisma/client";
 
 import { getRequestTranslations } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
+import { displayEmail } from "@/lib/phone-placeholder-email";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -21,7 +22,9 @@ type RosterEntry = {
   userId: string;
   driverProfileId: string;
   name: string;
-  email: string;
+  /** `null` when the driver has no real address — a phone account's
+   *  placeholder is never sent (`src/lib/phone-placeholder-email.ts`). */
+  email: string | null;
   phone: string;
   city: GeorgianCity;
   isOnline: boolean;
@@ -77,7 +80,7 @@ function toRosterEntry(profile: RosterProfile): RosterEntry {
     userId: profile.user.id,
     driverProfileId: profile.id,
     name: profile.user.name,
-    email: profile.user.email,
+    email: displayEmail(profile.user.email),
     phone: profile.phone,
     city: profile.city,
     isOnline: profile.isOnline,

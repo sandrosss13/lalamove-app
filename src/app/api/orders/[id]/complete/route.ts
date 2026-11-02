@@ -13,12 +13,18 @@ import {
   orderActionError,
   passwordChangeRefusal,
 } from "@/lib/orders/action-errors";
-import { driverPayoutFor } from "@/lib/orders/payout";
+import {
+  completionMoney,
+  MAX_HELPER_MINUTES,
+  resolveHelperMinutes,
+  type HelperMinutesDenial,
+} from "@/lib/orders/completion";
 import {
   isPodWaived,
   podCompletionDenial,
   type PodCompletionDenial,
 } from "@/lib/orders/pod-rules";
+import { loadPricingConfig } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
 import { creditWalletForOrderSafely } from "@/lib/wallet/ledger";
 
@@ -26,6 +32,21 @@ import { creditWalletForOrderSafely } from "@/lib/wallet/ledger";
 const POD_DENIAL_MESSAGE_KEYS: Record<PodCompletionDenial, string> = {
   POD_PHOTO_REQUIRED: "errors.ordersComplete.photoRequired",
   POD_SIGNATURE_REQUIRED: "errors.ordersComplete.signatureRequired",
+};
+
+/** The message key each helper-minutes refusal is localised from. */
+const HELPER_MINUTES_MESSAGE_KEYS: Record<
+  HelperMinutesDenial["kind"],
+  Record<HelperMinutesDenial["stop"], string>
+> = {
+  INVALID: {
+    pickup: "errors.ordersComplete.pickupHelperMinutesInvalid",
+    dropoff: "errors.ordersComplete.dropoffHelperMinutesInvalid",
+  },
+  REQUIRED: {
+    pickup: "errors.ordersComplete.pickupHelperMinutesRequired",
+    dropoff: "errors.ordersComplete.dropoffHelperMinutesRequired",
+  },
 };
 
 /**
@@ -61,13 +82,31 @@ function parseCompleteOrderBody(
   body: unknown,
   t: RequestTranslator,
 ):
-  | { data: { waitingMinutes: number; receivedBy: string | null } }
+  | {
+      data: {
+        waitingMinutes: number;
+        receivedBy: string | null;
+        rawHelperMinutes: {
+          pickupHelperMinutes: unknown;
+          dropoffHelperMinutes: unknown;
+        };
+      };
+    }
   | { error: string } {
   if (typeof body !== "object" || body === null) {
     return { error: t("common.shared.requestBodyMustBeAJson") };
   }
 
-  const { waitingMinutes, receivedBy } = body as Record<string, unknown>;
+  const {
+    waitingMinutes,
+    receivedBy,
+    pickupHelperMinutes,
+    dropoffHelperMinutes,
+  } = body as Record<string, unknown>;
+
+  // Shape-checked later, against the order: whether a stop's minutes are
+  // required depends on the helpers booked there (`resolveHelperMinutes`).
+  const rawHelperMinutes = { pickupHelperMinutes, dropoffHelperMinutes };
 
   if (
     typeof waitingMinutes !== "number" ||
@@ -83,7 +122,7 @@ function parseCompleteOrderBody(
   // both have to be accepted: an older client that has never heard of this
   // field sends neither.
   if (receivedBy === undefined || receivedBy === null) {
-    return { data: { waitingMinutes, receivedBy: null } };
+    return { data: { waitingMinutes, receivedBy: null, rawHelperMinutes } };
   }
 
   if (typeof receivedBy !== "string") {
@@ -107,13 +146,9 @@ function parseCompleteOrderBody(
     data: {
       waitingMinutes,
       receivedBy: trimmedReceivedBy === "" ? null : trimmedReceivedBy,
+      rawHelperMinutes,
     },
   };
-}
-
-/** Round a currency amount to whole cents. */
-function roundCurrency(value: number): number {
-  return Math.round(value * 100) / 100;
 }
 
 /**
@@ -133,6 +168,20 @@ function roundCurrency(value: number): number {
  * the same update, so the client-facing fee and the driver-facing payout can
  * never diverge. `driverPayout` is deliberately not touched here; see the
  * comment at the computation below.
+ *
+ * ## Helper overtime (pricing model v1)
+ *
+ * A v1 order (`tariffVersion` set) books helpers per stop. For each stop with
+ * helpers the body must also carry the minutes they worked there —
+ * `pickupHelperMinutes` / `dropoffHelperMinutes`, whole minutes 0..1440, a 400
+ * when missing or malformed — and the started half hours beyond the included
+ * hour are charged as `Order.helperOvertimeFee` (`orderHelperOvertimeFee`,
+ * rules from `PricingConfig`). It is billed exactly like `overtimeFee`: on top
+ * of the quoted total, settled after the fact (`adminOrderTotalGel`). Unlike
+ * `overtimeFee` it is not commissioned — all of it goes to the driver, folded
+ * into the same `overtimeDriverPayout` column. Orders booked before v1 ignore
+ * the helper fields and complete exactly as they always did. The arithmetic
+ * and the rules live in `src/lib/orders/completion.ts`.
  *
  * The body also accepts an optional `receivedBy`, the name of whoever took
  * delivery, collected in the job sheet's confirmation dialog beside the waiting
@@ -208,7 +257,7 @@ export async function POST(
     return orderActionError(parsed.error, "INVALID_REQUEST", 400);
   }
 
-  const { waitingMinutes, receivedBy } = parsed.data;
+  const { waitingMinutes, receivedBy, rawHelperMinutes } = parsed.data;
   const { id } = await params;
 
   // The overtime rates come from the type booked on the order, not from the
@@ -222,6 +271,11 @@ export async function POST(
       driverId: true,
       status: true,
       commissionRate: true,
+      // Pricing model v1: which stops had helpers decides which helper
+      // minutes are required; `tariffVersion` null means a pre-v1 order.
+      tariffVersion: true,
+      pickupHelpers: true,
+      dropoffHelpers: true,
       vehicleTypeSpec: {
         select: {
           pricingRule: {
@@ -267,13 +321,23 @@ export async function POST(
     );
   }
 
-  const overtimeMinutes = Math.max(
-    0,
-    waitingMinutes - pricingRule.freeLoadingMinutes,
-  );
-  const overtimeFee = roundCurrency(
-    overtimeMinutes * pricingRule.overtimeRatePerMinute,
-  );
+  // Refused before the transaction, beside the other body errors: a stop
+  // that had helpers must report their minutes (pre-v1 orders never do).
+  const helperMinutes = resolveHelperMinutes(rawHelperMinutes, order);
+  if ("denial" in helperMinutes) {
+    const { kind, stop } = helperMinutes.denial;
+    return orderActionError(
+      t(HELPER_MINUTES_MESSAGE_KEYS[kind][stop], { max: MAX_HELPER_MINUTES }),
+      "INVALID_REQUEST",
+      400,
+    );
+  }
+  const { pickupHelperMinutes, dropoffHelperMinutes } = helperMinutes.data;
+
+  // Only a v1 order reads the config — a pre-v1 completion stays exactly the
+  // query and the arithmetic it always was.
+  const helperRules =
+    order.tariffVersion === null ? null : await loadPricingConfig();
 
   // `order.commissionRate` — the rate stamped onto this row at booking — and
   // never `PLATFORM_COMMISSION_RATE` or `driverPayoutFor`'s default. That is the
@@ -289,10 +353,20 @@ export async function POST(
   // earnings screen's number for one job silently disagree, and would fold a
   // figure only knowable at completion (overtime depends on `waitingMinutes`,
   // reported just now) into one that was settled at booking.
-  const overtimeDriverPayout = driverPayoutFor(
-    overtimeFee,
-    order.commissionRate,
-  );
+  //
+  // Helper overtime goes 100% to the driver and is folded into
+  // `overtimeDriverPayout` beside the commissioned waiting-overtime share — see
+  // `completionMoney`.
+  const { overtimeFee, helperOvertimeFee, overtimeDriverPayout } =
+    completionMoney({
+      order,
+      waitingMinutes,
+      freeLoadingMinutes: pricingRule.freeLoadingMinutes,
+      overtimeRatePerMinute: pricingRule.overtimeRatePerMinute,
+      pickupHelperMinutes,
+      dropoffHelperMinutes,
+      helperRules,
+    });
 
   const proofWaived = isPodWaived(request.headers);
 
@@ -339,6 +413,11 @@ export async function POST(
         waitingMinutes,
         overtimeFee,
         overtimeDriverPayout,
+        // Pricing model v1. Null minutes and a 0 fee on a pre-v1 order or a
+        // stop without helpers, which is what the columns already held.
+        helperOvertimeFee,
+        pickupHelperMinutes,
+        dropoffHelperMinutes,
         // Written unconditionally, `null` included. This is the only write path
         // for the column and it only ever runs once per order — the IN_TRANSIT
         // guard above makes a second completion a 409 — so there is no earlier

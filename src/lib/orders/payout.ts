@@ -1,103 +1,55 @@
 /**
- * Driver payout math: turns an amount the client pays into the driver's 85%
- * share, and the platform's complementary 15% cut.
+ * Driver payout math: the platform's commission and the driver's share.
  *
- * Pure arithmetic only — no Prisma, no `server-only`, no side effects. That is
- * deliberate rather than incidental: order creation calls this on the server to
- * stamp `Order.commissionRate` and `Order.driverPayout` at write time, and the
- * load board may later want to preview a payout in the browser, so nothing here
- * may drag database code into a client bundle.
+ * Pure arithmetic only — no Prisma, no `server-only`, no side effects. Order
+ * creation calls this on the server to stamp `Order.commissionRate`,
+ * `Order.driverPayout` and `Order.helperPayout` at write time, and a browser
+ * surface may preview a payout, so nothing here may drag database code into a
+ * client bundle.
  *
  * **The stored columns are the source of truth, not this module.** Every read
- * path — the load board's table, the drawer, the confirm dialog, the driver
- * hub's earnings screen, the Excel export — displays `Order.driverPayout` as it
- * was written at creation, never a fresh call to `driverPayoutFor`. Retuning
- * `PLATFORM_COMMISSION_RATE` therefore changes what NEW orders pay out; it can
- * never rewrite what an existing order already promised a driver.
+ * path displays `Order.driverPayout` (+ `overtimeDriverPayout`) as written,
+ * never a fresh computation, so retuning a rate changes what NEW orders pay
+ * and never rewrites what an existing order promised a driver.
  *
- * ## What the commission is taken from
+ * ## Pricing model v1: what the commission is taken from
  *
- * The platform's cut comes off **everything the client pays** — the driver
- * receives 85% of the whole client-facing total, not of some inner component of
- * it. Three consequences a reader of this file needs to hold, because each looks
- * like a bug and none is:
- *
- * - **The quoted basis is `price + serviceLevelAdjustment`, not `price`.** This
- *   is the one genuine trap in this module, and the reason `driverPayoutFor`
- *   takes an `amount` rather than a `price`. The Priority uplift and Pooling
- *   discount are itemised in their own column rather than folded into `price`
- *   (see `prisma/schema.prisma` and `POST /api/orders`, which writes the two
- *   figures separately), so `price` alone is *not* what the client is billed —
- *   `POST /api/orders/[id]/pay` charges
- *   `roundCurrency(order.price + order.serviceLevelAdjustment)`.
- *
- *   Passing `price` alone is therefore the specific mistake to avoid, and it is
- *   the natural one to make. It does not merely round oddly, it silently breaks
- *   the commission rate: a GEL 100 fare at PRIORITY (+25%) bills the client 125,
- *   so commissioning `price` alone pays the driver 85 and leaves the platform
- *   40 — a 32% effective take, not 15%. Commissioning the sum pays 106.25 to the
- *   driver and 18.75 to the platform, which is the rule. A Pooling discount cuts
- *   the driver's payout correspondingly: 100 at POOLING bills 90 and pays 76.50.
- *
- *   This is settled, not open. `src/lib/pricing.ts` used to record "whether the
- *   adjustment reaches the driver, the platform, or is split" as an unanswered
- *   question against `PRIORITY_UPLIFT`/`POOLING_DISCOUNT`; the answer is that it
- *   reaches the driver, at the same 85% as everything else the client pays.
- * - **`helperFee` needs no handling here — it is already commissioned.** It is
- *   one of the components summed into `Order.price` by `estimateDelivery` in
- *   `src/lib/pricing.ts` (`baseFare + distanceFare + timeFare + helperFee`,
- *   floored at the pricing rule's `minimumFare`), so `driverPayoutFor(price)`
- *   commissions it by construction. Do not subtract it separately; doing so
- *   would take the platform's cut off it twice.
- * - **`overtimeFee` does need handling, and gets it elsewhere.** It is settled
- *   separately when the order completes, on top of `price`, so it is *not*
- *   inside the figure `driverPayoutFor(price)` sees. It is commissioned into its
- *   own column, `Order.overtimeDriverPayout`, written at completion. The same
- *   function serves both call sites — it takes an amount, not specifically a
- *   price — so there is no second function to keep in step:
- *
- * ## The three call sites
- *
- * There are exactly three, and between them they fix the basis so it cannot be
- * misread:
+ * Since v1 (`src/lib/pricing-engine.ts`) the platform's cut comes off the
+ * **transport charge plus its tier adjustment only**. Helpers are a flat
+ * pass-through service: the client pays `helperFee`, the driver receives all
+ * of it as `helperPayout`.
  *
  * ```ts
- * // 1. At creation, from the full quoted total the client is billed. Rounded
- * //    the same way `POST /api/orders/[id]/pay` rounds it before charging, so
- * //    the payout is 85% of the amount actually billed and not of a float sum
- * //    that differs from it by dust — see `roundCurrency` below for why that
- * //    distinction is worth a tetri:
- * driverPayout = driverPayoutFor(
- *   roundCurrency(price + serviceLevelAdjustment),
- *   PLATFORM_COMMISSION_RATE,
- * );
+ * // 1. At creation — `quotedOrderPayout` below:
+ * basis        = roundCurrency(transportFare + serviceLevelAdjustment)
+ * transportPay = driverPayoutFor(basis, commissionRate)   // commission = basis - transportPay
+ * driverPayout = transportPay + helperFee                  // helperPayout = helperFee
  *
- * // 2. At completion, from the overtime settled after the fact — using the rate
- * //    STORED on the order, never the current constant, so a rate change between
- * //    booking and completion cannot apply two different rates to one job:
- * overtimeDriverPayout = driverPayoutFor(overtimeFee, order.commissionRate);
+ * // 2. At completion — `overtimeDriverPayoutFor` below, at the rate STORED on
+ * //    the order: the commissioned share of the vehicle waiting overtime plus
+ * //    100% of the helper overtime, in `Order.overtimeDriverPayout`.
  *
- * // 3. At every read — no call at all. Earnings screens, the board, exports and
- * //    admin display the STORED `driverPayout`/`overtimeDriverPayout` columns
- * //    (summed via `totalDriverEarnings`), never a recomputation.
+ * // 3. At every read — no call at all: display the stored columns, summed by
+ * //    `totalDriverEarnings`.
  * ```
+ *
+ * The basis is rounded **before** it is commissioned: `POST /api/orders/[id]/pay`
+ * bills `roundCurrency(price + serviceLevelAdjustment)`, and 85% (or 88%…) of a
+ * float sum carrying binary dust lands a tetri away from the same share of the
+ * clean figure on a measurable fraction of amounts.
+ *
+ * `commissionRate` is per vehicle and trip type (`PricingRule.cityCommissionRate`
+ * / `intercityCommissionRate`, resolved by `commissionRateFor`). Pre-v1 orders
+ * were commissioned at a flat 15% of `price + serviceLevelAdjustment`, helpers
+ * included; their stored figures stay as they are.
  */
 
 /**
- * The platform's cut of every order, as a fraction of the amount the client
- * pays.
- *
- * Flat and global — asked and answered, not a placeholder awaiting a real
- * policy. One rate for every account type (individual driver, sole proprietor,
- * logistics company), every vehicle class and every city. It is a module
- * constant rather than an admin setting because there is nothing to configure:
- * `specs/driver-load-board/action-required.md` records the commission as settled
- * before implementation, with no outstanding decision against it.
- *
- * The rate is nonetheless stamped onto each order at creation rather than read
- * fresh at display time. That is not hedging about the value; it is what makes
- * retuning it safe, since a historical payout stays computed from the rate that
- * actually applied to it.
+ * The flat rate every order was commissioned at before pricing model v1, and
+ * still the default of `driverPayoutFor`/`platformCommissionFor` and of the
+ * `Order.commissionRate` column. **Not** what new orders use — they stamp the
+ * per-vehicle, per-trip-type rate from `PricingRule`. Kept for the dev seed
+ * scripts and for reading pre-v1 orders.
  */
 export const PLATFORM_COMMISSION_RATE = 0.15;
 
@@ -118,7 +70,7 @@ export const PLATFORM_COMMISSION_RATE = 0.15;
  * smallest unit of GEL (1 tetri = GEL 0.01), so a driver's payout never renders
  * as `GEL 161.50000000000003`.
  *
- * It is also why the creation call site must round `price +
+ * It is also why the creation call site must round `transportFare +
  * serviceLevelAdjustment` *before* commissioning it rather than passing the raw
  * float sum. Both columns are individually 2-decimal clean, so their exact
  * decimal sum is too — but 85% of a whole number of tetri lands on an exact
@@ -144,11 +96,12 @@ function roundCurrency(value: number): number {
  *
  * `amount` is the client-paid figure being commissioned — deliberately named for
  * what it is rather than `price`, because `Order.price` is the wrong figure at
- * the creation call site. It is `roundCurrency(price + serviceLevelAdjustment)`
- * at creation (the total the client is actually billed) and `Order.overtimeFee`
- * at completion. Passing `price` alone silently overcharges commission on every
- * PRIORITY order; see this module's doc comment for the arithmetic and for why
- * one function covers both call sites.
+ * the creation call site. Since pricing model v1 it is
+ * `roundCurrency(transportFare + serviceLevelAdjustment)` at creation (helpers
+ * are not commissioned — use `quotedOrderPayout`, which adds them back) and
+ * `Order.overtimeFee` at completion (use `overtimeDriverPayoutFor`, which adds
+ * the helper overtime). The "only figure a driver may be shown" rule above
+ * applies to the stored `driverPayout`, which includes the helper pass-through.
  *
  * `commissionRate` is an explicit parameter rather than being read implicitly
  * from the constant above, because order creation must pass the RESOLVED rate —
@@ -204,4 +157,76 @@ export function totalDriverEarnings(order: {
   overtimeDriverPayout: number;
 }): number {
   return roundCurrency(order.driverPayout + order.overtimeDriverPayout);
+}
+
+/** The money a v1 order is stamped with at creation. */
+export type QuotedOrderPayout = {
+  /** `roundCurrency(transportFare + serviceLevelAdjustment)` — what is commissioned. */
+  commissionBasis: number;
+  /** The platform's cut of `commissionBasis`. Admin/finance only. */
+  commission: number;
+  /** The driver's share of the transport: `commissionBasis - commission`. */
+  driverTransportPayout: number;
+  /** = `helperFee`, passed through uncommissioned. `Order.helperPayout`. */
+  helperPayout: number;
+  /** `driverTransportPayout + helperPayout` — `Order.driverPayout`. */
+  driverPayout: number;
+};
+
+/**
+ * Pricing model v1's creation-time split (see this module's doc comment):
+ * commission on `transportFare + serviceLevelAdjustment` at `commissionRate`,
+ * helpers passed through.
+ *
+ * Sheet verification case: transport 400.21, adj 0, helpers 80, rate 0.12 ->
+ * commission 48.03, driver transport 352.18, driverPayout 432.18.
+ */
+export function quotedOrderPayout({
+  transportFare,
+  serviceLevelAdjustment,
+  helperFee,
+  commissionRate,
+}: {
+  transportFare: number;
+  serviceLevelAdjustment: number;
+  helperFee: number;
+  commissionRate: number;
+}): QuotedOrderPayout {
+  const commissionBasis = roundCurrency(transportFare + serviceLevelAdjustment);
+  const driverTransportPayout = driverPayoutFor(
+    commissionBasis,
+    commissionRate,
+  );
+  const helperPayout = roundCurrency(helperFee);
+  return {
+    commissionBasis,
+    commission: roundCurrency(commissionBasis - driverTransportPayout),
+    driverTransportPayout,
+    helperPayout,
+    driverPayout: roundCurrency(driverTransportPayout + helperPayout),
+  };
+}
+
+/**
+ * `Order.overtimeDriverPayout` at completion: the driver's commissioned share
+ * of the vehicle waiting overtime (`Order.overtimeFee`) PLUS 100% of the helper
+ * overtime (`Order.helperOvertimeFee`). Helper overtime is folded into this one
+ * column rather than given its own payout column so every earnings surface,
+ * export and the wallet's `JOB_OVERTIME` posting — which all read
+ * `overtimeDriverPayout` — include it without change.
+ *
+ * `commissionRate` must be the rate STORED on the order.
+ */
+export function overtimeDriverPayoutFor({
+  overtimeFee,
+  helperOvertimeFee,
+  commissionRate,
+}: {
+  overtimeFee: number;
+  helperOvertimeFee: number;
+  commissionRate: number;
+}): number {
+  return roundCurrency(
+    driverPayoutFor(overtimeFee, commissionRate) + helperOvertimeFee,
+  );
 }

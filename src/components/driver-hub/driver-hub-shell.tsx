@@ -303,9 +303,9 @@ export function DriverHubShell({
       // thing that would break on this surface. `dark:bg-background` is the
       // counterpart rather than a second literal, because the token already
       // holds exactly the value wanted. `globals.css` gives the hub
-      // `--background: oklch(0.145 0 0)` in dark (via `html.dark
-      // body:has([data-admin-surface])`) against a `--card` of `oklch(0.205 0
-      // 0)` — so the page sits one step *below* the header, the rail and the
+      // `--background: #2a2a2a` in dark (via `html.dark
+      // body:has([data-admin-surface])`) against a `--card` of `#333333` — so
+      // the page sits one step *below* the header, the rail and the
       // cards, which is the same "chrome floats on the ground" reading the
       // light artboard gets from grey-behind-white, expressed the only way a
       // dark theme can express it.

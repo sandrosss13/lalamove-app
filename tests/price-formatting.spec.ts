@@ -101,7 +101,7 @@ test.describe.serial("Price formatting", () => {
     const section = page.locator("#price-a-load");
     await section.getByLabel("Pickup").fill("Rustaveli Ave 12, Tbilisi");
     await section.getByLabel("Dropoff").fill("Aghmashenebeli Ave 88, Tbilisi");
-    // Two people, so the request the stub answers is one a helper fee is a
+    // One helper, so the request the stub answers is one a helper fee is a
     // plausible reply to.
     //
     // Clicked on the label rather than checked on the radio: the radios are
@@ -112,12 +112,12 @@ test.describe.serial("Price formatting", () => {
     // because it is re-queried relative to each candidate label: one carrying
     // the section's own selector would go looking for `#price-a-load` inside a
     // label and match nothing.
-    const crewSize = { name: /^2 people/ } as const;
+    const oneHelper = { name: /^1 helper / } as const;
     await section
       .locator("label")
-      .filter({ has: page.getByRole("radio", crewSize) })
+      .filter({ has: page.getByRole("radio", oneHelper) })
       .click();
-    await expect(section.getByRole("radio", crewSize)).toBeChecked();
+    await expect(section.getByRole("radio", oneHelper)).toBeChecked();
 
     const calculate = section.getByRole("button", { name: "Calculate price" });
     await expect(calculate).toBeEnabled({ timeout: 30_000 });

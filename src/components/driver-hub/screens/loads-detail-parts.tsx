@@ -12,9 +12,11 @@ import type { HubLoad } from "@/components/driver-hub/screens/loads-context";
 import {
   EM_DASH,
   cargoCategoryLabel,
+  formatGelExact,
   formatHelperRequest,
   formatLoadDims,
   formatRelativeAgo,
+  formatStopWork,
   formatVolumeM3,
   formatWeightKg,
   sortedHandlingTags,
@@ -27,6 +29,7 @@ import {
 } from "@/components/order-photo-gallery";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { hasStopWork, type StopWork } from "@/lib/orders/stop-work";
 import { cn } from "@/lib/utils";
 
 /**
@@ -293,6 +296,13 @@ export type CargoSpec = {
   /** Raw `CargoHandlingTag` values, in whatever order they were appended. */
   handlingTags: readonly string[];
   helperCount: number;
+  /**
+   * Pricing model v1: the work at each stop. When either says anything
+   * (`hasStopWork`) the single Helpers row becomes one row per stop; a pre-v1
+   * order carries the defaults at both ends and keeps the Helpers row.
+   */
+  pickupWork: StopWork;
+  dropoffWork: StopWork;
 };
 
 /**
@@ -388,15 +398,70 @@ function cargoRows(
       label: t("rowHandling"),
       value: tags.length === 0 ? null : tags.map((tag) => tag.label).join(", "),
     },
-    {
-      key: "helpers",
-      label: t("rowHelpers"),
-      value: formatHelperRequest(load.helperCount, translateTag),
-    },
+    ...(hasStopWork(load.pickupWork) || hasStopWork(load.dropoffWork)
+      ? [
+          {
+            key: "pickup-work",
+            label: t("rowPickupWork"),
+            value: formatStopWork(load.pickupWork, translateTag),
+          },
+          {
+            key: "dropoff-work",
+            label: t("rowDropoffWork"),
+            value: formatStopWork(load.dropoffWork, translateTag),
+          },
+        ]
+      : [
+          {
+            key: "helpers",
+            label: t("rowHelpers"),
+            value: formatHelperRequest(load.helperCount, translateTag),
+          },
+        ]),
   ];
 
   return rows.flatMap((row) =>
     row.value === null ? [] : [{ ...row, value: row.value }],
+  );
+}
+
+/**
+ * The driver's payout split into transport and helpers (pricing model v1), as
+ * one muted line under a headline payout: `Transport ₾352.18 · Helpers ₾80.00`.
+ *
+ * Both figures are the driver's own stored columns — `helperPayout` and
+ * `driverPayout - helperPayout` — never a client price or a rate. Renders
+ * nothing when no helpers were booked, where the headline alone is the answer.
+ */
+export function PayoutSplitLine({
+  driverPayout,
+  helperPayout,
+  className,
+}: {
+  driverPayout: number;
+  helperPayout: number;
+  className?: string;
+}) {
+  const t = useTranslations("driverHub.loadsDetailParts");
+
+  if (helperPayout <= 0) {
+    return null;
+  }
+
+  const transport = Math.round((driverPayout - helperPayout) * 100) / 100;
+
+  return (
+    <p
+      className={cn(
+        "mt-1.5 font-price text-xs text-muted-foreground tabular-nums",
+        className,
+      )}
+    >
+      {t("payoutSplit", {
+        transport: formatGelExact(transport),
+        helpers: formatGelExact(helperPayout),
+      })}
+    </p>
   );
 }
 
