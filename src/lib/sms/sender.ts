@@ -1,12 +1,17 @@
 /**
- * The one seam a real SMS provider plugs into.
+ * The one seam an SMS provider plugs into.
  *
- * No provider has been chosen yet, so `getSmsSender` returns `null` and phone
- * sign-in outside development test mode and the staging allowlist fails
- * closed (see `@/lib/sms/otp-delivery`). Wiring one in later is: implement `SmsSender` in a
- * file beside this one, read its credentials from the environment, and return
- * it here when they are present. Nothing else in the app changes.
+ * The provider is smsoffice.ge (`@/lib/sms/smsoffice`), live once both
+ * `SMSOFFICE_API_KEY` and `SMSOFFICE_SENDER` are set. Without them
+ * `getSmsSender` returns `null` and phone sign-in outside development test mode
+ * and the staging allowlist fails closed (see `@/lib/sms/otp-delivery`).
+ * Configuring the provider also switches the staging test code off.
  */
+
+import {
+  createSmsOfficeSender,
+  smsOfficeConfigFromEnv,
+} from "@/lib/sms/smsoffice";
 
 export type SmsMessage = {
   /** Recipient in E.164 form (`+995555123456`). */
@@ -21,5 +26,7 @@ export interface SmsSender {
 
 /** The configured provider, or `null` while there is none. */
 export function getSmsSender(): SmsSender | null {
-  return null;
+  const config = smsOfficeConfigFromEnv();
+
+  return config ? createSmsOfficeSender(config) : null;
 }
