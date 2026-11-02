@@ -1,6 +1,8 @@
 /**
  * SMS delivery through smsoffice.ge, the Georgian SMS gateway.
  *
+ * Docs: https://smsoffice.ge/integration/ (signed in).
+ *
  * One call: `POST https://smsoffice.ge/api/v2/send/` with a form body of
  * `key`, `destination`, `sender`, `content` and `urgent`. The answer is JSON,
  * `{ Success, Message, Output, ErrorCode }`; only `Success === true` counts as
@@ -28,12 +30,16 @@ const REQUEST_TIMEOUT_MS = 10_000;
 
 /** What smsoffice.ge means by the ErrorCodes worth explaining in a log line. */
 const ERROR_DESCRIPTIONS: Record<number, string> = {
+  10: "destination contains non-Georgian numbers",
+  20: "insufficient balance",
+  40: "text is longer than 160 characters",
   60: "content parameter is missing",
   70: "destination is empty",
   75: "every number is on the stop list",
   76: "every number is malformed",
   77: "every number is either stoplisted or malformed",
   80: "API key is incorrect",
+  110: "sender value is not recognized",
   120: "API access is not enabled for this account",
   150: "sender is not registered",
   500: "key parameter is missing",
