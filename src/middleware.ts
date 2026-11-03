@@ -278,7 +278,8 @@ function isClientOnly(pathname: string): boolean {
  *    the matched route or redirects an unprefixed path into a locale.
  *
  * Everything not classified below reaches the locale layer on both hosts —
- * notably `/sign-in`, `/sign-up`, `/change-password` and `/orders/[id]/track`.
+ * notably `/sign-in`, `/sign-up`, `/change-password`, `/reset-password` and
+ * `/orders/[id]/track`.
  * `/api/*` (Better Auth's own `/api/auth/*` endpoints must be reachable from
  * both origins) leaves at step 1 and is never prefixed at all.
  *

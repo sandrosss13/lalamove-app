@@ -5,6 +5,12 @@ import { deleteSessionCookie } from "better-auth/cookies";
 import { phoneNumber } from "better-auth/plugins";
 import { expo } from "@better-auth/expo";
 
+import { PASSWORD_RESET_TOKEN_TTL_SECONDS } from "@/lib/email/password-reset";
+import {
+  assertPasswordResetRequestAllowed,
+  REQUEST_PASSWORD_RESET_PATH,
+  sendPasswordResetEmail,
+} from "@/lib/email/send-password-reset";
 import {
   ADMIN_TRUSTED_ORIGINS,
   audienceForHost,
@@ -374,8 +380,37 @@ export const auth = betterAuth({
   rateLimit: {
     customRules: PHONE_AUTH_RATE_LIMIT_RULES,
   },
+  /**
+   * Password reset by email. The rules — who is sent a link, which host it
+   * lands on, how the request fails closed without a mail provider — are
+   * documented in `@/lib/email/password-reset` and enforced by
+   * `@/lib/email/send-password-reset`; the gate in front of the endpoint is in
+   * `hooks.before` below.
+   *
+   * - `resetPasswordTokenExpiresIn`: 30 minutes, what the reset screen
+   *   promises (Better Auth's default is an hour).
+   * - `revokeSessionsOnPasswordReset`: a reset is what someone does when they
+   *   think a password has leaked, so every session signed in with the old
+   *   one — on every device, the driver app included — is ended. The person
+   *   resetting signs in again with the new password.
+   * - `onPasswordReset`: clears `mustChangePassword`. A driver whose company
+   *   set a temporary password and who resets it by email has replaced that
+   *   temporary password just as surely as `/change-password` would have, so
+   *   sending them to the forced-change screen afterwards would ask for a
+   *   password that no longer exists. `updateMany` so an account deleted
+   *   between the two writes is a no-op rather than an error.
+   */
   emailAndPassword: {
     enabled: true,
+    resetPasswordTokenExpiresIn: PASSWORD_RESET_TOKEN_TTL_SECONDS,
+    revokeSessionsOnPasswordReset: true,
+    sendResetPassword: sendPasswordResetEmail,
+    onPasswordReset: async ({ user }) => {
+      await prisma.user.updateMany({
+        where: { id: user.id, mustChangePassword: true },
+        data: { mustChangePassword: false },
+      });
+    },
   },
   user: {
     additionalFields: {
@@ -583,7 +618,8 @@ export const auth = betterAuth({
     /**
      * One `before` middleware for every endpoint, self-filtering on `ctx.path`:
      * the phone plugin's unused endpoints (404), `/update-user` (no role or
-     * phone-number changes), the two phone sign-in endpoints (see
+     * phone-number changes), `/request-password-reset` (see
+     * `@/lib/email/send-password-reset`), the two phone sign-in endpoints (see
      * `@/lib/phone-auth`), and email sign-up, described next.
      *
      * Two guards on public sign-up, in order of how absolute they are.
@@ -647,6 +683,14 @@ export const auth = betterAuth({
         if (hasPhoneIdentityField(ctx.body)) {
           throw phoneNumberCannotBeUpdated();
         }
+      }
+
+      // Fails closed without a mail provider, and throttles per address. Both
+      // are decided before Better Auth looks the address up, so they answer
+      // identically whether or not an account exists.
+      if (ctx.path === REQUEST_PASSWORD_RESET_PATH) {
+        assertPasswordResetRequestAllowed(ctx.body);
+        return undefined;
       }
 
       if (ctx.path === PHONE_SEND_OTP_PATH || ctx.path === PHONE_VERIFY_PATH) {

@@ -105,6 +105,10 @@
       "description": "Cargo delivery in Tbilisi and across Georgia. Book a van or truck in minutes.",
       "title": "zomo — Cargo Delivery in Tbilisi"
     },
+    "resetPassword": {
+      "description": "Choose a new password for your zomo account.",
+      "title": "Reset password"
+    },
     "services": {
       "cargo": {
         "description": "On-demand cargo delivery by van or truck in Tbilisi and across Georgia.",

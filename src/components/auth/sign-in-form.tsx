@@ -15,6 +15,7 @@ import {
   ERROR_INPUT_CLASS,
   FieldError,
   FormAlert,
+  FormNotice,
   InlineLinkButton,
   PhoneField,
   SocialBlock,
@@ -62,7 +63,7 @@ import {
   type FlowMode,
   type FlowRole,
 } from "@/lib/auth-flow";
-import { signIn } from "@/lib/auth-client";
+import { authClient, signIn } from "@/lib/auth-client";
 import { normalizePhoneNumber } from "@/lib/phone-number";
 import { merchantOrigin, type Audience } from "@/lib/host";
 import {
@@ -260,7 +261,27 @@ type SignInFormProps = {
    * boundary rather than here.
    */
   goods: GoodsShortcutCode | null;
+  /**
+   * Whether this deployment can email a reset link — computed by the page from
+   * the server's mail configuration (`isPasswordResetAvailable`). Only the
+   * boolean crosses to the browser.
+   */
+  passwordResetAvailable: boolean;
+  /**
+   * The visitor has just set a new password on `/reset-password`, which sends
+   * them here with `?reset=done`. Shows a one-time confirmation above the
+   * first screen; it is not carried through the wizard's own navigation.
+   */
+  passwordResetDone: boolean;
 };
+
+/**
+ * What the forgot-password screen is showing. `sent` replaces the form with
+ * the neutral confirmation; it is local state, not a URL step, so a refresh
+ * returns to the form rather than claiming a send that this page load did not
+ * make.
+ */
+type ResetRequestState = "idle" | "sending" | "sent";
 
 /**
  * Sign-in form. Every audience uses the same three-step flow — a portal picker,
@@ -299,6 +320,8 @@ export function SignInForm({
   accountTypeQuery,
   stepQuery,
   goods,
+  passwordResetAvailable,
+  passwordResetDone,
 }: SignInFormProps) {
   const t = useTranslations("auth.signInForm");
   const tPhone = useTranslations("auth.phoneAuth");
@@ -313,6 +336,9 @@ export function SignInForm({
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [formError, setFormError] = useState<FormError | null>(null);
   const [loading, setLoading] = useState(false);
+  const [resetState, setResetState] = useState<ResetRequestState>("idle");
+  const [resetEmailError, setResetEmailError] = useState<string | null>(null);
+  const [resetError, setResetError] = useState<string | null>(null);
 
   /* --- Phone tab state --------------------------------------------------- */
 
@@ -405,6 +431,9 @@ export function SignInForm({
     setCode("");
     setCodeError(null);
     setPhoneFormError(null);
+    setResetState("idle");
+    setResetEmailError(null);
+    setResetError(null);
   }
 
   /* --- Navigation ------------------------------------------------------- */
@@ -708,9 +737,110 @@ export function SignInForm({
     }
   }
 
+  /**
+   * The one-time "password changed" confirmation after `/reset-password`,
+   * which lands on `/sign-in?reset=done` — the role step. It goes with the
+   * first wizard navigation, since `flowHref` does not carry `reset`: by then
+   * the user is already acting on it.
+   */
+  const resetDoneNotice = passwordResetDone ? (
+    <FormNotice title={t("passwordResetDone")} />
+  ) : null;
+
+  /* --- Forgot password: request a link ---------------------------------- */
+
+  async function handleResetRequest(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    // The button is disabled in this state; Enter in the field still submits.
+    if (!passwordResetAvailable) return;
+
+    const trimmedEmail = email.trim();
+    const nextEmailError =
+      trimmedEmail.length === 0
+        ? t("enterYourEmailAddress")
+        : isValidEmail(trimmedEmail)
+          ? null
+          : t("enterAValidEmailAddress");
+
+    setResetEmailError(nextEmailError);
+    setResetError(null);
+
+    if (nextEmailError !== null) {
+      return;
+    }
+
+    setResetState("sending");
+
+    // No `redirectTo`: Better Auth would only use it to build its own link,
+    // and the server builds the emailed link itself, on the host that serves
+    // the account and in this reader's language (`@/lib/email/password-reset`).
+    const { error } = await authClient.requestPasswordReset({
+      email: trimmedEmail,
+    });
+
+    if (error) {
+      setResetState("idle");
+      // Every one of these is the same for an address with an account and one
+      // without — the server answers success either way, and refuses only
+      // before it has looked the address up — so showing them leaks nothing.
+      setResetError(
+        error.status === 429
+          ? tShared("tooManyRequestsPleaseWaitA")
+          : error.code === "EMAIL_NOT_CONFIGURED"
+            ? t("passwordResetIsNotAvailableYet")
+            : t("couldNotSendResetLink"),
+      );
+      return;
+    }
+
+    setEmail(trimmedEmail);
+    setResetState("sent");
+  }
+
   /* --- Screen 6: forgot password ---------------------------------------- */
 
+  if (step === "forgot" && resetState === "sent") {
+    return (
+      <AuthShell maxWidth="420" className="gap-6">
+        <BackLink
+          label={t("backToSignIn")}
+          onClick={() => goTo({ role, accountType })}
+        />
+
+        <div className="flex flex-col gap-2.5">
+          <AuthHeading>{t("checkYourEmail")}</AuthHeading>
+          {/*
+            Worded so it is true whether or not the address has an account —
+            the server gives the same answer either way, and this screen must
+            not be the thing that tells them apart.
+          */}
+          <AuthSubheading>
+            {t("ifAnAccountExists", { email: email.trim() })}
+          </AuthSubheading>
+        </div>
+
+        <p className="text-[13px] leading-[1.5] text-[var(--landing-muted)]">
+          {t("noEmailArrived")}
+        </p>
+
+        <p className="text-sm text-[var(--landing-muted)]">
+          <InlineLinkButton onClick={() => setResetState("idle")}>
+            {t("useADifferentEmail")}
+          </InlineLinkButton>
+        </p>
+
+        <p className="text-[13px] leading-[1.5] text-[var(--landing-muted)]">
+          {t("backOfficeAccountsResetThroughYour")}
+        </p>
+      </AuthShell>
+    );
+  }
+
   if (step === "forgot") {
+    const resetEmailErrorId = `${fieldId}-reset-email-error`;
+    const resetNoteId = `${fieldId}-reset-note`;
+
     return (
       <AuthShell maxWidth="420" className="gap-6">
         <BackLink
@@ -723,15 +853,13 @@ export function SignInForm({
           <AuthSubheading>{t("enterTheEmailOnYourAccount")}</AuthSubheading>
         </div>
 
-        {/*
-          `onSubmit` exists only to swallow the implicit submission a single
-          text input still triggers on Enter — there is nothing to send. See the
-          note under the button for why.
-        */}
         <form
-          onSubmit={(event) => event.preventDefault()}
+          onSubmit={handleResetRequest}
+          noValidate
           className="flex flex-col gap-4"
         >
+          {resetError ? <FormAlert title={resetError} /> : null}
+
           <div className="flex flex-col gap-2">
             <Label htmlFor={`${fieldId}-reset-email`}>{tShared("email")}</Label>
             {/* Shares the sign-in email state, so arriving here from a failed
@@ -741,38 +869,64 @@ export function SignInForm({
               type="email"
               inputMode="email"
               autoComplete="email"
+              required
               placeholder={tShared("youCompanyGe")}
               value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              aria-describedby={`${fieldId}-reset-note`}
-              className="h-11 text-base"
+              onChange={(event) => {
+                setEmail(event.target.value);
+                setResetEmailError(null);
+              }}
+              aria-invalid={resetEmailError !== null ? true : undefined}
+              aria-describedby={
+                resetEmailError
+                  ? resetEmailErrorId
+                  : passwordResetAvailable
+                    ? undefined
+                    : resetNoteId
+              }
+              className={cn(
+                "h-11 text-base",
+                resetEmailError && ERROR_INPUT_CLASS,
+              )}
             />
+            {resetEmailError ? (
+              <FieldError id={resetEmailErrorId}>{resetEmailError}</FieldError>
+            ) : null}
           </div>
 
           {/*
-            Disabled, and says why: `src/lib/auth.ts` configures no
-            `sendResetPassword`, so `requestPasswordReset` has nothing to
-            deliver the link with — it would succeed silently and no mail would
-            arrive. Same pattern as `SocialBlock`: the note is visible, and
-            `aria-describedby` gives a screen reader the reason a disabled
-            control announces its state but not its cause.
+            Live when the server can deliver mail (Resend configured, or the
+            development console fallback — see `@/lib/email/delivery`). When
+            it cannot, the button stays disabled and says why rather than
+            accepting an address and promising an email that will never come;
+            the endpoint itself refuses in that state too. Same pattern as
+            `SocialBlock`: the note is visible, and `aria-describedby` gives a
+            screen reader the cause a disabled control does not announce.
           */}
           <Button
             type="submit"
-            disabled
-            title={t("passwordResetIsNotAvailableYet2")}
-            aria-describedby={`${fieldId}-reset-note`}
+            disabled={!passwordResetAvailable || resetState === "sending"}
+            title={
+              passwordResetAvailable
+                ? undefined
+                : t("passwordResetIsNotAvailableYet2")
+            }
+            aria-describedby={passwordResetAvailable ? undefined : resetNoteId}
             className="h-11 w-full text-base"
           >
-            {t("sendResetLink")}
+            {resetState === "sending"
+              ? t("sendingResetLink")
+              : t("sendResetLink")}
           </Button>
 
-          <p
-            id={`${fieldId}-reset-note`}
-            className="text-[13px] leading-[1.5] text-[var(--landing-muted)]"
-          >
-            {t("passwordResetIsNotAvailableYet")}
-          </p>
+          {passwordResetAvailable ? null : (
+            <p
+              id={resetNoteId}
+              className="text-[13px] leading-[1.5] text-[var(--landing-muted)]"
+            >
+              {t("passwordResetIsNotAvailableYet")}
+            </p>
+          )}
 
           <p className="text-[13px] leading-[1.5] text-[var(--landing-muted)]">
             {t("backOfficeAccountsResetThroughYour")}
@@ -787,6 +941,7 @@ export function SignInForm({
   if (step === "role") {
     return (
       <AuthShell maxWidth="860">
+        {resetDoneNotice}
         <RoleStep
           mode="signin"
           onModeChange={handleModeChange}

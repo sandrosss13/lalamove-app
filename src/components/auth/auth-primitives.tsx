@@ -402,6 +402,42 @@ export function FormAlert({ title, children, id, className }: FormAlertProps) {
   );
 }
 
+export type FormNoticeProps = {
+  /** The bold first line, e.g. "Check your email". */
+  title: React.ReactNode;
+  /** Optional detail under it. */
+  children?: React.ReactNode;
+  className?: string;
+};
+
+/**
+ * `FormAlert`'s calm sibling: the same shape for news that is not a failure —
+ * "your password has been changed", "check your email". `role="status"` rather
+ * than `alert`, so a screen reader announces it politely instead of
+ * interrupting, and neutral ink rather than the danger palette, so it never
+ * reads as something having gone wrong.
+ */
+export function FormNotice({ title, children, className }: FormNoticeProps) {
+  return (
+    <div
+      role="status"
+      className={cn(
+        "flex flex-col gap-1 rounded-[10px] border border-[var(--landing-line-strong)] px-4 py-3.5",
+        className,
+      )}
+    >
+      <span className="text-sm font-medium text-[var(--landing-paper)]">
+        {title}
+      </span>
+      {children ? (
+        <span className="text-[13px] leading-[1.5] text-[var(--landing-muted)]">
+          {children}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
 export type FieldErrorProps = {
   /**
    * Must be referenced from the field's `aria-describedby`, so the message
