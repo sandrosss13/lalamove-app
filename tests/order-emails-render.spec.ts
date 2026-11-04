@@ -204,7 +204,10 @@ test.describe("English copy", () => {
     expect(email.text).toContain("3rd floor · Passenger elevator");
     expect(email.text).toContain("Ground floor");
     expect(email.text).toContain("2 helpers");
-    expect(email.text).toContain("Sofa, Wardrobe, Boxes × 8, Lamp +2 more");
+    expect(email.text).toContain(
+      "Items:\n- Sofa — 1 pcs\n- Wardrobe — 1 pcs\n- Boxes — 8 pcs\n- Lamp — 1 pcs\n- Desk — 1 pcs\n- Chair — 4 pcs",
+    );
+    expect(email.text).not.toContain("+2 more");
     expect(email.text).toContain("Card · paid");
     expect(email.text).toContain("₾185.00");
     expect(email.text).toContain(
@@ -243,6 +246,42 @@ test.describe("English copy", () => {
     const none = render({ ...confirmed("en"), paymentMethod: null, items: [] });
     expect(none.text).not.toContain("Payment");
     expect(none.text).not.toContain("Items");
+    expect(none.html).not.toContain(">Qty<");
+  });
+
+  test("ORDER_CONFIRMED lists every item as its own row with a quantity", () => {
+    const email = render(confirmed("en"));
+
+    for (const [label, qty] of [
+      ["Sofa", "1 pcs"],
+      ["Boxes", "8 pcs"],
+      ["Chair", "4 pcs"],
+    ]) {
+      expect(email.html).toMatch(
+        new RegExp(`>${label}</td>\\s*<td[^>]*>${qty}</td>`),
+      );
+    }
+    expect(email.html).toContain(">Qty</td>");
+    // Items sit between the route and the details rows.
+    expect(email.text.indexOf("Items:")).toBeGreaterThan(
+      email.text.indexOf("To:"),
+    );
+    expect(email.text.indexOf("Items:")).toBeLessThan(
+      email.text.indexOf("Vehicle:"),
+    );
+  });
+
+  test("ORDER_CONFIRMED caps the item list at 20 with a +N more row", () => {
+    const items = Array.from({ length: 23 }, (_, i) => ({
+      label: `Thing ${i + 1}`,
+      quantity: 1,
+    }));
+    const email = render({ ...confirmed("en"), items });
+
+    expect(email.text).toContain("- Thing 20 — 1 pcs");
+    expect(email.text).not.toContain("Thing 21");
+    expect(email.text).toContain("- +3 more");
+    expect(email.html).toContain(">+3 more</td>");
   });
 
   test("DRIVER_ASSIGNED", () => {

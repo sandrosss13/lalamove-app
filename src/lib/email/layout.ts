@@ -65,6 +65,14 @@ export type EmailBlock =
   | { kind: "panel"; label: string; value: string }
   | { kind: "route"; stops: EmailStop[]; compact?: boolean }
   | { kind: "rows"; rows: EmailRow[] }
+  /** A titled list with a quantity per line; `muted` rows (e.g. "+3 more") are dimmed. */
+  | {
+      kind: "items";
+      title: string;
+      quantityHeader: string;
+      itemHeader: string;
+      items: { label: string; quantity: string; muted?: boolean }[];
+    }
   /** The assigned vehicle: any part may be null and is then left out. */
   | {
       kind: "vehicle";
@@ -157,6 +165,29 @@ ${rows}
 </table>
 </td></tr>`;
     }
+    case "items": {
+      const head = `<tr>
+<td style="padding:0 0 6px;font-size:13px;line-height:1.5;color:${C.muted};">${escapeHtml(block.itemHeader)}</td>
+<td align="right" style="padding:0 0 6px 16px;font-size:13px;line-height:1.5;color:${C.muted};">${escapeHtml(block.quantityHeader)}</td>
+</tr>`;
+      const rows = block.items
+        .map((item) => {
+          const labelColor = item.muted ? C.muted : C.text;
+          const qtyColor = item.muted ? C.muted : C.body;
+          return `<tr>
+<td valign="top" style="padding:10px 0;border-top:1px solid ${C.border};font-size:14px;line-height:1.5;color:${labelColor};">${escapeHtml(item.label)}</td>
+<td valign="top" align="right" style="padding:10px 0 10px 16px;border-top:1px solid ${C.border};font-size:14px;line-height:1.5;color:${qtyColor};white-space:nowrap;">${escapeHtml(item.quantity)}</td>
+</tr>`;
+        })
+        .join("\n");
+      return `<tr><td style="padding:${PAD};padding-top:20px;">
+<div style="padding-bottom:8px;font-size:12px;line-height:1.4;color:${C.muted};text-transform:uppercase;letter-spacing:0.04em;">${escapeHtml(block.title)}</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+${head}
+${rows}
+</table>
+</td></tr>`;
+    }
     case "vehicle": {
       const lines: string[] = [];
       if (block.label) {
@@ -216,6 +247,15 @@ function blockText(block: EmailBlock): string {
         .join("\n");
     case "rows":
       return block.rows.map((row) => `${row.label}: ${row.value}`).join("\n");
+    case "items":
+      return [
+        `${block.title}:`,
+        ...block.items.map((item) =>
+          item.quantity
+            ? `- ${item.label} — ${item.quantity}`
+            : `- ${item.label}`,
+        ),
+      ].join("\n");
     case "vehicle":
       return [
         block.label,
@@ -240,6 +280,8 @@ function isEmpty(block: EmailBlock): boolean {
       return !block.label && !block.title && !block.plate;
     case "rows":
       return block.rows.length === 0;
+    case "items":
+      return block.items.length === 0;
     case "route":
       return block.stops.length === 0;
     default:

@@ -88,11 +88,13 @@ function samples(locale: AppLocale): OrderEmailData[] {
             { label: "დივანი", quantity: 1 },
             { label: "კარადა", quantity: 1 },
             { label: "ყუთი", quantity: 8 },
+            { label: "სკამი", quantity: 4 },
           ]
         : [
             { label: "Sofa", quantity: 1 },
             { label: "Wardrobe", quantity: 1 },
             { label: "Boxes", quantity: 8 },
+            { label: "Chairs", quantity: 4 },
           ],
       paymentMethod: "CARD",
       paid: true,

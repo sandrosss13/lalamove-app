@@ -39,8 +39,8 @@ export type RenderOrderEmailOptions = {
 /** Every date and time in these emails is Tbilisi wall-clock time. */
 const TIME_ZONE = "Asia/Tbilisi";
 
-/** How many item labels the confirmation lists before "+N more". */
-const MAX_ITEMS_LISTED = 4;
+/** How many item lines the confirmation lists before "+N more". */
+const MAX_ITEMS_LISTED = 20;
 
 /**
  * `185` → `₾185.00`. The same rendering as the client order screens'
@@ -180,28 +180,38 @@ function routeBlock(
   return { kind: "route", stops, compact };
 }
 
-/** "Sofa, Wardrobe, Boxes × 8, Lamp +2 more". */
-function itemsSummary(
+/** One line per item with its quantity; null when no item has a label. */
+function itemsBlock(
   items: OrderConfirmedData["items"],
   t: Translator,
-): string | null {
+): EmailBlock | null {
   const listed = items.filter((item) => present(item.label));
   if (listed.length === 0) {
     return null;
   }
 
-  const shown = listed.slice(0, MAX_ITEMS_LISTED).map((item) =>
-    item.quantity > 1
-      ? t("details.itemQuantity", {
-          label: item.label.trim(),
-          quantity: item.quantity,
-        })
-      : item.label.trim(),
-  );
-  const rest = listed.length - shown.length;
-  const list = shown.join(", ");
+  const lines: { label: string; quantity: string; muted?: boolean }[] = listed
+    .slice(0, MAX_ITEMS_LISTED)
+    .map((item) => ({
+      label: item.label.trim(),
+      quantity: t("details.quantityValue", { quantity: item.quantity }),
+    }));
+  const rest = listed.length - lines.length;
+  if (rest > 0) {
+    lines.push({
+      label: t("details.moreItems", { count: rest }),
+      quantity: "",
+      muted: true,
+    });
+  }
 
-  return rest > 0 ? `${list} ${t("details.moreItems", { count: rest })}` : list;
+  return {
+    kind: "items",
+    title: t("details.items"),
+    itemHeader: t("details.itemHeader"),
+    quantityHeader: t("details.quantityHeader"),
+    items: lines,
+  };
 }
 
 function paymentSummary(
@@ -266,10 +276,6 @@ function confirmedBlocks(
       value: t("details.helperCount", { count: data.helperCount }),
     });
   }
-  const items = itemsSummary(data.items, t);
-  if (items) {
-    rows.push({ label: t("details.items"), value: items });
-  }
   const payment = paymentSummary(data, t);
   if (payment) {
     rows.push({ label: t("details.payment"), value: payment });
@@ -284,6 +290,7 @@ function confirmedBlocks(
     { kind: "paragraph", text: t("confirmed.intro") },
     pickupWindowBlock(data, t, locale),
     routeBlock(data, t, { details: true, compact: false }),
+    itemsBlock(data.items, t),
     { kind: "rows", rows },
     data.links.track
       ? { kind: "button", label: t("confirmed.track"), href: data.links.track }
