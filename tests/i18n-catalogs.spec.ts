@@ -245,6 +245,12 @@ const IDENTICAL_BY_DESIGN = new Set([
   "errors.dashboardHubEarningsExport.driverHub",
   "errors.dashboardHubEarningsExport.gelSymbol",
   "errors.fleetVehicleValidation.labelled",
+  // Pure placeholder layouts and the brand mark in the order emails.
+  "orderEmails.details.exact",
+  "orderEmails.details.itemQuantity",
+  "orderEmails.details.window",
+  "orderEmails.layout.logoAlt",
+  "orderEmails.layout.website",
 ]);
 
 test("Georgian copy is actually in Georgian", () => {

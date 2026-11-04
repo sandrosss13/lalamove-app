@@ -24,7 +24,9 @@ import { Resend } from "resend";
 
 import {
   emailDeliveryMisconfiguration,
+  emailReplyToMisconfiguration,
   resolveEmailDelivery,
+  wellFormedReplyTo,
   type EmailDelivery,
 } from "@/lib/email/delivery";
 
@@ -40,6 +42,11 @@ export type EmailMessage = {
    * never mail the same link twice.
    */
   idempotencyKey?: string;
+  /**
+   * Where a reply goes (`EMAIL_REPLY_TO`, via `getEmailReplyTo`). Omitted, a
+   * reply goes to `EMAIL_FROM` — a no-reply address no one reads.
+   */
+  replyTo?: string;
 };
 
 export interface EmailSender {
@@ -54,6 +61,31 @@ export function getEmailDelivery(): EmailDelivery {
     resendApiKey: process.env.RESEND_API_KEY,
     emailFrom: process.env.EMAIL_FROM,
   });
+}
+
+/**
+ * `EMAIL_REPLY_TO` — a mailbox someone reads — or `null` when unset or not an
+ * address (logged once). Read on each call, like `getEmailDelivery`.
+ */
+export function getEmailReplyTo(): string | null {
+  reportReplyToMisconfigurationOnce();
+
+  return wellFormedReplyTo(process.env.EMAIL_REPLY_TO);
+}
+
+let replyToMisconfigurationReported = false;
+
+function reportReplyToMisconfigurationOnce(): void {
+  if (replyToMisconfigurationReported) {
+    return;
+  }
+
+  replyToMisconfigurationReported = true;
+  const problem = emailReplyToMisconfiguration(process.env.EMAIL_REPLY_TO);
+
+  if (problem) {
+    console.error(`[email] ${problem}`);
+  }
 }
 
 // Said once per server process, at the first lookup, rather than on every
@@ -77,6 +109,18 @@ function reportMisconfigurationOnce(): void {
   }
 }
 
+/** What `resendSender` hands Resend for one message (pure; pinned by a spec). */
+export function resendEmailPayload(from: string, message: EmailMessage) {
+  return {
+    from,
+    to: message.to,
+    subject: message.subject,
+    html: message.html,
+    text: message.text,
+    ...(message.replyTo ? { replyTo: message.replyTo } : {}),
+  };
+}
+
 /**
  * Resend's SDK reports a refused message in its return value rather than by
  * throwing, so the error is turned into a rejection here — `EmailSender`'s
@@ -88,13 +132,7 @@ function resendSender(apiKey: string, from: string): EmailSender {
   return {
     async send(message) {
       const { error } = await client.emails.send(
-        {
-          from,
-          to: message.to,
-          subject: message.subject,
-          html: message.html,
-          text: message.text,
-        },
+        resendEmailPayload(from, message),
         message.idempotencyKey
           ? { idempotencyKey: message.idempotencyKey }
           : undefined,

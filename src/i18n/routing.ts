@@ -126,3 +126,18 @@ const CONTENT_LOCALE_BY_APP_LOCALE: Record<AppLocale, ContentLocale> = {
 export function toContentLocale(locale: AppLocale): ContentLocale {
   return CONTENT_LOCALE_BY_APP_LOCALE[locale];
 }
+
+/**
+ * The inverse of `toContentLocale`, for a stored `ContentLocale` read back
+ * (`Order.locale`). Exhaustive for the same reason; `null` in, `null` out.
+ */
+const APP_LOCALE_BY_CONTENT_LOCALE: Record<ContentLocale, AppLocale> = {
+  KA: "ka",
+  EN: "en",
+};
+
+export function fromContentLocale(
+  locale: ContentLocale | null | undefined,
+): AppLocale | null {
+  return locale ? APP_LOCALE_BY_CONTENT_LOCALE[locale] : null;
+}

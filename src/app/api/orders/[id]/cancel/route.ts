@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 import { OrderStatus } from "@prisma/client";
 
-import { getRequestTranslations } from "@/i18n/request-locale";
+import {
+  getRequestTranslations,
+  resolveLocaleFromHeaders,
+} from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
+import { sendOrderEmail } from "@/lib/email/order-emails/send";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -97,6 +101,15 @@ export async function POST(
       { status: 409 },
     );
   }
+
+  // Confirm the cancellation to the client. An unpaid order has no stored
+  // `Order.locale` yet (it is written at pay), so the client's own request
+  // locale stands in — they are the one asking. Queued for after the
+  // response; never throws.
+  await sendOrderEmail(id, "ORDER_CANCELLED", {
+    cancelledBy: "CLIENT",
+    requestLocale: resolveLocaleFromHeaders(request.headers),
+  });
 
   // Only what the caller needs to update its view. The orders pages re-read the
   // row from the database rather than trusting this body.

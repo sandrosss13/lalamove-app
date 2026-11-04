@@ -3,6 +3,7 @@ import { OrderStatus } from "@prisma/client";
 
 import { getRequestTranslations } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
+import { sendOrderEmail } from "@/lib/email/order-emails/send";
 import { CARRIER_ORDER_PARTY_SELECT } from "@/lib/order-response-select";
 import {
   bookedClassFor,
@@ -437,6 +438,11 @@ export async function POST(
     },
     select: CARRIER_ORDER_PARTY_SELECT,
   });
+
+  // A driver and vehicle are now on the job: tell the client. The company's
+  // claim (no driver yet) sends nothing; this is the email for it. Queued for
+  // after the response; never throws.
+  await sendOrderEmail(id, "DRIVER_ASSIGNED");
 
   return NextResponse.json(updated, { status: 200 });
 }

@@ -20,8 +20,10 @@ import { expect, test } from "@playwright/test";
 import {
   canDeliverEmail,
   emailDeliveryMisconfiguration,
+  emailReplyToMisconfiguration,
   resolveEmailDelivery,
   wellFormedFrom,
+  wellFormedReplyTo,
   type EmailDeliveryEnvironment,
 } from "@/lib/email/delivery";
 import {
@@ -37,6 +39,7 @@ import {
   assertPasswordResetRequestAllowed,
   EMAIL_NOT_CONFIGURED_CODE,
 } from "@/lib/email/send-password-reset";
+import { resendEmailPayload } from "@/lib/email/sender";
 
 const KEY = "re_test_123";
 const FROM = "zomo <no-reply@zomo.ge>";
@@ -162,6 +165,46 @@ test.describe("EMAIL_FROM", () => {
       emailDeliveryMisconfiguration({ resendApiKey: KEY, emailFrom: FROM }),
     ).toBeNull();
     expect(emailDeliveryMisconfiguration({})).toBeNull();
+  });
+});
+
+test.describe("EMAIL_REPLY_TO", () => {
+  test("accepts what EMAIL_FROM accepts, trimmed", () => {
+    expect(wellFormedReplyTo(" support@zomo.ge ")).toBe("support@zomo.ge");
+    expect(wellFormedReplyTo("zomo <support@zomo.ge>")).toBe(
+      "zomo <support@zomo.ge>",
+    );
+    for (const value of [undefined, "", "  ", "support", "zomo <support>"]) {
+      expect(wellFormedReplyTo(value), String(value)).toBeNull();
+    }
+  });
+
+  test("an invalid value is named; unset or valid says nothing", () => {
+    expect(emailReplyToMisconfiguration("support")).toContain("EMAIL_REPLY_TO");
+    expect(emailReplyToMisconfiguration(undefined)).toBeNull();
+    expect(emailReplyToMisconfiguration("")).toBeNull();
+    expect(emailReplyToMisconfiguration("support@zomo.ge")).toBeNull();
+  });
+
+  test("Resend gets replyTo only when the message has one", () => {
+    const message = {
+      to: "nino@example.com",
+      subject: "s",
+      html: "h",
+      text: "t",
+      idempotencyKey: "k",
+    };
+    expect(
+      resendEmailPayload(FROM, { ...message, replyTo: "support@zomo.ge" }),
+    ).toEqual({
+      from: FROM,
+      to: "nino@example.com",
+      subject: "s",
+      html: "h",
+      text: "t",
+      replyTo: "support@zomo.ge",
+    });
+    expect("replyTo" in resendEmailPayload(FROM, message)).toBe(false);
   });
 });
 

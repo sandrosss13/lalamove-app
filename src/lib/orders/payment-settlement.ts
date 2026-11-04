@@ -53,7 +53,20 @@ import { dispatchRouteAlertsForLoad } from "@/lib/route-alerts/dispatch";
  * after the response. Matching is for drivers; the client paying is owed an
  * answer about their payment, not about who was offered the job.
  */
-export async function settleOrderPayment(orderId: string): Promise<Order> {
+export type SettledOrder = {
+  /** The order as the database holds it after the call. */
+  order: Order;
+  /**
+   * True only for the call that actually moved the order `INITIATED` →
+   * `PENDING` — false for a repeat. What makes "once per order" side effects
+   * (the client's confirmation email) fire once.
+   */
+  settledNow: boolean;
+};
+
+export async function settleOrderPayment(
+  orderId: string,
+): Promise<SettledOrder> {
   const { count } = await prisma.order.updateMany({
     where: { id: orderId, status: OrderStatus.INITIATED },
     data: { status: OrderStatus.PENDING },
@@ -75,7 +88,11 @@ export async function settleOrderPayment(orderId: string): Promise<Order> {
   // caller settles an order it has just created or already read: a missing row
   // is a broken invariant worth failing loudly on, not a null to thread through
   // each call site.
-  return prisma.order.findUniqueOrThrow({ where: { id: orderId } });
+  const order = await prisma.order.findUniqueOrThrow({
+    where: { id: orderId },
+  });
+
+  return { order, settledNow: count > 0 };
 }
 
 /**
