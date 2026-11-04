@@ -1,0 +1,100 @@
+{
+  "subject": {
+    "confirmed": "Order {reference} is booked",
+    "driverAssigned": "A driver has been assigned to order {reference}",
+    "delivered": "Order {reference} has been delivered",
+    "cancelled": "Order {reference} has been cancelled"
+  },
+  "chip": {
+    "confirmed": "Booking confirmed",
+    "driverAssigned": "Driver assigned",
+    "delivered": "Delivered",
+    "cancelled": "Order cancelled"
+  },
+  "layout": {
+    "orderReference": "Order {reference}",
+    "logoAlt": "zomo",
+    "questions": {
+      "replyOrPhone": "Questions? Reply to this email or call {phone}.",
+      "reply": "Questions? Reply to this email.",
+      "phone": "Questions? Call us on {phone}."
+    },
+    "website": "zomo.ge",
+    "reason": "You're getting this email because you placed an order on zomo."
+  },
+  "details": {
+    "pickupWindow": "Pickup window",
+    "pickupTime": "Pickup time",
+    "window": "{date} · {start}–{end}",
+    "exact": "{date} · {time}",
+    "from": "From",
+    "to": "To",
+    "floor": "{floor, selectordinal, =0 {Ground floor} one {#st floor} two {#nd floor} few {#rd floor} other {#th floor}}",
+    "passengerElevator": "Passenger elevator",
+    "cargoElevator": "Cargo elevator",
+    "bothElevators": "Passenger and cargo elevator",
+    "noElevator": "No elevator",
+    "vehicle": "Vehicle",
+    "helpers": "Helpers",
+    "helperCount": "{count, plural, one {# helper} other {# helpers}}",
+    "items": "Items",
+    "itemHeader": "Item",
+    "quantityHeader": "Qty",
+    "quantityValue": "{quantity} pcs",
+    "moreItems": "+{count} more",
+    "payment": "Payment",
+    "paymentCard": "Card",
+    "paymentPayLater": "Pay later",
+    "paymentBankTransfer": "Bank transfer",
+    "paymentPaid": "{method} · paid",
+    "overtime": "Overtime",
+    "total": "Total",
+    "plate": "Licence plate"
+  },
+  "confirmed": {
+    "heading": "Your order is booked",
+    "headingWithName": "Your order is booked, {name}",
+    "intro": "We've received your order and are finding a driver. We'll email you again when one is assigned.",
+    "track": "Track your order",
+    "changeLead": "Need to change something?",
+    "changeLink": "View your order",
+    "note": "Please have the items ready at the pickup time. The driver will call you on arrival."
+  },
+  "driverAssigned": {
+    "heading": "A driver is on your order",
+    "intro": "A driver has been assigned to your order. Here is the vehicle that will come for your items.",
+    "introWithCompany": "{company} has assigned a driver to your order. Here is the vehicle that will come for your items.",
+    "track": "Track your order",
+    "guestTrackingHint": "Use the tracking link from your booking confirmation email to follow your order.",
+    "safety": "For your safety, pay only through zomo. The driver will never ask for extra cash on top of the order total."
+  },
+  "delivered": {
+    "heading": "Your order has arrived",
+    "intro": "Delivered to {address} on {date} at {time}.",
+    "signedBy": "Signed for by {name}.",
+    "proof": "Photos and signature are on the tracking page.",
+    "proofLink": "Open the tracking page",
+    "proofGuest": "Photos and signature are on the tracking page — use the link from your booking confirmation email.",
+    "receipt": "Download receipt (PDF)",
+    "bookAgain": "Book another delivery",
+    "damaged": {
+      "replyOrPhone": "Something damaged or missing? Reply to this email or call {phone}.",
+      "reply": "Something damaged or missing? Reply to this email.",
+      "phone": "Something damaged or missing? Call us on {phone}."
+    }
+  },
+  "cancelled": {
+    "heading": "Your order has been cancelled",
+    "introClient": "As you asked, we've cancelled your order for {date}.",
+    "introClientNoDate": "As you asked, we've cancelled your order.",
+    "introCarrier": "We're sorry — the carrier had to cancel your order for {date}. Please contact us and we'll help you rebook.",
+    "introCarrierNoDate": "We're sorry — the carrier had to cancel your order. Please contact us and we'll help you rebook.",
+    "refund": "A payment was taken for this order. Contact support and we'll sort out your refund.",
+    "bookAgain": "Book again",
+    "notYou": {
+      "replyOrPhone": "Didn't cancel this order? Contact support by replying to this email or calling {phone}.",
+      "reply": "Didn't cancel this order? Contact support by replying to this email.",
+      "phone": "Didn't cancel this order? Contact support by calling {phone}."
+    }
+  }
+}

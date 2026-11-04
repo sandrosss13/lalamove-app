@@ -6,6 +6,7 @@ import {
   type RequestTranslator,
 } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
+import { sendOrderEmail } from "@/lib/email/order-emails/send";
 import { runMatchingWithinBudget } from "@/lib/background/request-budget";
 import { dispatchOfferForDriver } from "@/lib/offers/dispatch";
 import { CARRIER_ORDER_PARTY_SELECT } from "@/lib/order-response-select";
@@ -460,6 +461,10 @@ export async function POST(
   // call. Never throws: the completion has committed and is what this request
   // reports, and the credit is idempotent, so a failure here is recoverable.
   await creditWalletForOrderSafely(id);
+
+  // The client's "delivered" email, with the final total. Only an outcome of
+  // COMPLETED reaches here. Queued for after the response; never throws.
+  await sendOrderEmail(id, "ORDER_DELIVERED");
 
   // The driver is free again: offer them the best load waiting on the board.
   // Never throws — the completion above has committed and is what this

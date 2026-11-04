@@ -62,6 +62,29 @@ export function wellFormedFrom(value: string | undefined): string | null {
   return from !== null && FROM_PATTERN.test(from) ? from : null;
 }
 
+/**
+ * `EMAIL_REPLY_TO`, trimmed, or `null` when it is unset or not an address
+ * (same loose shape check as `EMAIL_FROM`). Optional: without it, mail goes
+ * out with no Reply-To, and the order emails stop inviting replies.
+ */
+export function wellFormedReplyTo(value: string | undefined): string | null {
+  return wellFormedFrom(value);
+}
+
+/**
+ * Why `EMAIL_REPLY_TO` is being ignored, or `null` when it is fine or unset.
+ * Unlike a bad `EMAIL_FROM`, this does not disable email — only replies.
+ */
+export function emailReplyToMisconfiguration(
+  value: string | undefined,
+): string | null {
+  const raw = trimmed(value);
+
+  return raw !== null && wellFormedReplyTo(value) === null
+    ? `EMAIL_REPLY_TO ("${raw}") is not an address or "Name <address>" — it is ignored and emails go out with no reply address.`
+    : null;
+}
+
 /** See the module comment. */
 export function resolveEmailDelivery(
   environment: EmailDeliveryEnvironment,

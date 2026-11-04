@@ -6,8 +6,14 @@ import {
   PaymentStatus,
 } from "@prisma/client";
 
-import { getRequestTranslations } from "@/i18n/request-locale";
+import {
+  getRequestTranslations,
+  resolveLocaleFromHeaders,
+} from "@/i18n/request-locale";
+import { toContentLocale } from "@/i18n/routing";
 import { auth } from "@/lib/auth";
+import { sendOrderEmail } from "@/lib/email/order-emails/send";
+import { readGuestOrderToken } from "@/lib/orders/guest-access";
 import { ownedOrderWhere } from "@/lib/orders/load-accessible-order";
 import { parsePayOrderBody, type PayerKind } from "@/lib/orders/pay-input";
 import { settleOrderPayment } from "@/lib/orders/payment-settlement";
@@ -218,6 +224,10 @@ export async function POST(
   const paymentStatus = paidNow ? PaymentStatus.PAID : PaymentStatus.PENDING;
   const paidAt = paidNow ? new Date() : null;
 
+  // The language every email about this order is written in — the one the
+  // client is paying in. See `Order.locale`.
+  const locale = toContentLocale(resolveLocaleFromHeaders(request.headers));
+
   // One transaction for the two writes that describe the client's choice, so an
   // order can never carry a payment method with no `Payment` row beside it.
   //
@@ -236,6 +246,7 @@ export async function POST(
         savedCardId,
         // Already reduced to BUSINESS-only by the parser.
         purchaseOrderRef,
+        locale,
         // A guest's contact lands with the payment or not at all, so a paid
         // guest order always says who to call. Account orders write nothing
         // here: their contact is the client's account.
@@ -294,7 +305,21 @@ export async function POST(
   // transaction open. It is also idempotent — a conditional update that treats
   // "already settled" as success — so a retry after a crash between the writes
   // above and this line completes the booking rather than wedging it.
-  const settled = await settleOrderPayment(order.id);
+  const { order: settled, settledNow } = await settleOrderPayment(order.id);
+
+  // The client's booking confirmation — Pay later (CASH) included: the order
+  // is booked either way. Only from the call that actually settled it, so a
+  // double-submit that won the transaction above twice still mails once. A
+  // guest's raw token exists only here, in their cookie, and becomes the
+  // email's tracking link. Queued for after the response; never throws.
+  if (settledNow) {
+    await sendOrderEmail(order.id, "ORDER_CONFIRMED", {
+      guestToken:
+        clientId === null
+          ? await readGuestOrderToken(order.id).catch(() => null)
+          : null,
+    });
+  }
 
   // Only what the success page's redirect needs, plus the figures a non-browser
   // caller would want to reconcile against. The page itself re-reads the order

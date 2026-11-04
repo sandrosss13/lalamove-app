@@ -21,8 +21,10 @@ import {
   PASSWORD_RESET_TOKEN_TTL_SECONDS,
   type PasswordResetEmailCopy,
 } from "@/lib/email/password-reset";
+import { runAfterResponse } from "@/lib/email/run-after-response";
 import {
   getEmailDelivery,
+  getEmailReplyTo,
   getEmailSender,
   type EmailMessage,
 } from "@/lib/email/sender";
@@ -151,33 +153,17 @@ async function requestLocale(request: Request | undefined): Promise<AppLocale> {
 }
 
 /**
- * Runs `work` after the response has been sent, through Next's `after()`.
- *
- * That matters for more than speed. Better Auth already answers an unknown
- * address and a known one with the same body, but a known one would otherwise
- * also wait for this module's lookups and a Resend round trip — a timing
- * difference large enough to tell registered addresses apart. Deferred, both
- * cost the same up to the response (bar the one token write Better Auth itself
- * does). `after()` keeps the function alive on Vercel until `work` finishes.
- * Outside a Next request scope (a direct server-side call) it throws, and
- * `work` is simply awaited.
- *
- * Errors end here, logged: the caller has already been told "check your
- * email", and a failure must not become a different answer for real accounts.
+ * Why the email is sent after the response (see `runAfterResponse` in
+ * `@/lib/email/run-after-response`), beyond speed: Better Auth already answers
+ * an unknown address and a known one with the same body, but a known one
+ * would otherwise also wait for this module's lookups and a Resend round trip
+ * — a timing difference large enough to tell registered addresses apart.
+ * Deferred, both cost the same up to the response (bar the one token write
+ * Better Auth itself does). Errors end there, logged: the caller has already
+ * been told "check your email", and a failure must not become a different
+ * answer for real accounts.
  */
-async function runAfterResponse(work: () => Promise<void>): Promise<void> {
-  const run = () =>
-    work().catch((error: unknown) => {
-      console.error("[password-reset] email not delivered:", error);
-    });
-
-  try {
-    const { after } = await import("next/server");
-    after(run);
-  } catch {
-    await run();
-  }
-}
+const RESET_LOG_LABEL = "[password-reset] email not delivered:";
 
 /**
  * Better Auth's `sendResetPassword`. Never throws for an account-specific
@@ -194,7 +180,10 @@ export async function sendPasswordResetEmail(
 ): Promise<void> {
   const locale = await requestLocale(request);
 
-  await runAfterResponse(() => deliverPasswordReset(user, token, locale));
+  await runAfterResponse(
+    () => deliverPasswordReset(user, token, locale),
+    RESET_LOG_LABEL,
+  );
 }
 
 async function deliverPasswordReset(
@@ -247,6 +236,10 @@ async function deliverPasswordReset(
     ...rendered,
     idempotencyKey: `password-reset/${token}`,
   };
+  const replyTo = getEmailReplyTo();
+  if (replyTo) {
+    message.replyTo = replyTo;
+  }
 
   const sender = getEmailSender();
 

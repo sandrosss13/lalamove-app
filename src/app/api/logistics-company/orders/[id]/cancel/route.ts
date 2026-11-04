@@ -3,6 +3,7 @@ import { OrderStatus } from "@prisma/client";
 
 import { getRequestTranslations } from "@/i18n/request-locale";
 import { auth } from "@/lib/auth";
+import { sendOrderEmail } from "@/lib/email/order-emails/send";
 import { CARRIER_ORDER_PARTY_SELECT } from "@/lib/order-response-select";
 import { prisma } from "@/lib/prisma";
 
@@ -110,6 +111,10 @@ export async function POST(
       { status: 409 },
     );
   }
+
+  // Tell the client the carrier cancelled (and, when it was paid, to call
+  // support about the money). Queued for after the response; never throws.
+  await sendOrderEmail(id, "ORDER_CANCELLED", { cancelledBy: "CARRIER" });
 
   // Carrier-only response — see `CARRIER_ORDER_PARTY_SELECT`'s doc comment;
   // never `ORDER_PARTY_SELECT` here. The company is the carrier on its own

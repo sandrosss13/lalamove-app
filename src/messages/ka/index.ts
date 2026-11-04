@@ -23,6 +23,7 @@ import home from "./home.json";
 import landing from "./landing.json";
 import onboarding from "./onboarding.json";
 import orderDocument from "./orderDocument.json";
+import orderEmails from "./orderEmails.json";
 import orderTracking from "./orderTracking.json";
 import orders from "./orders.json";
 import savedAddresses from "./savedAddresses.json";
@@ -45,6 +46,7 @@ const messages = {
   landing,
   onboarding,
   orderDocument,
+  orderEmails,
   orderTracking,
   orders,
   savedAddresses,

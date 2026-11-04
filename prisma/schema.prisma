@@ -1756,6 +1756,21 @@ model Order {
   guestPhone     String?
   guestEmail     String?
 
+  /// The language the client was reading the site in when they paid — the
+  /// language every email about this order is written in
+  /// (`src/lib/email/order-emails/send.ts`). Written by
+  /// `POST /api/orders/[id]/pay` in the same transaction that claims the order,
+  /// from the request locale (`resolveLocaleFromHeaders`).
+  ///
+  /// On the order rather than on `User` because a guest has no `User`, and
+  /// because the language of a booking is a fact about that booking. Nullable
+  /// with no backfill: every order paid before this column existed, and every
+  /// order still `INITIATED`, has none, and readers fall back to the request
+  /// locale where there is one and then to `DEFAULT_LOCALE` (Georgian).
+  /// `ContentLocale` rather than a new enum: it is the schema's existing
+  /// `ka`/`en` dialect, bridged by `toContentLocale` / `fromContentLocale`.
+  locale ContentLocale?
+
   /// sha256 hex of the guest's private tracking token (see
   /// `src/lib/orders/guest-access.ts`). The raw token lives only in the guest's
   /// cookie and the `/track/<token>` link — never in the database — so a leaked

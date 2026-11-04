@@ -4,6 +4,7 @@ import "server-only";
 import { DriverClaimCapacity, OrderStatus, type Prisma } from "@prisma/client";
 
 import type { RequestTranslator } from "@/i18n/request-locale";
+import { sendOrderEmail } from "@/lib/email/order-emails/send";
 import { settleOffersAfterClaim } from "@/lib/offers/settle";
 import { CARRIER_ORDER_PARTY_SELECT } from "@/lib/order-response-select";
 import { specCapability } from "@/lib/orders/booking-fit";
@@ -447,6 +448,11 @@ export async function claimOrderForDriver(
   // Bookkeeping only — the claim above has already committed, and the offer
   // read path derives the same answer from the order if this write is lost.
   await settleOffersAfterClaim(orderId, driverProfile.id);
+
+  // Tell the client a driver is on the way (vehicle, plate and company only —
+  // see `DriverAssignedData`). Only this, the winning claim, reaches here.
+  // Queued for after the response; never throws.
+  await sendOrderEmail(orderId, "DRIVER_ASSIGNED");
 
   // Carrier-only response — see `CARRIER_ORDER_PARTY_SELECT`'s doc comment;
   // never `ORDER_PARTY_SELECT` here. Every caller of this function is a driver
