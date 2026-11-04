@@ -59,8 +59,17 @@ export type EmailStop = {
   detail: string | null;
 };
 
+/**
+ * A translated sentence, optionally holding a phone number to render as a
+ * tap-to-call link. `text` is the full plain sentence (also the plain-text
+ * part); `phone` is the number as it appears inside it. Mail apps only
+ * auto-link a number after some English words ("call"), so it is linked
+ * explicitly, in every language.
+ */
+export type EmailText = string | { text: string; phone: string };
+
 export type EmailBlock =
-  | { kind: "paragraph"; text: string; tone?: "body" | "muted" }
+  | { kind: "paragraph"; text: EmailText; tone?: "body" | "muted" }
   /** A shaded panel: small label over one prominent line. */
   | { kind: "panel"; label: string; value: string }
   | { kind: "route"; stops: EmailStop[]; compact?: boolean }
@@ -102,7 +111,7 @@ export type EmailLayout = {
   heading: string;
   blocks: EmailBlock[];
   /** Footer lines, in order. */
-  footer: string[];
+  footer: EmailText[];
   /** Optional link line in the footer, e.g. zomo.ge. */
   footerLink: { label: string; href: string } | null;
 };
@@ -114,12 +123,32 @@ function linkHtml(label: string, href: string): string {
   return `<a href="${escapeHtml(href)}" style="color:${C.accent};text-decoration:underline;">${escapeHtml(label)}</a>`;
 }
 
+export function emailTextPlain(value: EmailText): string {
+  return typeof value === "string" ? value : value.text;
+}
+
+/** `tel:` target: a leading + and the digits; null when there are no digits. */
+function telHref(phone: string): string | null {
+  const digits = phone.replace(/\D/g, "");
+  if (digits === "") return null;
+  return `tel:${phone.trim().startsWith("+") ? "+" : ""}${digits}`;
+}
+
+/** Escaped HTML for a sentence, with its phone number (if any) as a link. */
+function emailTextHtml(value: EmailText): string {
+  if (typeof value === "string") return escapeHtml(value);
+  const href = telHref(value.phone);
+  const at = value.phone === "" ? -1 : value.text.indexOf(value.phone);
+  if (href === null || at < 0) return escapeHtml(value.text);
+  return `${escapeHtml(value.text.slice(0, at))}<a href="${escapeHtml(href)}" style="color:inherit;text-decoration:underline;white-space:nowrap">${escapeHtml(value.phone)}</a>${escapeHtml(value.text.slice(at + value.phone.length))}`;
+}
+
 function blockHtml(block: EmailBlock): string {
   switch (block.kind) {
     case "paragraph": {
       const color = block.tone === "muted" ? C.muted : C.body;
       const size = block.tone === "muted" ? 13 : 15;
-      return `<tr><td style="padding:${PAD};padding-top:12px;font-size:${size}px;line-height:1.6;color:${color};">${escapeHtml(block.text)}</td></tr>`;
+      return `<tr><td style="padding:${PAD};padding-top:12px;font-size:${size}px;line-height:1.6;color:${color};">${emailTextHtml(block.text)}</td></tr>`;
     }
     case "panel":
       return `<tr><td style="padding:${PAD};padding-top:20px;">
@@ -235,7 +264,7 @@ ${lines.join("\n")}
 function blockText(block: EmailBlock): string {
   switch (block.kind) {
     case "paragraph":
-      return block.text;
+      return emailTextPlain(block.text);
     case "panel":
       return `${block.label}: ${block.value}`;
     case "route":
@@ -332,7 +361,7 @@ ${
 ${blocks.map(blockHtml).join("\n")}
 <tr><td style="padding:28px 32px 0;"><div style="border-top:1px solid ${C.border};font-size:0;line-height:0;">&nbsp;</div></td></tr>
 <tr><td style="padding:16px 32px 28px;font-size:12px;line-height:1.6;color:${C.muted};">
-${layout.footer.map((line) => `<div>${escapeHtml(line)}</div>`).join("\n")}${
+${layout.footer.map((line) => `<div>${emailTextHtml(line)}</div>`).join("\n")}${
     layout.footerLink
       ? `\n<div style="padding-top:6px;"><a href="${escapeHtml(layout.footerLink.href)}" style="color:${C.muted};text-decoration:underline;">${escapeHtml(layout.footerLink.label)}</a></div>`
       : ""
@@ -353,7 +382,7 @@ ${layout.footer.map((line) => `<div>${escapeHtml(line)}</div>`).join("\n")}${
     ...blocks.flatMap((block) => ["", blockText(block)]),
     "",
     "--",
-    ...layout.footer,
+    ...layout.footer.map(emailTextPlain),
     layout.footerLink
       ? `${layout.footerLink.label}: ${layout.footerLink.href}`
       : null,

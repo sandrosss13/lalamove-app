@@ -500,6 +500,41 @@ test.describe("contact lines: reply address × support phone", () => {
     expect(ka.text).toContain(`გაქვთ კითხვები? დაგვირეკეთ: ${PHONE}.`);
   });
 
+  test("phone is an explicit tel: link in both languages", () => {
+    const LINK =
+      '<a href="tel:+995322000000" style="color:inherit;text-decoration:underline;white-space:nowrap">+995 32 200 00 00</a>';
+    for (const locale of LOCALES) {
+      for (const canReply of [true, false]) {
+        for (const [name, make] of ALL) {
+          const email = render({ ...make(locale), canReply });
+          expect(email.html, `${name} ${locale}`).toContain(LINK);
+          expect(email.html).toContain('href="tel:+995322000000"');
+          expect(email.text).toContain(PHONE);
+          expect(email.text).not.toContain("tel:");
+        }
+        for (const make of [delivered, cancelled]) {
+          const html = render({ ...make(locale), canReply }).html;
+          expect(html.split(LINK).length - 1).toBeGreaterThanOrEqual(2);
+        }
+      }
+    }
+    const ka = render({ ...delivered("ka"), canReply: false });
+    expect(ka.html).toContain(`დაგვირეკეთ: <a href="tel:+995322000000"`);
+  });
+
+  test("hostile phone is escaped; digitless phone stays plain text", () => {
+    const hostile = '+995 "><script>alert(1)</script> 32';
+    const email = render({ ...delivered("en"), supportPhone: hostile });
+    expect(email.html).not.toContain("<script>");
+    expect(email.html).toContain("&lt;script&gt;");
+    expect(email.html).toContain('href="tel:+995132"');
+    expect(email.text).toContain(hostile);
+
+    const plain = render({ ...delivered("en"), supportPhone: "ask the desk" });
+    expect(plain.html).not.toContain("tel:");
+    expect(plain.html).toContain("ask the desk");
+  });
+
   test("neither: the lines are dropped, the footer keeps zomo.ge", () => {
     for (const locale of LOCALES) {
       for (const [name, make] of ALL) {

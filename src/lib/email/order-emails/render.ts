@@ -12,11 +12,13 @@
 
 import type { Translator } from "@/i18n/translator";
 import {
+  emailTextPlain,
   renderEmailLayout,
   type EmailBlock,
   type EmailChipTone,
   type EmailRow,
   type EmailStop,
+  type EmailText,
 } from "@/lib/email/layout";
 
 import type {
@@ -246,17 +248,19 @@ function contactLine(
   t: Translator,
   key: string,
   data: Pick<OrderEmailBase, "canReply" | "supportPhone">,
-): string | null {
+): EmailText | null {
   const phone = present(data.supportPhone) ? data.supportPhone.trim() : null;
 
   if (data.canReply) {
-    return phone ? t(`${key}.replyOrPhone`, { phone }) : t(`${key}.reply`);
+    return phone
+      ? { text: t(`${key}.replyOrPhone`, { phone }), phone }
+      : t(`${key}.reply`);
   }
 
-  return phone ? t(`${key}.phone`, { phone }) : null;
+  return phone ? { text: t(`${key}.phone`, { phone }), phone } : null;
 }
 
-function mutedParagraph(text: string | null): EmailBlock | null {
+function mutedParagraph(text: EmailText | null): EmailBlock | null {
   return text === null ? null : { kind: "paragraph", tone: "muted", text };
 }
 
@@ -498,7 +502,7 @@ export function renderOrderEmail(
     title: subject,
     preheader:
       firstParagraph && firstParagraph.kind === "paragraph"
-        ? firstParagraph.text
+        ? emailTextPlain(firstParagraph.text)
         : null,
     logoUrl,
     logoAlt: t("layout.logoAlt"),
@@ -511,7 +515,7 @@ export function renderOrderEmail(
     footer: [
       contactLine(t, "layout.questions", data),
       t("layout.reason"),
-    ].filter(present),
+    ].filter((line): line is EmailText => line !== null && line !== ""),
     footerLink: origin ? { label: t("layout.website"), href: origin } : null,
   });
 
