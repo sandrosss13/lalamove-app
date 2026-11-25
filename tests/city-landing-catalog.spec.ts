@@ -12,8 +12,9 @@ import { CITY_LANDING_SLUGS, type CityLandingSlug } from "@/lib/seo/cities";
  * These pages exist to rank for "cargo delivery in <city>", so the things that
  * go wrong are silent search problems rather than errors: a missing key that
  * renders as its own name, a title Google truncates, a keyword that drifts
- * from the exact phrase searchers type — or, worst, wording that pitches house
- * moving, a service zomo does not offer. `tests/i18n-catalogs.spec.ts` already
+ * from the exact phrase searchers type — or wording that pitches house moving,
+ * which has its own page (`/momsakhureba/binis-gadazidva`) and would only blur
+ * what a city page is about. `tests/i18n-catalogs.spec.ts` already
  * covers parity and blanks across every namespace; this spec holds the
  * city-specific contract.
  *
@@ -150,8 +151,8 @@ const EN_CITY_NAME: Record<CityLandingSlug, string> = {
 };
 
 /**
- * Wording that pitches home or flat moving, which zomo does not offer — cargo
- * only. Georgian "ბინა" (flat) is matched only at a word start: as a bare
+ * Wording that pitches home or flat moving — that has its own service page, so
+ * the city pages stay about cargo. Georgian "ბინა" (flat) is matched only at a word start: as a bare
  * substring it would also hit "კაბინა" (a truck's cab), which the copy may
  * legitimately use.
  */
