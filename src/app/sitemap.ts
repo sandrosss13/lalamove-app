@@ -9,8 +9,11 @@ import {
 } from "@/i18n/routing";
 import { audienceForHost, clientOrigin, merchantOrigin } from "@/lib/host";
 import { prisma } from "@/lib/prisma";
-import { CITY_LANDING_SLUGS, cityLandingPath } from "@/lib/seo/cities";
-import { isIndexableDeployment, requestHost } from "@/lib/seo/site";
+import {
+  clientLandingPaths,
+  isIndexableDeployment,
+  requestHost,
+} from "@/lib/seo/site";
 import { IS_CLIENT_UNDER_CONSTRUCTION } from "@/lib/under-construction";
 
 /**
@@ -19,10 +22,10 @@ import { IS_CLIENT_UNDER_CONSTRUCTION } from "@/lib/under-construction";
  * Built per request from the `Host` header (all hosts share one deployment),
  * which makes this route dynamic.
  *
- * - Client host: the landing page and every city landing page in both
- *   languages, plus — once the pre-launch gate is off — every published static
- *   page. The city pages are exempt from the gate, so they are listed (with no
- *   database read) either way.
+ * - Client host: the landing page and every city and service landing page in
+ *   both languages, plus — once the pre-launch gate is off — every published
+ *   static page. The city and service pages are exempt from the gate, so they
+ *   are listed (with no database read) either way.
  * - Merchant host: driver sign-up in both languages.
  * - Admin host, unknown hosts, non-public deployments: empty.
  */
@@ -133,15 +136,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     case "CLIENT":
     case "BOTH": {
       const origin = clientOrigin();
-      const pages = [
-        ...localizedEntries(origin, "/", LOCALES),
-        ...CITY_LANDING_SLUGS.flatMap((slug) =>
-          localizedEntries(origin, cityLandingPath(slug), LOCALES),
-        ),
-      ];
+      const pages = clientLandingPaths().flatMap((path) =>
+        localizedEntries(origin, path, LOCALES),
+      );
       // Same rule as the middleware: the gate applies to the client audience
       // only, and while it is on every page but the root and the (exempt) city
-      // pages is a duplicate of the "coming soon" page.
+      // and service pages is a duplicate of the "coming soon" page.
       const gated = IS_CLIENT_UNDER_CONSTRUCTION && audience === "CLIENT";
       return gated ? pages : [...pages, ...(await staticPageEntries(origin))];
     }

@@ -136,9 +136,10 @@ const CLIENT_ONLY_EXACT = ["/", "/home", "/orders"];
  * only ever reached by the client who booked the order, so none of it has the
  * shared-audience problem that keeps `/orders` in `CLIENT_ONLY_EXACT`.
  *
- * `/gadazidva` is the city landing pages (`src/lib/seo/cities.ts`): customer
- * marketing pages, so on the merchant host they bounce to the client host
- * rather than being served (and indexed) twice.
+ * `/gadazidva` and `/momsakhureba` are the city and service landing pages
+ * (`src/lib/seo/cities.ts`, `src/lib/seo/services.ts`): customer marketing
+ * pages, so on the merchant host they bounce to the client host rather than
+ * being served (and indexed) twice.
  *
  * `/book` (the booking form, guest or signed in) and `/track` (a guest's
  * private tracking link, `/track/<token>`) are customer flows too. `/track` is
@@ -150,6 +151,7 @@ const CLIENT_ONLY_PREFIXES = [
   "/book",
   "/checkout",
   "/gadazidva",
+  "/momsakhureba",
   "/track",
 ];
 
@@ -466,9 +468,10 @@ export function middleware(request: NextRequest) {
   // brand is findable before launch; every other gated URL is a duplicate of
   // it and carries the noindex header (the decision is `isIndexablePath`'s).
   //
-  // The city landing pages are exempt and fall through to the locale layer
-  // like any ungated request (an unprefixed one is redirected into its
-  // locale first). Only known slugs: `/gadazidva/<unknown>` is still gated.
+  // The city and service landing pages are exempt and fall through to the
+  // locale layer like any ungated request (an unprefixed one is redirected
+  // into its locale first). Only known slugs: `/gadazidva/<unknown>` and
+  // `/momsakhureba/<unknown>` are still gated.
   if (
     gated &&
     !looksLikeFileRequest(pathname) &&

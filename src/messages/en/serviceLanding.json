@@ -1,0 +1,447 @@
+{
+  "shared": {
+    "nav": {
+      "covers": "What's covered",
+      "services": "Services"
+    },
+    "covers": {
+      "eyebrow": "What it covers"
+    },
+    "otherServices": {
+      "eyebrow": "Other services",
+      "heading": "Moving and delivery for every kind of job"
+    },
+    "cities": {
+      "eyebrow": "Cities",
+      "heading": "Moving and delivery in Georgia's cities"
+    },
+    "footer": {
+      "servicesTitle": "Services"
+    },
+    "og": {
+      "subline": "Vans, trucks and movers across Georgia"
+    }
+  },
+  "services": {
+    "binis-gadazidva": {
+      "keyword": "House and apartment moving",
+      "meta": {
+        "title": "House and apartment moving — van, truck and movers",
+        "description": "House and apartment moving in Tbilisi and between cities: a van or truck with a checked driver, movers priced by floor, and the price before you confirm."
+      },
+      "hero": {
+        "subtext": "Moving to a new flat? Choose a vehicle for the volume of your things, add movers, and see the price before you confirm — in Tbilisi or another city."
+      },
+      "intro": {
+        "heading": "From one home to the next, in one order",
+        "p1": "No two moves are alike: a large van is often enough for a one-bedroom flat, while a three-room home with a sofa, wardrobes and a fridge is better off in a truck. When you book, you list what is going, and zomo only offers vehicles that everything will fit in.",
+        "p2": "If the flat is on an upper floor, you add movers separately at the pickup and drop-off addresses and say which floor it is and whether there is a lift. A checked driver arrives on the day and at the time you chose, and you follow the vehicle on the map all the way to the new address."
+      },
+      "why": {
+        "w1": {
+          "title": "A vehicle sized to your things",
+          "body": "List the furniture, appliances and boxes, and you are offered a class that fits them all, from a small van to a trailer truck."
+        },
+        "w2": {
+          "title": "Movers at both addresses",
+          "body": "The movers' price depends on the floor and goes down when there is a lift. Part of their time at each address is already included."
+        },
+        "w3": {
+          "title": "The price before you confirm",
+          "body": "The cost is calculated from the route distance and the vehicle class and shown before you confirm, so you know what you will pay."
+        }
+      },
+      "covers": {
+        "heading": "What we move to your new home",
+        "body": "One order can list everything you are taking to the new address, for example:",
+        "list": {
+          "i1": "Sofas and armchairs",
+          "i2": "Beds and mattresses",
+          "i3": "Wardrobes and chests of drawers",
+          "i4": "Fridge and washing machine",
+          "i5": "Tables and chairs",
+          "i6": "Boxes and suitcases"
+        }
+      },
+      "faq": {
+        "heading": "House and apartment moving: questions",
+        "intro": "What to know before you book a move.",
+        "items": {
+          "q1": {
+            "question": "Which vehicle do I need to move house?",
+            "answer": "It depends on how much you have. List the furniture, appliances and boxes when you book and you will see the classes everything fits in, cheapest first. You can also pick one size up."
+          },
+          "q2": {
+            "question": "Can I add movers?",
+            "answer": "Yes. You set the number of movers separately for the pickup and the drop-off address. Their price is set by the floor and goes down when a cargo or passenger lift is available."
+          },
+          "q3": {
+            "question": "How is the price of a move calculated?",
+            "answer": "The transport cost comes from the route distance and the vehicle class, plus the movers if you add them. You see the full price before you confirm the order."
+          },
+          "q4": {
+            "question": "Can I choose the day and time in advance?",
+            "answer": "Yes. When you book you choose the date and time the driver should arrive, so you can plan moving day ahead."
+          },
+          "q5": {
+            "question": "Can I move to another city?",
+            "answer": "Yes. A move from Tbilisi to Batumi, Kutaisi or another city is booked the same way as one across town, and the price is calculated from the route distance."
+          }
+        }
+      },
+      "closing": {
+        "heading": "Moving to a new home?"
+      }
+    },
+    "avejis-gadazidva": {
+      "keyword": "Furniture delivery and moving",
+      "meta": {
+        "title": "Furniture delivery and moving in Tbilisi",
+        "description": "Furniture delivery and moving: a sofa, wardrobe, bed or a whole room — by van or truck, with a checked driver and movers when you need them."
+      },
+      "hero": {
+        "subtext": "Bought a sofa, sold a wardrobe or just rearranging? Move it from the shop to your home or from one home to another, in a vehicle it fits in with room to spare."
+      },
+      "intro": {
+        "heading": "From one armchair to a whole room",
+        "p1": "When you move furniture, what matters is that it fits in the vehicle and arrives undamaged. When you book, you list what is going — a corner sofa, a double bed, a bookcase — and zomo takes each item's size and weight into account, so you are not sent a vehicle that is too small.",
+        "p2": "Furniture moves often start with a single item: a new sofa from the shop, a wardrobe sold online going to its buyer, an old table going to the country house. There is no need to hunt for a cargo taxi — enter the two addresses, pick a time and, if the item is heavy, add a mover."
+      },
+      "why": {
+        "w1": {
+          "title": "Sized to fit",
+          "body": "Every item's size and weight is taken into account, so the furniture fits in the vehicle you are offered."
+        },
+        "w2": {
+          "title": "Heavy furniture, with movers",
+          "body": "Add one or more movers for a sofa or a wardrobe; their price depends on the floor and goes down with a lift."
+        },
+        "w3": {
+          "title": "Photos and a note for the driver",
+          "body": "Attach photos of the furniture and tell the driver what to expect — a narrow stairwell, say, or an entrance through the courtyard."
+        }
+      },
+      "covers": {
+        "heading": "What furniture we move",
+        "body": "A single item or a whole room, for example:",
+        "list": {
+          "i1": "Sofas and corner sofas",
+          "i2": "Beds and mattresses",
+          "i3": "Wardrobes",
+          "i4": "Chests of drawers and shelving",
+          "i5": "Dining tables and chairs",
+          "i6": "Office desks and chairs"
+        }
+      },
+      "faq": {
+        "heading": "Furniture delivery: questions",
+        "intro": "Questions about moving and delivering furniture.",
+        "items": {
+          "q1": {
+            "question": "Can I move just one item?",
+            "answer": "Yes. A single sofa or wardrobe is its own order, and you are offered a vehicle that matches the item's size — you will not need a big truck for it."
+          },
+          "q2": {
+            "question": "Who carries the furniture up the stairs?",
+            "answer": "If the furniture has to go up or down stairs, add movers at the pickup or drop-off address and give the floor and whether there is a lift. For items like a sofa, the booking form recommends adding a mover."
+          },
+          "q3": {
+            "question": "How do I know the furniture will fit?",
+            "answer": "List the items when you book: zomo compares each one's length, width and height with the vehicle's load space and shows only the classes that fit. If not everything fits in one vehicle, it tells you."
+          },
+          "q4": {
+            "question": "Can furniture go straight from the shop to my home?",
+            "answer": "Yes. Set the shop or warehouse as the pickup address and your home as the drop-off. Add the name the purchase is under to the note, so the driver can collect it without trouble."
+          },
+          "q5": {
+            "question": "How much does furniture delivery cost?",
+            "answer": "The price depends on the route distance, the vehicle class and any movers, and you see it before you confirm. Extra mover time, if needed, is added after the job is done."
+          }
+        }
+      },
+      "closing": {
+        "heading": "Furniture to move?"
+      }
+    },
+    "teqnikis-gadazidva": {
+      "keyword": "Appliance delivery",
+      "meta": {
+        "title": "Appliance delivery — fridges, washers, cookers",
+        "description": "Appliance delivery for a fridge, washing machine, cooker or air conditioner — by van, with a checked driver and a mover when you need one."
+      },
+      "hero": {
+        "subtext": "A new fridge from the shop, a washing machine from your old flat or equipment for the office — deliver it in a vehicle whose load space it fits in with room to spare."
+      },
+      "intro": {
+        "heading": "From the fridge to the washing machine",
+        "p1": "Large household appliances are heavy and awkward: a side-by-side fridge or a washing machine will not fit in a car, and you cannot carry one alone. On zomo you list what you are sending and are offered a van or truck whose load space height and payload are enough for it.",
+        "p2": "Appliances usually go from a shop or warehouse, or from an old flat to a new one. Enter both addresses, pick a time and, if the item has to go upstairs, add a mover — with a lift, the mover costs less."
+      },
+      "why": {
+        "w1": {
+          "title": "A load space it fits in",
+          "body": "Each item's size is known — from a fridge to a dishwasher — and only vehicles it fits in are shown."
+        },
+        "w2": {
+          "title": "A mover for heavy items",
+          "body": "Add a mover to carry a fridge or washing machine upstairs; the price depends on the floor and goes down with a lift."
+        },
+        "w3": {
+          "title": "Appliances on the map",
+          "body": "Follow the vehicle on the map, from the shop or your old address to your door."
+        }
+      },
+      "covers": {
+        "heading": "Which appliances we move",
+        "body": "Large and small household appliances, for example:",
+        "list": {
+          "i1": "Fridges and freezers",
+          "i2": "Washing machines",
+          "i3": "Dishwashers",
+          "i4": "Cookers and microwaves",
+          "i5": "Air conditioners",
+          "i6": "TVs and water heaters"
+        }
+      },
+      "faq": {
+        "heading": "Appliance delivery: questions",
+        "intro": "Questions about moving a fridge, a washing machine and other appliances.",
+        "items": {
+          "q1": {
+            "question": "Which vehicle do I need for a fridge?",
+            "answer": "A van is usually enough for one fridge. Choose the type when you book — standard or side-by-side — and you will see the classes it fits in comfortably."
+          },
+          "q2": {
+            "question": "Who carries the fridge upstairs?",
+            "answer": "Add movers to the order and give their number, the floor and whether there is a lift. Their cost is part of the order price, which you see before you confirm."
+          },
+          "q3": {
+            "question": "Can the driver collect from a shop?",
+            "answer": "Yes. Set the shop or warehouse as the pickup address and add the purchase number or the buyer's name to the note, so the driver can collect it without delay."
+          },
+          "q4": {
+            "question": "Can I send several appliances together?",
+            "answer": "Yes. List every item in one order — say, a fridge, a washing machine and a cooker — and the vehicle is chosen for their combined size and weight."
+          },
+          "q5": {
+            "question": "Can appliances go to another city?",
+            "answer": "Yes. Sending them to Batumi, Kutaisi, Zugdidi or elsewhere is booked the same way as within a city; the price comes from the route distance and is shown before you confirm."
+          }
+        }
+      },
+      "closing": {
+        "heading": "Appliances to move?"
+      }
+    },
+    "opisis-gadazidva": {
+      "keyword": "Office moving",
+      "meta": {
+        "title": "Office moving — furniture, equipment and movers",
+        "description": "Office moving in Tbilisi and other cities: desks, chairs, printers and archive boxes — the right vehicle and movers in a single order."
+      },
+      "hero": {
+        "subtext": "Moving to a new office or opening a branch? Move desks, chairs, equipment and boxes of files in a vehicle big enough for the load, with movers where you need them."
+      },
+      "intro": {
+        "heading": "Moving the office without stopping work",
+        "p1": "An office move takes planning: furniture, equipment and archives have to move so the team can get back to work in the new space as soon as possible. When you book, you choose the date and time and list what is going: desks, chairs, shelving, printers, boxes.",
+        "p2": "Offices in business centres are often on upper floors, so you add movers separately at the pickup and drop-off addresses and say whether there is a lift — with one, they cost less. If the load does not fit in one vehicle, zomo tells you and suggests splitting the order."
+      },
+      "why": {
+        "w1": {
+          "title": "A time that suits the business",
+          "body": "Choose the date and time of the move in advance, so the office loses as little working time as possible."
+        },
+        "w2": {
+          "title": "Movers for business centres",
+          "body": "The movers' price is set by the floor and goes down when a cargo or passenger lift is available."
+        },
+        "w3": {
+          "title": "A document for your company",
+          "body": "Register as a business and your company's details are printed on the order document."
+        }
+      },
+      "covers": {
+        "heading": "What we move between offices",
+        "body": "Everything a workspace needs, for example:",
+        "list": {
+          "i1": "Office desks",
+          "i2": "Office chairs and seating",
+          "i3": "Shelving and cabinets",
+          "i4": "Printers and office equipment",
+          "i5": "Archive and document boxes",
+          "i6": "Kitchen appliances"
+        }
+      },
+      "faq": {
+        "heading": "Office moving: questions",
+        "intro": "What to think about when you plan an office move.",
+        "items": {
+          "q1": {
+            "question": "Can I choose when the move happens?",
+            "answer": "Yes. When you book you choose the date and time the driver should arrive — pick the one that disrupts your team least."
+          },
+          "q2": {
+            "question": "Which vehicle will I need?",
+            "answer": "List the furniture and equipment and zomo offers a class everything fits in. If one vehicle is not enough, it tells you and suggests splitting the order into parts."
+          },
+          "q3": {
+            "question": "How long do the movers work?",
+            "answer": "Part of the movers' time at each address is included in the price — how much is shown when you book. If they need longer, the extra time is added after the job is done."
+          },
+          "q4": {
+            "question": "Can a company get a document for the order?",
+            "answer": "Yes. If you register as a business and give your legal address, it is printed on the order details document."
+          },
+          "q5": {
+            "question": "Can we move the office to another city?",
+            "answer": "Yes. Opening a branch or relocating to another city is booked the same way; the price comes from the route distance and is shown before you confirm."
+          }
+        }
+      },
+      "closing": {
+        "heading": "Moving your office?"
+      }
+    },
+    "samsheneblo-masalebis-gadazidva": {
+      "keyword": "Building materials delivery",
+      "meta": {
+        "title": "Building materials delivery by van and truck",
+        "description": "Building materials delivery: cement, bricks, blocks, tiles and rebar — by van, truck or open flatbed, with a checked driver."
+      },
+      "hero": {
+        "subtext": "Cement from the builders' merchant, tiles from the market, rebar and timber to the site — choose a vehicle for the weight and length of the load, enclosed or open flatbed."
+      },
+      "intro": {
+        "heading": "Materials to the site, in a vehicle built for the weight",
+        "p1": "Building materials are heavy for their size: a few bags of cement fit in a large van, but pallets of bricks or blocks need a medium or heavy freight truck, and long rebar or beams need an open flatbed. On zomo you list the materials and quantities and see only the classes that can take that weight and length.",
+        "p2": "Materials usually go from a builders' merchant or market to the site, or from one site to another. Add the warehouse or stall to the pickup note, and how the vehicle gets into the yard to the drop-off note. No more searching for a cargo taxi."
+      },
+      "why": {
+        "w1": {
+          "title": "A vehicle for the weight",
+          "body": "The weight and quantity of the materials are taken into account — a van for a few bags, a truck for pallets."
+        },
+        "w2": {
+          "title": "Enclosed or open flatbed",
+          "body": "An open flatbed suits long beams and rebar; an enclosed load space suits cement and plaster, which damp spoils."
+        },
+        "w3": {
+          "title": "To the site, on the map",
+          "body": "Follow the vehicle on the map, so you are ready to receive the materials on site."
+        }
+      },
+      "covers": {
+        "heading": "Which materials we deliver",
+        "body": "Small amounts for a renovation or large loads for a build, for example:",
+        "list": {
+          "i1": "Cement and plaster in bags",
+          "i2": "Bricks and blocks",
+          "i3": "Tiles and laminate",
+          "i4": "Drywall and plywood",
+          "i5": "Timber and rebar",
+          "i6": "Doors, windows and bathtubs"
+        }
+      },
+      "faq": {
+        "heading": "Building materials delivery: questions",
+        "intro": "Common questions about getting materials to the site.",
+        "items": {
+          "q1": {
+            "question": "Which vehicle do I need for cement and bricks?",
+            "answer": "It depends on the quantity. A large van is enough for a few bags; for pallets, choose a medium or heavy freight truck. When you list the materials, zomo shows you which classes can carry their weight."
+          },
+          "q2": {
+            "question": "Can you carry long rebar or beams?",
+            "answer": "Yes. Enter the material when you book and, if it needs an open load space, you are offered a vehicle with an open flatbed. When you choose the vehicle you can see which load space is long enough."
+          },
+          "q3": {
+            "question": "Who helps unload the materials?",
+            "answer": "You can add movers at the pickup and drop-off addresses. If the materials have to go up to a floor, give the floor — the movers' price depends on it."
+          },
+          "q4": {
+            "question": "Can the driver collect from a building materials market?",
+            "answer": "Yes. Set the market or shop as the pickup address and add the stall or warehouse entrance to the note, so the driver finds the load quickly."
+          },
+          "q5": {
+            "question": "Can materials go to another city?",
+            "answer": "Yes. Delivery to Rustavi, Gori or another city is booked the same way as within a city; the price comes from the route distance and is shown before you confirm."
+          }
+        }
+      },
+      "closing": {
+        "heading": "Materials to get to the site?"
+      }
+    },
+    "mtvirtavebi": {
+      "keyword": "Movers and loaders",
+      "meta": {
+        "title": "Movers and loaders — help with your delivery",
+        "description": "Movers and loaders for your delivery: add them at the pickup and drop-off addresses. The price is set by the floor and goes down with a lift."
+      },
+      "hero": {
+        "subtext": "Heavy furniture, a fridge or a top-floor flat — add movers to your order, separately for the pickup and the drop-off address, and see the price before you book."
+      },
+      "intro": {
+        "heading": "Movers who come with the vehicle",
+        "p1": "The hardest part of a move is often not the road but the stairs: a sofa down from the fifth floor, a fridge through a narrow stairwell, bags of cement on a building site. On zomo there is no need to find movers separately — when you book, you say how many you need at the pickup address and how many at the drop-off.",
+        "p2": "The movers' price at each address is set by the floor: the higher it is, the more work there is. If the building has a cargo or passenger lift, tick it and the price goes down. Part of the movers' time at each address is already included, and any extra time is added after the job is done."
+      },
+      "why": {
+        "w1": {
+          "title": "Separately at each address",
+          "body": "You might need two movers at pickup and none at drop-off. You choose the number for each address yourself."
+        },
+        "w2": {
+          "title": "Priced by floor, less with a lift",
+          "body": "The price depends on the floor and goes down when there is a lift. You see the full amount before you book."
+        },
+        "w3": {
+          "title": "One order for vehicle and movers",
+          "body": "The vehicle, the driver and the movers are in one order, so you plan and follow everything in one place."
+        }
+      },
+      "covers": {
+        "heading": "When movers help",
+        "body": "Anywhere the load is too much to carry alone, for example:",
+        "list": {
+          "i1": "Moving house",
+          "i2": "Heavy furniture up the stairs",
+          "i3": "Delivering a fridge or washing machine",
+          "i4": "Moving an office",
+          "i5": "Unloading building materials",
+          "i6": "Collecting goods from a warehouse"
+        }
+      },
+      "faq": {
+        "heading": "Movers and loaders: questions",
+        "intro": "How movers are added to an order and how their price is calculated.",
+        "items": {
+          "q1": {
+            "question": "How many movers can I add?",
+            "answer": "You can add several movers at each address — pickup and drop-off; the booking form shows the exact limit. Zero means the driver works alone."
+          },
+          "q2": {
+            "question": "How is the movers' price calculated?",
+            "answer": "Per mover, per address, by floor. It goes down when a cargo or passenger lift is available. The movers' cost is part of the order's full price, which you see before you confirm."
+          },
+          "q3": {
+            "question": "What if the movers need more time?",
+            "answer": "Part of the movers' time at each address is included — how much is shown when you book. Time beyond that is added after the job is done, for each started increment."
+          },
+          "q4": {
+            "question": "Can I have movers at the drop-off only?",
+            "answer": "Yes. If you load the vehicle yourself at pickup, set zero movers there and as many as you need at the drop-off."
+          },
+          "q5": {
+            "question": "Can I hire movers without a vehicle?",
+            "answer": "No. On zomo, movers are added to a delivery order and come with the driver; they cannot be booked on their own, without a vehicle."
+          }
+        }
+      },
+      "closing": {
+        "heading": "Need movers?"
+      }
+    }
+  }
+}

@@ -66,13 +66,16 @@ const OG_COPY: Record<OgImageVariant, Record<AppLocale, OgCopy>> = {
  * the image file (a per-locale alt would need `generateImageMetadata`, which
  * moves the image to `/opengraph-image/<id>`), so it carries both languages.
  */
-export const OG_IMAGE_ALT: Record<OgImageVariant | "city", string> = {
-  client: "zomo — ტვირთის გადაზიდვა თბილისში · Cargo delivery in Tbilisi",
-  driver: "zomo — მძღოლის ვაკანსია · Driver jobs in Tbilisi",
-  // The city landing pages share one static alt (see above), so it names the
-  // service rather than any one city.
-  city: "zomo — ტვირთის გადაზიდვა · Cargo delivery in Georgia",
-};
+export const OG_IMAGE_ALT: Record<OgImageVariant | "city" | "service", string> =
+  {
+    client: "zomo — ტვირთის გადაზიდვა თბილისში · Cargo delivery in Tbilisi",
+    driver: "zomo — მძღოლის ვაკანსია · Driver jobs in Tbilisi",
+    // The city landing pages share one static alt (see above), so it names the
+    // service rather than any one city.
+    city: "zomo — ტვირთის გადაზიდვა · Cargo delivery in Georgia",
+    // Likewise one alt for every service page.
+    service: "zomo — გადაზიდვა და მტვირთავები · Moving and movers in Georgia",
+  };
 
 const FONT_DIR = join(process.cwd(), "src/assets/fonts");
 

@@ -1,6 +1,10 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { expect, test } from "@playwright/test";
 
 import {
+  clientLandingPaths,
   isIndexableDeployment,
   isIndexablePath,
   isMetadataAssetPath,
@@ -17,7 +21,15 @@ import {
   breadcrumbJsonLd,
   cityServiceJsonLd,
   faqPageJsonLd,
+  landingServiceJsonLd,
 } from "@/lib/seo/json-ld";
+import {
+  SERVICE_LANDING_CARGO_CATEGORY,
+  SERVICE_LANDING_SLUGS,
+  isServiceLandingPath,
+  isServiceLandingSlug,
+  serviceLandingPath,
+} from "@/lib/seo/services";
 
 /**
  * The indexing policy behind the middleware's `X-Robots-Tag`, `robots.txt` and
@@ -54,10 +66,14 @@ test.describe("isIndexableDeployment", () => {
 });
 
 test.describe("isIndexablePath", () => {
-  test("gated client host: only the root and the city pages", () => {
+  test("gated client host: only the root, the city and the service pages", () => {
     expect(isIndexablePath("CLIENT", "/", true)).toBe(true);
     for (const slug of CITY_LANDING_SLUGS) {
       const path = cityLandingPath(slug);
+      expect(isIndexablePath("CLIENT", path, true), path).toBe(true);
+    }
+    for (const slug of SERVICE_LANDING_SLUGS) {
+      const path = serviceLandingPath(slug);
       expect(isIndexablePath("CLIENT", path, true), path).toBe(true);
     }
     for (const path of [
@@ -68,6 +84,9 @@ test.describe("isIndexablePath", () => {
       "/gadazidva",
       "/gadazidva/atlantis",
       "/gadazidva/tbilisi/extra",
+      "/momsakhureba",
+      "/momsakhureba/unknown",
+      "/momsakhureba/mtvirtavebi/extra",
     ]) {
       expect(isIndexablePath("CLIENT", path, true), path).toBe(false);
     }
@@ -78,8 +97,12 @@ test.describe("isIndexablePath", () => {
       expect(isIndexablePath(audience, "/", false)).toBe(true);
       expect(isIndexablePath(audience, "/pages/terms", false)).toBe(true);
       expect(isIndexablePath(audience, "/gadazidva/batumi", false)).toBe(true);
+      expect(
+        isIndexablePath(audience, "/momsakhureba/avejis-gadazidva", false),
+      ).toBe(true);
       for (const path of [
         "/gadazidva/atlantis",
+        "/momsakhureba/unknown",
         "/pages/",
         "/pages",
         "/account",
@@ -104,6 +127,7 @@ test.describe("isIndexablePath", () => {
         "/sign-in",
         "/sign-up/extra",
         "/gadazidva/tbilisi",
+        "/momsakhureba/mtvirtavebi",
       ]) {
         expect(isIndexablePath("MERCHANT", path, gated), path).toBe(false);
       }
@@ -113,6 +137,26 @@ test.describe("isIndexablePath", () => {
   test("admin host: nothing", () => {
     for (const path of ["/", "/admin", "/sign-up", "/pages/terms"]) {
       expect(isIndexablePath("ADMIN", path, false), path).toBe(false);
+    }
+  });
+});
+
+test.describe("clientLandingPaths", () => {
+  test("lists the root, every city page and every service page, once", () => {
+    const paths = clientLandingPaths();
+    expect(paths).toEqual([
+      "/",
+      ...CITY_LANDING_SLUGS.map(cityLandingPath),
+      ...SERVICE_LANDING_SLUGS.map(serviceLandingPath),
+    ]);
+    expect(new Set(paths).size).toBe(paths.length);
+  });
+
+  test("lists only paths indexable while the gate is on", () => {
+    // The sitemap lists these regardless of the gate, so each one must be
+    // indexable on the gated client host.
+    for (const path of clientLandingPaths()) {
+      expect(isIndexablePath("CLIENT", path, true), path).toBe(true);
     }
   });
 });
@@ -128,6 +172,7 @@ test.describe("isMetadataAssetPath", () => {
       "/ka/sign-up/opengraph-image",
       "/ka/gadazidva/tbilisi/opengraph-image",
       "/en/gadazidva/batumi/twitter-image",
+      "/ka/momsakhureba/mtvirtavebi/opengraph-image",
       "/ka/opengraph-image-1a2b3c",
       "/icon",
       "/apple-icon",
@@ -185,6 +230,84 @@ test.describe("city landing routes", () => {
     ]) {
       expect(isCityLandingPath(path), path).toBe(false);
     }
+  });
+});
+
+test.describe("service landing routes", () => {
+  test("builds and recognises exactly the known service paths", () => {
+    expect(serviceLandingPath("binis-gadazidva")).toBe(
+      "/momsakhureba/binis-gadazidva",
+    );
+    expect(SERVICE_LANDING_SLUGS).toEqual([
+      "binis-gadazidva",
+      "avejis-gadazidva",
+      "teqnikis-gadazidva",
+      "opisis-gadazidva",
+      "samsheneblo-masalebis-gadazidva",
+      "mtvirtavebi",
+    ]);
+    for (const slug of SERVICE_LANDING_SLUGS) {
+      expect(isServiceLandingSlug(slug), slug).toBe(true);
+      expect(isServiceLandingPath(serviceLandingPath(slug)), slug).toBe(true);
+    }
+    for (const value of ["", "unknown", "Mtvirtavebi", "tbilisi"]) {
+      expect(isServiceLandingSlug(value), value).toBe(false);
+    }
+    for (const path of [
+      "/momsakhureba",
+      "/momsakhureba/",
+      "/momsakhureba/unknown",
+      "/momsakhureba/mtvirtavebi/",
+      "/momsakhureba/mtvirtavebi/x",
+      "/ka/momsakhureba/mtvirtavebi",
+      "/xmomsakhureba/mtvirtavebi",
+      "/gadazidva/mtvirtavebi",
+    ]) {
+      expect(isServiceLandingPath(path), path).toBe(false);
+    }
+  });
+
+  test("maps services onto real cargo categories", () => {
+    // Kept in step with the Prisma enum by hand (see `services.ts`).
+    const schema = readFileSync(
+      join(process.cwd(), "prisma", "schema.prisma"),
+      "utf8",
+    );
+    const categories = (
+      /enum CargoCategory \{([^}]*)\}/.exec(schema)?.[1] ?? ""
+    )
+      .trim()
+      .split(/\s+/);
+    for (const slug of SERVICE_LANDING_SLUGS) {
+      const category = SERVICE_LANDING_CARGO_CATEGORY[slug];
+      if (category !== null) {
+        expect(categories, slug).toContain(category);
+      }
+    }
+  });
+});
+
+test.describe("service landing JSON-LD", () => {
+  test("describes the service across the country", () => {
+    const origin = "https://zomo.ge";
+    const pageUrl = "https://zomo.ge/en/momsakhureba/mtvirtavebi";
+    expect(
+      landingServiceJsonLd(origin, pageUrl, {
+        serviceType: "Movers and loaders",
+        name: "Movers and loaders",
+        description: "d",
+        countryName: "Georgia",
+      }),
+    ).toEqual({
+      "@type": "Service",
+      "@id": `${pageUrl}#service`,
+      serviceType: "Movers and loaders",
+      name: "Movers and loaders",
+      description: "d",
+      url: pageUrl,
+      provider: { "@id": "https://zomo.ge/#organization" },
+      areaServed: { "@type": "Country", name: "Georgia" },
+    });
   });
 });
 

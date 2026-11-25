@@ -21,6 +21,7 @@ import {
   cityLandingPath,
   type CityLandingSlug,
 } from "@/lib/seo/cities";
+import { SERVICE_LANDING_SLUGS, serviceLandingPath } from "@/lib/seo/services";
 
 /**
  * Everything one city landing page renders, resolved on the server.
@@ -41,8 +42,12 @@ export type CityIntroContent = {
   whyCards: CityWhyCard[];
 };
 
-/** A link to another city's page; `label` is that city's keyword. */
-export type CityLink = { slug: CityLandingSlug; label: string; href: string };
+/**
+ * A link to another landing page — another city's, or (on the service pages)
+ * another service's; `label` is that page's keyword. `slug` is only the list
+ * key, so it is a plain string shared by both clusters.
+ */
+export type CityLink = { slug: string; label: string; href: string };
 
 export type CityLinksContent = {
   eyebrow: string;
@@ -106,7 +111,7 @@ export function cityDriverSignUpHref(locale: AppLocale): string {
  * footer is a fixed literal in `DEFAULT_HOME_PAGE_CONTENT` (Product, Business,
  * Drivers, Company) and its titles are only addressable through it.
  */
-function defaultFooterColumn(
+export function defaultFooterColumn(
   footer: FooterContent,
   index: number,
 ): FooterColumn {
@@ -123,9 +128,10 @@ export async function loadCityLandingContent({
   /** Pre-launch: no booking CTAs, the driver sign-up is the primary action. */
   isGated: boolean;
 }): Promise<CityLandingContent> {
-  const [t, tCities, messages] = await Promise.all([
+  const [t, tCities, tServices, messages] = await Promise.all([
     getTranslations({ locale, namespace: "cityLanding" }),
     getTranslations({ locale, namespace: "cities.georgianCities" }),
+    getTranslations({ locale, namespace: "serviceLanding" }),
     getMessages({ locale }),
   ]);
 
@@ -297,6 +303,16 @@ export async function loadCityLandingContent({
         links: CITY_LANDING_SLUGS.map((slug) => ({
           label: tCities(slug),
           href: cityLandingPath(slug),
+        })),
+      },
+      {
+        // The service pages, each anchored with its keyword — the city
+        // cluster's crawl path into the service cluster (which links back
+        // from its own footer).
+        title: tServices("shared.footer.servicesTitle"),
+        links: SERVICE_LANDING_SLUGS.map((slug) => ({
+          label: tServices(`services.${slug}.keyword`),
+          href: serviceLandingPath(slug),
         })),
       },
       {

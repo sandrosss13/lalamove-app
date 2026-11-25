@@ -17,7 +17,16 @@
  */
 
 import type { Audience } from "@/lib/host";
-import { isCityLandingPath } from "@/lib/seo/cities";
+import {
+  CITY_LANDING_SLUGS,
+  cityLandingPath,
+  isCityLandingPath,
+} from "@/lib/seo/cities";
+import {
+  SERVICE_LANDING_SLUGS,
+  isServiceLandingPath,
+  serviceLandingPath,
+} from "@/lib/seo/services";
 
 /**
  * The hostname a request was made to. `x-forwarded-host` is what a proxy
@@ -90,9 +99,10 @@ const MERCHANT_INDEXABLE_PATHS = ["/sign-up"];
  * - Client host (or the single shared host while the merchant split is off):
  *   while the pre-launch gate is on, only the root — which serves the "coming
  *   soon" page — so the brand and its keywords are findable before launch,
- *   and the city landing pages, which the gate exempts. Every other gated URL
- *   renders the "coming soon" page and would be a duplicate. Ungated, the
- *   landing page, the city pages and the published static pages. Account,
+ *   and the city and service landing pages, which the gate exempts. Every
+ *   other gated URL renders the "coming soon" page and would be a duplicate.
+ *   Ungated, the landing page, the city and service pages and the published
+ *   static pages. Account,
  *   checkout, orders and the rest sit behind sign-in and are never indexed.
  * - Merchant host: only driver sign-up. The dashboard is signed-in only.
  * - Admin host: nothing, ever.
@@ -105,9 +115,13 @@ export function isIndexablePath(
   switch (audience) {
     case "CLIENT":
     case "BOTH":
-      // The city landing pages are exempt from the gate (see
+      // The city and service landing pages are exempt from the gate (see
       // `isUnderConstructionExempt`), so they are real pages either way.
-      if (pathname === "/" || isCityLandingPath(pathname)) {
+      if (
+        pathname === "/" ||
+        isCityLandingPath(pathname) ||
+        isServiceLandingPath(pathname)
+      ) {
         return true;
       }
       return (
@@ -120,6 +134,21 @@ export function isIndexablePath(
     case "ADMIN":
       return false;
   }
+}
+
+/**
+ * The client host's pages that are indexable whether or not the pre-launch
+ * gate is on, unprefixed and in display order: the root, every city landing
+ * page and every service landing page. The sitemap lists exactly these (in
+ * both languages) without a database read; the static pages join them once
+ * the gate is off.
+ */
+export function clientLandingPaths(): string[] {
+  return [
+    "/",
+    ...CITY_LANDING_SLUGS.map(cityLandingPath),
+    ...SERVICE_LANDING_SLUGS.map(serviceLandingPath),
+  ];
 }
 
 /** Root-level metadata files Next generates from `src/app/*.ts`. */

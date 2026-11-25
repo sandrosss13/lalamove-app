@@ -83,6 +83,27 @@ test.describe("isUnderConstructionExempt", () => {
       expect(isUnderConstructionExempt(path), path).toBe(false);
     }
   });
+
+  test("exempts exactly the known service landing pages", () => {
+    for (const path of [
+      "/momsakhureba/binis-gadazidva",
+      "/momsakhureba/mtvirtavebi",
+    ]) {
+      expect(isUnderConstructionExempt(path), path).toBe(true);
+    }
+    for (const path of [
+      "/momsakhureba",
+      "/momsakhureba/",
+      "/momsakhureba/unknown",
+      "/momsakhureba/mtvirtavebi/",
+      "/momsakhureba/mtvirtavebi/extra",
+      "/momsakhureba/Mtvirtavebi",
+      "/ka/momsakhureba/mtvirtavebi",
+      "/gadazidva/mtvirtavebi",
+    ]) {
+      expect(isUnderConstructionExempt(path), path).toBe(false);
+    }
+  });
 });
 
 /**
@@ -349,6 +370,40 @@ test.describe("middleware with CLIENT_UNDER_CONSTRUCTION on", () => {
     expect(image).toMatchObject({ kind: "next", robots: null });
   });
 
+  test("serves the service landing pages live and indexable", () => {
+    const [georgian, english, bare, unknown, image] = probe(env, [
+      { url: "https://zomo.ge/ka/momsakhureba/binis-gadazidva" },
+      { url: "https://zomo.ge/en/momsakhureba/mtvirtavebi" },
+      { url: "https://zomo.ge/momsakhureba/avejis-gadazidva" },
+      { url: "https://zomo.ge/ka/momsakhureba/unknown" },
+      { url: "https://zomo.ge/ka/momsakhureba/mtvirtavebi/opengraph-image" },
+    ]);
+
+    expect(georgian).toMatchObject({ kind: "next", robots: null });
+    expect(english).toMatchObject({ kind: "next", robots: null });
+    expect(bare).toMatchObject({
+      kind: "redirect",
+      location: "https://zomo.ge/ka/momsakhureba/avejis-gadazidva",
+    });
+    expect(unknown).toMatchObject({
+      kind: "rewrite",
+      rewrite: "/ka/coming-soon",
+      robots: "noindex, nofollow",
+    });
+    expect(image).toMatchObject({ kind: "next", robots: null });
+  });
+
+  test("bounces service landing pages off the merchant host", () => {
+    const [service] = probe(env, [
+      { url: "https://merchant.zomo.ge/ka/momsakhureba/opisis-gadazidva" },
+    ]);
+
+    expect(service).toMatchObject({
+      kind: "redirect",
+      location: "https://zomo.ge/ka/momsakhureba/opisis-gadazidva",
+    });
+  });
+
   test("bounces city landing pages off the merchant host", () => {
     const [city] = probe(env, [
       { url: "https://merchant.zomo.ge/en/gadazidva/kutaisi?ref=x" },
@@ -394,6 +449,17 @@ test.describe("middleware with CLIENT_UNDER_CONSTRUCTION unset", () => {
     for (const result of probe(PRODUCTION_HOSTS, [
       { url: "https://zomo.ge/ka/gadazidva/gori" },
       { url: "https://zomo.ge/en/gadazidva/rustavi" },
+    ])) {
+      expect(result, result.url).toMatchObject({ kind: "next", robots: null });
+    }
+  });
+
+  test("indexes the service landing pages", () => {
+    for (const result of probe(PRODUCTION_HOSTS, [
+      { url: "https://zomo.ge/ka/momsakhureba/teqnikis-gadazidva" },
+      {
+        url: "https://zomo.ge/en/momsakhureba/samsheneblo-masalebis-gadazidva",
+      },
     ])) {
       expect(result, result.url).toMatchObject({ kind: "next", robots: null });
     }

@@ -7,6 +7,7 @@ import { ZomoLockupThemed } from "@/components/brand/zomo-logo";
 import { clientOrigin } from "@/lib/host";
 import { CITY_LANDING_SLUGS, cityLandingPath } from "@/lib/seo/cities";
 import { JsonLd, siteJsonLdGraph } from "@/lib/seo/json-ld";
+import { SERVICE_LANDING_SLUGS, serviceLandingPath } from "@/lib/seo/services";
 import { alternatesFor } from "@/lib/seo/urls";
 import { cn } from "@/lib/utils";
 
@@ -49,10 +50,11 @@ export async function generateMetadata({
  * It is a dead end by design. `data-hide-site-header` hides the global header
  * from `src/app/[locale]/layout.tsx` (the rule lives in `globals.css`), so
  * nothing here links into the app — every such link would only be rewritten
- * back to this page anyway. The exception is the city landing pages, which
- * are exempt from the gate and linked from the list under the copy. The one control is the language switch, written as
- * plain `<a>` tags to the bare prefix (`/ka`, `/en`) rather than the
- * `LanguageToggle` component: that component is a client-side navigation that
+ * back to this page anyway. The exception is the city and service landing
+ * pages, which are exempt from the gate and linked from the lists under the
+ * copy. The one control is the language switch, written as plain `<a>` tags
+ * to the bare prefix (`/ka`, `/en`) rather than the `LanguageToggle`
+ * component: that component is a client-side navigation that
  * swaps the prefix on the current route, and on a rewritten request "the
  * current route" is ambiguous (the visitor's URL, or `/coming-soon`?). A plain
  * document navigation to a prefixed root is unambiguous — the gate rewrites it
@@ -68,9 +70,10 @@ export default async function ComingSoonPage({
   params: LocaleRouteParams;
 }) {
   const locale = await resolveRouteLocale(params);
-  const [t, tCity, jsonLd] = await Promise.all([
+  const [t, tCity, tService, jsonLd] = await Promise.all([
     getTranslations({ locale, namespace: "common.comingSoon" }),
     getTranslations({ locale, namespace: "cityLanding" }),
+    getTranslations({ locale, namespace: "serviceLanding" }),
     siteJsonLdGraph(clientOrigin(), locale),
   ]);
 
@@ -101,8 +104,8 @@ export default async function ComingSoonPage({
 
         {/*
           The one exception to "nothing here links into the app": the city
-          landing pages are exempt from the gate, so these links resolve to
-          real pages. They are the crawl path into those pages from the only
+          (and, below, service) landing pages are exempt from the gate, so
+          these links resolve to real pages. They are the crawl path into those pages from the only
           indexable page the gated site has, anchored with each city's keyword.
           Plain `<a>` with the prefix written out, like the language switch.
         */}
@@ -118,6 +121,25 @@ export default async function ComingSoonPage({
                   className="inline-flex rounded-full border border-line-hairline px-3 py-1.5 text-sm text-subtle transition-colors hover:border-line-stronger hover:text-paper"
                 >
                   {tCity(`cities.${slug}.keyword`)}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+
+        {/* The service landing pages, likewise exempt and keyword-anchored. */}
+        <nav aria-label={tService("shared.footer.servicesTitle")}>
+          <h2 className="font-price text-[11px] tracking-[.18em] text-faint uppercase">
+            {tService("shared.footer.servicesTitle")}
+          </h2>
+          <ul className="mt-3 flex flex-wrap gap-2">
+            {SERVICE_LANDING_SLUGS.map((slug) => (
+              <li key={slug}>
+                <a
+                  href={withLocalePrefix(locale, serviceLandingPath(slug))}
+                  className="inline-flex rounded-full border border-line-hairline px-3 py-1.5 text-sm text-subtle transition-colors hover:border-line-stronger hover:text-paper"
+                >
+                  {tService(`services.${slug}.keyword`)}
                 </a>
               </li>
             ))}
