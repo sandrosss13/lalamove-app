@@ -120,6 +120,37 @@ export function cityServiceJsonLd(
   };
 }
 
+/**
+ * One kind of job (house moving, furniture delivery, movers…) as offered
+ * across the country — the main entity of a service landing page. Like
+ * `cityServiceJsonLd` it carries its own `@id` and `url`, but it serves the
+ * whole country rather than one city.
+ *
+ * `serviceType` is a machine-facing English category label and stays English
+ * in both locales; `name` and `description` are what a searcher reads.
+ */
+export function landingServiceJsonLd(
+  origin: string,
+  pageUrl: string,
+  service: {
+    serviceType: string;
+    name: string;
+    description: string;
+    countryName: string;
+  },
+): JsonLdNode {
+  return {
+    "@type": "Service",
+    "@id": `${pageUrl}#service`,
+    serviceType: service.serviceType,
+    name: service.name,
+    description: service.description,
+    url: pageUrl,
+    provider: { "@id": organizationId(origin) },
+    areaServed: { "@type": "Country", name: service.countryName },
+  };
+}
+
 /** A `BreadcrumbList`, positions numbered from 1 in the order given. */
 export function breadcrumbJsonLd(
   items: ReadonlyArray<{ name: string; url: string }>,

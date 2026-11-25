@@ -145,6 +145,7 @@ export async function generateMetadata({
     ? rawLocale
     : DEFAULT_LOCALE;
   const t = await getTranslations({ locale, namespace: "common.seo" });
+  const googleSiteVerification = process.env.GOOGLE_SITE_VERIFICATION?.trim();
 
   return {
     metadataBase: new URL(clientOrigin()),
@@ -166,17 +167,25 @@ export async function generateMetadata({
       ),
     },
     twitter: { card: "summary_large_image" },
+    // Google Search Console's HTML-tag ownership check. Only emitted when the
+    // token is configured, so an unset variable renders no empty meta tag.
+    ...(googleSiteVerification
+      ? { verification: { google: googleSiteVerification } }
+      : {}),
   };
 }
 
 /**
  * Message namespaces that are only ever read on the server and so are not
- * shipped to the browser. `cityLanding` is the city landing pages' long-form
- * copy: those pages resolve it in server components and hand client sections
- * plain props, so serialising it into every page's client payload would be
- * pure weight.
+ * shipped to the browser. `cityLanding` and `serviceLanding` are the city and
+ * service landing pages' long-form copy: those pages resolve it in server
+ * components and hand client sections plain props, so serialising it into
+ * every page's client payload would be pure weight.
  */
-const SERVER_ONLY_NAMESPACES: ReadonlySet<string> = new Set(["cityLanding"]);
+const SERVER_ONLY_NAMESPACES: ReadonlySet<string> = new Set([
+  "cityLanding",
+  "serviceLanding",
+]);
 
 /** The request's messages minus `SERVER_ONLY_NAMESPACES`. */
 function clientMessages(

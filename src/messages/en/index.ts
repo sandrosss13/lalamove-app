@@ -27,6 +27,7 @@ import orderEmails from "./orderEmails.json";
 import orderTracking from "./orderTracking.json";
 import orders from "./orders.json";
 import savedAddresses from "./savedAddresses.json";
+import serviceLanding from "./serviceLanding.json";
 import wallet from "./wallet.json";
 
 const messages = {
@@ -50,6 +51,7 @@ const messages = {
   orderTracking,
   orders,
   savedAddresses,
+  serviceLanding,
   wallet,
 };
 

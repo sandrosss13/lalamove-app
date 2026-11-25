@@ -7,14 +7,22 @@ import { Link } from "@/i18n/navigation";
  * Links to every other city page, each anchored with that city's own search
  * keyword ("ტვირთის გადაზიდვა ბათუმში"). This is the cluster's internal
  * linking: it gives crawlers a path between all the city pages and tells them
- * what each one is about.
+ * what each one is about. The service pages reuse it, under their own `id`,
+ * for their links to the other services and to the city pages.
  *
  * `Link` from `@/i18n/navigation`, so each target keeps the reader's locale.
  */
-export function CityLinks({ content }: { content: CityLinksContent }) {
+export function CityLinks({
+  content,
+  id = "cities",
+}: {
+  content: CityLinksContent;
+  /** The section's in-page anchor, matched by the nav's `#…` links. */
+  id?: string;
+}) {
   return (
     <section
-      id="cities"
+      id={id}
       className="scroll-mt-28 px-[clamp(20px,4vw,48px)] py-[clamp(56px,7vw,104px)]"
     >
       <div data-reveal className="mx-auto w-full max-w-[1200px]">
